@@ -386,9 +386,35 @@ export interface CounterRedemption {
   loyalty: LoyaltyView;
 }
 
+/** The till's answer once something may have been given (ORD-12, ORD-M02). */
+export const COUNTER_MAYBE_STAMPED =
+  "Damga verilmiş olabilir, üyenin kartını kontrol et.";
+
+/**
+ * The code was burned, or a stamp insert was sent, and then something
+ * failed (an insert, the milestone gift, the balance read): some or all of
+ * the stamps may have landed. Never "Damga verilemedi. Tekrar dene.": on
+ * the QR the retry answers "already used", on the e-mail path it stamps
+ * again (free drinks).
+ */
+export interface CounterRedeemPartial {
+  ok: false;
+  error: "partial";
+  message: string;
+  /** Inserts that answered; the one that failed may have landed too. */
+  stampsWritten: number;
+  stampsAsked: number;
+  /** As on a receipt: the burned code (empty on the e-mail path) and the label. */
+  code: string;
+  memberLabel: string;
+  /** What failed. The app's route rethrows it, so its answer is unchanged. */
+  cause: unknown;
+}
+
 export type RedeemCounterTokenResult =
   | { ok: true; redemption: CounterRedemption }
-  | { ok: false; error: CounterRedeemError; message: string };
+  | { ok: false; error: CounterRedeemError; message: string }
+  | CounterRedeemPartial;
 
 const MESSAGES: Record<CounterRedeemError, string> = {
   invalid_stamps: `Damga sayısı ${MIN_COUNTER_STAMPS} ile ${MAX_COUNTER_STAMPS} arasında olmalı.`,
@@ -524,26 +550,45 @@ export async function redeemCounterToken(
     code = row.code;
   }
 
+  // The cashier typed the address on the e-mail path, so masking it there
+  // would hide nothing and only make the receipt harder to check.
+  const memberLabel = input.kind === "email" ? owner : maskEmail(owner);
   const note = noteFor(input.kind, input.note ?? "");
-  for (let i = 0; i < stamps; i += 1) {
-    await addCounterStamp(owner, actor, note);
-  }
+  // From here on something is spent: the code is burned, every insert is a
+  // stamp. A throw used to reach the till as "Damga verilemedi. Tekrar
+  // dene." with some or all of the stamps written.
+  let written = 0;
+  try {
+    for (let i = 0; i < stamps; i += 1) {
+      await addCounterStamp(owner, actor, note);
+      written += 1;
+    }
 
-  const [loyalty, customer] = await Promise.all([
-    getLoyalty(owner),
-    getCustomerByEmail(owner),
-  ]);
+    const [loyalty, customer] = await Promise.all([
+      getLoyalty(owner),
+      getCustomerByEmail(owner),
+    ]);
 
-  return {
-    ok: true,
-    redemption: {
-      name: customer?.name ?? "",
-      // The cashier typed the address on the e-mail path, so masking it there
-      // would hide nothing and only make the receipt harder to check.
-      memberLabel: input.kind === "email" ? owner : maskEmail(owner),
+    return {
+      ok: true,
+      redemption: {
+        name: customer?.name ?? "",
+        memberLabel,
+        code,
+        stampsGiven: stamps,
+        loyalty,
+      },
+    };
+  } catch (cause) {
+    return {
+      ok: false,
+      error: "partial",
+      message: COUNTER_MAYBE_STAMPED,
+      stampsWritten: written,
+      stampsAsked: stamps,
       code,
-      stampsGiven: stamps,
-      loyalty,
-    },
-  };
+      memberLabel,
+      cause,
+    };
+  }
 }

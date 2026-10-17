@@ -97,6 +97,10 @@ export async function POST(request: Request) {
       refuseOwner: barista.email,
     });
     if (!result.ok) {
+      // Stamps may have landed before the failure: answered as the throw it
+      // used to be (500, or 503 with the database down), so the app sees
+      // exactly what it saw before the till learned to say "verilmiş olabilir".
+      if (result.error === "partial") throw result.cause;
       // Only a code that matched nothing is what guessing looks like.
       if (result.error === "not_found") {
         await recordLoginFailure("staff-stamp", ip, barista.email);

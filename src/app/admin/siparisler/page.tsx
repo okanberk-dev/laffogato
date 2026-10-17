@@ -17,8 +17,9 @@ import {
   orderActions,
   orderPaymentState,
 } from "@/lib/admin/order-actions";
+import { orderForClient } from "@/lib/admin/order-details";
 import {
-  OPEN_TAB_STATUSES,
+  OPEN_ORDER_STATUSES,
   ORDER_FILTER_FIELDS,
   ORDER_LIST_PAGE_SIZE,
   ORDER_LIST_PATH,
@@ -76,7 +77,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
       destination: "none" as const,
     };
     return {
-      order,
+      // No consent record: a client prop is in the page source (ORD-29).
+      order: orderForClient(order),
       money: {
         collected: m.collected,
         collectedMinor: m.collectedMinor,
@@ -89,7 +91,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
   });
 
   const all = Object.values(counts).reduce((s, n) => s + n, 0);
-  const open = OPEN_TAB_STATUSES.reduce((s, st) => s + counts[st], 0);
+  const open = OPEN_ORDER_STATUSES.reduce((s, st) => s + counts[st], 0);
   const tabs = ORDER_TABS.map((t) => ({
     ...t,
     count:
@@ -144,10 +146,16 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         label="Sipariş filtreleri"
       />
 
+      {/* Keyed by the URL: a tab, filter, sort or page link starts a fresh
+          selection. Next keeps a page's state across search-param changes,
+          so three ticked open orders stayed selected on the "Tamamlandı"
+          tab and "İptal et" cancelled orders no longer on screen (admin
+          audit ORD-07). */}
       <OrdersList
+        key={JSON.stringify(sp)}
         rows={rows}
         mayRefund={canAccess("refunds", session.role)}
-        live={!parsed.narrowed}
+        live={parsed.live}
         sort={parsed.sort}
         searchParams={sp}
         pathname={ORDER_LIST_PATH}

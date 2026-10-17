@@ -310,8 +310,10 @@ describe("order lines are stamped where they are written", () => {
   });
 
   it("every order path hands the panel's defaults to the line builders", () => {
-    expect(store).toContain("finalizeOrder(resolved, settings.taxRates, {");
-    expect(store).toContain("finalizeOrder(resolved, taxRates, {");
+    // placeOrder and createManualOrder: both read the defaults off settings.
+    expect(
+      store.split("finalizeOrder(resolved, settings.taxRates, {").length - 1,
+    ).toBe(2);
     expect(store).toContain("resolveCafeLines(cafe, settings.taxRates)");
     expect(store).toContain(
       "withShopNotes(shopLineItems(resolved, settings.taxRates), shop)",

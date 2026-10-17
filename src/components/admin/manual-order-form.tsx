@@ -1,10 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import type { ManualOrderActionState } from "@/app/admin/siparisler/actions";
+import {
+  MANUAL_FULFILLMENTS,
+  MANUAL_ORDER_LIMITS,
+  manualShippingMode,
+  manualStartIsPaid,
+  type ManualFulfillment,
+} from "@/lib/admin/manual-order-schema";
+import {
+  MANUAL_PAYMENT_LABELS,
+  MANUAL_PAYMENT_METHODS,
+} from "@/lib/admin/order-actions";
+import { ORDER_FULFILLMENT_LABELS } from "@/lib/admin/order-channel";
+import { computeTotalsWithShipping } from "@/lib/mobile/order-pricing";
 
+import {
+  PANEL_ACTION_FAILED,
+  markFieldErrors,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "./action-form";
 import {
   Card,
   Field,
@@ -12,8 +39,11 @@ import {
   PrimaryButton,
   Select,
   TextInput,
+  Textarea,
   formatTRY,
 } from "./forms";
+import { BUTTON } from "./ui";
+import { NUMERIC_STYLE } from "./ui/styles";
 
 export interface ManualProductVariant {
   id: string;
@@ -30,6 +60,13 @@ export interface ManualProduct {
   variants: ManualProductVariant[];
 }
 
+/** The settings the delivery line is previewed from (the server charges). */
+export interface ManualOrderShipping {
+  courierFeeMinor: number;
+  shippingFlatMinor: number;
+  shippingFreeThresholdMinor: number;
+}
+
 interface Line {
   key: number;
   productId: string;
@@ -39,20 +76,88 @@ interface Line {
 
 const initial: ManualOrderActionState = {};
 
+/** A line holds at most this many units (the schema's cap). */
+const LINE_MAX = 99;
+
 interface Props {
   products: ManualProduct[];
+  shipping: ManualOrderShipping;
   action: (
     prev: ManualOrderActionState,
     formData: FormData,
   ) => Promise<ManualOrderActionState>;
+  /**
+   * This page load's attempt id (the page makes one per render). Sent with
+   * every post of the form: after an answer that never arrived, a second
+   * press finds the order the first one made instead of making another.
+   */
+  clientOrderId: string;
 }
 
-export function ManualOrderForm({ products, action }: Props) {
-  const [state, formAction, pending] = useActionState(action, initial);
+const SECTION_TITLE =
+  "text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase";
+const SECTION_TITLE_STYLE = { fontFamily: "var(--mono), monospace" } as const;
+const LINE_LABEL =
+  "text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase";
+
+/** Units the line's product or variant has; null before a product is picked. */
+function availableFor(product: ManualProduct | undefined, variantId: string) {
+  if (!product) return null;
+  const variant = product.variants.find((v) => v.id === variantId);
+  return variant ? variant.stock : product.stock;
+}
+
+/** Whether anything of the product can be sold: its own stock or a variant's. */
+function sellable(product: ManualProduct): boolean {
+  return product.stock > 0 || product.variants.some((v) => v.stock > 0);
+}
+
+function stockNote(stock: number): string {
+  return stock > 0 ? `(stok: ${stock})` : "(tükendi)";
+}
+
+/** The highest quantity a line may ask for: the stock, at most 99. */
+function lineCap(available: number | null): number {
+  if (available === null) return LINE_MAX;
+  return Math.max(1, Math.min(LINE_MAX, available));
+}
+
+/**
+ * The panel's manual order (phone or counter sale).
+ *
+ * It posts by hand (useNoResetSubmit), not through `<form action>`: React
+ * resets an action form after every answer, so a refused order ("Yetersiz
+ * stok") came back with the customer block empty and the status select on
+ * "Ödendi" again; re-filling the name turned an order typed as "Ödeme
+ * bekleniyor" into a paid one nobody paid (admin audit ORD-03). Every
+ * refusal is shown under its own field. Stock is shown in the options and
+ * caps the quantity (ORD-M03); the server's check stays the authority.
+ */
+export function ManualOrderForm({
+  products,
+  shipping,
+  action,
+  clientOrderId,
+}: Props) {
+  const save = withPanelCatch<ManualOrderActionState>(action, () => ({
+    error: PANEL_ACTION_FAILED,
+  }));
+  const [state, formAction, pending] = useActionState(save, initial);
+  const onSubmit = useNoResetSubmit(formAction, pending);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const baseId = useId();
+  const errorId = (key: string) => `${baseId}-err-${key}`;
+
   const [lines, setLines] = useState<Line[]>([
     { key: 1, productId: "", variantId: "", qty: 1 },
   ]);
   const [nextKey, setNextKey] = useState(2);
+  const [fulfillment, setFulfillment] = useState<ManualFulfillment>("pickup");
+  const [status, setStatus] = useState("paid");
+  // Pinned for the life of the form: a refreshed page payload brings a new
+  // id, and the retry must carry the one the lost post carried.
+  const [attemptId] = useState(clientOrderId);
 
   const byId = useMemo(
     () => new Map(products.map((p) => [p.id, p])),
@@ -60,6 +165,41 @@ export function ManualOrderForm({ products, action }: Props) {
   );
 
   const fe = (k: string) => state.fieldErrors?.[k];
+
+  /** The refusal under a field: danger ink, announced, tied by its id. */
+  const errorFor = (key: string): ReactNode => {
+    const message = fe(key);
+    if (!message) return null;
+    return (
+      <p
+        id={errorId(key)}
+        role="alert"
+        tabIndex={-1}
+        className="text-xs text-[var(--admin-danger-ink)]"
+      >
+        {message}
+      </p>
+    );
+  };
+
+  // After each answer: mark the refused controls for assistive tech and put
+  // focus on the first one. A refusal of the lines (the hidden `items`) has
+  // no control of its own: its message takes the focus.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || state === initial) return;
+    const errors = state.fieldErrors ?? {};
+    const first = markFieldErrors(
+      Array.from(form.elements),
+      errors,
+      (key) => `${baseId}-err-${key}`,
+    );
+    if (first instanceof HTMLElement) {
+      first.focus();
+      return;
+    }
+    if (errors.items) document.getElementById(`${baseId}-err-items`)?.focus();
+  }, [state, baseId]);
 
   function addLine() {
     setLines((ls) => [
@@ -74,7 +214,27 @@ export function ManualOrderForm({ products, action }: Props) {
   }
 
   function patchLine(key: number, patch: Partial<Line>) {
-    setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+    setLines((ls) =>
+      ls.map((l) => {
+        if (l.key !== key) return l;
+        const next = { ...l, ...patch };
+        // A new product or variant may have less stock than the line asks.
+        const cap = lineCap(
+          availableFor(byId.get(next.productId), next.variantId),
+        );
+        return { ...next, qty: Math.min(next.qty, cap) };
+      }),
+    );
+  }
+
+  /** A product picked: its first variant in stock when the base has none. */
+  function pickProduct(key: number, productId: string) {
+    const product = byId.get(productId);
+    const variantId =
+      product && product.stock <= 0
+        ? (product.variants.find((v) => v.stock > 0)?.id ?? "")
+        : "";
+    patchLine(key, { productId, variantId });
   }
 
   function unitPrice(line: Line): number {
@@ -88,6 +248,16 @@ export function ManualOrderForm({ products, action }: Props) {
     (s, l) => s + (l.productId ? unitPrice(l) * l.qty : 0),
     0,
   );
+  // The same rule the store charges with; the promo code is applied there.
+  const preview = computeTotalsWithShipping(
+    subtotal,
+    0,
+    manualShippingMode(fulfillment, shipping),
+    {
+      shippingFlatMinor: shipping.shippingFlatMinor,
+      shippingFreeThresholdMinor: shipping.shippingFreeThresholdMinor,
+    },
+  );
 
   // Serialized payload the server resolves prices against.
   const itemsPayload = JSON.stringify(
@@ -100,58 +270,59 @@ export function ManualOrderForm({ products, action }: Props) {
       })),
   );
 
+  const paidStart = manualStartIsPaid(status);
+  const fulfillmentHint =
+    fulfillment === "pickup"
+      ? "Müşteri köşkten alır; teslimat ücreti yok."
+      : fulfillment === "delivery"
+        ? `Kurye ücreti ${formatTRY(Math.max(0, shipping.courierFeeMinor))} (Ayarlar).`
+        : shipping.shippingFreeThresholdMinor > 0
+          ? `Kargo ${formatTRY(shipping.shippingFlatMinor)}, ${formatTRY(shipping.shippingFreeThresholdMinor)} üzeri ücretsiz (Ayarlar). Kargoya verirken takip numarası gerekir.`
+          : `Kargo ${formatTRY(shipping.shippingFlatMinor)} (Ayarlar). Kargoya verirken takip numarası gerekir.`;
+
   return (
-    <form action={formAction} className="grid gap-5">
+    <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
       <input type="hidden" name="items" value={itemsPayload} readOnly />
+      <input type="hidden" name="clientOrderId" value={attemptId} readOnly />
 
       <Card className="grid gap-4">
-        <div className="flex items-center justify-between">
-          <h2
-            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Ürünler
-          </h2>
-          {fe("items") && (
-            <span className="text-xs text-red-600">{fe("items")}</span>
-          )}
-        </div>
+        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
+          Ürünler
+        </h2>
 
         <div className="grid gap-3">
-          {lines.map((line) => {
+          {lines.map((line, index) => {
             const product = byId.get(line.productId);
             const variants = product?.variants ?? [];
+            const cap = lineCap(availableFor(product, line.variantId));
+            const n = index + 1;
             return (
               <div
                 key={line.key}
-                className="grid gap-2 rounded-lg border border-[var(--admin-border)] p-3 sm:grid-cols-[1fr_1fr_auto_auto_auto] sm:items-end"
+                className="grid gap-2 rounded-lg border border-[var(--admin-border)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] sm:items-end"
               >
-                <label className="grid gap-1">
-                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                    Ürün
-                  </span>
+                <label className="grid min-w-0 gap-1">
+                  <span className={LINE_LABEL}>Ürün</span>
                   <Select
                     value={line.productId}
-                    onChange={(e) =>
-                      patchLine(line.key, {
-                        productId: e.target.value,
-                        variantId: "",
-                      })
-                    }
+                    onChange={(e) => pickProduct(line.key, e.target.value)}
                   >
                     <option value="">Seç…</option>
                     {products.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id} disabled={!sellable(p)}>
                         {p.name} · {formatTRY(p.priceMinor)}
+                        {p.variants.length === 0
+                          ? ` ${stockNote(p.stock)}`
+                          : sellable(p)
+                            ? ""
+                            : " (tükendi)"}
                       </option>
                     ))}
                   </Select>
                 </label>
 
-                <label className="grid gap-1">
-                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                    Varyant
-                  </span>
+                <label className="grid min-w-0 gap-1">
+                  <span className={LINE_LABEL}>Varyant</span>
                   <Select
                     value={line.variantId}
                     disabled={variants.length === 0}
@@ -159,34 +330,40 @@ export function ManualOrderForm({ products, action }: Props) {
                       patchLine(line.key, { variantId: e.target.value })
                     }
                   >
-                    <option value="">
-                      {variants.length === 0 ? "-" : "Varsayılan"}
+                    <option
+                      value=""
+                      disabled={Boolean(
+                        product && variants.length > 0 && product.stock <= 0,
+                      )}
+                    >
+                      {variants.length === 0
+                        ? "-"
+                        : `Varsayılan ${stockNote(product?.stock ?? 0)}`}
                     </option>
                     {variants.map((v) => (
-                      <option key={v.id} value={v.id}>
+                      <option key={v.id} value={v.id} disabled={v.stock <= 0}>
                         {v.name}
                         {v.priceDeltaMinor !== 0
                           ? ` (${v.priceDeltaMinor > 0 ? "+" : ""}${formatTRY(v.priceDeltaMinor)})`
-                          : ""}
+                          : ""}{" "}
+                        {stockNote(v.stock)}
                       </option>
                     ))}
                   </Select>
                 </label>
 
                 <label className="grid gap-1">
-                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                    Adet
-                  </span>
+                  <span className={LINE_LABEL}>Adet</span>
                   <TextInput
                     type="number"
                     min={1}
-                    max={99}
+                    max={cap}
                     value={String(line.qty)}
                     onChange={(e) =>
                       patchLine(line.key, {
                         qty: Math.max(
                           1,
-                          Math.min(99, Number(e.target.value) || 1),
+                          Math.min(cap, Number(e.target.value) || 1),
                         ),
                       })
                     }
@@ -195,12 +372,10 @@ export function ManualOrderForm({ products, action }: Props) {
                 </label>
 
                 <div className="grid gap-1">
-                  <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                    Tutar
-                  </span>
+                  <span className={LINE_LABEL}>Tutar</span>
                   <span
-                    className="py-2.5 text-sm text-neutral-900"
-                    style={{ fontFamily: "var(--mono), monospace" }}
+                    className="py-2.5 text-sm text-[var(--admin-text)]"
+                    style={NUMERIC_STYLE}
                   >
                     {line.productId
                       ? formatTRY(unitPrice(line) * line.qty)
@@ -212,8 +387,13 @@ export function ManualOrderForm({ products, action }: Props) {
                   type="button"
                   onClick={() => removeLine(line.key)}
                   disabled={lines.length === 1}
-                  aria-label="Satırı kaldır"
-                  className="min-h-[44px] rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-600 hover:border-red-500 hover:text-red-600 disabled:opacity-30"
+                  aria-label={`${n}. satırı kaldır`}
+                  title={
+                    lines.length === 1
+                      ? "Siparişte en az bir satır kalır."
+                      : undefined
+                  }
+                  className="min-h-[44px] rounded-full border border-[var(--admin-border)] px-3 text-xs text-[var(--admin-text-soft)] hover:border-[var(--admin-danger)] hover:text-[var(--admin-danger-ink)] disabled:opacity-40"
                 >
                   Kaldır
                 </button>
@@ -221,103 +401,196 @@ export function ManualOrderForm({ products, action }: Props) {
             );
           })}
         </div>
+        {errorFor("items")}
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <GhostButton type="button" onClick={addLine}>
             + Ürün ekle
           </GhostButton>
-          <div
-            className="text-sm text-neutral-700"
-            style={{ fontFamily: "var(--mono), monospace" }}
+          <dl
+            className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1 text-sm text-[var(--admin-text-soft)]"
+            style={NUMERIC_STYLE}
           >
-            Ara toplam:{" "}
-            <span className="text-neutral-900">{formatTRY(subtotal)}</span>
-          </div>
+            <dt>Ara toplam</dt>
+            <dd className="text-right text-[var(--admin-text)]">
+              {formatTRY(preview.subtotalMinor)}
+            </dd>
+            <dt>Teslimat</dt>
+            <dd className="text-right text-[var(--admin-text)]">
+              {preview.shippingMinor > 0
+                ? formatTRY(preview.shippingMinor)
+                : "Ücretsiz"}
+            </dd>
+            <dt>Toplam</dt>
+            <dd className="text-right font-semibold text-[var(--admin-text)]">
+              {formatTRY(preview.totalMinor)}
+            </dd>
+          </dl>
         </div>
-        <p className="text-xs text-neutral-400">
-          Kargo ve vergi ayarlardan, nihai tutar kaydederken sunucuda
-          hesaplanır.
+        <p className="text-xs text-[var(--admin-text-soft)]">
+          Fiyat, stok ve promosyon kodu kaydederken sunucuda denetlenir; son
+          tutar orada hesaplanır.
         </p>
       </Card>
 
       <Card className="grid gap-5">
-        <h2
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Müşteri & teslimat
+        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
+          Müşteri ve teslimat
         </h2>
-        <Field label="Ad Soyad" hint={fe("customerName")}>
-          <TextInput
-            name="customerName"
-            required
-            placeholder="Müşteri adı"
-            aria-invalid={Boolean(fe("customerName"))}
-          />
-        </Field>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="E-posta (opsiyonel)" hint={fe("customerEmail")}>
+        <div className="grid gap-1.5">
+          <Field label="Teslimat" hint={fulfillmentHint}>
+            <Select
+              name="fulfillment"
+              value={fulfillment}
+              onChange={(e) =>
+                setFulfillment(e.target.value as ManualFulfillment)
+              }
+            >
+              {MANUAL_FULFILLMENTS.map((f) => (
+                <option key={f} value={f}>
+                  {ORDER_FULFILLMENT_LABELS[f]}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          {errorFor("fulfillment")}
+        </div>
+        <div className="grid gap-1.5">
+          <Field label="Ad Soyad">
             <TextInput
-              name="customerEmail"
-              type="email"
-              placeholder="ornek@eposta.com"
-              aria-invalid={Boolean(fe("customerEmail"))}
+              name="customerName"
+              required
+              minLength={2}
+              maxLength={MANUAL_ORDER_LIMITS.customerName}
+              placeholder="Müşteri adı"
             />
           </Field>
-          <Field label="Telefon (opsiyonel)">
-            <TextInput name="customerPhone" placeholder="+90 5xx xxx xx xx" />
-          </Field>
+          {errorFor("customerName")}
         </div>
-        <Field label="Teslimat adresi (opsiyonel)">
-          <textarea
-            name="shippingAddress"
-            rows={3}
-            placeholder="Mahalle, cadde, no, daire - ilçe / il"
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:text-sm"
-          />
-        </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="grid content-start gap-1.5">
+            <Field label="E-posta (isteğe bağlı)">
+              <TextInput
+                name="customerEmail"
+                type="email"
+                maxLength={MANUAL_ORDER_LIMITS.customerEmail}
+                placeholder="ornek@eposta.com"
+              />
+            </Field>
+            {errorFor("customerEmail")}
+          </div>
+          <div className="grid content-start gap-1.5">
+            <Field label="Telefon (isteğe bağlı)">
+              <TextInput
+                name="customerPhone"
+                type="tel"
+                maxLength={MANUAL_ORDER_LIMITS.customerPhone}
+                placeholder="+90 5xx xxx xx xx"
+              />
+            </Field>
+            {errorFor("customerPhone")}
+          </div>
+        </div>
+        <div className="grid gap-1.5">
+          <Field
+            label={
+              fulfillment === "pickup"
+                ? "Teslimat adresi (isteğe bağlı)"
+                : "Teslimat adresi"
+            }
+          >
+            <Textarea
+              name="shippingAddress"
+              rows={3}
+              required={fulfillment !== "pickup"}
+              maxLength={MANUAL_ORDER_LIMITS.shippingAddress}
+              placeholder="Mahalle, cadde, no, daire, ilçe / il"
+            />
+          </Field>
+          {errorFor("shippingAddress")}
+        </div>
       </Card>
 
       <Card className="grid gap-5">
-        <h2
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
+        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
           Sipariş ayarları
         </h2>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Başlangıç durumu">
-            <Select name="status" defaultValue="paid">
-              <option value="paid">Ödendi</option>
-              <option value="pending_payment">Ödeme bekleniyor</option>
-              <option value="preparing">Hazırlanıyor</option>
-            </Select>
-          </Field>
-          <Field label="Promosyon kodu (opsiyonel)">
-            <TextInput name="promoCode" placeholder="SUMMER25" />
-          </Field>
+          <div className="grid content-start gap-1.5">
+            <Field label="Başlangıç durumu">
+              <Select
+                name="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="paid">Ödendi</option>
+                <option value="pending_payment">Ödeme bekleniyor</option>
+                <option value="preparing">Hazırlanıyor</option>
+              </Select>
+            </Field>
+            {errorFor("status")}
+          </div>
+          {paidStart ? (
+            <div className="grid content-start gap-1.5">
+              <Field
+                label="Nasıl ödendi?"
+                hint="Ödeme kaydına yazılır; iade ederken bu yola bakılır."
+              >
+                <Select name="paymentMethod" required defaultValue="">
+                  <option value="">Seç…</option>
+                  {MANUAL_PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {MANUAL_PAYMENT_LABELS[m]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {errorFor("paymentMethod")}
+            </div>
+          ) : null}
+          <div className="grid content-start gap-1.5">
+            <Field label="Promosyon kodu (isteğe bağlı)">
+              <TextInput
+                name="promoCode"
+                maxLength={MANUAL_ORDER_LIMITS.promoCode}
+                placeholder="YAZ25"
+                autoCapitalize="characters"
+              />
+            </Field>
+            {errorFor("promoCode")}
+          </div>
         </div>
-        <Field label="İçsel not (opsiyonel)">
-          <textarea
-            name="internalNote"
-            rows={2}
-            placeholder="Ekip için not - müşteri görmez."
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:text-sm"
-          />
-        </Field>
+        <div className="grid gap-1.5">
+          <Field label="İç not (isteğe bağlı)">
+            <Textarea
+              name="internalNote"
+              rows={2}
+              maxLength={MANUAL_ORDER_LIMITS.internalNote}
+              placeholder="Ekip için not, müşteri görmez."
+            />
+          </Field>
+          {errorFor("internalNote")}
+        </div>
 
-        {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        {state.error ? (
+          <div
+            role="alert"
+            className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+          >
             {state.error}
           </div>
-        )}
+        ) : null}
       </Card>
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/admin/siparisler">
-          <GhostButton type="button">Vazgeç</GhostButton>
+        <Link href="/admin/siparisler" className={BUTTON.ghost}>
+          Vazgeç
         </Link>
-        <PrimaryButton type="submit" disabled={pending}>
+        <PrimaryButton
+          type="submit"
+          disabled={pending}
+          aria-busy={pending || undefined}
+        >
           {pending ? "Sipariş oluşturuluyor…" : "Siparişi oluştur"}
         </PrimaryButton>
       </Card>

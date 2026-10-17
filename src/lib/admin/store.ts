@@ -19,6 +19,7 @@ import {
 
 import { getDb, TABLES } from "@/lib/db";
 import {
+  DbQueryError,
   memoizeUntilRejected,
   publicRead,
   raiseDbError,
@@ -92,6 +93,7 @@ import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
 import {
   orderChannel,
+  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -106,8 +108,14 @@ import {
   type OrderAttention,
   type RefundDestination,
 } from "./order-actions";
-import type { OrderListQuery } from "./order-filters";
+import {
+  manualShippingMode,
+  type ManualFulfillment,
+} from "./manual-order-schema";
+import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
 import { ORDER_STATUS_LABELS } from "./order-ui";
+import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
+import { earnsStamp } from "@/lib/mobile/loyalty-core";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -1462,15 +1470,9 @@ export async function restoreCategory(category: AdminCategory): Promise<void> {
 
 // ─── Orders ───────────────────────────────────────────────────────────────
 
-/** The statuses a shift still owes work on. Same set the dashboard counts. */
-const OPEN_ORDER_STATUSES: AdminOrderStatus[] = [
-  "pending_payment",
-  "paid",
-  "preparing",
-];
-
 /**
- * How many orders are still waiting on the counter.
+ * How many orders are still open: the sidebar badge, the same number the
+ * "Açık" tab shows (`OPEN_ORDER_STATUSES`, lib/admin/order-filters.ts).
  *
  * A `head: true` count, not `listOrders().filter(...)`: the sidebar asks for
  * this every minute on every admin page, and paging every order row through
@@ -1482,7 +1484,7 @@ export async function countOpenOrders(): Promise<number> {
   const { count, error, status } = await sb
     .from(TABLES.orders)
     .select("*", { count: "exact", head: true })
-    .in("status", OPEN_ORDER_STATUSES);
+    .in("status", [...OPEN_ORDER_STATUSES]);
   if (error) raiseDbError("countOpenOrders", error, status);
   return count ?? 0;
 }
@@ -1496,15 +1498,21 @@ export async function countOpenOrders(): Promise<number> {
  * for a non-finite argument rather than a count of everything: a broken
  * client must not make the panel shout.
  */
-export async function countOrdersAfter(orderNo: number): Promise<number> {
+export async function countOrdersAfter(
+  orderNo: number,
+  /** Only these statuses (the "Açık" tab's poll); every order when omitted. */
+  statuses?: readonly AdminOrderStatus[],
+): Promise<number> {
   if (!Number.isFinite(orderNo)) return 0;
   const sb = getDb();
-  const { count, error, status } = await sb
+  let q = sb
     .from(TABLES.orders)
     // `gte(n + 1)`, not `gt(n)`: the builder has no `gt`, and the sequence is
     // an integer so the two are the same predicate.
     .select("*", { count: "exact", head: true })
     .gte("orderNo", Math.trunc(orderNo) + 1);
+  if (statuses) q = q.in("status", [...statuses]);
+  const { count, error, status } = await q;
   if (error) raiseDbError("countOrdersAfter", error, status);
   return count ?? 0;
 }
@@ -2182,9 +2190,10 @@ interface FinalizeOrderInput {
   promoCode?: string;
   legalConsent?: OrderLegalConsent;
   /**
-   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web and
-   * admin paths leave them out and the row takes the database defaults, so
-   * an order written by those paths is byte-for-byte what it was before.
+   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web path
+   * leaves them out and the row takes the database defaults, so a web order
+   * is byte-for-byte what it was before. The panel's manual order sets
+   * `fulfillment` (Gel-al, Kurye, Kargo).
    */
   channel?: OrderChannel;
   kind?: OrderKind;
@@ -2877,8 +2886,64 @@ export interface CreateManualOrderInput {
   internalNote?: string;
   promoCode?: string;
   status: ManualOrderStatus;
+  /**
+   * How the order reaches the customer (admin audit ORD-01, karar D4);
+   * Gel-al when omitted. It decides the delivery fee: nothing for Gel-al,
+   * the courier fee for Kurye, the shop's shipping rule for Kargo.
+   */
+  fulfillment?: ManualFulfillment;
+  /**
+   * How the money was taken, for a paid or preparing start (karar D5):
+   * written as the same `manual:<method>` payment row "Ödendi olarak
+   * işaretle" writes. Never for an unpaid start.
+   */
+  paymentMethod?: ManualPaymentMethod | null;
   /** Admin email recorded as the stock-move actor. */
   actor: string;
+  /**
+   * The form's id for this attempt, one per page load. The same id again is
+   * the same order: it is returned, not made a second time.
+   */
+  clientOrderId?: string;
+}
+
+export type ManualOrderResult =
+  | (Extract<PlaceOrderResult, { ok: true }> & {
+      /**
+       * The payment row of a paid start: written, failed (the order stands,
+       * the caller says so), or none owed.
+       */
+      payment: "recorded" | "failed" | "none";
+      /** The attempt had already made this order; nothing was written now. */
+      replay?: boolean;
+    })
+  | PlaceOrderFailure;
+
+/** The manual order an attempt id already made, if any. */
+async function findManualOrderByClientId(
+  clientOrderId: string,
+): Promise<AdminOrder | null> {
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("clientOrderId", clientOrderId)
+      .eq("source", "manual")
+      .limit(1),
+    "findManualOrderByClientId",
+  );
+  return found[0] ?? null;
+}
+
+function manualReplay(order: AdminOrder): ManualOrderResult {
+  return {
+    ok: true,
+    order,
+    priceAdjusted: false,
+    promoDropped: false,
+    payment: "none",
+    replay: true,
+  };
 }
 
 /**
@@ -2888,11 +2953,25 @@ export interface CreateManualOrderInput {
  */
 export async function createManualOrder(
   input: CreateManualOrderInput,
-): Promise<PlaceOrderResult> {
+): Promise<ManualOrderResult> {
   await ensureSeed();
-  // Only the KDV defaults are read from it: a manual order bypasses the
-  // shop's open switch (see placeOrder) and takes shipping from insertOrderRow.
-  const { taxRates } = await getSettings();
+  // A manual order bypasses the shop's open switch (see placeOrder). The
+  // settings give the KDV defaults and the courier fee; the shop's shipping
+  // rule is applied by insertOrderRow.
+  const settings = await getSettings();
+  const fulfillment: ManualFulfillment = input.fulfillment ?? "pickup";
+
+  // An answer lost on the way back (a dropped connection, a timeout after
+  // the insert) left the operator a filled form and an enabled button, and
+  // the second press made a second paid order: the stock claimed twice, a
+  // second payment row. The same attempt id returns the order it made; two
+  // posts in flight at once meet the unique index
+  // (`orders_client_order_id_key`) and the second gets the first.
+  const clientOrderId = input.clientOrderId?.trim() ?? "";
+  if (clientOrderId) {
+    const earlier = await findManualOrderByClientId(clientOrderId);
+    if (earlier) return manualReplay(earlier);
+  }
 
   const resolveRes = await resolveOrderLines(
     input.items.map((it) => ({
@@ -2926,7 +3005,7 @@ export async function createManualOrder(
       input.actor || "admin",
     );
 
-    placed = await finalizeOrder(resolved, taxRates, {
+    placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: input.status,
@@ -2936,15 +3015,56 @@ export async function createManualOrder(
       shippingAddress: input.shippingAddress?.trim() ?? "",
       internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
       promoCode: input.promoCode,
+      // Every manual order used to be a parcel: a counter sale could only
+      // be closed with an invented tracking number, and under the
+      // free-shipping threshold it paid the flat shipping fee.
+      fulfillment,
+      shipping: manualShippingMode(fulfillment, settings),
       // No POS behind it: the stale-checkout sweep must leave it alone.
       source: "manual",
+      ...(clientOrderId ? { clientOrderId } : {}),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
+    if (clientOrderId && err instanceof DbQueryError && err.code === "23505") {
+      const raced = await findManualOrderByClientId(clientOrderId);
+      if (raced) return manualReplay(raced);
+    }
     throw err;
   }
   const { order, promoDropped } = placed;
-  return { ok: true, order, priceAdjusted: false, promoDropped };
+
+  // A paid start records how it was paid, like "Ödendi olarak işaretle":
+  // the order page said "Bu siparişte ödeme kaydı yok." and cash, the
+  // counter's card terminal and a transfer could not be told apart. After
+  // the insert, and never fatal: the sale happened and its row is written.
+  let payment: "recorded" | "failed" | "none" = "none";
+  if (
+    input.paymentMethod &&
+    (order.status === "paid" || order.status === "preparing")
+  ) {
+    try {
+      const row = await insertManualPaymentRow(
+        order,
+        input.paymentMethod,
+        input.actor,
+      );
+      payment = row.error ? "failed" : "recorded";
+      if (row.error) {
+        console.error(
+          `[orders] manual order ${order.id}: payment row not written`,
+          row.error,
+        );
+      }
+    } catch (err) {
+      payment = "failed";
+      console.error(
+        `[orders] manual order ${order.id}: payment row not written`,
+        err,
+      );
+    }
+  }
+  return { ok: true, order, priceAdjusted: false, promoDropped, payment };
 }
 
 // ── App orders (docs/API-MOBILE.md §3) ────────────────────────────────────
@@ -4714,31 +4834,116 @@ export async function setOrderShipmentStatus(
 
 export interface OrderDetailsInput {
   customerName: string;
-  customerEmail: string;
+  /** Left out: the stored e-mail stays (the form did not offer the field). */
+  customerEmail?: string;
   customerPhone: string;
   shippingAddress: string;
 }
 
-/** Admin edit of an order's customer + delivery fields (no totals change). */
+export type OrderDetailsResult =
+  | { ok: true; before: AdminOrder; order: AdminOrder }
+  | { ok: false; error: string };
+
+/**
+ * Whether loyalty stamps or a member coupon are filed under this order's
+ * e-mail. A cancel or refund finds them by the order's e-mail as it is
+ * then (`onOrderReversed`, `releaseCustomerCoupon`), so an order moved to
+ * another address left them with the old one and took back nothing: the
+ * member kept the stamps of a refunded order, and a spent coupon was never
+ * given back (admin audit ORD-16).
+ *
+ * A paid app cafe order that earns a stamp counts before its row is there:
+ * the stamp is written just after the payment, under the e-mail the order
+ * had then. A coupon is claimed when the order is placed, unpaid ones too.
+ */
+export async function orderEmailLedgerHeld(
+  order: AdminOrder,
+): Promise<boolean> {
+  const paid = Boolean(order.paidAt) || order.status !== "pending_payment";
+  if (
+    paid &&
+    orderChannel(order) === "app" &&
+    orderKind(order) === "cafe" &&
+    earnsStamp(order)
+  ) {
+    return true;
+  }
+  const sb = getDb();
+  const stamps = rows<{ id: string }>(
+    await sb
+      .from(TABLES.loyaltyStamps)
+      .select("id")
+      .eq("orderId", order.id)
+      .limit(1),
+    "orderEmailLedgerHeld.stamps",
+  );
+  if (stamps.length > 0) return true;
+  if (!order.promoCode || !(order.orderNo > 0)) return false;
+  const coupons = rows<{ id: string }>(
+    await sb
+      .from(TABLES.customerCoupons)
+      .select("id")
+      .eq("redeemedOrderNo", order.orderNo)
+      .limit(1),
+    "orderEmailLedgerHeld.coupon",
+  );
+  return coupons.length > 0;
+}
+
+/**
+ * Admin edit of an order's customer + delivery fields (no totals change).
+ *
+ * `refuse` is asked about the order as stored and stops the save with its
+ * answer (who may change the e-mail, a closed order: lib/admin/
+ * order-details.ts). An e-mail that would leave stamps or a member coupon
+ * under the old address is refused here whoever asks
+ * (`orderEmailLedgerHeld`). The write is conditional on the status and
+ * e-mail those answers were given for, so an order completed, paid or moved
+ * in between is "changed", never overwritten. `before` is the order as it
+ * was: the caller's audit row keeps the old values.
+ */
 export async function updateOrderDetails(
   id: string,
   input: OrderDetailsInput,
-): Promise<AdminOrder | null> {
+  refuse?: (existing: AdminOrder) => string | null,
+): Promise<OrderDetailsResult> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getOrder(id);
-  if (!existing) return null;
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  const refusal = refuse?.(existing) ?? null;
+  if (refusal) return { ok: false, error: refusal };
+  if (
+    emailMovesLedger(existing.customerEmail, input.customerEmail) &&
+    (await orderEmailLedgerHeld(existing))
+  ) {
+    return { ok: false, error: ORDER_DETAILS_MESSAGES.emailLedger };
+  }
   const update = {
     customerName: input.customerName.trim().slice(0, 120),
-    customerEmail: input.customerEmail.trim().slice(0, 160),
+    ...(input.customerEmail !== undefined
+      ? { customerEmail: input.customerEmail.trim().slice(0, 160) }
+      : {}),
     customerPhone: input.customerPhone.trim().slice(0, 40),
     shippingAddress: input.shippingAddress.trim().slice(0, 600),
   };
-  check(
-    await sb.from(TABLES.orders).update(update).eq("id", id),
+  const written = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update(update)
+      .eq("id", id)
+      .eq("status", existing.status)
+      .eq("customerEmail", existing.customerEmail ?? "")
+      .select("id"),
     "updateOrderDetails",
   );
-  return { ...existing, ...update };
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  return { ok: true, before: existing, order: { ...existing, ...update } };
 }
 
 /**
@@ -4787,6 +4992,37 @@ export async function setOrderItemStatus(
  * back by hand. If the move to `paid` is then refused, the row is taken
  * back. The POS check for a card order is the caller's (order-ops.ts).
  */
+/**
+ * The `manual:<method>` payment row of money taken outside the POS, for the
+ * order's whole total. `error` is null once the row is there (a 23505 is an
+ * earlier attempt's row, which stands for this one). Shared by "Ödendi
+ * olarak işaretle" and a manual order that starts paid.
+ */
+async function insertManualPaymentRow(
+  order: Pick<AdminOrder, "id" | "totalMinor">,
+  method: ManualPaymentMethod,
+  actor?: string,
+): Promise<{ provider: string; providerRef: string; error: string | null }> {
+  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
+  const providerRef = `manual-${order.id}`;
+  const ins = await getDb()
+    .from(TABLES.paymentTransactions)
+    .insert({
+      orderId: order.id,
+      provider,
+      providerRef,
+      status: "succeeded",
+      amountMinor: order.totalMinor,
+      currency: "TRY",
+      raw: { source: "admin", method, actor: actor ?? "" },
+      trxDate: "",
+      createdAt: new Date().toISOString(),
+    });
+  const error =
+    ins.error && ins.error.code !== "23505" ? ins.error.message : null;
+  return { provider, providerRef, error };
+}
+
 export async function markOrderPaidManually(
   id: string,
   method: ManualPaymentMethod,
@@ -4801,24 +5037,13 @@ export async function markOrderPaidManually(
       error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
     };
   }
-  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
-  const providerRef = `manual-${id}`;
-  const ins = await getDb()
-    .from(TABLES.paymentTransactions)
-    .insert({
-      orderId: id,
-      provider,
-      providerRef,
-      status: "succeeded",
-      amountMinor: existing.totalMinor,
-      currency: "TRY",
-      raw: { source: "admin", method, actor: actor ?? "" },
-      trxDate: "",
-      createdAt: new Date().toISOString(),
-    });
-  // 23505: an earlier attempt left its row; it stands for this one.
-  if (ins.error && ins.error.code !== "23505") {
-    return { ok: false, error: `Ödeme kaydı yazılamadı: ${ins.error.message}` };
+  const { provider, providerRef, error } = await insertManualPaymentRow(
+    existing,
+    method,
+    actor,
+  );
+  if (error) {
+    return { ok: false, error: `Ödeme kaydı yazılamadı: ${error}` };
   }
   const res = await transitionOrder(id, "mark_paid", { actor });
   if (!res.ok) {
@@ -5230,7 +5455,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     sb
       .from(TABLES.orders)
       .select("*", { count: "exact", head: true })
-      .in("status", ["pending_payment", "paid", "preparing"])
+      .in("status", [...OPEN_ORDER_STATUSES])
       .then((r) => {
         if (r.error)
           throw new Error(`getDashboardStats.pending: ${r.error.message}`);

@@ -52,11 +52,11 @@ interface Props {
   /** The signed-in role may refund (the cancel modal's refund box). */
   mayRefund: boolean;
   /**
-   * Poll for new arrivals: only on the plain, unfiltered first page. A new
-   * order is never on page 3 or behind a filter, and "Listeyi yenile"
-   * there would not show it.
+   * Poll for new arrivals (`ParsedOrderList.live`): every order on the
+   * plain first page, open orders on the plain "Açık" tab, nothing behind a
+   * filter, a sort, on page 2 or another tab.
    */
-  live: boolean;
+  live: "all" | "open" | null;
   sort: SortState;
   searchParams: Record<string, string | string[] | undefined>;
   pathname: string;
@@ -222,7 +222,10 @@ export function OrdersList({
     async function tick() {
       if (!cancelled && document.visibilityState === "visible") {
         try {
-          const n = await newOrderCountAction(latestOrderNo);
+          const n =
+            live === "open"
+              ? await newOrderCountAction(latestOrderNo, "open")
+              : await newOrderCountAction(latestOrderNo);
           if (!cancelled && typeof n === "number") {
             setSignal({ since: latestOrderNo, count: n });
             // Only on the way up: a barista who left the tab open should hear

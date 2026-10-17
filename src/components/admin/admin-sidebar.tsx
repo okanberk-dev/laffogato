@@ -257,7 +257,8 @@ function useNavCount(
 
 /** What each badge counts, for its tooltip. */
 const BADGE_TITLES: Record<string, string> = {
-  orders: "Açık sipariş (ödeme bekleyen · ödenen · hazırlanan)",
+  orders:
+    "Açık sipariş (ödeme bekleyen · ödenen · hazırlanan · yolda ya da hazır)",
   karaoke: "Bugünkü karaoke rezervasyonu (iptal edilmemiş)",
 };
 

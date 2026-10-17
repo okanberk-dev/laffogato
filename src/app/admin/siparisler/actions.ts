@@ -37,6 +37,11 @@ import {
   type OrderActor,
   type OrderOpResult,
 } from "@/lib/admin/order-ops";
+import {
+  orderDetailsChange,
+  orderDetailsRefusal,
+} from "@/lib/admin/order-details";
+import { OPEN_ORDER_STATUSES } from "@/lib/admin/order-filters";
 import { canAccess } from "@/lib/admin/roles";
 import {
   BULK_ORDER_TRANSITIONS,
@@ -465,36 +470,67 @@ export interface OrderDetailsActionState {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * The order page's customer card. Staff edit name, phone and address on an
+ * open order; the e-mail is an owner or manager change on an open order,
+ * confirmed, because member history is read by it (lib/admin/
+ * order-details.ts, admin audit ORD-16, karar D2). The audit row keeps the
+ * old and new value of every field that changed: it used to say only
+ * "customer_delivery", and the old address existed nowhere afterwards.
+ */
 export async function saveOrderDetailsAction(
   _prev: OrderDetailsActionState,
   formData: FormData,
 ): Promise<OrderDetailsActionState> {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const id = field(formData, "id");
   if (!id) return { error: "Sipariş ID eksik." };
   const customerName = field(formData, "customerName").trim();
   if (customerName.length < 2) {
     return { error: "Müşteri adı en az 2 karakter olmalı." };
   }
-  const customerEmail = field(formData, "customerEmail").trim();
+  // A form that does not offer the e-mail (staff, a closed order) sends no
+  // field, and the stored address stays: "" would have cleared it.
+  const customerEmail = formData.has("customerEmail")
+    ? field(formData, "customerEmail").trim()
+    : undefined;
   // The manual order form checks the address; this form did not, and a typo
   // here moves the order into another member's history.
   if (customerEmail && !EMAIL_RE.test(customerEmail)) {
     return { error: "Geçerli bir e-posta yaz." };
   }
-  const result = await updateOrderDetails(id, {
+  const input = {
     customerName,
     customerEmail,
     customerPhone: field(formData, "customerPhone"),
     shippingAddress: field(formData, "shippingAddress"),
-  });
-  if (!result) return { error: "Sipariş bulunamadı." };
-  await safeAudit({
-    action: "update",
-    entity: "order",
-    entityId: id,
-    payload: { fields: "customer_delivery" },
-  });
+  };
+  const result = await updateOrderDetails(id, input, (existing) =>
+    orderDetailsRefusal(
+      existing,
+      input,
+      session.role,
+      field(formData, "emailConfirm") === "1",
+    ),
+  );
+  if (!result.ok) {
+    revalidateOrder(id);
+    return { error: result.error };
+  }
+  const change = orderDetailsChange(result.before, result.order);
+  if (change.changed.length > 0) {
+    await safeAudit({
+      action: "update",
+      entity: "order",
+      entityId: id,
+      payload: {
+        fields: "customer_delivery",
+        changed: change.changed,
+        before: change.before,
+        after: change.after,
+      },
+    });
+  }
   revalidateOrder(id);
   return { savedAt: new Date().toISOString() };
 }
@@ -532,21 +568,42 @@ export async function createManualOrderAction(
     internalNote: d.internalNote,
     promoCode: d.promoCode,
     status: d.status,
+    fulfillment: d.fulfillment,
+    paymentMethod: d.paymentMethod,
     actor: session.email,
+    clientOrderId: d.clientOrderId,
   });
   if (!result.ok) {
-    if (result.reason === "empty") {
-      return { error: "En az bir ürün ekle." };
-    }
+    // Under the product list, where the line to change is.
+    const refusal = (message: string): ManualOrderActionState => ({
+      error: "Ürün satırlarındaki uyarıyı gider.",
+      fieldErrors: { items: message },
+    });
+    if (result.reason === "empty") return refusal("En az bir ürün ekle.");
     if (result.reason === "not_found") {
-      return { error: `Ürün bulunamadı: ${result.productName}` };
+      return refusal(`Ürün bulunamadı: ${result.productName}`);
     }
     if (result.reason === "out_of_stock") {
-      return {
-        error: `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
-      };
+      return refusal(
+        `Yetersiz stok: ${result.productName} (mevcut: ${result.available}).`,
+      );
+    }
+    if (result.reason === "qty_too_high") {
+      return refusal(
+        `${result.productName}: bir satırda en fazla ${result.max} adet.`,
+      );
     }
     return { error: "Sipariş oluşturulamadı." };
+  }
+  if (result.replay) {
+    // The same attempt again, after an answer that never arrived: no second
+    // order and no second audit row; the operator lands on the one there is.
+    await setAdminFlash(
+      `Sipariş #${result.order.orderNo} zaten oluşturulmuştu, ikinci gönderim yeni sipariş açmadı.`,
+      "warning",
+    );
+    revalidatePath("/admin/siparisler");
+    return redirect(`/admin/siparisler/${result.order.id}`);
   }
   await safeAudit({
     action: "create",
@@ -556,16 +613,27 @@ export async function createManualOrderAction(
       orderNo: result.order.orderNo,
       manual: true,
       total: result.order.totalMinor,
+      fulfillment: d.fulfillment,
+      ...(d.paymentMethod ? { paymentMethod: d.paymentMethod } : {}),
+      ...(result.payment === "failed" ? { paymentRow: "failed" } : {}),
       ...(result.promoDropped ? { promoDropped: d.promoCode ?? "" } : {}),
     },
   });
   // A code that no longer applies is dropped by the store. It used to be
   // dropped silently: the admin quoted a discount the order does not carry.
-  await setAdminFlash(
+  const warnings = [
     result.promoDropped
-      ? `Sipariş #${result.order.orderNo} oluşturuldu, ama ${d.promoCode ? `"${d.promoCode}" ` : ""}promosyon kodu artık geçerli değil: indirim uygulanmadı. Müşteriye söyle.`
+      ? `${d.promoCode ? `"${d.promoCode}" ` : ""}promosyon kodu artık geçerli değil: indirim uygulanmadı. Müşteriye söyle.`
+      : "",
+    result.payment === "failed"
+      ? "Ödeme kaydı yazılamadı: ödemenin nasıl alındığını iç nota yaz."
+      : "",
+  ].filter(Boolean);
+  await setAdminFlash(
+    warnings.length > 0
+      ? `Sipariş #${result.order.orderNo} oluşturuldu, ama ${warnings.join(" ")}`
       : `Sipariş #${result.order.orderNo} oluşturuldu.`,
-    result.promoDropped ? "warning" : "success",
+    warnings.length > 0 ? "warning" : "success",
   );
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
@@ -594,7 +662,7 @@ async function ordersSignalAllowed(): Promise<boolean> {
   return Boolean(session && canAccess("orders", session.role));
 }
 
-/** Open orders (ödeme bekleniyor · ödendi · hazırlanıyor), for the nav badge. */
+/** Open orders (`OPEN_ORDER_STATUSES`, the "Açık" tab's set), for the nav badge. */
 export async function openOrderCountAction(): Promise<number | null> {
   if (!(await ordersSignalAllowed())) return null;
   try {
@@ -615,10 +683,14 @@ export async function openOrderCountAction(): Promise<number | null> {
  */
 export async function newOrderCountAction(
   sinceOrderNo: number,
+  /** `open`: only open orders (the "Açık" tab's poll); anything else: all. */
+  scope?: string,
 ): Promise<number | null> {
   if (!(await ordersSignalAllowed())) return null;
   try {
-    return await countOrdersAfter(Number(sinceOrderNo));
+    return scope === "open"
+      ? await countOrdersAfter(Number(sinceOrderNo), OPEN_ORDER_STATUSES)
+      : await countOrdersAfter(Number(sinceOrderNo));
   } catch (err) {
     console.error("[admin/siparisler] yeni sipariş sayılamadı", err);
     return null;

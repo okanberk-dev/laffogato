@@ -1,6 +1,6 @@
 "use server";
 
-import { logAudit } from "@/lib/admin/audit";
+import { logAudit, type LogAuditInput } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { getCustomerByEmail } from "@/lib/customer/store";
 import { isDbUnreachable } from "@/lib/db/health";
@@ -8,6 +8,7 @@ import {
   redeemCounterToken,
   type CounterRedeemKind,
 } from "@/lib/mobile/counter";
+import { listStamps } from "@/lib/mobile/loyalty";
 
 /**
  * The till action opens its own role gate.
@@ -25,6 +26,11 @@ export interface TillRedeemInput {
   value: string;
   stamps: number;
   note?: string;
+  /**
+   * E-mail path only: the cashier ticked "Tekrar ver", a second counter
+   * stamp for the same member inside the repeat window is meant.
+   */
+  repeat?: boolean;
 }
 
 export interface TillRedeemResult {
@@ -42,6 +48,40 @@ export interface TillRedeemResult {
 export interface TillState {
   error?: string;
   result?: TillRedeemResult;
+  /**
+   * The refusal was the repeat guard: the e-mail form offers "Tekrar ver".
+   */
+  repeat?: boolean;
+  /**
+   * Something may have been given (the code burned, stamps sent) before the
+   * failure: the till treats the scan as spent and waits for "Yeni işlem".
+   */
+  partial?: boolean;
+}
+
+/**
+ * Two counter stamps for the same member inside this window is a double
+ * submit (the customer page's own guard, musteriler/[email]/actions.ts).
+ */
+const REPEAT_WINDOW_MS = 3 * 60 * 1000;
+
+/**
+ * The audit row of stamps that are already written: never throws (the
+ * `safeAudit` rule, lib/admin/audit.ts). A throw here reached the till as
+ * the panel's error page and the cashier stamped again (admin audit
+ * ORD-12). Logged without the row's id: on the e-mail path that is the
+ * member's address (CLAUDE.md rule 9).
+ */
+async function auditGiven(input: LogAuditInput): Promise<void> {
+  try {
+    await logAudit(input);
+  } catch (err) {
+    console.error(
+      "[admin/kasa] audit row not written",
+      JSON.stringify(input.payload ?? {}),
+      err,
+    );
+  }
 }
 
 const MSG = {
@@ -53,6 +93,8 @@ const MSG = {
     "Bu adrese ait üye hesabı yok. Adresi kontrol et ya da üyeden QR'ını açmasını iste.",
   closedMember:
     "Bu üye hesabı kapalı; damga işlenmez. Üyeden hesabını açmasını iste.",
+  repeat:
+    "Bu üyeye son 3 dakikada kasa damgası verildi. Gerçekten yeni bir damga gerekiyorsa “Tekrar ver” kutusunu işaretle.",
 } as const;
 
 export async function redeemCounterTokenAction(
@@ -80,6 +122,22 @@ export async function redeemCounterTokenAction(
       const member = await getCustomerByEmail(value);
       if (!member) return { error: MSG.noMember };
       if (!member.isActive) return { error: MSG.closedMember };
+      // A typed address burns no single-use code: a second click or Enter
+      // after the green receipt gave the member another 1-5 stamps (free
+      // drinks, admin audit ORD-13). Refused inside the window unless the
+      // cashier says it is meant.
+      if (input.repeat !== true) {
+        const recent = await listStamps(member.email || value);
+        const last = recent.find(
+          (st) => st.kind === "earn" && st.source === "counter",
+        );
+        if (
+          last &&
+          Date.now() - Date.parse(last.createdAt) < REPEAT_WINDOW_MS
+        ) {
+          return { error: MSG.repeat, repeat: true };
+        }
+      }
     }
 
     result = await redeemCounterToken({
@@ -94,10 +152,29 @@ export async function redeemCounterTokenAction(
     console.error("[admin/kasa] redeem failed", err);
     return { error: MSG.failed };
   }
-  if (!result.ok) return { error: result.message };
+  if (!result.ok) {
+    if (result.error !== "partial") return { error: result.message };
+    // The code is burned or stamps were sent: "Tekrar dene" would stamp
+    // the e-mail path twice and answer "already used" on the QR.
+    console.error("[admin/kasa] redeem stopped after stamping", result.cause);
+    await auditGiven({
+      action: "update",
+      entity: "counter_token",
+      entityId: result.code || result.memberLabel,
+      payload: {
+        kind,
+        stamps: result.stampsWritten,
+        asked: result.stampsAsked,
+        partial: true,
+      },
+    });
+    return { error: result.message, partial: true };
+  }
 
   const { redemption } = result;
-  await logAudit({
+  // After the stamps: an audit insert that fails must not turn a given
+  // stamp into the panel's error page, and a cashier's retry (ORD-12).
+  await auditGiven({
     action: "update",
     entity: "counter_token",
     // There is only a code on the QR/code paths; the e-mail path leaves the

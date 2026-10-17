@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
+  OPEN_ORDER_STATUSES,
   ORDER_DEFAULT_SORT,
   ORDER_FILTER_FIELDS,
   escapeLike,
@@ -97,11 +100,50 @@ describe("parseOrderListParams", () => {
     expect(withoutStatuses(p.query)).toEqual({ ...p.query, statuses: null });
   });
 
-  it("does not poll on a sorted, paged or tabbed view", () => {
+  it("does not poll on a sorted, paged, filtered or other tab's view", () => {
+    expect(parseOrderListParams({ sayfa: "2" }).live).toBeNull();
+    expect(parseOrderListParams({ sirala: "tutar" }).live).toBeNull();
+    expect(parseOrderListParams({ durum: "paid" }).live).toBeNull();
+    expect(parseOrderListParams({ durum: "acik", kanal: "app" }).live).toBeNull();
+    expect(parseOrderListParams({ durum: "acik", sayfa: "2" }).live).toBeNull();
+    expect(parseOrderListParams({ sirala: "no", yon: "desc" }).live).toBe("all");
     expect(parseOrderListParams({ sayfa: "2" }).narrowed).toBe(true);
-    expect(parseOrderListParams({ sirala: "tutar" }).narrowed).toBe(true);
-    expect(parseOrderListParams({ durum: "paid" }).narrowed).toBe(true);
     expect(parseOrderListParams({ sirala: "no", yon: "desc" }).narrowed).toBe(false);
+  });
+
+  it("polls on the plain Açık tab, where every new order lands (ORD-09)", () => {
+    // A shift working from "Açık" got no sound and no "N yeni sipariş".
+    const open = parseOrderListParams({ durum: "acik" });
+    expect(open.live).toBe("open");
+    // Still narrowed: its empty state says the filter, not "no orders yet".
+    expect(open.narrowed).toBe(true);
+    expect(parseOrderListParams({}).live).toBe("all");
+  });
+});
+
+describe("one set of open orders (ORD-21)", () => {
+  it("the Açık tab is the exported set, the parcel on the road included", () => {
+    expect(tabStatuses("acik")).toEqual([...OPEN_ORDER_STATUSES]);
+    expect(OPEN_ORDER_STATUSES).toContain("shipped");
+  });
+
+  it("the badge, the dashboard and the tab count read it, not their own lists", () => {
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    expect(store).not.toMatch(/const OPEN_ORDER_STATUSES/);
+    expect(store).not.toContain('.in("status", ["pending_payment", "paid", "preparing"])');
+    const page = readFileSync("src/app/admin/siparisler/page.tsx", "utf8");
+    expect(page).toContain("OPEN_ORDER_STATUSES.reduce(");
+  });
+});
+
+describe("selection and the URL (ORD-07)", () => {
+  it("a tab, filter, sort or page link starts a fresh selection", () => {
+    // Next keeps a page's client state across search-param changes: three
+    // open orders ticked, the "Tamamlandı" tab clicked, "İptal et" pressed,
+    // and three orders nobody could see were cancelled.
+    const page = readFileSync("src/app/admin/siparisler/page.tsx", "utf8");
+    expect(page).toMatch(/<OrdersList\s+key=\{JSON\.stringify\(sp\)\}/);
+    expect(page).toContain("live={parsed.live}");
   });
 });
 

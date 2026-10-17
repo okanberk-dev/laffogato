@@ -335,6 +335,159 @@ maybe("admin order rules, in SQL", () => {
     });
   });
 
+  it("a Gel-al manual order: no delivery fee, its payment row, closed without a number", async () => {
+    // Admin audit ORD-01 / ORD-19: every manual order was a parcel (the
+    // flat fee under the threshold, a fake tracking number to close it) and
+    // a paid start wrote no payment row.
+    await q(
+      `insert into public.products (id, name, slug, stock, "priceMinor")
+       values ('prd-adm-m', 'Sirena', 'prd-adm-m', 5, 32000)`,
+    );
+    const store = await import("@/lib/admin/store");
+    const res = await store.createManualOrder({
+      items: [{ productId: "prd-adm-m", qty: 1 }],
+      customerName: "Kasa satışı",
+      status: "preparing",
+      fulfillment: "pickup",
+      paymentMethod: "nakit",
+      actor: "panel@laffogato.net",
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const id = res.order.id;
+    try {
+      const [o] = await q<{
+        fulfillment: string;
+        shippingMinor: number;
+        totalMinor: number;
+        source: string;
+        paidAt: string;
+      }>(
+        `select fulfillment, "shippingMinor", "totalMinor", source, "paidAt"
+           from public.orders where id = $1`,
+        [id],
+      );
+      expect(o).toMatchObject({
+        fulfillment: "pickup",
+        shippingMinor: 0,
+        totalMinor: 32000,
+        source: "manual",
+      });
+      expect(o.paidAt).not.toBe("");
+      const pay = await q<{ provider: string; amountMinor: number }>(
+        `select provider, "amountMinor" from public.payment_transactions where "orderId" = $1`,
+        [id],
+      );
+      expect(pay).toEqual([{ provider: "manual:nakit", amountMinor: 32000 }]);
+      expect(await stockOf("prd-adm-m")).toBe(4);
+      // "Tamamlandı" straight from Hazırlanıyor: no tracking number asked.
+      const done = await store.transitionOrder(id, "complete", {
+        actor: "panel@laffogato.net",
+      });
+      expect(done).toMatchObject({ ok: true, order: { status: "completed" } });
+    } finally {
+      await q(`delete from public.payment_transactions where "orderId" = $1`, [id]);
+      await q(`delete from public.stock_moves where "orderId" = $1`, [id]);
+      await q(`delete from public.orders where id = $1`, [id]);
+    }
+  });
+
+  it("one manual order per attempt id, sent again or twice at once", async () => {
+    // Verifier C3: an answer lost on the way back left the form filled and
+    // enabled, and the second press made a second paid order.
+    await q(
+      `insert into public.products (id, name, slug, stock, "priceMinor")
+       values ('prd-adm-r', 'Sirena', 'prd-adm-r', 6, 32000)`,
+    );
+    const store = await import("@/lib/admin/store");
+    const attempt = (clientOrderId: string) =>
+      store.createManualOrder({
+        items: [{ productId: "prd-adm-r", qty: 1 }],
+        customerName: "Kasa satışı",
+        status: "paid",
+        fulfillment: "pickup",
+        paymentMethod: "nakit",
+        actor: "panel@laffogato.net",
+        clientOrderId,
+      });
+    const ids: string[] = [];
+    try {
+      const first = await attempt("c3-seq-0001-aaaa");
+      const again = await attempt("c3-seq-0001-aaaa");
+      expect(again).toMatchObject({ ok: true, replay: true });
+      // Two posts of one attempt in flight at once: the index keeps one.
+      const both = await Promise.all([
+        attempt("c3-par-0002-bbbb"),
+        attempt("c3-par-0002-bbbb"),
+      ]);
+      for (const r of [first, again, ...both]) if (r.ok) ids.push(r.order.id);
+      expect(both.every((r) => r.ok)).toBe(true);
+      expect(new Set(ids).size).toBe(2);
+      const orders = await q<{ id: string }>(
+        `select id from public.orders where "clientOrderId" like 'c3-%'`,
+      );
+      expect(orders).toHaveLength(2);
+      const pay = await q<{ orderId: string }>(
+        `select "orderId" from public.payment_transactions
+          where "orderId" = any($1::text[])`,
+        [[...new Set(ids)]],
+      );
+      expect(pay).toHaveLength(2);
+      // One unit per order: the racing post's claim came back.
+      expect(await stockOf("prd-adm-r")).toBe(4);
+    } finally {
+      const all = await q<{ id: string }>(
+        `select id from public.orders where "clientOrderId" like 'c3-%'`,
+      );
+      const gone = all.map((o) => o.id);
+      await q(
+        `delete from public.payment_transactions where "orderId" = any($1::text[])`,
+        [gone],
+      );
+      await q(
+        `delete from public.stock_moves where "orderId" = any($1::text[])`,
+        [gone],
+      );
+      await q(`delete from public.orders where id = any($1::text[])`, [gone]);
+    }
+  });
+
+  it("edits the customer card only from the status and e-mail it was judged by", async () => {
+    // Admin audit ORD-16: the save is conditional, the old values come back.
+    await insertOrder(`${PREFIX}20`, 994020, { status: "preparing" });
+    const store = await import("@/lib/admin/store");
+    const res = await store.updateOrderDetails(`${PREFIX}20`, {
+      customerName: "Eda M.",
+      customerEmail: "eda.m@example.com",
+      customerPhone: "",
+      shippingAddress: "Yeni adres",
+    });
+    expect(res).toMatchObject({
+      ok: true,
+      before: { customerEmail: "panel@laffogato.net" },
+      order: { customerEmail: "eda.m@example.com" },
+    });
+    // The rule judged an order that is no longer what the row says (read as
+    // "paid", the row is "preparing"): nothing is written over it.
+    const stale = await store.updateOrderDetails(
+      `${PREFIX}20`,
+      { customerName: "X Y", customerPhone: "", shippingAddress: "" },
+      (existing) => {
+        existing.status = "paid";
+        return null;
+      },
+    );
+    expect(stale).toEqual({
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    });
+    const [o] = await q<{ customerName: string; shippingAddress: string }>(
+      `select "customerName", "shippingAddress" from public.orders where id = $1`,
+      [`${PREFIX}20`],
+    );
+    expect(o).toEqual({ customerName: "Eda M.", shippingAddress: "Yeni adres" });
+  });
+
   it("the 45-minute sweep leaves a manual unpaid order alone", async () => {
     const old = new Date(Date.now() - 2 * 60 * 60_000).toISOString();
     await insertOrder(`${PREFIX}8`, 994008, { status: "pending_payment", source: "manual", createdAt: old });

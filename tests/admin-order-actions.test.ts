@@ -999,6 +999,111 @@ describe("resendMailAction", () => {
   });
 });
 
+describe("saveOrderDetailsAction (ORD-16, karar D2)", () => {
+  /** The store as far as the action sees it: the rule asked about `stored`. */
+  function storedAs(over: Record<string, unknown> = {}) {
+    const existing = order({
+      status: "preparing",
+      customerName: "Eda Mancuso",
+      customerPhone: "+90 532 000 00 00",
+      shippingAddress: "Eski adres",
+      ...over,
+    });
+    store.updateOrderDetails.mockImplementation(
+      async (
+        _id: string,
+        input: Record<string, unknown>,
+        refuse?: (o: unknown) => string | null,
+      ) => {
+        const refusal = refuse?.(existing) ?? null;
+        if (refusal) return { ok: false, error: refusal };
+        const clean = Object.fromEntries(
+          Object.entries(input).filter(([, v]) => v !== undefined),
+        );
+        return { ok: true, before: existing, order: { ...existing, ...clean } };
+      },
+    );
+  }
+
+  const edit = (fields: Record<string, string>) =>
+    actions.saveOrderDetailsAction(
+      {},
+      form({
+        id: "ord-1",
+        customerName: "Eda Mancuso",
+        customerPhone: "+90 532 000 00 00",
+        shippingAddress: "Eski adres",
+        ...fields,
+      }),
+    );
+
+  it("lets staff fix the address of an open order, with before and after in the audit", async () => {
+    session.role = "staff";
+    storedAs();
+    const res = await edit({ shippingAddress: "Yeni adres" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        entityId: "ord-1",
+        payload: {
+          fields: "customer_delivery",
+          changed: ["shippingAddress"],
+          before: { shippingAddress: "Eski adres" },
+          after: { shippingAddress: "Yeni adres" },
+        },
+      }),
+    );
+    // The form offered no e-mail field: the stored one is not touched.
+    expect(store.updateOrderDetails.mock.calls[0][1].customerEmail).toBeUndefined();
+  });
+
+  it("refuses a staff e-mail change and writes no audit row", async () => {
+    session.role = "staff";
+    storedAs();
+    const res = await edit({ customerEmail: "baska@example.com", emailConfirm: "1" });
+    expect(res.error).toMatch(/yalnız sahip ya da yönetici/);
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses staff on a closed order", async () => {
+    session.role = "staff";
+    storedAs({ status: "completed" });
+    const res = await edit({ shippingAddress: "Yeni adres" });
+    expect(res.error).toMatch(/Kapanmış sipariş/);
+  });
+
+  it("wants the owner's confirm, then keeps the old e-mail in full", async () => {
+    storedAs();
+    const unconfirmed = await edit({ customerEmail: "eda.m@example.com" });
+    expect(unconfirmed.error).toMatch(/onayla/);
+    const res = await edit({ customerEmail: "eda.m@example.com", emailConfirm: "1" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          changed: ["customerEmail"],
+          before: { customerEmail: "eda@example.com" },
+          after: { customerEmail: "eda.m@example.com" },
+        }),
+      }),
+    );
+  });
+
+  it("refuses the e-mail of a closed order even for the owner", async () => {
+    storedAs({ status: "refunded" });
+    const res = await edit({ customerEmail: "eda.m@example.com", emailConfirm: "1" });
+    expect(res.error).toMatch(/e-postası değişmez/);
+  });
+
+  it("writes no audit row for a save that changed nothing", async () => {
+    storedAs();
+    const res = await edit({ customerEmail: "eda@example.com" });
+    expect(res.savedAt).toBeTruthy();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+});
+
 describe("createManualOrderAction", () => {
   const fields = {
     items: JSON.stringify([{ productId: "prd-1", qty: 1 }]),
@@ -1035,5 +1140,111 @@ describe("createManualOrderAction", () => {
     });
     await actions.createManualOrderAction({}, form(fields));
     expect(setAdminFlash).toHaveBeenCalledWith("Sipariş #10099 oluşturuldu.", "success");
+  });
+
+  it("hands the store the delivery and, for a paid start, how it was paid", async () => {
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "recorded",
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({ ...fields, promoCode: "", status: "paid", paymentMethod: "kart" }),
+    );
+    expect(store.createManualOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "paid",
+        fulfillment: "pickup",
+        paymentMethod: "kart",
+      }),
+    );
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          fulfillment: "pickup",
+          paymentMethod: "kart",
+        }),
+      }),
+    );
+  });
+
+  // Verifier C3: the form's attempt id reaches the store, and the same
+  // attempt again lands on its order with no second audit row.
+  it("lands a repeated attempt on the order it made, writing no second audit row", async () => {
+    setAdminFlash.mockClear();
+    safeAudit.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "none",
+      replay: true,
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({
+        ...fields,
+        clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+      }),
+    );
+    expect(store.createManualOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientOrderId: "8d3c2f4e-0b1a-4c5d-9e6f-7a8b9c0d1e2f",
+      }),
+    );
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      "Sipariş #10099 zaten oluşturulmuştu, ikinci gönderim yeni sipariş açmadı.",
+      "warning",
+    );
+    expect(redirect).toHaveBeenCalledWith("/admin/siparisler/ord-9");
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a paid start without a method before the store is asked", async () => {
+    const res = await actions.createManualOrderAction(
+      {},
+      form({ ...fields, status: "paid" }),
+    );
+    expect(res.fieldErrors?.paymentMethod).toBe("Ödemenin nasıl alındığını seç.");
+    expect(store.createManualOrder).not.toHaveBeenCalled();
+  });
+
+  it("puts a stock refusal under the product list", async () => {
+    redirect.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: false,
+      reason: "out_of_stock",
+      productName: "Sirena Espresso",
+      available: 2,
+    });
+    const res = await actions.createManualOrderAction({}, form(fields));
+    expect(res.fieldErrors?.items).toBe(
+      "Yetersiz stok: Sirena Espresso (mevcut: 2).",
+    );
+    expect(res.error).toBeTruthy();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("warns when the payment row could not be written, the order made", async () => {
+    setAdminFlash.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: true,
+      order: { id: "ord-9", orderNo: 10099, totalMinor: 10_000 },
+      priceAdjusted: false,
+      promoDropped: false,
+      payment: "failed",
+    });
+    await actions.createManualOrderAction(
+      {},
+      form({ ...fields, promoCode: "", status: "paid", paymentMethod: "nakit" }),
+    );
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Ödeme kaydı yazılamadı"),
+      "warning",
+    );
   });
 });
