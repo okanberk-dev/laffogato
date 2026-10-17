@@ -1366,7 +1366,7 @@ maybe("karaoke prepayment (real Postgres)", () => {
     });
 
     it("the panel reads one booking's history and the köşk's releases from the log", async () => {
-      const { listKaraokeAudit, listStaffReleasedHolds } =
+      const { listKaraokeAudit, listReleasedHolds } =
         await import("@/lib/admin/karaoke-audit");
       const tag = `t${Date.now()}`;
       const ids = [`krk-9${tag.slice(-6)}1`, `krk-9${tag.slice(-6)}2`];
@@ -1392,6 +1392,13 @@ maybe("karaoke prepayment (real Postgres)", () => {
           { event: "cancel_refund_unknown" },
           "2026-10-17T10:02:00.000Z",
         ],
+        [
+          `aud-${tag}-4`,
+          "update",
+          ids[1],
+          { event: "hold_released_payment_unknown" },
+          "2026-10-17T10:03:00.000Z",
+        ],
       ] as const;
       for (const [id, action, entityId, payload, at] of rows) {
         await pool!.query(
@@ -1400,8 +1407,13 @@ maybe("karaoke prepayment (real Postgres)", () => {
         );
       }
       try {
-        expect([...(await listStaffReleasedHolds(ids))]).toEqual([ids[0]]);
-        expect(await listStaffReleasedHolds([])).toEqual(new Set());
+        const released = await listReleasedHolds(ids);
+        expect([...released.staff]).toEqual([ids[0]]);
+        expect([...released.unverified]).toEqual([ids[1]]);
+        expect(await listReleasedHolds([])).toEqual({
+          staff: new Set(),
+          unverified: new Set(),
+        });
         const history = await listKaraokeAudit(ids[0]!);
         expect(history.map((r) => r.id)).toEqual([
           `aud-${tag}-3`,
@@ -1474,6 +1486,46 @@ maybe("karaoke prepayment (real Postgres)", () => {
           })),
         ).size,
       ).toBe(0);
+    });
+
+    it("a hold let go without the POS's answer is read as unverified, never as a lapse", async () => {
+      const { isLapsedHold, unverifiedReleaseIds } =
+        await import("@/lib/admin/karaoke-panel");
+      const auditOf = (id: string) =>
+        vi
+          .mocked(audit.logAudit)
+          .mock.calls.map((c) => c[0])
+          .filter((c) => c.entityId === id)
+          .map((c) => ({
+            entityId: c.entityId,
+            action: c.action,
+            payload: c.payload ?? {},
+          }));
+
+      // The sweep, after a day of not reaching the POS.
+      const swept = await bookMember(member());
+      pos.lookup.set(swept.reservation.id, "down");
+      expect(
+        await pay.expireUnpaidReservations(
+          new Date(Date.now() + 25 * 3600_000),
+        ),
+      ).toBe(1);
+      // An account closing while the POS cannot be asked.
+      const c = member();
+      const closing = await bookMember(c);
+      pos.lookup.set(closing.reservation.id, "down");
+      await pay.cancelKaraokeForClosedAccount(c.email);
+
+      for (const id of [swept.reservation.id, closing.reservation.id]) {
+        const r = (await row(id)) as Parameters<typeof isLapsedHold>[0];
+        expect(r).toMatchObject({
+          status: "cancelled",
+          paymentStatus: "expired",
+        });
+        const unverified = unverifiedReleaseIds(auditOf(id));
+        expect(unverified.has(id), id).toBe(true);
+        expect(isLapsedHold(r, new Set(), unverified)).toBe(false);
+      }
     });
   });
 });

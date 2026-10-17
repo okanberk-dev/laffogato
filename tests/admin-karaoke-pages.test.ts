@@ -18,6 +18,7 @@ const h = vi.hoisted(() => ({
   list: [] as KaraokeReservation[],
   audit: [] as Array<Record<string, unknown>>,
   released: new Set<string>() as Set<string> | Error,
+  unverified: new Set<string>(),
   prepay: true,
 }));
 
@@ -55,9 +56,9 @@ vi.mock("@/lib/admin/auth", () => ({
 }));
 vi.mock("@/lib/admin/karaoke-audit", () => ({
   listKaraokeAudit: vi.fn(async () => h.audit),
-  listStaffReleasedHolds: vi.fn(async () => {
+  listReleasedHolds: vi.fn(async () => {
     if (h.released instanceof Error) throw h.released;
-    return h.released;
+    return { staff: h.released, unverified: h.unverified };
   }),
 }));
 vi.mock("@/lib/admin/store", () => ({
@@ -136,6 +137,7 @@ beforeEach(() => {
   h.list = [];
   h.audit = [];
   h.released = new Set();
+  h.unverified = new Set();
 });
 
 describe("the booking's page", () => {
@@ -175,6 +177,7 @@ describe("the booking's page", () => {
     const page = await detail();
     expect(page).toContain("Mesafeli hizmet sözleşmesi");
     expect(page).not.toContain("10.1.2.3");
+    expect(page).not.toContain("LafMobil/1.0");
     expect(page).not.toContain("/admin/musteriler/");
     // The refund is drawn, off, with the reason.
     expect(page).toContain("İade yetkisi gerekiyor");
@@ -205,6 +208,30 @@ describe("the booking's page", () => {
     const page = await detail();
     expect(page).toContain("İade borcu");
     expect(page).toContain("İadeyi başlat");
+  });
+
+  it("a hold the sweep let go unanswered says so and what to check", async () => {
+    h.reservation = booking({
+      status: "cancelled",
+      paymentStatus: "expired",
+      paidMinor: 0,
+      paidAt: "",
+      paymentRef: "",
+    });
+    h.audit = [
+      {
+        id: "aud-12",
+        entityId: "krk-00042",
+        actor: "system",
+        action: "update",
+        payload: { event: "hold_released_payment_unknown", amountMinor: 0 },
+        createdAt: "2026-10-17T10:00:00.000Z",
+      },
+    ];
+    const page = await detail();
+    expect(page).toContain("Ödeme doğrulanamadı");
+    expect(page).toContain("PayNkolay panelinde bu rezervasyona başarılı");
+    expect(page).not.toContain("Ödenmedi");
   });
 
   it("answers 404 for an unknown booking and for an id that is not one", async () => {
@@ -256,6 +283,25 @@ describe("the list", () => {
     expect(page).toContain('href="/admin/mobil/karaoke/krk-7"');
     expect(page).not.toContain('href="/admin/mobil/karaoke/krk-8"');
     expect(page).toContain("Ödenmediği için süresi dolan 1 rezervasyon");
+  });
+
+  it("never calls a hold let go without the POS's answer unpaid, nor hides it (rule 29)", async () => {
+    h.list = [
+      booking({
+        id: "krk-9",
+        status: "cancelled",
+        paymentStatus: "expired",
+        paidMinor: 0,
+        paidAt: "",
+        paymentRef: "",
+      }),
+    ];
+    h.unverified = new Set(["krk-9"]);
+    const page = await list({ sekme: "iptal" });
+    expect(page).toContain('href="/admin/mobil/karaoke/krk-9"');
+    expect(page).toContain("Ödeme doğrulanamadı");
+    expect(page).not.toContain("Ödenmedi, süresi doldu");
+    expect(page).not.toContain("rezervasyon denemesi gizli");
   });
 
   it("stands when the audit log cannot be read: releases read as lapses", async () => {

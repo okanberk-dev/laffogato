@@ -70,20 +70,57 @@ const GRACE_MS = KARAOKE_PAYMENT_GRACE_MINUTES * 60_000;
  * `by: "staff"` (cancelKaraokeReservation), the sweep and a payment page
  * that never opened write none. `staffReleased` is the ids of such rows
  * (`staffReleasedIds`). The panel used to hide every expired row as
- * "ödenmediği için düşen", so a hold the köşk cancelled vanished.
+ * "ödenmediği için düşen", so a hold the köşk cancelled vanished. A hold let
+ * go without the POS's answer (`unverified`) is no lapse either.
  */
 export function isLapsedHold(
   r: Pick<KaraokeReservation, "id" | "status" | "paymentStatus">,
   staffReleased: ReadonlySet<string> = NO_IDS,
+  unverified: ReadonlySet<string> = NO_IDS,
 ): boolean {
   return (
     r.status === "cancelled" &&
     moneyOf(r) === "expired" &&
-    !staffReleased.has(r.id)
+    !staffReleased.has(r.id) &&
+    !unverified.has(r.id)
   );
 }
 
 const NO_IDS: ReadonlySet<string> = new Set();
+
+/**
+ * The money alerts (`alertMoney`) of a hold let go without an answer from
+ * the POS: the sweep after a day of asking, an account closure that could
+ * not ask. Rule 29: such a hold is never "not paid".
+ */
+export const KARAOKE_UNVERIFIED_RELEASE_EVENTS: readonly string[] = [
+  "hold_released_payment_unknown",
+  "account_closed_payment_unknown",
+];
+
+/**
+ * The bookings whose hold was let go while the POS could not say whether it
+ * was paid, from their audit rows. The list keeps them in sight and never
+ * calls them unpaid.
+ */
+export function unverifiedReleaseIds(
+  audit: ReadonlyArray<
+    Pick<KaraokeAuditRow, "entityId" | "action" | "payload">
+  >,
+): Set<string> {
+  const ids = new Set<string>();
+  for (const row of audit) {
+    const event = row.payload?.event;
+    if (
+      row.entityId &&
+      typeof event === "string" &&
+      KARAOKE_UNVERIFIED_RELEASE_EVENTS.includes(event)
+    ) {
+      ids.add(row.entityId);
+    }
+  }
+  return ids;
+}
 
 /**
  * The bookings whose unpaid hold a panel user let go, from their audit rows
@@ -147,11 +184,13 @@ export const KARAOKE_PAYMENT_TONE: Record<KaraokePaymentStatus, AdminTone> = {
 
 /**
  * The payment badge's text; a pending hold says until when, and a released
- * hold whether it lapsed (`lapsed`) or the köşk let it go.
+ * hold whether it lapsed (`lapsed`), the köşk let it go, or it was let go
+ * with its payment never confirmed either way (`unverified`).
  */
 export function paymentLabel(
   r: Pick<KaraokeReservation, "paymentStatus" | "paymentDueAt">,
   lapsed = true,
+  unverified = false,
 ): string {
   const money = moneyOf(r);
   switch (money) {
@@ -168,6 +207,7 @@ export function paymentLabel(
     case "refunded":
       return "İade edildi";
     case "expired":
+      if (unverified) return "Ödeme doğrulanamadı";
       return lapsed ? "Ödenmedi, süresi doldu" : "Ödeme alınmamıştı";
   }
 }
@@ -268,6 +308,8 @@ export interface KaraokePanelContext {
   canRefund: boolean;
   /** Holds a panel user let go (`staffReleasedIds`); others lapsed. */
   staffReleased?: ReadonlySet<string>;
+  /** Holds let go without the POS's answer (`unverifiedReleaseIds`). */
+  unverified?: ReadonlySet<string>;
 }
 
 type Slot = Pick<
@@ -424,7 +466,9 @@ export function karaokeRowView(
 ): KaraokeRowView {
   const money = moneyOf(r);
   const attention = karaokeAttention(r, ctx, sameDay);
-  const lapsed = isLapsedHold(r, ctx.staffReleased);
+  const unverified =
+    money === "expired" && (ctx.unverified?.has(r.id) ?? false);
+  const lapsed = isLapsedHold(r, ctx.staffReleased, ctx.unverified);
   return {
     r,
     money,
@@ -434,8 +478,8 @@ export function karaokeRowView(
     day: formatReservationDate(r.date),
     statusLabel: KARAOKE_STATUS_TEXT[r.status] ?? r.status,
     statusTone: KARAOKE_STATUS_TONE[r.status] ?? "neutral",
-    paymentLabel: paymentLabel(r, lapsed),
-    paymentTone: KARAOKE_PAYMENT_TONE[money],
+    paymentLabel: paymentLabel(r, lapsed, unverified),
+    paymentTone: unverified ? "warning" : KARAOKE_PAYMENT_TONE[money],
     refundOwed:
       attention.includes("refund_owed") || attention.includes("refund_pending"),
     attention,
@@ -528,7 +572,8 @@ export const KARAOKE_FILTER_FIELDS: readonly FilterField[] = [
       { value: KARAOKE_OWED_FILTER, label: "İade borcu" },
       { value: "refunding", label: "İade sonucu bekleniyor" },
       { value: "refunded", label: "İade edildi" },
-      { value: "expired", label: "Ödenmedi (süresi doldu)" },
+      // Lapsed, let go by the köşk, or let go unanswered: not all "unpaid".
+      { value: "expired", label: "Ödeme beklerken bırakılan" },
     ],
   },
 ];

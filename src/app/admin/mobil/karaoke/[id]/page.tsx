@@ -24,6 +24,7 @@ import {
   maskPaymentRef,
   refundAmountMinor,
   staffReleasedIds,
+  unverifiedReleaseIds,
 } from "@/lib/admin/karaoke-panel";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
@@ -86,6 +87,7 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
     getSettings(),
     listKaraokeAudit(r.id),
   ]);
+  const unverified = unverifiedReleaseIds(audit);
   const view = karaokeRowView(
     r,
     {
@@ -94,6 +96,7 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
       prepay: settings.karaokePrepay,
       canRefund,
       staffReleased: staffReleasedIds(audit),
+      unverified,
     },
     sameDay,
   );
@@ -172,7 +175,14 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
   ];
 
   const payment: Array<KeyValueItem | false> = [
-    { label: "Ödeme durumu", value: view.paymentLabel },
+    {
+      label: "Ödeme durumu",
+      value: view.paymentLabel,
+      hint:
+        view.money === "expired" && unverified.has(r.id)
+          ? "POS'a sorulamadan saat bırakıldı. PayNkolay panelinde bu rezervasyona başarılı bir ödeme varsa tutarı oradan iade et."
+          : undefined,
+    },
     {
       label: "Tutar",
       value: formatTRY(r.totalMinor),

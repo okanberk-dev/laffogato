@@ -156,6 +156,49 @@ describe("bug 6: a hold the köşk cancelled does not vanish", () => {
     expect(panel.isLapsedHold(booking())).toBe(false);
   });
 
+  it("a hold let go without the POS's answer is never 'unpaid' and never hidden (rule 29)", () => {
+    const unknown = { ...released, id: "krk-00010" };
+    const ids = panel.unverifiedReleaseIds([
+      {
+        entityId: "krk-00010",
+        action: "update",
+        payload: { event: "hold_released_payment_unknown" },
+      },
+      {
+        entityId: "krk-00011",
+        action: "update",
+        payload: { event: "account_closed_payment_unknown" },
+      },
+      // Another money alert: not a release.
+      {
+        entityId: "krk-00012",
+        action: "update",
+        payload: { event: "cancel_refund_unknown" },
+      },
+    ]);
+    expect([...ids].sort()).toEqual(["krk-00010", "krk-00011"]);
+    expect(panel.isLapsedHold(unknown, new Set(), ids)).toBe(false);
+    const v = panel.karaokeRowView(unknown, { ...CTX, unverified: ids });
+    expect(v.paymentLabel).toBe("Ödeme doğrulanamadı");
+    expect(v.paymentTone).toBe("warning");
+    const list = panel.karaokeList([v], {
+      tab: "iptal",
+      filters: {},
+      sort: panel.defaultKaraokeSort("iptal"),
+      page: 1,
+      today: TODAY,
+    });
+    expect(list.rows.map((x) => x.r.id)).toEqual(["krk-00010"]);
+    expect(list.hiddenLapsed).toBe(0);
+    // Only a released hold reads so: the same event on a paid row changes nothing.
+    expect(
+      panel.karaokeRowView(booking({ id: "krk-00010" }), {
+        ...CTX,
+        unverified: ids,
+      }).paymentLabel,
+    ).toBe("Ödendi");
+  });
+
   it("lists the köşk's release under İptal / İade and hides the lapse with a count", () => {
     const views = panel.karaokeRowViews([released, lapsed], {
       ...CTX,

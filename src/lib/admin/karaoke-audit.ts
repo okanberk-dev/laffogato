@@ -3,11 +3,15 @@ import "server-only";
 import { getDb, TABLES } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
 
-import { staffReleasedIds, type KaraokeAuditRow } from "./karaoke-panel";
+import {
+  staffReleasedIds,
+  unverifiedReleaseIds,
+  type KaraokeAuditRow,
+} from "./karaoke-panel";
 
 /**
  * The karaoke panel's reads of the audit log: one booking's history (its
- * page's Timeline) and which released holds a panel user let go (the list).
+ * page's Timeline) and what became of the released holds (the list).
  * Both filter on `entity` + `entityId`, so they read a handful of rows, not
  * the whole log the Olay kaydı page pages through.
  */
@@ -35,32 +39,41 @@ export async function listKaraokeAudit(
   return (res.data ?? []) as KaraokeAuditRow[];
 }
 
+/** What the audit log says about released holds (`cancelled` + `expired`). */
+export interface KaraokeReleasedHolds {
+  /** A panel user let it go. */
+  staff: Set<string>;
+  /** Let go while the POS could not say whether it was paid (rule 29). */
+  unverified: Set<string>;
+}
+
 /**
- * Of these released holds (`cancelled` + `expired`), the ones a panel user
- * let go; the rest lapsed on their own and the list hides them. Read in
- * chunks, one after the other, so a long history does not take the pool.
+ * Of these released holds, the ones a panel user let go and the ones let go
+ * without the POS's answer; the rest lapsed on their own and the list hides
+ * them. Read in chunks, one after the other, so a long history does not
+ * take the pool.
  */
-export async function listStaffReleasedHolds(
+export async function listReleasedHolds(
   ids: readonly string[],
-): Promise<Set<string>> {
-  const out = new Set<string>();
+): Promise<KaraokeReleasedHolds> {
+  const out: KaraokeReleasedHolds = { staff: new Set(), unverified: new Set() };
   for (let i = 0; i < ids.length; i += ID_CHUNK) {
     const chunk = ids.slice(i, i + ID_CHUNK);
     const res = await getDb()
       .from(TABLES.auditLogs)
       .select("entityId, action, payload")
       .eq("entity", ENTITY)
-      .eq("action", "transition")
+      // `transition`: a panel cancel; `update`: alertMoney's money alerts.
+      .in("action", ["transition", "update"])
       .in("entityId", chunk);
     if (res.error) {
-      raiseDbError("karaoke.listStaffReleasedHolds", res.error, res.status);
+      raiseDbError("karaoke.listReleasedHolds", res.error, res.status);
     }
-    const found = staffReleasedIds(
-      (res.data ?? []) as Array<
-        Pick<KaraokeAuditRow, "entityId" | "action" | "payload">
-      >,
-    );
-    for (const id of found) out.add(id);
+    const rows = (res.data ?? []) as Array<
+      Pick<KaraokeAuditRow, "entityId" | "action" | "payload">
+    >;
+    for (const id of staffReleasedIds(rows)) out.staff.add(id);
+    for (const id of unverifiedReleaseIds(rows)) out.unverified.add(id);
   }
   return out;
 }

@@ -9,7 +9,10 @@ import {
   StatusTabs,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { listStaffReleasedHolds } from "@/lib/admin/karaoke-audit";
+import {
+  listReleasedHolds,
+  type KaraokeReleasedHolds,
+} from "@/lib/admin/karaoke-audit";
 import {
   defaultKaraokeSort,
   KARAOKE_FILTER_FIELDS,
@@ -46,22 +49,25 @@ interface PageProps {
 }
 
 /**
- * The released holds a panel user let go, so the list keeps them under
- * İptal / İade. A failed read hides them with the lapsed ones (the old
- * behaviour) rather than taking the page down.
+ * The released holds a panel user let go, and those let go without the
+ * POS's answer, so the list keeps both under İptal / İade. A failed read
+ * hides them with the lapsed ones (the old behaviour) rather than taking
+ * the page down.
  */
-async function staffReleased(
+async function releasedHolds(
   rows: readonly KaraokeReservation[],
-): Promise<Set<string>> {
+): Promise<KaraokeReleasedHolds> {
   const released = rows
     .filter((r) => r.status === "cancelled" && moneyOf(r) === "expired")
     .map((r) => r.id);
-  if (released.length === 0) return new Set();
+  if (released.length === 0) {
+    return { staff: new Set(), unverified: new Set() };
+  }
   try {
-    return await listStaffReleasedHolds(released);
+    return await listReleasedHolds(released);
   } catch (err) {
     console.error("[admin/karaoke] iptal kayıtları okunamadı", err);
-    return new Set();
+    return { staff: new Set(), unverified: new Set() };
   }
 }
 
@@ -73,8 +79,9 @@ async function staffReleased(
  * its payment confirms it on its own; nobody confirms an unpaid one by hand.
  * Cancelling a paid booking refunds it in full, which needs the refunds
  * permission. A hold that lapsed unpaid was never a booking and shows only
- * when the payment filter asks for it; one a person cancelled stays under
- * İptal / İade. Amounts were fixed at booking time.
+ * when the payment filter asks for it; one a person cancelled, or one let go
+ * without the POS's answer, stays under İptal / İade. Amounts were fixed at
+ * booking time.
  */
 export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const session = await requireRole("karaoke");
@@ -89,12 +96,14 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
     listReservationsForAdmin({ from: filters.bas, to: filters.bit }),
     getSettings(),
   ]);
+  const released = await releasedHolds(rows);
   const views = karaokeRowViews(rows, {
     today,
     now,
     prepay: settings.karaokePrepay,
     canRefund: canAccess("refunds", session.role),
-    staffReleased: await staffReleased(rows),
+    staffReleased: released.staff,
+    unverified: released.unverified,
   });
   const list = karaokeList(views, {
     tab,
