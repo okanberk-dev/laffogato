@@ -82,8 +82,12 @@ export function isLiveLegalOverride<T extends ConsentOverride>(
   return !!o && o.isPublished && o.bodyMarkdown.trim() !== "";
 }
 
-/** The day a live override's text counts from, as a label; null if unknown. */
-function overrideLabel(o: ConsentOverride): string | null {
+/**
+ * The day a live override's text counts from, as a label; null if unknown.
+ * The version an order records when this override is the latest one; the
+ * panel checks a new effective date with it (lib/admin/legal-schema.ts).
+ */
+export function overrideLabel(o: ConsentOverride): string | null {
   const typed = o.effectiveDate.trim();
   if (legalDayNumber(typed) !== null) return typed;
   return istanbulDayLabel(o.updatedAt);
