@@ -379,7 +379,8 @@ Kullanım: hero slayt yarısı `object-fit: cover`, hikaye mozaiği
 
 Operatör, 17 Eki 2026: _"websitesine de birkaç görsel çizip görsel gereken
 yerlere ekle"_. Fotoğrafı olmayan yerler (boş durumlar, fotoğrafsız kampanya
-kartı, hikaye satırları, rehber kartları, bülten) kendi çizimini taşır.
+kartı, hikaye satırları, rehber kartları, bülten, menü araması) kendi çizimini
+taşır.
 Kurallar karaoke odası çiziminden gelir (`karaoke-room.webp`, uygulamayla aynı
 dosya):
 
@@ -399,6 +400,14 @@ dosya):
 - Hero'nun dördüncü slaytı içecek değil, oda çiziminden kesilmiş mikrofondur
   (`karaoke-mic-cut.webp`, içeceklerin kesimleri gibi 581×942, saydam),
   böğürtlen ışığında.
+- Her çizim ilk bakışta ne olduğunu söyler: boş sipariş listesi bir kafe
+  fişidir (kağıt rulosu tuvalet kağıdı gibi okunuyordu); menüde sonuçsuz
+  arama boş bir fincan tabağı, kaşık ve tek çekirdek, ürünü kalmamış kategori
+  ise cam fanuslu boş bir kek standıdır ("Bu kategoride şu an ürün yok").
+- Dosyalar içerikten adlanmaz; `/illustrations/*` marka görselleri gibi bir
+  gün tarayıcıda, bir hafta arka planda yenilenerek önbelleğe girer
+  (`next.config.ts`). Aynı adla yeniden çizilen bir dosyanın eskisi bir gün
+  daha görünebilir, sonraki ilk ziyarette arkada yenilenir.
 
 `tests/site-illustrations.test.ts` boyutu, renkleri, konturu, `aria-hidden`'ı
 ve her çizimin yerini tutar.
