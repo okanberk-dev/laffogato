@@ -59,36 +59,87 @@ export interface EnrollmentDraft {
 }
 
 /**
- * Generates a fresh pending secret for an admin and returns the `otpauth://`
- * URL the QR code encodes. The secret stays in draft state (enabled=false)
- * until `verifyAndEnable` succeeds, so a half-finished enrollment can never
- * lock someone out.
+ * How long a draft secret is shown again instead of being replaced. A draft
+ * used to be minted on every render of the setup page, so a reload, a second
+ * tab or a detour through the dashboard killed the QR already scanned and the
+ * refusal blamed the phone's clock. Older than this, a draft that has been on
+ * a screen nobody finished with is replaced.
+ */
+export const DRAFT_REUSE_MS = 15 * 60 * 1000;
+
+function isFreshDraft(entry: TwoFARow, now: number): boolean {
+  if (entry.enabled || !entry.secret) return false;
+  const age = now - Date.parse(entry.updatedAt);
+  // A minute of slack the other way: another instance's clock may run ahead.
+  return Number.isFinite(age) && age > -60_000 && age < DRAFT_REUSE_MS;
+}
+
+function draftOf(email: string, issuer: string, secret: string): EnrollmentDraft {
+  return { secret, otpauthUrl: generateURI({ issuer, label: email, secret }) };
+}
+
+/**
+ * The pending secret for an admin and the `otpauth://` URL the QR code
+ * encodes. A draft younger than DRAFT_REUSE_MS is returned as it is, so every
+ * render of the page shows the QR the phone may already hold; otherwise a new
+ * secret is written. The secret stays in draft state (enabled=false) until
+ * `verifyAndEnable` succeeds, so a half-finished enrollment can never lock
+ * someone out.
+ *
+ * Called by the setup page only, never from a "use server" file (every
+ * export there is a public POST endpoint; tests/admin-2fa-enrollment.test.ts).
  */
 export async function startEnrollment(
   email: string,
   issuer: string,
+  now: number = Date.now(),
 ): Promise<EnrollmentDraft> {
-  // Never over an enabled enrollment: the upsert below writes
-  // `enabled: false`, which would switch 2FA off without the disable path's
-  // audit row. Turning it off is `disable2FA`, deliberately.
-  if (await has2FA(email)) {
-    throw new Error("twofa.startEnrollment: 2FA is already enabled");
+  // Two rounds: a write that loses to a second tab reads that tab's draft.
+  for (let round = 0; round < 2; round++) {
+    const entry = await readEntry(email);
+    // Never over an enabled enrollment: writing `enabled: false` would switch
+    // 2FA off without the disable path's audit row. Turning it off is
+    // `disable2FA`, deliberately.
+    if (entry?.enabled) {
+      throw new Error("twofa.startEnrollment: 2FA is already enabled");
+    }
+    if (entry && isFreshDraft(entry, now)) {
+      return draftOf(email, issuer, entry.secret);
+    }
+    const secret = generateSecret();
+    const at = new Date(now).toISOString();
+    const sb = getDb();
+    // Both writes are conditional, so neither can land on a row that was
+    // enabled (or replaced by another tab) after it was read: a stale draft
+    // is replaced only while it is still that draft; a missing row is
+    // inserted only while it is still missing.
+    const { data, error } = entry
+      ? await sb
+          .from(TABLES.admin2fa)
+          .update({ secret, enrolledAt: "", updatedAt: at })
+          .eq("email", keyOf(email))
+          .eq("enabled", false)
+          .eq("updatedAt", entry.updatedAt)
+          .select("email")
+      : await sb
+          .from(TABLES.admin2fa)
+          .upsert(
+            {
+              email: keyOf(email),
+              secret,
+              enabled: false,
+              enrolledAt: "",
+              updatedAt: at,
+            },
+            { onConflict: "email", ignoreDuplicates: true },
+          )
+          .select("email");
+    if (error) throw new Error(`twofa.startEnrollment: ${error.message}`);
+    if (((data as { email: string }[] | null) ?? []).length > 0) {
+      return draftOf(email, issuer, secret);
+    }
   }
-  const secret = generateSecret();
-  const now = new Date().toISOString();
-  const sb = getDb();
-  const { error } = await sb.from(TABLES.admin2fa).upsert(
-    {
-      email: keyOf(email),
-      secret,
-      enabled: false,
-      enrolledAt: "",
-      updatedAt: now,
-    },
-    { onConflict: "email" },
-  );
-  if (error) throw new Error(`twofa.startEnrollment: ${error.message}`);
-  return { secret, otpauthUrl: generateURI({ issuer, label: email, secret }) };
+  throw new Error("twofa.startEnrollment: the draft kept changing");
 }
 
 /** Drops a draft. An already-enabled enrollment is left alone. */
