@@ -135,11 +135,24 @@ export async function listLegalDocOverrides(): Promise<
   return out;
 }
 
+/** What a save did: the row as written, and the archive row it left. */
+export interface LegalSaveResult {
+  override: LegalDocOverride;
+  /** The replaced text's archive id; null when nothing was replaced. */
+  archivedId: string | null;
+}
+
+/**
+ * Writes the override of `slug`. The row it replaces, when it differs, is
+ * archived first in the same transaction (`legal_doc_save`, migration
+ * 20261017210000), so a save never destroys the text before it. `by` is the
+ * admin's address, kept with the archived row.
+ */
 export async function upsertLegalDoc(
   slug: string,
   input: LegalDocInput,
-): Promise<LegalDocOverride> {
-  const sb = getDb();
+  { by = "" }: { by?: string } = {},
+): Promise<LegalSaveResult> {
   const row: LegalDocOverride = {
     slug,
     title: input.title.trim().slice(0, 200),
@@ -149,21 +162,113 @@ export async function upsertLegalDoc(
     isPublished: !!input.isPublished,
     updatedAt: new Date().toISOString(),
   };
-  const { error } = await sb
-    .from(TABLES.legalDocs)
-    .upsert(row, { onConflict: "slug" });
-  if (error) throw new Error(`upsertLegalDoc: ${error.message}`);
-  return row;
+  const { data, error, status } = await getDb().rpc<string | number | null>(
+    "legal_doc_save",
+    {
+      p_slug: row.slug,
+      p_title: row.title,
+      p_summary: row.summary,
+      p_effective_date: row.effectiveDate,
+      p_body: row.bodyMarkdown,
+      p_published: row.isPublished,
+      p_at: row.updatedAt,
+      p_by: by,
+    },
+  );
+  if (error) raiseDbError("upsertLegalDoc", error, status);
+  return { override: row, archivedId: data == null ? null : String(data) };
 }
 
-/** Remove the override entirely → the public page reverts to the coded default. */
-export async function resetLegalDoc(slug: string): Promise<boolean> {
-  const sb = getDb();
-  const { data, error } = await sb
-    .from(TABLES.legalDocs)
-    .delete()
+/**
+ * "Varsayılana döndür": archives the override and removes it, so the public
+ * page shows the coded default again (`legal_doc_reset`). Returns the archive
+ * id, or null when the document had no override.
+ */
+export async function resetLegalDoc(
+  slug: string,
+  { by = "" }: { by?: string } = {},
+): Promise<string | null> {
+  const { data, error, status } = await getDb().rpc<string | number | null>(
+    "legal_doc_reset",
+    { p_slug: slug, p_at: new Date().toISOString(), p_by: by },
+  );
+  if (error) raiseDbError("resetLegalDoc", error, status);
+  return data == null ? null : String(data);
+}
+
+// ── Archive (legal_override_history) ────────────────────────────────────────
+
+/**
+ * A text an override held before a save replaced it or a reset removed it.
+ * `updatedAt` is when that text was saved; `archivedAt` when it went.
+ */
+export interface LegalOverrideArchive extends LegalDocOverride {
+  id: string;
+  archivedAt: string;
+  archivedBy: string;
+  /** "replaced" (a later save) or "reset" (Varsayılana döndür). */
+  reason: string;
+}
+
+/** An archive row without its body, for lists. */
+export type LegalOverrideArchiveSummary = Omit<
+  LegalOverrideArchive,
+  "bodyMarkdown"
+>;
+
+const ARCHIVE_LIST_COLUMNS =
+  "id, slug, title, summary, effectiveDate, isPublished, updatedAt, archivedAt, archivedBy, reason";
+
+function toArchive<T extends { id: unknown }>(row: T): T & { id: string } {
+  return { ...row, id: String(row.id) };
+}
+
+/** The newest archive rows, of one document or of all; no bodies. */
+export async function listLegalOverrideArchive({
+  slug,
+  limit = 20,
+}: { slug?: string; limit?: number } = {}): Promise<
+  LegalOverrideArchiveSummary[]
+> {
+  let q = getDb()
+    .from(TABLES.legalOverrideHistory)
+    .select(ARCHIVE_LIST_COLUMNS);
+  if (slug) q = q.eq("slug", slug);
+  const { data, error, status } = await q
+    .order("id", { ascending: false })
+    .limit(limit);
+  if (error) raiseDbError("listLegalOverrideArchive", error, status);
+  return ((data as LegalOverrideArchiveSummary[] | null) ?? []).map(toArchive);
+}
+
+/** One archive row with its body, or null. */
+export async function getLegalOverrideArchive(
+  id: string,
+): Promise<LegalOverrideArchive | null> {
+  if (!/^\d{1,18}$/.test(id)) return null;
+  const { data, error, status } = await getDb()
+    .from(TABLES.legalOverrideHistory)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) raiseDbError("getLegalOverrideArchive", error, status);
+  return data ? toArchive(data as LegalOverrideArchive) : null;
+}
+
+/**
+ * Every text of `slug` that was ever published, as archived: the versions
+ * orders may have recorded. The editor checks a new effective date against
+ * them (`consentSaveRefusal`).
+ */
+export async function listPublishedLegalArchive(
+  slug: string,
+): Promise<LegalOverrideArchive[]> {
+  const { data, error, status } = await getDb()
+    .from(TABLES.legalOverrideHistory)
+    .select("*")
     .eq("slug", slug)
-    .select("slug");
-  if (error) throw new Error(`resetLegalDoc: ${error.message}`);
-  return ((data as { slug: string }[] | null) ?? []).length > 0;
+    .eq("isPublished", true)
+    .order("id", { ascending: false });
+  if (error) raiseDbError("listPublishedLegalArchive", error, status);
+  return ((data as LegalOverrideArchive[] | null) ?? []).map(toArchive);
 }

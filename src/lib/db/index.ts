@@ -239,6 +239,7 @@ export const TABLES = {
   siteContent: "site_content",
   newsletterSubscribers: "newsletter_subscribers",
   legalDocs: "legal_docs",
+  legalOverrideHistory: "legal_override_history",
   admin2fa: "admin_2fa",
   authAttempts: "auth_attempts",
   appHeroSlides: "app_hero_slides",
