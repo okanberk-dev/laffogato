@@ -123,10 +123,11 @@ import { earnsStamp } from "@/lib/mobile/loyalty-core";
  * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
- * Tablo boşsa SEED verisi otomatik yüklenir (idempotent - yalnızca
- * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
- * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
- * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
+ * SEED verisi bir veritabanına bir kez yüklenir (`seedOnce`: tablo boş ve
+ * `seed:<tablo>` işareti yoksa; insert'ler upsert/ignoreDuplicates ile
+ * yarış-güvenli). Katalog (ürün, kategori, menü) üretimde hiç tohumlanmaz.
+ * İç-içe alanlar (variants, items, refunds, ...) JSONB kolonlarda tutulur;
+ * tarih alanları ISO-8601 metni olarak saklanır.
  */
 
 /**
@@ -593,11 +594,71 @@ async function countRows(table: string): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * Sets a counter to at least `seq`, never lower (`raise_counter`, admin
+ * audit CAT-04). It used to write `seq` as is, so a seed run on an emptied
+ * table put the counter back to the seed's size and the next new row got the
+ * id of a deleted one, which old orders and stock moves still name.
+ */
 async function setCounter(id: string, seq: number): Promise<void> {
   const sb = getDb();
+  const { error, status } = await sb.rpc("raise_counter", {
+    counter_key: id,
+    floor_seq: seq,
+  });
+  if (error) raiseDbError(`setCounter(${id})`, error, status);
+}
+
+/** The `counters` row that says a table's seed has been decided. */
+function seedMarkerId(table: string): string {
+  return `seed:${table}`;
+}
+
+/**
+ * Whether the bundled catalogue (demo products, categories, the printed
+ * menu) may be written: never in a production build, Vercel previews
+ * included (decision D17). A live shop starts from what the operator enters;
+ * the demo products were sellable, at bundled prices, with stock 25.
+ */
+function catalogSeedAllowed(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Seeds `table` once per database (admin audit CAT-04, CON-01, D17). It used
+ * to seed whenever the table was empty, once per server instance, so deleting
+ * the last row brought the bundled rows back on the next cold start. Now the
+ * first decision is written as a marker (`seed:<table>` in `counters`, and
+ * 20261017200100_seed_markers.sql wrote them for every database already in
+ * use): with it, an empty table stays empty. `allowed: false` writes the
+ * marker without seeding.
+ */
+async function seedOnce(
+  table: string,
+  write: () => Promise<void>,
+  { allowed = true }: { allowed?: boolean } = {},
+): Promise<void> {
+  if ((await countRows(table)) > 0) return;
+  const sb = getDb();
+  const marker = seedMarkerId(table);
+  const decided = one<{ id: string }>(
+    await sb
+      .from(TABLES.counters)
+      .select("id")
+      .eq("id", marker)
+      .maybeSingle(),
+    `seedOnce.marker(${table})`,
+  );
+  if (decided) return;
+  if (allowed) await write();
   check(
-    await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
-    `setCounter(${id})`,
+    await sb
+      .from(TABLES.counters)
+      .upsert(
+        { id: marker, seq: 1 },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+    `seedOnce.mark(${table})`,
   );
 }
 
@@ -643,7 +704,7 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-// ─── Seed (idempotent - yalnızca tablo boşsa çalışır) ─────────────────────
+// ─── Seed (bir veritabanına bir kez - seedOnce) ────────────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
   // Every day 09:00-02:00. The close time is EARLIER than the open time
@@ -711,7 +772,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
     const sb = getDb();
     const now = new Date().toISOString();
 
-    if ((await countRows(TABLES.products)) === 0) {
+    const catalog = { allowed: catalogSeedAllowed() };
+
+    await seedOnce(TABLES.products, async () => {
       const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
         id: slugifyId("prd", i + 1),
         name: p.name,
@@ -756,9 +819,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("prd", seeded.length);
       }
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.categories)) === 0) {
+    await seedOnce(TABLES.categories, async () => {
       const seededCats: AdminCategory[] = [
         {
           id: slugifyId("cat", 1),
@@ -803,9 +866,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         "seed.categories",
       );
       await setCounter("cat", seededCats.length);
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.menuItems)) === 0) {
+    await seedOnce(TABLES.menuItems, async () => {
       let counter = 0;
       const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
         SEED_MENU[key].items.map((it, idx) => {
@@ -838,8 +901,10 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("mnu", counter);
       }
-    }
+    }, catalog);
 
+    // The one settings row is not a seed that can be emptied: every page
+    // needs it, so it is written whenever it is missing.
     if ((await countRows(TABLES.settings)) === 0) {
       check(
         await sb
@@ -6834,18 +6899,16 @@ const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
 ];
 
 const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
-  {
+  await seedOnce(TABLES.shopHeroSlides, async () => {
     const sb = getDb();
-    if ((await countRows(TABLES.shopHeroSlides)) === 0) {
-      check(
-        await sb.from(TABLES.shopHeroSlides).upsert(
-          SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
-          { onConflict: "id", ignoreDuplicates: true },
-        ),
-        "seed.shopHeroSlides",
-      );
-    }
-  }
+    check(
+      await sb.from(TABLES.shopHeroSlides).upsert(
+        SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.shopHeroSlides",
+    );
+  });
 });
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
@@ -6987,21 +7050,19 @@ function contentResource<Row extends ContentRowBase>(
   idPrefix: string,
 ) {
   const ensure = memoizeUntilRejected(async (): Promise<void> => {
-    {
+    await seedOnce(table, async () => {
       const sb = getDb();
-      if ((await countRows(table)) === 0) {
-        check(
-          await sb.from(table).upsert(
-            seed.map((s) => ({ ...s })),
-            {
-              onConflict: "id",
-              ignoreDuplicates: true,
-            },
-          ),
-          `seed.${table}`,
-        );
-      }
-    }
+      check(
+        await sb.from(table).upsert(
+          seed.map((s) => ({ ...s })),
+          {
+            onConflict: "id",
+            ignoreDuplicates: true,
+          },
+        ),
+        `seed.${table}`,
+      );
+    });
   });
 
   type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
@@ -7318,7 +7379,7 @@ const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
 
 const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
   const sb = getDb();
-  if ((await countRows(TABLES.appHeroSlides)) === 0) {
+  await seedOnce(TABLES.appHeroSlides, async () => {
     check(
       await sb.from(TABLES.appHeroSlides).upsert(
         SEED_APP_SLIDES.map((s) => ({ ...s })),
@@ -7326,8 +7387,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appHeroSlides",
     );
-  }
-  if ((await countRows(TABLES.appAnnouncements)) === 0) {
+  });
+  await seedOnce(TABLES.appAnnouncements, async () => {
     check(
       await sb.from(TABLES.appAnnouncements).upsert(
         SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
@@ -7335,8 +7396,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appAnnouncements",
     );
-  }
-  if ((await countRows(TABLES.appPosts)) === 0) {
+  });
+  await seedOnce(TABLES.appPosts, async () => {
     check(
       await sb.from(TABLES.appPosts).upsert(
         SEED_APP_POSTS.map((p) => ({ ...p })),
@@ -7344,7 +7405,7 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appPosts",
     );
-  }
+  });
 });
 
 // Publish windows live in ./publish-window, which carries no "server-only":

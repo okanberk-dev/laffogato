@@ -201,7 +201,8 @@ describe("the store deletes say whether a row went", () => {
     seen.push(text);
     if (/^DELETE /.test(text))
       return { rows: returned, rowCount: returned.length };
-    // The seed checks: the tables are not empty.
+    // The seed checks (seedOnce): the tables are not empty, so no marker is
+    // read and nothing is seeded.
     if (/count\(\*\)/i.test(text)) return { rows: [{ count: 3 }], rowCount: 1 };
     return { rows: [{ id: "seeded" }], rowCount: 1 };
   };
@@ -227,5 +228,79 @@ describe("the store deletes say whether a row went", () => {
     expect(seen.find((t) => /^DELETE /.test(t))).toMatch(/RETURNING "id"$/);
     returned = [];
     expect(await real[fn]("x-001")).toBe(false);
+  });
+});
+
+/**
+ * Deleting the last row of a content table brought the bundled rows back on
+ * the next cold start (admin audit CON-01, CAT-04, D17): every phone and
+ * /kampanyalar showed a half-price offer the till does not honour, and a
+ * weekend closing at 24:00. The seed is now decided once per database, by a
+ * `seed:<table>` marker in `counters`.
+ */
+describe("a content table emptied by the operator stays empty", () => {
+  const db = {
+    rows: new Map<string, number>(),
+    markers: new Set<string>(),
+    seeded: [] as string[],
+  };
+  const exec: Executor = async ({ text, params }) => {
+    const table = /(?:FROM|INTO) "(\w+)"/.exec(text)?.[1] ?? "";
+    if (/count\(\*\)/i.test(text)) {
+      return { rows: [{ count: db.rows.get(table) ?? 0 }], rowCount: 1 };
+    }
+    if (table === "counters" && /^SELECT /.test(text)) {
+      const hit = db.markers.has(String(params[0]));
+      return { rows: hit ? [{ id: params[0] }] : [], rowCount: hit ? 1 : 0 };
+    }
+    if (table === "counters" && /^INSERT /.test(text)) {
+      db.markers.add(String(params[0]));
+      return { rows: [], rowCount: 1 };
+    }
+    if (/^INSERT /.test(text)) {
+      db.seeded.push(table);
+      db.rows.set(table, (db.rows.get(table) ?? 0) + 1);
+      return { rows: [], rowCount: 1 };
+    }
+    return { rows: [], rowCount: 0 };
+  };
+
+  /** A fresh server instance: the per-instance memo starts over. */
+  async function coldStart() {
+    vi.resetModules();
+    vi.doMock("@/lib/db", async (importOriginal) => {
+      const real = await importOriginal<typeof import("@/lib/db")>();
+      const fake = createDb(exec);
+      return { ...real, getDb: () => fake };
+    });
+    vi.doUnmock("@/lib/admin/store");
+    return import("@/lib/admin/store");
+  }
+
+  // Press ships no bundled rows (PRESS = []): only the marker is written.
+  const LISTS = [
+    ["story_timeline", "listStoryEvents", true],
+    ["press", "listPress", false],
+    ["shop_hero_slides", "listShopHeroSlides", true],
+    ["app_hero_slides", "listAppSlides", true],
+    ["app_announcements", "listAppAnnouncements", true],
+    ["app_posts", "listAppPosts", true],
+  ] as const;
+
+  it.each(LISTS)("%s: seeded once, then never again", async (table, list, bundled) => {
+    db.rows.clear();
+    db.markers.clear();
+    db.seeded = [];
+
+    // A fresh database: seeded, and the decision written down.
+    await (await coldStart())[list]();
+    expect(db.seeded.includes(table)).toBe(bundled);
+    expect(db.markers.has(`seed:${table}`)).toBe(true);
+
+    // The operator deletes every row; the next instance lists nothing.
+    db.rows.set(table, 0);
+    db.seeded = [];
+    expect(await (await coldStart())[list]()).toEqual([]);
+    expect(db.seeded).not.toContain(table);
   });
 });
