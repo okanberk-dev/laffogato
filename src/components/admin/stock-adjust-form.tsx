@@ -46,8 +46,10 @@ export function StockAdjustForm({ products }: { products: AdminProduct[] }) {
                 p.variants.length > 0 ? (
                   <optgroup key={p.id} label={`${p.name} · toplam ${p.stock}`}>
                     {p.variants.map((v) => (
+                      // The product's name too: a closed select shows the
+                      // option alone, and "250 g" is on more than one bag.
                       <option key={v.id} value={`${p.id}#${v.id}`}>
-                        {v.name} · stok {v.stock}
+                        {p.name} · {v.name} · stok {v.stock}
                         {v.isActive ? "" : " · pasif"}
                       </option>
                     ))}

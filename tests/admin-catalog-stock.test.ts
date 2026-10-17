@@ -484,7 +484,7 @@ describe("the product form", () => {
     });
     expect(html).not.toMatch(/<input[^>]*name="stock"[^>]/);
     expect(html).toContain("Toplam stok (adet)");
-    expect(html).toMatch(/<input[^>]*readOnly=""[^>]*value="10"|<input[^>]*value="10"[^>]*readOnly=""/);
+    expect(html).toMatch(/<output[^>]*>10 adet<\/output>/);
     expect(html).toContain("10 adet (varyantlardan)");
     expect(variantsPosted(html).map((v) => v.stockAtOpen)).toEqual([6, 4]);
   });

@@ -209,7 +209,7 @@ describe("a variant (admin audit CAT-14)", () => {
     );
     expect(html).toContain('<optgroup label="Sirena · toplam 10">');
     expect(html).toContain('value="prd-0001#var-1"');
-    expect(html).toContain("1 kg · stok 4 · pasif");
+    expect(html).toContain("Sirena · 1 kg · stok 4 · pasif");
     // The product itself is not offered: its total follows the variants.
     expect(html).not.toContain('value="prd-0001"');
     expect(html).toContain('value="prd-0002"');

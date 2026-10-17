@@ -808,7 +808,11 @@ export function ProductWizard({
                   label="Toplam stok (adet)"
                   hint="Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
                 >
-                  <TextInput value={String(variantTotal)} readOnly />
+                  {/* Not a field: nothing to type. An output is labelable,
+                      so the label still names it. */}
+                  <output className="block w-full rounded-xl border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
+                    {variantTotal} adet
+                  </output>
                 </Field>
               ) : (
                 <Field
