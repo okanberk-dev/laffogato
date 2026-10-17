@@ -29,8 +29,8 @@ export function TwoFAEnrollForm() {
           should be empty for the next one. */}
       <form action={formAction} className="grid gap-3">
         <p className="text-sm text-[var(--admin-text-soft)]">
-          QR kodu taradıktan sonra doğrulama uygulamasında görünen 6 haneli
-          kodu gir.
+          QR kodu taradıktan sonra doğrulama uygulamasında görünen 6 haneli kodu
+          gir.
         </p>
         <TextInput
           name="token"

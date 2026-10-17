@@ -55,18 +55,14 @@ maybe("2FA setup draft against a real Postgres", () => {
   }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
-    await pool?.query(`delete from public.admin_2fa where email = $1`, [
-      EMAIL,
-    ]);
+    await pool?.query(`delete from public.admin_2fa where email = $1`, [EMAIL]);
     await pool?.end();
     pool = null;
     await release?.();
   });
 
   beforeEach(async () => {
-    await pool!.query(`delete from public.admin_2fa where email = $1`, [
-      EMAIL,
-    ]);
+    await pool!.query(`delete from public.admin_2fa where email = $1`, [EMAIL]);
   });
 
   async function stored() {
@@ -78,9 +74,8 @@ maybe("2FA setup draft against a real Postgres", () => {
   }
 
   it("writes one draft and shows it again for 15 minutes, then replaces it", async () => {
-    const { startEnrollment, DRAFT_REUSE_MS } = await import(
-      "@/lib/admin/twofa"
-    );
+    const { startEnrollment, DRAFT_REUSE_MS } =
+      await import("@/lib/admin/twofa");
     const first = await startEnrollment(EMAIL, "L'Affogato Admin", T0);
     const again = await startEnrollment(EMAIL, "L'Affogato Admin", T0 + 1000);
     expect(again.secret).toBe(first.secret);
@@ -126,9 +121,8 @@ maybe("2FA setup draft against a real Postgres", () => {
 
   it("enables the draft the phone scanned, after a reload", async () => {
     const { generateSync } = await import("otplib");
-    const { startEnrollment, verifyAndEnable, has2FA } = await import(
-      "@/lib/admin/twofa"
-    );
+    const { startEnrollment, verifyAndEnable, has2FA } =
+      await import("@/lib/admin/twofa");
     const now = Date.now();
     const scanned = await startEnrollment(EMAIL, "x", now);
     // The page renders again before the code is typed.

@@ -42,15 +42,14 @@ export default async function TwoFAEnrollPage() {
                 very phone. */}
             <p>
               Telefonunu değiştireceksen önce eski telefondaki kodla burada
-              kapat, sonra yenisinde yeniden kur. Telefonu kaybettiysen
-              işletme sahibinden Kullanıcılar sayfasında 2FA&apos;nı
-              sıfırlamasını iste.
+              kapat, sonra yenisinde yeniden kur. Telefonu kaybettiysen işletme
+              sahibinden Kullanıcılar sayfasında 2FA&apos;nı sıfırlamasını iste.
             </p>
             {session.role === "owner" && (
               <p>
                 Başka sahip hesabı yoksa senin 2FA&apos;n yalnız veritabanından
-                sıfırlanır (docs/DATABASE.md); ikinci bir sahip hesabı bu
-                yolu açık tutar.
+                sıfırlanır (docs/DATABASE.md); ikinci bir sahip hesabı bu yolu
+                açık tutar.
               </p>
             )}
           </div>

@@ -32,7 +32,10 @@ beforeEach(() => {
   signInAdmin.mockReset();
   logAudit.mockReset();
   redirect.mockReset();
-  signInAdmin.mockResolvedValue({ ok: false, error: "E-posta veya şifre hatalı." });
+  signInAdmin.mockResolvedValue({
+    ok: false,
+    error: "E-posta veya şifre hatalı.",
+  });
 });
 
 describe("loginAction", () => {
@@ -114,8 +117,12 @@ describe("LoginForm", () => {
   });
 
   it("names its fields with the kit's labels", () => {
-    expect(html).toMatch(/<label[^>]*>[\s\S]*E-posta[\s\S]*<input[^>]*name="email"/);
-    expect(html).toMatch(/<label[^>]*>[\s\S]*Şifre[\s\S]*<input[^>]*name="password"/);
+    expect(html).toMatch(
+      /<label[^>]*>[\s\S]*E-posta[\s\S]*<input[^>]*name="email"/,
+    );
+    expect(html).toMatch(
+      /<label[^>]*>[\s\S]*Şifre[\s\S]*<input[^>]*name="password"/,
+    );
   });
 });
 

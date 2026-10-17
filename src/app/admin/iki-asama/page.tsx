@@ -31,8 +31,8 @@ export default async function TwoFAPage({ searchParams }: PageProps) {
           İki adımlı doğrulama
         </h1>
         <p className="mt-2 text-sm break-words text-[var(--admin-text-soft)]">
-          {session.email} için doğrulama uygulamandaki 6 haneli kodu gir. Kod
-          30 saniyede bir yenilenir.
+          {session.email} için doğrulama uygulamandaki 6 haneli kodu gir. Kod 30
+          saniyede bir yenilenir.
         </p>
         <div className="mt-6">
           <TwoFAVerifyForm next={next} />

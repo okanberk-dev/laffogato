@@ -74,7 +74,11 @@ function isFreshDraft(entry: TwoFARow, now: number): boolean {
   return Number.isFinite(age) && age > -60_000 && age < DRAFT_REUSE_MS;
 }
 
-function draftOf(email: string, issuer: string, secret: string): EnrollmentDraft {
+function draftOf(
+  email: string,
+  issuer: string,
+  secret: string,
+): EnrollmentDraft {
   return { secret, otpauthUrl: generateURI({ issuer, label: email, secret }) };
 }
 

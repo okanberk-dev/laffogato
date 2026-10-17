@@ -194,12 +194,10 @@ describe("setting 2FA up", () => {
 
 describe("the screens", () => {
   it("name the code field and announce a wrong code", async () => {
-    const { TwoFAVerifyForm } = await import(
-      "@/components/admin/twofa-verify-form"
-    );
-    const { TwoFAEnrollForm } = await import(
-      "@/components/admin/twofa-enroll-form"
-    );
+    const { TwoFAVerifyForm } =
+      await import("@/components/admin/twofa-verify-form");
+    const { TwoFAEnrollForm } =
+      await import("@/components/admin/twofa-enroll-form");
     for (const html of [
       renderToStaticMarkup(createElement(TwoFAVerifyForm, { next: "/admin" })),
       renderToStaticMarkup(createElement(TwoFAEnrollForm)),
