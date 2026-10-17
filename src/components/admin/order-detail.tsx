@@ -229,7 +229,9 @@ function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
       data-kdv-breakdown
       className="mt-4 overflow-x-auto border-t border-[var(--admin-border)] pt-3"
     >
-      <table className="w-full min-w-[360px] text-sm">
+      {/* No forced width: four short columns fit a 375 px phone (309 px in
+          the card), and pl-2 keeps the amounts apart. */}
+      <table className="w-full text-sm">
         <thead>
           <tr
             className="text-left text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
@@ -238,13 +240,13 @@ function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
             <th scope="col" className="py-1 font-normal">
               KDV
             </th>
-            <th scope="col" className="py-1 text-right font-normal">
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
               Matrah
             </th>
-            <th scope="col" className="py-1 text-right font-normal">
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
               KDV tutarı
             </th>
-            <th scope="col" className="py-1 text-right font-normal">
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
               KDV dahil
             </th>
           </tr>
@@ -253,13 +255,13 @@ function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
           {kdv.rows.map((r) => (
             <tr key={r.ratePct}>
               <td className="py-1">{kdvRateLabel(r.ratePct)}</td>
-              <td className="py-1 text-right" style={MONO_STYLE}>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
                 {formatTRY(r.netMinor)}
               </td>
-              <td className="py-1 text-right" style={MONO_STYLE}>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
                 {formatTRY(r.taxMinor)}
               </td>
-              <td className="py-1 text-right" style={MONO_STYLE}>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
                 {formatTRY(r.grossMinor)}
               </td>
             </tr>

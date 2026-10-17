@@ -171,6 +171,15 @@ describe("KDV on the page and the receipt (17 Eki 2026)", () => {
     expect(out).toContain("Matrah");
   });
 
+  it("the per-rate table fits a 375 px phone: no forced width", () => {
+    const out = detail(rated());
+    const table = out.slice(out.indexOf("data-kdv-breakdown"));
+    const open = table.indexOf("<table");
+    const tag = table.slice(open, table.indexOf(">", open) + 1);
+    expect(tag).toContain("w-full");
+    expect(tag).not.toMatch(/min-w-\[/);
+  });
+
   it("an order from before rates were kept shows no split and says why", () => {
     const out = detail(order());
     expect(out).not.toContain("data-kdv-breakdown");
