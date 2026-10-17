@@ -68,8 +68,13 @@ const {
   toastFromFlash,
   toastFromResult,
 } = await import("@/components/admin/ui/toast-core");
-const { BulkActionBar, selectionReducer } =
-  await import("@/components/admin/bulk");
+const {
+  BulkActionBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+  bulkBarSpace,
+  selectionReducer,
+} = await import("@/components/admin/bulk");
 const ui = await import("@/components/admin/ui");
 const forms = await import("@/components/admin/forms");
 
@@ -557,6 +562,64 @@ describe("bulk selection survives the next tick after a success", () => {
         ),
       ),
     ).toBe("");
+  });
+});
+
+describe("bulk checkboxes and the room under the bar", () => {
+  const selection = {
+    selected: new Set(["a"]),
+    has: (id: string) => id === "a",
+    toggle: () => {},
+    set: () => {},
+    clear: () => {},
+    count: 1,
+    ids: ["a"],
+  };
+
+  it("the row boxes are the panel's 20px espresso box in a 44px hit area", () => {
+    // They were 16px browser-blue boxes: @tailwindcss/forms classes with no
+    // plugin installed.
+    for (const out of [
+      html(createElement(RowCheckbox, { id: "a", selection, label: "Latte" })),
+      html(createElement(SelectAllCheckbox, { ids: ["a", "b"], selection })),
+    ]) {
+      expect(out).toMatch(
+        /^<label class="-m-3 inline-flex h-11 w-11 [^"]*cursor-pointer/,
+      );
+      expect(out).toContain(
+        'class="h-5 w-5 cursor-pointer accent-[var(--admin-primary)]',
+      );
+      expect(out).not.toContain("neutral-");
+      expect(out).not.toContain("focus:ring");
+    }
+    expect(
+      html(createElement(RowCheckbox, { id: "a", selection, label: "Latte" })),
+    ).toContain('aria-label="Latte"');
+  });
+
+  it("the space kept free follows the bar's measured height", () => {
+    expect(bulkBarSpace(0)).toBe(0);
+    // A phone, where the bar wraps to 237px: bar + 1rem offset + 1rem gap.
+    expect(bulkBarSpace(237)).toBe(269);
+    expect(bulkBarSpace(70.4)).toBe(103);
+  });
+
+  it("the spacer goes after the page, not before the pagination", () => {
+    // The fixed h-32 spacer sat inside the list, before the page links, so
+    // the bar covered them (ORD-06).
+    const out = html(
+      withKids(BulkActionBar, { selection, pending: false }, "x"),
+    );
+    expect(out).not.toContain("h-32");
+    const src = read("src/components/admin/bulk.tsx");
+    expect(src).toContain("new ResizeObserver(");
+    expect(src).toMatch(/createPortal\(\s*<div[\s\S]*?data-admin-bulk-spacer/);
+    expect(src).toContain("adminPortalRoot");
+    // ToastProvider renders that root after the page's own content.
+    const toast = read("src/components/admin/ui/toast.tsx");
+    expect(toast.indexOf("{children}")).toBeLessThan(
+      toast.indexOf("<div data-admin-portal"),
+    );
   });
 });
 
