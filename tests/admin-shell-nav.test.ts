@@ -10,7 +10,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * landing page behind every "back to the panel" link, the 2FA link for
  * every role, badges that re-read after an action, folded nav groups,
  * breadcrumbs, the top bar's search and its slot for later controls, the
- * page skeleton and the in-panel 404 for unknown addresses.
+ * page skeleton, the in-panel 404 for unknown addresses, and the layout's
+ * answer when the session cannot be checked.
  *
  * The client pieces render here as the server renders them (no DOM in
  * this suite); their timing rules are tested through the pure seams
@@ -531,6 +532,37 @@ describe("the layout", () => {
     expect(html).not.toContain("/admin/siparisler");
     expect(html).not.toContain("/admin/ara");
     expect(html).toContain("/admin/2fa-kurulum");
+  });
+
+  it("an unreachable session check shows the shell with a notice, not the sign-in (SHE-11)", async () => {
+    session.read = async () => {
+      throw Object.assign(new Error("panel account unreadable"), {
+        code: "ADMIN_SESSION_UNAVAILABLE",
+      });
+    };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const html = await render();
+    spy.mockRestore();
+    expect(html).toContain('data-admin-root=""');
+    expect(html).toMatch(/role="alert"[^>]*>.*Oturumun şu an doğrulanamıyor\./);
+    // The page still renders (it throws into admin/error.tsx itself).
+    expect(html).toContain("PAGE");
+    expect(html).not.toContain("admin-nav-drawer");
+  });
+
+  it("recognises the marker property too, and lets any other error through", async () => {
+    const marked = new Error("x");
+    Object.defineProperty(marked, "__adminSessionUnavailable", { value: true });
+    session.read = async () => {
+      throw marked;
+    };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await render()).toContain("Oturumun şu an doğrulanamıyor.");
+    spy.mockRestore();
+    session.read = async () => {
+      throw new Error("bug");
+    };
+    await expect(render()).rejects.toThrow("bug");
   });
 
   it("signed out: the bare wrapper", async () => {
