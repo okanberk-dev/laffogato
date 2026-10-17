@@ -52,6 +52,7 @@ geçer; değerleri `src/lib/legal/entity.ts` doldurur.
 | R9 (E1) | Fatura: e-Arşiv ve "e-posta ile iletilir" | §11 |
 | R10 | Posta kodu 34940 | §12 |
 | R11 (T1) | Uzun tireler | §13 |
+| Y1 | fA'L yapay zekâ alıcısı: OpenAI yerine Anthropic (17 Eki 2026, metin kodda değişti) | §15 |
 
 **Ek A** (belgenin sonunda) etkilenen **her cümleyi** belge belge, satır
 numarası ve kodu ile, **birebir** gösterir. Yalnız ad değişikliği (Ö1) ve
@@ -581,6 +582,8 @@ Kanıt (`RiosenBeq/lafmobil`):
   hazır cümlelerden kurulur ve fotoğraf cihazdan çıkmaz (dosyanın başlık
   yorumu). Sunucu tarafı bugün **kapalıdır** (karar 177; `OPENAI_API_KEY` ve
   `FAL_AI_ENABLED` bekliyor); R12 metni Açık Rıza §15/A'da zaten var.
+  (17 Eki 2026 notu: sağlayıcı Anthropic oldu; anahtar `ANTHROPIC_API_KEY`,
+  alıcı Anthropic, PBC. Ayrıntı §15.)
 - Kasada damga için karekodu **uygulama gösterir, personel okur**: site
   `src/lib/mobile/counter.ts` (iki dakikalık, tek kullanımlık kasa kodu;
   veritabanına yalnız özeti yazılır) ve `src/app/admin/kasa/`.
@@ -809,7 +812,8 @@ Uygulamada ve sitede başka bir üçüncü taraf veri alıcısı bulunmadı:
 uygulamada analitik, çökme raporlama, reklam veya uzaktan güncelleme
 (`expo-updates`) kütüphanesi yok; sitede adı geçen Vercel, {{DB_PROVIDER}}
 (bugün Neon), Resend, Google (analitik, rızaya bağlı) ve OpenAI (R12,
-kapalı) metinlerde zaten var.
+kapalı) metinlerde zaten var. (17 Eki 2026: R12 alıcısı artık Anthropic,
+PBC; OpenAI metinlerden çıktı, §15.)
 
 ---
 
@@ -925,7 +929,99 @@ belgede basılmıyor) ve `scripts/legal-export.mjs` satır 92'deki başlık
 | 10 | Geliver'ın ticaret unvanı ve veri işleme sözleşmesi; Yurtiçi Kargo ile anlaşmalı iade kodu var mı | Operatör | V2 |
 | 11 | Şirket e-Arşiv mükellefi mi; faturalar bugün müşteriye nasıl iletiliyor | Mali müşavir | E1 |
 | 12 | R8 (pazarlama amaçlı push bildirimi) rıza kalemi, sunucudan push gönderilmediği için kalkmalı mı | Avukat | C2 |
-| 13 | fA'L yapay zekâ yorumu (R12) açılmadan önceki avukat okuması | Avukat | Q2 paragrafı R12'ye atıf yapıyor; R12 metninin kendisi bu belgenin kapsamı dışında |
+| 13 | fA'L yapay zekâ yorumu (R12) açılmadan önceki avukat okuması | Avukat | Q2 paragrafı R12'ye atıf yapıyor; R12 metninin kendisi bu belgenin kapsamı dışında. 17 Eki 2026'da alıcı Anthropic, PBC oldu: okunacak metin ve sorular §15'te |
+
+---
+
+## 15. Y1 - fA'L yapay zekâ alıcısı: OpenAI yerine Anthropic (17 Eki 2026)
+
+> **Durum: metin kodda değişti, avukat okuması bekliyor.** Bu bölüm, yukarıdaki
+> Eylül listesinden farklı olarak metni **değiştiren** PR'ın avukat notudur
+> (dal `feat/fal-anthropic`). Yapay zekâ yorumu (`FAL_AI_ENABLED`) avukat onayı ve
+> §15.5'teki adımlar tamamlanmadan açılmaz.
+
+### 15.1 Neden
+
+Operatör kararı (17 Eki 2026): fA'L'ın yapay zekâ yorumu OpenAI yerine
+Anthropic'in Claude API'si ile yapılacak. R12 rızası belirli bir alıcıya
+aktarım için verilir (KVKK m.5/1 ve m.9; rıza belirli bir konuya ilişkin ve
+bilgilendirmeye dayanan olmalı). Alıcı değişince metin de, rızanın kendisi de
+yenilenmek zorunda: OpenAI'ye aktarım için verilmiş bir "evet" Anthropic'e
+aktarım için kullanılamaz.
+
+### 15.2 Koddaki güvenceler
+
+- Fotoğraf yalnız metinlerin andığı alıcıya gider: `src/lib/mobile/fal-core.ts`
+  `FAL_DISCLOSED_PROVIDER = "anthropic"`. Ortam değişkeniyle OpenAI seçilse
+  bile özellik kapalı kalır (`falAiEnabled`). `tests/legal-fal-recipient.test.ts`
+  metinlerin bu sağlayıcının unvanını (`Anthropic, PBC`) andığını ve başka
+  sağlayıcının adının geçmediğini tutar.
+- Rıza sürümü alıcıyı adlandırır: `2026-10-17-anthropic` (önceki sürüm
+  `2026-09-23`, alıcı OpenAI). Eski sürümle verilmiş rıza sayılmaz; uygulama
+  `GET /fal/consent` yanıtında `granted: false` görür ve rızayı yeniden sorar.
+  Daha önce "hayır" demiş üyeye de bir kez sorulur, çünkü sürüm değişti.
+  `tests/mobile-fal-consent.test.ts` tutar.
+- Sağlayıcıya giden veri değişmedi: küçültülmüş, meta verisi silinmiş fotoğraf
+  ve kimliksiz not (seviye, ziyaret sıklığı kelimesi, varsa her zamanki içecek).
+  Ad, e-posta, telefon ve üye no gitmez. Sunucu kayıtlarına (log) yalnız durum
+  kodu, durma sebebi ya da hata sınıfı yazılır; fotoğraf, talimat, üye bilgisi
+  ve anahtar yazılmaz.
+- OpenAI'ye istek `store: false` ile gidiyordu. Anthropic'in Messages API'sinde
+  böyle bir anahtar yok; R12'deki "yanıtı saklamaması talimatıyla iletilir"
+  sözü bu yüzden çıktı.
+
+### 15.3 Değişen cümleler
+
+Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir. Üç
+belgenin "Son güncelleme" tarihi 17 Ekim 2026 oldu; `LEGAL_UPDATED` (ödeme
+onayının kaydettiği sürüm) değişmedi.
+
+| Belge | Satır | Mevcut (16 Eki 2026) | Yeni |
+|---|---|---|---|
+| Gizlilik Politikası, kamera ve fotoğraf izni | 4953 | "... yapay zekâ hizmet sağlayıcısına iletilir ve saklanmaz." | "... iletilir ve şirketimizce saklanmaz." |
+| Gizlilik Politikası, alıcı tablosu ("Yapay zekâ hizmet sağlayıcısı") | 5191 | "... OpenAI, L.L.C.'ye (ABD) aktarılması; fotoğraf saklanmaz, ..." | "... Anthropic, PBC'ye (ABD) aktarılması; fotoğraf şirketimizce saklanmaz, ..." |
+| Gizlilik Politikası, cihaz izinleri | 5386 | "... R12 bölümü uyarınca aktarılır ve saklanmaz." | "... aktarılır ve şirketimizce saklanmaz." |
+| KVKK Aydınlatma §9 | 5949 | "... OpenAI, L.L.C.'ye (ABD) kimliksiz bir özetle ..." | "... Anthropic, PBC'ye (ABD) kimliksiz bir özetle ..." |
+| KVKK Aydınlatma §12 | 5997 | "... OpenAI, L.L.C.'ye (ABD) aktarılır ve şirketimizce saklanmaz ..." | "... Anthropic, PBC'ye (ABD) aktarılır ..." |
+| KVKK Aydınlatma §15 | 6111 | "... içecek fotoğrafının OpenAI, L.L.C.'ye (ABD) aktarılması ..." | "... Anthropic, PBC'ye (ABD) aktarılması ..." |
+| KVKK Aydınlatma §15, alıcılar ve bilinen konumlar | 6119 | "... yalnızca açık rızanızla OpenAI, L.L.C. (ABD)." | "... yalnızca açık rızanızla Anthropic, PBC (ABD)." |
+| Açık Rıza, rıza tablosu (R12) | 6589 | "OpenAI (ABD) altyapısına aktarılır; fotoğraf saklanmaz." | "Anthropic, PBC (ABD) altyapısına aktarılır; fotoğraf şirketimizce saklanmaz." |
+| Açık Rıza §11 (R6), kullanılan altyapılar | 6652 | "... onayınız hâlinde OpenAI." | "... onayınız hâlinde Anthropic, PBC." |
+| Açık Rıza §15/A (R12), 2. paragraf | 6707 | "... OpenAI, L.L.C. (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir." | "... Anthropic, PBC (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir." |
+| Açık Rıza §15/A (R12), 3. paragraf | 6708 | "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir ve hizmet sağlayıcıya yanıtı saklamaması talimatıyla iletilir. Hizmet sağlayıcının kötüye kullanımın önlenmesi amacıyla kendi politikaları uyarınca sınırlı süreli kayıt tutabileceğini bildiririz." | "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir. Hizmet sağlayıcının iletilen verileri, kötüye kullanımın önlenmesi ve güvenlik gibi amaçlarla, kendi ticari hizmet koşulları ve politikalarında belirlenen süre boyunca saklayabileceğini bildiririz." |
+| Açık Rıza §15/A (R12), alıcı | 6716 | "Alıcı: OpenAI, L.L.C. (Amerika Birleşik Devletleri), veri işleyen sıfatıyla." | "Alıcı: Anthropic, PBC (Amerika Birleşik Devletleri), veri işleyen sıfatıyla." |
+
+### 15.4 Avukata sorular
+
+| # | Soru | Neden |
+|---|---|---|
+| Y1-1 | Anthropic, PBC ile KVKK m.9 standart sözleşmesi (Kurul'un ilan ettiği metin) imzalandı mı ve imzadan sonra beş iş günü içinde Kurul'a bildirildi mi? R12 aktarımı "hizmet sağlayıcıyla akdedilen standart sözleşme gibi uygun güvencelere" dayandırıyor. | Bu olmadan özellik açılmamalı. |
+| Y1-2 | Anthropic'in ticari hizmet koşulları ve veri işleme eki (DPA), Anthropic'i bu iş için veri işleyen yapıyor mu? Metindeki "veri işleyen sıfatıyla" ifadesi bunu karşılıyor mu? | R12 "Alıcı" maddesi; KVKK m.12 veri işleme sözleşmesi. |
+| Y1-3 | Saklama: R12 sağlayıcının saklamasını artık genel olarak anlatıyor ("kendi ticari hizmet koşulları ve politikalarında belirlenen süre"). Güncel koşullardaki süre metne yazılmalı mı? Uydurmamak için süre yazılmadı. | KVKK m.10 aydınlatmanın doğruluğu. |
+| Y1-4 | Eğitim: metinler, sağlayıcının verileri model eğitiminde kullanıp kullanmadığını söylemiyor. Anthropic'in güncel ticari koşulları müşteri içeriğinin eğitimde kullanılmadığını söylüyorsa (avukat teyit etmeli) bu bir güvence olarak eklenmeli mi? | Teyit edilmeden söz verilmedi. |
+| Y1-5 | Altı belgedeki "aktarılır ve saklanmaz" cümleleri sağlayıcıyı adlandırmadığı için değişmedi: Güvenli Alışveriş (4491), Veri Saklama ve İmha Politikası (8036), Çerez Politikası (8640), Kullanım Şartları (9787), Mobil Uygulama Koşulları (11646), Kafe Hizmet Koşulları (14471). Bunlar da "şirketimizce saklanmaz" diye netleşmeli mi? | Sağlayıcı kendi koşullarına göre saklayabilir; yalın "saklanmaz" onun adına söz gibi okunabilir. |
+| Y1-6 | KVKK Aydınlatma §14 aktarım tablosunda yapay zekâ hizmet sağlayıcısı satırı yok (alıcı §9, §12 ve §15'te anılıyor; eksik OpenAI döneminden kalma). Önerilen satır: anahtar "Yapay zekâ hizmet sağlayıcısı Anthropic, PBC (yalnızca açık rızanızla)"; değer "fA'L özelliğinde falın yapay zekâ ile yorumlanması. Aktarılan veri: küçültülmüş ve meta verileri arındırılmış içecek fotoğrafı ile üyelik seviyesi, ziyaret sıklığı ve varsa her zamanki içecek. Hukuki sebep: açık rıza (KVKK m.5/1 ve m.9; Açık Rıza Metni R12)." | KVKK m.10 alıcı grupları. |
+| Y1-7 | Daha önce rıza veren üyelere alıcının değiştiği ayrıca söylenmeli mi? Uygulama rızayı zaten yeniden soruyor; R12'ye "önceki sürümde alıcı OpenAI, L.L.C. idi" notu eklenebilir. Eklenmedi. | Şeffaflık. |
+| Y1-8 | Rıza kaydı üye ve özellik başına tek satırdır: üye yeni metne "evet" deyince 23 Eyl rızasının kaydı (sürüm ve zaman) yenisiyle değişir. OpenAI yolu canlıda hiç açılmadıysa kaybolan bir ispat yoktur; açıldıysa eski kayıtlar ayrıca saklanmalı. Operatör kontrolü (salt okuma): `select count(*) from feature_consents where feature = 'fal-ai' and version = '2026-09-23';` ve `select count(*) from fal_readings where model like 'gpt-%';` | Rızanın ispatı veri sorumlusundadır. |
+
+### 15.5 Açma sırası (operatör)
+
+1. Avukat §15.3 cümlelerini ve §15.4 sorularını okur, onaylar.
+2. Anthropic ile standart sözleşme imzalanır ve Kurul'a bildirilir (Y1-1).
+3. Panel kontrolü: `/admin/hukuk`'ta bu üç belgeden biri için yayımlanmış bir
+   üzerine yazma varsa kodlanmış metni örter ve hâlâ OpenAI diyebilir; varsa
+   kaldırılır ya da güncellenir.
+4. Uygulama (`RiosenBeq/lafmobil`): rıza sayfasındaki satır ve gizlilik satırı
+   (`src/i18n/screens/fal.ts`, bugün "OpenAI'ye (ABD)") güncellenir; hukuki kopya
+   yeniden üretilir (`npm run legal:export -- ../lafmobil/src/data/legal.seed.json`,
+   sonra lafmobil'de `node scripts/legal-split.js`); `docs/API-MOBILE.md`
+   kopyalanır. Bu sürüm üyelere ulaşmadan özellik açılmaz: eski sürümün rıza
+   sayfası OpenAI der.
+5. Vercel production: `ANTHROPIC_API_KEY` (Sensitive) ve `FAL_AI_ENABLED=true`;
+   isteğe bağlı `FAL_AI_PROVIDER=anthropic` ve `ANTHROPIC_FAL_MODEL`. Ardından
+   yeniden deploy.
+6. Kontrol: `GET /api/mobile/v1/bootstrap` yanıtında `app.fal.ai: true`;
+   `GET /api/mobile/v1/fal/consent` yanıtında `version: "2026-10-17-anthropic"`.
 
 ---
 

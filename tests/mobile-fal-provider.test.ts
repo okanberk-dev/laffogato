@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -451,5 +453,41 @@ describe("readCupWithAI: what it logs", () => {
     for (const line of logged) {
       expect(line).toMatch(/^\[fal\] (anthropic|openai) (status|request failed|no reading) [A-Za-z0-9_]{1,40}$/);
     }
+  });
+});
+
+// ─── What the operator and the app read about it ────────────────────────
+
+describe("the documents that describe it", () => {
+  it(".env.example names every switch, the default model and why OpenAI stays off", () => {
+    const env = readFileSync(".env.example", "utf8");
+    for (const name of ["FAL_AI_ENABLED", "FAL_AI_PROVIDER", "ANTHROPIC_API_KEY", "ANTHROPIC_FAL_MODEL", "OPENAI_API_KEY", "OPENAI_FAL_MODEL"]) {
+      expect(env, name).toMatch(new RegExp(`^# ${name}=`, "m"));
+    }
+    expect(env).toContain("claude-opus-5-5");
+    expect(env).toContain("FAL_DISCLOSED_PROVIDER");
+  });
+
+  it("the contract (§20) describes both providers, the recipient gate and the version that names it", () => {
+    const doc = readFileSync("docs/API-MOBILE.md", "utf8");
+    const fal = doc.slice(doc.indexOf("## 20. fA'L"), doc.indexOf("## 21."));
+    for (const fact of [
+      "FAL_AI_PROVIDER",
+      "ANTHROPIC_API_KEY",
+      "ANTHROPIC_FAL_MODEL",
+      "claude-opus-5-5",
+      "https://api.anthropic.com/v1/messages",
+      "anthropic-version: 2023-06-01",
+      "OPENAI_FAL_MODEL",
+      "store: false",
+      "FAL_DISCLOSED_PROVIDER",
+      "2026-10-17-anthropic",
+      "consent_outdated",
+    ]) {
+      expect(fal, fact).toContain(fact);
+    }
+    expect(fal).not.toMatch(/[–—]/);
+    // The bootstrap flag keeps its meaning and says where the switches are.
+    expect(doc).toMatch(/"fal": \{ "ai": false \},.*FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı/);
   });
 });

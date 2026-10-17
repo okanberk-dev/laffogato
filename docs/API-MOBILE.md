@@ -1049,7 +1049,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
-    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - OPENAI_API_KEY VE FAL_AI_ENABLED=true; false iken uygulama yalnız cihazda okur (§20)
+    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20); false iken uygulama yalnız cihazda okur (§20)
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
@@ -1614,22 +1614,42 @@ Hatalar: **400** `invalid_request` (`legalConsent` yok, §3 siparişiyle aynı `
 ## 20. fA'L yapay zekâ yorumu - `POST /fal` · `GET|POST|DELETE /fal/consent` (kimlik)
 
 23 Eyl 2026, karar 177, yalnız ekleme. Üye içeceğinin fotoğrafını çeker; açık rızası
-(Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp OpenAI'nin Responses
-API'sine gider ve eğlence amaçlı bir fal döner. Rıza yoksa, özellik kapalıysa ya da
-yorum başarısızsa uygulama falı **cihazda** okur (karar 169); hiçbir hata üyenin
-önüne falsız bir ekran koymaz.
+(Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp yapay zekâ
+sağlayıcısına gider ve eğlence amaçlı bir fal döner. Sağlayıcı 17 Eki 2026'dan beri
+Anthropic'tir (Claude, Messages API); OpenAI'nin Responses API'si kodda seçenek olarak
+durur. Rıza yoksa, özellik kapalıysa ya da yorum başarısızsa uygulama falı **cihazda**
+okur (karar 169); hiçbir hata üyenin önüne falsız bir ekran koymaz.
 
-**Açık/kapalı.** Yalnız `OPENAI_API_KEY` **ve** `FAL_AI_ENABLED=true` ikisi birden
-varsa açıktır (`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat
-okumasından ve yurt dışı aktarım için standart sözleşmeden geçmeden açılmamalıdır.
-Model `OPENAI_FAL_MODEL` (varsayılan `gpt-5.4-mini`), görüntü `detail: "low"`,
-yanıt katı JSON şeması, `store: false`.
+**Sağlayıcı (17 Eki 2026).** `FAL_AI_PROVIDER` = `anthropic` | `openai`. Boşsa
+`ANTHROPIC_API_KEY` tanımlıysa `anthropic`, değilse `openai`. Başka bir değer özelliği
+kapatır (yazım hatası fotoğrafı bir alıcıya göndermez).
 
-`GET /fal/consent` → `{ "enabled": false, "version": "2026-09-23", "granted": false, "doc": "acik-riza-metni" }`
+**Açık/kapalı.** Yalnız `FAL_AI_ENABLED=true` **ve** seçilen sağlayıcının anahtarı
+(`ANTHROPIC_API_KEY` ya da `OPENAI_API_KEY`) birlikte varsa açıktır
+(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat okumasından ve
+yurt dışı aktarım için standart sözleşmeden geçmeden açılmamalıdır. Seçilen sağlayıcı
+hukuki metinlerin alıcı olarak andığı sağlayıcı değilse (17 Eki 2026'dan beri
+Anthropic, PBC; `fal-core.ts` `FAL_DISCLOSED_PROVIDER`) özellik yine kapalıdır: metinler
+ve R12 sürümü değişmeden OpenAI'ye dönülmez.
 
-`POST /fal/consent { "version": "2026-09-23" }` → `{ "granted": true, "version": "2026-09-23" }`.
+| Sağlayıcı | Model (varsayılan) | İstek |
+| --- | --- | --- |
+| `anthropic` | `ANTHROPIC_FAL_MODEL` (`claude-opus-5-5`; `claude-sonnet-5-5` ve `claude-haiku-5-5` de olur) | `POST https://api.anthropic.com/v1/messages`, başlıklar `x-api-key` ve `anthropic-version: 2023-06-01`. Fotoğraf base64 `image` bloğu; yanıt `output_config.format` ile JSON şemasına bağlı (`effort: "low"`, `max_tokens` 2048). Yalnız `stop_reason: "end_turn"` okunur; `refusal` ya da `max_tokens` cihaza düşer. |
+| `openai` | `OPENAI_FAL_MODEL` (`gpt-5.4-mini`) | Responses API; görüntü `detail: "low"`, yanıt katı JSON şeması, `store: false`. |
+
+İki sağlayıcıya da aynı talimat, aynı kimliksiz not ve aynı küçültülmüş fotoğraf gider;
+yanıt aynı kurallarla süzülür. Model 20 saniyede yanıt vermezse istek kesilir.
+
+`GET /fal/consent` → `{ "enabled": false, "version": "2026-10-17-anthropic", "granted": false, "doc": "acik-riza-metni" }`
+
+`POST /fal/consent { "version": "2026-10-17-anthropic" }` → `{ "granted": true, "version": "2026-10-17-anthropic" }`.
 Güncel olmayan sürüm **409** `consent_outdated` (üye yürürlükteki metni görmüş olmalı).
 Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rızanın ispatıdır.
+
+**Sürüm alıcıyı da söyler (17 Eki 2026).** `version` opak bir dizedir: R12 metninin
+günü ve andığı alıcı (`2026-10-17-anthropic`). Alıcı değişince sürüm de değişir; eski
+sürümle verilmiş rıza sayılmaz, `GET` `granted: false` döner ve uygulama rızayı yeniden
+sorar. 23 Eyl 2026 rızaları (`2026-09-23`, alıcı OpenAI) bu yüzden artık sayılmaz.
 
 `DELETE /fal/consent` → `{ "granted": false }`; satır silinmez, `revokedAt` yazılır.
 
@@ -1642,9 +1662,9 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
                "trait": "Sen yeni başlangıçlara cesaretle yürüyensin.",
                "forecast": "Bu hafta güzel bir sohbet seni bulacak." },
   "ai": true,
-  "consentVersion": "2026-09-23",
+  "consentVersion": "2026-10-17-anthropic",
   "remainingToday": 4,
-  "model": "gpt-5.4-mini"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
+  "model": "claude-opus-5-5"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
 }
 ```
 
@@ -1654,13 +1674,15 @@ bir model çağrısı, onaysız kayıtlar günlük hakkı adres başına yeniden
 her retteki gibi falı cihazda okur) · **403**
 `consent_required` (güncel rıza yok) · **429** `fal_limit` (İstanbul gününde üye başına
 5) · **400** `invalid_json` / `invalid_request` / `invalid_image` (JPEG değil ya da
-çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi, şemaya
-uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable` (veritabanı).
+çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi ya da
+yorumu reddetti, şemaya uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable`
+(veritabanı).
 
 > **Gizlilik (R12).** Sunucuya giden: fotoğraf (uygulamada 768 px'e küçültülmüş,
 > meta verisiz). Modele giden: fotoğraf ve kimliksiz bir not - seviye adı
 > (L'AF/PEARL/RUBY), ziyaret sıklığı kelimesi, varsa "her zamanki" içeceğin adı. Ad,
-> e-posta, telefon, üye no **gitmez**. Fotoğraf **saklanmaz**; üretilen metin
+> e-posta, telefon, üye no **gitmez**. Alıcı Anthropic, PBC'dir (ABD, veri işleyen;
+> R12). Fotoğraf bizde **saklanmaz**; üretilen metin
 > yalnız üye onu bildirirse `fal_reports`'ta 90 gün durur (aşağıda, `POST
 > /fal/report`). `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90
 > günde silinir (`src/lib/retention.ts`).
