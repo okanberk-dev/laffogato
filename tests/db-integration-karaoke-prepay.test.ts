@@ -72,6 +72,8 @@ const settings = vi.hoisted(() => ({
   },
 }));
 const loyalty = vi.hoisted(() => ({ tier: "" }));
+/** Makes the member's cancellation mail fail (the panel must say so). */
+const mailDown = vi.hoisted(() => ({ cancellation: false }));
 
 vi.mock("@/lib/db", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/db")>();
@@ -106,7 +108,7 @@ vi.mock("@/lib/email/send", () => ({
   },
   sendKaraokeCancellationEmail: async (k: Record<string, unknown>) => {
     mail.cancellations.push(k);
-    return true;
+    return !mailDown.cancellation;
   },
   sendKaraokePaidOperatorEmail: async (k: Record<string, unknown>) => {
     mail.paidNotices.push(k);
@@ -178,6 +180,8 @@ process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
 const karaoke = await import("@/lib/mobile/karaoke");
 const pay = await import("@/lib/mobile/karaoke-payment");
+const audit = await import("@/lib/admin/audit");
+const { staffReleasedIds } = await import("@/lib/admin/karaoke-panel");
 const link = await import("@/lib/mobile/karaoke-link");
 const { istanbulClock } = await import("@/lib/mobile/venue");
 
@@ -283,6 +287,8 @@ maybe("karaoke prepayment (real Postgres)", () => {
     for (const list of Object.values(mail)) list.length = 0;
     settings.value.karaokePrepay = true;
     loyalty.tier = "";
+    mailDown.cancellation = false;
+    vi.mocked(audit.logAudit).mockClear();
   });
 
   describe("booking", () => {
@@ -1122,6 +1128,276 @@ maybe("karaoke prepayment (real Postgres)", () => {
         now: new Date(Date.now() + 31 * 60_000),
       });
       expect(late).toMatchObject({ ok: false, reason: "not_payable" });
+    });
+  });
+
+  describe("the panel settles what did not settle itself (17 Eki 2026)", () => {
+    const paid = (id: string) =>
+      pay.applyKaraokePaymentSucceeded({
+        reservationId: id,
+        provider: "fakepos",
+        providerRef: id,
+        amountMinor: 200_000,
+        currency: "TRY",
+      });
+
+    /**
+     * A cancelled booking that still holds its money: a late payment for a
+     * lapsed hold whose automatic refund the POS declined.
+     */
+    async function heldAfterCancel(): Promise<string> {
+      const res = await bookMember(member());
+      const id = res.reservation.id;
+      await pool!.query(
+        `update public.karaoke_reservations set status = 'cancelled', "paymentStatus" = 'expired' where id = $1`,
+        [id],
+      );
+      pos.refund = "refused";
+      expect(await paid(id)).toMatchObject({ outcome: "refund_refused" });
+      pos.refund = "ok";
+      expect(await row(id)).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "paid",
+      });
+      return id;
+    }
+
+    function auditPayloads(): Array<Record<string, unknown>> {
+      return vi
+        .mocked(audit.logAudit)
+        .mock.calls.map(
+          (c) => (c[0] as { payload?: Record<string, unknown> }).payload ?? {},
+        );
+    }
+
+    it("records a refund made at PayNkolay for a cancelled booking still marked paid", async () => {
+      const id = await heldAfterCancel();
+      mail.cancellations.length = 0;
+      const out = await pay.settleKaraokeRefundByHand(
+        id,
+        "owner@kosk",
+        undefined,
+        {
+          reason: "PayNkolay panelinden iade edildi",
+        },
+      );
+      expect(out).toMatchObject({ ok: true, refunded: true, notified: true });
+      const r = await row(id);
+      expect(r).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "refunded",
+      });
+      expect(r.refundedAt).toBeTruthy();
+      // Nothing was sent to the POS; the claim row records the refund.
+      expect(pos.refunds).toEqual([]);
+      const claim = await pool!.query(
+        `select status from public.payment_transactions where "orderId" = $1 and "providerRef" = $2`,
+        [id, `${id}:refund`],
+      );
+      expect(claim.rows).toEqual([{ status: "refunded" }]);
+      expect(mail.cancellations.at(-1)).toMatchObject({
+        refundedMinor: 200_000,
+      });
+      expect(auditPayloads()).toContainEqual(
+        expect.objectContaining({
+          event: "refund_settled_by_hand",
+          from: "paid",
+          reason: "PayNkolay panelinden iade edildi",
+        }),
+      );
+      // Once recorded, there is nothing left to record.
+      expect(await pay.settleKaraokeRefundByHand(id, "owner@kosk")).toEqual({
+        ok: false,
+        reason: "not_refundable",
+      });
+    });
+
+    it("'İadeyi başlat' refunds it through the POS and says whether the mail left", async () => {
+      const id = await heldAfterCancel();
+      mailDown.cancellation = true;
+      const out = await pay.retryKaraokeRefund(id, "owner@kosk", undefined, {
+        reason: "Geç gelen ödeme",
+      });
+      expect(out).toMatchObject({ ok: true, refunded: true, notified: false });
+      expect(pos.refunds).toEqual([{ ref: id, amountMinor: 200_000 }]);
+      expect(await row(id)).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "refunded",
+      });
+      expect(auditPayloads()).toContainEqual(
+        expect.objectContaining({
+          event: "refund_retry",
+          outcome: "refunded",
+          reason: "Geç gelen ödeme",
+        }),
+      );
+    });
+
+    it("an unanswered refund settled by hand reports its mail too", async () => {
+      const c = member();
+      const res = await bookMember(c);
+      await paid(res.reservation.id);
+      pos.refund = "timeout";
+      await pay.cancelKaraokeReservation(res.reservation.id, {
+        kind: "staff",
+        actor: "owner@kosk",
+        canRefund: true,
+        reason: "Oda arızalı",
+      });
+      expect((await row(res.reservation.id)).paymentStatus).toBe("refunding");
+      mailDown.cancellation = true;
+      const out = await pay.settleKaraokeRefundByHand(
+        res.reservation.id,
+        "owner@kosk",
+      );
+      expect(out).toMatchObject({ ok: true, notified: false });
+      expect(auditPayloads()).toContainEqual(
+        expect.objectContaining({ by: "staff", reason: "Oda arızalı" }),
+      );
+    });
+
+    it("a hold the köşk lets go leaves the audit row the panel keeps it by", async () => {
+      const res = await bookMember(member());
+      pos.lookup.set(res.reservation.id, "unpaid");
+      const out = await pay.cancelKaraokeReservation(res.reservation.id, {
+        kind: "staff",
+        actor: "staff@kosk",
+        canRefund: false,
+        reason: "Müşteri vazgeçti",
+      });
+      expect(out).toMatchObject({ ok: true, refunded: false });
+      expect(await row(res.reservation.id)).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "expired",
+      });
+      const calls = vi.mocked(audit.logAudit).mock.calls.map((c) => c[0]);
+      const released = calls.filter(
+        (c) => c.entityId === res.reservation.id && c.action === "transition",
+      );
+      expect(released).toHaveLength(1);
+      expect(
+        staffReleasedIds(
+          released.map((c) => ({
+            entityId: c.entityId,
+            action: c.action,
+            payload: c.payload ?? {},
+          })),
+        ).has(res.reservation.id),
+      ).toBe(true);
+      expect(released[0]!.payload).toMatchObject({
+        reason: "Müşteri vazgeçti",
+      });
+    });
+
+    it("the panel reads one booking's history and the köşk's releases from the log", async () => {
+      const { listKaraokeAudit, listStaffReleasedHolds } =
+        await import("@/lib/admin/karaoke-audit");
+      const tag = `t${Date.now()}`;
+      const ids = [`krk-9${tag.slice(-6)}1`, `krk-9${tag.slice(-6)}2`];
+      const rows = [
+        [
+          `aud-${tag}-1`,
+          "transition",
+          ids[0],
+          { status: "cancelled", paymentStatus: "expired", by: "staff" },
+          "2026-10-17T10:00:00.000Z",
+        ],
+        [
+          `aud-${tag}-2`,
+          "transition",
+          ids[1],
+          { status: "cancelled", paymentStatus: "expired", by: "member" },
+          "2026-10-17T10:01:00.000Z",
+        ],
+        [
+          `aud-${tag}-3`,
+          "update",
+          ids[0],
+          { event: "cancel_refund_unknown" },
+          "2026-10-17T10:02:00.000Z",
+        ],
+      ] as const;
+      for (const [id, action, entityId, payload, at] of rows) {
+        await pool!.query(
+          `insert into public.audit_logs (id, actor, action, entity, "entityId", payload, "createdAt") values ($1, 'staff@kosk', $2, 'karaoke_reservation', $3, $4, $5)`,
+          [id, action, entityId, JSON.stringify(payload), at],
+        );
+      }
+      try {
+        expect([...(await listStaffReleasedHolds(ids))]).toEqual([ids[0]]);
+        expect(await listStaffReleasedHolds([])).toEqual(new Set());
+        const history = await listKaraokeAudit(ids[0]!);
+        expect(history.map((r) => r.id)).toEqual([
+          `aud-${tag}-3`,
+          `aud-${tag}-1`,
+        ]);
+        expect(history[1]).toMatchObject({
+          entityId: ids[0],
+          actor: "staff@kosk",
+          payload: { by: "staff" },
+        });
+      } finally {
+        await pool!.query(`delete from public.audit_logs where id like $1`, [
+          `aud-${tag}-%`,
+        ]);
+      }
+    });
+
+    it("the list reads a date range, newest day first, without the buyer's IP", async () => {
+      const a = await bookMember(member(), { date: dayAhead(3) });
+      const b = await bookMember(member(), { date: dayAhead(4) });
+      const c = await bookMember(member(), { date: dayAhead(5) });
+      const all = await karaoke.listReservationsForAdmin();
+      expect(all.map((r) => r.id)).toEqual([
+        c.reservation.id,
+        b.reservation.id,
+        a.reservation.id,
+      ]);
+      expect(all[0]!.legalConsent).toBeUndefined();
+      const one = await karaoke.listReservationsForAdmin({
+        from: dayAhead(4),
+        to: dayAhead(4),
+      });
+      expect(one.map((r) => r.id)).toEqual([b.reservation.id]);
+      expect(
+        (await karaoke.listReservationsForDate(dayAhead(5))).map((r) => r.id),
+      ).toEqual([c.reservation.id]);
+    });
+
+    it("the dashboard finds every refund still owed, whatever the day", async () => {
+      const held = await heldAfterCancel();
+      const res = await bookMember(member(), { date: dayAhead(6) });
+      await paid(res.reservation.id);
+      pos.refund = "timeout";
+      await pay.cancelKaraokeReservation(res.reservation.id, {
+        kind: "staff",
+        actor: "owner@kosk",
+        canRefund: true,
+      });
+      const owed = await karaoke.listKaraokeRefundsOwed();
+      expect(owed.map((r) => r.id).sort()).toEqual(
+        [held, res.reservation.id].sort(),
+      );
+    });
+
+    it("the sweep's release leaves no such row", async () => {
+      const res = await bookMember(member());
+      expect(
+        await pay.expireUnpaidReservations(new Date(Date.now() + 2 * 3600_000)),
+      ).toBe(1);
+      const calls = vi
+        .mocked(audit.logAudit)
+        .mock.calls.map((c) => c[0])
+        .filter((c) => c.entityId === res.reservation.id);
+      expect(
+        staffReleasedIds(
+          calls.map((c) => ({
+            entityId: c.entityId,
+            action: c.action,
+            payload: c.payload ?? {},
+          })),
+        ).size,
+      ).toBe(0);
     });
   });
 });

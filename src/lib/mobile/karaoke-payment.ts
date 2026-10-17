@@ -1142,10 +1142,10 @@ async function settleRefunded(
   r: KaraokeReservation,
   mode: RefundMode,
   now: Date,
-): Promise<void> {
-  if (mode === "detached") return;
+): Promise<boolean> {
+  if (mode === "detached") return false;
   const iso = now.toISOString();
-  await moveRow(
+  return moveRow(
     r.id,
     mode === "cancel"
       ? {
@@ -1308,9 +1308,10 @@ export type KaraokeCanceller =
   | { kind: "link"; token: string }
   /**
    * The köşk (a business cancellation, MSY m.16/4): any time. Sending money
-   * back needs the panel's `refunds` permission.
+   * back needs the panel's `refunds` permission. `reason` is what the staff
+   * member wrote in the panel; it goes into the audit row.
    */
-  | { kind: "staff"; actor: string; canRefund: boolean }
+  | { kind: "staff"; actor: string; canRefund: boolean; reason?: string }
   /** An account that is closing: every future booking, refunded in full. */
   | { kind: "account"; email: string };
 
@@ -1411,6 +1412,7 @@ export async function cancelKaraokeReservation(
         : by.kind === "link"
           ? "guest-link"
           : "account-closure";
+  const why = by.kind === "staff" && by.reason ? { reason: by.reason } : {};
 
   if (paymentStatusOf(r) === "pending") {
     const verdict = await askPosAboutHold(r, now, lookupProvider());
@@ -1435,6 +1437,7 @@ export async function cancelKaraokeReservation(
         status: "cancelled",
         paymentStatus: "expired",
         by: by.kind,
+        ...why,
       });
       return { ok: true, reservation: released, refunded: false, notified };
     }
@@ -1463,6 +1466,7 @@ export async function cancelKaraokeReservation(
     await auditStaff(res.reservation, actor, "transition", {
       status: "cancelled",
       by: by.kind,
+      ...why,
     });
     return {
       ok: true,
@@ -1537,6 +1541,7 @@ export async function cancelKaraokeReservation(
       amountMinor: payment.amountMinor,
       providerRef: payment.providerRef,
       by: by.kind,
+      ...why,
     });
     return { ok: true, reservation: cancelled, refunded: true, notified };
   }
@@ -1555,7 +1560,7 @@ export async function cancelKaraokeReservation(
         : "İade isteği gönderildi ama POS'tan yanıt alınamadı; rezervasyon 'iade sonucu bekleniyor' durumunda. PayNkolay panelinden bak, sonucu panelden işaretle.",
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,
-    extra: { by: by.kind, message: outcome.message },
+    extra: { by: by.kind, message: outcome.message, ...why },
   });
   if (outcome.kind === "refused") {
     return {
@@ -1576,12 +1581,23 @@ export async function cancelKaraokeReservation(
 // ─── A person settles what did not settle itself ───────────────────────────
 
 export type ResolveRefundResult =
-  | { ok: true; reservation: KaraokeReservation; refunded: boolean }
+  | {
+      ok: true;
+      reservation: KaraokeReservation;
+      refunded: boolean;
+      /** Did the member's refund mail leave (`notifyReservationStatus`). */
+      notified: boolean;
+    }
   | {
       ok: false;
-      reason: "not_found" | "not_refundable" | "refused" | "unknown";
+      reason: "not_found" | "not_refundable" | "refused" | "unknown" | "raced";
       message?: string;
     };
+
+/** What a person typed when they moved the money by hand (audit only). */
+export interface ResolveRefundOptions {
+  reason?: string;
+}
 
 /**
  * "İadeyi yeniden dene" / "İade et" in the panel (refund permission): a
@@ -1595,6 +1611,7 @@ export async function retryKaraokeRefund(
   id: string,
   actor: string,
   now: Date = new Date(),
+  opts: ResolveRefundOptions = {},
 ): Promise<ResolveRefundResult> {
   const r = await getReservation(id);
   if (!r) return { ok: false, reason: "not_found" };
@@ -1634,28 +1651,41 @@ export async function retryKaraokeRefund(
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,
     ...(outcome.kind === "refunded" ? {} : { message: outcome.message }),
+    ...(opts.reason ? { reason: opts.reason } : {}),
   });
   if (outcome.kind !== "refunded") {
     return { ok: false, reason: outcome.kind, message: outcome.message };
   }
   const settled = (await getReservation(id)) ?? carrier;
-  await notifyReservationStatus(settled);
-  return { ok: true, reservation: settled, refunded: true };
+  // The panel says whether the member was told, so it must be the real answer.
+  const notified = await notifyReservationStatus(settled);
+  return { ok: true, reservation: settled, refunded: true, notified };
 }
 
 /**
  * "İade POS'ta görüldü": a person looked at PayNkolay's panel and the refund
- * whose answer never came is there. Records it as refunded - claim row and
- * booking - and tells the member. Only for `refunding`.
+ * is there. Records it as refunded - claim row and booking - and tells the
+ * member. Two rows qualify:
+ *
+ * - `refunding`: a refund whose answer never came;
+ * - `paid` + `cancelled`: money the köşk still holds for a booking that is
+ *   gone (a declined refund of a late payment, an account closure the POS did
+ *   not answer), which someone refunded straight from PayNkolay's panel.
+ *
+ * The panel offered the second one before and this refused it ("iadesi
+ * beklenmiyor"), so a refund done at PayNkolay could never be recorded.
  */
 export async function settleKaraokeRefundByHand(
   id: string,
   actor: string,
   now: Date = new Date(),
+  opts: ResolveRefundOptions = {},
 ): Promise<ResolveRefundResult> {
   const r = await getReservation(id);
   if (!r) return { ok: false, reason: "not_found" };
-  if (paymentStatusOf(r) !== "refunding") {
+  const money = paymentStatusOf(r);
+  const heldAfterCancel = money === "paid" && r.status === "cancelled";
+  if (money !== "refunding" && !heldAfterCancel) {
     return { ok: false, reason: "not_refundable" };
   }
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
@@ -1691,15 +1721,31 @@ export async function settleKaraokeRefundByHand(
       );
     }
   }
-  await settleRefunded(r, r.status === "cancelled" ? "stray" : "cancel", now);
+  const moved = heldAfterCancel
+    ? await moveRow(
+        r.id,
+        { paymentStatus: "refunded", refundedAt: now.toISOString() },
+        { paymentStatus: "paid", status: "cancelled" },
+        "karaoke.settleKaraokeRefundByHand.paid",
+      )
+    : await settleRefunded(
+        r,
+        r.status === "cancelled" ? "stray" : "cancel",
+        now,
+      );
+  // Someone else moved it in between (a retry that went through, a second
+  // person settling it): their path told the member; this one does not again.
+  if (!moved) return { ok: false, reason: "raced" };
   await auditStaff(r, actor, "refund", {
     event: "refund_settled_by_hand",
+    from: money,
     amountMinor: payment?.amountMinor ?? r.paidMinor ?? 0,
     providerRef: r.paymentRef ?? "",
+    ...(opts.reason ? { reason: opts.reason } : {}),
   });
   const settled = (await getReservation(id)) ?? r;
-  await notifyReservationStatus(settled);
-  return { ok: true, reservation: settled, refunded: true };
+  const notified = await notifyReservationStatus(settled);
+  return { ok: true, reservation: settled, refunded: true, notified };
 }
 
 // ─── Account closure ───────────────────────────────────────────────────────
