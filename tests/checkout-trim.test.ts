@@ -134,9 +134,11 @@ describe("the order success page", () => {
     const html = await successPage();
     expect(html).not.toContain("Siparişi takip et");
     expect(html).toContain("order-done-foot");
-    expect(html).toContain("ödemen henüz tamamlanmadı");
-    // Not "not paid": the shop may still learn of the payment (rule 29).
-    expect(html).not.toMatch(/ödenmedi|para çekilmedi/i);
+    expect(html).toContain("ödemeni bankayla teyit ediyoruz");
+    // Not "not paid", not even "not completed yet": /odeme/donus lands here
+    // when the bank's answer could not be confirmed, and the card may have
+    // been charged (rule 29).
+    expect(html).not.toMatch(/tamamlanmadı|ödenmedi|para çekilmedi/i);
   });
 
   it("a dropped code is said in one short sentence", async () => {

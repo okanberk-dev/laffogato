@@ -80,10 +80,13 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             Grazie, {order.customerName.split(" ")[0]}.{" "}
             <span className="script">See you soon</span>
           </h1>
+          {/* Unpaid here is not "not paid": /odeme/donus also lands here
+              when the bank's answer could not be confirmed, and the card
+              may have been charged (rule 29). */}
           <p className="order-done-lede">
             {paid
               ? "Ödemen alındı. Siparişin hazır olunca haber veririz."
-              : "Siparişini aldık; ödemen henüz tamamlanmadı. Tamamlanınca siparişin işleme alınır."}
+              : "Siparişini aldık; ödemeni bankayla teyit ediyoruz."}
           </p>
         </div>
 

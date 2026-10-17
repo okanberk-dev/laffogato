@@ -163,6 +163,9 @@ describe("checkout consent: two boxes, both required", () => {
     // What is recorded with the ticks is still said, in the site's "sen".
     expect(note).toContain("IP adresi");
     expect(note).toContain("belge sürümü");
+    // In the words the contracts use for the same record.
+    expect(note).toContain("tarayıcı bilgisi");
+    expect(note).toMatch(/Kişisel verilerinin nasıl işlendiğini\s*<a /);
     expect(note).not.toMatch(/Onaylarınız|siparişinize|verilerinizin/);
   });
 });
