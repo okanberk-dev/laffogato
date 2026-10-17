@@ -318,9 +318,7 @@ describe("how the pages show them", () => {
     // query lives in the page's state, so the branch is read from source.
     const src = read("src/components/laffogato/menu-page.tsx");
     const search = src.slice(src.indexOf("items.length === 0 && query.trim()"));
-    expect(
-      search.slice(0, search.indexOf("Filtreleri temizle")),
-    ).toMatch(
+    expect(search.slice(0, search.indexOf("Filtreleri temizle"))).toMatch(
       /<Illustration name="menu-arama"[\s\S]*Aradığın tatla eşleşen ürün yok/,
     );
   });

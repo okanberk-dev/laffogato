@@ -212,8 +212,8 @@ export function AccountStat({
 
 /**
  * An empty list in the account. With `art` it leads with the list's own
- * drawing - the app's spot plates (receipt roll, open envelope, empty plate,
- * coupon), the karaoke room - instead of the generic "✻".
+ * drawing - a café receipt, the app's spot plates (open envelope, empty
+ * plate, coupon), the karaoke room - instead of the generic "✻".
  */
 export function EmptyState({
   title,
