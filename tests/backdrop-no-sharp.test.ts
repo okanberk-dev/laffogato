@@ -27,7 +27,10 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "menu@laffogato.net" })),
 }));
-vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/admin/audit", () => ({
+  logAudit: vi.fn(),
+  safeAudit: vi.fn(async () => true),
+}));
 // The saves leave a toast in a cookie; there is no request here.
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/admin/store", () => ({

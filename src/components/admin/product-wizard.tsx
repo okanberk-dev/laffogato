@@ -14,6 +14,11 @@ import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { skuPrefix } from "@/lib/admin/sku";
+import {
+  readPostedStock,
+  rebaseStockSnapshots,
+  variantStockTotal,
+} from "@/lib/admin/stock-delta";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { parseMoneyInput } from "@/lib/utils/format";
 import {
@@ -98,6 +103,9 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   cost: 2,
   sku: 2,
   stock: 2,
+  stockAtOpen: 2,
+  saveToken: 2,
+  stockFromVariants: 2,
   lowStockThreshold: 2,
   weightGrams: 2,
   taxRatePct: 2,
@@ -204,6 +212,13 @@ interface VariantRow {
   isActive: boolean;
 }
 
+/** A token for one opened product form (see `saveToken` in the wizard). */
+export function newSaveToken(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function variantToRow(v: AdminProductVariant): VariantRow {
   return {
     id: v.id,
@@ -257,12 +272,49 @@ export function ProductWizard({
   const [step, setStep] = useState(1);
   const totalSteps = 5;
 
+  /* The stock the form was opened with (admin audit CAT-03). The save
+     moves stock by what was typed since, so an order taken while the form
+     is open keeps its decrement. A save refused for stock answers with the
+     stored counts: a count whose change would still go below zero is
+     measured from the stored one next time, every other keeps its own
+     (rebaseStockSnapshots). */
+  const [stockSnapshot, setStockSnapshot] = useState<number | null>(
+    product ? product.stock : null,
+  );
+  const [variantSnapshots, setVariantSnapshots] = useState<
+    Record<string, number>
+  >(() =>
+    Object.fromEntries((product?.variants ?? []).map((v) => [v.id, v.stock])),
+  );
+
+  /* One token for every save of this opened form: when an answer is lost
+     after the write (a dropped connection) and the operator saves again,
+     the stock moves once (product_form_saves). Made at the first save, not
+     in render, so the server markup and the browser agree. */
+  const saveToken = useRef<string | null>(null);
+
   const save = withPanelCatch<ProductActionState>(action, () => ({
     error: PANEL_ACTION_FAILED,
   }));
   const [state, formAction, pending] = useActionState(
     async (prev: ProductActionState, formData: FormData) => {
+      saveToken.current ??= newSaveToken();
+      formData.set("saveToken", saveToken.current);
       const next = await save(prev, formData);
+      if (next.stockNow) {
+        // Read back from what was posted, not from state that may have
+        // moved on while the save was out.
+        const rebased = rebaseStockSnapshots(
+          readPostedStock({
+            stock: formData.get("stock"),
+            stockAtOpen: formData.get("stockAtOpen"),
+            variants: formData.get("variants"),
+          }),
+          next.stockNow,
+        );
+        setStockSnapshot(rebased.stock);
+        setVariantSnapshots((was) => ({ ...was, ...rebased.variants }));
+      }
       // Open the step that holds the first refused field.
       const target = firstErrorStep(next.fieldErrors);
       if (target !== null) setStep(target);
@@ -387,10 +439,47 @@ export function ProductWizard({
           stock: v.stock,
           sku: v.sku,
           isActive: v.isActive,
+          // Null for a row added here: it starts at the stock typed.
+          stockAtOpen: variantSnapshots[v.id] ?? null,
+        })),
+      ),
+    [variants, variantSnapshots],
+  );
+
+  /* With variants the product's total is theirs, not typed (D16): what the
+     save will make of it, the way save_product_variants counts it. */
+  const hasVariants = variants.length > 0;
+  const typedVariantSum = useMemo(
+    () =>
+      variantStockTotal(
+        variants.map((v) => ({
+          stock: Number.parseInt(v.stock, 10) || 0,
+          isActive: v.isActive,
         })),
       ),
     [variants],
   );
+  const variantTotal = useMemo(() => {
+    const stored = (product?.variants ?? []).map((v) => ({
+      stock: variantSnapshots[v.id] ?? v.stock,
+      isActive: v.isActive,
+    }));
+    if (stored.length === 0 || stockSnapshot === null) return typedVariantSum;
+    return Math.max(
+      0,
+      stockSnapshot + typedVariantSum - variantStockTotal(stored),
+    );
+  }, [typedVariantSum, product?.variants, variantSnapshots, stockSnapshot]);
+
+  /* The total moves by deltas, so a unit sold without a variant (the shop
+     card's quick add) and then corrected on a variant on Stok takes it down
+     twice (admin audit CAT-14). When it stands apart from the active
+     variants the operator can set it to them (`stockFromVariants`); nothing
+     else sets it. */
+  const [totalFromVariants, setTotalFromVariants] = useState(false);
+  const totalApart = hasVariants && variantTotal !== typedVariantSum;
+  const shownTotal =
+    totalApart && totalFromVariants ? typedVariantSum : variantTotal;
 
   /**
    * What the `tags` field posts: the allergens ticked above, plus any tag the
@@ -761,16 +850,55 @@ export function ProductWizard({
               {errorFor("sku")}
             </div>
             <div className="grid gap-1.5">
-              <Field label="Stok (adet)">
-                <TextInput
-                  name="stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
+              {hasVariants ? (
+                <Field
+                  label="Toplam stok (adet)"
+                  hint={
+                    totalApart
+                      ? `Toplam aktif varyantlardan (${typedVariantSum} adet) farklı: varyant seçilmeden satılan adet yalnız toplamdan düşer. Varyant stokları raftakiyle aynıysa toplamı onlara eşitle.`
+                      : "Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
+                  }
+                >
+                  {/* Not a field: nothing to type. An output is labelable,
+                      so the label still names it. */}
+                  <output className="block w-full rounded-xl border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
+                    {shownTotal} adet
+                  </output>
+                </Field>
+              ) : (
+                <Field
+                  label="Stok (adet)"
+                  hint={
+                    product
+                      ? "Form açıkken gelen siparişler kaybolmaz: kayıt yalnız senin yaptığın değişikliği uygular."
+                      : undefined
+                  }
+                >
+                  <TextInput
+                    name="stock"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </Field>
+              )}
+              {totalApart && (
+                <Checkbox
+                  name="stockFromVariants"
+                  label={`Toplamı aktif varyantlara eşitle (${typedVariantSum} adet)`}
+                  checked={totalFromVariants}
+                  onChange={(e) => setTotalFromVariants(e.target.checked)}
                 />
-              </Field>
+              )}
+              {stockSnapshot !== null && (
+                <input
+                  type="hidden"
+                  name="stockAtOpen"
+                  value={String(stockSnapshot)}
+                />
+              )}
               {errorFor("stock")}
             </div>
             <div className="grid gap-1.5">
@@ -843,8 +971,9 @@ export function ProductWizard({
           <p className="text-sm text-[var(--admin-text-soft)]">
             Boyut ya da lezzet seçenekleri, ör. &quot;250 g&quot;, &quot;1
             kg&quot;, &quot;Stracciatella&quot;. Her varyantın kendi stoğu ve
-            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur. Tek
-            seçenekle satılan ürüne varyant eklemen gerekmez.
+            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur; ürünün
+            toplam stoğu aktif varyantların stoğundan gelir. Tek seçenekle
+            satılan ürüne varyant eklemen gerekmez.
           </p>
           {errorFor("variants")}
           {variants.length === 0 ? (
@@ -1216,7 +1345,14 @@ export function ProductWizard({
                   : "Yok"
               }
             />
-            <SummaryRow k="Stok" v={`${stock || 0} adet`} />
+            <SummaryRow
+              k="Stok"
+              v={
+                hasVariants
+                  ? `${shownTotal} adet (varyantlardan)`
+                  : `${stock || 0} adet`
+              }
+            />
             <SummaryRow
               k="SKU"
               v={

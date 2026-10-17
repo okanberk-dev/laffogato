@@ -9,14 +9,15 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
-import { parseStockDelta } from "@/lib/admin/stock-delta";
-import { adjustStock } from "@/lib/admin/store";
+import { parseStockDelta, splitStockTarget } from "@/lib/admin/stock-delta";
+import { adjustStock, adjustVariantStock } from "@/lib/admin/store";
 
 /**
  * The manual adjustment. Each field answers under itself (ActionForm), the
  * success comes back as a toast with the new stock. The amount is read by
  * parseStockDelta: "+12", "-3" and "−3" all work, "1.5" is refused rather
- * than cut to 1.
+ * than cut to 1. A variant comes as "productId#variantId" and moves through
+ * adjust_variant_stock (admin audit CAT-14).
  */
 export async function adjustStockAction(
   _prev: ActionResult | null,
@@ -25,7 +26,9 @@ export async function adjustStockAction(
   const session = await requireRole("stock");
   const actor = session.email;
 
-  const productId = String(formData.get("productId") ?? "").trim();
+  const { productId, variantId } = splitStockTarget(
+    String(formData.get("productId") ?? ""),
+  );
   const note = String(formData.get("note") ?? "").trim();
   const delta = parseStockDelta(String(formData.get("delta") ?? ""));
 
@@ -37,6 +40,35 @@ export async function adjustStockAction(
   }
   if (!delta.ok || Object.keys(fieldErrors).length > 0) {
     return actionError("Formdaki uyarıları gider.", fieldErrors);
+  }
+
+  const signed = delta.delta > 0 ? `+${delta.delta}` : String(delta.delta);
+
+  if (variantId) {
+    const moved = await adjustVariantStock({
+      productId,
+      variantId,
+      delta: delta.delta,
+      note,
+      actor,
+    });
+    if (!moved.ok) return actionError(moved.error);
+    await logAudit({
+      action: "update",
+      entity: "stock",
+      entityId: productId,
+      payload: {
+        variantId,
+        delta: delta.delta,
+        stockAfter: moved.variantStock,
+        totalAfter: moved.stock,
+        note,
+      },
+    });
+    revalidateStock();
+    return actionOk(
+      `${moved.label}: ${signed} adet. Yeni stok: ${moved.variantStock}.`,
+    );
   }
 
   const result = await adjustStock({
@@ -58,13 +90,15 @@ export async function adjustStockAction(
     },
   });
 
+  revalidateStock();
+  return actionOk(
+    `${result.product.name}: ${signed} adet. Yeni stok: ${result.product.stock}.`,
+  );
+}
+
+function revalidateStock() {
   revalidatePath("/admin/stok-hareketleri");
   revalidatePath("/admin/urunler");
   revalidatePath("/admin");
   revalidatePath("/");
-
-  const signed = delta.delta > 0 ? `+${delta.delta}` : String(delta.delta);
-  return actionOk(
-    `${result.product.name}: ${signed} adet. Yeni stok: ${result.product.stock}.`,
-  );
 }

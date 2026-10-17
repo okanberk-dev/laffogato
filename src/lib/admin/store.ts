@@ -26,6 +26,7 @@ import {
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
 import { deriveSku } from "@/lib/admin/sku";
+import { variantStockTotal } from "@/lib/admin/stock-delta";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -122,10 +123,11 @@ import { earnsStamp } from "@/lib/mobile/loyalty-core";
  * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
- * Tablo boşsa SEED verisi otomatik yüklenir (idempotent - yalnızca
- * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
- * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
- * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
+ * SEED verisi bir veritabanına bir kez yüklenir (`seedOnce`: tablo boş ve
+ * `seed:<tablo>` işareti yoksa; insert'ler upsert/ignoreDuplicates ile
+ * yarış-güvenli). Katalog (ürün, kategori, menü) üretimde hiç tohumlanmaz.
+ * İç-içe alanlar (variants, items, refunds, ...) JSONB kolonlarda tutulur;
+ * tarih alanları ISO-8601 metni olarak saklanır.
  */
 
 /**
@@ -592,11 +594,71 @@ async function countRows(table: string): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * Sets a counter to at least `seq`, never lower (`raise_counter`, admin
+ * audit CAT-04). It used to write `seq` as is, so a seed run on an emptied
+ * table put the counter back to the seed's size and the next new row got the
+ * id of a deleted one, which old orders and stock moves still name.
+ */
 async function setCounter(id: string, seq: number): Promise<void> {
   const sb = getDb();
+  const { error, status } = await sb.rpc("raise_counter", {
+    counter_key: id,
+    floor_seq: seq,
+  });
+  if (error) raiseDbError(`setCounter(${id})`, error, status);
+}
+
+/** The `counters` row that says a table's seed has been decided. */
+function seedMarkerId(table: string): string {
+  return `seed:${table}`;
+}
+
+/**
+ * Whether the bundled catalogue (demo products, categories, the printed
+ * menu) may be written: never in a production build, Vercel previews
+ * included (decision D17). A live shop starts from what the operator enters;
+ * the demo products were sellable, at bundled prices, with stock 25.
+ */
+function catalogSeedAllowed(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Seeds `table` once per database (admin audit CAT-04, CON-01, D17). It used
+ * to seed whenever the table was empty, once per server instance, so deleting
+ * the last row brought the bundled rows back on the next cold start. Now the
+ * first decision is written as a marker (`seed:<table>` in `counters`, and
+ * 20261017200100_seed_markers.sql wrote them for every database already in
+ * use): with it, an empty table stays empty. `allowed: false` writes the
+ * marker without seeding.
+ */
+async function seedOnce(
+  table: string,
+  write: () => Promise<void>,
+  { allowed = true }: { allowed?: boolean } = {},
+): Promise<void> {
+  if ((await countRows(table)) > 0) return;
+  const sb = getDb();
+  const marker = seedMarkerId(table);
+  const decided = one<{ id: string }>(
+    await sb
+      .from(TABLES.counters)
+      .select("id")
+      .eq("id", marker)
+      .maybeSingle(),
+    `seedOnce.marker(${table})`,
+  );
+  if (decided) return;
+  if (allowed) await write();
   check(
-    await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
-    `setCounter(${id})`,
+    await sb
+      .from(TABLES.counters)
+      .upsert(
+        { id: marker, seq: 1 },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+    `seedOnce.mark(${table})`,
   );
 }
 
@@ -642,7 +704,7 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-// ─── Seed (idempotent - yalnızca tablo boşsa çalışır) ─────────────────────
+// ─── Seed (bir veritabanına bir kez - seedOnce) ────────────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
   // Every day 09:00-02:00. The close time is EARLIER than the open time
@@ -710,7 +772,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
     const sb = getDb();
     const now = new Date().toISOString();
 
-    if ((await countRows(TABLES.products)) === 0) {
+    const catalog = { allowed: catalogSeedAllowed() };
+
+    await seedOnce(TABLES.products, async () => {
       const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
         id: slugifyId("prd", i + 1),
         name: p.name,
@@ -755,9 +819,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("prd", seeded.length);
       }
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.categories)) === 0) {
+    await seedOnce(TABLES.categories, async () => {
       const seededCats: AdminCategory[] = [
         {
           id: slugifyId("cat", 1),
@@ -802,9 +866,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         "seed.categories",
       );
       await setCounter("cat", seededCats.length);
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.menuItems)) === 0) {
+    await seedOnce(TABLES.menuItems, async () => {
       let counter = 0;
       const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
         SEED_MENU[key].items.map((it, idx) => {
@@ -837,8 +901,10 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("mnu", counter);
       }
-    }
+    }, catalog);
 
+    // The one settings row is not a seed that can be emptied: every page
+    // needs it, so it is written whenever it is missing.
     if ((await countRows(TABLES.settings)) === 0) {
       check(
         await sb
@@ -1014,7 +1080,76 @@ export interface ProductInput extends BackdropColumns {
   isActive: boolean;
   seoTitle: string;
   seoDescription: string;
-  variants: AdminProductVariant[];
+  variants: ProductVariantInput[];
+  /**
+   * The product's stock when the form was opened (admin audit CAT-03). An
+   * edit moves the stock by `stock - stockAtOpen`, never to `stock`: an
+   * order taken while the form was open keeps its decrement. Absent or null
+   * (a new product, a form from before this field) leaves the stock alone.
+   * Read only for a product without variants; with variants the total
+   * follows them.
+   */
+  stockAtOpen?: number | null;
+  /**
+   * The opened form's own token (admin audit CAT-03). The same form saved
+   * again, after an answer that never arrived, does not move the stock
+   * twice: the save takes off what this token already applied
+   * (`product_form_saves`). Absent or null: every save is a change of its
+   * own, as for a form from before this field.
+   */
+  saveToken?: string | null;
+  /**
+   * Sets the total of a product with variants to the stock of its active
+   * variants (admin audit CAT-14). The total moves by deltas, so a unit sold
+   * without a variant and then corrected on a variant on Stok takes it down
+   * twice; the operator who counted the shelf ticks this in the form, the
+   * only way to set it.
+   */
+  stockFromVariants?: boolean;
+}
+
+/** A variant as the product form posts it: the stored shape plus its snapshot. */
+export interface ProductVariantInput extends AdminProductVariant {
+  /** This variant's stock when the form was opened; null for a new row. */
+  stockAtOpen?: number | null;
+}
+
+/**
+ * Why a product save was refused after its other fields were written: a
+ * stock change typed in the form would take a count below zero (orders were
+ * taken while it was open), or a variant would sell under 1 kuruş. Price,
+ * variants and stock are then unchanged. `stockNow` is what is stored now,
+ * less what this form's earlier saves moved, so the form can measure the
+ * next change from it.
+ */
+export interface ProductStockRefusal {
+  refusal: {
+    field: "stock" | "variants";
+    message: string;
+    stockNow: { stock: number; variants: Record<string, number> };
+  };
+}
+
+/** The stock of each variant in a stored list, by id. */
+function variantStockMap(list: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!Array.isArray(list)) return out;
+  for (const v of list as Array<Partial<AdminProductVariant>>) {
+    if (typeof v?.id === "string") out[v.id] = Number(v.stock) || 0;
+  }
+  return out;
+}
+
+/** The stored variant shape, without the form's snapshot. */
+function storedVariant(v: ProductVariantInput): AdminProductVariant {
+  return {
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    stock: v.stock,
+    sku: v.sku,
+    isActive: v.isActive,
+  };
 }
 
 async function uniqueSlug(
@@ -1048,22 +1183,94 @@ export async function createProduct(
     input.slug || slugify(input.name) || `urun-${seq}`,
   );
   const sku = input.sku || deriveSku(input.name, seq);
+  const {
+    stockAtOpen: _snapshot,
+    saveToken: _token,
+    stockFromVariants: _reset,
+    ...fields
+  } = input;
+  const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
-    ...input,
+    ...fields,
     id,
     slug,
     sku,
+    variants,
+    // With variants the total is theirs (admin audit CAT-14): a total left
+    // at 0 beside stocked variants read "Stoksuz" and failed at the claim.
+    stock: variants.length > 0 ? variantStockTotal(variants) : fields.stock,
     updatedAt: new Date().toISOString(),
   };
   check(await sb.from(TABLES.products).insert(product), "createProduct");
   return product;
 }
 
+/** What this form's earlier saves moved, as save_product_variants keeps it. */
+interface FormSaveApplied {
+  stock?: number;
+  variants?: Record<string, number>;
+}
+
+/** What save_product_variants answers (see its migration). */
+type SaveVariantsAnswer =
+  | { error: "product" }
+  | {
+      error: "floor";
+      variant: string;
+      stock?: number;
+      variants?: unknown;
+      applied?: FormSaveApplied;
+    }
+  | {
+      error: "negative";
+      variant?: string;
+      variantId?: string;
+      stock: number;
+      variants: unknown;
+      applied?: FormSaveApplied;
+    }
+  | {
+      error?: undefined;
+      stockBefore: number;
+      stockAfter: number;
+      variants: AdminProductVariant[];
+      moves: number;
+    };
+
+/** The note on the stock moves a product form save writes. */
+export const PRODUCT_FORM_STOCK_NOTE = "Ürün formu";
+
+/**
+ * The counts a refused form measures its next change from: the stored ones
+ * less what the same form's earlier saves already moved. A form whose
+ * answer was lost moved the stock once; measured from the stored count, its
+ * next save would move it again.
+ */
+function formStockBasis(
+  stored: { stock: number; variants: unknown },
+  applied: FormSaveApplied | undefined,
+): { stock: number; variants: Record<string, number> } {
+  const moved = applied?.variants ?? {};
+  const variants = variantStockMap(stored.variants);
+  let stock = (Number(stored.stock) || 0) - (Number(applied?.stock) || 0);
+  if (Array.isArray(stored.variants)) {
+    for (const v of stored.variants as Array<Partial<AdminProductVariant>>) {
+      if (typeof v?.id !== "string") continue;
+      const by = Number(moved[v.id]) || 0;
+      variants[v.id] -= by;
+      // The total moved with an active variant.
+      if (v.isActive === true) stock -= by;
+    }
+  }
+  return { stock, variants };
+}
+
 export async function updateProduct(
   id: string,
   input: ProductInput,
-): Promise<AdminProduct | null> {
+  { actor = "system" }: { actor?: string } = {},
+): Promise<AdminProduct | ProductStockRefusal | null> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getProduct(id);
@@ -1072,9 +1279,17 @@ export async function updateProduct(
     input.slug || slugify(input.name) || existing.slug,
     id,
   );
-  const next: AdminProduct = {
-    ...existing,
-    ...input,
+  const {
+    stock: _stock,
+    variants: _variants,
+    priceMinor: _price,
+    stockAtOpen,
+    saveToken,
+    stockFromVariants,
+    ...rest
+  } = input;
+  const fields = {
+    ...rest,
     slug,
     // An empty field keeps the stored code; a product that never had one
     // gets the one its name and id imply (the wizard no longer prefills it).
@@ -1084,11 +1299,97 @@ export async function updateProduct(
       deriveSku(input.name, Number(id.replace(/\D/g, "")) || 0),
     updatedAt: new Date().toISOString(),
   };
-  check(
-    await sb.from(TABLES.products).update(next).eq("id", id),
+  // Everything but price, variants and stock first. Those three are written
+  // together below, under the row lock, and only as changes since the form
+  // was opened (admin audit CAT-03): the form used to write the stock it had
+  // read when it opened over every order taken since. A save of the same
+  // form sent again (its answer lost after the write) moves the stock once:
+  // the form's token tells the SQL what it already applied. An absent key
+  // (taxRatePct) keeps the stored value.
+  const patch = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  );
+  const written = rows<{ id: string }>(
+    await sb.from(TABLES.products).update(patch).eq("id", id).select("id"),
     "updateProduct",
   );
-  return next;
+  if (written.length === 0) return null;
+
+  const variants = input.variants.map((v) => ({
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    sku: v.sku,
+    isActive: v.isActive,
+    // A stored variant moves by what was typed since the form opened; one
+    // without a snapshot (a new row, an old form) keeps the stored count.
+    stockDelta:
+      typeof v.stockAtOpen === "number" ? v.stock - v.stockAtOpen : 0,
+    initialStock: v.stock,
+  }));
+  const stockDelta =
+    variants.length === 0 && typeof stockAtOpen === "number"
+      ? input.stock - stockAtOpen
+      : 0;
+  const res = await sb.rpc("save_product_variants", {
+    p_product_id: id,
+    p_price_minor: input.priceMinor,
+    p_variants: variants,
+    p_stock_delta: stockDelta,
+    p_note: PRODUCT_FORM_STOCK_NOTE,
+    p_actor: actor,
+    p_now: fields.updatedAt,
+    p_save_token: saveToken ?? null,
+    p_total_from_variants: stockFromVariants === true,
+  });
+  if (res.error) raiseDbError("updateProduct.stock", res.error, res.status);
+  const answer = res.data as SaveVariantsAnswer;
+  if (answer.error === "product") return null;
+  if (answer.error === "floor") {
+    // productFormSchema refuses this first (variantFloorError); the SQL
+    // check holds the floor for any other caller.
+    return {
+      refusal: {
+        field: "variants",
+        message: `"${answer.variant}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`,
+        stockNow: formStockBasis(
+          answer.stock === undefined
+            ? existing
+            : { stock: answer.stock, variants: answer.variants },
+          answer.applied,
+        ),
+      },
+    };
+  }
+  if (answer.error === "negative") {
+    // The message names the count as it stands; the form gets the basis.
+    const stored = {
+      stock: Number(answer.stock) || 0,
+      variants: variantStockMap(answer.variants),
+    };
+    const stockNow = formStockBasis(answer, answer.applied);
+    const name = answer.variant;
+    const now =
+      name && answer.variantId !== undefined
+        ? (stored.variants[answer.variantId] ?? 0)
+        : stored.stock;
+    return {
+      refusal: {
+        field: name ? "variants" : "stock",
+        message: name
+          ? `"${name}" stoğu bu arada değişti, şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`
+          : `Bu arada satış oldu, stok şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`,
+        stockNow,
+      },
+    };
+  }
+  return {
+    ...existing,
+    ...(patch as Partial<AdminProduct>),
+    priceMinor: input.priceMinor,
+    stock: answer.stockAfter,
+    variants: answer.variants,
+  };
 }
 
 /** Id, name and SKU of the given products: what an audit row names. */
@@ -1357,6 +1658,8 @@ export async function adjustStock(
   if (error) return { ok: false, error: error.message };
   const next = typeof data === "number" ? data : Number(data);
   if (next === -1) return { ok: false, error: "Ürün bulunamadı." };
+  // A product with variants: its total follows them (admin audit CAT-14).
+  if (next === -3) return { ok: false, error: VARIANT_PRODUCT_STOCK_ERROR };
   if (next === -2) {
     // Re-read so the message names the stock as it actually stands now.
     const fresh = await getProduct(input.productId);
@@ -1379,6 +1682,76 @@ export async function adjustStock(
     ok: true,
     move,
     product: { ...product, stock: next, updatedAt },
+  };
+}
+
+/** Why a product with variants is not adjusted as a whole. */
+export const VARIANT_PRODUCT_STOCK_ERROR =
+  "Bu ürünün varyantları var: listeden varyantı seç.";
+
+export interface AdjustVariantStockInput extends AdjustStockInput {
+  variantId: string;
+}
+
+export type AdjustVariantStockResult =
+  | {
+      ok: true;
+      /** "Ürün · Varyant", as the stock move and the order line name it. */
+      label: string;
+      /** The variant's stock after the change. */
+      variantStock: number;
+      /** The product's total after the change. */
+      stock: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * The Stok screen's correction of one variant (admin audit CAT-14, D16).
+ * `adjust_variant_stock` moves the variant and, when it is active, the
+ * product's total by the same delta, and writes the stock move, all under
+ * the row lock the order claim takes.
+ */
+export async function adjustVariantStock(
+  input: AdjustVariantStockInput,
+): Promise<AdjustVariantStockResult> {
+  await ensureSeed();
+  if (!Number.isInteger(input.delta) || input.delta === 0) {
+    return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
+  }
+  const sb = getDb();
+  const { data, error, status } = await sb.rpc("adjust_variant_stock", {
+    p_product_id: input.productId,
+    p_variant_id: input.variantId,
+    p_delta: input.delta,
+    p_note: input.note.trim().slice(0, 500),
+    p_actor: input.actor,
+    p_now: new Date().toISOString(),
+  });
+  if (error) raiseDbError("adjustVariantStock", error, status);
+  const answer = (data ?? {}) as {
+    error?: "product" | "variant" | "negative";
+    variantStock?: number;
+    stock?: number;
+    productName?: string;
+    variantName?: string;
+  };
+  if (answer.error === "product") {
+    return { ok: false, error: "Ürün bulunamadı." };
+  }
+  if (answer.error === "variant") {
+    return { ok: false, error: "Varyant bulunamadı; sayfayı yenile." };
+  }
+  if (answer.error === "negative") {
+    return {
+      ok: false,
+      error: `Stok eksiye düşemez (mevcut: ${Number(answer.variantStock) || 0}).`,
+    };
+  }
+  return {
+    ok: true,
+    label: `${answer.productName ?? ""} · ${answer.variantName ?? ""}`,
+    variantStock: Number(answer.variantStock) || 0,
+    stock: Number(answer.stock) || 0,
   };
 }
 
@@ -2052,8 +2425,13 @@ async function resolveOrderLines(
     if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
       priceAdjusted = true;
     }
-    // Stock check (variant stock when a variant is chosen, else product stock).
-    const available = variant ? variant.stock : product.stock;
+    // Stock check, as claim_order_stock makes it: a variant line needs both
+    // the variant's stock and the product's total (admin audit CAT-14). The
+    // check read the variant alone, so a line could pass here and fail at
+    // the claim.
+    const available = variant
+      ? Math.min(variant.stock, product.stock)
+      : product.stock;
     if (available < it.qty) {
       return {
         ok: false,
@@ -6590,18 +6968,16 @@ const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
 ];
 
 const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
-  {
+  await seedOnce(TABLES.shopHeroSlides, async () => {
     const sb = getDb();
-    if ((await countRows(TABLES.shopHeroSlides)) === 0) {
-      check(
-        await sb.from(TABLES.shopHeroSlides).upsert(
-          SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
-          { onConflict: "id", ignoreDuplicates: true },
-        ),
-        "seed.shopHeroSlides",
-      );
-    }
-  }
+    check(
+      await sb.from(TABLES.shopHeroSlides).upsert(
+        SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.shopHeroSlides",
+    );
+  });
 });
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
@@ -6743,21 +7119,19 @@ function contentResource<Row extends ContentRowBase>(
   idPrefix: string,
 ) {
   const ensure = memoizeUntilRejected(async (): Promise<void> => {
-    {
+    await seedOnce(table, async () => {
       const sb = getDb();
-      if ((await countRows(table)) === 0) {
-        check(
-          await sb.from(table).upsert(
-            seed.map((s) => ({ ...s })),
-            {
-              onConflict: "id",
-              ignoreDuplicates: true,
-            },
-          ),
-          `seed.${table}`,
-        );
-      }
-    }
+      check(
+        await sb.from(table).upsert(
+          seed.map((s) => ({ ...s })),
+          {
+            onConflict: "id",
+            ignoreDuplicates: true,
+          },
+        ),
+        `seed.${table}`,
+      );
+    });
   });
 
   type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
@@ -7074,7 +7448,7 @@ const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
 
 const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
   const sb = getDb();
-  if ((await countRows(TABLES.appHeroSlides)) === 0) {
+  await seedOnce(TABLES.appHeroSlides, async () => {
     check(
       await sb.from(TABLES.appHeroSlides).upsert(
         SEED_APP_SLIDES.map((s) => ({ ...s })),
@@ -7082,8 +7456,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appHeroSlides",
     );
-  }
-  if ((await countRows(TABLES.appAnnouncements)) === 0) {
+  });
+  await seedOnce(TABLES.appAnnouncements, async () => {
     check(
       await sb.from(TABLES.appAnnouncements).upsert(
         SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
@@ -7091,8 +7465,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appAnnouncements",
     );
-  }
-  if ((await countRows(TABLES.appPosts)) === 0) {
+  });
+  await seedOnce(TABLES.appPosts, async () => {
     check(
       await sb.from(TABLES.appPosts).upsert(
         SEED_APP_POSTS.map((p) => ({ ...p })),
@@ -7100,7 +7474,7 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appPosts",
     );
-  }
+  });
 });
 
 // Publish windows live in ./publish-window, which carries no "server-only":

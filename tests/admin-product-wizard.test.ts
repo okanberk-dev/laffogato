@@ -73,7 +73,18 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "owner@laffogato.net" })),
 }));
-vi.mock("@/lib/admin/audit", () => ({ logAudit: h.logAudit }));
+vi.mock("@/lib/admin/audit", () => ({
+  logAudit: h.logAudit,
+  // As the real one: the row is the record of a write, never its condition.
+  safeAudit: async (input: unknown) => {
+    try {
+      await (h.logAudit as (i: unknown) => Promise<void>)(input);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+}));
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: h.setAdminFlash }));
 vi.mock("@/lib/backdrop/scene", () => ({
   sceneColumns: vi.fn(async () => ({
@@ -94,10 +105,15 @@ const {
   FIELD_STEP,
   checkSteps,
   firstErrorStep,
+  newSaveToken,
   reportFirstInvalid,
 } = await import("@/components/admin/product-wizard");
-const { productFormSchema, PRICE_FLOOR_ERROR, PRICE_REQUIRED_ERROR } =
-  await import("@/lib/admin/product-schema");
+const {
+  productFormSchema,
+  parseSaveToken,
+  PRICE_FLOOR_ERROR,
+  PRICE_REQUIRED_ERROR,
+} = await import("@/lib/admin/product-schema");
 const { menuItemFieldsSchema, MENU_PRICE_ZERO_ERROR } = await import(
   "@/lib/admin/menu-item-schema"
 );
@@ -530,6 +546,121 @@ describe("CAT-28: saving a product deleted in another tab", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(h.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "update", entityId: "prd-0007" }),
+    );
+  });
+});
+
+describe("CAT-03: a save refused for stock", () => {
+  it("answers under the field with the stored counts, audits the partial save and stays", async () => {
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({
+      refusal: {
+        field: "stock",
+        message: "Bu arada satış oldu, stok şu an 1 adet. Adedi kontrol edip yeniden kaydet.",
+        stockNow: { stock: 1, variants: {} },
+      },
+    });
+    const res = await products.updateProductAction(
+      "prd-0007",
+      {},
+      form({ ...VALID, stock: "0", stockAtOpen: "4" }),
+    );
+    expect(h.store.updateProduct).toHaveBeenCalledWith(
+      "prd-0007",
+      expect.objectContaining({ stock: 0, stockAtOpen: 4 }),
+      { actor: "owner@laffogato.net" },
+    );
+    expect(res).toEqual({
+      error: expect.stringMatching(/Fiyat, stok ve varyantlar kaydedilmedi/),
+      fieldErrors: {
+        stock: "Bu arada satış oldu, stok şu an 1 adet. Adedi kontrol edip yeniden kaydet.",
+      },
+      stockNow: { stock: 1, variants: {} },
+    });
+    expect(h.redirect).not.toHaveBeenCalled();
+    expect(h.setAdminFlash).not.toHaveBeenCalled();
+    expect(h.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        entityId: "prd-0007",
+        payload: expect.objectContaining({ stockRefused: "stock" }),
+      }),
+    );
+  });
+
+  it("re-bases only the counts the refusal is about, from what it posted", () => {
+    const src = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
+    // Every snapshot moved to the stored count while the typed values
+    // stayed, so an untouched variant's next save gave back the units sold
+    // while the form was open (rebaseStockSnapshots, admin-catalog-stock).
+    expect(src).not.toMatch(/setVariantSnapshots\(next\.stockNow\.variants\)/);
+    expect(src).toMatch(
+      /rebaseStockSnapshots\(\s*readPostedStock\(\{\s*stock: formData\.get\("stock"\),\s*stockAtOpen: formData\.get\("stockAtOpen"\),\s*variants: formData\.get\("variants"\),\s*\}\),\s*next\.stockNow,\s*\)/,
+    );
+    expect(src).toMatch(/setStockSnapshot\(rebased\.stock\);\s*setVariantSnapshots\(\(was\) => \(\{ \.\.\.was, \.\.\.rebased\.variants \}\)\);/);
+  });
+});
+
+describe("CAT-03: a save sent again moves the stock once", () => {
+  // The stock moves by a change, so an error answer after the write (the
+  // operator saves again) moved it twice: 10 -> 60 -> 110.
+  it("a failed audit row after the save still answers as saved", async () => {
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({ ...STORED, stock: 60 });
+    h.logAudit.mockRejectedValueOnce(new Error("logAudit: insert failed"));
+    await expect(
+      products.updateProductAction(
+        "prd-0007",
+        {},
+        form({ ...VALID, stock: "60", stockAtOpen: "10" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.setAdminFlash).toHaveBeenCalledWith('"Sirena Espresso" kaydedildi.');
+  });
+
+  it("and so does a refused one, with its stored counts", async () => {
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({
+      refusal: {
+        field: "stock",
+        message: "Bu arada satış oldu, stok şu an 1 adet. Adedi kontrol edip yeniden kaydet.",
+        stockNow: { stock: 1, variants: {} },
+      },
+    });
+    h.logAudit.mockRejectedValueOnce(new Error("logAudit: insert failed"));
+    const res = await products.updateProductAction(
+      "prd-0007",
+      {},
+      form({ ...VALID, stock: "0", stockAtOpen: "4" }),
+    );
+    expect(res.stockNow).toEqual({ stock: 1, variants: {} });
+  });
+
+  it("posts one token per opened form, which the save hands to the store", async () => {
+    const src = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
+    expect(src).toMatch(/const saveToken = useRef<string \| null>\(null\);/);
+    expect(src).toMatch(
+      /saveToken\.current \?\?= newSaveToken\(\);\s*formData\.set\("saveToken", saveToken\.current\);\s*const next = await save\(prev, formData\);/,
+    );
+    const token = newSaveToken();
+    expect(parseSaveToken(token)).toBe(token);
+    expect(newSaveToken()).not.toBe(token);
+    for (const bad of [undefined, "", "kısa", "a b c d e f g h", "x".repeat(65)]) {
+      expect(parseSaveToken(bad), String(bad)).toBeNull();
+    }
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({ ...STORED });
+    await expect(
+      products.updateProductAction(
+        "prd-0007",
+        {},
+        form({ ...VALID, stock: "60", stockAtOpen: "10", saveToken: token }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.updateProduct).toHaveBeenCalledWith(
+      "prd-0007",
+      expect.objectContaining({ stock: 60, stockAtOpen: 10, saveToken: token }),
+      { actor: "owner@laffogato.net" },
     );
   });
 });

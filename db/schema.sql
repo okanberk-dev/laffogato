@@ -5304,3 +5304,621 @@ alter table public.settings add column if not exists "pickupReadyMinutes" intege
 
 insert into public._migrations (name) values ('20261017173100_pickup_ready_minutes.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017200000_variant_stock_adjust.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Variant stock, kept in step with the product's total (admin audit CAT-03,
+-- CAT-14, decision D16, 17 Oct 2026).
+--
+-- A product with variants keeps two counts: each variant's own stock inside
+-- products.variants (jsonb) and the product's total in products.stock.
+-- claim_order_stock needs both to cover a variant line and takes the units
+-- from both; credit_product_stock gives them back to both. Nothing else kept
+-- the two together:
+--   - the product form wrote both from the values it read when it was
+--     opened, so an order taken meanwhile was undone on save, and no stock
+--     move was written (CAT-03);
+--   - the total started at 0 while every variant had stock, so the product
+--     read "Stoksuz" and its order failed at the claim (CAT-14);
+--   - no screen could correct one variant's stock.
+--
+-- From here on, under the product's row lock like the claim:
+--   variant_stock_total     what the total of a product with variants is
+--                           made of: the stock of its active variants.
+--   adjust_variant_stock    the Stok screen's correction of one variant. The
+--                           variant moves by the delta, the total by the same
+--                           delta when the variant is active.
+--   save_product_variants   the product form's save of price, variants and
+--                           stock. Each variant moves by its change since the
+--                           form was opened, never to the opened value, and
+--                           once per form (product_form_saves). Asked to, it
+--                           sets the total to the active variants' sum.
+--   adjust_product_stock    now refuses (-3) a product with variants: its
+--                           total follows the variants, it is not set alone.
+-- Every change writes its stock move in the same transaction.
+--
+-- The total moves by deltas instead of being recomputed as the sum: the
+-- shop card's quick add can still sell a product with variants without a
+-- variant, which takes a unit from the total only, and a recomputed sum
+-- would hand that unit back for sale. The exceptions: a product getting its
+-- first variants takes their sum, and so does a form that asks for it
+-- (p_total_from_variants). That is the way back for a total gone apart from
+-- its variants: a unit sold without a variant and then corrected on one
+-- variant on Stok took the total down twice, and nothing else sets it.
+--
+-- Re-runnable: the bundle replays every migration when a deploy adds one.
+-- The data step at the end runs once (guarded on _migrations).
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- The variant list as an array, whatever the column holds.
+create or replace function public.product_variant_list(p_variants jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+           when jsonb_typeof(p_variants) = 'array' then p_variants
+           else '[]'::jsonb
+         end
+$$;
+
+-- The stock of the active variants, summed. Active means `isActive` is true,
+-- as resolveOrderLines reads it: a variant without the key is not sold.
+create or replace function public.variant_stock_total(p_variants jsonb)
+returns int
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(sum(greatest(0, coalesce((v ->> 'stock')::int, 0))), 0)::int
+    from jsonb_array_elements(public.product_variant_list(p_variants)) as v
+   where coalesce((v ->> 'isActive')::boolean, false)
+$$;
+
+-- One stock move, numbered like recordStockMove in the store (mov-000123).
+create or replace function public.record_stock_move(
+  p_product_id   text,
+  p_product_name text,
+  p_delta        int,
+  p_stock_after  int,
+  p_note         text,
+  p_actor        text,
+  p_now          text
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  seq     text := public.next_seq('mov')::text;
+  move_id text;
+begin
+  move_id := 'mov-' || case when length(seq) < 6 then lpad(seq, 6, '0') else seq end;
+  insert into public.stock_moves
+    (id, "productId", "productName", delta, "stockAfter", reason, note, actor, "createdAt")
+  values
+    (move_id, p_product_id, coalesce(p_product_name, ''), p_delta, p_stock_after,
+     'manual_adjust', left(coalesce(p_note, ''), 500), coalesce(p_actor, 'system'), p_now);
+  return move_id;
+end;
+$$;
+
+-- ── adjust_variant_stock ──────────────────────────────────────────────────
+-- Moves one variant's stock by p_delta and records the move (named
+-- "Ürün · Varyant", stockAfter = the variant's new stock). Returns
+--   {"error": "product" | "variant"}             nothing to adjust,
+--   {"error": "negative", "variantStock": n}     it would go below zero,
+--   {"variantStock", "stock", "stockBefore", "variantName", "productName",
+--    "active", "moveId"}                         done.
+create or replace function public.adjust_variant_stock(
+  p_product_id text,
+  p_variant_id text,
+  p_delta      int,
+  p_note       text,
+  p_actor      text,
+  p_now        text
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cur_variants jsonb;
+  cur_total    int;
+  prod_name    text;
+  hit          jsonb;
+  cur_stock    int;
+  next_stock   int;
+  active       boolean;
+  next_total   int;
+  residual     int;
+  move_id      text;
+begin
+  select public.product_variant_list(variants), stock, name
+    into cur_variants, cur_total, prod_name
+    from public.products
+   where id = p_product_id
+     for update;
+  if not found then
+    return jsonb_build_object('error', 'product');
+  end if;
+
+  select v into hit
+    from jsonb_array_elements(cur_variants) as v
+   where v ->> 'id' = p_variant_id
+   limit 1;
+  if hit is null then
+    return jsonb_build_object('error', 'variant');
+  end if;
+
+  cur_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+  next_stock := cur_stock + p_delta;
+  if next_stock < 0 then
+    return jsonb_build_object('error', 'negative', 'variantStock', cur_stock);
+  end if;
+  active := coalesce((hit ->> 'isActive')::boolean, false);
+  next_total := case when active then greatest(0, cur_total + p_delta) else cur_total end;
+
+  update public.products
+     set variants = (
+           select jsonb_agg(
+                    case when e.v ->> 'id' = p_variant_id
+                      then jsonb_set(e.v, '{stock}', to_jsonb(next_stock))
+                      else e.v end
+                    order by e.n)
+             from jsonb_array_elements(cur_variants) with ordinality as e(v, n)),
+         stock = next_total,
+         "updatedAt" = p_now
+   where id = p_product_id;
+
+  move_id := public.record_stock_move(
+    p_product_id, prod_name || ' · ' || coalesce(hit ->> 'name', ''),
+    p_delta, next_stock, p_note, p_actor, p_now);
+  -- The total stopped at 0 (units sold without a variant had already left
+  -- it): the product's own move says by how much less it went down.
+  residual := (next_total - cur_total) - case when active then p_delta else 0 end;
+  if residual <> 0 then
+    perform public.record_stock_move(
+      p_product_id, prod_name, residual, next_total,
+      coalesce(p_note, '') || ': varyant toplamı', p_actor, p_now);
+  end if;
+
+  return jsonb_build_object(
+    'variantStock', next_stock,
+    'stock', next_total,
+    'stockBefore', cur_total,
+    'variantName', coalesce(hit ->> 'name', ''),
+    'productName', prod_name,
+    'active', active,
+    'moveId', move_id);
+end;
+$$;
+
+-- ── product_form_saves ────────────────────────────────────────────────────
+-- What each opened product form has already moved. The form posts a token
+-- of its own with every save, and save_product_variants applies a change
+-- less what the same token has applied: the same form saved again after an
+-- answer that never arrived (a dropped connection, an error after the
+-- write) does not move the stock twice, and a count changed again moves by
+-- the difference. One row per form and product, kept for two days.
+create table if not exists public.product_form_saves (
+  "productId" text  not null,
+  token       text  not null,
+  applied     jsonb not null default '{}'::jsonb,
+  "createdAt" text  not null default '',
+  primary key ("productId", token)
+);
+alter table public.product_form_saves enable row level security;
+
+-- ── save_product_variants ─────────────────────────────────────────────────
+-- The product form's save of what has to stay together: the sale price, the
+-- variant list and the stock. p_variants is the form's list:
+--   [{id, name, priceDeltaMinor, sku, isActive, stockDelta, initialStock}]
+-- A variant already stored keeps its stored stock plus `stockDelta` (the
+-- change typed since the form was opened); one not stored yet starts at
+-- `initialStock`; a stored one missing from the list is removed with its
+-- units. p_stock_delta is the change to the product's own stock, used only
+-- when the list is empty. The total of a product with variants follows them
+-- (see the header); a product getting its first variants takes their sum.
+-- With p_save_token, what earlier saves of the same form applied
+-- (product_form_saves) is taken off each change first. With
+-- p_total_from_variants the total of a product with variants becomes the
+-- stock of its active variants after the save: the operator counted the
+-- shelf and says the variants are right.
+--
+-- Every stock change is written as a stock move: one per variant whose
+-- stock changed ("Ürün · Varyant", stockAfter = its new stock), and one for
+-- the product ("Ürün", stockAfter = the new total) for whatever the variant
+-- moves do not explain (a variant switched on or off, the first variants
+-- replacing the product's own count, the variants removed, the total set
+-- to the variants).
+--
+-- Nothing is written when anything is refused. Returns
+--   {"error": "product"}                                 the row is gone,
+--   {"error": "floor", "variant": name, "stock", "variants", "applied"}
+--                                                        a variant would sell
+--                                                        under 1 kuruş,
+--   {"error": "negative", "variant"?, "variantId"?, "stock", "variants",
+--    "applied"}                                          a count would go
+--                                                        below zero;
+--   "stock" and "variants" are the stored ones now, "applied" what this
+--   form's earlier saves moved ({"stock": n, "variants": {id: n}}),
+--   {"stockBefore", "stockAfter", "variants", "moves"}   saved.
+--
+-- The signatures without the token and without the total's reset came
+-- first in this file; they are dropped so a call by name cannot find two.
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text
+);
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text, text
+);
+create or replace function public.save_product_variants(
+  p_product_id  text,
+  p_price_minor int,
+  p_variants    jsonb,
+  p_stock_delta int,
+  p_note        text,
+  p_actor       text,
+  p_now         text,
+  p_save_token  text default null,
+  p_total_from_variants boolean default false
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cur_variants jsonb;
+  cur_total    int;
+  prod_name    text;
+  prior        jsonb;
+  requested    jsonb := '{}'::jsonb;
+  inc          jsonb;
+  hit          jsonb;
+  before_stock int;
+  next_stock   int;
+  inc_active   boolean;
+  next_list    jsonb := '[]'::jsonb;
+  changes      jsonb := '[]'::jsonb;
+  ch           jsonb;
+  explained    int := 0;
+  next_total   int;
+  moves        int := 0;
+begin
+  select public.product_variant_list(variants), stock, name
+    into cur_variants, cur_total, prod_name
+    from public.products
+   where id = p_product_id
+     for update;
+  if not found then
+    return jsonb_build_object('error', 'product');
+  end if;
+
+  -- Under the product's lock, like every save of it.
+  if p_save_token is not null then
+    select s.applied into prior
+      from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s.token = p_save_token;
+  end if;
+  prior := coalesce(prior, '{}'::jsonb);
+
+  for inc in
+    select value from jsonb_array_elements(public.product_variant_list(p_variants))
+  loop
+    if p_price_minor + coalesce((inc ->> 'priceDeltaMinor')::int, 0) < 1 then
+      return jsonb_build_object(
+        'error', 'floor',
+        'variant', coalesce(inc ->> 'name', ''),
+        'stock', cur_total,
+        'variants', cur_variants,
+        'applied', prior);
+    end if;
+    inc_active := coalesce((inc ->> 'isActive')::boolean, false);
+    hit := null;
+    select v into hit
+      from jsonb_array_elements(cur_variants) as v
+     where v ->> 'id' = inc ->> 'id'
+     limit 1;
+    if hit is null then
+      before_stock := 0;
+      next_stock := greatest(0, coalesce((inc ->> 'initialStock')::int, 0));
+    else
+      before_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+      requested := requested || jsonb_build_object(
+        inc ->> 'id', coalesce((inc ->> 'stockDelta')::int, 0));
+      next_stock := before_stock
+        + coalesce((inc ->> 'stockDelta')::int, 0)
+        - coalesce((prior -> 'variants' ->> (inc ->> 'id'))::int, 0);
+      if next_stock < 0 then
+        return jsonb_build_object(
+          'error', 'negative',
+          'variant', coalesce(inc ->> 'name', ''),
+          'variantId', inc ->> 'id',
+          'stock', cur_total,
+          'variants', cur_variants,
+          'applied', prior);
+      end if;
+    end if;
+    next_list := next_list || jsonb_build_array(jsonb_build_object(
+      'id', inc ->> 'id',
+      'name', coalesce(inc ->> 'name', ''),
+      'priceDeltaMinor', coalesce((inc ->> 'priceDeltaMinor')::int, 0),
+      'stock', next_stock,
+      'sku', coalesce(inc ->> 'sku', ''),
+      'isActive', inc_active));
+    if next_stock <> before_stock then
+      changes := changes || jsonb_build_array(jsonb_build_object(
+        'name', coalesce(inc ->> 'name', ''),
+        'delta', next_stock - before_stock,
+        'after', next_stock,
+        'counted', inc_active,
+        'removed', false));
+    end if;
+  end loop;
+
+  -- A stored variant the form no longer lists leaves with its units.
+  for hit in
+    select v
+      from jsonb_array_elements(cur_variants) as v
+     where not exists (
+       select 1 from jsonb_array_elements(next_list) as n where n ->> 'id' = v ->> 'id')
+  loop
+    before_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+    if before_stock <> 0 then
+      changes := changes || jsonb_build_array(jsonb_build_object(
+        'name', coalesce(hit ->> 'name', ''),
+        'delta', -before_stock,
+        'after', 0,
+        'counted', coalesce((hit ->> 'isActive')::boolean, false),
+        'removed', true));
+    end if;
+  end loop;
+
+  if jsonb_array_length(next_list) = 0 then
+    -- No variants (any more): the product's own count, moved by the form.
+    next_total := cur_total
+      + coalesce(p_stock_delta, 0)
+      - coalesce((prior ->> 'stock')::int, 0);
+    if next_total < 0 then
+      return jsonb_build_object(
+        'error', 'negative', 'stock', cur_total, 'variants', cur_variants,
+        'applied', prior);
+    end if;
+  elsif jsonb_array_length(cur_variants) = 0 or coalesce(p_total_from_variants, false) then
+    next_total := public.variant_stock_total(next_list);
+  else
+    next_total := greatest(0,
+      cur_total
+      + public.variant_stock_total(next_list)
+      - public.variant_stock_total(cur_variants));
+  end if;
+
+  update public.products
+     set variants = next_list,
+         stock = next_total,
+         "priceMinor" = p_price_minor,
+         "updatedAt" = p_now
+   where id = p_product_id;
+
+  for ch in select value from jsonb_array_elements(changes)
+  loop
+    perform public.record_stock_move(
+      p_product_id,
+      prod_name || ' · ' || (ch ->> 'name'),
+      (ch ->> 'delta')::int,
+      (ch ->> 'after')::int,
+      coalesce(p_note, '') || case when (ch ->> 'removed')::boolean then ': varyant silindi' else '' end,
+      p_actor,
+      p_now);
+    moves := moves + 1;
+    if (ch ->> 'counted')::boolean then
+      explained := explained + (ch ->> 'delta')::int;
+    end if;
+  end loop;
+
+  if next_total - cur_total <> explained then
+    perform public.record_stock_move(
+      p_product_id,
+      prod_name,
+      next_total - cur_total - explained,
+      next_total,
+      coalesce(p_note, '')
+        || case
+             when jsonb_array_length(next_list) = 0 and jsonb_array_length(cur_variants) = 0 then ''
+             else ': varyant toplamı'
+           end,
+      p_actor,
+      p_now);
+    moves := moves + 1;
+  end if;
+
+  if p_save_token is not null then
+    -- This form has now moved each count by what it asked for in all.
+    insert into public.product_form_saves as s ("productId", token, applied, "createdAt")
+    values (
+      p_product_id,
+      p_save_token,
+      jsonb_build_object('stock', coalesce(p_stock_delta, 0), 'variants', requested),
+      p_now)
+    on conflict ("productId", token) do update set applied = excluded.applied;
+    delete from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s."createdAt" < to_char(
+             (now() - interval '2 days') at time zone 'UTC',
+             'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+  end if;
+
+  return jsonb_build_object(
+    'stockBefore', cur_total,
+    'stockAfter', next_total,
+    'variants', next_list,
+    'moves', moves);
+end;
+$$;
+
+-- ── adjust_product_stock ──────────────────────────────────────────────────
+-- As in 20260901150000_atomic_stock_adjust.sql, plus -3 for a product with
+-- variants: its total follows them, so the Stok screen and the CSV import
+-- move a variant instead.
+create or replace function public.adjust_product_stock(
+  p_product_id text,
+  p_delta      int,
+  p_now        text
+)
+returns int
+language plpgsql
+set search_path = ''
+as $$
+declare
+  new_stock  int;
+  exists_id  text;
+  n_variants int;
+begin
+  update public.products
+    set stock = stock + p_delta,
+        "updatedAt" = p_now
+    where id = p_product_id
+      and stock + p_delta >= 0
+      and jsonb_array_length(public.product_variant_list(variants)) = 0
+    returning stock into new_stock;
+
+  if found then
+    return new_stock;
+  end if;
+
+  select id, jsonb_array_length(public.product_variant_list(variants))
+    into exists_id, n_variants
+    from public.products
+   where id = p_product_id;
+  if exists_id is null then
+    return -1;
+  end if;
+  if n_variants > 0 then
+    return -3;
+  end if;
+  return -2;
+end;
+$$;
+
+-- ── once: products the form left at 0 ─────────────────────────────────────
+-- A product with variants whose total is 0 while its active variants hold
+-- stock is the CAT-14 state: the field defaulted to 0 and the operator only
+-- filled the variants, so nothing of it could be sold. Its total becomes the
+-- sum, with a stock move. Only a product nothing ever moved: no stock move
+-- and no order line names it. A total that reached 0 through sales is sold
+-- out, not unfilled: units sold without a variant (the shop card's quick
+-- add) left the total and not the variants, so the variants still read
+-- stock that is gone, and the sum would put it back on sale. Any other
+-- total is left as it stands for the same reason. Once only, like every
+-- data step the bundle replays.
+with fixed as (
+  update public.products as p
+     set stock = public.variant_stock_total(p.variants),
+         "updatedAt" = to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+   where p.stock = 0
+     and public.variant_stock_total(p.variants) > 0
+     and not exists (
+       select 1 from public.stock_moves as m where m."productId" = p.id
+     )
+     and not exists (
+       select 1
+         from public.orders as o
+        cross join lateral jsonb_array_elements(
+                case when jsonb_typeof(o.items) = 'array' then o.items else '[]'::jsonb end
+              ) as line
+        where line ->> 'productId' = p.id
+     )
+     and not exists (
+       select 1
+         from public._migrations as applied
+        where applied.name = '20261017200000_variant_stock_adjust.sql'
+     )
+  returning p.id, p.name, p.stock, p."updatedAt"
+)
+select public.record_stock_move(
+         f.id, f.name, f.stock, f.stock,
+         'Varyant stoklarının toplamı (ürün stoğu 0 kalmıştı)', 'system', f."updatedAt")
+  from fixed as f;
+
+insert into public._migrations (name) values ('20261017200000_variant_stock_adjust.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017200100_seed_markers.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Seeds run once per database, not whenever a table is empty (admin audit
+-- CAT-04, CON-01, decision D17, 17 Oct 2026).
+--
+-- The store seeded a table whenever it found it empty, once per server
+-- instance, so every cold start re-checked. Deleting the last product, menu
+-- item, category, shop hero slide, story period, press quote, app slide,
+-- announcement or post brought the bundled rows back on the next deploy:
+-- demo products for sale, a "500₺ üzeri ücretsiz kargo" slide, a weekend
+-- closing at 24:00 and a half-price offer the till does not honour, in the
+-- app's notification feed too. And setCounter put the id counters back to
+-- the seed's size, so the next new row reused a deleted row's id, which old
+-- orders and stock moves still point at.
+--
+-- From here on:
+--   counters "seed:<table>"   the marker the store writes the first time it
+--                             decides about a table (src/lib/admin/store.ts
+--                             seedOnce). With the marker present an empty
+--                             table stays empty.
+--   raise_counter            what setCounter calls: it sets a counter to at
+--                            least the given value and never lowers it.
+--
+-- A database already in use gets every marker now: its tables were seeded
+-- long ago, and one emptied by the operator must stay empty. "In use" is a
+-- settings row (written by the first seed) or a table with rows. A fresh
+-- database has neither, so the store seeds it as before (the catalogue only
+-- outside production). Once only, like every data step the bundle replays.
+--
+-- To seed a development database again: delete its `seed:%` counters.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create or replace function public.raise_counter(counter_key text, floor_seq bigint)
+returns bigint
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v bigint;
+begin
+  insert into public.counters (id, seq) values (counter_key, floor_seq)
+  on conflict (id) do update set seq = greatest(public.counters.seq, excluded.seq)
+  returning seq into v;
+  return v;
+end;
+$$;
+
+insert into public.counters (id, seq)
+select m.id, 1
+  from (values
+    ('seed:products',          exists (select 1 from public.products)),
+    ('seed:categories',        exists (select 1 from public.categories)),
+    ('seed:menu_items',        exists (select 1 from public.menu_items)),
+    ('seed:shop_hero_slides',  exists (select 1 from public.shop_hero_slides)),
+    ('seed:story_timeline',    exists (select 1 from public.story_timeline)),
+    ('seed:press',             exists (select 1 from public.press)),
+    ('seed:app_hero_slides',   exists (select 1 from public.app_hero_slides)),
+    ('seed:app_announcements', exists (select 1 from public.app_announcements)),
+    ('seed:app_posts',         exists (select 1 from public.app_posts))
+  ) as m (id, has_rows)
+ where (m.has_rows or exists (select 1 from public.settings))
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261017200100_seed_markers.sql'
+   )
+on conflict (id) do nothing;
+
+insert into public._migrations (name) values ('20261017200100_seed_markers.sql')
+  on conflict (name) do nothing;

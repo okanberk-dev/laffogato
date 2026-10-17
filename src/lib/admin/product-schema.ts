@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import { slugify } from "@/lib/admin/store";
+import { parseStockSnapshot } from "@/lib/admin/stock-delta";
 import {
   parseBackdropChoice,
   parseVesselChoice,
@@ -212,6 +213,23 @@ const intInput = z
     return Number.isFinite(v) ? Math.max(0, v) : 0;
   });
 
+// The stock a form was opened with (admin audit CAT-03). It lives with the
+// other client-safe stock helpers: the wizard reads its own post with it.
+export { parseStockSnapshot };
+
+const stockSnapshot = z.string().optional().transform(parseStockSnapshot);
+
+/**
+ * The opened form's own token (admin audit CAT-03): a save of the same form
+ * sent again moves the stock once (`product_form_saves`). Anything that is
+ * not one reads as none, and that save is a change of its own.
+ */
+export function parseSaveToken(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const token = raw.trim();
+  return /^[A-Za-z0-9-]{8,64}$/.test(token) ? token : null;
+}
+
 const MAX_IMAGES = 8;
 /**
  * The stored data URL's length cap. The uploader downscales until a photo
@@ -301,6 +319,7 @@ const variantsJson = z
             stock: Number.isFinite(stock) ? Math.max(0, stock) : 0,
             sku,
             isActive,
+            stockAtOpen: parseStockSnapshot(o.stockAtOpen),
           };
         })
         .filter((v): v is NonNullable<typeof v> => v !== null);
@@ -368,6 +387,10 @@ export const productFormSchema = z
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
     stock: intInput,
+    stockAtOpen: stockSnapshot,
+    saveToken: z.string().optional().transform(parseSaveToken),
+    // A product with variants: set its total to their stock (CAT-14).
+    stockFromVariants: z.string().optional(),
     lowStockThreshold: intInput,
     weightGrams: intInput,
     taxRatePct: taxRateInput,
@@ -410,6 +433,9 @@ export const productFormSchema = z
     compareAtPriceMinor: v.compareAtPrice ?? 0,
     costMinor: v.cost ?? 0,
     stock: v.stock,
+    stockAtOpen: v.stockAtOpen,
+    saveToken: v.saveToken,
+    stockFromVariants: v.stockFromVariants === "on",
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
     taxRatePct: v.taxRatePct ?? null,
