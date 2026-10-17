@@ -24,6 +24,7 @@ import {
   getSettings,
   listOrderNotices,
   listPaymentTransactions,
+  orderEmailLedgerHeld,
   orderMoneyFromRows,
 } from "@/lib/admin/store";
 
@@ -86,6 +87,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     canAccess("customers", session.role) && order.customerEmail.includes("@")
       ? `/admin/musteriler/${encodeURIComponent(order.customerEmail)}`
       : null;
+  // Stamps or a member coupon filed under the e-mail lock it (the store
+  // refuses the move either way). A read that fails draws it locked too.
+  const ledgerHeld =
+    orderDetailsRules(order, session.role).emailEditable &&
+    (await orderEmailLedgerHeld(order).catch((err) => {
+      console.error("[admin/siparisler] damga ve kupon okunamadı", err);
+      return true;
+    }));
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
@@ -153,7 +162,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         timeline={orderTimeline(order, audits, notices)}
         notices={notices.filter((n) => n.kind !== "staff-new")}
         customerHref={customerHref}
-        detailsRules={orderDetailsRules(order, session.role)}
+        detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}
         canSeeEvidence={canAccess("customers", session.role)}
       />
     </main>

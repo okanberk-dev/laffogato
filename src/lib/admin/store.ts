@@ -92,6 +92,7 @@ import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
 import {
   orderChannel,
+  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
@@ -112,6 +113,8 @@ import {
 } from "./manual-order-schema";
 import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
 import { ORDER_STATUS_LABELS } from "./order-ui";
+import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
+import { earnsStamp } from "@/lib/mobile/loyalty-core";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -4790,14 +4793,60 @@ export type OrderDetailsResult =
   | { ok: false; error: string };
 
 /**
+ * Whether loyalty stamps or a member coupon are filed under this order's
+ * e-mail. A cancel or refund finds them by the order's e-mail as it is
+ * then (`onOrderReversed`, `releaseCustomerCoupon`), so an order moved to
+ * another address left them with the old one and took back nothing: the
+ * member kept the stamps of a refunded order, and a spent coupon was never
+ * given back (admin audit ORD-16).
+ *
+ * A paid app cafe order that earns a stamp counts before its row is there:
+ * the stamp is written just after the payment, under the e-mail the order
+ * had then. A coupon is claimed when the order is placed, unpaid ones too.
+ */
+export async function orderEmailLedgerHeld(order: AdminOrder): Promise<boolean> {
+  const paid = Boolean(order.paidAt) || order.status !== "pending_payment";
+  if (
+    paid &&
+    orderChannel(order) === "app" &&
+    orderKind(order) === "cafe" &&
+    earnsStamp(order)
+  ) {
+    return true;
+  }
+  const sb = getDb();
+  const stamps = rows<{ id: string }>(
+    await sb
+      .from(TABLES.loyaltyStamps)
+      .select("id")
+      .eq("orderId", order.id)
+      .limit(1),
+    "orderEmailLedgerHeld.stamps",
+  );
+  if (stamps.length > 0) return true;
+  if (!order.promoCode || !(order.orderNo > 0)) return false;
+  const coupons = rows<{ id: string }>(
+    await sb
+      .from(TABLES.customerCoupons)
+      .select("id")
+      .eq("redeemedOrderNo", order.orderNo)
+      .limit(1),
+    "orderEmailLedgerHeld.coupon",
+  );
+  return coupons.length > 0;
+}
+
+/**
  * Admin edit of an order's customer + delivery fields (no totals change).
  *
  * `refuse` is asked about the order as stored and stops the save with its
  * answer (who may change the e-mail, a closed order: lib/admin/
- * order-details.ts). The write is conditional on the status and e-mail that
- * answer was given for, so an order completed or moved in between is
- * "changed", never overwritten. `before` is the order as it was: the
- * caller's audit row keeps the old values.
+ * order-details.ts). An e-mail that would leave stamps or a member coupon
+ * under the old address is refused here whoever asks
+ * (`orderEmailLedgerHeld`). The write is conditional on the status and
+ * e-mail those answers were given for, so an order completed, paid or moved
+ * in between is "changed", never overwritten. `before` is the order as it
+ * was: the caller's audit row keeps the old values.
  */
 export async function updateOrderDetails(
   id: string,
@@ -4810,6 +4859,12 @@ export async function updateOrderDetails(
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const refusal = refuse?.(existing) ?? null;
   if (refusal) return { ok: false, error: refusal };
+  if (
+    emailMovesLedger(existing.customerEmail, input.customerEmail) &&
+    (await orderEmailLedgerHeld(existing))
+  ) {
+    return { ok: false, error: ORDER_DETAILS_MESSAGES.emailLedger };
+  }
   const update = {
     customerName: input.customerName.trim().slice(0, 120),
     ...(input.customerEmail !== undefined

@@ -7,6 +7,14 @@
 // address and phone, into another member's account, so it is an owner or
 // manager decision on an open order, confirmed, and the audit row keeps the
 // old address so it can be put back.
+//
+// The e-mail is also the key the order's loyalty stamps and its member
+// coupon are filed under, and a cancel or refund looks them up by the
+// order's e-mail as it is then. Once either exists the e-mail stays: moved,
+// it left the stamps and the coupon with the old address, and the cancel
+// took back nothing. The store refuses that move itself
+// (`updateOrderDetails`, `orderEmailLedgerHeld`); `ledgerHeld` here only
+// draws the field locked.
 
 import { OPEN_ORDER_STATUSES } from "./order-filters";
 import { canAccess, type AdminRole } from "./roles";
@@ -37,21 +45,28 @@ export const ORDER_DETAILS_MESSAGES = {
   emailClosed: "Kapanmış siparişin e-postası değişmez.",
   emailConfirm:
     "E-posta değişikliğini onayla: sipariş eski adresin üye geçmişinden çıkar, yeni adresinkine girer.",
+  emailLedger:
+    "Bu siparişin damgası ya da üye kuponu bu adrese kayıtlı, e-posta değişmez: değişirse iptal ya da iade onları geri alamaz.",
 } as const;
 
 function isOpen(status: AdminOrderStatus): boolean {
   return OPEN_ORDER_STATUSES.includes(status);
 }
 
-/** What `role` may change on `order`'s customer card. */
+/**
+ * What `role` may change on `order`'s customer card. `ledgerHeld`: stamps
+ * or a member coupon are filed under the order's e-mail
+ * (`orderEmailLedgerHeld`), so the e-mail stays whoever asks.
+ */
 export function orderDetailsRules(
   order: { status: AdminOrderStatus },
   role: AdminRole,
+  ledgerHeld = false,
 ): OrderDetailsRules {
   const manages = canAccess("customers", role);
   const open = isOpen(order.status);
   const editable = open || manages;
-  const emailEditable = editable && manages && open;
+  const emailEditable = editable && manages && open && !ledgerHeld;
   return {
     editable,
     reason: editable ? null : ORDER_DETAILS_MESSAGES.closed,
@@ -60,7 +75,9 @@ export function orderDetailsRules(
       ? null
       : !manages
         ? ORDER_DETAILS_MESSAGES.emailRole
-        : ORDER_DETAILS_MESSAGES.emailClosed,
+        : !open
+          ? ORDER_DETAILS_MESSAGES.emailClosed
+          : ORDER_DETAILS_MESSAGES.emailLedger,
   };
 }
 
@@ -70,6 +87,19 @@ export function emailChanges(
   next: string | undefined,
 ): boolean {
   return next !== undefined && next.trim() !== String(stored ?? "").trim();
+}
+
+/**
+ * Whether `next` files the order under another member: the ledger reads
+ * e-mails case-blind, so "Eda@" for "eda@" moves nothing.
+ */
+export function emailMovesLedger(
+  stored: string,
+  next: string | undefined,
+): boolean {
+  if (next === undefined) return false;
+  const fold = (email: string) => email.trim().toLowerCase();
+  return fold(next) !== fold(String(stored ?? ""));
 }
 
 /**

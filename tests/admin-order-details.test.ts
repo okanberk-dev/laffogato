@@ -15,11 +15,21 @@ import { createDb, type Executor } from "@/lib/db/client";
 const seen: { text: string; params: readonly unknown[] }[] = [];
 let stored: Record<string, unknown> | null = null;
 let updatedRows = 1;
+let stampRows = 0;
+let couponRows = 0;
 
 const exec: Executor = async ({ text, params }) => {
   seen.push({ text, params });
   if (/^SELECT count\(\*\)/.test(text))
     return { rows: [{ count: 1 }], rowCount: 1 };
+  if (/^SELECT .* FROM "loyalty_stamps"/.test(text)) {
+    const rows = Array.from({ length: stampRows }, () => ({ id: "stp-1" }));
+    return { rows, rowCount: rows.length };
+  }
+  if (/^SELECT .* FROM "customer_coupons"/.test(text)) {
+    const rows = Array.from({ length: couponRows }, () => ({ id: "cpn-1" }));
+    return { rows, rowCount: rows.length };
+  }
   if (/^SELECT .* FROM "orders"/.test(text)) {
     return stored ? { rows: [stored], rowCount: 1 } : { rows: [], rowCount: 0 };
   }
@@ -47,6 +57,8 @@ const {
 beforeEach(() => {
   seen.length = 0;
   updatedRows = 1;
+  stampRows = 0;
+  couponRows = 0;
   stored = {
     id: "ord-1",
     orderNo: 10023,
@@ -89,6 +101,17 @@ describe("orderDetailsRules", () => {
     expect(done.editable).toBe(true);
     expect(done.emailEditable).toBe(false);
     expect(done.emailReason).toBe(ORDER_DETAILS_MESSAGES.emailClosed);
+  });
+
+  it("locks the e-mail of an order with stamps or a coupon filed under it", () => {
+    const held = orderDetailsRules({ status: "paid" }, "owner", true);
+    expect(held.editable).toBe(true);
+    expect(held.emailEditable).toBe(false);
+    expect(held.emailReason).toBe(ORDER_DETAILS_MESSAGES.emailLedger);
+    // Staff are still told the role is why.
+    expect(
+      orderDetailsRules({ status: "paid" }, "staff", true).emailReason,
+    ).toBe(ORDER_DETAILS_MESSAGES.emailRole);
   });
 });
 
@@ -225,6 +248,75 @@ describe("updateOrderDetails", () => {
       expect.objectContaining({ status: "preparing" }),
     );
     expect(seen.some((q) => /^UPDATE/.test(q.text))).toBe(false);
+  });
+
+  // Verifier C1: a cancel or refund finds the order's stamps and member
+  // coupon by its e-mail as it is then. Moved, they stayed with the old
+  // address: the member kept the stamps of a refunded order.
+  it("refuses an e-mail that would leave stamps under the old address", async () => {
+    stampRows = 1;
+    const res = await store.updateOrderDetails("ord-1", {
+      ...input,
+      customerEmail: "baska@example.com",
+    });
+    expect(res).toEqual({
+      ok: false,
+      error: ORDER_DETAILS_MESSAGES.emailLedger,
+    });
+    expect(seen.some((q) => /^UPDATE/.test(q.text))).toBe(false);
+  });
+
+  it("refuses it for a member coupon the order spent", async () => {
+    stored = { ...stored!, promoCode: "HOSGELDIN-AB12" };
+    couponRows = 1;
+    const res = await store.updateOrderDetails("ord-1", {
+      ...input,
+      customerEmail: "baska@example.com",
+    });
+    expect(res).toEqual({
+      ok: false,
+      error: ORDER_DETAILS_MESSAGES.emailLedger,
+    });
+    const coupon = seen.find((q) => /FROM "customer_coupons"/.test(q.text))!;
+    expect(coupon.params).toContain(10023);
+  });
+
+  it("refuses it for a paid app cafe order before its stamp row is there", async () => {
+    // The stamp is written just after the payment, under the e-mail the
+    // order had then.
+    stored = {
+      ...stored!,
+      status: "paid",
+      channel: "app",
+      kind: "cafe",
+      totalMinor: 70_000,
+      shippingMinor: 0,
+      paidAt: "2026-10-17T08:01:00.000Z",
+    };
+    const res = await store.updateOrderDetails("ord-1", {
+      ...input,
+      customerEmail: "baska@example.com",
+    });
+    expect(res).toEqual({
+      ok: false,
+      error: ORDER_DETAILS_MESSAGES.emailLedger,
+    });
+  });
+
+  it("still moves an order nothing is filed under, and a case-only fix never asks", async () => {
+    const moved = await store.updateOrderDetails("ord-1", {
+      ...input,
+      customerEmail: "baska@example.com",
+    });
+    expect(moved.ok).toBe(true);
+    stampRows = 1;
+    seen.length = 0;
+    const cased = await store.updateOrderDetails("ord-1", {
+      ...input,
+      customerEmail: "Eda@Example.com",
+    });
+    expect(cased.ok).toBe(true);
+    expect(seen.some((q) => /FROM "loyalty_stamps"/.test(q.text))).toBe(false);
   });
 
   it("says the order is gone", async () => {
