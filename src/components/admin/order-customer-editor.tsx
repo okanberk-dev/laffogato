@@ -193,7 +193,7 @@ export function OrderCustomerEditor({
             {rules.reason}
           </p>
         )}
-        <div className="grid gap-2 text-sm">
+        <div className="grid gap-3 text-sm">
           <KV k="Ad">{vals.customerName || "-"}</KV>
           <KV k="E-posta">
             {vals.customerEmail ? (
@@ -260,14 +260,19 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function KV({ k, children }: { k: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[100px_1fr] gap-2">
+    <div className="grid gap-0.5">
       <span
         className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {k}
       </span>
-      <span className="text-neutral-800">{children}</span>
+      {/* The label above the value, as in the cards below it: in the
+          sidebar column a 100px label left the value a few letters wide,
+          and a long name or address pushed the whole page sideways. */}
+      <span className="min-w-0 [overflow-wrap:anywhere] text-neutral-800">
+        {children}
+      </span>
     </div>
   );
 }
