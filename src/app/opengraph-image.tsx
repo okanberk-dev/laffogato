@@ -1,41 +1,41 @@
-import { ImageResponse } from "next/og";
-
 import {
-  LAF_BEAN_PATH,
-  LAF_LETTERS_PATH,
-  LAF_VIEWBOX,
-} from "@/components/laffogato/laf-paths";
+  OG_CONTENT_TYPE,
+  OG_GROUND,
+  OG_HOST,
+  OG_INK,
+  OG_SIZE,
+  OgFooter,
+  OgMark,
+  OgTricolore,
+  ogImage,
+} from "@/lib/seo/og-card";
 import { SITE } from "@/lib/seo/site";
 
 /**
- * Dynamic OpenGraph image for the home page. Rendered at build time via
- * Next.js Image Response - no external image asset required.
+ * Dynamic OpenGraph image for the home page, and for every page that has no
+ * card of its own. Rendered at build time via Next.js Image Response - no
+ * external image asset required.
+ *
+ * The palette, the mark and the footer live in `src/lib/seo/og-card.tsx`,
+ * which the page cards (karaoke, menu, shop, ...) share; LAF_LETTERS_PATH
+ * comes in through `OgMark`.
  *
  * Output: 1200×630 PNG served at `/opengraph-image`.
  */
 
 export const runtime = "nodejs";
 export const alt = `${SITE.name} - ${SITE.tagline}`;
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const size = OG_SIZE;
+export const contentType = OG_CONTENT_TYPE;
 
 export default async function OgImage() {
-  // next/og rasterises this on the server, where CSS variables do not
-  // resolve, so the palette is spelled out - the app icon's own (globals.css
-  // :root since 25 Eyl 2026): the radial house green #23876a → #1d6d56 →
-  // #0c3b2d, the L'Af mark in cream #fbf8f4 with its bean in brass #e8c877.
-  const markHeight = 300;
-  const markWidth = Math.round(
-    (markHeight * LAF_VIEWBOX.width) / LAF_VIEWBOX.height,
-  );
-  return new ImageResponse(
+  return ogImage(
     <div
       style={{
         width: "100%",
         height: "100%",
-        background:
-          "radial-gradient(circle at 30% 20%, #23876a 0%, #1d6d56 45%, #0c3b2d 100%)",
-        color: "#fbf8f4",
+        background: OG_GROUND,
+        color: OG_INK.cream,
         display: "flex",
         alignItems: "center",
         padding: "72px 84px",
@@ -43,14 +43,7 @@ export default async function OgImage() {
         position: "relative",
       }}
     >
-      <svg
-        width={markWidth}
-        height={markHeight}
-        viewBox={`0 0 ${LAF_VIEWBOX.width} ${LAF_VIEWBOX.height}`}
-      >
-        <path fillRule="evenodd" fill="#fbf8f4" d={LAF_LETTERS_PATH} />
-        <path fillRule="evenodd" fill="#e8c877" d={LAF_BEAN_PATH} />
-      </svg>
+      <OgMark height={300} />
 
       <div
         style={{
@@ -67,15 +60,10 @@ export default async function OgImage() {
             gap: 14,
             fontSize: 24,
             fontWeight: 600,
-            color: "#d3e2d9",
+            color: OG_INK.mint,
           }}
         >
-          {/* The tricolore, on the dark ground: mint, cream, rose. */}
-          <div style={{ display: "flex", width: 54, height: 6 }}>
-            <div style={{ flex: 1, background: "#d3e2d9", display: "flex" }} />
-            <div style={{ flex: 1, background: "#fbf8f4", display: "flex" }} />
-            <div style={{ flex: 1, background: "#f6e9ec", display: "flex" }} />
-          </div>
+          <OgTricolore />
           Bologna · 1897 → İstanbul · 2026
         </div>
         <div
@@ -95,7 +83,7 @@ export default async function OgImage() {
             fontSize: 46,
             marginTop: 20,
             fontWeight: 600,
-            color: "#e8c877",
+            color: OG_INK.brass,
             display: "flex",
           }}
         >
@@ -106,7 +94,7 @@ export default async function OgImage() {
             fontSize: 26,
             marginTop: 26,
             lineHeight: 1.35,
-            color: "#e6efe9",
+            color: OG_INK.mist,
             display: "flex",
           }}
         >
@@ -114,24 +102,7 @@ export default async function OgImage() {
         </div>
       </div>
 
-      <div
-        style={{
-          position: "absolute",
-          left: 84,
-          right: 84,
-          bottom: 44,
-          display: "flex",
-          justifyContent: "space-between",
-          fontSize: 20,
-          color: "#d3e2d9",
-        }}
-      >
-        <div style={{ display: "flex" }}>
-          {SITE.url.replace(/^https?:\/\//, "")}
-        </div>
-        <div style={{ display: "flex" }}>Tuzla · tarihi köşk</div>
-      </div>
+      <OgFooter left={OG_HOST} right="Tuzla · tarihi köşk" />
     </div>,
-    { ...size },
   );
 }
