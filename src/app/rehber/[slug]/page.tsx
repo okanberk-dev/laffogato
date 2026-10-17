@@ -35,14 +35,8 @@ export async function generateMetadata({
       locale: SITE.locale,
       publishedTime: guide.updatedAt,
       modifiedTime: guide.updatedAt,
-      images: [
-        {
-          url: SITE.ogImage,
-          width: SITE.ogImageWidth,
-          height: SITE.ogImageHeight,
-          alt: guide.title,
-        },
-      ],
+      // No `images`: the guide's own card (opengraph-image.tsx beside this
+      // file) fills og:image, and an `images` key here would hide it.
     },
     twitter: {
       card: "summary_large_image",

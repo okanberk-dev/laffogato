@@ -26,14 +26,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE.name,
     locale: SITE.locale,
-    images: [
-      {
-        url: SITE.ogImage,
-        width: SITE.ogImageWidth,
-        height: SITE.ogImageHeight,
-        alt: TITLE,
-      },
-    ],
+    // No `images`: /rehber draws its own card (opengraph-image.tsx).
   },
   twitter: {
     card: "summary_large_image",

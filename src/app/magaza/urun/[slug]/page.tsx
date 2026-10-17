@@ -16,7 +16,7 @@ import {
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
+import { metaDescription, openGraphBase } from "@/lib/seo/site";
 import { shortProductName } from "@/lib/utils/format";
 
 export const dynamic = "force-dynamic";
@@ -71,10 +71,6 @@ export async function generateMetadata({
     );
   }
   const path = PATH(slug);
-  // Uploaded images are site-relative (`/gorsel/urun/...`); Next resolves them
-  // against `metadataBase`. Only absolute-vs-relative matters here, so an
-  // uploaded photo is no longer skipped in favour of the generic card.
-  const ogImage = product.images?.[0]?.trim() || undefined;
   return {
     // `absolute`: the title is already built to 60 characters WITH the brand
     // suffix above, and the root layout's "%s · L'Affogato" template would
@@ -83,13 +79,13 @@ export async function generateMetadata({
     description,
     alternates: { canonical: path },
     openGraph: {
-      // The defaults first: without them a product with no photo shared
-      // with no image at all.
-      ...openGraphDefaults(),
+      // No `images`: the product's card (opengraph-image.tsx beside this
+      // file) carries its photo, name and price, and an `images` key here
+      // would hide it. It used to be the bare photo, or the generic card.
+      ...openGraphBase(),
       title,
       description,
       url: path,
-      ...(ogImage ? { images: [{ url: ogImage, alt: product.name }] } : {}),
     },
     // The og:type / product:* tags are NOT emitted through `other`: Next
     // renders that map as <meta name="…">, and every Open Graph consumer reads
