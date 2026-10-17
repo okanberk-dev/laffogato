@@ -512,7 +512,15 @@ export function ProductWizard({
   };
 
   const categoryLabel = categories.find((c) => c.slug === cat)?.label ?? cat;
-  const skuPlaceholder = name ? `${skuPrefix(name)}-00042` : "SIRE-00042";
+  // An emptied SKU field keeps the stored code on an edit (updateProduct);
+  // only a product without one gets a new code. The hint and the summary
+  // say which, so the CSV import's match key does not change unseen.
+  const storedSku = product?.sku ?? "";
+  const skuPlaceholder = storedSku
+    ? storedSku
+    : name
+      ? `${skuPrefix(name)}-00042`
+      : "SIRE-00042";
 
   const steps: Array<{ id: number; title: string; body: ReactNode }> = [
     {
@@ -736,7 +744,11 @@ export function ProductWizard({
             <div className="grid gap-1.5">
               <Field
                 label="SKU"
-                hint="Stok takip kodu. Boş bırakırsan kayıtta addan üretilir, her ürüne ayrı numarayla."
+                hint={
+                  storedSku
+                    ? "Stok takip kodu, CSV içe aktarmada ürünü bulan anahtar. Boş bırakırsan kayıtlı kod kalır."
+                    : "Stok takip kodu. Boş bırakırsan kayıtta addan üretilir, her ürüne ayrı numarayla."
+                }
               >
                 <TextInput
                   name="sku"
@@ -1209,11 +1221,13 @@ export function ProductWizard({
               k="SKU"
               v={
                 sku ||
-                (name
-                  ? `Kayıtta üretilir (${skuPrefix(name)}-…)`
-                  : "Kayıtta üretilir")
+                (storedSku
+                  ? `${storedSku} (kayıtlı kod kalır)`
+                  : name
+                    ? `Kayıtta üretilir (${skuPrefix(name)}-…)`
+                    : "Kayıtta üretilir")
               }
-              mono={Boolean(sku)}
+              mono={Boolean(sku || storedSku)}
             />
             <SummaryRow
               k="Ağırlık"

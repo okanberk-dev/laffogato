@@ -307,6 +307,17 @@ describe("CAT-18: SKU", () => {
       'value="MOKA-00007"',
     );
   });
+
+  it("on an edit says an emptied field keeps the stored code, as updateProduct does", () => {
+    // The summary renders the state; an edit whose field was emptied reads
+    // like a product whose code is "" in the form but stored in the row.
+    const edit = wizard("tabs", STORED);
+    expect(edit).toContain("Boş bırakırsan kayıtlı kod kalır.");
+    expect(edit).not.toContain("Boş bırakırsan kayıtta addan üretilir");
+    const legacy = wizard("tabs", { ...STORED, name: "Çay Bardağı", sku: "" });
+    expect(legacy).toContain("Boş bırakırsan kayıtta addan üretilir");
+    expect(legacy).toContain("Kayıtta üretilir (CAYB-…)");
+  });
 });
 
 describe("CAT-M02: weight", () => {
