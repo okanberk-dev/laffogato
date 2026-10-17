@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Illustration } from "@/components/laffogato/illustration";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import {
   KaraokeReservationView,
@@ -122,10 +123,21 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
     >
       <div className="wrap karaoke-page">
         <div className="karaoke-link-page">
-          <div className="eyebrow">Karaoke · rezervasyon</div>
-          <h1 className="h2" style={{ marginTop: 12 }}>
-            Karaoke rezervasyonun
-          </h1>
+          <div className="karaoke-link-head">
+            <div>
+              <div className="eyebrow">Karaoke · rezervasyon</div>
+              <h1 className="h2" style={{ marginTop: 12 }}>
+                Karaoke rezervasyonun
+              </h1>
+            </div>
+            <Illustration
+              name="karaoke-room"
+              width={220}
+              className="karaoke-link-art illo-framed"
+              sizes="(max-width: 620px) 120px, 180px"
+              priority
+            />
+          </div>
           {body ?? (
             <div className="karaoke-mine">
               <p>

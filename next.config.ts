@@ -135,8 +135,9 @@ const nextConfig: NextConfig = {
       {
         // Brand art and venue photos are not content-hashed, so a day in the
         // browser with a week of stale-while-revalidate - they used to be
-        // max-age=0 and re-validated on every visit.
-        source: "/:dir(brand|photos|menu)/:file*",
+        // max-age=0 and re-validated on every visit. The site's drawings
+        // (public/illustrations) are the same kind of file.
+        source: "/:dir(brand|photos|menu|illustrations)/:file*",
         headers: [
           {
             key: "Cache-Control",

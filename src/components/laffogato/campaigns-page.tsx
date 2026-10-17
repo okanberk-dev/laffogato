@@ -1,4 +1,6 @@
+import { Illustration, type IllustrationName } from "./illustration";
 import { PageHero } from "./page-hero";
+import { sceneBackground, type SceneKey } from "./scenes";
 
 export interface CampaignPost {
   id: string;
@@ -14,6 +16,20 @@ const KIND_LABEL: Record<CampaignPost["kind"], string> = {
   campaign: "Kampanya",
   collab: "İş birliği",
   event: "Etkinlik",
+};
+
+/**
+ * A post the panel published without a photo gets a drawing of its kind -
+ * a ticket and a bean, two cups toasting, a garland over a calendar page -
+ * on that kind's light, instead of the bare L'Af on a green board.
+ */
+const KIND_ART: Record<
+  CampaignPost["kind"],
+  { name: IllustrationName; scene: SceneKey }
+> = {
+  campaign: { name: "kampanya-campaign", scene: "citrus" },
+  collab: { name: "kampanya-collab", scene: "strawberry" },
+  event: { name: "kampanya-event", scene: "pistachio" },
 };
 
 /**
@@ -48,6 +64,7 @@ export function CampaignsPage({
         scene="citrus"
         eyebrow="Köşkte bu ay"
         title={["Kampanyalar", "ve etkinlikler"]}
+        art={<Illustration name="kampanya-lights" priority />}
         lede="Sezon kampanyaları, iş birlikleri ve köşkte olan biten. Damga programı ve davet ödülü de burada - ikisi de uygulamada ve web'de aynı hesaba işler."
       />
 
@@ -87,10 +104,16 @@ export function CampaignsPage({
       {posts.length === 0 && !cards.loyalty && !cards.invite && (
         <section className="home-section home-section-last">
           <div className="wrap">
-            <p className="campaign-empty">
-              Şu an yayında bir kampanya yok. Yeni sezon menüsü için menüye göz
-              atabilirsin.
-            </p>
+            <div className="campaign-empty">
+              <Illustration
+                name="kampanya-empty"
+                className="campaign-empty-art"
+              />
+              <p>
+                Şu an yayında bir kampanya yok. Yeni sezon menüsü için menüye
+                göz atabilirsin.
+              </p>
+            </div>
           </div>
         </section>
       )}
@@ -164,8 +187,14 @@ function CardGrid({ title, posts }: { title: string; posts: CampaignPost[] }) {
                   <img src={p.image} alt="" loading="lazy" />
                 </div>
               ) : (
-                <div className="campaign-card-photo empty" aria-hidden="true">
-                  <span className="brand-mark" />
+                <div
+                  className="campaign-card-photo empty"
+                  style={{
+                    background: sceneBackground(KIND_ART[p.kind].scene),
+                  }}
+                  aria-hidden="true"
+                >
+                  <Illustration name={KIND_ART[p.kind].name} />
                 </div>
               )}
               <div className="campaign-card-body">

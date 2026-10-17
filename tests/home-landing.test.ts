@@ -89,7 +89,9 @@ describe("home hero", () => {
     expect(SLIDER).not.toContain("home.hero.lede");
     expect(SLIDER).not.toContain("home.hero.eyebrow");
     expect(SLIDER).toContain("{slide.kicker}");
-    expect(SLIDER).toContain("splitLead(slide.text)");
+    // The karaoke slide's text takes the room's size and closing hour from
+    // the panel (data.ts `slideText`); the words are still the slide's own.
+    expect(SLIDER).toContain("splitLead(slideText(slide.text, karaoke))");
   });
 
   it("puts the panel's hero copy in the statement band under the hero", () => {

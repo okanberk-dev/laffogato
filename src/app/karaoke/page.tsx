@@ -16,6 +16,7 @@ import { istanbulClock } from "@/lib/mobile/venue";
 import { openGraphDefaults, SITE } from "@/lib/seo/site";
 
 import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
+import { parseSaatParam } from "@/components/laffogato/karaoke-today";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +56,11 @@ function nextDays(today: string, count: number): string[] {
 }
 
 interface PageProps {
-  searchParams: Promise<{ tarih?: string }>;
+  searchParams: Promise<{ tarih?: string; saat?: string }>;
 }
 
 export default async function KaraokePage({ searchParams }: PageProps) {
-  const { tarih } = await searchParams;
+  const { tarih, saat } = await searchParams;
   // One reading of the clock per request: the calendar day and the tier
   // window below must agree on what "now" is.
   const now = new Date();
@@ -120,6 +121,9 @@ export default async function KaraokePage({ searchParams }: PageProps) {
         <KaraokeBooking
           days={days}
           date={date}
+          // `?saat=` (the home page's free-hour chips): preselected only if
+          // that hour is free on this day; otherwise the first free one.
+          initialHour={parseSaatParam(saat)}
           availability={availability}
           unavailable={unavailable}
           capacity={settings.karaokeCapacity}

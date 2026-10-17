@@ -8,6 +8,7 @@ import {
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
 import { BusyDots } from "./busy-dots";
+import { Illustration } from "./illustration";
 import { PageHero } from "./page-hero";
 // Type-only: karaoke-core builds Zod schemas at load, and a value import from
 // it ships all of Zod to the browser. The quote maths comes from the
@@ -52,6 +53,11 @@ export interface KaraokeBookingProps {
   /** The bookable window, as Istanbul calendar days. */
   days: string[];
   date: string;
+  /**
+   * The hour asked for in the URL (`?saat=`, the home page's chips). Taken
+   * only when it is free on `date`; the first free hour otherwise.
+   */
+  initialHour?: number | null;
   availability: KaraokeAvailability | null;
   /** True when the calendar could not be read at all. */
   unavailable: boolean;
@@ -84,6 +90,7 @@ interface KaraokeTicks {
 export function KaraokeBooking({
   days,
   date,
+  initialHour = null,
   availability,
   unavailable,
   capacity,
@@ -99,7 +106,12 @@ export function KaraokeBooking({
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
   const firstFree = slots.find((s) => s.available)?.startHour;
-  const [startHour, setStartHour] = useState<number | null>(firstFree ?? null);
+  const askedFree =
+    initialHour !== null &&
+    slots.some((s) => s.startHour === initialHour && s.available);
+  const [startHour, setStartHour] = useState<number | null>(
+    askedFree ? initialHour : (firstFree ?? null),
+  );
   const [hours, setHours] = useState(1);
   const [guests, setGuests] = useState(Math.min(4, capacity));
   const [note, setNote] = useState("");
@@ -142,6 +154,11 @@ export function KaraokeBooking({
 
   const today = days[0];
   const tomorrow = days[1];
+  // Signing in comes back to this day and this hour.
+  const backHere =
+    startHour !== null
+      ? `/karaoke?tarih=${date}&saat=${startHour}`
+      : `/karaoke?tarih=${date}`;
   const selectionValid =
     startHour !== null && blockIsFree(startHour, hours) && !unavailable;
 
@@ -149,6 +166,11 @@ export function KaraokeBooking({
     return (
       <div className="wrap karaoke-page">
         <div className="karaoke-done">
+          <Illustration
+            name="karaoke-room"
+            width={220}
+            className="karaoke-done-art illo-framed"
+          />
           <div className="eyebrow">Karaoke · rezervasyon alındı</div>
           <h1 className="h1" style={{ marginTop: 14 }}>
             Görüşmek üzere
@@ -179,6 +201,15 @@ export function KaraokeBooking({
         scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", "gece 24:00’e kadar"]}
+        art={
+          <Illustration
+            name="karaoke-room"
+            width={220}
+            className="illo-framed"
+            sizes="(max-width: 760px) 116px, 220px"
+            priority
+          />
+        }
         lede={
           prepay
             ? `${capacity} kişilik oda. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.`
@@ -366,7 +397,7 @@ export function KaraokeBooking({
                 <p className="karaoke-hint" style={{ marginTop: 0 }}>
                   Hesap açılmaz; rezervasyon bağlantın e-postana gelir.{" "}
                   <a
-                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    href={`/uye/giris?next=${encodeURIComponent(backHere)}`}
                     className="karaoke-link"
                   >
                     Üyeysen giriş yap
@@ -487,7 +518,7 @@ export function KaraokeBooking({
               {!canBook && !isAuthenticated ? (
                 <>
                   <a
-                    href={`/uye/giris?next=${encodeURIComponent(`/karaoke?tarih=${date}`)}`}
+                    href={`/uye/giris?next=${encodeURIComponent(backHere)}`}
                     className="btn btn-gold"
                     style={{ width: "100%" }}
                   >

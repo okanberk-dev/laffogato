@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { confirmNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import { Illustration } from "@/components/laffogato/illustration";
 
 export const metadata = {
   // `absolute`: the root template would append the brand a second time.
@@ -47,6 +48,8 @@ export default async function BultenOnayPage({ searchParams }: PageProps) {
           </Link>
           <LafMark tone="duo" />
         </div>
+        {/* The letter itself, sealed with a coffee bean. */}
+        <Illustration name="bulten-zarf" className="auth-art" priority />
         <h1 className="auth-title">{heading}</h1>
 
         {state === "ask" ? (

@@ -230,6 +230,7 @@ export default async function HesapPage() {
       >
         {recentOrders.length === 0 ? (
           <EmptyState
+            art="spot-siparis"
             title="Henüz siparişin yok"
             hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
             cta={
