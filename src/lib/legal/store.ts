@@ -145,8 +145,10 @@ export interface LegalSaveResult {
 /**
  * Writes the override of `slug`. The row it replaces, when it differs, is
  * archived first in the same transaction (`legal_doc_save`, migration
- * 20261017210000), so a save never destroys the text before it. `by` is the
- * admin's address, kept with the archived row.
+ * 20261017210000), so a save never destroys the text before it. A save that
+ * changes nothing writes nothing: the stored `updatedAt` stays the moment
+ * the text went up (the returned row carries the attempt's time). `by` is
+ * the admin's address, kept with the archived row.
  */
 export async function upsertLegalDoc(
   slug: string,

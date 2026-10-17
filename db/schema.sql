@@ -5993,6 +5993,11 @@ create trigger legal_override_history_no_update
 -- text fields or its published flag differ from what is written, that row is
 -- archived first ('replaced'). Returns the archive row's id, or null when
 -- nothing was archived (a new override, or a save that changed nothing).
+--
+-- A save that changes nothing writes nothing, so "updatedAt" stays the
+-- moment the text went up: with the archive's "archivedAt" that gives the
+-- exact span each text was shown, which is what tells the text behind an
+-- order's consent (and the version rule dates an undated live text by it).
 create or replace function public.legal_doc_save(
   p_slug           text,
   p_title          text,
@@ -6016,8 +6021,12 @@ begin
   select * into prev from public.legal_docs where slug = p_slug for update;
   if found and (prev.title, prev.summary, prev."effectiveDate",
                 prev."bodyMarkdown", prev."isPublished")
-       is distinct from (p_title, p_summary, p_effective_date, p_body, p_published)
+       is not distinct from (p_title, p_summary, p_effective_date, p_body, p_published)
   then
+    return null;
+  end if;
+
+  if found then
     insert into public.legal_override_history
       (slug, title, summary, "effectiveDate", "bodyMarkdown", "isPublished",
        "updatedAt", "archivedAt", "archivedBy", reason)

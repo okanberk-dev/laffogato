@@ -88,8 +88,15 @@ maybe("legal override archive, in SQL", () => {
     const first = await store.upsertLegalDoc(SLUG, input({}), { by: OWNER });
     expect(first.archivedId).toBeNull();
 
+    // A later millisecond, so a rewritten updatedAt would show.
+    await new Promise((r) => setTimeout(r, 5));
     const same = await store.upsertLegalDoc(SLUG, input({}), { by: OWNER });
     expect(same.archivedId).toBeNull();
+    // Nothing written: the text still counts from its first save, so the
+    // archive's spans say exactly when each text was shown.
+    expect((await store.getLegalDocOverride(SLUG))?.updatedAt).toBe(
+      first.override.updatedAt,
+    );
 
     const second = await store.upsertLegalDoc(
       SLUG,
@@ -107,7 +114,7 @@ maybe("legal override archive, in SQL", () => {
       archivedBy: OWNER,
       reason: "replaced",
     });
-    expect(archived!.updatedAt).toBe(same.override.updatedAt);
+    expect(archived!.updatedAt).toBe(first.override.updatedAt);
 
     const live = await store.getLegalDocOverride(SLUG);
     expect(live?.bodyMarkdown).toBe("## İkinci metin\n\nParagraf.");
