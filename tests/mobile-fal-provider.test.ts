@@ -18,9 +18,12 @@ import {
   falModel,
   falProvider,
   falRequestBody,
+  parseFalReply,
+  responseText,
   type FalContext,
   type FalProvider,
 } from "@/lib/mobile/fal-core";
+import type * as FalCore from "@/lib/mobile/fal-core";
 
 /**
  * Karar 177, 17 Eki 2026: fA'L's AI reading runs on Anthropic's Claude API,
@@ -263,15 +266,54 @@ describe("the Anthropic request", () => {
   });
 });
 
-describe("the OpenAI request, still there", () => {
-  it("goes to the Responses API with a bearer key and store: false", async () => {
+describe("the OpenAI path, kept for a text that names OpenAI", () => {
+  it("asks OpenAI nothing while the texts name Anthropic, whatever the environment says", async () => {
+    // The route turns this away first (falAiEnabled); the function that sends
+    // the photo does too, so no other caller can send it to OpenAI either.
+    expect(FAL_DISCLOSED_PROVIDER).toBe("anthropic");
     const { fetcher, calls } = mockFetch(() => json(openaiReply()));
-    const outcome = await readCupWithAI(PHOTO, CONTEXT, envFor("openai"), fetcher);
-    expect(calls[0]!.url).toBe("https://api.openai.com/v1/responses");
-    expect(calls[0]!.init.headers).toEqual({ Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" });
-    expect(sentBody(calls[0]!)).toEqual(JSON.parse(JSON.stringify(falRequestBody("gpt-5.4-mini", CONTEXT, PHOTO))));
-    expect(sentBody(calls[0]!).store).toBe(false);
-    expect(outcome).toEqual({ ok: true, reading: READING, model: "gpt-5.4-mini" });
+    for (const env of [
+      envFor("openai"),
+      envFor("openai", { ANTHROPIC_API_KEY: ANTHROPIC_KEY }),
+      { FAL_AI_ENABLED: "true", OPENAI_API_KEY: OPENAI_KEY },
+    ]) {
+      expect(await readCupWithAI(PHOTO, CONTEXT, env, fetcher)).toEqual({ ok: false, reason: "failed" });
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("goes to the Responses API with a bearer key and store: false once the texts name OpenAI", async () => {
+    // As if the texts, the R12 version and FAL_DISCLOSED_PROVIDER had moved back to OpenAI.
+    vi.resetModules();
+    vi.doMock("@/lib/mobile/fal-core", async (importOriginal) => ({
+      ...(await importOriginal<typeof FalCore>()),
+      FAL_DISCLOSED_PROVIDER: "openai",
+    }));
+    try {
+      const fal = await import("@/lib/mobile/fal");
+      const { fetcher, calls } = mockFetch(() => json(openaiReply()));
+      const outcome = await fal.readCupWithAI(PHOTO, CONTEXT, envFor("openai"), fetcher);
+      expect(calls[0]!.url).toBe("https://api.openai.com/v1/responses");
+      expect(calls[0]!.init.headers).toEqual({ Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" });
+      expect(sentBody(calls[0]!)).toEqual(JSON.parse(JSON.stringify(falRequestBody("gpt-5.4-mini", CONTEXT, PHOTO))));
+      expect(sentBody(calls[0]!).store).toBe(false);
+      expect(outcome).toEqual({ ok: true, reading: READING, model: "gpt-5.4-mini" });
+
+      // Its failures are logged the same way: a word, never the key.
+      const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const failing = mockFetch(() => Promise.reject(new Error(OPENAI_KEY)));
+      expect(await fal.readCupWithAI(PHOTO, CONTEXT, envFor("openai"), failing.fetcher)).toEqual({ ok: false, reason: "failed" });
+      expect(errors).toHaveBeenCalledWith("[fal] openai request failed", "Error");
+      expect(JSON.stringify(errors.mock.calls)).not.toContain(OPENAI_KEY);
+
+      // And then Anthropic is the one the texts do not name.
+      const anthropic = mockFetch(() => json(claudeReply()));
+      expect(await fal.readCupWithAI(PHOTO, CONTEXT, envFor("anthropic"), anthropic.fetcher)).toEqual({ ok: false, reason: "failed" });
+      expect(anthropic.calls).toHaveLength(0);
+    } finally {
+      vi.doUnmock("@/lib/mobile/fal-core");
+      vi.resetModules();
+    }
   });
 
   it("gives both providers the same standing instructions", () => {
@@ -333,8 +375,8 @@ describe("readCupWithAI: a reading, or a reason and the device reads", () => {
     ]) {
       const anthropic = mockFetch(() => json(claudeReply(bad)));
       expect(await readCupWithAI(PHOTO, CONTEXT, envFor("anthropic"), anthropic.fetcher)).toEqual({ ok: false, reason: "unfit" });
-      const openai = mockFetch(() => json(openaiReply(bad)));
-      expect(await readCupWithAI(PHOTO, CONTEXT, envFor("openai"), openai.fetcher)).toEqual({ ok: false, reason: "unfit" });
+      // OpenAI's reply text goes through the same parseFalReply.
+      expect(parseFalReply(JSON.parse(responseText(openaiReply(bad)) ?? "null"))).toBeNull();
     }
   });
 
@@ -430,8 +472,6 @@ describe("readCupWithAI: what it logs", () => {
       const { fetcher } = mockFetch(answer);
       await readCupWithAI(PHOTO, CONTEXT, envFor("anthropic"), fetcher);
     }
-    const openai = mockFetch(() => Promise.reject(new Error(OPENAI_KEY)));
-    await readCupWithAI(PHOTO, CONTEXT, envFor("openai"), openai.fetcher);
 
     expect(logged.length).toBeGreaterThan(0);
     const all = logged.join("\n");
@@ -466,6 +506,28 @@ describe("the documents that describe it", () => {
     }
     expect(env).toContain("claude-opus-5-5");
     expect(env).toContain("FAL_DISCLOSED_PROVIDER");
+  });
+
+  it("the switch waits for the standard contract and an app that names the right recipient", () => {
+    // KVKK m.9 (2024): the photo goes with every reading, so the transfer is
+    // not incidental and consent alone does not carry it. And the app shows
+    // its own four consent lines while posting back the server's version.
+    const env = readFileSync(".env.example", "utf8");
+    for (const gate of ["standart sözleşmesi", "arızi değil", "minSupportedAppVersion", "gerçek yorum"]) {
+      expect(env, gate).toContain(gate);
+    }
+    const doc = readFileSync("docs/API-MOBILE.md", "utf8");
+    const fal = doc.slice(doc.indexOf("## 20. fA'L"), doc.indexOf("## 21."));
+    for (const gate of ["beş iş günü", "arızi", "minSupportedAppVersion"]) {
+      expect(fal, gate).toContain(gate);
+    }
+    expect(fal).not.toContain("hiçbir\n  yerde saklanmaz");
+    const note = readFileSync("docs/LEGAL-REDLINES-2026-09.md", "utf8");
+    const y1 = note.slice(note.indexOf("## 15. Y1"), note.indexOf("## Ek A"));
+    for (const fact of ["m.9/4-c", "m.9/6-a", "Yönetmelik m.16/1", "beş iş günü", "minSupportedAppVersion", "avukat"]) {
+      expect(y1, fact).toContain(fact);
+    }
+    expect(y1).not.toContain("Hukuki sebep: açık rıza (KVKK m.5/1 ve m.9");
   });
 
   it("the contract (§20) describes both providers, the recipient gate and the version that names it", () => {

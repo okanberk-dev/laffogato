@@ -9,6 +9,7 @@ import {
   ANTHROPIC_MESSAGES_URL,
   ANTHROPIC_VERSION,
   FAL_CONSENT_VERSION,
+  FAL_DISCLOSED_PROVIDER,
   FAL_FEATURE,
   FAL_TIMEOUT_MS,
   anthropicReplyText,
@@ -305,7 +306,11 @@ function errorName(err: unknown): string {
  *
  * The log says which provider, and only a status code, a stop reason or an
  * error's class name: never the photo, the prompt, the member or the key.
- * Whether the provider may be used at all is the route's `falAiEnabled`.
+ *
+ * The route asks `falAiEnabled` first. This function, the only one that sends
+ * the photo, holds the recipient rule too: a provider the published texts do
+ * not name (`FAL_DISCLOSED_PROVIDER`) is asked nothing, whoever calls it and
+ * whatever the environment says.
  */
 export async function readCupWithAI(
   jpegBase64: string,
@@ -314,7 +319,7 @@ export async function readCupWithAI(
   fetcher: typeof fetch = fetch,
 ): Promise<FalAiOutcome> {
   const provider = falProvider(env);
-  if (!provider) return { ok: false, reason: "failed" };
+  if (!provider || provider !== FAL_DISCLOSED_PROVIDER) return { ok: false, reason: "failed" };
   const model = falModel(env, provider);
   const call = providerCall(provider, env, model, context, jpegBase64);
   const controller = new AbortController();
