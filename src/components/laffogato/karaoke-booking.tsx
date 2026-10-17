@@ -8,6 +8,7 @@ import {
   type BookKaraokeState,
 } from "@/app/karaoke/actions";
 import { BusyDots } from "./busy-dots";
+import { Illustration } from "./illustration";
 import { PageHero } from "./page-hero";
 // Type-only: karaoke-core builds Zod schemas at load, and a value import from
 // it ships all of Zod to the browser. The quote maths comes from the
@@ -165,6 +166,11 @@ export function KaraokeBooking({
     return (
       <div className="wrap karaoke-page">
         <div className="karaoke-done">
+          <Illustration
+            name="karaoke-room"
+            width={220}
+            className="karaoke-done-art illo-framed"
+          />
           <div className="eyebrow">Karaoke · rezervasyon alındı</div>
           <h1 className="h1" style={{ marginTop: 14 }}>
             Görüşmek üzere
@@ -195,6 +201,15 @@ export function KaraokeBooking({
         scene="berry"
         eyebrow="Karaoke · köşkün üst katı"
         title={["Özel oda,", "gece 24:00’e kadar"]}
+        art={
+          <Illustration
+            name="karaoke-room"
+            width={220}
+            className="illo-framed"
+            sizes="(max-width: 760px) 116px, 220px"
+            priority
+          />
+        }
         lede={
           prepay
             ? `${capacity} kişilik oda. Saatini seç, kartınla öde; rezervasyonun hemen kesinleşir.`

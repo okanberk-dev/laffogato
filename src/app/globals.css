@@ -10653,6 +10653,12 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   padding: clamp(40px, 7vw, 88px) 0;
   max-width: 60ch;
 }
+.karaoke-done-art {
+  display: block;
+  width: clamp(150px, 30vw, 220px);
+  height: auto;
+  margin-bottom: 26px;
+}
 
 /* Guest contact block and the checkout band under the picker (16 Eki 2026):
    both sit on the light ground, so the summary's on-dark text styles are
@@ -10765,6 +10771,29 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-link-page {
   padding: clamp(32px, 6vw, 72px) 0 0;
   max-width: 720px;
+}
+/* The heading beside the room's drawing; the drawing goes on top on a phone. */
+.karaoke-link-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+}
+.karaoke-link-art {
+  display: block;
+  width: 180px;
+  height: auto;
+}
+@media (max-width: 620px) {
+  .karaoke-link-head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .karaoke-link-art {
+    order: -1;
+    width: 120px;
+    border-radius: 20px;
+  }
 }
 .karaoke-link-page .karaoke-mine {
   margin-top: 20px;
