@@ -338,6 +338,14 @@ describe("Onayla on a booking whose money is not in", () => {
     expect(!res.ok && res.error).not.toMatch(/kendiliğinden/);
   });
 
+  it("a paid request whose refund started meanwhile is not called unpaid", async () => {
+    h.reservation = { id: ID, status: "requested", paymentStatus: "refunding" };
+    h.setStatus.mockResolvedValue({ ok: false, reason: "payment_open" });
+    const res = await admin.confirmReservationAction(null, form({ id: ID }));
+    expect(!res.ok && res.error).toMatch(/iadesi bu arada başladı/);
+    expect(!res.ok && res.error).not.toMatch(/ödemesi alınmadı/);
+  });
+
   it("an unpaid hold: the payment confirms it, nobody else", async () => {
     h.reservation = { id: ID, status: "requested", paymentStatus: "pending" };
     h.setStatus.mockResolvedValue({ ok: false, reason: "payment_open" });

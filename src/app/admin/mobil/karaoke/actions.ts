@@ -43,12 +43,15 @@ const FAILURE_MESSAGE: Record<SetReservationStatusFailure, string> = {
  * `payment_open` has two causes, and the old single sentence ("ödeme gelince
  * kendiliğinden kesinleşir") was false for one of them: a request taken as
  * pay-at-the-venue before prepayment was switched on never gets a payment,
- * so it never confirms itself.
+ * so it never confirms itself. A paid request whose refund started while
+ * the Onayla dialog was open is neither: its money is on its way back.
  */
 const PAYMENT_OPEN_MESSAGE: Partial<Record<string, string>> = {
   pending:
     "Bu rezervasyonun ödemesi henüz alınmadı. Ödeme gelince kendiliğinden onaylanır; elle onaylanmaz.",
   none: "Bu talep ön ödeme açılmadan önce köşkte ödenecek diye alınmış. Ödemesi alınmamış rezervasyon onaylanmaz: müşteriyi arayıp online rezervasyon yapmasını iste ve bu talebi iptal et.",
+  refunding:
+    "Bu rezervasyonun iadesi bu arada başladı; onaylanmaz. Sayfayı yenileyip durumuna bak.",
 };
 
 const REFUND_FORBIDDEN =
