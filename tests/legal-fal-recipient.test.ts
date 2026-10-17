@@ -101,6 +101,41 @@ describe("the fA'L recipient in the published texts", () => {
   });
 });
 
+describe("the transfer abroad rests on the standard contract, not on consent alone (KVKK m.9, 2024)", () => {
+  // Since 1 Haziran 2024 (7499 s. Kanun) explicit consent carries a transfer
+  // abroad only when it is incidental (m.9/6-a). The Yönetmelik (RG 10.07.2024,
+  // m.16/1) calls incidental what is irregular, one-off and outside the ordinary
+  // course; the fA'L photo goes with every reading, so it needs the Board's
+  // standard contract (m.9/4-c), notified within five business days (m.9/5).
+
+  it("R12 says the transfer is not incidental and rests on the Board's standard contract", () => {
+    const consent = r12();
+    expect(consent).toContain("arızi nitelikte değildir");
+    expect(consent).toContain("yurt dışına aktarım yalnızca bu onaya dayanmaz");
+    expect(consent).toContain("Kurul tarafından ilan edilen standart sözleşmeye dayandırılır");
+    expect(consent).not.toContain("standart sözleşme gibi uygun güvencelere");
+  });
+
+  it("the aydınlatma's transfer section says the same for the fA'L photo", () => {
+    const doc = findLegalDoc("kvkk-aydinlatma-metni")!;
+    const abroad = doc.sections.find((s) => s.heading.startsWith("15. Kişisel Verilerin Yurt Dışına"));
+    expect(abroad, "KVKK Aydınlatma §15").toBeDefined();
+    const fal = (abroad!.paragraphs ?? []).find((p) => p.includes("fA'L"));
+    expect(fal).toContain(RECIPIENT);
+    expect(fal).toContain("arızi nitelikte değildir");
+    expect(fal).toContain("yalnızca açık rızaya dayanmaz");
+    expect(fal).toContain("standart sözleşmeye dayandırılır");
+  });
+
+  it("no text offers explicit consent as a way around the incidental limit", () => {
+    const gizlilik = findLegalDoc("gizlilik-politikasi")!;
+    const abroad = gizlilik.sections.find((s) => s.heading === "9. Yurt Dışına Aktarım");
+    expect(abroad, "Gizlilik Politikası §9").toBeDefined();
+    expect((abroad!.paragraphs ?? []).join("\n")).toContain("yalnızca arızi nitelikte olması kaydıyla");
+    expect(JSON.stringify(LEGAL_CONTENT)).not.toContain("arızi hâllere veya ayrıca alınan açık rızanıza");
+  });
+});
+
 describe("the R12 consent version follows the recipient", () => {
   it("names the provider the texts name, so a new recipient is a new version", () => {
     expect(FAL_CONSENT_VERSION).toBe(`2026-10-17-${FAL_DISCLOSED_PROVIDER}`);
