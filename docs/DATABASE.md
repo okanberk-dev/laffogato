@@ -308,6 +308,27 @@ da kapsam dışıdır (VUK/TTK saklama süreleri).
 pg_dump "$DATABASE_URL" > backup-$(date +%F).sql
 ```
 
+## Panel: 2FA'lı telefon kaybolursa
+
+İki adımlı doğrulamayı panelden kapatmak o telefondaki kodu ister. Telefonu
+kaybeden kullanıcının 2FA'sını sahip Kullanıcılar sayfasından sıfırlar
+("2FA'yı sıfırla"); kendi hesabını ve ortam değişkeni (acil durum) hesabını
+oradan sıfırlayamaz. Tek sahip telefonunu kaybederse ya da ortam değişkeni
+hesabı 2FA kurmuşsa yol veritabanıdır:
+
+```sql
+-- Önce oku: doğru adres, tek satır.
+select email, enabled, "enrolledAt" from public.admin_2fa where email = 'sahip@ornek.com';
+-- Sonra yalnız o satırı sil.
+delete from public.admin_2fa where email = 'sahip@ornek.com';
+```
+
+Adres küçük harfle ve boşluksuz yazılır (tablonun anahtarı böyle tutulur).
+Satır silinince sonraki giriş yalnız şifre ister; girer girmez
+`/admin/2fa-kurulum`'dan yeni telefonla yeniden kur. Bu silme olay kaydına
+düşmez: kimin, ne zaman ve neden yaptığını ayrıca not al. İkinci bir sahip
+hesabı bu yolu gereksiz kılar.
+
 ## Veritabanı ulaşılamazsa ne oluyor
 
 Eski davranış: tek bir bağlantı hatası **her sayfayı HTTP 500** yapıyordu.
@@ -331,6 +352,7 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 | Ödeme                                 | "Şu an sipariş alamıyoruz" kapısı                                    |
 | Üye oturumu                           | Çıkış yapmış sayılır (fail-closed)                                   |
 | Admin panel, tüm mutasyonlar, webhook | **Hata verir** - bozulma yok                                         |
+| Admin oturumu                         | Çıkış sayılmaz: hata ekranı, çerez kalır; env hesabı girer           |
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez

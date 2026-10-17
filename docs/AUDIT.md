@@ -722,7 +722,6 @@ Açık (paket 4a'nın dışında kalan kısımlar):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları (PEO-20'nin kalanı); kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`) | Kendi dosyalarının PR'larında (4b üye sayfası, 4c kampanya ekranları) |
-| 🟢 | 2FA kurulum sayfası "telefonunu kaybedersen önce 2FA'yı kapat" diyor, oysa kapatmak o telefondaki kodu ister (SHE-10 metni) | Kabuk erişim PR'ında; tek sahip için veritabanı yolu da orada belgelenir |
 
 ### İçerik: yasal belgeler ve site metinleri (paket 6a)
 
@@ -837,3 +836,25 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Masaüstü üst çubuğu sayfayla kayar (telefondaki sabit kalır) | Sabit olsaydı sayfaların kendi yapışkan öğeleri (sipariş listesindeki yeni sipariş bandı `top-2`, kampanya sayfasının yan sütunu `top-6`) altında kalırdı; o dosyalar kendi alanlarının PR'larında |
 | 🟢 | Aramada müşteri bölümü yalnız üye hesaplarını tarar; üye olmayan alıcı sipariş bölümünde adıyla bulunur. İçerik haritası kaydı adıyla değil "Ayrıntı" diye anar | Misafir müşterinin ayrı kaydı yok (müşteri listesi siparişlerden toplanır); kaydın adını haritaya taşımak her sayfanın veriyi kabuğa vermesini ister |
+
+### Kabuk: giriş, 2FA ve oturum (paket 1d)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Veritabanı bir an tökezleyince panel kullanıcısı çıkış yapmış sayılıyordu: hesap sorgusu hatayı yutup "hesap yok" diyordu; sayfa giriş ekranına, kayıt sırasında form da yazılanlarla birlikte gidiyordu (SHE-11) | Oturum denetimi panel satırını hata fırlatan bir sorguyla okur (`auth.ts`; `users.ts` ve girişin acil durum yolu değişmedi). Okunamazsa `AdminSessionUnavailableError` (kod `ADMIN_SESSION_UNAVAILABLE`, `isAdminSessionUnavailable`) `getAdminSession` ve `requireRole`'dan geçer: sayfa panelin hata ekranına, panel işlemi formun kendi cevabına düşer, çerez kalır. Ortam değişkeni hesabı veritabanı yokken de girer; aynı adresteki panel satırına verilmiş oturum "çıkış" değil "ulaşılamıyor" sayılır. Giriş ve 2FA adımı "tamamlanamadı" der, `login_fail` yazılmaz. Kabuğun (layout) bu hatayı yakalayıp bildirimle çizmesi kabuk gezinme PR'ında | `admin-session-unavailable`, `admin-login-form` |
+| 🟡 | 2FA kurulum sayfası her açılışta yeni sır üretiyordu: yenileme, ikinci sekme ya da panoya gidip dönmek taranmış QR'ı geçersiz kılıyor, red mesajı telefonun saatini suçluyordu; "Vazgeç" de yeni QR gösteriyordu (SHE-09) | Taslak 15 dakika aynı gösterilir, sonra yenilenir. İki yazım da okunan satıra koşullu: başka sekmede açılan 2FA geri kapanmaz, aynı anda açılan sekmeler tek sırda buluşur. "Vazgeç" taslağı siler ve rolün açılış sayfasına gider; red mesajı yeniden taramayı söyler. `startEnrollment` yalnız sayfadan çağrılır | `admin-2fa-draft`, `db-integration-2fa-draft`, `admin-2fa-screens`, `admin-2fa-enrollment` |
+| 🟢 | 2FA'yı kapatmak hiçbir şey söylemiyordu, sayfa yeni QR çiziyordu; hata `?hata=kod` ile adreste kalıp her yenilemede dönüyordu; kontroller kit dışıydı (SHE-26) | Kapatınca uyarı toast'ı ve rolün açılış sayfası; yanlış kod ve kilit tehlike toast'ı. Güncel kod şartı ve iki deneme bütçesi aynı. Açınca da toast ve açılış sayfası: başarı bağlantısı kasiyeri `/admin`'e, oradan da geri yolluyordu (SHE-25). Olay kayıtları `safeAudit` | `admin-2fa-screens` |
+| 🟢 | Reddedilen girişte e-posta da siliniyordu (React 19 form sıfırlaması) (SHE-M01) | Form elle gönderilir (`useNoResetSubmit`); e-posta kalır, şifre temizlenip odaklanır | `admin-login-form` |
+| 🟢 | Giriş, uzunluğu ve biçimi denetlenmeyen e-postayı deneme sayacının anahtarına ve olay kaydına yazıyordu (SHE-28) | 254 karakterden uzun ya da `@` içermeyen adres hiçbir şey sayılmadan ve yazılmadan reddedilir | `admin-login-form` |
+| 🟢 | Yeniden girişte filtreler kayboluyordu: proxy `next`'e yalnız yolu yazıyor, sorguyu (ör. müşteri e-postası) giriş adresinin kendisinde bırakıyordu (SHE-30) | Sorgu `next`'in içinde, giriş adresinde başka parametre yok. Her `next` `adminNextPath`'ten geçer (`sameSitePath`, çözülmüş yol, yalnız panel, giriş adımları değil); 2FA adımı `next` yoksa rolün açılış sayfasına gider | `admin-proxy-2fa`, `admin-next-path`, `admin-login-form`, `admin-2fa-screens` |
+| 🟢 | Çıkış, olay kaydı yazılamazsa (veritabanı yok) hata verip oturumu açık bırakıyordu (SHE-M02) | Önce çerez silinir, kayıt sonra `safeAudit` ile | `admin-logout` |
+| 🟢 | Giriş sayfası unutulan şifre için "ortam değişkenlerine erişimi olan yöneticiye" yolluyordu ve başlığı yoktu; 2FA kod alanının adı yalnız yer tutucusuydu, yanlış kod okunmuyordu; ekranlar eski palette ve eğik serif başlıktaydı, "authenticator" yazıyordu (SHE-21, SHE-23, SHE-17, SHE-22, SHE-05) | "Şifreni unuttuysan işletme sahibinden sıfırlamasını iste."; `sr-only` başlık; kod alanında `aria-label`, hatada `role="alert"`; kit alanları, düğmeleri ve ton token'ları; "doğrulama uygulaması" | `admin-login-form`, `admin-2fa-screens` |
+| 🟢 | 2FA sayfası "telefonunu kaybedersen önce buradan kapat" diyordu; kapatmak o telefondaki kodu ister (SHE-10 metni) | Metin sahibin Kullanıcılar sayfasındaki sıfırlamasını gösterir; tek sahip için veritabanı yolu `docs/DATABASE.md` "Panel: 2FA'lı telefon kaybolursa" | `admin-2fa-screens` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Oturum 7 gün sürer; çıkış yalnız o tarayıcının çerezini siler, kopyalanmış çerez süresi bitene kadar geçerli (SHE-27) | Karar D33: şimdilik değişmez. Parmak izi parola sıfırlama, pasifleştirme ve rol düşürmede oturumu zaten kapatır; çıkışta da kapatmak oturum sürümü kolonu (migration) ister |
+| 🟢 | 2FA kurtarma kodları yok (SHE-10) | Karar D40: şema değişikliği, sonra. Şimdilik sahibin sıfırlaması ve veritabanı yolu |
+| 🟢 | `requireRole` iptal edilmiş oturumu girişe `next` olmadan yollar (SHE-30'un isteğe bağlı kısmı) | Sunucu bileşeni sayfanın adresini bilmez. Eksik ve süresi dolmuş çerezi proxy zaten `next`'le yollar; bu yol yalnız pasifleştirilen ya da parolası sıfırlanan hesap için |
