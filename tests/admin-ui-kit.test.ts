@@ -875,8 +875,18 @@ describe("server-rendered markup", () => {
     expect(cells[1][1]).toContain("bg-[var(--admin-surface)]");
     for (const [, cls] of cells) {
       expect(cls).toContain("group-hover:bg-[var(--admin-surface-2)]");
+      // A sticky cell is its own stacking context, painted in row order:
+      // the next rows' pinned cells covered an open "⋯" menu hanging over
+      // them. The open row and its cell go on top while the menu is open.
+      expect(cls).toContain("has-[details[open]]:z-40");
     }
-    expect(out.match(/<tr class="group /g)).toHaveLength(2);
+    const trs = [...out.matchAll(/<tr class="(group [^"]*)">/g)];
+    expect(trs).toHaveLength(2);
+    for (const [, cls] of trs) {
+      expect(cls).toContain(
+        "has-[details[open]]:relative has-[details[open]]:z-40",
+      );
+    }
   });
 
   it("DataTable: nothing to show is a sentence, not an empty table", () => {

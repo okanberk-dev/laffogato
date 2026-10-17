@@ -95,6 +95,13 @@ const PINNED = "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)]";
 const PINNED_GROUND = "bg-[var(--admin-surface)]";
 const PINNED_SELECTED =
   "bg-[color-mix(in_srgb,var(--admin-primary-soft)_50%,var(--admin-surface))]";
+// A sticky cell is a stacking context of its own, painted in row order, so
+// the next rows' pinned cells covered an open "⋯" menu hanging over them
+// (the menu's z-40 counts only inside its own cell). While a row's menu is
+// open, its cell goes on top, and so does the row: a see-through row
+// (opacity) is a stacking context too and would hold the cell down.
+const MENU_OPEN_CELL = "has-[details[open]]:z-40";
+const MENU_OPEN_ROW = "has-[details[open]]:relative has-[details[open]]:z-40";
 
 const HIDE_BELOW: Record<
   NonNullable<DataTableColumn<unknown>["hideBelow"]>,
@@ -340,6 +347,7 @@ export function DataTable<T>({
                   className={cx(
                     "group border-t border-[var(--admin-border)] align-middle transition-colors hover:bg-[var(--admin-surface-2)]",
                     selected && "bg-[var(--admin-primary-soft)]/50",
+                    rowActions && MENU_OPEN_ROW,
                     rowClassName?.(row),
                   )}
                 >
@@ -371,6 +379,7 @@ export function DataTable<T>({
                         "px-4 py-2 text-right transition-colors group-hover:bg-[var(--admin-surface-2)]",
                         PINNED,
                         selected ? PINNED_SELECTED : PINNED_GROUND,
+                        MENU_OPEN_CELL,
                       )}
                     >
                       {rowActions(row)}
