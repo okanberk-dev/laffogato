@@ -10,8 +10,30 @@ import { isCheckoutPath } from "@/lib/security/checkout-document";
 import { CookieConsent } from "./cookie-consent";
 
 /**
+ * The panel's own paths: `/admin` and everything under it, the sign-in and
+ * 2FA screens included. Not `/administrator` or `/admin-x`: those are the
+ * site's (not-found) pages. Kept apart from `isCheckoutPath`, which the
+ * proxy's checkout policy and the checkout's own guard read too.
+ *
+ * Read decoded: Next.js also matches a request's decoded path to its pages,
+ * so `/%61dmin/musteriler/...` opens the panel, while `usePathname()` keeps
+ * the escapes as the address bar has them.
+ */
+function isAdminDocumentPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    // A malformed escape: no page matches it either; test it as it is.
+  }
+  return path === "/admin" || path.startsWith("/admin/");
+}
+
+/**
  * The root layout's tags - the cookie-consent scripts, Google Tag Manager and
- * the cookie banner - for every document EXCEPT the checkout.
+ * the cookie banner - for every document EXCEPT the checkout's and the admin
+ * panel's.
  *
  * The card is typed on /odeme (docs/PAYNKOLAY.md §15.5) and that document
  * runs under a nonce policy with no third party (src/proxy.ts). Nothing here
@@ -20,19 +42,39 @@ import { CookieConsent } from "./cookie-consent";
  * there is nothing to consent to on that page, so the banner stays away too
  * (it would also sit on top of the mobile pay bar).
  *
+ * The panel (/admin) is left out for the same reason, the other way round:
+ * whoever can publish the GTM container can run any script there (a Custom
+ * HTML tag passes the site policy), next to customer names, addresses and
+ * phones and with the signed-in admin's session behind every server action
+ * (refunds, settings). Its addresses and titles carry customer e-mails
+ * (`/admin/musteriler/[email]`), which GA's page_location would report, and
+ * the banner (z-index 200) covered the panel's toasts and bulk bar. A
+ * narrower policy for /admin is a separate, later step.
+ *
+ * Neither this nor that policy walls the panel off from GTM. The admin
+ * cookie is sent to the whole origin (path `/`), so a tag on any site page
+ * can still fetch /admin and call its actions as an admin who browses the
+ * site signed in; only a separate origin for the panel closes that
+ * (docs/AUDIT.md §13, open).
+ *
  * "Document", not "page": the decision is made once, from the path the
  * document was LOADED at, and kept for its whole life. A document loaded at
  * /odeme keeps its strict policy after a client-side navigation away, so GTM
  * could not run in it anyway; one loaded elsewhere already ran GTM, which is
  * why the checkout reloads itself when it is reached that way
- * (`checkout.tsx`). The root layout must not read `headers()` for this -
- * that would make every page dynamic - so the path comes from
- * `usePathname()`, which server-renders with the request's path.
+ * (`checkout.tsx`). No site page links into /admin, so the panel is always
+ * a document of its own; a site page reached from it by a client-side link
+ * keeps that document, and with it no tags, until the next full load. The
+ * root layout must not read `headers()` for this - that would make every
+ * page dynamic - so the path comes from `usePathname()`, which
+ * server-renders with the request's path.
  */
-function useOutsideCheckoutDocument(): boolean {
+function useTagsAllowed(): boolean {
   const pathname = usePathname();
-  const [outside] = useState(() => !isCheckoutPath(pathname));
-  return outside;
+  const [allowed] = useState(
+    () => !isCheckoutPath(pathname) && !isAdminDocumentPath(pathname),
+  );
+  return allowed;
 }
 
 /** In <head>, before GTM: the banner flag and the Consent Mode defaults. */
@@ -41,8 +83,8 @@ export function ConsentScripts({
 }: {
   withTagManager: boolean;
 }) {
-  const outside = useOutsideCheckoutDocument();
-  if (!outside) return null;
+  const allowed = useTagsAllowed();
+  if (!allowed) return null;
   return (
     <>
       <script
@@ -64,11 +106,11 @@ export function ConsentScripts({
 }
 
 export function TagManager({ gtmId }: { gtmId: string }) {
-  const outside = useOutsideCheckoutDocument();
-  return outside && gtmId ? <GoogleTagManager gtmId={gtmId} /> : null;
+  const allowed = useTagsAllowed();
+  return allowed && gtmId ? <GoogleTagManager gtmId={gtmId} /> : null;
 }
 
 export function CookieBanner() {
-  const outside = useOutsideCheckoutDocument();
-  return outside ? <CookieConsent /> : null;
+  const allowed = useTagsAllowed();
+  return allowed ? <CookieConsent /> : null;
 }

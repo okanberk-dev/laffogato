@@ -12,7 +12,8 @@ import "./globals.css";
 
 // Google Tag Manager container - all analytics/marketing tags (GA4, Meta Pixel,
 // conversions, …) are managed inside GTM, not in code. Override the public
-// container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
+// container id with NEXT_PUBLIC_GTM_ID; an empty value falls back to this
+// default (`||`), it does not switch GTM off.
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
 
 // Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
@@ -181,9 +182,11 @@ export default function RootLayout({
     >
       <head>
         {/* The consent scripts, GTM and the cookie banner render in every
-            document but the checkout's (site-tags.tsx): the card is typed
-            on /odeme under a policy that admits no third party. The
-            Consent Mode defaults stay ahead of the GTM container. */}
+            document but the checkout's and the admin panel's
+            (site-tags.tsx): the card is typed on /odeme under a policy that
+            admits no third party, and the panel shows customer data under
+            an admin session. The Consent Mode defaults stay ahead of the
+            GTM container. */}
         <ConsentScripts withTagManager={!!GTM_ID} />
         {/* next/font self-hosts the fonts - no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}

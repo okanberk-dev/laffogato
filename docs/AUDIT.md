@@ -548,3 +548,30 @@ nedeniyle pasif çizilir. Migration
 | 🟡 | Elle yeniden gönderilen başarısız e-posta satırı `failed` kalıyordu: aynı e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı) onu devralıp ikinci kopyayı gönderiyordu | Kopya çıkınca satır `resent` olur, sonraki tetik devralmaz | `db-integration-admin-orders` |
 | 🟡 | Hiçbir kalemi stoğa dönemeyecek (katalog ürünü olmayan ya da tamamı geri alınmış) kargodaki sipariş iptal edilemiyordu: sunucu stok kararı istiyor, modal soruyu göstermiyordu | Karar yalnız stoğa dönecek kalem varken istenir (`hasStockToReturn`, modal ve sunucu aynı kural) | `admin-order-actions` |
 
+## 13. Admin paneli denetimi - 17 Eki 2026
+
+Paneli yedi alanda (kabuk, siparişler, karaoke, kişiler, katalog, içerik,
+sistem) gezen denetimin bulguları çatışmalı doğrulamadan geçti. Düzeltmeler
+konu konu ayrı PR'larla iner; her PR kendi alt başlığını buraya ekler.
+
+### Kabuk: etiketler, düğme ve alan yazısı, odak, yazdırma
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | GTM, rıza betikleri ve çerez bandı panelde de yükleniyordu. GTM konteynerini yayımlayabilen biri (Custom HTML etiketi sitenin CSP'sinden geçer) panelin kendi sayfalarında, müşteri adı, adresi ve telefonunun yanında, açık admin oturumuyla her server action'ı (iade, ayarlar) çağırabilirdi; konteynerde GA etiketi çalışıyorsa adres ve başlıkla birlikte müşteri e-postası da (`/admin/musteriler/[email]`) üçüncü tarafa gidiyordu; bant toast'ların ve toplu işlem çubuğunun üstündeydi | `site-tags.tsx`: ayrı panel belgesi koşulu (`/admin` ve altı, `/administrator` değil; yol kaçışları çözülerek okunur, `/%61dmin` de paneldir); karar, ödeme sayfasındaki gibi belgenin yüklendiği yoldan bir kez verilir. `isCheckoutPath` değişmedi. Panele özel dar bir CSP sonraki adım (karar D34). Sitedeki etiketin panele ulaşması kapanmadı: aşağıda "Açık" | `checkout-document` |
+| 🟡 | Yazdırma kuralı kapsamsızdı: fişi olmayan her sayfa (pano, raporlar, sipariş listesi, `/hukuk/*` metinleri, menü) kâğıda boş çıkıyordu | Kural yalnız `[data-print-receipt]` taşıyan sayfada gerisini gizler (`body:where(:has([data-print-receipt])) *`, eski ağırlıkla); sipariş fişi ve masa kartları eskisi gibi tek başına basılır | `admin-root-css` |
+| 🟢 | Paneldeki her `<button>` yazı boyutunu, kalınlığını, satır yüksekliğini ve pasif imlecini yok sayıyordu (sitenin katmansız `button { font: inherit; cursor: pointer }` sıfırlaması): aynı sınıflarla düğme 16px, bağlantı 14px çiziliyor, pasif düğme tıklanır görünüyordu | Admin kökünde `a` ve `button` için `font: revert-layer`; pasif düğme ve `aria-disabled` için `cursor: not-allowed`. İmleç geri alınmaz: Tailwind 4 düğmeye imleç koymaz, her düğme oka dönerdi | `admin-root-css` |
+| 🟢 | Alanlar da boyut sınıflarını yok sayıyordu: masaüstünde her alan 16px, etiket ve düğmeler 14px | Alanlarda da `font: revert-layer`; `sm` (40rem) altında ve dokunmatik ekranda (`pointer: coarse`, yan çevrilmiş telefon) metin alanları 16px kalır (iOS yakınlaştırması), `min-width: 0` olduğu gibi | `admin-root-css` |
+| 🟢 | Sitenin yeşil odak halkası ve halesi kitin halkasını eziyordu, odaklı alanda ikisi birden görünüyordu | Panelde tek halka: 2px espresso çizgi (`--admin-primary`, beyazda 12,46:1), gölge yok. Kitin %45 altın halkasına dönülmedi: beyazda 1,59:1, odak için gereken 3:1'in altında | `admin-root-css` |
+
+Not: el yapımı küçük düğmeler artık sınıflarının söylediği boyutta çizilir
+(ör. sipariş listesinde "Ses kapalı" ve müşteri kartında "Düzenle" 11px);
+kit düğmelerine taşınmaları kendi alanlarının PR'larında. Fişsiz bir admin
+sayfası yazdırılınca telefon üst çubuğu da basılır; kenar çubuğu, üst çubuk
+ve çekmecedeki `print:hidden` kabuk gezinme PR'ında.
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | GTM konteynerini yayımlayabilen biri sitenin herkese açık sayfalarında hâlâ betik çalıştırır. Admin çerezi bütün köken için (`path=/`, `sameSite=lax`): oturumu açık bir yönetici aynı tarayıcıda siteyi gezerken o betik `/admin` sayfalarını çerezle okuyabilir ve server action çağırabilir (aynı köken, CSP `connect-src 'self'` izin verir) | Yukarıdaki düzeltme yalnız panelin kendi belgelerini GTM'siz yapar. Panele özel CSP (D34) de bunu kapatmaz: betik panelde değil sitede çalışır. Kapatan, panelin ayrı bir kökene (alt alan adı, yalnız o alana yazılan çerez) taşınması; ayrı karar ve arka yüz işi. O zamana kadar GTM yayın yetkisi dar tutulur, panel siteyi gezmekte kullanılmayan bir tarayıcı profilinde açılır |
