@@ -111,8 +111,13 @@ describe("the panel's fields keep their size classes", () => {
     expect(fields.at).toBeGreaterThan(ios);
   });
 
-  it("keep the 16px floor below sm, where iOS would zoom", () => {
-    const phone = atBlock("@media (width < 40rem)", "[data-admin-root]");
+  it("keep the 16px floor below sm and on touch screens, where iOS zooms", () => {
+    // A phone on its side is wider than sm and zooms all the same: the floor
+    // holds on a coarse pointer at any width, so only a mouse gets text-sm.
+    const phone = atBlock(
+      "@media (width < 40rem), (pointer: coarse)",
+      "[data-admin-root]",
+    );
     expect(phone.start).toBeGreaterThan(-1);
     const guard = rule(
       '[data-admin-root] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea, select)',

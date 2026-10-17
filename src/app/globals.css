@@ -6615,8 +6615,10 @@ select {
 /* Below the kit's `sm` (40rem) a field keeps the 16px floor: iOS Safari
    zooms into a smaller field when it takes focus. The kit fields say
    text-base there anyway; this holds the hand-made ones (the sign-in form,
-   the small selects in list rows). */
-@media (width < 40rem) {
+   the small selects in list rows). On a touch screen too, at any width: a
+   phone on its side is wider than 40rem and zooms the same way, and a
+   tablet keeps the 16px it always had. */
+@media (width < 40rem), (pointer: coarse) {
   [data-admin-root]
     :is(
       input:not(
