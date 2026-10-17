@@ -240,7 +240,7 @@ async function deliver({
         );
         continue;
       }
-      return { ok: false, error: resendMessage(res.status, body) };
+      return { ok: false, error: resendErrorText(res.status, body) };
     } catch (err) {
       console.error("[email] send error", err);
       if (again) {
@@ -258,18 +258,55 @@ function pause(ms: number): Promise<void> {
   );
 }
 
-/** Resend answers with `{"message": "..."}`; the raw body is the fallback. */
-function resendMessage(status: number, body: string): string {
+/**
+ * What a Resend refusal means, in the operator's language. Resend answers
+ * `{"message": "..."}` in English ("The laffogato.net domain is not
+ * verified..."), and the test button showed that, or "403: {json}", to a
+ * Turkish café owner. The common refusals get a sentence that says what to
+ * do; anything else says it was refused and keeps the provider's words
+ * after it, for whoever fixes it. The raw body is logged above, masked.
+ */
+export function resendErrorText(status: number, body: string): string {
+  let message = "";
   try {
     const parsed: unknown = JSON.parse(body);
     if (parsed && typeof parsed === "object" && "message" in parsed) {
       const m = (parsed as { message?: unknown }).message;
-      if (typeof m === "string" && m) return m;
+      if (typeof m === "string") message = m.trim();
     }
   } catch {
-    // Not JSON - fall through.
+    // Not JSON - fall through with the raw text.
   }
-  return `${status}: ${body.slice(0, 200)}`;
+  if (!message) message = body.trim().slice(0, 200);
+  const m = message.toLowerCase();
+  const domain = /the (\S+) domain is not verified/i.exec(message)?.[1];
+  if (domain) {
+    return `${domain} alan adı Resend'de doğrulanmamış; bu adresten e-posta çıkmaz. Alan adını Resend'de doğrula ya da doğrulanmış bir gönderen adresi yaz.`;
+  }
+  if (m.includes("only send testing emails")) {
+    return "Resend hesabı deneme modunda: yalnız hesabın kendi adresine gönderebiliyor. Gönderen alan adını Resend'de doğrula.";
+  }
+  if (m.includes("api key")) {
+    return "E-posta sağlayıcısının anahtarı geçersiz ya da bu işe yetkisiz. Geliştiriciye ilet.";
+  }
+  if (m.includes("`from`") || m.includes("from field")) {
+    return "Gönderen adresi sağlayıcının kabul ettiği biçimde değil (ad@alanadi.com).";
+  }
+  if (m.includes("`to`") || m.includes("to field")) {
+    return "Alıcı adresi sağlayıcının kabul ettiği biçimde değil.";
+  }
+  if (m.includes("quota")) {
+    return "Sağlayıcının gönderim kotası doldu; kota yenilenince yeniden dene.";
+  }
+  if (status === 429) {
+    return "Sağlayıcı şu an çok fazla istek alıyor; biraz sonra yeniden dene.";
+  }
+  if (status >= 500) {
+    return "E-posta sağlayıcısı şu an yanıt vermiyor; biraz sonra yeniden dene.";
+  }
+  return message
+    ? `E-posta sağlayıcısı iletiyi kabul etmedi (HTTP ${status}). Sağlayıcının yanıtı: ${message}`
+    : `E-posta sağlayıcısı iletiyi kabul etmedi (HTTP ${status}).`;
 }
 
 /**
@@ -289,7 +326,10 @@ export async function sendTestEmail(to: string): Promise<SendResult> {
       { label: "Gönderen", value: from },
       { label: "Alıcı", value: to },
     ],
-    button: { label: "AYARLARA DÖN", url: `${SITE.url}/admin/ayarlar` },
+    button: {
+      label: "AYARLARA DÖN",
+      url: `${SITE.url}/admin/ayarlar?sekme=email`,
+    },
     footnote:
       "Sipariş, doğrulama ve şifre sıfırlama e-postaları da aynı adresten, aynı yoldan çıkar.",
   });
@@ -1385,7 +1425,7 @@ export async function deliverBatch(
       const retryAfterMs = parseRetryAfter(res);
       return {
         ok: false,
-        error: resendMessage(res.status, text),
+        error: resendErrorText(res.status, text),
         status: res.status,
         ...(retryAfterMs === undefined ? {} : { retryAfterMs }),
       };
