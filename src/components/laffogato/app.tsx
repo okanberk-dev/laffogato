@@ -21,6 +21,7 @@ import {
 } from "./ui";
 import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { MenuCategory, Product } from "./data";
+import type { KaraokeFacts } from "./karaoke-today";
 
 const VALID_ROUTES: Route[] = ["home", "menu", "shop", "story", "visit"];
 
@@ -108,6 +109,7 @@ export function LaffogatoApp({
   degraded = false,
   initialRoute = "home",
   leadSlot,
+  karaoke,
 }: {
   products?: Product[];
   /** True when the database was unreachable and this page is running on
@@ -149,6 +151,8 @@ export function LaffogatoApp({
   /** Server-rendered block shown at the top of <main>, above the page
       (the table banner on /masa/[code]). */
   leadSlot?: React.ReactNode;
+  /** The karaoke room's settings for the home page (only `/` passes it). */
+  karaoke?: KaraokeFacts;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -324,6 +328,7 @@ export function LaffogatoApp({
             content={content}
             visit={visit}
             heroImageUrl={heroImageUrl}
+            karaoke={karaoke}
           />
           {seoSlot}
         </main>
@@ -360,6 +365,7 @@ export function LaffogatoApp({
           content={content}
           visit={visit}
           heroImageUrl={heroImageUrl}
+          karaoke={karaoke}
         />
         {seoSlot}
       </main>

@@ -10,6 +10,8 @@ import { priceLabel } from "@/lib/utils/format";
 
 import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
+import { HomeKaraoke } from "./home-karaoke";
+import { hourToLabel } from "./karaoke-today";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
@@ -54,6 +56,7 @@ export function PageHome({
   visit,
   settings,
   heroImageUrl,
+  karaoke,
 }: PageProps) {
   const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
@@ -211,7 +214,9 @@ export function PageHome({
       href: "/karaoke",
       kicker: "Karaoke",
       title: "Üst kat özel oda",
-      sub: "8 kişiye kadar · 24:00’e",
+      sub: karaoke
+        ? `${karaoke.capacity} kişiye kadar · ${hourToLabel(karaoke.closeHour)}`
+        : "8 kişiye kadar · 24:00’e",
       icon: (
         <>
           <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
@@ -275,6 +280,10 @@ export function PageHome({
           </div>
         </section>
       )}
+
+      {/* The karaoke room, highlighted (operator, 17 Eki 2026): right after
+          the hero and the statement, before "Köşkte bu ay". */}
+      {karaoke && <HomeKaraoke facts={karaoke} />}
 
       {/* The reference's banner board, pointing at /kampanyalar - the offers
           themselves are operator-managed and live there, so this is a door,

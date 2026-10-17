@@ -7,6 +7,7 @@ import { SITE, openGraphDefaults } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
 import { getPublicSettings } from "@/lib/admin/store";
 import { accountClosureNotice } from "@/lib/customer/account-closure";
+import { TIER_LABELS } from "@/lib/mobile/loyalty-core";
 import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
 
@@ -96,6 +97,17 @@ export default async function HomePage({ searchParams }: PageProps) {
         {...appProps}
         notice={notice}
         seoSlot={<SeoContent faq={FAQ} />}
+        // The karaoke band and hero slide say what the panel says: the room's
+        // size, hours, price and the top tier's discount (presentation only;
+        // the booking re-reads every one of them on the server).
+        karaoke={{
+          capacity: settings.karaokeCapacity,
+          hourlyMinor: settings.karaokeHourlyMinor,
+          closeHour: settings.mobileApp.karaoke.closeHour,
+          rubyDiscountPct: settings.mobileApp.karaoke.oroDiscountPct,
+          rubyLabel: TIER_LABELS.oro,
+          prepay: settings.karaokePrepay,
+        }}
       />
     </>
   );

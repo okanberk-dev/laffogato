@@ -7,6 +7,7 @@
  */
 
 import type { MenuCategory, PRESS as SEED_PRESS, Product, STORY } from "./data";
+import type { KaraokeFacts } from "./karaoke-today";
 import type { Route } from "./route-paths";
 import type { ShopHeroSlide } from "./shop-hero-slider";
 import type { CartItem } from "./ui";
@@ -53,4 +54,9 @@ export interface PageProps {
     todayHours?: string;
     hours: [string, string][];
   };
+  /**
+   * The karaoke room as the panel sets it, for the home page's band and
+   * hero slide. Only `/` passes it (src/app/page.tsx).
+   */
+  karaoke?: KaraokeFacts;
 }
