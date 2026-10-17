@@ -55,6 +55,25 @@ function isEnvAccount(email: string): boolean {
   );
 }
 
+/**
+ * Drops the address's 2FA row after an account write. The account is
+ * already written by then, so a failing delete must not stop its audit
+ * row: it is logged (without the address, rule 9) and answered as false.
+ */
+async function dropAccount2FA(email: string): Promise<boolean> {
+  if (isEnvAccount(email)) return true;
+  try {
+    await disable2FA(email);
+    return true;
+  } catch (err) {
+    console.error(
+      "[admin/kullanicilar] 2FA row not dropped:",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return false;
+  }
+}
+
 export async function createAdminUserAction(
   _prev: AdminUserState,
   formData: FormData,
@@ -72,7 +91,7 @@ export async function createAdminUserAction(
   // A 2FA row left by an earlier account of this address (deleted before
   // deletes dropped it) would challenge the new person for a code from
   // someone else's phone.
-  if (!isEnvAccount(result.value.email)) await disable2FA(result.value.email);
+  const twoFactorDropped = await dropAccount2FA(result.value.email);
 
   await logAudit({
     action: "create",
@@ -81,7 +100,11 @@ export async function createAdminUserAction(
     payload: { role: result.value.role, name: result.value.name },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} eklendi.` };
+  return {
+    message: twoFactorDropped
+      ? `${result.value.email} eklendi.`
+      : `${result.value.email} eklendi. Bu adresin eski 2FA kaydı silinemedi; giriş kod isterse 2FA'yı sıfırla.`,
+  };
 }
 
 export async function saveAdminUserAction(
@@ -145,7 +168,7 @@ export async function deleteAdminUserAction(
   if (!result.ok) return actionError(result.message);
   // The authenticator goes with the account: admin_2fa is keyed by the
   // address with no foreign key, so a re-created account inherited it.
-  if (!isEnvAccount(result.value.email)) await disable2FA(result.value.email);
+  const twoFactorDropped = await dropAccount2FA(result.value.email);
 
   await logAudit({
     action: "delete",
@@ -154,7 +177,12 @@ export async function deleteAdminUserAction(
     payload: { role: result.value.role },
   });
   revalidatePath("/admin/kullanicilar");
-  return actionOk(`${result.value.email} silindi.`);
+  return twoFactorDropped
+    ? actionOk(`${result.value.email} silindi.`)
+    : actionOk(
+        `${result.value.email} silindi. 2FA kaydı silinemedi; bu adresle hesap yeniden açılınca silinir.`,
+        "warning",
+      );
 }
 
 /**

@@ -191,6 +191,29 @@ describe("deleteAdminUserAction", () => {
     expect(disable2FA).toHaveBeenCalledWith("kasa@laffogato.net");
   });
 
+  it("audits the delete even when the 2FA cleanup fails", async () => {
+    // The account is already gone: a failing 2FA delete must not leave a
+    // removed panel account with no audit row.
+    deleteAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "kasa@laffogato.net", role: "cashier" },
+    });
+    disable2FA.mockRejectedValueOnce(new Error("twofa.disable2FA: db"));
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await deleteAdminUserAction(null, form("kasa@laffogato.net"));
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "delete",
+      entity: "admin_user",
+      entityId: "kasa@laffogato.net",
+      payload: { role: "cashier" },
+    });
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    // Logged without the address (rule 9).
+    expect(errorLog).toHaveBeenCalled();
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("kasa@");
+    errorLog.mockRestore();
+  });
+
   it("leaves a break-glass account's 2FA alone", async () => {
     deleteAdminUser.mockResolvedValue({
       ok: true,
@@ -226,6 +249,32 @@ describe("createAdminUserAction", () => {
     );
     expect(state.message).toBeTruthy();
     expect(disable2FA).toHaveBeenCalledWith("kasa@laffogato.net");
+  });
+
+  it("audits the create even when the 2FA cleanup fails", async () => {
+    // The account exists (it can be an owner) and a retry says "zaten
+    // kayıtlı": granting panel access must never go unaudited.
+    createAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "kasa@laffogato.net", role: "owner", name: "Eda" },
+    });
+    disable2FA.mockRejectedValueOnce(new Error("twofa.disable2FA: db"));
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await createAdminUserAction(
+      {},
+      form("kasa@laffogato.net", fields),
+    );
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "create",
+      entity: "admin_user",
+      entityId: "kasa@laffogato.net",
+      payload: { role: "owner", name: "Eda" },
+    });
+    // The operator learns the old 2FA row may still ask for a code.
+    expect(state.message).toMatch(/2FA'yı sıfırla/);
+    expect(state.error).toBeUndefined();
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("kasa@");
+    errorLog.mockRestore();
   });
 
   it("touches nothing when the create is refused", async () => {
