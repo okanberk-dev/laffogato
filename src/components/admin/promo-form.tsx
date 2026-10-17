@@ -1,21 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import type { PromoActionState } from "@/app/admin/promosyon/actions";
 import type { AdminPromo } from "@/lib/admin/store";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 import {
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "./action-form";
+import { FieldErrorText, FormError, useFieldErrors } from "./form-feedback";
+import {
   Card,
   Checkbox,
   Field,
-  GhostButton,
   PrimaryButton,
   Select,
   TextInput,
 } from "./forms";
+import { BUTTON } from "./ui";
 
 const initial: PromoActionState = {};
 
@@ -28,30 +34,42 @@ interface Props {
   submitLabel: string;
 }
 
+/**
+ * New and edit promo code. Posted by hand (useNoResetSubmit): a refused save
+ * used to reset the form, so "Bu kod zaten kullanılıyor." put the value back
+ * to 10, the limit to 0 (unlimited), the expiry to never and the code back
+ * on, and only the empty code field showed it.
+ */
 export function PromoForm({ promo, action, submitLabel }: Props) {
-  const [state, formAction, pending] = useActionState(action, initial);
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, (prev) => ({ ...prev, error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const onSubmit = useNoResetSubmit(formAction, pending);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorId = useFieldErrors(formRef, state);
   const [kind, setKind] = useState<"pct" | "fixed">(promo?.kind ?? "pct");
 
   const fe = (k: string) => state.fieldErrors?.[k];
+  const err = (k: string) => <FieldErrorText id={errorId(k)} message={fe(k)} />;
 
   return (
-    <form action={formAction} className="grid gap-5">
+    <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
       <Card className="grid gap-5">
-        <Field
-          label="Kod"
-          hint={
-            fe("code") ??
-            "Müşterinin sepete gireceği kod. Büyük harfe çevrilir."
-          }
-        >
-          <TextInput
-            name="code"
-            defaultValue={promo?.code ?? ""}
-            placeholder="SUMMER25"
-            required
-            aria-invalid={Boolean(fe("code"))}
-          />
-        </Field>
+        <div className="grid gap-1.5">
+          <Field
+            label="Kod"
+            hint="Müşterinin sepete gireceği kod. Büyük harfe çevrilir."
+          >
+            <TextInput
+              name="code"
+              defaultValue={promo?.code ?? ""}
+              placeholder="SUMMER25"
+              required
+            />
+          </Field>
+          {err("code")}
+        </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="İndirim tipi">
@@ -65,76 +83,87 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
             </Select>
           </Field>
           {kind === "pct" ? (
-            <Field
-              label="Yüzde"
-              hint={fe("valuePct") ?? "1-100 arası tam sayı."}
-            >
-              <TextInput
-                name="valuePct"
-                inputMode="numeric"
-                defaultValue={
-                  promo && promo.kind === "pct" ? String(promo.value) : "10"
-                }
-                required
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field label="Yüzde" hint="1-100 arası tam sayı.">
+                <TextInput
+                  name="valuePct"
+                  inputMode="numeric"
+                  defaultValue={
+                    promo && promo.kind === "pct" ? String(promo.value) : "10"
+                  }
+                  required
+                />
+              </Field>
+              {err("valuePct")}
+            </div>
           ) : (
-            <Field label="Tutar (₺)" hint={fe("valueFixed")}>
-              <TextInput
-                name="valueFixed"
-                inputMode="decimal"
-                defaultValue={
-                  promo && promo.kind === "fixed"
-                    ? (promo.value / 100).toFixed(2)
-                    : "50,00"
-                }
-                required
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field label="Tutar (₺)">
+                <TextInput
+                  name="valueFixed"
+                  inputMode="decimal"
+                  defaultValue={
+                    promo && promo.kind === "fixed"
+                      ? (promo.value / 100).toFixed(2)
+                      : "50,00"
+                  }
+                  required
+                />
+              </Field>
+              {err("valueFixed")}
+            </div>
           )}
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Minimum sepet (₺)"
-            hint="0 = limit yok. Sepet bu tutarın altındaysa kod uygulanmaz."
-          >
-            <TextInput
-              name="minSubtotal"
-              inputMode="decimal"
-              defaultValue={
-                promo ? (promo.minSubtotalMinor / 100).toFixed(2) : "0,00"
-              }
-            />
-          </Field>
-          <Field
-            label="Kullanım limiti"
-            hint="0 = sınırsız. Tüketim her başarılı siparişte 1 artar."
-          >
-            <TextInput
-              name="usageLimit"
-              type="number"
-              min={0}
-              defaultValue={String(promo?.usageLimit ?? 0)}
-            />
-          </Field>
+          <div className="grid gap-1.5">
+            <Field
+              label="Minimum sepet (₺)"
+              hint="0 = limit yok. Sepet bu tutarın altındaysa kod uygulanmaz."
+            >
+              <TextInput
+                name="minSubtotal"
+                inputMode="decimal"
+                defaultValue={
+                  promo ? (promo.minSubtotalMinor / 100).toFixed(2) : "0,00"
+                }
+              />
+            </Field>
+            {err("minSubtotal")}
+          </div>
+          <div className="grid gap-1.5">
+            <Field
+              label="Kullanım limiti"
+              hint="0 = sınırsız. Tüketim her başarılı siparişte 1 artar."
+            >
+              <TextInput
+                name="usageLimit"
+                type="number"
+                min={0}
+                defaultValue={String(promo?.usageLimit ?? 0)}
+              />
+            </Field>
+            {err("usageLimit")}
+          </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Son geçerlilik (opsiyonel)"
-            hint={fe("expiresAt") ?? "Boş = süresiz."}
-          >
-            <TextInput
-              name="expiresAt"
-              type="datetime-local"
-              // The Istanbul wall clock of the stored UTC instant.
-              defaultValue={
-                promo?.expiresAt ? toDateTimeLocalInput(promo.expiresAt) : ""
-              }
-            />
-          </Field>
-          <Field label="Durum">
+          <div className="grid gap-1.5">
+            <Field label="Son geçerlilik (opsiyonel)" hint="Boş = süresiz.">
+              <TextInput
+                name="expiresAt"
+                type="datetime-local"
+                // The Istanbul wall clock of the stored UTC instant.
+                defaultValue={
+                  promo?.expiresAt ? toDateTimeLocalInput(promo.expiresAt) : ""
+                }
+              />
+            </Field>
+            {err("expiresAt")}
+          </div>
+          {/* A fieldset, not a label: Field's label around the Checkbox's own
+              label nested one label in another. */}
+          <Field label="Durum" as="fieldset">
             <Checkbox
               name="isActive"
               label="Aktif (müşteri kullanabilir)"
@@ -143,16 +172,14 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
           </Field>
         </div>
 
-        {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {state.error}
-          </div>
-        )}
+        <FormError message={state.error} />
       </Card>
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/admin/promosyon">
-          <GhostButton type="button">Vazgeç</GhostButton>
+        {/* One link styled as a button, not a button inside a link (two tab
+            stops for one control). */}
+        <Link href="/admin/promosyon" className={BUTTON.ghost}>
+          Vazgeç
         </Link>
         <PrimaryButton type="submit" disabled={pending}>
           {pending ? "Kaydediliyor…" : submitLabel}

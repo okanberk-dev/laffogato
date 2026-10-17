@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_MISMATCH,
@@ -164,6 +165,9 @@ export async function createCampaignMailAction(
     return { error: describe(err) };
   }
   revalidatePath(LIST_PATH);
+  await setAdminFlash(
+    "Taslak oluşturuldu. Önizle, kendine test gönder, sonra gönder.",
+  );
   // Straight to the draft's own page: the preview and the test send live there.
   redirect(`${LIST_PATH}/${id}`);
 }

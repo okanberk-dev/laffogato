@@ -76,6 +76,7 @@ export async function updateCustomerAction(
     payload: { name: parsed.data.name },
   });
   revalidateCustomer(email);
+  await setAdminFlash("Üye bilgileri kaydedildi.");
   redirect(`/admin/musteriler/${encodeURIComponent(email)}`);
 }
 

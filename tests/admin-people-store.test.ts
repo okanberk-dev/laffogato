@@ -21,11 +21,11 @@ const PROMO = {
   updatedAt: "2026-09-01T09:00:00.000Z",
 };
 
-const seen: { text: string; values: unknown[] }[] = [];
+const seen: { text: string; params: unknown[] }[] = [];
 let answer: (text: string) => Record<string, unknown>[] = () => [];
 
-const exec: Executor = async ({ text, values }) => {
-  seen.push({ text, values: [...(values ?? [])] });
+const exec: Executor = async ({ text, params }) => {
+  seen.push({ text, params: [...params] });
   // The seed checks: the tables are not empty.
   if (/count\(\*\)/i.test(text)) return { rows: [{ count: 3 }], rowCount: 1 };
   const rows = answer(text);
@@ -69,7 +69,8 @@ describe("updatePromo", () => {
     // The old write sent the row it read back, usage count and all, and lost
     // the redemption that came in between.
     expect(update?.text).not.toMatch(/"usageCount"|"createdAt"/);
-    expect(update?.values).not.toContain(41);
+    expect(update?.params).not.toContain(41);
+    expect(update?.params).toContain(30);
     expect(update?.text).toMatch(/RETURNING \*$/);
     // The answer is the row as the database has it now.
     expect(res).toMatchObject({ ok: true, promo: { usageCount: 42 } });
@@ -87,5 +88,19 @@ describe("updatePromo", () => {
       isActive: true,
     });
     expect(res).toEqual({ ok: false, error: "Kod bulunamadı." });
+  });
+});
+
+describe("deactivateNewsletterSubscriber", () => {
+  it("says whether a row was there to change", async () => {
+    vi.resetModules();
+    const { deactivateNewsletterSubscriber } =
+      await import("@/lib/newsletter/store");
+    answer = (text) => (/^UPDATE /.test(text) ? [{ id: "nws-0004" }] : []);
+    expect(await deactivateNewsletterSubscriber("nws-0004")).toBe(true);
+    const update = seen.find((q) => /^UPDATE /.test(q.text));
+    expect(update?.text).toMatch(/RETURNING "id"$/);
+    answer = () => [];
+    expect(await deactivateNewsletterSubscriber("nws-0004")).toBe(false);
   });
 });

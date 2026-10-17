@@ -16,6 +16,7 @@ import type { CampaignEmail } from "@/lib/email/campaigns";
  */
 
 const logAudit = vi.fn();
+const setAdminFlash = vi.fn();
 const redirect = vi.fn();
 const revalidatePath = vi.fn();
 
@@ -66,7 +67,7 @@ vi.mock("@/lib/admin/auth", () => ({
 }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
 // A save leaves its toast in a cookie; there is no request here.
-vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash }));
 vi.mock("@/lib/admin/users", () => ({ listAdminUsers }));
 vi.mock("@/lib/admin/store", () => ({
   createAppPost,
@@ -414,6 +415,13 @@ describe("createCampaignMailAction", () => {
     );
     expect(revalidatePath).toHaveBeenCalledWith(LIST);
     expect(redirect).toHaveBeenCalledWith(`${LIST}/cmail-7`);
+    // The draft's page opens with a toast saying it was saved.
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Taslak oluşturuldu"),
+    );
+    expect(setAdminFlash.mock.invocationCallOrder[0]).toBeLessThan(
+      redirect.mock.invocationCallOrder[0],
+    );
   });
 
   it("rejects a blank title with the schema's own words", async () => {

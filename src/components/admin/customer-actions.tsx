@@ -9,7 +9,13 @@ import {
   type ResendVerificationState,
 } from "@/app/admin/musteriler/actions";
 
-import { ActionButton } from "./action-form";
+import {
+  ActionButton,
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "./action-form";
+import { FormError, FormSuccess } from "./form-feedback";
 import { Card, GhostButton } from "./forms";
 import { ActionModal, ConfirmButton } from "./ui";
 
@@ -23,9 +29,12 @@ interface Props {
 
 export function CustomerActions({ email, isActive, emailVerified }: Props) {
   const [resend, resendAction, resending] = useActionState(
-    resendVerificationAction,
+    withPanelCatch(resendVerificationAction, () => ({
+      error: PANEL_ACTION_FAILED,
+    })),
     resendInitial,
   );
+  const onResend = useNoResetSubmit(resendAction, resending);
 
   return (
     <Card className="grid gap-3">
@@ -62,17 +71,13 @@ export function CustomerActions({ email, isActive, emailVerified }: Props) {
 
       {/* Resend verification (only meaningful when not yet verified) */}
       {!emailVerified && (
-        <form action={resendAction} className="grid gap-2">
+        <form onSubmit={onResend} className="grid gap-2">
           <input type="hidden" name="email" value={email} />
           <GhostButton type="submit" disabled={resending} className="w-full">
             {resending ? "Oluşturuluyor…" : "Doğrulama bağlantısı yenile"}
           </GhostButton>
-          {resend.error && (
-            <p className="text-xs text-red-600">{resend.error}</p>
-          )}
-          {resend.message && (
-            <p className="text-xs text-emerald-700">{resend.message}</p>
-          )}
+          <FormError message={resend.error} />
+          <FormSuccess message={resend.error ? undefined : resend.message} />
           {resend.url && (
             <div className="grid gap-1">
               <span className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase">

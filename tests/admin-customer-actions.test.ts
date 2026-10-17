@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const grantCoupon = vi.fn();
+const adminUpdateCustomer = vi.fn();
 const revokeCustomerCoupon = vi.fn();
 const addCounterStamp = vi.fn();
 const listStamps = vi.fn();
@@ -40,7 +41,7 @@ vi.mock("@/lib/customer/coupons", () => ({
   revokeCustomerCoupon,
 }));
 vi.mock("@/lib/customer/store", () => ({
-  adminUpdateCustomer: vi.fn(),
+  adminUpdateCustomer,
   createVerificationToken: vi.fn(),
   getCustomerByEmail,
   setCustomerActive,
@@ -59,6 +60,7 @@ const {
   grantCustomerCouponAction,
   revokeCustomerCouponAction,
   setCustomerActiveAction,
+  updateCustomerAction,
 } = await import("@/app/admin/musteriler/actions");
 const { addCounterStampAction, reverseCounterStampAction } =
   await import("@/app/admin/musteriler/[email]/actions");
@@ -100,6 +102,21 @@ const MEMBER = {
   name: "Ayşe Yılmaz",
   notificationPrefs: { orderUpdates: true, marketing: true, newsletter: true },
 };
+
+describe("updateCustomerAction", () => {
+  it("leaves a toast before it goes back to the member page", async () => {
+    adminUpdateCustomer.mockResolvedValue(MEMBER);
+    await expect(
+      updateCustomerAction(
+        "uye@ornek.com",
+        {},
+        form({ name: "Ayşe Yılmaz Demir", notifyMarketing: "on" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(setAdminFlash).toHaveBeenCalledWith("Üye bilgileri kaydedildi.");
+    expect(redirect).toHaveBeenCalledWith("/admin/musteriler/uye%40ornek.com");
+  });
+});
 
 describe("grantCustomerCouponAction", () => {
   it("expires at the end of the ISTANBUL day, not the server's", async () => {
@@ -293,7 +310,9 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
     const store = readFileSync("src/lib/customer/store.ts", "utf8");
     expect(store).not.toMatch(/export async function adminDeleteCustomer/);
     const src = readFileSync("src/app/admin/musteriler/actions.ts", "utf8");
-    expect(src).toMatch(/import \{ deleteMe\b[^}]*\} from "@\/lib\/mobile\/me";/);
+    expect(src).toMatch(
+      /import \{ deleteMe\b[^}]*\} from "@\/lib\/mobile\/me";/,
+    );
   });
 
   it("refuses unless the member's address is typed out", async () => {
@@ -405,7 +424,9 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
       form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
     );
     expect(res.ok).toBe(false);
-    expect(res.ok ? "" : res.error).toMatch(/kapatılamadı, üye kaydı değişmedi/);
+    expect(res.ok ? "" : res.error).toMatch(
+      /kapatılamadı, üye kaydı değişmedi/,
+    );
     expect(res.ok ? "" : res.error).toMatch(/karaoke/);
     expect(logAudit).toHaveBeenCalledWith({
       action: "update",

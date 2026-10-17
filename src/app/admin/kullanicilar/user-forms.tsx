@@ -1,7 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, type RefObject } from "react";
 
+import {
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "@/components/admin/action-form";
+import { FormError, FormSuccess } from "@/components/admin/form-feedback";
 import {
   Card,
   Checkbox,
@@ -39,24 +45,40 @@ interface PasswordPolicy {
 }
 
 function Notice({ state }: { state: AdminUserState }) {
-  if (state.error) {
-    return (
-      <p
-        role="alert"
-        className="rounded-lg border border-[var(--admin-danger)]/35 bg-[var(--admin-danger)]/8 px-3 py-2 text-xs text-[var(--admin-danger)]"
-      >
-        {state.error}
-      </p>
-    );
-  }
-  if (state.message) {
-    return (
-      <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-        {state.message}
-      </p>
-    );
-  }
-  return null;
+  if (state.error) return <FormError message={state.error} />;
+  return <FormSuccess message={state.message} />;
+}
+
+type UserAction = (
+  prev: AdminUserState,
+  formData: FormData,
+) => Promise<AdminUserState>;
+
+/**
+ * `useActionState` + onSubmit for these forms, posted by hand
+ * (useNoResetSubmit). A refused save used to reset the form: "Bu e-posta
+ * zaten kayıtlı" or a short password cleared the address, the name and the
+ * password and put Rol back on Kasiyer, so the retry could create the wrong
+ * role. `resetOnSuccess` empties a form whose success stays on the page and
+ * leaves nothing worth keeping (a new account, a password, a grant). A
+ * throw becomes an answer, not the error screen.
+ */
+function useUserForm(
+  action: UserAction,
+  formRef: RefObject<HTMLFormElement | null>,
+  resetOnSuccess: boolean,
+) {
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
+    initialState,
+  );
+  const onSubmit = useNoResetSubmit(formAction, pending);
+  useEffect(() => {
+    if (resetOnSuccess && state.message && !state.error) {
+      formRef.current?.reset();
+    }
+  }, [state, formRef, resetOnSuccess]);
+  return { state, pending, onSubmit };
 }
 
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
@@ -72,14 +94,16 @@ function RoleSelect({ defaultValue }: { defaultValue: string }) {
 }
 
 export function CreateAdminUserForm({ minPasswordLength }: PasswordPolicy) {
-  const [state, formAction, pending] = useActionState(
+  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, onSubmit } = useUserForm(
     createAdminUserAction,
-    initialState,
+    formRef,
+    true,
   );
 
   return (
     <Card>
-      <form action={formAction} className="grid gap-4">
+      <form ref={formRef} onSubmit={onSubmit} className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="E-posta">
             <TextInput
@@ -135,14 +159,10 @@ export function AdminUserRow({
   user,
   minPasswordLength,
 }: { user: AdminUserRowProps } & PasswordPolicy) {
-  const [saveState, saveAction, saving] = useActionState(
-    saveAdminUserAction,
-    initialState,
-  );
-  const [passwordState, passwordAction, resetting] = useActionState(
-    resetAdminPasswordAction,
-    initialState,
-  );
+  const saveRef = useRef<HTMLFormElement>(null);
+  const passwordRef = useRef<HTMLFormElement>(null);
+  const save = useUserForm(saveAdminUserAction, saveRef, false);
+  const password = useUserForm(resetAdminPasswordAction, passwordRef, true);
 
   return (
     <Card>
@@ -161,7 +181,11 @@ export function AdminUserRow({
           </p>
         </div>
 
-        <form action={saveAction} className="grid gap-3 sm:grid-cols-3">
+        <form
+          ref={saveRef}
+          onSubmit={save.onSubmit}
+          className="grid gap-3 sm:grid-cols-3"
+        >
           <input type="hidden" name="email" value={user.email} />
           <Field label="Ad">
             <TextInput name="name" defaultValue={user.name} minLength={2} />
@@ -175,17 +199,21 @@ export function AdminUserRow({
               label="Aktif"
               defaultChecked={user.isActive}
             />
-            <PrimaryButton type="submit" disabled={saving}>
-              {saving ? "Kaydediliyor…" : "Kaydet"}
+            <PrimaryButton type="submit" disabled={save.pending}>
+              {save.pending ? "Kaydediliyor…" : "Kaydet"}
             </PrimaryButton>
           </div>
           <div className="sm:col-span-3">
-            <Notice state={saveState} />
+            <Notice state={save.state} />
           </div>
         </form>
 
         <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4 sm:grid-cols-2">
-          <form action={passwordAction} className="grid gap-3">
+          <form
+            ref={passwordRef}
+            onSubmit={password.onSubmit}
+            className="grid gap-3"
+          >
             <input type="hidden" name="email" value={user.email} />
             <Field label="Yeni parola">
               <TextInput
@@ -197,11 +225,11 @@ export function AdminUserRow({
               />
             </Field>
             <div>
-              <GhostButton type="submit" disabled={resetting}>
-                {resetting ? "Değiştiriliyor…" : "Parolayı sıfırla"}
+              <GhostButton type="submit" disabled={password.pending}>
+                {password.pending ? "Değiştiriliyor…" : "Parolayı sıfırla"}
               </GhostButton>
             </div>
-            <Notice state={passwordState} />
+            <Notice state={password.state} />
           </form>
 
           {/* Asks first: the account and its sign-in go at once. The last
@@ -241,13 +269,15 @@ export interface BaristaRowProps {
  * for whoever signs up with it first.
  */
 export function GrantBaristaForm() {
-  const [state, formAction, pending] = useActionState(
+  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, onSubmit } = useUserForm(
     grantBaristaAction,
-    initialState,
+    formRef,
+    true,
   );
 
   return (
-    <form action={formAction} className="grid gap-3">
+    <form ref={formRef} onSubmit={onSubmit} className="grid gap-3">
       <Field
         label="Üye e-postası"
         hint="Baristanın uygulamaya giriş yaptığı adres. Hesap önceden açılmış olmalı."

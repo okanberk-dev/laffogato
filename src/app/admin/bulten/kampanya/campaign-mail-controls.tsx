@@ -3,6 +3,12 @@
 import { useActionState } from "react";
 
 import {
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "@/components/admin/action-form";
+import { FormError, FormSuccess } from "@/components/admin/form-feedback";
+import {
   GhostButton,
   PrimaryButton,
   TextInput,
@@ -18,11 +24,8 @@ type StateAction = (
 const initial: CampaignMailState = {};
 
 function Feedback({ state }: { state: CampaignMailState }) {
-  if (state.error) return <p className="text-xs text-red-600">{state.error}</p>;
-  if (state.message) {
-    return <p className="text-xs text-emerald-700">{state.message}</p>;
-  }
-  return null;
+  if (state.error) return <FormError message={state.error} />;
+  return <FormSuccess message={state.message} />;
 }
 
 /**
@@ -72,9 +75,14 @@ export function CampaignTestForm({
   action: StateAction;
   defaultTo: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
+  // Posted by hand: a refused address used to be wiped with the answer.
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const onSubmit = useNoResetSubmit(formAction, pending);
   return (
-    <form action={formAction} className="grid gap-2">
+    <form onSubmit={onSubmit} className="grid gap-2">
       <TextInput
         name="to"
         type="email"
