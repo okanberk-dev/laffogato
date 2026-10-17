@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -550,5 +552,138 @@ describe("catalog lists", () => {
       } as never),
     );
     expectConfirmed(html, "Sil");
+  });
+});
+
+describe("a refusal never vanishes with its dialog (KAR-01)", () => {
+  // The karaoke cancel that sends a refund and hears nothing back: the
+  // action leaves the booking `refunding`, revalidates, and the new page has
+  // no cancel button, so its dialog unmounted with this sentence in it.
+  const REFUND_UNKNOWN =
+    "İade isteği gönderildi ama POS yanıt vermedi. Rezervasyon 'iade sonucu bekleniyor' durumunda; PayNkolay panelinden bakıp sonucu buradan işaretle.";
+  const refused = { ok: false as const, error: REFUND_UNKNOWN };
+
+  const setup = async () => {
+    const { createRefusalKeeper } =
+      await import("@/components/admin/ui/action-modal");
+    const told: string[] = [];
+    const keeper = createRefusalKeeper((m) => told.push(m));
+    keeper.mounted();
+    return { keeper, told };
+  };
+
+  it("refund_unknown: the answer lands, then the page drops the dialog", async () => {
+    const { keeper, told } = await setup();
+    keeper.posting();
+    keeper.answered(refused);
+    expect(told).toEqual([]);
+    keeper.unmounted();
+    expect(told).toEqual([REFUND_UNKNOWN]);
+  });
+
+  it("refund_unknown: the page drops the dialog before the answer is read", async () => {
+    const { keeper, told } = await setup();
+    keeper.posting();
+    keeper.unmounted();
+    expect(told).toEqual([]);
+    keeper.answered(refused);
+    expect(told).toEqual([REFUND_UNKNOWN]);
+    // Said once, however the two arrive.
+    keeper.unmounted();
+    keeper.answered(refused);
+    expect(told).toHaveLength(1);
+  });
+
+  it("a refusal shown in a dialog the operator then closed is not repeated", async () => {
+    const { keeper, told } = await setup();
+    keeper.posting();
+    keeper.answered(refused);
+    keeper.closed();
+    keeper.unmounted();
+    expect(told).toEqual([]);
+  });
+
+  it("a success, a redirect or a retry that worked leaves no toast behind", async () => {
+    for (const answer of [
+      { ok: true as const, message: "İptal edildi." },
+      null,
+    ]) {
+      const { keeper, told } = await setup();
+      keeper.posting();
+      keeper.answered(answer);
+      keeper.unmounted();
+      expect(told).toEqual([]);
+    }
+    const { keeper, told } = await setup();
+    keeper.posting();
+    keeper.answered(refused);
+    keeper.posting();
+    keeper.answered({ ok: true, message: "Tamam." });
+    keeper.unmounted();
+    expect(told).toEqual([]);
+  });
+
+  it("a refusal still on screen in an open dialog is not toasted (dev double mount)", async () => {
+    const { keeper, told } = await setup();
+    // React's dev check mounts, unmounts and mounts again before any post.
+    keeper.unmounted();
+    keeper.mounted();
+    keeper.posting();
+    keeper.answered(refused);
+    expect(told).toEqual([]);
+  });
+
+  it("the dialog wires the keeper to its answer, its close and its unmount", () => {
+    const src = readFileSync(
+      "src/components/admin/ui/action-modal.tsx",
+      "utf8",
+    );
+    expect(src).toContain('toast.show({ tone: "danger", message })');
+    expect(src).toContain("keeper.answered(result ?? null)");
+    expect(src).toContain("return () => keeper.unmounted();");
+    expect(src).toMatch(/onClose=\{\(\) => \{\s*keeper\.closed\(\);/);
+  });
+
+  it("a trigger that was turned off does not reopen its old dialog", () => {
+    // `open` survived the disabled branch, so the dialog remounted by itself
+    // the moment the button was enabled again ("slot taken", then freed).
+    const src = readFileSync(
+      "src/components/admin/ui/action-modal.tsx",
+      "utf8",
+    );
+    const reset = src.indexOf("if (disabledReason && open) setOpen(false);");
+    expect(reset).toBeGreaterThan(-1);
+    expect(reset).toBeLessThan(src.indexOf("if (disabledReason) {"));
+  });
+});
+
+describe("repeated triggers can name their row", () => {
+  const action = async () => ({ ok: true as const, message: "" });
+
+  it("ConfirmButton passes ariaLabel to its trigger, enabled or not", async () => {
+    const { ConfirmButton } = await import("@/components/admin/ui");
+    const on = renderToStaticMarkup(
+      createElement(ConfirmButton, {
+        action,
+        label: "Sil",
+        ariaLabel: "Sil: GUZ10",
+        hidden: { id: "prm-1" },
+      }),
+    );
+    expect(buttons(on, "Sil")[0]).toContain('aria-label="Sil: GUZ10"');
+    const off = renderToStaticMarkup(
+      createElement(ConfirmButton, {
+        action,
+        label: "Sil",
+        ariaLabel: "Sil: Çekirdek",
+        disabledReason: "Bu kategoride ürün var",
+      }),
+    );
+    expect(buttons(off, "Sil")[0]).toContain('aria-label="Sil: Çekirdek"');
+    // Without it the visible text is the name, as before.
+    const plain = renderToStaticMarkup(
+      createElement(ConfirmButton, { action, label: "Sil" }),
+    );
+    expect(plain).not.toContain("aria-label");
   });
 });

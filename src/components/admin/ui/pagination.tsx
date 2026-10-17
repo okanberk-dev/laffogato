@@ -10,10 +10,13 @@ import {
   type SearchParamsInput,
 } from "@/lib/admin/list-params";
 
+import { LinkPending } from "./link-pending";
 import { MONO_STYLE } from "./styles";
 
+// 44px, the panel's touch target (it was 40px; SHE-32). `relative` holds a
+// link's LinkPending mark.
 const CELL =
-  "inline-flex h-10 min-w-10 items-center justify-center rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none";
+  "relative inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none";
 
 /**
  * "1-100 / 250" and numbered page links that keep every other URL param.
@@ -72,6 +75,7 @@ export function Pagination({
               >
                 <span aria-hidden="true">‹</span>
                 <span className="sr-only">Önceki sayfa</span>
+                <LinkPending />
               </Link>
             </li>
           ) : null}
@@ -99,6 +103,7 @@ export function Pagination({
                   style={MONO_STYLE}
                 >
                   {n}
+                  <LinkPending />
                 </Link>
               </li>
             ),
@@ -115,6 +120,7 @@ export function Pagination({
               >
                 <span aria-hidden="true">›</span>
                 <span className="sr-only">Sonraki sayfa</span>
+                <LinkPending />
               </Link>
             </li>
           ) : null}

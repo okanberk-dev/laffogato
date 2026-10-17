@@ -1,38 +1,74 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 import { parsePublishInstant } from "@/lib/admin/publish-window";
 
+const FIELD_LABEL =
+  "text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase";
+const FIELD_LABEL_STYLE = { fontFamily: "var(--mono), monospace" } as const;
+const FIELD_HINT = "text-xs text-[var(--admin-text-mute)]";
+
+/**
+ * A labelled control with an optional hint.
+ *
+ * - Default (`as="label"`): one `<label>` around the caption, the control
+ *   and the hint, which is how a TextInput or Select inside gets its name.
+ * - `as="fieldset"`: a `<fieldset>` and `<legend>`, for a group that holds
+ *   a checkbox, a switch or an uploader. Inside a label, a click anywhere
+ *   on the caption, the hint or the empty row toggled the checkbox (the
+ *   label's first control): "Online mağaza açık" and "Üyelere e-posta"
+ *   flipped when someone tapped their explanation. The hint is tied to the
+ *   group with aria-describedby instead.
+ */
 export function Field({
   label,
   hint,
   children,
+  as = "label",
 }: {
   label: string;
   hint?: string;
   children: ReactNode;
+  as?: "label" | "fieldset";
 }) {
+  const hintId = useId();
+  if (as === "fieldset") {
+    return (
+      <fieldset
+        className="flex min-w-0 flex-col gap-2"
+        aria-describedby={hint ? hintId : undefined}
+      >
+        <legend className={`mb-2 ${FIELD_LABEL}`} style={FIELD_LABEL_STYLE}>
+          {label}
+        </legend>
+        {children}
+        {hint && (
+          <span id={hintId} className={FIELD_HINT}>
+            {hint}
+          </span>
+        )}
+      </fieldset>
+    );
+  }
   return (
     <label className="flex flex-col gap-2">
-      <span
-        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
+      <span className={FIELD_LABEL} style={FIELD_LABEL_STYLE}>
         {label}
       </span>
       {children}
-      {hint && (
-        <span className="text-xs text-[var(--admin-text-mute)]">{hint}</span>
-      )}
+      {hint && <span className={FIELD_HINT}>{hint}</span>}
     </label>
   );
 }
 
-const baseInput =
-  "w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)]/70 focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
+// The panel's field: the outline is --admin-border-field (3:1 against the
+// white card and the field's own fill, so an empty field can be found) and
+// the placeholder is the full label ink, not a faded one (it was 2.41:1).
+export const FIELD_INPUT =
+  "w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input {...props} className={`${baseInput} ${props.className ?? ""}`} />
+    <input {...props} className={`${FIELD_INPUT} ${props.className ?? ""}`} />
   );
 }
 
@@ -42,14 +78,14 @@ export function Textarea(
   return (
     <textarea
       {...props}
-      className={`${baseInput} min-h-[100px] ${props.className ?? ""}`}
+      className={`${FIELD_INPUT} min-h-[100px] ${props.className ?? ""}`}
     />
   );
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select {...props} className={`${baseInput} ${props.className ?? ""}`} />
+    <select {...props} className={`${FIELD_INPUT} ${props.className ?? ""}`} />
   );
 }
 

@@ -26,3 +26,16 @@ export type ButtonVariant = keyof typeof BUTTON;
 export const EYEBROW =
   "text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase";
 export const MONO_STYLE = { fontFamily: "var(--mono), monospace" } as const;
+
+/**
+ * Amounts, booking codes and POS references: a monospace face with tabular
+ * figures, so a right-aligned Tutar column and a list of codes line up
+ * digit by digit (admin audit KAR-18). MONO_STYLE is the panel's label
+ * voice and stays as it is: --mono resolves to Poppins, which has no
+ * tabular figures, and labels and headers use it too.
+ */
+export const NUMERIC_STYLE = {
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+  fontVariantNumeric: "tabular-nums",
+} as const;

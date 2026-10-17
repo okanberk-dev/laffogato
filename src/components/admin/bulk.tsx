@@ -1,6 +1,18 @@
 "use client";
 
-import { useMemo, useReducer, type ChangeEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
+
+import { adminPortalRoot } from "./ui/toast";
 
 export interface Selection {
   selected: Set<string>;
@@ -101,6 +113,15 @@ export function useSelection(options: { resetOn?: unknown } = {}): Selection {
   );
 }
 
+// The row checkboxes: the panel's 20px espresso box (forms.tsx Checkbox)
+// in a 44px hit area. They were 16px browser-blue boxes: their classes were
+// @tailwindcss/forms idioms and that plugin is not installed (SHE-19). The
+// negative margin keeps the 44px area from pushing the row apart.
+const BOX_HIT =
+  "-m-3 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center has-[:disabled]:cursor-not-allowed";
+const BOX =
+  "h-5 w-5 cursor-pointer accent-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-30";
+
 export function RowCheckbox({
   id,
   selection,
@@ -111,13 +132,15 @@ export function RowCheckbox({
   label?: string;
 }) {
   return (
-    <input
-      type="checkbox"
-      checked={selection.has(id)}
-      onChange={() => selection.toggle(id)}
-      aria-label={label ?? "Seç"}
-      className="h-4 w-4 cursor-pointer rounded border-neutral-300 text-neutral-900 focus:ring-neutral-700"
-    />
+    <label className={BOX_HIT}>
+      <input
+        type="checkbox"
+        checked={selection.has(id)}
+        onChange={() => selection.toggle(id)}
+        aria-label={label ?? "Seç"}
+        className={BOX}
+      />
+    </label>
   );
 }
 
@@ -149,17 +172,19 @@ export function SelectAllCheckbox({
   };
 
   return (
-    <input
-      type="checkbox"
-      checked={allChecked}
-      ref={(el) => {
-        if (el) el.indeterminate = some;
-      }}
-      onChange={onChange}
-      disabled={total === 0}
-      aria-label={label ?? "Tümünü seç"}
-      className="h-4 w-4 cursor-pointer rounded border-neutral-300 text-neutral-900 focus:ring-neutral-700 disabled:cursor-not-allowed disabled:opacity-30"
-    />
+    <label className={BOX_HIT}>
+      <input
+        type="checkbox"
+        checked={allChecked}
+        ref={(el) => {
+          if (el) el.indeterminate = some;
+        }}
+        onChange={onChange}
+        disabled={total === 0}
+        aria-label={label ?? "Tümünü seç"}
+        className={BOX}
+      />
+    </label>
   );
 }
 
@@ -170,6 +195,17 @@ export interface BulkActionBarProps {
   children: ReactNode;
 }
 
+const noSubscribe = () => () => {};
+
+/**
+ * The room the bar takes at the bottom of the page: its measured height,
+ * the 1rem it floats above the edge and a 1rem gap. Pure, exported for
+ * tests.
+ */
+export function bulkBarSpace(barHeight: number): number {
+  return barHeight > 0 ? Math.ceil(barHeight) + 32 : 0;
+}
+
 /**
  * Bottom bar that appears when at least one row is selected.
  * Hosts the action buttons / parametric selects supplied by the parent.
@@ -178,7 +214,13 @@ export interface BulkActionBarProps {
  * Fixed to the viewport, not `sticky`: every list wraps only this bar in its
  * form, and a sticky element cannot leave its parent, so the "sticky" bar sat
  * below the last row - an operator ticking rows at the top of a 100-order
- * page never saw it. The spacer keeps the last rows reachable above it.
+ * page never saw it.
+ *
+ * The room it takes is kept free at the very end of the page: a spacer as
+ * tall as the bar (measured, it wraps to 237px on a phone) is rendered
+ * after everything else in the panel (the portal root ToastProvider puts
+ * after the page). A fixed spacer inside the list sat before the
+ * pagination, so the bar covered the page links (admin audit ORD-06).
  */
 export function BulkActionBar({
   selection,
@@ -186,21 +228,59 @@ export function BulkActionBar({
   message,
   children,
 }: BulkActionBarProps) {
-  if (selection.count === 0) return null;
+  const open = selection.count > 0;
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barHeight, setBarHeight] = useState(0);
+  // The portal root on the client; nothing on the server (where the bar is
+  // never open anyway: a selection starts empty).
+  const end = useSyncExternalStore<HTMLElement | null>(
+    noSubscribe,
+    adminPortalRoot,
+    () => null,
+  );
+
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!open || !bar || typeof ResizeObserver === "undefined") return;
+    // Called once on observe and again whenever the bar wraps or unwraps.
+    const observer = new ResizeObserver(() =>
+      setBarHeight(bar.getBoundingClientRect().height),
+    );
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, [open]);
+
+  if (!open) return null;
+  const space = bulkBarSpace(barHeight);
   return (
     <>
-      <div aria-hidden="true" className="h-32 sm:h-24" />
+      {/* The toast stack sits this far up while the bar is open
+          (ui/toast.tsx); a fixed 8rem left it over a two-row phone bar. */}
+      {space > 0 ? (
+        <style>{`:root{--admin-bulk-space:${space}px}`}</style>
+      ) : null}
+      {end
+        ? createPortal(
+            <div
+              aria-hidden="true"
+              data-admin-bulk-spacer=""
+              style={{ height: space }}
+            />,
+            end,
+          )
+        : null}
       {/* data-admin-bulk-bar lifts the toast stack above this bar (ui/toast.tsx). */}
       <div
+        ref={barRef}
         data-admin-bulk-bar=""
         role="region"
         aria-label="Toplu işlem"
         className="fixed inset-x-4 bottom-4 z-30 lg:left-[calc(16rem+1rem)]"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3">
             <span
-              className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium text-white"
+              className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               {selection.count} seçili
@@ -208,15 +288,19 @@ export function BulkActionBar({
             <button
               type="button"
               onClick={selection.clear}
-              className="text-xs text-neutral-500 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              className="inline-flex min-h-[44px] items-center text-xs whitespace-nowrap text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
             >
               Seçimi temizle
             </button>
             {message && (
-              <span className="text-xs text-neutral-600">{message}</span>
+              <span className="text-xs text-[var(--admin-text-soft)]">
+                {message}
+              </span>
             )}
             {pending && (
-              <span className="text-xs text-neutral-500">İşleniyor…</span>
+              <span className="text-xs text-[var(--admin-text-soft)]">
+                İşleniyor…
+              </span>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">{children}</div>

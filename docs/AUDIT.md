@@ -575,3 +575,31 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟠 | GTM konteynerini yayımlayabilen biri sitenin herkese açık sayfalarında hâlâ betik çalıştırır. Admin çerezi bütün köken için (`path=/`, `sameSite=lax`): oturumu açık bir yönetici aynı tarayıcıda siteyi gezerken o betik `/admin` sayfalarını çerezle okuyabilir ve server action çağırabilir (aynı köken, CSP `connect-src 'self'` izin verir) | Yukarıdaki düzeltme yalnız panelin kendi belgelerini GTM'siz yapar. Panele özel CSP (D34) de bunu kapatmaz: betik panelde değil sitede çalışır. Kapatan, panelin ayrı bir kökene (alt alan adı, yalnız o alana yazılan çerez) taşınması; ayrı karar ve arka yüz işi. O zamana kadar GTM yayın yetkisi dar tutulur, panel siteyi gezmekte kullanılmayan bir tarayıcı profilinde açılır |
+
+### Kabuk: kit (okunabilirlik, tablo, süzgeç, modal, formlar)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Bir reddi kaydı da değiştiren işlemde (POS'a gidip yanıt alamayan karaoke iadesi: `refund_unknown`) sayfa yenilenince düğme kalkıyor, diyalog da onunla gidiyordu: "PayNkolay panelinden bak" cümlesi hiç görünmüyordu, toast da yoktu. Yarışı kaybeden bir onay da böyle sessizce kapanıyordu; düğme pasifleşip yeniden açılınca eski diyalog kendiliğinden açılıyordu | `ActionModal` son reddi tutar; diyalog kapatılmadan sayfadan kalkarsa red bir kez hata toast'ı olur (kapatılana kadar durur), yanıt ile sayfa güncellemesi hangi sırayla gelirse gelsin. Düğme pasifleşince `open` sıfırlanır | `admin-confirm-ui` |
+| 🟠 | Sipariş ve karaoke tablosu 768-1366 px'te kartından genişti: satırın tek işlem girişi "⋯" yatay kaydırmanın arkasında, kaydırma çubuğu 50 satır aşağıdaydı; `sr-only` başlık metni kartın dışına taşıp bütün paneli yana kaydırıyordu | `DataTable`: "⋯" sütunu sağa sabit (`sticky right-0`), satırla aynı opak zeminle (beyaz, üzerine gelince, seçiliyken) ve solunda ince çizgiyle; kaydırma kutusu `relative`. Sütun kırpma alanların kendi PR'larında | `admin-ui-kit` |
+| 🟡 | Etiket, ipucu, başlık üstü ve yer tutucu rengi (`--admin-text-mute` `#8A7A64`) AA'nın altındaydı: beyazda 4,16:1, sayfa zemininde 3,70:1, yer tutucu 2,41:1. Alan kenarı beyaz kartta 1,38:1'di, boş alan bulunmuyordu | Token `#74644F` (beyaz 5,71, zemin 5,08, `surface-2` 5,30, `neutral-soft` 4,86); yer tutucu tam token. Alanlara ayrı `--admin-border-field` `#9C8B70` (beyaz kartta 3,31:1, alan zemininde 3,07:1) | `admin-ui-kit` |
+| 🟡 | Telefonda süzgeç hep açıktı: sipariş listesinde 658 px'lik form, ilk sipariş 1,3 ekran aşağıda | `md` altında ilk arama kutusu görünür, gerisi "Filtreler (n)" altında (`<details>`, JavaScript'siz de çalışır), biri seçiliyse açık; `md` ve üstünde satır eskisi gibi. 390 px'te form 160 px, ilk sipariş 475'te | `admin-filter-bar` |
+| 🟡 | Toplu işlem çubuğu sayfa bağlantılarını örtüyordu: boşluk listenin içinde, sayfalamanın önündeydi ve sabit yükseklikteydi (telefonda çubuk 178-237 px) | Çubuk `ResizeObserver` ile ölçülür, aynı boşluk sayfanın en sonunda bırakılır; toast yığını da aynı ölçüyle çubuğun üstünde durur | `admin-ui-kit` |
+| 🟢 | Sekme, sayfa, sıralama ve "Uygula" tıklamasından sonra eski liste hiçbir işaret vermeden duruyordu | "Uygula" geçişte `router.push` yapar ve "Uygulanıyor…" der; sekme, sayfa ve sıralama bağlantılarında `useLinkStatus` ile solan bir çizgi. Sayfa iskeleti (`admin/loading.tsx`) kabuk gezinme PR'ında | `admin-filter-bar`, `admin-ui-kit` |
+| 🟢 | Toplu seçim kutuları 16 px tarayıcı mavisiydi (kurulu olmayan bir eklentinin sınıfları); sayfa hücreleri 40 px, toast kapatma 32 px'ti | Panelin 20 px espresso kutusu, 44 px dokunma alanında; sayfa hücresi ve toast kapatma 44 px | `admin-ui-kit` |
+
+Kite eklenenler (alanlar kendi PR'larında kullanır):
+
+- `useNoResetSubmit` ve `withPanelCatch` (`ui/submit.ts`, `action-form.tsx`'ten de
+  dışa açık): React 19 `<form action>` reddedilen kayıtta yazılanı ve seçimleri
+  sıfırlıyordu; form `onSubmit`'ten elle gönderilir, yanıt gelmeden ikinci
+  gönderim düşer. `ActionForm` ve `ActionModal` bunu kullanır, `ActionForm`'a
+  `beforeSubmit` eklendi.
+- `Field as="fieldset"`: onay kutusu ya da yükleyici tutan alan `label` değil
+  `fieldset`/`legend` olur; ipucuna dokunmak kutuyu değiştirmez. `Field`
+  varsayılanı `label` kalır (içindeki alanın adı oradan gelir).
+- `ActionModal` / `ConfirmButton` `ariaLabel` (satırda tekrar eden "Sil" için
+  "Sil: <ad>"), başarılı işlemden sonra `admin:changed` olayı (kenar çubuğu
+  rozetleri onu dinleyecek), tutar ve kodlar için `NUMERIC_STYLE`, Türkçe
+  arama katlaması `foldTr` (`src/lib/admin/text-fold.ts`, SQL eşi
+  `lower(translate(...))`).

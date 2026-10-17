@@ -24,6 +24,8 @@ vi.mock("next/link", () => ({
     children?: ReactNode;
     prefetch?: boolean;
   }) => createElement("a", { href, ...rest }, children),
+  // LinkPending (status tabs, pages, sort headers) reads the link's state.
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -66,9 +68,15 @@ const {
   toastFromFlash,
   toastFromResult,
 } = await import("@/components/admin/ui/toast-core");
-const { BulkActionBar, selectionReducer } =
-  await import("@/components/admin/bulk");
+const {
+  BulkActionBar,
+  RowCheckbox,
+  SelectAllCheckbox,
+  bulkBarSpace,
+  selectionReducer,
+} = await import("@/components/admin/bulk");
 const ui = await import("@/components/admin/ui");
+const forms = await import("@/components/admin/forms");
 
 const html = (node: ReturnType<typeof createElement>) =>
   renderToStaticMarkup(node);
@@ -557,6 +565,115 @@ describe("bulk selection survives the next tick after a success", () => {
   });
 });
 
+describe("bulk checkboxes and the room under the bar", () => {
+  const selection = {
+    selected: new Set(["a"]),
+    has: (id: string) => id === "a",
+    toggle: () => {},
+    set: () => {},
+    clear: () => {},
+    count: 1,
+    ids: ["a"],
+  };
+
+  it("the row boxes are the panel's 20px espresso box in a 44px hit area", () => {
+    // They were 16px browser-blue boxes: @tailwindcss/forms classes with no
+    // plugin installed.
+    for (const out of [
+      html(createElement(RowCheckbox, { id: "a", selection, label: "Latte" })),
+      html(createElement(SelectAllCheckbox, { ids: ["a", "b"], selection })),
+    ]) {
+      expect(out).toMatch(
+        /^<label class="-m-3 inline-flex h-11 w-11 [^"]*cursor-pointer/,
+      );
+      expect(out).toContain(
+        'class="h-5 w-5 cursor-pointer accent-[var(--admin-primary)]',
+      );
+      expect(out).not.toContain("neutral-");
+      expect(out).not.toContain("focus:ring");
+    }
+    expect(
+      html(createElement(RowCheckbox, { id: "a", selection, label: "Latte" })),
+    ).toContain('aria-label="Latte"');
+  });
+
+  it("the space kept free follows the bar's measured height", () => {
+    expect(bulkBarSpace(0)).toBe(0);
+    // A phone, where the bar wraps to 237px: bar + 1rem offset + 1rem gap.
+    expect(bulkBarSpace(237)).toBe(269);
+    expect(bulkBarSpace(70.4)).toBe(103);
+  });
+
+  it("the spacer goes after the page, not before the pagination", () => {
+    // The fixed h-32 spacer sat inside the list, before the page links, so
+    // the bar covered them (ORD-06).
+    const out = html(
+      withKids(BulkActionBar, { selection, pending: false }, "x"),
+    );
+    expect(out).not.toContain("h-32");
+    const src = read("src/components/admin/bulk.tsx");
+    expect(src).toContain("new ResizeObserver(");
+    expect(src).toMatch(/createPortal\(\s*<div[\s\S]*?data-admin-bulk-spacer/);
+    expect(src).toContain("adminPortalRoot");
+    // ToastProvider renders that root after the page's own content.
+    const toast = read("src/components/admin/ui/toast.tsx");
+    expect(toast.indexOf("{children}")).toBeLessThan(
+      toast.indexOf("<div data-admin-portal"),
+    );
+    // The toast stack is lifted by the same measured room, not a fixed
+    // 8rem that left it over a two-row phone bar.
+    expect(src).toContain("`:root{--admin-bulk-space:${space}px}`");
+    expect(toast).toContain(
+      "[:root:has([data-admin-bulk-bar])_&]:bottom-[var(--admin-bulk-space,8rem)]",
+    );
+    expect(toast).not.toContain("bulk-bar])_&]:bottom-32");
+  });
+});
+
+describe("after a successful action the panel says so (admin:changed)", () => {
+  it("fires one window event, and does nothing outside the browser", () => {
+    expect(() => ui.announceAdminChange()).not.toThrow();
+    const target = new EventTarget();
+    let heard = 0;
+    target.addEventListener(ui.ADMIN_CHANGED_EVENT, () => {
+      heard += 1;
+    });
+    vi.stubGlobal("window", target);
+    try {
+      ui.announceAdminChange();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(ui.ADMIN_CHANGED_EVENT).toBe("admin:changed");
+    expect(heard).toBe(1);
+  });
+
+  it("the kit fires it on a success only (modal, form, one-click button)", () => {
+    // The sidebar badges listen for it (shell navigation) instead of
+    // waiting up to 60 s.
+    const modal = read("src/components/admin/ui/action-modal.tsx");
+    expect(modal).toMatch(/if \(result\.ok\) \{[^}]*announceAdminChange\(\);/);
+    const form = read("src/components/admin/action-form.tsx");
+    expect(form).toMatch(
+      /if \(result\.ok\) \{[^}]*announceAdminChange\(\);[^}]*\} else/,
+    );
+    expect(modal.match(/announceAdminChange\(\)/g)).toHaveLength(1);
+    expect(form.match(/announceAdminChange\(\)/g)).toHaveLength(1);
+  });
+});
+
+describe("codes and amounts line up", () => {
+  it("NUMERIC_STYLE is a monospace face with tabular figures; labels keep MONO_STYLE", async () => {
+    const { MONO_STYLE } = await import("@/components/admin/ui/styles");
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/^ui-monospace, /);
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/monospace$/);
+    expect(ui.NUMERIC_STYLE.fontVariantNumeric).toBe("tabular-nums");
+    // --mono (Poppins) is the panel's label voice; it is not repointed.
+    expect(MONO_STYLE).toEqual({ fontFamily: "var(--mono), monospace" });
+    expect(read("src/app/admin/layout.tsx")).not.toContain('"--mono"');
+  });
+});
+
 describe("tone colours clear AA", () => {
   const layout = read("src/app/admin/layout.tsx");
   const token = (name: string) => {
@@ -607,6 +724,62 @@ describe("tone colours clear AA", () => {
       expect(TONE_SOFT[tone]).toContain(`bg-[var(${soft})]`);
       expect(TONE_SOFT[tone]).toContain(`text-[var(${ink})]`);
     }
+  });
+
+  it("labels, hints, eyebrows and placeholders clear AA on every panel ground", () => {
+    // --admin-text-mute was #8A7A64: 4.16:1 on white, 3.70:1 on the page.
+    for (const ground of [
+      "#FFFFFF",
+      token("--admin-bg"),
+      token("--admin-surface-2"),
+      token("--admin-neutral-soft"),
+    ]) {
+      expect(
+        contrast(token("--admin-text-mute"), ground),
+        `mute on ${ground}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("a field's outline clears 3:1 on a white card and on its own fill", () => {
+    for (const ground of ["#FFFFFF", token("--admin-surface-2")]) {
+      expect(
+        contrast(token("--admin-border-field"), ground),
+        `field border on ${ground}`,
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("kit fields use that outline and a full-strength placeholder", async () => {
+    const { FIELD_INPUT } = await import("@/components/admin/forms");
+    expect(FIELD_INPUT).toContain("border-[var(--admin-border-field)]");
+    expect(FIELD_INPUT).toMatch(
+      /placeholder:text-\[var\(--admin-text-mute\)\](\s|$)/,
+    );
+    for (const path of [
+      "src/components/admin/forms.tsx",
+      "src/components/admin/ui/filter-bar.tsx",
+      "src/components/admin/ui/action-modal.tsx",
+    ]) {
+      const src = read(path);
+      expect(src, path).not.toMatch(/admin-text-mute\)\]\/\d/);
+      expect(src, path).not.toContain(
+        "border-[var(--admin-border)] bg-[var(--admin-surface-2)]",
+      );
+    }
+  });
+
+  it("a toast's close button is a 44px target", () => {
+    const out = html(
+      withKids(
+        ui.ToastProvider,
+        { flash: { id: "f1", message: "Kaydedildi.", tone: "success" } },
+        "x",
+      ),
+    );
+    expect(out).toMatch(
+      /<button type="button" aria-label="Bildirimi kapat" class="[^"]*h-11 w-11/,
+    );
   });
 
   it("the signed-in panel and the login share one ground, and toasts are mounted", () => {
@@ -663,6 +836,59 @@ describe("server-rendered markup", () => {
     expect(card).not.toContain(">Ek<");
   });
 
+  it("DataTable: the row menu stays in view while a wide table scrolls", () => {
+    const selection = {
+      selected: new Set(["o1"]),
+      has: (id: string) => id === "o1",
+      toggle: () => {},
+      set: () => {},
+      clear: () => {},
+      count: 1,
+      ids: ["o1"],
+    };
+    const out = html(
+      createElement(ui.DataTable<Row>, {
+        columns,
+        rows,
+        rowKey: (r) => r.id,
+        selection,
+        rowActions: (r) => createElement("button", null, `⋯ ${r.no}`),
+      }),
+    );
+    // The scroll box contains the sr-only texts (no sideways page scroll).
+    expect(out).toMatch(/<div class="relative hidden overflow-x-auto /);
+    const th =
+      /<th scope="col" class="([^"]*)"><span class="sr-only">İşlemler/.exec(
+        out,
+      );
+    expect(th?.[1]).toContain(
+      "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)] bg-[var(--admin-surface)]",
+    );
+    const cells = [...out.matchAll(/<td class="([^"]*sticky right-0[^"]*)">/g)];
+    expect(cells).toHaveLength(2);
+    // An opaque ground that follows the row: the selection tint as it shows
+    // over white for the selected row, white otherwise, the hover ground on
+    // hover.
+    expect(cells[0][1]).toContain(
+      "bg-[color-mix(in_srgb,var(--admin-primary-soft)_50%,var(--admin-surface))]",
+    );
+    expect(cells[1][1]).toContain("bg-[var(--admin-surface)]");
+    for (const [, cls] of cells) {
+      expect(cls).toContain("group-hover:bg-[var(--admin-surface-2)]");
+      // A sticky cell is its own stacking context, painted in row order:
+      // the next rows' pinned cells covered an open "⋯" menu hanging over
+      // them. The open row and its cell go on top while the menu is open.
+      expect(cls).toContain("has-[details[open]]:z-40");
+    }
+    const trs = [...out.matchAll(/<tr class="(group [^"]*)">/g)];
+    expect(trs).toHaveLength(2);
+    for (const [, cls] of trs) {
+      expect(cls).toContain(
+        "has-[details[open]]:relative has-[details[open]]:z-40",
+      );
+    }
+  });
+
   it("DataTable: nothing to show is a sentence, not an empty table", () => {
     const out = html(
       createElement(ui.DataTable<Row>, {
@@ -708,6 +934,58 @@ describe("server-rendered markup", () => {
     expect(out).toContain('href="/l?q=x"');
     expect(out).toMatch(/href="\/l\?q=x&amp;sayfa=2"[^>]*aria-current="page"/);
     expect(out).toContain('href="/l?q=x&amp;sayfa=3"');
+  });
+
+  it("tabs, page links and sort headers mark the clicked link while it loads", () => {
+    // LinkPending: always there, faded in only while that link navigates.
+    const MARK =
+      /<span aria-hidden="true" class="pointer-events-none absolute [^"]*opacity-0/g;
+    const tabs = html(
+      createElement(ui.StatusTabs, {
+        tabs: [
+          { value: null, label: "Tümü", count: 12 },
+          { value: "paid", label: "Ödendi", count: 3 },
+        ],
+        current: null,
+        pathname: "/admin/siparisler",
+      }),
+    );
+    expect(tabs.match(MARK)).toHaveLength(2);
+    expect(tabs.match(/<a [^>]*class="relative /g)).toHaveLength(2);
+    const pages = html(
+      createElement(ui.Pagination, {
+        page: 2,
+        pageSize: 10,
+        total: 50,
+        pathname: "/l",
+      }),
+    );
+    const links = pages.match(/<a /g) ?? [];
+    expect(links.length).toBeGreaterThan(2);
+    expect(pages.match(MARK)).toHaveLength(links.length);
+    const table = html(
+      createElement(ui.DataTable<Row>, {
+        columns,
+        rows,
+        rowKey: (r) => r.id,
+        pathname: "/l",
+      }),
+    );
+    // One sortable column, one mark in its header link.
+    expect(table.match(MARK)).toHaveLength(1);
+  });
+
+  it("Pagination: page cells are 44px touch targets", () => {
+    const out = html(
+      createElement(ui.Pagination, {
+        page: 1,
+        pageSize: 10,
+        total: 30,
+        pathname: "/l",
+      }),
+    );
+    expect(out).toContain("h-11 min-w-11");
+    expect(out).not.toContain("h-10 min-w-10");
   });
 
   it("FilterBar: a GET search form that carries the tab and drops the page", () => {
@@ -798,6 +1076,52 @@ describe("server-rendered markup", () => {
     expect(menu).toContain("<details");
     expect(menu).toContain('aria-label="Sipariş 10023 işlemleri"');
     expect(menu).toContain("Önce ödeme alınmalı");
+  });
+
+  it("Field stays a label, so the control inside keeps its name", () => {
+    const out = html(
+      withKids(
+        forms.Field,
+        { label: "Kod", hint: "En çok 20 harf" },
+        createElement("input", { name: "code" }),
+      ),
+    );
+    expect(out).toMatch(/^<label /);
+    expect(out).toContain('<input name="code"/>');
+    expect(out).not.toContain("<fieldset");
+  });
+
+  it('Field as="fieldset" groups a checkbox without a label around it', () => {
+    // A label with no `for` labels its first control: a tap on the caption
+    // or the hint flipped the switch ("Online mağaza açık").
+    const out = html(
+      withKids(
+        forms.Field,
+        {
+          as: "fieldset",
+          label: "Mağaza",
+          hint: "Yalnızca kargolu mağaza siparişlerini durdurur.",
+        },
+        createElement(forms.Checkbox, {
+          name: "isShopOpen",
+          label: "Online mağaza açık",
+        }),
+      ),
+    );
+    expect(out).toMatch(/^<fieldset /);
+    expect(out).toContain(">Mağaza</legend>");
+    // The checkbox keeps its own label; nothing else wraps it.
+    expect(out.match(/<label/g)).toHaveLength(1);
+    const describedBy = /<fieldset[^>]*aria-describedby="([^"]+)"/.exec(out);
+    expect(describedBy).not.toBeNull();
+    expect(out).toContain(
+      `<span id="${describedBy?.[1]}" class="text-xs text-[var(--admin-text-mute)]">Yalnızca kargolu`,
+    );
+    // Without a hint there is nothing to describe the group with.
+    const bare = html(
+      withKids(forms.Field, { as: "fieldset", label: "Bildirim" }, "x"),
+    );
+    expect(bare).not.toContain("aria-describedby");
   });
 
   it("an enabled modal renders only its trigger until opened", () => {

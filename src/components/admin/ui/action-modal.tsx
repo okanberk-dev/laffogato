@@ -3,14 +3,12 @@
 import { unstable_rethrow } from "next/navigation";
 import {
   createContext,
-  startTransition,
   useActionState,
   useContext,
   useEffect,
   useId,
   useRef,
   useState,
-  type FormEvent,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -19,8 +17,10 @@ import { createPortal } from "react-dom";
 import { cx } from "@/components/laffogato/cx";
 import type { ActionResult } from "@/lib/admin/action-result";
 
-import { Field, Textarea } from "../forms";
+import { Field, TextInput, Textarea } from "../forms";
+import { announceAdminChange } from "./admin-changed";
 import { BUTTON, MONO_STYLE, type ButtonVariant } from "./styles";
+import { useNoResetSubmit } from "./submit";
 import { adminPortalRoot, useToast } from "./toast";
 
 /**
@@ -78,6 +78,12 @@ export interface ActionModalProps {
   triggerVariant?: ButtonVariant;
   triggerClassName?: string;
   /**
+   * The trigger's accessible name, for a trigger repeated on every row
+   * ("Sil: Latte" rather than a list of "Sil"). Start it with the visible
+   * text so a voice command still finds it.
+   */
+  ariaLabel?: string;
+  /**
    * When set, the trigger is drawn disabled with this reason next to it
    * ("İade yetkisi gerekiyor") and nothing opens. Hiding an action the
    * operator expected is worse than saying why it is off.
@@ -122,6 +128,60 @@ const SIZE: Record<NonNullable<ActionModalProps["size"]>, string> = {
 };
 
 /**
+ * Keeps a refusal from vanishing with its dialog (admin audit KAR-01).
+ *
+ * A refusal is shown inside the dialog. But an action that refuses after
+ * changing the record still revalidates the page, and the new page may no
+ * longer offer the button that owns the dialog: "İptal et ve iade et" that
+ * gets "iade isteği gönderildi ama POS yanıt vermedi" leaves the booking
+ * `refunding`, the plan drops the cancel button, and the dialog went with
+ * it, sentence and all. A confirm that lost a race closed the same way.
+ *
+ * So the last refusal is kept; if the dialog leaves the page without
+ * having been closed, it is shown once as an error toast (which stays
+ * until closed). The answer and the unmount can come in either order: the
+ * page update and the action's answer arrive from the same response.
+ * Pure, exported for tests.
+ */
+export function createRefusalKeeper(tell: (message: string) => void) {
+  let refusal: string | null = null;
+  let closed = false;
+  let gone = false;
+  let told = false;
+  const flush = () => {
+    if (gone && !closed && refusal !== null && !told) {
+      told = true;
+      tell(refusal);
+    }
+  };
+  return {
+    /** A new post: an earlier answer no longer counts. */
+    posting() {
+      refusal = null;
+      told = false;
+    },
+    /** The action's answer (null: it redirected). */
+    answered(result: ActionResult | null) {
+      refusal = result && !result.ok ? result.error : null;
+      flush();
+    },
+    /** The dialog closed: Vazgeç, Esc, the backdrop or a success. */
+    closed() {
+      closed = true;
+    },
+    /** On the page (again: React may mount, unmount and mount in dev). */
+    mounted() {
+      gone = false;
+    },
+    /** Off the page, closed or not. */
+    unmounted() {
+      gone = true;
+      flush();
+    },
+  };
+}
+
+/**
  * A form in a native modal `<dialog>` (`showModal()`: focus stays inside,
  * Esc closes, the page behind is inert). Built for actions that need a
  * reason, a choice or a second look before they run.
@@ -131,6 +191,9 @@ const SIZE: Record<NonNullable<ActionModalProps["size"]>, string> = {
  * - A success closes the dialog and shows the message as a toast (a warning
  *   tone stays until closed).
  * - Each opening starts from a fresh form: no stale error, no old typing.
+ * - A refusal whose dialog left the page unclosed (the re-rendered page no
+ *   longer offers its trigger, or turned it off) comes back as an error
+ *   toast, and a trigger that was turned off never reopens its old dialog.
  * - Rendered through a portal (adminPortalRoot, inside the admin wrapper so
  *   the tokens apply), so it works from inside an ActionMenu or a table cell
  *   whose overflow would clip it.
@@ -156,6 +219,7 @@ export function ActionModal(props: ActionModalProps) {
     trigger,
     triggerVariant = "ghost",
     triggerClassName,
+    ariaLabel,
     disabledReason,
   } = props;
   const [open, setOpen] = useState(false);
@@ -163,6 +227,11 @@ export function ActionModal(props: ActionModalProps) {
   const [session, setSession] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const reasonId = useId();
+
+  // The trigger was turned off under an open dialog (a confirm refused with
+  // "slot taken"): the dialog goes, and so does `open`. Kept, it remounted
+  // the old dialog by itself the moment the button was enabled again.
+  if (disabledReason && open) setOpen(false);
 
   if (disabledReason) {
     return (
@@ -175,6 +244,7 @@ export function ActionModal(props: ActionModalProps) {
         <button
           type="button"
           aria-disabled="true"
+          aria-label={ariaLabel}
           aria-describedby={reasonId}
           onClick={(e) => e.preventDefault()}
           className={cx(BUTTON[triggerVariant], triggerClassName)}
@@ -218,6 +288,7 @@ export function ActionModal(props: ActionModalProps) {
         ref={triggerRef}
         type="button"
         aria-haspopup="dialog"
+        aria-label={ariaLabel}
         onClick={() => {
           setSession((n) => n + 1);
           setOpen(true);
@@ -261,23 +332,28 @@ function ModalDialog({
   const titleId = `${baseId}-title`;
   const descId = `${baseId}-desc`;
   const confirmId = `${baseId}-confirm`;
+  const [keeper] = useState(() =>
+    createRefusalKeeper((message) => toast.show({ tone: "danger", message })),
+  );
 
   const [state, formAction, pending] = useActionState<
     ActionResult | null,
     FormData
   >(async (prev, formData) => {
+    keeper.posting();
     let result: ActionResult;
     try {
       result = await action(prev, formData);
     } catch (err) {
       // redirect() / notFound() are Next's own control flow: let them run.
       unstable_rethrow(err);
-      return {
+      result = {
         ok: false,
         error:
           "Bir hata oldu ve işlem yarıda kalmış olabilir. Sayfayı yenileyip durumu kontrol et.",
       };
     }
+    keeper.answered(result ?? null);
     if (!result) {
       // An action that answered nothing (it redirected): nothing to show here.
       dialogRef.current?.close();
@@ -285,6 +361,7 @@ function ModalDialog({
     }
     if (result.ok) {
       if (toastOnSuccess) toast.fromResult(result);
+      announceAdminChange();
       dialogRef.current?.close();
       onSuccess?.(result);
     }
@@ -296,16 +373,16 @@ function ModalDialog({
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
+  useEffect(() => {
+    keeper.mounted();
+    return () => keeper.unmounted();
+  }, [keeper]);
+
   // Dispatched by hand rather than through `<form action>`: React resets an
-  // action form's uncontrolled fields when the action finishes, which would
-  // wipe the reason the operator typed every time the server refuses it.
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (pending) return;
-    const submitter = (e.nativeEvent as SubmitEvent).submitter;
-    const formData = new FormData(e.currentTarget, submitter);
-    startTransition(() => formAction(formData));
-  };
+  // action form's uncontrolled fields once the action finishes, whatever it
+  // answers, which would wipe the reason the operator typed every time the
+  // server refuses it.
+  const onSubmit = useNoResetSubmit(formAction, pending);
 
   const fieldErrors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const ctx: ActionModalState = {
@@ -337,7 +414,10 @@ function ModalDialog({
       ref={dialogRef}
       aria-labelledby={titleId}
       aria-describedby={description ? descId : undefined}
-      onClose={onClosed}
+      onClose={() => {
+        keeper.closed();
+        onClosed();
+      }}
       onCancel={(e) => {
         // Esc while the action runs would hide a result the operator needs.
         if (pending) e.preventDefault();
@@ -396,7 +476,7 @@ function ModalDialog({
                   </>
                 )}
               </label>
-              <input
+              <TextInput
                 id={confirmId}
                 name="confirm"
                 value={typed}
@@ -404,7 +484,6 @@ function ModalDialog({
                 autoComplete="off"
                 autoCapitalize="off"
                 spellCheck={false}
-                className="w-full rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm"
               />
             </div>
           ) : null}
@@ -476,6 +555,8 @@ export interface ConfirmButtonProps {
   confirmPhrase?: string;
   disabledReason?: string;
   onSuccess?: ActionModalProps["onSuccess"];
+  /** The trigger's accessible name on a repeated row ("Sil: Latte"). */
+  ariaLabel?: string;
 }
 
 /**
@@ -487,6 +568,7 @@ export interface ConfirmButtonProps {
  *   action={deletePromoAction}
  *   hidden={{ id: promo.id }}
  *   label="Sil"
+ *   ariaLabel={`Sil: ${promo.code}`}
  *   description={`${promo.code} kalıcı olarak silinir.`}
  * />
  */
@@ -504,6 +586,7 @@ export function ConfirmButton({
   confirmPhrase,
   disabledReason,
   onSuccess,
+  ariaLabel,
 }: ConfirmButtonProps) {
   const r = reason === true ? {} : reason || null;
   const reasonName = r?.name ?? "reason";
@@ -515,6 +598,7 @@ export function ConfirmButton({
       trigger={label}
       triggerVariant={variant ?? (tone === "danger" ? "danger" : "ghost")}
       triggerClassName={className}
+      ariaLabel={ariaLabel}
       submitLabel={
         confirmLabel ?? (typeof label === "string" ? label : "Onayla")
       }
