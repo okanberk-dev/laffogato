@@ -21,7 +21,7 @@ export interface MenuItem {
    * Public path to a product photo in public/menu/. The three matcha photos
    * came with the August menu; the rest are representative stock photos
    * (opaque 900 px squares, sources in docs/MENU-PHOTOS.md), and the menu
-   * says so next to them ("Görseller temsilidir.").
+   * says so next to them ("Görseller temsilidir").
    */
   image?: string;
 }

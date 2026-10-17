@@ -4345,7 +4345,7 @@ summary:focus-visible,
 .menu-card-name {
   font-size: 19px;
 }
-/* "Görseller temsilidir." under the menu grid and the home rail
+/* "Görseller temsilidir" under the menu grid and the home rail
    (menu-photo-note.tsx): most menu photos are stock photos. */
 .menu-photo-note {
   margin: 14px 0 0;

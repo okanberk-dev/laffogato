@@ -30,7 +30,7 @@ vi.mock("next/image", () => ({
 /**
  * The stock menu photos (17 Oct 2026, docs/MENU-PHOTOS.md): the migration
  * that wires them into the live menu, the files it points at, the bundled
- * seed that carries the same paths, and the "Görseller temsilidir." line the
+ * seed that carries the same paths, and the "Görseller temsilidir" line the
  * menu shows next to them.
  */
 
@@ -209,7 +209,7 @@ describe("the bundled seed", () => {
   });
 });
 
-describe('"Görseller temsilidir." on the menu', () => {
+describe('"Görseller temsilidir" on the menu', () => {
   const props = {
     navigate: () => {},
     addToCart: () => {},
@@ -238,7 +238,7 @@ describe('"Görseller temsilidir." on the menu', () => {
         { name: "Su", desc: "0,5 lt.", price: "60₺", hue: "stone" },
       ]),
     });
-    expect(MENU_PHOTO_NOTE).toBe("Görseller temsilidir.");
+    expect(MENU_PHOTO_NOTE).toBe("Görseller temsilidir");
     expect(html).toContain(`<p class="menu-photo-note">${MENU_PHOTO_NOTE}</p>`);
     expect(html.indexOf("menu-photo-note")).toBeGreaterThan(
       html.indexOf('class="menu-grid"'),

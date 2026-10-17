@@ -95,7 +95,7 @@ uydurma bir sicil numarası yayımlamaz.
 `public/menu/` altında bir fotoğraf var (`image` alanı); Ağustos'taki üç matcha
 fotoğrafı dışındakiler CC0 ya da Public Domain Mark stok fotoğraflarıdır, atıf
 istemez (kaynaklar `docs/MENU-PHOTOS.md`) ve menü yanlarında "Görseller
-temsilidir." der. Fotoğrafı olmayan kalemde `menu-visuals.tsx` her içecek ve
+temsilidir" der. Fotoğrafı olmayan kalemde `menu-visuals.tsx` her içecek ve
 tatlı ailesi için parametrik SVG üretir; kategori bazlı bir yönlendirici hangi
 çizimin kullanılacağına karar verir. Telif riski yok, boyut birkaç KB.
 

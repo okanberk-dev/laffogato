@@ -29,7 +29,7 @@ hem uygulama tarafında yükle"_.
   sahnesini `scripts/backfill-backdrops.mjs` seçer (önce kuru koşu, sonra
   `--apply`); Ağustos'taki üç fotoğrafın da seçimi henüz yok. Çalışana dek
   uygulama sahneyi bugünkü gibi `hue`'dan çizer.
-- Sitede "Görseller temsilidir." notu (`menu-photo-note.tsx`): menü ızgarasının
+- Sitede "Görseller temsilidir" notu (`menu-photo-note.tsx`): menü ızgarasının
   altında (`/menu`, `/menu/<kategori>` ve `/masa/<kod>`, hepsi `PageMenu`) ve
   ana sayfadaki "Şimdi barda olanlar" şeridinin altında. Ekranda en az bir
   fotoğraf varken çizilir.

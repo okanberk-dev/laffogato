@@ -5000,7 +5000,7 @@ insert into public._migrations (name) values ('20261017100000_admin_order_manage
 -- CC0 or marked Public Domain (commercial use, no attribution required),
 -- cropped to a 900 px square WebP in public/menu/. Source, creator and licence
 -- for every file: docs/MENU-PHOTOS.md. They show the kind of product, not the
--- one served, and the menu says so next to them ("Görseller temsilidir.").
+-- one served, and the menu says so next to them ("Görseller temsilidir").
 --
 -- `image` gets a site-relative path, the same form as the three photos the
 -- August menu shipped with (20260827124000_menu_two_sizes_and_photos.sql).
