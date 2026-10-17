@@ -4,10 +4,17 @@ import {
   AdminSidebar,
   type AdminNavGroup,
 } from "@/components/admin/admin-sidebar";
+import { PanelHomeProvider } from "@/components/admin/panel-home";
 import { ToastProvider } from "@/components/admin/ui/toast";
 import { getAdminSession } from "@/lib/admin/auth";
 import { readAdminFlash } from "@/lib/admin/flash";
-import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
+import {
+  canAccess,
+  landingPathFor,
+  ROLE_LABELS,
+  type AdminSection,
+} from "@/lib/admin/roles";
+import { searchSectionsFor } from "@/lib/admin/search";
 
 import { logoutAction } from "./actions";
 
@@ -85,6 +92,12 @@ interface NavItemDef {
   href: string;
   label: string;
   section: AdminSection;
+  /**
+   * Its own icon (admin-sidebar.tsx ICONS) where entries share a section:
+   * NavIcon was keyed by section, so the six Mobil Uygulama entries were a
+   * column of identical phones (SHE-18, CON-19).
+   */
+  icon?: string;
 }
 
 const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
@@ -102,7 +115,11 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         label: "Kategoriler",
         section: "categories",
       },
-      { href: "/admin/magaza-hero", label: "Mağaza Hero", section: "shopHero" },
+      {
+        href: "/admin/magaza-hero",
+        label: "Mağaza vitrini",
+        section: "shopHero",
+      },
     ],
   },
   {
@@ -116,6 +133,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/anasayfa-hero",
         label: "Anasayfa slaytları",
         section: "content",
+        icon: "homeSlides",
       },
     ],
   },
@@ -126,26 +144,31 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/mobil/slaytlar",
         label: "Slaytlar",
         section: "mobileApp",
+        icon: "appSlides",
       },
       {
         href: "/admin/mobil/duyurular",
         label: "Duyurular",
         section: "mobileApp",
+        icon: "appAnnouncements",
       },
       {
         href: "/admin/mobil/gonderiler",
         label: "Gönderiler",
         section: "mobileApp",
+        icon: "appPosts",
       },
       {
         href: "/admin/mobil/canli-durum",
         label: "Canlı durum",
         section: "mobileApp",
+        icon: "appLive",
       },
       {
         href: "/admin/mobil/fal-bildirimleri",
         label: "fA'L bildirimleri",
         section: "mobileApp",
+        icon: "appFal",
       },
       {
         href: "/admin/mobil/ayarlar",
@@ -174,6 +197,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/bulten/kampanya",
         label: "Kampanya e-postası",
         section: "newsletter",
+        icon: "campaign",
       },
       { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
       { href: "/admin/stok-hareketleri", label: "Stok", section: "stock" },
@@ -225,6 +249,7 @@ export default async function AdminLayout({
     title: g.title,
     items: g.items.filter((i) => canAccess(i.section, session.role)),
   })).filter((g) => g.items.length > 0);
+  const landingPath = landingPathFor(session.role);
 
   return (
     <div
@@ -233,13 +258,19 @@ export default async function AdminLayout({
       style={adminFontStyle}
     >
       <ToastProvider flash={flash}>
-        <AdminSidebar
-          groups={groups}
-          email={session.email}
-          roleLabel={ROLE_LABELS[session.role]}
-          logout={logoutAction}
-        />
-        <div className="lg:pl-64">{children}</div>
+        <PanelHomeProvider href={landingPath}>
+          {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
+              the search, at every width, mounted once). */}
+          <AdminSidebar
+            groups={groups}
+            email={session.email}
+            roleLabel={ROLE_LABELS[session.role]}
+            landingPath={landingPath}
+            logout={logoutAction}
+            canSearch={searchSectionsFor(session.role).length > 0}
+          />
+          <div className="lg:pl-64 print:pl-0">{children}</div>
+        </PanelHomeProvider>
       </ToastProvider>
     </div>
   );

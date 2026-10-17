@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect } from "react";
 
 import { Card, PageHeader } from "@/components/admin/forms";
+import { PanelHomeLink } from "@/components/admin/panel-home";
 
 /**
  * The panel's own error boundary.
@@ -17,13 +17,17 @@ import { Card, PageHeader } from "@/components/admin/forms";
  *
  * Rendered INSIDE admin/layout.tsx, so the sidebar stays on screen and the
  * operator is one click from any other page.
+ *
+ * "Tekrar dene" is `retry` (Next 16.3): it fetches the page again from the
+ * server. `reset` only re-rendered what had already failed, so after a
+ * database stumble the button showed this same screen again.
  */
 export default function AdminError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
   useEffect(() => {
     // Message + digest only: no request body, no member row, nothing personal.
@@ -45,17 +49,14 @@ export default function AdminError({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={reset}
+            onClick={() => retry()}
             className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             Tekrar dene
           </button>
-          <Link
-            href="/admin"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-5 text-sm text-[var(--admin-text-soft)]"
-          >
+          <PanelHomeLink className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-5 text-sm text-[var(--admin-text-soft)]">
             Panele dön
-          </Link>
+          </PanelHomeLink>
         </div>
         {error.digest && (
           <p

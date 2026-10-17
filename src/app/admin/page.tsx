@@ -22,10 +22,6 @@ import { istanbulClock } from "@/lib/mobile/venue";
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
 
-interface PageProps {
-  searchParams: Promise<{ denied?: string }>;
-}
-
 function turkishGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 6) return "İyi geceler";
@@ -62,9 +58,8 @@ function todayLabel(): string {
   }).format(new Date());
 }
 
-export default async function AdminDashboardPage({ searchParams }: PageProps) {
+export default async function AdminDashboardPage() {
   const session = await requireRole("dashboard");
-  const sp = await searchParams;
   const now = new Date();
   const showKaraoke = canAccess("karaoke", session.role);
   const [stats, recent, settings, mail, karaoke] = await Promise.all([
@@ -159,12 +154,8 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         description="Canlı veritabanı - tüm değişiklikler anında siteye yansır."
       />
 
-      {sp.denied && (
-        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin bölümler
-          nav&apos;da görünüyor.
-        </div>
-      )}
+      {/* `?denied=1` is answered by the shell, on every landing page
+          (admin-sidebar.tsx DeniedNotice), not only here. */}
 
       {/*
         An unverified sending domain is not a degraded feature, it is a closed
