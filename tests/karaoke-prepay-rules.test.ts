@@ -245,6 +245,7 @@ describe("the booking form", () => {
       consentDocs: ["karaoke-odasi-rezervasyon"],
       privacyDoc: "kvkk-aydinlatma-metni",
       cancellationRules: [REFUND, NO_REFUND],
+      taxRatePct: 20,
     },
     unavailable: false,
     capacity: 8,

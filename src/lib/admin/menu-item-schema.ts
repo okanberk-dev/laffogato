@@ -5,6 +5,7 @@ import {
   MONEY_TOO_LARGE_ERROR,
   parseMoneyInput,
 } from "@/lib/utils/format";
+import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
 
 /**
  * The menu item form's checked fields: name and the two prices.
@@ -52,4 +53,16 @@ export const menuItemFieldsSchema = z.object({
     if (!text || text === "-") return 0;
     return readPrice(text, ctx);
   }),
+  // The item's own KDV rate: "" (or absent) is the menu default, null.
+  taxRatePct: z
+    .string()
+    .optional()
+    .transform((raw, ctx) => {
+      const parsed = parseTaxRateInput(raw);
+      if (!parsed.ok) {
+        ctx.addIssue({ code: "custom", message: TAX_RATE_INPUT_ERROR });
+        return z.NEVER;
+      }
+      return parsed.value;
+    }),
 });

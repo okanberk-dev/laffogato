@@ -55,6 +55,7 @@ type ParsedMenuInput = ReturnType<typeof parseInput> & {
   name: string;
   priceMinor: number;
   priceMinorL: number;
+  taxRatePct: number | null;
 };
 
 /**
@@ -69,6 +70,7 @@ function readMenuForm(
     name: String(formData.get("name") ?? ""),
     price: String(formData.get("price") ?? ""),
     priceL: String(formData.get("priceL") ?? ""),
+    taxRatePct: String(formData.get("taxRatePct") ?? ""),
   });
   if (!fields.success) {
     return {
@@ -86,6 +88,7 @@ function readMenuForm(
       name: fields.data.name,
       priceMinor: fields.data.price,
       priceMinorL: fields.data.priceL,
+      taxRatePct: fields.data.taxRatePct ?? null,
     },
   };
 }
@@ -229,7 +232,11 @@ export async function updateMenuItemAction(
     action: "update",
     entity: "menu_item",
     entityId: id,
-    payload: { name: input.name, categoryKey: input.categoryKey },
+    payload: {
+      name: input.name,
+      categoryKey: input.categoryKey,
+      taxRatePct: input.taxRatePct,
+    },
   });
   revalidateMenu();
   revalidatePath(`/admin/menu/${id}/duzenle`);

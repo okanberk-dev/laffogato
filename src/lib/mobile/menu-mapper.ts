@@ -24,6 +24,12 @@ import {
 } from "@/lib/admin/image-url";
 import { MENU as SEED_MENU } from "@/components/laffogato/data";
 import { addressLines } from "@/lib/utils/format";
+import {
+  LEGAL_TAX_RATES,
+  menuItemTaxRate,
+  productTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 
 import {
   DEFAULT_MOBILE_APP_CONFIG,
@@ -219,6 +225,11 @@ export interface MobileMenuItem extends MobileScene {
   tags: string[];
   hue: string;
   image: string | null;
+  /**
+   * The KDV rate (whole %) inside `priceMinor`: the item's own, else the
+   * menu default from Ayarlar > Vergi. Additive (17 Eki 2026, §1).
+   */
+  taxRatePct: number;
 }
 
 export interface MobileMenuCategory {
@@ -230,9 +241,15 @@ export interface MobileMenuCategory {
   items: MobileMenuItem[];
 }
 
+/**
+ * `rates` are the panel's defaults (`settings.taxRates`); the loader always
+ * passes them. The legal defaults stand in only for a caller with no
+ * settings at hand (tests, fixtures).
+ */
 export function toMobileMenuItem(
   it: AdminMenuItem,
   siteUrl: string,
+  rates: TaxRates = LEGAL_TAX_RATES,
 ): MobileMenuItem {
   const image = it.image
     ? absoluteImageUrl(
@@ -256,6 +273,7 @@ export function toMobileMenuItem(
     // the photo is untouched. docs/API-MOBILE.md §1.
     image,
     ...toMobileScene(it, image !== null),
+    taxRatePct: menuItemTaxRate(it, rates),
   };
 }
 
@@ -269,6 +287,7 @@ export function buildMobileMenuCategories(
   items: readonly AdminMenuItem[],
   keys: readonly string[],
   siteUrl: string,
+  rates: TaxRates,
 ): MobileMenuCategory[] {
   const out: MobileMenuCategory[] = [];
   for (const key of keys) {
@@ -277,7 +296,7 @@ export function buildMobileMenuCategories(
     const active = items
       .filter((it) => it.categoryKey === key && it.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((it) => toMobileMenuItem(it, siteUrl));
+      .map((it) => toMobileMenuItem(it, siteUrl, rates));
     out.push({
       key,
       title: meta.title,
@@ -342,11 +361,19 @@ export interface MobileShopProduct extends MobileScene {
   variants: MobileShopVariant[];
   /** Only on `category === "beans"` (contract §2). */
   grinds?: string[];
+  /**
+   * The KDV rate (whole %) inside `priceMinor` and every variant's price: the
+   * product's own, else its category's default from Ayarlar > Vergi.
+   * Additive (17 Eki 2026, §2).
+   */
+  taxRatePct: number;
 }
 
+/** `rates` as in `toMobileMenuItem`: the loader passes the panel's. */
 export function toMobileShopProduct(
   p: AdminProduct,
   siteUrl: string,
+  rates: TaxRates = LEGAL_TAX_RATES,
 ): MobileShopProduct {
   const first = p.images[0];
   const image = first
@@ -408,6 +435,7 @@ export function toMobileShopProduct(
         priceMinor: p.priceMinor + v.priceDeltaMinor,
         inStock: v.stock > 0,
       })),
+    taxRatePct: productTaxRate(p, rates),
   };
   if (p.cat === "beans") product.grinds = [...BEAN_GRINDS];
   return product;

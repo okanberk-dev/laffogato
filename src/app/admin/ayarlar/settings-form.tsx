@@ -14,6 +14,12 @@ import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import type { AdminSettings } from "@/lib/admin/store";
 import type { EmailHealth } from "@/lib/email/health";
+import {
+  LEGAL_TAX_RATES,
+  TAX_RATE_KEYS,
+  TAX_RATE_LABELS,
+  type TaxRateKey,
+} from "@/lib/utils/kdv";
 
 import {
   saveEmailSenderAction,
@@ -264,22 +270,51 @@ function HoursTab({ settings }: { settings: AdminSettings }) {
   );
 }
 
+/** What each default covers, and the rate the law gives it (src/lib/utils/kdv.ts). */
+const TAX_HINTS: Record<TaxRateKey, string> = {
+  menu: "Kafede satılan yiyecek ve içecek: masada, gel-al ya da kuryeyle. Yasal oran %10 (alkollü içecek olsaydı %20).",
+  karaoke: "Oda kiralama bir eğlence hizmeti: genel oran %20.",
+  beans: "Paketli kavrulmuş ya da öğütülmüş kahve: %1.",
+  pantry: "Krema, şurup, şeker, kakao ürünü gibi paketli gıda: %1.",
+  gift: "Kutunun içine göre değişir. Kahve ve fincan bir aradaysa %20 güvenli seçim.",
+  gear: "Değirmen, moka pot, fincan gibi ekipman: %20.",
+  merch: "Önlük, çanta, tişört gibi marka ürünleri: %20.",
+};
+
 function TaxTab({ settings }: { settings: AdminSettings }) {
   const [state, action, pending] = useActionState(saveTaxAction, initial);
   return (
     <form action={action}>
-      <Section title="Vergi">
-        <Field
-          label="KDV oranı (%)"
-          hint="Sepet alt toplamına uygulanır. Türkiye'de standart %20."
-        >
-          <TextInput
-            name="taxRatePct"
-            inputMode="decimal"
-            defaultValue={String(settings.taxRatePct)}
-            required
-          />
-        </Field>
+      <Section title="KDV oranları">
+        <p className="mb-4 text-sm text-neutral-600">
+          Fiyatlar KDV dahil. Oran fiyatı değiştirmez, yalnız fişte ve
+          uygulamada fiyatın içindeki KDV&apos;yi gösterir. Kendi oranı seçili
+          ürün ya da menü kalemi bu varsayılanı kullanmaz. Kargo ve kurye ücreti
+          taşıdığı ürünün oranını alır. Değişiklik yeni siparişlere uygulanır,
+          verilmiş siparişin fişi değişmez. Oranları muhasebecinle teyit et.
+        </p>
+        <div className="grid gap-5 sm:grid-cols-2">
+          {TAX_RATE_KEYS.map((key) => (
+            <Field
+              key={key}
+              label={`${TAX_RATE_LABELS[key]} (%)`}
+              hint={TAX_HINTS[key]}
+            >
+              <TextInput
+                name={`taxRate_${key}`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={100}
+                step={1}
+                defaultValue={String(
+                  settings.taxRates?.[key] ?? LEGAL_TAX_RATES[key],
+                )}
+                required
+              />
+            </Field>
+          ))}
+        </div>
         <SaveBar state={state} pending={pending} />
       </Section>
     </form>

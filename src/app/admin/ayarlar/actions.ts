@@ -20,6 +20,13 @@ import {
 } from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth } from "@/lib/email/health";
 import { parseMoneyInput } from "@/lib/utils/format";
+import {
+  parseTaxRateInput,
+  TAX_RATE_INPUT_ERROR,
+  TAX_RATE_KEYS,
+  TAX_RATE_LABELS,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 
 export interface SettingsState {
   message?: string;
@@ -150,25 +157,38 @@ export async function saveHoursAction(
   });
 }
 
+/**
+ * The KDV defaults (Ayarlar > Vergi): one whole-number rate per kind of sale,
+ * `taxRate_<key>` in the form. Every field is required here - "use the
+ * default" is a product's or a menu item's choice, not the default's.
+ *
+ * The old single rate kept two decimals ("1.5" passed) and wrote them into
+ * an integer column, which the database refused. Rates are whole numbers.
+ */
 export async function saveTaxAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const raw = String(formData.get("taxRatePct") ?? "")
-    .replace(",", ".")
-    .trim();
-  const v = parseFloat(raw);
-  if (!Number.isFinite(v) || v < 0 || v > 100) {
-    return { error: "Vergi oranı 0 ile 100 arasında olmalı." };
+  const taxRates = {} as TaxRates;
+  for (const key of TAX_RATE_KEYS) {
+    const parsed = parseTaxRateInput(formData.get(`taxRate_${key}`));
+    if (!parsed.ok || parsed.value === null) {
+      return {
+        error: `${TAX_RATE_LABELS[key]}: ${TAX_RATE_INPUT_ERROR}`,
+      };
+    }
+    taxRates[key] = parsed.value;
   }
-  const taxRatePct = Math.round(v * 100) / 100;
   const before = await getSettings();
-  await updateSettings({ taxRatePct });
+  await updateSettings({ taxRates });
   revalidateAll();
-  return ok("tax", "Vergi oranı kaydedildi.", {
-    before: { taxRatePct: before.taxRatePct },
-    after: { taxRatePct },
+  // The menu, the shop and karaoke pages print these rates.
+  revalidatePath("/admin/menu");
+  revalidatePath("/admin/urunler");
+  return ok("tax", "KDV oranları kaydedildi.", {
+    before: { taxRates: before.taxRates },
+    after: { taxRates },
   });
 }
 

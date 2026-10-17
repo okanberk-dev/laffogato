@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/forms";
 import { MenuItemForm } from "@/components/admin/menu-item-form";
 import { requireRole } from "@/lib/admin/auth";
-import { getMenuItem } from "@/lib/admin/store";
+import { getMenuItem, getSettings } from "@/lib/admin/store";
 
 import { updateMenuItemAction } from "../../actions";
 
@@ -16,7 +16,7 @@ interface PageProps {
 export default async function EditMenuItemPage({ params }: PageProps) {
   await requireRole("menu");
   const { id } = await params;
-  const item = await getMenuItem(id);
+  const [item, settings] = await Promise.all([getMenuItem(id), getSettings()]);
   if (!item) notFound();
 
   const boundUpdate = updateMenuItemAction.bind(null, item.id);
@@ -29,6 +29,7 @@ export default async function EditMenuItemPage({ params }: PageProps) {
         item={item}
         submitLabel="Değişiklikleri kaydet"
         cancelHref="/admin/menu"
+        menuTaxRate={settings.taxRates.menu}
       />
     </main>
   );

@@ -11,6 +11,12 @@ import {
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { parseMoneyInput } from "@/lib/utils/format";
+import {
+  KDV_RATE_CHOICES,
+  LEGAL_TAX_RATES,
+  productTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 import type {
   AdminCategory,
   AdminProduct,
@@ -124,6 +130,8 @@ export interface ProductWizardProps {
   submitLabel: string;
   /** "wizard" walks step-by-step, "tabs" shows all sections at once. */
   mode: "wizard" | "tabs";
+  /** KDV defaults from Ayarlar > Vergi, to name the category's rate. */
+  taxRates?: TaxRates;
 }
 
 const initialState: ProductActionState = {};
@@ -134,6 +142,7 @@ export function ProductWizard({
   action,
   submitLabel,
   mode,
+  taxRates = LEGAL_TAX_RATES,
 }: ProductWizardProps) {
   const [state, formAction, pending] = useActionState(action, initialState);
 
@@ -183,6 +192,16 @@ export function ProductWizard({
   const [weightGrams, setWeightGrams] = useState(
     String(product?.weightGrams ?? 250),
   );
+  // "" = the category's default; a number = the product's own rate.
+  const [taxRate, setTaxRate] = useState(
+    typeof product?.taxRatePct === "number" ? String(product.taxRatePct) : "",
+  );
+  const categoryTaxRate = productTaxRate({ cat }, taxRates);
+  const effectiveTaxRate = taxRate === "" ? categoryTaxRate : Number(taxRate);
+  // A stored rate the standard list does not have stays selectable.
+  const taxRateChoices = KDV_RATE_CHOICES.includes(effectiveTaxRate)
+    ? KDV_RATE_CHOICES
+    : [...KDV_RATE_CHOICES, effectiveTaxRate].sort((a, b) => a - b);
 
   const [variants, setVariants] = useState<VariantRow[]>(
     product?.variants?.map(variantToRow) ?? [],
@@ -510,15 +529,37 @@ export function ProductWizard({
             </Field>
           </div>
 
-          <Field label="Ağırlık (gram)" hint="Kargo hesabı için.">
-            <TextInput
-              name="weightGrams"
-              type="number"
-              min={0}
-              value={weightGrams}
-              onChange={(e) => setWeightGrams(e.target.value)}
-            />
-          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Ağırlık (gram)" hint="Kargo hesabı için.">
+              <TextInput
+                name="weightGrams"
+                type="number"
+                min={0}
+                value={weightGrams}
+                onChange={(e) => setWeightGrams(e.target.value)}
+              />
+            </Field>
+            <Field
+              label="KDV oranı"
+              hint={
+                fieldError("taxRatePct") ??
+                "Fiyat KDV dahil; oran fiyatı değiştirmez. Kahve ve gıda %1, ekipman ve hediye %20. Varsayılanlar Ayarlar > Vergi'de."
+              }
+            >
+              <Select
+                name="taxRatePct"
+                value={taxRate}
+                onChange={(e) => setTaxRate(e.target.value)}
+              >
+                <option value="">Kategorinin oranı (%{categoryTaxRate})</option>
+                {taxRateChoices.map((r) => (
+                  <option key={r} value={String(r)}>
+                    %{r}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
         </div>
       ),
     },
@@ -880,6 +921,10 @@ export function ProductWizard({
                       .join(" · ")
                   : "Yok"
               }
+            />
+            <SummaryRow
+              k="KDV"
+              v={`%${effectiveTaxRate} dahil${taxRate === "" ? " (kategorinin oranı)" : ""}`}
             />
             <SummaryRow k="Stok" v={`${stock} adet`} />
             <SummaryRow k="SKU" v={sku || "-"} mono />

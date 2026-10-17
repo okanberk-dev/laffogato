@@ -7,6 +7,7 @@ import {
   type KaraokeQuote,
 } from "./karaoke-quote";
 import { karaokeCancelDeadline } from "./karaoke-time";
+import { isTaxRate } from "@/lib/utils/kdv";
 
 export * from "./karaoke-time";
 
@@ -177,6 +178,12 @@ export interface KaraokeReservation {
    * reached through its signed link (karaoke-link.ts) only.
    */
   guest?: boolean;
+  /**
+   * The karaoke KDV rate (whole %) the booking was made at, from
+   * `settings.taxRates.karaoke`; its total includes it. null (or absent) on
+   * bookings made before 20261017150000_kdv_rates.sql.
+   */
+  taxRatePct?: number | null;
 }
 
 /** What the web form collects about who to reach for a booking. */
@@ -264,6 +271,11 @@ export interface KaraokeAvailability {
   privacyDoc: string;
   /** The cancellation rule, verbatim, to print above the boxes. */
   cancellationRules: string[];
+  /**
+   * Additive (17 Eki 2026, §7): the KDV rate (whole %) inside `hourlyMinor`
+   * and every total, from Ayarlar > Vergi (`settings.taxRates.karaoke`).
+   */
+  taxRatePct: number;
 }
 
 /** Wire shape of a reservation - an explicit allow-list (§7). */
@@ -287,6 +299,11 @@ export interface KaraokeReservationJson {
   paymentDueAt: string;
   /** Last moment the member may cancel it themselves (ISO, 2 h before). */
   cancellableUntil: string;
+  /**
+   * Additive (17 Eki 2026, §7): the KDV rate the booking was made at; its
+   * total includes it. null on bookings made before rates were recorded.
+   */
+  taxRatePct: number | null;
 }
 
 export function toReservationJson(
@@ -307,6 +324,7 @@ export function toReservationJson(
     paymentStatus,
     paymentDueAt: paymentStatus === "pending" ? (r.paymentDueAt ?? "") : "",
     cancellableUntil: karaokeCancelDeadline(r).toISOString(),
+    taxRatePct: isTaxRate(r.taxRatePct) ? r.taxRatePct : null,
   };
 }
 

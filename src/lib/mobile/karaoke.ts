@@ -16,6 +16,7 @@ import {
 
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
+import { karaokeTaxRate } from "@/lib/utils/kdv";
 
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
 import { karaokeLinkUrl } from "./karaoke-link";
@@ -156,6 +157,7 @@ export async function getAvailability(
     consentDocs: [...KARAOKE_CONSENT_DOCS],
     privacyDoc: "kvkk-aydinlatma-metni",
     cancellationRules: [KARAOKE_REFUND_RULE, KARAOKE_NO_REFUND_RULE],
+    taxRatePct: karaokeTaxRate(settings.taxRates),
   };
 }
 
@@ -421,6 +423,9 @@ export async function createReservation(
     channel: options.channel ?? "",
     legalConsent: prepay ? (options.legalConsent ?? null) : null,
     guest,
+    // The rate at booking time: a later change in the panel leaves this
+    // booking's receipt as it was.
+    taxRatePct: karaokeTaxRate(settings.taxRates),
   };
 
   const sb = getDb();
