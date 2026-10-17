@@ -251,14 +251,20 @@ export function BulkActionBar({
   }, [open]);
 
   if (!open) return null;
+  const space = bulkBarSpace(barHeight);
   return (
     <>
+      {/* The toast stack sits this far up while the bar is open
+          (ui/toast.tsx); a fixed 8rem left it over a two-row phone bar. */}
+      {space > 0 ? (
+        <style>{`:root{--admin-bulk-space:${space}px}`}</style>
+      ) : null}
       {end
         ? createPortal(
             <div
               aria-hidden="true"
               data-admin-bulk-spacer=""
-              style={{ height: bulkBarSpace(barHeight) }}
+              style={{ height: space }}
             />,
             end,
           )

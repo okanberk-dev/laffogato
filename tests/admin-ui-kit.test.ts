@@ -620,6 +620,13 @@ describe("bulk checkboxes and the room under the bar", () => {
     expect(toast.indexOf("{children}")).toBeLessThan(
       toast.indexOf("<div data-admin-portal"),
     );
+    // The toast stack is lifted by the same measured room, not a fixed
+    // 8rem that left it over a two-row phone bar.
+    expect(src).toContain("`:root{--admin-bulk-space:${space}px}`");
+    expect(toast).toContain(
+      "[:root:has([data-admin-bulk-bar])_&]:bottom-[var(--admin-bulk-space,8rem)]",
+    );
+    expect(toast).not.toContain("bulk-bar])_&]:bottom-32");
   });
 });
 

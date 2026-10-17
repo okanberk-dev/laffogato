@@ -73,8 +73,9 @@ export function adminPortalRoot(): HTMLElement {
  * - Success and info fade after 5 s (paused while hovered or focused);
  *   warnings and errors stay until closed.
  * - Fixed at the bottom; when a sticky bulk bar is on the page
- *   (`data-admin-bulk-bar`, bulk.tsx) the stack sits above it, so a bulk
- *   result is never hidden behind the bar that triggered it.
+ *   (`data-admin-bulk-bar`, bulk.tsx) the stack sits above it, by the
+ *   bar's measured height (`--admin-bulk-space`), so a bulk result is
+ *   never hidden behind the bar that triggered it.
  * - `flash`: the one-shot cookie a redirecting action left
  *   (lib/admin/flash.ts), read by the layout. It is shown once per id and
  *   deleted from the browser as soon as it is on screen.
@@ -136,7 +137,7 @@ export function ToastProvider({
       <div
         className={cx(
           "pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col sm:inset-x-auto sm:right-6 sm:w-96",
-          "[:root:has([data-admin-bulk-bar])_&]:bottom-32 sm:[:root:has([data-admin-bulk-bar])_&]:bottom-24",
+          "[:root:has([data-admin-bulk-bar])_&]:bottom-[var(--admin-bulk-space,8rem)]",
         )}
       >
         <ol
