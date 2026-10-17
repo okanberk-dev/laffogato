@@ -154,3 +154,35 @@ describe("the panel draws one focus ring", () => {
     }
   });
 });
+
+describe("printing", () => {
+  const print = atBlock("@media print", "[data-print-receipt]");
+
+  it("prints the receipt alone only on a page that has one", () => {
+    expect(print.start).toBeGreaterThan(-1);
+    // Unscoped, `body *` blanked every other page on paper: the dashboard,
+    // the reports, the legal texts, the menu.
+    expect(print.body).not.toMatch(/[{};] ?body \* \{/);
+    expect(print.body).toContain(
+      "body:where(:has([data-print-receipt])) * { visibility: hidden; }",
+    );
+    expect(print.body).toContain(
+      "[data-print-receipt], [data-print-receipt] * { visibility: visible; }",
+    );
+  });
+
+  it("leaves the receipts' own rules the heavier ones", () => {
+    // :where keeps the hiding rule at the weight of the old `body *`, and
+    // the shared receipt rule stays a bare attribute (0,1,0), so the table
+    // cards' `[data-print-receipt].qr-sheet` (0,2,0) still lays its grid.
+    expect(print.body).toContain(
+      "[data-print-receipt] { display: block !important;",
+    );
+    const sheet = read("src/app/admin/masalar/yazdir/page.tsx");
+    expect(sheet).toContain('data-print-receipt=""');
+    expect(sheet).toContain("[data-print-receipt].qr-sheet {");
+    expect(read("src/components/admin/order-detail.tsx")).toMatch(
+      /data-print-receipt\n/,
+    );
+  });
+});

@@ -6646,14 +6646,20 @@ select {
 }
 
 /* ────────────────────────────────────────────────────────────────
-   Print rules - used by admin order detail "Fiş yazdır"
-   ──────────���───────────────────────────────────────────────────── */
+   Print rules - the pages with a receipt: the order's "Fiş yazdır" and
+   the table cards (admin/masalar/yazdir)
+   ──────────────────────────────────────────────────────────────── */
 @media print {
   body {
     background: #fff !important;
   }
-  /* Hide everything; only the receipt section will be re-shown. */
-  body * {
+  /* On a page with a receipt, hide everything; only the receipt is shown
+     again. Every other page prints as it is: unscoped, this rule blanked
+     the dashboard, the reports, the legal texts (/hukuk) and the menu on
+     paper (SHE-08). `:where` keeps the weight of the old `body *`, so the
+     receipt's own rules here and in masalar/yazdir still win. A browser
+     without :has() skips the rule and prints the whole page. */
+  body:where(:has([data-print-receipt])) * {
     visibility: hidden;
   }
   [data-print-receipt],
