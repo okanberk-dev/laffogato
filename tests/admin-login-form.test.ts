@@ -69,6 +69,20 @@ describe("loginAction", () => {
     }
   });
 
+  it("writes no login_fail when the right credentials met an unreadable account", async () => {
+    signInAdmin.mockResolvedValue({
+      ok: false,
+      unavailable: true,
+      error: "Giriş şu an tamamlanamadı. Biraz sonra tekrar dene.",
+    });
+    const res = await loginAction(
+      {},
+      form({ email: "kasa@laffogato.net", password: "parola" }),
+    );
+    expect(res.error).toMatch(/tamamlanamadı/);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
   it("still checks a 254-character address", async () => {
     const email = `${"a".repeat(240)}@laffogato.net`;
     expect(email).toHaveLength(254);

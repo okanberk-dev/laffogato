@@ -40,6 +40,10 @@ export async function loginAction(
     if (result.throttled) {
       return { error: result.error ?? "Giriş başarısız." };
     }
+    // The credentials were right; the session could not be issued.
+    if (result.unavailable) {
+      return { error: result.error ?? "Giriş başarısız." };
+    }
     await logAudit({
       action: "login_fail",
       entity: "auth",
