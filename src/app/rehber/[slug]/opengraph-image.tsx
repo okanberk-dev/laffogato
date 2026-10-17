@@ -10,7 +10,7 @@ import { SITE } from "@/lib/seo/site";
  */
 export const runtime = "nodejs";
 export const dynamicParams = false;
-export const alt = `${SITE.name} rehberinden bir yazı`;
+export const alt = `${SITE.name} rehberinden bir yazının başlığı ve ilk cümlesi`;
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
 

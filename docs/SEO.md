@@ -102,19 +102,41 @@ Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
   kullanır. Kartı olan sayfa `openGraphBase()` yayar (site adı + dil);
   `openGraphDefaults()` genel kartı adıyla yazdığı için sayfanın kartını
   gizler. `tests/og-images.test.ts` bunu tutar.
-- **Veritabanı yok:** sayfa kartları build sırasında sitenin kendi metni ve
-  `public/` dosyalarıyla çizilir. Tek istisna ürün kartı: ilk istekte
-  `getShopProductBySlug` ile çizilir, bir saat saklanır (ISR); fiyat, sayfanın
-  ilk açtığı varyantın KDV dahil fiyatıdır. Ürün yoksa ya da veritabanı
-  cevap vermezse mağaza kartı, fotoğraf okunamazsa paket çizimi çıkar. Dış
-  (`https://`) fotoğraf çekilmez.
+- **Veritabanı (neredeyse) yok:** sayfa kartları build sırasında sitenin
+  kendi metni ve `public/` dosyalarıyla çizilir. İki istisna:
+  - **Ürün kartı** ilk istekte, sayfanın okuduğu sorguyla (yedeksiz hâli,
+    `getShopProductBySlugLive`) çizilir ve bir saat saklanır (ISR); fiyat,
+    sayfanın ilk açtığı varyantın KDV dahil fiyatıdır. Aktif ürün yoksa kart
+    da sayfa gibi **404**'tür. Veritabanı cevap vermezse kart **hata verir**:
+    saatlik yenilemede son iyi kart sunulmaya devam eder (ilk istekte 500);
+    yerine çizilen bir kart bir saat saklanmaz. Fotoğraf okunamazsa paket
+    çizimi çıkar.
+  - **`/ziyaret` kartı** saatleri panelden (Ayarlar, sayfanın gösterdiği
+    saatler) saatlik okur: yedi gün aynı ve açıksa "Her gün 09:00 - 02:00",
+    farklıysa ya da bir gün kapalıysa saat satırı yok. Build veritabanına
+    bağlanmaz; orada çizilen kart ilk yenilemeye kadar köşkün sabit saatini
+    (`LEGAL_ENTITY.cafeHours`) taşır.
+- **Dış fotoğraf çekilmez.** Panelde "URL yapıştır" ile girilmiş
+  (`https://`) bir ürün fotoğrafı karta gelmez, ürün paket çizimiyle
+  paylaşılır (istek başkasının sunucusunu beklemez; panelin fotoğraf okuyucusu
+  da aynı kuralla çalışır). Kartlardan önce böyle bir ürün o bağlantıyı
+  doğrudan og:image olarak verirdi. 17 Eki 2026'da canlıda fotoğraflı ürün
+  yok; böyle bir ürünün önizlemesinde fotoğraf istenirse fotoğraf panelden
+  **yüklenir**.
+- **`public/` dosyası sabit yolla okunur** (`og-pages.tsx` `PICTURES`):
+  bundler bir fonksiyonun okuyabileceği her dosyayı fonksiyona kopyalar;
+  değişkenle kurulan bir yol bütün `public/`'i (7,7 MB) kök karta, yani her
+  sayfanın fonksiyonuna taşıyordu.
 - **Fotoğraflı kart JPEG'dir** (q88, 50-90 KB): PNG hâlinde 0,3-0,6 MB
   tutuyor, bazı mesajlaşma uygulamaları bu boyutta önizleme göstermeyebiliyor.
 - **Yazı:** next/og'un kendi Geist'i, kerning tablosu bellekte gizlenmiş
   (`withoutKerning`): next/og kelimeyi harf harf ölçüp kernli çizdiği için
   "mikrofon", "Atatürk" gibi kelimelerden sonra boşluk büyüyordu. Geist'te ₺
-  yok; olmayan bir harf next/og'u Google'dan font indirmeye götürür. Fiyat
-  "TL" yazılır, `ogText()` emoji ve ₺ temizler.
+  yok; olmayan bir harf next/og'u Google'dan font, emoji ise Twemoji
+  indirmeye götürür (emoji indirmesi düşerse kart 500 verir). Fiyat "TL"
+  yazılır; `ogText()` veritabanından gelen metinde yalnız Geist'in çizdiği
+  harfleri bırakır (Latin, Türkçe, tırnak, üç nokta …): emoji, bayrak, ✓,
+  CJK düşer. Liste testte Geist'in karakter haritasına karşı tutulur.
 - **Yeni kart:** sayfanın klasörüne iki dosya, `og-pages.tsx`'e bir fonksiyon,
   testteki `ROUTES` listesine bir satır. Başlıkta nokta yok, uzun tire yok.
   Önizlemeyi görmek için:

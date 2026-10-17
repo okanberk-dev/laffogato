@@ -135,6 +135,11 @@ describe("how the pages show them", () => {
     expect(offenders.sort()).toEqual([
       "src/components/laffogato/data.ts",
       "src/components/laffogato/illustration.tsx",
+      // The karaoke link-preview card reads its drawing's bytes, not an
+      // <img>: by a literal path, so the bundler copies that one file into
+      // the function rather than all of public/ (tests/og-images.test.ts
+      // holds the path to the registry's).
+      "src/lib/seo/og-pages.tsx",
     ]);
   });
 

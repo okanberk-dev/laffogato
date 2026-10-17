@@ -1,8 +1,11 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import type { ReactElement } from "react";
 
-import { ILLUSTRATIONS } from "@/components/laffogato/illustration";
+import { DAYS_OF_WEEK, type WeeklyHours } from "@/lib/admin/days";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import type { Guide } from "@/lib/seo/guides";
 import type { MenuCategoryRoute, ShopCategoryRoute } from "@/lib/seo/pages";
@@ -13,7 +16,7 @@ import {
   OgBigMark,
   OgFramedPhoto,
   OgPageCard,
-  ogPublicPhoto,
+  ogPhoto,
   ogText,
 } from "./og-card";
 import {
@@ -28,9 +31,10 @@ import {
  * system). The route files (`src/app/<segment>/opengraph-image.tsx`) only
  * hand these to `ogImage()`.
  *
- * Nothing here reads the database: the cards are drawn at build time from
- * the site's own copy and files, so a database outage cannot blank a
- * preview. A photograph that cannot be read gives way to the mark.
+ * Nothing here reads the database: the cards are drawn from the site's own
+ * copy and files, so a database outage cannot blank a preview. The one
+ * panel value a card prints, the /ziyaret hours, is handed in by its route.
+ * A photograph that cannot be read gives way to the mark.
  */
 
 /** The venue photographs are 3:4. */
@@ -38,12 +42,32 @@ const PORTRAIT = { width: 372, height: 478 };
 /** The karaoke drawing and the shop's product photos are square. */
 const SQUARE = 446;
 
+/**
+ * The cards' pictures, each read from public/ by a literal path. Literal on
+ * purpose: the bundler copies every file a function may read into it, and a
+ * path built from a variable makes it copy all of public/ (7.7 MB) - into
+ * every page that loads a card. The karaoke file is
+ * ILLUSTRATIONS["karaoke-room"]; the test holds the two to the same name.
+ */
+const PICTURES = {
+  karaoke: () =>
+    readFile(join(process.cwd(), "public/illustrations/karaoke-room.webp")),
+  menu: () => readFile(join(process.cwd(), "public/photos/affogato-cup.webp")),
+  visit: () => readFile(join(process.cwd(), "public/photos/facade-night.webp")),
+  story: () => readFile(join(process.cwd(), "public/photos/facade-day.webp")),
+};
+
 async function photoArt(
-  sitePath: string,
+  read: () => Promise<Uint8Array>,
   width: number,
   height: number,
 ): Promise<{ art: ReactElement; artWidth: number }> {
-  const src = await ogPublicPhoto(sitePath, width, height);
+  let src: string | null;
+  try {
+    src = await ogPhoto(await read(), width, height);
+  } catch {
+    src = null;
+  }
   return src
     ? {
         art: <OgFramedPhoto src={src} width={width} height={height} />,
@@ -63,7 +87,7 @@ export async function karaokeCard(): Promise<ReactElement> {
       subtitle="Saatini seç, mikrofon senin"
       detail="Online rezervasyon · Tuzla, İstanbul"
       path="/karaoke"
-      {...await photoArt(ILLUSTRATIONS["karaoke-room"].src, SQUARE, SQUARE)}
+      {...await photoArt(PICTURES.karaoke, SQUARE, SQUARE)}
     />
   );
 }
@@ -76,11 +100,7 @@ export async function menuCard(): Promise<ReactElement> {
       subtitle={SITE.tagline}
       detail="Matcha · Espresso · Buzlu kahve · Affogato"
       path="/menu"
-      {...await photoArt(
-        "/photos/affogato-cup.webp",
-        PORTRAIT.width,
-        PORTRAIT.height,
-      )}
+      {...await photoArt(PICTURES.menu, PORTRAIT.width, PORTRAIT.height)}
     />
   );
 }
@@ -125,21 +145,41 @@ export function shopCategoryCard(cat: ShopCategoryRoute): ReactElement {
   );
 }
 
-export async function visitCard(): Promise<ReactElement> {
-  const { opens, closes } = LEGAL_ENTITY.cafeHours;
+/**
+ * The /ziyaret card's hours line, from the panel's weekly hours as the page
+ * shows them: "Her gün 09:00 - 02:00" when the seven days are open with the
+ * same hours (the page compacts them the same way, visit-page.tsx). When
+ * they differ or a day is closed, one line cannot say it, so there is none;
+ * the page has the rows. Without the panel's hours (the build, an error) the
+ * köşk's constant (LEGAL_ENTITY.cafeHours), as the structured data does.
+ */
+export function visitHoursLine(
+  hours: WeeklyHours | null | undefined,
+): string | undefined {
+  if (!hours) {
+    const { opens, closes } = LEGAL_ENTITY.cafeHours;
+    return `Her gün ${opens} - ${closes}`;
+  }
+  const days = DAYS_OF_WEEK.map((d) => hours[d]);
+  const first = days[0];
+  const same = days.every(
+    (h) => h && !h.closed && h.open === first?.open && h.close === first?.close,
+  );
+  return same && first ? `Her gün ${first.open} - ${first.close}` : undefined;
+}
+
+export async function visitCard(
+  hours?: WeeklyHours | null,
+): Promise<ReactElement> {
   return (
     <OgPageCard
       eyebrow="Ziyaret · Tuzla, İstanbul"
       title="200 yıllık köşkte buluşalım"
-      subtitle={`Her gün ${opens} - ${closes}`}
+      subtitle={visitHoursLine(hours)}
       detail={`${SITE.address.streetAddress.replace(/ İç Kapı.*$/, "")}, Tuzla`}
       path="/ziyaret"
       footer={SITE.address.landmark}
-      {...await photoArt(
-        "/photos/facade-night.webp",
-        PORTRAIT.width,
-        PORTRAIT.height,
-      )}
+      {...await photoArt(PICTURES.visit, PORTRAIT.width, PORTRAIT.height)}
     />
   );
 }
@@ -152,11 +192,7 @@ export async function storyCard(): Promise<ReactElement> {
       subtitle="İlk yurt dışı şubemiz"
       detail="200 yıllık, restore bir köşkte"
       path="/hikayemiz"
-      {...await photoArt(
-        "/photos/facade-day.webp",
-        PORTRAIT.width,
-        PORTRAIT.height,
-      )}
+      {...await photoArt(PICTURES.story, PORTRAIT.width, PORTRAIT.height)}
     />
   );
 }

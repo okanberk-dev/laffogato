@@ -4,28 +4,24 @@ import type { ReactElement } from "react";
 
 import type { Product } from "@/components/laffogato/data";
 import { decodeDataImage } from "@/lib/admin/image-bytes";
-import { getProduct, getShopProductBySlug } from "@/lib/admin/store";
+import { getProduct, getShopProductBySlugLive } from "@/lib/admin/store";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
-import {
-  OG_INK,
-  OgFramedPhoto,
-  OgPageCard,
-  ogPhoto,
-  ogPublicPhoto,
-  ogText,
-} from "./og-card";
+import { OG_INK, OgFramedPhoto, OgPageCard, ogPhoto, ogText } from "./og-card";
 import { OG_BAG_SIZE, OgCoffeeBag } from "./og-drawings";
-import { shopCard } from "./og-pages";
 
 /**
  * The product page's link preview: the product's first photo, its name and
  * the price the page shows first, KDV included.
  *
- * Read at request time (the route revalidates hourly), from the same
- * `getShopProductBySlug` the page reads. Any failure - a missing or inactive
- * product, the database down, a photo sharp cannot read - draws less, never
- * nothing: no photo gives the coffee bag, no product gives the shop's card.
+ * Read at request time (the route revalidates hourly), from the same query
+ * the page reads, without its outage fallback. Three outcomes, as the page
+ * has them:
+ * - the product: its card, with the coffee bag when no photo can be drawn;
+ * - no such active product: null, and the route answers 404 like the page;
+ * - the database down or failing: the read throws. The route then errors,
+ *   so the hourly revalidation keeps the last good card instead of storing a
+ *   stand-in for an hour (the page shows "try again" in that state too).
  */
 
 const PHOTO = 446;
@@ -79,21 +75,19 @@ export function ogProductPrice(
 }
 
 /**
- * The stored first photo as a data URL: an upload (a data URL in the row)
- * or a file the site serves from public/. An https link is not fetched -
- * the same rule as the backdrop reader: a request never waits on someone
- * else's server.
+ * The stored first photo, drawn: an upload (a data URL in the row, what the
+ * panel's uploader stores). A pasted https link is not fetched, the rule
+ * the panel's photo reader keeps too (src/lib/backdrop/scene-core.ts): a
+ * request never waits on someone else's server. Such a product shares the
+ * coffee bag; uploading its photo in the panel brings the photo back
+ * (docs/SEO.md). Null for no photo or bytes sharp cannot read; a database
+ * error throws.
  */
 async function productPhoto(id: string | undefined): Promise<string | null> {
   if (!id) return null;
   const stored = (await getProduct(id))?.images?.[0]?.trim();
-  if (!stored) return null;
-  const upload = decodeDataImage(stored);
-  if (upload) return ogPhoto(upload.body, PHOTO, PHOTO);
-  if (stored.startsWith("/") && !stored.startsWith("//")) {
-    return ogPublicPhoto(stored, PHOTO, PHOTO);
-  }
-  return null;
+  const upload = stored ? decodeDataImage(stored) : null;
+  return upload ? ogPhoto(upload.body, PHOTO, PHOTO) : null;
 }
 
 function PriceLine({ now, was }: { now: string; was?: string }) {
@@ -128,21 +122,10 @@ function PriceLine({ now, was }: { now: string; was?: string }) {
   );
 }
 
-export async function productCard(slug: string): Promise<ReactElement> {
-  let product: Product | null;
-  try {
-    product = await getShopProductBySlug(slug);
-  } catch {
-    product = null;
-  }
-  if (!product) return shopCard();
-
-  let photo: string | null;
-  try {
-    photo = await productPhoto(product.id);
-  } catch {
-    photo = null;
-  }
+export async function productCard(slug: string): Promise<ReactElement | null> {
+  const product: Product | null = await getShopProductBySlugLive(slug);
+  if (!product) return null;
+  const photo = await productPhoto(product.id);
 
   const shelf =
     SHOP_CATEGORY_ROUTES.find((c) => c.productCat === product.cat)

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { readFile } from "node:fs/promises";
-import { join, normalize, sep } from "node:path";
+import { join } from "node:path";
 
 import { ImageResponse } from "next/og";
 import type { ReactElement, ReactNode } from "react";
@@ -62,15 +62,30 @@ export const OG_GROUND = `radial-gradient(circle at 30% 20%, ${OG_INK.greenLight
 export const OG_HOST = SITE.url.replace(/^https?:\/\//, "");
 
 /**
- * Text from the database, safe to set: no emoji (next/og would fetch
- * Twemoji), the lira sign as "TL" (Geist has no ₺), one space between words,
- * and at most `max` characters, cut at a word with an ellipsis.
+ * Every character `ogText` lets through: Latin, Latin-1 and Latin
+ * Extended-A as Geist covers them (it skips a few, the soft hyphen among
+ * them), and the typographic quotes, dashes, bullet, ellipsis, euro and
+ * trade mark. Anything else - an emoji, a flag, a keycap, a check mark, CJK -
+ * would make next/og fetch Twemoji or a Google font while the card renders,
+ * and the emoji fetch has no error handling. `tests/og-images.test.ts` reads
+ * Geist's own character map to hold this list to the font.
+ */
+const OG_UNDRAWABLE =
+  /[^\u0020-\u007E\u00A0-\u00AC\u00AE-\u0113\u0116-\u012B\u012E-\u0137\u0139-\u013E\u0141-\u0148\u014A-\u014D\u0150-\u017E\u2013\u2014\u2018-\u201A\u201C-\u201E\u2020-\u2022\u2026\u2030\u2039\u203A\u20AC\u2122]/gu;
+
+/**
+ * Text from the database, safe to set: only characters Geist draws (so
+ * next/og never fetches a font or an emoji at render time), the lira sign as
+ * "TL" (Geist has no ₺), one space between words, and at most `max`
+ * characters, cut at a word with an ellipsis.
  */
 export function ogText(raw: string | undefined | null, max = 90): string {
   const text = (raw ?? "")
-    .replace(/\p{Extended_Pictographic}|\u{FE0F}|\u{200D}/gu, "")
+    .normalize("NFC")
     .replace(/\s*₺\s*/g, " TL ")
-    .replace(/\s+/g, " ")
+    .replace(/\s/g, " ")
+    .replace(OG_UNDRAWABLE, "")
+    .replace(/ +/g, " ")
     .trim();
   if (text.length <= max) return text;
   const cut = text.slice(0, max - 1);
@@ -243,45 +258,27 @@ export const OG_JPEG = "image/jpeg";
  * JPEGs at q88 they are 50-90 KB and the text stays clean. The drawn cards
  * stay PNG, around 110 KB.
  *
- * If sharp cannot load, the PNG is served: the route's `contentType` then
- * misnames it, and every client reads the bytes anyway.
+ * If sharp cannot load or cannot encode, the PNG is served: the route's
+ * `contentType` then misnames it, and every client reads the bytes anyway.
+ * A card that fails to render is not drawn a second time: the error goes to
+ * the route (a 500, or on revalidation the last good card stays).
  */
 export async function ogJpeg(card: ReactElement): Promise<Response> {
   const sharp = await loadSharp();
   const png = await ogImage(card);
   if (!sharp) return png;
+  // next/og renders while the body is read: a render error throws here.
+  const bytes = Buffer.from(await png.arrayBuffer());
+  const headers = new Headers(png.headers);
+  headers.delete("content-length");
   try {
-    const bytes = Buffer.from(await png.arrayBuffer());
     const jpeg = await sharp(bytes)
       .jpeg({ quality: 88, mozjpeg: true })
       .toBuffer();
-    const headers = new Headers(png.headers);
     headers.set("content-type", OG_JPEG);
-    headers.delete("content-length");
     return new Response(new Uint8Array(jpeg), { headers });
   } catch {
-    return ogImage(card);
-  }
-}
-
-const PUBLIC_DIR = join(process.cwd(), "public");
-
-/**
- * A file the site serves from `public/` (a site-relative path such as
- * "/photos/facade-day.webp"), as `ogPhoto` - or null when it is missing,
- * unreadable or outside `public/`.
- */
-export async function ogPublicPhoto(
-  sitePath: string,
-  width: number,
-  height: number,
-): Promise<string | null> {
-  const file = normalize(join(PUBLIC_DIR, sitePath.split("?")[0]));
-  if (!file.startsWith(PUBLIC_DIR + sep)) return null;
-  try {
-    return await ogPhoto(await readFile(file), width, height);
-  } catch {
-    return null;
+    return new Response(new Uint8Array(bytes), { headers });
   }
 }
 

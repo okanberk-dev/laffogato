@@ -8,24 +8,27 @@ import {
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 
-import type { ReactElement } from "react";
+import { createElement, type ReactElement } from "react";
 import sharp from "sharp";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { OpeningHour, WeeklyHours } from "@/lib/admin/days";
 
 /**
  * The link-preview cards (src/lib/seo/og-card.tsx and the
  * `opengraph-image.tsx` / `twitter-image.tsx` beside each page).
  *
  * Every card is drawn here for real, through next/og, and must come out a
- * 1200 x 630 image in the format its route declares - with the product's
- * database missing, throwing or holding a photo sharp cannot read. Set
- * OG_PREVIEW_DIR to keep the images and look at them: a layout that
- * overflows is caught by eye, not by this file.
+ * 1200 x 630 image in the format its route declares - and the product card
+ * must answer 404 for a missing product and fail, not stand in, when its
+ * database does. Set OG_PREVIEW_DIR to keep the images and look at them: a
+ * layout that overflows is caught by eye, not by this file.
  */
 
 const store = vi.hoisted(() => ({
-  getShopProductBySlug: vi.fn(),
+  getShopProductBySlugLive: vi.fn(),
   getProduct: vi.fn(),
+  getPublicSettings: vi.fn(),
 }));
 vi.mock("@/lib/admin/store", () => store);
 
@@ -133,9 +136,30 @@ async function load(file: string): Promise<ImageModule> {
   return (await import(/* @vite-ignore */ join(APP, file))) as ImageModule;
 }
 
+/** The panel's weekly hours: every day the same unless `over` says. */
+function weekly(over: Partial<WeeklyHours> = {}, every?: OpeningHour) {
+  const day = every ?? { open: "09:00", close: "02:00", closed: false };
+  return Object.fromEntries(
+    ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => [
+      d,
+      over[d as keyof WeeklyHours] ?? day,
+    ]),
+  ) as WeeklyHours;
+}
+
+/** What `notFound()` throws: Next turns it into a 404 for a route. */
+const NOT_FOUND = { digest: expect.stringMatching(/;404$/) };
+
 beforeEach(() => {
-  store.getShopProductBySlug.mockReset();
+  store.getShopProductBySlugLive.mockReset();
   store.getProduct.mockReset();
+  store.getPublicSettings.mockReset();
+  store.getPublicSettings.mockResolvedValue({ weeklyHours: weekly() });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("every card route", () => {
@@ -253,14 +277,92 @@ describe("the page cards' copy", () => {
     }
   });
 
-  it("prints the café hours and the address from their one source", async () => {
-    const { visitCard } = await import("@/lib/seo/og-pages");
+  it("prints the address, and the hours the page prints: the panel's", async () => {
+    const { visitCard, visitHoursLine } = await import("@/lib/seo/og-pages");
     const { LEGAL_ENTITY } = await import("@/lib/legal/entity");
-    const props = (await visitCard()).props as Record<string, string>;
-    expect(props.subtitle).toBe(
+    const props = (await visitCard(weekly())).props as Record<string, string>;
+    expect(props.subtitle).toBe("Her gün 09:00 - 02:00");
+    expect(props.detail).toBe("Postane Mah. Atatürk Cad. No: 28, Tuzla");
+
+    // An edit in Ayarlar reaches the card.
+    const later = { open: "10:00", close: "23:00", closed: false };
+    expect(visitHoursLine(weekly({}, later))).toBe("Her gün 10:00 - 23:00");
+    // "Her gün" only when it is true: a different Sunday or a closed Monday
+    // leaves the line out (the page shows the seven rows).
+    expect(
+      visitHoursLine(
+        weekly({ sun: { open: "10:00", close: "02:00", closed: false } }),
+      ),
+    ).toBeUndefined();
+    expect(
+      visitHoursLine(
+        weekly({ mon: { open: "09:00", close: "02:00", closed: true } }),
+      ),
+    ).toBeUndefined();
+    // No panel hours (the build): the köşk's constant.
+    expect(visitHoursLine(null)).toBe(
       `Her gün ${LEGAL_ENTITY.cafeHours.opens} - ${LEGAL_ENTITY.cafeHours.closes}`,
     );
-    expect(props.detail).toBe("Postane Mah. Atatürk Cad. No: 28, Tuzla");
+  });
+
+  it("reads /ziyaret's hours from the panel at request time, never at build", async () => {
+    const route = await load("ziyaret/opengraph-image.tsx");
+    const source = readFileSync(
+      join(APP, "ziyaret/opengraph-image.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("export const revalidate = 3600;");
+
+    store.getPublicSettings.mockResolvedValue({
+      weeklyHours: weekly({
+        sun: { open: "10:00", close: "20:00", closed: false },
+      }),
+    });
+    const image = await render(route, "ziyaret-varying-hours");
+    expect(await dims(image)).toEqual({ ...CARD, format: "jpeg" });
+    expect(store.getPublicSettings).toHaveBeenCalledTimes(1);
+
+    // `next build` has no database: the card is drawn without asking.
+    vi.stubEnv("NEXT_PHASE", "phase-production-build");
+    store.getPublicSettings.mockClear();
+    await render(route, "ziyaret-build");
+    expect(store.getPublicSettings).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+
+    // A settings read that throws still draws the card, on the constant.
+    store.getPublicSettings.mockRejectedValue(new Error("boom"));
+    expect(await dims(await render(route, "ziyaret-error"))).toEqual({
+      ...CARD,
+      format: "jpeg",
+    });
+  });
+
+  it("reads public/ only by literal paths, never a path built at run time", async () => {
+    // A path joined from a variable makes the bundler copy all of public/
+    // (7.7 MB) into the function, and og-card.tsx loads with every page
+    // through the root card.
+    const sources = [
+      "src/lib/seo/og-card.tsx",
+      "src/lib/seo/og-drawings.tsx",
+      "src/lib/seo/og-pages.tsx",
+      "src/lib/seo/og-product.tsx",
+      ...ogFiles().map((f) => join("src/app", f)),
+    ].map((f) => [f, readFileSync(f, "utf8")] as const);
+    for (const [f, src] of sources) {
+      const cwd = src.match(/process\.cwd\(\)/g) ?? [];
+      const literal =
+        src.match(/join\(\s*process\.cwd\(\),\s*"[^"]+",?\s*\)/g) ?? [];
+      expect(literal.length, f).toBe(cwd.length);
+      expect(src, f).not.toContain("PUBLIC_DIR");
+    }
+    const card = readFileSync("src/lib/seo/og-card.tsx", "utf8");
+    expect(card).not.toMatch(/"public/);
+    // The karaoke card's file is the registry's drawing.
+    const { ILLUSTRATIONS } =
+      await import("@/components/laffogato/illustration");
+    expect(readFileSync("src/lib/seo/og-pages.tsx", "utf8")).toContain(
+      `"public${ILLUSTRATIONS["karaoke-room"].src}"`,
+    );
   });
 
   it("keeps the source files free of long dashes", () => {
@@ -345,6 +447,13 @@ describe("the product card", () => {
     variants: [],
   };
 
+  it("has an alt that claims nothing a card may lack", async () => {
+    // Next takes one `alt` per route file, not per product: it cannot name
+    // the product, so it must not promise a photo or a price either.
+    const { alt } = await route();
+    expect(alt).not.toMatch(/fotoğraf|fiyat/i);
+  });
+
   it("is drawn on request and kept an hour: prices move and the card follows", async () => {
     const source = readFileSync(
       join(APP, "magaza/urun/[slug]/opengraph-image.tsx"),
@@ -357,11 +466,11 @@ describe("the product card", () => {
   });
 
   it("draws the uploaded photo, the name, the shelf and the price", async () => {
-    store.getShopProductBySlug.mockResolvedValue(sirena);
+    store.getShopProductBySlugLive.mockResolvedValue(sirena);
     store.getProduct.mockResolvedValue({ images: [await webp()] });
     const { productCard } = await import("@/lib/seo/og-product");
     const card = await productCard("sirena");
-    const props = card.props as Record<string, unknown>;
+    const props = card?.props as Record<string, unknown>;
     expect(props.eyebrow).toBe("Mağaza · Çekirdek Kahve");
     expect(props.title).toBe("Sirena - Espresso Harmanı");
     expect(props.detail).toBe("Çekirdek · 250 g");
@@ -375,7 +484,7 @@ describe("the product card", () => {
 
   it("draws the coffee bag when the photo is an https link, without fetching it", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    store.getShopProductBySlug.mockResolvedValue({
+    store.getShopProductBySlugLive.mockResolvedValue({
       ...sirena,
       name: "Bialetti × L’Affogato Moka Pot, 3 fincanlık ☕",
       tag: "3 fincanlık, fırçalanmış alüminyum",
@@ -387,7 +496,7 @@ describe("the product card", () => {
       images: ["https://example.com/moka.webp"],
     });
     const { productCard } = await import("@/lib/seo/og-product");
-    const props = (await productCard("moka")).props as Record<string, unknown>;
+    const props = (await productCard("moka"))?.props as Record<string, unknown>;
     expect(props.artWidth).toBe(420);
     // The emoji would make next/og fetch Twemoji; it is dropped.
     expect(props.title).toBe("Bialetti × L’Affogato Moka Pot, 3 fincanlık");
@@ -402,7 +511,7 @@ describe("the product card", () => {
   });
 
   it("keeps a very long name inside its column", async () => {
-    store.getShopProductBySlug.mockResolvedValue({
+    store.getShopProductBySlugLive.mockResolvedValue({
       ...sirena,
       name: "Notturna Kenya AA Nyeri Filtre Kahve Çekirdeği Hediye Kutusunda İki Paket ve Seramik Fincan",
       tag: "Süperuzunkelimelerlebirliktegelenbiretiketsatırı · 2 x 250 g",
@@ -411,7 +520,7 @@ describe("the product card", () => {
     });
     store.getProduct.mockResolvedValue({ images: [await webp()] });
     const { productCard } = await import("@/lib/seo/og-product");
-    const props = (await productCard("uzun")).props as Record<string, unknown>;
+    const props = (await productCard("uzun"))?.props as Record<string, unknown>;
     expect(String(props.title).length).toBeLessThanOrEqual(64);
     expect(String(props.title).endsWith("…")).toBe(true);
     const image = await render(await route(), "urun-long-name", {
@@ -420,43 +529,177 @@ describe("the product card", () => {
     expect(await dims(image)).toEqual({ ...CARD, format: "jpeg" });
   });
 
-  it("falls back to the shop's card when the product is missing", async () => {
-    store.getShopProductBySlug.mockResolvedValue(null);
+  it("is a 404 when there is no such active product, as the page is", async () => {
+    store.getShopProductBySlugLive.mockResolvedValue(null);
     const { productCard } = await import("@/lib/seo/og-product");
-    const props = (await productCard("yok")).props as Record<string, unknown>;
-    expect(props.title).toBe("Köşkün mağazası");
+    expect(await productCard("yok")).toBeNull();
     expect(store.getProduct).not.toHaveBeenCalled();
-    const image = await render(await route(), "urun-missing", { slug: "yok" });
-    expect(await dims(image)).toEqual({ ...CARD, format: "jpeg" });
+    await expect(
+      render(await route(), "urun-missing", { slug: "yok" }),
+    ).rejects.toMatchObject(NOT_FOUND);
   });
 
-  it("falls back to the shop's card when the database throws", async () => {
-    store.getShopProductBySlug.mockRejectedValue(new Error("ECONNREFUSED"));
-    const image = await render(await route(), "urun-db-down", {
-      slug: "sirena",
-    });
-    expect(await dims(image)).toEqual({ ...CARD, format: "jpeg" });
+  it("fails, not stands in, when the database cannot answer", async () => {
+    // A stand-in card would be kept an hour; an error keeps the last good
+    // card on revalidation. The read is the one without the page's outage
+    // fallback, so an outage cannot read as "no product" either.
+    const outage = new Error("ECONNREFUSED");
+    store.getShopProductBySlugLive.mockRejectedValue(outage);
+    await expect(
+      render(await route(), "urun-db-down", { slug: "sirena" }),
+    ).rejects.toBe(outage);
+
+    store.getShopProductBySlugLive.mockResolvedValue(sirena);
+    store.getProduct.mockRejectedValue(outage);
+    await expect(
+      render(await route(), "urun-photo-db-down", { slug: "sirena" }),
+    ).rejects.toBe(outage);
   });
 
-  it("keeps the product when only the photo read throws or is unreadable", async () => {
-    store.getShopProductBySlug.mockResolvedValue(sirena);
-    store.getProduct.mockRejectedValue(new Error("timeout"));
+  it("draws the coffee bag when the stored photo is not an upload sharp can read", async () => {
+    store.getShopProductBySlugLive.mockResolvedValue(sirena);
     const { productCard } = await import("@/lib/seo/og-product");
-    let props = (await productCard("sirena")).props as Record<string, unknown>;
-    expect(props.title).toBe("Sirena - Espresso Harmanı");
-    expect(props.artWidth).toBe(420);
+    for (const stored of [
+      `data:image/webp;base64,${Buffer.from("not a photo").toString("base64")}`,
+      // Not something the panel stores; never read from disk either.
+      "/photos/affogato-cup.webp",
+    ]) {
+      store.getProduct.mockResolvedValue({ images: [stored] });
+      const props = (await productCard("sirena"))?.props as Record<
+        string,
+        unknown
+      >;
+      expect(props.title, stored).toBe("Sirena - Espresso Harmanı");
+      expect(props.artWidth, stored).toBe(420);
+    }
+  });
 
-    store.getProduct.mockResolvedValue({
-      images: [
-        `data:image/webp;base64,${Buffer.from("not a photo").toString("base64")}`,
-      ],
+  it("fetches nothing for a name with a flag, a keycap, a check mark or CJK", async () => {
+    const realFetch = globalThis.fetch;
+    const remote: string[] = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      const u = String(url instanceof Request ? url.url : url);
+      if (u.startsWith("data:")) return realFetch(url, init);
+      remote.push(u);
+      throw new Error("offline");
     });
-    props = (await productCard("sirena")).props as Record<string, unknown>;
-    expect(props.artWidth).toBe(420);
+    store.getProduct.mockResolvedValue({ images: [] });
+    for (const [name, tag] of [
+      ["Kolombiya 🇨🇴 Supremo", "Çekirdek · 250 g"],
+      ["Matcha 抹茶 Latte", "✓ Seremonyal"],
+      ["Kupa 1️⃣ numara", "Ελληνικά ☕"],
+    ]) {
+      store.getShopProductBySlugLive.mockResolvedValue({
+        ...sirena,
+        name,
+        tag,
+      });
+      const image = await render(await route(), "urun-odd-chars", {
+        slug: "x",
+      });
+      expect(await dims(image), name).toEqual({ ...CARD, format: "jpeg" });
+    }
+    expect(remote).toEqual([]);
   });
 });
 
+/** Every code point Geist maps to a glyph (its cmap, formats 4 and 12). */
+function geistCodePoints(font: Buffer): Set<number> {
+  let cmap = 0;
+  for (let i = 0; i < font.readUInt16BE(4); i++) {
+    const at = 12 + i * 16;
+    if (font.toString("latin1", at, at + 4) === "cmap") {
+      cmap = font.readUInt32BE(at + 8);
+    }
+  }
+  const out = new Set<number>();
+  for (let i = 0; i < font.readUInt16BE(cmap + 2); i++) {
+    const t = cmap + font.readUInt32BE(cmap + 4 + i * 8 + 4);
+    const format = font.readUInt16BE(t);
+    if (format === 4) {
+      const segs = font.readUInt16BE(t + 6) / 2;
+      const ends = t + 14;
+      const starts = ends + segs * 2 + 2;
+      const deltas = starts + segs * 2;
+      const offsets = deltas + segs * 2;
+      for (let g = 0; g < segs; g++) {
+        const start = font.readUInt16BE(starts + g * 2);
+        const end = font.readUInt16BE(ends + g * 2);
+        const delta = font.readInt16BE(deltas + g * 2);
+        const offset = font.readUInt16BE(offsets + g * 2);
+        for (let c = start; c <= end && c !== 0xffff; c++) {
+          let glyph = (c + delta) & 0xffff;
+          if (offset) {
+            glyph = font.readUInt16BE(
+              offsets + g * 2 + offset + (c - start) * 2,
+            );
+            if (glyph) glyph = (glyph + delta) & 0xffff;
+          }
+          if (glyph) out.add(c);
+        }
+      }
+    } else if (format === 12) {
+      for (let g = 0; g < font.readUInt32BE(t + 12); g++) {
+        const r = t + 16 + g * 12;
+        const first = font.readUInt32BE(r + 8);
+        for (let c = font.readUInt32BE(r); c <= font.readUInt32BE(r + 4); c++) {
+          if (first + (c - font.readUInt32BE(r))) out.add(c);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 describe("the cards' typeface", () => {
+  it("draws every character ogText lets through, with no fetch", async () => {
+    const { ogText } = await import("@/lib/seo/og-card");
+    const geist = geistCodePoints(
+      readFileSync(
+        "node_modules/next/dist/compiled/@vercel/og/Geist-Regular.ttf",
+      ),
+    );
+    expect(geist.has("ş".codePointAt(0)!)).toBe(true);
+    const missing: string[] = [];
+    for (let cp = 0; cp <= 0x2ffff; cp++) {
+      if (cp >= 0xd800 && cp <= 0xdfff) continue;
+      for (const ch of ogText(`a${String.fromCodePoint(cp)}a`)) {
+        if (!geist.has(ch.codePointAt(0)!)) {
+          missing.push(cp.toString(16));
+          break;
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+    // Turkish and the punctuation a product name carries survive.
+    for (const ch of "çÇğĞıİöÖşŞüÜâÂîÎûÛéàß€’‘“”…•·×&%@#") {
+      expect(ogText(ch), ch).toBe(ch);
+    }
+  });
+
+  it("is not drawn a second time when next/og fails to render it", async () => {
+    // An emoji set straight into a card (not through ogText) sends next/og
+    // to Twemoji; offline, the render throws. ogJpeg used to catch that and
+    // hand back a fresh, lazy render of the same card, which failed again
+    // halfway through the response.
+    const realFetch = globalThis.fetch;
+    let remote = 0;
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      const u = String(url instanceof Request ? url.url : url);
+      if (u.startsWith("data:")) return realFetch(url, init);
+      remote++;
+      throw new Error("offline");
+    });
+    const { ogJpeg } = await import("@/lib/seo/og-card");
+    const card = createElement(
+      "div",
+      { style: { display: "flex", width: "100%", height: "100%" } },
+      "Kahve ☕",
+    );
+    await expect(ogJpeg(card)).rejects.toThrow();
+    expect(remote).toBeGreaterThan(0);
+  });
+
   /**
    * next/og measures a word glyph by glyph but draws it kerned: a word with
    * a kerned pair ("mikrofon", "Atatürk") was followed by a wider space.
@@ -514,6 +757,18 @@ describe("the product card's price", () => {
     const { ogText } = await import("@/lib/seo/og-card");
     expect(ogText("Kupa 250₺ yerine 199₺")).toBe("Kupa 250 TL yerine 199 TL");
     expect(ogText("Matcha 🍵 Latte")).toBe("Matcha Latte");
+    // Flags and keycaps are not Extended_Pictographic; CJK and ✓ are not
+    // in Geist. Each would send next/og to the network mid-render.
+    expect(ogText("Kolombiya 🇨🇴 Supremo")).toBe("Kolombiya Supremo");
+    expect(ogText("Kupa 1️⃣ numara")).toBe("Kupa 1 numara");
+    expect(ogText("Matcha 抹茶 Latte")).toBe("Matcha Latte");
+    expect(ogText("✓ Seremonyal")).toBe("Seremonyal");
+    // Turkish, the typographic quotes and the ellipsis stay; a decomposed
+    // letter is composed first rather than lost.
+    expect(ogText("Çağ’ın “İyi” Şöleni… öğütülmüş")).toBe(
+      "Çağ’ın “İyi” Şöleni… öğütülmüş",
+    );
+    expect(ogText("Cafe\u0301")).toBe("Café");
     expect(ogText("a ".repeat(80), 20).length).toBeLessThanOrEqual(20);
     // Cut at a word: a whole last word stays, a split one goes.
     expect(ogText("Hediye Kutusunda İki Paket", 17)).toBe("Hediye Kutusunda…");

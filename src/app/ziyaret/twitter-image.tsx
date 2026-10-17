@@ -5,6 +5,7 @@ import Image, {
 } from "./opengraph-image";
 
 export const runtime = "nodejs";
+export const revalidate = 3600;
 export const alt = ogAlt;
 export const size = ogSize;
 export const contentType = ogContentType;
