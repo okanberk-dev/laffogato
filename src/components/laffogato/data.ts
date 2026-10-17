@@ -1129,8 +1129,8 @@ export const LOCATION = {
     available: true,
     title: "Karaoke odası",
     body:
-      "Köşkün üst katında özel karaoke odası. Gece 02:00'e kadar açığız - " +
-      "grup rezervasyonu için bize ulaşın.",
+      "Köşkün üst katında özel karaoke odası. Gece 02:00'e kadar açığız; " +
+      "odayı karaoke sayfasından ayırtabilirsin.",
   },
   /** Fixed query used for the map embed and directions links. Kept separate
    *  from `address` so editing the displayed lines cannot break geocoding. */

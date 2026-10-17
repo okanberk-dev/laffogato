@@ -322,8 +322,8 @@ export function PageMenu({ menu }: PageProps) {
             <div>
               <div className="eyebrow muted">Servis</div>
               <p>
-                Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Akşam 19:00
-                sonrası rezervasyon. Köpekler hoş geldi.
+                Bar köşesi 6 koltuk yürüyüş trafiği için ayrı. Köpekler hoş
+                geldi.
               </p>
             </div>
           </div>

@@ -92,13 +92,8 @@ export const PAGE_SEO: Record<Route, PageSeo> = {
     path: ROUTE_PATHS.visit,
     title: "Ziyaret - Tuzla, İstanbul",
     description:
-      "Tuzla'da 200 yıllık Rum köşkünde kahve barı: Postane Mah. Atatürk Cad. No: 28, Tuzla. Her gün 09:00 - 02:00 açık, karaoke odası ve rezervasyon.",
-    keywords: [
-      "Tuzla kafe adres",
-      "Tuzla affogato yer",
-      "Tuzla köşk kafe",
-      "kahve rezervasyon Tuzla",
-    ],
+      "Tuzla'da 200 yıllık Rum köşkünde kahve barı: Postane Mah. Atatürk Cad. No: 28, Tuzla. Her gün 09:00 - 02:00 açık, üst katta karaoke odası.",
+    keywords: ["Tuzla kafe adres", "Tuzla affogato yer", "Tuzla köşk kafe"],
     breadcrumbLabel: "Ziyaret · Tuzla",
     priority: 0.85,
     changefreq: "monthly",
