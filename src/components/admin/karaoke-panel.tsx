@@ -39,14 +39,34 @@ import { TONE_INK, TONE_SOFT } from "./ui/tone";
 // state, so one action's answer can never be shown as another's (the old
 // row merged four results and printed the first it found).
 
-/** Status, payment, refund-owed and guest badges, in that order. */
-export function KaraokeBadges({ view }: { view: KaraokeRowView }) {
+// In the list's table a long payment badge ("Ödeme bekleniyor · son 14:30",
+// "İade sonucu bekleniyor") may break onto a second line: kept on one, it
+// alone made the table wider than its card below 1280 px and put the
+// amount behind the pinned ⋯ column (admin audit KAR-03).
+const WRAPPING_BADGE = "rounded-xl! text-left whitespace-normal!";
+
+/**
+ * Status, payment, refund-owed and guest badges, in that order. `wrap`: the
+ * list's table, where a long badge breaks rather than widen the column.
+ */
+export function KaraokeBadges({
+  view,
+  wrap = false,
+}: {
+  view: KaraokeRowView;
+  wrap?: boolean;
+}) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <Badge tone={view.statusTone} dot>
         {view.statusLabel}
       </Badge>
-      <Badge tone={view.paymentTone}>{view.paymentLabel}</Badge>
+      <Badge
+        tone={view.paymentTone}
+        className={wrap ? WRAPPING_BADGE : undefined}
+      >
+        {view.paymentLabel}
+      </Badge>
       {view.attention.includes("refund_owed") ? (
         <Badge tone="danger">İade borcu</Badge>
       ) : null}
@@ -283,7 +303,7 @@ export function KaraokeRowMenu({
 // A truncated span still adds its whole text to an auto-layout table
 // cell's width; the max width is what lets a long e-mail shorten instead
 // of pushing the row past its card (admin audit KAR-03).
-const CUSTOMER_WIDTH = "max-w-[14rem]";
+const CUSTOMER_WIDTH = "md:max-w-[12rem] xl:max-w-[14rem]";
 
 function customerLine(view: KaraokeRowView): ReactNode {
   const r = view.r;
@@ -351,7 +371,8 @@ function codeLine(view: KaraokeRowView): ReactNode {
  * The list: a table from `md`, a card per booking on phones. The booking
  * code is in the first cell and on the card at every width (staff read it
  * at the door; it used to show from 1280 px only), and guests and hours
- * join the first cell where their own column is hidden (KAR-11).
+ * join the first cell where their own column is hidden: below 1280 px,
+ * where the sidebar leaves the table about 720 px (KAR-11, KAR-03).
  */
 export function KaraokeTable({
   views,
@@ -390,7 +411,7 @@ export function KaraokeTable({
                 {v.day}
               </span>
               {codeLine(v)}
-              <span className="block text-xs font-normal text-[var(--admin-text-soft)] lg:hidden">
+              <span className="block text-xs font-normal text-[var(--admin-text-soft)] xl:hidden">
                 {v.r.guests} kişi · {v.r.hours} saat
               </span>
             </span>
@@ -400,7 +421,7 @@ export function KaraokeTable({
         {
           key: "kisi",
           header: "Kişi · süre",
-          hideBelow: "lg",
+          hideBelow: "xl",
           cell: (v) => (
             <span className="whitespace-nowrap">
               {v.r.guests} kişi · {v.r.hours} saat
@@ -412,7 +433,7 @@ export function KaraokeTable({
           header: "Durum",
           cell: (v) => (
             <>
-              <KaraokeBadges view={v} />
+              <KaraokeBadges view={v} wrap />
               <KaraokeAttentionLine view={v} />
             </>
           ),

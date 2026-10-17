@@ -365,6 +365,27 @@ describe("the list", () => {
     expect(page).toContain("Köşkte ödeme");
   });
 
+  it("keeps the table inside its card below 1280 px (KAR-03)", async () => {
+    h.list = [
+      booking({
+        id: "krk-00078",
+        date: "2099-06-21",
+        status: "requested",
+        paymentStatus: "pending",
+        paymentDueAt: "2099-06-21T10:00:00.000Z",
+        customerEmail: "cok.uzun.bir.eposta.adresi.burada@ornek-alanadi.com.tr",
+      }),
+    ];
+    const page = await list({ sekme: "yaklasan" });
+    // A long e-mail truncates inside a bounded column...
+    expect(page).toMatch(/class="[^"]*truncate[^"]*md:max-w-\[12rem\]/);
+    // ...a long payment badge may break in the table (not on the card)...
+    expect(page.match(/whitespace-normal!/g)?.length).toBe(1);
+    // ...and guests and hours sit in the first cell until their own column
+    // has room.
+    expect(page).toMatch(/xl:hidden">4 kişi · 2 saat</);
+  });
+
   it("keeps a hold the köşk let go, and hides the lapsed ones behind a count", async () => {
     const released = {
       status: "cancelled" as const,

@@ -139,9 +139,6 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
             searchParams={sp}
             pathname={CAFE_TABLES_PATH}
             empty={<EmptyState title="Bu sekmede masa yok." />}
-            rowClassName={(t) =>
-              t.isActive ? null : "text-[var(--admin-text-soft)]"
-            }
             columns={[
               {
                 key: "ad",
