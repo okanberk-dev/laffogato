@@ -16,7 +16,7 @@ import { SITE } from "@/lib/seo/site";
  *    independently, so the canonical answer set must live on `/`.
  *
  * 2. **Accessibility** - users hitting "find on page" (Cmd-F) for
- *    "rezervasyon", "saat", "vegan" land on a single block of answers
+ *    "saat", "vegan", "kargo" land on a single block of answers
  *    instead of bouncing through tabs.
  *
  * Styled from globals.css (`.seo-block`): it used to carry its own inline
@@ -33,8 +33,8 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           L&rsquo;Affogato hakkında merak edilenler
         </h2>
         <p className="seo-block-lede">
-          Tuzla&rsquo;daki kafe, menü, yenilebilir kup, rezervasyon ve online
-          sipariş hakkında en çok sorulan soruların yanıtları.
+          Tuzla&rsquo;daki kafe, menü, yenilebilir kup ve online sipariş
+          hakkında en çok sorulan soruların yanıtları.
         </p>
 
         {/* Show a concise set on-page; the full set still feeds FAQ JSON-LD.

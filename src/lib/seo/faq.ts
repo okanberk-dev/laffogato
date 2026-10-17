@@ -29,10 +29,6 @@ export const FAQ: FaqEntry[] = [
     a: "L'Affogato, bir top dondurma üzerine sıcak espresso dökülerek hazırlanan İtalyan klasiğidir; evin imza içeceğidir ve 280₺'dir. Matcha sevenler için Matcha Affogato da menüdedir: buzlu matcha latte üzerine bir top dondurma ve matcha tozu, 245₺. Her ikisi de siparişten hemen sonra hazırlanır; sıcak-soğuk kontrastı için birkaç dakika içinde tüketilmesi önerilir.",
   },
   {
-    q: "Rezervasyon yapabilir miyim?",
-    a: "Rezervasyon yalnızca telefonla alınıyor: +90 536 429 09 19. Site üzerinden masa ayırtma özelliği yok. Hafta sonu akşam servisleri için 24 saat öncesinden aramanızı öneririz - 12 koltuklu küçük bir köşk barıyız, masalar sınırlı.",
-  },
-  {
     q: "Vegan veya glutensiz seçeneğiniz var mı?",
     a: "Sütlü içeceklerin tamamı 25₺ fark ile yulaf, badem veya laktozsuz sütle hazırlanabilir. Frozen serisi (çilek, ahududu, çarkıfelek, ananas), L'Af Limon ve Cool Lime süt içermez. Fındık içeren kalemler menüde ayrıca işaretlidir; tüm alerjen bilgisi mekanda mevcuttur.",
   },

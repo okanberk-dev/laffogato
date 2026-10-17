@@ -4616,10 +4616,10 @@ summary:focus-visible,
     gap: 40px !important;
   }
   /* A grid item's default `min-width: auto` will not shrink below its
-     min-content, so one long unbreakable label - the visit page's
-     "2 kişi · Bu akşam · 19:30 için ara" CTA - widened its track past the
-     single column and scrolled the whole document sideways at 390px. The
-     column collapse above is useless without this. */
+     min-content, so one long unbreakable label (once a CTA on the visit
+     page) widened its track past the single column and scrolled the whole
+     document sideways at 390px. The column collapse above is useless
+     without this. */
   [data-row="visit-map-row"] > *,
   [data-row="visit-book-row"] > *,
   [data-row="private-row"] > *,
@@ -5899,109 +5899,10 @@ summary:focus-visible,
   line-height: 1.55;
   color: var(--ink-soft);
 }
-
-.reserve-card {
-  padding: clamp(22px, 3vw, 34px);
-  background: var(--surface-sheet);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-xl);
-  box-shadow: var(--rim), var(--shadow-md);
-}
-.reserve-card-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 22px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--ink-line);
-}
-.reserve-card-title {
-  margin: 0;
-  font-family: var(--headline);
-  font-size: clamp(22px, 2.6vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-}
-.reserve-section {
-  margin-bottom: 22px;
-}
-.reserve-section:last-of-type {
-  margin-bottom: 0;
-}
-/* Eight equal columns, or two rows of four when the card is narrow - the
-   free wrap left "8" alone on a second line at 1024 px. The card is the
-   query container, so the rule follows the card, not the window. */
-.reserve-card {
-  container: reserve / inline-size;
-}
-.reserve-party {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 6px;
-  max-width: 420px;
-}
-@container reserve (max-width: 400px) {
-  .reserve-party {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-.reserve-num {
-  width: 100%;
-  height: 44px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 16px;
-  background: var(--bg-warm);
-  color: var(--ink);
-  transition:
-    background-color 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    transform 0.2s var(--ease-spring);
-}
-.reserve-num:active,
-.reserve-chip:active {
-  transform: scale(0.94);
-}
-.reserve-num.on {
-  background: var(--bg-espresso);
-  color: #fff;
-  border-color: var(--bg-espresso);
-}
-
-.reserve-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.reserve-chip {
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 13.5px;
-  background: var(--bg-warm);
-  transition:
-    background-color 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    transform 0.2s var(--ease-spring);
-}
-.reserve-chip:hover {
-  border-color: var(--ink-line-strong);
-  background: #fff;
-}
-.reserve-chip.on {
-  background: var(--bg-espresso);
-  color: #fff;
-  border-color: var(--bg-espresso);
+/* The right half of the hours row: the live line and today's card. Its
+   first card needs no top margin; the grid gap already spaces it. */
+.visit-today-col > :first-child {
+  margin-top: 0;
 }
 
 /* A 4 × 2 bento: one 2 × 2 scene and four singles - five cells, eight
@@ -6069,9 +5970,7 @@ select {
 
 /* Buttons inside chip-row scenarios get a min-height for tap targets. */
 .menu-tab,
-.shop-cat,
-.reserve-chip,
-.reserve-num {
+.shop-cat {
   min-height: 44px;
 }
 
@@ -6219,17 +6118,6 @@ select {
 @media (max-width: 480px) {
   [data-row="private-stats"] {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Reserve card padding tighter */
-@media (max-width: 540px) {
-  .reserve-card {
-    padding: 24px;
-  }
-  .reserve-card-head {
-    padding-bottom: 16px;
-    margin-bottom: 16px;
   }
 }
 
