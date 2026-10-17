@@ -69,6 +69,7 @@ const {
 const { BulkActionBar, selectionReducer } =
   await import("@/components/admin/bulk");
 const ui = await import("@/components/admin/ui");
+const forms = await import("@/components/admin/forms");
 
 const html = (node: ReturnType<typeof createElement>) =>
   renderToStaticMarkup(node);
@@ -841,6 +842,52 @@ describe("server-rendered markup", () => {
     expect(menu).toContain("<details");
     expect(menu).toContain('aria-label="Sipariş 10023 işlemleri"');
     expect(menu).toContain("Önce ödeme alınmalı");
+  });
+
+  it("Field stays a label, so the control inside keeps its name", () => {
+    const out = html(
+      withKids(
+        forms.Field,
+        { label: "Kod", hint: "En çok 20 harf" },
+        createElement("input", { name: "code" }),
+      ),
+    );
+    expect(out).toMatch(/^<label /);
+    expect(out).toContain('<input name="code"/>');
+    expect(out).not.toContain("<fieldset");
+  });
+
+  it('Field as="fieldset" groups a checkbox without a label around it', () => {
+    // A label with no `for` labels its first control: a tap on the caption
+    // or the hint flipped the switch ("Online mağaza açık").
+    const out = html(
+      withKids(
+        forms.Field,
+        {
+          as: "fieldset",
+          label: "Mağaza",
+          hint: "Yalnızca kargolu mağaza siparişlerini durdurur.",
+        },
+        createElement(forms.Checkbox, {
+          name: "isShopOpen",
+          label: "Online mağaza açık",
+        }),
+      ),
+    );
+    expect(out).toMatch(/^<fieldset /);
+    expect(out).toContain(">Mağaza</legend>");
+    // The checkbox keeps its own label; nothing else wraps it.
+    expect(out.match(/<label/g)).toHaveLength(1);
+    const describedBy = /<fieldset[^>]*aria-describedby="([^"]+)"/.exec(out);
+    expect(describedBy).not.toBeNull();
+    expect(out).toContain(
+      `<span id="${describedBy?.[1]}" class="text-xs text-[var(--admin-text-mute)]">Yalnızca kargolu`,
+    );
+    // Without a hint there is nothing to describe the group with.
+    const bare = html(
+      withKids(forms.Field, { as: "fieldset", label: "Bildirim" }, "x"),
+    );
+    expect(bare).not.toContain("aria-describedby");
   });
 
   it("an enabled modal renders only its trigger until opened", () => {
