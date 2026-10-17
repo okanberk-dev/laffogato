@@ -276,8 +276,15 @@ numarası ve ödenmiş, geri alınmamış bir sipariş ister. Her bildirim önce
 `order_notice_emails`'te (sipariş, tür) satırını **talep eder**; ikinci talep
 23505 alır ve göndermez, yani tekrar eden Geliver olayı, iki kez kaydedilen
 form ya da sağlayıcının yeniden bildirdiği iade ikinci bir e-posta
-doğurmaz. Başarısız gönderim talebi bırakır (bir sonraki tetik yeniden
-dener); Resend'e `order-<sipariş>-<tür>` idempotency anahtarı da gider.
+doğurmaz. Başarısız gönderim satırı `failed` olarak, sağlayıcının hatasıyla
+bırakır (adresler maskelenir); bir sonraki tetik onu boş bir satır gibi
+devralır ve yeniden dener. Resend'e `order-<sipariş>-<tür>` idempotency
+anahtarı da gider. Sipariş sayfasının "E-postalar" bölümü bu satırları
+listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
+`<tür>#resend-<n>` türüyle bir kez daha yollar (`resendOrderNotice`).
+Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
+e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
+ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
 Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
@@ -746,7 +753,7 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
   başına 100), `Idempotency-Key: order-<id>-staff-new-<alıcı listesinin özeti>-b<n>`
   (adres anahtara yazılmaz). 429, 5xx ya da bağlantı hatası aynı anahtarla iki
   kez daha denenir (1 sn, 2,5 sn; `Retry-After` en çok 3 sn beklenir).
-  Hiçbir alıcıya ulaşılamazsa satır bırakılır ve **aynı ödemenin** sonraki
+  Hiçbir alıcıya ulaşılamazsa satır `failed` olarak bırakılır ve **aynı ödemenin** sonraki
   onayı (bankanın dönüşü, tekrar gelen webhook) maili yeniden dener - yalnız
   `paidAt`'ten sonraki **30 dakika** içinde. Daha uzun bir sağlayıcı kesintisinde
   sipariş panelden görülür; geç gelen "yeni sipariş" maili mutfağı yanıltır.

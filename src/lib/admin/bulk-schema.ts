@@ -83,8 +83,21 @@ export const bulkMenuSchema = z
     }
   });
 
+/**
+ * The order list's bulk tool. Every message is Turkish: with nothing picked
+ * the operator used to read Zod's English "Invalid option: expected one of
+ * ...". A cancel also carries its reason; the typed count (`confirm`) is
+ * checked by the action against the ids actually sent.
+ */
 export const bulkOrderSchema = z.object({
   ids,
-  op: z.literal("set_status"),
-  value: z.enum(ORDER_STATUSES),
+  op: z.literal("set_status", { error: "Geçersiz istek." }),
+  value: z.enum(ORDER_STATUSES, { error: "Bir işlem seç." }),
+  reason: z
+    .string()
+    .trim()
+    .max(500, "Neden en fazla 500 karakter olabilir.")
+    .optional()
+    .default(""),
+  confirm: z.string().trim().optional().default(""),
 });

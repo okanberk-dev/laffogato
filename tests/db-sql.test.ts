@@ -132,6 +132,74 @@ describe("select", () => {
     expect(q.text).toBe('SELECT * FROM "products" WHERE "orderId" IS NULL');
     expect(q.params).toEqual([]);
   });
+
+  it("ORs an any-of group in parentheses, its values parameterised", () => {
+    // One search box across an order number, a name and an e-mail.
+    const q = compile({
+      ...base,
+      table: "orders",
+      filters: [
+        { op: "eq", column: "status", value: "paid" },
+        {
+          op: "any",
+          column: "",
+          value: [
+            { column: "orderNo", op: "eq", value: 10023 },
+            { column: "customerName", op: "ilike", value: "%ay%" },
+            { column: "customerEmail", op: "ieq", value: "a@b.c" },
+          ],
+        },
+      ],
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "orders" WHERE "status" = $1 AND ("orderNo" = $2 OR ' +
+        '"customerName" ILIKE $3 OR lower("customerEmail") = lower($4))',
+    );
+    expect(q.params).toEqual(["paid", 10023, "%ay%", "a@b.c"]);
+  });
+
+  it("matches nothing for an empty any-of group, and refuses other ops in it", () => {
+    expect(
+      compile({ ...base, filters: [{ op: "any", column: "", value: [] }] }).text,
+    ).toBe('SELECT * FROM "products" WHERE false');
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "any",
+            column: "",
+            value: [{ column: "id", op: "in", value: ["a"] }],
+          },
+        ],
+      }),
+    ).toThrow(/unsupported any-of op/);
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "any",
+            column: "",
+            value: [{ column: 'x"; drop', op: "eq", value: 1 }],
+          },
+        ],
+      }),
+    ).toThrow(UnsafeIdentifierError);
+  });
+
+  it("skips rows with OFFSET after LIMIT, both parameterised", () => {
+    const q = compile({
+      ...base,
+      orders: [{ column: "orderNo", ascending: false }],
+      limit: 50,
+      offset: 100,
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "products" ORDER BY "orderNo" DESC LIMIT $1 OFFSET $2',
+    );
+    expect(q.params).toEqual([50, 100]);
+  });
 });
 
 describe("insert", () => {

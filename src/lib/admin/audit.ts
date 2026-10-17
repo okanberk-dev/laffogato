@@ -102,6 +102,30 @@ export async function logAudit(input: LogAuditInput): Promise<void> {
   if (error) throw new Error(`logAudit: ${error.message}`);
 }
 
+/**
+ * `logAudit` for the moment AFTER something irreversible happened - money
+ * moved, a status changed, a mail went out. It never throws: the audit row is
+ * the record of the write, not a condition of it.
+ *
+ * `logAudit` throws when its insert fails. After a refund that turned the
+ * operator's success into the error page; they retried, and the second
+ * refund passed because money was still "left". The failure is logged loudly
+ * instead, with the row it could not write, and the answer is `false`.
+ */
+export async function safeAudit(input: LogAuditInput): Promise<boolean> {
+  try {
+    await logAudit(input);
+    return true;
+  } catch (err) {
+    console.error(
+      `[audit] row not written ${input.entity}:${input.entityId ?? ""} ${input.action}`,
+      JSON.stringify(input.payload ?? {}),
+      err,
+    );
+    return false;
+  }
+}
+
 export interface AuditFilter {
   actor?: string;
   entity?: AuditEntity;
@@ -139,4 +163,42 @@ export async function listAuditLogs(
     .limit(filter.limit ?? 500);
   if (error) throw new Error(`listAuditLogs: ${error.message}`);
   return (data ?? []) as AdminAuditLog[];
+}
+
+/**
+ * An order's own rows, newest first: the order's (`entityId` = its id) and
+ * its lines' (`<id>#<index>`), for the order page's Zaman çizelgesi. Both
+ * read `audit_logs_entity_id_idx`.
+ */
+export async function listOrderAuditLogs(
+  orderId: string,
+  limit = 100,
+): Promise<AdminAuditLog[]> {
+  const sb = getDb();
+  const linePattern = `${orderId.replace(/[\\%_]/g, (c) => `\\${c}`)}#%`;
+  const [own, lines] = await Promise.all([
+    sb
+      .from(TABLES.auditLogs)
+      .select("*")
+      .eq("entity", "order")
+      .eq("entityId", orderId)
+      .order("createdAt", { ascending: false })
+      .limit(limit),
+    sb
+      .from(TABLES.auditLogs)
+      .select("*")
+      .eq("entity", "order_item")
+      .ilike("entityId", linePattern)
+      .order("createdAt", { ascending: false })
+      .limit(limit),
+  ]);
+  if (own.error) throw new Error(`listOrderAuditLogs: ${own.error.message}`);
+  if (lines.error)
+    throw new Error(`listOrderAuditLogs: ${lines.error.message}`);
+  return [
+    ...((own.data ?? []) as AdminAuditLog[]),
+    ...((lines.data ?? []) as AdminAuditLog[]),
+  ]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit);
 }

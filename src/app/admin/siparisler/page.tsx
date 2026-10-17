@@ -1,101 +1,173 @@
+import { randomUUID } from "node:crypto";
+
 import Link from "next/link";
 
-import { Card, PageHeader } from "@/components/admin/forms";
-import { OrdersList } from "@/components/admin/orders-list";
-import { requireRole } from "@/lib/admin/auth";
-import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/lib/admin/order-ui";
+import { PageHeader } from "@/components/admin/forms";
+import { OrdersList, type OrderListRow } from "@/components/admin/orders-list";
 import {
-  BULK_ORDER_TRANSITIONS,
-  listOrdersPage,
-  type AdminOrderStatus,
+  BUTTON,
+  FilterBar,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
+import { requireRole } from "@/lib/admin/auth";
+import { withParams } from "@/lib/admin/list-params";
+import {
+  mayExportOrders,
+  orderActions,
+  orderPaymentState,
+} from "@/lib/admin/order-actions";
+import {
+  OPEN_TAB_STATUSES,
+  ORDER_FILTER_FIELDS,
+  ORDER_LIST_PAGE_SIZE,
+  ORDER_LIST_PATH,
+  ORDER_SORT_COLUMNS,
+  ORDER_TABS,
+  parseOrderListParams,
+  withoutStatuses,
+  type OrderSortKey,
+} from "@/lib/admin/order-filters";
+import { canAccess } from "@/lib/admin/roles";
+import {
+  countOrdersByStatus,
+  listOrderMoney,
+  listOrdersFiltered,
 } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Siparişler" };
 export const dynamic = "force-dynamic";
 
-// Only the statuses `bulkUpdateOrders` can actually reach, derived from the
-// store so the dropdown can never drift back to offering `paid`/`refunded`.
-// Labels are the shared ones (lib/admin/order-ui.ts).
-const BULK_STATUS_OPTIONS: Array<[AdminOrderStatus, string]> =
-  ORDER_STATUSES.filter((k) => BULK_ORDER_TRANSITIONS[k] !== undefined).map(
-    (k) => [k, ORDER_STATUS_LABELS[k]],
-  );
-
 interface PageProps {
-  /** `once`: show orders numbered below this one (the next, older page). */
-  searchParams: Promise<{ once?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-/** A positive integer `orderNo`, or null for anything else (first page). */
-function parseBefore(raw: string | undefined): number | null {
-  if (!raw || !/^\d{1,9}$/.test(raw)) return null;
-  const n = Number(raw);
-  return n > 0 ? n : null;
-}
-
+/**
+ * The order list (Filament's table): status tabs with counts, a filter row,
+ * sortable columns, numbered pages, a "⋯" menu per row and the bulk bar.
+ * Everything is in the URL (lib/admin/order-filters.ts), so a filtered view
+ * can be bookmarked and the back button works.
+ *
+ * WP1 still holds: one page of rows, never the table. The tab counts are
+ * `head: true` counts with the other filters applied, side by side.
+ */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
-  await requireRole("orders");
-  const before = parseBefore((await searchParams).once);
-  // One page, not the table (WP1): every order used to be read with all its
-  // jsonb and rendered into the client list - 27 MB of JSON at 20k orders.
-  const { orders, total, nextBefore } = await listOrdersPage({ before });
+  const session = await requireRole("orders");
+  const sp = await searchParams;
+  const parsed = parseOrderListParams(sp);
+  const [page, counts] = await Promise.all([
+    listOrdersFiltered({
+      query: parsed.query,
+      sort: {
+        column: ORDER_SORT_COLUMNS[parsed.sort.key as OrderSortKey],
+        ascending: parsed.sort.dir === "asc",
+      },
+      page: parsed.page,
+      pageSize: ORDER_LIST_PAGE_SIZE,
+    }),
+    countOrdersByStatus(withoutStatuses(parsed.query)),
+  ]);
+  const money = await listOrderMoney(page.orders);
+
+  const rows: OrderListRow[] = page.orders.map((order) => {
+    const m = money.get(order.id) ?? {
+      collected: Boolean(order.paidAt),
+      collectedMinor: null,
+      destination: "none" as const,
+    };
+    return {
+      order,
+      money: {
+        collected: m.collected,
+        collectedMinor: m.collectedMinor,
+        destination: m.destination,
+      },
+      actions: orderActions(order, session.role, m.collected, m.collectedMinor),
+      payment: orderPaymentState(order, m.collected),
+      refundToken: randomUUID(),
+    };
+  });
+
+  const all = Object.values(counts).reduce((s, n) => s + n, 0);
+  const open = OPEN_TAB_STATUSES.reduce((s, st) => s + counts[st], 0);
+  const tabs = ORDER_TABS.map((t) => ({
+    ...t,
+    count:
+      t.value === null
+        ? all
+        : t.value === "acik"
+          ? open
+          : counts[t.value as keyof typeof counts],
+  }));
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="E-ticaret"
         title="Siparişler"
-        description="Birden fazla seçerek toplu durum güncellemesi yapabilir ya da elle yeni sipariş girebilirsin."
+        description="Ara, süz, sırala. Bir siparişin işlemleri satırın ⋯ menüsünde; birden fazlasını seçip toplu işlem yapabilirsin."
         action={
-          <Link
-            href="/admin/siparisler/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni sipariş
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {/* A plain link: a prefetching <Link> would download the file. */}
+            {mayExportOrders(session.role) ? (
+              <a
+                href={withParams(sp, { sayfa: null }, `${ORDER_LIST_PATH}/csv`)}
+                download
+                className={BUTTON.ghost}
+              >
+                CSV indir
+              </a>
+            ) : null}
+            <Link
+              href="/admin/siparisler/yeni"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
+            >
+              + Yeni sipariş
+            </Link>
+          </div>
         }
       />
 
-      {orders.length === 0 ? (
-        <Card>
-          <p className="text-sm text-neutral-500">
-            {before === null ? "Henüz sipariş yok." : "Bu sayfada sipariş yok."}
-          </p>
-        </Card>
-      ) : (
-        <OrdersList
-          orders={orders}
-          total={total}
-          live={before === null}
-          bulkStatusOptions={BULK_STATUS_OPTIONS}
-        />
-      )}
+      <StatusTabs
+        tabs={tabs}
+        current={parsed.tab}
+        searchParams={sp}
+        pathname={ORDER_LIST_PATH}
+        label="Sipariş durumu"
+      />
 
-      {(before !== null || nextBefore !== null) && (
-        <nav
-          aria-label="Sipariş sayfaları"
-          className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm"
-        >
-          {before !== null ? (
-            <Link
-              href="/admin/siparisler"
-              className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-2 hover:bg-neutral-50"
-            >
-              En yeni siparişler
-            </Link>
-          ) : (
-            <span />
-          )}
-          {nextBefore !== null && (
-            <Link
-              href={`/admin/siparisler?once=${nextBefore}`}
-              className="rounded-xl border border-[var(--admin-border)] bg-white px-4 py-2 hover:bg-neutral-50"
-            >
-              Daha eski siparişler
-            </Link>
-          )}
-        </nav>
-      )}
+      <FilterBar
+        fields={ORDER_FILTER_FIELDS}
+        values={parsed.values}
+        searchParams={sp}
+        pathname={ORDER_LIST_PATH}
+        label="Sipariş filtreleri"
+      />
+
+      <OrdersList
+        rows={rows}
+        mayRefund={canAccess("refunds", session.role)}
+        live={!parsed.narrowed}
+        sort={parsed.sort}
+        searchParams={sp}
+        pathname={ORDER_LIST_PATH}
+        emptyTitle={
+          parsed.narrowed
+            ? "Bu süzgece uyan sipariş yok."
+            : "Henüz sipariş yok."
+        }
+      />
+
+      <div className="mt-6">
+        <Pagination
+          page={parsed.page}
+          pageSize={ORDER_LIST_PAGE_SIZE}
+          total={page.total}
+          searchParams={sp}
+          pathname={ORDER_LIST_PATH}
+          label="Sipariş sayfaları"
+        />
+      </div>
     </main>
   );
 }

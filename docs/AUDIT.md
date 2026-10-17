@@ -464,7 +464,7 @@ Postgres 16'da (`EXPLAIN ANALYZE`) ve `next build` çıktısında ölçüldü.
 | --- | --- | --- | --- |
 | 🟠 | Üye e-postasıyla tam eşleşen okumalar (`"col" = $1`) tablonun `lower(col)` indeksini kullanamıyordu: her bearer isteğindeki `customers` okuması, `/me` · `/orders` · `/notifications`'taki damga defteri, kuponlar, kasa kodları ve davetler tam tablo taraması yapıyordu (20 bin üye / 200 bin damgada üye başına 1,9 ms ve 20 ms) | Düz kolon indeksleri (`20261015060020_exact_email_indexes.sql`); sonuçlar aynı kalır. 0,12 ms ve 0,16 ms | `db-exact-email-indexes` |
 | 🟠 | /karaoke tarayıcıya Zod'un tamamını gönderiyordu: rezervasyon formu iki fiyat hesabını `karaoke-core.ts`'ten alıyordu, o modül yüklenirken Zod şeması kuruyor. İlk yükleme JS'i 892 KB (244 KB gzip), diğer vitrin sayfaları ~590 KB | Fiyat hesabı bağımlılıksız `karaoke-quote.ts`'e taşındı, form yalnız onu ve `karaoke-core`'dan tipi alır. /karaoke 504 KB (153 KB gzip) | `client-bundle-weight` |
-| 🟠 | Admin ekranları sipariş tablosunun tamamını her sütunuyla okuyordu (`listOrders()`): pano 5 satır için, sipariş listesi hepsini istemci bileşenine basarak, müşteriler ve raporlar birkaç sütun için (raporlar sayfa başına üç kez). 20 bin siparişte çağrı başına 596 ms ve 27 MB JSON | `listOrders` kaldırıldı. Pano `listRecentOrders(5)` (1 ms); liste 100'lük anahtar sayfaları (`?once=`, 3 ms, 0,14 MB; eski sayfalarda yeni sipariş yoklaması yok); müşteriler 6 sütun (67 ms); raporlar sütun izdüşümü, yalnız en çok satanlar `items` okur (~1,8 sn → ~0,28 sn) | `admin-order-reads` |
+| 🟠 | Admin ekranları sipariş tablosunun tamamını her sütunuyla okuyordu (`listOrders()`): pano 5 satır için, sipariş listesi hepsini istemci bileşenine basarak, müşteriler ve raporlar birkaç sütun için (raporlar sayfa başına üç kez). 20 bin siparişte çağrı başına 596 ms ve 27 MB JSON | `listOrders` kaldırıldı. Pano `listRecentOrders(5)` (1 ms); liste 100'lük anahtar sayfaları (`?once=`, 3 ms, 0,14 MB; eski sayfalarda yeni sipariş yoklaması yok; 17 Eki 2026'dan beri süzgeçli, numaralı 50'lik sayfalar, §12); müşteriler 6 sütun (67 ms); raporlar sütun izdüşümü, yalnız en çok satanlar `items` okur (~1,8 sn → ~0,28 sn) | `admin-order-reads` |
 | 🟡 | `GET /me` ayarlar satırını aynı istekte iki kez okuyordu (`buildMe` ve `getLoyalty`); havuz tek bağlantılı olduğu için her tur sırayla bekler | Ayarlar bir kez okunur, sadakat bloğuna verilir: `/me` 7 → 6 sorgu (kimlik okuması hariç). İstekler arası önbellek yok | `mobile-me-round-trips` |
 | 🟠 | Üyenin karaoke rezervasyonları `ILIKE` ile aranıyordu; `lower("customerEmail")` indeksi ILIKE'ta seçilemez. Her `GET /notifications` ve rezervasyon listesi tabloyu tarıyordu (50 bin kayıtta 66 ms ve 47 ms) | `ieq` (`lower(col) = lower($1)`), tam eşleşme süzgeci aynen duruyor: 0,07 ms | `mobile-karaoke-reads` |
 | 🟡 | Aynı istekte aynı sunum verisi birden çok kez okunuyordu: `getPublicSettings` (meta veri, sayfa gövdesi, yerleşim ve `not-found` sınırı), ürün sayfasında `getShopProductBySlug`, hukuk sayfasında `getPublishedLegalOverride` (meta + gövde) | `React.cache` ile istek başına tek okuma (Next 16 belgesinin veritabanı için önerdiği yol); istekler arası paylaşım yok, `getSettings` (ticari) önbelleksiz. Ölçülen sorgu sayısı: `/` 9 → 7, `/odeme` 3 → 1, ürün 5 → 3, hukuk 4 → 2 | `request-memo-loaders` |
@@ -502,3 +502,49 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | 🟢 | `CUSTOMER_SESSION_SECRET` tanımsızsa müşteri çerezi admin anahtarıyla imzalanır. Bugün çapraz kullanım parmak izi ve biçim farkıyla reddediliyor, ama tek savunma bu | Operatör: Vercel'de ayrı, en az 32 karakterlik `CUSTOMER_SESSION_SECRET` tanımlamak (müşteriler bir kez yeniden giriş yapar) |
 | 🟢 | `npm audit`: `source-map-js` (yüksek, yalnız derleme anında, saldırgan girdisi görmüyor) | Ulaşılamaz; `next`'in kendi bağımlılığıyla güncellenir |
 | 🟡 | Kart sayfasının satış öncesi bakışı POS'a sormaz, yalnız kaydı okur: ilk ödemenin dönüşü kaybolmuşsa sipariş hâlâ `pending_payment` görünür ve ikinci sekmedeki eski form yine satış başlatabilir. `hosted` modda (geri dönüş yolu) son bakış hiç yok | Her kart gönderiminde bir `PaymentList` çağrısı (5 sn'ye kadar gecikme, bütçe) ister; yeni sayfa dağıtan yeniden açma kapıları ve web ödemesinin yeniden kullanımı POS'a soruyor. Ayrı karar (`docs/PAYNKOLAY.md` §14.7) |
+
+## 12. Admin sipariş yönetimi - 17 Eki 2026
+
+Operatör: _"website admin panelinde sipariş iptal etme vs. gibi yapıları da
+filament gibi ve çalışabilir yap"_. Sipariş listesi ve sipariş sayfası
+paylaşılan admin kitine (`src/components/admin/ui`) taşındı: durum sekmeleri
+sayılarıyla, süzgeç satırı, sıralanan sütunlar, numaralı sayfalar, satır
+"⋯" menüsü, telefonda kartlar, toplu işlem modalı; sipariş sayfasında
+bölümler, tek "sıradaki adım" düğmesi, işlem modalları ve toast. Her işlemin
+kuralı tek saf fonksiyonda (`orderActions`, `src/lib/admin/order-actions.ts`):
+menü onunla çizilir, sunucu işlemleri (`src/lib/admin/order-ops.ts`) aynı
+fonksiyonu okudukları siparişle yeniden sorar. Yetkisiz işlem gizlenmez,
+nedeniyle pasif çizilir. Migration
+`20261017100000_admin_order_management.sql`.
+
+### Düzeltilenler
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🔴 | İptalde stok iadesi önce `stockReleasedAt`'i işaretleyip sonra RPC'yi çağırıyordu: RPC düşerse sipariş iptal, işaret dolu, stok hiçbir zaman geri dönmüyordu (damga ve e-posta da). Tek başına "İptal" işaretlenen kalem iptalde atlanıyor, stoğu kayboluyordu | `release_order_inventory`: işaret ve stok tek SQL fonksiyonunda; her kalem geri vermediğini (`qty - restockedQty`) verir. Düşerse işaret boş kalır, sipariş sayfasında "Stoğu geri al". Kargo yoldaysa stok kararı zorunlu | `db-integration-admin-orders`, `admin-order-actions` |
+| 🔴 | İade parası gittikten sonra `logAudit` atabiliyordu: operatör hata sayfası görüp yeniden deniyor, ikinci iade "kalan" olduğu için geçiyordu. Aynı modal iki kez gönderilebiliyordu | `safeAudit` (para hareketinden sonra asla atmaz); modal başına tek kullanımlık belirteç `reserve_order_refund_once`'ta, aynı belirteçli ikinci kayıt reddedilir | `admin-safe-audit`, `db-integration-admin-orders` |
+| 🟠 | İade tavanı sipariş tutarıydı: POS ₺1 aldığında ₺500 iade istenebiliyordu | Tavan tahsil edilen tutar (başarılı ödeme satırlarının toplamı) | `admin-refund-guards`, `db-integration-admin-orders` |
+| 🟠 | İade onayı her siparişte "sanal POS üzerinden" diyordu (cüzdan ve kasada ödenen siparişte de) | Hedef sunucuda belirlenir ve modalda yazar: Kart / Cüzdan / "Kayıt: para hareket etmez"; gösterilen hedef değiştiyse iade yapılmaz | `admin-order-actions`, `admin-refund-guards` |
+| 🟠 | "Ödendi olarak işaretle" ödeme satırı yazmıyordu: 3-D Secure'da kalan kart ödemesi sonra gelince "zararsız tekrar" sayılıyordu | Önce POS'a sorulur (ulaşılamazsa işaretlenmez); `manual:<yöntem>` satırı yazılır, geç gelen kart ödemesi `duplicate_payment` olur; iadeler elle satırları atlar | `db-integration-admin-orders`, `admin-order-actions` |
+| 🟠 | Eşleşmeyen ödemeler (yanlış tutar, iptal edilmiş siparişe ödeme, ikinci çekim) yalnız denetim satırındaydı | `orders.attention`: listede "Dikkat" süzgeci ve rozeti, sipariş sayfasında kırmızı bant; parası alınmış ama iade edilmemiş iptal `refund_due`, POS'un yanıt vermediği iade `refund_unknown` | `db-integration-admin-orders`, `admin-order-filters` |
+| 🟠 | Personel ödenmiş siparişte "İptal et"i görüyor, tıklayınca reddediliyordu; toplu iptal personelin ödenmemiş siparişlerini de reddediyordu | Yetki sipariş başına: ödenmiş siparişin iptali iade yetkisi ister (tek tek ve toplu), ödenmemiş olanınki istemez; düğme nedeniyle pasif | `admin-refund-guards`, `admin-order-actions` |
+| 🟠 | Admin iptali bekleyen kart siparişini POS'a sormuyordu | Önce `PaymentList`; ödeme görünürse iptal edilmez, POS'a ulaşılamazsa da (kural 29) | `admin-order-actions` |
+| 🟠 | Ödenmemiş siparişte "Hazırlamaya başla" sessizce ödendi sayıyordu (paidAt, damga, e-posta) | Store'da reddedilir; açık "ödeme alındı" bayrağıyla "Ödendi olarak işaretle" + hazırla olarak çalışır | `admin-order-guards`, `admin-order-actions` |
+| 🟡 | Manuel "Ödeme bekleniyor" siparişi 45 dakikalık süpürmede iptal ediliyordu | `orders.source = 'manual'`; süpürme ve web siparişi bırakma onu atlar (eski satırlar denetim kaydından doldurulur) | `admin-order-guards`, `db-integration-admin-orders` |
+| 🟡 | Kargo formu her durumda açıktı; "Kargoya ver" numara istemiyordu | Kargoya ver = firma + zorunlu numara + durum, tek adım, e-posta sonucunu söyler; düzeltme yalnız yola çıkmış pakette | `admin-order-actions` |
+| 🟡 | Kalem durumu sonucu kontrol edilmiyordu, iptal ve iade edilmiş siparişte değişiyordu; satır JS'te yeniden yazılıyordu | `set_order_item_status` yerinde yazar, canlı siparişte; seçim kaydedilmeyince eski değere döner | `admin-order-actions`, `db-integration-admin-orders` |
+| 🟡 | Fişte indirim satırı yoktu; sipariş sayfasında kafe ayrıntısı (boy, süt, shot) görünmüyordu | İkisi de eklendi | `admin-order-detail` |
+| 🟡 | Toplu işlem onaysızdı, boş seçimde Zod'un İngilizce mesajını gösteriyordu, denetim satırı sipariş kimliği taşımıyordu | Modal; iptal neden ve seçili sayıyı yazmayı ister; sipariş başına sonuç ve denetim satırı; Türkçe mesaj | `admin-order-actions`, `admin-order-guards` |
+| 🟡 | Manuel siparişte artık geçerli olmayan promosyon kodu sessizce düşüyordu | Yönlendirme sonrası uyarı (adm_flash) | `admin-order-actions` |
+| 🟡 | Başarısız sipariş e-postası iz bırakmıyordu | Satır `failed` ve hatasıyla kalır (adresler maskeli), sonraki tetik devralır; sipariş sayfasında "E-postalar" ve onaylı "Yeniden gönder" (`<tür>#resend-<n>`) | `order-notice-emails`, `payment-paid-mail` |
+
+İnceleme (17 Eki 2026, aynı dal) şunları da buldu ve düzeltti:
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🔴 | POS iade isteğine yanıt vermeyince (zaman aşımı, kopan bağlantı) iade kaydı ve modalın belirteci geri alınıyor, ekran "hiçbir kayıt oluşturulmadı" diyordu; operatörün yeniden denemesi ikinci iadeyi POS'a gönderiyordu (iade gitmiş olabilirdi) | Yalnız POS'un kesin reddi (`PaymentRefusedError`) kaydı geri alır. Yanıtsız istekte kayıt kalır, müşteriye "iade edildi" gitmez, sipariş `refund_unknown` ile kırmızı banda düşer, tekrar deneme defterde reddedilir | `admin-order-actions`, `db-integration-admin-orders` |
+| 🟠 | İptal ve diğer geçişler, kararın verildiği durumdan değil o an okunan durumdan yazılıyordu: POS kontrolü ile yazım arasında gelen ödeme, personelin "ödenmemiş" iptaliyle ödenmiş siparişi iade yetkisi ve "iade bekliyor" işareti olmadan iptal ettirebiliyordu | `transitionOrder(…, { expectStatus })`: yazım, kararın verildiği duruma koşullu | `admin-order-actions`, `db-integration-admin-orders` |
+| 🟠 | "CSV indir" personele açıktı: 5.000 siparişe kadar her müşterinin adı, e-postası ve ödediği tutar dosyaya çıkıyordu (müşteri listesi ve raporlar personele kapalı) | Yalnız sahip ve yönetici (`mayExportOrders`); personelde düğme yok, rota 403 | `admin-order-csv` |
+| 🟡 | Elle yeniden gönderilen başarısız e-posta satırı `failed` kalıyordu: aynı e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı) onu devralıp ikinci kopyayı gönderiyordu | Kopya çıkınca satır `resent` olur, sonraki tetik devralmaz | `db-integration-admin-orders` |
+| 🟡 | Hiçbir kalemi stoğa dönemeyecek (katalog ürünü olmayan ya da tamamı geri alınmış) kargodaki sipariş iptal edilemiyordu: sunucu stok kararı istiyor, modal soruyu göstermiyordu | Karar yalnız stoğa dönecek kalem varken istenir (`hasStockToReturn`, modal ve sunucu aynı kural) | `admin-order-actions` |
+

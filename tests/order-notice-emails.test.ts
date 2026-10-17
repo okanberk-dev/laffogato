@@ -19,11 +19,14 @@ const rows: Row[] = [];
 let insertError: { code: string; message: string } | null = null;
 
 /** A filter chain that runs when awaited, like the real query builder. */
-function chain(op: "update" | "delete", patch?: Row) {
+function chain(op: "update" | "delete" | "select", patch?: Row) {
   const filters: Array<(r: Row) => boolean> = [];
   let selected = false;
   const run = () => {
     const hit = rows.filter((r) => filters.every((f) => f(r)));
+    if (op === "select") {
+      return { data: hit.map((r) => ({ ...r })), error: null };
+    }
     if (op === "update") {
       for (const r of hit) Object.assign(r, patch);
       return { data: selected ? hit.map((r) => ({ ...r })) : null, error: null };
@@ -65,6 +68,7 @@ const from = vi.fn(() => ({
   },
   update: (patch: Row) => chain("update", patch),
   delete: () => chain("delete"),
+  select: () => chain("select"),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -84,10 +88,12 @@ vi.mock("@/lib/email/send", () => ({
 }));
 
 const {
+  maskedNoticeError,
   notifyOrderCancelled,
   notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
+  resendOrderNotice,
   shipmentNoticeKind,
 } = await import("@/lib/email/order-notices");
 const { isHandedOver } = await import("@/lib/mobile/geliver");
@@ -199,13 +205,19 @@ describe("the tracking-number mail", () => {
     expect(sendOrderShippedEmail).toHaveBeenCalledTimes(2);
   });
 
-  it("releases the claim when delivery fails, so the next trigger sends it", async () => {
+  it("keeps a failed delivery on record, and the next trigger sends it", async () => {
     sendOrderShippedEmail.mockResolvedValueOnce({
       ok: false,
       error: "The laffogato.net domain is not verified.",
     });
     expect(await notifyOrderShipped(order())).toBe("failed");
-    expect(rows).toHaveLength(0);
+    // The order page shows which mail did not go out, and why.
+    expect(rows).toEqual([
+      expect.objectContaining({
+        status: "failed",
+        error: "The laffogato.net domain is not verified.",
+      }),
+    ]);
     expect(await notifyOrderShipped(order())).toBe("sent");
     expect(await notifyOrderShipped(order())).toBe("duplicate");
     expect(sendOrderShippedEmail).toHaveBeenCalledTimes(2);
@@ -371,7 +383,7 @@ describe("the cafe pickup flow gets none of them", () => {
  */
 describe("every trigger calls its notice", () => {
   const store = readFileSync("src/lib/admin/store.ts", "utf8");
-  const action = readFileSync("src/app/admin/siparisler/actions.ts", "utf8");
+  const ops = readFileSync("src/lib/admin/order-ops.ts", "utf8");
   const body = (source: string, fn: string) => {
     const start = source.indexOf(`export async function ${fn}(`);
     expect(start, fn).toBeGreaterThan(-1);
@@ -389,7 +401,9 @@ describe("every trigger calls its notice", () => {
 
   it("cancels from transitionOrder, which the bulk tool also goes through", () => {
     expect(body(store, "transitionOrder")).toContain("noticeCancelled(");
-    expect(body(store, "bulkUpdateOrders")).toContain("transitionOrder(");
+    // The bulk tool runs each order through the order page's own cancel.
+    expect(body(ops, "runBulkOrderAction")).toContain("cancelOrder(");
+    expect(body(ops, "cancelOrder")).toContain('transitionOrder(id, "cancel"');
   });
 
   it("refunds from the panel and from the provider's webhook", () => {
@@ -397,9 +411,10 @@ describe("every trigger calls its notice", () => {
     expect(body(store, "recordProviderRefund")).toContain(
       "notifyOrderRefunded(",
     );
-    expect(body(action, "refundOrderAction")).toMatch(
-      // A wallet-paid order's refund goes back to the wallet, not a card.
-      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,[\s\S]*?viaCard: Boolean\(ref\) && ref\?\.provider !== WALLET_PROVIDER,/,
+    expect(body(ops, "issueRefund")).toMatch(
+      // A wallet-paid order's refund goes back to the wallet, not a card;
+      // a refund the POS did not answer is told to nobody yet.
+      /finalizeRefund\(\s*reserved\.order,\s*unknown\s*\?\s*undefined\s*:\s*\{ refund: reserved\.refund, viaCard: destination === "card" \}/,
     );
   });
 });
@@ -522,7 +537,60 @@ describe("the paid notice", () => {
     const store = readFileSync("src/lib/admin/store.ts", "utf8");
     const notice = store.slice(store.indexOf("async function noticeCancelled"));
     expect(notice).toContain(
-      "if (unpaidAttempt && collected !== true) return;",
+      'if (unpaidAttempt && collected !== true) return "not_due";',
+    );
+  });
+});
+
+/**
+ * "Yeniden gönder" (order page): the same mail again under a new kind, so
+ * the provider does not answer it from its record of the first, and only
+ * while what it says is still true.
+ */
+describe("resending a customer mail", () => {
+  beforeEach(() => {
+    sendOrderPaidEmail.mockReset();
+    sendOrderPaidEmail.mockResolvedValue({ ok: true });
+  });
+
+  it("sends under <kind>#resend-<n>, counting up", async () => {
+    const paid = order({ status: "paid" });
+    expect(await notifyOrderPaid(paid)).toBe("sent");
+    expect(await resendOrderNotice(paid, "paid", { collected: true })).toBe("sent");
+    expect(await resendOrderNotice(paid, "paid", { collected: true })).toBe("sent");
+    expect(rows.map((r) => r.kind)).toEqual(["paid", "paid#resend-1", "paid#resend-2"]);
+    expect(sendOrderPaidEmail).toHaveBeenCalledTimes(3);
+    expect(sendOrderPaidEmail.mock.calls[2][1]).toBe("order-ord-1-paid#resend-2");
+  });
+
+  it("is not due when the mail is no longer true", async () => {
+    expect(
+      await resendOrderNotice(order({ status: "paid" }), "cancelled", { collected: true }),
+    ).toBe("not_due");
+    expect(
+      await resendOrderNotice(order({ status: "pending_payment" }), "paid", { collected: false }),
+    ).toBe("not_due");
+    // An old number's mail is not resent for the parcel's new number.
+    expect(
+      await resendOrderNotice(order(), shipmentNoticeKind("OLD123"), { collected: true }),
+    ).toBe("not_due");
+    expect(
+      await resendOrderNotice(order(), "refund:rfn-gone", { collected: true }),
+    ).toBe("not_due");
+    expect(await resendOrderNotice(order(), "staff-new", { collected: true })).toBe("not_due");
+    expect(sendOrderPaidEmail).not.toHaveBeenCalled();
+    expect(sendOrderCancelledEmail).not.toHaveBeenCalled();
+  });
+
+  it("resends the current tracking number's mail", async () => {
+    const kind = shipmentNoticeKind("YK123456789TR");
+    expect(await resendOrderNotice(order(), kind, { collected: true })).toBe("sent");
+    expect(rows.map((r) => r.kind)).toEqual([`${kind}#resend-1`]);
+  });
+
+  it("keeps addresses out of the stored error", () => {
+    expect(maskedNoticeError("Invalid `to`: eda@example.com is blocked")).toBe(
+      "Invalid `to`: [e-posta] is blocked",
     );
   });
 });

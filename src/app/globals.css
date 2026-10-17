@@ -6127,6 +6127,22 @@ select {
   min-width: 0;
 }
 
+/* The admin panel is styled with Tailwind utilities, and those live in a
+   cascade layer: the unlayered element resets near the top of this file
+   (`a`, `button`) beat every one of them. A button's bg-, text-, border-
+   and px- classes never applied - "Uygula" and every modal's submit drew as
+   bare text, the active status tab as dark text on a dark ground. Inside the
+   admin root (app/admin/layout.tsx) those properties roll back to the
+   layers, so the utilities win again; with no utility, Tailwind's own reset
+   applies, which is the same as the one above. */
+[data-admin-root] :is(a, button) {
+  color: revert-layer;
+  background: revert-layer;
+  border: revert-layer;
+  padding: revert-layer;
+  text-decoration: revert-layer;
+}
+
 /* ────────────────────────────────────────────────────────────────
    Print rules - used by admin order detail "Fiş yazdır"
    ──────────���───────────────────────────────────────────────────── */

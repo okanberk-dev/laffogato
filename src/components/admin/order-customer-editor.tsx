@@ -17,6 +17,8 @@ interface Props {
   customerEmail: string;
   customerPhone: string;
   shippingAddress: string;
+  /** The customer's page (`/admin/musteriler/<email>`) when the role may open it. */
+  customerHref?: string | null;
 }
 
 export function OrderCustomerEditor({
@@ -25,6 +27,7 @@ export function OrderCustomerEditor({
   customerEmail,
   customerPhone,
   shippingAddress,
+  customerHref = null,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     saveOrderDetailsAction,
@@ -164,6 +167,14 @@ export function OrderCustomerEditor({
               <span className="text-neutral-400">Toplanmadı</span>
             )}
           </KV>
+          {customerHref ? (
+            <a
+              href={customerHref}
+              className="justify-self-start text-xs text-[var(--admin-primary)] underline underline-offset-4"
+            >
+              Müşteri sayfasını aç
+            </a>
+          ) : null}
         </div>
       </Card>
 

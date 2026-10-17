@@ -38,11 +38,25 @@ function quoteColumnList(columns: string): string {
     .join(", ");
 }
 
-export type FilterOp = "eq" | "neq" | "ieq" | "in" | "gte" | "lt" | "ilike";
+export type FilterOp =
+  "eq" | "neq" | "ieq" | "in" | "gte" | "lt" | "ilike" | "any";
 
 export interface Filter {
   op: FilterOp;
+  /** Ignored for `any`, whose conditions carry their own columns. */
   column: string;
+  /** For `any`: the AnyOfCondition[] of which at least one must hold. */
+  value: unknown;
+}
+
+/**
+ * One alternative of an `any` filter. Deliberately a short list of ops and
+ * no nesting: one search box matching an order number, a name or an e-mail
+ * is the whole use.
+ */
+export interface AnyOfCondition {
+  column: string;
+  op: "eq" | "ieq" | "ilike";
   value: unknown;
 }
 
@@ -61,6 +75,8 @@ export type QuerySpec =
       filters: Filter[];
       orders: OrderBy[];
       limit: number | null;
+      /** Rows to skip before the first one returned (numbered pages). */
+      offset?: number | null;
       count: "exact" | null;
       head: boolean;
     }
@@ -128,45 +144,59 @@ class ParamBag {
 
 function whereClause(filters: Filter[], bag: ParamBag): string {
   if (filters.length === 0) return "";
-  const parts = filters.map((f) => {
-    const col = quoteIdent(f.column);
-    switch (f.op) {
-      case "eq":
-        // `col = NULL` is never true in SQL; PostgREST treats eq(null) as IS NULL.
-        return f.value === null
-          ? `${col} IS NULL`
-          : `${col} = ${bag.add(f.value)}`;
-      case "neq":
-        return f.value === null
-          ? `${col} IS NOT NULL`
-          : `${col} <> ${bag.add(f.value)}`;
-      case "gte":
-        return `${col} >= ${bag.add(f.value)}`;
-      case "lt":
-        return `${col} < ${bag.add(f.value)}`;
-      case "ieq":
-        // Case-insensitive EQUALITY, not a pattern match. `ILIKE` with no
-        // wildcard reads the same but is an `~~*` operator, and Postgres has
-        // no btree opclass for it: the `lower(col)` expression indexes this
-        // schema carries (orders, counter_tokens, the order idempotency key)
-        // can never be chosen for one, so every such lookup was a sequential
-        // scan. `lower(col) = lower($1)` matches the index expression exactly.
-        return `lower(${col}) = lower(${bag.add(f.value)})`;
-      case "ilike":
-        return `${col} ILIKE ${bag.add(f.value)}`;
-      case "in": {
-        const list = Array.isArray(f.value) ? f.value : [f.value];
-        // An empty IN list is a contradiction, not a syntax error.
-        if (list.length === 0) return "false";
-        return `${col} IN (${list.map((v) => bag.add(v)).join(", ")})`;
-      }
-      default: {
-        const exhaustive: never = f.op;
-        throw new Error(`unsupported filter op: ${String(exhaustive)}`);
-      }
+  return ` WHERE ${filters.map((f) => condition(f, bag)).join(" AND ")}`;
+}
+
+function condition(f: Filter, bag: ParamBag): string {
+  if (f.op === "any") {
+    // OR across the alternatives, in parentheses so it ANDs with the rest.
+    // An empty list matches nothing, like an empty IN.
+    const alternatives = (Array.isArray(f.value) ? f.value : []).map(
+      (c: AnyOfCondition) => {
+        if (c.op !== "eq" && c.op !== "ieq" && c.op !== "ilike") {
+          throw new Error(`unsupported any-of op: ${String(c.op)}`);
+        }
+        return condition({ op: c.op, column: c.column, value: c.value }, bag);
+      },
+    );
+    return alternatives.length === 0 ? "false" : `(${alternatives.join(" OR ")})`;
+  }
+  const col = quoteIdent(f.column);
+  switch (f.op) {
+    case "eq":
+      // `col = NULL` is never true in SQL; PostgREST treats eq(null) as IS NULL.
+      return f.value === null
+        ? `${col} IS NULL`
+        : `${col} = ${bag.add(f.value)}`;
+    case "neq":
+      return f.value === null
+        ? `${col} IS NOT NULL`
+        : `${col} <> ${bag.add(f.value)}`;
+    case "gte":
+      return `${col} >= ${bag.add(f.value)}`;
+    case "lt":
+      return `${col} < ${bag.add(f.value)}`;
+    case "ieq":
+      // Case-insensitive EQUALITY, not a pattern match. `ILIKE` with no
+      // wildcard reads the same but is an `~~*` operator, and Postgres has
+      // no btree opclass for it: the `lower(col)` expression indexes this
+      // schema carries (orders, counter_tokens, the order idempotency key)
+      // can never be chosen for one, so every such lookup was a sequential
+      // scan. `lower(col) = lower($1)` matches the index expression exactly.
+      return `lower(${col}) = lower(${bag.add(f.value)})`;
+    case "ilike":
+      return `${col} ILIKE ${bag.add(f.value)}`;
+    case "in": {
+      const list = Array.isArray(f.value) ? f.value : [f.value];
+      // An empty IN list is a contradiction, not a syntax error.
+      if (list.length === 0) return "false";
+      return `${col} IN (${list.map((v) => bag.add(v)).join(", ")})`;
     }
-  });
-  return ` WHERE ${parts.join(" AND ")}`;
+    default: {
+      const exhaustive: never = f.op;
+      throw new Error(`unsupported filter op: ${String(exhaustive)}`);
+    }
+  }
 }
 
 function orderClause(orders: OrderBy[]): string {
@@ -223,8 +253,12 @@ export function compile(spec: QuerySpec): CompiledQuery {
       const where = whereClause(spec.filters, bag);
       const order = orderClause(spec.orders);
       const limit = spec.limit === null ? "" : ` LIMIT ${bag.add(spec.limit)}`;
+      const offset =
+        spec.offset === null || spec.offset === undefined
+          ? ""
+          : ` OFFSET ${bag.add(spec.offset)}`;
       return {
-        text: `SELECT ${cols} FROM ${table}${where}${order}${limit}`,
+        text: `SELECT ${cols} FROM ${table}${where}${order}${limit}${offset}`,
         params: bag.params,
       };
     }

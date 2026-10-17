@@ -10,7 +10,8 @@
  *
  * Supported surface (everything the codebase uses, nothing more):
  *   .from().select()/.insert()/.update()/.upsert()/.delete()
- *   .eq() .neq() .in() .gte() .ilike() .ieq() .order() .limit() .maybeSingle()
+ *   .eq() .neq() .in() .gte() .ilike() .ieq() .anyOf() .order() .limit()
+ *   .offset() .maybeSingle()
  *   .select("*", { count: "exact", head: true })
  *   .rpc(fn, namedArgs)
  *
@@ -25,6 +26,7 @@
 
 import {
   compile,
+  type AnyOfCondition,
   type CompiledQuery,
   type Filter,
   type OrderBy,
@@ -123,6 +125,7 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
   protected readonly filters: Filter[] = [];
   protected readonly orders: OrderBy[] = [];
   protected limitValue: number | null = null;
+  protected offsetValue: number | null = null;
   protected singleMode: "maybe" | null = null;
 
   constructor(protected readonly execute: Executor) {}
@@ -177,6 +180,17 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
     return this;
   }
 
+  /**
+   * At least one of `conditions` holds: `(a OR b OR c)`, ANDed with the
+   * other filters. Not PostgREST's `.or("a.eq.1,...")` string: the
+   * conditions are values, parameterised like every other filter. Built for
+   * one search box across an order number, a name and an e-mail.
+   */
+  anyOf(conditions: readonly AnyOfCondition[]): this {
+    this.filters.push({ op: "any", column: "", value: [...conditions] });
+    return this;
+  }
+
   order(column: string, options?: OrderOptions): this {
     this.orders.push({ column, ascending: options?.ascending !== false });
     return this;
@@ -184,6 +198,12 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
 
   limit(count: number): this {
     this.limitValue = count;
+    return this;
+  }
+
+  /** Skip this many rows (numbered pages); use with `order` and `limit`. */
+  offset(count: number): this {
+    this.offsetValue = count;
     return this;
   }
 
@@ -285,6 +305,7 @@ class SelectBuilder<T> extends QueryBuilder<T> {
       filters: this.filters,
       orders: this.orders,
       limit: this.limitValue,
+      offset: this.offsetValue,
       count: this.options.count ?? null,
       head: this.options.head === true,
     };
