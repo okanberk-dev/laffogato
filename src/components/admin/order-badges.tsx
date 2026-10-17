@@ -56,15 +56,17 @@ export function OrderChannelBadges({ order }: Props) {
         {ORDER_CHANNEL_LABELS[channel]}
         {kind === "cafe" ? ` · ${ORDER_KIND_LABELS[kind]}` : ""}
       </Badge>
-      {/* A long table name is cut, not wrapped: the full name is the title. */}
+      {/* A table order reads "Masa · Bahçe 5": the table says the service.
+          A long name is cut, not wrapped; the full name is the title. */}
       <Badge
         tone={FULFILLMENT_TONE[fulfillment]}
         title={table ? table.name || table.code : undefined}
         className="max-w-full min-w-0"
       >
         <span className="truncate">
-          {ORDER_FULFILLMENT_LABELS[fulfillment]}
-          {table ? ` · ${table.name || table.code}` : ""}
+          {table
+            ? `Masa · ${table.name || table.code}`
+            : ORDER_FULFILLMENT_LABELS[fulfillment]}
         </span>
       </Badge>
     </>

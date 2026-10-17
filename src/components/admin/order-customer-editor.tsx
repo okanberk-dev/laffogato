@@ -272,7 +272,10 @@ export function OrderCustomerEditor({
         ]}
       />
       {customerHref ? (
-        <a href={customerHref} className={`${BUTTON.link} mt-2 -ml-1`}>
+        <a
+          href={customerHref}
+          className={`${BUTTON.link} mt-2 -ml-1 underline`}
+        >
           Müşteri sayfasını aç
         </a>
       ) : null}

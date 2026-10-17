@@ -123,7 +123,21 @@ describe("the order table fits its card (ORD-02 columns)", () => {
     // The customer cell is 12rem and carries the pills until 2xl.
     expect(html).toContain("max-w-[12rem]");
     expect(html).not.toContain("max-w-[16rem]");
-    expect(html).toMatch(/2xl:hidden[^>]*>.*Masaya servis · Bahçe 5/);
+    expect(html).toMatch(/2xl:hidden[^>]*>.*Masa · Bahçe 5/);
+    // The Kanal cell is capped, so a long table name cannot widen the column.
+    expect(html).toContain("flex max-w-[14rem] flex-col items-start gap-1");
+  });
+
+  it("tightens the cells below xl, where 768 and 1024 leave the table 718 px", () => {
+    const html = list();
+    for (const header of ["Müşteri", "Durum"]) {
+      const at = html.indexOf(`>${header}<`);
+      const th = html.slice(
+        html.lastIndexOf("<th", at),
+        html.indexOf(">", html.lastIndexOf("<th", at)) + 1,
+      );
+      expect(th, header).toContain("max-xl:px-3");
+    }
   });
 
   it("lets the No cell wrap: its marks and the date go under the number", () => {
@@ -258,6 +272,18 @@ describe("the bulk bar on a phone (ORD-06)", () => {
   it("names the shipped step for every kind of order (ORD-26)", () => {
     expect(html).not.toContain("Kargoda / Hazır");
     expect(html).toContain("Hazır / yolda");
+  });
+
+  it("has no backdrop filter, so the menu's fixed panel is placed on the screen", () => {
+    // A backdrop filter makes the bar the containing block of fixed
+    // descendants: measured, the menu opened 750 px below a 844 px screen.
+    const bar = read("src/components/admin/bulk.tsx");
+    const tag = bar.slice(
+      bar.indexOf('data-admin-bulk-bar=""'),
+      bar.indexOf("{children}"),
+    );
+    expect(tag).not.toContain("backdrop-blur");
+    expect(tag).not.toContain("backdrop-filter");
   });
 
   it("hides the bar's sentence on a phone, so the bar is one row", () => {

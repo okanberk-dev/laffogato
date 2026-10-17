@@ -269,7 +269,11 @@ export function BulkActionBar({
             end,
           )
         : null}
-      {/* data-admin-bulk-bar lifts the toast stack above this bar (ui/toast.tsx). */}
+      {/* data-admin-bulk-bar lifts the toast stack above this bar (ui/toast.tsx).
+          A solid ground, no backdrop-blur: a backdrop filter makes the bar
+          the containing block of fixed descendants, and the ActionMenu a
+          phone bar folds its buttons into (order-actions-ui.tsx) placed its
+          panel 750 px below the screen. */}
       <div
         ref={barRef}
         data-admin-bulk-bar=""
@@ -277,7 +281,7 @@ export function BulkActionBar({
         aria-label="Toplu işlem"
         className="fixed inset-x-4 bottom-4 z-30 lg:left-[calc(16rem+1rem)]"
       >
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
           <div className="flex flex-wrap items-center gap-x-3">
             <span
               className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white"

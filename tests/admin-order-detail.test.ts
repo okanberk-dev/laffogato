@@ -371,14 +371,14 @@ describe("the customer card on the kit (ORD-11, ORD-05)", () => {
 });
 
 describe("the order lines on a phone (ORD-24)", () => {
-  it("stack below sm, with the status control under each line", () => {
+  it("stack below sm and in the narrow lg column, with the status control under each line", () => {
     const out = detail(order({ status: "preparing" }));
     const stacked = out.slice(
       out.indexOf("<ul data-order-lines-stacked"),
       out.indexOf("</ul>", out.indexOf("<ul data-order-lines-stacked")),
     );
     expect(stacked).toMatch(
-      /^<ul data-order-lines-stacked="true" class="[^"]*sm:hidden/,
+      /^<ul data-order-lines-stacked="true" class="[^"]*sm:hidden lg:block xl:hidden"/,
     );
     expect(stacked).toContain("Latte");
     expect(stacked).toContain("Büyük · yulaf sütü · +1 shot");
@@ -386,10 +386,10 @@ describe("the order lines on a phone (ORD-24)", () => {
     expect(stacked).toContain('<select aria-label="Latte: kalem durumu"');
   });
 
-  it("keep the table from sm, with no forced width", () => {
+  it("keep the table from sm (and from xl beside the sidebar), with no forced width", () => {
     const out = detail(order());
     expect(out).toContain(
-      '<div class="hidden overflow-x-auto sm:block"><table class="w-full text-sm">',
+      '<div class="hidden overflow-x-auto sm:block lg:hidden xl:block"><table class="w-full text-sm">',
     );
     expect(out).not.toContain("min-w-[520px]");
   });

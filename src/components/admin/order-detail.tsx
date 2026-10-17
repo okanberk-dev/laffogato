@@ -188,15 +188,17 @@ function ItemsSection({
   const editable = actions.item_status;
   return (
     <Section title="Kalemler" flush>
-      {/* Phones: one stacked row per line, the status control underneath.
-          The table was 520 px wide in a 358 px card and its Durum select
-          sat off screen behind a sideways swipe (admin audit ORD-24). */}
+      {/* Phones, and the page's narrow two-column span from lg to xl
+          (about 470 px beside the sidebar): one stacked row per line, the
+          status control underneath. The table was 520 px wide in a 358 px
+          card and its Durum select sat off screen behind a sideways swipe
+          (admin audit ORD-24). */}
       <ul
         data-order-lines-stacked
-        className="divide-y divide-[var(--admin-border)] sm:hidden"
+        className="divide-y divide-[var(--admin-border)] sm:hidden lg:block xl:hidden"
       >
         {order.items.map((it, i) => (
-          <li key={i} className="flex flex-col gap-2 px-4 py-3 text-sm">
+          <li key={i} className="flex flex-col gap-2 px-4 py-3 text-sm sm:px-6">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <LineName item={it} />
@@ -217,7 +219,7 @@ function ItemsSection({
           </li>
         ))}
       </ul>
-      <div className="hidden overflow-x-auto sm:block">
+      <div className="hidden overflow-x-auto sm:block lg:hidden xl:block">
         <table className="w-full text-sm">
           <thead>
             <tr

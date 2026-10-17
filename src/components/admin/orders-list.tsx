@@ -257,18 +257,22 @@ export function OrdersList({
 
   const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
-  // The table fits its card from 1024 px up (admin audit ORD-02: at
-  // 1024-1280 it was 50-130 px wider, the "⋯" column off screen). The No
-  // cell wraps (its marks, and the date that sits under it until xl), the
-  // customer column is 12rem, and the channel pills ride under the customer
-  // until 2xl, where they get their own column. The "⋯" column is pinned
-  // (ui/data-table.tsx) for whatever still scrolls.
+  // The table fits its card from md up (admin audit ORD-02: at 768-1366
+  // px it was 50-130 px wider, the "⋯" column off screen). The No cell
+  // wraps (its marks, and the date that sits under it until xl), the
+  // customer column is 12rem, the cells are a little tighter below xl
+  // (768 and 1024 leave the table the same 718 px), and the channel pills
+  // ride under the customer until 2xl, where they get their own column,
+  // capped at 14rem. The "⋯" column is pinned (ui/data-table.tsx) for
+  // whatever still scrolls.
+  const TIGHT = "max-xl:px-3";
   const columns: DataTableColumn<OrderListRow>[] = [
     {
       key: "no",
       header: "No",
       sortable: true,
       firstDir: "desc",
+      className: TIGHT,
       cell: (r) => (
         <span className="flex flex-col gap-0.5">
           <OrderNo order={r.order} isNew={isNew(r.order)} />
@@ -295,6 +299,7 @@ export function OrdersList({
       key: "musteri",
       header: "Müşteri",
       sortable: true,
+      className: TIGHT,
       cell: (r) => (
         <span className="flex max-w-[12rem] min-w-0 flex-col">
           <span className="truncate">{r.order.customerName}</span>
@@ -317,7 +322,7 @@ export function OrdersList({
       // under the customer below that.
       className: "hidden 2xl:table-cell",
       cell: (r) => (
-        <span className="flex flex-col items-start gap-1">
+        <span className="flex max-w-[14rem] flex-col items-start gap-1">
           <OrderChannelBadges order={r.order} />
         </span>
       ),
@@ -328,12 +333,13 @@ export function OrdersList({
       sortable: true,
       firstDir: "desc",
       align: "right",
-      className: "whitespace-nowrap",
+      className: `whitespace-nowrap ${TIGHT}`,
       cell: (r) => <Amount order={r.order} />,
     },
     {
       key: "durum",
       header: "Durum",
+      className: TIGHT,
       cell: (r) => (
         <span className="flex flex-col items-start gap-1">
           <OrderStatusBadge order={r.order} />
