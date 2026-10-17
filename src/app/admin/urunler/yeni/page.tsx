@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/admin/forms";
 import { ProductWizard } from "@/components/admin/product-wizard";
 import { requireRole } from "@/lib/admin/auth";
-import { listCategories } from "@/lib/admin/store";
+import { getSettings, listCategories } from "@/lib/admin/store";
 
 import { createProductAction } from "../actions";
 
@@ -10,7 +10,10 @@ export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
   await requireRole("products");
-  const categories = await listCategories();
+  const [categories, settings] = await Promise.all([
+    listCategories(),
+    getSettings(),
+  ]);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -24,6 +27,7 @@ export default async function NewProductPage() {
         action={createProductAction}
         submitLabel="Ürünü kaydet"
         mode="wizard"
+        taxRates={settings.taxRates}
       />
     </main>
   );

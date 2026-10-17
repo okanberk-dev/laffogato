@@ -61,6 +61,7 @@ function toInput(parsed: ParsedProduct) {
     stock: parsed.stock,
     lowStockThreshold: parsed.lowStockThreshold,
     weightGrams: parsed.weightGrams,
+    taxRatePct: parsed.taxRatePct,
     featured: parsed.featured,
     isNew: parsed.isNew,
     isActive: parsed.isActive,
@@ -157,7 +158,11 @@ export async function updateProductAction(
     action: "update",
     entity: "product",
     entityId: id,
-    payload: { name: parsed.data.name, sku: parsed.data.sku },
+    payload: {
+      name: parsed.data.name,
+      sku: parsed.data.sku,
+      taxRatePct: parsed.data.taxRatePct,
+    },
   });
   revalidateShop();
   revalidatePath(`/admin/urunler/${id}/duzenle`);

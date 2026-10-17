@@ -25,6 +25,7 @@ import type { ModalAction } from "./ui";
 import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import { KDV_RATE_CHOICES, LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -50,6 +51,8 @@ export interface MenuItemFormProps {
   defaultCategoryKey?: string;
   submitLabel: string;
   cancelHref: string;
+  /** The menu's KDV default (Ayarlar > Vergi), named in the select. */
+  menuTaxRate?: number;
 }
 
 export function MenuItemForm({
@@ -58,11 +61,19 @@ export function MenuItemForm({
   defaultCategoryKey,
   submitLabel,
   cancelHref,
+  menuTaxRate = LEGAL_TAX_RATES.menu,
 }: MenuItemFormProps) {
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
   const priceLValue =
     item && item.priceMinorL > 0 ? (item.priceMinorL / 100).toFixed(2) : "";
   const tagsValue = item ? item.tags.join(", ") : "";
+  const ownTaxRate =
+    typeof item?.taxRatePct === "number" ? item.taxRatePct : null;
+  // A stored rate the standard list does not have stays selectable.
+  const taxRateChoices =
+    ownTaxRate === null || KDV_RATE_CHOICES.includes(ownTaxRate)
+      ? KDV_RATE_CHOICES
+      : [...KDV_RATE_CHOICES, ownTaxRate].sort((a, b) => a - b);
 
   return (
     <ActionForm action={action} className="grid gap-6 lg:grid-cols-3">
@@ -175,6 +186,26 @@ export function MenuItemForm({
             ))}
           </Select>
         </Field>
+
+        <div className="grid content-start gap-1.5">
+          <Field
+            label="KDV oranı"
+            hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Kafede satılan yiyecek ve içecek %10 (masada, gel-al, kurye)."
+          >
+            <Select
+              name="taxRatePct"
+              defaultValue={ownTaxRate === null ? "" : String(ownTaxRate)}
+            >
+              <option value="">Menünün oranı (%{menuTaxRate})</option>
+              {taxRateChoices.map((r) => (
+                <option key={r} value={String(r)}>
+                  %{r}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <FormFieldError name="taxRatePct" />
+        </div>
 
         <Field
           label="Görsel ton"

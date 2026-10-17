@@ -31,6 +31,11 @@ import {
   isResendKind,
   isResendableKind,
 } from "@/lib/email/notice-kinds";
+import {
+  kdvRateLabel,
+  orderKdvBreakdown,
+  type KdvBreakdown,
+} from "@/lib/utils/kdv";
 
 import { formatDateTime, formatTRY } from "./forms";
 import {
@@ -164,6 +169,11 @@ function ItemsSection({
                       {it.restockedQty} adet stoğa döndü
                     </div>
                   ) : null}
+                  {typeof it.taxRatePct === "number" ? (
+                    <div className="text-xs text-[var(--admin-text-soft)]">
+                      KDV {kdvRateLabel(it.taxRatePct)} dahil
+                    </div>
+                  ) : null}
                 </td>
                 <td className="px-2 py-3 text-right" style={MONO_STYLE}>
                   × {it.qty}
@@ -197,6 +207,72 @@ function ItemsSection({
         </table>
       </div>
     </Section>
+  );
+}
+
+/**
+ * The KDV inside the total, one row per rate, as it was at the sale (each
+ * line keeps the rate it was sold at). Informational: the total above is
+ * what was charged, and refunds are not taken off here.
+ */
+function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
+  if (!kdv) {
+    return (
+      <p className="mt-4 border-t border-[var(--admin-border)] pt-3 text-xs text-[var(--admin-text-soft)]">
+        KDV dökümü yok: bu sipariş, satırlara KDV oranı yazılmadan önce verildi.
+      </p>
+    );
+  }
+  if (kdv.rows.length === 0) return null;
+  return (
+    <div
+      data-kdv-breakdown
+      className="mt-4 overflow-x-auto border-t border-[var(--admin-border)] pt-3"
+    >
+      {/* No forced width: four short columns fit a 375 px phone (309 px in
+          the card), and pl-2 keeps the amounts apart. */}
+      <table className="w-full text-sm">
+        <thead>
+          <tr
+            className="text-left text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
+            style={MONO_STYLE}
+          >
+            <th scope="col" className="py-1 font-normal">
+              KDV
+            </th>
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
+              Matrah
+            </th>
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
+              KDV tutarı
+            </th>
+            <th scope="col" className="py-1 pl-2 text-right font-normal">
+              KDV dahil
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {kdv.rows.map((r) => (
+            <tr key={r.ratePct}>
+              <td className="py-1">{kdvRateLabel(r.ratePct)}</td>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
+                {formatTRY(r.netMinor)}
+              </td>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
+                {formatTRY(r.taxMinor)}
+              </td>
+              <td className="py-1 pl-2 text-right" style={MONO_STYLE}>
+                {formatTRY(r.grossMinor)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-2 text-xs text-[var(--admin-text-soft)]">
+        Fiyatlara dahil. İndirim ve kargo ya da kurye ücreti satırlara
+        tutarlarıyla orantılı dağıtıldı; iadeler düşülmedi.
+      </p>
+    </div>
   );
 }
 
@@ -236,6 +312,7 @@ function TotalsSection({ order }: { order: AdminOrder }) {
           },
         ]}
       />
+      <KdvTable kdv={orderKdvBreakdown(order)} />
     </Section>
   );
 }
@@ -627,6 +704,7 @@ export function PrintableReceipt({
 }) {
   const refunded = refundedMinor(order);
   const table = orderTable(order);
+  const kdv = orderKdvBreakdown(order);
   return (
     <section
       data-print-receipt
@@ -749,6 +827,17 @@ export function PrintableReceipt({
               {formatTRY(order.totalMinor)}
             </td>
           </tr>
+          {/* The KDV inside the total, per rate (each line keeps the rate it
+              was sold at). No row on an order from before rates were kept. */}
+          {kdv?.rows.map((r) => (
+            <tr key={`kdv-${r.ratePct}`} data-receipt-kdv>
+              <td colSpan={3} className="text-right text-neutral-600">
+                İçindeki KDV {kdvRateLabel(r.ratePct)} (matrah{" "}
+                {formatTRY(r.netMinor)})
+              </td>
+              <td className="text-right">{formatTRY(r.taxMinor)}</td>
+            </tr>
+          ))}
           {refunded > 0 && (
             <tr>
               <td colSpan={3} className="text-right text-neutral-600">

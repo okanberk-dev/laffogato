@@ -136,6 +136,11 @@ export function KaraokeBooking({
 
   const maxHours = availability?.maxHours ?? 3;
   const hourly = availability?.hourlyMinor ?? hourlyMinor;
+  // The karaoke rate from Ayarlar > Vergi; the total already includes it.
+  const kdvNote =
+    typeof availability?.taxRatePct === "number"
+      ? `%${availability.taxRatePct} KDV dahil`
+      : "KDV dahil";
   const discountPct = karaokeDiscountPctFor(
     tier,
     availability?.oroDiscountPct ?? 15,
@@ -508,7 +513,7 @@ export function KaraokeBooking({
                   </div>
                 )}
                 <div className="karaoke-total">
-                  <span>Ödenecek toplam (KDV dahil)</span>
+                  <span>Ödenecek toplam ({kdvNote})</span>
                   <span className="karaoke-total-n">
                     {priceLabel(quote.totalMinor)}
                   </span>
@@ -564,7 +569,7 @@ export function KaraokeBooking({
                           : " (saat seçilmedi)"}{" "}
                         · {guests} kişi ·{" "}
                         <strong>
-                          Toplam {priceLabel(quote.totalMinor)} (KDV dahil)
+                          Toplam {priceLabel(quote.totalMinor)} ({kdvNote})
                         </strong>
                       </li>
                       <li>{KARAOKE_NO_WITHDRAWAL}</li>

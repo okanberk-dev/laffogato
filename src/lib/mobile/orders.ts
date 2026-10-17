@@ -902,6 +902,11 @@ export interface AppOrderPreviewLine {
   qty: number;
   unitPriceMinor: number;
   lineTotalMinor: number;
+  /**
+   * The KDV rate (whole %) the line would be sold at; the price already
+   * includes it. Additive (17 Eki 2026, docs/API-MOBILE.md §3).
+   */
+  taxRatePct: number;
 }
 
 export interface AppOrderPreview {
@@ -958,7 +963,7 @@ export async function previewAppOrder(
     };
   }
 
-  const linesRes = await previewAppOrderLines(body.lines);
+  const linesRes = await previewAppOrderLines(body.lines, settings.taxRates);
   if (!linesRes.ok) {
     return { ok: false, failure: failureFromResult(linesRes.result) };
   }
@@ -968,6 +973,8 @@ export async function previewAppOrder(
     qty: it.qty,
     unitPriceMinor: it.unitPriceMinor,
     lineTotalMinor: it.unitPriceMinor * it.qty,
+    // Always set: previewAppOrderLines stamps every line it resolves.
+    taxRatePct: it.taxRatePct ?? 0,
   }));
   const subtotalMinor = lines.reduce((s, l) => s + l.lineTotalMinor, 0);
 
@@ -996,7 +1003,6 @@ export async function previewAppOrder(
     {
       shippingFlatMinor: settings.shippingFlatMinor,
       shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-      taxRatePct: settings.taxRatePct,
     },
   );
 

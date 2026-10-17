@@ -317,6 +317,8 @@ describe("?saat= on the booking page", () => {
       consentDocs: ["karaoke-odasi-rezervasyon"],
       privacyDoc: "kvkk-aydinlatma-metni",
       cancellationRules: [],
+      // Always present on the wire (contract §7, 17 Eki 2026).
+      taxRatePct: 20,
     },
     unavailable: false,
     capacity: 8,
@@ -361,6 +363,15 @@ describe("?saat= on the booking page", () => {
     expect(html).toContain(
       `href="/uye/giris?next=${encodeURIComponent("/karaoke?tarih=2026-10-17&saat=21")}"`,
     );
+  });
+
+  it("names the karaoke KDV rate on the total, and only the words without it", () => {
+    const html = renderToStaticMarkup(createElement(KaraokeBooking, props));
+    expect(html).toContain("Ödenecek toplam (%20 KDV dahil)");
+    const noRate = renderToStaticMarkup(
+      createElement(KaraokeBooking, { ...props, availability: null }),
+    );
+    expect(noRate).toContain("Ödenecek toplam (KDV dahil)");
   });
 
   it("reads 21 and 21:00, and nothing else", () => {

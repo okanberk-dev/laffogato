@@ -1,7 +1,11 @@
 import { PageHeader } from "@/components/admin/forms";
 import { MenuItemForm } from "@/components/admin/menu-item-form";
 import { requireRole } from "@/lib/admin/auth";
-import { MENU_CATEGORY_KEYS, type MenuCategoryKey } from "@/lib/admin/store";
+import {
+  getSettings,
+  MENU_CATEGORY_KEYS,
+  type MenuCategoryKey,
+} from "@/lib/admin/store";
 
 import { createMenuItemAction } from "../actions";
 
@@ -13,7 +17,7 @@ interface PageProps {
 
 export default async function NewMenuItemPage({ searchParams }: PageProps) {
   await requireRole("menu");
-  const { cat } = await searchParams;
+  const [{ cat }, settings] = await Promise.all([searchParams, getSettings()]);
   const defaultCategoryKey: MenuCategoryKey =
     cat && MENU_CATEGORY_KEYS.includes(cat as MenuCategoryKey)
       ? (cat as MenuCategoryKey)
@@ -31,6 +35,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
         defaultCategoryKey={defaultCategoryKey}
         submitLabel="Menüye ekle"
         cancelHref="/admin/menu"
+        menuTaxRate={settings.taxRates.menu}
       />
     </main>
   );

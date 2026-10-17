@@ -14,6 +14,7 @@ import {
 import { orderPaymentState, refundedMinor } from "./order-actions";
 import { orderStatusLabel } from "./order-ui";
 import type { AdminOrder } from "./store";
+import { kdvRateLabel, orderKdvBreakdown } from "@/lib/utils/kdv";
 
 /** The most rows one export reads (a hundred pages of the list). */
 export const ORDER_CSV_MAX_ROWS = 5_000;
@@ -36,6 +37,10 @@ export const ORDER_CSV_HEADER = [
   "Toplam",
   "İade",
   "Net",
+  // 17 Eki 2026: the KDV inside "Toplam", from each line's own rate. Empty
+  // on an order placed before lines carried a rate.
+  "KDV",
+  "KDV dökümü",
 ];
 
 /** "1250,50": kuruş as lira with a decimal comma, no currency sign. */
@@ -66,6 +71,7 @@ export function orderCsvRow(
   collected: boolean = Boolean(order.paidAt),
 ): string[] {
   const refunded = refundedMinor(order);
+  const kdv = orderKdvBreakdown(order);
   return [
     String(order.orderNo),
     istanbulStamp(order.createdAt),
@@ -86,6 +92,12 @@ export function orderCsvRow(
     lira(order.totalMinor),
     lira(refunded),
     lira(order.totalMinor - refunded),
+    kdv ? lira(kdv.taxMinor) : "",
+    kdv
+      ? kdv.rows
+          .map((r) => `${kdvRateLabel(r.ratePct)}: ${lira(r.taxMinor)}`)
+          .join(" · ")
+      : "",
   ];
 }
 

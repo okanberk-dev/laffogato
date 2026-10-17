@@ -822,6 +822,10 @@ export interface Product {
       row. The app draws its nut warning from `tags` and nothing else, so a
       product that carries an allergen says so here. */
   tags?: string[];
+  /** The product's own KDV rate (whole %), seeded onto the product row when
+      its category's default would be wrong: the edible cup box is food (1%)
+      though it sits under "gift" (20%). src/lib/utils/kdv.ts. */
+  taxRatePct?: number;
 
   // ── Rich fields (populated by listShopProducts; absent on static seed) ──
   /** URL-safe slug for the product detail page (/magaza/urun/<slug>). */
@@ -872,6 +876,8 @@ export const PRODUCTS: Product[] = [
     desc: "Çıtır waffle kupları, içi yenilebilir glaze. Mekan ritüelini eve taşı.",
     cat: "gift",
     img: "cream",
+    // Bakery goods in a box (GTİP 19.05): list (I), 1%, not the gift 20%.
+    taxRatePct: 1,
   },
   {
     name: "Affogato Seti - İki Kişilik",

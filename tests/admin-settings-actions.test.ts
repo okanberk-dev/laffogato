@@ -18,7 +18,15 @@ const SETTINGS = {
   karaokeHourlyMinor: 90000,
   karaokeCapacity: 8,
   karaokeNotifyEmail: "",
-  taxRatePct: 10,
+  taxRates: {
+    menu: 10,
+    karaoke: 20,
+    beans: 1,
+    pantry: 1,
+    gift: 20,
+    gear: 20,
+    merch: 20,
+  },
   openingHours: "eski",
 };
 
@@ -44,6 +52,7 @@ const {
   saveKaraokeAction,
   saveHoursAction,
   saveNotificationsAction,
+  saveTaxAction,
 } = await import("@/app/admin/ayarlar/actions");
 const { requireRole } = await import("@/lib/admin/auth");
 
@@ -413,5 +422,68 @@ describe("saveNotificationsAction", () => {
     expect(updateSettings).toHaveBeenCalledWith(
       expect.objectContaining({ orderNotifyEnabled: false }),
     );
+  });
+});
+
+describe("saveTaxAction (KDV oranları, 17 Eki 2026)", () => {
+  const tax = (over: Partial<Record<string, string>> = {}) =>
+    form({
+      taxRate_menu: "10",
+      taxRate_karaoke: "20",
+      taxRate_beans: "1",
+      taxRate_pantry: "1",
+      taxRate_gift: "20",
+      taxRate_gear: "20",
+      taxRate_merch: "20",
+      ...over,
+    });
+
+  it("is the settings role's, like every other tab", async () => {
+    vi.mocked(requireRole).mockClear();
+    await saveTaxAction({}, tax());
+    expect(requireRole).toHaveBeenCalledWith("settings");
+  });
+
+  it("stores one whole-number rate per kind of sale and audits before/after", async () => {
+    const state = await saveTaxAction({}, tax({ taxRate_menu: "%8" }));
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith({
+      taxRates: {
+        menu: 8,
+        karaoke: 20,
+        beans: 1,
+        pantry: 1,
+        gift: 20,
+        gear: 20,
+        merch: 20,
+      },
+    });
+    expect(logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "settings",
+        payload: expect.objectContaining({
+          section: "tax",
+          before: { taxRates: SETTINGS.taxRates },
+          after: { taxRates: expect.objectContaining({ menu: 8 }) },
+        }),
+      }),
+    );
+  });
+
+  it("refuses a fraction instead of writing it into an integer column", async () => {
+    // The old action kept "1.5" (two decimals) for "taxRatePct integer",
+    // which Postgres refused with 22P02 on save.
+    const state = await saveTaxAction({}, tax({ taxRate_beans: "1.5" }));
+    expect(state.error).toContain("kahve çekirdeği");
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("refuses an empty, negative or over-100 rate and text", async () => {
+    for (const bad of ["", "-1", "101", "yirmi"]) {
+      updateSettings.mockClear();
+      const state = await saveTaxAction({}, tax({ taxRate_karaoke: bad }));
+      expect(state.error, bad).toContain("Karaoke");
+      expect(updateSettings).not.toHaveBeenCalled();
+    }
   });
 });

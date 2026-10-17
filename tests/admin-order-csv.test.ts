@@ -70,6 +70,29 @@ describe("CSV export", () => {
     expect(head).toBe(ORDER_CSV_HEADER.join(";"));
     expect(row).toContain("10023;2026-10-17 11:00;Ödendi;Ödendi;Uygulama;Kafe;Gel-al;Eda;eda@example.com");
     expect(row).toContain(";150,00;30,00;HOSGELDIN;0,00;120,00;0,00;120,00");
+    // A line without a stored rate (before 17 Eki 2026): no KDV is guessed.
+    expect(row.endsWith(";120,00;;")).toBe(true);
+  });
+
+  it("adds the KDV inside the total, per rate, from each line's own rate", () => {
+    const csv = ordersCsv([
+      order({
+        kind: "shop",
+        fulfillment: "shipping",
+        items: [
+          { productName: "Sirena", qty: 1, unitPriceMinor: 32_000, status: "pending", taxRatePct: 1 },
+          { productName: "Moka", qty: 1, unitPriceMinor: 120_000, status: "pending", taxRatePct: 20 },
+        ],
+        subtotalMinor: 152_000,
+        discountMinor: 0,
+        promoCode: "",
+        shippingMinor: 0,
+        totalMinor: 152_000,
+      }),
+    ]);
+    const row = csv.slice(1).split("\r\n")[1];
+    // 120.000 × 20/120 = 20.000; 32.000 × 1/101 = 316,83 → 317.
+    expect(row.endsWith(";203,17;%20: 200,00 · %1: 3,17")).toBe(true);
   });
 
   beforeEach(() => {

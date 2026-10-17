@@ -354,6 +354,8 @@ describe("toReservationJson - allow-list", () => {
       paymentStatus: "none",
       paymentDueAt: "",
       cancellableUntil: "2026-09-05T13:00:00.000Z",
+      // Additive (17 Eki 2026): the booking's KDV rate; none was kept then.
+      taxRatePct: null,
     });
   });
 });

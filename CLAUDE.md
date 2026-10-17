@@ -256,7 +256,8 @@ src/
                                (paylaşım kartları, docs/SEO.md §2)
     consent/                 → cookie.ts (rıza durumu) · script.ts (Consent Mode v2)
     newsletter/              → store.ts (6563 onay kaydı + tek tıkla çıkış)
-    utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel,
+    utils/                   → commerce.ts (kargo) · kdv.ts (ürüne göre KDV
+                               oranı ve oran oran döküm) · format.ts (priceLabel,
                                parseMoneyInput — admin tutar girişi)
     http/                    → etag.ts · same-site-path.ts (yönlendirme hedefi)
 db/
@@ -299,6 +300,26 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   şablonu). Alıcılar Ayarlar → Bildirimler: roller, ek adresler, operasyon
   adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
   soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
+
+## KDV (17 Eki 2026)
+
+- **Fiyatlar KDV dahil; oran tutarı değiştirmez.** Oran yalnız fiyatın ne
+  kadarının KDV olduğunu söyler (fiş, panel, CSV, uygulama). Hiçbir toplam
+  orandan hesaplanmaz (`computeOrderTotals`'ta KDV yok).
+- **Oran ürüne göre** (`src/lib/utils/kdv.ts`): ürünün / menü kaleminin kendi
+  `"taxRatePct"`'i, yoksa Ayarlar → Vergi varsayılanı (`settings."taxRates"`:
+  menü %10, karaoke %20, `beans`/`pantry` %1, `gift`/`gear`/`merch` %20).
+  Oran malın cinsine bağlıdır, rafına değil: `gift` altındaki gıda kendi
+  oranını taşır (yenilebilir kup kutusu `prd-0003` %1; seed ve migration).
+  Tam sayı 0-100; kesir reddedilir. Dayanak ve muhasebeci notları:
+  `docs/LEGAL-REDLINES-2026-09.md` §16.
+- **Satış anındaki oran saklanır.** Sipariş satırı `items[].taxRatePct`,
+  karaoke rezervasyonu `"taxRatePct"`; panelde sonradan değişen oran eski
+  fişi değiştirmez. Oranı olmayan eski sipariş döküm göstermez (tahmin yok).
+- **Kargo / kurye ücreti taşıdığı ürünün oranını alır** (KDV K. m.24/b),
+  indirim de satırlara orantılı dağıtılır (`kdvBreakdown`).
+- Oran metinde geçiyorsa (`src/lib/legal/content.ts`) panel varsayılanıyla
+  aynı kalmalı; ödeme belgelerinde değişiklik `LEGAL_UPDATED`'ı taşır.
 
 ## Geliştirme Komutları
 

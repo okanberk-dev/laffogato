@@ -44,6 +44,8 @@ export interface KaraokeViewReservation {
   createdAt: string;
   customerName: string;
   note?: string;
+  /** The karaoke KDV rate at booking time; null or absent on older bookings. */
+  taxRatePct?: number | null;
 }
 
 export type KaraokeViewNotice = { tone: "ok" | "warn" | "error"; text: string };
@@ -154,7 +156,14 @@ export function KaraokeReservationView({
           <dd>{r.guests} kişi</dd>
         </div>
         <div>
-          <dt>Toplam (KDV dahil)</dt>
+          {/* The rate the booking was made at; older bookings kept none. */}
+          <dt>
+            Toplam (
+            {typeof r.taxRatePct === "number"
+              ? `%${r.taxRatePct} KDV dahil`
+              : "KDV dahil"}
+            )
+          </dt>
           <dd>
             {priceLabel(r.totalMinor)}
             {r.discountMinor > 0 ? (

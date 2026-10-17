@@ -121,6 +121,76 @@ describe("the printed receipt", () => {
   });
 });
 
+describe("KDV on the page and the receipt (17 Eki 2026)", () => {
+  // Beans at 1% and a mug at 20%, a 30 TL coupon and 49 TL shipping: the
+  // coupon and the shipping are shared over the lines by amount.
+  const rated = () =>
+    order({
+      kind: "shop",
+      fulfillment: "shipping",
+      items: [
+        {
+          productName: "Sirena",
+          qty: 1,
+          unitPriceMinor: 30_000,
+          status: "pending",
+          taxRatePct: 1,
+        },
+        {
+          productName: "Kupa",
+          qty: 1,
+          unitPriceMinor: 10_000,
+          status: "pending",
+          taxRatePct: 20,
+        },
+      ],
+      subtotalMinor: 40_000,
+      discountMinor: 4_000,
+      shippingMinor: 4_000,
+      totalMinor: 40_000,
+    });
+
+  it("the receipt prints the KDV inside the total, per rate", () => {
+    const out = renderToStaticMarkup(
+      createElement(PrintableReceipt, { order: rated(), settings }),
+    );
+    expect(out.match(/data-receipt-kdv/g)).toHaveLength(2);
+    // %20: 9.000 + 1.000 shipping = 10.000 → KDV 1.666,67 → 1.667.
+    expect(out).toContain("İçindeki KDV %20");
+    expect(out).toMatch(/₺16,67/);
+    // %1: 27.000 + 3.000 = 30.000 → KDV 297,03 → 297.
+    expect(out).toContain("İçindeki KDV %1");
+    expect(out).toMatch(/₺2,97/);
+  });
+
+  it("the page shows the per-rate table and each line's rate", () => {
+    const out = detail(rated());
+    expect(out).toContain("data-kdv-breakdown");
+    expect(out).toContain("KDV %1 dahil");
+    expect(out).toContain("KDV %20 dahil");
+    expect(out).toContain("Matrah");
+  });
+
+  it("the per-rate table fits a 375 px phone: no forced width", () => {
+    const out = detail(rated());
+    const table = out.slice(out.indexOf("data-kdv-breakdown"));
+    const open = table.indexOf("<table");
+    const tag = table.slice(open, table.indexOf(">", open) + 1);
+    expect(tag).toContain("w-full");
+    expect(tag).not.toMatch(/min-w-\[/);
+  });
+
+  it("an order from before rates were kept shows no split and says why", () => {
+    const out = detail(order());
+    expect(out).not.toContain("data-kdv-breakdown");
+    expect(out).toContain("KDV dökümü yok");
+    const receipt = renderToStaticMarkup(
+      createElement(PrintableReceipt, { order: order(), settings }),
+    );
+    expect(receipt).not.toContain("data-receipt-kdv");
+  });
+});
+
 describe("the order page", () => {
   it("shows the cafe details on the line, as the list does", () => {
     expect(detail(order())).toContain("Büyük · yulaf sütü · +1 shot");

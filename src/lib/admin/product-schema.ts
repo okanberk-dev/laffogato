@@ -12,6 +12,7 @@ import {
   parseMoneyInput,
   parseSignedMoneyInput,
 } from "@/lib/utils/format";
+import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
 
 const HUE_VALUES = [
   "cream",
@@ -139,6 +140,23 @@ const moneyToMinor = z.string().transform((s, ctx) => {
   return minor;
 });
 
+/**
+ * The product's own KDV rate: "" is the category default (null), anything
+ * else a whole number from 0 to 100. A fraction or text is refused under the
+ * field, never rounded into a rate nobody chose.
+ */
+const taxRateInput = z
+  .string()
+  .optional()
+  .transform((raw, ctx) => {
+    const parsed = parseTaxRateInput(raw);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: TAX_RATE_INPUT_ERROR });
+      return z.NEVER;
+    }
+    return parsed.value;
+  });
+
 const intInput = z
   .string()
   .optional()
@@ -263,6 +281,7 @@ export const productFormSchema = z
     stock: intInput,
     lowStockThreshold: intInput,
     weightGrams: intInput,
+    taxRatePct: taxRateInput,
     seoTitle: z.string().trim().max(80).optional().default(""),
     seoDescription: z.string().trim().max(220).optional().default(""),
     featured: z.string().optional(),
@@ -292,6 +311,7 @@ export const productFormSchema = z
     stock: v.stock,
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
+    taxRatePct: v.taxRatePct ?? null,
     seoTitle: v.seoTitle ?? "",
     seoDescription: v.seoDescription ?? "",
     featured: v.featured === "on",

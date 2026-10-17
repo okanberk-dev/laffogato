@@ -23,6 +23,7 @@ import {
   toMobileShopProduct,
   weeklyHoursRows,
 } from "@/lib/mobile/menu-mapper";
+import { LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 const SITE_URL = "https://laffogato.net";
 
@@ -159,6 +160,8 @@ describe("toMobileMenuItem (contract §1)", () => {
         "backdrop",
         "photoCutout",
         "vessel",
+        // 17 Eki 2026, additive: the KDV rate inside the price.
+        "taxRatePct",
       ].sort(),
     );
     expect(out).not.toHaveProperty("updatedAt");
@@ -344,6 +347,7 @@ describe("buildMobileMenuCategories", () => {
       ],
       keys,
       SITE_URL,
+      LEGAL_TAX_RATES,
     );
     expect(cats.map((c) => c.key)).toEqual(["matcha", "espresso"]);
     expect(cats[0]).toMatchObject({
@@ -363,15 +367,19 @@ describe("buildMobileMenuCategories", () => {
       [menuItem({ categoryKey: "matcha", isActive: false })],
       keys,
       SITE_URL,
+      LEGAL_TAX_RATES,
     );
     expect(cats.map((c) => c.items.length)).toEqual([0, 0]);
   });
 
   it("skips a key the seed does not know", () => {
     expect(
-      buildMobileMenuCategories([], ["nope", "espresso"], SITE_URL).map(
-        (c) => c.key,
-      ),
+      buildMobileMenuCategories(
+        [],
+        ["nope", "espresso"],
+        SITE_URL,
+        LEGAL_TAX_RATES,
+      ).map((c) => c.key),
     ).toEqual(["espresso"]);
   });
 });
@@ -418,6 +426,8 @@ describe("toMobileShopProduct (contract §2)", () => {
         "inStock",
         "variants",
         "grinds",
+        // 17 Eki 2026, additive: the KDV rate inside every price.
+        "taxRatePct",
       ].sort(),
     );
     for (const leak of [

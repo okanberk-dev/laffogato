@@ -56,6 +56,13 @@ import {
 import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
 import {
+  LEGAL_TAX_RATES,
+  menuItemTaxRate,
+  normalizeTaxRates,
+  productTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
+import {
   WALLET_PROVIDER,
   walletProviderRef,
   walletSpendFor,
@@ -209,6 +216,12 @@ export interface AdminProduct extends BackdropColumns {
   lowStockThreshold: number;
   /** Approximate shipping weight in grams. */
   weightGrams: number;
+  /**
+   * The product's own KDV rate (whole %), or null: its category's default
+   * from `settings.taxRates`. Read through `productTaxRate()`. Optional
+   * because a row written before the column existed has no key.
+   */
+  taxRatePct?: number | null;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
@@ -263,6 +276,13 @@ export interface AdminOrderItem {
    * line is never credited twice. Absent = none.
    */
   restockedQty?: number;
+  /**
+   * The KDV rate (whole %) this line was sold at, copied from the product or
+   * menu item when the order was placed, so a rate changed in the panel later
+   * never rewrites an old receipt. Absent on orders placed before
+   * 20261017150000_kdv_rates.sql: those show no KDV split.
+   */
+  taxRatePct?: number;
 }
 
 export type {
@@ -444,8 +464,14 @@ export interface AdminSettings {
   /** Per-day open/close used by Visit page + footer table. */
   weeklyHours: WeeklyHours;
 
-  /** Tax (VAT) percentage applied to subtotals at checkout. */
-  taxRatePct: number;
+  /**
+   * KDV defaults per kind of sale (`settings."taxRates"`, jsonb), always
+   * normalised: a key the row lacks reads as the legal default. A product or
+   * menu item with its own rate overrides its default. Prices are
+   * KDV-included; these only split the KDV out (src/lib/utils/kdv.ts). The
+   * old single `"taxRatePct"` column is no longer read.
+   */
+  taxRates: TaxRates;
 
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
@@ -643,7 +669,7 @@ function defaultSettings(): AdminSettings {
     isShopOpen: true,
     heroImageUrl: "",
     weeklyHours: defaultWeeklyHours(),
-    taxRatePct: 20,
+    taxRates: { ...LEGAL_TAX_RATES },
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
@@ -693,6 +719,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // The seed marks the one product that carries an allergen (the
         // pistachio biscotti); `/admin/urunler` marks the rest.
         tags: p.tags ? [...p.tags] : [],
+        // Null: the category's default. The seed sets it only where that
+        // default is wrong (the edible cup box is food under "gift").
+        taxRatePct: typeof p.taxRatePct === "number" ? p.taxRatePct : null,
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
@@ -970,6 +999,8 @@ export interface ProductInput extends BackdropColumns {
   stock: number;
   lowStockThreshold: number;
   weightGrams: number;
+  /** Own KDV rate, or null for the category default. Absent keeps the stored one. */
+  taxRatePct?: number | null;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
@@ -2103,8 +2134,15 @@ export class WalletDeclinedError extends Error {
   }
 }
 
-/** Order lines as they are written, from lines resolved against `products`. */
-function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
+/**
+ * Order lines as they are written, from lines resolved against `products`.
+ * Each carries the KDV rate it is sold at (the product's own, else its
+ * category's default) - read at sale time and never again.
+ */
+function shopLineItems(
+  resolved: ResolvedLine[],
+  rates: TaxRates,
+): AdminOrderItem[] {
   return resolved.map((line) => ({
     productName: line.label,
     qty: line.qty,
@@ -2112,6 +2150,7 @@ function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
     status: "pending",
     productId: line.product.id,
     ...(line.variant ? { variantId: line.variant.id } : {}),
+    taxRatePct: productTaxRate(line.product, rates),
   }));
 }
 
@@ -2122,9 +2161,10 @@ function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
  */
 async function finalizeOrder(
   resolved: ResolvedLine[],
+  rates: TaxRates,
   f: FinalizeOrderInput,
 ): Promise<{ order: AdminOrder; promoDropped: boolean }> {
-  return insertOrderRow(shopLineItems(resolved), f);
+  return insertOrderRow(shopLineItems(resolved, rates), f);
 }
 
 /**
@@ -2201,7 +2241,6 @@ async function insertOrderRow(
   const cfg: CheckoutConfig = {
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-    taxRatePct: settings.taxRatePct,
   };
   const totals = computeTotalsWithShipping(
     subtotalMinor,
@@ -2704,7 +2743,7 @@ export async function placeOrder(
       input.customerEmail ?? "customer",
     );
 
-    placed = await finalizeOrder(resolved, {
+    placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: "pending_payment",
@@ -2749,6 +2788,9 @@ export async function createManualOrder(
   input: CreateManualOrderInput,
 ): Promise<PlaceOrderResult> {
   await ensureSeed();
+  // Only the KDV defaults are read from it: a manual order bypasses the
+  // shop's open switch (see placeOrder) and takes shipping from insertOrderRow.
+  const { taxRates } = await getSettings();
 
   const resolveRes = await resolveOrderLines(
     input.items.map((it) => ({
@@ -2782,7 +2824,7 @@ export async function createManualOrder(
       input.actor || "admin",
     );
 
-    placed = await finalizeOrder(resolved, {
+    placed = await finalizeOrder(resolved, taxRates, {
       orderId,
       orderNo,
       status: input.status,
@@ -2887,6 +2929,7 @@ type CafeLinesResult =
  */
 async function resolveCafeLines(
   lines: AppCafeLineInput[],
+  rates: TaxRates,
 ): Promise<CafeLinesResult> {
   const clean = lines.filter((l) => l.qty > 0);
   if (clean.length === 0) {
@@ -2945,6 +2988,9 @@ async function resolveCafeLines(
       size: priced.size,
       options: { ...priced.options },
       detail: priced.detail,
+      // The item's own rate, else the menu default: 10% for a yeme-içme
+      // sale whether it is served, collected or couriered.
+      taxRatePct: menuItemTaxRate(item, rates),
     });
   }
   return { ok: true, items };
@@ -3004,6 +3050,7 @@ export type AppOrderLinesResult =
  */
 export async function previewAppOrderLines(
   lines: AppOrderLineInput[],
+  rates: TaxRates,
 ): Promise<AppOrderLinesResult> {
   await ensureSeed();
   const { cafe, shop } = splitAppLines(lines);
@@ -3014,7 +3061,7 @@ export async function previewAppOrderLines(
     };
   }
   if (cafe.length > 0) {
-    const res = await resolveCafeLines(cafe);
+    const res = await resolveCafeLines(cafe, rates);
     return res.ok
       ? { ok: true, items: res.items, kind: "cafe" }
       : { ok: false, result: res.result };
@@ -3023,7 +3070,7 @@ export async function previewAppOrderLines(
   if (!res.ok) return { ok: false, result: res.result };
   return {
     ok: true,
-    items: withShopNotes(shopLineItems(res.resolved), shop),
+    items: withShopNotes(shopLineItems(res.resolved, rates), shop),
     kind: "shop",
   };
 }
@@ -3133,7 +3180,7 @@ export async function placeAppOrder(
   };
 
   if (kind === "cafe") {
-    const cafeRes = await resolveCafeLines(cafe);
+    const cafeRes = await resolveCafeLines(cafe, settings.taxRates);
     if (!cafeRes.ok) return cafeRes.result;
 
     const orderSeq = await nextSeq("ord");
@@ -3191,7 +3238,7 @@ export async function placeAppOrder(
     const orderId = slugifyId("ord", orderSeq);
     if (!walletPay) await recordMoves(orderId, orderNo);
     placed = await insertOrderRow(
-      withShopNotes(shopLineItems(resolved), shop),
+      withShopNotes(shopLineItems(resolved, settings.taxRates), shop),
       {
         orderId,
         orderNo,
@@ -5009,6 +5056,8 @@ export async function getSettings(): Promise<AdminSettings> {
     ...defaultSettings(),
     ...rest,
     mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+    // jsonb as well: every key filled, a bad value reads as the legal rate.
+    taxRates: normalizeTaxRates(rest.taxRates),
     // jsonb from the row: only known roles reach the recipient list.
     orderNotifyRoles: normalizeNotifyRoles(
       rest.orderNotifyRoles ?? defaultSettings().orderNotifyRoles,
@@ -5299,6 +5348,12 @@ export interface AdminMenuItem extends BackdropColumns {
   image: string;
   /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
   tags: string[];
+  /**
+   * The item's own KDV rate (whole %), or null: the menu default from
+   * `settings.taxRates`. Read through `menuItemTaxRate()`. Optional because a
+   * row written before the column existed has no key.
+   */
+  taxRatePct?: number | null;
   isActive: boolean;
   sortOrder: number;
   updatedAt: string;
@@ -5341,6 +5396,8 @@ export interface MenuItemInput extends BackdropColumns {
   hue: string;
   image: string;
   tags: string[];
+  /** Own KDV rate, or null for the menu default. Absent keeps the stored one. */
+  taxRatePct?: number | null;
   isActive: boolean;
   sortOrder: number;
 }

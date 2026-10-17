@@ -19,12 +19,12 @@ export interface CheckoutQuoteLine {
 
 /**
  * The order as the server created it: the amounts the bank will be asked
- * for. The checkout compares `totalMinor` with the amount on the button the
- * customer pressed and goes on to the bank only when they agree; otherwise
- * it shows the new amount and asks again (a price changed in the panel, a
- * code that could not be applied). That keeps "the total shown before the
- * payment obligation" true (Mesafeli Sözleşmeler Yönetmeliği m.6, m.8)
- * now that the card is typed before the order exists.
+ * for. The checkout compares `totalMinor` with the "Toplam (KDV dahil)"
+ * shown right above the pay button and goes on to the bank only when they
+ * agree; otherwise it shows the new amount and asks again (a price changed
+ * in the panel, a code that could not be applied). That keeps "the total
+ * shown before the payment obligation" true (Mesafeli Sözleşmeler
+ * Yönetmeliği m.6, m.8) now that the card is typed before the order exists.
  */
 export interface CheckoutQuote {
   orderId: string;

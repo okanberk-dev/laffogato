@@ -90,6 +90,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "backdrop": "caramel",
           "photoCutout": false,
           "vessel": null,
+          // 17 Eki 2026, eklemeli: fiyatın içindeki KDV oranı, tam yüzde (aşağı bak)
+          "taxRatePct": 10,
         },
       ],
     },
@@ -184,7 +186,7 @@ tam sha256'sıdır (`"<64 hex>"`), `v` onun ilk 12 hanesi.
 | Adım | Gecikme |
 | --- | --- |
 | Panel kaydeder → site | anında (`revalidatePath`) |
-| Panel kaydeder → `/menu` yanıtı CDN'de | **en çok 300 sn** |
+| Panel kaydeder → `/menu` yanıtı CDN'de | **300 sn** (`s-maxage`); arada istek gelmediyse süresi dolmuş kopya bir kez daha servis edilir: en çok 3900 sn (`stale-while-revalidate=3600`) |
 | Yeni `image` URL'si → uygulama fotoğrafı çizer | anında (yeni URL = önbellek ıskası) |
 
 300 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
@@ -254,6 +256,40 @@ seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve m
   koşu, `--apply` ile yazar, elle seçilmiş satırlara dokunmaz).
 - Eski sürümler üç alanı da okumaz; bir şey kırılmaz.
 
+### `taxRatePct` - KDV oranı (17 Eki 2026, yalnız ekleme)
+
+Operatör kararı (17 Eki 2026): KDV oranı ürüne göre, panelden düzenlenir ve
+uygulama da aynı oranı gösterir. Fiyatlar **KDV dahildir**; oran fiyatı
+değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
+
+| Alan | Tip | Nerede | Değer |
+| --- | --- | --- | --- |
+| `taxRatePct` | integer | menü kalemi (§1), mağaza ürünü (§2), sipariş satırı (§3), önizleme satırı (§3), karaoke müsaitliği ve rezervasyonu (§7) | Tam yüzde, 0-100. Bugünkü oranlar 0 · 1 · 10 · 20. |
+
+- **Hangi oran.** Kalemin kendi oranı seçiliyse odur; değilse panelin
+  varsayılanı (`/admin/ayarlar` → Vergi, `settings."taxRates"`): kafe menüsü
+  **%10** (masa, gel-al, kurye; KDV GUT III/B-2.4, Seri No 51), karaoke odası
+  **%20**, mağazada kategoriye göre `beans` ve `pantry` **%1**, `gift`, `gear`,
+  `merch` **%20**. Kural ve dayanak: site `src/lib/utils/kdv.ts`.
+- §1 ve §2'de alan **her zaman vardır** ve o anki oranı söyler. Panel bir oranı
+  değiştirince gövde değişir (§1'de `ETag` de; §2 `ETag` göndermez). Yeni
+  gövde CDN'den şu pencerelerle çıkar: `/menu` `s-maxage=300,
+  stale-while-revalidate=3600`, yani 300 sn'den sonraki ilk istek eski kopyayı
+  bir kez daha alıp yenilemeyi başlatır; arada istek gelmezse eski kopya en
+  çok **3900 sn** sonra bir kez daha servis edilebilir. `/shop` `s-maxage=60,
+  stale-while-revalidate=300`: aynı kuralla en çok **360 sn**. Uygulamanın
+  kendi `staleTime`'ı bu pencerelerin üstüne eklenir.
+- Karaoke müsaitliği (§7) CDN'de tutulmaz (`Cache-Control` yok, Vercel
+  varsayılanı `max-age=0`): oran uygulamanın bir sonraki sorgusunda gelir.
+  Sipariş satırının oranı (§3) satış anında sunucuda yazılır, beklemesi yoktur.
+- Varyant fiyatları (§2) ürünün oranındadır.
+- Sipariş satırının oranı (§3) **satış anındaki** orandır ve sonra değişmez.
+  Oranlar kaydedilmeden önce verilmiş siparişte ve rezervasyonda `null`
+  gelir; uygulama oran uydurmaz, "KDV dahil" yazmakla yetinir.
+- Uygulama KDV'yi kendisi hesaplamaz ve oran yazmaz: sabit bir oran (ör. "%20")
+  kodda durmamalıdır. Alan yoksa (eski sunucu) oran gösterilmez.
+- Eski sürümler alanı okumaz; bir şey kırılmaz.
+
 ## 2. `GET /shop` — mağaza ürünleri (herkese açık)
 
 ```jsonc
@@ -268,7 +304,8 @@ seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve m
   "backdrop": "espresso", "photoCutout": false, "vessel": null,   // 24 Eyl 2026, eklemeli: §1'deki sahne alanları, ilk görseli anlatır
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
-  "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ]   // yalnız category === "beans"
+  "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ],  // yalnız category === "beans"
+  "taxRatePct": 1                     // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
 } ], "shippingFlatMinor": 4900, "shippingFreeThresholdMinor": 50000 }
 ```
 
@@ -535,11 +572,13 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
                 { "key": "on_the_way", "label": "Kuryede", "at": null, "done": false },   // pickup: "Hazır - gel al"
                 { "key": "delivered", "label": "Kapında", "at": null, "done": false } ],
   "channel": "app", "kind": "cafe", "fulfillment": "delivery",
-  "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … } } ],
+  "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … },
+               "taxRatePct": 10 } ],   // 17 Eki 2026, yalnız ekleme: satış anındaki KDV oranı; eski siparişte null
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
   "table": null,      // 15 Eki 2026, yalnız ekleme: fulfillment === "table" ise { "code": "7K3M9QX2TA", "name": "Bahçe 3" } (sipariş anındaki ad), aksi hâlde null
+  "taxBreakdown": [ { "ratePct": 10, "grossMinor": 89000, "netMinor": 80909, "taxMinor": 8091 } ],  // 17 Eki 2026, yalnız ekleme; aşağı bak. Eski siparişte null
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırının
   // delta'sı eksi o siparişin `reversal` satırlarının toplamı (15 Eki 2026'dan
@@ -548,6 +587,34 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   // edilen siparişin damgası geri alınır.
 }
 ```
+
+### 3.0 KDV - `items[].taxRatePct` · `taxBreakdown` (17 Eki 2026, yalnız ekleme)
+
+Sipariş yazılırken her satıra o anki oranı (§1 `taxRatePct` kuralı) kopyalanır
+(`orders.items[].taxRatePct`, jsonb). Panelde sonradan değişen oran verilmiş
+siparişi değiştirmez. `taxBreakdown`, `totalMinor`'ın içindeki KDV'nin oran oran
+dökümüdür, en yüksek oran önce:
+
+| Alan | Anlamı |
+| --- | --- |
+| `ratePct` | Oran (tam yüzde) |
+| `grossMinor` | Bu orandaki KDV dahil tutar: satırlar, indirim düşülmüş, kargo/kurye payı eklenmiş |
+| `netMinor` | Matrah: `grossMinor − taxMinor` |
+| `taxMinor` | KDV: `round(grossMinor × r / (100 + r))`, kuruşa yuvarlanır |
+
+- İndirim (kupon, promosyon) satırlara tutarlarıyla orantılı dağıtılır.
+- Kargo ve kurye ücreti taşıdığı ürünün oranını alır (KDV K. m.24/b): kalan
+  satır tutarlarıyla orantılı dağıtılır; kupon bütün satırları karşılamışsa
+  satır fiyatlarıyla.
+- Satırların `grossMinor` toplamı her zaman `totalMinor`'dır. İadeler düşülmez:
+  döküm satış anına aittir.
+- Oranlar kaydedilmeden önce verilmiş siparişte satırlarda `taxRatePct: null`,
+  siparişte `taxBreakdown: null` gelir.
+- **Toplamlar değişmedi.** `subtotalMinor`, `discountMinor`, `shippingMinor`,
+  `totalMinor` önceki kuralla hesaplanır; oran ödenecek tutara hiç girmez.
+- `POST /orders/preview` satırlarına da `taxRatePct` eklendi (yalnız ekleme):
+  o satırın şimdi satılacağı oran.
+- Eski sürümler alanları okumaz; bir şey kırılmaz.
 
 ### 3.1 `shipment` — kargo (22 Eyl 2026, yalnız ekleme)
 
@@ -599,7 +666,7 @@ kümesidir (resmî JS SDK'sı); sunucu `TRACK_UPDATED` webhook'unda eşler:
 ### `POST /orders/preview` → sepet hesabı (kimlik gerekli değil ama varsa kupon denenir)
 
 Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
-`{ "lines": [ { "name", "detail", "qty", "unitPriceMinor", "lineTotalMinor" } ], "subtotalMinor", "discountMinor", "shippingMinor", "totalMinor", "promo": { "code", "ok": true } | { "code", "ok": false, "message" } | null, "stampsToEarn": 1 }`
+`{ "lines": [ { "name", "detail", "qty", "unitPriceMinor", "lineTotalMinor", "taxRatePct" } ], "subtotalMinor", "discountMinor", "shippingMinor", "totalMinor", "promo": { "code", "ok": true } | { "code", "ok": false, "message" } | null, "stampsToEarn": 1 }`
 
 > **Uygulama notu (preview).** `promoCode` verilmişse `promo-preview` hız sınırı burada da
 > uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
@@ -756,9 +823,14 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 
 ## 7. Karaoke
 
-- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
-- `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt" } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
+- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60, "taxRatePct": 20 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
+- `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt", "taxRatePct": 20 } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
 - `GET /karaoke/reservations` → benimkiler.
+- **`taxRatePct` (17 Eki 2026, yalnız ekleme):** müsaitlikte karaoke odasının
+  şimdiki KDV oranı (panel varsayılanı, yasal **%20**), rezervasyonda
+  rezervasyon anındaki oran (`karaoke_reservations."taxRatePct"`; daha önce
+  yapılmış rezervasyonda `null`). Fiyat ve toplamlar KDV dahildir ve
+  değişmedi; uygulama özet satırında "Toplam (%20 KDV dahil)" yazabilir. Kural §1.
 - **409 `too_many_reservations`**: aynı anda en fazla **2** açık (`requested`/`confirmed`)
   rezervasyon (`KARAOKE_OPEN_CAP`). `slot_taken` gibi bu da kurala dayalı bir ret;
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.

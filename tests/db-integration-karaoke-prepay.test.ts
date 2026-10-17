@@ -323,6 +323,10 @@ maybe("karaoke prepayment (real Postgres)", () => {
       expect(r.paymentStatus).toBe("pending");
       expect(r.channel).toBe("web");
       expect(r.guest).toBe(false);
+      // The karaoke KDV rate at booking time (settings here carry none: the
+      // legal 20% stands in), kept on the row for its receipt.
+      expect(r.taxRatePct).toBe(20);
+      expect(r.totalMinor).toBe(200_000);
       expect(r.legalConsent).toMatchObject({
         documents: ["karaoke-odasi-rezervasyon"],
         confirmations: [

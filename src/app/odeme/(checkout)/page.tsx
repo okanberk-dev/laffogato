@@ -112,7 +112,6 @@ export default async function OdemePage({
         config={{
           shippingFlatMinor: settings.shippingFlatMinor,
           shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-          taxRatePct: settings.taxRatePct,
         }}
         payment={payment}
         seller={{
