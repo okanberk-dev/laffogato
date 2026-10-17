@@ -18,6 +18,7 @@ import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
  */
 
 export const MENU_PRICE_ERROR = "Fiyatı rakamla yaz, ör. 245 ya da 1.250,00.";
+export const MENU_PRICE_ZERO_ERROR = "Fiyat 0 olamaz: en az 0,01 TL yaz.";
 
 /** A typed price as kuruş, or the issue that refuses it. */
 function readPrice(text: string, ctx: z.RefinementCtx): number {
@@ -45,7 +46,14 @@ export const menuItemFieldsSchema = z.object({
       ctx.addIssue({ code: "custom", message: "Fiyatı yaz." });
       return z.NEVER;
     }
-    return readPrice(text, ctx);
+    const minor = readPrice(text, ctx);
+    // A 0 TL cup is a free cup: a basket of them totals 0 and is settled as
+    // paid without the POS (admin audit CAT-05). L alone may be 0 below.
+    if (minor === 0) {
+      ctx.addIssue({ code: "custom", message: MENU_PRICE_ZERO_ERROR });
+      return z.NEVER;
+    }
+    return minor;
   }),
   // L is optional: empty (or 0) means the item has one size.
   priceL: z.string().transform((raw, ctx) => {
