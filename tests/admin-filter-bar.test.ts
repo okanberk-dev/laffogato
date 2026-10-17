@@ -30,7 +30,7 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
 }));
 
-const { FilterBar, foldedFiltersLabel, splitFilterFields } =
+const { FilterBar, foldedFiltersLabel, openFromMd, splitFilterFields } =
   await import("@/components/admin/ui/filter-bar");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
 const { AUDIT_FILTER_FIELDS } = await import("@/lib/admin/audit-view");
@@ -130,6 +130,44 @@ describe("markup", () => {
     const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
     expect(src).toContain('window.matchMedia("(min-width: 48rem)")');
     expect(src).toContain("ref={openFromMd}");
+  });
+
+  it("without ::details-content the group is opened from md up, also after a resize", () => {
+    // The summary is hidden from md up: a group left closed there (a
+    // tablet turned from portrait to landscape) could not be opened.
+    let wide = false;
+    const listeners = new Set<() => void>();
+    const media = {
+      get matches() {
+        return wide;
+      },
+      addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+      removeEventListener: (_: string, fn: () => void) => listeners.delete(fn),
+    };
+    vi.stubGlobal("window", { matchMedia: () => media });
+    try {
+      const el = { open: false } as HTMLDetailsElement;
+      const cleanup = openFromMd(el);
+      expect(el.open).toBe(false);
+      wide = true;
+      for (const fn of listeners) fn();
+      expect(el.open).toBe(true);
+      // A phone user's own toggle is left alone below md.
+      wide = false;
+      el.open = false;
+      for (const fn of listeners) fn();
+      expect(el.open).toBe(false);
+      cleanup?.();
+      expect(listeners.size).toBe(0);
+      // Already wide on mount: open at once.
+      wide = true;
+      const other = { open: false } as HTMLDetailsElement;
+      openFromMd(other)?.();
+      expect(other.open).toBe(true);
+      expect(openFromMd(null)).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("chips and the GET fallback stay as they were", () => {

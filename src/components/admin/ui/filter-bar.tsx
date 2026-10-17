@@ -62,9 +62,19 @@ export function foldedFiltersLabel(active: number): string {
 
 // The folded group is always open from md up: CSS shows a closed
 // <details>' content there (::details-content), and this opens it as well
-// for a browser without that pseudo-element.
-const openFromMd = (el: HTMLDetailsElement | null) => {
-  if (el && window.matchMedia("(min-width: 48rem)").matches) el.open = true;
+// for a browser without that pseudo-element, also when the window grows
+// past md later (a tablet turned sideways): the summary is hidden there,
+// so a group still closed could not be opened at all. The group's ref;
+// exported for tests.
+export const openFromMd = (el: HTMLDetailsElement | null) => {
+  if (!el) return;
+  const md = window.matchMedia("(min-width: 48rem)");
+  const sync = () => {
+    if (md.matches) el.open = true;
+  };
+  sync();
+  md.addEventListener("change", sync);
+  return () => md.removeEventListener("change", sync);
 };
 
 /**
