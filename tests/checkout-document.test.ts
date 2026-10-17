@@ -70,6 +70,11 @@ describe("the root layout's tags", () => {
       "/admin/musteriler/ayse%40example.com",
       "/admin/giris",
       "/admin/iki-asama",
+      // Next.js serves an escaped path as the panel too, and usePathname()
+      // keeps the escapes.
+      "/%61dmin",
+      "/%61dmin/musteriler/ayse%40example.com",
+      "/%61dmin/siparisler/ord-0001",
     ]) {
       expect(tags(path), path).toBe("<div></div>");
     }
@@ -81,6 +86,9 @@ describe("the root layout's tags", () => {
       "/admin-x",
       "/adminler",
       "/x/admin",
+      "/%61dmin-x",
+      // A malformed escape does not throw: it is tested as it is.
+      "/%E0%A4%A",
     ]) {
       const html = tags(path);
       expect(html, path).toContain('data-gtm="GTM-TEST"');

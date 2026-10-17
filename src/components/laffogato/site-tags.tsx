@@ -14,9 +14,20 @@ import { CookieConsent } from "./cookie-consent";
  * 2FA screens included. Not `/administrator` or `/admin-x`: those are the
  * site's (not-found) pages. Kept apart from `isCheckoutPath`, which the
  * proxy's checkout policy and the checkout's own guard read too.
+ *
+ * Read decoded: Next.js also matches a request's decoded path to its pages,
+ * so `/%61dmin/musteriler/...` opens the panel, while `usePathname()` keeps
+ * the escapes as the address bar has them.
  */
 function isAdminDocumentPath(pathname: string | null | undefined): boolean {
-  return pathname === "/admin" || pathname?.startsWith("/admin/") === true;
+  if (!pathname) return false;
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    // A malformed escape: no page matches it either; test it as it is.
+  }
+  return path === "/admin" || path.startsWith("/admin/");
 }
 
 /**
