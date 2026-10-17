@@ -63,4 +63,6 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-export const KARAOKE_LEGAL_UPDATED = "16 Ekim 2026";
+// 17 Ekim 2026: §1 no longer points table bookings to the café terms (the
+// café takes none; only the karaoke room is booked). LEGAL-REDLINES §17.
+export const KARAOKE_LEGAL_UPDATED = "17 Ekim 2026";

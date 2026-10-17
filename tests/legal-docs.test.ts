@@ -236,6 +236,33 @@ describe("legal content - identity is the tax certificate, never a placeholder",
     }
   });
 
+  it("takes no table or group bookings: only the karaoke room is booked", () => {
+    // 17 Ekim 2026 (#132): the café takes no table or group bookings. A
+    // sentence may name one only to say it is not taken.
+    expect(rendered).not.toMatch(
+      /no-show|masa tutma|minimum harcama|grup ziyareti|Rezervasyon Koşulları/i,
+    );
+    expect(findLegalDoc("kafe-hizmet-kosullari")?.title).toBe(
+      "Kafe Hizmet Koşulları",
+    );
+    for (const d of LEGAL_DOCS) {
+      for (const s of d.sections) {
+        for (const text of [
+          s.heading,
+          ...(s.paragraphs ?? []),
+          ...(s.bullets ?? []),
+          ...(s.ordered ?? []),
+          ...(s.table ?? []).map((r) => `${r.key}: ${r.value}`),
+        ]) {
+          if (!/masa(\/| )rezervasyon|grup rezervasyon/i.test(text)) continue;
+          expect(text, `${d.slug}: ${s.heading}`).toMatch(
+            /rezervasyonu alınmaz/,
+          );
+        }
+      }
+    }
+  });
+
   it("drops table rows whose value is an unknown token", () => {
     // The seller-identity table exists but must not carry an empty MERSİS row.
     for (const d of LEGAL_DOCS) {

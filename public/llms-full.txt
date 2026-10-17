@@ -348,7 +348,7 @@ Yayındaki hukuki belgeler (https://laffogato.net/hukuk):
 - Kişisel Veri Saklama ve İmha Politikası · Çerez Politikası · Ticari Elektronik İleti ve İYS
 - Kullanım Şartları · Üyelik Sözleşmesi · Fikri Mülkiyet ve Telif Hakları
 - Şirket ve İletişim Bilgileri · Şikâyet ve Uyuşmazlık Çözümü
-- Kafe Hizmet ve Rezervasyon Koşulları · Gıda Güvenliği ve Alerjen Bilgilendirmesi
+- Kafe Hizmet Koşulları · Gıda Güvenliği ve Alerjen Bilgilendirmesi
 
 ---
 

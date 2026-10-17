@@ -1459,7 +1459,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan, sağlık ve hijyen açısından iadesi uygun olmayan ürünler. Örnek: mührü açılmış pistacchio kreması kavanozu, kapağı açılmış şurup şişesi, koruyucu bandı sökülmüş kahve çekirdeği paketi.",
           "Doğrudan tüketime yönelik olarak üretilen ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yenilebilir ürünler. Örnek: yenilebilir waffle kupa (edible cup) setleri; ambalajı açılmamış olsa dahi taşıma koşulları doğrulanamadığından ambalaj bütünlüğü bozulmuş gönderiler.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan, kişiye özel üretilen ürünler. Örnek: üzerine isim veya tarih işlenmiş fincan ve önlük, özel harman talebiyle kavrulan ve talep edilen inceliğe göre öğütülen kahve, hediye paketine özel mesaj baskısı yapılan setler.",
-          "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler. Örnek: köşkte belirli gün ve saate ayrılan masa rezervasyonu veya karaoke odası rezervasyonu, tarihli barista atölyesi veya tadım etkinliği katılım biletleri.",
+          "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler. Örnek: köşkte belirli gün ve saate ayrılan karaoke odası rezervasyonu, tarihli barista atölyesi veya tadım etkinliği katılım biletleri.",
           "Fiyatı finansal piyasalardaki dalgalanmalara bağlı olarak değişen ve Satıcı'nın kontrolünde olmayan mal veya hizmetler.",
           "Elektronik ortamda anında ifa edilen ve tüketiciye anında teslim edilen gayrimaddi ürünler. Örnek: satın alma sonrası indirme bağlantısı açılan dijital içerikler.",
           "Cayma hakkı süresi içinde ifasına tüketicinin onayı ile başlanan hizmetler. Örnek: talebiniz üzerine kişiselleştirilerek kavrum programına alınmış özel sipariş partisi.",
@@ -1796,16 +1796,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "21. Rezervasyon, Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu",
+        heading:
+          "21. Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu",
         paragraphs: [
-          "{{BRAND}}, Tuzla'daki tarihi köşkte masa rezervasyonu, karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi belirli tarih ve saate bağlı hizmetler sunabilmektedir. Belirli bir tarihte veya dönemde yapılması gereken yiyecek-içecek tedariki ile eğlence ve boş zaman değerlendirme amaçlı hizmetler, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü kapsamında olup bu hizmetlerde cayma hakkı kullanılamaz. Karaoke odası dışındaki bu hizmetler için {{SITE}} veya mobil uygulama üzerinden çevrim içi ödeme ya da ön ödeme alınmaz. Bir bedel veya ön ödeme istenmesi hâlinde bu tutar işletmede nakit veya kart ile tahsil edilir ve hizmet bedeline mahsup edilir.",
+          "{{BRAND}}, Tuzla'daki tarihi köşkte karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi belirli tarih ve saate bağlı hizmetler sunabilmektedir. Belirli bir tarihte veya dönemde yapılması gereken yiyecek-içecek tedariki ile eğlence ve boş zaman değerlendirme amaçlı hizmetler, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü kapsamında olup bu hizmetlerde cayma hakkı kullanılamaz. Karaoke odası dışındaki bu hizmetler için {{SITE}} veya mobil uygulama üzerinden çevrim içi ödeme ya da ön ödeme alınmaz. Bir bedel veya ön ödeme istenmesi hâlinde bu tutar işletmede nakit veya kart ile tahsil edilir ve hizmet bedeline mahsup edilir.",
           "Karaoke odası rezervasyonu bundan ayrıdır: ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır ve rezervasyon ödemenin onaylanmasıyla kesinleşir. Bu hizmette de cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g); bunun yerine sözleşmeyle şu koşul tanınır. Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri her zaman ödenen tutarın tamamıdır, kısmi iade yapılmaz ve ödemenin yapıldığı karta yapılır. Rezervasyonu işletme karşılayamazsa ödediğiniz tutarın tamamı iade edilir. Bu belgenin aşağıdaki 48 ve 24 saatlik iptal ve devir kolaylıkları karaoke odası rezervasyonuna uygulanmaz; ayrıntılar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'ndedir.",
           "Cayma hakkı bulunmamakla birlikte, {{BRAND}} karaoke odası dışındaki hizmetlerde operasyonel esneklik sağlamak amacıyla aşağıdaki iptal ve devir kolaylıklarını sunar. Bu kolaylıklar sözleşmeden doğan ek haklardır ve hizmetin hiç sunulmaması, gereği gibi sunulmaması veya Satıcı'dan kaynaklanan iptal hâllerinde tüketicinin yasal haklarını sınırlamaz.",
         ],
         bullets: [
           "Etkinlik tarihinden en az 48 saat önce iletilen iptal taleplerinde ödenen bedelin tamamı iade edilir.",
           "Etkinlik tarihine 24-48 saat kala iletilen iptallerde, tercihinize göre ödenen bedelin tamamı iade edilir veya katılım hakkınız kontenjan bulunan başka bir tarihe aktarılır.",
-          "Etkinlik tarihine 24 saatten az kalan iptallerde ve katılım sağlanmayan rezervasyonlarda, hazırlık ve tahsis edilen kontenjan nedeniyle bedel iadesi yapılamaz; ancak katılım hakkınızı bir başkasına devredebilirsiniz.",
+          "Etkinlik tarihine 24 saatten az kalan iptallerde ve katılım sağlanmayan etkinlik kayıtlarında, hazırlık ve tahsis edilen kontenjan nedeniyle bedel iadesi yapılamaz; ancak katılım hakkınızı bir başkasına devredebilirsiniz.",
           "Katılımcı devri, etkinlik başlangıcından önce {{EMAIL}} adresine yeni katılımcının adı ve iletişim bilgisi yazılarak ücretsiz yapılır.",
           "Etkinliğin Satıcı tarafından iptal edilmesi veya tarihinin değiştirilmesi hâlinde bedelin tamamı iade edilir veya tercihiniz doğrultusunda yeni tarihe aktarılır; bu tercih size aittir.",
           "Mücbir sebeplerle (doğal afet, resmî makam kararı, altyapı kesintisi) yapılan iptallerde bedel, kesintisiz olarak iade edilir.",
@@ -3356,7 +3357,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Online ödeme, bottega bölümünde listelenen fiziksel ürünler ile mobil uygulamadan verilen kafe siparişleri için alınır. Kafede yerinde yapılan satışlar işletmede yüz yüze gerçekleştirilir ve bu politikanın online satışa ilişkin hükümlerine değil, doğrudan işletme içi satış kurallarına tabidir.",
           "Bu ayrım, ödeme hizmeti sağlayıcısı nezdinde üye iş yerinin işlem hacminin kaynağının açık olması bakımından önem taşır: PayNkolay sanal POS üzerinden alınan işlemler, bottega siparişleri ile mobil uygulamadan verilen kafe siparişlerinden oluşur.",
           "Kafede kasada yapılan alışverişte, uygulamanın gösterdiği kasa kodu personel tarafından okutularak damga eklenmesi bir online satış işlemi değildir; bu işlem yalnızca damgayı kaydeder, kafe içi ödeme işletmede yüz yüze tahsil edilir.",
-          "Sitede kafe siparişi, paket servis veya masa rezervasyonu hizmeti sunulmamaktadır. Mobil uygulamadan verilen kafe siparişleri bu politikaya, Ön Bilgilendirme Formuna ve Mesafeli Satış Sözleşmesine tabidir; kafede yerinde sunulan hizmetlerin koşulları Kafe Hizmet ve Rezervasyon Koşulları'nda düzenlenir; karaoke odası rezervasyonu ise kendi belgesine tabidir.",
+          "Sitede kafe siparişi veya paket servis hizmeti sunulmamaktadır. Mobil uygulamadan verilen kafe siparişleri bu politikaya, Ön Bilgilendirme Formuna ve Mesafeli Satış Sözleşmesine tabidir; kafede yerinde sunulan hizmetlerin koşulları Kafe Hizmet Koşulları'nda düzenlenir; karaoke odası rezervasyonu ise kendi belgesine tabidir.",
         ],
       },
       {
@@ -3742,7 +3743,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Metinde geçen SATICI ifadesi {{LEGAL_NAME}} tüzel kişiliğini, {{BRAND}} ifadesi bu tüzel kişiliğe ait ticari markayı, ALICI veya kullanıcı ifadesi ise {{SITE}} yahut mobil uygulama üzerinden sipariş veren gerçek veya tüzel kişiyi ifade eder.",
           "Kart ile yapılan ödemeler, 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulan ödeme hizmeti üzerinden alınır. Bu metinde ödeme hizmeti sağlayıcısı denildiğinde PayNkolay anlaşılır; başka bir ödeme hizmeti sağlayıcısı veya sanal POS sağlayıcısı kullanılmamaktadır.",
           "Bu metin, {{SITE}} ve mobil uygulamada yayımlanan Mesafeli Satış Sözleşmesi ile Ön Bilgilendirme Formu'nun ayrılmaz bir eki niteliğindedir. Ödeme adımına ilerleyen kullanıcı, bu metni okuduğunu ve içeriğini kabul ettiğini beyan eder. Bu metin, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği'nin tüketici lehine emredici hükümlerini sınırlandıracak biçimde yorumlanamaz.",
-          "Metin, kafe içinde nakit veya fiziki POS cihazı ile yapılan yüz yüze satışları değil, yalnızca {{SITE}} ve mobil uygulama üzerinden yapılan uzaktan (mesafeli) satışları kapsar. Çevrim içi ödeme ürün siparişleri ve karaoke odası rezervasyonları için alınır; masa rezervasyonu, grup rezervasyonu, atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz.",
+          "Metin, kafe içinde nakit veya fiziki POS cihazı ile yapılan yüz yüze satışları değil, yalnızca {{SITE}} ve mobil uygulama üzerinden yapılan uzaktan (mesafeli) satışları kapsar. Çevrim içi ödeme ürün siparişleri ve karaoke odası rezervasyonları için alınır; atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz.",
         ],
       },
       {
@@ -4985,7 +4986,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler ile açık rızanıza bağlı analitik ve pazarlama çerezleri, piksel ve yerel depolama teknolojileri; mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
           "Sunucu ve uygulama logları: Barındırma altyapısı, veri tabanı ve uygulama katmanında otomatik olarak üretilen erişim, hata, çökme, güvenlik ve performans kayıtları.",
           "Mobil uygulama: Uygulamayı kullanmanız hâlinde uygulamada kendi girdiğiniz bilgiler ile uygulamanın sunucuya yaptığı isteklerde görülen IP adresi, istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama çökme kaydı, reklam tanımlayıcısı, anlık bildirim (push) tokeni veya konum verisi toplamaz; fA'L fotoğrafı yalnızca yapay zekâ yorumuna açıkça onay vermeniz hâlinde iletilir.",
-          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma ve rezervasyon işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
+          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
           "İletişim kanalları: {{EMAIL}} adresine gönderdiğiniz e-postalar ve {{PHONE}} numarası üzerinden yürütülen görüşmeler kapsamında ilettiğiniz bilgiler.",
           "Sosyal medya: {{HANDLE}} kullanıcı adıyla yürütülen {{IG}}, {{TIKTOK}} ve {{YOUTUBE}} hesapları üzerinden gönderdiğiniz mesaj, yorum ve etiketlemeler; bu platformlarda paylaştığınız içeriklere ilişkin olarak platformların kendileri de bağımsız veri sorumlusudur.",
           "Üçüncü taraflar: Kargo gönderi platformu Geliver üzerinden gelen gönderi durum bildirimleri, PayNkolay işlem doğrulama servisinden alınan işlem sonucu, itirazlarda (chargeback) bankanın ve PayNkolay'ın ilettiği bilgiler, e-posta gönderim sağlayıcısının bildirebildiği kalıcı olarak teslim edilemeyen adres ve istenmeyen posta şikâyeti bildirimleri, üyelik girişinde kimlik doğrulama hizmeti sağlayıcısından alınan kimlik doğrulama sonucu ve yetkili kamu kurumlarından gelen bildirimler.",
@@ -5754,7 +5755,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödül programı katılımcısı: Sadakat (damga) programına katılan; mobil uygulamadan verdiği ve ödemesi tamamlanan kafe siparişleriyle veya kafede kasada eklenen damgalarla kartını dolduran ve dolan kartı ücretsiz içecek kuponuna çeviren üye.",
           "Ziyaretçi: Üye olmadan {{SITE_URL}} adresini görüntüleyen, menüyü inceleyen, sepet oluşturan ancak sipariş tamamlamayan kullanıcı.",
           "Bülten abonesi: Kampanya, yeni ürün ve etkinlik duyurularını almak üzere e-posta adresini paylaşan ve ticari elektronik ileti onayı veren kişi.",
-          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, masa/rezervasyon talebi ileten, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
+          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, karaoke odası rezervasyonu yapan, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
           "Tedarikçi, iş ortağı ve bunların yetkilileri: Kahve çekirdeği, gelato ve gıda malzemesi, ambalaj, ekipman, lojistik ve hizmet tedarikçilerinin gerçek kişi temsilcileri ve irtibat kişileri.",
           "Çalışan adayı: {{EMAIL}} adresine veya kariyer kanallarına özgeçmiş ve başvuru ileten kişi.",
           "İletişime geçen üçüncü kişiler: Basın mensupları, iş birliği teklifiyle başvuranlar, sosyal medya hesaplarımız üzerinden mesaj gönderenler ve yasal bildirim yapanlar.",
@@ -5774,7 +5775,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Üye ve müşteri - Hukuki işlem ve onay verisi: Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni onayladığınız ayrı onay kutusuna ilişkin kayıt; onay tarihi ve saati, IP adresi, tarayıcı ve cihaz bilgisi (user-agent) ile onaylanan belge sürümü. Bu kayıt, 6102 ve 6098 sayılı Kanunlar ile 6100 sayılı Hukuk Muhakemeleri Kanunu kapsamında ispat amacıyla tutulur.",
           "Ziyaretçi - İşlem güvenliği ve kullanım verisi: IP adresi, cihaz ve tarayıcı bilgisi, işletim sistemi, dil tercihi, ziyaret edilen sayfalar ve tıklama akışı, oturum süresi, yönlendiren adres (referrer), zorunlu ve tercihe bağlı çerez kayıtları, sepet ve tercih bilgisi (yerel depolamada tutulan sepet dahil), hata ve performans kayıtları.",
           "Bülten abonesi - Pazarlama verisi: e-posta adresi, ad, aboneliğin geldiği kaynak, ticari elektronik ileti onayının alındığı tarih, IP adresi ve onaylanan metin, e-posta adresinin size ait olduğunu doğrulayan onay bağlantısının kullanıldığı kayıt, gönderim ve abonelikten çıkma kayıtları. Üyeler için ticari elektronik ileti onayının ve geri alınmasının geçmişi (tarih, kaynak, IP adresi, tarayıcı veya uygulama bilgisi) ayrıca kayıt altında tutulur.",
-          "Kafe ziyaretçisi - Fiziksel mekân güvenliği ve işlem verisi: kapalı devre kamera görüntüsü (girişte bildirim levhası bulunan alanlarda), rezervasyon/masa talebi kapsamında ad ve telefon numarası, kafe içi satış fişine bağlı işlem kayıtları, etkinlik katılım listeleri.",
+          "Kafe ziyaretçisi - Fiziksel mekân güvenliği ve işlem verisi: kapalı devre kamera görüntüsü (girişte bildirim levhası bulunan alanlarda), kafe içi satış fişine bağlı işlem kayıtları, etkinlik katılım listeleri.",
           "Tedarikçi yetkilisi - Kimlik, iletişim ve ticari veri: ad, soyad, görev/unvan, kurumsal e-posta ve telefon, imza sirküleri ve yetki belgelerinde yer alan bilgiler, sözleşme, sipariş, irsaliye ve fatura kayıtları, banka hesap bilgisi (yalnızca ödemenin gerçekleştirilmesi amacıyla).",
           "Çalışan adayı - Özlük öncesi veri: ad, soyad, iletişim bilgileri, özgeçmişte yer alan eğitim ve iş deneyimi bilgileri, referans bilgileri, mülakat notları, başvurulan pozisyon. Özgeçmişinizde kendi inisiyatifinizle paylaştığınız ve pozisyon için gerekli olmayan veriler (fotoğraf, medeni hâl, sağlık bilgisi gibi) tarafımızca değerlendirmede kullanılmaz.",
           "İletişime geçen üçüncü kişiler - İletişim ve talep verisi: ad, e-posta/telefon, mesaj içeriği ve ekleri, sosyal medya kullanıcı adı ve mesaj geçmişi, talebin sonuçlandırılmasına ilişkin kayıtlar.",
@@ -5967,7 +5968,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kargo ve teslimat kanalları: Geliver kargo gönderi platformunun sitemize bildirdiği gönderi durumu ve takip bilgileri ile kafe siparişlerinde kurye teslimatına ilişkin kayıtlar.",
           "Yazılı ve sözlü iletişim: {{EMAIL}} adresine gönderilen e-postalar, {{PHONE}} numarası üzerinden yapılan görüşmeler, {{ADDRESS}} adresine yapılan yazılı başvurular.",
           "Sosyal medya kanalları: {{IG}}, {{TIKTOK}} ve {{YOUTUBE}} hesapları üzerinden gönderdiğiniz mesaj ve yorumlar. Bu platformların kendi veri işleme faaliyetleri, ilgili platformun kendi politikalarına tabidir.",
-          "Fiziki kanallar: Kafede doldurulan rezervasyon/etkinlik formları, kafe içi satış belgeleri, giriş noktalarında bildirim levhası bulunan alanlardaki kapalı devre kamera sistemi.",
+          "Fiziki kanallar: Kafede doldurulan etkinlik formları, kafe içi satış belgeleri, giriş noktalarında bildirim levhası bulunan alanlardaki kapalı devre kamera sistemi.",
           "Üçüncü kişilerden dolaylı toplama: Hediye/başkasına gönderim siparişlerinde alıcının ad, adres ve telefon bilgisi sipariş veren tarafından iletilir. Bu hâlde sipariş veren, alıcıyı bu metin hakkında bilgilendirmekle yükümlüdür; tarafımız, teslimatın gerektirdiği asgari veriyi işler.",
         ],
       },
@@ -9759,7 +9760,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Bottega (Online Mağaza): Kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, kahve ekipmanı (moka pot, değirmen, tamper), marka ürünleri (fincan, önlük, tote çanta) ve kiler ürünlerinin (pistacchio kreması, şuruplar) mesafeli sözleşme kurulmak suretiyle satışı.",
           "Mobil Uygulama: iOS ve Android cihazlar için yayımlanan {{BRAND}} uygulaması üzerinden menü görüntüleme, kafe ve mağaza siparişi verme, üyelik yönetimi, sadakat kartının (damga) takibi, kafede kasa koduyla damga ekletme, karaoke odası rezervasyonu (ödemesi çevrim içi alınır), fA'L ve cihazda planlanan hatırlatmaları açma. Mobil Uygulamaya özgü ayrıntılı koşullar Mobil Uygulama Kullanım Koşulları (/hukuk/mobil-uygulama-kosullari) metninde düzenlenmiştir.",
           "Sadakat (Damga) Programı: Mobil Uygulamadan verilen kafe siparişleri ve kafede eklenen damgalarla kartı doldurma ve dolan kart karşılığında ücretsiz içecek kuponu kazanma imkânı. Damga kazanım koşulları, kart hedefi, kuponun geçerlilik süresi ve kullanım sınırları Sadakat (Damga) Programı Kuralları (/hukuk/odul-programi) metninde düzenlenmiştir.",
-          "Karaoke Rezervasyonu: Köşkün karaoke odasının, e-postası doğrulanmış üyelerce internet sitesi veya Mobil Uygulama üzerinden, üye olmadan ise internet sitesi üzerinden belirli gün ve saat için ayrılması; masa rezervasyonları ise yalnızca telefonla alınır. Karaoke rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; ödemesi alınmayan rezervasyon kesinleşmez, ödemenin onaylanmasıyla kendiliğinden kesinleşir. İptal, iade ve cayma hakkının bulunmaması dahil koşullar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir. Çevrim içi ödeme geçici olarak kapalıysa veya Mobil Uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir ve Şirket onaylamadıkça kesinleşmez; onay e-posta ve Mobil Uygulamadaki bildirim listesi ile iletilir.",
+          "Karaoke Rezervasyonu: Köşkün karaoke odasının, e-postası doğrulanmış üyelerce internet sitesi veya Mobil Uygulama üzerinden, üye olmadan ise internet sitesi üzerinden belirli gün ve saat için ayrılması. Karaoke rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; ödemesi alınmayan rezervasyon kesinleşmez, ödemenin onaylanmasıyla kendiliğinden kesinleşir. İptal, iade ve cayma hakkının bulunmaması dahil koşullar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir. Çevrim içi ödeme geçici olarak kapalıysa veya Mobil Uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir ve Şirket onaylamadıkça kesinleşmez; onay e-posta ve Mobil Uygulamadaki bildirim listesi ile iletilir.",
           "Üyelik: E-posta doğrulamalı hesap oluşturma, adres defteri yönetimi, sipariş geçmişi görüntüleme, favori ürün listesi oluşturma, damga kartı görüntüleme ve sipariş durumu takibi.",
           "İşlemsel ve Ticari İletişim: Sipariş onayı, kargo bildirimi, iade süreci gibi işlemsel e-posta ve bildirimler ile onayı bulunan Kullanıcılara yönelik kampanya ve bülten e-postaları ile Mobil Uygulamadaki kampanya duyuruları ve hatırlatmalar.",
           "Marka İçeriği: Marka hikâyesi, kavurma notları, tarif ve demleme rehberleri, basında yer alan haberler ile görsel ve video içerikler.",
@@ -10001,7 +10002,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Sistem kesintisi nedeniyle tamamlanamayan siparişlerde tahsilat gerçekleşmişse, bedel aynı ödeme yöntemi üzerinden iade edilir; kullanılan kupon hesaba geri tanımlanır.",
-          "Kesinti sırasında iletilen rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz.",
+          "Kesinti sırasında iletilen karaoke odası rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz.",
           "Şirket, kötüye kullanım veya güvenlik tehdidi tespiti hâlinde belirli IP adresleri ya da bölgelerden erişimi geçici olarak kısıtlayabilir.",
           "Mobil Uygulamanın eski sürümlerine verilen destek, güvenlik ve uyumluluk gerekçeleriyle sona erdirilebilir; bu durumda Kullanıcıdan güncelleme yapması istenir.",
           "Uygulama mağazalarının politika değişiklikleri ya da teknik kısıtlamaları nedeniyle Mobil Uygulamanın belirli işlevleri değişebilir veya kullanımdan kaldırılabilir.",
@@ -12670,7 +12671,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kafe içinde 4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun uyarınca kapalı alanlarda tütün ürünü kullanımı yasaktır.",
           "Menüde yer alan ürünlerin alerjen bilgileri, Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği kapsamında menü kartlarında ve talep hâlinde personel tarafından bildirilir.",
           "İşletme, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu kapsamında gıda işletmesi olarak faaliyet gösterir ve ilgili idari denetimlere tabidir.",
-          "Kafe içi hizmet, rezervasyon, grup ziyareti ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet ve Rezervasyon Koşulları belgesinde düzenlenmiştir; kafe içinde kişisel veri işlenmesini gerektiren bir uygulama bulunması hâlinde aydınlatma, işlemenin yapıldığı alanda ayrıca yapılır.",
+          "Kafe içi hizmet ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet Koşulları belgesinde, karaoke odası rezervasyonu /hukuk/karaoke-odasi-rezervasyon adresindeki Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir; kafe içinde kişisel veri işlenmesini gerektiren bir uygulama bulunması hâlinde aydınlatma, işlemenin yapıldığı alanda ayrıca yapılır.",
           "Kafede yerinde yapılan satışlar mesafeli sözleşme değildir. Kafe menüsündeki ürünler mobil uygulama üzerinden sipariş edildiğinde mesafeli satış hükümleri uygulanır; cayma hakkına ilişkin kurallar /hukuk/iade-ve-cayma adresindeki İptal, İade ve Cayma Hakkı belgesinde düzenlenmiştir. İnternet sitesindeki kafe menüsü sayfaları yalnızca bilgilendirme amaçlıdır.",
         ],
         table: [
@@ -12702,7 +12703,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Hafta içi 09:00 - 18:00",
           },
           {
-            key: "Rezervasyon ve etkinlik iletişimi",
+            key: "Karaoke rezervasyonu ve etkinlik iletişimi",
             value: "{{PHONE}} - {{EMAIL}}",
           },
         ],
@@ -13053,7 +13054,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "/hukuk/fikri-mulkiyet",
           },
           {
-            key: "Kafe Hizmet ve Rezervasyon Koşulları",
+            key: "Kafe Hizmet Koşulları",
             value: "/hukuk/kafe-hizmet-kosullari",
           },
           {
@@ -14103,11 +14104,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
   },
   {
     slug: "kafe-hizmet-kosullari",
-    title: "Kafe Hizmet ve Rezervasyon Koşulları",
+    title: "Kafe Hizmet Koşulları",
     shortTitle: "Kafe Koşulları",
     category: "Kurumsal",
     summary:
-      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
+      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
     references: [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
@@ -14136,10 +14137,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "1. Taraflar, Belgenin Konusu ve Kapsamı",
         paragraphs: [
-          'İşbu Kafe Hizmet ve Rezervasyon Koşulları (bundan sonra "Koşullar" olarak anılacaktır), {{BRAND}} markası altında işletilen fiziki kafe işletmesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, mobil uygulamadan verilen kafe siparişlerine, özel etkinlik ve tasting masası organizasyonlarına ve işletme içinde uyulması gereken kurallara ilişkin usul ve esasları düzenlemek amacıyla hazırlanmıştır.',
+          'İşbu Kafe Hizmet Koşulları (bundan sonra "Koşullar" olarak anılacaktır), {{BRAND}} markası altında işletilen fiziki kafe işletmesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, mobil uygulamadan verilen kafe siparişlerine, özel etkinlik ve tasting masası organizasyonlarına ve işletme içinde uyulması gereken kurallara ilişkin usul ve esasları düzenlemek amacıyla hazırlanmıştır.',
           'İşletmenin sahibi ve işleticisi; {{ADDRESS}} adresinde mukim, {{TAX_OFFICE}} nezdinde {{TAX_NO}} vergi kimlik numarası ile kayıtlı {{LEGAL_NAME}} unvanlı limited şirkettir (bundan sonra "Şirket", "{{SHORT_NAME}}" veya "İşletme" olarak anılacaktır). {{BRAND}}, Şirket tarafından işletilen kahve ve gelato bar işletmesinin ticari markasıdır. Şirketin işe başlama tarihi {{STARTED_AT}} olarak vergi dairesi kayıtlarında yer almaktadır.',
-          'İşletmeyi ziyaret eden, işletmede yiyecek-içecek hizmeti alan, masa rezervasyonu talebinde bulunan, işletmede düzenlenen özel etkinlik, atölye ya da tasting programlarına katılan veya {{BRAND}} mobil uygulaması üzerinden karaoke odası rezervasyonu, kafe siparişi, üyelik ve sadakat programı işlemi yapan her gerçek veya tüzel kişi (bundan sonra "Misafir" veya "Siz") işbu Koşulların muhatabı sayılır ve burada düzenlenen kurallarla bağlı olur. Rezervasyon talebinde bulunulması, rezervasyon onayının kabul edilmesi, mobil uygulamadan kafe siparişi verilmesi veya işletmede hizmet alınması işbu Koşulların okunduğu ve kabul edildiği anlamına gelir.',
-          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, masa rezervasyonuna, karaoke odası rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına, mobil uygulamadan verilen kafe siparişlerine ve sadakat programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. Karaoke odası rezervasyonu mesafeli hizmet sözleşmesi niteliğindedir; iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde ve bu Koşulların 5, 8 ve 9. maddelerindeki karaoke hükümlerinde düzenlenir. Mobil uygulamadan verilen kafe siparişleri de mesafeli sözleşme niteliğindedir; bu siparişlere Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve İptal, İade ve Cayma Hakkı metni ile birlikte işbu Koşulların 11, 12 ve 14. maddeleri uygulanır; kafe siparişleri bakımından cayma hakkı ve iptal esasları İptal, İade ve Cayma Hakkı metninde ayrıca düzenlenmiştir. İnternet sitesindeki menü sayfası yalnızca bilgilendirme amacı taşır; internet sitesi üzerinden kafe siparişi alınmaz. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
+          'İşletmeyi ziyaret eden, işletmede yiyecek-içecek hizmeti alan, işletmede düzenlenen özel etkinlik, atölye ya da tasting programlarına katılan veya {{BRAND}} mobil uygulaması üzerinden karaoke odası rezervasyonu, kafe siparişi, üyelik ve sadakat programı işlemi yapan her gerçek veya tüzel kişi (bundan sonra "Misafir" veya "Siz") işbu Koşulların muhatabı sayılır ve burada düzenlenen kurallarla bağlı olur. Rezervasyon talebinde bulunulması, rezervasyon onayının kabul edilmesi, mobil uygulamadan kafe siparişi verilmesi veya işletmede hizmet alınması işbu Koşulların okunduğu ve kabul edildiği anlamına gelir.',
+          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, karaoke odası rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına, mobil uygulamadan verilen kafe siparişlerine ve sadakat programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. Karaoke odası rezervasyonu mesafeli hizmet sözleşmesi niteliğindedir; iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde ve bu Koşulların 5. maddesindeki karaoke hükümlerinde düzenlenir. Mobil uygulamadan verilen kafe siparişleri de mesafeli sözleşme niteliğindedir; bu siparişlere Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve İptal, İade ve Cayma Hakkı metni ile birlikte işbu Koşulların 7, 8 ve 10. maddeleri uygulanır; kafe siparişleri bakımından cayma hakkı ve iptal esasları İptal, İade ve Cayma Hakkı metninde ayrıca düzenlenmiştir. İnternet sitesindeki menü sayfası yalnızca bilgilendirme amacı taşır; internet sitesi üzerinden kafe siparişi alınmaz. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
           "İşbu Koşullar; Gizlilik ve Kişisel Verilerin Korunması Politikası, Aydınlatma Metni, Çerez Politikası, Kullanım Şartları ve sitede yayımlanan diğer politika metinleriyle bir bütün oluşturur. Her hâlükârda 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuatın tüketici lehine emredici hükümleri saklıdır; işbu Koşulların hiçbir hükmü, tüketicinin kanundan doğan haklarını sınırlandıracak, ortadan kaldıracak veya kullanılmasını güçleştirecek biçimde yorumlanamaz. Böyle bir sonuç doğuran hüküm bulunması hâlinde, o hüküm yazılmamış sayılır ve Koşulların geri kalanı geçerliliğini korur.",
         ],
       },
@@ -14151,14 +14152,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "İşletme: {{LEGAL_NAME}} tarafından {{BRAND}} markası altında {{ADDRESS}} adresinde işletilen kahve ve gelato bar.",
           "Misafir: İşletmeyi ziyaret eden, hizmet alan veya rezervasyon talebinde bulunan gerçek ya da tüzel kişi.",
-          "Rezervasyon: Belirli bir tarih ve saat aralığı için, belirli sayıda kişi adına masa tahsis edilmesine yönelik talep ve bu talebin İşletme tarafından onaylanması.",
-          "Rezervasyon Onayı: İşletmenin, talebi kabul ettiğini tarih, saat, kişi sayısı ve varsa özel koşulları belirterek elektronik posta, telefon veya (karaoke odası talepleri için) mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit.",
-          "Masa Tutma Toleransı: Rezervasyon saatinden itibaren masanın Misafir adına bekletildiği azami süre.",
-          "No-Show: Rezervasyonu bulunan Misafirin, önceden iptal bildiriminde bulunmaksızın rezervasyon saatinde ve tolerans süresi içinde işletmeye gelmemesi.",
-          "Grup Rezervasyonu: Sekiz (8) veya daha fazla kişi için oluşturulan rezervasyon.",
+          "Rezervasyon: Karaoke odasının belirli bir gün ve saat aralığı için ayrılması.",
+          "Rezervasyon Onayı: Talep olarak iletilen karaoke odası rezervasyonunu İşletmenin kabul ettiğini tarih, saat ve kişi sayısını belirterek elektronik posta ve mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit. Çevrim içi ödenen rezervasyon ise ödemenin onaylanmasıyla kendiliğinden kesinleşir.",
           "Özel Etkinlik: Tasting masası, kahve veya gelato atölyesi, özel menü akşamı, kutlama ya da kurumsal organizasyon gibi belirli bir tarihte ve saatte ifa edilmek üzere planlanan programlar.",
-          "Ön Ödeme (Kapora): Grup rezervasyonu veya özel etkinlik için, rezervasyonun kesinleşmesi amacıyla önceden tahsil edilen ve hizmet bedeline mahsup edilen tutar.",
-          "Minimum Harcama: Grup rezervasyonlarında masa başına veya kişi başına taahhüt edilen asgari tüketim tutarı.",
+          "Ön Ödeme (Kapora): Özel etkinlik için, katılımın kesinleşmesi amacıyla önceden tahsil edilen ve hizmet bedeline mahsup edilen tutar.",
           "Menü: İşletmede sunulan yiyecek ve içeceklerin adı, içeriği ve fiyatının yer aldığı basılı veya dijital liste.",
           "Alerjen: Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde sayılan, alerjiye veya intoleransa neden olabilen madde ve ürünler.",
           "Kapalı Alan: 4207 sayılı Kanun anlamında tavanı ve yanları kapalı olan, tütün ürünü tüketiminin yasak olduğu iç mekân.",
@@ -14174,7 +14171,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "3. İşletme Bilgileri, Konum ve Yapının Niteliği",
         paragraphs: [
           "{{BRAND}}, İstanbul Tuzla'da yer alan yaklaşık iki yüz yıllık, restore edilmiş tarihi bir köşk yapısında faaliyet göstermektedir. İşletmenin marka hikâyesi Bologna kökenli bir affogato geleneğine dayanmakta olup, bu hikâye markanın kimliğine ilişkin anlatısal bir unsurdur ve hukuki bir taahhüt oluşturmaz.",
-          "Yapının tarihi niteliği nedeniyle iç mekân düzeni, masa yerleşimi, tavan yüksekliği, merdiven ve geçiş genişlikleri gibi fiziki unsurlar sınırlıdır ve serbestçe değiştirilememektedir. Bu durum, oturma düzeni tercihleri, tekerlekli sandalye erişimi ve büyük grupların yerleştirilmesi bakımından pratik kısıtlar doğurabilir. İşletme, bu kısıtları rezervasyon aşamasında şeffaf biçimde bildirmeyi ve mümkün olan en uygun çözümü sunmayı taahhüt eder.",
+          "Yapının tarihi niteliği nedeniyle iç mekân düzeni, masa yerleşimi, tavan yüksekliği, merdiven ve geçiş genişlikleri gibi fiziki unsurlar sınırlıdır ve serbestçe değiştirilememektedir. Bu durum, oturma düzeni tercihleri, tekerlekli sandalye erişimi ve büyük grupların yerleştirilmesi bakımından pratik kısıtlar doğurabilir. İşletme, bu kısıtları talep hâlinde şeffaf biçimde bildirmeyi ve mümkün olan en uygun çözümü sunmayı taahhüt eder.",
           "İşletmenin güncel adresi, telefon numarası, elektronik posta adresi ve iletişim kanalları işbu Koşulların son maddesinde, {{SITE_URL}} adresinde ve {{BRAND}} mobil uygulamasında yayımlanır. Adres değişikliği hâlinde güncel bilgi aynı kanallardan ilan edilir.",
         ],
         table: [
@@ -14237,87 +14234,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "İşletmenin güncel açılış ve kapanış saatleri {{SITE_URL}} adresindeki ziyaret sayfasında, {{BRAND}} mobil uygulamasında, işletme girişinde ve {{HANDLE}} kullanıcı adlı sosyal medya hesaplarında ilan edilir. İlan edilen saatler haftanın günlerine göre farklılık gösterebilir; sipariş kabulü, mutfak servisi ve son sipariş saati kapanış saatinden önce sona erebilir.",
           "Resmî ve dinî bayramlar, yılbaşı, özel gün programları, bakım-onarım çalışmaları, envanter günleri, özel kapalı etkinlikler ve personel eğitim günlerinde çalışma saatleri değiştirilebilir veya işletme geçici olarak hizmete kapatılabilir. Bu tür değişiklikler, öngörülebilir olduğu ölçüde en az kırk sekiz (48) saat önceden internet sitesinde, mobil uygulamada ve sosyal medya hesaplarında duyurulur.",
-          "Olağanüstü hava koşulları, elektrik veya su kesintisi, doğal gaz arızası, altyapı sorunu, resmî makam kararı, güvenlik tedbiri veya benzeri öngörülemeyen sebeplerle işletme önceden duyuru yapılamaksızın geçici olarak kapatılabilir. Böyle bir durumda ilgili tarihe ait onaylı rezervasyonlar için Misafirlere mümkün olan en kısa sürede bilgi verilir; alınmış ön ödeme varsa 8. maddede düzenlenen esaslara göre iade edilir veya Misafirin tercihine göre yeni bir tarihe aktarılır.",
+          "Olağanüstü hava koşulları, elektrik veya su kesintisi, doğal gaz arızası, altyapı sorunu, resmî makam kararı, güvenlik tedbiri veya benzeri öngörülemeyen sebeplerle işletme önceden duyuru yapılamaksızın geçici olarak kapatılabilir. Böyle bir durumda ilgili tarihe ait karaoke odası rezervasyonları ve etkinlik kayıtları için Misafirlere mümkün olan en kısa sürede bilgi verilir; alınmış ödeme varsa 5. ve 6. maddelerde düzenlenen esaslara göre iade edilir veya Misafirin tercihine göre yeni bir tarihe aktarılır.",
           "Belirli bir menü kaleminin veya hizmetin (örneğin günlük demleme kahve seçkisi, mevsimlik gelato çeşidi, kahvaltı servisi) sunulduğu saat aralıkları menüde ayrıca belirtilir. Stok tükenmesi hâlinde ilgili kalem, gün içinde servis dışı bırakılabilir.",
         ],
         bullets: [
           "Güncel çalışma saatleri için birincil kaynak {{SITE_URL}} adresindeki ziyaret sayfası ve mobil uygulamadır.",
           "Bayram ve özel gün programlarında özel menü uygulanabilir; bu durum önceden ilan edilir.",
           "Son sipariş saati, kapanış saatinden önce olacak şekilde işletme içinde duyurulur.",
-          "Geçici kapanışlarda onaylı rezervasyon sahiplerine {{PHONE}} numarasından veya {{EMAIL}} adresinden bilgi verilir.",
+          "Geçici kapanışlarda karaoke odası rezervasyonu veya etkinlik kaydı bulunan Misafirlere {{PHONE}} numarasından veya {{EMAIL}} adresinden bilgi verilir.",
         ],
       },
       {
-        heading: "5. Rezervasyon Talebi, Onayı ve Doğrulanması",
+        heading: "5. Karaoke Odası Rezervasyonu",
         paragraphs: [
-          "Masa rezervasyonu; {{PHONE}} numaralı telefon veya {{EMAIL}} adresine gönderilecek elektronik posta yoluyla talep edilebilir. Masa rezervasyonu için {{BRAND}} mobil uygulamasında veya internet sitesinde çevrim içi bir rezervasyon formu bulunmamaktadır. Sosyal medya hesapları üzerinden iletilen mesajlar bilgilendirme amaçlıdır ve tek başına geçerli bir rezervasyon talebi oluşturmaz.",
-          "Rezervasyon, talebin İşletme tarafından açıkça onaylanmasıyla kurulur. Talebin iletilmiş olması tek başına masa tahsisi hakkı doğurmaz. Onay; tarih, saat, kişi sayısı, tahsis edilen süre ve varsa minimum harcama, ön ödeme, özel menü gibi ek koşulları içerecek şekilde elektronik posta veya telefon ile bildirilir; karaoke odası taleplerinde onay ayrıca mobil uygulamadaki bildirim kutusunda gösterilir. Çevrim içi ödenen karaoke odası rezervasyonu bu kuralın dışındadır: ödemenin onaylanmasıyla kendiliğinden kurulur (5. madde).",
-          "Karaoke odası, masa rezervasyonundan ayrı olarak, {{BRAND}} mobil uygulaması veya {{SITE_URL}} adresindeki karaoke sayfası üzerinden ayrılır; bu rezervasyonun ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır. Kart bilgileri internet sitemizin kendi ödeme sayfasında girilir, bankanın 3D Secure ekranında onaylanır ve İşletme tarafından saklanmaz. Rezervasyon, ödeme onaylanana kadar yalnızca ödeme sayfasının açık kaldığı süre boyunca (30 dakika) sizin için tutulan bir ön kayıttır; ödemenizin onaylanmasıyla kendiliğinden kesinleşir. Ödemesi alınmamış rezervasyonu personel de onaylayamaz ve süresi dolan ön kayıt düşer. Üyeler e-posta adresi doğrulanmış hesaplarıyla; üye olmak istemeyenler internet sitesinde adını, soyadını, cep telefonunu ve e-posta adresini yazarak rezervasyon yapabilir. Üyeliksiz rezervasyon sahibine e-posta ile kişiye özel bir bağlantı gönderilir; rezervasyon bu bağlantıdan görüntülenir ve iptal edilir. Üyelerin rezervasyonları hesaplarındaki Karaoke rezervasyonlarım bölümünde görünür. Gün, saat, süre, kişi sayısı ve aynı anda açık tutulabilecek rezervasyon sayısına ilişkin sınırlar rezervasyon ekranında gösterilir ve zaman zaman değiştirilebilir. Çevrim içi ödeme geçici olarak kapalıysa veya rezervasyon mobil uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir; bu hâlde üyelik girişi ve doğrulanmış bir e-posta adresi gerekir, talep İşletme personeli onaylayana kadar yalnızca bir taleptir, onay veya iptal kararı e-posta ve uygulamadaki bildirim kutusu ile bildirilir ve bedel işletmede ödenir. Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları 8. maddede ve Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir. Bu Koşulların grup rezervasyonu, minimum harcama ve ön ödeme hükümleri (7. madde) masa rezervasyonlarına ilişkindir ve karaoke odası rezervasyonları bakımından uygulanmaz.",
+          "İşletmede masa ve grup rezervasyonu alınmaz. Rezervasyon yalnızca karaoke odası için yapılır; karaoke odası rezervasyonuna bu madde ile Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi uygulanır.",
+          "Karaoke odası, {{BRAND}} mobil uygulaması veya {{SITE_URL}} adresindeki karaoke sayfası üzerinden ayrılır; bu rezervasyonun ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır. Kart bilgileri internet sitemizin kendi ödeme sayfasında girilir, bankanın 3D Secure ekranında onaylanır ve İşletme tarafından saklanmaz. Rezervasyon, ödeme onaylanana kadar yalnızca ödeme sayfasının açık kaldığı süre boyunca (30 dakika) sizin için tutulan bir ön kayıttır; ödemenizin onaylanmasıyla kendiliğinden kesinleşir. Ödemesi alınmamış rezervasyonu personel de onaylayamaz ve süresi dolan ön kayıt düşer. Üyeler e-posta adresi doğrulanmış hesaplarıyla; üye olmak istemeyenler internet sitesinde adını, soyadını, cep telefonunu ve e-posta adresini yazarak rezervasyon yapabilir. Üyeliksiz rezervasyon sahibine e-posta ile kişiye özel bir bağlantı gönderilir; rezervasyon bu bağlantıdan görüntülenir ve iptal edilir. Üyelerin rezervasyonları hesaplarındaki Karaoke rezervasyonlarım bölümünde görünür. Gün, saat, süre, kişi sayısı ve aynı anda açık tutulabilecek rezervasyon sayısına ilişkin sınırlar rezervasyon ekranında gösterilir ve zaman zaman değiştirilebilir. Çevrim içi ödeme geçici olarak kapalıysa veya rezervasyon mobil uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir; bu hâlde üyelik girişi ve doğrulanmış bir e-posta adresi gerekir, talep İşletme personeli onaylayana kadar yalnızca bir taleptir, onay veya iptal kararı e-posta ve uygulamadaki bildirim kutusu ile bildirilir ve bedel işletmede ödenir. Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları bu maddede ve Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir.",
           "Rezervasyon talebi sırasında ad-soyad, iletişim telefonu ve elektronik posta adresi istenir. Bu veriler yalnızca rezervasyonun oluşturulması, teyidi, hatırlatılması ve gerektiğinde iptal bildiriminin yapılması amacıyla işlenir; işlemenin hukuki dayanağı ve saklama süreleri Aydınlatma Metni ile Veri Saklama ve İmha Politikasında açıklanmıştır. Üye olmadan karaoke rezervasyonu yapan kişinin bu bilgileri yalnızca rezervasyon kaydında tutulur; onun adına üyelik hesabı açılmaz.",
-          "İşletme, doluluk, masa kapasitesi, personel durumu, özel etkinlik programı veya benzeri işletmesel gerekçelerle rezervasyon talebini kabul etmeme hakkını saklı tutar. Talebin reddi, hiçbir şekilde dil, din, ırk, etnik köken, cinsiyet, cinsel yönelim, engellilik, yaş veya benzeri kişisel özelliklere dayandırılamaz.",
-          "Rezervasyonlar, onayda belirtilen kişi adına ve belirtilen kişi sayısı için geçerlidir. Kişi sayısındaki artış talepleri, masa kapasitesi elverdiği ölçüde ve önceden bildirilmesi kaydıyla karşılanabilir; bildirilmeden gelen ilave misafirler için masa tahsisi garanti edilmez.",
-        ],
-        ordered: [
-          "Tercih ettiğiniz tarih, saat ve kişi sayısını telefon veya elektronik posta yoluyla iletin.",
-          "Varsa özel taleplerinizi (alerji bilgisi, bebek sandalyesi, doğum günü kutlaması, tekerlekli sandalye erişimi, evcil hayvan) aynı aşamada bildirin.",
-          "İşletmeden gelen rezervasyon onayını bekleyin; onay ulaşmadan rezervasyon kesinleşmez.",
-          "Grup rezervasyonu veya özel etkinlik söz konusuysa, bildirilen ön ödeme tutarını onayda belirtilen süre içinde ödeyin.",
-          "Rezervasyon gününden önce İşletmenin hatırlatma veya teyit için sizinle iletişime geçmesi hâlinde teyit verin; değişiklik talebinizi dilediğiniz zaman iletin.",
-          "Rezervasyon saatinde işletmede hazır bulunun ve girişte rezervasyon adınızı bildirin.",
-        ],
-      },
-      {
-        heading: "6. Rezervasyon Süresi, Masa Tutma Toleransı ve Oturma Düzeni",
-        paragraphs: [
-          'Rezervasyonu bulunan masa, rezervasyon saatinden itibaren on beş (15) dakika süreyle Misafir adına bekletilir. Bu süre "masa tutma toleransı" olarak adlandırılır. Tolerans süresi içinde işletmeye gelinmemesi ve gecikmenin telefonla bildirilmemesi hâlinde masa serbest bırakılabilir ve bekleyen diğer misafirlere tahsis edilebilir.',
-          "Gecikeceğinizi {{PHONE}} numaralı telefondan bildirmeniz hâlinde İşletme, doluluk durumu elverdiği ölçüde masayı daha uzun süre bekletmeye çalışır; ancak bu bir taahhüt niteliğinde değildir. Tolerans süresinin aşılması nedeniyle masanın serbest bırakılması hâlinde, işletmede boş masa bulunması durumunda alternatif bir masa önerilir.",
-          "Yoğun saatlerde ve hafta sonlarında masa kullanım süresi, adil paylaşım amacıyla sınırlandırılabilir. Uygulanan süre sınırı rezervasyon onayında açıkça belirtilir. Süre sınırının uygulanmadığı durumlarda İşletme, masayı makul olmayan biçimde boşaltmanızı talep edemez.",
-          "Belirli bir masa, bölüm, kat veya bahçe alanı tercihiniz rezervasyon talebinde belirtilebilir ve mümkün olduğu ölçüde karşılanmaya çalışılır; ancak yapının fiziki koşulları, hava durumu ve doluluk nedeniyle belirli bir masa garantisi verilmez. Bu husus rezervasyonun geçersizliği sonucunu doğurmaz.",
-          "Açık alan ve bahçe masaları hava koşullarına bağlıdır. Olumsuz hava koşulları nedeniyle açık alanın kullanılamaması hâlinde, kapasite elverdiği ölçüde iç mekânda alternatif masa tahsis edilir; bu mümkün değilse rezervasyon ücretsiz olarak iptal edilir ve varsa alınan ön ödeme iade edilir.",
-        ],
-      },
-      {
-        heading: "7. Grup Rezervasyonları, Minimum Harcama ve Ön Ödeme",
-        paragraphs: [
-          "Sekiz (8) ve daha fazla kişilik rezervasyonlar grup rezervasyonu olarak değerlendirilir ve ayrı bir onay sürecine tabidir. Grup rezervasyonlarında İşletme, mutfak ve servis planlaması yapabilmek amacıyla önceden menü seçimi, kişi sayısının kesinleştirilmesi ve gerektiğinde ön ödeme talep edebilir.",
-          "Grup rezervasyonlarında masa başına veya kişi başına minimum harcama tutarı uygulanabilir. Minimum harcama tutarı, uygulanacağı hâllerde rezervasyon onayında açık ve anlaşılır biçimde, rakamsal olarak ve vergiler dâhil şekilde bildirilir. Önceden yazılı olarak bildirilmemiş bir minimum harcama tutarı Misafirden talep edilemez.",
-          "Minimum harcama, bir ceza bedeli değil, asgari tüketim taahhüdüdür. Fiili tüketiminizin taahhüt edilen tutarın altında kalması hâlinde yalnızca aradaki fark tahsil edilir; taahhüdün üzerine çıkılması hâlinde fiili tüketim tutarı esas alınır. Tahsil edilen fark için de yasal belge düzenlenir.",
-          "Ön ödeme talep edilmesi hâlinde tutar, ödeme yöntemi ve son ödeme tarihi rezervasyon onayında belirtilir. Ön ödeme, işletmede nakit veya kart ile tahsil edilir ve her hâlükârda hizmet bedeline mahsup edilir; bu ön ödemeler için web sitesi veya mobil uygulama üzerinden çevrim içi ön ödeme alınmaz (karaoke odası rezervasyonunun çevrim içi ödemesi bundan ayrıdır, bkz. 5. madde). Ön ödemenin belirtilen süre içinde yapılmaması hâlinde rezervasyon kesinleşmez ve masa serbest bırakılabilir.",
-          "Grup rezervasyonlarında kişi sayısındaki azalmanın rezervasyon tarihinden en az yirmi dört (24) saat önce bildirilmesi gerekir. Bu süre içinde bildirilen azalmalar için ilave bir bedel talep edilmez. Süresinde bildirilmeyen azalmalar bakımından, önceden hazırlığı yapılmış ve başka şekilde değerlendirilmesi mümkün olmayan menü kalemlerinin bedeli talep edilebilir; bu talep gerçek ve belgelenebilir maliyetle sınırlıdır.",
-        ],
-        bullets: [
-          "Grup eşiği: sekiz (8) kişi ve üzeri.",
-          "Minimum harcama yalnızca rezervasyon onayında önceden ve rakamla bildirilmişse uygulanır.",
-          "Ön ödeme hizmet bedeline mahsup edilir; ayrı bir gelir kalemi olarak alıkonulmaz.",
-          "Kişi sayısı azalması en geç 24 saat önce bildirilmelidir.",
-          "Kurumsal organizasyonlarda fatura bilgileri rezervasyon aşamasında iletilmelidir.",
-        ],
-      },
-      {
-        heading: "8. Rezervasyonun İptali ve Değişikliği",
-        paragraphs: [
-          "Standart masa rezervasyonlarını, rezervasyon saatinden en az iki (2) saat öncesine kadar {{PHONE}} numaralı telefondan veya {{EMAIL}} adresinden herhangi bir bedel ödemeksizin iptal edebilir ya da tarih-saat değişikliği talep edebilirsiniz. Değişiklik talepleri, talep edilen yeni tarih ve saatteki doluluğa bağlı olarak karşılanır.",
-          "Karaoke odası rezervasyonunda iptal ve iade kuralı bunlardan ayrıdır ve şudur: Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Rezervasyonunuzu hesabınızdaki Karaoke rezervasyonlarım bölümünden, üyeliksiz yaptıysanız e-postanızdaki kişiye özel bağlantıdan, mobil uygulamadan ya da {{PHONE}} numarasından iptal edebilirsiniz. İade, ödenen tutarın tamamı olarak PayNkolay üzerinden ödemenin yapıldığı karta yapılır. Karaoke odasında 2 saatten az kala yapılan iptallerde ve gelinmediğinde iade yapılmaması, hizmet bedelinin iade edilmediği götürü bir koşuldur; bu koşul ödemeden önce rezervasyon özetinde ve onayladığınız belgede açıkça gösterilir. Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g).",
-          "Grup rezervasyonlarının iptali veya tarih değişikliği talebinin, rezervasyon tarihinden en az kırk sekiz (48) saat önce iletilmesi gerekir. Bu süre içinde iletilen iptallerde alınan ön ödeme kesintisiz olarak iade edilir.",
-          "Özel etkinlik, tasting masası ve atölye programlarının iptal koşulları 10. maddede ayrıca düzenlenmiştir; bu programlar için daha uzun bildirim süreleri uygulanabilir ve söz konusu süreler katılım onayında açıkça belirtilir.",
-          "Süresinde yapılmayan iptallerde, önceden yapılmış ve başka şekilde değerlendirilmesi mümkün olmayan hazırlıkların gerçek maliyeti ön ödemeden mahsup edilebilir. Mahsup edilen tutar, her hâlükârda İşletmenin fiilen uğradığı zararla sınırlıdır ve talep hâlinde Misafire kalem bazında yazılı olarak açıklanır. Karaoke odası rezervasyonundaki yukarıdaki iade kuralı saklı kalmak üzere, götürü nitelikte, zarara bağlı olmayan cezai şart uygulanmaz.",
-          "İptal ve değişiklik talepleriniz, İşletme tarafından teyit edildiği anda hüküm ifade eder. Teyit almadığınız bir iptal bildiriminin ulaştığını varsaymayınız; teyit ulaşmazsa {{PHONE}} numarasından telefonla teyit isteyiniz.",
-          "İşletme kaynaklı sebeplerle (kapasite hatası, teknik arıza, personel yetersizliği, geçici kapanış) rezervasyonun karşılanamaması hâlinde, alınmış tüm ön ödemeler kesintisiz ve en geç on dört (14) gün içinde, ödemenin yapıldığı yöntemle iade edilir. Ayrıca Misafire alternatif tarih veya işletmenin uygun göreceği bir telafi seçeneği önerilir; bu öneriyi kabul zorunluluğunuz bulunmamaktadır.",
+          "İşletme, doluluk, personel durumu, özel etkinlik programı veya benzeri işletmesel gerekçelerle rezervasyon talebini kabul etmeme hakkını saklı tutar. Talebin reddi, hiçbir şekilde dil, din, ırk, etnik köken, cinsiyet, cinsel yönelim, engellilik, yaş veya benzeri kişisel özelliklere dayandırılamaz.",
+          "Karaoke odası rezervasyonunda iptal ve iade kuralı şudur: Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Rezervasyonunuzu hesabınızdaki Karaoke rezervasyonlarım bölümünden, üyeliksiz yaptıysanız e-postanızdaki kişiye özel bağlantıdan, mobil uygulamadan ya da {{PHONE}} numarasından iptal edebilirsiniz. İade, ödenen tutarın tamamı olarak PayNkolay üzerinden ödemenin yapıldığı karta yapılır. Karaoke odasında 2 saatten az kala yapılan iptallerde ve gelinmediğinde iade yapılmaması, hizmet bedelinin iade edilmediği götürü bir koşuldur; bu koşul ödemeden önce rezervasyon özetinde ve onayladığınız belgede açıkça gösterilir. Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g).",
           "Karaoke odası rezervasyonunu işletme karşılayamazsa ödediğiniz tutarın tamamı iade edilir. Durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde size e-postayla bildirir, iadeyi en geç 14 gün içinde ödemenin yapıldığı karta yaparız; rezervasyon iptal edildiğinde iade aynı anda PayNkolay'dan talep edilir.",
         ],
         table: [
-          {
-            key: "Standart masa rezervasyonu - ücretsiz iptal",
-            value: "Rezervasyon saatinden en az 2 saat önce",
-          },
-          {
-            key: "Grup rezervasyonu - ücretsiz iptal",
-            value: "Rezervasyon tarihinden en az 48 saat önce",
-          },
-          {
-            key: "Özel etkinlik / tasting - iptal",
-            value: "Katılım onayında belirtilen süre içinde",
-          },
           {
             key: "Karaoke odası - iptal ve iade",
             value:
@@ -14334,21 +14271,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "9. Gelmeme (No-Show) Politikası",
-        paragraphs: [
-          "Rezervasyonunu iptal etmeksizin rezervasyon saatinde ve on beş (15) dakikalık tolerans süresi içinde işletmeye gelmeyen Misafir hakkında no-show kaydı oluşturulur. Karaoke odası rezervasyonlarında gelmeme bu maddeye değil 8. maddedeki karaoke kuralına tabidir: rezervasyona gelinmediğinde ücret iadesi yapılmaz. No-show kaydı, işletmenin kapasite planlamasını ve bekleyen misafirlere hizmet verilmesini olumsuz etkilediği için önem taşımaktadır.",
-          "Ön ödeme alınmamış standart masa rezervasyonlarında no-show hâlinde Misafirden herhangi bir bedel talep edilmez. Ancak İşletme, tekrarlanan no-show durumlarında (aynı iletişim bilgileriyle üç veya daha fazla kez) sonraki rezervasyon taleplerini ön ödeme şartına bağlama veya kabul etmeme hakkını saklı tutar.",
-          "Ön ödeme alınmış grup rezervasyonları ile özel etkinliklerde no-show hâlinde, İşletmenin o rezervasyon için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ön ödemeden mahsup edilebilir. Mahsup, gerçek zararla sınırlıdır; kalan tutar iade edilir. Zararın gerçekleşmediği veya belgelenemediği hâllerde ön ödemenin tamamı iade edilir.",
-          "Trafik, hastalık, acil durum veya benzeri makul mazeretlerin rezervasyon saatinden önce {{PHONE}} numarasına bildirilmesi hâlinde no-show kaydı oluşturulmaz. İşletme, iyi niyetli bildirimlerde esnek davranmayı ilke edinmiştir.",
-          "No-show kayıtları, yalnızca rezervasyon yönetimi ve kapasite planlaması amacıyla, Veri Saklama ve İmha Politikasında belirlenen süre boyunca saklanır ve bu süre sonunda silinir. Bu kayıtlar üçüncü kişilerle paylaşılmaz, ticari amaçla kullanılmaz ve herhangi bir kara liste sisteminde işlenmez.",
-        ],
-      },
-      {
-        heading: "10. Özel Etkinlik, Tasting Masası ve Atölye Koşulları",
+        heading: "6. Özel Etkinlik, Tasting Masası ve Atölye Koşulları",
         paragraphs: [
           "İşletmede zaman zaman tasting masası, kahve demleme atölyesi, gelato atölyesi, özel menü akşamı ve benzeri programlar düzenlenir. Bu programlar sınırlı kontenjanlı olup, katılım önceden kayıt ve ön ödeme ile kesinleşir; ön ödeme web sitesi veya mobil uygulama üzerinden çevrim içi alınmaz ve işletmede nakit veya kart ile tahsil edilir. Program içeriği, süresi, kontenjanı, kişi başı bedeli ve iptal koşulları duyuru metninde ve katılım onayında ayrı ayrı belirtilir.",
           "Özel etkinlikler ve tasting masaları, belirli bir tarihte veya dönemde ifa edilmesi gereken, yiyecek-içecek tedariki ile boş zamanın değerlendirilmesine yönelik hizmetler niteliğindedir. Bu nedenle Mesafeli Sözleşmeler Yönetmeliğinin cayma hakkının istisnalarını düzenleyen hükmü uyarınca, söz konusu programlar bakımından on dört (14) günlük cayma hakkı kullanılamaz. Bu husus, kayıt sırasında ayrıca ve açıkça bilginize sunulur ve onayınız yazılı olarak (elektronik posta dâhil) kayıt altına alınır.",
           "Cayma hakkının kullanılamaması, iptal hakkınızın bulunmadığı anlamına gelmez. İşbu maddede ve katılım onayında belirlenen süreler içinde yapılan iptallerde ödediğiniz bedel, aşağıdaki esaslara göre iade edilir. İşletme, cayma hakkı istisnasını, Misafirin yasal haklarını genel olarak bertaraf etmek amacıyla kullanmaz.",
+          "Süresinde yapılmayan iptallerde ve etkinliğe katılınmadığında, İşletmenin o kayıt için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ön ödemeden mahsup edilebilir. Mahsup edilen tutar, her hâlükârda İşletmenin fiilen uğradığı zararla sınırlıdır ve talep hâlinde Misafire kalem bazında yazılı olarak açıklanır; kalan tutar iade edilir. Zararın gerçekleşmediği veya belgelenemediği hâllerde ön ödemenin tamamı iade edilir. Götürü nitelikte, zarara bağlı olmayan cezai şart uygulanmaz.",
           "Etkinlik kontenjanının dolmaması, hammadde tedarikinde yaşanan aksaklık, eğitmen veya konuk şefin katılamaması ya da mücbir sebep hâllerinde İşletme etkinliği erteleyebilir veya iptal edebilir. Bu durumda Misafire seçimlik olarak (i) yeni tarihe aktarım, (ii) eşdeğer bir etkinliğe katılım veya (iii) ödenen bedelin tamamının en geç on dört (14) gün içinde iadesi hakkı tanınır. Tercih Misafire aittir.",
           "Etkinlik kaydı, kayıt yaptıran kişi adına düzenlenir. Katılımcı değişikliği, etkinlik tarihinden en az yirmi dört (24) saat önce yazılı olarak bildirilmesi kaydıyla ücretsiz yapılabilir. Alerjen ve diyet bilgilerinin, menü hazırlığından önce, kayıt sırasında bildirilmesi gerekir.",
           "Kurumsal organizasyonlar, özel kutlamalar ve mekânın tamamının ya da bir bölümünün kapalı olarak tahsis edildiği etkinlikler için ayrı bir yazılı sözleşme düzenlenir. Bu hâlde ayrı sözleşme hükümleri işbu Koşullara göre öncelikli olarak uygulanır; ancak tüketici lehine emredici hükümler her hâlükârda saklıdır.",
@@ -14383,7 +14311,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "11. Menü, Fiyatlar, Vergiler ve Servis Ücreti",
+        heading: "7. Menü, Fiyatlar, Vergiler ve Servis Ücreti",
         paragraphs: [
           "İşletmede sunulan tüm yiyecek ve içeceklerin fiyatları menüde Türk lirası (TRY) cinsinden ve ilgili vergiler dâhil olarak ilan edilir. Menüde ilan edilen fiyatın üzerine, önceden ilan edilmemiş hiçbir ek bedel eklenmez. Mobil uygulamadan verilen kafe siparişlerinde boy ve ekstra seçenek (örneğin bitkisel süt, şurup, ek shot) ücretleri ile kurye ile teslimde kurye ücreti, ödeme öncesinde sipariş özetinde ayrı ayrı gösterilir; gel-al siparişlerinde kurye ücreti alınmaz. Uygulamadan verilen siparişte, sipariş anında uygulamada ve sipariş özetinde gösterilen fiyat esas alınır. Uygulanan katma değer vergisi oranı yürürlükteki vergi mevzuatına göre belirlenir; oran değişikliklerinin fiyatlara yansıtılması hâlinde menü güncellenir.",
           "Mobil uygulamadan kafe siparişi vermek için üyelik hesabı ve doğrulanmış bir e-posta adresi gerekir. Sipariş, kafeden gel-al veya kurye ile teslim için, en kısa sürede ya da ileri bir saate planlanarak verilebilir; masa QR kodu okutularak verilen masa siparişi ise kafe içinde masaya servis edilir ve ileri bir saate planlanamaz; kafenin kapalı olduğu veya kafe siparişi alımının durdurulduğu zamanlarda sipariş alınmayabilir. Sipariş, uygulamada açılan ödeme sayfasında kartla ödenir; ödemesi tamamlanan sipariş İşletme personeline bildirilir, ödemesi tamamlanmayan sipariş belirli bir süre sonra iptal edilir. Hazırlanarak sunulan yiyecek ve içeceklerde, Mesafeli Sözleşmeler Yönetmeliğinin cayma hakkının istisnalarına ilişkin hükmü uyarınca cayma hakkı kullanılamaz; siparişin hazırlanmaya başlanmadan önce iptali ve iade esasları İptal, İade ve Cayma Hakkı metninde düzenlenmiştir.",
@@ -14401,11 +14329,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "12. Ödeme Yöntemleri, Fiş ve Fatura",
+        heading: "8. Ödeme Yöntemleri, Fiş ve Fatura",
         paragraphs: [
           "İşletmede kabul edilen ödeme yöntemleri kasada ve menüde ilan edilir. Nakit ödeme Türk lirası olarak kabul edilir. Banka ve kredi kartı ile temassız ödeme kabulü, işletmede kullanılan ödeme kaydedici cihaz ve banka altyapısının imkânları çerçevesinde sağlanır. Yemek kartı, dijital cüzdan veya QR tabanlı ödeme yöntemlerinin kabul edilip edilmediği kasada ilan edilir.",
           "Kart ile yapılan ödemeler, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Kanun kapsamında yetkilendirilmiş kuruluşların altyapısı üzerinden gerçekleştirilir. İşletme, kart numarası, son kullanma tarihi veya güvenlik kodu gibi kart verilerini kaydetmez, saklamaz ve fotoğraflamaz. Kart verileri yalnızca ödeme terminali üzerinden ilgili kuruluşa iletilir.",
-          "Web sitesi ve mobil uygulama üzerinden yapılan ödemeler (online mağaza siparişleri, mobil uygulamadan verilen kafe siparişleri ve karaoke odası rezervasyonları), 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) altyapısı üzerinden tahsil edilir. Grup rezervasyonu ve özel etkinlik ön ödemeleri ile masa rezervasyonları için çevrim içi ödeme alınmaz. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla İşletmenin sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; İşletme bunları kaydetmez, saklamaz ve kayıt (log) sistemlerine yazmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir siteye gömülemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilir ve işlemi orada onaylarsınız; her kartlı ödemede 3D Secure doğrulaması zorunludur. Çevrim içi ödemelerde online alışverişe açık kredi ve banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit seçeneği ve ön provizyon uygulanmaz, tutar onay anında tahsil edilir; dijital cüzdan (Apple Pay, Google Pay vb.) ile banka havalesi veya EFT çevrim içi ödeme yöntemi olarak kabul edilmez. Sipariş toplamının sıfır olduğu durumlarda (örneğin kuponun ürün tutarının tamamını karşıladığı ve kurye ücretinin bulunmadığı siparişlerde) kart ödemesi alınmaz. Kart saklama özelliği açıldığında, yalnızca üyeler için ve isteğe bağlı olarak sunulur: ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu başlangıçta işaretsizdir ve işaretlenmedikçe hiçbir kart kaydedilmez. Kayıtlı kart İşletme tarafından değil, PayNkolay'ın kart saklama hizmetinde saklanır; İşletme yalnızca PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı rastgele bir üye anahtarını tutar. Ödeme sayfasında kayıtlı kart son dört hanesi, kart markası veya kartı veren banka ve takma adıyla gösterilir; kayıtlı kartla ödemede de 3D Secure zorunludur, kayıtlı kartı ödeme sayfasından dilediğiniz zaman silebilirsiniz ve hesabınız silindiğinde İşletme önce PayNkolay'dan kayıtlı kartlarınızın silinmesini ister. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
+          "Web sitesi ve mobil uygulama üzerinden yapılan ödemeler (online mağaza siparişleri, mobil uygulamadan verilen kafe siparişleri ve karaoke odası rezervasyonları), 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) altyapısı üzerinden tahsil edilir. Özel etkinlik ön ödemeleri için çevrim içi ödeme alınmaz. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla İşletmenin sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; İşletme bunları kaydetmez, saklamaz ve kayıt (log) sistemlerine yazmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir siteye gömülemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilir ve işlemi orada onaylarsınız; her kartlı ödemede 3D Secure doğrulaması zorunludur. Çevrim içi ödemelerde online alışverişe açık kredi ve banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit seçeneği ve ön provizyon uygulanmaz, tutar onay anında tahsil edilir; dijital cüzdan (Apple Pay, Google Pay vb.) ile banka havalesi veya EFT çevrim içi ödeme yöntemi olarak kabul edilmez. Sipariş toplamının sıfır olduğu durumlarda (örneğin kuponun ürün tutarının tamamını karşıladığı ve kurye ücretinin bulunmadığı siparişlerde) kart ödemesi alınmaz. Kart saklama özelliği açıldığında, yalnızca üyeler için ve isteğe bağlı olarak sunulur: ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu başlangıçta işaretsizdir ve işaretlenmedikçe hiçbir kart kaydedilmez. Kayıtlı kart İşletme tarafından değil, PayNkolay'ın kart saklama hizmetinde saklanır; İşletme yalnızca PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı rastgele bir üye anahtarını tutar. Ödeme sayfasında kayıtlı kart son dört hanesi, kart markası veya kartı veren banka ve takma adıyla gösterilir; kayıtlı kartla ödemede de 3D Secure zorunludur, kayıtlı kartı ödeme sayfasından dilediğiniz zaman silebilirsiniz ve hesabınız silindiğinde İşletme önce PayNkolay'dan kayıtlı kartlarınızın silinmesini ister. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
           "Çevrim içi ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, İşletme sunucusunun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır; aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa İşletme, ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. İade işlemleri PayNkolay'ın iptal ve iade hizmeti üzerinden, ödemenin yapıldığı karta gerçekleştirilir; ödemeyle aynı gün yapılan iade işlemin iptali, sonraki günlerde yapılan iade olarak bankaya iletilir ve tutarın kart hesabına yansıma süresi bankaya bağlıdır. Siparişin yalnızca bir bölümünün iadesinde tutar aynı karta iade edilir; bunun teknik olarak mümkün olmadığı hâllerde size bilgi verilir ve tutar, mevzuatta öngörülen süre içinde kendi adınıza kayıtlı bir banka hesabına havale veya EFT ile ödenir.",
           "Ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Fatura talebiniz hâlinde, fatura bilgilerinizi (gerçek kişi için ad-soyad ve varsa vergi kimlik bilgisi; tüzel kişi için ticaret unvanı, vergi dairesi ve vergi kimlik numarası) ödeme anında veya vergi mevzuatında öngörülen süre içinde {{EMAIL}} adresine bildirmeniz gerekir.",
           "Elektronik fatura veya elektronik arşiv fatura düzenlenmesi hâlinde belge, vergi mevzuatında öngörülen usule göre düzenlenir ve size iletilir. Bildirilen bilgilerin eksik veya hatalı olması nedeniyle düzenlenemeyen ya da yanlış düzenlenen belgelerden Misafir sorumludur; düzeltme talepleri mevzuatın izin verdiği ölçüde karşılanır.",
@@ -14450,7 +14378,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "13. Mobil Uygulama, Uygulama Mağazası Koşulları ve Cihaz İzinleri",
+          "9. Mobil Uygulama, Uygulama Mağazası Koşulları ve Cihaz İzinleri",
         paragraphs: [
           "{{BRAND}}, iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menünün görüntülenmesi, karaoke odası rezervasyonu, kafe ve online mağaza siparişi verilmesi, üyelik işlemleri, sadakat kartının takibi, fA'L özelliği ve cihazda planlanan hatırlatmaların alınması mümkündür. İşbu Koşulların kafe hizmetine ilişkin hükümleri, uygulama üzerinden yapılan karaoke odası rezervasyon talebi, kafe siparişi ve damga işlemleri bakımından da uygulanır.",
           "Uygulamanın indirilmesi, kurulması ve güncellenmesi App Store ve Google Play mağazalarının kendi kullanım koşullarına tabidir. Bu koşullar, İşletme ile Misafir arasındaki ilişkiden bağımsızdır; İşletme, mağaza kaynaklı erişim, yayın veya cihaz uyumluluğu kısıtlarından sorumlu tutulamaz. Uygulama içinde uygulama mağazası üzerinden satın alma yapılmaz; uygulamadan verilen siparişlerin ödemesi PayNkolay altyapısı üzerinden gerçekleştirilir.",
@@ -14473,7 +14401,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "14. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
+        heading: "10. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
         paragraphs: [
           "İşletme, üyelerine yönelik bir sadakat programı yürütür. Programa katılım, {{SITE_URL}} adresindeki web sitesi veya {{BRAND}} mobil uygulaması üzerinden üyelik hesabı oluşturulmasıyla mümkündür ve tamamen isteğe bağlıdır. Programa katılmamanız, işletmede hizmet almanızı veya rezervasyon yaptırmanızı hiçbir şekilde etkilemez.",
           "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişi (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabınıza eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder.",
@@ -14528,7 +14456,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "15. Alerjenler, Gıda Güvenliği ve Menü İçeriği Bilgilendirmesi",
+          "11. Alerjenler, Gıda Güvenliği ve Menü İçeriği Bilgilendirmesi",
         paragraphs: [
           "İşletme, faaliyetini 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile Türk Gıda Kodeksi mevzuatı çerçevesinde yürütür. Gıda güvenliği, hijyen ve izlenebilirlik uygulamaları ilgili mevzuatın öngördüğü esaslara göre yerine getirilir ve yetkili idari makamların denetimine tabidir.",
           "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği kapsamında sayılan alerjenlere ilişkin bilgi, menüde ve talep hâlinde servis personeli aracılığıyla sözlü olarak sağlanır. Gıda alerjiniz, gıda intoleransınız veya tıbbi diyet gerekliliğiniz varsa, siparişinizi vermeden önce mutlaka servis personeline bildiriniz. Mobil uygulamadan sipariş veriyorsanız, alerji bilginizi sipariş notuna yazmanın yanı sıra, ciddi bir alerjiniz varsa siparişten önce {{PHONE}} numarasından da bildirmeniz önerilir.",
@@ -14539,27 +14467,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "16. Evcil Hayvan Politikası ve Rehber Hayvanlar",
+        heading: "12. Evcil Hayvan Politikası ve Rehber Hayvanlar",
         paragraphs: [
           "Gıda güvenliği mevzuatı gereği, gıda hazırlama ve servis yapılan kapalı alanlara evcil hayvan kabul edilmemektedir. Bu kısıtlama, mutfak, bar ve iç mekân servis alanlarını kapsar.",
-          "Evcil hayvanlar, hava koşulları elverdiği ölçüde ve işletmenin açık alan/bahçe bölümünde, tasmalı olmak, sahibinin kontrolünde bulunmak ve diğer misafirleri rahatsız etmemek koşuluyla kabul edilir. Açık alanda evcil hayvanla oturmak istiyorsanız bu talebinizi rezervasyon aşamasında bildirmeniz, uygun masanın ayrılabilmesi için gereklidir.",
+          "Evcil hayvanlar, hava koşulları elverdiği ölçüde ve işletmenin açık alan/bahçe bölümünde, tasmalı olmak, sahibinin kontrolünde bulunmak ve diğer misafirleri rahatsız etmemek koşuluyla kabul edilir. Açık alanda evcil hayvanla oturmak istiyorsanız bu talebinizi geldiğinizde personele bildirmeniz, uygun masanın ayrılabilmesi için gereklidir.",
           "Evcil hayvan sahibi Misafir, hayvanının davranışlarından, üçüncü kişilere veya işletme demirbaşlarına verebileceği zarardan ve temizlik gerekliliklerinden sorumludur. İşletme, diğer misafirlerin güvenliğini veya huzurunu tehdit eden durumlarda hayvanın açık alandan çıkarılmasını talep edebilir.",
           "Görme, işitme veya fiziksel engelli misafirlere refakat eden rehber ve yardımcı hayvanlar bu maddedeki kısıtlamaların dışındadır. Rehber ve yardımcı hayvanlar, işletmenin kapalı alanları dâhil tüm misafir alanlarına kabul edilir. Bu hakkın kullanılması için ayrıca izin alınması gerekmez; İşletme personeli bu konuda bilgilendirilmiştir.",
           "Evcil hayvanlar için su kabı gibi imkânların sunulup sunulmadığı işletme içinde ilan edilir; bu bir taahhüt niteliğinde değildir.",
         ],
       },
       {
-        heading: "17. Çocuk Misafirler ve Yaş Sınırlamaları",
+        heading: "13. Çocuk Misafirler ve Yaş Sınırlamaları",
         paragraphs: [
           "İşletme, aileler ve çocuk misafirler için açıktır. Ancak yapının tarihi niteliği, merdivenler, sıcak içecek ve ekipman kullanımı nedeniyle çocukların işletme içinde ebeveyn veya yasal temsilcilerinin gözetiminde bulunmaları zorunludur. İşletme, gözetimsiz bırakılan çocuklar bakımından gözetim yükümlülüğü üstlenmez; ancak kendi kusurundan doğan sorumluluğu saklıdır.",
           "Servis alanlarında koşmak, bar ve mutfak bölümlerine girmek, sıcak içecek taşınan geçiş güzergâhlarında oyun oynamak güvenlik nedeniyle uygun değildir. Personel, güvenlik amacıyla ebeveynleri kibarca uyarabilir.",
-          "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz rezervasyon aşamasında bildirilmesi hâlinde, mevcut imkânlar ölçüsünde karşılanmaya çalışılır. Bu imkânların her zaman bulunacağı taahhüt edilmez.",
+          "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz, mevcut imkânlar ölçüsünde karşılanmaya çalışılır. Bu imkânların her zaman bulunacağı taahhüt edilmez.",
           "Menüde alkollü içecek bulunması hâlinde, ilgili mevzuat uyarınca on sekiz (18) yaşından küçüklere alkollü içecek satılmaz ve servis edilmez. Personel, yaş konusunda tereddüt hâlinde kimlik belgesi talep edebilir; kimlik ibraz edilmemesi hâlinde servis yapılmaz. Bu uygulama yasal bir zorunluluktur ve Misafirin kişisel değerlendirmesine bırakılamaz.",
           "Çocuk misafirlere yönelik özel menü kalemleri bulunması hâlinde bunlar menüde ayrıca gösterilir. Alerjen bildirimlerinin çocuk misafirler bakımından da sipariş öncesinde yapılması özellikle önemlidir.",
         ],
       },
       {
-        heading: "18. Tütün Ürünleri ve Kapalı Alanda Kullanım Yasağı",
+        heading: "14. Tütün Ürünleri ve Kapalı Alanda Kullanım Yasağı",
         paragraphs: [
           "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun uyarınca, işletmenin kapalı alanlarında tütün ürünü tüketilmesi kesinlikle yasaktır. Bu yasak; sigara, puro, pipo, nargile ve benzeri tüm tütün ürünlerini kapsar.",
           "Elektronik sigara, ısıtılmış tütün ürünü ve buhar üreten benzeri cihazların kapalı alanda kullanımı da aynı şekilde yasaktır ve İşletme tarafından kapalı alanda kullanımına izin verilmez.",
@@ -14569,7 +14497,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "19. Kayıp ve Unutulan Eşya",
+        heading: "15. Kayıp ve Unutulan Eşya",
         paragraphs: [
           "İşletmede unutulan veya bulunan eşyalar, bulundukları tarih, yer ve niteliği belirtilerek kayıt altına alınır ve güvenli bir bölümde muhafaza edilir. Bulunan eşyalar en az otuz (30) gün süreyle saklanır; bu süre içinde sahibi tarafından talep edilmeyen eşyalar hakkında 4721 sayılı Türk Medeni Kanununun bulunmuş eşyaya ilişkin hükümleri ve ilgili mevzuat çerçevesinde işlem yapılır. Bozulabilir nitelikteki eşyalar bu sürenin dışındadır.",
           "Kayıp eşya başvurularınızı {{PHONE}} numaralı telefondan veya {{EMAIL}} adresinden yapabilirsiniz. Eşyanın teslim edilebilmesi için tanımlayıcı bilgilerin (marka, model, renk, içerik, kaybedildiği yaklaşık saat ve masa) doğru şekilde bildirilmesi gerekir. Gerekli görülen hâllerde kimlik ibrazı istenebilir.",
@@ -14580,7 +14508,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "20. İşletme İçinde Fotoğraf ve Video Çekimi, Ticari Çekim İzni",
+          "16. İşletme İçinde Fotoğraf ve Video Çekimi, Ticari Çekim İzni",
         paragraphs: [
           "Misafirler, kişisel ve ticari olmayan amaçlarla, diğer misafirleri rahatsız etmemek, servis akışını engellememek ve üçüncü kişileri rızaları dışında görüntülememek koşuluyla işletme içinde fotoğraf ve video çekebilir. Diğer misafirlerin görüntülerinin izinsiz kaydedilmesi ve paylaşılması, kişilik haklarının ihlali sonucunu doğurabilir ve hukuki sorumluluk gerektirebilir.",
           "Profesyonel ekipmanla yapılan çekimler, ticari amaçlı fotoğraf ve video çekimleri, reklam, dizi, film, klip, marka içeriği, tanıtım filmi ve benzeri prodüksiyonlar ile stüdyo aydınlatması, tripod, gimbal, dron ve ses ekipmanı kullanılan çekimler İşletmenin önceden yazılı iznine tabidir. İzin talepleri {{EMAIL}} adresine iletilmelidir.",
@@ -14591,7 +14519,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "21. Güvenlik Kamerası Sistemi ve Kişisel Verilerin Korunması",
+        heading: "17. Güvenlik Kamerası Sistemi ve Kişisel Verilerin Korunması",
         paragraphs: [
           "İşletmenin giriş, kasa ve ortak kullanım alanlarında güvenlik amaçlı kamera sistemi bulunmaktadır. Kamera kaydı yapılan alanlar, girişte ve ilgili bölümlerde yer alan bilgilendirme levhalarıyla duyurulur. Tuvalet, soyunma alanı gibi özel hayatın gizliliğinin ihlali sonucunu doğuracak alanlarda kamera bulunmaz.",
           "Görüntü kayıtları, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel veri niteliğindedir. Bu veriler; işyeri ve misafir güvenliğinin sağlanması, hırsızlık ve zarar verme olaylarının önlenmesi ve olası uyuşmazlıklarda delil temini amacıyla, Kanunun kişisel veri işleme şartlarını düzenleyen hükümleri çerçevesinde, veri sorumlusunun meşru menfaati hukuki sebebine dayanılarak işlenir. Kamera sistemi ses kaydı yapmaz.",
@@ -14604,7 +14532,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "22. Kablosuz İnternet (Wi-Fi) Kullanım Kuralları ve Kayıt Yükümlülüğü",
+          "18. Kablosuz İnternet (Wi-Fi) Kullanım Kuralları ve Kayıt Yükümlülüğü",
         paragraphs: [
           "İşletme, misafirlerine ücretsiz kablosuz internet erişimi sunabilir. Bu hizmet bir yan imkân niteliğindedir; kesintisiz erişim, belirli bir hız veya belirli bir hizmet kalitesi taahhüt edilmez. Bağlantı, bakım, kapasite veya altyapı nedenleriyle geçici olarak kullanılamayabilir.",
           "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ilgili ikincil mevzuat uyarınca, ticari amaçla toplu kullanım sağlayıcı sıfatıyla, iç IP dağıtım kayıtlarının elektronik ortamda tutulması ve bu kayıtların doğruluğunun, bütünlüğünün ve gizliliğinin sağlanması zorunludur. İşletme bu yükümlülüğünü mevzuatta öngörülen usul ve sürelere uygun olarak yerine getirir.",
@@ -14622,7 +14550,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "23. Misafir Davranış Kuralları ve İşletmenin Hizmet Vermeme Hakkı",
+          "19. Misafir Davranış Kuralları ve İşletmenin Hizmet Vermeme Hakkı",
         paragraphs: [
           "{{BRAND}}, tüm misafirlerin huzurlu ve güvenli bir ortamda hizmet almasını esas alır. Bu amaçla misafirlerden, diğer misafirlerin ve personelin haklarına saygı gösterilmesi, işletme düzenine uyulması ve personelin güvenlik uyarılarına riayet edilmesi beklenir.",
           "İşletme, personeline veya misafirlerine yönelik her türlü ayrımcılığı, tacizi, hakareti ve şiddeti kesinlikle kabul etmez. Personel, bu tür davranışlara maruz kaldığında durumu yönetime bildirmekle yetkilidir ve İşletme gerekli tüm hukuki yollara başvurma hakkını saklı tutar.",
@@ -14647,17 +14575,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "24. Engelli ve Kısıtlı Hareket Kabiliyetine Sahip Misafirlerin Erişimi",
+          "20. Engelli ve Kısıtlı Hareket Kabiliyetine Sahip Misafirlerin Erişimi",
         paragraphs: [
           "İşletme, 5378 sayılı Engelliler Hakkında Kanunun eşit erişim ve ayrımcılık yasağına ilişkin ilkeleri doğrultusunda, tüm misafirlerin hizmete eşit biçimde erişebilmesini esas alır. Bununla birlikte işletmenin faaliyet gösterdiği yapı, yaklaşık iki yüz yıllık restore bir köşk olduğundan, giriş eşiği, merdiven, kapı genişliği ve kat geçişleri bakımından fiziki kısıtlar bulunabilir. İşletme, bu durumu açık biçimde beyan etmeyi şeffaflık gereği olarak görür.",
-          "Tekerlekli sandalye kullanımı, refakatçi ihtiyacı, işitme veya görme engeline ilişkin özel bir düzenleme gereksinimi bulunması hâlinde bu hususu rezervasyon aşamasında {{PHONE}} numarasından bildirmeniz rica olunur. Böylece erişimi en kolay masa tahsis edilebilir ve personel önceden hazırlık yapabilir.",
+          "Tekerlekli sandalye kullanımı, refakatçi ihtiyacı, işitme veya görme engeline ilişkin özel bir düzenleme gereksinimi bulunması hâlinde bu hususu ziyaretinizden önce {{PHONE}} numarasından bildirmeniz rica olunur. Böylece erişimi en kolay masa tahsis edilebilir ve personel önceden hazırlık yapabilir.",
           "İşletme personeli, giriş ve yerleşim sırasında talep hâlinde destek sağlamakla görevlidir. Menü içeriğinin sesli olarak okunması, sipariş alımında ek süre tanınması ve benzeri kolaylıklar talep edilmeksizin de sunulmaya çalışılır.",
-          "Rehber ve yardımcı hayvanlar, 16. maddede belirtildiği üzere işletmenin tüm misafir alanlarına kabul edilir.",
+          "Rehber ve yardımcı hayvanlar, 12. maddede belirtildiği üzere işletmenin tüm misafir alanlarına kabul edilir.",
           "Erişilebilirliğe ilişkin görüş, öneri ve şikâyetlerinizi {{EMAIL}} adresine iletebilirsiniz. İşletme, bildirilen erişim engellerini teknik ve hukuki imkânlar (tarihi yapı koruma mevzuatı dâhil) çerçevesinde gidermek için makul çabayı gösterir.",
         ],
       },
       {
-        heading: "25. Sorumluluk, Mücbir Sebep ve Aksaklıkların Giderilmesi",
+        heading: "21. Sorumluluk, Mücbir Sebep ve Aksaklıkların Giderilmesi",
         paragraphs: [
           "İşletme, sunduğu yiyecek-içecek hizmetini gıda güvenliği mevzuatına ve mesleki özen yükümlülüğüne uygun olarak yerine getirmekle yükümlüdür. Ayıplı hizmet sunulması hâlinde 6502 sayılı Tüketicinin Korunması Hakkında Kanunun ayıplı hizmete ilişkin hükümleri uygulanır ve tüketicinin seçimlik hakları saklıdır.",
           "Servis edilen bir ürünün beklentinizi karşılamaması, siparişten farklı olması veya sunumunda bir sorun bulunması hâlinde durumu derhâl servis personeline bildiriniz. İşletme, ürünü ücretsiz olarak yeniler veya hesaptan düşer. Bu uygulama, tüketicinin kanundan doğan diğer haklarını sınırlamaz.",
@@ -14667,7 +14595,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "26. Şikâyet, Öneri ve Uyuşmazlıkların Çözümü",
+        heading: "22. Şikâyet, Öneri ve Uyuşmazlıkların Çözümü",
         paragraphs: [
           "Hizmete, rezervasyona, ürünlere veya personele ilişkin her türlü şikâyet, öneri ve talebinizi {{PHONE}} numaralı telefondan, {{EMAIL}} adresinden veya doğrudan işletme yönetimine iletebilirsiniz. Başvurularınız kayıt altına alınır ve mümkün olan en kısa sürede, her hâlükârda en geç on beş (15) gün içinde yanıtlanır.",
           "İşletme, şikâyetlerin çözümünde öncelikle dostane ve hızlı bir çözüm sunmayı hedefler. Şikâyetinizin çözüme kavuşmaması hâlinde yasal başvuru yollarına başvurma hakkınız her zaman saklıdır ve bu hak hiçbir şekilde kısıtlanamaz.",
@@ -14700,7 +14628,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "27. Yürürlük, Değişiklik, Sürüm ve İletişim",
+        heading: "23. Yürürlük, Değişiklik, Sürüm ve İletişim",
         paragraphs: [
           "İşbu Koşullar, {{SITE_URL}} adresinde ve {{BRAND}} mobil uygulamasında yayımlandığı tarihte yürürlüğe girer ve yeni bir sürüm yayımlanıncaya kadar geçerliliğini korur. Koşullar; mevzuat değişiklikleri, işletme uygulamalarındaki güncellemeler veya hizmet kapsamındaki değişiklikler nedeniyle İşletme tarafından güncellenebilir.",
           "Güncellenen metin, yayımlandığı tarihten itibaren geçerli olur. Önceden onaylanmış ve yürürlükteki rezervasyonlara, rezervasyonun onaylandığı tarihte yürürlükte olan sürüm uygulanır; sonradan yapılan değişiklikler, Misafir aleyhine sonuç doğuracak biçimde geriye yürütülmez.",
