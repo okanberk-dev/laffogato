@@ -473,7 +473,7 @@ describe("order status labels in one place", () => {
       expect(src, path).not.toContain('pending_payment: "');
     }
     expect(read("src/components/admin/orders-list.tsx")).toContain(
-      "<OrderStatusBadge order={o} />",
+      "<OrderStatusBadge order={r.order} />",
     );
   });
 });

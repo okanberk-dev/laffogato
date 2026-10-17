@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import { bulkRefusal } from "@/lib/admin/order-actions";
+import * as storeModule from "@/lib/admin/store";
 import {
   BULK_ORDER_TRANSITIONS,
   isPublishWindowOpen,
@@ -151,15 +153,16 @@ describe("bulk status change", () => {
     }
   });
 
-  it("goes through transitionOrder rather than writing the column", () => {
+  it("goes through the order page's own operations rather than writing the column", () => {
     // The raw `update({ status }).in("id", ids)` left the stock claimed, the
     // coupon burned and the loyalty stamp standing on a bulk cancel.
-    const body = storeSource.slice(
-      storeSource.indexOf("export async function bulkUpdateOrders"),
-      storeSource.indexOf("export interface PlaceOrderItemInput"),
-    );
-    expect(body).toContain("transitionOrder(id, transition)");
-    expect(body).not.toContain(".update({ status: op.status })");
+    const ops = readFileSync("src/lib/admin/order-ops.ts", "utf8");
+    const body = ops.slice(ops.indexOf("export async function runBulkOrderAction"));
+    expect(body).toContain("bulkRefusal(order, op, actor.role");
+    expect(body).toContain("await cancelOrder(");
+    expect(body).toContain("await moveOrder(id, op, actor)");
+    expect(body).not.toContain(".update(");
+    expect("bulkUpdateOrders" in storeModule).toBe(false);
   });
 
   it("gives the stock back when a manual order fails after the claim", () => {
@@ -177,12 +180,64 @@ describe("bulk status change", () => {
   it("does not settle unpaid orders with a bulk 'hazırlanıyor'", () => {
     // start_preparing from pending_payment stamps paidAt, awards the stamp
     // and counts revenue - a bulk "paid" by another name.
+    expect(
+      bulkRefusal(
+        { status: "pending_payment", totalMinor: 100, refunds: [] },
+        "start_preparing",
+        "owner",
+        false,
+      ),
+    ).toBe("ödemesi alınmadı");
+  });
+
+  it("refuses 'Hazırlamaya başla' on an unpaid order in the store itself", () => {
+    // Every caller, not only the panel: the move settles the order.
     const body = storeSource.slice(
-      storeSource.indexOf("export async function bulkUpdateOrders"),
-      storeSource.indexOf("export interface PlaceOrderItemInput"),
+      storeSource.indexOf("export async function transitionOrder("),
+      storeSource.indexOf("async function noticeCancelled"),
     );
-    expect(body).toContain('transition === "start_preparing"');
-    expect(body).toContain('current?.status === "pending_payment"');
+    expect(body).toContain('transition === "start_preparing" &&');
+    expect(body).toContain("opts.paymentReceived !== true");
+  });
+
+  it("answers an empty or unknown bulk choice in Turkish", () => {
+    const empty = bulkOrderSchema.safeParse({ ids: "ord-1", op: "set_status", value: "" });
+    expect(empty.success).toBe(false);
+    expect(empty.error?.issues[0]?.message).toBe("Bir işlem seç.");
+    const none = bulkOrderSchema.safeParse({ ids: " , ", op: "set_status", value: "completed" });
+    expect(none.error?.issues[0]?.message).toBe("Hiç kayıt seçilmedi.");
+  });
+});
+
+describe("manual orders and the 45-minute sweep", () => {
+  it("marks a panel order as manual and keeps the sweep away from it", () => {
+    // A manual "Ödeme bekleniyor" order (a phone order paid on delivery) has
+    // no POS payment to wait for; the sweep cancelled it and handed its
+    // stock back without telling anyone.
+    const create = storeSource.slice(
+      storeSource.indexOf("export async function createManualOrder"),
+      storeSource.indexOf("export interface AppCafeLineInput"),
+    );
+    expect(create).toContain('source: "manual"');
+    const sweep = storeSource.slice(
+      storeSource.indexOf("export async function expireStalePendingOrders"),
+      storeSource.indexOf("export async function supersedeUnpaidWebOrders"),
+    );
+    expect(sweep).toContain('.neq("source", "manual")');
+    const supersede = storeSource.slice(
+      storeSource.indexOf("export async function supersedeUnpaidWebOrders"),
+      storeSource.indexOf("export async function isOwnUnpaidWebOrder"),
+    );
+    expect(supersede).toContain('order.source !== "manual"');
+  });
+
+  it("backfills the manual orders written before the column", () => {
+    const migration = readFileSync(
+      "db/migrations/20261017100000_admin_order_management.sql",
+      "utf8",
+    );
+    expect(migration).toContain("add column if not exists source text not null default ''");
+    expect(migration).toMatch(/set source = 'manual'[\s\S]*payload ->> 'manual' = 'true'/);
   });
 });
 

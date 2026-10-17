@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
+import type { AnyOfCondition } from "@/lib/db/sql";
 
 import {
   APP_ANNOUNCEMENT_KINDS,
@@ -35,6 +36,7 @@ import {
   notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
+  type OrderNoticeOutcome,
 } from "@/lib/email/order-notices";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
@@ -86,6 +88,18 @@ import {
   type OrderFulfillment,
   type OrderKind,
 } from "./order-channel";
+import {
+  ITEM_EDITABLE_ORDER_STATUSES,
+  MANUAL_PROVIDER_PREFIX,
+  isManualProvider,
+  refundCapMinor,
+  refundDestinationFor,
+  type ManualPaymentMethod,
+  type OrderAttention,
+  type RefundDestination,
+} from "./order-actions";
+import type { OrderListQuery } from "./order-filters";
+import { ORDER_STATUS_LABELS } from "./order-ui";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -242,6 +256,13 @@ export interface AdminOrderItem {
   size?: OrderItemSize;
   options?: Record<string, unknown>;
   detail?: string;
+  /**
+   * Units of this line already given back to stock (a refund's "stoğa geri
+   * al", or the release when the order was cancelled). Written by the SQL
+   * functions `release_order_inventory` / `restock_order_lines` only, so a
+   * line is never credited twice. Absent = none.
+   */
+  restockedQty?: number;
 }
 
 export type {
@@ -264,6 +285,17 @@ export interface AdminRefund {
   amountMinor: number;
   reason: string;
   createdAt: string;
+  /**
+   * Where the money went, as the server decided it (`orderMoney`): the card
+   * through the POS, the member's wallet, or nowhere (a record only, the
+   * cash was handed back at the counter). Absent on entries written before.
+   */
+  destination?: RefundDestination;
+  /**
+   * The refund modal's one-time token. `reserve_order_refund_once` refuses a
+   * second entry with the same token, so a double submit cannot refund twice.
+   */
+  token?: string;
 }
 
 /**
@@ -375,6 +407,14 @@ export interface AdminOrder {
    */
   tableCode?: string;
   tableName?: string;
+  /**
+   * What needs a human on this order (`OrderAttention`), '' when nothing:
+   * a payment the machine could not apply, or money still owed back after
+   * a cancel. Drives the list's "Dikkat" filter and the order page's banner.
+   */
+  attention?: string;
+  /** "manual" for an order typed into the panel, '' for every other. */
+  source?: string;
 }
 
 export {
@@ -1340,7 +1380,7 @@ export async function countOrdersAfter(orderNo: number): Promise<number> {
 // `listOrders()` had five callers and each one wanted a page, five rows or a
 // few columns; reading the whole table with its jsonb was 596 ms and 27 MB
 // per call at 20k orders. Read what the screen needs: `listRecentOrders`,
-// `listOrdersPage`, or a projection like `reportOrders` below.
+// `listOrdersFiltered`, or a projection like `reportOrders` below.
 
 /**
  * The newest `limit` orders, whole rows.
@@ -1363,59 +1403,139 @@ export async function listRecentOrders(limit: number): Promise<AdminOrder[]> {
   );
 }
 
-/** How many orders `/admin/siparisler` shows per page. */
-export const ORDERS_PAGE_SIZE = 100;
+/** What the order list filters on (lib/admin/order-filters.ts). */
+export type { OrderListQuery };
 
-export interface OrdersPage {
-  orders: AdminOrder[];
-  /** Every order in the table, for the "N sipariş" line. */
-  total: number;
-  /**
-   * The `orderNo` to pass as `before` for the next (older) page, or null when
-   * this page reached the oldest order.
-   */
-  nextBefore: number | null;
+/** The filter methods the order list's queries use, for `withOrderQuery`. */
+interface OrderFilterable<Q> {
+  eq(column: string, value: unknown): Q;
+  neq(column: string, value: unknown): Q;
+  gte(column: string, value: unknown): Q;
+  lt(column: string, value: unknown): Q;
+  in(column: string, values: readonly unknown[]): Q;
+  anyOf(conditions: readonly AnyOfCondition[]): Q;
 }
 
 /**
- * One page of the order list, newest first, keyed on `orderNo`.
- *
- * WP1: the page used to render the whole table into a
- * client component, so every order's jsonb went over the wire to the
- * operator's browser and was hydrated there (27 MB of JSON for 20k orders).
- *
- * Keyset rather than offset (the query builder has no offset, and a keyset
- * page does not shift when a new order arrives while the operator is paging):
- * `before` is the last `orderNo` of the previous page. One row more than the
- * page is read to learn whether an older page exists.
+ * The order list's filters as SQL, shared by the page query and the tab
+ * counts so a tab's number is exactly what the tab then shows. Every value
+ * was validated by parseOrderListParams; the search pattern is escaped
+ * there (`%`, `_`).
  */
-export async function listOrdersPage(input: {
-  before?: number | null;
-  pageSize?: number;
-}): Promise<OrdersPage> {
+function withOrderQuery<Q extends OrderFilterable<Q>>(
+  q: Q,
+  query: OrderListQuery,
+): Q {
+  let out = q;
+  if (query.search) {
+    const conditions: AnyOfCondition[] = [
+      { column: "customerName", op: "ilike", value: query.search.pattern },
+      { column: "customerEmail", op: "ilike", value: query.search.pattern },
+    ];
+    if (query.search.orderNo !== null) {
+      conditions.unshift({
+        column: "orderNo",
+        op: "eq",
+        value: query.search.orderNo,
+      });
+    }
+    out = out.anyOf(conditions);
+  }
+  if (query.statuses) out = out.in("status", query.statuses);
+  if (query.channel === "manual") out = out.eq("source", "manual");
+  else if (query.channel) {
+    out = out.eq("channel", query.channel).neq("source", "manual");
+  }
+  if (query.kind) out = out.eq("kind", query.kind);
+  if (query.fulfillment) out = out.eq("fulfillment", query.fulfillment);
+  if (query.payment === "paid") out = out.neq("paidAt", "");
+  else if (query.payment === "unpaid") out = out.eq("paidAt", "");
+  else if (query.payment === "refunded") out = out.neq("refunds", []);
+  if (query.attention) out = out.neq("attention", "");
+  if (query.fromIso) out = out.gte("createdAt", query.fromIso);
+  if (query.beforeIso) out = out.lt("createdAt", query.beforeIso);
+  return out;
+}
+
+export interface OrderListPage {
+  orders: AdminOrder[];
+  /** Rows matching the filters, across every page. */
+  total: number;
+}
+
+/**
+ * One numbered page of the order list, filtered and sorted.
+ *
+ * WP1 still holds: a page of rows, never the table. The sort column is one
+ * of four the page allows (ORDER_SORT_COLUMNS); `orderNo` breaks ties so a
+ * page boundary never splits or repeats an order.
+ */
+export async function listOrdersFiltered(input: {
+  query: OrderListQuery;
+  sort: {
+    column: "orderNo" | "createdAt" | "totalMinor" | "customerName";
+    ascending: boolean;
+  };
+  page: number;
+  pageSize: number;
+}): Promise<OrderListPage> {
   await ensureSeed();
   const sb = getDb();
-  const size = Math.max(1, Math.trunc(input.pageSize ?? ORDERS_PAGE_SIZE));
-  let q = sb
-    .from(TABLES.orders)
-    .select("*")
-    .order("orderNo", { ascending: false })
-    .limit(size + 1);
-  const before = input.before;
-  if (typeof before === "number" && Number.isFinite(before)) {
-    q = q.lt("orderNo", Math.trunc(before));
+  const size = Math.max(1, Math.trunc(input.pageSize));
+  const page = Math.max(1, Math.trunc(input.page));
+  let q = withOrderQuery(sb.from(TABLES.orders).select("*"), input.query).order(
+    input.sort.column,
+    { ascending: input.sort.ascending },
+  );
+  if (input.sort.column !== "orderNo") {
+    q = q.order("orderNo", { ascending: false });
   }
-  const [page, total] = await Promise.all([
-    q.then((r) => rows<AdminOrder>(r, "listOrdersPage")),
-    countRows(TABLES.orders),
+  q = q.limit(size).offset((page - 1) * size);
+  const countQ = withOrderQuery(
+    sb.from(TABLES.orders).select("*", { count: "exact", head: true }),
+    input.query,
+  );
+  const [orders, counted] = await Promise.all([
+    q.then((r) => rows<AdminOrder>(r, "listOrdersFiltered")),
+    countQ,
   ]);
-  const orders = page.slice(0, size);
-  return {
-    orders,
-    total,
-    nextBefore:
-      page.length > size ? (orders[orders.length - 1]?.orderNo ?? null) : null,
-  };
+  if (counted.error) {
+    raiseDbError("listOrdersFiltered.count", counted.error, counted.status);
+  }
+  return { orders, total: counted.count ?? 0 };
+}
+
+/**
+ * How many orders each status holds under the list's other filters (the
+ * tab counts). One `head: true` count per status on `orders_status_idx`.
+ */
+export async function countOrdersByStatus(
+  query: OrderListQuery,
+): Promise<Record<AdminOrderStatus, number>> {
+  const sb = getDb();
+  const statuses: AdminOrderStatus[] = [
+    "pending_payment",
+    "paid",
+    "preparing",
+    "shipped",
+    "completed",
+    "cancelled",
+    "refunded",
+  ];
+  const counts = await Promise.all(
+    statuses.map(async (status) => {
+      const res = await withOrderQuery(
+        sb.from(TABLES.orders).select("*", { count: "exact", head: true }),
+        { ...query, statuses: null },
+      ).eq("status", status);
+      if (res.error) raiseDbError("countOrdersByStatus", res.error, res.status);
+      return res.count ?? 0;
+    }),
+  );
+  return Object.fromEntries(statuses.map((s, i) => [s, counts[i]])) as Record<
+    AdminOrderStatus,
+    number
+  >;
 }
 
 export interface CustomerSummary {
@@ -1601,14 +1721,19 @@ export async function getOrder(id: string): Promise<AdminOrder | null> {
   );
 }
 
-export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
-
-export interface BulkOrderResult extends BulkResult {
-  /**
-   * Ids the state machine refused: already in that status, not allowed to
-   * reach it from where they are, or a target the bulk tool must not set.
-   */
-  skipped: number;
+/**
+ * Several orders by id, in no particular order; unknown ids are absent. For
+ * the bulk tool, which decides per order (lib/admin/order-ops.ts).
+ */
+export async function getOrdersByIds(
+  ids: readonly string[],
+): Promise<AdminOrder[]> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  return rows<AdminOrder>(
+    await getDb().from(TABLES.orders).select("*").in("id", ids.slice(0, 500)),
+    "getOrdersByIds",
+  );
 }
 
 /**
@@ -1619,6 +1744,11 @@ export interface BulkOrderResult extends BulkResult {
  * writes the status column writes neither - a bulk "ödendi" produced paid
  * orders nobody had paid for, with no `paidAt` and no stamp. Those two are
  * done one order at a time, from the order page.
+ *
+ * The bulk tool itself (`runBulkOrderAction`, lib/admin/order-ops.ts) sends
+ * every id through the same `transitionOrder` / `cancelOrder` the order page
+ * uses: a raw `update({ status }).in("id", ids)` once left a bulk cancel's
+ * stock claimed, its coupon burned and its stamp standing.
  */
 export const BULK_ORDER_TRANSITIONS: Partial<
   Record<AdminOrderStatus, OrderTransition>
@@ -1628,44 +1758,6 @@ export const BULK_ORDER_TRANSITIONS: Partial<
   completed: "complete",
   cancelled: "cancel",
 };
-
-/**
- * Bulk status change - every id through the same machine the order page uses.
- *
- * This used to be a raw `update({ status }).in("id", ids)`: it wrote the
- * column and nothing else, so a bulk cancel left the stock claimed, the
- * customer's single-use coupon burned and the loyalty stamp standing, and it
- * accepted every status including `paid` and `refunded`. Ids the machine
- * refuses are counted in `skipped` rather than silently forced.
- */
-export async function bulkUpdateOrders(
-  ids: string[],
-  op: BulkOrderOp,
-): Promise<BulkOrderResult> {
-  if (ids.length === 0) return { updated: 0, skipped: 0 };
-  const transition = BULK_ORDER_TRANSITIONS[op.status];
-  if (!transition) return { updated: 0, skipped: ids.length };
-  await ensureSeed();
-  let updated = 0;
-  let skipped = 0;
-  for (const id of ids) {
-    // "Hazırlanıyor" from pending_payment SETTLES the order (paidAt, stamp,
-    // revenue) - the very thing dropping bulk "paid" was meant to stop. One
-    // order at a time it is a deliberate call (paid at the counter); in bulk
-    // it is a stray tick. Unpaid orders are skipped here.
-    if (transition === "start_preparing") {
-      const current = await getOrder(id);
-      if (current?.status === "pending_payment") {
-        skipped += 1;
-        continue;
-      }
-    }
-    const res = await transitionOrder(id, transition);
-    if (res.ok) updated += 1;
-    else skipped += 1;
-  }
-  return { updated, skipped };
-}
 
 export interface PlaceOrderItemInput {
   /** Stable product id - preferred match key. */
@@ -1969,6 +2061,8 @@ interface FinalizeOrderInput {
   /** Table orders only: the table snapshot (see `AdminOrder.tableCode`). */
   tableCode?: string;
   tableName?: string;
+  /** "manual" for the panel's manual order (`AdminOrder.source`). */
+  source?: "manual";
   /** How shipping is charged; the shop's settings when omitted. */
   shipping?: ShippingMode;
   /**
@@ -2151,6 +2245,7 @@ async function insertOrderRow(
     ...(f.tableCode
       ? { tableCode: f.tableCode, tableName: f.tableName ?? "" }
       : {}),
+    ...(f.source ? { source: f.source } : {}),
   };
   // The discount was claimed before the row existed - deliberately, so it
   // cannot be double-spent while the customer is on the POS page. If the row
@@ -2444,6 +2539,10 @@ export async function expireStalePendingOrders(): Promise<number> {
       .from(TABLES.orders)
       .select("*")
       .eq("status", "pending_payment")
+      // A manual "Ödeme bekleniyor" order (a phone order paid on delivery)
+      // has no POS payment to wait for: the sweep used to cancel it after 45
+      // minutes and hand its stock back without telling anyone.
+      .neq("source", "manual")
       .lt("createdAt", cutoff)
       .order("createdAt", { ascending: true })
       .limit(20),
@@ -2501,7 +2600,11 @@ export async function supersedeUnpaidWebOrders(
       .order("createdAt", { ascending: true })
       .limit(10),
     "supersedeUnpaidWebOrders",
-  ).filter((order) => orderChannel(order) === "web");
+    // A manual order carries the customer's address too, and is not theirs
+    // to supersede: it was typed into the panel and has no checkout behind it.
+  ).filter(
+    (order) => orderChannel(order) === "web" && order.source !== "manual",
+  );
   if (open.length === 0) return 0;
   const provider = await lookupProvider();
   const outcomes = await Promise.allSettled(
@@ -2689,6 +2792,8 @@ export async function createManualOrder(
       shippingAddress: input.shippingAddress?.trim() ?? "",
       internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
       promoCode: input.promoCode,
+      // No POS behind it: the stale-checkout sweep must leave it alone.
+      source: "manual",
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
@@ -3154,6 +3259,10 @@ async function noteUnreconciledPayment(
       `reason=${reason} status=${order.status} expected=${order.totalMinor} ` +
       `collected=${input.amountMinor} provider=${input.provider} ref=${input.providerRef}`,
   );
+  // The flag the order list's "Dikkat" filter and the order page's red
+  // banner read. The audit row below says what exactly happened; this only
+  // makes sure somebody opens it.
+  await setOrderAttention(order.id, reason);
   try {
     // Lazily imported: the audit module reads the admin session, and a
     // bookkeeping failure must never turn a settled payment into an error.
@@ -3179,6 +3288,31 @@ async function noteUnreconciledPayment(
       `[payment] audit row for the unreconciled payment failed order=${order.id}`,
       err,
     );
+  }
+}
+
+/**
+ * Sets (or with "" clears) what needs a human on this order. Never throws:
+ * every caller has just written something that matters more - a payment, a
+ * cancel - and a flag that did not land must not undo it.
+ */
+export async function setOrderAttention(
+  orderId: string,
+  attention: OrderAttention | "",
+): Promise<boolean> {
+  try {
+    const { error } = await getDb()
+      .from(TABLES.orders)
+      .update({ attention })
+      .eq("id", orderId);
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (err) {
+    console.error(
+      `[orders] attention flag not written order=${orderId} attention=${attention}`,
+      err,
+    );
+    return false;
   }
 }
 
@@ -3535,9 +3669,14 @@ function isoDay(value: string | undefined): string {
 }
 
 /**
- * Latest succeeded payment for an order (for refunds): the provider
- * reference, what was collected, and the provider's day for it ('' on rows
- * written before the column existed) so the refund need not look it up.
+ * The payment a refund goes back through: the latest succeeded payment row
+ * of the order - its provider reference, what was collected, and the
+ * provider's day for it ('' on rows written before the column existed) so
+ * the refund need not look it up.
+ *
+ * Manual rows (`manual:<method>`, "Ödendi olarak işaretle") are skipped: the
+ * cash was taken at the counter, there is no card to send it back to, and
+ * asking the POS to refund `manual-<id>` would be refused at best.
  */
 export async function getOrderPaymentRef(orderId: string): Promise<{
   provider: string;
@@ -3552,16 +3691,16 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
     .eq("orderId", orderId)
     .eq("status", "succeeded")
     .order("createdAt", { ascending: false })
-    .limit(1);
+    .limit(20);
   if (res.error) throw new Error(`getOrderPaymentRef: ${res.error.message}`);
-  const row = res.data?.[0] as
-    | {
-        provider: string;
-        providerRef: string;
-        amountMinor?: number | null;
-        trxDate?: string | null;
-      }
-    | undefined;
+  const row = (
+    (res.data ?? []) as Array<{
+      provider: string;
+      providerRef: string;
+      amountMinor?: number | null;
+      trxDate?: string | null;
+    }>
+  ).find((r) => !isManualProvider(r.provider));
   return row
     ? {
         provider: row.provider,
@@ -3572,12 +3711,154 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
     : null;
 }
 
+/** One row of an order's payment ledger, as the order page lists it. */
+export interface OrderPaymentRow {
+  provider: string;
+  providerRef: string;
+  status: string;
+  amountMinor: number;
+  currency: string;
+  trxDate: string;
+  createdAt: string;
+}
+
+/**
+ * Every payment row of an order, newest first: the card charge, a wallet
+ * spend, a manual "ödendi", a provider refund. `raw` stays in the database:
+ * it is the provider's own answer and has no business in a page payload.
+ */
+export async function listPaymentTransactions(
+  orderId: string,
+): Promise<OrderPaymentRow[]> {
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select(
+      "provider, providerRef, status, amountMinor, currency, trxDate, createdAt",
+    )
+    .eq("orderId", orderId)
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  return rows<OrderPaymentRow>(res, "listPaymentTransactions").map((r) => ({
+    ...r,
+    amountMinor: Number(r.amountMinor ?? 0),
+    trxDate: isoDay(r.trxDate ?? ""),
+  }));
+}
+
+/** One customer mail of an order (`order_notice_emails`), as the page lists it. */
+export interface OrderNoticeRow {
+  kind: string;
+  status: string;
+  error: string;
+  createdAt: string;
+  sentAt: string;
+}
+
+/** An order's mails, newest first: what went out, what is still sending. */
+export async function listOrderNotices(
+  orderId: string,
+): Promise<OrderNoticeRow[]> {
+  const res = await getDb()
+    .from(TABLES.orderNoticeEmails)
+    .select("kind, status, error, createdAt, sentAt")
+    .eq("orderId", orderId)
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  return rows<OrderNoticeRow>(res, "listOrderNotices");
+}
+
+/** What the money side of an order comes to, for the rules and the page. */
+export interface OrderMoney {
+  /** Money was ever taken: `paidAt`, or a succeeded payment row. */
+  collected: boolean;
+  /**
+   * What the succeeded payment rows add up to; null when there are none (a
+   * counter sale entered as paid). Caps every refund (`refundCapMinor`).
+   */
+  collectedMinor: number | null;
+  /** Where a refund would go now (`refundDestinationFor`). */
+  destination: RefundDestination;
+}
+
+function moneyFrom(
+  order: Pick<AdminOrder, "paidAt">,
+  succeeded: ReadonlyArray<{ provider: string; amountMinor: number }>,
+): OrderMoney {
+  const refundVia = succeeded.find((r) => !isManualProvider(r.provider));
+  return {
+    collected: Boolean(order.paidAt) || succeeded.length > 0,
+    collectedMinor:
+      succeeded.length > 0
+        ? succeeded.reduce((sum, r) => sum + Number(r.amountMinor ?? 0), 0)
+        : null,
+    destination: refundDestinationFor(refundVia?.provider ?? null),
+  };
+}
+
+/** The order's money facts, from its payment rows (newest first). */
+export function orderMoneyFromRows(
+  order: Pick<AdminOrder, "paidAt">,
+  transactions: ReadonlyArray<OrderPaymentRow>,
+): OrderMoney {
+  return moneyFrom(
+    order,
+    transactions.filter((t) => t.status === "succeeded"),
+  );
+}
+
+/** The order's money facts, read now. */
+export async function orderMoney(order: AdminOrder): Promise<OrderMoney> {
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select("provider, amountMinor, createdAt")
+    .eq("orderId", order.id)
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  if (res.error) throw new Error(`orderMoney: ${res.error.message}`);
+  return moneyFrom(
+    order,
+    (res.data ?? []) as Array<{ provider: string; amountMinor: number }>,
+  );
+}
+
+/**
+ * The money facts of a page of orders in one query, for the list's row
+ * menus (which cancel needs the refund role, which can be refunded).
+ */
+export async function listOrderMoney(
+  orders: readonly AdminOrder[],
+): Promise<Map<string, OrderMoney>> {
+  const out = new Map<string, OrderMoney>();
+  if (orders.length === 0) return out;
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select("orderId, provider, amountMinor, createdAt")
+    .in(
+      "orderId",
+      orders.map((o) => o.id),
+    )
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false });
+  const byOrder = new Map<
+    string,
+    Array<{ provider: string; amountMinor: number }>
+  >();
+  for (const r of rows<{
+    orderId: string;
+    provider: string;
+    amountMinor: number;
+  }>(res, "listOrderMoney")) {
+    const list = byOrder.get(r.orderId) ?? [];
+    list.push(r);
+    byOrder.set(r.orderId, list);
+  }
+  for (const o of orders) out.set(o.id, moneyFrom(o, byOrder.get(o.id) ?? []));
+  return out;
+}
+
 export type OrderTransition =
-  | "start_preparing"
-  | "mark_shipped"
-  | "complete"
-  | "cancel"
-  | "mark_paid";
+  "start_preparing" | "mark_shipped" | "complete" | "cancel" | "mark_paid";
 
 const TRANSITION_MAP: Record<
   OrderTransition,
@@ -3625,6 +3906,76 @@ export interface TransitionResult {
   ok: boolean;
   order?: AdminOrder;
   error?: string;
+  /** The customer mail this move triggered: paid, shipped or cancelled. */
+  mail?: OrderNoticeOutcome;
+  /** A cancel's stock and coupon release (absent when it did not run). */
+  release?: InventoryRelease;
+  /** Something that did not go through after the status moved. */
+  warnings?: string[];
+}
+
+/** What giving an order's inventory back came to. */
+export interface InventoryRelease {
+  /** This call released; false when an earlier call already had. */
+  released: boolean;
+  /** Units credited back to stock. */
+  units: number;
+  /** The lines credited, for the stock movement log. */
+  lines: ReleasedLine[];
+}
+
+/** One line `release_order_inventory` / `restock_order_lines` credited. */
+export interface ReleasedLine {
+  index: number;
+  productId: string;
+  productName: string;
+  qty: number;
+  stockAfter: number;
+}
+
+/**
+ * One stock movement per credited line. Best-effort: the stock itself was
+ * credited in the same SQL transaction as the claim, and a log row that did
+ * not land must not turn that into an error.
+ */
+async function recordReleasedMoves(
+  order: Pick<AdminOrder, "id" | "orderNo">,
+  lines: readonly ReleasedLine[],
+  reason: StockMoveReason,
+  note: string,
+  actor: string,
+): Promise<void> {
+  for (const line of lines) {
+    try {
+      await recordStockMove({
+        productId: line.productId,
+        productName: line.productName,
+        delta: line.qty,
+        stockAfter: line.stockAfter,
+        reason,
+        note,
+        orderId: order.id,
+        actor,
+      });
+    } catch (err) {
+      console.error(
+        `[orders] stock move not logged order=${order.id} product=${line.productId}`,
+        err,
+      );
+    }
+  }
+}
+
+function releasedLines(data: unknown): ReleasedLine[] {
+  const lines = (data as { lines?: unknown } | null)?.lines;
+  if (!Array.isArray(lines)) return [];
+  return lines.map((l: Record<string, unknown>) => ({
+    index: Number(l.index ?? -1),
+    productId: String(l.productId ?? ""),
+    productName: String(l.productName ?? ""),
+    qty: Number(l.qty ?? 0),
+    stockAfter: Number(l.stockAfter ?? 0),
+  }));
 }
 
 /**
@@ -3637,66 +3988,40 @@ export interface TransitionResult {
  * as sold out while the shelf was full), and the customer's coupon was gone
  * for an order they never paid for.
  *
- * Guarded on `stockReleasedAt`, and the guard is part of the UPDATE, so two
- * concurrent cancels cannot both credit the stock.
+ * The claim (`stockReleasedAt`) and the stock credit are ONE SQL function
+ * (`release_order_inventory`). They used to be two statements: when the
+ * credit failed, the marker was already set, the order already cancelled,
+ * and the stock was never given back by anything. Now a failure leaves the
+ * marker empty, and "Stoğu geri al" on the order page runs this again.
+ *
+ * Every line is credited what it has not given back yet - a line marked
+ * "İptal" on its own changes no stock, so skipping cancelled lines lost
+ * them. `restock: false` (a parcel already with the carrier) claims the
+ * marker and gives the coupon back, but no units.
  */
-async function releaseOrderInventory(order: AdminOrder): Promise<void> {
-  const sb = getDb();
+async function releaseOrderInventory(
+  order: AdminOrder,
+  {
+    restock = true,
+    actor = "system",
+  }: { restock?: boolean; actor?: string } = {},
+): Promise<InventoryRelease> {
   const now = new Date().toISOString();
-
-  // Claim the right to release. Only the writer that flips the empty marker
-  // proceeds.
-  const claimed = rows<{ id: string }>(
-    await sb
-      .from(TABLES.orders)
-      .update({ stockReleasedAt: now })
-      .eq("id", order.id)
-      .eq("stockReleasedAt", "")
-      .select("id"),
-    "releaseOrderInventory.claim",
+  const { data, error, status } = await getDb().rpc<unknown>(
+    "release_order_inventory",
+    { p_order_id: order.id, p_restock: restock, p_now: now },
   );
-  if (claimed.length === 0) return;
-
-  // Lines from before productId was recorded, and manual admin lines that
-  // reference no catalogue product, are skipped: restoring by name would
-  // credit the wrong SKU the moment a product had been renamed.
-  const lines = order.items
-    .filter((it) => it.productId && it.status !== "cancelled" && it.qty > 0)
-    .map((it) => ({
-      productId: it.productId as string,
-      variantId: it.variantId ?? null,
-      qty: it.qty,
-      productName: it.productName,
-    }));
-
-  if (lines.length > 0) {
-    const released = await sb.rpc("release_order_stock", {
-      p_lines: lines.map(({ productId, variantId, qty }) => ({
-        productId,
-        variantId,
-        qty,
-      })),
-      p_now: now,
-    });
-    if (released.error) {
-      throw new Error(`releaseOrderInventory: ${released.error.message}`);
-    }
-    const stockAfters = (released.data ?? []) as number[];
-    for (let i = 0; i < lines.length; i += 1) {
-      // -1 means the product row is gone; there is no stock level to log.
-      if (stockAfters[i] === -1 || stockAfters[i] === undefined) continue;
-      await recordStockMove({
-        productId: lines[i].productId,
-        productName: lines[i].productName,
-        delta: lines[i].qty,
-        stockAfter: stockAfters[i],
-        reason: "order_cancelled",
-        note: `Sipariş #${order.orderNo} iptal edildi`,
-        orderId: order.id,
-        actor: "system",
-      });
-    }
-  }
+  if (error) raiseDbError("releaseOrderInventory", error, status);
+  // NULL: another call already released this order.
+  if (!data) return { released: false, units: 0, lines: [] };
+  const lines = releasedLines(data);
+  await recordReleasedMoves(
+    order,
+    lines,
+    "order_cancelled",
+    `Sipariş #${order.orderNo} iptal edildi`,
+    actor,
+  );
 
   if (order.promoCode) {
     // A personal coupon is returned to its owner; a shared promo gets its use
@@ -3711,6 +4036,61 @@ async function releaseOrderInventory(order: AdminOrder): Promise<void> {
     if (!returned) await releasePromoUsage(order.promoCode);
     else await settleLoyaltyAfterRelease(order.customerEmail, order.orderNo);
   }
+  return {
+    released: true,
+    units: lines.reduce((sum, l) => sum + l.qty, 0),
+    lines,
+  };
+}
+
+/**
+ * "Stoğu geri al": the release of a cancelled order whose first attempt did
+ * not go through (the marker is still empty). A no-op for any other order.
+ */
+export async function retryOrderRelease(
+  id: string,
+  actor: string,
+): Promise<
+  { ok: true; release: InventoryRelease } | { ok: false; error: string }
+> {
+  await ensureSeed();
+  const order = await getOrder(id);
+  if (!order) return { ok: false, error: "Sipariş bulunamadı." };
+  if (order.status !== "cancelled" || order.stockReleasedAt) {
+    return { ok: false, error: "Bu siparişin stoğu zaten geri alınmış." };
+  }
+  return { ok: true, release: await releaseOrderInventory(order, { actor }) };
+}
+
+/**
+ * Gives chosen lines back to stock (the refund modal's "stoğa geri al"):
+ * `[{index, qty}]`, each capped by the SQL at what that line has not given
+ * back yet, so two refunds of one line cannot both credit it.
+ */
+export async function restockOrderLines(
+  order: Pick<AdminOrder, "id" | "orderNo">,
+  lines: ReadonlyArray<{ index: number; qty: number }>,
+  actor: string,
+): Promise<ReleasedLine[]> {
+  if (lines.length === 0) return [];
+  const { data, error, status } = await getDb().rpc<unknown>(
+    "restock_order_lines",
+    {
+      p_order_id: order.id,
+      p_lines: lines.map((l) => ({ index: l.index, qty: l.qty })),
+      p_now: new Date().toISOString(),
+    },
+  );
+  if (error) raiseDbError("restockOrderLines", error, status);
+  const credited = releasedLines(data);
+  await recordReleasedMoves(
+    order,
+    credited,
+    "refund_restock",
+    `Sipariş #${order.orderNo} iadesi`,
+    actor,
+  );
+  return credited;
 }
 
 /**
@@ -3739,9 +4119,26 @@ async function settleLoyaltyAfterRelease(
   }
 }
 
+/**
+ * Moves an order one step through the machine, and does what the step owes:
+ * a cancel gives the inventory back, takes the stamps back and tells the
+ * buyer; settling by hand stamps and mails "ödemen alındı"; shipping mails
+ * the tracking number. The result says which mail went out (`mail`) and
+ * what the release came to, so the panel can tell the operator.
+ *
+ * `restock: false` cancels without crediting stock (a parcel that already
+ * left). Everything after the status write is best-effort and reported in
+ * `warnings`: the status HAS moved, and an error there used to drop the
+ * operator on the error page with the stamps and the mail never handled.
+ *
+ * `paymentReceived`: "Hazırlamaya başla" on an UNPAID order settles it
+ * (paidAt, the stamp, "ödemen alındı"). The button never said so, so the
+ * move is refused unless the caller says the money was taken.
+ */
 export async function transitionOrder(
   id: string,
   transition: OrderTransition,
+  opts: { restock?: boolean; actor?: string; paymentReceived?: boolean } = {},
 ): Promise<TransitionResult> {
   await ensureSeed();
   const sb = getDb();
@@ -3752,7 +4149,18 @@ export async function transitionOrder(
   if (!map.from.includes(existing.status)) {
     return {
       ok: false,
-      error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
+      error: `Bu işlem "${ORDER_STATUS_LABELS[existing.status] ?? existing.status}" durumundaki siparişte yapılamaz.`,
+    };
+  }
+  if (
+    transition === "start_preparing" &&
+    existing.status === "pending_payment" &&
+    opts.paymentReceived !== true
+  ) {
+    return {
+      ok: false,
+      error:
+        'Ödemesi alınmamış sipariş hazırlanamaz. Önce "Ödendi olarak işaretle".',
     };
   }
   // Settling by hand is still settling. "Ödendi olarak işaretle" - the cash
@@ -3789,13 +4197,28 @@ export async function transitionOrder(
   if (moved.length === 0) {
     return {
       ok: false,
-      error: "Sipariş bu arada değişti. Sayfayı yenileyip tekrar dene.",
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
     };
   }
+  const warnings: string[] = [];
+  let mail: OrderNoticeOutcome | undefined;
+  let release: InventoryRelease | undefined;
   if (map.to === "cancelled") {
-    await releaseOrderInventory(existing);
+    try {
+      release = await releaseOrderInventory(existing, {
+        restock: opts.restock !== false,
+        actor: opts.actor,
+      });
+    } catch (err) {
+      // The SQL function rolled back whole: the marker is still empty and
+      // "Stoğu geri al" on the order page tries again.
+      console.error(`[orders] release after cancel failed order=${id}`, err);
+      warnings.push(
+        "stok ve kupon geri alınamadı, 'Stoğu geri al' ile tekrar dene",
+      );
+    }
     await reverseLoyalty(existing, "cancelled", { full: true });
-    await noticeCancelled(
+    mail = await noticeCancelled(
       { ...existing, status: "cancelled" },
       {
         unpaidAttempt:
@@ -3808,14 +4231,20 @@ export async function transitionOrder(
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
     // Settled by hand is paid all the same: the customer's one order mail
     // goes out now, once (a later POS confirmation finds it claimed).
-    await notifyOrderPaid({ ...existing, status: map.to, paidAt });
+    mail = await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
   // and this is the moment the buyer is owed the number. Sent once per
   // number, so the tracking form having sent it already is a no-op here.
-  if (map.to === "shipped") await notifyOrderShipped(nextOrder);
-  return { ok: true, order: nextOrder };
+  if (map.to === "shipped") mail = await notifyOrderShipped(nextOrder);
+  return {
+    ok: true,
+    order: nextOrder,
+    ...(mail ? { mail } : {}),
+    ...(release ? { release } : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }
 
 /**
@@ -3827,8 +4256,8 @@ export async function transitionOrder(
 async function noticeCancelled(
   order: AdminOrder,
   { unpaidAttempt = false }: { unpaidAttempt?: boolean } = {},
-): Promise<void> {
-  if (!cancelNoticeDue(order)) return;
+): Promise<OrderNoticeOutcome> {
+  if (!cancelNoticeDue(order)) return "not_due";
   let collected: boolean | null = Boolean(order.paidAt) || null;
   if (collected === null) {
     try {
@@ -3845,8 +4274,8 @@ async function noticeCancelled(
   // `notifyOrderPaid`) and it is not in their profile. Cancelling it says
   // nothing - unless the POS shows money was taken after all, which the
   // customer must hear about.
-  if (unpaidAttempt && collected !== true) return;
-  await notifyOrderCancelled(order, { collected });
+  if (unpaidAttempt && collected !== true) return "not_due";
+  return notifyOrderCancelled(order, { collected });
 }
 
 /**
@@ -3913,31 +4342,130 @@ export async function setOrderInternalNote(
   return { ...existing, internalNote: trimmed };
 }
 
+/** The statuses whose parcel has left: the tracking form corrects these only. */
+export const TRACKING_EDITABLE_STATUSES: readonly AdminOrderStatus[] = [
+  "shipped",
+  "completed",
+];
+
+export type TrackingWrite =
+  | { ok: true; order: AdminOrder; mail: OrderNoticeOutcome }
+  | { ok: false; error: string };
+
+/**
+ * Corrects the carrier or the tracking number of a parcel that has already
+ * left. A new number is a new "kargoya verildi" mail (one per number); the
+ * same number saved again is not. `mail` says which.
+ *
+ * Refused on any other status: the form used to be open on unpaid,
+ * cancelled and refunded orders, a number typed there stamped `shippedAt`
+ * and the app showed "Kargoda" for an order that will never ship. Before
+ * the parcel leaves, "Kargoya ver" takes the number and moves the status in
+ * one step (`shipParcel`). The write is conditional on the status it read.
+ */
 export async function setOrderTracking(
   id: string,
   trackingNumber: string,
   carrier: string,
-): Promise<AdminOrder | null> {
+): Promise<TrackingWrite> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getOrder(id);
-  if (!existing) return null;
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (!TRACKING_EDITABLE_STATUSES.includes(existing.status)) {
+    return {
+      ok: false,
+      error:
+        'Kargo bilgisi yalnız yola çıkmış siparişte düzeltilir. Önce "Kargoya ver".',
+    };
+  }
   const tn = trackingNumber.trim().slice(0, 120);
   const ca = carrier.trim().slice(0, 80);
-  const shippedAt = existing.shippedAt || (tn ? new Date().toISOString() : "");
-  check(
+  if (!tn) return { ok: false, error: "Takip numarasını yaz." };
+  const shippedAt = existing.shippedAt || new Date().toISOString();
+  const written = rows<{ id: string }>(
     await sb
       .from(TABLES.orders)
       .update({ trackingNumber: tn, carrier: ca, shippedAt })
-      .eq("id", id),
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
     "setOrderTracking",
   );
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
   const updated = { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
-  // The form IS the hand-over as far as the site knows: it stamps shippedAt,
-  // and the app's band reads "Yola çıktı" from it. So the buyer is owed the
-  // number now; a corrected number is a new notice, a re-save is not.
-  if (tn) await notifyOrderShipped(updated);
-  return updated;
+  // A corrected number is a new notice for the buyer; a re-save of the same
+  // number is not (one mail per number, `shipmentNoticeKind`).
+  const mail = await notifyOrderShipped(updated);
+  return { ok: true, order: updated, mail };
+}
+
+/**
+ * "Kargoya ver" for a parcel: the carrier and the tracking number, then
+ * the move to `shipped`, in one step - the number is what the buyer's
+ * "kargoya verildi" mail carries, and shipping without it sent no mail and
+ * showed "Kargoda" in the app with nothing to track.
+ *
+ * The number is written first, guarded on the status the decision was made
+ * from; `transitionOrder` then stamps `shippedAt` and sends the one mail.
+ * If the move is refused (the order changed meanwhile), the old values are
+ * put back so a preparing order does not carry a number.
+ */
+export async function shipParcel(
+  id: string,
+  input: { carrier: string; trackingNumber: string; actor?: string },
+): Promise<TransitionResult> {
+  await ensureSeed();
+  const existing = await getOrder(id);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (!TRANSITION_MAP.mark_shipped.from.includes(existing.status)) {
+    return {
+      ok: false,
+      error: `Bu işlem "${ORDER_STATUS_LABELS[existing.status] ?? existing.status}" durumundaki siparişte yapılamaz.`,
+    };
+  }
+  const tn = input.trackingNumber.trim().slice(0, 120);
+  const ca = input.carrier.trim().slice(0, 80);
+  if (!tn) return { ok: false, error: "Takip numarasını yaz." };
+  const written = rows<{ id: string }>(
+    await getDb()
+      .from(TABLES.orders)
+      .update({ trackingNumber: tn, carrier: ca })
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
+    "shipParcel",
+  );
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  const res = await transitionOrder(id, "mark_shipped", { actor: input.actor });
+  if (!res.ok) {
+    try {
+      check(
+        await getDb()
+          .from(TABLES.orders)
+          .update({
+            trackingNumber: existing.trackingNumber ?? "",
+            carrier: existing.carrier ?? "",
+          })
+          .eq("id", id)
+          .eq("status", existing.status),
+        "shipParcel.revert",
+      );
+    } catch (err) {
+      console.error(`[orders] tracking not reverted order=${id}`, err);
+    }
+  }
+  return res;
 }
 
 /** What the Geliver webhook's write came to - the route answers each differently. */
@@ -4048,34 +4576,157 @@ export async function updateOrderDetails(
   return { ...existing, ...update };
 }
 
+/**
+ * One line's status ("Bekliyor", "Hazır", "İptal"), written in place by
+ * `set_order_item_status`, and only while the order is live (paid,
+ * preparing, shipped, completed). Null when refused: an unknown order or
+ * line, or an order that is unpaid, cancelled or refunded.
+ *
+ * The line's stock is not touched: an "İptal" line is given back when the
+ * order is cancelled (`release_order_inventory` credits every line), or
+ * from the refund modal.
+ */
 export async function setOrderItemStatus(
   orderId: string,
   itemIndex: number,
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getDb();
+  if (!Number.isInteger(itemIndex) || itemIndex < 0) return null;
   const existing = await getOrder(orderId);
   if (!existing) return null;
-  if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
-  const nextItems = existing.items.map((it, i) =>
-    i === itemIndex ? { ...it, status } : it,
-  );
-  check(
-    await sb.from(TABLES.orders).update({ items: nextItems }).eq("id", orderId),
-    "setOrderItemStatus",
-  );
-  return { ...existing, items: nextItems };
+  const {
+    data,
+    error,
+    status: httpStatus,
+  } = await getDb().rpc<AdminOrderItem[] | null>("set_order_item_status", {
+    p_order_id: orderId,
+    p_index: itemIndex,
+    p_status: status,
+    p_allowed: [...ITEM_EDITABLE_ORDER_STATUSES],
+  });
+  if (error) raiseDbError("setOrderItemStatus", error, httpStatus);
+  if (!data) return null;
+  return { ...existing, items: data };
+}
+
+/**
+ * "Ödendi olarak işaretle": the money was taken outside the POS (cash at the
+ * counter, the counter's card terminal, a bank transfer).
+ *
+ * A `manual:<method>` payment row is written FIRST, so a card payment that
+ * lands afterwards for the same order (the customer was still on the bank's
+ * 3-D Secure page) meets an order another succeeded payment already paid,
+ * and is flagged as a duplicate charge instead of passing as a harmless
+ * repeat. Refunds skip manual rows (`getOrderPaymentRef`): that money goes
+ * back by hand. If the move to `paid` is then refused, the row is taken
+ * back. The POS check for a card order is the caller's (order-ops.ts).
+ */
+export async function markOrderPaidManually(
+  id: string,
+  method: ManualPaymentMethod,
+  actor?: string,
+): Promise<TransitionResult> {
+  await ensureSeed();
+  const existing = await getOrder(id);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (existing.status !== "pending_payment") {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
+  const providerRef = `manual-${id}`;
+  const ins = await getDb()
+    .from(TABLES.paymentTransactions)
+    .insert({
+      orderId: id,
+      provider,
+      providerRef,
+      status: "succeeded",
+      amountMinor: existing.totalMinor,
+      currency: "TRY",
+      raw: { source: "admin", method, actor: actor ?? "" },
+      trxDate: "",
+      createdAt: new Date().toISOString(),
+    });
+  // 23505: an earlier attempt left its row; it stands for this one.
+  if (ins.error && ins.error.code !== "23505") {
+    return { ok: false, error: `Ödeme kaydı yazılamadı: ${ins.error.message}` };
+  }
+  const res = await transitionOrder(id, "mark_paid", { actor });
+  if (!res.ok) {
+    try {
+      check(
+        await getDb()
+          .from(TABLES.paymentTransactions)
+          .delete()
+          .eq("orderId", id)
+          .eq("provider", provider)
+          .eq("providerRef", providerRef),
+        "markOrderPaidManually.undo",
+      );
+    } catch (err) {
+      console.error(
+        `[orders] manual payment row left behind order=${id}; the order was not marked paid`,
+        err,
+      );
+    }
+  }
+  return res;
+}
+
+/** What asking the POS about a pending order came to. */
+export type PosCheckVerdict =
+  | PendingVerdict
+  /** The order is not waiting for a payment (any more). */
+  | "not_pending"
+  /** A manual order: there is no POS payment to ask about. */
+  | "manual";
+
+/**
+ * Asks the POS whether this pending order was paid after all, and books the
+ * payment when it was ("POS'tan kontrol et", and before an admin cancel or
+ * a manual "ödendi" - CLAUDE.md rule 29: an unreachable POS is never "not
+ * paid").
+ *
+ * `purpose: "cancel"` reads a payment of the WRONG amount as unpaid, the way
+ * the sweep does: the order cannot go ahead, it is cancelled, and the money
+ * shows as collected so it can be refunded. For "pay", the same case is
+ * "unknown": a manual "ödendi" on top of a wrong card charge is wrong.
+ */
+export async function checkOrderWithPos(
+  order: AdminOrder,
+  purpose: "check" | "pay" | "cancel" = "check",
+): Promise<PosCheckVerdict> {
+  if (order.status !== "pending_payment") return "not_pending";
+  if (order.source === "manual") return "manual";
+  const provider = await lookupProvider();
+  // No provider could be built: nobody was asked, so nothing is known.
+  if (!provider) return "unknown";
+  return purpose === "cancel"
+    ? settlePendingFromProvider(order, provider)
+    : checkPendingOrderPaid(order, provider);
 }
 
 export interface RefundInput {
   amountMinor: number;
   reason: string;
+  /** The refund modal's one-time token (`AdminRefund.token`). */
+  token?: string;
+  /** Where the money goes, as the server decided (`orderMoney`). */
+  destination?: RefundDestination;
+  /**
+   * What was collected (`OrderMoney.collectedMinor`): the refund cap when
+   * the POS took less than the order total. Omitted or null: the total.
+   */
+  collectedMinor?: number | null;
 }
 
 export type RefundResult =
   | { ok: true; order: AdminOrder; refund: AdminRefund }
-  | { ok: false; error: string };
+  | { ok: false; error: string; duplicate?: boolean };
 
 /**
  * Why a refund of `amountMinor` cannot be issued against `order`, or `null`
@@ -4088,11 +4739,16 @@ export type RefundResult =
  * payment transaction). A cancelled order that WAS paid is refundable: the
  * cancel dialog promises "iade ayrıca başlatılır", and refusing it left the
  * customer's money with the shop with no way to give it back.
+ *
+ * `collectedMinor` caps the refund at what was actually collected: the
+ * order total used to be the cap, and a POS that took ₺1 for a ₺500 order
+ * (an amount mismatch) could be asked to send back ₺500.
  */
 export function refundRefusal(
   order: Pick<AdminOrder, "status" | "totalMinor" | "refunds">,
   amountMinor: number,
   collected: boolean,
+  collectedMinor: number | null = null,
 ): string | null {
   if (order.status === "cancelled" && !collected) {
     return "İptal edilen, ödemesi alınmamış siparişe iade yapılamaz.";
@@ -4107,27 +4763,37 @@ export function refundRefusal(
     return "İade tutarı pozitif olmalı.";
   }
   const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remaining = order.totalMinor - already;
+  const cap = collected
+    ? refundCapMinor(order, collected, collectedMinor)
+    : order.totalMinor;
+  const remaining = Math.max(0, cap - already);
   if (amountMinor > remaining) {
-    return `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`;
+    return cap < order.totalMinor
+      ? `İade tutarı tahsil edilen tutarı aşıyor (iade edilebilir: ${priceLabel(remaining)}).`
+      : `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`;
   }
   return null;
 }
 
-/** Was money ever collected on this order? */
+/**
+ * Was money ever collected on this order? `paidAt`, or any succeeded payment
+ * row - a manual "ödendi" too: the cash was taken, it just cannot go back to
+ * a card.
+ */
 export async function orderWasCollected(order: AdminOrder): Promise<boolean> {
   if (order.paidAt) return true;
-  return (await getOrderPaymentRef(order.id)) !== null;
+  return (await orderMoney(order)).collected;
 }
 
 /**
  * Step 1 of a refund: write the ledger entry, if it still fits.
  *
- * `reserve_order_refund` appends the entry in ONE UPDATE whose WHERE checks
- * the remaining balance, so two refunds submitted together cannot both fit
- * where only one does - the read-modify-write this replaced let both through,
- * and each had already moved money. Called BEFORE the POS: if the POS then
- * refuses, {@link releaseRefund} takes the entry back; if it accepts,
+ * `reserve_order_refund_once` appends the entry in ONE UPDATE whose WHERE
+ * checks the remaining balance against what was collected and the modal's
+ * one-time token, so two refunds submitted together cannot both fit where
+ * only one does, and the same modal submitted twice records once. Called
+ * BEFORE the POS: if the POS then refuses, {@link releaseRefund} takes the
+ * entry back (token included, so a retry may run); if it accepts,
  * {@link finalizeRefund} settles the status and the stamp.
  */
 export async function reserveRefund(
@@ -4137,10 +4803,20 @@ export async function reserveRefund(
   await ensureSeed();
   const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  const token = (input.token ?? "").trim().slice(0, 64);
+  if (token && existing.refunds.some((r) => r.token === token)) {
+    return {
+      ok: false,
+      duplicate: true,
+      error: "Bu iade zaten kaydedildi. Sayfa yenilendi, iadeler bölümüne bak.",
+    };
+  }
+  const collected = await orderWasCollected(existing);
   const refusal = refundRefusal(
     existing,
     input.amountMinor,
-    await orderWasCollected(existing),
+    collected,
+    input.collectedMinor ?? null,
   );
   if (refusal) return { ok: false, error: refusal };
   const refund: AdminRefund = {
@@ -4148,14 +4824,34 @@ export async function reserveRefund(
     amountMinor: input.amountMinor,
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
+    ...(input.destination ? { destination: input.destination } : {}),
+    ...(token ? { token } : {}),
   };
   const { data, error, status } = await getDb().rpc<AdminRefund[] | null>(
-    "reserve_order_refund",
-    { p_order_id: orderId, p_refund: refund },
+    "reserve_order_refund_once",
+    {
+      p_order_id: orderId,
+      p_refund: refund,
+      // The same cap refundRefusal just applied; a row with no collected
+      // signal at all (status says paid, nothing else does) keeps the total.
+      p_cap: collected
+        ? refundCapMinor(existing, collected, input.collectedMinor ?? null)
+        : existing.totalMinor,
+    },
   );
   if (error) raiseDbError("reserveRefund", error, status);
   if (!data) {
-    // Another refund landed between the check above and this write.
+    // Another refund landed between the check above and this write - or the
+    // same modal was submitted twice and the first one is in.
+    const fresh = token ? await getOrder(orderId) : null;
+    if (fresh?.refunds.some((r) => r.token === token)) {
+      return {
+        ok: false,
+        duplicate: true,
+        error:
+          "Bu iade zaten kaydedildi. Sayfa yenilendi, iadeler bölümüne bak.",
+      };
+    }
     return {
       ok: false,
       error:
@@ -4184,6 +4880,13 @@ export interface RefundNotice {
   viaCard: boolean;
 }
 
+/** A settled refund: the order as it now stands, and the buyer's mail. */
+export interface FinalizedRefund {
+  order: AdminOrder;
+  /** null when no notice was asked for. */
+  mail: OrderNoticeOutcome | null;
+}
+
 /**
  * Step 2: the money moved. A fully refunded order becomes `refunded` - unless
  * it was cancelled, which already did that and must stay out of the reports.
@@ -4197,9 +4900,10 @@ export interface RefundNotice {
 export async function finalizeRefund(
   order: AdminOrder,
   notice?: RefundNotice,
-): Promise<AdminOrder> {
+): Promise<FinalizedRefund> {
+  let mail: OrderNoticeOutcome | null = null;
   if (notice) {
-    await notifyOrderRefunded(order, notice.refund, {
+    mail = await notifyOrderRefunded(order, notice.refund, {
       viaCard: notice.viaCard,
     });
   }
@@ -4211,7 +4915,7 @@ export async function finalizeRefund(
     // cancelled order keeps none (its cancel already took them back).
     const why = wasCancelled ? "cancelled-refund" : "partial-refund";
     await reverseLoyalty(order, why, { full: wasCancelled });
-    return order;
+    return { order, mail };
   }
   check(
     await getDb()
@@ -4224,7 +4928,7 @@ export async function finalizeRefund(
   await reverseLoyalty({ ...order, status: "refunded" }, "refunded", {
     full: true,
   });
-  return { ...order, status: "refunded" };
+  return { order: { ...order, status: "refunded" }, mail };
 }
 
 /**
@@ -4237,7 +4941,7 @@ export async function refundOrder(
 ): Promise<RefundResult> {
   const reserved = await reserveRefund(orderId, input);
   if (!reserved.ok) return reserved;
-  const order = await finalizeRefund(reserved.order, {
+  const { order } = await finalizeRefund(reserved.order, {
     refund: reserved.refund,
     viaCard: false,
   });

@@ -4,84 +4,64 @@ import { revalidatePath } from "next/cache";
 
 import { redirect } from "next/navigation";
 
-import { logAudit } from "@/lib/admin/audit";
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
+import { safeAudit } from "@/lib/admin/audit";
 import { getAdminSession, requireRole } from "@/lib/admin/auth";
 import { bulkOrderSchema } from "@/lib/admin/bulk-schema";
+import { setAdminFlash } from "@/lib/admin/flash";
 import { manualOrderSchema } from "@/lib/admin/manual-order-schema";
+import {
+  ORDER_NOTE_MAX,
+  isManualPaymentMethod,
+  type BulkOrderAction,
+  type RefundDestination,
+} from "@/lib/admin/order-actions";
+import {
+  BULK_ORDER_LIMIT,
+  cancelOrder,
+  changeItemStatus,
+  checkWithPos,
+  clearAttention,
+  editTracking,
+  markPaid,
+  moveOrder,
+  refundOrder,
+  releaseStock,
+  resendMail,
+  runBulkOrderAction,
+  shipOrder,
+  type OrderActor,
+  type OrderOpResult,
+} from "@/lib/admin/order-ops";
 import { canAccess } from "@/lib/admin/roles";
 import {
-  bulkUpdateOrders,
+  BULK_ORDER_TRANSITIONS,
   countOpenOrders,
   countOrdersAfter,
   createManualOrder,
-  getOrder,
-  getOrderPaymentRef,
-  finalizeRefund,
-  orderWasCollected,
-  refundRefusal,
-  releaseRefund,
-  reserveRefund,
   setOrderInternalNote,
-  setOrderItemStatus,
-  setOrderTracking,
-  transitionOrder,
   updateOrderDetails,
   type AdminOrderItemStatus,
-  type OrderTransition,
+  type AdminOrderStatus,
 } from "@/lib/admin/store";
-import { creditWalletRefund, WALLET_PROVIDER } from "@/lib/mobile/wallet";
-import { getPaymentProvider } from "@/lib/payment";
 import { parseMoneyInput } from "@/lib/utils/format";
 
-export interface BulkOrderActionState {
-  error?: string;
-  ok?: { op: string; updated: number; skipped: number };
+// Every order action below answers with an ActionResult for ActionModal /
+// the toast (lib/admin/action-result.ts). The work itself lives in
+// lib/admin/order-ops.ts, shared with the bulk tool; each action here only
+// checks the session, reads its form and refreshes the pages. A refusal
+// refreshes them too: the menu a refused click came from was stale.
+
+function actorOf(session: {
+  email: string;
+  role: OrderActor["role"];
+}): OrderActor {
+  return { email: session.email, role: session.role };
 }
-
-export async function bulkOrdersAction(
-  _prev: BulkOrderActionState,
-  formData: FormData,
-): Promise<BulkOrderActionState> {
-  const session = await requireRole("orders");
-  const parsed = bulkOrderSchema.safeParse({
-    ids: String(formData.get("ids") ?? ""),
-    op: String(formData.get("op") ?? ""),
-    value: String(formData.get("value") ?? ""),
-  });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
-  }
-  const { ids, value } = parsed.data;
-  // Cancelling in bulk voids up to 500 orders in one click - paid ones
-  // included, whose money then has to be sent back by hand. Same authority as
-  // a refund, checked here rather than with requireRole so the staff member
-  // gets an explanation instead of being bounced to /admin?denied=1.
-  if (value === "cancelled" && !canAccess("refunds", session.role)) {
-    return { error: "Toplu iptal için iade yetkisi gerekiyor." };
-  }
-  const { updated, skipped } = await bulkUpdateOrders(ids, {
-    kind: "set_status",
-    status: value,
-  });
-  await logAudit({
-    action: "bulk_update",
-    entity: "order",
-    payload: { status: value, updated, skipped, idCount: ids.length },
-  });
-  revalidatePath("/admin/siparisler");
-  revalidatePath("/admin");
-  return { ok: { op: "set_status", updated, skipped } };
-}
-
-const TRANSITIONS: OrderTransition[] = [
-  "mark_paid",
-  "start_preparing",
-  "mark_shipped",
-  "complete",
-  "cancel",
-];
-
-const ITEM_STATUSES: AdminOrderItemStatus[] = ["pending", "ready", "cancelled"];
 
 function revalidateOrder(id: string) {
   revalidatePath("/admin/siparisler");
@@ -89,57 +69,366 @@ function revalidateOrder(id: string) {
   revalidatePath("/admin");
 }
 
-export interface TransitionActionState {
-  error?: string;
+function answer(id: string, res: OrderOpResult): ActionResult {
+  if (id) revalidateOrder(id);
+  return res.ok
+    ? actionOk(res.message, res.tone)
+    : actionError(res.error, res.fieldErrors);
+}
+
+function field(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : "";
+}
+
+const DESTINATIONS: readonly RefundDestination[] = ["card", "wallet", "none"];
+
+function destinationOf(formData: FormData): RefundDestination | undefined {
+  const raw = field(formData, "destination");
+  return (DESTINATIONS as readonly string[]).includes(raw)
+    ? (raw as RefundDestination)
+    : undefined;
+}
+
+/** `restock_<line index>` fields: how many units of each line go back. */
+function restockLinesOf(
+  formData: FormData,
+): Array<{ index: number; qty: number }> {
+  const out: Array<{ index: number; qty: number }> = [];
+  for (const [key, value] of formData.entries()) {
+    const m = /^restock_(\d{1,3})$/.exec(key);
+    if (!m || typeof value !== "string") continue;
+    const qty = Number(value.trim() || "0");
+    if (Number.isInteger(qty) && qty > 0 && qty <= 999) {
+      out.push({ index: Number(m[1]), qty });
+    }
+  }
+  return out;
+}
+
+// ── Bulk ────────────────────────────────────────────────────────────────
+
+const BULK_OPS: Partial<Record<AdminOrderStatus, BulkOrderAction>> = {
+  preparing: "start_preparing",
+  shipped: "mark_shipped",
+  completed: "complete",
+  cancelled: "cancel",
+};
+
+/**
+ * The list's bulk tool, through ActionModal. Each order is decided and
+ * written on its own (order-ops.ts `runBulkOrderAction`): the refunds role
+ * is checked per order (a paid order's cancel is a refund decision, an
+ * unpaid one is a shift task), a pending POS order is asked about first,
+ * and every order gets its own audit row. A cancel needs a reason and the
+ * number of selected orders typed out.
+ */
+export async function bulkOrdersAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const parsed = bulkOrderSchema.safeParse({
+    ids: field(formData, "ids"),
+    op: field(formData, "op") || "set_status",
+    value: field(formData, "value"),
+    reason: field(formData, "reason"),
+    confirm: field(formData, "confirm"),
+  });
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0]?.message ?? "Geçersiz istek.");
+  }
+  const { ids, value, reason, confirm } = parsed.data;
+  const op = BULK_OPS[value];
+  if (!op || !BULK_ORDER_TRANSITIONS[value]) {
+    return actionError("Bu durum toplu olarak verilemez.");
+  }
+  if (ids.length > BULK_ORDER_LIMIT) {
+    return actionError(
+      `Bir seferde en fazla ${BULK_ORDER_LIMIT} sipariş seçebilirsin.`,
+    );
+  }
+  if (op === "cancel") {
+    if (reason.length < 3) {
+      return actionError("İptal nedenini yaz.", {
+        reason: "En az 3 karakter yaz.",
+      });
+    }
+    if (confirm !== String(ids.length)) {
+      return actionError("Onay için seçili sipariş sayısını yaz.", {
+        confirm: `${ids.length} yaz.`,
+      });
+    }
+  }
+  const summary = await runBulkOrderAction(
+    ids,
+    op,
+    { reason },
+    actorOf(session),
+  );
+  revalidatePath("/admin/siparisler");
+  revalidatePath("/admin");
+  return actionOk(summary.message, summary.tone);
+}
+
+// ── One order ───────────────────────────────────────────────────────────
+
+const MOVES = ["start_preparing", "mark_shipped", "complete"] as const;
+type Move = (typeof MOVES)[number];
+
+/**
+ * The one-click moves: Hazırlamaya başla, Hazır / Kuryeye ver / Masaya
+ * götürüldü, Tamamlandı. A parcel ships through `shipOrderAction` (it needs
+ * the number), a cancel through `cancelOrderAction` (it needs a reason).
+ *
+ * "Hazırlamaya başla" on an UNPAID order settles it, so it is refused
+ * unless the form says the money was taken (`paymentReceived=1` with a
+ * method): it then runs as "Ödendi olarak işaretle" + "Hazırlamaya başla",
+ * POS check and payment row included.
+ */
+export async function transitionOrderAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  const transition = field(formData, "transition");
+  if (!id || !(MOVES as readonly string[]).includes(transition)) {
+    return actionError("Geçersiz işlem.");
+  }
+  if (
+    transition === "start_preparing" &&
+    field(formData, "paymentReceived") === "1"
+  ) {
+    const method = field(formData, "method");
+    if (!isManualPaymentMethod(method)) {
+      return actionError("Ödemenin nasıl alındığını seç.", {
+        method: "Ödeme yöntemini seç.",
+      });
+    }
+    return answer(
+      id,
+      await markPaid(id, { method, alsoPrepare: true }, actorOf(session)),
+    );
+  }
+  return answer(id, await moveOrder(id, transition as Move, actorOf(session)));
 }
 
 /**
- * Move an order to its next status.
- *
- * `transitionOrder` refuses an illegal move (stale page, someone else already
- * advanced it, unknown id) and its result used to be discarded: the button
- * appeared to work, an audit row claimed a transition that never happened, and
- * the staff member found out only by reloading. The store's own message is now
- * what the operator sees, and the audit row is written only when the status
- * actually moved.
+ * "İptal et": reason (required), the stock decision (required once the
+ * parcel left), and for money that was taken, the refund in the same step
+ * for those who may refund. Money collected = the order number typed out.
  */
-export async function transitionOrderAction(
-  _prev: TransitionActionState,
+export async function cancelOrderAction(
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<TransitionActionState> {
+): Promise<ActionResult> {
   const session = await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
-  const transition = String(
-    formData.get("transition") ?? "",
-  ) as OrderTransition;
-  if (!id || !TRANSITIONS.includes(transition)) {
-    return { error: "Geçersiz işlem." };
-  }
-  // Cancelling an order that was paid voids money the shop holds - the same
-  // authority as a refund, exactly as the bulk tool already demands. One
-  // order at a time it only needed `orders`, so staff could do singly what
-  // they were refused in bulk. An unpaid (pending) order is still theirs.
-  if (transition === "cancel" && !canAccess("refunds", session.role)) {
-    const current = await getOrder(id);
-    if (current && current.status !== "pending_payment") {
-      return {
-        error: "Ödenmiş siparişi iptal etmek için iade yetkisi gerekiyor.",
-      };
-    }
-  }
-  const result = await transitionOrder(id, transition);
-  // `TransitionResult` is a loose interface, so `order` is optional even on
-  // the ok branch; the status is best-effort context for the log, not a gate.
-  if (!result.ok) return { error: result.error ?? "İşlem yapılamadı." };
-  await logAudit({
-    action: "transition",
-    entity: "order",
-    entityId: id,
-    payload: { transition, to: result.order?.status ?? "" },
-  });
-  revalidateOrder(id);
-  return {};
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  const restockRaw = field(formData, "restock");
+  return answer(
+    id,
+    await cancelOrder(
+      id,
+      {
+        reason: field(formData, "reason"),
+        restock: restockRaw === "1" ? true : restockRaw === "0" ? false : null,
+        refund: field(formData, "refund") === "1",
+        refundToken: field(formData, "token"),
+        expectedDestination: destinationOf(formData),
+        confirm: field(formData, "confirm"),
+      },
+      actorOf(session),
+    ),
+  );
 }
+
+/**
+ * "İade başlat": amount (parseMoneyInput, never parseFloat: "1.250,00" was
+ * read as 1,25), reason, the destination the modal showed, its one-time
+ * token and the lines to give back to stock. Refunds role only.
+ */
+export async function refundOrderAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("refunds");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  const amountMinor = parseMoneyInput(field(formData, "amount"));
+  if (amountMinor === null || amountMinor <= 0) {
+    return actionError("Geçerli bir iade tutarı gir.", {
+      amount: "Ör. 250 ya da 1.250,00",
+    });
+  }
+  const reason = field(formData, "reason").trim();
+  if (reason.length < 3) {
+    return actionError("İade nedenini yaz.", {
+      reason: "En az 3 karakter yaz.",
+    });
+  }
+  return answer(
+    id,
+    await refundOrder(
+      id,
+      {
+        amountMinor,
+        reason,
+        token: field(formData, "token"),
+        expectedDestination: destinationOf(formData),
+        restock: restockLinesOf(formData),
+        confirm: field(formData, "confirm"),
+      },
+      actorOf(session),
+    ),
+  );
+}
+
+/** "Ödendi olarak işaretle": method required, POS asked first for a POS order. */
+export async function markPaidAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  const method = field(formData, "method");
+  if (!isManualPaymentMethod(method)) {
+    return actionError("Ödemenin nasıl alındığını seç.", {
+      method: "Ödeme yöntemini seç.",
+    });
+  }
+  return answer(
+    id,
+    await markPaid(
+      id,
+      { method, alsoPrepare: field(formData, "alsoPrepare") === "1" },
+      actorOf(session),
+    ),
+  );
+}
+
+/** "Kargoya ver" for a parcel: carrier + tracking number + Kargoda, one step. */
+export async function shipOrderAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(
+    id,
+    await shipOrder(
+      id,
+      {
+        carrier: field(formData, "carrier"),
+        trackingNumber: field(formData, "trackingNumber"),
+      },
+      actorOf(session),
+    ),
+  );
+}
+
+/** "Kargo bilgisini düzelt" on a parcel that already left. */
+export async function saveOrderTrackingAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(
+    id,
+    await editTracking(
+      id,
+      {
+        carrier: field(formData, "carrier"),
+        trackingNumber: field(formData, "trackingNumber"),
+      },
+      actorOf(session),
+    ),
+  );
+}
+
+/** "POS'tan kontrol et". */
+export async function checkPosAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(id, await checkWithPos(id, actorOf(session)));
+}
+
+const ITEM_STATUSES: readonly AdminOrderItemStatus[] = [
+  "pending",
+  "ready",
+  "cancelled",
+];
+
+/**
+ * One line's status. The store's answer is checked now: the audit row used
+ * to be written for an order or line that did not exist, and the select
+ * kept showing a value that was never saved.
+ */
+export async function setItemStatusAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  const index = Number(field(formData, "index"));
+  const status = field(formData, "status") as AdminOrderItemStatus;
+  if (!id || !Number.isInteger(index) || index < 0) {
+    return actionError("Geçersiz kalem.");
+  }
+  if (!ITEM_STATUSES.includes(status)) return actionError("Geçersiz durum.");
+  return answer(
+    id,
+    await changeItemStatus(id, index, status, actorOf(session)),
+  );
+}
+
+/** "Yeniden gönder" for one customer mail of the order, after a confirm. */
+export async function resendMailAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  const kind = field(formData, "kind");
+  if (!id || !kind) return actionError("Geçersiz istek.");
+  return answer(id, await resendMail(id, kind, actorOf(session)));
+}
+
+/** "Stoğu geri al": a cancel whose stock release did not go through. */
+export async function releaseStockAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(id, await releaseStock(id, actorOf(session)));
+}
+
+/** "Dikkat işaretini kaldır" (refunds role: it is about money). */
+export async function clearAttentionAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("orders");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(
+    id,
+    await clearAttention(id, field(formData, "reason"), actorOf(session)),
+  );
+}
+
+// ── Note, customer, manual order ────────────────────────────────────────
 
 export interface NoteActionState {
   error?: string;
@@ -151,12 +440,15 @@ export async function saveOrderNoteAction(
   formData: FormData,
 ): Promise<NoteActionState> {
   await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
-  const note = String(formData.get("note") ?? "");
+  const id = field(formData, "id");
+  const note = field(formData, "note");
   if (!id) return { error: "Sipariş ID eksik." };
+  if (note.length > ORDER_NOTE_MAX) {
+    return { error: `Not en fazla ${ORDER_NOTE_MAX} karakter olabilir.` };
+  }
   const result = await setOrderInternalNote(id, note);
   if (!result) return { error: "Sipariş bulunamadı." };
-  await logAudit({
+  await safeAudit({
     action: "note",
     entity: "order",
     entityId: id,
@@ -166,174 +458,38 @@ export async function saveOrderNoteAction(
   return { savedAt: new Date().toISOString() };
 }
 
-export async function setItemStatusAction(formData: FormData) {
-  await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
-  const index = parseInt(String(formData.get("index") ?? "-1"), 10);
-  const status = String(formData.get("status") ?? "") as AdminOrderItemStatus;
-  if (!id || !Number.isFinite(index) || !ITEM_STATUSES.includes(status)) return;
-  await setOrderItemStatus(id, index, status);
-  await logAudit({
-    action: "update",
-    entity: "order_item",
-    entityId: `${id}#${index}`,
-    payload: { status },
-  });
-  revalidateOrder(id);
-}
-
-export interface RefundActionState {
-  error?: string;
-  ok?: { refundedMinor: number };
-}
-
-export async function refundOrderAction(
-  _prev: RefundActionState,
-  formData: FormData,
-): Promise<RefundActionState> {
-  await requireRole("refunds");
-  const id = String(formData.get("id") ?? "");
-  if (!id) return { error: "Sipariş ID eksik." };
-  // parseMoneyInput, not parseFloat(replace(",", ".")): that read "1.250,00"
-  // as 1.25, and ₺1,25 is what the card would have been credited.
-  const amountMinor = parseMoneyInput(String(formData.get("amount") ?? ""));
-  if (amountMinor === null || amountMinor <= 0) {
-    return { error: "Geçerli bir iade tutarı gir (ör. 250 ya da 1.250,00)." };
-  }
-  const reason = String(formData.get("reason") ?? "").trim();
-  if (reason.length < 3) {
-    return { error: "İade nedeni en az 3 karakter olmalı." };
-  }
-
-  // Every reason the ledger would refuse, checked BEFORE the money moves.
-  // They used to run only inside refundOrder, after provider.refund: a
-  // cancelled-and-unpaid order, an unpaid one or an amount above what is
-  // left was refused on paper after the card had already been credited.
-  const order = await getOrder(id);
-  if (!order) return { error: "Sipariş bulunamadı." };
-  const refusal = refundRefusal(
-    order,
-    amountMinor,
-    await orderWasCollected(order),
-  );
-  if (refusal) return { error: refusal };
-
-  // Reserve the ledger entry FIRST (atomic: it only lands if it still fits),
-  // then ask the POS, then settle. The POS used to be asked before any write,
-  // and two refunds submitted together could both pass the balance check and
-  // both move money; now the second one is refused before the POS is called.
-  // If the POS refuses, the entry is taken back and nothing is recorded.
-  const reserved = await reserveRefund(id, { amountMinor, reason });
-  if (!reserved.ok) return { error: reserved.error };
-
-  const ref = await getOrderPaymentRef(id);
-  if (ref?.provider === WALLET_PROVIDER) {
-    // Paid from the member's wallet: the money goes back to the wallet, never
-    // to a card - there is no card transaction behind this order, and the POS
-    // would either refuse the wallet reference or (the mock) "refund" a card
-    // that was never charged. One credit per refund entry, so a retry of this
-    // action cannot credit twice.
-    try {
-      await creditWalletRefund({
-        orderId: id,
-        refundId: reserved.refund.id,
-        amountMinor,
-        title: `İade · Sipariş #${order.orderNo}`,
-      });
-    } catch (err) {
-      console.error("[refund] wallet credit failed", err);
-      try {
-        await releaseRefund(id, reserved.refund.id);
-      } catch (releaseErr) {
-        console.error(
-          `[refund] RESERVED BUT NOT CREDITED order=${id} refund=${reserved.refund.id}`,
-          releaseErr,
-        );
-      }
-      return {
-        error:
-          "Cüzdan iadesi yazılamadı; hiçbir kayıt oluşturulmadı. Birazdan tekrar deneyin.",
-      };
-    }
-  } else if (ref) {
-    try {
-      // The payment row's own date and amount let the provider skip
-      // searching its history for the transaction; rows from before the
-      // column carry '' and the provider falls back to that search.
-      await getPaymentProvider().refund(ref.providerRef, amountMinor, {
-        trxDate: ref.trxDate,
-        paidMinor: ref.amountMinor,
-      });
-    } catch (err) {
-      console.error("[refund] provider refund failed", err);
-      try {
-        await releaseRefund(id, reserved.refund.id);
-      } catch (releaseErr) {
-        // The money did not move but the entry could not be taken back:
-        // loud, because the ledger now over-states what was refunded.
-        console.error(
-          `[refund] RESERVED BUT NOT REFUNDED order=${id} refund=${reserved.refund.id}`,
-          releaseErr,
-        );
-      }
-      return {
-        error:
-          "Ödeme sağlayıcısı iadeyi reddetti; hiçbir kayıt oluşturulmadı. Sağlayıcı panelinden kontrol edip tekrar deneyin.",
-      };
-    }
-  }
-
-  try {
-    // The buyer is told how much went back, and whether to the card; a
-    // refund booked without a POS says nothing about a card.
-    await finalizeRefund(reserved.order, {
-      refund: reserved.refund,
-      // A wallet refund went back to the wallet, not to a card.
-      viaCard: Boolean(ref) && ref?.provider !== WALLET_PROVIDER,
-    });
-  } catch (err) {
-    // The money moved and the ledger entry stands; only the status/stamp
-    // follow-up failed. Loud, because a human has to finish it.
-    console.error(
-      `[refund] REFUNDED BUT NOT FINALIZED order=${id} amountMinor=${amountMinor}`,
-      err,
-    );
-  }
-
-  await logAudit({
-    action: "refund",
-    entity: "order",
-    entityId: id,
-    payload: { amountMinor, reason, provider: ref?.provider ?? "none" },
-  });
-  revalidateOrder(id);
-  return { ok: { refundedMinor: amountMinor } };
-}
-
 export interface OrderDetailsActionState {
   error?: string;
   savedAt?: string;
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function saveOrderDetailsAction(
   _prev: OrderDetailsActionState,
   formData: FormData,
 ): Promise<OrderDetailsActionState> {
   await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
+  const id = field(formData, "id");
   if (!id) return { error: "Sipariş ID eksik." };
-  const customerName = String(formData.get("customerName") ?? "").trim();
+  const customerName = field(formData, "customerName").trim();
   if (customerName.length < 2) {
     return { error: "Müşteri adı en az 2 karakter olmalı." };
   }
+  const customerEmail = field(formData, "customerEmail").trim();
+  // The manual order form checks the address; this form did not, and a typo
+  // here moves the order into another member's history.
+  if (customerEmail && !EMAIL_RE.test(customerEmail)) {
+    return { error: "Geçerli bir e-posta yaz." };
+  }
   const result = await updateOrderDetails(id, {
     customerName,
-    customerEmail: String(formData.get("customerEmail") ?? ""),
-    customerPhone: String(formData.get("customerPhone") ?? ""),
-    shippingAddress: String(formData.get("shippingAddress") ?? ""),
+    customerEmail,
+    customerPhone: field(formData, "customerPhone"),
+    shippingAddress: field(formData, "shippingAddress"),
   });
   if (!result) return { error: "Sipariş bulunamadı." };
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "order",
     entityId: id,
@@ -392,7 +548,7 @@ export async function createManualOrderAction(
     }
     return { error: "Sipariş oluşturulamadı." };
   }
-  await logAudit({
+  await safeAudit({
     action: "create",
     entity: "order",
     entityId: result.order.id,
@@ -400,31 +556,24 @@ export async function createManualOrderAction(
       orderNo: result.order.orderNo,
       manual: true,
       total: result.order.totalMinor,
+      ...(result.promoDropped ? { promoDropped: d.promoCode ?? "" } : {}),
     },
   });
+  // A code that no longer applies is dropped by the store. It used to be
+  // dropped silently: the admin quoted a discount the order does not carry.
+  await setAdminFlash(
+    result.promoDropped
+      ? `Sipariş #${result.order.orderNo} oluşturuldu, ama ${d.promoCode ? `"${d.promoCode}" ` : ""}promosyon kodu artık geçerli değil: indirim uygulanmadı. Müşteriye söyle.`
+      : `Sipariş #${result.order.orderNo} oluşturuldu.`,
+    result.promoDropped ? "warning" : "success",
+  );
   revalidatePath("/admin/siparisler");
   revalidatePath("/admin");
   revalidatePath("/");
   redirect(`/admin/siparisler/${result.order.id}`);
 }
 
-export async function saveOrderTrackingAction(formData: FormData) {
-  await requireRole("orders");
-  const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  const trackingNumber = String(formData.get("trackingNumber") ?? "");
-  const carrier = String(formData.get("carrier") ?? "");
-  const result = await setOrderTracking(id, trackingNumber, carrier);
-  if (!result) return;
-  await logAudit({
-    action: "update",
-    entity: "order",
-    entityId: id,
-    // Don't log the raw tracking number - just whether it was set.
-    payload: { tracking: trackingNumber.trim() ? "set" : "cleared", carrier },
-  });
-  revalidateOrder(id);
-}
+// ── Polls ───────────────────────────────────────────────────────────────
 
 /**
  * The two numbers the panel polls for while a page sits open.

@@ -19,7 +19,10 @@ let confirmationIsRepeat = false;
 let paidAt = new Date().toISOString();
 const sql: string[] = [];
 
-const exec: Executor = async ({ text }) => {
+/** The notice row's status once it exists; a failed one does not block a claim. */
+let noticeFailed = false;
+
+const exec: Executor = async ({ text, params }) => {
   sql.push(text);
   if (/^INSERT INTO "payment_transactions"/.test(text)) {
     if (confirmationIsRepeat) {
@@ -28,17 +31,27 @@ const exec: Executor = async ({ text }) => {
     return { rows: [], rowCount: 1 };
   }
   if (/^INSERT INTO "order_notice_emails"/.test(text)) {
-    if (noticeClaimed) {
+    if (noticeClaimed || noticeFailed) {
       throw Object.assign(new Error("duplicate key"), { code: "23505" });
     }
     noticeClaimed = true;
     return { rows: [], rowCount: 1 };
   }
-  if (/^DELETE FROM "order_notice_emails"/.test(text)) {
-    noticeClaimed = false;
-    return { rows: [], rowCount: 1 };
-  }
   if (/^UPDATE "order_notice_emails"/.test(text)) {
+    // A failed delivery keeps its row as `failed` (released for the next
+    // trigger), and the next claim takes such a row over.
+    if (params[0] === "failed") {
+      noticeClaimed = false;
+  noticeFailed = false;
+      noticeFailed = true;
+      return { rows: [], rowCount: 1 };
+    }
+    if (params[0] === "sending" && params.at(-1) === "failed") {
+      if (!noticeFailed) return { rows: [], rowCount: 0 };
+      noticeFailed = false;
+      noticeClaimed = true;
+      return { rows: [{ orderId: "ord-0001" }], rowCount: 1 };
+    }
     return { rows: [], rowCount: 1 };
   }
   if (/^UPDATE "orders"/.test(text)) {

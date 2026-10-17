@@ -24,6 +24,10 @@ let orderRow: Record<string, unknown> = {};
 
 const exec: Executor = async ({ text }) => {
   if (/count\(\*\)/i.test(text)) return { rows: [{ count: 1 }], rowCount: 1 };
+  // The cancel's stock release: claimed and credited in one SQL function.
+  if (/release_order_inventory/.test(text)) {
+    return { rows: [{ result: { lines: [] } }], rowCount: 1 };
+  }
   if (/^SELECT \* FROM "orders"/.test(text)) {
     return { rows: [{ ...orderRow }], rowCount: 1 };
   }
@@ -105,7 +109,7 @@ describe("every refund settles the stamps", () => {
   it("a partial admin refund passes the order with its refunds, not in full", async () => {
     const partial = order({ refunds: [refund("rfn-1", 30000)] });
     const out = await finalizeRefund(partial);
-    expect(out.status).toBe("paid");
+    expect(out.order.status).toBe("paid");
     expect(onOrderReversed).toHaveBeenCalledTimes(1);
     expect(onOrderReversed).toHaveBeenCalledWith(partial, { full: false });
   });
@@ -115,7 +119,7 @@ describe("every refund settles the stamps", () => {
       refunds: [refund("rfn-1", 30000), refund("rfn-2", 70000)],
     });
     const out = await finalizeRefund(all);
-    expect(out.status).toBe("refunded");
+    expect(out.order.status).toBe("refunded");
     expect(onOrderReversed).toHaveBeenCalledWith(
       expect.objectContaining({ status: "refunded" }),
       { full: true },

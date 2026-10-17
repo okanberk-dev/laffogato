@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  useActionState,
   useCallback,
   useEffect,
   useRef,
@@ -11,45 +10,59 @@ import {
   useSyncExternalStore,
 } from "react";
 
-import {
-  bulkOrdersAction,
-  newOrderCountAction,
-  type BulkOrderActionState,
-} from "@/app/admin/siparisler/actions";
-import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
+import { newOrderCountAction } from "@/app/admin/siparisler/actions";
+import type { ActionResult } from "@/lib/admin/action-result";
+import type { SortState } from "@/lib/admin/list-params";
+import type { OrderActionMap } from "@/lib/admin/order-actions";
+import { orderStatusLabel } from "@/lib/admin/order-ui";
+import type { AdminOrder } from "@/lib/admin/store";
+import type { AdminTone } from "@/lib/admin/tone";
 
 import { beep } from "./beep";
-import {
-  BulkActionBar,
-  RowCheckbox,
-  SelectAllCheckbox,
-  useSelection,
-} from "./bulk";
+import { BulkActionBar, useSelection } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
 import { OrderChannelBadges } from "./order-badges";
-import { OrderStatusBadge } from "./ui/badge";
+import {
+  BulkOrderButtons,
+  OrderActionMenu,
+  type OrderMoneyView,
+} from "./order-actions-ui";
+import {
+  Badge,
+  DataTable,
+  EmptyState,
+  OrderStatusBadge,
+  type DataTableColumn,
+} from "./ui";
+import { MONO_STYLE } from "./ui/styles";
 
-interface Props {
-  orders: AdminOrder[];
-  /**
-   * The subset the bulk tool may set. Narrower than every status: the
-   * dropdown used to offer `paid` and `refunded`, which the store refuses
-   * because neither writes the ledger row that moves the money.
-   */
-  bulkStatusOptions: Array<[AdminOrderStatus, string]>;
-  /**
-   * Every order in the table. The list is paged (WP1), so `orders.length` is
-   * only this page; omitted, the line counts the page as before.
-   */
-  total?: number;
-  /**
-   * Whether to poll for new arrivals. Off on older pages: a new order is
-   * never on them, and "Listeyi yenile" there would not show it.
-   */
-  live?: boolean;
+/** One row of the order list, decided on the server. */
+export interface OrderListRow {
+  order: AdminOrder;
+  money: OrderMoneyView;
+  /** `orderActions(order, role, collected)`: what the row menu offers. */
+  actions: OrderActionMap;
+  /** The payment column (`orderPaymentState`). */
+  payment: { label: string; tone: AdminTone };
+  refundToken: string;
 }
 
-const initialBulkState: BulkOrderActionState = {};
+interface Props {
+  rows: OrderListRow[];
+  /** The signed-in role may refund (the cancel modal's refund box). */
+  mayRefund: boolean;
+  /**
+   * Poll for new arrivals: only on the plain, unfiltered first page. A new
+   * order is never on page 3 or behind a filter, and "Listeyi yenile"
+   * there would not show it.
+   */
+  live: boolean;
+  sort: SortState;
+  searchParams: Record<string, string | string[] | undefined>;
+  pathname: string;
+  /** Shown when there are no rows. */
+  emptyTitle: string;
+}
 
 /**
  * How often the page asks whether anything arrived.
@@ -103,23 +116,74 @@ function writeSoundPref(next: boolean): void {
   for (const listener of soundListeners) listener();
 }
 
+function itemsSummary(order: AdminOrder): string {
+  const names = order.items.map(
+    (it) =>
+      `${it.qty > 1 ? `${it.qty}× ` : ""}${it.productName}${it.detail ? ` (${it.detail})` : ""}`,
+  );
+  const shown = names.slice(0, 2).join(", ");
+  return names.length > 2 ? `${shown} +${names.length - 2}` : shown;
+}
+
+function refundedMinorOf(order: AdminOrder): number {
+  return order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+}
+
+function Amount({ order }: { order: AdminOrder }) {
+  const refunded = refundedMinorOf(order);
+  return (
+    <span className="inline-flex flex-col items-end" style={MONO_STYLE}>
+      <span>{formatTRY(order.totalMinor - refunded)}</span>
+      {refunded > 0 ? (
+        <span className="text-[11px] text-[var(--admin-danger-ink)]">
+          {formatTRY(refunded)} iade
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** The payment badge, left out where it would repeat the status ("Ödendi"). */
+function PaymentBadge({ row }: { row: OrderListRow }) {
+  if (row.payment.label === orderStatusLabel(row.order)) return null;
+  return <Badge tone={row.payment.tone}>{row.payment.label}</Badge>;
+}
+
+function OrderNo({ order, isNew }: { order: AdminOrder; isNew: boolean }) {
+  return (
+    <span className="inline-flex items-center gap-2" style={MONO_STYLE}>
+      #{order.orderNo}
+      {order.attention ? (
+        <Badge tone="danger" title="Dikkat: sipariş sayfasındaki banda bak">
+          Dikkat
+        </Badge>
+      ) : null}
+      {isNew ? <Badge tone="warning">Yeni</Badge> : null}
+    </span>
+  );
+}
+
 export function OrdersList({
-  orders,
-  bulkStatusOptions,
-  total,
-  live = true,
+  rows,
+  mayRefund,
+  live,
+  sort,
+  searchParams,
+  pathname,
+  emptyTitle,
 }: Props) {
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    bulkOrdersAction,
-    initialBulkState,
-  );
-  // A completed bulk action closes the bar once (bulk.tsx useSelection).
+  // The last bulk answer that succeeded: each new one clears the selection
+  // once (bulk.tsx useSelection), so the bar closes after a bulk action.
+  const [state, setState] = useState<{ ok?: ActionResult }>({});
   const selection = useSelection({ resetOn: state.ok });
 
   // The newest order on screen. Everything the poll reports is counted
   // strictly above it, so the answer is "how many has this page not seen".
-  const latestOrderNo = orders.reduce((max, o) => Math.max(max, o.orderNo), 0);
+  const latestOrderNo = rows.reduce(
+    (max, r) => Math.max(max, r.order.orderNo),
+    0,
+  );
 
   // The poll's answer, stamped with the orderNo it was asked about. Stamped
   // rather than reset in an effect: after a refresh the rendered list is
@@ -195,41 +259,94 @@ export function OrdersList({
     if (next) beep(true);
   }, []);
 
-  const ids = orders.map((o) => o.id);
-  const idsCsv = selection.ids.join(",");
-  // The skipped count is the whole point of naming it: the machine refuses an
-  // id whose current status cannot reach the target, and a silent "0 sipariş
-  // güncellendi" left staff re-clicking.
-  const flash = state.ok
-    ? [
-        `${state.ok.updated} sipariş güncellendi.`,
-        state.ok.skipped > 0
-          ? `${state.ok.skipped} sipariş bu durumda bu işleme uygun değildi, atlandı.`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-    : state.error;
+  const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
+
+  // Seven columns at most, so the "⋯" column stays in view from lg up (the
+  // sidebar takes 16rem there): the date sits under the number until xl,
+  // the lines under the customer, payment and status share one column.
+  const columns: DataTableColumn<OrderListRow>[] = [
+    {
+      key: "no",
+      header: "No",
+      sortable: true,
+      firstDir: "desc",
+      className: "whitespace-nowrap",
+      cell: (r) => (
+        <span className="flex flex-col gap-0.5">
+          <OrderNo order={r.order} isNew={isNew(r.order)} />
+          <span className="text-xs font-normal text-[var(--admin-text-soft)] xl:hidden">
+            {formatDateTime(r.order.createdAt)}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "tarih",
+      header: "Tarih",
+      sortable: true,
+      firstDir: "desc",
+      hideBelow: "xl",
+      className: "whitespace-nowrap",
+      cell: (r) => (
+        <span className="text-xs text-[var(--admin-text-soft)]">
+          {formatDateTime(r.order.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: "musteri",
+      header: "Müşteri",
+      sortable: true,
+      cell: (r) => (
+        <span className="flex max-w-[16rem] min-w-0 flex-col">
+          <span className="truncate">{r.order.customerName}</span>
+          <span className="truncate text-xs text-[var(--admin-text-soft)]">
+            {r.order.customerEmail}
+          </span>
+          <span className="truncate text-xs text-[var(--admin-text-soft)]">
+            {itemsSummary(r.order)}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "kanal",
+      header: "Kanal",
+      hideBelow: "xl",
+      cell: (r) => (
+        <span className="flex flex-col items-start gap-1">
+          <OrderChannelBadges order={r.order} />
+        </span>
+      ),
+    },
+    {
+      key: "tutar",
+      header: "Tutar",
+      sortable: true,
+      firstDir: "desc",
+      align: "right",
+      className: "whitespace-nowrap",
+      cell: (r) => <Amount order={r.order} />,
+    },
+    {
+      key: "durum",
+      header: "Durum",
+      cell: (r) => (
+        <span className="flex flex-col items-start gap-1">
+          <OrderStatusBadge order={r.order} />
+          <PaymentBadge row={r} />
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
-      {flash && (
-        <div
-          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
-            state.error
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {flash}
-        </div>
-      )}
-
       {newCount > 0 && (
         <div
           role="status"
           aria-live="polite"
-          className="sticky top-2 z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 shadow-sm"
+          className="sticky top-2 z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm"
         >
           <span>
             <strong>{newCount} yeni sipariş</strong> geldi. Liste, sen
@@ -245,188 +362,89 @@ export function OrdersList({
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-[var(--admin-border)] bg-white px-4 py-2.5">
-        <SelectAllCheckbox ids={ids} selection={selection} label="Tümünü seç" />
-        <span
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          {total !== undefined && total > orders.length
-            ? `${orders.length} / ${total} sipariş`
-            : `${orders.length} sipariş`}
-        </span>
-        <button
-          type="button"
-          onClick={toggleSound}
-          aria-pressed={sound}
-          title="Yeni sipariş geldiğinde kısa bir ses çalar."
-          className={`ml-auto rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase ${
-            sound
-              ? "border-[var(--admin-primary)] text-[var(--admin-primary)]"
-              : "border-[var(--admin-border)] text-neutral-500"
-          }`}
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Ses {sound ? "açık" : "kapalı"}
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {orders.map((o) => {
-          const isSelected = selection.has(o.id);
-          const isNew = markAfter !== null && o.orderNo > markAfter;
-          return (
-            <div
-              key={o.id}
-              className={`rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
-                isSelected
-                  ? "border-neutral-900"
-                  : isNew
-                    ? "border-amber-300 ring-2 ring-amber-200"
-                    : "border-[var(--admin-border)]"
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="pt-1">
-                    <RowCheckbox
-                      id={o.id}
-                      selection={selection}
-                      label={`Sipariş ${o.orderNo}`}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <span
-                        className="text-lg font-medium"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        #{o.orderNo}
-                      </span>
-                      <OrderStatusBadge order={o} />
-                      {isNew && (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-amber-800 uppercase">
-                          Yeni
-                        </span>
-                      )}
-                      <OrderChannelBadges order={o} />
-                    </div>
-                    <div className="mt-1 text-sm text-neutral-700">
-                      {o.customerName}{" "}
-                      <span className="text-neutral-400">·</span>{" "}
-                      <span className="text-neutral-500">
-                        {o.customerEmail}
-                      </span>
-                    </div>
-                    <div
-                      className="mt-1 text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatDateTime(o.createdAt)}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div
-                    className="text-xl"
-                    style={{
-                      fontFamily: "var(--serif), 'Playfair Display', serif",
-                      fontStyle: "italic",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatTRY(o.totalMinor)}
-                  </div>
-                  <div
-                    className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    {o.items.length} kalem
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 border-t border-neutral-100 pt-4">
-                <ul className="grid gap-1 text-sm text-neutral-700">
-                  {o.items.map((it, i) => (
-                    <li key={i} className="flex justify-between">
-                      <span>
-                        {it.productName}
-                        {it.detail ? (
-                          <span className="text-neutral-500">
-                            {" "}
-                            · {it.detail}
-                          </span>
-                        ) : null}{" "}
-                        <span className="text-neutral-400">× {it.qty}</span>
-                      </span>
-                      <span style={{ fontFamily: "var(--mono), monospace" }}>
-                        {formatTRY(it.unitPriceMinor * it.qty)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-                {o.refunds.length > 0 ? (
-                  <span
-                    className="text-[10px] tracking-[0.22em] text-rose-600 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    {o.refunds.length} iade kaydı
-                  </span>
-                ) : (
-                  <span
-                    className="text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    Detaylı yönetim için sipariş sayfasına git
-                  </span>
-                )}
-                <Link
-                  href={`/admin/siparisler/${o.id}`}
-                  className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-                >
-                  Sipariş detayı →
-                </Link>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <form action={formAction}>
-        <input type="hidden" name="ids" value={idsCsv} />
-        <input type="hidden" name="op" value="set_status" />
-        <BulkActionBar
-          selection={selection}
-          pending={pending}
-          message={<span>Seçili siparişlerin durumunu birlikte güncelle:</span>}
-        >
-          <select
-            name="value"
-            defaultValue=""
-            className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-[var(--admin-primary)] focus:outline-none"
-          >
-            <option value="" disabled>
-              Yeni durum…
-            </option>
-            {bulkStatusOptions.map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
+      {live ? (
+        <div className="mb-3 flex justify-end">
           <button
-            type="submit"
-            disabled={pending}
-            className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={sound}
+            title="Yeni sipariş geldiğinde kısa bir ses çalar."
+            className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase ${
+              sound
+                ? "border-[var(--admin-primary)] text-[var(--admin-primary)]"
+                : "border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+            }`}
+            style={MONO_STYLE}
           >
-            Uygula
+            Ses {sound ? "açık" : "kapalı"}
           </button>
-        </BulkActionBar>
-      </form>
+        </div>
+      ) : null}
+
+      <DataTable
+        caption="Siparişler"
+        columns={columns}
+        rows={rows}
+        rowKey={(r) => r.order.id}
+        rowHref={(r) => `/admin/siparisler/${r.order.id}`}
+        rowLabel={(r) => `Sipariş ${r.order.orderNo}`}
+        selection={selection}
+        rowClassName={(r) =>
+          isNew(r.order) ? "ring-2 ring-[var(--admin-warning)]/40" : null
+        }
+        rowActions={(r) => (
+          <OrderActionMenu
+            order={r.order}
+            money={r.money}
+            actions={r.actions}
+            refundToken={r.refundToken}
+            mayRefund={mayRefund}
+            openLink
+          />
+        )}
+        mobileCard={(r) => (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/admin/siparisler/${r.order.id}`}
+                className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              >
+                <OrderNo order={r.order} isNew={isNew(r.order)} />
+              </Link>
+              <OrderStatusBadge order={r.order} />
+              <PaymentBadge row={r} />
+            </div>
+            <div className="text-sm">{r.order.customerName}</div>
+            <div className="flex flex-wrap gap-1">
+              <OrderChannelBadges order={r.order} />
+            </div>
+            <div className="text-xs text-[var(--admin-text-soft)]">
+              {itemsSummary(r.order)}
+            </div>
+            <div className="flex items-end justify-between gap-2 text-sm">
+              <span className="text-xs text-[var(--admin-text-soft)]">
+                {formatDateTime(r.order.createdAt)}
+              </span>
+              <Amount order={r.order} />
+            </div>
+          </div>
+        )}
+        empty={<EmptyState title={emptyTitle} />}
+        sort={sort}
+        searchParams={searchParams}
+        pathname={pathname}
+      />
+
+      <BulkActionBar
+        selection={selection}
+        pending={false}
+        message={<span>Seçili siparişlere uygula:</span>}
+      >
+        <BulkOrderButtons
+          ids={selection.ids}
+          onSuccess={(result) => setState({ ok: result })}
+        />
+      </BulkActionBar>
     </>
   );
 }

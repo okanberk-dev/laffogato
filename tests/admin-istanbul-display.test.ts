@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { formatDateTime } from "@/components/admin/forms";
+import { orderActions } from "@/lib/admin/order-actions";
 
 describe("admin dates are shown on the venue's clock", () => {
   it("prints a stored UTC instant as Istanbul time", () => {
@@ -17,16 +18,20 @@ describe("admin dates are shown on the venue's clock", () => {
 });
 
 describe("the refund button follows the server's rule", () => {
-  it("uses orderWasCollected, not paidAt alone", () => {
+  it("decides from the order's payment rows, not paidAt alone", () => {
     // A payment that lands after the sweep cancelled the order has a
     // succeeded transaction but no paidAt - and is the money that must go back.
     const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
-    const detail = readFileSync(
-      "src/components/admin/order-detail.tsx",
-      "utf8",
+    expect(page).toContain("orderMoneyFromRows(order, payments)");
+    expect(page.replace(/\s+/g, " ")).toContain(
+      "orderActions( order, session.role, m.collected, m.collectedMinor, )",
     );
-    expect(page).toContain("await orderWasCollected(order)");
-    expect(detail).toContain('(order.status !== "cancelled" || collected)');
+  });
+
+  it("offers a refund on a cancelled order only when money was taken", () => {
+    const cancelled = { status: "cancelled" as const, totalMinor: 5000, refunds: [] };
+    expect(orderActions(cancelled, "owner", true).refund?.enabled).toBe(true);
+    expect(orderActions(cancelled, "owner", false).refund).toBeUndefined();
   });
 });
 
