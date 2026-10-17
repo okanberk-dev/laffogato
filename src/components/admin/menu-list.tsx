@@ -389,6 +389,7 @@ function SoldOutToggle({ item }: { item: AdminMenuItem }) {
       action={setMenuItemActiveAction}
       hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
       variant={item.isActive ? "ghost" : "primary"}
+      ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
       title={
         item.isActive
           ? "Menüden gizle: tükendi ya da satışta değil"

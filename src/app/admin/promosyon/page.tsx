@@ -57,6 +57,7 @@ function ActiveToggle({ promo }: { promo: AdminPromo }) {
       action={setPromoActiveAction}
       hidden={{ id: promo.id, isActive: promo.isActive ? "false" : "true" }}
       pendingLabel="Kaydediliyor…"
+      ariaLabel={`${promo.isActive ? "Pasife al" : "Aktifleştir"}: ${promo.code}`}
       title={
         promo.isActive
           ? "Kodu durdur: sepette kabul edilmez"

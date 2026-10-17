@@ -15,8 +15,14 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { ActionButton, ActionForm, FormMessage, SubmitButton, runPanelAction } =
-  await import("@/components/admin/action-form");
+const {
+  ActionButton,
+  ActionForm,
+  FormMessage,
+  SubmitButton,
+  markFieldErrors,
+  runPanelAction,
+} = await import("@/components/admin/action-form");
 
 describe("runPanelAction", () => {
   const fd = new FormData();
@@ -94,5 +100,69 @@ describe("markup", () => {
     expect(html).toContain('<input type="hidden" name="id" value="tbl-0002"/>');
     expect(html).toContain('name="isActive" value="true"');
     expect(html).toMatch(/<button type="submit"[^>]*>Etkinleştir<\/button>/);
+  });
+});
+
+describe("accessibility", () => {
+  const action = async () => ({ ok: true as const, message: "" });
+
+  it("ActionButton can name its row for a screen reader", () => {
+    // A list of identical "Tükendi" buttons tells a screen reader nothing.
+    const html = renderToStaticMarkup(
+      withKids(
+        ActionButton,
+        { action, hidden: { id: "mnu-1" }, ariaLabel: "Tükendi: Latte" },
+        "Tükendi",
+      ),
+    );
+    expect(html).toContain('aria-label="Tükendi: Latte"');
+    expect(html).toContain(">Tükendi</button>");
+  });
+
+  /** Just enough of a DOM element for markFieldErrors. */
+  class FakeControl {
+    attrs = new Map<string, string>();
+    constructor(init: Record<string, string>) {
+      for (const [k, v] of Object.entries(init)) this.attrs.set(k, v);
+    }
+    getAttribute(n: string) {
+      return this.attrs.get(n) ?? null;
+    }
+    setAttribute(n: string, v: string) {
+      this.attrs.set(n, v);
+    }
+    removeAttribute(n: string) {
+      this.attrs.delete(n);
+    }
+  }
+  const errorId = (name: string) => `f-err-${name}`;
+
+  it("ties a refused field to its message and returns it for focus", () => {
+    const name = new FakeControl({ name: "name" });
+    const price = new FakeControl({ name: "price", "aria-describedby": "hint" });
+    const id = new FakeControl({ name: "id", type: "hidden" });
+    const first = markFieldErrors(
+      [id, name, price],
+      { price: "Fiyatı yaz.", id: "x" },
+      errorId,
+    );
+    expect(first).toBe(price);
+    expect(price.getAttribute("aria-invalid")).toBe("true");
+    // An existing description is kept, the message is added.
+    expect(price.getAttribute("aria-describedby")).toBe("hint f-err-price");
+    expect(name.getAttribute("aria-invalid")).toBeNull();
+    expect(id.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("clears the marks once the field is fine, keeping its own description", () => {
+    const price = new FakeControl({ name: "price", "aria-describedby": "hint" });
+    markFieldErrors([price], { price: "Fiyatı yaz." }, errorId);
+    expect(markFieldErrors([price], {}, errorId)).toBeNull();
+    expect(price.getAttribute("aria-invalid")).toBeNull();
+    expect(price.getAttribute("aria-describedby")).toBe("hint");
+    const bare = new FakeControl({ name: "name" });
+    markFieldErrors([bare], { name: "Adı yaz." }, errorId);
+    markFieldErrors([bare], {}, errorId);
+    expect(bare.getAttribute("aria-describedby")).toBeNull();
   });
 });

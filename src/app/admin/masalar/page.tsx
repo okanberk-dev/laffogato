@@ -75,6 +75,7 @@ function TableRow({ table, svg }: { table: CafeTable; svg: string }) {
               <ActionButton
                 action={setCafeTableActiveAction}
                 hidden={{ id: table.id, isActive: "true" }}
+                ariaLabel={`Etkinleştir: ${table.name}`}
                 className="text-xs"
                 pendingLabel="Etkinleştiriliyor…"
               >

@@ -55,6 +55,8 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
               {row.entityId}
             </span>
           )}
+          {/* The name starts with the visible word "Geçmişi", so voice
+              control still finds the link. */}
           <Link
             href={withParams(
               {},
@@ -62,7 +64,7 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
               PATH,
             )}
             className="text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-            aria-label={`${label} ${row.entityId}: bütün olaylar`}
+            aria-label={`Geçmişi: ${label} ${row.entityId}, bütün olaylar`}
           >
             Geçmişi
           </Link>

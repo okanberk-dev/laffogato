@@ -6,6 +6,7 @@ import {
   startTransition,
   useActionState,
   useContext,
+  useEffect,
   useId,
   useRef,
   type FormEvent,
@@ -94,6 +95,7 @@ export function ActionButton({
   variant = "ghost",
   className,
   title,
+  ariaLabel,
 }: {
   action: ModalAction;
   hidden?: Record<string, string | number>;
@@ -103,6 +105,12 @@ export function ActionButton({
   variant?: ButtonVariant;
   className?: string;
   title?: string;
+  /**
+   * The name a screen reader hears, for a button repeated on every row
+   * ("Tükendi: Çilekli Matcha" rather than a list of "Tükendi"). Start it
+   * with the visible text so a voice command still finds it.
+   */
+  ariaLabel?: string;
 }) {
   const [, formAction, pending] = useToastAction(action);
   return (
@@ -119,6 +127,7 @@ export function ActionButton({
         type="submit"
         disabled={pending}
         aria-busy={pending || undefined}
+        aria-label={ariaLabel}
         title={title}
         className={cx(BUTTON[variant], className)}
       >
@@ -145,6 +154,51 @@ const FormStateContext = createContext<FormState>({
 /** The enclosing ActionForm's field errors, form error and pending state. */
 export function useActionFormState(): FormState {
   return useContext(FormStateContext);
+}
+
+/** The part of a form control markFieldErrors touches. */
+interface MarkableControl {
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  removeAttribute(name: string): void;
+}
+
+/**
+ * Ties the last refusal to the controls it names: `aria-invalid` and an
+ * `aria-describedby` pointing at the field's FormFieldError, both cleared
+ * from a control that is fine again. A message under a field is only read
+ * out with its field when the field says so; the forms' own markup does not
+ * (Field puts the hint inside the label), so this runs on the form after
+ * each answer. Returns the first control marked, for focus. Exported for
+ * tests.
+ */
+export function markFieldErrors(
+  controls: Iterable<MarkableControl>,
+  fieldErrors: Record<string, string>,
+  errorId: (name: string) => string,
+): MarkableControl | null {
+  let first: MarkableControl | null = null;
+  for (const el of controls) {
+    const name = el.getAttribute("name");
+    if (!name || el.getAttribute("type") === "hidden") continue;
+    const id = errorId(name);
+    const described = (el.getAttribute("aria-describedby") ?? "")
+      .split(/\s+/)
+      .filter((x) => x && x !== id);
+    if (fieldErrors[name]) {
+      el.setAttribute("aria-invalid", "true");
+      el.setAttribute("aria-describedby", [...described, id].join(" "));
+      first ??= el;
+    } else {
+      el.removeAttribute("aria-invalid");
+      if (described.length > 0) {
+        el.setAttribute("aria-describedby", described.join(" "));
+      } else {
+        el.removeAttribute("aria-describedby");
+      }
+    }
+  }
+  return first;
 }
 
 /**
@@ -185,12 +239,28 @@ export function ActionForm({
     startTransition(() => formAction(formData));
   };
 
+  const errorId = (name: string) => `${baseId}-err-${name}`;
   const ctx: FormState = {
     fieldErrors: state && !state.ok ? (state.fieldErrors ?? {}) : {},
     error: state && !state.ok ? state.error : null,
     pending,
-    errorId: (name) => `${baseId}-err-${name}`,
+    errorId,
   };
+
+  // After each answer: mark the refused fields for assistive tech and move
+  // focus to the first one, so a keyboard user lands on what to change
+  // instead of staying on the submit button.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || !state) return;
+    const errors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
+    const first = markFieldErrors(
+      Array.from(form.elements),
+      errors,
+      (name) => `${baseId}-err-${name}`,
+    );
+    if (first instanceof HTMLElement) first.focus();
+  }, [state, baseId]);
 
   return (
     <FormStateContext.Provider value={ctx}>
