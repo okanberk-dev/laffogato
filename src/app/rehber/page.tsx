@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+import {
+  Illustration,
+  type IllustrationName,
+} from "@/components/laffogato/illustration";
 import { PageHero } from "@/components/laffogato/page-hero";
 import { guideHubLd } from "@/lib/seo/guide-structured-data";
 import { GUIDES } from "@/lib/seo/guides";
@@ -38,6 +42,15 @@ export const metadata: Metadata = {
   },
 };
 
+/** Each guide's card leads with a small drawing of its subject. */
+const GUIDE_ART: Record<string, IllustrationName> = {
+  "affogato-nedir": "rehber-affogato",
+  "matcha-nedir": "rehber-matcha",
+  "espresso-cesitleri": "rehber-espresso",
+  "san-sebastian-cheesecake": "rehber-cheesecake",
+  "yenilebilir-kahve-fincani": "rehber-kupa",
+};
+
 export default function GuideHubPage() {
   return (
     <div className="guide-page">
@@ -61,6 +74,12 @@ export default function GuideHubPage() {
           {GUIDES.map((g) => (
             <li key={g.slug}>
               <Link href={`/rehber/${g.slug}`} className="guide-card">
+                {GUIDE_ART[g.slug] ? (
+                  <Illustration
+                    name={GUIDE_ART[g.slug]}
+                    className="guide-card-art"
+                  />
+                ) : null}
                 <span className="guide-card-title">{g.title}</span>
                 <span className="guide-card-excerpt">{g.excerpt}</span>
                 <span className="guide-card-meta eyebrow">

@@ -5102,6 +5102,12 @@ summary:focus-visible,
   text-align: center;
   padding: 64px 20px;
 }
+.shop-empty-art {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 16px;
+}
 .shop-empty-title {
   margin: 0 0 18px;
   font-family: var(--headline);
@@ -7874,6 +7880,13 @@ select {
   border-color: var(--gold);
   transform: translateY(-2px);
 }
+/* Each guide's small drawing (rehber/page.tsx GUIDE_ART). */
+.guide-card-art {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+}
 .guide-card-title {
   font-family: var(--serif);
   font-size: clamp(19px, 2.2vw, 22px);
@@ -10163,6 +10176,13 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .auth-back:hover {
   color: var(--green-pressed);
+}
+/* A drawing over the title (the newsletter's sealed envelope). */
+.auth-art {
+  display: block;
+  width: clamp(104px, 28vw, 140px);
+  height: auto;
+  margin: -6px 0 12px;
 }
 .auth-title {
   margin: 0 0 10px;

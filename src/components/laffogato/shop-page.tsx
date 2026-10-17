@@ -8,6 +8,7 @@ import { parsePriceLabel } from "@/lib/utils/format";
 
 import { PRODUCTS } from "./data";
 import type { Product } from "./data";
+import { Illustration } from "./illustration";
 import type { PageProps } from "./page-shared";
 import { PageHero } from "./page-hero";
 import { productPath } from "./route-paths";
@@ -425,6 +426,8 @@ export function PageShop({
 
             {list.length === 0 && (
               <div className="shop-empty">
+                {/* An open bean tin with nothing in it. */}
+                <Illustration name="magaza-teneke" className="shop-empty-art" />
                 <p className="shop-empty-title">Bu filtreyle ürün yok</p>
                 <button
                   type="button"

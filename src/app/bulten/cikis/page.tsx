@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { unsubscribeNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
+import { Illustration } from "@/components/laffogato/illustration";
 
 export const metadata = {
   // `absolute`: the root template would append the brand a second time.
@@ -52,6 +53,8 @@ export default async function BultenCikisPage({ searchParams }: PageProps) {
           </Link>
           <LafMark tone="duo" />
         </div>
+        {/* The letter itself, sealed with a coffee bean. */}
+        <Illustration name="bulten-zarf" className="auth-art" priority />
         {/* The OUTCOME, not the topic: it is the one line a screen reader
             announces on arrival and the one line most people read. */}
         <h1 className="auth-title">{heading}</h1>
