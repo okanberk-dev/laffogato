@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 import { menuItemFieldsSchema } from "@/lib/admin/menu-item-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
+  CATALOG_MONEY_MAX_MINOR,
+  MONEY_TOO_LARGE_ERROR,
   parseMoneyInput,
   parseSignedMoneyInput,
   splitSign,
@@ -78,6 +80,61 @@ describe("product prices", () => {
     if (bad.success) return;
     expect(bad.error.issues[0].path[0]).toBe("variants");
     expect(bad.error.issues[0].message).toContain("1kg");
+  });
+});
+
+describe("an amount too big for the price columns", () => {
+  // Prices sit in `integer` kuruş columns (max 2.147.483.647 = ~21,4 milyon
+  // TL). "25.000.000" read as 2.500.000.000 kuruş, and the insert died with
+  // Postgres 22003 (integer out of range): the wizard showed the error page.
+  const INT4_MAX = 2_147_483_647;
+
+  it("refuses it under the field instead of crashing the save", () => {
+    const r = productFormSchema.safeParse(product({ price: "25.000.000" }));
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    const issue = r.error.issues.find((i) => i.path[0] === "price");
+    expect(issue?.message).toBe(MONEY_TOO_LARGE_ERROR);
+  });
+
+  it("refuses it for the was price, the cost and a variant's difference", () => {
+    for (const field of ["compareAtPrice", "cost"]) {
+      const r = productFormSchema.safeParse(
+        product({ [field]: "99.999.999,99" }),
+      );
+      expect(r.success).toBe(false);
+    }
+    const variant = productFormSchema.safeParse(
+      product({
+        variants: JSON.stringify([
+          { name: "XL", priceDelta: "-25.000.000", stock: "1" },
+        ]),
+      }),
+    );
+    expect(variant.success).toBe(false);
+    if (variant.success) return;
+    expect(variant.error.issues[0].path[0]).toBe("variants");
+  });
+
+  it("refuses it for both menu sizes", () => {
+    const r = menuItemFieldsSchema.safeParse({
+      name: "Latte",
+      price: "25.000.000",
+      priceL: "3000000000",
+    });
+    expect(r.success).toBe(false);
+    if (r.success) return;
+    const by = Object.fromEntries(
+      r.error.issues.map((i) => [String(i.path[0]), i.message]),
+    );
+    expect(by.price).toBe(MONEY_TOO_LARGE_ERROR);
+    expect(by.priceL).toBe(MONEY_TOO_LARGE_ERROR);
+  });
+
+  it("keeps the ceiling itself, and it fits the columns", () => {
+    expect(CATALOG_MONEY_MAX_MINOR).toBeLessThan(INT4_MAX);
+    const r = productFormSchema.safeParse(product({ price: "1.000.000" }));
+    expect(r.success && r.data.priceMinor).toBe(CATALOG_MONEY_MAX_MINOR);
   });
 });
 

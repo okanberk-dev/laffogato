@@ -6,7 +6,12 @@ import {
   parseBackdropChoice,
   parseVesselChoice,
 } from "@/lib/backdrop/scene-core";
-import { parseMoneyInput, parseSignedMoneyInput } from "@/lib/utils/format";
+import {
+  CATALOG_MONEY_MAX_MINOR,
+  MONEY_TOO_LARGE_ERROR,
+  parseMoneyInput,
+  parseSignedMoneyInput,
+} from "@/lib/utils/format";
 
 const HUE_VALUES = [
   "cream",
@@ -127,6 +132,10 @@ const moneyToMinor = z.string().transform((s, ctx) => {
     ctx.addIssue({ code: "custom", message: MONEY_INPUT_ERROR });
     return z.NEVER;
   }
+  if (minor > CATALOG_MONEY_MAX_MINOR) {
+    ctx.addIssue({ code: "custom", message: MONEY_TOO_LARGE_ERROR });
+    return z.NEVER;
+  }
   return minor;
 });
 
@@ -202,6 +211,11 @@ const variantsJson = z
             ctx.addIssue({
               code: "custom",
               message: `"${name}" varyantının fiyat farkı okunamadı. ${MONEY_INPUT_ERROR} İndirim için başına - koy.`,
+            });
+          } else if (Math.abs(priceDeltaMinor) > CATALOG_MONEY_MAX_MINOR) {
+            ctx.addIssue({
+              code: "custom",
+              message: `"${name}" varyantının fiyat farkı çok büyük. ${MONEY_TOO_LARGE_ERROR}`,
             });
           }
           const stock = parseInt(String(o.stock ?? "0"), 10);

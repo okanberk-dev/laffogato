@@ -74,6 +74,17 @@ export function parseMoneyInput(raw: string): number | null {
 }
 
 /**
+ * The largest catalog amount (a product, variant or menu price), 1.000.000
+ * TL in kuruş. Prices sit in `integer` columns (at most ~21,4 milyon TL):
+ * "25.000.000" read as 2.500.000.000 kuruş and the save died on Postgres
+ * 22003 (integer out of range). Nothing the köşk sells comes near this, so a
+ * bigger figure is a slipped key and is refused under its field.
+ */
+export const CATALOG_MONEY_MAX_MINOR = 100_000_000;
+
+export const MONEY_TOO_LARGE_ERROR = "Tutar en fazla 1.000.000 TL olabilir.";
+
+/**
  * A leading minus sign as a typed or pasted number may carry it: the ASCII
  * hyphen, the Unicode minus (U+2212, what a copied price or a phone's maths
  * keyboard gives), the figure and en dashes (U+2012, U+2013: autocorrect)
