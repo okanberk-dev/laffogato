@@ -149,3 +149,19 @@ describe("markup", () => {
     expect(html).toMatch(/Ticari ileti izni:\s*(<!-- -->)?01 Eyl 2026/);
   });
 });
+
+describe("Hesabı sil says what stays", () => {
+  it("the orders keep the invoice name, phone and address", () => {
+    // The dialog's copy renders only once it opens; read it from the source.
+    const src = readFileSync(
+      "src/components/admin/customer-actions.tsx",
+      "utf8",
+    );
+    // "Siparişler muhasebe için anonim olarak kalır" was not true: the order
+    // sweep replaces the e-mail only (ANON_SWEEPS in lib/mobile/me.ts).
+    expect(src).not.toContain("anonim olarak kalır");
+    expect(src).toMatch(
+      /faturadaki ad, telefon ve teslimat adresi\s+siparişte kalır/,
+    );
+  });
+});

@@ -122,8 +122,13 @@ export function CustomerActions({ email, isActive, emailVerified }: Props) {
             </li>
             <li>Uygulamadan kasa (barista) yetkisi varsa kaldırılır.</li>
             <li>
-              Ad, telefon, adresler ve e-posta silinir. Siparişler muhasebe için
-              anonim olarak kalır.
+              Hesaptaki ad, telefon, adresler ve e-posta silinir; hesap
+              Müşteriler listesinden çıkar.
+            </li>
+            <li>
+              Siparişler yasal saklama süresi boyunca durur: e-posta adresi
+              siparişten kaldırılır, faturadaki ad, telefon ve teslimat adresi
+              siparişte kalır.
             </li>
             <li>Devam eden siparişi olan hesap kapatılamaz.</li>
           </ul>

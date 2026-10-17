@@ -425,9 +425,7 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
     const store = readFileSync("src/lib/customer/store.ts", "utf8");
     expect(store).not.toMatch(/export async function adminDeleteCustomer/);
     const src = readFileSync("src/app/admin/musteriler/actions.ts", "utf8");
-    expect(src).toMatch(
-      /import \{ deleteMe\b[^}]*\} from "@\/lib\/mobile\/me";/,
-    );
+    expect(src).toMatch(/import \{ deleteMe\b[^}]*\} from "@\/lib\/mobile\/me";/);
   });
 
   it("refuses unless the member's address is typed out", async () => {
@@ -539,9 +537,7 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
       form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
     );
     expect(res.ok).toBe(false);
-    expect(res.ok ? "" : res.error).toMatch(
-      /kapatılamadı, üye kaydı değişmedi/,
-    );
+    expect(res.ok ? "" : res.error).toMatch(/kapatılamadı, üye kaydı değişmedi/);
     expect(res.ok ? "" : res.error).toMatch(/karaoke/);
     expect(logAudit).toHaveBeenCalledWith({
       action: "update",

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
@@ -201,5 +203,40 @@ describe("adminUpdateCustomer and commercial consent (6563)", () => {
       await customers.adminUpdateCustomer("yok@ornek.com", input(false, false)),
     ).toEqual({ ok: false, error: "not_found" });
     expect(updates()).toHaveLength(0);
+  });
+});
+
+describe("Müşteriler leaves closed accounts out (D13)", () => {
+  const order = (customerEmail: string, customerName: string) => ({
+    customerEmail,
+    customerName,
+    customerPhone: "0532 000 00 00",
+    status: "delivered" as const,
+    totalMinor: 25_000,
+    refunds: [],
+    createdAt: "2026-09-01T09:00:00.000Z",
+  });
+
+  it("drops the placeholder a closed account's orders point at", async () => {
+    const { anonymizedEmail } = await import("@/lib/mobile/me");
+    const closed = anonymizedEmail("cus-0042");
+    expect(store.isClosedAccountEmail(closed)).toBe(true);
+    expect(store.isClosedAccountEmail(closed.toUpperCase())).toBe(true);
+    expect(store.isClosedAccountEmail("ayse@ornek.com")).toBe(false);
+    // The orders keep the invoice name and phone (fiscal retention): keyed
+    // on the placeholder, the roll-up listed the closed member by name.
+    const rows = store.summarizeCustomers([
+      order(closed, "Ayşe Yılmaz"),
+      order("ali@ornek.com", "Ali"),
+    ] as never);
+    expect(rows.map((r) => r.email)).toEqual(["ali@ornek.com"]);
+    expect(JSON.stringify(rows)).not.toContain("Ayşe");
+  });
+
+  it("the list page drops the anonymised member row too", () => {
+    const page = readFileSync("src/app/admin/musteriler/page.tsx", "utf8");
+    expect(page).toMatch(
+      /\.filter\(\(m\) => !isClosedAccountEmail\(m\.email\)\)/,
+    );
   });
 });

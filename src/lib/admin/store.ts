@@ -2093,6 +2093,17 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
 }
 
 /**
+ * The placeholder a closed account's rows point at (`anonymizedEmail` in
+ * lib/mobile/me.ts: `deleted-<id>@anon.local`). Its orders keep the invoice
+ * name and phone for fiscal retention, so a roll-up keyed on it listed the
+ * closed member under their real name, found by a name search. Müşteriler
+ * leaves these out (decision D13).
+ */
+export function isClosedAccountEmail(email: string): boolean {
+  return email.trim().toLowerCase().endsWith("@anon.local");
+}
+
+/**
  * The pure half of {@link listCustomers}, exported for tests.
  *
  * Order count, lifetime value and refunds follow the reports' rule
@@ -2111,6 +2122,7 @@ export function summarizeCustomers(
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
     if (!email || email === "guest@laffogato.local") continue;
+    if (isClosedAccountEmail(email)) continue;
     const counts = isReportableOrder(o);
     const valueHere = counts ? o.totalMinor : 0;
     const refundedHere = counts
