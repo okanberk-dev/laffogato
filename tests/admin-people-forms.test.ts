@@ -116,6 +116,38 @@ describe("markup", () => {
     expect(html).toMatch(/<fieldset[\s\S]*<legend[^>]*>Durum<\/legend>/);
   });
 
+  it("promo form: an expired code says what its date and a blank do", async () => {
+    const { PromoForm } = await import("@/components/admin/promo-form");
+    const promo = {
+      id: "prm-0003",
+      code: "YAZ25",
+      kind: "pct",
+      value: 25,
+      minSubtotalMinor: 0,
+      usageLimit: 50,
+      usageCount: 12,
+      expiresAt: "2026-10-01T20:59:00.000Z",
+      isActive: true,
+    };
+    const render = (expired: boolean) =>
+      renderToStaticMarkup(
+        createElement(PromoForm, {
+          action: vi.fn(),
+          promo,
+          submitLabel: "Kaydet",
+          expired,
+        } as never),
+      );
+    // The stored past date comes back as the Istanbul wall clock.
+    const html = render(true);
+    expect(html).toContain('value="2026-10-01T23:59"');
+    expect(html).toContain("Tarihe dokunmazsan öyle kalır");
+    expect(html).toContain("boş (süresiz) kodu yeniden açar");
+    expect(render(false)).toContain(
+      "Boş = süresiz. Geçmiş bir tarih kabul edilmez.",
+    );
+  });
+
   it("member form: Vazgeç is one link, the preferences are a fieldset", async () => {
     const { CustomerForm } = await import("@/components/admin/customer-form");
     const html = renderToStaticMarkup(

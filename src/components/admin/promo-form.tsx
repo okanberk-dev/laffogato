@@ -32,6 +32,8 @@ interface Props {
     formData: FormData,
   ) => Promise<PromoActionState>;
   submitLabel: string;
+  /** The edited code's expiry has passed (the edit page reads the clock). */
+  expired?: boolean;
 }
 
 /**
@@ -40,7 +42,12 @@ interface Props {
  * to 10, the limit to 0 (unlimited), the expiry to never and the code back
  * on, and only the empty code field showed it.
  */
-export function PromoForm({ promo, action, submitLabel }: Props) {
+export function PromoForm({
+  promo,
+  action,
+  submitLabel,
+  expired = false,
+}: Props) {
   const [state, formAction, pending] = useActionState(
     withPanelCatch(action, (prev) => ({ ...prev, error: PANEL_ACTION_FAILED })),
     initial,
@@ -151,7 +158,13 @@ export function PromoForm({ promo, action, submitLabel }: Props) {
           <div className="grid gap-1.5">
             <Field
               label="Son geçerlilik (opsiyonel)"
-              hint="Boş = süresiz. Geçmiş bir tarih kabul edilmez."
+              hint={
+                // An expired code keeps its date through an edit; a blank
+                // would bring it back with no end, so say so here.
+                expired
+                  ? "Süresi doldu, kod sepette kabul edilmez. Tarihe dokunmazsan öyle kalır; ileri bir tarih ya da boş (süresiz) kodu yeniden açar."
+                  : "Boş = süresiz. Geçmiş bir tarih kabul edilmez."
+              }
             >
               <TextInput
                 name="expiresAt"

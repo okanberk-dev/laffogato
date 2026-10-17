@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Menü, Kategoriler, Ürünler and Promosyon actions as the panel now calls
@@ -415,6 +415,81 @@ describe("promos", () => {
       error: "Kod bulunamadı; sayfayı yenile.",
     });
     expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  describe("an expired code on the edit form", () => {
+    // YAZ25 ran out on 1 Eki 23:59 (stored as UTC) and is still ticked
+    // Aktif: expiry never flips isActive. The form shows that date back.
+    const EXPIRED = {
+      ...PROMO,
+      code: "YAZ25",
+      kind: "pct",
+      value: 25,
+      usageLimit: 50,
+      expiresAt: "2026-10-01T20:59:00.000Z",
+    };
+    const FIELDS = {
+      code: "YAZ25",
+      kind: "pct",
+      valuePct: "25",
+      minSubtotal: "0,00",
+      usageLimit: "80",
+      expiresAt: "2026-10-01T23:59",
+      isActive: "on",
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-17T09:00:00.000Z"));
+      h.store.getPromo.mockResolvedValue(EXPIRED);
+      h.store.updatePromo.mockImplementation(async (_id, input) => ({
+        ok: true,
+        promo: { ...EXPIRED, ...input },
+      }));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("saves a new limit and stays expired when the date is left alone", async () => {
+      // The untouched past date was refused, and the refusal said "süresiz
+      // için boş bırak": the way out was an active 25% code with no end.
+      await expect(
+        promos.updatePromoAction("prm-0003", {}, form(FIELDS)),
+      ).rejects.toThrow("NEXT_REDIRECT");
+      expect(h.store.updatePromo).toHaveBeenCalledWith(
+        "prm-0003",
+        expect.objectContaining({
+          usageLimit: 80,
+          expiresAt: "2026-10-01T20:59:00.000Z",
+        }),
+      );
+    });
+
+    it("still refuses a past date typed in, and never points at blank", async () => {
+      const moved = await promos.updatePromoAction(
+        "prm-0003",
+        {},
+        form({ ...FIELDS, expiresAt: "2026-10-05T23:59" }),
+      );
+      expect(moved.fieldErrors?.expiresAt).toBe(
+        "Bu tarih geçmişte kaldı. İleri bir tarih seç.",
+      );
+      // A new code gets no pass from another code's date.
+      const fresh = await promos.createPromoAction({}, form(FIELDS));
+      expect(fresh.fieldErrors?.expiresAt).toBe(
+        "Bu tarih geçmişte kaldı. İleri bir tarih seç.",
+      );
+      expect(h.store.updatePromo).not.toHaveBeenCalled();
+      expect(h.store.createPromo).not.toHaveBeenCalled();
+    });
+
+    it("answers a code deleted meanwhile instead of saving", async () => {
+      h.store.getPromo.mockResolvedValue(null);
+      const gone = await promos.updatePromoAction("prm-0003", {}, form(FIELDS));
+      expect(gone).toEqual({ error: "Kod bulunamadı; sayfayı yenile." });
+      expect(h.store.updatePromo).not.toHaveBeenCalled();
+    });
   });
 
   it("deletes with a toast, and only audits a real removal", async () => {

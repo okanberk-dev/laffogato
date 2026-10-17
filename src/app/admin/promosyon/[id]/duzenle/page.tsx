@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/forms";
 import { PromoForm } from "@/components/admin/promo-form";
 import { requireRole } from "@/lib/admin/auth";
+import { isPromoExpired } from "@/lib/admin/promo-schema";
 import { getPromo } from "@/lib/admin/store";
 
 import { updatePromoAction } from "../../actions";
@@ -31,7 +32,12 @@ export default async function EditPromoPage({ params }: PageProps) {
         title={`Kodu düzenle · ${promo.code}`}
         description={`${promo.usageCount} kez kullanıldı.`}
       />
-      <PromoForm promo={promo} action={action} submitLabel="Kaydet" />
+      <PromoForm
+        promo={promo}
+        action={action}
+        submitLabel="Kaydet"
+        expired={isPromoExpired(promo.expiresAt)}
+      />
     </main>
   );
 }

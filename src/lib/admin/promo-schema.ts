@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { normalizePublishInstant, parsePublishInstant } from "./publish-window";
+import {
+  normalizePublishInstant,
+  parsePublishInstant,
+  toDateTimeLocalInput,
+} from "./publish-window";
 import {
   CATALOG_MONEY_MAX_MINOR,
   MONEY_TOO_LARGE_ERROR,
@@ -43,108 +47,138 @@ const intInput = z
     return /^\d+$/.test(text) ? Number(text) : Number.NaN;
   });
 
-export const promoFormSchema = z
-  .object({
-    code: z
-      .string()
-      .trim()
-      .min(2, "Kod en az 2 karakter olmalı.")
-      .max(40, "Kod en fazla 40 karakter olabilir."),
-    kind: z.enum(["pct", "fixed"]).default("pct"),
-    valuePct: z.string().optional(),
-    valueFixed: z.string().optional(),
-    minSubtotal: moneyMinor,
-    usageLimit: intInput,
-    expiresAt: z.string().optional().default(""),
-    isActive: z.string().optional(),
-  })
-  .transform((v) => {
-    let value = 0;
-    if (v.kind === "pct") {
-      const raw = parseFloat(String(v.valuePct ?? "0").replace(",", "."));
-      value = Number.isFinite(raw) ? Math.round(raw) : 0;
-    } else {
-      value = parseMoneyInput(String(v.valueFixed ?? "")) ?? 0;
-    }
-    return {
-      code: v.code,
-      kind: v.kind,
-      value,
-      minSubtotalMinor: v.minSubtotal,
-      usageLimit: v.usageLimit,
-      // Stored as a UTC instant. The datetime-local value has no offset, and
-      // on a UTC server "23:59" meant 23:59 UTC - the promo stayed valid
-      // three hours past the Istanbul time the admin typed.
-      expiresAt: v.expiresAt?.trim()
-        ? normalizePublishInstant(v.expiresAt)
-        : "",
-      isActive: v.isActive === "on",
-    };
-  })
-  .superRefine((v, ctx) => {
-    if (v.kind === "pct" && (v.value < 1 || v.value > 100)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Yüzde 1-100 arasında olmalı.",
-        path: ["valuePct"],
-      });
-    }
-    if (v.kind === "fixed" && v.value <= 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Sabit tutar pozitif olmalı.",
-        path: ["valueFixed"],
-      });
-    }
-    if (v.kind === "fixed" && v.value > PROMO_FIXED_MAX_MINOR) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Sabit indirim en fazla 2.000 TL olabilir.",
-        path: ["valueFixed"],
-      });
-    }
-    if (Number.isNaN(v.minSubtotalMinor)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
-        path: ["minSubtotal"],
-      });
-    } else if (v.minSubtotalMinor > CATALOG_MONEY_MAX_MINOR) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: MONEY_TOO_LARGE_ERROR,
-        path: ["minSubtotal"],
-      });
-    }
-    if (Number.isNaN(v.usageLimit)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Kullanım limiti 0 ya da pozitif bir tam sayı olmalı.",
-        path: ["usageLimit"],
-      });
-    } else if (v.usageLimit > PROMO_USAGE_LIMIT_MAX) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Kullanım limiti en fazla 1.000.000 olabilir.",
-        path: ["usageLimit"],
-      });
-    }
-    const expiresAt = v.expiresAt ? parsePublishInstant(v.expiresAt) : null;
-    if (v.expiresAt && expiresAt === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Geçerli bir tarih gir.",
-        path: ["expiresAt"],
-      });
-    } else if (expiresAt !== null && expiresAt <= Date.now()) {
-      // A past date made a code that was dead on save while the list said
-      // "kaydedildi"; on an expired code it kept it dead after an edit meant
-      // to bring it back.
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          "Bu tarih geçmişte kaldı. İleri bir tarih seç ya da süresiz için boş bırak.",
-        path: ["expiresAt"],
-      });
-    }
-  });
+/**
+ * True when the code's expiry has passed. Same reading as applyPromoCode:
+ * offsetless is Istanbul, unreadable is over.
+ */
+export function isPromoExpired(
+  expiresAt: string,
+  now: number = Date.now(),
+): boolean {
+  if (!expiresAt) return false;
+  const at = parsePublishInstant(expiresAt);
+  return at === null || at < now;
+}
+
+/**
+ * The promo form. `storedExpiresAt` is the edited code's own expiry: an
+ * expired code comes back to the form with its past date, and saving it
+ * untouched (a new limit, a corrected code) keeps it expired. Refusing that
+ * date left two ways to save, a future date or a blank, and both brought the
+ * code back, the blank with no end. Only a date typed in must lie ahead.
+ */
+export function buildPromoFormSchema(storedExpiresAt = "") {
+  // The minute the edit form shows (datetime-local drops the seconds).
+  const storedMinute = toDateTimeLocalInput(storedExpiresAt);
+  return z
+    .object({
+      code: z
+        .string()
+        .trim()
+        .min(2, "Kod en az 2 karakter olmalı.")
+        .max(40, "Kod en fazla 40 karakter olabilir."),
+      kind: z.enum(["pct", "fixed"]).default("pct"),
+      valuePct: z.string().optional(),
+      valueFixed: z.string().optional(),
+      minSubtotal: moneyMinor,
+      usageLimit: intInput,
+      expiresAt: z.string().optional().default(""),
+      isActive: z.string().optional(),
+    })
+    .transform((v) => {
+      let value = 0;
+      if (v.kind === "pct") {
+        const raw = parseFloat(String(v.valuePct ?? "0").replace(",", "."));
+        value = Number.isFinite(raw) ? Math.round(raw) : 0;
+      } else {
+        value = parseMoneyInput(String(v.valueFixed ?? "")) ?? 0;
+      }
+      return {
+        code: v.code,
+        kind: v.kind,
+        value,
+        minSubtotalMinor: v.minSubtotal,
+        usageLimit: v.usageLimit,
+        // Stored as a UTC instant. The datetime-local value has no offset, and
+        // on a UTC server "23:59" meant 23:59 UTC - the promo stayed valid
+        // three hours past the Istanbul time the admin typed.
+        expiresAt: v.expiresAt?.trim()
+          ? normalizePublishInstant(v.expiresAt)
+          : "",
+        isActive: v.isActive === "on",
+      };
+    })
+    .superRefine((v, ctx) => {
+      if (v.kind === "pct" && (v.value < 1 || v.value > 100)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Yüzde 1-100 arasında olmalı.",
+          path: ["valuePct"],
+        });
+      }
+      if (v.kind === "fixed" && v.value <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sabit tutar pozitif olmalı.",
+          path: ["valueFixed"],
+        });
+      }
+      if (v.kind === "fixed" && v.value > PROMO_FIXED_MAX_MINOR) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Sabit indirim en fazla 2.000 TL olabilir.",
+          path: ["valueFixed"],
+        });
+      }
+      if (Number.isNaN(v.minSubtotalMinor)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Geçerli bir alt sepet tutarı gir (ör. 250 ya da 1.250,00).",
+          path: ["minSubtotal"],
+        });
+      } else if (v.minSubtotalMinor > CATALOG_MONEY_MAX_MINOR) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: MONEY_TOO_LARGE_ERROR,
+          path: ["minSubtotal"],
+        });
+      }
+      if (Number.isNaN(v.usageLimit)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Kullanım limiti 0 ya da pozitif bir tam sayı olmalı.",
+          path: ["usageLimit"],
+        });
+      } else if (v.usageLimit > PROMO_USAGE_LIMIT_MAX) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Kullanım limiti en fazla 1.000.000 olabilir.",
+          path: ["usageLimit"],
+        });
+      }
+      const expiresAt = v.expiresAt ? parsePublishInstant(v.expiresAt) : null;
+      if (v.expiresAt && expiresAt === null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Geçerli bir tarih gir.",
+          path: ["expiresAt"],
+        });
+      } else if (
+        expiresAt !== null &&
+        expiresAt <= Date.now() &&
+        !(storedMinute && toDateTimeLocalInput(v.expiresAt) === storedMinute)
+      ) {
+        // A past date made a code that was dead on save while the list said
+        // "kaydedildi". No "boş bırak" here: on an expired code a blank is
+        // the way back to a code that never ends.
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Bu tarih geçmişte kaldı. İleri bir tarih seç.",
+          path: ["expiresAt"],
+        });
+      }
+    });
+}
+
+/** A new code: every expiry must lie ahead. */
+export const promoFormSchema = buildPromoFormSchema();

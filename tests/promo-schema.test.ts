@@ -3,12 +3,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PROMO_FIXED_MAX_MINOR,
   PROMO_USAGE_LIMIT_MAX,
+  buildPromoFormSchema,
   promoFormSchema,
 } from "@/lib/admin/promo-schema";
 
 /** The field the first refusal names, and its message. */
-function refusal(input: Record<string, string>): [string, string] | null {
-  const res = promoFormSchema.safeParse(input);
+function refusal(
+  input: Record<string, string>,
+  schema = promoFormSchema,
+): [string, string] | null {
+  const res = schema.safeParse(input);
   if (res.success) return null;
   const issue = res.error.issues[0];
   return [issue.path.join("."), issue.message];
@@ -108,7 +112,7 @@ describe("promo expiry", () => {
     vi.setSystemTime(new Date("2026-10-17T09:00:00.000Z"));
     expect(refusal({ ...base, expiresAt: "2026-10-16T23:59" })).toEqual([
       "expiresAt",
-      "Bu tarih geçmişte kaldı. İleri bir tarih seç ya da süresiz için boş bırak.",
+      "Bu tarih geçmişte kaldı. İleri bir tarih seç.",
     ]);
     // 11:59 Istanbul is 08:59 UTC: already gone at 09:00 UTC.
     expect(refusal({ ...base, expiresAt: "2026-10-17T11:59" })?.[0]).toBe(
@@ -117,5 +121,39 @@ describe("promo expiry", () => {
     expect(refusal({ ...base, expiresAt: "2026-10-17T12:30" })).toBeNull();
     // Blank stays "never".
     expect(refusal({ ...base, expiresAt: "" })).toBeNull();
+  });
+
+  it("lets an expired code keep its own date on an edit", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-17T09:00:00.000Z"));
+    // YAZ25 ran out on 1 Eki 23:59 and the edit form shows that date back.
+    // Refusing it left two ways to save a new limit, a future date or a
+    // blank, and both brought the code back (the blank with no end).
+    const stored = "2026-10-01T20:59:00.000Z";
+    const edit = buildPromoFormSchema(stored);
+    const kept = edit.safeParse({ ...base, expiresAt: "2026-10-01T23:59" });
+    expect(kept.success && kept.data.expiresAt).toBe(stored);
+    // A stored instant with seconds still matches the minute the form shows.
+    expect(
+      refusal(
+        { ...base, expiresAt: "2026-10-01T23:59" },
+        buildPromoFormSchema("2026-10-01T20:59:30.000Z"),
+      ),
+    ).toBeNull();
+    // Another past date is a typed one: refused on an edit as on a new code.
+    expect(refusal({ ...base, expiresAt: "2026-10-05T23:59" }, edit)).toEqual([
+      "expiresAt",
+      "Bu tarih geçmişte kaldı. İleri bir tarih seç.",
+    ]);
+    expect(refusal({ ...base, expiresAt: "2026-10-01T23:59" })?.[0]).toBe(
+      "expiresAt",
+    );
+    // A code with no stored expiry gets no pass.
+    expect(
+      refusal(
+        { ...base, expiresAt: "2026-10-01T23:59" },
+        buildPromoFormSchema(""),
+      )?.[0],
+    ).toBe("expiresAt");
   });
 });
