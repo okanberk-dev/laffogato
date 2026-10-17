@@ -44,6 +44,7 @@ export async function applyProductImportAction(
   _prev: ProductImportState,
   formData: FormData,
 ): Promise<ProductImportState> {
+  const startedAt = Date.now();
   const session = await requireRole("products");
   const file = await readImportFile(formData.get("file"));
   if (!file.ok) return { phase: "idle", error: file.error };
@@ -75,7 +76,10 @@ export async function applyProductImportAction(
     };
   }
 
-  const outcome = await applyProductImport(plan, { actor: session.email });
+  const outcome = await applyProductImport(plan, {
+    actor: session.email,
+    startedAt,
+  });
   // One row for the whole import: counts and ids, never the file itself.
   await safeAudit({
     action: "bulk_update",
@@ -87,6 +91,7 @@ export async function applyProductImportAction(
       skipped: outcome.counts.unchanged,
       errors: outcome.counts.error,
       stockMoves: outcome.stockMoves,
+      notStarted: outcome.notStarted,
       createdIds: outcome.createdIds,
       updatedIds: outcome.updatedIds,
     },
@@ -101,6 +106,12 @@ export async function applyProductImportAction(
     fileName: file.fileName,
     rows: outcome.rows,
     counts: outcome.counts,
-    notices: preview.notices,
+    notices:
+      outcome.notStarted > 0
+        ? [
+            ...(preview.notices ?? []),
+            `Süre yetmedi: ${outcome.notStarted} satır yazılmadı. Aynı dosyayı yeniden önizleyip içe aktar.`,
+          ]
+        : preview.notices,
   };
 }

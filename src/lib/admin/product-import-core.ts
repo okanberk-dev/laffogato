@@ -13,7 +13,13 @@
  *   description, tag) keeps the product's value; a new product needs name,
  *   category, price and description.
  * - An empty cell in an optional column clears it: no was price, the
- *   category's KDV rate, no brand, weight not shown.
+ *   category's KDV rate, no brand, weight not shown. The preview says
+ *   "temizlenecek" on each such field and counts them above the table: a
+ *   stock-only file built from the template would otherwise wipe every
+ *   sale price and own KDV rate it did not mean to touch.
+ * - A KDV cell takes the rates the law uses today (0, 1, 10, 20) or the
+ *   product's own stored rate. The panel stores any whole rate up to 100,
+ *   but a spreadsheet is where an old 18 or 8 comes from.
  * - Images are not imported.
  */
 
@@ -24,6 +30,20 @@ import { foldTr } from "./text-fold";
 export const PRODUCT_IMPORT_MAX_BYTES = 1024 * 1024;
 /** The most data rows one file may hold (the header not counted). */
 export const PRODUCT_IMPORT_MAX_ROWS = 500;
+/**
+ * The most cells the header may hold. Another shop's export has a few
+ * dozen; a million empty ones only cost time to read.
+ */
+export const PRODUCT_IMPORT_MAX_COLUMNS = 200;
+/**
+ * How long the import keeps starting new rows, from the moment the action
+ * began. The page's maxDuration is 120 s: the rest is for the row in
+ * flight, the audit row and the answer. A row not started in time is
+ * reported as not written, never cut off unseen.
+ */
+export const PRODUCT_IMPORT_WRITE_BUDGET_MS = 90_000;
+/** The SKU of the template's example row. */
+export const PRODUCT_IMPORT_EXAMPLE_SKU = "SIRE-00101";
 /** The largest stock or weight a cell may hold; a bigger one is a typo. */
 export const PRODUCT_IMPORT_MAX_COUNT = 100_000;
 /** Any cell longer than this is refused before it is read (description excepted). */
@@ -60,7 +80,7 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
   {
     key: "sku",
     need: "always",
-    example: "SIRE-00101",
+    example: PRODUCT_IMPORT_EXAMPLE_SKU,
     note: "Eşleştirme anahtarı. Panelde bu SKU varsa ürün güncellenir, yoksa yeni ürün açılır.",
     aliases: ["stokkodu", "urunkodu"],
   },
@@ -89,7 +109,7 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
     key: "compareAtPrice",
     need: "optional",
     example: "149,90",
-    note: "Eski fiyat. Boşsa indirim gösterilmez.",
+    note: "Eski fiyat. Boş hücre ürünün eski fiyatını siler; dokunmayacaksan sütunu dosyadan çıkar.",
     aliases: ["eskifiyat"],
   },
   {
@@ -103,14 +123,14 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
     key: "taxRatePct",
     need: "optional",
     example: "1",
-    note: "KDV oranı (0, 1, 10, 20). Boşsa kategorinin oranı geçer.",
+    note: "KDV oranı: 0, 1, 10 ya da 20. Boş hücre ürünün kendi oranını siler, kategorinin oranı geçer; dokunmayacaksan sütunu dosyadan çıkar.",
     aliases: ["kdv", "kdvorani"],
   },
   {
     key: "isActive",
     need: "optional",
-    example: "evet",
-    note: "evet / hayır (1 / 0, aktif / pasif da olur). Boşsa değişmez; yeni ürün pasif açılır.",
+    example: "hayır",
+    note: "evet / hayır (1 / 0, aktif / pasif da olur). Boşsa değişmez; yeni ürün evet yazmazsan pasif açılır.",
     aliases: ["aktif", "durum", "yayinda"],
   },
   {
@@ -124,14 +144,14 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
     key: "brand",
     need: "optional",
     example: "Sirena",
-    note: "En fazla 40 karakter. Boşsa marka gösterilmez.",
+    note: "En fazla 40 karakter. Boş hücre ürünün markasını siler; dokunmayacaksan sütunu dosyadan çıkar.",
     aliases: ["marka"],
   },
   {
     key: "weight",
     need: "optional",
     example: "250",
-    note: "Gram. Ürün sayfasında görünür; boşsa gösterilmez.",
+    note: "Gram. Ürün sayfasında görünür. Boş hücre ürünün ağırlığını siler; dokunmayacaksan sütunu dosyadan çıkar.",
     aliases: ["agirlik", "gram", "weightgrams"],
   },
   {

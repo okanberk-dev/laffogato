@@ -650,3 +650,19 @@ yeniden hesaplar; arada dosya ya da katalog değiştiyse yazmaz, yeni önizleme
 gösterir. Her içe aktarma tek olay kaydı yazar (sayılar ve kimlikler, dosya
 içeriği değil). Görseller içe aktarılmaz. Testler: `admin-csv-parse`,
 `admin-product-import`.
+
+Bağımsız inceleme sonrası (aynı PR): isteğe bağlı sütundaki boş hücre kayıtlı
+değeri sildiği için önizleme her alanda "temizlenecek (hücre boş)" yazar ve
+tablonun üstünde kaç üründe neyin temizleneceğini sayar (yalnız stok için
+hazırlanmış bir dosya bütün eski fiyatları ve ürünlere özel KDV oranlarını
+sessizce silebiliyordu). KDV hücresi yalnız 0, 1, 10, 20 ya da ürünün zaten
+kayıtlı oranını alır (eski 18 / 8 reddedilir). Başlık en fazla 200 sütun.
+İçe aktarma 90 saniyeden sonra yeni satıra başlamaz, kalanları "yazılmadı"
+diye listeler (sayfa sınırı 120 sn; yanıt ve olay kaydı yine gelir). Alanları
+yazılıp stoğu yazılamayan satır "Hata" sayılır. Şablonun örnek satırı pasif
+açılır, dosyada kalırsa önizleme uyarır. Sihirbaz düzenlemede boşaltılan
+SKU'nun kayıtlı kodu koruduğunu söyler (eskiden "kayıtta üretilir" diyordu).
+Açık kalan risk: aynı dosya iki sekmede aynı anda içe aktarılırsa ve ikisi de
+yeniden planlamayı ötekinin ilk yazımından önce bitirirse stok farkı iki kez
+yazılır (pencere milisaniyeler; önizlemenin parmak izi geri kalan her durumu
+yakalar).

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 
 import { sceneColumns } from "@/lib/backdrop/scene";
 import { priceLabel } from "@/lib/utils/format";
+import { KDV_RATE_CHOICES } from "@/lib/utils/kdv";
 
 import { parseCsv, type CsvRecord } from "./csv";
 import {
@@ -12,9 +13,12 @@ import {
   parseActiveCell,
   parseCountCell,
   PRODUCT_IMPORT_CELL_MAX,
+  PRODUCT_IMPORT_EXAMPLE_SKU,
   PRODUCT_IMPORT_MAX_BYTES,
+  PRODUCT_IMPORT_MAX_COLUMNS,
   PRODUCT_IMPORT_MAX_ROWS,
   PRODUCT_IMPORT_STOCK_NOTE,
+  PRODUCT_IMPORT_WRITE_BUDGET_MS,
   type ImportColumn,
   type ImportCounts,
   type ImportRowStatus,
@@ -88,10 +92,15 @@ export type PlannedAction =
       catChanged: boolean;
     };
 
+/** The optional fields an empty cell clears on an existing product. */
+export type ClearedField = "compareAtPrice" | "taxRatePct" | "brand" | "weight";
+
 export interface PlannedRow {
   view: ImportRowView;
   /** Null for a refused or unchanged row: nothing to write. */
   action: PlannedAction | null;
+  /** Stored values this row's empty cells will clear (counted in a notice). */
+  clears?: ClearedField[];
 }
 
 export type ImportPlan =
@@ -155,6 +164,18 @@ function signed(n: number): string {
   return n > 0 ? `+${n}` : String(n);
 }
 
+/** How the clear notice names each field, after a count ("3 üründe ..."). */
+const CLEARED_LABEL: Record<ClearedField, string> = {
+  compareAtPrice: "eski fiyat",
+  taxRatePct: "ürünün kendi KDV oranı",
+  brand: "marka",
+  weight: "ağırlık",
+};
+
+/** The KDV rates a CSV cell may set, besides the product's stored one. */
+const KDV_CELL_ERROR =
+  "KDV: 0, 1, 10 ya da 20 yaz. Boş hücre kategorinin oranını geçirir.";
+
 /** A category cell: its slug, or its label read the Turkish way. */
 function resolveCategory(
   cell: string,
@@ -194,6 +215,12 @@ export function planProductImport(
   if (!parsed.ok) return { ok: false, error: parsed.error };
   const [header, ...data] = parsed.records;
   if (!header) return { ok: false, error: "Dosya boş." };
+  if (header.cells.length > PRODUCT_IMPORT_MAX_COLUMNS) {
+    return {
+      ok: false,
+      error: `Başlık satırında en fazla ${PRODUCT_IMPORT_MAX_COLUMNS} sütun olabilir; bu dosyada ${header.cells.length} var. Şablondaki sütunları kullan.`,
+    };
+  }
 
   const columns = new Map<ImportColumn, number>();
   const unknown: string[] = [];
@@ -226,7 +253,9 @@ export function planProductImport(
   }
   const notices: string[] = [];
   if (unknown.length > 0) {
-    notices.push(`Tanımadığım sütunlar atlandı: ${unknown.join(", ")}.`);
+    const named = unknown.slice(0, 10).join(", ");
+    const more = unknown.length > 10 ? ` ve ${unknown.length - 10} sütun daha` : "";
+    notices.push(`Tanımadığım sütunlar atlandı: ${named}${more}.`);
   }
 
   const bySku = new Map<string, ProductImportView[]>();
@@ -245,6 +274,25 @@ export function planProductImport(
   const rows = data.map((rec) =>
     planRow(rec, columns, ctx, bySku, fileLines),
   );
+  if (fileLines.has(PRODUCT_IMPORT_EXAMPLE_SKU)) {
+    notices.push(
+      `Şablondaki örnek satır (${PRODUCT_IMPORT_EXAMPLE_SKU}) dosyada duruyor. O ürünü istemiyorsan satırı sil.`,
+    );
+  }
+  // Empty optional cells clear stored values: say how many, above the
+  // table, so a file meant for stock alone does not wipe sale prices or
+  // KDV rates unseen.
+  const cleared = new Map<ClearedField, number>();
+  for (const r of rows) {
+    if (!r.action) continue;
+    for (const f of r.clears ?? []) cleared.set(f, (cleared.get(f) ?? 0) + 1);
+  }
+  if (cleared.size > 0) {
+    const parts = [...cleared].map(([f, n]) => `${n} üründe ${CLEARED_LABEL[f]}`);
+    notices.push(
+      `Boş hücreler yüzünden temizlenecek: ${parts.join(", ")}. Bunlara dokunmak istemiyorsan o sütunu dosyadan çıkar; olmayan sütun hiçbir şeyi değiştirmez.`,
+    );
+  }
   const hash = createHash("sha256")
     .update(JSON.stringify(rows.map((r) => [r.view, r.action])))
     .digest("hex")
@@ -420,6 +468,20 @@ function planRow(
     return refuse(messages, nameCell || existing?.name);
   }
   const d = checked.data;
+  const storedRate =
+    existing && typeof existing.taxRatePct === "number"
+      ? existing.taxRatePct
+      : null;
+  // The panel stores any whole rate up to 100 for a future decree; a cell
+  // takes today's rates or the one the product already has.
+  if (
+    rateCell !== undefined &&
+    d.taxRatePct !== null &&
+    d.taxRatePct !== storedRate &&
+    !KDV_RATE_CHOICES.includes(d.taxRatePct)
+  ) {
+    return refuse([KDV_CELL_ERROR], d.name);
+  }
   const view = (status: ImportRowStatus, messages: string[]): ImportRowView => ({
     line: rec.line,
     sku: short(sku),
@@ -476,6 +538,7 @@ function planRow(
   // would merely tidy (a trailing space) is not a change the file asked for.
   const patch: ProductImportPatch = {};
   const changes: string[] = [];
+  const clears: ClearedField[] = [];
   if (nameCell && d.name !== existing.name) {
     patch.name = d.name;
     changes.push(`Ad: ${short(existing.name)} → ${short(d.name)}`);
@@ -505,16 +568,28 @@ function planRow(
     d.compareAtPriceMinor !== existing.compareAtPriceMinor
   ) {
     patch.compareAtPriceMinor = d.compareAtPriceMinor;
-    const was = (m: number) => (m > 0 ? priceLabel(m) : "yok");
-    changes.push(
-      `Eski fiyat: ${was(existing.compareAtPriceMinor)} → ${was(d.compareAtPriceMinor)}`,
-    );
+    if (compareCell === "") {
+      clears.push("compareAtPrice");
+      changes.push(
+        `Eski fiyat temizlenecek (hücre boş): ${priceLabel(existing.compareAtPriceMinor)} → yok`,
+      );
+    } else {
+      const was = (m: number) => (m > 0 ? priceLabel(m) : "yok");
+      changes.push(
+        `Eski fiyat: ${was(existing.compareAtPriceMinor)} → ${was(d.compareAtPriceMinor)}`,
+      );
+    }
   }
-  const storedRate =
-    typeof existing.taxRatePct === "number" ? existing.taxRatePct : null;
   if (rateCell !== undefined && d.taxRatePct !== storedRate) {
     patch.taxRatePct = d.taxRatePct;
-    changes.push(`KDV: ${rateLabel(storedRate)} → ${rateLabel(d.taxRatePct)}`);
+    if (rateCell === "") {
+      clears.push("taxRatePct");
+      changes.push(
+        `KDV temizlenecek (hücre boş): ${rateLabel(storedRate)} → ${rateLabel(null)}`,
+      );
+    } else {
+      changes.push(`KDV: ${rateLabel(storedRate)} → ${rateLabel(d.taxRatePct)}`);
+    }
   }
   if (active !== null && d.isActive !== existing.isActive) {
     patch.isActive = d.isActive;
@@ -523,13 +598,25 @@ function planRow(
   const storedBrand = existing.brand ?? "";
   if (brandCell !== undefined && d.brand !== storedBrand) {
     patch.brand = d.brand;
-    changes.push(`Marka: ${short(storedBrand) || "yok"} → ${short(d.brand) || "yok"}`);
+    if (brandCell === "") {
+      clears.push("brand");
+      changes.push(`Marka temizlenecek (hücre boş): ${short(storedBrand)} → yok`);
+    } else {
+      changes.push(`Marka: ${short(storedBrand) || "yok"} → ${short(d.brand) || "yok"}`);
+    }
   }
   const storedWeight = existing.weightGrams ?? 0;
   if (weightCell !== undefined && d.weightGrams !== storedWeight) {
     patch.weightGrams = d.weightGrams;
     const grams = (g: number) => (g > 0 ? `${g} g` : "gösterilmiyor");
-    changes.push(`Ağırlık: ${grams(storedWeight)} → ${grams(d.weightGrams)}`);
+    if (weightCell === "") {
+      clears.push("weight");
+      changes.push(
+        `Ağırlık temizlenecek (hücre boş): ${grams(storedWeight)} → ${grams(0)}`,
+      );
+    } else {
+      changes.push(`Ağırlık: ${grams(storedWeight)} → ${grams(d.weightGrams)}`);
+    }
   }
   const stockDelta = stockValue === null ? 0 : d.stock - existing.stock;
   if (stockDelta !== 0) {
@@ -558,6 +645,7 @@ function planRow(
       stockDelta,
       catChanged: patch.cat !== undefined,
     },
+    clears,
   };
 }
 
@@ -569,7 +657,13 @@ export interface ImportOutcome {
   updatedIds: string[];
   /** Stock moves written ("CSV içe aktarma"). */
   stockMoves: number;
+  /** Writable rows left unwritten because the time ran out. */
+  notStarted: number;
 }
+
+/** Why a row the time budget left out was not written. */
+export const IMPORT_OUT_OF_TIME =
+  "Süre yetmedi, bu satır yazılmadı. Aynı dosyayı yeniden önizleyip içe aktar: yazılanlar \"Değişiklik yok\" görünür.";
 
 /** The scene columns again after a category change, as a wizard save would. */
 async function sceneForCategory(
@@ -601,20 +695,40 @@ function failureKind(err: unknown): string {
 /**
  * Writes the planned rows one by one: creates, field patches and stock
  * deltas. A row that fails is reported and the next one still runs; a
- * refused or unchanged row is not touched.
+ * refused or unchanged row is not touched. No row is started once
+ * `budgetMs` has passed since `startedAt`: the rest come back as not
+ * written, so the answer and the audit row arrive before the platform
+ * stops the function, and they list what was written.
  */
 export async function applyProductImport(
   plan: Extract<ImportPlan, { ok: true }>,
-  { actor }: { actor: string },
+  {
+    actor,
+    startedAt = Date.now(),
+    budgetMs = PRODUCT_IMPORT_WRITE_BUDGET_MS,
+    now = Date.now,
+  }: {
+    actor: string;
+    startedAt?: number;
+    budgetMs?: number;
+    /** The clock (a seam for tests). */
+    now?: () => number;
+  },
 ): Promise<ImportOutcome> {
   const rows: ImportRowView[] = [];
   const createdIds: string[] = [];
   const updatedIds: string[] = [];
   let stockMoves = 0;
+  let notStarted = 0;
 
   for (const { view, action } of plan.rows) {
     if (!action) {
       rows.push(view);
+      continue;
+    }
+    if (now() - startedAt >= budgetMs) {
+      notStarted += 1;
+      rows.push({ ...view, status: "error", messages: [IMPORT_OUT_OF_TIME] });
       continue;
     }
     try {
@@ -655,12 +769,26 @@ export async function applyProductImport(
         });
         if (moved.ok) {
           stockMoves += 1;
+        } else if (!patched) {
+          rows.push({
+            ...view,
+            status: "error",
+            messages: [...messages, `Stok yazılamadı: ${moved.error}`],
+          });
+          continue;
         } else {
-          messages.push(`Stok yazılamadı: ${moved.error}`);
-          if (!patched) {
-            rows.push({ ...view, status: "error", messages });
-            continue;
-          }
+          // The other fields are written; the row is still a failure the
+          // operator must see among the errors, not a quiet "Güncellendi".
+          updatedIds.push(action.id);
+          rows.push({
+            ...view,
+            status: "error",
+            messages: [
+              ...messages,
+              `Diğer alanlar yazıldı ama stok yazılamadı: ${moved.error}`,
+            ],
+          });
+          continue;
         }
       }
       updatedIds.push(action.id);
@@ -677,7 +805,14 @@ export async function applyProductImport(
     }
   }
 
-  return { rows, counts: countRows(rows), createdIds, updatedIds, stockMoves };
+  return {
+    rows,
+    counts: countRows(rows),
+    createdIds,
+    updatedIds,
+    stockMoves,
+    notStarted,
+  };
 }
 
 /** An uploaded file as text, or why it is refused. */

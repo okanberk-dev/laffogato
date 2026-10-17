@@ -8,7 +8,9 @@ import { requireRole } from "@/lib/admin/auth";
 export const metadata = { title: "Admin · Ürünleri içe aktar" };
 export const dynamic = "force-dynamic";
 // The import writes up to 500 rows one by one (a stock change is a few
-// queries); the default limit is too short for a full file.
+// queries); the default limit is too short for a full file. It starts no
+// row after PRODUCT_IMPORT_WRITE_BUDGET_MS (90 s) and reports the rest as
+// not written, so the answer and the audit row fit inside this limit.
 export const maxDuration = 120;
 
 export default async function ProductImportPage() {

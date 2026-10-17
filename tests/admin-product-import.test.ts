@@ -127,9 +127,9 @@ vi.mock("@/lib/admin/store", () => ({
   slugify: (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
 }));
 
-const { planProductImport, readImportFile } = await import(
-  "@/lib/admin/product-import"
-);
+const { applyProductImport, IMPORT_OUT_OF_TIME, planProductImport, readImportFile } =
+  await import("@/lib/admin/product-import");
+const { productImportTemplate } = await import("@/lib/admin/product-import-core");
 const actions = await import("@/app/admin/urunler/ice-aktar/actions");
 const route = await import("@/app/admin/urunler/ice-aktar/sablon/route");
 const { ProductImportForm } = await import(
@@ -344,11 +344,69 @@ describe("what a row will do", () => {
       weightGrams: 0,
     });
     expect(a.stockDelta).toBe(0);
+    // Each cleared field says so, and the notice above the table counts them.
+    expect(p.rows[0].view.messages).toEqual([
+      "Eski fiyat temizlenecek (hücre boş): 360₺ → yok",
+      "KDV temizlenecek (hücre boş): %20 → kategorinin oranı",
+      "Marka temizlenecek (hücre boş): Sirena → yok",
+      "Ağırlık temizlenecek (hücre boş): 250 g → gösterilmiyor",
+    ]);
+    expect(p.notices).toEqual([
+      "Boş hücreler yüzünden temizlenecek: 1 üründe eski fiyat, 1 üründe ürünün kendi KDV oranı, 1 üründe marka, 1 üründe ağırlık. Bunlara dokunmak istemiyorsan o sütunu dosyadan çıkar; olmayan sütun hiçbir şeyi değiştirmez.",
+    ]);
+  });
+
+  it("counts the clears of a stock-only file built from the template", () => {
+    const p = okPlan(
+      csv("SIRE-00001;;;;;14;;;;;", "SIRE-00002;;;;;3;;;;;"),
+      [
+        product({ compareAtPriceMinor: 36_000, taxRatePct: 1 }),
+        product({ id: "prd-0002", sku: "SIRE-00002", compareAtPriceMinor: 9_900, brand: "" }),
+      ],
+    );
+    expect(p.notices[0]).toContain(
+      "2 üründe eski fiyat, 1 üründe ürünün kendi KDV oranı, 1 üründe marka, 2 üründe ağırlık",
+    );
+    // A refused row clears nothing, so it is not counted.
+    const refused = okPlan(csv("SIRE-00001;;;0;;14;;;;;"), [
+      product({ compareAtPriceMinor: 36_000 }),
+    ]);
+    expect(refused.rows[0].view.status).toBe("error");
+    expect(refused.notices).toEqual([]);
+  });
+
+  it("does not call an explicit 0 or varsayilan an empty-cell clear", () => {
+    const p = okPlan(csv("SIRE-00001;;;;0;;varsayilan;;;Sirena;0"), [
+      product({ compareAtPriceMinor: 36_000, taxRatePct: 20 }),
+    ]);
     expect(p.rows[0].view.messages).toEqual([
       "Eski fiyat: 360₺ → yok",
       "KDV: %20 → kategorinin oranı",
-      "Marka: Sirena → yok",
       "Ağırlık: 250 g → gösterilmiyor",
+    ]);
+    expect(p.notices).toEqual([]);
+  });
+
+  it("takes today's KDV rates, or the rate the product already has", () => {
+    const row = (rate: string) => `N-1;Fincan;Ekipman;450;;;${rate};;Porselen fincan.;;`;
+    for (const rate of ["0", "1", "10", "20", "%10", ""]) {
+      expect(okPlan(csv(row(rate))).rows[0].view.status).toBe("create");
+    }
+    for (const rate of ["18", "8", "100"]) {
+      const r = okPlan(csv(row(rate))).rows[0];
+      expect(r.view.status).toBe("error");
+      expect(r.view.messages).toEqual([
+        "KDV: 0, 1, 10 ya da 20 yaz. Boş hücre kategorinin oranını geçirir.",
+      ]);
+    }
+    // A product that already carries 18 keeps it, but cannot be moved to 8.
+    const own = [product({ taxRatePct: 18 })];
+    expect(okPlan("sku;taxRatePct\nSIRE-00001;18\n", own).rows[0].view.status).toBe(
+      "unchanged",
+    );
+    expect(okPlan("sku;taxRatePct\nSIRE-00001;8\n", own).rows[0].view.status).toBe("error");
+    expect(okPlan("sku;taxRatePct\nSIRE-00001;20\n", own).rows[0].view.messages).toEqual([
+      "KDV: %18 → %20",
     ]);
   });
 
@@ -435,6 +493,72 @@ describe("what a row will do", () => {
       isActive: true,
       stock: 0,
     });
+  });
+});
+
+describe("the template's example row", () => {
+  it("opens passive, and a file that still holds it says so", () => {
+    const p = okPlan(productImportTemplate("Kahve çekirdeği"), []);
+    const a = p.rows[0].action;
+    expect(a?.kind === "create" && a.input.isActive).toBe(false);
+    expect(p.notices).toContain(
+      "Şablondaki örnek satır (SIRE-00101) dosyada duruyor. O ürünü istemiyorsan satırı sil.",
+    );
+  });
+});
+
+describe("a header that is not a product table", () => {
+  it("refuses more than 200 columns before reading them", () => {
+    const p = plan(`sku${";".repeat(250)}\nA\n`);
+    expect(p.ok).toBe(false);
+    expect(!p.ok && p.error).toContain("en fazla 200 sütun");
+  });
+
+  it("names at most ten skipped columns", () => {
+    const extra = Array.from({ length: 14 }, (_, i) => `x${i}`).join(";");
+    const p = okPlan(`sku;stock;${extra}\nSIRE-00001;10\n`);
+    expect(p.notices[0]).toBe(
+      "Tanımadığım sütunlar atlandı: x0, x1, x2, x3, x4, x5, x6, x7, x8, x9 ve 4 sütun daha.",
+    );
+  });
+});
+
+describe("applyProductImport", () => {
+  it("starts no row once the time budget is spent, and says which were not written", async () => {
+    const p = okPlan(
+      csv(
+        "N-1;Fincan;Ekipman;450;;;;;Porselen fincan.;;",
+        "N-2;Tabak;Ekipman;300;;;;;Porselen tabak.;;",
+        "N-3;Kase;Ekipman;200;;;;;Porselen kase.;;",
+      ),
+    );
+    const clock = [0, 40, 100, 130];
+    const out = await applyProductImport(p, {
+      actor: "owner@laffogato.net",
+      startedAt: 0,
+      budgetMs: 100,
+      now: () => clock.shift() ?? 999,
+    });
+    expect(out.createdIds).toHaveLength(2);
+    expect(out.notStarted).toBe(1);
+    expect(out.rows.map((r) => r.status)).toEqual(["create", "create", "error"]);
+    expect(out.rows[2].messages).toEqual([IMPORT_OUT_OF_TIME]);
+    expect(h.store.createProduct).toHaveBeenCalledTimes(2);
+  });
+
+  it("calls a row whose stock failed after its fields were written an error, and still lists it", async () => {
+    h.store.adjustStock.mockResolvedValueOnce({
+      ok: false,
+      error: "Stok eksiye düşemez (mevcut: 2).",
+    });
+    const p = okPlan("sku;price;stock\nSIRE-00001;350;0\n");
+    const out = await applyProductImport(p, { actor: "owner@laffogato.net" });
+    expect(out.updatedIds).toEqual(["prd-0001"]);
+    expect(out.stockMoves).toBe(0);
+    expect(out.rows[0].status).toBe("error");
+    expect(out.rows[0].messages.at(-1)).toBe(
+      "Diğer alanlar yazıldı ama stok yazılamadı: Stok eksiye düşemez (mevcut: 2).",
+    );
   });
 });
 
@@ -531,6 +655,7 @@ describe("the actions", () => {
         skipped: 0,
         errors: 0,
         stockMoves: 1,
+        notStarted: 0,
         createdIds: ["prd-0101"],
         updatedIds: ["prd-0001"],
       },

@@ -169,7 +169,9 @@ export function ProductImportForm() {
             Dosyada olmayan sütun hiçbir şeyi değiştirmez. Boş bıraktığın ana
             alan (ad, kategori, fiyat, stok, durum, açıklama, etiket) olduğu
             gibi kalır; boş bıraktığın isteğe bağlı alan (eski fiyat, KDV,
-            marka, ağırlık) temizlenir.
+            marka, ağırlık) temizlenir, üründe kayıtlı olan silinir. Önizleme
+            bunları &quot;temizlenecek&quot; diye gösterir. Yalnız stok ya da
+            fiyat güncelleyeceksen öteki sütunları dosyadan çıkar.
           </li>
           <li>
             Stok farkı Stok hareketlerinde &quot;CSV içe aktarma&quot; notuyla
