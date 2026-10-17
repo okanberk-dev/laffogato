@@ -10,6 +10,13 @@ export const PAID_NOTICE_KIND = "paid";
 /** The resend suffix: `paid#resend-2` is the second resend of `paid`. */
 export const RESEND_MARK = "#resend-";
 
+/**
+ * The status of a FAILED mail row once "Yeniden gönder" got its copy out.
+ * Not `failed` any more, so no later trigger of the same mail takes the row
+ * over and sends a second copy; not `sent`, because this one never went.
+ */
+export const RESENT_STATUS = "resent";
+
 /** The mail a kind is (a resend's kind without its suffix). */
 export function baseNoticeKind(kind: string): string {
   const at = kind.indexOf(RESEND_MARK);

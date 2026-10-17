@@ -16,6 +16,8 @@ import { baseNoticeKind, isResendableKind } from "@/lib/email/notice-kinds";
 import { resendOrderNotice } from "@/lib/email/order-notices";
 import { creditWalletRefund } from "@/lib/mobile/wallet";
 import { getPaymentProvider } from "@/lib/payment";
+import { isPaymentRefused, type PaymentProvider } from "@/lib/payment/provider";
+import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import { safeAudit } from "./audit";
 import {
@@ -23,6 +25,7 @@ import {
   attentionText,
   bulkRefusal,
   bulkSummary,
+  hasStockToReturn,
   isParcel,
   isPosOrder,
   mailPart,
@@ -207,6 +210,11 @@ export interface RefundRequest {
  * (wallet, card, or nowhere for a counter sale), then the status, the stamp
  * and the buyer's mail. Nothing after the money moved can throw: a failed
  * follow-up or audit row becomes a warning in the sentence.
+ *
+ * Only a refund the POS certainly did not make (`PaymentRefusedError`)
+ * takes the entry back. A POS that did not answer leaves it standing, flags
+ * the order `refund_unknown` and tells nobody "iade edildi": the operator's
+ * retry is refused by the ledger instead of reaching the card a second time.
  */
 export async function issueRefund(
   order: AdminOrder,
@@ -257,6 +265,9 @@ export async function issueRefund(
   });
   if (!reserved.ok) return { ok: false, error: reserved.error };
 
+  // True when the POS was asked and did not answer: the refund may have gone
+  // through (PaymentRefusedError, provider.ts). It is never rolled back.
+  let unknown = false;
   if (destination === "wallet") {
     try {
       await creditWalletRefund({
@@ -271,41 +282,78 @@ export async function issueRefund(
       return {
         ok: false,
         error:
-          "Cüzdan iadesi yazılamadı, hiçbir kayıt oluşturulmadı. Birazdan tekrar dene.",
+          "Cüzdan iadesi yazılamadı, para geri gönderilmedi. Birazdan tekrar dene.",
       };
     }
   } else if (destination === "card" && ref) {
+    let provider: PaymentProvider;
     try {
-      // The payment row's own date and amount let the provider skip
-      // searching its history for the transaction; rows from before the
-      // column carry '' and the provider falls back to that search.
-      await getPaymentProvider().refund(ref.providerRef, amountMinor, {
-        trxDate: ref.trxDate,
-        paidMinor: ref.amountMinor,
-      });
+      provider = getPaymentProvider();
     } catch (err) {
-      console.error("[refund] provider refund failed", err);
+      // Nothing was sent: the POS could not even be set up.
+      console.error("[refund] payment provider unavailable", err);
       await takeBack(order.id, reserved.refund.id, "REFUNDED");
       return {
         ok: false,
         error:
-          "Ödeme sağlayıcısı iadeyi reddetti, hiçbir kayıt oluşturulmadı. PayNkolay panelinden bakıp tekrar dene.",
+          "Ödeme sağlayıcısına bağlanılamadı, para geri gönderilmedi. Birazdan tekrar dene.",
       };
+    }
+    try {
+      // The payment row's own date and amount let the provider skip
+      // searching its history for the transaction; rows from before the
+      // column carry '' and the provider falls back to that search.
+      await provider.refund(ref.providerRef, amountMinor, {
+        trxDate: ref.trxDate,
+        paidMinor: ref.amountMinor,
+      });
+    } catch (err) {
+      if (isPaymentRefused(err)) {
+        // A refusal, or a request that was never sent: no money moved, the
+        // entry (and its token) goes, and the operator may try again.
+        console.error("[refund] provider refused the refund", err);
+        await takeBack(order.id, reserved.refund.id, "REFUNDED");
+        return {
+          ok: false,
+          error:
+            "Ödeme sağlayıcısı iadeyi reddetti, para geri gönderilmedi. PayNkolay panelinden bakıp tekrar dene.",
+        };
+      }
+      // A timeout, a dropped line, an answer without a code: the refund may
+      // have reached the card. Taking the entry back used to free the
+      // amount and the modal's token, and the retry the operator then made
+      // sent a second refund to the POS. The entry stays, so the ledger
+      // refuses that retry; a person checks PayNkolay's panel (CLAUDE.md
+      // rule 29, the refund side).
+      console.error(
+        `[refund] OUTCOME UNKNOWN, entry kept order=${order.id} refund=${reserved.refund.id} amountMinor=${amountMinor}`,
+        err,
+      );
+      unknown = true;
     }
   }
 
-  // The money moved (or, for a counter sale, the record stands). Nothing
-  // below may turn that into an error: the operator would retry, and a
-  // second refund passes while money is still "left".
-  const parts = [refundSentence(amountMinor, destination)];
-  let warn = false;
+  // The money moved (or, for a counter sale, the record stands; or the POS
+  // did not say). Nothing below may turn that into an error: the operator
+  // would retry, and a second refund passes while money is still "left".
+  const parts = unknown
+    ? [
+        `${formatTRYMinor(amountMinor)} için POS yanıt vermedi: para karta dönmüş olabilir, iade kayda geçti`,
+        "buradan tekrar deneme, PayNkolay panelinden bak",
+      ]
+    : [refundSentence(amountMinor, destination)];
+  let warn = unknown;
   let after = reserved.order;
   let mail: NoticeOutcome | null = null;
   try {
-    const finalized = await finalizeRefund(reserved.order, {
-      refund: reserved.refund,
-      viaCard: destination === "card",
-    });
+    // An unknown outcome is not told to the buyer as "iade edildi": the
+    // status and the stamps follow the entry, the mail waits for a person.
+    const finalized = await finalizeRefund(
+      reserved.order,
+      unknown
+        ? undefined
+        : { refund: reserved.refund, viaCard: destination === "card" },
+    );
     after = finalized.order;
     mail = finalized.mail;
   } catch (err) {
@@ -332,9 +380,16 @@ export async function issueRefund(
     }
   }
 
-  // "İptal edildi, iade bekliyor" is answered once nothing is left to give.
-  if (
-    String(order.attention ?? "") === "refund_due" &&
+  const flag = String(order.attention ?? "");
+  if (unknown) {
+    // The red band until a person has looked at PayNkolay. A flag the order
+    // already carries (a second charge, a wrong amount) says more and stays.
+    if (flag === "" || flag === "refund_due") {
+      await setOrderAttention(order.id, "refund_unknown");
+    }
+  } else if (
+    // "İptal edildi, iade bekliyor" is answered once nothing is left to give.
+    flag === "refund_due" &&
     refundableMinor(after, money.collected, money.collectedMinor) === 0
   ) {
     await setOrderAttention(order.id, "");
@@ -351,6 +406,7 @@ export async function issueRefund(
       provider: ref?.provider ?? "none",
       destination,
       restock: lines,
+      ...(unknown ? { outcome: "unknown" } : {}),
     },
   });
   if (!audited) {
@@ -448,7 +504,11 @@ export async function cancelOrder(
   ) {
     return unconfirmed(g.order);
   }
-  if (g.order.status === "shipped" && request.restock === null) {
+  if (
+    g.order.status === "shipped" &&
+    request.restock === null &&
+    hasStockToReturn(g.order)
+  ) {
     return refused("Kargo yolda: stok kararını seç.", {
       restock: "Stoğa geri alınsın mı, seç.",
     });
@@ -480,9 +540,13 @@ export async function cancelOrder(
   }
 
   const restock = request.restock !== false;
+  // From the status everything above was decided on (the role, the money,
+  // the stock question): a payment landing in between must not let an
+  // "unpaid" cancel take a paid order with it.
   const moved = await transitionOrder(id, "cancel", {
     restock,
     actor: actor.email,
+    expectStatus: g.order.status,
   });
   if (!moved.ok || !moved.order) return refused(moved.error ?? STALE);
 
@@ -633,6 +697,7 @@ export async function markPaid(
   if (input.alsoPrepare && order.status === "paid") {
     const prepared = await transitionOrder(id, "start_preparing", {
       actor: actor.email,
+      expectStatus: "paid",
     });
     if (prepared.ok && prepared.order) {
       order = prepared.order;
@@ -730,7 +795,10 @@ export async function moveOrder(
   if (!transition) return refused("Geçersiz işlem.");
   const g = await gate(id, actor, action);
   if (!g.ok) return g.result;
-  const moved = await transitionOrder(id, transition, { actor: actor.email });
+  const moved = await transitionOrder(id, transition, {
+    actor: actor.email,
+    expectStatus: g.order.status,
+  });
   if (!moved.ok || !moved.order) return refused(moved.error ?? STALE);
   const parts = [`${orderLabel(g.order)} ${DONE_TEXT[action](moved.order)}`];
   let warn = false;

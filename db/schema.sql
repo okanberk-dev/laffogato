@@ -4689,6 +4689,7 @@ create index if not exists payment_transactions_order_idx
 --   order_not_open     a payment landed on a cancelled or refunded order
 --   duplicate_payment  a second charge on an order that was already paid
 --   refund_due         cancelled after money was taken, and not refunded yet
+--   refund_unknown     the POS did not answer a refund: it may have gone through
 -- '' = nothing to look at. The first three lived only in an audit row
 -- (noteUnreconciledPayment) that nobody opened; the order list's "Dikkat"
 -- filter and the red banner on the order page read this column now.
@@ -4945,9 +4946,11 @@ $$;
 --   · the cap is what was actually collected (`p_cap`), not the order total:
 --     a POS that took ₺1 for a ₺500 order must not be asked to refund ₺500;
 --   · the refund modal's one-time token (`p_refund ->> 'token'`): a second
---     submit of the same modal - a double click, a retry after a timeout -
---     finds its token already in the ledger and is refused before the POS
---     is asked again.
+--     submit of the same modal - a double click, a retry after a lost
+--     answer - finds its token already in the ledger and is refused before
+--     the POS is asked again. The entry is only taken back
+--     (drop_order_refund) when the POS certainly refunded nothing; one it
+--     did not answer for stays, token and amount included.
 --
 -- Returns the new refunds array, or NULL when refused. The old function
 -- stays for the deployment that is still running while this one rolls out.

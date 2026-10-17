@@ -26,7 +26,11 @@ import type {
   OrderNoticeRow,
   OrderPaymentRow,
 } from "@/lib/admin/store";
-import { isResendKind, isResendableKind } from "@/lib/email/notice-kinds";
+import {
+  RESENT_STATUS,
+  isResendKind,
+  isResendableKind,
+} from "@/lib/email/notice-kinds";
 
 import { formatDateTime, formatTRY } from "./forms";
 import {
@@ -388,6 +392,7 @@ const MAIL_STATUS: Record<
   sent: { label: "Gönderildi", tone: "success" },
   failed: { label: "Gönderilemedi", tone: "danger" },
   sending: { label: "Gönderiliyor", tone: "warning" },
+  [RESENT_STATUS]: { label: "Yeniden gönderildi", tone: "success" },
 };
 
 /**

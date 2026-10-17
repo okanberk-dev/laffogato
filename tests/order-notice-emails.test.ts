@@ -412,8 +412,9 @@ describe("every trigger calls its notice", () => {
       "notifyOrderRefunded(",
     );
     expect(body(ops, "issueRefund")).toMatch(
-      // A wallet-paid order's refund goes back to the wallet, not a card.
-      /finalizeRefund\(reserved\.order, \{\s*refund: reserved\.refund,\s*viaCard: destination === "card",/,
+      // A wallet-paid order's refund goes back to the wallet, not a card;
+      // a refund the POS did not answer is told to nobody yet.
+      /finalizeRefund\(\s*reserved\.order,\s*unknown\s*\?\s*undefined\s*:\s*\{ refund: reserved\.refund, viaCard: destination === "card" \}/,
     );
   });
 });

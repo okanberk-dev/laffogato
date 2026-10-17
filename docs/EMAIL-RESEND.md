@@ -282,6 +282,9 @@ devralır ve yeniden dener. Resend'e `order-<sipariş>-<tür>` idempotency
 anahtarı da gider. Sipariş sayfasının "E-postalar" bölümü bu satırları
 listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
 `<tür>#resend-<n>` türüyle bir kez daha yollar (`resendOrderNotice`).
+Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
+e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
+ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
 Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /

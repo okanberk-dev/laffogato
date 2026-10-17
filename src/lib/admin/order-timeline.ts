@@ -6,6 +6,7 @@
 import {
   CANCEL_NOTICE_KIND,
   PAID_NOTICE_KIND,
+  RESENT_STATUS,
   baseNoticeKind,
   isResendKind,
 } from "@/lib/email/notice-kinds";
@@ -229,14 +230,26 @@ export function orderTimeline(
     });
   }
   for (const n of notices) {
-    const failed = n.status === "failed";
+    // A failed mail whose copy went out later: it still never went itself.
+    const resent = n.status === RESENT_STATUS;
+    const failed = n.status === "failed" || resent;
     const sending = n.status === "sending";
     out.push({
       id: `mail-${n.kind}`,
       at: n.sentAt || n.createdAt,
       title: `${noticeKindLabel(n.kind)} ${failed ? "gönderilemedi" : sending ? "gönderiliyor" : "gönderildi"}`,
-      tone: failed ? "danger" : sending ? "warning" : "success",
-      ...(failed && n.error ? { description: n.error.slice(0, 200) } : {}),
+      tone: resent
+        ? "warning"
+        : failed
+          ? "danger"
+          : sending
+            ? "warning"
+            : "success",
+      ...(resent
+        ? { description: "Yeniden gönderildi." }
+        : failed && n.error
+          ? { description: n.error.slice(0, 200) }
+          : {}),
     });
   }
   for (const a of audits) {

@@ -4134,11 +4134,21 @@ async function settleLoyaltyAfterRelease(
  * `paymentReceived`: "Hazırlamaya başla" on an UNPAID order settles it
  * (paidAt, the stamp, "ödemen alındı"). The button never said so, so the
  * move is refused unless the caller says the money was taken.
+ *
+ * `expectStatus`: the status the caller decided from (lib/admin/order-ops.ts
+ * reads the order, its money and the role first). Without it a payment that
+ * landed in between was cancelled from `paid` by a decision made for an
+ * unpaid order: no refund role asked, no "iade bekliyor" flag.
  */
 export async function transitionOrder(
   id: string,
   transition: OrderTransition,
-  opts: { restock?: boolean; actor?: string; paymentReceived?: boolean } = {},
+  opts: {
+    restock?: boolean;
+    actor?: string;
+    paymentReceived?: boolean;
+    expectStatus?: AdminOrderStatus;
+  } = {},
 ): Promise<TransitionResult> {
   await ensureSeed();
   const sb = getDb();
@@ -4146,6 +4156,12 @@ export async function transitionOrder(
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
   if (!map) return { ok: false, error: "Geçersiz işlem." };
+  if (opts.expectStatus && existing.status !== opts.expectStatus) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
   if (!map.from.includes(existing.status)) {
     return {
       ok: false,

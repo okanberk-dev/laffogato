@@ -4,12 +4,12 @@ import {
   istanbulStamp,
   ordersCsv,
 } from "@/lib/admin/order-csv";
+import { mayExportOrders } from "@/lib/admin/order-actions";
 import {
   ORDER_SORT_COLUMNS,
   parseOrderListParams,
   type OrderSortKey,
 } from "@/lib/admin/order-filters";
-import { canAccess } from "@/lib/admin/roles";
 import {
   listOrderMoney,
   listOrdersFiltered,
@@ -31,7 +31,9 @@ const BATCH = 500;
  * A route handler is not behind `requireRole` (that redirects pages), and
  * `proxy.ts` only redirects page views, so the session and the role are
  * checked here, on every request. Names and e-mails only: no phone, no
- * address, no consent evidence.
+ * address, no consent evidence. Owner and manager only (`mayExportOrders`):
+ * the file is the customer list with every order's money, which staff do
+ * not see in the panel either (customers, reports).
  */
 export async function GET(request: Request) {
   const session = await getAdminSession();
@@ -41,7 +43,7 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   }
-  if (!canAccess("orders", session.role)) {
+  if (!mayExportOrders(session.role)) {
     return new Response("Bu sayfaya erişimin yok.", {
       status: 403,
       headers: { "Cache-Control": "no-store" },

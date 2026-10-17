@@ -83,11 +83,15 @@ describe("CSV export", () => {
     expect((await GET(req)).status).toBe(401);
     session.value = { email: "kasa@laffogato.net", role: "cashier" };
     expect((await GET(req)).status).toBe(403);
+    // Staff work the orders on screen; the file is the customer list with
+    // every order's money (customers + reports: owner and manager only).
+    session.value = { email: "vardiya@laffogato.net", role: "staff" };
+    expect((await GET(req)).status).toBe(403);
     expect(listOrdersFiltered).not.toHaveBeenCalled();
   });
 
   it("exports the filtered list, every page of it", async () => {
-    session.value = { email: "a@b.c", role: "staff" };
+    session.value = { email: "a@b.c", role: "manager" };
     listOrdersFiltered
       .mockResolvedValueOnce({ orders: Array.from({ length: 500 }, (_, i) => order({ id: `o${i}`, orderNo: i })), total: 501 })
       .mockResolvedValueOnce({ orders: [order({ id: "last", orderNo: 9 })], total: 501 });

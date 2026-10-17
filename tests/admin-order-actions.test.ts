@@ -18,6 +18,7 @@ import {
   refusalFor,
   type OrderActionInput,
 } from "@/lib/admin/order-actions";
+import { PaymentRefusedError } from "@/lib/payment/provider";
 
 /**
  * `shipped` is one status with three meanings, and the app already tells the
@@ -262,8 +263,11 @@ vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn(), safeAudit }));
 const setAdminFlash = vi.hoisted(() => vi.fn());
 const redirect = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash }));
+const providerRefund = vi.hoisted(() =>
+  vi.fn(async (..._args: unknown[]): Promise<unknown> => ({ status: "succeeded" })),
+);
 vi.mock("@/lib/payment", () => ({
-  getPaymentProvider: () => ({ name: "paynkolay", refund: vi.fn() }),
+  getPaymentProvider: () => ({ name: "paynkolay", refund: providerRefund }),
 }));
 vi.mock("@/lib/admin/store", () => store);
 vi.mock("@/lib/email/order-notices", () => ({ resendOrderNotice }));
@@ -313,6 +317,8 @@ beforeEach(() => {
   resendOrderNotice.mockReset();
   safeAudit.mockReset();
   safeAudit.mockResolvedValue(true);
+  providerRefund.mockReset();
+  providerRefund.mockResolvedValue({ status: "succeeded" });
   revalidatePath.mockClear();
   session.role = "owner";
 });
@@ -394,7 +400,10 @@ describe("transitionOrderAction", () => {
     expect(res.ok).toBe(true);
     expect(store.checkOrderWithPos).toHaveBeenCalledWith(expect.objectContaining({ id: "ord-1" }), "pay");
     expect(store.markOrderPaidManually).toHaveBeenCalledWith("ord-1", "nakit", "a@b.c");
-    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "start_preparing", { actor: "a@b.c" });
+    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "start_preparing", {
+      actor: "a@b.c",
+      expectStatus: "paid",
+    });
   });
 });
 
@@ -493,7 +502,12 @@ describe("cancelOrderAction", () => {
       message:
         "Sipariş #10023 iptal edildi · 2 ürün stoğa döndü · ₺500,00 karta iade edildi · e-posta gönderildi.",
     });
-    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "cancel", { restock: true, actor: "a@b.c" });
+    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "cancel", {
+      restock: true,
+      actor: "a@b.c",
+      // From the status the decision was made on, never from a newer one.
+      expectStatus: "paid",
+    });
     expect(store.reserveRefund).toHaveBeenCalledWith(
       "ord-1",
       expect.objectContaining({ amountMinor: 50_000, token: "tok-1", destination: "card" }),
@@ -516,8 +530,99 @@ describe("cancelOrderAction", () => {
     );
     expect(res).toMatchObject({ ok: true, tone: "warning" });
     expect(res.ok && res.message).toContain("GÖNDERİLEMEDİ");
-    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "cancel", { restock: false, actor: "a@b.c" });
+    expect(store.transitionOrder).toHaveBeenCalledWith("ord-1", "cancel", {
+      restock: false,
+      actor: "a@b.c",
+      expectStatus: "paid",
+    });
     expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+  });
+});
+
+describe("cancelOrderAction, when the refund does not go through", () => {
+  function cancelled() {
+    store.getOrder.mockResolvedValue(order());
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.transitionOrder.mockResolvedValue({
+      ok: true,
+      order: order({ status: "cancelled" }),
+      mail: "sent",
+      release: { released: true, units: 2, lines: [] },
+    });
+    store.getOrderPaymentRef.mockResolvedValue({
+      provider: "paynkolay",
+      providerRef: "REF1",
+      amountMinor: 50_000,
+      trxDate: "2026-10-17",
+    });
+    store.reserveRefund.mockResolvedValue({
+      ok: true,
+      refund: { id: "rfn-1", amountMinor: 50_000 },
+      order: order({ status: "cancelled", refunds: [{ id: "rfn-1", amountMinor: 50_000 }] }),
+    });
+    store.finalizeRefund.mockImplementation(async (o: unknown) => ({ order: o, mail: null }));
+  }
+  const fields = {
+    id: "ord-1",
+    reason: "Stokta yok",
+    restock: "1",
+    refund: "1",
+    token: "tok-1",
+    destination: "card",
+    confirm: "10023",
+  };
+
+  it("a POS that did not answer: cancelled, refund kept as 'sonucu bilinmiyor', not 'iade bekliyor'", async () => {
+    cancelled();
+    providerRefund.mockRejectedValue(new Error("socket hang up"));
+    const res = await actions.cancelOrderAction(null, form(fields));
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    expect(res.ok && res.message).toMatch(/iptal edildi .*POS yanıt vermedi/);
+    expect(store.releaseRefund).not.toHaveBeenCalled();
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_unknown");
+    // "İade başlat" would invite the second refund this guards against.
+    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_due");
+  });
+
+  it("a POS that refused: cancelled, the money still owed, and the sentence says so", async () => {
+    cancelled();
+    providerRefund.mockRejectedValue(new PaymentRefusedError("responseCode=0"));
+    const res = await actions.cancelOrderAction(null, form(fields));
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    expect(res.ok && res.message).toContain("iade yapılamadı");
+    expect(res.ok && res.message).toContain("'İade başlat' ile iade et");
+    expect(store.releaseRefund).toHaveBeenCalledWith("ord-1", "rfn-1");
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+  });
+
+  it("cancels a parcel on the road without a stock question when no line has stock to give back", async () => {
+    store.getOrder.mockResolvedValue(
+      order({
+        status: "shipped",
+        items: [
+          // A line with no catalogue product, and one already restocked.
+          { productName: "Hediye paketi", qty: 1, unitPriceMinor: 0, status: "pending" },
+          { productId: "prd-1", productName: "Çekirdek", qty: 2, restockedQty: 2, unitPriceMinor: 25_000, status: "pending" },
+        ],
+      }),
+    );
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.transitionOrder.mockResolvedValue({
+      ok: true,
+      order: order({ status: "cancelled" }),
+      mail: "sent",
+      release: { released: true, units: 0, lines: [] },
+    });
+    const res = await actions.cancelOrderAction(
+      null,
+      form({ id: "ord-1", reason: "Kargo kayboldu", confirm: "10023" }),
+    );
+    expect(res.ok).toBe(true);
+    expect(store.transitionOrder).toHaveBeenCalledWith(
+      "ord-1",
+      "cancel",
+      expect.objectContaining({ expectStatus: "shipped" }),
+    );
   });
 });
 
@@ -579,7 +684,10 @@ describe("bulk 'Kargoda / Hazır'", () => {
       trackingNumber: "YK1",
       actor: "a@b.c",
     });
-    expect(store.transitionOrder).toHaveBeenCalledWith("ord-2", "mark_shipped", { actor: "a@b.c" });
+    expect(store.transitionOrder).toHaveBeenCalledWith("ord-2", "mark_shipped", {
+      actor: "a@b.c",
+      expectStatus: "preparing",
+    });
     expect(res.ok && res.message).toContain("2 sipariş kargoda / hazır.");
     expect(res.ok && res.message).toContain("#10003 takip numarası yok");
   });
@@ -654,6 +762,67 @@ describe("refundOrderAction", () => {
     // The money moved: never an error the operator would retry.
     expect(res).toMatchObject({ ok: true, tone: "warning" });
     expect(res.ok && res.message).toContain("olay kaydı yazılamadı");
+  });
+
+  const CARD_REF = {
+    provider: "paynkolay",
+    providerRef: "REF1",
+    amountMinor: 50_000,
+    trxDate: "2026-10-17",
+  };
+
+  function reservedFull() {
+    store.reserveRefund.mockResolvedValue({
+      ok: true,
+      refund: { id: "rfn-1", amountMinor: 50_000, token: "tok-1" },
+      order: order({ refunds: [{ id: "rfn-1", amountMinor: 50_000, token: "tok-1" }] }),
+    });
+    store.finalizeRefund.mockImplementation(async (o: unknown) => ({ order: o, mail: null }));
+  }
+
+  it("keeps the entry when the POS does not answer, so a retry cannot refund twice", async () => {
+    store.getOrder.mockResolvedValue(order());
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.getOrderPaymentRef.mockResolvedValue(CARD_REF);
+    reservedFull();
+    // A timeout after the request left: the card may have been credited.
+    providerRefund.mockRejectedValue(new Error("timed out after 20000 ms"));
+    const res = await actions.refundOrderAction(
+      null,
+      form({ id: "ord-1", amount: "500", reason: "Hasarlı", token: "tok-1", destination: "card", confirm: "10023" }),
+    );
+    // The entry, and with it the modal's token and the amount, stays.
+    expect(store.releaseRefund).not.toHaveBeenCalled();
+    expect(res).toMatchObject({ ok: true, tone: "warning" });
+    expect(res.ok && res.message).toContain("POS yanıt vermedi");
+    expect(res.ok && res.message).not.toContain("karta iade edildi");
+    // Nobody tells the buyer "iade edildi" before a person has checked.
+    expect(store.finalizeRefund).toHaveBeenCalledWith(expect.anything(), undefined);
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_unknown");
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "refund",
+        payload: expect.objectContaining({ outcome: "unknown" }),
+      }),
+    );
+  });
+
+  it("takes the entry back only when the POS certainly refunded nothing", async () => {
+    store.getOrder.mockResolvedValue(order());
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.getOrderPaymentRef.mockResolvedValue(CARD_REF);
+    reservedFull();
+    providerRefund.mockRejectedValue(
+      new PaymentRefusedError("paynkolay refund reddedildi: responseCode=0 limit"),
+    );
+    const res = await actions.refundOrderAction(
+      null,
+      form({ id: "ord-1", amount: "500", reason: "Hasarlı", token: "tok-1", destination: "card", confirm: "10023" }),
+    );
+    expect(res).toMatchObject({ ok: false, error: expect.stringMatching(/reddetti, para geri gönderilmedi/) });
+    expect(store.releaseRefund).toHaveBeenCalledWith("ord-1", "rfn-1");
+    expect(store.finalizeRefund).not.toHaveBeenCalled();
+    expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_unknown");
   });
 });
 

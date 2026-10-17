@@ -15,6 +15,7 @@ import {
   CANCEL_NOTICE_KIND,
   PAID_NOTICE_KIND,
   RESEND_MARK,
+  RESENT_STATUS,
   baseNoticeKind,
   isResendableKind,
 } from "./notice-kinds";
@@ -441,6 +442,12 @@ export async function notifyOrderPaid(
  * mail for an order that is paid, the cancel mail for a cancelled one, the
  * shipped mail for the parcel's CURRENT number, a refund's mail for an
  * entry still in the ledger. Anything else is `not_due`.
+ *
+ * A resent mail whose own row had FAILED is marked `resent` once the copy
+ * is out. `claim` takes a failed row over, so the next trigger of the same
+ * mail (Geliver's hand-over event for the same number, a repeated payment
+ * confirmation) would otherwise send it once more: two copies, one the
+ * operator asked for and one nobody did.
  */
 export async function resendOrderNotice(
   order: AdminOrder,
@@ -460,6 +467,30 @@ export async function resendOrderNotice(
   const kinds = ((data as Array<{ kind: string }> | null) ?? []).map((r) => r.kind);
   const taken = kinds.filter((k) => k.startsWith(`${base}${RESEND_MARK}`)).length;
   const next = `${base}${RESEND_MARK}${taken + 1}`;
+  const outcome = await sendAgain(order, base, next, collected);
+  if (outcome === "sent") {
+    const done = await getDb()
+      .from(TABLES.orderNoticeEmails)
+      .update({ status: RESENT_STATUS })
+      .eq("orderId", order.id)
+      .eq("kind", base)
+      .eq("status", "failed");
+    if (done.error) {
+      console.error(
+        `[order-notice] ${base} resent but its failed row not closed order=${order.id}`,
+        done.error.message,
+      );
+    }
+  }
+  return outcome;
+}
+
+async function sendAgain(
+  order: AdminOrder,
+  base: string,
+  next: string,
+  collected: boolean | null,
+): Promise<OrderNoticeOutcome> {
   if (base === PAID_NOTICE_KIND) {
     const settled = ["paid", "preparing", "shipped", "completed"].includes(order.status);
     return settled ? notifyOrderPaid(order, { kind: next }) : "not_due";

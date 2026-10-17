@@ -56,12 +56,13 @@ describe("refundRefusal - decided before the POS is asked for money", () => {
     const ops = readFileSync("src/lib/admin/order-ops.ts", "utf8");
     const body = ops.slice(ops.indexOf("export async function issueRefund"));
     expect(body.indexOf("refundRefusal(")).toBeGreaterThan(-1);
+    expect(body.indexOf("provider.refund(")).toBeGreaterThan(-1);
     expect(body.indexOf("refundRefusal(")).toBeLessThan(
-      body.indexOf("getPaymentProvider().refund("),
+      body.indexOf("provider.refund("),
     );
     // The ledger entry is reserved before the POS is asked, too.
     expect(body.indexOf("reserveRefund(")).toBeLessThan(
-      body.indexOf("getPaymentProvider().refund("),
+      body.indexOf("provider.refund("),
     );
   });
 
@@ -87,7 +88,7 @@ describe("refunding a wallet-paid order (§18)", () => {
     expect(body.indexOf("creditWalletRefund(")).toBeGreaterThan(walletBranch);
     // The wallet branch comes first; the card refund is the `else`.
     expect(walletBranch).toBeLessThan(
-      body.indexOf("getPaymentProvider().refund("),
+      body.indexOf("provider.refund("),
     );
     expect(body).toContain('} else if (destination === "card" && ref) {');
   });

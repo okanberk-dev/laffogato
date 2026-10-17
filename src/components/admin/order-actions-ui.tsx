@@ -6,7 +6,7 @@
 // A disabled action is drawn with its reason, never hidden.
 
 import { unstable_rethrow } from "next/navigation";
-import { useState, useTransition, type ReactNode } from "react";
+import { useId, useState, useTransition, type ReactNode } from "react";
 
 import {
   bulkOrdersAction,
@@ -30,6 +30,7 @@ import {
   ORDER_NOTE_MAX,
   REFUND_DESTINATION_HINTS,
   REFUND_DESTINATION_LABELS,
+  hasStockToReturn,
   isPosOrder,
   nextStep,
   orderActionLabel,
@@ -133,6 +134,7 @@ function RunButton({
   pendingLabel?: string;
 }) {
   const { pending, run } = useRunAction(action);
+  const reasonId = useId();
   const reason = state && !state.enabled ? state.reason : undefined;
   if (variant === "menu" || variant === "menuDanger") {
     return (
@@ -150,10 +152,18 @@ function RunButton({
   if (reason) {
     return (
       <span className="inline-flex flex-col">
-        <button type="button" aria-disabled="true" className={BUTTON[variant]}>
+        <button
+          type="button"
+          aria-disabled="true"
+          aria-describedby={reasonId}
+          className={BUTTON[variant]}
+        >
           {children}
         </button>
-        <span className="mt-1 text-xs text-[var(--admin-text-soft)]">
+        <span
+          id={reasonId}
+          className="mt-1 text-xs text-[var(--admin-text-soft)]"
+        >
           {reason}
         </span>
       </span>
@@ -307,7 +317,8 @@ function CancelOrderModal({
 }) {
   const due = refundableMinor(order, money.collected, money.collectedMinor);
   const askPos = order.status === "pending_payment" && isPosOrder(order);
-  const lines = stockLines(order);
+  // The same rule the server asks the stock question by.
+  const askStock = hasStockToReturn(order);
   return (
     <ActionModal
       action={cancelOrderAction}
@@ -348,7 +359,7 @@ function CancelOrderModal({
             </Field>
             <FieldError name="reason" />
           </div>
-          {lines.length > 0 ? (
+          {askStock ? (
             <RestockChoice shipped={order.status === "shipped"} />
           ) : null}
           {due > 0 && mayRefund ? (

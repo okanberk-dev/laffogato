@@ -68,6 +68,21 @@ export const ORDER_NOTE_MAX = 2000;
 export const REFUND_ROLE_NEEDED =
   "Bunun için iade yetkisi gerekiyor (sahip ya da yönetici).";
 
+/**
+ * "CSV indir": the filtered list as a file, every customer's name and
+ * e-mail with what each paid, up to 5,000 rows. That is the customer list
+ * and a revenue report in one, and both are owner / manager sections
+ * (roles.ts): staff read orders on screen for the shift's work, they do not
+ * take them away in a file.
+ */
+export function mayExportOrders(role: AdminRole): boolean {
+  return (
+    canAccess("orders", role) &&
+    canAccess("customers", role) &&
+    canAccess("reports", role)
+  );
+}
+
 const CANCELLABLE: readonly AdminOrderStatus[] = [
   "pending_payment",
   "paid",
@@ -100,6 +115,24 @@ export function isPosOrder(order: { source?: string }): boolean {
 /** A shop parcel: shipping needs a carrier and a tracking number. */
 export function isParcel(order: { fulfillment?: string }): boolean {
   return orderFulfillment(order) === "shipping";
+}
+
+/**
+ * Whether any line still has units it could give back to stock (a catalogue
+ * product, not all of it restocked yet). The cancel modal asks the stock
+ * question only then, and the server wants the answer only then: a parcel
+ * whose lines have nothing to give back was otherwise impossible to cancel.
+ */
+export function hasStockToReturn(order: {
+  items: ReadonlyArray<{
+    productId?: string;
+    qty: number;
+    restockedQty?: number;
+  }>;
+}): boolean {
+  return (order.items ?? []).some(
+    (it) => Boolean(it.productId) && it.qty - (it.restockedQty ?? 0) > 0,
+  );
 }
 
 // ── Money ───────────────────────────────────────────────────────────────
@@ -217,7 +250,12 @@ export function isManualPaymentMethod(
 // ── Attention ───────────────────────────────────────────────────────────
 
 export type OrderAttention =
-  "amount_mismatch" | "order_not_open" | "duplicate_payment" | "refund_due";
+  | "amount_mismatch"
+  | "order_not_open"
+  | "duplicate_payment"
+  | "refund_due"
+  /** The POS did not answer a refund request: it may have gone through. */
+  | "refund_unknown";
 
 export const ORDER_ATTENTION_TEXT: Record<
   OrderAttention,
@@ -238,6 +276,10 @@ export const ORDER_ATTENTION_TEXT: Record<
   refund_due: {
     title: "İptal edildi, iade bekliyor",
     body: "Ödemesi alınmış sipariş iptal edildi ama para henüz geri verilmedi. 'İade başlat' ile iade et.",
+  },
+  refund_unknown: {
+    title: "İadenin sonucu bilinmiyor",
+    body: "POS iade isteğine yanıt vermedi: para karta dönmüş olabilir. İade kayda geçti, buradan tekrar deneme. PayNkolay panelinde bu siparişin işlemine bak: iade yoksa oradan yap, sonra müşteriye haber ver.",
   },
 };
 

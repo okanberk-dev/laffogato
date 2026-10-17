@@ -52,16 +52,23 @@ vi.mock("next/headers", () => ({
     delete: () => {},
   }),
 }));
+const sendOrderShippedEmail = vi.hoisted(() =>
+  vi.fn(async (..._args: unknown[]) => ({ ok: true as const })),
+);
 vi.mock("@/lib/email/send", () => ({
   sendOrderPaidEmail: async () => ({ ok: true as const }),
   sendOrderCancelledEmail: async () => ({ ok: true as const }),
-  sendOrderShippedEmail: async () => ({ ok: true as const }),
+  sendOrderShippedEmail,
   sendOrderRefundedEmail: async () => ({ ok: true as const }),
 }));
+const providerRefund = vi.hoisted(() =>
+  vi.fn(async (..._args: unknown[]): Promise<unknown> => ({ status: "succeeded" })),
+);
 vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({
     name: "fakepos",
     lookupPayment: async () => null,
+    refund: providerRefund,
   }),
 }));
 vi.mock("@/lib/mobile/loyalty", () => ({
@@ -143,6 +150,10 @@ maybe("admin order rules, in SQL", () => {
 
   beforeEach(async () => {
     await q(`delete from public.payment_transactions where "orderId" like '${PREFIX}%'`);
+    await q(`delete from public.order_notice_emails where "orderId" like '${PREFIX}%'`);
+    sendOrderShippedEmail.mockClear();
+    providerRefund.mockReset();
+    providerRefund.mockResolvedValue({ status: "succeeded" });
     await q(`delete from public.stock_moves where "orderId" like '${PREFIX}%'`);
     await q(`delete from public.orders where id like '${PREFIX}%'`);
     await q(`delete from public.products where id like 'prd-adm-%'`);
@@ -360,5 +371,95 @@ maybe("admin order rules, in SQL", () => {
     const byNo = parseOrderListParams({ q: "#994011" }).query;
     const one = await listOrdersFiltered({ query: byNo, sort, page: 1, pageSize: 50 });
     expect(one.orders.map((o) => o.id)).toEqual([`${PREFIX}11`]);
+  });
+
+  it("moves an order only from the status the decision was made on", async () => {
+    // The panel decided "unpaid, staff may cancel"; a card payment landed
+    // before the write. The cancel must not take the paid order with it.
+    await insertOrder(`${PREFIX}12`, 994012, {
+      status: "paid",
+      paidAt: new Date().toISOString(),
+    });
+    const { transitionOrder } = await import("@/lib/admin/store");
+    const res = await transitionOrder(`${PREFIX}12`, "cancel", {
+      actor: "panel@laffogato.net",
+      expectStatus: "pending_payment",
+    });
+    expect(res.ok).toBe(false);
+    const [o] = await q<{ status: string; stockReleasedAt: string }>(
+      `select status, "stockReleasedAt" from public.orders where id = $1`,
+      [`${PREFIX}12`],
+    );
+    expect(o).toEqual({ status: "paid", stockReleasedAt: "" });
+  });
+
+  it("a refund the POS did not answer stays in the ledger, and the retry never reaches the POS", async () => {
+    await insertOrder(`${PREFIX}13`, 994013, {
+      status: "paid",
+      totalMinor: 5000,
+      paidAt: new Date().toISOString(),
+    });
+    await q(
+      `insert into public.payment_transactions
+         ("orderId", provider, "providerRef", status, "amountMinor", "trxDate", "createdAt")
+       values ($1, 'fakepos', 'REF-U', 'succeeded', 5000, '2026-10-17', $2)`,
+      [`${PREFIX}13`, new Date().toISOString()],
+    );
+    const { refundOrder } = await import("@/lib/admin/order-ops");
+    const actor = { email: "panel@laffogato.net", role: "owner" as const };
+    providerRefund.mockRejectedValueOnce(new Error("timed out after 20000 ms"));
+    const first = await refundOrder(
+      `${PREFIX}13`,
+      { amountMinor: 5000, reason: "Hasarlı", token: "t-1", confirm: "994013" },
+      actor,
+    );
+    expect(first).toMatchObject({ ok: true, tone: "warning" });
+    const [o] = await q<{ refunds: Array<{ token: string }>; attention: string }>(
+      `select refunds, attention from public.orders where id = $1`,
+      [`${PREFIX}13`],
+    );
+    expect(o.refunds.map((r) => r.token)).toEqual(["t-1"]);
+    expect(o.attention).toBe("refund_unknown");
+    // The operator tries again: the same modal, then a redrawn one.
+    for (const token of ["t-1", "t-2"]) {
+      const again = await refundOrder(
+        `${PREFIX}13`,
+        { amountMinor: 5000, reason: "Hasarlı", token, confirm: "994013" },
+        actor,
+      );
+      expect(again.ok).toBe(false);
+    }
+    expect(providerRefund).toHaveBeenCalledTimes(1);
+  });
+
+  it("a mail sent again by hand is not sent once more by the next trigger", async () => {
+    await insertOrder(`${PREFIX}14`, 994014, { status: "shipped", paidAt: "x" });
+    await q(
+      `update public.orders set kind = 'shop', fulfillment = 'shipping',
+         "trackingNumber" = 'YK123', carrier = 'Yurtiçi' where id = $1`,
+      [`${PREFIX}14`],
+    );
+    const notices = await import("@/lib/email/order-notices");
+    const kind = notices.shipmentNoticeKind("YK123");
+    // "Kargoya ver" while the mail provider was down.
+    await q(
+      `insert into public.order_notice_emails ("orderId", kind, status, error, "createdAt", "sentAt")
+       values ($1, $2, 'failed', 'provider 503', $3, '')`,
+      [`${PREFIX}14`, kind, new Date().toISOString()],
+    );
+    const { getOrder } = await import("@/lib/admin/store");
+    const order = (await getOrder(`${PREFIX}14`))!;
+    expect(await notices.resendOrderNotice(order, kind, { collected: true })).toBe("sent");
+    // Geliver's hand-over event for the same number arrives afterwards.
+    expect(await notices.notifyOrderShipped(order)).toBe("duplicate");
+    expect(sendOrderShippedEmail).toHaveBeenCalledTimes(1);
+    const rows = await q<{ kind: string; status: string }>(
+      `select kind, status from public.order_notice_emails where "orderId" = $1 order by kind`,
+      [`${PREFIX}14`],
+    );
+    expect(rows).toEqual([
+      { kind, status: "resent" },
+      { kind: `${kind}#resend-1`, status: "sent" },
+    ]);
   });
 });
