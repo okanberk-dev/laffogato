@@ -4860,12 +4860,13 @@ summary:focus-visible,
   text-align: center;
   padding: clamp(40px, 7vw, 80px) 0;
 }
-.menu-empty-mark {
-  font-size: 56px;
-  font-weight: 300;
-  color: var(--ink-line-strong);
-  line-height: 1;
-  margin-bottom: 14px;
+/* The empty state's drawing: a saucer for a search with no match, an empty
+   cake stand for a category with nothing in it (menu-page.tsx). */
+.menu-empty-art {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 14px;
 }
 
 /* Shop page ─────────────────────────────────────────────────── */

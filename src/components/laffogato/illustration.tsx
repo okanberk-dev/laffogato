@@ -112,6 +112,18 @@ export const ILLUSTRATIONS = {
     width: 48,
     height: 48,
   },
+  /** Menü search with no match: a saucer, a spoon, one coffee bean. */
+  "menu-arama": {
+    src: "/illustrations/menu-arama.svg",
+    width: 140,
+    height: 140,
+  },
+  /** A menu category with nothing in it today: an empty cake stand. */
+  "menu-kategori": {
+    src: "/illustrations/menu-kategori.svg",
+    width: 140,
+    height: 140,
+  },
   /** Mağaza with no product under the filter: an open, empty bean tin. */
   "magaza-teneke": {
     src: "/illustrations/magaza-teneke.svg",

@@ -11,6 +11,7 @@ import {
 } from "@/components/laffogato/illustration";
 import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { PageHero } from "@/components/laffogato/page-hero";
+import { PageMenu } from "@/components/laffogato/menu-page";
 import { EmptyState } from "@/components/uye/account-shell";
 
 // account-shell's sign-out form posts to a server action; the empty state
@@ -238,6 +239,10 @@ describe("how the pages show them", () => {
           "ilke-onluk",
         ],
       ],
+      [
+        "src/components/laffogato/menu-page.tsx",
+        ["menu-arama", "menu-kategori"],
+      ],
       ["src/components/laffogato/shop-page.tsx", ["magaza-teneke"]],
       ["src/components/laffogato/karaoke-booking.tsx", ["karaoke-room"]],
       ["src/app/rezervasyon/page.tsx", ["karaoke-room"]],
@@ -264,10 +269,6 @@ describe("how the pages show them", () => {
       for (const name of names)
         expect(src, `${name} in ${file}`).toContain(`"${name}"`);
     }
-    // The menu page and its search belong to another change this round.
-    expect(read("src/components/laffogato/menu-page.tsx")).not.toContain(
-      "Illustration",
-    );
   });
 
   it("gives each of the six principles the icon that says it", () => {
@@ -284,5 +285,43 @@ describe("how the pages show them", () => {
       "ilke-saat",
       "ilke-onluk",
     ]);
+  });
+
+  it("tells an empty search from an empty category on the menu", () => {
+    const props = {
+      navigate: () => {},
+      addToCart: () => {},
+      openProduct: () => {},
+    };
+    const empty = {
+      title: "Tatlılar",
+      sub: "",
+      italian: "",
+      note: "",
+      items: [],
+    };
+    // /menu/<kategori> whose every item is off today: no search was made,
+    // so nothing offers to clear one.
+    const html = renderToStaticMarkup(
+      createElement(PageMenu, { ...props, menu: { dessert: empty } }),
+    );
+    expect(html).toMatch(
+      /<img alt="" aria-hidden="true"[^>]*src="\/illustrations\/menu-kategori\.svg"/,
+    );
+    expect(html).toContain("Bu kategoride şu an ürün yok");
+    expect(html).toMatch(/<a[^>]*href="\/menu"[^>]*>Tüm menü<\/a>/);
+    expect(html).not.toContain("Aradığın tatla");
+    expect(html).not.toContain("Filtreleri temizle");
+    expect(html).not.toContain("∅");
+
+    // A search with no match keeps its sentence, now over the saucer. The
+    // query lives in the page's state, so the branch is read from source.
+    const src = read("src/components/laffogato/menu-page.tsx");
+    const search = src.slice(src.indexOf("items.length === 0 && query.trim()"));
+    expect(
+      search.slice(0, search.indexOf("Filtreleri temizle")),
+    ).toMatch(
+      /<Illustration name="menu-arama"[\s\S]*Aradığın tatla eşleşen ürün yok/,
+    );
   });
 });

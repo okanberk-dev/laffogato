@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
+import { Illustration } from "./illustration";
 import { PageHero } from "./page-hero";
 import { MENU } from "./data";
 import { MenuPhotoNote } from "./menu-photo-note";
@@ -172,9 +173,11 @@ export function PageMenu({ menu }: PageProps) {
             </div>
           </div>
 
-          {items.length === 0 ? (
+          {items.length === 0 && query.trim() ? (
+            /* A search with no match: an empty saucer, its spoon and one
+               bean (illustrations/menu-arama.svg). */
             <div className="menu-empty">
-              <div className="menu-empty-mark">∅</div>
+              <Illustration name="menu-arama" className="menu-empty-art" />
               <h2 className="h3">Aradığın tatla eşleşen ürün yok</h2>
               <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
                 Farklı bir kelime dene ya da filtreleri sıfırla.
@@ -189,6 +192,41 @@ export function PageMenu({ menu }: PageProps) {
               >
                 Filtreleri temizle
               </button>
+            </div>
+          ) : items.length === 0 ? (
+            /* No search, and still nothing: every item of this category is
+               off the menu today (the panel's switch). It used to say the
+               search found nothing and offered to clear a filter nobody
+               had set. An empty cake stand instead. */
+            <div className="menu-empty">
+              <Illustration name="menu-kategori" className="menu-empty-art" />
+              <h2 className="h3">
+                {active === "all"
+                  ? "Menüde şu an ürün yok"
+                  : "Bu kategoride şu an ürün yok"}
+              </h2>
+              {active !== "all" && (
+                <>
+                  <p style={{ color: "var(--ink-mute)", marginTop: 10 }}>
+                    Menünün geri kalanına göz at.
+                  </p>
+                  <Link
+                    href="/menu"
+                    className="btn btn-ghost"
+                    style={{ marginTop: 22 }}
+                    onClick={
+                      scoped
+                        ? undefined
+                        : (e) => {
+                            e.preventDefault();
+                            selectCat("all");
+                          }
+                    }
+                  >
+                    Tüm menü
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <>
