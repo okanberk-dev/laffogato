@@ -108,8 +108,9 @@ export function HomeKaraoke({
 
 /**
  * Today's line: up to three free hours as links, or where to look instead.
- * While the calendar is being asked it holds its height (empty, so nothing
- * jumps when the hours arrive); when it could not be read it is not there.
+ * It holds one height in every state (globals.css), so the band does not
+ * jump when the answer lands: empty while the calendar is being asked, and
+ * empty when it could not be read (no hours rather than guessed ones).
  */
 function KaraokeLive({ today }: { today: KaraokeToday }) {
   switch (today.kind) {
@@ -118,7 +119,7 @@ function KaraokeLive({ today }: { today: KaraokeToday }) {
         <div className="home-karaoke-live is-pending" aria-hidden="true" />
       );
     case "error":
-      return null;
+      return <div className="home-karaoke-live" aria-hidden="true" />;
     case "open":
       return (
         <div className="home-karaoke-live">

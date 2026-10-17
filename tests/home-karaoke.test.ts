@@ -183,7 +183,10 @@ describe("the band", () => {
     const html = band({ kind: "error" });
     expect(html).not.toContain("Bugün boş saatler");
     expect(html).not.toContain("home-karaoke-chip");
-    expect(html).not.toContain("home-karaoke-live");
+    // The line stays, empty, at the height it held while asked.
+    expect(html).toContain(
+      '<div class="home-karaoke-live" aria-hidden="true"></div>',
+    );
     expect(html).toContain("Saati 900₺");
     expect(html).toMatch(/href="\/karaoke"[^>]*>Saatini seç/);
   });
@@ -194,6 +197,15 @@ describe("the band", () => {
       '<div class="home-karaoke-live is-pending" aria-hidden="true"></div>',
     );
     expect(html).not.toContain("Bugün boş saatler");
+  });
+
+  it("keeps one height for the line whatever the calendar answers", () => {
+    // On the line itself, not only while pending: a full or finished day
+    // (one link) and no answer (empty) would otherwise pull the button up.
+    expect(CSS).toMatch(
+      /\n\.home-karaoke-live \{[^}]*min-height: calc\(13\.5px \* 1\.6 \+ 10px \+ 44px\);/,
+    );
+    expect(CSS).not.toMatch(/\.home-karaoke-live\.is-pending \{/);
   });
 
   it("points at tomorrow when today is full or over", () => {

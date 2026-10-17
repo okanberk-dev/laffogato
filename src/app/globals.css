@@ -2401,16 +2401,16 @@ summary:focus-visible,
   background: var(--scene-core);
   box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.12);
 }
-/* Today's hours. While the calendar is asked the line keeps the height of
-   its label and one row of chips, so nothing below jumps when they land. */
+/* Today's hours. Whatever the calendar answers (hours, a full or finished
+   day, no answer at all) the line keeps the height it held while it was
+   asked: its label and one row of chips, so nothing below jumps when the
+   answer lands. The label's line, the gap and one 44 px row: measured
+   75.6 px on the built page, so the line is that tall, not 74. */
 .home-karaoke-live {
   display: grid;
+  align-content: start;
   gap: 10px;
   margin-top: 4px;
-}
-/* The label's line, the gap and one 44 px row of chips: measured 75.6 px
-   on the built page, so the pending line is that tall, not 74. */
-.home-karaoke-live.is-pending {
   min-height: calc(13.5px * 1.6 + 10px + 44px);
 }
 .home-karaoke-live-label {
