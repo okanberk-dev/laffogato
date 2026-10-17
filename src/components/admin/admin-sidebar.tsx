@@ -673,7 +673,7 @@ export function AdminSidebarBody({
                           href={badgeHref}
                           onClick={onNavigate}
                           title={BADGE_TITLES[item.section]}
-                          className="group/badge absolute top-1/2 right-1 grid min-h-6 min-w-6 -translate-y-1/2 place-items-center rounded-full px-1"
+                          className="group/badge absolute top-1/2 right-2 grid min-h-6 min-w-6 -translate-y-1/2 place-items-center rounded-full px-1"
                         >
                           <span
                             className={`${BADGE_CLASS} group-hover/badge:bg-[var(--admin-primary-hover)]`}
