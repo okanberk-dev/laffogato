@@ -164,8 +164,7 @@ export const SITE = {
  */
 export function openGraphDefaults() {
   return {
-    siteName: SITE.name,
-    locale: SITE.locale,
+    ...openGraphBase(),
     images: [
       {
         url: SITE.ogImage,
@@ -173,6 +172,20 @@ export function openGraphDefaults() {
         height: SITE.ogImageHeight,
       },
     ],
+  };
+}
+
+/**
+ * `openGraphDefaults()` without the image, for a page whose segment draws
+ * its own card (an `opengraph-image.tsx` beside its `page.tsx`, built on
+ * `src/lib/seo/og-card.tsx`). Next lets that file fill `og:image` only when
+ * the page's `openGraph` has no `images` key at all: naming the default
+ * image here would hide the page's card behind the generic one.
+ */
+export function openGraphBase() {
+  return {
+    siteName: SITE.name,
+    locale: SITE.locale,
   };
 }
 

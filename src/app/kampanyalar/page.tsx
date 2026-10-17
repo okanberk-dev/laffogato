@@ -6,7 +6,7 @@ import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getPublicSettings, listActiveAppPosts } from "@/lib/admin/store";
-import { openGraphDefaults } from "@/lib/seo/site";
+import { openGraphBase } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: "/kampanyalar" },
   openGraph: {
-    ...openGraphDefaults(),
+    ...openGraphBase(),
     title: TITLE,
     description: DESCRIPTION,
     url: "/kampanyalar",

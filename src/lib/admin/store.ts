@@ -5198,7 +5198,13 @@ export const getShopProductBySlug = cache(
     ),
 );
 
-async function getShopProductBySlugLive(
+/**
+ * `getShopProductBySlug` without the outage fallback: an unreachable database
+ * throws instead of reading as "no such product". For a caller that keeps
+ * what it gets - the product's link-preview card, cached an hour - where a
+ * fallback stored during a blip would outlive the blip.
+ */
+export async function getShopProductBySlugLive(
   slug: string,
 ): Promise<DesignProduct | null> {
   await ensureSeed();

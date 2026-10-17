@@ -15,7 +15,7 @@ import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { breadcrumbLd, menuSectionLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
-import { openGraphDefaults } from "@/lib/seo/site";
+import { openGraphBase } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export async function generateMetadata({
     keywords: cat.keywords,
     alternates: { canonical: path },
     openGraph: {
-      ...openGraphDefaults(),
+      ...openGraphBase(),
       title: cat.title,
       description: cat.description,
       url: path,

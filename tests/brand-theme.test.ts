@@ -8,7 +8,19 @@ const read = (rel: string) => readFileSync(join(process.cwd(), rel), "utf8");
 const css = read("src/app/globals.css");
 const manifest = read("src/app/manifest.ts");
 const slidePreview = read("src/app/admin/magaza-hero/slide-form.tsx");
-const ogImage = read("src/app/opengraph-image.tsx");
+/**
+ * The link preview: the root card and the shared card system every page
+ * card is drawn with (palette, mark, drawings), read as one.
+ */
+const ogImage = [
+  "src/app/opengraph-image.tsx",
+  "src/lib/seo/og-card.tsx",
+  "src/lib/seo/og-drawings.tsx",
+  "src/lib/seo/og-pages.tsx",
+  "src/lib/seo/og-product.tsx",
+]
+  .map(read)
+  .join("\n");
 /**
  * The mail markup used to live in send.ts as template literals; it now sits in
  * src/lib/email/templates/*.html and send.ts only fills the fields. The guard
@@ -120,7 +132,7 @@ describe("palette follows the app's porcelain", () => {
       ["globals.css", css],
       ["manifest.ts", manifest],
       ["slide-form.tsx", slidePreview],
-      ["opengraph-image.tsx", ogImage],
+      ["opengraph-image.tsx + src/lib/seo/og-*.tsx", ogImage],
       ["email/send.ts", emails],
       [
         "degraded-auth-notice.tsx",

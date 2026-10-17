@@ -11,7 +11,7 @@
 import { LaffogatoApp } from "@/components/laffogato/app";
 import type { Route } from "@/components/laffogato/chrome";
 import { PAGE_SEO } from "@/lib/seo/pages";
-import { SITE } from "@/lib/seo/site";
+import { openGraphBase } from "@/lib/seo/site";
 import {
   breadcrumbLd,
   localBusinessLd,
@@ -36,16 +36,10 @@ export function pageMetadata(route: Route): Metadata {
       url: seo.path,
       type: "website",
       // openGraph is shallow-merged across segments: re-declare the layout's
-      // siteName/locale/image so they are not dropped on section pages.
-      siteName: SITE.name,
-      locale: SITE.locale,
-      images: [
-        {
-          url: SITE.ogImage,
-          width: SITE.ogImageWidth,
-          height: SITE.ogImageHeight,
-        },
-      ],
+      // siteName/locale so they are not dropped on section pages. No image:
+      // each section draws its own card (src/app/<section>/opengraph-image.tsx)
+      // and an `images` key here would hide it behind the generic one.
+      ...openGraphBase(),
     },
     twitter: {
       card: "summary_large_image",

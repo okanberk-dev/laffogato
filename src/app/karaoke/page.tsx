@@ -13,7 +13,7 @@ import {
   TIER_LABELS,
 } from "@/lib/mobile/loyalty-core";
 import { istanbulClock } from "@/lib/mobile/venue";
-import { openGraphDefaults, SITE } from "@/lib/seo/site";
+import { openGraphBase, SITE } from "@/lib/seo/site";
 
 import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
 import { parseSaatParam } from "@/components/laffogato/karaoke-today";
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: "/karaoke" },
   openGraph: {
-    ...openGraphDefaults(),
+    ...openGraphBase(),
     title: TITLE,
     description: DESCRIPTION,
     url: "/karaoke",

@@ -449,8 +449,9 @@ ve her çizimin yerini tutar.
 3. `globals.css` dışındaki yüzeyler CSS değişkeni çözemez ve paleti harfi
    harfine yazar - değiştirirsen hepsini güncelle: `src/app/manifest.ts`
    (PWA açılışı), `src/app/layout.tsx` (`themeColor`), `public/browserconfig.xml`,
-   `src/app/global-error.tsx`, `src/app/opengraph-image.tsx` (bağlantı
-   önizlemesi), `src/lib/email/templates/*.html` (işlemsel e-posta),
+   `src/app/global-error.tsx`, `src/lib/seo/og-card.tsx` (bağlantı
+   önizlemeleri: kök kart ve sayfa kartları paleti buradan alır),
+   `src/lib/email/templates/*.html` (işlemsel e-posta),
    `src/app/odeme/paynkolay/route.ts` (ödeme köprüsü).
 4. Kaynak uygulamadır: bir değeri değiştirmeden önce `lafmobil/src/theme/tokens.ts`
    ile karşılaştır; ayrışma operatör kararı olmadan yapılmaz.
