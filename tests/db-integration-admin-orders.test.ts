@@ -335,6 +335,99 @@ maybe("admin order rules, in SQL", () => {
     });
   });
 
+  it("a Gel-al manual order: no delivery fee, its payment row, closed without a number", async () => {
+    // Admin audit ORD-01 / ORD-19: every manual order was a parcel (the
+    // flat fee under the threshold, a fake tracking number to close it) and
+    // a paid start wrote no payment row.
+    await q(
+      `insert into public.products (id, name, slug, stock, "priceMinor")
+       values ('prd-adm-m', 'Sirena', 'prd-adm-m', 5, 32000)`,
+    );
+    const store = await import("@/lib/admin/store");
+    const res = await store.createManualOrder({
+      items: [{ productId: "prd-adm-m", qty: 1 }],
+      customerName: "Kasa satışı",
+      status: "preparing",
+      fulfillment: "pickup",
+      paymentMethod: "nakit",
+      actor: "panel@laffogato.net",
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const id = res.order.id;
+    try {
+      const [o] = await q<{
+        fulfillment: string;
+        shippingMinor: number;
+        totalMinor: number;
+        source: string;
+        paidAt: string;
+      }>(
+        `select fulfillment, "shippingMinor", "totalMinor", source, "paidAt"
+           from public.orders where id = $1`,
+        [id],
+      );
+      expect(o).toMatchObject({
+        fulfillment: "pickup",
+        shippingMinor: 0,
+        totalMinor: 32000,
+        source: "manual",
+      });
+      expect(o.paidAt).not.toBe("");
+      const pay = await q<{ provider: string; amountMinor: number }>(
+        `select provider, "amountMinor" from public.payment_transactions where "orderId" = $1`,
+        [id],
+      );
+      expect(pay).toEqual([{ provider: "manual:nakit", amountMinor: 32000 }]);
+      expect(await stockOf("prd-adm-m")).toBe(4);
+      // "Tamamlandı" straight from Hazırlanıyor: no tracking number asked.
+      const done = await store.transitionOrder(id, "complete", {
+        actor: "panel@laffogato.net",
+      });
+      expect(done).toMatchObject({ ok: true, order: { status: "completed" } });
+    } finally {
+      await q(`delete from public.payment_transactions where "orderId" = $1`, [id]);
+      await q(`delete from public.stock_moves where "orderId" = $1`, [id]);
+      await q(`delete from public.orders where id = $1`, [id]);
+    }
+  });
+
+  it("edits the customer card only from the status and e-mail it was judged by", async () => {
+    // Admin audit ORD-16: the save is conditional, the old values come back.
+    await insertOrder(`${PREFIX}20`, 994020, { status: "preparing" });
+    const store = await import("@/lib/admin/store");
+    const res = await store.updateOrderDetails(`${PREFIX}20`, {
+      customerName: "Eda M.",
+      customerEmail: "eda.m@example.com",
+      customerPhone: "",
+      shippingAddress: "Yeni adres",
+    });
+    expect(res).toMatchObject({
+      ok: true,
+      before: { customerEmail: "panel@laffogato.net" },
+      order: { customerEmail: "eda.m@example.com" },
+    });
+    // The rule judged an order that is no longer what the row says (read as
+    // "paid", the row is "preparing"): nothing is written over it.
+    const stale = await store.updateOrderDetails(
+      `${PREFIX}20`,
+      { customerName: "X Y", customerPhone: "", shippingAddress: "" },
+      (existing) => {
+        existing.status = "paid";
+        return null;
+      },
+    );
+    expect(stale).toEqual({
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    });
+    const [o] = await q<{ customerName: string; shippingAddress: string }>(
+      `select "customerName", "shippingAddress" from public.orders where id = $1`,
+      [`${PREFIX}20`],
+    );
+    expect(o).toEqual({ customerName: "Eda M.", shippingAddress: "Yeni adres" });
+  });
+
   it("the 45-minute sweep leaves a manual unpaid order alone", async () => {
     const old = new Date(Date.now() - 2 * 60 * 60_000).toISOString();
     await insertOrder(`${PREFIX}8`, 994008, { status: "pending_payment", source: "manual", createdAt: old });
