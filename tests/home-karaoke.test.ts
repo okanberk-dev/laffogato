@@ -166,7 +166,9 @@ describe("the band", () => {
     }
     expect(html).toContain("Bugün boş saatler");
     const chips = [
-      ...html.matchAll(/class="home-karaoke-chip" href="([^"]+)">([^<]+)</g),
+      ...html.matchAll(
+        /class="home-karaoke-chip" href="([^"]+)"><span class="sr-only">Bugün <\/span>([^<]+)</g,
+      ),
     ].map((m) => [m[1], m[2]]);
     expect(chips).toEqual([
       ["/karaoke?tarih=2026-10-17&amp;saat=20", "20:00"],

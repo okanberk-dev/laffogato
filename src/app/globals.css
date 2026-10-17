@@ -2408,12 +2408,15 @@ summary:focus-visible,
   gap: 10px;
   margin-top: 4px;
 }
+/* The label's line, the gap and one 44 px row of chips: measured 75.6 px
+   on the built page, so the pending line is that tall, not 74. */
 .home-karaoke-live.is-pending {
-  min-height: 74px;
+  min-height: calc(13.5px * 1.6 + 10px + 44px);
 }
 .home-karaoke-live-label {
   margin: 0;
   font-size: 13.5px;
+  line-height: 1.6;
   font-weight: 600;
   color: var(--ink-mute);
 }

@@ -131,7 +131,10 @@ function KaraokeLive({ today }: { today: KaraokeToday }) {
           >
             {today.chips.map((chip) => (
               <li key={chip.hour}>
+                {/* Named "Bugün 20:00", not a bare hour: tabbing from link
+                    to link does not read the list's label. */}
                 <a className="home-karaoke-chip" href={chip.href}>
+                  <span className="sr-only">Bugün </span>
                   {chip.label}
                 </a>
               </li>
