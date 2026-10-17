@@ -218,8 +218,8 @@ export function markFieldErrors(
  *
  * Dispatched by hand (useNoResetSubmit, like ActionModal) rather than
  * through `<form action>`: React resets an action form's uncontrolled
- * fields before the action runs, which wiped everything the operator typed
- * each time the server refused one field. A second submit before the
+ * fields once the action finishes, whatever it answers, which wiped
+ * everything the operator typed each time the server refused one field. A second submit before the
  * answer is dropped.
  */
 export function ActionForm({

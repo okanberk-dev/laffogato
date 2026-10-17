@@ -4,13 +4,14 @@ import { startTransition, useEffect, useRef, type FormEvent } from "react";
 /**
  * How the panel's forms post without losing what was typed.
  *
- * React 19 resets a `<form action={fn}>`'s uncontrolled fields before the
- * action runs (react-dom startHostTransition -> requestFormReset), whatever
- * the action answers. A refused save therefore came back with the text
- * fields empty and every select and checkbox on its default: a promo
- * re-ticked as active, a product moved back to the first category, a
- * manual order back to "Ödendi". Dispatching from onSubmit (preventDefault,
- * FormData, startTransition) is not a form action, so nothing is reset.
+ * React 19 resets a `<form action={fn}>`'s uncontrolled fields once the
+ * action finishes, whatever it answers (react-dom startHostTransition
+ * requests the reset, the action's transition applies it). A refused save
+ * therefore came back with the text fields empty and every select and
+ * checkbox on its default: a promo re-ticked as active, a product moved
+ * back to the first category, a manual order back to "Ödendi". Dispatching
+ * from onSubmit (preventDefault, FormData, startTransition) is not a form
+ * action, so nothing is reset.
  *
  * ActionForm and ActionModal post this way; a form that keeps its own
  * useActionState state shape uses useNoResetSubmit directly, and

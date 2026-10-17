@@ -79,22 +79,42 @@ export async function createSomeAction(
 }
 ```
 
-Client tarafında:
+Client tarafında (admin paneli):
 
 ```tsx
 "use client";
 import { useActionState } from "react";
+import {
+  PANEL_ACTION_FAILED,
+  useNoResetSubmit,
+  withPanelCatch,
+} from "@/components/admin/action-form";
 import { createSomeAction } from "./actions";
 
-const [state, formAction, pending] = useActionState(createSomeAction, {});
+const [state, formAction, pending] = useActionState(
+  // Bir throw tam sayfa hata ekranı değil, formun kendi hatası olur;
+  // redirect() yine çalışır.
+  withPanelCatch(createSomeAction, (prev) => ({
+    ...prev,
+    error: PANEL_ACTION_FAILED,
+  })),
+  {},
+);
+const onSubmit = useNoResetSubmit(formAction, pending);
 return (
-  <form action={formAction}>
+  <form onSubmit={onSubmit}>
     <input name="..." />
     {state.fieldErrors?.name && <span>{state.fieldErrors.name}</span>}
     <button disabled={pending}>{pending ? "..." : "Kaydet"}</button>
   </form>
 );
 ```
+
+`<form action={formAction}>` yazma: React 19 action bitince, yanıt ne olursa
+olsun formun alanlarını sıfırlar; reddedilen kayıtta yazılan metin, seçimler
+ve kutular gider. `useNoResetSubmit` formu `onSubmit`'ten elle gönderir ve yanıt
+gelmeden ikinci gönderimi düşürür. Action `ActionResult` döndürüyorsa hazır
+`ActionForm`'u kullan (`src/components/admin/action-form.tsx`).
 
 ## Bind ile parametre
 

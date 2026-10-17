@@ -379,8 +379,9 @@ function ModalDialog({
   }, [keeper]);
 
   // Dispatched by hand rather than through `<form action>`: React resets an
-  // action form's uncontrolled fields before the action runs, which would
-  // wipe the reason the operator typed every time the server refuses it.
+  // action form's uncontrolled fields once the action finishes, whatever it
+  // answers, which would wipe the reason the operator typed every time the
+  // server refuses it.
   const onSubmit = useNoResetSubmit(formAction, pending);
 
   const fieldErrors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
