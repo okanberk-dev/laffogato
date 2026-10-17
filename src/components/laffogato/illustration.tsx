@@ -150,7 +150,11 @@ export const ILLUSTRATIONS = {
     width: 64,
     height: 64,
   },
-  /** Account empty states: the app's spot plates, same 0-100 paths. */
+  /**
+   * Account empty states: the app's spot plates, same 0-100 grid. The orders
+   * one is the site's own, a café receipt with a bean on top: a roll of
+   * paper read as a toilet roll.
+   */
   "spot-siparis": {
     src: "/illustrations/spot-siparis.svg",
     width: 96,
