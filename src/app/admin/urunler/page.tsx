@@ -93,14 +93,22 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
       <PageHeader
         eyebrow="Katalog · Mağaza ürünleri"
         title="Ürünler"
-        description="Online mağazada satılan ürünler. Yeni: 5 adımlı sihirbaz; düzenleme: tüm sekmeler tek formda. Birden fazla seç ⇒ toplu işlem."
+        description="Online mağazada satılan ürünler. Yenisini 5 adımlı sihirbazla ekle, çok ürünü CSV ile içe aktar. Birden fazlasını seçince toplu işlem yaparsın."
         action={
-          <Link
-            href="/admin/urunler/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni ürün
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/admin/urunler/ice-aktar"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2.5 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] sm:w-auto"
+            >
+              CSV ile içe aktar
+            </Link>
+            <Link
+              href="/admin/urunler/yeni"
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
+            >
+              + Yeni ürün
+            </Link>
+          </div>
         }
       />
 

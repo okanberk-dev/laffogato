@@ -146,6 +146,19 @@ export const PRICE_FLOOR_MINOR = 1;
 export const PRICE_REQUIRED_ERROR = "Satış fiyatını yaz.";
 export const PRICE_FLOOR_ERROR = "Fiyat en az 0,01 TL olmalı.";
 
+/** Why a variant is refused when its price plus difference is under 1 kuruş. */
+export function variantFloorError(name: string): string {
+  return `"${name}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`;
+}
+
+/** The variants that would sell under 1 kuruş at this price. */
+export function variantsBelowFloor<V extends { priceDeltaMinor: number }>(
+  priceMinor: number,
+  variants: readonly V[],
+): V[] {
+  return variants.filter((v) => priceMinor + v.priceDeltaMinor < PRICE_FLOOR_MINOR);
+}
+
 /**
  * The sale price: required, and at least 1 kuruş (admin audit CAT-05). A "0"
  * left as a placeholder gave the product away: a basket of such items
@@ -373,14 +386,12 @@ export const productFormSchema = z
   // max(0, that): a "-400" on a 320 TL product gave the variant away, and
   // the app's shop feed published the negative price (CAT-05).
   .superRefine((v, ctx) => {
-    for (const variant of v.variants) {
-      if (v.price + variant.priceDeltaMinor < PRICE_FLOOR_MINOR) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["variants"],
-          message: `"${variant.name}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`,
-        });
-      }
+    for (const variant of variantsBelowFloor(v.price, v.variants)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["variants"],
+        message: variantFloorError(variant.name),
+      });
     }
   })
   .transform((v) => ({

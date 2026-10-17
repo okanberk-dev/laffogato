@@ -1096,6 +1096,90 @@ export async function listProductLabels(
   );
 }
 
+/**
+ * The columns the CSV import reads and may change, for every product: no
+ * photos (a stored upload is a data URL of up to 2 MB), no SEO, no cost.
+ * Variants come along because a new price must keep every variant at 1
+ * kuruş or more.
+ */
+export type ProductImportView = Pick<
+  AdminProduct,
+  | "id"
+  | "name"
+  | "slug"
+  | "sku"
+  | "tag"
+  | "desc"
+  | "cat"
+  | "img"
+  | "priceMinor"
+  | "compareAtPriceMinor"
+  | "stock"
+  | "taxRatePct"
+  | "isActive"
+  | "brand"
+  | "weightGrams"
+  | "variants"
+>;
+
+export async function listProductsForImport(): Promise<ProductImportView[]> {
+  await ensureSeed();
+  const sb = getDb();
+  return rows<ProductImportView>(
+    await sb
+      .from(TABLES.products)
+      .select(
+        "id, name, slug, sku, tag, desc, cat, img, priceMinor, compareAtPriceMinor, stock, taxRatePct, isActive, brand, weightGrams, variants",
+      )
+      .order("id", { ascending: true }),
+    "listProductsForImport",
+  );
+}
+
+/** The fields the CSV import writes on an existing product. Never `stock`. */
+export type ProductImportPatch = Partial<
+  Pick<
+    AdminProduct,
+    | "name"
+    | "tag"
+    | "desc"
+    | "cat"
+    | "priceMinor"
+    | "compareAtPriceMinor"
+    | "taxRatePct"
+    | "isActive"
+    | "brand"
+    | "weightGrams"
+  >
+> &
+  Partial<BackdropColumns>;
+
+/**
+ * Writes only the given columns of one product, or answers null when the
+ * row is gone. Stock is not among them on purpose: the import moves stock
+ * by a delta through `adjustStock`, which records a stock move, so an order
+ * taken in the meantime is not overwritten.
+ */
+export async function patchProductFromImport(
+  id: string,
+  patch: ProductImportPatch,
+): Promise<{ id: string } | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const { stock: _ignored, ...safe } = patch as ProductImportPatch & {
+    stock?: unknown;
+  };
+  const updated = rows<{ id: string }>(
+    await sb
+      .from(TABLES.products)
+      .update({ ...safe, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("id"),
+    "patchProductFromImport",
+  );
+  return updated[0] ?? null;
+}
+
 export async function deleteProduct(id: string): Promise<boolean> {
   await ensureSeed();
   const sb = getDb();
