@@ -12,6 +12,7 @@ import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
+import { MenuPhotoNote } from "./menu-photo-note";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
@@ -430,6 +431,7 @@ export function PageHome({
                 );
               })}
             </div>
+            <MenuPhotoNote show={railItems.some((it) => it.image)} />
           </div>
         </section>
       )}
