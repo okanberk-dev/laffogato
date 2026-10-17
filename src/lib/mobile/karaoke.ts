@@ -673,6 +673,70 @@ export async function listKaraokeRefundsOwed(): Promise<KaraokeReservation[]> {
   ];
 }
 
+/**
+ * Every booking that may wait for a person, whatever its day: the karaoke
+ * panel's Dikkat tab and the dashboard's karaoke card read this instead of
+ * the panel's list (newest 5000 rows) or today's rows, so a paid request
+ * from last week or an old refund owed never falls off either (admin audit
+ * KAR-07, KAR-25). Four small reads, one per payment state, so no row comes
+ * twice:
+ *
+ * - `refunding`: a refund whose answer never came;
+ * - `paid` and still `requested` (never confirmed, any day) or `cancelled`
+ *   (the money is still in);
+ * - `pending`: an unpaid hold (the sweep lets them go within the day);
+ * - `none` and still `requested`, from `today` on: a request waiting for
+ *   Onayla, or one taken as pay-at-the-venue before prepayment.
+ *
+ * Plus the confirmed bookings on the days of the paid requests still to
+ * come, so the panel can tell an hour lost to another booking (`slot_lost`)
+ * from a free one. Which rows need a person is `karaokeAttention`
+ * (lib/admin/karaoke-panel.ts): pass these through `karaokeAttentionViews`.
+ */
+export async function listKaraokeAttention(
+  today: string,
+): Promise<KaraokeReservation[]> {
+  const db = getDb();
+  const read = () =>
+    db.from(TABLES.karaokeReservations).select(ADMIN_LIST_COLUMNS);
+  const ctx = "karaoke.listKaraokeAttention";
+  const [refunding, paid, pending, requests] = await Promise.all([
+    read().eq("paymentStatus", "refunding"),
+    read().eq("paymentStatus", "paid").in("status", ["requested", "cancelled"]),
+    read().eq("paymentStatus", "pending"),
+    read()
+      .eq("paymentStatus", "none")
+      .eq("status", "requested")
+      .gte("date", today),
+  ]);
+  const found = [
+    ...rows<KaraokeReservation>(refunding, ctx),
+    ...rows<KaraokeReservation>(paid, ctx),
+    ...rows<KaraokeReservation>(pending, ctx),
+    ...rows<KaraokeReservation>(requests, ctx),
+  ];
+  const days = [
+    ...new Set(
+      found
+        .filter(
+          (r) =>
+            r.status === "requested" &&
+            paymentStatusOf(r) === "paid" &&
+            r.date >= today,
+        )
+        .map((r) => r.date),
+    ),
+  ];
+  if (days.length === 0) return found;
+  // A confirmed booking whose refund is under way is already in `found`.
+  const seen = new Set(found.map((r) => r.id));
+  const confirmed = rows<KaraokeReservation>(
+    await read().eq("status", "confirmed").in("date", days),
+    ctx,
+  ).filter((r) => !seen.has(r.id));
+  return [...found, ...confirmed];
+}
+
 export async function getReservation(
   id: string,
 ): Promise<KaraokeReservation | null> {

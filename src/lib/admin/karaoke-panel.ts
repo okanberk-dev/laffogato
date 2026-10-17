@@ -501,6 +501,18 @@ export function karaokeRowViews(
   return rows.map((r) => karaokeRowView(r, ctx, byDate.get(r.date) ?? []));
 }
 
+/**
+ * The bookings that need a person, from `listKaraokeAttention`'s rows (the
+ * confirmed bookings it adds are only there to be checked against, and drop
+ * out here). The Dikkat tab and the dashboard card both count this set.
+ */
+export function karaokeAttentionViews(
+  rows: readonly KaraokeReservation[],
+  ctx: KaraokePanelContext,
+): KaraokeRowView[] {
+  return karaokeRowViews(rows, ctx).filter((v) => v.attention.length > 0);
+}
+
 // ─── Tabs, filters, search, sort ───────────────────────────────────────────
 
 export type KaraokeTab = "bugun" | "yaklasan" | "gecmis" | "iptal" | "dikkat";
@@ -691,6 +703,15 @@ export interface KaraokeListResult {
   hiddenLapsed: number;
 }
 
+/**
+ * One page of the list, and every tab's count, filters applied.
+ *
+ * `attention` is `karaokeAttentionViews` over `listKaraokeAttention`: when
+ * given, Dikkat (its rows and its count) comes from it rather than from
+ * `views`, which are the newest rows only (KARAOKE_ADMIN_LIST_LIMIT), so an
+ * old refund owed stays in Dikkat however long the list grows (admin audit
+ * KAR-25). Null (the read failed) falls back to `views`.
+ */
 export function karaokeList(
   views: readonly KaraokeRowView[],
   opts: {
@@ -700,9 +721,11 @@ export function karaokeList(
     page: number;
     pageSize?: number;
     today: string;
+    attention?: readonly KaraokeRowView[] | null;
   },
 ): KaraokeListResult {
   const size = opts.pageSize ?? KARAOKE_PAGE_SIZE;
+  const attention = opts.attention ?? null;
   const counts: Record<KaraokeTab, number> = {
     bugun: 0,
     yaklasan: 0,
@@ -723,9 +746,16 @@ export function karaokeList(
       continue;
     }
     for (const t of KARAOKE_TABS) {
+      if (attention && t.tab === "dikkat") continue;
       if (inKaraokeTab(v, t.tab, opts.today)) counts[t.tab] += 1;
     }
+    if (attention && opts.tab === "dikkat") continue;
     if (inKaraokeTab(v, opts.tab, opts.today)) shown.push(v);
+  }
+  for (const v of attention ?? []) {
+    if (!matchesKaraokeFilters(v, opts.filters)) continue;
+    counts.dikkat += 1;
+    if (opts.tab === "dikkat") shown.push(v);
   }
   shown.sort((a, b) => compareRows(a, b, opts.sort));
   const pages = pageCount(shown.length, size);

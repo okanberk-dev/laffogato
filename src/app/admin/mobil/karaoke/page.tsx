@@ -21,6 +21,7 @@ import {
   KARAOKE_SORT_KEYS,
   KARAOKE_TAB_PARAM,
   KARAOKE_TABS,
+  karaokeAttentionViews,
   karaokeList,
   karaokeRowViews,
   moneyOf,
@@ -36,6 +37,7 @@ import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import {
   KARAOKE_ADMIN_LIST_LIMIT,
+  listKaraokeAttention,
   listReservationsForAdmin,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
@@ -72,6 +74,22 @@ async function releasedHolds(
 }
 
 /**
+ * Dikkat's own rows, any day (`listKaraokeAttention`). A failed read falls
+ * back to the list's rows (the old behaviour) rather than taking the page
+ * down.
+ */
+async function attentionRows(
+  today: string,
+): Promise<KaraokeReservation[] | null> {
+  try {
+    return await listKaraokeAttention(today);
+  } catch (err) {
+    console.error("[admin/karaoke] dikkat listesi okunamadı", err);
+    return null;
+  }
+}
+
+/**
  * Karaoke bookings, Filament style: tabs with counts, a filter row, a table
  * (cards on phones) and a ⋯ menu per row; the booking's page has the rest.
  *
@@ -92,27 +110,32 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const tab = parseKaraokeTab(sp);
   const sort = parseSort(sp, KARAOKE_SORT_KEYS, defaultKaraokeSort(tab));
 
-  const [rows, settings] = await Promise.all([
+  const [rows, settings, attention] = await Promise.all([
     listReservationsForAdmin({ from: filters.bas, to: filters.bit }),
     getSettings(),
+    attentionRows(today),
   ]);
   const released = await releasedHolds(rows);
-  const views = karaokeRowViews(rows, {
+  const ctx = {
     today,
     now,
     prepay: settings.karaokePrepay,
     canRefund: canAccess("refunds", session.role),
     staffReleased: released.staff,
     unverified: released.unverified,
-  });
+  };
+  const views = karaokeRowViews(rows, ctx);
   const list = karaokeList(views, {
     tab,
     filters,
     sort,
     page: parsePage(sp),
     today,
+    attention: attention ? karaokeAttentionViews(attention, ctx) : null,
   });
-  const truncated = rows.length >= KARAOKE_ADMIN_LIST_LIMIT;
+  // Dikkat reads its own rows, whatever the list's limit.
+  const truncated =
+    rows.length >= KARAOKE_ADMIN_LIST_LIMIT && !(tab === "dikkat" && attention);
   const tabValue = KARAOKE_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (

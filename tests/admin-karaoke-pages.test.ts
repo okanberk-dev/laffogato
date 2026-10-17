@@ -16,7 +16,8 @@ const h = vi.hoisted(() => ({
   role: "manager" as string,
   reservation: null as KaraokeReservation | null,
   list: [] as KaraokeReservation[],
-  audit: [] as Array<Record<string, unknown>>,
+  attention: [] as KaraokeReservation[] | Error,
+  audit: [] as Array<Record<string, unknown>> | Error,
   released: new Set<string>() as Set<string> | Error,
   unverified: new Set<string>(),
   prepay: true,
@@ -57,7 +58,10 @@ vi.mock("@/lib/admin/auth", () => ({
   })),
 }));
 vi.mock("@/lib/admin/karaoke-audit", () => ({
-  listKaraokeAudit: vi.fn(async () => h.audit),
+  listKaraokeAudit: vi.fn(async () => {
+    if (h.audit instanceof Error) throw h.audit;
+    return h.audit;
+  }),
   listReleasedHolds: vi.fn(async () => {
     if (h.released instanceof Error) throw h.released;
     return { staff: h.released, unverified: h.unverified };
@@ -70,6 +74,10 @@ vi.mock("@/lib/mobile/karaoke", () => ({
   KARAOKE_ADMIN_LIST_LIMIT: 5000,
   getReservation: vi.fn(async () => h.reservation),
   listReservationsForAdmin: vi.fn(async () => h.list),
+  listKaraokeAttention: vi.fn(async () => {
+    if (h.attention instanceof Error) throw h.attention;
+    return h.attention;
+  }),
   listReservationsForDate: vi.fn(async () => []),
 }));
 
@@ -137,6 +145,7 @@ beforeEach(() => {
   h.prepay = true;
   h.reservation = booking();
   h.list = [];
+  h.attention = [];
   h.audit = [];
   h.released = new Set();
   h.unverified = new Set();
@@ -251,6 +260,7 @@ describe("the list", () => {
       booking({ id: "krk-1" }),
       booking({ id: "krk-2", status: "cancelled" }),
     ];
+    h.attention = [h.list[1]!];
     const page = await list({ sekme: "yaklasan" });
     for (const tab of [
       "Bugün",
@@ -304,6 +314,29 @@ describe("the list", () => {
     expect(page).toContain("Ödeme doğrulanamadı");
     expect(page).not.toContain("Ödenmedi, süresi doldu");
     expect(page).not.toContain("rezervasyon denemesi gizli");
+  });
+
+  it("Dikkat reads its own set: an old refund owed past the list's rows is there", async () => {
+    // The list holds only the newest rows; the owed refund is not among them.
+    h.list = [booking({ id: "krk-5000" })];
+    h.attention = [
+      booking({ id: "krk-7", date: "2025-03-01", status: "cancelled" }),
+    ];
+    const page = await list({ sekme: "dikkat" });
+    expect(page).toContain('href="/admin/mobil/karaoke/krk-7');
+    expect(page).not.toContain('href="/admin/mobil/karaoke/krk-5000');
+    // Other tabs count it too, and point at Dikkat.
+    const other = await list();
+    expect(other).toContain("1 rezervasyon bir işlem bekliyor");
+  });
+
+  it("falls back to the list's rows when the Dikkat read fails", async () => {
+    h.list = [booking({ id: "krk-2", status: "cancelled" })];
+    h.attention = new Error("db down");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const page = await list({ sekme: "dikkat" });
+    spy.mockRestore();
+    expect(page).toContain('href="/admin/mobil/karaoke/krk-2');
   });
 
   it("stands when the audit log cannot be read: releases read as lapses", async () => {
