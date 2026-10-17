@@ -603,3 +603,66 @@ Kite eklenenler (alanlar kendi PR'larında kullanır):
   rozetleri onu dinleyecek), tutar ve kodlar için `NUMERIC_STYLE`, Türkçe
   arama katlaması `foldTr` (`src/lib/admin/text-fold.ts`, SQL eşi
   `lower(translate(...))`).
+
+### Katalog: ürün sihirbazı ve fiyat tabanları (paket 5a, 1-3. adımlar)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | 0 TL fiyat, fiyatından büyük indirimli varyant ve 0 TL menü bardağı kabul ediliyordu; böyle bir sepetin toplamı 0 olup POS'a gitmeden "Ödendi" sayılıyordu, uygulamanın mağaza akışı eksi fiyat yayımlıyordu (CAT-05) | Satış fiyatı zorunlu ve en az 1 kuruş; her varyantın fiyatı + farkı en az 1 kuruş, adıyla "Varyantlar" altında reddedilir; menüde M fiyatı 0 olamaz (L boş, "-" ya da 0 tek boy demek). Eski fiyat ve maliyet boşsa 0 kalır. Sıfır toplamlı siparişin kapanışı (yüzde 100 promosyon) değişmedi | `admin-product-wizard`, `admin-catalog-money` |
+| 🟠 | Reddedilen ürün kaydı kategoriyi, sahneyi, görsel tonunu ilk seçeneğe, Aktif / Öne çıkan kutularını eski hâline döndürüyordu; sonraki kayıt bunları yazıyordu (CAT-01) | Sihirbaz `useNoResetSubmit` ile elle gönderir; React'ın `<form action>` sıfırlaması yok | `admin-product-wizard` |
+| 🟠 | 5. adımda "Ürünü kaydet" önceki adımda boş zorunlu alan varsa hiçbir şey yapmıyordu: tarayıcı gizli alanda uyarı gösteremiyor, gönderimi sessizce düşürüyordu (CAT-02) | Form `noValidate`; "Sonraki adım" ve kayıt önce alanları kendisi denetler, ilk sorunlu alanın adımını açar ve tarayıcının mesajını orada gösterir (varyant satırının görünen kopyasında); sunucu reddi de ilk reddedilen alanın adımını açar | `admin-product-wizard` |
+| 🟡 | Alan hataları ipucu gibi görünüyordu (4,16:1 gri, rol yok, yalnız ad alanında `aria-invalid`); sihirbazda hata içeren adım belli değildi (CAT-09) | Her hata alanın altında ayrı satır: tehlike rengi, `role="alert"`, alana `aria-invalid` + `aria-describedby` (`markFieldErrors`), odak ilk hatalı alana; adım hapları ve düzenleme formundaki bölüm başlıkları hata içeren adımı işaretler; form hatası alt çubuğun üstünde `role="alert"` | `admin-product-wizard` |
+| 🟡 | Alerjen ipucuna dokunmak fındık kutusunu değiştiriyordu: müşteri uyarısı sessizce kalkabiliyordu (SYS-M02) | Alerjen ve Yayın durumu `Field as="fieldset"` | `admin-product-wizard` |
+| 🟢 | Kayıt sırasında atılan hata sayfayı hata ekranına çeviriyor, beş adımlık girişi siliyordu (CAT-17, sihirbaz) | `withPanelCatch`: hata yerinde "Bir hata oldu…" olarak görünür | `admin-product-wizard` |
+| 🟢 | Otomatik SKU hep `-00001`'di (iki ürün aynı kodu alıyordu) ve Türkçe harfleri atıyordu ("Çay Bardağı" AYBA) (CAT-18) | SKU alanı boş başlar, sunucu ürünün sıra numarasıyla üretir; `src/lib/admin/sku.ts` Türkçe harfleri katlar (CAYB); kodu olmayan eski ürün düzenlenince kimliğinden kod alır | `admin-product-wizard` |
+| 🟢 | Toplu silme ve güncelleme olay kaydına neye dokunduğunu yazmıyordu (CAT-20, ürünler) | Kayıt kimlikleri ve yazımdan önce okunan adları (ilk 100) taşır | `admin-product-wizard` |
+| 🟢 | "Vazgeç" bağlantı içinde düğmeydi (CAT-22, sihirbaz) | Tek `Link`, `BUTTON.ghost` | `admin-product-wizard` |
+| 🟢 | Sihirbazda İngilizce ve jargon ("override et", "was", "placeholder", "delta", "Δ", Pistachio, Rose, base64), özette kategori slug'ı (CAT-24, sihirbaz) | Sade Türkçe, "sen"; özette kategorinin adı | `admin-product-wizard` |
+| 🟢 | Başka sekmede silinmiş ürünü kaydetmek "kaydedildi" diyor ve olay kaydı yazıyordu (CAT-28, ürünler) | "Bu ürün silinmiş; listeye dön." | `admin-product-wizard` |
+| 🟢 | Adsız varyant satırı stoğu ve fiyatıyla birlikte sessizce düşüyordu (CAT-29) | "2. varyantın adını yaz ya da satırı sil." | `admin-product-wizard` |
+| 🟢 | Ağırlık her yeni üründe 250 g "kargo için" başlıyordu ama müşteriye ve Google'a yayımlanıyordu; düşük stok ipucu mağazadaki "Son N adet" rozetini söylemiyordu (CAT-M02) | Ağırlık boş başlar (boş = gösterilmez), ipuçları nerede göründüklerini söyler. Metin avukat okumasından geçmeli | `admin-product-wizard` |
+
+Ürün şemasına ad (120), SKU (40), etiket (80) ve açıklama (2000) için uzunluk
+sınırı eklendi; CSV içe aktarma da aynı şemadan geçer.
+
+Açık (paket 5a'nın kalanı, sonraki admin dalgası; bu PR migration eklemez):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | Ürün formu stoğu körlemesine yazar: form açıkken gelen siparişin düşüşü kayıtta kaybolur; varyant stoğu atomik değil (CAT-03) | Adım 4 (karar D16): açılış anı farkı, `adjust_product_stock` + stok hareketi, yeni `adjust_variant_stock` SQL fonksiyonu (migration). CSV içe aktarma stoğu zaten fark olarak yazar |
+| 🟡 | Varyant stoğu ürün stoğundan ayrı; `resolveOrderLines` varyantı `claim_order_stock` gibi denetlemez (CAT-14) | Adım 4 |
+| 🟠 / 🟡 | Tablo boşken tohum (CON-01, CAT-04) | Adım 5 (karar D17) |
+| 🟢 | Menü ve vitrin tarafı: menü toplu kaydı kimlik, vitrin silme başlık yazmıyor (CAT-20), menü / kategori / vitrin "Vazgeç" (CAT-22), vitrin güncellemesi silinmiş slaytta (CAT-28), diğer katalog ekranlarının metni (CAT-24), toplu geri çağırmalar `withPanelCatch` (CAT-17) | Kendi dosyalarının PR'larında (5c, 5d) |
+
+Eklenen: **ürünleri CSV ile içe aktarma** (`/admin/urunler/ice-aktar`, ürün
+listesinden bağlantı, yalnız `products` rolü; kural ve sütunlar
+`src/lib/admin/product-import-core.ts`, okuma ve yazma `product-import.ts`).
+Şablon UTF-8 + BOM, `;` ayraçlı. Dosya en fazla 1 MB ve 500 satır; ayraç
+(`;` / `,`), BOM, CRLF ve tırnak depodaki RFC 4180 okuyucusuyla
+(`src/lib/admin/csv.ts`) okunur, fiyat `129,90` da `129.90` da olur. Önce
+önizleme (hiçbir şey yazılmaz, satır satır yeni / güncellenecek / değişiklik
+yok / hata ve nedeni), sonra yalnız geçerli satırlar yazılır. SKU eşleştirme
+anahtarıdır: aynı dosya ikinci kez hiçbir şeyi değiştirmez. Her satır sihirbazın
+şemasından geçer (fiyat tabanı, uzunluk sınırları, KDV); var olan ürünün stoğu
+fark olarak `adjustStock` ile ("CSV içe aktarma" notlu stok hareketi) değişir,
+varyantlı ürünün stoğu buradan değişmez. İçe aktarma önizlemenin parmak izini
+yeniden hesaplar; arada dosya ya da katalog değiştiyse yazmaz, yeni önizleme
+gösterir. Her içe aktarma tek olay kaydı yazar (sayılar ve kimlikler, dosya
+içeriği değil). Görseller içe aktarılmaz. Testler: `admin-csv-parse`,
+`admin-product-import`.
+
+Bağımsız inceleme sonrası (aynı PR): isteğe bağlı sütundaki boş hücre kayıtlı
+değeri sildiği için önizleme her alanda "temizlenecek (hücre boş)" yazar ve
+tablonun üstünde kaç üründe neyin temizleneceğini sayar (yalnız stok için
+hazırlanmış bir dosya bütün eski fiyatları ve ürünlere özel KDV oranlarını
+sessizce silebiliyordu). KDV hücresi yalnız 0, 1, 10, 20 ya da ürünün zaten
+kayıtlı oranını alır (eski 18 / 8 reddedilir). Başlık en fazla 200 sütun.
+İçe aktarma 90 saniyeden sonra yeni satıra başlamaz, kalanları "yazılmadı"
+diye listeler (sayfa sınırı 120 sn; yanıt ve olay kaydı yine gelir). Alanları
+yazılıp stoğu yazılamayan satır "Hata" sayılır. Şablonun örnek satırı pasif
+açılır, dosyada kalırsa önizleme uyarır. Sihirbaz düzenlemede boşaltılan
+SKU'nun kayıtlı kodu koruduğunu söyler (eskiden "kayıtta üretilir" diyordu).
+Açık kalan risk: aynı dosya iki sekmede aynı anda içe aktarılırsa ve ikisi de
+yeniden planlamayı ötekinin ilk yazımından önce bitirirse stok farkı iki kez
+yazılır (pencere milisaniyeler; önizlemenin parmak izi geri kalan her durumu
+yakalar).

@@ -183,7 +183,8 @@ describe("the product form", () => {
 
   it("tells the operator both limits and that the brand is shown as typed", () => {
     const wizard = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
-    expect(wizard).toContain('fieldError("notes")');
+    // The refusal under the field (its own danger-ink line since CAT-09).
+    expect(wizard).toContain('errorFor("notes")');
     expect(wizard).toContain(`en fazla ${PRODUCT_NOTES_MAX} not`);
     expect(wizard).toContain(`en fazla ${PRODUCT_NOTE_MAX_LENGTH} karakter`);
     // The app prints the brand as written (no upper-casing), so the hint must

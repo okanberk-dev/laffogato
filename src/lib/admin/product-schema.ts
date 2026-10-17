@@ -140,6 +140,53 @@ const moneyToMinor = z.string().transform((s, ctx) => {
   return minor;
 });
 
+/** The smallest price anything in the shop may be sold for: 1 kuruş. */
+export const PRICE_FLOOR_MINOR = 1;
+
+export const PRICE_REQUIRED_ERROR = "Satış fiyatını yaz.";
+export const PRICE_FLOOR_ERROR = "Fiyat en az 0,01 TL olmalı.";
+
+/** Why a variant is refused when its price plus difference is under 1 kuruş. */
+export function variantFloorError(name: string): string {
+  return `"${name}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`;
+}
+
+/** The variants that would sell under 1 kuruş at this price. */
+export function variantsBelowFloor<V extends { priceDeltaMinor: number }>(
+  priceMinor: number,
+  variants: readonly V[],
+): V[] {
+  return variants.filter((v) => priceMinor + v.priceDeltaMinor < PRICE_FLOOR_MINOR);
+}
+
+/**
+ * The sale price: required, and at least 1 kuruş (admin audit CAT-05). A "0"
+ * left as a placeholder gave the product away: a basket of such items
+ * totals 0 and is settled as paid without the POS. The optional prices keep
+ * moneyToMinor, where empty is 0 ("no was price", "no cost").
+ */
+const salePriceToMinor = z.string().transform((s, ctx) => {
+  const text = s.trim();
+  if (!text) {
+    ctx.addIssue({ code: "custom", message: PRICE_REQUIRED_ERROR });
+    return z.NEVER;
+  }
+  const minor = parseMoneyInput(text);
+  if (minor === null) {
+    ctx.addIssue({ code: "custom", message: MONEY_INPUT_ERROR });
+    return z.NEVER;
+  }
+  if (minor > CATALOG_MONEY_MAX_MINOR) {
+    ctx.addIssue({ code: "custom", message: MONEY_TOO_LARGE_ERROR });
+    return z.NEVER;
+  }
+  if (minor < PRICE_FLOOR_MINOR) {
+    ctx.addIssue({ code: "custom", message: PRICE_FLOOR_ERROR });
+    return z.NEVER;
+  }
+  return minor;
+});
+
 /**
  * The product's own KDV rate: "" is the category default (null), anything
  * else a whole number from 0 to 100. A fraction or text is refused under the
@@ -217,7 +264,15 @@ const variantsJson = z
           if (typeof v !== "object" || v === null) return null;
           const o = v as Record<string, unknown>;
           const name = String(o.name ?? "").trim();
-          if (!name) return null;
+          // A row without a name used to vanish on save with its stock and
+          // price (admin audit CAT-29); it is refused under "Varyantlar".
+          if (!name) {
+            ctx.addIssue({
+              code: "custom",
+              message: `${idx + 1}. varyantın adını yaz ya da satırı sil.`,
+            });
+            return null;
+          }
           // Signed: a smaller bag is cheaper ("-10,50"). Same reading as every
           // other amount; an unreadable one is refused under "Varyantlar"
           // instead of quietly becoming 0.
@@ -254,13 +309,47 @@ const variantsJson = z
     }
   });
 
+/** Length caps shared by the wizard and the CSV import. */
+export const PRODUCT_NAME_MAX_LENGTH = 120;
+export const PRODUCT_SKU_MAX_LENGTH = 40;
+export const PRODUCT_TAG_MAX_LENGTH = 80;
+export const PRODUCT_DESC_MAX_LENGTH = 2000;
+
 export const productFormSchema = z
   .object({
-    name: z.string().trim().min(2, "Ürün adı en az 2 karakter olmalı."),
+    name: z
+      .string()
+      .trim()
+      .min(2, "Ürün adı en az 2 karakter olmalı.")
+      .max(
+        PRODUCT_NAME_MAX_LENGTH,
+        `Ürün adı en fazla ${PRODUCT_NAME_MAX_LENGTH} karakter olabilir.`,
+      ),
     slug: z.string().trim().optional(),
-    sku: z.string().trim().optional(),
-    tag: z.string().trim().min(1, "Etiket gerekli."),
-    desc: z.string().trim().min(1, "Açıklama gerekli."),
+    sku: z
+      .string()
+      .trim()
+      .max(
+        PRODUCT_SKU_MAX_LENGTH,
+        `SKU en fazla ${PRODUCT_SKU_MAX_LENGTH} karakter olabilir.`,
+      )
+      .optional(),
+    tag: z
+      .string()
+      .trim()
+      .min(1, "Etiket gerekli.")
+      .max(
+        PRODUCT_TAG_MAX_LENGTH,
+        `Etiket en fazla ${PRODUCT_TAG_MAX_LENGTH} karakter olabilir.`,
+      ),
+    desc: z
+      .string()
+      .trim()
+      .min(1, "Açıklama gerekli.")
+      .max(
+        PRODUCT_DESC_MAX_LENGTH,
+        `Açıklama en fazla ${PRODUCT_DESC_MAX_LENGTH} karakter olabilir.`,
+      ),
     cat: z.enum(CAT_VALUES).default("beans"),
     img: z.enum(HUE_VALUES).default("cream"),
     images: imagesJsonArray,
@@ -275,7 +364,7 @@ export const productFormSchema = z
       .optional()
       .default(""),
     notes: notesList,
-    price: moneyToMinor,
+    price: salePriceToMinor,
     compareAtPrice: moneyToMinor.optional(),
     cost: moneyToMinor.optional(),
     stock: intInput,
@@ -292,6 +381,18 @@ export const productFormSchema = z
     // choices and the first photo into the scene columns (scene.ts).
     backdrop: z.string().optional().transform(parseBackdropChoice),
     vessel: z.string().optional().transform(parseVesselChoice),
+  })
+  // Each variant sells at price + its difference, and the order line is
+  // max(0, that): a "-400" on a 320 TL product gave the variant away, and
+  // the app's shop feed published the negative price (CAT-05).
+  .superRefine((v, ctx) => {
+    for (const variant of variantsBelowFloor(v.price, v.variants)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["variants"],
+        message: variantFloorError(variant.name),
+      });
+    }
   })
   .transform((v) => ({
     name: v.name,

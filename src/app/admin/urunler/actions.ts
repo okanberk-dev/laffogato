@@ -18,6 +18,7 @@ import {
   createProduct,
   deleteProduct,
   getProduct,
+  listProductLabels,
   updateProduct,
   type AdminProduct,
   type AdminProductVariant,
@@ -104,6 +105,8 @@ export interface ProductActionState {
   fieldErrors?: Record<string, string>;
 }
 
+const PRODUCT_GONE_ERROR = "Bu ürün silinmiş; listeye dön.";
+
 export async function createProductAction(
   _prev: ProductActionState,
   formData: FormData,
@@ -152,8 +155,13 @@ export async function updateProductAction(
       fieldErrors,
     };
   }
-  const scene = await productScene(parsed.data, await getProduct(id));
-  await updateProduct(id, { ...toInput(parsed.data), ...scene });
+  const previous = await getProduct(id);
+  // Deleted in another tab: say so instead of "kaydedildi" and an audit row
+  // for a save that wrote nothing (admin audit CAT-28).
+  if (!previous) return { error: PRODUCT_GONE_ERROR };
+  const scene = await productScene(parsed.data, previous);
+  const saved = await updateProduct(id, { ...toInput(parsed.data), ...scene });
+  if (!saved) return { error: PRODUCT_GONE_ERROR };
   await logAudit({
     action: "update",
     entity: "product",
@@ -191,6 +199,9 @@ export async function deleteProductAction(
   return actionOk(`"${product?.name ?? id}" silindi.`);
 }
 
+/** How many product names one bulk audit row carries; the ids are all there. */
+const BULK_AUDIT_NAMES = 100;
+
 export interface BulkActionState {
   error?: string;
   ok?: { op: string; updated: number };
@@ -210,6 +221,9 @@ export async function bulkProductsAction(
     return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
   }
   const { ids, op, value } = parsed.data;
+  // Read before the write: after a bulk delete the names are gone, and the
+  // audit row is the only record of what was removed (admin audit CAT-20).
+  const labels = await listProductLabels(ids);
   let storeOp: BulkProductOp;
   if (op === "set_category") {
     storeOp = { kind: "set_category", cat: value as ShopCategoryId };
@@ -220,7 +234,14 @@ export async function bulkProductsAction(
   await logAudit({
     action: op === "delete" ? "bulk_delete" : "bulk_update",
     entity: "product",
-    payload: { op, value, updated, idCount: ids.length },
+    payload: {
+      op,
+      value,
+      updated,
+      idCount: ids.length,
+      ids,
+      names: labels.slice(0, BULK_AUDIT_NAMES).map((p) => p.name),
+    },
   });
   revalidateShop();
   return { ok: { op, updated } };
