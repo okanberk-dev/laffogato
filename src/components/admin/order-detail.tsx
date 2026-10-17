@@ -73,6 +73,11 @@ interface Props {
    * manager, `customers`); otherwise they read "Kayıtlı" (karar D3).
    */
   canSeeEvidence: boolean;
+  /**
+   * Which history read failed on the server: the page then says so instead
+   * of showing an empty list as if nothing happened (admin audit ORD-20).
+   */
+  historyUnread?: { audit: boolean; mail: boolean };
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -116,6 +121,63 @@ const ITEM_LABEL = {
   cancelled: "İptal",
 } as const;
 
+function LineName({ item }: { item: AdminOrder["items"][number] }) {
+  return (
+    <>
+      <div
+        className={
+          item.status === "cancelled"
+            ? "text-[var(--admin-text-soft)] line-through"
+            : "text-[var(--admin-text)]"
+        }
+      >
+        {item.productName}
+      </div>
+      {/* The barista needs the cafe details (size, milk, shots) here too. */}
+      {item.detail ? (
+        <div className="text-xs text-[var(--admin-text-soft)]">
+          {item.detail}
+        </div>
+      ) : null}
+      {item.restockedQty ? (
+        <div className="text-xs text-[var(--admin-text-soft)]">
+          {item.restockedQty} adet stoğa döndü
+        </div>
+      ) : null}
+      {typeof item.taxRatePct === "number" ? (
+        <div className="text-xs text-[var(--admin-text-soft)]">
+          KDV {kdvRateLabel(item.taxRatePct)} dahil
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function LineStatus({
+  order,
+  index,
+  editable,
+}: {
+  order: AdminOrder;
+  index: number;
+  editable: OrderActionMap["item_status"];
+}) {
+  const it = order.items[index];
+  return editable ? (
+    <ItemStatusSelect
+      orderId={order.id}
+      index={index}
+      status={it.status}
+      productName={it.productName}
+      disabledReason={editable.enabled ? undefined : editable.reason}
+    />
+  ) : (
+    <Badge tone={ITEM_TONE[it.status] ?? "neutral"}>
+      {ITEM_LABEL[it.status] ?? it.status}
+    </Badge>
+  );
+}
+
 function ItemsSection({
   order,
   actions,
@@ -126,8 +188,37 @@ function ItemsSection({
   const editable = actions.item_status;
   return (
     <Section title="Kalemler" flush>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] text-sm">
+      {/* Phones: one stacked row per line, the status control underneath.
+          The table was 520 px wide in a 358 px card and its Durum select
+          sat off screen behind a sideways swipe (admin audit ORD-24). */}
+      <ul
+        data-order-lines-stacked
+        className="divide-y divide-[var(--admin-border)] sm:hidden"
+      >
+        {order.items.map((it, i) => (
+          <li key={i} className="flex flex-col gap-2 px-4 py-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <LineName item={it} />
+              </div>
+              <div className="shrink-0 text-right" style={MONO_STYLE}>
+                {formatTRY(it.unitPriceMinor * it.qty)}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span
+                className="text-xs text-[var(--admin-text-soft)]"
+                style={MONO_STYLE}
+              >
+                {it.qty} × {formatTRY(it.unitPriceMinor)}
+              </span>
+              <LineStatus order={order} index={i} editable={editable} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full text-sm">
           <thead>
             <tr
               className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
@@ -157,57 +248,28 @@ function ItemsSection({
                 className="border-b border-[var(--admin-border)] align-top last:border-b-0"
               >
                 <td className="px-4 py-3 sm:px-6">
-                  <div
-                    className={
-                      it.status === "cancelled"
-                        ? "text-[var(--admin-text-soft)] line-through"
-                        : "text-[var(--admin-text)]"
-                    }
-                  >
-                    {it.productName}
-                  </div>
-                  {/* The barista needs the cafe details (size, milk, shots) here too. */}
-                  {it.detail ? (
-                    <div className="text-xs text-[var(--admin-text-soft)]">
-                      {it.detail}
-                    </div>
-                  ) : null}
-                  {it.restockedQty ? (
-                    <div className="text-xs text-[var(--admin-text-soft)]">
-                      {it.restockedQty} adet stoğa döndü
-                    </div>
-                  ) : null}
-                  {typeof it.taxRatePct === "number" ? (
-                    <div className="text-xs text-[var(--admin-text-soft)]">
-                      KDV {kdvRateLabel(it.taxRatePct)} dahil
-                    </div>
-                  ) : null}
+                  <LineName item={it} />
                 </td>
-                <td className="px-2 py-3 text-right" style={MONO_STYLE}>
+                <td
+                  className="px-2 py-3 text-right whitespace-nowrap"
+                  style={MONO_STYLE}
+                >
                   × {it.qty}
                 </td>
-                <td className="px-2 py-3 text-right" style={MONO_STYLE}>
+                <td
+                  className="px-2 py-3 text-right whitespace-nowrap"
+                  style={MONO_STYLE}
+                >
                   {formatTRY(it.unitPriceMinor)}
                 </td>
-                <td className="px-2 py-3 text-right" style={MONO_STYLE}>
+                <td
+                  className="px-2 py-3 text-right whitespace-nowrap"
+                  style={MONO_STYLE}
+                >
                   {formatTRY(it.unitPriceMinor * it.qty)}
                 </td>
                 <td className="px-4 py-3 sm:px-6">
-                  {editable ? (
-                    <ItemStatusSelect
-                      orderId={order.id}
-                      index={i}
-                      status={it.status}
-                      productName={it.productName}
-                      disabledReason={
-                        editable.enabled ? undefined : editable.reason
-                      }
-                    />
-                  ) : (
-                    <Badge tone={ITEM_TONE[it.status] ?? "neutral"}>
-                      {ITEM_LABEL[it.status] ?? it.status}
-                    </Badge>
-                  )}
+                  <LineStatus order={order} index={i} editable={editable} />
                 </td>
               </tr>
             ))}
@@ -405,7 +467,20 @@ function PaymentSection({
   );
 }
 
-function DeliverySection({ order }: { order: AdminOrder }) {
+/** Orders that travel to an address: the address is shown and edited. */
+export function orderHasAddress(order: { fulfillment?: string }): boolean {
+  const fulfillment = orderFulfillment(order);
+  return fulfillment === "shipping" || fulfillment === "delivery";
+}
+
+function DeliverySection({
+  order,
+  canEditAddress,
+}: {
+  order: AdminOrder;
+  /** The customer card's "Düzenle" is open to this role (an empty address says so). */
+  canEditAddress: boolean;
+}) {
   const fulfillment = orderFulfillment(order);
   const table = orderTable(order);
   return (
@@ -415,6 +490,23 @@ function DeliverySection({ order }: { order: AdminOrder }) {
         items={[
           { label: "Teslimat", value: ORDER_FULFILLMENT_LABELS[fulfillment] },
           table && { label: "Masa", value: table.name || table.code },
+          // A parcel or a courier run goes to an address; a gel-al or table
+          // order has none, and its card said "Teslimat adresi yok.
+          // Düzenle ile ekleyebilirsin." (admin audit ORD-11).
+          orderHasAddress(order) && {
+            label: "Adres",
+            value: order.shippingAddress ? (
+              <address className="[overflow-wrap:anywhere] whitespace-pre-line not-italic">
+                {order.shippingAddress}
+              </address>
+            ) : (
+              ""
+            ),
+            hint:
+              !order.shippingAddress && canEditAddress
+                ? 'Müşteri kartındaki "Düzenle" ile ekleyebilirsin.'
+                : undefined,
+          },
           order.scheduledFor
             ? {
                 label: "Planlanan saat",
@@ -489,14 +581,24 @@ function MailsSection({
   order,
   notices,
   canResend,
+  unread,
 }: {
   order: AdminOrder;
   notices: OrderNoticeRow[];
   canResend: boolean;
+  /** The mail read failed: nothing is known, not "nothing went out". */
+  unread: boolean;
 }) {
   return (
     <Section title="E-postalar">
-      {notices.length === 0 ? (
+      {unread ? (
+        <p
+          role="status"
+          className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+        >
+          E-posta kaydı okunamadı, sayfayı yenile.
+        </p>
+      ) : notices.length === 0 ? (
         <p className="text-sm text-[var(--admin-text-soft)]">
           Bu sipariş için e-posta kaydı yok.
         </p>
@@ -675,6 +777,7 @@ export function OrderDetail({
   customerHref,
   detailsRules,
   canSeeEvidence,
+  historyUnread = { audit: false, mail: false },
 }: Props) {
   return (
     <>
@@ -688,8 +791,19 @@ export function OrderDetail({
             order={order}
             notices={notices}
             canResend={actions.resend_mail?.enabled === true}
+            unread={historyUnread.mail}
           />
           <Section title="Zaman çizelgesi">
+            {historyUnread.audit || historyUnread.mail ? (
+              <p
+                role="status"
+                className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+              >
+                {historyUnread.audit
+                  ? "Olay kaydı okunamadı: kimin ne yaptığı, iadeler ve dikkat kayıtları burada eksik olabilir. Sayfayı yenile."
+                  : "E-posta kaydı okunamadı: e-postalar burada eksik. Sayfayı yenile."}
+              </p>
+            ) : null}
             {timeline.length > 0 ? (
               <Timeline items={timeline} />
             ) : (
@@ -705,10 +819,14 @@ export function OrderDetail({
             customerEmail={order.customerEmail}
             customerPhone={order.customerPhone}
             shippingAddress={order.shippingAddress}
+            hasAddress={orderHasAddress(order)}
             customerHref={customerHref}
             rules={detailsRules}
           />
-          <DeliverySection order={order} />
+          <DeliverySection
+            order={order}
+            canEditAddress={detailsRules.editable}
+          />
           <Section title="İç not">
             <OrderNoteForm orderId={order.id} initial={order.internalNote} />
           </Section>

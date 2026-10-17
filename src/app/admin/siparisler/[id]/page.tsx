@@ -41,13 +41,21 @@ export async function generateMetadata({ params }: PageProps) {
   return { title: `Admin · Sipariş #${order.orderNo}` };
 }
 
-/** A history that cannot be read must not take the order page with it. */
-async function orNothing<T>(work: Promise<T[]>, what: string): Promise<T[]> {
+/**
+ * A history that cannot be read must not take the order page with it, and
+ * must not pass for an empty one either: an empty mail list read as "no
+ * mail went out" and hid every "Yeniden gönder" (admin audit ORD-20). The
+ * page says which read failed.
+ */
+async function readOrFlag<T>(
+  work: Promise<T[]>,
+  what: string,
+): Promise<{ rows: T[]; failed: boolean }> {
   try {
-    return await work;
+    return { rows: await work, failed: false };
   } catch (err) {
     console.error(`[admin/siparisler] ${what} okunamadı`, err);
-    return [];
+    return { rows: [], failed: true };
   }
 }
 
@@ -56,11 +64,13 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
-  const [payments, audits, notices] = await Promise.all([
+  const [payments, auditRead, noticeRead] = await Promise.all([
     listPaymentTransactions(order.id),
-    orNothing(listOrderAuditLogs(order.id), "olay kaydı"),
-    orNothing(listOrderNotices(order.id), "e-posta kaydı"),
+    readOrFlag(listOrderAuditLogs(order.id), "olay kaydı"),
+    readOrFlag(listOrderNotices(order.id), "e-posta kaydı"),
   ]);
+  const audits = auditRead.rows;
+  const notices = noticeRead.rows;
   // The SAME money facts the server actions decide by (orderWasCollected:
   // paidAt or a succeeded payment row): a payment that landed after the
   // sweep cancelled the order has no paidAt, and it is exactly the money
@@ -147,8 +157,12 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           {owed > 0 ? (
             <p className="mt-1">İade edilecek: {formatTRY(owed)}</p>
           ) : null}
+          {/* "Dikkat işaretini kaldır" needs the refunds role: staff saw it
+              disabled under an instruction to press it (ORD-26). */}
           <p className="mt-1 text-xs">
-            Çözünce ⋯ menüsünden &quot;Dikkat işaretini kaldır&quot;.
+            {actions.clear_attention?.enabled
+              ? 'Çözünce ⋯ menüsünden "Dikkat işaretini kaldır".'
+              : "Çözülmesi için bir yöneticiye haber ver."}
           </p>
         </div>
       ) : null}
@@ -162,6 +176,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         timeline={orderTimeline(order, audits, notices)}
         notices={notices.filter((n) => n.kind !== "staff-new")}
         customerHref={customerHref}
+        historyUnread={{ audit: auditRead.failed, mail: noticeRead.failed }}
         detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}
         canSeeEvidence={canAccess("customers", session.role)}
       />
