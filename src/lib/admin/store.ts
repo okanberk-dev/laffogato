@@ -6407,22 +6407,30 @@ export async function updatePromo(
     "updatePromo.conflict",
   );
   if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
-  const next: AdminPromo = {
-    ...existing,
-    code,
-    kind: input.kind,
-    value: input.value,
-    minSubtotalMinor: input.minSubtotalMinor,
-    usageLimit: input.usageLimit,
-    expiresAt: input.expiresAt,
-    isActive: input.isActive,
-    updatedAt: new Date().toISOString(),
-  };
-  check(
-    await sb.from(TABLES.promos).update(next).eq("id", id),
+  // The form's fields only. The whole row read above used to go back,
+  // `usageCount` included: a redemption (redeem_promo) or a cancellation
+  // (release_promo_usage) that landed between that read and this write was
+  // overwritten, and a limited code could be used past its limit.
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({
+        code,
+        kind: input.kind,
+        value: input.value,
+        minSubtotalMinor: input.minSubtotalMinor,
+        usageLimit: input.usageLimit,
+        expiresAt: input.expiresAt,
+        isActive: input.isActive,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*"),
     "updatePromo.update",
   );
-  return { ok: true, promo: next };
+  const promo = updated[0];
+  if (!promo) return { ok: false, error: "Kod bulunamadı." };
+  return { ok: true, promo };
 }
 
 /** The list's Aktif / Pasif switch; null when the code is gone. */

@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import { requireCustomer } from "@/lib/customer/auth";
 
-import {
-  updateAddressAction,
-  type AddressFormState,
-} from "../../../../actions";
+import { updateAddressAction } from "../../../../actions";
 import { AddressForm } from "../../address-form";
 
 export const metadata = { title: "Adresi düzenle · L'Affogato" };
@@ -23,8 +20,9 @@ export default async function DuzenleAdresPage({
   const address = customer.addresses.find((a) => a.id === id);
   if (!address) notFound();
 
-  const boundAction = async (prev: AddressFormState, formData: FormData) =>
-    updateAddressAction(id, prev, formData);
+  // Bound, not wrapped in an arrow: a plain function cannot be handed to the
+  // client AddressForm, and every "düzenle" opened the error page.
+  const boundAction = updateAddressAction.bind(null, id);
 
   return (
     <AccountShell customer={customer} active="adreslerim">
