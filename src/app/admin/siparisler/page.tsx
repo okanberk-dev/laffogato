@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { OrdersList, type OrderListRow } from "@/components/admin/orders-list";
@@ -11,7 +12,7 @@ import {
   StatusTabs,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { withParams } from "@/lib/admin/list-params";
+import { pageCount, withParams } from "@/lib/admin/list-params";
 import {
   mayExportOrders,
   orderActions,
@@ -68,6 +69,19 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
     }),
     countOrdersByStatus(withoutStatuses(parsed.query)),
   ]);
+  // A page past the end (a stale link, the last order of page 3
+  // cancelled away) goes to the last page: it said "Bu süzgece uyan sipariş
+  // yok." while the pagination under it read "101-137 / 137" (ORD-25).
+  const lastPage = pageCount(page.total, ORDER_LIST_PAGE_SIZE);
+  if (parsed.page > lastPage) {
+    redirect(
+      withParams(
+        sp,
+        { sayfa: lastPage > 1 ? lastPage : null },
+        ORDER_LIST_PATH,
+      ),
+    );
+  }
   const money = await listOrderMoney(page.orders);
 
   const rows: OrderListRow[] = page.orders.map((order) => {
@@ -102,10 +116,25 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           : counts[t.value as keyof typeof counts],
   }));
 
+  // The way out of an empty list: the filters go (the tab stays), a tab
+  // with nothing in it leads back to every order, and a shop with no
+  // order yet offers the first one.
+  const filtered = Object.keys(parsed.values).length > 0;
+  const emptyAction = filtered
+    ? {
+        href: parsed.tab
+          ? withParams({ durum: parsed.tab }, {}, ORDER_LIST_PATH)
+          : ORDER_LIST_PATH,
+        label: "Filtreleri temizle",
+      }
+    : parsed.narrowed
+      ? { href: ORDER_LIST_PATH, label: "Tüm siparişler" }
+      : { href: "/admin/siparisler/yeni", label: "+ Yeni sipariş" };
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="E-ticaret"
+        eyebrow="Satış"
         title="Siparişler"
         description="Ara, süz, sırala. Bir siparişin işlemleri satırın ⋯ menüsünde; birden fazlasını seçip toplu işlem yapabilirsin."
         action={
@@ -164,6 +193,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
             ? "Bu süzgece uyan sipariş yok."
             : "Henüz sipariş yok."
         }
+        emptyAction={emptyAction}
       />
 
       <div className="mt-6">

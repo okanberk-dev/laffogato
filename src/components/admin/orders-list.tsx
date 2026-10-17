@@ -35,7 +35,7 @@ import {
   useSoundPref,
   writeSoundPref,
 } from "./sound-pref";
-import { MONO_STYLE } from "./ui/styles";
+import { BUTTON, MONO_STYLE } from "./ui/styles";
 
 /** One row of the order list, decided on the server. */
 export interface OrderListRow {
@@ -63,6 +63,11 @@ interface Props {
   pathname: string;
   /** Shown when there are no rows. */
   emptyTitle: string;
+  /**
+   * The way out of an empty list: "Filtreleri temizle" behind a filter,
+   * "+ Yeni sipariş" when there is no order at all (admin audit ORD-25).
+   */
+  emptyAction?: { href: string; label: string } | null;
 }
 
 /**
@@ -73,6 +78,13 @@ interface Props {
  * `head: true` count, not a re-read of the list.
  */
 const POLL_MS = 30_000;
+
+/**
+ * The sound toggle's name. It stays the same whatever the state: the state
+ * is `aria-pressed` (and the dot), so a screen reader hears "Yeni sipariş
+ * sesi, basılı" rather than "Ses kapalı, basılı değil" (admin audit ORD-27).
+ */
+export const SOUND_TOGGLE_LABEL = "Yeni sipariş sesi";
 
 function itemsSummary(order: AdminOrder): string {
   const names = order.items.map(
@@ -107,10 +119,14 @@ function PaymentBadge({ row }: { row: OrderListRow }) {
   return <Badge tone={row.payment.tone}>{row.payment.label}</Badge>;
 }
 
+/** The number and its marks. The marks wrap under a long number. */
 function OrderNo({ order, isNew }: { order: AdminOrder; isNew: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2" style={MONO_STYLE}>
-      #{order.orderNo}
+    <span
+      className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+      style={MONO_STYLE}
+    >
+      <span className="whitespace-nowrap">#{order.orderNo}</span>
       {order.attention ? (
         <Badge tone="danger" title="Dikkat: sipariş sayfasındaki banda bak">
           Dikkat
@@ -129,6 +145,7 @@ export function OrdersList({
   searchParams,
   pathname,
   emptyTitle,
+  emptyAction = null,
 }: Props) {
   const router = useRouter();
   // The last bulk answer that succeeded: each new one clears the selection
@@ -240,16 +257,18 @@ export function OrdersList({
 
   const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
-  // Seven columns at most, so the "⋯" column stays in view from lg up (the
-  // sidebar takes 16rem there): the date sits under the number until xl,
-  // the lines under the customer, payment and status share one column.
+  // The table fits its card from 1024 px up (admin audit ORD-02: at
+  // 1024-1280 it was 50-130 px wider, the "⋯" column off screen). The No
+  // cell wraps (its marks, and the date that sits under it until xl), the
+  // customer column is 12rem, and the channel pills ride under the customer
+  // until 2xl, where they get their own column. The "⋯" column is pinned
+  // (ui/data-table.tsx) for whatever still scrolls.
   const columns: DataTableColumn<OrderListRow>[] = [
     {
       key: "no",
       header: "No",
       sortable: true,
       firstDir: "desc",
-      className: "whitespace-nowrap",
       cell: (r) => (
         <span className="flex flex-col gap-0.5">
           <OrderNo order={r.order} isNew={isNew(r.order)} />
@@ -277,7 +296,7 @@ export function OrdersList({
       header: "Müşteri",
       sortable: true,
       cell: (r) => (
-        <span className="flex max-w-[16rem] min-w-0 flex-col">
+        <span className="flex max-w-[12rem] min-w-0 flex-col">
           <span className="truncate">{r.order.customerName}</span>
           <span className="truncate text-xs text-[var(--admin-text-soft)]">
             {r.order.customerEmail}
@@ -285,13 +304,18 @@ export function OrdersList({
           <span className="truncate text-xs text-[var(--admin-text-soft)]">
             {itemsSummary(r.order)}
           </span>
+          <span className="mt-1 flex flex-wrap gap-1 2xl:hidden">
+            <OrderChannelBadges order={r.order} />
+          </span>
         </span>
       ),
     },
     {
       key: "kanal",
       header: "Kanal",
-      hideBelow: "xl",
+      // From 2xl only (DataTable's hideBelow stops at xl); the pills sit
+      // under the customer below that.
+      className: "hidden 2xl:table-cell",
       cell: (r) => (
         <span className="flex flex-col items-start gap-1">
           <OrderChannelBadges order={r.order} />
@@ -325,7 +349,9 @@ export function OrdersList({
         <div
           role="status"
           aria-live="polite"
-          className="sticky top-2 z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm"
+          // Below lg the panel's top bar is sticky too (about 61 px):
+          // stuck at top-2, the sentence slid under it (admin audit ORD-10).
+          className="sticky top-[4.25rem] z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm lg:top-2"
         >
           <span>
             <strong>{newCount} yeni sipariş</strong> geldi. Liste, sen
@@ -348,14 +374,21 @@ export function OrdersList({
             onClick={toggleSound}
             aria-pressed={sound}
             title="Yeni sipariş geldiğinde kısa bir ses çalar."
-            className={`rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase ${
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border px-3.5 text-sm transition-colors ${
               sound
-                ? "border-[var(--admin-primary)] text-[var(--admin-primary)]"
-                : "border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+                ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+                : "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             }`}
-            style={MONO_STYLE}
           >
-            Ses {sound ? "açık" : "kapalı"}
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 rounded-full border ${
+                sound
+                  ? "border-[var(--admin-primary)] bg-[var(--admin-primary)]"
+                  : "border-[var(--admin-text-mute)] bg-transparent"
+              }`}
+            />
+            {SOUND_TOGGLE_LABEL}
           </button>
         </div>
       ) : null}
@@ -384,12 +417,25 @@ export function OrdersList({
         mobileCard={(r) => (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
+              {/* The way into the order on a phone, so it looks like one:
+                  the number was plain text until hovered, and touch has no
+                  hover (admin audit ORD-25). */}
               <Link
                 href={`/admin/siparisler/${r.order.id}`}
-                className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                className="inline-flex min-h-[44px] items-center font-medium whitespace-nowrap text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
+                style={MONO_STYLE}
               >
-                <OrderNo order={r.order} isNew={isNew(r.order)} />
+                #{r.order.orderNo}
               </Link>
+              {r.order.attention ? (
+                <Badge
+                  tone="danger"
+                  title="Dikkat: sipariş sayfasındaki banda bak"
+                >
+                  Dikkat
+                </Badge>
+              ) : null}
+              {isNew(r.order) ? <Badge tone="warning">Yeni</Badge> : null}
               <OrderStatusBadge order={r.order} />
               <PaymentBadge row={r} />
             </div>
@@ -408,7 +454,18 @@ export function OrdersList({
             </div>
           </div>
         )}
-        empty={<EmptyState title={emptyTitle} />}
+        empty={
+          <EmptyState
+            title={emptyTitle}
+            action={
+              emptyAction ? (
+                <Link href={emptyAction.href} className={BUTTON.ghost}>
+                  {emptyAction.label}
+                </Link>
+              ) : null
+            }
+          />
+        }
         sort={sort}
         searchParams={searchParams}
         pathname={pathname}
@@ -417,7 +474,11 @@ export function OrdersList({
       <BulkActionBar
         selection={selection}
         pending={false}
-        message={<span>Seçili siparişlere uygula:</span>}
+        // A phone has room for one row: the count, "Seçimi temizle" and the
+        // one menu the four buttons fold into (BulkOrderButtons).
+        message={
+          <span className="hidden sm:inline">Seçili siparişlere uygula:</span>
+        }
       >
         <BulkOrderButtons
           ids={selection.ids}
