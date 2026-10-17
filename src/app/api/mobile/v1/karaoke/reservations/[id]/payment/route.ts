@@ -18,7 +18,9 @@ export const maxDuration = 15;
  * 200 `{ reservation, payment }`. A stranger's id is 404 like a missing one;
  * a booking with nothing to pay (paid, lapsed, past the reopen window) is 409
  * `not_payable`; a member who keeps reopening is 429 `rate_limited`
- * (`checkout-reopen`, the order reopen's budget).
+ * (`checkout-reopen`, the order reopen's budget); a page that cannot be
+ * opened, or a last attempt the POS cannot vouch for, is 503
+ * `payment_unavailable`.
  */
 export async function POST(
   request: NextRequest,
@@ -52,6 +54,15 @@ export async function POST(
             503,
             "payment_unavailable",
             "Ödeme sayfası şu an açılamadı; kartından para çekilmedi. Birazdan tekrar dene.",
+          );
+        case "payment_unknown":
+          // Same code as above, so an app that knows one 503 knows both; the
+          // sentence does not claim the card was not charged - the last
+          // attempt is exactly what could not be read.
+          return apiError(
+            503,
+            "payment_unavailable",
+            "Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene.",
           );
         default:
           return apiError(

@@ -221,6 +221,21 @@ describe("POST /karaoke/reservations/{id}/payment", () => {
     expect(limited.status).toBe(429);
     expect(limited.headers.get("retry-after")).toBe("60");
   });
+
+  it("a last attempt the POS cannot vouch for is 503 payment_unavailable, without 'not charged'", async () => {
+    h.reopen.mockResolvedValueOnce({
+      ok: false,
+      reason: "payment_unknown",
+      reservation: ROW,
+    });
+    const res = await pay("krk-00042");
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toBe("payment_unavailable");
+    expect(body.message).toMatch(/doğrulayamıyoruz/);
+    // The earlier attempt is exactly what could not be read.
+    expect(body.message).not.toContain("para çekilmedi");
+  });
 });
 
 describe("POST /karaoke/reservations/{id}/cancel", () => {

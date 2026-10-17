@@ -446,6 +446,9 @@ Kurallar:
 >   siparişi verilmiş sanıyordu); sonraki deneme yine aynı siparişi açar. Yeniden açılış
   bütçesi aşılınca **429** `rate_limited` + `Retry-After` (15 Eki 2026, yalnız ekleme;
   ayrıntı `POST /orders/{id}/payment` altında).
+  Yeni oturumdan önce POS'a önceki deneme sorulur (17 Eki 2026, yalnız ekleme): ödenmişse
+  sipariş ödendi işlenir ve **201** `payment: null` ile döner; sorulamazsa **503**
+  `payment_unavailable` (ayrıntı aynı yerde).
 > - `scheduledFor`: geçmiş (5 dk tolerans) ve 7 günden ileri → 400. `""`/`null` = en kısa sürede.
 > - Kafe + mağaza karışık sepet → 400 (teslimat türü ikisini birden karşılayamaz).
 > - Mağaza satırındaki `note` (öğütüm) `items[].detail` alanında taşınır.
@@ -496,6 +499,20 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   ("Bu sipariş ödeme beklemiyor."): uygulama siparişi `GET /orders/{id}` ile yeniden
   çizer.
 - POS açılamazsa **500** `internal`; hiçbir şey değişmez, tekrar denenebilir.
+- **Önce POS'a sorulur; 503 `payment_unavailable`** (17 Eki 2026, yalnız ekleme):
+  PayNkolay aynı `clientRefCode` ile ikinci bir satışı kabul eder. Dönüşü kaybolmuş
+  (sekme kapanmış, telefon bankanın ekranında kilitlenmiş) ama parası alınmış bir
+  siparişe yeni sayfa açmak kartı **ikinci kez** çekerdi. Uç bu yüzden yeniden açılış
+  bütçesinden sonra, yeni oturumdan önce önceki denemeyi POS'a sorar (web ödemesinin de
+  kullandığı `checkPendingOrderPaid`). Ödeme orada bulunursa işlenir ve **409**
+  `not_payable` ödenmiş siparişle döner. POS'a ulaşılamazsa ya da tahsilat siparişin
+  tutarını tutmuyorsa sayfa açılmaz: **503** `payment_unavailable` ("Önceki ödemenin
+  durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene."); hiçbir şey
+  değişmez, birkaç dakika sonra tekrar denenebilir. Kod, `POST /orders`'ın sağlayıcıya
+  ulaşamadığında verdiği kodla aynıdır. `clientOrderId` tekrarı da aynı kontrolden geçer;
+  orada ödenmiş bulunan sipariş **201** ve `payment: null` ile döner (cüzdanla ödenmiş
+  sipariş gibi). Sahadaki uygulama 503'ü tanımadığı her ret gibi gösterir ("Ödeme
+  sayfası açılamadı. Birazdan tekrar dene."), kendiliğinden tekrar denemez.
 - **429** `rate_limited` (15 Eki 2026, yalnız ekleme): var olan bir sipariş için ödeme
   oturumu yeniden açmak (bu uç **ve** `clientOrderId` tekrarı, ikisi aynı bütçeden) üye
   başına sayılır; 5 dakikada 8 açılıştan sonra 10 dakika `Retry-After` ile reddedilir.
@@ -860,6 +877,10 @@ rezervasyonu için yeni ödeme sayfası, sipariş yeniden açmanın (§3) eşi.
 **404** `not_found`; ödenmiş, düşmüş ya da rezervasyondan 30 dakikadan eski
 **409** `not_payable` (gövdede `reservation`); sık deneme **429**
 `rate_limited` (`checkout-reopen`); sayfa açılamadı **503** `payment_unavailable`.
+Yeni sayfadan önce POS'a önceki ödeme sorulur (17 Eki 2026, yalnız ekleme): ödenmişse
+işlenir ve **409** `not_payable` döner; POS'a sorulamazsa ya da tahsilat rezervasyonun
+tutarını tutmuyorsa yine **503** `payment_unavailable` ("Önceki ödemenin durumunu şu an
+doğrulayamıyoruz. Birkaç dakika sonra tekrar dene."): sayfa açılmaz, hiçbir şey değişmez.
 
 **`POST /karaoke/reservations/{id}/cancel`** (kimlik): üye kendi rezervasyonunu
 iptal eder. Başlangıca **2 saatten fazla** varken (İstanbul saati) olur; ödenmişse

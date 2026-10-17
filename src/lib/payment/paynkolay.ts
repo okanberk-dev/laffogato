@@ -501,23 +501,55 @@ function paymentListRows(payload: unknown): Record<string, unknown>[] {
   const body = unwrapPaynkolayResult(payload);
   if (Array.isArray(body)) return [];
   if (isRecord(body)) {
-    if (Object.values(body).some(Array.isArray)) return [];
-    // `LIST: null` her yanıtta var (çekirdek servisin zarfı); yalnız "kayıt
-    // yok" (`CORE0305`) boş liste demektir. Başka bir hata kodu "ödenmedi"
-    // değil, "soramadım"dır.
-    const errorCode = readField(body, "ERROR_CODE");
-    if ("LIST" in body && (!errorCode || errorCode === "CORE0305")) return [];
     const message = readField(
       body,
       "RESPONSE_DATA",
       "ERROR_MESSAGE",
       "responseData",
     );
+    // Reddedilen anahtar, gövde başka ne taşırsa taşısın "kayıt yok" değildir.
+    const refused = paymentListKeyRefusal(message);
+    if (refused) throw new Error(refused);
+    if (Object.values(body).some(Array.isArray)) return [];
+    // `LIST: null` her yanıtta var (çekirdek servisin zarfı); yalnız "kayıt
+    // yok" (`CORE0305`) boş liste demektir. Başka bir hata kodu "ödenmedi"
+    // değil, "soramadım"dır. Kodsuz yanıt da bir ret taşıyabilir (anahtar
+    // reddi canlıda `ERROR_CODE: ""` ile geldi): metni varsa ve "kayıt yok"
+    // demiyorsa o da hatadır.
+    const errorCode = readField(body, "ERROR_CODE");
+    if (
+      "LIST" in body &&
+      (errorCode === "CORE0305" ||
+        (!errorCode && (!message || /kay[ıi]t bulunamad/i.test(message))))
+    ) {
+      return [];
+    }
     throw new Error(
       `paynkolay PaymentList yanıtı işlem listesi taşımıyor${message ? `: ${message}` : ""}`,
     );
   }
   throw new Error("paynkolay PaymentList yanıtı okunamadı");
+}
+
+/**
+ * `PaymentList`'in anahtar reddi, operatörün bakacağı değişkenin adıyla -
+ * ya da başka bir yanıtsa null.
+ *
+ * Canlıda ölçüldü (17 Eki 2026, §2): yanlış liste `sx`'i
+ * "API : clientId veya token hatalı<clientId>", yanlış sır
+ * "API : hashData error" döner. İkisi de kesinti değil yapılandırma hatasıdır
+ * ve log satırı hangi değişkene bakılacağını söyler. Değişkenin DEĞERİ hiçbir
+ * zaman yazılmaz; POS'un metni de yazılmaz (ilki işyerinin kimliğini geri
+ * basıyor).
+ */
+export function paymentListKeyRefusal(message: string): string | null {
+  if (/clientId veya token hatal/i.test(message)) {
+    return "paynkolay PaymentList liste anahtarını reddetti (clientId veya token hatalı): PAYNKOLAY_SX_LIST değerini kontrol et";
+  }
+  if (/hashData error/i.test(message)) {
+    return "paynkolay PaymentList hash'i reddetti (hashData error): PAYNKOLAY_MERCHANT_SECRET_KEY değerini kontrol et";
+  }
+  return null;
 }
 
 /** Satırdan alan okur; iki servis iki ayrı yazım kullanıyor. */

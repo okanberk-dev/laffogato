@@ -47,6 +47,10 @@ export const KARAOKE_RESULT_NOTICES: Record<
     tone: "error",
     text: "Ödeme sayfası şu an açılamadı; kartından para çekilmedi. Birazdan tekrar dene.",
   },
+  "odeme-dogrulanamadi": {
+    tone: "warn",
+    text: "Önceki ödemenin durumu şu an doğrulanamadı, bu yüzden yeni ödeme sayfası açılmadı. Birkaç dakika sonra yeniden dene.",
+  },
   "cok-deneme": {
     tone: "error",
     text: "Kısa sürede çok fazla ödeme denemesi oldu. Birkaç dakika sonra yeniden dene.",
@@ -99,6 +103,8 @@ export function payNoticeCode(reason: string): string {
       return "cok-deneme";
     case "payment_unavailable":
       return "odeme-acilamadi";
+    case "payment_unknown":
+      return "odeme-dogrulanamadi";
     default:
       return "odeme-yok";
   }

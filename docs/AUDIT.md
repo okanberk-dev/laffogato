@@ -407,8 +407,9 @@ hariç - belge onları "henüz yok, 404 beklenir" diye yazıyor, uygulama 404'ü
 
 §8'de açık madde kalmadı (23 Eyl 2026, ikinci geçiş). Kodda değil operatörde
 duran iş: PayNkolay'ın canlı ölçüm listesi (`docs/PAYNKOLAY.md` §12) - köprü
-formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu ve
-dönüş hash'inin `CURRENCY_CODE` alanı.
+formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu (17 Eki
+2026'da canlıda doğrulandı, `docs/PAYNKOLAY.md` §2) ve dönüş hash'inin
+`CURRENCY_CODE` alanı.
 
 ## 9. Mobil denetim turu - 14 Eki 2026
 
@@ -429,6 +430,7 @@ ve `docs/API-MOBILE.md` uygulamanın okuduğu alanlarla karşılaştırıldı.
 | 🟡 | WS1-02 (15 Eki): Var olan siparişin ödeme oturumunu yeniden açmak (`POST /orders/{id}/payment` ve `clientOrderId` tekrarı) sınırsızdı; tek ödenmemiş siparişi olan bir üye döngüyle her istekte ödeme sağlayıcısına çağrı ve bir `payment_transactions` satırı açtırabiliyordu | Üye başına `reserve_auth_attempt` ile atomik bütçe (`checkout-reopen`: 5 dk içinde 8, sonra 10 dk); aşılınca **429** `rate_limited` + `Retry-After` (§3, yalnız ekleme). Yeni siparişin ilk oturumu sayılmaz | `mobile-order-idempotency`, `mobile-checkout-reopen-route` |
 | 🟡 | WS1-03 (15 Eki): Uygulamanın promosyon kodu kâhini (`POST /promo/preview`, `/orders/preview` `promoCode`) "kontrol et, bak, ıskayı sonra yaz" sırasıyla sayıyordu; paralel gönderilen bir yığın denetimi hep birlikte geçip **her** tahmine cevap alıyordu, 15/pencere sınırı yalnız bekleyen istemciye işliyordu | Iska, cevaplanmadan **önce** `reserve_auth_attempt` ile atomik sayılır, tavanın ötesindeki iska "sınırlı" döner; gerçek kod sayılmaz (sepetini yeniden fiyatlayan üye kilitlenmez) ama yalnız kova açıkken cevaplanır, yoksa sınırlayıcı hangi tahminin gerçek olduğunu karşıtlıkla söylerdi. Biçim aynı | `mobile-promo-preview-limit` |
 | 🟢 | WS1-04 (15 Eki): `POST /fal/report` doğrulanmamış adrese de açıktı ve günlük 10 sınırı kayıttan önce okunuyordu; atılabilir adreslerle ya da paralel yığınla panelin bildirim listesine serbest metin yığılabiliyordu | Doğrulanmamışa **403** `email_unverified` (ona yapay zekâ yorumu zaten verilmez, WS1-01); kayıttan sonra yeniden sayılır, sınırı aşan kendi satırını geri alır ve 429 döner (§20, yalnız ekleme) | `mobile-fal-report` |
+| 🟠 | Var olan uygulama siparişinin ödemesini yeniden açmak (`POST /orders/{id}/payment`, `clientOrderId` tekrarı) POS'a sormadan yeni oturum açıyordu; PayNkolay aynı `clientRefCode` ile ikinci satışı kabul ettiği için dönüşü kaybolmuş bir ödeme ikinci kez çekiliyordu. Karaoke yeniden açması POS'a sorulamayınca ve tahsilat tutarı uyuşmayınca da yeni sayfa açıyordu (17 Eki 2026) | `replayAppOrder` bütçeden sonra, oturumdan önce `checkPendingOrderPaid` sorar: ödenmişse işlenir ve oturum açılmaz (409 `not_payable`), sorulamazsa ya da tutar farklıysa **503** `payment_unavailable` (§3, yalnız ekleme). `reopenKaraokePayment` aynı iki durumda `payment_unknown` (503, §7.1); süpürme ve iptal tutar farkını eskisi gibi ele alır. `docs/PAYNKOLAY.md` §14.7 | `mobile-order-idempotency`, `mobile-checkout-reopen-route`, `mobile-order-payment`, `karaoke-reopen-pos-gate`, `mobile-karaoke-prepay-routes` |
 
 ### Açık
 
@@ -487,6 +489,7 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | 🟡 | Parola sıfırlama bağlantısı belirteci sorgu dizesinde taşıyordu (`/uye/sifre-sifirla?token=…`) ve sayfa GTM yüklüyor: GA4'ün `page_location`'ı ve her pikselin `dl`'si adresi sorgu dizesiyle üçüncü tarafa bildirir; belirteç bir saat boyunca hesabı açar | `proxy.ts` belirteci yalnız bu yola, httpOnly ve belirtecin ömrü kadar bir çereze taşır ve sayfayı sorgu dizesi olmadan yeniden açar (303); sayfa çerezi okur, başarılı sıfırlama çerezi siler. E-postadaki bağlantı değişmedi. Chromium'da son adres ve `location.href` belirteçsiz | `reset-link-token`, `reset-action-links-identity` |
 | 🟡 | Admin ve üye girişinin bütçesi yalnız adres + hesap başınaydı: tek bir adres sızdırılmış bir e-posta/parola listesini hesap hesap deneyebiliyor (credential stuffing) ya da tek parolayı bütün panel hesaplarına püskürtebiliyordu, hiç sınıra takılmadan; her reddedilen admin denemesi de bir `login_fail` denetim satırı yazıyordu | Önce adres başına, bütün hesaplar boyunca bütçe (`admin-login-ip` 20, `customer-login-ip` 30 / 5 dk, sonra 15 dk); başarı da sayılır (kendi hesabına girerek sayacı sıfırlamak olmasın) | `login-address-budget`, `rate-limit-keys` |
 | 🟢 | 610 KB'lık `public/laffogato-pour.js` `max-age=0` ile servis ediliyor, her ana sayfa ziyaretinde yeniden doğrulanıyordu | Bir saat + bir gün arka planda yenileme. Günlük görsel kuralı değil: dosya aynı adla yerinde yeniden derleniyor (be2e506), uzun önbellek ziyaretçiyi eski derlemeye bağlardı. Yalnız `next.config.ts`'te; `vercel.json` ayrı bir değer basmaz | `security-headers` |
+| 🟠 | Kart sayfası (`/odeme/paynkolay` POST) imzalı formun ikinci gönderiminde (iki sekme, bankanın sayfasından geri tuşu) ödenmiş siparişe ya da karaoke rezervasyonuna ikinci satış başlatıyordu; PayNkolay ikinciyi de kabul ediyor (17 Eki 2026) | Satıştan hemen önce kayıt imzalı referansla okunur (`src/lib/payment/bridge-gate.ts`, yalnız referans alır): ödeme beklemiyorsa ya da okunamıyorsa satış başlamaz, not sayfası siparişe ya da rezervasyona bağlanır. `docs/PAYNKOLAY.md` §14.7 | `paynkolay-card-page`, `saved-cards` |
 
 ### Açık
 
@@ -498,3 +501,4 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | 🟢 | `script-src` hâlâ `'unsafe-inline'` taşıyor | Kayıtlı karar (`next.config.ts`): nonce kök layout'u ve statik sayfaları dinamik yapar |
 | 🟢 | `CUSTOMER_SESSION_SECRET` tanımsızsa müşteri çerezi admin anahtarıyla imzalanır. Bugün çapraz kullanım parmak izi ve biçim farkıyla reddediliyor, ama tek savunma bu | Operatör: Vercel'de ayrı, en az 32 karakterlik `CUSTOMER_SESSION_SECRET` tanımlamak (müşteriler bir kez yeniden giriş yapar) |
 | 🟢 | `npm audit`: `source-map-js` (yüksek, yalnız derleme anında, saldırgan girdisi görmüyor) | Ulaşılamaz; `next`'in kendi bağımlılığıyla güncellenir |
+| 🟡 | Kart sayfasının satış öncesi bakışı POS'a sormaz, yalnız kaydı okur: ilk ödemenin dönüşü kaybolmuşsa sipariş hâlâ `pending_payment` görünür ve ikinci sekmedeki eski form yine satış başlatabilir. `hosted` modda (geri dönüş yolu) son bakış hiç yok | Her kart gönderiminde bir `PaymentList` çağrısı (5 sn'ye kadar gecikme, bütçe) ister; yeni sayfa dağıtan yeniden açma kapıları ve web ödemesinin yeniden kullanımı POS'a soruyor. Ayrı karar (`docs/PAYNKOLAY.md` §14.7) |

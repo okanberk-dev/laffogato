@@ -12,6 +12,7 @@ import {
 import {
   applyPaymentSucceeded,
   applyPromoCode,
+  checkPendingOrderPaid,
   customerOrdersByEmail,
   expireStalePendingOrders,
   findAppOrderByClientId,
@@ -83,6 +84,8 @@ const MSG = {
   empty: "Sepet boş.",
   paymentUnavailable:
     "Ödeme altyapısına şu an ulaşılamıyor. Birazdan tekrar dene.",
+  paymentUnverified:
+    "Önceki ödemenin durumunu şu an doğrulayamıyoruz. Birkaç dakika sonra tekrar dene.",
 } as const;
 
 /**
@@ -297,11 +300,18 @@ function reopenLimited(retryAfterSeconds: number): AppFailure {
  * Answers a repeated checkout attempt with the order it already produced.
  *
  * An order still awaiting payment gets a fresh checkout session rather than
- * the first one's URL: provider sessions expire (30 minutes), and opening a
- * second one against the same order is safe - `applyPaymentSucceeded` is
- * idempotent and the order can only advance once. An order that has since
- * been paid or cancelled has nothing to pay, so `payment` is null and the app
- * shows it as it stands.
+ * the first one's URL: provider sessions expire (30 minutes). A second
+ * session is safe for the ORDER - `applyPaymentSucceeded` is idempotent and
+ * the order can only advance once - but not for the card: PayNkolay takes a
+ * second sale on the same `clientRefCode` (docs/PAYNKOLAY.md §2), so a first
+ * payment whose return was lost (a closed tab, a phone that locked on the
+ * bank's page) would be charged again. The POS is therefore asked first
+ * (`checkPendingOrderPaid`, the web checkout's gate): a payment it already
+ * holds is booked and no session is opened; a POS that cannot be asked, or
+ * money that arrived at the wrong amount, is 503 `payment_unavailable` and
+ * nothing is opened either (rule 29: not knowing is never "not paid"). An
+ * order that has since been paid or cancelled has nothing to pay, so
+ * `payment` is null and the app shows it as it stands.
  *
  * If the POS cannot be reopened the retry fails exactly as the first attempt
  * did (a throw → 500), and the next retry replays this same order again. It
@@ -353,12 +363,39 @@ async function replayAppOrder(
     if (gate.blocked) {
       return { ok: false, failure: reopenLimited(gate.retryAfterSeconds) };
     }
+    // After the budget, so a member looping on "Şimdi öde" cannot turn it
+    // into unbounded PaymentList calls either. "unknown" includes an amount
+    // mismatch: money is at the POS, just not this order's total, and a
+    // second page would charge on top of it.
+    const verdict = await checkPendingOrderPaid(order, getPaymentProvider());
+    if (verdict === "unknown") {
+      return {
+        ok: false,
+        failure: {
+          status: 503,
+          code: "payment_unavailable",
+          message: MSG.paymentUnverified,
+        },
+      };
+    }
+    if (verdict === "paid") {
+      // Booked just now: the order as it stands, and no checkout.
+      return replayAnswer((await getOrder(order.id)) ?? order, null);
+    }
     // The caller's own IP, as the first attempt sends it (`consent.ip`): an
     // empty one reached PayNkolay as `cardHolderIP: 0.0.0.0`, and every
     // reopened checkout - the retry of a lost POST, "Şimdi öde" from the
     // order - went to the bank's fraud screen with no address at all.
     payment = await createAppPaymentSession(order, customer, await clientIp());
   }
+  return replayAnswer(order, payment);
+}
+
+/** A replay's answer: the order as it now stands, and its checkout if any. */
+async function replayAnswer(
+  order: AdminOrder,
+  payment: AppPayment | null,
+): Promise<CreateAppOrderResult> {
   return {
     ok: true,
     order: toMobileOrder(
@@ -635,8 +672,12 @@ export type PayAppOrderResult =
   | { ok: true; order: MobileOrder; payment: AppPayment }
   | { ok: false; reason: "not_found" }
   | { ok: false; reason: "not_payable"; order: MobileOrder }
-  /** Too many reopened checkouts for this member (§3, 429 `rate_limited`). */
-  | { ok: false; reason: "rate_limited"; failure: AppFailure };
+  /**
+   * The replay refused, answered as-is (§3): too many reopened checkouts
+   * (429 `rate_limited`), or the POS could not say whether the last attempt
+   * was paid (503 `payment_unavailable`).
+   */
+  | { ok: false; reason: "refused"; failure: AppFailure };
 
 /**
  * `POST /orders/{id}/payment` - a fresh checkout for the member's own app
@@ -649,11 +690,13 @@ export type PayAppOrderResult =
  * `too_many_pending` and locked the member out of ordering at all until the
  * sweep expired them.
  *
- * This is the same replay by id: `replayAppOrder` opens a new provider
- * session against the SAME order, which is safe for the reason it is safe
- * there - `applyPaymentSucceeded` is idempotent and an order advances once.
- * Nothing is cancelled here, so rule 29 (ask the POS before cancelling) is not
- * in play.
+ * This is the same replay by id: `replayAppOrder` asks the POS about the last
+ * attempt and only then opens a new provider session against the SAME order.
+ * PayNkolay takes a second sale on the same reference, so a payment whose
+ * return was lost is booked there instead of being charged again (409
+ * `not_payable` with the paid order), and a POS that cannot be asked opens
+ * nothing (503 `payment_unavailable`): rule 29's "not knowing is never 'not
+ * paid'" holds for a second charge as it does for a cancellation.
  *
  * The read gate is `getAppOrder`'s: the owner, with a verified e-mail, and a
  * stranger's id answers exactly like a missing one. Only an APP order is
@@ -688,11 +731,13 @@ export async function payAppOrder(
   }
   const replay = await replayAppOrder(order, customer);
   if (!replay.ok) {
-    // The one refusal a replay makes: the member's reopen budget is spent.
-    return { ok: false, reason: "rate_limited", failure: replay.failure };
+    // The member's reopen budget is spent, or the POS could not be asked:
+    // the replay's own refusal, passed through.
+    return { ok: false, reason: "refused", failure: replay.failure };
   }
   // No checkout: the wallet had already paid this order (its spend is written
-  // with the row), so there is nothing left to pay - the order as it stands.
+  // with the row), or the POS held a payment for it and it is booked now - so
+  // there is nothing left to pay. The order as it stands.
   if (!replay.payment) {
     return { ok: false, reason: "not_payable", order: replay.order };
   }
