@@ -1988,8 +1988,8 @@ summary:focus-visible,
 
 /* Thumbnails: glass tiles; the selected one is opaque white with the
    two-tone rim and the lift shadow (the app's selected state, §13.10). */
-/* One column per slide: the slider sets `--thumbs` from HOME_SLIDES (four
-   since the karaoke slide, 17 Eki 2026). */
+/* One column per slide: the slider sets `--thumbs` from the slides it draws
+   (the panel's, /admin/anasayfa-hero, or the bundled HOME_SLIDES). */
 .hero-x-thumbs {
   list-style: none;
   margin: clamp(18px, 2.6vw, 36px) 0 0;
@@ -2051,6 +2051,10 @@ summary:focus-visible,
 }
 .hero-x-thumb-name {
   position: relative;
+  /* A panel slide's title can carry a word longer than the thumbnail
+     ("kampanyası"): it breaks instead of being clipped by the card. */
+  max-width: 100%;
+  overflow-wrap: break-word;
   font-family: var(--display);
   font-size: 12px;
   font-weight: 500;
@@ -2230,6 +2234,11 @@ summary:focus-visible,
 /* A phone shows each slide's first sentence; the rest is on the menu. */
 @media (max-width: 520px) {
   .hero-x-text-more {
+    display: none;
+  }
+  /* Five or six slides leave a thumbnail too narrow for its name: the
+     picture stays, the name is still each button's aria-label. */
+  .hero-x-thumbs[data-dense] .hero-x-thumb-name {
     display: none;
   }
 }

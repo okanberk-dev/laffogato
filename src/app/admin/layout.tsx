@@ -104,6 +104,12 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
       { href: "/admin/basin", label: "Basın", section: "press" },
       { href: "/admin/hikaye", label: "Hikaye", section: "story" },
       { href: "/admin/icerik", label: "Site Metinleri", section: "content" },
+      // The home page's hero: the same editors as the site's copy.
+      {
+        href: "/admin/anasayfa-hero",
+        label: "Anasayfa slaytları",
+        section: "content",
+      },
     ],
   },
   {

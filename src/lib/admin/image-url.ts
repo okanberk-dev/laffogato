@@ -67,6 +67,11 @@ export function heroImagePath(id: string, version = ""): string {
   return stamped(`/gorsel/hero/${encodeURIComponent(id)}`, version);
 }
 
+/** The public path for a home-hero slide's uploaded picture. */
+export function homeHeroImagePath(id: string, version = ""): string {
+  return stamped(`/gorsel/ana-hero/${encodeURIComponent(id)}`, version);
+}
+
 /**
  * Rewrites a stored image value for delivery: data URLs become a served path,
  * anything else (an https:// URL an admin pasted) passes through untouched.

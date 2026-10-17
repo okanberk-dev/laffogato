@@ -1,9 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { HOME_SLIDES, slideText, type HomeSlideAction } from "./data";
+import {
+  HOME_SLIDES,
+  slideText,
+  type HomeSlide,
+  type HomeSlideAction,
+  type HomeSlideButton,
+} from "./data";
 import type { KaraokeFacts } from "./karaoke-today";
 import { isLocalStatic } from "./local-image";
 import { ROUTE_PATHS } from "./route-paths";
@@ -44,14 +51,22 @@ const SWIPE_PX = 44;
  * visitor touches a control (or swipes the stage), it pauses while the
  * pointer is over the slider or the keyboard focus is inside it, it pauses
  * while the tab is hidden, and it never starts at all under
- * `prefers-reduced-motion`.
+ * `prefers-reduced-motion`. A single slide has no thumbnails and no clock.
+ *
+ * The slides come from /admin/anasayfa-hero (`slides`); without them the
+ * bundled HOME_SLIDES stand in. A panel slide's button is either one of the
+ * action codes below or a link the panel and the server have already
+ * checked (a same-site path or an https URL).
  */
 export function HomeHeroSlider({
+  slides: fromPanel,
   onAction,
   heroImageUrl,
   hours,
   karaoke,
 }: {
+  /** The panel's live slides; empty or undefined draws HOME_SLIDES. */
+  slides?: readonly HomeSlide[];
   onAction: (action: HomeSlideAction) => void;
   /** Ayarlar → "Hero görsel URL": overrides the first slide's photograph. */
   heroImageUrl?: string;
@@ -82,18 +97,23 @@ export function HomeHeroSlider({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  const autoplay = !reduced && !stopped;
+  const slides = fromPanel && fromPanel.length > 0 ? fromPanel : HOME_SLIDES;
+  const many = slides.length > 1;
+  const autoplay = many && !reduced && !stopped;
   const goTo = (next: number) => {
     setStopped(true);
-    setIndex(
-      ((next % HOME_SLIDES.length) + HOME_SLIDES.length) % HOME_SLIDES.length,
-    );
+    setIndex(((next % slides.length) + slides.length) % slides.length);
   };
 
-  const slide = HOME_SLIDES[index];
-  const photo = (index === 0 && heroImageUrl) || slide.photo;
-  const scene = SCENES[slide.scene];
+  // A shorter list (a slide that went off between renders) restarts at one.
+  const at = index < slides.length ? index : 0;
+  const slide = slides[at];
+  const photo = (at === 0 && heroImageUrl) || slide.photo;
+  const scene = SCENES[slide.scene] ?? SCENES.latte;
   const [lead, more] = splitLead(slideText(slide.text, karaoke));
+  const buttons = [slide.primary, slide.secondary].filter(
+    (b): b is HomeSlideButton => !!b,
+  );
 
   return (
     <section className="hero-x" aria-label="Öne çıkanlar">
@@ -115,14 +135,14 @@ export function HomeHeroSlider({
             const start = touch.current;
             touch.current = null;
             const t = e.changedTouches[0];
-            if (!start || !t) return;
+            if (!many || !start || !t) return;
             const dx = t.clientX - start.x;
             const dy = t.clientY - start.y;
             if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(dy) * 1.5)
               return;
-            goTo(index + (dx < 0 ? 1 : -1));
+            goTo(at + (dx < 0 ? 1 : -1));
           }}
-          aria-roledescription="karusel"
+          aria-roledescription={many ? "karusel" : undefined}
           style={
             {
               "--scene-core": scene.core,
@@ -130,88 +150,105 @@ export function HomeHeroSlider({
               "--scene-edge": scene.edge,
               "--scene-floor": scene.floor,
               "--autoplay-ms": `${AUTOPLAY_MS}ms`,
-              "--thumbs": HOME_SLIDES.length,
+              "--thumbs": slides.length,
             } as React.CSSProperties
           }
         >
           <div className="hero-x-copy">
-            <p className="hero-x-kicker">{slide.kicker}</p>
-            <h2 className="hero-x-title" key={`t-${index}`}>
+            {slide.kicker && <p className="hero-x-kicker">{slide.kicker}</p>}
+            <h2 className="hero-x-title" key={`t-${at}`}>
               <span>{slide.title[0]}</span>
-              <span>{slide.title[1]}</span>
+              {slide.title[1] && <span>{slide.title[1]}</span>}
             </h2>
             <p className="hero-x-text">
               {lead}
               {more && <span className="hero-x-text-more"> {more}</span>}
             </p>
             <div className="hero-x-actions">
-              <button
-                type="button"
-                className="btn btn-primary btn-lg"
-                onClick={() => onAction(slide.primary.action)}
-              >
-                {slide.primary.label}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-lg"
-                onClick={() => onAction(slide.secondary.action)}
-              >
-                {slide.secondary.label}
-              </button>
+              {buttons.map((b, i) => (
+                <SlideButton
+                  key={`${at}-${i}`}
+                  button={b}
+                  className={cx(
+                    "btn btn-lg",
+                    i === 0 ? "btn-primary" : "btn-ghost",
+                  )}
+                  onAction={onAction}
+                />
+              ))}
               <HeroStatus hours={hours} onVisit={() => onAction("visit")} />
             </div>
 
             {/* Thumbnails. Each is the slide it selects, so the row is the
                 carousel's own control and never becomes decoration. */}
-            <ul className="hero-x-thumbs" aria-label="Slaytlar">
-              {HOME_SLIDES.map((s, i) => {
-                const on = i === index;
-                return (
-                  <li key={s.photo}>
-                    <button
-                      type="button"
-                      className={cx("hero-x-thumb", on && "on")}
-                      onClick={() => goTo(i)}
-                      aria-current={on || undefined}
-                      aria-label={`${i + 1}. slayt: ${s.title.join(" ")}`}
-                    >
-                      <span
-                        className="hero-x-thumb-light"
-                        style={{
-                          background: `radial-gradient(circle at 50% 42%, ${SCENES[s.scene].mid} 0%, ${SCENES[s.scene].edge} 70%)`,
-                        }}
-                        aria-hidden="true"
-                      />
-                      {/* An 80 px thumbnail of a 581 x 942 cut-out: next/image
-                          sends a thumbnail-sized file (a few KB) instead of
-                          the whole ~140 KB photo three times over. */}
-                      <Image
-                        src={s.photo}
-                        alt=""
-                        width={581}
-                        height={942}
-                        sizes="80px"
-                      />
-                      <span className="hero-x-thumb-name">
-                        {s.title.join(" ")}
-                      </span>
-                      {on && autoplay && (
+            {many && (
+              <ul
+                className="hero-x-thumbs"
+                aria-label="Slaytlar"
+                data-dense={slides.length > 4 || undefined}
+              >
+                {slides.map((s, i) => {
+                  const on = i === at;
+                  const name = s.title.filter(Boolean).join(" ");
+                  const light = SCENES[s.scene] ?? SCENES.latte;
+                  return (
+                    <li key={s.id ?? `${i}-${s.photo}`}>
+                      <button
+                        type="button"
+                        className={cx("hero-x-thumb", on && "on")}
+                        onClick={() => goTo(i)}
+                        aria-current={on || undefined}
+                        aria-label={`${i + 1}. slayt: ${name}`}
+                      >
                         <span
-                          key={index}
-                          className="hero-x-thumb-progress"
-                          aria-hidden="true"
-                          onAnimationEnd={(e) => {
-                            if (e.target !== e.currentTarget) return;
-                            setIndex((n) => (n + 1) % HOME_SLIDES.length);
+                          className="hero-x-thumb-light"
+                          style={{
+                            background: `radial-gradient(circle at 50% 42%, ${light.mid} 0%, ${light.edge} 70%)`,
                           }}
+                          aria-hidden="true"
                         />
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        {/* An 80 px thumbnail of a 581 x 942 cut-out:
+                            next/image sends a thumbnail-sized file (a few
+                            KB) instead of the whole ~140 KB photo three
+                            times over. A panel upload (/gorsel/...) or an
+                            https picture stays a plain lazy <img>. */}
+                        {isLocalStatic(s.photo) ? (
+                          <Image
+                            src={s.photo}
+                            alt=""
+                            width={581}
+                            height={942}
+                            sizes="80px"
+                          />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={s.photo}
+                            alt=""
+                            width={581}
+                            height={942}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        )}
+                        <span className="hero-x-thumb-name">{name}</span>
+                        {on && autoplay && (
+                          <span
+                            key={at}
+                            className="hero-x-thumb-progress"
+                            aria-hidden="true"
+                            onAnimationEnd={(e) => {
+                              if (e.target !== e.currentTarget) return;
+                              setIndex((n) => (n + 1) % slides.length);
+                            }}
+                          />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
 
           <div className="hero-x-stage">
@@ -234,8 +271,8 @@ export function HomeHeroSlider({
                 width={581}
                 height={942}
                 sizes="(max-width: 760px) 60vw, 440px"
-                loading={index === 0 ? "eager" : "lazy"}
-                fetchPriority={index === 0 ? "high" : "auto"}
+                loading={at === 0 ? "eager" : "lazy"}
+                fetchPriority={at === 0 ? "high" : "auto"}
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
@@ -244,8 +281,8 @@ export function HomeHeroSlider({
                 key={photo}
                 src={photo}
                 alt={slide.alt}
-                loading={index === 0 ? "eager" : "lazy"}
-                fetchPriority={index === 0 ? "high" : "auto"}
+                loading={at === 0 ? "eager" : "lazy"}
+                fetchPriority={at === 0 ? "high" : "auto"}
                 width={581}
                 height={942}
               />
@@ -254,6 +291,47 @@ export function HomeHeroSlider({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * One of a slide's buttons. An action code goes through `onAction` (the
+ * home page owns where each goes); a same-site path is a client-side link,
+ * an https URL a plain one. The link was checked by the panel and again on
+ * the server (home-hero-core.ts `slideButton`), so nothing here re-parses it.
+ */
+function SlideButton({
+  button,
+  className,
+  onAction,
+}: {
+  button: HomeSlideButton;
+  className: string;
+  onAction: (action: HomeSlideAction) => void;
+}) {
+  if (button.action) {
+    const action = button.action;
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => onAction(action)}
+      >
+        {button.label}
+      </button>
+    );
+  }
+  if (button.href.startsWith("/")) {
+    return (
+      <Link href={button.href} className={className}>
+        {button.label}
+      </Link>
+    );
+  }
+  return (
+    <a className={className} href={button.href} rel="noopener noreferrer">
+      {button.label}
+    </a>
   );
 }
 

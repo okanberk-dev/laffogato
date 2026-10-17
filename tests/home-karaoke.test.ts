@@ -462,7 +462,8 @@ describe("the hero's karaoke slide", () => {
 
   it("gives every slide its own thumbnail column", () => {
     const slider = read("src/components/laffogato/home-hero-slider.tsx");
-    expect(slider).toContain('"--thumbs": HOME_SLIDES.length');
+    // One column per slide drawn: the panel's or, without them, HOME_SLIDES.
+    expect(slider).toContain('"--thumbs": slides.length');
     expect(slider).toContain("splitLead(slideText(slide.text, karaoke))");
     expect(CSS).toMatch(
       /\.hero-x-thumbs \{[^}]*grid-template-columns: repeat\(var\(--thumbs, 3\), minmax\(0, 1fr\)\);/,

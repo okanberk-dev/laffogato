@@ -20,7 +20,7 @@ import {
   type CartItem,
 } from "./ui";
 import type { ShopHeroSlide } from "./shop-hero-slider";
-import type { MenuCategory, Product } from "./data";
+import type { HomeSlide, MenuCategory, Product } from "./data";
 import type { KaraokeFacts } from "./karaoke-today";
 
 const VALID_ROUTES: Route[] = ["home", "menu", "shop", "story", "visit"];
@@ -105,6 +105,7 @@ export function LaffogatoApp({
   content,
   visit,
   heroImageUrl,
+  homeSlides,
   freeShippingThreshold = 0,
   degraded = false,
   initialRoute = "home",
@@ -134,6 +135,8 @@ export function LaffogatoApp({
   content?: Record<string, string>;
   /** Ayarlar → "Hero görsel URL"; ana sayfa hero'sunun arka planı. */
   heroImageUrl?: string;
+  /** The home hero's slides from the panel; undefined = the bundled ones. */
+  homeSlides?: HomeSlide[];
   /** Visit page contact block, derived from admin settings. */
   visit?: {
     addressLines: string[];
@@ -328,6 +331,7 @@ export function LaffogatoApp({
             content={content}
             visit={visit}
             heroImageUrl={heroImageUrl}
+            homeSlides={homeSlides}
             karaoke={karaoke}
           />
           {seoSlot}
@@ -365,6 +369,7 @@ export function LaffogatoApp({
           content={content}
           visit={visit}
           heroImageUrl={heroImageUrl}
+          homeSlides={homeSlides}
           karaoke={karaoke}
         />
         {seoSlot}

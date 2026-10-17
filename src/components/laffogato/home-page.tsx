@@ -64,6 +64,7 @@ export function PageHome({
   visit,
   settings,
   heroImageUrl,
+  homeSlides,
   karaoke,
 }: PageProps) {
   const router = useRouter();
@@ -272,6 +273,7 @@ export function PageHome({
       </h1>
 
       <HomeHeroSlider
+        slides={homeSlides}
         onAction={onSlideAction}
         heroImageUrl={heroImageUrl}
         hours={hours}
