@@ -1116,8 +1116,11 @@ kaynaklarla; kod `src/lib/utils/kdv.ts`):
 - Kavrulmuş ve öğütülmüş kahve (GTİP 09.01), kahve ekstraktı (21.01) ve
   paketli gıdaların çoğu, Cumhurbaşkanı Kararı 5189'dan (RG 13 Şub 2022) beri
   (I) sayılı listededir: %1.
-- Ekipman, hediye ve marka ürünleri ile karaoke odası kiralaması iki listede
-  de yoktur: %20.
+- Ekipman, gıda dışındaki hediyelik ve marka ürünleri ile karaoke odası
+  kiralaması iki listede de yoktur: %20. Oran malın cinsine bağlıdır, hediye
+  olarak satılmasına değil: mağazanın "Hediye" kategorisindeki yenilebilir
+  kup kutusu (waffle kupu, GTİP 19.05) gıdadır, %1. Bu ürüne migration ve
+  seed kendi oranını (%1) verir; kategori varsayılanı %20 kalır.
 - Satıcının alıcıdan aldığı kargo ya da kurye bedeli, teslimin matrahına
   girer (KDV K. m.24/b): taşıdığı ürünün oranına tabidir. Farklı oranlı
   ürünler bir arada gönderildiğinde bedel tutarlarıyla orantılı paylaştırılır.
@@ -1137,9 +1140,9 @@ değişmedi.
 
 | Belge | Satır | Mevcut (16 Eki 2026) | Yeni |
 |---|---|---|---|
-| Ön Bilgilendirme Formu, fiyat ve vergiler | 268 | "... fiziksel ürünlerde güncel oran %20'dir." | "... ürünün türüne bağlıdır: kahve çekirdeği, öğütülmüş kahve ve diğer paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman, hediye ve marka ürünlerinde %20'dir. Kargo veya kurye bedeli, gönderilen ürünlerin satış bedelinin parçasıdır ve onların KDV oranına tabidir. Her kalemin KDV oranı ve tutarı faturada gösterilir." |
+| Ön Bilgilendirme Formu, fiyat ve vergiler | 268 | "... fiziksel ürünlerde güncel oran %20'dir." | "... ürünün türüne bağlıdır: kahve çekirdeği, öğütülmüş kahve ve diğer paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20'dir; gıda içeren hediye kutu ve setlerinde oran, içindeki ürünlere göre belirlenir. Kargo veya kurye bedeli, gönderilen ürünlerin satış bedelinin parçasıdır ve onların KDV oranına tabidir. Her kalemin KDV oranı ve tutarı faturada gösterilir." |
 | Ön Bilgilendirme Formu, tablo | 283-284 | "KDV oranı (fiziksel ürün)": "%20" | "KDV oranı": "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)" |
-| Mesafeli Satış Sözleşmesi, fiyat | 882 | "... aksi açıkça belirtilmedikçe %20 oranındaki Katma Değer Vergisi dâhildir." | "... ürünün türüne göre %1, %10 veya %20 oranındaki Katma Değer Vergisi dâhildir (kahve çekirdeği ve paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman, hediye ve marka ürünlerinde %20)." |
+| Mesafeli Satış Sözleşmesi, fiyat | 882 | "... aksi açıkça belirtilmedikçe %20 oranındaki Katma Değer Vergisi dâhildir." | "... ürünün türüne göre %1, %10 veya %20 oranındaki Katma Değer Vergisi dâhildir (kahve çekirdeği ve paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre)." |
 | Mesafeli Satış Sözleşmesi, tablo | 903 | "KDV Oranı": "%20 (fiyatlara dâhildir)" | "Ürüne göre %1, %10 veya %20 (fiyatlara dâhildir)" |
 | Teslimat ve Kargo, ücretler | 2125 | "Kargo ve teslimat hizmet bedeline uygulanan katma değer vergisi oranı %20'dir; ürünlere uygulanan KDV oranı ise ..." | "Ürünlere uygulanan KDV oranı ... hesaplanır. Kargo ve teslimat bedeli, gönderilen ürünün satış bedelinin bir parçasıdır ve o ürünün KDV oranına tabidir; farklı oranlı ürünler birlikte gönderildiğinde bedel, ürün tutarlarıyla orantılı olarak paylaştırılır." |
 | Teslimat ve Kargo, özet | 2158 | "(kargo hizmet bedelinde KDV %20)" | "(kargo bedeli, gönderilen ürünün KDV oranına tabidir)" |
@@ -1150,7 +1153,7 @@ değişmedi.
 | Şirket Bilgileri, fiyatlar | 12750 | "... uygulanan KDV oranı yüzde 20'dir" | "... uygulanan KDV oranı ürüne göre yüzde 1, 10 veya 20'dir" |
 | Şirket Bilgileri, tablo | 12918 | "Yüzde 20 (fiyatlara dahil)" | "Ürüne göre yüzde 1, 10 veya 20 (fiyatlara dahil)" |
 | Şirket Bilgileri, fatura tablosu | 13322 | "Yüzde 20" | "Ürüne ve hizmete göre yüzde 1, 10 veya 20" |
-| Şikâyet ve Uyuşmazlık, tutarın hesabı | 13849 | "... kupon, KDV oranı (%20) ve ..." | "... kupon, ürünün KDV oranı ve ..." |
+| Şikâyet ve Uyuşmazlık, tutarın hesabı | 13849 | "... ürün kaydındaki güncel fiyat, geçerli promosyon kodu veya kupon, KDV oranı (%20) ve ..." | "... ürün kaydındaki KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ..." (oran tutarı oluşturmaz: fiyatlar KDV dahildir, oran yalnız içindeki KDV'yi ayırır) |
 
 Değişmeyenler: Karaoke Odası Rezervasyonu belgesi oran söylemiyor ("tüm
 vergiler dahil"). Kullanım Şartları'ndaki "KDV oranı: Gösterilen fiyatlara
@@ -1162,7 +1165,7 @@ dâhildir" doğru kaldı.
 |---|---|---|
 | Y2-1 | Mağazada kargoyla satılan paketli kahve %1 sayıldı (mal teslimi, (I) sayılı liste). Seri No 51, yeme-içme işletmesinin sattığı gıdayı %10 sayıyor. Köşkün online mağazası bu kuralın dışında, ayrı bir mal satışı olarak mı kayıtlı? Kasada satılan paket kahve %10 mu? | Panelde kahve %1 varsayılan; menüye paket kahve eklenirse kalemde %1 seçilmeli ya da seçilmemeli. |
 | Y2-2 | Kargo ve kurye bedeli faturada ürünün oranıyla mı, ayrı %20 hizmet olarak mı kesiliyor? Metin ve panel ürünün oranını izliyor (m.24/b). Muhasebe ayrı %20 kesiyorsa söyle: tek kural değişir (`kdvBreakdown`), metindeki iki cümle de. | Metin, fiş ve fatura aynı şeyi söylemeli. |
-| Y2-3 | Karışık hediye kutusu (kahve ve fincan tek fiyat) varsayılan %20. Kalem kalem ayrılmalı mı? | Paket içerik oranları. |
+| Y2-3 | Karışık hediye kutusu (kahve ve fincan tek fiyat) varsayılan %20. Kalem kalem ayrılmalı mı? Mağazada bugün "Affogato Seti - İki Kişilik" (200 g kahve, gelato, iki yenilebilir kup, porselen kaşık; tek fiyat) %20'de. Yenilebilir kup kutusu yalnız gıda olduğu için %1'e alındı. Metin artık "gıda dışındaki hediyelik ürünlerde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre" diyor: setin tek oranı ne olmalı? | Paket içerik oranları. Operatör canlıya almadan önce Hediye kategorisindeki her ürünü kontrol etmeli. |
 | Y2-4 | Metin oranları örnekle sayıyor (%1, %10, %20). Panel her ürüne 0-100 arası oran verebiliyor. "Ürüne göre %1, %10 veya %20" ifadesi, ileride başka bir oran seçilirse yanıltıcı olur mu? | Metin ile panel ayrışabilir. |
 | Y2-5 | Onay sürümü 17 Ekim 2026 oldu. Uygulamanın çevrimdışı kopyası (`lafmobil` `src/data/legal.seed.json`) `npm run legal:export` ile yenilenmeli (§13). | Üye ödeme onayını o kopyayı görerek de verebilir. |
 
