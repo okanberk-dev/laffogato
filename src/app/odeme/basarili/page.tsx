@@ -81,41 +81,24 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
             <span className="script">See you soon</span>
           </h1>
           <p className="order-done-lede">
-            {paid ? (
-              <>
-                Ödemen alındı ve siparişin onaylandı. Hazır olunca seni
-                bilgilendireceğiz.
-              </>
-            ) : (
-              <>
-                Siparişini aldık; ödemen henüz tamamlanmadı (
-                <em>ödeme bekleniyor</em>). Ödeme tamamlandığında siparişin
-                işleme alınır.
-              </>
-            )}
+            {paid
+              ? "Ödemen alındı. Siparişin hazır olunca haber veririz."
+              : "Siparişini aldık; ödemen henüz tamamlanmadı. Tamamlanınca siparişin işleme alınır."}
           </p>
         </div>
 
         {promoDropped && (
           <p role="status" className="auth-alert order-done-notice">
-            Promosyon kodun sipariş anında geçerli değildi (süresi dolmuş veya
-            limiti dolmuş olabilir), bu yüzden indirim uygulanmadı. Sorun
-            olduğunu düşünüyorsan bizimle iletişime geç.
+            İndirim kodun sipariş anında geçerli değildi, bu yüzden uygulanmadı.
           </p>
         )}
 
+        {/* The number only: the items and the total are in the summary
+            below, once. */}
         <dl className="order-done-facts">
           <div>
             <dt>Sipariş no</dt>
             <dd>#{order.orderNo}</dd>
-          </div>
-          <div>
-            <dt>Ürün</dt>
-            <dd>{order.items.reduce((n, it) => n + it.qty, 0)}</dd>
-          </div>
-          <div>
-            <dt>Toplam</dt>
-            <dd>{formatTRY(order.totalMinor)}</dd>
           </div>
         </dl>
 
@@ -183,13 +166,9 @@ export default async function OrderSuccessPage({ searchParams }: PageProps) {
           </Link>
         </div>
 
-        {listed ? (
-          <p className="order-done-foot">
-            Durumunu ve kargo bilgisini{" "}
-            <Link href="/uye/hesap/siparislerim">siparişlerinden</Link>{" "}
-            izleyebilirsin.
-          </p>
-        ) : (
+        {/* "Siparişi takip et" above already leads to the listed order; the
+            note is only for an order that is not listed yet. */}
+        {listed ? null : (
           <p className="order-done-foot">
             Ödemen onaylanınca sipariş siparişlerinde görünür ve onay e-postası
             gelir.

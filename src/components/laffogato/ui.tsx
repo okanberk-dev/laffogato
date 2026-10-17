@@ -388,10 +388,6 @@ export function CartDrawer({
                 </svg>
               </div>
               <p className="cart-empty-title">Sepetin boş</p>
-              <p className="cart-empty-text">
-                Bir çekirdek paketi, bir affogato seti, bir moka pot - eve ya da
-                hediyeye hazır.
-              </p>
               <Link
                 href="/magaza"
                 className="btn btn-primary"
@@ -526,9 +522,6 @@ function CartFooter({ total }: { total: number }) {
         Ödemeye geç
         <span className="arrow">→</span>
       </a>
-      <p className="cart-foot-hint">
-        Adres ve indirim kodu bir sonraki adımda eklenir.
-      </p>
     </footer>
   );
 }
