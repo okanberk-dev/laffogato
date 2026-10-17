@@ -29,7 +29,8 @@ export async function deactivateNewsletterAction(
   if (!id) return actionError("Abone seçilmedi.");
   const changed = await deactivateNewsletterSubscriber(id);
   revalidatePath("/admin/bulten");
-  if (!changed) return actionError("Abone bulunamadı; silinmiş olabilir.");
+  if (!changed)
+    return actionError("Abone zaten pasif ya da silinmiş; sayfayı yenile.");
   await logAudit({
     action: "update",
     entity: "newsletter",

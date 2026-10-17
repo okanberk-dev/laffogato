@@ -43,12 +43,12 @@ describe("deactivateNewsletterAction", () => {
     );
   });
 
-  it("says so when there was no row to change, and logs nothing", async () => {
+  it("says so when no row changed (gone or already off), and logs nothing", async () => {
     deactivateNewsletterSubscriber.mockResolvedValue(false);
     const res = await deactivateNewsletterAction(null, form("nws-0004"));
     expect(res).toEqual({
       ok: false,
-      error: "Abone bulunamadı; silinmiş olabilir.",
+      error: "Abone zaten pasif ya da silinmiş; sayfayı yenile.",
     });
     expect(logAudit).not.toHaveBeenCalled();
   });

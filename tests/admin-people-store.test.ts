@@ -106,6 +106,27 @@ describe("deactivateNewsletterSubscriber", () => {
     answer = () => [];
     expect(await deactivateNewsletterSubscriber("nws-0004")).toBe(false);
   });
+
+  it("leaves a row that is already off alone", async () => {
+    // Unsubscribed by the link at T1, "Pasifleştir" at T2 from a list
+    // loaded before T1: the write matched the inactive row, moved the
+    // withdrawal date to the panel's click and answered "Abone pasif".
+    vi.resetModules();
+    const { deactivateNewsletterSubscriber } =
+      await import("@/lib/newsletter/store");
+    // The row is off; a write matches it only if it does not ask for an
+    // active row.
+    answer = (text) => {
+      if (!/^UPDATE /.test(text)) return [];
+      const q = seen[seen.length - 1];
+      const where = text.slice(text.indexOf(" WHERE "));
+      const m = where.match(/"isActive" = \$(\d+)/);
+      return m && q.params[Number(m[1]) - 1] === true
+        ? []
+        : [{ id: "nws-0004" }];
+    };
+    expect(await deactivateNewsletterSubscriber("nws-0004")).toBe(false);
+  });
 });
 
 describe("adminUpdateCustomer and commercial consent (6563)", () => {

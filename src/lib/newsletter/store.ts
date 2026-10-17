@@ -335,11 +335,14 @@ export async function deactivateNewsletterSubscriber(
       confirmToken: "",
     })
     .eq("id", id)
+    // An inactive row is left alone: matching it moved the withdrawal date
+    // of someone who had unsubscribed by the link to the panel's later click.
+    .eq("isActive", true)
     .select("id");
   if (error)
     throw new Error(`deactivateNewsletterSubscriber: ${error.message}`);
-  // Whether a row was there to change: a subscriber deleted in another tab
-  // used to be answered "Abone pasif" all the same.
+  // Whether a row changed: a subscriber deleted, or already off, used to be
+  // answered "Abone pasif" all the same.
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
 
