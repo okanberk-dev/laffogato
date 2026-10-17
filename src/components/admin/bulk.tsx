@@ -272,9 +272,9 @@ export function BulkActionBar({
         className="fixed inset-x-4 bottom-4 z-30 lg:left-[calc(16rem+1rem)]"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-white/95 px-5 py-3 shadow-lg backdrop-blur">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3">
             <span
-              className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium text-white"
+              className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               {selection.count} seçili
@@ -282,7 +282,7 @@ export function BulkActionBar({
             <button
               type="button"
               onClick={selection.clear}
-              className="inline-flex min-h-[44px] items-center text-xs text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              className="inline-flex min-h-[44px] items-center text-xs whitespace-nowrap text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
             >
               Seçimi temizle
             </button>

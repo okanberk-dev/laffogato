@@ -854,7 +854,9 @@ describe("server-rendered markup", () => {
       /<th scope="col" class="([^"]*)"><span class="sr-only">İşlemler/.exec(
         out,
       );
-    expect(th?.[1]).toContain("sticky right-0 bg-[var(--admin-surface)]");
+    expect(th?.[1]).toContain(
+      "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)] bg-[var(--admin-surface)]",
+    );
     const cells = [...out.matchAll(/<td class="([^"]*sticky right-0[^"]*)">/g)];
     expect(cells).toHaveLength(2);
     // An opaque ground that follows the row: the selection tint as it shows

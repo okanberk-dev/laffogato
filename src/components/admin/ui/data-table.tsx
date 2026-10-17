@@ -89,8 +89,9 @@ const ALIGN: Record<NonNullable<DataTableColumn<unknown>["align"]>, string> = {
 // action, sat behind a scrollbar 50 rows down. Pinned cells need a ground
 // of their own, the same as the row's: white, the hover ground, or, for a
 // selected row, the selection tint as it shows over white (the row's
-// tint is see-through, which a pinned cell must not be).
-const PINNED = "sticky right-0";
+// tint is see-through, which a pinned cell must not be). A hairline on its
+// left edge says the row goes on underneath.
+const PINNED = "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)]";
 const PINNED_GROUND = "bg-[var(--admin-surface)]";
 const PINNED_SELECTED =
   "bg-[color-mix(in_srgb,var(--admin-primary-soft)_50%,var(--admin-surface))]";
