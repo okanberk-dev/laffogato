@@ -11,6 +11,7 @@ import { priceLabel } from "@/lib/utils/format";
 import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
 import { HomeKaraoke } from "./home-karaoke";
+import { Illustration } from "./illustration";
 import { hourToLabel } from "./karaoke-today";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
@@ -291,7 +292,10 @@ export function PageHome({
           not a second place to keep the same copy. */}
       <section className="home-section">
         <div className="wrap">
-          <a className="promo-banner reveal" href="/kampanyalar">
+          <a
+            className="promo-banner promo-banner--art reveal"
+            href="/kampanyalar"
+          >
             <svg
               className="promo-banner-wave"
               viewBox="0 0 1200 220"
@@ -310,6 +314,9 @@ export function PageHome({
                 sayfada.
               </span>
             </span>
+            {/* A ticket, a strawberry and a matcha whisk: the month's
+                offers, drawn. Hidden on a phone (globals.css). */}
+            <Illustration name="kosk-ticket" className="promo-banner-art" />
             <span className="promo-banner-cta">Hepsini gör</span>
           </a>
         </div>

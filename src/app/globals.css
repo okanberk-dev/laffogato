@@ -2974,12 +2974,41 @@ summary:focus-visible,
 .promo-banner.gold .promo-banner-cta {
   color: var(--gold-ink);
 }
+/* The home page's banner carries a drawing between the copy and the pill
+   (illustrations/kosk-ticket.svg); under 520 px it gives the room back. */
+.promo-banner--art {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.promo-banner-art {
+  position: relative;
+  display: block;
+  width: clamp(150px, 17vw, 240px);
+  height: auto;
+  margin: -14px 0;
+}
 @media (max-width: 620px) {
   .promo-banner {
     grid-template-columns: minmax(0, 1fr);
   }
   .promo-banner-cta {
     justify-self: start;
+  }
+  .promo-banner--art {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .promo-banner--art .promo-banner-art {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 130px;
+    margin: 0;
+  }
+}
+@media (max-width: 520px) {
+  .promo-banner--art {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .promo-banner-art {
+    display: none;
   }
 }
 
