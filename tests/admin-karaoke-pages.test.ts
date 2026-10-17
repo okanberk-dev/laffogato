@@ -132,8 +132,16 @@ function booking(over: Partial<KaraokeReservation> = {}): KaraokeReservation {
   };
 }
 
-async function detail(id = "krk-00042"): Promise<string> {
-  return html(await DetailPage({ params: Promise.resolve({ id }) }));
+async function detail(
+  id = "krk-00042",
+  sp: Record<string, string> = {},
+): Promise<string> {
+  return html(
+    await DetailPage({
+      params: Promise.resolve({ id }),
+      searchParams: Promise.resolve(sp),
+    }),
+  );
 }
 
 async function list(sp: Record<string, string> = {}): Promise<string> {
@@ -245,6 +253,71 @@ describe("the booking's page", () => {
     expect(page).not.toContain("Ödenmedi");
   });
 
+  it("stands when its history cannot be read, money actions included (KAR-15)", async () => {
+    h.reservation = booking({ status: "cancelled" });
+    h.audit = new Error("audit down");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const page = await detail();
+    spy.mockRestore();
+    expect(page).toContain("Geçmiş okunamadı");
+    // The row's own moments still show, and the refund owed can be started.
+    expect(page).toContain("Rezervasyon alındı");
+    expect(page).toContain("İadeyi başlat");
+  });
+
+  it("a released hold with an unreadable history is never called unpaid (rule 29)", async () => {
+    h.reservation = booking({
+      status: "cancelled",
+      paymentStatus: "expired",
+      paidMinor: 0,
+      paidAt: "",
+      paymentRef: "",
+    });
+    h.audit = new Error("audit down");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const page = await detail();
+    spy.mockRestore();
+    expect(page).toContain("Ödeme doğrulanamadı");
+    expect(page).not.toContain("Ödenmedi, süresi doldu");
+    expect(page).toContain("denetlenemedi");
+  });
+
+  it("goes back to the list it was opened from, and only to that list (KAR-20)", async () => {
+    const from = "/admin/mobil/karaoke?sekme=dikkat&q=eda";
+    expect(await detail("krk-00042", { geri: from })).toContain(
+      'href="/admin/mobil/karaoke?sekme=dikkat&amp;q=eda"',
+    );
+    for (const geri of [
+      "https://evil.example/admin/mobil/karaoke",
+      "//evil.example",
+      "/admin/siparisler",
+      "/admin/mobil/karaokex",
+    ]) {
+      const page = await detail("krk-00042", { geri });
+      expect(page, geri).toContain('href="/admin/mobil/karaoke"');
+      expect(page, geri).not.toContain("evil.example");
+    }
+  });
+
+  it("names the consent's documents and reads amounts plainly (KAR-21)", async () => {
+    h.reservation = booking({
+      priceMinor: 330_000,
+      discountMinor: 30_000,
+      totalMinor: 300_000,
+      legalConsent: {
+        ...booking().legalConsent!,
+        documents: ["karaoke-odasi-rezervasyon"],
+      },
+    });
+    const page = await detail();
+    expect(page).toContain(
+      "Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi",
+    );
+    expect(page).toContain('href="/hukuk/karaoke-odasi-rezervasyon"');
+    expect(page).toMatch(/Liste ₺3\.300,00 · indirim\s*₺300,00/);
+    expect(page).not.toMatch(/₺3\.300,00, indirim/);
+  });
+
   it("answers 404 for an unknown booking and for an id that is not one", async () => {
     h.reservation = null;
     await expect(detail()).rejects.toThrow("NEXT_NOT_FOUND");
@@ -272,10 +345,24 @@ describe("the list", () => {
       expect(page, tab).toContain(tab);
     }
     expect(page).toContain('role="search"');
-    expect(page).toContain('href="/admin/mobil/karaoke/krk-1"');
-    expect(page).not.toContain('href="/admin/mobil/karaoke/krk-2"');
+    // Opened from Yaklaşan, the booking's page comes back to it.
+    expect(page).toContain(
+      'href="/admin/mobil/karaoke/krk-1?geri=%2Fadmin%2Fmobil%2Fkaraoke%3Fsekme%3Dyaklasan"',
+    );
+    expect(page).not.toContain('href="/admin/mobil/karaoke/krk-2');
     // krk-2 owes a refund: the banner points at Dikkat.
     expect(page).toContain("1 rezervasyon bir işlem bekliyor");
+  });
+
+  it("shows the door code on every row and card, and the settings link opens the Karaoke tab", async () => {
+    h.role = "owner";
+    h.list = [booking({ id: "krk-00077", date: "2099-06-21" })];
+    const page = await list({ sekme: "yaklasan" });
+    // Table cell and phone card both carry it (it showed from 1280 px only).
+    expect(page.match(/>krk-00077</g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(page).toContain('href="/admin/ayarlar?sekme=karaoke"');
+    expect(page).toContain("Satış · Karaoke");
+    expect(page).toContain("Köşkte ödeme");
   });
 
   it("keeps a hold the köşk let go, and hides the lapsed ones behind a count", async () => {
@@ -292,8 +379,8 @@ describe("the list", () => {
     ];
     h.released = new Set(["krk-7"]);
     const page = await list({ sekme: "iptal" });
-    expect(page).toContain('href="/admin/mobil/karaoke/krk-7"');
-    expect(page).not.toContain('href="/admin/mobil/karaoke/krk-8"');
+    expect(page).toContain('href="/admin/mobil/karaoke/krk-7');
+    expect(page).not.toContain('href="/admin/mobil/karaoke/krk-8');
     expect(page).toContain("Ödenmediği için süresi dolan 1 rezervasyon");
   });
 
@@ -310,7 +397,7 @@ describe("the list", () => {
     ];
     h.unverified = new Set(["krk-9"]);
     const page = await list({ sekme: "iptal" });
-    expect(page).toContain('href="/admin/mobil/karaoke/krk-9"');
+    expect(page).toContain('href="/admin/mobil/karaoke/krk-9');
     expect(page).toContain("Ödeme doğrulanamadı");
     expect(page).not.toContain("Ödenmedi, süresi doldu");
     expect(page).not.toContain("rezervasyon denemesi gizli");

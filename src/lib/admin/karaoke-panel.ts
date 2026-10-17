@@ -17,6 +17,7 @@ import {
   KARAOKE_PAYMENT_GRACE_MINUTES,
   karaokeEndInstant,
 } from "@/lib/mobile/karaoke-time";
+import { sameSitePath } from "@/lib/http/same-site-path";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -32,8 +33,33 @@ import type { AdminTone } from "./tone";
 /** The list's path; the booking's page is `${KARAOKE_PANEL_PATH}/${id}`. */
 export const KARAOKE_PANEL_PATH = "/admin/mobil/karaoke";
 
-export function karaokeDetailHref(id: string): string {
-  return `${KARAOKE_PANEL_PATH}/${encodeURIComponent(id)}`;
+/**
+ * The booking page's param carrying the list as it was left (its tab,
+ * filters, sort and page), so "← Karaoke rezervasyonları" goes back there
+ * rather than to Bugün (admin audit KAR-20).
+ */
+export const KARAOKE_BACK_PARAM = "geri";
+
+/**
+ * Where a booking page's back link goes: `raw` when it is the karaoke list
+ * itself (`sameSitePath`, CLAUDE.md rule 26: a request names it), the bare
+ * list for anything else.
+ */
+export function karaokeBackHref(raw: unknown): string {
+  const path = sameSitePath(raw);
+  return path &&
+    (path === KARAOKE_PANEL_PATH || path.startsWith(`${KARAOKE_PANEL_PATH}?`))
+    ? path
+    : KARAOKE_PANEL_PATH;
+}
+
+/** The booking's page; `back` is the list it is opened from. */
+export function karaokeDetailHref(id: string, back?: string | null): string {
+  const page = `${KARAOKE_PANEL_PATH}/${encodeURIComponent(id)}`;
+  const list = karaokeBackHref(back);
+  return list === KARAOKE_PANEL_PATH
+    ? page
+    : `${page}?${KARAOKE_BACK_PARAM}=${encodeURIComponent(list)}`;
 }
 
 // ─── Money and status ──────────────────────────────────────────────────────
@@ -195,7 +221,7 @@ export function paymentLabel(
   const money = moneyOf(r);
   switch (money) {
     case "none":
-      return "Mekânda ödeme";
+      return "Köşkte ödeme";
     case "pending": {
       const until = istanbulTimeLabel(r.paymentDueAt ?? "");
       return until ? `Ödeme bekleniyor · son ${until}` : "Ödeme bekleniyor";
@@ -282,7 +308,7 @@ export const KARAOKE_ATTENTION: Record<
     tone: "danger",
   },
   venue_request: {
-    title: "Eski mekânda ödeme talebi",
+    title: "Köşkte ödenecek eski talep",
     text: "Bu talep ön ödeme açılmadan önce köşkte ödenecek diye alınmış. Ödemesi alınmamış rezervasyon onaylanmaz: müşteriyi arayıp online rezervasyon yapmasını iste, bu talebi iptal et.",
     tone: "warning",
   },
@@ -590,7 +616,7 @@ export const KARAOKE_FILTER_FIELDS: readonly FilterField[] = [
     options: [
       { value: "paid", label: "Ödendi" },
       { value: "pending", label: "Ödeme bekleniyor" },
-      { value: "none", label: "Mekânda ödeme" },
+      { value: "none", label: "Köşkte ödeme" },
       { value: KARAOKE_OWED_FILTER, label: "İade borcu" },
       { value: "refunding", label: "İade sonucu bekleniyor" },
       { value: "refunded", label: "İade edildi" },

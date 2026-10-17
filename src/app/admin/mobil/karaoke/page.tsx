@@ -44,6 +44,9 @@ import {
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Karaoke" };
+
+/** Ayarlar opens on its Karaoke tab (`?sekme=`, admin audit KAR-12). */
+const KARAOKE_SETTINGS_HREF = "/admin/ayarlar?sekme=karaoke";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -141,18 +144,20 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Rezervasyon"
+        eyebrow="Satış · Karaoke"
         title="Karaoke"
         description={
+          // Short enough that a phone sees the first booking without
+          // scrolling (admin audit KAR-10).
           settings.karaokePrepay
-            ? "Ön ödeme açık: rezervasyon ödenince kendiliğinden onaylanır, ödenmemiş rezervasyon onaylanmaz. Ödenmiş rezervasyonu iptal etmek tutarın tamamını karta iade eder."
+            ? "Ön ödeme açık: ödenen rezervasyon kendiliğinden onaylanır. Ödenmişi iptal etmek tutarın tamamını iade eder."
             : "Ön ödeme kapalı: talepler köşkte ödenir, onayla ya da iptal et."
         }
         action={
           canAccess("settings", session.role) ? (
             <Link
-              href="/admin/ayarlar"
-              className="text-sm text-[var(--admin-text-soft)] underline underline-offset-4 hover:text-[var(--admin-primary)]"
+              href={KARAOKE_SETTINGS_HREF}
+              className="inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline underline-offset-4 hover:text-[var(--admin-primary)]"
             >
               Fiyat ve ön ödeme: Ayarlar → Karaoke
             </Link>
