@@ -2167,7 +2167,12 @@ summary:focus-visible,
   position: relative;
   height: calc(var(--stage) * 0.92);
   width: auto;
-  max-width: none;
+  /* A cut-out is far narrower than the stage, so this never binds for the
+     bundled slides. A panel upload can be a wide campaign picture: at the
+     stage's height it ran past the frame and was cut off, so it is held to
+     the stage's width and letterboxed instead. */
+  max-width: 100%;
+  object-fit: contain;
   filter: drop-shadow(0 30px 34px rgba(59, 42, 30, 0.22));
   animation: hero-x-rise 0.7s var(--ease-spring) both;
 }

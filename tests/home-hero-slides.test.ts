@@ -667,6 +667,18 @@ describe("the slider with the panel's slides", () => {
     );
   });
 
+  it("holds a wide upload inside the stage instead of cutting it off", () => {
+    // The photo is set to the stage's height. A cut-out is far narrower than
+    // the stage, but a 16:9 campaign picture at that height ran past the
+    // frame (overflow: hidden) and lost its right side.
+    const css = read("src/app/globals.css");
+    const rule = /\.hero-x-photo \{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toMatch(/height: calc\(var\(--stage\) \* 0\.92\);/);
+    expect(rule).toMatch(/max-width: 100%;/);
+    expect(rule).toMatch(/object-fit: contain;/);
+    expect(rule).not.toMatch(/max-width: none/);
+  });
+
   it("falls back to the bundled slides with nothing from the panel", () => {
     for (const html of [draw(undefined), draw([])]) {
       expect(html).toContain(
@@ -707,6 +719,13 @@ describe("the home page's shortcuts", () => {
     );
     expect(read("src/app/page.tsx")).toContain(
       "loadAppProps({ withHomeHero: true })",
+    );
+    // Ayarlar says so too: the field used to promise the whole hero, so an
+    // operator with panel slides changed it and saw nothing happen.
+    const settingsForm = read("src/app/admin/ayarlar/settings-form.tsx");
+    expect(settingsForm).not.toContain("SVG placeholder");
+    expect(settingsForm).toContain(
+      "yayında slayt yokken yerleşik ilk slaytın görselini değiştirir",
     );
   });
 });

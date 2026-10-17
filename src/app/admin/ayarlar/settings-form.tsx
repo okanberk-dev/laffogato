@@ -195,7 +195,10 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
           </Field>
           <Field
             label="Hero görsel URL"
-            hint="Opsiyonel. Boş bırakırsan tasarımdaki SVG placeholder kullanılır."
+            // Since the home hero moved to /admin/anasayfa-hero this only
+            // reaches the bundled slides (app-props.ts): say so, or the
+            // operator changes it and sees nothing happen.
+            hint="Opsiyonel. Anasayfa slaytlarında yayında slayt yokken yerleşik ilk slaytın görselini değiştirir. Panelden eklediğin slaytlar kendi görselini kullanır; onları İçerik → Anasayfa slaytları'ndan düzenle."
           >
             <TextInput
               name="heroImageUrl"
