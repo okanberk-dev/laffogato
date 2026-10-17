@@ -27,8 +27,11 @@ export function includesTr(haystack: string, needle: string): boolean {
  * The same fold in SQL, for a search that runs in the database (Postgres
  * lower() and ILIKE do not fold the I family either):
  * `lower(translate(<expr>, TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO))` on the
- * column and on the parameter. translate() maps İ, I and ı to i and drops
- * U+0307 (it has no partner in TO) before lower() sees the text.
+ * column and on the parameter. translate() maps İ, I and ı to i, lowers
+ * the other Turkish capitals (Ç Ş Ğ Ö Ü Â Î Û) itself and drops U+0307
+ * (the last FROM letter, it has no partner in TO) before lower() sees the
+ * text. lower() is then left with ASCII only: under the "C" collation it
+ * folds nothing else, so "ÇAY" would have missed "çay".
  */
-export const TR_FOLD_SQL_FROM = "İIı̇";
-export const TR_FOLD_SQL_TO = "iii";
+export const TR_FOLD_SQL_FROM = "İIıÇŞĞÖÜÂÎÛ\u0307";
+export const TR_FOLD_SQL_TO = "iiiçşğöüâîû";

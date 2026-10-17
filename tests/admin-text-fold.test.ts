@@ -54,28 +54,45 @@ describe("the SQL twin", () => {
         return i < 0 ? ch : ([...to][i] ?? "");
       })
       .join("");
-  const sqlFold = (s: string) =>
-    translate(s, TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO).toLowerCase();
+  /** lower() under the "C" collation: ASCII letters only. */
+  const lowerC = (s: string) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
+  const sqlFold = (s: string, lower: (s: string) => string) =>
+    lower(translate(s, TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO));
+  const WORDS = [
+    "İsmail",
+    "ISMAIL",
+    "ırmak",
+    "IRMAK",
+    "Fındık",
+    "FINDIK",
+    "i̇talyan",
+    "Çiğdem Öztürk",
+    "ÇİĞDEM ÖZTÜRK",
+    "Şule Işık",
+    "ŞULE IŞIK",
+    "GÜNEŞ ÇAY",
+    "HÂLÂ",
+  ];
 
-  it("lower(translate(x, FROM, TO)) folds like foldTr", () => {
-    for (const word of [
-      "İsmail",
-      "ISMAIL",
-      "ırmak",
-      "IRMAK",
-      "Fındık",
-      "FINDIK",
-      "i̇talyan",
-      "Çiğdem Öztürk",
-      "Şule Işık",
-    ]) {
-      expect(sqlFold(word), word).toBe(foldTr(word));
+  it("lower(translate(x, FROM, TO)) folds like foldTr, whatever the collation", () => {
+    for (const word of WORDS) {
+      // A Unicode-aware collation (en_US.UTF-8) and the plain "C" one.
+      expect(
+        sqlFold(word, (s) => s.toLowerCase()),
+        word,
+      ).toBe(foldTr(word));
+      expect(sqlFold(word, lowerC), word).toBe(foldTr(word));
     }
+    expect(sqlFold("ÇAY", lowerC)).toBe(sqlFold("çay", lowerC));
   });
 
-  it("drops the combining dot: it has no partner", () => {
-    expect([...TR_FOLD_SQL_FROM]).toHaveLength(4);
-    expect([...TR_FOLD_SQL_TO]).toHaveLength(3);
-    expect([...TR_FOLD_SQL_FROM][3]).toBe("̇");
+  it("pairs letter by letter and drops the combining dot last", () => {
+    const from = [...TR_FOLD_SQL_FROM];
+    const to = [...TR_FOLD_SQL_TO];
+    expect(from).toHaveLength(to.length + 1);
+    expect(from.at(-1)).toBe("\u0307");
+    for (const [i, ch] of to.entries()) {
+      expect(foldTr(from[i]), from[i]).toBe(ch);
+    }
   });
 });
