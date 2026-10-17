@@ -35,6 +35,7 @@ const h = vi.hoisted(() => ({
     getCategory: vi.fn(),
     listCategories: vi.fn(),
     listProducts: vi.fn(),
+    restoreCategory: vi.fn(),
     updateCategory: vi.fn(),
     createPromo: vi.fn(),
     deletePromo: vi.fn(),
@@ -300,6 +301,68 @@ describe("categories", () => {
     expect(h.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: "delete", entity: "category" }),
     );
+  });
+
+  it("does not strand products when the slug is changed on the edit form", async () => {
+    // The only "beans" row moved to "gift": every bean product was left in a
+    // filter that no longer existed, the same hole the delete guard closes.
+    h.store.getCategory.mockResolvedValue({ ...BEANS, icon: "☕", sortOrder: 0 });
+    h.store.listCategories.mockResolvedValue([BEANS]);
+    h.store.listProducts.mockResolvedValue([{ cat: "beans" }, { cat: "beans" }]);
+    const res = await categories.updateCategoryAction(
+      "cat-1",
+      null,
+      form({ slug: "gift", label: "Çekirdek", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({ ok: false });
+    expect(res.ok ? {} : res.fieldErrors).toMatchObject({
+      slug: expect.stringContaining("2 ürün"),
+    });
+    expect(h.store.updateCategory).not.toHaveBeenCalled();
+  });
+
+  it("still saves a label edit, or a slug change nothing depends on", async () => {
+    h.store.getCategory.mockResolvedValue({ ...BEANS, icon: "☕", sortOrder: 0 });
+    h.store.listCategories.mockResolvedValue([BEANS]);
+    h.store.listProducts.mockResolvedValue([{ cat: "beans" }]);
+    h.store.updateCategory.mockResolvedValue({ ...BEANS, label: "Kahve" });
+    await expect(
+      categories.updateCategoryAction(
+        "cat-1",
+        null,
+        form({ slug: "beans", label: "Kahve", icon: "", sortOrder: "" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    h.store.listProducts.mockResolvedValue([{ cat: "gear" }]);
+    await expect(
+      categories.updateCategoryAction(
+        "cat-1",
+        null,
+        form({ slug: "gift", label: "Kahve", icon: "", sortOrder: "" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.updateCategory).toHaveBeenCalledTimes(2);
+  });
+
+  it("puts a category back when a twin went in the same moment (delete race)", async () => {
+    // Two operators each delete one of two "beans" rows: each check saw the
+    // other row and let its delete through, and no "beans" was left.
+    const TWIN = { id: "cat-2", slug: "beans", label: "Kahve" };
+    h.store.getCategory.mockResolvedValue(BEANS);
+    h.store.listCategories
+      .mockResolvedValueOnce([BEANS, TWIN]) // the check
+      .mockResolvedValueOnce([]); // after the delete: the twin is gone too
+    h.store.listProducts.mockResolvedValue([{ cat: "beans" }]);
+    h.store.deleteCategory.mockResolvedValue(true);
+    h.store.restoreCategory.mockResolvedValue(undefined);
+    const res = await categories.deleteCategoryAction(
+      null,
+      form({ id: "cat-1" }),
+    );
+    expect(res.ok).toBe(false);
+    expect(res.ok ? "" : res.error).toContain("1 ürün");
+    expect(h.store.restoreCategory).toHaveBeenCalledWith(BEANS);
+    expect(h.logAudit).not.toHaveBeenCalled();
   });
 
   it("categoryDeleteBlocker: products by slug, twins exempt", () => {

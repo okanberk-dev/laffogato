@@ -14,6 +14,7 @@ import { requireRole } from "@/lib/admin/auth";
 import {
   categoryDeleteBlocker,
   categoryFormSchema,
+  categorySlugChangeBlocker,
 } from "@/lib/admin/category-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
@@ -22,6 +23,7 @@ import {
   getCategory,
   listCategories,
   listProducts,
+  restoreCategory,
   updateCategory,
   type CategoryInput,
 } from "@/lib/admin/store";
@@ -79,6 +81,25 @@ export async function updateCategoryAction(
   await requireRole("categories");
   const form = parseInput(formData);
   if (!form.ok) return form.result;
+  const existing = await getCategory(id);
+  if (!existing) return actionError("Bu kategori silinmiş; listeye dön.");
+  if (form.input.slug !== existing.slug) {
+    // Products point at the slug: moving the only row that carries it
+    // strands them, exactly as a delete would.
+    const [categories, products] = await Promise.all([
+      listCategories(),
+      listProducts(),
+    ]);
+    const blocker = categorySlugChangeBlocker(
+      existing,
+      form.input.slug,
+      categories,
+      products,
+    );
+    if (blocker) {
+      return actionError("Formdaki uyarıları gider.", { slug: blocker });
+    }
+  }
   const updated = await updateCategory(id, form.input);
   if (!updated) return actionError("Bu kategori silinmiş; listeye dön.");
   await logAudit({
@@ -118,6 +139,19 @@ export async function deleteCategoryAction(
   const removed = await deleteCategory(id);
   revalidateCategories();
   if (!removed) return actionError("Kategori zaten silinmiş.");
+  // The check above and the delete are two statements: a twin deleted by
+  // someone else in the same moment, or products moved in meanwhile, would
+  // leave products with no category. Look again, and put this one back if so.
+  const [after, productsAfter] = await Promise.all([
+    listCategories(),
+    listProducts(),
+  ]);
+  const stranded = categoryDeleteBlocker(category, after, productsAfter);
+  if (stranded) {
+    await restoreCategory(category);
+    revalidateCategories();
+    return actionError(stranded);
+  }
   await logAudit({
     action: "delete",
     entity: "category",

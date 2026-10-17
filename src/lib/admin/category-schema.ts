@@ -63,11 +63,39 @@ export function categoryDeleteBlocker(
   categories: ReadonlyArray<{ id: string; slug: string }>,
   products: ReadonlyArray<{ cat: string }>,
 ): string | null {
+  const used = strandedProducts(category, categories, products);
+  if (used === 0) return null;
+  return `Bu kategoride ${used} ürün var. Önce ürünleri başka bir kategoriye taşı (Ürünler → toplu işlem → Kategoriye taşı).`;
+}
+
+/**
+ * Why a category's slug cannot change to `nextSlug`, or null when it can.
+ *
+ * Same hole as the delete from the other side: the edit form offers the five
+ * slugs, and moving the only "beans" row to "gift" left every bean product
+ * in a filter that no longer existed.
+ */
+export function categorySlugChangeBlocker(
+  category: { id: string; slug: string },
+  nextSlug: string,
+  categories: ReadonlyArray<{ id: string; slug: string }>,
+  products: ReadonlyArray<{ cat: string }>,
+): string | null {
+  if (nextSlug === category.slug) return null;
+  const used = strandedProducts(category, categories, products);
+  if (used === 0) return null;
+  return `Bu slug'a bağlı ${used} ürün var. Slug'ı değiştirmeden önce ürünleri başka bir kategoriye taşı (Ürünler → toplu işlem → Kategoriye taşı).`;
+}
+
+/** Products left without a category if this row's slug went away. */
+function strandedProducts(
+  category: { id: string; slug: string },
+  categories: ReadonlyArray<{ id: string; slug: string }>,
+  products: ReadonlyArray<{ cat: string }>,
+): number {
   const twin = categories.some(
     (c) => c.id !== category.id && c.slug === category.slug,
   );
-  if (twin) return null;
-  const used = products.filter((p) => p.cat === category.slug).length;
-  if (used === 0) return null;
-  return `Bu kategoride ${used} ürün var. Önce ürünleri başka bir kategoriye taşı (Ürünler → toplu işlem → Kategoriye taşı).`;
+  if (twin) return 0;
+  return products.filter((p) => p.cat === category.slug).length;
 }

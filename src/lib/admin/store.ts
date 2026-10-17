@@ -1268,6 +1268,25 @@ export async function deleteCategory(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/**
+ * Puts a just-deleted category back, id and all. For the panel's delete when
+ * its after-check finds products left without a category (a twin deleted in
+ * the same moment, or products moved in after the first check).
+ */
+export async function restoreCategory(category: AdminCategory): Promise<void> {
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.categories).insert({
+      id: category.id,
+      slug: category.slug,
+      label: category.label,
+      icon: category.icon,
+      sortOrder: category.sortOrder,
+    }),
+    "restoreCategory",
+  );
+}
+
 // ─── Orders ───────────────────────────────────────────────────────────────
 
 /** The statuses a shift still owes work on. Same set the dashboard counts. */
