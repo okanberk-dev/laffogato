@@ -149,6 +149,16 @@ describe("listAuditLogs", () => {
       ]),
     );
   });
+
+  it("matches the Kim box literally: %, _ and the backslash itself", async () => {
+    // ILIKE's escape character is the backslash. Escaping % and _ but not
+    // the backslash let "a\" turn the closing % into a literal one, so the
+    // search looked for "a%" and found nothing.
+    await listAuditLogs({ actor: "Ali_%\\" });
+    const q = seen.find((s) => /FROM "audit_logs"/.test(s.text))!;
+    expect(q.text).toMatch(/"actor" ILIKE \$\d+/);
+    expect(q.params).toContain("%ali\\_\\%\\\\%");
+  });
 });
 
 describe("the page", () => {

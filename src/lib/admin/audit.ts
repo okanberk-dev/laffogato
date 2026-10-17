@@ -120,9 +120,12 @@ export async function listAuditLogs(
   const sb = getDb();
   let q = sb.from(TABLES.auditLogs).select("*");
   if (filter.actor) {
+    // Literal match: `%` and `_` are wildcards and `\` is ILIKE's escape
+    // character, so a typed backslash is escaped too (it used to turn the
+    // closing `%` into a literal one).
     const escaped = filter.actor
       .toLowerCase()
-      .replace(/[%_]/g, (c) => `\\${c}`);
+      .replace(/[%_\\]/g, (c) => `\\${c}`);
     q = q.ilike("actor", `%${escaped}%`);
   }
   if (filter.entity) q = q.eq("entity", filter.entity);
