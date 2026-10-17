@@ -51,6 +51,12 @@ function isAdminDocumentPath(pathname: string | null | undefined): boolean {
  * the banner (z-index 200) covered the panel's toasts and bulk bar. A
  * narrower policy for /admin is a separate, later step.
  *
+ * Neither this nor that policy walls the panel off from GTM. The admin
+ * cookie is sent to the whole origin (path `/`), so a tag on any site page
+ * can still fetch /admin and call its actions as an admin who browses the
+ * site signed in; only a separate origin for the panel closes that
+ * (docs/AUDIT.md §13, open).
+ *
  * "Document", not "page": the decision is made once, from the path the
  * document was LOADED at, and kept for its whole life. A document loaded at
  * /odeme keeps its strict policy after a client-side navigation away, so GTM
