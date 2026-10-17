@@ -128,7 +128,6 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         label: "Canlı durum",
         section: "mobileApp",
       },
-      { href: "/admin/mobil/karaoke", label: "Karaoke", section: "mobileApp" },
       {
         href: "/admin/mobil/fal-bildirimleri",
         label: "fA'L bildirimleri",
@@ -145,6 +144,10 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
     title: "Satış",
     items: [
       { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
+      // Its own section, not `mobileApp`: the köşk shift (Personel) runs the
+      // evening's bookings. The path stays under /mobil, where the mails and
+      // the operator's bookmarks point.
+      { href: "/admin/mobil/karaoke", label: "Karaoke", section: "karaoke" },
       // `till`, not `orders`: this is the one page a cashier can open, and a
       // cashier must not reach the order list, refunds or customer records.
       { href: "/admin/kasa", label: "Kasa · damga", section: "till" },

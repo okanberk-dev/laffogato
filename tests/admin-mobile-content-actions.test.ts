@@ -50,21 +50,21 @@ describe("confirmReservationAction", () => {
       ok: false,
       reason: "slot_taken",
     });
-    const state = await confirmReservationAction({}, form({ id: "krk-1" }));
-    expect(state.error).toContain("başka bir onaylı rezervasyonda");
-    expect(state.message).toBeUndefined();
+    const state = await confirmReservationAction(null, form({ id: "krk-1" }));
+    expect(state.ok).toBe(false);
+    expect(!state.ok && state.error).toContain(
+      "başka bir onaylı rezervasyonda",
+    );
     expect(logAudit).not.toHaveBeenCalled();
   });
 
   it("tells a deleted booking apart from a lost race", async () => {
     setReservationStatus.mockResolvedValue({ ok: false, reason: "not_found" });
-    expect(
-      (await confirmReservationAction({}, form({ id: "krk-1" }))).error,
-    ).toContain("bulunamadı");
+    const gone = await confirmReservationAction(null, form({ id: "krk-1" }));
+    expect(!gone.ok && gone.error).toContain("bulunamadı");
     setReservationStatus.mockResolvedValue({ ok: false, reason: "raced" });
-    expect(
-      (await confirmReservationAction({}, form({ id: "krk-1" }))).error,
-    ).toContain("az önce başka biri");
+    const raced = await confirmReservationAction(null, form({ id: "krk-1" }));
+    expect(!raced.ok && raced.error).toContain("az önce başka biri");
   });
 
   it("confirms and audits the booking it actually moved", async () => {
@@ -72,8 +72,8 @@ describe("confirmReservationAction", () => {
       ok: true,
       reservation: { id: "krk-1", date: "2026-09-10", startHour: 20 },
     });
-    const state = await confirmReservationAction({}, form({ id: "krk-1" }));
-    expect(state.message).toBeTruthy();
+    const state = await confirmReservationAction(null, form({ id: "krk-1" }));
+    expect(state.ok && state.message).toBeTruthy();
     expect(logAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         entity: "karaoke_reservation",

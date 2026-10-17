@@ -37,6 +37,7 @@ export type AdminSection =
   | "categories"
   | "shopHero"
   | "mobileApp"
+  | "karaoke"
   | "press"
   | "story"
   | "content"
@@ -70,6 +71,11 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   categories: ["owner", "manager"],
   shopHero: ["owner", "manager"],
   mobileApp: ["owner", "manager"],
+  // Karaoke bookings are the köşk shift's evening: Personel sees who is
+  // coming, confirms and cancels unpaid ones. Anything that sends money back
+  // (cancelling a paid booking, a refund retry) still needs `refunds`, which
+  // each action checks on its own.
+  karaoke: ["owner", "manager", "staff"],
   press: ["owner", "manager"],
   story: ["owner", "manager"],
   content: ["owner", "manager"],
