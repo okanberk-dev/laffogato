@@ -14,6 +14,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { ActionResult } from "@/lib/admin/action-result";
 
 import { BUTTON, useToast, type ButtonVariant, type ModalAction } from "./ui";
+import { announceAdminChange } from "./ui/admin-changed";
 import {
   useNoResetSubmit,
   withPanelCatch,
@@ -82,6 +83,7 @@ export function useToastAction(
       if (!result) return null;
       if (result.ok) {
         toast.fromResult(result);
+        announceAdminChange();
         onSuccess?.(result);
       } else if (toastError) {
         toast.fromResult(result);

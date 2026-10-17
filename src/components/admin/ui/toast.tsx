@@ -211,7 +211,9 @@ function ToastCard({
         type="button"
         onClick={() => dismiss(id)}
         aria-label="Bildirimi kapat"
-        className="-my-1 -mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg leading-none text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+        // 44px, the panel's touch target (it was 32px, SHE-M03); the
+        // negative margins keep the card as tall as its text.
+        className="-my-2.5 -mr-3 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg leading-none text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
       >
         <span aria-hidden="true">×</span>
       </button>

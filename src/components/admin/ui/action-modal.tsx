@@ -18,6 +18,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { ActionResult } from "@/lib/admin/action-result";
 
 import { Field, TextInput, Textarea } from "../forms";
+import { announceAdminChange } from "./admin-changed";
 import { BUTTON, MONO_STYLE, type ButtonVariant } from "./styles";
 import { useNoResetSubmit } from "./submit";
 import { adminPortalRoot, useToast } from "./toast";
@@ -360,6 +361,7 @@ function ModalDialog({
     }
     if (result.ok) {
       if (toastOnSuccess) toast.fromResult(result);
+      announceAdminChange();
       dialogRef.current?.close();
       onSuccess?.(result);
     }

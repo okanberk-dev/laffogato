@@ -623,6 +623,50 @@ describe("bulk checkboxes and the room under the bar", () => {
   });
 });
 
+describe("after a successful action the panel says so (admin:changed)", () => {
+  it("fires one window event, and does nothing outside the browser", () => {
+    expect(() => ui.announceAdminChange()).not.toThrow();
+    const target = new EventTarget();
+    let heard = 0;
+    target.addEventListener(ui.ADMIN_CHANGED_EVENT, () => {
+      heard += 1;
+    });
+    vi.stubGlobal("window", target);
+    try {
+      ui.announceAdminChange();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(ui.ADMIN_CHANGED_EVENT).toBe("admin:changed");
+    expect(heard).toBe(1);
+  });
+
+  it("the kit fires it on a success only (modal, form, one-click button)", () => {
+    // The sidebar badges listen for it (shell navigation) instead of
+    // waiting up to 60 s.
+    const modal = read("src/components/admin/ui/action-modal.tsx");
+    expect(modal).toMatch(/if \(result\.ok\) \{[^}]*announceAdminChange\(\);/);
+    const form = read("src/components/admin/action-form.tsx");
+    expect(form).toMatch(
+      /if \(result\.ok\) \{[^}]*announceAdminChange\(\);[^}]*\} else/,
+    );
+    expect(modal.match(/announceAdminChange\(\)/g)).toHaveLength(1);
+    expect(form.match(/announceAdminChange\(\)/g)).toHaveLength(1);
+  });
+});
+
+describe("codes and amounts line up", () => {
+  it("NUMERIC_STYLE is a monospace face with tabular figures; labels keep MONO_STYLE", async () => {
+    const { MONO_STYLE } = await import("@/components/admin/ui/styles");
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/^ui-monospace, /);
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/monospace$/);
+    expect(ui.NUMERIC_STYLE.fontVariantNumeric).toBe("tabular-nums");
+    // --mono (Poppins) is the panel's label voice; it is not repointed.
+    expect(MONO_STYLE).toEqual({ fontFamily: "var(--mono), monospace" });
+    expect(read("src/app/admin/layout.tsx")).not.toContain('"--mono"');
+  });
+});
+
 describe("tone colours clear AA", () => {
   const layout = read("src/app/admin/layout.tsx");
   const token = (name: string) => {
@@ -716,6 +760,19 @@ describe("tone colours clear AA", () => {
         "border-[var(--admin-border)] bg-[var(--admin-surface-2)]",
       );
     }
+  });
+
+  it("a toast's close button is a 44px target", () => {
+    const out = html(
+      withKids(
+        ui.ToastProvider,
+        { flash: { id: "f1", message: "Kaydedildi.", tone: "success" } },
+        "x",
+      ),
+    );
+    expect(out).toMatch(
+      /<button type="button" aria-label="Bildirimi kapat" class="[^"]*h-11 w-11/,
+    );
   });
 
   it("the signed-in panel and the login share one ground, and toasts are mounted", () => {
