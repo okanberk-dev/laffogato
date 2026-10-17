@@ -1297,16 +1297,8 @@ export async function setCustomerActive(
   return getAdminCustomerByEmail(needle);
 }
 
-/** Permanently delete a member account. Returns true when a row was removed. */
-export async function adminDeleteCustomer(email: string): Promise<boolean> {
-  const needle = normalizeEmail(email);
-  if (!needle) return false;
-  const sb = getDb();
-  const { data, error } = await sb
-    .from(TABLES.customers)
-    .delete()
-    .eq("email", needle)
-    .select("id");
-  checkErr(error, "adminDeleteCustomer");
-  return ((data as { id: string }[] | null) ?? []).length > 0;
-}
+// There is deliberately no "delete the customers row" helper. The panel's
+// "Hesabı sil" used one, and it left the member's future karaoke held, the
+// barista grant alive and every other record on the live address; an account
+// is closed through `deleteMe` (lib/mobile/me.ts), from the app, the site
+// and the panel alike.

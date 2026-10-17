@@ -10,15 +10,34 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
-import { OrderStatusBadge } from "@/components/admin/ui/badge";
+import { Badge, OrderStatusBadge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
-import { customerOrdersByEmail, listProducts } from "@/lib/admin/store";
+import {
+  customerLifetime,
+  customerOrdersByEmail,
+  listProducts,
+} from "@/lib/admin/store";
+import type { AdminTone } from "@/lib/admin/tone";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
+import {
+  KARAOKE_PAYMENT_LABELS,
+  KARAOKE_STATUS_LABELS,
+  formatReservationDate,
+  formatReservationTime,
+  listByAddress,
+  paymentStatusOf,
+  type KaraokePaymentStatus,
+  type KaraokeReservationStatus,
+} from "@/lib/mobile/karaoke";
 import { getLoyalty, listStamps } from "@/lib/mobile/loyalty";
 
 export const dynamic = "force-dynamic";
+// "Hesabı sil" runs here and closes the account the member's way (deleteMe):
+// it may ask the POS to refund each future paid karaoke booking and to drop
+// the saved cards, each call bounded. The mobile DELETE /me allows 15 s.
+export const maxDuration = 30;
 
 interface PageProps {
   params: Promise<{ email: string }>;
@@ -30,6 +49,24 @@ const INVITE_STATUS_LABEL: Record<string, string> = {
   joined: "Katıldı",
   rewarded: "Ödüllendi",
 };
+
+const KARAOKE_STATUS_TONE: Record<KaraokeReservationStatus, AdminTone> = {
+  requested: "warning",
+  confirmed: "success",
+  cancelled: "neutral",
+};
+
+const KARAOKE_PAYMENT_TONE: Record<KaraokePaymentStatus, AdminTone> = {
+  none: "neutral",
+  pending: "warning",
+  paid: "success",
+  refunding: "danger",
+  refunded: "info",
+  expired: "neutral",
+};
+
+/** How many bookings the card lists; the rest are on the karaoke page. */
+const KARAOKE_SHOWN = 20;
 
 const PREF_LABEL: Record<string, string> = {
   orderUpdates: "Sipariş güncellemeleri",
@@ -47,24 +84,27 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const { email: raw } = await params;
   const email = decodeURIComponent(raw);
 
-  const [member, orders, coupons, loyalty, stamps, invites] = await Promise.all(
-    [
+  const [member, orders, coupons, loyalty, stamps, invites, karaoke] =
+    await Promise.all([
       getAdminCustomerByEmail(email),
       customerOrdersByEmail(email),
       adminListCustomerCoupons(email),
       getLoyalty(email),
       listStamps(email),
       getAdminInviteTree(email),
-    ],
-  );
+      // Every booking under the address, guest ones included (flagged): the
+      // operator answering this person's call needs the whole picture.
+      listByAddress(email),
+    ]);
 
-  // Neither a member account nor any order for this e-mail → 404.
-  if (!member && orders.length === 0) notFound();
+  // Neither a member account, an order nor a booking for this e-mail → 404.
+  if (!member && orders.length === 0 && karaoke.length === 0) notFound();
 
-  const totalSpent = orders.reduce((s, o) => s + o.totalMinor, 0);
-  const totalRefunded = orders.reduce(
-    (s, o) => s + o.refunds.reduce((r, x) => r + x.amountMinor, 0),
-    0,
+  // Same rule as Müşteriler and Raporlar: an abandoned checkout and a
+  // cancelled order are not money the customer spent.
+  const lifetime = customerLifetime(orders);
+  const bookings = [...karaoke].sort(
+    (a, b) => b.date.localeCompare(a.date) || b.startHour - a.startHour,
   );
 
   // Resolve wishlist product names (best-effort).
@@ -104,12 +144,19 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-4">
-        <Stat label="Sipariş" value={String(orders.length)} />
-        <Stat label="Lifetime value" value={formatTRY(totalSpent)} />
+        <Stat label="Sipariş" value={String(lifetime.orderCount)} />
+        <Stat
+          label="Lifetime value"
+          value={formatTRY(lifetime.lifetimeValueMinor)}
+        />
         <Stat
           label="İade"
-          value={totalRefunded > 0 ? `−${formatTRY(totalRefunded)}` : "-"}
-          tone={totalRefunded > 0 ? "warn" : undefined}
+          value={
+            lifetime.refundedMinor > 0
+              ? `−${formatTRY(lifetime.refundedMinor)}`
+              : "-"
+          }
+          tone={lifetime.refundedMinor > 0 ? "warn" : undefined}
         />
         <Stat
           label="Durum"
@@ -309,10 +356,74 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         <Card className="mb-4">
           <p className="text-sm text-neutral-500">
             Bu e-postaya bağlı kayıtlı bir üye hesabı yok - yalnızca misafir
-            siparişleri var.
+            siparişleri ya da rezervasyonları var.
           </p>
         </Card>
       )}
+
+      <Card className="mt-4">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <SectionTitle>
+            Karaoke rezervasyonları ({bookings.length})
+          </SectionTitle>
+          <Link
+            href="/admin/mobil/karaoke"
+            className="text-xs text-[var(--admin-primary)] underline-offset-4 hover:underline"
+          >
+            Karaoke ekranı →
+          </Link>
+        </div>
+        {bookings.length === 0 ? (
+          <p className="text-sm text-neutral-400">
+            Bu e-postayla yapılmış karaoke rezervasyonu yok.
+          </p>
+        ) : (
+          <ul className="grid gap-2">
+            {bookings.slice(0, KARAOKE_SHOWN).map((r) => {
+              const money = paymentStatusOf(r);
+              return (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-neutral-900">
+                      {formatReservationDate(r.date)} ·{" "}
+                      {formatReservationTime(r.startHour, r.hours)}
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      {r.guests} kişi · {formatTRY(r.totalMinor)}
+                      {money !== "none" && (r.paidMinor ?? 0) > 0
+                        ? ` · ödenen ${formatTRY(r.paidMinor ?? 0)}`
+                        : ""}
+                      <span
+                        className="ml-2"
+                        style={{ fontFamily: "var(--mono), monospace" }}
+                      >
+                        {r.id}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {r.guest ? <Badge>Üyeliksiz</Badge> : null}
+                    <Badge tone={KARAOKE_STATUS_TONE[r.status]}>
+                      {KARAOKE_STATUS_LABELS[r.status]}
+                    </Badge>
+                    <Badge tone={KARAOKE_PAYMENT_TONE[money]}>
+                      {KARAOKE_PAYMENT_LABELS[money]}
+                    </Badge>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {bookings.length > KARAOKE_SHOWN ? (
+          <p className="mt-2 text-xs text-neutral-500">
+            En yeni {KARAOKE_SHOWN} rezervasyon gösteriliyor.
+          </p>
+        ) : null}
+      </Card>
 
       <Card className="mt-4">
         <SectionTitle>Sipariş geçmişi ({orders.length})</SectionTitle>

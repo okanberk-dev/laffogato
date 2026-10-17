@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -67,7 +72,8 @@ export async function addCounterStampAction(
 }
 
 /**
- * "−1 düzeltme": takes back a stamp the till gave by mistake.
+ * "−1 düzeltme": takes back a stamp the till gave by mistake, behind a
+ * confirm (the reason goes in as the note).
  *
  * Gated on `customers` (owner/manager) rather than `orders`, which is what
  * /admin/kasa tells the shift staff - the person who can give a stamp is not
@@ -75,19 +81,19 @@ export async function addCounterStampAction(
  */
 export async function reverseCounterStampAction(
   email: string,
-  _prev: CounterStampState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<CounterStampState> {
+): Promise<ActionResult> {
   const session = await requireRole("customers");
   const owner = email.trim().toLowerCase();
-  if (!owner) return { error: "E-posta eksik." };
+  if (!owner) return actionError("E-posta eksik.");
   const note = String(formData.get("note") ?? "")
     .trim()
     .slice(0, 120);
 
   const result = await reverseCounterStamp(owner, session.email, note);
   if (!result.ok) {
-    return { error: "Bu üyenin geri alınacak damgası yok." };
+    return actionError("Bu üyenin geri alınacak damgası yok.");
   }
   await logAudit({
     action: "update",
@@ -102,5 +108,5 @@ export async function reverseCounterStampAction(
   });
   revalidatePath(`/admin/musteriler/${encodeURIComponent(owner)}`);
   revalidatePath("/admin/kasa");
-  return { message: "Damga geri alındı." };
+  return actionOk("Damga geri alındı.");
 }

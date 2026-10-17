@@ -17,6 +17,7 @@ import {
   TextInput,
   formatDateTime,
 } from "./forms";
+import { ConfirmButton } from "./ui";
 
 const initial: CounterStampState = {};
 
@@ -47,10 +48,6 @@ export function CustomerStamps({
   const bound = addCounterStampAction.bind(null, email);
   const [state, action, pending] = useActionState(bound, initial);
   const boundReverse = reverseCounterStampAction.bind(null, email);
-  const [undoState, undoAction, undoPending] = useActionState(
-    boundReverse,
-    initial,
-  );
 
   return (
     <Card className="grid gap-4">
@@ -92,35 +89,30 @@ export function CustomerStamps({
       </form>
 
       {canReverse && (
-        <form
-          action={undoAction}
-          className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
-        >
+        <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4">
           <h3
             className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Damga geri al (düzeltme)
           </h3>
-          <Field label="Sebep (opsiyonel)">
-            <TextInput
-              name="note"
-              placeholder="Yanlış üyeye verildi"
-              maxLength={120}
-            />
-          </Field>
-          {undoState.error && (
-            <p className="text-xs text-red-600" role="alert">
-              {undoState.error}
-            </p>
-          )}
-          {undoState.message && (
-            <p className="text-xs text-green-700">{undoState.message}</p>
-          )}
-          <PrimaryButton type="submit" disabled={undoPending}>
-            {undoPending ? "Geri alınıyor…" : "−1 düzeltme"}
-          </PrimaryButton>
-        </form>
+          {/* Takes a stamp away from the member: asks first, and the reason
+              goes into the stamp history as its note. */}
+          <ConfirmButton
+            action={boundReverse}
+            label="−1 düzeltme"
+            title="Bir damga geri alınsın mı?"
+            description="Üyenin kartından bir damga düşülür ve geçmişe düzeltme olarak yazılır."
+            confirmLabel="Damgayı geri al"
+            variant="ghost"
+            reason={{
+              name: "note",
+              label: "Sebep (isteğe bağlı)",
+              maxLength: 120,
+              placeholder: "Yanlış üyeye verildi",
+            }}
+          />
+        </div>
       )}
 
       <div className="border-t border-[var(--admin-border)] pt-4">

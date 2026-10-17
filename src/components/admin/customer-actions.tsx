@@ -3,13 +3,15 @@
 import { useActionState } from "react";
 
 import {
-  deleteCustomerAction,
+  closeCustomerAccountAction,
   resendVerificationAction,
   setCustomerActiveAction,
   type ResendVerificationState,
 } from "@/app/admin/musteriler/actions";
 
-import { Card, DangerButton, GhostButton, PrimaryButton } from "./forms";
+import { ActionButton } from "./action-form";
+import { Card, GhostButton } from "./forms";
+import { ActionModal, ConfirmButton } from "./ui";
 
 const resendInitial: ResendVerificationState = {};
 
@@ -34,20 +36,29 @@ export function CustomerActions({ email, isActive, emailVerified }: Props) {
         Yönetim
       </h2>
 
-      {/* Activate / deactivate */}
-      <form action={setCustomerActiveAction}>
-        <input type="hidden" name="email" value={email} />
-        <input type="hidden" name="active" value={isActive ? "0" : "1"} />
-        {isActive ? (
-          <GhostButton type="submit" className="w-full">
-            Hesabı pasifleştir
-          </GhostButton>
-        ) : (
-          <PrimaryButton type="submit" className="w-full">
-            Hesabı yeniden aktifleştir
-          </PrimaryButton>
-        )}
-      </form>
+      {/* Activate / deactivate. Taking the account away asks first;
+          giving it back does not. */}
+      {isActive ? (
+        <ConfirmButton
+          action={setCustomerActiveAction}
+          hidden={{ email, active: "0" }}
+          label="Hesabı pasifleştir"
+          variant="ghost"
+          className="w-full"
+          description="Üye giriş yapamaz, uygulama ve site hesabı kapalı görünür. Siparişleri, damgaları ve kuponları olduğu gibi kalır; istediğin zaman yeniden aktifleştirebilirsin."
+          confirmLabel="Pasifleştir"
+        />
+      ) : (
+        <ActionButton
+          action={setCustomerActiveAction}
+          hidden={{ email, active: "1" }}
+          variant="primary"
+          className="w-full"
+          pendingLabel="Aktifleştiriliyor…"
+        >
+          Hesabı yeniden aktifleştir
+        </ActionButton>
+      )}
 
       {/* Resend verification (only meaningful when not yet verified) */}
       {!emailVerified && (
@@ -79,24 +90,38 @@ export function CustomerActions({ email, isActive, emailVerified }: Props) {
         </form>
       )}
 
-      {/* Delete */}
-      <form
-        action={deleteCustomerAction}
-        onSubmit={(e) => {
-          if (
-            !confirm(
-              "Bu üye hesabını kalıcı olarak silmek istediğine emin misin? Bu işlem geri alınamaz. (Geçmiş siparişler silinmez.)",
-            )
-          ) {
-            e.preventDefault();
-          }
-        }}
-      >
-        <input type="hidden" name="email" value={email} />
-        <DangerButton type="submit" className="w-full">
-          Hesabı sil
-        </DangerButton>
-      </form>
+      {/* Close the account: the member's own deletion pipeline (deleteMe),
+          behind the member's e-mail typed out. */}
+      <ActionModal
+        action={closeCustomerAccountAction}
+        title="Hesabı kapat ve sil"
+        trigger="Hesabı sil"
+        triggerVariant="danger"
+        triggerClassName="w-full"
+        tone="danger"
+        submitLabel="Hesabı kapat"
+        pendingLabel="Kapatılıyor…"
+        confirmPhrase={email}
+        hidden={{ email }}
+        size="md"
+        description={
+          <ul className="grid list-disc gap-1 pl-4">
+            <li>
+              Üyenin kendi hesap silmesiyle aynı işlem yapılır, geri alınamaz.
+            </li>
+            <li>
+              Gelecekteki karaoke rezervasyonları iptal edilir; ödenmiş olanlar
+              karta iade edilir.
+            </li>
+            <li>Uygulamadan kasa (barista) yetkisi varsa kaldırılır.</li>
+            <li>
+              Ad, telefon, adresler ve e-posta silinir. Siparişler muhasebe için
+              anonim olarak kalır.
+            </li>
+            <li>Devam eden siparişi olan hesap kapatılamaz.</li>
+          </ul>
+        }
+      />
     </Card>
   );
 }
