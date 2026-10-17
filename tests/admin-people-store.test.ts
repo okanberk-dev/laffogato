@@ -39,6 +39,7 @@ vi.mock("@/lib/db", async (importOriginal) => {
 });
 
 const store = await import("@/lib/admin/store");
+const customers = await import("@/lib/customer/store");
 
 beforeEach(() => {
   seen.length = 0;
@@ -102,5 +103,103 @@ describe("deactivateNewsletterSubscriber", () => {
     expect(update?.text).toMatch(/RETURNING "id"$/);
     answer = () => [];
     expect(await deactivateNewsletterSubscriber("nws-0004")).toBe(false);
+  });
+});
+
+describe("adminUpdateCustomer and commercial consent (6563)", () => {
+  const ROW = {
+    id: "cus-0042",
+    email: "uye@ornek.com",
+    name: "Ayşe",
+    phone: "",
+    birthday: "",
+    notificationPrefs: {
+      orderUpdates: true,
+      marketing: false,
+      newsletter: true,
+    },
+    marketingConsentAt: "2026-05-01T09:00:00.000Z",
+    isActive: true,
+  };
+  const input = (marketing: boolean, newsletter: boolean) => ({
+    name: "Ayşe",
+    phone: "",
+    birthday: "",
+    notificationPrefs: { orderUpdates: true, marketing, newsletter },
+  });
+  const row = (over: Record<string, unknown> = {}) => {
+    answer = (text) =>
+      /^SELECT \* FROM "customers"/.test(text) ? [{ ...ROW, ...over }] : [];
+  };
+  const updates = () => seen.filter((q) => /^UPDATE "customers"/.test(q.text));
+  const ledger = () =>
+    seen.filter((q) => /^INSERT INTO "customer_consents"/.test(q.text));
+
+  it("refuses to switch marketing or the bulletin on, and writes nothing", async () => {
+    // Panel OFF then ON put a withdrawn member back in the audiences under
+    // the old date, and the ledger got an admin "grant".
+    row();
+    expect(
+      await customers.adminUpdateCustomer("uye@ornek.com", input(true, true)),
+    ).toEqual({ ok: false, error: "consent_grant", purposes: ["marketing"] });
+    row({
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: false,
+        newsletter: false,
+      },
+    });
+    expect(
+      await customers.adminUpdateCustomer("uye@ornek.com", input(true, true)),
+    ).toEqual({
+      ok: false,
+      error: "consent_grant",
+      purposes: ["marketing", "newsletter"],
+    });
+    expect(updates()).toHaveLength(0);
+    expect(ledger()).toHaveLength(0);
+  });
+
+  it("clears the consent date when the panel turns marketing off", async () => {
+    row({
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: true,
+        newsletter: true,
+      },
+    });
+    const res = await customers.adminUpdateCustomer(
+      "uye@ornek.com",
+      input(false, true),
+    );
+    expect(res.ok).toBe(true);
+    const [update] = updates();
+    expect(update.text).toContain('"marketingConsentAt" = $');
+    expect(update.params).toContain("");
+    // The withdrawal is the panel's, with no IP.
+    const [insert] = ledger();
+    expect(insert.text).toBeDefined();
+    expect(JSON.stringify(insert.params)).toContain("admin");
+  });
+
+  it("keeps the date of a consent that stays on", async () => {
+    row({
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: true,
+        newsletter: true,
+      },
+    });
+    await customers.adminUpdateCustomer("uye@ornek.com", input(true, false));
+    const [update] = updates();
+    expect(update.text).not.toContain("marketingConsentAt");
+  });
+
+  it("answers not_found for an address with no member", async () => {
+    answer = () => [];
+    expect(
+      await customers.adminUpdateCustomer("yok@ornek.com", input(false, false)),
+    ).toEqual({ ok: false, error: "not_found" });
+    expect(updates()).toHaveLength(0);
   });
 });

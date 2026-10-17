@@ -51,6 +51,8 @@ function revalidateCustomer(email: string) {
   revalidatePath("/admin");
 }
 
+const CONSENT_GRANT_REFUSED = "Bu izni yalnız üye açabilir.";
+
 export interface CustomerActionState {
   error?: string;
   fieldErrors?: Record<string, string>;
@@ -72,7 +74,22 @@ export async function updateCustomerAction(
     return { error: "Formdaki uyarıları gider.", fieldErrors: fe };
   }
   const updated = await adminUpdateCustomer(email, parsed.data);
-  if (!updated) return { error: "Üye bulunamadı." };
+  if (!updated.ok && updated.error === "consent_grant") {
+    // Only the member can give commercial consent (6563); the form offers
+    // the switches off only, so this is a stale form or a forged post.
+    const fieldErrors: Record<string, string> = {};
+    for (const purpose of updated.purposes) {
+      fieldErrors[
+        purpose === "marketing" ? "notifyMarketing" : "notifyNewsletter"
+      ] = CONSENT_GRANT_REFUSED;
+    }
+    return {
+      error:
+        "Kampanya ve bülten izni panelden açılamaz, yalnız üye kendisi açabilir. Sayfayı yenile; üye bu arada izni kapatmış olabilir.",
+      fieldErrors,
+    };
+  }
+  if (!updated.ok) return { error: "Üye bulunamadı." };
   await logAudit({
     action: "update",
     entity: "customer",

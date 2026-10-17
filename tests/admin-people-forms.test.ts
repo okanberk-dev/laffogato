@@ -139,5 +139,13 @@ describe("markup", () => {
       /<a [^>]*href="\/admin\/musteriler\/uye%40ornek.com"[^>]*>Vazgeç<\/a>/,
     );
     expect(html).toMatch(/<legend[^>]*>Bildirim tercihleri<\/legend>/);
+    // Commercial consent: a switch that is off cannot be turned on here.
+    const input = (name: string) =>
+      html.match(new RegExp(`<input[^>]*name="${name}"[^>]*>`))?.[0] ?? "";
+    expect(input("notifyNewsletter")).toContain('disabled=""');
+    expect(input("notifyMarketing")).not.toContain("disabled");
+    expect(html).toContain("yalnız üye açabilir");
+    // And the date the audiences need is on screen.
+    expect(html).toMatch(/Ticari ileti izni:\s*(<!-- -->)?01 Eyl 2026/);
   });
 });

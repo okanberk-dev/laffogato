@@ -12,7 +12,14 @@ import {
   withPanelCatch,
 } from "./action-form";
 import { FieldErrorText, FormError, useFieldErrors } from "./form-feedback";
-import { Card, Checkbox, Field, PrimaryButton, TextInput } from "./forms";
+import {
+  Card,
+  Checkbox,
+  Field,
+  PrimaryButton,
+  TextInput,
+  formatDateTime,
+} from "./forms";
 import { BUTTON } from "./ui";
 
 const initial: CustomerActionState = {};
@@ -75,22 +82,56 @@ export function CustomerForm({ customer, action }: Props) {
           </Field>
         </div>
 
-        <Field label="Bildirim tercihleri" as="fieldset">
+        <Field
+          label="Bildirim tercihleri"
+          as="fieldset"
+          hint="Kampanya ve bülten izni panelden yalnız kapatılır; açmak üyenin kendi işi (6563). Kapatınca izin tarihi de silinir."
+        >
           <Checkbox
             name="notifyOrderUpdates"
             label="Sipariş güncellemeleri"
             defaultChecked={prefs.orderUpdates}
           />
-          <Checkbox
-            name="notifyMarketing"
-            label="Kampanya / pazarlama"
-            defaultChecked={prefs.marketing}
-          />
-          <Checkbox
-            name="notifyNewsletter"
-            label="Bülten"
-            defaultChecked={prefs.newsletter}
-          />
+          {/* Off: drawn disabled, so it is not posted and stays off. The
+              server refuses a switch-on whatever the form sends. */}
+          <div className="grid gap-1">
+            <Checkbox
+              name="notifyMarketing"
+              label={
+                prefs.marketing
+                  ? "Kampanya / pazarlama"
+                  : "Kampanya / pazarlama (kapalı, yalnız üye açabilir)"
+              }
+              defaultChecked={prefs.marketing}
+              disabled={!prefs.marketing}
+            />
+            <FieldErrorText
+              id={errorId("notifyMarketing")}
+              message={fe("notifyMarketing")}
+            />
+          </div>
+          <div className="grid gap-1">
+            <Checkbox
+              name="notifyNewsletter"
+              label={
+                prefs.newsletter
+                  ? "Bülten"
+                  : "Bülten (kapalı, yalnız üye açabilir)"
+              }
+              defaultChecked={prefs.newsletter}
+              disabled={!prefs.newsletter}
+            />
+            <FieldErrorText
+              id={errorId("notifyNewsletter")}
+              message={fe("notifyNewsletter")}
+            />
+          </div>
+          <p className="text-xs text-[var(--admin-text-soft)]">
+            Ticari ileti izni:{" "}
+            {customer.marketingConsentAt
+              ? formatDateTime(customer.marketingConsentAt)
+              : "tarih kaydı yok"}
+          </p>
         </Field>
 
         <FormError message={state.error} />

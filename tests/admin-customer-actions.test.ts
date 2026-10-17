@@ -107,7 +107,7 @@ const MEMBER = {
 
 describe("updateCustomerAction", () => {
   it("leaves a toast before it goes back to the member page", async () => {
-    adminUpdateCustomer.mockResolvedValue(MEMBER);
+    adminUpdateCustomer.mockResolvedValue({ ok: true, customer: MEMBER });
     await expect(
       updateCustomerAction(
         "uye@ornek.com",
@@ -117,6 +117,27 @@ describe("updateCustomerAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
     expect(setAdminFlash).toHaveBeenCalledWith("Üye bilgileri kaydedildi.");
     expect(redirect).toHaveBeenCalledWith("/admin/musteriler/uye%40ornek.com");
+  });
+});
+
+describe("updateCustomerAction and commercial consent", () => {
+  it("refuses a switch-on under the field, and redirects nowhere", async () => {
+    adminUpdateCustomer.mockResolvedValue({
+      ok: false,
+      error: "consent_grant",
+      purposes: ["marketing"],
+    });
+    const state = await updateCustomerAction(
+      "uye@ornek.com",
+      {},
+      form({ name: "Ayşe Yılmaz", notifyMarketing: "on" }),
+    );
+    expect(state.error).toMatch(/yalnız üye kendisi açabilir/);
+    expect(state.fieldErrors).toEqual({
+      notifyMarketing: "Bu izni yalnız üye açabilir.",
+    });
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });
 

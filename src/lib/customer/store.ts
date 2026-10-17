@@ -1245,23 +1245,55 @@ export interface AdminCustomerUpdateInput {
   notificationPrefs: NotificationPrefs;
 }
 
-/** Admin edit of a member's profile (e-mail + password are NOT editable here). */
+/** The commercial purposes only the member can switch on. */
+export type CommercialPurpose = "marketing" | "newsletter";
+
+export type AdminCustomerUpdateResult =
+  | { ok: true; customer: AdminCustomer }
+  | { ok: false; error: "not_found" }
+  | { ok: false; error: "consent_grant"; purposes: CommercialPurpose[] };
+
+/**
+ * Admin edit of a member's profile (e-mail + password are NOT editable here).
+ *
+ * Commercial consent (6563) goes one way from the panel: off. Switching
+ * `marketing` or `newsletter` on is refused (`consent_grant`), here and not
+ * only in the form, because the action is a POST anyone in the panel can
+ * send. It used to write the switch as asked and keep `marketingConsentAt`
+ * through an opt-out, so panel OFF then ON put a member who had withdrawn
+ * back into the campaign and birthday audiences under the old date, and
+ * the ledger recorded an admin "grant" stamped with the consent text.
+ * Turning marketing off clears the date, as the member's own opt-out does
+ * (`updateNotificationPrefs`); a refusal also catches a stale form open
+ * while the member opted out.
+ */
 export async function adminUpdateCustomer(
   email: string,
   input: AdminCustomerUpdateInput,
-): Promise<AdminCustomer | null> {
+): Promise<AdminCustomerUpdateResult> {
   const needle = normalizeEmail(email);
   const sb = getDb();
   const before = await fetchCustomer(needle);
+  if (!before) return { ok: false, error: "not_found" };
+  const was = withDefaults(before).notificationPrefs;
+  const prefs: NotificationPrefs = {
+    orderUpdates: !!input.notificationPrefs.orderUpdates,
+    marketing: !!input.notificationPrefs.marketing,
+    newsletter: !!input.notificationPrefs.newsletter,
+  };
+  const granted = (["marketing", "newsletter"] as const).filter(
+    (purpose) => prefs[purpose] && !was[purpose],
+  );
+  if (granted.length > 0) {
+    return { ok: false, error: "consent_grant", purposes: granted };
+  }
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
     birthday: input.birthday.trim().slice(0, 10),
-    notificationPrefs: {
-      orderUpdates: !!input.notificationPrefs.orderUpdates,
-      marketing: !!input.notificationPrefs.marketing,
-      newsletter: !!input.notificationPrefs.newsletter,
-    },
+    notificationPrefs: prefs,
+    // Only ever cleared from here; a consent that stays on keeps its date.
+    ...(prefs.marketing ? {} : { marketingConsentAt: "" }),
     updatedAt: new Date().toISOString(),
   };
   const { error } = await sb
@@ -1269,17 +1301,12 @@ export async function adminUpdateCustomer(
     .update(update)
     .eq("email", needle);
   checkErr(error, "adminUpdateCustomer");
-  if (before) {
-    // Recorded as the panel's act, not the member's: no IP, source "admin".
-    // The admin's identity is in the audit log the action writes.
-    await appendConsentChanges(
-      needle,
-      before.notificationPrefs,
-      update.notificationPrefs,
-      { source: "admin", ip: "" },
-    );
-  }
-  return getAdminCustomerByEmail(needle);
+  // Recorded as the panel's act, not the member's: no IP, source "admin".
+  // The admin's identity is in the audit log the action writes. Only
+  // withdrawals can reach here.
+  await appendConsentChanges(needle, was, prefs, { source: "admin", ip: "" });
+  const customer = await getAdminCustomerByEmail(needle);
+  return customer ? { ok: true, customer } : { ok: false, error: "not_found" };
 }
 
 /** Toggle a member account active/inactive. */
