@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 
 import { LEGAL_CONTENT } from "@/lib/legal/content";
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
-import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
+import {
+  CHECKOUT_CONSENT_DOCS,
+  KARAOKE_CONSENT_DOCS,
+  KARAOKE_LEGAL_UPDATED,
+  LEGAL_UPDATED,
+} from "@/lib/legal/meta";
 
 /**
  * Every contract used to print "Son güncelleme: 1 Eylül 2026", then ten of
@@ -42,7 +47,9 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    expect(LEGAL_UPDATED).toBe("16 Ekim 2026");
+    // 17 Ekim 2026: the checkout documents' KDV wording changed (rates by
+    // product), so the consent version moved with them and the set with it.
+    expect(LEGAL_UPDATED).toBe("17 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
@@ -53,6 +60,9 @@ describe("legal document dates", () => {
       "gizlilik-politikasi": "17 Ekim 2026",
       "kvkk-aydinlatma-metni": "17 Ekim 2026",
       "acik-riza-metni": "17 Ekim 2026",
+      // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
+      // the shop set moving on does not re-date the karaoke contract.
+      "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
@@ -67,9 +77,13 @@ describe("legal document dates", () => {
   it("every date is a printable Turkish day, never before the revision", () => {
     const base = dayNumber(LEGAL_UPDATED);
     expect(base).not.toBeNaN();
+    const ownVersion = new Set<string>(KARAOKE_CONSENT_DOCS);
     for (const doc of LEGAL_DOCS) {
       const day = dayNumber(doc.updatedAt);
       expect(day, `${doc.slug}: ${doc.updatedAt}`).not.toBeNaN();
+      // The karaoke contract carries its own consent version and date
+      // (meta.ts); it is checked against KARAOKE_LEGAL_UPDATED above.
+      if (ownVersion.has(doc.slug)) continue;
       expect(day, doc.slug).toBeGreaterThanOrEqual(base);
     }
   });

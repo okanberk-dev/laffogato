@@ -265,7 +265,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Toplam Bedel, Vergiler ve Ek Masraf Kalemleri",
         paragraphs: [
-          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı yürürlükteki vergi mevzuatına uygun şekilde belirlenir; fiziksel ürünlerde güncel oran %20'dir. Vergi oranlarında mevzuat değişikliği olması hâlinde, sipariş tarihinde yürürlükte olan oran uygulanır.",
+          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı yürürlükteki vergi mevzuatına göre ürünün türüne bağlıdır: kahve çekirdeği, öğütülmüş kahve ve diğer paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman, hediye ve marka ürünlerinde %20'dir. Kargo veya kurye bedeli, gönderilen ürünlerin satış bedelinin parçasıdır ve onların KDV oranına tabidir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde, sipariş tarihinde yürürlükte olan oran uygulanır.",
           "ALICI'nın ödeyeceği toplam bedel; ürünlerin vergiler dâhil satış bedelleri toplamından varsa promosyon kodu veya kupon indirimi düşülerek, üzerine varsa kargo veya kurye ücreti eklenmek suretiyle hesaplanır. Hesaplamanın her bir kalemi sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı ayrı gösterilir. Sipariş özetinde gösterilen tutar dışında ALICI'dan herhangi bir ad altında ilave ücret talep edilmez.",
           "Ücretsiz içecek kuponu gibi bir kupon kullanılmışsa, kuponun karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilerek vergiler dâhil toplam bedelden düşülür ve yalnızca kalan tutar tahsil edilir. Sadakat (damga) programındaki damgaların kendi başına parasal bir karşılığı yoktur; sipariş bedeli damga ile ödenemez. Sipariş toplamı kupon veya promosyonla sıfıra iniyorsa sipariş, kart ile ödeme alınmadan tamamlanır; kurye ile teslim edilen kafe siparişlerinde ise kurye ücreti kupon veya promosyonla karşılanmaz ve ayrıca ödenir.",
           "Fiyatlar, ALICI tarafından siparişin onaylandığı an itibarıyla bağlayıcıdır. Sipariş onayından sonra yapılan fiyat değişiklikleri, tamamlanmış siparişe uygulanmaz. Bariz yazım/sistem hatasından kaynaklanan ve tüketicinin de kolayca fark edebileceği açık fiyat hatalarında SATICI durumu derhâl ALICI'ya bildirir; ALICI dilerse siparişi doğru bedel üzerinden sürdürebilir, dilerse siparişi bedelsiz olarak iptal edebilir ve tahsil edilmiş tutar iade edilir.",
@@ -280,8 +280,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Tüm vergiler dâhil",
           },
           {
-            key: "KDV oranı (fiziksel ürün)",
-            value: "%20",
+            key: "KDV oranı",
+            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)",
           },
           {
             key: "Kupon ile indirim",
@@ -879,7 +879,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Sözleşme Konusu Mal, Fiyat ve Ödeme Bilgileri",
         paragraphs: [
           "Sözleşme konusu mal veya malların cinsi, türü, miktarı, marka ve modeli, rengi, varyantı, birim fiyatı, adedi, tüm vergiler dâhil toplam satış bedeli, kargo veya kurye ücreti, varsa uygulanan promosyon kodu veya kupon indirimi ve genel toplam; sipariş sırasında ALICI'ya gösterilen sipariş özetinde yer alır, sipariş kalemleri ve ödenen toplam tutar ayrıca ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada yer alır. ALICI tarafından onaylanan Ön Bilgilendirme Formu da işbu Sözleşme'nin ayrılmaz eki ve tamamlayıcı parçasıdır.",
-          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup, aksi açıkça belirtilmedikçe %20 oranındaki Katma Değer Vergisi dâhildir. Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir.",
+          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup ürünün türüne göre %1, %10 veya %20 oranındaki Katma Değer Vergisi dâhildir (kahve çekirdeği ve paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman, hediye ve marka ürünlerinde %20). Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir.",
           "SATICI, Site üzerindeki listeleme fiyatlarını, kampanyaları ve promosyon kodlarını dilediği zaman güncelleme hakkını saklı tutar. Ancak ALICI'nın siparişini onayladığı ve ödemesini tamamladığı an itibarıyla geçerli olan fiyat, o sipariş bakımından bağlayıcıdır; sipariş sonrasında yapılan fiyat değişiklikleri kurulmuş sözleşmeyi etkilemez.",
           "Sistemsel, teknik veya dizgi kaynaklı bariz fiyat hatası (örneğin ürünün maliyetiyle açıkça bağdaşmayan, ortalama bir tüketicinin dahi hata olduğunu anlayabileceği bir tutar) bulunması hâlinde SATICI, durumu tespit ettiği anda ALICI'yı derhâl bilgilendirir ve siparişi iptal ederek tahsil edilen bedelin tamamını herhangi bir kesinti yapılmaksızın en geç 14 (on dört) gün içinde iade eder. Bu durum, ALICI'nın Kanun'dan doğan diğer haklarını ortadan kaldırmaz.",
         ],
@@ -900,7 +900,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV Oranı",
-            value: "%20 (fiyatlara dâhildir)",
+            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhildir)",
           },
           {
             key: "Kargo Bedeli",
@@ -2122,7 +2122,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Kargo ve Teslimat Ücretleri",
         paragraphs: [
-          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Kargo ve teslimat hizmet bedeline uygulanan katma değer vergisi oranı %20'dir; ürünlere uygulanan KDV oranı ise ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
+          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Ürünlere uygulanan KDV oranı ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Kargo ve teslimat bedeli, gönderilen ürünün satış bedelinin bir parçasıdır ve o ürünün KDV oranına tabidir; farklı oranlı ürünler birlikte gönderildiğinde bedel, ürün tutarlarıyla orantılı olarak paylaştırılır. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
           "Bottega siparişlerinde, teslimat adresinin bulunduğu yerden ve gönderinin ağırlığından bağımsız olarak tek tip sabit bir kargo ücreti uygulanır; ücretsiz kargo eşiğine ulaşan siparişlerden kargo ücreti alınmaz. Güncel kargo ücreti ile, uygulanıyorsa ücretsiz kargo eşiği ve eşiğe kalan tutar, sepet ve ödeme ekranında gösterilir. Ücretsiz kargo eşiğinin hesabında, promosyon kodu ve indirimler düşüldükten sonra kalan ürün bedeli toplamı esas alınır; kargo bedelinin kendisi bu hesaba dâhil edilmez. Ücretsiz kargo eşiğini aşan bir siparişin sonradan kısmen iade edilmesi ve kalan tutarın eşiğin altına düşmesi hâlinde, ALICI'dan geriye dönük kargo bedeli talep edilmez.",
           "Soğuk zincir gerektiren gönderilerde kullanılan yalıtımlı kutu, jel akü ve kuru buz malzemeleri için ALICI'dan ayrıca bir bedel alınmaz; bu maliyet ilgili kargo bedeline dâhildir.",
           "KKTC ve yurt dışı teslimat adresleri için ayrı bir taşıma tarifesi uygulanmaz; bu gönderilerde de taşıma bedeli olarak, ödeme öncesinde sipariş özetinde gösterilen kargo ücreti esas alınır. Bu bedel yalnızca taşıma hizmetini kapsar; gümrük vergi, resim ve harçları 16. maddede düzenlendiği şekilde ALICI'nın sorumluluğundadır.",
@@ -2155,7 +2155,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Para birimi ve vergi",
             value:
-              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo hizmet bedelinde KDV %20)",
+              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo bedeli, gönderilen ürünün KDV oranına tabidir)",
           },
         ],
       },
@@ -3414,7 +3414,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Fiyatlandırma, Vergi ve Fiyat Gösterimi",
         paragraphs: [
-          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında tam sayı biçiminde saklanır ve yalnızca ekranda gösterim amacıyla biçimlendirilir. Bu yöntem ondalık yuvarlama farklarını ortadan kaldırır; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
           "Sipariş tutarı, ödeme adımında sunucu tarafında yeniden hesaplanır. Sepetten gelen fiyat bilgisi doğrulama amacıyla kullanılır; tahsil edilecek tutar her hâlükârda PostgreSQL veri tabanındaki güncel ürün fiyatı, geçerli promosyon kodu veya kupon ile kargo ya da kurye ücreti kuralı esas alınarak belirlenir. İstemciden gelen tutar hiçbir koşulda doğrudan PayNkolay'a veya bankaya iletilmez.",
           "Bottega siparişlerinde kargo ücreti, indirimler düşüldükten sonraki ürün toplamına göre otomatik hesaplanır: ücretsiz kargo eşiğinin altındaki siparişlere sabit bir kargo ücreti uygulanır, eşiğe ulaşan siparişlerde kargo ücretsizdir. Mobil uygulamadan verilen kafe siparişlerinde gel-al için teslimat ücreti alınmaz; kurye ile teslimde sipariş tutarından bağımsız, tek tip bir kurye ücreti uygulanır. Uygulanacak kargo veya kurye ücreti ödeme özetinde açıkça gösterilir ve onayınıza sunulur.",
@@ -3442,7 +3442,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "%20 (fiyatlara dâhil)",
+            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)",
           },
           {
             key: "Para birimi",
@@ -3832,7 +3832,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Fiyatlandırma, Para Birimi ve Vergiler",
         paragraphs: [
-          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında (minor unit) tam sayı biçiminde tutulur ve ekranda yalnızca gösterim amacıyla biçimlendirilir. Bu yöntem, ondalık yuvarlama farklarından doğan tutar uyuşmazlıklarını önler; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
           "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
           "Fiyat, kampanya ve stok bilgilerinde açık bir maddi hata (örneğin fiyatın virgül kayması nedeniyle olağan değerinin çok altında görünmesi) bulunması hâlinde Satıcı, siparişi onaylamadan önce durumu size bildirir ve dilerseniz siparişi ücretsiz iptal etme hakkını tanır. Bu durumda tahsil edilmiş bir tutar varsa iade edilir; bu hüküm, doğru fiyatla kurulmuş sözleşmelerden dönme hakkı vermez.",
@@ -4425,7 +4425,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kart ile yapılan her ödemede 3D Secure ek doğrulama adımı uygulanır; işlem, kartı veren bankanın ekranında, banka tarafından telefonunuza iletilen tek kullanımlık kod veya bankacılık uygulaması onayı ile tamamlanır.",
           "Sistemimizde ödeme işlemine ilişkin olarak PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay işlem doğrulama servisinin döndürdüğü kayıt tutulur. Bu kayıt maskelenmiş kart numarasını, kartı veren bankayı, taksit sayısını (ödemeler tek çekim olduğundan her zaman 1), 3D Secure doğrulama bilgisini ve bankanın verdiği onay kodunu içerir; kart sahibinin adı ödeme kaydında tutulmaz. Kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada tutulmaz.",
           "Kayıtlı kart (kart saklama özelliği açıldığında; isteğe bağlı, yalnızca üyeler için): Ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu varsayılan olarak işaretsizdir; kutuyu işaretlemedikçe hiçbir kart kaydedilmez ve bu özellik açılana kadar da kart kaydedilmez. Kutuyu işaretlerseniz kartınız Şirket tarafından değil, PayNkolay'ın kart saklama hizmeti tarafından saklanır. Şirket yalnızca, PayNkolay'ın kayıtlı kartlarınızı üyelik hesabınızla eşleştirmek için kullandığı, rastgele üretilmiş 11 karakterlik bir üye anahtarını tutar; bu anahtar T.C. kimlik numaranız veya telefon numaranız değildir ve kişisel bilgi içermez. Ödeme sayfasında kayıtlı kart; son dört hanesi, kart markası veya kartı veren banka ve verdiğiniz ad ile listelenir. Kayıtlı kartla yapılan ödemelerde de 3D Secure doğrulaması uygulanır. Kayıtlı kartınızı ödeme sayfasından dilediğiniz zaman silebilirsiniz; üyelik hesabınız silindiğinde Şirket, önce PayNkolay'dan hesabınıza ait kayıtlı kartların silinmesini ister.",
-          "Ödeme tutarı hiçbir zaman tarayıcıdan veya uygulamadan gelen değere göre belirlenmez. Sepetteki her kalemin fiyatı, sunucu tarafında ürün kaydından yeniden hesaplanır; varsa kargo veya kurye bedeli ve yüzde 20 KDV dahil nihai tutar sunucuda oluşturulur ve PayNkolay'a bu tutar iletilir.",
+          "Ödeme tutarı hiçbir zaman tarayıcıdan veya uygulamadan gelen değere göre belirlenmez. Sepetteki her kalemin fiyatı, sunucu tarafında ürün kaydından yeniden hesaplanır; varsa kargo veya kurye bedeli eklenerek KDV dahil nihai tutar sunucuda oluşturulur ve PayNkolay'a bu tutar iletilir.",
           "Promosyon kodları ve kuponların (ücretsiz içecek kuponu dahil) kullanımı sunucu tarafında doğrulanır; geçerlilik tarihi, kullanım limiti, asgari sepet tutarı ve kuponun hesabınıza tanımlı olup olmadığı istemciden bağımsız olarak kontrol edilir.",
           "Kupon veya promosyon kodu kullanılmışsa karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilir ve PayNkolay'a yalnızca kalan tutar için ödeme talimatı verilir; indirimin tutarın tamamını karşıladığı, toplamı sıfır olan siparişler kartla ödeme alınmadan tamamlanır. Damga ve kuponlar para değildir, nakde çevrilemez ve üçüncü kişilere devredilemez.",
           "Siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damga geri alınır; sipariş iptal edilirse siparişte kullanılan kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar ödemenin yapıldığı karta iade edilir.",
@@ -12747,7 +12747,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Fiyat gösterimi",
             value:
-              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı yüzde 20'dir",
+              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürüne göre yüzde 1, 10 veya 20'dir",
           },
           {
             key: "Sipariş koşulu",
@@ -12915,7 +12915,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Yüzde 20 (fiyatlara dahil)",
+            value: "Ürüne göre yüzde 1, 10 veya 20 (fiyatlara dahil)",
           },
           {
             key: "İade süresi",
@@ -13319,7 +13319,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Yüzde 20",
+            value: "Ürüne ve hizmete göre yüzde 1, 10 veya 20",
           },
           {
             key: "Fatura ile ilgili talepler",
@@ -13846,7 +13846,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "11. Ödeme, Kart ve Ücret İtirazına İlişkin Şikâyetler",
         paragraphs: [
           "Ödeme işlemleri, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. (PayNkolay) aracılığıyla gerçekleştirilir. Kart numarası, son kullanma tarihi ve CVV/CVC gibi kart verileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli bağlantıyla {{LEGAL_NAME}} sunucusuna ulaşır ve aynı istekte yalnızca PayNkolay'a iletilir. Bu bilgiler tarafımızca kaydedilmez, saklanmaz ve günlük kayıtlarına yazılmaz. Her kartlı ödemede 3D Secure doğrulaması uygulanır ve doğrulamayı kartı veren bankanın ekranında onaylarsınız. Ödemeler tek çekim olarak alınır; taksit seçeneği sunulmamaktadır.",
-          "Ödeme tutarı hiçbir zaman tarayıcınızdan veya mobil uygulamanızdan gelen veriye göre belirlenmez. Sipariş toplamı, sunucu tarafında ürün kaydındaki güncel fiyat, geçerli promosyon kodu veya kupon, KDV oranı (%20) ve siparişte uygulanan kargo veya kurye bedeli esas alınarak yeniden hesaplanır ve tahsil edilecek tutar PayNkolay'a bu hesap üzerinden bildirilir. Ekranda gördüğünüz tutar ile ekstrenize yansıyan tutar arasında fark olduğunu düşünüyorsanız, bu farkın kaynağı tarafımızca sipariş ve ödeme işlem kaydı üzerinden incelenir ve size yazılı olarak açıklanır.",
+          "Ödeme tutarı hiçbir zaman tarayıcınızdan veya mobil uygulamanızdan gelen veriye göre belirlenmez. Sipariş toplamı, sunucu tarafında ürün kaydındaki güncel fiyat, geçerli promosyon kodu veya kupon, ürünün KDV oranı ve siparişte uygulanan kargo veya kurye bedeli esas alınarak yeniden hesaplanır ve tahsil edilecek tutar PayNkolay'a bu hesap üzerinden bildirilir. Ekranda gördüğünüz tutar ile ekstrenize yansıyan tutar arasında fark olduğunu düşünüyorsanız, bu farkın kaynağı tarafımızca sipariş ve ödeme işlem kaydı üzerinden incelenir ve size yazılı olarak açıklanır.",
           "Ödeme uyuşmazlıklarında muhatap ayrımı önem taşır. Sipariş, ürün, teslimat, cayma ve iade kararının muhatabı satıcı olarak {{LEGAL_NAME}}'dir; ödeme işleminin teknik olarak gerçekleştirilmesi, işlem kaydının tutulması ve tarafımızca verilen iade talimatının bankaya iletilmesi ödeme hizmeti sağlayıcısı PayNkolay'ın sorumluluğundadır; kartın limiti, 3D Secure doğrulaması, iadenin ekstreye yansıma süresi ve kart hamili itirazı (chargeback) süreci ise kartı veren bankanın işleyişine tabidir. Hangi aşamada olursa olsun, sizi kurumlar arasında dolaştırmayız: başvurunuzu bize ilettiğinizde PayNkolay ve kartı veren banka nezdindeki takibi biz yürütür, sonucu size yazılı olarak bildiririz.",
           "Ödeme sonucu, tarayıcıdan veya uygulamadan dönen bilgiyle değil, sunucumuzun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir; sipariş yalnızca sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır. Aynı işlem referansı ikinci kez kaydedilemediği için mükerrer kayıt oluşmaz. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa, ödenmemiş görünen sipariş iptal edilmeden önce ödemenin durumu PayNkolay'a sorulur. Bu nedenle 'ödeme yaptım ama siparişim görünmüyor' bildirimlerinde işlem referansı üzerinden eşleştirme yapılır ve tahsil edilmiş bir tutar karşılıksız kalmaz.",
           "Tutar, ödeme sayfasında işlemi bankanızın ekranında onayladığınız anda tahsil edilir; ön provizyon (tutarı önce bloke edip sonra tahsil etme) yöntemi kullanılmaz. Ödeme tamamlanmadığı hâlde kartınızda geçici bir tutar görünüyorsa bu, bankanızın kendi işleyişinden kaynaklanır ve çözülmesi kartı veren bankaya bağlıdır; ilgili işlem kaydını talebiniz hâlinde sizinle paylaşırız.",

@@ -19,7 +19,9 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-export const LEGAL_UPDATED = "16 Ekim 2026";
+// 17 Ekim 2026: the KDV wording of the two checkout documents changed (rates
+// by product: 1, 10, 20; shipping follows the goods). LEGAL-REDLINES §16.
+export const LEGAL_UPDATED = "17 Ekim 2026";
 
 /**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
