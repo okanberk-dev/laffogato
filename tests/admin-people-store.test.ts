@@ -136,6 +136,14 @@ describe("adminUpdateCustomer and commercial consent (6563)", () => {
   const updates = () => seen.filter((q) => /^UPDATE "customers"/.test(q.text));
   const ledger = () =>
     seen.filter((q) => /^INSERT INTO "customer_consents"/.test(q.text));
+  const written = (q: { params: unknown[] }) =>
+    JSON.parse(
+      String(
+        q.params.find(
+          (p) => typeof p === "string" && p.includes('"orderUpdates"'),
+        ),
+      ),
+    );
 
   it("refuses to switch marketing or the bulletin on, and writes nothing", async () => {
     // Panel OFF then ON put a withdrawn member back in the audiences under
@@ -182,6 +190,48 @@ describe("adminUpdateCustomer and commercial consent (6563)", () => {
     const [insert] = ledger();
     expect(insert.text).toBeDefined();
     expect(JSON.stringify(insert.params)).toContain("admin");
+  });
+
+  it("keeps a consent the member gave after the form was drawn", async () => {
+    // The form drew marketing off (disabled, so never posted); the member
+    // opted in from the app meanwhile; the operator saved a phone fix. The
+    // save turned marketing off, wiped the date and logged a panel
+    // withdrawal nobody made.
+    row({
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: true,
+        newsletter: true,
+      },
+    });
+    const res = await customers.adminUpdateCustomer("uye@ornek.com", {
+      ...input(false, true),
+      shownPrefs: { marketing: false, newsletter: true },
+    });
+    expect(res.ok).toBe(true);
+    const [update] = updates();
+    expect(update.text).not.toContain("marketingConsentAt");
+    expect(written(update).marketing).toBe(true);
+    expect(ledger()).toHaveLength(0);
+  });
+
+  it("still withdraws a switch the form drew on", async () => {
+    row({
+      notificationPrefs: {
+        orderUpdates: true,
+        marketing: true,
+        newsletter: true,
+      },
+    });
+    const res = await customers.adminUpdateCustomer("uye@ornek.com", {
+      ...input(false, true),
+      shownPrefs: { marketing: true, newsletter: true },
+    });
+    expect(res.ok).toBe(true);
+    const [update] = updates();
+    expect(update.text).toContain('"marketingConsentAt" = $');
+    expect(written(update).marketing).toBe(false);
+    expect(ledger()).toHaveLength(1);
   });
 
   it("keeps the date of a consent that stays on", async () => {

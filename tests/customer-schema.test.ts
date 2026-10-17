@@ -35,6 +35,24 @@ describe("customerEditSchema", () => {
     });
   });
 
+  it("reads how the form drew the commercial switches", () => {
+    const r = customerEditSchema.safeParse({
+      name: "Ada Lovelace",
+      shownMarketing: "off",
+      shownNewsletter: "on",
+      notifyNewsletter: "on",
+    });
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data.shownPrefs).toEqual({ marketing: false, newsletter: true });
+    // Not sent (a hand-made post): nothing is assumed.
+    const bare = customerEditSchema.safeParse({ name: "Bob" });
+    expect(bare.success && bare.data.shownPrefs).toEqual({
+      marketing: undefined,
+      newsletter: undefined,
+    });
+  });
+
   it("rejects a too-short name", () => {
     const r = customerEditSchema.safeParse({ name: "A" });
     expect(r.success).toBe(false);

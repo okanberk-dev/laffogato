@@ -1238,15 +1238,20 @@ export async function getAdminCustomerByEmail(
   return doc ? toAdminCustomer(doc) : null;
 }
 
+/** The commercial purposes only the member can switch on. */
+export type CommercialPurpose = "marketing" | "newsletter";
+
 export interface AdminCustomerUpdateInput {
   name: string;
   phone: string;
   birthday: string;
   notificationPrefs: NotificationPrefs;
+  /**
+   * How the form drew each commercial switch. One drawn off is disabled
+   * and never posted, so its absence says nothing about the operator.
+   */
+  shownPrefs?: Partial<Record<CommercialPurpose, boolean>>;
 }
-
-/** The commercial purposes only the member can switch on. */
-export type CommercialPurpose = "marketing" | "newsletter";
 
 export type AdminCustomerUpdateResult =
   | { ok: true; customer: AdminCustomer }
@@ -1265,7 +1270,9 @@ export type AdminCustomerUpdateResult =
  * the ledger recorded an admin "grant" stamped with the consent text.
  * Turning marketing off clears the date, as the member's own opt-out does
  * (`updateNotificationPrefs`); a refusal also catches a stale form open
- * while the member opted out.
+ * while the member opted out. The other stale form, drawn with a switch
+ * off while the member opted in, keeps the member's switch: posted as off,
+ * it used to wipe the date and log a panel withdrawal nobody made.
  */
 export async function adminUpdateCustomer(
   email: string,
@@ -1276,17 +1283,26 @@ export async function adminUpdateCustomer(
   const before = await fetchCustomer(needle);
   if (!before) return { ok: false, error: "not_found" };
   const was = withDefaults(before).notificationPrefs;
-  const prefs: NotificationPrefs = {
+  const asked: NotificationPrefs = {
     orderUpdates: !!input.notificationPrefs.orderUpdates,
     marketing: !!input.notificationPrefs.marketing,
     newsletter: !!input.notificationPrefs.newsletter,
   };
   const granted = (["marketing", "newsletter"] as const).filter(
-    (purpose) => prefs[purpose] && !was[purpose],
+    (purpose) => asked[purpose] && !was[purpose],
   );
   if (granted.length > 0) {
     return { ok: false, error: "consent_grant", purposes: granted };
   }
+  // A switch the form drew off was not the operator's to untick: it keeps
+  // what the row has now.
+  const kept = (purpose: CommercialPurpose) =>
+    input.shownPrefs?.[purpose] === false ? was[purpose] : asked[purpose];
+  const prefs: NotificationPrefs = {
+    orderUpdates: asked.orderUpdates,
+    marketing: kept("marketing"),
+    newsletter: kept("newsletter"),
+  };
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),

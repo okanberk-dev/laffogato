@@ -118,6 +118,28 @@ describe("updateCustomerAction", () => {
     expect(setAdminFlash).toHaveBeenCalledWith("Üye bilgileri kaydedildi.");
     expect(redirect).toHaveBeenCalledWith("/admin/musteriler/uye%40ornek.com");
   });
+
+  it("passes on how the form drew the commercial switches", async () => {
+    adminUpdateCustomer.mockResolvedValue({ ok: true, customer: MEMBER });
+    await expect(
+      updateCustomerAction(
+        "uye@ornek.com",
+        {},
+        form({
+          name: "Ayşe Yılmaz",
+          shownMarketing: "off",
+          shownNewsletter: "on",
+          notifyNewsletter: "on",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(adminUpdateCustomer).toHaveBeenCalledWith(
+      "uye@ornek.com",
+      expect.objectContaining({
+        shownPrefs: { marketing: false, newsletter: true },
+      }),
+    );
+  });
 });
 
 describe("updateCustomerAction and commercial consent", () => {

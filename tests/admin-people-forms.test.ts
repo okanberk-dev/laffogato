@@ -178,6 +178,11 @@ describe("markup", () => {
     expect(input("notifyNewsletter")).toContain('disabled=""');
     expect(input("notifyMarketing")).not.toContain("disabled");
     expect(html).toContain("yalnız üye açabilir");
+    // A disabled switch is not posted: the form says how it drew each one,
+    // so a member's opt-in after the page loaded is not read as an untick.
+    expect(input("shownMarketing")).toContain('value="on"');
+    expect(input("shownNewsletter")).toContain('value="off"');
+    expect(input("shownNewsletter")).toContain('type="hidden"');
     // And the date the audiences need is on screen.
     expect(html).toMatch(/Ticari ileti izni:\s*(<!-- -->)?01 Eyl 2026/);
   });

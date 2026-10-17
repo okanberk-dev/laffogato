@@ -92,8 +92,20 @@ export function CustomerForm({ customer, action }: Props) {
             label="Sipariş güncellemeleri"
             defaultChecked={prefs.orderUpdates}
           />
-          {/* Off: drawn disabled, so it is not posted and stays off. The
-              server refuses a switch-on whatever the form sends. */}
+          {/* Off: drawn disabled, so it is not posted. The hidden fields
+              say so, and the server keeps what the row has then (the
+              member may have opted in since this page loaded). The server
+              refuses a switch-on whatever the form sends. */}
+          <input
+            type="hidden"
+            name="shownMarketing"
+            value={prefs.marketing ? "on" : "off"}
+          />
+          <input
+            type="hidden"
+            name="shownNewsletter"
+            value={prefs.newsletter ? "on" : "off"}
+          />
           <div className="grid gap-1">
             <Checkbox
               name="notifyMarketing"
