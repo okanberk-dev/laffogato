@@ -449,6 +449,12 @@ export async function signInAdmin(
     if (!isAdminSessionUnavailable(err)) throw err;
     return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
   }
+  // The panel password matched, then the row went unreadable: the env
+  // record standing in for it is another credential (and maybe another
+  // role), so no session is issued on it.
+  if (account?.outage && dbUser) {
+    return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
+  }
   if (!account) {
     return { ok: false, error: "Giriş başarısız." };
   }
@@ -575,6 +581,13 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   let account: CurrentAccount | null;
   try {
     account = await currentAccount(pending.email);
+    // The env record standing in for an unreadable panel row must not hand
+    // out a role the password step did not.
+    if (account?.outage && account.role !== pending.role) {
+      throw new AdminSessionUnavailableError(
+        new Error("panel row unreadable; env role differs"),
+      );
+    }
   } catch (err) {
     if (!isAdminSessionUnavailable(err)) throw err;
     // The code is spent; the next one works once the database answers.

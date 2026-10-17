@@ -12,7 +12,11 @@ import { fakeDb, seedRows } from "./_stubs/admin-users-db";
  */
 
 const jar = new Map<string, string>();
-const db = vi.hoisted(() => ({ selects: 0, failFrom: Infinity }));
+const db = vi.hoisted(() => ({
+  selects: 0,
+  failFrom: Infinity,
+  has2FA: false,
+}));
 const redirect = vi.hoisted(() =>
   vi.fn((to: string) => {
     throw new Error(`NEXT_REDIRECT ${to}`);
@@ -45,8 +49,8 @@ vi.mock("@/lib/admin/rate-limit", () => ({
   clearLoginLimit: async () => {},
 }));
 vi.mock("@/lib/admin/twofa", () => ({
-  has2FA: async () => false,
-  verifyToken: async () => false,
+  has2FA: async () => db.has2FA,
+  verifyToken: async () => db.has2FA,
 }));
 // The users stub, with a switch: from the `failFrom`-th read on, every read
 // answers the way the client reports a host that never answered.
@@ -108,6 +112,7 @@ beforeEach(() => {
   seedRows([]);
   db.selects = 0;
   db.failFrom = Infinity;
+  db.has2FA = false;
   redirect.mockClear();
   process.env.ADMIN_SESSION_SECRET = "test-secret";
   process.env.ADMIN_USERS = JSON.stringify([{ ...ENV_OWNER, role: "owner" }]);
@@ -189,6 +194,29 @@ describe("the env break-glass account while the database is away", () => {
     const err = await auth.sessionFromToken(cookie).catch((e: unknown) => e);
     // Not null (signed out) and not the env owner: unavailable.
     expect(auth.isAdminSessionUnavailable(err)).toBe(true);
+  });
+});
+
+describe("a panel password at an env address", () => {
+  it("gets no env session when the row goes unreadable mid-login", async () => {
+    // The panel made this address a manager; env still lists it as owner.
+    await createAdminUser({ ...MANAGER, email: ENV_OWNER.email });
+    db.failFrom = db.selects + 2;
+    const res = await auth.signInAdmin(ENV_OWNER.email, MANAGER.password);
+    expect(res).toMatchObject({ ok: false, unavailable: true });
+    expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
+  });
+
+  it("gets no owner session from the 2FA step either", async () => {
+    await createAdminUser({ ...MANAGER, email: ENV_OWNER.email });
+    db.has2FA = true;
+    const step = await auth.signInAdmin(ENV_OWNER.email, MANAGER.password);
+    expect(step).toMatchObject({ ok: true, needs2FA: true, role: "manager" });
+    databaseGoesDown();
+    const res = await auth.complete2FA("123456");
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/tamamlanamadı/);
+    expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
   });
 });
 
