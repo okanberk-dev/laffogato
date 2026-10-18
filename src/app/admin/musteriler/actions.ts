@@ -376,7 +376,7 @@ export async function closeCustomerAccountAction(
 
   // Paid karaoke bookings whose start came after the member's request: the
   // dialog asks whether the room was used, and each one ticked keeps its
-  // payment. Unticked, the request's free window refunds it in full.
+  // payment. Unticked, it is refunded as the request would have been.
   const roomUsed = formData
     .getAll("karaokeRoomUsed")
     .map((v) => String(v).trim())
