@@ -900,5 +900,5 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Kenar çubuğunda açık silme talebi sayısı yok | Kenar çubuğu kabuk gezinme PR'ında (1c) yeniden yazılıyor; Müşteriler bandı ve ekip e-postası şimdilik yeter |
+| 🟢 | Kenar çubuğunda açık silme talebi sayısı yok | Kenar çubuğu #142'de yeniden yazıldı, bu PR ona dokunmuyor; sayı ayrı küçük bir PR. Müşteriler bandı ve ekip e-postası şimdilik yeter |
 | 🟢 | Uygulamanın hukuki metin kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Ayrı uygulama PR'ında yeniden dışa aktarılır; uygulama metni zaten `GET /legal`'dan okur |
