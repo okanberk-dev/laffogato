@@ -10780,10 +10780,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     category: "Site & Üyelik",
     // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
     // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
-    // Same day: §4 the deferred deletion is answered in thirty days, §5 no
-    // saved cards, §8 the karaoke window of a Site request, §11 the Kurul's
-    // complaint periods (LEGAL-REDLINES §18). The set's revision
-    // (LEGAL_UPDATED) is that day, so no own date.
+    // Same day: §4 the deferred deletion is answered in thirty days, §8 the
+    // karaoke window of a Site request, §11 the Kurul's complaint periods
+    // (LEGAL-REDLINES §20). The set's revision (LEGAL_UPDATED) is that day,
+    // so no own date.
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
     references: [
