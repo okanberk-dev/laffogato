@@ -123,25 +123,47 @@ const generalSchema = z.object({
   isShopOpen: z.boolean(),
 });
 
+const GENERAL_TEXT_FIELDS = [
+  "name",
+  "tagline",
+  "phone",
+  "email",
+  "address",
+  "heroImageUrl",
+] as const;
+
+/** Only the fields a save changes are checked; the switch always is. */
+const generalChangeSchema = generalSchema.partial({
+  name: true,
+  tagline: true,
+  phone: true,
+  email: true,
+  address: true,
+  heroImageUrl: true,
+});
+
 export async function saveGeneralAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
-  const parsed = generalSchema.safeParse({
-    name: String(formData.get("name") ?? ""),
-    tagline: String(formData.get("tagline") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    address: String(formData.get("address") ?? ""),
-    heroImageUrl: String(formData.get("heroImageUrl") ?? ""),
+  const before = await getSettings();
+  // A field posted back as it is stored is neither checked nor written. A
+  // value saved before these checks (an http:// hero image, a phone past 40
+  // characters) would refuse the whole tab, and closing the shop would wait
+  // on a field nobody touched. Once edited, it has to pass.
+  const input: Record<string, unknown> = {
     isShopOpen: formData.get("isShopOpen") === "on",
-  });
+  };
+  for (const key of GENERAL_TEXT_FIELDS) {
+    const value = String(formData.get(key) ?? "");
+    if (value.trim() !== (before[key] ?? "")) input[key] = value;
+  }
+  const parsed = generalChangeSchema.safeParse(input);
   if (!parsed.success) {
     return refuseIssues(parsed.error.issues, "Genel bilgiler geçersiz.");
   }
   const next = parsed.data;
-  const before = await getSettings();
   if (before.isShopOpen && !next.isShopOpen) {
     const ask = askToConfirm(
       formData,

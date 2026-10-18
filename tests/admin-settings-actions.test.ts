@@ -585,6 +585,48 @@ describe("saveGeneralAction (Genel)", () => {
     expect(state.confirm).toBeUndefined();
     expect(updateSettings).toHaveBeenCalled();
   });
+
+  // Values saved before these checks existed (verifier SS-F2): an http://
+  // hero image or a long phone must not stand between the operator and
+  // closing the shop. They are checked again once that field is edited.
+  it.each([
+    ["heroImageUrl", "http://cdn.example.com/hero.jpg"],
+    ["phone", "1".repeat(41)],
+    ["address", "a".repeat(501)],
+  ])(
+    "closes the shop although the stored %s would fail today's check",
+    async (field, stored) => {
+      Object.assign(SETTINGS, { [field]: stored });
+      const asked = await saveGeneralAction(
+        {},
+        general({ isShopOpen: undefined }),
+      );
+      expect(asked.error).toBeUndefined();
+      expect(asked.confirm?.keys).toEqual(["shop-off"]);
+
+      const saved = await saveGeneralAction(
+        {},
+        general({ isShopOpen: undefined }, ["shop-off"]),
+      );
+      expect(saved.message).toBe("Genel bilgiler kaydedildi.");
+      expect(updateSettings).toHaveBeenCalledWith({ isShopOpen: false });
+      expect(lastAudit().payload).toEqual({
+        section: "general",
+        before: { isShopOpen: true },
+        after: { isShopOpen: false },
+      });
+    },
+  );
+
+  it("still refuses a stored http:// hero image once it is edited", async () => {
+    SETTINGS.heroImageUrl = "http://cdn.example.com/hero.jpg";
+    const state = await saveGeneralAction(
+      {},
+      general({ heroImageUrl: "http://cdn.example.com/yeni.jpg" }),
+    );
+    expect(state.fieldErrors?.heroImageUrl).toMatch(/https:\/\//);
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
 });
 
 describe("saveSeoAction", () => {
