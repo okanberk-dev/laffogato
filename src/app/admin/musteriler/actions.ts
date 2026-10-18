@@ -374,9 +374,23 @@ export async function closeCustomerAccountAction(
     );
   }
 
+  // Paid karaoke bookings whose start came after the member's request: the
+  // dialog asks whether the room was used, and each one ticked keeps its
+  // payment. Unticked, the request's free window refunds it in full.
+  const roomUsed = formData
+    .getAll("karaokeRoomUsed")
+    .map((v) => String(v).trim())
+    .filter((v) => /^[\w-]{1,40}$/.test(v))
+    .slice(0, 20);
+
   let result: DeleteMeResult;
   try {
-    result = await deleteMe(customer, { by: "admin" });
+    result = await deleteMe(customer, {
+      by: "admin",
+      // The two-hour rule is judged at the request (ASK-Y3-4 (d)).
+      ...(requestedAt ? { deletionRequestedAt: requestedAt } : {}),
+      ...(roomUsed.length > 0 ? { karaokeRoomUsed: roomUsed } : {}),
+    });
   } catch (err) {
     // deleteMe throws only before the member row is rewritten (reading the
     // orders, or that write itself): the account is still open and a retry
@@ -416,6 +430,7 @@ export async function closeCustomerAccountAction(
       closedBy: "admin",
       identity: result.identity,
       ...(requestedAt ? { deletionRequestedAt: requestedAt } : {}),
+      ...(roomUsed.length > 0 ? { karaokeRoomUsed: roomUsed } : {}),
     },
   });
   // Nothing of the account is left in Supabase when the identity went, or
