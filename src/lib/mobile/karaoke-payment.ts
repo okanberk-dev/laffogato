@@ -41,6 +41,7 @@ import {
   type ReservationContact,
 } from "./karaoke-core";
 import { verifyKaraokeLink } from "./karaoke-link";
+import { karaokeEndInstant } from "./karaoke-time";
 import { notifyOperatorOfReservation } from "./karaoke-notify";
 import { recordPendingCheckout } from "./checkout-ref";
 import { istanbulClock } from "./venue";
@@ -1337,6 +1338,11 @@ export type CancelKaraokeResult =
       refunded: boolean;
       /** Did the member's mail leave (true when none was due). */
       notified: boolean;
+      /**
+       * No mail was due: the köşk cancelled a pay-at-the-venue evening that
+       * is already over (a no-show written down, karar D7).
+       */
+      silent?: true;
     }
   | {
       ok: false;
@@ -1450,7 +1456,13 @@ export async function cancelKaraokeReservation(
 
   const money = paymentStatusOf(r);
   if (money === "none") {
-    const res = await setReservationStatus(id, "cancelled", now);
+    // An evening already over that the köşk writes off (the guest did not
+    // come): a cancellation mail after the fact helps nobody (karar D7).
+    const silent =
+      by.kind === "staff" && karaokeEndInstant(r).getTime() <= now.getTime();
+    const res = await setReservationStatus(id, "cancelled", now, {
+      notify: !silent,
+    });
     if (!res.ok) {
       return {
         ok: false,
@@ -1466,6 +1478,7 @@ export async function cancelKaraokeReservation(
     await auditStaff(res.reservation, actor, "transition", {
       status: "cancelled",
       by: by.kind,
+      ...(silent ? { ended: true } : {}),
       ...why,
     });
     return {
@@ -1473,6 +1486,7 @@ export async function cancelKaraokeReservation(
       reservation: res.reservation,
       refunded: false,
       notified: res.notified,
+      ...(silent ? { silent: true as const } : {}),
     };
   }
   if (money !== "paid") {

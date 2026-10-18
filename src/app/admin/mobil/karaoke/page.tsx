@@ -21,6 +21,7 @@ import {
   KARAOKE_SORT_KEYS,
   KARAOKE_TAB_PARAM,
   KARAOKE_TABS,
+  karaokeAttentionViews,
   karaokeList,
   karaokeRowViews,
   moneyOf,
@@ -36,12 +37,16 @@ import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import {
   KARAOKE_ADMIN_LIST_LIMIT,
+  listKaraokeAttention,
   listReservationsForAdmin,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Karaoke" };
+
+/** Ayarlar opens on its Karaoke tab (`?sekme=`, admin audit KAR-12). */
+const KARAOKE_SETTINGS_HREF = "/admin/ayarlar?sekme=karaoke";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -72,6 +77,22 @@ async function releasedHolds(
 }
 
 /**
+ * Dikkat's own rows, any day (`listKaraokeAttention`). A failed read falls
+ * back to the list's rows (the old behaviour) rather than taking the page
+ * down.
+ */
+async function attentionRows(
+  today: string,
+): Promise<KaraokeReservation[] | null> {
+  try {
+    return await listKaraokeAttention(today);
+  } catch (err) {
+    console.error("[admin/karaoke] dikkat listesi okunamadı", err);
+    return null;
+  }
+}
+
+/**
  * Karaoke bookings, Filament style: tabs with counts, a filter row, a table
  * (cards on phones) and a ⋯ menu per row; the booking's page has the rest.
  *
@@ -92,44 +113,51 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const tab = parseKaraokeTab(sp);
   const sort = parseSort(sp, KARAOKE_SORT_KEYS, defaultKaraokeSort(tab));
 
-  const [rows, settings] = await Promise.all([
+  const [rows, settings, attention] = await Promise.all([
     listReservationsForAdmin({ from: filters.bas, to: filters.bit }),
     getSettings(),
+    attentionRows(today),
   ]);
   const released = await releasedHolds(rows);
-  const views = karaokeRowViews(rows, {
+  const ctx = {
     today,
     now,
     prepay: settings.karaokePrepay,
     canRefund: canAccess("refunds", session.role),
     staffReleased: released.staff,
     unverified: released.unverified,
-  });
+  };
+  const views = karaokeRowViews(rows, ctx);
   const list = karaokeList(views, {
     tab,
     filters,
     sort,
     page: parsePage(sp),
     today,
+    attention: attention ? karaokeAttentionViews(attention, ctx) : null,
   });
-  const truncated = rows.length >= KARAOKE_ADMIN_LIST_LIMIT;
+  // Dikkat reads its own rows, whatever the list's limit.
+  const truncated =
+    rows.length >= KARAOKE_ADMIN_LIST_LIMIT && !(tab === "dikkat" && attention);
   const tabValue = KARAOKE_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Rezervasyon"
+        eyebrow="Satış · Karaoke"
         title="Karaoke"
         description={
+          // Short enough that a phone sees the first booking without
+          // scrolling (admin audit KAR-10).
           settings.karaokePrepay
-            ? "Ön ödeme açık: rezervasyon ödenince kendiliğinden onaylanır, ödenmemiş rezervasyon onaylanmaz. Ödenmiş rezervasyonu iptal etmek tutarın tamamını karta iade eder."
+            ? "Ön ödeme açık: ödenen rezervasyon kendiliğinden onaylanır. Ödenmişi iptal etmek tutarın tamamını iade eder."
             : "Ön ödeme kapalı: talepler köşkte ödenir, onayla ya da iptal et."
         }
         action={
           canAccess("settings", session.role) ? (
             <Link
-              href="/admin/ayarlar"
-              className="text-sm text-[var(--admin-text-soft)] underline underline-offset-4 hover:text-[var(--admin-primary)]"
+              href={KARAOKE_SETTINGS_HREF}
+              className="inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline underline-offset-4 hover:text-[var(--admin-primary)]"
             >
               Fiyat ve ön ödeme: Ayarlar → Karaoke
             </Link>

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import {
   actionError,
+  actionOk,
   okWithNotice,
   type ActionResult,
 } from "@/lib/admin/action-result";
@@ -26,6 +27,7 @@ import {
   settleKaraokeRefundByHand,
   type CancelKaraokeFailure,
 } from "@/lib/mobile/karaoke-payment";
+import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 const FAILURE_MESSAGE: Record<SetReservationStatusFailure, string> = {
@@ -53,6 +55,10 @@ const PAYMENT_OPEN_MESSAGE: Partial<Record<string, string>> = {
   refunding:
     "Bu rezervasyonun iadesi bu arada başladı; onaylanmaz. Sayfayı yenileyip durumuna bak.",
 };
+
+/** Onayla on an evening that is already over (karar D7). */
+const EVENING_OVER =
+  "Bu rezervasyonun saati geçti; geçmiş bir rezervasyon onaylanmaz. Müşteri gelmediyse iptal et.";
 
 const REFUND_FORBIDDEN =
   "Bu rezervasyon ödenmiş; iptal etmek kartına iade demek. İade yetkisi olan biri (sahip ya da yönetici) iptal etmeli.";
@@ -139,6 +145,16 @@ export async function confirmReservationAction(
   await requireRole("karaoke");
   const id = readId(formData);
   if (!id) return actionError("Rezervasyon numarası eksik.");
+  // The panel offers no Onayla once the evening is over; a hand-made POST
+  // gets the same answer, and the customer no confirmation mail for an
+  // evening already gone (admin audit KAR-13). Checked here, not in
+  // setReservationStatus: a payment's own confirmation goes through that too.
+  const current = await getReservation(id);
+  if (!current) return actionError(FAILURE_MESSAGE.not_found);
+  if (karaokeEndInstant(current).getTime() <= Date.now()) {
+    revalidate(id);
+    return actionError(EVENING_OVER);
+  }
   // Refuses a booking whose money is not in (`payment_open`): only a paid
   // booking, or a pay-at-the-venue request while prepayment is switched off,
   // is ever confirmed.
@@ -219,6 +235,11 @@ export async function cancelReservationAction(
     }
     const detail = result.message ? ` (${result.message})` : "";
     return actionError(`${CANCEL_MESSAGE[result.reason]}${detail}`);
+  }
+  if (result.silent) {
+    return actionOk(
+      "Rezervasyon iptal edildi. Saati geçtiği için müşteriye e-posta gönderilmedi.",
+    );
   }
   const done = result.refunded
     ? "Rezervasyon iptal edildi ve ödeme karta iade edildi."

@@ -13,21 +13,26 @@ import {
   Timeline,
   type KeyValueItem,
 } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { MONO_STYLE, NUMERIC_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { listKaraokeAudit } from "@/lib/admin/karaoke-audit";
 import {
   channelLabel,
-  KARAOKE_PANEL_PATH,
+  KARAOKE_BACK_PARAM,
+  karaokeBackHref,
   karaokeHistory,
   karaokeRowView,
   maskPaymentRef,
+  moneyOf,
   refundAmountMinor,
   staffReleasedIds,
   unverifiedReleaseIds,
+  type KaraokeAuditRow,
 } from "@/lib/admin/karaoke-panel";
+import { firstParam } from "@/lib/admin/list-params";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
+import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
 import { getReservation, listReservationsForDate } from "@/lib/mobile/karaoke";
 import { istanbulClock } from "@/lib/mobile/venue";
 
@@ -35,6 +40,7 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 const ID_RE = /^krk-\d{1,12}$/;
@@ -55,6 +61,15 @@ export async function generateMetadata({ params }: PageProps) {
   return { title: id ? `Admin · Karaoke ${id}` : "Admin · Karaoke" };
 }
 
+/**
+ * The documents a booking's consent names, by title rather than slug
+ * (KARAOKE_CONSENT_DOCS); a slug the panel does not know stays as it is.
+ * The stored consent record keeps the slugs.
+ */
+const DOCUMENT_TITLES: Record<string, string> = {
+  [KARAOKE_ROOM_DOC.slug]: KARAOKE_ROOM_DOC.title,
+};
+
 /** The boxes a paid booking ticks (KARAOKE_CONFIRMATIONS), for a reader. */
 const CONFIRMATION_LABELS: Record<string, string> = {
   "on-bilgilendirme": "Ön bilgilendirme",
@@ -73,21 +88,48 @@ function when(iso: string | undefined): string {
  * non-money actions; the buyer's IP and browser show only to someone who
  * may move money, who is also the one answering a chargeback.
  */
-export default async function KaraokeReservationPage({ params }: PageProps) {
+/**
+ * The booking's audit rows, or null when they could not be read: the page
+ * stands without its history (admin audit KAR-15) instead of taking the
+ * money actions down with it.
+ */
+async function readAudit(id: string): Promise<KaraokeAuditRow[] | null> {
+  try {
+    return await listKaraokeAudit(id);
+  } catch (err) {
+    console.error("[admin/karaoke] geçmiş okunamadı", err);
+    return null;
+  }
+}
+
+export default async function KaraokeReservationPage({
+  params,
+  searchParams,
+}: PageProps) {
   const session = await requireRole("karaoke");
   const id = readId((await params).id);
   if (!id) notFound();
   const r = await getReservation(id);
   if (!r) notFound();
+  const back = karaokeBackHref(
+    firstParam(await searchParams, KARAOKE_BACK_PARAM),
+  );
 
   const now = new Date();
   const canRefund = canAccess("refunds", session.role);
-  const [sameDay, settings, audit] = await Promise.all([
+  const [sameDay, settings, auditRead] = await Promise.all([
     listReservationsForDate(r.date),
     getSettings(),
-    listKaraokeAudit(r.id),
+    readAudit(r.id),
   ]);
-  const unverified = unverifiedReleaseIds(audit);
+  const audit = auditRead ?? [];
+  // A released hold whose history is unreadable may have been let go
+  // without the POS's answer: it is never called unpaid (rule 29).
+  const releaseUnknown =
+    !auditRead && r.status === "cancelled" && moneyOf(r) === "expired";
+  const unverified = releaseUnknown
+    ? new Set([r.id])
+    : unverifiedReleaseIds(audit);
   const view = karaokeRowView(
     r,
     {
@@ -108,7 +150,11 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
       : null;
 
   const booking: KeyValueItem[] = [
-    { label: "Kod", value: r.id, mono: true, hint: "Girişte sorulan kod" },
+    {
+      label: "Kod",
+      value: <span style={NUMERIC_STYLE}>{r.id}</span>,
+      hint: "Girişte sorulan kod",
+    },
     { label: "Tarih", value: view.day },
     { label: "Saat", value: view.time },
     { label: "Süre · kişi", value: `${r.hours} saat · ${r.guests} kişi` },
@@ -178,30 +224,33 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
     {
       label: "Ödeme durumu",
       value: view.paymentLabel,
-      hint:
-        view.money === "expired" && unverified.has(r.id)
+      hint: releaseUnknown
+        ? "Geçmiş okunamadı: saatin POS'a sorularak bırakılıp bırakılmadığı denetlenemedi. PayNkolay panelinde bu rezervasyona başarılı bir ödeme varsa tutarı oradan iade et."
+        : view.money === "expired" && unverified.has(r.id)
           ? "POS'a sorulamadan saat bırakıldı. PayNkolay panelinde bu rezervasyona başarılı bir ödeme varsa tutarı oradan iade et."
           : undefined,
     },
     {
       label: "Tutar",
-      value: formatTRY(r.totalMinor),
-      mono: true,
+      value: <span style={NUMERIC_STYLE}>{formatTRY(r.totalMinor)}</span>,
       hint:
-        r.discountMinor > 0
-          ? `${formatTRY(r.priceMinor)}, indirim ${formatTRY(r.discountMinor)}`
-          : undefined,
+        r.discountMinor > 0 ? (
+          <span style={NUMERIC_STYLE}>
+            Liste {formatTRY(r.priceMinor)} · indirim{" "}
+            {formatTRY(r.discountMinor)}
+          </span>
+        ) : undefined,
     },
     (r.paidMinor ?? 0) > 0 && {
       label: "Tahsil edilen",
-      value: formatTRY(r.paidMinor ?? 0),
-      mono: true,
+      value: <span style={NUMERIC_STYLE}>{formatTRY(r.paidMinor ?? 0)}</span>,
     },
     { label: "Ödeme zamanı", value: when(r.paidAt) },
     view.money === "refunded" && {
       label: "İade edilen",
-      value: formatTRY(refundAmountMinor(r)),
-      mono: true,
+      value: (
+        <span style={NUMERIC_STYLE}>{formatTRY(refundAmountMinor(r))}</span>
+      ),
     },
     Boolean(r.refundedAt) && {
       label: "İade zamanı",
@@ -214,8 +263,11 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
     },
     {
       label: "POS referansı",
-      value: maskPaymentRef(r.paymentRef),
-      mono: true,
+      value: r.paymentRef ? (
+        <span style={NUMERIC_STYLE}>{maskPaymentRef(r.paymentRef)}</span>
+      ) : (
+        ""
+      ),
       hint: r.paymentRef
         ? "Ortası gizli. PayNkolay panelinde rezervasyon kodu, tarih ve tutarla bul."
         : undefined,
@@ -228,8 +280,24 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
         { label: "Sürüm", value: consent.version },
         {
           label: "Belgeler",
-          value: (consent.documents ?? []).join(", "),
-          mono: true,
+          value: (consent.documents ?? []).map((slug, i) => (
+            <span key={slug}>
+              {i > 0 ? ", " : null}
+              {DOCUMENT_TITLES[slug] ? (
+                <a
+                  href={`/hukuk/${encodeURIComponent(slug)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline underline-offset-4 hover:text-[var(--admin-primary)]"
+                >
+                  {DOCUMENT_TITLES[slug]}
+                </a>
+              ) : (
+                <span style={MONO_STYLE}>{slug}</span>
+              )}
+            </span>
+          )),
+          hint: "Belgenin bugünkü metni açılır; onaylanan sürüm yukarıda.",
         },
         {
           label: "İşaretlenen kutular",
@@ -258,7 +326,7 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <Link
-        href={KARAOKE_PANEL_PATH}
+        href={back}
         className="mb-4 inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
       >
         ← Karaoke rezervasyonları
@@ -320,6 +388,15 @@ export default async function KaraokeReservationPage({ params }: PageProps) {
         </Section>
 
         <Section title="Geçmiş" description="Yeniden eskiye, köşk saatiyle.">
+          {auditRead ? null : (
+            <p
+              role="status"
+              className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+            >
+              Geçmiş okunamadı; aşağıda yalnız rezervasyonun kendi kayıtları
+              var. Sayfayı birazdan yenile.
+            </p>
+          )}
           <Timeline items={karaokeHistory(r, audit)} />
         </Section>
       </div>

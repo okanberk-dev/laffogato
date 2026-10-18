@@ -17,6 +17,7 @@ import {
   KARAOKE_PAYMENT_GRACE_MINUTES,
   karaokeEndInstant,
 } from "@/lib/mobile/karaoke-time";
+import { sameSitePath } from "@/lib/http/same-site-path";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -32,8 +33,33 @@ import type { AdminTone } from "./tone";
 /** The list's path; the booking's page is `${KARAOKE_PANEL_PATH}/${id}`. */
 export const KARAOKE_PANEL_PATH = "/admin/mobil/karaoke";
 
-export function karaokeDetailHref(id: string): string {
-  return `${KARAOKE_PANEL_PATH}/${encodeURIComponent(id)}`;
+/**
+ * The booking page's param carrying the list as it was left (its tab,
+ * filters, sort and page), so "← Karaoke rezervasyonları" goes back there
+ * rather than to Bugün (admin audit KAR-20).
+ */
+export const KARAOKE_BACK_PARAM = "geri";
+
+/**
+ * Where a booking page's back link goes: `raw` when it is the karaoke list
+ * itself (`sameSitePath`, CLAUDE.md rule 26: a request names it), the bare
+ * list for anything else.
+ */
+export function karaokeBackHref(raw: unknown): string {
+  const path = sameSitePath(raw);
+  return path &&
+    (path === KARAOKE_PANEL_PATH || path.startsWith(`${KARAOKE_PANEL_PATH}?`))
+    ? path
+    : KARAOKE_PANEL_PATH;
+}
+
+/** The booking's page; `back` is the list it is opened from. */
+export function karaokeDetailHref(id: string, back?: string | null): string {
+  const page = `${KARAOKE_PANEL_PATH}/${encodeURIComponent(id)}`;
+  const list = karaokeBackHref(back);
+  return list === KARAOKE_PANEL_PATH
+    ? page
+    : `${page}?${KARAOKE_BACK_PARAM}=${encodeURIComponent(list)}`;
 }
 
 // ─── Money and status ──────────────────────────────────────────────────────
@@ -195,7 +221,7 @@ export function paymentLabel(
   const money = moneyOf(r);
   switch (money) {
     case "none":
-      return "Mekânda ödeme";
+      return "Köşkte ödeme";
     case "pending": {
       const until = istanbulTimeLabel(r.paymentDueAt ?? "");
       return until ? `Ödeme bekleniyor · son ${until}` : "Ödeme bekleniyor";
@@ -282,7 +308,7 @@ export const KARAOKE_ATTENTION: Record<
     tone: "danger",
   },
   venue_request: {
-    title: "Eski mekânda ödeme talebi",
+    title: "Köşkte ödenecek eski talep",
     text: "Bu talep ön ödeme açılmadan önce köşkte ödenecek diye alınmış. Ödemesi alınmamış rezervasyon onaylanmaz: müşteriyi arayıp online rezervasyon yapmasını iste, bu talebi iptal et.",
     tone: "warning",
   },
@@ -373,8 +399,14 @@ export interface KaraokeActionPlan {
   /**
    * İptal. `refund`: paid, so the money goes back first (needs refunds);
    * `hold`: an unpaid hold, the POS is asked first; `plain`: pay at venue.
+   * `ended`: a pay-at-the-venue evening already over, written off without
+   * a mail to the customer (karar D7).
    */
-  cancel: { kind: "refund" | "hold" | "plain"; disabledReason?: string } | null;
+  cancel: {
+    kind: "refund" | "hold" | "plain";
+    ended?: true;
+    disabledReason?: string;
+  } | null;
   /** `first`: a cancelled booking still paid; `retry`: an unanswered refund. */
   refund: { kind: "first" | "retry"; disabledReason?: string } | null;
   /** Record a refund someone saw (or did) in PayNkolay's panel. */
@@ -387,9 +419,11 @@ export interface KaraokeActionPlan {
 /**
  * The actions a booking offers. Mirrors the server: `setReservationStatus`
  * confirms only a paid booking, or a pay-at-the-venue one while prepayment is
- * off; `cancelKaraokeReservation` refunds a paid one and asks the POS about
- * an unpaid hold; `retryKaraokeRefund` / `settleKaraokeRefundByHand` take a
- * `refunding` row or a cancelled one that is still `paid`.
+ * off, and `confirmReservationAction` nothing once the evening is over;
+ * `cancelKaraokeReservation` refunds a paid one, asks the POS about an
+ * unpaid hold and writes off an ended pay-at-the-venue one without a mail;
+ * `retryKaraokeRefund` / `settleKaraokeRefundByHand` take a `refunding` row
+ * or a cancelled one that is still `paid`.
  */
 export function karaokeActionPlan(
   r: KaraokeReservation,
@@ -417,7 +451,9 @@ export function karaokeActionPlan(
   if (r.status !== "cancelled") {
     if (money === "paid") cancel = { kind: "refund", ...noRefund };
     else if (money === "pending") cancel = { kind: "hold" };
-    else if (money === "none") cancel = { kind: "plain" };
+    else if (money === "none") {
+      cancel = ended ? { kind: "plain", ended: true } : { kind: "plain" };
+    }
   }
 
   const heldAfterCancel = money === "paid" && r.status === "cancelled";
@@ -501,6 +537,18 @@ export function karaokeRowViews(
   return rows.map((r) => karaokeRowView(r, ctx, byDate.get(r.date) ?? []));
 }
 
+/**
+ * The bookings that need a person, from `listKaraokeAttention`'s rows (the
+ * confirmed bookings it adds are only there to be checked against, and drop
+ * out here). The Dikkat tab and the dashboard card both count this set.
+ */
+export function karaokeAttentionViews(
+  rows: readonly KaraokeReservation[],
+  ctx: KaraokePanelContext,
+): KaraokeRowView[] {
+  return karaokeRowViews(rows, ctx).filter((v) => v.attention.length > 0);
+}
+
 // ─── Tabs, filters, search, sort ───────────────────────────────────────────
 
 export type KaraokeTab = "bugun" | "yaklasan" | "gecmis" | "iptal" | "dikkat";
@@ -568,7 +616,7 @@ export const KARAOKE_FILTER_FIELDS: readonly FilterField[] = [
     options: [
       { value: "paid", label: "Ödendi" },
       { value: "pending", label: "Ödeme bekleniyor" },
-      { value: "none", label: "Mekânda ödeme" },
+      { value: "none", label: "Köşkte ödeme" },
       { value: KARAOKE_OWED_FILTER, label: "İade borcu" },
       { value: "refunding", label: "İade sonucu bekleniyor" },
       { value: "refunded", label: "İade edildi" },
@@ -691,6 +739,15 @@ export interface KaraokeListResult {
   hiddenLapsed: number;
 }
 
+/**
+ * One page of the list, and every tab's count, filters applied.
+ *
+ * `attention` is `karaokeAttentionViews` over `listKaraokeAttention`: when
+ * given, Dikkat (its rows and its count) comes from it rather than from
+ * `views`, which are the newest rows only (KARAOKE_ADMIN_LIST_LIMIT), so an
+ * old refund owed stays in Dikkat however long the list grows (admin audit
+ * KAR-25). Null (the read failed) falls back to `views`.
+ */
 export function karaokeList(
   views: readonly KaraokeRowView[],
   opts: {
@@ -700,9 +757,11 @@ export function karaokeList(
     page: number;
     pageSize?: number;
     today: string;
+    attention?: readonly KaraokeRowView[] | null;
   },
 ): KaraokeListResult {
   const size = opts.pageSize ?? KARAOKE_PAGE_SIZE;
+  const attention = opts.attention ?? null;
   const counts: Record<KaraokeTab, number> = {
     bugun: 0,
     yaklasan: 0,
@@ -723,9 +782,16 @@ export function karaokeList(
       continue;
     }
     for (const t of KARAOKE_TABS) {
+      if (attention && t.tab === "dikkat") continue;
       if (inKaraokeTab(v, t.tab, opts.today)) counts[t.tab] += 1;
     }
+    if (attention && opts.tab === "dikkat") continue;
     if (inKaraokeTab(v, opts.tab, opts.today)) shown.push(v);
+  }
+  for (const v of attention ?? []) {
+    if (!matchesKaraokeFilters(v, opts.filters)) continue;
+    counts.dikkat += 1;
+    if (opts.tab === "dikkat") shown.push(v);
   }
   shown.sort((a, b) => compareRows(a, b, opts.sort));
   const pages = pageCount(shown.length, size);
@@ -835,7 +901,9 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
     title =
       p.paymentStatus === "expired"
         ? "İptal edildi (ödeme alınmamıştı)"
-        : "İptal edildi";
+        : p.ended === true
+          ? "İptal edildi (saati geçmişti, müşteriye e-posta gitmedi)"
+          : "İptal edildi";
   } else {
     title = row.action;
   }

@@ -41,7 +41,7 @@ const panel = await import("@/lib/admin/karaoke-panel");
 const { paymentStatusOf, KARAOKE_PAYMENT_STATUSES } =
   await import("@/lib/mobile/karaoke-core");
 const { formatReservationTime } = await import("@/lib/mobile/karaoke-format");
-const { KaraokeActions, KaraokeBadges } =
+const { KaraokeActions, KaraokeBadges, unpaidCancelText } =
   await import("@/components/admin/karaoke-panel");
 const { KaraokeTodayCard } =
   await import("@/components/admin/karaoke-today-card");
@@ -393,6 +393,63 @@ describe("bug 8: paid but still a request (the hour was lost)", () => {
     expect(past.attention).toEqual(["paid_unconfirmed_past"]);
     expect(past.plan.confirm).toBeNull();
     expect(past.plan.cancel).toEqual({ kind: "refund" });
+  });
+});
+
+describe("KAR-13: an evening that is over (karar D7)", () => {
+  it("offers no Onayla, and writes off a pay-at-the-venue one without a mail", () => {
+    const past = view(
+      {
+        status: "confirmed",
+        paymentStatus: "none",
+        paidMinor: 0,
+        date: "2026-10-10",
+      },
+      { prepay: false },
+    );
+    expect(past.plan.confirm).toBeNull();
+    expect(past.plan.cancel).toEqual({ kind: "plain", ended: true });
+    const text = unpaidCancelText(past.plan.cancel!);
+    expect(text.title).toBe("Geçmiş rezervasyonu iptal et");
+    expect(text.description).toContain("müşteriye e-posta gitmez");
+    expect(text.description).not.toContain("iptal e-postası gider");
+    // Still a dialog that asks first.
+    const markup = html(
+      createElement(KaraokeActions, { view: past, layout: "page" }),
+    );
+    expect(markup).toMatch(/aria-haspopup="dialog"[^>]*>İptal et</);
+  });
+
+  it("a request still to come keeps the mail in its dialog", () => {
+    const v = view(
+      { status: "requested", paymentStatus: "none", paidMinor: 0 },
+      { prepay: false },
+    );
+    expect(v.plan.cancel).toEqual({ kind: "plain" });
+    expect(unpaidCancelText(v.plan.cancel!).description).toContain(
+      "müşteriye iptal e-postası gider",
+    );
+  });
+
+  it("a paid evening that is over is still refunded in full by the köşk", () => {
+    const v = view({ status: "requested", date: "2026-10-10" });
+    expect(v.plan.cancel).toEqual({ kind: "refund" });
+  });
+
+  it("the history says the write-off sent no mail", () => {
+    const items = panel.karaokeHistory(booking(), [
+      {
+        id: "aud-1",
+        entityId: "krk-00042",
+        actor: "kosk@laffogato",
+        action: "transition",
+        payload: { status: "cancelled", by: "staff", ended: true },
+        createdAt: "2026-10-17T10:00:00.000Z",
+      },
+    ]);
+    expect(items.map((i) => i.title)).toContain(
+      "İptal edildi (saati geçmişti, müşteriye e-posta gitmedi)",
+    );
   });
 });
 

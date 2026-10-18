@@ -700,6 +700,10 @@ aranmaz, çıkış bağlantısı konmaz.
   okunur - `krk-00042`, mailde `KRK-00042`.
 - **Tetikleyicinin tek çağıranı** panelin Onayla / İptal düğmeleridir; üye
   kendine mail attıramaz.
+- **Geçmiş akşam:** saati geçmiş, köşkte ödenecek bir rezervasyonu panelden
+  iptal etmek (müşteri gelmedi) mail göndermez (`setReservationStatus`
+  `notify: false`, karar D7); saati geçmiş bir rezervasyon panelden
+  onaylanmaz, onay maili de gitmez.
 - **IDEMPOTENCY** `UPDATE`'in durum kilididir: satır bir kez geçer, ikinci
   basış yarışı kaybeder ve maile hiç ulaşmaz.
 - Sağlayıcı hatası rezervasyonu **düşürmez** (sipariş mailindeki kalıp), ama

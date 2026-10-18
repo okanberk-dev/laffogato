@@ -34,7 +34,12 @@ vi.mock("@/lib/admin/auth", () => ({
   ),
 }));
 vi.mock("@/lib/mobile/karaoke", () => ({
-  getReservation: vi.fn(async () => h.reservation),
+  // An evening still to come unless a test names its own day.
+  getReservation: vi.fn(async () =>
+    h.reservation
+      ? { date: "2099-06-20", startHour: 20, hours: 2, ...h.reservation }
+      : null,
+  ),
   listReservationsForDate: h.listDate,
   paymentStatusOf: (r: { paymentStatus?: string }) => r.paymentStatus ?? "none",
   setReservationStatus: h.setStatus,
@@ -351,6 +356,56 @@ describe("Onayla on a booking whose money is not in", () => {
     h.setStatus.mockResolvedValue({ ok: false, reason: "payment_open" });
     const res = await admin.confirmReservationAction(null, form({ id: ID }));
     expect(!res.ok && res.error).toMatch(/kendiliğinden onaylanır/);
+  });
+});
+
+describe("an evening that is over (karar D7)", () => {
+  const past = { date: "2026-10-10", startHour: 20, hours: 2 };
+
+  it("Onayla is refused on the server too, before any status change or mail", async () => {
+    h.reservation = {
+      id: ID,
+      status: "requested",
+      paymentStatus: "paid",
+      ...past,
+    };
+    const res = await admin.confirmReservationAction(null, form({ id: ID }));
+    expect(!res.ok && res.error).toMatch(/saati geçti/);
+    expect(h.setStatus).not.toHaveBeenCalled();
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("an unknown booking is not found, not 'over'", async () => {
+    h.reservation = null;
+    const res = await admin.confirmReservationAction(null, form({ id: ID }));
+    expect(!res.ok && res.error).toMatch(/bulunamadı/);
+    expect(h.setStatus).not.toHaveBeenCalled();
+  });
+
+  it("a written-off pay-at-the-venue evening says no mail went", async () => {
+    h.reservation = {
+      id: ID,
+      status: "confirmed",
+      paymentStatus: "none",
+      ...past,
+    };
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: member,
+      refunded: false,
+      notified: true,
+      silent: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      form({ id: ID, beklenen: "odenmemis" }),
+    );
+    expect(res).toEqual({
+      ok: true,
+      message:
+        "Rezervasyon iptal edildi. Saati geçtiği için müşteriye e-posta gönderilmedi.",
+      tone: "success",
+    });
   });
 });
 

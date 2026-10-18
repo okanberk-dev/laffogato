@@ -14,21 +14,28 @@ import { EYEBROW, MONO_STYLE } from "./ui/styles";
 
 /**
  * The dashboard's karaoke card: tonight's bookings at a glance and anything
- * that waits for a person (a refund owed from any day included). Server-safe.
- * `today` are today's rows, `owed` the refunds still owed from any day; null
- * when they could not be read, so a karaoke outage never takes the
- * dashboard with it.
+ * that waits for a person, any day. Server-safe. `today` are today's rows,
+ * `attention` the Dikkat tab's set (`loadKaraokeTodayCard`,
+ * lib/admin/karaoke-today.ts), so the card and the tab count the same
+ * bookings; null when they could not be read, so a karaoke outage never
+ * takes the dashboard with it.
+ *
+ * `owed` is the older read (the refunds owed only) the dashboard still
+ * passes until it moves to `loadKaraokeTodayCard`.
  */
 export function KaraokeTodayCard({
   today,
+  attention: given,
   owed,
   now,
 }: {
   today: readonly KaraokeRowView[] | null;
-  owed: readonly KaraokeRowView[] | null;
+  attention?: readonly KaraokeRowView[] | null;
+  owed?: readonly KaraokeRowView[] | null;
   now: Date;
 }) {
-  if (!today || !owed) {
+  const others = given ?? owed ?? null;
+  if (!today || !others) {
     return (
       <Card>
         <h2 className="text-lg font-semibold text-[var(--admin-text)]">
@@ -51,7 +58,7 @@ export function KaraokeTodayCard({
     (v) => v.r.status === "requested" && v.money === "none",
   ).length;
   const attention = new Set<string>();
-  for (const v of [...today, ...owed]) {
+  for (const v of [...today, ...others]) {
     if (v.attention.length > 0) attention.add(v.r.id);
   }
   // Still to come or under way, earliest first.

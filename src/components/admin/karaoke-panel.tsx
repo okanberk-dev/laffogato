@@ -15,7 +15,11 @@ import {
   refundAmountMinor,
   type KaraokeRowView,
 } from "@/lib/admin/karaoke-panel";
-import type { SearchParamsInput, SortState } from "@/lib/admin/list-params";
+import {
+  withParams,
+  type SearchParamsInput,
+  type SortState,
+} from "@/lib/admin/list-params";
 
 import { formatTRY } from "./forms";
 import {
@@ -27,7 +31,7 @@ import {
   DataTable,
   EmptyState,
 } from "./ui";
-import { MONO_STYLE } from "./ui/styles";
+import { MONO_STYLE, NUMERIC_STYLE } from "./ui/styles";
 import { TONE_INK, TONE_SOFT } from "./ui/tone";
 
 // The karaoke panel's pieces (list rows, row menu, the booking's page).
@@ -35,14 +39,34 @@ import { TONE_INK, TONE_SOFT } from "./ui/tone";
 // state, so one action's answer can never be shown as another's (the old
 // row merged four results and printed the first it found).
 
-/** Status, payment, refund-owed and guest badges, in that order. */
-export function KaraokeBadges({ view }: { view: KaraokeRowView }) {
+// In the list's table a long payment badge ("Ödeme bekleniyor · son 14:30",
+// "İade sonucu bekleniyor") may break onto a second line: kept on one, it
+// alone made the table wider than its card below 1280 px and put the
+// amount behind the pinned ⋯ column (admin audit KAR-03).
+const WRAPPING_BADGE = "rounded-xl! text-left whitespace-normal!";
+
+/**
+ * Status, payment, refund-owed and guest badges, in that order. `wrap`: the
+ * list's table, where a long badge breaks rather than widen the column.
+ */
+export function KaraokeBadges({
+  view,
+  wrap = false,
+}: {
+  view: KaraokeRowView;
+  wrap?: boolean;
+}) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       <Badge tone={view.statusTone} dot>
         {view.statusLabel}
       </Badge>
-      <Badge tone={view.paymentTone}>{view.paymentLabel}</Badge>
+      <Badge
+        tone={view.paymentTone}
+        className={wrap ? WRAPPING_BADGE : undefined}
+      >
+        {view.paymentLabel}
+      </Badge>
       {view.attention.includes("refund_owed") ? (
         <Badge tone="danger">İade borcu</Badge>
       ) : null}
@@ -92,6 +116,35 @@ const MONEY_REASON = {
 
 function amount(view: KaraokeRowView): string {
   return formatTRY(refundAmountMinor(view.r));
+}
+
+/**
+ * The title and text of an unpaid booking's cancel dialog. An evening
+ * already over is written off without a mail (karar D7), and its dialog
+ * says so. Exported for tests: a closed dialog renders no text.
+ */
+export function unpaidCancelText(
+  cancel: NonNullable<KaraokeRowView["plan"]["cancel"]>,
+): { title: string; description: string } {
+  if (cancel.kind === "hold") {
+    return {
+      title: "Rezervasyonu iptal et",
+      description:
+        "Ödeme bekleyen bir rezervasyon. Önce POS'a ödenip ödenmediği sorulur: ödenmemişse saat boşa çıkar ve müşteriye iptal e-postası gider. Bu arada ödenmişse iptal edilmez, sana söylenir.",
+    };
+  }
+  if (cancel.ended) {
+    return {
+      title: "Geçmiş rezervasyonu iptal et",
+      description:
+        "Saati geçmiş, köşkte ödenecek bir rezervasyon; iade yok. İptal olarak kaydedilir (ör. müşteri gelmedi), müşteriye e-posta gitmez.",
+    };
+  }
+  return {
+    title: "Rezervasyonu iptal et",
+    description:
+      "Ödeme alınmamıştı, iade yok. Saat boşa çıkar ve müşteriye iptal e-postası gider.",
+  };
 }
 
 /**
@@ -155,12 +208,7 @@ export function KaraokeActions({
         action={cancelReservationAction}
         hidden={{ id: r.id, beklenen: "odenmemis" }}
         label="İptal et"
-        title="Rezervasyonu iptal et"
-        description={
-          plan.cancel.kind === "hold"
-            ? "Ödeme bekleyen bir rezervasyon. Önce POS'a ödenip ödenmediği sorulur: ödenmemişse saat boşa çıkar ve müşteriye iptal e-postası gider. Bu arada ödenmişse iptal edilmez, sana söylenir."
-            : "Ödeme alınmamıştı, iade yok. Saat boşa çıkar ve müşteriye iptal e-postası gider."
-        }
+        {...unpaidCancelText(plan.cancel)}
         variant={menu ? "menuDanger" : "danger"}
         reason={{ required: false, maxLength: 500 }}
         disabledReason={plan.cancel.disabledReason}
@@ -226,11 +274,22 @@ function hasActions(view: KaraokeRowView): boolean {
   return Boolean(p.confirm || p.cancel || p.refund || p.settle);
 }
 
-/** The list row's ⋯ menu: the booking's page, then its actions. */
-export function KaraokeRowMenu({ view }: { view: KaraokeRowView }) {
+/**
+ * The list row's ⋯ menu: the booking's page, then its actions. `back` is
+ * the list's own address, so the page's back link returns to it.
+ */
+export function KaraokeRowMenu({
+  view,
+  back,
+}: {
+  view: KaraokeRowView;
+  back?: string;
+}) {
   return (
     <ActionMenu label={`${view.r.id} işlemleri`}>
-      <ActionMenuLink href={karaokeDetailHref(view.r.id)}>Detay</ActionMenuLink>
+      <ActionMenuLink href={karaokeDetailHref(view.r.id, back)}>
+        Detay
+      </ActionMenuLink>
       {hasActions(view) ? (
         <>
           <ActionMenuSeparator />
@@ -241,15 +300,32 @@ export function KaraokeRowMenu({ view }: { view: KaraokeRowView }) {
   );
 }
 
+// A truncated span still adds its whole text to an auto-layout table
+// cell's width; the max width is what lets a long e-mail shorten instead
+// of pushing the row past its card (admin audit KAR-03).
+const CUSTOMER_WIDTH = "md:max-w-[12rem] xl:max-w-[14rem]";
+
 function customerLine(view: KaraokeRowView): ReactNode {
   const r = view.r;
   const email = r.contactEmail || r.customerEmail;
   return (
     <span className="block min-w-0">
-      <span className="block truncate font-medium text-[var(--admin-text)]">
+      <span
+        className={cx(
+          "block truncate font-medium text-[var(--admin-text)]",
+          CUSTOMER_WIDTH,
+        )}
+        title={r.customerName || undefined}
+      >
         {r.customerName || "İsimsiz"}
       </span>
-      <span className="block truncate text-xs text-[var(--admin-text-soft)]">
+      <span
+        className={cx(
+          "block truncate text-xs text-[var(--admin-text-soft)]",
+          CUSTOMER_WIDTH,
+        )}
+        title={email || undefined}
+      >
         {email}
       </span>
       {r.contactPhone ? (
@@ -268,7 +344,7 @@ function customerLine(view: KaraokeRowView): ReactNode {
 function amountCell(view: KaraokeRowView): ReactNode {
   const r = view.r;
   return (
-    <span className="whitespace-nowrap" style={MONO_STYLE}>
+    <span className="whitespace-nowrap" style={NUMERIC_STYLE}>
       {formatTRY(r.totalMinor)}
       {r.discountMinor > 0 ? (
         <span className="block text-xs text-[var(--admin-text-soft)]">
@@ -279,7 +355,25 @@ function amountCell(view: KaraokeRowView): ReactNode {
   );
 }
 
-/** The list: a table from `md`, a card per booking on phones. */
+/** The booking code asked at the door, in the list's own figures. */
+function codeLine(view: KaraokeRowView): ReactNode {
+  return (
+    <span
+      className="block text-xs font-normal text-[var(--admin-text-soft)]"
+      style={NUMERIC_STYLE}
+    >
+      {view.r.id}
+    </span>
+  );
+}
+
+/**
+ * The list: a table from `md`, a card per booking on phones. The booking
+ * code is in the first cell and on the card at every width (staff read it
+ * at the door; it used to show from 1280 px only), and guests and hours
+ * join the first cell where their own column is hidden: below 1280 px,
+ * where the sidebar leaves the table about 720 px (KAR-11, KAR-03).
+ */
 export function KaraokeTable({
   views,
   sort,
@@ -293,12 +387,14 @@ export function KaraokeTable({
   pathname: string;
   empty?: ReactNode;
 }) {
+  // The list as it stands (tab, filters, sort, page), for the way back.
+  const back = withParams(searchParams, {}, pathname);
   return (
     <DataTable<KaraokeRowView>
       caption="Karaoke rezervasyonları"
       rows={views}
       rowKey={(v) => v.r.id}
-      rowHref={(v) => karaokeDetailHref(v.r.id)}
+      rowHref={(v) => karaokeDetailHref(v.r.id, back)}
       sort={sort}
       searchParams={searchParams}
       pathname={pathname}
@@ -314,6 +410,10 @@ export function KaraokeTable({
               <span className="block text-xs font-normal text-[var(--admin-text-soft)]">
                 {v.day}
               </span>
+              {codeLine(v)}
+              <span className="block text-xs font-normal text-[var(--admin-text-soft)] xl:hidden">
+                {v.r.guests} kişi · {v.r.hours} saat
+              </span>
             </span>
           ),
         },
@@ -321,7 +421,7 @@ export function KaraokeTable({
         {
           key: "kisi",
           header: "Kişi · süre",
-          hideBelow: "lg",
+          hideBelow: "xl",
           cell: (v) => (
             <span className="whitespace-nowrap">
               {v.r.guests} kişi · {v.r.hours} saat
@@ -333,7 +433,7 @@ export function KaraokeTable({
           header: "Durum",
           cell: (v) => (
             <>
-              <KaraokeBadges view={v} />
+              <KaraokeBadges view={v} wrap />
               <KaraokeAttentionLine view={v} />
             </>
           ),
@@ -347,36 +447,33 @@ export function KaraokeTable({
           cell: amountCell,
         },
         {
-          key: "kod",
-          header: "Kod · POS",
+          key: "pos",
+          header: "POS",
           hideBelow: "xl",
-          cell: (v) => (
-            <span
-              className="block text-xs text-[var(--admin-text-soft)]"
-              style={MONO_STYLE}
-            >
-              <span className="block">{v.r.id}</span>
-              {v.r.paymentRef ? (
-                <span className="block" title="POS referansı, ortası gizli">
-                  {maskPaymentRef(v.r.paymentRef)}
-                </span>
-              ) : null}
-            </span>
-          ),
+          cell: (v) =>
+            v.r.paymentRef ? (
+              <span
+                className="block text-xs whitespace-nowrap text-[var(--admin-text-soft)]"
+                style={NUMERIC_STYLE}
+                title="POS referansı, ortası gizli"
+              >
+                {maskPaymentRef(v.r.paymentRef)}
+              </span>
+            ) : null,
         },
       ]}
-      rowActions={(v) => <KaraokeRowMenu view={v} />}
+      rowActions={(v) => <KaraokeRowMenu view={v} back={back} />}
       mobileCard={(v) => (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
             <Link
-              href={karaokeDetailHref(v.r.id)}
+              href={karaokeDetailHref(v.r.id, back)}
               className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
             >
               {v.time}
             </Link>
             <span className="text-xs text-[var(--admin-text-soft)]">
-              {v.day}
+              {v.day} · <span style={NUMERIC_STYLE}>{v.r.id}</span>
             </span>
           </div>
           {customerLine(v)}
