@@ -1190,6 +1190,13 @@ CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
   Kart saklama açıkken üyenin ilk ödemesinde `ensureCardUserKey` üretir;
   karşılaştır-ve-yaz ile yazılır, aynı anda açılan iki ödeme tek anahtarda
   buluşur. Kapalıyken hiçbir yol anahtar üretmez.
+- Kart saklama hiç açılmadan üretilmiş anahtarlar (18 Eki 2026'ya kadar
+  uygulama siparişi ve üye karaoke ödemesi her üyeye üretiyordu)
+  `20261018200000_clear_unused_card_user_keys.sql` ile bir kez boşaltılır
+  (`updatedAt` değişmez). Ön şart: Production'da `PAYNKOLAY_CARD_STORAGE`
+  hiç açık olmadı (OP-28). Bir kez bile açık olduysa migration'dan önce her
+  anahtar için PayNkolay'da kart listesi okunur, kart çıkarsa
+  `deleteAllSavedCards` ile silinir.
 - Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
   girmez: ortak ödeme sayfasında `customerKey` boş kalır.
 - Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla
