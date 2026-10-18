@@ -81,9 +81,9 @@ describe("hesap-silme", () => {
 
   it("says a Site request fixes the karaoke window at the request", () => {
     // ASK-Y3-4 (d): our delay does not shorten the member's window; a
-    // booking made after the request counts from its making.
+    // booking made after the request counts from the closure.
     expect(text).toContain(
-      "Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise rezervasyonun yapıldığı ana göre hesaplanır",
+      "Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır",
     );
     expect(text).toContain("oda kullanılmadıysa iade yine yapılır");
   });

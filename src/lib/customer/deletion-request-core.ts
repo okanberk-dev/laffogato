@@ -290,8 +290,8 @@ export function deletionRefundLabel(percent: number): string {
  * the ones still to come (close the account before their start and the
  * refund is plain), and the ones whose start came since the request (the
  * closing dialog asks whether the room was used). Each is judged as the
- * closure will judge it: by its own rule at the request, or at its making
- * when it was booked after the request. Guest bookings are not the
+ * closure will judge it: by its own rule at the request, or at the closure
+ * (now) when it was booked after the request. Guest bookings are not the
  * account's; a paid evening whose rule refunded nothing at the request is
  * not refunded by the closure either, and is not listed.
  */

@@ -7,7 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *
  * - The two-hour rule reads the request's stamp; the refund and every
  *   stamp on the row are the closure's own instant.
- * - A booking made after the request is judged from its own making.
+ * - A booking made after the request is judged at the closure, as without
+ *   one: the request did not cover it.
  * - A paid booking whose rule still refunded it at the request and whose
  *   start came before the closure is no longer dropped as "past": it is
  *   refunded as the request would have been (in full inside the free
@@ -344,7 +345,7 @@ describe("the request's instant decides the two-hour rule", () => {
     expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
   });
 
-  it("judges a booking made after the request from its own making", async () => {
+  it("gives nothing back for a booking made after the request inside its last two hours", async () => {
     // Asked three days ahead, then booked inside the last two hours: the
     // request cannot cover an evening that did not exist yet.
     seedPaid({ createdAt: at(-1.5).toISOString() });
@@ -353,6 +354,22 @@ describe("the request's instant decides the two-hour rule", () => {
     });
     expect(h.refunds).toEqual([]);
     expect(booking()).toMatchObject({ paymentStatus: "paid" });
+    expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
+  });
+
+  it("judges a booking made after the request at the closure, not at its making", async () => {
+    // Asked three days ahead, booked the day before in its free window,
+    // closed inside the last two hours: the member could cancel it
+    // themselves until 18:00, and the request did not cover it.
+    seedPaid({ createdAt: at(-30).toISOString() });
+    await cancelKaraokeForClosedAccount(EMAIL, at(-1), {
+      windowAt: at(-72),
+    });
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
     expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
   });
 
@@ -458,6 +475,21 @@ describe("a paid booking whose start came between the request and the closure", 
     );
   });
 
+  it("leaves an evening booked after the request alone once its start has come", async () => {
+    // Asked three days ahead, booked the day before, sung, closed the
+    // morning after: the request never covered it, so it is past.
+    seedPaid({ createdAt: at(-30).toISOString() });
+    await cancelKaraokeForClosedAccount(EMAIL, at(+15), {
+      windowAt: at(-72),
+    });
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
+    expect(h.alerts).toEqual([]);
+  });
+
   it("stays untouched without a request: a past evening is not the closure's", async () => {
     seedPaid();
     await cancelKaraokeForClosedAccount(EMAIL, at(+15));
@@ -490,10 +522,18 @@ describe("a paid booking whose start came between the request and the closure", 
     expect(
       startedSinceRequest({ ...r, lateRefundPercent: 50 }, at(-1), at(+15)),
     ).toBe(true);
-    // Booked after the request, inside its window: judged at the booking.
+    // Booked after the request: judged at the closure, so its start since
+    // is not the request's, in its free window at the making or not.
     expect(
       startedSinceRequest(
         { ...r, createdAt: at(-1.5).toISOString() },
+        at(-72),
+        at(+15),
+      ),
+    ).toBe(false);
+    expect(
+      startedSinceRequest(
+        { ...r, createdAt: at(-30).toISOString(), lateRefundPercent: 50 },
         at(-72),
         at(+15),
       ),
@@ -506,5 +546,10 @@ describe("a paid booking whose start came between the request and the closure", 
     expect(closureJudgedAt({}, new Date(Number.NaN), at(+15))).toEqual(at(+15));
     expect(closureJudgedAt({}, null, at(+15))).toEqual(at(+15));
     expect(closureJudgedAt({}, at(-72), at(+15))).toEqual(at(-72));
+    // Made before the request: the request; made after it: the closure.
+    const made = (h: number) => ({ createdAt: at(h).toISOString() });
+    expect(closureJudgedAt(made(-80), at(-72), at(+15))).toEqual(at(-72));
+    expect(closureJudgedAt(made(-30), at(-72), at(+15))).toEqual(at(+15));
+    expect(closureJudgedAt(made(-30), at(-72), at(-1))).toEqual(at(-1));
   });
 });

@@ -10915,7 +10915,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
           "Kullanılmamış kuponlar geçersiz hâle gelir.",
-          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise rezervasyonun yapıldığı ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
+          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
           "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında ve Site'deki hesap silme sayfasında uyarı gösterilir.",
         ],
       },

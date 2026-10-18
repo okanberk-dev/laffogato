@@ -557,9 +557,11 @@ type ClosureBooking = Parameters<typeof karaokeCancelDeadline>[0] & {
  * The instant a closure that answers the member's deletion request (the
  * Site's /uye/hesap/sil) judges a booking's cancellation rule at: the
  * request, because our delay must not shorten the member's window (TKHK
- * m.4/2). A booking made after the request is judged from its own making
- * (the request cannot cover an evening that did not exist yet), and nothing
- * is judged later than the closure itself. No usable request: the closure.
+ * m.4/2). A booking made after the request is judged at the closure, as
+ * without one: the request cannot cover an evening that did not exist yet,
+ * and the member could cancel it themselves until the closure (judging it
+ * at its making would refund it in full whenever the closure came, the
+ * evening sung or not). No usable request: the closure.
  */
 export function closureJudgedAt(
   r: { createdAt?: string },
@@ -569,16 +571,15 @@ export function closureJudgedAt(
   const asked = requestedAt ? requestedAt.getTime() : Number.NaN;
   if (!Number.isFinite(asked) || asked >= now.getTime()) return now;
   const made = Date.parse(r.createdAt ?? "");
-  const from = Number.isFinite(made) ? Math.max(asked, made) : asked;
-  return new Date(Math.min(from, now.getTime()));
+  return Number.isFinite(made) && made > asked ? now : new Date(asked);
 }
 
 /**
  * The share of a paid booking's payment (whole %) a closure answering the
- * member's request gives back, as `cancelKaraokeReservation` decides it:
- * 100 in the free window at the request (and for a booking the köşk never
- * confirmed), the booking's late share inside the window, 0 when its rule
- * refunded nothing at the request.
+ * member's request gives back, as `cancelKaraokeReservation` decides it at
+ * `closureJudgedAt`: 100 in the free window (and for a booking the köşk
+ * never confirmed), the booking's late share inside the window, 0 when its
+ * rule refunded nothing then.
  */
 export function closureRefundPercent(
   r: ClosureBooking,

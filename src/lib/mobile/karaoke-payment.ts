@@ -1441,10 +1441,10 @@ export async function cancelKaraokeReservation(
     by.kind === "member" ||
     by.kind === "link" ||
     (by.kind === "account" && paymentStatusOf(r) === "paid");
-  // A closure the member asked us for is judged at the request (or at the
-  // booking's making, when that came later): the team's delay does not
-  // shorten their window (ASK-Y3-4 (d), TKHK m.4/2). Only the decision moves
-  // back; the refund and every stamp are now.
+  // A closure the member asked us for is judged at the request (a booking
+  // made after it, at the closure: the request did not cover it): the
+  // team's delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2).
+  // Only the decision moves back; the refund and every stamp are now.
   const judgedAt =
     by.kind === "account" ? closureJudgedAt(r, by.windowAt, now) : now;
   // The share of the payment this cancel refunds: null = all of it.

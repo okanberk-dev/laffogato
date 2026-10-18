@@ -299,7 +299,7 @@ describe("a paid karaoke booking on the request card", () => {
     expect(shown.match(/25 Ekim 2026, 20:00/g)).toHaveLength(1);
   });
 
-  it("judges a booking made after the request from its own making", async () => {
+  it("judges a booking made after the request at the closure", async () => {
     // Booked at 14:30 today for 16:00, inside its two hours: closing refunds
     // nothing, though the request (two days earlier) predates the window.
     const shown = await card([
