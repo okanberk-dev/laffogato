@@ -69,8 +69,9 @@ maybe("admin search, in SQL", () => {
 
   beforeEach(async () => {
     const p = pool!;
+    // Order numbers in their own range: other DB suites insert 99000x.
     await p.query(
-      "delete from public.orders where id like 'srch-%'; " +
+      "delete from public.orders where id like 'srch-%' or \"orderNo\" between 970001 and 970003; " +
         "delete from public.customers where id like 'srch-%'; " +
         "delete from public.products where id like 'srch-%'; " +
         "delete from public.menu_items where id like 'srch-%'; " +
@@ -78,9 +79,9 @@ maybe("admin search, in SQL", () => {
     );
     await p.query(
       `insert into public.orders (id, "orderNo", "customerName", "customerEmail", "customerPhone", "createdAt")
-       values ('srch-1', 990001, 'İsmail Işık', 'ismail@example.com', '+90 (532) 123-45-67', '2026-10-17T10:00:00.000Z'),
-              ('srch-2', 990002, 'IRMAK ÇELİK', 'irmak@example.com', '', '2026-10-17T11:00:00.000Z'),
-              ('srch-3', 990003, 'Zeynep', 'z@example.com', '0544 000 00 00', '2026-10-17T12:00:00.000Z')`,
+       values ('srch-1', 970001, 'İsmail Işık', 'ismail@example.com', '+90 (532) 123-45-67', '2026-10-17T10:00:00.000Z'),
+              ('srch-2', 970002, 'IRMAK ÇELİK', 'irmak@example.com', '', '2026-10-17T11:00:00.000Z'),
+              ('srch-3', 970003, 'Zeynep', 'z@example.com', '0544 000 00 00', '2026-10-17T12:00:00.000Z')`,
     );
     await p.query(
       `insert into public.customers (id, email, name, phone)
@@ -102,11 +103,11 @@ maybe("admin search, in SQL", () => {
   });
 
   it("finds İsmail for ismail and IRMAK for ırmak, both ways", async () => {
-    expect((await search("ismail")).orders).toEqual(["#990001 · İsmail Işık"]);
-    expect((await search("ISMAIL")).orders).toEqual(["#990001 · İsmail Işık"]);
-    expect((await search("ışık")).orders).toEqual(["#990001 · İsmail Işık"]);
+    expect((await search("ismail")).orders).toEqual(["#970001 · İsmail Işık"]);
+    expect((await search("ISMAIL")).orders).toEqual(["#970001 · İsmail Işık"]);
+    expect((await search("ışık")).orders).toEqual(["#970001 · İsmail Işık"]);
     expect((await search("ırmak çelik")).orders).toEqual([
-      "#990002 · IRMAK ÇELİK",
+      "#970002 · IRMAK ÇELİK",
     ]);
     expect((await search("findik")).products).toEqual(["Fındık Ezmesi"]);
     expect((await search("italyan")).menu).toEqual(["İtalyan Kavrum"]);
@@ -114,11 +115,11 @@ maybe("admin search, in SQL", () => {
   });
 
   it("finds an order by its number and a phone in any punctuation", async () => {
-    expect((await search("#990003", "staff")).orders).toEqual([
-      "#990003 · Zeynep",
+    expect((await search("#970003", "staff")).orders).toEqual([
+      "#970003 · Zeynep",
     ]);
     expect((await search("0532 123 45 67", "staff")).orders).toEqual([
-      "#990001 · İsmail Işık",
+      "#970001 · İsmail Işık",
     ]);
     expect((await search("5321112233")).customers).toEqual(["İlkay Öztürk"]);
   });
