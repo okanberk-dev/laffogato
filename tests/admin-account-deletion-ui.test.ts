@@ -341,13 +341,32 @@ describe("a paid karaoke booking on the request card", () => {
     expect(box).not.toContain("checked");
     // A group with a legend, not a label around the boxes (RC-LABEL).
     expect(box).toContain("<fieldset");
-    expect(text(box)).toContain(
-      "Oda kullanıldı: 17 Ekim 2026, 20:00 - 22:00 (tam iade)",
+    // The tick's own label says what the tick does: the room was used and
+    // the payment stays. The refund is what happens when it stays empty, so
+    // it sits outside the label, under the row it belongs to. It once read
+    // "Oda kullanıldı: ... (tam iade)", as if ticking refunded.
+    const labels = [...box.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/g)].map(
+      (m) => text(m[1]).trim(),
     );
-    expect(text(box)).toContain(
-      "Oda kullanıldı: 16 Ekim 2026, 14:00 - 16:00 (%50 iade)",
-    );
-    expect(text(box)).toContain("işaretlemezsen parantezdeki iade yapılır");
+    expect(labels).toEqual([
+      "Oda kullanıldı, iade yapılmaz: 17 Ekim 2026, 20:00 - 22:00",
+      "Oda kullanıldı, iade yapılmaz: 16 Ekim 2026, 14:00 - 16:00",
+    ]);
+    for (const l of labels) expect(l).not.toMatch(/tam iade|%\d+ iade/);
+    for (const [id, refund] of [
+      ["krk-00002", "İşaretlemezsen tam iade yapılır."],
+      ["krk-00006", "İşaretlemezsen %50 iade yapılır."],
+    ]) {
+      const input = box
+        .match(/<input [^>]*>/g)
+        ?.find((tag) => tag.includes(`value="${id}"`));
+      const described = input?.match(/aria-describedby="([^"]+)"/)?.[1];
+      expect(described, id).toBeTruthy();
+      const note = box.match(
+        new RegExp(`<span[^>]* id="${described}"[^>]*>([\\s\\S]*?)</span>`),
+      );
+      expect(text(note?.[1] ?? "").trim()).toBe(refund);
+    }
     // Nothing to ask without such an evening.
     const plain = CloseAccountButton({
       email: "uye@ornek.com",
