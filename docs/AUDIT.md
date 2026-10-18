@@ -868,8 +868,11 @@ Açık:
 
 Daha önce varyantsız satılmış birimlerin ayırdığı toplam için sihirbazın
 "Toplamı aktif varyantlara eşitle" kutusu duruyor. Kartın varyantlı üründe
-ürünü açması ön yüz işidir (paket 5b); o gelene kadar kart böyle bir satırı
-sepete koyar, ödeme sayfası onu adıyla reddeder.
+ürünü açması ön yüz işidir (paket 5b). Ret ondan bağımsızdır: varyantsız satır
+nereden gelirse gelsin (kart, eski bir sepet, elle yazılmış istek) ödeme
+sayfası onu adıyla reddeder, taban fiyattan satmaz. İki PR ayrı birleşir;
+`order-variant-lines` testi bu belgede sunucu reddini hâlâ bekleyen bir
+"Açık" satırı kalmasına izin vermez.
 
 Uygulama (lafmobil, okundu, değişmedi): ürün sayfası her zaman bir varyant
 gönderir (stoktaki ilki varsayılan), hızlı ekleme varyantlı ürünü açar. İki

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
@@ -418,5 +420,46 @@ describe("the app's answer", () => {
       code: "line_not_found",
       message: "Kupa artık satışta değil. Sepeti güncelle.",
     });
+  });
+});
+
+/**
+ * The refusal and the shop card's fix (package 5b, a front-end PR) merge
+ * separately, in either order. Each half's audit text once described the
+ * other as still missing: an "Açık" row saying the server still takes the
+ * line, and a sentence saying the card adds it until 5b lands. Whichever
+ * merged second left a false statement in docs/AUDIT.md.
+ */
+describe("docs/AUDIT.md holds in either merge order", () => {
+  const doc = readFileSync("docs/AUDIT.md", "utf8");
+
+  /** Table rows under an "Açık" heading or lead-in, up to the next block. */
+  function openRows(text: string): string[] {
+    const rows: string[] = [];
+    let open = false;
+    for (const line of text.split("\n")) {
+      if (/^(#+ )?Açık\b/.test(line)) {
+        open = true;
+      } else if (line.startsWith("#")) {
+        open = false;
+      } else if (line.startsWith("|")) {
+        if (open) rows.push(line);
+      } else if (line.trim() !== "") {
+        open = false;
+      }
+    }
+    return rows;
+  }
+
+  it("lists no open row that still waits for this refusal", () => {
+    expect(
+      openRows(doc).filter(
+        (row) => /resolveOrderLines/.test(row) && /varyantsız/.test(row),
+      ),
+    ).toEqual([]);
+  });
+
+  it("does not say what the card does until the other package lands", () => {
+    expect(doc).not.toMatch(/gelene kadar kart/);
   });
 });
