@@ -21,8 +21,9 @@
  */
 // 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in force
 // since 1 Ocak 2026 (14-day return, no return cost, mediation, Türkiye only)
-// and stop describing saved cards; the e-commerce regulation is cited by its
-// current title in every document, so the whole set carries this day.
+// and stop describing saved cards; 23 documents cite the e-commerce
+// regulation by its current title and the other two lose their saved-card
+// passages, so the whole set carries this day.
 // LEGAL-REDLINES §18 and §19. (17 Ekim 2026: KDV by product, §16.)
 export const LEGAL_UPDATED = "18 Ekim 2026";
 

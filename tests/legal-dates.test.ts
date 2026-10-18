@@ -56,9 +56,9 @@ describe("legal document dates", () => {
 
   it("a document that changes after the revision carries its own day", () => {
     // Empty on 16 and again on 18 Ekim 2026: every coded document changed
-    // those days (on the 18th the regulation title in each, the return and
-    // card passages in most). Add a document here, with its date, when only
-    // it changes later.
+    // those days (on the 18th the e-commerce regulation's title in 23, the
+    // saved-card passages in the other two). Add a document here, with its
+    // date, when only it changes later.
     const expected: Record<string, string> = {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
