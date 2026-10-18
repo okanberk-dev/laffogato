@@ -104,12 +104,30 @@ const LINE_LABEL =
 function availableFor(product: ManualProduct | undefined, variantId: string) {
   if (!product) return null;
   const variant = product.variants.find((v) => v.id === variantId);
-  return variant ? variant.stock : product.stock;
+  if (variant) return variant.stock;
+  return product.variants.length > 0 ? 0 : product.stock;
 }
 
-/** Whether anything of the product can be sold: its own stock or a variant's. */
-function sellable(product: ManualProduct): boolean {
-  return product.stock > 0 || product.variants.some((v) => v.stock > 0);
+/**
+ * Whether anything of the product can be sold. A product with variants is
+ * sold by them only: the server refuses its line without one, so its own
+ * total is no reason to offer it.
+ */
+export function manualProductSellable(product: ManualProduct): boolean {
+  return product.variants.length > 0
+    ? product.variants.some((v) => v.stock > 0)
+    : product.stock > 0;
+}
+
+/**
+ * The variant a picked product's line starts on: its first in stock, else
+ * its first. "" for a product without variants. There is no "Varsayılan"
+ * line for a product with variants: it was charged the base price and took
+ * its unit from the total alone, and the server refuses it now.
+ */
+export function manualLineVariant(product: ManualProduct | undefined): string {
+  if (!product || product.variants.length === 0) return "";
+  return (product.variants.find((v) => v.stock > 0) ?? product.variants[0]).id;
 }
 
 function stockNote(stock: number): string {
@@ -227,14 +245,12 @@ export function ManualOrderForm({
     );
   }
 
-  /** A product picked: its first variant in stock when the base has none. */
+  /** A product picked: its first variant in stock, when it has variants. */
   function pickProduct(key: number, productId: string) {
-    const product = byId.get(productId);
-    const variantId =
-      product && product.stock <= 0
-        ? (product.variants.find((v) => v.stock > 0)?.id ?? "")
-        : "";
-    patchLine(key, { productId, variantId });
+    patchLine(key, {
+      productId,
+      variantId: manualLineVariant(byId.get(productId)),
+    });
   }
 
   function unitPrice(line: Line): number {
@@ -309,11 +325,15 @@ export function ManualOrderForm({
                   >
                     <option value="">Seç…</option>
                     {products.map((p) => (
-                      <option key={p.id} value={p.id} disabled={!sellable(p)}>
+                      <option
+                        key={p.id}
+                        value={p.id}
+                        disabled={!manualProductSellable(p)}
+                      >
                         {p.name} · {formatTRY(p.priceMinor)}
                         {p.variants.length === 0
                           ? ` ${stockNote(p.stock)}`
-                          : sellable(p)
+                          : manualProductSellable(p)
                             ? ""
                             : " (tükendi)"}
                       </option>
@@ -330,16 +350,7 @@ export function ManualOrderForm({
                       patchLine(line.key, { variantId: e.target.value })
                     }
                   >
-                    <option
-                      value=""
-                      disabled={Boolean(
-                        product && variants.length > 0 && product.stock <= 0,
-                      )}
-                    >
-                      {variants.length === 0
-                        ? "-"
-                        : `Varsayılan ${stockNote(product?.stock ?? 0)}`}
-                    </option>
+                    {variants.length === 0 && <option value="">-</option>}
                     {variants.map((v) => (
                       <option key={v.id} value={v.id} disabled={v.stock <= 0}>
                         {v.name}
