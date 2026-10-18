@@ -545,3 +545,21 @@ export function istanbulTimeLabel(iso: string): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
 }
+
+/**
+ * A paid booking the member could still have cancelled for a refund when
+ * they asked us to close their account (the Site's deletion request), whose
+ * start has come before the team closed it. The request fixed the refund
+ * (ASK-Y3-4 (d), TKHK m.4/2: our delay does not shorten the member's
+ * window); only a person can say whether the room was used in between.
+ */
+export function startedSinceRequest(
+  r: Parameters<typeof karaokeCancelDeadline>[0],
+  requestedAt: Date,
+  now: Date,
+): boolean {
+  return (
+    karaokeSelfCancelTerms(r, requestedAt).kind !== "refused" &&
+    karaokeStartInstant(r.date, r.startHour).getTime() <= now.getTime()
+  );
+}

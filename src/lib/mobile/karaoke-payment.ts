@@ -39,6 +39,7 @@ import {
   paymentDueFrom,
   paymentStatusOf,
   refundAmountOf,
+  startedSinceRequest,
   sweepCutoff,
   type KaraokeLegalConsent,
   type KaraokeReservation,
@@ -1333,8 +1334,13 @@ export type KaraokeCanceller =
    * member wrote in the panel; it goes into the audit row.
    */
   | { kind: "staff"; actor: string; canRefund: boolean; reason?: string }
-  /** An account that is closing: every future booking, refunded in full. */
-  | { kind: "account"; email: string };
+  /**
+   * An account that is closing: every future booking, refunded in full.
+   * `windowAt`: when the member asked us to close it (the Site's deletion
+   * request); the booking's own rule is judged at that instant, the money
+   * moves now (ASK-Y3-4 (d)).
+   */
+  | { kind: "account"; email: string; windowAt?: Date };
 
 export type CancelKaraokeFailure =
   | "not_found"
@@ -1434,10 +1440,19 @@ export async function cancelKaraokeReservation(
     by.kind === "member" ||
     by.kind === "link" ||
     (by.kind === "account" && paymentStatusOf(r) === "paid");
+  // A closure the member asked us for is judged at the request: the team's
+  // delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2). Only the
+  // decision moves back; the refund and every stamp are now.
+  const judgedAt =
+    by.kind === "account" &&
+    by.windowAt &&
+    by.windowAt.getTime() < now.getTime()
+      ? by.windowAt
+      : now;
   // The share of the payment this cancel refunds: null = all of it.
   let lateShare: number | null = null;
   if (lateMatters) {
-    const terms = karaokeSelfCancelTerms(r, now);
+    const terms = karaokeSelfCancelTerms(r, judgedAt);
     if (terms.kind === "refused") {
       return {
         ok: false,
@@ -1946,6 +1961,26 @@ export async function settleKaraokeRefundByHand(
 /** Each POS call an account closure waits for (DELETE /me has 15 s). */
 const ACCOUNT_CLOSURE_POS_DEADLINE_MS = 5_000;
 
+/** What a closure the member asked us for brings to the karaoke book. */
+export interface AccountClosureKaraokeOptions {
+  /**
+   * When the member asked us to close the account (the Site's deletion
+   * request, read before the closure blanks it). Each booking's own rule is
+   * judged at that instant (ASK-Y3-4 (d)); refunds still happen now.
+   */
+  windowAt?: Date;
+  /**
+   * Bookings whose start came after the request and whose room the person
+   * closing the account recorded as used: those keep the payment.
+   */
+  roomUsed?: readonly string[];
+}
+
+const PASSED_SINCE_REQUEST_TITLE =
+  "Silme talebi sırasında süresinde olan ödenmiş rezervasyonun saati geçti";
+const PASSED_SINCE_REQUEST_LEAD =
+  "Hesap kapandı. Üye silmeyi istediğinde rezervasyon iade süresindeydi, saati kapanıştan önce geçti.";
+
 /**
  * `DELETE /me` and the web's account deletion: every future booking is
  * cancelled while the rows still carry the member's address, and every paid
@@ -1957,25 +1992,89 @@ const ACCOUNT_CLOSURE_POS_DEADLINE_MS = 5_000;
  * closing either way - and put in front of a person: a refund the POS
  * declined or did not answer (the booking keeps `paid` / `refunding` for the
  * panel), or an unpaid hold the POS could not be asked about.
+ *
+ * A closure that answers the member's web request (`windowAt`) is judged at
+ * the request. A paid booking whose own rule still refunded it then and
+ * whose start has come since is not dropped as "past": it is refunded as the
+ * request would have been (in full inside the free window) unless the person
+ * closing the account recorded that the room was used (`roomUsed`), and
+ * either way it is put in front of a person.
  */
 export async function cancelKaraokeForClosedAccount(
   email: string,
   now: Date = new Date(),
+  opts: AccountClosureKaraokeOptions = {},
 ): Promise<void> {
   const today = istanbulClock(now).date;
+  const windowAt =
+    opts.windowAt &&
+    Number.isFinite(opts.windowAt.getTime()) &&
+    opts.windowAt.getTime() < now.getTime()
+      ? opts.windowAt
+      : null;
+  const roomUsed = new Set(opts.roomUsed ?? []);
+  const passedSinceRequest = (r: KaraokeReservation): boolean =>
+    windowAt !== null &&
+    paymentStatusOf(r) === "paid" &&
+    startedSinceRequest(r, windowAt, now);
   // The account's own bookings; guest rows with the same address are left
   // alone (they are reached by their signed link, and nothing proves the
   // person closing this account made them).
   const future = (await listMine(email)).filter(
-    (r) => r.date >= today && r.status !== "cancelled",
+    (r) =>
+      r.status !== "cancelled" && (r.date >= today || passedSinceRequest(r)),
   );
+  const by: KaraokeCanceller = windowAt
+    ? { kind: "account", email, windowAt }
+    : { kind: "account", email };
   const outcomes = await Promise.allSettled(
     future.map(async (r) => {
-      const res = await cancelKaraokeReservation(
-        r.id,
-        { kind: "account", email },
-        { now, refundDeadlineMs: ACCOUNT_CLOSURE_POS_DEADLINE_MS },
-      );
+      const passed = passedSinceRequest(r);
+      if (passed && roomUsed.has(r.id)) {
+        // The person closing the account says the evening was sung: the
+        // booking and its payment stay as they are, and the money team sees
+        // why.
+        await alertMoney(r, {
+          event: "account_closed_room_used",
+          key: "account-room-used",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: `${PASSED_SINCE_REQUEST_LEAD} Hesabı kapatan kişi odanın kullanıldığını işaretledi: iade yapılmadı, rezervasyon olduğu gibi duruyor.`,
+          footnote:
+            "Oda kullanılmadıysa panelden iptal et ve iade et (iade yetkisi gerekir).",
+          amountMinor: r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), roomUsed: true },
+        });
+        return;
+      }
+      const res = await cancelKaraokeReservation(r.id, by, {
+        now,
+        refundDeadlineMs: ACCOUNT_CLOSURE_POS_DEADLINE_MS,
+      });
+      if (passed) {
+        const refunded = res.ok && res.refunded;
+        // A late share the POS cannot send is owed by hand; its own alert
+        // ("Geç iptal: kısmi iade bekliyor") carries the amount.
+        const owedMinor = res.ok ? res.refundOwedMinor : undefined;
+        await alertMoney(res.reservation ?? r, {
+          event: "account_closed_passed_since_request",
+          key: "account-passed",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: refunded
+            ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için talep anındaki kurala göre iade yapıldı.`
+            : owedMinor !== undefined
+              ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için talep anındaki kurala göre ${formatTRYMinor(owedMinor)} karta iade edilecek.`
+              : `${PASSED_SINCE_REQUEST_LEAD} Talep anındaki kurala göre iade edilmeli ama iade hemen tamamlanmadı.`,
+          footnote: refunded
+            ? "Hesabı rezervasyon saatinden önce kapatmak bu durumu önler."
+            : owedMinor !== undefined
+              ? 'Kısmi iadeyi PayNkolay panelinden yap, sonra panelde "Elle iade edildi" ile kaydet.'
+              : "İade uyarısına bak ve iadeyi panelden tamamla (iade yetkisi gerekir).",
+          amountMinor: owedMinor ?? r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), refunded },
+        });
+      }
       if (res.ok) return;
       const current = (await getReservation(r.id)) ?? r;
       if (current.status === "cancelled") return;

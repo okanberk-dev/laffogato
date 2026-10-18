@@ -388,10 +388,14 @@ export const ANON_SWEEPS: ReadonlyArray<{
  * put in front of a person (`cancelKaraokeForClosedAccount`). Never fatal:
  * the account closes either way.
  */
-async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
+async function cancelFutureKaraoke(
+  email: string,
+  now: Date,
+  opts: { windowAt?: Date; roomUsed?: readonly string[] },
+): Promise<void> {
   try {
     const { cancelKaraokeForClosedAccount } = await import("./karaoke-payment");
-    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now);
+    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now, opts);
   } catch (err) {
     console.error(
       "[deleteMe] karaoke cancel failed",
@@ -542,6 +546,19 @@ export interface DeleteMeOptions {
    * identity is in the audit row the action writes.
    */
   by?: "member" | "admin";
+  /**
+   * The member's web deletion request this closure answers (its ISO stamp),
+   * read by the caller before this function blanks it. Each karaoke booking's
+   * rule is judged at that instant, not at the closure (ASK-Y3-4 (d)): the
+   * team's delay does not shorten the member's window. Refunds happen now.
+   */
+  deletionRequestedAt?: string;
+  /**
+   * Bookings whose start came after that request and whose room the panel
+   * user recorded as used: they keep the payment
+   * (`cancelKaraokeForClosedAccount`).
+   */
+  karaokeRoomUsed?: readonly string[];
 }
 
 /**
@@ -565,7 +582,11 @@ export interface DeleteMeOptions {
  */
 export async function deleteMe(
   customer: PublicCustomer,
-  { by = "member" }: DeleteMeOptions = {},
+  {
+    by = "member",
+    deletionRequestedAt,
+    karaokeRoomUsed = [],
+  }: DeleteMeOptions = {},
 ): Promise<DeleteMeResult> {
   const at = new Date();
   const now = at.toISOString();
@@ -591,7 +612,11 @@ export async function deleteMe(
   }
 
   const identityId = await linkedIdentityId(customer.email);
-  await cancelFutureKaraoke(customer.email, at);
+  const requested = Date.parse(deletionRequestedAt ?? "");
+  await cancelFutureKaraoke(customer.email, at, {
+    ...(Number.isFinite(requested) ? { windowAt: new Date(requested) } : {}),
+    roomUsed: karaokeRoomUsed,
+  });
   const karaokeIds = await karaokeIdsOf(customer.email);
   await deleteSavedCardsAtPos(customer.email);
   const { error } = await getDb()
