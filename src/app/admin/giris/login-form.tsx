@@ -2,10 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 
-import {
-  useNoResetSubmit,
-  withPanelCatch,
-} from "@/components/admin/action-form";
+import { useHandPost, withPanelCatch } from "@/components/admin/action-form";
 import { Field, PrimaryButton, TextInput } from "@/components/admin/forms";
 
 import { loginAction, type LoginState } from "./actions";
@@ -20,7 +17,7 @@ const submitLogin = withPanelCatch<LoginState>(loginAction, () => ({
 }));
 
 /**
- * Posted by hand (useNoResetSubmit), not through `<form action>`: React 19
+ * Posted by hand (useHandPost), not through `<form action>`: React 19
  * empties an action form's uncontrolled fields once the action finishes,
  * whatever it answers, so every mistyped password used to take the e-mail
  * with it. Now a refusal keeps the address; only the password is cleared,
@@ -31,14 +28,16 @@ const submitLogin = withPanelCatch<LoginState>(loginAction, () => ({
  * the browser's own way: a GET to this page with the password in the
  * address (history, server logs). With it React draws its guard
  * (`action="javascript:..."`), so an early Enter sends nothing; after
- * hydration onSubmit prevents that post and React skips the action.
+ * hydration onSubmit prevents that post and React skips the action. The
+ * press React kept and replays once the page is live is one attempt, not
+ * one per impatient Enter (ui/submit.ts replayByHand).
  */
 export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(
     submitLogin,
     initialState,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -51,8 +50,8 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form
       ref={formRef}
-      action={formAction}
-      onSubmit={onSubmit}
+      action={post.action}
+      onSubmit={post.onSubmit}
       className="flex flex-col gap-4"
     >
       {/* Empty, not "/admin": with no explicit destination the action picks

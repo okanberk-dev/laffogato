@@ -36,7 +36,7 @@ import type {
 import {
   markFieldErrors,
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import {
@@ -250,7 +250,7 @@ const initialState: ProductActionState = {};
  * The product form: a five-step wizard for a new product, every section on
  * one page for an edit.
  *
- * It posts by hand (useNoResetSubmit), not through `<form action>`: React
+ * It posts by hand (useHandPost), not through `<form action>`: React
  * resets an action form after every answer, so a refused save came back
  * with the category, the scene and the image tone on their first option and
  * the Aktif / Öne çıkan boxes flipped, and the next save stored them
@@ -561,7 +561,7 @@ export function ProductWizard({
     return false;
   };
 
-  const onSubmit = useNoResetSubmit(formAction, pending, { beforeSubmit });
+  const post = useHandPost(formAction, pending, { beforeSubmit });
 
   /** "Sonraki adım": only once this step's fields are fine. */
   const goNext = () => {
@@ -1398,7 +1398,8 @@ export function ProductWizard({
   return (
     <form
       ref={formRef}
-      onSubmit={onSubmit}
+      action={post.action}
+      onSubmit={post.onSubmit}
       noValidate
       className="grid gap-6"
     >

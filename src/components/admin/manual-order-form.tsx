@@ -29,7 +29,7 @@ import { computeTotalsWithShipping } from "@/lib/mobile/order-pricing";
 import {
   PANEL_ACTION_FAILED,
   markFieldErrors,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import {
@@ -143,7 +143,7 @@ function lineCap(available: number | null): number {
 /**
  * The panel's manual order (phone or counter sale).
  *
- * It posts by hand (useNoResetSubmit), not through `<form action>`: React
+ * It posts by hand (useHandPost), not through `<form action>`: React
  * resets an action form after every answer, so a refused order ("Yetersiz
  * stok") came back with the customer block empty and the status select on
  * "Ödendi" again; re-filling the name turned an order typed as "Ödeme
@@ -161,7 +161,7 @@ export function ManualOrderForm({
     error: PANEL_ACTION_FAILED,
   }));
   const [state, formAction, pending] = useActionState(save, initial);
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
 
   const formRef = useRef<HTMLFormElement>(null);
   const baseId = useId();
@@ -297,7 +297,12 @@ export function ManualOrderForm({
           : `Kargo ${formatTRY(shipping.shippingFlatMinor)} (Ayarlar). Kargoya verirken takip numarası gerekir.`;
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-5"
+    >
       <input type="hidden" name="items" value={itemsPayload} readOnly />
       <input type="hidden" name="clientOrderId" value={attemptId} readOnly />
 

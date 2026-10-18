@@ -12,7 +12,7 @@ import {
 import {
   ActionButton,
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import { FormError, FormSuccess } from "./form-feedback";
@@ -44,7 +44,7 @@ export function CustomerActions({
     })),
     resendInitial,
   );
-  const onResend = useNoResetSubmit(resendAction, resending);
+  const resendPost = useHandPost(resendAction, resending);
 
   return (
     <Card className="grid gap-3">
@@ -81,7 +81,11 @@ export function CustomerActions({
 
       {/* Resend verification (only meaningful when not yet verified) */}
       {!emailVerified && (
-        <form onSubmit={onResend} className="grid gap-2">
+        <form
+          action={resendPost.action}
+          onSubmit={resendPost.onSubmit}
+          className="grid gap-2"
+        >
           <input type="hidden" name="email" value={email} />
           <GhostButton type="submit" disabled={resending} className="w-full">
             {resending ? "Oluşturuluyor…" : "Doğrulama bağlantısı yenile"}

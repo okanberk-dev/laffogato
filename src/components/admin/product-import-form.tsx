@@ -21,7 +21,7 @@ import type { AdminTone } from "@/lib/admin/tone";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import { Card } from "./forms";
@@ -54,7 +54,7 @@ const HEADING = "text-lg font-semibold text-[var(--admin-text)]";
  * The product CSV import, one form in three parts: the template and the
  * rules, the file and its dry run, then the preview with "İçe aktar".
  *
- * Posted by hand (useNoResetSubmit), so the chosen file stays in its field
+ * Posted by hand (useHandPost), so the chosen file stays in its field
  * between the preview and the import: the import sends the same file
  * again and the server plans it afresh, it never trusts rows coming back
  * from the page. Which button was pressed rides along as `intent`.
@@ -78,7 +78,7 @@ export function ProductImportForm() {
     EMPTY_IMPORT_STATE,
   );
 
-  const onSubmit = useNoResetSubmit(dispatch, pending, {
+  const post = useHandPost(dispatch, pending, {
     beforeSubmit: (_form, submitter) => {
       setRunning(
         submitter?.getAttribute("value") === "apply" ? "apply" : "preview",
@@ -139,7 +139,7 @@ export function ProductImportForm() {
   ];
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-6">
+    <form action={post.action} onSubmit={post.onSubmit} className="grid gap-6">
       <Card className="grid gap-4">
         <h2 className={HEADING}>1. Şablonu indir</h2>
         <p className="text-sm text-[var(--admin-text-soft)]">

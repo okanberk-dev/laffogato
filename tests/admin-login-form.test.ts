@@ -101,8 +101,10 @@ describe("LoginForm", () => {
     // onSubmit prevents the form action's own post, the one React resets
     // the form after (react-dom skips the action for a prevented submit).
     const src = readFileSync("src/app/admin/giris/login-form.tsx", "utf8");
-    expect(src).toContain("useNoResetSubmit(formAction, pending)");
-    expect(src).toMatch(/onSubmit=\{onSubmit\}/);
+    expect(src).toContain("useHandPost(formAction, pending)");
+    expect(src).toMatch(
+      /action=\{post\.action\}\s+onSubmit=\{post\.onSubmit\}/,
+    );
   });
 
   it("never falls back to the browser's GET, password in the address", () => {

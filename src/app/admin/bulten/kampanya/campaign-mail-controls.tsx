@@ -4,7 +4,7 @@ import { useActionState } from "react";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "@/components/admin/action-form";
 import { FormError, FormSuccess } from "@/components/admin/form-feedback";
@@ -86,9 +86,9 @@ export function CampaignTestForm({
     withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
     initial,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   return (
-    <form onSubmit={onSubmit} className="grid gap-2">
+    <form action={post.action} onSubmit={post.onSubmit} className="grid gap-2">
       <TextInput
         name="to"
         type="email"
