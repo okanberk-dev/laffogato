@@ -181,7 +181,7 @@ export function TillConsole() {
               ))}
             </Select>
           </Field>
-          <Field label="Not (opsiyonel)" hint="Damga geçmişinde görünür.">
+          <Field label="Not (isteğe bağlı)" hint="Damga geçmişinde görünür.">
             <TextInput
               value={note}
               maxLength={80}
@@ -298,8 +298,8 @@ function Receipt({
   onNext: () => void;
 }) {
   return (
-    <Card className="grid gap-3 border-emerald-200 bg-emerald-50/60">
-      <p className="text-sm text-emerald-800">
+    <Card className="grid gap-3 border-[var(--admin-success)]/30 bg-[var(--admin-success-soft)]">
+      <p className="text-sm text-[var(--admin-success)]">
         <strong>+{result.stampsGiven} damga</strong> verildi.
       </p>
       <div className="grid gap-1 text-sm text-[var(--admin-text)]">
@@ -314,7 +314,7 @@ function Receipt({
         {result.code && <Stat label="Kod" value={result.code} />}
       </div>
       {result.rewardsReady > 0 && (
-        <p className="text-xs text-emerald-800">
+        <p className="text-xs text-[var(--admin-success)]">
           Üyenin ücretsiz içeceği hazır - uygulamadaki Ödüller sekmesinden
           kuponunu alabilir.
         </p>

@@ -927,23 +927,64 @@ const BULK_BUTTONS: Array<{
   label: string;
 }> = [
   { value: "preparing", label: "Hazırlamaya başla" },
-  { value: "shipped", label: "Kargoda / Hazır" },
+  // `shipped` is a different word per order (lib/admin/order-channel.ts):
+  // "Kargoda / Hazır" left the courier and the table orders out.
+  { value: "shipped", label: "Hazır / yolda" },
   { value: "completed", label: "Tamamlandı" },
   { value: "cancelled", label: "İptal et" },
 ];
+
+const BULK_DESCRIPTION: Record<(typeof BULK_BUTTONS)[number]["value"], string> =
+  {
+    preparing: "Bu duruma geçemeyenler atlanır ve sonuçta numarasıyla yazılır.",
+    shipped:
+      "Gel-al sipariş Hazır, kuryeli olan Kuryede, masa siparişi Masada, paket Kargoda olur. Takip numarası olmayan paket ve bu duruma geçemeyenler atlanır, sonuçta numarasıyla yazılır.",
+    completed: "Bu duruma geçemeyenler atlanır ve sonuçta numarasıyla yazılır.",
+    cancelled:
+      "Her sipariş tek tek iptal edilir: stok ve kupon geri döner, bekleyen kart ödemesi önce POS'a sorulur. Ödemesi alınmış olanların iadesini sonra sipariş sayfasından yap.",
+  };
 
 /**
  * The bulk bar's buttons. Each opens a modal; a cancel asks for a reason
  * and the number of selected orders typed out. The answer names every
  * skipped order and why; a success clears the selection.
+ *
+ * Below sm the four fold into one "Toplu işlem" menu, so the bar is a
+ * single row: four buttons wrapped it to 237 px on a 390 px phone, over
+ * the pagination and the last card (admin audit ORD-06). The menu rows
+ * open the same modals.
  */
 export function BulkOrderButtons({
-  ids: selected,
+  ids,
   onSuccess,
 }: {
   ids: readonly string[];
   /** After a run: the list clears its selection (`useSelection` resetOn). */
   onSuccess: (result: ActionResult) => void;
+}) {
+  return (
+    <>
+      <div className="hidden sm:contents">
+        <BulkModals ids={ids} onSuccess={onSuccess} menu={false} />
+      </div>
+      <div className="sm:hidden">
+        <ActionMenu label="Toplu işlem" showLabel>
+          <BulkModals ids={ids} onSuccess={onSuccess} menu />
+        </ActionMenu>
+      </div>
+    </>
+  );
+}
+
+function BulkModals({
+  ids: selected,
+  onSuccess,
+  menu,
+}: {
+  ids: readonly string[];
+  onSuccess: (result: ActionResult) => void;
+  /** Drawn as ActionMenu rows rather than bar buttons. */
+  menu: boolean;
 }) {
   const count = selected.length;
   const ids = selected.join(",");
@@ -956,13 +997,17 @@ export function BulkOrderButtons({
             key={b.value}
             action={bulkOrdersAction}
             title={`${count} sipariş: ${b.label}`}
-            description={
-              cancel
-                ? "Her sipariş tek tek iptal edilir: stok ve kupon geri döner, bekleyen kart ödemesi önce POS'a sorulur. Ödemesi alınmış olanların iadesini sonra sipariş sayfasından yap."
-                : "Bu duruma geçemeyenler atlanır ve sonuçta numarasıyla yazılır."
-            }
+            description={BULK_DESCRIPTION[b.value]}
             trigger={b.label}
-            triggerVariant={cancel ? "danger" : "ghost"}
+            triggerVariant={
+              menu
+                ? cancel
+                  ? "menuDanger"
+                  : "menu"
+                : cancel
+                  ? "danger"
+                  : "ghost"
+            }
             tone={cancel ? "danger" : "default"}
             submitLabel={b.label}
             confirmPhrase={cancel ? String(count) : undefined}

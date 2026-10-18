@@ -14,8 +14,16 @@ import type { AdminOrder, AdminSettings } from "@/lib/admin/store";
  */
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, prefetch: _p, ...rest }: { href: string; children?: ReactNode; prefetch?: boolean }) =>
-    createElement("a", { href, ...rest }, children),
+  default: ({
+    href,
+    children,
+    prefetch: _p,
+    ...rest
+  }: {
+    href: string;
+    children?: ReactNode;
+    prefetch?: boolean;
+  }) => createElement("a", { href, ...rest }, children),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -23,9 +31,8 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-const { OrderDetail, PrintableReceipt, maskRef } = await import(
-  "@/components/admin/order-detail"
-);
+const { OrderDetail, PrintableReceipt, maskRef } =
+  await import("@/components/admin/order-detail");
 const { orderActions } = await import("@/lib/admin/order-actions");
 const { orderTimeline } = await import("@/lib/admin/order-timeline");
 const { orderDetailsRules } = await import("@/lib/admin/order-details");
@@ -72,7 +79,11 @@ function order(over: Partial<AdminOrder> = {}): AdminOrder {
   } as AdminOrder;
 }
 
-const money = { collected: true, collectedMinor: 12_000, destination: "card" as const };
+const money = {
+  collected: true,
+  collectedMinor: 12_000,
+  destination: "card" as const,
+};
 
 function detail(o: AdminOrder, role: "owner" | "staff" = "owner") {
   return renderToStaticMarkup(
@@ -113,6 +124,25 @@ describe("the printed receipt", () => {
     expect(out).toMatch(/₺120,00/);
     // The cafe details reach the receipt too.
     expect(out).toContain("Büyük · yulaf sütü · +1 shot");
+  });
+
+  it("says it is not a fiscal document, on every kind of order (X-FIS)", () => {
+    for (const over of [
+      {},
+      { kind: "shop", fulfillment: "shipping", channel: "web" },
+      { channel: "manual", fulfillment: "pickup" },
+      { fulfillment: "table", tableCode: "K7P42M9XQA", tableName: "Bahçe 5" },
+    ] as Partial<AdminOrder>[]) {
+      const out = renderToStaticMarkup(
+        createElement(PrintableReceipt, { order: order(over), settings }),
+      );
+      const footer = out.slice(out.indexOf("<footer"));
+      expect(footer, JSON.stringify(over)).toMatch(
+        /<p data-receipt-fiscal-note="true"[^>]*>Bu fiş mali belge değildir\.<\/p>/,
+      );
+      // Only this sentence until e-Arşiv invoices go out by e-mail.
+      expect(footer).not.toContain("e-Arşiv");
+    }
   });
 
   it("has no discount row without a discount", () => {
@@ -216,7 +246,9 @@ describe("the order page", () => {
   });
 
   it("has no free tracking form at all: Kargoya ver and the menu carry it", () => {
-    const out = detail(order({ fulfillment: "shipping", kind: "shop", status: "cancelled" }));
+    const out = detail(
+      order({ fulfillment: "shipping", kind: "shop", status: "cancelled" }),
+    );
     expect(out).not.toContain('name="trackingNumber"');
     expect(out).not.toContain("Kargo bilgisini kaydet");
   });
@@ -252,7 +284,9 @@ describe("consent evidence on the page (ORD-29, karar D3)", () => {
 
   it("the page decides it from the customers section", () => {
     const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
-    expect(page).toContain('canSeeEvidence={canAccess("customers", session.role)}');
+    expect(page).toContain(
+      'canSeeEvidence={canAccess("customers", session.role)}',
+    );
     // Stamps or a member coupon under the e-mail lock it (verifier C1).
     expect(page).toContain(
       "detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}",
@@ -270,16 +304,120 @@ describe("the customer card (ORD-16, karar D2)", () => {
   });
 
   it("staff open the card of an open order", () => {
-    const out = detail(order({ status: "preparing", shippingAddress: "" }), "staff");
+    const parcel = order({
+      status: "preparing",
+      shippingAddress: "",
+      kind: "shop",
+      fulfillment: "shipping",
+    });
+    const out = detail(parcel, "staff");
     expect(out).not.toMatch(/<button[^>]*disabled=""[^>]*>Düzenle<\/button>/);
     expect(out).toContain("ile ekleyebilirsin");
   });
 
   it("offers the e-mail only with a confirm box that starts unticked", () => {
-    const src = readFileSync("src/components/admin/order-customer-editor.tsx", "utf8");
+    const src = readFileSync(
+      "src/components/admin/order-customer-editor.tsx",
+      "utf8",
+    );
     expect(src).toContain("rules.emailEditable ? (");
     expect(src).toContain('name="emailConfirm"');
     expect(src).not.toMatch(/emailConfirm"[^>]*(defaultChecked|checked)/);
+  });
+});
+
+describe("the customer card on the kit (ORD-11, ORD-05)", () => {
+  it("is a kit Section, with no legacy Card, pills or raw greys", () => {
+    const out = detail(order());
+    expect(out).toMatch(
+      /<h2[^>]*class="text-base font-semibold[^"]*">Müşteri<\/h2>/,
+    );
+    const src = readFileSync(
+      "src/components/admin/order-customer-editor.tsx",
+      "utf8",
+    );
+    expect(src).not.toMatch(/neutral-\d|red-\d|rounded-full|rounded-md/);
+    expect(src).not.toContain("<Card");
+    // Posted by hand, so a refusal keeps the typing and the confirm box.
+    expect(src).toContain("useHandPost(formAction, pending)");
+    // ...and still carries an action: React's guard against the browser's
+    // own GET, which would put the name, e-mail, phone and address in the
+    // address bar (main's tests/form-native-submit.test.ts holds every form
+    // to it). onSubmit prevents the post, so React never runs or resets it.
+    expect(src).toMatch(
+      /<form\s+action=\{post\.action\}\s+onSubmit=\{post\.onSubmit\}/,
+    );
+    expect(src).not.toMatch(/<form\s+onSubmit=/);
+    // A save says so.
+    expect(src).toContain(
+      'toast.show({ message: "Müşteri bilgisi kaydedildi." })',
+    );
+  });
+
+  it("shows no address on a gel-al or table order, and no 'Teslimat adresi yok'", () => {
+    for (const fulfillment of ["pickup", "table"] as const) {
+      const out = detail(
+        order({ status: "preparing", fulfillment, shippingAddress: "" }),
+        "staff",
+      );
+      expect(out, fulfillment).not.toContain("Teslimat adresi");
+      expect(out, fulfillment).not.toContain("ile ekleyebilirsin");
+      expect(out, fulfillment).not.toMatch(/>Adres<\/dt>/);
+    }
+  });
+
+  it("shows a parcel's or a courier run's address in the Teslimat section", () => {
+    for (const fulfillment of ["shipping", "delivery"] as const) {
+      const out = detail(
+        order({
+          fulfillment,
+          kind: "shop",
+          shippingAddress: "Postane Mah. No: 28\nTuzla",
+        }),
+      );
+      const delivery = out.slice(out.indexOf(">Teslimat</h2>"));
+      expect(delivery, fulfillment).toMatch(/>Adres<\/dt>/);
+      expect(delivery, fulfillment).toContain("Postane Mah. No: 28");
+    }
+  });
+
+  it("edits the address only where the order travels, and posts the stored one back elsewhere", () => {
+    const src = readFileSync(
+      "src/components/admin/order-customer-editor.tsx",
+      "utf8",
+    );
+    expect(src).toContain("hasAddress ? (");
+    // A gel-al order's save must not clear an address it happens to carry.
+    expect(src).toMatch(
+      /<input\s+type="hidden"\s+name="shippingAddress"\s+value=\{shippingAddress\}/,
+    );
+    const page = readFileSync("src/components/admin/order-detail.tsx", "utf8");
+    expect(page).toContain("hasAddress={orderHasAddress(order)}");
+  });
+});
+
+describe("the order lines on a phone (ORD-24)", () => {
+  it("stack below sm and in the narrow lg column, with the status control under each line", () => {
+    const out = detail(order({ status: "preparing" }));
+    const stacked = out.slice(
+      out.indexOf("<ul data-order-lines-stacked"),
+      out.indexOf("</ul>", out.indexOf("<ul data-order-lines-stacked")),
+    );
+    expect(stacked).toMatch(
+      /^<ul data-order-lines-stacked="true" class="[^"]*sm:hidden lg:block xl:hidden"/,
+    );
+    expect(stacked).toContain("Latte");
+    expect(stacked).toContain("Büyük · yulaf sütü · +1 shot");
+    expect(stacked).toContain("1 × ₺150,00");
+    expect(stacked).toContain('<select aria-label="Latte: kalem durumu"');
+  });
+
+  it("keep the table from sm (and from xl beside the sidebar), with no forced width", () => {
+    const out = detail(order());
+    expect(out).toContain(
+      '<div class="hidden overflow-x-auto sm:block lg:hidden xl:block"><table class="w-full text-sm">',
+    );
+    expect(out).not.toContain("min-w-[520px]");
   });
 });
 
@@ -290,7 +428,12 @@ describe("the timeline", () => {
         status: "cancelled",
         preparingAt: "2026-10-17T08:05:00.000Z",
         refunds: [
-          { id: "rfn-1", amountMinor: 12_000, reason: "Sağlayıcı iadesi (paynkolay)", createdAt: "2026-10-17T09:00:00.000Z" },
+          {
+            id: "rfn-1",
+            amountMinor: 12_000,
+            reason: "Sağlayıcı iadesi (paynkolay)",
+            createdAt: "2026-10-17T09:00:00.000Z",
+          },
         ],
       }),
       [
@@ -300,7 +443,12 @@ describe("the timeline", () => {
           action: "transition",
           entity: "order",
           entityId: "ord-1",
-          payload: { transition: "cancel", to: "cancelled", reason: "Müşteri vazgeçti", restock: false },
+          payload: {
+            transition: "cancel",
+            to: "cancelled",
+            reason: "Müşteri vazgeçti",
+            restock: false,
+          },
           createdAt: "2026-10-17T08:30:00.000Z",
         },
         {
@@ -314,8 +462,20 @@ describe("the timeline", () => {
         },
       ],
       [
-        { kind: "paid", status: "sent", error: "", createdAt: "2026-10-17T08:01:00.000Z", sentAt: "2026-10-17T08:01:02.000Z" },
-        { kind: "cancelled#resend-1", status: "failed", error: "down", createdAt: "2026-10-17T08:31:00.000Z", sentAt: "" },
+        {
+          kind: "paid",
+          status: "sent",
+          error: "",
+          createdAt: "2026-10-17T08:01:00.000Z",
+          sentAt: "2026-10-17T08:01:02.000Z",
+        },
+        {
+          kind: "cancelled#resend-1",
+          status: "failed",
+          error: "down",
+          createdAt: "2026-10-17T08:31:00.000Z",
+          sentAt: "",
+        },
       ],
     );
     const titles = items.map((i) => i.title);

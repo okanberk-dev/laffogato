@@ -80,6 +80,43 @@ export function scanRegion(width: number, height: number): ScanRegion {
 }
 
 /**
+ * The most of the video box the drawn frame may take, so its four sides
+ * always show (the box crops the picture, object-fit: cover).
+ */
+export const RETICLE_MAX_SHARE = 0.92;
+
+/**
+ * The side, in CSS pixels, of the square frame drawn over the preview.
+ *
+ * It is the decoded square (`scanRegion`) as it lands on screen: the video
+ * is drawn `object-fit: cover` into a box at most 340 px tall, so the
+ * picture is scaled by the larger of the two box/picture ratios and
+ * cropped around its centre, which is where the decoded square sits too.
+ * Sized from the box width alone (the old 78%), the frame on a landscape
+ * camera (an iPad, a laptop) was 523 px in a 340 px box with only 294 px of
+ * it decoded: a code held inside the drawn frame but off its middle was
+ * never read, and the frame's top and bottom were cut off (admin audit
+ * ORD-14).
+ *
+ * Never larger than the decoded square, so whatever is inside the frame is
+ * decoded; capped at RETICLE_MAX_SHARE of the box's shorter side so all of
+ * it shows (a portrait camera in a wide box decodes a little more than it
+ * draws, which costs nothing). 0 while either size is unknown: the caller
+ * keeps its CSS fallback.
+ */
+export function reticleSize(
+  box: { width: number; height: number },
+  source: { width: number; height: number },
+): number {
+  if (!(box.width > 0 && box.height > 0)) return 0;
+  if (!(source.width > 0 && source.height > 0)) return 0;
+  const scale = Math.max(box.width / source.width, box.height / source.height);
+  const decoded = scanRegion(source.width, source.height).size * scale;
+  const visible = RETICLE_MAX_SHARE * Math.min(box.width, box.height);
+  return Math.floor(Math.min(decoded, visible));
+}
+
+/**
  * How large a bitmap the decoder is given.
  *
  * Downscaling is not a compromise here, it is the tuning. A 1080p frame costs
@@ -132,7 +169,8 @@ export async function createDecoder(): Promise<Decoder> {
  * about permission at all: a laptop with no camera, and a camera another
  * program is already holding.
  */
-export type CameraFault = "denied" | "missing" | "busy" | "unsupported" | "other";
+export type CameraFault =
+  "denied" | "missing" | "busy" | "unsupported" | "other";
 
 export function cameraFault(err: unknown): CameraFault {
   if (typeof navigator === "undefined" || !navigator.mediaDevices) {
@@ -246,9 +284,11 @@ export function torchCapable(track: MediaStreamTrack | null): boolean {
   // `torch` is in the Image Capture spec, not in lib.dom's
   // `MediaTrackCapabilities`, so the whole method is re-typed rather than
   // intersected - an intersection would conflict with the built-in signature.
-  const get = (track as unknown as {
-    getCapabilities?: () => { torch?: boolean };
-  }).getCapabilities;
+  const get = (
+    track as unknown as {
+      getCapabilities?: () => { torch?: boolean };
+    }
+  ).getCapabilities;
   return get?.call(track).torch === true;
 }
 

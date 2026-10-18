@@ -9,17 +9,24 @@ import {
   type OrderChannel,
   type OrderFulfillment,
 } from "@/lib/admin/order-channel";
+import type { AdminTone } from "@/lib/admin/tone";
 
-const CHANNEL_TONE: Record<OrderChannel, string> = {
-  web: "bg-neutral-100 text-neutral-600",
-  app: "bg-emerald-50 text-emerald-700",
+import { Badge } from "./ui/badge";
+
+// The kit's tones (ui/tone.ts, each ink AA on its ground), not the raw
+// Tailwind palette the pills used to carry; Badge keeps a pill on one line,
+// where "Masaya servis · Bahçe 5" wrapped into a three-line capsule in the
+// Kanal column (admin audit ORD-22).
+export const CHANNEL_TONE: Record<OrderChannel, AdminTone> = {
+  web: "neutral",
+  app: "success",
 };
 
-const FULFILLMENT_TONE: Record<OrderFulfillment, string> = {
-  shipping: "bg-indigo-50 text-indigo-700",
-  pickup: "bg-amber-50 text-amber-700",
-  delivery: "bg-sky-50 text-sky-700",
-  table: "bg-rose-50 text-rose-700",
+export const FULFILLMENT_TONE: Record<OrderFulfillment, AdminTone> = {
+  shipping: "info",
+  pickup: "warning",
+  delivery: "primary",
+  table: "accent",
 };
 
 interface Props {
@@ -43,18 +50,25 @@ export function OrderChannelBadges({ order }: Props) {
   const fulfillment = orderFulfillment(order);
   const kind = orderKind(order);
   const table = orderTable(order);
-  const pill =
-    "rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase";
   return (
     <>
-      <span className={`${pill} ${CHANNEL_TONE[channel]}`}>
+      <Badge tone={CHANNEL_TONE[channel]}>
         {ORDER_CHANNEL_LABELS[channel]}
         {kind === "cafe" ? ` · ${ORDER_KIND_LABELS[kind]}` : ""}
-      </span>
-      <span className={`${pill} ${FULFILLMENT_TONE[fulfillment]}`}>
-        {ORDER_FULFILLMENT_LABELS[fulfillment]}
-        {table ? ` · ${table.name || table.code}` : ""}
-      </span>
+      </Badge>
+      {/* A table order reads "Masa · Bahçe 5": the table says the service.
+          A long name is cut, not wrapped; the full name is the title. */}
+      <Badge
+        tone={FULFILLMENT_TONE[fulfillment]}
+        title={table ? table.name || table.code : undefined}
+        className="max-w-full min-w-0"
+      >
+        <span className="truncate">
+          {table
+            ? `Masa · ${table.name || table.code}`
+            : ORDER_FULFILLMENT_LABELS[fulfillment]}
+        </span>
+      </Badge>
     </>
   );
 }

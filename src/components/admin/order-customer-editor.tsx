@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 
 import {
   saveOrderDetailsAction,
@@ -11,9 +11,24 @@ import {
   type OrderDetailsRules,
 } from "@/lib/admin/order-details";
 
-import { Card } from "./forms";
+import { PANEL_ACTION_FAILED } from "./action-form";
+import { Field, TextInput, Textarea } from "./forms";
+import { KeyValueGrid, Section, useToast } from "./ui";
+import { BUTTON } from "./ui/styles";
+import { useHandPost, withPanelCatch } from "./ui/submit";
 
 const initial: OrderDetailsActionState = {};
+
+// A throw (a dropped connection) answers like a refusal, inside the card,
+// instead of the panel's error page taking the typing with it.
+const save = withPanelCatch(
+  saveOrderDetailsAction,
+  (prev: OrderDetailsActionState) => ({
+    ...prev,
+    savedAt: undefined,
+    error: PANEL_ACTION_FAILED,
+  }),
+);
 
 interface Props {
   orderId: string;
@@ -21,6 +36,13 @@ interface Props {
   customerEmail: string;
   customerPhone: string;
   shippingAddress: string;
+  /**
+   * The order goes to an address (kargo, kurye): the form edits it. A
+   * gel-al or table order has none to edit; its stored value is posted back
+   * as it is, so a save never clears it. The address itself is shown in the
+   * Teslimat section (order-detail.tsx).
+   */
+  hasAddress: boolean;
   /** The customer's page (`/admin/musteriler/<email>`) when the role may open it. */
   customerHref?: string | null;
   /**
@@ -31,26 +53,42 @@ interface Props {
   rules: OrderDetailsRules;
 }
 
+/**
+ * The order page's customer card, on the kit (admin audit ORD-11): a
+ * Section with the details as a key/value list, and "Düzenle" opening the
+ * form in place. The form posts by hand (useHandPost), so a refusal
+ * keeps what was typed and the e-mail confirm box as it was ticked; a save
+ * says so in a toast.
+ */
 export function OrderCustomerEditor({
   orderId,
   customerName,
   customerEmail,
   customerPhone,
   shippingAddress,
+  hasAddress,
   customerHref = null,
   rules,
 }: Props) {
+  const toast = useToast();
+  const lockId = useId();
   const [state, formAction, pending] = useActionState(
-    saveOrderDetailsAction,
+    async (prev: OrderDetailsActionState, formData: FormData) => {
+      const next = await save(prev, formData);
+      if (next.savedAt) toast.show({ message: "Müşteri bilgisi kaydedildi." });
+      return next;
+    },
     initial,
   );
+  const post = useHandPost(formAction, pending);
   const [editing, setEditing] = useState(false);
-  const [vals, setVals] = useState({
+  const stored = {
     customerName,
     customerEmail,
     customerPhone,
     shippingAddress,
-  });
+  };
+  const [vals, setVals] = useState(stored);
 
   /* Collapse back to read-mode after a successful save: adjusted during
      render when the action's timestamp changes, not in an effect. */
@@ -67,31 +105,41 @@ export function OrderCustomerEditor({
 
   if (editing) {
     return (
-      <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <SectionTitle>Müşteri & teslimat - düzenle</SectionTitle>
-        </div>
-        <form action={formAction} className="grid gap-3 text-sm">
+      <Section title="Müşteri bilgisini düzenle">
+        {/* post.action is React's guard (a form with neither action nor
+            method is the browser's GET, every field in the address) and
+            gates a replayed early submit; the post itself is onSubmit's,
+            so nothing is reset (useHandPost). */}
+        <form
+          action={post.action}
+          onSubmit={post.onSubmit}
+          className="grid gap-4"
+        >
           <input type="hidden" name="id" value={orderId} />
-          <LabeledInput
-            label="Ad Soyad"
-            name="customerName"
-            value={vals.customerName}
-            onChange={set("customerName")}
-            required
-          />
+          <Field label="Ad Soyad">
+            <TextInput
+              name="customerName"
+              value={vals.customerName}
+              onChange={set("customerName")}
+              required
+              minLength={2}
+              autoComplete="off"
+            />
+          </Field>
           {rules.emailEditable ? (
             <>
-              <LabeledInput
-                label="E-posta"
-                name="customerEmail"
-                type="email"
-                maxLength={160}
-                value={vals.customerEmail}
-                onChange={set("customerEmail")}
-              />
+              <Field label="E-posta">
+                <TextInput
+                  name="customerEmail"
+                  type="email"
+                  maxLength={160}
+                  value={vals.customerEmail}
+                  onChange={set("customerEmail")}
+                  autoComplete="off"
+                />
+              </Field>
               {emailChanges(customerEmail, vals.customerEmail) ? (
-                <label className="flex items-start gap-3 rounded-xl bg-[var(--admin-warning-soft)] px-3 py-2.5 text-xs text-[var(--admin-text)]">
+                <label className="flex items-start gap-3 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-text)]">
                   <input
                     type="checkbox"
                     name="emailConfirm"
@@ -106,190 +154,139 @@ export function OrderCustomerEditor({
               ) : null}
             </>
           ) : (
-            <div className="grid gap-1">
-              <span className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase">
-                E-posta
-              </span>
-              <span className="break-all text-[var(--admin-text)]">
-                {customerEmail || "Yok"}
-              </span>
-              <span className="text-xs text-[var(--admin-text-soft)]">
-                {rules.emailReason}
-              </span>
-            </div>
-          )}
-          <LabeledInput
-            label="Telefon"
-            name="customerPhone"
-            value={vals.customerPhone}
-            onChange={set("customerPhone")}
-          />
-          <label className="grid gap-1">
-            <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-              Teslimat adresi
-            </span>
-            <textarea
-              name="shippingAddress"
-              rows={4}
-              value={vals.shippingAddress}
-              onChange={set("shippingAddress")}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+            <KeyValueGrid
+              columns={1}
+              empty="Yok"
+              items={[
+                {
+                  label: "E-posta",
+                  value: customerEmail,
+                  hint: rules.emailReason,
+                },
+              ]}
             />
-          </label>
-          {state.error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {state.error}
-            </div>
           )}
-          <div className="flex justify-end gap-2">
+          <Field label="Telefon">
+            <TextInput
+              name="customerPhone"
+              type="tel"
+              value={vals.customerPhone}
+              onChange={set("customerPhone")}
+              autoComplete="off"
+            />
+          </Field>
+          {hasAddress ? (
+            <Field label="Teslimat adresi">
+              <Textarea
+                name="shippingAddress"
+                rows={4}
+                value={vals.shippingAddress}
+                onChange={set("shippingAddress")}
+              />
+            </Field>
+          ) : (
+            <input
+              type="hidden"
+              name="shippingAddress"
+              value={shippingAddress}
+            />
+          )}
+          {state.error ? (
+            <p
+              role="alert"
+              className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+            >
+              {state.error}
+            </p>
+          ) : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={() => {
-                setVals({
-                  customerName,
-                  customerEmail,
-                  customerPhone,
-                  shippingAddress,
-                });
-                setEditing(false);
-              }}
-              className="rounded-full border border-neutral-300 px-4 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              disabled={pending}
+              onClick={() => setEditing(false)}
+              className={BUTTON.ghost}
             >
               Vazgeç
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+              aria-busy={pending || undefined}
+              className={BUTTON.primary}
             >
               {pending ? "Kaydediliyor…" : "Kaydet"}
             </button>
           </div>
         </form>
-      </Card>
+      </Section>
     );
   }
 
   return (
-    <>
-      <Card>
-        <div className="mb-3 flex items-center justify-between">
-          <SectionTitle>Müşteri</SectionTitle>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={!rules.editable}
-            aria-describedby={rules.editable ? undefined : `${orderId}-lock`}
-            className="rounded-full border border-neutral-300 px-3 py-1 text-[11px] text-neutral-600 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-50"
-          >
-            Düzenle
-          </button>
-        </div>
-        {rules.editable ? null : (
-          <p
-            id={`${orderId}-lock`}
-            className="mb-3 text-xs text-[var(--admin-text-soft)]"
-          >
-            {rules.reason}
-          </p>
-        )}
-        <div className="grid gap-3 text-sm">
-          <KV k="Ad">{vals.customerName || "-"}</KV>
-          <KV k="E-posta">
-            {vals.customerEmail ? (
-              <a
-                href={`mailto:${vals.customerEmail}`}
-                className="text-neutral-900 hover:underline"
-              >
-                {vals.customerEmail}
-              </a>
-            ) : (
-              <span className="text-neutral-400">Yok</span>
-            )}
-          </KV>
-          <KV k="Telefon">
-            {vals.customerPhone ? (
-              <a
-                href={`tel:${vals.customerPhone.replace(/\s/g, "")}`}
-                className="text-neutral-900 hover:underline"
-              >
-                {vals.customerPhone}
-              </a>
-            ) : (
-              <span className="text-neutral-400">Toplanmadı</span>
-            )}
-          </KV>
-          {customerHref ? (
-            <a
-              href={customerHref}
-              className="justify-self-start text-xs text-[var(--admin-primary)] underline underline-offset-4"
-            >
-              Müşteri sayfasını aç
-            </a>
-          ) : null}
-        </div>
-      </Card>
-
-      <Card>
-        <SectionTitle>Teslimat adresi</SectionTitle>
-        {vals.shippingAddress ? (
-          <address className="text-sm whitespace-pre-line text-neutral-700 not-italic">
-            {vals.shippingAddress}
-          </address>
-        ) : (
-          <p className="text-sm text-neutral-400">
-            Teslimat adresi yok.
-            {rules.editable ? ' "Düzenle" ile ekleyebilirsin.' : ""}
-          </p>
-        )}
-      </Card>
-    </>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-      style={{ fontFamily: "var(--mono), monospace" }}
+    <Section
+      title="Müşteri"
+      actions={
+        <button
+          type="button"
+          onClick={() => {
+            // Every opening starts from what is stored: a page refreshed
+            // since (another device saved) is not overwritten by old typing.
+            setVals(stored);
+            setEditing(true);
+          }}
+          disabled={!rules.editable}
+          aria-describedby={rules.editable ? undefined : lockId}
+          className={BUTTON.ghost}
+        >
+          Düzenle
+        </button>
+      }
     >
-      {children}
-    </h2>
-  );
-}
-
-function KV({ k, children }: { k: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-0.5">
-      <span
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {k}
-      </span>
-      {/* The label above the value, as in the cards below it: in the
-          sidebar column a 100px label left the value a few letters wide,
-          and a long name or address pushed the whole page sideways. */}
-      <span className="min-w-0 [overflow-wrap:anywhere] text-neutral-800">
-        {children}
-      </span>
-    </div>
-  );
-}
-
-function LabeledInput({
-  label,
-  ...rest
-}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className="grid gap-1">
-      <span className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-        {label}
-      </span>
-      <input
-        {...rest}
-        className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+      {rules.editable ? null : (
+        <p id={lockId} className="mb-4 text-sm text-[var(--admin-text-soft)]">
+          {rules.reason}
+        </p>
+      )}
+      <KeyValueGrid
+        columns={1}
+        items={[
+          { label: "Ad", value: customerName },
+          {
+            label: "E-posta",
+            value: customerEmail ? (
+              <a
+                href={`mailto:${customerEmail}`}
+                className="[overflow-wrap:anywhere] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              >
+                {customerEmail}
+              </a>
+            ) : (
+              <span className="text-[var(--admin-text-soft)]">Yok</span>
+            ),
+          },
+          {
+            label: "Telefon",
+            value: customerPhone ? (
+              <a
+                href={`tel:${customerPhone.replace(/\s/g, "")}`}
+                className="underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              >
+                {customerPhone}
+              </a>
+            ) : (
+              <span className="text-[var(--admin-text-soft)]">Toplanmadı</span>
+            ),
+          },
+        ]}
       />
-    </label>
+      {customerHref ? (
+        <a
+          href={customerHref}
+          className={`${BUTTON.link} mt-2 -ml-1 underline`}
+        >
+          Müşteri sayfasını aç
+        </a>
+      ) : null}
+    </Section>
   );
 }
