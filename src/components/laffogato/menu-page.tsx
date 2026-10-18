@@ -4,6 +4,8 @@ import { useState, useMemo, useRef } from "react";
 
 import Link from "next/link";
 
+import { menuAllergenWords } from "@/lib/menu/allergens";
+import { menuPriceNote } from "@/lib/menu/price-list";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 
 import { Illustration } from "./illustration";
@@ -13,7 +15,7 @@ import { MenuPhotoNote } from "./menu-photo-note";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
 
-export function PageMenu({ menu }: PageProps) {
+export function PageMenu({ menu, settings }: PageProps) {
   const liveMenu = menu ?? MENU;
   const cats = Object.keys(liveMenu);
   // A single-category menu means this is /menu/<kategori>, which is scoped
@@ -240,6 +242,10 @@ export function PageMenu({ menu }: PageProps) {
                   const badge = it.tags
                     ?.map((t) => MENU_TAG_LABELS[t])
                     .find(Boolean);
+                  // TGK Etiketleme Yön. m.15/5: the item's own allergens,
+                  // once the panel has them. Never clamped like the
+                  // description: an allergen is not cut to fit.
+                  const allergens = menuAllergenWords(it.allergens);
                   return (
                     <article
                       className="rail-card"
@@ -267,6 +273,16 @@ export function PageMenu({ menu }: PageProps) {
                             {it.name}
                           </h3>
                           <p className="rail-card-desc">{it.desc}</p>
+                          {allergens && (
+                            <p className="menu-card-allergens">
+                              <span className="menu-card-allergens-key">
+                                Alerjenler:
+                              </span>{" "}
+                              {allergens.length > 0
+                                ? allergens.join(", ")
+                                : "yok"}
+                            </p>
+                          )}
                         </div>
                         <div className="rail-card-foot">
                           <span className="rail-card-price">
@@ -287,6 +303,12 @@ export function PageMenu({ menu }: PageProps) {
                 })}
               </div>
               <MenuPhotoNote show={items.some((it) => it.image)} />
+              {/* Fiyat Etiketi Yön. m.5/2-c, d: prices include every tax,
+                  and the day they started to apply (Ayarlar > Vergi). A
+                  table's QR code opens this list (/masa/<kod>). */}
+              <p className="menu-price-note">
+                {menuPriceNote(settings?.menuPricesEffectiveDate)}
+              </p>
             </>
           )}
         </div>
@@ -305,10 +327,23 @@ export function PageMenu({ menu }: PageProps) {
             </div>
             <div>
               <div className="eyebrow muted">Alerjenler</div>
+              {/* The card says what the item contains once the panel has it;
+                  the cross-contact line is the kitchen's and holds for all.
+                  The table of the fourteen groups is in the food safety
+                  document (§7). */}
               <p>
-                Süt, gluten, kuruyemiş, soya - mutfağımızda çapraz temas
-                olabilir. Cölyak için baristaya bildirin, pirinç bisküvili
-                alternatif hazırlarız.
+                Kalemin içerdiği alerjenler kartında yazar; yazmıyorsa
+                siparişten önce baristaya sor. Mutfağımızda süt, gluten,
+                kuruyemiş ve soya ile çapraz temas olabilir. Çölyak ya da ciddi
+                bir alerjin varsa baristaya söyle.
+              </p>
+              <p>
+                <Link
+                  href="/hukuk/gida-guvenligi-ve-alerjen"
+                  className="link-more"
+                >
+                  Alerjen ve gıda güvenliği bilgisi
+                </Link>
               </p>
             </div>
             <div>
