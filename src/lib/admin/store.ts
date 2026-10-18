@@ -5884,92 +5884,101 @@ export async function updateSettings(
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────
 
+/** A product at or under its low-stock line, for the dashboard. */
+export interface LowStockRow {
+  id: string;
+  name: string;
+  stock: number;
+  lowStockThreshold: number;
+}
+
+/**
+ * What the dashboard's tiles and lists count. Every figure is the count of
+ * a list a tile opens, read by the same rule, so the number on the tile is
+ * the number of rows behind it. No money: the revenue tile reads the
+ * report's buckets (`revenueBuckets`) and only for the roles that may see
+ * reports (admin audit SHE-14).
+ */
 export interface DashboardStats {
-  productCount: number;
-  activeProductCount: number;
+  /** `OPEN_ORDER_STATUSES`: the "Açık" tab's and the sidebar badge's set. */
+  openOrderCount: number;
+  /** The open orders per status, in `OPEN_ORDER_STATUSES` order. */
+  openByStatus: Array<{ status: AdminOrderStatus; count: number }>;
+  /** Orders flagged for a person (`attention`): the list's Dikkat filter. */
+  attentionOrderCount: number;
+  /** Stock 0, active or not: the product list's "Stokta yok". */
   outOfStockCount: number;
-  categoryCount: number;
-  orderCount: number;
-  pendingOrderCount: number;
-  revenueMinor: number;
+  /** Active products at or under their line, the emptiest first. */
+  lowStock: LowStockRow[];
+  /** How many active products are at or under their line. */
+  lowStockCount: number;
+}
+
+/** The product columns the dashboard's stock figures read. */
+export type DashboardProduct = LowStockRow & { isActive: boolean };
+
+/**
+ * The pure half of the dashboard's stock figures, exported for tests. A
+ * product counts as low at or under its own line (`stock <=
+ * lowStockThreshold`), sold out included: the shelf the shift has to fill
+ * first comes first.
+ */
+export function dashboardStockFrom(
+  products: readonly DashboardProduct[],
+  limit = 5,
+): Pick<DashboardStats, "outOfStockCount" | "lowStock" | "lowStockCount"> {
+  const low = products
+    .filter((p) => p.isActive && p.stock <= p.lowStockThreshold)
+    .sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "tr"));
+  return {
+    outOfStockCount: products.filter((p) => p.stock === 0).length,
+    lowStock: low.slice(0, limit).map((p) => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock,
+      lowStockThreshold: p.lowStockThreshold,
+    })),
+    lowStockCount: low.length,
+  };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
   const sb = getDb();
+  const ctx = "getDashboardStats";
 
-  const [
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueRows,
-  ] = await Promise.all([
-    countRows(TABLES.products),
-    sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("isActive", true)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.active: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("stock", 0)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.oos: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    countRows(TABLES.categories),
-    countRows(TABLES.orders),
+  // The tiles for products and categories went (a shift has nothing to do
+  // with how many there are), and with them two counts and the read of
+  // every paid order's total that the revenue tile used to make for staff
+  // as well.
+  const [open, attentionOrderCount, products] = await Promise.all([
     sb
       .from(TABLES.orders)
-      .select("*", { count: "exact", head: true })
+      .select("status")
       .in("status", [...OPEN_ORDER_STATUSES])
+      .then((r) => rows<{ status: AdminOrderStatus }>(r, `${ctx}.open`)),
+    sb
+      .from(TABLES.orders)
+      .select("*", { count: "exact", head: true })
+      .neq("attention", "")
       .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        if (r.error) raiseDbError(`${ctx}.attention`, r.error, r.status);
         return r.count ?? 0;
       }),
     sb
-      .from(TABLES.orders)
-      .select("totalMinor, refunds")
-      .in("status", ["paid", "preparing", "shipped", "completed"])
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
-        return (r.data ?? []) as Array<{
-          totalMinor: number;
-          refunds: AdminRefund[] | null;
-        }>;
-      }),
+      .from(TABLES.products)
+      .select("id, name, stock, lowStockThreshold, isActive")
+      .then((r) => rows<DashboardProduct>(r, `${ctx}.stock`)),
   ]);
 
-  // Net of refunds. The dashboard summed order totals and ignored the refund
-  // ledger entirely, so money handed back still counted as revenue - and a
-  // partially refunded order counted in full.
-  const revenueMinor = revenueRows.reduce((sum, o) => {
-    const refunded = (o.refunds ?? []).reduce(
-      (r, entry) => r + (entry?.amountMinor ?? 0),
-      0,
-    );
-    return sum + Math.max(0, (o.totalMinor ?? 0) - refunded);
-  }, 0);
-
   return {
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueMinor,
+    openOrderCount: open.length,
+    openByStatus: OPEN_ORDER_STATUSES.map((status) => ({
+      status,
+      count: open.filter((o) => o.status === status).length,
+    })),
+    attentionOrderCount,
+    ...dashboardStockFrom(products),
   };
 }
 
