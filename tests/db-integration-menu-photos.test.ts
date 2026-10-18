@@ -121,4 +121,61 @@ maybe("the menu-photos migration in a real Postgres", () => {
       expect((await photo(db, "mnu-0019")).image).toBe("");
     });
   });
+
+  // 18 Oct 2026 (OP-MENU-PHOTOS): eight of those photos contradict the item.
+  const OFF_FILE = "20261018210000_menu_photos_mismatch.sql";
+  const OFF_MIGRATION = readFileSync(`db/migrations/${OFF_FILE}`, "utf8");
+
+  it("empties the eight only while they carry the path the first migration wrote", async () => {
+    await inRollback(async (db) => {
+      await db.query(`delete from public._migrations where name = $1`, [
+        OFF_FILE,
+      ]);
+      await put(
+        db,
+        "mnu-0074",
+        "Rosbeef Sandviç",
+        "/menu/roast-beef-sandwich.webp",
+      );
+      await put(
+        db,
+        "mnu-0082",
+        "Alternatif Süt",
+        "/menu/alternative-milk.webp",
+      );
+      // The operator's own photo on one of the eight, and a stock photo
+      // that is not among them.
+      await put(db, "mnu-0073", "Karabuğday Simit", OPERATOR_PHOTO);
+      await put(db, "mnu-0072", "Tiramisu", "/menu/tiramisu.webp");
+
+      await db.query(OFF_MIGRATION);
+
+      expect((await photo(db, "mnu-0074")).image).toBe("");
+      expect((await photo(db, "mnu-0082")).image).toBe("");
+      expect((await photo(db, "mnu-0073")).image).toBe(OPERATOR_PHOTO);
+      expect((await photo(db, "mnu-0072")).image).toBe("/menu/tiramisu.webp");
+    });
+  });
+
+  it("does nothing once recorded: a stock path linked again by hand stays", async () => {
+    await inRollback(async (db) => {
+      await db.query(
+        `insert into public._migrations (name) values ($1)
+         on conflict (name) do nothing`,
+        [OFF_FILE],
+      );
+      await put(
+        db,
+        "mnu-0074",
+        "Rosbeef Sandviç",
+        "/menu/roast-beef-sandwich.webp",
+      );
+
+      await db.query(OFF_MIGRATION);
+
+      expect((await photo(db, "mnu-0074")).image).toBe(
+        "/menu/roast-beef-sandwich.webp",
+      );
+    });
+  });
 });

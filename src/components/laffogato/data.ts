@@ -293,7 +293,8 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "dawn",
-        image: "/menu/iced-pumpkin-latte.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Buzlu İspanyol Latte",
@@ -577,7 +578,8 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "dawn",
-        image: "/menu/peach-iced-tea.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
     ],
   },
@@ -607,7 +609,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Yaban mersinli San Sebastian cheesecake.",
         price: "295₺",
         hue: "bougainvillea",
-        image: "/menu/blueberry-san-sebastian.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "L'Af Mango",
@@ -636,7 +639,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Çilekli magnolia, bisküvi kırığıyla.",
         price: "240₺",
         hue: "rose",
-        image: "/menu/strawberry-magnolia.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Muz Magnolia",
@@ -664,7 +668,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kaşık kaşık kremalı klasik tatlı.",
         price: "220₺",
         hue: "cream",
-        image: "/menu/classic-spoonful.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Frambuazlı Cheesecake",
@@ -715,14 +720,16 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Karabuğday unlu simit.",
         price: "90₺",
         hue: "warm",
-        image: "/menu/simit.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Rosbeef Sandviç",
         desc: "Rosbif, taze yeşillik ve sos.",
         price: "390₺",
         hue: "warm",
-        image: "/menu/roast-beef-sandwich.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Hindi Fümeli Sandviç",
@@ -786,7 +793,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Yulaf, badem veya laktozsuz süt seçeneği.",
         price: "25₺",
         hue: "cream",
-        image: "/menu/alternative-milk.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
         // Almond is one of the three: the warning has to reach whoever picks it.
         tags: ["nuts"],
       },
