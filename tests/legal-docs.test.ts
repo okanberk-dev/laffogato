@@ -15,6 +15,7 @@ import {
   fillTokens,
   hasEmptyToken,
 } from "@/lib/legal/entity";
+import { SAVED_CARDS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 
 /**
@@ -474,5 +475,42 @@ describe("legal content - distance sales after the 1 Ocak 2026 amendment", () =>
       "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
     );
     expect(all).not.toMatch(/26\.08\.2015/);
+  });
+});
+
+describe("legal content - no saved cards", () => {
+  // Card storage was never turned on (rule 28), yet 42 sentences in 14
+  // documents described it "once it is turned on": a member key, the last
+  // four digits, a nickname, deletion at PayNkolay. A notice may not suggest
+  // processing that does not happen (Aydınlatma Tebliği m.5/1-g, j), and the
+  // server minted the member key anyway. The passages are kept word for word
+  // in docs/LEGAL-REDLINES-2026-09.md §19; they come back in the PR that
+  // flips SAVED_CARDS_IN_LEGAL_TEXTS, and the server gate reads that flag
+  // (tests/saved-cards.test.ts).
+  const savedCard =
+    /kart saklama|kayıtlı kart|üye anahtarı|müşteri anahtarı|sonraki ödemeler için kaydet/i;
+
+  it("describes no saved card while the texts say they are off", () => {
+    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(false);
+    for (const [where, text] of docTexts()) {
+      expect(text, where).not.toMatch(savedCard);
+    }
+  });
+
+  it("says in the payment documents that the card is not kept", () => {
+    const kept = /sonraki ödemeler için (PayNkolay nezdinde de )?kaydedilmez/;
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "odeme-kosullari",
+      "uyelik-sozlesmesi",
+      "mobil-uygulama-kosullari",
+      "kafe-hizmet-kosullari",
+    ]) {
+      expect(
+        docTexts(slug).some(([, text]) => kept.test(text)),
+        slug,
+      ).toBe(true);
+    }
   });
 });
