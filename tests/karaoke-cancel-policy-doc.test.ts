@@ -86,3 +86,30 @@ describe("the karaoke terms as published", () => {
     );
   });
 });
+
+describe("opening the app lock", () => {
+  /**
+   * Five other documents quote the default rule in their own words
+   * (iade-ve-cayma, odeme-kosullari, veri-saklama-ve-imha-politikasi,
+   * hesap-silme, kafe-hizmet-kosullari). That is true while every booking is
+   * made under 2 hours / 0 %, which the lock guarantees. Whoever opens it
+   * (KARAOKE_POLICY_APP_VERSION) rewrites them first, to point at the
+   * karaoke terms instead of repeating a rule the panel may change.
+   */
+  it("needs every other document to stop quoting the fixed rule", async () => {
+    const { KARAOKE_POLICY_APP_VERSION } =
+      await import("@/lib/mobile/karaoke-time");
+    const { LEGAL_DOCS } = await import("@/lib/legal/documents");
+    const quoting = LEGAL_DOCS.filter(
+      (d) =>
+        d.slug !== SLUG &&
+        /(?<!\d)2 saatten (fazla|az)/.test(JSON.stringify(d)),
+    ).map((d) => d.slug);
+    if (KARAOKE_POLICY_APP_VERSION === null) {
+      // Shut: the quotes are true, and they are there.
+      expect(quoting.length).toBeGreaterThan(0);
+    } else {
+      expect(quoting, "rewrite these before opening the lock").toEqual([]);
+    }
+  });
+});

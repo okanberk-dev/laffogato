@@ -409,7 +409,9 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
  * released and set here, and the panel's minimum app version reaches it,
  * only the default policy can be saved or take effect: an old build would
  * otherwise show a member a rule different from the one they booked under.
- * null: no such build yet.
+ * null: no such build yet. Opening it also needs the other legal documents
+ * that quote the default rule rewritten first (tests/karaoke-cancel-policy-
+ * doc.test.ts names the check).
  */
 export const KARAOKE_POLICY_APP_VERSION: string | null = null;
 
