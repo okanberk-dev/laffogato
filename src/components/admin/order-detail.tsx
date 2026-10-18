@@ -1001,6 +1001,14 @@ export function PrintableReceipt({
 
       <footer className="mt-10 border-t border-neutral-300 pt-4 text-center text-xs text-neutral-500">
         Teşekkür ederiz - buon appetito! · {settings.name}
+        {/* The panel's printout is not a fiscal document: those are the
+            fatura / e-Arşiv fatura (VUK m.229, VUK GT 509) and the till's
+            ÖKC fişi (VUK m.233). It must not pass for one (legal decision
+            ASK-INVOICE, X-FIS). The e-Arşiv sentence joins it once invoices
+            go out by e-mail. */}
+        <p data-receipt-fiscal-note className="mt-2 text-neutral-700">
+          Bu fiş mali belge değildir.
+        </p>
       </footer>
     </section>
   );

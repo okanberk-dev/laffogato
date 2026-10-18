@@ -126,6 +126,25 @@ describe("the printed receipt", () => {
     expect(out).toContain("Büyük · yulaf sütü · +1 shot");
   });
 
+  it("says it is not a fiscal document, on every kind of order (X-FIS)", () => {
+    for (const over of [
+      {},
+      { kind: "shop", fulfillment: "shipping", channel: "web" },
+      { channel: "manual", fulfillment: "pickup" },
+      { fulfillment: "table", tableCode: "K7P42M9XQA", tableName: "Bahçe 5" },
+    ] as Partial<AdminOrder>[]) {
+      const out = renderToStaticMarkup(
+        createElement(PrintableReceipt, { order: order(over), settings }),
+      );
+      const footer = out.slice(out.indexOf("<footer"));
+      expect(footer, JSON.stringify(over)).toMatch(
+        /<p data-receipt-fiscal-note="true"[^>]*>Bu fiş mali belge değildir\.<\/p>/,
+      );
+      // Only this sentence until e-Arşiv invoices go out by e-mail.
+      expect(footer).not.toContain("e-Arşiv");
+    }
+  });
+
   it("has no discount row without a discount", () => {
     const out = renderToStaticMarkup(
       createElement(PrintableReceipt, {
