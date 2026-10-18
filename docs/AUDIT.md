@@ -692,9 +692,10 @@ yakalar).
 | 🟠 / 🟡 | Tablo boşken tohum: son ürünü, kategoriyi, menü kalemini, vitrin slaytını, hikaye dönemini, uygulama slaytını, duyuruyu ya da gönderiyi silmek bir sonraki soğuk başlangıçta paketteki satırları geri getiriyordu (satışa açık demo ürünler, "500₺ üzeri ücretsiz kargo", "Hafta sonu 24:00'e kadar", kasanın uygulamadığı yarı fiyat kampanyası); `setCounter` sayaçları geri sarıp silinmiş satırın kimliğini yeniden veriyordu (CAT-04, CON-01) | Her tohum bir veritabanında bir kez karar verir (`seedOnce`, `counters` içinde `seed:<tablo>` işareti); işaret varken boş tablo boş kalır. Katalog üretim derlemesinde hiç tohumlanmaz. `setCounter` `raise_counter` ile yalnız yükseltir. Kullanımdaki veritabanlarına işaretleri migration bir kez yazar | `admin-content-deletes`, `admin-seed-markers`, `db-integration-seed-markers` |
 
 Migration: `20261017200000_variant_stock_adjust.sql`,
-`20261017200100_seed_markers.sql`. Açık kalan risk: mağaza kartındaki hızlı
-"sepete ekle" varyantlı ürünü varyantsız ekler; böyle bir satır yalnız ürün
-toplamından düşer ve taban fiyattan satılır. Toplam bu yüzden yeniden
+`20261017200100_seed_markers.sql`. Mağaza kartındaki hızlı "sepete ekle"
+varyantlı ürünü varyantsız ekliyordu; böyle bir satır yalnız ürün toplamından
+düşüp taban fiyattan satılıyordu (sunucu artık reddeder: "Sipariş satırı:
+varyantlı ürün varyant ister" aşağıda). Toplam bu yüzden yeniden
 hesaplanmaz, farkla oynar (satılan birimi satışa geri açmamak için). Kartın
 varyantlı üründe hızlı ekleme yerine ürünü açması ayrı bir ön yüz işidir.
 
@@ -858,3 +859,21 @@ Açık:
 | 🟢 | Oturum 7 gün sürer; çıkış yalnız o tarayıcının çerezini siler, kopyalanmış çerez süresi bitene kadar geçerli (SHE-27) | Karar D33: şimdilik değişmez. Parmak izi parola sıfırlama, pasifleştirme ve rol düşürmede oturumu zaten kapatır; çıkışta da kapatmak oturum sürümü kolonu (migration) ister |
 | 🟢 | 2FA kurtarma kodları yok (SHE-10) | Karar D40: şema değişikliği, sonra. Şimdilik sahibin sıfırlaması ve veritabanı yolu |
 | 🟢 | `requireRole` iptal edilmiş oturumu girişe `next` olmadan yollar (SHE-30'un isteğe bağlı kısmı) | Sunucu bileşeni sayfanın adresini bilmez. Eksik ve süresi dolmuş çerezi proxy zaten `next`'le yollar; bu yol yalnız pasifleştirilen ya da parolası sıfırlanan hesap için |
+
+### Sipariş satırı: varyantlı ürün varyant ister (VL)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Aktif varyantı olan ürün `variantId`'siz satırla da satılıyordu: taban fiyattan ücretleniyor, birimi yalnız ürün toplamından düşüyordu (hiçbir varyant onu geri vermiyordu). Mağaza kartının hızlı "sepete ekle"si böyle satır gönderiyordu, manuel siparişteki "Varsayılan" seçeneği de | `resolveOrderLines` böyle satırı stok ayrılmadan, fiyat ve stok değişmeden reddeder (`not_found` + `variantRequired`; her çağıran `not_found`'u zaten karşılıyor). Web ödeme sayfası "<ürün> için bir seçenek seç. Sepetten çıkarıp ürün sayfasından seçerek yeniden ekle." der, panel ürün listesinin altında "<ürün> için bir varyant seç.", uygulama mevcut **400** `invalid_line` alır ("<ürün> için bir seçenek seç. Sepeti güncelle."; yeni hata kodu ya da durum kodu yok, uygulama onu `line_not_found` gibi sepete döndürür). Bütün varyantları pasif ürün varyantsız ürün gibi satılır: hiçbir yüzey (web, `/shop`, panel) pasif varyant sunmaz. Manuel siparişte "Varsayılan" kalktı: ürün seçilince stoktaki ilk varyantı gelir, ürünü yalnız varyantlarının stoğu satılabilir yapar | `order-variant-lines`, `checkout-action`, `admin-order-actions`, `admin-manual-order` |
+
+Daha önce varyantsız satılmış birimlerin ayırdığı toplam için sihirbazın
+"Toplamı aktif varyantlara eşitle" kutusu duruyor. Kartın varyantlı üründe
+ürünü açması ön yüz işidir (paket 5b); o gelene kadar kart böyle bir satırı
+sepete koyar, ödeme sayfası onu adıyla reddeder.
+
+Uygulama (lafmobil, okundu, değişmedi): ürün sayfası her zaman bir varyant
+gönderir (stoktaki ilki varsayılan), hızlı ekleme varyantlı ürünü açar. İki
+yol yine varyantsız satır gönderebilir: "Tekrar sipariş" (`siparislerim.tsx`,
+ürün o siparişten sonra varyant aldıysa) ve ürün varyant almadan önce sepete
+girmiş satır. İkisi de artık `invalid_line` alır ve sepete döner; uygulamada
+ayrı bir PR bu satırları baştan ürün sayfasına yönlendirmeli.
