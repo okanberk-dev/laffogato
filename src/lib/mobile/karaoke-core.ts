@@ -6,7 +6,12 @@ import {
   quoteKaraoke,
   type KaraokeQuote,
 } from "./karaoke-quote";
-import { karaokeCancelDeadline } from "./karaoke-time";
+import {
+  isPartialRefund,
+  karaokeCancelDeadline,
+  karaokeCancelPolicyOf,
+  karaokeRulesOf,
+} from "./karaoke-time";
 import { isTaxRate } from "@/lib/utils/kdv";
 
 export * from "./karaoke-time";
@@ -184,6 +189,24 @@ export interface KaraokeReservation {
    * bookings made before 20261017150000_kdv_rates.sql.
    */
   taxRatePct?: number | null;
+  /**
+   * The cancellation policy the booking was made under, and what it showed
+   * (20261018130000_karaoke_cancel_policy.sql): every deadline, sentence and
+   * refund of the booking reads these, never the panel's current values.
+   * NULL on rows made before the snapshot: 2 hours / 0 %, default sentences
+   * (`karaokeCancelPolicyOf`, `karaokeRulesOf`).
+   */
+  freeCancelHours?: number | null;
+  lateRefundPercent?: number | null;
+  /** The last instant a member's own cancel refunds in full (ISO). */
+  cancelDeadline?: string | null;
+  /** The two sentences shown at booking, `[refundRule, lateRule]`. */
+  cancellationRules?: string[] | null;
+  /**
+   * Kuruş owed back, or refunded, when it is not the whole payment: a late
+   * cancel's share (`round(paid × P / 100)`). NULL: the whole payment.
+   */
+  refundMinor?: number | null;
 }
 
 /** What the web form collects about who to reach for a booking. */
@@ -259,8 +282,17 @@ export interface KaraokeAvailability {
    * (`settings.karaokePrepay`). Off, the old request flow, paid at the venue.
    */
   paymentRequired: boolean;
-  /** Up to how many hours before the start the member may cancel for a full refund. */
+  /**
+   * Up to how many hours before the start the member may cancel for a full
+   * refund: the policy a booking made NOW gets (Ayarlar > Karaoke). 0: no
+   * free window.
+   */
   freeCancelHours: number;
+  /**
+   * Additive (18 Eki 2026, §7.1): the share (whole %) of the payment a
+   * cancel inside the window refunds, before the start. 0: refused.
+   */
+  lateRefundPercent: number;
   /**
    * Additive (16 Eki 2026, §7): the documents a paid booking confirms
    * (`/legal/{slug}`, §13) and the privacy notice it acknowledges - the app
@@ -297,13 +329,29 @@ export interface KaraokeReservationJson {
   paymentStatus: KaraokePaymentStatus;
   /** When an unpaid hold's payment page closes (ISO); "" unless `pending`. */
   paymentDueAt: string;
-  /** Last moment the member may cancel it themselves (ISO, 2 h before). */
+  /**
+   * Last moment the member may cancel it themselves for a full refund (ISO):
+   * the booking's own snapshot (2 h before the start on older rows).
+   */
   cancellableUntil: string;
   /**
    * Additive (17 Eki 2026, §7): the KDV rate the booking was made at; its
    * total includes it. null on bookings made before rates were recorded.
    */
   taxRatePct: number | null;
+  /**
+   * Additive (18 Eki 2026, §7.1): the booking's own cancellation policy and
+   * the two sentences it was shown (2 / 0 and the default pair on older
+   * rows), so a screen after the booking prints the rule it was booked under.
+   */
+  freeCancelHours: number;
+  lateRefundPercent: number;
+  cancellationRules: string[];
+  /**
+   * Additive (18 Eki 2026, §7.1): what goes back to the card when it is not
+   * the whole payment (a late cancel's share), kuruş; null otherwise.
+   */
+  refundMinor: number | null;
 }
 
 export function toReservationJson(
@@ -325,6 +373,9 @@ export function toReservationJson(
     paymentDueAt: paymentStatus === "pending" ? (r.paymentDueAt ?? "") : "",
     cancellableUntil: karaokeCancelDeadline(r).toISOString(),
     taxRatePct: isTaxRate(r.taxRatePct) ? r.taxRatePct : null,
+    ...karaokeCancelPolicyOf(r),
+    cancellationRules: [...karaokeRulesOf(r)],
+    refundMinor: isPartialRefund(r) ? (r.refundMinor ?? null) : null,
   };
 }
 
