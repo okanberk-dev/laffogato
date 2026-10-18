@@ -69,7 +69,9 @@ describe("the panel's buttons keep their Tailwind look", () => {
     // tab dark on dark (seen in the browser). Then the font: a <button>
     // took its parent's 16px / 400 instead of text-sm font-medium, so a
     // button and a link with the same classes differed side by side.
-    const { at, body } = rule("[data-admin-root] :is(a, button)");
+    const { at, body } = rule(
+      "[data-admin-root] :is(a, button):where(:not([data-site-preview] *))",
+    );
     expect(at).toBeGreaterThan(-1);
     for (const prop of [
       "color",
@@ -83,6 +85,17 @@ describe("the panel's buttons keep their Tailwind look", () => {
     }
     // Signed in, signed out, and the session that could not be checked.
     expect(layout.match(/data-admin-root=""/g)).toHaveLength(3);
+  });
+
+  it("lets a site preview keep the storefront's own buttons, at the same weight", () => {
+    // The shop hero editor draws the shop's real slide (admin audit CAT-25):
+    // reverted, its `.btn` call to action lost its padding, fill and font.
+    // The exemption sits in :where(), so the rule still weighs (0,1,1) and
+    // beats exactly the site rules it beat before.
+    expect(code).not.toContain("[data-admin-root] :is(a, button) {");
+    expect(code).toContain(":where(:not([data-site-preview] *))");
+    const form = read("src/app/admin/magaza-hero/slide-form.tsx");
+    expect(form).toContain('data-site-preview=""');
   });
 
   it("keeps the pointer, and shows not-allowed on a disabled control", () => {

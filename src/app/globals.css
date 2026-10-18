@@ -6490,8 +6490,13 @@ select {
    leading-*, so a button and a link with the same classes differed side by
    side ("Uygula" at 16px next to "Sıfırla" at 14px). The cursor is NOT
    rolled back: Tailwind 4's own reset sets none on buttons, so every panel
-   button would lose its pointer. */
-[data-admin-root] :is(a, button) {
+   button would lose its pointer.
+
+   Not inside a site preview (`data-site-preview`, the shop hero editor's
+   "Önizleme"): that draws the storefront's own slide, and its `.btn` link
+   must look as it does on the shop (admin audit CAT-25). `:where` keeps the
+   rule's weight where it was. */
+[data-admin-root] :is(a, button):where(:not([data-site-preview] *)) {
   color: revert-layer;
   background: revert-layer;
   border: revert-layer;
