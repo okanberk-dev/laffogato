@@ -7,12 +7,14 @@
 
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
+import { orderActions } from "./order-actions";
 import {
   ORDER_FULFILLMENT_LABELS,
   orderFulfillment,
   orderKind,
   orderTable,
 } from "./order-channel";
+import { canAccess, type AdminRole } from "./roles";
 
 /** Where the alert polls. A route handler, not a page: it answers JSON. */
 export const ORDER_ALERT_PATH = "/admin/siparisler/uyari";
@@ -93,6 +95,29 @@ export function ringsForOrder(order: OrderAlertRow, nowMs: number): boolean {
   );
 }
 
+/**
+ * Who gets the alert: the roles with Siparişler (owner, manager, staff).
+ * A cashier does not: the alert names what was ordered at which table and
+ * opens the order, and the till role may not read the order list.
+ */
+export function orderAlertsFor(role: AdminRole): boolean {
+  return canAccess("orders", role);
+}
+
+/**
+ * Whether the card offers "Hazırlamaya başla": asked of `orderActions`, the
+ * rule the order page and the action itself use, for a paid cafe order.
+ */
+export function alertMayStartPreparing(role: AdminRole): boolean {
+  return (
+    orderActions(
+      { status: "paid", totalMinor: 0, refunds: [], fulfillment: "table" },
+      role,
+      true,
+    ).start_preparing?.enabled === true
+  );
+}
+
 /** The ISO instant the route reads from: `paidAt` is ISO text, so it sorts. */
 export function orderAlertsSince(nowMs: number): string {
   return new Date(nowMs - ORDER_ALERT_WINDOW_MS).toISOString();
@@ -149,6 +174,18 @@ export function buildOrderAlerts(
     .sort((a, b) => Date.parse(b.paidAt ?? "") - Date.parse(a.paidAt ?? ""))
     .slice(0, ORDER_ALERT_LIMIT)
     .map(toOrderAlert);
+}
+
+const CLOCK = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** When it was paid, on the köşk's clock ("21:05"); "" when unknown. */
+export function orderAlertTime(iso: string): string {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? CLOCK.format(new Date(t)) : "";
 }
 
 /** The card stack's order: table orders first, each group newest first. */
