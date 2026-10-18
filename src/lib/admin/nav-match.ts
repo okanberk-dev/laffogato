@@ -104,3 +104,15 @@ export function breadcrumbTrail(
   trail[trail.length - 1] = { ...trail[trail.length - 1], href: null };
   return trail;
 }
+
+/**
+ * `path` with `denied=1` added: where requireRole's refusal lands (the
+ * shell's DeniedNotice says it and takes it off again). Joined through
+ * URLSearchParams, so a path that already carries a query keeps it
+ * instead of growing a second `?`.
+ */
+export function withDenied(path: string): string {
+  const url = new URL(path, "http://panel.invalid");
+  url.searchParams.set("denied", "1");
+  return `${url.pathname}${url.search}${url.hash}`;
+}

@@ -10,6 +10,7 @@ import {
 import { EmptyState, Section } from "@/components/admin/ui/detail";
 import { NUMERIC_STYLE } from "@/components/admin/ui/styles";
 import { getAdminSession } from "@/lib/admin/auth";
+import { withDenied } from "@/lib/admin/nav-match";
 import { landingPathFor } from "@/lib/admin/roles";
 import {
   SEARCH_LIMIT,
@@ -108,7 +109,7 @@ export default async function AdminSearchPage({ searchParams }: PageProps) {
   if (!session) redirect("/admin/giris");
   const sections = searchSectionsFor(session.role);
   if (sections.length === 0) {
-    redirect(`${landingPathFor(session.role)}?denied=1`);
+    redirect(withDenied(landingPathFor(session.role)));
   }
 
   const sp = await searchParams;

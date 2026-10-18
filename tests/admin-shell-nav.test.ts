@@ -81,6 +81,7 @@ const { PanelHomeProvider } = await import("@/components/admin/panel-home");
 const { ADMIN_CHANGED_EVENT } =
   await import("@/components/admin/ui/admin-changed");
 const AdminLayout = (await import("@/app/admin/layout")).default;
+const { withDenied } = await import("@/lib/admin/nav-match");
 
 const read = (path: string) => readFileSync(path, "utf8");
 
@@ -281,6 +282,15 @@ describe("drawer, groups, denied notice: the pure parts", () => {
     expect(
       sidebar.withoutDenied("https://x.test/admin?denied=1&durum=acik#k"),
     ).toBe("/admin?durum=acik#k");
+  });
+
+  it("adds `denied` to a landing path without breaking its own query", () => {
+    expect(withDenied("/admin/kasa")).toBe("/admin/kasa?denied=1");
+    expect(withDenied("/admin?durum=acik")).toBe("/admin?durum=acik&denied=1");
+    expect(withDenied("/admin?denied=0")).toBe("/admin?denied=1");
+    expect(
+      sidebar.withoutDenied(`https://x.test${withDenied("/admin?a=1")}`),
+    ).toBe("/admin?a=1");
   });
 
   it("the dashboard no longer says it on its own (the shell does)", () => {
