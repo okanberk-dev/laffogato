@@ -189,9 +189,17 @@ describe("the twenty-four templates render", () => {
    * name which evening it cancelled.
    */
   it("karaoke's two messages ask for the same reservation fields", () => {
+    // The cancellation rule is the confirmation's alone (the booking's own
+    // two sentences, and until when a venue-paid booking may be cancelled,
+    // 18 Eki 2026): a cancelled booking has nothing left to cancel.
+    const RULE_ONLY = new Set([
+      "KARAOKE_IADE_KURALI",
+      "KARAOKE_GEC_KURALI",
+      "KARAOKE_MEKAN_SURE",
+    ]);
     const of = (name: EmailTemplateName) =>
       fieldsOf(name)
-        .filter((f) => f.startsWith("KARAOKE_"))
+        .filter((f) => f.startsWith("KARAOKE_") && !RULE_ONLY.has(f))
         .sort();
     expect(of("karaoke-iptal")).toEqual(of("karaoke-rezervasyon"));
     expect(of("karaoke-iptal")).toEqual([

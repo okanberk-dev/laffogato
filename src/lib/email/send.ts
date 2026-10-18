@@ -5,6 +5,10 @@ import {
   campaignMailTemplateAvailable,
 } from "@/lib/admin/campaign-mail-schema";
 import { hasAppLinks } from "@/lib/mobile/app-store";
+import {
+  KARAOKE_NO_REFUND_RULE,
+  KARAOKE_REFUND_RULE,
+} from "@/lib/mobile/karaoke-time";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
@@ -852,10 +856,32 @@ export interface KaraokeEmailData {
    */
   payment?: { kind: "online"; paidMinor: number } | { kind: "venue" };
   /**
-   * Cancellation only: the whole payment went back to the card. Absent on a
-   * booking nothing was collected for; the message then says so.
+   * Cancellation only: what went back to the card (the whole payment, or a
+   * late cancel's share once the köşk refunded it). Absent on a booking
+   * nothing was collected for; the message then says so.
    */
   refundedMinor?: number;
+  /**
+   * Cancellation only: a late cancel's share that is owed back and not
+   * refunded yet (PayNkolay refunds whole payments only, so the köşk refunds
+   * it by hand). The message says how much goes back, without a date.
+   */
+  refundOwedMinor?: number;
+  /**
+   * The refund (made or owed) is a late cancel's share, not the whole
+   * payment: the message names the rule it comes from.
+   */
+  refundIsShare?: boolean;
+  /**
+   * The booking's own cancellation rule (its snapshot, 18 Eki 2026): the two
+   * sentences a paid booking's confirmation prints, and until when a booking
+   * paid at the venue may still be cancelled on its page (null: it may not,
+   * the member calls). Absent: the default rule, 2 hours.
+   */
+  cancellation?: {
+    rules: readonly [string, string];
+    venueUntil: string | null;
+  };
   /**
    * The booking's own page: its signed link (karaoke-link.ts), so a guest
    * without an account - and a member on a phone without the app - can see
@@ -864,9 +890,18 @@ export interface KaraokeEmailData {
   manageUrl?: string;
 }
 
+/** The default rule's pay-at-the-venue window, worded for the sentence. */
+const DEFAULT_VENUE_UNTIL = "rezervasyon saatine 2 saatten fazla varken";
+
 function karaokeVars(k: KaraokeEmailData) {
   const amount =
-    k.refundedMinor ?? (k.payment?.kind === "online" ? k.payment.paidMinor : 0);
+    k.refundedMinor ??
+    k.refundOwedMinor ??
+    (k.payment?.kind === "online" ? k.payment.paidMinor : 0);
+  const rules = k.cancellation?.rules ?? [
+    KARAOKE_REFUND_RULE,
+    KARAOKE_NO_REFUND_RULE,
+  ];
   return {
     AD: k.name.trim(),
     KARAOKE_TARIH: k.date,
@@ -878,6 +913,12 @@ function karaokeVars(k: KaraokeEmailData) {
     KARAOKE_KOD: k.code.toUpperCase(),
     KARAOKE_TUTAR: formatTRYMinor(amount),
     KARAOKE_LINK: k.manageUrl || `${SITE.url}/karaoke`,
+    // The confirmation's rule: the booking's own sentences, verbatim.
+    KARAOKE_IADE_KURALI: rules[0],
+    KARAOKE_GEC_KURALI: rules[1],
+    KARAOKE_MEKAN_SURE: k.cancellation
+      ? (k.cancellation.venueUntil ?? "")
+      : DEFAULT_VENUE_UNTIL,
   };
 }
 
@@ -893,9 +934,16 @@ export async function sendKaraokeConfirmationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
   const online = k.payment?.kind === "online";
+  // A booking paid at the venue says until when its page cancels it, or -
+  // under a rule with no window and no late cancel - to call instead.
+  const selfCancel = k.cancellation ? k.cancellation.venueUntil !== null : true;
   return sendTemplate("karaoke-rezervasyon", k.to, {
     vars: karaokeVars(k),
-    flags: { KARAOKE_ODENDI: online, KARAOKE_ODEME_MEKANDA: !online },
+    flags: {
+      KARAOKE_ODENDI: online,
+      KARAOKE_ODEME_MEKANDA: !online && selfCancel,
+      KARAOKE_MEKAN_ARA: !online && !selfCancel,
+    },
   });
 }
 
@@ -910,11 +958,15 @@ export async function sendKaraokeCancellationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
   const refunded = k.refundedMinor !== undefined;
+  const owed = !refunded && k.refundOwedMinor !== undefined;
+  const share = k.refundIsShare === true;
   return sendTemplate("karaoke-iptal", k.to, {
     vars: karaokeVars(k),
     flags: {
-      KARAOKE_IADE: refunded,
-      KARAOKE_ODEMESIZ: !refunded && k.payment?.kind !== "online",
+      KARAOKE_IADE: refunded && !share,
+      KARAOKE_KISMI_IADE_EDILDI: refunded && share,
+      KARAOKE_KISMI_IADE: owed,
+      KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",
     },
   });
 }

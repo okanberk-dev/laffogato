@@ -70,14 +70,17 @@ describe("the operator's exact wording (16 Eki 2026)", () => {
   });
 
   it("is in both halves of the confirmation e-mail, verbatim", () => {
+    // The mail prints the booking's own two sentences (18 Eki 2026); a
+    // booking made under the default rule gets exactly these.
     for (const file of [
       "src/lib/email/templates/karaoke-rezervasyon.html",
       "src/lib/email/text.ts",
     ]) {
       const src = read(file);
-      expect(src, file).toContain(REFUND);
-      expect(src, file).toContain(NO_REFUND);
+      expect(src, file).toContain("[KARAOKE_IADE_KURALI]");
+      expect(src, file).toContain("[KARAOKE_GEC_KURALI]");
     }
+    expect(time.karaokeRulesOf({})).toEqual([REFUND, NO_REFUND]);
   });
 
   it("is printed by the booking form, the reservation page and the late-cancel API", () => {
@@ -242,6 +245,7 @@ describe("the booking form", () => {
       bookingWindowDays: 60,
       paymentRequired: true,
       freeCancelHours: 2,
+      lateRefundPercent: 0,
       consentDocs: ["karaoke-odasi-rezervasyon"],
       privacyDoc: "kvkk-aydinlatma-metni",
       cancellationRules: [REFUND, NO_REFUND],
