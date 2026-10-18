@@ -1029,6 +1029,13 @@ describe("the card stack", () => {
   it("folds to its header with Küçült and says Göster", () => {
     const html = panel({ collapsed: true, onCollapse: () => {} });
     expect(html).not.toContain("<article");
+    // Folded, only a locked sound still asks for the tap.
+    expect(
+      panel({ collapsed: true, onCollapse: () => {}, unlock: "on" }),
+    ).not.toContain("Ses açık.");
+    expect(
+      panel({ collapsed: true, onCollapse: () => {}, unlock: "locked" }),
+    ).toContain("Sesi açmak için dokun");
     expect(html).toMatch(/aria-expanded="false"[^>]*>Göster</);
     expect(panel({ onCollapse: () => {} })).toMatch(
       /aria-expanded="true"[^>]*>Küçült</,
