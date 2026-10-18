@@ -548,6 +548,17 @@ export interface AdminSettings {
    * only: from the web, and from app builds that opt in (`prepay: true`).
    */
   karaokePrepay: boolean;
+  /**
+   * The karaoke cancellation policy (operator, 17 Eki 2026; Ayarlar >
+   * Karaoke): the free window in hours (0..72) and the share of the payment
+   * a cancel inside it refunds (0..100). A booking keeps the policy it was
+   * made under; a new one gets `effectiveKaraokeCancelPolicy`, which is the
+   * default (2 / 0) until the app can print any other (karaoke-time.ts).
+   * `karaokeCancelPolicyAt`: when the two last moved (ISO, '' = never).
+   */
+  karaokeFreeCancelHours: number;
+  karaokeLateRefundPercent: number;
+  karaokeCancelPolicyAt: string;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -762,6 +773,11 @@ function defaultSettings(): AdminSettings {
     karaokeNotifyEmail: "bizimfutbol9@gmail.com",
     // 20261016063311_karaoke_prepay.sql gives the column the same default.
     karaokePrepay: true,
+    // 20261018130000_karaoke_cancel_policy.sql gives the columns the same
+    // defaults: the rule before the panel had one.
+    karaokeFreeCancelHours: 2,
+    karaokeLateRefundPercent: 0,
+    karaokeCancelPolicyAt: "",
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
