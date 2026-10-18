@@ -66,6 +66,24 @@ describe("the other texts that sent members to /uye/hesap/sil", () => {
     }
   });
 
+  it("both texts keep the same equal-ease promise and name the one step", () => {
+    // Üyelik Sözleşmesi §14 makes the promise and prevails (hesap-silme §1).
+    // Dropping it from one text read as a change against the member, which
+    // §22 would have had announced fifteen days ahead (and TBK m.24 voids
+    // anyway); kept in both, with the step the member takes spelled out.
+    const promise = "üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta";
+    const agreement = findLegalDoc("uyelik-sozlesmesi")!.sections.find((s) =>
+      s.heading.startsWith("14."),
+    )!.paragraphs![0];
+    const procedure = findLegalDoc("hesap-silme")!.sections.find((s) =>
+      s.heading.startsWith("1."),
+    )!.paragraphs!;
+    expect(agreement).toContain(promise);
+    expect(agreement).toMatch(/tek adım/);
+    expect(procedure.join("\n")).toContain(promise);
+    expect(procedure.join("\n")).toMatch(/tek adımda/);
+  });
+
   it("the membership agreement says the Site's request is answered within thirty days", () => {
     expect(all("uyelik-sozlesmesi")).toMatch(
       /Site'den veya e-postayla iletilen talep Şirket tarafından en geç otuz gün içinde sonuçlandırılır/,

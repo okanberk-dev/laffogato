@@ -10200,7 +10200,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "uyelik-sozlesmesi",
     title: "Üyelik Sözleşmesi",
     shortTitle: "Üyelik",
-    // 18 Ekim 2026: §14, Site'de hesap ekibe talep olarak silinir.
+    // 18 Ekim 2026: §14, Site'de hesap ekibe talep olarak silinir. Üye
+    // aleyhine esaslı bir değişiklik değil, §22'nin on beş günlük bildirimi
+    // gerekmez (TBK m.24 aleyhe tek yanlı değişikliği zaten yazılmamış
+    // sayar): §14'teki hak ve eşdeğer kolaylık sözü aynen duruyor ve tek
+    // adımı adıyla söylüyor, uygulamadaki anında silme kalıyor; eklenenler
+    // talebi geri alma ve sonucun bildirilmesi, otuz gün de KVKK m.13/2'nin
+    // zaten koyduğu üst sınır.
     updatedAt: "18 Ekim 2026",
     category: "Site & Üyelik",
     summary:
@@ -10576,7 +10582,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Üyeliğin Üye Tarafından Sona Erdirilmesi",
         paragraphs: [
-          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur.",
+          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur: Üye'nin yapacağı tek adım, Mobil Uygulama'daki hesap silme seçeneğini onaylamak ya da Site'deki talebi göndermektir; talebin sonuçlandırılması için Üye'den başka bir işlem veya gerekçe istenmez.",
           "Hesap kapatma talebi; Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden, Site'de {{SITE_URL}}/uye/hesap/sil sayfasından veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Mobil Uygulama'daki seçenek hesabı hemen kapatır; Site'den veya e-postayla iletilen talep Şirket tarafından en geç otuz gün içinde sonuçlandırılır ve sonuç Üye'ye e-postayla bildirilir. Üye, Site'den verdiği talebi hesap kapatılana kadar aynı sayfadan geri alabilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
           "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir.",
           "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır. Kart saklama özelliği açıldığında, hesap kapatılırken Şirket önce PayNkolay'dan Üye'nin kayıtlı kartlarının silinmesini ister.",
@@ -10842,7 +10848,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "1. Bu Belgenin Amacı",
         paragraphs: [
           "Bu belge, {{BRAND}} üyeliğinizin ve mobil uygulama hesabınızın sonlandırılması talebini nasıl ileteceğinizi, talebin nasıl işlendiğini ve sonucunda verilerinize ne olduğunu açıklar.",
-          "Üyeliği sona erdirmek ücretsizdir ve gerekçe göstermeyi gerektirmez. Mobil Uygulama'da hesabınızı uygulama içindeki seçenekle hemen silebilirsiniz; Site'de ise silme talebinizi tek adımda iletirsiniz ve hesabınız {{BRAND}} ekibince silinir.",
+          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir. Mobil Uygulama'da hesabınızı uygulama içindeki seçenekle hemen silebilirsiniz; Site'de ise silme talebinizi tek adımda iletirsiniz ve hesabınız, sizden başka bir işlem beklenmeden {{BRAND}} ekibince silinir.",
           "Bu belge Üyelik Sözleşmesi'nin hesap kapatmaya ilişkin maddesini tamamlar; çelişki hâlinde Üyelik Sözleşmesi ve mevzuat esas alınır.",
         ],
       },
