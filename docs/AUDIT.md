@@ -1004,3 +1004,23 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
+
+### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
+
+Operatör kararı (18 Eki 2026): avukat turu yok, karar ve dayanak
+`docs/LEGAL-REDLINES-2026-09.md` §20'de. Kararlar OP-ALLERGEN-BOARD,
+OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Kafe menüsünde kalem başına alerjen yoktu: sitede genel bir çapraz temas bandı, uygulamada yalnız `nuts` etiketi. Toplu tüketim yerinde her kalemin Ek-1 alerjenleri menüde ya da panoda yazılır (TGK Etiketleme Yön. m.15/5), uzaktan satışta satın almadan önce (m.17/3); Gıda Güvenliği belgesi var olmayan bir listeye atıf yapıyordu (X-TGK-MENU) | `menu_items.allergens` (jsonb; NULL = girilmedi, `[]` = hiçbiri, kapalı 14 anahtar, migration `20261018210100`). Panelde 14 kutu ve "Hiçbirini içermez"; hiçbir kutu işaretli değilse "girilmedi" kalır, "yok" sayılmaz. Sert kabuklu meyve `nuts` etiketini ekler, çelişen `nuts` reddedilir. Kalem kartında "Alerjenler: gluten, süt", `/admin/menu`'de girilmemiş kalem sayısı, `GET /menu`'de isteğe bağlı `allergens` (v1 ekleme, API-MOBILE §1). §7 nerede yazdığını söyler | `menu-allergens`, `menu-food-info-display`, `mobile-menu-mapper`, `db-integration-menu-food-info` |
+| 🟡 | Masa karekodunun açtığı `/masa/<kod>` fiyat listesi sayılır (Fiyat Etiketi Yön. m.8/2), ama fiyatların uygulanmaya başladığı tarih yoktu (m.5/2-d) (X-PRICE-LIST) | `settings."menuPricesEffectiveDate"` (İstanbul günü, migration `20261018210200`), Ayarlar > Vergi > Menü fiyat listesi; bugünden sonraki gün reddedilir. Menünün altında "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: …" (/menu, kategori sayfaları, /masa) | `menu-price-list`, `menu-food-info-display` |
+| 🟡 | On stok fotoğraf kalemde olmayanı gösteriyor ya da adındaki malzemeyi dışarıda bırakıyordu (kararın sekizi; yeniden bakışta mnu-0061 ve mnu-0078 kuruyemiş gösterdiği için eklendi); "Görseller temsilidir" bunu karşılamaz (TKHK m.61, m.62, m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7) (OTH-1) | Migration `20261018210000` onunu yalnız eski yolu taşıyorsa ve bir kez boşaltır; tohum da boş; `docs/MENU-PHOTOS.md` ev kuralı (yapay zekâ ya da rötuşlu görsel menü fotoğrafı olmaz), geliştiricinin yapay zekâ taraması (37 kaynak, işaret yok) | `menu-photos`, `db-integration-menu-photos` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | 82 kalemin alerjenleri girilmedi; köşkte alerjen panosu ve tarihli basılı fiyat listesi | Operatörün işi (23 Ekim 2026): tablo tedarikçi etiketlerinden hazırlanır, panelde her kaleme girilir. Bilgi uydurulmaz: yanlış alerjen alerjisi olan misafir için gerçek risk |
+| 🟡 | Uygulama kalem başına alerjeni ve fotoğraf notunu göstermiyor | lafmobil `app-menu-allergens` ve `app-menu-photo-note` (mağaza onayına bağlı); alan sözleşmede, eski sürümler bir şey kaybetmez |
+| 🟢 | 22 rawpixel ve 6 StockSnap kaynağı yapay zekâ işareti için taranmadı (Ticari Reklam Yön. m.18/8) | Sayfalar bot korumalı, operatör tarayıcıda açar (23 Ekim 2026); diğer 37 kaynakta işaret yok (`docs/MENU-PHOTOS.md` Lisans). Kalıcı çözüm 30 Kasım 2026'ya kadar barın kendi fotoğrafları |

@@ -208,3 +208,23 @@ describe("the day reaches all three routes", () => {
     expect(table).toContain('initialRoute="menu"');
   });
 });
+
+describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
+  it("says where each menu item's allergens are written, and only that", async () => {
+    const { findLegalDoc } = await import("@/lib/legal/documents");
+    const doc = findLegalDoc("gida-guvenligi-ve-alerjen");
+    expect(doc?.updatedAt).toBe("18 Ekim 2026");
+    const s7 = doc!.sections.find((s) => s.heading.startsWith("7. "));
+    const text = (s7?.paragraphs ?? []).join("\n");
+    expect(text).toContain(
+      "Kafe menüsündeki her kalemin içerdiği alerjen grupları, https://laffogato.net/menu adresindeki menüde kalemin yanında ve köşkte asılı alerjen tablosunda yazılıdır",
+    );
+    expect(text).toContain(
+      "menüde ve köşkte asılı alerjen tablosunda her kalem için yazılı olarak verilir",
+    );
+    // It used to point at a list on the menu card and the app's item
+    // screen that did not exist, and to staff alone as one of the ways.
+    expect(text).not.toContain("mobil uygulamanın ürün detay ekranında");
+    expect(text).not.toContain("veya personel aracılığıyla");
+  });
+});
