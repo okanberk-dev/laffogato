@@ -493,6 +493,70 @@ export async function sendPasswordResetEmail(
   });
 }
 
+// ── Account deletion (18 Eki 2026) ────────────────────────────────────────
+//
+// On the web an account is deleted by the team on the member's request
+// (/uye/hesap/sil); the app keeps its own immediate deletion. Both mails
+// are transactional - the answer to a KVKK application (m.13, Silme
+// Yönetmeliği m.12: "ilgili kişiye bilgi verir") - so neither carries an
+// unsubscribe link (rule 19).
+
+/** "Talebin bize ulaştı": the member's request is on record. */
+export async function sendDeletionRequestReceivedEmail(
+  to: string,
+  d: {
+    /** Already formatted: "18 Ekim 2026". */
+    requestedOn: string;
+    /** The last day of the thirty, formatted the same way. */
+    deadline: string;
+    /** Where the member sees (and can take back) the request. */
+    requestUrl: string;
+    /** `account-deletion-<id>-<stamp>`: a repeated send mails once. */
+    idempotencyKey: string;
+  },
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "hesap-silme-talebi",
+    to,
+    {
+      vars: {
+        TALEP_TARIHI: d.requestedOn,
+        SON_GUN: d.deadline,
+        TALEP_URL: d.requestUrl,
+      },
+    },
+    d.idempotencyKey,
+  );
+}
+
+/**
+ * "Hesabın silindi" once the team closed the account from the panel. Sent
+ * to the address the account had, read before the closure erased it.
+ *
+ * `complete` is false when the sign-in identity (e-mail and name at the
+ * auth provider) is still there: the mail then says "kapatıldı", not
+ * "silindi", and that the team finishes the rest - the same rule the site
+ * and the app follow for their own closure notice (`accountClosureParam`).
+ */
+export async function sendAccountDeletedEmail(
+  to: string,
+  d: { complete: boolean; idempotencyKey: string },
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "hesap-silindi",
+    to,
+    {
+      vars: {
+        SONUC: d.complete ? "hesabın silindi" : "hesabın kapatıldı",
+        SONUC_BASLIK: d.complete ? "Hesabın silindi" : "Hesabın kapatıldı",
+        PROSEDUR_URL: `${SITE.url}/hukuk/hesap-silme`,
+      },
+      flags: { KIMLIK_KALDI: !d.complete },
+    },
+    d.idempotencyKey,
+  );
+}
+
 // ── Order notifications ────────────────────────────────────────────────────
 
 export interface OrderEmailData {

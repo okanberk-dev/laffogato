@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi dört gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -27,6 +27,8 @@ kilitlediğine bak.
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
+| hesap-silme-talebi.html   | işlemsel          | L'Affogato - hesap silme talebin alındı     |
+| hesap-silindi.html        | işlemsel          | L'Affogato - hesabın silindi / kapatıldı    |
 | bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
 | dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun - kahve bizden    |
@@ -51,7 +53,7 @@ bağlı not (`<!--IF:NOT-->`) ve tek düğme. Kod tarafı `send.ts`
 gönderilmez.
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel on ikiye çıkış bağlantısı
+bağlantısı olmadan **derlemez**, işlemsel on dörde çıkış bağlantısı
 **koydurmaz** - ikisi de `tests/email-templates.test.ts`'te kilitli.
 
 ### Sipariş bildirimleri
