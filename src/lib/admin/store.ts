@@ -2274,6 +2274,26 @@ export async function customerLoyaltyOrders(
   return readCustomerOrders<LoyaltyOrderRow>(email, "status, createdAt, items");
 }
 
+/** The columns {@link customerLifetime} reads. */
+export type LifetimeOrderRow = Pick<
+  AdminOrder,
+  "status" | "totalMinor" | "refunds"
+>;
+
+/**
+ * Every order of a customer, three columns: the member page's lifetime
+ * figures count them all, while its history lists only the newest few
+ * (admin audit ORD-30).
+ */
+export async function customerLifetimeOrders(
+  email: string,
+): Promise<LifetimeOrderRow[]> {
+  return readCustomerOrders<LifetimeOrderRow>(
+    email,
+    "status, totalMinor, refunds",
+  );
+}
+
 async function readCustomerOrders<T>(
   email: string,
   columns: string,

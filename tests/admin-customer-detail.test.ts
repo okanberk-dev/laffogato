@@ -7,10 +7,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * checkout or a cancelled order is not money spent), and the page lists the
  * address's karaoke bookings, which it never showed. Each booking opens its
  * own page and reads as it does there (the karaoke panel's row view).
+ *
+ * Package 4b: the page fits a phone (PEO-03), keeps the address out of the
+ * tab title (PEO-25, D14), lists the newest 20 orders on the kit table with
+ * the rest one link away (ORD-30), and speaks the panel's tokens and words
+ * (PEO-10, PEO-17, PEO-18, PEO-20, PEO-21, PEO-26).
  */
 
 const h = vi.hoisted(() => ({
   orders: [] as Record<string, unknown>[],
+  member: null as Record<string, unknown> | null,
+  ordersAsked: [] as Array<[string, number | undefined]>,
   bookings: [] as Record<string, unknown>[],
   released: {
     staff: new Set<string>(),
@@ -40,7 +47,11 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
 vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
-  customerOrdersByEmail: vi.fn(async () => h.orders),
+  customerOrdersByEmail: vi.fn(async (email: string, limit?: number) => {
+    h.ordersAsked.push([email, limit]);
+    return limit ? h.orders.slice(0, limit) : h.orders;
+  }),
+  customerLifetimeOrders: vi.fn(async () => h.orders),
   listProducts: vi.fn(async () => []),
   getSettings: vi.fn(async () => ({ karaokePrepay: true })),
 }));
@@ -52,16 +63,40 @@ vi.mock("@/lib/admin/karaoke-audit", () => ({
   }),
 }));
 vi.mock("@/lib/customer/store", () => ({
-  getAdminCustomerByEmail: vi.fn(async () => null),
+  getAdminCustomerByEmail: vi.fn(async () => h.member),
 }));
 vi.mock("@/lib/customer/coupons", () => ({
   adminListCustomerCoupons: vi.fn(async () => []),
 }));
 vi.mock("@/lib/admin/invites", () => ({
-  getAdminInviteTree: vi.fn(async () => null),
+  getAdminInviteTree: vi.fn(async () => ({
+    inviteCode: "AYSE42",
+    invitedBy: "davet.eden.uzun.bir.adres@ornek.com",
+    invitees: [
+      {
+        id: "inv-1",
+        inviteeEmail: "arkadas@ornek.com",
+        status: "joined",
+        createdAt: "2026-09-01T09:00:00.000Z",
+        rewardedAt: "",
+      },
+    ],
+    rewardedCount: 0,
+    rewardCap: 5,
+    capReached: false,
+  })),
 }));
 vi.mock("@/lib/mobile/loyalty", () => ({
-  getLoyalty: vi.fn(async () => null),
+  getLoyalty: vi.fn(async () => ({
+    stamps: 3,
+    stampTarget: 10,
+    rewardsReady: 0,
+    lifetimeStamps: 3,
+    tier: "bronze",
+    tierLabel: "Bronz",
+    ordersLast365: 1,
+    badges: [],
+  })),
   listStamps: vi.fn(async () => []),
 }));
 vi.mock("@/lib/mobile/karaoke", async (importOriginal) => ({
@@ -141,6 +176,8 @@ function rowText(html: string, id: string): string {
 
 beforeEach(() => {
   h.orders = [];
+  h.member = null;
+  h.ordersAsked = [];
   h.bookings = [];
   h.released = { staff: new Set(), unverified: new Set() };
   h.releasedFails = false;
@@ -155,10 +192,13 @@ describe("customer detail", () => {
       order(10003, "cancelled", 40_000),
     ];
     const t = text(await render());
-    expect(t).toMatch(/Sipariş 1 /);
-    expect(t).toMatch(/Lifetime value ₺300,00/);
-    // The history still lists every attempt.
-    expect(t).toContain("Sipariş geçmişi (3)");
+    expect(t).toMatch(/Ödenen sipariş 1 /);
+    expect(t).toMatch(/Toplam harcama ₺300,00/);
+    expect(t).not.toMatch(/Lifetime value/i);
+    // The history still lists every attempt, and says which count is which
+    // (PEO-26: the tile said 1 and the heading 3).
+    expect(t).toContain("3 sipariş · 1 ödenen");
+    expect(t).toContain("#10002");
   });
 
   it("lists the address's karaoke bookings with their state", async () => {
@@ -263,5 +303,119 @@ describe("customer detail", () => {
 
   it("is still a 404 for an address with nothing at all", async () => {
     await expect(render("yok%40ornek.com")).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  it("lists the newest 20 orders, counts them all, links to the rest (ORD-30)", async () => {
+    h.orders = Array.from({ length: 25 }, (_, i) =>
+      order(10100 - i, "completed", 1_000),
+    );
+    const html = await render();
+    const t = text(html);
+    // The table asks for 20 rows; the tiles count all 25.
+    expect(h.ordersAsked).toEqual([["misafir@ornek.com", 20]]);
+    expect(t).toMatch(/Ödenen sipariş 25 /);
+    expect(t).toContain("Toplam harcama ₺250,00");
+    expect(t).toContain("25 sipariş · 25 ödenen · en yeni 20 tanesi aşağıda");
+    expect(html).toContain("#10100");
+    expect(html).not.toContain("#10080");
+    expect(html).toContain('href="/admin/siparisler?q=misafir%40ornek.com"');
+    expect(t).toContain("Tümünü gör");
+    // Each row opens its order; the kit table names its columns, no "-".
+    expect(html).toContain('href="/admin/siparisler/ord-10100"');
+    expect(html).not.toMatch(/<th[^>]*>-<\/th>/);
+  });
+
+  it("has no link to the order list when every order is on the page", async () => {
+    h.orders = [order(10001, "completed", 30_000)];
+    const t = text(await render());
+    expect(t).not.toContain("Tümünü gör");
+  });
+});
+
+function member(over: Record<string, unknown> = {}) {
+  return {
+    id: "cst-1",
+    email: "ayse.yilmaz.1990.uzun.adres@hotmail.com",
+    name: "Ayşe Yılmaz",
+    phone: "0532 000 00 00",
+    birthday: "1990-05-14",
+    addresses: [
+      {
+        id: "adr-1",
+        label: "Ev",
+        recipientName: "Ayşe Yılmaz",
+        phone: "0532 000 00 00",
+        line1: "Postane Mah., Atatürk Cad. No: 28",
+        line2: "",
+        district: "Tuzla",
+        city: "İstanbul",
+        zip: "34940",
+        isDefault: true,
+      },
+    ],
+    wishlist: [],
+    notificationPrefs: {
+      orderUpdates: true,
+      marketing: false,
+      newsletter: false,
+    },
+    emailVerified: true,
+    verifiedAt: "2026-01-02T09:00:00.000Z",
+    isActive: true,
+    termsAcceptedAt: "",
+    marketingConsentAt: "",
+    createdAt: "2026-01-01T09:00:00.000Z",
+    updatedAt: "2026-01-01T09:00:00.000Z",
+    ...over,
+  };
+}
+
+describe("member page layout and words (package 4b)", () => {
+  const MEMBER_URL = "ayse.yilmaz.1990.uzun.adres%40hotmail.com";
+
+  it("keeps the e-mail out of the browser tab title (PEO-25, D14)", async () => {
+    const mod = await import("@/app/admin/musteriler/[email]/page");
+    expect((mod as { metadata?: { title?: string } }).metadata?.title).toBe(
+      "Admin · Müşteri",
+    );
+    expect("generateMetadata" in mod).toBe(false);
+  });
+
+  it("lets a long address wrap instead of widening a phone screen (PEO-03)", async () => {
+    h.member = member();
+    const html = await render(MEMBER_URL);
+    // Every column track can shrink below its content...
+    expect(html).toContain("lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]");
+    expect(html).not.toContain("grid-cols-[90px_1fr]");
+    // ...and the address itself may break anywhere, the badge drops under it.
+    expect(html).toMatch(
+      /<span class="flex flex-wrap items-center gap-x-2 gap-y-1"><span class="\[overflow-wrap:anywhere\]">ayse\.yilmaz\.1990\.uzun\.adres@hotmail\.com<\/span>/,
+    );
+    // The title of a guest without a name is the address: it wraps too.
+    expect(html).toContain("[&amp;_h1]:[overflow-wrap:anywhere]");
+  });
+
+  it("uses the kit's lists, buttons, tokens and words (PEO-10/17/18/20/21)", async () => {
+    h.member = member();
+    h.orders = [order(10001, "completed", 30_000)];
+    const html = await render(MEMBER_URL);
+    const t = text(html);
+    // No Tailwind palette greys or 9 px labels left on the page.
+    expect(html).not.toMatch(
+      /\b(?:text|bg|border)-(?:neutral|rose|green|orange|amber|blue)-\d/,
+    );
+    expect(html).not.toMatch(/text-\[9px\]/);
+    // Header links are 44 px buttons, not 32 px pills (PEO-20).
+    for (const label of ["Düzenle", "← Tüm müşteriler"]) {
+      const a = html.match(new RegExp(`<a [^>]*>${label}</a>`))?.[0] ?? "";
+      expect(a, label).toContain("min-h-[44px]");
+    }
+    // Davetler is a definition list and a real list: no <div> in a <ul>.
+    expect(html).not.toMatch(/<ul[^>]*>\s*<div/);
+    expect(t).toContain("Davet kodu AYSE42");
+    // A birthday as the operator reads one, not raw ISO (PEO-21).
+    expect(t).toContain("14.05.1990");
+    expect(t).not.toContain("1990-05-14");
+    expect(t).not.toMatch(/Lifetime value/i);
   });
 });
