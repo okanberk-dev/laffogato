@@ -514,3 +514,83 @@ describe("legal content - no saved cards", () => {
     }
   });
 });
+
+describe("legal content - a documented return shipping cost is paid back", () => {
+  // The texts promise that a buyer who sends the return with another carrier
+  // gets the receipted cost back (MSY m.12/5: no carrier is named, so no
+  // return cost may be asked). That money cannot ride on the card refund: a
+  // full withdrawal already refunds everything collected, refundRefusal caps
+  // the ledger at it and the POS cannot refund above the payment. So the
+  // texts say it goes to the buyer's own bank account, and every notice that
+  // lists the bank account details names this purpose too (KVKK m.4/2-c
+  // and m.10/1-b: no processing for a purpose the notice does not name).
+  // LEGAL-REDLINES §18.6.
+  const promise =
+    /gönderim bedeli (SATICI|Satıcı) tarafından (ALICI'ya )?geri ödenir/;
+
+  function sentencesOf(slug: string, heading: string): string[] {
+    return docTexts(slug)
+      .filter(([where]) => where === `${slug} · ${heading}`)
+      .flatMap(([, text]) => text.split(/(?<=\.)\s+(?=[A-ZÇĞİÖŞÜ])/u));
+  }
+
+  it("says how and when the cost is paid wherever it is promised", () => {
+    const promised = new Set(
+      docTexts()
+        .filter(([, text]) => promise.test(text))
+        .map(([where]) => where),
+    );
+    expect([...promised].sort()).toEqual([
+      "iade-ve-cayma · 9. İade Kargo Masrafının Kime Ait Olduğu",
+      "mesafeli-satis-sozlesmesi · 11. Cayma Hakkı",
+      "on-bilgilendirme-formu · 13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
+      "teslimat-ve-kargo · 19. Cayma Hakkı Kapsamında İade Gönderilerinde Kargo Düzeni",
+    ]);
+    for (const where of promised) {
+      const [slug, heading] = where.split(" · ");
+      const how = sentencesOf(slug, heading).find(
+        (s) =>
+          /gönderim bedel/.test(s) &&
+          /kendi adına(?:za)? kayıtlı/.test(s) &&
+          /banka hesabına havale veya EFT ile ödenir/.test(s),
+      );
+      expect(how, where).toBeDefined();
+      expect(how, where).toMatch(
+        /ulaşmasından itibaren 14 \(on dört\) gün içinde/,
+      );
+      expect(how, where).toMatch(/karta iade edilmez/);
+    }
+  });
+
+  it("names that purpose wherever the bank account details are processed", () => {
+    const bankData = /banka hesap bilgisi|IBAN bilgisi|IBAN'ı|adı ve IBAN/;
+    let seen = 0;
+    for (const [where, text] of docTexts()) {
+      if (!bankData.test(text)) continue;
+      // A supplier's account, and the sentence that only adds "bu amaçla"
+      // to the partial refund just before it, are not this processing.
+      if (/Tedarikçi/.test(text) || /[Bb]u amaçla bildirdiğiniz/.test(text)) {
+        continue;
+      }
+      seen++;
+      expect(text, where).toMatch(/gönderim bedel/);
+    }
+    expect(seen).toBeGreaterThanOrEqual(11);
+    const purpose = sectionOf(
+      "kvkk-aydinlatma-metni",
+      "7. Kişisel Verilerin İşlenme Amaçları",
+    ).bullets?.find((b) => b.startsWith("Cayma hakkı ve iade süreçleri:"));
+    expect(purpose).toMatch(/gönderim bedelinin ödenmesi/);
+  });
+
+  it("keeps the payment terms' bank transfer list to the two cases", () => {
+    const transfer = sectionOf(
+      "odeme-kosullari",
+      "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
+    ).paragraphs?.[1];
+    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca iki hâlde/);
+    expect(transfer).toMatch(/22\. maddede açıklanan istisnai hâlde/);
+    expect(transfer).toMatch(/gönderim bedelinin ödenmesi/);
+    expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
+  });
+});
