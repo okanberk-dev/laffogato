@@ -258,10 +258,14 @@ async function lookupPanelAccount(
   };
 }
 
+/** Which credential an account stands on: its panel row or the env record. */
+type CredentialSource = "db" | "env";
+
 interface CurrentAccount {
   email: string;
   role: AdminRole;
   fingerprint: string;
+  source: CredentialSource;
   /**
    * The panel row could not be read and this is the env record standing in
    * for it: a session issued for the panel row cannot be judged here.
@@ -290,6 +294,7 @@ async function currentAccount(email: string): Promise<CurrentAccount | null> {
         email: env.email,
         role: env.role,
         fingerprint: credentialFingerprint("env", env.password),
+        source: "env" as const,
       }
     : null;
   let dbUser: Awaited<ReturnType<typeof lookupPanelAccount>>;
@@ -305,6 +310,7 @@ async function currentAccount(email: string): Promise<CurrentAccount | null> {
       email: dbUser.email,
       role: dbUser.role,
       fingerprint: credentialFingerprint("db", dbUser.passwordHash),
+      source: "db",
     };
   }
   return envAccount;
@@ -379,10 +385,14 @@ export async function signInAdmin(
   // active does NOT shadow the env record - env is the break-glass path, and
   // an owner locked out of the panel has to be able to get back in.
   const dbUser = await resolveAdminUser(needle);
-  let matched: { email: string; role: AdminRole } | null = null;
+  let matched: {
+    email: string;
+    role: AdminRole;
+    source: CredentialSource;
+  } | null = null;
   if (dbUser) {
     if (await verifyAdminPassword(dbUser, password)) {
-      matched = { email: dbUser.email, role: dbUser.role };
+      matched = { email: dbUser.email, role: dbUser.role, source: "db" };
     }
   } else {
     // Same cost as the bcrypt branch above, so the database's answer about
@@ -393,7 +403,9 @@ export async function signInAdmin(
     for (const u of envUsers) {
       const emailOk = constantTimeEqual(needle, u.email);
       const passOk = constantTimeEqual(password, u.password);
-      if (emailOk && passOk) matched = { email: u.email, role: u.role };
+      if (emailOk && passOk) {
+        matched = { email: u.email, role: u.role, source: "env" };
+      }
     }
   }
 
@@ -449,11 +461,14 @@ export async function signInAdmin(
     if (!isAdminSessionUnavailable(err)) throw err;
     return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
   }
-  // The panel password matched, then the row went unreadable: the env
-  // record standing in for it is another credential (and maybe another
-  // role), so no session is issued on it.
-  if (account?.outage && dbUser) {
-    return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
+  // The session stands on the credential that was checked. The panel
+  // password matched, then the row went unreadable: the env record standing
+  // in for it is another credential (and maybe another role), so no session
+  // is issued on it.
+  if (account && account.source !== matched.source) {
+    return account.outage
+      ? { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE }
+      : { ok: false, error: "Giriş başarısız." };
   }
   if (!account) {
     return { ok: false, error: "Giriş başarısız." };
@@ -465,22 +480,33 @@ export async function signInAdmin(
 interface PendingAuthSession {
   email: string;
   role: AdminRole;
+  /** The credential the password step checked; the 2FA step issues on it. */
+  source: CredentialSource;
   expiresAt: number;
 }
 
-function signPendingToken(user: { email: string; role: AdminRole }): string {
+function signPendingToken(user: {
+  email: string;
+  role: AdminRole;
+  source: CredentialSource;
+}): string {
   const expiresAt = Date.now() + PENDING_MAX_AGE_SECONDS * 1000;
-  const payload = `pending|${user.email}|${user.role}|${expiresAt}`;
+  const payload = `pending|${user.email}|${user.role}|${user.source}|${expiresAt}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
 function verifyPendingToken(token: string): PendingAuthSession | null {
   const parts = token.split("|");
-  if (parts.length !== 5 || parts[0] !== "pending") return null;
-  const [, email, roleRaw, expiresAtStr, sig] = parts;
+  // Six segments: the source joined the token, so a pending cookie from
+  // before it (five segments, at most five minutes old) means signing in
+  // again.
+  if (parts.length !== 6 || parts[0] !== "pending") return null;
+  const [, email, roleRaw, sourceRaw, expiresAtStr, sig] = parts;
   const role = roleRaw as AdminRole;
   const expiresAt = Number(expiresAtStr);
+  if (sourceRaw !== "db" && sourceRaw !== "env") return null;
+  const source: CredentialSource = sourceRaw;
   if (
     !email ||
     !VALID_ROLES.includes(role) ||
@@ -490,14 +516,14 @@ function verifyPendingToken(token: string): PendingAuthSession | null {
     return null;
   }
   const expected = createHmac("sha256", getSecret())
-    .update(`pending|${email}|${role}|${expiresAt}`)
+    .update(`pending|${email}|${role}|${source}|${expiresAt}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
   const expBuf = Buffer.from(expected, "hex");
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
-  return { email, role, expiresAt };
+  return { email, role, source, expiresAt };
 }
 
 async function setActiveSession(
@@ -577,15 +603,17 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   }
 
   // The account may have been deactivated or re-keyed in the five minutes
-  // since the password step; the session is issued for it as it is now.
+  // since the password step; the session is issued for it as it is now, and
+  // only on the credential that step checked. A panel password whose row is
+  // unreadable now (or was deactivated meanwhile) does not get the env
+  // record of the same address: that is another credential, and its cookie
+  // would outlive the panel row's revocation.
   let account: CurrentAccount | null;
   try {
     account = await currentAccount(pending.email);
-    // The env record standing in for an unreadable panel row must not hand
-    // out a role the password step did not.
-    if (account?.outage && account.role !== pending.role) {
+    if (account?.outage && account.source !== pending.source) {
       throw new AdminSessionUnavailableError(
-        new Error("panel row unreadable; env role differs"),
+        new Error("panel row unreadable; the env record cannot stand in"),
       );
     }
   } catch (err) {
@@ -596,7 +624,7 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
       error: "Giriş şu an tamamlanamadı. Biraz sonra yeni kodla tekrar dene.",
     };
   }
-  if (!account) {
+  if (!account || account.source !== pending.source) {
     return { ok: false, error: "Oturum süresi doldu. Yeniden giriş yap." };
   }
   await clearLoginLimit("admin-2fa", ip, pending.email);

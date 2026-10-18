@@ -1,6 +1,8 @@
+import { createHmac } from "node:crypto";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fakeDb, seedRows } from "./_stubs/admin-users-db";
+import { allRows, fakeDb, seedRows } from "./_stubs/admin-users-db";
 
 /**
  * A database stumble used to sign every panel user out: the account lookup
@@ -216,6 +218,69 @@ describe("a panel password at an env address", () => {
     const res = await auth.complete2FA("123456");
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/tamamlanamadı/);
+    expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
+  });
+
+  it("gets no env session from the 2FA step when the roles agree", async () => {
+    // Same role on both records: the role check alone let this through, and
+    // the cookie, issued on the env password, outlived the panel row's
+    // deactivation (found in review).
+    await createAdminUser({
+      ...MANAGER,
+      email: ENV_OWNER.email,
+      role: "owner",
+    });
+    db.has2FA = true;
+    const step = await auth.signInAdmin(ENV_OWNER.email, MANAGER.password);
+    expect(step).toMatchObject({ ok: true, needs2FA: true, role: "owner" });
+    databaseGoesDown();
+    const res = await auth.complete2FA("123456");
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/tamamlanamadı/);
+    expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
+  });
+
+  it("gets no env session when the panel row is deactivated between the steps", async () => {
+    await createAdminUser({
+      ...MANAGER,
+      email: ENV_OWNER.email,
+      role: "owner",
+    });
+    db.has2FA = true;
+    await auth.signInAdmin(ENV_OWNER.email, MANAGER.password);
+    seedRows(allRows().map((r) => ({ ...r, isActive: false })));
+    const res = await auth.complete2FA("123456");
+    expect(res).toMatchObject({ ok: false });
+    expect(res.error).toMatch(/Yeniden giriş yap/);
+    expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
+  });
+});
+
+describe("the env account's 2FA step while the panel rows are unreadable", () => {
+  it("still completes: the env password is what the password step checked", async () => {
+    db.has2FA = true;
+    const step = await auth.signInAdmin(ENV_OWNER.email, ENV_OWNER.password);
+    expect(step).toMatchObject({ ok: true, needs2FA: true, role: "owner" });
+    databaseGoesDown();
+    const res = await auth.complete2FA("123456");
+    expect(res).toEqual({ ok: true, role: "owner" });
+    const cookie = jar.get(auth.ADMIN_COOKIE_NAME)!;
+    expect(await auth.sessionFromToken(cookie)).toMatchObject({
+      email: ENV_OWNER.email,
+      role: "owner",
+    });
+  });
+
+  it("refuses a pending cookie without the credential source (issued before it)", async () => {
+    const expiresAt = Date.now() + 60_000;
+    const payload = `pending|${ENV_OWNER.email}|owner|${expiresAt}`;
+    const sig = createHmac("sha256", "test-secret")
+      .update(payload)
+      .digest("hex");
+    jar.set("laffogato_admin_pending_2fa", `${payload}|${sig}`);
+    expect(await auth.getPendingSession()).toBeNull();
+    const res = await auth.complete2FA("123456");
+    expect(res).toMatchObject({ ok: false });
     expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
   });
 });
