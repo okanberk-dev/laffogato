@@ -69,7 +69,8 @@ maybe("admin search, in SQL", () => {
 
   beforeEach(async () => {
     const p = pool!;
-    // Order numbers in their own range: other DB suites insert 99000x.
+    // Order numbers and phones of their own: other DB suites share this
+    // database and insert 99000x and 0532 numbers.
     await p.query(
       "delete from public.orders where id like 'srch-%' or \"orderNo\" between 970001 and 970003; " +
         "delete from public.customers where id like 'srch-%'; " +
@@ -79,13 +80,13 @@ maybe("admin search, in SQL", () => {
     );
     await p.query(
       `insert into public.orders (id, "orderNo", "customerName", "customerEmail", "customerPhone", "createdAt")
-       values ('srch-1', 970001, 'İsmail Işık', 'ismail@example.com', '+90 (532) 123-45-67', '2026-10-17T10:00:00.000Z'),
+       values ('srch-1', 970001, 'İsmail Işık', 'ismail@example.com', '+90 (539) 901-23-45', '2026-10-17T10:00:00.000Z'),
               ('srch-2', 970002, 'IRMAK ÇELİK', 'irmak@example.com', '', '2026-10-17T11:00:00.000Z'),
               ('srch-3', 970003, 'Zeynep', 'z@example.com', '0544 000 00 00', '2026-10-17T12:00:00.000Z')`,
     );
     await p.query(
       `insert into public.customers (id, email, name, phone)
-       values ('srch-c1', 'ilkay@example.com', 'İlkay Öztürk', '05321112233'),
+       values ('srch-c1', 'ilkay@example.com', 'İlkay Öztürk', '05398887766'),
               ('srch-c2', 'deleted-srch-c2@anon.local', '', '')`,
     );
     await p.query(
@@ -118,10 +119,10 @@ maybe("admin search, in SQL", () => {
     expect((await search("#970003", "staff")).orders).toEqual([
       "#970003 · Zeynep",
     ]);
-    expect((await search("0532 123 45 67", "staff")).orders).toEqual([
+    expect((await search("0539 901 23 45", "staff")).orders).toEqual([
       "#970001 · İsmail Işık",
     ]);
-    expect((await search("5321112233")).customers).toEqual(["İlkay Öztürk"]);
+    expect((await search("5398887766")).customers).toEqual(["İlkay Öztürk"]);
   });
 
   it("treats LIKE's wildcards as text", async () => {
