@@ -352,7 +352,7 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 | Ödeme                                 | "Şu an sipariş alamıyoruz" kapısı                                    |
 | Üye oturumu                           | Çıkış yapmış sayılır (fail-closed)                                   |
 | Admin panel, tüm mutasyonlar, webhook | **Hata verir** - bozulma yok                                         |
-| Admin oturumu                         | Çıkış sayılmaz: hata ekranı, çerez kalır; env hesabı girer           |
+| Admin oturumu                         | Çıkış sayılmaz: hata ekranı, çerez kalır; env oturumu sürer          |
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez

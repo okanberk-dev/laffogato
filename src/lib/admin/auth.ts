@@ -192,8 +192,10 @@ export const ADMIN_SESSION_UNAVAILABLE = "ADMIN_SESSION_UNAVAILABLE";
  * everything typed in it gone, on every one-second database stumble.
  *
  * Thrown by `getAdminSession`, `requireRole` and `sessionFromToken`, for
- * panel (database) accounts only: an env break-glass account still signs in
- * with the database down. Nothing is granted while it stands.
+ * panel (database) accounts only: an env break-glass account's open session
+ * still stands with the database down. (A new sign-in needs the database
+ * all the same: the 2FA read throws rather than skip the second factor.)
+ * Nothing is granted while it stands.
  *
  * Where it lands:
  * - a page (requireRole): app/admin/error.tsx, the panel's "Tekrar dene".

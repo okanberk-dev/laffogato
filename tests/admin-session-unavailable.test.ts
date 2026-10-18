@@ -10,7 +10,8 @@ import { allRows, fakeDb, seedRows } from "./_stubs/admin-users-db";
  * signed-out shell, requireRole redirected to /admin/giris and a panel
  * action threw the operator onto the login page, form and all (admin audit
  * SHE-11). Now the lookup's failure is its own error, and only the env
- * break-glass account still signs in while the database is away.
+ * break-glass account's session stands while the panel rows are unreadable
+ * (`has2FA` is stubbed here; the real one needs the database to sign in).
  */
 
 const jar = new Map<string, string>();
@@ -176,7 +177,7 @@ describe("a panel account while the database is away", () => {
 });
 
 describe("the env break-glass account while the database is away", () => {
-  it("still signs in and keeps its session", async () => {
+  it("signs in past an unreadable panel row and keeps its session", async () => {
     databaseGoesDown();
     const cookie = await signedIn(ENV_OWNER.email, ENV_OWNER.password);
     expect(await auth.sessionFromToken(cookie)).toMatchObject({
