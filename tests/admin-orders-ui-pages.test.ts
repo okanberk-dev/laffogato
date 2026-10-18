@@ -94,6 +94,10 @@ vi.mock("@/lib/admin/store", async (importOriginal) => ({
     refunded: 0,
   })),
   listOrderMoney: vi.fn(async () => new Map()),
+  listProducts: vi.fn(async () => []),
+}));
+vi.mock("@/components/admin/manual-order-form", () => ({
+  ManualOrderForm: recorder("ManualOrderForm"),
 }));
 
 function anOrder(over: Partial<AdminOrder> = {}): AdminOrder {
@@ -145,6 +149,7 @@ function elements(
 
 const detailPage = (await import("@/app/admin/siparisler/[id]/page")).default;
 const listPage = (await import("@/app/admin/siparisler/page")).default;
+const newOrderPage = (await import("@/app/admin/siparisler/yeni/page")).default;
 const { OrdersList } = await import("@/components/admin/orders-list");
 
 beforeEach(() => {
@@ -272,5 +277,24 @@ describe("the attention band's instruction (ORD-26)", () => {
     expect(html).toContain("Çözünce ⋯ menüsünden");
     expect(html).toContain("Dikkat işaretini kaldır");
     expect(html).not.toContain("bir yöneticiye haber ver");
+  });
+});
+
+describe("the new-order page with no product on sale (ORD-22 empty state)", () => {
+  it("offers 'Ürün ekle' to a role that may open Ürünler", async () => {
+    h.role = "manager";
+    const html = renderToStaticMarkup(await newOrderPage());
+    expect(html).toContain("Aktif ürün yok.");
+    expect(html).toMatch(
+      /<a href="\/admin\/urunler\/yeni"[^>]*>Ürün ekle<\/a>/,
+    );
+  });
+
+  it("sends staff, who cannot add a product, to a manager instead of a dead link", async () => {
+    h.role = "staff";
+    const html = renderToStaticMarkup(await newOrderPage());
+    expect(html).toContain("Aktif ürün yok.");
+    expect(html).not.toContain("/admin/urunler/yeni");
+    expect(html).toContain("Ürün eklemesi için bir yöneticiye haber ver.");
   });
 });

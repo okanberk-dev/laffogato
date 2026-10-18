@@ -9,6 +9,7 @@ import {
 } from "@/components/admin/manual-order-form";
 import { BUTTON, EmptyState } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
+import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listProducts } from "@/lib/admin/store";
 
 import { createManualOrderAction } from "../actions";
@@ -17,7 +18,7 @@ export const metadata = { title: "Admin · Yeni Sipariş" };
 export const dynamic = "force-dynamic";
 
 export default async function NewOrderPage() {
-  await requireRole("orders");
+  const session = await requireRole("orders");
   const [all, settings] = await Promise.all([listProducts(), getSettings()]);
 
   const products: ManualProduct[] = all
@@ -53,13 +54,22 @@ export default async function NewOrderPage() {
       />
 
       {products.length === 0 ? (
+        // "Ürün ekle" only for a role that may open Ürünler: staff take
+        // orders but cannot add a product, and the link sent them back to
+        // their landing page.
         <EmptyState
           title="Aktif ürün yok."
-          description="Elle sipariş, satıştaki bir ürünle girilir."
+          description={
+            canAccess("products", session.role)
+              ? "Elle sipariş, satıştaki bir ürünle girilir."
+              : "Elle sipariş, satıştaki bir ürünle girilir. Ürün eklemesi için bir yöneticiye haber ver."
+          }
           action={
-            <Link href="/admin/urunler/yeni" className={BUTTON.ghost}>
-              Ürün ekle
-            </Link>
+            canAccess("products", session.role) ? (
+              <Link href="/admin/urunler/yeni" className={BUTTON.ghost}>
+                Ürün ekle
+              </Link>
+            ) : null
           }
         />
       ) : (
