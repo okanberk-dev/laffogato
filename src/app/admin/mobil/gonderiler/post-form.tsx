@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { ActionForm } from "@/components/admin/action-form";
 import {
   Card,
   Checkbox,
   Field,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import type { ModalAction } from "@/components/admin/ui";
 import {
   APP_POST_KIND_LABELS,
   APP_POST_KINDS,
@@ -19,6 +20,8 @@ import {
 } from "@/lib/admin/app-content-schema";
 import { defaultEmailMembers } from "@/lib/admin/post-mail-default";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
+
+import { FieldRow, FormActions } from "../app-content-ui";
 
 export interface AppPostDefaults {
   kind?: AppPostKind;
@@ -58,7 +61,14 @@ function isAppPostKind(value: string): value is AppPostKind {
  * edit (`defaultEmailMembers` says why) and locked off once the post has had
  * its mail - the mark on the post is what actually prevents a second send;
  * the box just says so. Ticked, the submit asks once more: it is a
- * commercial send to the whole member base.
+ * commercial send to the whole member base. Without the `newsletter` role
+ * (`canEmail`, decision D27) the box is off and says why; the action checks
+ * the role again.
+ *
+ * Posted through ActionForm: a refusal shows under its field and keeps what
+ * was typed, and a second press before the answer creates no second post
+ * (and no second confirm). The box and "Yayında" are fieldsets: inside a
+ * Field's label, a tap on the long hint switched the member mail off.
  *
  * Constants come from app-content-schema, never from the store: importing them
  * from the store would pull `server-only` and `pg` into the browser bundle and
@@ -69,34 +79,34 @@ export function AppPostForm({
   defaults,
   mode,
   submitLabel,
+  canEmail = true,
 }: {
-  action: (formData: FormData) => void;
+  action: ModalAction;
   defaults?: AppPostDefaults;
   /** Create starts the box ticked for a campaign; edit never does. */
   mode: "create" | "edit";
   submitLabel: string;
+  /** The signed-in role may send commercial mail (`newsletter`). */
+  canEmail?: boolean;
 }) {
   const alreadyMailed = Boolean(defaults?.emailCampaignId);
   const [kind, setKind] = useState<AppPostKind>(defaults?.kind ?? "campaign");
   // null = the operator has not touched the box; it then follows the default.
   const [emailChoice, setEmailChoice] = useState<boolean | null>(null);
-  const emailMembers = alreadyMailed
-    ? false
-    : (emailChoice ?? defaultEmailMembers({ mode, kind, alreadyMailed }));
+  const emailMembers =
+    alreadyMailed || !canEmail
+      ? false
+      : (emailChoice ?? defaultEmailMembers({ mode, kind, alreadyMailed }));
 
   return (
-    <form
+    <ActionForm
       action={action}
-      onSubmit={(e) => {
-        if (
-          emailMembers &&
-          !confirm(
-            "Kaydedilince, gönderi yayındaysa pazarlama izni olan TÜM üyelere bir kez kampanya e-postası gidecek. Bu işlem geri alınamaz. Devam edilsin mi?",
-          )
-        ) {
-          e.preventDefault();
-        }
-      }}
+      beforeSubmit={() =>
+        !emailMembers ||
+        window.confirm(
+          "Kaydedilince, gönderi yayındaysa pazarlama izni olan TÜM üyelere bir kez kampanya e-postası gidecek. Bu işlem geri alınamaz. Devam edilsin mi?",
+        )
+      }
       className="grid gap-4"
     >
       <Card>
@@ -117,15 +127,17 @@ export function AppPostForm({
             </Select>
           </Field>
 
-          <Field label="Başlık" hint="En fazla 80 karakter.">
-            <TextInput
-              name="title"
-              defaultValue={defaults?.title ?? ""}
-              maxLength={80}
-              required
-              placeholder="Sabah ritüeli"
-            />
-          </Field>
+          <FieldRow name="title">
+            <Field label="Başlık" hint="En fazla 80 karakter.">
+              <TextInput
+                name="title"
+                defaultValue={defaults?.title ?? ""}
+                maxLength={80}
+                required
+                placeholder="Sabah ritüeli"
+              />
+            </Field>
+          </FieldRow>
 
           <Field
             label="Metin"
@@ -194,7 +206,7 @@ export function AppPostForm({
             />
           </Field>
 
-          <Field label="Yayında">
+          <Field as="fieldset" label="Yayında">
             <Checkbox
               name="isActive"
               label="Uygulamada görünsün"
@@ -202,41 +214,48 @@ export function AppPostForm({
             />
           </Field>
 
-          <Field
-            label="Başlangıç"
-            hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
-          >
-            <TextInput
-              type="datetime-local"
-              name="startsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
-            />
-          </Field>
+          <FieldRow name="startsAt">
+            <Field
+              label="Başlangıç"
+              hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
+            >
+              <TextInput
+                type="datetime-local"
+                name="startsAt"
+                defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
 
-          <Field
-            label="Bitiş"
-            hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
-          >
-            <TextInput
-              type="datetime-local"
-              name="endsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
-            />
-          </Field>
+          <FieldRow name="endsAt">
+            <Field
+              label="Bitiş"
+              hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
+            >
+              <TextInput
+                type="datetime-local"
+                name="endsAt"
+                defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
         </div>
       </Card>
 
       <Card>
         <Field
+          as="fieldset"
           label="Üyelere e-posta"
           hint={
             alreadyMailed
               ? undefined
-              : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz - yayına girince “Kampanya e-postası” sayfasından gönder.${
-                  mode === "edit"
-                    ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
-                    : ""
-                }`
+              : !canEmail
+                ? "Kampanya e-postası göndermek Bülten yetkisi ister (sahip ya da yönetici); gönderi e-postasız kaydedilir."
+                : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz - yayına girince “Kampanya e-postası” sayfasından gönder.${
+                    mode === "edit"
+                      ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
+                      : ""
+                  }`
           }
         >
           <Checkbox
@@ -247,7 +266,7 @@ export function AppPostForm({
                 : "Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
             }
             checked={emailMembers}
-            disabled={alreadyMailed}
+            disabled={alreadyMailed || !canEmail}
             onChange={(e) => setEmailChoice(e.target.checked)}
           />
         </Field>
@@ -265,9 +284,10 @@ export function AppPostForm({
         )}
       </Card>
 
-      <div>
-        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
-      </div>
-    </form>
+      <FormActions
+        submitLabel={submitLabel}
+        backHref="/admin/mobil/gonderiler"
+      />
+    </ActionForm>
   );
 }

@@ -1,6 +1,8 @@
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
+import { canAccess } from "@/lib/admin/roles";
 
+import { BackLink } from "../../app-content-list";
 import { createPostAction } from "../actions";
 import { AppPostForm } from "../post-form";
 
@@ -11,9 +13,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export default async function NewAppPostPage() {
-  await requireRole("mobileApp");
+  const session = await requireRole("mobileApp");
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink href="/admin/mobil/gonderiler" label="Gönderiler" />
       <PageHeader
         eyebrow="Mobil uygulama · Ana sayfa"
         title="Yeni gönderi"
@@ -23,6 +26,7 @@ export default async function NewAppPostPage() {
         action={createPostAction}
         mode="create"
         submitLabel="Gönderiyi oluştur"
+        canEmail={canAccess("newsletter", session.role)}
       />
     </main>
   );
