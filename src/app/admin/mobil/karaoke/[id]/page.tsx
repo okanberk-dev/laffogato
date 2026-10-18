@@ -245,11 +245,10 @@ export default async function KaraokeReservationPage({
     {
       label: "Geç iptalde iade",
       value: (
-        <span style={NUMERIC_STYLE}>
-          {policy.lateRefundPercent > 0
-            ? `%${policy.lateRefundPercent}`
-            : "%0 (kabul edilmez)"}
-        </span>
+        <>
+          <span style={NUMERIC_STYLE}>%{policy.lateRefundPercent}</span>
+          {policy.lateRefundPercent > 0 ? null : " (geç iptal kabul edilmez)"}
+        </>
       ),
       hint: "Rezervasyon saatinden önce; gelmeyene iade yok.",
     },

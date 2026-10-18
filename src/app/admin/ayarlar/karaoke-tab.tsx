@@ -113,83 +113,88 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
         title="İptal ve iade kuralı"
         description="Üyenin kendi yaptığı iptal için. Rezervasyon saatinden önceki ücretsiz iptal süresinde ödemenin tamamı iade edilir; rezervasyona gelinmediğinde iade yapılmaz. Köşk iptal ederse her zaman tamamı iade edilir."
       >
-        <div className="grid gap-5 sm:grid-cols-2">
-          <SettingsField
-            name="karaokeFreeCancelHours"
-            label="Ücretsiz iptal süresi (saat)"
-            hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: ücretsiz iptal yok.`}
-          >
-            <TextInput
+        {/* The section body has no gap of its own: the note, the preview and
+            the lock box would sit on the last hint. */}
+        <div className="grid gap-4">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <SettingsField
               name="karaokeFreeCancelHours"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={KARAOKE_FREE_CANCEL_HOURS_MAX}
-              step={1}
-              defaultValue={String(saved.freeCancelHours)}
-              onChange={(e) => setHours(e.currentTarget.value)}
-              required
-            />
-          </SettingsField>
-          <SettingsField
-            name="karaokeLateRefundPercent"
-            label="Geç iptalde iade (%)"
-            hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir. 0: geç iptal kabul edilmez."
-          >
-            <TextInput
+              label="Ücretsiz iptal (saat)"
+              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: ücretsiz iptal yok.`}
+            >
+              <TextInput
+                name="karaokeFreeCancelHours"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={KARAOKE_FREE_CANCEL_HOURS_MAX}
+                step={1}
+                defaultValue={String(saved.freeCancelHours)}
+                onChange={(e) => setHours(e.currentTarget.value)}
+                required
+              />
+            </SettingsField>
+            <SettingsField
               name="karaokeLateRefundPercent"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={100}
-              step={1}
-              defaultValue={String(saved.lateRefundPercent)}
-              onChange={(e) => setPercent(e.currentTarget.value)}
-              required
-            />
-          </SettingsField>
-        </div>
-        <p className="text-sm text-[var(--admin-text-soft)]">
-          Değişiklik yalnız bundan sonra yapılan rezervasyonlara uygulanır.
-        </p>
-        <div
-          aria-live="polite"
-          className="grid gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3 text-sm"
-        >
-          <span className="text-xs font-medium text-[var(--admin-text-mute)]">
-            Müşterinin ödemeden önce okuyacağı kural
-          </span>
-          {preview ? (
-            <>
-              <p className="text-[var(--admin-text)]">{preview.refundRule}</p>
-              <p className="text-[var(--admin-text)]">{preview.lateRule}</p>
-            </>
-          ) : (
-            <p className="text-[var(--admin-text-soft)]">
-              {refusal?.message ?? "Önizleme için iki kutuya da tam sayı yaz."}
-            </p>
-          )}
-        </div>
-        {locked ? (
-          <p
-            role="status"
-            className={cx("rounded-xl px-4 py-3 text-sm", TONE_SOFT.warning)}
-          >
-            {locked}
-          </p>
-        ) : null}
-        {/* Geç iptalde kısmi iade (1-99 %) POS'tan otomatik gitmez. */}
-        {readable &&
-        !refusal &&
-        readable.lateRefundPercent > 0 &&
-        readable.lateRefundPercent < 100 ? (
+              label="Geç iptalde iade (%)"
+              hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir. 0: geç iptal kabul edilmez."
+            >
+              <TextInput
+                name="karaokeLateRefundPercent"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={100}
+                step={1}
+                defaultValue={String(saved.lateRefundPercent)}
+                onChange={(e) => setPercent(e.currentTarget.value)}
+                required
+              />
+            </SettingsField>
+          </div>
           <p className="text-sm text-[var(--admin-text-soft)]">
-            Kısmi iade POS&apos;a otomatik gönderilemiyor: geç iptalde
-            rezervasyon iptal olur, iade edilecek tutar panelde ve e-postayla
-            sana bildirilir; tutarı PayNkolay panelinden iade edip &quot;Elle
-            iade edildi&quot; ile kaydedersin.
+            Değişiklik yalnız bundan sonra yapılan rezervasyonlara uygulanır.
           </p>
-        ) : null}
+          <div
+            aria-live="polite"
+            className="grid gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3 text-sm"
+          >
+            <span className="text-xs font-medium text-[var(--admin-text-mute)]">
+              Müşterinin ödemeden önce okuyacağı kural
+            </span>
+            {preview ? (
+              <>
+                <p className="text-[var(--admin-text)]">{preview.refundRule}</p>
+                <p className="text-[var(--admin-text)]">{preview.lateRule}</p>
+              </>
+            ) : (
+              <p className="text-[var(--admin-text-soft)]">
+                {refusal?.message ??
+                  "Önizleme için iki kutuya da tam sayı yaz."}
+              </p>
+            )}
+          </div>
+          {locked ? (
+            <p
+              role="status"
+              className={cx("rounded-xl px-4 py-3 text-sm", TONE_SOFT.warning)}
+            >
+              {locked}
+            </p>
+          ) : null}
+          {/* A share of 1..99 % is never sent to the POS (karar D9). */}
+          {readable &&
+          !refusal &&
+          readable.lateRefundPercent > 0 &&
+          readable.lateRefundPercent < 100 ? (
+            <p className="text-sm text-[var(--admin-text-soft)]">
+              Kısmi iade POS&apos;a otomatik gönderilemiyor: geç iptalde
+              rezervasyon iptal olur, iade edilecek tutar panelde ve e-postayla
+              sana bildirilir; tutarı PayNkolay panelinden iade edip &quot;Elle
+              iade edildi&quot; ile kaydedersin.
+            </p>
+          ) : null}
+        </div>
         <SaveBar form={form} />
       </Section>
     </SettingsTabForm>
