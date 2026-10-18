@@ -165,7 +165,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             ))}
           </nav>
         </div>
-        <RevenueChart data={buckets} />
+        <RevenueChart data={buckets} caption={`${opt.label} net ciro`} />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
