@@ -279,12 +279,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-medium text-neutral-900">
                           {c.name || "-"}
                         </span>
-                        <Badges row={c} now={now} />
+                        <Badges row={c} />
                       </div>
+                      <DeletionBadge row={c} now={now} />
                       <div className="truncate text-xs text-neutral-700">
                         {c.email}
                       </div>
@@ -342,12 +343,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                       className="border-b border-neutral-100 align-top last:border-b-0"
                     >
                       <td className="py-3 pr-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="font-medium text-neutral-900">
                             {c.name || "-"}
                           </span>
-                          <Badges row={c} now={now} />
+                          <Badges row={c} />
                         </div>
+                        <DeletionBadge row={c} now={now} />
                         {c.isMember && c.memberSince && (
                           <div
                             className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
@@ -405,19 +407,29 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   );
 }
 
-function Badges({ row, now }: { row: CustomerRow; now: Date }) {
+/**
+ * An open web deletion request, on its own line under the name: beside it
+ * the long badge squeezed the name onto two lines.
+ */
+function DeletionBadge({ row, now }: { row: CustomerRow; now: Date }) {
+  if (!row.deletionRequestedAt) return null;
+  return (
+    <div className="mt-1">
+      <Badge
+        tone="danger"
+        title={`Son gün: ${deletionDayLabel(deletionDeadline(row.deletionRequestedAt))}`}
+      >
+        {isDeletionOverdue(row.deletionRequestedAt, now)
+          ? "Silme talebi · süre doldu"
+          : `Silme talebi · ${deletionDayLabel(row.deletionRequestedAt)}`}
+      </Badge>
+    </div>
+  );
+}
+
+function Badges({ row }: { row: CustomerRow }) {
   return (
     <span className="flex flex-wrap items-center gap-1">
-      {row.deletionRequestedAt && (
-        <Badge
-          tone="danger"
-          title={`Son gün: ${deletionDayLabel(deletionDeadline(row.deletionRequestedAt))}`}
-        >
-          {isDeletionOverdue(row.deletionRequestedAt, now)
-            ? "Silme talebi · süre doldu"
-            : `Silme talebi · ${deletionDayLabel(row.deletionRequestedAt)}`}
-        </Badge>
-      )}
       {row.isMember ? (
         <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[9px] tracking-[0.16em] text-blue-700 uppercase">
           Üye
