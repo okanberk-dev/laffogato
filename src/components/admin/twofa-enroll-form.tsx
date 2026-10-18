@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
 import {
@@ -9,38 +8,29 @@ import {
   type EnrollState,
 } from "@/app/admin/2fa-kurulum/actions";
 
+import { withPanelCatch } from "./action-form";
 import { GhostButton, PrimaryButton, TextInput } from "./forms";
+import { CODE_INPUT_STYLE } from "./twofa-verify-form";
 
 const initial: EnrollState = {};
 
-export function TwoFAEnrollForm() {
-  const [state, formAction, pending] = useActionState(
-    verifyEnrollAction,
-    initial,
-  );
+// A throw is an answer under the field, not the error screen; the success
+// redirect (with its toast) still runs.
+const submitCode = withPanelCatch<EnrollState>(verifyEnrollAction, () => ({
+  error: "Kod şu an doğrulanamadı. Biraz sonra tekrar dene.",
+}));
 
-  if (state.enabled) {
-    return (
-      <div className="grid gap-3">
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          2FA başarıyla aktive edildi. Sonraki girişlerde 6 haneli kod
-          istenecek.
-        </div>
-        <Link
-          href="/admin"
-          className="inline-flex items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-        >
-          Genel bakışa dön →
-        </Link>
-      </div>
-    );
-  }
+export function TwoFAEnrollForm() {
+  const [state, formAction, pending] = useActionState(submitCode, initial);
 
   return (
     <div className="grid gap-3">
+      {/* A plain action form on purpose: after a wrong code the field
+          should be empty for the next one. */}
       <form action={formAction} className="grid gap-3">
-        <p className="text-sm text-neutral-600">
-          QR kodu taradıktan sonra authenticator&apos;da görünen 6 haneli kodu gir.
+        <p className="text-sm text-[var(--admin-text-soft)]">
+          QR kodu taradıktan sonra doğrulama uygulamasında görünen 6 haneli kodu
+          gir.
         </p>
         <TextInput
           name="token"
@@ -48,23 +38,22 @@ export function TwoFAEnrollForm() {
           pattern="\d{6}"
           placeholder="123456"
           autoComplete="one-time-code"
+          aria-label="6 haneli doğrulama kodu"
           autoFocus
           required
           maxLength={6}
-          style={{
-            fontFamily: "var(--mono), monospace",
-            letterSpacing: "0.4em",
-            textAlign: "center",
-            fontSize: 22,
-          }}
+          style={CODE_INPUT_STYLE}
         />
         {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div
+            role="alert"
+            className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+          >
             {state.error}
           </div>
         )}
         <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Doğrulanıyor…" : "Doğrula ve aktive et"}
+          {pending ? "Doğrulanıyor…" : "Doğrula ve aç"}
         </PrimaryButton>
       </form>
       <form action={cancelEnrollAction}>
