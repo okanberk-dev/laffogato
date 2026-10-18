@@ -141,7 +141,6 @@ describe("report headline (Raporlar)", () => {
       totalOrders: 3,
       averageOrderMinor: 20_000,
       refundedMinor: 22_500,
-      conversionRatePct: null,
     });
   });
 });
@@ -252,6 +251,7 @@ describe("the reports page", () => {
         href: string;
         children?: ReactNode;
       }) => createElement("a", { href, ...rest }, children),
+      useLinkStatus: () => ({ pending: false }),
     }));
     vi.doMock("@/lib/admin/auth", () => ({
       requireRole: vi.fn(async () => ({})),
@@ -264,7 +264,6 @@ describe("the reports page", () => {
         totalOrders: 3,
         averageOrderMinor: 20_000,
         refundedMinor: 22_500,
-        conversionRatePct: null,
       })),
       revenueBuckets: vi.fn(async () => []),
       topProducts: vi.fn(async () => []),
@@ -286,7 +285,9 @@ describe("the reports page", () => {
     expect(text).toMatch(/Net ciro ₺375,00/);
     expect(text).toMatch(/Brüt ciro ₺600,00/);
     expect(text).not.toContain("Toplam ciro");
-    expect(text).toMatch(/Karaoke ön ödemesi \(net\) ₺1\.750,00/);
+    // The period's figure first; the all-time one says it is all-time.
+    expect(text).toMatch(/Karaoke ön ödemesi Bu dönemde, net ₺1\.500,00/);
+    expect(text).toMatch(/Tüm zamanlar: net ₺1\.750,00/);
     expect(text).toContain("sonucu bekleniyor");
     expect(html).toMatch(
       /href="\/admin\/raporlar\?g=day"[^>]*aria-current="page"/,

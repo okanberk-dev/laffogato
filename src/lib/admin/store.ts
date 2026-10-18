@@ -6764,15 +6764,67 @@ const MONTH_SHORT = [
 async function reportOrders<K extends keyof AdminOrder>(
   columns: readonly K[],
   ctx: string,
+  /** Only orders placed at or after this instant (`reportPeriodSince`). */
+  since?: string,
 ): Promise<Pick<AdminOrder, K>[]> {
   await ensureSeed();
+  let q = getDb().from(TABLES.orders).select(columns.join(", "));
+  if (since) q = q.gte("createdAt", since);
   return rows<Pick<AdminOrder, K>>(
-    await getDb()
-      .from(TABLES.orders)
-      .select(columns.join(", "))
-      .order("orderNo", { ascending: false }),
+    await q.order("orderNo", { ascending: false }),
     ctx,
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Where a report period starts in the database: the köşk's midnight of the
+ * period's first bucket, as a UTC instant, one day early. The day is a
+ * margin, not part of the period: which bucket an order falls in is still
+ * decided by {@link reportPeriodFilter}, so a `createdAt` written with an
+ * offset cannot slip out of the read. Exported for tests.
+ */
+export function reportPeriodSince(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): string {
+  const start = istanbulWall(now);
+  start.setUTCHours(0, 0, 0, 0);
+  const steps = Math.max(0, count - 1);
+  if (granularity === "day") {
+    start.setUTCDate(start.getUTCDate() - steps);
+  } else if (granularity === "week") {
+    const monday = startOfWeek(start);
+    start.setTime(monday.getTime());
+    start.setUTCDate(start.getUTCDate() - 7 * steps);
+  } else {
+    start.setUTCDate(1);
+    start.setUTCMonth(start.getUTCMonth() - steps);
+  }
+  return new Date(start.getTime() - REPORT_TZ_OFFSET_MS - DAY_MS).toISOString();
+}
+
+/**
+ * Whether an instant falls in the report's period: the same buckets the
+ * chart draws ({@link bucketRevenue}), cut at the köşk's midnight. The
+ * headline tiles and the top list used to read every order ever placed
+ * beside a "30 gün" switch (admin audit SYS-16).
+ */
+export function reportPeriodFilter(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): (createdAt: string) => boolean {
+  const keys = new Set(
+    bucketRevenue([], granularity, count, now).map((b) => b.bucket),
+  );
+  return (createdAt) => {
+    const at = new Date(createdAt);
+    if (Number.isNaN(at.getTime())) return false;
+    return keys.has(bucketKey(istanbulWall(at), granularity));
+  };
 }
 
 /** What {@link bucketRevenue} reads from an order. */
@@ -6785,11 +6837,13 @@ export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
+  const now = new Date();
   const orders = await reportOrders(
     ["status", "createdAt", "totalMinor", "refunds"],
     "revenueBuckets",
+    reportPeriodSince(granularity, count, now),
   );
-  return bucketRevenue(orders, granularity, count, new Date());
+  return bucketRevenue(orders, granularity, count, now);
 }
 
 /**
@@ -6843,32 +6897,100 @@ export function bucketRevenue(
 
 export interface TopProductRow {
   productName: string;
+  /** Units sold in the period; a fully refunded order's lines not counted. */
   qty: number;
+  /**
+   * Line value at list price (unit price x quantity, the promo discount not
+   * taken off), less each order's refunds in proportion: an order refunded
+   * by a quarter keeps three quarters of every line. The page says
+   * "liste fiyatıyla".
+   */
   revenueMinor: number;
 }
 
-export async function topProducts(limit = 5): Promise<TopProductRow[]> {
-  const orders = await reportOrders(["status", "items"], "topProducts");
+/** What {@link topProductsFrom} reads from an order. */
+export type TopProductOrder = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "totalMinor" | "refunds" | "items"
+>;
+
+export async function topProducts(
+  granularity: BucketGranularity,
+  count: number,
+  limit = 5,
+): Promise<TopProductRow[]> {
+  const now = new Date();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds", "items"],
+    "topProducts",
+    reportPeriodSince(granularity, count, now),
+  );
+  return topProductsFrom(orders, granularity, count, now, limit);
+}
+
+/**
+ * The pure half of {@link topProducts}, exported for tests.
+ *
+ * The list summed every order ever placed, fully refunded ones included,
+ * while the tiles beside it took refunds off (admin audit SYS-16). Now it
+ * reads the period the page shows and nets refunds the way the tiles do,
+ * per order. An order's refunds are not tied to its lines: they come off
+ * the lines marked "İptal" first (those are not counted, and their money
+ * is what a refund usually hands back), and only what was refunded beyond
+ * them comes off the standing lines, in proportion. Sorted by that
+ * revenue, the page's bars are drawn by it too.
+ */
+export function topProductsFrom(
+  orders: readonly TopProductOrder[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+  limit = 5,
+): TopProductRow[] {
+  const inPeriod = reportPeriodFilter(granularity, count, now);
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
-    if (!isReportableOrder(o)) continue;
-    for (const it of o.items) {
+    if (!isReportableOrder(o) || !inPeriod(o.createdAt)) continue;
+    const lines = o.items ?? [];
+    const refunded = (o.refunds ?? []).reduce((r, x) => r + x.amountMinor, 0);
+    const cancelledMinor = lines.reduce(
+      (s, it) =>
+        it.status === "cancelled" ? s + it.unitPriceMinor * it.qty : s,
+      0,
+    );
+    // What the standing lines were charged, and what of it the order kept.
+    const standingMinor = o.totalMinor - Math.min(refunded, cancelledMinor);
+    const kept =
+      refunded <= 0
+        ? 1
+        : standingMinor > 0
+          ? Math.max(0, o.totalMinor - refunded) / standingMinor
+          : 0;
+    if (kept === 0) continue;
+    for (const it of lines) {
       if (it.status === "cancelled") continue;
+      const value = it.unitPriceMinor * it.qty * kept;
       const row = tally.get(it.productName);
       if (row) {
         row.qty += it.qty;
-        row.revenueMinor += it.unitPriceMinor * it.qty;
+        row.revenueMinor += value;
       } else {
         tally.set(it.productName, {
           productName: it.productName,
           qty: it.qty,
-          revenueMinor: it.unitPriceMinor * it.qty,
+          revenueMinor: value,
         });
       }
     }
   }
   return Array.from(tally.values())
-    .sort((a, b) => b.revenueMinor - a.revenueMinor)
+    .map((row) => ({ ...row, revenueMinor: Math.round(row.revenueMinor) }))
+    .sort(
+      (a, b) =>
+        b.revenueMinor - a.revenueMinor ||
+        b.qty - a.qty ||
+        a.productName.localeCompare(b.productName, "tr"),
+    )
     .slice(0, limit);
 }
 
@@ -6882,15 +7004,26 @@ export interface AnalyticsHeadline {
   averageOrderMinor: number;
   /** Refunds on the counted orders: the difference between gross and net. */
   refundedMinor: number;
-  conversionRatePct: number | null;
 }
 
-export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+/**
+ * The report's tiles for the period the page shows (the chart's buckets).
+ * They used to sum every order ever placed beside a "30 gün" switch, so
+ * this month's chart sat under the café's whole history (admin audit
+ * SYS-16).
+ */
+export async function analyticsHeadline(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<AnalyticsHeadline> {
+  const now = new Date();
   const orders = await reportOrders(
-    ["status", "totalMinor", "refunds"],
+    ["status", "createdAt", "totalMinor", "refunds"],
     "analyticsHeadline",
+    reportPeriodSince(granularity, count, now),
   );
-  return headlineFrom(orders);
+  const inPeriod = reportPeriodFilter(granularity, count, now);
+  return headlineFrom(orders.filter((o) => inPeriod(o.createdAt)));
 }
 
 /**
@@ -6925,7 +7058,6 @@ export function headlineFrom(
     averageOrderMinor:
       totalOrders > 0 ? Math.round(grossRevenueMinor / totalOrders) : 0,
     refundedMinor,
-    conversionRatePct: null,
   };
 }
 
