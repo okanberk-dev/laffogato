@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useCallback,
   useRef,
@@ -9,15 +10,23 @@ import {
 } from "react";
 
 import {
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "@/components/admin/action-form";
+import {
   Card,
   Checkbox,
   Field,
-  GhostButton,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import { BUTTON, type ModalAction } from "@/components/admin/ui";
+import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { Slide } from "@/components/laffogato/shop-hero-slider";
+import { SHOP_HERO_LIMITS as L } from "@/lib/admin/shop-hero-schema";
 
 export interface SlideDefaults {
   title?: string;
@@ -57,7 +66,7 @@ async function resizeImage(file: File): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     bitmap.close?.();
-    throw new Error("Canvas context açılamadı.");
+    throw new Error("Görsel işlenemedi: tarayıcı çizim alanı açamadı.");
   }
   ctx.drawImage(bitmap, 0, 0, w, h);
   bitmap.close?.();
@@ -71,19 +80,41 @@ function approxKB(value: string): number {
   return Math.round(((value.length - i - 1) * 0.75) / 1024);
 }
 
+/** One stacked field with its refusal under it. */
+function Row({ name, children }: { name: string; children: React.ReactNode }) {
+  return (
+    <div className="grid content-start gap-1.5">
+      {children}
+      <FormFieldError name={name} />
+    </div>
+  );
+}
+
+/**
+ * The shop hero slide editor (/admin/magaza-hero).
+ *
+ * An ActionForm: the action answers a refusal under its field and the form
+ * keeps what was typed. It used to be a bare `<form action>`: a double click
+ * created two slides, and a blank title came back with no word while
+ * React's form reset wiped the button fields, the order, the theme and the
+ * Aktif box (admin audit CAT-13). The field names are the ones
+ * shop-hero-schema.ts reads.
+ */
 export function SlideForm({
   defaults,
   action,
   submitLabel,
 }: {
   defaults?: SlideDefaults;
-  action: (formData: FormData) => Promise<void>;
+  action: ModalAction;
   submitLabel: string;
 }) {
   const d = defaults ?? {};
   const [title, setTitle] = useState(d.title ?? "");
   const [subtitle, setSubtitle] = useState(d.subtitle ?? "");
   const [imageUrl, setImageUrl] = useState(d.imageUrl ?? "");
+  const [ctaLabel, setCtaLabel] = useState(d.ctaLabel ?? "");
+  const [ctaHref, setCtaHref] = useState(d.ctaHref ?? "");
   const [textTheme, setTextTheme] = useState<"light" | "dark">(
     d.textTheme ?? "light",
   );
@@ -128,80 +159,92 @@ export function SlideForm({
   const isDataUrl = imageUrl.startsWith("data:");
 
   return (
-    <form action={action} className="grid gap-4">
-      <Card>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Başlık (H1)"
-            hint="Mağaza üstünde görünen ana başlık. Son kelime altın script ile vurgulanır."
-          >
-            <TextInput
-              name="title"
-              required
-              maxLength={120}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </Field>
-          <Field label="Sıralama" hint="Küçük sayı önce çıkar.">
-            <TextInput
-              type="number"
-              name="sortOrder"
-              defaultValue={String(d.sortOrder ?? 0)}
-              min={0}
-              max={999}
-            />
-          </Field>
+    <ActionForm action={action} className="grid gap-4">
+      <Card className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
+          <Row name="title">
+            <Field
+              label="Başlık"
+              hint="Mağazanın en üstündeki büyük yazı. Son kelime ayrı renkte yazılır."
+            >
+              <TextInput
+                name="title"
+                required
+                maxLength={L.title}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </Field>
+          </Row>
+          <Row name="sortOrder">
+            <Field label="Sıra" hint="Küçük sayı önce gelir.">
+              <TextInput
+                type="number"
+                name="sortOrder"
+                defaultValue={String(d.sortOrder ?? 0)}
+                min={0}
+                max={L.sortOrder}
+              />
+            </Field>
+          </Row>
         </div>
-        <Field
-          label="Küçük yazı / alt başlık"
-          hint="Başlığın altına gelen tek-iki cümlelik açıklama."
-        >
-          <Textarea
-            name="subtitle"
-            rows={2}
-            maxLength={300}
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-          />
-        </Field>
+        <Row name="subtitle">
+          <Field
+            label="Alt yazı"
+            hint="Başlığın altına gelen bir iki cümle. Boş bırakabilirsin."
+          >
+            <Textarea
+              name="subtitle"
+              rows={2}
+              maxLength={L.subtitle}
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+            />
+          </Field>
+        </Row>
 
-        {/* Görsel - file upload + URL */}
-        <div className="grid gap-2">
-          <span
-            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
+        {/* Görsel: dosya yükle ya da https bağlantısı. A fieldset, not a
+            Field label: inside a label every click on the caption or the
+            hint opened the file picker. */}
+        <fieldset className="grid min-w-0 gap-2">
+          <legend
+            className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
+            style={MONO_STYLE}
           >
             Görsel
-          </span>
+          </legend>
 
           {imageUrl ? (
-            <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-neutral-50">
-              <div
-                style={{
-                  aspectRatio: "21 / 9",
-                  width: "100%",
-                  backgroundImage: `url(${imageUrl})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
+            <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)]">
+              {/* An <img>, not a CSS url(): the address is the operator's
+                  free text and must not end up inside a style attribute. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt="Slayt görseli"
+                className="block aspect-[21/9] w-full object-cover"
               />
-              <div className="flex items-center justify-between gap-2 border-t border-[var(--admin-border)] bg-white px-3 py-2">
-                <span className="font-mono text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                  {isDataUrl ? `Yüklenmiş · ${approxKB(imageUrl)} KB` : "URL"}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--admin-border)] bg-white px-3 py-2">
+                <span
+                  className="text-[10px] tracking-[0.18em] text-[var(--admin-text-mute)] uppercase"
+                  style={MONO_STYLE}
+                >
+                  {isDataUrl
+                    ? `Yüklenen dosya · ${approxKB(imageUrl)} KB`
+                    : "Bağlantı"}
                 </span>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="rounded-full border border-neutral-300 px-3 py-1 text-xs hover:border-[var(--admin-primary)]"
+                    className={BUTTON.ghost}
                   >
                     Değiştir
                   </button>
                   <button
                     type="button"
                     onClick={() => setImageUrl("")}
-                    className="rounded-full border border-red-200 px-3 py-1 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white"
+                    className={BUTTON.danger}
                   >
                     Kaldır
                   </button>
@@ -216,6 +259,7 @@ export function SlideForm({
               onClick={() => fileRef.current?.click()}
               role="button"
               tabIndex={0}
+              aria-label="Slayt görseli yükle"
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -229,18 +273,18 @@ export function SlideForm({
               }`}
             >
               <div
-                className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                style={{ fontFamily: "var(--mono), monospace" }}
+                className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
+                style={MONO_STYLE}
               >
                 {processing ? "İşleniyor…" : "Sürükle bırak veya tıkla"}
               </div>
-              <div className="mt-2 text-sm text-neutral-700">
-                Hero için <span className="font-medium">21:9 oran</span> (örn.
-                1920×823 px)
+              <div className="mt-2 text-sm text-[var(--admin-text-soft)]">
+                Geniş bir fotoğraf seç:{" "}
+                <span className="font-medium">21:9</span> (örn. 1920×823 px)
               </div>
-              <div className="mt-1 text-xs text-neutral-500">
-                JPG, PNG, WebP, AVIF veya GIF · max 15 MB. Otomatik
-                1920px&apos;e küçültülür, JPEG&apos;e dönüştürülür.
+              <div className="mt-1 text-xs text-[var(--admin-text-mute)]">
+                JPG, PNG, WebP, AVIF ya da GIF, en çok 15 MB. Uzun kenarı 1920
+                px&apos;e küçültülür ve JPEG olarak saklanır.
               </div>
             </div>
           )}
@@ -253,58 +297,86 @@ export function SlideForm({
             className="hidden"
           />
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div
+              role="alert"
+              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-[var(--admin-danger-ink)]"
+            >
               {error}
             </div>
           )}
 
-          {/* URL girme alternatifi */}
-          <div className="mt-2 flex items-center gap-2 border-t border-neutral-100 pt-3">
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
             <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
+              className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
+              style={MONO_STYLE}
+              aria-hidden="true"
             >
-              veya URL
+              ya da bağlantı
             </span>
             <input
               type="url"
+              inputMode="url"
+              autoComplete="off"
+              aria-label="Görsel bağlantısı (https)"
               value={isDataUrl ? "" : imageUrl}
               placeholder="https://images.example.com/hero.jpg"
               onChange={(e) => setImageUrl(e.target.value)}
-              className="flex-1 rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+              className="min-w-0 flex-1 rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
             />
           </div>
+          <FormFieldError name="imageUrl" />
 
           <input type="hidden" name="imageUrl" value={imageUrl} />
-        </div>
+        </fieldset>
       </Card>
 
-      <Card>
-        <div className="grid gap-4 sm:grid-cols-[1fr_1fr_180px]">
-          <Field label="CTA buton yazısı" hint="Örn: Mağazaya git">
-            <TextInput
-              name="ctaLabel"
-              defaultValue={d.ctaLabel ?? ""}
-              maxLength={40}
-            />
-          </Field>
-          <Field label="CTA URL'si" hint="/odeme veya https://...">
-            <TextInput
-              name="ctaHref"
-              defaultValue={d.ctaHref ?? ""}
-              maxLength={200}
-            />
-          </Field>
-          <Field label="Metin teması" hint="Görsel koyuysa light seç.">
-            <Select
-              name="textTheme"
-              value={textTheme}
-              onChange={(e) => setTextTheme(e.target.value as "light" | "dark")}
+      <Card className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_220px]">
+          <Row name="ctaLabel">
+            <Field
+              label="Düğme yazısı"
+              hint="Örn: Mağazaya git. Boşsa düğme çizilmez."
             >
-              <option value="light">Açık metin (koyu görsel)</option>
-              <option value="dark">Koyu metin (açık görsel)</option>
-            </Select>
-          </Field>
+              <TextInput
+                name="ctaLabel"
+                value={ctaLabel}
+                onChange={(e) => setCtaLabel(e.target.value)}
+                maxLength={L.ctaLabel}
+              />
+            </Field>
+          </Row>
+          <Row name="ctaHref">
+            <Field
+              label="Düğme bağlantısı"
+              hint="Sitedeki bir yol (/magaza), sayfadaki bir bölüm (#products) ya da https:// ile başlayan bir adres."
+            >
+              <TextInput
+                name="ctaHref"
+                value={ctaHref}
+                onChange={(e) => setCtaHref(e.target.value)}
+                maxLength={L.ctaHref}
+                inputMode="url"
+                autoComplete="off"
+              />
+            </Field>
+          </Row>
+          <Row name="textTheme">
+            <Field
+              label="Yazı rengi"
+              hint="Görsel koyuysa açık yazı, açıksa koyu yazı seç."
+            >
+              <Select
+                name="textTheme"
+                value={textTheme}
+                onChange={(e) =>
+                  setTextTheme(e.target.value === "dark" ? "dark" : "light")
+                }
+              >
+                <option value="light">Açık yazı (koyu görsel)</option>
+                <option value="dark">Koyu yazı (açık görsel)</option>
+              </Select>
+            </Field>
+          </Row>
         </div>
         <Checkbox
           name="isActive"
@@ -313,122 +385,85 @@ export function SlideForm({
         />
       </Card>
 
-      {/* Live preview */}
       <Card>
-        <div className="mb-3 font-mono text-xs tracking-widest text-neutral-500 uppercase">
+        <div
+          className="mb-3 text-xs tracking-widest text-[var(--admin-text-mute)] uppercase"
+          style={MONO_STYLE}
+        >
           Önizleme
         </div>
         <SlidePreview
           title={title}
           subtitle={subtitle}
           imageUrl={imageUrl}
+          ctaLabel={ctaLabel}
+          ctaHref={ctaHref}
           textTheme={textTheme}
         />
+        <p className="mt-2 text-xs text-[var(--admin-text-mute)]">
+          Mağazadaki slaytın kendisi; telefonda daha dar ve uzun çizilir.
+        </p>
       </Card>
 
+      <FormMessage />
       <div className="flex flex-wrap items-center gap-3">
-        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
-        <GhostButton type="button" onClick={() => history.back()}>
+        <SubmitButton>{submitLabel}</SubmitButton>
+        <Link href="/admin/magaza-hero" className={BUTTON.ghost}>
           Vazgeç
-        </GhostButton>
+        </Link>
       </div>
-    </form>
+    </ActionForm>
   );
 }
 
-function SlidePreview({
+/**
+ * The live shop slide (shop-hero-slider.tsx's own `Slide`, active and
+ * loaded) in the same frame the shop draws it in. It used to be a look-alike
+ * with its own overlay, an italic title in another face and no eyebrow or
+ * button, so the text theme was picked against a ground customers never
+ * saw (admin audit CAT-25).
+ *
+ * `data-site-preview` lets the site's own button styles through the panel's
+ * resets (globals.css); `inert` keeps the slide's link out of the tab order
+ * and unclickable, since following it would leave the unsaved form.
+ */
+export function SlidePreview({
   title,
   subtitle,
   imageUrl,
+  ctaLabel,
+  ctaHref,
   textTheme,
 }: {
   title: string;
   subtitle: string;
   imageUrl: string;
+  ctaLabel: string;
+  ctaHref: string;
   textTheme: "light" | "dark";
 }) {
-  const isLight = textTheme === "light";
-  // The preview reads globals.css tokens rather than its own hexes, so an
-  // operator always picks a text theme against the ground the live hero
-  // actually uses - it used to paint a retired palette of its own.
-  const previewBg = imageUrl
-    ? `linear-gradient(${isLight ? "rgba(20,61,43,0.35), rgba(20,61,43,0.55)" : "rgba(255,255,255,0.1), rgba(255,255,255,0.3)"}), url(${imageUrl})`
-    : isLight
-      ? "linear-gradient(135deg, var(--brand) 0%, var(--bg-espresso) 100%)"
-      : "linear-gradient(135deg, var(--bg-warm) 0%, var(--bg-stone) 100%)";
-  const words = title.trim().split(/\s+/);
-  const lead = words.slice(0, -1).join(" ");
-  const accent = words.length > 1 ? words[words.length - 1] : null;
   return (
     <div
-      style={{
-        aspectRatio: "21/9",
-        borderRadius: 16,
-        overflow: "hidden",
-        backgroundImage: previewBg,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        position: "relative",
-        color: isLight ? "#FFF" : "var(--ink)",
-      }}
+      data-site-preview=""
+      aria-hidden="true"
+      inert
+      className="shop-hero-slider"
+      style={{ width: "100%", maxWidth: "none", margin: 0 }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          placeItems: "center",
-          padding: "clamp(20px, 4vw, 40px)",
-          textAlign: "center",
-        }}
-      >
-        <div style={{ maxWidth: 720 }}>
-          <h1
-            style={{
-              fontFamily: "var(--serif)",
-              fontStyle: "italic",
-              fontWeight: 500,
-              fontSize: "clamp(28px, 5vw, 56px)",
-              lineHeight: 1.05,
-              letterSpacing: "-0.022em",
-              margin: 0,
-            }}
-          >
-            {lead || (
-              <span style={{ opacity: 0.5 }}>Başlık burada görünecek</span>
-            )}
-            {accent && (
-              <>
-                {" "}
-                <span
-                  style={{
-                    fontFamily: "var(--script)",
-                    fontStyle: "normal",
-                    color: isLight ? "var(--gold-soft)" : "var(--gold)",
-                    fontSize: "0.9em",
-                  }}
-                >
-                  {accent}
-                </span>
-              </>
-            )}
-          </h1>
-          {subtitle && (
-            <p
-              style={{
-                margin: "14px auto 0",
-                maxWidth: "52ch",
-                fontSize: 14,
-                lineHeight: 1.55,
-                color: isLight
-                  ? "rgba(255,255,255,0.85)"
-                  : "rgba(29,28,28,0.7)",
-              }}
-            >
-              {subtitle}
-            </p>
-          )}
-        </div>
+      <div className="shop-hero-track">
+        <Slide
+          slide={{
+            id: "preview",
+            title,
+            subtitle,
+            imageUrl,
+            ctaLabel,
+            ctaHref,
+            textTheme,
+          }}
+          active
+          loaded
+        />
       </div>
     </div>
   );

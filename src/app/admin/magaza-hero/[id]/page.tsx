@@ -7,7 +7,7 @@ import { getShopHeroSlide } from "@/lib/admin/store";
 import { updateSlideAction } from "../actions";
 import { SlideForm } from "../slide-form";
 
-export const metadata = { title: "Slayt düzenle · Admin" };
+export const metadata = { title: "Admin · Vitrin slaytı düzenle" };
 export const dynamic = "force-dynamic";
 
 export default async function EditSlidePage({
@@ -25,9 +25,9 @@ export default async function EditSlidePage({
   return (
     <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Shop · Hero slider"
+        eyebrow="Katalog · Mağaza vitrini"
         title={slide.title || "Slayt düzenle"}
-        description="Mevcut slaytı güncelle. Görsel veya metni değiştirip kaydet."
+        description="Kaydettiğin değişiklik mağaza sayfasına hemen yansır."
       />
       <SlideForm
         defaults={{
