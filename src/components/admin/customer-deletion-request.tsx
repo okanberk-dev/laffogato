@@ -73,7 +73,7 @@ export function CustomerDeletionRequest({
             <p className="text-sm font-medium text-[var(--admin-text)]">
               Ödenmiş karaoke rezervasyonu
             </p>
-            <ul className="grid gap-1 text-sm text-[var(--admin-text)]">
+            <ul className="grid gap-2.5 text-sm text-[var(--admin-text)] sm:gap-1">
               {karaoke.map((k) => (
                 <li
                   key={k.id}
