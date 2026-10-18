@@ -1,3 +1,5 @@
+"use client";
+
 import { unstable_rethrow } from "next/navigation";
 import { startTransition, useEffect, useRef, type FormEvent } from "react";
 
@@ -14,8 +16,17 @@ import { startTransition, useEffect, useRef, type FormEvent } from "react";
  * action, so nothing is reset.
  *
  * ActionForm and ActionModal post this way; a form that keeps its own
- * useActionState state shape uses useNoResetSubmit directly, and
- * withPanelCatch for its action.
+ * useActionState state shape uses useHandPost directly, and withPanelCatch
+ * for its action.
+ *
+ * Such a form still needs an `action`. Before the page's JavaScript has run
+ * there is no onSubmit, and a form with neither action nor method posts the
+ * browser's own way: a GET to the page with every field in the address (the
+ * history, the request log). With a function action React draws its guard
+ * (`action="javascript:..."`), so an early Enter sends nothing; after
+ * hydration onSubmit prevents the post and React skips the action of a
+ * prevented submit, so nothing is reset either. useHandPost hands out both.
+ * tests/form-native-submit.test.ts holds every `<form>` under src to this.
  */
 
 /** Called before the post; `false` cancels it and the form stays as typed. */
@@ -66,29 +77,81 @@ export function submitByHand(e: SubmitLike, opts: HandSubmitOptions): boolean {
 }
 
 /**
- * The form's onSubmit for a `useActionState` dispatcher: posts by hand, so
- * a refusal leaves every field as the operator left it, and drops a second
- * submit until the first answer is in (`pending` from the same
- * useActionState).
+ * A submit React replays. An Enter pressed before hydration meets React's
+ * guard: React's own script keeps it and, once the page is live, hands its
+ * FormData to the form's `action`, not to onSubmit. Each kept press is one
+ * call: with the bare dispatcher as the action, three impatient Enters are
+ * three posts (three coupons, three stamps). This goes through the same
+ * gate as a hand submit instead: dropped while an answer is outstanding,
+ * and dropped when the form has a beforeSubmit check, which needs the form
+ * and the button a replay no longer has (the operator presses again).
+ * React still empties the form after a replay (its own reset), so a refusal
+ * there comes back to an empty form; rare, and nothing reaches the address.
+ * Returns whether it was posted. Exported for tests.
+ */
+export function replayByHand(
+  formData: FormData,
+  opts: Pick<HandSubmitOptions, "busy" | "dispatch" | "beforeSubmit" | "run">,
+): boolean {
+  if (opts.busy.current || opts.beforeSubmit) return false;
+  opts.busy.current = true;
+  (opts.run ?? startTransition)(() => opts.dispatch(formData));
+  return true;
+}
+
+/**
+ * What a hand-posted `<form>` takes:
+ * `action={post.action} onSubmit={post.onSubmit}`.
+ */
+export interface HandPost {
+  /** React's guard before hydration; afterwards only a replayed submit. */
+  action: (formData: FormData) => void;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+}
+
+/**
+ * The form's props for a `useActionState` dispatcher: onSubmit posts by
+ * hand, so a refusal leaves every field as the operator left it, and drops
+ * a second submit until the first answer is in (`pending` from the same
+ * useActionState); `action` keeps the browser's own GET away before
+ * hydration and gates the submit React replays after it (replayByHand).
  *
  * @example
  * const [state, formAction, pending] = useActionState(withPanelCatch(saveAction, failed), initial);
- * const onSubmit = useNoResetSubmit(formAction, pending);
- * return <form onSubmit={onSubmit}>…</form>;
+ * const post = useHandPost(formAction, pending);
+ * return <form action={post.action} onSubmit={post.onSubmit}>…</form>;
  */
-export function useNoResetSubmit(
+export function useHandPost(
   dispatch: (formData: FormData) => void,
   pending: boolean,
   { beforeSubmit }: { beforeSubmit?: BeforeSubmit } = {},
-): (e: FormEvent<HTMLFormElement>) => void {
+): HandPost {
   const busy = useRef(false);
   // The answer is in (pending went back to false): the next submit may go.
   useEffect(() => {
     if (!pending) busy.current = false;
   }, [pending]);
-  return (e) => {
-    submitByHand(e, { busy, dispatch, beforeSubmit });
+  return {
+    action: (formData) => {
+      replayByHand(formData, { busy, dispatch, beforeSubmit });
+    },
+    onSubmit: (e) => {
+      submitByHand(e, { busy, dispatch, beforeSubmit });
+    },
   };
+}
+
+/**
+ * useHandPost's onSubmit alone, for a form whose action is something else:
+ * the search box's post without JavaScript (admin-search.tsx), the settings
+ * tabs' method="post". A form that has neither still needs useHandPost.
+ */
+export function useNoResetSubmit(
+  dispatch: (formData: FormData) => void,
+  pending: boolean,
+  options: { beforeSubmit?: BeforeSubmit } = {},
+): (e: FormEvent<HTMLFormElement>) => void {
+  return useHandPost(dispatch, pending, options).onSubmit;
 }
 
 /**

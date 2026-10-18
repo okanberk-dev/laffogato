@@ -2,6 +2,8 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 import type { CafeTable } from "@/lib/admin/cafe-tables";
 
 /**
@@ -198,7 +200,9 @@ describe("a table's page", () => {
 describe("the forms (KAR-14, KAR-24)", () => {
   it("post by hand, so a refusal keeps what was typed, and have a way back", async () => {
     const created = html(await NewPage());
-    expect(created).not.toContain("action=");
+    // ActionForm: React's guard for an Enter before hydration, no native post.
+    expect(formOpenTags(created)).toHaveLength(1);
+    expectReactGuard(formOpenTags(created)[0]);
     expect(created).toContain('name="name"');
     expect(created).toContain("← Masalar");
     expect(created).toMatch(/href="\/admin\/masalar"[^>]*>Vazgeç</);
@@ -206,7 +210,8 @@ describe("the forms (KAR-14, KAR-24)", () => {
     const edited = html(
       await EditPage({ params: Promise.resolve({ id: "tbl-0003" }) }),
     );
-    expect(edited).not.toContain("action=");
+    expect(formOpenTags(edited)).toHaveLength(1);
+    expectReactGuard(formOpenTags(edited)[0]);
     expect(edited).toContain('name="sortOrder"');
     expect(edited).toMatch(/href="\/admin\/masalar\/tbl-0003"[^>]*>Vazgeç</);
   });

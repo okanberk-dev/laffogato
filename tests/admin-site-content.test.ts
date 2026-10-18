@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
 
 import {
   CONTENT_FIELDS,
@@ -170,9 +174,14 @@ describe("ContentForm", () => {
     createElement(ContentForm, { content: DEFAULTS }),
   );
 
-  it("posts by hand: not a React action form", () => {
-    expect(html).not.toContain("javascript:throw");
-    expect(html).toMatch(/<form\b/);
+  it("posts by hand (ActionForm), drawn with React's guard", () => {
+    // The guard is all the action does: onSubmit posts, and an Enter before
+    // hydration sends nothing instead of a GET with the texts in the URL.
+    const tags = formOpenTags(html);
+    expect(tags).toHaveLength(1);
+    expectReactGuard(tags[0]);
+    const src = readFileSync("src/app/admin/icerik/content-form.tsx", "utf8");
+    expect(src).toContain("<ActionForm");
   });
 
   it("says where each text appears instead of its raw key", () => {

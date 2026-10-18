@@ -15,19 +15,18 @@ import type { ActionResult } from "@/lib/admin/action-result";
 
 import { BUTTON, useToast, type ButtonVariant, type ModalAction } from "./ui";
 import { announceAdminChange } from "./ui/admin-changed";
-import {
-  useNoResetSubmit,
-  withPanelCatch,
-  type BeforeSubmit,
-} from "./ui/submit";
+import { useHandPost, withPanelCatch, type BeforeSubmit } from "./ui/submit";
 
 // The hand-dispatch helpers live in ui/submit.ts (ActionModal uses them
 // too); the panel's forms import them from here.
 export {
+  replayByHand,
   submitByHand,
+  useHandPost,
   useNoResetSubmit,
   withPanelCatch,
   type BeforeSubmit,
+  type HandPost,
 } from "./ui/submit";
 
 /**
@@ -216,11 +215,14 @@ export function markFieldErrors(
 /**
  * A page form driven by an ActionResult action.
  *
- * Dispatched by hand (useNoResetSubmit, like ActionModal) rather than
+ * Dispatched by hand (useHandPost, like ActionModal) rather than
  * through `<form action>`: React resets an action form's uncontrolled
  * fields once the action finishes, whatever it answers, which wiped
  * everything the operator typed each time the server refused one field. A second submit before the
- * answer is dropped.
+ * answer is dropped. The form has an `action` too, so an Enter before
+ * hydration meets React's guard instead of the browser's own GET, and the
+ * submit React replays once the page is live passes the same gate
+ * (ui/submit.ts).
  */
 export function ActionForm({
   action,
@@ -250,7 +252,7 @@ export function ActionForm({
     },
   });
 
-  const onSubmit = useNoResetSubmit(formAction, pending, { beforeSubmit });
+  const post = useHandPost(formAction, pending, { beforeSubmit });
 
   const errorId = (name: string) => `${baseId}-err-${name}`;
   const ctx: FormState = {
@@ -277,7 +279,12 @@ export function ActionForm({
 
   return (
     <FormStateContext.Provider value={ctx}>
-      <form ref={formRef} onSubmit={onSubmit} className={className}>
+      <form
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
+        className={className}
+      >
         {children}
       </form>
     </FormStateContext.Provider>
