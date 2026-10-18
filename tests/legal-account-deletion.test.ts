@@ -54,6 +54,40 @@ describe("hesap-silme", () => {
     expect(refs).toContain("m.13 veri sorumlusuna başvuru");
   });
 
+  it("answers a deferred deletion within the thirty days too", () => {
+    // KVKK m.13/2: the answer is due in thirty days even when an order in
+    // flight holds the deletion back (Silme Yönetmeliği m.12/1).
+    const deferral = findLegalDoc("hesap-silme")!
+      .sections.find((s) => s.heading.startsWith("4."))!
+      .paragraphs!.find((p) => p.startsWith("Devam eden bir sipariş"))!;
+    expect(deferral).toMatch(
+      /Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir\.$/,
+    );
+  });
+
+  it("gives the Kurul's complaint periods as KVKK m.14 sets them", () => {
+    const appeal = findLegalDoc("hesap-silme")!.sections.find((s) =>
+      s.heading.startsWith("11."),
+    )!.paragraphs![1];
+    expect(appeal).toBe(
+      "Başvurunuzun reddedilmesi, verilen cevabın yetersiz bulunması veya otuz gün içinde cevap verilmemesi hâllerinde, cevabı öğrendiğiniz tarihten itibaren otuz gün ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsiniz.",
+    );
+  });
+
+  it("no longer describes saved cards: none are kept (rule 28)", () => {
+    expect(text).not.toContain("Kayıtlı kartlarınız");
+    expect(text).not.toContain("kart saklama");
+  });
+
+  it("says a Site request fixes the karaoke window at the request", () => {
+    // ASK-Y3-4 (d): our delay does not shorten the member's window; a
+    // booking made after the request counts from its making.
+    expect(text).toContain(
+      "Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise rezervasyonun yapıldığı ana göre hesaplanır",
+    );
+    expect(text).toContain("oda kullanılmadıysa iade yine yapılır");
+  });
+
   it("no longer says the Site deletes on the member's click", () => {
     expect(text).not.toContain("şifrenizi doğruladığınızda anında");
     expect(text).not.toContain("Hesabım > Hesabı sil sayfası");
@@ -89,6 +123,27 @@ describe("the other texts that sent members to /uye/hesap/sil", () => {
     expect(agreement).toMatch(/tek adım/);
     expect(procedure.join("\n")).toContain(promise);
     expect(procedure.join("\n")).toMatch(/tek adımda/);
+  });
+
+  it("Kullanım Şartları §7 names each channel and its time", () => {
+    const terms = all("kullanim-sartlari");
+    expect(terms).toContain(
+      "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır; Site'deki hesap silme sayfasından (https://",
+    );
+    expect(terms).toMatch(
+      /\/uye\/hesap\/sil\) veya \S+@\S+ adresine iletilen talep en geç otuz gün içinde sonuçlandırılır\./,
+    );
+    expect(terms).not.toContain("hesap ayarları üzerinden ya da");
+  });
+
+  it("Mobil Uygulama Koşulları §17 sends web requests to the request page", () => {
+    const app = findLegalDoc("mobil-uygulama-kosullari")!.sections.find((s) =>
+      s.heading.startsWith("17."),
+    )!.paragraphs![1];
+    expect(app).toMatch(
+      /; ayrıca Site'deki hesap silme sayfasından \(\S+\/uye\/hesap\/sil\) veya \S+ adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır\.$/,
+    );
+    expect(app).not.toContain("ile de hesap kapatılabilir");
   });
 
   it("the membership agreement says the Site's request is answered within thirty days", () => {
