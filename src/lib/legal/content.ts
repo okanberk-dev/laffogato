@@ -4723,7 +4723,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Gizlilik",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
-    updatedAt: "18 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -5548,7 +5547,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
-    updatedAt: "17 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -6306,7 +6304,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Açık Rıza",
     // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
     // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
-    updatedAt: "17 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun uyarınca {{SHORT_NAME}}'nin web sitesi ve mobil uygulamada hangi işlemler için açık rızanıza başvurduğunu, rızanın nasıl verilip geri çekileceğini, vermemeniz hâlinde hizmetin ve sadakat (damga) programından yararlanmanızın etkilenmediğini açıklar.",
@@ -6955,7 +6952,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Başvuru Formu",
     // 18 Ekim 2026: Site'deki hesap silme talebi bu formla yapılan
     // başvuru gibi işlenir.
-    updatedAt: "18 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 11. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca ilgili kişilerin {{SHORT_NAME}}'ye nasıl başvuracağını, başvuruda yer alması zorunlu bilgileri, yanıt süresini ve şikâyet yolunu açıklayan rehber ve formdur.",
@@ -10150,7 +10146,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // adımı adıyla söylüyor, uygulamadaki anında silme kalıyor; eklenenler
     // talebi geri alma ve sonucun bildirilmesi, otuz gün de KVKK m.13/2'nin
     // zaten koyduğu üst sınır.
-    updatedAt: "18 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10773,7 +10768,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     category: "Site & Üyelik",
     // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
     // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
-    updatedAt: "18 Ekim 2026",
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
     references: [

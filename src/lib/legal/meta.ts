@@ -19,9 +19,12 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-// 17 Ekim 2026: the KDV wording of the two checkout documents changed (rates
-// by product: 1, 10, 20; shipping follows the goods). LEGAL-REDLINES §16.
-export const LEGAL_UPDATED = "17 Ekim 2026";
+// 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in force
+// since 1 Ocak 2026 (14-day return, no return cost, mediation, Türkiye only)
+// and stop describing saved cards; the e-commerce regulation is cited by its
+// current title in every document, so the whole set carries this day.
+// LEGAL-REDLINES §18 and §19. (17 Ekim 2026: KDV by product, §16.)
+export const LEGAL_UPDATED = "18 Ekim 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,
