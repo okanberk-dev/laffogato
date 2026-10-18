@@ -361,11 +361,13 @@ export function karaokeRulesOf(r: {
 }
 
 /**
- * Why the panel refuses a policy, or null. The ranges, then two fairness
+ * Why the panel refuses a policy, or null. The ranges, then the fairness
  * limits (Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1
  * and EK (ç), (d); TBK m.182/3): a long window may not keep the whole
  * payment, so with no late refund the window is at most 24 hours, and above
- * 24 hours at least half goes back.
+ * 24 hours at least half goes back. 0 hours is the longest window of all
+ * (every cancel after booking is late, up to the booking window before the
+ * start), so it needs half back as well.
  */
 export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
   field: "karaokeFreeCancelHours" | "karaokeLateRefundPercent";
@@ -396,6 +398,13 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
       field: "karaokeLateRefundPercent",
       message:
         "Ücretsiz iptal süresi 24 saatten uzunsa geç iptalde en az %50 iade edilmeli.",
+    };
+  }
+  if (h === 0 && p < 50) {
+    return {
+      field: "karaokeLateRefundPercent",
+      message:
+        "Ücretsiz iptal süresi 0 iken rezervasyondan sonraki her iptal geç iptal sayılır; bu durumda geç iptalde en az %50 iade edilmeli.",
     };
   }
   return null;

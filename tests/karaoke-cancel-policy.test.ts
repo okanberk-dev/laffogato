@@ -281,12 +281,25 @@ describe("the panel's limits (Haksız Şartlar Yön. m.5/1, EK (ç), (d); TBK m.
       lateRefundPercent: p,
     });
 
-  it("accepts the default, no window, and a long window with half back", () => {
+  it("accepts the default, no window with half back, and a long window with half back", () => {
     expect(refuse(2, 0)).toBeNull();
-    expect(refuse(0, 0)).toBeNull();
+    expect(refuse(0, 50)).toBeNull();
+    expect(refuse(0, 100)).toBeNull();
     expect(refuse(24, 0)).toBeNull();
     expect(refuse(30, 50)).toBeNull();
     expect(refuse(72, 100)).toBeNull();
+  });
+
+  it("no window is the longest window: at 0 hours at least half goes back", () => {
+    // 0 hours stores the booking instant as the deadline, so every cancel
+    // after booking is late, up to the booking window (60 days by default)
+    // before the start: (0, 0) would keep the whole payment for all of it.
+    for (const p of [0, 10, 49]) {
+      expect(refuse(0, p)).toMatchObject({
+        field: "karaokeLateRefundPercent",
+        message: expect.stringMatching(/en az %50/),
+      });
+    }
   });
 
   it("at 0 % the window is at most 24 hours", () => {

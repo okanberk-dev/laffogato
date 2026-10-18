@@ -157,6 +157,19 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     expect(longLittleBack.fieldErrors?.karaokeLateRefundPercent).toMatch(
       /en az %50/,
     );
+    // No free window makes every cancel after booking late: the longest
+    // window of all, so it needs half back too.
+    const noWindowNothingBack = await saveKaraokeAction(
+      {},
+      form({
+        ...BASE,
+        karaokeFreeCancelHours: "0",
+        karaokeLateRefundPercent: "0",
+      }),
+    );
+    expect(noWindowNothingBack.fieldErrors?.karaokeLateRefundPercent).toMatch(
+      /en az %50/,
+    );
     expect(h.updates).toEqual([]);
   });
 

@@ -120,7 +120,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="karaokeFreeCancelHours"
               label="Ücretsiz iptal (saat)"
-              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: ücretsiz iptal yok.`}
+              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: ücretsiz iptal yok, o zaman geç iptalde en az %50 iade edilir.`}
             >
               <TextInput
                 name="karaokeFreeCancelHours"
