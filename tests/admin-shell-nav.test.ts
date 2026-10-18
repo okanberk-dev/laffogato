@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { createElement, type FunctionComponent, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -45,15 +45,41 @@ vi.mock("next/link", () => ({
   }) => createElement("a", { href, ...rest }, children),
   useLinkStatus: () => ({ pending: false }),
 }));
-vi.mock("next/form", () => ({
-  default: ({
-    action,
-    children,
-    ...rest
-  }: {
-    action: string;
-    children?: ReactNode;
-  }) => createElement("form", { action, method: "get", ...rest }, children),
+// The search action as the client layer sees a Server Action: a reference
+// React can draw a progressive form for ($$FORM_ACTION) and match a posted
+// form state against ($$IS_SIGNATURE_EQUAL). Its id is what a no-JS post
+// names in the form state.
+const searchRef = vi.hoisted(() => {
+  const ID = "admin-search-action";
+  const answers: unknown[] = [];
+  const run = async (...args: unknown[]) => {
+    answers.push(args);
+    return { text: "", groups: null, tooShort: false, failed: false };
+  };
+  const encode = (prefix: string) => {
+    const data = new FormData();
+    data.append(`$ACTION_${prefix}:0`, JSON.stringify({ id: ID, bound: [] }));
+    return {
+      name: `$ACTION_REF_${prefix}`,
+      method: "POST",
+      encType: "multipart/form-data",
+      data,
+    };
+  };
+  const ref = Object.assign((...args: unknown[]) => run(...args), {
+    $$FORM_ACTION: (prefix: string) => encode(prefix),
+    // decodeFormState counts the bound state out: 0 for useActionState.
+    $$IS_SIGNATURE_EQUAL: (id: string, bound: number) =>
+      id === ID && bound === 0,
+    bind: (_this: unknown, ...bound: unknown[]) =>
+      Object.assign((...rest: unknown[]) => run(...bound, ...rest), {
+        $$FORM_ACTION: (prefix: string) => encode(prefix),
+      }),
+  });
+  return { ID, ref, answers };
+});
+vi.mock("@/app/admin/ara/actions", () => ({
+  adminSearchAction: searchRef.ref,
 }));
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
@@ -81,6 +107,7 @@ const { PanelHomeProvider } = await import("@/components/admin/panel-home");
 const { ADMIN_CHANGED_EVENT } =
   await import("@/components/admin/ui/admin-changed");
 const AdminLayout = (await import("@/app/admin/layout")).default;
+const search = await import("@/components/admin/admin-search");
 const { withDenied } = await import("@/lib/admin/nav-match");
 
 const read = (path: string) => readFileSync(path, "utf8");
@@ -397,13 +424,24 @@ describe("the sidebar and the top bar", () => {
     expect(html.match(/data-admin-topbar-actions/g)).toHaveLength(1);
   });
 
-  it("shows the search only to a role it covers; it works without JavaScript", () => {
+  it("shows the search only to a role it covers; it posts, so the text is in no address", () => {
     const html = renderSidebar();
     expect(html).toContain('<a href="/admin/ara" aria-label="Ara"');
     const form = tag(html, /<form[^>]*action="\/admin\/ara"[^>]*>/);
-    expect(form).toContain('method="get"');
+    // A POST to the results page (the action's permalink), never a GET.
+    expect(form).toContain('method="POST"');
+    expect(form).toMatch(/enctype="multipart\/form-data"/i);
+    expect(form).not.toMatch(/method="get"/i);
     expect(form).toContain('role="search"');
-    const input = tag(html, /<input id="admin-top-search"[^>]*>/);
+    const body = html.slice(
+      html.indexOf(form),
+      html.indexOf("</form>", html.indexOf(form)),
+    );
+    // The key a no-JS post is answered under on /admin/ara.
+    expect(body).toMatch(
+      /<input type="hidden" name="\$ACTION_KEY" value="p\/admin\/ara"\/>/,
+    );
+    const input = tag(html, /<input[^>]*id="admin-top-search"[^>]*>/);
     expect(input).toContain('name="q"');
     expect(input).toContain('type="search"');
     // `hidden` below lg and `flex` from lg: no bare `flex` beside `hidden`.
@@ -416,6 +454,31 @@ describe("the sidebar and the top bar", () => {
     // Nothing for the wide bar to hold: it is not drawn there.
     expect(tag(none, /<header[^>]*>/)).toMatch(/\blg:hidden\b/);
     expect(tag(html, /<header[^>]*>/)).not.toMatch(/\blg:hidden\b/);
+  });
+
+  it("with JavaScript, hands the text to the results page in memory, not in its address", () => {
+    const target = new EventTarget();
+    vi.stubGlobal("window", target);
+    try {
+      const heard = vi.fn();
+      const stop = search.subscribeHandOff(heard);
+      const push = vi.fn();
+      search.sendToResultsPage("ayse@example.com", "/admin/siparisler", push);
+      expect(push).toHaveBeenCalledWith("/admin/ara");
+      expect(heard).toHaveBeenCalledTimes(1);
+      expect(search.takeHandedOffSearch()).toBe("ayse@example.com");
+      // Taken once.
+      expect(search.takeHandedOffSearch()).toBeNull();
+      // Already on the results page: no navigation, the page hears it.
+      push.mockClear();
+      search.sendToResultsPage("0532 123 45 67", "/admin/ara", push);
+      expect(push).not.toHaveBeenCalled();
+      expect(heard).toHaveBeenCalledTimes(2);
+      expect(search.takeHandedOffSearch()).toBe("0532 123 45 67");
+      stop();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("draws breadcrumbs below a nav entry, not on the entry's own page", () => {
@@ -626,5 +689,98 @@ describe("unknown addresses, the skeleton, the way back", () => {
     const src = read("src/app/admin/error.tsx");
     expect(src).toContain("onClick={() => retry()}");
     expect(src).not.toContain("onClick={reset}");
+  });
+});
+
+describe("the results page (no query in its address)", () => {
+  const answer = {
+    text: "ayşe",
+    tooShort: false,
+    failed: false,
+    groups: [
+      {
+        section: "orders",
+        label: "Siparişler",
+        hits: [
+          {
+            href: "/admin/siparisler/ord-1",
+            title: "#10001 · Ayşe Yılmaz",
+            meta: ["Ödendi"],
+            amountMinor: 18500,
+            at: "2026-10-17T10:00:00.000Z",
+          },
+        ],
+        more: true,
+        listHref: "/admin/siparisler",
+      },
+    ],
+  };
+
+  // How Next draws /admin/ara for a no-JS post: the action ran, and its
+  // answer is the form state, keyed by the permalink.
+  const drawPosted = async (formState: unknown) => {
+    const { AdminSearchResults } =
+      await import("@/app/admin/ara/search-results");
+    const stream = await renderToReadableStream(
+      createElement(AdminSearchResults),
+      {
+        formState: formState as never,
+      },
+    );
+    await stream.allReady;
+    return new Response(stream).text();
+  };
+
+  it("draws a no-JS post's answer from the post itself", async () => {
+    const html = await drawPosted([answer, "p/admin/ara", searchRef.ID, 0]);
+    expect(html).toContain("#10001 · Ayşe Yılmaz");
+    expect(html).toContain('href="/admin/siparisler/ord-1"');
+    expect(html).toMatch(/İlk (<!-- -->)?5(<!-- -->)? sonuç · listeye git/);
+    expect(html).toContain('href="/admin/siparisler"');
+    // The box shows what was searched, and posts again the same way.
+    expect(tag(html, /<input[^>]*id="admin-search-page"[^>]*>/)).toContain(
+      'value="ayşe"',
+    );
+    const form = tag(html, /<form[^>]*action="\/admin\/ara"[^>]*>/);
+    expect(form).toContain('method="POST"');
+    // Nothing in the page links back to itself with the text.
+    expect(html).not.toMatch(/href="[^"]*\?q=/);
+    expect(html).not.toContain("ara?");
+  });
+
+  it("an answer posted for another form is not this page's", async () => {
+    const html = await drawPosted([answer, "p/admin/kasa", searchRef.ID, 0]);
+    expect(html).not.toContain("Ayşe Yılmaz");
+    const other = await drawPosted([
+      answer,
+      "p/admin/ara",
+      "another-action",
+      0,
+    ]);
+    expect(other).not.toContain("Ayşe Yılmaz");
+  });
+
+  it("says a failed search is a failure, and keeps the box", async () => {
+    const html = await drawPosted([
+      { text: "ayşe", groups: null, tooShort: false, failed: true },
+      "p/admin/ara",
+      searchRef.ID,
+      0,
+    ]);
+    expect(html).toMatch(/role="alert"[^>]*>Arama şu an yapılamadı/);
+    expect(html).not.toContain("için sonuç yok");
+    expect(tag(html, /<input[^>]*id="admin-search-page"[^>]*>/)).toContain(
+      'value="ayşe"',
+    );
+  });
+
+  it("the page reads no query from its address, and the box is no GET form", () => {
+    const page = read("src/app/admin/ara/page.tsx");
+    expect(page).not.toContain("searchParams");
+    const box = read("src/components/admin/admin-search.tsx");
+    expect(box).not.toContain("next/form");
+    expect(box).not.toMatch(/method=["']get/i);
+    const lib = read("src/lib/admin/search.ts");
+    expect(lib).not.toMatch(/\?q=\$\{/);
   });
 });

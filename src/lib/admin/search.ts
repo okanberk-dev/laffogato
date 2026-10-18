@@ -9,11 +9,31 @@ import {
   formatReservationTime,
 } from "@/lib/mobile/karaoke-format";
 
-import { escapeLike } from "./order-filters";
 import { orderStatusLabel } from "./order-ui";
-import { canAccess, type AdminRole, type AdminSection } from "./roles";
+import type { AdminRole } from "./roles";
+import {
+  SEARCH_LIMIT,
+  searchSectionsFor,
+  type ParsedSearch,
+  type SearchGroup,
+  type SearchHit,
+  type SearchSection,
+} from "./search-core";
 import type { AdminOrderStatus } from "./store";
 import { TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO } from "./text-fold";
+
+// The pure half (constants, the box's parsing, the role gate, the shapes)
+// is client-safe in search-core.ts; re-exported for the server callers.
+export {
+  SEARCH_LIMIT,
+  SEARCH_MIN_LENGTH,
+  parseSearch,
+  searchSectionsFor,
+  type ParsedSearch,
+  type SearchGroup,
+  type SearchHit,
+  type SearchSection,
+} from "./search-core";
 
 /**
  * The panel's one search box (P2b, decision D36): an order by number,
@@ -32,18 +52,6 @@ import { TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO } from "./text-fold";
  * "ırmak").
  */
 
-/** Rows shown per section; one more is read to know there are more. */
-export const SEARCH_LIMIT = 5;
-
-/** A search shorter than this is not run: two letters match half the shop. */
-export const SEARCH_MIN_LENGTH = 2;
-
-/** What the box keeps of a long paste. */
-const SEARCH_MAX_LENGTH = 80;
-
-export type SearchSection =
-  "orders" | "customers" | "products" | "menu" | "karaoke";
-
 const SECTION_LABELS: Record<SearchSection, string> = {
   orders: "Siparişler",
   customers: "Müşteriler",
@@ -51,83 +59,6 @@ const SECTION_LABELS: Record<SearchSection, string> = {
   menu: "Menü",
   karaoke: "Karaoke",
 };
-
-/** The role section each search section needs (roles.ts). */
-const SECTION_GATE: Record<SearchSection, AdminSection> = {
-  orders: "orders",
-  customers: "customers",
-  products: "products",
-  menu: "menu",
-  karaoke: "karaoke",
-};
-
-const SEARCH_ORDER: readonly SearchSection[] = [
-  "orders",
-  "customers",
-  "karaoke",
-  "products",
-  "menu",
-];
-
-/** The sections this role's search covers, in the order they are shown. */
-export function searchSectionsFor(role: AdminRole): SearchSection[] {
-  return SEARCH_ORDER.filter((s) => canAccess(SECTION_GATE[s], role));
-}
-
-/** The box's text, read once into what each section looks for. */
-export interface ParsedSearch {
-  /** What the operator typed, trimmed and capped: shown back as typed. */
-  text: string;
-  /** `%…%` with LIKE's wildcards escaped. */
-  pattern: string;
-  /** "10234" or "#10234". */
-  orderNo: number | null;
-  /** A phone number's national digits ("0532 123 45 67" -> "5321234567"). */
-  phone: string | null;
-  /** "KRK-00042", "krk42" or "42" as the booking's id. */
-  karaokeId: string | null;
-}
-
-export function parseSearch(raw: unknown): ParsedSearch | null {
-  if (typeof raw !== "string") return null;
-  const text = raw.trim().slice(0, SEARCH_MAX_LENGTH);
-  if (text.length < SEARCH_MIN_LENGTH) return null;
-  const order = /^#\s*(\d{1,9})$|^(\d{1,9})$/.exec(text);
-  const orderNo = order ? Number(order[1] ?? order[2]) : null;
-  // Seven digits at least: an order number (five) is not read as a phone.
-  const digits = text.replace(/\D/g, "").replace(/^(?:90|0)/, "");
-  const phone =
-    /^[\d\s()+.-]+$/.test(text) && digits.length >= 7 ? digits : null;
-  const code = /^(?:krk-?)?0*(\d{1,12})$/i.exec(text);
-  const karaokeId = code ? `krk-${code[1].padStart(5, "0")}` : null;
-  return {
-    text,
-    pattern: `%${escapeLike(text)}%`,
-    orderNo: orderNo && orderNo > 0 ? orderNo : null,
-    phone,
-    karaokeId,
-  };
-}
-
-export interface SearchHit {
-  href: string;
-  title: string;
-  /** Short facts after the title: a status, a SKU, an e-mail. */
-  meta: string[];
-  amountMinor?: number;
-  /** An ISO instant the page writes on the Istanbul clock. */
-  at?: string;
-}
-
-export interface SearchGroup {
-  section: SearchSection;
-  label: string;
-  hits: SearchHit[];
-  /** More rows matched than are shown. */
-  more: boolean;
-  /** The section's own list, searching the same text, where it has a box. */
-  listHref: string | null;
-}
 
 /** Turkish fold, on the column and on the pattern alike. */
 function folded(column: string, pattern: string): AnyOfCondition {
@@ -334,21 +265,17 @@ const RUN: Record<
   karaoke: searchKaraoke,
 };
 
-function listHref(section: SearchSection, text: string): string | null {
-  const q = encodeURIComponent(text);
-  switch (section) {
-    case "orders":
-      return `/admin/siparisler?q=${q}`;
-    case "customers":
-      return `/admin/musteriler?q=${q}`;
-    case "products":
-      return `/admin/urunler?q=${q}`;
-    case "karaoke":
-      return `/admin/mobil/karaoke?q=${q}`;
-    default:
-      return null;
-  }
-}
+/**
+ * The section's own list, for "more than five". Never with the text in
+ * the address (`?q=`): see ADMIN_SEARCH_PATH.
+ */
+const LIST_HREF: Record<SearchSection, string> = {
+  orders: "/admin/siparisler",
+  customers: "/admin/musteriler",
+  products: "/admin/urunler",
+  menu: "/admin/menu",
+  karaoke: "/admin/mobil/karaoke",
+};
 
 /**
  * Every section this role may open, searched at once. A section that does
@@ -370,7 +297,7 @@ export async function searchAdmin(
       label: SECTION_LABELS[section],
       hits: hits.slice(0, SEARCH_LIMIT),
       more: hits.length > SEARCH_LIMIT,
-      listHref: listHref(section, q.text),
+      listHref: LIST_HREF[section],
     });
   });
   return groups;

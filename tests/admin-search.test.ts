@@ -35,8 +35,35 @@ vi.mock("@/lib/db", async () => {
   return { TABLES, getDb: () => db };
 });
 
+// The action's session (tests below): who is signed in, or nobody.
+const auth = vi.hoisted(() => ({
+  session: null as null | { email: string; role: string; expiresAt: number },
+  throws: null as unknown,
+}));
+vi.mock("@/lib/admin/auth", () => ({
+  getAdminSession: async () => {
+    if (auth.throws) throw auth.throws;
+    return auth.session;
+  },
+}));
+vi.mock("next/navigation", () => ({
+  redirect: (to: string) => {
+    throw Object.assign(new Error(`NEXT_REDIRECT ${to}`), {
+      digest: `NEXT_REDIRECT;replace;${to};307;`,
+    });
+  },
+  // Next's own: a redirect is passed on, anything else is the caller's.
+  unstable_rethrow: (err: unknown) => {
+    if (String((err as { digest?: unknown })?.digest).startsWith("NEXT_")) {
+      throw err;
+    }
+  },
+}));
+
 const { parseSearch, searchAdmin, searchSectionsFor, SEARCH_LIMIT } =
   await import("@/lib/admin/search");
+const { adminSearchAction } = await import("@/app/admin/ara/actions");
+const { INITIAL_SEARCH_STATE } = await import("@/lib/admin/search-core");
 
 const tablesQueried = () =>
   sent.map((q) => /FROM "([a-z_]+)"/.exec(q.text)?.[1]).sort();
@@ -45,6 +72,8 @@ beforeEach(() => {
   sent.length = 0;
   answers = {};
   unreachable = false;
+  auth.session = null;
+  auth.throws = null;
 });
 
 describe("who searches what", () => {
@@ -188,7 +217,28 @@ describe("the answer", () => {
       meta: ["Ödendi"],
       amountMinor: 18500,
     });
-    expect(orders.listHref).toBe("/admin/siparisler?q=10004");
+    // The list, not the list searching the text: no query in an address.
+    expect(orders.listHref).toBe("/admin/siparisler");
+  });
+
+  it("puts what was typed in no link at all", async () => {
+    answers.orders = [order(10001)];
+    answers.customers = [{ email: "ayse@example.com", name: "Ayşe" }];
+    answers.products = [
+      { id: "prd-1", name: "Ayşe", sku: "", isActive: true, priceMinor: 1 },
+    ];
+    answers.menu_items = [
+      { id: "mnu-1", name: "Ayşe", isActive: true, priceMinor: 1 },
+    ];
+    for (const text of ["ayse@example.com", "0532 123 45 67", "Ayşe"]) {
+      const groups = await searchAdmin(parseSearch(text)!, "owner");
+      for (const g of groups) {
+        expect(g.listHref).not.toContain("?");
+        // A record's own page only. (A member's page is keyed by their
+        // e-mail, the route as it stands: decision D14, PEO-25.)
+        for (const hit of g.hits) expect(hit.href).not.toContain("?");
+      }
+    }
   });
 
   it("keeps a section that found nothing, with no hits", async () => {
@@ -248,5 +298,114 @@ describe("the answer", () => {
     await expect(searchAdmin(parseSearch("ayşe")!, "staff")).rejects.toThrow(
       /ECONNREFUSED/,
     );
+  });
+});
+
+describe("the search action (posted, never an address)", () => {
+  const post = (q: unknown) => {
+    const fd = new FormData();
+    if (q !== undefined) fd.set("q", q as string);
+    return adminSearchAction(INITIAL_SEARCH_STATE, fd);
+  };
+  const as = (role: string) => {
+    auth.session = { email: `${role}@laf.test`, role, expiresAt: 0 };
+  };
+
+  it("sends a signed-out post to the sign-in, without a query", async () => {
+    await expect(post("ayşe")).rejects.toThrow("NEXT_REDIRECT /admin/giris");
+    expect(sent).toHaveLength(0);
+  });
+
+  it("sends a cashier back to the till, without a query (rule 27)", async () => {
+    as("cashier");
+    await expect(post("10234")).rejects.toThrow(
+      "NEXT_REDIRECT /admin/kasa?denied=1",
+    );
+    expect(sent).toHaveLength(0);
+  });
+
+  it("asks only the sections the role may open", async () => {
+    as("staff");
+    answers.orders = [
+      {
+        id: "ord-1",
+        orderNo: 10001,
+        customerName: "Ayşe",
+        customerEmail: "ayse@example.com",
+        status: "paid",
+        fulfillment: "table",
+        totalMinor: 100,
+        createdAt: "2026-10-17T10:00:00.000Z",
+      },
+    ];
+    const state = await post("  ayse@example.com ");
+    expect(tablesQueried()).toEqual(["orders"]);
+    expect(state).toMatchObject({
+      text: "ayse@example.com",
+      tooShort: false,
+      failed: false,
+    });
+    expect(state.groups!.map((g) => g.section)).toEqual(["orders"]);
+    expect(state.groups![0].hits[0].href).toBe("/admin/siparisler/ord-1");
+  });
+
+  it("reads only the posted box; the state it is handed is ignored", async () => {
+    as("manager");
+    const forged = {
+      ...INITIAL_SEARCH_STATE,
+      text: "x",
+      groups: [
+        {
+          section: "customers" as const,
+          label: "Müşteriler",
+          hits: [{ href: "/evil", title: "forged", meta: [] }],
+          more: false,
+          listHref: "/evil",
+        },
+      ],
+    };
+    const fd = new FormData();
+    fd.set("q", "zzz");
+    const state = await adminSearchAction(forged, fd);
+    expect(state.text).toBe("zzz");
+    expect(JSON.stringify(state)).not.toContain("forged");
+  });
+
+  it("too short: says so and sends nothing", async () => {
+    as("owner");
+    expect(await post(" a ")).toEqual({
+      text: "a",
+      groups: null,
+      tooShort: true,
+      failed: false,
+    });
+    expect(await post(undefined)).toMatchObject({ tooShort: false });
+    expect(sent).toHaveLength(0);
+  });
+
+  it("a database that does not answer: failed, the text kept, nothing typed in the log", async () => {
+    as("owner");
+    unreachable = true;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const state = await post("ayse@example.com");
+    expect(state).toEqual({
+      text: "ayse@example.com",
+      groups: null,
+      tooShort: false,
+      failed: true,
+    });
+    const logged = JSON.stringify(log.mock.calls);
+    log.mockRestore();
+    expect(logged).not.toContain("ayse");
+  });
+
+  it("a session that cannot be checked is a failed search, not a sign-out", async () => {
+    auth.throws = Object.assign(new Error("panel account unreadable"), {
+      code: "ADMIN_SESSION_UNAVAILABLE",
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await post("ayşe")).toMatchObject({ failed: true, text: "ayşe" });
+    log.mockRestore();
+    expect(sent).toHaveLength(0);
   });
 });
