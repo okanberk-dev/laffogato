@@ -240,12 +240,11 @@ describe("admin UI libraries: who may import them", () => {
       expect(serverReach(f, [RAC, DATE]), f).toEqual([]);
     }
     // The walk follows the kit's own imports: data-table reaches React's
-    // runtime only through detail.tsx (its own React import is type-only).
-    expect(
-      serverReach("src/components/admin/ui/data-table.tsx", ["react"]),
-    ).toContain(
-      "src/components/admin/ui/data-table.tsx -> src/components/admin/ui/detail.tsx -> react",
-    );
+    // runtime through a kit file it imports (detail.tsx, forms.tsx).
+    const viaKit = serverReach("src/components/admin/ui/data-table.tsx", [
+      "react",
+    ]);
+    expect(viaKit.some((trail) => trail.split(" -> ").length >= 3)).toBe(true);
   });
 
   it("ESLint refuses them outside the panel and lets the panel use them", async () => {
@@ -284,26 +283,52 @@ describe("admin UI libraries: who may import them", () => {
 });
 
 describe("ui/icons.tsx", () => {
-  it("every key draws a lucide icon of the pinned version, each a different one", async () => {
+  it("every key draws the named lucide icon of the pinned version, each a different one", async () => {
     const { ADMIN_ICONS } = await import("@/components/admin/ui/icons");
+    // lucide names each icon after its canonical name (displayName), so an
+    // alias that 1.51.0 dropped or renamed shows up here, not on a screen.
+    const names = Object.fromEntries(
+      Object.entries(ADMIN_ICONS).map(([key, icon]) => [
+        key,
+        (icon as { displayName?: string }).displayName,
+      ]),
+    );
+    expect(names).toEqual({
+      dashboard: "LayoutGrid",
+      orders: "ShoppingBag",
+      karaoke: "MicVocal",
+      till: "Stamp",
+      appLive: "Radio",
+      menu: "Coffee",
+      products: "Package",
+      stock: "Boxes",
+      customers: "Users",
+      promos: "TicketPercent",
+      newsletter: "Mail",
+      slides: "GalleryHorizontalEnd",
+      content: "FileText",
+      mobileApp: "Smartphone",
+      appFal: "Flag",
+      reports: "ChartColumn",
+      tables: "QrCode",
+      settings: "Settings",
+      adminUsers: "UserCog",
+      legal: "Scale",
+      audit: "ScrollText",
+      search: "Search",
+      create: "Plus",
+      drawer: "Menu",
+      more: "Ellipsis",
+      dateRange: "CalendarRange",
+      close: "X",
+    });
     const icons = Object.values(ADMIN_ICONS);
     for (const [key, icon] of Object.entries(ADMIN_ICONS)) {
-      expect(icon, key).toBeDefined();
       expect(typeof (icon as { render?: unknown }).render, key).toBe(
         "function",
       );
     }
     expect(new Set(icons).size).toBe(icons.length);
-    // The sections that shared a drawn icon before each keep their own.
-    for (const key of [
-      "till",
-      "tables",
-      "mobileApp",
-      "adminUsers",
-      "karaoke",
-    ]) {
-      expect(ADMIN_ICONS, key).toHaveProperty(key);
-    }
   });
 
   it("draws 18 px with a 1.75 line, hidden from screen readers by default", async () => {
@@ -338,10 +363,23 @@ describe("ui/icons.tsx", () => {
     expect(html).toContain("text-[var(--admin-text-soft)]");
   });
 
-  it("the kit index exports the icon map", async () => {
-    const ui = await import("@/components/admin/ui");
-    const icons = await import("@/components/admin/ui/icons");
-    expect(ui.AdminIcon).toBe(icons.AdminIcon);
-    expect(ui.ADMIN_ICONS).toBe(icons.ADMIN_ICONS);
+  it("the kit barrel re-exports the icon types only, never the values", () => {
+    // Re-exported as values from ui/index.ts, the icons put lucide's client
+    // Icon on every page that imports the kit, drawn or not (+4.4 KB gz on
+    // /admin/siparisler, and lucide on /admin/kasa, whose budget is 0 KB).
+    // Pages and components import ./icons directly.
+    const code = read("src/components/admin/ui/index.ts")
+      .split("\n")
+      .filter((line) => !line.trimStart().startsWith("//"))
+      .join("\n");
+    const fromIcons = (specs: string[]) =>
+      specs.filter((s) => /(^|\/)icons$/.test(s));
+    expect(fromIcons(valueImportsOf(code))).toEqual([]);
+    expect(code).toMatch(
+      /export type \{ AdminIconName, AdminIconProps \} from "\.\/icons";/,
+    );
+    // An inline `export { type X }` would not do: under
+    // verbatimModuleSyntax it keeps the module edge.
+    expect(code).not.toMatch(/export \{[^}]*\} from "\.\/icons"/);
   });
 });

@@ -4,14 +4,19 @@
 //
 // Server-safe (no hooks): Badge, OrderStatusBadge, DataTable (without
 // `selection`), StatusTabs, Pagination, Section, KeyValueGrid, Timeline,
-// EmptyState, AdminIcon (lucide; icons.tsx is the one file that imports it).
-// Client components, usable from a server page with plain props:
+// EmptyState. Client components, usable from a server page with plain props:
 // FilterBar, ActionMenu (+ items), ActionModal, ConfirmButton, ToastProvider.
 // Pure helpers live in lib/admin: list-params.ts (URL), action-result.ts,
 // order-ui.ts, tone.ts, flash-core.ts (+ server-only flash.ts),
 // text-fold.ts (Turkish-aware search). Forms that keep their own
 // useActionState post through useHandPost / withPanelCatch
 // (submit.ts, also exported from components/admin/action-form).
+//
+// Icons: AdminIcon and ADMIN_ICONS are imported from
+// "@/components/admin/ui/icons", never through this barrel, which re-exports
+// only their types. Re-exported as values they put lucide's client Icon into
+// every page that imports the kit, drawn or not (measured: +4.4 KB gz on
+// /admin/siparisler, and lucide on /admin/kasa, whose budget is 0 KB).
 
 export { ADMIN_CHANGED_EVENT, announceAdminChange } from "./admin-changed";
 export {
@@ -47,14 +52,7 @@ export {
   type TimelineItem,
 } from "./detail";
 export { FilterBar, type FilterBarProps } from "./filter-bar";
-export {
-  ADMIN_ICONS,
-  ADMIN_ICON_SIZE,
-  ADMIN_ICON_STROKE,
-  AdminIcon,
-  type AdminIconName,
-  type AdminIconProps,
-} from "./icons";
+export type { AdminIconName, AdminIconProps } from "./icons";
 export { Pagination } from "./pagination";
 export { StatusTabs, type StatusTab } from "./status-tabs";
 export { BUTTON, NUMERIC_STYLE, type ButtonVariant } from "./styles";
