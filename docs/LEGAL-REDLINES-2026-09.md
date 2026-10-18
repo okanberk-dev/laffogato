@@ -1870,6 +1870,68 @@ kural ters çevrilir; PR yayına girer; ancak sonra Vercel'de
 (`tr.checkout.cardHint`, `tr.addresses.cardNotStored`) aynı sürümde
 izler.
 
+## 20. Y6 - Hesap silme talebi: 30 gün, Kurul süreleri, kanallar, karaoke süresi (18 Eki 2026)
+
+> **Durum: metin kodda değişti.** Operatör kararı (18 Eki 2026): avukat
+> turu yok, karar birincil kaynaklarla verildi (aşağıda "Hukuki dayanak").
+> Dal `feat/legal-account-deletion-followup`. #145'in (web'de hesap
+> silme ekibe talep olarak gider) devamı.
+
+### 20.1 Neden
+
+#145'ten sonra web'de hesabı üyenin talebi üzerine ekip siler, uygulama
+anında silmeyi korur. Dört boşluk kalmıştı: `hesap-silme` ertelenen silmede
+cevap süresini ve Kurul'a şikâyetin sürelerini söylemiyordu, kart saklanmadığı
+hâlde (kural 28) kayıtlı kart maddesi duruyordu; Kullanım Şartları "hesap
+ayarları üzerinden" kapatmadan, Mobil Uygulama Koşulları yalnız e-postadan
+söz ediyordu. Ayrıca panel, talebi kapatırken karaoke iptal kuralını kapanış
+anına göre uyguluyordu: ekibin gecikmesi üyenin iade süresini kısaltıyordu.
+Kod artık kuralı talep anında karara bağlıyor (`closureJudgedAt`); §8 bunu
+Site talebi için söylüyor.
+
+### 20.2 Sürüm ve onay
+
+- Ödeme onayındaki belgeler (Ön Bilgilendirme Formu, Mesafeli Satış
+  Sözleşmesi) ve karaoke belgesi değişmedi: `LEGAL_UPDATED` ve
+  `KARAOKE_LEGAL_UPDATED` 17 Ekim 2026'da kaldı.
+- `hesap-silme` zaten 18 Ekim 2026 tarihliydi (#145, aynı gün). Kullanım
+  Şartları ve Mobil Uygulama Koşulları kendi tarihini aldı: 18 Ekim 2026
+  (`tests/legal-dates.test.ts`).
+- Uygulamanın çevrimdışı kopyası (`lafmobil` `src/data/legal.seed.json`)
+  ayrı uygulama PR'ında `legal:export` ile yenilenir.
+
+### 20.3 Değişen cümleler
+
+Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir
+(parantezde `main` c8805f5).
+
+| Belge | Satır | Mevcut | Yeni |
+|---|---|---|---|
+| Hesap Silme, §4 (ertelenen silme) | 10887 (10881) | "... Site'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır." | "... Site'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır. Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir." |
+| Hesap Silme, §5 | - (10896) | "Kayıtlı kartlarınız: kart saklama özelliği açık olduğu dönemde ödeme sayfasında kartınızı kaydetmeyi seçtiyseniz, kartınız bizde değil, ... PayNkolay'a o anda ulaşılamasa da hesap kapatılır; kayıtlı kartlarınızın silinip silinmediğini {{EMAIL}} adresinden sorabilirsiniz." | Silindi (kart saklanmaz, kural 28; ASK-CARD-TEXT'in bu belgedeki maddesi) |
+| Hesap Silme, §8 (karaoke) | 10971 (10966) | "... Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır." | "... Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise rezervasyonun yapıldığı ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır." |
+| Hesap Silme, §11 | 10994 (10989) | "Başvurunuzun otuz gün içinde sonuçlandırılmaması veya cevabın yetersiz bulunması hâlinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunma hakkınız saklıdır." | "Başvurunuzun reddedilmesi, verilen cevabın yetersiz bulunması veya otuz gün içinde cevap verilmemesi hâllerinde, cevabı öğrendiğiniz tarihten itibaren otuz gün ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsiniz." |
+| Kullanım Şartları, §7 | 9833 (9830) | "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin hesap ayarları üzerinden ya da {{EMAIL}} adresine ileteceği talep ile sonlandırabilir. Üyeliğin sonlandırılması, ..." | "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır; Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır. Üyeliğin sonlandırılması, ..." (devamı aynen) |
+| Mobil Uygulama Koşulları, §17 | 11821 (11813) | "...; ayrıca {{EMAIL}} adresine gönderilecek bir talep ile de hesap kapatılabilir." | "...; ayrıca Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır." |
+
+Bilerek değişmeyenler: Mobil Uygulama Koşulları §17'nin dördüncü
+paragrafındaki "kart saklama özelliği açıksa ..." ibaresi ve diğer
+belgelerdeki kayıtlı kart cümleleri ASK-CARD-TEXT PR'ının (`distance-sales-2026`)
+işidir. `hesap-silme` §6 ve §8'deki "2 saat" kuralı, uygulama kilidi
+(`KARAOKE_POLICY_APP_VERSION`) kapalıyken her rezervasyon için doğrudur;
+kilidi açan PR bu cümleleri karaoke sözleşmesine yönlendirir.
+
+### 20.4 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Ertelenen silmede de 30 gün içinde cevap | 6698 s. KVKK m.13/2; Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ m.6; Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik m.12/1 | Talep en geç otuz günde sonuçlandırılır; devam eden sipariş silmeyi ertelese de cevap bu süre içinde verilir ve ertelemenin gerekçesi ile uygulanacağı zaman bildirilir (kısmi ret gerekçeli olur). |
+| Kurul'a şikâyet süreleri | 6698 s. KVKK m.14/1 | Ret, yetersiz cevap veya süresinde cevap verilmemesi hâlinde cevabı öğrenmeden itibaren otuz, her hâlde başvurudan itibaren altmış gün: kanundaki sözle yazıldı. |
+| Her kanal ve süresi | KVKK m.11/1-e, m.13/1; Tebliğ m.5 (yazılı, KEP, kayıtlı e-posta, başvuruya yönelik uygulama); Apple App Store Review Guidelines 5.1.1(v); Google Play hesap silme şartı | Uygulamadaki silme anında (Apple), Site'deki talep sayfası Google Play'in istediği web silme yolu ve Tebliğ'in "uygulama" kanalı, e-posta ve posta açık; web yolları otuz gün içinde sonuçlanır. |
+| Kayıtlı kart maddesi | Operatör kararı (kural 28, 23 Eyl ve 15 Eki 2026); KVKK m.4/2 (doğruluk) | Kart hiç saklanmadığı için anlatılan işlem yoktur; madde kaldırıldı. |
+| Karaoke süresi talep anından | 6502 s. TKHK m.4/2 (koşullar tüketici aleyhine değiştirilemez), m.5/4 (belirsizlik tüketici lehine); 6098 s. TBK m.4/2 (kıyasen) | Üyenin talebi kaydedildiği an iptal beyanı sayılır; ekibin gecikmesi süreyi kısaltmaz. Talepten sonra yapılan rezervasyon yapıldığı andan hesaplanır (talep var olmayan bir rezervasyonu kapsayamaz). Saati kapanıştan önce geçen rezervasyonda oda kullanıldıysa ödeme kalır (hizmet ifa edilmiştir), kullanılmadıysa iade edilir; bunu personel kaydeder. Kural yalnız Site talebi için yazıldı: e-postayla gelen talebin anı panelde henüz kaydedilmiyor. |
+
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.
