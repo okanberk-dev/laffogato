@@ -6149,7 +6149,11 @@ export interface AdminMenuItem extends BackdropColumns {
   hue: string;
   /** Site-relative product photo, e.g. "/menu/matcha-latte.webp". Empty = drawn fallback. */
   image: string;
-  /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
+  /**
+   * The app's tags only: signature, new, iced, nuts (`menuTagsFromForm`).
+   * A row saved before 5c may still hold another word the app never showed;
+   * the edit form names it and the next save drops it.
+   */
   tags: string[];
   /**
    * The item's own KDV rate (whole %), or null: the menu default from
