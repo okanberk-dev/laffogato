@@ -98,13 +98,21 @@ describe("LoginForm", () => {
   const html = renderToStaticMarkup(createElement(LoginForm, { next: "" }));
 
   it("posts by hand, so a refusal keeps the typed e-mail", () => {
-    // A React action form renders action="javascript:…" and is reset after
-    // every answer; the hand-dispatched form has no action at all.
-    expect(html).toMatch(/<form[^>]*>/);
-    expect(html.match(/<form[^>]*>/)![0]).not.toContain("action=");
+    // onSubmit prevents the form action's own post, the one React resets
+    // the form after (react-dom skips the action for a prevented submit).
     const src = readFileSync("src/app/admin/giris/login-form.tsx", "utf8");
     expect(src).toContain("useNoResetSubmit(formAction, pending)");
-    expect(src).not.toMatch(/action=\{formAction\}/);
+    expect(src).toMatch(/onSubmit=\{onSubmit\}/);
+  });
+
+  it("never falls back to the browser's GET, password in the address", () => {
+    // Before hydration there is no onSubmit. A form with neither action nor
+    // method then posts natively: GET /admin/giris?email=…&password=… (an
+    // earlier version of this branch did exactly that). With the action
+    // prop React draws its guard, and an early Enter sends nothing.
+    const tag = html.match(/<form[^>]*>/)![0];
+    expect(tag).toMatch(/\baction="javascript:/);
+    expect(tag).not.toMatch(/\bmethod="get"/i);
   });
 
   it("keeps the field names the action reads, and caps the address", () => {

@@ -25,6 +25,13 @@ const submitLogin = withPanelCatch<LoginState>(loginAction, () => ({
  * whatever it answers, so every mistyped password used to take the e-mail
  * with it. Now a refusal keeps the address; only the password is cleared,
  * and focused, for the retry.
+ *
+ * `action` stays on the form all the same. Before the page's JavaScript has
+ * run there is no onSubmit, and a form with neither action nor method posts
+ * the browser's own way: a GET to this page with the password in the
+ * address (history, server logs). With it React draws its guard
+ * (`action="javascript:..."`), so an early Enter sends nothing; after
+ * hydration onSubmit prevents that post and React skips the action.
  */
 export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(
@@ -42,7 +49,12 @@ export function LoginForm({ next }: { next?: string }) {
   }, [state]);
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={onSubmit}
+      className="flex flex-col gap-4"
+    >
       {/* Empty, not "/admin": with no explicit destination the action picks
           the one the role can actually open. */}
       <input type="hidden" name="next" value={next ?? ""} />
