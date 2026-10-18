@@ -6,7 +6,11 @@ import { z } from "zod";
 
 import { clientIp } from "@/lib/admin/rate-limit";
 import { requireCustomer } from "@/lib/customer/auth";
-import { cancelNoticeCode, payNoticeCode } from "@/lib/mobile/karaoke-notices";
+import {
+  cancelNoticeCode,
+  cancelResultCode,
+  payNoticeCode,
+} from "@/lib/mobile/karaoke-notices";
 import {
   cancelKaraokeReservation,
   reopenKaraokePayment,
@@ -49,7 +53,7 @@ export async function cancelMyKaraokeAction(formData: FormData): Promise<void> {
     if (result.reason === "not_found") redirect("/uye/hesap/karaoke");
     detail(id, "hata", cancelNoticeCode(result.reason));
   }
-  detail(id, "sonuc", result.refunded ? "iptal-iade" : "iptal");
+  detail(id, "sonuc", cancelResultCode(result));
 }
 
 export async function payMyKaraokeAction(formData: FormData): Promise<void> {

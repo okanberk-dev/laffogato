@@ -14,6 +14,7 @@ import {
   type KaraokeEmailData,
 } from "@/lib/email/send";
 
+import { karaokePolicyVersion } from "@/lib/legal/consent-version";
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
@@ -23,14 +24,19 @@ import { karaokeLinkUrl } from "./karaoke-link";
 import { istanbulClock } from "./venue";
 import {
   buildSlots,
-  KARAOKE_FREE_CANCEL_HOURS,
-  KARAOKE_NO_REFUND_RULE,
+  effectiveKaraokeCancelPolicy,
+  isPartialRefund,
+  karaokeCancellationRules,
+  karaokeCancelPolicyOf,
+  karaokeDeadlineFor,
+  karaokeRulesOf,
+  karaokeVenueCancelUntil,
   KARAOKE_OPEN_CAP,
-  KARAOKE_REFUND_RULE,
   paymentDueFrom,
   paymentStatusOf,
   quoteReservation,
   rangeConflicts,
+  refundAmountOf,
   validateReservationRequest,
   type KaraokeAvailability,
   type KaraokeLegalConsent,
@@ -138,6 +144,9 @@ export async function getAvailability(
   ]);
   const clock = istanbulClock(now);
   const rules = settings.mobileApp.karaoke;
+  // The policy a booking made now gets (Ayarlar > Karaoke); each booking then
+  // keeps its own (`toReservationJson`).
+  const policy = effectiveKaraokeCancelPolicy(settings);
   return {
     date,
     slots: buildSlots(
@@ -153,10 +162,11 @@ export async function getAvailability(
     maxHours: rules.maxHours,
     bookingWindowDays: rules.bookingWindowDays,
     paymentRequired: settings.karaokePrepay,
-    freeCancelHours: KARAOKE_FREE_CANCEL_HOURS,
+    freeCancelHours: policy.freeCancelHours,
+    lateRefundPercent: policy.lateRefundPercent,
     consentDocs: [...KARAOKE_CONSENT_DOCS],
     privacyDoc: "kvkk-aydinlatma-metni",
-    cancellationRules: [KARAOKE_REFUND_RULE, KARAOKE_NO_REFUND_RULE],
+    cancellationRules: [...karaokeCancellationRules(policy).rules],
     taxRatePct: karaokeTaxRate(settings.taxRates),
   };
 }
@@ -392,6 +402,10 @@ export async function createReservation(
   );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
+  // The rule this booking is made under, kept with it (TKHK m.4/2, MSY
+  // m.5/2): the panel changing it later changes nothing here. The same
+  // policy fed the sentences the availability answer and the pages showed.
+  const policy = effectiveKaraokeCancelPolicy(settings);
   const reservation: KaraokeReservation = {
     id: `krk-${String(seq).padStart(5, "0")}`,
     customerEmail: normalizeEmail(customer.email),
@@ -421,11 +435,28 @@ export async function createReservation(
     paidMinor: 0,
     paymentRef: "",
     channel: options.channel ?? "",
-    legalConsent: prepay ? (options.legalConsent ?? null) : null,
+    legalConsent:
+      prepay && options.legalConsent
+        ? {
+            ...options.legalConsent,
+            // The karaoke document is rendered with the policy, so the
+            // version the customer saw moves with it (karaoke-doc.ts).
+            version: karaokePolicyVersion(
+              options.legalConsent.version,
+              policy,
+              settings.karaokeCancelPolicyAt,
+            ),
+          }
+        : null,
     guest,
     // The rate at booking time: a later change in the panel leaves this
     // booking's receipt as it was.
     taxRatePct: karaokeTaxRate(settings.taxRates),
+    freeCancelHours: policy.freeCancelHours,
+    lateRefundPercent: policy.lateRefundPercent,
+    cancelDeadline: karaokeDeadlineFor(policy, req, now).toISOString(),
+    cancellationRules: [...karaokeCancellationRules(policy).rules],
+    refundMinor: null,
   };
 
   const sb = getDb();
@@ -608,6 +639,11 @@ const ADMIN_LIST_COLUMNS = [
   "paymentRef",
   "channel",
   "guest",
+  "freeCancelHours",
+  "lateRefundPercent",
+  "cancelDeadline",
+  "cancellationRules",
+  "refundMinor",
 ].join(", ");
 
 /** Rows one panel read returns at most; the page says so when it is hit. */
@@ -944,8 +980,18 @@ export async function notifyReservationStatus(
       ? { kind: "online", paidMinor: r.paidMinor ?? r.totalMinor }
       : { kind: "venue" },
     manageUrl: manageUrlFor(r),
+    // The booking's own rule, never the panel's current one.
+    cancellation: {
+      rules: karaokeRulesOf(r),
+      venueUntil: karaokeVenueCancelUntil(karaokeCancelPolicyOf(r)),
+    },
+    // What actually went back: the whole payment, or a late cancel's share.
     ...(r.status === "cancelled" && money === "refunded"
-      ? { refundedMinor: r.paidMinor ?? r.totalMinor }
+      ? { refundedMinor: refundAmountOf(r), refundIsShare: isPartialRefund(r) }
+      : {}),
+    // A late cancel's share the köşk still owes (refunded by hand).
+    ...(r.status === "cancelled" && money === "refunding" && isPartialRefund(r)
+      ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }
       : {}),
   };
   try {

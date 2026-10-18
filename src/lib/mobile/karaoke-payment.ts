@@ -30,12 +30,16 @@ import {
   type CreateReservationResult,
 } from "./karaoke";
 import {
+  isPartialRefund,
+  karaokeCancellationRules,
+  karaokeCancelPolicyOf,
+  karaokeLateRefundMinor,
+  karaokeSelfCancelTerms,
   mayReopenPayment,
   paymentDueFrom,
   paymentStatusOf,
+  refundAmountOf,
   sweepCutoff,
-  withinFreeCancel,
-  KARAOKE_TOO_LATE_MESSAGE,
   type KaraokeLegalConsent,
   type KaraokeReservation,
   type ReservationContact,
@@ -65,10 +69,15 @@ import { istanbulClock } from "./venue";
  * 3. A hold nobody paid lapses: `expireUnpaidReservations` asks the POS first
  *    and only an answer of "no payment" (or a day of not being able to ask)
  *    releases the hour (CLAUDE.md rule 29).
- * 4. Cancelling (`cancelKaraokeReservation`): the member, up to two hours
- *    before the start; the staff, any time (a business cancellation, MSY
- *    m.16/4); an account that closes. A paid booking's money goes back
- *    through the POS before the booking is cancelled.
+ * 4. Cancelling (`cancelKaraokeReservation`): the member, before the
+ *    deadline of the booking's own policy (its snapshot; 2 hours on older
+ *    rows), and inside it while the policy gives a late share; the staff,
+ *    any time and always in full (a business cancellation, MSY m.16/4); an
+ *    account that closes. A paid booking's money goes back through the POS
+ *    before the booking is cancelled - except a late cancel's share, which
+ *    PayNkolay cannot send (whole payments only): the booking is cancelled,
+ *    the share is owed (`refunding` + `refundMinor`), and a person refunds it
+ *    in PayNkolay's panel and records it (`settleKaraokeRefundByHand`).
  *
  * ## Money that does not fit a booking
  *
@@ -234,28 +243,35 @@ async function alertMoney(
     providerRef: string;
     extra?: Record<string, unknown>;
   },
+  /** `audit: false`: the caller writes the row itself, under its actor. */
+  { audit = true }: { audit?: boolean } = {},
 ): Promise<void> {
   console.error(
     `[karaoke] ${alert.event} reservation=${r.id} ref=${alert.providerRef} amount=${alert.amountMinor}`,
   );
-  try {
-    const { logAudit } = await import("@/lib/admin/audit");
-    await logAudit({
-      actor: "system",
-      action: "update",
-      entity: "karaoke_reservation",
-      entityId: r.id,
-      payload: {
-        event: alert.event,
-        status: r.status,
-        paymentStatus: paymentStatusOf(r),
-        amountMinor: alert.amountMinor,
-        providerRef: alert.providerRef,
-        ...alert.extra,
-      },
-    });
-  } catch (err) {
-    console.error(`[karaoke] audit row for ${alert.event} failed ${r.id}`, err);
+  if (audit) {
+    try {
+      const { logAudit } = await import("@/lib/admin/audit");
+      await logAudit({
+        actor: "system",
+        action: "update",
+        entity: "karaoke_reservation",
+        entityId: r.id,
+        payload: {
+          event: alert.event,
+          status: r.status,
+          paymentStatus: paymentStatusOf(r),
+          amountMinor: alert.amountMinor,
+          providerRef: alert.providerRef,
+          ...alert.extra,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[karaoke] audit row for ${alert.event} failed ${r.id}`,
+        err,
+      );
+    }
   }
   try {
     const slot = readableSlot(r);
@@ -1301,8 +1317,10 @@ export async function expireUnpaidReservations(
 /** Who is cancelling, which decides what they may do. */
 export type KaraokeCanceller =
   /**
-   * The member, from the web or the app: only while more than two hours
-   * remain. `emailVerified` as the account says it now.
+   * The member, from the web or the app: under the booking's own policy
+   * (`karaokeSelfCancelTerms`): in full before its deadline, for its late
+   * share inside the window while the start has not come, else refused.
+   * `emailVerified` as the account says it now.
    */
   | { kind: "member"; email: string; emailVerified: boolean }
   /** Whoever holds the booking's signed link (a guest): the same window. */
@@ -1343,6 +1361,11 @@ export type CancelKaraokeResult =
        * is already over (a no-show written down, karar D7).
        */
       silent?: true;
+      /**
+       * A late cancel's share, kuruş, owed back and not sent yet: a person
+       * refunds it in PayNkolay's panel (`refunded` is false).
+       */
+      refundOwedMinor?: number;
     }
   | {
       ok: false;
@@ -1353,6 +1376,12 @@ export type CancelKaraokeResult =
 
 /**
  * Cancels a karaoke booking, sending its money back first when it was paid.
+ *
+ * A member's (or a link holder's) cancel follows the booking's snapshot:
+ * refused inside the window when its late share is 0 (and from the start on,
+ * always), and inside the window with a share below 100 % the booking is
+ * cancelled with the share owed (`cancelWithShareOwed`). The köşk's cancel
+ * always refunds everything.
  *
  * - Paid at the venue (`none`): cancelled, as the panel always did.
  * - Unpaid hold (`pending`): the POS is asked first (rule 29). Paid after
@@ -1393,20 +1422,29 @@ export async function cancelKaraokeReservation(
   if (r.status === "cancelled") {
     return { ok: false, reason: "not_cancellable", reservation: r };
   }
-  // The two-hour rule binds every self-service cancellation - for money,
-  // account closure too: closing an account must not become a way to refund
-  // an evening already sung (or no-showed). Only the köşk overrides it.
+  // The booking's own rule (its snapshot) binds every self-service
+  // cancellation - for money, account closure too: closing an account must
+  // not become a way to refund an evening already sung (or no-showed). Only
+  // the köşk overrides it, and the köşk always refunds in full (MSY m.16/4,
+  // TBK m.136/2): the late share is never applied to a staff cancel.
   const lateMatters =
     by.kind === "member" ||
     by.kind === "link" ||
     (by.kind === "account" && paymentStatusOf(r) === "paid");
-  if (lateMatters && !withinFreeCancel(r, now)) {
-    return {
-      ok: false,
-      reason: "too_late",
-      reservation: r,
-      message: KARAOKE_TOO_LATE_MESSAGE,
-    };
+  // The share of the payment this cancel refunds: null = all of it.
+  let lateShare: number | null = null;
+  if (lateMatters) {
+    const terms = karaokeSelfCancelTerms(r, now);
+    if (terms.kind === "refused") {
+      return {
+        ok: false,
+        reason: "too_late",
+        reservation: r,
+        message: karaokeCancellationRules(karaokeCancelPolicyOf(r))
+          .tooLateMessage,
+      };
+    }
+    if (terms.kind === "late" && terms.percent < 100) lateShare = terms.percent;
   }
   // Every cancellation leaves an audit row, whoever made it; a member or a
   // link holder is named by kind (no address in the log).
@@ -1494,6 +1532,21 @@ export async function cancelKaraokeReservation(
   }
   if (by.kind === "staff" && !by.canRefund) {
     return { ok: false, reason: "refund_forbidden", reservation: r };
+  }
+
+  const paid = r.paidMinor ?? 0;
+  const owed =
+    lateShare === null ? paid : karaokeLateRefundMinor(paid, lateShare);
+  // A share below the whole payment cannot go through the POS (PayNkolay
+  // refunds whole payments only, docs/PAYNKOLAY.md §3.2; operator decision
+  // D9): the booking is cancelled now, its hour freed, and the share is owed.
+  // A share that rounds to nothing, or to all of it, refunds in full.
+  if (owed > 0 && owed < paid) {
+    return cancelWithShareOwed(r, owed, lateShare ?? 0, {
+      actor,
+      by: by.kind,
+      now,
+    });
   }
 
   const reserved = await moveRow(
@@ -1592,6 +1645,83 @@ export async function cancelKaraokeReservation(
   };
 }
 
+/**
+ * A member's late cancel under a policy whose late share is below 100 %
+ * (operator decision D9, 17 Eki 2026). PayNkolay cannot refund part of a
+ * payment (docs/PAYNKOLAY.md §3.2), so nothing is sent to the POS: one
+ * guarded write cancels the booking, frees its hour and records the share
+ * owed (`refunding` + `refundMinor`); the member is told how much goes back,
+ * and the köşk is mailed to refund it in PayNkolay's panel and press "Elle
+ * iade edildi" (`settleKaraokeRefundByHand`). No money moves here, so there
+ * is nothing to roll back (rules 25 and 29 hold trivially).
+ */
+async function cancelWithShareOwed(
+  r: KaraokeReservation,
+  owedMinor: number,
+  percent: number,
+  ctx: { actor: string; by: KaraokeCanceller["kind"]; now: Date },
+): Promise<CancelKaraokeResult> {
+  const iso = ctx.now.toISOString();
+  const moved = await moveRow(
+    r.id,
+    {
+      status: "cancelled",
+      paymentStatus: "refunding",
+      refundMinor: owedMinor,
+      updatedAt: iso,
+    },
+    { paymentStatus: "paid", status: r.status },
+    "karaoke.cancelWithShareOwed",
+  );
+  if (!moved) return { ok: false, reason: "raced", reservation: r };
+  const cancelled: KaraokeReservation = {
+    ...r,
+    status: "cancelled",
+    paymentStatus: "refunding",
+    refundMinor: owedMinor,
+    updatedAt: iso,
+  };
+  const notified = await notifyReservationStatus(cancelled);
+  const slot = readableSlot(r);
+  await alertMoney(
+    cancelled,
+    {
+      event: "late_cancel_share_owed",
+      key: `late-share-${r.paymentRef || r.id}`,
+      title: "Geç iptal: kısmi iade bekliyor",
+      summary: `${slot.date} ${slot.time} rezervasyonu geç iptal edildi ve saat boşaldı. Kurala göre ${formatTRYMinor(owedMinor)} (%${percent}) karta iade edilecek.`,
+      footnote:
+        'Kısmi iade POS\'a otomatik gönderilemiyor. PayNkolay panelinden bu tutarı karta iade et, sonra panelde "Elle iade edildi" ile kaydet; üyeye iade e-postası o zaman gider.',
+      amountMinor: owedMinor,
+      providerRef: r.paymentRef ?? "",
+      extra: {
+        by: ctx.by,
+        lateRefundPercent: percent,
+        paidMinor: r.paidMinor ?? 0,
+      },
+    },
+    { audit: false },
+  );
+  // One audit row, under who cancelled (the mail above is the alert).
+  await auditStaff(cancelled, ctx.actor, "refund", {
+    event: "late_cancel_share_owed",
+    status: "cancelled",
+    paymentStatus: "refunding",
+    amountMinor: owedMinor,
+    paidMinor: r.paidMinor ?? 0,
+    lateRefundPercent: percent,
+    providerRef: r.paymentRef ?? "",
+    by: ctx.by,
+  });
+  return {
+    ok: true,
+    reservation: cancelled,
+    refunded: false,
+    notified,
+    refundOwedMinor: owedMinor,
+  };
+}
+
 // ─── A person settles what did not settle itself ───────────────────────────
 
 export type ResolveRefundResult =
@@ -1604,7 +1734,17 @@ export type ResolveRefundResult =
     }
   | {
       ok: false;
-      reason: "not_found" | "not_refundable" | "refused" | "unknown" | "raced";
+      /**
+       * `by_hand`: a late cancel's share, which only a person refunds (in
+       * PayNkolay's panel) and records (`settleKaraokeRefundByHand`).
+       */
+      reason:
+        | "not_found"
+        | "not_refundable"
+        | "refused"
+        | "unknown"
+        | "raced"
+        | "by_hand";
       message?: string;
     };
 
@@ -1629,6 +1769,9 @@ export async function retryKaraokeRefund(
 ): Promise<ResolveRefundResult> {
   const r = await getReservation(id);
   if (!r) return { ok: false, reason: "not_found" };
+  // A late cancel's share is never sent to the POS: it would refund the
+  // whole payment (whole payments only), or be refused. A person refunds it.
+  if (isPartialRefund(r)) return { ok: false, reason: "by_hand" };
   const money = paymentStatusOf(r);
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
   if (!payment) return { ok: false, reason: "not_refundable" };
@@ -1676,10 +1819,15 @@ export async function retryKaraokeRefund(
   return { ok: true, reservation: settled, refunded: true, notified };
 }
 
-/** The refund's claim row, as refunded, for a refund a person recorded. */
+/**
+ * The refund's claim row, as refunded, for a refund a person recorded:
+ * `amountMinor` is what went back (a late cancel's share, or the whole
+ * payment).
+ */
 async function recordRefundByHand(
   reservationId: string,
   payment: PaymentRecord,
+  amountMinor: number,
   actor: string,
   now: Date,
 ): Promise<void> {
@@ -1690,7 +1838,7 @@ async function recordRefundByHand(
     provider: payment.provider,
     providerRef: refundRef,
     status: "refunded",
-    amountMinor: payment.amountMinor,
+    amountMinor,
     currency: "TRY",
     raw: { source: "karaoke_refund", mode: "manual", actor },
     trxDate: "",
@@ -1761,7 +1909,7 @@ export async function settleKaraokeRefundByHand(
     // The booking already says refunded: a failed claim write must not cost
     // the audit row and the member's mail below.
     try {
-      await recordRefundByHand(r.id, payment, actor, now);
+      await recordRefundByHand(r.id, payment, refundAmountOf(r), actor, now);
     } catch (err) {
       console.error(`[karaoke] manual refund claim not written ${r.id}`, err);
     }
@@ -1769,7 +1917,15 @@ export async function settleKaraokeRefundByHand(
   await auditStaff(r, actor, "refund", {
     event: "refund_settled_by_hand",
     from: money,
-    amountMinor: payment?.amountMinor ?? r.paidMinor ?? 0,
+    amountMinor: isPartialRefund(r)
+      ? refundAmountOf(r)
+      : (payment?.amountMinor ?? r.paidMinor ?? 0),
+    ...(isPartialRefund(r)
+      ? {
+          share: true,
+          lateRefundPercent: karaokeCancelPolicyOf(r).lateRefundPercent,
+        }
+      : {}),
     providerRef: r.paymentRef ?? "",
     ...(opts.reason ? { reason: opts.reason } : {}),
   });
@@ -1818,15 +1974,19 @@ export async function cancelKaraokeForClosedAccount(
       if (current.status === "cancelled") return;
       const money = paymentStatusOf(current);
       if (res.reason === "too_late") {
-        // Paid, and inside the last two hours (or already under way): no
-        // refund under the rule, and the evening stays booked. A person
-        // decides whether the köşk refunds it anyway.
+        // Paid, and inside the booking's window with no late share (or
+        // already under way): no refund under its rule, and the evening
+        // stays booked. A person decides whether the köşk refunds it anyway.
+        const { freeCancelHours: h } = karaokeCancelPolicyOf(current);
         await alertMoney(current, {
           event: "account_closed_late_paid_booking",
           key: "account-late",
-          title: "Kapanan hesabın 2 saatten az kalan ödenmiş rezervasyonu",
+          title:
+            h > 0
+              ? `Kapanan hesabın ${h} saatten az kalan ödenmiş rezervasyonu`
+              : "Kapanan hesabın ücretsiz iptal süresi olmayan ödenmiş rezervasyonu",
           summary:
-            "Hesap kapandı; rezervasyon saatine 2 saatten az kaldığı için iade yapılmadı ve rezervasyon olduğu gibi duruyor.",
+            "Hesap kapandı; rezervasyonun iptal kuralı gereği iade yapılmadı ve rezervasyon olduğu gibi duruyor.",
           footnote:
             "İptal ve iade kuralı gereği iade yok. Köşk yine de iade etmek isterse panelden iptal et (iade yetkisi gerekir).",
           amountMinor: current.paidMinor ?? current.totalMinor,
