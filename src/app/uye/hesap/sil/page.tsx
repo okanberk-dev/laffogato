@@ -60,9 +60,10 @@ export default async function HesapSilPage() {
               3 iş günü içinde siler ve bittiğinde sana e-posta göndeririz.
             </p>
             <p className="deletion-lede">
-              Siparişlerin ve fatura bilgilerin yasal saklama süresi boyunca
-              saklanır; uygulamadaki &quot;Hesabımı sil&quot; düğmesi ise
-              hesabını hemen siler.
+              Damgaların ve kullanılmamış kuponların hesabınla birlikte sona
+              erer; siparişlerin ve fatura bilgilerin yasal saklama süresi
+              boyunca saklanır. Uygulamadaki &quot;Hesabımı sil&quot; düğmesi
+              ise hesabını hemen siler.
             </p>
             <DeletionRequestForm />
           </>

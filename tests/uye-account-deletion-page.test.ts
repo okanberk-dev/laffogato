@@ -96,6 +96,8 @@ describe("/uye/hesap/sil", () => {
     expect(t).toContain("en geç 30 gün içinde");
     expect(t).toContain("3 iş günü");
     expect(t).toContain("yasal saklama süresi");
+    // hesap-silme §8 promises this warning on the Site's page too.
+    expect(t).toContain("Damgaların ve kullanılmamış kuponların");
     expect(t).toContain("Hesabımı sil");
     const box = html.match(/<input[^>]*name="confirm"[^>]*>/)?.[0] ?? "";
     expect(box).toContain('type="checkbox"');
