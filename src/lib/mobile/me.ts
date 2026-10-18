@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin/store";
 import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
+import { getDeletionRequest } from "@/lib/customer/deletion-request";
 import {
   getCardUserKey,
   getCustomerByEmail,
@@ -391,7 +392,11 @@ export const ANON_SWEEPS: ReadonlyArray<{
 async function cancelFutureKaraoke(
   email: string,
   now: Date,
-  opts: { windowAt?: Date; roomUsed?: readonly string[] },
+  opts: {
+    windowAt?: Date;
+    roomUsed?: readonly string[];
+    roomUseUnknown?: boolean;
+  },
 ): Promise<void> {
   try {
     const { cancelKaraokeForClosedAccount } = await import("./karaoke-payment");
@@ -551,6 +556,8 @@ export interface DeleteMeOptions {
    * read by the caller before this function blanks it. Each karaoke booking's
    * rule is judged at that instant, not at the closure (ASK-Y3-4 (d)): the
    * team's delay does not shorten the member's window. Refunds happen now.
+   * The member's own deletion (the app's DELETE /me) passes none: deleteMe
+   * reads the open request itself, since this closure answers it too.
    */
   deletionRequestedAt?: string;
   /**
@@ -612,10 +619,23 @@ export async function deleteMe(
   }
 
   const identityId = await linkedIdentityId(customer.email);
-  const requested = Date.parse(deletionRequestedAt ?? "");
+  // The member deleting in the app while a web request is open answers that
+  // request too (the row below blanks it): hesap-silme §8 judges its karaoke
+  // at the request, as the panel's closure would have. Read before the
+  // closure touches anything; an unreadable request throws (the app may
+  // retry) rather than being judged now.
+  const requestedAt =
+    deletionRequestedAt ??
+    (by === "member"
+      ? (await getDeletionRequest(customer.email))?.requestedAt
+      : undefined);
+  const requested = Date.parse(requestedAt ?? "");
+  const windowAt = Number.isFinite(requested) ? new Date(requested) : null;
   await cancelFutureKaraoke(customer.email, at, {
-    ...(Number.isFinite(requested) ? { windowAt: new Date(requested) } : {}),
+    ...(windowAt ? { windowAt } : {}),
     roomUsed: karaokeRoomUsed,
+    // Nobody in the app is asked whether a room was used since the request.
+    ...(windowAt && by === "member" ? { roomUseUnknown: true } : {}),
   });
   const karaokeIds = await karaokeIdsOf(customer.email);
   await deleteSavedCardsAtPos(customer.email);

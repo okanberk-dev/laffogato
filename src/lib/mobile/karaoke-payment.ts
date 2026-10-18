@@ -1972,6 +1972,13 @@ export interface AccountClosureKaraokeOptions {
    * closing the account recorded as used: those keep the payment.
    */
   roomUsed?: readonly string[];
+  /**
+   * Nobody was asked whether those rooms were used: the member closed the
+   * account in the app (DELETE /me) while a web request was open. Such a
+   * booking is then neither refunded nor cancelled, and a person decides:
+   * refunding it unasked would pay back an evening that may have been sung.
+   */
+  roomUseUnknown?: boolean;
 }
 
 const PASSED_SINCE_REQUEST_TITLE =
@@ -1996,7 +2003,9 @@ const PASSED_SINCE_REQUEST_LEAD =
  * whose start has come since is not dropped as "past": it is refunded as the
  * request would have been (in full inside the free window) unless the person
  * closing the account recorded that the room was used (`roomUsed`), and
- * either way it is put in front of a person.
+ * either way it is put in front of a person. When nobody was asked
+ * (`roomUseUnknown`, the app's own deletion) it is left as it is for that
+ * person to decide.
  */
 export async function cancelKaraokeForClosedAccount(
   email: string,
@@ -2042,6 +2051,22 @@ export async function cancelKaraokeForClosedAccount(
           amountMinor: r.paidMinor ?? r.totalMinor,
           providerRef: r.paymentRef ?? "",
           extra: { requestedAt: windowAt?.toISOString(), roomUsed: true },
+        });
+        return;
+      }
+      if (passed && opts.roomUseUnknown) {
+        // The member closed the account in the app: nobody could say
+        // whether the evening was sung, so nothing moves without a person.
+        await alertMoney(r, {
+          event: "account_closed_room_use_unknown",
+          key: "account-room-unknown",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: `${PASSED_SINCE_REQUEST_LEAD} Üye hesabı uygulamadan kapattı, odanın kullanılıp kullanılmadığını kimse işaretlemedi: iade yapılmadı, rezervasyon olduğu gibi duruyor.`,
+          footnote:
+            "Oda kullanılmadıysa panelden iptal et ve iade et (iade yetkisi gerekir).",
+          amountMinor: r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), roomUseUnknown: true },
         });
         return;
       }

@@ -14,8 +14,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *   refunded as the request would have been (in full inside the free
  *   window, its late share after) and the money team is told, unless the
  *   person closing the account recorded that the room was used.
- * - Without a request (the app's DELETE /me, the panel's Yönetim card) the
- *   closure is judged now, as before.
+ * - The app's DELETE /me answers an open request too, but nobody there is
+ *   asked about the room: an evening whose start came since the request is
+ *   left for a person (`roomUseUnknown`).
+ * - Without a request (the panel's Yönetim card, DELETE /me with none open)
+ *   the closure is judged now, as before.
  *
  * The real karaoke.ts and karaoke-payment.ts over an in-memory table; the
  * POS, the mail and the audit log are scripted.
@@ -324,7 +327,7 @@ describe("the request's instant decides the two-hour rule", () => {
     expect(h.alerts).toEqual([]);
   });
 
-  it("judges the same closure now when no request is passed (DELETE /me, Yönetim)", async () => {
+  it("judges the same closure now when no request is passed (Yönetim, DELETE /me without one)", async () => {
     seedPaid();
     await cancelKaraokeForClosedAccount(EMAIL, at(-1));
     expect(h.refunds).toEqual([]);
@@ -429,6 +432,44 @@ describe("a paid booking whose start came between the request and the closure", 
     const alert = h.alerts.find((a) => a.key === "account-room-used");
     expect(alert).toMatchObject({ title: TITLE });
     expect(String(alert!.summary)).toContain("iade yapılmadı");
+  });
+
+  it("neither refunds nor cancels it when nobody was asked about the room (the app's own deletion)", async () => {
+    seedPaid();
+    await cancelKaraokeForClosedAccount(EMAIL, at(+15), {
+      windowAt: at(-72),
+      roomUseUnknown: true,
+    });
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+    });
+    expect(h.cancellations).toEqual([]);
+    const alert = h.alerts.find((a) => a.key === "account-room-unknown");
+    expect(alert).toMatchObject({ title: TITLE });
+    expect(String(alert!.summary)).toContain("uygulamadan");
+    expect(String(alert!.footnote)).toContain("Oda kullanılmadıysa");
+    expect(h.audits).toContainEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          event: "account_closed_room_use_unknown",
+          requestedAt: at(-72).toISOString(),
+        }),
+      }),
+    );
+  });
+
+  it("still refunds an evening to come by the request's rule when nobody was asked about rooms", async () => {
+    // The app's own deletion inside the last two hours, the web request
+    // three days earlier: as the panel's closure would have, in full.
+    seedPaid();
+    await cancelKaraokeForClosedAccount(EMAIL, at(-1), {
+      windowAt: at(-72),
+      roomUseUnknown: true,
+    });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(h.alerts).toEqual([]);
   });
 
   it("says so when the POS declines, and still releases the booking", async () => {
