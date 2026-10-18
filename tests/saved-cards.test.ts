@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { toMe } from "@/lib/mobile/me-mapper";
 import type { PublicCustomer } from "@/lib/customer/store";
+import { SAVED_CARDS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
@@ -270,5 +271,83 @@ describe("saved cards", () => {
       store.indexOf("export async function rememberCardUserKey"),
     );
     expect(fn).toMatch(/if \(!key \|\| !needle\) return;/);
+  });
+});
+
+/**
+ * Card storage needs the legal text as well as PayNkolay's grant.
+ *
+ * Since 18 Ekim 2026 the legal texts do not describe saved cards (the
+ * passages wait in docs/LEGAL-REDLINES-2026-09.md §19). Until they come back,
+ * `PAYNKOLAY_CARD_STORAGE=on` alone must not start offering "kaydet", listing
+ * cards or minting member keys: that would process data the privacy notice
+ * does not name (Aydınlatma Tebliği m.5/1-b, m.5/1-j).
+ */
+describe("card storage and the legal texts", () => {
+  const PAYNKOLAY_ENV: Record<string, string> = {
+    PAYMENT_PROVIDER: "paynkolay",
+    PAYNKOLAY_SX: "test-sx",
+    PAYNKOLAY_SX_LIST: "test-sx-list",
+    PAYNKOLAY_SX_CANCEL: "test-sx-cancel",
+    PAYNKOLAY_MERCHANT_SECRET_KEY: "test-secret",
+    PAYNKOLAY_MERCHANT_NO: "400000000",
+    PAYNKOLAY_SUCCESS_URL: "https://laffogato.net/odeme/donus",
+    PAYNKOLAY_FAIL_URL: "https://laffogato.net/odeme/donus",
+    PAYNKOLAY_CHECKOUT_MODE: "direct",
+  };
+
+  /** A fresh provider, built from the env as on a deployment. */
+  async function freshProvider(cardStorage: string) {
+    for (const [name, value] of Object.entries(PAYNKOLAY_ENV)) {
+      vi.stubEnv(name, value);
+    }
+    vi.stubEnv("PAYNKOLAY_CARD_STORAGE", cardStorage);
+    vi.resetModules();
+    const { getPaymentProvider } = await import("@/lib/payment");
+    const { PaynkolayPaymentProvider } = await import("@/lib/payment/paynkolay");
+    const provider = getPaymentProvider();
+    expect(provider).toBeInstanceOf(PaynkolayPaymentProvider);
+    return provider;
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.doUnmock("@/lib/legal/meta");
+    vi.resetModules();
+  });
+
+  it("the texts do not describe saved cards", () => {
+    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(false);
+  });
+
+  it("keeps card storage off although PAYNKOLAY_CARD_STORAGE is on", async () => {
+    const provider = await freshProvider("on");
+    expect(provider.cardStorageEnabled).toBe(false);
+  });
+
+  it("is still the switch that turns it on once the texts describe it", async () => {
+    vi.doMock("@/lib/legal/meta", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("@/lib/legal/meta")>()),
+      SAVED_CARDS_IN_LEGAL_TEXTS: true,
+    }));
+    expect((await freshProvider("on")).cardStorageEnabled).toBe(true);
+    expect((await freshProvider("")).cardStorageEnabled).toBe(false);
+  });
+
+  it("the app and karaoke payments ask the provider before minting a key", () => {
+    // The web checkout already did (src/app/odeme/actions.ts); the two app
+    // paths minted a key for every member (tests/card-key-gate-*.test.ts
+    // run them).
+    for (const file of [
+      "src/lib/mobile/orders.ts",
+      "src/lib/mobile/karaoke-payment.ts",
+    ]) {
+      const code = read(file);
+      const at = code.indexOf("ensureCardUserKey(");
+      expect(at, file).toBeGreaterThan(-1);
+      expect(code.slice(Math.max(0, at - 160), at), file).toContain(
+        "provider.cardStorageEnabled",
+      );
+    }
   });
 });

@@ -24,6 +24,21 @@
 export const LEGAL_UPDATED = "17 Ekim 2026";
 
 /**
+ * Whether the legal texts describe saved cards (PayNkolay's card storage,
+ * docs/PAYNKOLAY.md §16). They do not since 18 Ekim 2026: the passages that
+ * said "kart saklama özelliği açıldığında ..." are kept in
+ * docs/LEGAL-REDLINES-2026-09.md §19, to come back word for word.
+ *
+ * The payment provider ANDs this with `PAYNKOLAY_CARD_STORAGE`, so the env
+ * switch alone cannot turn card storage on, and no member key is minted
+ * while it is off. Flip it only in the PR that restores those texts, and
+ * publish that text before the first card is saved (Aydınlatma Tebliği
+ * m.5/1-b: the notice comes before the processing). tests/legal-docs.test.ts
+ * holds the texts to this value.
+ */
+export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
+
+/**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
  * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
  * kılmaz.

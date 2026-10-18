@@ -419,10 +419,12 @@ export async function startKaraokePayment(
   // The member's saved cards at PayNkolay (docs/PAYNKOLAY.md §16) are the
   // same for a booking as for an order. Best-effort: a new card still works.
   // A guest has no account to keep cards under: no key, no list, no "kaydet".
+  // Nor does anyone while card storage is off: no key is minted then.
   const member = customer && !reservation.guest ? customer : null;
-  const cardUserKey = member
-    ? await ensureCardUserKey(member.email).catch(() => "")
-    : "";
+  const cardUserKey =
+    member && provider.cardStorageEnabled
+      ? await ensureCardUserKey(member.email).catch(() => "")
+      : "";
   const buyer = {
     id: member?.id ?? `guest-${reservation.id}`,
     email:

@@ -337,12 +337,14 @@ maybe("karaoke prepayment (real Postgres)", () => {
         ip: "10.9.8.7",
         userAgent: "vitest",
       });
+      // No card key: this POS keeps no cards (`cardStorageEnabled` unset),
+      // so none is minted for the member (tests/card-key-gate-karaoke).
       expect(pos.sessions).toEqual([
         {
           orderId: res.reservation.id,
           amountMinor: 200_000,
           email: c.email,
-          cardUserKey: "MEMBERKEY01",
+          cardUserKey: undefined,
         },
       ]);
       expect(res.payment?.redirectUrl).toContain("/odeme/paynkolay");

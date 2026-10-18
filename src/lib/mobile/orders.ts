@@ -193,8 +193,11 @@ async function createAppPaymentSession(
   const provider = getPaymentProvider();
   // Saved cards: the member's key lets the payment page list the cards they
   // saved at PayNkolay and save a new one (docs/PAYNKOLAY.md §16). Created on
-  // the member's first checkout.
-  const cardUserKey = await ensureCardUserKey(customer.email);
+  // the member's first checkout, and only while card storage is on - as on
+  // the web (`src/app/odeme/actions.ts`). Off, no key is minted at all.
+  const cardUserKey = provider.cardStorageEnabled
+    ? await ensureCardUserKey(customer.email)
+    : "";
   const address = {
     city: "",
     district: "",
