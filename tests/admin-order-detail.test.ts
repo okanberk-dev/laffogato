@@ -340,7 +340,14 @@ describe("the customer card on the kit (ORD-11, ORD-05)", () => {
     expect(src).not.toContain("<Card");
     // Posted by hand, so a refusal keeps the typing and the confirm box.
     expect(src).toContain("useNoResetSubmit(formAction, pending)");
-    expect(src).not.toContain("action={formAction}");
+    // ...and still carries an action: React's guard against the browser's
+    // own GET, which would put the name, e-mail, phone and address in the
+    // address bar (main's tests/form-native-submit.test.ts holds every form
+    // to it). onSubmit prevents the post, so React never runs or resets it.
+    expect(src).toMatch(
+      /<form\s+action=\{formAction\}\s+onSubmit=\{onSubmit\}/,
+    );
+    expect(src).not.toMatch(/<form\s+onSubmit=/);
     // A save says so.
     expect(src).toContain(
       'toast.show({ message: "Müşteri bilgisi kaydedildi." })',

@@ -106,7 +106,11 @@ export function OrderCustomerEditor({
   if (editing) {
     return (
       <Section title="Müşteri bilgisini düzenle">
-        <form onSubmit={onSubmit} className="grid gap-4">
+        {/* The action is React's guard (a form with neither action nor
+            method is the browser's GET, every field in the address); the
+            post itself is onSubmit's, and React skips the action of a
+            submit onSubmit prevented, so nothing is reset. */}
+        <form action={formAction} onSubmit={onSubmit} className="grid gap-4">
           <input type="hidden" name="id" value={orderId} />
           <Field label="Ad Soyad">
             <TextInput
