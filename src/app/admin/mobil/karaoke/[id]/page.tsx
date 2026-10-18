@@ -34,6 +34,12 @@ import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
 import { getReservation, listReservationsForDate } from "@/lib/mobile/karaoke";
+import {
+  isPartialRefund,
+  karaokeCancelDeadline,
+  karaokeCancelPolicyOf,
+  karaokeRulesOf,
+} from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const dynamic = "force-dynamic";
@@ -220,6 +226,49 @@ export default async function KaraokeReservationPage({
     },
   ];
 
+  // The rule the booking was made under (its snapshot); a row from before
+  // the snapshot reads 2 hours / 0 % and the default sentences.
+  const policy = karaokeCancelPolicyOf(r);
+  const legacyPolicy =
+    typeof r.freeCancelHours !== "number" ||
+    typeof r.lateRefundPercent !== "number";
+  const shareOwed = view.money === "refunding" && isPartialRefund(r);
+  const rules = karaokeRulesOf(r);
+  const cancelRule: KeyValueItem[] = [
+    {
+      label: "Ücretsiz iptal süresi",
+      value:
+        policy.freeCancelHours > 0
+          ? `${policy.freeCancelHours} saat`
+          : "Yok (her iptal geç iptal)",
+    },
+    {
+      label: "Geç iptalde iade",
+      value: (
+        <span style={NUMERIC_STYLE}>
+          {policy.lateRefundPercent > 0
+            ? `%${policy.lateRefundPercent}`
+            : "%0 (kabul edilmez)"}
+        </span>
+      ),
+      hint: "Rezervasyon saatinden önce; gelmeyene iade yok.",
+    },
+    {
+      label: "Tam iade için son an",
+      value: when(karaokeCancelDeadline(r).toISOString()),
+    },
+    {
+      label: "Müşterinin gördüğü kural",
+      value: (
+        <span className="grid gap-1">
+          <span>{rules[0]}</span>
+          <span>{rules[1]}</span>
+        </span>
+      ),
+      full: true,
+    },
+  ];
+
   const payment: Array<KeyValueItem | false> = [
     {
       label: "Ödeme durumu",
@@ -246,6 +295,13 @@ export default async function KaraokeReservationPage({
       value: <span style={NUMERIC_STYLE}>{formatTRY(r.paidMinor ?? 0)}</span>,
     },
     { label: "Ödeme zamanı", value: when(r.paidAt) },
+    shareOwed && {
+      label: "İade edilecek (geç iptal)",
+      value: (
+        <span style={NUMERIC_STYLE}>{formatTRY(refundAmountMinor(r))}</span>
+      ),
+      hint: `Kurala göre %${policy.lateRefundPercent}. PayNkolay panelinden iade et, sonra "Elle iade edildi".`,
+    },
     view.money === "refunded" && {
       label: "İade edilen",
       value: (
@@ -371,6 +427,17 @@ export default async function KaraokeReservationPage({
 
         <Section title="Ödeme">
           <KeyValueGrid items={payment} columns={3} />
+        </Section>
+
+        <Section
+          title="İptal kuralı"
+          description={
+            legacyPolicy
+              ? "Kural kaydı tutulmadan önce alınmış rezervasyon: o günün kuralı (2 saat, %0) geçerli."
+              : "Rezervasyon anındaki kural; panelde sonradan yapılan değişiklik bu rezervasyonu etkilemez. Köşk iptal ederse her zaman tamamı iade edilir."
+          }
+        >
+          <KeyValueGrid items={cancelRule} columns={3} />
         </Section>
 
         <Section

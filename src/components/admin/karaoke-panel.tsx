@@ -70,6 +70,9 @@ export function KaraokeBadges({
       {view.attention.includes("refund_owed") ? (
         <Badge tone="danger">İade borcu</Badge>
       ) : null}
+      {view.attention.includes("share_owed") ? (
+        <Badge tone="danger">Kısmi iade borcu</Badge>
+      ) : null}
       {view.r.guest ? <Badge tone="accent">Üyeliksiz</Badge> : null}
     </span>
   );
@@ -239,25 +242,36 @@ export function KaraokeActions({
   }
 
   if (plan.settle) {
-    const after = plan.settle.kind === "after_cancel";
+    const kind = plan.settle.kind;
+    const label =
+      kind === "share"
+        ? "Elle iade edildi"
+        : kind === "after_cancel"
+          ? "PayNkolay'da iade edildi"
+          : "İade POS'ta görüldü";
     items.push(
       <ConfirmButton
         key="settle"
         action={settleKaraokeRefundAction}
         hidden={{ id: r.id }}
-        label={after ? "PayNkolay'da iade edildi" : "İade POS'ta görüldü"}
-        title={after ? "PayNkolay'da iade edildi" : "İade POS'ta görüldü"}
+        label={label}
+        title={label}
         description={
-          after
-            ? `${amount(view)} tutarını PayNkolay panelinden iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
-            : `PayNkolay panelinde bu iadeyi (${amount(view)}) gördüysen iade yapılmış olarak kaydedilir ve müşteriye iade e-postası gider. POS'a bir şey gönderilmez.`
+          kind === "share"
+            ? `Geç iptalin iadesi: ödemenin tamamı değil, rezervasyonun kuralına göre ${amount(view)}. Bu tutarı PayNkolay panelinden karta iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
+            : kind === "after_cancel"
+              ? `${amount(view)} tutarını PayNkolay panelinden iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
+              : `PayNkolay panelinde bu iadeyi (${amount(view)}) gördüysen iade yapılmış olarak kaydedilir ve müşteriye iade e-postası gider. POS'a bir şey gönderilmez.`
         }
         confirmLabel="Kaydet"
         tone="default"
-        variant={menu ? "menu" : "ghost"}
+        variant={menu ? "menu" : kind === "share" ? "primary" : "ghost"}
         reason={{
           ...MONEY_REASON,
-          placeholder: "Ör. PayNkolay panelinde 17 Eki 21:10 iadesi görüldü",
+          placeholder:
+            kind === "share"
+              ? "Ör. PayNkolay panelinden 18 Eki 14:05 kısmi iade yapıldı"
+              : "Ör. PayNkolay panelinde 17 Eki 21:10 iadesi görüldü",
         }}
         disabledReason={plan.settle.disabledReason}
       />,
