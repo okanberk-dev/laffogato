@@ -6,7 +6,11 @@ import { z } from "zod";
 
 import { clientIp } from "@/lib/admin/rate-limit";
 import { karaokeLinkId } from "@/lib/mobile/karaoke-link";
-import { cancelNoticeCode, payNoticeCode } from "@/lib/mobile/karaoke-notices";
+import {
+  cancelNoticeCode,
+  cancelResultCode,
+  payNoticeCode,
+} from "@/lib/mobile/karaoke-notices";
 import {
   cancelKaraokeReservation,
   reopenKaraokePayment,
@@ -48,7 +52,7 @@ export async function cancelKaraokeByLinkAction(
     if (result.reason === "not_found") redirect("/rezervasyon");
     back(token, "hata", cancelNoticeCode(result.reason));
   }
-  back(token, "sonuc", result.refunded ? "iptal-iade" : "iptal");
+  back(token, "sonuc", cancelResultCode(result));
 }
 
 export async function payKaraokeByLinkAction(

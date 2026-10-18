@@ -304,6 +304,19 @@ yalnızca **tam iade**yi destekler (`amountMinor` verilmezse sipariş tutarı).
 Kısmi tutar geldiğinde, davranış canlı testte ölçülene kadar hata fırlatılır -
 sessizce yanlış tutar iade etmektense reddetmek doğrudur.
 
+**Karaoke geç iptalinde kısmi iade (P2a, 18 Eki 2026, karar D9).** Panelden
+"geç iptalde iade %1-99" seçilebilir (Ayarlar > Karaoke; uygulama kilidi
+açılınca, `KARAOKE_POLICY_APP_VERSION`). Kod bu payı **POS'a göndermez**:
+üyenin geç iptali rezervasyonu iptal eder, saati boşaltır ve payı
+`karaoke_reservations."refundMinor"` olarak `refunding` durumunda bırakır
+(`cancelWithShareOwed`); ekibe e-posta gider, personel tutarı PayNkolay
+panelinden karta iade eder ve panelde "Elle iade edildi" ile kaydeder
+(`settleKaraokeRefundByHand`, talep satırı payın tutarıyla yazılır).
+"İadeyi yeniden dene" bu satırda yoktur (`retryKaraokeRefund` → `by_hand`).
+%100 geç iptal ve işletme iptali tam iadedir ve POS'tan otomatik gider (kural
+29: red geri alır, yanıtsızlık `refunding` bırakır). Kısmi iade sandbox'ta
+ölçülünce bu yol otomatikleştirilebilir; o zamana kadar elle kalır.
+
 ---
 
 ## 4. Sunucudan sunucuya bildirim (webhook)
@@ -754,7 +767,8 @@ olduğuna her yerde tek fonksiyon karar verir: `isKaraokeRef`
 `/odeme/donus` POS'un teyit ettiği referansa bakarak dallanır (gönderilen alana
 değil), rezervasyonu `applyKaraokePaymentSucceeded` ile işler ve dönüşte hiçbir
 şeyi iptal etmez (kural 29). Ödenmemiş rezervasyonu `expireUnpaidReservations`
-POS'a sorduktan sonra düşürür; iptal ve iadeler yalnız tam tutardır (§3.2).
+POS'a sorduktan sonra düşürür; POS'a giden iptal ve iadeler yalnız tam
+tutardır (§3.2; geç iptalin kısmi payı elle iade edilir, aynı yer).
 Süresi geçmiş ya da iptal edilmiş rezervasyona gelen ödeme ve ikinci tahsilat
 kendiliğinden iade edilir. Akışın tamamı `src/lib/mobile/karaoke-payment.ts`.
 

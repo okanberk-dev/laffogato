@@ -161,6 +161,40 @@ describe("POST /karaoke/reservations", () => {
     });
   });
 
+  it("passes the rule it was shown to the library, and a changed rule is 409 policy_changed with the new one", async () => {
+    const policy = {
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancellationRules: [
+        "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+        KARAOKE_NO_REFUND_RULE,
+      ],
+    };
+    h.bookKaraoke.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      message: "İptal ve iade kuralı sen rezervasyon yaparken değişti.",
+      policy,
+    });
+    const expectedCancelPolicy = { freeCancelHours: 24, lateRefundPercent: 50 };
+    const res = await book({
+      ...SLOT,
+      prepay: true,
+      legalConsent: true,
+      expectedCancelPolicy,
+    });
+    expect(h.bookKaraoke.mock.calls[0]![1]).toMatchObject({
+      expectedCancelPolicy,
+    });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: "policy_changed",
+      message: "İptal ve iade kuralı sen rezervasyon yaparken değişti.",
+      ...policy,
+    });
+  });
+
   it("a 429 carries Retry-After", async () => {
     h.bookKaraoke.mockResolvedValue({
       ok: false,
@@ -278,6 +312,51 @@ describe("POST /karaoke/reservations/{id}/cancel", () => {
     const body = await res.json();
     expect(body.error).toBe("too_late");
     expect(body.message).toContain(KARAOKE_NO_REFUND_RULE);
+  });
+
+  it("a late cancel speaks the booking's own rule (its snapshot, 18 Eki 2026)", async () => {
+    const own =
+      "Artık buradan iptal edemezsin. Rezervasyon saatine 5 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
+    h.cancel.mockResolvedValue({
+      ok: false,
+      reason: "too_late",
+      reservation: ROW,
+      message: own,
+    });
+    const res = await cancel("krk-00042");
+    // Same status, same code: only the sentence is the booking's.
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body).toMatchObject({ error: "too_late", message: own });
+  });
+
+  it("a late cancel whose share is owed: 200, not refunded, the share on the row", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: {
+        ...ROW,
+        status: "cancelled",
+        paymentStatus: "refunding",
+        paidMinor: 200_000,
+        refundMinor: 100_000,
+        freeCancelHours: 24,
+        lateRefundPercent: 50,
+      },
+      refunded: false,
+      notified: true,
+      refundOwedMinor: 100_000,
+    });
+    const res = await cancel("krk-00042");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      refunded: false,
+      reservation: {
+        status: "cancelled",
+        paymentStatus: "refunding",
+        refundMinor: 100_000,
+        lateRefundPercent: 50,
+      },
+    });
   });
 
   it("maps every other refusal to its own code", async () => {

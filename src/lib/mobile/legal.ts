@@ -5,6 +5,7 @@ import {
   consentVersionFrom,
   isLiveLegalOverride,
 } from "@/lib/legal/consent-version";
+import { karaokeLegalDocNow, liveLegalDoc } from "@/lib/legal/karaoke-doc";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   getPublishedLegalOverride,
@@ -101,13 +102,20 @@ function toSummary(doc: LegalDoc): MobileLegalSummary {
   };
 }
 
-/** The index built from a known set of overrides - no I/O. */
-export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
+/**
+ * The index built from a known set of overrides - no I/O. `docs`: the coded
+ * documents, the karaoke terms as of now (`karaokeLegalDocNow`) in the live
+ * index.
+ */
+export function legalIndexFrom(
+  overrides: LegalOverrideMap,
+  docs: readonly LegalDoc[] = LEGAL_DOCS,
+): MobileLegalIndex {
   return {
     // The same value an order placed now records, so the app can show it.
     updatedAt: consentVersionFrom(overrides),
     consentDocs: [...CHECKOUT_CONSENT_DOCS],
-    docs: LEGAL_DOCS.map((doc) =>
+    docs: docs.map((doc) =>
       toSummary(applyLegalOverride(doc, overrides[doc.slug])),
     ),
   };
@@ -117,9 +125,16 @@ export function legalIndexFrom(overrides: LegalOverrideMap): MobileLegalIndex {
 export function legalDocFrom(
   slug: string,
   override: LegalDocOverride | null | undefined,
+  docs: readonly LegalDoc[] = LEGAL_DOCS,
 ): LegalDoc | null {
-  const doc = LEGAL_DOCS.find((d) => d.slug === slug);
+  const doc = docs.find((d) => d.slug === slug);
   return doc ? applyLegalOverride(doc, override) : null;
+}
+
+/** The coded documents with the karaoke terms as a booking made now sees them. */
+async function liveDocs(): Promise<LegalDoc[]> {
+  const karaoke = await karaokeLegalDocNow();
+  return LEGAL_DOCS.map((d) => (d.slug === karaoke.slug ? karaoke : d));
 }
 
 // ── Live: read the overrides, then the pure step ────────────────────────────
@@ -153,7 +168,11 @@ async function publishedOverrides(): Promise<LegalOverrideMap> {
 }
 
 export async function legalIndex(): Promise<MobileLegalIndex> {
-  return legalIndexFrom(await publishedOverrides());
+  const [overrides, docs] = await Promise.all([
+    publishedOverrides(),
+    liveDocs(),
+  ]);
+  return legalIndexFrom(overrides, docs);
 }
 
 /**
@@ -162,7 +181,8 @@ export async function legalIndex(): Promise<MobileLegalIndex> {
  * 404 whether or not the database answers.
  */
 export async function legalDoc(slug: string): Promise<LegalDoc | null> {
-  const doc = LEGAL_DOCS.find((d) => d.slug === slug);
+  // The karaoke terms are written for the panel's cancellation policy.
+  const doc = await liveLegalDoc(slug);
   if (!doc) return null;
   // `getPublishedLegalOverride` already degrades to null when the database is
   // unreachable, which renders the coded document.

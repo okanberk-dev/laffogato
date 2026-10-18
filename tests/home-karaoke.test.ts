@@ -314,6 +314,7 @@ describe("?saat= on the booking page", () => {
       bookingWindowDays: 60,
       paymentRequired: true,
       freeCancelHours: 2,
+      lateRefundPercent: 0,
       consentDocs: ["karaoke-odasi-rezervasyon"],
       privacyDoc: "kvkk-aydinlatma-metni",
       cancellationRules: [],

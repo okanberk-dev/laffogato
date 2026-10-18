@@ -272,7 +272,9 @@ export async function retryKaraokeRefundAction(
         ? `POS iadeyi reddetti: ${result.message ?? "?"}. İlk iade geçmiş olabilir; PayNkolay panelinden bak.`
         : result.reason === "unknown"
           ? `İadenin sonucu belli değil: ${result.message ?? "POS yanıt vermedi"}. Rezervasyon 'iade sonucu bekleniyor' durumunda kaldı; PayNkolay panelinden bak.`
-          : "Bu rezervasyonun iade edilecek ödemesi yok. Sayfayı yenile.",
+          : result.reason === "by_hand"
+            ? 'Bu geç iptalin iadesi ödemenin bir kısmı; POS kısmi iade yapamıyor. Tutarı PayNkolay panelinden iade et, sonra "Elle iade edildi" ile kaydet.'
+            : "Bu rezervasyonun iade edilecek ödemesi yok. Sayfayı yenile.",
     );
   }
   return okWithNotice(

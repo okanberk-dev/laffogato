@@ -198,6 +198,50 @@ describe("a member's paid booking", () => {
     expect(h.redirected).toBe("/uye/hesap/karaoke/krk-00042?odeme=basarili");
   });
 
+  it("echoes the cancellation rule the form printed to the library", async () => {
+    h.bookKaraoke.mockResolvedValue(held());
+    await submit({
+      ...MEMBER,
+      expectedFreeCancelHours: "2",
+      expectedLateRefundPercent: "0",
+    });
+    const [, input] = h.bookKaraoke.mock.calls[0]!;
+    expect(input).toMatchObject({
+      expectedCancelPolicy: { freeCancelHours: 2, lateRefundPercent: 0 },
+    });
+  });
+
+  it("a page from before the echo sends none, and nothing is compared", async () => {
+    h.bookKaraoke.mockResolvedValue(held());
+    await submit(MEMBER);
+    const [, input] = h.bookKaraoke.mock.calls[0]!;
+    expect(input).not.toHaveProperty("expectedCancelPolicy");
+  });
+
+  it("the form echoes the rule it prints", async () => {
+    // While the box prints the default policy's two sentences, the hidden
+    // pair must be the default's numbers; a page printing another rule
+    // echoes that one (a mismatch would refuse every booking, or bind a
+    // customer to a rule they did not read).
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      "src/components/laffogato/karaoke-booking.tsx",
+      "utf8",
+    );
+    if (src.includes("{KARAOKE_REFUND_RULE}")) {
+      expect(src).toMatch(
+        /name="expectedFreeCancelHours"\s+value=\{DEFAULT_KARAOKE_CANCEL_POLICY\.freeCancelHours\}/,
+      );
+      expect(src).toMatch(
+        /name="expectedLateRefundPercent"\s+value=\{DEFAULT_KARAOKE_CANCEL_POLICY\.lateRefundPercent\}/,
+      );
+    } else {
+      expect(src).not.toContain(
+        "DEFAULT_KARAOKE_CANCEL_POLICY.freeCancelHours",
+      );
+    }
+  });
+
   it("passes the refusal through as the form's error", async () => {
     h.bookKaraoke.mockResolvedValue({
       ok: false,

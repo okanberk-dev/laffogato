@@ -193,6 +193,29 @@ describe("prepaid karaoke revenue", () => {
     });
   });
 
+  it("a late cancel's share: the part not refunded is revenue (P2a)", () => {
+    const paid = row("paid", 200_000, "2026-10-16T19:00:00.000Z");
+    const k = store.karaokeRevenueFrom(
+      [
+        paid,
+        // Refunded by hand at the booking's 50 %.
+        { ...paid, paymentStatus: "refunded", refundMinor: 100_000 },
+        // Refunded in full (no share recorded).
+        { ...paid, paymentStatus: "refunded", refundMinor: null },
+        // Owed: pending at the share, all of it still in.
+        { ...paid, paymentStatus: "refunding", refundMinor: 50_000 },
+      ],
+      "day",
+      30,
+      NOW,
+    );
+    expect(k.collectedMinor).toBe(800_000);
+    expect(k.refundedMinor).toBe(300_000);
+    expect(k.netMinor).toBe(500_000);
+    expect(k.refundPendingMinor).toBe(50_000);
+    expect(k.paidCount).toBe(3);
+  });
+
   it("books a payment at the köşk's date, not the server's", () => {
     // 01:30 in Tuzla on 1 Sep is 22:30 UTC on 31 Aug: inside a monthly view
     // that starts in September only if read in Istanbul time.

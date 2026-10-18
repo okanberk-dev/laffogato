@@ -734,6 +734,20 @@ kesinleşti, `Idempotency-Key: karaoke-<id>-paid`; ödenmemiş rezervasyon için
 yanıt vermediği iade, ikinci tahsilat, süresi dolmuş rezervasyona gelen ödeme,
 tutar uyuşmazlığı; `karaoke-<id>-<olay>`).
 
+**Rezervasyonun kendi kuralı (18 Eki 2026, P2a).** İptal kuralı panelden
+ayarlanır (Ayarlar → Karaoke) ve her rezervasyon kendi kuralını saklar; mail
+şablonu iki cümleyi artık sabit yazmaz, rezervasyonun kaydından alır:
+`[KARAOKE_IADE_KURALI]` ve `[KARAOKE_GEC_KURALI]` (varsayılan 2 saat / %0
+kuralında yukarıdaki iki cümlenin aynısı). Köşkte ödenecek rezervasyonda
+`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini söyler;
+hiçbir üye iptalinin kabul edilmediği kuralda bunun yerine `KARAOKE_MEKAN_ARA`
+("bizi ara") gider. İptal maili iade edilen gerçek tutarı yazar: tamamı
+(`KARAOKE_IADE`), geç iptal payı iade edildi (`KARAOKE_KISMI_IADE_EDILDI`) ya
+da pay borçlu ve ekip elle iade edecek (`KARAOKE_KISMI_IADE`: tutar, "kartına
+iade edilir", tarih sözü yok; ekip "Elle iade edildi" deyince ikinci mail
+gider). Payı borçlu iptalde ekibe `sendKaraokeMoneyAlertEmail` ile "Geç iptal:
+kısmi iade bekliyor" gider (`late-share-<ref>`).
+
 ### Karaoke - yeni talep bildirimi (operatöre)
 
 Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)

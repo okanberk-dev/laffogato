@@ -16,9 +16,14 @@ export const maxDuration = 15;
 
 /**
  * `POST /api/mobile/v1/karaoke/reservations/{id}/cancel` - the member
- * cancels their own booking (§7, additive). Allowed while MORE than two hours
- * remain before the start (Europe/Istanbul); a paid booking is refunded in
- * full through the POS first. Later: 409 `too_late`, nothing refunded.
+ * cancels their own booking (§7, additive). Allowed while MORE than the
+ * booking's own window remains before the start (its snapshot: two hours on
+ * every older row; Europe/Istanbul); a paid booking is refunded in full
+ * through the POS first. Inside the window: 409 `too_late`, nothing
+ * refunded - unless the booking's policy gives a late share (§7.1), when the
+ * booking is cancelled until the start and the share is refunded (in full
+ * through the POS at 100 %, by the köşk by hand below it: 200 with
+ * `refunded: false` and `reservation.refundMinor`).
  *
  * 200 `{ reservation, refunded }`. A stranger's id is 404. An unpaid hold
  * whose payment the POS could not be asked about is 503 `payment_unknown`
@@ -51,10 +56,12 @@ export async function POST(
         case "not_found":
           return apiError(404, "not_found", "Rezervasyon bulunamadı.");
         case "too_late":
+          // The booking's own rule (its snapshot): the default sentence for
+          // every booking made under 2 hours / 0 %.
           return apiError(
             409,
             "too_late",
-            KARAOKE_TOO_LATE_MESSAGE,
+            result.message ?? KARAOKE_TOO_LATE_MESSAGE,
             undefined,
             extra,
           );

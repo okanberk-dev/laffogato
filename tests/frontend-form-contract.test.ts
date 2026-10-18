@@ -191,6 +191,10 @@ const CONTRACTS: FormContract[] = [
       "consentPreInfo",
       "consentContract",
       "consentKvkk",
+      // The cancellation rule the form printed, echoed back (18 Eki 2026):
+      // a rule changed while the page was open refuses the booking.
+      "expectedFreeCancelHours",
+      "expectedLateRefundPercent",
     ],
   },
   {

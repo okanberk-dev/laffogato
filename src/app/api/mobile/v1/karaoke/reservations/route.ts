@@ -68,6 +68,10 @@ export async function GET(request: Request) {
  * `app_update_required`) instead of being taken as a pay-at-the-venue request
  * the köşk would never confirm. With prepayment off, every build gets the old
  * request flow (`payment: null`, `paymentStatus: "none"`).
+ *
+ * A build may echo the cancellation rule it showed (`expectedCancelPolicy`,
+ * §7.1, optional): a rule the panel changed meanwhile is 409
+ * `policy_changed` with the new rule, and nothing is booked.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -124,17 +128,22 @@ export async function POST(request: Request) {
     });
     if (!result.ok) {
       // `field` is additive (§7): an older app reads `error` and `message`
-      // exactly as before.
+      // exactly as before. So is the new rule on 409 `policy_changed`
+      // (§7.1), which only a request carrying `expectedCancelPolicy` gets.
       const retry =
         "retryAfterSeconds" in result && result.retryAfterSeconds
           ? { "Retry-After": String(result.retryAfterSeconds) }
           : undefined;
+      const extra = {
+        ...("field" in result && result.field ? { field: result.field } : {}),
+        ...("policy" in result && result.policy ? result.policy : {}),
+      };
       return apiError(
         result.status,
         result.error,
         result.message,
         retry,
-        "field" in result && result.field ? { field: result.field } : undefined,
+        Object.keys(extra).length > 0 ? extra : undefined,
       );
     }
     return apiJson(

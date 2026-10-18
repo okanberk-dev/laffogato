@@ -1,4 +1,11 @@
+import {
+  DEFAULT_KARAOKE_CANCEL_POLICY,
+  percentPossessive,
+  type KaraokeCancelPolicy,
+} from "@/lib/mobile/karaoke-time";
+
 import type { LegalDocSource } from "./content";
+import { KARAOKE_LEGAL_UPDATED } from "./meta";
 
 /**
  * Karaoke Odası Ön Bilgilendirme Formu ve Hizmet Sözleşmesi - HAM METİN.
@@ -20,8 +27,103 @@ import type { LegalDocSource } from "./content";
  *
  * `content.ts`'teki kurallar burada da geçerli: markdown yok, şirket bilgisi
  * `{{TOKEN}}` ile, değeri bilinmeyen token yalnız tablo değerinde.
+ *
+ * İptal ve iade kuralı (§7, §9, §10) panelden ayarlanır (P2a, 18 Eki 2026):
+ * belge `karaokeRoomDocFor(policy)` ile o anki kuralla kurulur ve
+ * yayımlanan metin `./karaoke-doc.ts`'ten gelir. Varsayılan kural (2 saat,
+ * %0) bugünkü metni harfi harfine verir (`KARAOKE_ROOM_DOC`,
+ * tests/karaoke-cancel-policy.test.ts); başka bir kural başka bir metindir
+ * ve sürümü kuralın değiştiği güne taşınır (`karaokePolicyVersion`). Her
+ * rezervasyon kendi kuralını saklar.
  */
-export const KARAOKE_ROOM_DOC: LegalDocSource = {
+
+/** §7 "Sizin İptaliniz ve Gelmeme": the policy's rule in the document's voice. */
+function cancelBullets(p: KaraokeCancelPolicy): string[] {
+  const { freeCancelHours: h, lateRefundPercent: pct } = p;
+  const channels =
+    "İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz.";
+  const free =
+    h > 0
+      ? `Rezervasyon saatine ${h} saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. ${channels}`
+      : pct > 0
+        ? `Bu rezervasyonda ücretsiz iptal süresi yoktur; rezervasyonu yaptıktan sonra yapacağınız her iptal geç iptal sayılır. ${channels}`
+        : "Bu rezervasyonda ücretsiz iptal süresi yoktur; rezervasyonu yaptıktan sonra yapacağınız her iptal geç iptal sayılır.";
+  const when =
+    h > 0
+      ? `Rezervasyon saatine ${h} saatten az kala`
+      : "Rezervasyonu yaptıktan sonra";
+  const late =
+    pct === 0
+      ? h > 0
+        ? `${when} yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+        : "Geç iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
+      : pct === 100
+        ? `${when}, rezervasyon saatinden önce yapılan iptallerde de ödediğiniz tutarın tamamı kartınıza iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+        : `${when}, rezervasyon saatinden önce yapılan iptallerde ödediğiniz tutarın ${percentPossessive(pct)} kartınıza iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Bu tutar kuruşa yuvarlanarak hesaplanır ve iptalden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade edilir.`;
+  return [
+    free,
+    late,
+    "Saatler Türkiye saatiyle (İstanbul) hesaplanır.",
+    "İptal ve sorularınız için: {{PHONE}} veya {{EMAIL}}.",
+  ];
+}
+
+/** §9 "İade Usulü". */
+function refundMethod(p: KaraokeCancelPolicy): string {
+  const partial = p.lateRefundPercent > 0 && p.lateRefundPercent < 100;
+  return partial
+    ? "İadeler PayNkolay üzerinden, ödemenin yapıldığı karta yapılır. Geç iptaldeki iade 7. maddedeki oranda, diğer bütün iadeler ödenen tutarın tamamı olarak yapılır. İadenin hesabınıza yansıma süresi bankanıza bağlıdır."
+    : "Her iade PayNkolay üzerinden, ödemenin yapıldığı karta ve ödenen tutarın tamamı olarak yapılır; kısmi iade yapılmaz. İadenin hesabınıza yansıma süresi bankanıza bağlıdır.";
+}
+
+/** §10 "Hesabın Kapatılması". */
+function accountClosure(p: KaraokeCancelPolicy): string {
+  const { freeCancelHours: h, lateRefundPercent: pct } = p;
+  const free =
+    h > 0
+      ? `rezervasyon saatine ${h} saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir. İade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar.`
+      : "ödenmiş rezervasyonlara 7. maddedeki geç iptal kuralı uygulanır.";
+  const late =
+    h > 0
+      ? pct === 0
+        ? ` Rezervasyon saatine ${h} saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır.`
+        : ` Rezervasyon saatine ${h} saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki geç iptal kuralı geçerlidir.`
+      : pct === 0
+        ? " Ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır."
+        : "";
+  return `Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; ${free}${late} Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez.`;
+}
+
+/**
+ * The document under a cancellation policy (Ayarlar > Karaoke). `updatedAt`:
+ * the version it is shown under (`karaokePolicyVersion`); the coded
+ * revision by default.
+ */
+export function karaokeRoomDocFor(
+  policy: KaraokeCancelPolicy,
+  updatedAt: string = KARAOKE_LEGAL_UPDATED,
+): LegalDocSource {
+  return {
+    ...KARAOKE_ROOM_DOC_BASE,
+    updatedAt,
+    sections: KARAOKE_ROOM_DOC_BASE.sections.map((section) => {
+      if (section.heading.startsWith("7. ")) {
+        return { ...section, bullets: cancelBullets(policy) };
+      }
+      if (section.heading.startsWith("9. ")) {
+        const [, ...rest] = section.paragraphs ?? [];
+        return { ...section, paragraphs: [refundMethod(policy), ...rest] };
+      }
+      if (section.heading.startsWith("10. ")) {
+        return { ...section, paragraphs: [accountClosure(policy)] };
+      }
+      return section;
+    }),
+  };
+}
+
+/** The coded text, the rule sections filled by `karaokeRoomDocFor`. */
+const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
   slug: "karaoke-odasi-rezervasyon",
   title: "Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi",
   shortTitle: "Karaoke Odası Koşulları",
@@ -160,3 +262,11 @@ export const KARAOKE_ROOM_DOC: LegalDocSource = {
     },
   ],
 };
+
+/**
+ * The document under the default rule (2 hours, 0 %): the coded text, word
+ * for word, and what `LEGAL_DOCS` and the admin's legal editor carry.
+ */
+export const KARAOKE_ROOM_DOC: LegalDocSource = karaokeRoomDocFor(
+  DEFAULT_KARAOKE_CANCEL_POLICY,
+);

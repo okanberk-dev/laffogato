@@ -548,6 +548,17 @@ export interface AdminSettings {
    * only: from the web, and from app builds that opt in (`prepay: true`).
    */
   karaokePrepay: boolean;
+  /**
+   * The karaoke cancellation policy (operator, 17 Eki 2026; Ayarlar >
+   * Karaoke): the free window in hours (0..72) and the share of the payment
+   * a cancel inside it refunds (0..100). A booking keeps the policy it was
+   * made under; a new one gets `effectiveKaraokeCancelPolicy`, which is the
+   * default (2 / 0) until the app can print any other (karaoke-time.ts).
+   * `karaokeCancelPolicyAt`: when the two last moved (ISO, '' = never).
+   */
+  karaokeFreeCancelHours: number;
+  karaokeLateRefundPercent: number;
+  karaokeCancelPolicyAt: string;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -762,6 +773,11 @@ function defaultSettings(): AdminSettings {
     karaokeNotifyEmail: "bizimfutbol9@gmail.com",
     // 20261016063311_karaoke_prepay.sql gives the column the same default.
     karaokePrepay: true,
+    // 20261018130000_karaoke_cancel_policy.sql gives the columns the same
+    // defaults: the rule before the panel had one.
+    karaokeFreeCancelHours: 2,
+    karaokeLateRefundPercent: 0,
+    karaokeCancelPolicyAt: "",
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
@@ -6880,6 +6896,8 @@ export function headlineFrom(
 export interface KaraokeRevenueRow {
   paymentStatus?: string | null;
   paidMinor?: number | null;
+  /** A late cancel's share owed / refunded; null = the whole payment. */
+  refundMinor?: number | null;
   paidAt?: string | null;
   createdAt: string;
 }
@@ -6908,9 +6926,10 @@ const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
  * `orders`, so the money collected for bookings was in no figure.
  *
  * Read from `karaoke_reservations`: `paidMinor` of every booking the POS
- * collected, minus the ones refunded. A refund is always the full amount,
- * so a `refunded` row nets to 0. A `refunding` row still counts: the POS has
- * not confirmed the money went back (CLAUDE.md rule 29), it is shown apart as
+ * collected, minus what was refunded: the whole payment (a `refunded` row
+ * nets to 0), or a late cancel's share (`refundMinor`, P2a), whose kept part
+ * is the köşk's revenue. A `refunding` row still counts in full: the money
+ * has not gone back (CLAUDE.md rule 29); what is owed is shown apart as
  * "iadesi bekleyen". The period figure books a payment in the bucket of its
  * `paidAt`, and its refund against that same bucket, as the order chart does.
  */
@@ -6921,7 +6940,7 @@ export async function karaokeRevenue(
   const data = rows<KaraokeRevenueRow>(
     await getDb()
       .from(TABLES.karaokeReservations)
-      .select("paymentStatus, paidMinor, paidAt, createdAt")
+      .select("paymentStatus, paidMinor, refundMinor, paidAt, createdAt")
       .in("paymentStatus", [...KARAOKE_COLLECTED]),
     "karaokeRevenue",
   );
@@ -6952,12 +6971,17 @@ export function karaokeRevenueFrom(
     if (!(KARAOKE_COLLECTED as readonly string[]).includes(status)) continue;
     const paid = Math.max(0, Math.round(Number(r.paidMinor) || 0));
     if (paid === 0) continue;
-    const kept = status === "refunded" ? 0 : paid;
+    // What goes (or went) back: a late cancel's share, else everything.
+    const share =
+      typeof r.refundMinor === "number" && r.refundMinor >= 0
+        ? Math.min(paid, Math.round(r.refundMinor))
+        : paid;
+    const kept = status === "refunded" ? paid - share : paid;
     out.collectedMinor += paid;
     out.refundedMinor += paid - kept;
     out.netMinor += kept;
     if (kept > 0) out.paidCount += 1;
-    if (status === "refunding") out.refundPendingMinor += paid;
+    if (status === "refunding") out.refundPendingMinor += share;
     const at = new Date(r.paidAt || r.createdAt);
     if (Number.isNaN(at.getTime())) continue;
     if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {

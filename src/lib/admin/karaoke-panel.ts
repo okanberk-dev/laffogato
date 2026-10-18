@@ -13,9 +13,11 @@ import {
   formatReservationTime,
 } from "@/lib/mobile/karaoke-format";
 import {
+  isPartialRefund,
   istanbulTimeLabel,
   KARAOKE_PAYMENT_GRACE_MINUTES,
   karaokeEndInstant,
+  refundAmountOf,
 } from "@/lib/mobile/karaoke-time";
 import { sameSitePath } from "@/lib/http/same-site-path";
 import { formatTRYMinor } from "@/lib/utils/commerce";
@@ -175,15 +177,15 @@ export function staffReleasedIds(
 
 /**
  * What the panel says goes back to the card when a paid booking is
- * cancelled or refunded: everything that was collected. The köşk's
- * cancellation always refunds in full (MSY m.16/4) and PayNkolay refunds
- * whole payments only; a refund policy set in the panel changes this one
- * place.
+ * cancelled or refunded: everything that was collected, or - for a member's
+ * late cancel under the booking's policy - its share (`refundMinor`). The
+ * köşk's cancellation always refunds in full (MSY m.16/4): a booking that is
+ * still paid has no share, so its dialog shows the whole payment.
  */
 export function refundAmountMinor(
-  r: Pick<KaraokeReservation, "paidMinor" | "totalMinor">,
+  r: Pick<KaraokeReservation, "paidMinor" | "totalMinor" | "refundMinor">,
 ): number {
-  return r.paidMinor && r.paidMinor > 0 ? r.paidMinor : r.totalMinor;
+  return refundAmountOf(r);
 }
 
 export const KARAOKE_STATUS_TEXT: Record<KaraokeReservationStatus, string> = {
@@ -214,7 +216,8 @@ export const KARAOKE_PAYMENT_TONE: Record<KaraokePaymentStatus, AdminTone> = {
  * with its payment never confirmed either way (`unverified`).
  */
 export function paymentLabel(
-  r: Pick<KaraokeReservation, "paymentStatus" | "paymentDueAt">,
+  r: Pick<KaraokeReservation, "paymentStatus" | "paymentDueAt"> &
+    Partial<Pick<KaraokeReservation, "paidMinor" | "refundMinor">>,
   lapsed = true,
   unverified = false,
 ): string {
@@ -229,9 +232,12 @@ export function paymentLabel(
     case "paid":
       return "Ödendi";
     case "refunding":
-      return "İade sonucu bekleniyor";
+      // A late cancel's share, refunded by hand (operator decision D9).
+      return isPartialRefund(r)
+        ? "Kısmi iade bekliyor"
+        : "İade sonucu bekleniyor";
     case "refunded":
-      return "İade edildi";
+      return isPartialRefund(r) ? "Kısmen iade edildi" : "İade edildi";
     case "expired":
       if (unverified) return "Ödeme doğrulanamadı";
       return lapsed ? "Ödenmedi, süresi doldu" : "Ödeme alınmamıştı";
@@ -263,6 +269,11 @@ export function maskPaymentRef(ref: string | undefined): string {
 export type KaraokeAttention =
   /** Cancelled, and the köşk still holds the money. */
   | "refund_owed"
+  /**
+   * A member's late cancel: the booking's policy owes a share of the payment
+   * back, which only a person can refund (PayNkolay refunds whole payments).
+   */
+  | "share_owed"
   /** A refund was sent and its answer never came. */
   | "refund_pending"
   /** Paid, but another confirmed booking holds the hour: never confirmed. */
@@ -285,6 +296,11 @@ export const KARAOKE_ATTENTION: Record<
   refund_owed: {
     title: "İade borcu",
     text: "Rezervasyon iptal edildi ama ödeme hâlâ köşkte. İadeyi başlat; PayNkolay panelinden zaten iade ettiysen öyle işaretle.",
+    tone: "danger",
+  },
+  share_owed: {
+    title: "Geç iptal: kısmi iade bekliyor",
+    text: 'Üye geç iptal etti; rezervasyonun kuralına göre ödemenin bir kısmı iade edilecek. Kısmi iade POS\'a otomatik gönderilemiyor: PayNkolay panelinden bu tutarı karta iade et, sonra "Elle iade edildi" ile kaydet.',
     tone: "danger",
   },
   refund_pending: {
@@ -364,7 +380,9 @@ export function karaokeAttention(
   const money = moneyOf(r);
   const ended = karaokeEndInstant(r).getTime() <= ctx.now.getTime();
   const out: KaraokeAttention[] = [];
-  if (money === "refunding") out.push("refund_pending");
+  if (money === "refunding") {
+    out.push(isPartialRefund(r) ? "share_owed" : "refund_pending");
+  }
   if (money === "paid" && r.status === "cancelled") out.push("refund_owed");
   if (money === "paid" && r.status === "requested") {
     out.push(
@@ -409,9 +427,12 @@ export interface KaraokeActionPlan {
   } | null;
   /** `first`: a cancelled booking still paid; `retry`: an unanswered refund. */
   refund: { kind: "first" | "retry"; disabledReason?: string } | null;
-  /** Record a refund someone saw (or did) in PayNkolay's panel. */
+  /**
+   * Record a refund someone saw (or did) in PayNkolay's panel. `share`: a
+   * late cancel's share, refunded there by hand ("Elle iade edildi").
+   */
   settle: {
-    kind: "after_cancel" | "pending_answer";
+    kind: "after_cancel" | "pending_answer" | "share";
     disabledReason?: string;
   } | null;
 }
@@ -457,14 +478,19 @@ export function karaokeActionPlan(
   }
 
   const heldAfterCancel = money === "paid" && r.status === "cancelled";
-  const refund: KaraokeActionPlan["refund"] =
-    money === "refunding"
+  // A late cancel's share is never sent to the POS (`retryKaraokeRefund`
+  // refuses it): only "Elle iade edildi" is offered.
+  const share = money === "refunding" && isPartialRefund(r);
+  const refund: KaraokeActionPlan["refund"] = share
+    ? null
+    : money === "refunding"
       ? { kind: "retry", ...noRefund }
       : heldAfterCancel
         ? { kind: "first", ...noRefund }
         : null;
-  const settle: KaraokeActionPlan["settle"] =
-    money === "refunding"
+  const settle: KaraokeActionPlan["settle"] = share
+    ? { kind: "share", ...noRefund }
+    : money === "refunding"
       ? { kind: "pending_answer", ...noRefund }
       : heldAfterCancel
         ? { kind: "after_cancel", ...noRefund }
@@ -517,7 +543,9 @@ export function karaokeRowView(
     paymentLabel: paymentLabel(r, lapsed, unverified),
     paymentTone: unverified ? "warning" : KARAOKE_PAYMENT_TONE[money],
     refundOwed:
-      attention.includes("refund_owed") || attention.includes("refund_pending"),
+      attention.includes("refund_owed") ||
+      attention.includes("refund_pending") ||
+      attention.includes("share_owed"),
     attention,
     plan: karaokeActionPlan(r, ctx, sameDay),
   };
@@ -854,7 +882,7 @@ const EVENT_TITLES: Record<string, string> = {
     "Ödemesi doğrulanamayan rezervasyon serbest bırakıldı",
   refund_without_payment_row: "İade edilecek ödeme kaydı bulunamadı",
   account_closed_late_paid_booking:
-    "Hesap kapandı, 2 saatten az kalan ödenmiş rezervasyon duruyor",
+    "Hesap kapandı, iade süresi geçmiş ödenmiş rezervasyon duruyor",
   account_closed_payment_unknown:
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
 };
@@ -884,8 +912,17 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
     title = o.title;
     tone = o.tone;
   } else if (event === "refund_settled_by_hand") {
-    title = "İade elle kaydedildi (PayNkolay panelinde görüldü)";
+    title =
+      p.share === true
+        ? "Kısmi iade elle kaydedildi (PayNkolay panelinden yapıldı)"
+        : "İade elle kaydedildi (PayNkolay panelinde görüldü)";
     tone = "info";
+  } else if (event === "late_cancel_share_owed") {
+    title =
+      typeof p.lateRefundPercent === "number"
+        ? `Geç iptal edildi; kurala göre %${p.lateRefundPercent} iade bekliyor`
+        : "Geç iptal edildi; kısmi iade bekliyor";
+    tone = "warning";
   } else if (event) {
     title = EVENT_TITLES[event] ?? event;
     tone = /refused|unknown|mismatch|without/.test(event)
@@ -951,8 +988,10 @@ export function karaokeHistory(
     items.push({
       id: "row-refunded",
       at: r.refundedAt,
-      title: "Ödeme iade edildi",
-      description: formatTRYMinor(r.paidMinor ?? r.totalMinor),
+      title: isPartialRefund(r)
+        ? "Ödemenin bir kısmı iade edildi"
+        : "Ödeme iade edildi",
+      description: formatTRYMinor(refundAmountOf(r)),
       tone: "info",
     });
   }

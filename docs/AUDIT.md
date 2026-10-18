@@ -813,6 +813,27 @@ Açık (paket 3a'nın dışında kalan):
 | 🟢 | Karaoke listesi her istekte en çok 5000 satırı okuyup sekmeleri, sayıları ve sayfaları bellekte hesaplıyor (KAR-25, Dikkat dışı kısım) | Tek oda için yılda birkaç bin satır; sekme sorgularını ve sayfalamayı SQL'e taşımak beş sekmenin sayısını da ayrı sorgular ister. Sayfa sınıra gelince söylüyor; Dikkat artık sınırdan etkilenmiyor |
 | 🟢 | Pano kartı hâlâ eski okumayı (bugün + iade borçları) kullanıyor (KAR-07, pano kısmı) | `src/app/admin/page.tsx` paket 7b'nin; `loadKaraokeTodayCard` hazır |
 
+### Karaoke iptal ve iade kuralı panelden (paket 3b, P2a)
+
+Operatör (17 Eki 2026): "para tutarı iade edilir kısmını da panelden ayarla".
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | İptal kuralı koddaydı (2 saat, geç iptalde iade yok); panelden değişemiyordu | Ayarlar → Karaoke (yalnız sahip): ücretsiz iptal 0-72 saat, geç iptalde iade %0-100, Türkçe zod mesajları, haksız şart sınırları (%0 iken en çok 24 saat; 24 saatten uzunsa ya da 0 saatse en az %50), iki cümlenin canlı önizlemesi, "yalnız bundan sonra yapılan rezervasyonlara" notu | `admin-karaoke-cancel-policy`, `karaoke-cancel-policy` |
+| 🟡 | Kural değişseydi eski rezervasyonlar da yeni kuralla iptal ve iade edilirdi | Her rezervasyon kuralını, son tam iade anını ve gördüğü iki cümleyi saklar (`20261018130000_karaoke_cancel_policy.sql`; `NULL` = 2 / 0); süre, cümle, iade ve mail o kayıttan okunur. Onay kaydı gösterilen belge sürümünü yazar | `karaoke-late-cancel`, `karaoke-cancel-policy`, `db-integration-karaoke-prepay` |
+| 🟡 | Kısmi iade POS'tan gidemiyor (PayNkolay yalnız tam iade) | Karar D9: %100 POS'tan tam iade (kural 29 geri alması aynı); %1-99 rezervasyonu iptal eder, payı `refunding` + `refundMinor` olarak borçlar, ekibe mail gider, panel yalnız "Elle iade edildi" sunar; köşk iptali her zaman tam iade | `karaoke-late-cancel`, `admin-karaoke-cancel-policy`, `db-integration-karaoke-prepay` |
+| 🟢 | Ciro geç iptal payını bilmiyordu | İade edilen pay düşülür, kalan pay ciro; borçlu pay "iadesi bekleyen" | `admin-reports-ltv` |
+| 🟡 | Ödenmiş ama köşkün hiç onaylamadığı rezervasyonda (saat başkasına geçti, onay yarım kaldı) üyenin geç iptali payı uygulardı | Geç iptal payı yalnız onaylı rezervasyonda; onaylanmamış ödenmiş rezervasyon tamamen iade edilir (MSY m.16/4, TBK m.136) | `karaoke-late-cancel` |
+| 🟡 | Kural sayfa açıkken değişirse rezervasyon müşterinin görmediği kuralla kaydedilirdi | Web formu ve uygulama gösterdikleri kuralı `expectedCancelPolicy` ile gönderir; farklıysa **409** `policy_changed`, yeni kural gövdede, rezervasyon yazılmaz (`expectedTotalMinor` deseni) | `karaoke-late-cancel`, `karaoke-web-action`, `mobile-karaoke-prepay-routes`, `frontend-form-contract` |
+| 🟢 | Karaoke koşullarının Yasal belgeler'de yayında bir düzenlemesi varken kural değişebiliyordu: sitede ve uygulamada düzenlenmiş eski metin görünür, onay ise kuralın kayıt gününü yazardı | Yayında düzenleme varken kural 2 saat / %0 dışına çekilemez, önce düzenleme yayından kaldırılır (tablo okunamazsa kayıt da olmaz); varsayılana dönüş ve kuralı değiştirmeyen kayıt serbest | `admin-karaoke-cancel-policy` |
+
+Açık (paket 3b'nin dışında kalan):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli ve sitenin iki karaoke ekranı (alttaki satır) rezervasyonun kuralını yazmalı (`karaoke-cancel-policy-doc` testi ikisini de tutar) |
+| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı. Kilit 3c'den önce açılırsa kutu sabit kuralı geri yollar ve her ön ödemeli web rezervasyonu `policy_changed` ile reddedilir, rezervasyon sayfası geç iptal payını sunmaz: `karaoke-cancel-policy-doc` kilit açıkken bu iki dosyada sabit görürse düşer |
+
 ### Kabuk: gezinme, arama, içerik haritası (paket 1c)
 
 | Derece | Bulgu | Düzeltme | Test |
