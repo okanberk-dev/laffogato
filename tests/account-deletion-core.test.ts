@@ -112,6 +112,32 @@ describe("the team's mail", () => {
     expect(n.footnote).toContain("Bu hesabı silme");
   });
 
+  it("lists paid karaoke by its start and its refund, five at most", () => {
+    const item = (i: number, refundPercent = 100) => ({
+      id: `krk-0000${i}`,
+      label: `${20 + i} Ekim 2026, 20:00 - 22:00`,
+      refundPercent,
+      startedSinceRequest: false,
+    });
+    const n = buildDeletionStaffNotice({
+      ...input,
+      karaoke: [item(1), item(2, 50), item(3), item(4), item(5), item(6)],
+    });
+    const karaoke = n.rows.filter((r) => r.label === "Ödenmiş karaoke");
+    expect(karaoke[0].value).toBe("21 Ekim 2026, 20:00 - 22:00 (tam iade)");
+    expect(karaoke[1].value).toBe("22 Ekim 2026, 20:00 - 22:00 (%50 iade)");
+    expect(karaoke).toHaveLength(6);
+    expect(karaoke[5].value).toBe("1 rezervasyon daha, panelde");
+    expect(n.footnote).toContain("ilk rezervasyonun başlangıç saatinden önce");
+    // A request taken back has no clock to race.
+    const back = buildDeletionStaffNotice({
+      ...input,
+      kind: "withdrawn",
+      karaoke: [item(1)],
+    });
+    expect(JSON.stringify(back)).not.toContain("karaoke");
+  });
+
   it("keys each mail of one request once", () => {
     expect(deletionMailKey("cus-1", AT, "member")).toBe(
       `account-deletion-cus-1-${Date.parse(AT)}-member`,
