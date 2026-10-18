@@ -317,6 +317,7 @@ describe("categories", () => {
   });
 
   it("creates with a toast for the list", async () => {
+    h.store.listCategories.mockResolvedValue([]);
     h.store.createCategory.mockResolvedValue({ ...BEANS, id: "cat-9" });
     await expect(
       categories.createCategoryAction(
@@ -333,6 +334,43 @@ describe("categories", () => {
     expect(h.setAdminFlash).toHaveBeenCalledWith(
       '"Çekirdek" kategorisi eklendi.',
     );
+  });
+
+  it("refuses a slug another category already has (admin audit CAT-06)", async () => {
+    // All five slugs are seeded: "+ Yeni kategori" could only make a twin,
+    // and every category select in the panel then listed "Çekirdek" twice.
+    h.store.listCategories.mockResolvedValue([BEANS]);
+    const res = await categories.createCategoryAction(
+      null,
+      form({ slug: "beans", label: "Kahve", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: { slug: expect.stringContaining('"Çekirdek"') },
+    });
+    expect(h.store.createCategory).not.toHaveBeenCalled();
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses an edit that moves a category onto another one's slug", async () => {
+    const GIFT = { id: "cat-3", slug: "gift", label: "Hediye" };
+    h.store.getCategory.mockResolvedValue({
+      ...BEANS,
+      icon: "◯",
+      sortOrder: 0,
+    });
+    h.store.listCategories.mockResolvedValue([BEANS, GIFT]);
+    h.store.listProducts.mockResolvedValue([]);
+    const res = await categories.updateCategoryAction(
+      "cat-1",
+      null,
+      form({ slug: "gift", label: "Çekirdek", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: { slug: expect.stringContaining('"Hediye"') },
+    });
+    expect(h.store.updateCategory).not.toHaveBeenCalled();
   });
 
   it("refuses to delete a category its products still use", async () => {

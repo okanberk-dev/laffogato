@@ -5,7 +5,12 @@ import { z } from "zod";
  * database) so the action and the tests share them.
  */
 
-/** The fixed slugs the shop filters on (`products.cat`). */
+/**
+ * The fixed slugs products point at (`products.cat`). The shop's filter bar,
+ * its labels and the /magaza/<kategori> pages are fixed to these five in the
+ * storefront code (shop-page.tsx, seo/pages.ts): a category row only names
+ * and orders them inside the panel (admin audit CAT-06, decision D18).
+ */
 export const SHOP_CATEGORY_SLUGS = [
   "beans",
   "gift",
@@ -98,4 +103,31 @@ function strandedProducts(
   );
   if (twin) return 0;
   return products.filter((p) => p.cat === category.slug).length;
+}
+
+/**
+ * Why `slug` cannot be given to a category, or null when it can: another
+ * row (any but `exceptId`) already carries it.
+ *
+ * Nothing refused a twin, and with all five slugs seeded "+ Yeni kategori"
+ * could only ever make one: two "Çekirdek" rows in every category select
+ * of the panel (admin audit CAT-06). Rows that are already twins keep
+ * working; only a new one is refused.
+ */
+export function categorySlugTaken(
+  slug: string,
+  categories: ReadonlyArray<{ id: string; slug: string; label: string }>,
+  exceptId?: string,
+): string | null {
+  const owner = categories.find((c) => c.id !== exceptId && c.slug === slug);
+  if (!owner) return null;
+  return `Bu slug zaten "${owner.label}" kategorisinde. Adını ya da sırasını değiştirmek için listeden onu düzenle.`;
+}
+
+/** The slugs no category row carries yet, in the shop's order. */
+export function freeCategorySlugs(
+  categories: ReadonlyArray<{ slug: string }>,
+): ShopCategorySlug[] {
+  const used = new Set(categories.map((c) => c.slug));
+  return SHOP_CATEGORY_SLUGS.filter((s) => !used.has(s));
 }

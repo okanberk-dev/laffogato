@@ -40,7 +40,7 @@ export default async function AdminCategoriesPage() {
       <PageHeader
         eyebrow="Katalog · Kategoriler"
         title="Kategoriler"
-        description="Mağaza filtre kenar çubuğundaki kategoriler ve sıralamaları. İçinde ürün olan kategori silinemez."
+        description="Ürünlerin kategorileri: ürün formunda, ürün listesinde ve süzgeçlerinde görünen adları ve sıraları. Mağazadaki filtre çubuğu ve kategori sayfaları sabittir, buradaki değişiklik onları değiştirmez. İçinde ürün olan kategori silinemez."
         action={
           <Link
             href="/admin/kategoriler/yeni"
@@ -115,7 +115,7 @@ export default async function AdminCategoriesPage() {
                 label="Sil"
                 variant="menuDanger"
                 title={`"${c.label}" silinsin mi?`}
-                description="Kategori mağaza filtresinden kalkar. Bu işlem geri alınamaz."
+                description="Kategori paneldeki listelerden kalkar. Bu işlem geri alınamaz."
                 disabledReason={blocker ?? undefined}
               />
             </ActionMenu>
