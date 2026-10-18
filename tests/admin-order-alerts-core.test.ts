@@ -220,7 +220,9 @@ describe("what the card says", () => {
       "Masaüstü bildirimleri kapalı.",
     );
     const denied = notificationPermissionText("denied");
-    expect(denied).toContain("kilit simgesinden");
+    // Chrome 117 replaced the padlock there with a site settings icon.
+    expect(denied).toContain("solundaki site ayarları simgesinden");
+    expect(denied).not.toContain("kilit");
     expect(denied).toContain("Sistem Ayarları > Bildirimler > Google Chrome");
     expect(notificationPermissionText("unsupported")).toContain("göstermiyor");
   });

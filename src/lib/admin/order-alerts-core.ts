@@ -407,7 +407,7 @@ export function notificationPermissionText(p: AlertPermission): string {
     case "granted":
       return "Masaüstü bildirimleri açık.";
     case "denied":
-      return "Chrome bildirimleri engelliyor. Adres çubuğundaki kilit simgesinden Bildirimler'e izin ver. Mac'te Sistem Ayarları > Bildirimler > Google Chrome'dan da aç.";
+      return "Chrome bildirimleri engelliyor. Adres çubuğunun solundaki site ayarları simgesinden Bildirimler'e izin ver. Mac'te Sistem Ayarları > Bildirimler > Google Chrome'dan da aç.";
     case "unsupported":
       return "Bu tarayıcı masaüstü bildirimi göstermiyor. Ses ve ekrandaki kart yine çalışır.";
     default:

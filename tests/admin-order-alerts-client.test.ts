@@ -1138,7 +1138,7 @@ describe("the bell's menu", () => {
   it("tells a blocked browser where to allow it, and offers no button it cannot answer", () => {
     const html = menu("denied");
     expect(html).not.toContain("Masaüstü bildirimlerini aç");
-    expect(html).toContain("kilit simgesinden");
+    expect(html).toContain("site ayarları simgesinden");
     expect(html).toContain("Google Chrome");
     expect(menu("granted")).toContain("Masaüstü bildirimleri açık.");
   });

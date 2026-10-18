@@ -45,8 +45,9 @@ açıp kapatır (varsayılan açık; sipariş listesinin "Ses" düğmesiyle ayn�
 ayardır). Yanındaki ok menüyü açar: "Sesi dene" bir kez çalar.
 
 **Masaüstü bildirimi.** Menüden "Masaüstü bildirimlerini aç" düğmesine bas ve
-Chrome'un sorusuna "İzin ver" de. Engellendiyse: adres çubuğundaki kilit
-simgesi, sonra Bildirimler, sonra İzin ver. Mac'te ayrıca "Sistem Ayarları >
+Chrome'un sorusuna "İzin ver" de. Engellendiyse: adres çubuğunun solundaki
+site ayarları simgesi (Chrome 117'den beri kilit değil, iki sürgülü simge),
+sonra Bildirimler, sonra İzin ver. Mac'te ayrıca "Sistem Ayarları >
 Bildirimler > Google Chrome" açık olmalı. Bildirime tıklamak siparişi açar.
 
 **Bir tarayıcıda bir sekme çalar.** Aynı Chrome'da panel birkaç sekmede açıksa
