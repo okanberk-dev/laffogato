@@ -980,6 +980,18 @@ describe("saveEmailSenderAction", () => {
     expect(state.fieldErrors?.emailReplyTo).toBeTruthy();
     expect(updateSettings).not.toHaveBeenCalled();
   });
+
+  // Verifier SS-F3: Kaydet without an edit is how an operator back from
+  // Resend's Domains page asks again; the banner's 2-minute cache would
+  // keep the old verdict otherwise.
+  it("re-reads the banner on a save that changes nothing", async () => {
+    const state = await saveEmailSenderAction({}, sender());
+    expect(state.message).toMatch(/Değişiklik yok/);
+    expect(updateSettings).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(forgetEmailHealth).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/ayarlar");
+  });
 });
 
 describe("sendTestEmailAction", () => {

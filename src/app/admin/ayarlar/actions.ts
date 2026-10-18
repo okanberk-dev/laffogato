@@ -619,7 +619,13 @@ export async function saveEmailSenderAction(
   const next = { emailFromName, emailFromAddress, emailReplyTo };
   const before = await getSettings();
   const moved = changedKeys(before, next);
-  if (!moved) return NO_CHANGE;
+  if (!moved) {
+    // Nothing to write, but Kaydet is also how an operator back from
+    // Resend's Domains page asks again: the banner is read afresh.
+    forgetEmailHealth();
+    revalidatePath("/admin/ayarlar");
+    return NO_CHANGE;
+  }
   if (emailFromAddress && emailFromAddress !== before.emailFromAddress) {
     const why = UNVERIFIED_SENDER[await senderDomainStatus(emailFromAddress)];
     if (why) {
