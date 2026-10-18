@@ -6,8 +6,14 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { Badge } from "@/components/admin/ui/badge";
 import { requireRole } from "@/lib/admin/auth";
 import { isClosedAccountEmail, listCustomers } from "@/lib/admin/store";
+import {
+  deletionDayLabel,
+  deletionDeadline,
+  isDeletionOverdue,
+} from "@/lib/customer/deletion-request-core";
 import { listAllCustomers } from "@/lib/customer/store";
 
 export const metadata = { title: "Admin · Müşteriler" };
@@ -18,7 +24,7 @@ interface PageProps {
 }
 
 type SortKey = "recent" | "value" | "orders" | "name";
-type FilterKey = "all" | "members" | "guests";
+type FilterKey = "all" | "members" | "guests" | "deletion";
 
 const SORT_LABEL: Record<SortKey, string> = {
   recent: "Son hareket",
@@ -31,6 +37,9 @@ const FILTER_LABEL: Record<FilterKey, string> = {
   all: "Hepsi",
   members: "Üyeler",
   guests: "Misafirler",
+  // Web deletion requests waiting for the team (/uye/hesap/sil); the
+  // team's mail links here.
+  deletion: "Silme talebi",
 };
 
 interface CustomerRow {
@@ -47,6 +56,8 @@ interface CustomerRow {
   lastOrderAt: string;
   /** Sort key: last order date, else member-since. */
   lastActivity: string;
+  /** ISO instant of the open web deletion request; "" when none. */
+  deletionRequestedAt: string;
 }
 
 export default async function CustomersPage({ searchParams }: PageProps) {
@@ -82,6 +93,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       refundedMinor: 0,
       lastOrderAt: "",
       lastActivity: m.createdAt,
+      deletionRequestedAt: m.deletionRequest?.requestedAt ?? "",
     });
   }
   for (const s of summaries) {
@@ -109,6 +121,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         refundedMinor: s.refundedMinor,
         lastOrderAt: s.lastOrderAt,
         lastActivity: s.lastOrderAt,
+        deletionRequestedAt: "",
       });
     }
   }
@@ -116,6 +129,9 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   let list = Array.from(byEmail.values());
   if (filter === "members") list = list.filter((c) => c.isMember);
   else if (filter === "guests") list = list.filter((c) => !c.isMember);
+  else if (filter === "deletion") {
+    list = list.filter((c) => c.deletionRequestedAt);
+  }
   if (q) {
     list = list.filter(
       (c) =>
@@ -125,6 +141,11 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     );
   }
   list.sort((a, b) => {
+    // The requests run oldest first: the one closest to its thirty days
+    // is the next to do.
+    if (filter === "deletion") {
+      return a.deletionRequestedAt.localeCompare(b.deletionRequestedAt);
+    }
     if (sort === "value") return b.lifetimeValueMinor - a.lifetimeValueMinor;
     if (sort === "orders") return b.orderCount - a.orderCount;
     if (sort === "name") return a.name.localeCompare(b.name, "tr");
@@ -132,6 +153,11 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   });
 
   const memberCount = members.length;
+  const openRequests = members
+    .map((m) => m.deletionRequest?.requestedAt ?? "")
+    .filter(Boolean)
+    .sort();
+  const now = new Date();
   const totalValue = list.reduce((s, c) => s + c.lifetimeValueMinor, 0);
   const totalOrders = list.reduce((s, c) => s + c.orderCount, 0);
 
@@ -149,6 +175,21 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         <Stat label="Toplam sipariş" value={String(totalOrders)} />
         <Stat label="Lifetime value" value={formatTRY(totalValue)} mono />
       </div>
+
+      {openRequests.length > 0 && filter !== "deletion" && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]">
+          <span>
+            {openRequests.length} açık hesap silme talebi var. En eskisinin son
+            günü {deletionDayLabel(deletionDeadline(openRequests[0]))}.
+          </span>
+          <Link
+            href="/admin/musteriler?filter=deletion"
+            className="inline-flex min-h-[44px] items-center rounded-full border border-[var(--admin-danger)]/40 bg-white px-4 text-xs font-medium text-[var(--admin-danger-ink)] hover:border-[var(--admin-danger)]"
+          >
+            Talepleri göster
+          </Link>
+        </div>
+      )}
 
       <Card className="mb-4">
         <form className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
@@ -238,12 +279,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span className="font-medium text-neutral-900">
                           {c.name || "-"}
                         </span>
                         <Badges row={c} />
                       </div>
+                      <DeletionBadge row={c} now={now} />
                       <div className="truncate text-xs text-neutral-700">
                         {c.email}
                       </div>
@@ -301,12 +343,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
                       className="border-b border-neutral-100 align-top last:border-b-0"
                     >
                       <td className="py-3 pr-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="font-medium text-neutral-900">
                             {c.name || "-"}
                           </span>
                           <Badges row={c} />
                         </div>
+                        <DeletionBadge row={c} now={now} />
                         {c.isMember && c.memberSince && (
                           <div
                             className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
@@ -361,6 +404,26 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         )}
       </Card>
     </main>
+  );
+}
+
+/**
+ * An open web deletion request, on its own line under the name: beside it
+ * the long badge squeezed the name onto two lines.
+ */
+function DeletionBadge({ row, now }: { row: CustomerRow; now: Date }) {
+  if (!row.deletionRequestedAt) return null;
+  return (
+    <div className="mt-1">
+      <Badge
+        tone="danger"
+        title={`Son gün: ${deletionDayLabel(deletionDeadline(row.deletionRequestedAt))}`}
+      >
+        {isDeletionOverdue(row.deletionRequestedAt, now)
+          ? "Silme talebi · süre doldu"
+          : `Silme talebi · ${deletionDayLabel(row.deletionRequestedAt)}`}
+      </Badge>
+    </div>
   );
 }
 

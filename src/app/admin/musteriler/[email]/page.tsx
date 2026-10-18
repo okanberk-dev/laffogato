@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CustomerActions } from "@/components/admin/customer-actions";
 import { CustomerCoupons } from "@/components/admin/customer-coupons";
+import { CustomerDeletionRequest } from "@/components/admin/customer-deletion-request";
 import { CustomerStamps } from "@/components/admin/customer-stamps";
 import {
   Card,
@@ -186,11 +187,25 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         <Stat
           label="Durum"
           value={
-            member ? (member.isActive ? "Aktif üye" : "Pasif üye") : "Misafir"
+            member
+              ? member.deletionRequest
+                ? "Silme talebi"
+                : member.isActive
+                  ? "Aktif üye"
+                  : "Pasif üye"
+              : "Misafir"
           }
           small
         />
       </div>
+
+      {member?.deletionRequest && (
+        <CustomerDeletionRequest
+          email={member.email}
+          request={member.deletionRequest}
+          now={now}
+        />
+      )}
 
       {member ? (
         <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -286,6 +301,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
               email={member.email}
               isActive={member.isActive}
               emailVerified={member.emailVerified}
+              deletionRequested={member.deletionRequest !== null}
             />
             <CustomerStamps
               email={member.email}

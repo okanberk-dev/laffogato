@@ -7,8 +7,8 @@
  * carries the same `[FIELD]`s as its HTML twin, so `renderEmail` fills both
  * from one set of values and `assertFilled` guards both.
  *
- * Same voice as the templates: "siz" (the two karaoke messages: "sen"),
- * sentence case, no shouting.
+ * Same voice as the templates: "siz" (the two karaoke messages and the two
+ * account-deletion messages: "sen"), sentence case, no shouting.
  */
 
 const SIGNATURE = `-
@@ -125,6 +125,41 @@ bağlantıdan belirleyebilirsiniz:
 
 Bağlantı bir saat geçerlidir ve yalnızca bir kez kullanılabilir. Bu talebi
 siz yapmadıysanız hiçbir şey yapmanıza gerek yok - mevcut şifreniz değişmez.
+
+${SIGNATURE}`,
+
+  // The two account-deletion messages speak "sen", like /uye/hesap/sil
+  // that sent the request.
+  "hesap-silme-talebi": `Merhaba,
+
+[TALEP_TARIHI] tarihinde hesabının silinmesini istedin. Talebin bize
+ulaştı; en geç [SON_GUN] tarihine kadar sonuçlandırırız. Hesabını
+çoğunlukla 3 iş günü içinde sileriz ve bittiğinde sana yeniden yazarız.
+Devam eden bir siparişin varsa hesabını sipariş tamamlanınca sileriz.
+
+Talebin: [TALEP_URL]
+
+Siparişlerin ve fatura bilgilerin, vergi ve ticaret mevzuatının saklama
+süresi boyunca saklanır. Fikrini değiştirirsen talebini aynı sayfadan geri
+alabilirsin. Bu talebi sen göndermediysen sayfadan geri al ve şifreni
+değiştir.
+
+${SIGNATURE}`,
+
+  "hesap-silindi": `Merhaba,
+
+[SONUC_BASLIK]. L'Affogato hesabını kapattık: adın, telefonun, adreslerin,
+favorilerin ve bildirim tercihlerin silindi; damgaların ve kullanılmamış
+kuponların sona erdi. Siparişlerin ve fatura bilgilerin, vergi ve ticaret
+mevzuatının saklama süresi boyunca bu e-posta adresinden ayrılarak saklanır.
+<!--IF:KIMLIK_KALDI-->
+Uygulamanın giriş kimliğinde duran e-posta adresin ve adın bu adımda
+silinemedi; ekibimiz bunu ayrıca tamamlayacak.
+<!--/IF:KIMLIK_KALDI-->
+Neler silindi, neler saklanıyor: [PROSEDUR_URL]
+
+Yeniden üye olmak istersen aynı adresle kaydolabilirsin; eski siparişlerin
+ve damgaların yeni hesaba taşınmaz.
 
 ${SIGNATURE}`,
 

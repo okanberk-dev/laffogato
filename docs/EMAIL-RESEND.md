@@ -230,7 +230,7 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi - şablonlar
 
-Sitenin gönderdiği yirmi iki mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği yirmi dört mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
@@ -244,7 +244,7 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi dört şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -258,6 +258,8 @@ Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency*
 | `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
 | `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
+| `hesap-silme-talebi`                   | işlemsel          | üye `/uye/hesap/sil`'den silme talebi gönderdi (`requestAccountDeletionAction`) · yalnız talep **açıldığında**, `account-deletion-<üye>-<talep anı>-member` |
+| `hesap-silindi`                        | işlemsel          | ekip panelden "Hesabı sil" ile hesabı kapattı (`closeCustomerAccountAction`), kapanmadan önceki adrese · `account-deletion-<üye>-<talep anı>-closed`; giriş kimliği kaldıysa "kapatıldı" der |
 | `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
 | `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
 | `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
@@ -783,6 +785,36 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
 - Üyenin ya da panelin yazdığı metin şablon alanı sayılmaz: notta "[OK]",
   üründe "Kahve [250G]" olduğu gibi gider (`fill.ts` tek geçişte doldurur,
   eksik alan şablonun kendisinden aranır).
+
+### Hesap silme talebi (ekibe ve üyeye, 18 Eki 2026)
+
+Sitede hesap artık üyenin tıklamasıyla silinmez (operatör: "hesabı silme
+sadece bize ulaşarak olsun"): `/uye/hesap/sil` ekibe talep gönderir, ekip
+panelden kapatır. Uygulamadaki "Hesabımı sil" (`DELETE /api/mobile/v1/me`)
+eskisi gibi anında siler.
+
+- **Ekibe** (`src/lib/email/account-deletion-notice.ts`, `operasyon-bildirim`):
+  talep açıldığında ve geri alındığında. Alıcılar `customers` yetkisi olan
+  roller (sahip, yönetici; aktif panel kullanıcısı ve env yöneticileri, sipariş
+  bildirimindeki kuralla) ve operasyon adresi, o boşsa sitenin genel adresi.
+  Sipariş bildiriminin aç/kapa düğmesi ve rol listesi bunu etkilemez: KVKK
+  başvurusu her durumda birine ulaşmalı. Tek toplu istek, anahtar
+  `account-deletion-<üye>-<talep anı>-staff-opened|staff-withdrawn`.
+  İçerik (KVKK m.4/2-ç): üye no, yalnız ad, maskeli adres, talep tarihi, son
+  gün (talepten 30 gün) ve gerekçe **yazılıp yazılmadığı** - gerekçenin kendisi
+  panelde.
+- **Üyeye:** `hesap-silme-talebi` (talep alındı, son gün, geri alma yolu) ve
+  ekip kapatınca `hesap-silindi`. İkisi de işlemsel: çıkış bağlantısı yok
+  (kural 19).
+- Gönderim talebi ya da kapanışı hiçbir zaman bozmaz; başarısızlık log'a
+  maskeli adresle düşer, kapanışta panel bildirimine bir cümle ekler.
+- **Talep açıkken ticari posta yok** (migration `20261018090100`): 6563
+  m.8/3 rette üç iş günü verir, sitenin İleti onayı metni üyeliğin sona
+  ermesini ret sayar; talep geldiği anda ret gibi işlenir.
+  `campaign_email_audience` o adresi (üye satırı da bülten abonesi satırı
+  da) kitleye almaz, sayım, kuyruk ve parti alma onu okur;
+  `birthday_greeting_audience` mail bayrağını kapatır (kupon yine verilir).
+  Onay kaydı değişmez: üye talebi geri alınca kitleye kendiliğinden döner.
 
 ### Emniyet kilitleri
 

@@ -3,6 +3,11 @@ import type { IdentityDeletion } from "@/lib/supabase/admin";
 /**
  * What the site tells a member after `/uye/hesap/sil` closed their account.
  *
+ * Since 18 Eki 2026 that page no longer closes anything: it sends the team
+ * a request (`requestAccountDeletionAction`) and the team closes the
+ * account from the panel. The notice stays for the `/?hesap=` links already
+ * out there (front-end contract item 4).
+ *
  * `deleteMe` always anonymises the member row, but the Supabase sign-in
  * identity - which still carries the e-mail address and the name - is deleted
  * only when the deployment holds the service-role key and the delete

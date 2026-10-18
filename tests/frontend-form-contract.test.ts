@@ -163,10 +163,12 @@ const CONTRACTS: FormContract[] = [
     fields: ["orderUpdates", "marketing", "newsletter"],
   },
   {
-    action: "deleteAccountAction",
+    // The site no longer deletes on the member's click (18 Eki 2026): the
+    // page sends the team a request, an optional reason and one box.
+    action: "requestAccountDeletionAction",
     actionFile: "src/app/uye/actions.ts",
-    forms: ["src/app/uye/hesap/sil/delete-account-form.tsx"],
-    fields: ["confirmEmail", "password"],
+    forms: ["src/app/uye/hesap/sil/deletion-request-form.tsx"],
+    fields: ["reason", "confirm"],
   },
   {
     action: "bookKaraokeAction",
@@ -273,6 +275,9 @@ describe("consent boxes a redesign must not pre-tick", () => {
     ["src/components/laffogato/karaoke-booking.tsx", 'name="consentPreInfo"'],
     ["src/components/laffogato/karaoke-booking.tsx", 'name="consentContract"'],
     ["src/components/laffogato/karaoke-booking.tsx", 'name="consentKvkk"'],
+    // "Hesabımın silinmesini istiyorum": a request nobody ticked for the
+    // member is no request.
+    ["src/app/uye/hesap/sil/deletion-request-form.tsx", 'name="confirm"'],
   ];
 
   for (const [file, attr] of CONSENT_INPUTS) {
@@ -373,10 +378,10 @@ describe("redirect query strings the pages must keep handling", () => {
   it("the account deletion's /?hesap=... is acknowledged", () => {
     // Two values: "silindi" once the sign-in identity went too, "kapatildi"
     // otherwise (src/lib/customer/account-closure.ts); the home page reads
-    // both through the same helper.
-    expect(read("src/app/uye/actions.ts")).toContain(
-      "redirect(`/?hesap=${accountClosureParam(result.identity)}`)",
-    );
+    // both through the same helper. Since 18 Eki 2026 no action sends it -
+    // the site sends a deletion request instead - but the links already in
+    // mails and bookmarks still land on a notice.
+    expect(read("src/app/uye/actions.ts")).not.toContain("/?hesap=");
     expect(read("src/app/page.tsx")).toContain("accountClosureNotice(hesap)");
     const closure = read("src/lib/customer/account-closure.ts");
     expect(closure).toMatch(/silindi:\s*"/);

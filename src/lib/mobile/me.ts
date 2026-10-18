@@ -625,6 +625,11 @@ export async function deleteMe(
       inviteCode: "",
       invitedBy: "",
       usual: usualColumnValue(null),
+      // A web deletion request (/uye/hesap/sil) is answered by this very
+      // closure, from the panel or from the app: the open request goes,
+      // and the member's free-text reason is personal data like the rest.
+      deletionRequestedAt: null,
+      deletionReason: "",
       isActive: false,
       updatedAt: now,
     })

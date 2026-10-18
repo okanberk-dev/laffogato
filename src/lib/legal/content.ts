@@ -4768,7 +4768,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
-    updatedAt: "17 Ekim 2026",
+    // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
+    updatedAt: "18 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -5379,7 +5380,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "{{BRAND}} mobil uygulaması iOS ve Android için yayımlanmakta olup, uygulama üzerinden menünün görüntülenmesi, kafe ve mağaza siparişi verilmesi, üyelik işlemleri, sadakat kartının (damga) takibi ve kafede kasa koduyla damga eklenmesi, karaoke odası rezervasyonu, fA'L ve cihazda planlanan hatırlatmalar mümkündür. Uygulama üzerinden yapılan işlemlerde de bu Politikanın tamamı uygulanır; aşağıdaki açıklamalar yalnızca uygulamaya özgü ek bilgilendirmedir.",
           "Uygulama üzerinden verilen siparişlerin ödemesi, uygulama mağazası içi satın alma yöntemiyle değil, web sitesindekiyle aynı şekilde ödeme hizmeti sağlayıcısı PayNkolay üzerinden alınır. Kart bilgileriniz {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; bu sayfa cihazınızın tarayıcı penceresinde açılır. Kart bilgileri şifreli bağlantıyla Şirket sunucusu üzerinden aynı işlemde yalnızca PayNkolay'a iletilir; Şirket bunları kaydetmez ve saklamaz. Ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçilir ve ödeme orada onaylanır.",
           "Uygulamanın indirilmesi, güncellenmesi ve kaldırılması App Store ve Google Play üzerinden yapılır. Bu mağazaların kendi kullanım koşulları ve gizlilik politikaları geçerlidir; mağaza hesabınıza, indirme ve değerlendirme kayıtlarınıza ilişkin veriler bakımından ilgili mağaza bağımsız veri sorumlusudur. Şirket, güvenlik ve uyumluluk gerekçesiyle asgari bir uygulama sürümü belirleyebilir; eski sürümlerde bazı işlevler çalışmayabilir.",
-          "Uygulamayı cihazınızdan kaldırdığınızda cihazda tutulan yerel veriler ve cihazda planlanmış hatırlatmalar silinir. Uygulamanın kaldırılması tek başına üyeliğinizin sona ermesi anlamına gelmez; hesabınızı uygulamadaki veya sitedeki hesap silme seçeneğiyle ya da {{EMAIL}} adresine başvurarak kapatabilirsiniz. Hesabın kapatılmasıyla biriken damgalar ve kullanılmamış kuponlar sona erer; kayıtlı kart özelliği açıksa Şirket ayrıca PayNkolay'dan size ait kayıtlı kartların silinmesini ister (ayrıntı: {{SITE_URL}}/hukuk/hesap-silme).",
+          "Uygulamayı cihazınızdan kaldırdığınızda cihazda tutulan yerel veriler ve cihazda planlanmış hatırlatmalar silinir. Uygulamanın kaldırılması tek başına üyeliğinizin sona ermesi anlamına gelmez; hesabınızı uygulamadaki hesap silme seçeneğiyle hemen kapatabilir ya da sitedeki hesap silme sayfasından veya {{EMAIL}} adresine başvurarak silinmesini isteyebilirsiniz. Hesabın kapatılmasıyla biriken damgalar ve kullanılmamış kuponlar sona erer; kayıtlı kart özelliği açıksa Şirket ayrıca PayNkolay'dan size ait kayıtlı kartların silinmesini ister (ayrıntı: {{SITE_URL}}/hukuk/hesap-silme).",
         ],
         bullets: [
           "Bildirim izni: İsteğe bağlıdır ve yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için kullanılır. Hatırlatmalar cihazda planlanır; sunucudan anlık bildirim (push) gönderilmez ve anlık bildirim tokeni oluşturulmaz. İzni cihaz ayarlarından kapatabilirsiniz.",
@@ -7003,6 +7004,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-basvuru-formu",
     title: "Veri Sahibi Başvuru Formu",
     shortTitle: "Başvuru Formu",
+    // 18 Ekim 2026: Site'deki hesap silme talebi bu formla yapılan
+    // başvuru gibi işlenir.
+    updatedAt: "18 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 11. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca ilgili kişilerin {{SHORT_NAME}}'ye nasıl başvuracağını, başvuruda yer alması zorunlu bilgileri, yanıt süresini ve şikâyet yolunu açıklayan rehber ve formdur.",
@@ -7163,7 +7167,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Mobil uygulama",
             value:
-              "{{BRAND}} mobil uygulaması üzerinden ayrıca başvuru gönderilmez; başvurunuzu bu tablodaki kanallardan biriyle, örneğin üyeliğinizde kayıtlı e-posta adresinizden {{EMAIL}} adresine iletebilirsiniz. Üyeliğinizin kapatılmasını ise ayrıca başvuru yapmadan, uygulamanın hesap ekranındaki hesap silme seçeneğinden veya {{SITE_URL}}/uye/hesap/sil sayfasından başlatabilirsiniz.",
+              "{{BRAND}} mobil uygulaması üzerinden ayrıca başvuru gönderilmez; başvurunuzu bu tablodaki kanallardan biriyle, örneğin üyeliğinizde kayıtlı e-posta adresinizden {{EMAIL}} adresine iletebilirsiniz. Üyeliğinizi ise ayrıca başvuru yapmadan, uygulamanın hesap ekranındaki hesap silme seçeneğiyle hemen kapatabilirsiniz. Site'de {{SITE_URL}}/uye/hesap/sil sayfasından gönderdiğiniz hesap silme talebi de bu formla yapılan başvuru gibi işlenir ve en geç otuz gün içinde sonuçlandırılır.",
           },
           {
             key: "Kayıtlı elektronik posta (KEP) ile",
@@ -10196,6 +10200,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "uyelik-sozlesmesi",
     title: "Üyelik Sözleşmesi",
     shortTitle: "Üyelik",
+    // 18 Ekim 2026: §14, Site'de hesap ekibe talep olarak silinir. Üye
+    // aleyhine esaslı bir değişiklik değil, §22'nin on beş günlük bildirimi
+    // gerekmez (TBK m.24 aleyhe tek yanlı değişikliği zaten yazılmamış
+    // sayar): §14'teki hak ve eşdeğer kolaylık sözü aynen duruyor ve tek
+    // adımı adıyla söylüyor, uygulamadaki anında silme kalıyor; eklenenler
+    // talebi geri alma ve sonucun bildirilmesi, otuz gün de KVKK m.13/2'nin
+    // zaten koyduğu üst sınır.
+    updatedAt: "18 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10570,8 +10582,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Üyeliğin Üye Tarafından Sona Erdirilmesi",
         paragraphs: [
-          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur.",
-          "Hesap kapatma talebi; Site'de {{SITE_URL}}/uye/hesap/sil sayfasından, Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
+          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur: Üye'nin yapacağı tek adım, Mobil Uygulama'daki hesap silme seçeneğini onaylamak ya da Site'deki talebi göndermektir; talebin sonuçlandırılması için Üye'den başka bir işlem veya gerekçe istenmez.",
+          "Hesap kapatma talebi; Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden, Site'de {{SITE_URL}}/uye/hesap/sil sayfasından veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Mobil Uygulama'daki seçenek hesabı hemen kapatır; Site'den veya e-postayla iletilen talep Şirket tarafından en geç otuz gün içinde sonuçlandırılır ve sonuç Üye'ye e-postayla bildirilir. Üye, Site'den verdiği talebi hesap kapatılana kadar aynı sayfadan geri alabilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
           "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir.",
           "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır. Kart saklama özelliği açıldığında, hesap kapatılırken Şirket önce PayNkolay'dan Üye'nin kayıtlı kartlarının silinmesini ister.",
           "Üyeliğin sona ermesi, sona erme tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Üye, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mal hükümlerinden doğan seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir.",
@@ -10816,12 +10828,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
     category: "Site & Üyelik",
+    // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
+    // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
+    updatedAt: "18 Ekim 2026",
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
     references: [
-      "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.7 silme, yok etme ve anonim hâle getirme, m.11 ilgili kişinin hakları",
-      "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
-      "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
+      "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.5/2-ç hukuki yükümlülük, m.7 silme, yok etme ve anonim hâle getirme, m.11 ilgili kişinin hakları, m.13 veri sorumlusuna başvuru",
+      "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik - m.12 ilgili kişinin talebi üzerine silme",
+      "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ - m.5 başvuru usulü, m.6 başvuruya cevap",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "213 sayılı Vergi Usul Kanunu - fatura ve defter kayıtlarının saklanması",
       "6102 sayılı Türk Ticaret Kanunu - ticari defterlerin saklanması",
@@ -10833,28 +10848,28 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "1. Bu Belgenin Amacı",
         paragraphs: [
           "Bu belge, {{BRAND}} üyeliğinizin ve mobil uygulama hesabınızın sonlandırılması talebini nasıl ileteceğinizi, talebin nasıl işlendiğini ve sonucunda verilerinize ne olduğunu açıklar.",
-          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir.",
+          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir. Mobil Uygulama'da hesabınızı uygulama içindeki seçenekle hemen silebilirsiniz; Site'de ise silme talebinizi tek adımda iletirsiniz ve hesabınız, sizden başka bir işlem beklenmeden {{BRAND}} ekibince silinir.",
           "Bu belge Üyelik Sözleşmesi'nin hesap kapatmaya ilişkin maddesini tamamlar; çelişki hâlinde Üyelik Sözleşmesi ve mevzuat esas alınır.",
         ],
       },
       {
         heading: "2. Talebi Nereden İletebilirsiniz",
         paragraphs: [
-          "Aşağıdaki kanalların tamamı geçerlidir; hangisini seçtiğinizin sonuç üzerinde etkisi yoktur.",
+          "Aşağıdaki kanalların tamamı geçerlidir. Mobil Uygulama'dan verilen talep anında uygulanır; Site'den, e-postayla veya postayla iletilen talep ekibimizce 4. maddedeki süre içinde sonuçlandırılır. Hangi kanalı seçtiğinizin, silme sonrasında verilerinize ne olduğu üzerinde etkisi yoktur.",
         ],
         bullets: [
-          "Site: Hesabım > Hesabı sil sayfası ({{SITE_URL}}/uye/hesap/sil). Talep, e-posta adresinizi ve şifrenizi doğruladığınızda anında işleme alınır.",
-          "Mobil uygulama: Profil bölümündeki hesap ayarlarından hesabımı sil seçeneği. Talep uygulama içinden onaylandığında işleme alınır.",
+          'Site: Hesabım > Bilgilerim sayfasının altındaki bağlantıdan açılan hesap silme sayfası ({{SITE_URL}}/uye/hesap/sil). Üyeliğinizle giriş yaptıktan sonra isteğe bağlı bir gerekçe yazar ve "Hesabımın silinmesini istiyorum" kutusunu işaretleyerek talebinizi gönderirsiniz. Talebin alındığı size e-postayla bildirilir; hesabınız Site\'den kendiliğinden silinmez, ekibimizce silinir.',
+          'Mobil uygulama: Profil bölümündeki "Hesabımı sil" seçeneği. Uygulama içinden onaylanan talep anında uygulanır.',
           "E-posta: Üyelik kaydınızdaki adresten {{EMAIL}} adresine, konu satırında hesap silme talebi yazan bir ileti.",
           "Posta: {{ADDRESS}} adresine ıslak imzalı yazılı başvuru.",
-          "Uygulama mağazalarının hesap silme yönlendirmeleri de bu sayfaya çıkar; bu sayfadaki e-posta kanalı, uygulamayı kurmadan da talep iletebilmeniz içindir.",
+          "Uygulama mağazalarının hesap silme yönlendirmeleri de bu sayfaya çıkar; Site'deki talep sayfası ve e-posta kanalı, uygulamayı kurmadan ya da uygulamaya erişemeden de talep iletebilmeniz içindir.",
         ],
       },
       {
         heading: "3. Kimlik Teyidi",
         paragraphs: [
           "Talebin hesabın gerçek sahibinden geldiğinden emin olmamız gerekir; aksi hâlde bir başkasının hesabını sildirmesi mümkün olurdu.",
-          "Uygulama içinden yapılan talepte kimlik, oturum açmış üyelik ile teyit edilmiş sayılır. E-posta ile yapılan talepte, iletinin üyelik kaydındaki e-posta adresinden gelmesi esas alınır.",
+          "Site'deki talep sayfasından veya uygulama içinden yapılan talepte kimlik, oturum açmış üyelik ile teyit edilmiş sayılır. E-posta ile yapılan talepte, iletinin üyelik kaydındaki e-posta adresinden gelmesi esas alınır.",
           "Farklı bir adresten gelen başvurularda, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ çerçevesinde ek bilgi talep edilebilir. İstenen bilgi, yalnızca kimliğin teyidi için gerekli olanla sınırlıdır.",
         ],
       },
@@ -10862,8 +10877,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Süreler",
         paragraphs: [
           "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
-          "E-posta veya posta ile iletilen talepler, 6698 sayılı Kanun ve ilgili Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır. Talebin alındığı, aynı kanaldan teyit edilir.",
-          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan ya da siteden verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz.',
+          "Site'den, e-posta veya posta ile iletilen talepler, 6698 sayılı Kanun'un 13. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde ücretsiz olarak sonuçlandırılır; hedefimiz üç iş günüdür. Site'den gelen talebin alındığı size hemen e-postayla, diğer kanallardan gelen talebin alındığı aynı kanaldan teyit edilir. Hesabınız silindiğinde bu da size e-postayla bildirilir. Site'den verdiğiniz talep açık kaldığı sürece size kampanya, bülten veya doğum günü e-postası gibi ticari elektronik ileti gönderilmez.",
+          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır.',
+          'Talebi geri alma: Site\'den verdiğiniz talebi, hesabınız silinene kadar aynı sayfadaki "Talebi geri al" düğmesiyle geri alabilirsiniz; e-posta veya posta ile verdiğiniz talebi aynı kanaldan geri alabilirsiniz. Geri alınan talep işleme konmaz ve hesabınız olduğu gibi kalır. Silinmiş bir hesap geri getirilemez; aynı adresle yeniden üye olabilirsiniz (bkz. 9. madde).',
         ],
       },
       {
@@ -10948,7 +10964,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
           "Kullanılmamış kuponlar geçersiz hâle gelir.",
           "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır.",
-          "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında uyarı gösterilir.",
+          "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında ve Site'deki hesap silme sayfasında uyarı gösterilir.",
         ],
       },
       {

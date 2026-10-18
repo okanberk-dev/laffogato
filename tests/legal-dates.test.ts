@@ -57,7 +57,12 @@ describe("legal document dates", () => {
     // here, with its date, when only it changes later.
     const expected: Record<string, string> = {
       // fA'L's AI recipient became Anthropic, PBC (R12 and the two privacy texts).
-      "gizlilik-politikasi": "17 Ekim 2026",
+      // 18 Ekim 2026: on the Site an account is deleted by the team on the
+      // member's request; the four texts that described deletion say so.
+      "gizlilik-politikasi": "18 Ekim 2026",
+      "hesap-silme": "18 Ekim 2026",
+      "uyelik-sozlesmesi": "18 Ekim 2026",
+      "kvkk-basvuru-formu": "18 Ekim 2026",
       "kvkk-aydinlatma-metni": "17 Ekim 2026",
       "acik-riza-metni": "17 Ekim 2026",
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):

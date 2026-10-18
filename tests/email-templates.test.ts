@@ -73,9 +73,13 @@ function renderWith(
   });
 }
 
-describe("the twenty-two templates render", () => {
-  it("ships exactly the twenty-two designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
-    expect(NAMES).toHaveLength(22);
+describe("the twenty-four templates render", () => {
+  it("ships exactly the twenty-four designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
+    expect(NAMES).toHaveLength(24);
+    // The web account deletion is a request to the team (18 Eki 2026): its
+    // receipt and the "hesabın silindi" answer.
+    expect(NAMES).toContain("hesap-silme-talebi");
+    expect(NAMES).toContain("hesap-silindi");
     // Mail to the team, in the same design as the customers' mail.
     expect(NAMES).toContain("operasyon-bildirim");
     // The order notices the legal texts promise: the tracking number at
@@ -154,27 +158,29 @@ describe("the twenty-two templates render", () => {
    * voice mid-message: "Saatiniz ayrıldı" above "iptal edersen". The shared
    * app block is left out: it is every mail's, in the family's own voice.
    */
-  it.each(["karaoke-rezervasyon", "karaoke-iptal"] as const)(
-    "%s speaks sen, not siz, in both halves",
-    (name) => {
-      const t = EMAIL_TEMPLATES[name];
-      const body = t.html
-        .replace(/<head>[\s\S]*?<\/head>/, "")
-        .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
-        .replace(/<[^>]+>/g, " ");
-      for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
-        const siz = part
-          .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
-          .filter(
-            (w) =>
-              /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
-              /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
-              /[aeıioöuü]y[ıiuü]n$/.test(w),
-          );
-        expect(siz, name).toEqual([]);
-      }
-    },
-  );
+  it.each([
+    "karaoke-rezervasyon",
+    "karaoke-iptal",
+    "hesap-silme-talebi",
+    "hesap-silindi",
+  ] as const)("%s speaks sen, not siz, in both halves", (name) => {
+    const t = EMAIL_TEMPLATES[name];
+    const body = t.html
+      .replace(/<head>[\s\S]*?<\/head>/, "")
+      .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
+      .replace(/<[^>]+>/g, " ");
+    for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
+      const siz = part
+        .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
+        .filter(
+          (w) =>
+            /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
+            /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
+            /[aeıioöuü]y[ıiuü]n$/.test(w),
+        );
+      expect(siz, name).toEqual([]);
+    }
+  });
 
   /**
    * Confirmation and cancellation are one pair: whatever the staff do to a

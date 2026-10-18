@@ -8,7 +8,7 @@ import {
   actionOk,
   type ActionResult,
 } from "@/lib/admin/action-result";
-import { logAudit } from "@/lib/admin/audit";
+import { logAudit, safeAudit } from "@/lib/admin/audit";
 import {
   CATALOG_MONEY_MAX_MINOR,
   MONEY_TOO_LARGE_ERROR,
@@ -28,7 +28,13 @@ import {
   getCustomerByEmail,
   setCustomerActive,
 } from "@/lib/customer/store";
-import { sendVerificationEmail } from "@/lib/email/send";
+import { getDeletionRequest } from "@/lib/customer/deletion-request";
+import { deletionMailKey } from "@/lib/customer/deletion-request-core";
+import { logMemberMail } from "@/lib/email/account-deletion-notice";
+import {
+  sendAccountDeletedEmail,
+  sendVerificationEmail,
+} from "@/lib/email/send";
 import { deleteMe, type DeleteMeResult } from "@/lib/mobile/me";
 import { SITE } from "@/lib/seo/site";
 import { hasServiceRole } from "@/lib/supabase/admin";
@@ -314,6 +320,14 @@ export async function revokeCustomerCouponAction(
  * Irreversible, so the member's e-mail has to be typed (`confirm`), checked
  * here as well as in the dialog. The audit row names the account by its id:
  * the address is the very thing being erased.
+ *
+ * It is also how the team answers a web deletion request (/uye/hesap/sil,
+ * operator 18 Eki 2026): `deleteMe` clears the request with the rest of the
+ * row, the audit row records when it was made, and the member is told
+ * "Hesabın silindi" at the address the account had - KVKK m.13 and the
+ * Silme Yönetmeliği m.12/1-a want the person informed. The mail never
+ * decides the closure: it is sent after it, and a failure only adds a line
+ * to the operator's toast.
  */
 export async function closeCustomerAccountAction(
   _prev: ActionResult | null,
@@ -332,6 +346,33 @@ export async function closeCustomerAccountAction(
   }
   const customer = await getCustomerByEmail(email);
   if (!customer) return actionError("Üye hesabı bulunamadı.");
+  // The request card posts the request it showed. The member may take it
+  // back while the operator's tab is open, and a withdrawn request is not
+  // acted on (hesap-silme §4): the closure then goes only while that very
+  // request is still open. The Yönetim card posts none and closes as before.
+  const shownRequest = String(formData.get("requestedAt") ?? "").trim();
+  // Read before the closure blanks it, for the audit row.
+  let requestedAt: string | null = null;
+  try {
+    requestedAt = (await getDeletionRequest(email))?.requestedAt ?? null;
+  } catch (err) {
+    console.error(
+      `[admin] deletion request unreadable ${customer.id}: ${err instanceof Error ? err.message : "unknown error"}`,
+    );
+    if (shownRequest) {
+      return actionError(
+        "Silme talebi okunamadı, hesap kapatılmadı. Biraz sonra yeniden dene.",
+      );
+    }
+  }
+  if (shownRequest && requestedAt !== shownRequest) {
+    revalidateCustomer(email);
+    return actionError(
+      requestedAt
+        ? "Üye bu talebi geri alıp yeni bir talep gönderdi, hesap kapatılmadı. Sayfayı yenile ve yeni talebe bak."
+        : "Üye silme talebini geri aldı, hesap kapatılmadı. Hesap açık kalmalı.",
+    );
+  }
 
   let result: DeleteMeResult;
   try {
@@ -365,12 +406,35 @@ export async function closeCustomerAccountAction(
       `Bu üyenin devam eden ${result.count} siparişi var. Siparişler tamamlanınca ya da iptal edilince hesabı kapatabilirsin.`,
     );
   }
-  await logAudit({
+  // safeAudit: the account is already closed; a refused audit insert must
+  // not turn that into an error page and skip the member's mail.
+  await safeAudit({
     action: "delete",
     entity: "customer",
     entityId: customer.id,
-    payload: { closedBy: "admin", identity: result.identity },
+    payload: {
+      closedBy: "admin",
+      identity: result.identity,
+      ...(requestedAt ? { deletionRequestedAt: requestedAt } : {}),
+    },
   });
+  // Nothing of the account is left in Supabase when the identity went, or
+  // when there was none to go (skipped with the key in place).
+  const complete =
+    result.identity === "deleted" ||
+    (result.identity === "skipped" && hasServiceRole());
+  const mail = await sendAccountDeletedEmail(customer.email, {
+    complete,
+    idempotencyKey: deletionMailKey(
+      customer.id,
+      requestedAt ?? new Date().toISOString(),
+      "closed",
+    ),
+  });
+  logMemberMail("closure", customer.id, customer.email, mail);
+  const mailNote = mail.ok
+    ? " Üyeye bilgi e-postası gitti."
+    : " Üyeye bilgi e-postası gönderilemedi.";
   revalidatePath("/admin/musteriler");
   revalidatePath("/admin/kullanicilar");
   revalidatePath("/admin/mobil/karaoke");
@@ -380,7 +444,8 @@ export async function closeCustomerAccountAction(
     // anonymised here, the sign-in identity (e-mail and name) may still
     // exist there.
     await setAdminFlash(
-      "Hesap kapatıldı ve kişisel veriler anonimleştirildi, ama Supabase'deki giriş kimliği silinemedi (hata ya da yanıt yok). Supabase'de elle sil.",
+      "Hesap kapatıldı ve kişisel veriler anonimleştirildi, ama Supabase'deki giriş kimliği silinemedi (hata ya da yanıt yok). Supabase'de elle sil." +
+        mailNote,
       "warning",
     );
   } else if (result.identity === "skipped" && !hasServiceRole()) {
@@ -388,14 +453,16 @@ export async function closeCustomerAccountAction(
     // app member's e-mail and name stay in Supabase. Saying only "closed"
     // here read as if nothing of them was left.
     await setAdminFlash(
-      "Hesap kapatıldı ve kişisel veriler anonimleştirildi. Supabase anahtarı tanımlı değil: üyenin uygulama giriş kimliği varsa Supabase'de duruyor, orada elle sil.",
+      "Hesap kapatıldı ve kişisel veriler anonimleştirildi. Supabase anahtarı tanımlı değil: üyenin uygulama giriş kimliği varsa Supabase'de duruyor, orada elle sil." +
+        mailNote,
       "warning",
     );
   } else {
     await setAdminFlash(
-      result.identity === "deleted"
+      (result.identity === "deleted"
         ? "Hesap kapatıldı. Kişisel veriler anonimleştirildi, giriş kimliği silindi."
-        : "Hesap kapatıldı. Kişisel veriler anonimleştirildi.",
+        : "Hesap kapatıldı. Kişisel veriler anonimleştirildi.") + mailNote,
+      mail.ok ? "success" : "warning",
     );
   }
   redirect("/admin/musteriler");
