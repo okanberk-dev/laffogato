@@ -61,11 +61,17 @@ export function electLeader({
     };
   }
 
+  // A grant can land after `stop()`: a steal from `claim()` or a queued
+  // request the lock reached a task before the abort. Such a lock is handed
+  // straight back; held, nothing would ever release it and no other tab of
+  // this browser would lead again until this one closed.
   const held = () =>
-    new Promise<void>((resolve) => {
-      release = resolve;
-      set(true);
-    });
+    stopped
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          release = resolve;
+          set(true);
+        });
 
   /** The lock is gone from under us (stolen) or never came: wait again. */
   const lost = (attempt: object) => {

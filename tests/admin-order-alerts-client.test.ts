@@ -401,9 +401,50 @@ class FakeLocks implements LocksLike {
   }
 }
 
+/** FakeLocks granting in a later task, as a browser does. */
+class AsyncLocks extends FakeLocks {
+  request(
+    name: string,
+    opts: { steal?: boolean; signal?: AbortSignal },
+    cb: () => Promise<void>,
+  ): Promise<unknown> {
+    return super.request(name, opts, () =>
+      new Promise<void>((r) => setTimeout(r, 0)).then(cb),
+    );
+  }
+}
+
 const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe("leader election", () => {
+  it("hands back a lock granted after it stopped, so another tab can lead", async () => {
+    const locks = new AsyncLocks();
+    const tabB = electLeader({ locks, name: "x", onChange: () => {} });
+    await settle();
+    await settle();
+    expect(tabB.isLeader()).toBe(true);
+    // C's first gesture asks to steal, and C unmounts before the grant.
+    const tabC = electLeader({ locks, name: "x", onChange: () => {} });
+    tabC.claim();
+    tabC.stop();
+    for (let i = 0; i < 4; i += 1) await settle();
+    expect(tabC.isLeader()).toBe(false);
+    expect(tabB.isLeader()).toBe(true);
+    // A queued grant that lands in the task after B released it.
+    const tabD = electLeader({ locks, name: "x", onChange: () => {} });
+    tabB.stop();
+    // Granted (D holds it) but its callback has not run yet.
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+    expect(locks.holder).not.toBeNull();
+    expect(locks.queue).toHaveLength(0);
+    tabD.stop();
+    for (let i = 0; i < 4; i += 1) await settle();
+    const tabE = electLeader({ locks, name: "x", onChange: () => {} });
+    for (let i = 0; i < 4; i += 1) await settle();
+    expect(tabE.isLeader()).toBe(true);
+    tabE.stop();
+  });
+
   it("the first tab leads, the second waits, and takes over when the first goes", async () => {
     const locks = new FakeLocks();
     const a: boolean[] = [];
