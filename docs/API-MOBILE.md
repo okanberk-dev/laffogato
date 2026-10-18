@@ -402,6 +402,13 @@ Kurallar:
 
 - `customers.emailVerified` yoksa **403** `email_unverified`.
 - Kafe satırları `menu_items` (aktif) ile, mağaza satırları `products` ile çözülür; **fiyat DB'den**.
+- Mağaza satırında `variantId` (18 Eki 2026): aktif varyantı olan ürün yalnız varyantıyla satılır.
+  `variantId`'siz satır **400** `invalid_line` alır ("<ürün> için bir seçenek seç. Sepeti güncelle."),
+  stok ve fiyat dokunulmadan; eskiden taban fiyattan satılıyor, birimi yalnız ürün toplamından düşüyordu.
+  Bütün varyantları pasif olan ürün `/shop`'ta `variants: []` ile yayımlanır ve varyantsız ürün gibi satılır.
+  Ürün sayfası her zaman bir varyant gönderdiği için uygulamanın bugünkü yolu değişmez; varyant
+  eklenmeden önce sepete giren ya da o zamanki siparişten tekrar eklenen satır bu cevabı alır.
+  `/orders/preview` aynı kuralla yanıtlar.
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
 - Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
   listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
@@ -451,7 +458,7 @@ Kurallar:
 > **Uygulama notu (POST /orders).**
 >
 > - Hata kodları — 400: `invalid_json`, `invalid_body` (Zod), `invalid_address`,
->   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün), `line_not_found`,
+>   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün / varyantlı üründe `variantId` yok), `line_not_found`,
 >   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`,
 >   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup`/`table` panelden kapatılmış —
 >   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled` / `tableEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı."),

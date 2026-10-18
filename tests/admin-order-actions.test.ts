@@ -1229,6 +1229,28 @@ describe("createManualOrderAction", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
+  it("asks for a variant when a product sold by its variants has none", async () => {
+    redirect.mockClear();
+    store.createManualOrder.mockResolvedValue({
+      ok: false,
+      reason: "not_found",
+      productName: "Sirena Espresso",
+      variantRequired: true,
+    });
+    const res = await actions.createManualOrderAction({}, form(fields));
+    expect(res.fieldErrors?.items).toBe(
+      "Sirena Espresso için bir varyant seç.",
+    );
+    expect(redirect).not.toHaveBeenCalled();
+    store.createManualOrder.mockResolvedValue({
+      ok: false,
+      reason: "not_found",
+      productName: "prd-1",
+    });
+    const gone = await actions.createManualOrderAction({}, form(fields));
+    expect(gone.fieldErrors?.items).toBe("Ürün bulunamadı: prd-1");
+  });
+
   it("warns when the payment row could not be written, the order made", async () => {
     setAdminFlash.mockClear();
     store.createManualOrder.mockResolvedValue({

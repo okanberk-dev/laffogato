@@ -581,7 +581,11 @@ export async function createManualOrderAction(
     });
     if (result.reason === "empty") return refusal("En az bir ürün ekle.");
     if (result.reason === "not_found") {
-      return refusal(`Ürün bulunamadı: ${result.productName}`);
+      return refusal(
+        result.variantRequired
+          ? `${result.productName} için bir varyant seç.`
+          : `Ürün bulunamadı: ${result.productName}`,
+      );
     }
     if (result.reason === "out_of_stock") {
       return refusal(

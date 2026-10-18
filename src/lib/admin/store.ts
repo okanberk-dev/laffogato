@@ -2322,7 +2322,18 @@ export type PlaceOrderResult =
       available: number;
     }
   | { ok: false; reason: "empty" }
-  | { ok: false; reason: "not_found"; productName: string }
+  | {
+      ok: false;
+      reason: "not_found";
+      productName: string;
+      /**
+       * The product is there, but it is sold by its variants and the line
+       * named none (`resolveOrderLines`). Still `not_found`, so a caller that
+       * does not read this refuses the line as before; the web checkout, the
+       * panel and the app's `invalid_line` say to pick a variant.
+       */
+      variantRequired?: true;
+    }
   | { ok: false; reason: "qty_too_high"; productName: string; max: number }
   | { ok: false; reason: "shop_closed" };
 
@@ -2427,6 +2438,28 @@ async function resolveOrderLines(
       return {
         ok: false,
         result: { ok: false, reason: "not_found", productName: product.name },
+      };
+    }
+    // A product with an active variant is sold by its variants. A line that
+    // named none was charged the base price and took its unit from the
+    // product's total alone, which no variant gives back (the shop card's
+    // quick add sent such lines). Refused before any stock is claimed.
+    // Inactive variants are offered nowhere (the web, `/shop` and the panel
+    // list the active ones), so a product whose variants are all inactive
+    // is sold like one without variants.
+    if (
+      !variant &&
+      Array.isArray(product.variants) &&
+      product.variants.some((v) => v.isActive)
+    ) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: product.name,
+          variantRequired: true,
+        },
       };
     }
     // Server-authoritative price: base + variant delta.

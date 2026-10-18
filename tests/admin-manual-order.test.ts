@@ -130,7 +130,7 @@ vi.mock("next/navigation", () => ({
 
 const store = await import("@/lib/admin/store");
 const { orderActions } = await import("@/lib/admin/order-actions");
-const { ManualOrderForm } =
+const { ManualOrderForm, manualLineVariant, manualProductSellable } =
   await import("@/components/admin/manual-order-form");
 
 function product(over: Record<string, unknown> = {}): Record<string, unknown> {
@@ -487,6 +487,68 @@ describe("ORD-M03: stock in the options", () => {
     expect(formSource).toContain("max={cap}");
     expect(formSource).toContain("Math.min(cap, Number(e.target.value) || 1)");
     expect(formSource).toContain("disabled={v.stock <= 0}");
+  });
+});
+
+// A product with variants is sold by them: the server refuses its line
+// without one (tests/order-variant-lines.test.ts). The form offered a
+// "Varsayılan" line that charged the base price and took the unit from the
+// product's total alone.
+describe("a product with variants is ordered by a variant", () => {
+  const sized = {
+    id: "prd-4",
+    name: "Sirena Espresso",
+    priceMinor: 32_000,
+    stock: 8,
+    variants: [
+      { id: "var-250", name: "250 g", priceDeltaMinor: 0, stock: 0 },
+      { id: "var-1k", name: "1 kg", priceDeltaMinor: 77_000, stock: 3 },
+    ],
+  };
+
+  it("a picked product starts on its first variant in stock, never on none", () => {
+    expect(manualLineVariant(sized)).toBe("var-1k");
+    const soldOut = {
+      ...sized,
+      variants: sized.variants.map((v) => ({ ...v, stock: 0 })),
+    };
+    expect(manualLineVariant(soldOut)).toBe("var-250");
+    expect(manualLineVariant(PRODUCTS[0])).toBe("");
+    expect(manualLineVariant(undefined)).toBe("");
+    expect(formSource).toContain(
+      "variantId: manualLineVariant(byId.get(productId))",
+    );
+  });
+
+  it("its own total does not make it sellable, only a variant's stock", () => {
+    const soldOut = {
+      ...sized,
+      variants: sized.variants.map((v) => ({ ...v, stock: 0 })),
+    };
+    expect(manualProductSellable(sized)).toBe(true);
+    expect(manualProductSellable(soldOut)).toBe(false);
+    expect(manualProductSellable(PRODUCTS[0])).toBe(true);
+    expect(manualProductSellable(PRODUCTS[1])).toBe(false);
+    const html = renderToStaticMarkup(
+      createElement(ManualOrderForm, {
+        products: [soldOut],
+        shipping: SHIPPING,
+        action: async () => ({}),
+        clientOrderId: "attempt-0002",
+      }),
+    );
+    expect(html).toMatch(
+      /<option value="prd-4" disabled="">Sirena Espresso · ₺320,00 \(tükendi\)<\/option>/,
+    );
+  });
+
+  it("offers no base line beside the variants", () => {
+    expect(formSource).not.toContain("`Varsayılan");
+    expect(markup()).not.toContain("Varsayılan");
+    // Before a product is picked the variant select is off, with a dash.
+    expect(markup()).toMatch(
+      /<select[^>]*disabled=""[^>]*><option value=""(?: selected="")?>-<\/option><\/select>/,
+    );
   });
 });
 

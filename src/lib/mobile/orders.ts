@@ -115,6 +115,19 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
     case "empty":
       return { status: 400, code: "empty_cart", message: MSG.empty };
     case "not_found":
+      // A shop line without the variant its product is sold by. The app's
+      // product page always sends one; an older basket or a reorder of a
+      // product that has since gained variants may not. The existing 400
+      // for a line the product cannot take (docs/API-MOBILE.md §3), which
+      // the app answers like `line_not_found`: the server's words, and the
+      // way out is the basket.
+      if (result.variantRequired) {
+        return {
+          status: 400,
+          code: "invalid_line",
+          message: `${result.productName} için bir seçenek seç. Sepeti güncelle.`,
+        };
+      }
       return {
         status: 400,
         code: "line_not_found",
