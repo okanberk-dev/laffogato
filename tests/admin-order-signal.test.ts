@@ -93,6 +93,26 @@ describe("newOrderCountAction", () => {
     expect(countOrdersAfter).toHaveBeenLastCalledWith(1042);
   });
 
+  it("counts only shop orders when the list asks for its beep beside the panel alert", async () => {
+    // The panel-wide alert rings for cafe orders; the list beeps for the rest.
+    await expect(newOrderCountAction(1042, "open", "shop")).resolves.toBe(2);
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(
+      1042,
+      ["pending_payment", "paid", "preparing", "shipped"],
+      "shop",
+    );
+    await newOrderCountAction(1042, "all", "shop");
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042, undefined, "shop");
+    // Any other kind is "every kind", as before.
+    await newOrderCountAction(1042, "open", "cafe'; --");
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042, [
+      "pending_payment",
+      "paid",
+      "preparing",
+      "shipped",
+    ]);
+  });
+
   it("is gated like the badge", async () => {
     getAdminSession.mockResolvedValue(null);
     await expect(newOrderCountAction(1042)).resolves.toBeNull();

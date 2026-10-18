@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { newOrderCountAction } from "@/app/admin/siparisler/actions";
 import type { ActionResult } from "@/lib/admin/action-result";
@@ -34,6 +28,13 @@ import {
   OrderStatusBadge,
   type DataTableColumn,
 } from "./ui";
+import {
+  orderAlertsMounted,
+  readSoundPref,
+  shouldListBeep,
+  useSoundPref,
+  writeSoundPref,
+} from "./sound-pref";
 import { MONO_STYLE } from "./ui/styles";
 
 /** One row of the order list, decided on the server. */
@@ -72,49 +73,6 @@ interface Props {
  * `head: true` count, not a re-read of the list.
  */
 const POLL_MS = 30_000;
-
-/** Remembered per browser; a shared till screen and a back-office laptop want different answers. */
-const SOUND_KEY = "laffogato.admin.orders.sound";
-
-/**
- * The sound preference, read as an external store rather than mirrored into
- * React state.
- *
- * `localStorage` cannot be read while rendering on the server, so a
- * `useState` seeded from it either mismatches on hydration or has to be
- * corrected inside an effect - the cascading-render pattern React now warns
- * about. `useSyncExternalStore` is the sanctioned shape for exactly this: the
- * server snapshot is "off", the client reads the real value, and a change in
- * another tab arrives through the same `storage` event.
- */
-const soundListeners = new Set<() => void>();
-
-function readSoundPref(): boolean {
-  try {
-    return window.localStorage.getItem(SOUND_KEY) === "1";
-  } catch {
-    // Private window, blocked storage: silence is the safe default.
-    return false;
-  }
-}
-
-function subscribeSound(onChange: () => void): () => void {
-  soundListeners.add(onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    soundListeners.delete(onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
-
-function writeSoundPref(next: boolean): void {
-  try {
-    window.localStorage.setItem(SOUND_KEY, next ? "1" : "0");
-  } catch {
-    /* Not remembered next time; the toggle still works this session. */
-  }
-  for (const listener of soundListeners) listener();
-}
 
 function itemsSummary(order: AdminOrder): string {
   const names = order.items.map(
@@ -191,16 +149,15 @@ export function OrdersList({
   const [signal, setSignal] = useState({ since: 0, count: 0 });
   const newCount = signal.since === latestOrderNo ? signal.count : 0;
 
-  const sound = useSyncExternalStore(
-    subscribeSound,
-    readSoundPref,
-    () => false,
-  );
+  // The panel's one sound switch (sound-pref.ts), shared with the
+  // new-order alert in the top bar.
+  const sound = useSoundPref();
 
   // Orders numbered above this get the "yeni" mark after a refresh; null
   // until the operator has actually refreshed once.
   const [markAfter, setMarkAfter] = useState<number | null>(null);
   const lastCount = useRef(0);
+  const lastShop = useRef(0);
 
   /**
    * The poll.
@@ -215,6 +172,7 @@ export function OrdersList({
    */
   useEffect(() => {
     lastCount.current = 0;
+    lastShop.current = 0;
     if (!live) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -229,9 +187,26 @@ export function OrdersList({
           if (!cancelled && typeof n === "number") {
             setSignal({ since: latestOrderNo, count: n });
             // Only on the way up: a barista who left the tab open should hear
-            // an arrival, not the same three orders every half minute.
-            if (n > lastCount.current && readSoundPref()) beep(true);
+            // an arrival, not the same three orders every half minute. Beside
+            // the panel-wide alert, only for a shop order: the alert rings
+            // for the cafe orders itself.
+            const grew = n > lastCount.current;
             lastCount.current = n;
+            const decision = await shouldListBeep({
+              grew,
+              soundOn: readSoundPref(),
+              alertsMounted: orderAlertsMounted(),
+              lastShop: lastShop.current,
+              countShop: () =>
+                newOrderCountAction(
+                  latestOrderNo,
+                  live === "open" ? "open" : undefined,
+                  "shop",
+                ),
+            });
+            if (cancelled) return;
+            if (decision.shop !== null) lastShop.current = decision.shop;
+            if (decision.beep) beep(true);
           }
         } catch {
           // A failed poll is not an error the operator has to read; the next
@@ -251,6 +226,7 @@ export function OrdersList({
   const refreshNow = useCallback(() => {
     setMarkAfter(latestOrderNo);
     lastCount.current = 0;
+    lastShop.current = 0;
     router.refresh();
   }, [latestOrderNo, router]);
 

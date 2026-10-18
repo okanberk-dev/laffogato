@@ -114,6 +114,7 @@ import {
   type ManualFulfillment,
 } from "./manual-order-schema";
 import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
+import type { OrderAlertRow } from "./order-alerts-core";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
 import { earnsStamp } from "@/lib/mobile/loyalty-core";
@@ -1891,6 +1892,11 @@ export async function countOrdersAfter(
   orderNo: number,
   /** Only these statuses (the "Açık" tab's poll); every order when omitted. */
   statuses?: readonly AdminOrderStatus[],
+  /**
+   * Only this kind. The list asks for shop orders alone when the panel-wide
+   * new-order alert is mounted: that alert already rings for cafe orders.
+   */
+  kind?: OrderKind,
 ): Promise<number> {
   if (!Number.isFinite(orderNo)) return 0;
   const sb = getDb();
@@ -1901,9 +1907,40 @@ export async function countOrdersAfter(
     .select("*", { count: "exact", head: true })
     .gte("orderNo", Math.trunc(orderNo) + 1);
   if (statuses) q = q.in("status", [...statuses]);
+  if (kind) q = q.eq("kind", kind);
   const { count, error, status } = await q;
   if (error) raiseDbError("countOrdersAfter", error, status);
   return count ?? 0;
+}
+
+/**
+ * The cafe orders the panel's new-order alert may ring for
+ * (order-alerts-core.ts `ringsForOrder`, which the route applies again):
+ * paid and not moved on, not typed into the panel, paid since `paidSince`
+ * (ISO text, so the comparison is chronological). Every open panel asks
+ * this every ten seconds, so it reads only the columns the counter card
+ * shows - no name, e-mail, phone or address leaves the database - and lets
+ * the `status` index find the handful of paid rows.
+ */
+export async function listOrderAlertRows(
+  paidSince: string,
+  limit: number,
+): Promise<OrderAlertRow[]> {
+  const sb = getDb();
+  return rows<OrderAlertRow>(
+    await sb
+      .from(TABLES.orders)
+      .select(
+        "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, paidAt, totalMinor, items",
+      )
+      .eq("status", "paid")
+      .eq("kind", "cafe")
+      .neq("source", "manual")
+      .gte("paidAt", paidSince)
+      .order("paidAt", { ascending: false })
+      .limit(Math.max(1, Math.min(100, Math.trunc(limit)))),
+    "listOrderAlertRows",
+  );
 }
 
 // There is deliberately no "every order, every column" reader any more (WP1).

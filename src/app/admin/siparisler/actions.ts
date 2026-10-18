@@ -689,12 +689,21 @@ export async function newOrderCountAction(
   sinceOrderNo: number,
   /** `open`: only open orders (the "Açık" tab's poll); anything else: all. */
   scope?: string,
+  /**
+   * `shop`: shop orders only. The list's beep asks this while the panel-wide
+   * new-order alert is mounted, which rings for the cafe orders itself
+   * (order-alerts.tsx); anything else: every kind.
+   */
+  kind?: string,
 ): Promise<number | null> {
   if (!(await ordersSignalAllowed())) return null;
   try {
-    return scope === "open"
-      ? await countOrdersAfter(Number(sinceOrderNo), OPEN_ORDER_STATUSES)
-      : await countOrdersAfter(Number(sinceOrderNo));
+    const since = Number(sinceOrderNo);
+    const statuses = scope === "open" ? OPEN_ORDER_STATUSES : undefined;
+    if (kind === "shop") return await countOrdersAfter(since, statuses, "shop");
+    return statuses
+      ? await countOrdersAfter(since, statuses)
+      : await countOrdersAfter(since);
   } catch (err) {
     console.error("[admin/siparisler] yeni sipariş sayılamadı", err);
     return null;
