@@ -20,9 +20,10 @@ import {
 /**
  * The web deletion request (migration 20261018090000) against a real
  * Postgres: two presses at once open one request, the withdrawal clears it,
- * an inactive account cannot open one, and the closure (`deleteMe`, the
- * app's DELETE /me too) blanks it with the rest of the row. Skipped without
- * TEST_DATABASE_URL.
+ * an inactive account cannot open one, an open request keeps the member
+ * out of commercial mail (migration 20261018090100), and the closure
+ * (`deleteMe`, the app's DELETE /me too) blanks it with the rest of the
+ * row. Skipped without TEST_DATABASE_URL.
  */
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
@@ -184,6 +185,74 @@ maybe("deletion request against a real Postgres", () => {
     await expect(withdrawDeletionRequest(email)).resolves.toEqual({
       status: "none",
     });
+  });
+
+  it("an open request takes the member out of commercial mail, a withdrawal puts them back", async () => {
+    // 20261018090100: 6563 m.8/3, the request is the refusal. The birthday
+    // coupon row stays (an account right), only its mail flag turns false.
+    const { openDeletionRequest, withdrawDeletionRequest } =
+      await import("@/lib/customer/deletion-request");
+    const email = `${PREFIX}ileti@laffogato.net`;
+    await pool!.query(
+      `delete from public.newsletter_subscribers where email like $1`,
+      [`${PREFIX}%`],
+    );
+    await pool!.query(
+      `insert into public.customers
+         (id, email, name, "isActive", "emailVerified", "notificationPrefs",
+          "marketingConsentAt", "unsubToken", birthday, "createdAt", "updatedAt")
+       values ($1, $2, 'Üye', true, true,
+               '{"orderUpdates":true,"marketing":true,"newsletter":true}'::jsonb,
+               '2026-09-01T10:00:00.000Z', 'tok-silme', '1990-10-18',
+               '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')`,
+      [`cst-${email}`, email],
+    );
+    // The same address on the bulletin list, as its own subscriber row.
+    await pool!.query(
+      `insert into public.newsletter_subscribers
+         (id, email, name, "isActive", "consentAt", "unsubToken")
+       values ($1, $2, 'Üye', true, '2026-09-01T10:00:00.000Z', 'tok-silme-abone')`,
+      [`nws-${email}`, email],
+    );
+    const named = async () => {
+      const out: string[] = [];
+      for (const [audience, pref] of [
+        ["marketing", "marketing"],
+        ["newsletter", "newsletter"],
+        ["both", "marketing"],
+      ]) {
+        const r = await pool!.query<{ email: string }>(
+          `select email from public.campaign_email_audience($1, $2) where email = $3`,
+          [audience, pref, email],
+        );
+        if (r.rows.length > 0) out.push(audience);
+      }
+      return out;
+    };
+    const greeting = async () =>
+      (
+        await pool!.query<{ marketing: boolean }>(
+          `select marketing from public.birthday_greeting_audience('["10-18"]'::jsonb)
+            where email = $1`,
+          [email],
+        )
+      ).rows;
+
+    expect(await named()).toEqual(["marketing", "newsletter", "both"]);
+    expect(await greeting()).toEqual([{ marketing: true }]);
+
+    await openDeletionRequest(email, "", new Date("2026-10-18T09:00:00Z"));
+    expect(await named()).toEqual([]);
+    expect(await greeting()).toEqual([{ marketing: false }]);
+
+    await withdrawDeletionRequest(email);
+    expect(await named()).toEqual(["marketing", "newsletter", "both"]);
+    expect(await greeting()).toEqual([{ marketing: true }]);
+
+    await pool!.query(
+      `delete from public.newsletter_subscribers where email like $1`,
+      [`${PREFIX}%`],
+    );
   });
 
   it("the closure blanks the request and its reason with the row", async () => {

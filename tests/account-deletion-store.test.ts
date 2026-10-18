@@ -158,3 +158,56 @@ describe("the closure answers the request", () => {
     );
   });
 });
+
+describe("no commercial mail while a request is open", () => {
+  // 6563 m.8/3 and the İleti onayı text: asking for the account to go is a
+  // refusal of commercial mail from the moment it arrives, not from the day
+  // the team closes the account. Read from the bundle, so the LAST
+  // definition of each function (the one a fresh database ends up with) is
+  // the one checked.
+  const bundle = readFileSync("db/schema.sql", "utf8");
+  const latest = (fn: string) => {
+    const head = `create or replace function public.${fn}(`;
+    const from = bundle.lastIndexOf(head);
+    expect(from, fn).toBeGreaterThan(-1);
+    return bundle.slice(from, bundle.indexOf("$$;", from));
+  };
+
+  it("leaves members and subscribers under that address out of campaigns", () => {
+    const body = latest("campaign_email_audience");
+    expect(body).toMatch(
+      /and not exists \(\s*select 1\s*from public\.customers d\s*where d\."deletionRequestedAt" is not null\s*and lower\(d\.email\) = e\.email\s*\)/,
+    );
+    // The suppression list still applies.
+    expect(body).toContain("from public.email_suppressions x");
+  });
+
+  it("keeps the birthday coupon but not the greeting mail", () => {
+    const body = latest("birthday_greeting_audience");
+    const flag = body.slice(body.indexOf("select lower(c.email)"));
+    expect(flag.slice(0, flag.indexOf(") as marketing"))).toContain(
+      'c."deletionRequestedAt" is null',
+    );
+    // Not a row filter: the coupon is granted to every birthday row.
+    const where = body.slice(body.indexOf("from public.customers c"));
+    expect(where).not.toContain("deletionRequestedAt");
+  });
+
+  it("is its own migration, sorted after the column it reads", () => {
+    const sql = readFileSync(
+      "db/migrations/20261018090100_deletion_request_commercial_mail.sql",
+      "utf8",
+    );
+    expect(
+      sql
+        .split("\n")
+        .filter((l) => !l.trimStart().startsWith("--"))
+        .join("\n"),
+    ).not.toContain("insert into public._migrations");
+    expect(
+      bundle.indexOf("20261018090000_customer_deletion_request.sql"),
+    ).toBeLessThan(
+      bundle.indexOf("20261018090100_deletion_request_commercial_mail.sql"),
+    );
+  });
+});

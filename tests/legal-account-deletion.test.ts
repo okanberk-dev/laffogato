@@ -39,6 +39,13 @@ describe("hesap-silme", () => {
     expect(text).toContain("Talebi geri al");
   });
 
+  it("says no commercial mail goes out while the Site's request is open", () => {
+    // migration 20261018090100: the request is read as the refusal.
+    expect(text).toMatch(
+      /talep açık kaldığı sürece size [^.]*ticari elektronik ileti gönderilmez/,
+    );
+  });
+
   it("says what is kept, and on which basis", () => {
     expect(text).toContain("213 sayılı Vergi Usul Kanunu");
     expect(text).toContain("6102 sayılı Türk Ticaret Kanunu");

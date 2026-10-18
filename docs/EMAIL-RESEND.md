@@ -808,6 +808,13 @@ eskisi gibi anında siler.
   (kural 19).
 - Gönderim talebi ya da kapanışı hiçbir zaman bozmaz; başarısızlık log'a
   maskeli adresle düşer, kapanışta panel bildirimine bir cümle ekler.
+- **Talep açıkken ticari posta yok** (migration `20261018090100`): 6563
+  m.8/3 rette üç iş günü verir, sitenin İleti onayı metni üyeliğin sona
+  ermesini ret sayar; talep geldiği anda ret gibi işlenir.
+  `campaign_email_audience` o adresi (üye satırı da bülten abonesi satırı
+  da) kitleye almaz, sayım, kuyruk ve parti alma onu okur;
+  `birthday_greeting_audience` mail bayrağını kapatır (kupon yine verilir).
+  Onay kaydı değişmez: üye talebi geri alınca kitleye kendiliğinden döner.
 
 ### Emniyet kilitleri
 
