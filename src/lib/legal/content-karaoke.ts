@@ -5,6 +5,7 @@ import {
 } from "@/lib/mobile/karaoke-time";
 
 import type { LegalDocSource } from "./content";
+import { KARAOKE_LEGAL_UPDATED } from "./meta";
 
 /**
  * Karaoke Odası Ön Bilgilendirme Formu ve Hizmet Sözleşmesi - HAM METİN.
@@ -100,7 +101,7 @@ function accountClosure(p: KaraokeCancelPolicy): string {
  */
 export function karaokeRoomDocFor(
   policy: KaraokeCancelPolicy,
-  updatedAt = "17 Ekim 2026",
+  updatedAt: string = KARAOKE_LEGAL_UPDATED,
 ): LegalDocSource {
   return {
     ...KARAOKE_ROOM_DOC_BASE,
