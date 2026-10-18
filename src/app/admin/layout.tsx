@@ -4,10 +4,17 @@ import {
   AdminSidebar,
   type AdminNavGroup,
 } from "@/components/admin/admin-sidebar";
+import { PanelHomeProvider } from "@/components/admin/panel-home";
 import { ToastProvider } from "@/components/admin/ui/toast";
-import { getAdminSession } from "@/lib/admin/auth";
+import { getAdminSession, type AdminSession } from "@/lib/admin/auth";
 import { readAdminFlash } from "@/lib/admin/flash";
-import { canAccess, ROLE_LABELS, type AdminSection } from "@/lib/admin/roles";
+import {
+  canAccess,
+  landingPathFor,
+  ROLE_LABELS,
+  type AdminSection,
+} from "@/lib/admin/roles";
+import { searchSectionsFor } from "@/lib/admin/search";
 
 import { logoutAction } from "./actions";
 
@@ -85,6 +92,12 @@ interface NavItemDef {
   href: string;
   label: string;
   section: AdminSection;
+  /**
+   * Its own icon (admin-sidebar.tsx ICONS) where entries share a section:
+   * NavIcon was keyed by section, so the six Mobil Uygulama entries were a
+   * column of identical phones (SHE-18, CON-19).
+   */
+  icon?: string;
 }
 
 const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
@@ -102,7 +115,11 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         label: "Kategoriler",
         section: "categories",
       },
-      { href: "/admin/magaza-hero", label: "Mağaza Hero", section: "shopHero" },
+      {
+        href: "/admin/magaza-hero",
+        label: "Mağaza vitrini",
+        section: "shopHero",
+      },
     ],
   },
   {
@@ -116,6 +133,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/anasayfa-hero",
         label: "Anasayfa slaytları",
         section: "content",
+        icon: "homeSlides",
       },
     ],
   },
@@ -126,26 +144,31 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/mobil/slaytlar",
         label: "Slaytlar",
         section: "mobileApp",
+        icon: "appSlides",
       },
       {
         href: "/admin/mobil/duyurular",
         label: "Duyurular",
         section: "mobileApp",
+        icon: "appAnnouncements",
       },
       {
         href: "/admin/mobil/gonderiler",
         label: "Gönderiler",
         section: "mobileApp",
+        icon: "appPosts",
       },
       {
         href: "/admin/mobil/canli-durum",
         label: "Canlı durum",
         section: "mobileApp",
+        icon: "appLive",
       },
       {
         href: "/admin/mobil/fal-bildirimleri",
         label: "fA'L bildirimleri",
         section: "mobileApp",
+        icon: "appFal",
       },
       {
         href: "/admin/mobil/ayarlar",
@@ -174,6 +197,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
         href: "/admin/bulten/kampanya",
         label: "Kampanya e-postası",
         section: "newsletter",
+        icon: "campaign",
       },
       { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
       { href: "/admin/stok-hareketleri", label: "Stok", section: "stock" },
@@ -195,17 +219,81 @@ const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
   },
 ];
 
+/**
+ * The session, or `unavailable` when the database could not be asked about
+ * the account behind a valid cookie (admin audit SHE-11). That is not
+ * "signed out": the shell must not send the operator to the sign-in screen
+ * over a one-second stumble, nor let the error fall to the SHOP's error page
+ * (admin/error.tsx does not catch its own segment's layout).
+ *
+ * The error is shell-access's AdminSessionUnavailableError
+ * (src/lib/admin/auth.ts), recognised the way its own
+ * `isAdminSessionUnavailable` does, by its marker or code rather than
+ * `instanceof` (Next may load a module once per bundle layer). Until that
+ * change lands the session read never throws it and this stays dormant;
+ * any other error still throws.
+ */
+async function readSession(): Promise<
+  { session: AdminSession | null; unavailable: false } | { unavailable: true }
+> {
+  try {
+    return { session: await getAdminSession(), unavailable: false };
+  } catch (err) {
+    if (!isSessionUnavailable(err)) throw err;
+    console.error("[admin] oturum doğrulanamadı: veritabanına ulaşılamıyor");
+    return { unavailable: true };
+  }
+}
+
+function isSessionUnavailable(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as { __adminSessionUnavailable?: unknown; code?: unknown };
+  return (
+    e.__adminSessionUnavailable === true ||
+    e.code === "ADMIN_SESSION_UNAVAILABLE"
+  );
+}
+
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [session, flash] = await Promise.all([
-    getAdminSession(),
+  const [read, flash] = await Promise.all([
+    readSession(),
     // A toast left by a redirecting action (lib/admin/flash.ts); the client
     // deletes the cookie once it is on screen.
     readAdminFlash(),
   ]);
+
+  // The account could not be checked. The page below asks the same cached
+  // session and throws into admin/error.tsx ("Tekrar dene"); the shell says
+  // why, without a nav it cannot know the role for.
+  if (read.unavailable) {
+    return (
+      <div
+        data-admin-root=""
+        className={shellClass(poppins.variable)}
+        style={adminFontStyle}
+      >
+        <ToastProvider flash={flash}>
+          <div
+            role="alert"
+            className="border-b border-[var(--admin-warning)]/30 bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)] sm:px-6 print:hidden"
+          >
+            <strong className="font-semibold">
+              Oturumun şu an doğrulanamıyor.
+            </strong>{" "}
+            Veritabanı yanıt vermedi; çıkış yapılmadı. Birkaç saniye sonra
+            sayfayı yenile.
+          </div>
+          {children}
+        </ToastProvider>
+      </div>
+    );
+  }
+
+  const { session } = read;
 
   // Unauthenticated routes (login, 2FA challenge) render bare - they ship
   // their own centered layout and must not show the admin sidebar.
@@ -225,6 +313,7 @@ export default async function AdminLayout({
     title: g.title,
     items: g.items.filter((i) => canAccess(i.section, session.role)),
   })).filter((g) => g.items.length > 0);
+  const landingPath = landingPathFor(session.role);
 
   return (
     <div
@@ -233,13 +322,19 @@ export default async function AdminLayout({
       style={adminFontStyle}
     >
       <ToastProvider flash={flash}>
-        <AdminSidebar
-          groups={groups}
-          email={session.email}
-          roleLabel={ROLE_LABELS[session.role]}
-          logout={logoutAction}
-        />
-        <div className="lg:pl-64">{children}</div>
+        <PanelHomeProvider href={landingPath}>
+          {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
+              the search, at every width, mounted once). */}
+          <AdminSidebar
+            groups={groups}
+            email={session.email}
+            roleLabel={ROLE_LABELS[session.role]}
+            landingPath={landingPath}
+            logout={logoutAction}
+            canSearch={searchSectionsFor(session.role).length > 0}
+          />
+          <div className="lg:pl-64 print:pl-0">{children}</div>
+        </PanelHomeProvider>
       </ToastProvider>
     </div>
   );

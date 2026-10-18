@@ -787,7 +787,8 @@ describe("tone colours clear AA", () => {
     expect(code).not.toContain("admin-shell");
     expect(code).not.toContain("bg-neutral-50");
     expect(layout).toContain("bg-[var(--admin-bg)]");
-    expect(layout.match(/<ToastProvider flash=\{flash\}>/g)).toHaveLength(2);
+    // Signed in, signed out, and the session that could not be checked.
+    expect(layout.match(/<ToastProvider flash=\{flash\}>/g)).toHaveLength(3);
     expect(layout).toContain("readAdminFlash()");
   });
 });

@@ -20,9 +20,11 @@ describe("admin error + 404 boundaries", () => {
   it("has its own error boundary, so a database blip does not drop the operator on the shop", () => {
     const src = read("src/app/admin/error.tsx");
     expect(src).toContain('"use client"');
-    expect(src).toContain("reset");
-    // A way back into the panel, not out to the storefront.
-    expect(src).toContain('href="/admin"');
+    // `retry` fetches the page again; `reset` only re-drew the failure.
+    expect(src).toContain("retry()");
+    // A way back into the panel (the role's landing page), not out to the
+    // storefront.
+    expect(src).toContain("<PanelHomeLink");
     expect(src).not.toContain('href="/"');
     // The digest is what support asks for.
     expect(src).toContain("digest");
@@ -30,7 +32,7 @@ describe("admin error + 404 boundaries", () => {
 
   it("has its own 404, addressed to the operator rather than a customer", () => {
     const src = read("src/app/admin/not-found.tsx");
-    expect(src).toContain('href="/admin"');
+    expect(src).toContain("<PanelHomeLink");
     expect(src).toContain("Panele dön");
     // The shop's 404 wraps itself in the storefront header and footer.
     expect(src).not.toContain("SiteChrome");

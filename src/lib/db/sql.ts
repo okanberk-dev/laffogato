@@ -39,7 +39,7 @@ function quoteColumnList(columns: string): string {
 }
 
 export type FilterOp =
-  "eq" | "neq" | "ieq" | "in" | "gte" | "lt" | "ilike" | "any";
+  "eq" | "neq" | "ieq" | "in" | "gte" | "lt" | "ilike" | "foldLike" | "any";
 
 export interface Filter {
   op: FilterOp;
@@ -56,8 +56,21 @@ export interface Filter {
  */
 export interface AnyOfCondition {
   column: string;
-  op: "eq" | "ieq" | "ilike";
+  op: "eq" | "ieq" | "ilike" | "foldLike";
   value: unknown;
+}
+
+/**
+ * The value of a `foldLike` filter: a LIKE pattern matched after both the
+ * column and the pattern go through `lower(translate(…, from, to))`. The
+ * panel's search passes the Turkish fold (`TR_FOLD_SQL_FROM/TO`,
+ * lib/admin/text-fold.ts: ILIKE does not fold İ, I and ı) or a phone's
+ * punctuation to delete. All three are parameters, never SQL text.
+ */
+export interface FoldLikeValue {
+  pattern: string;
+  from: string;
+  to: string;
 }
 
 export interface OrderBy {
@@ -153,7 +166,12 @@ function condition(f: Filter, bag: ParamBag): string {
     // An empty list matches nothing, like an empty IN.
     const alternatives = (Array.isArray(f.value) ? f.value : []).map(
       (c: AnyOfCondition) => {
-        if (c.op !== "eq" && c.op !== "ieq" && c.op !== "ilike") {
+        if (
+          c.op !== "eq" &&
+          c.op !== "ieq" &&
+          c.op !== "ilike" &&
+          c.op !== "foldLike"
+        ) {
           throw new Error(`unsupported any-of op: ${String(c.op)}`);
         }
         return condition({ op: c.op, column: c.column, value: c.value }, bag);
@@ -186,6 +204,25 @@ function condition(f: Filter, bag: ParamBag): string {
       return `lower(${col}) = lower(${bag.add(f.value)})`;
     case "ilike":
       return `${col} ILIKE ${bag.add(f.value)}`;
+    case "foldLike": {
+      // A substring search reads every row anyway, so no index is lost by
+      // wrapping the column. Folded on both sides by the same expression.
+      const v = f.value as Partial<FoldLikeValue> | null;
+      if (
+        !v ||
+        typeof v.pattern !== "string" ||
+        typeof v.from !== "string" ||
+        typeof v.to !== "string"
+      ) {
+        throw new Error("foldLike needs { pattern, from, to } strings");
+      }
+      const from = bag.add(v.from);
+      const to = bag.add(v.to);
+      return (
+        `lower(translate(${col}, ${from}, ${to})) LIKE ` +
+        `lower(translate(${bag.add(v.pattern)}, ${from}, ${to}))`
+      );
+    }
     case "in": {
       const list = Array.isArray(f.value) ? f.value : [f.value];
       // An empty IN list is a contradiction, not a syntax error.

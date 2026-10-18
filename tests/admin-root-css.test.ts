@@ -81,7 +81,8 @@ describe("the panel's buttons keep their Tailwind look", () => {
     ]) {
       expect(body).toContain(`${prop}: revert-layer;`);
     }
-    expect(layout.match(/data-admin-root=""/g)).toHaveLength(2);
+    // Signed in, signed out, and the session that could not be checked.
+    expect(layout.match(/data-admin-root=""/g)).toHaveLength(3);
   });
 
   it("keeps the pointer, and shows not-allowed on a disabled control", () => {
