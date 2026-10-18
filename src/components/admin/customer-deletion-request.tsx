@@ -57,7 +57,11 @@ export function CustomerDeletionRequest({
         )}
       </div>
       <div className="grid gap-2">
-        <CloseAccountButton email={email} variant="primary" />
+        <CloseAccountButton
+          email={email}
+          variant="primary"
+          requestedAt={request.requestedAt}
+        />
       </div>
     </Card>
   );

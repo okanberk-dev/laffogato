@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react";
+import { createElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -164,6 +164,50 @@ describe("the member page", () => {
     expect(del[0][0]).toContain("bg-[var(--admin-primary)]");
     // The card comes before the profile.
     expect(html.indexOf("Silme talebi ·")).toBeLessThan(html.indexOf("Profil"));
+  });
+
+  it("posts the request the card showed, so a withdrawn one is refused", async () => {
+    // The dialog's hidden inputs exist only once it opens; read the props
+    // the card hands the dialog instead.
+    const { CustomerDeletionRequest } =
+      await import("@/components/admin/customer-deletion-request");
+    const { CloseAccountButton } =
+      await import("@/components/admin/customer-actions");
+    const find = (node: unknown, type: unknown): ReactElement | null => {
+      if (!node || typeof node !== "object") return null;
+      if (Array.isArray(node)) {
+        for (const child of node) {
+          const hit = find(child, type);
+          if (hit) return hit;
+        }
+        return null;
+      }
+      const el = node as ReactElement<{ children?: unknown }>;
+      if (el.type === type) return el;
+      return find(el.props?.children, type);
+    };
+    const card = CustomerDeletionRequest({
+      email: "uye@ornek.com",
+      request: { requestedAt: "2026-10-18T09:15:00.000Z", reason: "" },
+    });
+    const button = find(card, CloseAccountButton) as ReactElement<
+      Parameters<typeof CloseAccountButton>[0]
+    > | null;
+    expect(button?.props.requestedAt).toBe("2026-10-18T09:15:00.000Z");
+    const modal = CloseAccountButton(button!.props) as ReactElement<{
+      hidden: Record<string, string>;
+    }>;
+    expect(modal.props.hidden).toEqual({
+      email: "uye@ornek.com",
+      requestedAt: "2026-10-18T09:15:00.000Z",
+    });
+    // The Yönetim card's closure posts the address alone.
+    const plain = CloseAccountButton({
+      email: "uye@ornek.com",
+    }) as ReactElement<{
+      hidden: Record<string, string>;
+    }>;
+    expect(plain.props.hidden).toEqual({ email: "uye@ornek.com" });
   });
 
   it("keeps the ordinary danger button and no card without a request", async () => {

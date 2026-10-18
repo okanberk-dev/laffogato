@@ -116,14 +116,17 @@ export function CustomerActions({
  * "Hesabı sil": the panel's account closure (`closeCustomerAccountAction`,
  * the member's own deletion pipeline `deleteMe`), behind the member's
  * e-mail typed out. Drawn in the Yönetim card, or as the primary action of
- * an open deletion request.
+ * an open deletion request; that one posts the request it answers
+ * (`requestedAt`), so a request the member took back meanwhile is refused.
  */
 export function CloseAccountButton({
   email,
   variant = "danger",
+  requestedAt,
 }: {
   email: string;
   variant?: "danger" | "primary";
+  requestedAt?: string;
 }) {
   return (
     <ActionModal
@@ -136,7 +139,7 @@ export function CloseAccountButton({
       submitLabel="Hesabı kapat"
       pendingLabel="Kapatılıyor…"
       confirmPhrase={email}
-      hidden={{ email }}
+      hidden={requestedAt ? { email, requestedAt } : { email }}
       size="md"
       description={
         <ul className="grid list-disc gap-1 pl-4">

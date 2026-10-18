@@ -651,6 +651,69 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
     );
   });
 
+  describe("from the request card (it posts the request it showed)", () => {
+    const SHOWN = "2026-10-18T09:15:00.000Z";
+    const fromCard = () =>
+      form({
+        email: "uye@ornek.com",
+        confirm: "uye@ornek.com",
+        requestedAt: SHOWN,
+      });
+
+    it("closes while that request is still open", async () => {
+      getDeletionRequest.mockResolvedValue({ requestedAt: SHOWN, reason: "" });
+      await expect(
+        closeCustomerAccountAction(null, fromCard()),
+      ).rejects.toThrow("NEXT_REDIRECT");
+      expect(deleteMe).toHaveBeenCalledWith(MEMBER, { by: "admin" });
+    });
+
+    it("keeps the account when the member took the request back meanwhile", async () => {
+      // The tab was opened from the request mail; the member pressed
+      // "Talebi geri al" before the operator confirmed (hesap-silme §4:
+      // "Geri alınan talep işleme konmaz").
+      getDeletionRequest.mockResolvedValue(null);
+      const res = await closeCustomerAccountAction(null, fromCard());
+      expect(res.ok).toBe(false);
+      expect(res.ok ? "" : res.error).toMatch(/geri aldı/);
+      expect(deleteMe).not.toHaveBeenCalled();
+      expect(sendAccountDeletedEmail).not.toHaveBeenCalled();
+      expect(logAudit).not.toHaveBeenCalled();
+      expect(redirect).not.toHaveBeenCalled();
+    });
+
+    it("keeps the account when a newer request replaced the one shown", async () => {
+      getDeletionRequest.mockResolvedValue({
+        requestedAt: "2026-10-19T08:00:00.000Z",
+        reason: "Yine de silin",
+      });
+      const res = await closeCustomerAccountAction(null, fromCard());
+      expect(res.ok).toBe(false);
+      expect(res.ok ? "" : res.error).toMatch(/yenile/);
+      expect(deleteMe).not.toHaveBeenCalled();
+    });
+
+    it("keeps the account when the request cannot be read", async () => {
+      getDeletionRequest.mockRejectedValue(new Error("connection terminated"));
+      const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+      const res = await closeCustomerAccountAction(null, fromCard());
+      expect(res.ok).toBe(false);
+      expect(deleteMe).not.toHaveBeenCalled();
+      errors.mockRestore();
+    });
+
+    it("leaves the Yönetim card's closure (no request posted) as it was", async () => {
+      getDeletionRequest.mockResolvedValue(null);
+      await expect(
+        closeCustomerAccountAction(
+          null,
+          form({ email: "uye@ornek.com", confirm: "uye@ornek.com" }),
+        ),
+      ).rejects.toThrow("NEXT_REDIRECT");
+      expect(deleteMe).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("tells the member 'kapatıldı', not 'silindi', while the identity is still there", async () => {
     deleteMe.mockResolvedValue({ ok: true, identity: "failed" });
     await expect(

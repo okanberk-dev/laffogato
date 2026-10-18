@@ -346,6 +346,11 @@ export async function closeCustomerAccountAction(
   }
   const customer = await getCustomerByEmail(email);
   if (!customer) return actionError("Üye hesabı bulunamadı.");
+  // The request card posts the request it showed. The member may take it
+  // back while the operator's tab is open, and a withdrawn request is not
+  // acted on (hesap-silme §4): the closure then goes only while that very
+  // request is still open. The Yönetim card posts none and closes as before.
+  const shownRequest = String(formData.get("requestedAt") ?? "").trim();
   // Read before the closure blanks it, for the audit row.
   let requestedAt: string | null = null;
   try {
@@ -353,6 +358,19 @@ export async function closeCustomerAccountAction(
   } catch (err) {
     console.error(
       `[admin] deletion request unreadable ${customer.id}: ${err instanceof Error ? err.message : "unknown error"}`,
+    );
+    if (shownRequest) {
+      return actionError(
+        "Silme talebi okunamadı, hesap kapatılmadı. Biraz sonra yeniden dene.",
+      );
+    }
+  }
+  if (shownRequest && requestedAt !== shownRequest) {
+    revalidateCustomer(email);
+    return actionError(
+      requestedAt
+        ? "Üye bu talebi geri alıp yeni bir talep gönderdi, hesap kapatılmadı. Sayfayı yenile ve yeni talebe bak."
+        : "Üye silme talebini geri aldı, hesap kapatılmadı. Hesap açık kalmalı.",
     );
   }
 
