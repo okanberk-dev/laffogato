@@ -24,8 +24,10 @@ import { expectReactGuard, formOpenTags } from "./_support/form-guard";
  * hand-posted form takes useHandPost's `action` with its `onSubmit`: React
  * then draws its guard (`action="javascript:..."`), an early Enter sends
  * nothing, and after hydration onSubmit prevents the post and React skips
- * the action of a prevented submit, so nothing is reset. A form that GETs
- * on purpose is listed below with why.
+ * the action of a prevented submit, so nothing is reset. A URL action
+ * (`action="/admin/ara"`) without `method="post"` is still the browser's
+ * GET, to that URL, so it counts as a GET form. A form that GETs on purpose
+ * is listed below with why.
  */
 
 /**
@@ -76,8 +78,20 @@ interface FormTag {
   where: string;
   /** No explicit action and no explicit method. */
   bare: boolean;
-  /** method="get", written out. */
+  /** method="get" written out, or a URL action with no method. */
   get: boolean;
+}
+
+/** A JSX attribute's value when it is a string written out, else null. */
+function literalText(init: ts.JsxAttributeValue | undefined): string | null {
+  const value = init && ts.isJsxExpression(init) ? init.expression : init;
+  if (!value) return null;
+  if (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)) {
+    return value.text;
+  }
+  // `/admin/${id}`: still a URL, whatever the id.
+  if (ts.isTemplateExpression(value)) return value.head.text;
+  return null;
 }
 
 /** Every JSX `<form>` in `text`, with what decides how it submits natively. */
@@ -96,17 +110,19 @@ function formTags(file: string, text: string): FormTag[] {
       node.tagName.getText(source) === "form"
     ) {
       let action = false;
+      // A string action is a URL: without a method the browser GETs it.
+      let urlAction = false;
       let method: string | null = null;
       for (const attr of node.attributes.properties) {
         if (!ts.isJsxAttribute(attr)) continue;
         const name = attr.name.getText(source);
-        if (name === "action") action = true;
+        if (name === "action") {
+          action = true;
+          urlAction = literalText(attr.initializer) !== null;
+        }
         if (name === "method") {
-          const init = attr.initializer;
           method =
-            init && ts.isStringLiteral(init)
-              ? init.text.toLowerCase()
-              : "(expression)";
+            literalText(attr.initializer)?.toLowerCase() ?? "(expression)";
         }
       }
       const { line } = source.getLineAndCharacterOfPosition(
@@ -115,7 +131,7 @@ function formTags(file: string, text: string): FormTag[] {
       out.push({
         where: `${file}:${line + 1}`,
         bare: !action && method === null,
-        get: method === "get",
+        get: method === "get" || (urlAction && method === null),
       });
     }
     ts.forEachChild(node, visit);
@@ -140,7 +156,7 @@ function offenders(files: string[]) {
     for (const t of getting) {
       if (!listed) {
         problems.push(
-          `${t.where} ${t.bare ? "has neither action nor method" : 'GETs (method="get") and is not in GET_FORMS'}`,
+          `${t.where} ${t.bare ? "has neither action nor method" : 'GETs (method="get", or a URL action without a method) and is not in GET_FORMS'}`,
         );
       } else if (t.bare && isClientModule(text)) {
         // A client form may well be posted from onSubmit: it says GET out
@@ -160,9 +176,11 @@ function offenders(files: string[]) {
 }
 
 describe("no form posts itself as a GET", () => {
-  const files = [...sourceFiles("src/app"), ...sourceFiles("src/components")];
+  // All of src, not only app and components: a .tsx under lib draws pages
+  // too (ui/submit.ts promises every form under src).
+  const files = sourceFiles("src");
 
-  it("every <form> under src/app and src/components has an action or a method", () => {
+  it("every <form> under src has an action or a method", () => {
     const { problems, total } = offenders(files);
     // The walk really read the forms (a broken path finds none and passes).
     expect(total).toBeGreaterThan(70);
@@ -208,6 +226,21 @@ describe("no form posts itself as a GET", () => {
     const get = check('<form method="GET" action={pathname}></form>');
     expect(get.bare).toBe(false);
     expect(get.get).toBe(true);
+    // A URL action with no method is the browser's GET to that URL, the
+    // fields in its query string: a GET form, not a guarded one.
+    const url = check(
+      '<form action="/admin/ara"><input name="email" /></form>',
+    );
+    expect(url.bare).toBe(false);
+    expect(url.get).toBe(true);
+    expect(check("<form action={`/admin/${id}`}></form>").get).toBe(true);
+    expect(check("<form method={'get'} action={pathname}></form>").get).toBe(
+      true,
+    );
+    // The card page's form: a URL action that posts.
+    expect(
+      check('<form method="post" action="/odeme/paynkolay"></form>').get,
+    ).toBe(false);
   });
 });
 
