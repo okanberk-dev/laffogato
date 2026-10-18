@@ -4,10 +4,15 @@ import {
   AdminSidebar,
   type AdminNavGroup,
 } from "@/components/admin/admin-sidebar";
+import { OrderAlerts } from "@/components/admin/order-alerts";
 import { PanelHomeProvider } from "@/components/admin/panel-home";
 import { ToastProvider } from "@/components/admin/ui/toast";
 import { getAdminSession, type AdminSession } from "@/lib/admin/auth";
 import { readAdminFlash } from "@/lib/admin/flash";
+import {
+  alertMayStartPreparing,
+  orderAlertsFor,
+} from "@/lib/admin/order-alerts-core";
 import {
   canAccess,
   landingPathFor,
@@ -324,7 +329,9 @@ export default async function AdminLayout({
       <ToastProvider flash={flash}>
         <PanelHomeProvider href={landingPath}>
           {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
-              the search, at every width, mounted once). */}
+              the search, at every width, mounted once). The new-order
+              alert lives there for the roles with Siparişler, on every
+              panel page (the till included). */}
           <AdminSidebar
             groups={groups}
             email={session.email}
@@ -332,6 +339,13 @@ export default async function AdminLayout({
             landingPath={landingPath}
             logout={logoutAction}
             canSearch={searchSectionsFor(session.role).length > 0}
+            actions={
+              orderAlertsFor(session.role) ? (
+                <OrderAlerts
+                  mayStartPreparing={alertMayStartPreparing(session.role)}
+                />
+              ) : undefined
+            }
           />
           <div className="lg:pl-64 print:pl-0">{children}</div>
         </PanelHomeProvider>
