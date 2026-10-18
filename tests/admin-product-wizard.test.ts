@@ -3,6 +3,8 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 import type { ProductActionState } from "@/app/admin/urunler/actions";
 import type { AdminCategory, AdminProduct } from "@/lib/admin/store";
 
@@ -418,14 +420,19 @@ describe("CAT-22 and CAT-24: Vazgeç and copy", () => {
 describe("CAT-01 / CAT-02 / CAT-17: how the form posts", () => {
   const src = readFileSync("src/components/admin/product-wizard.tsx", "utf8");
 
-  it("posts by hand with its own check, never through <form action>", () => {
-    expect(src).toContain("useNoResetSubmit(formAction, pending, { beforeSubmit })");
-    expect(src).toContain("onSubmit={onSubmit}");
-    expect(src).not.toMatch(/<form[^>]*\saction=/);
+  it("posts by hand with its own check; the action is only React's guard", () => {
+    expect(src).toContain("useHandPost(formAction, pending, { beforeSubmit })");
+    // The dispatcher stays the action beside onSubmit: React draws its guard
+    // for an Enter before hydration (a bare form GETs the page with every
+    // field in the address) and skips the action of a prevented submit.
+    expect(src).toMatch(
+      /<form\s+ref=\{formRef\}\s+action=\{post\.action\}\s+onSubmit=\{post\.onSubmit\}/,
+    );
     const html = wizard("wizard");
-    const tag = html.match(/<form[^>]*>/)![0];
-    expect(tag.toLowerCase()).toContain('novalidate=""');
-    expect(tag).not.toContain("action=");
+    const tags = formOpenTags(html);
+    expect(tags).toHaveLength(1);
+    expect(tags[0].toLowerCase()).toContain('novalidate=""');
+    expectReactGuard(tags[0]);
   });
 
   it("turns a thrown save into an answer in place", () => {

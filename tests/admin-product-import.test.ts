@@ -2,6 +2,8 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 import type { ProductImportState } from "@/lib/admin/product-import-core";
 import type { AdminCategory, ProductImportView } from "@/lib/admin/store";
 
@@ -793,6 +795,11 @@ describe("the import page form", () => {
     ).toBe(true);
     // No preview yet: nothing to import.
     expect(html).not.toContain('value="apply"');
+    // Posted by hand; the action is React's guard, so an Enter before
+    // hydration sends nothing instead of a GET to the page.
+    const tags = formOpenTags(html);
+    expect(tags).toHaveLength(1);
+    expectReactGuard(tags[0]);
     for (const key of ["sku", "compareAtPrice", "taxRatePct", "isActive", "weight"]) {
       expect(html).toContain(`>${key}</td>`);
     }

@@ -86,7 +86,7 @@ Client tarafında (admin paneli):
 import { useActionState } from "react";
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "@/components/admin/action-form";
 import { createSomeAction } from "./actions";
@@ -100,9 +100,9 @@ const [state, formAction, pending] = useActionState(
   })),
   {},
 );
-const onSubmit = useNoResetSubmit(formAction, pending);
+const post = useHandPost(formAction, pending);
 return (
-  <form onSubmit={onSubmit}>
+  <form action={post.action} onSubmit={post.onSubmit}>
     <input name="..." />
     {state.fieldErrors?.name && <span>{state.fieldErrors.name}</span>}
     <button disabled={pending}>{pending ? "..." : "Kaydet"}</button>
@@ -110,11 +110,20 @@ return (
 );
 ```
 
-`<form action={formAction}>` yazma: React 19 action bitince, yanıt ne olursa
-olsun formun alanlarını sıfırlar; reddedilen kayıtta yazılan metin, seçimler
-ve kutular gider. `useNoResetSubmit` formu `onSubmit`'ten elle gönderir ve yanıt
-gelmeden ikinci gönderimi düşürür. Action `ActionResult` döndürüyorsa hazır
-`ActionForm`'u kullan (`src/components/admin/action-form.tsx`).
+Yalnız `<form action={formAction}>` yazma: React 19 action bitince, yanıt ne
+olursa olsun formun alanlarını sıfırlar; reddedilen kayıtta yazılan metin,
+seçimler ve kutular gider. `useHandPost` formu `onSubmit`'ten elle gönderir ve
+yanıt gelmeden ikinci gönderimi düşürür.
+
+`action`'ı da silme: ne `action` ne `method` taşıyan form, sayfanın
+JavaScript'i yüklenmeden basılan Enter'da tarayıcının kendi GET'iyle gider ve
+bütün alanlar (parola dahil) adres çubuğuna, geçmişe ve istek kaydına yazılır.
+`post.action` ile React kendi korumasını (`action="javascript:..."`) çizer;
+o basışı sayfa canlanınca bir kez, aynı kapıdan gönderir.
+`tests/form-native-submit.test.ts` `src/` altındaki her `<form>`'u buna tutar;
+bilerek GET yapan liste süzgeci oradaki `GET_FORMS` listesine gerekçesiyle
+girer. Action `ActionResult` döndürüyorsa hazır `ActionForm`'u kullan
+(`src/components/admin/action-form.tsx`).
 
 ## Bind ile parametre
 

@@ -2,6 +2,8 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 import { LEGAL_UPDATED } from "@/lib/legal/meta";
 
 /**
@@ -186,7 +188,10 @@ describe("the editor", () => {
 
   it("posts by hand, with one Vazgeç link and the checkbox in a fieldset", async () => {
     const html = await edit(KVKK);
-    expect(html).not.toContain("javascript:throw");
+    // ActionForm: onSubmit posts; the action is only React's guard.
+    const tags = formOpenTags(html);
+    expect(tags).toHaveLength(1);
+    expectReactGuard(tags[0]);
     expect(html).not.toMatch(/<a\b[^>]*>\s*<button/);
     expect(html).toMatch(/<a[^>]*href="\/admin\/hukuk"[^>]*>Vazgeç<\/a>/);
     const fieldset = html.match(/<fieldset[\s\S]*?<\/fieldset>/)?.[0] ?? "";

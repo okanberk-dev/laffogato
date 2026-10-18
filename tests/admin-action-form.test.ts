@@ -4,6 +4,8 @@ import { createElement, type FunctionComponent, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 /**
  * components/admin/action-form.tsx: the page form and the one-click button
  * that answer with a toast (Filament's notifications), for the plain forms
@@ -23,6 +25,7 @@ const {
   FormMessage,
   SubmitButton,
   markFieldErrors,
+  replayByHand,
   runPanelAction,
   submitByHand,
   withPanelCatch,
@@ -130,7 +133,7 @@ describe("hand-dispatched submit (React 19 form reset)", () => {
     expect(t.sent).toHaveLength(1);
     // Every press is still kept from posting the page natively.
     expect(t.prevented()).toBe(3);
-    // The answer is in (useNoResetSubmit clears the flag): the next one goes.
+    // The answer is in (useHandPost clears the flag): the next one goes.
     t.busy.current = false;
     expect(t.submit()).toBe(true);
     expect(t.sent).toHaveLength(2);
@@ -147,20 +150,76 @@ describe("hand-dispatched submit (React 19 form reset)", () => {
     expect(ok.submit()).toBe(true);
   });
 
-  it("ActionForm and ActionModal post by hand, never as a form action", () => {
+  it("a submit React replays after hydration posts once, through the same gate", () => {
+    // An Enter before hydration meets React's guard; React keeps every such
+    // press and hands each one's FormData to the form's action once the
+    // page is live, not to onSubmit. With the bare dispatcher as the action
+    // three presses were three posts (three coupons, three stamps).
+    const busy = { current: false };
+    const sent: FormData[] = [];
+    const replay = (beforeSubmit?: () => boolean | void) =>
+      replayByHand(new FormData(), {
+        busy,
+        dispatch: (fd) => sent.push(fd),
+        beforeSubmit,
+        run: (fn) => fn(),
+      });
+    expect(replay()).toBe(true);
+    expect(replay()).toBe(false);
+    expect(replay()).toBe(false);
+    expect(sent).toHaveLength(1);
+    // A hand submit while that answer is out is dropped as well.
+    let prevented = 0;
+    const handed = submitByHand(
+      {
+        preventDefault: () => {
+          prevented += 1;
+        },
+        currentTarget: {} as HTMLFormElement,
+        nativeEvent: {} as Event,
+      },
+      { busy, dispatch: (fd) => sent.push(fd), run: (fn) => fn() },
+    );
+    expect(handed).toBe(false);
+    expect(prevented).toBe(1);
+    expect(sent).toHaveLength(1);
+    // The answer is in: the next press goes.
+    busy.current = false;
+    expect(replay()).toBe(true);
+    expect(sent).toHaveLength(2);
+  });
+
+  it("a replayed submit is dropped when the form has a beforeSubmit check", () => {
+    // The check needs the form and its button, which a replay no longer
+    // has: nothing is posted, and the operator presses again.
+    const busy = { current: false };
+    const sent: FormData[] = [];
+    const posted = replayByHand(new FormData(), {
+      busy,
+      dispatch: (fd) => sent.push(fd),
+      beforeSubmit: () => true,
+      run: (fn) => fn(),
+    });
+    expect(posted).toBe(false);
+    expect(sent).toHaveLength(0);
+    expect(busy.current).toBe(false);
+  });
+
+  it("ActionForm and ActionModal post by hand; the action is only React's guard", () => {
     for (const path of [
       "src/components/admin/action-form.tsx",
       "src/components/admin/ui/action-modal.tsx",
     ]) {
       const src = readFileSync(path, "utf8");
-      expect(src, path).toContain("useNoResetSubmit(formAction, pending");
+      expect(src, path).toContain("useHandPost(formAction, pending");
+      // The form has an action too, next to the onSubmit that prevents it:
+      // React draws its guard for an Enter before hydration and skips the
+      // action of a prevented submit (no reset). Without it the browser
+      // GETs the page with the fields in the address.
+      expect(src, path).toMatch(
+        /<form\s+(?:ref=\{formRef\}\s+)?action=\{post\.action\}\s+onSubmit=\{post\.onSubmit\}/,
+      );
     }
-    // ActionModal's only form is the dialog's, and it has no action prop.
-    const modal = readFileSync(
-      "src/components/admin/ui/action-modal.tsx",
-      "utf8",
-    );
-    expect(modal).not.toMatch(/<form[^>]*\saction=/);
   });
 });
 
@@ -230,15 +289,15 @@ describe("markup", () => {
         createElement(SubmitButton, null, "Kaydet"),
       ),
     );
-    expect(html).toMatch(/^<form class="grid">/);
-    expect(html).not.toContain("action=");
+    expect(html).toMatch(/^<form class="grid" action="javascript:[^"]*">/);
+    expectReactGuard(formOpenTags(html)[0]);
     expect(html).toContain('<button type="submit"');
     expect(html).toContain(">Kaydet<");
     // No refusal yet: no alert.
     expect(html).not.toContain('role="alert"');
   });
 
-  it("ActionForm with a beforeSubmit check is still a plain form", () => {
+  it("ActionForm with a beforeSubmit check draws the same guard", () => {
     const html = renderToStaticMarkup(
       withKids(
         ActionForm,
@@ -246,8 +305,8 @@ describe("markup", () => {
         createElement("input", { name: "name" }),
       ),
     );
-    expect(html).toMatch(/^<form>/);
-    expect(html).not.toContain("action=");
+    expect(html).toMatch(/^<form action="javascript:[^"]*">/);
+    expectReactGuard(formOpenTags(html)[0]);
   });
 
   it("ActionButton posts its hidden fields with one submit", () => {

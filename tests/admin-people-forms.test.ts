@@ -4,6 +4,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import { expectReactGuard, formOpenTags } from "./_support/form-guard";
+
 /**
  * The people forms: member edit, promo code, coupon grant, counter stamp,
  * the panel-user forms and the campaign test send.
@@ -13,7 +15,7 @@ import { describe, expect, it, vi } from "vitest";
  * 0 (unlimited), no expiry and the code re-ticked active; a refused coupon
  * put "Tür" back on %, so a retyped 15 became 15% instead of 15 TL; a
  * refused panel user went back to Kasiyer. They now post by hand
- * (useNoResetSubmit, the kit's tested path, tests/admin-action-form) and a
+ * (useHandPost, the kit's tested path, tests/admin-action-form) and a
  * thrown store error becomes an answer (withPanelCatch) instead of the
  * full-page error screen.
  */
@@ -50,13 +52,24 @@ const FORMS = [
 ];
 
 describe("the people forms keep what was typed after a refusal", () => {
-  it.each(FORMS)("%s posts by hand, never as a form action", (path) => {
-    const src = readFileSync(path, "utf8");
-    expect(src).not.toMatch(/<form[^>]*\saction=/);
-    expect(src).toContain("useNoResetSubmit(");
-    // A throw is an answer, not the error page that discarded the form.
-    expect(src).toContain("withPanelCatch");
-  });
+  it.each(FORMS)(
+    "%s posts by hand; its action is only React's guard",
+    (path) => {
+      const src = readFileSync(path, "utf8");
+      // Every form posts from onSubmit, and keeps the dispatcher as its
+      // action only so React draws its guard for an Enter before hydration
+      // (the prevented submit skips it, so nothing is reset).
+      const tags = src.match(/<form\b[^>]*>/g) ?? [];
+      expect(tags.length).toBeGreaterThan(0);
+      for (const tag of tags) {
+        expect(tag).toMatch(/\saction=\{/);
+        expect(tag).toMatch(/\sonSubmit=\{/);
+      }
+      expect(src).toContain("useHandPost(");
+      // A throw is an answer, not the error page that discarded the form.
+      expect(src).toContain("withPanelCatch");
+    },
+  );
 
   it.each(FORMS)("%s shows its answers in the kit's tones", (path) => {
     const src = readFileSync(path, "utf8");
@@ -185,6 +198,110 @@ describe("markup", () => {
     expect(input("shownNewsletter")).toContain('type="hidden"');
     // And the date the audiences need is on screen.
     expect(html).toMatch(/Ticari ileti izni:\s*(<!-- -->)?01 Eyl 2026/);
+  });
+});
+
+describe("an Enter before hydration sends nothing", () => {
+  // Before the page's JavaScript runs there is no onSubmit. A form with
+  // neither action nor method then GETs the page with its fields in the
+  // address: a member's phone, a coupon, a panel user's new password. Each
+  // form is drawn with React's guard instead.
+  const STAMP = "2026-10-01T09:00:00.000Z";
+
+  it("every people form is drawn with React's guard", async () => {
+    const { PromoForm } = await import("@/components/admin/promo-form");
+    const { CustomerForm } = await import("@/components/admin/customer-form");
+    const { CustomerCoupons } =
+      await import("@/components/admin/customer-coupons");
+    const { CustomerStamps } =
+      await import("@/components/admin/customer-stamps");
+    const { CustomerActions } =
+      await import("@/components/admin/customer-actions");
+    const { AdminUserRow, CreateAdminUserForm, GrantBaristaForm } =
+      await import("@/app/admin/kullanicilar/user-forms");
+    const { CampaignTestForm } =
+      await import("@/app/admin/bulten/kampanya/campaign-mail-controls");
+
+    const rendered: Record<string, string> = {
+      promo: renderToStaticMarkup(
+        createElement(PromoForm, {
+          action: vi.fn(),
+          submitLabel: "Kodu oluştur",
+        } as never),
+      ),
+      member: renderToStaticMarkup(
+        createElement(CustomerForm, {
+          action: vi.fn(),
+          customer: {
+            email: "uye@ornek.com",
+            name: "Ayşe",
+            phone: "05551112233",
+            birthday: "",
+            notificationPrefs: {
+              orderUpdates: true,
+              marketing: false,
+              newsletter: false,
+            },
+          },
+        } as never),
+      ),
+      coupons: renderToStaticMarkup(
+        createElement(CustomerCoupons, {
+          email: "uye@ornek.com",
+          coupons: [],
+        } as never),
+      ),
+      stamps: renderToStaticMarkup(
+        createElement(CustomerStamps, {
+          email: "uye@ornek.com",
+          loyalty: {
+            tierLabel: "Bronz",
+            stamps: 3,
+            stampTarget: 6,
+            rewardsReady: 0,
+            lifetimeStamps: 3,
+          },
+          history: [],
+        } as never),
+      ),
+      resend: renderToStaticMarkup(
+        createElement(CustomerActions, {
+          email: "uye@ornek.com",
+          isActive: true,
+          emailVerified: false,
+        }),
+      ),
+      newUser: renderToStaticMarkup(
+        createElement(CreateAdminUserForm, { minPasswordLength: 10 }),
+      ),
+      userRow: renderToStaticMarkup(
+        createElement(AdminUserRow, {
+          user: {
+            email: "kasa@laffogato.net",
+            name: "Eda",
+            role: "cashier",
+            isActive: true,
+            updatedAt: STAMP,
+            has2FA: false,
+          },
+          minPasswordLength: 10,
+        }),
+      ),
+      barista: renderToStaticMarkup(createElement(GrantBaristaForm)),
+      campaignTest: renderToStaticMarkup(
+        createElement(CampaignTestForm, {
+          action: vi.fn(),
+          defaultTo: "sahip@laffogato.net",
+        }),
+      ),
+    };
+    // The row holds two forms: Kaydet, and the new password.
+    const expected: Record<string, number> = { userRow: 2 };
+    for (const [name, html] of Object.entries(rendered)) {
+      const tags = formOpenTags(html);
+      expect(tags, name).toHaveLength(expected[name] ?? 1);
+      for (const tag of tags) expectReactGuard(tag);
+    }
   });
 });
 

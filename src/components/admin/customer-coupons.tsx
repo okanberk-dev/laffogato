@@ -11,7 +11,7 @@ import { couponStatus, type CustomerCoupon } from "@/lib/customer/coupon-utils";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import { FormError, FormSuccess } from "./form-feedback";
@@ -50,7 +50,7 @@ export function CustomerCoupons({
     withPanelCatch(boundGrant, () => ({ error: PANEL_ACTION_FAILED })),
     initial,
   );
-  const onSubmit = useNoResetSubmit(action, pending);
+  const post = useHandPost(action, pending);
   useEffect(() => {
     if (state.message && !state.error) formRef.current?.reset();
   }, [state]);
@@ -128,7 +128,8 @@ export function CustomerCoupons({
 
       <form
         ref={formRef}
-        onSubmit={onSubmit}
+        action={post.action}
+        onSubmit={post.onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3

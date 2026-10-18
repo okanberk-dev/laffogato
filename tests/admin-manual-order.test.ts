@@ -403,10 +403,14 @@ const formSource = readFileSync(
 );
 
 describe("ORD-03: a refusal keeps what was typed and says where", () => {
-  it("posts by hand, never through <form action> (which reset the status to Ödendi)", () => {
-    expect(formSource).toContain("useNoResetSubmit(formAction, pending)");
-    expect(formSource).toContain("onSubmit={onSubmit}");
-    expect(formSource).not.toMatch(/<form[^>]*\saction=/);
+  it("posts by hand, never as a form action (which reset the status to Ödendi)", () => {
+    expect(formSource).toContain("useHandPost(formAction, pending)");
+    // The dispatcher is the action only as React's guard against the
+    // browser's own GET before hydration; onSubmit prevents the post and
+    // React skips the action of a prevented submit (no reset).
+    expect(formSource).toMatch(
+      /<form\s+ref=\{formRef\}\s+action=\{post\.action\}\s+onSubmit=\{post\.onSubmit\}/,
+    );
     // A thrown action answers in place instead of the panel's error page.
     expect(formSource).toContain(
       "withPanelCatch<ManualOrderActionState>(action",

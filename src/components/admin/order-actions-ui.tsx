@@ -871,6 +871,9 @@ export function OrderNoteForm({
 
   return (
     <form
+      // The action is React's guard for an Enter before hydration; the
+      // post itself is onSubmit's (ui/submit.ts).
+      action={save}
       onSubmit={(e) => {
         e.preventDefault();
         save(new FormData(e.currentTarget));

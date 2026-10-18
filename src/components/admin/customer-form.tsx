@@ -8,7 +8,7 @@ import type { AdminCustomer } from "@/lib/customer/store";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import { FieldErrorText, FormError, useFieldErrors } from "./form-feedback";
@@ -33,7 +33,7 @@ interface Props {
 }
 
 /**
- * The member edit form. Posted by hand (useNoResetSubmit): a refused save
+ * The member edit form. Posted by hand (useHandPost): a refused save
  * used to put every field back to the stored value, so the error sat under
  * a name that had jumped back and the other edits were gone.
  */
@@ -42,14 +42,19 @@ export function CustomerForm({ customer, action }: Props) {
     withPanelCatch(action, (prev) => ({ ...prev, error: PANEL_ACTION_FAILED })),
     initial,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   const formRef = useRef<HTMLFormElement>(null);
   const errorId = useFieldErrors(formRef, state);
   const fe = (k: string) => state.fieldErrors?.[k];
   const prefs = customer.notificationPrefs;
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-5"
+    >
       <Card className="grid gap-5">
         <Field label="E-posta" hint="E-posta değiştirilemez (hesabın kimliği).">
           <TextInput value={customer.email} disabled readOnly />

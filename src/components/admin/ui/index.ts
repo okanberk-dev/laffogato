@@ -9,7 +9,7 @@
 // Pure helpers live in lib/admin: list-params.ts (URL), action-result.ts,
 // order-ui.ts, tone.ts, flash-core.ts (+ server-only flash.ts),
 // text-fold.ts (Turkish-aware search). Forms that keep their own
-// useActionState post through useNoResetSubmit / withPanelCatch
+// useActionState post through useHandPost / withPanelCatch
 // (submit.ts, also exported from components/admin/action-form).
 
 export { ADMIN_CHANGED_EVENT, announceAdminChange } from "./admin-changed";

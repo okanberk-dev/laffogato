@@ -88,6 +88,14 @@ import { AcceptedSchemes } from "./scheme-marks";
 
 export const ORDER_FORM_ID = "order-form";
 
+/**
+ * The order form's `action`, never called: nothing submits that form (onPay
+ * reads it). A bare form would post itself the browser's way, a GET with the
+ * name, phone and address in the URL; a function action makes React draw its
+ * guard (`action="javascript:..."`) instead, and onSubmit stops the rest.
+ */
+const orderFormNeverPosts = () => {};
+
 /** Per-line ceiling, the server's MAX_LINE_QTY (store.ts). */
 const MAX_LINE_QTY = 99;
 
@@ -1639,7 +1647,13 @@ function CheckoutForm({
 
       {/* The order form: what the server action reads. Hidden fields only -
           the card is in the pay form above, which this one never contains. */}
-      <form id={ORDER_FORM_ID} ref={orderFormRef} className="co-order-form">
+      <form
+        id={ORDER_FORM_ID}
+        ref={orderFormRef}
+        action={orderFormNeverPosts}
+        onSubmit={(e) => e.preventDefault()}
+        className="co-order-form"
+      >
         <input type="hidden" name="items" value={itemsJson} />
         <input
           type="hidden"

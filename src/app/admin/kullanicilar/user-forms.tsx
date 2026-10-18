@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, type RefObject } from "react";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "@/components/admin/action-form";
 import { FormError, FormSuccess } from "@/components/admin/form-feedback";
@@ -57,12 +57,14 @@ type UserAction = (
 
 /**
  * `useActionState` + onSubmit for these forms, posted by hand
- * (useNoResetSubmit). A refused save used to reset the form: "Bu e-posta
+ * (useHandPost). A refused save used to reset the form: "Bu e-posta
  * zaten kayıtlı" or a short password cleared the address, the name and the
  * password and put Rol back on Kasiyer, so the retry could create the wrong
  * role. `resetOnSuccess` empties a form whose success stays on the page and
  * leaves nothing worth keeping (a new account, a password, a grant). A
- * throw becomes an answer, not the error screen.
+ * throw becomes an answer, not the error screen. `post.action` goes on the
+ * form as well: without an action an Enter before hydration was the
+ * browser's own GET, the new password in the address (ui/submit.ts).
  */
 function useUserForm(
   action: UserAction,
@@ -73,13 +75,13 @@ function useUserForm(
     withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
     initialState,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   useEffect(() => {
     if (resetOnSuccess && state.message && !state.error) {
       formRef.current?.reset();
     }
   }, [state, formRef, resetOnSuccess]);
-  return { state, pending, onSubmit };
+  return { state, pending, post };
 }
 
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
@@ -96,7 +98,7 @@ function RoleSelect({ defaultValue }: { defaultValue: string }) {
 
 export function CreateAdminUserForm({ minPasswordLength }: PasswordPolicy) {
   const formRef = useRef<HTMLFormElement>(null);
-  const { state, pending, onSubmit } = useUserForm(
+  const { state, pending, post } = useUserForm(
     createAdminUserAction,
     formRef,
     true,
@@ -104,7 +106,12 @@ export function CreateAdminUserForm({ minPasswordLength }: PasswordPolicy) {
 
   return (
     <Card>
-      <form ref={formRef} onSubmit={onSubmit} className="grid gap-4">
+      <form
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
+        className="grid gap-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="E-posta">
             <TextInput
@@ -195,7 +202,8 @@ export function AdminUserRow({
 
         <form
           ref={saveRef}
-          onSubmit={save.onSubmit}
+          action={save.post.action}
+          onSubmit={save.post.onSubmit}
           className="grid gap-3 sm:grid-cols-3"
         >
           <input type="hidden" name="email" value={user.email} />
@@ -223,7 +231,8 @@ export function AdminUserRow({
         <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4 sm:grid-cols-2">
           <form
             ref={passwordRef}
-            onSubmit={password.onSubmit}
+            action={password.post.action}
+            onSubmit={password.post.onSubmit}
             className="grid gap-3"
           >
             <input type="hidden" name="email" value={user.email} />
@@ -303,14 +312,19 @@ export interface BaristaRowProps {
  */
 export function GrantBaristaForm() {
   const formRef = useRef<HTMLFormElement>(null);
-  const { state, pending, onSubmit } = useUserForm(
+  const { state, pending, post } = useUserForm(
     grantBaristaAction,
     formRef,
     true,
   );
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-3">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-3"
+    >
       <Field
         label="Üye e-postası"
         hint="Baristanın uygulamaya giriş yaptığı adres. Hesap önceden açılmış olmalı."

@@ -20,7 +20,7 @@ import type { ActionResult } from "@/lib/admin/action-result";
 import { Field, TextInput, Textarea } from "../forms";
 import { announceAdminChange } from "./admin-changed";
 import { BUTTON, MONO_STYLE, type ButtonVariant } from "./styles";
-import { useNoResetSubmit } from "./submit";
+import { useHandPost } from "./submit";
 import { adminPortalRoot, useToast } from "./toast";
 
 /**
@@ -381,8 +381,9 @@ function ModalDialog({
   // Dispatched by hand rather than through `<form action>`: React resets an
   // action form's uncontrolled fields once the action finishes, whatever it
   // answers, which would wipe the reason the operator typed every time the
-  // server refuses it.
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  // server refuses it. The form keeps an `action` all the same: React's
+  // guard against the browser's own GET (ui/submit.ts).
+  const post = useHandPost(formAction, pending);
 
   const fieldErrors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
   const ctx: ActionModalState = {
@@ -431,7 +432,11 @@ function ModalDialog({
       style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
     >
       <ModalStateContext.Provider value={ctx}>
-        <form onSubmit={onSubmit} className="flex flex-col gap-4 p-5 sm:p-6">
+        <form
+          action={post.action}
+          onSubmit={post.onSubmit}
+          className="flex flex-col gap-4 p-5 sm:p-6"
+        >
           <div>
             <h2
               id={titleId}

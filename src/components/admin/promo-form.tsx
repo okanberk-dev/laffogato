@@ -9,7 +9,7 @@ import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 import {
   PANEL_ACTION_FAILED,
-  useNoResetSubmit,
+  useHandPost,
   withPanelCatch,
 } from "./action-form";
 import { FieldErrorText, FormError, useFieldErrors } from "./form-feedback";
@@ -37,7 +37,7 @@ interface Props {
 }
 
 /**
- * New and edit promo code. Posted by hand (useNoResetSubmit): a refused save
+ * New and edit promo code. Posted by hand (useHandPost): a refused save
  * used to reset the form, so "Bu kod zaten kullanılıyor." put the value back
  * to 10, the limit to 0 (unlimited), the expiry to never and the code back
  * on, and only the empty code field showed it.
@@ -52,7 +52,7 @@ export function PromoForm({
     withPanelCatch(action, (prev) => ({ ...prev, error: PANEL_ACTION_FAILED })),
     initial,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   const formRef = useRef<HTMLFormElement>(null);
   const errorId = useFieldErrors(formRef, state);
   const [kind, setKind] = useState<"pct" | "fixed">(promo?.kind ?? "pct");
@@ -61,7 +61,12 @@ export function PromoForm({
   const err = (k: string) => <FieldErrorText id={errorId(k)} message={fe(k)} />;
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} className="grid gap-5">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-5"
+    >
       <Card className="grid gap-5">
         <div className="grid gap-1.5">
           <Field

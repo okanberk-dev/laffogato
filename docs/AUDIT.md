@@ -923,3 +923,19 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Kenar çubuğunda açık silme talebi sayısı yok | Kenar çubuğu #142'de yeniden yazıldı, bu PR ona dokunmuyor; sayı ayrı küçük bir PR. Müşteriler bandı ve ekip e-postası şimdilik yeter |
 | 🟢 | Uygulamanın hukuki metin kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Ayrı uygulama PR'ında yeniden dışa aktarılır; uygulama metni zaten `GET /legal`'dan okur |
+
+### Formlar: sayfa yüklenmeden basılan Enter (FG)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Elle gönderilen 19 formun ne `action`'ı ne `method`'u vardı (`ActionForm`, `ActionModal`, `useNoResetSubmit` formları, kasa, sipariş notu, ödeme sayfasının sipariş formu). Sayfanın JavaScript'i yüklenmeden basılan Enter tarayıcının kendi gönderimiydi: sayfaya GET, bütün alanlar adres çubuğunda, geçmişte, vekil sunucuda ve istek kaydında. Yeni panel kullanıcısında `?email=…&password=…`, üye formunda telefon, kupon ve damga değerleri. Giriş formu #143'te düzelmişti (2c784cd), gerisi aynıydı | Kit `useHandPost` (`ui/submit.ts`) forma `action` ile `onSubmit`'i birlikte verir: React kendi korumasını (`action="javascript:..."`) çizer, erken Enter hiçbir şey göndermez; sayfa canlanınca onSubmit elle gönderir, React action'ı atlar (sıfırlama yok). React o erken basışı saklayıp sayfa canlanınca action'a verir: `replayByHand` onu da aynı kapıdan geçirir (yanıt beklenirken ikincisi düşer, üç sabırsız Enter tek kayıttır; `beforeSubmit` denetimi olan formda düşer). `ActionForm`, `ActionModal`, giriş, panel kullanıcıları, üye, promosyon, kupon, damga, doğrulama bağlantısı, kampanya testi, manuel sipariş, ürün sihirbazı ve içe aktarma bunu kullanır; kasa, sipariş notu ve ödeme sayfasının sipariş formu kendi işleyicisini action olarak taşır. `src/` altındaki her `<form>` artık `action` ya da `method` taşır; bilerek GET yapan süzgeçler `GET_FORMS`'ta gerekçesiyle | `form-native-submit`, `admin-action-form`, `admin-people-forms`, `admin-login-form`, `admin-product-wizard`, `admin-product-import`, `admin-manual-order`, `admin-cafe-tables-pages`, `admin-site-content`, `admin-legal-ui`, `checkout-consent` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Liste süzgeçleri bilerek GET'tir (adres paylaşılır, yenilenir, geri tuşu çalışır), ama arama kutusu kişisel veri alabilir: `FilterBar` (Siparişler e-posta ya da ad, Olay kaydı kişinin adresi) ve Müşteriler araması (e-posta, ad, telefon). Yazılan terim adreste ve istek kaydında kalır | Yazılan aramayı adresten çıkarmak admin UI v2'nin işi (`POST /admin/ara/sonuc`); Müşteriler süzgeci paket 4b'de `FilterBar`'a geçiyor. `GET_FORMS` her GET formunu ve kişisel veri alanını listeler; yeni bir GET formu ancak oraya gerekçesiyle yazılarak eklenir |
+
+Ayarlar sekmeleri `method="post"` ile kalır (paket 7a): erken basış gövdeyle
+sayfaya POST'tur, adrese bir şey yazılmaz. Kart formları (`paynkolay-page.ts`,
+`card-payment.tsx`) kendi `action`'lı POST'larıdır, dokunulmadı.
