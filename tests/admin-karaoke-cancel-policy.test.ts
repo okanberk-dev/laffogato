@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   audits: [] as Array<Record<string, unknown>>,
   roles: [] as string[],
   appVersion: null as string | null,
+  overrides: {} as Record<string, Record<string, unknown> | null>,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -38,6 +39,9 @@ vi.mock("@/lib/admin/store", () => ({
     h.updates.push(patch);
     return { ...h.settings, ...patch };
   }),
+}));
+vi.mock("@/lib/legal/store", () => ({
+  getLegalDocOverride: vi.fn(async (slug: string) => h.overrides[slug] ?? null),
 }));
 // The lock is the code's own null; a test opens it as the app follow-up
 // would (KARAOKE_POLICY_APP_VERSION).
@@ -91,6 +95,7 @@ beforeEach(() => {
   h.audits.length = 0;
   h.roles.length = 0;
   h.appVersion = null;
+  h.overrides = {};
   vi.mocked(revalidatePath).mockClear();
 });
 
@@ -230,6 +235,100 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         "/karaoke",
       ]),
     );
+  });
+
+  describe("while an edit of the karaoke terms is published", () => {
+    /**
+     * /hukuk and the app show a published edit (Yasal belgeler) instead of
+     * the text written for the policy, and it does not follow the policy:
+     * under a new rule a customer would read the old one while their consent
+     * records the rule's date (karaokePolicyVersion).
+     */
+    const live = {
+      slug: "karaoke-odasi-rezervasyon",
+      isPublished: true,
+      bodyMarkdown: "## 7. İptal\n\n2 saatten az kala iade yapılmaz.",
+      effectiveDate: "",
+      updatedAt: "2026-10-17T09:00:00.000Z",
+    };
+    const policyForm = (hours: string, percent: string, extra = {}) =>
+      form({
+        ...BASE,
+        ...extra,
+        karaokeFreeCancelHours: hours,
+        karaokeLateRefundPercent: percent,
+      });
+
+    beforeEach(() => {
+      h.appVersion = "1.1.0";
+      h.settings = baseSettings("1.1.0");
+      h.overrides = { "karaoke-odasi-rezervasyon": live };
+    });
+
+    it("refuses a new rule until the edit is taken down", async () => {
+      const state = await saveKaraokeAction({}, policyForm("24", "50"));
+      expect(state.error).toMatch(/Yasal belgeler/);
+      expect(state.fieldErrors?.karaokeFreeCancelHours).toMatch(
+        /yayından kaldır/,
+      );
+      expect(h.updates).toEqual([]);
+
+      const percentOnly = await saveKaraokeAction({}, policyForm("2", "50"));
+      expect(percentOnly.fieldErrors?.karaokeLateRefundPercent).toMatch(
+        /Yasal belgeler/,
+      );
+      expect(h.updates).toEqual([]);
+    });
+
+    it("an unreadable edit table stops the save, the rule stays", async () => {
+      const { getLegalDocOverride } = await import("@/lib/legal/store");
+      vi.mocked(getLegalDocOverride).mockRejectedValueOnce(
+        new Error("getLegalDocOverride: connection refused"),
+      );
+      await expect(
+        saveKaraokeAction({}, policyForm("24", "50")),
+      ).rejects.toThrow(/getLegalDocOverride/);
+      expect(h.updates).toEqual([]);
+    });
+
+    it("a draft or an empty edit is not shown, so it does not count", async () => {
+      h.overrides = {
+        "karaoke-odasi-rezervasyon": { ...live, isPublished: false },
+      };
+      expect(
+        (await saveKaraokeAction({}, policyForm("24", "50"))).error,
+      ).toBeUndefined();
+      h.updates.length = 0;
+      h.overrides = {
+        "karaoke-odasi-rezervasyon": { ...live, bodyMarkdown: "  " },
+      };
+      expect(
+        (await saveKaraokeAction({}, policyForm("12", "50"))).error,
+      ).toBeUndefined();
+      expect(h.updates).toHaveLength(1);
+    });
+
+    it("going back to 2 h / 0 % and saves that keep the rule still go through", async () => {
+      h.settings = {
+        ...baseSettings("1.1.0"),
+        karaokeFreeCancelHours: 24,
+        karaokeLateRefundPercent: 50,
+      };
+      const same = await saveKaraokeAction(
+        {},
+        policyForm("24", "50", { karaokeCapacity: "10" }),
+      );
+      expect(same.error).toBeUndefined();
+      expect(h.updates).toHaveLength(1);
+      expect(h.updates[0]).not.toHaveProperty("karaokeCancelPolicyAt");
+
+      const back = await saveKaraokeAction({}, policyForm("2", "0"));
+      expect(back.error).toBeUndefined();
+      expect(h.updates.at(-1)).toMatchObject({
+        karaokeFreeCancelHours: 2,
+        karaokeLateRefundPercent: 0,
+      });
+    });
   });
 
   it("a save that moves nothing else leaves the policy's date alone", async () => {

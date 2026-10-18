@@ -419,8 +419,10 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
  * only the default policy can be saved or take effect: an old build would
  * otherwise show a member a rule different from the one they booked under.
  * null: no such build yet. Opening it also needs the other legal documents
- * that quote the default rule rewritten first (tests/karaoke-cancel-policy-
- * doc.test.ts names the check).
+ * that quote the default rule rewritten first, and the site's own karaoke
+ * screens (karaoke-booking.tsx, karaoke-reservation-view.tsx) printing the
+ * booking's rule instead of the fixed one (tests/karaoke-cancel-policy-
+ * doc.test.ts names both checks).
  */
 export const KARAOKE_POLICY_APP_VERSION: string | null = null;
 

@@ -825,13 +825,14 @@ Operatör (17 Eki 2026): "para tutarı iade edilir kısmını da panelden ayarla
 | 🟢 | Ciro geç iptal payını bilmiyordu | İade edilen pay düşülür, kalan pay ciro; borçlu pay "iadesi bekleyen" | `admin-reports-ltv` |
 | 🟡 | Ödenmiş ama köşkün hiç onaylamadığı rezervasyonda (saat başkasına geçti, onay yarım kaldı) üyenin geç iptali payı uygulardı | Geç iptal payı yalnız onaylı rezervasyonda; onaylanmamış ödenmiş rezervasyon tamamen iade edilir (MSY m.16/4, TBK m.136) | `karaoke-late-cancel` |
 | 🟡 | Kural sayfa açıkken değişirse rezervasyon müşterinin görmediği kuralla kaydedilirdi | Web formu ve uygulama gösterdikleri kuralı `expectedCancelPolicy` ile gönderir; farklıysa **409** `policy_changed`, yeni kural gövdede, rezervasyon yazılmaz (`expectedTotalMinor` deseni) | `karaoke-late-cancel`, `karaoke-web-action`, `mobile-karaoke-prepay-routes`, `frontend-form-contract` |
+| 🟢 | Karaoke koşullarının Yasal belgeler'de yayında bir düzenlemesi varken kural değişebiliyordu: sitede ve uygulamada düzenlenmiş eski metin görünür, onay ise kuralın kayıt gününü yazardı | Yayında düzenleme varken kural 2 saat / %0 dışına çekilemez, önce düzenleme yayından kaldırılır (tablo okunamazsa kayıt da olmaz); varsayılana dönüş ve kuralı değiştirmeyen kayıt serbest | `admin-karaoke-cancel-policy` |
 
 Açık (paket 3b'nin dışında kalan):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli (`karaoke-cancel-policy-doc` testi bunu tutar) |
-| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı |
+| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli ve sitenin iki karaoke ekranı (alttaki satır) rezervasyonun kuralını yazmalı (`karaoke-cancel-policy-doc` testi ikisini de tutar) |
+| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı. Kilit 3c'den önce açılırsa kutu sabit kuralı geri yollar ve her ön ödemeli web rezervasyonu `policy_changed` ile reddedilir, rezervasyon sayfası geç iptal payını sunmaz: `karaoke-cancel-policy-doc` kilit açıkken bu iki dosyada sabit görürse düşer |
 
 ### Kabuk: gezinme, arama, içerik haritası (paket 1c)
 

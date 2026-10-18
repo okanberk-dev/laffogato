@@ -112,4 +112,28 @@ describe("opening the app lock", () => {
       expect(quoting, "rewrite these before opening the lock").toEqual([]);
     }
   });
+
+  /**
+   * The site's own karaoke screens print the fixed rule as well (PR 3c
+   * makes them print the booking's): the box above the payment, which also
+   * echoes that rule back, so under another policy every prepaid web
+   * booking would be refused as policy_changed; and the booking page with
+   * its cancel step, which offers a cancel only inside the free window and
+   * says "iade yapılmaz" after it, so a late share could not be taken there.
+   */
+  it("needs the site's karaoke screens to print the booking's own rule", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { KARAOKE_POLICY_APP_VERSION } =
+      await import("@/lib/mobile/karaoke-time");
+    const fixed =
+      /\b(KARAOKE_REFUND_RULE|KARAOKE_NO_REFUND_RULE|DEFAULT_KARAOKE_CANCEL_POLICY)\b/;
+    // A moved or renamed screen fails here instead of passing unread.
+    const printing = [
+      "src/components/laffogato/karaoke-booking.tsx",
+      "src/components/uye/karaoke-reservation-view.tsx",
+    ].filter((file) => fixed.test(readFileSync(file, "utf8")));
+    if (KARAOKE_POLICY_APP_VERSION !== null) {
+      expect(printing, "print the booking's rule here first").toEqual([]);
+    }
+  });
 });

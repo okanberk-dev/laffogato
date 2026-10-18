@@ -5,7 +5,9 @@ import { z } from "zod";
 
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings, updateSettings } from "@/lib/admin/store";
+import { isLiveLegalOverride } from "@/lib/legal/consent-version";
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
+import { getLegalDocOverride } from "@/lib/legal/store";
 import {
   DEFAULT_KARAOKE_CANCEL_POLICY,
   KARAOKE_FREE_CANCEL_HOURS_MAX,
@@ -52,6 +54,32 @@ const CancelPolicySchema = z.object({
   ),
 });
 
+/** The box a refusal of `policy` points at: the one off the default. */
+function policyField(
+  policy: KaraokeCancelPolicy,
+): "karaokeFreeCancelHours" | "karaokeLateRefundPercent" {
+  return policy.freeCancelHours !==
+    DEFAULT_KARAOKE_CANCEL_POLICY.freeCancelHours
+    ? "karaokeFreeCancelHours"
+    : "karaokeLateRefundPercent";
+}
+
+const MSG_TERMS_EDITED =
+  "Karaoke odası koşullarının Yasal belgeler bölümünde yayında bir düzenlemesi var. Sitede ve uygulamada o metin görünür ve yeni kurala göre kendiliğinden değişmez; önce o düzenlemeyi yayından kaldır, sonra kuralı değiştir.";
+
+/**
+ * Is an edit of the karaoke terms published? /hukuk and the app show it
+ * instead of the text written for the policy (karaoke-doc.ts), and it does
+ * not follow the policy. Read so that it throws: an unreadable table is no
+ * reason to let the rule move.
+ */
+async function karaokeTermsEdited(): Promise<boolean> {
+  const rows = await Promise.all(
+    KARAOKE_CONSENT_DOCS.map((slug) => getLegalDocOverride(slug)),
+  );
+  return rows.some((row) => isLiveLegalOverride(row));
+}
+
 /**
  * The policy the form posted, or the refusal. A post without either box (a
  * hand-made one, an older form) leaves the policy as it is.
@@ -88,11 +116,7 @@ function readCancelPolicy(
   // under (karaoke-time.ts, KARAOKE_POLICY_APP_VERSION).
   const locked = karaokePolicyLockReason(minSupportedAppVersion);
   if (locked && !samePolicy(policy, DEFAULT_KARAOKE_CANCEL_POLICY)) {
-    const field =
-      policy.freeCancelHours !== DEFAULT_KARAOKE_CANCEL_POLICY.freeCancelHours
-        ? "karaokeFreeCancelHours"
-        : "karaokeLateRefundPercent";
-    return { ok: false, state: refuse(locked, field) };
+    return { ok: false, state: refuse(locked, policyField(policy)) };
   }
   return { ok: true, policy };
 }
@@ -164,6 +188,18 @@ export async function saveKaraokeAction(
   const policyMoved =
     "karaokeFreeCancelHours" in moved.after ||
     "karaokeLateRefundPercent" in moved.after;
+  // A published edit of the karaoke terms would keep showing the old rule
+  // while a booking's consent records the new one's date
+  // (karaokePolicyVersion). Back to the default, or a save that keeps the
+  // rule, creates no such gap.
+  if (
+    policyMoved &&
+    cancel.policy &&
+    !samePolicy(cancel.policy, DEFAULT_KARAOKE_CANCEL_POLICY) &&
+    (await karaokeTermsEdited())
+  ) {
+    return refuse(MSG_TERMS_EDITED, policyField(cancel.policy));
+  }
   await updateSettings(
     policyMoved
       ? { ...next, karaokeCancelPolicyAt: new Date().toISOString() }

@@ -22,8 +22,10 @@ const KARAOKE_ROOM_SLUG = "karaoke-odasi-rezervasyon";
  * be reached shows the coded document - the default rule, which is also what
  * a booking is made under while settings cannot be read (createReservation
  * reads them through `getSettings`, which throws instead). A published panel
- * override replaces this text as it replaces every coded document; keeping
- * an override in step with the policy is the editor's job.
+ * override replaces this text as it replaces every coded document. The
+ * policy cannot move off the default while one is published
+ * (saveKaraokeAction); an override published later is the editor's to keep
+ * in step with the policy.
  */
 export async function karaokeLegalDocNow(): Promise<LegalDoc> {
   const settings = await getPublicSettings();
