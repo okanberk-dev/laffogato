@@ -6151,8 +6151,8 @@ export interface AdminMenuItem extends BackdropColumns {
   image: string;
   /**
    * The app's tags only: signature, new, iced, nuts (`menuTagsFromForm`).
-   * A row saved before 5c may still hold another word the app never showed;
-   * the edit form names it and the next save drops it.
+   * A row saved while the field was free text may still hold another word
+   * the app never showed; the edit form names it and the next save drops it.
    */
   tags: string[];
   /**

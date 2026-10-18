@@ -629,7 +629,7 @@ Açık (katalog paketinin kalanı; adım 4 ve 5 aşağıda, "Katalog: stok ve to
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Menü ve vitrin tarafı: menü toplu kaydı kimlik, vitrin silme başlık yazmıyor (CAT-20), menü / kategori / vitrin "Vazgeç" (CAT-22), vitrin güncellemesi silinmiş slaytta (CAT-28), diğer katalog ekranlarının metni (CAT-24), toplu geri çağırmalar `withPanelCatch` (CAT-17) | Kendi dosyalarının PR'larında (5c, 5d) |
+| 🟢 | Liste tarafı: ürün ve menü listesinin toplu geri çağırmaları `withPanelCatch` (CAT-17), liste ekranlarının metni (CAT-24) | Liste PR'ında (5d); menü ve vitrin formları aşağıda, "Katalog: menü, kategori ve vitrin formları" |
 
 Eklenen: **ürünleri CSV ile içe aktarma** (`/admin/urunler/ice-aktar`, ürün
 listesinden bağlantı, yalnız `products` rolü; kural ve sütunlar
@@ -1004,3 +1004,36 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
+
+### Katalog: menü, kategori ve vitrin formları (paket 5c)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Mağaza vitrini formu çıplak `<form action>`'dı: çift tık iki slayt açıyordu; boş başlık (yalnız boşluk) yanıtsız dönüyor, React sıfırlaması düğme alanlarını, sırayı, temayı ve Aktif kutusunu siliyordu; düzenlemede boş başlık kaydediliyor, mağaza gri "Başlık" çiziyordu (CAT-13) | İşlemler `ActionResult` döner, form `ActionForm` (elle gönderim, yanıt gelmeden ikinci gönderim düşer); boş başlık eklemede de düzenlemede de alanın altında reddedilir | `admin-shop-hero` |
+| 🟡 | Kategoriler sayfası mağazanın filtre çubuğunu yönettiğini söylüyordu ama mağaza sabit beş kategoriyi kodda tutar; beş slug da tohumda olduğu için "+ Yeni kategori" ancak ikiz açabiliyordu, paneldeki her kategori seçiminde "Çekirdek" iki kez çıkıyordu (CAT-06, karar D18) | Başka satırın taşıdığı slug eklemede ve düzenlemede alanın altında reddedilir; yeni sayfası yalnız boş slug'ları sunar, beşi de listedeyse form yerine bunu söyler. Metin sayfanın yalnız paneldeki adı ve sırayı belirlediğini söyler; mağazaya bağlamak bu turda yok (D18) | `admin-catalog-actions`, `admin-catalog-forms` |
+| 🟡 | Menü etiketleri serbest metindi ("signature, new, iced, nuts, IGP"); uygulama dört kelime dışındakini sessizce atar, "fındık" ya da "nut" yazılan alerjen hiçbir müşteriye görünmüyordu (CAT-10, karar D21) | Dört kutu: İmza, Yeni, Buzlu, Sert kabuklu yemiş; işlem yalnız bu dördünü saklar (`menuTagsFromForm`, eski virgüllü liste de). Düzenleme, kayıtta silinecek tanımsız kelimeyi kayıttan önce adıyla söyler. Tohumlarda ve kodda bu dördünden başka etiket yok; canlı veritabanında elle yazılmış bir kelime varsa o kalemin ilk kaydında düşer. API çıktısı ve `docs/API-MOBILE.md` değişmedi | `admin-catalog-actions`, `admin-catalog-forms` |
+| 🟡 | Telefonda iki sütunlu fotoğraf kartında "Birincil yap" × düğmesini kartın dışına itiyordu: ikinci fotoğraf silinemiyordu (CAT-12) | Kart altı satırı kırılır, × sabit 44 px, "Birincil yap" kendi satırında; sütunlar ekranın değil alanın genişliğine göre (en az 9,5rem; menü formunun dar sütununda `md:grid-cols-4` 96 px kart yapıyordu) | `admin-catalog-forms` |
+| 🟢 | Vitrin görseli ve düğme bağlantısı denetlenmiyordu, görsel tırnaksız CSS `url()` içine yazılıyordu: boşluk ya da parantezli adres görseli düşürüyor, `);position:fixed;...;(` ile biten adres mağaza vitrinine kendi CSS'ini ekliyordu (CAT-27, panel kısmı) | `src/lib/admin/shop-hero-schema.ts`: görsel ya panelin ürettiği yükleme ya da hiçbir karakteri `url()`'yi veya özniteliği bitiremeyecek biçimde yazılmış bir https adresi; düğme bağlantısı sitedeki bir yol, sayfadaki bir bölüm ya da https, yazısıyla birlikte (mağaza ikisini birlikte çizer). Panelde görsel `<img>`; mağaza tarafındaki tırnaklı `cssUrl()` 5b'nin işi, aynı değişiklik bu dalda da var | `admin-shop-hero`, `storefront-hero-slide` |
+| 🟢 | Vitrin "Önizleme"si canlı slayta benzemiyordu: başka katman, eğik başka yazı, başka vurgu rengi, ne üst etiket ne düğme (CAT-25) | Mağazanın kendi `Slide`'ı, etkin ve yüklü, mağazanın çerçevesinde; `inert` ve `aria-hidden` (bağlantısı formdan çıkarmasın). Panelin `a`/`button` sıfırlaması `[data-site-preview]` içini bırakır (`:where` ile, ağırlık aynı), düğme mağazadaki gibi görünür | `admin-shop-hero`, `admin-root-css` |
+| 🟢 | Silinmiş slaytı düzenlemek "kaydedildi" diyor, olay kaydı yazıyordu (CAT-28, vitrin) | "Bu slayt silinmiş; listeye dön.", olay kaydı yok | `admin-shop-hero` |
+| 🟢 | Menü toplu kaydı neye dokunduğunu, vitrin silme hangi slaytı sildiğini yazmıyordu (CAT-20, menü ve vitrin) | Menü: kimlikler ve yazımdan önce okunan adlar (ilk 100, fotoğrafsız okuma `listMenuItemLabels`); vitrin: silmeden önce okunan başlık | `admin-catalog-actions`, `admin-shop-hero` |
+| 🟢 | Menü fotoğraf yükleyicisi bir `<label>` içindeydi: başlığa, ipucuna ya da bağlantı satırına tıklamak dosya seçiciyi açıyor, bırakma alanı iki kez açıyordu (CAT-15) | `Field as="fieldset"` | `admin-catalog-forms` |
+| 🟢 | Fotoğraf okları sağa sola taşıdığı hâlde "Yukarı / Aşağı taşı", her × yalnız "Sil" diye okunuyordu, bağlantı alanının adı yoktu (CAT-23, yükleyici) | "Sola taşı: görsel 2", "Sil: görsel 2", "Birincil yap: görsel 2"; bağlantı alanı "Görsel bağlantısı" | `admin-catalog-forms` |
+| 🟢 | Menü, kategori ve iki vitrin formunda "Vazgeç" bağlantı içinde düğmeydi; mağaza vitrininde `history.back()` paneli terk edebiliyordu (CAT-22) | Tek `Link`, `BUTTON.ghost`; vitrinde listeye döner | `admin-catalog-forms`, `admin-shop-hero` |
+| 🟢 | İngilizce ve jargon: "Shop · Hero slider", "Mağaza sidebar'ı", "Shop ürün filtresinde", "light seç", "altın script", "Limit doldu", Pistachio, Rose, başlık üstünde iç kimlik ("Düzenle · mnu-0003"), "… · Admin" ile "Admin · …" karışık sayfa başlıkları (CAT-24, formlar) | Sade Türkçe, "sen"; başlık üstünde bölüm adı; sayfa başlıkları "Admin · …" | `admin-shop-hero`, `admin-catalog-forms` |
+
+Aynı PR'da gelenler: vitrin listesi yüklenen görseli `/gorsel/hero/<id>`
+yolundan gösterir, her slaytın fotoğrafını sayfaya gömmez (CAT-08'in vitrin
+kısmı); vitrin listesinde ve formunda el yapımı haplar kit düğmesi
+(`BUTTON.*`, CAT-11), satır düğmeleri slaytın adını taşır. Anasayfa
+slaytları paneli (#129) vitrin gibi kurulmuş ama zaten `ActionForm` ve
+denetlenen şemayla geldi; ortak tek kusuru "Vazgeç"ti, o da düzeldi.
+Kategoriler sayfasının açıklaması da yalnız metin olarak değişti (liste
+5d'nin dosyası).
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Aynı anda iki sekmede aynı boş slug'la açılan iki kategori ikisi de geçebilir (`categories.slug` benzersiz değil) | Eski veritabanlarında ikiz satırlar var; benzersiz dizin önce onların temizlenmesini ister (migration + operatör kararı). Panel artık ikizi kendisi açmaz |
+| 🟢 | Menü yükleyicisinin bağlantı yolu `http://` adresini kabul ediyor, kayıt onu sessizce siliyor (yalnız https saklanır) | Yükleyici ürünlerle ortak ve ürün şeması `http://` kabul ediyor; iki şemayı eşitlemek bu PR'ın dışında |
