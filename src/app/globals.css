@@ -11156,6 +11156,106 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   color: var(--rose);
 }
 
+/* /uye/hesap/sil: the deletion request (18 Eki 2026) - the team deletes,
+   the member asks. The open request is a quiet status block, not an alarm:
+   rose rule on the warm ground, the way back as a ghost button. */
+.deletion-lede {
+  margin: 0 0 12px;
+  max-width: 560px;
+}
+.deletion-form {
+  display: grid;
+  gap: 16px;
+  max-width: 520px;
+  margin-top: 20px;
+}
+.deletion-form .account-field label small {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--ink-mute);
+}
+.deletion-form .account-field > small {
+  justify-self: end;
+  font-size: 12px;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+.deletion-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.deletion-form .btn {
+  justify-self: start;
+}
+.deletion-more {
+  margin: 20px 0 0;
+  max-width: 560px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.deletion-more a,
+.deletion-notice-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.deletion-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 18px;
+  align-items: start;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  border-left: 4px solid var(--rose);
+  background: var(--bg-warm);
+}
+.deletion-notice-copy p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.deletion-notice-title {
+  font-size: 15px;
+  color: var(--ink);
+}
+.deletion-notice-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.deletion-notice-msg {
+  grid-column: 1 / -1;
+}
+@media (max-width: 540px) {
+  .deletion-notice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.deletion-channels-title {
+  margin: 28px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.deletion-channels {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.deletion-channels a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
 /* ─────────────────────────────────────────────────────────────
    One-page checkout (/odeme, checkout.tsx) - 1 Teslimat → 2 Ödeme
    Its own chrome (no nav, no footer farm), a sticky order summary on the

@@ -63,9 +63,10 @@ export default async function HomePage({ searchParams }: PageProps) {
     { settings, menu, products, appProps },
   ] = await Promise.all([searchParams, loadAppProps({ withHomeHero: true })]);
 
-  // deleteAccountAction lands here; without a word the member could not tell
-  // the deletion had gone through. Which sentence depends on whether the
-  // sign-in identity went too (`accountClosureNotice`).
+  // The site's old self-service deletion landed here, and its `/?hesap=`
+  // links are still out there (the page now sends a request instead).
+  // Which sentence depends on whether the sign-in identity went too
+  // (`accountClosureNotice`).
   let notice: string | undefined = accountClosureNotice(hesap);
   if (notice !== undefined) {
     // The account notice stands alone; a cart reason cannot ride along.

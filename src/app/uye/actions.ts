@@ -33,8 +33,23 @@ import {
   linkCustomerToSupabase,
   linkIdentityAfterReset,
 } from "@/lib/customer/supabase-bridge";
-import { deleteMe } from "@/lib/mobile/me";
-import { accountClosureParam } from "@/lib/customer/account-closure";
+import { safeAudit } from "@/lib/admin/audit";
+import {
+  DELETION_REQUEST_PATH,
+  deletionDayLabel,
+  deletionDeadline,
+  deletionMailKey,
+  normalizeDeletionReason,
+} from "@/lib/customer/deletion-request-core";
+import {
+  openDeletionRequest,
+  withdrawDeletionRequest,
+} from "@/lib/customer/deletion-request";
+import {
+  logMemberMail,
+  notifyStaffOfDeletionRequest,
+} from "@/lib/email/account-deletion-notice";
+import { sendDeletionRequestReceivedEmail } from "@/lib/email/send";
 import { RESET_PATH, RESET_TOKEN_COOKIE } from "@/lib/customer/reset-link";
 import { ensureCustomerForSupabaseUser } from "@/lib/customer/supabase-bridge";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -748,62 +763,148 @@ export async function updateNotificationsAction(
   return { message: "Tercihlerin kaydedildi." };
 }
 
-// ─── Account closure ──────────────────────────────────────────────────────
+// ─── Account deletion request ─────────────────────────────────────────────
 
-export interface DeleteAccountState {
+export interface DeletionRequestState {
   error?: string;
+  message?: string;
 }
 
 /**
- * Closes the member's own account from the site (`/uye/hesap/sil`).
+ * Asks the team to delete the member's account (`/uye/hesap/sil`).
  *
- * The membership agreement §14 offers exactly two routes - the app's account
- * settings and an e-mail to support - and until now the site, which is where
- * most members signed up, had neither. `deleteMe` is the same anonymisation
- * the app's `DELETE /me` runs, so both routes leave the account in one state.
+ * The site no longer deletes on the member's click (operator, 18 Eki 2026:
+ * "hesabı silme sadece bize ulaşarak olsun"). This stores the request on
+ * the member's row, mails the team and the member, and writes an audit
+ * row; an owner or manager then closes the account from the panel with
+ * the same `deleteMe` the app's DELETE /me runs, within the thirty days
+ * KVKK m.13/2 allows. The app keeps its own immediate deletion (Apple
+ * 5.1.1(v)); nothing here touches /api/mobile/v1.
  *
- * Irreversible, so it asks for two things: the account's own e-mail typed out,
- * and the password when the account has one. A Supabase-only account (social
- * login, `checkSitePassword` → "none") is confirmed by the e-mail alone -
- * there is no password to ask for.
+ * Once: a second press while a request is open stores nothing and mails
+ * nobody (`openDeletionRequest` is one compare-and-set). The box "Hesabımın
+ * silinmesini istiyorum" is required here, not only in the form, because
+ * this export is a public POST endpoint (rule 27). Counted per member
+ * before anything is written, like the other mail-sending forms.
  */
-export async function deleteAccountAction(
-  _prev: DeleteAccountState,
+export async function requestAccountDeletionAction(
+  _prev: DeletionRequestState,
   formData: FormData,
-): Promise<DeleteAccountState> {
+): Promise<DeletionRequestState> {
   const current = await getActiveCustomer();
-  if (!current) return { error: "Oturumun süresi dolmuş." };
+  if (!current) return { error: "Oturumun süresi dolmuş. Yeniden giriş yap." };
 
-  const typed = String(formData.get("confirmEmail") ?? "")
-    .trim()
-    .toLowerCase();
-  if (typed !== current.email.toLowerCase()) {
-    return { error: "Onay için hesabının e-posta adresini birebir yaz." };
-  }
-
-  const password = String(formData.get("password") ?? "");
-  // Same oracle as the password change: counted against the login budget.
-  const ip = await clientIp();
-  const limit = await reserveLoginAttempt("customer-login", ip, current.email);
-  if (limit.blocked) {
-    return {
-      error: `Çok fazla başarısız deneme. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
-    };
-  }
-  const check = await checkSitePassword(current.email, password);
-  if (check === "mismatch") return { error: "Şifre hatalı." };
-
-  const result = await deleteMe(current);
-  if (!result.ok) {
-    // Üyelik Sözleşmesi §14: the closure waits for an order in flight. Same
-    // rule, same wording as the app's DELETE /me.
+  if (formData.get("confirm") !== "on") {
     return {
       error:
-        "Devam eden siparişin var. Sipariş tamamlandıktan sonra hesabını silebilirsin.",
+        'Talebi göndermek için "Hesabımın silinmesini istiyorum" kutusunu işaretle.',
     };
   }
-  await clearCustomerSession();
-  // "Kişisel verilerin silindi" only when the Supabase identity (e-mail and
-  // name) went too; otherwise the short sentence (docs/API-MOBILE.md §4).
-  redirect(`/?hesap=${accountClosureParam(result.identity)}`);
+  const reason = normalizeDeletionReason(formData.get("reason"));
+  if (!reason.ok) return { error: reason.error };
+
+  const limit = await reserveLoginAttempt(
+    "account-deletion",
+    "*",
+    current.email,
+  );
+  if (limit.blocked) return { error: tooManyRequests(limit.retryAfterSeconds) };
+
+  let opened: Awaited<ReturnType<typeof openDeletionRequest>>;
+  try {
+    opened = await openDeletionRequest(current.email, reason.reason);
+  } catch (err) {
+    if (isDbUnreachable(err)) return { error: DB_DOWN_MESSAGE };
+    throw err;
+  }
+  if (opened.status === "not_found") {
+    return { error: "Hesabın bulunamadı. Yeniden giriş yapıp dene." };
+  }
+
+  if (opened.status === "created") {
+    const { requestedAt } = opened;
+    // The record of the application; the reason's words stay on the row
+    // (cleared with it), not in the ten-year log.
+    await safeAudit({
+      action: "update",
+      entity: "customer",
+      entityId: current.id,
+      actor: "customer",
+      payload: {
+        deletionRequest: "opened",
+        requestedAt,
+        withReason: reason.reason !== "",
+      },
+    });
+    await notifyStaffOfDeletionRequest({
+      kind: "opened",
+      customerId: current.id,
+      name: current.name,
+      email: current.email,
+      requestedAt,
+      hasReason: reason.reason !== "",
+    });
+    const mail = await sendDeletionRequestReceivedEmail(current.email, {
+      requestedOn: deletionDayLabel(requestedAt),
+      deadline: deletionDayLabel(deletionDeadline(requestedAt)),
+      requestUrl: `${SITE.url}${DELETION_REQUEST_PATH}`,
+      idempotencyKey: deletionMailKey(current.id, requestedAt, "member"),
+    });
+    logMemberMail("request", current.id, current.email, mail);
+  }
+
+  revalidatePath("/uye/hesap", "layout");
+  return {
+    message:
+      opened.status === "created"
+        ? "Silme talebin bize ulaştı. Onay e-postası gönderdik."
+        : "Silme talebin zaten bizde.",
+  };
+}
+
+/**
+ * Takes the member's open request back: the account stays as it is.
+ * Audited, and the team is told, so nobody closes an account its owner
+ * decided to keep. Counted with the request on the same budget.
+ */
+export async function withdrawAccountDeletionAction(
+  _prev: DeletionRequestState,
+): Promise<DeletionRequestState> {
+  const current = await getActiveCustomer();
+  if (!current) return { error: "Oturumun süresi dolmuş. Yeniden giriş yap." };
+
+  const limit = await reserveLoginAttempt(
+    "account-deletion",
+    "*",
+    current.email,
+  );
+  if (limit.blocked) return { error: tooManyRequests(limit.retryAfterSeconds) };
+
+  let result: Awaited<ReturnType<typeof withdrawDeletionRequest>>;
+  try {
+    result = await withdrawDeletionRequest(current.email);
+  } catch (err) {
+    if (isDbUnreachable(err)) return { error: DB_DOWN_MESSAGE };
+    throw err;
+  }
+  revalidatePath("/uye/hesap", "layout");
+  if (result.status === "none") {
+    return { message: "Açık bir silme talebin yok." };
+  }
+  await safeAudit({
+    action: "update",
+    entity: "customer",
+    entityId: current.id,
+    actor: "customer",
+    payload: { deletionRequest: "withdrawn", requestedAt: result.requestedAt },
+  });
+  await notifyStaffOfDeletionRequest({
+    kind: "withdrawn",
+    customerId: current.id,
+    name: current.name,
+    email: current.email,
+    requestedAt: result.requestedAt,
+    hasReason: false,
+  });
+  return { message: "Silme talebini geri aldın. Hesabın açık kalıyor." };
 }
