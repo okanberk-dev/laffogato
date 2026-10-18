@@ -114,6 +114,17 @@ describe("posting without React's form reset (SYS-01, KAR-02)", () => {
     expect(forms.length).toBe(9);
     for (const tag of forms) expect(tag).not.toContain("action=");
   });
+
+  it("a press before hydration posts: the fields never land in the address", () => {
+    // Before the JS runs there is no onSubmit, and a bare <form> is a GET to
+    // the page: Kaydet put ?notificationEmail=…&orderNotifyEmails=… in the
+    // address bar, the history and the request log (rule 9). A POST to the
+    // page carries them in the body and only renders the page again.
+    const html = render("notifications");
+    const forms = html.match(/<form[^>]*>/g) ?? [];
+    expect(forms.length).toBe(9);
+    for (const tag of forms) expect(tag).toContain('method="post"');
+  });
 });
 
 describe("tabs (SYS-08, SHE-24, KAR-12)", () => {

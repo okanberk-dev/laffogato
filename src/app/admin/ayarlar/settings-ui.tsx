@@ -206,8 +206,12 @@ export function SettingsTabForm({
     <FieldErrorsContext.Provider
       value={{ fieldErrors: state.fieldErrors ?? {}, errorId }}
     >
+      {/* method="post": pressed before the JS runs, a bare form is a GET
+          that puts the addresses typed here in the URL, the history and
+          the request log. A POST to the page only renders it again. */}
       <form
         ref={ref}
+        method="post"
         onSubmit={form.onSubmit}
         onInput={form.onEdit}
         onChange={form.onEdit}

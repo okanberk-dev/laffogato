@@ -776,6 +776,7 @@ Açık:
 | 🟢 | "Test gönder" yazılan değil kayıtlı göndereni deniyordu, hata İngilizce geliyordu, bant yenilenmiyordu (SYS-23) | Gönderen formu kaydedilmemiş değişiklik taşırken düğme nedeniyle kapalı; Resend retleri Türkçe (`resendErrorText`); test her sonuçta `revalidatePath` | `email-sender`, `admin-settings-actions`, `admin-settings-form` |
 | 🟢 | Genel sunucuda yalnız ad uzunluğunu denetliyordu (SYS-25) | zod: https görsel, geçerli e-posta, uzunluk sınırları (ad 80, slogan 160, telefon 40, adres 500), alan başına mesaj | `admin-settings-actions` |
 | 🟢 | Ayarlar'da `neutral` / `emerald` / `rose` sınıfları, italik başlıklar, gri kayıt satırı (KAR-06, KAR-17, SYS-24 ayarlar kısmı) | Kit `Section`, ton jetonları, servis anahtarı ve e-posta bantları kit tonlarında | `admin-settings-form` |
+| 🟢 | Ayar formları yöntemsizdi: sayfa yüklenmeden basılan "Kaydet" alanları GET ile adrese yazıyordu (`?notificationEmail=…&orderNotifyEmails=…`: adres çubuğu, geçmiş, istek kaydı; kural 9) ve `?sekme=` düşüyordu (doğrulayıcı SS-F1) | Her sekmenin formu `method="post"`: alanlar gövdede gider, Next eylem kimliği taşımayan POST'u sayfayı yeniden çizerek karşılar, açık sekme kalır. O basışta kayıt yine yapılmaz; kaydeden, sayfa yüklendikten sonraki basıştır | `admin-settings-form` |
 
 Karaoke sekmesi ve kaydı ayrı dosyalarda (`karaoke-tab.tsx`, `karaoke-actions.ts`;
 karaoke iade kuralı işi onların üstüne kurulur).
@@ -786,3 +787,4 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Panodaki "Ayarlar → E-posta" (SHE-24), karaoke panelindeki "Ayarlar → Karaoke" (KAR-12) ve Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantılar kendi dosyalarının PR'larında (7b, karaoke paneli, 7c) |
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
+| 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
