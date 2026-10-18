@@ -62,7 +62,7 @@ export function CustomerCoupons({
   const [now] = useState(() => Date.now());
 
   return (
-    <Card className="grid gap-4">
+    <Card className="grid grid-cols-1 gap-4">
       <h2
         className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
@@ -75,7 +75,7 @@ export function CustomerCoupons({
           Bu üyeye tanımlı kupon yok.
         </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid grid-cols-1 gap-2">
           {coupons.map((c) => {
             const badge = STATUS_BADGE[couponStatus(c, now)];
             return (

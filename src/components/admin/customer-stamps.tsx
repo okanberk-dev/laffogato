@@ -67,7 +67,7 @@ export function CustomerStamps({
   const boundReverse = reverseCounterStampAction.bind(null, email);
 
   return (
-    <Card className="grid gap-4">
+    <Card className="grid grid-cols-1 gap-4">
       <h2
         className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
@@ -144,7 +144,7 @@ export function CustomerStamps({
             Henüz damga yok.
           </p>
         ) : (
-          <ul className="grid gap-1.5">
+          <ul className="grid grid-cols-1 gap-1.5">
             {history.slice(0, 30).map((s) => (
               <li
                 key={s.id}

@@ -18,6 +18,7 @@ import {
   StatusTabs,
 } from "@/components/admin/ui";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { cx } from "@/components/laffogato/cx";
 import { requireRole } from "@/lib/admin/auth";
 import { countCustomers, listCustomerPage } from "@/lib/admin/customer-list";
 import {
@@ -39,6 +40,9 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+/** An address or a long name may break anywhere instead of overflowing. */
+const WRAP = "[overflow-wrap:anywhere]";
 
 /** The member page of a row (D14: still keyed by the address for now). */
 function memberHref(c: CustomerListRow): string {
@@ -145,10 +149,16 @@ function MobileCard({ row }: { row: CustomerListRow }) {
           </>
         ) : null}
         <dt className={EYEBROW} style={MONO_STYLE}>
+          Sipariş
+        </dt>
+        <dd className="min-w-0 text-[var(--admin-text)]" style={NUMERIC_STYLE}>
+          {row.orderCount}
+        </dd>
+        <dt className={EYEBROW} style={MONO_STYLE}>
           Harcama
         </dt>
         <dd className="min-w-0 text-[var(--admin-text)]" style={NUMERIC_STYLE}>
-          {formatTRY(row.lifetimeValueMinor)} · {row.orderCount} sipariş
+          {formatTRY(row.lifetimeValueMinor)}
         </dd>
         <dt className={EYEBROW} style={MONO_STYLE}>
           Son hareket
@@ -163,12 +173,13 @@ function MobileCard({ row }: { row: CustomerListRow }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]">
+    <div className="min-w-0 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]">
       <div className={EYEBROW} style={MONO_STYLE}>
         {label}
       </div>
+      {/* Smaller on a phone: "₺5.088.337,30" filled a half-width tile. */}
       <div
-        className="mt-1 text-xl text-[var(--admin-text)]"
+        className="mt-1 text-base text-[var(--admin-text)] sm:text-xl"
         style={NUMERIC_STYLE}
       >
         {value}
@@ -264,7 +275,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
 
       <section
         aria-label="Bu listenin özeti"
-        className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4"
+        className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4"
       >
         <Tile label="Müşteri" value={String(totals.customers)} />
         <Tile label="Ödenen sipariş" value={String(totals.orderCount)} />
@@ -293,12 +304,33 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         rowActions={(c) => <RowMenu row={c} />}
         columns={[
           {
+            // Who and how to reach them in one cell (the row's link): a
+            // separate contact column pushed the money off a 1024 px
+            // screen.
             key: "ad",
             header: "Müşteri",
             sortable: true,
+            className: "min-w-[13rem]",
             cell: (c) => (
-              <span className="[overflow-wrap:anywhere]">
-                {c.name || c.email}
+              <span className="block">
+                <span className={cx("block", !c.name && WRAP)}>
+                  {c.name || c.email}
+                </span>
+                {c.name ? (
+                  <span
+                    className={cx(
+                      "block text-xs font-normal text-[var(--admin-text-soft)]",
+                      WRAP,
+                    )}
+                  >
+                    {c.email}
+                  </span>
+                ) : null}
+                {c.phone ? (
+                  <span className="block text-xs font-normal text-[var(--admin-text-soft)]">
+                    {c.phone}
+                  </span>
+                ) : null}
               </span>
             ),
           },
@@ -306,23 +338,6 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             key: "durum",
             header: "Durum",
             cell: (c) => <CustomerBadges row={c} />,
-          },
-          {
-            key: "iletisim",
-            header: "İletişim",
-            className: "min-w-[12rem]",
-            cell: (c) => (
-              <span className="block text-xs">
-                <span className="block [overflow-wrap:anywhere]">
-                  {c.email}
-                </span>
-                {c.phone ? (
-                  <span className="block text-[var(--admin-text-soft)]">
-                    {c.phone}
-                  </span>
-                ) : null}
-              </span>
-            ),
           },
           {
             key: "siparis",
@@ -349,7 +364,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             header: "Son hareket",
             sortable: true,
             firstDir: "desc",
-            hideBelow: "lg",
+            hideBelow: "xl",
             cell: (c) => <LastActivity row={c} />,
           },
         ]}

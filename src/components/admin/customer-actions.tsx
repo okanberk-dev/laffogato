@@ -51,7 +51,7 @@ export function CustomerActions({
   const resendPost = useHandPost(resendAction, resending);
 
   return (
-    <Card className="grid gap-3">
+    <Card className="grid grid-cols-1 gap-3">
       <h2
         className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}

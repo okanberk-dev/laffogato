@@ -21,6 +21,7 @@ import {
   OrderStatusBadge,
 } from "@/components/admin/ui";
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { cx } from "@/components/laffogato/cx";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
 import {
@@ -209,7 +210,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {/* Paid orders only; the history below lists every attempt
             (PEO-26). */}
         <Stat label="Ödenen sipariş" value={String(lifetime.orderCount)} />
@@ -258,8 +259,10 @@ export default async function CustomerDetailPage({ params }: PageProps) {
 
       {member ? (
         // minmax(0, …) tracks: a long address must not set the column's
-        // width (PEO-03: the page was wider than a 390 px phone).
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        // width (PEO-03: the page was wider than a 390 px phone). Two
+        // columns from xl: beside the sidebar at lg the side column was
+        // 232 px, too narrow for its forms.
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="grid grid-cols-1 content-start gap-4">
             <Card>
               <SectionTitle>Profil</SectionTitle>
@@ -649,13 +652,17 @@ function Stat({
       <div className={EYEBROW} style={MONO_STYLE}>
         {label}
       </div>
+      {/* A figure in the numeric face, a word ("Aktif üye") in the
+          panel's own. */}
       <div
-        className={`mt-1 ${small ? "text-sm" : "text-xl"} ${
+        className={cx(
+          "mt-1",
+          small ? "text-sm" : "text-base sm:text-xl",
           tone === "danger"
             ? "text-[var(--admin-danger-ink)]"
-            : "text-[var(--admin-text)]"
-        }`}
-        style={NUMERIC_STYLE}
+            : "text-[var(--admin-text)]",
+        )}
+        style={small ? undefined : NUMERIC_STYLE}
       >
         {value}
       </div>
