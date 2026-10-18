@@ -808,6 +808,37 @@ Açık:
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
 
+### İçerik: uygulama ayarları, canlı durum, slayt, duyuru, gönderi (paket 6b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Uygulama ayarlarının dokuz sekmesi ve Canlı durum, React 19 `<form action>` sıfırlamasıyla reddedilen kayıtta yazılanı siliyor, kutuları yeniden işaretliyordu (CON-03 ve KAR-02, bu formlar) | Sekmeler elle gönderir (`useNoResetSubmit` + `withPanelCatch`), Canlı durum `ActionForm`; red alanın altında, kayıt toast | `admin-app-config`, `admin-venue-status` |
+| 🟡 | Slayt, duyuru ve gönderi formlarında bekleme yoktu, ikinci tıklama ikinci satırı açıyordu; boş başlıkta ve silinmiş satırda kayıt sessizce dönüyordu, hata sayfası formu götürüyordu (CON-04) | `ActionForm` + `SubmitButton` (yanıttan önce ikinci gönderim düşer); boş başlık, tarih olmayan başlangıç ya da bitiş, başlangıçtan önceki bitiş alanın altında reddedilir; silinmiş satır söylenir | `admin-mobile-content-actions` |
+| 🟡 | "Üyelere e-posta" (gönderide "Yayında", ayarlarda "Bakım modu") bir etiketin içindeydi: uzun ipucuna dokunmak üye e-postasını kapatıyordu (CON-05) | `Field as="fieldset"`, ipucu `aria-describedby` | `admin-mobile-content-lists`, `admin-app-config` |
+| 🟡 | Listeler saklanan UTC metnini yazıyor, yayın durumunu göstermiyordu; süresi dolmuş ya da planlı satır yayındaki gibi görünüyordu (CON-08) | Kit tablosu ve satır menüsü; uygulamanın okuduğu kuralla durum rozeti (Yayında, Planlandı, Süresi doldu, Kapalı, Tarih geçersiz), `?durum=` sekmeleri, tarihler İstanbul saatiyle. Tarih olmayan metin olduğu gibi ve rozetle görünür, liste çökmez | `admin-mobile-content-lists` |
+| 🟡 | "Bakım modu" ve "En düşük desteklenen sürüm" onaysız kaydediliyordu (CON-12) | Bakımın açılması ve sürümün yükselmesi önce sorar; karar sunucuda, kayıtlı belgeye göre verilir. Sürüm onayı yalnız o sürüm için geçer ve yeni sürüm yazılarak verilir; mağaza adresi boşsa diyalog bunu söyler. Sekmede "Bakımda" rozeti (karar D26) | `admin-app-config` |
+| 🟡 | İçerik ekranlarında AA altı gri ve kırmızı metin: "YAYINDA DEĞİL", tarih satırları, Canlı durum hatası (CON-07) | Panel token'ları ve kit rozetleri | `admin-mobile-content-lists`, `admin-venue-status`, `admin-app-config` |
+| 🟢 | Gönderi listesi kuyruğa alınamayan ya da kimseye gitmeyen e-postaya da "e-posta gönderildi" diyordu; işaretli kutu yayında olmayan gönderide sessizce atlanıyordu (CON-09) | Sütun kampanyanın kendi durumunu okur (Taslak, Kuyrukta, Gönderildi · N alıcı, Gönderilemedi) ve kampanyaya bağlanır; gönderideki işaret tekrar gönderim kilidi olarak kalır. Yayında olmayan gönderide kayıt toast'ı e-postanın gitmediğini söyler | `admin-mobile-content-lists`, `admin-campaign-mail-actions` |
+| 🟢 | Ayarlar sekmeleri sekme değildi, telefonda yedisi gizli bir şeritteydi, adres sekmeyi tutmuyordu (CON-20) | ARIA sekmeleri (oklar, Home, End), `?bolum=`, `sm` altında seçim kutusu | `admin-app-config` |
+| 🟢 | Hatırlatma kimliği deseni tarayıcının v bayrağında geçersizdi; kimliksiz satır "Kaydedildi" altında kayboluyordu; hata satırı söylemiyordu (CON-21) | Kaçışlı desen; metni olan kimliksiz satır reddedilir; her mesaj "Hatırlatma n ·" ile başlar ve alanın altına düşer | `admin-app-config`, `admin-reminder-hours` |
+| 🟢 | Kayıt sonucu okunmuyordu, satırlarda adsız "Sil" ve "Düzenle" (CON-23) | `role="status"` / `role="alert"`, "Sil: <başlık>", satır menüsü başlığı taşır | `admin-mobile-content-lists` |
+| 🟢 | Yeni ve düzenleme sayfalarında geri dönüş, "Vazgeç" ve silme yoktu; fA'L listesi 200'de sessizce kesiliyordu (CON-24) | Geri bağlantısı ve "Vazgeç"; silme düzenleme başlığında, sonra listeye döner. fA'L sayıyı ve daha eski bildirim varsa bunu söyler | `admin-mobile-content-lists`, `admin-mobile-content-actions` |
+| 🟢 | Ham zemin anahtarları, "(karar 20)", yöneticiyi sahibin Ayarlar sayfasına yollayan ipuçları, "hemen kalkar" (uygulama içeriği paylaşılan önbellekten okunur: `s-maxage=60` ve `stale-while-revalidate`) (CON-25, KAR-12) | Türkçe adlar; ipuçları fiyatı ve saatleri sahibin belirlediğini söyler; silme "birkaç dakika içinde kalkar" der | `admin-mobile-content-lists`, `admin-app-config`, `admin-mobile-content-actions` |
+| 🟢 | Gönderinin üye e-postası `mobileApp` yetkisiyle çıkıyordu, kampanya sayfası ise `newsletter` ister (CON-26) | Gönderi e-postası iki yetkiyi de ister, sunucuda ve formda (karar D27). Alıcı kuralı değişmedi: yalnız ticari ileti onayı kayıtlı üyeler (`campaign_email_audience`, `marketing`) | `admin-campaign-mail-actions`, `admin-mobile-content-lists` |
+| 🟢 | Sürüm alanı Türkçe iPhone'da virgüllü ondalık klavye açıyordu; "mono" alanlar Poppins'ti (CON-27) | `inputMode="text"`; Team ID ve parmak izlerinde gerçek eşaralıklı yazı (`NUMERIC_STYLE`) | `admin-app-config` |
+| 🟢 | Gönderi e-postası bandı adreste duruyordu (`?eposta=`): yenileyince ve silmeden sonra geri geliyordu (CON-29) | Sonuç kaydın toast'ı (`setAdminFlash`, gerekirse uyarı tonu) | `admin-campaign-mail-actions` |
+
+Aynı PR'da gelenler: ayarlar ve Canlı durum kayıt çubukları kit token'larıyla,
+bölüm başlıkları kitin `Section`'ı (italik değil) (KAR-06, KAR-17); satırlarda
+"Düzenle" ve "Sil" kit satır menüsünde, haplar kit rozeti (CON-19).
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Mobil uygulama grubunun altı girişi kenar çubuğunda aynı simgeyi taşıyor (CON-19) | Giriş başına simge kabuk gezinme PR'ında (SHE-18) |
+| 🟢 | Panelde sayfa iskeleti (`admin/loading.tsx`) yok; sıra elle yazılan sayı, süresi dolan içerik için toplu aç/kapa yok (CON-24) | İskelet kabuk gezinme PR'ında; toplu işlem ve sürükle bırak bu turun dışında |
+
 ### Karaoke ve masalar (paket 3a)
 
 | Derece | Bulgu | Düzeltme | Test |

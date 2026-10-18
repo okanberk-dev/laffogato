@@ -355,7 +355,11 @@ işaretler; sonraki kayıtlar bir daha mail çıkarmaz. Kutu yalnız **yeni** bi
 kampanya gönderisinde işaretli başlar; düzenlemede her zaman kapalıdır (eski
 bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için) ve
 işaretlenirse kayıt düğmesi "tüm üyelere bir kez gidecek" diye bir kez daha
-sorar (`src/lib/admin/post-mail-default.ts`).
+sorar (`src/lib/admin/post-mail-default.ts`). Kampanya sayfası gibi `newsletter`
+yetkisi de ister (karar D27; yoksa kutu kapalıdır, action da göndermez). Ne
+olduğunu kaydın toast'ı söyler (kuyruğa alındı, kimseye gitmedi, kuyruğa
+alınamadı, gönderi yayında olmadığı için gitmedi); gönderi listesindeki
+"E-posta" sütunu kampanyanın kendi durumunu gösterir.
 
 Motor `src/lib/email/campaigns.ts`; veri `campaign_emails` +
 `campaign_email_sends`; şema ve beş plpgsql fonksiyonu (kitle, sayım, kuyruk,
