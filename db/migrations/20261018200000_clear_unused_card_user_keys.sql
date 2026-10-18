@@ -6,8 +6,8 @@
 -- payment (src/lib/mobile/karaoke-payment.ts) minted one for every member
 -- who paid there. No card sits under any of them: the key reaches PayNkolay
 -- only while card storage is on (`cardStorageEnabled`, paynkolay.ts), and
--- the operator confirmed before this shipped that PAYNKOLAY_CARD_STORAGE was
--- never on in production (OP-28). Since 18 Ekim 2026 the legal texts name no
+-- Vercel's environment list (read 18 Ekim 2026) has no PAYNKOLAY_CARD_STORAGE
+-- in any environment, so storage was never on in production (OP-28). Since 18 Ekim 2026 the legal texts name no
 -- saved card and no path mints a key while storage is off, so a stored key is
 -- personal data no notice names (KVKK m.4/2-ç, m.10; Aydınlatma Tebliği
 -- m.5/1-j). Cleared here, once.

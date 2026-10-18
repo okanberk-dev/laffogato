@@ -1623,7 +1623,9 @@ kayıtlı kartı anlatmadıkça sunucu kart saklamayı açmaz ve anahtar üretme
   Production'da `PAYNKOLAY_CARD_STORAGE`'ın hiç açık olmadığını teyit eder
   (OP-28). Bir kez bile açık olduysa önce her anahtar için PayNkolay'da kart
   listesi okunur, kart çıkarsa silinir (`deleteAllSavedCards`), sonra kolon
-  boşaltılır.
+  boşaltılır. Doğrulandı (18 Eki 2026): Vercel ortam listesinde
+  `PAYNKOLAY_CARD_STORAGE` hiçbir ortamda (production, preview, development)
+  tanımlı değil; kart saklama hiç açılmadı.
 - Testler: `tests/legal-docs.test.ts` sabit `false` iken hiçbir belgede
   "kart saklama", "kayıtlı kart", "üye anahtarı", "müşteri anahtarı",
   "sonraki ödemeler için kaydet" geçmesine izin vermez;
