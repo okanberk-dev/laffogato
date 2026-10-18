@@ -278,7 +278,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                         {member.emailVerified ? (
                           <Badge tone="success">Doğrulanmış</Badge>
                         ) : (
-                          <Badge tone="warning">Doğrulanmamış</Badge>
+                          <Badge tone="accent">Doğrulanmamış</Badge>
                         )}
                       </span>
                     ),
