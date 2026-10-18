@@ -6,7 +6,7 @@ import type { HomeHeroSlideInput } from "@/lib/admin/home-hero-core";
 import { createHomeSlideAction } from "../actions";
 import { HomeSlideForm } from "../slide-form";
 
-export const metadata = { title: "Yeni anasayfa slaytı · Admin" };
+export const metadata = { title: "Admin · Yeni anasayfa slaytı" };
 export const dynamic = "force-dynamic";
 
 export default async function NewHomeSlidePage() {
