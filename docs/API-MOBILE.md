@@ -942,7 +942,7 @@ akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `paymentStatus`    | `none` (köşkte ödeme; eski kayıtlar) · `pending` (ödeme bekliyor, saat tutuluyor) · `paid` · `refunding` (iade sonucu bekleniyor) · `refunded` · `expired` (ödenmedi, düştü) |
 | `paymentDueAt`     | `pending` iken ödeme sayfasının kapandığı an (ISO), yoksa `""`                                                                                                               |
-| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (başlangıçtan 2 saat önce, ISO)                                                                                        |
+| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (rezervasyonun kendi kuralı; eski satırda başlangıçtan 2 saat önce, ISO; aşağıda "İptal ve iade kuralı panelden") |
 
 `status` üç değerini korur: `pending` rezervasyon `requested`'dır (saati tutar,
 2 açık rezervasyon sınırına sayılır), `refunded` ve `expired` her zaman
@@ -995,6 +995,52 @@ bölümünden aynı iptali yapar. Hesap silinince (`DELETE /me`) başlangıca 2
 saatten fazla olan ödenmiş rezervasyonlar karta iade edilerek iptal edilir; 2
 saatten az kalanlara iade yapılmaz, rezervasyon kalır ve ekibe haber gider.
 Üyeliksiz rezervasyonlar hesap silmeden etkilenmez.
+
+**İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para
+tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar →
+Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (0..72 saat,
+varsayılan 2; 0 = ücretsiz iptal yok, rezervasyondan sonraki her iptal geç
+iptal) ve geç iptalde iade `lateRefundPercent` (0..100, varsayılan 0). Süreden
+önceki iptal her zaman tamamını iade eder; gelmeyene iade yoktur; köşkün
+iptali her zaman tam iadedir (MSY m.16/4). Her rezervasyon yapıldığı andaki
+kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+`"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
+varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
+
+- `GET /karaoke/availability`: `freeCancelHours` ve `cancellationRules` artık
+  **şu an yapılacak** rezervasyonun kuralıdır. Yeni alan `lateRefundPercent`
+  (tam sayı). Varsayılan kuralda iki cümle yukarıdakilerle bayt bayt aynıdır.
+- Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
+  anıdır (eski satırda başlangıçtan 2 saat önce). Yeni alanlar:
+  `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
+  anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
+  da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`).
+- `POST /karaoke/reservations/{id}/cancel`: süre içinde (`cancellableUntil`
+  geçti) ve başlangıçtan önce, `lateRefundPercent` 0 ise eskisi gibi **409**
+  `too_late`. 100 ise tamamı POS'tan iade edilir (**200**, `refunded: true`).
+  1..99 ise rezervasyon iptal edilir ve saat boşalır, pay
+  `round(paidMinor × P / 100)` olarak borçlanır: **200** `refunded: false`,
+  `reservation.status: "cancelled"`, `paymentStatus: "refunding"`,
+  `refundMinor` dolu. PayNkolay kısmi iadeyi otomatik yapamadığı için ekip payı
+  PayNkolay panelinden iade eder ve "Elle iade edildi" ile kaydeder; o zaman
+  `paymentStatus: "refunded"` olur ve üyeye e-posta gider (docs/PAYNKOLAY.md
+  §3.2). Başlangıçtan sonra her üye iptali `too_late`'tir. `too_late`
+  mesajı rezervasyonun kendi kuralından gelir; varsayılan kuralda aynı cümle.
+  Hata kodları ve durum kodları değişmedi.
+- **Uygulama kilidi.** Yayındaki uygulama sürümleri rezervasyon ayrıntısında
+  ve iptal adımında kendi sabit "2 saat, iade yok" cümlelerini yazıyor,
+  `cancellableUntil` geçince iptal düğmesi sunmuyor (`cancelOutcome` `late`) ve
+  `freeCancelHours`'u 1..168 dışında 2 okuyor; istekleri de sunucunun
+  ayırabileceği bir sürüm bilgisi taşımıyor. Bu yüzden sitedeki
+  `KARAOKE_POLICY_APP_VERSION` (`src/lib/mobile/karaoke-time.ts`) `null`
+  kaldıkça panel yalnız 2 saat / %0 kaydeder ve her rezervasyon 2 / 0 ile
+  yapılır: hiçbir istemci rezervasyonun kuralından farklı bir kural göstermez.
+  Kilit, rezervasyonun kendi `cancellationRules`'unu her karaoke ekranında
+  basan ve geç iptal payını gösteren sürüm yayınlanıp bu sabite yazılınca ve
+  `minSupportedAppVersion` o sürüme çıkınca açılır.
+- Hesap silinince (`DELETE /me`) yukarıdaki kural rezervasyonun kendi
+  kuralıyla uygulanır: süreden önce tam iade, süre içinde geç iptal payı
+  (`lateRefundPercent` 0 ise iade yok, rezervasyon kalır, ekibe haber gider).
 
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)

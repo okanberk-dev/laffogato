@@ -401,6 +401,24 @@ describe("the wire shape (§7.1, additive)", () => {
       refundMinor: null,
     });
   });
+
+  it("is written down in the contract the app reads (API-MOBILE §7.1)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const doc = readFileSync("docs/API-MOBILE.md", "utf8");
+    const section = doc.slice(
+      doc.indexOf("**İptal ve iade kuralı panelden (18 Eki 2026"),
+      doc.indexOf("## 8. Bildirimler"),
+    );
+    for (const field of [
+      "`lateRefundPercent`",
+      "`freeCancelHours`",
+      "`cancellationRules`",
+      "`refundMinor`",
+      "`KARAOKE_POLICY_APP_VERSION`",
+    ]) {
+      expect(section, field).toContain(field);
+    }
+  });
 });
 
 describe("the karaoke document under a policy (karar D11)", () => {
