@@ -489,6 +489,14 @@ export interface AdminSettings {
    */
   taxRates: TaxRates;
 
+  /**
+   * The day the cafe menu's prices started to apply, as the Istanbul
+   * calendar day "YYYY-MM-DD"; '' = not entered (src/lib/menu/price-list.ts).
+   * /menu and /masa/<kod> print it under the menu (Fiyat Etiketi Yön.
+   * m.5/2-d). Presentation only: no price is read from it.
+   */
+  menuPricesEffectiveDate: string;
+
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
   shippingFreeThresholdMinor: number;
@@ -753,6 +761,9 @@ function defaultSettings(): AdminSettings {
     heroImageUrl: "",
     weeklyHours: defaultWeeklyHours(),
     taxRates: { ...LEGAL_TAX_RATES },
+    // 20261018210200_menu_prices_effective_date.sql gives the column the
+    // same default: not entered until the operator says the day.
+    menuPricesEffectiveDate: "",
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A

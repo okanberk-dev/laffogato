@@ -411,11 +411,15 @@ describe("the menu page's allergen count", () => {
           { allergens: ["sut"] },
           {},
         ],
+        priceDate: "",
       }),
     );
     expect(html).toContain("Alerjeni girilmemiş kalem: 2 / 4.");
     const done = renderToStaticMarkup(
-      createElement(MenuFoodInfoStatus, { items: [{ allergens: [] }] }),
+      createElement(MenuFoodInfoStatus, {
+        items: [{ allergens: [] }],
+        priceDate: "2026-10-18",
+      }),
     );
     expect(done).toContain("Alerjenler bütün kalemlerde girildi (1 / 1).");
   });
