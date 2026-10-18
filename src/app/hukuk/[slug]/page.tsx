@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LegalMarkdown } from "@/lib/legal/markdown";
+import { liveLegalDoc } from "@/lib/legal/karaoke-doc";
 import { getPublishedLegalOverride } from "@/lib/legal/store";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
@@ -45,7 +46,8 @@ export default async function LegalDocPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const doc = findLegalDoc(slug);
+  // The karaoke terms are written for the panel's cancellation policy.
+  const doc = await liveLegalDoc(slug);
   if (!doc) notFound();
 
   // Admin override (published + non-empty) replaces the coded default content.

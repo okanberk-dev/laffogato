@@ -1,3 +1,9 @@
+import {
+  DEFAULT_KARAOKE_CANCEL_POLICY,
+  samePolicy,
+  type KaraokeCancelPolicy,
+} from "@/lib/mobile/karaoke-time";
+
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "./meta";
 
 /**
@@ -120,4 +126,24 @@ export function consentVersionFrom(
     }
   }
   return version;
+}
+
+/**
+ * The karaoke document's version once its cancellation rule is rendered from
+ * the panel's policy (P2a, 18 Eki 2026; `karaokeRoomDocFor`): `base` (the
+ * coded revision, or a later live override), moved to the Istanbul day the
+ * policy last changed when the policy in force is not the default. The
+ * default renders the coded text word for word, so it keeps the coded
+ * label; another policy is another text, dated by its save.
+ */
+export function karaokePolicyVersion(
+  base: string,
+  policy: KaraokeCancelPolicy,
+  policyChangedAt: string | undefined,
+): string {
+  if (samePolicy(policy, DEFAULT_KARAOKE_CANCEL_POLICY)) return base;
+  const label = istanbulDayLabel(policyChangedAt ?? "");
+  const day = label === null ? null : legalDayNumber(label);
+  if (label === null || day === null) return base;
+  return day > (legalDayNumber(base) ?? 0) ? label : base;
 }
