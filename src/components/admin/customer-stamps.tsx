@@ -69,7 +69,7 @@ export function CustomerStamps({
   return (
     <Card className="grid gap-4">
       <h2
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         Sadakat · {loyalty.tierLabel}
@@ -88,7 +88,7 @@ export function CustomerStamps({
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Damga ekle (kasa)
@@ -108,7 +108,7 @@ export function CustomerStamps({
       {canReverse && (
         <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4">
           <h3
-            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+            className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Damga geri al (düzeltme)
@@ -134,13 +134,15 @@ export function CustomerStamps({
 
       <div className="border-t border-[var(--admin-border)] pt-4">
         <h3
-          className="mb-2 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Damga geçmişi ({history.length})
         </h3>
         {history.length === 0 ? (
-          <p className="text-sm text-neutral-400">Henüz damga yok.</p>
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Henüz damga yok.
+          </p>
         ) : (
           <ul className="grid gap-1.5">
             {history.slice(0, 30).map((s) => (
@@ -148,10 +150,12 @@ export function CustomerStamps({
                 key={s.id}
                 className="flex items-center justify-between gap-2 text-xs"
               >
-                <span className="min-w-0 truncate text-neutral-700">
+                <span className="min-w-0 truncate text-[var(--admin-text)]">
                   <span
                     className={
-                      s.kind === "earn" ? "text-green-700" : "text-rose-700"
+                      s.kind === "earn"
+                        ? "text-[var(--admin-success)]"
+                        : "text-[var(--admin-danger-ink)]"
                     }
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
@@ -162,7 +166,7 @@ export function CustomerStamps({
                   {s.actor ? ` · ${s.actor}` : ""}
                 </span>
                 <span
-                  className="shrink-0 text-neutral-400"
+                  className="shrink-0 text-[var(--admin-text-soft)]"
                   style={{ fontFamily: "var(--mono), monospace" }}
                 >
                   {formatDateTime(s.createdAt)}
@@ -180,13 +184,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--admin-border)] p-2">
       <div
-        className="text-[9px] tracking-[0.18em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {label}
       </div>
       <div
-        className="mt-0.5 text-base text-neutral-900"
+        className="mt-0.5 text-base text-[var(--admin-text)]"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {value}

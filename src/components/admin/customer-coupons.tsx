@@ -7,6 +7,7 @@ import {
   revokeCustomerCouponAction,
   type CouponGrantState,
 } from "@/app/admin/musteriler/actions";
+import type { AdminTone } from "@/lib/admin/tone";
 import { couponStatus, type CustomerCoupon } from "@/lib/customer/coupon-utils";
 
 import {
@@ -23,15 +24,17 @@ import {
   TextInput,
   formatTRY,
 } from "./forms";
-import { ConfirmButton } from "./ui";
+import { Badge, ConfirmButton } from "./ui";
 
 const initial: CouponGrantState = {};
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active: { label: "Hazır", cls: "bg-green-50 text-green-700" },
-  redeemed: { label: "Kullanıldı", cls: "bg-neutral-100 text-neutral-500" },
-  expired: { label: "Süresi doldu", cls: "bg-neutral-100 text-neutral-500" },
-  inactive: { label: "Pasif", cls: "bg-neutral-100 text-neutral-500" },
+// Kit tones (AA on their ground, tests/admin-ui-kit.test.ts); the grey
+// pills they replace were 4.34:1 (PEO-17).
+const STATUS_BADGE: Record<string, { label: string; tone: AdminTone }> = {
+  active: { label: "Hazır", tone: "success" },
+  redeemed: { label: "Kullanıldı", tone: "neutral" },
+  expired: { label: "Süresi doldu", tone: "neutral" },
+  inactive: { label: "Pasif", tone: "neutral" },
 };
 
 export function CustomerCoupons({
@@ -61,14 +64,16 @@ export function CustomerCoupons({
   return (
     <Card className="grid gap-4">
       <h2
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         Kuponlar ({coupons.length})
       </h2>
 
       {coupons.length === 0 ? (
-        <p className="text-sm text-neutral-400">Bu üyeye tanımlı kupon yok.</p>
+        <p className="text-sm text-[var(--admin-text-soft)]">
+          Bu üyeye tanımlı kupon yok.
+        </p>
       ) : (
         <ul className="grid gap-2">
           {coupons.map((c) => {
@@ -76,16 +81,16 @@ export function CustomerCoupons({
             return (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-2.5"
+                className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border)] p-2.5"
               >
                 <div className="min-w-0">
                   <div
-                    className="text-sm font-medium text-neutral-900"
+                    className="text-sm font-medium text-[var(--admin-text)]"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {c.code}
                   </div>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-xs text-[var(--admin-text-soft)]">
                     {c.kind === "pct" ? `%${c.value}` : formatTRY(c.value)}{" "}
                     indirim
                     {c.minSubtotalMinor > 0 &&
@@ -93,11 +98,7 @@ export function CustomerCoupons({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.16em] uppercase ${badge.cls}`}
-                  >
-                    {badge.label}
-                  </span>
+                  <Badge tone={badge.tone}>{badge.label}</Badge>
                   {/* A stamp-card or milestone coupon is never deleted (its
                       card would lose its coupon and give the stamps back):
                       unused ones are deactivated, used or inactive ones have
@@ -133,7 +134,7 @@ export function CustomerCoupons({
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Yeni kupon tanımla
