@@ -47,24 +47,19 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    // 17 Ekim 2026: the checkout documents' KDV wording changed (rates by
-    // product), so the consent version moved with them and the set with it.
-    expect(LEGAL_UPDATED).toBe("17 Ekim 2026");
+    // 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in
+    // force since 1 Ocak 2026 and stop describing saved cards, and every
+    // document cites the e-commerce regulation by its current title. The
+    // consent version moved with the checkout documents, the set with it.
+    expect(LEGAL_UPDATED).toBe("18 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
-    // Empty on 16 Ekim 2026: every document changed that day. Add a document
-    // here, with its date, when only it changes later.
+    // Empty on 16 and again on 18 Ekim 2026: every coded document changed
+    // those days (on the 18th the e-commerce regulation's title in 23, the
+    // saved-card passages in the other two). Add a document here, with its
+    // date, when only it changes later.
     const expected: Record<string, string> = {
-      // fA'L's AI recipient became Anthropic, PBC (R12 and the two privacy texts).
-      // 18 Ekim 2026: on the Site an account is deleted by the team on the
-      // member's request; the four texts that described deletion say so.
-      "gizlilik-politikasi": "18 Ekim 2026",
-      "hesap-silme": "18 Ekim 2026",
-      "uyelik-sozlesmesi": "18 Ekim 2026",
-      "kvkk-basvuru-formu": "18 Ekim 2026",
-      "kvkk-aydinlatma-metni": "17 Ekim 2026",
-      "acik-riza-metni": "17 Ekim 2026",
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,

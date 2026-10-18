@@ -1136,11 +1136,26 @@ detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
 dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
 durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
 
-**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on`. PayNkolay kart saklamayı üye
-işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da istedi. Yetki
-gelene kadar değişken boş kalır: yüke üye anahtarı girmez, kayıtlı kart
-listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez. Yetki
-gelince Vercel'de `on` yapılıp yeniden yayınlanır.
+**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on` **ve**
+`SAVED_CARDS_IN_LEGAL_TEXTS = true` (`src/lib/legal/meta.ts`). PayNkolay kart
+saklamayı üye işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da
+istedi. İkisinden biri kapalıyken: yüke üye anahtarı girmez, kayıtlı kart
+listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez ve
+uygulama siparişi ya da karaoke ödemesi üye anahtarı **üretmez**
+(`provider.cardStorageEnabled`; web ödemesi bunu zaten soruyordu).
+
+18 Eki 2026'dan beri hukuk metinleri kayıtlı kartı anlatmıyor (kart
+saklanmadığı hâlde "özellik açıldığında" diye anlatıyorlardı; Aydınlatma
+Tebliği m.5/1-j). Kaldırılan pasajlar `docs/LEGAL-REDLINES-2026-09.md`
+§19'da olduğu gibi durur. Yetki gelince açma sırası:
+
+1. Aynı PR'da: §19'daki metinler `content.ts`'e geri gelir (tarihler ve
+   `LEGAL_UPDATED` yayın gününe), `SAVED_CARDS_IN_LEGAL_TEXTS = true`,
+   `tests/legal-docs.test.ts` bunu tutar.
+2. O PR yayına girer; metin, ilk kart kaydedilmeden önce yayımda olur
+   (Aydınlatma Tebliği m.5/1-b: aydınlatma işlemeden önce).
+3. Ancak sonra Vercel'de `PAYNKOLAY_CARD_STORAGE=on` yapılıp yeniden
+   yayınlanır. Değişken tek başına hiçbir şeyi açmaz.
 
 ### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
 
@@ -1172,8 +1187,16 @@ CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
 ### 16.2 Bizdeki karşılığı
 
 - Anahtar `customers."cardUserKey"`'de (sütun zaten vardı, hiç dolmamıştı).
-  Üyenin ilk ödemesinde `ensureCardUserKey` üretir; karşılaştır-ve-yaz ile
-  yazılır, aynı anda açılan iki ödeme tek anahtarda buluşur.
+  Kart saklama açıkken üyenin ilk ödemesinde `ensureCardUserKey` üretir;
+  karşılaştır-ve-yaz ile yazılır, aynı anda açılan iki ödeme tek anahtarda
+  buluşur. Kapalıyken hiçbir yol anahtar üretmez.
+- Kart saklama hiç açılmadan üretilmiş anahtarlar (18 Eki 2026'ya kadar
+  uygulama siparişi ve üye karaoke ödemesi her üyeye üretiyordu)
+  `20261018200000_clear_unused_card_user_keys.sql` ile bir kez boşaltılır
+  (`updatedAt` değişmez). Ön şart: Production'da `PAYNKOLAY_CARD_STORAGE`
+  hiç açık olmadı (OP-28). Bir kez bile açık olduysa migration'dan önce her
+  anahtar için PayNkolay'da kart listesi okunur, kart çıkarsa
+  `deleteAllSavedCards` ile silinir.
 - Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
   girmez: ortak ödeme sayfasında `customerKey` boş kalır.
 - Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla

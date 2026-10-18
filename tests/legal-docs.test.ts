@@ -15,6 +15,7 @@ import {
   fillTokens,
   hasEmptyToken,
 } from "@/lib/legal/entity";
+import { SAVED_CARDS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 import { FOOTER_LEGAL_DOCS } from "@/lib/legal/nav";
 
 /**
@@ -314,5 +315,282 @@ describe("legal metadata is separable from the contracts", () => {
     for (const doc of LEGAL_DOCS) {
       expect(known.has(doc.category)).toBe(true);
     }
+  });
+});
+
+/** Every rendered string of a document, tokens filled, with its locator. */
+function docTexts(slug?: string): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  for (const d of LEGAL_DOCS) {
+    if (slug && d.slug !== slug) continue;
+    out.push([`${d.slug}.summary`, d.summary]);
+    for (const r of d.references ?? []) out.push([`${d.slug}.references`, r]);
+    for (const s of d.sections) {
+      const at = `${d.slug} · ${s.heading}`;
+      out.push([at, s.heading]);
+      for (const t of [
+        ...(s.paragraphs ?? []),
+        ...(s.bullets ?? []),
+        ...(s.ordered ?? []),
+      ]) {
+        out.push([at, t]);
+      }
+      for (const r of s.table ?? []) out.push([at, `${r.key}: ${r.value}`]);
+    }
+  }
+  return out;
+}
+
+function sectionOf(slug: string, heading: string) {
+  const s = findLegalDoc(slug)?.sections.find((x) => x.heading === heading);
+  expect(s, `${slug} · ${heading}`).toBeDefined();
+  return s!;
+}
+
+describe("legal content - distance sales after the 1 Ocak 2026 amendment", () => {
+  // Mesafeli Sözleşmeler Yönetmeliği as amended (RG 24.05.2025-32909, in
+  // force 1.1.2026): the goods go back within 14 days (m.13/1), no return
+  // cost may be asked when the pre-information names no carrier (m.12/5),
+  // and the pre-information names the mediation step (m.5/1-k). Decided on
+  // 18 Ekim 2026 (ASK-OTH-2, OP-RETURN-CARRIER); LEGAL-REDLINES §18.
+  const returnContext = /iade|cayma|geri gönder/i;
+
+  it("gives 14 days, never 10, to send the goods back", () => {
+    for (const [where, text] of docTexts()) {
+      if (!returnContext.test(text)) continue;
+      expect(text, where).not.toMatch(/(?<!\d)10 gün|10 \(on\)|on \(10\)/);
+      expect(text, where).not.toMatch(/(?<![\p{L}\d])on gün/u);
+    }
+    const obf = sectionOf(
+      "on-bilgilendirme-formu",
+      "13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
+    );
+    expect(obf.paragraphs?.[0]).toMatch(
+      /^ALICI, cayma bildirimini yaptığı tarihten itibaren 14 \(on dört\) gün içinde malı/,
+    );
+    expect(obf.table).toContainEqual({
+      key: "Malı geri gönderme süresi",
+      value: "Cayma bildiriminden itibaren 14 gün",
+    });
+  });
+
+  it("asks no return shipping cost: no carrier is named", () => {
+    const obf = sectionOf(
+      "on-bilgilendirme-formu",
+      "13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
+    );
+    expect(obf.paragraphs?.[1]).toContain(
+      "Bu formda iade için bir taşıyıcı adlandırılmadığından iade kargo bedeli ALICI'dan talep edilmez",
+    );
+    expect(obf.table).toContainEqual({
+      key: "İade taşıyıcısı",
+      value:
+        "İade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez",
+    });
+    for (const [where, text] of docTexts()) {
+      if (!returnContext.test(text)) continue;
+      expect(text, where).not.toMatch(/anlaşmalı (olmayan )?taşıyıcı/i);
+      expect(text, where).not.toMatch(/Masraf Alıcı'ya aittir/);
+      if (/kargo|taşıyıcı|gönderi/i.test(text)) {
+        expect(text, where).not.toMatch(/aradaki (masraf )?fark/i);
+      }
+    }
+    // Nor through the back door of a partial return under the free-shipping
+    // threshold (m.12/1: every payment, delivery included, comes back).
+    for (const [where, text] of docTexts()) {
+      if (!/eşi[ğk]/i.test(text) || !/kısmi iade/i.test(text)) continue;
+      expect(text, where).not.toMatch(
+        /kargo bedeli[^.]{0,60}mahsup edilebilir/,
+      );
+    }
+  });
+
+  it("holds the goods to MSY m.13/2, not to resale, box or invoice", () => {
+    for (const [where, text] of docTexts()) {
+      expect(text, where).not.toMatch(/satılabilir/i);
+      expect(text, where).not.toMatch(
+        /ticari değerini yitirmeden|^Kabul edilmez:|ambalajı açılmamış olsa dahi/,
+      );
+    }
+    const obf = sectionOf(
+      "on-bilgilendirme-formu",
+      "13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
+    );
+    expect(obf.paragraphs?.[0]).toContain(
+      "faturanın geri gönderilmesi gerekmez",
+    );
+    const perishable = sectionOf(
+      "on-bilgilendirme-formu",
+      "12. Cayma Hakkının Kullanılamayacağı Hâller",
+    ).bullets?.[0];
+    // A sealed box of waffle cups is not "çabuk bozulabilen" (m.15/1-c).
+    expect(perishable).not.toMatch(/waffle/i);
+  });
+
+  it("names the mediation step before the consumer court (TKHK m.73/A)", () => {
+    const obf = sectionOf(
+      "on-bilgilendirme-formu",
+      "21. Şikâyet, İtiraz ve Uyuşmazlıkların Çözümü",
+    );
+    expect(obf.paragraphs?.[1]).toContain(
+      "6502 sayılı Kanun'un 73/A maddesi uyarınca dava açmadan önce arabulucuya başvurmak şartıyla tüketici mahkemesine başvurabilir",
+    );
+    const mss = findLegalDoc("mesafeli-satis-sozlesmesi")!.sections.find((s) =>
+      s.heading.startsWith("19."),
+    );
+    expect(mss?.paragraphs).toContain(
+      "Tüketici mahkemesinde dava açmadan önce arabulucuya başvurmak 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur; tüketici hakem heyetinin görevine giren uyuşmazlıklarda bu şart aranmaz.",
+    );
+    expect(JSON.stringify(LEGAL_DOCS)).not.toContain(
+      "arabuluculuk kurumu aracılığıyla çözümlenmesi hususunda",
+    );
+  });
+
+  it("ships only within Türkiye (MSY m.6/2-b)", () => {
+    const region = sectionOf("teslimat-ve-kargo", "16. Teslimat Bölgesi");
+    expect(region.paragraphs).toEqual([
+      "Online mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine gönderilir; KKTC'ye ve yurt dışına gönderim yapılmaz.",
+    ]);
+    expect(region.bullets ?? []).toEqual([]);
+    for (const [where, text] of docTexts()) {
+      if (/KKTC|Kıbrıs/.test(text)) {
+        // Only to say there is no such delivery, or about a complaint sent
+        // from abroad.
+        expect(text, where).toMatch(/gönderim yapılmaz|başvuru/);
+      }
+      expect(text, where).not.toMatch(
+        /yurt dışı (teslimat|gönderi)|yurt dışına (sevk|gönderilir)|gümrük vergi/i,
+      );
+    }
+  });
+
+  it("cites the e-commerce regulation by its current title", () => {
+    // The 2015 regulation was repealed by m.34 of the one published on
+    // 29.12.2022 (RG 32058).
+    const all = JSON.stringify(LEGAL_DOCS);
+    expect(all).not.toContain(
+      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar",
+    );
+    expect(all).toContain(
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
+    );
+    expect(all).not.toMatch(/26\.08\.2015/);
+  });
+});
+
+describe("legal content - no saved cards", () => {
+  // Card storage was never turned on (rule 28), yet 42 sentences in 14
+  // documents described it "once it is turned on": a member key, the last
+  // four digits, a nickname, deletion at PayNkolay. A notice may not suggest
+  // processing that does not happen (Aydınlatma Tebliği m.5/1-g, j), and the
+  // server minted the member key anyway. The passages are kept word for word
+  // in docs/LEGAL-REDLINES-2026-09.md §19; they come back in the PR that
+  // flips SAVED_CARDS_IN_LEGAL_TEXTS, and the server gate reads that flag
+  // (tests/saved-cards.test.ts).
+  const savedCard =
+    /kart saklama|kayıtlı kart|üye anahtarı|müşteri anahtarı|sonraki ödemeler için kaydet/i;
+
+  it("describes no saved card while the texts say they are off", () => {
+    expect(SAVED_CARDS_IN_LEGAL_TEXTS).toBe(false);
+    for (const [where, text] of docTexts()) {
+      expect(text, where).not.toMatch(savedCard);
+    }
+  });
+
+  it("says in the payment documents that the card is not kept", () => {
+    const kept = /sonraki ödemeler için (PayNkolay nezdinde de )?kaydedilmez/;
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+      "odeme-kosullari",
+      "uyelik-sozlesmesi",
+      "mobil-uygulama-kosullari",
+      "kafe-hizmet-kosullari",
+    ]) {
+      expect(
+        docTexts(slug).some(([, text]) => kept.test(text)),
+        slug,
+      ).toBe(true);
+    }
+  });
+});
+
+describe("legal content - a documented return shipping cost is paid back", () => {
+  // The texts promise that a buyer who sends the return with another carrier
+  // gets the receipted cost back (MSY m.12/5: no carrier is named, so no
+  // return cost may be asked). That money cannot ride on the card refund: a
+  // full withdrawal already refunds everything collected, refundRefusal caps
+  // the ledger at it and the POS cannot refund above the payment. So the
+  // texts say it goes to the buyer's own bank account, and every notice that
+  // lists the bank account details names this purpose too (KVKK m.4/2-c
+  // and m.10/1-b: no processing for a purpose the notice does not name).
+  // LEGAL-REDLINES §18.6.
+  const promise =
+    /gönderim bedeli (SATICI|Satıcı) tarafından (ALICI'ya )?geri ödenir/;
+
+  function sentencesOf(slug: string, heading: string): string[] {
+    return docTexts(slug)
+      .filter(([where]) => where === `${slug} · ${heading}`)
+      .flatMap(([, text]) => text.split(/(?<=\.)\s+(?=[A-ZÇĞİÖŞÜ])/u));
+  }
+
+  it("says how and when the cost is paid wherever it is promised", () => {
+    const promised = new Set(
+      docTexts()
+        .filter(([, text]) => promise.test(text))
+        .map(([where]) => where),
+    );
+    expect([...promised].sort()).toEqual([
+      "iade-ve-cayma · 9. İade Kargo Masrafının Kime Ait Olduğu",
+      "mesafeli-satis-sozlesmesi · 11. Cayma Hakkı",
+      "on-bilgilendirme-formu · 13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
+      "teslimat-ve-kargo · 19. Cayma Hakkı Kapsamında İade Gönderilerinde Kargo Düzeni",
+    ]);
+    for (const where of promised) {
+      const [slug, heading] = where.split(" · ");
+      const how = sentencesOf(slug, heading).find(
+        (s) =>
+          /gönderim bedel/.test(s) &&
+          /kendi adına(?:za)? kayıtlı/.test(s) &&
+          /banka hesabına havale veya EFT ile ödenir/.test(s),
+      );
+      expect(how, where).toBeDefined();
+      expect(how, where).toMatch(
+        /ulaşmasından itibaren 14 \(on dört\) gün içinde/,
+      );
+      expect(how, where).toMatch(/karta iade edilmez/);
+    }
+  });
+
+  it("names that purpose wherever the bank account details are processed", () => {
+    const bankData = /banka hesap bilgisi|IBAN bilgisi|IBAN'ı|adı ve IBAN/;
+    let seen = 0;
+    for (const [where, text] of docTexts()) {
+      if (!bankData.test(text)) continue;
+      // A supplier's account, and the sentence that only adds "bu amaçla"
+      // to the partial refund just before it, are not this processing.
+      if (/Tedarikçi/.test(text) || /[Bb]u amaçla bildirdiğiniz/.test(text)) {
+        continue;
+      }
+      seen++;
+      expect(text, where).toMatch(/gönderim bedel/);
+    }
+    expect(seen).toBeGreaterThanOrEqual(11);
+    const purpose = sectionOf(
+      "kvkk-aydinlatma-metni",
+      "7. Kişisel Verilerin İşlenme Amaçları",
+    ).bullets?.find((b) => b.startsWith("Cayma hakkı ve iade süreçleri:"));
+    expect(purpose).toMatch(/gönderim bedelinin ödenmesi/);
+  });
+
+  it("keeps the payment terms' bank transfer list to the two cases", () => {
+    const transfer = sectionOf(
+      "odeme-kosullari",
+      "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
+    ).paragraphs?.[1];
+    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca iki hâlde/);
+    expect(transfer).toMatch(/22\. maddede açıklanan istisnai hâlde/);
+    expect(transfer).toMatch(/gönderim bedelinin ödenmesi/);
+    expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
   });
 });

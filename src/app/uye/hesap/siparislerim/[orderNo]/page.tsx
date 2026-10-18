@@ -217,7 +217,7 @@ export default async function OrderDetailPage({
           }}
         >
           {consent
-            ? "Siparişini verirken onayladığın belgeler - kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
+            ? "Siparişini verirken onayladığın belgeler. Bağlantılar belgelerin güncel metnini açar."
             : "Siparişlerine uygulanan sözleşme ve politikalar:"}
         </p>
         <ul

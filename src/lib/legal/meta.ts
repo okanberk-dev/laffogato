@@ -19,9 +19,28 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-// 17 Ekim 2026: the KDV wording of the two checkout documents changed (rates
-// by product: 1, 10, 20; shipping follows the goods). LEGAL-REDLINES §16.
-export const LEGAL_UPDATED = "17 Ekim 2026";
+// 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in force
+// since 1 Ocak 2026 (14-day return, no return cost, mediation, Türkiye only)
+// and stop describing saved cards; 23 documents cite the e-commerce
+// regulation by its current title and the other two lose their saved-card
+// passages, so the whole set carries this day.
+// LEGAL-REDLINES §18 and §19. (17 Ekim 2026: KDV by product, §16.)
+export const LEGAL_UPDATED = "18 Ekim 2026";
+
+/**
+ * Whether the legal texts describe saved cards (PayNkolay's card storage,
+ * docs/PAYNKOLAY.md §16). They do not since 18 Ekim 2026: the passages that
+ * said "kart saklama özelliği açıldığında ..." are kept in
+ * docs/LEGAL-REDLINES-2026-09.md §19, to come back word for word.
+ *
+ * The payment provider ANDs this with `PAYNKOLAY_CARD_STORAGE`, so the env
+ * switch alone cannot turn card storage on, and no member key is minted
+ * while it is off. Flip it only in the PR that restores those texts, and
+ * publish that text before the first card is saved (Aydınlatma Tebliği
+ * m.5/1-b: the notice comes before the processing). tests/legal-docs.test.ts
+ * holds the texts to this value.
+ */
+export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
 
 /**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori

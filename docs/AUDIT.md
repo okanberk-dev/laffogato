@@ -956,3 +956,30 @@ Açık:
 Ayarlar sekmeleri `method="post"` ile kalır (paket 7a): erken basış gövdeyle
 sayfaya POST'tur, adrese bir şey yazılmaz. Kart formları (`paynkolay-page.ts`,
 `card-payment.tsx`) kendi `action`'lı POST'larıdır, dokunulmadı.
+
+### Hukuk: mesafeli satış 2026 ve kayıtlı kart metni (18 Eki 2026)
+
+Mesafeli Sözleşmeler Yönetmeliği'nin 1 Ocak 2026'da yürürlüğe giren
+değişikliği (RG 24.05.2025-32909) ve hiç açılmamış kart saklamayı anlatan
+metinler. Avukat turu yok (operatör, 18 Eki 2026); kararlar, dayanaklar ve
+cümle cümle eski/yeni metin `docs/LEGAL-REDLINES-2026-09.md` §18-§19.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟠 | Malı geri gönderme süresi 10 gündü (MSY m.13/1: 14 gün) | ÖBF, MSS, İade ve Cayma, Teslimat ve Kargo: 14 gün | `legal-docs` |
+| 🟠 | İade kargosu "bildirilen firmayla" ücretsizdi, başka firmada fark alıcıdaydı; ÖBF taşıyıcı adlandırmıyordu (m.12/5: o zaman hiç bedel istenemez) | İade kargo bedeli hiçbir hâlde istenmez: ücretsiz iade kodu, başka kargonun belgeli bedeli geri ödenir, karşı ödemeli iade alınır, kısmi iadede kargo kesilmez, yol riski satıcıda | `legal-docs` |
+| 🟠 | Kart saklama hiç açılmadan 14 belgede 42 cümle kayıtlı kartı ve üye anahtarını anlatıyordu; uygulama siparişi ve üye karaoke ödemesi her üyeye anahtar üretiyordu | Pasajlar kalktı ("kart sonraki ödemeler için kaydedilmez"); `SAVED_CARDS_IN_LEGAL_TEXTS = false` kart saklamayı değişkenden bağımsız kapalı tutar; anahtar yalnız `cardStorageEnabled` iken üretilir; üretilmişler migration `20261018200000` ile boşaltılır (OP-28 teyidinden sonra) | `legal-docs`, `saved-cards`, `card-key-gate-app-order`, `card-key-gate-karaoke`, `card-user-key-clear-migration` |
+| 🟡 | İade "yeniden satılabilirlik", kutu ve fatura şartına bağlıydı; kullanılmış ürün "kabul edilmez" listesi vardı (m.13/2) | Ölçüt m.13/2; kutu ve fatura istenmez; kesinti yalnız talimata aykırı kullanımda, gerekçesiyle | `legal-docs` |
+| 🟡 | Başka kargoyla gönderilen iadenin belgeli bedeli "geri ödenir" deniyor ama nasıl ödendiği yazmıyordu; tam caymada karta iade tahsil edileni aşamaz (`refundRefusal`, PayNkolay) ve bildirimler IBAN'ı yalnız kısmi iade istisnası için işliyordu | Bedel, belge ulaştıktan sonra 14 gün içinde alıcının kendi adına kayıtlı banka hesabına ödenir, karta değil; IBAN'ı sayan 11 bildirim ve KVKK amacı bu ödemeyi de sayar (LEGAL-REDLINES §18.6) | `legal-docs` |
+| 🟡 | Arabuluculuk şartı (TKHK m.73/A) ön bilgilendirmede yoktu (m.5/1-k) | ÖBF §21 ve MSS §19 | `legal-docs` |
+| 🟡 | KKTC ve yurt dışına gönderim, gümrük ve tarife anlatılıyordu; mağaza yalnız Türkiye'ye gönderiyor | Satırlar ve paragraflar kalktı; Teslimat ve Kargo §16 "Teslimat Bölgesi" | `legal-docs` |
+| 🟢 | Mülga 2015 e-ticaret yönetmeliği adıyla anılıyordu (32 yer) | Güncel ad (RG 29.12.2022-32058) | `legal-docs` |
+| 🟢 | Ödeme e-postası ve üye sipariş sayfası güncel metni açan bağlantıları "kalıcı veri saklayıcısı" diye anıyordu | "Bağlantılar belgelerin güncel metnini açar" (kalıcı kopya ayrı PR) | `consent-docs-wording` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Onaylanan sürümün kalıcı kopyası e-postada yok | Ayrı PR (legal-versions-durable-copy): ek, indirme, sürüm arşivi |
+| 🟢 | İade ve Cayma §17, Teslimat ve Kargo §9 waffle kupu soğuk zincirle gönderilen ürünler arasında sayıyor | Ürün ve sevkiyat bilgisi ayrı PR'ın; cayma istisnasından çıkarıldı |
+| 🟢 | Uygulamanın hukuk kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Uygulama PR'ı (app-legal-seed-distance-sales) |
