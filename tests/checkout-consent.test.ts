@@ -128,6 +128,13 @@ describe("checkout consent: two boxes, both required", () => {
     expect(checkout).toContain('export const ORDER_FORM_ID = "order-form";');
     expect(checkout).toMatch(/form=\{ORDER_FORM_ID\}/);
     expect(checkout).toMatch(/<form\s+id=\{ORDER_FORM_ID\}/);
+    // The order form is only read (onPay), never submitted. A bare form
+    // would post itself as a GET with the name, phone and address in the
+    // URL; a function action makes React draw its guard, and onSubmit
+    // stops any submit (tests/form-native-submit.test.ts).
+    expect(checkout).toMatch(
+      /<form\s+id=\{ORDER_FORM_ID\}\s+ref=\{orderFormRef\}\s+action=\{orderFormNeverPosts\}\s+onSubmit=\{\(e\) => e\.preventDefault\(\)\}/,
+    );
   });
 
   it("the payment step starts unticked and gates its button on both boxes", () => {

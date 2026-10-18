@@ -210,6 +210,8 @@ export function TillConsole() {
         <Card>
           <form
             className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+            // React's guard against the browser's own GET; onSubmit posts.
+            action={() => submit("code", code)}
             onSubmit={(e) => {
               e.preventDefault();
               submit("code", code);
@@ -236,6 +238,7 @@ export function TillConsole() {
         <Card>
           <form
             className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+            action={() => submit("email", email)}
             onSubmit={(e) => {
               e.preventDefault();
               submit("email", email);
