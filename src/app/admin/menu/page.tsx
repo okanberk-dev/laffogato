@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
+import { MenuFoodInfoStatus } from "@/components/admin/menu-food-info-status";
 import { MenuList } from "@/components/admin/menu-list";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -39,6 +40,8 @@ export default async function AdminMenuPage() {
           </Link>
         }
       />
+
+      <MenuFoodInfoStatus items={all} />
 
       <MenuList
         itemsByCategory={byCategory}

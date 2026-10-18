@@ -25,6 +25,10 @@ import {
 import { MENU as SEED_MENU } from "@/components/laffogato/data";
 import { addressLines } from "@/lib/utils/format";
 import {
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
+import {
   LEGAL_TAX_RATES,
   menuItemTaxRate,
   productTaxRate,
@@ -230,6 +234,14 @@ export interface MobileMenuItem extends MobileScene {
    * menu default from Ayarlar > Vergi. Additive (17 Eki 2026, §1).
    */
   taxRatePct: number;
+  /**
+   * The TGK Ek-1 allergen groups the item contains, keys from the closed
+   * list (src/lib/menu/allergens.ts); [] = none of the fourteen. Left out
+   * while the panel has not entered them: the app then keeps "Alerjenler
+   * için baristaya danış.". Additive (18 Eki 2026, §1); `tags` and its
+   * `nuts` stay as they are.
+   */
+  allergens?: MenuAllergen[];
 }
 
 export interface MobileMenuCategory {
@@ -274,7 +286,13 @@ export function toMobileMenuItem(
     image,
     ...toMobileScene(it, image !== null),
     taxRatePct: menuItemTaxRate(it, rates),
+    ...mobileAllergens(it.allergens),
   };
+}
+
+function mobileAllergens(raw: unknown): { allergens?: MenuAllergen[] } {
+  const allergens = normalizeMenuAllergens(raw);
+  return allergens === null ? {} : { allergens };
 }
 
 /**

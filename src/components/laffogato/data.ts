@@ -27,6 +27,13 @@ export interface MenuItem {
    * says so next to them ("Görseller temsilidir").
    */
   image?: string;
+  /**
+   * The TGK Ek-1 allergen groups the item contains, as the panel entered them
+   * (src/lib/menu/allergens.ts); [] = none of the fourteen. Absent = not
+   * entered yet: the bundled seed never carries them, since a guessed
+   * allergen list is worse than none.
+   */
+  allergens?: string[];
 }
 
 export interface MenuCategory {
