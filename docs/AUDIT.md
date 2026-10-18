@@ -880,3 +880,24 @@ yol yine varyantsız satır gönderebilir: "Tekrar sipariş" (`siparislerim.tsx`
 ürün o siparişten sonra varyant aldıysa) ve ürün varyant almadan önce sepete
 girmiş satır. İkisi de artık `invalid_line` alır ve sepete döner; uygulamada
 ayrı bir PR bu satırları baştan ürün sayfasına yönlendirmeli.
+
+### Kişiler: web'de hesap silme ekibe talep olarak gider (18 Eki 2026)
+
+Operatör kararı: "hesabı silme sadece bize ulaşarak olsun". Uygulamadaki
+"Hesabımı sil" (`DELETE /api/mobile/v1/me`) değişmedi: Apple 5.1.1(v)
+uygulama içi silmeyi ister, düzenlenmiş sektör dışındaki uygulamaya
+müşteri hizmetleri yolu kapalı; Google Play hem uygulama içi yolu hem web
+talep sayfasını ister (`/uye/hesap/sil` artık o sayfa).
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟠 | Site hesabı üyenin tıklamasıyla siliyordu (`deleteAccountAction`, herkese açık POST ucu) | Uç kalktı. `/uye/hesap/sil` talep gönderir: isteğe bağlı gerekçe (500 karakter), işaretsiz "Hesabımın silinmesini istiyorum". Talep satıra yazılır (`customers."deletionRequestedAt"`, migration `20261018090000`), tek SQL ifadesiyle bir kez açılır, üye başına günde 6 basış (`account-deletion`). Ekibe ve üyeye e-posta, olay kaydı (`actor: customer`, gerekçenin metni yazılmaz). Açık talep özet sayfasında da görünür, "Talebi geri al" ile kalkar (olay kaydı + ekibe e-posta). Oturumsuz ziyaretçi başvuru kanallarını görür; form yok, adres sorgulanmaz | `site-account-deletion`, `account-deletion-store`, `account-deletion-core`, `uye-account-deletion-page`, `frontend-form-contract` |
+| 🟡 | Panel talebi göremezdi | Müşteriler'de "Silme talebi · tarih" rozeti (30 gün geçince "süre doldu"), açık talep bandı ve `?filter=deletion` (en eski önce); üye sayfasında talep kartı (son gün, gerekçe) ve birincil "Hesabı sil". Kapanış `deleteMe` ile (DELETE /me ile aynı), talebi ve gerekçeyi de siler, olay kaydı talep tarihini yazar, üyeye "Hesabın silindi" (giriş kimliği kaldıysa "kapatıldı") gider; e-posta kapanışı bozmaz | `admin-account-deletion-ui`, `admin-customer-actions` |
+| 🟢 | Hukuki metinler sitenin anında sildiğini söylüyordu | `hesap-silme` (§1-§4, §8: talep, 30 gün, geri alma, saklanan kayıtlar), Üyelik Sözleşmesi §14, KVKK başvuru formu, Gizlilik Politikası; dördü de 18 Ekim 2026 tarihli | `legal-account-deletion`, `legal-dates` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Kenar çubuğunda açık silme talebi sayısı yok | Kenar çubuğu kabuk gezinme PR'ında (1c) yeniden yazılıyor; Müşteriler bandı ve ekip e-postası şimdilik yeter |
+| 🟢 | Uygulamanın hukuki metin kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Ayrı uygulama PR'ında yeniden dışa aktarılır; uygulama metni zaten `GET /legal`'dan okur |
