@@ -848,8 +848,18 @@ Açık (paket 3b'nin dışında kalan):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli ve sitenin iki karaoke ekranı (alttaki satır) rezervasyonun kuralını yazmalı (`karaoke-cancel-policy-doc` testi ikisini de tutar) |
-| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı. Kilit 3c'den önce açılırsa kutu sabit kuralı geri yollar ve her ön ödemeli web rezervasyonu `policy_changed` ile reddedilir, rezervasyon sayfası geç iptal payını sunmaz: `karaoke-cancel-policy-doc` kilit açıkken bu iki dosyada sabit görürse düşer |
+| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli (`karaoke-cancel-policy-doc` testi tutar). Sitenin iki karaoke ekranı artık rezervasyonun kuralını yazıyor (aşağıda, KW) |
+
+### Karaoke rezervasyon sihirbazı ve KDV satırı (KW, 18 Eki 2026)
+
+Operatör (18 Eki 2026): "karaoke sayfasını da mobile ve masaüstüne uygun yap ödeme esnasında kdv dahil olan kısımda kdv miktarı otomatik yazsın ... oraya da bir wizard hazırla". Paket 3c (karaoke-refund-policy-web) bunun içinde. Yalnız ön yüz.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyordu (3b'nin açık satırı) | Ödeme öncesi kutu sunucunun cümlelerini (`availability.cancellationRules`), son ücretsiz iptal anını tarih ve saatle, geç iptal payının tutarını yazar ve yazdığı sayıları geri yollar; rezervasyon sayfası kendi kaydındaki cümleleri, son anı (kendi gününde) ve iptalin ne getireceğini (tam, pay, yok, ret) sunucunun hesabıyla yazar; geç iptal reddinin bildirimi rezervasyonun cümlesi (`karaokeNoticeFor`). Ret adımında "Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin; odayı o kullanır." | `karaoke-wizard`, `karaoke-prepay-rules`, `karaoke-web-action` |
+| 🟢 | Toplamın yanında yalnız "%20 KDV dahil" yazıyordu, KDV tutarı yoktu | `kdvIncludedNote` (ön yüz, saf): oran sunucudan, tutar `kdvOfGross` ile kuruşa yuvarlanır: "%20 KDV dahil (KDV 166,67₺)"; oran yoksa yalnız "KDV dahil", %0'da "%0 KDV". Özet kartında, ödeme öncesi kutuda, Ödeme adımında, telefon çubuğunda ve rezervasyon sayfasında, küçük ve soluk | `karaoke-wizard`, `home-karaoke` |
+| 🟢 | Rezervasyon tek uzun formdu; telefonda toplam ve düğme sayfanın sonundaydı | Beş adım (Tarih ve saat, Süre ve kişi, Bilgilerin, Özet ve onay, Ödeme; köşkte ödenen istekte dört), her adım geçmeden denetlenir, adım göstergesi `aria-current="step"` ve canlı bölge, tarayıcının geri tuşu bir adım geri (`?adim=`, kişisel veri yok), yenileme yazılanları tutar (bu sekmede, kutular hariç, gönderince silinir). Masaüstünde özet yanda yapışkan, telefonda toplam ve düğmeler alt çubukta (sekme çubuğunun yerinde, güvenli alan payıyla). JavaScript'siz sayfa yine tek form | `karaoke-wizard`, `frontend-form-contract` |
+| 🟢 | Satıcı satırında unvan ve vergi numarası yoktu (MSY m.5/1-b) | "Satıcı: {unvan} (L'Affogato), VKN {numara}, {adres}, {telefon}." (`LEGAL_ENTITY`'den sayfa verir; boşsa düşer) | `karaoke-wizard` |
 
 ### Kabuk: gezinme, arama, içerik haritası (paket 1c)
 
