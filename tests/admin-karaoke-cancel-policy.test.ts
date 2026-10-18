@@ -51,6 +51,7 @@ vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
   };
 });
 
+const { revalidatePath } = await import("next/cache");
 const { saveKaraokeAction } =
   await import("@/app/admin/ayarlar/karaoke-actions");
 const { KaraokeTab } = await import("@/app/admin/ayarlar/karaoke-tab");
@@ -90,7 +91,12 @@ beforeEach(() => {
   h.audits.length = 0;
   h.roles.length = 0;
   h.appVersion = null;
+  vi.mocked(revalidatePath).mockClear();
 });
+
+/** The paths a save asked Next to render again. */
+const revalidated = () =>
+  vi.mocked(revalidatePath).mock.calls.map(([path]) => path);
 
 describe("saveKaraokeAction: the cancellation policy", () => {
   it("is the owner's: the action asks for the settings section", async () => {
@@ -202,6 +208,15 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       before: { karaokeFreeCancelHours: 2, karaokeLateRefundPercent: 0 },
       after: { karaokeFreeCancelHours: 24, karaokeLateRefundPercent: 50 },
     });
+    // The karaoke terms are rendered for the policy, the booking page
+    // quotes it: both are rendered again.
+    expect(revalidated()).toEqual(
+      expect.arrayContaining([
+        "/hukuk/karaoke-odasi-rezervasyon",
+        "/hukuk",
+        "/karaoke",
+      ]),
+    );
   });
 
   it("a save that moves nothing else leaves the policy's date alone", async () => {
@@ -216,6 +231,7 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     );
     expect(state.error).toBeUndefined();
     expect(h.updates[0]).not.toHaveProperty("karaokeCancelPolicyAt");
+    expect(revalidated()).not.toContain("/hukuk/karaoke-odasi-rezervasyon");
   });
 
   it("a post without the two boxes leaves the policy as it is", async () => {

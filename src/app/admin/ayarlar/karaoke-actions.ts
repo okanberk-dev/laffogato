@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings, updateSettings } from "@/lib/admin/store";
+import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   DEFAULT_KARAOKE_CANCEL_POLICY,
   KARAOKE_FREE_CANCEL_HOURS_MAX,
@@ -168,5 +170,12 @@ export async function saveKaraokeAction(
       : next,
   );
   revalidateAll();
+  if (policyMoved) {
+    // The pages that print the rule a booking made now gets: the karaoke
+    // terms are rendered for it (karaoke-doc.ts), the booking page quotes it.
+    for (const slug of KARAOKE_CONSENT_DOCS) revalidatePath(`/hukuk/${slug}`);
+    revalidatePath("/hukuk");
+    revalidatePath("/karaoke");
+  }
   return ok("karaoke", "Karaoke ayarları kaydedildi.", moved);
 }
