@@ -266,3 +266,37 @@ export class OrderAlertController {
     for (const listener of this.listeners) listener();
   }
 }
+
+// ── What the card stack shows while it is being used ─────────────────────
+
+export interface DisplayedAlert {
+  alert: OrderAlert;
+  /** Gone from the list (seen, started, taken elsewhere): kept in place, inert. */
+  done: boolean;
+}
+
+/**
+ * The stack while the pointer or focus is in it. A card that leaves stays
+ * where it was, inert, and a new one joins at the end, so nothing moves
+ * under a cursor: a poll that dropped the card above (started on another
+ * device), the unlock button going away, or a double click on "Gördüm"
+ * must never land the operator's click on ANOTHER order's button.
+ * `frozen` is the stack as it was when the pointer came in; null when free,
+ * and then the stack is simply `pending`.
+ */
+export function displayedAlerts(
+  frozen: readonly OrderAlert[] | null,
+  pending: readonly OrderAlert[],
+): DisplayedAlert[] {
+  if (!frozen) return pending.map((alert) => ({ alert, done: false }));
+  const live = new Map(pending.map((a) => [a.id, a]));
+  const kept = frozen.map((a) => {
+    const now = live.get(a.id);
+    return now ? { alert: now, done: false } : { alert: a, done: true };
+  });
+  const known = new Set(frozen.map((a) => a.id));
+  const joined = pending
+    .filter((a) => !known.has(a.id))
+    .map((alert) => ({ alert, done: false }));
+  return [...kept, ...joined];
+}

@@ -108,7 +108,9 @@ describe("the answer", () => {
     ]);
     const [since, limit] = listOrderAlertRows.mock.calls[0];
     expect(limit).toBe(20);
-    expect(before - Date.parse(since)).toBeGreaterThanOrEqual(4 * 3600_000 - 1000);
+    expect(before - Date.parse(since)).toBeGreaterThanOrEqual(
+      4 * 3600_000 - 1000,
+    );
     expect(before - Date.parse(since)).toBeLessThanOrEqual(4 * 3600_000 + 1000);
   });
 
@@ -123,13 +125,30 @@ describe("the answer", () => {
       }),
     ]);
     const text = await (await GET()).text();
-    for (const leak of ["Eda", "eda@example.com", "0532", "Tuzla", "unitPriceMinor", "productId"]) {
+    for (const leak of [
+      "Eda",
+      "eda@example.com",
+      "0532",
+      "Tuzla",
+      "unitPriceMinor",
+      "productId",
+    ]) {
       expect(text, leak).not.toContain(leak);
     }
     const alert = (JSON.parse(text) as { alerts: Record<string, unknown>[] })
       .alerts[0];
     expect(Object.keys(alert).sort()).toEqual(
-      ["id", "orderNo", "label", "table", "itemCount", "items", "moreItems", "totalMinor", "paidAt"].sort(),
+      [
+        "id",
+        "orderNo",
+        "label",
+        "table",
+        "itemCount",
+        "items",
+        "moreItems",
+        "totalMinor",
+        "paidAt",
+      ].sort(),
     );
   });
 
@@ -139,10 +158,17 @@ describe("the answer", () => {
       dbRow({ id: "manual", source: "manual" }),
       dbRow({ id: "shop", kind: "shop" }),
       dbRow({ id: "prep", status: "preparing" }),
-      dbRow({ id: "old", paidAt: new Date(Date.now() - 5 * 3600_000).toISOString() }),
+      dbRow({
+        id: "old",
+        paidAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
+      }),
       dbRow({ id: "pickup", fulfillment: "pickup", tableCode: "" }),
     ]);
-    const body = (await (await GET()).json()) as { alerts: { id: string; label: string }[] };
-    expect(body.alerts.map((a) => [a.id, a.label])).toEqual([["pickup", "Gel-al"]]);
+    const body = (await (await GET()).json()) as {
+      alerts: { id: string; label: string }[];
+    };
+    expect(body.alerts.map((a) => [a.id, a.label])).toEqual([
+      ["pickup", "Gel-al"],
+    ]);
   });
 });

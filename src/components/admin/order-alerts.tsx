@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -32,7 +33,9 @@ import { formatTRYMinor } from "@/lib/utils/commerce";
 import {
   EMPTY_ALERT_SNAPSHOT,
   OrderAlertController,
+  displayedAlerts,
   type AlertSnapshot,
+  type DisplayedAlert,
   type NotificationHandle,
 } from "./order-alert-controller";
 import {
@@ -345,9 +348,26 @@ export function OrderAlerts({
     () => "default" as AlertPermission,
   );
   const [snap, setSnap] = useState<AlertSnapshot>(EMPTY_ALERT_SNAPSHOT);
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Where the menu opens (fixed, under the bell); null while it is closed.
+  // A portal rather than a child of the top bar: on a phone the bar is its
+  // own stacking context (sticky, z-30) and the card sheet would cover it.
+  const [menuAt, setMenuAt] = useState<{ top: number; right: number } | null>(
+    null,
+  );
+  const menuOpen = menuAt !== null;
+  // The orders on screen when "Küçült" was pressed: a new one opens it again.
+  const [collapsedFor, setCollapsedFor] = useState<string[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // The stack as it was when the pointer or focus came into it
+  // (displayedAlerts): nothing moves under a cursor. Null when free.
+  const [frozen, setFrozen] = useState<OrderAlert[] | null>(null);
+  const frozenRef = useRef(false);
+  const unfreezeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Once the unlock button was on screen it keeps its place (as "Ses açık"
+  // after the tap) until the stack empties: removing it moved every card
+  // up between the press and the release of the operator's first click.
+  const [unlockSlot, setUnlockSlot] = useState(false);
   const engine = useRef<Engine | null>(null);
   const routerRef = useRef(router);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -357,32 +377,64 @@ export function OrderAlerts({
   }, [router]);
 
   useEffect(() => {
-    const { engine: started, stop } = startEngine(setSnap, (id) =>
+    const onSnapshot = (next: AlertSnapshot) => {
+      setSnap(next);
+      if (next.pending.length === 0) {
+        setUnlockSlot(false);
+        setFrozen(null);
+        frozenRef.current = false;
+      } else if (next.needsUnlock && !frozenRef.current) {
+        setUnlockSlot(true);
+      }
+    };
+    const { engine: started, stop } = startEngine(onSnapshot, (id) =>
       routerRef.current.push(`/admin/siparisler/${id}`),
     );
     engine.current = started;
     return () => {
       engine.current = null;
+      if (unfreezeTimer.current) clearTimeout(unfreezeTimer.current);
       stop();
     };
   }, []);
 
-  // The menu closes on a click outside it and on Esc.
+  // The menu closes on a click outside it, on Esc, and when the page moves
+  // under it (it is fixed to where the bell was).
   useEffect(() => {
     if (!menuOpen) return;
+    const close = () => setMenuAt(null);
     const onDown = (e: PointerEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+      const t = e.target as Node;
+      const menu = document.getElementById(MENU_ID);
+      if (!menuRef.current?.contains(t) && !menu?.contains(t)) close();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
+      if (e.key === "Escape") close();
     };
     window.addEventListener("pointerdown", onDown);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
     return () => {
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
     };
   }, [menuOpen]);
+
+  const toggleMenu = () => {
+    if (menuOpen) {
+      setMenuAt(null);
+      return;
+    }
+    const r = menuRef.current?.getBoundingClientRect();
+    if (!r) return;
+    setMenuAt({
+      top: Math.round(r.bottom + 8),
+      right: Math.max(8, Math.round(window.innerWidth - r.right)),
+    });
+  };
 
   const unlockThen = (then?: (e: Engine) => void) => {
     const e = engine.current;
@@ -436,6 +488,27 @@ export function OrderAlerts({
   };
 
   const pending = snap.pending;
+  const collapsed =
+    collapsedFor !== null && pending.every((a) => collapsedFor.includes(a.id));
+  const shown = displayedAlerts(frozen, pending);
+
+  const freeze = () => {
+    if (unfreezeTimer.current) clearTimeout(unfreezeTimer.current);
+    unfreezeTimer.current = null;
+    if (frozenRef.current) return;
+    frozenRef.current = true;
+    setFrozen(pending);
+  };
+  // A moment after the pointer leaves (or focus goes): a second tap right
+  // after the first still finds the stack where it was.
+  const unfreezeSoon = () => {
+    if (unfreezeTimer.current) clearTimeout(unfreezeTimer.current);
+    unfreezeTimer.current = setTimeout(() => {
+      unfreezeTimer.current = null;
+      frozenRef.current = false;
+      setFrozen(null);
+    }, UNFREEZE_MS);
+  };
 
   return (
     <>
@@ -464,9 +537,9 @@ export function OrderAlerts({
         </button>
         <button
           type="button"
-          onClick={() => setMenuOpen((o) => !o)}
+          onClick={toggleMenu}
           aria-expanded={menuOpen}
-          aria-controls="order-alert-menu"
+          aria-controls={MENU_ID}
           aria-label="Sipariş uyarısı ayarları"
           className="grid h-11 w-8 place-items-center rounded-r-lg border border-l-0 border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
         >
@@ -484,25 +557,44 @@ export function OrderAlerts({
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
-        {menuOpen ? (
-          <OrderAlertMenu
-            soundOn={soundOn}
-            permission={permission}
-            onToggleSound={toggleSound}
-            onTest={testSound}
-            onAskPermission={() => {
-              void askPermission().then(() =>
-                engine.current?.controller.refresh(),
-              );
-            }}
-          />
-        ) : null}
       </div>
+      {menuAt
+        ? createPortal(
+            <OrderAlertMenu
+              style={{ top: menuAt.top, right: menuAt.right }}
+              soundOn={soundOn}
+              permission={permission}
+              onToggleSound={toggleSound}
+              onTest={testSound}
+              onAskPermission={() => {
+                void askPermission().then(() =>
+                  engine.current?.controller.refresh(),
+                );
+              }}
+            />,
+            adminPortalRoot(),
+          )
+        : null}
       {pending.length > 0
         ? createPortal(
             <OrderAlertPanel
-              alerts={pending}
-              needsUnlock={snap.needsUnlock}
+              alerts={shown}
+              collapsed={collapsed}
+              held={frozen !== null}
+              onHold={freeze}
+              onRelease={unfreezeSoon}
+              onCollapse={(on) =>
+                setCollapsedFor(on ? pending.map((a) => a.id) : null)
+              }
+              unlock={
+                snap.needsUnlock && (unlockSlot || !frozen)
+                  ? "locked"
+                  : unlockSlot
+                    ? soundOn
+                      ? "on"
+                      : "off"
+                    : null
+              }
               mayStartPreparing={mayStartPreparing}
               busyId={busyId}
               errors={errors}
@@ -540,13 +632,21 @@ function BellIcon({ muted }: { muted: boolean }) {
 
 // ── The bell's menu ──────────────────────────────────────────────────────
 
+const MENU_ID = "order-alert-menu";
+
+/** How long the stack stays put after the pointer leaves it. */
+const UNFREEZE_MS = 900;
+
 export function OrderAlertMenu({
+  style,
   soundOn,
   permission,
   onToggleSound,
   onTest,
   onAskPermission,
 }: {
+  /** `top` / `right`, fixed under the bell. */
+  style?: CSSProperties;
   soundOn: boolean;
   permission: AlertPermission;
   onToggleSound: () => void;
@@ -555,10 +655,11 @@ export function OrderAlertMenu({
 }) {
   return (
     <div
-      id="order-alert-menu"
+      id={MENU_ID}
       role="group"
       aria-label="Sipariş uyarısı"
-      className="absolute top-full right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(44,29,17,0.14)]"
+      style={style}
+      className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(44,29,17,0.14)] print:hidden"
     >
       <p className="font-semibold">Yeni sipariş uyarısı</p>
       <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
@@ -570,10 +671,16 @@ export function OrderAlertMenu({
           type="button"
           onClick={onToggleSound}
           aria-pressed={soundOn}
-          className={`${BUTTON.ghost} justify-between`}
+          className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
         >
           <span>Ses</span>
-          <span className="font-medium text-[var(--admin-text)]">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              soundOn
+                ? "bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
+                : "bg-[var(--admin-neutral-soft)] text-[var(--admin-text-soft)]"
+            }`}
+          >
             {soundOn ? "Açık" : "Kapalı"}
           </span>
         </button>
@@ -610,8 +717,19 @@ export function OrderAlertMenu({
 // ── The card stack ───────────────────────────────────────────────────────
 
 export interface OrderAlertPanelProps {
-  alerts: OrderAlert[];
-  needsUnlock: boolean;
+  alerts: DisplayedAlert[];
+  /** "Küçült": only the header bar, until a new order comes in. */
+  collapsed?: boolean;
+  onCollapse?: (collapsed: boolean) => void;
+  /** The pointer or focus came in / went out (the stack holds still). */
+  held?: boolean;
+  onHold?: () => void;
+  onRelease?: () => void;
+  /**
+   * The audio slot: "locked" shows "Sesi açmak için dokun"; once it was
+   * shown it keeps its place with "Ses açık" / "Ses kapalı"; null: none.
+   */
+  unlock: "locked" | "on" | "off" | null;
   mayStartPreparing: boolean;
   busyId: string | null;
   errors: Record<string, string>;
@@ -628,58 +746,90 @@ export interface OrderAlertPanelProps {
  * toasts (a result toast stays readable) and the modal dialogs.
  */
 export function OrderAlertPanel(props: OrderAlertPanelProps) {
-  const { alerts } = props;
-  const first = alerts[0];
+  const { alerts, collapsed = false } = props;
+  const live = alerts.filter((d) => !d.done).map((d) => d.alert);
+  const first = live[0];
   return (
     <section
       aria-label="Yeni siparişler"
       data-order-alerts=""
-      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(44,29,17,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(44,29,17,0.2)] print:hidden"
+      data-collapsed={collapsed ? "" : undefined}
+      data-held={props.held ? "" : undefined}
+      onPointerEnter={props.onHold}
+      onPointerDown={props.onHold}
+      onPointerLeave={props.onRelease}
+      onFocus={props.onHold}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          props.onRelease?.();
+        }
+      }}
+      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(44,29,17,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(44,29,17,0.2)] print:hidden"
     >
-      <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
+      <div className="flex min-h-11 items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">
           Yeni sipariş{" "}
-          <span className="text-[var(--admin-text-soft)]">
-            ({alerts.length})
-          </span>
+          <span className="text-[var(--admin-text-soft)]">({live.length})</span>
         </h2>
-        {alerts.length > 1 ? (
-          <button
-            type="button"
-            onClick={props.onAckAll}
-            className={BUTTON.link}
-          >
-            Tümünü gördüm
-          </button>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {live.length > 1 && !collapsed ? (
+            <button
+              type="button"
+              onClick={props.onAckAll}
+              className={BUTTON.link}
+            >
+              Tümünü gördüm
+            </button>
+          ) : null}
+          {props.onCollapse ? (
+            <button
+              type="button"
+              onClick={() => props.onCollapse?.(!collapsed)}
+              aria-expanded={!collapsed}
+              className={BUTTON.link}
+            >
+              {collapsed ? "Göster" : "Küçült"}
+            </button>
+          ) : null}
+        </div>
       </div>
       <p className="sr-only" aria-live="assertive">
         {first ? `${notificationTitle(first)}. ${notificationBody(first)}` : ""}
       </p>
-      {props.needsUnlock ? (
+      {props.unlock === "locked" ? (
         <button
           type="button"
           onClick={props.onUnlock}
-          className={`${BUTTON.dangerSolid} mb-2 w-full`}
+          className={`${BUTTON.dangerSolid} mt-1 mb-2 w-full`}
         >
           Sesi açmak için dokun
         </button>
+      ) : props.unlock && !collapsed ? (
+        <p
+          role="status"
+          className="mt-1 mb-2 flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-surface-2)] px-4 text-sm text-[var(--admin-text-soft)]"
+        >
+          {props.unlock === "on" ? "Ses açık." : "Ses kapalı."}
+        </p>
       ) : null}
-      <ul className="flex flex-col gap-2">
-        {alerts.map((a) => (
-          <li key={a.id}>
-            <OrderAlertCard
-              alert={a}
-              mayStart={props.mayStartPreparing}
-              busy={props.busyId === a.id}
-              disabled={props.busyId !== null}
-              error={props.errors[a.id]}
-              onAck={() => props.onAck(a.id)}
-              onStart={() => props.onStart(a.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      {collapsed ? null : (
+        <ul className="mt-1 flex flex-col gap-2">
+          {alerts.map(({ alert: a, done }) => (
+            <li key={a.id}>
+              <OrderAlertCard
+                alert={a}
+                done={done}
+                mayStart={props.mayStartPreparing}
+                busy={props.busyId === a.id}
+                disabled={done || props.busyId !== null}
+                error={props.errors[a.id]}
+                onAck={() => props.onAck(a.id)}
+                onStart={() => props.onStart(a.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -691,6 +841,7 @@ function itemsLine(alert: OrderAlert): ReactNode {
 
 function OrderAlertCard({
   alert,
+  done,
   mayStart,
   busy,
   disabled,
@@ -699,6 +850,8 @@ function OrderAlertCard({
   onStart,
 }: {
   alert: OrderAlert;
+  /** Taken care of (seen, started, taken elsewhere): same size, inert. */
+  done: boolean;
   mayStart: boolean;
   busy: boolean;
   disabled: boolean;
@@ -708,11 +861,14 @@ function OrderAlertCard({
 }) {
   return (
     <article
-      aria-label={`${orderAlertHeading(alert)}: ${alert.label}, #${alert.orderNo}`}
+      aria-label={`${done ? "Alındı" : orderAlertHeading(alert)}: ${alert.label}, #${alert.orderNo}`}
+      data-done={done ? "" : undefined}
       className={`rounded-xl border border-l-4 bg-[var(--admin-surface)] p-3 shadow-sm ${
-        alert.table
-          ? "border-[var(--admin-border)] border-l-[var(--admin-danger)]"
-          : "border-[var(--admin-border)] border-l-[var(--admin-accent)]"
+        done
+          ? "border-[var(--admin-border)] border-l-[var(--admin-border-strong)] opacity-60"
+          : alert.table
+            ? "border-[var(--admin-border)] border-l-[var(--admin-danger)]"
+            : "border-[var(--admin-border)] border-l-[var(--admin-accent)]"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -720,9 +876,13 @@ function OrderAlertCard({
           <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--admin-accent-ink)]">
             <span
               aria-hidden="true"
-              className="inline-block h-2 w-2 shrink-0 rounded-full bg-[var(--admin-danger)] motion-safe:animate-pulse"
+              className={`inline-block h-2 w-2 shrink-0 rounded-full ${
+                done
+                  ? "bg-[var(--admin-text-mute)]"
+                  : "bg-[var(--admin-danger)] motion-safe:animate-pulse"
+              }`}
             />
-            {orderAlertHeading(alert)}
+            {done ? "Alındı" : orderAlertHeading(alert)}
           </p>
           <p className="truncate text-xl leading-tight font-semibold">
             {alert.label}
@@ -769,6 +929,7 @@ function OrderAlertCard({
         <button
           type="button"
           onClick={onAck}
+          disabled={done}
           className={`${BUTTON.ghost} flex-1`}
         >
           Gördüm

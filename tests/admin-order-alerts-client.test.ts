@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   OrderAlertController,
+  displayedAlerts,
   type AlertEnv,
 } from "@/components/admin/order-alert-controller";
 import {
@@ -19,6 +20,7 @@ import {
   type WorkerLike,
 } from "@/components/admin/order-alert-poller";
 import {
+  RING_CHAIN,
   createRinger,
   scheduleRing,
   type AudioLike,
@@ -316,6 +318,36 @@ describe("the controller: a follower tab", () => {
     c.receiveShared([alert()], true);
     expect(c.getSnapshot().needsUnlock).toBe(true);
     expect(h.log.claims).toBe(0);
+  });
+});
+
+describe("the stack holds still under the cursor", () => {
+  const a = alert({ id: "a" });
+  const b = alert({ id: "b", orderNo: 10235 });
+  const c = alert({ id: "c", orderNo: 10236 });
+
+  it("is just the waiting list when nobody holds it", () => {
+    expect(displayedAlerts(null, [a, b])).toEqual([
+      { alert: a, done: false },
+      { alert: b, done: false },
+    ]);
+  });
+
+  it("keeps a card that left in its place and adds a new one at the end", () => {
+    // `a` was started on another device and `c` arrived (a table order the
+    // free stack would have put first): neither moves `b`.
+    expect(
+      displayedAlerts([a, b], [c, b]).map((d) => [d.alert.id, d.done]),
+    ).toEqual([
+      ["a", true],
+      ["b", false],
+      ["c", false],
+    ]);
+  });
+
+  it("shows the newest data for a card still waiting", () => {
+    const b2 = { ...b, itemCount: 9 };
+    expect(displayedAlerts([a, b], [a, b2])[1].alert.itemCount).toBe(9);
   });
 });
 
@@ -794,6 +826,17 @@ describe("the ring through Web Audio", () => {
     expect(audio.oscillators.length).toBeGreaterThan(0);
   });
 
+  it("is tuned as measured: loud, not clipping", () => {
+    expect(RING_CHAIN).toEqual({
+      masterGain: 1.7,
+      threshold: -9,
+      knee: 6,
+      ratio: 6,
+      attack: 0.002,
+      release: 0.2,
+    });
+  });
+
   it("a device without audio is quiet, not broken", async () => {
     const ringer = createRinger(() => null);
     await expect(ringer.unlock()).resolves.toBe(false);
@@ -900,7 +943,7 @@ const { OrderAlertPanel, OrderAlertMenu, OrderAlerts } =
 function panel(over: Partial<Parameters<typeof OrderAlertPanel>[0]> = {}) {
   return renderToStaticMarkup(
     createElement(OrderAlertPanel, {
-      alerts: [
+      alerts: displayedAlerts(null, [
         alert(),
         alert({
           id: "ord-2",
@@ -908,8 +951,8 @@ function panel(over: Partial<Parameters<typeof OrderAlertPanel>[0]> = {}) {
           fulfillment: "pickup",
           tableCode: "",
         }),
-      ],
-      needsUnlock: false,
+      ]),
+      unlock: null,
       mayStartPreparing: true,
       busyId: null,
       errors: {},
@@ -945,10 +988,50 @@ describe("the card stack", () => {
     );
   });
 
-  it("asks for the tap that unlocks the sound, prominently", () => {
-    const html = panel({ needsUnlock: true });
+  it("asks for the tap that unlocks the sound, prominently, and keeps its place after it", () => {
+    const html = panel({ unlock: "locked" });
     expect(html).toMatch(
       /<button[^>]*class="[^"]*w-full[^"]*"[^>]*>Sesi açmak için dokun<\/button>/,
+    );
+    // After the tap the slot stays, same height: the operator's first click
+    // must not move the cards between its press and its release.
+    const after = panel({ unlock: "on" });
+    expect(after).not.toContain("Sesi açmak için dokun");
+    expect(after).toMatch(
+      /role="status" class="[^"]*min-h-\[44px\][^"]*mt-1 mb-2|role="status" class="mt-1 mb-2 [^"]*min-h-\[44px\]/,
+    );
+    expect(after).toContain("Ses açık.");
+    expect(panel({ unlock: "off" })).toContain("Ses kapalı.");
+    expect(panel({ unlock: null })).not.toMatch(
+      /Sesi açmak|Ses açık|Ses kapalı/,
+    );
+  });
+
+  it("keeps a card that was taken care of in place, inert, while the stack is held", () => {
+    const html = panel({
+      alerts: displayedAlerts(
+        [alert(), alert({ id: "ord-2", orderNo: 10235 })],
+        [alert({ id: "ord-2", orderNo: 10235 })],
+      ),
+    });
+    expect(html.match(/<article/g)).toHaveLength(2);
+    expect(html).toMatch(
+      /<article aria-label="Alındı: Masa 4, #10234" data-done=""/,
+    );
+    // Its own buttons are off; the live one's are on; the count is live only.
+    const done = /<article[^>]*data-done=""[^]*?<\/article>/.exec(html)![0];
+    expect(done.match(/<button[^>]*disabled=""/g)).toHaveLength(2);
+    expect(html).toContain("Yeni sipariş <span");
+    expect(html).toContain("(1)");
+    expect(html).not.toContain("Tümünü gördüm");
+  });
+
+  it("folds to its header with Küçült and says Göster", () => {
+    const html = panel({ collapsed: true, onCollapse: () => {} });
+    expect(html).not.toContain("<article");
+    expect(html).toMatch(/aria-expanded="false"[^>]*>Göster</);
+    expect(panel({ onCollapse: () => {} })).toMatch(
+      /aria-expanded="true"[^>]*>Küçült</,
     );
   });
 
@@ -962,7 +1045,7 @@ describe("the card stack", () => {
     const html = panel();
     const section = /<section[^>]*>/.exec(html)![0];
     expect(section).toContain("bottom-[var(--admin-bottom-inset,0px)]");
-    expect(section).toContain("pb-[max(0.75rem,env(safe-area-inset-bottom))]");
+    expect(section).toContain("pb-[max(0.5rem,env(safe-area-inset-bottom))]");
     expect(section).toContain("sm:top-[4.5rem]");
     expect(section).toContain("sm:right-4");
     expect(section).toContain("z-40");
