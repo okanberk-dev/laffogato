@@ -9,16 +9,42 @@ import {
   DELETION_ADMIN_PATH,
   deletionMailKey,
   maskedAddress,
+  paidKaraokeAtRequest,
+  type DeletionKaraokeItem,
   type DeletionStaffNoticeInput,
 } from "@/lib/customer/deletion-request-core";
+import { listMine } from "@/lib/mobile/karaoke";
 import { SITE } from "@/lib/seo/site";
 
 import { deliverBatch, renderOperatorNotice, type SendResult } from "./send";
 import { resolveStaffRecipients } from "./staff-order-notice-core";
 
 /**
+ * The member's paid karaoke bookings an opened request puts on a clock, by
+ * their start; `null` when they could not be read (the mail says so and
+ * still goes: the request is already stored).
+ */
+async function paidKaraokeFor(
+  n: DeletionStaffNoticeInput,
+): Promise<readonly DeletionKaraokeItem[] | null> {
+  if (n.kind !== "opened") return [];
+  if (n.karaoke !== undefined) return n.karaoke;
+  try {
+    return paidKaraokeAtRequest(await listMine(n.email), n.requestedAt);
+  } catch (err) {
+    console.error(
+      `[account-deletion] karaoke unreadable for ${n.customerId}`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
+/**
  * Tells the team about a web account-deletion request (opened, or taken
- * back), in the operator-notice design (`operasyon-bildirim`).
+ * back), in the operator-notice design (`operasyon-bildirim`). An opened
+ * one names the member's paid karaoke bookings with their start
+ * (ASK-Y3-4 (d)): closed before it, the refund needs nobody's judgement.
  *
  * Who: the panel accounts whose role may close an account (`customers`:
  * owner, manager), resolved exactly as the "yeni sipariş" mail resolves
@@ -60,7 +86,10 @@ export async function notifyStaffOfDeletionRequest(
       );
       return false;
     }
-    const content = buildDeletionStaffNotice(n);
+    const content = buildDeletionStaffNotice({
+      ...n,
+      karaoke: await paidKaraokeFor(n),
+    });
     const rendered = renderOperatorNotice({
       ...content,
       to: recipients[0].email,

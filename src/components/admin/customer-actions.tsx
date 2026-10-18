@@ -8,6 +8,10 @@ import {
   setCustomerActiveAction,
   type ResendVerificationState,
 } from "@/app/admin/musteriler/actions";
+import {
+  deletionRefundLabel,
+  type DeletionKaraokeItem,
+} from "@/lib/customer/deletion-request-core";
 
 import {
   ActionButton,
@@ -16,7 +20,7 @@ import {
   withPanelCatch,
 } from "./action-form";
 import { FormError, FormSuccess } from "./form-feedback";
-import { Card, GhostButton } from "./forms";
+import { Card, Checkbox, Field, GhostButton } from "./forms";
 import { ActionModal, ConfirmButton } from "./ui";
 
 const resendInitial: ResendVerificationState = {};
@@ -122,15 +126,23 @@ export function CustomerActions({
  * e-mail typed out. Drawn in the Yönetim card, or as the primary action of
  * an open deletion request; that one posts the request it answers
  * (`requestedAt`), so a request the member took back meanwhile is refused.
+ *
+ * `passedKaraoke`: paid bookings whose start came after the request while
+ * their rule still refunded them then. Each gets an unticked "Oda
+ * kullanıldı, iade yapılmaz" box (`karaokeRoomUsed`); unticked, the closure
+ * refunds it as the request would have (ASK-Y3-4 (d)), which the row says
+ * under the box.
  */
 export function CloseAccountButton({
   email,
   variant = "danger",
   requestedAt,
+  passedKaraoke = [],
 }: {
   email: string;
   variant?: "danger" | "primary";
   requestedAt?: string;
+  passedKaraoke?: readonly DeletionKaraokeItem[];
 }) {
   return (
     <ActionModal
@@ -153,7 +165,8 @@ export function CloseAccountButton({
           <li>
             Gelecekteki karaoke rezervasyonları iptal edilir, ödenmiş olanlar
             karta iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyon
-            iade edilmez, olduğu gibi kalır. Bu durumda ve POS iadeyi hemen
+            iade edilmez, olduğu gibi kalır; açık bir silme talebi varsa bu süre
+            talep anına göre sayılır. İade yapılmazsa ya da POS iadeyi hemen
             onaylamazsa ekibe e-posta gider.
           </li>
           <li>Uygulamadan kasa (barista) yetkisi varsa kaldırılır.</li>
@@ -173,6 +186,36 @@ export function CloseAccountButton({
           <li>Devam eden siparişi olan hesap kapatılamaz.</li>
         </ul>
       }
-    />
+    >
+      {passedKaraoke.length > 0 ? (
+        <Field
+          as="fieldset"
+          label="Saati talepten sonra geçen rezervasyon"
+          hint="Üye silmeyi istediğinde iptal iade alıyordu. Oda kullanıldıysa işaretle, ödeme olduğu gibi kalır."
+        >
+          {/* The tick's label is what ticking does; the refund is what an
+              empty box does, so it sits under the row, outside the label. */}
+          {passedKaraoke.map((k) => (
+            <div key={k.id} className="grid">
+              <Checkbox
+                name="karaokeRoomUsed"
+                value={k.id}
+                label={`Oda kullanıldı, iade yapılmaz: ${k.label}`}
+                aria-describedby={`karaoke-room-used-${k.id}`}
+                // The label wraps on a phone; a box that shrank would leave
+                // the note below out of line with the label.
+                style={{ flexShrink: 0 }}
+              />
+              <span
+                id={`karaoke-room-used-${k.id}`}
+                className="-mt-2 pb-1 pl-8 text-xs text-[var(--admin-text-soft)]"
+              >
+                İşaretlemezsen {deletionRefundLabel(k.refundPercent)} yapılır.
+              </span>
+            </div>
+          ))}
+        </Field>
+      ) : null}
+    </ActionModal>
   );
 }

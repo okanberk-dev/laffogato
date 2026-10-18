@@ -32,6 +32,7 @@ import {
   listProducts,
 } from "@/lib/admin/store";
 import { adminListCustomerCoupons } from "@/lib/customer/coupons";
+import { paidKaraokeAtRequest } from "@/lib/customer/deletion-request-core";
 import { getAdminCustomerByEmail } from "@/lib/customer/store";
 import { listByAddress, type KaraokeReservation } from "@/lib/mobile/karaoke";
 import { getLoyalty, listStamps } from "@/lib/mobile/loyalty";
@@ -203,6 +204,13 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         <CustomerDeletionRequest
           email={member.email}
           request={member.deletionRequest}
+          // Every booking under the address, so the card can race the
+          // start of each paid one (guest rows are dropped there).
+          karaoke={paidKaraokeAtRequest(
+            karaoke,
+            member.deletionRequest.requestedAt,
+            now,
+          )}
           now={now}
         />
       )}

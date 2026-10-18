@@ -9628,6 +9628,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Kullanım Şartları",
     shortTitle: "Kullanım Şartları",
     category: "Site & Üyelik",
+    // 18 Ekim 2026: §7 says how membership ends on each channel (the app at
+    // once, the Site's request page and e-mail within thirty days).
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulaması ile bunlar üzerinden sunulan menü vitrini, online bottega, mobil uygulamadan kafe siparişi, karaoke rezervasyonu, üyelik ve sadakat (damga) programı hizmetlerinin kullanımına ilişkin hak, yükümlülük, yasak ve sorumluluk esaslarını düzenleyen sözleşmesel metindir.",
     references: [
@@ -9776,7 +9778,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Bir gerçek kişi adına yalnızca bir üyelik hesabı açılabilir. Kampanya, promosyon kodu, kupon veya damgalardan haksız yarar sağlamak amacıyla mükerrer hesap açılması yasaktır.",
           "Hesabın üçüncü kişilere devredilmesi, kiralanması, satılması veya ortak kullanıma açılması yasaktır.",
-          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin hesap ayarları üzerinden ya da {{EMAIL}} adresine ileteceği talep ile sonlandırabilir. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
+          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır; Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
           "213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu ve tüketici mevzuatı uyarınca saklanması zorunlu olan fatura, sipariş ve işlem kayıtları; üyelik sonlandırılsa dahi kanuni saklama süreleri boyunca muhafaza edilir.",
           "Şirket; işbu Şartların ihlali, sahtecilik şüphesi, ödeme sistemlerinin kötüye kullanılması veya yargı mercilerince verilmiş bir karar bulunması hâlinde hesabı geçici olarak askıya alabilir ya da kalıcı olarak kapatabilir. Askıya alma veya kapatma kararı, mümkün olan hâllerde gerekçesiyle birlikte Kullanıcıya bildirilir.",
         ],
@@ -10778,6 +10780,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     category: "Site & Üyelik",
     // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
     // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
+    // Same day: §4 the deferred deletion is answered in thirty days, §8 the
+    // karaoke window of a Site request, §11 the Kurul's complaint periods
+    // (LEGAL-REDLINES §20). The set's revision (LEGAL_UPDATED) is that day,
+    // so no own date.
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
     references: [
@@ -10825,7 +10831,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
           "Site'den, e-posta veya posta ile iletilen talepler, 6698 sayılı Kanun'un 13. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde ücretsiz olarak sonuçlandırılır; hedefimiz üç iş günüdür. Site'den gelen talebin alındığı size hemen e-postayla, diğer kanallardan gelen talebin alındığı aynı kanaldan teyit edilir. Hesabınız silindiğinde bu da size e-postayla bildirilir. Site'den verdiğiniz talep açık kaldığı sürece size kampanya, bülten veya doğum günü e-postası gibi ticari elektronik ileti gönderilmez.",
-          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır.',
+          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır. Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir.',
           'Talebi geri alma: Site\'den verdiğiniz talebi, hesabınız silinene kadar aynı sayfadaki "Talebi geri al" düğmesiyle geri alabilirsiniz; e-posta veya posta ile verdiğiniz talebi aynı kanaldan geri alabilirsiniz. Geri alınan talep işleme konmaz ve hesabınız olduğu gibi kalır. Silinmiş bir hesap geri getirilemez; aynı adresle yeniden üye olabilirsiniz (bkz. 9. madde).',
         ],
       },
@@ -10909,7 +10915,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
           "Kullanılmamış kuponlar geçersiz hâle gelir.",
-          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır.",
+          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
           "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında ve Site'deki hesap silme sayfasında uyarı gösterilir.",
         ],
       },
@@ -10932,7 +10938,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "11. Başvuru ve İtiraz",
         paragraphs: [
           "Silme talebinizin sonucundan memnun kalmazsanız, 6698 sayılı Kanun'un ilgili kişinin haklarını düzenleyen hükmü uyarınca veri sorumlusuna başvurabilirsiniz. Başvuru formu ve usulü {{SITE_URL}}/hukuk/kvkk-basvuru-formu adresindedir.",
-          "Başvurunuzun otuz gün içinde sonuçlandırılmaması veya cevabın yetersiz bulunması hâlinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunma hakkınız saklıdır.",
+          "Başvurunuzun reddedilmesi, verilen cevabın yetersiz bulunması veya otuz gün içinde cevap verilmemesi hâllerinde, cevabı öğrendiğiniz tarihten itibaren otuz gün ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsiniz.",
         ],
         table: [
           { key: "Veri sorumlusu", value: "{{LEGAL_NAME}}" },
@@ -11324,6 +11330,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
     category: "Site & Üyelik",
+    // 18 Ekim 2026: §17 names the Site's request page beside e-mail, both
+    // answered within thirty days.
     summary:
       "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, cihazda planlanan hatırlatmalar, sadakat damgası ve sorumluluk sınırları düzenlenir.",
     references: [
@@ -11756,7 +11764,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "17. Uygulamanın Kaldırılması ve Hesabın Silinmesi",
         paragraphs: [
           "Kullanıcı, Uygulama'yı dilediği zaman cihazından kaldırabilir. Uygulama'nın kaldırılması, cihazda saklanan geçici verileri siler; ancak üyelik hesabını ve sunucuda tutulan kayıtları tek başına sona erdirmez.",
-          "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca {{EMAIL}} adresine gönderilecek bir talep ile de hesap kapatılabilir.",
+          "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır.",
           "Hesap silme talebi alındığında Kullanıcı'ya işlemin sonuçları özetlenir ve teyit istenir. Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık bulunması hâlinde silme işlemi, bu süreçlerin tamamlanmasının ardından uygulanır ve durum Kullanıcı'ya bildirilir.",
           "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; adres defteri ve tercihler erişime kapatılır, ticari elektronik ileti onayı bulunuyorsa ret kaydı İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
           "Saklama süresi dolan veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca ilk periyodik imha döneminde silinir, yok edilir veya anonim hâle getirilir.",

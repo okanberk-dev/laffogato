@@ -10,6 +10,7 @@ import {
   isDeletionOverdue,
   maskedAddress,
   normalizeDeletionReason,
+  paidKaraokeAtRequest,
 } from "@/lib/customer/deletion-request-core";
 import { renderEmail } from "@/lib/email/render";
 import { EMAIL_TEMPLATES } from "@/lib/email/templates.generated";
@@ -112,6 +113,32 @@ describe("the team's mail", () => {
     expect(n.footnote).toContain("Bu hesabı silme");
   });
 
+  it("lists paid karaoke by its start and its refund, five at most", () => {
+    const item = (i: number, refundPercent = 100) => ({
+      id: `krk-0000${i}`,
+      label: `${20 + i} Ekim 2026, 20:00 - 22:00`,
+      refundPercent,
+      startedSinceRequest: false,
+    });
+    const n = buildDeletionStaffNotice({
+      ...input,
+      karaoke: [item(1), item(2, 50), item(3), item(4), item(5), item(6)],
+    });
+    const karaoke = n.rows.filter((r) => r.label === "Ödenmiş karaoke");
+    expect(karaoke[0].value).toBe("21 Ekim 2026, 20:00 - 22:00 (tam iade)");
+    expect(karaoke[1].value).toBe("22 Ekim 2026, 20:00 - 22:00 (%50 iade)");
+    expect(karaoke).toHaveLength(6);
+    expect(karaoke[5].value).toBe("1 rezervasyon daha, panelde");
+    expect(n.footnote).toContain("ilk rezervasyonun başlangıç saatinden önce");
+    // A request taken back has no clock to race.
+    const back = buildDeletionStaffNotice({
+      ...input,
+      kind: "withdrawn",
+      karaoke: [item(1)],
+    });
+    expect(JSON.stringify(back)).not.toContain("karaoke");
+  });
+
   it("keys each mail of one request once", () => {
     expect(deletionMailKey("cus-1", AT, "member")).toBe(
       `account-deletion-cus-1-${Date.parse(AT)}-member`,
@@ -119,6 +146,49 @@ describe("the team's mail", () => {
     expect(deletionMailKey("cus-1", AT, "staff-opened")).not.toBe(
       deletionMailKey("cus-1", AT, "staff-withdrawn"),
     );
+  });
+});
+
+describe("paid karaoke on the request", () => {
+  // Asked at 12:15 on 16 Ekim; read at 15:00 on 18 Ekim (Tuzla).
+  const ASKED = "2026-10-16T09:15:00.000Z";
+  const NOW = new Date("2026-10-18T12:00:00.000Z");
+  const row = (over: Record<string, unknown>) => ({
+    id: "krk-00001",
+    date: "2026-10-17",
+    startHour: 20,
+    hours: 2,
+    status: "confirmed",
+    paymentStatus: "paid",
+    createdAt: "2026-10-10T09:00:00.000Z",
+    ...over,
+  });
+
+  it("judges a booking made after the request at the closure, not at its making", () => {
+    const items = paidKaraokeAtRequest(
+      [
+        // Booked before the request, sung since: the closing dialog asks.
+        row({ id: "krk-00001" }),
+        // Booked after the request in its free window, sung since: the
+        // request never covered it, the closure refunds nothing.
+        row({ id: "krk-00002", createdAt: "2026-10-17T08:00:00.000Z" }),
+        // Booked after the request, still to come: refunded as a closure
+        // now refunds it.
+        row({
+          id: "krk-00003",
+          date: "2026-10-25",
+          createdAt: "2026-10-17T08:00:00.000Z",
+        }),
+      ],
+      ASKED,
+      NOW,
+    );
+    expect(
+      items.map((k) => [k.id, k.refundPercent, k.startedSinceRequest]),
+    ).toEqual([
+      ["krk-00001", 100, true],
+      ["krk-00003", 100, false],
+    ]);
   });
 });
 

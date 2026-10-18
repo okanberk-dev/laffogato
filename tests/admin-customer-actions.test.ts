@@ -660,12 +660,43 @@ describe("closeCustomerAccountAction (Hesabı sil)", () => {
         requestedAt: SHOWN,
       });
 
-    it("closes while that request is still open", async () => {
+    it("closes while that request is still open, judged at the request", async () => {
       getDeletionRequest.mockResolvedValue({ requestedAt: SHOWN, reason: "" });
       await expect(
         closeCustomerAccountAction(null, fromCard()),
       ).rejects.toThrow("NEXT_REDIRECT");
-      expect(deleteMe).toHaveBeenCalledWith(MEMBER, { by: "admin" });
+      // Karaoke's two-hour rule reads the request, not the closure
+      // (ASK-Y3-4 (d)): deleteMe gets the stamp it is about to blank.
+      expect(deleteMe).toHaveBeenCalledWith(MEMBER, {
+        by: "admin",
+        deletionRequestedAt: SHOWN,
+      });
+    });
+
+    it("passes on the bookings whose room the operator recorded as used", async () => {
+      getDeletionRequest.mockResolvedValue({ requestedAt: SHOWN, reason: "" });
+      const fd = fromCard();
+      fd.append("karaokeRoomUsed", "krk-00042");
+      fd.append("karaokeRoomUsed", "krk-00043");
+      // Junk is dropped, not passed to the karaoke book.
+      fd.append("karaokeRoomUsed", "<script>");
+      await expect(closeCustomerAccountAction(null, fd)).rejects.toThrow(
+        "NEXT_REDIRECT",
+      );
+      expect(deleteMe).toHaveBeenCalledWith(MEMBER, {
+        by: "admin",
+        deletionRequestedAt: SHOWN,
+        karaokeRoomUsed: ["krk-00042", "krk-00043"],
+      });
+      // The panel user's word is on the record, under their name.
+      expect(safeAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "delete",
+          payload: expect.objectContaining({
+            karaokeRoomUsed: ["krk-00042", "krk-00043"],
+          }),
+        }),
+      );
     });
 
     it("keeps the account when the member took the request back meanwhile", async () => {

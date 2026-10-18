@@ -224,6 +224,157 @@ describe("the member page", () => {
   });
 });
 
+describe("a paid karaoke booking on the request card", () => {
+  // Asked at 12:15 on 16 Ekim; the page is read at 15:00 on 18 Ekim (Tuzla).
+  const ASKED = "2026-10-16T09:15:00.000Z";
+  function booking(over: Record<string, unknown>) {
+    return {
+      id: "krk-00001",
+      customerEmail: "uye@ornek.com",
+      customerName: "Ayşe Yılmaz",
+      date: "2026-10-25",
+      startHour: 20,
+      hours: 2,
+      guests: 4,
+      status: "confirmed",
+      priceMinor: 200_000,
+      discountMinor: 0,
+      totalMinor: 200_000,
+      note: "",
+      createdAt: "2026-10-10T09:00:00.000Z",
+      updatedAt: "2026-10-10T09:00:00.000Z",
+      paymentStatus: "paid",
+      paidMinor: 200_000,
+      paymentRef: "PNK-1",
+      guest: false,
+      ...over,
+    };
+  }
+
+  async function card(rows: Record<string, unknown>[]) {
+    const { listByAddress } = await import("@/lib/mobile/karaoke");
+    vi.mocked(listByAddress).mockResolvedValueOnce(rows as never);
+    h.member = member({ deletionRequest: { requestedAt: ASKED, reason: "" } });
+    const html = renderToStaticMarkup(
+      await CustomerDetailPage({
+        params: Promise.resolve({ email: "uye%40ornek.com" }),
+      }),
+    );
+    const from = html.indexOf("Ödenmiş karaoke rezervasyonu");
+    return from === -1 ? "" : text(html.slice(from, html.indexOf("Profil")));
+  }
+
+  it("names each one by its start and its refund, and the evening whose start came since the request", async () => {
+    const shown = await card([
+      booking({ id: "krk-00001" }),
+      // In its free window on the 16th, started on the 17th: refunded on
+      // closure unless the room is recorded as used.
+      booking({ id: "krk-00002", date: "2026-10-17", startHour: 20 }),
+      // Not the account's, and not money any more.
+      booking({ id: "krk-00003", guest: true }),
+      booking({ id: "krk-00004", status: "cancelled" }),
+      // Already inside its window, with no late share, when the member
+      // asked: the closure refunds nothing, nothing to race.
+      booking({ id: "krk-00005", date: "2026-10-16", startHour: 13 }),
+      // Inside its window at the request, with a 50 % late share.
+      booking({
+        id: "krk-00006",
+        date: "2026-10-16",
+        startHour: 14,
+        freeCancelHours: 2,
+        lateRefundPercent: 50,
+      }),
+    ]);
+    expect(shown).toContain("25 Ekim 2026, 20:00 - 22:00 tam iade");
+    expect(shown).toContain(
+      "17 Ekim 2026, 20:00 - 22:00 tam iade Saati talepten sonra geçti",
+    );
+    expect(shown).toContain(
+      "16 Ekim 2026, 14:00 - 16:00 %50 iade Saati talepten sonra geçti",
+    );
+    expect(shown).toContain("başlangıç saatinden önce kapat");
+    expect(shown).toContain("Oda kullanıldıysa hesabı kapatırken işaretle");
+    expect(shown).not.toContain("16 Ekim 2026, 13:00");
+    // The guest and the cancelled booking share the first's slot: one line.
+    expect(shown.match(/25 Ekim 2026, 20:00/g)).toHaveLength(1);
+  });
+
+  it("judges a booking made after the request at the closure", async () => {
+    // Booked at 14:30 today for 16:00, inside its two hours: closing refunds
+    // nothing, though the request (two days earlier) predates the window.
+    const shown = await card([
+      booking({
+        id: "krk-00007",
+        date: "2026-10-18",
+        startHour: 16,
+        createdAt: "2026-10-18T11:30:00.000Z",
+      }),
+    ]);
+    expect(shown).toBe("");
+  });
+
+  it("asks, unticked, whether the room was used for each evening past its start", async () => {
+    const { CloseAccountButton } =
+      await import("@/components/admin/customer-actions");
+    const modal = CloseAccountButton({
+      email: "uye@ornek.com",
+      requestedAt: ASKED,
+      passedKaraoke: [
+        {
+          id: "krk-00002",
+          label: "17 Ekim 2026, 20:00 - 22:00",
+          refundPercent: 100,
+          startedSinceRequest: true,
+        },
+        {
+          id: "krk-00006",
+          label: "16 Ekim 2026, 14:00 - 16:00",
+          refundPercent: 50,
+          startedSinceRequest: true,
+        },
+      ],
+    }) as ReactElement<{ children?: ReactNode }>;
+    const box = renderToStaticMarkup(modal.props.children as ReactElement);
+    expect(box).toMatch(
+      /<input type="checkbox"[^>]* name="karaokeRoomUsed" value="krk-00002"\/>/,
+    );
+    expect(box).not.toContain("checked");
+    // A group with a legend, not a label around the boxes (RC-LABEL).
+    expect(box).toContain("<fieldset");
+    // The tick's own label says what the tick does: the room was used and
+    // the payment stays. The refund is what happens when it stays empty, so
+    // it sits outside the label, under the row it belongs to. It once read
+    // "Oda kullanıldı: ... (tam iade)", as if ticking refunded.
+    const labels = [...box.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/g)].map(
+      (m) => text(m[1]).trim(),
+    );
+    expect(labels).toEqual([
+      "Oda kullanıldı, iade yapılmaz: 17 Ekim 2026, 20:00 - 22:00",
+      "Oda kullanıldı, iade yapılmaz: 16 Ekim 2026, 14:00 - 16:00",
+    ]);
+    for (const l of labels) expect(l).not.toMatch(/tam iade|%\d+ iade/);
+    for (const [id, refund] of [
+      ["krk-00002", "İşaretlemezsen tam iade yapılır."],
+      ["krk-00006", "İşaretlemezsen %50 iade yapılır."],
+    ]) {
+      const input = box
+        .match(/<input [^>]*>/g)
+        ?.find((tag) => tag.includes(`value="${id}"`));
+      const described = input?.match(/aria-describedby="([^"]+)"/)?.[1];
+      expect(described, id).toBeTruthy();
+      const note = box.match(
+        new RegExp(`<span[^>]* id="${described}"[^>]*>([\\s\\S]*?)</span>`),
+      );
+      expect(text(note?.[1] ?? "").trim()).toBe(refund);
+    }
+    // Nothing to ask without such an evening.
+    const plain = CloseAccountButton({
+      email: "uye@ornek.com",
+    }) as ReactElement<{ children?: ReactNode }>;
+    expect(plain.props.children ?? null).toBeNull();
+  });
+});
+
 describe("Müşteriler", () => {
   const render = async (sp: Record<string, string> = {}) =>
     renderToStaticMarkup(

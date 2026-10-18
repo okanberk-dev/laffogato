@@ -994,6 +994,10 @@ yönetilir. Üye web'de "Karaoke rezervasyonlarım" (`/uye/hesap/karaoke`)
 bölümünden aynı iptali yapar. Hesap silinince (`DELETE /me`) başlangıca 2
 saatten fazla olan ödenmiş rezervasyonlar karta iade edilerek iptal edilir; 2
 saatten az kalanlara iade yapılmaz, rezervasyon kalır ve ekibe haber gider.
+Üyenin Site'den açtığı silme talebi açıksa (`/uye/hesap/sil`) bu süre talebin
+anına göre hesaplanır (`hesap-silme` §8; talepten sonra yapılan rezervasyonda
+silme anına göre); saati talepten sonra geçen ödenmiş rezervasyon ne iade ne
+iptal edilir, ekibe gider. Yanıt ve hata kodları aynı (18 Eki 2026).
 Üyeliksiz rezervasyonlar hesap silmeden etkilenmez.
 
 **İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para

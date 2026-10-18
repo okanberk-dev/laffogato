@@ -545,3 +545,67 @@ export function istanbulTimeLabel(iso: string): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
 }
+
+// ─── A closure the member asked us for (ASK-Y3-4 (d)) ──────────────────────
+
+/** A booking as the closure rules read it. */
+type ClosureBooking = Parameters<typeof karaokeCancelDeadline>[0] & {
+  status?: string;
+};
+
+/**
+ * The instant a closure that answers the member's deletion request (the
+ * Site's /uye/hesap/sil) judges a booking's cancellation rule at: the
+ * request, because our delay must not shorten the member's window (TKHK
+ * m.4/2). A booking made after the request is judged at the closure, as
+ * without one: the request cannot cover an evening that did not exist yet,
+ * and the member could cancel it themselves until the closure (judging it
+ * at its making would refund it in full whenever the closure came, the
+ * evening sung or not). No usable request: the closure.
+ */
+export function closureJudgedAt(
+  r: { createdAt?: string },
+  requestedAt: Date | null | undefined,
+  now: Date,
+): Date {
+  const asked = requestedAt ? requestedAt.getTime() : Number.NaN;
+  if (!Number.isFinite(asked) || asked >= now.getTime()) return now;
+  const made = Date.parse(r.createdAt ?? "");
+  return Number.isFinite(made) && made > asked ? now : new Date(asked);
+}
+
+/**
+ * The share of a paid booking's payment (whole %) a closure answering the
+ * member's request gives back, as `cancelKaraokeReservation` decides it at
+ * `closureJudgedAt`: 100 in the free window (and for a booking the köşk
+ * never confirmed), the booking's late share inside the window, 0 when its
+ * rule refunded nothing then.
+ */
+export function closureRefundPercent(
+  r: ClosureBooking,
+  requestedAt: Date | null | undefined,
+  now: Date,
+): number {
+  const terms = karaokeSelfCancelTerms(r, closureJudgedAt(r, requestedAt, now));
+  if (terms.kind === "refused") return 0;
+  if (terms.kind === "full" || r.status !== "confirmed") return 100;
+  return terms.percent;
+}
+
+/**
+ * A paid booking the member could still have cancelled for a refund when
+ * they asked us to close their account, whose start has come before the
+ * team closed it. The request fixed the refund (our delay does not shorten
+ * the member's window); only a person can say whether the room was used in
+ * between.
+ */
+export function startedSinceRequest(
+  r: ClosureBooking,
+  requestedAt: Date,
+  now: Date,
+): boolean {
+  return (
+    closureRefundPercent(r, requestedAt, now) > 0 &&
+    karaokeStartInstant(r.date, r.startHour).getTime() <= now.getTime()
+  );
+}

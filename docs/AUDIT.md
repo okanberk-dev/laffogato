@@ -983,3 +983,24 @@ Açık:
 | 🟡 | Onaylanan sürümün kalıcı kopyası e-postada yok | Ayrı PR (legal-versions-durable-copy): ek, indirme, sürüm arşivi |
 | 🟢 | İade ve Cayma §17, Teslimat ve Kargo §9 waffle kupu soğuk zincirle gönderilen ürünler arasında sayıyor | Ürün ve sevkiyat bilgisi ayrı PR'ın; cayma istisnasından çıkarıldı |
 | 🟢 | Uygulamanın hukuk kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Uygulama PR'ı (app-legal-seed-distance-sales) |
+
+### Kişiler: silme talebinde karaoke süresi talep anından; metinler 30 günü ve Kurul sürelerini söyler (18 Eki 2026)
+
+Karar ASK-Y3-4 (d) ve ACCOUNT-DELETION-WEB (operatör, 18 Eki 2026: avukat
+turu yok). Ekibin gecikmesi üyenin iptal süresini kısaltmaz (TKHK m.4/2).
+`/api/mobile/v1` sözleşmesi değişmedi (istek, yanıt, hata kodları aynı);
+`DELETE /me` yalnız açık Site talebi olan üyede karaoke iadesini talep
+anına göre verir (aşağıda, `docs/API-MOBILE.md` §7).
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟠 | Talebi kapatan "Hesabı sil" karaoke kuralını kapanış anına göre uyguluyordu: talepte süresinde olan ödenmiş rezervasyon, ekip saatine 2 saatten az kala kapatırsa iade almıyor, saati kapanıştan önce geçtiyse "geçmiş" sayılıp sessizce düşüyordu (para bizde, kimse habersiz) | Panel talebi `deleteMe` silmeden önce okur ve `deletionRequestedAt` olarak geçirir; `cancelKaraokeForClosedAccount` kuralı talep anında (talepten sonra yapılan rezervasyonda kapanış anında, `closureJudgedAt`) karara bağlar, iade ve damgalar kapanış anında. Saati talepten sonra geçen ödenmiş rezervasyon süzgeçten düşmez: iade edilir ve ekibe "Silme talebi sırasında süresinde olan ödenmiş rezervasyonun saati geçti" gider; diyalogda işaretsiz "Oda kullanıldı" kutusu işaretlenirse ödeme kalır (olay kaydına yazılır) | `account-deletion-karaoke-window`, `delete-me-karaoke-window`, `admin-customer-actions` |
+| 🟡 | Site talebi açıkken üye hesabı uygulamadan silerse (`DELETE /me`) karaoke kuralı silme anına göre işliyordu: talepte süresinde olan ödenmiş rezervasyon, ekip gecikip üye saatine 2 saatten az kala uygulamadan silince iade almıyordu (`hesap-silme` §8 talep anını söylüyor) | `deleteMe`, çağıran talep vermezse üyenin açık talebini kendisi okur ve kuralı talep anında karara bağlar. Uygulamada odanın kullanılıp kullanılmadığını kimse işaretlemediği için saati talepten sonra geçen rezervasyon ne iade ne iptal edilir; ekibe "Üye hesabı uygulamadan kapattı" uyarısı gider (`roomUseUnknown`). Talep okunamazsa silme hata verir, kural kapanış anına düşmez | `delete-me-karaoke-window`, `account-deletion-karaoke-window` |
+| 🟡 | Ekip ödenmiş karaoke rezervasyonunu talepte göremiyordu, ne zamana kadar kapatması gerektiğini bilmiyordu | Talep kartı ve ekip e-postası her ödenmiş rezervasyonu başlangıç saati ve talep anındaki iadesiyle (`tam iade`, `%50 iade`) sayar, "başlangıç saatinden önce kapat" der; e-posta rezervasyonları okuyamazsa bunu yazar ve yine gider | `admin-account-deletion-ui`, `account-deletion-staff-karaoke`, `account-deletion-core` |
+| 🟢 | `hesap-silme` ertelenen silmede 30 günlük cevap süresini, Kurul'a şikâyetin sürelerini söylemiyordu; Kullanım Şartları §7 "hesap ayarları üzerinden" kapatma, Mobil Uygulama Koşulları §17 yalnız e-posta diyordu | §4 ertelemede de 30 gün içinde cevap (KVKK m.13/2), §8 Site talebinde karaoke süresi talep anından, §11 KVKK m.14/1 süreleri; Kullanım Şartları §7 ve Mobil Uygulama Koşulları §17 her kanalı ve süresini sayar, üçü de setin 18 Ekim 2026 sürümünde. Onay belgesi değişmedi (`LEGAL_UPDATED`, `KARAOKE_LEGAL_UPDATED` bu PR'da yerinde); §5'teki kart maddesi #150'yle zaten kalkmıştı. Cümleler: LEGAL-REDLINES §20 | `legal-account-deletion`, `legal-dates` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
