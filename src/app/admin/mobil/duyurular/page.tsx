@@ -98,7 +98,7 @@ export default async function AdminAppAnnouncementsPage({
             key: "announcement",
             header: "Duyuru",
             cell: (a) => (
-              <span className="block min-w-0">
+              <span className="block min-w-0 md:max-w-[18rem] xl:max-w-[28rem]">
                 <span className="block truncate text-xs text-[var(--admin-text-soft)]">
                   {APP_ANNOUNCEMENT_KIND_LABELS[a.kind]}
                 </span>

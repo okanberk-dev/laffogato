@@ -77,7 +77,7 @@ export function publishTabs(
  * blindly would have taken the whole list down for one bad row.
  */
 function bound(value: string): { text: string; valid: boolean } {
-  if (!value.trim()) return { text: "…", valid: true };
+  if (!value.trim()) return { text: "", valid: true };
   if (parsePublishInstant(value) === null) return { text: value, valid: false };
   return { text: formatDateTime(value), valid: true };
 }
@@ -91,17 +91,16 @@ export function PublishCell({ row, now }: { row: Windowed; now: number }) {
   const status = appPublishStatus(row, now);
   const from = bound(row.startsAt);
   const to = bound(row.endsAt);
-  const hasWindow = Boolean(row.startsAt.trim() || row.endsAt.trim());
+  const line = "text-xs whitespace-nowrap text-[var(--admin-text-soft)]";
   return (
     <span className="grid justify-items-start gap-1">
       <Badge tone={APP_PUBLISH_STATUS_TONES[status]} dot>
         {APP_PUBLISH_STATUS_LABELS[status]}
       </Badge>
-      {hasWindow ? (
-        <span className="text-xs text-[var(--admin-text-soft)]">
-          {from.text} → {to.text}
-        </span>
+      {row.startsAt.trim() ? (
+        <span className={line}>Başlangıç {from.text}</span>
       ) : null}
+      {row.endsAt.trim() ? <span className={line}>Bitiş {to.text}</span> : null}
       {/* An inactive row reads "Kapalı"; a bad bound still needs saying. */}
       {status !== "invalid" && !(from.valid && to.valid) ? (
         <Badge tone="danger">geçersiz tarih</Badge>

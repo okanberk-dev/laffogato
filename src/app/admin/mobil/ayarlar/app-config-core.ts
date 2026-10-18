@@ -146,7 +146,7 @@ export function versionGateConfirm(
     lines.push(
       missing.length === 0
         ? "Ekrandaki düğme mağazadaki sayfaya gider."
-        : `${missing.join(" ve ")} adresi boş: o telefonlarda ekranda mağazaya giden düğme yok, üye çıkış yolu bulamaz. Önce "Mağaza ve bağlantılar" bölümünü doldur.`,
+        : `${missing.join(" ve ")} adresi boş: o telefonlarda ekranda mağazaya giden düğme yok, üye çıkış yolu bulamaz. Önce “Mağaza ve bağlantılar” bölümünü doldur.`,
     );
   }
 

@@ -143,7 +143,7 @@ export default async function AdminAppSlidesPage({
                     backgroundPosition: "center",
                   }}
                 />
-                <span className="min-w-0">
+                <span className="min-w-0 md:max-w-[14rem] xl:max-w-[22rem]">
                   {s.eyebrow ? (
                     <span className="block truncate text-xs text-[var(--admin-text-soft)]">
                       {s.eyebrow}
@@ -166,7 +166,7 @@ export default async function AdminAppSlidesPage({
           {
             key: "cta",
             header: "Buton",
-            hideBelow: "lg",
+            hideBelow: "xl",
             cell: (s) =>
               s.ctaLabel ? (
                 <span className="block max-w-[220px] truncate text-xs text-[var(--admin-text-soft)]">

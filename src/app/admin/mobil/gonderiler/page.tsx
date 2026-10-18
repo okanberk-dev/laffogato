@@ -159,7 +159,7 @@ export default async function AdminAppPostsPage({
             key: "post",
             header: "Gönderi",
             cell: (p) => (
-              <span className="block min-w-0">
+              <span className="block min-w-0 md:max-w-[13rem] xl:max-w-[22rem]">
                 <span className="block truncate text-xs text-[var(--admin-text-soft)]">
                   {APP_POST_KIND_LABELS[p.kind]}
                 </span>
@@ -207,6 +207,7 @@ export default async function AdminAppPostsPage({
             key: "order",
             header: "Sıra",
             align: "right",
+            hideBelow: "xl",
             cell: (p) => p.sortOrder,
           },
         ]}

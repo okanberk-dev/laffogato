@@ -84,7 +84,7 @@ export function AppConfigForm({
   const live = config.maintenance.enabled;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid gap-4 lg:grid-cols-[248px_minmax(0,1fr)]">
       <label className="grid gap-2 sm:hidden">
         <span className="text-sm font-medium text-[var(--admin-text)]">
           Bölüm
@@ -128,7 +128,7 @@ export function AppConfigForm({
               tabIndex={selected ? 0 : -1}
               onClick={() => open(t.id)}
               className={cx(
-                "inline-flex min-h-[44px] items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm whitespace-nowrap transition-colors",
+                "inline-flex min-h-[44px] min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:whitespace-normal",
                 selected
                   ? "bg-[var(--admin-primary)] font-medium text-white"
                   : "border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]",
@@ -215,7 +215,7 @@ function VersionTab({ config }: { config: MobileAppConfig }) {
     <ConfigForm form={form}>
       <Section
         title="Sürüm ve bakım"
-        description="Uygulama açılışta bu iki kapıyı kontrol eder: sürümü küçükse zorunlu güncelleme ekranı, bakım açıksa tam ekran bakım kartı gösterir. İkisi de kaydetmeden önce onay ister."
+        description="Uygulama açılışta bu iki kapıyı kontrol eder: sürümü küçükse zorunlu güncelleme ekranı, bakım açıksa tam ekran bakım kartı gösterir. Bakımı açmak ve sürümü yükseltmek kaydetmeden önce onay ister."
       >
         <div className="grid gap-5">
           <ConfigField

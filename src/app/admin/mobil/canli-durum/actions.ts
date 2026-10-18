@@ -66,9 +66,14 @@ export async function saveVenueStatusAction(
     note: String(formData.get("note") ?? ""),
   });
   if (!parsed.success) {
+    // The message is under its field; the line by the button only points
+    // there (one announcement, not the same sentence twice).
+    const fieldErrors = fieldErrorsFromIssues(parsed.error.issues);
     return actionError(
-      parsed.error.issues[0]?.message ?? "Form geçersiz.",
-      fieldErrorsFromIssues(parsed.error.issues),
+      Object.keys(fieldErrors).length
+        ? "Formdaki uyarıları gider."
+        : (parsed.error.issues[0]?.message ?? "Form geçersiz."),
+      fieldErrors,
     );
   }
 

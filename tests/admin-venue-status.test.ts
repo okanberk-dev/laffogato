@@ -58,6 +58,8 @@ describe("saveVenueStatusAction", () => {
     );
     expect(res.ok).toBe(false);
     expect(!res.ok && res.fieldErrors?.freeTables).toMatch(/geçemez/);
+    // Said once, under the field; the line by the button points there.
+    expect(!res.ok && res.error).toBe("Formdaki uyarıları gider.");
     expect(updateVenueStatus).not.toHaveBeenCalled();
   });
 
