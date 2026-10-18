@@ -9,7 +9,7 @@ import {
   fieldErrorsFromIssues,
   type ActionResult,
 } from "@/lib/admin/action-result";
-import { logAudit } from "@/lib/admin/audit";
+import { safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
   cafeTableIdSchema,
@@ -33,6 +33,10 @@ import {
 // Every export here is a public POST endpoint (CLAUDE.md rule 27): each one
 // checks the session and the role itself. Nothing deletes - a table leaves
 // service by being deactivated, and its code by being rotated.
+//
+// The audit row comes after the write and never throws (safeAudit): a failed
+// one answered "Bir hata oldu" over a write that had landed, and the kept
+// form wrote it again (a second "Bahçe 3" with its own live QR code).
 
 /**
  * A refused form: the first problem as the form's message, each field's
@@ -62,8 +66,10 @@ function revalidateTables(id?: string) {
 }
 
 /**
- * "Masayı ekle". A database error throws: the form turns it into "Bir hata
- * oldu…" with the name still typed (runPanelAction), not the error screen.
+ * "Masayı ekle". A database error before the insert throws: the form turns
+ * it into "Bir hata oldu…" with the name still typed (runPanelAction), not
+ * the error screen. After the insert nothing throws, so a retry cannot add
+ * the table twice.
  */
 export async function createCafeTableAction(
   _prev: ActionResult | null,
@@ -76,7 +82,7 @@ export async function createCafeTableAction(
   if (!parsed.success) return refused(parsed.error.issues);
   const res = await createCafeTable(parsed.data.name);
   if (!res.ok) return storeRefusal(res);
-  await logAudit({
+  await safeAudit({
     action: "create",
     entity: "cafe_table",
     entityId: res.value.id,
@@ -106,7 +112,7 @@ export async function updateCafeTableAction(
     sortOrder: parsed.data.sortOrder,
   });
   if (!res.ok) return storeRefusal(res);
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "cafe_table",
     entityId: res.value.id,
@@ -135,7 +141,7 @@ export async function setCafeTableActiveAction(
   const isActive = parsed.data.isActive === "true";
   const res = await setCafeTableActive(parsed.data.id, isActive);
   if (!res.ok) return actionError(res.message);
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "cafe_table",
     entityId: res.value.id,
@@ -163,7 +169,7 @@ export async function rotateCafeTableCodeAction(
   if (!parsed.success) return actionError("Geçersiz istek; sayfayı yenile.");
   const res = await rotateCafeTableCode(parsed.data);
   if (!res.ok) return actionError(res.message);
-  await logAudit({
+  await safeAudit({
     action: "update",
     entity: "cafe_table",
     entityId: res.value.id,

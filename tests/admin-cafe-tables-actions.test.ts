@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const {
   requireRole,
   logAudit,
+  safeAudit,
   createCafeTable,
   updateCafeTable,
   setCafeTableActive,
@@ -19,7 +20,17 @@ const {
   setAdminFlash,
 } = vi.hoisted(() => ({
   requireRole: vi.fn(async () => ({ email: "m@ornek.com", role: "manager" })),
-  logAudit: vi.fn(async () => {}),
+  logAudit: vi.fn(async (_input: unknown) => {}),
+  // The real one's contract (lib/admin/audit.ts): the row is tried through
+  // logAudit and a failed one never throws.
+  safeAudit: vi.fn(async (input: unknown) => {
+    try {
+      await logAudit(input);
+      return true;
+    } catch {
+      return false;
+    }
+  }),
   createCafeTable: vi.fn(),
   updateCafeTable: vi.fn(),
   setCafeTableActive: vi.fn(),
@@ -39,7 +50,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/lib/admin/auth", () => ({ requireRole }));
-vi.mock("@/lib/admin/audit", () => ({ logAudit }));
+vi.mock("@/lib/admin/audit", () => ({ logAudit, safeAudit }));
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash }));
 vi.mock("@/lib/admin/cafe-tables", () => ({
   createCafeTable,
@@ -73,6 +84,7 @@ beforeEach(() => {
   for (const f of [
     requireRole,
     logAudit,
+    safeAudit,
     createCafeTable,
     updateCafeTable,
     setCafeTableActive,
@@ -189,6 +201,57 @@ describe("masalar actions", () => {
     );
     expect(res).toEqual({ ok: false, error: PANEL_ACTION_FAILED });
     expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("a failed audit row after the insert still opens the new table, so a retry adds no second one", async () => {
+    // The table and its live QR code exist once createCafeTable answers. A
+    // throw from the audit row used to come back as "Bir hata oldu" with the
+    // name still typed, and one more click inserted a second "Bahçe 3".
+    logAudit.mockRejectedValueOnce(new Error("logAudit: connection reset"));
+    await expect(
+      runPanelAction(
+        actions.createCafeTableAction,
+        null,
+        form({ name: "Bahçe 3" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(createCafeTable).toHaveBeenCalledTimes(1);
+    expect(logAudit).toHaveBeenCalledTimes(1);
+    expect(redirect).toHaveBeenLastCalledWith("/admin/masalar/tbl-0003");
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Bahçe 3 eklendi"),
+    );
+  });
+
+  it("answers every other write as done when only its audit row fails", async () => {
+    logAudit.mockRejectedValueOnce(new Error("logAudit: connection reset"));
+    await expect(
+      runPanelAction(
+        actions.updateCafeTableAction,
+        null,
+        form({ id: "tbl-0003", name: "Bahçe 3", sortOrder: "3" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    logAudit.mockRejectedValueOnce(new Error("logAudit: connection reset"));
+    expect(
+      await runPanelAction(
+        actions.setCafeTableActiveAction,
+        null,
+        form({ id: "tbl-0003", isActive: "false" }),
+      ),
+    ).toMatchObject({ ok: true });
+
+    // A "failed" rotation would be pressed again and kill the new code too.
+    logAudit.mockRejectedValueOnce(new Error("logAudit: connection reset"));
+    expect(
+      await runPanelAction(
+        actions.rotateCafeTableCodeAction,
+        null,
+        form({ id: "tbl-0003" }),
+      ),
+    ).toMatchObject({ ok: true, tone: "warning" });
+    expect(rotateCafeTableCode).toHaveBeenCalledTimes(1);
   });
 
   it("a saved table opens its own page", async () => {
