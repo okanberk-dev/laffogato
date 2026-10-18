@@ -11,6 +11,7 @@ import {
   MENU_ALLERGENS_SHOWN_FIELD,
   MENU_ALLERGEN_KEYS,
   menuAllergenLine,
+  menuAllergenWords,
   normalizeMenuAllergens,
 } from "@/lib/menu/allergens";
 import {
@@ -133,6 +134,9 @@ describe("normalizeMenuAllergens / menuAllergenLine", () => {
     expect(menuAllergenLine(["sert_kabuklu", "yer_fistigi", "sulfit"])).toBe(
       "Alerjenler: yer fıstığı, sert kabuklu meyveler, sülfit",
     );
+    expect(menuAllergenWords(["sut", "gluten"])).toEqual(["gluten", "süt"]);
+    expect(menuAllergenWords([])).toEqual([]);
+    expect(menuAllergenWords(null)).toBeNull();
   });
 });
 

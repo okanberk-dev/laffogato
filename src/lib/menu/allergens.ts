@@ -85,15 +85,20 @@ export function normalizeMenuAllergens(raw: unknown): MenuAllergen[] | null {
   return MENU_ALLERGEN_KEYS.filter((k) => present.has(k));
 }
 
-/** "Alerjenler: gluten, süt" / "Alerjenler: yok"; null when not entered. */
-export function menuAllergenLine(raw: unknown): string | null {
+/** The groups as words for a sentence ("gluten, süt"), or null. */
+export function menuAllergenWords(raw: unknown): string[] | null {
   const keys = normalizeMenuAllergens(raw);
   if (keys === null) return null;
-  if (keys.length === 0) return "Alerjenler: yok";
-  const words = keys.map((k) =>
+  return keys.map((k) =>
     MENU_ALLERGENS.find((a) => a.key === k)!.label.toLocaleLowerCase("tr-TR"),
   );
-  return `Alerjenler: ${words.join(", ")}`;
+}
+
+/** "Alerjenler: gluten, süt" / "Alerjenler: yok"; null when not entered. */
+export function menuAllergenLine(raw: unknown): string | null {
+  const words = menuAllergenWords(raw);
+  if (words === null) return null;
+  return `Alerjenler: ${words.length > 0 ? words.join(", ") : "yok"}`;
 }
 
 /** The panel form: one checkbox per group, all posting under this name. */
