@@ -4,7 +4,8 @@
 //
 // Server-safe (no hooks): Badge, OrderStatusBadge, DataTable (without
 // `selection`), StatusTabs, Pagination, Section, KeyValueGrid, Timeline,
-// EmptyState. Client components, usable from a server page with plain props:
+// EmptyState, AdminIcon (lucide; icons.tsx is the one file that imports it).
+// Client components, usable from a server page with plain props:
 // FilterBar, ActionMenu (+ items), ActionModal, ConfirmButton, ToastProvider.
 // Pure helpers live in lib/admin: list-params.ts (URL), action-result.ts,
 // order-ui.ts, tone.ts, flash-core.ts (+ server-only flash.ts),
@@ -46,6 +47,14 @@ export {
   type TimelineItem,
 } from "./detail";
 export { FilterBar, type FilterBarProps } from "./filter-bar";
+export {
+  ADMIN_ICONS,
+  ADMIN_ICON_SIZE,
+  ADMIN_ICON_STROKE,
+  AdminIcon,
+  type AdminIconName,
+  type AdminIconProps,
+} from "./icons";
 export { Pagination } from "./pagination";
 export { StatusTabs, type StatusTab } from "./status-tabs";
 export { BUTTON, NUMERIC_STYLE, type ButtonVariant } from "./styles";
