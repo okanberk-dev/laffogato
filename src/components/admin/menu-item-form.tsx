@@ -6,24 +6,20 @@ import {
   MENU_CATEGORY_LABELS,
 } from "@/lib/admin/store";
 
-import {
-  Card,
-  Checkbox,
-  Field,
-  GhostButton,
-  Select,
-  TextInput,
-  Textarea,
-} from "./forms";
+import { Card, Checkbox, Field, Select, TextInput, Textarea } from "./forms";
 import {
   ActionForm,
   FormFieldError,
   FormMessage,
   SubmitButton,
 } from "./action-form";
-import type { ModalAction } from "./ui";
+import { BUTTON, type ModalAction } from "./ui";
 import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
+import {
+  MENU_TAG_OPTIONS,
+  unknownMenuTags,
+} from "@/lib/admin/menu-item-schema";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import { KDV_RATE_CHOICES, LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
@@ -35,9 +31,9 @@ const HUE_OPTIONS = [
   ["espresso", "Espresso"],
   ["dark", "Koyu"],
   ["matcha", "Matcha"],
-  ["pistachio", "Pistachio"],
+  ["pistachio", "Antep fıstığı"],
   ["strawberry", "Çilek"],
-  ["rose", "Rose"],
+  ["rose", "Gül"],
   ["bougainvillea", "Begonvil"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
@@ -66,7 +62,10 @@ export function MenuItemForm({
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
   const priceLValue =
     item && item.priceMinorL > 0 ? (item.priceMinorL / 100).toFixed(2) : "";
-  const tagsValue = item ? item.tags.join(", ") : "";
+  const tags = item?.tags ?? [];
+  // Words the old free-text field let in. The app never showed them, and
+  // the boxes below cannot hold them: say so before the save drops them.
+  const droppedTags = unknownMenuTags(tags);
   const ownTaxRate =
     typeof item?.taxRatePct === "number" ? item.taxRatePct : null;
   // A stored rate the standard list does not have stays selectable.
@@ -130,7 +129,11 @@ export function MenuItemForm({
           </Field>
         </div>
 
+        {/* A fieldset, not a label: inside the label every click on the
+            caption, the hint or the "URL ile ekle" line opened the file
+            picker, and the drop area opened it twice (admin audit CAT-15). */}
         <Field
+          as="fieldset"
           label="Fotoğraf"
           hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB, sığmazsa küçültülür). Arka planı saydam (dekupe) bir PNG ya da WebP saydamlığını korur; uygulama onu doğrudan sahnenin üstüne çizer. Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
         >
@@ -162,14 +165,34 @@ export function MenuItemForm({
         />
 
         <Field
+          as="fieldset"
           label="Etiketler"
-          hint="Virgülle ayır. Örn: signature, new, iced, nuts, IGP"
+          hint="Menüde ve uygulamada rozet olarak görünür. Sert kabuklu yemiş alerjen uyarısıdır: kalem fındık, fıstık ya da başka bir sert kabuklu yemiş içeriyorsa işaretle."
         >
-          <TextInput
-            name="tags"
-            defaultValue={tagsValue}
-            placeholder="signature, new"
-          />
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            {MENU_TAG_OPTIONS.map(([value, label]) => (
+              <Checkbox
+                key={value}
+                name="tags"
+                value={value}
+                label={label}
+                defaultChecked={tags.includes(value)}
+              />
+            ))}
+          </div>
+          {droppedTags.length > 0 ? (
+            <p
+              role="note"
+              className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+            >
+              Bu kalemde uygulamanın tanımadığı{" "}
+              {droppedTags.length === 1 ? "bir etiket" : "etiketler"} var:{" "}
+              <strong>{droppedTags.join(", ")}</strong>. Uygulama{" "}
+              {droppedTags.length === 1 ? "bunu" : "bunları"} hiç göstermiyordu;
+              kaydedince silinir. Alerjen uyarısıysa “Sert kabuklu yemiş”i
+              işaretle.
+            </p>
+          ) : null}
         </Field>
       </Card>
 
@@ -231,10 +254,8 @@ export function MenuItemForm({
         <div className="mt-2 flex flex-col gap-2">
           <FormMessage />
           <SubmitButton>{submitLabel}</SubmitButton>
-          <Link href={cancelHref}>
-            <GhostButton type="button" className="w-full">
-              Vazgeç
-            </GhostButton>
+          <Link href={cancelHref} className={`${BUTTON.ghost} w-full`}>
+            Vazgeç
           </Link>
         </div>
       </Card>

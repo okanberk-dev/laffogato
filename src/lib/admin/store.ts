@@ -6187,6 +6187,24 @@ export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
 }
 
 /**
+ * The names of the given menu items, without their photos. For the bulk
+ * tool's audit row, read before the write: after a bulk delete the names
+ * are gone and the row is the only record of what was removed (admin audit
+ * CAT-20).
+ */
+export async function listMenuItemLabels(
+  ids: readonly string[],
+): Promise<Array<{ id: string; name: string }>> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  const sb = getDb();
+  return rows<{ id: string; name: string }>(
+    await sb.from(TABLES.menuItems).select("id, name").in("id", ids),
+    "listMenuItemLabels",
+  );
+}
+
+/**
  * What the menu item form saves, scene columns included (computed by the
  * save action from the photo and the form, `src/lib/backdrop/scene.ts`).
  */
