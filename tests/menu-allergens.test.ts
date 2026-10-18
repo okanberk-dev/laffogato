@@ -389,6 +389,12 @@ describe("the panel form", () => {
     expect(html).toContain(
       `type="hidden" name="${MENU_ALLERGENS_SHOWN_FIELD}" value="1"`,
     );
+    // The long labels wrap to two lines on a narrow column: the box keeps
+    // its 20px instead of being squeezed by the text.
+    const box = (html.match(/<input[^>]*>/g) ?? []).find((t) =>
+      t.includes('value="sert_kabuklu"'),
+    );
+    expect(box).toMatch(/class="h-5 w-5 shrink-0 /);
   });
 
   it("ticks what the item has, and none only for []", () => {
