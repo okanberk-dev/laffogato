@@ -1,4 +1,4 @@
--- Eight menu photos that show something the item is not (18 Oct 2026).
+-- Ten menu photos that show something the item is not (18 Oct 2026).
 --
 -- Decision OP-MENU-PHOTOS / ASK-OTH-1 (operator, 18 Oct 2026: "avukata sorma,
 -- sen karar ver"): "Görseller temsilidir" covers a different glass, garnish
@@ -9,9 +9,13 @@
 -- photo titled "Iced Mocha" for a pumpkin latte, a mint iced tea for a peach
 -- one, a magnolia with no biscuit layer, a white sesame simit for a buckwheat
 -- one), and mnu-0082 Alternatif Süt shows hemp milk and hemp seeds, which the
--- bar does not serve. A picture that contradicts the item is a misleading
--- advertisement whatever the footnote says (TKHK m.61, m.62, m.8/2; Ticari
--- Reklam Yön. m.7/5-a, m.18/6-7, m.29/2-a). docs/MENU-PHOTOS.md lists each.
+-- bar does not serve. Two more show tree nuts on an item that names and tags
+-- none, the criterion that took off mnu-0067: walnuts heaped on the slice
+-- for mnu-0061 L'Af Kahve, and an almond and seed bar beside the chocolate
+-- ones for mnu-0078 Kakao Protein Bar. A picture that contradicts the item
+-- is a misleading advertisement whatever the footnote says (TKHK m.61, m.62,
+-- m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7, m.29/2-a). docs/MENU-PHOTOS.md
+-- lists each.
 --
 -- A row is emptied only when both hold:
 -- - it still carries the very path the old migration wrote. A photo the
@@ -41,10 +45,12 @@ update public.menu_items as m
     ('mnu-0028', '/menu/iced-pumpkin-latte.webp'),
     ('mnu-0056', '/menu/peach-iced-tea.webp'),
     ('mnu-0059', '/menu/blueberry-san-sebastian.webp'),
+    ('mnu-0061', '/menu/coffee-cake.webp'),
     ('mnu-0063', '/menu/strawberry-magnolia.webp'),
     ('mnu-0067', '/menu/classic-spoonful.webp'),
     ('mnu-0073', '/menu/simit.webp'),
     ('mnu-0074', '/menu/roast-beef-sandwich.webp'),
+    ('mnu-0078', '/menu/cocoa-protein-bar.webp'),
     ('mnu-0082', '/menu/alternative-milk.webp')
   ) as v (id, image)
  where m.id = v.id

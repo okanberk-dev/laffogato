@@ -631,7 +631,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kahveli evin özel pastası.",
         price: "290₺",
         hue: "espresso",
-        image: "/menu/coffee-cake.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "L'Af Antep Fıstığı",
@@ -764,7 +765,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kakaolu protein bar.",
         price: "90₺",
         hue: "espresso",
-        image: "/menu/cocoa-protein-bar.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Koska Fındık",

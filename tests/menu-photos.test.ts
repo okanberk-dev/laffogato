@@ -31,7 +31,7 @@ vi.mock("next/image", () => ({
  * The stock menu photos (17 Oct 2026, docs/MENU-PHOTOS.md): the migration
  * that wires them into the live menu, the files it points at, the bundled
  * seed that carries the same paths, and the "Görseller temsilidir" line the
- * menu shows next to them. On 18 Oct 2026 eight of them came off again
+ * menu shows next to them. On 18 Oct 2026 ten of them came off again
  * (OP-MENU-PHOTOS): their content contradicts the item, which no footnote
  * fixes. The old migration is left as it ran; a second one empties them.
  */
@@ -58,15 +58,17 @@ const offCode = readFileSync(OFF_MIGRATION, "utf8").replace(/--[^\n]*/g, "");
 const offRows = [
   ...offCode.matchAll(/\('(mnu-\d{4})',\s*'(\/menu\/[a-z0-9-]+\.webp)'\)/g),
 ].map(([, id, image]) => ({ id, image }));
-/** The eight items whose photo showed something the item is not. */
+/** The ten items whose photo showed something the item is not. */
 const OFF_IDS = [
   "mnu-0028",
   "mnu-0056",
   "mnu-0059",
+  "mnu-0061",
   "mnu-0063",
   "mnu-0067",
   "mnu-0073",
   "mnu-0074",
+  "mnu-0078",
   "mnu-0082",
 ];
 
@@ -163,7 +165,7 @@ describe("the migration", () => {
 });
 
 describe("the photo-off migration (18 Oct 2026)", () => {
-  it("names exactly the eight, each with the path the old migration wrote", () => {
+  it("names exactly the ten, each with the path the old migration wrote", () => {
     expect(offRows.map((r) => r.id)).toEqual(OFF_IDS);
     for (const off of offRows) {
       expect(rows.find((r) => r.id === off.id)?.image, off.id).toBe(off.image);
@@ -243,7 +245,7 @@ describe("the photo files", () => {
 });
 
 describe("the bundled seed", () => {
-  it("carries the same photo as the migration for every item, and none for the eight", () => {
+  it("carries the same photo as the migration for every item, and none for the ten", () => {
     for (const row of rows) {
       const item = seed.find((s) => s.id === row.id);
       if (OFF_IDS.includes(row.id)) {
@@ -275,10 +277,12 @@ describe("the bundled seed", () => {
       "Ananas",
       "Şeftalili Soğuk Çay",
       "Yaban Mersinli San Sebastian",
+      "L'Af Kahve",
       "Çilek Magnolia",
       "Klasik Spoonful",
       "Karabuğday Simit",
       "Rosbeef Sandviç",
+      "Kakao Protein Bar",
       "Şurup",
       "Alternatif Süt",
     ]);
