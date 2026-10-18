@@ -1157,6 +1157,17 @@ describe("the top-bar control", () => {
     expect(html).not.toContain("data-order-alerts");
   });
 
+  it("has its live region in the bar before any order, not in the card stack", () => {
+    // A live region inserted with its text already in it is read by no
+    // screen reader: it must be on the page, empty, when the first order
+    // comes in.
+    const bar = renderToStaticMarkup(
+      createElement(OrderAlerts, { mayStartPreparing: true }),
+    );
+    expect(bar).toContain('<p class="sr-only" aria-live="assertive"></p>');
+    expect(panel()).not.toContain("aria-live");
+  });
+
   it("keeps the acknowledgements under their own key", () => {
     expect(ORDER_ALERT_ACK_KEY).toBe("laffogato.admin.orderAlerts.acks.v1");
   });

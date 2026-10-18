@@ -562,6 +562,14 @@ export function OrderAlerts({
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
+        {/* Here, mounted before the first order, not in the card stack: a
+            live region inserted with its text already in it is announced
+            by no screen reader, so the first order went unsaid. */}
+        <p className="sr-only" aria-live="assertive">
+          {pending[0]
+            ? `${notificationTitle(pending[0])}. ${notificationBody(pending[0])}`
+            : ""}
+        </p>
       </div>
       {menuAt
         ? createPortal(
@@ -753,7 +761,6 @@ export interface OrderAlertPanelProps {
 export function OrderAlertPanel(props: OrderAlertPanelProps) {
   const { alerts, collapsed = false } = props;
   const live = alerts.filter((d) => !d.done).map((d) => d.alert);
-  const first = live[0];
   return (
     <section
       aria-label="Yeni siparişler"
@@ -798,9 +805,6 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
           ) : null}
         </div>
       </div>
-      <p className="sr-only" aria-live="assertive">
-        {first ? `${notificationTitle(first)}. ${notificationBody(first)}` : ""}
-      </p>
       {props.unlock === "locked" ? (
         <button
           type="button"
