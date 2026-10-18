@@ -54,7 +54,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -77,7 +77,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "1. Formun Amacı, Konusu ve Hukuki Niteliği",
         paragraphs: [
           "Bu Ön Bilgilendirme Formu, {{LEGAL_NAME}} ({{BRAND}} markası ile faaliyet gösterir; bundan sonra SATICI olarak anılacaktır) tarafından {{SITE_URL}} adresinde işletilen internet sitesi ile iOS ve Android için yayımlanan {{BRAND}} mobil uygulaması ve bunlar üzerinden erişilen online mağaza (bottega) ile mobil uygulamadaki kafe siparişi bölümü üzerinden mesafeli olarak satışa sunulan mal ve hizmetlere ilişkin olarak, siparişi veren tüketicinin (bundan sonra ALICI olarak anılacaktır) sipariş vermeden ve herhangi bir ödeme yükümlülüğü altına girmeden önce bilgilendirilmesi amacıyla, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri uyarınca düzenlenmiştir.",
-          "Form, Mesafeli Sözleşmeler Yönetmeliği'nin ön bilgilendirmeye ilişkin hükmünde sayılan tüm bilgi kalemlerini kapsamakta olup, ALICI'nın okuyup anladığını elektronik ortamda ayrı bir onay kutucuğu ile teyit etmesi, Mesafeli Satış Sözleşmesi'nin kurulmasının ön şartıdır. ALICI bu formu onaylamadığı sürece sipariş süreci tamamlanamaz ve ödeme adımına geçilemez.",
+          "Form, Mesafeli Sözleşmeler Yönetmeliği'nin ön bilgilendirmeye ilişkin hükmünde sayılan tüm bilgi kalemlerini kapsamakta olup, ALICI'nın okuyup anladığını elektronik ortamda ayrı bir onay kutucuğu ile teyit etmesi, Mesafeli Satış Sözleşmesi'nin kurulmasının ön şartıdır. ALICI bu formu onaylamadıkça sipariş verilemez ve ödeme alınmaz.",
           "Bu form tek başına bir satış sözleşmesi değildir; sözleşme öncesi bilgilendirme belgesidir. Taraflar arasındaki hak ve yükümlülükler, ALICI tarafından ayrıca onaylanacak Mesafeli Satış Sözleşmesi ile kurulur. Formda yer alan bilgiler ile Mesafeli Satış Sözleşmesi arasında tüketici aleyhine bir çelişki bulunması hâlinde, tüketici lehine olan hüküm uygulanır.",
           "Bu formda yer alan hiçbir hüküm, tüketicinin 6502 sayılı Kanun ve ilgili mevzuattan doğan emredici haklarını sınırlandıracak, ortadan kaldıracak veya tüketiciyi bu haklarından feragat ettirecek şekilde yorumlanamaz.",
         ],
@@ -143,7 +143,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "3. Satıcı (Hizmet Sağlayıcı) Bilgileri",
         paragraphs: [
-          "Mesafeli Sözleşmeler Yönetmeliği ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca satıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. ALICI, sözleşme ilişkisinin her aşamasında bu bilgilere {{SITE_URL}} adresinden, mobil uygulamanın bilgilendirme bölümünden ve aşağıdaki iletişim kanallarından ulaşabilir.",
+          "Mesafeli Sözleşmeler Yönetmeliği ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca satıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. ALICI, sözleşme ilişkisinin her aşamasında bu bilgilere {{SITE_URL}} adresinden, mobil uygulamanın bilgilendirme bölümünden ve aşağıdaki iletişim kanallarından ulaşabilir.",
           "SATICI, tabi olduğu ölçüde 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin hükümleri ile 5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve elektronik ticaret mevzuatından doğan tanıtıcı bilgi ve içerik sorumluluğu yükümlülüklerini yerine getirir. Yukarıdaki tabloda yer alan bilgilerde değişiklik olması hâlinde güncel bilgiler gecikmeksizin {{SITE_URL}} adresinde ve mobil uygulamada yayımlanır.",
         ],
         table: [
@@ -413,9 +413,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cayma hakkının bulunmadığı hâller bu maddede sayılmıştır; mobil uygulamada sipariş verilirken ödeme ekranında kafe siparişlerinde cayma hakkı bulunmadığı ayrıca gösterilir. Mobil uygulamadan verilen kafe siparişi, hazırlanmaya başlanmadan önce iptal edilebilir; iptal talebi {{PHONE}} numarasından veya {{EMAIL}} adresinden SATICI'ya iletilir. Cayma hakkının kullanılamayacağı hâller, ürünün ayıplı çıkması durumunda ALICI'nın ayıplı maldan doğan haklarını ortadan kaldırmaz.",
         ],
         bullets: [
-          "Çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünleri: yenilebilir waffle kupa, gelato kiti, soğuk zincir gerektiren ürünler ve benzeri.",
+          "Çabuk bozulabilen veya son kullanma tarihi cayma ve iade süreleri içinde geçebilecek gıda ürünleri: gelato ve soğuk zincir gerektiren diğer ürünler (Affogato Seti'ndeki gelato dahil).",
           "Doğrudan tüketime yönelik olarak hazırlanan ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yiyecek ve içecekler: kafe menüsünden hazırlanarak gel-al ya da kurye ile teslim edilen kahve, gelato ve tatlılar.",
-          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan ve iadesi sağlık/hijyen açısından uygun olmayan ürünler: açılmış kahve paketleri, açılmış pistacchio kreması ve şuruplar, ağızla temas eden ekipman parçaları.",
+          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan ve iadesi sağlık/hijyen açısından uygun olmayan ürünler: açılmış kahve paketleri, açılmış yenilebilir kup kutusu, açılmış pistacchio kreması ve şuruplar, ağızla temas eden ekipman parçaları.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan kişiye özel ürünler: isim/mesaj baskılı fincan, önlük veya tote çanta; talebe göre özel öğütülen veya özel harmanlanan kahve.",
           "Tesliminden sonra başka ürünlerle karışan ve doğası gereği ayrıştırılması mümkün olmayan ürünler.",
           "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler: belirli gün ve saate ayrılan rezervasyonlu hizmetler ve benzeri tarihli hizmetler. Karaoke odası rezervasyonu da bu kapsamdadır: ödemesi çevrim içi alınır, ödemeden önce kendi Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi (Karaoke Odası Koşulları) ayrıca onaylanır ve bu form ona uygulanmaz.",
@@ -426,8 +426,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
         paragraphs: [
-          "ALICI, cayma bildirimini yaptığı tarihten itibaren 10 (on) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Malın, faturası, kutusu, standart aksesuarları ve varsa hediye ürünleriyle birlikte, ticari değerini yitirmeden ve yeniden satılabilirliğini engellemeyecek şekilde iade edilmesi gerekir. Ürünün ALICI'nın malın niteliğine ve işleyişine uygun olmayan kullanımından kaynaklanan değer kaybından ALICI sorumludur; olağan muayene ve deneme kapsamındaki kullanım bu nitelikte sayılmaz.",
-          "İade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağı, cayma bildirimi SATICI'ya ulaştığında ALICI'ya e-posta ile bildirilir. ALICI iadeyi bildirilen kargo firması ile ve verilen iade kodu ile gönderdiğinde iade kargo bedeli SATICI tarafından karşılanır. ALICI'nın bildirilen kargo firması yerine başka bir firmayı tercih etmesi hâlinde, aradaki fark ALICI'ya ait olur. Ürünün ayıplı olması, yanlış ürün gönderilmesi veya kargoda hasar görmesi hâllerinde iade kargo bedeli her hâlükârda SATICI'ya aittir.",
+          "ALICI, cayma bildirimini yaptığı tarihten itibaren 14 (on dört) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. ALICI malı, standart aksesuarları ve varsa kampanya kapsamında verilen hediye ürünleriyle birlikte geri gönderir; faturanın geri gönderilmesi gerekmez. ALICI, cayma süresi içinde malı işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun şekilde kullanması sonucu oluşan değişiklik ve bozulmalardan sorumlu değildir; yalnız bunun dışındaki kullanımdan doğan değer kaybından sorumludur.",
+          "İade kodu, cayma bildirimi SATICI'ya ulaştığında ALICI'ya e-posta ile bildirilir. Bu formda iade için bir taşıyıcı adlandırılmadığından iade kargo bedeli ALICI'dan talep edilmez: iade koduyla yapılan gönderinin bedelini SATICI öder; ALICI iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli SATICI tarafından ALICI'ya geri ödenir ve karşı ödemeli gönderilen iadeler de teslim alınır. Ürünün ayıplı olması, yanlış ürün gönderilmesi veya kargoda hasar görmesi hâllerinde de iade kargo bedeli SATICI'ya aittir.",
           "SATICI, cayma bildiriminin kendisine ulaştığı tarihten itibaren 14 (on dört) gün içinde, ALICI'nın ödediği toplam bedeli ve varsa ALICI'yı borç altına sokan kıymetli evrakı iade eder; teslimat masrafları da bu iadeye dâhildir. Geri ödeme, ALICI'ya hiçbir masraf yüklenmeksizin tek seferde ve PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta yapılır; ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade işlemi olarak bankaya iletilir. Siparişin bir kısmının iadesinde de iade tutarı ödemenin yapıldığı karta yapılır; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir. Tutarın kart hesabına yansıma süresi kartı veren bankanın süreçlerine bağlıdır. Bu süreler SATICI'nın kontrolü dışında olup, SATICI iade talimatını yasal süre içinde vermekle yükümlüdür.",
           "Siparişte bir kupon kullanılmışsa, kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; ALICI'nın fiilen ödediği tutar yukarıdaki usulle iade edilir. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Siparişin iptali veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılmış damga geri alınır.",
         ],
@@ -438,7 +438,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "Malı geri gönderme süresi",
-            value: "Cayma bildiriminden itibaren 10 gün",
+            value: "Cayma bildiriminden itibaren 14 gün",
           },
           {
             key: "SATICI'nın geri ödeme süresi",
@@ -447,7 +447,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İade taşıyıcısı",
             value:
-              "Kargo firması ve iade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kodu ile gönderimde iade kargo bedeli SATICI'ya aittir",
+              "İade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez",
           },
           {
             key: "İade adresi",
@@ -569,7 +569,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "21. Şikâyet, İtiraz ve Uyuşmazlıkların Çözümü",
         paragraphs: [
           "ALICI, sipariş, teslimat, iade, sadakat (damga) programı veya ürünle ilgili her türlü talep, öneri ve şikâyetini {{EMAIL}} adresine, {{PHONE}} numarasına veya {{ADDRESS}} adresine iletebilir. SATICI, kendisine ulaşan başvuruları kayda alır, en geç 3 (üç) iş günü içinde geri dönüş yapar ve çözüm sürecinin her aşamasında ALICI'yı bilgilendirir. Sosyal medya hesapları ({{HANDLE}}) üzerinden gelen mesajlar da kayda alınmakla birlikte, resmî başvuru kanalı e-posta ve yazılı bildirimdir.",
-          "SATICI ile çözülemeyen uyuşmazlıklarda ALICI, 6502 sayılı Tüketicinin Korunması Hakkında Kanun uyarınca, her yıl Ticaret Bakanlığınca yeniden değerleme oranında güncellenen parasal sınırlar çerçevesinde; kendi yerleşim yerindeki veya tüketici işleminin yapıldığı yerdeki İlçe/İl Tüketici Hakem Heyetine ya da Tüketici Mahkemesine başvurabilir. Parasal sınırlar ve başvuru usulüne ilişkin güncel bilgilere Ticaret Bakanlığının resmî kaynaklarından ulaşılabilir.",
+          "SATICI ile çözülemeyen uyuşmazlıklarda ALICI, her yıl Ticaret Bakanlığınca ilan edilen parasal sınırlar içinde yerleşim yerindeki veya tüketici işleminin yapıldığı yerdeki tüketici hakem heyetine; bu sınırların üzerindeki uyuşmazlıklarda ise 6502 sayılı Kanun'un 73/A maddesi uyarınca dava açmadan önce arabulucuya başvurmak şartıyla tüketici mahkemesine başvurabilir. Parasal sınırlar ve başvuru usulüne ilişkin güncel bilgilere Ticaret Bakanlığının resmî kaynaklarından ulaşılabilir.",
           "ALICI ayrıca Ticaret Bakanlığının e-Devlet üzerinden erişilen Tüketici Bilgi Sistemi aracılığıyla elektronik ortamda başvuru yapabilir. Bu formda yer alan hiçbir hüküm, ALICI'nın tüketici hakem heyetine veya tüketici mahkemesine başvurma hakkını sınırlandıramaz.",
           "Bu formdan ve mesafeli satış ilişkisinden doğan uyuşmazlıklarda Türk hukuku uygulanır.",
         ],
@@ -661,7 +661,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6102 sayılı Türk Ticaret Kanunu",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İYS - İleti Yönetim Sistemi)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -999,13 +999,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "10. Teslimat, Kargo ve Teslim Şartları",
         paragraphs: [
           "Sözleşme konusu mal, ALICI'nın sipariş sırasında bildirdiği teslimat adresine, SATICI'nın anlaşmalı kargo firmaları aracılığıyla teslim edilir. Teslimat, siparişin kurulmasından itibaren yasal 30 (otuz) günlük azami süreyi aşmamak kaydıyla, ürün sayfasında ve sipariş özetinde belirtilen tahmini süre içinde gerçekleştirilir.",
-          "Mobil uygulama üzerinden verilen kafe siparişleri, ALICI'nın seçimine göre kafeden gel-al olarak teslim alınır veya ALICI'nın uygulamada seçtiği teslimat adresine kurye ile teslim edilir; ileri bir saate planlanan kafe siparişlerinde ALICI'nın seçtiği saat esas alınır. Kafe siparişlerine işbu maddenin kargo firmasına, kargo takip numarasına, kargo ücretine ve yurt dışı teslimata ilişkin hükümleri uygulanmaz; kurye ücreti sipariş özetinde ayrıca gösterilir.",
+          "Mobil uygulama üzerinden verilen kafe siparişleri, ALICI'nın seçimine göre kafeden gel-al olarak teslim alınır veya ALICI'nın uygulamada seçtiği teslimat adresine kurye ile teslim edilir; ileri bir saate planlanan kafe siparişlerinde ALICI'nın seçtiği saat esas alınır. Kafe siparişlerine işbu maddenin kargo firmasına, kargo takip numarasına ve kargo ücretine ilişkin hükümleri uygulanmaz; kurye ücreti sipariş özetinde ayrıca gösterilir.",
           "Sipariş, ödemenin onaylandığı iş günü içinde hazırlanmaya başlanır. Hafta sonu, resmî tatil ve dinî bayram günlerinde kargo firmalarının çalışma takvimine bağlı olarak teslimat süreleri uzayabilir; bu günler tahmini teslim süresi hesabında dikkate alınmaz.",
           "Gıda niteliğindeki ürünler (kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, pistacchio kreması, şuruplar ve benzeri kiler ürünleri) tazelik ve gıda güvenliği gözetilerek, uygun ambalaj ve gerektiğinde yalıtımlı taşıma çözümleriyle sevk edilir. Sıcaklığa duyarlı ürünlerde SATICI, mevsim ve destinasyon koşullarına göre sevkiyat gününü ALICI'yı bilgilendirerek belirleyebilir.",
           "ALICI'ya, gönderinin kargo firmasına tesliminde kargo takip numarası e-posta ile bildirilir; mobil uygulama kullanıcıları gönderinin durumunu ayrıca uygulamadaki sipariş ekranından izleyebilir. ALICI, bu numara ile gönderisinin durumunu ilgili kargo firmasının sisteminden takip edebilir.",
           "Kargo firmasının adreste bulunamama nedeniyle bıraktığı bildirime rağmen ALICI'nın malı ilgili şubeden mevzuatta ve kargo firmasının kurallarında öngörülen bekleme süresi içinde teslim almaması ve gönderinin SATICI'ya iade dönmesi hâlinde, ALICI ile iletişime geçilir. Yeniden gönderim talep edilmesi durumunda ikinci gönderim bedeli ALICI'ya aittir. ALICI'nın yeniden gönderim istememesi hâlinde sipariş iptal edilerek mal bedeli iade edilir.",
           "SATICI, aynı siparişte yer alan ürünleri tedarik ve stok durumuna göre birden fazla parça hâlinde ayrı ayrı sevk edebilir. Kısmi sevkiyat hâlinde ALICI'dan ek kargo bedeli talep edilmez ve her parti için ayrı kargo takip numarası bildirilir.",
-          "Teslimat adresinin Türkiye Cumhuriyeti sınırları dışında olması hâlinde, varış ülkesinde doğabilecek gümrük vergileri, harçlar, ithalat kısıtlamaları ve benzeri yükümlülükler ALICI'nın sorumluluğundadır. Gıda ürünlerinin bazı ülkelere girişinin yasak veya izne tabi olması nedeniyle gümrükte imha veya iade edilmesi hâlinde SATICI sorumlu tutulamaz.",
         ],
         table: [
           {
@@ -1041,11 +1040,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sürenin başlangıcı bakımından; tek sipariş konusu olup ayrı ayrı teslim edilen mallarda son malın, birden fazla parçadan oluşan mallarda son parçanın, belirli bir süre boyunca düzenli teslimatı yapılan mallarda ise ilk malın teslim alındığı gün esas alınır. Cayma süresinin son gününün resmî tatile denk gelmesi hâlinde süre, takip eden ilk iş günü mesai bitiminde sona erer.",
           "SATICI, ALICI'nın cayma hakkını kullandığına ilişkin bildirimin kendisine ulaştığı tarihten itibaren 14 (on dört) gün içinde, teslimat masrafları da dâhil olmak üzere tahsil ettiği tüm ödemeleri, ALICI'nın satın alırken kullandığı ödeme aracına uygun bir şekilde ve ALICI'ya herhangi bir masraf veya yükümlülük getirmeksizin tek seferde iade eder.",
           "Siparişte bir kupon veya promosyon kodu kullanılmışsa iade şu esaslara göre yapılır: kupon veya kodla karşılanan kısım için nakit ödeme yapılmaz; ALICI'nın fiilen ödediği tutar, işbu Sözleşme'nin 7. maddesindeki esaslara göre ödemenin yapıldığı karta iade edilir. Bu işlemler, cayma bildiriminin SATICI'ya ulaşmasından itibaren 14 (on dört) günlük yasal süre içinde tamamlanır.",
-          "ALICI, cayma hakkını kullandığına ilişkin bildirimi yönelttiği tarihten itibaren 10 (on) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Bu süre, Mesafeli Sözleşmeler Yönetmeliği'nin iade ve tüketicinin yükümlülüklerini düzenleyen hükmünden kaynaklanmakta olup, ALICI'nın cayma bildirimini malın tesliminden itibaren 14 (on dört) günlük süre içinde yöneltmiş olması kaydıyla işler. SATICI'nın malı kendisinin geri alacağını Ön Bilgilendirme Formu'nda taahhüt ettiği hâllerde ALICI'nın malı geri gönderme yükümlülüğü doğmaz.",
-          "Cayma hakkının kullanılması hâlinde iade gönderimi, Ön Bilgilendirme Formu'nda belirtilen anlaşmalı kargo firması ile yapıldığında iade kargo bedeli SATICI tarafından karşılanır ve ALICI'dan hiçbir masraf talep edilmez. Ön Bilgilendirme Formu'nda iade için herhangi bir taşıyıcı belirtilmemiş olması ya da belirtilen taşıyıcının ALICI'nın bulunduğu yerde şubesi bulunmaması hâlinde de iade masrafı ALICI'dan talep edilemez. Yalnızca, iade için anlaşmalı taşıyıcı usulüne uygun şekilde bildirilmiş ve erişilebilir olduğu hâlde ALICI'nın kendi tercihiyle başka bir taşıyıcıyı kullanması durumunda, aradaki masraf farkı ALICI'ya ait olur.",
-          "ALICI, cayma süresi içinde malı, işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun bir şekilde kullanmakla yükümlüdür. Bu çerçevede yapılan olağan muayene ve deneme sınırlarının aşılması sonucu malın değerinde meydana gelen değişiklikten ALICI sorumludur. Malın olağan kullanımı sonucu oluşan değer kaybı ise ALICI'ya yüklenemez.",
-          "İade edilen mal; kutusu, ambalajı, varsa standart aksesuarları ve hediye ürünleri ile birlikte, eksiksiz ve hasarsız olarak gönderilmelidir. Promosyon veya kampanya kapsamında verilen hediye ürünün iade edilmemesi hâlinde, hediyenin güncel liste bedeli iade tutarından mahsup edilebilir.",
-          "Kampanya eşiğine (örneğin ücretsiz kargo limitine) bağlı olarak yapılan alışverişlerde kısmi iade sonucu sepet tutarının eşiğin altına düşmesi hâlinde, kampanya kapsamında karşılanmış olan kargo bedeli iade tutarından mahsup edilebilir. Bu husus sipariş öncesinde Ön Bilgilendirme Formu'nda ALICI'ya bildirilir.",
+          "ALICI, cayma hakkını kullandığına ilişkin bildirimi yönelttiği tarihten itibaren 14 (on dört) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Bu süre, Mesafeli Sözleşmeler Yönetmeliği'nin iade ve tüketicinin yükümlülüklerini düzenleyen hükmünden kaynaklanmakta olup, ALICI'nın cayma bildirimini malın tesliminden itibaren 14 (on dört) günlük süre içinde yöneltmiş olması kaydıyla işler. SATICI'nın malı kendisinin geri alacağını Ön Bilgilendirme Formu'nda taahhüt ettiği hâllerde ALICI'nın malı geri gönderme yükümlülüğü doğmaz.",
+          "Cayma hakkının kullanılması hâlinde iade kargo bedeli ALICI'dan talep edilmez. Ön Bilgilendirme Formu'nda iade için bir taşıyıcı adlandırılmamıştır; SATICI cayma bildirimi üzerine ALICI'ya e-posta ile bir iade kodu gönderir ve bu kodla yapılan gönderinin bedelini öder. ALICI iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli SATICI tarafından geri ödenir; karşı ödemeli gönderilen iadeler de teslim alınır.",
+          "ALICI, cayma süresi içinde malı işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun şekilde kullanması sonucu meydana gelen değişiklik ve bozulmalardan sorumlu değildir; yalnız bu çerçevenin dışındaki kullanımdan doğan değer kaybından sorumludur.",
+          "İade edilen mal, varsa standart aksesuarları ve kampanya kapsamında verilen hediye ürünleriyle birlikte gönderilir. Promosyon veya kampanya kapsamında verilen hediye ürünün iade edilmemesi hâlinde, hediyenin sipariş tarihindeki satış fiyatı iade tutarından mahsup edilebilir.",
+          "Kampanya eşiğine (örneğin ücretsiz kargo limitine) bağlı olarak yapılan alışverişlerde kısmi iade sonucu sepet tutarı eşiğin altına düşse de iade tutarından kargo bedeli mahsup edilmez ve ALICI'dan sonradan kargo bedeli istenmez.",
         ],
         bullets: [
           "Cayma bildirimi, cayma süresi dolmadan önce açık ve anlaşılır bir şekilde SATICI'ya yöneltilmelidir.",
@@ -1066,7 +1065,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Fiyatı finansal piyasalardaki dalgalanmalara bağlı olarak değişen ve SATICI'nın kontrolünde olmayan mal veya hizmetlere ilişkin sözleşmeler.",
           "ALICI'nın istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan mallar; örneğin ALICI'nın talebiyle özel öğütüm derecesinde hazırlanan kahve, isim/mesaj baskılı fincan, önlük veya tote çanta gibi kişiselleştirilmiş ürünler.",
-          "Çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar; örneğin gelato kiti bileşenleri, taze kavrulmuş kahve ve soğuk zincir gerektiren ürünler.",
+          "Çabuk bozulabilen veya son kullanma tarihi cayma ve iade süreleri içinde geçebilecek mallar; örneğin gelato ve soğuk zincir gerektiren diğer ürünler.",
           "Tesliminden sonra ambalaj, bant, mühür veya paket gibi koruyucu unsurları açılmış olan mallardan, iadesi sağlık ve hijyen açısından uygun olmayanlar; örneğin ağzı açılmış kahve paketleri, açılmış pistacchio kreması ve şurup şişeleri, ambalajı açılmış yenilebilir waffle kupa.",
           "Tesliminden sonra başka ürünlerle karışan ve doğası gereği ayrıştırılması mümkün olmayan mallar.",
           "Malın tesliminden sonra ambalajın açılmış olması hâlinde maddi ortamda sunulan dijital içerikler ile ses veya görüntü kayıtları, kitaplar ve yazılım programları.",
@@ -1167,7 +1166,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Anılan parasal sınırların üzerindeki uyuşmazlıklarda ALICI, Tüketici Mahkemelerine; tüketici mahkemesi bulunmayan yerlerde ise Asliye Hukuk Mahkemelerine (tüketici mahkemesi sıfatıyla) başvurabilir. ALICI'nın kendi yerleşim yeri mahkemesinde dava açma hakkı saklıdır.",
           "Güncel parasal sınırlara ve başvuru usullerine ilişkin bilgilere Ticaret Bakanlığının resmî internet sitesi ile Tüketici Bilgi Sistemi (TÜBİS) üzerinden ulaşılabilir. Tüketici Hakem Heyetine başvurular e-Devlet üzerinden de yapılabilmektedir.",
           "SATICI, tüketici hakem heyeti ve mahkeme süreçlerinde ALICI'ya ait sipariş, ödeme, teslimat ve onay kayıtlarını talep hâlinde ilgili mercie sunar.",
-          "Uyuşmazlığın taraflarca sulh yoluyla veya arabuluculuk kurumu aracılığıyla çözümlenmesi hususunda Tarafların anlaşma hakkı saklı olup, bu yollara başvurulması ALICI'nın tüketici hakem heyetine veya tüketici mahkemesine başvurma hakkını ortadan kaldırmaz.",
+          "Tüketici mahkemesinde dava açmadan önce arabulucuya başvurmak 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur; tüketici hakem heyetinin görevine giren uyuşmazlıklarda bu şart aranmaz.",
         ],
       },
       {
@@ -1193,7 +1192,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşbu Sözleşme, yukarıda yer alan 21 (yirmi bir) maddeden ibaret olup, ALICI tarafından ödeme adımında elektronik ortamda ayrı bir onay kutucuğu işaretlenmek suretiyle okunup kabul edildikten ve ödemenin başarıyla tamamlanmasının (kupon veya promosyon kodu indiriminin sipariş tutarının tamamını karşıladığı siparişlerde siparişin SATICI sistemine kaydedilmesinin) ardından yürürlüğe girmiştir.",
           "Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine, ödemenin onaylanmasından sonra gönderilen ve ödemenin onaylandığını bildiren e-postada yer alır. ALICI, dilediği zaman web sitesindeki üyelik hesabının sipariş detay sayfasından, bu belgelerin bağlantılarına, onay tarihine ve onayladığı belge sürümüne ulaşabilir.",
           "SATICI, mevzuat değişiklikleri veya ticari uygulamalarındaki güncellemeler nedeniyle işbu Sözleşme metninde değişiklik yapma hakkını saklı tutar. Ancak yapılan değişiklikler geriye etkili değildir; her sipariş bakımından, siparişin verildiği anda yürürlükte olan ve ALICI tarafından onaylanan sürüm bağlayıcıdır. Bu nedenle her sipariş kaydında onaylanan belge sürümü ayrıca saklanır.",
-          "Sözleşme metninin güncel hâli her zaman {{SITE_URL}} adresinde kamuya açık ve ücretsiz olarak erişilebilir durumda tutulur. SATICI, 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin düzenlemeleri ile 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamında bilgi verme yükümlülüklerini Site üzerinden yerine getirir.",
+          "Sözleşme metninin güncel hâli her zaman {{SITE_URL}} adresinde kamuya açık ve ücretsiz olarak erişilebilir durumda tutulur. SATICI, 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin düzenlemeleri ile 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamında bilgi verme yükümlülüklerini Site üzerinden yerine getirir.",
           "İşbu Sözleşme Türkçe olarak düzenlenmiştir. Farklı bir dilde çeviri sunulması hâlinde, çeviri ile Türkçe metin arasında çelişki bulunursa Türkçe metin esas alınır.",
           "İşbu Sözleşme'nin uygulanmasında Türk hukuku uygulanır. ALICI ve SATICI, Sözleşme'nin tüm hükümlerini okuduklarını, anladıklarını ve serbest iradeleriyle kabul ettiklerini beyan ederler.",
         ],
@@ -1253,7 +1252,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -1415,13 +1414,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ordered: [
           "Cayma iradenizi 14 günlük süre içinde Satıcı'ya iletin. Bunun için {{EMAIL}} adresine e-posta gönderebilirsiniz; üye panelinde ve {{BRAND}} mobil uygulamasında ayrı bir iade talebi ekranı bulunmaz. Dilerseniz {{PHONE}} numarasını arayarak yönlendirme alabilirsiniz; ancak telefonla yapılan görüşme tek başına yazılı bildirim yerine geçmediğinden görüşme sonunda bildiriminizi e-posta ile teyit etmenizi öneririz.",
           "Bildiriminizde bu belgenin 6. maddesinde sayılan bilgileri eksiksiz iletin. Eksik bilgi hâlinde Satıcı sizinle iletişime geçer; bilgi eksikliği cayma hakkının kullanıldığı tarihi geriye almaz, bildiriminizin Satıcı'ya ulaştığı tarih esas alınır.",
-          "Satıcı'nın bildiriminize e-posta ile vereceği yanıtı bekleyin. Bu yanıt, İade Onay Kodu'nu, iade adresini ve iade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağını içerir. Yanıt en geç bir iş günü içinde iletilir; ulaşmaması hâlinde e-postanızın istenmeyen klasörünü kontrol edip {{EMAIL}} adresine yazın veya {{PHONE}} numarasını arayın.",
-          "Ürünü iade için hazırlayın. Ürünü, aksesuarlarını, hediye olarak gönderilen tamamlayıcı kalemlerini, kullanım kılavuzunu, garanti belgesini ve varsa orijinal kutusunu eksiksiz biçimde toplayın. Orijinal kutu ambalajın kendisi ürünün bir parçası olduğundan üzerine kargo bandı yapıştırmayın, üzerine yazı yazmayın.",
+          "Satıcı'nın bildiriminize e-posta ile vereceği yanıtı bekleyin. Bu yanıt, İade Onay Kodu'nu, iade adresini ve iade gönderisi için iade kodunu içerir. Yanıt en geç bir iş günü içinde iletilir; ulaşmaması hâlinde e-postanızın istenmeyen klasörünü kontrol edip {{EMAIL}} adresine yazın veya {{PHONE}} numarasını arayın.",
+          "Ürünü iade için hazırlayın. Ürünü, standart aksesuarlarını ve varsa kampanya kapsamında gönderilen hediye ürünleri bir araya getirin; kutusunun, kullanım kılavuzunun, garanti belgesinin veya faturanın gönderilmesi gerekmez. Ürünü orijinal kutusuyla gönderecekseniz kutunun üzerine kargo bandı yapıştırmamanızı ve yazı yazmamanızı öneririz.",
           "Paketleme yapın. Ürünü, taşıma sırasında zarar görmeyecek biçimde dış koli içine yerleştirin; cam fincan, cezve ve seramik kalemler için dolgu malzemesi kullanın. Elinizde varsa faturayı veya fatura çıktısını ve sipariş numaranızı yazdığınız İade Formu'nu (ya da aynı bilgileri içeren bir notu) paketin içine koyun ve İade Onay Kodu'nu kolinin dışına okunaklı biçimde yazın.",
-          "Kargoya verin. İade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağı Satıcı'nın yanıtında bildirilir; cayma hâlinde bu usulle yapılan iade gönderisinin bedeli Satıcı'ya aittir. İade masrafının kime ait olduğu bu belgenin 9. maddesinde düzenlenmiştir.",
-          "Ürünü, cayma bildirimini gönderdiğiniz tarihten itibaren on (10) gün içinde kargoya verin; bu süre Mesafeli Sözleşmeler Yönetmeliği'nin tüketicinin malı geri gönderme yükümlülüğünü düzenleyen hükmünden gelir. Sürenin aşılması usulüne uygun kullanılmış cayma hakkınızı ortadan kaldırmaz; yalnızca geri ödeme, ürün tarafımıza ulaşana veya ürünü gönderdiğinizi gösteren belgeyi bize iletene kadar ertelenebilir. Gecikme kaçınılmaz ise durumu {{EMAIL}} adresine bildirin.",
+          "Kargoya verin. İade kodu Satıcı'nın yanıtında bildirilir; iade kargo bedeli sizden talep edilmez. Ayrıntı bu belgenin 9. maddesindedir.",
+          "Ürünü, cayma bildirimini gönderdiğiniz tarihten itibaren on dört (14) gün içinde kargoya verin; bu süre Mesafeli Sözleşmeler Yönetmeliği'nin tüketicinin malı geri gönderme yükümlülüğünü düzenleyen hükmünden gelir. Sürenin aşılması usulüne uygun kullanılmış cayma hakkınızı ortadan kaldırmaz; yalnızca geri ödeme, ürün tarafımıza ulaşana veya ürünü gönderdiğinizi gösteren belgeyi bize iletene kadar ertelenebilir. Gecikme kaçınılmaz ise durumu {{EMAIL}} adresine bildirin.",
           "Gönderi takip numaranızı saklayın ve dilerseniz {{EMAIL}} adresine iletin. Kargonun Satıcı'ya ulaşmasına kadar geçen sürede taşıyıcıdan kaynaklanan sorunlarda takip numarası ile hızlıca çözüm üretilir.",
-          "Ürün tarafımıza ulaştıktan sonra en geç iki iş günü içinde inceleme yapılır ve sonucu e-posta ile bildirilir. Kabul edilen iadelerde geri ödeme, bu belgenin 10. maddesindeki usule göre başlatılır; siparişte kupon veya promosyon kodu kullanıldıysa bunun iadeye etkisi 10., 11. ve 12. maddelerde düzenlenmiştir.",
+          "Ürün tarafımıza ulaştıktan sonra en geç iki iş günü içinde inceleme yapılır ve sonucu e-posta ile bildirilir. Geri ödeme, bu belgenin 10. maddesindeki usule göre başlatılır; siparişte kupon veya promosyon kodu kullanıldıysa bunun iadeye etkisi 10., 11. ve 12. maddelerde düzenlenmiştir.",
           "Geri ödemenin kartınıza veya hesabınıza yansımasını takip edin; öngörülen sürede yansımaması hâlinde işlem tarihi ve sipariş numaranızla {{EMAIL}} adresine yazın.",
         ],
       },
@@ -1456,8 +1455,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünleri. Örnek: taze üretim gelato ve gelato kitinin soğuk zincirle gönderilen bileşenleri, kısa raf ömürlü taze pistacchio kreması partileri, günlük üretim pasticceria kalemleri.",
-          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan, sağlık ve hijyen açısından iadesi uygun olmayan ürünler. Örnek: mührü açılmış pistacchio kreması kavanozu, kapağı açılmış şurup şişesi, koruyucu bandı sökülmüş kahve çekirdeği paketi.",
-          "Doğrudan tüketime yönelik olarak üretilen ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yenilebilir ürünler. Örnek: yenilebilir waffle kupa (edible cup) setleri; ambalajı açılmamış olsa dahi taşıma koşulları doğrulanamadığından ambalaj bütünlüğü bozulmuş gönderiler.",
+          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan, sağlık ve hijyen açısından iadesi uygun olmayan ürünler. Örnek: mührü açılmış pistacchio kreması kavanozu, kapağı açılmış şurup şişesi, koruyucu bandı sökülmüş kahve çekirdeği paketi, kutusu açılmış yenilebilir waffle kupa seti.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan, kişiye özel üretilen ürünler. Örnek: üzerine isim veya tarih işlenmiş fincan ve önlük, özel harman talebiyle kavrulan ve talep edilen inceliğe göre öğütülen kahve, hediye paketine özel mesaj baskısı yapılan setler.",
           "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler. Örnek: köşkte belirli gün ve saate ayrılan karaoke odası rezervasyonu, tarihli barista atölyesi veya tadım etkinliği katılım biletleri.",
           "Fiyatı finansal piyasalardaki dalgalanmalara bağlı olarak değişen ve Satıcı'nın kontrolünde olmayan mal veya hizmetler.",
@@ -1466,38 +1464,35 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "8. İade Edilen Ürünün Durumu ve Satılabilirlik Ölçütü",
+        heading: "8. İade Edilen Ürünün Durumu",
         paragraphs: [
           "Tüketici, cayma süresi içinde malı, işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun bir şekilde kullandığı takdirde meydana gelen değişiklik ve bozulmalardan sorumlu değildir. Bir ürünün niteliğini, özelliklerini ve çalışma biçimini anlamak amacıyla makul ölçüde denenmesi kullanım sayılmaz; mağazada yapılabilecek türden bir inceleme her zaman serbesttir.",
-          "Buna karşılık, ürünün makul deneme sınırını aşacak biçimde kullanılması sonucunda değerinde bir azalma meydana gelmişse Satıcı, bu değer azalmasını geri ödemeden mahsup etme hakkını saklı tutar. Mahsup yapılan hâllerde mahsubun gerekçesi, dayandığı tespit ve tutarın hesaplanma yöntemi Alıcı'ya yazılı olarak bildirilir; Alıcı bu bildirime itiraz edebilir.",
-          "Satılabilirlik ölçütü şu şekilde uygulanır: ürün, kalite kontrolden geçtikten sonra yeni ürün olarak yeniden satışa sunulabilecek durumda ise iade koşulsuz kabul edilir. Yeniden satışa uygun olmayan hâllerde durum fotoğraflarla belgelenerek Alıcı'ya bildirilir.",
+          "Buna karşılık, ürünün işleyişine, teknik özelliklerine veya kullanım talimatlarına aykırı kullanılması sonucunda değerinde bir azalma meydana gelmişse Satıcı, bu değer azalmasını geri ödemeden mahsup edebilir. Mahsup yapılan hâllerde mahsubun gerekçesi, dayandığı tespit ve tutarın hesaplanma yöntemi Alıcı'ya yazılı olarak bildirilir; Alıcı bu bildirime itiraz edebilir.",
         ],
         bullets: [
-          "Kabul edilir: kutusu dikkatlice açılmış, denenmiş ancak kullanılmamış ekipman (moka pot, tamper, el değirmeni); ambalajı açılmamış kahve çekirdeği; etiketleri sökülmemiş tekstil ürünleri (önlük, tote çanta).",
-          "Kabul edilir: ürünün doğru olup olmadığını anlamak için kısa süre denenen ve üzerinde iz bırakmayan seramik veya cam kalemler.",
-          "Kabul edilmez: demleme yapılmış, içinde kahve tortusu, su izi veya kireç kalıntısı bulunan ekipman.",
-          "Kabul edilmez: öğütülmüş, ambalajı açılmış veya bir kısmı tüketilmiş kahve çekirdeği paketi.",
-          "Kabul edilmez: yıkanmış, ütülenmiş, kullanılmış veya üzerinde koku, leke ya da evcil hayvan tüyü bulunan tekstil ürünleri.",
-          "Kabul edilmez: kırık, çizik, ezik veya eksik parçalı olarak gönderilen ürünler; ancak hasarın taşıma sırasında oluştuğu kargo tutanağı ile belgelenirse bu madde uygulanmaz ve 16. madde devreye girer.",
-          "Kısmi kabul: setin bir kalemi kullanılmış, diğerleri kullanılmamışsa kullanılmayan kalemlerin bedeli iade edilir; set indirimi uygulanmışsa iade tutarı, kalan kalemlerin liste fiyatı esas alınarak yeniden hesaplanır ve hesaplama Alıcı'ya gösterilir.",
+          "İade edilir: kutusu açılmış, incelenmiş, denenmiş ya da cayma süresi içinde işleyişine ve kullanım talimatlarına uygun kullanılmış ekipman, seramik, cam ve tekstil ürünleri; bu kullanımdan doğan değişiklikler için kesinti yapılmaz.",
+          "Kesinti yapılabilir: ürünün kullanım talimatlarına aykırı kullanımından doğan değer kaybı (örneğin bulaşık makinesinde yıkanmaması gereken bir ürünün makinede yıkanması); kesinti yukarıdaki usulle bildirilir.",
+          "Cayma hakkı yoktur: ambalajı açılmış kahve paketleri ve iadesi sağlık ve hijyen açısından uygun olmayan diğer ürünler, çabuk bozulabilen gıdalar ve kişiye özel hazırlanan ürünler (bkz. 7. madde).",
+          "Taşıma hasarı: ürün kırık, çizik, ezik veya eksik parçalı ulaştıysa ve hasar taşıma sırasında oluştuysa 16. madde uygulanır.",
+          "Setler: setin bir kısmı iade edilirse iade tutarı, iade edilen kalemlerin set fiyatı içindeki payına göre hesaplanır ve hesaplama Alıcı'ya gösterilir.",
         ],
       },
       {
         heading: "9. İade Kargo Masrafının Kime Ait Olduğu",
         paragraphs: [
-          "Cayma hakkının kullanılmasında iade masrafının kime ait olacağı, Ön Bilgilendirme Formu'nda açıkça belirtilmiştir. Bu belgede anlaşmalı taşıyıcı, Satıcı'nın iade talebinize verdiği yanıtta bildirdiği kargo firmasıdır. {{BRAND}}, iadelerin anlaşmalı taşıyıcı üzerinden yapılması hâlinde masrafı doğrudan üstlenir; Alıcı'nın kargo şubesinde peşin ödeme yapmasına gerek yoktur.",
-          "Alıcı'nın anlaşmalı taşıyıcı dışında bir firmayı tercih etmesi hâlinde gönderim bedeli Alıcı tarafından karşılanır ve bu tutar, anlaşmalı taşıyıcı tarifesini aşan kısmı bakımından Satıcı'dan talep edilemez. Ayıplı, yanlış veya eksik ürün gönderimlerinde ise hangi taşıyıcı kullanılırsa kullanılsın masrafın tamamı Satıcı'ya aittir ve belgelenmesi hâlinde Alıcı'ya geri ödenir.",
-          "Karşı ödemeli (gönderi bedeli alıcıya ait) olarak gönderilen ve önceden mutabık kalınmayan iadeler teslim alınmayabilir; bu hâlde Alıcı ile iletişime geçilerek çözüm üretilir ve bu durum tek başına iade talebinin reddi anlamına gelmez.",
+          "Ön Bilgilendirme Formu'nda iade için bir taşıyıcı adlandırılmamıştır; bu nedenle Mesafeli Sözleşmeler Yönetmeliği'nin 12. maddesinin beşinci fıkrası uyarınca iade masrafına ilişkin hiçbir bedel Alıcı'dan talep edilmez. {{BRAND}}, cayma bildiriminize verdiği yanıtta bir iade kodu gönderir; bu kodla yapılan gönderinin bedelini doğrudan üstlenir, kargo şubesinde ödeme yapmanız gerekmez.",
+          "Alıcı iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli Satıcı tarafından geri ödenir. Ayıplı, yanlış veya eksik ürün gönderimlerinde de masrafın tamamı Satıcı'ya aittir ve belgelenmesi hâlinde Alıcı'ya geri ödenir.",
+          "Karşı ödemeli (gönderi bedeli alıcıya ait) olarak gönderilen iadeler de teslim alınır; gönderi bedelini Satıcı öder.",
         ],
         table: [
           {
-            key: "Cayma hakkı - anlaşmalı taşıyıcı ile iade",
-            value:
-              "Masraf Satıcı'ya aittir; gönderi kodu ile ücretsiz gönderilir.",
+            key: "Cayma hakkı - iade koduyla iade",
+            value: "Masraf Satıcı'ya aittir; iade koduyla ücretsiz gönderilir.",
           },
           {
-            key: "Cayma hakkı - anlaşmalı olmayan taşıyıcı ile iade",
-            value: "Masraf Alıcı'ya aittir.",
+            key: "Cayma hakkı - başka bir kargo firmasıyla iade",
+            value:
+              "Belgelediğiniz gönderim bedeli Satıcı tarafından geri ödenir.",
           },
           {
             key: "Ayıplı, bozuk veya kusurlu ürün",
@@ -1522,7 +1517,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Değişim talebi - Alıcı kaynaklı (beden, varyant, fikir değişikliği)",
             value:
-              "İlk gönderi masrafı Satıcı'ya, iade gönderisi anlaşmalı taşıyıcı ile ücretsizdir; yeni ürünün sevkiyatı ücretsiz yapılır.",
+              "İlk gönderi masrafı Satıcı'ya, iade gönderisi ücretsizdir; yeni ürünün sevkiyatı ücretsiz yapılır.",
           },
         ],
       },
@@ -1567,16 +1562,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "11. Kısmi İade, Ücretsiz Kargo Eşiği ve Promosyon Kodlarının Etkisi",
         paragraphs: [
           "Bir siparişin yalnızca bir kısmını iade etmeniz mümkündür. Kısmi iadede geri ödenecek tutar, iade edilen kalemlerin sipariş anında fiilen ödenen bedelleri esas alınarak hesaplanır. Sepet geneline uygulanan bir indirim varsa, indirim kalemlerin ödenen bedelleri oranında dağıtılarak iade tutarı belirlenir; böylece hiçbir kalem indirimsiz fiyatı üzerinden iade edilmiş sayılmaz.",
-          "Sipariş tutarı ücretsiz kargo eşiğine ulaştığı için kargo ücretsiz uygulanmış, kısmi iade sonrasında kalan sipariş tutarı bu eşiğin altına düşmüşse, sipariş anında geçerli olan standart kargo bedeli geri ödemeden mahsup edilebilir. Bu mahsup yalnızca Alıcı'nın kendi tercihiyle yaptığı cayma veya değişim taleplerinde uygulanır; ayıplı, yanlış, eksik veya hasarlı ürün nedeniyle yapılan iadelerde hiçbir şekilde uygulanmaz.",
+          "Sipariş tutarı ücretsiz kargo eşiğine ulaştığı için kargo ücretsiz uygulanmışsa, kısmi iade sonrasında kalan sipariş tutarı bu eşiğin altına düşse de geri ödemeden kargo bedeli mahsup edilmez ve sizden sonradan kargo bedeli istenmez. Bu kural, iade nedeni ne olursa olsun uygulanır.",
           "Siparişin tamamının iade edilmesi hâlinde teslimat masrafı da dâhil tahsil edilen tutarın tamamı iade edilir ve kargo mahsubu yapılmaz. Tüm fiyatlar ve iade hesaplamaları KDV dâhil tutarlar üzerinden yapılır ve iade edilen tutar KDV'yi de kapsar.",
         ],
         bullets: [
-          "Örnek (rakamlar yalnızca açıklama içindir): ücretsiz kargo eşiğinin 500 TL, standart kargo bedelinin 50 TL olduğu varsayımıyla, kargo bedeli alınmamış 620 TL tutarındaki bir siparişte 260 TL'lik bir kalem iade edilirse kalan tutar 360 TL olur ve eşik bozulur; bu hâlde 50 TL kargo bedeli iade tutarından mahsup edilerek 210 TL geri ödenir.",
-          "Örnek: Aynı siparişte iade nedeni ürünün ayıplı çıkması ise mahsup yapılmaz ve 260 TL'nin tamamı iade edilir.",
+          "Örnek (rakamlar yalnızca açıklama içindir): ücretsiz kargo eşiğinin 500 TL, standart kargo bedelinin 50 TL olduğu varsayımıyla, kargo bedeli alınmamış 620 TL tutarındaki bir siparişte 260 TL'lik bir kalem iade edilirse kalan tutar 360 TL olur ve eşiğin altına düşer; bu hâlde de kargo bedeli mahsup edilmez ve 260 TL'nin tamamı geri ödenir.",
           "Sepete uygulanan yüzdesel promosyon kodlarında indirim, iade edilen kalemin payına düşen oranda geri ödemeden düşülür; kod hesabınızda kalan sipariş için geçerliliğini korur.",
           "Belirli bir sepet tutarına bağlı promosyon kodu, kısmi iade sonrası kalan tutar kod koşulunu artık sağlamıyorsa, koddan doğan indirim farkı geri ödemeden mahsup edilir ve hesaplama size gösterilir.",
           "Kupon kullanılan siparişlerin kısmi iadesinde kuponla karşılanan kısım için nakit ödeme yapılmaz; iade tutarı, iade edilen kalemin fiilen ödenen bedeli üzerinden hesaplanır.",
-          "Hediye olarak eklenen tamamlayıcı ürünler, iade nedeniyle kampanya koşulu ortadan kalkıyorsa iade paketine dâhil edilmelidir; gönderilmemesi hâlinde ürünün liste bedeli geri ödemeden mahsup edilebilir.",
+          "Hediye olarak eklenen tamamlayıcı ürünler, iade nedeniyle kampanya koşulu ortadan kalkıyorsa iade paketine dâhil edilmelidir; gönderilmemesi hâlinde ürünün sipariş tarihindeki satış fiyatı geri ödemeden mahsup edilebilir.",
           "Mahsup edilen her kalem geri ödeme bildiriminde ayrı satır olarak gösterilir; hesaplamaya itiraz etmek için {{EMAIL}} adresine yazabilirsiniz.",
         ],
       },
@@ -1637,7 +1631,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Değişim (Ürün Takası) Süreci",
         paragraphs: [
           "Değişim, mevzuattan doğan bir zorunluluk değil, {{BRAND}}'nun tüketiciye sunduğu ek bir kolaylıktır. Cayma hakkınızı kullanmak yerine, ürünü aynı ürünün farklı bir varyantıyla veya bedel farkını tamamlayarak başka bir ürünle değiştirmeyi tercih edebilirsiniz. Değişim talebinde bulunmanız, cayma hakkınızdan feragat ettiğiniz anlamına gelmez; süreç içinde her zaman bedel iadesine dönebilirsiniz.",
-          "Değişim talepleri, cayma hakkı süresi olan 14 gün içinde iletilmelidir ve değişime konu ürünün bu belgenin 8. maddesindeki satılabilirlik ölçütünü karşılaması gerekir. Cayma hakkının kullanılamayacağı ürünlerde değişim de yalnızca ürünün ayıplı olması hâlinde mümkündür.",
+          "Değişim talepleri, cayma hakkı süresi olan 14 gün içinde iletilmelidir; değişime konu ürünün durumu bu belgenin 8. maddesine göre değerlendirilir. Cayma hakkının kullanılamayacağı ürünlerde değişim de yalnızca ürünün ayıplı olması hâlinde mümkündür.",
         ],
         ordered: [
           "{{EMAIL}} adresine e-posta ile değişim talebi iletin; talep açıklamasında mevcut ürünü ve almak istediğiniz yeni ürün ile varyantını belirtin.",
@@ -1673,7 +1667,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "17. Soğuk Zincir, Kısa Raf Ömürlü ve Gıda Ürünlerinde Özel Kurallar",
         paragraphs: [
           "Gelato, gelato kiti bileşenleri, yenilebilir waffle kupa ve benzeri sıcaklığa duyarlı ürünler, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile Türk Gıda Kodeksi mevzuatı çerçevesinde, yalıtımlı ambalaj ve soğutucu jel paketleriyle soğuk zincir korunarak sevk edilir. Bu ürünlerde teslimat, ürünün niteliği gereği belirli gün ve saat aralıklarında planlanabilir. Bu maddedeki soğuk zincir kuralları, yalnızca soğuk zincir gerektiren bir ürün satışa sunulduğunda uygulanır; mağazada satışa sunulan ürünler mağaza sayfasında gösterilir.",
-          "Soğuk zincir ürünlerinde gıda güvenliği nedeniyle, teslim edilen ürün Satıcı'ya geri alınarak yeniden satışa sunulamaz. Bu nedenle bu ürünler bakımından cayma hakkı, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü uyarınca kullanılamaz. Ancak ürünün bozuk, erimiş, soğuk zinciri kırılmış veya son tüketim tarihi geçmiş olarak teslim edilmesi hâlinde bu bir ayıp hâlidir ve bedelin tamamı iade edilir ya da ürün yenisiyle değiştirilir.",
+          "Soğuk zincir ürünlerinde gıda güvenliği nedeniyle, teslim edilen ürün Satıcı'ya geri alınarak yeniden satışa sunulamaz. Bu nedenle bu ürünler bakımından cayma hakkı, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü uyarınca kullanılamaz. Kutusu açılmamış yenilebilir waffle kupa setleri bu istisnaya girmez; kutusu açılmış setler sağlık ve hijyen istisnasına girer (7. madde). Ancak ürünün bozuk, erimiş, soğuk zinciri kırılmış veya son tüketim tarihi geçmiş olarak teslim edilmesi hâlinde bu bir ayıp hâlidir ve bedelin tamamı iade edilir ya da ürün yenisiyle değiştirilir.",
           "Alerjen bilgileri, bileşen listesi, saklama koşulları ve tüketim önerileri ürün sayfasında ve ambalaj etiketinde Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği'ne uygun biçimde sunulur. Bilinen bir gıda alerjiniz varsa sipariş öncesinde bileşen listesini incelemenizi ve tereddüt hâlinde {{PHONE}} numarasından bize danışmanızı öneririz.",
         ],
         bullets: [
@@ -1692,13 +1686,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İadeler yalnızca aşağıdaki adrese kabul edilir. Bu adres dışındaki bir noktaya gönderilen iadeler tarafımıza ulaşmayabilir ve bu durumdan doğan gecikme ve kayıplardan Satıcı sorumlu tutulamaz. Gönderi öncesinde İade Onay Kodu almış olmanız, paketin doğru sipariş kaydıyla eşleştirilmesini sağlar.",
         ],
         bullets: [
-          "Ürünü orijinal kutusuyla birlikte, kutunun kendisini dış ambalaj olarak kullanmadan gönderin; orijinal kutu ürünün parçası sayılır.",
+          "Ürünün orijinal kutusunu göndermeniz gerekmez; kutuyla gönderecekseniz kutunun kendisini dış ambalaj olarak kullanmayın.",
           "Cam, seramik ve porselen kalemleri (fincan, cezve, sürahi) balonlu naylon veya kâğıt dolgu ile sarın.",
           "Elektrikli veya mekanik ekipmanı (değirmen, tamper) aksesuarları, vidaları ve kılavuzuyla birlikte eksiksiz gönderin.",
           "Tekstil ürünlerini (önlük, tote) etiketleri sökülmemiş ve yıkanmamış olarak, ambalajında gönderin.",
           "Birden fazla siparişe ait ürünleri tek pakette göndermeyin; her sipariş için ayrı İade Onay Kodu ve ayrı paket kullanın.",
           "Kargo fişini veya takip numarasını, iade süreci tamamlanana kadar saklayın.",
-          "Ürün Satıcı'ya ulaşana kadar taşıma riski, anlaşmalı taşıyıcı ile yapılan gönderilerde Satıcı üzerindedir; anlaşmalı olmayan taşıyıcı tercih edilmişse gönderi kaybı riskinin taşıyıcıya karşı takibi gönderici sıfatıyla Alıcı'ya aittir, bu hâlde Satıcı süreçte destek olur.",
+          "Ürün Satıcı'ya ulaşana kadar taşıma riski Satıcı üzerindedir. Alıcı iadeyi başka bir kargo firmasıyla gönderdiyse ve gönderi kaybolur ya da hasar görürse, Alıcı gönderi belgesini ilettiğinde geri ödeme yapılır; taşıyıcıya karşı takibi Satıcı üstlenir, Alıcı bunun için gereken belgeyi verir.",
         ],
         table: [
           {
@@ -1710,7 +1704,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "İade Onay Kodu ve sipariş numarası",
           },
           {
-            key: "İade kargo firması ve gönderi kodu",
+            key: "İade kodu",
             value: "İade talebinize verilen yanıtta bildirilir",
           },
           {
@@ -1743,7 +1737,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kargo Bekleniyor",
             value:
-              "Ürünü anlaşmalı taşıyıcıya teslim etmeniz bekleniyor (bildirimden itibaren 10 gün).",
+              "Ürünü iade koduyla kargoya vermeniz bekleniyor (bildirimden itibaren 14 gün).",
           },
           {
             key: "Yolda",
@@ -1752,8 +1746,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "İncelemede",
-            value:
-              "Ürün depoya ulaştı; kalite kontrol ve satılabilirlik incelemesi yapılıyor (en geç 2 iş günü).",
+            value: "Ürün depoya ulaştı; inceleme yapılıyor (en geç 2 iş günü).",
           },
           {
             key: "Onaylandı",
@@ -1864,7 +1857,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6102 sayılı Türk Ticaret Kanunu - m.1524 internet sitesi yükümlülüğü ile taşıma işlerine ilişkin hükümler",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
@@ -1903,7 +1896,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "2. Satıcı ve Gönderici Bilgileri",
         paragraphs: [
-          "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca gönderilerin göndericisi ve satış sözleşmesinin tarafı olan tüzel kişiye ilişkin tanıtıcı bilgiler aşağıdadır. Tüm gönderiler aşağıdaki unvan ve adres üzerinden düzenlenir; kargo etiketinde ve sevk belgelerinde gönderici olarak bu bilgiler yer alır.",
+          "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca gönderilerin göndericisi ve satış sözleşmesinin tarafı olan tüzel kişiye ilişkin tanıtıcı bilgiler aşağıdadır. Tüm gönderiler aşağıdaki unvan ve adres üzerinden düzenlenir; kargo etiketinde ve sevk belgelerinde gönderici olarak bu bilgiler yer alır.",
         ],
         table: [
           {
@@ -2088,14 +2081,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "3-7 iş günü",
           },
           {
-            key: "Kuzey Kıbrıs Türk Cumhuriyeti (KKTC)",
-            value: "5-10 iş günü (gümrük işlem süresi hariç)",
-          },
-          {
-            key: "Yurt dışı",
-            value: "7-21 iş günü (gümrük işlem süresi hariç)",
-          },
-          {
             key: "Yasal azami ifa süresi",
             value: "Her hâlükârda siparişin kurulduğu tarihten itibaren 30 gün",
           },
@@ -2126,7 +2111,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Ürünlere uygulanan KDV oranı ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Kargo ve teslimat bedeli, gönderilen ürünün satış bedelinin bir parçasıdır ve o ürünün KDV oranına tabidir; farklı oranlı ürünler birlikte gönderildiğinde bedel, ürün tutarlarıyla orantılı olarak paylaştırılır. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
           "Bottega siparişlerinde, teslimat adresinin bulunduğu yerden ve gönderinin ağırlığından bağımsız olarak tek tip sabit bir kargo ücreti uygulanır; ücretsiz kargo eşiğine ulaşan siparişlerden kargo ücreti alınmaz. Güncel kargo ücreti ile, uygulanıyorsa ücretsiz kargo eşiği ve eşiğe kalan tutar, sepet ve ödeme ekranında gösterilir. Ücretsiz kargo eşiğinin hesabında, promosyon kodu ve indirimler düşüldükten sonra kalan ürün bedeli toplamı esas alınır; kargo bedelinin kendisi bu hesaba dâhil edilmez. Ücretsiz kargo eşiğini aşan bir siparişin sonradan kısmen iade edilmesi ve kalan tutarın eşiğin altına düşmesi hâlinde, ALICI'dan geriye dönük kargo bedeli talep edilmez.",
           "Soğuk zincir gerektiren gönderilerde kullanılan yalıtımlı kutu, jel akü ve kuru buz malzemeleri için ALICI'dan ayrıca bir bedel alınmaz; bu maliyet ilgili kargo bedeline dâhildir.",
-          "KKTC ve yurt dışı teslimat adresleri için ayrı bir taşıma tarifesi uygulanmaz; bu gönderilerde de taşıma bedeli olarak, ödeme öncesinde sipariş özetinde gösterilen kargo ücreti esas alınır. Bu bedel yalnızca taşıma hizmetini kapsar; gümrük vergi, resim ve harçları 16. maddede düzenlendiği şekilde ALICI'nın sorumluluğundadır.",
           "Ücret tarifesinde yapılacak değişiklikler yalnızca ileriye etkili olarak uygulanır; değişiklik tarihinden önce kurulmuş siparişlere, sipariş anında geçerli olan tarife uygulanır.",
         ],
         table: [
@@ -2139,11 +2123,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             key: "Ücretsiz kargo",
             value:
               "İndirimler düşüldükten sonraki ürün toplamı ücretsiz kargo eşiğine ulaşan siparişlerde (eşik uygulanıyorsa; eşik tutarı ve eşiğe kalan tutar sepet ve ödeme ekranında gösterilir)",
-          },
-          {
-            key: "KKTC ve yurt dışı gönderileri",
-            value:
-              "Ayrı tarife uygulanmaz; ödeme ekranında gösterilen kargo ücreti esas alınır (gümrük vergi, resim ve harçları hariç)",
           },
           {
             key: "Soğuk zincir paketleme bedeli",
@@ -2163,7 +2142,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "8. Anlaşmalı Kargo Firmaları ve Taşıyıcının Belirlenmesi",
         paragraphs: [
-          "SATICI, gönderilerini Geliver kargo gönderi platformu üzerinden, gönderi anında SATICI tarafından seçilen anlaşmalı kargo firmasıyla sevk eder. Gönderiyi taşıyan kargo firmasının adı ve takip numarası, kargoya veriliş bildiriminde ve sipariş detay sayfasında gösterilir. Cayma hakkının kullanılması hâlinde iade gönderisinin hangi kargo firmasıyla ve hangi iade koduyla yapılacağı, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir.",
+          "SATICI, gönderilerini Geliver kargo gönderi platformu üzerinden, gönderi anında SATICI tarafından seçilen anlaşmalı kargo firmasıyla sevk eder. Gönderiyi taşıyan kargo firmasının adı ve takip numarası, kargoya veriliş bildiriminde ve sipariş detay sayfasında gösterilir. Cayma hakkının kullanılması hâlinde iade gönderisinin iade kodu, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez (19. madde).",
           "ALICI, sipariş sırasında anlaşmalı taşıyıcılar dışında bir taşıyıcı ile gönderim talep edemez. Ancak ALICI'nın kendi tercih ettiği bir taşıyıcı ile gönderim konusunda SATICI ile ayrıca yazılı olarak anlaşması hâlinde, gönderiye ilişkin risk ve masraflar bakımından 18. madde hükümleri uygulanır.",
           "Anlaşmalı taşıyıcının ilgili bölgede hizmet verememesi, hizmetini durdurması veya gönderinin niteliği gereği farklı bir taşıyıcı kullanılmasının zorunlu olması hâlinde SATICI, ALICI aleyhine sonuç doğurmamak ve ilave bedel talep etmemek kaydıyla eşdeğer hizmet veren başka bir taşıyıcı belirleyebilir. Bu durumda ALICI'ya kargo takip bilgisi ile birlikte taşıyıcı değişikliği bildirilir.",
           "Taşıma sırasında meydana gelen gecikme, hasar ve kayıplar bakımından SATICI'nın ALICI'ya karşı sorumluluğu 18. maddede düzenlenmiştir; SATICI'nın taşıyıcıya rücu hakkı saklıdır.",
@@ -2197,8 +2176,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Gelato kiti, yenilebilir waffle kupa ve benzeri ısıya duyarlı gıda ürünleri, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile ilgili gıda mevzuatı çerçevesinde soğuk zincir koşullarında hazırlanır ve sevk edilir. Bu ürünler yalıtımlı strafor veya karton kutu içinde, jel akü ya da kuru buz ile birlikte gönderilir.",
           "Soğuk zincir gönderileri, gönderinin hafta sonu boyunca kargo hattında beklememesi amacıyla yalnızca Pazartesi, Salı ve Çarşamba günleri sevk edilir. Perşembe günü kesim saatinden sonra verilen soğuk zincir siparişleri, takip eden haftanın ilk sevk gününde gönderilir. Bu kısıt, ürünün gıda güvenliği açısından uygun koşullarda teslim edilmesini sağlamak amacını taşır ve ALICI'ya sipariş öncesinde ürün sayfasında bildirilir.",
           "Kuru buz kullanılan gönderilerde, kuru buz tehlikeli madde sınıfında yer aldığından bazı taşıyıcı firmalar ve bazı varış noktaları bakımından taşıma kısıtı uygulanabilir. SATICI, bu kısıt nedeniyle sevk edilemeyen siparişleri ALICI'ya bildirir ve ALICI'nın talebi doğrultusunda siparişi iptal ederek bedelin tamamını iade eder.",
-          "Soğuk zincir gönderileri niteliği gereği KKTC ve yurt dışına sevk edilemez. Bu ürünler yalnızca Türkiye içi teslimat adreslerine gönderilebilir. Soğuk zincir ürünü içeren bir sipariş KKTC veya yurt dışındaki bir teslimat adresiyle verilirse SATICI, ALICI'yı bilgilendirir; ALICI'nın tercihine göre sipariş soğuk zincir ürünü çıkarılarak gönderilir ve bu ürünün bedeli iade edilir ya da sipariş iptal edilerek tahsil edilen tutarın tamamı iade edilir.",
-          "Soğuk zincir gönderileri, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri kapsamında, çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan mallar arasında değerlendirilebilir. Bu husus ürün sayfasında ve Ön Bilgilendirme Formu'nda ayrıca belirtilir.",
+          "Soğuk zincir gönderileri, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri kapsamında, çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan mallar arasında değerlendirilebilir. Kutusu açılmamış yenilebilir waffle kupa setleri ve kapalı paketteki kavrulmuş kahve bu kapsamda sayılmaz. Bu husus ürün sayfasında ve Ön Bilgilendirme Formu'nda ayrıca belirtilir.",
         ],
         bullets: [
           "Isıya duyarlı ürünler yalıtımlı kutu içinde, jel akü veya kuru buz eşliğinde sevk edilir.",
@@ -2328,24 +2306,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading:
-          "16. KKTC ve Yurt Dışı Gönderileri; Gümrük Vergi, Resim ve Harçları",
+        heading: "16. Teslimat Bölgesi",
         paragraphs: [
-          "KKTC ve yurt dışı gönderilerinde ayrı bir taşıma tarifesi uygulanmaz; taşıma bedeli olarak, ödeme öncesinde sipariş özetinde vergiler dâhil gösterilen kargo ücreti esas alınır.",
-          "Yurt dışına yapılan gönderiler varış ülkesinin gümrük mevzuatına tabidir. Varış ülkesinde tahakkuk edebilecek ithalat vergileri, gümrük vergisi, katma değer vergisi, özel tüketim vergisi, gümrük müşavirliği ücreti, antrepo ve benzeri her türlü resim, harç ve masraf ALICI'nın sorumluluğundadır ve bu tutarlar sipariş bedeline dâhil değildir. SATICI bu tutarları önceden hesaplayamaz veya taahhüt edemez.",
-          "Gümrük işlemleri sırasında ALICI'dan kimlik, vergi numarası veya ithalat beyanı gibi ek belge talep edilebilir. Bu belgelerin zamanında sunulmaması nedeniyle gönderinin gümrükte beklemesi, iade edilmesi veya imha edilmesi hâlinde doğan masraflar ALICI'ya aittir.",
-          "Bazı ürünlerin belirli ülkelere ihracı veya ithali yasal olarak kısıtlanmış olabilir. Gıda ürünlerinin ithalinde varış ülkesinin gıda güvenliği mevzuatı uygulanır. ALICI, sipariş vermeden önce kendi ülkesinin ithalat kurallarını kontrol etmekle yükümlüdür.",
-          "Gönderinin gümrük mevzuatına aykırılık nedeniyle varış ülkesince kabul edilmemesi ve SATICI'ya iade edilmesi hâlinde ürün bedeli ALICI'ya iade edilir; ancak gidiş ve dönüş taşıma bedelleri ile gümrükte doğan masraflar iade tutarından mahsup edilebilir. Bu mahsup, yalnızca gümrük engelinin ALICI'nın bilgi verme yükümlülüğünü yerine getirmemesinden kaynaklandığı hâllerde uygulanır.",
-          "Soğuk zincir gerektiren ürünler, gümrük bekleme süreleri nedeniyle KKTC ve yurt dışına gönderilmez.",
-        ],
-        bullets: [
-          "Taşıma bedeli sipariş anında hesaplanır ve ödeme öncesinde net tutar olarak gösterilir.",
-          "Gümrük vergi, resim ve harçları ile müşavirlik ücretleri ALICI'ya aittir.",
-          "Gönderiler DAP (Delivered at Place) esasına göre sevk edilir; gümrükleme yükümlülüğü ALICI'dadır.",
-          "Gümrük işlem süreleri, tabloda gösterilen tahminî teslim sürelerine dâhil değildir.",
-          "Varış ülkesinin ithalat kısıtlamalarını kontrol etmek ALICI'nın sorumluluğundadır.",
-          "Yurt dışı gönderilerinde gümrük işlemleri için gereken belgeler ilgili mevzuata uygun şekilde düzenlenir.",
-          "Soğuk zincir ürünleri KKTC ve yurt dışına sevk edilmez.",
+          "Online mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine gönderilir; KKTC'ye ve yurt dışına gönderim yapılmaz.",
         ],
       },
       {
@@ -2383,20 +2346,20 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "19. Cayma Hakkı Kapsamında İade Gönderilerinde Kargo Düzeni",
         paragraphs: [
           "ALICI, Mesafeli Sözleşmeler Yönetmeliği uyarınca, ürünü teslim aldığı tarihten itibaren on dört gün içinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir. Cayma bildirimi, süre dolmadan önce {{EMAIL}} adresine yapılabilir.",
-          "Cayma hakkı kapsamındaki iade gönderisinin hangi kargo firmasıyla ve hangi iade koduyla yapılacağı, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir. İadenin SATICI'nın bildirdiği kargo firması ile ve bildirilen iade kodu kullanılarak gönderilmesi hâlinde iade kargo bedeli SATICI tarafından karşılanır; ALICI'dan herhangi bir taşıma bedeli tahsil edilmez.",
-          "ALICI'nın SATICI'nın bildirdiği kargo firması dışında bir taşıyıcı ile iade göndermeyi tercih etmesi hâlinde, SATICI yalnızca bildirilen kargo firmasının tarifesine denk gelen tutarı karşılamakla yükümlüdür; aradaki fark ALICI'ya ait olabilir.",
-          "Cayma hakkının kullanılması hâlinde SATICI, cayma bildiriminin kendisine ulaşmasından itibaren en geç on dört gün içinde, ürün bedeli ile birlikte ALICI'nın ödediği teslim masraflarını da iade eder. İade edilecek teslim masrafı, standart gönderim seçeneğine karşılık gelen ve ALICI'dan tahsil edilen tutardır; ALICI'nın standart gönderim dışında ilave maliyetli bir teslimat seçeneğini tercih etmiş olması hâlinde aradaki fark iade kapsamı dışında kalabilir. İade, ödemenin yapıldığı karta yapılır. Siparişin bir kısmının iadesinde iade tutarı da ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı süre içinde havale veya EFT ile ödenir.",
-          "ALICI, cayma bildiriminden itibaren on gün içinde ürünü SATICI'nın {{ADDRESS}} adresine iade etmekle yükümlüdür. Ürünün, kutusu, ambalajı ve varsa standart aksesuarları ile birlikte eksiksiz gönderilmesi gerekir; fatura nüshasının da ürünle birlikte gönderilmesi önerilir.",
+          "Cayma hakkı kapsamındaki iade gönderisinin iade kodu, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir. İade koduyla yapılan gönderinin bedeli SATICI tarafından karşılanır; ALICI'dan herhangi bir taşıma bedeli tahsil edilmez.",
+          "ALICI iadeyi başka bir taşıyıcı ile gönderirse de iade masrafı ALICI'dan talep edilmez; ALICI'nın belgelediği gönderim bedeli SATICI tarafından geri ödenir.",
+          "Cayma hakkının kullanılması hâlinde SATICI, cayma bildiriminin kendisine ulaşmasından itibaren en geç on dört gün içinde, ürün bedeli ile birlikte ALICI'nın ödediği teslim masraflarını da iade eder. İade, ödemenin yapıldığı karta yapılır. Siparişin bir kısmının iadesinde iade tutarı da ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı süre içinde havale veya EFT ile ödenir.",
+          "ALICI, cayma bildiriminden itibaren on dört gün içinde ürünü SATICI'nın {{ADDRESS}} adresine iade etmekle yükümlüdür. Ürün, varsa standart aksesuarlarıyla birlikte gönderilir; kutusunun veya faturasının gönderilmesi gerekmez.",
           "Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri saklıdır. Çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünler ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan ürünlerde cayma hakkı kullanılamaz; bu istisna ilgili ürünlerin sayfasında ve Ön Bilgilendirme Formu'nda açıkça belirtilir.",
         ],
         bullets: [
           "Cayma süresi: ürünün teslim alındığı tarihten itibaren 14 gün.",
           "Cayma bildirimi: {{EMAIL}} adresine e-posta ile.",
-          "İade gönderisi: kargo firması ve iade kodu cayma bildiriminden sonra e-posta ile bildirilir; bildirilen firma ve kodla gönderimde kargo bedeli SATICI'ya aittir.",
+          "İade gönderisi: iade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez.",
           "İade adresi: {{ADDRESS}}",
-          "Ürünün SATICI'ya gönderilme süresi: cayma bildiriminden itibaren 10 gün.",
+          "Ürünün SATICI'ya gönderilme süresi: cayma bildiriminden itibaren 14 gün.",
           "İade süresi: cayma bildiriminin ulaşmasından itibaren en geç 14 gün; ödeme aracına uygun şekilde.",
-          "İade kapsamı: ürün bedeli ve standart teslim masrafı.",
+          "İade kapsamı: ürün bedeli ve tahsil edilen teslim masrafı.",
           "İstisnalar: çabuk bozulabilen gıda ürünleri ile hijyen gereği iadesi uygun olmayan ürünler.",
         ],
       },
@@ -2412,7 +2375,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Geliver kargo gönderi platformuna ve gönderiyi taşıyan kargo firmasına aktarılan veriler: ad-soyad, teslimat adresi, cep telefonu numarası, sipariş numarası ve gerektiğinde gönderi içeriği tanımı.",
           "Aktarım amacı: yalnızca gönderinin oluşturulması, taşınması, takibi ve teslim edilmesi ile teslimat sürecine ilişkin bilgilendirme.",
           "Hukuki sebep: sözleşmenin kurulması ve ifası ile hukuki yükümlülüğün yerine getirilmesi.",
-          "Yurt dışı gönderilerinde veriler, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümlerine uygun olarak varış ülkesindeki taşıyıcı ve gümrük makamlarına aktarılabilir.",
           "Barındırma, veri tabanı ve işlemsel e-posta altyapısı (Vercel, {{DB_PROVIDER}} (PostgreSQL), Resend) kullanımından doğan aktarımlar Aydınlatma Metni'nde ayrıca açıklanmıştır.",
           "Teslimat verilerine erişim, yetkilendirilmiş yönetici hesaplarıyla sınırlıdır; yönetici erişimi TOTP tabanlı iki aşamalı doğrulama ile korunur ve yönetici işlemleri olay kaydına yazılır.",
         ],
@@ -2507,7 +2469,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6100 sayılı Hukuk Muhakemeleri Kanunu - m.193 delil sözleşmesi",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -3131,7 +3093,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu",
       "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği",
       "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun",
@@ -3181,7 +3143,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "3. Satıcı Künyesi",
         paragraphs: [
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. Satış işleminin muhatabı, faturanın düzenleyicisi ve bu politikanın uygulayıcısı aşağıdaki tüzel kişidir.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. Satış işleminin muhatabı, faturanın düzenleyicisi ve bu politikanın uygulayıcısı aşağıdaki tüzel kişidir.",
         ],
         table: [
           {
@@ -3599,13 +3561,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "25. Teslimat Bölgesi, KKTC ve Yurt Dışı Satış Kısıtları",
+        heading: "25. Teslimat Bölgesi",
         paragraphs: [
-          "Bottega gönderileri, Geliver kargo platformu üzerinden gönderi anında seçilen anlaşmalı kargo firmasıyla taşınır; gönderiyi taşıyan firmanın adı ve takip numarası kargo bildiriminde ve sipariş ekranında gösterilir. Mobil uygulamadan verilen kafe siparişleri kafeden gel-al veya kurye ile teslim edilir. Sipariş formunda ülke seçimi bulunmaz ve teslimat adresi adres satırı, ilçe, il ve posta kodu bilgileriyle alınır; bu nedenle sipariş, Türkiye'deki adreslere verilir. Kuzey Kıbrıs Türk Cumhuriyeti veya yurt dışı teslimat talebiniz varsa siparişten önce {{EMAIL}} adresine yazmanız gerekir; teslimatın yapılıp yapılamayacağı ve koşulları size ayrıca bildirilir.",
-          "Ayrıca kabul edilen yurt dışı ve KKTC gönderilerinde varış ülkesinin gümrük mevzuatı geçerlidir. Gümrük vergisi, harç, işlem ücreti ve varsa yerel vergiler alıcıya aittir ve sipariş tutarına dâhil değildir. Bu bedeller kargo firması veya gümrük idaresi tarafından doğrudan alıcıdan tahsil edilir.",
-          "Bazı ülkeler gıda ürünlerinin ithalatına sınırlama getirmektedir. Kahve, yenilebilir kupa, gelato kiti ve kiler ürünlerinin varış ülkesine girişinin mümkün olup olmadığını sipariş öncesinde kontrol etmek alıcının sorumluluğundadır. Ürünün gümrükte alıkonulması veya imha edilmesi hâlinde, bu durum Satıcının kusurundan kaynaklanmadıkça ürün bedelinin iadesi talep edilemez; varış ülkesinde doğan gümrük gideri ve iade taşıma masrafı alıcıya aittir. Bu hüküm, cayma hakkının usulüne uygun kullanıldığı hâllerde standart teslimat bedelinin iadesine ilişkin emredici mevzuat hükümlerini etkilemez.",
-          "Yurt dışı gönderilerde cayma hakkınız saklıdır; ancak iade gönderim masrafı ve gümrük giderleri, cayma hakkının kullanıldığı hâllerde Mesafeli Sözleşmeler Yönetmeliğindeki esaslara göre belirlenir ve ilgili masrafların kime ait olacağı Ön Bilgilendirme Formunda açıkça gösterilir.",
-          "Ambargo, yaptırım veya ihracat kısıtlaması bulunan ülkelere gönderim yapılmaz. Böyle bir adres girilmesi hâlinde sipariş onaylanmaz ve tahsil edilen bedel iade edilir.",
+          "Bottega gönderileri, Geliver kargo platformu üzerinden gönderi anında seçilen anlaşmalı kargo firmasıyla taşınır; gönderiyi taşıyan firmanın adı ve takip numarası kargo bildiriminde ve sipariş ekranında gösterilir. Mobil uygulamadan verilen kafe siparişleri kafeden gel-al veya kurye ile teslim edilir. Sipariş formunda ülke seçimi bulunmaz ve teslimat adresi adres satırı, ilçe, il ve posta kodu bilgileriyle alınır; bu nedenle sipariş, Türkiye'deki adreslere verilir.",
+          "Bottega yalnızca Türkiye içindeki teslimat adreslerine gönderim yapar; KKTC'ye ve yurt dışına gönderim yapılmaz.",
           "Yurt dışı kart ile yapılan ödemelerde tahsilat Türk Lirası üzerinden PayNkolay aracılığıyla yapılır; banka tarafından uygulanan döviz dönüşüm kuru ve komisyonlar {{SHORT_NAME}} tarafından belirlenmez ve tahsil edilmez.",
         ],
       },
@@ -3724,7 +3683,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Banka Kartları ve Kredi Kartları Hakkında Yönetmelik",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -3900,7 +3859,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kargo ücreti, ödeme özetinde ayrı bir satır olarak gösterilir ve tahsil edilen toplam tutara dâhildir. Ücretin hesabında sepetin indirim sonrası ara toplamı esas alınır; ücretsiz kargo eşiğinin aşılıp aşılmadığı da bu tutar üzerinden değerlendirilir.",
           "Kargo ücreti, tıpkı ürün bedelleri gibi sunucu tarafında hesaplanır ve istemciden gelen hiçbir kargo tutarına itibar edilmez. Kargo ücreti ödeme özetinde gösterilir; onay verdiğiniz tutar dışında sonradan ek bir taşıma bedeli talep edilmez. İndirimler düşüldükten sonra ara toplamı sıfır olan mağaza siparişinden kargo ücreti alınmaz.",
           "Mobil uygulamadan kurye ile teslim edilmek üzere verilen kafe siparişlerinde, ödeme özetinde ayrı bir satır olarak gösterilen tek tip kurye ücreti alınır. Bu ücrete ücretsiz kargo eşiği uygulanmaz ve kupon veya promosyon ürün bedelinin tamamını karşılasa da kurye ücreti tahsil edilir. Kafeden gel-al siparişlerinde kurye ücreti alınmaz.",
-          "Ödeme adımında gösterilen kargo ücreti, teslimatın Satıcı tarafından üstlenilen kısmını kapsar. KKTC ve yurt dışı gönderilerde varış ülkesinde doğabilecek gümrük vergisi, ithalat harcı ve benzeri kamusal yükler tarife dışıdır ve mevzuat gereği alıcıya aittir; bu bedeller Satıcı tarafından tahsil edilmez.",
+          "Ödeme adımında gösterilen kargo ücreti teslimatın tamamını kapsar; teslimat için ayrıca bir bedel istenmez.",
           "Cayma hakkının kullanıldığı hâllerde, mevzuat uyarınca teslimat masrafları da dâhil olmak üzere tahsil edilen tutarın tamamı iade edilir. Kargo ve kurye ücretinin tutarı ile ücretsiz kargo eşiği Satıcı tarafından belirlenir ve değişebilir; her siparişte geçerli olan tutar, o siparişin ödeme özetinde gösterilir ve sipariş kaydında saklanır.",
         ],
         table: [
@@ -4037,7 +3996,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Mesafeli Sözleşmeler Yönetmeliği uyarınca, kural olarak malı teslim aldığınız tarihten itibaren on dört gün içinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahipsiniz (Yönetmelik m.9). Cayma bildiriminizi {{EMAIL}} adresine veya sitede yayımlanan cayma formu üzerinden iletebilirsiniz; bildirimin yazılı olarak ya da kalıcı veri saklayıcısı ile yöneltilmesi yeterlidir ve ayrıca bir gerekçe açıklamanız istenmez.",
           "Cayma bildiriminin Satıcıya ulaşmasından itibaren on dört gün içinde, teslimat masrafları da dâhil olmak üzere tahsil edilen tutarın tamamı, ödemeyi yaptığınız araca ve aynı kanala iade edilir; kısmi iadelerde 22. maddede açıklanan istisnai hâl saklıdır. İade işlemi için tarafınızdan herhangi bir masraf talep edilmez.",
           "Kart ile yapılan ödemelerin iadesi, PayNkolay'ın iptal ve iade hizmeti üzerinden, ilgili işlem referansına bağlanarak ödemenin yapıldığı karta yapılır. Ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade işlemi olarak bankaya iletilir. Kısmi iadeler 22. maddeye tabidir. Siparişte ücretsiz içecek kuponu veya promosyon kodu kullanılmışsa, kuponla karşılanan kısım için nakit ödeme yapılmaz; iade, fiilen ödediğiniz tutar üzerinden yapılır.",
-          "Cayma hakkını kullandığınızı bildirdikten sonra malı, Mesafeli Sözleşmeler Yönetmeliği'nde öngörülen süre içinde Satıcıya geri göndermeniz gerekir. Cayma hâlinde iade için kullanılacak kargo şirketi iade talebiniz kabul edildiğinde bildirilir; bildirilen anlaşmalı taşıyıcı ile yapılan iadelerde taşıma bedeli sizden talep edilmez.",
+          "Cayma hakkını kullandığınızı bildirdikten sonra malı, Mesafeli Sözleşmeler Yönetmeliği'nde öngörülen süre içinde Satıcıya geri göndermeniz gerekir. Cayma hâlinde iade kodu iade talebiniz alındığında e-postayla bildirilir; iade için taşıma bedeli hiçbir hâlde sizden talep edilmez.",
           "İade işlemi Satıcı tarafından başlatıldığında iade talimatı PayNkolay'a hemen iletilir. Tutarın kart hesabınıza yansıması ise kartı çıkaran bankanın süreçlerine bağlıdır; kredi kartlarında iade, ekstre dönemine göre bir sonraki hesap özetinizde görünebilir. Bu süre bankadan kaynaklandığı için Satıcının denetiminde değildir; ancak iade talimatının iletildiğine dair kaydı talebiniz üzerine sizinle paylaşırız.",
           "Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri ödenen tutarın tamamı olarak, PayNkolay üzerinden ödemenin yapıldığı karta yapılır; kısmi iade yapılmaz ve 22. madde bu iadelere uygulanmaz. Rezervasyonu işletme karşılayamazsa ödenen tutarın tamamı iade edilir.",
           "Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü (m.15) gereği; çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünlerinde, tesliminden sonra ambalajı açılmış olup iadesi sağlık ve hijyen açısından uygun olmayan ürünlerde ve tüketicinin istekleri doğrultusunda kişiselleştirilerek hazırlanan ürünlerde cayma hakkı kullanılamaz. Bu istisna, ayıplı mal hükümlerinden doğan haklarınızı ortadan kaldırmaz.",
@@ -4048,7 +4007,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Bir siparişin yalnızca bazı kalemlerini iade etmeniz mümkündür. Bu durumda iade tutarı, iade edilen kalemlerin KDV dâhil bedeli esas alınarak belirlenir ve sipariş kaydına tutarı, nedeni ve tarihiyle işlenir; hangi iadenin ne zaman ve hangi tutarla yapıldığı kayıt altına alınır.",
           "Kısmi iadelerde, indirim veya promosyon kodu kullanılmışsa, indirim tutarı iade edilen kalemlere düşen oran kadar mahsup edilir. Ücretsiz içecek kuponu gibi hesabınıza tanımlı kuponlar da bu bakımdan indirim sayılır; kuponla karşılanan kısım için nakit ödeme yapılmaz. Böylece kalan siparişin indirimli tutarı korunur ve indirimden mükerrer yararlanma önlenir.",
-          "Kargo ücreti, siparişin tamamının iadesi hâlinde iade edilir. Kısmi iadede, kalan kalemler ücretsiz kargo eşiğinin altına düşerse, kampanya koşulları gereği kargo bedeli iade tutarından mahsup edilebilir; bu mahsup iade özetinde açıkça gösterilir. Ayıplı, eksik veya hatalı gönderilen kalemlerin iadesinde ise böyle bir mahsup yapılmaz ve kargo bedeli Satıcı tarafından karşılanır.",
+          "Kargo ücreti, siparişin tamamının iadesi hâlinde iade edilir. Kısmi iadede, kalan kalemler ücretsiz kargo eşiğinin altına düşse de iade tutarından kargo bedeli mahsup edilmez. Ayıplı, eksik veya hatalı gönderilen kalemlerin iadesinde kargo bedeli Satıcı tarafından karşılanır.",
           "Kısmi iadeler de ödemenin yapıldığı karta yapılır. Bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir; bu amaçla bildirdiğiniz banka hesap bilgisi yalnızca bu iade için işlenir. Toplam iade tutarı, hiçbir hâlde tahsil edilen tutarı aşamaz; bu kontrol sunucu tarafında zorunlu kural olarak uygulanır.",
         ],
       },
@@ -4197,7 +4156,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Uygulama mağazalarının (App Store, Google Play) geliştirici ve yayın kuralları ile platform gizlilik bildirimi gereklilikleri",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
@@ -4783,7 +4742,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -5613,7 +5572,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5070 sayılı Elektronik İmza Kanunu",
       "213 sayılı Vergi Usul Kanunu",
@@ -6369,7 +6328,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
@@ -7018,7 +6977,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5070 sayılı Elektronik İmza Kanunu",
       "213 sayılı Vergi Usul Kanunu",
@@ -7574,7 +7533,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -7603,7 +7562,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ ile Veri Sorumluları Sicili Hakkında Yönetmelik.",
           "213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanununun defter, kayıt ve belge saklamaya ilişkin hükümleri.",
           "6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği.",
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun, Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun, Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik.",
           "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ikincil düzenlemeleri.",
           "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun.",
           "6098 sayılı Türk Borçlar Kanunu ve 6100 sayılı Hukuk Muhakemeleri Kanunu.",
@@ -7807,7 +7766,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "6098 sayılı Türk Borçlar Kanunu kapsamındaki genel zamanaşımı süreleri boyunca sözleşmenin kurulduğunun, içeriğinin ve ifa edildiğinin ispatlanabilmesi gerekliliği.",
           "6100 sayılı Hukuk Muhakemeleri Kanunu uyarınca elektronik kayıtların delil olarak sunulabilmesi ve dava zamanaşımı süresince muhafaza edilmesi ihtiyacı.",
           "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca ticari elektronik ileti onaylarının ve gönderim kayıtlarının, İleti Yönetim Sistemi (İYS) kayıtları dâhil olmak üzere saklanması yükümlülüğü.",
-          "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca sipariş ve sözleşmeye ilişkin kayıtların ve şikâyet süreçlerinin belgelenmesi yükümlülüğü.",
+          "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca sipariş ve sözleşmeye ilişkin kayıtların ve şikâyet süreçlerinin belgelenmesi yükümlülüğü.",
           "5651 sayılı Kanun ve ikincil düzenlemeleri kapsamında yer sağlayıcı sıfatıyla trafik bilgisinin belirlenen asgari süre boyunca muhafaza edilmesi ve bütünlüğünün korunması yükümlülüğü.",
           "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Kanun kapsamında ödeme işlemlerinin izlenebilirliği, itiraz ve ters ibraz (chargeback) süreçlerinin yürütülmesi ve ödeme hizmeti sağlayıcısı ile mutabakat sağlanması ihtiyacı.",
           "5996 sayılı Kanun ve Türk Gıda Kodeksi mevzuatı kapsamında gıda ürünlerinde izlenebilirliğin sağlanması, alerjen bildirimi ve ürün geri çağırma süreçlerinin yürütülebilmesi gerekliliği.",
@@ -8280,7 +8239,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ilgili yönetmelikleri (trafik bilgisi saklama yükümlülüğü)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -8930,7 +8889,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     references: [
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (RG: 15.07.2015, 29417)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticaret Bakanlığı'nın İleti Yönetim Sistemi'ne (İYS) ilişkin düzenleme, tebliğ ve duyuruları",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu (özellikle m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliğine ilişkin yükümlülükler)",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -9686,7 +9645,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İYS - İleti Yönetim Sistemi)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -9970,7 +9929,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kullanıcılar tarafından Platforma yüklenen yorum, değerlendirme ve benzeri Kullanıcı İçeriği bakımından Şirket, anılan Kanun anlamında yer sağlayıcı konumundadır. Şirketin, barındırdığı Kullanıcı İçeriğini kontrol etme veya hukuka aykırı bir faaliyetin söz konusu olup olmadığını araştırma yönünde genel bir yükümlülüğü bulunmamaktadır. Bununla birlikte Şirket, hukuka aykırılıktan haberdar edilmesi hâlinde ilgili içeriği yayından kaldırmakla yükümlüdür.",
           "Platform altyapısı Vercel bulut barındırma hizmeti üzerinde çalışmakta; veri tabanı olarak {{DB_PROVIDER}} üzerinde barındırılan PostgreSQL kullanılmakta ve veri tabanına yalnızca sunucu tarafındaki yetkili servis üzerinden erişilmektedir. E-posta gönderimi Resend altyapısı, ödeme işlemleri ise PayNkolay altyapısı üzerinden gerçekleştirilir. Barındırma ve altyapı sağlayıcılarına ilişkin güncel bilgiye {{EMAIL}} adresine yapılacak başvuru ile ulaşılabilir.",
           "Mobil Uygulama, App Store ve Google Play uygulama mağazaları üzerinden dağıtılır. Mağaza işletmecileri yalnızca dağıtım kanalı konumundadır; Platform içeriğinin sağlayıcısı Şirkettir.",
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca Şirket; kendi mal ve hizmetlerini kendi elektronik ticaret ortamında satan hizmet sağlayıcı sıfatıyla faaliyet göstermektedir. Şirket, üçüncü kişilere ait mal veya hizmetlerin satışına aracılık etmemektedir.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca Şirket; kendi mal ve hizmetlerini kendi elektronik ticaret ortamında satan hizmet sağlayıcı sıfatıyla faaliyet göstermektedir. Şirket, üçüncü kişilere ait mal veya hizmetlerin satışına aracılık etmemektedir.",
           "6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin hükümleri ile elektronik ticaret mevzuatı uyarınca yayımlanması gereken tanıtıcı bilgiler, işbu Şartların 22. maddesindeki iletişim tablosunda ve Platformun ilgili bölümlerinde erişime açık tutulur.",
         ],
       },
@@ -10218,7 +10177,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, sayı 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -11013,7 +10972,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -11387,7 +11346,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, sayı 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -11986,7 +11945,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6769 sayılı Sınai Mülkiyet Kanunu",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
       "6102 sayılı Türk Ticaret Kanunu (haksız rekabete ilişkin hükümler)",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -12562,7 +12521,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "{{SITE_URL}} adresini, {{BRAND}} mobil uygulamasını ve markayı işleten hizmet sağlayıcının unvan, adres, vergi, iletişim ve altyapı bilgilerini; müşteri hizmetleri kanallarını, resmî sosyal medya hesaplarını ve başvuru mercilerini sunar.",
     references: [
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
       "6102 sayılı Türk Ticaret Kanunu (m.1524 internet sitesi yükümlülüğü ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümler)",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
@@ -12586,7 +12545,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "1. Amaç, Kapsam ve Yasal Dayanak",
         paragraphs: [
-          "Bu sayfa, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcının tanıtıcı bilgilerini; 6102 sayılı Türk Ticaret Kanunu'nun internet sitesi ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümleri uyarınca şirkete ait sicil ve iletişim verilerini; 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği kapsamında satıcının kimlik ve iletişim bilgilerini kamuya açık, doğrudan ve kesintisiz erişilebilir biçimde sunmak amacıyla hazırlanmıştır.",
+          "Bu sayfa, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcının tanıtıcı bilgilerini; 6102 sayılı Türk Ticaret Kanunu'nun internet sitesi ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümleri uyarınca şirkete ait sicil ve iletişim verilerini; 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği kapsamında satıcının kimlik ve iletişim bilgilerini kamuya açık, doğrudan ve kesintisiz erişilebilir biçimde sunmak amacıyla hazırlanmıştır.",
           "Sayfa; {{SITE_URL}} adresinde yayımlanan internet sitesini ve iOS ile Android için yayımlanan {{BRAND}} mobil uygulamasını, bunlar üzerinden erişilen kafe menüsünü ve online mağaza (bottega) üzerinden yapılan fiziksel ürün satışlarını, üyelik, sadakat (damga) programı, sipariş süreçlerini, ödeme ve teslimat işleyişini ve bunlarla bağlantılı iletişim kanallarını kapsar.",
           "Burada yer alan bilgiler, sitede yayımlanan diğer hukuki metinlerin ayrılmaz bir parçası olup Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, Üyelik Sözleşmesi, Kullanım Şartları, Mobil Uygulama Kullanım Koşulları, Sadakat (Damga) Programı Kuralları, Ödeme Koşulları ve Sanal POS, İptal, İade ve Cayma Hakkı, Teslimat ve Kargo Koşulları, Garanti ve Ayıplı Mal, Çerez Politikası, Gizlilik Politikası, KVKK Aydınlatma Metni ile Kişisel Veri Saklama ve İmha Politikası belgeleriyle birlikte bir bütün oluşturur. Bir belgede satıcının, hizmet sağlayıcının veya veri sorumlusunun kimlik ve iletişim bilgilerine atıf yapıldığında bu sayfadaki bilgiler esas alınır. Belgelerin tam listesi ve adresleri 9. bölümde gösterilmiştir.",
           "Bu sayfada yer alan bilgiler tanıtıcı ve bilgilendirici niteliktedir; kendi başına bir satış sözleşmesi veya taahhütname teşkil etmez. Sözleşmesel hak ve yükümlülükler, siparişin verildiği anda yürürlükte olan Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi hükümlerine tabidir.",
@@ -12755,7 +12714,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Hedef kitle",
             value:
-              "Türkiye'de yerleşik tüketiciler ile sitede belirtilen kapsamda yurt dışı alıcılar",
+              "Türkiye'de yerleşik tüketiciler; online mağaza yalnızca Türkiye içindeki adreslere gönderim yapar",
           },
           {
             key: "Para birimi",
@@ -13501,7 +13460,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -13988,7 +13947,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ticaret Bakanlığı Tüketicinin Korunması ve Piyasa Gözetimi Genel Müdürlüğü: 6502 sayılı Kanun ve ikincil mevzuata aykırılık iddialarınızı e-Devlet üzerinden veya ilgili il ticaret müdürlüğüne iletebilirsiniz.",
           "ALO 175 Tüketici Danışma Hattı: Haklarınız ve başvuru usulleri hakkında ücretsiz bilgi almak için kullanabileceğiniz Ticaret Bakanlığı danışma hattıdır.",
           "Reklam Kurulu: Yanıltıcı, aldatıcı veya haksız ticari uygulama niteliğindeki reklam ve tanıtımlara ilişkin şikâyetler için.",
-          "Ticaret Bakanlığı - elektronik ticaret ve ticari elektronik ileti şikâyetleri: 6563 sayılı Kanun ve Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamındaki yükümlülüklere aykırılık iddiaları için.",
+          "Ticaret Bakanlığı - elektronik ticaret ve ticari elektronik ileti şikâyetleri: 6563 sayılı Kanun ve Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamındaki yükümlülüklere aykırılık iddiaları için.",
           "Kişisel Verileri Koruma Kurumu: Kişisel verilerin korunmasına ilişkin şikâyetler için; Kurul'a şikâyet öncesinde veri sorumlusuna başvuru şartı aranır.",
           "Tarım ve Orman Bakanlığı ALO 174 Gıda Hattı: Gıda güvenliği, etiketleme ve hijyene ilişkin bildirimler için.",
           "Bankacılık Düzenleme ve Denetleme Kurumu ile Türkiye Bankalar Birliği: Banka ve kart kuruluşu kaynaklı uyuşmazlıklarda, önce bankaya başvurulması koşuluyla.",
@@ -14753,7 +14712,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun",
       "6098 sayılı Türk Borçlar Kanunu",
       "6102 sayılı Türk Ticaret Kanunu",
