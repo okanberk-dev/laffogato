@@ -387,6 +387,12 @@ describe("the preview is the shop's own slide", () => {
     expect(html).toMatch(/\sinert=""/);
   });
 
+  it("takes the card's width (the frame's 380 px min-height made it 997 px wide)", () => {
+    expect(preview()).toMatch(
+      /style="width:100%;min-width:0;max-width:none;margin:0"/,
+    );
+  });
+
   it("follows the theme the way the shop does", () => {
     expect(preview({ textTheme: "dark" })).toContain('data-theme="dark"');
     expect(preview({ ctaHref: "" })).not.toContain("shop-hero-cta");

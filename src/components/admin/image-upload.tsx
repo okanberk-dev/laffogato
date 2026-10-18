@@ -363,7 +363,11 @@ export function ImageUpload({
       )}
 
       {images.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        // Columns by the field's own width, not the screen's: inside the
+        // menu form's narrow column md:grid-cols-4 made 96 px cards whose
+        // badges overlapped. Each card is at least 9.5rem, where the
+        // footer's arrows and × fit on one row.
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3">
           {images.map((src, i) => {
             const isPrimary = i === 0;
             const isData = src.startsWith("data:");
@@ -467,7 +471,7 @@ export function ImageUpload({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
         <span
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
+          className="basis-full text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase sm:basis-auto"
           style={{ fontFamily: "var(--mono), monospace" }}
           aria-hidden="true"
         >
@@ -487,7 +491,7 @@ export function ImageUpload({
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="min-w-0 flex-1 rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+          className="min-w-0 flex-[1_1_10rem] rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
         <button
           type="button"

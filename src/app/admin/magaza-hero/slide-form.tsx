@@ -385,7 +385,7 @@ export function SlideForm({
         />
       </Card>
 
-      <Card>
+      <Card className="min-w-0">
         <div
           className="mb-3 text-xs tracking-widest text-[var(--admin-text-mute)] uppercase"
           style={MONO_STYLE}
@@ -448,7 +448,10 @@ export function SlidePreview({
       aria-hidden="true"
       inert
       className="shop-hero-slider"
-      style={{ width: "100%", maxWidth: "none", margin: 0 }}
+      // The shop's frame keeps its min-height of 380 px; with its aspect
+      // ratio that meant a 997 px minimum width, wider than the panel's form
+      // at 1024 and 1280. min-width 0 lets it take the card's width.
+      style={{ width: "100%", minWidth: 0, maxWidth: "none", margin: 0 }}
     >
       <div className="shop-hero-track">
         <Slide

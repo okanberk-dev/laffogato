@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -202,6 +204,15 @@ describe("the photo grid", () => {
     }
   });
 
+  it("sizes its columns by the field's width, not the screen's", () => {
+    // md:grid-cols-4 inside the menu form's column made 96 px cards whose
+    // badges overlapped and whose × fell to a second row.
+    expect(two).toContain(
+      'class="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3"',
+    );
+    expect(two).not.toContain("md:grid-cols-4");
+  });
+
   it("says plainly what to do when the limit is reached", () => {
     const full = renderToStaticMarkup(
       createElement(ImageUpload, {
@@ -213,6 +224,21 @@ describe("the photo grid", () => {
     expect(full).toContain("Sınır doldu: 1 görsel");
     expect(full).toContain("Değiştirmek için aşağıdakini kaldır.");
     expect(full).not.toContain("Limit doldu");
+  });
+});
+
+describe("Vazgeç across the catalog and hero forms", () => {
+  it("is one link styled as a button, never a button inside a link", () => {
+    for (const file of [
+      "src/components/admin/menu-item-form.tsx",
+      "src/components/admin/category-form.tsx",
+      "src/app/admin/magaza-hero/slide-form.tsx",
+      "src/app/admin/anasayfa-hero/slide-form.tsx",
+    ]) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).not.toMatch(/<Link[^>]*>\s*<GhostButton/);
+      expect(src, file).toMatch(/BUTTON\.ghost[^>]{0,20}>\s*Vazgeç/);
+    }
   });
 });
 
