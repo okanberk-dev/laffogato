@@ -15,7 +15,7 @@ import { PANEL_ACTION_FAILED } from "./action-form";
 import { Field, TextInput, Textarea } from "./forms";
 import { KeyValueGrid, Section, useToast } from "./ui";
 import { BUTTON } from "./ui/styles";
-import { useNoResetSubmit, withPanelCatch } from "./ui/submit";
+import { useHandPost, withPanelCatch } from "./ui/submit";
 
 const initial: OrderDetailsActionState = {};
 
@@ -56,7 +56,7 @@ interface Props {
 /**
  * The order page's customer card, on the kit (admin audit ORD-11): a
  * Section with the details as a key/value list, and "Düzenle" opening the
- * form in place. The form posts by hand (useNoResetSubmit), so a refusal
+ * form in place. The form posts by hand (useHandPost), so a refusal
  * keeps what was typed and the e-mail confirm box as it was ticked; a save
  * says so in a toast.
  */
@@ -80,7 +80,7 @@ export function OrderCustomerEditor({
     },
     initial,
   );
-  const onSubmit = useNoResetSubmit(formAction, pending);
+  const post = useHandPost(formAction, pending);
   const [editing, setEditing] = useState(false);
   const stored = {
     customerName,
@@ -106,11 +106,15 @@ export function OrderCustomerEditor({
   if (editing) {
     return (
       <Section title="Müşteri bilgisini düzenle">
-        {/* The action is React's guard (a form with neither action nor
-            method is the browser's GET, every field in the address); the
-            post itself is onSubmit's, and React skips the action of a
-            submit onSubmit prevented, so nothing is reset. */}
-        <form action={formAction} onSubmit={onSubmit} className="grid gap-4">
+        {/* post.action is React's guard (a form with neither action nor
+            method is the browser's GET, every field in the address) and
+            gates a replayed early submit; the post itself is onSubmit's,
+            so nothing is reset (useHandPost). */}
+        <form
+          action={post.action}
+          onSubmit={post.onSubmit}
+          className="grid gap-4"
+        >
           <input type="hidden" name="id" value={orderId} />
           <Field label="Ad Soyad">
             <TextInput

@@ -189,17 +189,23 @@ describe("the sound toggle (ORD-27)", () => {
     expect(button).toMatch(
       /<span aria-hidden="true"[^>]*><\/span>Yeni sipariş sesi<\/button>$/,
     );
-    // Rendered before the browser's stored answer is read: off.
-    expect(button).toContain('aria-pressed="false"');
+    // Rendered before the browser's stored answer is read: the panel's
+    // default (sound-pref.ts, on unless switched off).
+    expect(button).toContain('aria-pressed="true"');
     expect(html).not.toMatch(/Ses (kapalı|açık)/);
     // A 44 px target, not a 26 px chip.
     expect(button).toContain("min-h-[44px]");
   });
 
-  it("keeps the stored preference where the new-order alert will read it", () => {
+  it("reads the one stored preference the new-order alert reads", () => {
+    const pref = read("src/components/admin/sound-pref.ts");
+    expect(pref).toContain(
+      'export const SOUND_KEY = "laffogato.admin.orders.sound";',
+    );
+    expect(pref).toContain("export function readSoundPref(): boolean");
     const src = read("src/components/admin/orders-list.tsx");
-    expect(src).toContain('const SOUND_KEY = "laffogato.admin.orders.sound";');
-    expect(src).toContain("function readSoundPref(): boolean");
+    expect(src).toContain('from "./sound-pref"');
+    expect(src).not.toContain("localStorage");
   });
 
   it("is not on a list that does not poll", () => {
