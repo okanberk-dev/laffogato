@@ -18,7 +18,19 @@ vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit }));
 // A save leaves its toast in a cookie; there is no request here.
 vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
-vi.mock("@/lib/mobile/karaoke", () => ({ setReservationStatus }));
+// The action reads the booking first and refuses an evening already gone
+// (KAR-13); these bookings are all still ahead.
+const getReservation = vi.fn(async (id: string) => ({
+  id,
+  date: "2099-09-10",
+  startHour: 20,
+  hours: 2,
+  status: "pending",
+}));
+vi.mock("@/lib/mobile/karaoke", () => ({
+  getReservation,
+  setReservationStatus,
+}));
 vi.mock("@/lib/admin/store", () => ({
   createAppSlide: vi.fn(),
   deleteAppSlide: vi.fn(),
