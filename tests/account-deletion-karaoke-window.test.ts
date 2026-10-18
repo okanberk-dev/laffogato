@@ -7,10 +7,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *
  * - The two-hour rule reads the request's stamp; the refund and every
  *   stamp on the row are the closure's own instant.
- * - A paid booking that was in its free window at the request and whose
+ * - A booking made after the request is judged from its own making.
+ * - A paid booking whose rule still refunded it at the request and whose
  *   start came before the closure is no longer dropped as "past": it is
- *   refunded in full and the money team is told, unless the person closing
- *   the account recorded that the room was used.
+ *   refunded as the request would have been (in full inside the free
+ *   window, its late share after) and the money team is told, unless the
+ *   person closing the account recorded that the room was used.
  * - Without a request (the app's DELETE /me, the panel's Yönetim card) the
  *   closure is judged now, as before.
  *
@@ -235,7 +237,8 @@ vi.mock("@/lib/payment", async () => {
 
 const { cancelKaraokeForClosedAccount } =
   await import("@/lib/mobile/karaoke-payment");
-const { startedSinceRequest } = await import("@/lib/mobile/karaoke-time");
+const { closureJudgedAt, startedSinceRequest } =
+  await import("@/lib/mobile/karaoke-time");
 
 const EMAIL = "eda@example.com";
 // 30 Ekim 2026, 20:00 in Tuzla.
@@ -341,6 +344,18 @@ describe("the request's instant decides the two-hour rule", () => {
     expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
   });
 
+  it("judges a booking made after the request from its own making", async () => {
+    // Asked three days ahead, then booked inside the last two hours: the
+    // request cannot cover an evening that did not exist yet.
+    seedPaid({ createdAt: at(-1.5).toISOString() });
+    await cancelKaraokeForClosedAccount(EMAIL, at(-1), {
+      windowAt: at(-72),
+    });
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({ paymentStatus: "paid" });
+    expect(h.alerts.at(-1)).toMatchObject({ key: "account-late" });
+  });
+
   it("ignores a request stamp that is not before the closure", async () => {
     seedPaid();
     await cancelKaraokeForClosedAccount(EMAIL, at(-1), {
@@ -367,7 +382,9 @@ describe("a paid booking whose start came between the request and the closure", 
     });
     const alert = h.alerts.find((a) => a.key === "account-passed");
     expect(alert).toMatchObject({ title: TITLE });
-    expect(String(alert!.summary)).toContain("tutarın tamamı karta iade edildi");
+    expect(String(alert!.summary)).toContain(
+      "tutarın tamamı karta iade edildi",
+    );
     expect(h.audits).toContainEqual(
       expect.objectContaining({
         entityId: "krk-00042",
@@ -411,6 +428,36 @@ describe("a paid booking whose start came between the request and the closure", 
     expect(String(alert!.summary)).toContain("iade hemen tamamlanmadı");
   });
 
+  it("owes the late share the request fixed, and says how much", async () => {
+    // Asked an hour before the start under a 2 h / 50 % rule; closed the
+    // morning after.
+    seedPaid({ freeCancelHours: 2, lateRefundPercent: 50 });
+    await cancelKaraokeForClosedAccount(EMAIL, at(+15), {
+      windowAt: at(-1),
+    });
+    // PayNkolay refunds whole payments only: nothing goes to the POS, the
+    // share is owed by hand (D9).
+    expect(h.refunds).toEqual([]);
+    expect(booking()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunding",
+      refundMinor: 100_000,
+    });
+    const alert = h.alerts.find((a) => a.key === "account-passed");
+    expect(alert).toMatchObject({ title: TITLE });
+    expect(String(alert!.summary)).toContain("talep anındaki kurala göre");
+    expect(String(alert!.footnote)).toContain("Elle iade edildi");
+    expect(h.audits).toContainEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          event: "account_closed_passed_since_request",
+          amountMinor: 100_000,
+          refunded: false,
+        }),
+      }),
+    );
+  });
+
   it("stays untouched without a request: a past evening is not the closure's", async () => {
     seedPaid();
     await cancelKaraokeForClosedAccount(EMAIL, at(+15));
@@ -439,5 +486,25 @@ describe("a paid booking whose start came between the request and the closure", 
     expect(startedSinceRequest(r, at(-72), at(-0.5))).toBe(false);
     // Asked inside the last two hours: the request gave no refund to keep.
     expect(startedSinceRequest(r, at(-1), at(+15))).toBe(false);
+    // ...unless the booking's own rule had a late share then.
+    expect(
+      startedSinceRequest({ ...r, lateRefundPercent: 50 }, at(-1), at(+15)),
+    ).toBe(true);
+    // Booked after the request, inside its window: judged at the booking.
+    expect(
+      startedSinceRequest(
+        { ...r, createdAt: at(-1.5).toISOString() },
+        at(-72),
+        at(+15),
+      ),
+    ).toBe(false);
+  });
+
+  it("never judges later than the closure, nor at a stamp that is not a time", () => {
+    const r = { createdAt: at(+20).toISOString() };
+    expect(closureJudgedAt(r, at(-72), at(+15))).toEqual(at(+15));
+    expect(closureJudgedAt({}, new Date(Number.NaN), at(+15))).toEqual(at(+15));
+    expect(closureJudgedAt({}, null, at(+15))).toEqual(at(+15));
+    expect(closureJudgedAt({}, at(-72), at(+15))).toEqual(at(-72));
   });
 });

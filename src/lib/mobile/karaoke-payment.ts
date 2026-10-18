@@ -30,6 +30,7 @@ import {
   type CreateReservationResult,
 } from "./karaoke";
 import {
+  closureJudgedAt,
   isPartialRefund,
   karaokeCancellationRules,
   karaokeCancelPolicyOf,
@@ -1440,15 +1441,12 @@ export async function cancelKaraokeReservation(
     by.kind === "member" ||
     by.kind === "link" ||
     (by.kind === "account" && paymentStatusOf(r) === "paid");
-  // A closure the member asked us for is judged at the request: the team's
-  // delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2). Only the
-  // decision moves back; the refund and every stamp are now.
+  // A closure the member asked us for is judged at the request (or at the
+  // booking's making, when that came later): the team's delay does not
+  // shorten their window (ASK-Y3-4 (d), TKHK m.4/2). Only the decision moves
+  // back; the refund and every stamp are now.
   const judgedAt =
-    by.kind === "account" &&
-    by.windowAt &&
-    by.windowAt.getTime() < now.getTime()
-      ? by.windowAt
-      : now;
+    by.kind === "account" ? closureJudgedAt(r, by.windowAt, now) : now;
   // The share of the payment this cancel refunds: null = all of it.
   let lateShare: number | null = null;
   if (lateMatters) {
@@ -2061,7 +2059,7 @@ export async function cancelKaraokeForClosedAccount(
           key: "account-passed",
           title: PASSED_SINCE_REQUEST_TITLE,
           summary: refunded
-            ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için talep anındaki kurala göre iade yapıldı.`
+            ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için tutarın tamamı karta iade edildi.`
             : owedMinor !== undefined
               ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için talep anındaki kurala göre ${formatTRYMinor(owedMinor)} karta iade edilecek.`
               : `${PASSED_SINCE_REQUEST_LEAD} Talep anındaki kurala göre iade edilmeli ama iade hemen tamamlanmadı.`,
