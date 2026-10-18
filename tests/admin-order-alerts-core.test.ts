@@ -304,3 +304,31 @@ describe("the ring", () => {
     expect(ringLevel([pickup])).toBe(0.8);
   });
 });
+
+describe("poll pacing", () => {
+  it("is fast when busy or an order waits, hourly otherwise", async () => {
+    const {
+      orderAlertPollAfterMs,
+      ORDER_ALERT_POLL_MS,
+      ORDER_ALERT_IDLE_POLL_MS,
+    } = await import("@/lib/admin/order-alerts-core");
+    expect(orderAlertPollAfterMs({ busy: true, hasAlerts: false })).toBe(
+      ORDER_ALERT_POLL_MS,
+    );
+    expect(orderAlertPollAfterMs({ busy: false, hasAlerts: true })).toBe(
+      ORDER_ALERT_POLL_MS,
+    );
+    expect(orderAlertPollAfterMs({ busy: false, hasAlerts: false })).toBe(
+      ORDER_ALERT_IDLE_POLL_MS,
+    );
+  });
+
+  it("nextPollDelay takes a sane server value and clamps the rest", async () => {
+    const { nextPollDelay } = await import("@/lib/admin/order-alerts-core");
+    expect(nextPollDelay({ pollAfterMs: 3_600_000 }, 10_000)).toBe(3_600_000);
+    expect(nextPollDelay({ pollAfterMs: 100 }, 10_000)).toBe(5_000);
+    expect(nextPollDelay({ pollAfterMs: 99_999_999 }, 10_000)).toBe(7_200_000);
+    expect(nextPollDelay({ pollAfterMs: "x" }, 10_000)).toBe(10_000);
+    expect(nextPollDelay(null, 10_000)).toBe(10_000);
+  });
+});

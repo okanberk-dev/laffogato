@@ -697,6 +697,32 @@ describe("the poller", () => {
     expect(seen).toHaveLength(1);
   });
 
+  it("waits as long as the server says: hourly when the köşk is closed", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      status: 200,
+      type: "basic",
+      json: async () => ({ now: "", alerts: [], pollAfterMs: 3_600_000 }),
+    }));
+    const timers: number[] = [];
+    const p = startAlertPoller({
+      url: "u",
+      intervalMs: 10_000,
+      onResponse: () => {},
+      createWorker: () => null,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      setTimer: (_fn, ms) => timers.push(ms),
+      clearTimer: () => {},
+    });
+    await settle();
+    expect(timers).toEqual([3_600_000]);
+    p.stop();
+  });
+
+  it("the worker source follows pollAfterMs within 5 s and 2 h", () => {
+    expect(WORKER_SOURCE).toContain("pollAfterMs");
+    expect(WORKER_SOURCE).toContain("Math.min(7200000, Math.max(5000");
+  });
+
   it("falls back to a main-thread timer when the worker cannot start or fails to load", async () => {
     const fetchImpl = vi.fn(async () => ({
       status: 503,

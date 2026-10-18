@@ -1,4 +1,5 @@
 import {
+  nextPollDelay,
   parseOrderAlertPayload,
   type OrderAlert,
 } from "@/lib/admin/order-alerts-core";
@@ -9,7 +10,8 @@ import {
  * Chrome throttles a hidden tab's main-thread timers (to once a minute after
  * five minutes hidden), and the barista's panel is a hidden tab most of the
  * evening. A dedicated worker's timers are not throttled that way, so the
- * worker asks `/admin/siparisler/uyari` every ten seconds and posts each
+ * worker asks `/admin/siparisler/uyari` every ten seconds while the köşk is
+ * open (hourly when it is closed: the answer's `pollAfterMs`) and posts each
  * answer to the page. Where a worker cannot start (an old browser, a policy
  * that refuses blob: workers) a main-thread timer does the same.
  *
@@ -85,7 +87,9 @@ function poll() {
     if (stopped) return;
     self.postMessage(msg);
     if (again) { again = false; poll(); return; }
-    timer = setTimeout(poll, every);
+    var next = every, p = msg.json && msg.json.pollAfterMs;
+    if (typeof p === "number" && isFinite(p)) next = Math.min(7200000, Math.max(5000, Math.round(p)));
+    timer = setTimeout(poll, next);
   });
 }
 self.onmessage = function (e) {
@@ -176,7 +180,12 @@ export function startAlertPoller(opts: PollerOptions): AlertPoller {
       void tick();
       return;
     }
-    timer = setTimer(() => void tick(), opts.intervalMs);
+    // The server says how long to wait (fast while the köşk is open,
+    // hourly when it is closed): order-alerts-core nextPollDelay.
+    timer = setTimer(
+      () => void tick(),
+      nextPollDelay(res.json, opts.intervalMs),
+    );
   };
   const startTimer = () => {
     mode = "timer";

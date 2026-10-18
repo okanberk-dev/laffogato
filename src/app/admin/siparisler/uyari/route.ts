@@ -1,11 +1,14 @@
 import { getAdminSession, isAdminSessionUnavailable } from "@/lib/admin/auth";
 import {
+  ORDER_ALERT_BUSY_OFFSETS_MIN,
   ORDER_ALERT_LIMIT,
   buildOrderAlerts,
+  orderAlertPollAfterMs,
   orderAlertsSince,
 } from "@/lib/admin/order-alerts-core";
 import { canAccess } from "@/lib/admin/roles";
-import { listOrderAlertRows } from "@/lib/admin/store";
+import { getSettings, listOrderAlertRows } from "@/lib/admin/store";
+import { getVenueStatus, isCafeOpenNow } from "@/lib/mobile/venue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,8 +60,16 @@ export async function GET() {
       orderAlertsSince(now),
       ORDER_ALERT_LIMIT,
     );
+    const alerts = buildOrderAlerts(rows, now);
     return Response.json(
-      { now: new Date(now).toISOString(), alerts: buildOrderAlerts(rows, now) },
+      {
+        now: new Date(now).toISOString(),
+        alerts,
+        pollAfterMs: orderAlertPollAfterMs({
+          busy: await busyWindow(now),
+          hasAlerts: alerts.length > 0,
+        }),
+      },
       { status: 200, headers: NO_STORE },
     );
   } catch (err) {
@@ -68,5 +79,29 @@ export async function GET() {
       { error: "unavailable" },
       { status: 503, headers: NO_STORE },
     );
+  }
+}
+
+/**
+ * Is the köşk open now, within the next hour, or was it open half an hour
+ * ago? The staff override (Canlı durum) first, the posted hours otherwise.
+ * A read that fails answers "busy": a missed sleep costs compute, a missed
+ * order costs a guest.
+ */
+async function busyWindow(now: number): Promise<boolean> {
+  try {
+    const [settings, venue] = await Promise.all([
+      getSettings(),
+      getVenueStatus(),
+    ]);
+    return ORDER_ALERT_BUSY_OFFSETS_MIN.some((min) =>
+      isCafeOpenNow(
+        settings.weeklyHours,
+        venue.manualOverride,
+        new Date(now + min * 60_000),
+      ),
+    );
+  } catch {
+    return true;
   }
 }

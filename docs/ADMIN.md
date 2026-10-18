@@ -65,8 +65,13 @@ sayfadan masaüstü bildirimi göstermez; orada ses, kart ve sekme başlığı
 
 **Teknik.** `GET /admin/siparisler/uyari` (oturum + Siparişler bölümü her
 istekte, `no-store`, müşteri bilgisi yok: yalnız sipariş no, "Masa 4" /
-"Gel-al", ürün adları ve adetleri, tutar, ödeme zamanı). Sorgu 10 saniyede
-bir, gizli sekmede kısılmasın diye bir Web Worker'dan yapılır; Worker
+"Gel-al", ürün adları ve adetleri, tutar, ödeme zamanı). Sorgu köşk açıkken
+(ve açılıştan bir saat önce, kapanıştan yarım saat sonraya kadar ya da bekleyen
+bir sipariş varken) 10 saniyede bir, köşk kapalıyken saatte bir yapılır:
+cevaptaki `pollAfterMs`. Veritabanı (Neon, ücretsiz plan) beş dakika boşta
+kalınca uyur; gece açık kalan bir panel sekmesi onu sabaha kadar uyanık
+tutmasın. Saatlere ve Canlı durum'daki elle açık/kapalı ayarına bakılır.
+Sorgu gizli sekmede kısılmasın diye bir Web Worker'dan yapılır; Worker
 açılamazsa ana iş parçacığında zamanlayıcı. Tek sekme Web Locks ile seçilir,
 liste diğer sekmelere BroadcastChannel ile gider, "Gördüm" localStorage'da
 (`laffogato.admin.orderAlerts.acks.v1`). Zil Web Audio ile üretilir (dosya

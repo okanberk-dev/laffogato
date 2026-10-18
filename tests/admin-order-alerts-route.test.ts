@@ -20,7 +20,13 @@ vi.mock("@/lib/admin/auth", () => ({
     (err as { code?: string } | null)?.code === "ADMIN_SESSION_UNAVAILABLE",
 }));
 const listOrderAlertRows = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/admin/store", () => ({ listOrderAlertRows }));
+const getSettings = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/admin/store", () => ({ listOrderAlertRows, getSettings }));
+const venue = vi.hoisted(() => ({ override: "auto" as string, open: true }));
+vi.mock("@/lib/mobile/venue", () => ({
+  getVenueStatus: vi.fn(async () => ({ manualOverride: venue.override })),
+  isCafeOpenNow: vi.fn(() => venue.open),
+}));
 
 const { GET } = await import("@/app/admin/siparisler/uyari/route");
 
@@ -51,6 +57,9 @@ beforeEach(() => {
   session.throws = null;
   listOrderAlertRows.mockReset();
   listOrderAlertRows.mockResolvedValue([dbRow()]);
+  getSettings.mockReset();
+  getSettings.mockResolvedValue({ weeklyHours: {} });
+  venue.open = true;
 });
 
 describe("the gate", () => {
@@ -170,5 +179,39 @@ describe("the answer", () => {
     expect(body.alerts.map((a) => [a.id, a.label])).toEqual([
       ["pickup", "Gel-al"],
     ]);
+  });
+});
+
+describe("the next poll (pollAfterMs)", () => {
+  beforeEach(() => {
+    session.value = { email: "s@laffogato.net", role: "staff" };
+  });
+
+  it("asks every ten seconds while the köşk is open", async () => {
+    listOrderAlertRows.mockResolvedValue([]);
+    const body = await (await GET()).json();
+    expect(body.pollAfterMs).toBe(10_000);
+  });
+
+  it("asks hourly when the köşk is closed and nothing waits, so the database can sleep", async () => {
+    venue.open = false;
+    listOrderAlertRows.mockResolvedValue([]);
+    const body = await (await GET()).json();
+    expect(body.pollAfterMs).toBe(60 * 60_000);
+  });
+
+  it("stays fast while an order waits, even when closed", async () => {
+    venue.open = false;
+    const body = await (await GET()).json();
+    expect(body.alerts).toHaveLength(1);
+    expect(body.pollAfterMs).toBe(10_000);
+  });
+
+  it("stays fast when the hours cannot be read", async () => {
+    venue.open = false;
+    listOrderAlertRows.mockResolvedValue([]);
+    getSettings.mockRejectedValue(new Error("down"));
+    const body = await (await GET()).json();
+    expect(body.pollAfterMs).toBe(10_000);
   });
 });

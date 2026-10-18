@@ -32,6 +32,47 @@ export const ORDER_ALERT_LIMIT = 20;
 /** The poll. A gel-al member is at the counter in about half a minute. */
 export const ORDER_ALERT_POLL_MS = 10_000;
 
+/**
+ * The poll while the köşk is closed and nothing is waiting. The database
+ * (Neon, free plan) sleeps after five idle minutes and every poll wakes it:
+ * a panel tab left open overnight that asked every ten seconds kept it
+ * awake all night and spent the month's compute hours. An hour is safe
+ * because the route answers "fast" from an hour before opening (see
+ * `orderAlertPollAfterMs`), so the last slow poll always lands before the
+ * doors open.
+ */
+export const ORDER_ALERT_IDLE_POLL_MS = 60 * 60_000;
+
+/** Where the "is it busy now" check looks, in minutes from now. */
+export const ORDER_ALERT_BUSY_OFFSETS_MIN = [-30, 0, 15, 30, 45, 60] as const;
+
+/**
+ * How long the poller waits before its next ask: fast while the köşk is
+ * open (or opens within the hour, or closed less than half an hour ago) or
+ * while an order is waiting; hourly otherwise.
+ */
+export function orderAlertPollAfterMs(opts: {
+  busy: boolean;
+  hasAlerts: boolean;
+}): number {
+  return opts.busy || opts.hasAlerts
+    ? ORDER_ALERT_POLL_MS
+    : ORDER_ALERT_IDLE_POLL_MS;
+}
+
+/**
+ * The next delay the poller uses: the server's `pollAfterMs` when it is a
+ * sane number (5 s to 2 h), else the fallback.
+ */
+export function nextPollDelay(json: unknown, fallbackMs: number): number {
+  const v =
+    json && typeof json === "object"
+      ? (json as { pollAfterMs?: unknown }).pollAfterMs
+      : undefined;
+  if (typeof v !== "number" || !Number.isFinite(v)) return fallbackMs;
+  return Math.min(2 * 60 * 60_000, Math.max(5_000, Math.round(v)));
+}
+
 /** A "Gördüm" is remembered this long, then forgotten. */
 export const ORDER_ALERT_ACK_TTL_MS = 24 * 60 * 60_000;
 
