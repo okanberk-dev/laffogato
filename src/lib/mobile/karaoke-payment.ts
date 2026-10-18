@@ -1379,9 +1379,10 @@ export type CancelKaraokeResult =
  *
  * A member's (or a link holder's) cancel follows the booking's snapshot:
  * refused inside the window when its late share is 0 (and from the start on,
- * always), and inside the window with a share below 100 % the booking is
- * cancelled with the share owed (`cancelWithShareOwed`). The köşk's cancel
- * always refunds everything.
+ * always), and inside the window with a share below 100 % a confirmed
+ * booking is cancelled with the share owed (`cancelWithShareOwed`); a paid
+ * one the köşk never confirmed goes back in full. The köşk's cancel always
+ * refunds everything.
  *
  * - Paid at the venue (`none`): cancelled, as the panel always did.
  * - Unpaid hold (`pending`): the POS is asked first (rule 29). Paid after
@@ -1535,14 +1536,18 @@ export async function cancelKaraokeReservation(
   }
 
   const paid = r.paidMinor ?? 0;
-  const owed =
-    lateShare === null ? paid : karaokeLateRefundMinor(paid, lateShare);
+  // The late share is what letting go of a promised hour costs. A paid
+  // booking the köşk never confirmed (its hour lost to another booking, or
+  // its confirmation unfinished) was never promised: the panel cancels it in
+  // full, and so does the member's own cancel (MSY m.16/4, TBK m.136).
+  const share = r.status === "confirmed" ? lateShare : null;
+  const owed = share === null ? paid : karaokeLateRefundMinor(paid, share);
   // A share below the whole payment cannot go through the POS (PayNkolay
   // refunds whole payments only, docs/PAYNKOLAY.md §3.2; operator decision
   // D9): the booking is cancelled now, its hour freed, and the share is owed.
   // A share that rounds to nothing, or to all of it, refunds in full.
   if (owed > 0 && owed < paid) {
-    return cancelWithShareOwed(r, owed, lateShare ?? 0, {
+    return cancelWithShareOwed(r, owed, share ?? 0, {
       actor,
       by: by.kind,
       now,

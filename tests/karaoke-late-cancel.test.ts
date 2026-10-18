@@ -521,6 +521,25 @@ describe("a member cancels", () => {
     ]);
   });
 
+  it("a paid booking the köşk never confirmed is refunded in full, never by the share", async () => {
+    // Paid, but its hour went to another confirmed booking (or its
+    // confirmation never finished): the panel's slot_lost says to cancel it
+    // with a full refund. The member cancelling it inside the window must
+    // not lose half of a payment for an hour that was never theirs.
+    seedPaid({ ...HALF, status: "requested" });
+    const res = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
+      now: at(10),
+    });
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(res).not.toHaveProperty("refundOwedMinor");
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+    });
+    expect(row().refundMinor ?? null).toBeNull();
+  });
+
   it("the owed share is never retried at the POS, and is recorded by hand at its own amount", async () => {
     seedPaid({ ...HALF });
     await payment.cancelKaraokeReservation("krk-00042", MEMBER, {

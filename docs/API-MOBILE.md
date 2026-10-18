@@ -1018,13 +1018,15 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 - `POST /karaoke/reservations/{id}/cancel`: süre içinde (`cancellableUntil`
   geçti) ve başlangıçtan önce, `lateRefundPercent` 0 ise eskisi gibi **409**
   `too_late`. 100 ise tamamı POS'tan iade edilir (**200**, `refunded: true`).
-  1..99 ise rezervasyon iptal edilir ve saat boşalır, pay
+  1..99 ise onaylı rezervasyon iptal edilir ve saat boşalır, pay
   `round(paidMinor × P / 100)` olarak borçlanır: **200** `refunded: false`,
   `reservation.status: "cancelled"`, `paymentStatus: "refunding"`,
   `refundMinor` dolu. PayNkolay kısmi iadeyi otomatik yapamadığı için ekip payı
   PayNkolay panelinden iade eder ve "Elle iade edildi" ile kaydeder; o zaman
   `paymentStatus: "refunded"` olur ve üyeye e-posta gider (docs/PAYNKOLAY.md
-  §3.2). Başlangıçtan sonra her üye iptali `too_late`'tir. `too_late`
+  §3.2). Ödenmiş ama köşkün hiç onaylamadığı (`status: "requested"`)
+  rezervasyonda pay uygulanmaz: tamamı POS'tan iade edilir (**200**,
+  `refunded: true`). Başlangıçtan sonra her üye iptali `too_late`'tir. `too_late`
   mesajı rezervasyonun kendi kuralından gelir; varsayılan kuralda aynı cümle.
   Hata kodları ve durum kodları değişmedi.
 - **Uygulama kilidi.** Yayındaki uygulama sürümleri rezervasyon ayrıntısında
