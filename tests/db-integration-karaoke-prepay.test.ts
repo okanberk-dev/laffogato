@@ -1532,4 +1532,112 @@ maybe("karaoke prepayment (real Postgres)", () => {
       }
     });
   });
+
+  describe("the cancellation policy snapshot (P2a, 18 Eki 2026)", () => {
+    async function paidBooking(c = member()) {
+      const res = await bookMember(c);
+      await pay.applyKaraokePaymentSucceeded({
+        reservationId: res.reservation.id,
+        provider: "fakepos",
+        providerRef: res.reservation.id,
+        amountMinor: 200_000,
+        currency: "TRY",
+      });
+      return { c, id: res.reservation.id };
+    }
+
+    it("a booking keeps the rule it was made under, in its own columns", async () => {
+      const { id } = await paidBooking();
+      const r = await row(id);
+      const start = karaoke.karaokeStartInstant(
+        String(r.date),
+        Number(r.startHour),
+      );
+      expect(r).toMatchObject({
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        cancelDeadline: new Date(start.getTime() - 2 * 3600_000).toISOString(),
+        cancellationRules: [
+          karaoke.KARAOKE_REFUND_RULE,
+          karaoke.KARAOKE_NO_REFUND_RULE,
+        ],
+        refundMinor: null,
+      });
+    });
+
+    it("a late cancel under 24 h / 50 %: the share is owed, nothing goes to the POS, then settled by hand at its amount", async () => {
+      const { c, id } = await paidBooking();
+      // A booking made under 24 h / 50 % (the lock keeps new ones at the
+      // default, so the snapshot is written as such a booking would carry it).
+      const r0 = await row(id);
+      const start = karaoke
+        .karaokeStartInstant(String(r0.date), Number(r0.startHour))
+        .getTime();
+      await pool!.query(
+        `update public.karaoke_reservations
+            set "freeCancelHours" = 24, "lateRefundPercent" = 50,
+                "cancelDeadline" = $2
+          where id = $1`,
+        [id, new Date(start - 24 * 3600_000).toISOString()],
+      );
+      const out = await pay.cancelKaraokeReservation(
+        id,
+        { kind: "member", email: c.email, emailVerified: true },
+        { now: new Date(start - 3 * 3600_000) },
+      );
+      expect(out).toMatchObject({
+        ok: true,
+        refunded: false,
+        refundOwedMinor: 100_000,
+      });
+      expect(pos.refunds).toHaveLength(0);
+      expect(await row(id)).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "refunding",
+        refundMinor: 100_000,
+      });
+
+      // The POS retry refuses a share; "Elle iade edildi" records it.
+      expect(await pay.retryKaraokeRefund(id, "owner@kosk")).toMatchObject({
+        ok: false,
+        reason: "by_hand",
+      });
+      expect(
+        await pay.settleKaraokeRefundByHand(id, "owner@kosk"),
+      ).toMatchObject({ ok: true, refunded: true });
+      expect(await row(id)).toMatchObject({
+        paymentStatus: "refunded",
+        refundMinor: 100_000,
+      });
+      const claim = await pool!.query(
+        `select "amountMinor", status from public.payment_transactions
+          where "orderId" = $1 and status = 'refunded'`,
+        [id],
+      );
+      expect(claim.rows).toEqual([
+        { amountMinor: 100_000, status: "refunded" },
+      ]);
+    });
+
+    it("the database refuses a share above what was paid, and a policy out of range", async () => {
+      const { id } = await paidBooking();
+      await expect(
+        pool!.query(
+          `update public.karaoke_reservations set "refundMinor" = 200001 where id = $1`,
+          [id],
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+      await expect(
+        pool!.query(
+          `update public.karaoke_reservations set "lateRefundPercent" = 101 where id = $1`,
+          [id],
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+      const settingsCheck = await pool!.query(
+        `select 1 from pg_constraint
+          where conname = 'settings_karaoke_cancel_policy_check'`,
+      );
+      expect(settingsCheck.rowCount).toBe(1);
+    });
+  });
 });
