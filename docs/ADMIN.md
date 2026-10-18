@@ -56,8 +56,11 @@ görünür. O sekme kapanınca bir diğeri devralır.
 
 **Sınırlar.** Chrome açık ve panel bir sekmede açık olmalı: tarayıcı
 kapalıyken bildirim gelmez (bunun için service worker + Web Push gerekir;
-ileride istenirse ayrı iş). Android Chrome sayfadan masaüstü bildirimi
-göstermez; orada ses, kart ve sekme başlığı çalışır.
+ileride istenirse ayrı iş). Chrome'un Bellek Tasarrufu uzun süre dokunulmayan
+bir sekmeyi uyutabilir: tezgâh bilgisayarında Ayarlar > Performans'ta site
+adresini "Bu siteleri her zaman etkin tut" listesine ekle. Android Chrome
+sayfadan masaüstü bildirimi göstermez; orada ses, kart ve sekme başlığı
+çalışır.
 
 **Teknik.** `GET /admin/siparisler/uyari` (oturum + Siparişler bölümü her
 istekte, `no-store`, müşteri bilgisi yok: yalnız sipariş no, "Masa 4" /
