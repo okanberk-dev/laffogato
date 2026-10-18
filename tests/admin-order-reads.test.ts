@@ -186,15 +186,38 @@ describe("order list: one filtered, numbered page", () => {
 });
 
 describe("customer roll-up and reports read only their columns", () => {
-  it("listCustomers projects the six columns it sums", async () => {
-    orderRows = [row(10002), row(10001)];
-    const customers = await store.listCustomers();
-    expect(customers).toHaveLength(2);
-    for (const sql of orderSelects()) {
-      expect(sql).not.toMatch(/^SELECT \*/);
-      expect(sql).not.toContain('"items"');
-      expect(sql).not.toContain('"legalConsent"');
-    }
+  it("Müşteriler rolls the orders up in SQL, one page at a time", async () => {
+    // listCustomers read every order into JavaScript for the roll-up; the
+    // list now asks admin_customer_page / admin_customer_counts (PEO-13).
+    expect("listCustomers" in store).toBe(false);
+    const { countCustomers, listCustomerPage } =
+      await import("@/lib/admin/customer-list");
+    const { parseCustomerListParams } =
+      await import("@/lib/admin/customer-list-core");
+    const parsed = parseCustomerListParams({});
+    await listCustomerPage({
+      query: parsed.query,
+      kind: "all",
+      sort: { key: "hareket", dir: "desc" },
+      page: 3,
+      pageSize: 50,
+    });
+    await countCustomers(parsed.query);
+    expect(orderSelects()).toEqual([]);
+    const texts = seen.map((q) => q.text);
+    expect(texts[0]).toMatch(/^SELECT \* FROM "admin_customer_page"\(/);
+    expect(seen[0].params).toEqual([
+      "",
+      "",
+      "",
+      "",
+      "all",
+      "activity",
+      true,
+      50,
+      100,
+    ]);
+    expect(texts[1]).toMatch(/^SELECT \* FROM "admin_customer_counts"\(/);
   });
 
   it("the three report figures never select *, and only top products reads items", async () => {

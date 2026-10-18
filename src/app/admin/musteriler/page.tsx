@@ -1,486 +1,370 @@
 import Link from "next/link";
 
 import {
-  Card,
   PageHeader,
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
-import { Badge } from "@/components/admin/ui/badge";
-import { requireRole } from "@/lib/admin/auth";
-import { isClosedAccountEmail, listCustomers } from "@/lib/admin/store";
 import {
-  deletionDayLabel,
-  deletionDeadline,
-  isDeletionOverdue,
-} from "@/lib/customer/deletion-request-core";
-import { listAllCustomers } from "@/lib/customer/store";
+  ActionMenu,
+  ActionMenuLink,
+  BUTTON,
+  Badge,
+  DataTable,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { requireRole } from "@/lib/admin/auth";
+import { countCustomers, listCustomerPage } from "@/lib/admin/customer-list";
+import {
+  CUSTOMER_FILTER_FIELDS,
+  CUSTOMER_LIST_PAGE_SIZE,
+  CUSTOMER_LIST_PATH,
+  CUSTOMER_TAB_PARAM,
+  CUSTOMER_TABS,
+  parseCustomerListParams,
+  type CustomerListRow,
+  type CustomerSortKey,
+} from "@/lib/admin/customer-list-core";
+import { withParams } from "@/lib/admin/list-params";
+import type { AdminTone } from "@/lib/admin/tone";
 
 export const metadata = { title: "Admin · Müşteriler" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; sort?: SortKey; filter?: FilterKey }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type SortKey = "recent" | "value" | "orders" | "name";
-type FilterKey = "all" | "members" | "guests" | "deletion";
-
-const SORT_LABEL: Record<SortKey, string> = {
-  recent: "Son hareket",
-  value: "Lifetime value",
-  orders: "Sipariş sayısı",
-  name: "Ad (A→Z)",
-};
-
-const FILTER_LABEL: Record<FilterKey, string> = {
-  all: "Hepsi",
-  members: "Üyeler",
-  guests: "Misafirler",
-  // Web deletion requests waiting for the team (/uye/hesap/sil); the
-  // team's mail links here.
-  deletion: "Silme talebi",
-};
-
-interface CustomerRow {
-  email: string;
-  name: string;
-  phone: string;
-  isMember: boolean;
-  isActive: boolean;
-  emailVerified: boolean;
-  memberSince: string;
-  orderCount: number;
-  lifetimeValueMinor: number;
-  refundedMinor: number;
-  lastOrderAt: string;
-  /** Sort key: last order date, else member-since. */
-  lastActivity: string;
-  /** ISO instant of the open web deletion request; "" when none. */
-  deletionRequestedAt: string;
+/** The member page of a row (D14: still keyed by the address for now). */
+function memberHref(c: CustomerListRow): string {
+  return `${CUSTOMER_LIST_PATH}/${encodeURIComponent(c.email)}`;
 }
 
+/**
+ * A row's state as badges, the exceptions only: a member who cannot sign
+ * in, or whose address is not confirmed, stands out; "verified" is the
+ * normal case and says nothing.
+ */
+function customerBadges(
+  c: CustomerListRow,
+): Array<{ label: string; tone: AdminTone }> {
+  const out: Array<{ label: string; tone: AdminTone }> = [
+    c.isMember
+      ? { label: "Üye", tone: "primary" }
+      : { label: "Misafir", tone: "neutral" },
+  ];
+  if (c.isMember && !c.isActive) out.push({ label: "Pasif", tone: "warning" });
+  if (c.isMember && !c.emailVerified) {
+    out.push({ label: "Doğrulanmamış", tone: "accent" });
+  }
+  return out;
+}
+
+function CustomerBadges({ row }: { row: CustomerListRow }) {
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {customerBadges(row).map((b) => (
+        <Badge key={b.label} tone={b.tone}>
+          {b.label}
+        </Badge>
+      ))}
+    </span>
+  );
+}
+
+/** When the customer last did something: an order, else signing up. */
+function LastActivity({ row }: { row: CustomerListRow }) {
+  if (!row.lastActivity) return <>-</>;
+  return (
+    <span className="text-xs whitespace-nowrap" style={MONO_STYLE}>
+      {formatDateTime(row.lastActivity)}
+      {!row.lastOrderAt ? (
+        <span className="block text-[var(--admin-text-soft)]">
+          üye oldu, sipariş yok
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function RowMenu({ row }: { row: CustomerListRow }) {
+  return (
+    <ActionMenu label={`${row.name || row.email} işlemleri`}>
+      <ActionMenuLink href={memberHref(row)}>Müşteri sayfası</ActionMenuLink>
+      {row.lastOrderAt ? (
+        <ActionMenuLink
+          href={withParams({}, { q: row.email }, "/admin/siparisler")}
+        >
+          Siparişleri
+        </ActionMenuLink>
+      ) : null}
+      {row.isMember ? (
+        <ActionMenuLink href={`${memberHref(row)}/duzenle`}>
+          Düzenle
+        </ActionMenuLink>
+      ) : null}
+    </ActionMenu>
+  );
+}
+
+/** A phone's card: who, their state, how to reach them, what they spent. */
+function MobileCard({ row }: { row: CustomerListRow }) {
+  return (
+    <div className="min-w-0">
+      <Link
+        href={memberHref(row)}
+        className="font-medium [overflow-wrap:anywhere] text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+      >
+        {row.name || row.email}
+      </Link>
+      <div className="mt-1.5">
+        <CustomerBadges row={row} />
+      </div>
+      <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
+        {row.name ? (
+          <>
+            <dt className={EYEBROW} style={MONO_STYLE}>
+              E-posta
+            </dt>
+            <dd className="min-w-0 [overflow-wrap:anywhere] text-[var(--admin-text)]">
+              {row.email}
+            </dd>
+          </>
+        ) : null}
+        {row.phone ? (
+          <>
+            <dt className={EYEBROW} style={MONO_STYLE}>
+              Telefon
+            </dt>
+            <dd className="min-w-0 text-[var(--admin-text)]">{row.phone}</dd>
+          </>
+        ) : null}
+        <dt className={EYEBROW} style={MONO_STYLE}>
+          Harcama
+        </dt>
+        <dd className="min-w-0 text-[var(--admin-text)]" style={NUMERIC_STYLE}>
+          {formatTRY(row.lifetimeValueMinor)} · {row.orderCount} sipariş
+        </dd>
+        <dt className={EYEBROW} style={MONO_STYLE}>
+          Son hareket
+        </dt>
+        <dd className="min-w-0 text-[var(--admin-text)]">
+          <LastActivity row={row} />
+        </dd>
+      </dl>
+    </div>
+  );
+}
+
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]">
+      <div className={EYEBROW} style={MONO_STYLE}>
+        {label}
+      </div>
+      <div
+        className="mt-1 text-xl text-[var(--admin-text)]"
+        style={NUMERIC_STYLE}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The customer list (Filament's table): member accounts and guest buyers in
+ * one list, tabs with counts, a filter row, sortable columns and numbered
+ * pages. Everything is in the URL (lib/admin/customer-list-core.ts), and the
+ * database does the merge, search, sort and paging
+ * (lib/admin/customer-list.ts): one page of rows, never the table.
+ */
 export default async function CustomersPage({ searchParams }: PageProps) {
+  // Names, addresses and phones: the gate comes before any read.
   await requireRole("customers");
   const sp = await searchParams;
-  const q = (sp.q ?? "").trim().toLowerCase();
-  const sort: SortKey = (sp.sort ?? "recent") as SortKey;
-  const filter: FilterKey = (sp.filter ?? "all") as FilterKey;
-
-  const [allMembers, summaries] = await Promise.all([
-    listAllCustomers(),
-    listCustomers(),
+  const parsed = parseCustomerListParams(sp);
+  const kind = parsed.tab ?? "all";
+  const [rows, counts] = await Promise.all([
+    listCustomerPage({
+      query: parsed.query,
+      kind,
+      sort: {
+        key: parsed.sort.key as CustomerSortKey,
+        dir: parsed.sort.dir,
+      },
+      page: parsed.page,
+      pageSize: CUSTOMER_LIST_PAGE_SIZE,
+    }),
+    countCustomers(parsed.query),
   ]);
-  // A closed account is not a customer to call: its row is anonymised and
-  // its orders' invoice name and phone are kept only for fiscal retention
-  // (listCustomers leaves those orders out too).
-  const members = allMembers.filter((m) => !isClosedAccountEmail(m.email));
+  // Tiles, tab badge and pager all count the list as it stands: this tab
+  // under these filters.
+  const totals = counts[kind];
+  const tabs = CUSTOMER_TABS.map((t) => ({
+    ...t,
+    count: counts[t.value ?? "all"].customers,
+  }));
 
-  // Merge member accounts with order-derived CRM summaries, keyed by e-mail.
-  const byEmail = new Map<string, CustomerRow>();
-  for (const m of members) {
-    const key = m.email.toLowerCase();
-    byEmail.set(key, {
-      email: m.email,
-      name: m.name,
-      phone: m.phone,
-      isMember: true,
-      isActive: m.isActive,
-      emailVerified: m.emailVerified,
-      memberSince: m.createdAt,
-      orderCount: 0,
-      lifetimeValueMinor: 0,
-      refundedMinor: 0,
-      lastOrderAt: "",
-      lastActivity: m.createdAt,
-      deletionRequestedAt: m.deletionRequest?.requestedAt ?? "",
-    });
-  }
-  for (const s of summaries) {
-    const key = s.email.toLowerCase();
-    const existing = byEmail.get(key);
-    if (existing) {
-      existing.orderCount = s.orderCount;
-      existing.lifetimeValueMinor = s.lifetimeValueMinor;
-      existing.refundedMinor = s.refundedMinor;
-      existing.lastOrderAt = s.lastOrderAt;
-      existing.lastActivity = s.lastOrderAt || existing.memberSince;
-      if (!existing.name) existing.name = s.name;
-      if (!existing.phone) existing.phone = s.phone;
-    } else {
-      byEmail.set(key, {
-        email: s.email,
-        name: s.name,
-        phone: s.phone,
-        isMember: false,
-        isActive: true,
-        emailVerified: false,
-        memberSince: "",
-        orderCount: s.orderCount,
-        lifetimeValueMinor: s.lifetimeValueMinor,
-        refundedMinor: s.refundedMinor,
-        lastOrderAt: s.lastOrderAt,
-        lastActivity: s.lastOrderAt,
-        deletionRequestedAt: "",
-      });
-    }
-  }
-
-  let list = Array.from(byEmail.values());
-  if (filter === "members") list = list.filter((c) => c.isMember);
-  else if (filter === "guests") list = list.filter((c) => !c.isMember);
-  else if (filter === "deletion") {
-    list = list.filter((c) => c.deletionRequestedAt);
-  }
-  if (q) {
-    list = list.filter(
-      (c) =>
-        c.email.toLowerCase().includes(q) ||
-        c.name.toLowerCase().includes(q) ||
-        c.phone.toLowerCase().includes(q),
+  const empty =
+    totals.customers > 0 ? (
+      <EmptyState
+        title="Bu sayfada müşteri yok."
+        action={
+          <Link
+            href={withParams(sp, { sayfa: null }, CUSTOMER_LIST_PATH)}
+            className={BUTTON.ghost}
+          >
+            İlk sayfaya dön
+          </Link>
+        }
+      />
+    ) : parsed.narrowed ? (
+      <EmptyState
+        title="Bu süzgece uyan müşteri yok."
+        action={
+          <Link href={CUSTOMER_LIST_PATH} className={BUTTON.ghost}>
+            Süzgeçleri temizle
+          </Link>
+        }
+      />
+    ) : (
+      <EmptyState title="Henüz üye hesabı ya da sipariş yok." />
     );
-  }
-  list.sort((a, b) => {
-    // The requests run oldest first: the one closest to its thirty days
-    // is the next to do.
-    if (filter === "deletion") {
-      return a.deletionRequestedAt.localeCompare(b.deletionRequestedAt);
-    }
-    if (sort === "value") return b.lifetimeValueMinor - a.lifetimeValueMinor;
-    if (sort === "orders") return b.orderCount - a.orderCount;
-    if (sort === "name") return a.name.localeCompare(b.name, "tr");
-    return b.lastActivity.localeCompare(a.lastActivity);
-  });
-
-  const memberCount = members.length;
-  const openRequests = members
-    .map((m) => m.deletionRequest?.requestedAt ?? "")
-    .filter(Boolean)
-    .sort();
-  const now = new Date();
-  const totalValue = list.reduce((s, c) => s + c.lifetimeValueMinor, 0);
-  const totalOrders = list.reduce((s, c) => s + c.orderCount, 0);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Pazarlama · CRM"
         title="Müşteriler"
-        description="Kayıtlı üye hesapları ile misafir siparişlerinden çıkarılan profiller bir arada. Sipariş sayısı ve lifetime value Raporlar'la aynı kuralla hesaplanır: ödemesi beklenen ve iptal edilen siparişler sayılmaz."
+        description="Üye hesapları ve misafir siparişlerinden çıkan müşteriler bir arada. Sipariş sayısı ve toplam harcama Raporlar'la aynı kuralla sayılır: ödemesi beklenen ve iptal edilen siparişler girmez."
       />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Üye hesap" value={String(memberCount)} />
-        <Stat label="Toplam müşteri" value={String(list.length)} />
-        <Stat label="Toplam sipariş" value={String(totalOrders)} />
-        <Stat label="Lifetime value" value={formatTRY(totalValue)} mono />
+      <StatusTabs
+        tabs={tabs}
+        current={parsed.tab}
+        searchParams={sp}
+        pathname={CUSTOMER_LIST_PATH}
+        param={CUSTOMER_TAB_PARAM}
+        label="Müşteri türü"
+      />
+
+      <FilterBar
+        fields={CUSTOMER_FILTER_FIELDS}
+        values={parsed.values}
+        searchParams={sp}
+        pathname={CUSTOMER_LIST_PATH}
+        label="Müşteri filtreleri"
+      />
+
+      <section
+        aria-label="Bu listenin özeti"
+        className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4"
+      >
+        <Tile label="Müşteri" value={String(totals.customers)} />
+        <Tile label="Ödenen sipariş" value={String(totals.orderCount)} />
+        <Tile
+          label="Toplam harcama"
+          value={formatTRY(totals.lifetimeValueMinor)}
+        />
+        <Tile
+          label="İade"
+          value={
+            totals.refundedMinor > 0 ? formatTRY(totals.refundedMinor) : "-"
+          }
+        />
+      </section>
+
+      <DataTable
+        caption="Müşteriler"
+        rows={rows}
+        rowKey={(c) => c.email.toLowerCase()}
+        rowHref={memberHref}
+        sort={parsed.sort}
+        searchParams={sp}
+        pathname={CUSTOMER_LIST_PATH}
+        empty={empty}
+        mobileCard={(c) => <MobileCard row={c} />}
+        rowActions={(c) => <RowMenu row={c} />}
+        columns={[
+          {
+            key: "ad",
+            header: "Müşteri",
+            sortable: true,
+            cell: (c) => (
+              <span className="[overflow-wrap:anywhere]">
+                {c.name || c.email}
+              </span>
+            ),
+          },
+          {
+            key: "durum",
+            header: "Durum",
+            cell: (c) => <CustomerBadges row={c} />,
+          },
+          {
+            key: "iletisim",
+            header: "İletişim",
+            className: "min-w-[12rem]",
+            cell: (c) => (
+              <span className="block text-xs">
+                <span className="block [overflow-wrap:anywhere]">
+                  {c.email}
+                </span>
+                {c.phone ? (
+                  <span className="block text-[var(--admin-text-soft)]">
+                    {c.phone}
+                  </span>
+                ) : null}
+              </span>
+            ),
+          },
+          {
+            key: "siparis",
+            header: "Sipariş",
+            sortable: true,
+            firstDir: "desc",
+            align: "right",
+            cell: (c) => <span style={NUMERIC_STYLE}>{c.orderCount}</span>,
+          },
+          {
+            key: "harcama",
+            header: "Toplam harcama",
+            sortable: true,
+            firstDir: "desc",
+            align: "right",
+            cell: (c) => (
+              <span className="whitespace-nowrap" style={NUMERIC_STYLE}>
+                {formatTRY(c.lifetimeValueMinor)}
+              </span>
+            ),
+          },
+          {
+            key: "hareket",
+            header: "Son hareket",
+            sortable: true,
+            firstDir: "desc",
+            hideBelow: "lg",
+            cell: (c) => <LastActivity row={c} />,
+          },
+        ]}
+      />
+
+      <div className="mt-6">
+        <Pagination
+          page={parsed.page}
+          pageSize={CUSTOMER_LIST_PAGE_SIZE}
+          total={totals.customers}
+          searchParams={sp}
+          pathname={CUSTOMER_LIST_PATH}
+          label="Müşteri sayfaları"
+        />
       </div>
-
-      {openRequests.length > 0 && filter !== "deletion" && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]">
-          <span>
-            {openRequests.length} açık hesap silme talebi var. En eskisinin son
-            günü {deletionDayLabel(deletionDeadline(openRequests[0]))}.
-          </span>
-          <Link
-            href="/admin/musteriler?filter=deletion"
-            className="inline-flex min-h-[44px] items-center rounded-full border border-[var(--admin-danger)]/40 bg-white px-4 text-xs font-medium text-[var(--admin-danger-ink)] hover:border-[var(--admin-danger)]"
-          >
-            Talepleri göster
-          </Link>
-        </div>
-      )}
-
-      <Card className="mb-4">
-        <form className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end">
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Ara
-            </span>
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="E-posta, ad veya telefon"
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Tür
-            </span>
-            <select
-              name="filter"
-              defaultValue={filter}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              {(Object.keys(FILTER_LABEL) as FilterKey[]).map((f) => (
-                <option key={f} value={f}>
-                  {FILTER_LABEL[f]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Sırala
-            </span>
-            <select
-              name="sort"
-              defaultValue={sort}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              {(Object.keys(SORT_LABEL) as SortKey[]).map((s) => (
-                <option key={s} value={s}>
-                  {SORT_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-          >
-            Uygula
-          </button>
-          <Link
-            href="/admin/musteriler"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border)] px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-          >
-            Sıfırla
-          </Link>
-        </form>
-      </Card>
-
-      <Card>
-        {list.length === 0 ? (
-          <p className="text-sm text-neutral-500">
-            {q || filter !== "all"
-              ? "Bu filtreyle müşteri bulunamadı."
-              : "Henüz üye hesabı ya da sipariş yok."}
-          </p>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <ul className="flex flex-col gap-3 md:hidden">
-              {list.map((c) => (
-                <li
-                  key={c.email}
-                  className="rounded-lg border border-[var(--admin-border)] p-3"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-medium text-neutral-900">
-                          {c.name || "-"}
-                        </span>
-                        <Badges row={c} />
-                      </div>
-                      <DeletionBadge row={c} now={now} />
-                      <div className="truncate text-xs text-neutral-700">
-                        {c.email}
-                      </div>
-                      {c.phone && (
-                        <div className="text-xs text-neutral-500">
-                          {c.phone}
-                        </div>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div
-                        className="text-sm text-neutral-900"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatTRY(c.lifetimeValueMinor)}
-                      </div>
-                      <div
-                        className="text-[10px] text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {c.orderCount} sipariş
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/admin/musteriler/${encodeURIComponent(c.email)}`}
-                    className="mt-3 inline-flex min-h-[40px] w-full items-center justify-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                  >
-                    Detay →
-                  </Link>
-                </li>
-              ))}
-            </ul>
-
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    <th className="py-3 pr-3">Müşteri</th>
-                    <th className="pr-3">İletişim</th>
-                    <th className="pr-3 text-right">Sipariş</th>
-                    <th className="pr-3 text-right">Lifetime value</th>
-                    <th className="pr-3">Son hareket</th>
-                    <th className="text-right">-</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((c) => (
-                    <tr
-                      key={c.email}
-                      className="border-b border-neutral-100 align-top last:border-b-0"
-                    >
-                      <td className="py-3 pr-3">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="font-medium text-neutral-900">
-                            {c.name || "-"}
-                          </span>
-                          <Badges row={c} />
-                        </div>
-                        <DeletionBadge row={c} now={now} />
-                        {c.isMember && c.memberSince && (
-                          <div
-                            className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
-                            style={{ fontFamily: "var(--mono), monospace" }}
-                          >
-                            Üyelik: {formatDateTime(c.memberSince)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="pr-3 text-xs text-neutral-700">
-                        <div>{c.email}</div>
-                        {c.phone && (
-                          <div className="text-neutral-500">{c.phone}</div>
-                        )}
-                      </td>
-                      <td
-                        className="pr-3 text-right text-neutral-900"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {c.orderCount}
-                      </td>
-                      <td
-                        className="pr-3 text-right text-neutral-900"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatTRY(c.lifetimeValueMinor)}
-                      </td>
-                      <td
-                        className="pr-3 text-xs text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {c.lastOrderAt
-                          ? formatDateTime(c.lastOrderAt)
-                          : c.memberSince
-                            ? "Sipariş yok"
-                            : "-"}
-                      </td>
-                      <td className="text-right">
-                        <Link
-                          href={`/admin/musteriler/${encodeURIComponent(c.email)}`}
-                          className="inline-flex items-center justify-center rounded-full border border-[var(--admin-border)] px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                        >
-                          Detay →
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </Card>
     </main>
-  );
-}
-
-/**
- * An open web deletion request, on its own line under the name: beside it
- * the long badge squeezed the name onto two lines.
- */
-function DeletionBadge({ row, now }: { row: CustomerRow; now: Date }) {
-  if (!row.deletionRequestedAt) return null;
-  return (
-    <div className="mt-1">
-      <Badge
-        tone="danger"
-        title={`Son gün: ${deletionDayLabel(deletionDeadline(row.deletionRequestedAt))}`}
-      >
-        {isDeletionOverdue(row.deletionRequestedAt, now)
-          ? "Silme talebi · süre doldu"
-          : `Silme talebi · ${deletionDayLabel(row.deletionRequestedAt)}`}
-      </Badge>
-    </div>
-  );
-}
-
-function Badges({ row }: { row: CustomerRow }) {
-  return (
-    <span className="flex flex-wrap items-center gap-1">
-      {row.isMember ? (
-        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[9px] tracking-[0.16em] text-blue-700 uppercase">
-          Üye
-        </span>
-      ) : (
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[9px] tracking-[0.16em] text-neutral-500 uppercase">
-          Misafir
-        </span>
-      )}
-      {row.isMember && !row.isActive && (
-        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9px] tracking-[0.16em] text-amber-700 uppercase">
-          Pasif
-        </span>
-      )}
-      {row.isMember && row.emailVerified && row.isActive && (
-        <span className="rounded-full bg-green-50 px-2 py-0.5 text-[9px] tracking-[0.16em] text-green-700 uppercase">
-          ✓ Doğrulanmış
-        </span>
-      )}
-      {row.isMember && !row.emailVerified && (
-        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[9px] tracking-[0.16em] text-orange-700 uppercase">
-          Doğrulanmamış
-        </span>
-      )}
-    </span>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-[var(--admin-border)] bg-white p-4 shadow-sm">
-      <div
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {label}
-      </div>
-      <div
-        className="mt-1 text-xl text-neutral-900"
-        style={mono ? { fontFamily: "var(--mono), monospace" } : undefined}
-      >
-        {value}
-      </div>
-    </div>
   );
 }

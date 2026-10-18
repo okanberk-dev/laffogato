@@ -305,9 +305,18 @@ describe("Müşteriler leaves closed accounts out (D13)", () => {
   });
 
   it("the list page drops the anonymised member row too", () => {
+    // The list runs in SQL now (admin_customer_rows, package 4b): both the
+    // member rows and the order roll-up leave the placeholder out.
     const page = readFileSync("src/app/admin/musteriler/page.tsx", "utf8");
-    expect(page).toMatch(
-      /\.filter\(\(m\) => !isClosedAccountEmail\(m\.email\)\)/,
+    expect(page).toContain('from "@/lib/admin/customer-list"');
+    expect(page).not.toContain("listAllCustomers");
+    const sql = readFileSync(
+      "db/migrations/20261018120000_admin_customer_list.sql",
+      "utf8",
+    );
+    expect(sql).toMatch(/lower\(btrim\(c\.email\)\) not like '%@anon\.local'/);
+    expect(sql).toMatch(
+      /lower\(btrim\(o\."customerEmail"\)\) not like '%@anon\.local'/,
     );
   });
 });
