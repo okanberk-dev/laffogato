@@ -51,6 +51,18 @@ function opensWithUseServer(body: ts.ConciseBody | undefined): boolean {
   );
 }
 
+/** A `.ts` module that opens with `import "server-only"`. */
+function isServerOnlyHelper(file: string, source: ts.SourceFile): boolean {
+  if (!file.endsWith(".ts")) return false;
+  return source.statements.some(
+    (s) =>
+      ts.isImportDeclaration(s) &&
+      !s.importClause &&
+      ts.isStringLiteral(s.moduleSpecifier) &&
+      s.moduleSpecifier.text === "server-only",
+  );
+}
+
 /** `file:line` of every FormData handler that is not a Server Action. */
 function formClosures(file: string, text: string): string[] {
   const source = ts.createSourceFile(
@@ -62,6 +74,10 @@ function formClosures(file: string, text: string): string[] {
   );
   const directive = directiveOf(source);
   if (directive === "use client" || directive === "use server") return [];
+  // A server-only helper module (.ts, no JSX) renders no form: a function
+  // there that reads a FormData is called by actions, never handed to a
+  // client component as a prop (e.g. ayarlar/action-helpers.ts askToConfirm).
+  if (isServerOnlyHelper(file, source)) return [];
   const found: string[] = [];
   const visit = (node: ts.Node) => {
     if (
@@ -139,5 +155,19 @@ describe("server pages hand client forms a Server Action, not a closure", () => 
         return <form action={save} />;
       }`;
     expect(formClosures("page.tsx", inline)).toEqual([]);
+  });
+
+  it("skips a server-only helper module but not a server-only page", () => {
+    const helper = `import "server-only";
+      export function askToConfirm(formData: FormData) {
+        return formData.getAll("confirmed");
+      }`;
+    expect(formClosures("action-helpers.ts", helper)).toEqual([]);
+    const page = `import "server-only";
+      export default async function Page({ id }: { id: string }) {
+        const action = (prev: State, formData: FormData) => save(id, prev, formData);
+        return <Form action={action} />;
+      }`;
+    expect(formClosures("page.tsx", page)).toEqual(["page.tsx:3"]);
   });
 });

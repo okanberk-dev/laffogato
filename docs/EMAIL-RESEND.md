@@ -50,8 +50,11 @@ Yayılma birkaç dakika ile birkaç saat arası sürer.
 `delivered` döndü.
 
 > Doğrulama bitene kadar gönderilen her mesaj `403 … domain is not verified`
-> ile döner. `/admin/ayarlar → E-posta → Test gönder` bu cümleyi olduğu gibi
-> gösterir; tahmin etmeye gerek yok.
+> ile döner. `/admin/ayarlar?sekme=email → Test gönder` bunu Türkçe söyler
+> ("laffogato.net alan adı Resend'de doğrulanmamış…"; `resendErrorText`,
+> `src/lib/email/send.ts`); tanınmayan bir red Türkçe bir giriş cümlesiyle ve
+> sağlayıcının kendi sözüyle gelir. Ham yanıt sunucu günlüğündedir (adresler
+> maskeli).
 
 ### Doğrulama takılırsa: iki tuzak, ikisi de bu alan adında yaşandı
 
@@ -120,7 +123,12 @@ için bir sürüm çıkmak zorunda kalmamak, panelin var oluş sebebidir
 Aynı sekmedeki **Test gönder**, zinciri tek tıkla kanıtlar: anahtar var mı,
 alan adı doğrulanmış mı, adres kabul ediliyor mu. Diğer bütün yollar bir
 gönderim hatasını bilerek yutar, dolayısıyla sağlayıcının söylediği tek yer
-burasıdır.
+burasıdır. Test **kayıtlı** gönderenle gider; yukarıdaki form kaydedilmemiş
+değişiklik taşırken düğme kapalıdır. Sonuç ne olursa olsun üstteki durum
+bandı yeniden okunur. Resend'in doğrulanmamış dediği bir alan adındaki yeni
+gönderen adresi kaydedilmeden önce onay ister (`senderDomainStatus`,
+`src/lib/email/health.ts`, 3 sn sınırlı); Resend'e ulaşılamazsa sormadan
+kaydedilir.
 
 ---
 
@@ -761,7 +769,9 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
   panel kullanıcıları ve env yöneticileri, ek adresler (en çok 20) ve operasyon
   adresi; küçük harfe çevrilir, her adres bir kez. Kasiyerin düğmesi kasaya,
   diğerlerininki siparişe gider. Olay kaydı adresleri metin olarak yazmaz:
-  sayı, eklenen/çıkarılan adet ve alan adları.
+  sayı, eklenen/çıkarılan adet ve alan adları. E-postayı kapatmak ve açık
+  bırakıp kimseye gitmeyecek bir alıcı listesi kaydetmek (aynı
+  `resolveStaffRecipients` kuralıyla sayılır) onay ister.
 - **İçerik (KVKK m.4 ölçülülük):** sipariş no, kanal, tür, teslimat ya da masa,
   planlı saat, ürünler, toplam, ödeme yolu ve müşterinin **yalnız adı** (e-posta
   ya da telefona benzeyen "ad" düşer). Soyad, telefon, e-posta, adres yazılmaz;
