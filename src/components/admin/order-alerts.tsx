@@ -168,7 +168,8 @@ function writeAcks(raw: string): void {
 /** The pointer and key events that count as a gesture for audio. */
 const GESTURES = ["pointerdown", "pointerup", "keydown", "touchend"] as const;
 
-function startEngine(
+/** Exported for tests: the browser wiring, without React. */
+export function startEngine(
   onSnapshot: (snap: AlertSnapshot) => void,
   openOrder: (id: string) => void,
 ): { engine: Engine; stop: () => void } {
@@ -231,10 +232,14 @@ function startEngine(
           controller.receive(out.alerts);
         } else if (out.kind === "stop") {
           // Signed out or no longer allowed: the page itself says so on the
-          // next navigation; the alert goes quiet now.
+          // next navigation; the alert goes quiet now. The lock goes to the
+          // next tab: one signed in again (the same cookie) must not wait
+          // behind this one for a gesture to steal it.
           signedOut = true;
           stopPolling();
           controller.receive([]);
+          controller.setLeader(false);
+          leadershipRef?.stop();
         }
       },
     });

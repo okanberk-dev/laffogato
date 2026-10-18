@@ -1161,3 +1161,57 @@ describe("the top-bar control", () => {
     expect(ORDER_ALERT_ACK_KEY).toBe("laffogato.admin.orderAlerts.acks.v1");
   });
 });
+
+// ── The engine, wired to a browser without a DOM ─────────────────────────
+
+describe("the engine", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function browser(locks: LocksLike, statuses: number[]) {
+    vi.stubGlobal("window", {
+      location: { origin: "https://laffogato.test" },
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      setInterval: () => 0,
+      clearInterval: () => {},
+    });
+    vi.stubGlobal("document", { title: "Admin", head: {} });
+    vi.stubGlobal("navigator", { locks });
+    // One channel per tab would need a real BroadcastChannel; not this test.
+    vi.stubGlobal("BroadcastChannel", undefined);
+    const fetchMock = vi.fn(async () => {
+      const status = statuses.shift() ?? 200;
+      return {
+        status,
+        type: "basic",
+        json: async () => ({ now: "", alerts: [] }),
+      };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("a tab signed out while it leads lets the lock go: a tab signed in again leads without a gesture", async () => {
+    const locks = new FakeLocks();
+    // A leads and is told it is signed out (the cookie expired).
+    const fetchMock = browser(locks, [401, 200]);
+    const { startEngine } = await import("@/components/admin/order-alerts");
+    const tabA = startEngine(
+      () => {},
+      () => {},
+    );
+    for (let i = 0; i < 4; i += 1) await settle();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(tabA.engine.controller.isLeader()).toBe(false);
+    // The operator signs in again in another tab and leaves it untouched.
+    const tabB = startEngine(
+      () => {},
+      () => {},
+    );
+    for (let i = 0; i < 4; i += 1) await settle();
+    expect(tabB.engine.controller.isLeader()).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    tabA.stop();
+    tabB.stop();
+  });
+});
