@@ -46,7 +46,8 @@ export type AuthPurpose =
   | "checkout-start"
   | "card-delete"
   | "karaoke-hold"
-  | "karaoke-guest-ip";
+  | "karaoke-guest-ip"
+  | "account-deletion";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -153,6 +154,11 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // network it comes from is counted too: eight new guest holds per address
   // a day - a busy café Wi-Fi books far fewer evenings than that.
   "karaoke-guest-ip": 8,
+  // /uye/hesap/sil: sending a deletion request and taking it back, per
+  // member. Every press counts, success or not: an opened or withdrawn
+  // request mails the team and the member, so a loop of the two would be a
+  // stream of mail. Six a day is three changes of mind.
+  "account-deletion": 6,
 };
 
 /**
@@ -163,6 +169,7 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
 const WINDOW_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "karaoke-hold": 24 * 60 * 60 * 1000,
   "karaoke-guest-ip": 24 * 60 * 60 * 1000,
+  "account-deletion": 24 * 60 * 60 * 1000,
 };
 
 function windowMs(purpose: AuthPurpose): number {
@@ -173,6 +180,7 @@ function windowMs(purpose: AuthPurpose): number {
 const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "karaoke-hold": 12 * 60 * 60 * 1000,
   "karaoke-guest-ip": 12 * 60 * 60 * 1000,
+  "account-deletion": 12 * 60 * 60 * 1000,
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,

@@ -16,6 +16,10 @@ import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
 import { appendConsentChanges, type ConsentSource } from "./consent-ledger";
 import { grantWelcomeCoupon } from "./coupons";
+import {
+  deletionRequestOf,
+  type DeletionRequest,
+} from "./deletion-request-core";
 
 export interface CustomerAddress {
   id: string;
@@ -115,6 +119,14 @@ export interface Customer {
   termsAcceptedAt: string;
   /** ISO timestamp of explicit marketing opt-in (empty when not consented). */
   marketingConsentAt: string;
+  /**
+   * ISO instant of the member's open web deletion request (/uye/hesap/sil);
+   * null when there is none. Read through `deletionRequestOf`. Not part of
+   * `PublicCustomer`: the app neither sends nor reads it.
+   */
+  deletionRequestedAt?: string | null;
+  /** The member's optional reason for that request; "" when none. */
+  deletionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1192,6 +1204,11 @@ export interface AdminCustomer {
   isActive: boolean;
   termsAcceptedAt: string;
   marketingConsentAt: string;
+  /**
+   * The open web deletion request, or null: the panel badges the member and
+   * offers "Hesabı sil" first (operator, 18 Eki 2026).
+   */
+  deletionRequest: DeletionRequest | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1212,6 +1229,7 @@ function toAdminCustomer(c: Customer): AdminCustomer {
     isActive: full.isActive,
     termsAcceptedAt: full.termsAcceptedAt,
     marketingConsentAt: full.marketingConsentAt,
+    deletionRequest: deletionRequestOf(full),
     createdAt: full.createdAt,
     updatedAt: full.updatedAt,
   };
