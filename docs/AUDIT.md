@@ -804,9 +804,30 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panodaki "Ayarlar → E-posta" (SHE-24) ve Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantılar kendi dosyalarının PR'larında (7b, 7c) |
+| 🟢 | Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke`, panodaki "Ayarlar → E-posta" paket 7b'de `?sekme=email` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantı kendi dosyasının PR'ında (7c) |
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
+
+### Sistem: pano ve raporlar (paket 7b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Personel panoda dükkânın net cirosunu görüyordu; rol tablosu ciroyu (Raporlar) yalnız sahip ve yöneticiye açıyor (SHE-14) | Ciro kartı ve 14 günlük grafik yalnız `reports` rolüne (karar D1); personel için ciro hiç okunmuyor | `admin-dashboard` |
+| 🟡 | Panodaki ciro telefonda da masaüstünde de kartından taşıyordu (SHE-06); Raporlar'daki tutarlar 1024-1279 px'te yan karta giriyordu (SYS-15) | Ortak `StatCard` (`components/admin/dashboard/stat-card.tsx`): `min-w-0`, kitin rakam boyu, tutar kartın genişliğine göre küçülür (`cqi`) ve kesilmez; Raporlar ızgarası 2 / 3 / 5 sütun. 390, 1024 ve 1280 px'te çizilip bakıldı | `admin-dashboard`, `admin-reports-period` |
+| 🟡 | Ciro grafiği telefonda 5 px yazıyla okunmuyor, eksen etiketlerinin ₺'si her genişlikte kesiliyordu; etiketler 3,95:1; tutarlar yalnız fareyle; satışsız dönemde ₺0,01 basamakları (SYS-14) | Tutarlar SVG değil HTML: eksen sütunu en uzun etiketi kadar, çizim yanında sabit yükseklikte; yuvarlak basamaklar (₺40.000); `--admin-text-soft`; her dilimin tutarı grafiğin altında tabloda ("Tutarları tablo olarak göster", başlıklı); satış yoksa "Bu dönemde satış yok." | `admin-revenue-buckets` |
+| 🟡 | Raporlar'da kartlar ve en çok satanlar "Son 30 gün" seçiliyken tüm zamanları sayıyordu; liste paraya göre sıralı, çubuğu adede göreydi; liste iadeleri düşmüyor, tamamen iade edilmiş siparişi de sayıyordu (SYS-16) | Dönem kartlara ve listeye de uygulanır (grafiğin dilimleri, köşkün gece yarısı; veritabanı dönemin başından bir gün önceden okunur). Liste iadeyi sipariş başına düşer: önce "İptal" satırlardan, kalanı ayakta kalan satırlardan orantılı; sıralama ve çubuk aynı tutar; sayfada "Bu dönemde, liste fiyatıyla; iadeler düşülmüş" (karar D31) | `admin-reports-period`, `admin-order-reads` |
+| 🟢 | Selamlama ve tarih sunucunun UTC saatini okuyordu: 07:00-08:59 "İyi geceler", gece yarısından sonra dünün tarihi (SHE-15, KAR-M02) | `Europe/Istanbul` (`src/lib/admin/dashboard-core.ts`) | `admin-dashboard` |
+| 🟢 | Pano eski görünümdeydi: eğik serif, `neutral` / `amber` / `rose` bantlar (SHE-17, pano kısmı); kartlar bağlantı değildi (SHE-31, pano kısmı); "Acil dolum" 0'ın altında duruyordu, "Shop kategorileri", e-postanın baş kısmıyla selam ("İyi günler, info.") (SHE-22) | Kit kartları ve ton jetonları; her kart saydığı listeyi açar (Açık sekmesi, Dikkat süzgeci, stokta yok, Raporlar); ipucu yalnız sayı bir şey isterken; ürün ve kategori sayısı kartları kalktı; adsız selam (karar D35). Widget'lar `src/components/admin/dashboard/` altında: duruma göre açık siparişler, azalan stok (personel için stok sayfasına), hızlı erişim, son siparişler, 14 günlük ciro (karar D38) | `admin-dashboard` |
+| 🟢 | Son siparişler elle yazılmış bir tabloydu, ödeme durumu yoktu (ORD-30, pano kısmı) | Kit `DataTable`: telefonda kart, ödeme rozeti, tutar iadeler düşülmüş | `admin-dashboard` |
+| 🟢 | Pano kartı "bir işlem bekliyor" sayısını eski okumadan (bugün ve iade borçları) alıyordu (KAR-07, pano kısmı) | `loadKaraokeTodayCard`: Dikkat sekmesinin kümesi | `admin-dashboard`, `admin-karaoke-attention` |
+| 🟢 | E-posta denetimi takılan bir Resend'i süresiz bekliyor, ayarlar okunamayınca panoyu düşürüyordu (SHE-29); "Ayarlar → E-posta" Genel sekmesini açıyordu (SHE-24, pano kısmı) | `AbortSignal.timeout(3000)` (sonuç "bilinmiyor", bant yok); pano denetimin hatasını yakalar; bağlantı `?sekme=email` | `email-health`, `admin-dashboard` |
+| 🟢 | Raporlar'da hep boş bir "Dönüşüm" kartı, bir analiz aracı bağlanınca kendiliğinden dolacağını söylüyordu (SYS-17, SYS-22); başlık üstü "Operasyon · İçgörüler" (menüde "Satış"); kit dışı renkler, 2,59:1 sıra numaraları, 30 px dönem bağlantıları (SYS-24, raporlar kısmı) | Kart kalktı (karar D32); "Satış"; kit kartları, ton jetonları, kitin sekmeleri (`StatusTabs`); karaoke kartında önce dönem, tüm zamanlar ayrıca yazılı | `admin-reports-period`, `admin-reports-ltv` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Raporlarda tarih aralığı, önceki döneme göre karşılaştırma, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
 
 ### Karaoke ve masalar (paket 3a)
 
@@ -828,7 +849,6 @@ Açık (paket 3a'nın dışında kalan):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Karaoke listesi her istekte en çok 5000 satırı okuyup sekmeleri, sayıları ve sayfaları bellekte hesaplıyor (KAR-25, Dikkat dışı kısım) | Tek oda için yılda birkaç bin satır; sekme sorgularını ve sayfalamayı SQL'e taşımak beş sekmenin sayısını da ayrı sorgular ister. Sayfa sınıra gelince söylüyor; Dikkat artık sınırdan etkilenmiyor |
-| 🟢 | Pano kartı hâlâ eski okumayı (bugün + iade borçları) kullanıyor (KAR-07, pano kısmı) | `src/app/admin/page.tsx` paket 7b'nin; `loadKaraokeTodayCard` hazır |
 
 ### Karaoke iptal ve iade kuralı panelden (paket 3b, P2a)
 
