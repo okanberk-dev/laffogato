@@ -233,7 +233,11 @@ function cartRefusal(result: PlaceOrderFailure): CheckoutStart {
           : `${name} şu an stokta yok. Sepetten çıkarıp yeniden dene.`;
       break;
     case "not_found":
-      message = `${name} artık satışta değil. Sepetten çıkarıp yeniden dene.`;
+      // A product sold by its variants, in the cart without one (the shop
+      // card's quick add): it is on sale, the line is what has to change.
+      message = result.variantRequired
+        ? `${name} için bir seçenek seç. Sepetten çıkarıp ürün sayfasından seçerek yeniden ekle.`
+        : `${name} artık satışta değil. Sepetten çıkarıp yeniden dene.`;
       break;
     case "qty_too_high":
       message = `${name} için en çok ${result.max} adet sipariş verebilirsin.`;

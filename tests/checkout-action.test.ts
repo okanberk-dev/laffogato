@@ -248,3 +248,38 @@ describe("a zero-total order", () => {
     );
   });
 });
+
+describe("a refused basket", () => {
+  it("asks for a variant when the cart holds a product sold by its variants without one", async () => {
+    // The shop card's quick add put such a line in the cart; the store now
+    // refuses it (tests/order-variant-lines.test.ts) and the page says what
+    // to change instead of "artık satışta değil".
+    store.placeOrder.mockResolvedValue({
+      ok: false,
+      reason: "not_found",
+      productName: "Sirena Espresso",
+      variantRequired: true,
+    });
+    const res = await startCheckoutAction(form());
+    expect(res).toEqual({
+      kind: "error",
+      error: {
+        code: "cart",
+        message:
+          "Sirena Espresso için bir seçenek seç. Sepetten çıkarıp ürün sayfasından seçerek yeniden ekle.",
+      },
+    });
+  });
+
+  it("still says a product gone from the shop is no longer on sale", async () => {
+    store.placeOrder.mockResolvedValue({
+      ok: false,
+      reason: "not_found",
+      productName: "Moka Pot",
+    });
+    const res = await startCheckoutAction(form());
+    expect(res.kind === "error" && res.error.message).toBe(
+      "Moka Pot artık satışta değil. Sepetten çıkarıp yeniden dene.",
+    );
+  });
+});
