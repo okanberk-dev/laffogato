@@ -181,8 +181,8 @@ içecek bizden.
 <!--/IF:DAMGA-->
 Sipariş durumu: [SIPARIS_URL]
 
-Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
-saklamanız için:
+Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel
+metnini açar):
 [BELGELER]
 
 ${SIGNATURE}`,
