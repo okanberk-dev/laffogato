@@ -36,7 +36,9 @@ import {
   paymentStatusOf,
   quoteReservation,
   rangeConflicts,
+  readExpectedCancelPolicy,
   refundAmountOf,
+  samePolicy,
   validateReservationRequest,
   type KaraokeAvailability,
   type KaraokeLegalConsent,
@@ -180,7 +182,8 @@ export type CreateReservationResult =
         | "invalid_request"
         | "slot_taken"
         | "too_many_reservations"
-        | "rate_limited";
+        | "rate_limited"
+        | "policy_changed";
       message: string;
       /**
        * §7: the request field a 400 is about - `note`, or `legalConsent`
@@ -189,6 +192,15 @@ export type CreateReservationResult =
       field?: "note" | "legalConsent";
       /** With 429 `rate_limited`: seconds until another hold is accepted. */
       retryAfterSeconds?: number;
+      /**
+       * With 409 `policy_changed` (§7.1): the rule a booking made now gets,
+       * for the customer to read before trying again.
+       */
+      policy?: {
+        freeCancelHours: number;
+        lateRefundPercent: number;
+        cancellationRules: string[];
+      };
     };
 
 /** What a booking is, beyond the evening itself (16 Eki 2026). */
@@ -215,6 +227,11 @@ export interface CreateReservationOptions {
 
 const MSG_CONSENT_REQUIRED =
   "Ödemeden önce ön bilgilendirme formunu ve hizmet sözleşmesini onaylaman gerekiyor.";
+
+const MSG_POLICY_CHANGED =
+  "İptal ve iade kuralı sen rezervasyon yaparken değişti. Yeni kuralı okuyup yeniden dene.";
+
+const MSG_EXPECTED_POLICY_INVALID = "Gösterilen iptal kuralı okunamadı.";
 
 const MSG_GUEST_PREPAY_OFF =
   "Üye olmadan rezervasyon şu an alınmıyor. Giriş yaparak rezervasyon yapabilirsin.";
@@ -298,6 +315,36 @@ export async function createReservation(
       error: "invalid_request",
       message: MSG_CONSENT_REQUIRED,
       field: "legalConsent",
+    };
+  }
+
+  // The rule this booking is made under (Ayarlar > Karaoke), and the one the
+  // customer was shown. They differ only when the panel changed it while the
+  // page was open: the booking is refused before anything is counted or
+  // held, so nobody is bound by sentences they never read (TKHK m.4/2, MSY
+  // m.5/1-h). A request without the echo (an older app build) is not
+  // compared.
+  const policy = effectiveKaraokeCancelPolicy(settings);
+  const expected = readExpectedCancelPolicy(input);
+  if (expected === "invalid") {
+    return {
+      ok: false,
+      status: 400,
+      error: "invalid_request",
+      message: MSG_EXPECTED_POLICY_INVALID,
+    };
+  }
+  if (expected && !samePolicy(expected, policy)) {
+    return {
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      message: MSG_POLICY_CHANGED,
+      policy: {
+        freeCancelHours: policy.freeCancelHours,
+        lateRefundPercent: policy.lateRefundPercent,
+        cancellationRules: [...karaokeCancellationRules(policy).rules],
+      },
     };
   }
 
@@ -402,10 +449,9 @@ export async function createReservation(
   );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
-  // The rule this booking is made under, kept with it (TKHK m.4/2, MSY
-  // m.5/2): the panel changing it later changes nothing here. The same
-  // policy fed the sentences the availability answer and the pages showed.
-  const policy = effectiveKaraokeCancelPolicy(settings);
+  // The rule this booking is made under (`policy` above) is kept with it
+  // (TKHK m.4/2, MSY m.5/2): the panel changing it later changes nothing
+  // here.
   const reservation: KaraokeReservation = {
     id: `krk-${String(seq).padStart(5, "0")}`,
     customerEmail: normalizeEmail(customer.email),

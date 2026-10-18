@@ -261,6 +261,7 @@ const { DEFAULT_MOBILE_APP_CONFIG } = await import("@/lib/mobile/app-config");
 const karaoke = await import("@/lib/mobile/karaoke");
 const payment = await import("@/lib/mobile/karaoke-payment");
 const time = await import("@/lib/mobile/karaoke-time");
+const rateLimit = await import("@/lib/admin/rate-limit");
 
 // 30 Ekim 2026, 20:00 in Tuzla.
 const START = Date.parse("2026-10-30T17:00:00.000Z");
@@ -417,6 +418,80 @@ describe("the snapshot at booking", () => {
     expect((row().legalConsent as { version: string }).version).toBe(
       "17 Ekim 2026",
     );
+  });
+
+  it("a rule changed while the page was open: refused with the new rule, nothing held", async () => {
+    // The customer read 24 h / 50 % (availability) and ticked the boxes;
+    // the owner then saved 2 h / 0 %; the booking arrives with the rule it
+    // was shown. Booking it would bind the customer to sentences they never
+    // read (TKHK m.4/2, MSY m.5/1-h).
+    h.appVersion = "1.1.0";
+    h.settings = settingsWith({ hours: 24, percent: 50 });
+    const shown = await karaoke.getAvailability("2026-10-30", at(48));
+    h.settings = settingsWith({ hours: 2, percent: 0 });
+    vi.mocked(rateLimit.reserveLoginAttempt).mockClear();
+    const res = await karaoke.createReservation(
+      { email: "eda@example.com", name: "Eda Yılmaz" },
+      {
+        ...input,
+        expectedCancelPolicy: {
+          freeCancelHours: shown.freeCancelHours,
+          lateRefundPercent: shown.lateRefundPercent,
+        },
+      },
+      new Date("2026-10-20T09:00:00.000Z"),
+      undefined,
+      { channel: "app", prepay: true, legalConsent: consent },
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      policy: {
+        freeCancelHours: 2,
+        lateRefundPercent: 0,
+        cancellationRules: [
+          time.KARAOKE_REFUND_RULE,
+          time.KARAOKE_NO_REFUND_RULE,
+        ],
+      },
+    });
+    expect(h.tables.get("karaoke_reservations") ?? []).toEqual([]);
+    // Refused before the hold budget counts anything.
+    expect(rateLimit.reserveLoginAttempt).not.toHaveBeenCalled();
+  });
+
+  it("the rule shown is the rule in force: booked under it", async () => {
+    h.appVersion = "1.1.0";
+    h.settings = settingsWith({ hours: 24, percent: 50 });
+    const res = await karaoke.createReservation(
+      { email: "eda@example.com", name: "Eda Yılmaz" },
+      { ...input, expectedCancelPolicy: { ...HALF } },
+      new Date("2026-10-20T09:00:00.000Z"),
+      undefined,
+      { channel: "app", prepay: true, legalConsent: consent },
+    );
+    expect(res.ok).toBe(true);
+    expect(row()).toMatchObject({
+      ...HALF,
+      cancellationRules: [...time.karaokeCancellationRules(HALF).rules],
+    });
+  });
+
+  it("an unreadable expectedCancelPolicy is a 400, nothing held", async () => {
+    const res = await karaoke.createReservation(
+      { email: "eda@example.com", name: "Eda Yılmaz" },
+      { ...input, expectedCancelPolicy: { freeCancelHours: "2" } },
+      new Date("2026-10-20T09:00:00.000Z"),
+      undefined,
+      { channel: "app", prepay: true, legalConsent: consent },
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      status: 400,
+      error: "invalid_request",
+    });
+    expect(h.tables.get("karaoke_reservations") ?? []).toEqual([]);
   });
 
   it("availability offers the policy a booking made now gets", async () => {

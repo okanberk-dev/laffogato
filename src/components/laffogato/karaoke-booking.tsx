@@ -25,6 +25,7 @@ import {
   quoteKaraoke,
 } from "@/lib/mobile/karaoke-quote";
 import {
+  DEFAULT_KARAOKE_CANCEL_POLICY,
   KARAOKE_BUSINESS_CANCEL,
   KARAOKE_NO_REFUND_RULE,
   KARAOKE_NO_WITHDRAWAL,
@@ -585,6 +586,20 @@ export function KaraokeBooking({
                         {KARAOKE_NO_REFUND_RULE}
                       </li>
                     </ul>
+                    {/* The rule printed above (the default policy's two
+                        sentences), echoed: a booking whose rule changed
+                        while this page was open is refused. Whatever prints
+                        another rule here echoes that rule. */}
+                    <input
+                      type="hidden"
+                      name="expectedFreeCancelHours"
+                      value={DEFAULT_KARAOKE_CANCEL_POLICY.freeCancelHours}
+                    />
+                    <input
+                      type="hidden"
+                      name="expectedLateRefundPercent"
+                      value={DEFAULT_KARAOKE_CANCEL_POLICY.lateRefundPercent}
+                    />
                     {/* The rest of the pre-information, one tap away: native
                         and JS-free, and still in the markup when closed. */}
                     <details className="karaoke-preinfo-more">

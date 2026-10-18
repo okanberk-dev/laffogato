@@ -11,6 +11,7 @@ import {
   karaokeCancelDeadline,
   karaokeCancelPolicyOf,
   karaokeRulesOf,
+  type KaraokeCancelPolicy,
 } from "./karaoke-time";
 import { isTaxRate } from "@/lib/utils/kdv";
 
@@ -582,4 +583,30 @@ export function validateReservationRequest(
     };
   }
   return { ok: true, value: v };
+}
+
+/**
+ * `expectedCancelPolicy` on a booking request (18 Eki 2026, additive): the
+ * cancellation rule the customer was shown before booking - the
+ * `freeCancelHours` and `lateRefundPercent` the app read from
+ * `GET /karaoke/availability`, or the web form's hidden pair. The way
+ * `expectedTotalMinor` guards a wallet order's total, it lets the server
+ * refuse a booking whose rule the panel changed while the page was open.
+ * Absent (an app build from before it): null, nothing to compare.
+ */
+const ExpectedCancelPolicySchema = z.object({
+  expectedCancelPolicy: z
+    .object({
+      freeCancelHours: z.number().int(),
+      lateRefundPercent: z.number().int(),
+    })
+    .nullish(),
+});
+
+export function readExpectedCancelPolicy(
+  input: unknown,
+): KaraokeCancelPolicy | null | "invalid" {
+  const parsed = ExpectedCancelPolicySchema.safeParse(input);
+  if (!parsed.success) return "invalid";
+  return parsed.data.expectedCancelPolicy ?? null;
 }

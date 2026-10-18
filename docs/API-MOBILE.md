@@ -1010,6 +1010,15 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 - `GET /karaoke/availability`: `freeCancelHours` ve `cancellationRules` artık
   **şu an yapılacak** rezervasyonun kuralıdır. Yeni alan `lateRefundPercent`
   (tam sayı). Varsayılan kuralda iki cümle yukarıdakilerle bayt bayt aynıdır.
+- `POST /karaoke/reservations`: opsiyonel yeni alan `expectedCancelPolicy`
+  `{ "freeCancelHours", "lateRefundPercent" }` (tam sayılar): üyeye gösterilen
+  kural, müsaitlik yanıtındaki iki sayı. `expectedTotalMinor` gibi çalışır:
+  panel kuralı sayfa açıkken değiştirdiyse **409** `policy_changed` döner,
+  gövdede yeni kural bulunur (`{ "error": "policy_changed", "message": "…",
+  "freeCancelHours": 2, "lateRefundPercent": 0, "cancellationRules": […] }`);
+  rezervasyon yazılmaz, saat tutulmaz. Okunamayan değer **400**
+  `invalid_request`. Alan yoksa davranış öncekiyle aynıdır. Web formu
+  bastığı kuralı aynı biçimde gönderir.
 - Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
   anıdır (eski satırda başlangıçtan 2 saat önce). Yeni alanlar:
   `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
@@ -1038,8 +1047,9 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
   kaldıkça panel yalnız 2 saat / %0 kaydeder ve her rezervasyon 2 / 0 ile
   yapılır: hiçbir istemci rezervasyonun kuralından farklı bir kural göstermez.
   Kilit, rezervasyonun kendi `cancellationRules`'unu her karaoke ekranında
-  basan ve geç iptal payını gösteren sürüm yayınlanıp bu sabite yazılınca ve
-  `minSupportedAppVersion` o sürüme çıkınca açılır.
+  basan, geç iptal payını gösteren ve rezervasyonda `expectedCancelPolicy`
+  gönderen sürüm yayınlanıp bu sabite yazılınca ve `minSupportedAppVersion` o
+  sürüme çıkınca açılır.
 - Hesap silinince (`DELETE /me`) yukarıdaki kural rezervasyonun kendi
   kuralıyla uygulanır: süreden önce tam iade, süre içinde geç iptal payı
   (`lateRefundPercent` 0 ise iade yok, rezervasyon kalır, ekibe haber gider).

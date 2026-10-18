@@ -161,6 +161,40 @@ describe("POST /karaoke/reservations", () => {
     });
   });
 
+  it("passes the rule it was shown to the library, and a changed rule is 409 policy_changed with the new one", async () => {
+    const policy = {
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancellationRules: [
+        "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+        KARAOKE_NO_REFUND_RULE,
+      ],
+    };
+    h.bookKaraoke.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      message: "İptal ve iade kuralı sen rezervasyon yaparken değişti.",
+      policy,
+    });
+    const expectedCancelPolicy = { freeCancelHours: 24, lateRefundPercent: 50 };
+    const res = await book({
+      ...SLOT,
+      prepay: true,
+      legalConsent: true,
+      expectedCancelPolicy,
+    });
+    expect(h.bookKaraoke.mock.calls[0]![1]).toMatchObject({
+      expectedCancelPolicy,
+    });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({
+      error: "policy_changed",
+      message: "İptal ve iade kuralı sen rezervasyon yaparken değişti.",
+      ...policy,
+    });
+  });
+
   it("a 429 carries Retry-After", async () => {
     h.bookKaraoke.mockResolvedValue({
       ok: false,
