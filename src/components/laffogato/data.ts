@@ -858,6 +858,10 @@ export interface Product {
   lowStockThreshold?: number;
   /** Approximate shipping weight (grams). */
   weightGrams?: number;
+  /** The maker's name as the panel holds it ("Sirena"); '' or absent = none. */
+  brand?: string;
+  /** Tasting notes from the panel ("Kakao", "Kuru incir"); absent = none. */
+  notes?: string[];
   /** Selectable variants (size, grind, etc.). */
   variants?: ProductVariant[];
   /** Base price in minor units (kuruş) for precise client-side math. */

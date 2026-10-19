@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { cssUrl } from "./css-url";
 import { useClientValue } from "./use-client-value";
 
 const isBrowser = () => true;
@@ -164,7 +165,12 @@ export function ShopHeroSlider({ slides }: { slides: ShopHeroSlide[] }) {
   );
 }
 
-function Slide({
+/**
+ * One slide of the shop hero, exactly as the shop draws it. Exported so the
+ * panel's "Önizleme" can render this very component (with `active` and
+ * `loaded` set) rather than a look-alike that drifted from it (CAT-25).
+ */
+export function Slide({
   slide,
   active,
   loaded,
@@ -196,10 +202,11 @@ function Slide({
       style={{
         // The gradient alone until this slide is near: it is the fallback the
         // design already uses for a slide with no photo, so an unloaded slide
-        // looks deliberate rather than broken.
+        // looks deliberate rather than broken. The photo goes in quoted and
+        // escaped (css-url.ts): the address is the panel's free text.
         backgroundImage:
           slide.imageUrl && loaded
-            ? `${overlay}, url(${slide.imageUrl})`
+            ? `${overlay}, ${cssUrl(slide.imageUrl)}`
             : overlay,
       }}
     >

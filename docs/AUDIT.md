@@ -848,8 +848,18 @@ Açık (paket 3b'nin dışında kalan):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli ve sitenin iki karaoke ekranı (alttaki satır) rezervasyonun kuralını yazmalı (`karaoke-cancel-policy-doc` testi ikisini de tutar) |
-| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı. Kilit 3c'den önce açılırsa kutu sabit kuralı geri yollar ve her ön ödemeli web rezervasyonu `policy_changed` ile reddedilir, rezervasyon sayfası geç iptal payını sunmaz: `karaoke-cancel-policy-doc` kilit açıkken bu iki dosyada sabit görürse düşer |
+| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli (`karaoke-cancel-policy-doc` testi tutar). Sitenin iki karaoke ekranı artık rezervasyonun kuralını yazıyor (aşağıda, KW) |
+
+### Karaoke rezervasyon sihirbazı ve KDV satırı (KW, 18 Eki 2026)
+
+Operatör (18 Eki 2026): "karaoke sayfasını da mobile ve masaüstüne uygun yap ödeme esnasında kdv dahil olan kısımda kdv miktarı otomatik yazsın ... oraya da bir wizard hazırla". Paket 3c (karaoke-refund-policy-web) bunun içinde. Yalnız ön yüz.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyordu (3b'nin açık satırı) | Ödeme öncesi kutu sunucunun cümlelerini (`availability.cancellationRules`), son ücretsiz iptal anını tarih ve saatle (sayfa açıldığında o an geçmişse "ücretsiz iptal süresi geçti"), geç iptal payının tutarını yazar ve yazdığı sayıları geri yollar; rezervasyon sayfası kendi kaydındaki cümleleri, son anı (kendi gününde) ve iptalin ne getireceğini (tam, pay, yok, ret) sunucunun hesabıyla yazar; geç iptal reddinin bildirimi rezervasyonun cümlesi (`karaokeNoticeFor`). Ret adımında "Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin; odayı o kullanır." | `karaoke-wizard`, `karaoke-prepay-rules`, `karaoke-web-action` |
+| 🟢 | Toplamın yanında yalnız "%20 KDV dahil" yazıyordu, KDV tutarı yoktu | `kdvIncludedNote` (ön yüz, saf): oran sunucudan, tutar `kdvOfGross` ile kuruşa yuvarlanır: "%20 KDV dahil (KDV 166,67₺)"; oran yoksa yalnız "KDV dahil", %0'da "%0 KDV". Özet kartında, ödeme öncesi kutuda, Ödeme adımında, telefon çubuğunda ve rezervasyon sayfasında, küçük ve soluk | `karaoke-wizard`, `home-karaoke` |
+| 🟢 | Rezervasyon tek uzun formdu; telefonda toplam ve düğme sayfanın sonundaydı | Beş adım (Tarih ve saat, Süre ve kişi, Bilgilerin, Özet ve onay, Ödeme; köşkte ödenen istekte dört), her adım geçmeden denetlenir, adım göstergesi `aria-current="step"` ve canlı bölge, tarayıcının geri tuşu bir adım geri (`?adim=`, kişisel veri yok), yenileme yazılanları tutar (bu sekmede, kutular hariç, gönderince silinir, reddedilen gönderimden sonra yeniden yazılır; adresin `?saat=`'i eski taslağın saatini ezer). Reddedilen gönderim kutuları boşaltmaz (elle gönderim, React'in form sıfırlaması yok); Geri bir önceki adıma gider, geri atlamadan sonra da. Masaüstünde özet yanda yapışkan, telefonda toplam ve düğmeler alt çubukta (sekme çubuğunun yerinde, güvenli alan payıyla). JavaScript'siz sayfa yine tek form | `karaoke-wizard`, `frontend-form-contract` |
+| 🟢 | Satıcı satırında unvan ve vergi numarası yoktu (MSY m.5/1-b) | "Satıcı: {unvan} (L'Affogato), VKN {numara}, {adres}, {telefon}." (`LEGAL_ENTITY`'den sayfa verir; boşsa düşer) | `karaoke-wizard` |
 
 ### Kabuk: gezinme, arama, içerik haritası (paket 1c)
 
@@ -1004,6 +1014,23 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
+
+### Katalog: mağaza ürün sayfası, kart, vitrin (paket 5b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Ürün sayfası ve hızlı bakış rafa göre sabit satırlar basıyordu: her hediyeye "Gluten · süt · soya izi" ve "90 gün", her ekipmana "Bialetti × L'Affogato" ve "Garanti: 2 yıl", her çekirdeğe Sirena'nın kökeni ve tat notları; paneldeki marka ve tat notları okunmuyordu. Kargo eşiği Ayarlar ne derse desin "500₺" yazıyordu, eşik kapalıyken de; sayfa yasal metinlerin vermediği "14 gün koşulsuz iade"yi vaat ediyordu (CAT-M01, karar D19) | Satırlar ürünün kendi verisinden gelir (`product-facts.ts`): marka, tat notları, SKU, 0'dan büyük ağırlık, `nuts` alerjeni; sabit köken, tat, demleme, saklama, içerik, marka, garanti ve alerjen satırları kalktı, satırı olmayan üründe "Ürün detayları" çizilmez. Gıda raflarında (çekirdek, kiler, hediye) içindekiler, alerjen ve saklama bilgisi için sipariş öncesi Ayarlar'daki e-posta ve telefon adıyla verilir (TGK Etiketleme m.17/2-a). Kargo eşiği Ayarlar'dan gelir (ürün sayfası, mağaza vitrini ve güvence kutuları), 0'da hiç yazılmaz. İade metni cayma hakkının istisnalarını söyler (MSY m.15) | `storefront-product-facts` |
+| 🟡 | Mağaza kartındaki hızlı "+" ve öne çıkan setin "Sepete ekle"si varyantlı ürünü varyantsız ekliyordu: satır taban fiyattan, yalnız ürün toplamından düşüyordu (5a'da bulundu) | `toCartItem` varyantlı üründe ürünün kendi aktif varyantı olmadan satır üretmez; kart böyle üründe "Seçenekleri gör" ile hızlı bakışı (yoksa ürün sayfasını) açar, öne çıkan set de; hızlı bakışın gövdesi ürüne göre anahtarlanır. Eski bir sepetten ya da elle yazılmış istekten gelen varyantsız satırı sunucu ayrıca reddeder (#144, "Sipariş satırı: varyantlı ürün varyant ister") | `storefront-variant-cart` |
+| 🟢 | Hızlı bakışın ızgarası `1fr 1fr` idi: fotoğrafın 4/5 kutusu satırla büyüyor, uzun ayrıntı listesi 1280 px'te metin sütununu daraltıyordu; "Sepete ekle" panelin kesilen kenarının altında kalıyordu (bu turda görüldü) | Sütunlar `minmax(0, 1fr)`, fotoğraf sütun genişliğinde ve en az satır yüksekliğinde; metin sütunu panelin 92vh'sıyla sınırlı ve kayar, telefonda sayfa tek parça kayar | `storefront-product-facts` |
+| 🟢 | Mağaza vitrininin fotoğrafı tırnaksız `url()` içindeydi: boşluk ya da parantez görseli düşürüyor, `");...;("` ile biten adres vitrine kendi CSS bildirimlerini ekliyordu (CAT-27'nin mağaza kısmı); panel önizlemesi canlı slaytı çizemiyordu (CAT-25'in mağaza kısmı) | `cssUrl()` (`css-url.ts`) adresi tırnaklar, tırnağı, ters bölüyü ve kontrol karakterlerini CSS kaçışıyla yazar; `Slide` dışa açıldı | `storefront-hero-slide` |
+
+Açık (paket 5b'nin dışında kalan kısımlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Ürünün markası ve tat notları mağazaya ulaşmıyor: `toDesignProduct` (`src/lib/admin/store.ts`) `brand` ve `notes`'u göndermiyor; sayfa ikisini de hazır okur | Arka yüz değişikliği, ön yüz PR'ında yapılmaz (iki satırlık ayrı PR) |
+| 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yok; sayfa şimdilik sipariş öncesi iletişimi gösteriyor (TGK Etiketleme m.17/2-a) | Ürün şemasına alan eklemek arka yüz (migration, panel, uygulama) işidir |
+| 🟢 | Panelde vitrin adresinin ve CTA'nın doğrulanması, panel önizlemesinin `Slide` + `cssUrl` kullanması (CAT-25, CAT-27'nin panel kısmı) | Paket 5c (catalog-forms) |
 
 ### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
 

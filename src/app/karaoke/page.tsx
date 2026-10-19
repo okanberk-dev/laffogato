@@ -6,6 +6,7 @@ import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { customerOrdersByEmail, getPublicSettings } from "@/lib/admin/store";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { getAvailability, isCalendarDate } from "@/lib/mobile/karaoke";
 import {
   computeTier,
@@ -151,6 +152,14 @@ export default async function KaraokePage({ searchParams }: PageProps) {
             settings.address ||
             `${SITE.address.streetAddress}, ${SITE.address.postalCode} ${SITE.address.addressLocality} / ${SITE.address.addressRegion}`
           }
+          // Who sells, above the boxes (MSY m.5/1-b): the title and tax
+          // number from the one legal source; the client component does not
+          // import entity.ts itself.
+          sellerName={LEGAL_ENTITY.legalName}
+          taxNo={LEGAL_ENTITY.taxNo}
+          // The request's clock: a free-cancel moment already gone by is
+          // not named as one still to come.
+          now={now.toISOString()}
           // Presentation only: the action re-reads the switch with
           // `getSettings()` and decides there.
           prepay={availability?.paymentRequired ?? settings.karaokePrepay}

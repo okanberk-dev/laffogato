@@ -14,8 +14,8 @@ import { getActiveCustomer } from "@/lib/customer/auth";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import { KARAOKE_LINK_COOKIE, karaokeLinkId } from "@/lib/mobile/karaoke-link";
 import {
-  KARAOKE_RESULT_NOTICES,
   KARAOKE_RETURN_NOTICES,
+  karaokeNoticeFor,
 } from "@/lib/mobile/karaoke-notices";
 import { ownsReservation } from "@/lib/mobile/karaoke-payment";
 import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
@@ -76,8 +76,9 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
     const r = await getReservation(tokenId).catch(() => null);
     if (r && ownsReservation({ kind: "link", token }, r, now)) {
       const notice: KaraokeViewNotice | undefined =
-        (q.sonuc && KARAOKE_RESULT_NOTICES[q.sonuc]) ||
-        (q.hata && KARAOKE_RESULT_NOTICES[q.hata]) ||
+        (q.sonuc && karaokeNoticeFor(q.sonuc, r)) ||
+        // A late-cancel refusal speaks this booking's own rule (its snapshot).
+        (q.hata && karaokeNoticeFor(q.hata, r)) ||
         (q.odeme && r.status !== "cancelled"
           ? KARAOKE_RETURN_NOTICES[q.odeme]
           : undefined) ||
