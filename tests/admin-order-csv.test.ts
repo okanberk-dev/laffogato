@@ -23,7 +23,7 @@ const couponSourcesForOrders = vi.hoisted(() =>
   vi.fn(async (_orders: unknown) => new Map<number, string>()),
 );
 vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders }));
-const safeAudit = vi.hoisted(() => vi.fn(async () => true));
+const safeAudit = vi.hoisted(() => vi.fn(async (_input: unknown) => true));
 vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
 
 const { csvCell, ordersCsv, ORDER_CSV_HEADER } = await import("@/lib/admin/order-csv");

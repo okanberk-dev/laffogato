@@ -16,7 +16,7 @@ vi.mock("@/lib/admin/auth", () => ({
   getAdminSession: vi.fn(async () => session.value),
 }));
 const listAuditLogs = vi.hoisted(() => vi.fn());
-const safeAudit = vi.hoisted(() => vi.fn(async () => true));
+const safeAudit = vi.hoisted(() => vi.fn(async (_input: unknown) => true));
 vi.mock("@/lib/admin/audit", () => ({ listAuditLogs, safeAudit }));
 
 const { auditCsv, auditCsvRow, auditCsvStamp, AUDIT_CSV_HEADER } =
