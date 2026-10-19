@@ -56,7 +56,10 @@ export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
  * `NEXT_PUBLIC_GTM_ID` is set (`siteTagManagerId`), so an environment
  * variable left in Vercel cannot bring the tags back under texts that say
  * there are none. Flip it only in the PR that restores those texts, after a
- * Google standard contract is signed and notified to the Kurum.
+ * Google standard contract is signed and notified to the Kurum. Flipping it
+ * also moves the cookie consent version (`consentVersionFor`,
+ * `src/lib/consent/cookie.ts`), so every visitor is asked again and no
+ * stored choice turns the tags on.
  */
 export const GOOGLE_TAGS_IN_LEGAL_TEXTS = false;
 

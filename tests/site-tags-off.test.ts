@@ -4,8 +4,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { CONSENT_DENIED, CONSENT_VERSION } from "@/lib/consent/cookie";
-import { siteTagManagerId } from "@/lib/consent/script";
+import {
+  CONSENT_DENIED,
+  CONSENT_VERSION,
+  consentVersionFor,
+  parseConsent,
+} from "@/lib/consent/cookie";
+import { CONSENT_BOOTSTRAP, siteTagManagerId } from "@/lib/consent/script";
 import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
 
 /**
@@ -136,5 +141,42 @@ describe("the banner without a tag manager", () => {
       "const shown = recordedChoice(choice, tagManager);\n      writeConsent(shown);",
     );
     expect(src.match(/writeConsent\(/g)).toHaveLength(1);
+  });
+});
+
+describe("when the tags come back, everyone is asked again", () => {
+  // A yes recorded before 19 Ekim 2026 was given to texts that described GTM;
+  // one recorded since was given to a panel without the tag switches. Neither
+  // is a choice about tags returning under new texts, and the cookie lives
+  // 180 days: flipping GOOGLE_TAGS_IN_LEGAL_TEXTS alone must not let GTM
+  // grant from it.
+  const cookie = (version: number) =>
+    encodeURIComponent(
+      JSON.stringify({
+        version,
+        decidedAt: "2026-10-01T10:00:00.000Z",
+        preferences: true,
+        analytics: true,
+        marketing: true,
+      }),
+    );
+
+  it("the consent version moves with the tags flag", () => {
+    expect(consentVersionFor(true)).not.toBe(consentVersionFor(false));
+    expect(CONSENT_VERSION).toBe(consentVersionFor(GOOGLE_TAGS_IN_LEGAL_TEXTS));
+    // Off today: the choices already stored keep standing.
+    expect(CONSENT_VERSION).toBe(1);
+  });
+
+  it("a choice stored while the tags were off is discarded once they are on", () => {
+    const stored = cookie(consentVersionFor(false));
+    expect(parseConsent(stored, consentVersionFor(false))?.analytics).toBe(
+      true,
+    );
+    expect(parseConsent(stored, consentVersionFor(true))).toBeNull();
+  });
+
+  it("the Consent Mode bootstrap checks the same version", () => {
+    expect(CONSENT_BOOTSTRAP).toContain(`p.version === ${CONSENT_VERSION}`);
   });
 });

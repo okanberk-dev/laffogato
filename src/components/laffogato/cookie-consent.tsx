@@ -59,7 +59,8 @@ export function consentCategories(tagManager: boolean): typeof CATEGORIES {
  * The choice as it is recorded. Without the tags only the preference switch
  * is shown, so a yes is never written for analytics or marketing - not by
  * "Tümünü kabul et", not from an older cookie the panel was filled from. If
- * the tags come back, they ask.
+ * the tags come back, they ask: the consent version moves with them
+ * (`consentVersionFor`), so no stored choice survives the switch.
  */
 export function recordedChoice(choice: Choice, tagManager: boolean): Choice {
   return tagManager
