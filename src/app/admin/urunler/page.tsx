@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { ProductsList } from "@/components/admin/products-list";
@@ -17,6 +18,7 @@ import {
   PRODUCT_TAB_PARAM,
   PRODUCT_TABS,
   PRODUCTS_PATH,
+  legacyProductsHref,
   parseProductTab,
   productFilterFields,
   productsList,
@@ -46,6 +48,10 @@ interface PageProps {
 export default async function AdminProductsPage({ searchParams }: PageProps) {
   await requireRole("products");
   const sp = (await searchParams) ?? {};
+  // The dashboard's stock tiles and old bookmarks use the names from
+  // before the kit (`?status=out_of_stock`, `?sort=stock_asc`).
+  const legacy = legacyProductsHref(sp);
+  if (legacy) redirect(legacy);
   const [products, categories] = await Promise.all([
     listProductsForPanel(),
     listCategories(),

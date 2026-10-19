@@ -502,6 +502,51 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
     expect(html).toMatch(/1 kg:\s*<span[^>]*>0<\/span>/);
   });
 
+  it("an address from before the kit lands on the same view", async () => {
+    const { redirect } = await import("next/navigation");
+    const to = vi.mocked(redirect);
+    const landing = async (sp: Record<string, string>) => {
+      to.mockClear();
+      await renderPage("@/app/admin/urunler/page", withSearch(sp));
+      return to.mock.calls.map((c) => c[0]);
+    };
+    h.products = [product()];
+    // The dashboard's stock tiles link these (lib/admin/dashboard-core.ts
+    // on main): read as today's names they opened every product, in the
+    // default order.
+    expect(await landing({ status: "out_of_stock" })).toEqual([
+      "/admin/urunler?durum=tukendi",
+    ]);
+    expect(await landing({ sort: "stock_asc" })).toEqual([
+      "/admin/urunler?sirala=stok&yon=asc",
+    ]);
+    expect(
+      await landing({
+        q: "kahve",
+        cat: "beans",
+        status: "low_stock",
+        sort: "price_desc",
+      }),
+    ).toEqual([
+      "/admin/urunler?q=kahve&durum=dusuk&kategori=beans&sirala=fiyat&yon=desc",
+    ]);
+    // "all" was the old default; today's names win over the old ones.
+    expect(
+      await landing({ status: "all", cat: "all", sort: "recent" }),
+    ).toEqual(["/admin/urunler"]);
+    expect(await landing({ durum: "pasif", status: "active" })).toEqual([
+      "/admin/urunler?durum=pasif",
+    ]);
+    expect(await landing({ durum: "pasif", q: "x" })).toEqual([]);
+    expect(
+      panel.parseProductTab(
+        new URLSearchParams(
+          panel.legacyProductsHref({ status: "inactive" })?.split("?")[1],
+        ),
+      ),
+    ).toBe("pasif");
+  });
+
   it("the list files speak in kit tones, not raw palette or synthesized italic", () => {
     for (const path of [
       "src/app/admin/urunler/page.tsx",

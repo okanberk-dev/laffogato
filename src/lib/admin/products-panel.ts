@@ -4,10 +4,14 @@
 
 import type { AdminProductVariant, ProductPanelView } from "./store";
 import {
+  DEFAULT_DIR_PARAM,
+  DEFAULT_SORT_PARAM,
   firstParam,
   pageCount,
+  withParams,
   type FilterField,
   type FilterValues,
+  type ParamPatch,
   type SearchParamsInput,
   type SortState,
 } from "./list-params";
@@ -151,6 +155,51 @@ export function productFilterFields(
 
 export const PRODUCT_SORT_KEYS = ["ad", "fiyat", "stok", "guncel"] as const;
 export const PRODUCT_DEFAULT_SORT: SortState = { key: "guncel", dir: "desc" };
+
+// The list's address before the kit: `?status=`, `?sort=`, `?cat=`.
+const LEGACY_STATUS: Record<string, string> = {
+  active: "aktif",
+  inactive: "pasif",
+  low_stock: "dusuk",
+  out_of_stock: "tukendi",
+};
+const LEGACY_SORT: Record<string, SortState> = {
+  name: { key: "ad", dir: "asc" },
+  price_asc: { key: "fiyat", dir: "asc" },
+  price_desc: { key: "fiyat", dir: "desc" },
+  stock_asc: { key: "stok", dir: "asc" },
+  stock_desc: { key: "stok", dir: "desc" },
+};
+
+/**
+ * An address from before the kit, as today's, or null when it has none of
+ * the old names. The dashboard's stock tiles link
+ * `/admin/urunler?status=out_of_stock` and `?sort=stock_asc`, and so may a
+ * bookmark: read as today's names, "Stokta yok" opened every product. The
+ * old "all" and "recent" are today's defaults; a name of today's wins over
+ * its old one.
+ */
+export function legacyProductsHref(sp: SearchParamsInput): string | null {
+  const status = firstParam(sp, "status");
+  const sort = firstParam(sp, "sort");
+  const cat = firstParam(sp, "cat");
+  if (status === undefined && sort === undefined && cat === undefined) {
+    return null;
+  }
+  const patch: ParamPatch = { status: null, sort: null, cat: null };
+  if (status && !firstParam(sp, PRODUCT_TAB_PARAM)) {
+    patch[PRODUCT_TAB_PARAM] = LEGACY_STATUS[status] ?? null;
+  }
+  if (cat && cat !== "all" && !firstParam(sp, "kategori")) {
+    patch.kategori = cat;
+  }
+  const order = sort ? LEGACY_SORT[sort] : undefined;
+  if (order && !firstParam(sp, DEFAULT_SORT_PARAM)) {
+    patch[DEFAULT_SORT_PARAM] = order.key;
+    patch[DEFAULT_DIR_PARAM] = order.dir;
+  }
+  return withParams(sp, patch, PRODUCTS_PATH);
+}
 
 export const PRODUCT_PAGE_SIZE = 50;
 
