@@ -27,12 +27,20 @@ import {
   CUSTOMER_LIST_PATH,
   CUSTOMER_TAB_PARAM,
   CUSTOMER_TABS,
+  CUSTOMER_UNFILTERED,
+  isUnfilteredQuery,
   parseCustomerListParams,
   type CustomerListRow,
   type CustomerSortKey,
 } from "@/lib/admin/customer-list-core";
 import { withParams } from "@/lib/admin/list-params";
 import type { AdminTone } from "@/lib/admin/tone";
+import {
+  DELETION_ADMIN_PATH,
+  deletionDayLabel,
+  deletionDeadline,
+  isDeletionOverdue,
+} from "@/lib/customer/deletion-request-core";
 
 export const metadata = { title: "Admin · Müşteriler" };
 export const dynamic = "force-dynamic";
@@ -69,7 +77,7 @@ function customerBadges(
   return out;
 }
 
-function CustomerBadges({ row }: { row: CustomerListRow }) {
+function CustomerBadges({ row, now }: { row: CustomerListRow; now: Date }) {
   return (
     <span className="flex flex-wrap items-center gap-1.5">
       {customerBadges(row).map((b) => (
@@ -77,7 +85,49 @@ function CustomerBadges({ row }: { row: CustomerListRow }) {
           {b.label}
         </Badge>
       ))}
+      <DeletionBadge row={row} now={now} />
     </span>
+  );
+}
+
+/**
+ * An open web deletion request (/uye/hesap/sil): a short badge, and under
+ * it the last day of its thirty or that they ran out. The date sits on its
+ * own line: inside the pill it widened the column past a 1024 px screen.
+ */
+function DeletionBadge({ row, now }: { row: CustomerListRow; now: Date }) {
+  if (!row.deletionRequestedAt) return null;
+  const deadline = deletionDayLabel(deletionDeadline(row.deletionRequestedAt));
+  return (
+    <>
+      <Badge tone="danger">Silme talebi</Badge>
+      <span className="basis-full text-xs text-[var(--admin-danger-ink)]">
+        {isDeletionOverdue(row.deletionRequestedAt, now)
+          ? `Süre doldu (son gün ${deadline})`
+          : `Son gün ${deadline}`}
+      </span>
+    </>
+  );
+}
+
+/**
+ * The open deletion requests across the whole list, whatever the tab or
+ * filter shows: the team answers each within thirty days.
+ */
+function DeletionBanner({ count, oldest }: { count: number; oldest: string }) {
+  return (
+    <div
+      role="status"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]"
+    >
+      <span className="min-w-0">
+        {count} açık hesap silme talebi var. En eskisinin son günü{" "}
+        {deletionDayLabel(deletionDeadline(oldest))}.
+      </span>
+      <Link href={DELETION_ADMIN_PATH} className={BUTTON.danger}>
+        Talepleri göster
+      </Link>
+    </div>
   );
 }
 
@@ -117,7 +167,7 @@ function RowMenu({ row }: { row: CustomerListRow }) {
 }
 
 /** A phone's card: who, their state, how to reach them, what they spent. */
-function MobileCard({ row }: { row: CustomerListRow }) {
+function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
   return (
     <div className="min-w-0">
       <Link
@@ -127,7 +177,7 @@ function MobileCard({ row }: { row: CustomerListRow }) {
         {row.name || row.email}
       </Link>
       <div className="mt-1.5">
-        <CustomerBadges row={row} />
+        <CustomerBadges row={row} now={now} />
       </div>
       <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
         {row.name ? (
@@ -201,7 +251,8 @@ export default async function CustomersPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const parsed = parseCustomerListParams(sp);
   const kind = parsed.tab ?? "all";
-  const [rows, counts] = await Promise.all([
+  const unfiltered = isUnfilteredQuery(parsed.query);
+  const [rows, counts, wholeList] = await Promise.all([
     listCustomerPage({
       query: parsed.query,
       kind,
@@ -213,7 +264,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       pageSize: CUSTOMER_LIST_PAGE_SIZE,
     }),
     countCustomers(parsed.query),
+    // The deletion banner counts every open request, not the filtered few:
+    // a second roll-up only when a filter narrows the list.
+    unfiltered ? null : countCustomers(CUSTOMER_UNFILTERED),
   ]);
+  const openRequests = (wholeList ?? counts).deletion;
+  const deletionTab = kind === "deletion";
+  const now = new Date();
   // Tiles, tab badge and pager all count the list as it stands: this tab
   // under these filters.
   const totals = counts[kind];
@@ -256,6 +313,13 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         description="Üye hesapları ve misafir siparişlerinden çıkan müşteriler bir arada. Sipariş sayısı ve toplam harcama Raporlar'la aynı kuralla sayılır: ödemesi beklenen ve iptal edilen siparişler girmez."
       />
 
+      {openRequests.customers > 0 && !deletionTab ? (
+        <DeletionBanner
+          count={openRequests.customers}
+          oldest={openRequests.oldestDeletionAt}
+        />
+      ) : null}
+
       <StatusTabs
         tabs={tabs}
         current={parsed.tab}
@@ -296,11 +360,12 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         rows={rows}
         rowKey={(c) => c.email.toLowerCase()}
         rowHref={memberHref}
-        sort={parsed.sort}
+        // The deletion tab runs oldest request first (SQL), not by a column.
+        sort={deletionTab ? null : parsed.sort}
         searchParams={sp}
         pathname={CUSTOMER_LIST_PATH}
         empty={empty}
-        mobileCard={(c) => <MobileCard row={c} />}
+        mobileCard={(c) => <MobileCard row={c} now={now} />}
         rowActions={(c) => <RowMenu row={c} />}
         columns={[
           {
@@ -309,7 +374,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             // screen.
             key: "ad",
             header: "Müşteri",
-            sortable: true,
+            sortable: !deletionTab,
             className: "min-w-[13rem]",
             cell: (c) => (
               <span className="block">
@@ -337,12 +402,12 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           {
             key: "durum",
             header: "Durum",
-            cell: (c) => <CustomerBadges row={c} />,
+            cell: (c) => <CustomerBadges row={c} now={now} />,
           },
           {
             key: "siparis",
             header: "Sipariş",
-            sortable: true,
+            sortable: !deletionTab,
             firstDir: "desc",
             align: "right",
             cell: (c) => <span style={NUMERIC_STYLE}>{c.orderCount}</span>,
@@ -350,7 +415,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           {
             key: "harcama",
             header: "Toplam harcama",
-            sortable: true,
+            sortable: !deletionTab,
             firstDir: "desc",
             align: "right",
             cell: (c) => (
@@ -362,7 +427,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           {
             key: "hareket",
             header: "Son hareket",
-            sortable: true,
+            sortable: !deletionTab,
             firstDir: "desc",
             hideBelow: "xl",
             cell: (c) => <LastActivity row={c} />,

@@ -755,6 +755,7 @@ Açık (paket 4a'nın dışında kalan kısımlar):
 | 🟢 | Tarayıcı sekmesi ve geçmişi müşterinin e-postasını başlıkta taşıyordu (PEO-25, karar D14) | Başlık "Admin · Müşteri" | `admin-customer-detail` |
 | 🟢 | "Sipariş" kutucuğu ile "Sipariş geçmişi (n)" farklı şeyler sayıyordu (PEO-26) | Kutucuk "Ödenen sipariş"; geçmişin üstünde "n sipariş · m ödenen" | `admin-customer-detail` |
 | 🟢 | Sipariş geçmişi sınırsızdı ve elle yazılmış bir tabloydu (ORD-30'un üye sayfası kısmı) | Kit tablosunda en yeni 20 sipariş; fazlası "Tümünü gör" ile sipariş listesinde; kutucuklar bütün geçmişi üç sütundan sayar (`customerLifetimeOrders`) | `admin-customer-detail` |
+| 🟢 | Hesap silme talebinin sekmesi, rozeti ve bandı (#145, #151) eski listenin JavaScript birleştirmesine bağlıydı | SQL listesine taşındı: `admin_customer_rows` üyenin `deletionRequestedAt`'ini taşır, `?filter=deletion` sekmesi (sayılı, sıralama ne olursa olsun en eski talep önce), satırda "Silme talebi" rozeti, altında son gün ya da "Süre doldu", bant süzgeçten bağımsız bütün açık talepleri sayar (`admin_customer_counts` en eski talebi döner); ekip e-postasının bağlantısı (`DELETION_ADMIN_PATH`) aynı | `admin-account-deletion-ui`, `db-integration-customer-list` |
 
 Açık (paket 4b'nin dışında kalanlar):
 
