@@ -258,6 +258,41 @@ describe("admin UI libraries: who may import them", () => {
     expect(bad).toEqual([]);
   });
 
+  it("every page's shell reaches React Aria only through the palette's lazy import()", () => {
+    // The trigger is in every admin page's bundle (the Kasa's included,
+    // whose budget is 0 KB of library code); the list is loaded with
+    // import() on the first sign of use. A static value import anywhere on
+    // the shell's path would put React Aria on every page.
+    const staticReach = (entry: string): string[] => {
+      const hits: string[] = [];
+      const seen = new Set<string>();
+      const stack = [entry];
+      while (stack.length > 0) {
+        const file = stack.pop()!;
+        if (seen.has(file)) continue;
+        seen.add(file);
+        for (const spec of valueImportsOf(read(file))) {
+          if (spec.startsWith(".") || spec.startsWith("@/")) {
+            const next = resolveLocal(file, spec);
+            if (next) stack.push(next);
+          } else if (isPackage(spec, RAC)) hits.push(`${file} -> ${spec}`);
+        }
+      }
+      return hits;
+    };
+    for (const entry of [
+      "src/app/admin/layout.tsx",
+      "src/components/admin/admin-sidebar.tsx",
+      "src/components/admin/palette/trigger.tsx",
+    ]) {
+      expect(staticReach(entry), entry).toEqual([]);
+    }
+    // The checker sees it: the list itself imports React Aria statically.
+    expect(staticReach("src/components/admin/palette/palette.tsx")).not.toEqual(
+      [],
+    );
+  });
+
   it("the server-safe kit files reach neither React Aria nor the date package", () => {
     for (const f of SERVER_SAFE_KIT) {
       expect(isUseClient(read(f)), f).toBe(false);
