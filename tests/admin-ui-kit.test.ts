@@ -1342,6 +1342,46 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
     );
   });
 
+  it("PageShell: three widths, the panel's padding, a 20px header gap, the skip-link target", () => {
+    expect(ui.PAGE_WIDTHS).toEqual({
+      list: "max-w-7xl",
+      detail: "max-w-6xl",
+      form: "max-w-3xl",
+    });
+    for (const width of ["list", "detail", "form"] as const) {
+      const out = html(
+        withKids(ui.PageShell, { width }, createElement("p", null, "x")),
+      );
+      expect(out).toBe(
+        `<main id="admin-main" class="mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&amp;&gt;header]:mb-5 ${ui.PAGE_WIDTHS[width]}"><p>x</p></main>`,
+      );
+    }
+    // A list by default; extra classes go after.
+    expect(
+      html(withKids(ui.PageShell, { className: "print:p-0" }, "x")),
+    ).toContain("max-w-7xl print:p-0");
+    // The header gap beats PageHeader's own mb-6 / sm:mb-8 (a child
+    // selector outranks a single class), so old headers need no change.
+    const src = read("src/components/admin/ui/page-shell.tsx");
+    expect(src).toContain("[&>header]:mb-5");
+    expect(src).not.toMatch(/useState|useEffect|"use client"/);
+  });
+
+  it("EmptyState offers its one next step", () => {
+    const out = html(
+      createElement(ui.EmptyState, {
+        title: "Bu filtreyle sipariş yok.",
+        action: link("/admin/siparisler", "Filtreyi temizle"),
+      }),
+    );
+    expect(out).toContain(
+      '<div class="mt-2"><a href="/admin/siparisler">Filtreyi temizle</a></div>',
+    );
+    expect(
+      html(createElement(ui.EmptyState, { title: "Henüz kampanya yok." })),
+    ).not.toContain("mt-2");
+  });
+
   it("BUTTON.icon is a 44px square in the ghost outline", () => {
     expect(ui.BUTTON.icon).toContain("h-11 w-11");
     expect(ui.BUTTON.icon).toContain("min-h-[44px]");

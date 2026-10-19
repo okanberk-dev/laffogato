@@ -216,8 +216,9 @@ export function Timeline({
 }
 
 /**
- * What a list or section shows when it has nothing: a sentence saying so,
- * and the next step when there is one ("Filtreleri temizle", "Yeni sipariş").
+ * What a list or section shows when it has nothing: one sentence saying so,
+ * and `action`, the one next step ("Yeni kampanya"). A list that is empty
+ * because of its filters always offers "Filtreyi temizle".
  */
 export function EmptyState({
   title,
