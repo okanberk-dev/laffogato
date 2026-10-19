@@ -10201,11 +10201,22 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   accent-color: var(--green);
   cursor: pointer;
 }
-.auth-consent a {
+.auth-consent a,
+.auth-consent-note a {
   color: var(--ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+/* Under the terms box, without a box of its own: where the KVKK notice is
+   (Kurul İlke Kararı 2026/347: an aydınlatma is read, not accepted).
+   Indented to the label's text: the 20px box and its 10px gap. */
+.auth-consent-note {
+  margin: -4px 0 0;
+  padding-left: 30px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 .auth-submit {
   width: 100%;
