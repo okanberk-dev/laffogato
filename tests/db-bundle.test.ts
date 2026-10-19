@@ -56,6 +56,15 @@ describe("db/schema.sql", () => {
     }
   });
 
+  it("gives every migration a timestamp of its own", () => {
+    // Two branches cut on the same day picked 20261019170000 for different
+    // migrations; the names still sorted, but which runs first then hangs on
+    // the words after the stamp, and a merge brings two "first" files.
+    const stamps = migrationNames().map((name) => name.slice(0, 14));
+    const repeated = stamps.filter((s, i) => stamps.indexOf(s) !== i);
+    expect(repeated).toEqual([]);
+  });
+
   it("carries the atomic stock function intact", () => {
     const bundle = buildBundle();
     expect(bundle).toContain("claim_order_stock");

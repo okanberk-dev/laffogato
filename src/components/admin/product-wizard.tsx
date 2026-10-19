@@ -20,6 +20,29 @@ import {
   variantStockTotal,
 } from "@/lib/admin/stock-delta";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import {
+  MENU_ALLERGENS,
+  MENU_ALLERGENS_FIELD,
+  MENU_ALLERGENS_NONE,
+  MENU_ALLERGENS_SHOWN_FIELD,
+  NUTS_ALLERGEN,
+  menuAllergenWords,
+  normalizeMenuAllergens,
+} from "@/lib/menu/allergens";
+import { istanbulToday, menuPricesDateLabel } from "@/lib/menu/price-list";
+import {
+  DISCOUNT_END_FIELD,
+  DISCOUNT_START_FIELD,
+  discountDatesLabel,
+  istanbulDayEndIso,
+  istanbulDayOf,
+  istanbulDayStartIso,
+} from "@/lib/shop/discount";
+import {
+  FOOD_LABEL_FIELDS,
+  foodLabelOf,
+  type FoodLabelText,
+} from "@/lib/shop/food-label";
 import { parseMoneyInput } from "@/lib/utils/format";
 import {
   KDV_RATE_CHOICES,
@@ -70,19 +93,31 @@ const HUE_OPTIONS = [
 ] as const;
 
 /**
- * Allergens, as a closed list - the operator picks, never types.
- *
- * The values are the cafe menu's own tag vocabulary (`menu_items.tags`), and
- * the app filters every tag it receives against that same list and drops
- * anything else without a word. So a free-text box here could store "fıstık"
- * or "NUTS " and publish an allergen that no customer would ever see, which
- * is exactly the failure this list rules out. `nuts` is the only allergen the
- * vocabulary carries today; adding a second one means adding it to the app's
- * `ItemTag` union and `PRODUCT_TAG_VALUES` in the same release.
+ * The allergen tag the shipped app reads (`tags`, the menu's vocabulary):
+ * `nuts`. The fourteen Ek-1 groups below are a closed list too (TGK
+ * Etiketleme m.9/1-c, src/lib/menu/allergens.ts); ticking tree nuts keeps
+ * this tag in step, as on the menu form.
  */
-const ALLERGEN_OPTIONS = [
-  ["nuts", "Sert kabuklu yemiş (fındık · fıstık)"],
-] as const;
+const NUTS_TAG = "nuts";
+
+/**
+ * Whether the `tags` field posts `nuts`, the nut warning the shipped app
+ * reads. The tree-nut box adds it. A stored one stays while the groups are
+ * not entered, and also beside groups without tree nuts unless the
+ * operator removes it on purpose: ticking gluten and egg on a pistachio
+ * biscuit and missing the tree-nut box must not drop the app's only nut
+ * warning in silence. Posted with such a list, the save refuses the
+ * mismatch, as on the menu form (`tagsWithAllergens`). Exported for tests.
+ */
+export function postedNutsTag(
+  storedNuts: boolean,
+  allergens: readonly string[] | null,
+  dropStoredNuts: boolean,
+): boolean {
+  if (allergens?.includes(NUTS_ALLERGEN)) return true;
+  if (!storedNuts) return false;
+  return allergens === null || !dropStoredNuts;
+}
 
 /**
  * Which step holds each posted field, so a refusal can open the step with
@@ -99,8 +134,12 @@ export const FIELD_STEP: Readonly<Record<string, number>> = {
   cat: 1,
   isActive: 1,
   tags: 1,
+  allergens: 1,
+  ...Object.fromEntries(FOOD_LABEL_FIELDS.map((f) => [f.key, 1])),
   price: 2,
   compareAtPrice: 2,
+  [DISCOUNT_START_FIELD]: 2,
+  [DISCOUNT_END_FIELD]: 2,
   cost: 2,
   sku: 2,
   stock: 2,
@@ -347,19 +386,43 @@ export function ProductWizard({
     product?.cat ?? categories[0]?.slug ?? "beans",
   );
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
-  const [allergens, setAllergens] = useState<string[]>(
-    (product?.tags ?? []).filter((t) =>
-      ALLERGEN_OPTIONS.some(([v]) => v === t),
-    ),
+  /* The fourteen groups: null = not entered (nothing ticked), [] = none
+     of them ("Hiçbirini içermez"), else the groups. */
+  const [allergens, setAllergens] = useState<string[] | null>(() =>
+    normalizeMenuAllergens(product?.allergens),
+  );
+  const storedNuts = (product?.tags ?? []).includes(NUTS_TAG);
+  const [label, setLabel] = useState<FoodLabelText>(() =>
+    foodLabelOf(product),
   );
 
   const [price, setPrice] = useState(
     product ? (product.priceMinor / 100).toFixed(2) : "",
   );
+  // A discount past its last day opens empty: posted back as it was, it
+  // would be a new discount starting on a past day and refuse the whole
+  // save. The save clears it (withoutEndedDiscount, src/lib/shop/discount.ts,
+  // does the same for a form opened before the end). Its last day, or null.
+  const [endedDiscountDay] = useState(() => {
+    const end = product?.discountEndsAt;
+    return product &&
+      product.compareAtPriceMinor > 0 &&
+      typeof end === "string" &&
+      Date.parse(end) < Date.now()
+      ? istanbulDayOf(end)
+      : null;
+  });
   const [compareAtPrice, setCompareAtPrice] = useState(
-    product && product.compareAtPriceMinor > 0
+    product && product.compareAtPriceMinor > 0 && !endedDiscountDay
       ? (product.compareAtPriceMinor / 100).toFixed(2)
       : "",
+  );
+  // The discount's Istanbul days (Ticari Reklam Yön. m.14/1).
+  const [discountStart, setDiscountStart] = useState(
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountStartsAt) ?? ""),
+  );
+  const [discountEnd, setDiscountEnd] = useState(
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountEndsAt) ?? ""),
   );
   const [cost, setCost] = useState(
     product && product.costMinor > 0
@@ -485,17 +548,41 @@ export function ProductWizard({
     totalApart && totalFromVariants ? typedVariantSum : variantTotal;
 
   /**
-   * What the `tags` field posts: the allergens ticked above, plus any tag the
-   * row already carried that this form does not offer (`signature`, `new`,
-   * `iced`). Dropping those on every save would make an edit to the price
-   * quietly strip a badge nobody meant to touch.
+   * What the `tags` field posts: any tag the row already carried that this
+   * form does not offer (`signature`, `new`, `iced`), plus `nuts` (see
+   * `postedNutsTag`). Dropping a tag on every save would make an edit to
+   * the price quietly strip a badge nobody meant to touch.
    */
+  const [dropStoredNuts, setDropStoredNuts] = useState(false);
+  const nutsConflict =
+    storedNuts && allergens !== null && !allergens.includes(NUTS_ALLERGEN);
+  const nutsTag = postedNutsTag(storedNuts, allergens, dropStoredNuts);
   const tagsValue = useMemo(() => {
-    const kept = (product?.tags ?? []).filter(
-      (t) => !ALLERGEN_OPTIONS.some(([v]) => v === t),
-    );
-    return [...new Set([...allergens, ...kept])].join(", ");
-  }, [allergens, product?.tags]);
+    const kept = (product?.tags ?? []).filter((t) => t !== NUTS_TAG);
+    return [...new Set([...(nutsTag ? [NUTS_TAG] : []), ...kept])].join(", ");
+  }, [nutsTag, product?.tags]);
+
+  /** Ticks or unticks one group; "none" stands alone. */
+  const toggleAllergen = (key: string, on: boolean) =>
+    setAllergens((prev) => {
+      if (key === MENU_ALLERGENS_NONE) return on ? [] : null;
+      const next = new Set(prev ?? []);
+      if (on) next.add(key);
+      else next.delete(key);
+      return next.size > 0 ? normalizeMenuAllergens([...next]) : null;
+    });
+  const allergenWords = menuAllergenWords(allergens);
+  const labelCount = FOOD_LABEL_FIELDS.filter((f) => label[f.key]).length;
+
+  // The days the page will name beside the badge, as the save stores them.
+  const discountDates =
+    compareMinor > 0 && discountStart && discountEnd
+      ? discountDatesLabel(
+          istanbulDayStartIso(discountStart),
+          istanbulDayEndIso(discountEnd),
+        )
+      : null;
+  const today = istanbulToday(new Date());
 
   const fieldError = (key: string) => state.fieldErrors?.[key];
 
@@ -742,27 +829,109 @@ export function ProductWizard({
             </Field>
           </div>
           {/* A fieldset, not a label: inside a label a tap on the hint
-              ticked or unticked the nut box, and with it the customer's
-              allergen warning (admin audit SYS-M02). */}
-          <Field
-            as="fieldset"
-            label="Alerjen"
-            hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür - gizlenmez."
-          >
-            <div className="grid gap-1">
-              {ALLERGEN_OPTIONS.map(([value, label]) => (
+              ticked or unticked a box, and with it the customer's allergen
+              warning (admin audit SYS-M02). TGK Etiketleme m.9/1-c and
+              m.17/2-a: the fourteen Ek-1 groups, before the purchase. */}
+          <div className="grid gap-1.5">
+            <Field
+              as="fieldset"
+              label="Alerjen"
+              hint="Ürün içeriyorsa işaretle. Ambalajdaki etikete bakarak Türk Gıda Kodeksi'nin 14 grubundan içerdiklerini seç; hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Gıda olmayan üründe boş bırak. Ürün sayfasında, uygulamada ve sepette görünür - gizlenmez. Sert kabuklu meyveler seçersen kuruyemiş uyarısı kendiliğinden eklenir."
+            >
+              <input type="hidden" name={MENU_ALLERGENS_SHOWN_FIELD} value="1" />
+              <div className="grid gap-x-4 sm:grid-cols-2">
+                {MENU_ALLERGENS.map((a) => (
+                  <Checkbox
+                    key={a.key}
+                    name={MENU_ALLERGENS_FIELD}
+                    value={a.key}
+                    label={a.panel}
+                    checked={allergens?.includes(a.key) ?? false}
+                    onChange={(e) => toggleAllergen(a.key, e.target.checked)}
+                  />
+                ))}
+              </div>
+              <div className="border-t border-[var(--admin-border)]">
                 <Checkbox
-                  key={value}
-                  label={label}
-                  checked={allergens.includes(value)}
+                  name={MENU_ALLERGENS_FIELD}
+                  value={MENU_ALLERGENS_NONE}
+                  label="Hiçbirini içermez"
+                  checked={allergens !== null && allergens.length === 0}
                   onChange={(e) =>
-                    setAllergens((prev) =>
-                      e.target.checked
-                        ? [...new Set([...prev, value])]
-                        : prev.filter((t) => t !== value),
-                    )
+                    toggleAllergen(MENU_ALLERGENS_NONE, e.target.checked)
                   }
                 />
+              </div>
+              {allergens === null && storedNuts ? (
+                <p className="text-xs text-[var(--admin-text-soft)]">
+                  Bu üründe kuruyemiş uyarısı var; grupları işaretleyene kadar
+                  uyarı aynen kalır.
+                </p>
+              ) : null}
+              {nutsConflict ? (
+                <div
+                  role="note"
+                  className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+                >
+                  <p>
+                    Bu üründe kuruyemiş uyarısı var ama “Sert kabuklu
+                    meyveler” işaretli değil. İçeriyorsa onu da işaretle;
+                    içermiyorsa uyarıyı kaldır. İkisi de yapılmazsa kayıt
+                    reddedilir.
+                  </p>
+                  <Checkbox
+                    label="Kuruyemiş uyarısını kaldır: ürün sert kabuklu meyve içermiyor"
+                    checked={dropStoredNuts}
+                    onChange={(e) => setDropStoredNuts(e.target.checked)}
+                  />
+                </div>
+              ) : null}
+            </Field>
+            {errorFor("allergens")}
+          </div>
+
+          {/* TGK Etiketleme m.9/1 and m.17/2-a: what the pack's label says,
+              on the product page before the order (the date excepted). */}
+          <Field as="fieldset" label="Gıda etiketi">
+            <p className="text-xs text-[var(--admin-text-mute)]">
+              Paketli gıdada ambalajdaki etiketten aynen yaz; ürün sayfasında
+              ve uygulamada siparişten önce görünür. Boş alan gösterilmez;
+              kullanım talimatı dışında boş kalan her alan ve girilmemiş
+              alerjenler için sayfa müşteriye siparişten önce bize sormasını
+              söyler (kahve çekirdeğinde beslenme bildirimi gerekmez). Gıda
+              olmayan üründe hepsini boş bırak. Son tüketim tarihi buraya
+              yazılmaz, ambalajda durur.
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              {FOOD_LABEL_FIELDS.map((f) => (
+                <div
+                  key={f.key}
+                  className={`grid gap-1.5 ${f.multiline ? "md:col-span-2" : ""}`}
+                >
+                  <Field label={f.panel} hint={f.hint}>
+                    {f.multiline ? (
+                      <Textarea
+                        name={f.key}
+                        value={label[f.key]}
+                        onChange={(e) =>
+                          setLabel((was) => ({ ...was, [f.key]: e.target.value }))
+                        }
+                        maxLength={f.max}
+                        rows={f.key === "nutrition" ? 7 : f.key === "ingredients" ? 4 : 2}
+                      />
+                    ) : (
+                      <TextInput
+                        name={f.key}
+                        value={label[f.key]}
+                        onChange={(e) =>
+                          setLabel((was) => ({ ...was, [f.key]: e.target.value }))
+                        }
+                        maxLength={f.max}
+                      />
+                    )}
+                  </Field>
+                  {errorFor(f.key)}
+                </div>
               ))}
             </div>
           </Field>
@@ -797,8 +966,8 @@ export function ProductWizard({
                 label="Eski fiyat (₺)"
                 hint={
                   discountPct !== null
-                    ? `−%${discountPct} indirim olarak görünür`
-                    : "İsteğe bağlı. Satış fiyatından yüksekse üstü çizili görünür."
+                    ? `İndirim tarihleri arasında −%${discountPct} indirim olarak görünür. Eski fiyat, indirimden önceki 10 günde uygulanan en düşük satış fiyatıdır.`
+                    : "İsteğe bağlı. İndirimden önceki 10 günde bu üründe uygulanan en düşük satış fiyatı; kayıtta fiyat geçmişine bakılır."
                 }
               >
                 <TextInput
@@ -830,6 +999,53 @@ export function ProductWizard({
               </Field>
               {errorFor("cost")}
             </div>
+          </div>
+
+          {/* Ticari Reklam Yön. m.14/1: a discount names its first and last
+              day, and the page writes them beside the badge. */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field
+                label="İndirim başlangıcı"
+                hint="Eski fiyat yazınca zorunlu. Yeni indirim bugün başlar: fiyatı düşürdüğün gün."
+              >
+                <TextInput
+                  name={DISCOUNT_START_FIELD}
+                  type="date"
+                  value={discountStart}
+                  min={
+                    product?.discountStartsAt && !endedDiscountDay
+                      ? undefined
+                      : today
+                  }
+                  onChange={(e) => setDiscountStart(e.target.value)}
+                  required={compareMinor > 0}
+                />
+              </Field>
+              {errorFor(DISCOUNT_START_FIELD)}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="İndirim bitişi"
+                hint="Eski fiyat yazınca zorunlu. Bu günün sonunda indirim ve üstü çizili fiyat kalkar."
+              >
+                <TextInput
+                  name={DISCOUNT_END_FIELD}
+                  type="date"
+                  value={discountEnd}
+                  min={discountStart || today}
+                  onChange={(e) => setDiscountEnd(e.target.value)}
+                  required={compareMinor > 0}
+                />
+              </Field>
+              {errorFor(DISCOUNT_END_FIELD)}
+            </div>
+            {endedDiscountDay ? (
+              <p className="text-xs text-[var(--admin-text-soft)] sm:col-span-2">
+                Son indirim {menuPricesDateLabel(endedDiscountDay)} günü bitti;
+                eski fiyat artık gösterilmiyor, kaydedince silinir.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
@@ -1335,18 +1551,39 @@ export function ProductWizard({
               k="KDV"
               v={`%${effectiveTaxRate} dahil${taxRate === "" ? " (kategorinin oranı)" : ""}`}
             />
+            {compareMinor > 0 && (
+              <SummaryRow
+                k="İndirim"
+                v={discountDates ?? "Tarihleri seç (zorunlu)"}
+                muted={!discountDates}
+              />
+            )}
             <SummaryRow
               k="Alerjen"
               v={
-                allergens.length > 0
-                  ? allergens
-                      .map(
-                        (t) =>
-                          ALLERGEN_OPTIONS.find(([v]) => v === t)?.[1] ?? t,
-                      )
-                      .join(" · ")
-                  : "Yok"
+                allergenWords === null
+                  ? nutsTag
+                    ? "Girilmedi (kuruyemiş uyarısı kalır)"
+                    : "Girilmedi"
+                  : (allergenWords.length > 0
+                      ? allergenWords.join(", ")
+                      : "Hiçbirini içermez") +
+                    (!nutsConflict
+                      ? ""
+                      : dropStoredNuts
+                        ? " (kuruyemiş uyarısı kalkar)"
+                        : " (kuruyemiş uyarısıyla çelişiyor)")
               }
+              muted={allergenWords === null}
+            />
+            <SummaryRow
+              k="Gıda etiketi"
+              v={
+                labelCount > 0
+                  ? `${labelCount} / ${FOOD_LABEL_FIELDS.length} alan dolu`
+                  : "Boş"
+              }
+              muted={labelCount === 0}
             />
             <SummaryRow
               k="Stok"

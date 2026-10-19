@@ -49,7 +49,7 @@ describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
     // 20 Ekim 2026: the ÖBF and the MSS say the invoice is an e-Arşiv
     // invoice sent by e-mail, the İşlem Rehberi joins the set
-    // (LEGAL-REDLINES §23). The consent version moved with the checkout
+    // (LEGAL-REDLINES §24). The consent version moved with the checkout
     // documents, the set with it. (19 Ekim 2026: the KDV rule, §16.4; 18
     // Ekim 2026: the distance-sales rules of 2026.)
     expect(LEGAL_UPDATED).toBe("20 Ekim 2026");

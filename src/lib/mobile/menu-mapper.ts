@@ -28,6 +28,8 @@ import {
   normalizeMenuAllergens,
   type MenuAllergen,
 } from "@/lib/menu/allergens";
+import { liveDiscount } from "@/lib/shop/discount";
+import { foodLabelOf, type FoodLabelKey } from "@/lib/shop/food-label";
 import {
   LEGAL_TAX_RATES,
   menuItemTaxRate,
@@ -290,6 +292,13 @@ export function toMobileMenuItem(
   };
 }
 
+/** The label texts the panel holds; '' (or a row before the migration) sends none. */
+function mobileFoodLabel(p: AdminProduct): MobileShopFoodLabel {
+  return Object.fromEntries(
+    Object.entries(foodLabelOf(p)).filter(([, value]) => value !== ""),
+  );
+}
+
 function mobileAllergens(raw: unknown): { allergens?: MenuAllergen[] } {
   const allergens = normalizeMenuAllergens(raw);
   return allergens === null ? {} : { allergens };
@@ -348,14 +357,36 @@ export interface MobileShopVariant {
   inStock: boolean;
 }
 
-export interface MobileShopProduct extends MobileScene {
+/**
+ * The packaged-food label (contract §2, 19 Eki 2026, additive): each key
+ * only when the panel holds it, so an absent key is "not entered".
+ */
+export type MobileShopFoodLabel = Partial<Record<FoodLabelKey, string>>;
+
+export interface MobileShopProduct extends MobileScene, MobileShopFoodLabel {
   id: string;
   slug: string;
   name: string;
   tag: string;
   description: string;
   priceMinor: number;
+  /**
+   * The price before the running discount, or 0: no discount to show. 0
+   * also while the dates are not set or not reached, and once the end has
+   * passed (Ticari Reklam Yön. m.14/1; contract §2).
+   */
   compareAtPriceMinor: number;
+  /**
+   * The running discount's first and last instant (ISO-8601 UTC), beside a
+   * compare-at price above 0 only; null otherwise. Additive (19 Eki 2026).
+   */
+  discountStartsAt: string | null;
+  discountEndsAt: string | null;
+  /**
+   * Ek-1 allergen groups, as `MobileMenuItem.allergens`: left out while not
+   * entered, [] for none of the fourteen. Additive (19 Eki 2026, §2).
+   */
+  allergens?: MenuAllergen[];
   category: AdminProduct["cat"];
   /**
    * Same field name, same shape and same vocabulary as `MobileMenuItem.tags`
@@ -392,7 +423,9 @@ export function toMobileShopProduct(
   p: AdminProduct,
   siteUrl: string,
   rates: TaxRates = LEGAL_TAX_RATES,
+  now: Date = new Date(),
 ): MobileShopProduct {
+  const discount = liveDiscount(p, now);
   const first = p.images[0];
   const image = first
     ? absoluteImageUrl(
@@ -407,10 +440,12 @@ export function toMobileShopProduct(
     tag: p.tag,
     description: p.desc,
     priceMinor: p.priceMinor,
-    // A "was" price only means something above the current one; the web card
-    // applies the same rule.
-    compareAtPriceMinor:
-      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : 0,
+    // A "was" price only above the current one and only between its dates;
+    // the web mapper applies the same rule (src/lib/shop/discount.ts). The
+    // field stays a number on every product: 0 is v1's "no discount".
+    compareAtPriceMinor: discount?.compareAtPriceMinor ?? 0,
+    discountStartsAt: discount?.startsAt ?? null,
+    discountEndsAt: discount?.endsAt ?? null,
     category: p.cat,
     // Allergens are never withheld (lafmobil rule 4). The menu has published
     // this field since v1; the shop shelf carries a pistachio biscotti and
@@ -454,6 +489,8 @@ export function toMobileShopProduct(
         inStock: v.stock > 0,
       })),
     taxRatePct: productTaxRate(p, rates),
+    ...mobileAllergens(p.allergens),
+    ...mobileFoodLabel(p),
   };
   if (p.cat === "beans") product.grinds = [...BEAN_GRINDS];
   return product;

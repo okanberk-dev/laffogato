@@ -1252,7 +1252,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // text is kept and reachable, and the dispute routes, under an "işlem
     // rehberi" heading reached from the home page (footer, `nav.ts`). §8 is
     // the D-ISLEM-DURABLE paragraph word for word until the durable copy of
-    // the confirmed text ships. LEGAL-REDLINES §23.
+    // the confirmed text ships. LEGAL-REDLINES §24.
     slug: "islem-rehberi",
     title: "İşlem Rehberi",
     shortTitle: "İşlem Rehberi",

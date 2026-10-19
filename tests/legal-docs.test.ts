@@ -600,7 +600,7 @@ describe("legal content - a documented return shipping cost is paid back", () =>
 describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (20 Ekim 2026)", () => {
   // The company issues its invoices electronically (operator, 19 Ekim 2026)
   // and the texts said "a copy on request" (ASK-INVOICE, ASK-KAR-KDV;
-  // LEGAL-REDLINES §23). The e-commerce regulation of 29.12.2022 asks for an
+  // LEGAL-REDLINES §24). The e-commerce regulation of 29.12.2022 asks for an
   // "işlem rehberi" on the home page (m.7/1) and the professional chamber in
   // the company details (m.5/1-c, OP-KEP-CHAMBER).
   const email = LEGAL_ENTITY.email;

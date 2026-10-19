@@ -1269,7 +1269,7 @@ Açık:
 
 Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
 18 Eki 2026: avukat ve mali müşavir turu yok). Cümle cümle eski ve yeni metin
-`docs/LEGAL-REDLINES-2026-09.md` §23'te.
+`docs/LEGAL-REDLINES-2026-09.md` §24'te.
 
 | Derece | Bulgu | Düzeltme | Test |
 | --- | --- | --- | --- |
@@ -1283,4 +1283,4 @@ Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
 
 Açık (operatörde): oda, kurallar adresi ve KEP değerleri (31 Eki 2026'ya
 kadar, `entity.ts`); Paraşüt'te internet satışı ibareleri ve koliye giren
-"İrsaliye yerine geçer." çıktısı (LEGAL-REDLINES §23.5).
+"İrsaliye yerine geçer." çıktısı (LEGAL-REDLINES §24.5).

@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { sceneColumns } from "@/lib/backdrop/scene";
-import { priceLabel } from "@/lib/utils/format";
+import { parseMoneyInput, priceLabel } from "@/lib/utils/format";
 import { KDV_RATE_CHOICES } from "@/lib/utils/kdv";
 
 import { parseCsv, type CsvRecord } from "./csv";
@@ -25,6 +25,7 @@ import {
   type ImportRowView,
 } from "./product-import-core";
 import {
+  MONEY_INPUT_ERROR,
   PRODUCT_DESC_MAX_LENGTH,
   PRODUCT_SKU_MAX_LENGTH,
   productFormSchema,
@@ -171,6 +172,15 @@ const CLEARED_LABEL: Record<ClearedField, string> = {
   brand: "marka",
   weight: "ağırlık",
 };
+
+/** Why an "Eski fiyat" cell with a new value is refused (see planRow). */
+export const COMPARE_AT_CSV_ERROR =
+  "Eski fiyat CSV ile girilmez: indirimi ürün formunda başlangıç ve bitiş tarihiyle gir. İndirimi bitirmek için hücreyi boş bırak.";
+
+/** Why a price cell may not reach the product's stored "Eski fiyat" (see planRow). */
+export function compareAtPriceFloorError(compareAtMinor: number): string {
+  return `Fiyat, ürünün eski fiyatının (${priceLabel(compareAtMinor)}) altında kalmalı. Fiyatı yükseltmek için indirimi bitir: Eski fiyat hücresini boş bırak.`;
+}
 
 /** The KDV rates a CSV cell may set, besides the product's stored one. */
 const KDV_CELL_ERROR =
@@ -378,6 +388,24 @@ function planRow(
   const weightCell = get("weight");
   const weight = weightCell === undefined ? null : parseCountCell(weightCell);
   if (weight && !weight.ok) errors.push(`Ağırlık: ${weight.error}`);
+  // "Eski fiyat" (Ticari Reklam Yön. m.14): a discount is saved only in the
+  // product form, with its days and against the price history. A cell may
+  // repeat the stored value (a file exported and sent back) or be emptied
+  // to end the discount; any other value is refused for its row.
+  const compareCell = get("compareAtPrice");
+  const storedCompare = existing?.compareAtPriceMinor ?? 0;
+  // True when the row ends the stored discount: an empty cell or a 0.
+  let compareClears = compareCell === "" && storedCompare > 0;
+  if (compareCell) {
+    const minor = parseMoneyInput(compareCell);
+    if (minor === null) {
+      errors.push(`Eski fiyat: ${MONEY_INPUT_ERROR}`);
+    } else if (minor === 0) {
+      compareClears = storedCompare > 0;
+    } else if (minor !== storedCompare) {
+      errors.push(COMPARE_AT_CSV_ERROR);
+    }
+  }
   const activeCell = get("isActive");
   const active = activeCell === undefined ? null : parseActiveCell(activeCell);
   if (active === "invalid") errors.push("Aktif: evet ya da hayır yaz.");
@@ -414,10 +442,6 @@ function planRow(
         desc: existing.desc,
         cat: existing.cat,
         price: minorText(existing.priceMinor),
-        compareAtPrice:
-          existing.compareAtPriceMinor > 0
-            ? minorText(existing.compareAtPriceMinor)
-            : "",
         stock: String(existing.stock),
         weightGrams: String(existing.weightGrams ?? 0),
         taxRatePct:
@@ -440,8 +464,6 @@ function planRow(
   if (descCell) record.desc = descCell;
   if (cat) record.cat = cat;
   if (priceCell) record.price = priceCell;
-  const compareCell = get("compareAtPrice");
-  if (compareCell !== undefined) record.compareAtPrice = compareCell;
   const rateCell = get("taxRatePct");
   if (rateCell !== undefined) record.taxRatePct = rateCell;
   const brandCell = get("brand");
@@ -497,7 +519,8 @@ function planRow(
       sku: d.sku || sku,
       tag: d.tag,
       priceMinor: d.priceMinor,
-      compareAtPriceMinor: d.compareAtPriceMinor,
+      // A new product has no price history: never a compare-at price.
+      compareAtPriceMinor: 0,
       costMinor: 0,
       desc: d.desc,
       cat: d.cat,
@@ -534,6 +557,21 @@ function planRow(
   const below = variantsBelowFloor(d.priceMinor, existing.variants ?? []);
   if (below.length > 0) return refuse(below.map((v) => variantFloorError(v.name)), d.name);
 
+  // A stored compare-at price stays above the sale price, as in the form
+  // (DISCOUNT_NOT_ABOVE_ERROR): a price lifted over it and lowered again
+  // later would bring the old badge and start day back without the ten-day
+  // check (Ticari Reklam Yön. m.14/1, m.14/3). A row that empties the cell
+  // ends the discount and may raise the price with it.
+  if (
+    storedCompare > 0 &&
+    !compareClears &&
+    priceCell &&
+    d.priceMinor !== existing.priceMinor &&
+    d.priceMinor >= storedCompare
+  ) {
+    return refuse([compareAtPriceFloorError(storedCompare)], d.name);
+  }
+
   // Only what the file speaks about is compared: a stored value the schema
   // would merely tidy (a trailing space) is not a change the file asked for.
   const patch: ProductImportPatch = {};
@@ -563,21 +601,19 @@ function planRow(
       `Fiyat: ${priceLabel(existing.priceMinor)} → ${priceLabel(d.priceMinor)}`,
     );
   }
-  if (
-    compareCell !== undefined &&
-    d.compareAtPriceMinor !== existing.compareAtPriceMinor
-  ) {
-    patch.compareAtPriceMinor = d.compareAtPriceMinor;
+  // Only clearing reaches here (a new value was refused above); the days
+  // go with it.
+  if (compareClears) {
+    patch.compareAtPriceMinor = 0;
+    patch.discountStartsAt = null;
+    patch.discountEndsAt = null;
     if (compareCell === "") {
       clears.push("compareAtPrice");
       changes.push(
-        `Eski fiyat temizlenecek (hücre boş): ${priceLabel(existing.compareAtPriceMinor)} → yok`,
+        `Eski fiyat temizlenecek (hücre boş): ${priceLabel(storedCompare)} → yok`,
       );
     } else {
-      const was = (m: number) => (m > 0 ? priceLabel(m) : "yok");
-      changes.push(
-        `Eski fiyat: ${was(existing.compareAtPriceMinor)} → ${was(d.compareAtPriceMinor)}`,
-      );
+      changes.push(`Eski fiyat: ${priceLabel(storedCompare)} → yok`);
     }
   }
   if (rateCell !== undefined && d.taxRatePct !== storedRate) {

@@ -299,7 +299,7 @@ e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
 Fatura e-postası bu kodun dışında: şirket e-Arşiv faturayı Paraşüt'te
 düzenler ve müşterinin siparişteki e-posta adresine gönderir (operatör, 19
 Eki 2026); sözleşme metinleri bunu yazar (`docs/LEGAL-REDLINES-2026-09.md`
-§23).
+§24).
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` - ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için

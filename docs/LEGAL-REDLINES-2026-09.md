@@ -2725,17 +2725,123 @@ Ayrı PR'ın notları:
 - O PR birleşince `tests/register-consent.test.ts`'teki koşullu kontrol
   kesin bir kontrole döner ve bu alt bölüm "Düzeltilenler"e taşınır.
 
-## 23. Y9 - Fatura e-Arşiv olarak e-postayla, kurumsal fatura bilgisi e-postayla, karaoke faturası; İşlem Rehberi; meslek odası (20 Ekim 2026)
+## 23. Y9 - Mağaza: paketli gıda etiketi ve tarihli indirim (19 Eki 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-shop-label-and-discount`
+> (X-TGK-SHOP, X-DISCOUNT, karar OP-COMPARE-AT). Operatör kararı (18 Eki
+> 2026): avukat turu yok, karar birincil kaynaklarla verildi. Sözleşme
+> metinleri (`content.ts`) değişmedi; `LEGAL_UPDATED` ve
+> `KARAOKE_LEGAL_UPDATED` yerinde kaldı. ÖBF §5'in ürün sayfasında
+> verildiğini söylediği etiket bilgileri artık ürünün kendi alanlarından
+> gelir.
+
+### 23.1 Neden
+
+- Ürün modelinde açıklama, kargo ağırlığı ve tek bir `nuts` etiketi
+  vardı; içindekiler, 14 alerjen grubu, net miktar, saklama koşulu,
+  işletmeci, kayıt numarası, menşe ve beslenme bildirimi yoktu.
+- "Eski fiyat" panelde serbestçe, tarihsiz yazılıyordu; Bambu Chasen 750 TL
+  satışta, üstü çizili 999 TL ve "%25 indirim" rozetiyle, bitişi olmadan
+  gösteriliyordu.
+
+### 23.2 Kararlar
+
+- **Etiket alanları** (`src/lib/shop/food-label.ts`): net miktar,
+  içindekiler, beslenme bildirimi, saklama koşulu, kullanım talimatı, menşe
+  ülkesi, gıda işletmecisinin adı ve adresi, işletme kayıt / onay numarası;
+  alerjenler menünün 14 Ek-1 grubu ve üç durumuyla (girilmedi / hiçbiri /
+  gruplar). Hiçbiri tahmin edilmez: her ürün boş başlar, operatör ambalajdan
+  yazar. Son tüketim tarihi alınmaz (m.17/2-a onu satın almadan önce
+  istemez; ambalajda durur). Kayıtlı kuruyemiş uyarısı (uygulamanın
+  okuduğu `nuts`), "Sert kabuklu meyveler" işaretlenmeden girilen
+  gruplarla sessizce düşmez: kayıt, menü formundaki gibi hangisinin doğru
+  olduğunu sorar; uyarı yalnız "Kuruyemiş uyarısını kaldır" seçilince
+  kalkar.
+- Gıda rafındaki üründe m.9/1'in satın almadan önce verilmesi gereken
+  bilgilerinden biri eksikse sayfa "siparişten önce bize sor" satırını
+  tutar ve eksikleri sayar (m.17/2-a'nın "başka uygun araç" yolu): net
+  miktar, içindekiler, alerjenler, besin değerleri, saklama koşulu, menşe
+  ülkesi, üretici ya da ithalatçı, işletme kayıt numarası. Kullanım
+  talimatı yalnız gerektiğinde verildiği için (m.9/1-ı) satırı tutmaz;
+  kahve çekirdeği beslenme bildiriminden muaftır (m.19/3, Ek-14). Satır,
+  hepsi girildiğinde kalkar; yalnız içindekiler ve alerjenler girildiğinde
+  kalkması, net miktarı, saklama koşulunu ve işletmeciyi ne sayfada ne
+  adı verilen bir yolda bırakırdı.
+- **İndirim** (`src/lib/shop/discount.ts`): eski fiyat yalnız başlangıç ve
+  bitiş günüyle kaydedilir; başlangıçtan önceki 10 İstanbul gününde bu
+  ürünün çevrim içi satış fiyatı geçmişindeki en düşük fiyata eşit değilse
+  reddedilir ve doğru tutar söylenir. Fiyat geçmişi her fiyat değişikliğinde
+  veritabanı tetikleyicisiyle yazılır (köşk fiyatı esas alınmaz, m.14/5);
+  geçmişi 10 günü kapsamayan üründe indirim en erken hangi gün
+  başlayabileceği söylenerek reddedilir; yeni ürüne eski fiyat girilmez.
+- Yeni indirim bugün başlar: ileri tarihli başlangıçta düşürülen fiyat
+  rozetsiz uygulanır ve kendi 10 gününe girer, geriye tarihli başlangıç da
+  olmayan bir indirim günü ilan eder. Süren indirim kendi başlangıcıyla
+  yeniden kaydedilebilir; süren, şu an sayfada görünen indirimdir. Eski
+  fiyat fiyatla birlikte yazılır: stok reddiyle fiyatı yazılmayan kayıt
+  eski fiyatı ve başlangıç gününü de yazmaz (yazsaydı sonraki kayıt,
+  fiyatın düşmediği günleri indirim günü diye gösterirdi). Biten indirim
+  formda boş açılır; bitmeden açılmış bir formdan aynen geri gelirse kayıt
+  onu siler ve ürünün öteki alanlarını yazar (her indirim bittiği için
+  aksi, ürünün her sonraki kaydını reddederdi).
+- Fiyat farkı olan varyantı bulunan üründe eski fiyat reddedilir: geçmiş
+  ürün fiyatını tutar, varyantınkini değil.
+- Tarihsiz, tarih aralığı dışındaki ya da satış fiyatından yüksek olmayan
+  eski fiyat hiçbir yüzeyde gösterilmez (ürün sayfası, hızlı bakış, kart,
+  öne çıkan set, "İndirimde" süzgeci, Google verisi, paylaşım kartı, `GET
+  /api/mobile/v1/shop`). Migration tarihsiz eski fiyatları 0 yapar
+  (OP-COMPARE-AT'in Bambu Chasen adımı, bütün ürünlerde). CSV içe aktarma
+  eski fiyatı yalnız aynen bırakır ya da siler; eski fiyatı olan üründe
+  fiyatı ona ya da üstüne çıkaran satırı, formdaki gibi, aynı satırda eski
+  fiyat silinmedikçe reddeder (yükseltilip sonra indirilen fiyat eski
+  rozeti ve başlangıç gününü 10 gün denetimi olmadan geri getirirdi).
+- Uygulama (`compareAtPriceMinor` v1'de zorunlu sayı, 0 = indirim yok)
+  tarihleri isteğe bağlı yeni alanlarla alır; tarihli rozeti çizen sürüm
+  asgari sürüm olana kadar operatör ürünlere eski fiyat girmez.
+
+### 23.3 Değişen cümleler
+
+Sözleşme metni değişmedi. Yeni müşteri cümleleri:
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Ürün sayfası ve hızlı bakış, üstü çizili fiyatın altı | (yoktu) | İndirim <gün ay yıl> - <gün ay yıl> tarihleri arasında geçerli |
+| Mağaza kartı, fiyatın altı | (yoktu) | İndirim <gün> <ay kısaltması> - <gün> <ay kısaltması> |
+| Ürün detayları, alerjenler girilmiş ve hiçbiri yok | (yoktu) | 14 alerjen grubunun hiçbirini içermez |
+| Ürün detayları, etiketin bir kısmı girilmiş | (yoktu) | Etiket bilgisi: <eksikler, ör. "Net miktar, saklama koşulu ve işletme kayıt numarası"> için siparişten önce bize sor: <e-posta> ya da <telefon> |
+
+### 23.4 Operatöre
+
+- Bambu Chasen'in ve diğer ürünlerin eski fiyatı migration ile 0 olur;
+  uygulamanın tarihli rozeti yayına girip asgari sürüm ona çekilene kadar
+  eski fiyat girme (OP-COMPARE-AT).
+- Paketli gıdaların etiketini (`/admin/urunler` → Temel bilgi → Alerjen ve
+  Gıda etiketi) ambalajdan aynen gir; tedarikçi ya da tarif değişince aynı
+  gün güncelle.
+
+### 23.5 Hukuki dayanak
+
+- TGK Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği m.9/1
+  (zorunlu bilgiler a-j), m.17/2-a (uzaktan satışta (e) hariç hepsi satın
+  alma tamamlanmadan önce), m.17/2-b (hepsi teslimde), Ek-1 (14 grup).
+- Ticari Reklam ve Haksız Ticari Uygulamalar Yönetmeliği m.14/1 (indirimden
+  önceki fiyat, başlangıç ve bitiş tarihleri), m.14/3 (mal satışında
+  başlangıçtan önceki 10 günün en düşük fiyatı; RG 1/7/2026-33297,
+  yürürlük 1/8/2026), m.14/5 (yalnız indirimin yapıldığı kanalın fiyatı).
+- Fiyat Etiketi Yönetmeliği m.11/1 (indirimli satışta etikette ve listede
+  indirimli fiyat, indirimden önceki fiyat ve indirim; ispat satıcıda).
+
+## 24. Y10 - Fatura e-Arşiv olarak e-postayla, kurumsal fatura bilgisi e-postayla, karaoke faturası; İşlem Rehberi; meslek odası (20 Ekim 2026)
 
 > **Durum: kodda değişti.** Dal `feat/legal-invoice-and-company-info`.
 > Operatör kararı (18 Ekim 2026): avukat ve mali müşavir turu yok, karar
 > birincil kaynaklarla verildi (ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER,
 > D-ISLEM-DURABLE). Operatör (19 Ekim 2026): şirket faturalarını zaten
 > elektronik olarak düzenliyor. `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
-> **20 Ekim 2026** (§23.4). Bu bölüm §11'deki R9 (E1) önerisinin yerine
+> **20 Ekim 2026** (§24.4). Bu bölüm §11'deki R9 (E1) önerisinin yerine
 > geçer.
 
-### 23.1 Neden
+### 24.1 Neden
 
 - Şirket Bilgileri §14 faturanın yalnız "talep üzerine" e-postayla
   gönderildiğini, MSS §9 ise e-postaya "muvafakat" ve "talep edilirse kâğıt
@@ -2752,7 +2858,7 @@ Ayrı PR'ın notları:
   ÖBF §9 ve §22'ye dağılmıştı); Şirket Bilgileri'nde meslek odası satırı
   yoktu.
 
-### 23.2 Değişen cümleler
+### 24.2 Değişen cümleler
 
 | Yer | Mevcut | Yeni |
 |---|---|---|
@@ -2764,12 +2870,12 @@ Ayrı PR'ın notları:
 | Şirket Bilgileri §14, tablo "Fatura iletim yöntemi" | Fatura örneği talebi üzerine {{EMAIL}} adresi üzerinden | e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir (kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde); e-Fatura, e-Fatura sistemi üzerinden iletilir |
 | Şirket Bilgileri §14, tablo (yeni satır) "Koliyle gönderilen belge" | (yoktu) | Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir |
 | Karaoke koşulları §12 (tek paragraf) | Ödenen bedel için fatura mevzuata uygun olarak düzenlenir; faturanızın bir örneğini {{EMAIL}} adresinden talep edebilirsiniz. İptal ve iade hâlinde gerekli düzeltme belgesi düzenlenir. | Ödediğiniz tutar hizmet gününe kadar ön ödeme niteliğindedir. Fatura, e-Arşiv fatura olarak rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir ve rezervasyonda bildirdiğiniz e-posta adresine gönderilir. İptalde size iade edilen tutar faturalanmaz; iade edilmeyen tutar karaoke odası hizmet bedeli olarak faturalanır. Ödediğiniz KDV dâhil tutar, rezervasyon ile hizmet günü arasında vergi oranı değişse de değişmez. |
-| Şirket Bilgileri §2, tablo (iki yeni satır) | (yoktu) | "Kayıtlı olunan meslek odası": `{{CHAMBER}}`; "Meslek odasının davranış kuralları": `{{CHAMBER_RULES_URL}}`. İkisi de boş: satırlar basılmaz (§23.5) |
+| Şirket Bilgileri §2, tablo (iki yeni satır) | (yoktu) | "Kayıtlı olunan meslek odası": `{{CHAMBER}}`; "Meslek odasının davranış kuralları": `{{CHAMBER_RULES_URL}}`. İkisi de boş: satırlar basılmaz (§24.5) |
 | Şirket Bilgileri §9, belge tablosu (yeni satır) | (yoktu) | "İşlem Rehberi": /hukuk/islem-rehberi |
 | Site altı, Yasal sütunu | (yoktu) | İşlem rehberi (yedinci bağlantı, İptal, İade & Cayma'nın ardından) |
 | Panel, yazdırılan sipariş fişi | Bu fiş mali belge değildir. | İnternetten ödenen siparişte ve havale ile ödenen manuel siparişte: "Bu fiş mali belge değildir. Faturan elektronik olarak e-postana gönderilir." Manuel siparişte nakit ya da kasadaki kart cihazında: "Bu fiş mali belge değildir. Mali belgen kasadan verilen fiştir." Ödenmemiş siparişte, e-postasız siparişte, ödeme yolu kayıtlı olmayan manuel siparişte ve "Diğer" ödemede (yol bilinmiyor, kasa fişi de olabilir) yalnız ilk cümle. |
 
-### 23.3 Yeni belge: İşlem Rehberi (`/hukuk/islem-rehberi`)
+### 24.3 Yeni belge: İşlem Rehberi (`/hukuk/islem-rehberi`)
 
 Kategori "Sipariş", belgelerin "siz" dili, on iki bölüm: 1. Bu Rehber Ne
 Anlatır, 2. Sipariş Vermeden Önce, 3. İnternet Sitesinde Sipariş Adımları
@@ -2798,7 +2904,7 @@ yayında değil; AASA `/masa/*` talep etmez), kayıtlı kart (kural 28). §11 ya
 yasal uyuşmazlık yollarını sayar (hakem heyeti, zorunlu arabuluculuk,
 mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 
-### 23.4 Sürüm
+### 24.4 Sürüm
 
 - `LEGAL_UPDATED` 19 Ekim 2026'dan **20 Ekim 2026**'ya: ÖBF ve MSS değişti,
   ödeme onayının kaydettiği sürüm taşınır. 19 Ekim 2026 #163'ün (KDV, §16.4)
@@ -2813,7 +2919,7 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
   tarihini bıraktı ve setin gününü okur. Şirket Bilgileri ve İşlem Rehberi de
   setin gününde.
 
-### 23.5 Operatöre
+### 24.5 Operatöre
 
 - **Fatura içeriği (e-Arşiv, internet satışı).** Paraşüt'te internet satışı
   faturasında VUK GT 509 IV.2.4.5'in istediği alanlar dolu olmalı: "Bu satış
@@ -2844,7 +2950,7 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
   (app-legal-seed-invoice); İşlem Rehberi paketlenen belgelerden değil,
   dizinde görünür.
 
-### 23.6 Bilerek değişmeyenler
+### 24.6 Bilerek değişmeyenler
 
 - ÖBF §9 ve §22: sipariş adımları ve onay kaydı sözleşmenin parçası olarak
   yerinde kaldı; İşlem Rehberi onları özetler, yerine geçmez.
@@ -2858,7 +2964,7 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 - Ödeme formuna kurumsal fatura alanı eklenmedi (form sözleşmesi ve mobil
   sözleşme değişmez).
 
-### 23.7 Hukuki dayanak
+### 24.7 Hukuki dayanak
 
 | Konu | Dayanak | Karar |
 |---|---|---|

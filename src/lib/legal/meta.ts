@@ -22,7 +22,7 @@
 // 20 Ekim 2026: the ÖBF (§16) and the MSS (§9) say the invoice is an
 // e-Arşiv invoice sent by e-mail, its paper copy in the parcel standing in
 // for the waybill; Şirket Bilgileri §14 takes corporate details by e-mail
-// after the order, and the İşlem Rehberi joins the set. LEGAL-REDLINES §23.
+// after the order, and the İşlem Rehberi joins the set. LEGAL-REDLINES §24.
 // The set carries the publish day: only one PR that moves this label merges
 // per Istanbul day (19 Ekim 2026 was the KDV wording, §16.4; 18 Ekim 2026
 // the distance-sales set, §18 and §19), so a later merge moves it to that
@@ -106,7 +106,7 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  */
 // 20 Ekim 2026: §12 says the payment is an advance until the service day,
 // invoiced as an e-Arşiv invoice within 7 days of it for the amount the köşk
-// keeps (ASK-KAR-KDV). LEGAL-REDLINES §23. (19 Ekim 2026: §7 and §10 name the
+// keeps (ASK-KAR-KDV). LEGAL-REDLINES §24. (19 Ekim 2026: §7 and §10 name the
 // booking's own summary instead of fixed hours, §7 says when a cancel by
 // phone or e-mail counts, §8 says when and why the köşk cancels, §17. 17
 // Ekim 2026: §1 no longer points table bookings to the café terms.) One PR
