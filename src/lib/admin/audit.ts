@@ -7,7 +7,10 @@ import { getAdminSession } from "./auth";
 
 /**
  * Append-only event log of admin mutations. Persisted to the Postgres
- * `audit_logs` table. Old rows can later be pruned by a scheduled job.
+ * `audit_logs` table, where a trigger refuses UPDATE, TRUNCATE and any
+ * DELETE of a row younger than the ten-year retention
+ * (db/migrations/20261019140000_audit_logs_append_only.sql); the periodic
+ * destruction (src/lib/retention.ts) is the only thing that removes rows.
  */
 
 export type AuditEntity =
@@ -41,7 +44,9 @@ export type AuditEntity =
   | "counter_token"
   | "staff_member"
   | "campaign_email"
-  | "cafe_table";
+  | "cafe_table"
+  // The log itself, for its own CSV export.
+  | "audit_log";
 
 export type AuditAction =
   | "create"
@@ -60,7 +65,10 @@ export type AuditAction =
   // Campaign e-mail: "send" queues the audience and starts the batches,
   // "send_test" is the one real message to the operator's own inbox.
   | "send"
-  | "send_test";
+  | "send_test"
+  // A file of personal data left the panel (order CSV, audit log CSV): who
+  // took it, with which filters, how many rows (admin audit ORD-15).
+  | "export";
 
 export interface AdminAuditLog {
   id: string;
@@ -137,13 +145,20 @@ export interface AuditFilter {
   from?: string;
   to?: string;
   limit?: number;
+  /** Rows to skip, for a numbered page (newest first). */
+  offset?: number;
 }
 
-export async function listAuditLogs(
-  filter: AuditFilter = {},
-): Promise<AdminAuditLog[]> {
-  const sb = getDb();
-  let q = sb.from(TABLES.auditLogs).select("*");
+/** The part of a select chain the filters use (each step returns the chain). */
+interface FilterChain {
+  eq(column: string, value: unknown): this;
+  ilike(column: string, value: string): this;
+  gte(column: string, value: unknown): this;
+  lt(column: string, value: unknown): this;
+}
+
+/** The filters as SQL, shared by the page read and its count. */
+function filtered<Q extends FilterChain>(q: Q, filter: AuditFilter): Q {
   if (filter.actor) {
     // Literal match: `%` and `_` are wildcards and `\` is ILIKE's escape
     // character, so a typed backslash is escaped too (it used to turn the
@@ -159,11 +174,50 @@ export async function listAuditLogs(
   // `createdAt` is ISO-8601 text: string order is time order.
   if (filter.from) q = q.gte("createdAt", filter.from);
   if (filter.to) q = q.lt("createdAt", filter.to);
-  const { data, error } = await q
+  return q;
+}
+
+/**
+ * The log, newest first. `id` breaks a tie on `createdAt` (zero-padded
+ * counter ids sort in write order), so a page boundary never splits or
+ * repeats two rows written in the same millisecond.
+ */
+export async function listAuditLogs(
+  filter: AuditFilter = {},
+): Promise<AdminAuditLog[]> {
+  const sb = getDb();
+  let q = filtered(sb.from(TABLES.auditLogs).select("*"), filter)
     .order("createdAt", { ascending: false })
+    .order("id", { ascending: false })
     .limit(filter.limit ?? 500);
+  if (filter.offset && filter.offset > 0) q = q.offset(filter.offset);
+  const { data, error } = await q;
   if (error) throw new Error(`listAuditLogs: ${error.message}`);
   return (data ?? []) as AdminAuditLog[];
+}
+
+/** How many rows the filters match, across every page. */
+export async function countAuditLogs(
+  filter: AuditFilter = {},
+): Promise<number> {
+  const sb = getDb();
+  const { count, error } = await filtered(
+    sb.from(TABLES.auditLogs).select("*", { count: "exact", head: true }),
+    filter,
+  );
+  if (error) throw new Error(`countAuditLogs: ${error.message}`);
+  return count ?? 0;
+}
+
+/** One row by its id (the event's own page), or null. */
+export async function getAuditLog(id: string): Promise<AdminAuditLog | null> {
+  const { data, error } = await getDb()
+    .from(TABLES.auditLogs)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getAuditLog: ${error.message}`);
+  return (data ?? null) as AdminAuditLog | null;
 }
 
 /**

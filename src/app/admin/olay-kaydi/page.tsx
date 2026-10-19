@@ -1,31 +1,43 @@
 import Link from "next/link";
 
-import { PageHeader, formatDateTime } from "@/components/admin/forms";
-import { Badge, DataTable, EmptyState, FilterBar } from "@/components/admin/ui";
+import { PageHeader } from "@/components/admin/forms";
 import {
+  Badge,
+  BUTTON,
+  DataTable,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  Pagination,
+} from "@/components/admin/ui";
+import {
+  countAuditLogs,
   listAuditLogs,
   type AdminAuditLog,
-  type AuditAction,
-  type AuditEntity,
 } from "@/lib/admin/audit";
 import {
   AUDIT_ACTION_LABELS,
   AUDIT_ACTION_TONES,
   AUDIT_ENTITY_LABELS,
   AUDIT_FILTER_FIELDS,
+  AUDIT_LOG_PAGE_SIZE,
+  AUDIT_LOG_PATH,
+  auditActorText,
+  auditEventHref,
+  auditFilterOf,
   auditPayloadEntries,
   auditRecordHref,
-  istanbulDayRange,
+  auditRecordText,
+  auditTime,
 } from "@/lib/admin/audit-view";
 import { requireRole } from "@/lib/admin/auth";
-import { parseFilters, withParams } from "@/lib/admin/list-params";
+import { parseFilters, parsePage, withParams } from "@/lib/admin/list-params";
 
-export const metadata = { title: "Admin · Olay Kaydı" };
+export const metadata = { title: "Admin · Olay kaydı" };
 export const dynamic = "force-dynamic";
 
-const LIMIT = 500;
-const PATH = "/admin/olay-kaydi";
-const MONO = { fontFamily: "var(--mono), monospace" } as const;
+/** Fields a row shows in the list; the event's own page has the rest. */
+const PREVIEW_FIELDS = 3;
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -34,8 +46,11 @@ interface PageProps {
 function RecordCell({ row }: { row: AdminAuditLog }) {
   const label = AUDIT_ENTITY_LABELS[row.entity] ?? row.entity;
   const href = row.entityId ? auditRecordHref(row.entity, row.entityId) : null;
+  const text = row.entityId ? auditRecordText(row.entity, row.entityId) : "";
+  // A section name reads as words; an id keeps its code face.
+  const coded = text === row.entityId.trim();
   return (
-    <div className="grid gap-0.5">
+    <div className="grid min-w-0 gap-0.5">
       <span className="text-[var(--admin-text)]">{label}</span>
       {row.entityId ? (
         <span className="flex flex-wrap items-baseline gap-x-2 text-xs">
@@ -43,16 +58,16 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
             <Link
               href={href}
               className="break-all text-[var(--admin-primary)] underline-offset-4 hover:underline"
-              style={MONO}
+              style={coded ? NUMERIC_STYLE : undefined}
             >
-              {row.entityId}
+              {text}
             </Link>
           ) : (
             <span
               className="break-all text-[var(--admin-text-soft)]"
-              style={MONO}
+              style={coded ? NUMERIC_STYLE : undefined}
             >
-              {row.entityId}
+              {text}
             </span>
           )}
           {/* The name starts with the visible word "Geçmişi", so voice
@@ -61,10 +76,10 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
             href={withParams(
               {},
               { entity: row.entity, entityId: row.entityId },
-              PATH,
+              AUDIT_LOG_PATH,
             )}
             className="text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-            aria-label={`Geçmişi: ${label} ${row.entityId}, bütün olaylar`}
+            aria-label={`Geçmişi: ${label} ${text}, bütün olaylar`}
           >
             Geçmişi
           </Link>
@@ -74,67 +89,131 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
   );
 }
 
+/**
+ * The first few fields, each name above its value so a narrow column still
+ * gives the value its whole width (SYS-11: a 219 px name left 34 px for
+ * "owner, manager, cashier"). The rest is one link away.
+ */
 function PayloadCell({ row }: { row: AdminAuditLog }) {
-  const entries = auditPayloadEntries(row.payload);
+  const entries = auditPayloadEntries(row.payload, row);
   if (entries.length === 0) {
     return <span className="text-[var(--admin-text-mute)]">-</span>;
   }
+  const shown = entries.slice(0, PREVIEW_FIELDS);
+  const more = entries.length - shown.length;
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
-      {entries.map((e) => (
-        <div key={e.key} className="contents">
-          <dt className="text-[var(--admin-text-soft)]">{e.label}</dt>
-          <dd className="break-all text-[var(--admin-text)]">{e.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="grid min-w-0 gap-1.5 text-xs">
+      <dl className="grid min-w-0 gap-1.5">
+        {shown.map((e) => (
+          <div key={e.key} className="min-w-0">
+            <dt className="text-[var(--admin-text-soft)]">{e.label}</dt>
+            <dd className="line-clamp-3 break-words text-[var(--admin-text)]">
+              {e.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {more > 0 ? (
+        <Link
+          href={auditEventHref(row.id)}
+          className="text-[var(--admin-primary)] underline-offset-4 hover:underline"
+        >
+          {`+${more} alan daha`}
+          <span className="sr-only">{`, olay ${row.id}`}</span>
+        </Link>
+      ) : null}
+    </div>
   );
 }
 
+function Actor({ actor }: { actor: string }) {
+  const text = auditActorText(actor);
+  return (
+    <span className="block truncate text-xs" title={actor}>
+      {text}
+    </span>
+  );
+}
+
+/**
+ * Olay kaydı: who changed what in the panel, and when. Paged like the other
+ * lists (50 a page, the newest first); each event has its own page with the
+ * full payload, and the owner can take the filtered log as a CSV.
+ */
 export default async function AuditLogPage({ searchParams }: PageProps) {
   await requireRole("audit");
   const sp = await searchParams;
   const filters = parseFilters(sp, AUDIT_FILTER_FIELDS);
-  const range = istanbulDayRange(filters.bas, filters.bit);
-  const rows = await listAuditLogs({
-    actor: filters.actor,
-    entity: filters.entity as AuditEntity | undefined,
-    action: filters.action as AuditAction | undefined,
-    entityId: filters.entityId,
-    from: range.from,
-    to: range.to,
-    limit: LIMIT,
-  });
+  const filter = auditFilterOf(filters);
+  const page = parsePage(sp);
+  const [rows, total] = await Promise.all([
+    listAuditLogs({
+      ...filter,
+      limit: AUDIT_LOG_PAGE_SIZE,
+      offset: (page - 1) * AUDIT_LOG_PAGE_SIZE,
+    }),
+    countAuditLogs(filter),
+  ]);
   const filtered = Object.keys(filters).length > 0;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Denetim"
-        title="Olay Kaydı"
-        description="Admin mutasyonlarının değiştirilemez tarihçesi. Yalnız okuma - kim, neyi, ne zaman değiştirdi."
+        eyebrow="Sistem"
+        title="Olay kaydı"
+        description="Paneldeki değişikliklerin ve sistem olaylarının kaydı: kim, neyi, ne zaman. Kayıtlar değiştirilemez ve on yıl saklanır."
+        action={
+          total > 0 ? (
+            // A plain link: a prefetching <Link> would download the file.
+            <a
+              href={withParams(sp, { sayfa: null }, `${AUDIT_LOG_PATH}/csv`)}
+              download
+              className={BUTTON.ghost}
+            >
+              CSV indir
+            </a>
+          ) : undefined
+        }
       />
 
-      <FilterBar
-        fields={[...AUDIT_FILTER_FIELDS]}
-        searchParams={sp}
-        pathname={PATH}
-        values={filters}
-      />
+      <div className="mb-4">
+        <FilterBar
+          fields={[...AUDIT_FILTER_FIELDS]}
+          searchParams={sp}
+          pathname={AUDIT_LOG_PATH}
+          values={filters}
+        />
+      </div>
 
-      <DataTable
+      <DataTable<AdminAuditLog>
         caption="Olay kaydı"
         rows={rows}
         rowKey={(r) => r.id}
+        rowHref={(r) => auditEventHref(r.id)}
         empty={
-          <EmptyState
-            title={filtered ? "Bu filtreyle olay yok." : "Henüz olay yok."}
-            description={
-              filtered
-                ? "Filtreleri gevşet ya da Sıfırla'ya bas."
-                : "Bir ürün oluştur ya da bir sipariş durumu güncelle, burada görünür."
-            }
-          />
+          total > 0 ? (
+            // A page past the end (an old link, a log that was filtered).
+            <EmptyState
+              title="Bu sayfada olay yok."
+              action={
+                <Link
+                  href={withParams(sp, { sayfa: null }, AUDIT_LOG_PATH)}
+                  className={BUTTON.ghost}
+                >
+                  İlk sayfaya dön
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              title={filtered ? "Bu filtreyle olay yok." : "Henüz olay yok."}
+              description={
+                filtered
+                  ? "Filtreleri gevşet ya da Sıfırla'ya bas."
+                  : "Bir ürün oluştur ya da bir sipariş durumu güncelle, burada görünür."
+              }
+            />
+          )
         }
         columns={[
           {
@@ -142,23 +221,23 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             header: "Zaman",
             className: "whitespace-nowrap",
             cell: (r) => (
-              <span className="text-xs" style={MONO}>
-                {formatDateTime(r.createdAt)}
+              <span className="text-xs" style={NUMERIC_STYLE}>
+                {auditTime(r.createdAt)}
               </span>
             ),
           },
           {
             key: "actor",
             header: "Kim",
-            cell: (r) => (
-              <span className="text-xs break-all" style={MONO}>
-                {r.actor}
-              </span>
-            ),
+            // Wide enough for "info@laffogato.com" on one line; a longer
+            // address ends in "…" with the whole of it in the title.
+            className: "w-[12rem] max-w-[12rem]",
+            cell: (r) => <Actor actor={r.actor} />,
           },
           {
             key: "action",
             header: "İşlem",
+            className: "whitespace-nowrap",
             cell: (r) => (
               <Badge tone={AUDIT_ACTION_TONES[r.action] ?? "neutral"}>
                 {AUDIT_ACTION_LABELS[r.action] ?? r.action}
@@ -168,21 +247,46 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           {
             key: "record",
             header: "Kayıt",
+            className: "min-w-[9rem]",
             cell: (r) => <RecordCell row={r} />,
           },
           {
             key: "payload",
             header: "Ayrıntı",
-            className: "min-w-[220px]",
+            className: "min-w-[14rem]",
             cell: (r) => <PayloadCell row={r} />,
           },
         ]}
+        mobileCard={(r) => (
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                href={auditEventHref(r.id)}
+                className="text-xs text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                style={NUMERIC_STYLE}
+              >
+                {auditTime(r.createdAt)}
+              </Link>
+              <Badge tone={AUDIT_ACTION_TONES[r.action] ?? "neutral"}>
+                {AUDIT_ACTION_LABELS[r.action] ?? r.action}
+              </Badge>
+            </div>
+            <RecordCell row={r} />
+            <Actor actor={r.actor} />
+            <PayloadCell row={r} />
+          </div>
+        )}
       />
-      {rows.length >= LIMIT ? (
-        <p className="mt-3 text-xs text-[var(--admin-text-soft)]">
-          En yeni {LIMIT} olay gösteriliyor. Daha eskisi için tarih aralığını
-          daralt.
-        </p>
+
+      {total > AUDIT_LOG_PAGE_SIZE ? (
+        <Pagination
+          page={page}
+          pageSize={AUDIT_LOG_PAGE_SIZE}
+          total={total}
+          searchParams={sp}
+          pathname={AUDIT_LOG_PATH}
+          label="Olay kaydı sayfaları"
+        />
       ) : null}
     </main>
   );
