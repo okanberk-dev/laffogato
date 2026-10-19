@@ -1,3 +1,4 @@
+import { safeAudit } from "@/lib/admin/audit";
 import { getAdminSession } from "@/lib/admin/auth";
 import {
   ORDER_CSV_MAX_ROWS,
@@ -35,6 +36,11 @@ const BATCH = 500;
  * address, no consent evidence. Owner and manager only (`mayExportOrders`):
  * the file is the customer list with every order's money, which staff do
  * not see in the panel either (customers, reports).
+ *
+ * Every export writes an `export` row to Olay kaydı (who, which filters,
+ * how many rows; admin audit ORD-15): personal data leaving the panel as a
+ * file left no trace. safeAudit: a failed row is logged, the file still
+ * goes out.
  */
 export async function GET(request: Request) {
   const session = await getAdminSession();
@@ -79,6 +85,16 @@ export async function GET(request: Request) {
     (o) => money.get(o.id)?.collected ?? Boolean(o.paidAt),
     (o) => coupons.get(o.orderNo) ?? null,
   );
+  await safeAudit({
+    action: "export",
+    entity: "order",
+    actor: session.email,
+    payload: {
+      filters: parsed.values,
+      ...(parsed.tab ? { tab: parsed.tab } : {}),
+      rows: rows.length,
+    },
+  });
   const day = istanbulStamp(new Date().toISOString()).slice(0, 10);
   return new Response(csv, {
     status: 200,
