@@ -145,6 +145,7 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    ancak yeni bir deploy'la devreye girer. Aksi halde eski fiyat ve stok
    24 saat, ardından bir istek daha görünür; veritabanı kapalıysa
    yenilenemeyen kayıt kapalı kaldığı sürece görünür.
+
 3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
    (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
    `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
