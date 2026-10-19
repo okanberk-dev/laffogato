@@ -537,6 +537,33 @@ describe("a paid booking's cancel names its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))
     );
   });
 
+  it("reads the instant typed as the refusal's example asks (gg.aa.yyyy ss:dd)", async () => {
+    await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "30.10.2026 14:05",
+      }),
+    );
+    expect(h.cancel).toHaveBeenLastCalledWith(
+      ID,
+      expect.objectContaining({
+        requestedAt: new Date("2026-10-30T11:05:00.000Z"),
+      }),
+    );
+    // A day the calendar does not have is not rolled over into the next.
+    const bad = await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "31.09.2026 14:05",
+      }),
+    );
+    expect(!bad.ok && bad.fieldErrors?.istekAni).toMatch(/ör\. 30\.10\.2026/);
+  });
+
   it("refuses an instant ahead of now or before the booking was made", async () => {
     const ahead = await admin.cancelReservationAction(
       null,

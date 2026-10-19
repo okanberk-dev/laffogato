@@ -145,6 +145,25 @@ const MSG_REQUEST_BEFORE_BOOKING =
 const MSG_REQUEST_UNREADABLE =
   "İstek anını tarih ve saat olarak gir (ör. 30.10.2026 18:00).";
 
+/**
+ * "30.10.2026 18:00" (the refusal's own example, and how staff write a time)
+ * as the `datetime-local` shape `parsePublishInstant` reads; anything else
+ * passes through untouched. A day the month does not have stays unreadable
+ * (`Date.parse` would roll 31.09 over into October).
+ */
+function fromTurkishInstant(typed: string): string {
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/.exec(typed);
+  if (!m) return typed;
+  const [, d, mo, y, hh, mi] = m;
+  const day = Number(d);
+  const month = Number(mo);
+  const days = new Date(Date.UTC(Number(y), month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > days) return "";
+  if (Number(hh) > 23) return "";
+  const two = (v: string) => v.padStart(2, "0");
+  return `${y}-${two(mo)}-${two(d)}T${two(hh)}:${mi}`;
+}
+
 type StaffCancelInput =
   | { cause: Exclude<KaraokeCancelCause, "misafir"> }
   | {
@@ -191,7 +210,7 @@ function readStaffCancel(
   const typed = typeof raw === "string" ? raw.trim() : "";
   let requestedAt = now;
   if (typed) {
-    const at = parsePublishInstant(typed);
+    const at = parsePublishInstant(fromTurkishInstant(typed));
     if (at === null) return refuse("istekAni", MSG_REQUEST_UNREADABLE);
     requestedAt = new Date(at);
   }
