@@ -631,6 +631,18 @@ describe("the shell's markup", () => {
     expect(src).toMatch(
       /try \{\s+window\.localStorage\.setItem\(NAV_NOTE_KEY, "1"\)/,
     );
+    // Its close button is the panel's 44 px target, like the drawer's
+    // (SHE-M03): it was a 36 px square.
+    const close =
+      /aria-label="Notu kapat"\s+className="([^"]+)"/.exec(src)?.[1] ?? "";
+    expect(close).toMatch(/\bh-11\b/);
+    expect(close).toMatch(/\bw-11\b/);
+    const squares = [...src.matchAll(/\bh-(\d+) w-(\d+)\b/g)].map((m) => [
+      Number(m[1]),
+      Number(m[2]),
+    ]);
+    expect(squares.length).toBeGreaterThan(2);
+    expect(squares.filter(([h, w]) => h < 11 || w < 11)).toEqual([]);
   });
 
   it("the sidebar file loads lucide only through the lazy icon module", () => {

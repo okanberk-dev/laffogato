@@ -368,7 +368,7 @@ function NavNote() {
         type="button"
         onClick={dismissNavNote}
         aria-label="Notu kapat"
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
+        className="-my-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
       >
         <NavIcon name="close" />
       </button>
