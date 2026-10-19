@@ -157,9 +157,10 @@ describe("the printed receipt", () => {
 });
 
 describe("KDV on the page and the receipt (17 Eki 2026)", () => {
-  // Beans at 1% and a mug at 20%, a 30 TL coupon and 49 TL shipping: the
-  // coupon and the shipping are shared over the lines by amount.
-  const rated = () =>
+  // Beans at 10% and a mug at 20%, a 40 TL coupon and 40 TL shipping: the
+  // coupon is shared over the lines by amount, the shipping fee is its own
+  // 20% amount (18 Eki 2026, a transport service on its own line).
+  const rated = (over: Partial<AdminOrder> = {}) =>
     order({
       kind: "shop",
       fulfillment: "shipping",
@@ -169,7 +170,7 @@ describe("KDV on the page and the receipt (17 Eki 2026)", () => {
           qty: 1,
           unitPriceMinor: 30_000,
           status: "pending",
-          taxRatePct: 1,
+          taxRatePct: 10,
         },
         {
           productName: "Kupa",
@@ -183,27 +184,148 @@ describe("KDV on the page and the receipt (17 Eki 2026)", () => {
       discountMinor: 4_000,
       shippingMinor: 4_000,
       totalMinor: 40_000,
+      ...over,
     });
+
+  function withCoupon(
+    o: AdminOrder,
+    couponSource: string | null,
+    couponUnread = false,
+  ) {
+    return renderToStaticMarkup(
+      createElement(OrderDetail, {
+        order: o,
+        settings,
+        money,
+        actions: orderActions(o, "owner", true, o.totalMinor),
+        payments: [],
+        timeline: [],
+        notices: [],
+        customerHref: null,
+        detailsRules: orderDetailsRules(o, "owner"),
+        canSeeEvidence: true,
+        couponSource,
+        couponUnread,
+      }),
+    );
+  }
+
+  /** The Tutar card's KDV table, as text. */
+  function kdvTable(out: string): string {
+    const at = out.indexOf("data-kdv-breakdown");
+    return out.slice(at, out.indexOf("</div>", out.indexOf("</table>", at)));
+  }
 
   it("the receipt prints the KDV inside the total, per rate", () => {
     const out = renderToStaticMarkup(
       createElement(PrintableReceipt, { order: rated(), settings }),
     );
     expect(out.match(/data-receipt-kdv/g)).toHaveLength(2);
-    // %20: 9.000 + 1.000 shipping = 10.000 → KDV 1.666,67 → 1.667.
-    expect(out).toContain("İçindeki KDV %20");
-    expect(out).toMatch(/₺16,67/);
-    // %1: 27.000 + 3.000 = 30.000 → KDV 297,03 → 297.
-    expect(out).toContain("İçindeki KDV %1");
-    expect(out).toMatch(/₺2,97/);
+    // %20: 9.000 + the whole 4.000 fee = 13.000 → KDV 2.166,67 → 2.167.
+    expect(out).toContain("İçindeki KDV %20 (matrah ₺108,33)");
+    expect(out).toMatch(/₺21,67/);
+    // %10: 27.000, no share of the fee → KDV 2.454,55 → 2.455.
+    expect(out).toContain("İçindeki KDV %10 (matrah ₺245,45)");
+    expect(out).toMatch(/₺24,55/);
   });
 
   it("the page shows the per-rate table and each line's rate", () => {
     const out = detail(rated());
     expect(out).toContain("data-kdv-breakdown");
-    expect(out).toContain("KDV %1 dahil");
+    expect(out).toContain("KDV %10 dahil");
     expect(out).toContain("KDV %20 dahil");
     expect(out).toContain("Matrah");
+    // The note says how the split was made: the fee its own line.
+    expect(out).toContain("İndirim satırlara tutarlarıyla orantılı dağıtıldı.");
+    expect(out).toContain("Kargo ya da kurye ücreti ayrı kalem, KDV %20.");
+    expect(out).not.toContain("kargo ya da kurye ücreti satırlara");
+    expect(out).not.toContain("data-kdv-reward");
+  });
+
+  it("a reward coupon pays for the goods: the table is the invoice's, at full price", () => {
+    // A 120 TL stamp-card drink on a 150 TL cafe order (ASK-COUPON).
+    const o = order({
+      items: [
+        {
+          productName: "Latte",
+          qty: 1,
+          unitPriceMinor: 15_000,
+          status: "pending",
+          taxRatePct: 10,
+        },
+      ],
+      subtotalMinor: 15_000,
+      discountMinor: 12_000,
+      promoCode: "SD-7K2M9Q",
+      totalMinor: 3_000,
+    });
+    const out = withCoupon(o, "loyalty");
+    const table = kdvTable(out);
+    // 150 TL at 10% → KDV 13,64 TL, not the 30 TL the member paid.
+    expect(table).toContain("₺136,36");
+    expect(table).toContain("₺13,64");
+    expect(table).toContain("₺150,00");
+    expect(out).toContain(
+      "Ödül kuponu SD-7K2M9Q: ₺120,00 ödeme olarak düşülür, KDV matrahından düşülmez.",
+    );
+    expect(out).toContain("Faturadaki döküm: ürünler tam fiyatla.");
+    // The receipt keeps the KDV inside what was paid.
+    const receipt = renderToStaticMarkup(
+      createElement(PrintableReceipt, { order: o, settings }),
+    );
+    expect(receipt).toContain("İçindeki KDV %10 (matrah ₺27,27)");
+
+    // The same coupon as a 20% gift (HD) is a discount: the member's split.
+    const gift = withCoupon(
+      order({
+        items: o.items,
+        subtotalMinor: 15_000,
+        discountMinor: 3_000,
+        promoCode: "HD-7K2M9Q",
+        totalMinor: 12_000,
+      }),
+      "manual",
+    );
+    expect(gift).not.toContain("data-kdv-reward");
+    expect(kdvTable(gift)).toContain("₺120,00");
+  });
+
+  it("a coupon that covers every line is not a discount either", () => {
+    const o = order({
+      items: [
+        {
+          productName: "Latte",
+          qty: 1,
+          unitPriceMinor: 15_000,
+          status: "pending",
+          taxRatePct: 10,
+        },
+      ],
+      subtotalMinor: 15_000,
+      discountMinor: 15_000,
+      promoCode: "HD-ALL100",
+      totalMinor: 0,
+    });
+    const out = withCoupon(o, "manual");
+    expect(kdvTable(out)).toContain("₺13,64");
+    expect(out).toContain(
+      "Kupon HD-ALL100 ürünlerin tamamını karşılıyor: ₺150,00 ödeme olarak düşülür, KDV matrahından düşülmez.",
+    );
+  });
+
+  it("the order page reads the coupon behind the order and hands it to the table", () => {
+    const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
+    expect(page).toContain("couponSourcesForOrders([order])");
+    // A failed read is flagged, never taken for "no reward".
+    expect(page).toMatch(/readOrFlag\(\s*couponSourcesForOrders/);
+    expect(page).toContain("couponSource={couponRead.rows[0] ?? null}");
+    expect(page).toContain("couponUnread={couponRead.failed}");
+  });
+
+  it("says so when the coupon could not be read, instead of guessing", () => {
+    const out = withCoupon(rated({ promoCode: "SD-READFAIL" }), null, true);
+    expect(out).toContain("Kuponun türü okunamadı.");
+    expect(out).not.toContain("data-kdv-reward");
   });
 
   it("the per-rate table fits a 375 px phone: no forced width", () => {
@@ -491,5 +613,40 @@ describe("the timeline", () => {
     const cancel = items.find((i) => i.title === "Durum: İptal edildi")!;
     expect(cancel.description).toBe("Müşteri vazgeçti · stoğa alınmadı");
     expect(cancel.actor).toBe("mudur@laffogato.net");
+  });
+
+  it("names the KDV correction the migration recorded, with the lines sold at 1%", () => {
+    const items = orderTimeline(
+      order(),
+      [
+        {
+          id: "aud-0000042",
+          actor: "system",
+          action: "update",
+          entity: "order",
+          entityId: "ord-1",
+          payload: {
+            event: "kdv_rate_corrected",
+            migration: "20261019150000_cafe_food_rate_10.sql",
+            orderNo: 10001,
+            from: 1,
+            to: 10,
+            count: 2,
+            lines: [
+              { index: 0, productName: "Etiyopya Yirgacheffe", qty: 2 },
+              { index: 2, productName: "Yenilebilir Kup", qty: 1 },
+            ],
+          },
+          createdAt: "2026-10-22T08:00:00.000Z",
+        },
+      ],
+      [],
+    );
+    const fix = items.find((i) => i.id === "aud-aud-0000042")!;
+    expect(fix.title).toBe("KDV oranı %1'den %10'a düzeltildi (2 kalem)");
+    expect(fix.tone).toBe("warning");
+    expect(fix.description).toBe(
+      "Satıştaki oran %1: 1. kalem Etiyopya Yirgacheffe, 3. kalem Yenilebilir Kup. %1 ile fatura kesildiyse mali müşavire ilet.",
+    );
   });
 });

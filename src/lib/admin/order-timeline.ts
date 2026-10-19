@@ -152,6 +152,25 @@ function auditItem(
           title: `Stok geri alındı (${Number(p.units ?? 0)} ürün)`,
         };
       }
+      if (event === "kdv_rate_corrected") {
+        // 20261019150000_cafe_food_rate_10.sql moved these lines' stamp;
+        // the row keeps the rate they were sold (and maybe invoiced) at.
+        const lines = Array.isArray(p.lines)
+          ? (p.lines as Array<Record<string, unknown>>)
+          : [];
+        const named = lines
+          .map(
+            (l) => `${Number(l.index ?? 0) + 1}. kalem ${text(l.productName)}`,
+          )
+          .join(", ");
+        const from = Number(p.from ?? 0);
+        return {
+          ...base,
+          title: `KDV oranı %${from}'den %${Number(p.to ?? 0)}'a düzeltildi (${Number(p.count ?? lines.length)} kalem)`,
+          tone: "warning",
+          description: `Satıştaki oran %${from}${named ? `: ${named}` : ""}. %${from} ile fatura kesildiyse mali müşavire ilet.`,
+        };
+      }
       if (event === "mail_resent") {
         return {
           ...base,

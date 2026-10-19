@@ -200,11 +200,12 @@ function appOrder(lines: Parameters<typeof store.placeAppOrder>[0]["lines"]) {
 const RATES = {
   menu: 10,
   karaoke: 20,
-  beans: 1,
-  pantry: 1,
+  beans: 10,
+  pantry: 10,
   gift: 20,
   gear: 20,
   merch: 20,
+  shipping: 20,
 };
 
 beforeEach(() => {

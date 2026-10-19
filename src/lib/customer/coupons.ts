@@ -499,3 +499,45 @@ export async function revokeCustomerCoupon(id: string): Promise<boolean> {
   checkErr(error, "revokeCustomerCoupon");
   return ((data as { id: string }[] | null) ?? []).length > 0;
 }
+
+/**
+ * The source of the member coupon each order redeemed, by order number: what
+ * the invoice's KDV split needs (`invoiceRewardMinor`, src/lib/utils/kdv.ts:
+ * a reward coupon pays for the goods, it is not a discount). The order's
+ * `promoCode` is the coupon's code and the coupon names the order it was
+ * spent on (`redeemedOrderNo`); a shared promo code has no row here and is
+ * left out of the map, like an order without a discount. Read by the order
+ * page and the order CSV, in batches of 500 order numbers.
+ */
+export async function couponSourcesForOrders(
+  orders: ReadonlyArray<{
+    orderNo: number;
+    promoCode?: string;
+    discountMinor: number;
+  }>,
+): Promise<Map<number, CouponSource>> {
+  const wanted = new Map<number, string>();
+  for (const o of orders) {
+    const code = normalizeCouponCode(o.promoCode ?? "");
+    if (code && o.discountMinor > 0 && o.orderNo > 0) {
+      wanted.set(o.orderNo, code);
+    }
+  }
+  const out = new Map<number, CouponSource>();
+  const numbers = [...wanted.keys()];
+  const sb = getDb();
+  for (let i = 0; i < numbers.length; i += 500) {
+    const { data, error } = await sb
+      .from(TABLES.customerCoupons)
+      .select("code, source, redeemedOrderNo")
+      .in("redeemedOrderNo", numbers.slice(i, i + 500));
+    checkErr(error, "couponSourcesForOrders");
+    for (const row of (data as
+      | { code: string; source: CouponSource; redeemedOrderNo: number }[]
+      | null) ?? []) {
+      const no = Number(row.redeemedOrderNo);
+      if (wanted.get(no) === row.code) out.set(no, row.source);
+    }
+  }
+  return out;
+}

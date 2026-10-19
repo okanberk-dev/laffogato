@@ -64,7 +64,7 @@ const [PRE, DISTANCE] = CHECKOUT_CONSENT_DOCS;
 
 describe("legal day labels", () => {
   it("reads the documents' own date shape, month in any case", () => {
-    expect(legalDayNumber(LEGAL_UPDATED)).toBe(20261018);
+    expect(legalDayNumber(LEGAL_UPDATED)).toBe(20261019);
     expect(legalDayNumber("15 Ekim 2026")).toBe(20261015);
     expect(legalDayNumber(" 2 şubat 2027 ")).toBe(20270202);
     expect(legalDayNumber("1 AĞUSTOS 2026")).toBe(20260801);

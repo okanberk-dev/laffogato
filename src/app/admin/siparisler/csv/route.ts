@@ -15,6 +15,7 @@ import {
   listOrdersFiltered,
   type AdminOrder,
 } from "@/lib/admin/store";
+import { couponSourcesForOrders } from "@/lib/customer/coupons";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,10 +67,17 @@ export async function GET(request: Request) {
     if (batch.orders.length < BATCH) break;
   }
   const rows = orders.slice(0, ORDER_CSV_MAX_ROWS);
-  const money = await listOrderMoney(rows);
+  // The coupon each order redeemed: a reward coupon pays for the goods, so
+  // the KDV columns carry the invoice's split at full price (ASK-COUPON).
+  // A failed read fails the file: a split that hides a reward is wrong.
+  const [money, coupons] = await Promise.all([
+    listOrderMoney(rows),
+    couponSourcesForOrders(rows),
+  ]);
   const csv = ordersCsv(
     rows,
     (o) => money.get(o.id)?.collected ?? Boolean(o.paidAt),
+    (o) => coupons.get(o.orderNo) ?? null,
   );
   const day = istanbulStamp(new Date().toISOString()).slice(0, 10);
   return new Response(csv, {

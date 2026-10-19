@@ -53,7 +53,7 @@ geçer; değerleri `src/lib/legal/entity.ts` doldurur.
 | R10 | Posta kodu 34940 | §12 |
 | R11 (T1) | Uzun tireler | §13 |
 | Y1 | fA'L yapay zekâ alıcısı: OpenAI yerine Anthropic (17 Eki 2026, metin kodda değişti) | §15 |
-| Y2 | KDV oranı ürüne göre: %1, %10, %20 (17 Eki 2026, metin kodda değişti) | §16 |
+| Y2 | KDV oranı ürüne göre (17 Eki 2026); köşkün gıdası %10, kargo ayrı %20 kalem, metinler kural yazar (18 Eki 2026, operatör kararı, metin kodda değişti) | §16 |
 | Y3 | Masa ve grup rezervasyonu kalktı; rezervasyon yalnız karaoke odası (17 Eki 2026, metin kodda değişti) | §17 |
 
 **Ek A** (belgenin sonunda) etkilenen **her cümleyi** belge belge, satır
@@ -1095,9 +1095,13 @@ onayının kaydettiği sürüm) değişmedi.
 
 ## 16. Y2 - KDV oranı ürüne göre (17 Eki 2026)
 
-> **Durum: metin kodda değişti, avukat ve mali müşavir okuması bekliyor.**
-> Dal `feat/kdv-per-product`. Fiyatlar ve tahsil edilen tutarlar değişmedi;
-> değişen, metinlerin fiyatın içindeki KDV oranı hakkında söyledikleridir.
+> **Durum (18 Eki 2026): karar verildi, metin ve kod değişti.** Operatör
+> kararı: avukat ve mali müşavir turu yok; birincil kaynaklar araştırıldı ve
+> karar verildi (§16.3, §16.4). Dal `feat/legal-kdv-rates-and-invoice-lines`.
+> 17 Ekim'deki ilk sürüm `feat/kdv-per-product` (§16.1, §16.2) tarihçe olarak
+> duruyor. Fiyatlar ve tahsil edilen tutarlar hiçbir adımda değişmedi;
+> değişen, fiyatın içindeki KDV'nin nasıl ayrıldığı ve metinlerin bunu nasıl
+> söylediğidir.
 
 ### 16.1 Neden
 
@@ -1123,9 +1127,15 @@ kaynaklarla; kod `src/lib/utils/kdv.ts`):
   kup kutusu (waffle kupu, GTİP 19.05) gıdadır, %1. Bu ürüne migration ve
   seed kendi oranını (%1) verir; kategori varsayılanı %20 kalır.
 - Satıcının alıcıdan aldığı kargo ya da kurye bedeli, teslimin matrahına
-  girer (KDV K. m.24/b): taşıdığı ürünün oranına tabidir. Farklı oranlı
+  girer (KDV K. m.24/a): taşıdığı ürünün oranına tabidir. Farklı oranlı
   ürünler bir arada gönderildiğinde bedel tutarlarıyla orantılı paylaştırılır.
   Bu paylaştırma yaygın uygulamadır; kanunda yazılı bir kural değildir.
+  (18 Eki 2026'da değişti: kargo ayrı kalem, %20; §16.3 Y2-2. Bent harfi de
+  düzeltildi: taşıma giderleri m.24/a'dadır, m.24/b ambalaj, sigorta ve
+  komisyon içindir.)
+- (18 Eki 2026'da değişti) Kahve çekirdeği ve paketli gıda için %1 kararı
+  da kalktı: köşk kafeterya işletmesi olduğu için sattığı bütün gıda %10
+  (§16.3 Y2-1).
 
 Metinler ise "fiziksel ürünlerde %20", "kargo hizmet bedelinde KDV %20" ve
 "yüzde 20 KDV" diyordu. Bu, %1'lik kahve ve %10'luk menü için yanlıştı.
@@ -1160,15 +1170,149 @@ Değişmeyenler: Karaoke Odası Rezervasyonu belgesi oran söylemiyor ("tüm
 vergiler dahil"). Kullanım Şartları'ndaki "KDV oranı: Gösterilen fiyatlara
 dâhildir" doğru kaldı.
 
-### 16.3 Avukata ve mali müşavire sorular
+### 16.3 Sorular ve kararlar (18 Eki 2026)
 
-| # | Soru | Neden |
-|---|---|---|
-| Y2-1 | Mağazada kargoyla satılan paketli kahve %1 sayıldı (mal teslimi, (I) sayılı liste). Seri No 51, yeme-içme işletmesinin sattığı gıdayı %10 sayıyor. Köşkün online mağazası bu kuralın dışında, ayrı bir mal satışı olarak mı kayıtlı? Kasada satılan paket kahve %10 mu? | Panelde kahve %1 varsayılan; menüye paket kahve eklenirse kalemde %1 seçilmeli ya da seçilmemeli. |
-| Y2-2 | Kargo ve kurye bedeli faturada ürünün oranıyla mı, ayrı %20 hizmet olarak mı kesiliyor? Metin ve panel ürünün oranını izliyor (m.24/b). Muhasebe ayrı %20 kesiyorsa söyle: tek kural değişir (`kdvBreakdown`), metindeki iki cümle de. | Metin, fiş ve fatura aynı şeyi söylemeli. |
-| Y2-3 | Karışık hediye kutusu (kahve ve fincan tek fiyat) varsayılan %20. Kalem kalem ayrılmalı mı? Mağazada bugün "Affogato Seti - İki Kişilik" (200 g kahve, gelato, iki yenilebilir kup, porselen kaşık; tek fiyat) %20'de. Yenilebilir kup kutusu yalnız gıda olduğu için %1'e alındı. Metin artık "gıda dışındaki hediyelik ürünlerde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre" diyor: setin tek oranı ne olmalı? | Paket içerik oranları. Operatör canlıya almadan önce Hediye kategorisindeki her ürünü kontrol etmeli. |
-| Y2-4 | Metin oranları örnekle sayıyor (%1, %10, %20). Panel her ürüne 0-100 arası oran verebiliyor. "Ürüne göre %1, %10 veya %20" ifadesi, ileride başka bir oran seçilirse yanıltıcı olur mu? | Metin ile panel ayrışabilir. |
-| Y2-5 | Onay sürümü 17 Ekim 2026 oldu. Uygulamanın çevrimdışı kopyası (`lafmobil` `src/data/legal.seed.json`) `npm run legal:export` ile yenilenmeli (§13). | Üye ödeme onayını o kopyayı görerek de verebilir. |
+Operatör kararı 18 Ekim 2026: "avukata sorma, sen karar ver, araştır ve
+doğru olanı yap". Aşağıdaki sorular avukat ya da mali müşavir yerine birincil
+kaynaklarla (mevzuat.gov.tr, resmigazete.gov.tr, gib.gov.tr özelgeleri)
+araştırılarak karara bağlandı. Dayanak her satırda; ayrıntı §16.4.
+
+| # | Soru (17 Eki 2026) | Karar (18 Eki 2026) | Dayanak |
+|---|---|---|---|
+| Y2-1 | Mağazada kargoyla satılan paketli kahve %1 mi, %10 mu? Kasada satılan paket kahve? | Köşk kafeterya (yeme-içme) işletmesi; sattığı bütün gıda %10: kasada, gel-al, kurye, masa ve internetten kargoyla gönderilen paket kahve, matcha, cantucci ve yenilebilir kup dahil. %1 hiçbir üründe kullanılmaz. Kod varsayılanı `beans` ve `pantry` 10. | KDV GUT III/B-2.4.1 (Tebliğ Seri No 51, RG 27.04.2024, Örnek 1 ve "internet üzerinden sipariş suretiyle adrese gönderme ... tüm satışlar da aynı mahiyettedir"); BKK 2007/13033 (II) sayılı liste 24. sıra; KDV K. m.8/2 |
+| Y2-2 | Kargo ve kurye bedeli ürünün oranıyla mı, ayrı %20 hizmet olarak mı? | Ayrı kalem, %20 (taşıma hizmeti, genel oran). Ücret siparişte ayrı satırda gösteriliyor ve taşımayı dışarıdan bir firma yapıyor. Ücretsiz kargoda satır yok. Eski siparişlere de uygulanır: fatura kargoya verme anında kesilir ve 18 Ekim 2026'ya kadar e-Arşiv kesilmedi. | KDV K. m.24/a; GİB özelgeleri 32391 (Balıkesir VDB, 21.03.2017), 28945 (İzmir VDB, 14.04.2021), 32558 (Balıkesir VDB, 09.04.2015); MSY m.5/1-d |
+| Y2-3 | Karışık hediye kutusu (Affogato Seti) ve yalnız gıda olan kutu hangi oranda? | Gıda ile gıda dışı ürün tek fiyatla bir aradaysa set %20 (Affogato Seti); yalnız gıdadan oluşan kutu %10 (Yenilebilir Kup). Set bileşenlerine bölünmez. | KDV GUT III/B-1.3; GİB özelgeleri 32094 (İstanbul VDB, 20.08.2024), 32968 |
+| Y2-4 | Metin oranları örnekle sayıyor; panel başka oran verebiliyor. Kural mı yazılsın, "toplam değişmez" denilsin mi? | Metin oranı saymaz, kuralı yazar: her ürün ve hizmet yürürlükteki oranına tabi, her kalemin oranı ve tutarı faturada. Sipariş özetindeki KDV dahil toplam sonradan oran değişse de değişmez (fark köşkün). Paneldeki varsayılan alanları serbest sayı yerine seçim (0, 1, 10, 20 ve kayıtlı farklı değer). | MSY m.5/1-d; KDV K. m.2/1, m.10, m.28; KDV GUT III/B-1.2.3 |
+| Y2-5 | Onay sürümü değişti; uygulamanın çevrimdışı kopyası yenilenmeli. | Yenilenir: `lafmobil` `npm run legal:export` (uygulama PR'ı app-legal-seed-kdv-wording). | §13 |
+| Kupon | Kupon bir ürünü tamamen karşılarsa ya da ödül kuponuysa faturada nasıl gösterilir? | Promosyon kodu ve hediye kuponu (HG, DG, HD, DY) iskontodur, satırlara orantılı düşülür. Ödül kuponu (damga SD, kilometre taşı KT, davet DV) ve ürünlerin tamamını karşılayan kupon iskonto değildir: ürün faturada tam fiyatla, kupon ödeme aracı olarak. Panel sipariş sayfası ve CSV bu dökümü gösterir. | KDV K. m.20/1, m.25/a, m.27/1; KDV GUT III/A-6.1; GİB özelgeleri 31994, 32079 |
+
+Ürün ürün inceleme (OP-KDV-PRODUCT-REVIEW). Karar: "Operatör kararı 18 Ekim
+2026: araştırıldı, avukat/mali müşavir turu yok". GTİP'ler bağlayıcı tarife
+bilgisi alınmadan bizim sınıflandırmamızdır; oranı değiştirmezler.
+
+| Ürün id | Ad | Oran | GTİP | Dayanak | Karar | Tarih |
+|---|---|---|---|---|---|---|
+| prd-0001 | Sirena - Espresso Harmanı (kavrulmuş kahve çekirdeği) | %10 | 0901.21 | KDV GUT III/B-2.4.1 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0002 | Notturna - Filtre Lotu (kavrulmuş kahve çekirdeği) | %10 | 0901.21 | KDV GUT III/B-2.4.1 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0003 | Yenilebilir Kup - 6'lı Kutu (waffle; ürünün kendi oranı) | %10 | 1905.32 | KDV GUT III/B-2.4.1 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0004 | Affogato Seti - İki Kişilik (kahve, gelato, iki kup, porselen kaşık; tek fiyat) | %20 | karışık set | KDV GUT III/B-1.3; özelge 32094 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0005 | Uji Matcha - Seremoni Sınıfı (yeşil çay tozu) | %10 | 0902.10 | KDV GUT III/B-2.4.1 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0006 | Moka - Bialetti × L'Affogato (alüminyum mutfak eşyası) | %20 | 7615.10 | KDV K. m.28, listelerde yok | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0007 | Porselen Fincan Seti | %20 | 6911.10 | KDV K. m.28, listelerde yok | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0008 | Bambu Chasen (bambudan mutfak eşyası) | %20 | 4419 | KDV K. m.28, listelerde yok | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0009 | Pamuk Önlük (pamuklu kanvas önlük, mesleki giysi; ürünün kendi oranı) | %10 | 6211.42.10 | BKK 2007/13033 (II) liste 5. sıra; özelge 32621 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0010 | Emaye Bardak (vakum yalıtımlı bardak) | %20 | 9617.00 | KDV K. m.28, listelerde yok | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+| prd-0011 | Cantucci - Bronte Pistachio (tatlı bisküvi) | %10 | 1905.31 | KDV GUT III/B-2.4.1 | Operatör kararı 18 Ekim 2026: araştırıldı, avukat/mali müşavir turu yok | 18.10.2026 |
+
+Menünün bütün kalemleri %10, karaoke odası %20, kargo ve kurye ücreti %20.
+İleride eklenecek tişört, bez çanta ve her türlü çanta kendi oranıyla %10
+((II) sayılı liste 5. ve 8. sıra); gıda ile gıda dışı ürünü tek fiyatla
+birleştiren her set %20.
+
+### 16.4 Değişen cümleler ve kod (18 Eki 2026)
+
+**Sürüm.** Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi değiştiği
+için `LEGAL_UPDATED` (onayın kaydettiği sürüm, kendi tarihi olmayan her
+belgenin "Son güncelleme" satırı) 18 Ekim'den yayım gününe, **19 Ekim
+2026**'ya taşındı. Bir İstanbul gününde bu etiketi taşıyan en çok bir PR
+birleşir (18 Ekim'i mesafeli satış seti aldı, §18); PR daha geç bir gün
+birleşirse etiket o güne çekilir. Karaoke belgesinin sürümü ayrıdır ve
+değişmedi.
+
+**Hukuki dayanak (özet).**
+
+- Gıda %10: KDV GUT III/B-2.4.1 (Seri No 51 ile eklenen paragraflar, RG
+  27.04.2024, yürürlük 1.5.2024). Kafeterya işletmesinin burada yapılan ya da
+  dışarıdan alınan gıdayı içeride ya da dışarıda tüketilmek üzere satışı
+  %10; internetten adrese gönderme ve gel-al satışları da aynı mahiyettedir.
+  Fazla gösterilen KDV ödenir (KDV K. m.8/2): şüphede yüksek oran vergi
+  açısından güvenli taraftır.
+- Kargo ayrı %20: KDV K. m.24/a (teslim alanın gösterdiği yere kadar satıcının
+  yaptığı taşıma giderleri matraha dahildir) yalnız taşıma malın bedeline
+  dahil edilip tek tutar gösterildiğinde malın oranına katılır (özelge
+  32558); taşıma ayrıştırılınca ya da dışarıdan hizmet alımıyla yapılınca
+  genel oranda vergilenir (özelge 32391, 28945). Ücret ön bilgilendirmede
+  ayrıca bildirilir (MSY m.5/1-d).
+- Kural yazımı ve toplamın sabitliği: oranları Cumhurbaşkanı belirler (KDV K.
+  m.28); vergiyi doğuran olay teslim, nakliyeciye tevdi ya da ondan önce
+  kesilen fatura anıdır (m.2/1, m.10). Ödeme ile kargo arasında oran
+  değişirse e-Arşiv fatura kargoya verme anındaki oranla, aynı KDV dahil
+  toplamla kesilir; sipariş satırındaki oran damgası bilgi amaçlıdır. İadede
+  ilk teslimdeki oran kullanılır (KDV GUT III/B-1.2.3).
+- Kupon: iskonto ancak aynı faturada gösterilir ve ticari teamüle uygunsa
+  matrahtan düşülür (KDV K. m.25/a; GUT III/A-6.1; özelge 31994); önceki
+  alışverişlerden kazanılan puan ya da bedava ürün iskonto değildir (özelge
+  32079); bedelsiz işlemde matrah emsal bedeldir (m.27/1).
+
+**Değişen cümleler.** Satır numaraları `src/lib/legal/content.ts`'in bu
+PR'daki hâline aittir.
+
+| Belge | Satır | Mevcut (18 Eki 2026) | Yeni |
+|---|---|---|---|
+| Ön Bilgilendirme Formu, 6. fiyat ve vergiler | 268 | "Uygulanan KDV oranı yürürlükteki vergi mevzuatına göre ürünün türüne bağlıdır: kahve çekirdeği, öğütülmüş kahve ve diğer paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20'dir; gıda içeren hediye kutu ve setlerinde oran, içindeki ürünlere göre belirlenir. Kargo veya kurye bedeli, gönderilen ürünlerin satış bedelinin parçasıdır ve onların KDV oranına tabidir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde, sipariş tarihinde yürürlükte olan oran uygulanır." | "Uygulanan KDV oranı, yürürlükteki vergi mevzuatına göre her ürünün ve hizmetin tabi olduğu orandır. Kargo veya kurye bedeli faturada ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez." (paragrafın ilk cümlesi aynı) |
+| Ön Bilgilendirme Formu, tablo "KDV oranı" | 284 | "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)" | "Ürünün tabi olduğu yasal oran (fiyatlara dâhil, faturada kalem kalem gösterilir)" |
+| Mesafeli Satış Sözleşmesi, 4. fiyat | 886 | "... ürünün türüne göre %1, %10 veya %20 oranındaki Katma Değer Vergisi dâhildir (kahve çekirdeği ve paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre)." | "... her ürünün yürürlükteki mevzuata göre tabi olduğu oranda Katma Değer Vergisi dâhildir; her kalemin KDV oranı ve tutarı faturada gösterilir." |
+| Mesafeli Satış Sözleşmesi, 4. fiyat | 886 | "Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir." | "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez." (ÖBF ile çelişki kalktı) |
+| Mesafeli Satış Sözleşmesi, tablo "KDV Oranı" | 907 | "Ürüne göre %1, %10 veya %20 (fiyatlara dâhildir)" | "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)" |
+| Teslimat ve Kargo, ücretler | 2120 | "Kargo ve teslimat bedeli, gönderilen ürünün satış bedelinin bir parçasıdır ve o ürünün KDV oranına tabidir; farklı oranlı ürünler birlikte gönderildiğinde bedel, ürün tutarlarıyla orantılı olarak paylaştırılır." | "Kargo ve teslimat bedeli faturada ürünlerden ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir." |
+| Teslimat ve Kargo, özet tablo | 2147 | "(kargo bedeli, gönderilen ürünün KDV oranına tabidir)" | "(kargo bedeli faturada ayrı kalem olarak gösterilir)" |
+| Satış Politikası, 14. fiyatlandırma | 3389 | "... ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil ..." | "... ürünün tabi olduğu oranda katma değer vergisi dâhil ..." |
+| Satış Politikası, 14. fiyatlandırma | 3394 | "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez." | "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez." (aynı çelişki, X-KDV-RATECHANGE: oran sipariş günüyle değil teslimle belirlenir) |
+| Satış Politikası, tablo "KDV oranı" | 3417 | "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)" | "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)" |
+| Ödeme Koşulları, 4. fiyatlandırma | 3803 | "... ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil ..." | "... ürünün tabi olduğu oranda katma değer vergisi dâhil ..." |
+| Ödeme Koşulları, 4. fiyatlandırma | 3805 | "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez." | "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez." |
+| Şirket Bilgileri, fiyatlar | 12721 | "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürüne göre yüzde 1, 10 veya 20'dir" | "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürünün tabi olduğu yasal orandır" |
+| Şirket Bilgileri, tablo | 12889 | "Ürüne göre yüzde 1, 10 veya 20 (fiyatlara dahil)" | "Ürünün tabi olduğu yasal oran (fiyatlara dahil)" |
+| Şirket Bilgileri, fatura tablosu | 13293 | "Ürüne ve hizmete göre yüzde 1, 10 veya 20" | "Ürünün ve hizmetin tabi olduğu yasal oran" |
+
+Bilerek değişmeyenler: Şikâyet ve Uyuşmazlık Çözümü §11 ("ürün kaydındaki
+KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
+(Y2-4 c). Karaoke Odası Rezervasyonu belgesi oran saymıyor. Kullanım
+Şartları'ndaki "KDV oranı: Gösterilen fiyatlara dâhildir" doğru.
+
+**Kod (aynı deploy).**
+
+- `src/lib/utils/kdv.ts`: `LEGAL_TAX_RATES.beans` ve `.pantry` 10; yeni
+  anahtar `shipping` 20 (panelde "Kargo ve kurye ücreti"; kayıtlı satırda
+  yoksa 20 okunur). `kdvBreakdown` kargoyu satırlara paylaştırmaz, kendi
+  oranında ayrı tutar olarak ekler. `invoiceKdvBreakdown` ödül kuponunu
+  matrahtan düşmez (fatura dökümü); `orderKdvBreakdown` ve uygulamanın
+  `taxBreakdown`'ı üyenin ödediği tutarın içindeki KDV'dir (satır toplamı =
+  `totalMinor`).
+- `orders."shippingTaxRatePct"`: sipariş yazılırken kargo oranı damgalanır;
+  eski siparişte NULL, 20 okunur (`20261019150100_order_shipping_tax_rate.sql`).
+- `20261019150000_cafe_food_rate_10.sql` (bir kez): prd-0003 1 ise 10,
+  prd-0009 oransız, merch ve Pamuk Önlük ise 10, `orders.items`'ta 1 damgalı
+  her satır 10 (sıra ve toplamlar aynı; satıştaki %1 kaybolmaz: her sipariş
+  için bir olay kaydı satırı, `system`, `kdv_rate_corrected`, sipariş no ve
+  %1 olan kalemler), `settings."taxRates"`'ta `beans` ve
+  `pantry` yalnız 1 ise 10 (eski Vergi sekmesi her alanı eski varsayılanla
+  doldurup hepsini kaydediyordu; o 1 de kodundu). Diğer anahtarlar değişmez.
+- Panel: Ayarlar > Vergi alanları seçim; ipuçları yukarıdaki kurala göre.
+  Sipariş sayfasının KDV tablosu ve sipariş CSV'si ödül kuponlu siparişte
+  fatura dökümünü verir ve "Ödül kuponu <kod>: <tutar> ödeme olarak düşülür,
+  KDV matrahından düşülmez." yazar.
+
+**Operatöre.**
+
+- Ayarlar > Vergi: "Mağaza: kahve çekirdeği" ve "Mağaza: kiler (gıda)" %10
+  mı, kontrol et (OP-01). Migration kayıtlı 1'i bir kez 10'a çeker; başka
+  bir değer kayıtlıysa onu ezmez, %10 seç ve kaydet.
+- Ürünler: Yenilebilir Kup ve Pamuk Önlük kendi oranı %10 mu, kontrol et
+  (migration yalnız kodun yazdığı değeri düzeltir).
+- Deploy'dan sonra `GET https://laffogato.net/api/mobile/v1/shop`: prd-0001,
+  0002, 0003, 0005, 0009, 0011 `taxRatePct` 10, diğerleri 20 olmalı.
+- %1 ile kesilmiş bir fatura ya da kasada %1 departmanıyla satılmış gıda
+  varsa mali müşavire ilet (VUK m.371 pişmanlık; OP-31). Faturalar Paraşüt'ten
+  kesildiği için (19 Ekim 2026) oranı düzeltilen siparişlerin listesi Olay
+  kaydı'nda: Kim "system", Kayıt türü Sipariş, İşlem Güncelleme; siparişin
+  Zaman çizelgesi de "KDV oranı %1'den %10'a düzeltildi" yazar.
+- e-Arşiv'de: ödül kuponlu ya da kuponun ürünlerin tamamını karşıladığı
+  siparişte ürün tam fiyatla, ödeme şekli kupon; kısmi promosyon ve hediye
+  kuponunda satır iskontosu. Kargo ve kurye ücreti ayrı %20 satır.
+- Uygulamanın çevrimdışı hukuk kopyası (`lafmobil` `src/data/legal.seed.json`)
+  `npm run legal:export` ile yenilenmeli (app-legal-seed-kdv-wording) ve
+  `docs/API-MOBILE.md` uygulama deposuna bayt bayt kopyalanmalı (RECONCILED).
 
 ## 17. Y3 - Masa ve grup rezervasyonu kalktı; rezervasyon yalnız karaoke odası (17 Eki 2026)
 
@@ -2096,10 +2240,9 @@ Yazı boyutu (`globals.css`, px):
 - **KDV notu:** her satırın siparişe damgalanacak oranı (`productTaxRate`,
   `shopLineItems`'ın kuralı). Bir satırın oranı bilinmiyorsa ya da satırlar
   gösterilen toplamı tutmuyorsa not çıkmaz, "KDV dahil" kalır; ödenen tutar
-  değişmez. Kargo ücreti: ayarlarda kargo oranı yokken (bugün) taşıdığı
-  ürünlere paylaştırılır (KDV K. m.24/a), sipariş sayfasının fişi gibi;
-  kdv-rates-and-invoice-lines birleşip `taxRates.shipping` (%20, ayrı kalem)
-  gelince not kendiliğinden ona uyar.
+  değişmez. Kargo ücreti ürünlere paylaştırılmaz: `taxRates.shipping`
+  oranında (varsayılan %20) ayrı kalemdir, sipariş sayfasının fişi gibi
+  (kdv-rates-and-invoice-lines, §16).
 - **Panel:** belge /hukuk/[slug] ile aynı okunur (`findLegalDoc` +
   `getPublishedLegalOverride`), panelde yayımlanmış metin varsa o. Metin
   sunucuda çizilir; 25 belgelik kayıt tarayıcı paketine girmez. "Bu
@@ -2132,7 +2275,7 @@ Yazı boyutu (`globals.css`, px):
 | 16 px | MSY m.6/1 (en az on iki punto); 1 pt = 1/72 inç, 1 CSS px = 1/96 inç | 12 pt = 16 CSS px; ekran için resmî bir çevirme yok, bu yüzden en az 16 px. Ödeme sayfasının notları, onay kutuları, yeni bloklar, panel ve /hukuk metinleri. |
 | İade kargo bedeli istenmez | MSY m.12/5, m.5/1-g (RG 24.05.2025-32909, yürürlük 1.1.2026); m.12/1, m.12/4, m.14/1 | Taşıyıcı adlandırılmadığı için not "iade koduyla gönderirsen ücret ödemezsin, başka kargoyla gönderirsen ödediğin ücreti geri öderiz" der (OP-RETURN-CARRIER). |
 | İstisnalar dar | MSY m.15/1-b, c, ç | Çabuk bozulan: gelato ve soğuk zincir; ambalajı açılınca hijyen: kahve paketi, yenilebilir kup kutusu, krema, şurup; isteğe göre öğütülen ve kişiye özel ürün. Kapalı kutu ve paket istisna değildir. |
-| KDV tutarı | KDV Kanunu m.24/a (navlun matraha dahil), m.25/a (faturadaki iskonto matraha girmez) | Not toplamın içindeki KDV'yi oran oran yazar, satırların damgalanacak oranından; iskonto satırlara, kargo (ayrı oranı tanımlanana kadar) taşıdığı ürünlere paylaştırılır. Bilgi amaçlıdır, tutarı değiştirmez. |
+| KDV tutarı | KDV Kanunu m.24/a (ayrı gösterilen taşıma ayrı kalem, özelge 32391), m.25/a (faturadaki iskonto matraha girmez) | Not toplamın içindeki KDV'yi oran oran yazar, satırların damgalanacak oranından; iskonto satırlara paylaştırılır, kargo kendi oranında (%20) ayrı kalemdir (§16). Bilgi amaçlıdır, tutarı değiştirmez. |
 | Kayıtta aydınlatma kabul ettirilmez | 6698 s. KVKK m.10; Kurul İlke Kararı 18.02.2026, 2026/347 (RG 24.03.2026-33203) | Aydınlatma bir bilgilendirmedir; ondan onay ya da "kabul" istenmez, açık rıza ve sözleşme metinleriyle tek kutuda birleştirilmez. Kutu yalnız Kullanım Şartları'nı kabul eder; Gizlilik Politikası ve KVKK Aydınlatma Metni kutusuz bir satırda okunacak metin olarak gösterilir. `acceptedTerms` alanı ve işaretsiz başlaması aynen kalır. Kullanım Şartları'nın aynı kararla çelişen iki cümlesi ayrı PR'da düzelir (§22.6). |
 
 ### 22.6 Açık: Kullanım Şartları kayıt kutusunu hâlâ Gizlilik Politikası'na bağlıyor

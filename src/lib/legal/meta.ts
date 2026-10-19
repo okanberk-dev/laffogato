@@ -19,13 +19,14 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-// 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in force
-// since 1 Ocak 2026 (14-day return, no return cost, mediation, Türkiye only)
-// and stop describing saved cards; 23 documents cite the e-commerce
-// regulation by its current title and the other two lose their saved-card
-// passages, so the whole set carries this day.
-// LEGAL-REDLINES §18 and §19. (17 Ekim 2026: KDV by product, §16.)
-export const LEGAL_UPDATED = "18 Ekim 2026";
+// 19 Ekim 2026: the ÖBF and the MSS state the KDV rule instead of a list of
+// rates (every item at the rate the law gives it, the shipping or courier
+// fee its own line, the total in the order summary fixed even if a rate
+// changes later); the Teslimat ve Kargo, Satış Politikası, Ödeme Koşulları
+// and Şirket Bilgileri texts follow. LEGAL-REDLINES §16.4. The set carries
+// the publish day: only one PR that moves this label merges per Istanbul
+// day (18 Ekim 2026 was the distance-sales set, §18 and §19).
+export const LEGAL_UPDATED = "19 Ekim 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,

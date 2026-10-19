@@ -147,17 +147,26 @@ describe("the rates the KDV note reads", () => {
       "prd-0005": 1,
       "prd-0007": 20,
     });
-    // No shipping rate in the settings yet: the fee follows the goods.
-    expect(kdv.shippingRatePct).toBeNull();
+    // The settings carry the fee's own rate (20% by default).
+    expect(kdv.shippingRatePct).toBe(20);
   });
 
-  it("take the shipping fee's own rate once the settings carry one", async () => {
+  it("take the shipping fee's own rate, 20% for a stored row without one", async () => {
     settings.value = {
       ...settings.value,
-      taxRates: { ...LEGAL_TAX_RATES, shipping: 20 },
+      taxRates: { ...LEGAL_TAX_RATES, shipping: 10 },
     };
-    const kdv = (await render()).kdv as { shippingRatePct: number | null };
-    expect(kdv.shippingRatePct).toBe(20);
+    expect(
+      ((await render()).kdv as { shippingRatePct: number | null })
+        .shippingRatePct,
+    ).toBe(10);
+    const { shipping: _omit, ...withoutShipping } = LEGAL_TAX_RATES;
+    void _omit;
+    settings.value = { ...settings.value, taxRates: withoutShipping };
+    expect(
+      ((await render()).kdv as { shippingRatePct: number | null })
+        .shippingRatePct,
+    ).toBe(20);
   });
 
   it("leave the note out, not the checkout, when the catalogue cannot be read", async () => {

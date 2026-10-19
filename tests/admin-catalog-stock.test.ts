@@ -385,7 +385,16 @@ describe("CAT-14: product and variant stock in step", () => {
     ];
     const res = await store.previewAppOrderLines(
       [{ productId: "prd-0007", variantId: "var-1", qty: 1 }],
-      { menu: 10, karaoke: 20, beans: 1, pantry: 1, gift: 20, gear: 20, merch: 20 },
+      {
+        menu: 10,
+        karaoke: 20,
+        beans: 10,
+        pantry: 10,
+        gift: 20,
+        gear: 20,
+        merch: 20,
+        shipping: 20,
+      },
     );
     expect(res).toMatchObject({
       ok: false,

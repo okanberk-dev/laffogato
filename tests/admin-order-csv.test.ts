@@ -17,6 +17,11 @@ vi.mock("@/lib/admin/store", () => ({
   listOrdersFiltered,
   listOrderMoney: vi.fn(async () => new Map()),
 }));
+// The redeemed member coupon behind each order (ASK-COUPON, 18 Eki 2026).
+const couponSourcesForOrders = vi.hoisted(() =>
+  vi.fn(async (_orders: unknown) => new Map<number, string>()),
+);
+vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders }));
 
 const { csvCell, ordersCsv, ORDER_CSV_HEADER } = await import("@/lib/admin/order-csv");
 
@@ -80,7 +85,7 @@ describe("CSV export", () => {
         kind: "shop",
         fulfillment: "shipping",
         items: [
-          { productName: "Sirena", qty: 1, unitPriceMinor: 32_000, status: "pending", taxRatePct: 1 },
+          { productName: "Sirena", qty: 1, unitPriceMinor: 32_000, status: "pending", taxRatePct: 10 },
           { productName: "Moka", qty: 1, unitPriceMinor: 120_000, status: "pending", taxRatePct: 20 },
         ],
         subtotalMinor: 152_000,
@@ -91,13 +96,56 @@ describe("CSV export", () => {
       }),
     ]);
     const row = csv.slice(1).split("\r\n")[1];
-    // 120.000 × 20/120 = 20.000; 32.000 × 1/101 = 316,83 → 317.
-    expect(row.endsWith(";203,17;%20: 200,00 · %1: 3,17")).toBe(true);
+    // 120.000 × 20/120 = 20.000; 32.000 × 10/110 = 2.909,09 → 2.909.
+    expect(row.endsWith(";229,09;%20: 200,00 · %10: 29,09")).toBe(true);
+  });
+
+  it("puts the shipping fee at its own 20%, not the rate of the beans it carries", () => {
+    const csv = ordersCsv([
+      order({
+        kind: "shop",
+        fulfillment: "shipping",
+        items: [
+          { productName: "Sirena", qty: 1, unitPriceMinor: 32_000, status: "pending", taxRatePct: 10 },
+        ],
+        subtotalMinor: 32_000,
+        discountMinor: 0,
+        promoCode: "",
+        shippingMinor: 10_000,
+        totalMinor: 42_000,
+      }),
+    ]);
+    const row = csv.slice(1).split("\r\n")[1];
+    // 100 TL fee × 20/120 = 16,67; 320 TL × 10/110 = 29,09.
+    expect(row.endsWith(";45,76;%20: 16,67 · %10: 29,09")).toBe(true);
+  });
+
+  it("carries the invoice's split when a reward coupon paid for the goods", () => {
+    // A 120 TL stamp-card drink on a 150 TL latte at 10%.
+    const reward = order({
+      items: [
+        { productName: "Latte", qty: 1, unitPriceMinor: 15_000, status: "pending", taxRatePct: 10 },
+      ],
+      discountMinor: 12_000,
+      promoCode: "SD-7K2M9Q",
+      totalMinor: 3_000,
+    });
+    const asReward = ordersCsv([reward], undefined, () => "loyalty")
+      .slice(1)
+      .split("\r\n")[1];
+    // 150 TL × 10/110 = 13,64: the goods at full price.
+    expect(asReward.endsWith(";13,64;%10: 13,64")).toBe(true);
+    // Read as a plain discount it would be the KDV inside the 30 TL paid.
+    const asDiscount = ordersCsv([reward], undefined, () => "welcome")
+      .slice(1)
+      .split("\r\n")[1];
+    expect(asDiscount.endsWith(";2,73;%10: 2,73")).toBe(true);
   });
 
   beforeEach(() => {
     session.value = null;
     listOrdersFiltered.mockReset();
+    couponSourcesForOrders.mockClear();
   });
 
   it("checks the session and the role itself (a route handler is not behind requireRole)", async () => {
@@ -125,6 +173,9 @@ describe("CSV export", () => {
     expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="siparisler-\d{4}-\d{2}-\d{2}\.csv"$/);
     const body = await res.text();
     expect(body.trim().split("\r\n")).toHaveLength(502);
+    // Every exported order is asked for the coupon it redeemed, once.
+    expect(couponSourcesForOrders).toHaveBeenCalledTimes(1);
+    expect(couponSourcesForOrders.mock.calls[0][0]).toHaveLength(501);
     expect(listOrdersFiltered).toHaveBeenCalledTimes(2);
     expect(listOrdersFiltered.mock.calls[0][0]).toMatchObject({
       page: 1,
@@ -134,3 +185,42 @@ describe("CSV export", () => {
   });
 });
 
+
+describe("CSV export: the coupon behind each order reaches the KDV columns", () => {
+  beforeEach(() => {
+    listOrdersFiltered.mockReset();
+    couponSourcesForOrders.mockReset();
+  });
+
+  it("a reward coupon read for the order makes its row the invoice's split", async () => {
+    session.value = { email: "a@b.c", role: "owner" };
+    listOrdersFiltered.mockResolvedValueOnce({
+      orders: [
+        order({
+          items: [
+            { productName: "Latte", qty: 1, unitPriceMinor: 15_000, status: "pending", taxRatePct: 10 },
+          ],
+          discountMinor: 12_000,
+          promoCode: "SD-7K2M9Q",
+          totalMinor: 3_000,
+        }),
+      ],
+      total: 1,
+    });
+    couponSourcesForOrders.mockResolvedValueOnce(new Map([[10023, "loyalty"]]));
+    const { GET } = await import("@/app/admin/siparisler/csv/route");
+    const res = await GET(new Request("https://laffogato.net/admin/siparisler/csv"));
+    const row = (await res.text()).trim().split("\r\n")[1];
+    expect(row.endsWith(";13,64;%10: 13,64")).toBe(true);
+  });
+
+  it("a failed coupon read fails the file rather than hide a reward", async () => {
+    session.value = { email: "a@b.c", role: "owner" };
+    listOrdersFiltered.mockResolvedValueOnce({ orders: [order()], total: 1 });
+    couponSourcesForOrders.mockRejectedValueOnce(new Error("db down"));
+    const { GET } = await import("@/app/admin/siparisler/csv/route");
+    await expect(
+      GET(new Request("https://laffogato.net/admin/siparisler/csv")),
+    ).rejects.toThrow("db down");
+  });
+});

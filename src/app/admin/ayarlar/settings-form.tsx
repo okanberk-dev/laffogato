@@ -24,6 +24,7 @@ import type { AdminSettings } from "@/lib/admin/store";
 import type { EmailHealth } from "@/lib/email/health";
 import { MENU_PRICES_DATE_FIELD } from "@/lib/menu/price-list";
 import {
+  KDV_RATE_CHOICES,
   LEGAL_TAX_RATES,
   TAX_RATE_KEYS,
   TAX_RATE_LABELS,
@@ -444,15 +445,23 @@ function TimeBox({
   );
 }
 
-/** What each default covers, and the rate the law gives it (src/lib/utils/kdv.ts). */
+/**
+ * What each default covers, and the rate the law gives it (src/lib/utils/kdv.ts;
+ * operator decisions of 18 Oct 2026, LEGAL-REDLINES §16.4).
+ */
 const TAX_HINTS: Record<TaxRateKey, string> = {
   menu: "Kafede satılan yiyecek ve içecek: masada, gel-al ya da kuryeyle. Yasal oran %10 (alkollü içecek olsaydı %20).",
   karaoke: "Oda kiralama bir eğlence hizmeti: genel oran %20.",
-  beans: "Paketli kavrulmuş ya da öğütülmüş kahve: %1.",
-  pantry: "Krema, şurup, şeker, kakao ürünü gibi paketli gıda: %1.",
-  gift: "Gıda dışı hediyelik: %20. Yalnız gıdaysa (ör. yenilebilir kup kutusu) üründe %1 seç. Kahve ve fincan bir aradaysa %20 güvenli seçim.",
+  beans:
+    "Paketli kahve: %10. Köşk kafe işletmesi olduğu için internetten satıp gönderdiği gıda da %10 sayılır (KDV GUT III/B-2.4.1).",
+  pantry:
+    "Matcha, bisküvi, krema, şurup gibi paketli gıda: %10, kahveyle aynı kural.",
+  gift: "Gıda dışı hediyelik %20. Yalnız gıda olan kutuda (ör. yenilebilir kup) üründe %10 seç. Gıda ile gıda dışı ürün tek fiyatla bir aradaysa set %20 olur.",
   gear: "Değirmen, moka pot, fincan gibi ekipman: %20.",
-  merch: "Önlük, çanta, tişört gibi marka ürünleri: %20.",
+  merch:
+    "Fincan, bardak gibi marka ürünleri %20. Önlük, tişört gibi giyim ve çanta %10: o üründe %10 seç.",
+  shipping:
+    "Siparişteki kargo ve kurye ücreti ayrı bir taşıma hizmetidir: %20.",
 };
 
 function TaxTab({ settings }: { settings: AdminSettings }) {
@@ -464,30 +473,38 @@ function TaxTab({ settings }: { settings: AdminSettings }) {
         // Prices are KDV-included and no total is computed from a rate
         // (src/lib/utils/kdv.ts); since #130 a product or menu item may
         // carry its own rate and the rate of each sale is stored with it.
-        description="Fiyatlar KDV dahildir. Oran hiçbir fiyatı ya da toplamı değiştirmez; yalnız fiyatın ne kadarının KDV olduğunu söyler (sipariş fişinde, panelde ve uygulamada). Buradakiler varsayılan oranlardır: kendi oranı seçilmemiş ürün ve menü kalemleri bunları kullanır. Kargo ve kurye ücreti taşıdığı ürünün oranını alır. Değişiklik yalnız bundan sonraki siparişlere ve rezervasyonlara yansır; verilmiş siparişlerin kaydı değişmez. Oranları muhasebecinle teyit et."
+        description="Fiyatlar KDV dahildir. Oran hiçbir fiyatı ya da toplamı değiştirmez; yalnız fiyatın ne kadarının KDV olduğunu söyler (sipariş fişinde, panelde ve uygulamada). Buradakiler varsayılan oranlardır: kendi oranı seçilmemiş ürün ve menü kalemleri bunları kullanır. Kargo ve kurye ücreti faturada ayrı kalemdir ve kendi oranını alır. Değişiklik yalnız bundan sonraki siparişlere ve rezervasyonlara yansır; verilmiş siparişlerin kaydı değişmez. Oranları muhasebecinle teyit et."
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          {TAX_RATE_KEYS.map((key) => (
-            <SettingsField
-              key={key}
-              name={`taxRate_${key}`}
-              label={`${TAX_RATE_LABELS[key]} (%)`}
-              hint={TAX_HINTS[key]}
-            >
-              <TextInput
+          {TAX_RATE_KEYS.map((key) => {
+            const value = settings.taxRates?.[key] ?? LEGAL_TAX_RATES[key];
+            // The rates the law uses today, as in the product form; a stored
+            // rate outside them stays offered, so saving never changes it
+            // unseen (saveTaxAction still reads it through parseTaxRateInput).
+            const choices = KDV_RATE_CHOICES.includes(value)
+              ? KDV_RATE_CHOICES
+              : [...KDV_RATE_CHOICES, value].sort((a, b) => a - b);
+            return (
+              <SettingsField
+                key={key}
                 name={`taxRate_${key}`}
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={100}
-                step={1}
-                defaultValue={String(
-                  settings.taxRates?.[key] ?? LEGAL_TAX_RATES[key],
-                )}
-                required
-              />
-            </SettingsField>
-          ))}
+                label={TAX_RATE_LABELS[key]}
+                hint={TAX_HINTS[key]}
+              >
+                <Select
+                  name={`taxRate_${key}`}
+                  defaultValue={String(value)}
+                  required
+                >
+                  {choices.map((r) => (
+                    <option key={r} value={String(r)}>
+                      %{r}
+                    </option>
+                  ))}
+                </Select>
+              </SettingsField>
+            );
+          })}
         </div>
       </Section>
       {/* Fiyat Etiketi Yön. m.5/2-d: a price list carries the day its

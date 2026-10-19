@@ -271,8 +271,10 @@ değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
 - **Hangi oran.** Kalemin kendi oranı seçiliyse odur; değilse panelin
   varsayılanı (`/admin/ayarlar` → Vergi, `settings."taxRates"`): kafe menüsü
   **%10** (masa, gel-al, kurye; KDV GUT III/B-2.4, Seri No 51), karaoke odası
-  **%20**, mağazada kategoriye göre `beans` ve `pantry` **%1**, `gift`, `gear`,
-  `merch` **%20**. Kural ve dayanak: site `src/lib/utils/kdv.ts`.
+  **%20**, mağazada kategoriye göre `beans` ve `pantry` **%10** (köşk kafe
+  işletmesi; KDV GUT III/B-2.4.1, Seri No 51), `gift`, `gear`, `merch`
+  **%20**; kargo ve kurye ücreti **%20** (`shipping`, 18 Eki 2026). Kural ve
+  dayanak: site `src/lib/utils/kdv.ts`.
 - §1 ve §2'de alan **her zaman vardır** ve o anki oranı söyler. Panel bir oranı
   değiştirince gövde değişir (§1'de `ETag` de; §2 `ETag` göndermez). Yeni
   gövde CDN'den şu pencerelerle çıkar: `/menu` `s-maxage=300,
@@ -352,7 +354,7 @@ Anahtarlar kapalı bir liste (site `src/lib/menu/allergens.ts`, veritabanında
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
   "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ],  // yalnız category === "beans"
-  "taxRatePct": 1                     // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
+  "taxRatePct": 10                    // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
 } ], "shippingFlatMinor": 4900, "shippingFreeThresholdMinor": 50000 }
 ```
 
@@ -652,14 +654,15 @@ dökümüdür, en yüksek oran önce:
 | Alan | Anlamı |
 | --- | --- |
 | `ratePct` | Oran (tam yüzde) |
-| `grossMinor` | Bu orandaki KDV dahil tutar: satırlar, indirim düşülmüş, kargo/kurye payı eklenmiş |
+| `grossMinor` | Bu orandaki KDV dahil tutar: satırlar indirim düşülmüş; kargo/kurye ücreti kendi oranının satırında |
 | `netMinor` | Matrah: `grossMinor − taxMinor` |
 | `taxMinor` | KDV: `round(grossMinor × r / (100 + r))`, kuruşa yuvarlanır |
 
 - İndirim (kupon, promosyon) satırlara tutarlarıyla orantılı dağıtılır.
-- Kargo ve kurye ücreti taşıdığı ürünün oranını alır (KDV K. m.24/b): kalan
-  satır tutarlarıyla orantılı dağıtılır; kupon bütün satırları karşılamışsa
-  satır fiyatlarıyla.
+- Kargo ve kurye ücreti ayrı bir taşıma hizmetidir ve kendi oranıyla (%20)
+  eklenir; aynı orandaki ürün satırlarıyla tek ratePct satırında toplanır
+  (18 Eki 2026; alanlar ve satır biçimi değişmedi; eski siparişlerin dökümü de
+  bu kuralla gelir).
 - Satırların `grossMinor` toplamı her zaman `totalMinor`'dır. İadeler düşülmez:
   döküm satış anına aittir.
 - Oranlar kaydedilmeden önce verilmiş siparişte satırlarda `taxRatePct: null`,

@@ -63,6 +63,7 @@ import {
   menuItemTaxRate,
   normalizeTaxRates,
   productTaxRate,
+  shippingTaxRate,
   type TaxRates,
 } from "@/lib/utils/kdv";
 import {
@@ -370,6 +371,13 @@ export interface AdminOrder {
   /** Promo code applied at checkout; empty when none. */
   promoCode: string;
   shippingMinor: number;
+  /**
+   * The shipping or courier fee's KDV rate when the order was written
+   * (`settings.taxRates.shipping`), its own line on the invoice. Null or
+   * absent on an order from before 18 Oct 2026, which reads as the legal
+   * 20% (`orderShippingTaxRate`, src/lib/utils/kdv.ts).
+   */
+  shippingTaxRatePct?: number | null;
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
@@ -2872,6 +2880,10 @@ async function insertOrderRow(
     discountMinor: totals.discountMinor,
     promoCode,
     shippingMinor: totals.shippingMinor,
+    // The fee's own rate, read at sale time like each line's (web, app,
+    // wallet and manual orders all land here). Stamped on a free-shipping
+    // order too: it says what the rate was, not that a fee was charged.
+    shippingTaxRatePct: shippingTaxRate(settings.taxRates),
     totalMinor: totals.totalMinor,
     refunds: [],
     createdAt,

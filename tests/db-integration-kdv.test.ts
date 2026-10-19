@@ -28,8 +28,13 @@ import {
  * `items` (the card insert, the wallet's `wallet_place_order`, the panel's
  * manual order), a later change in the panel leaves those lines alone, the
  * totals are the same as without rates, and the checks refuse a rate out of
- * range. Skipped without TEST_DATABASE_URL, like the other
- * tests/db-integration*.test.ts.
+ * range.
+ *
+ * 18 Eki 2026: every order also carries the shipping or courier fee's own
+ * rate (`"shippingTaxRatePct"`, 20261019150100), and
+ * 20261019150000_cafe_food_rate_10.sql moves what the code had written at
+ * 1% to the köşk's 10% once. Skipped without TEST_DATABASE_URL, like the
+ * other tests/db-integration*.test.ts.
  */
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
@@ -156,15 +161,29 @@ function pickup(over: Partial<PlaceOrderBody> = {}): PlaceOrderBody {
 
 async function storedItems(orderId: string) {
   const { rows } = await pool!.query(
-    `select items, "subtotalMinor", "totalMinor" from public.orders where id = $1`,
+    `select items, "subtotalMinor", "totalMinor", "shippingTaxRatePct"
+       from public.orders where id = $1`,
     [orderId],
   );
   return rows[0] as {
     items: Array<{ taxRatePct?: number; unitPriceMinor: number; qty: number }>;
     subtotalMinor: number;
     totalMinor: number;
+    shippingTaxRatePct: number | null;
   };
 }
+
+/** The legal defaults of 18 Eki 2026, as the panel saves them. */
+const RATES = {
+  menu: 10,
+  karaoke: 20,
+  beans: 10,
+  pantry: 10,
+  gift: 20,
+  gear: 20,
+  merch: 20,
+  shipping: 20,
+};
 
 maybe("KDV per item in a real Postgres", () => {
   let release: (() => Promise<void>) | undefined;
@@ -200,17 +219,7 @@ maybe("KDV per item in a real Postgres", () => {
       `select "taxRates" from public.settings where id = 'main'`,
     );
     savedRates = rows[0]?.taxRates ?? {};
-    await store.updateSettings({
-      taxRates: {
-        menu: 10,
-        karaoke: 20,
-        beans: 1,
-        pantry: 1,
-        gift: 20,
-        gear: 20,
-        merch: 20,
-      },
-    });
+    await store.updateSettings({ taxRates: { ...RATES } });
   }, SUITE_LOCK_WAIT_MS);
 
   afterAll(async () => {
@@ -245,35 +254,19 @@ maybe("KDV per item in a real Postgres", () => {
 
   it('the defaults round-trip through settings."taxRates"', async () => {
     const s = await store.getSettings();
-    expect(s.taxRates).toEqual({
-      menu: 10,
-      karaoke: 20,
-      beans: 1,
-      pantry: 1,
-      gift: 20,
-      gear: 20,
-      merch: 20,
-    });
-    // A key the row lacks reads as the legal rate, never undefined.
+    expect(s.taxRates).toEqual(RATES);
+    // A key the row lacks reads as the legal rate, never undefined: the
+    // live row of 17 Eki 2026 has no `shipping` and needs no write.
     await pool!.query(
-      `update public.settings set "taxRates" = '{"menu": 8}'::jsonb where id = 'main'`,
+      `update public.settings set "taxRates" = '{"menu": 8, "beans": 1}'::jsonb where id = 'main'`,
     );
-    expect((await store.getSettings()).taxRates).toMatchObject({
+    expect((await store.getSettings()).taxRates).toEqual({
+      ...RATES,
       menu: 8,
-      karaoke: 20,
+      // A value the operator saved stays what they saved.
       beans: 1,
     });
-    await store.updateSettings({
-      taxRates: {
-        menu: 10,
-        karaoke: 20,
-        beans: 1,
-        pantry: 1,
-        gift: 20,
-        gear: 20,
-        merch: 20,
-      },
-    });
+    await store.updateSettings({ taxRates: { ...RATES } });
   });
 
   it("an app cafe order writes each line's rate and the same total as before", async () => {
@@ -289,6 +282,38 @@ maybe("KDV per item in a real Postgres", () => {
     expect(res.order.taxBreakdown!.reduce((s, r) => s + r.grossMinor, 0)).toBe(
       res.order.totalMinor,
     );
+    // The fee's rate is stamped on the row too, a gel-al order without a
+    // fee included: it says what the rate was, not that a fee was charged.
+    expect(row.shippingTaxRatePct).toBe(20);
+  });
+
+  it("a courier order puts the fee on its own 20% row of the split", async () => {
+    // A manual courier order (karar D4): the fee is the settings' courier fee.
+    const res = await store.createManualOrder({
+      items: [
+        { productId: BEANS, qty: 1 },
+        { productId: GRINDER, qty: 1 },
+      ],
+      customerName: "Kasa",
+      status: "paid",
+      fulfillment: "delivery",
+      shippingAddress: "Postane Mah. Atatürk Cad. No: 28, Tuzla",
+      actor: "test",
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const read = (await store.getOrder(res.order.id))!;
+    const fee = read.shippingMinor;
+    expect(fee).toBeGreaterThan(0);
+    expect(read.shippingTaxRatePct).toBe(20);
+    const { orderKdvBreakdown } = await import("@/lib/utils/kdv");
+    const split = orderKdvBreakdown(read)!;
+    // The grinder (20%) plus the whole fee; the beans keep 10%, no share.
+    expect(split.rows.map((r) => [r.ratePct, r.grossMinor])).toEqual([
+      [20, 150000 + fee],
+      [10, 32000],
+    ]);
+    expect(split.grossMinor).toBe(read.totalMinor);
   });
 
   it("the wallet path (wallet_place_order) keeps the rates in items too", async () => {
@@ -309,6 +334,8 @@ maybe("KDV per item in a real Postgres", () => {
       expect(res.order.status).toBe("paid");
       const row = await storedItems(res.order.id);
       expect(row.items.map((it) => it.taxRatePct)).toEqual([10, 20]);
+      // wallet_place_order inserts every key of the row it is handed.
+      expect(row.shippingTaxRatePct).toBe(20);
     } finally {
       vi.unstubAllEnvs();
     }
@@ -327,8 +354,10 @@ maybe("KDV per item in a real Postgres", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     const row = await storedItems(res.order.id);
-    expect(row.items.map((it) => it.taxRatePct)).toEqual([1, 20]);
+    // Coffee beans: the köşk's food is 10% (KDV GUT III/B-2.4.1).
+    expect(row.items.map((it) => it.taxRatePct)).toEqual([10, 20]);
     expect(row.subtotalMinor).toBe(182000);
+    expect(row.shippingTaxRatePct).toBe(20);
   });
 
   it("a rate changed in the panel leaves placed orders as they were", async () => {
@@ -342,7 +371,9 @@ maybe("KDV per item in a real Postgres", () => {
     if (!before.ok) return;
 
     const s = await store.getSettings();
-    await store.updateSettings({ taxRates: { ...s.taxRates, beans: 10 } });
+    await store.updateSettings({
+      taxRates: { ...s.taxRates, beans: 8, shipping: 10 },
+    });
     await pool!.query(
       `update public.products set "taxRatePct" = 0 where id = $1`,
       [GRINDER],
@@ -359,16 +390,18 @@ maybe("KDV per item in a real Postgres", () => {
       });
       expect(after.ok).toBe(true);
       if (!after.ok) return;
-      expect(
-        (await storedItems(after.order.id)).items.map((i) => i.taxRatePct),
-      ).toEqual([10, 0]);
-      // The earlier sale still says 1%.
-      expect((await storedItems(before.order.id)).items[0].taxRatePct).toBe(1);
-      expect((await store.getOrder(before.order.id))!.items[0].taxRatePct).toBe(
-        1,
-      );
+      const later = await storedItems(after.order.id);
+      expect(later.items.map((i) => i.taxRatePct)).toEqual([8, 0]);
+      expect(later.shippingTaxRatePct).toBe(10);
+      // The earlier sale still says 10%, its fee 20%.
+      const earlier = await storedItems(before.order.id);
+      expect(earlier.items[0].taxRatePct).toBe(10);
+      expect(earlier.shippingTaxRatePct).toBe(20);
+      const read = (await store.getOrder(before.order.id))!;
+      expect(read.items[0].taxRatePct).toBe(10);
+      expect(read.shippingTaxRatePct).toBe(20);
     } finally {
-      await store.updateSettings({ taxRates: { ...s.taxRates, beans: 1 } });
+      await store.updateSettings({ taxRates: { ...s.taxRates } });
       await pool!.query(
         `update public.products set "taxRatePct" = null where id = $1`,
         [GRINDER],
@@ -388,16 +421,32 @@ maybe("KDV per item in a real Postgres", () => {
         ),
       ).rejects.toMatchObject({ code: "23514" });
     }
+    const placed = await store.createManualOrder({
+      items: [{ productId: GRINDER, qty: 1 }],
+      customerName: "Kasa",
+      status: "paid",
+      actor: "test",
+    });
+    expect(placed.ok).toBe(true);
+    if (!placed.ok) return;
+    await expect(
+      pool!.query(
+        `update public.orders set "shippingTaxRatePct" = 150 where id = $1`,
+        [placed.order.id],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
     const { rows } = await pool!.query(
       `select conname from pg_constraint
         where conname in ('products_tax_rate_pct_check',
                           'menu_items_tax_rate_pct_check',
-                          'karaoke_reservations_tax_rate_pct_check')
+                          'karaoke_reservations_tax_rate_pct_check',
+                          'orders_shipping_tax_rate_pct_check')
         order by conname`,
     );
     expect(rows.map((r) => r.conname)).toEqual([
       "karaoke_reservations_tax_rate_pct_check",
       "menu_items_tax_rate_pct_check",
+      "orders_shipping_tax_rate_pct_check",
       "products_tax_rate_pct_check",
     ]);
   });
@@ -449,5 +498,220 @@ maybe("KDV per item in a real Postgres", () => {
       await client.query("rollback");
       client.release();
     }
+  });
+
+  it("moves what the code wrote at 1% to the köşk's 10%, once (20261019150000)", async () => {
+    // One transaction, rolled back: the shared database keeps its rows.
+    const MIGRATION = "20261019150000_cafe_food_rate_10.sql";
+    const sql = readFileSync(`db/migrations/${MIGRATION}`, "utf8");
+    // A sale the old code stamped at 1%: a panel that still said 1.
+    const s = await store.getSettings();
+    await store.updateSettings({ taxRates: { ...s.taxRates, beans: 1 } });
+    let orderId = "";
+    try {
+      const sold = await store.createManualOrder({
+        items: [
+          { productId: BEANS, qty: 2 },
+          { productId: GRINDER, qty: 1 },
+          { productId: BEANS, qty: 1 },
+        ],
+        customerName: "Kasa",
+        status: "paid",
+        actor: "test",
+      });
+      expect(sold.ok).toBe(true);
+      if (!sold.ok) return;
+      orderId = sold.order.id;
+    } finally {
+      await store.updateSettings({ taxRates: { ...s.taxRates } });
+    }
+    const client = await pool!.connect();
+    const product = async (id: string) =>
+      (
+        await client.query(
+          `select "taxRatePct" from public.products where id = $1`,
+          [id],
+        )
+      ).rows[0]?.taxRatePct;
+    const savedTaxRates = async () =>
+      (
+        await client.query(
+          `select "taxRates" from public.settings where id = 'main'`,
+        )
+      ).rows[0]?.taxRates as Record<string, number>;
+    const order = async () =>
+      (
+        await client.query(
+          `select items, "subtotalMinor", "totalMinor" from public.orders where id = $1`,
+          [orderId],
+        )
+      ).rows[0] as {
+        items: Array<Record<string, unknown>>;
+        subtotalMinor: number;
+        totalMinor: number;
+      };
+    try {
+      await client.query("begin");
+      const before = await order();
+      expect(before.items.map((it) => it.taxRatePct)).toEqual([1, 20, 1]);
+      await client.query(
+        `delete from public.products where id in ('prd-0003', 'prd-0009')`,
+      );
+      await client.query(
+        `insert into public.products (id, name, slug, tag, "priceMinor", cat, stock, "isActive", "taxRatePct")
+         values ('prd-0003', 'Yenilebilir Kup - 6''lı Kutu', $1, 'Waffle kupları', 24000, 'gift', 25, true, 1),
+                ('prd-0009', 'Pamuk Önlük', $2, 'Önlük', 90000, 'merch', 10, true, null)`,
+        [`yenilebilir-kup-${RUN}`, `pamuk-onluk-${RUN}`],
+      );
+      // The old Vergi tab saved every key from its prefill: beans 1 and
+      // pantry 1 sit in the row though the operator only moved the menu.
+      await client.query(
+        `update public.settings set "taxRates" = $1::jsonb where id = 'main'`,
+        [JSON.stringify({ ...RATES, menu: 8, beans: 1, pantry: 1 })],
+      );
+      // The first run, as db-migrate.mjs does it: the file, then its record.
+      await client.query(`delete from public._migrations where name = $1`, [
+        MIGRATION,
+      ]);
+      await client.query(sql);
+      expect(await product("prd-0003")).toBe(10);
+      expect(await product("prd-0009")).toBe(10);
+      expect(await savedTaxRates()).toEqual({
+        ...RATES,
+        menu: 8,
+        beans: 10,
+        pantry: 10,
+      });
+      const after = await order();
+      // Every 1 is 10, every other line and key as it was, in its place.
+      expect(after.items.map((it) => it.taxRatePct)).toEqual([10, 20, 10]);
+      expect(after.items).toEqual(
+        before.items.map((it) =>
+          it.taxRatePct === 1 ? { ...it, taxRatePct: 10 } : it,
+        ),
+      );
+      expect(after.subtotalMinor).toBe(before.subtotalMinor);
+      expect(after.totalMinor).toBe(before.totalMinor);
+      // The rate the line was sold at is not lost: one audit row per order
+      // keeps which lines were stamped 1, so an invoice already cut at 1%
+      // can still be found (Olay kaydı, the order's Zaman çizelgesi).
+      const corrections = async () =>
+        (
+          await client.query(
+            `select id, actor, action, payload, "createdAt"
+               from public.audit_logs
+              where entity = 'order' and "entityId" = $1
+                and payload->>'event' = 'kdv_rate_corrected'`,
+            [orderId],
+          )
+        ).rows as Array<{
+          id: string;
+          actor: string;
+          action: string;
+          payload: Record<string, unknown>;
+          createdAt: string;
+        }>;
+      const kept = await corrections();
+      expect(kept).toHaveLength(1);
+      expect(kept[0].id).toMatch(/^aud-\d{7,}$/);
+      expect(kept[0].actor).toBe("system");
+      expect(kept[0].action).toBe("update");
+      expect(kept[0].createdAt).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      );
+      const soldNo = (
+        await client.query(
+          `select "orderNo" from public.orders where id = $1`,
+          [orderId],
+        )
+      ).rows[0]?.orderNo;
+      expect(kept[0].payload).toEqual({
+        event: "kdv_rate_corrected",
+        migration: MIGRATION,
+        orderNo: soldNo,
+        from: 1,
+        to: 10,
+        count: 2,
+        lines: [
+          {
+            index: 0,
+            productName: before.items[0].productName,
+            qty: 2,
+          },
+          {
+            index: 2,
+            productName: before.items[2].productName,
+            qty: 1,
+          },
+        ],
+      });
+
+      // Recorded: a 1 the operator saves later in the panel stays.
+      await client.query(`insert into public._migrations (name) values ($1)`, [
+        MIGRATION,
+      ]);
+      await client.query(
+        `update public.products set "taxRatePct" = 1 where id = 'prd-0003'`,
+      );
+      await client.query(
+        `update public.settings set "taxRates" = "taxRates" || '{"beans": 1}'::jsonb where id = 'main'`,
+      );
+      await client.query(sql);
+      expect(await product("prd-0003")).toBe(1);
+      expect((await savedTaxRates()).beans).toBe(1);
+      expect(await corrections()).toHaveLength(1);
+
+      // Unrecorded again: an operator's own rate is never touched.
+      await client.query(`delete from public._migrations where name = $1`, [
+        MIGRATION,
+      ]);
+      await client.query(
+        `update public.products set "taxRatePct" = 20 where id = 'prd-0003'`,
+      );
+      // An apron with a rate of its own, or no longer under merch.
+      await client.query(
+        `update public.products set "taxRatePct" = 20 where id = 'prd-0009'`,
+      );
+      await client.query(sql);
+      expect(await product("prd-0003")).toBe(20);
+      expect(await product("prd-0009")).toBe(20);
+      await client.query(
+        `update public.products set "taxRatePct" = null, cat = 'gift' where id = 'prd-0009'`,
+      );
+      await client.query(sql);
+      expect(await product("prd-0009")).toBeNull();
+    } finally {
+      await client.query("rollback");
+      client.release();
+    }
+  });
+
+  it("adds the fee's rate column without touching an older order (20261019150100)", async () => {
+    const { rows } = await pool!.query(
+      `select data_type, is_nullable, column_default
+         from information_schema.columns
+        where table_schema = 'public' and table_name = 'orders'
+          and column_name = 'shippingTaxRatePct'`,
+    );
+    expect(rows).toEqual([
+      { data_type: "integer", is_nullable: "YES", column_default: null },
+    ]);
+    // An order written before the column existed reads as 20% in the split.
+    const placed = await store.createManualOrder({
+      items: [{ productId: BEANS, qty: 1 }],
+      customerName: "Kasa",
+      status: "paid",
+      actor: "test",
+    });
+    expect(placed.ok).toBe(true);
+    if (!placed.ok) return;
+    await pool!.query(
+      `update public.orders set "shippingTaxRatePct" = null where id = $1`,
+      [placed.order.id],
+    );
+    const read = (await store.getOrder(placed.order.id))!;
+    expect(read.shippingTaxRatePct ?? null).toBeNull();
+    const { orderShippingTaxRate } = await import("@/lib/utils/kdv");
+    expect(orderShippingTaxRate(read)).toBe(20);
   });
 });

@@ -14,7 +14,12 @@ import {
 import { orderPaymentState, refundedMinor } from "./order-actions";
 import { orderStatusLabel } from "./order-ui";
 import type { AdminOrder } from "./store";
-import { kdvRateLabel, orderKdvBreakdown } from "@/lib/utils/kdv";
+import {
+  invoiceKdvBreakdown,
+  invoiceRewardMinor,
+  kdvRateLabel,
+  orderKdvBreakdown,
+} from "@/lib/utils/kdv";
 
 /** The most rows one export reads (a hundred pages of the list). */
 export const ORDER_CSV_MAX_ROWS = 5_000;
@@ -37,8 +42,11 @@ export const ORDER_CSV_HEADER = [
   "Toplam",
   "İade",
   "Net",
-  // 17 Eki 2026: the KDV inside "Toplam", from each line's own rate. Empty
-  // on an order placed before lines carried a rate.
+  // 17 Eki 2026: the KDV of the sale, from each line's own rate (the
+  // shipping or courier fee its own, 18 Eki 2026). The invoice's split: the
+  // KDV inside "Toplam", except where a reward coupon (or one that covered
+  // every line) paid for the goods, which are then at full price
+  // (ASK-COUPON). Empty on an order placed before lines carried a rate.
   "KDV",
   "KDV dökümü",
 ];
@@ -69,9 +77,13 @@ export function csvCell(value: string | number): string {
 export function orderCsvRow(
   order: AdminOrder,
   collected: boolean = Boolean(order.paidAt),
+  /** The redeemed member coupon's source (`couponSourcesForOrders`). */
+  couponSource: string | null = null,
 ): string[] {
   const refunded = refundedMinor(order);
-  const kdv = orderKdvBreakdown(order);
+  const reward = invoiceRewardMinor(order, couponSource);
+  const kdv =
+    reward > 0 ? invoiceKdvBreakdown(order, reward) : orderKdvBreakdown(order);
   return [
     String(order.orderNo),
     istanbulStamp(order.createdAt),
@@ -105,10 +117,11 @@ export function orderCsvRow(
 export function ordersCsv(
   orders: readonly AdminOrder[],
   collected: (order: AdminOrder) => boolean = (o) => Boolean(o.paidAt),
+  couponSource: (order: AdminOrder) => string | null = () => null,
 ): string {
   const lines = [
     ORDER_CSV_HEADER,
-    ...orders.map((o) => orderCsvRow(o, collected(o))),
+    ...orders.map((o) => orderCsvRow(o, collected(o), couponSource(o))),
   ].map((cells) => cells.map(csvCell).join(";"));
   return `﻿${lines.join("\r\n")}\r\n`;
 }
