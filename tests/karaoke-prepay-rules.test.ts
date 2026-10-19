@@ -44,11 +44,12 @@ describe("the two-hour rule, on the köşk's clock", () => {
     );
   });
 
-  it("is MORE than two hours: at exactly two the window has closed", () => {
+  it("counts the last moment itself: at exactly two hours still in time", () => {
     expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000 - 1))).toBe(
       true,
     );
-    expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000))).toBe(
+    expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000))).toBe(true);
+    expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000 + 1))).toBe(
       false,
     );
     expect(time.withinFreeCancel(r, new Date(start - 3600_000))).toBe(false);
