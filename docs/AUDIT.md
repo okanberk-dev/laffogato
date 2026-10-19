@@ -1250,6 +1250,7 @@ Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
 | 🟡 | Ana sayfadan ulaşılan bir "işlem rehberi" yoktu (ETHS Yön. m.7/1, X-ETHS-ISLEM) | `/hukuk/islem-rehberi`: adımlar, düzeltme araçları, sözleşme metninin saklanması, uyuşmazlık yolları; site altında "İşlem rehberi" | `legal-docs` |
 | 🟢 | Şirket Bilgileri'nde meslek odası ve davranış kuralları satırı yoktu (ETHS Yön. m.5/1-c, X-ETHS-ILETISIM) | `{{CHAMBER}}`, `{{CHAMBER_RULES_URL}}` satırları; değer belgeden gelene kadar boş ve basılmaz | `legal-docs` |
 | 🟢 | Fişteki "mali belge değildir" satırı gerçek belgenin nereden geldiğini söylemiyordu (X-FIS, ikinci cümle) | Ödeme yoluna göre e-posta ya da kasa fişi | `admin-order-detail` |
+| 🟢 | /hukuk'taki numaralı adımlar (ÖBF §9, İşlem Rehberi) numarasız basılıyordu: Tailwind'in temel stili `ol`'un listesini kapatıyor | `.legal-ordered { list-style: decimal }` | `legal-docs` |
 
 Açık (operatörde): oda, kurallar adresi ve KEP değerleri (31 Eki 2026'ya
 kadar, `entity.ts`); Paraşüt'te internet satışı ibareleri ve koliye giren

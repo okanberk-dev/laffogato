@@ -728,6 +728,13 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     expect(routes).toContain("73/A");
   });
 
+  it("prints the numbers of the numbered steps", () => {
+    // Tailwind's preflight sets `ol { list-style: none }`: the guide's order
+    // and karaoke steps (and ÖBF §9) printed with no numbers at all.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toMatch(/\.legal-ordered \{\s*list-style: decimal;\s*\}/);
+  });
+
   it("knows the chamber tokens and prints their rows only with a value (rule 13)", () => {
     expect(LEGAL_TOKEN_NAMES).toContain("CHAMBER");
     expect(LEGAL_TOKEN_NAMES).toContain("CHAMBER_RULES_URL");
