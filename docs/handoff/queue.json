@@ -1,0 +1,472 @@
+{
+ "generated": "2026-10-19",
+ "items": [
+  {
+   "id": "L4",
+   "slug": "legal-checkout-preinfo",
+   "branch": "feat/legal-checkout-preinfo",
+   "review": "adversarial",
+   "prio": 12,
+   "after": [
+    "legal-distance-sales-2026"
+   ],
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/legal-checkout-preinfo.md",
+   "buildReport": "docs/handoff/reports/legal-checkout-preinfo-build.json"
+  },
+  {
+   "id": "L5",
+   "slug": "legal-kdv-rates-and-invoice-lines",
+   "branch": "feat/legal-kdv-rates-and-invoice-lines",
+   "review": "adversarial",
+   "prio": 13,
+   "after": [
+    "legal-distance-sales-2026"
+   ],
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/legal-kdv-rates-and-invoice-lines.md",
+   "buildReport": "docs/handoff/reports/legal-kdv-rates-and-invoice-lines-build.json"
+  },
+  {
+   "id": "L6",
+   "slug": "legal-kvkk-transfers",
+   "branch": "feat/legal-kvkk-transfers",
+   "review": "adversarial",
+   "prio": 14,
+   "after": [
+    "legal-distance-sales-2026"
+   ],
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/legal-kvkk-transfers.md",
+   "buildReport": "docs/handoff/reports/legal-kvkk-transfers-build.json"
+  },
+  {
+   "id": "UI-1",
+   "slug": "ui-foundation",
+   "branch": "feat/admin-ui-foundation",
+   "review": "standard",
+   "prio": 15,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/ui-foundation.md",
+   "buildReport": "docs/handoff/reports/ui-foundation-build.json"
+  },
+  {
+   "id": "UI-2",
+   "slug": "ui-search-route",
+   "branch": "feat/admin-ui-search-route",
+   "review": "security",
+   "prio": 16,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "reviewExtra": "Route gates (same-origin, 401, 403, 400, no-store, 503), the query never logged, listHref null for PII-like queries.",
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/ui-search-route.md",
+   "buildReport": "docs/handoff/reports/ui-search-route-build.json"
+  },
+  {
+   "id": "UI-3",
+   "slug": "ui-landing",
+   "branch": "feat/admin-ui-landing",
+   "review": "security",
+   "prio": 17,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "reviewExtra": "Role landing and denied redirects: no double '?', no open redirect, no role gate changed.",
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/ui-landing.md",
+   "buildReport": "docs/handoff/reports/ui-landing-build.json"
+  },
+  {
+   "id": "UI-4",
+   "slug": "ui-page-pattern",
+   "branch": "feat/admin-ui-page-pattern",
+   "review": "standard",
+   "prio": 18,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/ui-page-pattern.md",
+   "buildReport": "docs/handoff/reports/ui-page-pattern-build.json"
+  },
+  {
+   "id": "L7",
+   "slug": "legal-karaoke-terms",
+   "branch": "feat/legal-karaoke-terms",
+   "review": "adversarial",
+   "prio": 19,
+   "after": [
+    "legal-distance-sales-2026",
+    "karaoke-wizard"
+   ],
+   "handoffStatus": "partial-build",
+   "notes": "docs/handoff/items/legal-karaoke-terms.md",
+   "buildReport": null
+  },
+  {
+   "id": "5d",
+   "slug": "catalog-lists",
+   "branch": "fix/admin-audit-catalog-lists",
+   "review": "standard",
+   "prio": 20,
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/catalog-lists.md",
+   "buildReport": "docs/handoff/reports/catalog-lists-build.json"
+  },
+  {
+   "id": "4c",
+   "slug": "people-lists",
+   "branch": "fix/admin-audit-people-lists",
+   "review": "standard",
+   "prio": 21,
+   "handoffStatus": "built-needs-review",
+   "notes": "docs/handoff/items/people-lists.md",
+   "buildReport": "docs/handoff/reports/people-lists-build.json"
+  },
+  {
+   "id": "7c",
+   "slug": "system-audit-log",
+   "branch": "fix/admin-audit-system-audit-log",
+   "review": "standard",
+   "prio": 22,
+   "handoffStatus": "partial-build",
+   "notes": "docs/handoff/items/system-audit-log.md",
+   "buildReport": null
+  },
+  {
+   "id": "7d",
+   "slug": "system-site-settings",
+   "branch": "fix/admin-audit-system-site-settings",
+   "review": "standard",
+   "prio": 23,
+   "after": [
+    "karaoke-wizard"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/system-site-settings.md"
+  },
+  {
+   "id": "L8",
+   "slug": "legal-invoice-and-company-info",
+   "branch": "feat/legal-invoice-and-company-info",
+   "review": "standard",
+   "prio": 24,
+   "after": [
+    "legal-distance-sales-2026",
+    "legal-kdv-rates-and-invoice-lines",
+    "legal-karaoke-terms"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/legal-invoice-and-company-info.md"
+  },
+  {
+   "id": "LS",
+   "slug": "list-search-no-url",
+   "branch": "fix/list-search-no-url",
+   "review": "security",
+   "prio": 39,
+   "after": [
+    "ui-search-route",
+    "orders-ui",
+    "people-customers",
+    "people-lists",
+    "catalog-lists"
+   ],
+   "reviewExtra": "No PII-like search term in any URL the panel produces; the cookie is httpOnly, sameSite, short-lived and path-scoped; every exported action checks session + section.",
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/list-search-no-url.md"
+  },
+  {
+   "id": "L9",
+   "slug": "legal-durable-copy",
+   "branch": "feat/legal-durable-copy",
+   "review": "adversarial",
+   "prio": 42,
+   "after": [
+    "legal-checkout-preinfo",
+    "legal-karaoke-terms",
+    "legal-invoice-and-company-info"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/legal-durable-copy.md"
+  },
+  {
+   "id": "L10",
+   "slug": "legal-shop-label-and-discount",
+   "branch": "feat/legal-shop-label-and-discount",
+   "review": "adversarial",
+   "prio": 43,
+   "after": [
+    "catalog-storefront"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/legal-shop-label-and-discount.md"
+  },
+  {
+   "id": "L11",
+   "slug": "legal-karaoke-make-good-and-resale",
+   "branch": "feat/legal-karaoke-make-good-and-resale",
+   "review": "adversarial",
+   "prio": 44,
+   "after": [
+    "legal-karaoke-terms"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/legal-karaoke-make-good-and-resale.md"
+  },
+  {
+   "id": "L12",
+   "slug": "legal-retention-and-till",
+   "branch": "feat/legal-retention-and-till",
+   "review": "adversarial",
+   "prio": 45,
+   "after": [
+    "legal-kvkk-transfers",
+    "legal-karaoke-terms",
+    "orders-ui"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/legal-retention-and-till.md"
+  },
+  {
+   "id": "UI-5",
+   "slug": "ui-nav",
+   "branch": "feat/admin-ui-nav",
+   "review": "standard",
+   "prio": 25,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "shell-nav",
+    "karaoke-panel",
+    "ui-foundation"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-nav.md"
+  },
+  {
+   "id": "UI-6",
+   "slug": "ui-palette",
+   "branch": "feat/admin-ui-palette",
+   "review": "standard",
+   "prio": 26,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-nav",
+    "ui-search-route"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-palette.md"
+  },
+  {
+   "id": "UI-7",
+   "slug": "ui-phone-bar",
+   "branch": "feat/admin-ui-phone-bar",
+   "review": "standard",
+   "prio": 27,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-nav",
+    "ui-palette",
+    "order-alerts"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-phone-bar.md"
+  },
+  {
+   "id": "UI-8",
+   "slug": "ui-shortcuts",
+   "branch": "feat/admin-ui-shortcuts",
+   "review": "standard",
+   "prio": 28,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-palette"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-shortcuts.md"
+  },
+  {
+   "id": "UI-9",
+   "slug": "ui-rail-density",
+   "branch": "feat/admin-ui-rail-density",
+   "review": "standard",
+   "prio": 29,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-nav",
+    "ui-page-pattern",
+    "ui-shortcuts"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-rail-density.md"
+  },
+  {
+   "id": "UI-10",
+   "slug": "ui-row-steps",
+   "branch": "feat/admin-ui-row-steps",
+   "review": "standard",
+   "prio": 30,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "orders-ui"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-row-steps.md"
+  },
+  {
+   "id": "UI-11",
+   "slug": "ui-saved-views",
+   "branch": "feat/admin-ui-saved-views",
+   "review": "standard",
+   "prio": 31,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "orders-ui",
+    "ui-palette"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-saved-views.md"
+  },
+  {
+   "id": "UI-12",
+   "slug": "ui-palette-settings",
+   "branch": "feat/admin-ui-palette-settings",
+   "review": "standard",
+   "prio": 32,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-palette",
+    "system-settings"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-palette-settings.md"
+  },
+  {
+   "id": "UI-13",
+   "slug": "ui-venue-quick",
+   "branch": "feat/admin-ui-venue-quick",
+   "review": "security",
+   "prio": 33,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "content-app",
+    "ui-nav"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-venue-quick.md"
+  },
+  {
+   "id": "UI-14",
+   "slug": "ui-date-fields",
+   "branch": "feat/admin-ui-date-fields",
+   "review": "standard",
+   "prio": 34,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-palette",
+    "orders-ui",
+    "karaoke-panel",
+    "system-audit-log"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-date-fields.md"
+  },
+  {
+   "id": "UI-15",
+   "slug": "ui-datetime-adopt",
+   "branch": "feat/admin-ui-datetime-adopt",
+   "review": "standard",
+   "prio": 35,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-date-fields",
+    "people-lists",
+    "content-app"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-datetime-adopt.md"
+  },
+  {
+   "id": "UI-16",
+   "slug": "ui-combobox",
+   "branch": "feat/admin-ui-combobox",
+   "review": "standard",
+   "prio": 36,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-palette",
+    "catalog-lists",
+    "orders-ui"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-combobox.md"
+  },
+  {
+   "id": "UI-17",
+   "slug": "ui-unsaved-guard",
+   "branch": "feat/admin-ui-unsaved-guard",
+   "review": "standard",
+   "prio": 37,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "system-settings",
+    "content-app",
+    "content-legal",
+    "people-lists",
+    "ui-palette"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-unsaved-guard.md"
+  },
+  {
+   "id": "UI-18",
+   "slug": "ui-day-close",
+   "branch": "feat/admin-ui-day-close",
+   "review": "security",
+   "prio": 38,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "system-insights",
+    "ui-page-pattern"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-day-close.md"
+  },
+  {
+   "id": "UI-19",
+   "slug": "ui-copy-ops",
+   "branch": "feat/admin-ui-copy-ops",
+   "review": "standard",
+   "prio": 40,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "orders-ui",
+    "people-customers",
+    "people-lists",
+    "catalog-forms",
+    "catalog-lists",
+    "karaoke-refund-policy",
+    "system-site-settings",
+    "ui-page-pattern",
+    "ui-nav"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-copy-ops.md"
+  },
+  {
+   "id": "UI-20",
+   "slug": "ui-copy-content",
+   "branch": "feat/admin-ui-copy-content",
+   "review": "standard",
+   "prio": 41,
+   "spec": "docs/handoff/admin-ui-final-design.md",
+   "after": [
+    "ui-copy-ops",
+    "content-legal",
+    "content-app",
+    "system-audit-log",
+    "system-insights",
+    "system-settings"
+   ],
+   "handoffStatus": "todo",
+   "notes": "docs/handoff/items/ui-copy-content.md"
+  }
+ ]
+}

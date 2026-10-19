@@ -1,0 +1,3 @@
+- Plan §4 4c. #138 (4a) is merged: build on its promo-form, campaign send controls and kullanicilar changes.
+- The audited newsletter consent CSV waits for 7c system-audit-log's `export` audit action: skip it here and say so.
+- Do not create new URLs that carry a typed e-mail in a query string (the shared FilterBar GET ?q= is handled by admin UI v2).
