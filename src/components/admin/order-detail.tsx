@@ -33,9 +33,12 @@ import {
   isResendableKind,
 } from "@/lib/email/notice-kinds";
 import {
+  invoiceKdvBreakdown,
+  invoiceRewardMinor,
   kdvRateLabel,
   orderKdvBreakdown,
-  type KdvBreakdown,
+  orderShippingTaxRate,
+  REWARD_COUPON_SOURCES,
 } from "@/lib/utils/kdv";
 
 import { formatDateTime, formatTRY } from "./forms";
@@ -78,6 +81,15 @@ interface Props {
    * of showing an empty list as if nothing happened (admin audit ORD-20).
    */
   historyUnread?: { audit: boolean; mail: boolean };
+  /**
+   * The `source` of the member coupon the order redeemed (`loyalty`,
+   * `manual`, ...), null for a shared promo code or none
+   * (`couponSourcesForOrders`). A reward coupon pays for the goods, so the
+   * KDV table shows the invoice's split at full price.
+   */
+  couponSource?: string | null;
+  /** The coupon read failed: the table says it cannot tell a reward apart. */
+  couponUnread?: boolean;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -283,11 +295,26 @@ function ItemsSection({
 }
 
 /**
- * The KDV inside the total, one row per rate, as it was at the sale (each
- * line keeps the rate it was sold at). Informational: the total above is
- * what was charged, and refunds are not taken off here.
+ * The KDV of the sale, one row per rate, as it was at the sale (each line
+ * keeps the rate it was sold at, the shipping or courier fee its own).
+ * Informational: the total above is what was charged, and refunds are not
+ * taken off here. When a reward coupon (or one that covered every line)
+ * paid for the goods, the rows are the invoice's split at full price
+ * (`invoiceKdvBreakdown`, ASK-COUPON) and a line says the coupon is a
+ * payment; otherwise they are the KDV inside the total.
  */
-function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
+function KdvTable({
+  order,
+  couponSource,
+  couponUnread,
+}: {
+  order: AdminOrder;
+  couponSource: string | null;
+  couponUnread: boolean;
+}) {
+  const reward = invoiceRewardMinor(order, couponSource);
+  const kdv =
+    reward > 0 ? invoiceKdvBreakdown(order, reward) : orderKdvBreakdown(order);
   if (!kdv) {
     return (
       <p className="mt-4 border-t border-[var(--admin-border)] pt-3 text-xs text-[var(--admin-text-soft)]">
@@ -296,6 +323,9 @@ function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
     );
   }
   if (kdv.rows.length === 0) return null;
+  const code = order.promoCode || "";
+  const isReward =
+    couponSource !== null && REWARD_COUPON_SOURCES.has(couponSource);
   return (
     <div
       data-kdv-breakdown
@@ -340,15 +370,44 @@ function KdvTable({ kdv }: { kdv: KdvBreakdown | null }) {
           ))}
         </tbody>
       </table>
+      {reward > 0 ? (
+        <p data-kdv-reward className="mt-2 text-xs text-[var(--admin-text)]">
+          {isReward
+            ? `Ödül kuponu ${code}: ${formatTRY(reward)} ödeme olarak düşülür, KDV matrahından düşülmez.`
+            : `${code ? `Kupon ${code}` : "İndirim"} ürünlerin tamamını karşılıyor: ${formatTRY(reward)} ödeme olarak düşülür, KDV matrahından düşülmez.`}
+        </p>
+      ) : null}
+      {couponUnread && reward === 0 && order.discountMinor > 0 ? (
+        <p role="status" className="mt-2 text-xs text-[var(--admin-warning)]">
+          Kuponun türü okunamadı. Ödül kuponuysa faturada ürünler tam fiyatla
+          yazılır. Sayfayı yenile.
+        </p>
+      ) : null}
       <p className="mt-2 text-xs text-[var(--admin-text-soft)]">
-        Fiyatlara dahil. İndirim ve kargo ya da kurye ücreti satırlara
-        tutarlarıyla orantılı dağıtıldı; iadeler düşülmedi.
+        {reward > 0
+          ? "Faturadaki döküm: ürünler tam fiyatla."
+          : "Fiyatlara dahil."}
+        {order.discountMinor > reward
+          ? " İndirim satırlara tutarlarıyla orantılı dağıtıldı."
+          : ""}
+        {order.shippingMinor > 0
+          ? ` Kargo ya da kurye ücreti ayrı kalem, KDV ${kdvRateLabel(orderShippingTaxRate(order))}.`
+          : ""}{" "}
+        İadeler düşülmedi.
       </p>
     </div>
   );
 }
 
-function TotalsSection({ order }: { order: AdminOrder }) {
+function TotalsSection({
+  order,
+  couponSource,
+  couponUnread,
+}: {
+  order: AdminOrder;
+  couponSource: string | null;
+  couponUnread: boolean;
+}) {
   const refunded = refundedMinor(order);
   return (
     <Section title="Tutar">
@@ -384,7 +443,11 @@ function TotalsSection({ order }: { order: AdminOrder }) {
           },
         ]}
       />
-      <KdvTable kdv={orderKdvBreakdown(order)} />
+      <KdvTable
+        order={order}
+        couponSource={couponSource}
+        couponUnread={couponUnread}
+      />
     </Section>
   );
 }
@@ -780,13 +843,19 @@ export function OrderDetail({
   detailsRules,
   canSeeEvidence,
   historyUnread = { audit: false, mail: false },
+  couponSource = null,
+  couponUnread = false,
 }: Props) {
   return (
     <>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] print:hidden">
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
           <ItemsSection order={order} actions={actions} />
-          <TotalsSection order={order} />
+          <TotalsSection
+            order={order}
+            couponSource={couponSource}
+            couponUnread={couponUnread}
+          />
           <PaymentSection order={order} money={money} payments={payments} />
           <RefundsSection order={order} />
           <MailsSection

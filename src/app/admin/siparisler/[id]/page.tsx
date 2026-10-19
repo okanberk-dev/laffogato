@@ -19,6 +19,7 @@ import {
 import { orderDetailsRules, orderForClient } from "@/lib/admin/order-details";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
+import { couponSourcesForOrders } from "@/lib/customer/coupons";
 import {
   getOrder,
   getSettings,
@@ -64,10 +65,19 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
-  const [payments, auditRead, noticeRead] = await Promise.all([
+  const [payments, auditRead, noticeRead, couponRead] = await Promise.all([
     listPaymentTransactions(order.id),
     readOrFlag(listOrderAuditLogs(order.id), "olay kaydı"),
     readOrFlag(listOrderNotices(order.id), "e-posta kaydı"),
+    // Which coupon paid: a reward coupon is a payment, not a discount, and
+    // the KDV table then shows the invoice's split (ASK-COUPON).
+    readOrFlag(
+      couponSourcesForOrders([order]).then((m) => {
+        const source = m.get(order.orderNo);
+        return source ? [source] : [];
+      }),
+      "kupon",
+    ),
   ]);
   const audits = auditRead.rows;
   const notices = noticeRead.rows;
@@ -179,6 +189,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         historyUnread={{ audit: auditRead.failed, mail: noticeRead.failed }}
         detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}
         canSeeEvidence={canAccess("customers", session.role)}
+        couponSource={couponRead.rows[0] ?? null}
+        couponUnread={couponRead.failed}
       />
     </main>
   );
