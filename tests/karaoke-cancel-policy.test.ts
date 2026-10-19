@@ -503,6 +503,10 @@ describe("the wire shape (§7.1, additive)", () => {
     ]) {
       expect(section, field).toContain(field);
     }
+    // The köşk's own cancel is the whole payment; a guest's request it only
+    // passes on follows the booking's rule (kept, or the late share).
+    expect(section).not.toContain("köşkün iptali her zaman tam iadedir");
+    expect(section).toContain("misafirin telefonla ya da e-postayla");
   });
 });
 

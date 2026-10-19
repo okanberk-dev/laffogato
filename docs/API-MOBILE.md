@@ -1062,8 +1062,12 @@ sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
 (0..100, varsayılan 0; yeniden satılan saatin iadesi hazır olana kadar panel
 yalnız 0 ya da 100 kaydeder). Süreden önceki iptal, son anın kendisi dahil
 (`now <= cancellableUntil`; ilk sürümde `<`), her zaman tamamını iade
-eder; gelmeyene iade yoktur; köşkün iptali her zaman tam iadedir (MSY
-m.16/4). Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+eder; gelmeyene iade yoktur; köşkün kendi iptali her zaman tam iadedir (MSY
+m.16/4). Köşkün yalnız aktardığı istek (misafirin telefonla ya da e-postayla
+ilettiği iptal, panelde "Misafir iptal istedi") ise rezervasyonun kuralına
+istek anına göre bağlıdır: süre içindeyse tamamı, geç iptalde iade yoksa
+rezervasyon iptal edilmez ve olduğu gibi durur, geç iptal payı varsa
+`refundMinor` o paydır. Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
 `"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
 varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 
