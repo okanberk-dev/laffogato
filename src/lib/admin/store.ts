@@ -2156,7 +2156,7 @@ export function isClosedAccountEmail(email: string): boolean {
 
 /**
  * The customer roll-up rule, pure. Müşteriler runs it in SQL
- * (`admin_customer_rows`, db/migrations/20261018120000_admin_customer_list.sql,
+ * (`admin_customer_rows`, db/migrations/20261019120000_admin_customer_list.sql,
  * lib/admin/customer-list.ts); this is the same rule in TypeScript, which the
  * database test holds the SQL to (tests/db-integration-customer-list.test.ts).
  *

@@ -5,8 +5,9 @@
 //
 //   ?q=  filter=  izin=  eposta=  sirala=  yon=  sayfa=
 //
-// `filter` keeps its old name and values (members, guests) so a bookmarked
-// view still opens; `inactive` is new.
+// `filter` keeps its old name and values (members, guests, deletion) so a
+// bookmarked view and the staff mail's link (DELETION_ADMIN_PATH) still
+// open; `inactive` is new.
 
 import {
   parseFilters,
@@ -58,7 +59,8 @@ export const CUSTOMER_FILTER_FIELDS: readonly FilterField[] = [
 ];
 
 /** What a tab shows; also the `kind` the SQL functions take. */
-export type CustomerKind = "all" | "members" | "guests" | "inactive";
+export type CustomerKind =
+  "all" | "members" | "guests" | "inactive" | "deletion";
 
 /**
  * The tabs, in reading order. A new tab is a value here, a label, and the
@@ -72,6 +74,9 @@ export const CUSTOMER_TABS: ReadonlyArray<{
   { value: "members", label: "Üyeler" },
   { value: "guests", label: "Misafirler" },
   { value: "inactive", label: "Pasif" },
+  // Web deletion requests waiting for the team (/uye/hesap/sil), oldest
+  // first; the team's mail links here (DELETION_ADMIN_PATH).
+  { value: "deletion", label: "Silme talebi" },
 ];
 
 export const CUSTOMER_SORT_KEYS = [
@@ -111,6 +116,19 @@ export interface CustomerListQuery {
   consent: "" | "yes" | "no";
   /** Members whose address is verified (yes) or not (no). */
   verified: "" | "yes" | "no";
+}
+
+/** No search, no filter: the whole list (the deletion banner counts it). */
+export const CUSTOMER_UNFILTERED: CustomerListQuery = {
+  search: "",
+  digits: "",
+  consent: "",
+  verified: "",
+};
+
+/** True when the query narrows nothing. */
+export function isUnfilteredQuery(query: CustomerListQuery): boolean {
+  return !query.search && !query.digits && !query.consent && !query.verified;
 }
 
 export interface ParsedCustomerList {
@@ -215,6 +233,8 @@ export interface CustomerListRow {
   lastOrderAt: string;
   /** lastOrderAt, else memberSince: what "Son hareket" sorts by. */
   lastActivity: string;
+  /** ISO instant of the member's open web deletion request; "" when none. */
+  deletionRequestedAt: string;
 }
 
 /** The figures of one tab under the current filters. */
@@ -223,6 +243,8 @@ export interface CustomerTabTotals {
   orderCount: number;
   lifetimeValueMinor: number;
   refundedMinor: number;
+  /** The oldest open deletion request among them; "" when none. */
+  oldestDeletionAt: string;
 }
 
 export type CustomerCounts = Record<CustomerKind, CustomerTabTotals>;
@@ -254,6 +276,7 @@ export function toCustomerListRow(
     refundedMinor: int(raw.refundedMinor),
     lastOrderAt: text(raw.lastOrderAt),
     lastActivity: text(raw.lastActivity),
+    deletionRequestedAt: text(raw.deletionRequestedAt),
   };
 }
 
@@ -262,6 +285,7 @@ const EMPTY_TOTALS: CustomerTabTotals = {
   orderCount: 0,
   lifetimeValueMinor: 0,
   refundedMinor: 0,
+  oldestDeletionAt: "",
 };
 
 /** admin_customer_counts' rows keyed by tab; a missing tab reads as zero. */
@@ -273,6 +297,7 @@ export function toCustomerCounts(
     members: { ...EMPTY_TOTALS },
     guests: { ...EMPTY_TOTALS },
     inactive: { ...EMPTY_TOTALS },
+    deletion: { ...EMPTY_TOTALS },
   };
   for (const row of raw) {
     const kind = row.kind;
@@ -280,7 +305,8 @@ export function toCustomerCounts(
       kind !== "all" &&
       kind !== "members" &&
       kind !== "guests" &&
-      kind !== "inactive"
+      kind !== "inactive" &&
+      kind !== "deletion"
     ) {
       continue;
     }
@@ -289,6 +315,7 @@ export function toCustomerCounts(
       orderCount: int(row.orderCount),
       lifetimeValueMinor: int(row.lifetimeValueMinor),
       refundedMinor: int(row.refundedMinor),
+      oldestDeletionAt: text(row.oldestDeletionAt),
     };
   }
   return out;

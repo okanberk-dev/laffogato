@@ -311,7 +311,7 @@ describe("Müşteriler leaves closed accounts out (D13)", () => {
     expect(page).toContain('from "@/lib/admin/customer-list"');
     expect(page).not.toContain("listAllCustomers");
     const sql = readFileSync(
-      "db/migrations/20261018120000_admin_customer_list.sql",
+      "db/migrations/20261019120000_admin_customer_list.sql",
       "utf8",
     );
     expect(sql).toMatch(/lower\(btrim\(c\.email\)\) not like '%@anon\.local'/);

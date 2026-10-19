@@ -24,7 +24,7 @@ import { TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO } from "@/lib/admin/text-fold";
  */
 
 const MIGRATION = readFileSync(
-  "db/migrations/20261018120000_admin_customer_list.sql",
+  "db/migrations/20261019120000_admin_customer_list.sql",
   "utf8",
 );
 
@@ -179,10 +179,12 @@ describe("rows and counts from SQL", () => {
       orderCount: 30,
       lifetimeValueMinor: 900_000,
       refundedMinor: 5_000,
+      oldestDeletionAt: "",
     });
     expect(counts.members.customers).toBe(7);
     expect(counts.guests.customers).toBe(0);
     expect(counts.inactive.customers).toBe(0);
+    expect(counts.deletion.customers).toBe(0);
   });
 });
 
@@ -239,6 +241,7 @@ function totals(customers: number, orderCount = 0, value = 0, refunded = 0) {
     orderCount,
     lifetimeValueMinor: value,
     refundedMinor: refunded,
+    oldestDeletionAt: "",
   };
 }
 
@@ -257,6 +260,7 @@ function customer(over: Partial<CustomerListRow>): CustomerListRow {
     refundedMinor: 0,
     lastOrderAt: "2026-10-01T09:00:00.000Z",
     lastActivity: "2026-10-01T09:00:00.000Z",
+    deletionRequestedAt: "",
     ...over,
   };
 }
@@ -277,6 +281,7 @@ beforeEach(() => {
     members: totals(0),
     guests: totals(0),
     inactive: totals(0),
+    deletion: totals(0),
   };
   h.denied = false;
   h.reads = [];
@@ -336,6 +341,7 @@ describe("Müşteriler page", () => {
       members: totals(80, 30, 1_500_000),
       guests: totals(43, 10, 500_000),
       inactive: totals(2),
+      deletion: totals(0),
     };
     const { html, text } = await render();
     // Tabs carry the counts of the filtered list.

@@ -18,7 +18,7 @@ import {
 } from "./_support/db-suite-lock";
 
 /**
- * Müşteriler's SQL (db/migrations/20261018120000_admin_customer_list.sql)
+ * Müşteriler's SQL (db/migrations/20261019120000_admin_customer_list.sql)
  * against a real Postgres, through the app's own readers
  * (lib/admin/customer-list.ts): the merge of member accounts with the order
  * roll-up follows the TypeScript rule (`summarizeCustomers`), the search
@@ -59,6 +59,8 @@ interface Member {
   emailVerified: boolean;
   marketing: boolean;
   createdAt: string;
+  /** An open web deletion request (/uye/hesap/sil). */
+  deletionRequestedAt?: string;
 }
 
 interface Order {
@@ -89,6 +91,7 @@ const MEMBERS: Member[] = [
     emailVerified: false,
     marketing: false,
     createdAt: "2026-02-01T09:00:00.000Z",
+    deletionRequestedAt: "2026-10-10T09:00:00.000Z",
   },
   {
     email: `${PREFIX}pasif@ornek.test`,
@@ -107,6 +110,7 @@ const MEMBERS: Member[] = [
     emailVerified: true,
     marketing: false,
     createdAt: "2026-03-05T09:00:00.000Z",
+    deletionRequestedAt: "2026-09-20T09:00:00.000Z",
   },
   // A closed account: the placeholder address and nothing else (D13).
   {
@@ -117,6 +121,8 @@ const MEMBERS: Member[] = [
     emailVerified: false,
     marketing: false,
     createdAt: "2026-01-02T09:00:00.000Z",
+    // Left over on a closed account: still not a request to show.
+    deletionRequestedAt: "2026-08-01T09:00:00.000Z",
   },
 ];
 
@@ -202,8 +208,9 @@ async function seed(): Promise<void> {
     await pool!.query(
       `insert into public.customers
          (id, email, name, phone, "isActive", "emailVerified",
-          "notificationPrefs", "marketingConsentAt", "createdAt", "updatedAt")
-       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $9)`,
+          "notificationPrefs", "marketingConsentAt", "createdAt", "updatedAt",
+          "deletionRequestedAt")
+       values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $9, $10)`,
       [
         `cst-${m.email.toLowerCase()}`,
         m.email,
@@ -218,6 +225,7 @@ async function seed(): Promise<void> {
         }),
         m.marketing ? "2026-01-10T09:00:00.000Z" : "",
         m.createdAt,
+        m.deletionRequestedAt ?? null,
       ],
     );
   }
@@ -266,6 +274,7 @@ async function expectedRows() {
       refundedMinor: 0,
       lastOrderAt: "",
       lastActivity: m.createdAt,
+      deletionRequestedAt: m.deletionRequestedAt ?? "",
     });
   }
   for (const s of summaries) {
@@ -295,6 +304,7 @@ async function expectedRows() {
         refundedMinor: s.refundedMinor,
         lastOrderAt: s.lastOrderAt,
         lastActivity: s.lastOrderAt,
+        deletionRequestedAt: "",
       });
     }
   }
@@ -304,7 +314,7 @@ async function expectedRows() {
 async function read(
   text: string,
   over: {
-    kind?: "all" | "members" | "guests" | "inactive";
+    kind?: "all" | "members" | "guests" | "inactive" | "deletion";
     sort?: {
       key: "hareket" | "ad" | "siparis" | "harcama";
       dir: "asc" | "desc";
@@ -411,6 +421,7 @@ maybe("Müşteriler in SQL against a real Postgres", () => {
       orderCount: 5,
       lifetimeValueMinor: 100_000,
       refundedMinor: 32_000,
+      oldestDeletionAt: "2026-09-20T09:00:00.000Z",
     });
     expect(counts.members.customers).toBe(4);
     expect(counts.guests).toEqual({
@@ -418,9 +429,11 @@ maybe("Müşteriler in SQL against a real Postgres", () => {
       orderCount: 2,
       lifetimeValueMinor: 50_000,
       refundedMinor: 30_000,
+      oldestDeletionAt: "",
     });
     expect(counts.inactive.customers).toBe(1);
-    for (const kind of ["members", "guests", "inactive"] as const) {
+    expect(counts.deletion.customers).toBe(2);
+    for (const kind of ["members", "guests", "inactive", "deletion"] as const) {
       const rows = await read(PREFIX, { kind });
       expect(rows.length, kind).toBe(counts[kind].customers);
     }
@@ -492,6 +505,22 @@ maybe("Müşteriler in SQL against a real Postgres", () => {
     ]);
     const orders = await read(PREFIX, { sort: { key: "siparis", dir: "asc" } });
     expect(orders.map((r) => r.orderCount)).toEqual([0, 0, 1, 2, 2]);
+  });
+
+  it("lists the open deletion requests oldest first, whatever the sort", async () => {
+    for (const sort of [
+      { key: "hareket", dir: "desc" },
+      { key: "ad", dir: "desc" },
+    ] as const) {
+      const rows = await read(PREFIX, { kind: "deletion", sort });
+      expect(
+        rows.map((r) => [r.email, r.deletionRequestedAt]),
+        sort.key,
+      ).toEqual([
+        [`${PREFIX}Can@Ornek.test`, "2026-09-20T09:00:00.000Z"],
+        [`${PREFIX}ismail@ornek.test`, "2026-10-10T09:00:00.000Z"],
+      ]);
+    }
   });
 
   it("pages without repeating or skipping anyone", async () => {

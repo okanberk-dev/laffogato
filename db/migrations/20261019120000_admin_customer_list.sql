@@ -35,21 +35,33 @@
 --                             Filters: search (folded substring of address,
 --                             name or phone, or the phone's digits), the
 --                             member's commercial consent and verification.
+--                             A member's open web deletion request
+--                             ("deletionRequestedAt", /uye/hesap/sil) rides
+--                             along, "" when there is none.
 --   admin_customer_page(...)  One page of those rows for a tab (all,
---                             members, guests, inactive), sorted by last
---                             activity, name, order count or spend; the
+--                             members, guests, inactive, deletion), sorted
+--                             by last activity, name, order count or spend;
+--                             the deletion tab runs oldest request first
+--                             whatever the sort (the next one due). The
 --                             address breaks ties so a page boundary never
 --                             splits or repeats a customer.
 --   admin_customer_counts(...) Per tab: customers, paid orders, spend and
 --                             refunds under the same filters, for the tab
---                             badges and the summary tiles.
+--                             badges and the summary tiles, and the oldest
+--                             open deletion request for the panel's banner.
 --
--- A new tab or column (the account deletion request, for one) is a new
--- migration that drops and recreates these: RETURNS TABLE cannot change its
--- columns in place.
+-- A new tab or column later is a new migration that drops and recreates
+-- these: RETURNS TABLE cannot change its columns in place. Here they are
+-- dropped first for the same reason (a development database may hold an
+-- earlier draft of them).
 --
 -- Read-only, additive and idempotent. No `insert into public._migrations`:
 -- scripts/db-migrate.mjs records the file itself.
+
+drop function if exists public.admin_customer_counts(text, text, text, text);
+drop function if exists public.admin_customer_page(
+  text, text, text, text, text, text, boolean, integer, integer);
+drop function if exists public.admin_customer_rows(text, text, text, text);
 
 create or replace function public.admin_fold_tr(p_text text)
 returns text
@@ -96,7 +108,8 @@ returns table (
   "lifetimeValueMinor" bigint,
   "refundedMinor"      bigint,
   "lastOrderAt"        text,
-  "lastActivity"       text
+  "lastActivity"       text,
+  "deletionRequestedAt" text
 )
 language sql
 stable
@@ -146,6 +159,7 @@ as $$
            c."isActive",
            c."emailVerified",
            c."createdAt",
+           coalesce(c."deletionRequestedAt", '') as deletion_at,
            (coalesce(c."notificationPrefs" ->> 'marketing', 'false') = 'true'
             and c."marketingConsentAt" <> '') as consent
       from public.customers c
@@ -164,7 +178,8 @@ as $$
            coalesce(r.v, 0)::bigint as v,
            coalesce(r.refunded, 0)::bigint as refunded,
            coalesce(r.last_at, '') as last_at,
-           coalesce(nullif(r.last_at, ''), m."createdAt", '') as activity
+           coalesce(nullif(r.last_at, ''), m."createdAt", '') as activity,
+           coalesce(m.deletion_at, '') as deletion_at
       from members m
       full outer join rolled r on r.key = m.key
   )
@@ -180,7 +195,8 @@ as $$
          x.v,
          x.refunded,
          x.last_at,
-         x.activity
+         x.activity,
+         x.deletion_at
     from merged x
    where (coalesce(p_search, '') = ''
           or public.admin_fold_tr(x.email) like '%' || p_search || '%'
@@ -219,7 +235,8 @@ returns table (
   "lifetimeValueMinor" bigint,
   "refundedMinor"      bigint,
   "lastOrderAt"        text,
-  "lastActivity"       text
+  "lastActivity"       text,
+  "deletionRequestedAt" text
 )
 language sql
 stable
@@ -237,16 +254,21 @@ as $$
          r."lifetimeValueMinor",
          r."refundedMinor",
          r."lastOrderAt",
-         r."lastActivity"
+         r."lastActivity",
+         r."deletionRequestedAt"
     from public.admin_customer_rows(p_search, p_digits, p_consent, p_verified) r
    -- The same tabs as admin_customer_counts.
    where case coalesce(p_kind, '')
            when 'members'  then r."isMember"
            when 'guests'   then not r."isMember"
            when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
            else true
          end
    order by
+     -- Open deletion requests oldest first: the one closest to its thirty
+     -- days is the next to do.
+     case when p_kind = 'deletion' then r."deletionRequestedAt" end asc,
      -- A row without a name sorts after the named ones, either way.
      case when p_sort = 'name' then r.name = '' end,
      -- In Turkish alphabet order, whatever the database's collation.
@@ -282,7 +304,8 @@ returns table (
   customers            bigint,
   "orderCount"         bigint,
   "lifetimeValueMinor" bigint,
-  "refundedMinor"      bigint
+  "refundedMinor"      bigint,
+  "oldestDeletionAt"   text
 )
 language sql
 stable
@@ -296,14 +319,17 @@ as $$
          count(r.email)::bigint,
          coalesce(sum(r."orderCount"), 0)::bigint,
          coalesce(sum(r."lifetimeValueMinor"), 0)::bigint,
-         coalesce(sum(r."refundedMinor"), 0)::bigint
-    from (values ('all'), ('members'), ('guests'), ('inactive')) as k(kind)
+         coalesce(sum(r."refundedMinor"), 0)::bigint,
+         coalesce(min(nullif(r."deletionRequestedAt", '')), '')
+    from (values ('all'), ('members'), ('guests'), ('inactive'), ('deletion'))
+           as k(kind)
     -- The same tabs as admin_customer_page.
     left join r
       on case k.kind
            when 'members'  then r."isMember"
            when 'guests'   then not r."isMember"
            when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
            else true
          end
    group by k.kind
