@@ -686,8 +686,14 @@ describe("the FilterBar", () => {
   });
 
   it("ignores a text in the address it is handed", () => {
-    const html = render({ durum: "paid", q: "ayse@ornek.com", sayfa: "2" });
+    // A page that passed its `view` (or an address the proxy missed): the
+    // dropdown chip's link and the reset form are built without it.
+    const html = render(
+      { durum: "paid", q: "ayse@ornek.com", sayfa: "2" },
+      { kanal: "web" },
+    );
     expect(html).not.toContain("ayse@ornek.com");
+    expect(html).toContain('href="/admin/siparisler?durum=paid"');
     expect(html).toContain('<input type="hidden" name="durum" value="paid"/>');
     expect(html).not.toContain('name="sayfa"');
   });
