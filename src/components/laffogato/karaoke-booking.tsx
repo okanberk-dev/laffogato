@@ -1118,9 +1118,14 @@ export function KaraokeBooking({
                             ) : null}
                             {terms.lateShareMinor !== null ? (
                               <span className="kw-terms-line">
-                                Sonrasında, rezervasyon saatinden önce iptal
-                                edersen {priceLabel(terms.lateShareMinor)}{" "}
-                                kartına iade edilir.
+                                {/* "Sonrasında" only after a moment it
+                                    follows. */}
+                                {terms.freeUntil
+                                  ? "Sonrasında, rezervasyon"
+                                  : "Rezervasyon"}{" "}
+                                saatinden önce iptal edersen{" "}
+                                {priceLabel(terms.lateShareMinor)} kartına iade
+                                edilir.
                               </span>
                             ) : null}
                           </li>

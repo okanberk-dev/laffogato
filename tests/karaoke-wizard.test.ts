@@ -592,6 +592,40 @@ describe("the booking page as the server renders it", () => {
     );
   });
 
+  it("without a free window, the late share follows no moment", () => {
+    const NONE = karaokeCancellationRules({
+      freeCancelHours: 0,
+      lateRefundPercent: 50,
+    }).rules;
+    const html = booking({
+      availability: {
+        ...AVAILABILITY,
+        freeCancelHours: 0,
+        lateRefundPercent: 50,
+        cancellationRules: [...NONE],
+      },
+    });
+    expect(html).toContain(esc(NONE[0]));
+    expect(html).not.toContain("Ücretsiz iptal için son an");
+    expect(html).not.toContain("Sonrasında");
+    expect(html).toContain(
+      "Rezervasyon saatinden önce iptal edersen 500₺ kartına iade edilir.",
+    );
+    // With a window it follows the named moment.
+    expect(
+      booking({
+        availability: {
+          ...AVAILABILITY,
+          freeCancelHours: 24,
+          lateRefundPercent: 50,
+          cancellationRules: [...HALF],
+        },
+      }),
+    ).toContain(
+      "Sonrasında, rezervasyon saatinden önce iptal edersen 500₺ kartına iade edilir.",
+    );
+  });
+
   it("without a readable rule, echoes nothing and says so", () => {
     const html = booking({
       availability: { ...AVAILABILITY, cancellationRules: [] },
