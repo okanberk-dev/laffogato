@@ -302,3 +302,45 @@ describe("what an evening that is over leaves to invoice (ASK-KAR-KDV)", () => {
     ).toBeNull();
   });
 });
+
+describe("the dialog's İstek anı (a page left open does not date the call)", () => {
+  // 15:00 Istanbul on the server when the page was drawn.
+  const DRAWN = Date.parse("2026-10-30T12:00:00.000Z");
+  const HOUR = 60 * 60_000;
+
+  it("is now when the dialog opens, not when the page was drawn", () => {
+    expect(cause.karaokeRequestDefault(DRAWN, DRAWN, DRAWN + 4 * HOUR)).toBe(
+      "2026-10-30T19:00",
+    );
+    expect(cause.karaokeRequestDefault(DRAWN, DRAWN, DRAWN)).toBe(
+      "2026-10-30T15:00",
+    );
+  });
+
+  it("a wrong clock on the staff's machine does not move it", () => {
+    const skewed = DRAWN - 2 * HOUR;
+    expect(
+      cause.karaokeRequestDefault(DRAWN, skewed, skewed + 4 * HOUR + 30_000),
+    ).toBe("2026-10-30T19:00");
+    // A clock that went back never dates the call before the draw.
+    expect(cause.karaokeRequestDefault(DRAWN, skewed, skewed - HOUR)).toBe(
+      "2026-10-30T15:00",
+    );
+  });
+
+  it("the field is filled when the dialog opens, from that helper", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(
+      new URL(
+        "../src/components/admin/karaoke-cancel-dialog.tsx",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(src).toMatch(
+      /useState\(\(\) =>\s*karaokeRequestDefault\(p\.serverNow, p\.clientAtDraw, Date\.now\(\)\)/,
+    );
+    expect(src).toContain("defaultValue={requestNow}");
+    expect(src).not.toMatch(/defaultValue=\{p\.now\}/);
+  });
+});

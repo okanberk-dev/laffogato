@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cancelReservationAction } from "@/app/admin/mobil/karaoke/actions";
 import {
   isBusinessCause,
+  karaokeRequestDefault,
   KARAOKE_CALL_HINT,
   KARAOKE_CANCEL_CAUSES,
   KARAOKE_CAUSE_LABEL,
@@ -31,8 +32,11 @@ export interface KaraokeRefundCancelProps {
   freeUntil: string;
   /** Under 24 hours before the start, with a phone on the booking. */
   callHint: boolean;
-  /** The köşk's wall clock now and at booking, `YYYY-MM-DDTHH:mm`. */
-  now: string;
+  /** Unconfirmed bookings were never promised: always a full refund. */
+  confirmed: boolean;
+  /** The server's clock when the page was drawn (ms). */
+  serverNow: number;
+  /** The köşk's wall clock at booking, `YYYY-MM-DDTHH:mm`. */
   bookedAt: string;
   variant: ButtonVariant;
   disabledReason?: string;
@@ -43,6 +47,9 @@ const CHOICE = "flex min-h-[44px] items-center gap-3 text-sm";
 
 /** What the chosen code will do, in one sentence under the list. */
 function outcome(cause: KaraokeCancelCause | "", p: KaraokeRefundCancelProps) {
+  if (cause === "misafir" && !p.confirmed) {
+    return `Rezervasyon onaylanmadığı için ${p.amount} tamamı karta iade edilir; misafire "isteğin üzerine iptal ettik" e-postası gider.`;
+  }
   if (cause === "misafir") {
     return `İstek anı son ücretsiz iptal anından (${p.freeUntil}) önceyse ya da tam o andaysa ${p.amount} karta iade edilir. Sonraysa rezervasyonun kuralı uygulanır: geç iptalde iade vermiyorsa rezervasyon iptal edilmez, misafire kodunu başkasına verebileceğini söyleyen e-posta gider.`;
   }
@@ -55,8 +62,13 @@ function outcome(cause: KaraokeCancelCause | "", p: KaraokeRefundCancelProps) {
   return null;
 }
 
-function CancelFields(p: KaraokeRefundCancelProps) {
+function CancelFields(p: KaraokeRefundCancelProps & { clientAtDraw: number }) {
   const { fieldErrors, errorId } = useActionModalState();
+  // The fields mount when the dialog opens: the request defaults to now
+  // then, not to when the page was drawn.
+  const [requestNow] = useState(() =>
+    karaokeRequestDefault(p.serverNow, p.clientAtDraw, Date.now()),
+  );
   const [cause, setCause] = useState<KaraokeCancelCause | "">("");
   const said = outcome(cause, p);
   const err = (name: string) =>
@@ -127,7 +139,7 @@ function CancelFields(p: KaraokeRefundCancelProps) {
               <TextInput
                 type="datetime-local"
                 name="istekAni"
-                defaultValue={p.now}
+                defaultValue={requestNow}
                 min={p.bookedAt}
                 required
                 {...err("istekAni")}
@@ -179,6 +191,10 @@ function CancelFields(p: KaraokeRefundCancelProps) {
  * refund right sees it off, with the reason.
  */
 export function KaraokeRefundCancel(props: KaraokeRefundCancelProps) {
+  // This machine's clock next to the server's draw, kept as one pair: the
+  // dialog adds only the time counted here since then.
+  const [clientAtDraw] = useState(() => Date.now());
+  const [serverAtDraw] = useState(props.serverNow);
   return (
     <ActionModal
       action={cancelReservationAction}
@@ -192,7 +208,11 @@ export function KaraokeRefundCancel(props: KaraokeRefundCancelProps) {
       disabledReason={props.disabledReason}
       size="md"
     >
-      <CancelFields {...props} />
+      <CancelFields
+        {...props}
+        serverNow={serverAtDraw}
+        clientAtDraw={clientAtDraw}
+      />
     </ActionModal>
   );
 }

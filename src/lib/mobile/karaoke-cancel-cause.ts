@@ -99,3 +99,25 @@ export function needsCallHint(
     karaokeStartInstant(r.date, r.startHour).getTime() - now.getTime();
   return left > 0 && left < DAY_MS;
 }
+
+const MINUTE_MS = 60_000;
+/** Türkiye keeps UTC+3 all year (the panel's wall clock, rule 22). */
+const ISTANBUL_OFFSET_MS = 3 * 60 * MINUTE_MS;
+
+/**
+ * The "İstek anı" the cancel dialog shows when it opens: now, on the köşk's
+ * wall clock, `YYYY-MM-DDTHH:mm`. The page is drawn on the server and can
+ * stay open for hours, so the time it was drawn is never the default (a
+ * call taken at 19:00 on a page drawn at 15:00 would be judged at 15:00).
+ * The server's clock at the draw plus the time the staff's own machine
+ * counted since then: a wrong clock on that machine does not move it.
+ */
+export function karaokeRequestDefault(
+  serverAtDrawMs: number,
+  clientAtDrawMs: number,
+  clientNowMs: number,
+): string {
+  const elapsed = Math.max(0, clientNowMs - clientAtDrawMs);
+  const at = serverAtDrawMs + elapsed;
+  return new Date(at + ISTANBUL_OFFSET_MS).toISOString().slice(0, 16);
+}

@@ -195,7 +195,8 @@ export function KaraokeActions({
   if (plan.cancel?.kind === "refund") {
     // A paid booking's cancel names its reason from a fixed list; a guest's
     // own request also its channel and instant (karaoke-cancel-dialog.tsx).
-    // The clock is the request's: this is drawn on the server.
+    // The request's instant defaults to when the dialog opens
+    // (karaokeRequestDefault), never to when this page was drawn.
     const now = new Date();
     items.push(
       <KaraokeRefundCancel
@@ -204,7 +205,8 @@ export function KaraokeActions({
         amount={amount(view)}
         freeUntil={karaokeInstantLabel(karaokeCancelDeadline(r))}
         callHint={needsCallHint(r, now)}
-        now={toDateTimeLocalInput(now.toISOString())}
+        confirmed={r.status === "confirmed"}
+        serverNow={now.getTime()}
         bookedAt={toDateTimeLocalInput(r.createdAt)}
         variant={menu ? "menuDanger" : "danger"}
         disabledReason={plan.cancel.disabledReason}
