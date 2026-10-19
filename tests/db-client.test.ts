@@ -324,7 +324,28 @@ describe("onWrite (the cache hook getDb wires to src/lib/cache/tags.ts)", () => 
     expect(seen).toEqual([]);
   });
 
-  it("does not fire when the statement failed, or never left", async () => {
+  it("fires after a write that committed but whose reply was lost", async () => {
+    // Postgres commits, then the connection drops before the reply: pg
+    // throws, the builder returns an error, the caller sees a failure, and
+    // the new price is in the table. Without the hook here the shop keeps
+    // the old price until the day-long net.
+    const committed: string[] = [];
+    const exec: Executor = async (query) => {
+      committed.push(query.text);
+      throw new Error("Connection terminated unexpectedly");
+    };
+    const { db, seen } = recordingDb(exec);
+    const res = await db
+      .from("products")
+      .update({ priceMinor: 52000 })
+      .eq("id", "prd-1");
+    await db.rpc("claim_order_stock", { p_lines: [], p_now: "now" });
+    expect(res.error).not.toBeNull();
+    expect(committed).toHaveLength(2);
+    expect(seen).toEqual([{ table: "products" }, { fn: "claim_order_stock" }]);
+  });
+
+  it("fires after any failed write: expiring too much only costs a read", async () => {
     const failing = recordingDb(
       throwingExecutor(pgError("23505", "duplicate key")),
     );
@@ -336,15 +357,32 @@ describe("onWrite (the cache hook getDb wires to src/lib/cache/tags.ts)", () => 
       ),
     );
     await offline.db.from("products").update({ stock: 1 }).eq("id", "a");
+    expect(failing.seen).toEqual([
+      { table: "orders" },
+      { fn: "claim_order_stock" },
+    ]);
+    expect(offline.seen).toEqual([{ table: "products" }]);
+  });
+
+  it("does not fire for a write that never ran", async () => {
     // An empty upsert sends nothing, so nothing was written.
-    const { exec } = fakeExecutor();
+    const { exec, calls } = fakeExecutor();
     const empty = recordingDb(exec);
     await empty.db.from("press").upsert([]);
     // A bad identifier is refused before any SQL runs.
     await empty.db.from('bad"name').insert({ id: 1 });
-    expect(failing.seen).toEqual([]);
-    expect(offline.seen).toEqual([]);
+    expect(calls).toEqual([]);
     expect(empty.seen).toEqual([]);
+  });
+
+  it("a hook that throws after a failed write keeps the write's own error", async () => {
+    const db = createDb(throwingExecutor(pgError("23505", "duplicate key")), {
+      onWrite: () => {
+        throw new Error("cache down");
+      },
+    });
+    const res = await db.from("orders").insert({ id: "o1" });
+    expect(res.error?.code).toBe("23505");
   });
 
   it("a hook that throws never fails the write", async () => {

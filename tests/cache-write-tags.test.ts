@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The write side of the site's data cache (src/lib/cache/tags.ts): every
- * write the database accepts expires the cached reads it made stale. The
- * cached entries have no short time limit, so a table or a SQL function that
- * nobody classified could leave the shop showing yesterday's price until the
- * next deploy. These tests make a new one fail CI until someone decides.
+ * write sent to the database (a failed one too) expires the cached reads it
+ * made stale. The cached entries have no short time limit, so a table or a
+ * SQL function that nobody classified could leave the shop showing
+ * yesterday's price until the next deploy. These tests make a new one fail
+ * CI until someone decides.
  */
 
 const h = vi.hoisted(() => ({
@@ -217,6 +218,33 @@ describe("expireTags", () => {
     tags.expireTags(["pub:catalog"]);
     const task = h.after.mock.calls[0][0] as () => void;
     expect(() => task()).not.toThrow();
+  });
+});
+
+describe("a write whose reply was lost still expires its tags", () => {
+  it("the price save that committed and then threw expires the catalog", async () => {
+    const { createDb } = await import("@/lib/db/client");
+    // What getDb() wires (src/lib/db/index.ts), over a connection that
+    // drops after Postgres has committed the statement.
+    const db = createDb(
+      async () => {
+        throw Object.assign(new Error("Connection terminated unexpectedly"), {
+          code: "ECONNRESET",
+        });
+      },
+      { onWrite: (target) => tags.expireTags(tags.tagsForWrite(target)) },
+    );
+    const res = await db
+      .from(TABLES.products)
+      .update({ priceMinor: 52000 })
+      .eq("id", "prd-1");
+    expect(res.error).not.toBeNull();
+    await db.rpc("claim_order_stock", { p_lines: [], p_now: "now" });
+    expect(h.revalidateTag.mock.calls).toEqual([
+      ["pub:catalog", { expire: 0 }],
+      ["pub:catalog", { expire: 0 }],
+      ["live:orders", { expire: 0 }],
+    ]);
   });
 });
 

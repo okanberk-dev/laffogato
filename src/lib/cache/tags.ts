@@ -13,9 +13,10 @@ import type { WriteTarget } from "@/lib/db/client";
  * panel's change markers (src/lib/admin/change-marker.ts) in the Next Data
  * Cache, with no short time limit: an entry stays good until a write says
  * otherwise. That only holds if EVERY write says so, so the data layer does
- * it, not the callers: `getDb()` hands each successful insert, upsert,
- * update, delete and rpc to `tagsForWrite`, and `expireTags` expires the
- * answer (src/lib/db/index.ts).
+ * it, not the callers: `getDb()` hands each insert, upsert, update,
+ * delete and rpc it sent to `tagsForWrite`, failed ones too (a commit whose
+ * reply was lost looks like a failure), and `expireTags` expires the answer
+ * (src/lib/db/index.ts).
  *
  * Four tags:
  * - `pub:catalog`: products, categories, menu items (the shop and the menu).

@@ -79,9 +79,12 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
 **Ne değişti.**
 
 1. **Yazma, etkilediği önbelleği hemen düşürür** (`src/lib/cache/tags.ts`).
-   Veri katmanı (`getDb()`) kabul edilen her insert, upsert, update, delete
+   Veri katmanı (`getDb()`) gönderdiği her insert, upsert, update, delete
    ve rpc'den sonra ilgili etiketi `revalidateTag(tag, { expire: 0 })` ile
    düşürür: bir sonraki okuma taze veriyi bekler, bayat veri hiç sunulmaz.
+   Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
+   önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
+   düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
    Dört etiket: `pub:catalog` (ürün, kategori, menü), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
    içerikleri, hukuk override'ları, canlı durum), `live:orders`,

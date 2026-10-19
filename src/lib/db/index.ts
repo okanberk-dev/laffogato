@@ -208,9 +208,10 @@ export async function dbHealth(): Promise<DbHealth> {
 export function getDb(): Db {
   if (!global.__laffogatoDb) {
     global.__laffogatoDb = createDb(createExecutor(), {
-      // Every accepted write expires the cached reads it made stale
-      // (src/lib/cache/tags.ts). After the statement, never before: each
-      // one commits on its own, and the multi-step writes are SQL functions.
+      // Every write expires the cached reads it made stale
+      // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
+      // after the commit. After the statement, never before: each one
+      // commits on its own, and the multi-step writes are SQL functions.
       onWrite: (target) => expireTags(tagsForWrite(target)),
     });
   }

@@ -65,22 +65,26 @@ export interface ExecutorResult {
 /** Runs compiled SQL. Injected so the builder is testable without a database. */
 export type Executor = (query: CompiledQuery) => Promise<ExecutorResult>;
 
-/** What a successful write touched: a table, or the SQL function it called. */
+/** What a write touched: a table, or the SQL function it called. */
 export type WriteTarget = { table: string } | { fn: string };
 
 export interface DbOptions {
   /**
-   * Called once after each write the database accepted: an insert, upsert,
-   * update or delete (`{ table }`), or an rpc (`{ fn }`). Never after a
-   * select, a failed statement or a write that sent nothing (an empty
-   * upsert). `getDb()` uses it to expire the cached reads the write made
-   * stale (src/lib/cache/tags.ts). It cannot fail the write: a throw is
-   * swallowed.
+   * Called once after each write that was sent: an insert, upsert, update
+   * or delete (`{ table }`), or an rpc (`{ fn }`), whether it succeeded or
+   * failed. A failure does not prove nothing was written: Postgres can
+   * commit and the connection drop before the reply arrives, and the caller
+   * then sees an error for a price that is already in the table. Never
+   * after a select or a write that sent nothing (an empty upsert, an
+   * identifier refused before any SQL). `getDb()` uses it to expire the
+   * cached reads the write made stale (src/lib/cache/tags.ts): one expiry
+   * too many costs a read, one too few leaves a price stale for a day. It
+   * cannot fail the write or change its result: a throw is swallowed.
    */
   onWrite?: (target: WriteTarget) => void;
 }
 
-/** The executor for a write: the same SQL, then `onWrite` once it succeeded. */
+/** The executor for a write: the same SQL, then `onWrite`, failure included. */
 function writingExecutor(
   execute: Executor,
   target: WriteTarget,
@@ -88,14 +92,16 @@ function writingExecutor(
 ): Executor {
   if (!onWrite) return execute;
   return async (query) => {
-    const result = await execute(query);
     try {
-      onWrite(target);
-    } catch {
-      // The row is written; a cache that could not be told is not an error
-      // the caller can do anything about.
+      return await execute(query);
+    } finally {
+      try {
+        onWrite(target);
+      } catch {
+        // A cache that could not be told is not an error the caller can do
+        // anything about; the write's own result stands.
+      }
     }
-    return result;
   };
 }
 
@@ -481,7 +487,7 @@ class DeleteBuilder<T> extends MutationBuilder<T> {
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 class TableQuery {
-  /** Runs this table's writes and reports each one that succeeded. */
+  /** Runs this table's writes and reports each one that was sent. */
   private readonly write: Executor;
 
   constructor(
@@ -594,7 +600,7 @@ export class Db {
     return new RpcBuilder<T[]>(this.rpcExecutor(fn), fn, args as Row, "table");
   }
 
-  /** An rpc may write, so a successful one is reported like a write. */
+  /** An rpc may write, so each one sent is reported like a write. */
   private rpcExecutor(fn: string): Executor {
     return writingExecutor(this.execute, { fn }, this.options.onWrite);
   }
