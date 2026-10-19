@@ -591,6 +591,23 @@ describe("the page", () => {
     expect(html).toMatch(/>Bildirim<\/a>/);
   });
 
+  it("fits the table next to the sidebar: the actor moves under the time below xl (SYS-11)", async () => {
+    const { ListPage } = await loadPages(
+      [row({ actor: "okan.berk.manavoglu.uzun@laffogato.com" })],
+      1,
+    );
+    const html = renderToStaticMarkup(
+      await ListPage({ searchParams: Promise.resolve({}) }),
+    );
+    // The Kim column only from xl; under it, the time cell carries the actor.
+    expect(html).toMatch(/<th[^>]*class="[^"]*hidden xl:table-cell[^"]*"[^>]*>Kim<\/th>/);
+    expect(html).toMatch(
+      /<span class="min-w-0 text-\[var\(--admin-text-soft\)\] xl:hidden"><span class="block truncate text-xs" title="okan\.berk\.manavoglu\.uzun@laffogato\.com">/,
+    );
+    // Ayrıntı no longer claims 14rem of a 720 px table.
+    expect(html).not.toContain("min-w-[14rem]");
+  });
+
   it("says what the log is in plain words, under the sidebar's names", async () => {
     const { ListPage } = await loadPages([], 0);
     const html = renderToStaticMarkup(

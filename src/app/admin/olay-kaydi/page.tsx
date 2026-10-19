@@ -219,16 +219,25 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           {
             key: "at",
             header: "Zaman",
-            className: "whitespace-nowrap",
+            // The date above the time. Below xl (the table's 720 px next to
+            // the sidebar) the actor sits under them, so Ayrıntı keeps its
+            // width (SYS-11: five columns left the values 34 px).
+            className: "w-[10rem] min-w-[10rem] max-w-[10rem]",
             cell: (r) => (
-              <span className="text-xs" style={NUMERIC_STYLE}>
-                {auditTime(r.createdAt)}
-              </span>
+              <div className="grid min-w-0 gap-1">
+                <span className="text-xs" style={NUMERIC_STYLE}>
+                  {auditTime(r.createdAt)}
+                </span>
+                <span className="min-w-0 text-[var(--admin-text-soft)] xl:hidden">
+                  <Actor actor={r.actor} />
+                </span>
+              </div>
             ),
           },
           {
             key: "actor",
             header: "Kim",
+            hideBelow: "xl",
             // Wide enough for "info@laffogato.com" on one line; a longer
             // address ends in "…" with the whole of it in the title.
             className: "w-[12rem] max-w-[12rem]",
@@ -253,7 +262,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           {
             key: "payload",
             header: "Ayrıntı",
-            className: "min-w-[14rem]",
+            className: "min-w-[12rem]",
             cell: (r) => <PayloadCell row={r} />,
           },
         ]}
