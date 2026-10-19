@@ -1,6 +1,6 @@
 # Devir promptu: L'Affogato kalan işler (19 Ekim 2026)
 
-Aşağıdaki iki prompt, GitHub'a bağlı bulut (Claude Code on the web) oturumlarında çalıştırılmak için yazıldı. Önce **Prompt A**'yı `RiosenBeq/laffogato` deposunda çalıştır. **Prompt B**'yi `RiosenBeq/lafmobil` deposunda, A'nın ilgili site PR'ları merge edildikçe çalıştır. Her şeyin kaynağı laffogato `main` dalındaki `docs/handoff/` klasörü.
+Aşağıdaki iki prompt, GitHub'a bağlı bulut (Claude Code on the web) oturumlarında çalıştırılmak için yazıldı. Her biri kendi deposunda, ayrı bir oturumda çalışır; bir oturum öbür depoya geçmez. Önce **Prompt A**'yı `RiosenBeq/laffogato` deposunda başlat. **Prompt B**'yi `RiosenBeq/lafmobil` deposunda aynı anda başlatabilirsin: site işini bekleyen parçaları kendisi bekletir. Site tarafının kaynağı laffogato `main`'deki `docs/handoff/`, uygulama tarafınınki lafmobil `main`'deki `docs/site-handoff/`. İki depoya birden dokunan senkron (sözleşme kopyası, hukuk metni dışa aktarımı) yerel oturumda yapılır.
 
 ---
 
@@ -16,7 +16,7 @@ L'Affogato sitesinin (Next.js 16, Vercel, production YALNIZ `main`'den) kalan i�
 - admin UI v2 `docs/handoff/admin-ui-final-design.md` ve `docs/handoff/admin-ui-final-items.json`.
 
 **Sıra.**
-1. Açık PR kaldıysa (#159 vb.) onu bitir ve merge et.
+1. Açık PR kaldıysa onu bitir ve merge et.
 2. `queue.json`'da `handoffStatus` değeri `built-needs-review` olan dallar: dal GitHub'da duruyor, build raporu `docs/handoff/reports/<slug>-build.json`. Yeniden yazma. Bağımsız incelemeyi yap (`review` alanına göre: `adversarial` ise üç mercekle (para, erişim, gerileme) iddia listesi çıkar, sonra her mercek için tek doğrulayıcı iddiaları test ya da betikle çürütmeye çalışsın, yalnız ayakta kalanı testle düzelt; `security` ve `standard` ise tek dikkatli inceleme). Dalı `main` ile güncelle, draft PR aç, yeşil olunca merge et.
 3. `partial-build` dallar: son commit `wip(...)`; build'i bitir, sonra 2. adımdaki gibi.
 4. `todo` maddeler: `prio` sırasıyla ve `after` bağımlılıkları merge edildikten sonra.
@@ -28,8 +28,8 @@ L'Affogato sitesinin (Next.js 16, Vercel, production YALNIZ `main`'den) kalan i�
 - Her merge'den sonra production'ın en yeni deployment'ı `main`'den gelmeli. Şu yollar 200 vermeli: `/`, `/odeme`, `/menu`, `/karaoke`, `/magaza`, `/admin/giris`, `/api/mobile/v1/shop`, `/api/mobile/v1/menu`.
 - Önizlemeyi ya da eski deployment'ı ASLA production'a "promote" ya da "redeploy" etme. 18-19 Ekim'de bu yüzden eski kod 9,5 saat canlıda kaldı.
 - Neon ücretsiz plan, en fazla 10 dal. Her merge'den sonra o PR'ın `preview/*` dalı silinmeli; `production` ve `vercel-dev`'e dokunma. Neon'a erişemiyorsan silinecek dalları bana yaz. Sınır dolunca Vercel kontrolü beklemede kalır.
-- `/api/mobile/v1` yalnız eklemeli değişir. `docs/API-MOBILE.md` değişirse uygulama kopyası için Prompt B'ye not düş.
-- Hukuk: avukat ya da mali müşavir turu yok (işletme kararı, 18 Ekim). Güncel Türk mevzuatından karar ver, PR'da "Hukuki dayanak" yaz. `src/lib/legal/meta.ts` içindeki `LEGAL_UPDATED` ya da `KARAOKE_LEGAL_UPDATED`'ı değiştiren en fazla bir PR aynı İstanbul gününde merge edilir ve o günün tarihini taşır.
+- `/api/mobile/v1` yalnız eklemeli değişir. lafmobil'e push edemezsin: `docs/API-MOBILE.md` ya da hukuk metinleri değişirse PR'a "lafmobil senkronu gerekiyor" yaz ve bitiş özetinde listele.
+- Hukuk: avukat ya da mali müşavir turu yok (işletme kararı, 18 Ekim). Güncel Türk mevzuatından karar ver, PR'da "Hukuki dayanak" yaz. `src/lib/legal/meta.ts` içindeki `LEGAL_UPDATED` ya da `KARAOKE_LEGAL_UPDATED`'ı değiştiren en fazla bir PR aynı İstanbul gününde merge edilir ve o günün tarihini taşır. Bu yüzden hukuk maddeleri birkaç güne yayılır: sıradaki hukuk PR'ını yeşil bekletip UI ve denetim maddeleriyle devam et, ertesi İstanbul gününde tarihini o güne çekerek merge et. Ertesi gün aynı oturuma "devam" yazılınca kaldığın yerden sürdür.
 - Para: kart verisi saklanmaz ve loglanmaz (kural 28). Ulaşılamayan POS "ödenmedi" sayılmaz (kural 29). Canlı POS ve gerçek kart yok, yalnız PayNkolay sandbox.
 - Metin: Türkçe arayüz, müşteriye "sen", uzun tire (U+2013, U+2014) yok. Commit mesajları İngilizce, son satır `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. PR açıklaması Türkçe: "Ne değişti / Neden / Test / Notlar / riskler", gerekiyorsa "Hukuki dayanak", son satır `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
 - Yeni paket yok; yalnız UI v2'nin sabit sürümleri: `lucide-react@1.51.0`, `react-aria-components@1.21.1`, `@internationalized/date@3.12.4` (`npm install --save-exact`).
@@ -39,18 +39,24 @@ L'Affogato sitesinin (Next.js 16, Vercel, production YALNIZ `main`'den) kalan i�
 - Her admin ekranının 390, 1024 ve 1280 px'te görsel taraması; taşma ve çakışmaları düzelt.
 - Kullanılmayan dalları temizle.
 - `queue.json` boşalınca `docs/handoff/README.md`'yi "tamamlandı" olarak güncelle.
-- Bana kısa bir özet ver: merge edilen PR'lar, atlanan ya da zaten düzelmiş bulgular, açık kalanlar, benim yapmam gerekenler.
+- Bana kısa bir özet ver: merge edilen PR'lar, atlanan ya da zaten düzelmiş bulgular, açık kalanlar, lafmobil senkronu gereken PR'lar, benim yapmam gerekenler.
 
 ---
 
 ## Prompt B (repo: RiosenBeq/lafmobil)
 
-L'Affogato uygulamasının (Expo) site ile senkron kalması gereken işlerini yap. Önce `CLAUDE.md` ve `AGENTS.md`'yi oku. Site deposundaki `docs/handoff/README.md`'nin "lafmobil follow-ups" bölümünü ve `docs/handoff/legal-final-program.json` içindeki `appPRs` listesini oku. Site deposuna erişimin yoksa bu dosyaları bana sor.
+L'Affogato uygulamasının (Expo) site ile senkron kalması gereken işlerini yap. Önce `CLAUDE.md` ve `AGENTS.md`'yi, sonra `docs/site-handoff/README.md`'yi oku. Site deposu (`RiosenBeq/laffogato`) private; ona erişimin yok ve gerekmiyor: gereken her şey `docs/site-handoff/` içinde (site `main` `c1b55c7`'den kopya).
 
-1. **Sözleşme senkronu:** Site `main`'indeki `docs/API-MOBILE.md`'yi bayt bayt `docs/API-MOBILE.md`'ye kopyala. `shasum -a 256 docs/API-MOBILE.md` ile yeni özeti `src/data/contract-sync.test.ts`'deki `RECONCILED`'a yaz. Bunu her site değişikliğinden sonra ayrı bir PR'la yap.
-2. **Hukuk metinleri:** Site deposunda `npm run legal:export -- <lafmobil>/src/data/legal.seed.json`, ardından lafmobil'de `node scripts/legal-split.js`. Testler: `jest src/data`.
-3. **Karaoke:** iptal kuralı sunucudan okunur (`cancellationRules`, rezervasyonun kendi `cancellableUntil`'i). Varsa `lateRefundPercent` ile geç iptalde iade payı gösterilir. Eski sabit "2 saat" cümleleri yalnız yedek olarak kalır. Bu sürüm asgari sürüm olunca site panelindeki kilit açılabilir: sitede `KARAOKE_POLICY_APP_VERSION`.
-4. **Menü:** kalem başına alerjenler ve "Görseller temsilidir" notu. Mağaza: paketli gıda etiket alanları ve tarihli indirim rozeti, ilgili site PR'ları merge edildikten sonra.
-5. **Diğer:** karaoke rezervasyon kodunu başkasına verme cümlesi; ödeme ve hukuk metni ekranlarındaki değişiklikler (`appPRs`).
+**İş listesi:** `docs/site-handoff/legal-final-program.json` içindeki `appPRs` (`app-legal-sync-1`, `-2`, `-3`; her değişikliğin dosyası ve birebir Türkçe metni orada, gerekçesi `decisionsTr`'de). Alan adları ve davranış `docs/API-MOBILE.md`'de.
 
-**Kurallar:** API yalnız eklemeli; site PR'ı önce merge edilir; Türkçe "sen" dili, uzun tire yok; testler, typecheck ve lint yeşil olmadan merge yok; squash merge exact head ile. Bitişte kısa bir özet ver.
+**Sıra.**
+1. Sitesi zaten merge edilmiş ya da siteye bağlı olmayan kısımlar, şimdi ve ayrı bir PR'da (bekleyen parçaları içine katma):
+   - Karaoke: iptal kuralı sunucudan okunur (`GET /karaoke/availability` `cancellationRules` ve `freeCancelHours`, olduğu gibi yazılır; rezervasyonun kendi `cancellableUntil`'i). Eski sabit "2 saat" cümleleri yalnız sunucu alanı yokken yedek olarak kalır. `lateRefundPercent` ve rezervasyon başına `refundMinor` sözleşmede henüz yok, okuma. `cancelOutcome`'un tam anı "geç" saymasını düzelt (`ASK-Y3-4`). Bu sürüm asgari sürüm olunca site panelindeki kilit açılabilir: PR'da sürüm numarasını yaz, sitedeki `KARAOKE_POLICY_APP_VERSION`'ı ben değiştireceğim.
+   - Menü: kalem başına alerjenler (`app-menu-allergens`; alan yoksa "henüz girilmedi", `[]` ise "14 grubun hiçbiri") ve kalem ekranında "Görseller temsilidir" notu (`ASK-OTH-1`, MenuPhotoNote).
+   - Siteye bağlı olmayan metinler: giriş ekranı alt metni (Kullanım Koşulları kabulü ile Gizlilik Politikası bilgilendirmesi ayrı; `app-auth-footer-privacy-wording`), fA'L bilgilendirme ekranı (`ASK-FAL-1`), cüzdan metinleri (`ASK-CARD-TEXT`, wallet).
+2. `README.md`'deki "Site work still in the site queue" tablosunda bekleyen site işine bağlı değişiklikler o site işi merge edilene kadar bekler: ödeme metinleri (`withdrawalShop`, `cardHint`, `cardNotStored`, 16 pt), karaoke rezervasyon kodunu başkasına verme cümlesi (`karaoke-terms`), mağaza etiket alanları ve tarihli indirim rozeti, kasa kartı hata metni (`ASK-LOYALTY`). Merge olup olmadığını bilmiyorsan bana sor, tahmin etme.
+3. DOKUNMA: `docs/API-MOBILE.md`, `src/data/contract-sync.test.ts` içindeki `RECONCILED`, `src/data/legal.seed.json`, `src/data/legal-index.seed.json`, `assets/legal/legal-docs.txt`. Bunlar iki depoya birden erişen yerel oturumda üretilir. Bir değişiklik bunlara bağlıysa PR'da "yerel senkron bekliyor" diye yaz.
+
+**Kurallar:** API yalnız eklemeli; yeni bir sunucu alanı gerekiyorsa uydurma, bana yaz (önce site PR'ı merge edilir). Her PR `origin/main`'den dallanır (`feat/saved-cards-copy`'den değil). Türkçe "sen" dili, uzun tire (U+2013, U+2014) yok. Commit mesajları İngilizce, son satır `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. PR açıklaması Türkçe: "Ne değişti / Neden / Test / Notlar / riskler", son satır `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. `npm run typecheck`, `npx eslint src --max-warnings 0` ve `npm test` yeşil olmadan merge yok; merge `gh pr merge N --squash --match-head-commit <sha>` ile.
+
+**Bitişte** kısa bir özet ver: merge edilen PR'lar, bekleyen site işleri yüzünden kalanlar, yerel senkron gereken dosyalar, asgari sürüm yapılacak uygulama sürümü.
