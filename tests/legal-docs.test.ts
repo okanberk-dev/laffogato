@@ -570,8 +570,14 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     for (const [where, text] of docTexts()) {
       if (!bankData.test(text)) continue;
       // A supplier's account, and the sentence that only adds "bu amaçla"
-      // to the partial refund just before it, are not this processing.
-      if (/Tedarikçi/.test(text) || /[Bb]u amaçla bildirdiğiniz/.test(text)) {
+      // to the partial refund just before it, are not this processing; nor
+      // is the karaoke make-good's own account (karaoke terms §8), which
+      // tests/karaoke-make-good.test.ts holds to its own words.
+      if (
+        /Tedarikçi/.test(text) ||
+        /[Bb]u amaçla bildirdiğiniz/.test(text) ||
+        (/telafi/.test(text) && !/gönderim bedel/.test(text))
+      ) {
         continue;
       }
       seen++;

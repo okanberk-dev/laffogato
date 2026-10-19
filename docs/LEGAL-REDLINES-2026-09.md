@@ -2725,6 +2725,116 @@ Ayrı PR'ın notları:
 - O PR birleşince `tests/register-consent.test.ts`'teki koşullu kontrol
   kesin bir kontrole döner ve bu alt bölüm "Düzeltilenler"e taşınır.
 
+## 25. Y11 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (19 Eki 2026)
+
+> **Durum: metin ve kod değişti.** Dal `feat/legal-karaoke-make-good-and-resale`.
+> Operatör kararı (18 Eki 2026): avukat turu yok; OP-KARAOKE-GOODWILL,
+> ASK-OTH-3-CFG ve D-KAR-1-99 aşağıdaki dayanaklarla uygulandı.
+
+### 25.1 Sürüm
+
+Karaoke belgesi değişti (§8, §9): `KARAOKE_LEGAL_UPDATED` yayın günüdür,
+bu dalda 19 Ekim 2026. Aynı İstanbul gününde `KARAOKE_LEGAL_UPDATED`'i
+taşıyan ikinci bir PR birleştirilmez (D-SAME-DAY; 19 Ekim'i
+`feat/legal-karaoke-terms` aldı): bu PR sonraki bir günde birleşirse sabit
+ve bu satır o günün tarihine taşınır. Kişisel Veri Saklama ve İmha
+Politikası, KVKK Aydınlatma Metni ve Gizlilik Politikası'nın kendi tarihi
+19 Ekim 2026'dır; geç birleşmede onlar da o güne taşınır. Ödeme onayındaki
+iki belge değişmedi, `LEGAL_UPDATED` yerinde kaldı. Uygulamanın çevrimdışı
+kopyası lafmobil'de yenilenir (ayrı PR).
+
+### 25.2 Değişen cümleler
+
+| Belge | Yer | Mevcut | Yeni |
+|---|---|---|---|
+| Karaoke, §8 | 2. paragraf | (yok) | "İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep (mücbir sebep) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde {{PHONE}} numarasını arayarak veya {{EMAIL}} adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi {{EMAIL}} adresine yazmanızdan itibaren en geç 14 gün içinde yaparız." |
+| Karaoke, §9 | 1. paragraf | "Her iade PayNkolay üzerinden, ödemenin yapıldığı karta ve ödenen tutarın tamamı olarak yapılır; kısmi iade yapılmaz. İadenin hesabınıza yansıma süresi bankanıza bağlıdır." | "Her iade PayNkolay üzerinden ödemenin yapıldığı karta yapılır. Tutarın tamamının iadesi iptalle birlikte başlatılır; ödediğiniz tutarın bir kısmı iade ediliyorsa bu tutar en geç 14 gün içinde kartınıza iade edilir. İadenin hesabınıza yansıma süresi bankanıza bağlıdır." |
+| Veri Saklama, §8 tablosu | banka hesap satırının anahtarı | "İade için bildirilen banka hesap bilgisi (kısmi iadenin ... alıcının kendi adına kayıtlı hesap bilgisi)" | aynı anahtar + "; karaoke telafisi için bildirilen banka hesap bilgisi" (değer aynı) |
+| KVKK Aydınlatma, §6 | karaoke rezervasyon verisi | "... ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyon notunuz, ..." | "... ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafi (tutarı, ücretsiz saatin son günü, ücretsiz saat olarak mı yoksa ödeme olarak mı kullanıldığı ve ödeme tarihi), rezervasyon notunuz, ..." |
+| KVKK Aydınlatma, §6 | aynı madde, hukuki sebepten önce | (yok) | "Telafinin banka hesabınıza ödenmesini seçerseniz e-postayla bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi yalnızca bu ödeme için kullanılır; rezervasyon kaydına yazılmaz, ödemenin belgesiyle muhasebe kayıtlarında saklanır." |
+| Gizlilik Politikası, §3 | "Karaoke rezervasyon verisi" satırı | "... ödemenin PayNkolay referansı ve zamanı, uygulanıyorsa üyelik kademenize göre indirim; ..." | "... ödemenin PayNkolay referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafinin tutarı ve nasıl kullanıldığı (telafinin banka hesabınıza ödenmesini seçerseniz bildirdiğiniz banka hesap bilgisi yalnızca bu ödeme için kullanılır ve rezervasyon kaydına yazılmaz), uygulanıyorsa üyelik kademenize göre indirim; ..." |
+| Rezervasyon kuralı (ödeme öncesi cümle, `karaokeCancellationRules`, yalnız %1-99) | geç iptal cümlesi | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz." | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir." (bu kuralla yapılmış rezervasyon yok: panel %1-99'u bu PR'a kadar kabul etmiyordu) |
+| E-posta, işletme iptali (sen) | para satırından sonra | (yok) | "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar bizi arayarak ya da bu e-postayı yanıtlayarak boş bir saat için ayırtabilirsin), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (bu e-postayı yanıtlayıp IBAN'ını yaz, 14 gün içinde öderiz)." |
+| E-posta, telafi saatinin onayı (sen) | ödeme satırı | "Ödemeyi köşkte yaparsın. ..." | "Bu saat, [kod] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz. Planın değişirse [süre] rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir." |
+| E-posta, yeniden satış iadesi (sen) | para satırı | (yok) | "Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan [tutar] daha kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
+
+### 25.3 Kararlar ve kod
+
+- **Telafi kimde doğar.** Personelin ödenmiş rezervasyonu iptalinde neden
+  `ariza`, `kapanis` ya da `diger` ise, iptal anı rezervasyonun kendi son
+  ücretsiz iptal anından (dakikası dâhil) sonraysa ve misafirin o anda geç
+  iptalde kaybedeceği tutar sıfırdan büyükse: telafi = o tutar (2 saat / %0
+  kuralında ödenen tutarın tamamı; %P'de ödenenin kalan kısmı; %100'de
+  yok), son gün = iptal günü + 6 takvim ayı (TBK m.92/3). `mucbir`,
+  `misafir` ("Yine de tamamını iade et" dâhil) ve `yeniden` telafi doğurmaz;
+  köşkün hiç onaylamadığı ödenmiş rezervasyon söz verilmemiş sayıldığı için
+  doğurmaz. Telafi iadenin ilk adımıyla birlikte yazılır, POS iadeyi
+  reddederse geri alınır; yanıtsız iade sonradan kaydedilince telafi
+  e-postası o zaman gider (`karaoke-make-good-core.ts`).
+- **İki eylem, biri diğerini kapatır.** İade yetkisi olan kişi iptal
+  edilmiş rezervasyonun sayfasında "Telafi saati ver" (boş bir gün ve
+  saat; aynı süre, aynı misafir; toplam 0, `paymentStatus: "none"`,
+  onaylı, `channel: "staff"`, not "Telafi: KRK-…", `makeGoodFor` eski kod;
+  çakışma kısıtı geçerli, açık rezervasyon tavanına sayılmaz; misafire
+  "Bu saat için senden ödeme alınmaz." onayı) ya da "Telafi ödendi" (havale
+  günü, tutar ve not; telafiden az tutar ve ileri tarih reddedilir; IBAN
+  veritabanına yazılmaz, dekont muhasebede durur) seçer. Ücretsiz saat son
+  günden sonra verilmez; para seçeneğinin son günü yoktur. Telafi saati
+  başlamadan iptal edilirse telafi yeniden açılır. Her adım denetim
+  kaydında (`make_good_hour_given`, `make_good_hour`, `make_good_paid`,
+  `make_good_reopened`).
+- **KDV.** Telafi saatinin sayfası "Emsal bedel = saatlik ücret x saat, KDV
+  köşkçe beyan edilir" der; faturalanacak tutar satırı bu saatte çıkmaz.
+- **Yeniden satış iadesi.** Rezervasyon onaylandığında (ödemesiyle ya da
+  köşkte ödenecekse personelin onayıyla; telafi saati satış sayılmaz) aynı
+  gündeki, saatleri çakışan, iptal edilmiş ve geç iptalde pay tutulmuş
+  rezervasyonlar için her saat, o saati en son geç iptal etmiş
+  rezervasyona bir kez sayılır (`resoldHours`); iade = round(tutulan pay x
+  sayılan saat / saat), toplamı tutulan payı aşmaz
+  (`karaoke_charge_resold_hours`, satır kilidiyle). Rezervasyon `refunding`
+  olur, ekibe "Geç iptal edilen saat yeniden satıldı" e-postası gider,
+  personel tutarı PayNkolay panelinden iade edip "Elle iade edildi" ile
+  kaydeder; daha önce elle iade edilen kısım (`refundSettledMinor`) yeniden
+  istenmez. POS'a otomatik kısmi iade gönderilmez (docs/PAYNKOLAY.md §3.2).
+- **%1-99 açıldı (D-KAR-1-99).** Panel 0-100 arası tam sayıyı kabul eder;
+  24 saatten uzun pencerede en az %50 sınırı ve %0'da en çok 24 saat sınırı
+  kalır. Canlıda kural hâlâ 2 saat / %0: uygulama kilidi
+  (`KARAOKE_POLICY_APP_VERSION` null) açılmadıkça başka kural kaydedilmez.
+
+### 25.4 Bilerek değişmeyenler
+
+- Ödeme Koşulları ve Hesap Silme'deki karaoke "2 saat" ve "kısmi iade
+  yapılmaz" cümleleri: her rezervasyon 2 saat / %0 ile yapıldığı sürece
+  doğru; uygulama kilidi açılmadan önce yeniden yazılır
+  (`tests/karaoke-cancel-policy-doc.test.ts`). Bu belgeler `LEGAL_UPDATED`
+  taşıdığı için aynı gün başka bir PR'la çakışmamak da gerekir.
+- Karaoke §7: yeniden satış iadesini zaten vaat ediyordu ("iptal ettiğiniz
+  saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade
+  edilir"); kod şimdi bunu yapıyor.
+
+### 25.5 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Geç işletme iptalinde telafi | Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1, EK-1 (ç) (RG 17.06.2014, 29033); 6502 s. TKHK m.6/2 | Misafirin geç vazgeçmesi saatin bedeline mal oluyorsa, köşkün aynı geç vazgeçmesi de misafire benzer bir tazminat verir; yalnız aynî karşılık (saat) kullanamayan misafire boş kalacağı için para seçeneği de var. |
+| Mücbir sebep dışarıda | 6098 s. TBK m.136/1-2 | Borçlunun sorumlu tutulamayacağı imkânsızlıkta borç sona erer ve yalnız alınan edim geri verilir; doğal afet, resmî makam kararı, bölgesel elektrik ya da su kesintisinde tam iade var, telafi yok. |
+| 6 ay | 6098 s. TBK m.92/3 | Ay olarak belirlenen süre son ayın karşılık gelen gününde, o gün yoksa ayın son gününde dolar; telafi saatinin son günü böyle hesaplanır. |
+| Telafi saatinin KDV'si | 3065 s. KDV Kanunu m.5, m.27/1 | Vergiye tabi bir hizmetten karşılıksız yararlandırma hizmet sayılır, matrah emsal bedeldir: panel saatlik ücret x saati gösterir, köşk beyan eder. Paraya çevrilen telafi tazminattır, KDV'ye konu değildir (GİB özelgesi 79690095-130-9). |
+| Yeniden satılan saatin payı | 6098 s. TBK m.325/2 (kıyasen); Haksız Şartlar Yön. EK-1 (d) | Başka biçimde kullanmakla elde edilen yarar bedelden indirilir: geç iptal edilip yeniden satılan saat için tutulan pay iade edilir; her saat bir kez. |
+| Kısmi iade 14 gün | Mesafeli Sözleşmeler Yönetmeliği m.16/4 (kıyasen), TKHK m.4/2 | Tam iade iptalle POS'tan başlar; elle yapılan kısmi iade en geç 14 günde karta; ön bilgi cümlesi bunu yazar. |
+| Banka hesap bilgisi | 6698 s. KVKK m.4/2-ç, m.5/2-c, m.10; Aydınlatma Yükümlülüğü Tebliği m.4 | Telafi ödemesi için bildirilen hesap bilgisi aydınlatma metninde ve gizlilik politikasında adıyla geçer, yalnız bu ödeme için kullanılır, rezervasyon kaydına yazılmaz; saklama süresi iade için bildirilen hesap bilgisiyle aynı satırda. |
+
+### 25.6 Operatöre
+
+- Telafi saati verdiğin ay o saati emsal bedeli üzerinden %20 KDV ile
+  beyannameye al (KDV K. m.5, m.27/1); para olarak ödenen telafiyi KDV'siz
+  tazminat olarak havale dekontuyla kaydet (mali müşavirle).
+- Kuralı sunucudan okuyan uygulama sürümü (lafmobil 1.1.0) iki mağazada
+  yayınlanınca: önce Ayarlar > Mobil uygulama'da en düşük desteklenen
+  sürümü yükselt, sonra `KARAOKE_POLICY_APP_VERSION`'ı o sürüme yazan PR'ı
+  aç (Ödeme Koşulları ve Hesap Silme cümleleri aynı PR'da). O güne kadar
+  %1-99 kaydedilemez.
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

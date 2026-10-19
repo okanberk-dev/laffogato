@@ -103,8 +103,12 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-// 19 Ekim 2026: §7 and §10 name the booking's own summary instead of fixed
-// hours, §7 says when a cancel by phone or e-mail counts, §8 says when and
-// why the köşk cancels. LEGAL-REDLINES §17. (17 Ekim 2026: §1 no longer
-// points table bookings to the café terms.)
+// 19 Ekim 2026: §8 makes good the köşk's late cancel (a free hour or the
+// amount to the guest's own account), §9 refunds a share within 14 days
+// now that a late share of 1..99 % can be chosen (karaoke-make-good-and-
+// resale, LEGAL-REDLINES §25). The publish day: only one PR that moves this
+// label merges per Istanbul day, so a later merge moves it to its own day.
+// (Earlier on 19 Ekim 2026: §7 and §10 name the booking's own summary, §7
+// says when a cancel by phone or e-mail counts, §8 when and why the köşk
+// cancels, LEGAL-REDLINES §17.)
 export const KARAOKE_LEGAL_UPDATED = "19 Ekim 2026";
