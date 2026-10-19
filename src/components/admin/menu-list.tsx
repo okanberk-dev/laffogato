@@ -32,10 +32,12 @@ import {
   BUTTON,
   ConfirmButton,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   NUMERIC_STYLE,
   useToast,
   type DataTableColumn,
+  type EmptyListAction,
 } from "./ui";
 import { EYEBROW, MONO_STYLE } from "./ui/styles";
 
@@ -45,7 +47,7 @@ interface Props {
   categoryLabels: Record<MenuCategoryKey, string>;
   /** Shown instead of the groups when nothing matches. */
   emptyTitle?: string;
-  emptyAction?: { href: string; label: string } | null;
+  emptyAction?: EmptyListAction | null;
 }
 
 const initialBulkState: BulkMenuActionState = {};
@@ -263,9 +265,10 @@ export function MenuList({
           title={emptyTitle}
           action={
             emptyAction ? (
-              <Link href={emptyAction.href} className={BUTTON.ghost}>
-                {emptyAction.label}
-              </Link>
+              <EmptyListActionLink
+                action={emptyAction}
+                className={BUTTON.ghost}
+              />
             ) : null
           }
         />

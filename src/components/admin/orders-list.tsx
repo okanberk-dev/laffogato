@@ -31,9 +31,11 @@ import {
 import {
   Badge,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   OrderStatusBadge,
   type DataTableColumn,
+  type EmptyListAction,
 } from "./ui";
 import {
   orderAlertsMounted,
@@ -74,7 +76,7 @@ interface Props {
    * The way out of an empty list: "Filtreleri temizle" behind a filter,
    * "+ Yeni sipariş" when there is no order at all (admin audit ORD-25).
    */
-  emptyAction?: { href: string; label: string } | null;
+  emptyAction?: EmptyListAction | null;
 }
 
 /**
@@ -602,9 +604,10 @@ export function OrdersList({
             title={emptyTitle}
             action={
               emptyAction ? (
-                <Link href={emptyAction.href} className={BUTTON.ghost}>
-                  {emptyAction.label}
-                </Link>
+                <EmptyListActionLink
+                  action={emptyAction}
+                  className={BUTTON.ghost}
+                />
               ) : null
             }
           />
