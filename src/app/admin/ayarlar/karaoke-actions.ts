@@ -165,7 +165,8 @@ export async function saveKaraokeAction(
   }
   // The online-prepayment box (16 Eki 2026). A checkbox: absent = off, and
   // off is refused whole (MSG_PREPAY_LOCKED). A stored `false` (older data)
-  // becomes true with the next save.
+  // already reads as on (`getSettings`) and is written true with the next
+  // save.
   if (formData.get("karaokePrepay") !== "on") {
     return refuse(MSG_PREPAY_LOCKED, "karaokePrepay");
   }

@@ -920,6 +920,10 @@ Operatör kararı: karaoke rezervasyonu yapılırken PayNkolay ile kartla ödeni
 alınmamış rezervasyon onaylanmaz (panelde de). Panelde bir anahtar var
 (`settings.karaokePrepay`, Ayarlar → Karaoke, varsayılan açık); kapalıyken eski
 akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none`'a düşer.
+19 Eki 2026'dan beri anahtar kapatılamaz (OP-KARAOKE-PREPAY): panel kapatmayı
+reddeder, kilitten önce kapalı kaydedilmiş bir değer de açık okunur
+(`getSettings`). Sunucu `paymentRequired: false` göndermez; uygulamanın talep
+dalı yalnız eski bir sunucuya karşı anlamlıdır.
 
 **`GET /karaoke/availability`** yanıtına eklenen alanlar:
 

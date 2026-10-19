@@ -5901,6 +5901,10 @@ export async function getSettings(): Promise<AdminSettings> {
     orderNotifyRoles: normalizeNotifyRoles(
       rest.orderNotifyRoles ?? defaultSettings().orderNotifyRoles,
     ),
+    // Online prepayment cannot be switched off (OP-KARAOKE-PREPAY): a row
+    // saved before the lock may still say false, and the request mode it
+    // would run is gone from the legal texts.
+    karaokePrepay: true,
   } as AdminSettings;
 }
 

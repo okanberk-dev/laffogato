@@ -1750,7 +1750,8 @@ yenilenir (ayrı PR).
   yayına girdiği PR'da eklenir; o güne kadar ek yok.
 - OP-KARAOKE-PREPAY: Talep usulünü anlatan iki cümle (Kafe §5, Kullanım
   Şartları tanım) kalktı: ödeme alamayan eski uygulama sürümü rezervasyon
-  yapamaz, güncelleme ister. Panel ön ödemenin kapatılmasını reddeder.
+  yapamaz, güncelleme ister. Panel ön ödemenin kapatılmasını reddeder;
+  kilitten önce kapalı kaydedilmiş değer de açık okunur (`getSettings`).
 
 **Değişen cümleler.** Satır numaraları `src/lib/legal/content.ts`'in bu
 PR'daki hâline aittir (karaoke belgesi: `content-karaoke.ts`).
