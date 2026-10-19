@@ -783,19 +783,30 @@ describe("sidebar", () => {
     expect(activeNavHref("/admin/bultenler", hrefs)).toBeNull();
   });
 
-  it("draws its own icon for the entries that used the dashboard's, and a karaoke badge", () => {
-    const src = read("src/components/admin/admin-sidebar.tsx");
-    for (const key of [
+  it("draws its own icon for the entries that used the dashboard's, and a karaoke badge", async () => {
+    // The icons are lucide's now, one map in ui/icons.tsx; the sidebar
+    // looks them up by `item.icon ?? item.section`.
+    const { ADMIN_ICONS } = await import("@/components/admin/ui/icons");
+    const keys = [
       "till",
       "tables",
       "mobileApp",
       "adminUsers",
       "karaoke",
-    ]) {
-      expect(src, key).toMatch(new RegExp(`\\n  ${key}: \\(`));
+    ] as const;
+    for (const key of keys) {
+      expect(ADMIN_ICONS[key], key).toBeDefined();
+      expect(ADMIN_ICONS[key], key).not.toBe(ADMIN_ICONS.dashboard);
     }
+    expect(new Set(keys.map((k) => ADMIN_ICONS[k])).size).toBe(keys.length);
+    const src = read("src/components/admin/admin-sidebar.tsx");
+    expect(src).toContain("<NavIcon name={item.icon ?? item.section} />");
+    expect(read("src/components/admin/nav-icon.tsx")).toContain(
+      "ADMIN_ICONS",
+    );
     expect(src).toContain("karaokeTodayCountAction");
-    expect(src).toContain("activeNavHref(");
+    // One active entry, over item and tab hrefs (nav-match.ts).
+    expect(src).toContain("activeNavPlace(");
     expect(src).not.toMatch(/function isActive\(/);
   });
 });

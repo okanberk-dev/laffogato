@@ -81,6 +81,12 @@ const searchRef = vi.hoisted(() => {
 vi.mock("@/app/admin/ara/actions", () => ({
   adminSearchAction: searchRef.ref,
 }));
+// The sidebar draws its icons through next/dynamic (a chunk of their own,
+// so the cashier's Kasa loads no lucide). Here the module is simply there.
+vi.mock("next/dynamic", async () => {
+  const { NavIcon } = await import("@/components/admin/nav-icon");
+  return { default: () => NavIcon };
+});
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
@@ -401,7 +407,7 @@ describe("the sidebar and the top bar", () => {
     expect(tag(html, /<header[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<dialog[^>]*>/)).toContain("print:hidden");
     expect(read("src/app/admin/layout.tsx")).toContain(
-      '<div className="lg:pl-64 print:pl-0">',
+      'className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}',
     );
   });
 
@@ -583,7 +589,7 @@ describe("the layout", () => {
   const render = async () =>
     renderToStaticMarkup(await AdminLayout({ children: page }));
 
-  it("gives each Mobil Uygulama entry its own icon and says Mağaza vitrini (SHE-18, CON-19, SHE-22)", async () => {
+  it("draws five groups, each item with an icon of its own (UI-5, SHE-18, CON-19)", async () => {
     session.read = async () => ({
       email: "o@b.c",
       role: "owner",
@@ -591,26 +597,30 @@ describe("the layout", () => {
     });
     pathname = "/admin";
     const html = await render();
-    expect(html).toContain("Mağaza vitrini");
-    expect(html).not.toContain("Mağaza Hero");
-    const icons = [
-      "slaytlar",
-      "duyurular",
-      "gonderiler",
-      "canli-durum",
-      "fal-bildirimleri",
-      "ayarlar",
-    ].map((p) =>
-      tag(html, new RegExp(`<a href="/admin/mobil/${p}"[^]*?</svg>`)).replace(
-        /^[^]*?<svg/,
-        "<svg",
-      ),
-    );
-    expect(new Set(icons).size).toBe(6);
+    const side = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    const titles = [
+      ...side.matchAll(/id="side-nav-\d+-title"[^>]*>(?:<span>)?([^<]+)</g),
+    ].map((m) => m[1]);
+    expect(titles).toEqual([
+      "Bugün",
+      "Katalog",
+      "Pazarlama",
+      "İçerik",
+      "Yönetim",
+    ]);
+    const rows = [
+      ...side.matchAll(/<li class="relative"><a href="([^"]+)"[^]*?<\/a>/g),
+    ];
+    expect(rows).toHaveLength(21);
+    // Each row draws a lucide icon, and no two rows draw the same one.
+    const icons = rows.map((m) => /class="lucide ([^" ]+)/.exec(m[0])?.[1]);
+    expect(icons.every(Boolean)).toBe(true);
+    expect(new Set(icons).size).toBe(21);
+    expect(side).not.toContain("Mağaza Hero");
     expect(html).toContain("PAGE");
   });
 
-  it("a cashier's shell: the till as home, no search", async () => {
+  it("a cashier's shell: no sidebar, menu button or drawer; logo, page name, account menu (UI-5)", async () => {
     session.read = async () => ({
       email: "k@b.c",
       role: "cashier",
@@ -618,10 +628,34 @@ describe("the layout", () => {
     });
     pathname = "/admin/kasa";
     const html = await render();
-    expect(html).toContain('href="/admin/kasa"');
+    expect(html).not.toContain("<aside");
+    expect(html).not.toContain("admin-nav-drawer");
+    expect(html).not.toContain("Menüyü aç");
+    expect(html).not.toContain('aria-label="Panel"');
     expect(html).not.toContain("/admin/siparisler");
     expect(html).not.toContain("/admin/ara");
-    expect(html).toContain("/admin/2fa-kurulum");
+    const header = html.slice(
+      html.indexOf("<header"),
+      html.indexOf("</header>"),
+    );
+    expect(header).toMatch(
+      /<a href="\/admin\/kasa"[^>]*aria-label="L&#x27;Affogato Admin"/,
+    );
+    expect(header).toMatch(/>Kasa<\/span>/);
+    // The account menu: a native disclosure holding 2FA and Çıkış.
+    expect(header).toContain("<details");
+    expect(header).toContain('href="/admin/2fa-kurulum"');
+    expect(header).toContain("Çıkış");
+    // No icon chunk for the cashier: nothing lucide in the shell.
+    expect(html).not.toContain('class="lucide');
+    // Nothing to clear room for: the page is not pushed right.
+    expect(html).toContain(
+      '<div id="admin-main" tabindex="-1" class="print:pl-0">',
+    );
+    // The skip link is still the first thing to focus.
+    expect(html.indexOf('href="#admin-main"')).toBeLessThan(
+      html.indexOf("<header"),
+    );
   });
 
   it("an unreachable session check shows the shell with a notice, not the sign-in (SHE-11)", async () => {
