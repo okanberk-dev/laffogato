@@ -1358,7 +1358,7 @@ Uygulama kendi sözleşme kopyasını yazmaz. Sipariş kaydı sitenin sözleşme
 revizyonuna rıza kaydeder; iki taraf farklı metin gösterirse o kayıt anlamsız
 kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 
-**`GET /api/mobile/v1/legal`** — 25 belgelik dizin.
+**`GET /api/mobile/v1/legal`** — 26 belgelik dizin (20 Eki 2026'dan beri İşlem Rehberi dahil).
 
 ```json
 {
@@ -1417,7 +1417,7 @@ ulaşılamazsa iki uç da kodlu belgeye döner — 5xx vermez.
 ### Çevrimdışı taban
 
 `npm run legal:export` (site deposu) `scripts/legal-export.mjs`'yi çalıştırıp
-`laffogato-mobil/src/data/legal.seed.json` üretir: 25 belgelik dizin + **14
+`laffogato-mobil/src/data/legal.seed.json` üretir: 26 belgelik dizin + **14
 belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
 bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
 
