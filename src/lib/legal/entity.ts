@@ -8,7 +8,8 @@
  * MERSİS numarası işletme sahibinin ibraz ettiği ticaret sicil kaydından
  * alınmıştır.
  *
- * ⚠️ Boş bırakılan alanlar (`kep`, `bank`) bilinmiyor. Uydurma değer YAZMAYIN
+ * ⚠️ Boş bırakılan alanlar (`kep`, `chamber`, `chamberRulesUrl`, `bank`)
+ * bilinmiyor. Uydurma değer YAZMAYIN
  * — boş kaldıkları sürece belgelerdeki ilgili tablo satırları otomatik olarak
  * gizlenir (bkz. `fillTokens`). Gerçek değerler öğrenildiğinde yalnızca burayı
  * doldurmak yeterlidir.
@@ -137,6 +138,20 @@ export const LEGAL_ENTITY = {
    * anlamına gelirdi.
    */
   kep: "",
+  /**
+   * Şirketin kayıtlı olduğu meslek odası ve odanın meslekle ilgili davranış
+   * kurallarına elektronik olarak ulaşılan adres (Elektronik Ticaret Aracı
+   * Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında
+   * Yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a).
+   *
+   * Operatör odayı şirketin oda kayıt ya da faaliyet belgesinden okuyup
+   * bildirene kadar boş (OP-KEP-CHAMBER). Tahminle yazılmaz: yanlış oda
+   * yanlış bir kimlik beyanıdır. Boş kaldıkları sürece Şirket Bilgileri §2'deki
+   * iki satır hiç basılmaz; değer gelince yalnız burası doldurulur ve
+   * `sirket-bilgileri` belgesinin `updatedAt`'i o gün olur.
+   */
+  chamber: "",
+  chamberRulesUrl: "",
   /** TODO: Para iadesi/havale için banka ve IBAN bilgisi. */
   bank: { name: "", iban: "" },
 
@@ -186,6 +201,8 @@ const TOKENS: Record<string, string> = {
   MERSIS: LEGAL_ENTITY.mersisNo,
   TRADE_REGISTRY: LEGAL_ENTITY.tradeRegistryNo,
   KEP: LEGAL_ENTITY.kep,
+  CHAMBER: LEGAL_ENTITY.chamber,
+  CHAMBER_RULES_URL: LEGAL_ENTITY.chamberRulesUrl,
   IBAN: LEGAL_ENTITY.bank.iban,
   BANK: LEGAL_ENTITY.bank.name,
   SITE: LEGAL_ENTITY.siteDomain,

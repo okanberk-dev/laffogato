@@ -12736,6 +12736,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "{{KEP}}",
           },
           {
+            key: "Kayıtlı olunan meslek odası",
+            value: "{{CHAMBER}}",
+          },
+          {
+            key: "Meslek odasının davranış kuralları",
+            value: "{{CHAMBER_RULES_URL}}",
+          },
+          {
             key: "Vergi dairesi",
             value: "{{TAX_OFFICE}}",
           },
