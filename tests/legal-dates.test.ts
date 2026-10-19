@@ -47,39 +47,30 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    // 19 Ekim 2026: the ÖBF and the MSS state the KDV rule instead of a
-    // list of rates, the shipping fee as its own line (LEGAL-REDLINES
-    // §16.4). The consent version moved with the checkout documents, the
-    // set with it. (18 Ekim 2026: the distance-sales rules of 2026.)
-    expect(LEGAL_UPDATED).toBe("19 Ekim 2026");
+    // 20 Ekim 2026: the ÖBF and the MSS say the invoice is an e-Arşiv
+    // invoice sent by e-mail, the İşlem Rehberi joins the set
+    // (LEGAL-REDLINES §23). The consent version moved with the checkout
+    // documents, the set with it. (19 Ekim 2026: the KDV rule, §16.4; 18
+    // Ekim 2026: the distance-sales rules of 2026.)
+    expect(LEGAL_UPDATED).toBe("20 Ekim 2026");
+    // The karaoke terms' own label moved the same day: §12 says how the
+    // advance is invoiced (ASK-KAR-KDV).
+    expect(KARAOKE_LEGAL_UPDATED).toBe("20 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
-    // Empty on 16, 18 and 19 Ekim 2026: every coded document carries the
-    // set's day (on the 19th the KDV wording moved the checkout documents,
-    // and with them the consent version). Add a document here, with its
-    // date, when only it changes later.
+    // Empty on 16, 18 and 20 Ekim 2026: every coded document carries the
+    // set's day. On the 20th the invoice wording moved the checkout
+    // documents, and with them the revision, past the ten documents that
+    // carried 19 Ekim 2026 of their own (the allergen §7, the transfers
+    // abroad, the karaoke rules in one source; LEGAL-REDLINES §15.6, §17,
+    // §21): a date before the revision is never printed, so they read the
+    // set's day again. Add a document here, with its date, when only it
+    // changes later.
     const expected: Record<string, string> = {
-      // 19 Ekim 2026: §7 says where each menu item's allergens are written.
-      "gida-guvenligi-ve-alerjen": "19 Ekim 2026",
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
-      // 19 Ekim 2026: the transfers abroad as they stand (no standard
-      // contract signed yet, R6 gone, R12's retention terms), Google's tags
-      // off, the karaoke inbox in Türkiye (LEGAL-REDLINES §15.6); the
-      // karaoke rules left the cafe terms, the refund page, the retention
-      // policy and the terms of use for the karaoke terms (one source), the
-      // event rule became one, the request mode went (LEGAL-REDLINES §17).
-      "gizlilik-politikasi": "19 Ekim 2026",
-      "kvkk-aydinlatma-metni": "19 Ekim 2026",
-      "acik-riza-metni": "19 Ekim 2026",
-      "veri-saklama-ve-imha-politikasi": "19 Ekim 2026",
-      "cerez-politikasi": "19 Ekim 2026",
-      "ticari-elektronik-ileti": "19 Ekim 2026",
-      "kafe-hizmet-kosullari": "19 Ekim 2026",
-      "iade-ve-cayma": "19 Ekim 2026",
-      "kullanim-sartlari": "19 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

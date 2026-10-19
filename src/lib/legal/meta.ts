@@ -19,14 +19,15 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-// 19 Ekim 2026: the ÖBF and the MSS state the KDV rule instead of a list of
-// rates (every item at the rate the law gives it, the shipping or courier
-// fee its own line, the total in the order summary fixed even if a rate
-// changes later); the Teslimat ve Kargo, Satış Politikası, Ödeme Koşulları
-// and Şirket Bilgileri texts follow. LEGAL-REDLINES §16.4. The set carries
-// the publish day: only one PR that moves this label merges per Istanbul
-// day (18 Ekim 2026 was the distance-sales set, §18 and §19).
-export const LEGAL_UPDATED = "19 Ekim 2026";
+// 20 Ekim 2026: the ÖBF (§16) and the MSS (§9) say the invoice is an
+// e-Arşiv invoice sent by e-mail, its paper copy in the parcel standing in
+// for the waybill; Şirket Bilgileri §14 takes corporate details by e-mail
+// after the order, and the İşlem Rehberi joins the set. LEGAL-REDLINES §23.
+// The set carries the publish day: only one PR that moves this label merges
+// per Istanbul day (19 Ekim 2026 was the KDV wording, §16.4; 18 Ekim 2026
+// the distance-sales set, §18 and §19), so a later merge moves it to that
+// day.
+export const LEGAL_UPDATED = "20 Ekim 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,
@@ -103,8 +104,11 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-// 19 Ekim 2026: §7 and §10 name the booking's own summary instead of fixed
-// hours, §7 says when a cancel by phone or e-mail counts, §8 says when and
-// why the köşk cancels. LEGAL-REDLINES §17. (17 Ekim 2026: §1 no longer
-// points table bookings to the café terms.)
-export const KARAOKE_LEGAL_UPDATED = "19 Ekim 2026";
+// 20 Ekim 2026: §12 says the payment is an advance until the service day,
+// invoiced as an e-Arşiv invoice within 7 days of it for the amount the köşk
+// keeps (ASK-KAR-KDV). LEGAL-REDLINES §23. (19 Ekim 2026: §7 and §10 name the
+// booking's own summary instead of fixed hours, §7 says when a cancel by
+// phone or e-mail counts, §8 says when and why the köşk cancels, §17. 17
+// Ekim 2026: §1 no longer points table bookings to the café terms.) One PR
+// that moves this label merges per Istanbul day.
+export const KARAOKE_LEGAL_UPDATED = "20 Ekim 2026";

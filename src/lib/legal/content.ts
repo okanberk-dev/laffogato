@@ -1392,7 +1392,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "İade ve Cayma",
     // 19 Ekim 2026: §21 points at the karaoke terms instead of repeating
     // them, and holds the single event-cancellation rule. LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden verilen siparişlerin iptali, 14 günlük cayma hakkı, ürün iadesi, mobil uygulamadan verilen kafe siparişlerinin durumu, PayNkolay üzerinden geri ödeme ve kuponlu siparişlerde iade esaslarının adım adım açıklandığı uygulama belgesidir.",
@@ -4877,7 +4876,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
-    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
     category: "Veri & Gizlilik",
@@ -5704,7 +5702,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
-    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     category: "Veri & Gizlilik",
     summary:
@@ -6462,7 +6459,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
     // 19 Ekim 2026: R5 ve R6 kalemleri kalktı (numaraları korunur), R12'ye Anthropic'in saklama süresi ve sözleşme koşulu; rıza sürümü ilerledi.
-    updatedAt: "19 Ekim 2026",
     // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
     // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
     category: "Veri & Gizlilik",
@@ -7643,7 +7639,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
     // the karaoke row points at the karaoke terms §10 for the refund on
     // account closure (LEGAL-REDLINES §17).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -8350,7 +8345,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
     // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SITE_URL}} sitesinde kullanılan çerezleri ve benzeri teknolojileri, {{BRAND}} mobil uygulamasının cihazda tuttuğu verileri ve istediği izinleri; her teknolojinin amacını, süresini ve rıza gerektirip gerektirmediğini, rıza yönetimini ve silme yollarını açıklayan politikadır.",
@@ -9000,7 +8994,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Ticari Elektronik İleti ve İYS Aydınlatması",
     shortTitle: "Ticari İleti",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6563 sayılı Kanun uyarınca {{SHORT_NAME}}'nin ticari elektronik ileti onayını nasıl aldığını ve kayıt altına aldığını, İleti Yönetim Sistemi'ni (İYS), e-posta iletileri ile mobil uygulama bildirimlerine ilişkin kuralları ve ücretsiz ret hakkınızı açıklar.",
@@ -9757,7 +9750,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Kullanım Şartları",
     // 19 Ekim 2026: the karaoke definition no longer describes the request
     // mode (online prepayment cannot be switched off). LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Site & Üyelik",
     // 18 Ekim 2026: §7 says how membership ends on each channel (the app at
     // once, the Site's request page and e-mail within thirty days).
@@ -14227,7 +14219,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: the karaoke rules live in the karaoke terms only (§1,
     // §4, §5), events follow İade ve Cayma §21 (§6), and the access notice
     // holds a table for 15 minutes (§20). LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
@@ -14812,7 +14803,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Gıda Güvenliği",
     // 19 Ekim 2026: §7 says where each menu item's allergens are written
     // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §21.
-    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafe servisinde ve {{SITE}} üzerinden satılan gıda ürünlerinde uygulanan gıda güvenliği yönetimi, zorunlu alerjen bildirimi, çapraz bulaşma uyarısı, saklama koşulları ve ürün geri çağırma prosedürü hakkında tüketici bilgilendirmesidir.",
