@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -89,8 +91,18 @@ describe("VenueStatusForm", () => {
   );
 
   it("posts by hand, not through a form action React resets", () => {
-    expect(html).toMatch(/<form /);
-    expect(html).not.toMatch(/<form[^>]*\saction=/);
+    // Read from the source: with useHandPost (#148) ActionForm draws
+    // React's javascript: guard as its action, the attribute the old
+    // `<form action={fn}>` drew too, so the HTML alone cannot tell them
+    // apart.
+    const src = readFileSync(
+      "src/app/admin/mobil/canli-durum/venue-status-form.tsx",
+      "utf8",
+    );
+    expect(src).toMatch(/<ActionForm\b/);
+    expect(src).not.toMatch(/<form\b|useActionState/);
+    expect(html.match(/<form\b/g)).toHaveLength(1);
+    expect(html).not.toContain("$ACTION");
   });
 
   it("uses the panel's inks and tells a manager who changes the hours", () => {

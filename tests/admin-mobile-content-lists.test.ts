@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -310,15 +312,41 @@ describe("list pages", () => {
   });
 });
 
+/**
+ * Posted by hand through ActionForm, not through a `<form action={fn}>`
+ * that React resets on every answer: the source draws ActionForm and no
+ * `<form>` of its own, and the server HTML is one form with no
+ * progressive-enhancement post ($ACTION). The action attribute says
+ * nothing either way: ActionForm draws React's javascript: guard there
+ * once it posts through useHandPost (#148), as the old form action did.
+ */
+function expectHandPosted(html: string, file: string): void {
+  const src = readFileSync(file, "utf8");
+  expect(src, file).toMatch(/<ActionForm\b/);
+  expect(src, file).not.toMatch(/<form\b/);
+  expect(html.match(/<form\b/g), file).toHaveLength(1);
+  expect(html, file).not.toContain("$ACTION");
+}
+
 describe("forms", () => {
   it.each([
-    ["slide", AppSlideForm, "/admin/mobil/slaytlar"],
-    ["announcement", AppAnnouncementForm, "/admin/mobil/duyurular"],
-  ] as const)("%s: posts by hand and has Vazgeç", (_name, Form, back) => {
+    [
+      "slide",
+      AppSlideForm,
+      "/admin/mobil/slaytlar",
+      "src/app/admin/mobil/slaytlar/slide-form.tsx",
+    ],
+    [
+      "announcement",
+      AppAnnouncementForm,
+      "/admin/mobil/duyurular",
+      "src/app/admin/mobil/duyurular/announcement-form.tsx",
+    ],
+  ] as const)("%s: posts by hand and has Vazgeç", (_name, Form, back, file) => {
     const html = renderToStaticMarkup(
       createElement(Form, { action: stub(), submitLabel: "Kaydet" }),
     );
-    expect(html).not.toMatch(/<form[^>]*\saction=/);
+    expectHandPosted(html, file);
     expect(html).toContain(`href="${back}"`);
     expect(html).toContain("Vazgeç");
   });
@@ -331,7 +359,7 @@ describe("forms", () => {
         submitLabel: "Oluştur",
       }),
     );
-    expect(html).not.toMatch(/<form[^>]*\saction=/);
+    expectHandPosted(html, "src/app/admin/mobil/gonderiler/post-form.tsx");
     expect(html).toMatch(/<legend[^>]*>Üyelere e-posta<\/legend>/);
     expect(html).toMatch(/<legend[^>]*>Yayında<\/legend>/);
     expect(html).not.toMatch(/<label[^>]*>(?:(?!<\/label>)[\s\S])*<label/);
