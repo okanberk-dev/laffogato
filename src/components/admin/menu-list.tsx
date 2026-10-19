@@ -20,7 +20,7 @@ import {
 import type { MenuCategoryKey } from "@/lib/admin/store";
 
 import { ActionButton, useHandPost } from "./action-form";
-import { BulkActionBar, useSelection } from "./bulk";
+import { BulkActionBar, SelectAllCheckbox, useSelection } from "./bulk";
 import { bulkAnswer } from "./bulk-answer";
 import { formatTRY } from "./forms";
 import {
@@ -86,6 +86,12 @@ export function MenuTags({ tags }: { tags: readonly string[] }) {
     </span>
   );
 }
+
+/**
+ * A category's select-all, named after it: the page holds a table per
+ * category, and a dozen bare "Tümünü seç" boxes could not be told apart.
+ */
+const selectAllLabel = (category: string) => `${category}: tümünü seç`;
 
 /** M over L in the table; side by side on the phone card. */
 function Price({ it, row = false }: { it: MenuListRow; row?: boolean }) {
@@ -268,16 +274,29 @@ export function MenuList({
           {groups.map(({ key, rows }) => (
             <section key={key} aria-labelledby={`menu-cat-${key}`}>
               <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <div className={EYEBROW} style={MONO_STYLE}>
-                    {rows.length} kalem
+                <div className="flex items-end gap-3">
+                  {/* The phone cards have no table head: the category's
+                      select-all sits beside its heading there. */}
+                  {rows.length > 0 ? (
+                    <span className="mb-0.5 md:hidden">
+                      <SelectAllCheckbox
+                        ids={rows.map((it) => it.id)}
+                        selection={selection}
+                        label={selectAllLabel(categoryLabels[key])}
+                      />
+                    </span>
+                  ) : null}
+                  <div>
+                    <div className={EYEBROW} style={MONO_STYLE}>
+                      {rows.length} kalem
+                    </div>
+                    <h2
+                      id={`menu-cat-${key}`}
+                      className="text-xl font-semibold text-[var(--admin-text)]"
+                    >
+                      {categoryLabels[key]}
+                    </h2>
                   </div>
-                  <h2
-                    id={`menu-cat-${key}`}
-                    className="text-xl font-semibold text-[var(--admin-text)]"
-                  >
-                    {categoryLabels[key]}
-                  </h2>
                 </div>
                 <Link
                   href={`/admin/menu/yeni?cat=${key}`}
@@ -294,6 +313,7 @@ export function MenuList({
                 rowHref={(it) => menuItemHref(it.id)}
                 rowLabel={(it) => it.name}
                 selection={selection}
+                selectAllLabel={selectAllLabel(categoryLabels[key])}
                 rowActions={(it) => <RowActions it={it} />}
                 // A phone card: the name gets the width (the price beside
                 // it squeezed "Çilekli Matcha Latte" to a word per line),

@@ -684,6 +684,36 @@ describe("Kafe menüsü on the kit (CAT-10, CAT-30)", () => {
     // The category heading is the panel's own face, not a faked italic.
     expect(html).not.toContain("font-style:italic");
   });
+
+  it("each category has its own named select-all, on the phone too", async () => {
+    const { MenuList } = await import("@/components/admin/menu-list");
+    const html = renderToStaticMarkup(
+      createElement(MenuList, {
+        groups: [
+          { key: "matcha", rows: [rows[0]] },
+          { key: "cold", rows: [rows[1]] },
+        ],
+        categoryKeys: ["matcha", "cold"],
+        categoryLabels: { matcha: "Matcha bar", cold: "Soğuk" },
+      } as never),
+    );
+    // Ten tables on one page: a bare "Tümünü seç" in each was ten
+    // controls of one name, and the list before the kit named them.
+    expect(html).not.toContain('aria-label="Tümünü seç"');
+    for (const [label, section] of [
+      ["Matcha bar", "menu-cat-matcha"],
+      ["Soğuk", "menu-cat-cold"],
+    ]) {
+      const name = `aria-label="${label}: tümünü seç"`;
+      // One in the table head (from md), one beside the heading for the
+      // phone cards, which have no table head.
+      expect(html.split(name)).toHaveLength(3);
+      const start = html.indexOf(`aria-labelledby="${section}"`);
+      const header = html.slice(start, html.indexOf("<ul", start));
+      expect(header).toContain(name);
+      expect(header).toContain("md:hidden");
+    }
+  });
 });
 
 describe("the stock ledger (CAT-16)", () => {
