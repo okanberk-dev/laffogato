@@ -35,9 +35,22 @@ import { forgetRecents, watchRecentPage } from "./recents";
  * reaching the trigger, a touch.
  */
 
-const loadPalette = () => import("./palette");
+/**
+ * The list once its chunk is here (preloaded on hover or focus, or opened
+ * before): drawn straight away. Through next/dynamic alone even a loaded
+ * chunk showed Yükleniyor… for a moment, as React holds a Suspense
+ * fallback about 300 ms before it reveals what came.
+ */
+let loadedPalette: (typeof import("./palette"))["Palette"] | null = null;
 
-const Palette = dynamic(() => import("./palette").then((m) => m.Palette), {
+const takePalette = (m: typeof import("./palette")) => {
+  loadedPalette = m.Palette;
+  return m.Palette;
+};
+
+const loadPalette = () => import("./palette").then(takePalette);
+
+const LazyPalette = dynamic(() => import("./palette").then(takePalette), {
   ssr: false,
   loading: () => <PaletteLoading />,
 });
@@ -53,7 +66,8 @@ function PaletteLoading() {
   );
 }
 
-function SearchIcon() {
+/** The magnifier: the trigger's, and the palette's box (shared, no second copy). */
+export function SearchIcon() {
   return (
     <svg
       width="18"
@@ -230,14 +244,20 @@ function PaletteDialog({
 }) {
   const downOnBackdrop = useRef(false);
 
-  // Modal before the list's own effects run: React Aria focuses the box in
-  // a passive effect, and a field in a closed dialog cannot take focus.
+  // Modal at once, then the box focused by hand. When the list's chunk is
+  // already here (preloaded on hover or focus) the list mounts in this
+  // same commit, and its autofocus runs before this effect, on a field
+  // inside a dialog that is not open yet: the focus is lost and
+  // showModal() then focuses the dialog itself (seen in the browser
+  // pass). When the chunk comes later, the list's own autofocus does it.
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
+    dialog?.querySelector<HTMLInputElement>("input")?.focus();
   }, [dialogRef]);
 
   const close = useCallback(() => dialogRef.current?.close(), [dialogRef]);
+  const Body = loadedPalette ?? LazyPalette;
 
   return (
     <dialog
@@ -255,7 +275,7 @@ function PaletteDialog({
       className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_24px_64px_rgba(44,29,17,0.28)] backdrop:bg-[rgba(44,29,17,0.45)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden"
       style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
     >
-      <Palette
+      <Body
         groups={groups}
         role={role}
         accountKey={accountKey}

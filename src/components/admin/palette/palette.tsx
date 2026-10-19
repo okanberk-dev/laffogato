@@ -11,7 +11,7 @@ import {
   ListBoxItem,
   ListBoxSection,
 } from "react-aria-components/ListBox";
-import { SearchField } from "react-aria-components/SearchField";
+import { TextField } from "react-aria-components/TextField";
 
 import {
   readSoundPref,
@@ -41,10 +41,11 @@ import {
 import type { AdminRole } from "@/lib/admin/roles";
 
 import { readRecents } from "./recents";
+import { SearchIcon } from "./trigger";
 
 /*
  * The palette's list (admin UI v2, UI-6, design §4): React Aria's
- * Autocomplete, SearchField and ListBox, inside the trigger's native
+ * Autocomplete, TextField and ListBox, inside the trigger's native
  * <dialog> (one modal system: no React Aria Modal, Dialog, Popover or
  * Menu). React Aria does not filter: palette-core ranks the panel's own
  * entries as the text changes, and the server's record hits are drawn as
@@ -94,7 +95,6 @@ function useRecordSearch(text: string): SearchState {
           body: JSON.stringify({ q: query }),
           credentials: "same-origin",
           redirect: "manual",
-          cache: "no-store",
           signal: controller.signal,
         });
         const outcome = searchOutcome(res);
@@ -158,32 +158,13 @@ function Row({
   );
 }
 
-const tryFormat = (fn: () => string): string | null => {
-  try {
-    return fn();
-  } catch {
-    return null;
-  }
-};
-
+/**
+ * An amount as the lists write it. A hit's time is left to its own page:
+ * the row stays one line, and the palette's chunk stays inside its budget.
+ */
 const money = (minor: number) =>
-  tryFormat(() =>
-    new Intl.NumberFormat("tr-TR", {
-      style: "currency",
-      currency: "TRY",
-      minimumFractionDigits: 2,
-    }).format(minor / 100),
-  );
-
-const when = (iso: string) =>
-  tryFormat(() =>
-    new Intl.DateTimeFormat("tr-TR", {
-      timeZone: "Europe/Istanbul",
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(iso)),
+  new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(
+    minor / 100,
   );
 
 export function Palette({
@@ -286,8 +267,7 @@ export function Palette({
       const facts = [
         ...hit.meta,
         ...(hit.amountMinor !== undefined ? [money(hit.amountMinor)] : []),
-        ...(hit.at ? [when(hit.at)] : []),
-      ].filter((f): f is string => !!f);
+      ];
       return item(
         `hit:${g.section}:${hit.href}`,
         { href: hit.href },
@@ -346,32 +326,33 @@ export function Palette({
     <I18nProvider locale="tr-TR">
       <Autocomplete inputValue={text} onInputChange={setText}>
         <div className="flex min-h-0 flex-1 flex-col">
-          <SearchField
+          {/* TextField, not SearchField: the same box without the search
+              type's clear button and its strings in 34 languages, which
+              took the chunk over its 45 KB budget. Its one behaviour is
+              here: the first Esc empties the box, Esc on an empty box
+              closes the dialog (the native cancel). */}
+          <TextField
             aria-label="Panelde ara"
             autoFocus
-            className="flex min-h-14 shrink-0 items-center gap-3 border-b border-[var(--admin-border)] px-4"
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && text !== "") {
+                e.preventDefault();
+                setText("");
+                return;
+              }
+              e.continuePropagation();
+            }}
+            className="flex min-h-14 shrink-0 items-center gap-4 border-b border-[var(--admin-border)] px-4"
           >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0 text-[var(--admin-text-soft)]"
-            >
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="m20 20-4.4-4.4" />
-            </svg>
+            <span className="text-[var(--admin-text-soft)]">
+              <SearchIcon />
+            </span>
+            {/* Autocomplete sets autocomplete, autocorrect and spellcheck
+                off and the Enter key's hint itself. */}
             <Input
               placeholder="Sayfa, kayıt ya da komut ara"
               maxLength={80}
-              autoComplete="off"
-              spellCheck={false}
-              className="min-h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-text-mute)] [&::-webkit-search-cancel-button]:hidden"
+              className="-mx-2 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-base text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-text-mute)]"
             />
             {loading ? (
               <span
@@ -401,7 +382,7 @@ export function Palette({
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
-          </SearchField>
+          </TextField>
           <p role="status" className="sr-only">
             {status}
           </p>
@@ -438,14 +419,6 @@ export function Palette({
           >
             {sections}
           </ListBox>
-          <p
-            aria-hidden="true"
-            className="hidden shrink-0 gap-4 border-t border-[var(--admin-border)] px-4 py-2 text-xs text-[var(--admin-text-mute)] sm:flex"
-          >
-            <span>↑ ↓ seç</span>
-            <span>Enter aç</span>
-            <span>Esc kapat</span>
-          </p>
         </div>
       </Autocomplete>
     </I18nProvider>

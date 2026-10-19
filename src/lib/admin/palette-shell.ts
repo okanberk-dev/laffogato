@@ -21,7 +21,10 @@ export const PALETTE_FALLBACK_HREF = "/admin/ara";
  * and on a Turkish-Q keyboard it types @, € and { . Never with Shift
  * either (Ctrl+Shift+K is Firefox's console). The key is read as typed and
  * lowered the Turkish way, so Caps Lock's "K" still counts. A key that is
- * still being composed (an IME) is not a shortcut.
+ * still being composed (an IME) is not a shortcut, and neither is a key a
+ * script dispatched: React Aria's Autocomplete re-sends each key the box
+ * gets to its list, so one ⌘K that closed the palette arrived a second
+ * time and opened it again (seen in the browser pass).
  */
 export function isPaletteShortcut(e: {
   key: string;
@@ -30,7 +33,9 @@ export function isPaletteShortcut(e: {
   altKey: boolean;
   shiftKey: boolean;
   isComposing?: boolean;
+  isTrusted?: boolean;
 }): boolean {
+  if (e.isTrusted === false) return false;
   if (e.isComposing || e.altKey || e.shiftKey) return false;
   if (!e.metaKey && !e.ctrlKey) return false;
   return typeof e.key === "string" && e.key.toLocaleLowerCase("tr-TR") === "k";

@@ -5,7 +5,6 @@
 // always-loaded half (the key, the recents rules) is palette-shell.ts,
 // re-exported here.
 
-import { DAY_CLOSE_ENTRY } from "./day-close-core";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import type { SearchHit, SearchSection } from "./search-core";
 import { foldTr } from "./text-fold";
@@ -133,19 +132,28 @@ export interface PaletteNavGroup {
  */
 const EXTRA_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   "/admin/siparisler": ["iade", "kargo", "masa siparişi"],
-  "/admin/mobil/karaoke": ["rezervasyon", "karaoke odası", "oda"],
-  "/admin/kategoriler": ["kategori", "Kategoriler"],
-  "/admin/magaza-hero": ["Mağaza Hero", "shop", "hero"],
-  "/admin/anasayfa-hero": ["Anasayfa slaytları", "hero", "slider"],
-  "/admin/mobil/slaytlar": ["Mobil Slaytlar", "uygulama slaytı"],
-  "/admin/bulten": ["abone", "aboneler", "e-posta listesi"],
-  "/admin/bulten/kampanya": ["Kampanya e-postası", "kampanya"],
-  "/admin/hikaye": ["Hikayemiz", "zaman çizelgesi"],
-  "/admin/basin": ["Basında biz", "basın"],
-  "/admin/mobil/gonderiler": ["gönderi", "post"],
-  "/admin/mobil/duyurular": ["duyuru"],
-  "/admin/mobil/ayarlar": ["Uygulama ayarları", "mobil ayarlar"],
-  "/admin/ayarlar": ["Site ayarları"],
+  "/admin/mobil/karaoke": ["rezervasyon", "karaoke odası"],
+  "/admin/magaza-hero": ["Mağaza Hero"],
+  "/admin/mobil/slaytlar": ["Mobil Slaytlar"],
+  "/admin/mobil/ayarlar": ["Uygulama ayarları"],
+};
+
+/**
+ * The Gün sonu sheet: a page of its own under Raporlar, in neither the nav
+ * nor its tabs. The same entry as day-close-core's DAY_CLOSE_ENTRY (a test
+ * holds them equal), not imported: day-close-core brings the order filters
+ * into this chunk, and the palette's budget is 45 KB.
+ */
+export const DAY_CLOSE_GO: {
+  readonly href: string;
+  readonly label: string;
+  readonly section: AdminSection;
+  readonly keywords: readonly string[];
+} = {
+  href: "/admin/raporlar/gun-sonu",
+  label: "Gün sonu",
+  section: "reports",
+  keywords: ["gün sonu", "kapanış", "günlük özet", "bugün", "yazdır"],
 };
 
 const isSection = (s: string | undefined): s is AdminSection =>
@@ -206,13 +214,13 @@ export function goEntries(
       }
     }
   }
-  if (mayOpen(DAY_CLOSE_ENTRY.section, role)) {
+  if (mayOpen(DAY_CLOSE_GO.section, role)) {
     push({
-      id: `go:${DAY_CLOSE_ENTRY.href}`,
-      label: DAY_CLOSE_ENTRY.label,
+      id: `go:${DAY_CLOSE_GO.href}`,
+      label: DAY_CLOSE_GO.label,
       hint: "Raporlar",
-      href: DAY_CLOSE_ENTRY.href,
-      keywords: DAY_CLOSE_ENTRY.keywords,
+      href: DAY_CLOSE_GO.href,
+      keywords: DAY_CLOSE_GO.keywords,
     });
   }
   return out;
@@ -234,31 +242,31 @@ export const CREATE_ENTRIES: ReadonlyArray<{
     href: "/admin/siparisler/yeni",
     label: "Yeni sipariş",
     section: "orders",
-    keywords: ["manuel sipariş", "telefon siparişi", "sipariş ekle"],
+    keywords: ["manuel sipariş", "telefon siparişi"],
   },
   {
     href: "/admin/urunler/yeni",
     label: "Yeni ürün",
     section: "products",
-    keywords: ["ürün ekle", "mağaza"],
+    keywords: ["mağaza"],
   },
   {
     href: "/admin/urunler/ice-aktar",
     label: "Ürünleri CSV ile içe aktar",
     section: "products",
-    keywords: ["csv", "içe aktar", "toplu ürün", "excel"],
+    keywords: ["csv", "içe aktar", "excel"],
   },
   {
     href: "/admin/menu/yeni",
     label: "Yeni menü ürünü",
     section: "menu",
-    keywords: ["kafe menüsü", "içecek ekle", "menüye ekle"],
+    keywords: ["kafe menüsü", "içecek"],
   },
   {
     href: "/admin/kategoriler/yeni",
     label: "Yeni kategori",
     section: "categories",
-    keywords: ["kategori ekle"],
+    keywords: [],
   },
   {
     href: "/admin/promosyon/yeni",
@@ -276,43 +284,43 @@ export const CREATE_ENTRIES: ReadonlyArray<{
     href: "/admin/anasayfa-hero/yeni",
     label: "Yeni anasayfa slaytı",
     section: "content",
-    keywords: ["slayt", "hero", "Anasayfa slaytları"],
+    keywords: ["hero"],
   },
   {
     href: "/admin/magaza-hero/yeni",
     label: "Yeni mağaza slaytı",
     section: "shopHero",
-    keywords: ["slayt", "Mağaza Hero", "vitrin"],
+    keywords: ["Mağaza Hero", "vitrin"],
   },
   {
     href: "/admin/mobil/slaytlar/yeni",
     label: "Yeni uygulama slaytı",
     section: "mobileApp",
-    keywords: ["slayt", "Mobil Slaytlar"],
+    keywords: ["Mobil Slaytlar"],
   },
   {
     href: "/admin/mobil/duyurular/yeni",
     label: "Yeni duyuru",
     section: "mobileApp",
-    keywords: ["uygulama duyurusu"],
+    keywords: [],
   },
   {
     href: "/admin/mobil/gonderiler/yeni",
     label: "Yeni gönderi",
     section: "mobileApp",
-    keywords: ["uygulama gönderisi", "post"],
+    keywords: ["post"],
   },
   {
     href: "/admin/masalar/yeni",
     label: "Yeni masa",
     section: "tables",
-    keywords: ["qr", "masa ekle"],
+    keywords: ["qr"],
   },
   {
     href: "/admin/masalar/yazdir",
     label: "Masa kartlarını yazdır",
     section: "tables",
-    keywords: ["qr", "yazdır", "masa kartı"],
+    keywords: ["qr", "masa kartı"],
   },
 ];
 
@@ -347,7 +355,7 @@ export function commandEntries(
       id: "cmd:2fa",
       label: "Güvenlik / 2FA",
       href: "/admin/2fa-kurulum",
-      keywords: ["iki aşamalı doğrulama", "2fa", "güvenlik", "doğrulama kodu"],
+      keywords: ["iki aşamalı doğrulama", "doğrulama kodu"],
     },
   ];
   if (canAccess("orders", role)) {
@@ -355,7 +363,7 @@ export function commandEntries(
       id: "cmd:sound",
       label: soundOn ? "Sipariş sesini kapat" : "Sipariş sesini aç",
       command: "toggleSound",
-      keywords: ["ses", "zil", "bildirim sesi", "sessiz"],
+      keywords: ["ses", "zil", "sessiz"],
     });
   }
   return out;

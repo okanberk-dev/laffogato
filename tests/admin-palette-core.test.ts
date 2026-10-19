@@ -240,6 +240,14 @@ describe("Git, Oluştur and Komutlar per role", () => {
     expect(mağaza).toMatchObject({ label: "Mağaza", hint: "Slaytlar" });
   });
 
+  it("the Gün sonu entry is the sheet's own (day-close-core), copied to keep the order filters out of the chunk", async () => {
+    const { DAY_CLOSE_ENTRY } = await import("@/lib/admin/day-close-core");
+    expect(core.DAY_CLOSE_GO).toEqual(DAY_CLOSE_ENTRY);
+    expect(readFileSync("src/lib/admin/palette-core.ts", "utf8")).not.toMatch(
+      /^import (?!type\b)[^;]*from "\.\/(day-close-core|order-filters|search-core)";/m,
+    );
+  });
+
   it("asks each entry's section again: an owner's nav handed to Personel shrinks to Personel's", () => {
     const leaked = core.goEntries(NAV.owner, "staff").map((e) => e.href);
     expect(new Set(leaked)).toEqual(new Set(go("staff").map((e) => e.href)));
@@ -638,7 +646,7 @@ describe("the ⌘K key and its label", () => {
     ...mods,
   });
 
-  it("⌘K and Ctrl+K, Caps Lock too; never with Alt (AltGr), Shift or while composing", () => {
+  it("⌘K and Ctrl+K, Caps Lock too; never with Alt (AltGr), Shift, while composing or from a script", () => {
     expect(core.isPaletteShortcut(key("k", { metaKey: true }))).toBe(true);
     expect(core.isPaletteShortcut(key("k", { ctrlKey: true }))).toBe(true);
     expect(core.isPaletteShortcut(key("K", { ctrlKey: true }))).toBe(true);
@@ -653,6 +661,14 @@ describe("the ⌘K key and its label", () => {
       core.isPaletteShortcut(key("k", { metaKey: true, isComposing: true })),
     ).toBe(false);
     expect(core.isPaletteShortcut(key("j", { ctrlKey: true }))).toBe(false);
+    // React Aria re-sends the box's keys to its list as script events: the
+    // second copy of a ⌘K that just closed the palette must not reopen it.
+    expect(
+      core.isPaletteShortcut(key("k", { ctrlKey: true, isTrusted: false })),
+    ).toBe(false);
+    expect(
+      core.isPaletteShortcut(key("k", { ctrlKey: true, isTrusted: true })),
+    ).toBe(true);
     expect(core.isPaletteShortcut(key("ı", { ctrlKey: true }))).toBe(false);
   });
 
@@ -855,14 +871,14 @@ describe("the palette is read-only and keeps to one modal system", () => {
     ).toBe(true);
   });
 
-  it("the list is React Aria's Autocomplete, SearchField and ListBox in Turkish, nothing that opens its own overlay", () => {
+  it("the list is React Aria's Autocomplete, TextField and ListBox in Turkish, nothing that opens its own overlay", () => {
     const src = readFileSync(
       "src/components/admin/palette/palette.tsx",
       "utf8",
     );
     for (const part of [
       "Autocomplete",
-      "SearchField",
+      "TextField",
       "ListBox",
       "Header",
       "I18nProvider",
@@ -871,6 +887,13 @@ describe("the palette is read-only and keeps to one modal system", () => {
       expect(src).toContain(`from "react-aria-components/${part}"`);
     }
     expect(src).toContain('<I18nProvider locale="tr-TR">');
+    // TextField over SearchField (the budget): the first Esc empties the
+    // box and keeps the dialog (preventDefault stops the native cancel);
+    // on an empty box it is left to the dialog, which closes.
+    expect(src).not.toContain("react-aria-components/SearchField");
+    expect(src).toMatch(
+      /if \(e\.key === "Escape" && text !== ""\) \{\s+e\.preventDefault\(\);\s+setText\(""\);\s+return;\s+\}\s+e\.continuePropagation\(\);/,
+    );
     expect(src).not.toMatch(
       /react-aria-components\/(Modal|Dialog|Popover|Menu|Link)\b|RouterProvider/,
     );
@@ -897,6 +920,12 @@ describe("the palette is read-only and keeps to one modal system", () => {
     expect(src).toMatch(
       /useLayoutEffect\(\(\) => \{\s+const dialog = dialogRef\.current;\s+if \(dialog && !dialog\.open\) dialog\.showModal\(\);/,
     );
+    // A list already loaded mounts with the dialog, before showModal():
+    // its own autofocus is lost, so the box is focused by hand after.
+    expect(src).toContain(
+      'dialog?.querySelector<HTMLInputElement>("input")?.focus();',
+    );
+    expect(src).toContain("const Body = loadedPalette ?? LazyPalette;");
     expect(src).toContain('window.addEventListener("keydown", onKey, true)');
     expect(src).toContain('querySelectorAll("dialog[open]")');
     expect(src).toContain("triggerRef.current?.focus()");
