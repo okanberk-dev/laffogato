@@ -86,6 +86,14 @@ export const FOOD_LABEL_FIELDS = [
 
 export type FoodLabelKey = (typeof FOOD_LABEL_FIELDS)[number]["key"];
 
+/**
+ * The shop form's answer when the stored `nuts` tag (the app's nut warning)
+ * meets entered groups without tree nuts: the form has no tag box, so the
+ * way out is the tree-nut box or the warning's own "remove" box.
+ */
+export const SHOP_NUTS_TAG_ERROR =
+  "Bu üründe kuruyemiş uyarısı var ama alerjenlerde “Sert kabuklu meyveler” işaretli değil: içeriyorsa onu da işaretle, içermiyorsa “Kuruyemiş uyarısını kaldır”ı seç.";
+
 export const FOOD_LABEL_KEYS: readonly FoodLabelKey[] = FOOD_LABEL_FIELDS.map(
   (f) => f.key,
 );

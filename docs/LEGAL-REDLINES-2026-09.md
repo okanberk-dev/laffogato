@@ -2752,7 +2752,11 @@ Ayrı PR'ın notları:
   alerjenler menünün 14 Ek-1 grubu ve üç durumuyla (girilmedi / hiçbiri /
   gruplar). Hiçbiri tahmin edilmez: her ürün boş başlar, operatör ambalajdan
   yazar. Son tüketim tarihi alınmaz (m.17/2-a onu satın almadan önce
-  istemez; ambalajda durur).
+  istemez; ambalajda durur). Kayıtlı kuruyemiş uyarısı (uygulamanın
+  okuduğu `nuts`), "Sert kabuklu meyveler" işaretlenmeden girilen
+  gruplarla sessizce düşmez: kayıt, menü formundaki gibi hangisinin doğru
+  olduğunu sorar; uyarı yalnız "Kuruyemiş uyarısını kaldır" seçilince
+  kalkar.
 - Gıda rafındaki üründe içindekiler ya da alerjenler girilmemişse sayfa
   "siparişten önce bize sor" satırını tutar (m.17/2-a'nın "başka uygun
   araç" yolu); girildiğinde satır kalkar.

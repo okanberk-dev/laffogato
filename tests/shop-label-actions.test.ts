@@ -62,8 +62,8 @@ vi.mock("@/lib/admin/store", () => ({
 
 const products = await import("@/app/admin/urunler/actions");
 const { ProductWizard } = await import("@/components/admin/product-wizard");
-const { MENU_ALLERGEN_NUTS_ERROR } =
-  await import("@/lib/admin/menu-allergens-schema");
+const { SHOP_NUTS_TAG_ERROR } = await import("@/lib/shop/food-label");
+const { postedNutsTag } = await import("@/components/admin/product-wizard");
 
 const VALID = {
   name: "Cantucci Bronte",
@@ -143,8 +143,30 @@ describe("the fourteen groups and the nuts tag", () => {
       {},
       form({ ...VALID, tags: "nuts" }, ["gluten"]),
     );
-    expect(res.fieldErrors?.allergens).toBe(MENU_ALLERGEN_NUTS_ERROR);
+    expect(res.fieldErrors?.allergens).toBe(SHOP_NUTS_TAG_ERROR);
     expect(h.store.createProduct).not.toHaveBeenCalled();
+  });
+
+  it("never drops a stored nut warning because other groups were ticked", () => {
+    // Cantucci (pistachio): gluten and egg ticked, the tree-nut box missed.
+    expect(postedNutsTag(true, ["gluten", "yumurta"], false)).toBe(true);
+    expect(postedNutsTag(true, [], false)).toBe(true);
+    // Removed on purpose, or not entered yet, or ticked.
+    expect(postedNutsTag(true, ["gluten"], true)).toBe(false);
+    expect(postedNutsTag(true, null, true)).toBe(true);
+    expect(postedNutsTag(false, ["sert_kabuklu"], false)).toBe(true);
+    expect(postedNutsTag(false, ["gluten"], false)).toBe(false);
+  });
+
+  it("so the save asks which answer is right instead of dropping it", async () => {
+    h.store.getProduct.mockResolvedValue({ ...STORED, allergens: null });
+    const res = await products.updateProductAction(
+      "prd-0011",
+      {},
+      form({ ...VALID, tags: "nuts" }, ["gluten", "yumurta"]),
+    );
+    expect(res.fieldErrors?.allergens).toBe(SHOP_NUTS_TAG_ERROR);
+    expect(h.store.updateProduct).not.toHaveBeenCalled();
   });
 
   it("keeps the stored groups when the form had no boxes", async () => {
@@ -322,6 +344,17 @@ describe("the wizard", () => {
     // The groups not entered yet: the stored nut warning stays, and says so.
     expect(out).toContain("uyarı aynen kalır");
     expect(out).toMatch(/<input type="hidden" name="tags" value="nuts"/);
+  });
+
+  it("keeps posting the stored nut warning beside groups without tree nuts, and offers its removal", () => {
+    const out = html({ ...STORED, allergens: ["gluten", "yumurta"] });
+    expect(out).toMatch(/<input type="hidden" name="tags" value="nuts"/);
+    expect(out).toContain("Kuruyemiş uyarısını kaldır");
+    expect(out).toContain("kuruyemiş uyarısıyla çelişiyor");
+    // Ticked: no conflict, no removal box.
+    const ticked = html({ ...STORED, allergens: ["gluten", "sert_kabuklu"] });
+    expect(ticked).toMatch(/<input type="hidden" name="tags" value="nuts"/);
+    expect(ticked).not.toContain("Kuruyemiş uyarısını kaldır");
   });
 
   it("opens an ended discount empty and says when it ended", () => {

@@ -32,7 +32,7 @@ import {
 import { sceneColumns } from "@/lib/backdrop/scene";
 import type { MenuAllergen } from "@/lib/menu/allergens";
 import { discountRefusal, istanbulDayOf } from "@/lib/shop/discount";
-import { FOOD_LABEL_KEYS } from "@/lib/shop/food-label";
+import { FOOD_LABEL_KEYS, SHOP_NUTS_TAG_ERROR } from "@/lib/shop/food-label";
 
 function revalidateShop() {
   revalidatePath("/");
@@ -71,7 +71,9 @@ function readProductForm(formData: FormData):
       const k = issue.path.join(".") || "form";
       if (!fieldErrors[k]) fieldErrors[k] = issue.message;
     }
-    if (tags && !tags.ok) fieldErrors.allergens = tags.error;
+    // The menu's wording sends the operator to a tag box this form does
+    // not have; the shop's names the box it has.
+    if (tags && !tags.ok) fieldErrors.allergens = SHOP_NUTS_TAG_ERROR;
     return {
       ok: false,
       state: {

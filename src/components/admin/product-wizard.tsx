@@ -101,6 +101,25 @@ const HUE_OPTIONS = [
 const NUTS_TAG = "nuts";
 
 /**
+ * Whether the `tags` field posts `nuts`, the nut warning the shipped app
+ * reads. The tree-nut box adds it. A stored one stays while the groups are
+ * not entered, and also beside groups without tree nuts unless the
+ * operator removes it on purpose: ticking gluten and egg on a pistachio
+ * biscuit and missing the tree-nut box must not drop the app's only nut
+ * warning in silence. Posted with such a list, the save refuses the
+ * mismatch, as on the menu form (`tagsWithAllergens`). Exported for tests.
+ */
+export function postedNutsTag(
+  storedNuts: boolean,
+  allergens: readonly string[] | null,
+  dropStoredNuts: boolean,
+): boolean {
+  if (allergens?.includes(NUTS_ALLERGEN)) return true;
+  if (!storedNuts) return false;
+  return allergens === null || !dropStoredNuts;
+}
+
+/**
  * Which step holds each posted field, so a refusal can open the step with
  * the field in it and mark its pill. A key the server answers under that is
  * not here (a "form" error) belongs to the summary. Exported for tests.
@@ -530,14 +549,14 @@ export function ProductWizard({
 
   /**
    * What the `tags` field posts: any tag the row already carried that this
-   * form does not offer (`signature`, `new`, `iced`), plus `nuts` - from
-   * the tree-nut box once the groups are entered, else as stored, so a
-   * product whose groups are not entered yet keeps its nut warning.
-   * Dropping a tag on every save would make an edit to the price quietly
-   * strip a badge nobody meant to touch.
+   * form does not offer (`signature`, `new`, `iced`), plus `nuts` (see
+   * `postedNutsTag`). Dropping a tag on every save would make an edit to
+   * the price quietly strip a badge nobody meant to touch.
    */
-  const nutsTag =
-    allergens === null ? storedNuts : allergens.includes(NUTS_ALLERGEN);
+  const [dropStoredNuts, setDropStoredNuts] = useState(false);
+  const nutsConflict =
+    storedNuts && allergens !== null && !allergens.includes(NUTS_ALLERGEN);
+  const nutsTag = postedNutsTag(storedNuts, allergens, dropStoredNuts);
   const tagsValue = useMemo(() => {
     const kept = (product?.tags ?? []).filter((t) => t !== NUTS_TAG);
     return [...new Set([...(nutsTag ? [NUTS_TAG] : []), ...kept])].join(", ");
@@ -848,6 +867,24 @@ export function ProductWizard({
                   Bu üründe kuruyemiş uyarısı var; grupları işaretleyene kadar
                   uyarı aynen kalır.
                 </p>
+              ) : null}
+              {nutsConflict ? (
+                <div
+                  role="note"
+                  className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+                >
+                  <p>
+                    Bu üründe kuruyemiş uyarısı var ama “Sert kabuklu
+                    meyveler” işaretli değil. İçeriyorsa onu da işaretle;
+                    içermiyorsa uyarıyı kaldır. İkisi de yapılmazsa kayıt
+                    reddedilir.
+                  </p>
+                  <Checkbox
+                    label="Kuruyemiş uyarısını kaldır: ürün sert kabuklu meyve içermiyor"
+                    checked={dropStoredNuts}
+                    onChange={(e) => setDropStoredNuts(e.target.checked)}
+                  />
+                </div>
               ) : null}
             </Field>
             {errorFor("allergens")}
@@ -1526,9 +1563,14 @@ export function ProductWizard({
                   ? nutsTag
                     ? "Girilmedi (kuruyemiş uyarısı kalır)"
                     : "Girilmedi"
-                  : allergenWords.length > 0
-                    ? allergenWords.join(", ")
-                    : "Hiçbirini içermez"
+                  : (allergenWords.length > 0
+                      ? allergenWords.join(", ")
+                      : "Hiçbirini içermez") +
+                    (!nutsConflict
+                      ? ""
+                      : dropStoredNuts
+                        ? " (kuruyemiş uyarısı kalkar)"
+                        : " (kuruyemiş uyarısıyla çelişiyor)")
               }
               muted={allergenWords === null}
             />
