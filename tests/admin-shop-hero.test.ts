@@ -329,6 +329,35 @@ describe("the form", () => {
     expect(src).toContain("<FormMessage />");
   });
 
+  it("a refused photo link marks the link field itself, not a hidden copy", () => {
+    // ActionForm marks and focuses the control a refusal names and skips
+    // hidden inputs: with the address only in a hidden field, "https://
+    // ile başlamalı" came back with no aria-invalid and the focus left on
+    // the submit button.
+    const named = (markup: string) =>
+      markup.match(/<input[^>]*name="imageUrl"[^>]*>/g) ?? [];
+    const link = named(html);
+    expect(link).toHaveLength(1);
+    expect(link[0]).toContain('type="url"');
+    expect(link[0]).toContain('value="https://cdn.example.com/hero.jpg"');
+
+    // An uploaded file rides in the hidden field; the link field is empty
+    // and posts nothing, so the server reads one imageUrl either way.
+    const data = "data:image/jpeg;base64,/9j/4AAQ";
+    const uploaded = renderToStaticMarkup(
+      createElement(SlideForm, {
+        action: async () => ({ ok: true as const, message: "" }),
+        submitLabel: "Kaydet",
+        defaults: { ...STORED, imageUrl: data },
+      }),
+    );
+    const hidden = named(uploaded);
+    expect(hidden).toHaveLength(1);
+    expect(hidden[0]).toContain('type="hidden"');
+    expect(hidden[0]).toContain(`value="${data}"`);
+    expect(uploaded).toMatch(/<input type="url"(?![^>]*name=)[^>]*value=""/);
+  });
+
   it("'Vazgeç' is one link back to the list, not a button in a link", () => {
     const link = /<a[^>]*href="\/admin\/magaza-hero"[^>]*>([\s\S]*?)<\/a>/.exec(
       html,

@@ -313,8 +313,13 @@ export function SlideForm({
             >
               ya da bağlantı
             </span>
+            {/* The link field carries the name itself unless a file was
+                uploaded: ActionForm marks and focuses the control a refusal
+                names, and it skips hidden inputs, so a refused link came
+                back unmarked with the focus left on the submit button. */}
             <input
               type="url"
+              name={isDataUrl ? undefined : "imageUrl"}
               inputMode="url"
               autoComplete="off"
               aria-label="Görsel bağlantısı (https)"
@@ -326,7 +331,9 @@ export function SlideForm({
           </div>
           <FormFieldError name="imageUrl" />
 
-          <input type="hidden" name="imageUrl" value={imageUrl} />
+          {isDataUrl ? (
+            <input type="hidden" name="imageUrl" value={imageUrl} />
+          ) : null}
         </fieldset>
       </Card>
 
