@@ -8,6 +8,7 @@ import {
   NUMERIC_STYLE,
 } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
+import { DAY_CLOSE_PATH } from "@/lib/admin/day-close-core";
 import {
   analyticsHeadline,
   karaokeRevenue,
@@ -71,6 +72,7 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         eyebrow="Satış"
         title="Raporlar"
         description="Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen ve iptal edilenler sayılmaz. İade, siparişin verildiği dönemden düşülür. Karaoke ön ödemeleri ayrı."
+        secondary={{ href: DAY_CLOSE_PATH, label: "Gün sonu" }}
       />
 
       <StatusTabs

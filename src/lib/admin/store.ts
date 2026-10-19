@@ -114,7 +114,11 @@ import {
   manualShippingMode,
   type ManualFulfillment,
 } from "./manual-order-schema";
-import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
+import {
+  OPEN_ORDER_STATUSES,
+  istanbulDayStartIso,
+  type OrderListQuery,
+} from "./order-filters";
 import type { OrderAlertRow } from "./order-alerts-core";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
@@ -7356,6 +7360,129 @@ export function karaokeRevenueFrom(
     }
   }
   return out;
+}
+
+// ─── Gün sonu (admin UI v2, UI-18) ────────────────────────────────────────
+
+/** An order as the Gün sonu sheet counts it. */
+export type DayCloseOrder = RevenueOrder &
+  Pick<AdminOrder, "id" | "orderNo" | "channel" | "kind" | "source">;
+
+/** An order that carries a refund: the day's refunds are read off its ledger. */
+export type DayCloseRefundedOrder = Pick<
+  AdminOrder,
+  "id" | "orderNo" | "refunds"
+>;
+
+/** A booking on the day's calendar, as far as the evening's tally goes. */
+export interface DayCloseBooking {
+  id: string;
+  date: string;
+  startHour: number;
+  hours: number;
+  status: string;
+  paymentStatus?: string | null;
+  updatedAt: string;
+}
+
+/** A booking whose money reached the POS: `karaokeRevenue`'s rows, with the refund's day. */
+export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
+  id: string;
+  refundedAt?: string | null;
+};
+
+/** A loyalty ledger row, without the member (the sheet names nobody). */
+export interface DayCloseStamp {
+  kind: string;
+  delta: number;
+  source: string;
+  orderId: string;
+  createdAt: string;
+}
+
+export type DayCloseStockMove = Pick<
+  AdminStockMove,
+  "productId" | "productName" | "delta" | "stockAfter" | "reason" | "createdAt"
+>;
+
+/** Everything the Gün sonu sheet reads, for one Istanbul day. */
+export interface DayCloseRows {
+  /**
+   * Orders placed in the day, read with a day's margin on each side, as the
+   * reports read theirs (`reportPeriodSince`): which day an order belongs
+   * to is decided by `reportPeriodFilter`, not by the SQL bound.
+   */
+  orders: DayCloseOrder[];
+  /** Every order with a refund; the day's refunds are those dated in it. */
+  refunded: DayCloseRefundedOrder[];
+  /** The karaoke bookings on the day's calendar. */
+  bookings: DayCloseBooking[];
+  /** The bookings whose money reached the POS (`karaokeRevenue`'s read). */
+  karaokeMoney: DayCloseKaraokeMoney[];
+  /** The loyalty ledger rows written in the day. */
+  stamps: DayCloseStamp[];
+  /** The stock moves of the day, oldest first. */
+  stockMoves: DayCloseStockMove[];
+}
+
+/**
+ * The one read of the Gün sonu sheet (`/admin/raporlar/gun-sonu`): the rows
+ * of one Istanbul day (`day` = "YYYY-MM-DD"), for owner and manager only
+ * (the page's `requireRole("reports")`). Money is counted by the report
+ * functions above (`headlineFrom`, `reportPeriodFilter`,
+ * `karaokeRevenueFrom`) in `lib/admin/day-close.ts`, so the sheet and
+ * Raporlar never disagree about the same day. No customer column is read:
+ * not the name, the e-mail or the phone of an order, a booking or a stamp.
+ */
+export async function dayCloseRows(day: string): Promise<DayCloseRows> {
+  await ensureSeed();
+  const sb = getDb();
+  const ctx = "dayCloseRows";
+  const start = istanbulDayStartIso(day);
+  const end = istanbulDayStartIso(day, 1);
+  const [orders, refunded, bookings, karaokeMoney, stamps, stockMoves] =
+    await Promise.all([
+      sb
+        .from(TABLES.orders)
+        .select(
+          "id, orderNo, status, createdAt, totalMinor, refunds, channel, kind, source",
+        )
+        .gte("createdAt", istanbulDayStartIso(day, -1))
+        .lt("createdAt", istanbulDayStartIso(day, 2))
+        .order("orderNo", { ascending: true })
+        .then((r) => rows<DayCloseOrder>(r, `${ctx}.orders`)),
+      sb
+        .from(TABLES.orders)
+        .select("id, orderNo, refunds")
+        .neq("refunds", [])
+        .then((r) => rows<DayCloseRefundedOrder>(r, `${ctx}.refunds`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select("id, date, startHour, hours, status, paymentStatus, updatedAt")
+        .eq("date", day)
+        .then((r) => rows<DayCloseBooking>(r, `${ctx}.bookings`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select(
+          "id, paymentStatus, paidMinor, refundMinor, paidAt, createdAt, refundedAt",
+        )
+        .in("paymentStatus", [...KARAOKE_COLLECTED])
+        .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),
+      sb
+        .from(TABLES.loyaltyStamps)
+        .select("kind, delta, source, orderId, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .then((r) => rows<DayCloseStamp>(r, `${ctx}.stamps`)),
+      sb
+        .from(TABLES.stockMoves)
+        .select("productId, productName, delta, stockAfter, reason, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .order("createdAt", { ascending: true })
+        .then((r) => rows<DayCloseStockMove>(r, `${ctx}.stock`)),
+    ]);
+  return { orders, refunded, bookings, karaokeMoney, stamps, stockMoves };
 }
 
 // ─── Shop hero slides ─────────────────────────────────────────────────────
