@@ -115,6 +115,7 @@ vi.mock("@/lib/admin/store", async (importOriginal) => {
       { id: "cat-2", slug: "gift", label: "Hediye", icon: "◯", sortOrder: 2 },
     ]),
     listProducts: vi.fn(async () => [{ id: "prd-1", cat: "beans" }]),
+    listProductsForPanel: vi.fn(async () => [{ id: "prd-1", cat: "beans" }]),
     listStoryEvents: vi.fn(async () => [
       { ...base, id: "story-1", year: "1897", title: "Bologna", body: "x" },
     ]),
@@ -281,6 +282,7 @@ vi.mock("@/app/admin/menu/actions", () => ({
 vi.mock("@/app/admin/urunler/actions", () => ({
   bulkProductsAction: vi.fn(async () => ({})),
   deleteProductAction: stub(),
+  setProductActiveAction: stub(),
 }));
 vi.mock("@/app/admin/musteriler/[email]/actions", () => ({
   addCounterStampAction: stub(),
@@ -511,9 +513,12 @@ describe("catalog lists", () => {
     const { MenuList } = await import("@/components/admin/menu-list");
     const html = renderToStaticMarkup(
       createElement(MenuList, {
-        itemsByCategory: {
-          matcha: [item({}), item({ id: "mnu-0002", isActive: false })],
-        },
+        groups: [
+          {
+            key: "matcha",
+            rows: [item({}), item({ id: "mnu-0002", isActive: false })],
+          },
+        ],
         categoryKeys: ["matcha"],
         categoryLabels: { matcha: "Matcha bar" },
       } as never),
@@ -529,18 +534,19 @@ describe("catalog lists", () => {
     }
   });
 
-  it("products: Sil asks first", async () => {
+  it("products: Sil asks first, Pasif yap is one click, both name the product", async () => {
     const { ProductsList } = await import("@/components/admin/products-list");
     const html = renderToStaticMarkup(
       createElement(ProductsList, {
-        products: [
+        rows: [
           {
             id: "prd-0001",
             name: "Sirena Espresso",
+            slug: "sirena-espresso",
             tag: "Çekirdek",
             cat: "beans",
             sku: "SIRE",
-            images: [],
+            thumb: null,
             variants: [],
             priceMinor: 32_000,
             compareAtPriceMinor: 0,
@@ -549,13 +555,23 @@ describe("catalog lists", () => {
             isActive: true,
             featured: false,
             isNew: false,
+            updatedAt: STAMP,
           },
         ],
-        categories: [],
-        labelByCat: { beans: "Çekirdek" },
+        categories: [{ slug: "beans", label: "Çekirdek" }],
+        sort: { key: "guncel", dir: "desc" },
+        searchParams: {},
+        pathname: "/admin/urunler",
       } as never),
     );
     expectConfirmed(html, "Sil");
+    expect(html).toContain('aria-label="Sil: Sirena Espresso"');
+    const toggle = buttons(html, "Pasif yap");
+    expect(toggle.length).toBeGreaterThan(0);
+    for (const b of toggle) {
+      expect(b).toContain('type="submit"');
+      expect(b).toContain('aria-label="Pasif yap: Sirena Espresso"');
+    }
   });
 });
 

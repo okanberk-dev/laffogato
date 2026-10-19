@@ -1093,6 +1093,74 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
 }
 
 /**
+ * The columns the panel's product lists read (Ürünler, Kategoriler, Stok):
+ * no photos, no description, no cost, no SEO. A stored upload is a data URL
+ * of up to 2 MB, eight per product, and the lists handed every one of them
+ * to a client component, so a phone loaded megabytes per visit, and the Stok
+ * page gave Personel the cost of every product (admin audit CAT-07, CAT-08).
+ */
+export type ProductPanelView = Pick<
+  AdminProduct,
+  | "id"
+  | "name"
+  | "slug"
+  | "sku"
+  | "tag"
+  | "cat"
+  | "priceMinor"
+  | "compareAtPriceMinor"
+  | "stock"
+  | "lowStockThreshold"
+  | "featured"
+  | "isNew"
+  | "isActive"
+  | "variants"
+  | "updatedAt"
+>;
+
+export async function listProductsForPanel(): Promise<ProductPanelView[]> {
+  await ensureSeed();
+  const sb = getDb();
+  return rows<ProductPanelView>(
+    await sb
+      .from(TABLES.products)
+      .select(
+        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
+      )
+      .order("updatedAt", { ascending: false }),
+    "listProductsForPanel",
+  );
+}
+
+/**
+ * Each listed product's first photo as a served URL (`/gorsel/urun/<id>/0`
+ * with its content stamp, or the pasted https:// address), keyed by id; a
+ * product without a photo is left out. For one page of a list, so only
+ * those rows' photos are read.
+ */
+export async function listProductThumbs(
+  ids: readonly string[],
+): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  const sb = getDb();
+  const found = rows<{ id: string; images: string[] | null }>(
+    await sb.from(TABLES.products).select("id, images").in("id", ids),
+    "listProductThumbs",
+  );
+  const out: Record<string, string> = {};
+  for (const p of found) {
+    const first = Array.isArray(p.images) ? p.images[0] : undefined;
+    if (first) {
+      out[p.id] = servedImage(
+        first,
+        productImagePath(p.id, 0, imageVersion(first)),
+      );
+    }
+  }
+  return out;
+}
+
+/**
  * What the product wizard saves. The scene columns are part of it: the save
  * action computes them from the first photo and the form's "Sahne" and "Kap
  * biçimi" fields (`src/lib/backdrop/scene.ts`), and `updateProduct` writes
@@ -1648,22 +1716,63 @@ async function recordStockMove(
   return move;
 }
 
-export async function listStockMoves(filter?: {
+/**
+ * Which stock moves a ledger view holds. `fromIso` / `beforeIso` are UTC
+ * instants (an Istanbul day's start, `istanbulDayStartIso`): `createdAt` is
+ * stored as UTC ISO text, so comparing strings is chronological.
+ */
+export interface StockMoveFilter {
   productId?: string;
   reason?: StockMoveReason;
-  limit?: number;
-}): Promise<AdminStockMove[]> {
+  fromIso?: string;
+  beforeIso?: string;
+}
+
+function filterStockMoves<
+  Q extends {
+    eq(column: string, value: unknown): Q;
+    gte(column: string, value: unknown): Q;
+    lt(column: string, value: unknown): Q;
+  },
+>(q: Q, filter: StockMoveFilter | undefined): Q {
+  let out = q;
+  if (filter?.productId) out = out.eq("productId", filter.productId);
+  if (filter?.reason) out = out.eq("reason", filter.reason);
+  if (filter?.fromIso) out = out.gte("createdAt", filter.fromIso);
+  if (filter?.beforeIso) out = out.lt("createdAt", filter.beforeIso);
+  return out;
+}
+
+/**
+ * Newest first. `limit` (default 500) and `offset` page through the whole
+ * ledger: the Stok page used to stop at the newest 500 moves without saying
+ * so (admin audit CAT-16).
+ */
+export async function listStockMoves(
+  filter?: StockMoveFilter & { limit?: number; offset?: number },
+): Promise<AdminStockMove[]> {
   await ensureSeed();
   const sb = getDb();
-  let q = sb.from(TABLES.stockMoves).select("*");
-  if (filter?.productId) q = q.eq("productId", filter.productId);
-  if (filter?.reason) q = q.eq("reason", filter.reason);
-  return rows<AdminStockMove>(
-    await q
-      .order("createdAt", { ascending: false })
-      .limit(filter?.limit ?? 500),
-    "listStockMoves",
+  let q = filterStockMoves(sb.from(TABLES.stockMoves).select("*"), filter)
+    .order("createdAt", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(filter?.limit ?? 500);
+  if (filter?.offset) q = q.offset(filter.offset);
+  return rows<AdminStockMove>(await q, "listStockMoves");
+}
+
+/** How many moves the same filter holds, for the ledger's count and pages. */
+export async function countStockMoves(
+  filter?: StockMoveFilter,
+): Promise<number> {
+  await ensureSeed();
+  const sb = getDb();
+  const { count, error, status } = await filterStockMoves(
+    sb.from(TABLES.stockMoves).select("*", { count: "exact", head: true }),
+    filter,
   );
+  if (error) raiseDbError("countStockMoves", error, status);
+  return count ?? 0;
 }
 
 export interface AdjustStockInput {
