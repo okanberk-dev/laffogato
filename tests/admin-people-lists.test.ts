@@ -470,6 +470,53 @@ describe("newsletter list (PEO-14)", () => {
     expect(page).not.toContain("confirm-secret-token");
   });
 
+  it("reads a confirmation link's deadline the way the store does", async () => {
+    const { confirmLinkState } = await import("@/lib/admin/newsletter-list");
+    const ttl = 7 * 24 * 60 * 60 * 1000;
+    const at = Date.parse("2026-10-10T09:00:00.000Z");
+    const deadline = "2026-10-17T09:00:00.000Z";
+    // confirmNewsletterByToken refuses only once `now - requested > ttl`.
+    expect(confirmLinkState("2026-10-10T09:00:00.000Z", ttl, at + ttl)).toEqual(
+      { expiresAt: deadline, expired: false },
+    );
+    expect(
+      confirmLinkState("2026-10-10T09:00:00.000Z", ttl, at + ttl + 1),
+    ).toEqual({ expiresAt: deadline, expired: true });
+    // A request time the store cannot read is a link it refuses.
+    for (const raw of [undefined, "", "garbage"]) {
+      expect(confirmLinkState(raw, ttl, at), String(raw)).toEqual({
+        expiresAt: null,
+        expired: true,
+      });
+    }
+  });
+
+  it("a pending subscriber's page dates the link and names the other way in", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const { default: View } = await import("@/app/admin/bulten/[id]/page");
+      // Two days after the request: the link still works, until the 24th.
+      vi.setSystemTime(new Date("2026-10-19T09:00:00.000Z"));
+      let page = html(await View({ params: Promise.resolve({ id: "nws-2" }) }));
+      expect(page).toContain("24 Eki 2026 12:00 tarihine kadar geçerli");
+      expect(page).not.toContain("7 gün geçerli");
+      // A member's own verification confirms it whatever the link says.
+      expect(page).toContain("e-postasını doğrularsa");
+      // A week and a minute later the store refuses the link; so does the page.
+      vi.setSystemTime(new Date("2026-10-24T09:01:00.000Z"));
+      page = html(await View({ params: Promise.resolve({ id: "nws-2" }) }));
+      expect(page).toContain("Süresi geçti (24 Eki 2026 12:00)");
+      // No readable request time: the store treats the link as dead.
+      h.subscribers[1] = { ...h.subscribers[1], confirmRequestedAt: "" };
+      vi.setSystemTime(new Date("2026-10-19T09:00:00.000Z"));
+      page = html(await View({ params: Promise.resolve({ id: "nws-2" }) }));
+      expect(page).toContain("Süresi geçti");
+      expect(page).not.toContain("tarihine kadar geçerli");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("an unknown or odd id is a 404", async () => {
     const { default: View } = await import("@/app/admin/bulten/[id]/page");
     for (const id of ["nws-9", "../x"]) {

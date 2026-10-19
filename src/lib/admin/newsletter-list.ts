@@ -36,6 +36,27 @@ export function subscriberState(
   return s.confirmToken ? "onay-bekliyor" : "pasif";
 }
 
+/**
+ * Where a pending request's confirmation link stands, read the way
+ * confirmNewsletterByToken reads it: the link works for `ttlMs` after the
+ * request, and a request time that cannot be read is a link that no longer
+ * works. `expiresAt` is null when there is no time to count from. The page
+ * used to say "7 gün geçerli" whatever the day, and called a link with no
+ * readable request time good while the store refused it.
+ */
+export function confirmLinkState(
+  requestedAt: string | undefined,
+  ttlMs: number,
+  now: number,
+): { expiresAt: string | null; expired: boolean } {
+  const at = Date.parse(requestedAt ?? "");
+  if (!Number.isFinite(at)) return { expiresAt: null, expired: true };
+  return {
+    expiresAt: new Date(at + ttlMs).toISOString(),
+    expired: now - at > ttlMs,
+  };
+}
+
 export const SUBSCRIBER_STATE_LABELS: Record<SubscriberState, string> = {
   aktif: "Aktif",
   "onay-bekliyor": "Onay bekliyor",

@@ -11,6 +11,7 @@ import {
 import { MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import {
+  confirmLinkState,
   NEWSLETTER_PATH,
   SUBSCRIBER_STATE_LABELS,
   SUBSCRIBER_STATE_TONES,
@@ -61,11 +62,11 @@ export default async function SubscriberPage({ params }: PageProps) {
   const state = subscriberState(s);
   const pending = state === "onay-bekliyor";
   const requestedAt = s.confirmRequestedAt ?? "";
-  const requestedMs = requestedAt ? Date.parse(requestedAt) : Number.NaN;
-  const linkExpired =
-    pending &&
-    Number.isFinite(requestedMs) &&
-    requestedMs + NEWSLETTER_CONFIRM_TTL_MS < new Date().getTime();
+  const link = confirmLinkState(
+    requestedAt,
+    NEWSLETTER_CONFIRM_TTL_MS,
+    new Date().getTime(),
+  );
 
   // KeyValueGrid skips a `false` row: "Çıkış" only once they left.
   const subscriber: Array<KeyValueItem | false> = [
@@ -104,7 +105,14 @@ export default async function SubscriberPage({ params }: PageProps) {
       { label: "İsteğin IP'si", value: s.confirmRequestIp ?? "", mono: true },
       {
         label: "Onay bağlantısı",
-        value: linkExpired ? "Süresi geçti (7 gün)" : "7 gün geçerli",
+        value: link.expired
+          ? link.expiresAt
+            ? `Süresi geçti (${when(link.expiresAt)})`
+            : "Süresi geçti"
+          : `${when(link.expiresAt ?? "")} tarihine kadar geçerli`,
+        // Only the footer form mails a link; a member's own verification
+        // confirms the request with no deadline (activatePendingNewsletter).
+        hint: "Site altı formunun e-postayla gönderdiği bağlantı. Bu adresle açılmış üye hesabı e-postasını doğrularsa abonelik bağlantısız da onaylanır.",
       },
     );
   }
