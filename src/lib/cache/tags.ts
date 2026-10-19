@@ -199,39 +199,58 @@ function note(tag: string, err: unknown): void {
 }
 
 /**
+ * The second expiry's profile: the same immediate expiry as `{ expire: 0 }`
+ * (Next passes only `expire` on to the cache: revalidation-utils.js
+ * `revalidateTags`), but a different profile, so Next sends it as a batch
+ * of its own instead of folding it into the first (it tells revalidations
+ * apart by tag and profile: `diffRevalidationState`).
+ * tests/cache-expire-retry.test.ts runs that against Next's own code.
+ */
+export const SECOND_EXPIRY = { stale: 0, expire: 0 };
+
+/**
  * Expires `tags` at once: the next read of anything tagged with one waits
  * for fresh data, nothing stale is served (`{ expire: 0 }`, the two-argument
  * form Next 16 asks for; node_modules/next/dist/docs/01-app/03-api-reference/
  * 04-functions/revalidateTag.md).
  *
- * Next refuses a revalidation during a render (error E7: a page that writes
- * while it renders, such as /odeme/basarili settling a payment). Those tags
- * go to `after()` instead, which runs once the response is out and flushes
- * what it revalidated. Outside a request (a script, a plain test) there is
- * nothing to expire and this does nothing. It never throws: a write that
- * succeeded must not fail over its cache.
+ * Then once more, from `after()`, which runs once the response is out
+ * (`SECOND_EXPIRY`). Next only queues a revalidation and sends the queue
+ * when the request ends, and a route handler sends it only when the handler
+ * returns a Response or redirects: one that throws (or calls notFound())
+ * after a write never sends it (app-route/module.js `do`), and one that
+ * returns sends it after the response, where a cache error is not seen by
+ * anyone. `after()` runs in both cases (its docs: "even if the response
+ * didn't complete successfully"), so a write that marked an order paid
+ * still moves the bell's marker. During a render Next refuses the first
+ * call (error E7: a page that writes while it renders, such as
+ * /odeme/basarili settling a payment) and the second is the only one.
+ * Outside a request (a script, a plain test) there is nothing to expire and
+ * this does nothing. It never throws: a write that succeeded must not fail
+ * over its cache.
  */
 export function expireTags(tags: readonly string[]): void {
-  const later: string[] = [];
+  if (tags.length === 0) return;
+  const refused: string[] = [];
   for (const tag of tags) {
     try {
       revalidateTag(tag, { expire: 0 });
     } catch {
-      later.push(tag);
+      refused.push(tag);
     }
   }
-  if (later.length === 0) return;
+  const again = [...tags];
   try {
     after(() => {
-      for (const tag of later) {
+      for (const tag of again) {
         try {
-          revalidateTag(tag, { expire: 0 });
+          revalidateTag(tag, SECOND_EXPIRY);
         } catch (err) {
           note(tag, err);
         }
       }
     });
   } catch (err) {
-    for (const tag of later) note(tag, err);
+    for (const tag of refused) note(tag, err);
   }
 }

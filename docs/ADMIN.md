@@ -107,9 +107,12 @@ yazmalar"); hesabı panelden değiştir ya da beş etiketi düşür.
 "Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
 cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
 gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
-Bir yazmanın düşürme isteği kaybolursa (önbellek hatası) zil en geç bir
-sonraki tam cevapta (açıkken en geç bir saat) çalar; personel e-postası
-bundan bağımsız gider. Önbellek çalışmazsa her soru tam cevap olur: eski
+Her yazma işareti iki kez düşürür: hemen, ve cevap çıktıktan sonra
+`after()` ile ayrı bir istekle; siparişi ödendi yapıp sonra hata fırlatan
+bir route handler'da Next ilkini hiç göndermez, ikincisi yine gider
+(`docs/DATABASE.md` madde 1). İkisi de kaybolursa (önbellek hatası) zil en
+geç bir sonraki tam cevapta (açıkken en geç bir saat) çalar; personel
+e-postası bundan bağımsız gider. Önbellek çalışmazsa her soru tam cevap olur: eski
 maliyet, kaçan sipariş yok. Deploy'dan önce açılmış sekmeler yenilenene kadar
 eski Worker'la (imleçsiz, her 10 sn tam cevap) çalışır: tezgâh
 bilgisayarında paneli bir kez yenile.

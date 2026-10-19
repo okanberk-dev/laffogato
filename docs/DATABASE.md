@@ -93,8 +93,13 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
    sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
    `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc beş
-   etiketi birden düşürür. Render sırasında (Next E7) etiket `after()` ile
-   yanıt çıktıktan sonra düşer.
+   etiketi birden düşürür. Her yazma etiketi bir kez daha, yanıt çıktıktan
+   sonra `after()` ile ayrı bir istekle düşürür (`SECOND_EXPIRY`): Next
+   düşürmeleri sıraya alır ve sırayı route handler ancak bir Response
+   döndürünce ya da yönlendirince gönderir. Yazdıktan sonra hata fırlatan
+   bir handler'da (ödeme dönüşü, uygulama ucu, cron) ilk istek hiç gitmez,
+   `after()` yine çalışır (`tests/cache-expire-retry.test.ts` bunu Next'in
+   kendi koduyla dener). Render sırasında (Next E7) yalnız ikincisi vardır.
 2. **Genel sayfaların sunum okumaları Data Cache'ten gelir**
    (`src/lib/cache/presentation.ts`, `src/lib/seo/site-data.ts`;
    `unstable_cache`, Vercel'de bölgesel Runtime Cache). Anahtar deployment'ı

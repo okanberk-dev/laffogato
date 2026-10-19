@@ -237,10 +237,15 @@ export const ORDER_ALERT_FULL_REFRESH_MS = 60 * 60_000;
 
 /**
  * A marker this young may have been stored just after a write it did not
- * see (the cache keeps the time it STORED the marker, which can be a few
- * hundred milliseconds after it was made). A full answer read this soon
- * after the marker was made does not vouch for it: the next poll is full
- * again.
+ * see (the cache keeps the time it STORED the marker, which can be later
+ * than when it was made). A full answer read this soon after the marker
+ * was made does not vouch for it: the next poll is full again. That covers
+ * a marker the answer's own request made (made after `fullAt`), however
+ * late the cache stores it: a marker read back from the cache was stored
+ * before that read, so the orders read after it saw every write the late
+ * store could have hidden (tests/admin-order-alerts-slow-cache.test.ts).
+ * The five seconds are for a cache that answers from memory before it has
+ * stored.
  */
 export const ORDER_ALERT_MARKER_SETTLE_MS = 5_000;
 

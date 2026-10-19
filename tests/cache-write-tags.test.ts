@@ -172,13 +172,28 @@ describe("tagsForWrite", () => {
 });
 
 describe("expireTags", () => {
-  it("expires each tag at once with { expire: 0 }", () => {
+  it("expires each tag at once with { expire: 0 }, then again from after()", () => {
     tags.expireTags(["pub:catalog", "live:orders"]);
     expect(h.revalidateTag.mock.calls).toEqual([
       ["pub:catalog", { expire: 0 }],
       ["live:orders", { expire: 0 }],
     ]);
-    expect(h.after).not.toHaveBeenCalled();
+    // A route handler that throws after the write never sends the first
+    // batch (tests/cache-expire-retry.test.ts); the second goes out anyway.
+    expect(h.after).toHaveBeenCalledTimes(1);
+    const task = h.after.mock.calls[0][0] as () => void;
+    task();
+    expect(h.revalidateTag.mock.calls.slice(2)).toEqual([
+      ["pub:catalog", tags.SECOND_EXPIRY],
+      ["live:orders", tags.SECOND_EXPIRY],
+    ]);
+  });
+
+  it("the second expiry is an immediate one under another profile", () => {
+    expect(tags.SECOND_EXPIRY.expire).toBe(0);
+    expect(JSON.stringify(tags.SECOND_EXPIRY)).not.toBe(
+      JSON.stringify({ expire: 0 }),
+    );
   });
 
   it("does nothing for a write that touches nothing cached", () => {
@@ -199,8 +214,8 @@ describe("expireTags", () => {
     const task = h.after.mock.calls[0][0] as () => void;
     task();
     expect(h.revalidateTag.mock.calls.slice(2)).toEqual([
-      ["pub:site", { expire: 0 }],
-      ["live:orders", { expire: 0 }],
+      ["pub:site", tags.SECOND_EXPIRY],
+      ["live:orders", tags.SECOND_EXPIRY],
     ]);
   });
 
