@@ -310,7 +310,7 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="phone"
               label="Telefon"
-              hint="Sitenin alt bilgisinde, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Boş bırakırsan kayıtlı numara görünür."
+              hint="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Boş bırakırsan kayıtlı numara görünür."
             >
               <TextInput
                 name="phone"
@@ -335,7 +335,7 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
           <SettingsField
             name="address"
             label="Adres"
-            hint="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında ve e-postaların altında görünür. Haritadaki konum sabittir, bu alanla değişmez."
+            hint="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Haritadaki konum sabittir, bu alanla değişmez."
           >
             <Textarea
               name="address"
