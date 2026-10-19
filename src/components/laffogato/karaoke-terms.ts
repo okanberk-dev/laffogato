@@ -109,13 +109,14 @@ export function karaokeBookingTerms(
       : null;
   // A deadline already behind the clock is not a moment to cancel before:
   // the booking's own snapshot would be late from the start
-  // (`withinFreeCancel` is `now < deadline`).
+  // (`withinFreeCancel` is `now <= deadline`: the moment itself still
+  // refunds in full).
   const nowMs = pick.now?.getTime();
   const freePassed =
     deadline !== null &&
     nowMs !== undefined &&
     Number.isFinite(nowMs) &&
-    nowMs >= deadline.getTime();
+    nowMs > deadline.getTime();
   return {
     rules: [cancellationRules[0], cancellationRules[1]],
     policy,

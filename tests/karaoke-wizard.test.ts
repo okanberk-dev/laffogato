@@ -511,11 +511,18 @@ describe("the cancellation terms, from the server", () => {
     });
     expect(passed?.freeUntil).toBeNull();
     expect(passed?.freePassed).toBe(true);
-    // Exactly at the deadline the window has closed (`now < deadline`).
+    // Exactly at the deadline the moment is still in time
+    // (`now <= deadline`); a millisecond later it has gone.
+    const atDeadline = terms.karaokeBookingTerms(src, {
+      ...pick,
+      now: new Date("2026-10-30T15:00:00.000Z"),
+    });
+    expect(atDeadline?.freePassed).toBe(false);
+    expect(atDeadline?.freeUntil).toBe("30 Ekim 2026, 18:00");
     expect(
       terms.karaokeBookingTerms(src, {
         ...pick,
-        now: new Date("2026-10-30T15:00:00.000Z"),
+        now: new Date("2026-10-30T15:00:00.001Z"),
       })?.freePassed,
     ).toBe(true);
     const ahead = terms.karaokeBookingTerms(src, {
@@ -601,9 +608,7 @@ describe("the booking page as the server renders it", () => {
     const html = booking();
     expect(html.split(DEFAULT[0])).toHaveLength(2);
     expect(html.split(DEFAULT[1])).toHaveLength(2);
-    expect(html).toContain(
-      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00 öncesi.",
-    );
+    expect(html).toContain("Ücretsiz iptal için son an: 30 Ekim 2026, 18:00.");
     expect(html).toMatch(/name="expectedFreeCancelHours" value="2"/);
     expect(html).toMatch(/name="expectedLateRefundPercent" value="0"/);
   });
@@ -621,7 +626,7 @@ describe("the booking page as the server renders it", () => {
     expect(html).toContain(esc(HALF[1]));
     expect(html).not.toContain(DEFAULT[0]);
     expect(html).not.toContain("2 saat");
-    expect(html).toContain("29 Ekim 2026, 20:00 öncesi");
+    expect(html).toContain("son an: 29 Ekim 2026, 20:00.");
     // Half of 1.000₺ back on a late cancel, before the start.
     expect(html).toContain("edersen 500₺ kartına iade edilir");
     expect(html).toMatch(/name="expectedFreeCancelHours" value="24"/);
@@ -637,7 +642,7 @@ describe("the booking page as the server renders it", () => {
     );
     // Earlier in the day the moment is still ahead and named.
     expect(booking({ now: "2026-10-30T09:00:00.000Z" })).toContain(
-      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00 öncesi.",
+      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00.",
     );
     expect(read("src/app/karaoke/page.tsx")).toContain(
       "now={now.toISOString()}",
@@ -793,9 +798,7 @@ describe("the booking's own page reads its snapshot", () => {
     expect(html).toContain(DEFAULT[0]);
     expect(html).toContain(DEFAULT[1]);
     expect(text(html)).toContain("%20 KDV dahil (KDV 333,33₺)");
-    expect(html).toContain(
-      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00 öncesi.",
-    );
+    expect(html).toContain("Ücretsiz iptal için son an: 30 Ekim 2026, 18:00.");
     expect(view({ taxRatePct: null }, early)).not.toMatch(/%\d+ KDV/);
   });
 
@@ -806,7 +809,7 @@ describe("the booking's own page reads its snapshot", () => {
     expect(html).toContain(stored[1]);
     expect(html).not.toContain(DEFAULT[0]);
     // The deadline the snapshot stored, on its own day.
-    expect(html).toContain("29 Ekim 2026, 20:00 öncesi");
+    expect(html).toContain("son an: 29 Ekim 2026, 20:00.");
   });
 
   it("inside the window, a late share is offered for its amount, refunded by hand", () => {
@@ -865,6 +868,19 @@ describe("the booking's own page reads its snapshot", () => {
       karaokeCancelOutcome({ ...r, paymentStatus: "none" }, dayBefore),
     ).toEqual({ kind: "nothing" });
     expect(karaokeCancelOutcome(BASE, late)).toEqual({ kind: "refused" });
+    // The last moment itself (18:00 Tuzla) is still a full refund, and the
+    // page names it; a millisecond later the default rule refuses.
+    const deadline = new Date("2026-10-30T15:00:00.000Z");
+    expect(karaokeCancelOutcome(BASE, deadline)).toEqual({
+      kind: "full",
+      amountMinor: 200_000,
+    });
+    expect(view({}, deadline)).toContain(
+      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00.",
+    );
+    expect(
+      karaokeCancelOutcome(BASE, new Date(deadline.getTime() + 1)),
+    ).toEqual({ kind: "refused" });
     // From the start on, nothing is refunded whatever the share.
     expect(
       karaokeCancelOutcome(r, new Date("2026-10-30T17:00:00.000Z")),
