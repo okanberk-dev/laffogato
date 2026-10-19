@@ -4,7 +4,7 @@ import { getPublicSettings } from "@/lib/admin/store";
 import { effectiveKaraokeCancelPolicy } from "@/lib/mobile/karaoke-time";
 
 import { karaokePolicyVersion } from "./consent-version";
-import { karaokeRoomDocFor } from "./content-karaoke";
+import { KARAOKE_ROOM_DOC } from "./content-karaoke";
 import { findLegalDoc, hydrateLegalDoc, type LegalDoc } from "./documents";
 import { KARAOKE_LEGAL_UPDATED } from "./meta";
 
@@ -13,33 +13,25 @@ const KARAOKE_ROOM_SLUG = "karaoke-odasi-rezervasyon";
 
 /**
  * The karaoke terms as a booking made NOW agrees to them (P2a, karar D11):
- * the coded document with §7, §9 and §10 written for the panel's
- * cancellation policy (Ayarlar > Karaoke), dated by the day that policy was
- * saved when it is not the default. Under the default the coded text, word
- * for word, and its coded date.
+ * the coded document, dated by the day the panel's cancellation policy was
+ * saved when it is not the default (the version a booking's consent records,
+ * `karaokePolicyVersion`). Since ASK-OTH-3-CFG (19 Eki 2026) the text names
+ * no hours or percent: it points at the booking's own summary, so the words
+ * are the same under every policy and only the date can move.
  *
  * Presentation: read through `getPublicSettings`, so a database that cannot
- * be reached shows the coded document - the default rule, which is also what
- * a booking is made under while settings cannot be read (createReservation
- * reads them through `getSettings`, which throws instead). A published panel
- * override replaces this text as it replaces every coded document. The
- * policy cannot move off the default while one is published
- * (saveKaraokeAction); an override published later is the editor's to keep
- * in step with the policy.
+ * be reached shows the coded document with its coded date. A published panel
+ * override replaces this text as it replaces every coded document.
  */
 export async function karaokeLegalDocNow(): Promise<LegalDoc> {
   const settings = await getPublicSettings();
   const policy = effectiveKaraokeCancelPolicy(settings);
-  return hydrateLegalDoc(
-    karaokeRoomDocFor(
-      policy,
-      karaokePolicyVersion(
-        KARAOKE_LEGAL_UPDATED,
-        policy,
-        settings.karaokeCancelPolicyAt,
-      ),
-    ),
+  const updatedAt = karaokePolicyVersion(
+    KARAOKE_LEGAL_UPDATED,
+    policy,
+    settings.karaokeCancelPolicyAt,
   );
+  return hydrateLegalDoc({ ...KARAOKE_ROOM_DOC, updatedAt });
 }
 
 /** A coded document by slug, the karaoke one as of now. */

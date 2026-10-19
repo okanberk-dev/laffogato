@@ -1678,6 +1678,9 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 
 ### 17.5 Avukata sorular
 
+> Y3-2, Y3-3, Y3-4 ve Y3-6 19 Ekim 2026'da avukat turu olmadan karara
+> bağlandı (operatör kararı, 18 Eki 2026): §17.6.
+
 | # | Soru | Neden |
 |---|---|---|
 | Y3-1 | Başlık "Kafe Hizmet Koşulları" oldu, adres aynı kaldı. Uygun mu? | Belgede rezervasyon olarak yalnız karaoke kaldı; karaokenin kendi sözleşmesi var. |
@@ -1687,6 +1690,140 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 | Y3-5 | Bugüne kadar telefonla onaylanmış ileri tarihli masa rezervasyonu varsa §23 (sürüm geçişi) onları eski metinde tutar. Operatör bunları tek tek arayıp teyit etmeli mi? | Geçiş dönemi. |
 | Y3-6 | Erişim (§20) ve evcil hayvan (§12) cümleleri "ziyaretinizden önce telefonla bildirin, erişimi en kolay masa ayrılabilir" diyor. Bu bir rezervasyon vaadi sayılır mı? | Rezervasyon yok, ama makul düzenleme kalmalı (5378 s. Kanun). |
 | Y3-7 | KVKK'da "Kafe ziyaretçisi" grubu "karaoke odası rezervasyonu yapan" kişiyi de sayıyor; üyeliksiz karaoke rezervasyonu yapanlar ayrı bir ilgili kişi grubu olarak yazılsın mı? | Veri kategorisi zaten ayrı ("Üye ve üyeliksiz rezervasyon yapan kişi"). |
+
+### 17.6 Y3 kararları: karaoke kuralları tek belgede, etkinlik iptali tek kuralda, işletme iptali nedenli, talep usulü kalktı (19 Eki 2026)
+
+> **Durum: metin kodda değişti.** Dal `feat/legal-karaoke-terms`.
+> Operatör kararı (18 Eki 2026): avukat turu yok; §17.5'teki Y3-2, Y3-3,
+> Y3-4 ve Y3-6 aşağıdaki dayanaklarla karara bağlandı. Aynı dal 3b'nin hukuk
+> düzeltmelerini de taşır (0 saat, son an, %0 ya da %100, ön ödeme kilidi).
+
+**Sürüm.** Karaoke belgesi değişti (§7, §8, §10): `KARAOKE_LEGAL_UPDATED`
+ve belgenin tarihi 17 Ekim'den 19 Ekim 2026'ya taşındı; bundan sonraki
+karaoke onayları 19 Ekim 2026'yı kaydeder. Kafe Hizmet Koşulları, İptal,
+İade ve Cayma Hakkı, Kişisel Veri Saklama ve İmha Politikası ve Kullanım
+Şartları kendi tarihini (19 Ekim 2026) aldı (`tests/legal-dates.test.ts`).
+Ödeme onayındaki iki belge değişmedi, `LEGAL_UPDATED` 18 Ekim 2026'da kaldı.
+Aynı İstanbul gününde `KARAOKE_LEGAL_UPDATED`'i taşıyan ikinci bir PR
+birleştirilmez (D-SAME-DAY). Uygulamanın çevrimdışı kopyası lafmobil'de
+yenilenir (ayrı PR).
+
+**Kararlar.**
+
+- Y3-2: Kafe Hizmet §5'teki karaoke özeti kalktı. Karaoke odasının bedel,
+  ödeme, kesinleşme, cayma, iptal, iade, gelmeme ve işletme iptali kuralları
+  yalnız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet
+  Sözleşmesi'nde durur; Kafe §1, §4, §5, İptal İade ve Cayma §21 ve Veri
+  Saklama tablosu ona atıf yapar. "Götürü bir koşul" nitelendirmesi silindi,
+  yerine "cezai şart değildir" yazılmadı.
+- Y3-3: Etkinlik iptali tek kural, İptal İade ve Cayma §21'de: başlangıçtan
+  en az 48 saat önce tam iade; 48 saatten az, en az 24 saat kala (tam 24
+  saat dâhil) tam iade ya da başka tarihe aktarım; 24 saatten az kala ve
+  katılmamada yalnız belgeli hazırlık gideri düşülür, gider yoksa tam iade;
+  devir başlangıca kadar ücretsiz; işletme iptalinde seçim misafirin. Süreler
+  başlangıç saatinden sayılır. Mevcut kayıtlara da uygulanır (lehe). Kafe §6
+  atıf yapar; eski 7 gün / 72 saat tablosu ve mahsup paragrafı kalktı.
+- Y3-4: Karaoke §7'ye iptal anı maddesi: telefonda görüşme anı, yanıtlanmayan
+  aramada telefonda görünen arama saati (aynı gün teyitle), e-postada
+  gönderme anı. Tam son an (varsayılan kuralda tam 2 saat kala) süresinde
+  sayılır; kod `<=` yapıldı. Panelde "Misafir iptal istedi" nedeni kanal ve
+  istek anıyla kaydedilir, rezervasyonun kendi kuralı istek anına göre
+  uygulanır.
+- Y3-6: Kafe §20 erişim bildirimi masa rezervasyonu değildir; erişimi en
+  kolay masa bildirilen geliş saatinden 15 dakika tutulur, doluysa ilk
+  boşalan uygun masa verilir; notta ad ve geliş saati dışında bir şey
+  yazılmaz, not ertesi gün imha edilir. §5'e "Bu kural, 20. maddede
+  düzenlenen erişim ihtiyacına yönelik ön bildirimi kapsamaz." eklendi.
+- ASK-OTH-3: Karaoke §8: işletme yalnız haklı sebeple iptal eder; bildirim
+  öğrenir öğrenmez ve en geç 3 gün içinde, rezervasyon saatinden önce;
+  24 saatten az kalmışsa ve telefon kayıtlıysa ayrıca arama; iade bildirimden
+  en geç 14 gün içinde karta, iptalle birlikte başlatılır; süreler her
+  nedende uygulanır; tazminat hakları saklı. §7'ye geç iptal ve gelmemede
+  tam kaybı sınırlayan koşullar yazıldı (rezervasyon misafirin adına durur,
+  kod devredilebilir, saat başkasına verilirse tamamı iade). Telafi cümlesi
+  (OP-KARAOKE-GOODWILL) panel işiyle birlikte gelir (karaoke-make-good-and-resale).
+- ASK-OTH-3-CFG: Karaoke §7 ve §10 saat ve yüzde yazmaz; rezervasyon
+  özetinde gösterilen son ücretsiz iptal anına ve geç iptal tutarına atıf
+  yapar. Böylece panelden yayımlanan bir düzenleme eski rakamlarla kalıp bir
+  rezervasyonun kendi kuralıyla çelişemez. Onay e-postası son ücretsiz iptal
+  anını ayrıca yazar. "ve ekindeki belgede" ifadesi e-posta eki (ASK-DURABLE)
+  yayına girdiği PR'da eklenir; o güne kadar ek yok.
+- OP-KARAOKE-PREPAY: Talep usulünü anlatan iki cümle (Kafe §5, Kullanım
+  Şartları tanım) kalktı: ödeme alamayan eski uygulama sürümü rezervasyon
+  yapamaz, güncelleme ister. Panel ön ödemenin kapatılmasını reddeder.
+
+**Değişen cümleler.** Satır numaraları `src/lib/legal/content.ts`'in bu
+PR'daki hâline aittir (karaoke belgesi: `content-karaoke.ts`).
+
+| Belge | Satır | Mevcut | Yeni |
+|---|---|---|---|
+| Kafe Hizmet, §1 | 14125 | "Rezervasyon talebinde bulunulması, rezervasyon onayının kabul edilmesi, mobil uygulamadan kafe siparişi verilmesi veya işletmede hizmet alınması işbu Koşulların okunduğu ve kabul edildiği anlamına gelir." | "Bu Koşulları işletme girişinde ve {{SITE_URL}}/hukuk/kafe-hizmet-kosullari adresinde inceleyebilirsiniz." |
+| Kafe Hizmet, §1 | 14126 | "... iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde ve bu Koşulların 5. maddesindeki karaoke hükümlerinde düzenlenir." | "... iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir." |
+| Kafe Hizmet, §4 | 14220 | "... alınmış ödeme varsa 5. ve 6. maddelerde düzenlenen esaslara göre iade edilir ..." | "... alınmış ödeme varsa Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi ile 6. maddede düzenlenen esaslara göre iade edilir ..." |
+| Kafe Hizmet, §5 | 14233 | "İşletmede masa ve grup rezervasyonu alınmaz. Rezervasyon yalnızca karaoke odası için yapılır; karaoke odası rezervasyonuna bu madde ile Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi uygulanır." | "İşletmede masa ve grup rezervasyonu alınmaz. Bu kural, 20. maddede düzenlenen erişim ihtiyacına yönelik ön bildirimi kapsamaz. Rezervasyon yalnızca karaoke odası için yapılır; karaoke odası rezervasyonuna Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi uygulanır, bu madde yalnızca rezervasyon kanallarını açıklar." |
+| Kafe Hizmet, §5 | 14234 | "Çevrim içi ödeme geçici olarak kapalıysa veya rezervasyon mobil uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir; bu hâlde üyelik girişi ve doğrulanmış bir e-posta adresi gerekir, talep İşletme personeli onaylayana kadar yalnızca bir taleptir, onay veya iptal kararı e-posta ve uygulamadaki bildirim kutusu ile bildirilir ve bedel işletmede ödenir." | "Mobil uygulamanın ödeme alamayan eski bir sürümünden rezervasyon yapılamaz; bu durumda uygulamanızı güncellemeniz istenir." |
+| Kafe Hizmet, §5 | 14234 | "Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları bu maddede ve Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir." | "Karaoke odası rezervasyonunun bedeli, ödemesi, kesinleşmesi, cayma hakkının bulunmaması, iptal, iade ve gelmeme kuralları ile İşletmenin rezervasyonu karşılayamaması hâlinde yapılacak iade yalnızca, rezervasyon sırasında onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde (/hukuk/karaoke-odasi-rezervasyon) düzenlenir." |
+| Kafe Hizmet, §5 | 14235 | "Rezervasyon talebi sırasında ad-soyad, iletişim telefonu ve elektronik posta adresi istenir." | "Rezervasyon sırasında ad-soyad ve elektronik posta adresi, internet sitesinden yapılan rezervasyonlarda ayrıca cep telefonu istenir." (uygulama üyesinin rezervasyonunda telefon yok: `karaoke-core.ts`) |
+| Kafe Hizmet, §5 | - | "Karaoke odası rezervasyonunda iptal ve iade kuralı şudur: Rezervasyon saatine 2 saatten fazla varken ... Karaoke odasında 2 saatten az kala yapılan iptallerde ve gelinmediğinde iade yapılmaması, hizmet bedelinin iade edilmediği götürü bir koşuldur; ... (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g)." | Silindi |
+| Kafe Hizmet, §5 | - | "Karaoke odası rezervasyonunu işletme karşılayamazsa ödediğiniz tutarın tamamı iade edilir. Durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde ..." | Silindi (karaoke §8'de) |
+| Kafe Hizmet, §5 tablosu | - | "Karaoke odası - iptal ve iade", "İptal kanalları", "İşletme kaynaklı iptalde iade süresi" | Tablo silindi |
+| Kafe Hizmet, §6 | 14242 | "Program içeriği, süresi, kontenjanı, kişi başı bedeli ve iptal koşulları duyuru metninde ve katılım onayında ayrı ayrı belirtilir." | "Program içeriği, süresi, kontenjanı ve kişi başı bedeli duyuru metninde ve katılım onayında belirtilir; iptal ve iade esasları İptal, İade ve Cayma Hakkı metninin 21. maddesindedir." |
+| Kafe Hizmet, §6 | 14244 | "İşbu maddede ve katılım onayında belirlenen süreler içinde yapılan iptallerde ödediğiniz bedel, aşağıdaki esaslara göre iade edilir." | "İptallerde ödediğiniz bedel, İptal, İade ve Cayma Hakkı metninin 21. maddesindeki süre ve esaslara göre iade edilir." |
+| Kafe Hizmet, §6 | - | "Süresinde yapılmayan iptallerde ve etkinliğe katılınmadığında, ... Götürü nitelikte, zarara bağlı olmayan cezai şart uygulanmaz." | Silindi (aynı kural İptal İade ve Cayma §21'de) |
+| Kafe Hizmet, §6 | 14246 | "Katılımcı değişikliği, etkinlik tarihinden en az yirmi dört (24) saat önce yazılı olarak bildirilmesi kaydıyla ücretsiz yapılabilir." | "Katılımcı değişikliği, etkinlik başlangıcından önce yazılı olarak (elektronik posta dâhil) bildirilmesi kaydıyla ücretsiz yapılabilir." |
+| Kafe Hizmet, §6 tablosu | 14251 | "Etkinlik iptali - 7 gün ve daha önce bildirim", "Etkinlik iptali - 72 saat ile 7 gün arası bildirim", "Etkinlik iptali - 72 saatten kısa süre kala bildirim", "Katılımcı değişikliği" (dört satır) | "Etkinlik iptali ve katılımcı devri: Süreler ve iade esasları İptal, İade ve Cayma Hakkı metninin 21. maddesindedir; katılım onayında lehinize farklı bir koşul yazıyorsa o uygulanır." ("İşletme kaynaklı iptal" ve "Cayma hakkı" satırları kaldı) |
+| Kafe Hizmet, §20 | 14535 | "Tekerlekli sandalye kullanımı, ... bu hususu ziyaretinizden önce {{PHONE}} numarasından bildirmeniz rica olunur. Böylece erişimi en kolay masa tahsis edilebilir ve personel önceden hazırlık yapabilir." | "Tekerlekli sandalye kullanımı, refakatçi ihtiyacı, işitme veya görme engeline ilişkin özel bir düzenleme gereksiniminiz varsa bunu ziyaretinizden önce {{PHONE}} numarasından bildirmenizi rica ederiz. Bu bildirim bir masa rezervasyonu değildir; erişim ihtiyacınıza yönelik makul düzenleme olarak erişimi en kolay masayı bildirdiğiniz geliş saatinden itibaren 15 dakika boyunca sizin için boş tutar, masa o sırada doluysa ilk boşalan uygun masayı size ayırır ve personelimizi önceden hazırlarız. Bildiriminiz için yalnızca adınızı ve geliş saatinizi not alırız; notta bildiriminizin nedenini ve sağlık durumunuza ilişkin hiçbir ayrıntıyı yazmayız ve bu notu ziyaretinizin ertesi günü imha ederiz. Önceden bildirmeden gelirseniz de erişimi en kolay boş masayı size gösterir, gereken desteği sağlarız." |
+| İptal, İade ve Cayma, §21 | 1808 | "Karaoke odası rezervasyonu bundan ayrıdır: ... Bu hizmette de cayma hakkı yoktur (...); bunun yerine sözleşmeyle şu koşul tanınır. Rezervasyon saatine 2 saatten fazla varken ... Karaoke iadeleri her zaman ödenen tutarın tamamıdır, kısmi iade yapılmaz ... ayrıntılar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'ndedir." | "Karaoke odası rezervasyonu bundan ayrıdır: ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır, rezervasyon ödemenin onaylanmasıyla kesinleşir ve bu hizmette de cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir; bu belgenin aşağıdaki 48 ve 24 saatlik iptal ve devir kolaylıkları karaoke odası rezervasyonuna uygulanmaz." |
+| İptal, İade ve Cayma, §21 | 1812 | "Etkinlik tarihinden en az 48 saat önce iletilen iptal taleplerinde ödenen bedelin tamamı iade edilir." | "Etkinliğin başlangıç saatinden en az 48 saat önce iletilen iptal taleplerinde ödenen bedelin tamamı iade edilir." |
+| İptal, İade ve Cayma, §21 | 1813 | "Etkinlik tarihine 24-48 saat kala iletilen iptallerde, tercihinize göre ..." | "Etkinliğin başlangıç saatine 48 saatten az, en az 24 saat kala (tam 24 saat dâhil) iletilen iptallerde, tercihinize göre ödenen bedelin tamamı iade edilir veya katılım hakkınız kontenjan bulunan başka bir tarihe aktarılır." |
+| İptal, İade ve Cayma, §21 | 1814 | "Etkinlik tarihine 24 saatten az kalan iptallerde ve katılım sağlanmayan etkinlik kayıtlarında, hazırlık ve tahsis edilen kontenjan nedeniyle bedel iadesi yapılamaz; ancak katılım hakkınızı bir başkasına devredebilirsiniz." | "Etkinliğin başlangıç saatine 24 saatten az kala yapılan iptallerde ve katılım sağlanmayan etkinlik kayıtlarında, Satıcı'nın o kayıt için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ödenen bedelden düşülür ve kalan tutar iade edilir; düşülen tutar talep hâlinde kalem kalem yazılı olarak açıklanır, böyle bir gider yoksa veya belgelenemiyorsa bedelin tamamı iade edilir. Dilerseniz katılım hakkınızı ücretsiz olarak bir başkasına devredebilirsiniz." |
+| İptal, İade ve Cayma, §21 | 1816 | "Etkinliğin Satıcı tarafından iptal edilmesi veya tarihinin değiştirilmesi hâlinde bedelin tamamı iade edilir veya tercihiniz doğrultusunda yeni tarihe aktarılır; bu tercih size aittir." | "Etkinliğin Satıcı tarafından iptal edilmesi veya tarihinin değiştirilmesi hâlinde, tercihinize göre katılım hakkınız yeni tarihe aktarılır, eşdeğer bir etkinliğe katılımınız sağlanır ya da ödediğiniz bedelin tamamı en geç 14 gün içinde iade edilir; bu tercih size aittir." |
+| Veri Saklama, karaoke satırı | 7815 | "... ileri tarihli rezervasyonlar iptal edilir; saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarı karta iade edilir, 2 saatten az kalanlarda ise iade yapılmaz ve rezervasyon olduğu gibi kalır; kayıtlarda ad silinir ..." | "... ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ..." |
+| Kullanım Şartları, tanım | 9727 | "Çevrim içi ödeme geçici olarak kapalıysa veya Mobil Uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir ve Şirket onaylamadıkça kesinleşmez; onay e-posta ve Mobil Uygulamadaki bildirim listesi ile iletilir." | "Mobil Uygulamanın ödeme alamayan eski bir sürümünden rezervasyon yapılamaz; bu durumda uygulamanın güncellenmesi istenir." |
+| Karaoke, §7 madde 1 | 105 | "Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali ... kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz." | "Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak veya {{EMAIL}} adresine yazarak yaptırabilirsiniz." |
+| Karaoke, §7 madde 2 | 106 | (yok) | "Bizi arayarak yaptırdığınız iptalde görüşmenin yapıldığı an, e-postayla bildirdiğiniz iptalde e-postanızın gönderildiği an iptal anı sayılır. Aramanız yanıtlanamazsa telefonumuzda görünen arama saatiniz iptal anı sayılır; bu durumda iptal isteğinizi aynı gün e-postayla ya da yeniden arayarak iletmeniz yeterlidir. Telefonla verdiğiniz iptal isteğini aynı gün e-postayla teyit ederiz." |
+| Karaoke, §7 madde 3-6 | 107-110 | "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz." | "Bu andan sonra, rezervasyon saati gelmeden yapılan iptallerde özette geç iptal için gösterilen tutar iade edilir; iptal ettiğiniz saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade edilir." / "Özette geç iptalde iade gösterilmiyorsa bu andan sonra ücret iadesi yapılmaz ve rezervasyon sizin adınıza durur; gelemeyecekseniz rezervasyon kodunuzu bir başkasına verebilirsiniz. Gelemeyeceğinizi ve kodunuzu kimseye vermediğinizi bize bildirirseniz odayı o saat için başka bir misafire verebiliriz." / "Rezervasyona gelinmediğinde ücret iadesi yapılmaz; gelmediğiniz ya da iptal edemediğiniz bir saati başka bir misafire verirsek ödediğiniz tutarın tamamını iade ederiz." / "Son ücretsiz iptal anı ve geç iptalde iade edilecek tutar rezervasyon onay e-postanızda da yazılıdır. Rezervasyonunuza ödemeden önce onayladığınız süre ve iade tutarı uygulanır; bunlarda sonradan yapılan değişiklikler rezervasyonunuzu etkilemez." |
+| Karaoke, §8 | 118 | "Rezervasyonunuzu arıza, geçici kapanış, mücbir sebep veya başka bir nedenle karşılayamazsak, Mesafeli Sözleşmeler Yönetmeliği m.16/4 uyarınca durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde size e-postayla bildiririz ve ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz. İade, iptalle birlikte PayNkolay üzerinden hemen başlatılır." | "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır." |
+| Karaoke, §10 | 131 | "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; rezervasyon saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ... Rezervasyon saatine 2 saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır. ..." | "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir. Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) kapatılan hesaplarda ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir; iade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar. Bu andan sonra kapatılan hesaplarda 7. maddedeki geç iptal kuralı uygulanır; geç iptalde iade gösterilmeyen rezervasyon olduğu gibi kalır. Hesabınızın kapatılmasını bizden talep ederseniz bu süreler talebinizin kaydedildiği ana göre hesaplanır. Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez." |
+
+**Bilerek değişmeyenler.**
+
+- Kafe Hizmet §2 "Misafir" tanımındaki "rezervasyon talebinde bulunan" ve §5
+  "İşletme, ... rezervasyon talebini kabul etmeme hakkını saklı tutar"
+  paragrafı: talep usulünü değil genel bir talebi anlatır, karar metni
+  ikisini de korur.
+- Karaoke §9 ("kısmi iade yapılmaz"): panel yalnız %0 ya da %100 kabul
+  ettiği sürece doğru. %1-99 açıldığı gün §9 karaoke-make-good-and-resale
+  PR'ında değişir.
+- Ödeme Koşulları ve Hesap Silme metinlerindeki "2 saat" cümleleri: her
+  rezervasyon 2 saat / %0 ile yapıldığı sürece doğru (uygulama kilidi,
+  `KARAOKE_POLICY_APP_VERSION` null); kilit açılmadan önce yeniden yazılır
+  (`tests/karaoke-cancel-policy-doc.test.ts`).
+- Kafe §6 "İşletme kaynaklı iptal" ve "Cayma hakkı" tablo satırları: §21 ile
+  aynı seçenekleri yazar.
+
+**Hukuki dayanak.**
+
+- TBK m.21/1, m.23; TKHK m.5/4; Haksız Şartlar Yönetmeliği m.6/3: aynı kural
+  iki belgede iki farklı biçimde durursa düzenleyen aleyhine yorumlanır;
+  misafirin onayladığı tek belge karaoke sözleşmesidir (MSY m.5/2). Kafe
+  koşullarının yalnız işletmeye girmekle kabul edilmiş sayılması da genel
+  işlem koşulu olarak yazılmamış sayılırdı (TBK m.21/1): yerine metnin nerede
+  görülebileceği yazıldı.
+- TKHK m.4/2, m.5/4; TBK m.182/3; Haksız Şartlar Yön. EK-1 (d); MSY
+  m.15/1-g: etkinlik iptalinde lehe okuma tek kural oldu, kesinti fiilî
+  zararla sınırlı.
+- TBK m.4/2 (kıyasen), TKHK m.48/4, MSY m.11/1 ve m.20/1: telefonla iptal
+  görüşme anında, e-postayla iptal gönderme anında hüküm doğurur; istek anı
+  ve kanalı kayda geçer. Tam son an süresinde sayılır (TKHK m.5/4).
+- MSY m.16/4; Haksız Şartlar Yön. m.5/4, EK-1 (ç), (d), (e); TBK m.112,
+  m.136, m.325/2 (kıyasen): işletme iptali haklı sebebe bağlı, 3 gün bildirim
+  ve 14 gün iade her nedende; geç iptalde tam kayıp kod devri ve yeniden
+  satışta tam iadeyle sınırlı.
+- 5378 s. Kanun m.3/1-j, m.4/A; 6701 s. Kanun m.4/1-f, m.5; KVKK m.4/2-ç,
+  m.6: erişim bildirimi makul düzenlemedir, sağlık verisi işlenmez.
+- MSY m.4/1-e, m.5/1, m.7/1; TKHK m.48/2: ön bilgi ve sözleşme onayı
+  alınmayan talep usulü kalktı.
 
 ## 18. Y4 - Mesafeli satış 2026: 14 gün iade, ücretsiz iade kargosu, arabuluculuk, yalnız Türkiye (18 Eki 2026)
 

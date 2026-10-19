@@ -485,8 +485,9 @@ export async function createReservation(
       prepay && options.legalConsent
         ? {
             ...options.legalConsent,
-            // The karaoke document is rendered with the policy, so the
-            // version the customer saw moves with it (karaoke-doc.ts).
+            // The karaoke document is dated by the policy it is shown
+            // under, so the version the customer saw moves with it
+            // (karaoke-doc.ts).
             version: karaokePolicyVersion(
               options.legalConsent.version,
               policy,

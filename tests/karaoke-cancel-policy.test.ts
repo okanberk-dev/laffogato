@@ -13,8 +13,7 @@ import { describe, expect, it } from "vitest";
 const time = await import("@/lib/mobile/karaoke-time");
 const { toReservationJson } = await import("@/lib/mobile/karaoke-core");
 const { karaokePolicyVersion } = await import("@/lib/legal/consent-version");
-const { KARAOKE_ROOM_DOC, karaokeRoomDocFor } =
-  await import("@/lib/legal/content-karaoke");
+const { KARAOKE_ROOM_DOC } = await import("@/lib/legal/content-karaoke");
 const { KARAOKE_LEGAL_UPDATED } = await import("@/lib/legal/meta");
 const { cancelResultCode, karaokeNoticeFor, KARAOKE_RESULT_NOTICES } =
   await import("@/lib/mobile/karaoke-notices");
@@ -506,52 +505,51 @@ describe("the wire shape (§7.1, additive)", () => {
   });
 });
 
-describe("the karaoke document under a policy (karar D11)", () => {
+describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () => {
   const section = (doc: typeof KARAOKE_ROOM_DOC, n: string) =>
     doc.sections.find((s) => s.heading.startsWith(`${n}. `))!;
 
-  it("is today's text, word for word, under the default", () => {
+  it("names no hours or percent: §7 and §10 point at the booking's summary", () => {
     expect(KARAOKE_ROOM_DOC.updatedAt).toBe(KARAOKE_LEGAL_UPDATED);
-    expect(section(KARAOKE_ROOM_DOC, "7").bullets).toEqual([
-      "Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz.",
-      "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
-      "Saatler Türkiye saatiyle (İstanbul) hesaplanır.",
-      "İptal ve sorularınız için: {{PHONE}} veya {{EMAIL}}.",
-    ]);
-    expect(section(KARAOKE_ROOM_DOC, "9").paragraphs).toEqual([
-      "Her iade PayNkolay üzerinden, ödemenin yapıldığı karta ve ödenen tutarın tamamı olarak yapılır; kısmi iade yapılmaz. İadenin hesabınıza yansıma süresi bankanıza bağlıdır.",
-      "İade için sizden herhangi bir masraf istenmez.",
-    ]);
-    expect(section(KARAOKE_ROOM_DOC, "10").paragraphs).toEqual([
-      "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; rezervasyon saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir. İade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar. Rezervasyon saatine 2 saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır. Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez.",
-    ]);
+    const rules = JSON.stringify(
+      ["7", "9", "10"].map((n) => section(KARAOKE_ROOM_DOC, n)),
+    );
+    // A text written from the panel's numbers froze them in any published
+    // edit, against a booking's own snapshot.
+    expect(rules).not.toMatch(/\d+ saatten (fazla|az)/);
+    expect(rules).not.toMatch(/%\d/);
+    expect(section(KARAOKE_ROOM_DOC, "7").bullets?.[0]).toBe(
+      "Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak veya {{EMAIL}} adresine yazarak yaptırabilirsiniz.",
+    );
+    expect(section(KARAOKE_ROOM_DOC, "10").paragraphs?.[0]).toContain(
+      "Hesabınızın kapatılmasını bizden talep ederseniz bu süreler talebinizin kaydedildiği ana göre hesaplanır.",
+    );
+    expect(JSON.stringify(KARAOKE_ROOM_DOC)).not.toMatch(/[–—]/);
   });
 
-  it("writes the panel's hours and share, and never contradicts them", () => {
-    const doc = karaokeRoomDocFor(
-      { freeCancelHours: 24, lateRefundPercent: 50 },
-      "18 Ekim 2026",
+  it("says when a cancel by phone or e-mail counts (ASK-Y3-4)", () => {
+    const text = JSON.stringify(section(KARAOKE_ROOM_DOC, "7"));
+    expect(text).toContain(
+      "Bizi arayarak yaptırdığınız iptalde görüşmenin yapıldığı an, e-postayla bildirdiğiniz iptalde e-postanızın gönderildiği an iptal anı sayılır.",
     );
-    expect(doc.updatedAt).toBe("18 Ekim 2026");
-    const text = JSON.stringify(["7", "9", "10"].map((n) => section(doc, n)));
-    expect(text).toContain("24 saatten fazla");
-    expect(text).toContain("%50'si kartınıza iade edilir");
-    expect(text).toContain("Geç iptaldeki iade 7. maddedeki oranda");
-    expect(text).not.toContain("2 saat");
-    expect(text).not.toContain("kısmi iade yapılmaz");
-    expect(JSON.stringify(doc)).not.toMatch(/[–—]/);
-    // Everything outside the three rule sections is untouched.
-    for (const n of ["1", "2", "3", "4", "5", "6", "8", "11", "12", "13"]) {
-      expect(section(doc, n)).toEqual(section(KARAOKE_ROOM_DOC, n));
-    }
+    expect(text).toContain("telefonumuzda görünen arama saatiniz iptal anı sayılır");
+    expect(text).toContain(
+      "Telefonla verdiğiniz iptal isteğini aynı gün e-postayla teyit ederiz.",
+    );
   });
 
-  it("(0, 0) says there is no free window", () => {
-    const doc = karaokeRoomDocFor({ freeCancelHours: 0, lateRefundPercent: 0 });
-    expect(section(doc, "7").bullets?.[0]).toContain(
-      "ücretsiz iptal süresi yoktur",
+  it("keeps the whole loss behind its four conditions, with no label (ASK-OTH-3)", () => {
+    const seven = JSON.stringify(section(KARAOKE_ROOM_DOC, "7"));
+    expect(seven).toContain("rezervasyon kodunuzu bir başkasına verebilirsiniz");
+    expect(seven).toContain(
+      "gelmediğiniz ya da iptal edemediğiniz bir saati başka bir misafire verirsek ödediğiniz tutarın tamamını iade ederiz",
     );
-    expect(JSON.stringify(section(doc, "10"))).not.toContain("0 saat");
+    expect(JSON.stringify(KARAOKE_ROOM_DOC)).not.toMatch(
+      /götürü|cezai şart değildir/,
+    );
+    expect(section(KARAOKE_ROOM_DOC, "8").paragraphs).toEqual([
+      "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır.",
+    ]);
   });
 
   it("its version moves to the day a non-default policy was saved", () => {

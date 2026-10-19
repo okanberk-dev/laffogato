@@ -1,9 +1,3 @@
-import {
-  DEFAULT_KARAOKE_CANCEL_POLICY,
-  percentPossessive,
-  type KaraokeCancelPolicy,
-} from "@/lib/mobile/karaoke-time";
-
 import type { LegalDocSource } from "./content";
 import { KARAOKE_LEGAL_UPDATED } from "./meta";
 
@@ -17,117 +11,32 @@ import { KARAOKE_LEGAL_UPDATED } from "./meta";
  * kurulu, Satış Politikası da ayrı bir belge sözü veriyor. Gerekçe ve madde
  * planı: scratchpad krk-legal.md §4.1 ve §4.2-A.
  *
- * TASLAK: avukat onayı bekliyor. Metin yalnız operatörün verdiği kararları
- * yazar (2 saat öncesine kadar tam iade, sonrası ve gelmeme iadesiz, ödemeyle
- * kendiliğinden kesinleşme, işletme iptalinde tam iade); karar verilmemiş
- * hiçbir kural (gecikme payı, tarih değişikliği, yeniden satışta iade)
- * eklenmedi. `content.ts`'ten ayrı dosyada durur, çünkü o dosyayı ayrı bir
- * hukuk PR'ı baştan yazıyor; buradaki tek bağ `LEGAL_CONTENT`'e eklenen bir
- * satırdır.
+ * Karaoke rezervasyonunun bedel, ödeme, kesinleşme, cayma, iptal, iade,
+ * gelmeme ve işletme iptali kuralları YALNIZ bu belgede durur (ASK-Y3-2, 19
+ * Eki 2026); Kafe Hizmet Koşulları, İptal İade ve Cayma, Veri Saklama ve
+ * Kullanım Şartları buraya atıf yapar. `content.ts`'ten ayrı dosyada durur;
+ * buradaki tek bağ `LEGAL_CONTENT`'e eklenen bir satırdır.
  *
  * `content.ts`'teki kurallar burada da geçerli: markdown yok, şirket bilgisi
  * `{{TOKEN}}` ile, değeri bilinmeyen token yalnız tablo değerinde.
  *
- * İptal ve iade kuralı (§7, §9, §10) panelden ayarlanır (P2a, 18 Eki 2026):
- * belge `karaokeRoomDocFor(policy)` ile o anki kuralla kurulur ve
- * yayımlanan metin `./karaoke-doc.ts`'ten gelir. Varsayılan kural (2 saat,
- * %0) bugünkü metni harfi harfine verir (`KARAOKE_ROOM_DOC`,
- * tests/karaoke-cancel-policy.test.ts); başka bir kural başka bir metindir
- * ve sürümü kuralın değiştiği güne taşınır (`karaokePolicyVersion`). Her
- * rezervasyon kendi kuralını saklar.
+ * İptal ve iade kuralının sayıları (ücretsiz iptal süresi, geç iptal iadesi)
+ * panelden ayarlanır ve her rezervasyon kendi kuralını saklar (P2a). Metin bu
+ * sayıları YAZMAZ, rezervasyon özetinde gösterilen son ücretsiz iptal anına
+ * ve geç iptal tutarına atıf yapar (ASK-OTH-3-CFG): metin kurala göre
+ * üretilseydi, panelden yayımlanan bir düzenleme eski rakamlarla kalıp bir
+ * rezervasyonun kendi kuralıyla çelişebilirdi.
  */
-
-/** §7 "Sizin İptaliniz ve Gelmeme": the policy's rule in the document's voice. */
-function cancelBullets(p: KaraokeCancelPolicy): string[] {
-  const { freeCancelHours: h, lateRefundPercent: pct } = p;
-  const channels =
-    "İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz.";
-  const free =
-    h > 0
-      ? `Rezervasyon saatine ${h} saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. ${channels}`
-      : pct > 0
-        ? `Bu rezervasyonda ücretsiz iptal süresi yoktur; rezervasyonu yaptıktan sonra yapacağınız her iptal geç iptal sayılır. ${channels}`
-        : "Bu rezervasyonda ücretsiz iptal süresi yoktur; rezervasyonu yaptıktan sonra yapacağınız her iptal geç iptal sayılır.";
-  const when =
-    h > 0
-      ? `Rezervasyon saatine ${h} saatten az kala`
-      : "Rezervasyonu yaptıktan sonra";
-  const late =
-    pct === 0
-      ? h > 0
-        ? `${when} yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
-        : "Geç iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz."
-      : pct === 100
-        ? `${when}, rezervasyon saatinden önce yapılan iptallerde de ödediğiniz tutarın tamamı kartınıza iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
-        : `${when}, rezervasyon saatinden önce yapılan iptallerde ödediğiniz tutarın ${percentPossessive(pct)} kartınıza iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Bu tutar kuruşa yuvarlanarak hesaplanır ve iptalden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade edilir.`;
-  return [
-    free,
-    late,
-    "Saatler Türkiye saatiyle (İstanbul) hesaplanır.",
-    "İptal ve sorularınız için: {{PHONE}} veya {{EMAIL}}.",
-  ];
-}
-
-/** §9 "İade Usulü". */
-function refundMethod(p: KaraokeCancelPolicy): string {
-  const partial = p.lateRefundPercent > 0 && p.lateRefundPercent < 100;
-  return partial
-    ? "İadeler PayNkolay üzerinden, ödemenin yapıldığı karta yapılır. Geç iptaldeki iade 7. maddedeki oranda, diğer bütün iadeler ödenen tutarın tamamı olarak yapılır. İadenin hesabınıza yansıma süresi bankanıza bağlıdır."
-    : "Her iade PayNkolay üzerinden, ödemenin yapıldığı karta ve ödenen tutarın tamamı olarak yapılır; kısmi iade yapılmaz. İadenin hesabınıza yansıma süresi bankanıza bağlıdır.";
-}
-
-/** §10 "Hesabın Kapatılması". */
-function accountClosure(p: KaraokeCancelPolicy): string {
-  const { freeCancelHours: h, lateRefundPercent: pct } = p;
-  const free =
-    h > 0
-      ? `rezervasyon saatine ${h} saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir. İade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar.`
-      : "ödenmiş rezervasyonlara 7. maddedeki geç iptal kuralı uygulanır.";
-  const late =
-    h > 0
-      ? pct === 0
-        ? ` Rezervasyon saatine ${h} saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır.`
-        : ` Rezervasyon saatine ${h} saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki geç iptal kuralı geçerlidir.`
-      : pct === 0
-        ? " Ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır."
-        : "";
-  return `Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; ${free}${late} Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez.`;
-}
 
 /**
- * The document under a cancellation policy (Ayarlar > Karaoke). `updatedAt`:
- * the version it is shown under (`karaokePolicyVersion`); the coded
- * revision by default.
+ * The coded document. `updatedAt` is `KARAOKE_LEGAL_UPDATED`, the version a
+ * booking's consent records (tests/legal-dates.test.ts holds them equal).
  */
-export function karaokeRoomDocFor(
-  policy: KaraokeCancelPolicy,
-  updatedAt: string = KARAOKE_LEGAL_UPDATED,
-): LegalDocSource {
-  return {
-    ...KARAOKE_ROOM_DOC_BASE,
-    updatedAt,
-    sections: KARAOKE_ROOM_DOC_BASE.sections.map((section) => {
-      if (section.heading.startsWith("7. ")) {
-        return { ...section, bullets: cancelBullets(policy) };
-      }
-      if (section.heading.startsWith("9. ")) {
-        const [, ...rest] = section.paragraphs ?? [];
-        return { ...section, paragraphs: [refundMethod(policy), ...rest] };
-      }
-      if (section.heading.startsWith("10. ")) {
-        return { ...section, paragraphs: [accountClosure(policy)] };
-      }
-      return section;
-    }),
-  };
-}
-
-/** The coded text, the rule sections filled by `karaokeRoomDocFor`. */
-const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
+export const KARAOKE_ROOM_DOC: LegalDocSource = {
   slug: "karaoke-odasi-rezervasyon",
   title: "Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi",
   shortTitle: "Karaoke Odası Koşulları",
-  updatedAt: "17 Ekim 2026",
+  updatedAt: KARAOKE_LEGAL_UPDATED,
   category: "Sipariş",
   summary:
     "{{BRAND}} karaoke odasının web sitesi ve mobil uygulama üzerinden, ödemesi rezervasyon sırasında çevrim içi alınarak ayrılmasına ilişkin ön bilgilendirme ve hizmet sözleşmesidir: bedel, ödeme, rezervasyonun kesinleşmesi, cayma hakkının bulunmaması, iptal ve iade kuralları.",
@@ -193,8 +102,12 @@ const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
     {
       heading: "7. Sizin İptaliniz ve Gelmeme",
       bullets: [
-        "Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak yaptırabilirsiniz.",
-        "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+        "Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. İptali hesabınızdaki Karaoke rezervasyonlarım bölümünden, e-postanızdaki kişiye özel bağlantıdan ya da mobil uygulamadan kendiniz yapabilir ya da bizi arayarak veya {{EMAIL}} adresine yazarak yaptırabilirsiniz.",
+        "Bizi arayarak yaptırdığınız iptalde görüşmenin yapıldığı an, e-postayla bildirdiğiniz iptalde e-postanızın gönderildiği an iptal anı sayılır. Aramanız yanıtlanamazsa telefonumuzda görünen arama saatiniz iptal anı sayılır; bu durumda iptal isteğinizi aynı gün e-postayla ya da yeniden arayarak iletmeniz yeterlidir. Telefonla verdiğiniz iptal isteğini aynı gün e-postayla teyit ederiz.",
+        "Bu andan sonra, rezervasyon saati gelmeden yapılan iptallerde özette geç iptal için gösterilen tutar iade edilir; iptal ettiğiniz saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade edilir.",
+        "Özette geç iptalde iade gösterilmiyorsa bu andan sonra ücret iadesi yapılmaz ve rezervasyon sizin adınıza durur; gelemeyecekseniz rezervasyon kodunuzu bir başkasına verebilirsiniz. Gelemeyeceğinizi ve kodunuzu kimseye vermediğinizi bize bildirirseniz odayı o saat için başka bir misafire verebiliriz.",
+        "Rezervasyona gelinmediğinde ücret iadesi yapılmaz; gelmediğiniz ya da iptal edemediğiniz bir saati başka bir misafire verirsek ödediğiniz tutarın tamamını iade ederiz.",
+        "Son ücretsiz iptal anı ve geç iptalde iade edilecek tutar rezervasyon onay e-postanızda da yazılıdır. Rezervasyonunuza ödemeden önce onayladığınız süre ve iade tutarı uygulanır; bunlarda sonradan yapılan değişiklikler rezervasyonunuzu etkilemez.",
         "Saatler Türkiye saatiyle (İstanbul) hesaplanır.",
         "İptal ve sorularınız için: {{PHONE}} veya {{EMAIL}}.",
       ],
@@ -202,7 +115,7 @@ const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
     {
       heading: "8. İşletmenin İptali",
       paragraphs: [
-        "Rezervasyonunuzu arıza, geçici kapanış, mücbir sebep veya başka bir nedenle karşılayamazsak, Mesafeli Sözleşmeler Yönetmeliği m.16/4 uyarınca durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde size e-postayla bildiririz ve ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz. İade, iptalle birlikte PayNkolay üzerinden hemen başlatılır.",
+        "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır.",
       ],
     },
     {
@@ -215,7 +128,7 @@ const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
     {
       heading: "10. Hesabın Kapatılması",
       paragraphs: [
-        "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; rezervasyon saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir. İade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar. Rezervasyon saatine 2 saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır. Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez.",
+        "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir. Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) kapatılan hesaplarda ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir; iade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar. Bu andan sonra kapatılan hesaplarda 7. maddedeki geç iptal kuralı uygulanır; geç iptalde iade gösterilmeyen rezervasyon olduğu gibi kalır. Hesabınızın kapatılmasını bizden talep ederseniz bu süreler talebinizin kaydedildiği ana göre hesaplanır. Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez.",
       ],
     },
     {
@@ -262,11 +175,3 @@ const KARAOKE_ROOM_DOC_BASE: LegalDocSource = {
     },
   ],
 };
-
-/**
- * The document under the default rule (2 hours, 0 %): the coded text, word
- * for word, and what `LEGAL_DOCS` and the admin's legal editor carry.
- */
-export const KARAOKE_ROOM_DOC: LegalDocSource = karaokeRoomDocFor(
-  DEFAULT_KARAOKE_CANCEL_POLICY,
-);
