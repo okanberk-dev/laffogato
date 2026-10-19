@@ -408,14 +408,14 @@ describe("saveKaraokeAction", () => {
       form({
         karaokeHourly: "1000",
         karaokeCapacity: "10",
-        karaokeNotifyEmail: " bizimfutbol9@gmail.com ",
+        karaokeNotifyEmail: " karaoke@nextgenlab.com.tr ",
       }),
     );
     expect(state.message).toBeTruthy();
     expect(updateSettings).toHaveBeenCalledWith({
       karaokeHourlyMinor: 100000,
       karaokeCapacity: 10,
-      karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
       // An unticked checkbox sends nothing: the switch goes off.
       karaokePrepay: false,
     });
@@ -430,7 +430,7 @@ describe("saveKaraokeAction", () => {
       after: {
         karaokeHourlyMinor: 100000,
         karaokeCapacity: 10,
-        karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+        karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
         karaokePrepay: false,
       },
     });
@@ -442,7 +442,7 @@ describe("saveKaraokeAction", () => {
       form({
         karaokeHourly: "1000",
         karaokeCapacity: "8",
-        karaokeNotifyEmail: "bizimfutbol9",
+        karaokeNotifyEmail: "karaoke",
       }),
     );
     expect(state.error).toBeTruthy();

@@ -794,7 +794,10 @@ function defaultSettings(): AdminSettings {
     // 20260926090000_karaoke_price_and_notify.sql.
     karaokeHourlyMinor: 100000,
     karaokeCapacity: 8,
-    karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+    // Empty: alerts go to the contact address, the company's own mailbox in
+    // Türkiye. Never a personal inbox abroad (KVKK m.9; the Gmail address the
+    // 26 Eyl migration wrote is cleared by 20261019090000).
+    karaokeNotifyEmail: "",
     // 20261016063311_karaoke_prepay.sql gives the column the same default.
     karaokePrepay: true,
     // 20261018130000_karaoke_cancel_policy.sql gives the columns the same

@@ -760,8 +760,15 @@ kısmi iade bekliyor" gider (`late-share-<ref>`).
 Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)
 ya da web `/karaoke` formundan (`bookKaraokeAction`) - köşke düz metin bir
 **iç** e-posta gider (`sendKaraokeOperatorEmail`). Alıcı Ayarlar → Karaoke →
-**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`, 26 Eyl 2026'dan
-beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`).
+**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`); boşsa genel
+iletişim adresi (`settings.email`). 19 Ekim 2026'dan beri boş: bildirim
+şirketin Türkiye'de barındırılan kurumsal kutusuna gider. 26 Eyl 2026'da buraya
+yazılan kişisel Gmail adresi misafirin adını, e-postasını, telefonunu ve notunu
+Google'ın yurt dışındaki sunucularında tutuyordu (KVKK m.9; standart sözleşme
+yok); `20261019090000_karaoke_notify_company_mailbox.sql` onu temizledi.
+Buraya ya da Ayarlar → Bildirimler'e Gmail gibi yurt dışındaki kişisel bir
+kutu yazılmaz; kurumsal kutu da Gmail'e yönlendirilmez ya da Gmail'den
+okunmaz (aktarım geri gelir).
 
 - Müşteri maillerinin tasarımıyla gider (`operasyon-bildirim.html`, bkz.
   `src/lib/email/templates/README.md` "Ekibe giden mailler"); konu satırı
