@@ -899,6 +899,8 @@ export interface FooterSettings {
   pickupReadyMinutes?: number;
   /** Stamps per free drink (`mobileApp.loyalty.stampTarget`). */
   stampTarget?: number;
+  /** Ayarlar → Vergi, the day the menu prices started ("YYYY-MM-DD" or ""). */
+  menuPricesEffectiveDate?: string;
 }
 
 interface FooterProps {

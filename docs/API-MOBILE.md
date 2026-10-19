@@ -92,6 +92,8 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "vessel": null,
           // 17 Eki 2026, eklemeli: fiyatın içindeki KDV oranı, tam yüzde (aşağı bak)
           "taxRatePct": 10,
+          // 18 Eki 2026, eklemeli: TGK Ek-1 alerjen grupları; girilmemişse alan yok (aşağı bak)
+          "allergens": ["sut"],
         },
       ],
     },
@@ -288,6 +290,51 @@ değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
   gelir; uygulama oran uydurmaz, "KDV dahil" yazmakla yetinir.
 - Uygulama KDV'yi kendisi hesaplamaz ve oran yazmaz: sabit bir oran (ör. "%20")
   kodda durmamalıdır. Alan yoksa (eski sunucu) oran gösterilmez.
+- Eski sürümler alanı okumaz; bir şey kırılmaz.
+
+### `allergens` - alerjen grupları (18 Eki 2026, yalnız ekleme)
+
+Toplu tüketim yerinde ambalajsız gıdanın alerjenleri menüde, panoda ya da
+benzeri bir araçta kalem kalem yazılır (TGK Gıda Etiketleme ve Tüketicileri
+Bilgilendirme Yönetmeliği m.15/5); uzaktan satışta bu bilgi satın almadan
+önce verilir (m.17/3), uygulamadan verilen kafe siparişi de bu kapsamdadır.
+"Alerjenler için baristaya danış." tek başına yetmez.
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `allergens` | string[] **ya da alan yok** | Kalemin içerdiği gruplar, Yönetmelik Ek-1 sırasıyla, her biri bir kez. `[]` = 14 grubun hiçbirini içermez. Alan **yoksa** panelde henüz girilmemiştir. |
+
+Anahtarlar kapalı bir liste (site `src/lib/menu/allergens.ts`, veritabanında
+`menu_items_allergens_check` aynı listeyi tutar):
+
+| Anahtar | Etiket | Anahtar | Etiket |
+| --- | --- | --- | --- |
+| `gluten` | Gluten | `sert_kabuklu` | Sert kabuklu meyveler |
+| `kabuklular` | Kabuklular | `kereviz` | Kereviz |
+| `yumurta` | Yumurta | `hardal` | Hardal |
+| `balik` | Balık | `susam` | Susam |
+| `yer_fistigi` | Yer fıstığı | `sulfit` | Sülfit |
+| `soya` | Soya | `aci_bakla` | Acı bakla |
+| `sut` | Süt | `yumusakcalar` | Yumuşakçalar |
+
+- **Alan yok ≠ `[]`.** Alan yoksa uygulama bugünkü gibi "Alerjenler için
+  baristaya danış." yazar; `[]` ise kalemin 14 gruptan hiçbirini içermediğini
+  söyler. Uygulama eksik alanı `[]` saymamalıdır: girilmemiş bilgi "alerjen
+  yok" diye gösterilirse alerjisi olan misafir yanılır.
+- Bilmediği bir anahtarı uygulama atmamalı, okuyamadığı bir grup olarak
+  göstermelidir (ör. ham anahtar ya da "Diğer alerjen"); sunucu listeyi
+  genişletirse eski sürüm alerjeni gizlememiş olur (lafmobil kural 4).
+- `tags` ve içindeki `nuts` **aynen kalır**: eski sürümler kuruyemiş uyarısını
+  ondan okur. Panel `sert_kabuklu` işaretlenince `nuts` etiketini kendisi
+  ekler; `nuts` etiketi olan bir kalemde alerjenler girildiyse `sert_kabuklu`
+  da işaretli olmak zorundadır. Yer fıstığı (`yer_fistigi`) bir baklagildir,
+  `nuts` etiketi eklemez.
+- Çapraz temas bilgisi bu alanda değildir: "Mutfağımızda süt, gluten,
+  kuruyemiş ve soya ile çapraz temas olabilir." uyarısı her kalem için
+  geçerlidir ve kalem ekranında `allergens` ile birlikte gösterilmelidir.
+- Kaynak: `menu_items.allergens` (jsonb, NULL = girilmedi; migration
+  `20261018210100_menu_item_allergens.sql`), panelde `/admin/menu` → kalem →
+  *Alerjenler*. Değişince gövde ve `ETag` değişir (§1'in önbellek pencereleri).
 - Eski sürümler alanı okumaz; bir şey kırılmaz.
 
 ## 2. `GET /shop` — mağaza ürünleri (herkese açık)

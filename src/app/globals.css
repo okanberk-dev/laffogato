@@ -4758,6 +4758,10 @@ summary:focus-visible,
   .menu-grid .rail-card-price {
     font-size: 14.5px;
   }
+  .menu-grid .menu-card-allergens {
+    margin-top: 6px;
+    font-size: 12px;
+  }
   .menu-grid .rail-card-badge {
     top: 8px;
     left: 8px;
@@ -4775,6 +4779,26 @@ summary:focus-visible,
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--ink-mute);
+}
+/* An item's own allergens (TGK Etiketleme Yön. m.15/5), under the
+   description. Not clamped with it on a phone: an allergen is never cut. */
+.menu-card-allergens {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.menu-card-allergens-key {
+  font-weight: 600;
+  color: var(--ink);
+}
+/* "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih"
+   under the grid (Fiyat Etiketi Yön. m.5/2): the list's own line. */
+.menu-price-note {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 /* M / L pricing reads as two labelled figures, not one long number. */
 .size-key {
