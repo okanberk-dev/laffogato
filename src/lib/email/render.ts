@@ -1,13 +1,12 @@
 /**
  * Template + values -> the three strings `send()` wants.
  *
- * Everything a template says about the business - address, hours, phone,
- * socials - is baked into the HTML, and every one of those values was
- * checked against `SITE` and `LEGAL_ENTITY` when the templates were
- * migrated. The sender's registered title and MERSİS number on commercial
- * mail are the exception: they come from `LEGAL_ENTITY` through
- * `commonVars`, so `entity.ts` stays the single source. What varies per
- * message comes through `vars`.
+ * The socials and the brand lines are baked into the HTML. Two groups are
+ * fields instead, through `commonVars`: the sender's registered title and
+ * MERSİS number on commercial mail (from `LEGAL_ENTITY`, so `entity.ts`
+ * stays the single source), and the footer's hours, phone and address
+ * (bundled here, Ayarlar's values laid over them on the send paths,
+ * `venue.ts`). What varies per message comes through `vars`.
  *
  * Deliberately NO "server-only": `templates.test.ts` renders every template
  * here, and that test is the thing standing between an unfilled `[FIELD]` and
