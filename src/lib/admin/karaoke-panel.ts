@@ -194,6 +194,42 @@ export function refundAmountMinor(
   return refundAmountOf(r);
 }
 
+/**
+ * What an evening that is over leaves to invoice, kuruş (ASK-KAR-KDV, 19
+ * Eki 2026): the payment until the evening is an advance, and the e-Arşiv
+ * invoice is cut at the köşk for what the köşk keeps, KDV included (KDV K.
+ * m.10/a-b; within 7 days of the evening, VUK m.231/5). Everything that went
+ * back, or is going back, is not invoiced; a booking refunded in full
+ * leaves 0 (no document). Null while the evening is still to come, and for
+ * a booking nothing was collected for (an unpaid hold, a venue booking never
+ * confirmed).
+ */
+export function karaokeBillableMinor(
+  r: Pick<
+    KaraokeReservation,
+    | "date"
+    | "startHour"
+    | "hours"
+    | "status"
+    | "paymentStatus"
+    | "paidMinor"
+    | "totalMinor"
+    | "refundMinor"
+  >,
+  now: Date,
+): number | null {
+  if (karaokeEndInstant(r).getTime() > now.getTime()) return null;
+  const money = moneyOf(r);
+  if (money === "none") return r.status === "confirmed" ? r.totalMinor : null;
+  if (money !== "paid" && money !== "refunding" && money !== "refunded") {
+    return null;
+  }
+  const paid = r.paidMinor && r.paidMinor > 0 ? r.paidMinor : r.totalMinor;
+  // Paid and cancelled: the köşk's cancel refunds everything, still owed.
+  if (money === "paid") return r.status === "cancelled" ? 0 : paid;
+  return Math.max(0, paid - refundAmountOf(r));
+}
+
 export const KARAOKE_STATUS_TEXT: Record<KaraokeReservationStatus, string> = {
   requested: "Talep",
   confirmed: "Onaylandı",

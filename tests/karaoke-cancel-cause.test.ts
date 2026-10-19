@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * given to another guest says so, and the member's own cancel keeps its old
  * words. A late request the rule refunds nothing for gets its own mail: the
  * booking stands. The staff's typed note is never an input of any of them.
- * Also the panel's 24-hour call hint.
+ * Also the panel's two small rules: the 24-hour call hint and what an
+ * evening that is over leaves to invoice (ASK-KAR-KDV).
  */
 
 const h = vi.hoisted(() => ({
@@ -27,6 +28,7 @@ vi.mock("@/lib/admin/store", () => ({
 const send = await import("@/lib/email/send");
 const time = await import("@/lib/mobile/karaoke-time");
 const cause = await import("@/lib/mobile/karaoke-cancel-cause");
+const panel = await import("@/lib/admin/karaoke-panel");
 
 const BASE = {
   to: "eda@example.com",
@@ -241,5 +243,62 @@ describe("the 24-hour call hint (karaoke terms §8)", () => {
     );
     expect(vars.join(" ")).not.toMatch(/NOT|REASON/);
     expect(Object.values(cause.KARAOKE_CAUSE_MAIL)).toHaveLength(4);
+  });
+});
+
+describe("what an evening that is over leaves to invoice (ASK-KAR-KDV)", () => {
+  const OVER = new Date("2026-10-31T00:00:00.000Z"); // 03:00 in Tuzla
+  const BEFORE = new Date("2026-10-30T12:00:00.000Z");
+  const paid = {
+    date: "2026-10-30",
+    startHour: 20,
+    hours: 2,
+    status: "confirmed" as const,
+    paymentStatus: "paid" as const,
+    paidMinor: 200_000,
+    totalMinor: 200_000,
+  };
+
+  it("nothing while the evening is still to come", () => {
+    expect(panel.karaokeBillableMinor(paid, BEFORE)).toBeNull();
+  });
+
+  it("the whole payment for an evening sung (or not turned up to)", () => {
+    expect(panel.karaokeBillableMinor(paid, OVER)).toBe(200_000);
+  });
+
+  it("the payment less what went back, and 0 for a full refund", () => {
+    expect(
+      panel.karaokeBillableMinor(
+        {
+          ...paid,
+          status: "cancelled",
+          paymentStatus: "refunded",
+          refundMinor: 50_000,
+        },
+        OVER,
+      ),
+    ).toBe(150_000);
+    expect(
+      panel.karaokeBillableMinor(
+        { ...paid, status: "cancelled", paymentStatus: "refunding" },
+        OVER,
+      ),
+    ).toBe(0);
+    expect(
+      panel.karaokeBillableMinor(
+        { ...paid, status: "cancelled", paymentStatus: "refunded" },
+        OVER,
+      ),
+    ).toBe(0);
+  });
+
+  it("nothing for a hold nobody paid", () => {
+    expect(
+      panel.karaokeBillableMinor(
+        { ...paid, status: "cancelled", paymentStatus: "expired" },
+        OVER,
+      ),
+    ).toBeNull();
   });
 });
