@@ -137,3 +137,30 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
   kaydındaki "Geçmişi" aynı yoldan gider: adres gönderinin içindedir.
 - Eski bir yer imi `?q=` ile açılırsa metin çereze taşınır ve sayfa onsuz
   yeniden açılır. Kural tek yerde: `src/lib/admin/list-search-core.ts`.
+
+## Palet (⌘K / Ctrl K)
+
+Üst çubuktaki **Ara** paleti açar; klavyeden Mac'te ⌘K, Windows'ta Ctrl K
+(bir alanın içindeyken de çalışır). Kasiyerde palet yok.
+
+- **Son açılanlar**: bu sekmede açtığın son 8 kayıt sayfası (sipariş,
+  karaoke, ürün, menü kalemi, kategori, slayt, promosyon, kampanya, masa,
+  duyuru, gönderi). Müşteri, panel kullanıcısı, abone ve olay kaydı sayfası
+  tutulmaz; başlığında e-posta ya da telefon olan kayıt da. Liste hesabına
+  bağlıdır, sekme kapanınca ve **Çıkış**'ta silinir.
+- **Git**: menüdeki her sayfa ve sekme, eski adlarıyla da ("Mağaza Hero",
+  "kupon", "damga", "qr"). Harfleri işaretsiz yazmak yeter: "siparis"
+  Siparişler'i bulur.
+- **Oluştur**: rolünün açabildiği "Yeni" sayfaları.
+- **Kayıtlar**: 2 harften sonra sipariş, müşteri, ürün, menü ve karaoke
+  kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
+  adrese ve kayda düşmez. 5'ten fazlası varsa "Listede gör"; metin e-posta ya
+  da telefona benziyorsa "Listede ara": liste aramasız açılır, metni kutuya
+  sen yazarsın.
+- **Komutlar**: Güvenlik / 2FA ve sipariş sesini aç / kapat (bu tarayıcıda).
+- Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
+- Esc ilk basışta kutuyu boşaltır, ikinci basışta paleti kapatır; telefonda
+  × düğmesi kapatır.
+- Oturum kapandıysa "Oturumun kapandı." ve yeniden giriş bağlantısı çıkar;
+  veritabanı yanıt vermezse "Arama şu an çalışmıyor." (sonuç yok demek
+  değildir).

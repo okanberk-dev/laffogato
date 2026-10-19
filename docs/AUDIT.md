@@ -1264,3 +1264,16 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Arama çerezi tarayıcı başınadır: aynı listede iki sekmede ayrı arama yapılırsa son yazılan geçer | Metin adreste olmadığı için sekmeye bağlanamaz; uygulanan arama kutunun altındaki çipte görünür (docs/ADMIN.md "Listelerde arama") |
 | 🟢 | Panel aramasının (`/admin/ara`) "listeye git" bağlantısı listeyi aramasız açar | Palet (UI-6) aynı yere `ListSearchButton` ile metni gönderebilir |
+
+### Kabuk: ⌘K paleti (admin UI v2, UI-6)
+
+Üst çubuğun arama kutusu paletin tetikleyicisi oldu. Palet yalnız okur: bir
+sayfaya götürür ya da bu tarayıcının sipariş sesini açıp kapatır; hiçbir
+Server Action'a uzanmaz.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Menü sadeleşince eski adlar ("Mağaza Hero", "Kasa · damga", "kupon", "qr") kayboluyordu; bir kayda gitmek için arama sayfasına geçmek gerekiyordu | ⌘K / Ctrl K (alanın içinde de; Alt'la, Shift'le, IME'de ve başka bir diyalog açıkken değil) ya da Ara: Son açılanlar, Git (rolün menüsü ve sekmeleri, eski adlarıyla, Gün sonu), Oluştur (her biri sayfasının `requireRole`'üyle), Kayıtlar (2 harften, 200 ms sonra, `POST /admin/ara/sonuc`, eski istek iptal edilir) ve Komutlar. Eşleşme `foldTr` artı gevşek ASCII ("siparis" → Siparişler), sıra etiket başı > kelime başı > anahtar kelime > içinde geçen, eşitlikte Türkçe alfabe. JavaScript yoksa tetikleyici `/admin/ara` bağlantısıdır | `admin-palette-core`, `admin-shell-nav`, `admin-nav-ia` |
+| 🟢 | Paylaşılan köşk cihazında bir sonraki kişi öncekinin açtığı kayıtları görebilirdi | Son açılanlar sekmenin `sessionStorage`'ında, hesap başına (`laf_admin_recent_v1:<anahtar>`; anahtar e-postanın `ADMIN_SESSION_SECRET` ile HMAC'inin 16 hex'i, e-posta sayfaya gitmez). Yalnız izinli kayıt sayfaları (müşteri, panel kullanıcısı, abone, olay kaydı asla); başlığında e-posta ya da 7 rakam olan kayıt tutulmaz; okurken rol yeniden sorulur. Çıkış listeyi action'dan önce siler; kasiyerde ne tetikleyici ne liste var | `admin-palette-core` |
+| 🟢 | Oturum düşünce arama "sonuç yok" gibi görünebilirdi | 401 ya da proxy'nin girişe yönlendirmesi: "Oturumun kapandı." ve buraya dönen giriş bağlantısı; 503 ve diğerleri: "Arama şu an çalışmıyor."; metin e-postaya ya da telefona benziyorsa liste satırı "Listede ara" (aramasız liste), "Tüm sonuçlar" satırı yok | `admin-palette-core` |
+| 🟢 | Paket bütçesi | Her admin rotasına +2,4 KB gz (tetikleyici, kayıt ve kısayol; üst çubuğun eski arama formu çıktı); palet açılınca 44,97 KB gz (React Aria 40,60 + palet 4,37), `/admin/kasa`'da React Aria yok | `admin-ui-deps` |
