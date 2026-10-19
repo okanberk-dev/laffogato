@@ -95,10 +95,12 @@ export function Checkbox({
 }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className="flex min-h-[44px] cursor-pointer items-center gap-3 py-2 text-sm text-[var(--admin-text-soft)]">
+      {/* shrink-0: a label that wraps to two lines (the allergen boxes)
+          squeezed the 20px box. */}
       <input
         type="checkbox"
         {...rest}
-        className="h-5 w-5 rounded-md border-[var(--admin-border-strong)] accent-[var(--admin-primary)]"
+        className="h-5 w-5 shrink-0 rounded-md border-[var(--admin-border-strong)] accent-[var(--admin-primary)]"
       />
       {label}
     </label>

@@ -1,9 +1,11 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
+import { MenuFoodInfoStatus } from "@/components/admin/menu-food-info-status";
 import { MenuList } from "@/components/admin/menu-list";
 import { requireRole } from "@/lib/admin/auth";
 import {
+  getSettings,
   listMenuItems,
   MENU_CATEGORY_KEYS,
   MENU_CATEGORY_LABELS,
@@ -16,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminMenuPage() {
   await requireRole("menu");
-  const all = await listMenuItems();
+  const [all, settings] = await Promise.all([listMenuItems(), getSettings()]);
   const byCategory = Object.fromEntries(
     MENU_CATEGORY_KEYS.map((k) => [k, [] as AdminMenuItem[]]),
   ) as Record<MenuCategoryKey, AdminMenuItem[]>;
@@ -38,6 +40,11 @@ export default async function AdminMenuPage() {
             + Yeni menü kalemi
           </Link>
         }
+      />
+
+      <MenuFoodInfoStatus
+        items={all}
+        priceDate={settings.menuPricesEffectiveDate}
       />
 
       <MenuList

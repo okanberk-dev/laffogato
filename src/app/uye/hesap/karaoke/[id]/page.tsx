@@ -9,8 +9,8 @@ import {
 import { requireCustomer } from "@/lib/customer/auth";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import {
-  KARAOKE_RESULT_NOTICES,
   KARAOKE_RETURN_NOTICES,
+  karaokeNoticeFor,
 } from "@/lib/mobile/karaoke-notices";
 import { ownsReservation } from "@/lib/mobile/karaoke-payment";
 import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
@@ -45,8 +45,9 @@ export default async function KaraokeDetailPage({
   if (!r || !ownsReservation({ kind: "member", customer }, r, now)) notFound();
 
   const notice: KaraokeViewNotice | undefined =
-    (q.sonuc && KARAOKE_RESULT_NOTICES[q.sonuc]) ||
-    (q.hata && KARAOKE_RESULT_NOTICES[q.hata]) ||
+    (q.sonuc && karaokeNoticeFor(q.sonuc, r)) ||
+    // A late-cancel refusal speaks this booking's own rule (its snapshot).
+    (q.hata && karaokeNoticeFor(q.hata, r)) ||
     (q.odeme && r.status !== "cancelled"
       ? KARAOKE_RETURN_NOTICES[q.odeme]
       : undefined) ||

@@ -118,6 +118,10 @@ import type { OrderAlertRow } from "./order-alerts-core";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
 import { earnsStamp } from "@/lib/mobile/loyalty-core";
+import {
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -485,6 +489,14 @@ export interface AdminSettings {
    */
   taxRates: TaxRates;
 
+  /**
+   * The day the cafe menu's prices started to apply, as the Istanbul
+   * calendar day "YYYY-MM-DD"; '' = not entered (src/lib/menu/price-list.ts).
+   * /menu and /masa/<kod> print it under the menu (Fiyat Etiketi Yön.
+   * m.5/2-d). Presentation only: no price is read from it.
+   */
+  menuPricesEffectiveDate: string;
+
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
   shippingFreeThresholdMinor: number;
@@ -749,6 +761,9 @@ function defaultSettings(): AdminSettings {
     heroImageUrl: "",
     weeklyHours: defaultWeeklyHours(),
     taxRates: { ...LEGAL_TAX_RATES },
+    // 20261018210200_menu_prices_effective_date.sql gives the column the
+    // same default: not entered until the operator says the day.
+    menuPricesEffectiveDate: "",
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
@@ -6166,6 +6181,13 @@ export interface AdminMenuItem extends BackdropColumns {
    * row written before the column existed has no key.
    */
   taxRatePct?: number | null;
+  /**
+   * The TGK Ek-1 allergen groups the item contains (src/lib/menu/allergens.ts):
+   * null = not entered yet, [] = none of the fourteen. Optional because a row
+   * read before the column existed has no key; read it through
+   * `normalizeMenuAllergens()`.
+   */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
   updatedAt: string;
@@ -6210,6 +6232,8 @@ export interface MenuItemInput extends BackdropColumns {
   tags: string[];
   /** Own KDV rate, or null for the menu default. Absent keeps the stored one. */
   taxRatePct?: number | null;
+  /** Allergens, null = not entered. Absent keeps the stored ones. */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
 }
@@ -6370,6 +6394,9 @@ async function listMenuForCustomerLive(): Promise<
         price: priceLabel(it.priceMinor),
         ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
+        // Left out until the operator has entered them (null): the page
+        // then shows nothing next to the item rather than "yok".
+        ...allergensField(it.allergens),
         hue: it.hue,
         ...(it.image
           ? {
@@ -6389,6 +6416,11 @@ async function listMenuForCustomerLive(): Promise<
     };
   }
   return out;
+}
+
+function allergensField(raw: unknown): { allergens?: MenuAllergen[] } {
+  const allergens = normalizeMenuAllergens(raw);
+  return allergens === null ? {} : { allergens };
 }
 
 export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {

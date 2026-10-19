@@ -383,13 +383,30 @@ describe("?saat= on the booking page", () => {
     );
   });
 
-  it("names the karaoke KDV rate on the total, and only the words without it", () => {
+  it("names the karaoke KDV rate and the KDV inside the total, and only the words without it", () => {
+    // 900₺ for the hour: %20 of it included is 150₺ (operator, 18 Eki 2026).
     const html = renderToStaticMarkup(createElement(KaraokeBooking, props));
-    expect(html).toContain("Ödenecek toplam (%20 KDV dahil)");
+    expect(html).toContain("Ödenecek toplam");
+    const text = (h: string) => h.replace(/<[^>]+>/g, "");
+    expect(text(html)).toContain("%20 KDV dahil (KDV 150₺)");
+    const ten = renderToStaticMarkup(
+      createElement(KaraokeBooking, {
+        ...props,
+        availability: { ...props.availability, taxRatePct: 10 },
+      }),
+    );
+    expect(text(ten)).toContain("%10 KDV dahil (KDV 81,82₺)");
     const noRate = renderToStaticMarkup(
       createElement(KaraokeBooking, { ...props, availability: null }),
     );
-    expect(noRate).toContain("Ödenecek toplam (KDV dahil)");
+    expect(noRate).toContain("KDV dahil");
+    expect(noRate).not.toMatch(/%\d+ KDV/);
+    // The rate is the server's, never a number typed into the form.
+    const code = read("src/components/laffogato/karaoke-booking.tsx").replace(
+      /\/\*[\s\S]*?\*\/|\/\/.*$/gm,
+      "",
+    );
+    expect(code).not.toMatch(/%20|taxRatePct \?\? \d/);
   });
 
   it("reads 21 and 21:00, and nothing else", () => {

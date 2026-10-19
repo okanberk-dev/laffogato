@@ -1,0 +1,26 @@
+-- The day the cafe's menu prices started to apply (18 Oct 2026).
+--
+-- Decision OP-PRICE-LISTS (operator, 18 Oct 2026): a price list carries the
+-- all-taxes-included price and the day that price started to apply (Fiyat
+-- Etiketi Yönetmeliği m.5/2-c, d). A table's QR code opens /masa/<kod>, the
+-- menu, which stands for the table's price list (m.8/2); /menu and the
+-- category pages show the same prices. They now print the day under the
+-- menu, from Ayarlar > Vergi.
+--
+--   settings."menuPricesEffectiveDate"  text, the Istanbul calendar day
+--                                       "YYYY-MM-DD"; '' = not entered (the
+--                                       menu then says only that prices
+--                                       include KDV).
+--
+-- Starts empty: the day the current prices began is the operator's to say
+-- (the printed lists at the kiosk carry the same day), not something to
+-- guess from a row's updatedAt. Rules: src/lib/menu/price-list.ts.
+--
+-- Safe on the live table: a constant default changes only the catalogue (no
+-- rewrite). Re-runnable: the bundle replays every migration when a deploy
+-- adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.settings drop column if exists "menuPricesEffectiveDate";
+
+alter table public.settings add column if not exists "menuPricesEffectiveDate" text not null default '';
