@@ -5256,6 +5256,12 @@ summary:focus-visible,
   letter-spacing: -0.015em;
   line-height: 1.35;
 }
+/* Three tiles when free shipping is off (Ayarlar, threshold 0). */
+@media (min-width: 901px) {
+  .trust-row[data-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 @media (max-width: 900px) {
   .trust-row {
     grid-template-columns: 1fr 1fr;
@@ -6466,6 +6472,10 @@ select {
   .product-modal > div:first-of-type {
     aspect-ratio: auto !important;
     height: 280px !important;
+  }
+  /* The sheet scrolls as one; the text column does not scroll inside it. */
+  .product-modal > div:last-of-type {
+    max-height: none !important;
   }
 }
 
@@ -9188,6 +9198,14 @@ select {
   margin: 0;
   font-size: 14.5px;
   color: var(--ink);
+}
+/* The shop's e-mail and phone in a detail row (product page and quick look). */
+.fact-contact {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 .pdp-related {
   margin-top: clamp(56px, 8vw, 96px);

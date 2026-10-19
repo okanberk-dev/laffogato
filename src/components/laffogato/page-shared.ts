@@ -73,4 +73,10 @@ export interface PageProps {
    * hero slide. Only `/` passes it (src/app/page.tsx).
    */
   karaoke?: KaraokeFacts;
+  /**
+   * Ayarlar → "Ücretsiz kargo eşiği" in major units (₺), as the cart's
+   * progress bar gets it; 0 or absent = free shipping is off and the shop
+   * prints no threshold.
+   */
+  freeShippingThreshold?: number;
 }
