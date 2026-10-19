@@ -878,6 +878,38 @@ describe("the member's confirmation", () => {
       }),
     );
   });
+
+  it("a booking made inside the window names no instant already behind it", async () => {
+    const send = await import("@/lib/email/send");
+    const confirm = vi.mocked(send.sendKaraokeConfirmationEmail);
+    confirm.mockClear();
+    // Made and paid at 19:00 for 20:00 under 2 hours: its last free moment
+    // (18:00) had gone before it was made.
+    seedPaid({
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      createdAt: at(1).toISOString(),
+    });
+    await karaoke.notifyReservationStatus(row() as never);
+    const sent = confirm.mock.calls[0]![0] as {
+      cancellation: { freeUntil: string };
+    };
+    expect(sent.cancellation.freeUntil).toBe(
+      karaoke.KARAOKE_FREE_PASSED_AT_BOOKING,
+    );
+    expect(sent.cancellation.freeUntil).not.toMatch(/\d{2}:\d{2}/);
+    // Made at that moment itself: it still counts (`<=`).
+    confirm.mockClear();
+    seedPaid({
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      createdAt: at(2).toISOString(),
+    });
+    await karaoke.notifyReservationStatus(row() as never);
+    expect(confirm.mock.calls[0]![0]).toMatchObject({
+      cancellation: { freeUntil: "30 Ekim 2026, 18:00" },
+    });
+  });
 });
 
 describe("the köşk cancels", () => {

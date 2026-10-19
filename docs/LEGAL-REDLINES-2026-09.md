@@ -1816,7 +1816,9 @@ verdiklerini kod yapar:
   TBK m.136). Panel istek anını pencere açıldığı an olarak doldurur, sayfanın
   çizildiği an olarak değil (`karaokeRequestDefault`).
 - Onay e-postası son ücretsiz iptal anını yazar ("Son ücretsiz iptal: 30
-  Ekim 2026, 18:00.", §7).
+  Ekim 2026, 18:00.", §7). Süre rezervasyon yapılırken zaten geçmişse geçmiş
+  bir an yazmaz, "rezervasyonu yaptığın sırada süresi geçmişti, her iptal geç
+  iptal sayılır" der (web özeti gibi).
 - Geçmiş rezervasyonun sayfası "Faturalanacak tutar (KDV %20 dahil)" satırını
   gösterir: ödenen eksi iade edilen (ASK-KAR-KDV; KDV K. m.10, VUK m.231/5).
 
