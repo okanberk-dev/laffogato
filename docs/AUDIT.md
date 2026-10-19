@@ -625,11 +625,7 @@ Kite eklenenler (alanlar kendi PR'larında kullanır):
 Ürün şemasına ad (120), SKU (40), etiket (80) ve açıklama (2000) için uzunluk
 sınırı eklendi; CSV içe aktarma da aynı şemadan geçer.
 
-Açık (katalog paketinin kalanı; adım 4 ve 5 aşağıda, "Katalog: stok ve tohumlar"):
-
-| Derece | Bulgu | Neden açık |
-| --- | --- | --- |
-| 🟢 | Liste tarafı: ürün ve menü listesinin toplu geri çağırmaları `withPanelCatch` (CAT-17), liste ekranlarının metni (CAT-24) | Liste PR'ında (5d); menü ve vitrin formları aşağıda, "Katalog: menü, kategori ve vitrin formları" |
+Katalog paketinin kalanı kapandı: adım 4 ve 5 aşağıda, "Katalog: stok ve tohumlar"; liste tarafı (CAT-17, CAT-24) "Katalog: listeler"; menü ve vitrin formları "Katalog: menü, kategori ve vitrin formları".
 
 Eklenen: **ürünleri CSV ile içe aktarma** (`/admin/urunler/ice-aktar`, ürün
 listesinden bağlantı, yalnız `products` rolü; kural ve sütunlar
@@ -715,6 +711,31 @@ düşüp taban fiyattan satılıyordu (sunucu artık reddeder: "Sipariş satır�
 varyantlı ürün varyant ister" aşağıda). Toplam bu yüzden yeniden
 hesaplanmaz, farkla oynar (satılan birimi satışa geri açmamak için). Kartın
 varyantlı üründe hızlı ekleme yerine ürünü açması ayrı bir ön yüz işidir.
+
+### Katalog: listeler (paket 5d, P2b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Stok sayfası düzeltme formuna (istemci bileşeni) ürün satırlarının tamamını veriyordu: Personel her ürünün maliyetini, fotoğraflarını ve SEO alanlarını sayfa kaynağından okuyabiliyordu (CAT-07) | Form ürünün yalnız adını, stoğunu ve varyantlarının stoğunu alır (`toStockAdjustOption`); sayfa ürünleri fotoğrafsız ve maliyetsiz okur (`listProductsForPanel`) | `admin-catalog-lists` |
+| 🟡 | Ürün ve menü listesi saklanan her fotoğrafı (2 MB'a kadar data URL, ürün başına 8) tarayıcıya gönderiyordu, ürün listesi her ilk fotoğrafı iki kez basıyordu; menü listesi hiç çizmediği fotoğrafı taşıyordu; Kategoriler ürün saymak için bütün fotoğrafları okuyordu (CAT-08) | Ürün listesinin satırı (`ProductListRow`) fotoğraf, maliyet, açıklama ve SEO taşımaz; küçük görsel `/gorsel/urun/<id>/0?v=...` adresinden gelir ve yalnız açık sayfanın ürünleri için okunur (`listProductThumbs`). Menü satırı fotoğrafsız (`MenuListRow`). Kategoriler sayıyı liste sütunlarından alır. Vitrin listesi 5c'de, `admin/loading.tsx` 1c'de geldi | `admin-catalog-lists` |
+| 🟢 | Stok defteri en yeni 500 harekette duruyor, bunu söylemiyordu (CAT-16) | Toplam sayı ("Toplam N hareket"), sayfa başına 100 hareket ve sayfalar; ürün, sebep ve köşkün takvimiyle tarih aralığı süzgeci (`countStockMoves`, `listStockMoves` `offset`). Olay kaydından gelen silinmiş ürünün hareketleri kendi seçeneğiyle bulunur | `admin-catalog-lists` |
+| 🟢 | Ürün araması İ, I ve ı'yı kaçırıyordu ("italyan" "İtalyan"ı bulmuyordu), kutu sorguyu noktalı i ile geri yazıyordu (CAT-19) | `includesTr`: iki yanda Türkçe katlama; kutu yazılanı gösterir | `admin-catalog-lists` |
+| 🟢 | Ürün, menü ve stok listelerinde etiketsiz arama ve seçim kutuları, toplu "Kategoriye taşı" seçimi; her satırda adsız "Sil"; 10 px yazılı, 16 px boyunda "siparişe git" (CAT-23, liste kısmı) | Kit süzgeç çubuğu etiketli; toplu seçim "Taşınacak kategori"; satır düğmeleri "Sil: <ad>", "Pasif yap: <ad>", "Tükendi: <ad>"; "Siparişe git" 44 px | `admin-catalog-lists`, `admin-confirm-ui` |
+| 🟢 | Elle seçilmiş neutral / red / amber renkler, sahte italik başlıklar, Poppins'le "mono" (CAT-26, liste kısmı); el yapımı haplar (CAT-11, liste kısmı); 10 px neutral-400 / 500 yazılar (CAT-21, liste kısmı) | Kit rozet tonları, `EYEBROW`, `NUMERIC_STYLE`, `BUTTON.*`, panelin yazı renkleri | `admin-catalog-lists` |
+| 🟢 | Filament eksikleri (CAT-30): ürün listesinde sayfa, sekme, sıralanabilir başlık ve satırda Aktif / Pasif yoktu (silme diyaloğu "pasif yap" diyordu), süzgeç "Uygula"lı bir GET formuydu; menüde arama ve süzgeç yoktu; ürünün ve menü kaleminin kendi sayfası yoktu; beş adımlı sihirbaz bir yenilemede kayboluyordu | Ürünler: Tümü / Aktif / Pasif / Düşük stok / Stokta yok sekmeleri sayılarıyla, arama ve kategori, sıralanabilir başlıklar, sayfa başına 50, satır başına "⋯" (Görüntüle, Düzenle, Mağazada gör, Stok hareketleri, Aktif / Pasif yap, Sil); tek tık `setProductActiveAction` istenen durumu yazar (çift tık kendini geri almaz). Menü: Tümü / Satışta / Tükendi, arama ve kategori, tek tık "Tükendi" ve "⋯". Salt okunur sayfalar `/admin/urunler/[id]` ve `/admin/menu/[id]` (karar D37); düzenleme sayfasının izi onlara döner. Sihirbaz bir şey değiştirilmişken sayfa yenilenir ya da kapanırsa sorar (`useUnsavedGuard`) | `admin-catalog-lists`, `admin-shell-nav` |
+| 🟢 | Varyant stoğu listede görünmüyordu: tükenmiş 1 kg paket sağlıklı toplamın arkasında kalıyordu (CAT-14, liste kısmı) | Stok sütununda toplamın altında her varyantın stoğu, pasif varyant işaretli; ürün sayfasında varyant tablosu | `admin-catalog-lists` |
+| 🟢 | Menü listesi etiketleri ham anahtarla gösteriyordu, lang=tr altında "SİGNATURE" (CAT-10, liste kısmı) | Türkçe: İmza, Yeni, Buzlu, Sert kabuklu yemiş; uygulamanın bilmediği kelime yazıldığı gibi, kesik çerçeveyle ve "uygulamada görünmez" notuyla | `admin-catalog-lists` |
+| 🟢 | Toplu işlem sırasında atılan hata paneli hata ekranına çeviriyor, seçimi siliyordu (CAT-17, toplu çubuklar) | `bulkAnswer`: `withPanelCatch` ile "Bir hata oldu..." yerinde bildirim; çubuk elle gönderir (`useHandPost`), ilk istek dönmeden ikinci tık düşer | `admin-catalog-lists` |
+| 🟢 | "Bu filtreyle ürün yok." süzgeç yokken de çıkıyordu; Stok sayfasının başlığı "Operasyon" diyordu, menüde "Satış" altında (CAT-24, liste kısmı) | Boş durum neden boş olduğunu söyler (henüz yok, süzgeç, sekme) ve çıkış yolunu verir; "Satış · Stok" | `admin-catalog-lists` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Sihirbazın sekmeli düzenleme başlıkları hâlâ sahte italik (CAT-26, sihirbaz kısmı) | `product-wizard.tsx` 5a'nın; bu PR ona yalnız kayıt korumasını ekledi |
+| 🟢 | Panelin kendi bağlantısına basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Tarayıcı yalnız yenilemede, kapanışta ve elle yazılan adreste sorar; panel bağlantıları için genel koruma ayrı bir iş (UI-17) |
+| 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
+| 🟢 | Menüde sırayı değiştirmek hâlâ "Sıralama" alanına sayı yazmak (CAT-30, sıra kısmı) | Sürükle bırak yeni bir etkileşim; sıra formda kalır |
 
 ### Kişiler: promosyon, üye, kupon, damga, kullanıcılar, kampanya (paket 4a)
 
