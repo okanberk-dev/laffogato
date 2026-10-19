@@ -9,6 +9,7 @@ import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 import type { Product } from "./data";
 import {
   freeShippingFrom,
+  productDiscount,
   productFacts,
   type ProductFact,
 } from "./product-facts";
@@ -87,8 +88,10 @@ export function ProductDetail({
   const basePrice =
     p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
+  // Struck out only with the days the sentence below names (m.14/1).
+  const discount = productDiscount(p);
   const compareAt =
-    p.compareAtPriceMinor !== undefined
+    discount && p.compareAtPriceMinor !== undefined
       ? p.compareAtPriceMinor / 100
       : undefined;
   const stock = selectedVariant?.stock ?? p.stock;
@@ -235,6 +238,9 @@ export function ProductDetail({
                 <span className="pdp-save-pill">−%{savingsPct}</span>
               )}
             </div>
+            {savingsPct > 0 && discount && (
+              <p className="pdp-discount-note">{discount.notice}</p>
+            )}
             <div className="pdp-tax-note">KDV dahil fiyat</div>
 
             <p className="pdp-desc">{p.desc}</p>
