@@ -128,16 +128,18 @@ const STEP_ARM_MS = 700;
  * The step as a button, through the same Server Action as the menu row
  * and the order page (`transitionOrderAction`, which asks `orderActions`
  * again before it writes). Its name carries the order number: twenty
- * "Tamamlandı" buttons in a row are one name to a screen reader. Keyed by
- * the step where it is drawn, so each new step arms afresh.
+ * "Tamamlandı" buttons in a row are one name to a screen reader.
  */
 function RowStepButton({ order, id }: { order: AdminOrder; id: RowStepId }) {
   const label = orderActionLabel(id, order);
-  const [armed, setArmed] = useState(false);
+  // Armed per step, on the same button: a keyboard user's focus stays on
+  // it when "Teslime hazır" replaces "Hazırlamaya başla".
+  const [armedFor, setArmedFor] = useState<RowStepId | null>(null);
   useEffect(() => {
-    const timer = setTimeout(() => setArmed(true), STEP_ARM_MS);
+    const timer = setTimeout(() => setArmedFor(id), STEP_ARM_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [id]);
+  const armed = armedFor === id;
   return (
     <span
       className="inline-flex"
@@ -160,14 +162,17 @@ function RowStepButton({ order, id }: { order: AdminOrder; id: RowStepId }) {
   );
 }
 
-/** The phone card's step: its own line under the amount, a thumb's reach. */
-function CardStep({ row }: { row: OrderListRow }) {
+/**
+ * The row's step where it is drawn: under the status in the table, the
+ * last line of the phone card (a thumb's reach).
+ */
+function RowStep({ row, className }: { row: OrderListRow; className: string }) {
   const step = rowStep(row.actions);
   if (!step) return null;
   return (
-    <div className="pt-1">
-      <RowStepButton key={step} order={row.order} id={step} />
-    </div>
+    <span className={className}>
+      <RowStepButton order={row.order} id={step} />
+    </span>
   );
 }
 
@@ -425,10 +430,15 @@ export function OrdersList({
       key: "durum",
       header: "Durum",
       className: TIGHT,
+      // The step sits under the status it moves on from. Not beside the
+      // "⋯" in the pinned column: 160 px more there made the table wider
+      // than its card from 768 to 1279 px, and the pinned cell then
+      // covered this very column.
       cell: (r) => (
         <span className="flex flex-col items-start gap-1">
           <OrderStatusBadge order={r.order} />
           <PaymentBadge row={r} />
+          <RowStep row={r} className="mt-1" />
         </span>
       ),
     },
@@ -495,31 +505,19 @@ export function OrdersList({
         rowClassName={(r) =>
           isNew(r.order) ? "ring-2 ring-[var(--admin-warning)]/40" : null
         }
-        rowActions={(r) => {
-          const step = rowStep(r.actions);
-          return (
-            <span className="inline-flex items-center justify-end gap-2">
-              {/* The table's step sits beside "⋯", in the pinned column, so
-                  it stays in view while the row scrolls. DataTable draws
-                  rowActions on the phone card too: there the step is the
-                  card's last line instead (mobileCard), not here. */}
-              {step ? (
-                <span className="hidden md:inline-flex">
-                  <RowStepButton key={step} order={r.order} id={step} />
-                </span>
-              ) : null}
-              <OrderActionMenu
-                order={r.order}
-                money={r.money}
-                actions={r.actions}
-                refundToken={r.refundToken}
-                mayRefund={mayRefund}
-                openLink
-                skip={step}
-              />
-            </span>
-          );
-        }}
+        rowActions={(r) => (
+          <OrderActionMenu
+            order={r.order}
+            money={r.money}
+            actions={r.actions}
+            refundToken={r.refundToken}
+            mayRefund={mayRefund}
+            openLink
+            // The step is on the row itself (the Durum cell, the card's
+            // last line): the menu does not offer it twice.
+            skip={rowStep(r.actions)}
+          />
+        )}
         mobileCard={(r) => (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -558,7 +556,7 @@ export function OrdersList({
               </span>
               <Amount order={r.order} />
             </div>
-            <CardStep row={r} />
+            <RowStep row={r} className="pt-1" />
           </div>
         )}
         empty={

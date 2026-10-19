@@ -105,16 +105,9 @@ function list(rows: ReturnType<typeof row>[]): string {
   );
 }
 
-/**
- * The phone cards (the first list) and the table, apart. DataTable draws
- * rowActions on the card as well; the table's copy of the step inside it is
- * `hidden md:inline-flex`, which never shows inside the `md:hidden` card
- * list, so it is taken out of what the card shows.
- */
+/** The phone cards (the first list) and the table, apart. */
 function views(html: string): { cards: string; table: string } {
-  const cards = html
-    .slice(html.indexOf("<ul"), html.indexOf("</ul>"))
-    .replace(/<span class="hidden md:inline-flex">.*?<\/form><\/span>/g, "");
+  const cards = html.slice(html.indexOf("<ul"), html.indexOf("</ul>"));
   const table = html.slice(html.indexOf("<table"), html.indexOf("</table>"));
   return { cards, table };
 }
@@ -304,25 +297,29 @@ describe("the step on the row and the phone card", () => {
     );
   });
 
-  it("puts the table's step beside the menu in the pinned column, hidden on the card's copy", () => {
+  it("puts the table's step under the status, not in the pinned column", () => {
     const html = list([row(order({ status: "paid" }))]);
     const { cards, table } = views(html);
-    // The pinned cell holds the step, then the "⋯" menu.
-    const cell = table.slice(
+    // The Durum cell: status, payment, then the step. The pinned "⋯" cell
+    // stays as narrow as it was: 160 px more there made the table wider
+    // than its card from 768 to 1279 px and covered the status.
+    const at = table.indexOf('name="transition"');
+    const cell = table.slice(table.lastIndexOf("<td", at), at);
+    expect(cell).toContain("max-xl:px-3");
+    expect(cell).not.toContain("sticky");
+    expect(cell).toContain(">Ödendi<");
+    const pinned = table.slice(
       table.lastIndexOf("<td", table.indexOf("<details")),
+      table.indexOf("<details"),
     );
-    expect(cell).toMatch(/sticky right-0/);
-    expect(cell.indexOf('name="transition"')).toBeLessThan(
-      cell.indexOf("<details"),
-    );
-    // DataTable draws rowActions on the card too: that copy is hidden there,
-    // and the card's own step is the line under the amount.
-    const rawCards = html.slice(html.indexOf("<ul"), html.indexOf("</ul>"));
-    expect(rawCards.match(/hidden md:inline-flex/g)).toHaveLength(1);
-    expect(rawCards.indexOf('name="transition"')).toBeLessThan(
-      rawCards.indexOf("hidden md:inline-flex"),
-    );
+    expect(pinned).toContain("sticky right-0");
+    expect(pinned).not.toContain("<form");
+    // The card's step is its last line, after the amount, and the card's
+    // own "⋯" (DataTable's rowActions) holds no second copy.
     expect(inlineSteps(cards)).toHaveLength(1);
+    expect(cards.indexOf('name="transition"')).toBeGreaterThan(
+      cards.indexOf("₺300,00"),
+    );
   });
 });
 
@@ -412,9 +409,11 @@ describe("the list keeps its live poll and sound", () => {
     const src = readFileSync("src/components/admin/orders-list.tsx", "utf8");
     expect(src).toMatch(/const STEP_ARM_MS = \d{3};/);
     expect(src).toContain("onClickCapture=");
-    // Keyed by the step: "Teslime hazır" replacing "Hazırlamaya başla" is a
-    // fresh button that arms on its own.
-    expect(src.match(/<RowStepButton key=\{step\}/g)).toHaveLength(2);
+    // Armed per step on the same button, so the next step ("Teslime
+    // hazır" after "Hazırlamaya başla") waits again and focus stays put.
+    expect(src).toContain("setTimeout(() => setArmedFor(id), STEP_ARM_MS)");
+    expect(src).toContain("}, [id]);");
+    expect(src).not.toContain("<RowStepButton key=");
   });
 
   it("does not re-implement a move: the step goes through the shared action", () => {
