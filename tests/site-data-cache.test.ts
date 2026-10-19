@@ -322,6 +322,56 @@ describe("a cache hit", () => {
   });
 });
 
+describe("the documents a consent is recorded against", () => {
+  const override = (slug: string, body: string, effectiveDate: string) => ({
+    slug,
+    title: "Belge",
+    summary: "",
+    effectiveDate,
+    bodyMarkdown: body,
+    isPublished: true,
+    updatedAt: "2026-10-20T08:00:00.000Z",
+  });
+
+  it.each([
+    ["mesafeli-satis-sozlesmesi", "checkoutConsentVersion"],
+    ["on-bilgilendirme-formu", "checkoutConsentVersion"],
+    ["karaoke-odasi-rezervasyon", "karaokeConsentVersion"],
+  ] as const)(
+    "/hukuk/%s shows the text %s records, even when an expiry was lost",
+    async (slug, versionFn) => {
+      const legal = await import("@/lib/legal/store");
+      caching();
+      h.rows.legal_docs = [override(slug, "Eski metin", "20 Ekim 2026")];
+      expect((await site.getSiteLegalOverride(slug))?.bodyMarkdown).toBe(
+        "Eski metin",
+      );
+      // The panel publishes a new text and the write's expiry never
+      // arrives (a write outside getDb, a rollback, a cache error): here
+      // nothing expires anything at all.
+      h.rows.legal_docs = [override(slug, "Yeni metin", "21 Ekim 2026")];
+      const recorded = await legal[versionFn]();
+      const shown = await site.getSiteLegalOverride(slug);
+      expect(recorded).toBe("21 Ekim 2026");
+      expect(shown?.effectiveDate).toBe(recorded);
+      expect(shown?.bodyMarkdown).toBe("Yeni metin");
+    },
+  );
+
+  it("the other legal pages stay cached", async () => {
+    caching();
+    h.rows.legal_docs = [
+      override("cerez-politikasi", "Çerez metni", "20 Ekim 2026"),
+    ];
+    await site.getSiteLegalOverride("cerez-politikasi");
+    const before = h.sql.length;
+    expect(
+      (await site.getSiteLegalOverride("cerez-politikasi"))?.bodyMarkdown,
+    ).toBe("Çerez metni");
+    expect(h.sql.length).toBe(before);
+  });
+});
+
 describe("what is stored", () => {
   it("survives a JSON round trip unchanged and carries no base64", async () => {
     caching();

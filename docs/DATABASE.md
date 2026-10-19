@@ -129,8 +129,13 @@ sayfa, action'lar), `/karaoke`, `/rezervasyon`, `placeOrder` /
 `placeAppOrder`, `/api/mobile/v1/**` (başlıklar ve okuyucular aynı,
 `docs/API-MOBILE.md` değişmedi), e-postalar, onay sürümleri
 (`checkoutConsentVersion`, `karaokeConsentVersion`), ödeme belgeleri, admin
-sayfaları ve admin oturumu canlı okur. `tests/site-data-cache.test.ts` bu
-yolların önbellek okuyucularını içe aktarmadığını tutar. `/masa/<kod>`'un
+sayfaları ve admin oturumu canlı okur. Onay alınan üç belgenin `/hukuk`
+sayfası da canlıdır (Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi,
+karaoke odası şartları): siparişin ya da rezervasyonun kaydettiği onay
+sürümü hangi satırdan çıkıyorsa yeni sekmede açılan metin de o satırdır;
+kaybolmuş bir etiket düşürmesi müşteriye kaydedilenden eski bir metni
+gösteremez. `tests/site-data-cache.test.ts` bu yolların önbellek
+okuyucularını içe aktarmadığını tutar. `/masa/<kod>`'un
 masa araması ve `/api/health` da canlıdır.
 
 **Kesinti davranışına etkisi.** Önbellekte kaydı olan bir sayfa veritabanı

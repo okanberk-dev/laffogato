@@ -37,7 +37,9 @@ import {
 import { presentationCache } from "@/lib/cache/presentation";
 import { TAG_CATALOG, TAG_SITE } from "@/lib/cache/tags";
 import { publicRead } from "@/lib/db/health";
+import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
+  getPublishedLegalOverride,
   getPublishedLegalOverrideLive,
   type LegalDocOverride,
 } from "@/lib/legal/store";
@@ -319,11 +321,28 @@ const cachedLegalOverride = presentationCache(
 );
 
 /**
- * The published override /hukuk/<slug> displays, cached. Display only: the
- * consent versions a checkout or a karaoke booking records
- * (`checkoutConsentVersion`, `karaokeConsentVersion`) read live.
+ * The documents a checkout or a karaoke booking records its consent
+ * against (rule 12): their /hukuk pages read the same row the recorded
+ * version is worked out from (`checkoutConsentVersion`,
+ * `karaokeConsentVersion`), never a cached copy of it. A lost expiry must
+ * not let a customer open the contract in a new tab and read an older
+ * text than the version their order names. Three pages, mostly opened from
+ * the checkout; the karaoke one reads the settings live anyway.
+ */
+const LIVE_LEGAL_SLUGS: ReadonlySet<string> = new Set([
+  ...CHECKOUT_CONSENT_DOCS,
+  ...KARAOKE_CONSENT_DOCS,
+]);
+
+/**
+ * The published override /hukuk/<slug> displays: cached, except for the
+ * consent documents above, which read live.
  */
 export const getSiteLegalOverride = cache(
   async (slug: string): Promise<LegalDocOverride | null> =>
-    publicRead("getSiteLegalOverride", null, () => cachedLegalOverride(slug)),
+    LIVE_LEGAL_SLUGS.has(slug)
+      ? getPublishedLegalOverride(slug)
+      : publicRead("getSiteLegalOverride", null, () =>
+          cachedLegalOverride(slug),
+        ),
 );
