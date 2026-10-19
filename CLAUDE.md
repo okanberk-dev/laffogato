@@ -15,7 +15,7 @@ yapılır.
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 ·
   TypeScript · Zod
 - **Deploy hedefi:** Vercel
-- **Veri:** **Postgres**, `pg` sürücüsüyle. Hedef barındırma Supabase (docs/SUPABASE-GECIS.md; cutover'a kadar eski sağlayıcıda) ama koda
+- **Veri:** **Postgres**, `pg` sürücüsüyle. Veri **Neon'da** kalır, Supabase yalnız kimliktir (19 Eki 2026 incelemesi, docs/DATABASE.md; taşıma yordamı docs/SUPABASE-GECIS.md hazır ama uygulanmadı) ve koda
   özgü bir bağımlılık yok — bağlantı dizesi değişince başka bir Postgres'e
   taşınır. **Taşımadan önce `docs/DATABASE.md`'deki sağlayıcı geçmişi uyarısını
   oku:** proje bir kez Supabase'den taşındı ve sebebi bir aylık kesintiydi.
