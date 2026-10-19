@@ -115,6 +115,7 @@ vi.mock("@/lib/admin/store", async (importOriginal) => {
       { id: "cat-2", slug: "gift", label: "Hediye", icon: "◯", sortOrder: 2 },
     ]),
     listProducts: vi.fn(async () => [{ id: "prd-1", cat: "beans" }]),
+    listProductsForPanel: vi.fn(async () => [{ id: "prd-1", cat: "beans" }]),
     listStoryEvents: vi.fn(async () => [
       { ...base, id: "story-1", year: "1897", title: "Bologna", body: "x" },
     ]),

@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { categoryDeleteBlocker } from "@/lib/admin/category-schema";
-import { listCategories, listProducts } from "@/lib/admin/store";
+import { listCategories, listProductsForPanel } from "@/lib/admin/store";
 
 import { deleteCategoryAction } from "./actions";
 
@@ -22,9 +22,11 @@ const MONO = { fontFamily: "var(--mono), monospace" } as const;
 
 export default async function AdminCategoriesPage() {
   await requireRole("categories");
+  // Only what the counts need: listProducts() read every product's photos
+  // (data URLs of up to 2 MB each) to count them (admin audit CAT-08).
   const [categories, products] = await Promise.all([
     listCategories(),
-    listProducts(),
+    listProductsForPanel(),
   ]);
 
   const productCountBySlug = products.reduce<Record<string, number>>(
@@ -113,6 +115,7 @@ export default async function AdminCategoriesPage() {
                 action={deleteCategoryAction}
                 hidden={{ id: c.id }}
                 label="Sil"
+                ariaLabel={`Sil: ${c.label}`}
                 variant="menuDanger"
                 title={`"${c.label}" silinsin mi?`}
                 description="Kategori paneldeki listelerden kalkar. Bu işlem geri alınamaz."
