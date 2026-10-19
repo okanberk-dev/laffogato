@@ -4,7 +4,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { AdminTone } from "@/lib/admin/tone";
 
 import { formatDateTime } from "../forms";
-import { EYEBROW, MONO_STYLE } from "./styles";
+import { LABEL, MONO_STYLE } from "./styles";
 import { TONE_DOT } from "./tone";
 
 // Detail-page building blocks (Filament's "infolist"). Server- and
@@ -83,6 +83,7 @@ export interface KeyValueItem {
  * Label / value pairs as a `<dl>`, one column on phones, `columns` from
  * `sm` up. `false` / `null` items are skipped, so conditional rows can be
  * written inline: `order.carrier && { label: "Kargo", value: order.carrier }`.
+ * Labels are 12px sentence case (LABEL), as written.
  */
 export function KeyValueGrid({
   items,
@@ -113,9 +114,7 @@ export function KeyValueGrid({
             key={i}
             className={cx("min-w-0", item.full && "sm:col-span-full")}
           >
-            <dt className={EYEBROW} style={MONO_STYLE}>
-              {item.label}
-            </dt>
+            <dt className={LABEL}>{item.label}</dt>
             <dd
               className={cx(
                 "mt-1 text-sm break-words",

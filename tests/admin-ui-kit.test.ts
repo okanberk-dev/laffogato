@@ -741,6 +741,32 @@ describe("tone colours clear AA", () => {
     }
   });
 
+  it("the 12px sentence-case labels clear AA on every panel ground", async () => {
+    // Page header eyebrow / meta, KeyValueGrid labels and the "Nasıl
+    // çalışır?" summary: smaller than body text, so 4.5:1 everywhere.
+    const { HEADER_EYEBROW, LABEL } =
+      await import("@/components/admin/ui/styles");
+    expect(HEADER_EYEBROW).toContain("text-[var(--admin-text-mute)]");
+    expect(LABEL).toContain("text-[var(--admin-text-soft)]");
+    for (const ink of [
+      "--admin-text-mute",
+      "--admin-text-soft",
+      "--admin-primary",
+    ]) {
+      for (const ground of [
+        "#FFFFFF",
+        token("--admin-bg"),
+        token("--admin-surface-2"),
+        token("--admin-neutral-soft"),
+      ]) {
+        expect(
+          contrast(token(ink), ground),
+          `${ink} on ${ground}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it("a field's outline clears 3:1 on a white card and on its own fill", () => {
     for (const ground of ["#FFFFFF", token("--admin-surface-2")]) {
       expect(
@@ -1022,6 +1048,34 @@ describe("server-rendered markup", () => {
     expect(out).toContain("bg-[var(--admin-primary-soft)]");
   });
 
+  it("Badge text is 12px sentence case, no longer 10px capitals", () => {
+    const out = html(
+      withKids(ui.Badge, { tone: "success", dot: true }, "Ödendi"),
+    );
+    const cls = /<span[^>]*class="([^"]+)"/.exec(out)?.[1] ?? "";
+    expect(cls).toContain("text-xs font-medium");
+    expect(cls).not.toContain("uppercase");
+    expect(cls).not.toMatch(/tracking-|text-\[10px\]/);
+    // Same tone pair as before.
+    expect(cls).toContain(ui.TONE_SOFT.success);
+    expect(out).toContain(">Ödendi</span>");
+  });
+
+  it("KeyValueGrid labels are 12px, weight 500, sentence case", async () => {
+    const { LABEL } = await import("@/components/admin/ui/styles");
+    const out = html(
+      createElement(ui.KeyValueGrid, {
+        items: [{ label: "Ödeme yöntemi", value: "Kart", mono: true }],
+      }),
+    );
+    expect(out).toContain(`<dt class="${LABEL}">Ödeme yöntemi</dt>`);
+    expect(LABEL).toBe("text-xs font-medium text-[var(--admin-text-soft)]");
+    // The value still takes the mono voice when asked; the label does not.
+    expect(out).toMatch(
+      /<dd [^>]*style="font-family:var\(--mono\), monospace">Kart/,
+    );
+  });
+
   it("KeyValueGrid skips false items and shows a dash for blanks", () => {
     const out = html(
       createElement(ui.KeyValueGrid, {
@@ -1137,5 +1191,22 @@ describe("server-rendered markup", () => {
     expect(out).toContain('aria-haspopup="dialog"');
     expect(out).toContain(">Sil<");
     expect(out).not.toContain("<dialog");
+  });
+});
+
+describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
+  const H1 =
+    '<h1 class="text-2xl text-[var(--admin-text)] sm:text-3xl" style="font-family:var(--font-poppins), var(--sans);font-weight:600;letter-spacing:-0.02em">';
+  const header = (props: Record<string, unknown>) =>
+    html(createElement(forms.PageHeader, props as never));
+  const link = (href: string, text: string) =>
+    createElement("a", { href }, text);
+
+  it("BUTTON.icon is a 44px square in the ghost outline", () => {
+    expect(ui.BUTTON.icon).toContain("h-11 w-11");
+    expect(ui.BUTTON.icon).toContain("min-h-[44px]");
+    expect(ui.BUTTON.icon).toContain("border-[var(--admin-border-strong)]");
+    expect(ui.BUTTON.icon).toContain("focus-visible:ring-2");
+    expect(ui.BUTTON.icon).not.toMatch(/\bpx-\d/);
   });
 });
