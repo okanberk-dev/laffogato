@@ -71,6 +71,18 @@ describe("no template carries the venue's facts as literals", () => {
   });
 });
 
+describe("no mail offers to hold a table", () => {
+  // Since 17 Oct 2026 only the karaoke room is booked; the birthday mail
+  // still said "Kalabalık geliyorsanız ... masanızı ayıralım".
+  it.each(Object.keys(EMAIL_TEMPLATES))("%s", (name) => {
+    const html = EMAIL_TEMPLATES[name as keyof typeof EMAIL_TEMPLATES].html;
+    const text = EMAIL_TEXT[name as keyof typeof EMAIL_TEXT];
+    for (const part of [html, text]) {
+      expect(part).not.toMatch(/masa(n[ıi]z[ıi])? ay[ıi]r|masa rezervasyon/i);
+    }
+  });
+});
+
 describe("venue vars", () => {
   it("default to the bundled values, so a render without settings is whole", () => {
     expect(DEFAULT_VENUE_VARS).toEqual({
