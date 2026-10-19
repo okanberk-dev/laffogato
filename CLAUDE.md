@@ -346,8 +346,14 @@ npm run db:migrate   # Migration'ları uygula (DATABASE_URL gerekir)
 npm run db:bundle    # db/schema.sql'i yeniden üret
 ```
 
-CI her PR'da ve `main`'e her push'ta `npm run typecheck` + `npm test` +
-`npm run build` koşar. Bu ortamda `NODE_ENV=development` tanımlıysa build
+CI her PR'da ve `main`'e doğrudan yapılan her push'ta `npm run typecheck` +
+`npm test` + `npm run build` koşar; başlığında "(#N)" olan squash merge
+push'unda koşmaz (o ağaç PR'da `main` güncelken zaten test edildi; Actions
+ücretsiz kotası 19 Eki 2026'da bu yüzden doldu). GitHub Actions çalışmıyorsa
+(kota, ödeme) aynı adımlar yerelde koşturulur: typecheck, lint
+`--max-warnings=0`, `TEST_DATABASE_URL` ile gerçek Postgres 16'ya karşı tam
+`vitest run`, `npm run build` (Turbopack symlink'li `node_modules`'ta
+çöker: APFS kopyası `cp -cR` kullan). Bu ortamda `NODE_ENV=development` tanımlıysa build
 `/_global-error` prerender'ında düşer; yerelde
 `NODE_ENV=production npm run build` kullan (CI değişkeni hiç set etmez).
 
