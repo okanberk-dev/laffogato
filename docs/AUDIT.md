@@ -1208,3 +1208,20 @@ Açık (paket 4c'nin dışında kalanlar):
 | 🟢 | Bülten onay kayıtlarının CSV dışa aktarımı yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
 | 🟢 | Bülten ve gönderim defteri aramasında yazılan e-posta süzgeç çubuğunun `?q=` adresine geçer | Bütün listelerin aramasını adresten çıkaran ortak iş (list-search-no-url) |
 | 🟢 | Gönderim sürerken defter ve sayılar kendiliğinden yenilenmez | Sayfa yenilenince güncellenir; canlı yoklama ayrı iş |
+
+### Sistem: ayarların sitede ve e-postada ulaştığı yerler (paket 7d)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Footer her sayfada sabit "Her gün 09:00 - 02:00" yazıyordu; anasayfanın bilgi bloğu (`SeoContent`) adresi, telefonu, e-postayı ve saati `SITE`'tan basıyordu; panelde silinen telefon ya da e-posta boş `tel:` / `mailto:` bağlantısı veriyordu (`??`) (SYS-M01) | `src/lib/seo/contact.ts`: `venueContact()` ve `footerSettings()`; on iki sayfa ve düzen footer'ını elle değil bununla kurar, saat satırları Ayarlar → Saatler'den (uygulamanın `hoursLabel` metni), boş alan `||` ile paketteki değere düşer. Bilgi bloğu aynı değerleri basar | `site-settings-reach` |
+| 🟡 | /ziyaret'te "Ara" sabit numarayı arıyordu, "02:00 gece kapanış" ve başlıktaki "gece 02:00'e kadar" sabitti; 23 e-posta şablonu ve metin imzası saati, telefonu ve adresi elle yazıyordu; "Kafe adı" ve "Slogan" müşteriye hiç görünmediği hâlde öyle sanılıyordu (SYS-04) | Ziyaret: "Ara" paneldeki numara, kapanış istatistiği ve başlık saatlerden (tek tip haftada kapanış saati, değilse bugünün). E-posta: `[KOSK_SAAT]` `[TELEFON]` `[TELEFON_TEL]` `[KOSK_ADRES]` (`src/lib/email/venue.ts`), gönderimde Ayarlar'dan, okunamazsa paketteki değer; şablonlar yeniden derlendi. Ayarlar ipuçları her alanın nerede göründüğünü söyler, ad ve slogan "yalnız panel ve fiş". Doğum günü e-postası artık "masanızı ayıralım" demiyor (masa rezervasyonu yok) | `site-settings-reach`, `email-venue-footer`, `admin-campaign-mail-actions` |
+| 🟡 | Footer'ın İletişim sütununda şirketin kimliği yoktu (ETHS Yön. m.5/1) | Ticaret unvanı, MERSİS, merkez adresi, (doluysa) KEP doğrudan `LEGAL_ENTITY`'den ve "Şirket bilgileri" bağlantısı (`/hukuk/sirket-bilgileri`) | `site-settings-reach` |
+| 🟢 | "Haritayı göster" Google Haritalar'ı sayfanın içine çerçeveliyordu; Google ile standart sözleşme yok (KVKK m.9) | Bağlantı: Google Haritalar yeni sekmede açılır, sayfada çerçeve yok | `site-settings-reach` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Anasayfa (`home-page.tsx` "gece 02:00'e kadar") ve `data.ts` karaoke metni ("Gece 02:00'e kadar açığız") saati hâlâ elle yazıyor; ziyaret sayfasında "Karaoke 12:00 - 24:00" ve "Mutfak 23:30'da kapanır" sabit | Anasayfa dosyası bu paketin dışında; mutfak saati Ayarlar'da bir alan değil |
+| 🟢 | Hukuk metinleri (Çerez Politikası, KVKK Aydınlatma §14-15) haritanın düğmeyle sayfada yüklendiğini anlatıyor | Metin `legal-kvkk-transfers` serisinde değişir (o dal aynı paragrafları değiştiriyor); `next.config.ts` CSP'sindeki Google `frame-src` sonraki arka yüz PR'ı |
+| 🟢 | `hos-geldin` "500,00 ₺ üzeri kargo ücretsiz"i elle yazıyor; Supabase'in dört giriş e-postası (`docs/email/`) footer'ı sabit | Kargo eşiği bu bulgunun dışında; Supabase şablonları panele elle yapıştırılır, ayardan okuyamaz |
