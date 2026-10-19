@@ -258,4 +258,5 @@ export const TABLES = {
   customerConsents: "customer_consents",
   orderNoticeEmails: "order_notice_emails",
   cafeTables: "cafe_tables",
+  productPriceHistory: "product_price_history",
 } as const;
