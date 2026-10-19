@@ -102,6 +102,14 @@ describe("phone sizes", () => {
     expect(rule(".co-docs-links")).toContain("flex-wrap: wrap;");
   });
 
+  it("a long product name wraps beside its price instead of pushing it out of the summary", () => {
+    // The card hides what overflows it: a shrinking price column lost the
+    // last digits and "Çıkar" (seen at 1280px with a 50-letter name).
+    expect(rule(".co-summary")).toContain("overflow: hidden;");
+    expect(css).toMatch(/\n\.co-line-side \{[^}]*flex: none;/);
+    expect(rule(".co-line-name")).toContain("overflow-wrap: anywhere;");
+  });
+
   it("the promo input is 16px, so iOS does not zoom", () => {
     expect(css).toMatch(
       /\.co-summary \.checkout-promo input \{\s*font-size: 16px;/,

@@ -12249,7 +12249,10 @@ button.co-steps-link {
   gap: 6px;
   min-width: 0;
 }
+/* The price and "Çıkar" keep their own width: a long product name wraps
+   instead of pushing them out of the card, whose overflow hides them. */
 .co-line-side {
+  flex: none;
   justify-items: end;
   font-weight: 600;
   color: var(--ink);
