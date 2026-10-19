@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   bulkMenuAction,
@@ -9,332 +9,363 @@ import {
   setMenuItemActiveAction,
   type BulkMenuActionState,
 } from "@/app/admin/menu/actions";
-import type { AdminMenuItem, MenuCategoryKey } from "@/lib/admin/store";
-
-import { ActionButton } from "./action-form";
+import { actionError, actionOk } from "@/lib/admin/action-result";
 import {
-  BulkActionBar,
-  RowCheckbox,
-  SelectAllCheckbox,
-  useSelection,
-} from "./bulk";
+  menuItemEditHref,
+  menuItemHref,
+  menuTagChip,
+  type MenuGroup,
+  type MenuListRow,
+} from "@/lib/admin/menu-panel";
+import type { MenuCategoryKey } from "@/lib/admin/store";
+
+import { ActionButton, useHandPost } from "./action-form";
+import { BulkActionBar, useSelection } from "./bulk";
+import { bulkAnswer } from "./bulk-answer";
 import { formatTRY } from "./forms";
-import { ConfirmButton, useToast } from "./ui";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
+  ActionModal,
+  Badge,
+  BUTTON,
+  ConfirmButton,
+  DataTable,
+  EmptyState,
+  NUMERIC_STYLE,
+  useToast,
+  type DataTableColumn,
+} from "./ui";
+import { EYEBROW, MONO_STYLE } from "./ui/styles";
 
 interface Props {
-  itemsByCategory: Record<MenuCategoryKey, AdminMenuItem[]>;
+  groups: MenuGroup[];
   categoryKeys: MenuCategoryKey[];
   categoryLabels: Record<MenuCategoryKey, string>;
+  /** Shown instead of the groups when nothing matches. */
+  emptyTitle?: string;
+  emptyAction?: { href: string; label: string } | null;
 }
 
 const initialBulkState: BulkMenuActionState = {};
 
+const OP_LABEL: Record<string, string> = {
+  activate: "Satışa açıldı",
+  deactivate: "Gizlendi",
+  delete: "Silindi",
+  set_category: "Kategori değiştirildi",
+};
+
+/** The app's four tags in Turkish; a word it does not know is marked. */
+export function MenuTags({ tags }: { tags: readonly string[] }) {
+  if (tags.length === 0) {
+    return <span className="text-xs text-[var(--admin-text-soft)]">-</span>;
+  }
+  return (
+    <span className="flex flex-wrap gap-1">
+      {tags.map((t) => {
+        const chip = menuTagChip(t);
+        return chip.known ? (
+          <Badge key={t} tone={t === "nuts" ? "warning" : "neutral"}>
+            {chip.label}
+          </Badge>
+        ) : (
+          <Badge
+            key={t}
+            tone="neutral"
+            // Dashed: a word the app never shows, dropped on the next save.
+            className="normal-case outline-1 outline-[var(--admin-border-strong)] outline-dashed"
+            title="Uygulama bu etiketi göstermez; kalem kaydedilince düşer."
+          >
+            {chip.label}
+            <span className="sr-only"> (uygulamada görünmez)</span>
+          </Badge>
+        );
+      })}
+    </span>
+  );
+}
+
+/** M over L in the table; side by side on the phone card. */
+function Price({ it, row = false }: { it: MenuListRow; row?: boolean }) {
+  return (
+    <span
+      className={
+        row
+          ? "inline-flex flex-wrap items-baseline gap-x-3"
+          : "inline-flex flex-col items-end"
+      }
+      style={NUMERIC_STYLE}
+    >
+      <span>
+        {it.priceMinorL > 0 ? "M " : ""}
+        {formatTRY(it.priceMinor)}
+      </span>
+      {it.priceMinorL > 0 ? (
+        <span className="text-xs text-[var(--admin-text-soft)]">
+          L {formatTRY(it.priceMinorL)}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function StatusBadge({ it }: { it: Pick<MenuListRow, "isActive"> }) {
+  return (
+    <Badge tone={it.isActive ? "success" : "neutral"} dot>
+      {it.isActive ? "Satışta" : "Tükendi"}
+    </Badge>
+  );
+}
+
+/**
+ * One click, no tick and no bulk bar: "Tükendi" hides the item from the menu
+ * (site and app), "Satışa aç" brings it back. The answer is a toast.
+ */
+export function SoldOutToggle({
+  item,
+}: {
+  item: Pick<MenuListRow, "id" | "name" | "isActive">;
+}) {
+  return (
+    <ActionButton
+      action={setMenuItemActiveAction}
+      hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
+      variant={item.isActive ? "ghost" : "primary"}
+      className="whitespace-nowrap"
+      ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
+      title={
+        item.isActive
+          ? "Menüden gizle: tükendi ya da satışta değil"
+          : "Menüde yeniden göster"
+      }
+    >
+      {item.isActive ? "Tükendi" : "Satışa aç"}
+    </ActionButton>
+  );
+}
+
+/** The row's "Tükendi" stays one click beside its ⋯ menu (Görüntüle, Düzenle, Sil). */
+function RowActions({ it }: { it: MenuListRow }) {
+  return (
+    <span className="flex items-center justify-end gap-2">
+      <SoldOutToggle item={it} />
+      <ActionMenu label={`${it.name} işlemleri`}>
+        <ActionMenuLink href={menuItemHref(it.id)}>Görüntüle</ActionMenuLink>
+        <ActionMenuLink href={menuItemEditHref(it.id)}>Düzenle</ActionMenuLink>
+        <ActionMenuSeparator />
+        <ConfirmButton
+          action={deleteMenuItemAction}
+          hidden={{ id: it.id }}
+          label="Sil"
+          ariaLabel={`Sil: ${it.name}`}
+          variant="menuDanger"
+          title={`"${it.name}" silinsin mi?`}
+          description="Kalem menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Tükendi'ye bas."
+        />
+      </ActionMenu>
+    </span>
+  );
+}
+
+// The table fits its card beside the sidebar: at 1024 px the card is about
+// 720 px wide, so Sıra and Etiket join it from xl (the tags ride under the
+// name below that) and the item's name keeps its width.
+const COLUMNS: DataTableColumn<MenuListRow>[] = [
+  {
+    key: "ad",
+    header: "Kalem",
+    className: "min-w-[12rem]",
+    cell: (it) => (
+      <span className="block min-w-0">
+        <span className="block">{it.name}</span>
+        {it.desc ? (
+          <span className="line-clamp-1 block max-w-md text-xs font-normal text-[var(--admin-text-soft)]">
+            {it.desc}
+          </span>
+        ) : null}
+        {it.tags.length > 0 ? (
+          <span className="mt-1 block xl:hidden">
+            <MenuTags tags={it.tags} />
+          </span>
+        ) : null}
+      </span>
+    ),
+  },
+  {
+    key: "sira",
+    header: "Sıra",
+    align: "right",
+    hideBelow: "xl",
+    cell: (it) => (
+      <span className="text-[var(--admin-text-soft)]" style={NUMERIC_STYLE}>
+        {String(it.sortOrder).padStart(2, "0")}
+      </span>
+    ),
+  },
+  {
+    key: "etiket",
+    header: "Etiket",
+    hideBelow: "xl",
+    cell: (it) => <MenuTags tags={it.tags} />,
+  },
+  {
+    key: "fiyat",
+    header: "Fiyat",
+    align: "right",
+    className: "whitespace-nowrap",
+    cell: (it) => <Price it={it} />,
+  },
+  {
+    key: "durum",
+    header: "Durum",
+    cell: (it) => <StatusBadge it={it} />,
+  },
+];
+
 export function MenuList({
-  itemsByCategory,
+  groups,
   categoryKeys,
   categoryLabels,
+  emptyTitle = "Bu süzgece uyan kalem yok.",
+  emptyAction = null,
 }: Props) {
   const toast = useToast();
-  // The bulk result is a toast, beside the bar that triggered it (it used to
-  // be a banner at the top of a long page).
-  const [state, formAction, pending] = useActionState(
-    async (prev: BulkMenuActionState, formData: FormData) => {
-      const next = await bulkMenuAction(prev, formData);
-      if (next.ok) {
-        toast.show({
-          message: `${OP_LABEL[next.ok.op] ?? next.ok.op}: ${next.ok.updated} kalem güncellendi.`,
-        });
-      } else if (next.error) {
-        toast.show({ message: next.error, tone: "danger" });
-      }
-      return next;
-    },
+  // The last bulk answer that succeeded: each new one clears the selection
+  // once (bulk.tsx useSelection), so the bar closes after a bulk action.
+  const [state, setState] = useState<{ ok?: unknown }>({});
+  const selection = useSelection({ resetOn: state.ok });
+  // Posted by hand, and a throw answers in place (admin audit CAT-17).
+  const [, formAction, pending] = useActionState(
+    bulkAnswer<BulkMenuActionState>(bulkMenuAction, {
+      tell: (message, tone) => toast.show({ message, tone }),
+      describe: (ok) =>
+        `${OP_LABEL[ok.op] ?? ok.op}: ${ok.updated} kalem güncellendi.`,
+      onOk: (ok) => setState({ ok }),
+    }),
     initialBulkState,
   );
-  // A completed bulk action closes the bar once (bulk.tsx useSelection).
-  const selection = useSelection({ resetOn: state.ok });
-
+  const post = useHandPost(formAction, pending);
   const idsCsv = selection.ids.join(",");
+  const count = selection.count;
 
   return (
     <>
-      <div className="flex flex-col gap-6">
-        {categoryKeys.map((key) => {
-          const items = itemsByCategory[key];
-          const ids = items.map((it) => it.id);
-          return (
-            <div
-              key={key}
-              className="rounded-xl border border-[var(--admin-border)] bg-white p-6 shadow-sm"
-            >
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-neutral-100 pb-3">
-                <div className="flex items-end gap-3">
-                  <SelectAllCheckbox
-                    ids={ids}
-                    selection={selection}
-                    label={`${categoryLabels[key]} - tümünü seç`}
-                  />
-                  <div>
-                    <div
-                      className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {items.length} kalem
-                    </div>
-                    <h2
-                      className="text-2xl"
-                      style={{
-                        fontFamily: "var(--serif), 'Playfair Display', serif",
-                        fontStyle: "italic",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {categoryLabels[key]}
-                    </h2>
+      {groups.length === 0 ? (
+        <EmptyState
+          title={emptyTitle}
+          action={
+            emptyAction ? (
+              <Link href={emptyAction.href} className={BUTTON.ghost}>
+                {emptyAction.label}
+              </Link>
+            ) : null
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-8">
+          {groups.map(({ key, rows }) => (
+            <section key={key} aria-labelledby={`menu-cat-${key}`}>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className={EYEBROW} style={MONO_STYLE}>
+                    {rows.length} kalem
                   </div>
+                  <h2
+                    id={`menu-cat-${key}`}
+                    className="text-xl font-semibold text-[var(--admin-text)]"
+                  >
+                    {categoryLabels[key]}
+                  </h2>
                 </div>
                 <Link
                   href={`/admin/menu/yeni?cat=${key}`}
-                  className="text-xs text-neutral-700 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                  className={BUTTON.link}
                 >
                   + Bu kategoriye ekle
                 </Link>
               </div>
-
-              {items.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                  Bu kategoride kalem yok.
-                </p>
-              ) : (
-                <>
-                  {/* Mobile cards */}
-                  <ul className="flex flex-col gap-3 md:hidden">
-                    {items.map((it) => {
-                      const isSelected = selection.has(it.id);
-                      return (
-                        <li
-                          key={it.id}
-                          className={`rounded-lg border p-3 ${
-                            isSelected
-                              ? "border-neutral-900 bg-neutral-50"
-                              : "border-[var(--admin-border)]"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <RowCheckbox
-                              id={it.id}
-                              selection={selection}
-                              label={it.name}
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="font-medium text-neutral-900">
-                                    {it.name}
-                                  </div>
-                                  <div className="line-clamp-2 text-xs text-neutral-500">
-                                    {it.desc}
-                                  </div>
-                                </div>
-                                <div
-                                  className="shrink-0 text-right text-sm"
-                                  style={{
-                                    fontFamily: "var(--mono), monospace",
-                                  }}
-                                >
-                                  {formatTRY(it.priceMinor)}
-                                  {it.priceMinorL > 0 && (
-                                    <div className="text-[11px] text-neutral-500">
-                                      L · {formatTRY(it.priceMinorL)}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="mt-2 flex flex-wrap items-center gap-1">
-                                <span
-                                  className="text-[10px] text-neutral-500"
-                                  style={{
-                                    fontFamily: "var(--mono), monospace",
-                                  }}
-                                >
-                                  Sıra {String(it.sortOrder).padStart(2, "0")}
-                                </span>
-                                {it.isActive ? (
-                                  <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
-                                    Aktif
-                                  </span>
-                                ) : (
-                                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                                    Pasif
-                                  </span>
-                                )}
-                                {it.tags.map((t) => (
-                                  <span
-                                    key={t}
-                                    className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.16em] text-neutral-600 uppercase"
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                <Link
-                                  href={`/admin/menu/${it.id}/duzenle`}
-                                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                                >
-                                  Düzenle
-                                </Link>
-                                <SoldOutToggle item={it} />
-                                <DeleteMenuItem item={it} />
-                              </div>
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-
-                  {/* Desktop table */}
-                  <div className="hidden overflow-x-auto md:block">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr
-                          className="text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          <th className="w-8 py-2 pr-3" />
-                          <th className="py-2 pr-3">Sıra</th>
-                          <th className="pr-3">Kalem</th>
-                          <th className="pr-3">Etiket</th>
-                          <th className="pr-3 text-right">Fiyat</th>
-                          <th className="pr-3">Durum</th>
-                          <th className="text-right">İşlem</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((it) => {
-                          const isSelected = selection.has(it.id);
-                          return (
-                            <tr
-                              key={it.id}
-                              className={`border-t border-neutral-100 transition-colors ${
-                                isSelected
-                                  ? "bg-neutral-50"
-                                  : "hover:bg-neutral-50/60"
-                              }`}
-                            >
-                              <td className="py-3 pr-3 align-middle">
-                                <RowCheckbox
-                                  id={it.id}
-                                  selection={selection}
-                                  label={it.name}
-                                />
-                              </td>
-                              <td
-                                className="py-3 pr-3 text-neutral-500"
-                                style={{ fontFamily: "var(--mono), monospace" }}
-                              >
-                                {String(it.sortOrder).padStart(2, "0")}
-                              </td>
-                              <td className="pr-3">
-                                <div className="font-medium text-neutral-900">
-                                  {it.name}
-                                </div>
-                                <div className="line-clamp-1 max-w-md text-xs text-neutral-500">
-                                  {it.desc}
-                                </div>
-                              </td>
-                              <td className="pr-3">
-                                {it.tags.length === 0 ? (
-                                  <span className="text-xs text-neutral-400">
-                                    -
-                                  </span>
-                                ) : (
-                                  <div className="flex flex-wrap gap-1">
-                                    {it.tags.map((t) => (
-                                      <span
-                                        key={t}
-                                        className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.16em] text-neutral-600 uppercase"
-                                      >
-                                        {t}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </td>
-                              <td
-                                className="pr-3 text-right"
-                                style={{ fontFamily: "var(--mono), monospace" }}
-                              >
-                                {formatTRY(it.priceMinor)}
-                                {it.priceMinorL > 0 && (
-                                  <div className="text-[11px] text-neutral-500">
-                                    L · {formatTRY(it.priceMinorL)}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="pr-3">
-                                {it.isActive ? (
-                                  <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
-                                    Aktif
-                                  </span>
-                                ) : (
-                                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                                    Pasif
-                                  </span>
-                                )}
-                              </td>
-                              <td className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Link
-                                    href={`/admin/menu/${it.id}/duzenle`}
-                                    className="inline-flex items-center justify-center rounded-full border border-[var(--admin-border)] px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                                  >
-                                    Düzenle
-                                  </Link>
-                                  <SoldOutToggle item={it} />
-                                  <DeleteMenuItem item={it} />
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+              <DataTable
+                caption={categoryLabels[key]}
+                columns={COLUMNS}
+                rows={rows}
+                rowKey={(it) => it.id}
+                rowHref={(it) => menuItemHref(it.id)}
+                rowLabel={(it) => it.name}
+                selection={selection}
+                rowActions={(it) => <RowActions it={it} />}
+                // A phone card: the name gets the width (the price beside
+                // it squeezed "Çilekli Matcha Latte" to a word per line),
+                // then the status and tags, then the price.
+                mobileCard={(it) => (
+                  <div className="flex flex-col gap-2">
+                    <div className="min-w-0">
+                      <Link
+                        href={menuItemHref(it.id)}
+                        className="font-medium text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
+                      >
+                        {it.name}
+                      </Link>
+                      {it.desc ? (
+                        <span className="mt-0.5 line-clamp-2 block text-xs text-[var(--admin-text-soft)]">
+                          {it.desc}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="flex flex-wrap items-center gap-1">
+                      <StatusBadge it={it} />
+                      {it.tags.length > 0 ? <MenuTags tags={it.tags} /> : null}
+                    </span>
+                    <span className="text-sm">
+                      <Price it={it} row />
+                    </span>
                   </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                )}
+                empty={
+                  <p className="rounded-2xl border border-dashed border-[var(--admin-border)] px-4 py-6 text-sm text-[var(--admin-text-soft)]">
+                    Bu kategoride kalem yok.
+                  </p>
+                }
+              />
+            </section>
+          ))}
+        </div>
+      )}
 
-      <form action={formAction}>
-        <input type="hidden" name="ids" value={idsCsv} />
-        <BulkActionBar selection={selection} pending={pending}>
+      <BulkActionBar selection={selection} pending={pending}>
+        {/* `contents`: the buttons wrap with the "Sil" beside them, the
+            category picker on the last row. */}
+        <form
+          action={post.action}
+          onSubmit={post.onSubmit}
+          className="contents"
+        >
+          <input type="hidden" name="ids" value={idsCsv} />
           <button
             type="submit"
             name="op"
             value="activate"
             disabled={pending}
-            className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-40"
+            className={BUTTON.ghost}
           >
-            Aktif yap
+            Satışa aç
           </button>
           <button
             type="submit"
             name="op"
             value="deactivate"
             disabled={pending}
-            className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-40"
+            className={BUTTON.ghost}
           >
             Gizle
           </button>
-          <div className="flex items-center gap-1">
+          <span className="order-last flex items-center gap-2">
             <select
               name="value"
               defaultValue=""
-              className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-[var(--admin-primary)] focus:outline-none"
+              aria-label="Taşınacak kategori"
+              className="min-h-[44px] rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 text-sm text-[var(--admin-text)] focus:border-[var(--admin-primary)] focus:outline-none"
             >
               <option value="" disabled>
                 Kategoriye taşı…
@@ -350,73 +381,31 @@ export function MenuList({
               name="op"
               value="set_category"
               disabled={pending}
-              className="rounded-full bg-[var(--admin-primary)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+              className={BUTTON.primary}
             >
               Taşı
             </button>
-          </div>
-          <button
-            type="submit"
-            name="op"
-            value="delete"
-            disabled={pending}
-            onClick={(e) => {
-              if (
-                !confirm(
-                  `${selection.count} kalemi silmek istediğine emin misin?`,
-                )
-              ) {
-                e.preventDefault();
-              }
-            }}
-            className="rounded-full border border-red-200 px-3 py-1.5 text-xs text-red-700 hover:border-red-600 hover:bg-red-600 hover:text-white disabled:opacity-40"
-          >
-            Sil
-          </button>
-        </BulkActionBar>
-      </form>
+          </span>
+        </form>
+        <ActionModal
+          action={async (_prev, formData) => {
+            const next = await bulkMenuAction({}, formData);
+            if (next.ok) return actionOk(`Silindi: ${next.ok.updated} kalem.`);
+            return actionError(next.error ?? "Silinemedi.");
+          }}
+          title={`${count} kalem silinsin mi?`}
+          description="Seçili kalemler menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Gizle'ye bas."
+          trigger="Sil"
+          triggerVariant="danger"
+          tone="danger"
+          submitLabel="Sil"
+          confirmPhrase={String(count)}
+          confirmLabel={`Onaylamak için ${count} yaz`}
+          hidden={{ ids: idsCsv, op: "delete" }}
+          onSuccess={(result) => setState({ ok: result })}
+          size="sm"
+        />
+      </BulkActionBar>
     </>
   );
 }
-
-/**
- * One click, no tick and no bulk bar: "Tükendi" hides the item from the menu
- * (site and app), "Satışa aç" brings it back. The answer is a toast.
- */
-function SoldOutToggle({ item }: { item: AdminMenuItem }) {
-  return (
-    <ActionButton
-      action={setMenuItemActiveAction}
-      hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
-      variant={item.isActive ? "ghost" : "primary"}
-      ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
-      title={
-        item.isActive
-          ? "Menüden gizle: tükendi ya da satışta değil"
-          : "Menüde yeniden göster"
-      }
-    >
-      {item.isActive ? "Tükendi" : "Satışa aç"}
-    </ActionButton>
-  );
-}
-
-/** A row's "Sil": a confirm dialog, then a toast. */
-function DeleteMenuItem({ item }: { item: AdminMenuItem }) {
-  return (
-    <ConfirmButton
-      action={deleteMenuItemAction}
-      hidden={{ id: item.id }}
-      label="Sil"
-      title={`"${item.name}" silinsin mi?`}
-      description="Kalem menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Tükendi'ye bas."
-    />
-  );
-}
-
-const OP_LABEL: Record<string, string> = {
-  activate: "Aktif yapıldı",
-  deactivate: "Gizlendi",
-  delete: "Silindi",
-  set_category: "Kategori değiştirildi",
-};

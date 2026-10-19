@@ -511,9 +511,12 @@ describe("catalog lists", () => {
     const { MenuList } = await import("@/components/admin/menu-list");
     const html = renderToStaticMarkup(
       createElement(MenuList, {
-        itemsByCategory: {
-          matcha: [item({}), item({ id: "mnu-0002", isActive: false })],
-        },
+        groups: [
+          {
+            key: "matcha",
+            rows: [item({}), item({ id: "mnu-0002", isActive: false })],
+          },
+        ],
         categoryKeys: ["matcha"],
         categoryLabels: { matcha: "Matcha bar" },
       } as never),
