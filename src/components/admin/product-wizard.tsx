@@ -865,7 +865,7 @@ export function ProductWizard({
                           setLabel((was) => ({ ...was, [f.key]: e.target.value }))
                         }
                         maxLength={f.max}
-                        rows={f.key === "ingredients" || f.key === "nutrition" ? 4 : 2}
+                        rows={f.key === "nutrition" ? 7 : f.key === "ingredients" ? 4 : 2}
                       />
                     ) : (
                       <TextInput
