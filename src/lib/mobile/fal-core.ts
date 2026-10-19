@@ -18,7 +18,11 @@
  *   - The feature is OFF unless `FAL_AI_ENABLED=true` AND the chosen
  *     provider's key is set. The key alone does not switch it on: the
  *     explicit-consent text (Açık Rıza Metni R12) and the transfer abroad
- *     want a lawyer's reading and a standard contract first.
+ *     want a standard contract first.
+ *   - It stays OFF, whatever the environment says, until the standard
+ *     contract with the recipient is signed and filed with the Kurum and
+ *     that is recorded in `fal-safeguard.ts` (`falTransferSafeguardInForce`).
+ *     R12 promises exactly that: no photo before the contract is notified.
  *   - It is also OFF when the chosen provider is not the recipient the
  *     published texts name (`FAL_DISCLOSED_PROVIDER`): a photo sent to a
  *     company the member was never told about is a transfer abroad without
@@ -33,6 +37,11 @@
  *     discount, a free drink, a gift, points, a coupon) is not shown
  *     (Tüketici Kanunu md. 61); nor one that is too long or empty.
  */
+
+import { FAL_TRANSFER_SAFEGUARD, type FalTransferSafeguard } from "./fal-safeguard";
+import { istanbulParts } from "./loyalty-core";
+
+export { FAL_TRANSFER_SAFEGUARD, type FalTransferSafeguard } from "./fal-safeguard";
 
 export const FAL_FEATURE = "fal-ai";
 
@@ -125,11 +134,41 @@ export function falApiKey(env: Env, provider: FalProvider): string {
   return env[FAL_PROVIDER_INFO[provider].keyEnv]?.trim() ?? "";
 }
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A real calendar day written YYYY-MM-DD ("2026-02-30" is not one). */
+function isCalendarDay(value: string): boolean {
+  if (!ISO_DAY.test(value)) return false;
+  const at = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(at) && new Date(at).toISOString().slice(0, 10) === value;
+}
+
 /**
- * On only with the explicit switch AND the chosen provider's key, and only
- * when that provider is the recipient the texts name.
+ * Whether the standard contract that carries the photo abroad is in force
+ * today: both days are real days, the contract was signed on or before it
+ * was filed, the filing day is today or earlier on the Istanbul calendar
+ * (kural 22: the server's UTC clock reads yesterday until 03:00), and the
+ * filing has a receipt. Anything less - the empty record included - is no.
  */
-export function falAiEnabled(env: Env): boolean {
+export function falTransferSafeguardInForce(
+  now: Date = new Date(),
+  safeguard: FalTransferSafeguard = FAL_TRANSFER_SAFEGUARD,
+): boolean {
+  const { signedOn, notifiedOn, receipt } = safeguard;
+  if (!isCalendarDay(signedOn) || !isCalendarDay(notifiedOn)) return false;
+  if (signedOn > notifiedOn) return false;
+  if (receipt.trim() === "") return false;
+  const today = istanbulParts(now.toISOString())?.dayKey;
+  return today !== undefined && notifiedOn <= today;
+}
+
+/**
+ * On only with the explicit switch AND the chosen provider's key, only when
+ * that provider is the recipient the texts name, and only once the standard
+ * contract for the transfer is signed and notified (`fal-safeguard.ts`).
+ */
+export function falAiEnabled(env: Env, now: Date = new Date()): boolean {
+  if (!falTransferSafeguardInForce(now)) return false;
   if (env.FAL_AI_ENABLED?.trim().toLowerCase() !== "true") return false;
   const provider = falProvider(env);
   return provider === FAL_DISCLOSED_PROVIDER && falApiKey(env, provider) !== "";

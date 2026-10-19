@@ -18,6 +18,7 @@ import {
   falModel,
   falProvider,
   falRequestBody,
+  falTransferSafeguardInForce,
   parseFalReply,
   responseText,
   visitsWord,
@@ -310,14 +311,18 @@ function errorName(err: unknown): string {
  * The route asks `falAiEnabled` first. This function, the only one that sends
  * the photo, holds the recipient rule too: a provider the published texts do
  * not name (`FAL_DISCLOSED_PROVIDER`) is asked nothing, whoever calls it and
- * whatever the environment says.
+ * whatever the environment says. So does the transfer rule: until the
+ * standard contract is signed and notified (`fal-safeguard.ts`) nothing is
+ * sent at all, as R12 promises.
  */
 export async function readCupWithAI(
   jpegBase64: string,
   context: FalContext,
   env: Env = process.env,
   fetcher: typeof fetch = fetch,
+  now: Date = new Date(),
 ): Promise<FalAiOutcome> {
+  if (!falTransferSafeguardInForce(now)) return { ok: false, reason: "failed" };
   const provider = falProvider(env);
   if (!provider || provider !== FAL_DISCLOSED_PROVIDER) return { ok: false, reason: "failed" };
   const model = falModel(env, provider);

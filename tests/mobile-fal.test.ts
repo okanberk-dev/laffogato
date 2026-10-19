@@ -17,6 +17,13 @@ import {
   visitsWord,
 } from "@/lib/mobile/fal-core";
 
+// The standard contract's record as the enabling PR will fill it: these
+// tests are about a reading that is switched on. With the shipped, empty
+// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+vi.mock("@/lib/mobile/fal-safeguard", () => ({
+  FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
+}));
+
 /**
  * Karar 177 - fA'L read by AI. The rules that make it lawful are tested
  * here rather than trusted: off without the key AND the switch, no identity

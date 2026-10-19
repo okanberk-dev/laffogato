@@ -41,6 +41,13 @@ vi.mock("@/lib/db", () => ({
   TABLES: { falReadings: "fal_readings", featureConsents: "feature_consents", falReports: "fal_reports" },
 }));
 
+// The standard contract's record as the enabling PR will fill it: these
+// tests are about a reading that is switched on. With the shipped, empty
+// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+vi.mock("@/lib/mobile/fal-safeguard", () => ({
+  FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
+}));
+
 const { readCupWithAI } = await import("@/lib/mobile/fal");
 
 afterEach(() => {

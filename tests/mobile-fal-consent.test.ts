@@ -29,6 +29,13 @@ function matches(row: Row, filters: Record<string, unknown>) {
   return Object.entries(filters).every(([k, v]) => (row as Record<string, unknown>)[k] === v);
 }
 
+// The standard contract's record as the enabling PR will fill it: these
+// tests are about a reading that is switched on. With the shipped, empty
+// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+vi.mock("@/lib/mobile/fal-safeguard", () => ({
+  FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
+}));
+
 vi.mock("@/lib/db", () => ({
   getDb: () => ({
     from: (table: string) => {
