@@ -70,3 +70,33 @@ describe(FILE, () => {
     }
   });
 });
+
+describe("20261019120000_clear_card_user_keys_again.sql", () => {
+  // The 18-19 Ekim incident: an older deployment served production for a
+  // night and minted keys again after the first clear had run.
+  const AGAIN = "20261019120000_clear_card_user_keys_again.sql";
+  const again = readFileSync(join(DIR, AGAIN), "utf8")
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("--"))
+    .join("\n")
+    .trim();
+
+  it("runs once, empties only the key, and is bundled after the first clear", () => {
+    expect(again).toMatch(
+      new RegExp(
+        `not exists \\(\\s*select 1\\s+from public\\._migrations as applied\\s+where applied\\.name = '${AGAIN.replace(/\./g, "\\.")}'\\s*\\)`,
+      ),
+    );
+    expect(again).toMatch(
+      /^update public\.customers\s+set "cardUserKey" = ''\s+where "cardUserKey" <> ''/,
+    );
+    expect(again.split(";").filter((s) => s.trim())).toHaveLength(1);
+    expect(again).not.toMatch(/updatedAt|insert into public\._migrations/);
+    expect(again).not.toMatch(/\b(delete|drop|alter|truncate)\b/i);
+    expect(bundle).toContain(`-- ${AGAIN}`);
+    const names = readdirSync(DIR)
+      .filter((n) => n.endsWith(".sql"))
+      .sort();
+    expect(names.indexOf(AGAIN)).toBeGreaterThan(names.indexOf(FILE));
+  });
+});
