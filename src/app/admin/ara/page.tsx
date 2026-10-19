@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { getAdminSession } from "@/lib/admin/auth";
-import { withDenied } from "@/lib/admin/nav-match";
-import { landingPathFor } from "@/lib/admin/roles";
+import { deniedPathFor } from "@/lib/admin/roles";
 import { searchSectionsFor, type SearchSection } from "@/lib/admin/search-core";
 
 import { AdminSearchResults } from "./search-results";
@@ -32,7 +31,7 @@ export default async function AdminSearchPage() {
   if (!session) redirect("/admin/giris");
   const sections = searchSectionsFor(session.role);
   if (sections.length === 0) {
-    redirect(withDenied(landingPathFor(session.role)));
+    redirect(deniedPathFor(session.role));
   }
   const hints = sections.map((s) => SECTION_HINTS[s]).join("; ");
 

@@ -20,13 +20,25 @@ export const DEFAULT_SORT_PARAM = "sirala";
 export const DEFAULT_DIR_PARAM = "yon";
 export const DEFAULT_PAGE_PARAM = "sayfa";
 
-/** A copy of the params as URLSearchParams, keeping repeated keys. */
+/**
+ * Params that are a one-time message, not a view: `denied` is requireRole's
+ * "Bu sayfaya yetkin yok" (roles.ts `deniedPathFor`). Personel lands on a
+ * list (open orders), and the list's tabs, sort, pages and filters are built
+ * from the page's params: the next click would have said it again.
+ */
+const ONE_TIME_PARAMS: ReadonlySet<string> = new Set(["denied"]);
+
+/**
+ * A copy of the params as URLSearchParams, keeping repeated keys and
+ * dropping the one-time ones, so no link or filter carries them on.
+ */
 export function toSearchParams(sp: SearchParamsInput): URLSearchParams {
-  if (!sp) return new URLSearchParams();
-  if (sp instanceof URLSearchParams) return new URLSearchParams(sp);
   const out = new URLSearchParams();
-  for (const [key, value] of Object.entries(sp)) {
-    if (value === undefined) continue;
+  if (!sp) return out;
+  const entries: Iterable<[string, string | string[] | undefined]> =
+    sp instanceof URLSearchParams ? sp.entries() : Object.entries(sp);
+  for (const [key, value] of entries) {
+    if (value === undefined || ONE_TIME_PARAMS.has(key)) continue;
     if (Array.isArray(value)) for (const v of value) out.append(key, v);
     else out.append(key, value);
   }
