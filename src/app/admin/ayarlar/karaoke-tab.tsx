@@ -141,7 +141,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="karaokeLateRefundPercent"
               label="Geç iptalde iade (%)"
-              hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir: şimdilik 0 ya da 100. 0: geç iptal kabul edilmez."
+              hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir: 0 ile 100 arası. 0: geç iptal kabul edilmez."
             >
               <TextInput
                 name="karaokeLateRefundPercent"
@@ -195,7 +195,9 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
               Kısmi iade POS&apos;a otomatik gönderilemiyor: geç iptalde
               rezervasyon iptal olur, iade edilecek tutar panelde ve e-postayla
               sana bildirilir; tutarı PayNkolay panelinden iade edip &quot;Elle
-              iade edildi&quot; ile kaydedersin.
+              iade edildi&quot; ile kaydedersin. Geç iptal edilen saat başka bir
+              misafire satılırsa o saat için misafirde kalan tutar da aynı yolla
+              iade edilir; panel bunu kendisi hesaplar ve sana yazar.
             </p>
           ) : null}
         </div>

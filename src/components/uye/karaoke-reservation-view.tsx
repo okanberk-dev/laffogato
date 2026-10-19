@@ -61,6 +61,8 @@ export interface KaraokeViewReservation {
   cancellationRules?: string[] | null;
   /** A late cancel's share, owed or refunded; null: the whole payment. */
   refundMinor?: number | null;
+  /** A free hour the köşk gave to make good its late cancel of this code. */
+  makeGoodFor?: string | null;
 }
 
 export type KaraokeViewNotice = { tone: "ok" | "warn" | "error"; text: string };
@@ -232,7 +234,11 @@ export function KaraokeReservationView({
         </div>
         <div>
           <dt>Ödeme</dt>
-          <dd>{PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus}</dd>
+          <dd>
+            {r.makeGoodFor && r.paymentStatus === "none"
+              ? "Telafi saati, senden ödeme alınmaz"
+              : (PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus)}
+          </dd>
         </div>
         {r.status === "cancelled" && isPartialRefund(r) ? (
           <div>

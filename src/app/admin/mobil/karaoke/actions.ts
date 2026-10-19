@@ -24,9 +24,12 @@ import {
 } from "@/lib/mobile/karaoke";
 import {
   cancelKaraokeReservation,
+  giveKaraokeMakeGoodHour,
+  recordKaraokeMakeGoodPaid,
   retryKaraokeRefund,
   settleKaraokeRefundByHand,
   type CancelKaraokeFailure,
+  type KaraokeMakeGoodFailure,
 } from "@/lib/mobile/karaoke-payment";
 import {
   isBusinessCause,
@@ -37,9 +40,14 @@ import {
   type KaraokeCancelCause,
   type KaraokeRequestChannel,
 } from "@/lib/mobile/karaoke-cancel-cause";
+import {
+  formatReservationDate,
+  formatReservationTime,
+} from "@/lib/mobile/karaoke-format";
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
 import { formatTRYMinor } from "@/lib/utils/commerce";
+import { parseMoneyInput } from "@/lib/utils/format";
 
 const FAILURE_MESSAGE: Record<SetReservationStatusFailure, string> = {
   not_found: "Rezervasyon bulunamadı. Silinmiş olabilir; sayfayı yenile.",
@@ -386,8 +394,12 @@ export async function cancelReservationAction(
     : result.refundOwedMinor
       ? `Rezervasyon iptal edildi. Kurala göre ${formatTRYMinor(result.refundOwedMinor)} iade edilecek: PayNkolay panelinden iade edip "Elle iade edildi" ile kaydet.`
       : "Rezervasyon iptal edildi.";
+  // A late köşk cancel: the guest is offered a make-good (karaoke terms §8).
+  const makeGood = result.makeGood
+    ? ` Misafire ${formatTRYMinor(result.makeGood.minor)} telafi önerildi (ücretsiz saat ${formatReservationDate(result.makeGood.until)} tarihine kadar ya da banka hesabına ödeme); isteyince rezervasyonun sayfasından kaydet.`
+    : "";
   const answer = okWithNotice(
-    done,
+    `${done}${makeGood}`,
     result.notified,
     recipient(result.reservation),
   );
@@ -472,6 +484,119 @@ export async function settleKaraokeRefundAction(
     "İade kaydedildi.",
     result.notified,
     recipient(result.reservation),
+  );
+}
+
+const MAKE_GOOD_MESSAGE: Record<KaraokeMakeGoodFailure, string> = {
+  not_found: "Rezervasyon bulunamadı. Sayfayı yenile.",
+  not_open:
+    "Bu rezervasyonda kullanılabilecek bir telafi yok ya da telafi zaten kullanıldı. Sayfayı yenile.",
+  expired:
+    "Ücretsiz saatin son günü geçti; telafi artık yalnız banka hesabına ödenebilir.",
+  invalid: "Girilen bilgi geçersiz.",
+  slot_taken: "Bu saat dolu. Başka bir saat seç.",
+  raced:
+    "Bu telafiyi az önce başka biri kullandı ya da saat bu arada doldu. Sayfayı yenile.",
+};
+
+const DaySchema = z
+  .string({ error: "Tarih gerekli." })
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tarihi gün olarak gir.");
+
+/**
+ * "Telafi saati ver": a free hour of the same length for the guest of a
+ * booking the köşk cancelled late (karaoke terms §8). Needs the refund
+ * right, like every make-good: it gives away an hour worth money.
+ */
+export async function giveKaraokeMakeGoodHourAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("karaoke");
+  if (!canAccess("refunds", session.role)) return actionError(NO_REFUND_RIGHT);
+  const id = readId(formData);
+  if (!id) return actionError("Rezervasyon numarası eksik.");
+  const day = DaySchema.safeParse(formData.get("tarih"));
+  if (!day.success) {
+    const message = day.error.issues[0]?.message ?? "Tarih geçersiz.";
+    return actionError(message, { tarih: message });
+  }
+  const hourRaw = String(formData.get("saat") ?? "").trim();
+  if (!/^\d{1,2}$/.test(hourRaw)) {
+    const message = "Başlangıç saatini seç.";
+    return actionError(message, { saat: message });
+  }
+  const result = await giveKaraokeMakeGoodHour(
+    id,
+    { date: day.data, startHour: Number(hourRaw) },
+    session.email,
+  );
+  revalidate(id);
+  if (!result.ok) {
+    if (result.reason === "invalid") {
+      const message = result.message ?? MAKE_GOOD_MESSAGE.invalid;
+      return actionError(message, { tarih: message });
+    }
+    if (result.reason === "slot_taken") {
+      return actionError(MAKE_GOOD_MESSAGE.slot_taken, {
+        saat: MAKE_GOOD_MESSAGE.slot_taken,
+      });
+    }
+    return actionError(MAKE_GOOD_MESSAGE[result.reason]);
+  }
+  const hour = result.reservation;
+  revalidate(hour.id);
+  return okWithNotice(
+    `Telafi saati verildi: ${hour.id.toUpperCase()}, ${formatReservationDate(hour.date)} ${formatReservationTime(hour.startHour, hour.hours)}.`,
+    result.notified,
+    recipient(hour),
+  );
+}
+
+/**
+ * "Telafi ödendi": the make-good paid to the guest's own bank account. The
+ * transfer's day and amount are recorded with a note; the IBAN is not (it
+ * stays in the guest's e-mail and with the receipt).
+ */
+export async function recordKaraokeMakeGoodPaidAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("karaoke");
+  if (!canAccess("refunds", session.role)) return actionError(NO_REFUND_RIGHT);
+  const id = readId(formData);
+  if (!id) return actionError("Rezervasyon numarası eksik.");
+  const day = DaySchema.safeParse(formData.get("havaleTarihi"));
+  if (!day.success) {
+    const message = day.error.issues[0]?.message ?? "Tarih geçersiz.";
+    return actionError(message, { havaleTarihi: message });
+  }
+  const minor = parseMoneyInput(String(formData.get("tutar") ?? ""));
+  if (minor === null || minor <= 0) {
+    const message = "Havale tutarını yaz (ör. 2.000,00).";
+    return actionError(message, { tutar: message });
+  }
+  const reason = readReason(formData, true);
+  if (!reason.ok) return reason.result;
+  const result = await recordKaraokeMakeGoodPaid(
+    id,
+    { paidOn: day.data, amountMinor: minor },
+    session.email,
+    undefined,
+    { reason: reason.reason },
+  );
+  revalidate(id);
+  if (!result.ok) {
+    if (result.reason === "invalid") {
+      const message = result.message ?? MAKE_GOOD_MESSAGE.invalid;
+      const field = /tarih/i.test(message) ? "havaleTarihi" : "tutar";
+      return actionError(message, { [field]: message });
+    }
+    return actionError(MAKE_GOOD_MESSAGE[result.reason]);
+  }
+  return actionOk(
+    `Telafi ödendi olarak kaydedildi: ${formatTRYMinor(minor)}, ${formatReservationDate(day.data)}.`,
   );
 }
 
