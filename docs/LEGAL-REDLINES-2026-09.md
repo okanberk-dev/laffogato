@@ -2725,6 +2725,92 @@ Ayrı PR'ın notları:
 - O PR birleşince `tests/register-consent.test.ts`'teki koşullu kontrol
   kesin bir kontrole döner ve bu alt bölüm "Düzeltilenler"e taşınır.
 
+## 23. Y9 - Mağaza: paketli gıda etiketi ve tarihli indirim (19 Eki 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-shop-label-and-discount`
+> (X-TGK-SHOP, X-DISCOUNT, karar OP-COMPARE-AT). Operatör kararı (18 Eki
+> 2026): avukat turu yok, karar birincil kaynaklarla verildi. Sözleşme
+> metinleri (`content.ts`) değişmedi; `LEGAL_UPDATED` ve
+> `KARAOKE_LEGAL_UPDATED` yerinde kaldı. ÖBF §5'in ürün sayfasında
+> verildiğini söylediği etiket bilgileri artık ürünün kendi alanlarından
+> gelir.
+
+### 23.1 Neden
+
+- Ürün modelinde açıklama, kargo ağırlığı ve tek bir `nuts` etiketi
+  vardı; içindekiler, 14 alerjen grubu, net miktar, saklama koşulu,
+  işletmeci, kayıt numarası, menşe ve beslenme bildirimi yoktu.
+- "Eski fiyat" panelde serbestçe, tarihsiz yazılıyordu; Bambu Chasen 750 TL
+  satışta, üstü çizili 999 TL ve "%25 indirim" rozetiyle, bitişi olmadan
+  gösteriliyordu.
+
+### 23.2 Kararlar
+
+- **Etiket alanları** (`src/lib/shop/food-label.ts`): net miktar,
+  içindekiler, beslenme bildirimi, saklama koşulu, kullanım talimatı, menşe
+  ülkesi, gıda işletmecisinin adı ve adresi, işletme kayıt / onay numarası;
+  alerjenler menünün 14 Ek-1 grubu ve üç durumuyla (girilmedi / hiçbiri /
+  gruplar). Hiçbiri tahmin edilmez: her ürün boş başlar, operatör ambalajdan
+  yazar. Son tüketim tarihi alınmaz (m.17/2-a onu satın almadan önce
+  istemez; ambalajda durur).
+- Gıda rafındaki üründe içindekiler ya da alerjenler girilmemişse sayfa
+  "siparişten önce bize sor" satırını tutar (m.17/2-a'nın "başka uygun
+  araç" yolu); girildiğinde satır kalkar.
+- **İndirim** (`src/lib/shop/discount.ts`): eski fiyat yalnız başlangıç ve
+  bitiş günüyle kaydedilir; başlangıçtan önceki 10 İstanbul gününde bu
+  ürünün çevrim içi satış fiyatı geçmişindeki en düşük fiyata eşit değilse
+  reddedilir ve doğru tutar söylenir. Fiyat geçmişi her fiyat değişikliğinde
+  veritabanı tetikleyicisiyle yazılır (köşk fiyatı esas alınmaz, m.14/5);
+  geçmişi 10 günü kapsamayan üründe indirim en erken hangi gün
+  başlayabileceği söylenerek reddedilir; yeni ürüne eski fiyat girilmez.
+- Yeni indirim bugün başlar: ileri tarihli başlangıçta düşürülen fiyat
+  rozetsiz uygulanır ve kendi 10 gününe girer, geriye tarihli başlangıç da
+  olmayan bir indirim günü ilan eder. Süren indirim kendi başlangıcıyla
+  yeniden kaydedilebilir.
+- Fiyat farkı olan varyantı bulunan üründe eski fiyat reddedilir: geçmiş
+  ürün fiyatını tutar, varyantınkini değil.
+- Tarihsiz, tarih aralığı dışındaki ya da satış fiyatından yüksek olmayan
+  eski fiyat hiçbir yüzeyde gösterilmez (ürün sayfası, hızlı bakış, kart,
+  öne çıkan set, "İndirimde" süzgeci, Google verisi, paylaşım kartı, `GET
+  /api/mobile/v1/shop`). Migration tarihsiz eski fiyatları 0 yapar
+  (OP-COMPARE-AT'in Bambu Chasen adımı, bütün ürünlerde). CSV içe aktarma
+  eski fiyatı yalnız aynen bırakır ya da siler.
+- Uygulama (`compareAtPriceMinor` v1'de zorunlu sayı, 0 = indirim yok)
+  tarihleri isteğe bağlı yeni alanlarla alır; tarihli rozeti çizen sürüm
+  asgari sürüm olana kadar operatör ürünlere eski fiyat girmez.
+
+### 23.3 Değişen cümleler
+
+Sözleşme metni değişmedi. Yeni müşteri cümleleri:
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Ürün sayfası ve hızlı bakış, üstü çizili fiyatın altı | (yoktu) | İndirim <gün ay yıl> - <gün ay yıl> tarihleri arasında geçerli |
+| Mağaza kartı, fiyatın altı | (yoktu) | İndirim <gün> <ay kısaltması> - <gün> <ay kısaltması> |
+| Ürün detayları, alerjenler girilmiş ve hiçbiri yok | (yoktu) | 14 alerjen grubunun hiçbirini içermez |
+| Ürün detayları, içindekiler var, alerjenler girilmemiş | (yoktu) | Alerjen bilgisi: Alerjenler için siparişten önce bize sor: <e-posta> ya da <telefon> |
+
+### 23.4 Operatöre
+
+- Bambu Chasen'in ve diğer ürünlerin eski fiyatı migration ile 0 olur;
+  uygulamanın tarihli rozeti yayına girip asgari sürüm ona çekilene kadar
+  eski fiyat girme (OP-COMPARE-AT).
+- Paketli gıdaların etiketini (`/admin/urunler` → Temel bilgi → Alerjen ve
+  Gıda etiketi) ambalajdan aynen gir; tedarikçi ya da tarif değişince aynı
+  gün güncelle.
+
+### 23.5 Hukuki dayanak
+
+- TGK Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği m.9/1
+  (zorunlu bilgiler a-j), m.17/2-a (uzaktan satışta (e) hariç hepsi satın
+  alma tamamlanmadan önce), m.17/2-b (hepsi teslimde), Ek-1 (14 grup).
+- Ticari Reklam ve Haksız Ticari Uygulamalar Yönetmeliği m.14/1 (indirimden
+  önceki fiyat, başlangıç ve bitiş tarihleri), m.14/3 (mal satışında
+  başlangıçtan önceki 10 günün en düşük fiyatı; RG 1/7/2026-33297,
+  yürürlük 1/8/2026), m.14/5 (yalnız indirimin yapıldığı kanalın fiyatı).
+- Fiyat Etiketi Yönetmeliği m.11/1 (indirimli satışta etikette ve listede
+  indirimli fiyat, indirimden önceki fiyat ve indirim; ispat satıcıda).
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

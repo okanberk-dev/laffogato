@@ -428,7 +428,7 @@ describe("the CSV import cannot start a discount", () => {
 
 describe("the price history", () => {
   const sql = readFileSync(
-    "db/migrations/20261019160100_product_price_history.sql",
+    "db/migrations/20261019170100_product_price_history.sql",
     "utf8",
   );
 
@@ -454,14 +454,14 @@ describe("the price history", () => {
 
   it("is in the bundle the app applies", () => {
     const bundle = readFileSync("db/schema.sql", "utf8");
-    expect(bundle).toContain("20261019160100_product_price_history");
-    expect(bundle).toContain("20261019160000_product_food_label");
+    expect(bundle).toContain("20261019170100_product_price_history");
+    expect(bundle).toContain("20261019170000_product_food_label");
   });
 
   it("adds no long dash", () => {
     for (const file of [
       "src/lib/shop/discount.ts",
-      "db/migrations/20261019160100_product_price_history.sql",
+      "db/migrations/20261019170100_product_price_history.sql",
     ]) {
       expect(readFileSync(file, "utf8"), file).not.toMatch(/[\u2013\u2014]/);
     }
