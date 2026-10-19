@@ -785,14 +785,16 @@ describe("Kayıtlar: the record search's answer", () => {
     expect(core.parseSearchAnswer(null)).toBeNull();
   });
 
-  it("the list row: 'Listede gör' with the route's link, 'Listede ara' to the bare list without it, nothing under five hits", () => {
+  it("the list row: 'Listede ara' to the bare list, with the route's link or without it, nothing under five hits", () => {
+    // The route's link is the bare list (search.ts LIST_HREF has no text
+    // since #181), so the row never says the hits are shown there.
     expect(
       core.listRow({
         section: "orders",
         more: true,
         listHref: "/admin/siparisler",
       }),
-    ).toEqual({ href: "/admin/siparisler", label: "Listede gör" });
+    ).toEqual({ href: "/admin/siparisler", label: "Listede ara" });
     expect(
       core.listRow({ section: "customers", more: true, listHref: null }),
     ).toEqual({ href: "/admin/musteriler", label: "Listede ara" });

@@ -450,18 +450,22 @@ export function parseSearchAnswer(body: unknown): PaletteHitGroup[] | null {
 }
 
 /**
- * The row under a group with more than five hits. With the route's link:
- * "Listede gör". Without it (the text looked like an e-mail or a phone):
- * "Listede ara", the bare list. Never the text in an address, and no
- * "Tüm sonuçlar" row that would put it there.
+ * The row under a group with more than five hits: "Listede ara", the
+ * section's list without the text. The route's link is that bare list too
+ * (search.ts LIST_HREF; the lists keep their search in a cookie since
+ * #181), and it is null when the text looked like an e-mail or a phone.
+ * So the row never promises the hits in the list. Never the text in an
+ * address, and no "Tüm sonuçlar" row that would put it there.
  */
 export function listRow(
   group: Pick<PaletteHitGroup, "section" | "more" | "listHref">,
 ): { href: string; label: string } | null {
-  if (!group.more) return null;
-  return group.listHref
-    ? { href: group.listHref, label: "Listede gör" }
-    : { href: SEARCH_LIST_PATHS[group.section], label: "Listede ara" };
+  return group.more
+    ? {
+        href: group.listHref ?? SEARCH_LIST_PATHS[group.section],
+        label: "Listede ara",
+      }
+    : null;
 }
 
 export type SearchOutcome = "ok" | "expired" | "unavailable";

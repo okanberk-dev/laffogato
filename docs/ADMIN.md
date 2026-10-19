@@ -154,9 +154,8 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
 - **Oluştur**: rolünün açabildiği "Yeni" sayfaları.
 - **Kayıtlar**: 2 harften sonra sipariş, müşteri, ürün, menü ve karaoke
   kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
-  adrese ve kayda düşmez. 5'ten fazlası varsa "Listede gör"; metin e-posta ya
-  da telefona benziyorsa "Listede ara": liste aramasız açılır, metni kutuya
-  sen yazarsın.
+  adrese ve kayda düşmez. 5'ten fazlası varsa "Listede ara": liste aramasız
+  açılır (metin adrese yazılmaz), metni listenin kutusuna sen yazarsın.
 - **Komutlar**: Güvenlik / 2FA ve sipariş sesini aç / kapat (bu tarayıcıda).
 - Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
 - Esc ilk basışta kutuyu boşaltır, ikinci basışta paleti kapatır; telefonda
