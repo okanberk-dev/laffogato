@@ -1150,6 +1150,8 @@ export type ProductPanelView = Pick<
   | "cat"
   | "priceMinor"
   | "compareAtPriceMinor"
+  | "discountStartsAt"
+  | "discountEndsAt"
   | "stock"
   | "lowStockThreshold"
   | "featured"
@@ -1166,7 +1168,7 @@ export async function listProductsForPanel(): Promise<ProductPanelView[]> {
     await sb
       .from(TABLES.products)
       .select(
-        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
+        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, discountStartsAt, discountEndsAt, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
       )
       .order("updatedAt", { ascending: false }),
     "listProductsForPanel",

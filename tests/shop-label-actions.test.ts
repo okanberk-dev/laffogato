@@ -399,3 +399,36 @@ describe("the wizard", () => {
     expect(out).toContain("10 günde");
   });
 });
+
+describe("the panel list", () => {
+  it("strikes a was-price only while its discount runs, as the shop does", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-19T12:00:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const { toProductListRow } = await import("@/lib/admin/products-panel");
+    const struck = (product: Partial<AdminProduct>) =>
+      toProductListRow({ ...STORED, priceMinor: 75_000, ...product } as never, null)
+        .compareAtPriceMinor > 0;
+    const was = { compareAtPriceMinor: 99_900 };
+    // 1-10 Oct ended: still stored until the next save, gone from the shop.
+    expect(
+      struck({
+        ...was,
+        discountStartsAt: "2026-09-30T21:00:00.000Z",
+        discountEndsAt: "2026-10-10T20:59:59.999Z",
+      }),
+    ).toBe(false);
+    // Without days it is shown nowhere.
+    expect(struck(was)).toBe(false);
+    // 19-31 Oct runs.
+    expect(
+      struck({
+        ...was,
+        discountStartsAt: "2026-10-18T21:00:00.000Z",
+        discountEndsAt: "2026-10-31T20:59:59.999Z",
+      }),
+    ).toBe(true);
+  });
+});
