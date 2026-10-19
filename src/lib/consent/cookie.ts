@@ -11,13 +11,29 @@
  * use it.
  */
 
+import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
+
 export const CONSENT_COOKIE = "laffogato_cookie_consent";
 
 /** How long a recorded choice stands before we ask again. */
 export const CONSENT_MAX_AGE_DAYS = 180;
 
-/** The current shape's version. Bumping it re-asks everyone. */
-export const CONSENT_VERSION = 1;
+/**
+ * The version a stored choice must carry to stand; any other is discarded
+ * and the banner asks again.
+ *
+ * It moves with `GOOGLE_TAGS_IN_LEGAL_TEXTS`. A yes stored before 19 Ekim
+ * 2026 was given to texts that described Google's tags, and one stored since
+ * to a panel that showed no tag switch at all. Neither is a choice about the
+ * tags coming back under new texts, and the cookie lives 180 days, so turning
+ * the tags on discards every stored choice instead of letting GTM grant from
+ * it. Bumping both numbers re-asks everyone for a new shape.
+ */
+export function consentVersionFor(tagsInLegalTexts: boolean): number {
+  return tagsInLegalTexts ? 2 : 1;
+}
+
+export const CONSENT_VERSION = consentVersionFor(GOOGLE_TAGS_IN_LEGAL_TEXTS);
 
 export interface ConsentState {
   version: number;
@@ -39,13 +55,16 @@ export const CONSENT_DENIED: Omit<ConsentState, "decidedAt"> = {
   marketing: false,
 };
 
-export function parseConsent(raw: string | undefined): ConsentState | null {
+export function parseConsent(
+  raw: string | undefined,
+  current: number = CONSENT_VERSION,
+): ConsentState | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(decodeURIComponent(raw)) as Partial<ConsentState>;
     // A stored choice from an older shape is not a choice about the current
     // categories, so it is discarded and the banner asks again.
-    if (parsed.version !== CONSENT_VERSION) return null;
+    if (parsed.version !== current) return null;
     if (typeof parsed.decidedAt !== "string") return null;
     return {
       version: CONSENT_VERSION,

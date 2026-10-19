@@ -760,8 +760,15 @@ kısmi iade bekliyor" gider (`late-share-<ref>`).
 Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)
 ya da web `/karaoke` formundan (`bookKaraokeAction`) - köşke düz metin bir
 **iç** e-posta gider (`sendKaraokeOperatorEmail`). Alıcı Ayarlar → Karaoke →
-**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`, 26 Eyl 2026'dan
-beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`).
+**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`); boşsa genel
+iletişim adresi (`settings.email`). 19 Ekim 2026'dan beri boş: bildirim
+şirketin Türkiye'de barındırılan kurumsal kutusuna gider. 26 Eyl 2026'da buraya
+yazılan kişisel Gmail adresi misafirin adını, e-postasını, telefonunu ve notunu
+Google'ın yurt dışındaki sunucularında tutuyordu (KVKK m.9; standart sözleşme
+yok); `20261019160000_karaoke_notify_company_mailbox.sql` onu temizledi.
+Buraya ya da Ayarlar → Bildirimler'e Gmail gibi yurt dışındaki kişisel bir
+kutu yazılmaz; kurumsal kutu da Gmail'e yönlendirilmez ya da Gmail'den
+okunmaz (aktarım geri gelir).
 
 - Müşteri maillerinin tasarımıyla gider (`operasyon-bildirim.html`, bkz.
   `src/lib/email/templates/README.md` "Ekibe giden mailler"); konu satırı
@@ -794,7 +801,12 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
   sipariş panelden görülür; geç gelen "yeni sipariş" maili mutfağı yanıltır.
 - **Alıcılar** (Ayarlar → Bildirimler, yalnız sahip): işaretli rollerdeki aktif
   panel kullanıcıları ve env yöneticileri, ek adresler (en çok 20) ve operasyon
-  adresi; küçük harfe çevrilir, her adres bir kez. Kasiyerin düğmesi kasaya,
+  adresi; küçük harfe çevrilir, her adres bir kez. Gmail, Hotmail, iCloud gibi
+  kişisel bir kutuya hiçbir kaynaktan gitmez (`isConsumerMailbox`; sipariş
+  bilgisi yurt dışındaki bir sunucuda kalırdı, KVKK m.9, LEGAL-REDLINES §15.6):
+  panel böyle bir ek adresi ya da operasyon adresini kaydetmez, env veya panel
+  hesabı böyleyse o hesap atlanır. Hesap silme talebi bildirimi de aynı
+  kuralla gider. Kasiyerin düğmesi kasaya,
   diğerlerininki siparişe gider. Olay kaydı adresleri metin olarak yazmaz:
   sayı, eklenen/çıkarılan adet ve alan adları. E-postayı kapatmak ve açık
   bırakıp kimseye gitmeyecek bir alıcı listesi kaydetmek (aynı

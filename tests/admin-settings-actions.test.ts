@@ -408,14 +408,14 @@ describe("saveKaraokeAction", () => {
       form({
         karaokeHourly: "1000",
         karaokeCapacity: "10",
-        karaokeNotifyEmail: " bizimfutbol9@gmail.com ",
+        karaokeNotifyEmail: " karaoke@nextgenlab.com.tr ",
       }),
     );
     expect(state.message).toBeTruthy();
     expect(updateSettings).toHaveBeenCalledWith({
       karaokeHourlyMinor: 100000,
       karaokeCapacity: 10,
-      karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
       // An unticked checkbox sends nothing: the switch goes off.
       karaokePrepay: false,
     });
@@ -430,7 +430,7 @@ describe("saveKaraokeAction", () => {
       after: {
         karaokeHourlyMinor: 100000,
         karaokeCapacity: 10,
-        karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+        karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
         karaokePrepay: false,
       },
     });
@@ -442,7 +442,7 @@ describe("saveKaraokeAction", () => {
       form({
         karaokeHourly: "1000",
         karaokeCapacity: "8",
-        karaokeNotifyEmail: "bizimfutbol9",
+        karaokeNotifyEmail: "karaoke",
       }),
     );
     expect(state.error).toBeTruthy();
@@ -866,6 +866,22 @@ describe("saveNotificationsAction", () => {
     );
     expect(state.error).toContain("kötü-adres");
     expect(state.fieldErrors?.orderNotifyEmails).toContain("kötü-adres");
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("refuses a personal webmail inbox in either field, saving nothing", async () => {
+    // KVKK m.9: staff mail keeps customer data; Gmail keeps it abroad.
+    const extra = await saveNotificationsAction(
+      {},
+      notifications({ orderNotifyEmails: "iyi@ornek.com\npatron@gmail.com" }),
+    );
+    expect(extra.fieldErrors?.orderNotifyEmails).toContain("patron@gmail.com");
+    expect(extra.error).toContain("kişisel");
+    const ops = await saveNotificationsAction(
+      {},
+      notifications({ notificationEmail: "Ops@Hotmail.com" }),
+    );
+    expect(ops.fieldErrors?.notificationEmail).toBeTruthy();
     expect(updateSettings).not.toHaveBeenCalled();
   });
 

@@ -6,6 +6,7 @@ import {
   ANTHROPIC_MESSAGES_URL,
   ANTHROPIC_VERSION,
   FAL_ANTHROPIC_MAX_TOKENS,
+  FAL_CONSENT_VERSION,
   FAL_DISCLOSED_PROVIDER,
   FAL_INSTRUCTIONS,
   FAL_PROVIDER_INFO,
@@ -39,6 +40,13 @@ vi.mock("@/lib/db", () => ({
     throw new Error("no database in this test");
   },
   TABLES: { falReadings: "fal_readings", featureConsents: "feature_consents", falReports: "fal_reports" },
+}));
+
+// The standard contract's record as the enabling PR will fill it: these
+// tests are about a reading that is switched on. With the shipped, empty
+// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+vi.mock("@/lib/mobile/fal-safeguard", () => ({
+  FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
 }));
 
 const { readCupWithAI } = await import("@/lib/mobile/fal");
@@ -543,7 +551,7 @@ describe("the documents that describe it", () => {
       "OPENAI_FAL_MODEL",
       "store: false",
       "FAL_DISCLOSED_PROVIDER",
-      "2026-10-17-anthropic",
+      FAL_CONSENT_VERSION,
       "consent_outdated",
     ]) {
       expect(fal, fact).toContain(fact);

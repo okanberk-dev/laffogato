@@ -1,4 +1,23 @@
+import { GOOGLE_TAGS_IN_LEGAL_TEXTS } from "@/lib/legal/meta";
+
 import { CONSENT_COOKIE, CONSENT_VERSION, type ConsentState } from "./cookie";
+
+/**
+ * The Google Tag Manager container the site loads, or "" for none.
+ *
+ * Only the configured id (`NEXT_PUBLIC_GTM_ID`), trimmed: there is no
+ * built-in default any more, so an empty value means no GTM rather than a
+ * fallback container. And only while the legal texts say the tags run
+ * (`GOOGLE_TAGS_IN_LEGAL_TEXTS`, false since 19 Ekim 2026): an id left in
+ * the environment does not load tags the texts say the site does not use.
+ */
+export function siteTagManagerId(
+  configured: string | undefined,
+  allowed: boolean = GOOGLE_TAGS_IN_LEGAL_TEXTS,
+): string {
+  if (!allowed) return "";
+  return configured?.trim() ?? "";
+}
 
 /**
  * Marks <html data-consent="set"> before the first paint when the visitor

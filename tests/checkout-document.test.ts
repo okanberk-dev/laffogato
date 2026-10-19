@@ -38,7 +38,7 @@ function tags(path: string): string {
       null,
       createElement(ConsentScripts, { withTagManager: true }),
       createElement(TagManager, { gtmId: "GTM-TEST" }),
-      createElement(CookieBanner),
+      createElement(CookieBanner, { tagManager: true }),
     ),
   );
 }

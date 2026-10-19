@@ -110,7 +110,12 @@ export function TagManager({ gtmId }: { gtmId: string }) {
   return allowed && gtmId ? <GoogleTagManager gtmId={gtmId} /> : null;
 }
 
-export function CookieBanner() {
+/**
+ * `tagManager`: whether GTM runs on the site. Without it there are no
+ * analytics or ad tags to consent to, so the banner offers only the
+ * necessary and preference cookies.
+ */
+export function CookieBanner({ tagManager }: { tagManager: boolean }) {
   const allowed = useTagsAllowed();
-  return allowed ? <CookieConsent /> : null;
+  return allowed ? <CookieConsent tagManager={tagManager} /> : null;
 }

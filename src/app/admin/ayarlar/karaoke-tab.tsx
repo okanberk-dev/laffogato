@@ -92,7 +92,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
           <SettingsField
             name="karaokeNotifyEmail"
             label="Talep bildirimi e-postası"
-            hint="Uygulamadan ya da web'den gelen her yeni rezervasyon talebi bu adrese düşer. Boş bırakılırsa genel iletişim adresine gider."
+            hint="Uygulamadan ya da web'den gelen her yeni rezervasyon talebi bu adrese düşer. Boş bırakılırsa genel iletişim adresine gider. Şirketin kendi alan adındaki kutu olsun: Gmail gibi yurt dışındaki kişisel bir kutu, misafir bilgisini yurt dışına taşır (KVKK m.9)."
           >
             <TextInput
               name="karaokeNotifyEmail"

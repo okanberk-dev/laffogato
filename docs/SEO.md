@@ -232,6 +232,16 @@ yanı" - insanlar tarifi böyle veriyor).
 
 Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 
+> **GTM 19 Ekim 2026'dan beri kapalı.** Google'la KVKK standart sözleşmesi
+> yok, bu yüzden GTM'nin her sayfada yaptığı yurt dışına aktarımın KVKK m.9
+> güvencesi de yok; hukuki metinler sitede analitik veya reklam etiketi
+> kullanılmadığını söyler. `src/lib/legal/meta.ts`
+> `GOOGLE_TAGS_IN_LEGAL_TEXTS` false olduğu sürece `NEXT_PUBLIC_GTM_ID` dolu
+> olsa da GTM yüklenmez ve çerez bandı yalnız zorunlu ve tercih çerezlerini
+> sorar (`tests/site-tags-off.test.ts`). Kodda varsayılan container yok.
+> Açmak: Google standart sözleşmesi imzalanıp Kurum'a bildirildikten sonra,
+> metinleri geri getiren PR'da (docs/LEGAL-REDLINES-2026-09.md §15.6).
+
 > **Çerez rızası uygulanmıştır.** Analitik ve pazarlama çerezleri KVKK
 > kapsamında açık rıza ister. Consent Mode v2 varsayılanları GTM
 > konteynerinden **önce** `<head>` içinde basılır ve rızaya bağlı her sinyal

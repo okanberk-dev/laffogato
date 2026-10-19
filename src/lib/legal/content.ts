@@ -4732,6 +4732,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
+    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
     category: "Veri & Gizlilik",
@@ -4881,7 +4883,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kullanım ve teknik veri",
             value:
-              "IP adresi, tarayıcı türü ve sürümü (user-agent), işletim sistemi ve sürümü, cihaz türü, dil ve saat dilimi, oturum kimliği, ziyaret edilen sayfalar, yönlendiren adres (referrer), sunucu erişim, hata ve performans kayıtları; web sitesinde analitik çerezlere izin vermeniz hâlinde sayfa görüntüleme ve gezinme yolu gibi kullanım istatistikleri. Mobil uygulamada ekran görüntüleme, tıklama ve çökme kaydı toplanmaz; uygulamanın sunucuya yaptığı isteklerde yalnızca IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı görülür.",
+              "IP adresi, tarayıcı türü ve sürümü (user-agent), işletim sistemi ve sürümü, cihaz türü, dil ve saat dilimi, oturum kimliği, ziyaret edilen sayfalar, yönlendiren adres (referrer), sunucu erişim, hata ve performans kayıtları; internet sitemizde bugün analitik etiket kullanılmadığından sayfa görüntüleme ve gezinme yolu gibi kullanım istatistikleri toplanmaz. Mobil uygulamada ekran görüntüleme, tıklama ve çökme kaydı toplanmaz; uygulamanın sunucuya yaptığı isteklerde yalnızca IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı görülür.",
           },
           {
             key: "Pazarlama verisi",
@@ -4891,7 +4893,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Çerez ve benzeri teknoloji verisi",
             value:
-              "Zorunlu oturum ve sepet çerezleri, tercih çerezleri, izne bağlı analitik ve pazarlama çerezleri; yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
+              "Zorunlu oturum ve sepet çerezleri ile izne bağlı tercih çerezleri (internet sitemizde bugün analitik veya pazarlama çerezi kullanılmaz); yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
           },
           {
             key: "Güvenlik kamerası verisi",
@@ -4948,7 +4950,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: Web sitesi ve mobil uygulamadaki üyelik kaydı, e-posta doğrulama, giriş, parola sıfırlama, adres ekleme, sepet ve ödeme adımı formları.",
           "Sipariş ve ödeme akışı: Ödeme adımında verdiğiniz bilgiler ile Şirket sunucusunun PayNkolay işlem doğrulama servisine sorarak aldığı işlem sonucu, referans kodu, tahsil edilen tutar ve maskelenmiş kart bilgisi. {{SITE}} üzerindeki ödeme sayfasına girdiğiniz kart numarası, son kullanma tarihi ve güvenlik kodu yalnızca PayNkolay'a iletilir; Şirket bunları kaydetmez ve saklamaz.",
-          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler ile açık rızanıza bağlı analitik ve pazarlama çerezleri, piksel ve yerel depolama teknolojileri; mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
+          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler, açık rızanıza bağlı tercih çerezleri ve yerel depolama (internet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri ile piksel yerleştirilmez); mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
           "Sunucu ve uygulama logları: Barındırma altyapısı, veri tabanı ve uygulama katmanında otomatik olarak üretilen erişim, hata, çökme, güvenlik ve performans kayıtları.",
           "Mobil uygulama: Uygulamayı kullanmanız hâlinde uygulamada kendi girdiğiniz bilgiler ile uygulamanın sunucuya yaptığı isteklerde görülen IP adresi, istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama çökme kaydı, reklam tanımlayıcısı, anlık bildirim (push) tokeni veya konum verisi toplamaz; fA'L fotoğrafı yalnızca yapay zekâ yorumuna açıkça onay vermeniz hâlinde iletilir.",
           "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
@@ -5104,7 +5106,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Ticari elektronik ileti (e-bülten, kampanya, indirim, doğum günü ve yeni ürün duyuruları) gönderimi.",
-          "Web sitesinde analitik ve pazarlama amaçlı çerezler ile benzer izleme teknolojilerinin kullanılması; mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
+          "Web sitesinde tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez. Mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
           "fA'L özelliğinde fotoğrafın ve kimliksiz özetin yapay zekâ ile yorumlanması için aktarılması (Açık Rıza Metni, R12).",
           "Sipariş notu alanında kendi iradenizle paylaştığınız alerjen veya özel beslenme bilgilerinin talebinizin karşılanması amacıyla işlenmesi.",
           "Yarışma, çekiliş ve etkinliklerde paylaştığınız görsel ve içeriklerin tanıtım amacıyla kullanılması.",
@@ -5164,12 +5166,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Analitik ve ölçümleme sağlayıcıları",
             value:
-              "Açık rızanıza bağlı olarak web sitesi kullanımının istatistiksel ölçümü; mümkün olan hâllerde IP kısaltma ve takma adlaştırma uygulanır. Web sitesi etiketlerini Google Etiket Yöneticisi (GTM) ile yönetir; GTM betiği sayfa yüklenirken çalışır ve bu sırada IP adresiniz ve tarayıcı bilgileriniz Google'a ulaşır. Onay modu gereği, çerez izin panelinde bir seçim yapana kadar analitik ve pazarlama amaçlı tüm sinyaller 'reddedildi' olarak ayarlanır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
+              "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM), Google Analytics ve reklam etiketleri yüklenmez ve bu amaçla hiçbir sağlayıcıya veri aktarılmaz. Bu hizmetler ileride kullanılmak istenirse önce bu Politika ve Çerez Politikası güncellenir; analitik ve pazarlama çerezleri yalnızca çerez panelinde vereceğiniz açık rızayla çalışır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
           },
           {
-            key: "Muhasebe, mali müşavirlik ve bağımsız denetim hizmeti sağlayıcıları",
+            key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe, mali müşavirlik ve bağımsız denetim hizmeti sağlayıcıları",
             value:
-              "Fatura, defter ve mali kayıtların düzenlenmesi ile yasal beyanların hazırlanması.",
+              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, defter ve mali kayıtların düzenlenmesi ile yasal beyanların hazırlanması. Paraşüt bu verileri veri işleyen sıfatıyla işler; ayrıntı KVKK Aydınlatma Metni'nin 14. ve 15. bölümlerindedir.",
           },
           {
             key: "Hukuk ve danışmanlık hizmeti sağlayıcıları",
@@ -5206,8 +5208,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Yurt Dışına Aktarım",
         paragraphs: [
-          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi), e-posta gönderim ve analitik hizmetlerinin bir kısmı yurt dışında yerleşik sağlayıcılar tarafından sunulmakta olup, bu kapsamda kişisel verileriniz yurt dışında bulunan sunuculara aktarılabilmekte veya buralardan erişilebilmektedir.",
-          "Yurt dışına aktarım, KVKK'nın kişisel verilerin yurt dışına aktarılmasını düzenleyen 9. maddesi çerçevesinde gerçekleştirilir. Aktarım, öncelikle Kurul tarafından yeterli korumaya sahip olduğu ilan edilen ülkelere; bunun bulunmadığı hâllerde ise mevzuatta öngörülen uygun güvencelerden birine (standart sözleşme, bağlayıcı şirket kuralları, taahhütname veya uluslararası sözleşme) dayanılarak yapılır. Bu güvencelerin sağlanamadığı istisnai durumlarda aktarım, yalnızca arızi nitelikte olması kaydıyla, mevzuatta sayılan hâllerden birine, örneğin aktarımın olası riskleri hakkında bilgilendirildikten sonra ayrıca vereceğiniz açık rızaya dayanabilir.",
+          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi) ve e-posta gönderim hizmetleri yurt dışında yerleşik sağlayıcılar tarafından sunulmaktadır; bu nedenle kişisel verileriniz yurt dışında bulunan sunuculara aktarılmakta ve buralardan erişilebilmektedir. Ziyaret sayfasındaki haritayı göstermeyi seçmeniz hâlinde tarayıcınız Google'a bağlanır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz. Her sağlayıcının adı, ülkesi ve standart sözleşmenin durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı yoktur; bu nedenle aktarımlar KVKK'nın 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri sağlayıcılarla imzalama sürecimiz devam etmektedir; hangi sağlayıcıyla imzalandığı ve Kurum'a bildirildiği KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Bu aktarımlar süreklilik taşıdığından açık rızanıza dayandırılmaz; tek seferlik bir aktarım gerekirse, yalnızca arızi nitelikte olması kaydıyla ve olası riskler size ayrıca anlatılarak, o aktarımdan önce ayrı bir onay istenir.",
           "Şirket, yurt dışına aktarımlarda veri minimizasyonunu gözetir; aktarılan veriyi hizmetin gerektirdiği asgari kapsamla sınırlar, aktarım kanallarını TLS ile şifreler ve sağlayıcılarla yazılı veri işleme sözleşmeleri akdeder.",
           "Yurt dışına aktarımın kapsamı, aktarılan veri kategorileri ve dayanılan güvence hakkında ayrıntılı bilgi almak için {{EMAIL}} adresine başvurabilirsiniz.",
         ],
@@ -5326,7 +5328,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "13. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih, analitik ve pazarlama çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; diğer çerez kategorileri için onay modu (Google Consent Mode v2) kullanılır: web sitesi etiketlerini Google Etiket Yöneticisi (GTM) ile yönetir, GTM betiği sayfa yüklenirken çalışır ve tercih, analitik ve pazarlama amaçlı depolama izinleri siz çerez izin panelinden onay verene kadar 'reddedildi' olarak başlar; bu kategoriler yalnızca onay vermeniz hâlinde etkinleşir.",
+          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; tercih çerezleri yalnızca çerez panelinden onay vermeniz hâlinde etkinleşir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM) yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategorileri sormaz.",
           "Sepet içeriği ve arayüz tercihleri gibi bazı bilgiler, tarayıcınızın yerel depolama (localStorage) alanında cihazınızda tutulabilir. Bu veriler cihazınızdan silinerek her zaman kaldırılabilir.",
           "Mobil uygulamada tarayıcı çerezleri kullanılmaz; oturum anahtarı ile sepet, menü ve tercih önbelleği uygulama içi yerel depolamada tutulur. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez, izleme (App Tracking Transparency) izni istemez ve uygulamada reklam veya ölçümleme kiti bulunmaz. Uygulamanın istediği bildirim, kamera ve fotoğraf izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman değiştirilebilir veya kapatılabilir.",
           "Çerez tercihlerinizi, çerez tercih panelinden dilediğiniz zaman değiştirebilir; tarayıcı ayarlarından çerezleri engelleyebilir veya silebilirsiniz. Zorunlu çerezlerin engellenmesi hâlinde üyelik girişi, sepet ve ödeme adımı gibi işlevler çalışmayabilir.",
@@ -5557,6 +5559,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
+    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     category: "Veri & Gizlilik",
     summary:
@@ -5566,7 +5570,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Veri Sorumluları Sicili Hakkında Yönetmelik",
-      "Yurt Dışına Kişisel Veri Aktarımı Hakkında Yönetmelik",
+      "Kişisel Verilerin Yurt Dışına Aktarılmasına İlişkin Usul ve Esaslar Hakkında Yönetmelik (RG: 10.07.2024, 32598)",
       "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
@@ -5714,7 +5718,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödül programı katılımcısı: Sadakat (damga) programına katılan; mobil uygulamadan verdiği ve ödemesi tamamlanan kafe siparişleriyle veya kafede kasada eklenen damgalarla kartını dolduran ve dolan kartı ücretsiz içecek kuponuna çeviren üye.",
           "Ziyaretçi: Üye olmadan {{SITE_URL}} adresini görüntüleyen, menüyü inceleyen, sepet oluşturan ancak sipariş tamamlamayan kullanıcı.",
           "Bülten abonesi: Kampanya, yeni ürün ve etkinlik duyurularını almak üzere e-posta adresini paylaşan ve ticari elektronik ileti onayı veren kişi.",
-          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, karaoke odası rezervasyonu yapan, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
+          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, internet sitesi veya mobil uygulama üzerinden, üye olarak ya da üye olmadan karaoke odası rezervasyonu yapan, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
           "Tedarikçi, iş ortağı ve bunların yetkilileri: Kahve çekirdeği, gelato ve gıda malzemesi, ambalaj, ekipman, lojistik ve hizmet tedarikçilerinin gerçek kişi temsilcileri ve irtibat kişileri.",
           "Çalışan adayı: {{EMAIL}} adresine veya kariyer kanallarına özgeçmiş ve başvuru ileten kişi.",
           "İletişime geçen üçüncü kişiler: Basın mensupları, iş birliği teklifiyle başvuranlar, sosyal medya hesaplarımız üzerinden mesaj gönderenler ve yasal bildirim yapanlar.",
@@ -5740,7 +5744,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İletişime geçen üçüncü kişiler - İletişim ve talep verisi: ad, e-posta/telefon, mesaj içeriği ve ekleri, sosyal medya kullanıcı adı ve mesaj geçmişi, talebin sonuçlandırılmasına ilişkin kayıtlar.",
           "Üye ve müşteri - Sadakat (damga) programı verisi: üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga eklendiğinde işlemi yapan personelin kimliği, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kodunuz ve davetlerinizin durumu ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Hukuki sebep: KVKK m.5/2-c sözleşmenin kurulması ve ifası. Harcama geçmişine dayalı profilleme programın parçası değildir.",
           "Mobil uygulama kullanıcısı - Bağlantı verisi: sunucumuza yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme (App Tracking Transparency) izni istemez; uygulamada reklam veya ölçümleme kiti bulunmaz, uygulama anlık bildirim tokeni, çökme kaydı veya ekran ve tıklama kaydı toplamaz. Hukuki sebep: uygulamanın çalıştırılması ve güvenliği bakımından KVKK m.5/2-c ve m.5/2-f.",
-          "Mobil uygulama kullanıcısı - İzne bağlı cihaz erişimi: bildirim izni (yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için; hatırlatmalar cihazda planlanır ve sunucudan anlık bildirim gönderilmez); kamera ve fotoğraf arşivi erişimi (yalnızca fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda; fotoğraf cihazınızda işlenir ve şirketimize gönderilmez); fotoğraflara kaydetme izni (yalnızca fA'L Story görselini cihazınıza kaydetmeyi seçtiğinizde). Uygulama konum, mikrofon ve rehber izni istemez. Kasa yetkisi tanımlanmış personel hesaplarında kamera ayrıca üyenin kasa kodunu okutmak için kullanılır; bu sırada görüntü kaydedilmez ve gönderilmez, yalnızca okunan kodun içeriği sunucuya iletilir. Hukuki sebep: izinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; fotoğraf cihazınızda kaldığı sürece tarafımızca işlenmez, fA'L yapay zekâ yorumu için aktarım yalnızca açık rızanıza (KVKK m.5/1, Açık Rıza Metni R12) dayanır.",
+          "Mobil uygulama kullanıcısı - İzne bağlı cihaz erişimi: bildirim izni (yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için; hatırlatmalar cihazda planlanır ve sunucudan anlık bildirim gönderilmez); kamera ve fotoğraf arşivi erişimi (yalnızca fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda; fotoğraf cihazınızda işlenir ve şirketimize gönderilmez); fotoğraflara kaydetme izni (yalnızca fA'L Story görselini cihazınıza kaydetmeyi seçtiğinizde). Uygulama konum, mikrofon ve rehber izni istemez. Kasa yetkisi tanımlanmış personel hesaplarında kamera ayrıca üyenin kasa kodunu okutmak için kullanılır; bu sırada görüntü kaydedilmez ve gönderilmez, yalnızca okunan kodun içeriği sunucuya iletilir. Hukuki sebep: izinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; fotoğraf cihazınızda kaldığı sürece tarafımızca işlenmez; fA'L yapay zekâ yorumu için fotoğrafın işlenmesi ve aktarılması açık rızanıza (KVKK m.5/1, Açık Rıza Metni R12) dayanır; yurt dışına aktarımda ayrıca Kurul tarafından ilan edilen standart sözleşme uygulanır.",
           "Üye ve üyeliksiz rezervasyon yapan kişi - Karaoke rezervasyon verisi: rezervasyon numarası, tarih, başlangıç saati ve süre, kişi sayısı, rezervasyon durumu (ödeme bekliyor, kesinleşti, iptal edildi, iade edildi), ücret, uygulanan indirim, toplam tutar, ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyon notunuz, adınız ve e-posta adresiniz; internet sitesinden yapılan rezervasyonlarda ayrıca iletişim için kullanılan e-posta adresi ve cep telefonu numarası ile Aydınlatma Metni'ni okuduğunuzu belirttiğiniz zaman. Ödemeden önce verdiğiniz onaylar (Ön Bilgilendirme Formu'nun onayı, Mesafeli Hizmet Sözleşmesi'nin kabulü ve Aydınlatma Metni'nin okunduğuna ilişkin teyit) onay anı, belge sürümü, IP adresiniz ve tarayıcı veya uygulama bilginizle birlikte rezervasyon kaydına yazılır. Karaoke odası rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; kart numarası, son kullanma tarihi ve güvenlik kodunuz kaydedilmez. Üye olmadan rezervasyon yapan kişinin adı, soyadı, cep telefonu ve e-posta adresi yalnızca rezervasyon kaydında tutulur, onun adına üyelik hesabı açılmaz. Hukuki sebep: KVKK m.5/2-c sözleşmenin kurulması ve ifası; onay kaydı için m.5/2-a ve m.5/2-ç.",
           "Üye - Davet verisi: davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu (bekliyor, katıldı, ödüllendirildi), tarihler ve davet nedeniyle tanımlanan kupon. Sizi davet eden üye, adınızı ve soyadınızın yalnızca baş harfini, davetin durumunu ve tarihini görür. Hukuki sebep: KVKK m.5/2-c sözleşmenin ifası (davet programı).",
         ],
@@ -5830,9 +5834,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "KVKK m.5/2-c ve m.5/2-f: Hizmetin talep edilen şekilde sunulabilmesi ve altyapının güvenli çalışması",
           },
           {
-            key: "İsteğe bağlı analitik ve performans çerezleri",
+            key: "İsteğe bağlı tercih çerezleri",
             value:
-              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir)",
+              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           },
           {
             key: "Ticari elektronik ileti (bülten, kampanya duyurusu) gönderimi",
@@ -5872,7 +5876,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Cihaz izinleri: bildirim ile fA'L için kamera ve fotoğraf arşivi erişimi",
             value:
-              "İzinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; izin verilmemesi yalnızca ilgili özelliğin çalışmamasına yol açar ve uygulamanın kullanımı bu izinlere bağlanmaz. fA'L fotoğrafı cihazınızda kaldığı sürece tarafımızca işlenmez; yapay zekâ yorumu için aktarım KVKK m.5/1 ve m.9 kapsamındaki açık rızanıza (Açık Rıza Metni R12) dayanır. Uygulama konum izni istemez.",
+              "İzinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; izin verilmemesi yalnızca ilgili özelliğin çalışmamasına yol açar ve uygulamanın kullanımı bu izinlere bağlanmaz. fA'L fotoğrafı cihazınızda kaldığı sürece tarafımızca işlenmez; yapay zekâ yorumu için fotoğrafın işlenmesi ve yurt dışına aktarılması KVKK m.5/1 uyarınca açık rızanıza (Açık Rıza Metni R12) dayanır; yurt dışına aktarım ayrıca Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Uygulama konum izni istemez.",
           },
           {
             key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi",
@@ -5907,7 +5911,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ticari elektronik ileti (e-posta bülteni, kampanya ve doğum günü e-postaları) gönderimi; onayınız tarih, kaynak ve IP adresiyle kayda alınır ve her iletideki bağlantıdan veya hesap tercihlerinizden geri alınabilir.",
           "Mobil uygulamada kampanya, indirim, yeni ürün ve etkinlik duyurusu içeren anlık bildirim gönderilmesi; uygulama şu anda sunucudan anlık bildirim almaz, böyle bir gönderim başlatılırsa yalnızca ayrıca vereceğiniz onayla yapılır. Sipariş, ödeme, teslimat ve damga hareketlerine ilişkin işlemsel bilgilendirmeler bu kapsamda değildir.",
           "fA'L özelliğinde fotoğrafınızın yapay zekâ ile yorumlanması için şirketimizin sunucusu üzerinden Anthropic, PBC'ye (ABD) kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte aktarılması (Açık Rıza Metni R12). Kamera, fotoğraf arşivi ve bildirim erişimi ayrıca cihaz izni olarak alınır ve cihaz ayarlarından her zaman geri alınabilir.",
-          "Zorunlu olmayan analitik, performans ve tercih çerezleri ile benzeri teknolojilerin kullanılması.",
+          "Zorunlu olmayan tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           "Değerlendirme sonuçlanmış olsa dahi çalışan adayı başvurusunun ileride açılacak pozisyonlar için aday havuzunda saklanması.",
           "Tarafınızca gönderilen ve kimliğinizi tanınabilir kılan görsel/işitsel içeriğin (örneğin ürün fotoğrafı veya video) sosyal medya hesaplarımızda paylaşılması.",
         ],
@@ -5920,7 +5924,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: {{SITE_URL}} ve mobil uygulama üzerindeki üyelik, giriş, parola sıfırlama, profil, adres, sepet, ödeme, karaoke rezervasyonu ve bülten abonelik formları; iade ve cayma talepleri e-posta veya telefonla iletilir.",
           "Otomatik altyapı kayıtları: Sunucu ve uygulama log kayıtları, güvenlik ve hata kayıtları, oturum bilgileri, yönetici işlemlerine ilişkin olay kaydı.",
-          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler, yerel depolama (sepetin cihazınızda tutulması dahil) ve piksel/etiket teknolojileri.",
+          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler ve yerel depolama (sepetin cihazınızda tutulması dahil). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; piksel veya ölçümleme etiketi yüklenmez.",
           "Mobil uygulama: Uygulama üzerinden doldurduğunuz formlar ve gerçekleştirdiğiniz işlemler; sunucumuza yapılan isteklerde oluşan IP adresi, istemci bilgisi (user-agent) ve zaman kayıtları; kafede damga eklenirken kasada okutulan veya girilen kasa kodu. Uygulama konum, reklam tanımlayıcısı, anlık bildirim tokeni veya çökme kaydı toplamaz.",
           "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları.",
           "Ödeme altyapısı: {{SITE}} üzerindeki güvenli ödeme sayfasında girdiğiniz kart bilgileri (kaydedilmeden yalnızca PayNkolay'a iletilir); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisine sunucumuzdan yapılan sorgu ile alınan işlem sonucu, referans kodu ve maskelenmiş kart bilgisi; itirazlarda bankanın ve PayNkolay'ın ilettiği bilgiler.",
@@ -5934,15 +5938,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "11. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır.",
+          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle aşağıdaki analitik/performans ve pazarlama çerezleri yerleştirilmez ve çerez tercih paneli bu kategorileri sormaz.",
           "Çerez tercihlerinizi, siteye ilk girişte sunulan tercih paneli üzerinden veya daha sonra dilediğiniz zaman aynı panelden değiştirebilirsiniz. Tarayıcı ayarlarınızdan çerezleri silmeniz veya engellemeniz de mümkündür; ancak zorunlu çerezlerin engellenmesi hâlinde oturum açma, sepet ve ödeme gibi temel işlevler çalışmayabilir.",
           "Mobil uygulamada çerez kullanılmaz; oturum bilgisi cihazın güvenli alanında, tercihler uygulama içi yerel depolamada tutulur. Uygulamada reklam, analitik veya ölçümleme amaçlı yazılım geliştirme kiti (SDK) bulunmaz ve cihazın reklam tanımlayıcısına erişilmez. Bildirim, kamera ve fotoğraf izinlerine ilişkin tercihlerinizi cihazınızın işletim sistemi ayarlarından her zaman değiştirebilirsiniz.",
         ],
         bullets: [
           "Zorunlu (teknik) çerezler: Oturum kimliği, güvenlik doğrulaması, yük dengeleme ve sepetin korunması için gereklidir. Hukuki sebebi sözleşmenin ifası ve meşru menfaattir; açık rıza aranmaz.",
           "Tercih çerezleri: Dil, görünüm ve daha önce yapılmış seçimlerin hatırlanmasını sağlar. Açık rızaya tabidir.",
-          "Analitik/performans çerezleri: Sayfa görüntüleme, gezinme akışı ve hata oranlarının ölçülmesini sağlar; mümkün olduğunca toplulaştırılmış biçimde kullanılır. Açık rızaya tabidir.",
-          "Pazarlama çerezleri: Kampanya etkinliğinin ölçülmesi ve ilgi alanına göre içerik sunulması amacıyla kullanılabilir. Yalnızca açık rızanızla çalıştırılır; rıza verilmediğinde yerleştirilmez.",
+          "Analitik/performans çerezleri: Sayfa görüntüleme, gezinme akışı ve hata oranlarının ölçülmesini sağlar; mümkün olduğunca toplulaştırılmış biçimde kullanılır. Açık rızaya tabidir. Bugün kullanılmaz.",
+          "Pazarlama çerezleri: Kampanya etkinliğinin ölçülmesi ve ilgi alanına göre içerik sunulması amacıyla kullanılabilir. Yalnızca açık rızanızla çalıştırılır; rıza verilmediğinde yerleştirilmez. Bugün kullanılmaz.",
           "Yerel depolama: Sepet içeriği tarayıcınızın yerel depolama alanında tutulabilir. Bu veri cihazınızda kalır; siparişi tamamlamadığınız sürece sunucularımıza taşınmaz.",
         ],
       },
@@ -6014,9 +6018,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Uygulamanın dağıtımı ve güncellenmesi. Uygulama sunucudan anlık bildirim almadığından bildirim içeriği veya bildirim tokeni bu kanalla aktarılmaz. Uygulama mağazası hesabınıza ilişkin veriler mağaza işletmecisinin kendi politikalarına tabidir ve tarafımızca erişilmez.",
           },
           {
-            key: "Muhasebe ve mali müşavirlik hizmeti sağlayıcıları ile kullanılması hâlinde elektronik fatura hizmet sağlayıcıları",
+            key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe ve mali müşavirlik hizmeti sağlayıcıları",
             value:
-              "Fatura ve fiş düzenlenmesi, defter ve beyan süreçleri. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
+              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, fiş düzenlenmesi, defter ve beyan süreçleri. Paraşüt bu verileri veri işleyen sıfatıyla, yalnızca faturanın düzenlenmesi ve saklanması için işler. Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi, kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, satın alınan ürün veya hizmet, tutar ve KDV. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
           },
           {
             key: "Hukuk, denetim ve danışmanlık hizmeti alınan kişi ve kuruluşlar",
@@ -6034,19 +6038,24 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "6563 sayılı Kanun'un ve ilgili Yönetmelik'in gerektirdiği ölçüde, ticari elektronik ileti onaylarının kaydı, sorgulanması ve ret bildirimlerinin işlenmesi. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç.",
           },
           {
-            key: "Üyelik kimlik doğrulama hizmeti sağlayıcısı",
+            key: "Üyelik kimlik doğrulama hizmeti sağlayıcısı ({{AUTH_PROVIDER}})",
             value:
               "İnternet sitesi ve mobil uygulamada ortak üyelik girişinin sağlanması. Aktarılan veri: e-posta adresi, parolanın özeti, ad-soyad, uygulamadan kayıt olduysanız telefon numarası, koşulların ve ticari elektronik ileti onayının kabul anı, oturum belirteçleri ve giriş kayıtları (IP adresi dâhil). Sipariş, ödeme, damga ve adres bilgisi bu sağlayıcıya gönderilmez. Hukuki sebep: KVKK m.5/2-c.",
           },
           {
-            key: "Karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusunun e-posta hizmeti sağlayıcısı",
+            key: "Yapay zekâ hizmet sağlayıcısı Anthropic, PBC (ABD, yalnızca açık rızanızla)",
             value:
-              "Ödemesi alınıp kesinleşen karaoke rezervasyonunun (çevrim içi ödemenin kapalı olduğu hâllerde yeni rezervasyon talebinin) ekibimize bildirilmesi, ödeme veya iade sorunlarına ilişkin uyarıların iletilmesi ve ekibin size e-posta ile yanıt verebilmesi. Aktarılan veri: rezervasyon numarası, tarih, saat, kişi sayısı, ödenen tutar, adınız, e-posta adresiniz, varsa telefon numaranız ve rezervasyon notunuz. Bu bildirimler şu anda Google'ın e-posta hizmetinde (Gmail) tutulan bir e-posta kutusuna iletilmektedir. Hukuki sebep: KVKK m.5/2-c.",
+              "fA'L özelliğinde falın yapay zekâ ile yorumlanması. Aktarılan veri: küçültülmüş ve meta verileri arındırılmış içecek fotoğrafı ile üyelik seviyesi, yaklaşık ziyaret sıklığı ve varsa her zamanki içecek; ad, e-posta, telefon ve üye numarası aktarılmaz. Hukuki sebep: KVKK m.5/1 açık rıza (Açık Rıza Metni R12). Yurt dışına aktarım: Kurul tarafından ilan edilen standart sözleşme (KVKK m.9/4-c); sözleşme imzalanıp Kurum'a bildirilmeden fotoğraf gönderilmez.",
           },
           {
-            key: "Google (etiket yönetimi, analitik ölçüm ve harita hizmetleri)",
+            key: "Karaoke rezervasyon bildirimlerinin ulaştığı kurumsal e-posta kutusunun barındırma hizmeti sağlayıcısı (Türkiye)",
             value:
-              "İnternet sitesinin etiket yönetimi altyapısı (Google Tag Manager) her sayfa görüntülemesinde yüklenir ve bu sırada IP adresiniz ile tarayıcı bilginiz Google'a ulaşır. Analitik ölçüm etiketleri yalnızca çerez tercih panelinde analitik çerezlere izin vermeniz hâlinde, harita (Google Haritalar) yalnızca ziyaret sayfasında 'Haritayı göster' seçeneğini kullandığınızda çalışır. Hukuki sebep: etiket yönetimi bakımından KVKK m.5/2-f meşru menfaat; analitik ölçüm bakımından KVKK m.5/1 açık rıza; haritanın gösterilmesi bakımından talebiniz üzerine hizmetin sunulması (KVKK m.5/2-c).",
+              "Ödemesi alınıp kesinleşen karaoke rezervasyonunun (çevrim içi ödemenin kapalı olduğu hâllerde yeni rezervasyon talebinin) ekibimize bildirilmesi, ödeme veya iade sorunlarına ilişkin uyarıların iletilmesi ve ekibin size e-posta ile yanıt verebilmesi. Aktarılan veri: rezervasyon numarası, tarih, saat, kişi sayısı, ödenen tutar, adınız, e-posta adresiniz, varsa telefon numaranız ve rezervasyon notunuz. Bildirim e-postası Resend üzerinden gönderilir ve şirketimizin Türkiye'de barındırılan kurumsal e-posta kutusunda tutulur. Hukuki sebep: KVKK m.5/2-c.",
+          },
+          {
+            key: "Google LLC (harita hizmeti)",
+            value:
+              "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (Google Tag Manager) ve Google Analytics yüklenmez. Ziyaret sayfasındaki harita (Google Haritalar) yalnızca 'Haritayı göster' seçeneğini kullandığınızda yüklenir; bu sırada IP adresiniz ve tarayıcı bilginiz Google'a ulaşır. Hukuki sebep: talebiniz üzerine hizmetin sunulması (KVKK m.5/2-c). Google ile standart sözleşme bulunmadığından bu gömülü harita kaldırılacak, yerine Google Haritalar'a bağlantı verilecektir.",
           },
           {
             key: "Sizi davet eden üye",
@@ -6068,17 +6077,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "15. Kişisel Verilerin Yurt Dışına Aktarılması",
         paragraphs: [
-          "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının Anthropic, PBC'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır. Açık rızanız bu işlemenin şartıdır; aktarım ise her yorum isteğinde tekrarlandığından arızi nitelikte değildir, bu nedenle yalnızca açık rızaya dayanmaz ve Kanun'un 9. maddesindeki uygun güvencelerden Kurul tarafından ilan edilen standart sözleşmeye dayandırılır.",
-          "Hizmet altyapımızın bir kısmı (uygulama barındırma, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, e-posta gönderimi ve karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusu, mobil uygulama mağaza dağıtımı, internet sitesinin etiket yönetimi, izninize bağlı analitik ölçüm ve talebinize bağlı harita gösterimi ile içerik dağıtım ağı) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır. Bu nedenle kişisel verileriniz, teknik olarak yurt dışındaki sunucularda işlenebilir veya yurt dışına aktarılabilir.",
-          "Yurt dışına aktarım, Kanun'un 9. maddesinde ve Yurt Dışına Kişisel Veri Aktarımı Hakkında Yönetmelik'te öngörülen sıralı mekanizmalara uygun olarak yapılır. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığı değerlendirilir. Yeterlilik kararının bulunmadığı hâllerde, aktarım Kanun'da sayılan uygun güvencelerden birinin sağlanması koşuluyla gerçekleştirilir.",
-          "Uygun güvenceler kapsamında, Kurul tarafından ilan edilen standart sözleşme metni imzalanır ve söz konusu sözleşme, mevzuatta öngörülen süre içinde Kuruma bildirilir; şirketler topluluğu bakımından bağlayıcı şirket kuralları veya yazılı taahhütname yolları da mevzuatın izin verdiği ölçüde kullanılabilir. Yeterlilik kararı ve uygun güvencelerin bulunmadığı hâllerde aktarım, yalnızca Kanun'un 9. maddesinde sayılan arızi hâllerin varlığı hâlinde ve bu hâllerle sınırlı olarak yapılır; bu kapsamda açık rızaya dayalı aktarım, ilgili kişinin aktarımın olası risklerine ilişkin ayrıca bilgilendirilmesi üzerine alınan açık rızaya dayanır.",
+          "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının Anthropic, PBC'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır. Açık rızanız bu işlemenin şartıdır; aktarım ise her yorum isteğinde tekrarlandığından arızi nitelikte değildir, bu nedenle yalnızca açık rızaya dayanmaz ve Kanun'un 9. maddesindeki uygun güvencelerden Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Bu sözleşme Anthropic, PBC ile imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez.",
+          "Hizmet altyapımızın bir kısmı (uygulama barındırma ve içerik dağıtım ağı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, e-posta gönderimi ile talebinize bağlı harita gösterimi) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır; veri tabanının ve üyelik girişinin sunucu bölgeleri aşağıdaki alıcılar satırında yazılıdır. Bu nedenle kişisel verileriniz yurt dışındaki sunucularda işlenir ve yurt dışına aktarılır. Uygulama mağazaları (App Store ve Google Play) uygulamayı mağaza hesabınız kapsamında kendi adlarına dağıtır; bu kanalla tarafımızca kişisel veri aktarılmaz (14. bölüm). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz.",
+          "Kanun'un 9. maddesi ve Kişisel Verilerin Yurt Dışına Aktarılmasına İlişkin Usul ve Esaslar Hakkında Yönetmelik yurt dışına aktarımı sıralı mekanizmalara bağlar. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığına bakılır. Yeterlilik kararının bulunmadığı hâllerde aktarım, Kanun'da sayılan uygun güvencelerden birinin sağlanmasını gerektirir.",
+          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı bulunmadığından, bu aktarımlar Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri aşağıda sayılan sağlayıcılarla imzalama sürecimiz devam etmektedir; her sözleşme imzaların tamamlanmasından itibaren beş iş günü içinde Kurum'a bildirilir ve hangi sağlayıcıyla hangi tarihte imzalandığı bu bölümde yazılır. Bu aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlandığından arızi değildir ve açık rızanıza dayandırılmaz. Tek seferlik, arızi bir aktarım gerekirse yalnızca Kanun'un 9. maddesinin altıncı fıkrasındaki hâllerde ve açık rızaya dayanacaksa olası riskler size ayrıca anlatılarak yapılır.",
           "Yurt dışına aktarım her hâlde asgari veri ilkesiyle yürütülür: barındırma, veri tabanı, kimlik doğrulama ve e-posta altyapısı için ilgili sağlayıcıya yalnızca hizmetin sunulması için gereken veriler iletilir. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; bu sırada yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur, hiçbir veri tabanına, log kaydına veya dosyaya yazılmaz.",
         ],
         bullets: [
-          "Aktarım gerekçeleri: Uygulama barındırma ve dağıtımı, PostgreSQL veri tabanı hizmeti ve yedekleme, üyelik kimlik doğrulaması, e-posta gönderimi ile kesinleşen karaoke rezervasyonlarının ve ödeme uyarılarının ekibimize bildirilmesi, mobil uygulama mağaza dağıtımı, internet sitesinde etiket yönetimi, izninize bağlı analitik ölçüm ve talebinize bağlı harita gösterimi, sunucu tarafında hata ve performans izleme.",
-          "Alıcılar ve bilinen konumlar: uygulama barındırma Vercel (sunucu işlevleri Almanya, Frankfurt); e-posta gönderimi Resend (gönderim bölgesi İrlanda); etiket yönetimi, izninize bağlı analitik ölçüm, talebinize bağlı harita gösterimi ve karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusu Google; PostgreSQL veri tabanı {{DB_PROVIDER}}; üyelik kimlik doğrulaması için kimlik doğrulama hizmeti sağlayıcısı; fA'L yapay zekâ yorumu için yalnızca açık rızanızla Anthropic, PBC (ABD).",
-          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi, tarayıcı bilgisi ve izninize bağlı olarak kullanım verisi. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
-          "Güvence yöntemleri: Kurul yeterlilik kararı; yoksa standart sözleşme, bağlayıcı şirket kuralları veya taahhütname; bunların da bulunmadığı hâllerde Kanun'da sayılan arızi hâller.",
+          "Aktarım gerekçeleri: Uygulama barındırma ve dağıtımı (içerik dağıtım ağı ile sunucu tarafındaki hata ve performans kayıtları dâhil), PostgreSQL veri tabanı hizmeti ve yedekleme, üyelik kimlik doğrulaması, e-posta gönderimi ile kesinleşen karaoke rezervasyonlarının ve ödeme uyarılarının ekibimize bildirilmesi, talebinize bağlı harita gösterimi.",
+          "Alıcılar ve bilinen konumlar (standart sözleşmenin durumu her alıcının yanında yazılıdır): uygulama barındırma, içerik dağıtım ağı ve sunucu hata ve performans kayıtları Vercel Inc. (ABD; sunucu işlevleri Almanya, Frankfurt; imza sürecinde); e-posta gönderimi Resend (Plus Five Five, Inc.; ABD; gönderim bölgesi İrlanda; imza sürecinde); PostgreSQL veri tabanı {{DB_PROVIDER}} ({{DB_RECIPIENT}}; imza sürecinde); üyelik kimlik doğrulaması {{AUTH_PROVIDER}} ({{AUTH_RECIPIENT}}; imza sürecinde); fatura düzenlenmesi Paraşüt Yazılım Teknolojileri A.Ş. (Türkiye; veriler ona yurt içinde aktarılır; Paraşüt kendi altyapı tedarikçilerinin yurt içinde veya yurt dışında bulunabileceğini bildirdiğinden, fatura verisinin hangi ülkede barındırıldığı Paraşüt'ün yazılı beyanıyla bu satıra yazılacaktır); talebinize bağlı harita gösterimi Google LLC (ABD; standart sözleşme bulunmadığından kaldırılacaktır); fA'L yapay zekâ yorumu için yalnızca açık rızanızla ve standart sözleşme imzalanıp Kurum'a bildirildikten sonra Anthropic, PBC (ABD).",
+          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi ve tarayıcı bilgisi. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
+          "Güvence yöntemi: Kurul tarafından ilan edilen standart sözleşme (veri sorumlusundan veri işleyene); her sağlayıcı için imza ve bildirim durumu yukarıdaki alıcılar satırında yazılıdır. Bu aktarımlar için bağlayıcı şirket kuralları, taahhütname veya açık rıza kullanılmaz.",
           "Ek teknik tedbirler: Aktarımda ve saklamada şifreleme, erişim yetkilerinin asgari yetki ilkesine göre sınırlanması, sağlayıcılarla veri işleme sözleşmesi akdedilmesi.",
           "Bilgi talebi hakkı: Hangi verinizin hangi ülkeye ve hangi güvenceyle aktarıldığını {{EMAIL}} adresine başvurarak öğrenebilirsiniz.",
         ],
@@ -6313,6 +6322,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "acik-riza-metni",
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
+    // 19 Ekim 2026: R5 ve R6 kalemleri kalktı (numaraları korunur), R12'ye Anthropic'in saklama süresi ve sözleşme koşulu; rıza sürümü ilerledi.
+    updatedAt: "19 Ekim 2026",
     // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
     // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
     category: "Veri & Gizlilik",
@@ -6496,7 +6507,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kanun'un 3. maddesi açık rızayı üç unsurun birlikte gerçekleşmesine bağlamıştır. {{SHORT_NAME}} olarak rıza alma süreçlerimizi bu üç unsurun her birini karşılayacak şekilde kurguladık.",
         ],
         ordered: [
-          "Belirli bir konuya ilişkin olma: Rızanız, tek ve genel bir onay olarak değil; ticari elektronik ileti (kampanya e-postaları ve bülten), internet sitesinde pazarlama çerezleri, yurt dışına aktarım, görsel içerikte yer alma ve fA'L yapay zekâ yorumu gibi her bir amaç için ayrı ayrı alınır. Kapsamı belirsiz, sınırları çizilmemiş, bütün amaçları tek kalemde toplayan genel nitelikli bir onay talep edilmez.",
+          "Belirli bir konuya ilişkin olma: Rızanız, tek ve genel bir onay olarak değil; ticari elektronik ileti (kampanya e-postaları ve bülten), görsel içerikte yer alma ve fA'L yapay zekâ yorumu gibi her bir amaç için ayrı ayrı alınır. Kapsamı belirsiz, sınırları çizilmemiş, bütün amaçları tek kalemde toplayan genel nitelikli bir onay talep edilmez.",
           "Bilgilendirmeye dayanma: Rızanızı vermeden önce hangi verinizin işleneceği, işlemenin amacı, verinin kimlere aktarılacağı, saklama süresi ve rızayı geri çekme yönteminiz bu metin ve onay ekranındaki kısa açıklama ile size bildirilir. Bilgilendirme, aydınlatma yükümlülüğünden ayrı ve ondan önce gerçekleştirilir.",
           "Özgür iradeyle açıklanma: Rıza vermemeniz hâlinde sizi bir hizmetten mahrum bırakan, ek ücret uygulayan, siparişinizi geciktiren, damga kazanmanızı engelleyen veya üyeliğinizi kısıtlayan hiçbir sonuç doğmaz. Rıza, sözleşmenin kurulmasının veya ifasının şartı hâline getirilmez; onay kutucukları önceden işaretli gelmez ve onay vermeden ilerlemenizi engelleyen bir tasarım kullanılmaz.",
         ],
@@ -6519,23 +6530,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Açık Rızanıza Başvurduğumuz İşlemlerin Özeti",
         paragraphs: [
-          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, çerez panelindeki seçenek, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 için bugün ayrı bir onay kutucuğu bulunmaz (bkz. 11. bölüm).",
+          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R5, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 kalemi kaldırılmıştır: yurt dışına aktarım için açık rıza istenmez (bkz. 11. bölüm).",
         ],
         table: [
           {
             key: "R2 - Ticari elektronik ileti (e-posta)",
             value:
               "Ad, e-posta adresi, bildirdiyseniz doğum tarihi ve onay kaydı; amaç: yeni ürün, indirim, sezonluk menü, doğum günü teklifi ve etkinlik duyurularının ve bültenin e-posta ile iletilmesi. Kısa mesaj veya telefon yoluyla ileti gönderilmez.",
-          },
-          {
-            key: "R5 - Çerez tabanlı reklam ve yeniden hedefleme (yalnızca internet sitesi)",
-            value:
-              "Çerez kimliği, tarayıcı bilgisi, ziyaret edilen sayfalar; amaç: çerez panelinde Pazarlama çerezlerini kabul etmeniz hâlinde, internet sitesinde üçüncü taraf reklam platformlarında ilgi alanına dayalı reklam ve yeniden hedefleme ile reklam ölçümlemesi.",
-          },
-          {
-            key: "R6 - Gerektiğinde yurt dışına aktarım",
-            value:
-              "Yukarıdaki amaçlarla sınırlı veriler; amaç: uygun güvencelerin sağlanamadığı istisnai hâllerde yurt dışındaki hizmet sağlayıcılara aktarım.",
           },
           {
             key: "R7 - Fotoğraf ve videoda yer alma",
@@ -6563,7 +6564,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Bu onayı vermeniz hâlinde, yeni ürünler, sezonluk menü değişiklikleri, indirim ve promosyon kodları, kafede düzenlenen etkinlikler ve bülten hakkında e-posta yoluyla ticari elektronik ileti göndeririz. Onay, kayıt formundaki ve hesabınızın Bildirim tercihleri sayfasındaki (mobil uygulamada Bildirimler ekranındaki) Kampanya ve yeni ürün tercihiyle, bülten için ise bülten tercihiyle veya sitedeki bülten formuyla verilir. Bülten formundan abone olduğunuzda e-posta adresinize bir doğrulama bağlantısı gönderilir ve abonelik bu bağlantıyı onayladığınızda başlar. Doğum tarihinizi bildirdiyseniz ve kampanya iletileri onayı verdiyseniz, doğum gününüzde indirim teklifi içeren bir e-posta da gönderilebilir.",
           "Bu onay yalnızca e-posta kanalını kapsar. Kısa mesaj (SMS) ve telefon yoluyla ticari elektronik ileti gönderilmez; böyle bir kanal ileride kullanılmak istenirse sizden ayrıca açık rıza alınır. Mobil uygulama üzerinden pazarlama içerikli anlık (push) bildirim de gönderilmemektedir (bkz. 13. bölüm).",
-          "Ticari elektronik ileti onayı ile bu metindeki diğer onaylar birbirinden bağımsızdır. Yalnızca ileti almayı onaylayıp pazarlama çerezi, fA'L yapay zekâ yorumu veya görsel içerik onaylarını vermemeniz mümkündür.",
+          "Ticari elektronik ileti onayı ile bu metindeki diğer onaylar birbirinden bağımsızdır. Yalnızca ileti almayı onaylayıp fA'L yapay zekâ yorumu veya görsel içerik onaylarını vermemeniz mümkündür.",
           "Gönderdiğimiz her ticari elektronik iletide veri sorumlusunun kimliği, iletişim bilgisi ve ret hakkını kolayca kullanabileceğiniz bağlantı yer alır. Ret bildiriminiz alındığı andan itibaren en geç üç iş günü içinde iletiler durdurulur ve ret kaydı tutulur.",
         ],
         bullets: [
@@ -6579,40 +6580,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "9. R3 ve R4 - Alışveriş Alışkanlığı Analizi ve Kişiselleştirilmiş Ürün Önerisi: Yürütülmemektedir",
         paragraphs: [
           "Bu metnin önceki sürümlerinde alışveriş alışkanlığı analizi (R3) ve kişiselleştirilmiş ürün önerisi (R4) için açık rıza öngörülmüştü. {{BRAND}} bugün sipariş, sepet, arama veya gezinme verilerinizi bu amaçlarla kimliğinize bağlı olarak analiz etmez ve size kişiselleştirilmiş ürün önerisi göstermez; bu nedenle bu iki kalem için rıza istenmez.",
-          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitesindeki analiz çerezleri yalnızca çerez panelinde verdiğiniz onayla çalışır (bkz. 10. bölüm).",
+          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analiz çerezleri yerleştirilmez (bkz. 10. bölüm).",
           "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
-        heading: "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme",
+        heading:
+          "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme: Yürütülmemektedir",
         paragraphs: [
-          "Bu onayı vermeniz hâlinde, {{SITE}} üzerinde pazarlama ve reklam amaçlı çerezler ile benzeri izleme teknolojileri çalıştırılır. Bu teknolojiler, ziyaretiniz sırasında görüntülediğiniz ürünlere göre üçüncü taraf reklam ve sosyal medya platformlarında {{BRAND}} reklamlarının size gösterilmesini (yeniden hedefleme) ve reklam performansının ölçülmesini sağlar.",
-          "Zorunlu çerezler bu onayın kapsamı dışındadır. Oturumun sürdürülmesi, sepetin korunması, güvenlik ve yük dengeleme için kullanılan zorunlu çerezler, hizmetin çalışması için gerekli olduklarından ayrı onaya tabi değildir ve reddedilemez. Tercih ve istatistik çerezleri için ise çerez bandındaki ayrı seçenekler geçerlidir.",
-          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez. Bu onay yalnızca internet sitesindeki çerez ve benzeri teknolojileri kapsar.",
-          "Çerez tercihlerinizi sitedeki çerez yönetim panelinden dilediğiniz zaman değiştirebilir, tüm pazarlama çerezlerini tek hamlede kapatabilirsiniz. Ayrıca tarayıcınızın ayarlarından çerezleri silebilir veya engelleyebilirsiniz. Ayrıntılı liste ve süreler için Çerez Politikası'na bakınız.",
-        ],
-        bullets: [
-          "İşlenen veriler: Reklam ve ölçüm çerezlerinde tutulan çerez kimlikleri, IP adresi, tarayıcı ve işletim sistemi bilgisi, cihaz türü, ziyaret edilen sayfalar ve tıklama verisi, siteye yönlendiren kaynak.",
-          "Alıcılar: Reklam ve ölçümleme hizmeti aldığımız üçüncü taraf platformlar; bu platformların bir kısmı verileri yurt dışındaki sunucularda işleyebilir (bkz. 11. bölüm).",
-          "Süre: Pazarlama çerezleri, çerez panelinde belirtilen sürelerle sınırlı olarak tarayıcınızda saklanır; onayınızı geri çektiğinizde yeni çerez yerleştirilmez.",
-          "Rıza vermezseniz: Site tüm işlevleriyle çalışmaya devam eder; yalnızca reklamlar ilgi alanınıza göre kişiselleştirilmez ve genel içerikli reklamlar görürsünüz.",
+          "Bu metnin önceki sürümlerinde internet sitesinde pazarlama ve reklam amaçlı çerezler ile yeniden hedefleme (R5) için açık rıza öngörülmüştü. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi ve reklam etiketleri yüklenmez, pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategoriyi sormaz; bu nedenle bu kalem için rıza istenmez.",
+          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez.",
+          "Zorunlu çerezler ve tercih çerezleri bu kalemin konusu değildir; çerezlerin ayrıntılı listesi ve süreleri için Çerez Politikası'na bakınız.",
+          "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
-        heading: "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması",
+        heading:
+          "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (rıza istenmez)",
         paragraphs: [
-          "Şirketimiz, altyapı hizmetlerini yurt dışında yerleşik sağlayıcılardan alabilmektedir. İnternet sitesi ve mobil uygulama sunucularının barındırılması ve dağıtımı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta gönderimi ile internet sitesindeki reklam ve ölçümleme hizmetleri bu kapsamdadır. Kanun'un 9. maddesi, yurt dışına aktarımı kural olarak yeterlilik kararına, bunun yokluğunda ise standart sözleşme, bağlayıcı şirket kuralları, taahhütname gibi uygun güvencelerden birine bağlamıştır.",
-          "Uygulamamız şudur: Aktarımı öncelikle bu uygun güvencelere dayandırırız; hizmet sağlayıcılarımızla veri işleme sözleşmeleri akdeder, aktarılan veri kategorilerini hizmetin gerektirdiği asgari ölçüyle sınırlarız. Dolayısıyla olağan durumda yurt dışına aktarım için açık rızanıza ihtiyaç duyulmaz.",
-          "Bu onayı (R6), yalnızca yeterlilik kararının bulunmadığı ve uygun güvencelerin de sağlanamadığı istisnai ve arızi hâllerde, Kanun'da öngörülen açık rızaya dayalı aktarım imkânından yararlanabilmek için talep ederiz. Bu onayı vermemeniz, siteyi veya mobil uygulamayı kullanmanıza, sipariş vermenize, damga kazanmanıza veya siparişinizin teslim edilmesine engel değildir; böyle bir durumda ilgili veri yurt dışına aktarılmaz ve hizmet yurt içi imkânlarla yürütülür. Bugün bu onay için ayrı bir onay kutucuğu bulunmaz; böyle bir hâl doğarsa onay, ilgili aktarımdan önce ayrıca istenir.",
-          "Yurt dışına aktarımın risklerini şeffaf biçimde bildiririz: Aktarımın yapıldığı ülkede veri koruma mevzuatı Türkiye'dekiyle aynı düzeyde olmayabilir, yetkili makamların erişim yetkileri farklı olabilir ve haklarınızı kullanmanız pratik olarak zorlaşabilir. Bu riskleri bilerek onay verip vermemek tamamen sizin takdirinizdedir.",
-        ],
-        bullets: [
-          "Aktarım amacı: İnternet sitesinin, online mağazanın ve mobil uygulamanın sunulması, veri tabanının barındırılması, üyelik girişinin sağlanması, işlemsel e-postaların iletilmesi, onay verdiyseniz internet sitesinde reklam ölçümlemesi.",
-          "Kullanılan başlıca altyapılar: Barındırma ve dağıtım için Vercel, veri tabanı için {{DB_PROVIDER}} (PostgreSQL), üyelik kimlik doğrulaması için {{AUTH_PROVIDER}}, işlemsel ve toplu e-posta gönderimi için Resend ve yalnızca fA'L yapay zekâ yorumu onayınız hâlinde Anthropic, PBC.",
-          "Aktarılan veri kategorileri: Kimlik ve iletişim bilgileri, üyelik, damga ve sipariş kayıtları, işlem güvenliği kayıtları, çerez ve cihaz bilgileri.",
-          "Alıcı grupları: Barındırma ve dağıtım sağlayıcıları, PostgreSQL veri tabanı sağlayıcısı, üyelik kimlik doğrulaması hizmeti sağlayıcısı, e-posta gönderim sağlayıcıları, onaya bağlı olarak reklam ve analiz platformları ve fA'L yapay zekâ yorumu için yapay zekâ hizmet sağlayıcısı (bkz. 15/A. bölüm).",
-          "Kart bilgileri: Kart numarası, son kullanma tarihi ve güvenlik kodu {{SITE}} üzerindeki güvenli ödeme sayfasında girilir, şifreli bağlantıyla sunucumuza ulaşır ve aynı işlemde yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir. Şirketimiz bu bilgileri kaydetmez, saklamaz ve kayıtlara yazmaz; bu bilgiler reklam, analiz veya ölçümleme amacıyla hiçbir alıcıya aktarılmaz.",
-          "Rıza vermezseniz: Hizmet, uygun güvencelere dayanan aktarımlar ve yurt içi kaynaklarla sunulmaya devam eder; üyeliğiniz, siparişiniz veya damga kartınız etkilenmez.",
+          "Bu metnin önceki sürümlerinde yer alan R6 onayı kaldırılmıştır; yurt dışına aktarım için açık rızanızı istemiyoruz.",
+          "İnternet sitesinin ve mobil uygulamanın barındırılması, veri tabanı, üyelik girişi ve e-posta gönderimi için yurt dışındaki sağlayıcılara yapılan aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlanır; arızi olmadıkları için Kanun'un 9. maddesi uyarınca açık rızaya dayandırılamazlar. Bu aktarımların dayanağı ve her sağlayıcının ülkesi KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Tek seferlik, arızi bir aktarım ihtiyacı doğarsa olası riskler size ayrıca anlatılarak o aktarımdan önce ayrı bir onay istenir. fA'L yapay zekâ yorumu için verilen onay R12 bölümünde ayrıca düzenlenmiştir.",
         ],
       },
       {
@@ -6664,16 +6652,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "{{BRAND}} mobil uygulamasındaki fA'L özelliği, içeceğinizin fotoğrafına bakarak eğlence amaçlı bir kahve falı yazar. Bu onayı vermediğiniz sürece fal tamamen cihazınızda, hazır metinlerden seçilerek oluşturulur ve fotoğrafınız cihazınızdan çıkmaz. Bu onay (R12), falın yapay zekâ tarafından yorumlanmasını istemeniz hâlinde fotoğrafınızın bu amaçla işlenmesini ve yurt dışına aktarılmasını kapsar. Yapay zekâ yorumu yalnızca e-posta adresi doğrulanmış üyelere ve yalnızca özellik şirketimizce açık tutulduğu dönemlerde sunulur; özellik kapalıyken veya e-posta adresiniz doğrulanmamışken fotoğraf yapay zekâ hizmetine gönderilmez ve fal cihazınızda okunur.",
           "Onay vermeniz hâlinde seçtiğiniz fotoğraf cihazınızda küçültülür, konum ve cihaz bilgisi gibi meta verilerden arındırılır ve şirketimizin sunucusu üzerinden Anthropic, PBC (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir. Fotoğrafla birlikte yalnızca üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa kayıtlı her zamanki içeceğinizin adı gönderilir; adınız, e-posta adresiniz, telefon numaranız ve üye numaranız gönderilmez.",
-          "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir. Hizmet sağlayıcının iletilen verileri, kötüye kullanımın önlenmesi ve güvenlik gibi amaçlarla, kendi ticari hizmet koşulları ve politikalarında belirlenen süre boyunca saklayabileceğini bildiririz. Şirketimiz yalnızca yorumun istendiği gün ve saati, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
+          "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir. Hizmet sağlayıcı Anthropic, PBC, yayımladığı ticari veri saklama politikasına göre ilettiğimiz fotoğrafı ve ürettiği yanıtı en geç 30 gün içinde siler; içerik, kullanım politikasına aykırılık şüphesiyle otomatik olarak işaretlenirse 2 yıla kadar, bu işaretlemeye ilişkin güvenlik puanları 7 yıla kadar ve kanunen gerekli hâllerde daha uzun süre saklanabilir. Anthropic, PBC sözleşme gereği bu içeriği yapay zekâ modellerini eğitmek için kullanamaz. Şirketimiz yalnızca yorumun istendiği gün ve saati, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
           "Bir yapay zekâ yorumunu kırıcı, uygunsuz ya da yanıltıcı bulursanız fA'L ekranındaki 'Bu yorumu bildir' bağlantısıyla bize iletebilirsiniz; bildirim isteğe bağlıdır. Bildirirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi ve talimatların iyileştirilmesi amacıyla hesabınızla ilişkili olarak kaydedilir. Fotoğraf bildirime girmez ve bildirim yapay zekâ hizmet sağlayıcısına gönderilmez.",
           "Fotoğrafta kişiler, yüzler veya belgeler bulunmamasına özen göstermenizi rica ederiz. Yapay zekâya fotoğraftaki kişileri tanımlamaması, sağlık, ilişki ve para konularında öngöride bulunmaması ve herhangi bir indirim, hediye veya ayrıcalık vaat etmemesi talimatı verilir; bu kurallara uymayan bir yanıt gösterilmez ve fal cihazınızda okunur. Yapay zekâ yorumu da cihazdaki fal gibi eğlence amaçlıdır, gerçeği yansıtmaz ve hakkınızda hukuki sonuç doğuran bir karar içermez.",
-          "Bu aktarım her yorum isteğinde tekrarlandığından arızi nitelikte değildir; bu nedenle yurt dışına aktarım yalnızca bu onaya dayanmaz, Kanun'un 9. maddesi uyarınca hizmet sağlayıcıyla akdedilen ve Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
+          "Bu aktarım her yorum isteğinde tekrarlandığından arızi nitelikte değildir; bu nedenle yurt dışına aktarım yalnızca bu onaya dayanmaz: onayınız aktarımın işleme şartıdır, aktarım ayrıca Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Anthropic, PBC ile imzalanacak ve Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Bu sözleşme imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
           "Onayınızı fA'L ekranından dilediğiniz an geri çekebilirsiniz; geri çektiğiniz andan itibaren fal yeniden yalnızca cihazınızda okunur. Hesabınızı kapattığınızda onayınız da geri alınmış sayılır. Onay vermemeniz veya geri çekmeniz fA'L'ı kullanmanıza, üyeliğinize, siparişlerinize ve damgalarınıza hiçbir etki etmez.",
         ],
         bullets: [
           "İşlenen veriler: İçecek fotoğrafı (küçültülmüş ve meta verileri arındırılmış), üyelik seviyesi, yaklaşık ziyaret sıklığı, varsa her zamanki içeceğin adı; kullanım kaydı olarak yorumun istendiği gün ve saat, fincanın görülüp görülmediği ve modelin adı; bir yorumu bildirmeniz hâlinde yorumun metni, bildirim sebebi ve modelin adı.",
           "Alıcı: Anthropic, PBC (Amerika Birleşik Devletleri), veri işleyen sıfatıyla.",
-          "Saklama: Fotoğraf şirketimizce saklanmaz, üretilen yorum da ancak siz bildirirseniz saklanır; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir. Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir.",
+          "Saklama: Fotoğraf şirketimizce saklanmaz, üretilen yorum da ancak siz bildirirseniz saklanır; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir. Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir. Hizmet sağlayıcı fotoğrafı ve yanıtı kendi politikasına göre en geç 30 gün içinde siler; işaretlenen içerik 2 yıla kadar saklanabilir.",
           "Günlük sınır: Üye başına günde beş yapay zekâ yorumu.",
           "Rıza vermezseniz: fA'L cihazınızda, hazır metinlerle çalışmaya devam eder.",
         ],
@@ -6739,7 +6727,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Yalnızca etkilenen alan",
             value:
-              "Pazarlama iletileri (kampanya ve bülten e-postaları), internet sitesinde ilgi alanına dayalı reklamlar, onaya bağlı görsel içerikler ve fA'L'ın yapay zekâ yorumu.",
+              "Pazarlama iletileri (kampanya ve bülten e-postaları), onaya bağlı görsel içerikler ve fA'L'ın yapay zekâ yorumu.",
           },
         ],
       },
@@ -6773,7 +6761,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Telefon ile: {{PHONE}} numarasını arayarak talebinizi iletebilirsiniz; talep kayda alınır ve tarafınıza yazılı teyit gönderilir.",
           "Posta ile: {{ADDRESS}} adresine ıslak imzalı yazılı bildirim gönderebilirsiniz.",
           "Ticari elektronik iletiler için: Her iletinin altındaki abonelikten çık bağlantısını kullanabilir veya yukarıdaki kanallardan ret bildiriminde bulunabilirsiniz. Ret hakkının kullanımı bedelsizdir.",
-          "Çerez tabanlı reklam için: Sitedeki çerez yönetim panelinden pazarlama çerezlerini kapatabilir, ayrıca tarayıcınızın ayarlarından mevcut çerezleri silebilirsiniz.",
+          "Çerezler için: Sitedeki çerez yönetim panelinden tercih çerezlerine verdiğiniz onayı kapatabilir, ayrıca tarayıcınızın ayarlarından mevcut çerezleri silebilirsiniz.",
           "Görsel içerikler için: {{EMAIL}} adresine, mümkünse içeriğin bağlantısını veya çekim tarihini belirterek bildirimde bulunun; içerik kendi kanallarımızdan kaldırılır.",
         ],
       },
@@ -6795,7 +6783,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Bildirimin ulaşmasından itibaren en geç üç iş günü içinde.",
           },
           {
-            key: "Pazarlama çerezlerinin kapatılması",
+            key: "Çerez onayının kapatılması",
             value:
               "Panelde kaydettiğiniz anda; mevcut çerezler tarayıcı ayarlarından silinebilir.",
           },
@@ -6820,7 +6808,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Kaydedilen bilgiler: Onayın konusu ve kapsamı, onay veya ret beyanının tarihi ve saati ile onaylanan metnin sürümü; ticari elektronik ileti ve bülten onaylarında ayrıca beyanın verildiği kanal (web sitesi, mobil uygulama, abonelikten çıkma bağlantısı, yönetim paneli gibi), IP adresi ve tarayıcı veya uygulama bilgisi.",
-          "fA'L yapay zekâ yorumu onayı (R12): Kayıt yalnızca üyelik hesabınızı, onaylanan metnin sürümünü ve onayın verildiği ile varsa geri çekildiği tarih ve saati içerir; IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz. Onay mobil uygulamadaki fA'L ekranından verilir. Onayınızı geri çektiğinizde kayıt silinmez, geri çekme anı kayda işlenir; kayıt, onayın varlığının ispatı için geri çekme tarihinden itibaren üç yıl saklanır.",
+          "fA'L yapay zekâ yorumu onayı (R12): Kayıt yalnızca üyelik hesabınızı, onaylanan metnin sürümünü ve onayın verildiği ile varsa geri çekildiği tarih ve saati içerir; IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz. Onay mobil uygulamadaki fA'L ekranından verilir. Onayınızı geri çektiğinizde kayıt silinmez, geri çekme anı kayda işlenir; kayıt, onayın varlığının ispatı için geri çekme tarihinden itibaren üç yıl saklanır. Onay, fA'L ekranında fotoğraf gönderilmeden önce açılan ayrı bir pencereden verilir; pencere fotoğrafın nereye gönderildiğini özetler ve bu metnin tamamına bağlantı verir. Onay vermemek de aynı kolaylıktadır; bu durumda falınız cihazınızda yorumlanır.",
           "Sürümleme: Bu metnin her sürümü ayrı bir kimlikle saklanır; hangi sürüme onay verdiğiniz kayda geçirilir. Böylece sonradan değişen bir metne dayanılarak rıza kapsamı genişletilemez.",
           "Erişim: Rıza kayıtlarına yalnızca yetkilendirilmiş personel erişebilir; yönetici erişimi iki aşamalı kimlik doğrulama ile korunur ve yönetim panelinden yapılan her değişiklik kayıt altına alınır.",
           "Güvenlik: Kayıtlar, erişim yetkisi sınırlandırılmış ve doğrudan dış erişime kapalı bir PostgreSQL veri tabanında, aktarım sırasında şifreli bağlantı üzerinden tutulur.",
@@ -7513,6 +7501,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
+    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -8063,9 +8053,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Veri İşleyenler ve Yurt Dışına Aktarım Hâlinde İmha",
         paragraphs: [
-          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde barındırılan PostgreSQL), üyelik kimlik doğrulaması, işlemsel e-posta gönderimi (Resend), ödeme hizmeti (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş., PayNkolay), mobil uygulama dağıtımı, kargo gönderi platformu (Geliver) ve kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
+          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde barındırılan PostgreSQL), üyelik kimlik doğrulaması ({{AUTH_PROVIDER}}), işlemsel e-posta gönderimi (Resend), yalnızca fA'L yapay zekâ yorumuna açık rıza verilmesi hâlinde yapay zekâ hizmeti (Anthropic, PBC), ödeme hizmeti (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş., PayNkolay), mobil uygulama dağıtımı, kargo gönderi platformu (Geliver) ve kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
           "Veri işleyenlerle akdedilen sözleşmelerde; verinin yalnızca talimat doğrultusunda işlenmesi, Kanunun veri güvenliğine ilişkin hükmü uyarınca uygun teknik ve idari tedbirlerin alınması, alt işleyen kullanımının önceden bildirime tabi olması, hizmetin sona ermesi hâlinde verilerin Şirkete iadesi veya imhası ve imhanın yazılı olarak teyit edilmesi yükümlülükleri yer alır.",
-          "Barındırma, veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta ve mobil uygulama dağıtımı hizmetlerinin sunucuları yurt dışında bulunabilir. Bu hâllerde aktarım, Kanunun kişisel verilerin yurt dışına aktarılmasına ilişkin hükmü çerçevesinde ve mevzuatın öngördüğü aktarım mekanizmalarına uygun olarak gerçekleştirilir. Aktarılan verilerin imhası, bu Politikadaki sürelere ve veri işleyenle akdedilen sözleşmeye göre yürütülür.",
+          "Barındırma, veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta ve mobil uygulama dağıtımı hizmetlerinin sunucuları yurt dışındadır. Bu aktarımlar Kanunun 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılacaktır; sağlayıcılarla imzalama süreci devam etmektedir ve her sözleşmenin imza ve bildirim durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Aktarılan verilerin imhası, bu Politikadaki sürelere ve veri işleyenle akdedilen sözleşmeye göre yürütülür.",
           "Şirket, veri işleyenler nezdindeki saklama sürelerini yılda en az bir kez gözden geçirir; hizmet sözleşmesinin sona ermesi hâlinde en geç 30 gün içinde verilerin iadesini veya imhasını talep eder ve imha teyidini dosyalar.",
           "Kargo firmaları ile mali müşavir gibi kendi hukuki yükümlülükleri kapsamında veri işleyen taraflar, kendi süreçleri bakımından veri sorumlusu sıfatını taşıyabilir. Bu tarafların kendi saklama süreleri Şirketin bu Politikadaki sürelerinden bağımsızdır ve ilgili kişi, bu taraflara doğrudan başvurabilir.",
         ],
@@ -8218,6 +8208,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "cerez-politikasi",
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
+    // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
+    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SITE_URL}} sitesinde kullanılan çerezleri ve benzeri teknolojileri, {{BRAND}} mobil uygulamasının cihazda tuttuğu verileri ve istediği izinleri; her teknolojinin amacını, süresini ve rıza gerektirip gerektirmediğini, rıza yönetimini ve silme yollarını açıklayan politikadır.",
@@ -8340,7 +8332,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "sessionStorage: Yalnızca açık sekme yaşadığı sürece veri tutan geçici depolama alanıdır. Sitede şu anda sessionStorage kullanılmaz.",
           "IndexedDB ve önbellek (Cache Storage): Tarayıcının daha büyük hacimli verileri ve statik dosyaları saklamasını sağlayan alanlardır. Sitenin kendi kodu IndexedDB kullanmaz; tarayıcı, sayfaları hızlı açmak için kendi standart önbelleğini kullanabilir.",
           "Piksel / web işaretçisi (web beacon): Sayfaya veya e-postaya gömülen, görünmez ve çok küçük bir görsel isteğidir. Bir sayfanın görüntülendiğini veya bir e-postanın açıldığını ölçmek için kullanılır. Ölçümleme ve pazarlama amaçlı pikseller, açık rızanız olmadan cihazınıza çerez yerleştirmez.",
-          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. Sitede etiketler Google Etiket Yöneticisi (Google Tag Manager) üzerinden yönetilir. Etiket yöneticisinin kendisi her sayfada yüklenir; rızaya tabi etiketlere ise siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir ve Google'ın ölçümleme ve reklam etiketleri bu durumda cihazınıza analitik veya pazarlama çerezi yazmaz. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
+          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Etiket Yöneticisi (Google Tag Manager) yüklenmez. Etiket yöneticisi ileride kullanılırsa rızaya tabi etiketlere, siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
           "Sunucu tarafı kayıtlar (log): Talebinizi karşılayan sunucunun tuttuğu erişim kayıtlarıdır. Bunlar teknik olarak çerez değildir; ancak IP adresi gibi verileri içerdiğinden bu Politikada şeffaflık amacıyla belirtilmektedir.",
           "Cihaz parmak izi (fingerprinting): Cihaz ve tarayıcı özelliklerinin birleştirilmesiyle kullanıcı tanımaya dayanan tekniklerdir. {{SHORT_NAME}}, pazarlama veya profilleme amacıyla cihaz parmak izi tekniği kullanmaz.",
         ],
@@ -8348,7 +8340,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Çerezleri Hangi Amaçlarla Kullanıyoruz",
         paragraphs: [
-          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir.",
+          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; istatistiksel ölçümleme, pazarlama ve yeniden hedefleme amaçlarıyla çerez kullanılmaz.",
         ],
         ordered: [
           "Sitenin temel işlevlerinin çalıştırılması: sayfa yönlendirmeleri, dil ve görüntüleme tercihleri, form gönderimlerinin doğru sayfaya iletilmesi.",
@@ -8359,8 +8351,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Güvenliğin sağlanması: oturum çalınmasının önlenmesi, giriş denemelerinin sınırlanması ve yönetici paneline yetkisiz erişimin engellenmesi.",
           "Yönetici paneli erişiminin ve iki aşamalı doğrulama (TOTP 2FA) akışının yürütülmesi.",
           "Çerez tercihlerinizin hatırlanması: her ziyarette çerez bandını yeniden görmemeniz ve verdiğiniz onayın ispatlanabilmesi.",
-          "İstatistiksel ölçümleme: hangi sayfaların ne kadar görüntülendiği, hangi adımlarda ayrılma yaşandığı, site hızının ve hataların izlenmesi gibi toplu analizlerle site deneyiminin iyileştirilmesi.",
-          "Pazarlama ve yeniden hedefleme: ilgi alanlarınıza uygun {{BRAND}} tanıtımlarının üçüncü taraf platformlarda gösterilmesi ve reklam performansının ölçülmesi.",
           "Hukuki yükümlülüklerin yerine getirilmesi ve uyuşmazlıklarda ispat: 5651 sayılı Kanun kapsamındaki kayıt yükümlülükleri ile mesafeli satış sözleşmesinin onay kaydına ilişkin delillerin oluşturulması.",
         ],
       },
@@ -8387,8 +8377,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Birinci taraf zorunlu çerezler: Yönetici ve üye oturum çerezleri, üyelik girişinde kullanılan kimlik doğrulama çerezleri, iki aşamalı doğrulama bekleme çerezi, şifre sıfırlama çerezi, üyeliksiz karaoke rezervasyonu bağlantı çerezi ve çerez tercih çerezi. Bunlar {{SITE}} alan adına aittir.",
           "Birinci taraf tercih kayıtları: Sitede bugün tercih kategorisine bağlı bir birinci taraf çerez kullanılmaz; arama penceresindeki son aramalarınız yalnızca tarayıcınızın yerel depolama alanında tutulur (bkz. 9. madde).",
-          "Üçüncü taraf ölçümleme çerezleri: Google Analytics 4 tarafından yerleştirilen çerezlerdir. Yalnızca 'Analitik' kategorisine onay verdiğinizde yerleştirilir.",
-          "Üçüncü taraf pazarlama çerezleri: Google reklam hizmetlerinin (Google Ads) kullanılması hâlinde bu hizmetin yerleştirdiği çerezlerdir. Yalnızca 'Pazarlama' kategorisine onay verdiğinizde yerleştirilir. Meta (Facebook/Instagram) ve TikTok reklam etiketleri sitede yüklenmez.",
+          "Üçüncü taraf ölçümleme ve pazarlama çerezleri: İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Analytics, Google Ads, Meta (Facebook/Instagram) ve TikTok etiketleri yüklenmez ve bu çerezler yerleştirilmez.",
           "Gömülü içerik çerezleri: Sitede gömülü video veya sosyal medya içeriği bulunmaz. Ziyaret sayfasındaki Google Haritalar haritası, siz 'Haritayı göster' düğmesine basmadan yüklenmez; düğmeye bastığınızda tarayıcınız Google'a bağlanır ve Google kendi çerezlerini yerleştirebilir.",
           "Ödeme adımı çerezleri: Ödeme adımında kart bilgileri {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir; bu sayfada üçüncü taraf betik, ölçüm veya pazarlama çerezi çalışmaz. Ardından kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz; banka ve ödeme hizmeti sağlayıcısı PayNkolay, doğrulama ve sonuç yönlendirmesi sırasında kendi zorunlu çerezlerini kullanabilir. Bu çerezler işlemin güvenliği için zorunludur ve rızaya tabi değildir.",
         ],
@@ -8396,8 +8385,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Amaç Bazında Çerez Kategorileri ve Rıza Kuralı",
         paragraphs: [
-          "Sitede kullanılan çerezler dört amaç kategorisine ayrılmıştır. Kategori ayrımı, çerez bandındaki ve tercih merkezindeki seçeneklerle birebir aynıdır; bir kategoriye verdiğiniz onay yalnızca o kategorideki çerezleri kapsar.",
-          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. Etiketleri yöneten Google Etiket Yöneticisi ise her sayfada yüklenir; siz onay verene kadar ölçümleme ve reklam etiketlerine Google İzin Modu üzerinden 'reddedildi' sinyali iletilir (bkz. 17. madde).",
+          "Çerezler dört amaç kategorisine ayrılır; bir kategoriye verdiğiniz onay yalnızca o kategorideki çerezleri kapsar. Çerez bandı ve tercih merkezi yalnızca sitede kullanılan kategorileri sorar.",
+          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez bandı ile tercih merkezi yalnızca zorunlu ve tercih çerezlerini gösterir. Aşağıdaki tabloda bu iki kategori, ileride kullanılırlarsa uygulanacak kuralla birlikte gösterilmiştir; o durumda bu Politika güncellenir ve onayınız ayrıca istenir (bkz. 17. madde).",
         ],
         table: [
           {
@@ -8413,12 +8402,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Analitik (performans) çerezleri",
             value:
-              "Amaç: ziyaret istatistikleri, sayfa performansı ve hata ölçümü yoluyla site deneyiminin iyileştirilmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1).",
+              "Amaç: ziyaret istatistikleri, sayfa performansı ve hata ölçümü yoluyla site deneyiminin iyileştirilmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün kullanılmaz; çerez paneli bu kategoriyi sormaz.",
           },
           {
             key: "Pazarlama (hedefleme) çerezleri",
             value:
-              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1).",
+              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün kullanılmaz; çerez paneli bu kategoriyi sormaz.",
           },
         ],
       },
@@ -8483,7 +8472,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Tercih (İşlevsellik) Çerezleri Envanteri",
         paragraphs: [
-          "Tercih çerezleri sitenin çalışması için zorunlu değildir; yalnızca deneyiminizi kişiselleştirir. Bu kategoriye onay vermezseniz site tüm işlevleriyle çalışmaya devam eder. Sitede bugün tercih kategorisine bağlı bir birinci taraf çerez kullanılmamaktadır; bu kategoriye ilişkin seçiminiz, Google İzin Modu'nda işlevsellik ve kişiselleştirme amaçlı depolama sinyalleri olarak etiketlere iletilir. Aşağıdaki kayıt ise çerez değildir; yalnızca tarayıcınızın yerel depolama alanında tutulur ve sunucuya gönderilmez.",
+          "Tercih çerezleri sitenin çalışması için zorunlu değildir; yalnızca deneyiminizi kişiselleştirir. Bu kategoriye onay vermezseniz site tüm işlevleriyle çalışmaya devam eder. Sitede bugün tercih kategorisine bağlı bir çerez kullanılmamaktadır ve sitede etiket de yüklenmediğinden bu kategoriye verdiğiniz onay bugün yalnızca laffogato_cookie_consent çerezine kaydedilir; ileride bu kategoride bir çerez kullanılırsa önce bu envanter güncellenir. Aşağıdaki kayıt ise çerez değildir; yalnızca tarayıcınızın yerel depolama alanında tutulur ve sunucuya gönderilmez.",
         ],
         table: [
           {
@@ -8496,8 +8485,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "10. Analitik (Performans) Çerezleri Envanteri",
         paragraphs: [
-          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamamızı sağlar. Aşağıdaki envanter, sitede kullanılan ve kullanılması hâlinde devreye girecek analitik çerezleri gösterir; ilgili ölçümleme hizmeti devreye alınmadığı sürece bu çerezlerin hiçbiri cihazınıza yerleştirilmez. Bu kategoriye onay vermediğiniz sürece Google İzin Modu'nda analitik depolama izni 'reddedildi' olarak kalır ve aşağıdaki çerezler cihazınıza yerleştirilmez.",
-          "Analitik ölçümlemede, pazarlama kategorisine onay vermediğiniz sürece reklam kişiselleştirme sinyalleri 'reddedildi' olarak iletilir ve ölçümleme verisi tek başına kimliğinizi belirlemek amacıyla kullanılmaz. Bu hizmet yurt dışında yerleşik bir sağlayıcı tarafından sunulduğundan, verinin yurt dışına aktarılması söz konusudur; ayrıntı için bu Politikanın 18. maddesine bakınız.",
+          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamaya yarar. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerezlerin hiçbiri bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, ölçümleme hizmeti ileride devreye alınırsa kullanılacak çerezleri gösterir; o durumda bu Politika güncellenir ve çerezler yalnızca açık rızanızla yerleştirilir.",
+          "Analitik ölçümlemede, pazarlama kategorisine onay vermediğiniz sürece reklam kişiselleştirme sinyalleri 'reddedildi' olarak iletilir ve ölçümleme verisi tek başına kimliğinizi belirlemek amacıyla kullanılmaz. Bu hizmet yurt dışında yerleşik bir sağlayıcı tarafından sunulduğundan, ancak bu aktarım için Kanun'un 9. maddesindeki güvence sağlandıktan sonra devreye alınabilir (bkz. 18. madde).",
         ],
         table: [
           {
@@ -8515,7 +8504,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "11. Pazarlama (Hedefleme) Çerezleri Envanteri",
         paragraphs: [
-          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılır. Aşağıdaki envanter, kullanılan ve kullanılması hâlinde devreye girecek pazarlama çerezlerini gösterir; ilgili reklam hizmeti devreye alınmadığı sürece bu çerezler yerleştirilmez. Bu kategoriye onay vermediğiniz sürece Google İzin Modu'nda reklam depolama, reklam amaçlı kullanıcı verisi ve reklam kişiselleştirme izinleri 'reddedildi' olarak kalır ve aşağıdaki çerezler cihazınıza yerleştirilmez. Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları bu hizmetlerin yüklenmesine izin vermez. Pazarlama onayı vermemiş olsanız da siteye bir Google reklamına tıklayarak geldiyseniz, reklam tıklama kimliği cihazınıza çerez olarak yazılmaz, ancak site içi bağlantıların adreslerinde taşınabilir.",
+          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılabilir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerez bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, reklam hizmeti ileride devreye alınırsa kullanılacak çerezi gösterir; o durumda bu Politika güncellenir ve çerez yalnızca açık rızanızla yerleştirilir. Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları bu hizmetlerin yüklenmesine izin vermez.",
           "Pazarlama kategorisine verdiğiniz onay, ticari elektronik ileti (e-posta) almaya rıza göstermeniz anlamına gelmez. Ticari elektronik iletiler 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca ayrıca alınan onaya dayanır; bu onayın kaydı {{SHORT_NAME}} tarafından tutulur. İki onay birbirinden bağımsızdır ve ayrı ayrı geri alınabilir.",
           "Mobil uygulamada sunucudan anlık bildirim (push) gönderilmez; uygulama yalnızca sizin açtığınız hatırlatmaları cihazınızda planlanmış bildirim olarak gösterir. Pazarlama kategorisine verdiğiniz onay bu hatırlatmalarla ilgili değildir; hatırlatmaları cihazınızın ayarlarından her zaman kapatabilirsiniz.",
         ],
@@ -8531,7 +8520,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "12. Rıza Yönetimi: Çerez Bandı ve Tercih Merkezi",
         paragraphs: [
           "Siteyi ilk kez ziyaret ettiğinizde, sayfanın kullanımını engellemeyen bir çerez bandı gösterilir. Bant, zorunlu olmayan çerezleri kabul etmeniz, tümünü reddetmeniz veya kategori bazında seçim yapmanız için eşit görünürlükte seçenekler sunar. Bantta 'Tümünü kabul et' ile 'Yalnızca zorunlu', tercih merkezinde ise 'Tümünü kabul et' ile 'Tümünü reddet' seçenekleri aynı düzeyde, aynı tıklama sayısıyla ve birbirine denk vurguyla sunulur.",
-          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez. Etiketleri yöneten Google Etiket Yöneticisi bu sırada da yüklenir; ancak Google İzin Modu sinyalleri, güvenlik amaçlı depolama dışında 'reddedildi' olarak başlar. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
+          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez; internet sitemizde bugün Google Etiket Yöneticisi ve başka bir ölçümleme veya reklam etiketi yüklenmez. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
           "Hiçbir kategori kutucuğu önceden işaretli gelmez. Sessiz kalma, bandı görmezden gelme veya sitede gezinmeye devam etme rıza sayılmaz. Rıza yalnızca ilgili kategoriyi bilinçli olarak açmanızla verilmiş olur.",
           "Verdiğiniz onayın kapsamı (kategori seçimleriniz), tarihi ve tercih kaydının sürüm numarası cihazınızdaki laffogato_cookie_consent çerezine yazılır; bu kayıt yalnızca seçiminizin uygulanması ve rızanın varlığının ispatı amacıyla tutulur ve pazarlama amacıyla kullanılmaz.",
         ],
@@ -8539,7 +8528,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İlk girişte bant görüntülenir ve zorunlu olmayan çerezler beklemeye alınır.",
           "Kategori bazında seçim yapar veya toplu kabul ya da toplu ret seçeneklerinden birini işaretlersiniz.",
           "Seçiminiz laffogato_cookie_consent çerezine yazılır ve 180 gün boyunca hatırlanır.",
-          "Seçiminiz Google İzin Modu sinyalleriyle etiketlere hemen iletilir; onay verdiğiniz kategorilerin çerezleri ancak bu andan itibaren yerleştirilir, onay vermediğiniz kategorilerin çerezleri hiç yerleştirilmez.",
+          "Onay verdiğiniz kategorilerin çerezleri ancak bu andan itibaren yerleştirilir, onay vermediğiniz kategorilerin çerezleri hiç yerleştirilmez; etiket yöneticisi ileride kullanılırsa seçiminiz Google İzin Modu sinyalleriyle etiketlere de iletilir.",
           "Tercihinizi dilediğiniz zaman sitenin alt bilgi bölümündeki 'Çerez tercihleri' bağlantısından açacağınız tercih merkezinden değiştirebilir, verdiğiniz onayı aynı kolaylıkla geri alabilirsiniz.",
           "Onayı geri aldığınızda ilgili kategorideki çerezler bir sonraki sayfa yüklemesinde çalıştırılmaz; daha önce cihazınıza yerleştirilmiş üçüncü taraf çerezleri ise tarayıcı ayarlarınızdan silinebilir.",
           "180 günlük sürenin sonunda veya çerez envanterinde esaslı bir değişiklik olduğunda rızanız yeniden sorulur.",
@@ -8604,7 +8593,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "16. Do Not Track (DNT) ve Global Privacy Control (GPC) Sinyalleri",
         paragraphs: [
           "Do Not Track (DNT), tarayıcının site sunucusuna izlenmek istemediğinize dair bir başlık göndermesini sağlayan eski bir mekanizmadır. DNT için sektörde ortak ve bağlayıcı bir standart oluşmadığından, birçok site bu sinyali yok saymaktadır.",
-          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; Google Etiket Yöneticisi'nin her sayfada yüklenmesine ilişkin 17. maddedeki açıklama saklıdır.",
+          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; internet sitemizde bugün analitik veya reklam etiketi zaten kullanılmaz.",
           "Global Privacy Control (GPC), kişisel verinin satılmaması veya paylaşılmaması yönündeki tercihi makine tarafından okunabilir biçimde ileten daha yeni bir sinyaldir. Site GPC sinyalini ayrıca okumaz; ancak analitik ve pazarlama kategorileri herkes için varsayılan olarak kapalı olduğundan, tarayıcınız veya eklentiniz GPC sinyali gönderiyorsa da bu kategoriler siz tercih merkezinden açıkça açmadıkça kapalı kalır ve tercih merkezinde kapalı görüntülenir.",
           "GPC sinyaline rağmen tercih merkezinden bilinçli olarak bir kategoriyi açmanız hâlinde, sonradan yapılan bu açık seçim esas alınır. Dilediğiniz an aynı yerden tekrar kapatabilirsiniz.",
         ],
@@ -8619,22 +8608,22 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Google Etiket Yöneticisi (Google Tag Manager; Google Ireland/LLC)",
             value:
-              "Kategori: etiket yönetimi; rızanızdan bağımsız olarak her sayfada yüklenir. Sitedeki ölçümleme ve reklam etiketlerini yönetir ve verdiğiniz veya vermediğiniz onayı Google İzin Modu (Consent Mode v2) sinyalleriyle bu etiketlere iletir; siz bir seçim yapana kadar güvenlik amaçlı depolama dışındaki tüm sinyaller 'reddedildi' olarak ayarlanır. Yükleme sırasında tarayıcınız Google'ın sunucusuna bağlandığından Google, IP adresinizi, tarayıcı bilginizi ve isteğin {{SITE}} üzerinden geldiğini görebilir. Kart bilgilerinin girildiği ödeme sayfasında yüklenmez.",
+              "Kategori: etiket yönetimi. İnternet sitemizde bugün kullanılmaz ve yüklenmez: Google ile Kurul tarafından ilan edilen standart sözleşme bulunmadığından, ancak böyle bir sözleşme imzalanıp Kurum'a bildirildikten sonra devreye alınabilir. Kullanılırsa her sayfada yüklenir, Google IP adresinizi ve tarayıcı bilginizi görebilir ve verdiğiniz veya vermediğiniz onay Google İzin Modu (Consent Mode v2) sinyalleriyle etiketlere iletilir. Kart bilgilerinin girildiği ödeme sayfasında hiçbir hâlde yüklenmez.",
           },
           {
             key: "Google Analytics 4 (Google Ireland/LLC)",
             value:
-              "Kategori: analitik. Kullanılan çerezler: _ga, _ga_*. Pazarlama onayınız yoksa reklam kişiselleştirme sinyali 'reddedildi' olarak iletilir. Google Etiket Yöneticisi üzerinden yönetilir; çerezler yalnızca açık rızanızla yerleştirilir.",
+              "Kategori: analitik. Bugün kullanılmaz. Kullanılırsa çerezler: _ga, _ga_*; Google Etiket Yöneticisi üzerinden yönetilir ve çerezler yalnızca açık rızanızla yerleştirilir.",
           },
           {
             key: "Google Ads (Google Ireland/LLC)",
             value:
-              "Kategori: pazarlama. Kullanılması hâlinde çerez: _gcl_au. Dönüşüm ölçümü ve yeniden hedefleme. Çerezler yalnızca açık rızanızla yerleştirilir; onay vermediyseniz bir Google reklamından gelişinize ilişkin tıklama kimliği çerez yerine site içi bağlantıların adreslerinde taşınabilir.",
+              "Kategori: pazarlama. Bugün kullanılmaz. Kullanılırsa çerez: _gcl_au; dönüşüm ölçümü ve yeniden hedefleme için ve yalnızca açık rızanızla yerleştirilir.",
           },
           {
             key: "Google Haritalar (Google Ireland/LLC)",
             value:
-              "Kategori: gömülü içerik. Ziyaret sayfasındaki harita, siz 'Haritayı göster' düğmesine basmadan yüklenmez. Düğmeye bastığınızda tarayıcınız Google'a bağlanır; Google, IP adresinizi ve tarayıcı bilginizi görebilir ve kendi çerezlerini yerleştirebilir. Bu işleme Google'ın kendi politikasına tabidir.",
+              "Kategori: gömülü içerik. Ziyaret sayfasındaki harita, siz 'Haritayı göster' düğmesine basmadan yüklenmez. Düğmeye bastığınızda tarayıcınız Google'a bağlanır; Google, IP adresinizi ve tarayıcı bilginizi görebilir ve kendi çerezlerini yerleştirebilir. Bu işleme Google'ın kendi politikasına tabidir. Google ile standart sözleşme bulunmadığından bu gömülü harita kaldırılacak, yerine Google Haritalar'a bağlantı verilecektir.",
           },
           {
             key: "Vercel (barındırma)",
@@ -8675,7 +8664,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Çerezler yoluyla, kimliğinizi doğrudan açık etmeyen ancak kişisel veri niteliği taşıyabilecek bilgiler işlenir. Bu veriler, tek başına veya diğer verilerle birleştirildiğinde sizi belirlenebilir kılabileceğinden 6698 sayılı Kanun kapsamında değerlendirilir.",
           "Zorunlu çerezler bakımından hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin ikinci fıkrasında yer alan bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olma, veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi ve ilgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati şartlarıdır. Bu şartların varlığı hâlinde ayrıca açık rıza aranmaz.",
           "Tercih, analitik ve pazarlama çerezleri bakımından tek hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin birinci fıkrası uyarınca alınan açık rızanızdır. Rızanızı vermemeniz veya sonradan geri almanız hiçbir olumsuz sonuç doğurmaz.",
-          "Çerezler yoluyla elde edilen veriler, yurt dışında yerleşik ölçümleme ve reklam sağlayıcılarının sunucularına aktarılabilir. Bu aktarım, 6698 sayılı Kanun'un 9. maddesi çerçevesinde; ilgili ülke, sektör veya uluslararası kuruluş bakımından Kişisel Verileri Koruma Kurulunca verilmiş bir yeterlilik kararı bulunması hâlinde bu karara, bulunmaması hâlinde ise Kanun'da sayılan uygun güvencelerden birine (standart sözleşme, taahhütname veya bağlayıcı şirket kuralları gibi) dayanılarak gerçekleştirilir. Bu yolların hiçbirinin bulunmadığı hâllerde aktarım, yalnızca Kanun'un aradığı arızi nitelikteki istisnalar kapsamında ve aktarımın risklerine ilişkin bilgilendirme üzerine vereceğiniz açık rızaya dayanabilir. Analitik ve pazarlama kategorilerine onay vermediğinizde bu kategorilerin çerezleri yerleştirilmez; ancak Google Etiket Yöneticisi her sayfada yüklendiğinden, bu yükleme sırasında IP adresiniz ve tarayıcı bilginiz onay durumunuzdan bağımsız olarak yurt dışında yerleşik Google'ın sunucularına ulaşır.",
+          "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle çerezler yoluyla yurt dışındaki ölçümleme veya reklam sağlayıcılarına veri aktarılmaz. Bu hizmetler ileride kullanılırsa, ilgili sağlayıcıyla 6698 sayılı Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşme imzalanıp Kurum'a bildirilmeden devreye alınmaz; bu aktarımlar her sayfa açılışında tekrarlanacağından arızi değildir ve açık rızaya dayandırılmaz. Ziyaret sayfasındaki haritayı göstermeyi seçtiğinizde tarayıcınız yurt dışında yerleşik Google'ın sunucularına bağlanır; Google ile standart sözleşme bulunmadığından bu gömülü harita kaldırılacaktır.",
           "Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) gibi ödeme bilgileri çerezlerle işlenmez. Bu bilgiler {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir ve şifreli bağlantıyla {{SHORT_NAME}} sunucusu üzerinden aynı işlemde yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; {{SHORT_NAME}} bu bilgileri kaydetmez, saklamaz ve kayıt sistemlerine yazmaz. Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır. İadeler, PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta yapılır; siparişin bir kısmının iadesinde bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir.",
         ],
         bullets: [
@@ -8874,6 +8863,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "ticari-elektronik-ileti",
     title: "Ticari Elektronik İleti ve İYS Aydınlatması",
     shortTitle: "Ticari İleti",
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
+    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6563 sayılı Kanun uyarınca {{SHORT_NAME}}'nin ticari elektronik ileti onayını nasıl aldığını ve kayıt altına aldığını, İleti Yönetim Sistemi'ni (İYS), e-posta iletileri ile mobil uygulama bildirimlerine ilişkin kuralları ve ücretsiz ret hakkınızı açıklar.",
@@ -9465,7 +9456,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "19. Gönderim Altyapısı, Aktarım ve Veri Güvenliği",
         paragraphs: [
           "Ticari elektronik ileti gönderimi ve ilgili kayıtların tutulması için bulut tabanlı hizmet sağlayıcılardan yararlanılmaktadır. Bu sağlayıcılar, yalnızca hizmetin ifası için gerekli asgari veriye erişir ve tarafımızla akdedilen sözleşmeler kapsamında veri işleyen sıfatıyla hareket eder.",
-          "Yurt dışında sunucu bulunduran sağlayıcılara aktarım söz konusu olduğunda, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümleri ile Kurul düzenlemeleri esas alınır; aktarım, öngörülen hukuki mekanizmalara ve gerekli hâllerde açık rızanıza dayanılarak gerçekleştirilir.",
+          "Yurt dışında sunucu bulunduran sağlayıcılara aktarım söz konusu olduğunda, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümleri ile Kurul düzenlemeleri esas alınır; aktarım, Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılacaktır; sözleşmelerin imza ve bildirim durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Açık rızanıza yalnızca arızi bir aktarımda ve olası riskler size ayrıca anlatıldıktan sonra başvurulur.",
           "Gönderim altyapısı ve alınan güvenlik tedbirleri aşağıdaki tabloda gösterilmiştir.",
         ],
         table: [

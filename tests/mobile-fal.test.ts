@@ -17,6 +17,13 @@ import {
   visitsWord,
 } from "@/lib/mobile/fal-core";
 
+// The standard contract's record as the enabling PR will fill it: these
+// tests are about a reading that is switched on. With the shipped, empty
+// record nothing is sent at all (tests/mobile-fal-safeguard.test.ts).
+vi.mock("@/lib/mobile/fal-safeguard", () => ({
+  FAL_TRANSFER_SAFEGUARD: { signedOn: "2026-10-01", notifiedOn: "2026-10-02", receipt: "TEST-RECEIPT" },
+}));
+
 /**
  * Karar 177 - fA'L read by AI. The rules that make it lawful are tested
  * here rather than trusted: off without the key AND the switch, no identity
@@ -320,12 +327,14 @@ describe("/fal/consent", () => {
   });
 
   it("refuses the 23 Eyl version, whose text named OpenAI: the new recipient is read first", async () => {
-    expect(FAL_CONSENT_VERSION).toBe("2026-10-17-anthropic");
+    expect(FAL_CONSENT_VERSION).toBe("2026-10-19-anthropic");
     const old = await consent.POST(req({ version: "2026-09-23" }));
     expect(old.status).toBe(409);
     expect((await old.json()).error).toBe("consent_outdated");
     // The same day's text naming another recipient is another version too.
-    expect((await consent.POST(req({ version: "2026-10-17-openai" }))).status).toBe(409);
+    expect((await consent.POST(req({ version: "2026-10-19-openai" }))).status).toBe(409);
+    // So is the 17 Eki text, which named Anthropic without its retention term.
+    expect((await consent.POST(req({ version: "2026-10-17-anthropic" }))).status).toBe(409);
     expect(lib.grantFalConsent).not.toHaveBeenCalled();
   });
 
