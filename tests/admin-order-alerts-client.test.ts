@@ -16,6 +16,8 @@ import {
   WORKER_SOURCE,
   fetchPollOnce,
   interpretPoll,
+  nextCursor,
+  pollUrl,
   startAlertPoller,
   type WorkerLike,
 } from "@/components/admin/order-alert-poller";
@@ -1250,5 +1252,164 @@ describe("the engine", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     tabA.stop();
     tabB.stop();
+  });
+});
+
+// ── The cursor: "nothing changed" without the database ──────────────────
+
+describe("the cursor", () => {
+  const CURSOR = "a1.mgx1k2-abc123.mgx1kz.0";
+  const URL_ = "https://laffogato.net/admin/siparisler/uyari";
+
+  it("an unchanged answer keeps the list; anything else as before", () => {
+    expect(
+      interpretPoll({
+        status: 200,
+        type: "basic",
+        json: {
+          now: "2026-10-18T18:00:00.000Z",
+          unchanged: true,
+          cursor: CURSOR,
+        },
+      }),
+    ).toEqual({ kind: "unchanged", now: "2026-10-18T18:00:00.000Z" });
+    // `unchanged` must be true, not merely present.
+    expect(
+      interpretPoll({ status: 200, type: "basic", json: { unchanged: "yes" } }),
+    ).toEqual({ kind: "retry" });
+    // A 401 stays a stop even if a body claimed otherwise.
+    expect(
+      interpretPoll({ status: 401, type: "basic", json: { unchanged: true } }),
+    ).toEqual({ kind: "stop", reason: "signed-out" });
+  });
+
+  it("pollUrl appends the cursor; nextCursor keeps it across a failure, drops it on a 200 without one", () => {
+    expect(pollUrl(URL_, "")).toBe(URL_);
+    expect(pollUrl(URL_, CURSOR)).toBe(`${URL_}?c=${CURSOR}`);
+    const ok = (json: unknown) => ({ status: 200, type: "basic", json });
+    expect(nextCursor(ok({ alerts: [], cursor: "a1.new" }), CURSOR)).toBe(
+      "a1.new",
+    );
+    expect(nextCursor(ok({ alerts: [] }), CURSOR)).toBe("");
+    expect(nextCursor({ status: 503, type: "basic", json: null }, CURSOR)).toBe(
+      CURSOR,
+    );
+    expect(nextCursor({ status: 0, type: "error", json: null }, CURSOR)).toBe(
+      CURSOR,
+    );
+    expect(nextCursor(ok({ cursor: "x".repeat(200) }), CURSOR)).toBe("");
+  });
+
+  it("the worker sends the cursor back, and a poll-now goes without it", async () => {
+    const calls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string) => {
+      calls.push(url);
+      return {
+        status: 200,
+        type: "basic",
+        json: async () =>
+          calls.length === 1
+            ? { now: "n", alerts: [], cursor: CURSOR }
+            : { now: "n", unchanged: true, cursor: CURSOR },
+      };
+    });
+    const w = runWorker(fetchImpl);
+    w.send({ type: "start", url: URL_, every: 10_000 });
+    await settle();
+    w.timers[0].fn();
+    await settle();
+    w.send({ type: "poll" });
+    await settle();
+    w.timers.at(-1)?.fn();
+    await settle();
+    expect(calls).toEqual([
+      URL_,
+      `${URL_}?c=${CURSOR}`,
+      URL_,
+      `${URL_}?c=${CURSOR}`,
+    ]);
+  });
+
+  it("a poll-now that lands while an ask is out still goes without the cursor", async () => {
+    const calls: string[] = [];
+    let release: () => void = () => {};
+    const fetchImpl = vi.fn(async (url: string) => {
+      calls.push(url);
+      if (calls.length === 2) await new Promise<void>((r) => (release = r));
+      return {
+        status: 200,
+        type: "basic",
+        json: async () => ({ now: "n", alerts: [], cursor: CURSOR }),
+      };
+    });
+    const w = runWorker(fetchImpl);
+    w.send({ type: "start", url: URL_, every: 10_000 });
+    await settle();
+    w.timers[0].fn(); // the second ask, with the cursor, hangs
+    await settle();
+    w.send({ type: "poll" });
+    release();
+    await settle();
+    expect(calls).toEqual([URL_, `${URL_}?c=${CURSOR}`, URL_]);
+  });
+
+  it("the main-thread twin does the same", async () => {
+    const calls: string[] = [];
+    const fetchImpl = vi.fn(async (url: string) => {
+      calls.push(url);
+      return {
+        status: 200,
+        type: "basic",
+        json: async () => ({ now: "n", alerts: [], cursor: CURSOR }),
+      };
+    });
+    const timers: Array<() => void> = [];
+    const p = startAlertPoller({
+      url: URL_,
+      intervalMs: 10_000,
+      onResponse: () => {},
+      createWorker: () => null,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      setTimer: (fn) => timers.push(fn),
+      clearTimer: () => {},
+    });
+    await settle();
+    timers.at(-1)?.();
+    await settle();
+    p.pollNow();
+    await settle();
+    p.stop();
+    expect(calls).toEqual([URL_, `${URL_}?c=${CURSOR}`, URL_]);
+  });
+
+  it("the controller keeps what still rings, drops what aged out, and shares it", () => {
+    const { env, log } = harness();
+    const c = new OrderAlertController(env);
+    c.setLeader(true);
+    const fresh = alert({
+      id: "ord-new",
+      paidAt: new Date(NOW - 60_000).toISOString(),
+    });
+    const old = alert({
+      id: "ord-old",
+      paidAt: new Date(NOW - 3.9 * 60 * 60_000).toISOString(),
+    });
+    c.receive([fresh, old]);
+    expect(
+      c
+        .getSnapshot()
+        .pending.map((a) => a.id)
+        .sort(),
+    ).toEqual(["ord-new", "ord-old"]);
+    // Twenty minutes later by the server's clock, nothing changed: the
+    // older one is past the four hours and goes, the newer one stays.
+    c.receiveUnchanged(new Date(NOW + 20 * 60_000).toISOString());
+    expect(c.getSnapshot().pending.map((a) => a.id)).toEqual(["ord-new"]);
+    expect(log.shared.at(-1)?.ids).toEqual(["ord-new"]);
+    // A follower ignores it, as it ignores a poll answer.
+    const f = new OrderAlertController(harness().env);
+    f.receiveShared([fresh], false);
+    f.receiveUnchanged(new Date(NOW + 5 * 60 * 60_000).toISOString());
+    expect(f.getSnapshot().pending.map((a) => a.id)).toEqual(["ord-new"]);
   });
 });

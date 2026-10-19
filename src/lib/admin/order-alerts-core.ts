@@ -217,6 +217,131 @@ export function buildOrderAlerts(
     .map(toOrderAlert);
 }
 
+// ── The cheap answer: "nothing changed" ──────────────────────────────────
+//
+// A poll that finds nothing new used to read the database every ten
+// seconds, and the database (Neon, free plan) does not sleep while it is
+// asked more often than every five minutes. The route now keeps a change
+// marker in the Data Cache that every write to `orders` replaces
+// (src/lib/admin/change-marker.ts, src/lib/cache/tags.ts). Each full answer
+// hands the poller a cursor; the poller sends it back, and while the marker
+// is still the one in the cursor the route answers `{ unchanged: true }`
+// without touching the database. A moved, missing or unreadable marker
+// always gets the full answer, so failures lean to asking, not to silence.
+
+/** While the köşk is busy, a full answer at least this often anyway. */
+export const ORDER_ALERT_FULL_REFRESH_MS = 60 * 60_000;
+
+/**
+ * A marker this young may have been stored just after a write it did not
+ * see (the cache keeps the time it STORED the marker, which can be a few
+ * hundred milliseconds after it was made). A full answer read this soon
+ * after the marker was made does not vouch for it: the next poll is full
+ * again.
+ */
+export const ORDER_ALERT_MARKER_SETTLE_MS = 5_000;
+
+/** What the cursor carries. */
+export interface OrderAlertCursor {
+  /** The change marker the full answer was read under. */
+  marker: string;
+  /** When that full answer was read (server clock, ms). */
+  fullAt: number;
+  /** The newest alert's paidAt in that answer (ms), 0 for none. */
+  newestPaidAt: number;
+}
+
+/** "<time base36>-<random base36>", as change-marker.ts makes them. */
+const MARKER_RE = /^[0-9a-z]{1,12}-[0-9a-z]{1,24}$/;
+const CURSOR_RE =
+  /^a1\.([0-9a-z]{1,12}-[0-9a-z]{1,24})\.([0-9a-z]{1,12})\.([0-9a-z]{1,12})$/;
+/** Longer than any cursor this file makes; anything longer is junk. */
+const MAX_CURSOR_LENGTH = 80;
+
+export function isChangeMarker(value: unknown): value is string {
+  return typeof value === "string" && MARKER_RE.test(value);
+}
+
+/** When the marker was made (ms), or null for a marker that says nothing. */
+export function markerMadeAt(marker: string): number | null {
+  if (!isChangeMarker(marker)) return null;
+  const t = parseInt(marker.slice(0, marker.indexOf("-")), 36);
+  return Number.isFinite(t) && t > 0 ? t : null;
+}
+
+export function formatOrderAlertCursor(c: OrderAlertCursor): string {
+  return [
+    "a1",
+    c.marker,
+    Math.max(0, Math.trunc(c.fullAt)).toString(36),
+    Math.max(0, Math.trunc(c.newestPaidAt)).toString(36),
+  ].join(".");
+}
+
+/** The cursor the poller sent back, or null for none, junk or an old shape. */
+export function parseOrderAlertCursor(
+  raw: string | null | undefined,
+): OrderAlertCursor | null {
+  if (!raw || raw.length > MAX_CURSOR_LENGTH) return null;
+  const m = CURSOR_RE.exec(raw);
+  if (!m) return null;
+  const fullAt = parseInt(m[2], 36);
+  const newestPaidAt = parseInt(m[3], 36);
+  if (!Number.isFinite(fullAt) || !Number.isFinite(newestPaidAt)) return null;
+  return { marker: m[1], fullAt, newestPaidAt };
+}
+
+/**
+ * The newest paidAt among `alerts` (ms), 0 for none: what the cursor keeps
+ * so a "nothing changed" answer still knows whether something rings.
+ */
+export function newestAlertPaidAt(alerts: readonly OrderAlert[]): number {
+  let newest = 0;
+  for (const a of alerts) {
+    const t = Date.parse(a.paidAt);
+    if (Number.isFinite(t) && t > newest) newest = t;
+  }
+  return newest;
+}
+
+/**
+ * Whether an alert paid at `paidAtMs` still rings at `nowMs`: the window and
+ * the clock skew of `ringsForOrder`.
+ */
+export function stillRinging(paidAtMs: number, nowMs: number): boolean {
+  return (
+    Number.isFinite(paidAtMs) &&
+    paidAtMs > 0 &&
+    paidAtMs >= nowMs - ORDER_ALERT_WINDOW_MS &&
+    paidAtMs <= nowMs + FUTURE_SKEW_MS
+  );
+}
+
+/**
+ * May the route answer "nothing changed" without reading the orders?
+ * Only when the marker is readable and is the one the last full answer was
+ * read under, that answer was read a settle period after the marker was
+ * made, is not from the future, and, while the köşk is busy, is under an
+ * hour old. Everything else gets the full answer.
+ */
+export function mayAnswerUnchanged(opts: {
+  cursor: OrderAlertCursor | null;
+  marker: string | null;
+  nowMs: number;
+  busy: boolean;
+}): boolean {
+  const { cursor, marker, nowMs, busy } = opts;
+  if (!cursor || marker === null || cursor.marker !== marker) return false;
+  const made = markerMadeAt(marker);
+  if (made === null) return false;
+  if (cursor.fullAt < made + ORDER_ALERT_MARKER_SETTLE_MS) return false;
+  if (cursor.fullAt > nowMs) return false;
+  if (busy && nowMs - cursor.fullAt >= ORDER_ALERT_FULL_REFRESH_MS) {
+    return false;
+  }
+  return true;
+}
+
 const CLOCK = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
   hour: "2-digit",
@@ -359,6 +484,17 @@ function readAlert(v: unknown): OrderAlert | null {
     totalMinor: isNum(a.totalMinor) ? a.totalMinor : 0,
     paidAt: isStr(a.paidAt) ? a.paidAt : "",
   };
+}
+
+/**
+ * `{ now, unchanged: true }` from the route ("nothing changed since your
+ * cursor"), or null when it is not that answer.
+ */
+export function parseUnchangedPayload(json: unknown): { now: string } | null {
+  if (!json || typeof json !== "object") return null;
+  const body = json as { now?: unknown; unchanged?: unknown };
+  if (body.unchanged !== true) return null;
+  return { now: isStr(body.now) ? body.now : "" };
 }
 
 /** `{ now, alerts }` from the route, or null when it is not that shape. */

@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ORDER_ALERT_FULL_REFRESH_MS,
+  ORDER_ALERT_MARKER_SETTLE_MS,
+  formatOrderAlertCursor,
+  isChangeMarker,
+  markerMadeAt,
+  mayAnswerUnchanged,
+  newestAlertPaidAt,
+  parseOrderAlertCursor,
+  parseUnchangedPayload,
+  stillRinging,
   ORDER_ALERT_ACK_TTL_MS,
   ORDER_ALERT_LIMIT,
   ORDER_ALERT_WINDOW_MS,
@@ -330,5 +340,162 @@ describe("poll pacing", () => {
     expect(nextPollDelay({ pollAfterMs: 99_999_999 }, 10_000)).toBe(7_200_000);
     expect(nextPollDelay({ pollAfterMs: "x" }, 10_000)).toBe(10_000);
     expect(nextPollDelay(null, 10_000)).toBe(10_000);
+  });
+});
+
+describe('the cursor: answering "nothing changed" without the database', () => {
+  /** A marker made at `at`, as change-marker.ts makes them. */
+  const markerAt = (at: number) => `${at.toString(36)}-k3j9x0q2`;
+  const MADE = NOW - 30 * 60_000;
+  const MARKER = markerAt(MADE);
+  const cursor = (
+    over: Partial<{ fullAt: number; newestPaidAt: number }> = {},
+  ) => ({
+    marker: MARKER,
+    fullAt: MADE + 60_000,
+    newestPaidAt: 0,
+    ...over,
+  });
+
+  it("round-trips, and refuses junk, old shapes and oversized input", () => {
+    const c = cursor({ newestPaidAt: NOW - 60_000 });
+    const raw = formatOrderAlertCursor(c);
+    expect(raw).toMatch(/^a1\./);
+    expect(parseOrderAlertCursor(raw)).toEqual(c);
+    for (const junk of [
+      null,
+      undefined,
+      "",
+      "a1",
+      "a2." + raw.slice(3),
+      raw + ".x",
+      "a1.no marker.1.0",
+      "a1.ABC-def.1.0",
+      `a1.${MARKER}.1`,
+      `a1.${MARKER}.${"z".repeat(13)}.0`,
+      raw + "0".repeat(100),
+      "<script>",
+    ]) {
+      expect(
+        parseOrderAlertCursor(junk as string | null),
+        String(junk),
+      ).toBeNull();
+    }
+  });
+
+  it("reads when a marker was made", () => {
+    expect(isChangeMarker(MARKER)).toBe(true);
+    expect(markerMadeAt(MARKER)).toBe(MADE);
+    expect(isChangeMarker("nope")).toBe(false);
+    expect(markerMadeAt("nope")).toBeNull();
+  });
+
+  it("the same marker while the köşk is idle answers unchanged, however old the last full answer", () => {
+    expect(
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: MADE + 60_000 }),
+        marker: MARKER,
+        nowMs: NOW + 10 * 60 * 60_000,
+        busy: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("while busy, a full answer at least every hour", () => {
+    // A marker from before the oldest full answer below.
+    const older = markerAt(NOW - 3 * ORDER_ALERT_FULL_REFRESH_MS);
+    const at = (age: number) =>
+      mayAnswerUnchanged({
+        cursor: { ...cursor({ fullAt: NOW - age }), marker: older },
+        marker: older,
+        nowMs: NOW,
+        busy: true,
+      });
+    expect(at(59 * 60_000)).toBe(true);
+    expect(at(ORDER_ALERT_FULL_REFRESH_MS)).toBe(false);
+    expect(at(2 * ORDER_ALERT_FULL_REFRESH_MS)).toBe(false);
+  });
+
+  it("a moved, missing or unreadable marker answers no", () => {
+    const base = { cursor: cursor(), nowMs: NOW, busy: false };
+    expect(mayAnswerUnchanged({ ...base, marker: markerAt(NOW - 1000) })).toBe(
+      false,
+    );
+    expect(mayAnswerUnchanged({ ...base, marker: null })).toBe(false);
+    expect(mayAnswerUnchanged({ ...base, cursor: null, marker: MARKER })).toBe(
+      false,
+    );
+  });
+
+  it("a full answer from the future answers no", () => {
+    expect(
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: NOW + 1000 }),
+        marker: MARKER,
+        nowMs: NOW,
+        busy: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("a full answer read right after the marker was made does not vouch for it", () => {
+    // The cache keeps the time it STORED the marker; a write in between
+    // could have been missed. The next ask reads again.
+    const at = (gap: number) =>
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: MADE + gap }),
+        marker: MARKER,
+        nowMs: NOW,
+        busy: false,
+      });
+    expect(at(0)).toBe(false);
+    expect(at(ORDER_ALERT_MARKER_SETTLE_MS - 1)).toBe(false);
+    expect(at(ORDER_ALERT_MARKER_SETTLE_MS)).toBe(true);
+  });
+
+  it("stillRinging uses the ring window and skew of ringsForOrder", () => {
+    for (const minutes of [-6, -4, 0, 30, 239, 241]) {
+      const paidAt = NOW - minutes * 60_000;
+      const row: OrderAlertRow = {
+        id: "o",
+        orderNo: 1,
+        status: "paid",
+        kind: "cafe",
+        fulfillment: "pickup",
+        paidAt: new Date(paidAt).toISOString(),
+        totalMinor: 0,
+      };
+      expect(stillRinging(paidAt, NOW), String(minutes)).toBe(
+        ringsForOrder(row, NOW),
+      );
+    }
+    expect(stillRinging(0, NOW)).toBe(false);
+    expect(stillRinging(Number.NaN, NOW)).toBe(false);
+  });
+
+  it("newestAlertPaidAt is the newest alert, 0 for none", () => {
+    const a = toOrderAlert({
+      id: "a",
+      orderNo: 1,
+      status: "paid",
+      paidAt: minutesAgo(30),
+      totalMinor: 0,
+    });
+    const b = { ...a, id: "b", paidAt: minutesAgo(5) };
+    expect(newestAlertPaidAt([a, b])).toBe(NOW - 5 * 60_000);
+    expect(newestAlertPaidAt([])).toBe(0);
+  });
+
+  it("reads the unchanged answer, and nothing else as one", () => {
+    expect(
+      parseUnchangedPayload({
+        now: "2026-10-18T18:00:00.000Z",
+        unchanged: true,
+      }),
+    ).toEqual({ now: "2026-10-18T18:00:00.000Z" });
+    expect(parseUnchangedPayload({ unchanged: true })).toEqual({ now: "" });
+    expect(parseUnchangedPayload({ alerts: [] })).toBeNull();
+    expect(parseUnchangedPayload({ unchanged: 1 })).toBeNull();
+    expect(parseUnchangedPayload(null)).toBeNull();
   });
 });

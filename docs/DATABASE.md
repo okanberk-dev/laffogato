@@ -103,6 +103,12 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
    saatleri, yayın aralıkları, ana sayfa slaytı) istek başına hesaplanır.
    Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
+   (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
+   `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
+   aynıyken cevap `{ unchanged: true }`, veri ve veritabanı yok. Köşk açıkken
+   en az saatte bir tam cevap. Ayrıntı `docs/ADMIN.md` "Yeni sipariş
+   uyarısı".
 
 **Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
 verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,

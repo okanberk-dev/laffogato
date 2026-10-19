@@ -1,14 +1,30 @@
-import { getAdminSession, isAdminSessionUnavailable } from "@/lib/admin/auth";
+import { cookies } from "next/headers";
+
 import {
-  ORDER_ALERT_BUSY_OFFSETS_MIN,
+  ADMIN_COOKIE_NAME,
+  getAdminSession,
+  isAdminSessionUnavailable,
+  readSessionFromCookieValue,
+} from "@/lib/admin/auth";
+import {
+  busyAt,
+  cachedBusyWindow,
+  readChangeMarker,
+} from "@/lib/admin/change-marker";
+import {
   ORDER_ALERT_LIMIT,
   buildOrderAlerts,
+  formatOrderAlertCursor,
+  mayAnswerUnchanged,
+  newestAlertPaidAt,
   orderAlertPollAfterMs,
   orderAlertsSince,
+  parseOrderAlertCursor,
+  stillRinging,
 } from "@/lib/admin/order-alerts-core";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listOrderAlertRows } from "@/lib/admin/store";
-import { getVenueStatus, isCafeOpenNow } from "@/lib/mobile/venue";
+import { getVenueStatus } from "@/lib/mobile/venue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,13 +40,67 @@ const NO_STORE = { "Cache-Control": "private, no-store" } as const;
  * number, "Masa 4" / "Gel-al", the item names with quantities, the total and
  * when it was paid. No customer name, e-mail, phone or address.
  *
- * A route handler is not behind `requireRole` (that redirects pages) and
- * `proxy.ts` only redirects page views, so the session and the orders
- * section are checked here, on every request: 401 without a session (the
- * poller stops), 403 for a role without Siparişler (a cashier), 503 when
- * the account or the orders could not be read (the poller keeps asking).
+ * Two answers:
+ *
+ * - `?c=<cursor>` with a cursor whose change marker is still current
+ *   (change-marker.ts: every write to `orders` replaces it) gets
+ *   `{ now, unchanged: true, cursor, pollAfterMs }`: no orders, no database.
+ *   It needs a validly signed session cookie of a role with Siparişler, and
+ *   carries no data, so it does not re-read the account; while the köşk is
+ *   busy at least one answer an hour is a full one anyway
+ *   (`mayAnswerUnchanged`).
+ * - Everything else, the full answer, as before: the session and the orders
+ *   section are checked here, on every request (a route handler is not
+ *   behind `requireRole`, and `proxy.ts` only redirects page views): 401
+ *   without a session (the poller stops), 403 for a role without Siparişler
+ *   (a cashier), 503 when the account or the orders could not be read (the
+ *   poller keeps asking). It adds the cursor for the next ask, made from the
+ *   marker read BEFORE the orders, so an order paid in between moves it.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const now = Date.now();
+
+  // The cheap check first: the cookie's signature, no database.
+  let signed;
+  try {
+    const jar = await cookies();
+    signed = readSessionFromCookieValue(jar.get(ADMIN_COOKIE_NAME)?.value);
+  } catch {
+    signed = null;
+  }
+  if (!signed) {
+    return Response.json(
+      { error: "unauthorized" },
+      { status: 401, headers: NO_STORE },
+    );
+  }
+
+  let marker: string | null = null;
+  let markerRead = false;
+  const rawCursor = new URL(request.url).searchParams.get("c");
+  const cursor = parseOrderAlertCursor(rawCursor);
+  if (cursor && rawCursor && canAccess("orders", signed.role)) {
+    marker = await readChangeMarker("orders");
+    markerRead = true;
+    if (marker !== null) {
+      const busy = await cachedBusyWindow(now);
+      if (mayAnswerUnchanged({ cursor, marker, nowMs: now, busy })) {
+        return Response.json(
+          {
+            now: new Date(now).toISOString(),
+            unchanged: true,
+            cursor: rawCursor,
+            pollAfterMs: orderAlertPollAfterMs({
+              busy,
+              hasAlerts: stillRinging(cursor.newestPaidAt, now),
+            }),
+          },
+          { status: 200, headers: NO_STORE },
+        );
+      }
+    }
+  }
+
   let session;
   try {
     session = await getAdminSession();
@@ -54,8 +124,10 @@ export async function GET() {
     );
   }
 
-  const now = Date.now();
   try {
+    // Before the orders: a write that lands after this read moves the
+    // marker, so the next ask reads again and sees it.
+    if (!markerRead) marker = await readChangeMarker("orders");
     const rows = await listOrderAlertRows(
       orderAlertsSince(now),
       ORDER_ALERT_LIMIT,
@@ -69,6 +141,15 @@ export async function GET() {
           busy: await busyWindow(now),
           hasAlerts: alerts.length > 0,
         }),
+        ...(marker
+          ? {
+              cursor: formatOrderAlertCursor({
+                marker,
+                fullAt: now,
+                newestPaidAt: newestAlertPaidAt(alerts),
+              }),
+            }
+          : {}),
       },
       { status: 200, headers: NO_STORE },
     );
@@ -84,9 +165,9 @@ export async function GET() {
 
 /**
  * Is the köşk open now, within the next hour, or was it open half an hour
- * ago? The staff override (Canlı durum) first, the posted hours otherwise.
- * A read that fails answers "busy": a missed sleep costs compute, a missed
- * order costs a guest.
+ * ago? The staff override (Canlı durum) first, the posted hours otherwise,
+ * read live on the full answer. A read that fails answers "busy": a missed
+ * sleep costs compute, a missed order costs a guest.
  */
 async function busyWindow(now: number): Promise<boolean> {
   try {
@@ -94,13 +175,7 @@ async function busyWindow(now: number): Promise<boolean> {
       getSettings(),
       getVenueStatus(),
     ]);
-    return ORDER_ALERT_BUSY_OFFSETS_MIN.some((min) =>
-      isCafeOpenNow(
-        settings.weeklyHours,
-        venue.manualOverride,
-        new Date(now + min * 60_000),
-      ),
-    );
+    return busyAt(settings.weeklyHours, venue.manualOverride, now);
   } catch {
     return true;
   }

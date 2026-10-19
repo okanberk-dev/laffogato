@@ -77,6 +77,29 @@ liste diğer sekmelere BroadcastChannel ile gider, "Gördüm" localStorage'da
 (`laffogato.admin.orderAlerts.acks.v1`). Zil Web Audio ile üretilir (dosya
 yok); sesin ayarı `laffogato.admin.orders.sound`.
 
+**Değişiklik yokken veritabanı yok (19 Eki 2026).** Sıklık aynı kaldı, ama
+10 saniyelik soru artık çoğu zaman Neon'a gitmiyor. Her tam cevap bir imleç
+(`cursor`) taşır; Worker onu bir sonraki soruda `?c=` olarak geri yollar.
+`orders` tablosuna her yazma (ödendi, durum değişikliği, iptal, iade, yeni
+sipariş) Data Cache'teki değişiklik işaretini yeniler
+(`src/lib/admin/change-marker.ts`, `src/lib/cache/tags.ts`). İşaret
+imleçtekiyle aynıysa cevap yalnız `{ unchanged: true }` olur: sipariş yok,
+hesap okuması yok, veritabanı yok; yalnız çerezin imzası ve rolü (Siparişler)
+bakılır. İşaret değiştiyse, okunamadıysa, imleç yoksa ya da bozuksa,
+çerezdeki rol Siparişler'e erişemiyorsa eski tam cevap gelir (hesap yeniden
+okunur, 401/403/503 aynı). Köşk açıkken en az saatte bir cevap yine tamdır.
+İşaret siparişlerden önce okunur, arada ödenen sipariş onu mutlaka
+değiştirir; ödenen bir masa siparişi bir sonraki 10 saniyelik soruda çalar.
+"Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
+cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
+gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
+Bir yazmanın düşürme isteği kaybolursa (önbellek hatası) zil en geç bir
+sonraki tam cevapta (açıkken en geç bir saat) çalar; personel e-postası
+bundan bağımsız gider. Önbellek çalışmazsa her soru tam cevap olur: eski
+maliyet, kaçan sipariş yok. Deploy'dan önce açılmış sekmeler yenilenene kadar
+eski Worker'la (imleçsiz, her 10 sn tam cevap) çalışır: tezgâh
+bilgisayarında paneli bir kez yenile.
+
 ## Gün sonu sayfası (Raporlar > Gün sonu)
 
 Günü kapatırken beş ekran yerine tek sayfa: `/admin/raporlar/gun-sonu`.
