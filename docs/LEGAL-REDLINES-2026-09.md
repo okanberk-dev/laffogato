@@ -1280,8 +1280,8 @@ KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
   `taxBreakdown`'ı üyenin ödediği tutarın içindeki KDV'dir (satır toplamı =
   `totalMinor`).
 - `orders."shippingTaxRatePct"`: sipariş yazılırken kargo oranı damgalanır;
-  eski siparişte NULL, 20 okunur (`20261018220100_order_shipping_tax_rate.sql`).
-- `20261018220000_cafe_food_rate_10.sql` (bir kez): prd-0003 1 ise 10,
+  eski siparişte NULL, 20 okunur (`20261019150100_order_shipping_tax_rate.sql`).
+- `20261019150000_cafe_food_rate_10.sql` (bir kez): prd-0003 1 ise 10,
   prd-0009 oransız, merch ve Pamuk Önlük ise 10, `orders.items`'ta 1 damgalı
   her satır 10 (sıra ve toplamlar aynı; satıştaki %1 kaybolmaz: her sipariş
   için bir olay kaydı satırı, `system`, `kdv_rate_corrected`, sipariş no ve

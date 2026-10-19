@@ -56,7 +56,7 @@ update public.products
    and not exists (
      select 1
        from public._migrations as applied
-      where applied.name = '20261018220000_cafe_food_rate_10.sql'
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
    );
 
 update public.products
@@ -68,7 +68,7 @@ update public.products
    and not exists (
      select 1
        from public._migrations as applied
-      where applied.name = '20261018220000_cafe_food_rate_10.sql'
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
    );
 
 update public.settings
@@ -81,7 +81,7 @@ update public.settings
    and not exists (
      select 1
        from public._migrations as applied
-      where applied.name = '20261018220000_cafe_food_rate_10.sql'
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
    );
 
 -- The record first: once the stamps move, nothing else says which lines
@@ -95,7 +95,7 @@ select 'aud-' || lpad(seq::text, greatest(7, length(seq::text)), '0'),
        touched.id,
        jsonb_build_object(
          'event', 'kdv_rate_corrected',
-         'migration', '20261018220000_cafe_food_rate_10.sql',
+         'migration', '20261019150000_cafe_food_rate_10.sql',
          'orderNo', touched."orderNo",
          'from', 1,
          'to', 10,
@@ -124,7 +124,7 @@ select 'aud-' || lpad(seq::text, greatest(7, length(seq::text)), '0'),
        and not exists (
          select 1
            from public._migrations as applied
-          where applied.name = '20261018220000_cafe_food_rate_10.sql'
+          where applied.name = '20261019150000_cafe_food_rate_10.sql'
        )
   ) as touched;
 
@@ -146,5 +146,5 @@ update public.orders as o
    and not exists (
      select 1
        from public._migrations as applied
-      where applied.name = '20261018220000_cafe_food_rate_10.sql'
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
    );

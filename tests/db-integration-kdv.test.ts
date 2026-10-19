@@ -31,8 +31,8 @@ import {
  * range.
  *
  * 18 Eki 2026: every order also carries the shipping or courier fee's own
- * rate (`"shippingTaxRatePct"`, 20261018220100), and
- * 20261018220000_cafe_food_rate_10.sql moves what the code had written at
+ * rate (`"shippingTaxRatePct"`, 20261019150100), and
+ * 20261019150000_cafe_food_rate_10.sql moves what the code had written at
  * 1% to the köşk's 10% once. Skipped without TEST_DATABASE_URL, like the
  * other tests/db-integration*.test.ts.
  */
@@ -500,9 +500,9 @@ maybe("KDV per item in a real Postgres", () => {
     }
   });
 
-  it("moves what the code wrote at 1% to the köşk's 10%, once (20261018220000)", async () => {
+  it("moves what the code wrote at 1% to the köşk's 10%, once (20261019150000)", async () => {
     // One transaction, rolled back: the shared database keeps its rows.
-    const MIGRATION = "20261018220000_cafe_food_rate_10.sql";
+    const MIGRATION = "20261019150000_cafe_food_rate_10.sql";
     const sql = readFileSync(`db/migrations/${MIGRATION}`, "utf8");
     // A sale the old code stamped at 1%: a panel that still said 1.
     const s = await store.getSettings();
@@ -686,7 +686,7 @@ maybe("KDV per item in a real Postgres", () => {
     }
   });
 
-  it("adds the fee's rate column without touching an older order (20261018220100)", async () => {
+  it("adds the fee's rate column without touching an older order (20261019150100)", async () => {
     const { rows } = await pool!.query(
       `select data_type, is_nullable, column_default
          from information_schema.columns

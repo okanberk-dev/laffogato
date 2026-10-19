@@ -153,7 +153,7 @@ function auditItem(
         };
       }
       if (event === "kdv_rate_corrected") {
-        // 20261018220000_cafe_food_rate_10.sql moved these lines' stamp;
+        // 20261019150000_cafe_food_rate_10.sql moved these lines' stamp;
         // the row keeps the rate they were sold (and maybe invoiced) at.
         const lines = Array.isArray(p.lines)
           ? (p.lines as Array<Record<string, unknown>>)

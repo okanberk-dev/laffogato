@@ -627,7 +627,7 @@ describe("the timeline", () => {
           entityId: "ord-1",
           payload: {
             event: "kdv_rate_corrected",
-            migration: "20261018220000_cafe_food_rate_10.sql",
+            migration: "20261019150000_cafe_food_rate_10.sql",
             orderNo: 10001,
             from: 1,
             to: 10,
