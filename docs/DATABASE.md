@@ -101,8 +101,14 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    `/kampanyalar`, `/hukuk` ve `/hukuk/<slug>` gösterimi, `/rehber` ve
    `/uye` çerçevesi, 404, `robots.txt`, `sitemap.xml`, iki `.well-known`
    belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
-   saatleri, yayın aralıkları, ana sayfa slaytı) istek başına hesaplanır.
+   saatleri, yayın aralıkları, ana sayfa slaytı, mağazadaki indirimin "eski
+   fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
+   her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.
    Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+   Veri katmanının dışından yapılan yazma (Neon konsolunda elle SQL,
+   `scripts/*.mjs`) etiket düşürmez: ardından panelden bir kayıt yap, yeniden
+   deploy et ya da geçici olarak `LAF_DATA_CACHE=off` kullan; aksi halde
+   eski içerik en çok 24 saat görünür.
 3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
    (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
    `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret

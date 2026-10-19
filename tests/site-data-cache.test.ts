@@ -432,6 +432,32 @@ describe("the hour is applied per request, never stored", () => {
     expect(sunday.appProps.visit.todayHours).toBe("11:00 - 20:00");
   });
 
+  it("a discount shows only between its days, over the same cached list", async () => {
+    caching();
+    h.rows.products[0] = {
+      ...h.rows.products[0],
+      compareAtPriceMinor: 52000,
+      // Istanbul days 21-24 Ekim, as the panel stores them.
+      discountStartsAt: "2026-10-20T21:00:00.000Z",
+      discountEndsAt: "2026-10-24T20:59:59.999Z",
+    };
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(MONDAY);
+    const before = (await site.listSiteShopProducts())[0];
+    const reads = h.sql.length;
+    vi.setSystemTime(SATURDAY);
+    const during = (await site.getSiteProductBySlug("sirena"))!;
+    vi.setSystemTime(SUNDAY);
+    const after = (await site.listSiteShopProducts())[0];
+    expect(h.sql.length).toBe(reads);
+    expect(before.compareAtPrice).toBeUndefined();
+    expect(before.compareAtPriceMinor).toBeUndefined();
+    expect(during.compareAtPriceMinor).toBe(52000);
+    expect(during.discountEndsAt).toBe("2026-10-24T20:59:59.999Z");
+    expect(after.compareAtPrice).toBeUndefined();
+    expect(after.discountStartsAt).toBeUndefined();
+  });
+
   it("publish windows open and close over the same cached rows", async () => {
     caching();
     const monday = await site.listSiteHomeSlides(MONDAY);
