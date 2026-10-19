@@ -4,11 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
+import {
+  parsePriceLabel,
+  priceLabel,
+  shortProductName,
+} from "@/lib/utils/format";
 
 import type { Product } from "./data";
 import {
   freeShippingFrom,
+  productDiscount,
   productFacts,
   type ProductFact,
 } from "./product-facts";
@@ -87,8 +92,14 @@ export function ProductDetail({
   const basePrice =
     p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
   const unitPrice = basePrice + (selectedVariant?.priceDelta ?? 0);
+  // Printed to the kuruş, as the card, the quick look and the checkout
+  // print it: 149,90 rounded to 150 overstated the price before the
+  // discount the save proved to the kuruş (Fiyat Etiketi Yön. m.11/1).
+  const unitMinor = Math.round(unitPrice * 100);
+  // Struck out only with the days the sentence below names (m.14/1).
+  const discount = productDiscount(p);
   const compareAt =
-    p.compareAtPriceMinor !== undefined
+    discount && p.compareAtPriceMinor !== undefined
       ? p.compareAtPriceMinor / 100
       : undefined;
   const stock = selectedVariant?.stock ?? p.stock;
@@ -227,14 +238,19 @@ export function ProductDetail({
             <h1 className="pdp-title">{p.name}</h1>
 
             <div className="pdp-price-row">
-              <span className="pdp-price">{Math.round(unitPrice)}₺</span>
+              <span className="pdp-price">{priceLabel(unitMinor)}</span>
               {compareAt && compareAt > unitPrice && (
-                <span className="pdp-compare">{Math.round(compareAt)}₺</span>
+                <span className="pdp-compare">
+                  {priceLabel(Math.round(compareAt * 100))}
+                </span>
               )}
               {savingsPct > 0 && (
                 <span className="pdp-save-pill">−%{savingsPct}</span>
               )}
             </div>
+            {savingsPct > 0 && discount && (
+              <p className="pdp-discount-note">{discount.notice}</p>
+            )}
             <div className="pdp-tax-note">KDV dahil fiyat</div>
 
             <p className="pdp-desc">{p.desc}</p>
@@ -318,7 +334,7 @@ export function ProductDetail({
                 ) : added ? (
                   "Sepete eklendi ✓"
                 ) : (
-                  <>Sepete ekle · {Math.round(unitPrice * qty)}₺</>
+                  <>Sepete ekle · {priceLabel(unitMinor * qty)}</>
                 )}
               </button>
             </div>

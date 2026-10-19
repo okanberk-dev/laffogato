@@ -33,7 +33,14 @@ function product(overrides: Record<string, string> = {}) {
 describe("product prices", () => {
   it("reads the Turkish thousands dot: 1.250,00 is 1250 TL", () => {
     const r = productFormSchema.safeParse(
-      product({ price: "1.250,00", compareAtPrice: "1.500", cost: "612,5" }),
+      product({
+        price: "1.250,00",
+        compareAtPrice: "1.500",
+        cost: "612,5",
+        // A compare-at price comes with its days (Ticari Reklam Yön. m.14/1).
+        discountStartsOn: "2026-10-19",
+        discountEndsOn: "2026-10-31",
+      }),
     );
     expect(r.success).toBe(true);
     if (!r.success) return;

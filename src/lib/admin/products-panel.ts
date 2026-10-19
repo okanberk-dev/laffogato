@@ -2,6 +2,8 @@
 // page fetches (store.ts listProductsForPanel); the tabs, the search, the
 // order and the page are decided here, so the list and the tests agree.
 
+import { liveCompareAtMinor } from "@/lib/shop/discount";
+
 import type { AdminProductVariant, ProductPanelView } from "./store";
 import {
   DEFAULT_DIR_PARAM,
@@ -69,6 +71,11 @@ export interface ProductListRow {
   tag: string;
   cat: string;
   priceMinor: number;
+  /**
+   * The "was" price only while its discount runs (liveDiscount), else 0:
+   * an ended or dateless one stays stored until the next save, and struck
+   * here it read as if the shop still showed it.
+   */
   compareAtPriceMinor: number;
   stock: number;
   lowStockThreshold: number;
@@ -93,7 +100,7 @@ export function toProductListRow(
     tag: p.tag,
     cat: p.cat,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor: p.compareAtPriceMinor,
+    compareAtPriceMinor: liveCompareAtMinor(p),
     stock: p.stock,
     lowStockThreshold: p.lowStockThreshold,
     isActive: p.isActive,

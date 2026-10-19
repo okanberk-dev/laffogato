@@ -144,9 +144,11 @@ describe("the vocabulary is the app's, exactly", () => {
       "src/components/admin/product-wizard.tsx",
       "utf8",
     );
-    for (const tag of PRODUCT_ALLERGEN_TAGS) {
-      expect(wizard).toContain(`["${tag}", "`);
-    }
+    // 19 Eki 2026: the fourteen Ek-1 groups are boxes (the menu's closed
+    // list), and the one allergen tag the app reads follows the tree-nut box.
+    expect(PRODUCT_ALLERGEN_TAGS).toEqual(["nuts"]);
+    expect(wizard).toContain('const NUTS_TAG = "nuts";');
+    expect(wizard).toMatch(/MENU_ALLERGENS\.map\(\(a\) => \(\s*<Checkbox/);
     expect(wizard).toContain('<input type="hidden" name="tags"');
   });
 });

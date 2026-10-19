@@ -9,7 +9,11 @@ import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
 
 import type { Product } from "./data";
-import { productFacts, type ProductFact } from "./product-facts";
+import {
+  productDiscount,
+  productFacts,
+  type ProductFact,
+} from "./product-facts";
 import { ProductSurface } from "./visuals";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 import { cx } from "./cx";
@@ -160,6 +164,7 @@ export function ProductCard({
   // A product sold in variants cannot go in from the card: the "+" opens it
   // so the variant is chosen first (toCartItem refuses a line without one).
   const needsChoice = activeVariants(p).length > 0;
+  const discount = productDiscount(p);
 
   const onAdd = () => {
     if (outOfStock || !addToCart) return;
@@ -231,9 +236,15 @@ export function ProductCard({
         </div>
       )}
       <div className="product-card-foot">
-        <div className="product-card-price">
-          <span>{p.price}</span>
-          {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
+        <div className="product-card-pricing">
+          <div className="product-card-price">
+            <span>{p.price}</span>
+            {discount && <span className="was">{discount.was}</span>}
+          </div>
+          {/* The discount's days, wherever the struck price is (m.14/1). */}
+          {discount && (
+            <span className="product-card-discount">{discount.short}</span>
+          )}
         </div>
         {addToCart && !outOfStock && needsChoice ? (
           onOpen ? (
@@ -385,12 +396,22 @@ export function DetailRow({ k, v }: { k: string; v: ReactNode }) {
         gap: 18,
         padding: "10px 0",
         borderTop: "1px solid var(--ink-line)",
+        // A label row runs to several lines (ingredients, nutrition): the
+        // name sits on its first line, not in the middle of the block.
+        alignItems: "baseline",
       }}
     >
-      <div className="eyebrow" style={{ alignSelf: "center" }}>
-        {k}
+      <div className="eyebrow">{k}</div>
+      <div
+        style={{
+          fontSize: 14,
+          color: "var(--ink-soft)",
+          whiteSpace: "pre-line",
+          overflowWrap: "anywhere",
+        }}
+      >
+        {v}
       </div>
-      <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>{v}</div>
     </div>
   );
 }
@@ -749,6 +770,7 @@ function ProductModalBody({
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
   const variants = activeVariants(p);
   const facts = productFacts(p);
+  const discount = productDiscount(p);
   const [variantId, setVariantId] = useState<string | undefined>(
     variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
   );
@@ -824,7 +846,7 @@ function ProductModalBody({
           >
             {Math.round(unitPrice)}₺
           </span>
-          {p.compareAtPrice && (
+          {discount && (
             <span
               style={{
                 textDecoration: "line-through",
@@ -832,10 +854,11 @@ function ProductModalBody({
                 fontSize: 18,
               }}
             >
-              {p.compareAtPrice}
+              {discount.was}
             </span>
           )}
         </div>
+        {discount && <p className="pdp-discount-note">{discount.notice}</p>}
         <p
           style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}
         >

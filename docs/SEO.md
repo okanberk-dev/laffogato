@@ -106,7 +106,10 @@ Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
   kendi metni ve `public/` dosyalarıyla çizilir. İki istisna:
   - **Ürün kartı** ilk istekte, sayfanın okuduğu sorguyla (yedeksiz hâli,
     `getShopProductBySlugLive`) çizilir ve bir saat saklanır (ISR); fiyat,
-    sayfanın ilk açtığı varyantın KDV dahil fiyatıdır. Aktif ürün yoksa kart
+    sayfanın ilk açtığı varyantın KDV dahil fiyatıdır, sayfadaki gibi
+    kuruşuyla. Üstü çizili eski fiyat kartta yoktur: indirim reklamı
+    başlangıç ve bitiş gününü yazar (Ticari Reklam Yön. m.14/1), kartta yer
+    yok ve kart bitişten sonra da saklanır. Aktif ürün yoksa kart
     da sayfa gibi **404**'tür ve bu cevap da bir saat saklanır. 404
     `notFound()` ile fırlatılmaz, döndürülür: Next fırlatılan 404'ü
     `revalidate`'siz saklıyor, sonradan aktifleşen ürünün kartı bir sonraki
