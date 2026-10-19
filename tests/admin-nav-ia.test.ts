@@ -598,6 +598,29 @@ describe("the shell's markup", () => {
     );
   });
 
+  it("the skip link moves focus without a fragment jump, so Back still works", () => {
+    // A plain `#admin-main` jump adds a history entry with no router state,
+    // and the App Router ignores such an entry on Back: Back from the next
+    // page left that page on screen under the old address (seen in a
+    // Next 16.3.8 app). Once the shell runs, the click focuses the wrapper
+    // itself; before hydration the href still does the jump.
+    const calls: string[] = [];
+    const event = { preventDefault: () => calls.push("preventDefault") };
+    sidebar.skipToContent(event, { focus: () => calls.push("focus") });
+    expect(calls).toEqual(["preventDefault", "focus"]);
+    // No target (a page outside the shell): the browser's own jump.
+    calls.length = 0;
+    sidebar.skipToContent(event, null);
+    expect(calls).toEqual([]);
+    const src = readFileSync("src/components/admin/admin-sidebar.tsx", "utf8");
+    expect(src).toMatch(
+      /onClick=\{\(e\) =>\s+skipToContent\(e, document\.getElementById\("admin-main"\)\)/,
+    );
+    const link =
+      /<a [^>]*href="#admin-main"[^>]*>/.exec(renderShell("owner"))?.[0] ?? "";
+    expect(link).toContain('href="#admin-main"');
+  });
+
   it("the skip link's target draws no ring of its own: a click and an arrow key framed the whole page", async () => {
     // The wrapper takes focus from the skip link (tabindex -1), and so from
     // any click on the page's empty space too. The panel's one focus ring,
