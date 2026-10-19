@@ -15,8 +15,12 @@ import {
   type ReactNode,
 } from "react";
 
-import { karaokeTodayCountAction } from "@/app/admin/mobil/karaoke/actions";
-import { openOrderCountAction } from "@/app/admin/siparisler/actions";
+import { karaokeTodaySignalAction } from "@/app/admin/mobil/karaoke/actions";
+import { openOrderSignalAction } from "@/app/admin/siparisler/actions";
+import {
+  readSignalAnswer,
+  type PanelSignalAnswer,
+} from "@/lib/admin/panel-signal-core";
 import { forgetRecents } from "@/components/admin/palette/recents";
 import { PaletteTrigger } from "@/components/admin/palette/trigger";
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
@@ -102,6 +106,12 @@ export const NAV_BADGE_POLL_MS = 60_000;
  * cancelled tonight's booking (admin audit KAR-23). A change that lands
  * while a read is out is read again once that read is back: the read in
  * flight may have started before the change. Returns the stop function.
+ *
+ * Each answer carries a cursor (panel-signal-core.ts) that the next read
+ * sends back; while nothing was written the answer is `{ unchanged: true }`,
+ * read without the database, and the badge keeps its number.
+ * `admin:changed` drops the cursor, so the read after an action is a full
+ * one; a new poll (the effect restarting on navigation) starts without one.
  */
 export function startNavCountPoll({
   read,
@@ -110,7 +120,7 @@ export function startNavCountPoll({
   target = window,
   isVisible = () => document.visibilityState === "visible",
 }: {
-  read: () => Promise<number | null>;
+  read: (cursor: string) => Promise<PanelSignalAnswer>;
   onCount: (count: number | null) => void;
   intervalMs?: number;
   target?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
@@ -119,6 +129,7 @@ export function startNavCountPoll({
   let stopped = false;
   let busy = false;
   let again = false;
+  let cursor = "";
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   async function tick() {
@@ -127,8 +138,13 @@ export function startNavCountPoll({
     if (isVisible()) {
       busy = true;
       try {
-        const n = await read();
-        if (!stopped) onCount(typeof n === "number" ? n : null);
+        const answer = readSignalAnswer(await read(cursor));
+        if (!stopped && !("unchanged" in answer)) {
+          // A change landed while this read was out: the next read is a
+          // full one, whatever this answer's cursor says.
+          cursor = again ? "" : answer.cursor;
+          onCount(answer.count);
+        }
       } catch {
         // Never let a background count take the panel down.
       } finally {
@@ -146,6 +162,7 @@ export function startNavCountPoll({
 
   const onChanged = () => {
     if (stopped) return;
+    cursor = "";
     if (busy) {
       again = true;
       return;
@@ -176,7 +193,7 @@ export function startNavCountPoll({
  */
 function useNavCount(
   pathname: string,
-  read: () => Promise<number | null>,
+  read: (cursor: string) => Promise<PanelSignalAnswer>,
   enabled: boolean,
 ): number | null {
   const [count, setCount] = useState<number | null>(null);
@@ -833,10 +850,14 @@ export function AdminSidebar(props: SidebarProps) {
 
   const has = (section: string) =>
     props.groups.some((g) => g.items.some((i) => i.section === section));
-  const openOrders = useNavCount(pathname, openOrderCountAction, has("orders"));
+  const openOrders = useNavCount(
+    pathname,
+    openOrderSignalAction,
+    has("orders"),
+  );
   const karaokeToday = useNavCount(
     pathname,
-    karaokeTodayCountAction,
+    karaokeTodaySignalAction,
     has("karaoke"),
   );
   const counts = { orders: openOrders, karaoke: karaokeToday };

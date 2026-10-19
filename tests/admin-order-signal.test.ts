@@ -9,18 +9,40 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * visible on a screen that is already open, so what matters is that they
  * answer cheaply, that they never redirect a background poll, and that a role
  * without order access gets nothing rather than a number.
+ *
+ * Cheaply now means: while no order has been written since the last answer,
+ * without the database at all (panel-signal.ts). The answer then carries no
+ * count, and the account is not read; any answer with a count is.
  */
 
 const countOpenOrders = vi.fn();
 const countOrdersAfter = vi.fn();
 const getAdminSession = vi.fn();
+const signed = vi.hoisted(() => ({
+  value: { email: "a@b.c", role: "owner" } as null | {
+    email: string;
+    role: string;
+  },
+}));
+const marker = vi.hoisted(() => ({
+  read: vi.fn(async (): Promise<string | null> => null),
+}));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => ({ value: "signed-token" }) }),
+}));
+vi.mock("@/lib/admin/change-marker", () => ({
+  readChangeMarker: marker.read,
+}));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/payment", () => ({ getPaymentProvider: vi.fn() }));
 vi.mock("@/lib/admin/auth", () => ({
+  ADMIN_COOKIE_NAME: "laffogato_admin_session",
   getAdminSession,
+  readSessionFromCookieValue: (v: string | undefined) =>
+    v ? signed.value : null,
   requireRole: vi.fn(async () => ({ email: "a@b.c", role: "owner" })),
 }));
 vi.mock("@/lib/admin/store", () => ({
@@ -37,9 +59,13 @@ vi.mock("@/lib/admin/store", () => ({
   updateOrderDetails: vi.fn(),
 }));
 
-const { newOrderCountAction, openOrderCountAction } = await import(
-  "@/app/admin/siparisler/actions"
-);
+const { newOrderCountAction, newOrderSignalAction, openOrderSignalAction } =
+  await import("@/app/admin/siparisler/actions");
+const { formatSignalCursor, parseSignalCursor } =
+  await import("@/lib/admin/panel-signal-core");
+
+/** A marker made an hour ago (settled), as change-marker.ts makes them. */
+const M = `${(Date.now() - 3600_000).toString(36)}-k3j9x0q2`;
 
 beforeEach(() => {
   countOpenOrders.mockReset();
@@ -48,28 +74,138 @@ beforeEach(() => {
   countOrdersAfter.mockResolvedValue(2);
   getAdminSession.mockReset();
   getAdminSession.mockResolvedValue({ email: "a@b.c", role: "owner" });
+  signed.value = { email: "a@b.c", role: "owner" };
+  marker.read.mockReset();
+  marker.read.mockResolvedValue(M);
 });
 
-describe("openOrderCountAction", () => {
-  it("counts the open orders for the nav badge", async () => {
-    await expect(openOrderCountAction()).resolves.toBe(4);
+describe("openOrderSignalAction", () => {
+  it("counts the open orders for the nav badge, with a cursor for next time", async () => {
+    const answer = await openOrderSignalAction("");
+    expect(answer).toEqual({ count: 4, cursor: formatSignalCursor(M, "open") });
+    expect(getAdminSession).toHaveBeenCalled();
   });
 
-  it("answers null for a signed-out caller instead of redirecting a poll", async () => {
+  it("answers unchanged for a current cursor: no account read, no count", async () => {
+    const answer = await openOrderSignalAction(formatSignalCursor(M, "open"));
+    expect(answer).toEqual({ unchanged: true });
+    expect(getAdminSession).not.toHaveBeenCalled();
+    expect(countOpenOrders).not.toHaveBeenCalled();
+  });
+
+  it("a moved, missing or unreadable marker re-reads the account and counts", async () => {
+    const moved = `${(Date.now() - 600_000).toString(36)}-n3w`;
+    marker.read.mockResolvedValue(moved);
+    let answer = await openOrderSignalAction(formatSignalCursor(M, "open"));
+    expect(answer).toEqual({
+      count: 4,
+      cursor: formatSignalCursor(moved, "open"),
+    });
+    expect(getAdminSession).toHaveBeenCalledTimes(1);
+    marker.read.mockResolvedValue(null);
+    answer = await openOrderSignalAction(formatSignalCursor(M, "open"));
+    expect(answer).toEqual({ count: 4, cursor: "" });
+    answer = await openOrderSignalAction("junk");
+    expect(answer).toEqual({ count: 4, cursor: "" });
+    expect(getAdminSession).toHaveBeenCalledTimes(3);
+  });
+
+  it("a marker made moments ago is not vouched for: no cursor yet", async () => {
+    marker.read.mockResolvedValue(`${Date.now().toString(36)}-fr35h`);
+    await expect(openOrderSignalAction("")).resolves.toEqual({
+      count: 4,
+      cursor: "",
+    });
+  });
+
+  it("reads the marker before the count", async () => {
+    await openOrderSignalAction("");
+    expect(marker.read.mock.invocationCallOrder[0]).toBeLessThan(
+      countOpenOrders.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("an invalid signature is no badge, without the database", async () => {
+    signed.value = null;
+    await expect(
+      openOrderSignalAction(formatSignalCursor(M, "open")),
+    ).resolves.toEqual({ count: null, cursor: "" });
+    expect(marker.read).not.toHaveBeenCalled();
+    expect(getAdminSession).not.toHaveBeenCalled();
+  });
+
+  it("answers no badge for a signed-out caller instead of redirecting a poll", async () => {
     getAdminSession.mockResolvedValue(null);
-    await expect(openOrderCountAction()).resolves.toBeNull();
+    await expect(openOrderSignalAction("")).resolves.toEqual({
+      count: null,
+      cursor: "",
+    });
     expect(countOpenOrders).not.toHaveBeenCalled();
   });
 
-  it("answers null for a cashier - the till role may not see the order list", async () => {
+  it("answers no badge for a cashier - the till role may not see the order list", async () => {
+    signed.value = { email: "kasa@b.c", role: "cashier" };
     getAdminSession.mockResolvedValue({ email: "kasa@b.c", role: "cashier" });
-    await expect(openOrderCountAction()).resolves.toBeNull();
+    // Even with a current cursor: the token's role has no Siparişler.
+    await expect(
+      openOrderSignalAction(formatSignalCursor(M, "open")),
+    ).resolves.toEqual({ count: null, cursor: "" });
     expect(countOpenOrders).not.toHaveBeenCalled();
+    expect(marker.read).not.toHaveBeenCalled();
+  });
+
+  it("a demoted account gets no badge even when the token says otherwise", async () => {
+    getAdminSession.mockResolvedValue({ email: "a@b.c", role: "cashier" });
+    marker.read.mockResolvedValue(`${(Date.now() - 600_000).toString(36)}-n3w`);
+    await expect(
+      openOrderSignalAction(formatSignalCursor(M, "open")),
+    ).resolves.toEqual({ count: null, cursor: "" });
   });
 
   it("swallows a database failure: a background poll must not break the panel", async () => {
     countOpenOrders.mockRejectedValue(new Error("ECONNREFUSED"));
-    await expect(openOrderCountAction()).resolves.toBeNull();
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(openOrderSignalAction("")).resolves.toEqual({
+      count: null,
+      cursor: "",
+    });
+    err.mockRestore();
+  });
+});
+
+describe("newOrderSignalAction", () => {
+  it("counts above the rendered orderNo in its tab, keyed by both", async () => {
+    let answer = await newOrderSignalAction(1042, "open", "");
+    expect(answer).toEqual({
+      count: 2,
+      cursor: formatSignalCursor(M, "1042-open"),
+    });
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042, [
+      "pending_payment",
+      "paid",
+      "preparing",
+      "shipped",
+    ]);
+    answer = await newOrderSignalAction(1042, "everything; drop table", "");
+    expect(countOrdersAfter).toHaveBeenLastCalledWith(1042);
+    expect(parseSignalCursor((answer as { cursor: string }).cursor)?.key).toBe(
+      "1042-all",
+    );
+  });
+
+  it("answers unchanged only for the same marker AND the same orderNo and tab", async () => {
+    const c = formatSignalCursor(M, "1042-open");
+    await expect(newOrderSignalAction(1042, "open", c)).resolves.toEqual({
+      unchanged: true,
+    });
+    expect(countOrdersAfter).not.toHaveBeenCalled();
+    // After a refresh the list asks about a higher orderNo: a full read.
+    await expect(newOrderSignalAction(1050, "open", c)).resolves.toMatchObject({
+      count: 2,
+    });
+    await expect(newOrderSignalAction(1042, "all", c)).resolves.toMatchObject({
+      count: 2,
+    });
   });
 });
 

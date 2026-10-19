@@ -109,6 +109,10 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    aynıyken cevap `{ unchanged: true }`, veri ve veritabanı yok. Köşk açıkken
    en az saatte bir tam cevap. Ayrıntı `docs/ADMIN.md` "Yeni sipariş
    uyarısı".
+4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
+   (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
+   (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
+   Neon'u bütün gece uyanık tutmaz.
 
 **Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
 verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,

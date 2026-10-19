@@ -91,10 +91,10 @@ vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 3),
+  openOrderSignalAction: vi.fn(async () => ({ count: 3, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 1),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: 1, cursor: "" })),
 }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
 
@@ -107,6 +107,8 @@ vi.mock("@/lib/admin/auth", () => ({
 vi.mock("@/lib/admin/flash", () => ({ readAdminFlash: async () => null }));
 
 const { breadcrumbTrail } = await import("@/lib/admin/nav-match");
+type PanelSignalAnswer =
+  import("@/lib/admin/panel-signal-core").PanelSignalAnswer;
 const sidebar = await import("@/components/admin/admin-sidebar");
 const { ToastProvider } = await import("@/components/admin/ui/toast");
 const { PanelHomeProvider } = await import("@/components/admin/panel-home");
@@ -202,7 +204,7 @@ describe("badges re-read after an action", () => {
 
   const setup = (visible = true) => {
     const target = new EventTarget();
-    const read = vi.fn(async () => 4);
+    const read = vi.fn(async (_cursor: string) => ({ count: 4, cursor: "" }));
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,
@@ -240,11 +242,11 @@ describe("badges re-read after an action", () => {
 
   it("reads again after a change that lands while a read is out", async () => {
     const target = new EventTarget();
-    let release: (n: number) => void = () => {};
+    let release: (n: { count: number; cursor: string }) => void = () => {};
     const read = vi
-      .fn<() => Promise<number | null>>()
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
       .mockImplementationOnce(() => new Promise((r) => (release = r)))
-      .mockResolvedValue(2);
+      .mockResolvedValue({ count: 2, cursor: "" });
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,
@@ -254,7 +256,7 @@ describe("badges re-read after an action", () => {
     });
     target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
     expect(read).toHaveBeenCalledTimes(1);
-    release(5);
+    release({ count: 5, cursor: "" });
     await vi.advanceTimersByTimeAsync(0);
     expect(read).toHaveBeenCalledTimes(2);
     expect(onCount).toHaveBeenLastCalledWith(2);
@@ -271,12 +273,76 @@ describe("badges re-read after an action", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it("sends the cursor back and keeps the number on an unchanged answer", async () => {
+    const target = new EventTarget();
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockResolvedValueOnce({ count: 3, cursor: "s1.c1" })
+      .mockResolvedValue({ unchanged: true });
+    const onCount = vi.fn();
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount,
+      target,
+      isVisible: () => true,
+      intervalMs: 1_000,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", "s1.c1", "s1.c1"]);
+    // The badge was set once and kept: unchanged sets nothing.
+    expect(onCount.mock.calls).toEqual([[3]]);
+    stop();
+  });
+
+  it("admin:changed drops the cursor: the read after an action is a full one", async () => {
+    const target = new EventTarget();
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockResolvedValueOnce({ count: 3, cursor: "s1.c1" })
+      .mockResolvedValue({ count: 2, cursor: "s1.c2" });
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount: vi.fn(),
+      target,
+      isVisible: () => true,
+      intervalMs: 60_000,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", "", "s1.c2"]);
+    stop();
+  });
+
+  it("a change that lands while a read is out does not keep that read's cursor", async () => {
+    const target = new EventTarget();
+    let release: (n: PanelSignalAnswer) => void = () => {};
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockImplementationOnce(() => new Promise((r) => (release = r)))
+      .mockResolvedValue({ count: 1, cursor: "s1.c2" });
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount: vi.fn(),
+      target,
+      isVisible: () => true,
+    });
+    target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
+    release({ count: 4, cursor: "s1.before-the-change" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", ""]);
+    stop();
+  });
+
   it("a failed read leaves the badge alone and the poll running", async () => {
     const target = new EventTarget();
     const read = vi
-      .fn<() => Promise<number | null>>()
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
       .mockRejectedValueOnce(new Error("offline"))
-      .mockResolvedValue(1);
+      .mockResolvedValue({ count: 1, cursor: "" });
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,

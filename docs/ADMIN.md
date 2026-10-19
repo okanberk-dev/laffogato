@@ -100,6 +100,21 @@ maliyet, kaçan sipariş yok. Deploy'dan önce açılmış sekmeler yenilenene k
 eski Worker'la (imleçsiz, her 10 sn tam cevap) çalışır: tezgâh
 bilgisayarında paneli bir kez yenile.
 
+**Rozetler ve sipariş listesinin sayacı da aynı yolla (19 Eki 2026).** Kenar
+çubuğundaki açık sipariş ve bugünkü karaoke rozetleri (60 sn) ve sipariş
+listesinin "yeni sipariş" sayacı (30 sn) aynı sıklıkta sorar, ama her cevap
+bir imleç taşır (`src/lib/admin/panel-signal.ts`,
+`src/lib/admin/panel-signal-core.ts`). `orders` (rozet ve liste) ya da
+`karaoke_reservations` (karaoke rozeti) yazılmadıysa ve aynı şey sayılıyorsa
+(karaokede Tuzla'nın bugünü, gece yarısı yeni gün; listede son sipariş no ve
+sekme) cevap `{ unchanged: true }`: sayı yok, hesap okuması yok, veritabanı
+yok, rozet sayısını korur. Sayı taşıyan her cevap hesabı yeniden okur. Bir
+işlem (`admin:changed`) ve sayfa değişimi imleci düşürür, sonraki okuma
+tamdır; liste yenilenince (`latestOrderNo`) yeniden imleçsiz başlar. Bir
+yazmanın düşürme isteği kaybolursa rozet bir sonraki işleme ya da sayfa
+değişimine kadar eski sayıyı gösterir; listenin kendisi her zaman sunucuda
+taze çizilir.
+
 ## Gün sonu sayfası (Raporlar > Gün sonu)
 
 Günü kapatırken beş ekran yerine tek sayfa: `/admin/raporlar/gun-sonu`.

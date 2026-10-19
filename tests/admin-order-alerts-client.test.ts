@@ -77,7 +77,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   transitionOrderAction: vi.fn(),
-  openOrderCountAction: vi.fn(async () => null),
+  openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 
 const NOW = Date.parse("2026-10-18T18:00:00.000Z");
