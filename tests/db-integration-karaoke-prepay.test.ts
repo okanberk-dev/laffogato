@@ -662,8 +662,10 @@ maybe("karaoke prepayment (real Postgres)", () => {
       const start = karaoke
         .karaokeStartInstant(r!.date, r!.startHour)
         .getTime();
+      // The deadline itself is still in time (ASK-Y3-4): the first refused
+      // moment is one millisecond after it.
       for (const now of [
-        new Date(start - 2 * 3600_000),
+        new Date(start - 2 * 3600_000 + 1),
         new Date(start - 3600_000),
       ]) {
         const out = await pay.cancelKaraokeReservation(id, asMember(c), {
