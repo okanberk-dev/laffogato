@@ -1786,6 +1786,33 @@ PR'daki hâline aittir (karaoke belgesi: `content-karaoke.ts`).
 | Karaoke, §8 | 118 | "Rezervasyonunuzu arıza, geçici kapanış, mücbir sebep veya başka bir nedenle karşılayamazsak, Mesafeli Sözleşmeler Yönetmeliği m.16/4 uyarınca durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde size e-postayla bildiririz ve ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz. İade, iptalle birlikte PayNkolay üzerinden hemen başlatılır." | "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır." |
 | Karaoke, §10 | 131 | "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir; rezervasyon saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarının tamamı ... Rezervasyon saatine 2 saatten az kalan ödenmiş rezervasyonlar için 7. maddedeki kural geçerlidir: ücret iadesi yapılmaz ve rezervasyon olduğu gibi kalır. ..." | "Hesabınızı kapatırsanız gelecek tarihli karaoke rezervasyonlarınız iptal edilir. Rezervasyon özetinde gösterilen son ücretsiz iptal anına kadar (bu an dâhil) kapatılan hesaplarda ödenmiş rezervasyonların tutarının tamamı ödemenin yapıldığı karta iade edilir; iade o anda tamamlanamazsa İşletme iadeyi en geç 14 gün içinde ayrıca yapar. Bu andan sonra kapatılan hesaplarda 7. maddedeki geç iptal kuralı uygulanır; geç iptalde iade gösterilmeyen rezervasyon olduğu gibi kalır. Hesabınızın kapatılmasını bizden talep ederseniz bu süreler talebinizin kaydedildiği ana göre hesaplanır. Üye olmadan, yalnız aynı e-posta adresiyle yapılmış rezervasyonlar hesabın kapatılmasından etkilenmez." |
 
+**Panel ve e-posta (metin değil, davranış).** Karaoke §7 ve §8'in söz
+verdiklerini kod yapar:
+
+- Ödenmiş rezervasyonun personel iptalinde neden sabit listeden seçilir:
+  arıza, kapanış, mücbir sebep, işletmeden kaynaklanan başka bir sebep,
+  misafir iptal istedi, saat başka misafire verildi
+  (`src/lib/mobile/karaoke-cancel-cause.ts`). Kod, kanal ve istek anı
+  denetim kaydına yazılır; personelin notu e-postaya gitmez. İşletme
+  nedenlerinde e-posta nedeni ve özrü yazar, tamamının iade edildiğini
+  söyler; iptal anında çıkar (MSY m.16/4 yazılı bildirim). Rezervasyona 24
+  saatten az kalmışsa ve telefon kayıtlıysa panel "Rezervasyona 24 saatten
+  az kaldı: misafiri ara." der.
+- "Misafir iptal istedi": kanal (telefon, e-posta) ve istek anı (köşk saati;
+  ileri bir an ve rezervasyondan önceki bir an reddedilir) zorunlu.
+  Rezervasyonun kendi kuralı istek anına göre uygulanır: süre içindeyse tam
+  iade ve "İsteğin üzerine" e-postası; süre geçmiş ve geç iptalde iade yoksa
+  rezervasyon iptal edilmez, `late_guest_request` kaydı ve "rezervasyonun
+  senin adına duruyor" e-postası; iade yetkisi olan kişi "Yine de tamamını
+  iade et" diyebilir. İstek rezervasyon saati geldikten sonra geldiyse
+  e-postadaki kural cümlesi "Rezervasyon saatin gelmişti; saati gelmiş bir
+  rezervasyonda ücret iadesi yapılmaz." olur (geç iptal payı yalnız saatten
+  önceki iptallere uygulanır, §7).
+- Onay e-postası son ücretsiz iptal anını yazar ("Son ücretsiz iptal: 30
+  Ekim 2026, 18:00.", §7).
+- Geçmiş rezervasyonun sayfası "Faturalanacak tutar (KDV %20 dahil)" satırını
+  gösterir: ödenen eksi iade edilen (ASK-KAR-KDV; KDV K. m.10, VUK m.231/5).
+
 **Bilerek değişmeyenler.**
 
 - Kafe Hizmet §2 "Misafir" tanımındaki "rezervasyon talebinde bulunan" ve §5
