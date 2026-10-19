@@ -1246,6 +1246,147 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     ],
   },
   {
+    // Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet
+    // Sağlayıcılar Hakkında Yönetmelik m.7/1 (20 Ekim 2026): the ordering
+    // steps, the input-correction tools, whether and how long the contract
+    // text is kept and reachable, and the dispute routes, under an "işlem
+    // rehberi" heading reached from the home page (footer, `nav.ts`). §8 is
+    // the D-ISLEM-DURABLE paragraph word for word until the durable copy of
+    // the confirmed text ships. LEGAL-REDLINES §23.
+    slug: "islem-rehberi",
+    title: "İşlem Rehberi",
+    shortTitle: "İşlem Rehberi",
+    category: "Sipariş",
+    summary:
+      "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden sipariş vermenin ve karaoke odası ayırtmanın adımlarını, girdiğiniz bilgileri sipariş vermeden önce nasıl görüp düzelteceğinizi, sözleşme metninin nasıl saklandığını ve ona nasıl ulaşacağınızı, faturanın size nasıl geldiğini ve uyuşmazlıkta başvuru yollarını anlatır.",
+    references: [
+      "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG: 29.12.2022, 32058) - m.7 işlem rehberi",
+      "6502 sayılı Tüketicinin Korunması Hakkında Kanun - m.73/A arabuluculuk",
+      "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188) - m.5 ön bilgilendirme, m.20 kayıtların saklanması",
+      "213 sayılı Vergi Usul Kanunu",
+    ],
+    sections: [
+      {
+        heading: "1. Bu Rehber Ne Anlatır",
+        paragraphs: [
+          "Bu rehber, {{LEGAL_NAME}} ({{BRAND}}) tarafından işletilen {{SITE_URL}} internet sitesi ve {{BRAND}} mobil uygulaması üzerinden mağaza ve kafe siparişi vermenin ve karaoke odası rezervasyonu yapmanın adımlarını anlatır. Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7 uyarınca hazırlanmıştır; ana sayfanın alt bölümündeki İşlem rehberi bağlantısından her zaman ulaşabilirsiniz.",
+          "Rehber bilgilendirme amaçlıdır. Siparişinize uygulanan hak ve yükümlülükler ödeme adımında onayladığınız Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'nde, karaoke odası rezervasyonunda ise Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır. Bu rehber o belgelerin yerine geçmez ve onlardaki haklarınızı sınırlamaz.",
+        ],
+      },
+      {
+        heading: "2. Sipariş Vermeden Önce",
+        paragraphs: [
+          "Mağaza siparişi ve mobil uygulamadan kafe siparişi vermek için e-posta adresi doğrulanmış bir üyelik hesabınız olmalıdır. İnternet sitesinde ve mobil uygulamada aynı hesap geçerlidir; sipariş geçmişiniz iki kanalda da görünür. Karaoke odası rezervasyonu üyelik açmadan da yapılabilir.",
+          "Mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine kargoyla gönderilir. Ödeme kartla, PayNkolay sanal POS altyapısı üzerinden, bankanızın 3D Secure doğrulamasıyla ve tek çekim olarak alınır.",
+        ],
+      },
+      {
+        heading: "3. İnternet Sitesinde Sipariş Adımları",
+        paragraphs: [
+          "İnternet sitesinde mağaza siparişi aşağıdaki adımlarla verilir. Ödeme düğmesine basana kadar her adımda geri dönüp değişiklik yapabilir ya da siparişten vazgeçebilirsiniz.",
+        ],
+        ordered: [
+          "Ürünü seçin: ürün sayfasında varsa varyantı (ağırlık, öğütüm gibi) ve adedi seçip Sepete ekle düğmesine basın.",
+          "Sepeti kontrol edin: açılan sepette ürünleri, adetleri ve ara toplamı görürsünüz; kargo ücreti ödeme adımında hesaplanır. Hazırsanız Ödemeye geç düğmesine basın.",
+          "Giriş yapın: oturumunuz açık değilse üye girişine ya da yeni hesap açmaya yönlendirilirsiniz; e-posta adresiniz doğrulanmadan ödeme adımına geçilmez.",
+          "Teslimat (1. adım): kayıtlı adreslerinizden birini seçin ya da Yeni adres ekle ile ad soyad, telefon, adres, ilçe, şehir ve posta kodunu girin. Varsa indirim kodunuzu sipariş özetindeki alana yazıp Uygula düğmesine basın. Ardından Ödemeye geç düğmesine basın.",
+          "Ödeme (2. adım): teslimat adresinizin özeti, siparişinizin satırları, kargo ücreti, varsa indirim, KDV dâhil toplam ve cayma hakkınızın özeti gösterilir. Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'ni bu siparişin bilgileriyle açıp okuyabilirsiniz.",
+          "Kart bilgilerinizi aynı sayfadaki kart alanlarına girin. Sipariş toplamı indirimle sıfıra iniyorsa kart bilgisi istenmez.",
+          "Ön Bilgilendirme Formu'nu okuduğunuzu ve Mesafeli Satış Sözleşmesi'ni kabul ettiğinizi iki ayrı onay kutusuyla işaretleyin. Kutular işaretsiz gelir; ikisi de işaretlenmeden sipariş verilemez.",
+          "Siparişi onayla ve öde düğmesine basın (sipariş toplamı sıfırsa düğmenin adı Siparişi onayla'dır). Bu düğmeye bastığınızda ödeme yükümlülüğü altına girersiniz. Ardından bankanızın 3D Secure ekranında ödemeyi onaylayın.",
+          "Ödemenin sonucu PayNkolay'a sorularak teyit edilir. Ödeme alındığında sipariş numaranız ekranda gösterilir ve ödemenin onaylandığını bildiren e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "4. Mobil Uygulamada Sipariş",
+        paragraphs: [
+          "Mobil uygulamada mağaza ürünlerinin yanında kafe menüsünden de sipariş verebilirsiniz. Kafe siparişini kafeden gel-al olarak teslim alabilir ya da kurye ile adresinize getirtebilirsiniz; uygulamanın sunduğu teslim seçenekleri sipariş ekranında gösterilir. İnternet sitesindeki menü yalnızca bilgilendirme içindir; sitede kafe siparişi alınmaz.",
+          "Adımlar internet sitesindekiyle aynı sırayı izler: ürünleri sepete ekleyin, sepette adetleri ve seçimleri kontrol edin, teslim şeklini ve gerekiyorsa adresi seçin, varsa promosyon kodunu ekleyin, sipariş özetini kontrol edin ve Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi için ayrı onay kutularını işaretleyin. Kart bilgileri, uygulamanın cihazınızın tarayıcı penceresinde açtığı {{SITE}} ödeme sayfasında girilir ve ödeme bankanızın 3D Secure ekranında onaylanır.",
+        ],
+      },
+      {
+        heading: "5. Karaoke Odası Rezervasyonu",
+        paragraphs: [
+          "Karaoke odası internet sitesindeki karaoke sayfasından ya da mobil uygulamadan aşağıdaki adımlarla ayrılır.",
+        ],
+        ordered: [
+          "Tarih ve saat: günü ve başlangıç saatini seçin; dolu saatler seçilemez.",
+          "Süre ve kişi: kaç saat kalacağınızı ve kaç kişi olacağınızı seçin.",
+          "Bilgileriniz: üye olmadan rezervasyon yapıyorsanız adınızı, soyadınızı, cep telefonunuzu ve e-posta adresinizi girin.",
+          "Özet ve onay: gün, saat, süre, toplam tutar ve son ücretsiz iptal anı gösterilir. Karaoke Odası Ön Bilgilendirme Formu'nu onayladığınızı, Mesafeli Hizmet Sözleşmesi'ni kabul ettiğinizi ve KVKK Aydınlatma Metni'ni okuduğunuzu üç ayrı kutuyla işaretleyin.",
+          "Ödeme: Rezervasyonu onayla ve öde düğmesine bastıktan sonra kart bilgilerinizi açılan ödeme sayfasında girin ve bankanızın 3D Secure ekranında onaylayın. Ödeme sayfası 30 dakika geçerlidir; seçtiğiniz saatler bu süre boyunca sizin adınıza tutulur.",
+          "Ödemeniz onaylandığında rezervasyonunuz kesinleşir; rezervasyon bilgileri ve rezervasyonunuzu görüp iptal edebileceğiniz kişiye özel bağlantı e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "6. Girdiğiniz Bilgileri Görme ve Düzeltme",
+        paragraphs: [
+          "Siparişi vermeden önce girdiğiniz bilgileri görebilir ve hataları düzeltebilirsiniz:",
+        ],
+        bullets: [
+          "Sepette her ürünün adedini eksi (-) ve artı (+) düğmeleriyle değiştirebilir, ürünü Sil düğmesiyle sepetten çıkarabilirsiniz. Mobil uygulamada bir satırın seçimlerini düzenleyebilir ya da satırı sepetten çıkarabilirsiniz.",
+          "Ödeme adımında teslimat adresinin yanındaki Değiştir bağlantısıyla ya da tarayıcınızın geri tuşuyla Teslimat adımına dönüp adınızı, telefonunuzu ve adresinizi düzeltebilirsiniz.",
+          "İndirim kodunun uygulanıp uygulanmadığı ve indirimin tutarı sipariş özetinde gösterilir.",
+          "Ödeme düğmesinin hemen üstünde siparişinizin satırları, kargo ücreti, indirim ve KDV dâhil toplam bir arada gösterilir. Sepetiniz fiyatlanırken farklı bir toplam çıkarsa ödeme başlatılmaz, yeni tutar size gösterilir ve yeniden onayınız istenir.",
+          "Karaoke rezervasyonunda Geri düğmesiyle ya da özetteki Değiştir bağlantılarıyla önceki adımlara dönebilirsiniz.",
+          "Ödeme düğmesine basmadan sayfadan çıkarak siparişten vazgeçebilirsiniz. Bankanızın 3D Secure ekranında onay vermezseniz ödeme alınmaz; ödemesi tamamlanmayan bir sipariş size herhangi bir bedel doğurmaz.",
+        ],
+      },
+      {
+        heading: "7. Sözleşmenin Kurulması",
+        paragraphs: [
+          "Mağaza ve kafe siparişlerinde sözleşme, ödemenizin PayNkolay'a sorularak teyit edilmesi ve siparişin ödenmiş olarak kaydedilmesiyle kurulur; tutarın tamamı indirimle karşılanan siparişlerde sipariş kaydedildiği anda kurulur. Ödeme tamamlanmadan bırakılan bir siparişte sözleşme kurulmaz.",
+          "Karaoke odası rezervasyonunda sözleşme, ödemenizin onaylanmasıyla kurulur ve rezervasyonunuz o anda kesinleşir.",
+        ],
+      },
+      {
+        heading: "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
+        paragraphs: [
+          "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.",
+          "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz.",
+          "Belgelerin güncel metni her zaman {{SITE_URL}}/hukuk adresinde yayımlanır; belgeleri kendi cihazınıza kaydedebilir ya da çıktısını alabilirsiniz.",
+        ],
+      },
+      {
+        heading: "9. Fatura",
+        paragraphs: [
+          "Ödenen her sipariş için fatura e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Karaoke odası rezervasyonunun faturası rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir.",
+          "Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletin; ödeme adımında bu bilgiler için ayrı bir alan yoktur. Ayrıntılar Şirket ve İletişim Bilgileri sayfasının 14. bölümündedir.",
+        ],
+      },
+      {
+        heading: "10. Siparişten Sonra: İptal, Cayma ve İade",
+        paragraphs: [
+          "Mağaza siparişlerinde ürünü teslim aldığınız günden itibaren 14 gün içinde gerekçe göstermeden cayabilirsiniz; cayma bildiriminizi {{EMAIL}} adresine iletmeniz yeterlidir. Cayma hakkının kullanılamayacağı hâller, iade usulü ve geri ödeme Ön Bilgilendirme Formu'nda ve İptal, İade ve Cayma Hakkı belgesinde yazılıdır.",
+          "Mobil uygulamadan verilen kafe siparişlerinde cayma hakkı, Ön Bilgilendirme Formu'nun 12. maddesindeki istisna nedeniyle kullanılamaz; ürün ayıplı veya eksik gelirse yasal haklarınız saklıdır.",
+          "Karaoke odası rezervasyonunda 14 günlük cayma hakkı yoktur; iptal ve iade kuralları Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır ve son ücretsiz iptal anı rezervasyon özetinizde gösterilir.",
+        ],
+      },
+      {
+        heading: "11. Şikâyet ve Uyuşmazlık Çözümü",
+        paragraphs: [
+          "Şikâyet ve taleplerinizi {{EMAIL}} adresine ya da {{PHONE}} numarasına iletebilirsiniz; başvurunuz kayda alınır ve en geç 3 iş günü içinde size dönülür.",
+          "Bizimle çözülemeyen uyuşmazlıklarda, her yıl Ticaret Bakanlığınca ilan edilen parasal sınırlar içinde yerleşim yerinizdeki veya tüketici işleminin yapıldığı yerdeki tüketici hakem heyetine başvurabilirsiniz. Bu sınırların üzerindeki uyuşmazlıklarda tüketici mahkemesinde dava açmadan önce arabulucuya başvurmanız 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur. Hakem heyeti başvurusunu e-Devlet üzerinden Tüketici Bilgi Sistemi (TÜBİS) ile elektronik ortamda da yapabilirsiniz.",
+          "Başvuru yollarının ayrıntısı Şikâyet ve Uyuşmazlık Çözümü sayfasındadır.",
+        ],
+      },
+      {
+        heading: "12. İletişim",
+        table: [
+          { key: "Satıcı", value: "{{LEGAL_NAME}}" },
+          { key: "Marka", value: "{{BRAND}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "MERSİS numarası", value: "{{MERSIS}}" },
+          { key: "KEP adresi", value: "{{KEP}}" },
+          { key: "Hukuki belgeler", value: "{{SITE_URL}}/hukuk" },
+        ],
+      },
+    ],
+  },
+  {
     slug: "iade-ve-cayma",
     title: "İptal, İade ve Cayma Hakkı",
     shortTitle: "İade ve Cayma",
@@ -12968,6 +13109,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Mesafeli Satış Sözleşmesi",
             value: "/hukuk/mesafeli-satis-sozlesmesi",
+          },
+          {
+            key: "İşlem Rehberi",
+            value: "/hukuk/islem-rehberi",
           },
           {
             key: "İptal, İade ve Cayma Hakkı",
