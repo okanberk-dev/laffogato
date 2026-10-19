@@ -125,6 +125,15 @@ describe("the footer", () => {
     expect(html).toContain(`href="mailto:${LEGAL_ENTITY.email}"`);
   });
 
+  it("dials the bundled number when the panel's phone has no digits", () => {
+    // Ayarlar takes any text up to 40 characters; "Yakında" left `tel:`
+    // empty while the visit page and the facts block fell back.
+    const html = footerHtml({ phone: "Yakında", email: "", address: "" });
+    expect(html).not.toMatch(/href="tel:"/);
+    expect(html).toContain('href="tel:+905364290919"');
+    expect(html).toContain(">Yakında</a>");
+  });
+
   it("names the company: title, MERSİS, seat, and the Şirket bilgileri page", () => {
     const html = footerHtml(footerSettings({}));
     expect(html).toContain(LEGAL_ENTITY.legalName);

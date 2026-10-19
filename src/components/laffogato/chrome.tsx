@@ -939,6 +939,9 @@ export function Footer({ navigate, settings }: FooterProps) {
   // `||`, not `??`: a field cleared in the panel arrives as "", and "" made
   // an empty `tel:` / `mailto:` link.
   const phone = settings?.phone?.trim() || SITE.phone;
+  // A phone typed without digits ("Yakında") still dials the bundled number,
+  // as the visit page and the facts block do.
+  const tel = phone.replace(/[^\d+]/g, "") || SITE.phoneE164;
   const email = settings?.email?.trim() || SITE.email;
   const lines = addressLines(settings?.address ?? "", DEFAULT_ADDRESS_LINES);
   const hours = settings?.hours?.length ? settings.hours : DEFAULT_HOURS;
@@ -1083,10 +1086,7 @@ export function Footer({ navigate, settings }: FooterProps) {
                 <li key={i}>{line}</li>
               ))}
               <li>
-                <a
-                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-                  className="tabular"
-                >
+                <a href={`tel:${tel}`} className="tabular">
                   {phone}
                 </a>
               </li>
