@@ -32,9 +32,6 @@ vi.mock("next/link", () => ({
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
-vi.mock("@/components/admin/admin-search", () => ({
-  TopBarSearch: () => createElement("div", { id: "search" }),
-}));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderCountAction: vi.fn(async () => 0),
   transitionOrderAction: vi.fn(),

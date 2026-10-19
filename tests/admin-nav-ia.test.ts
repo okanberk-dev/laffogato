@@ -662,7 +662,11 @@ describe("the shell's markup", () => {
     expect(sidebar.navNoteVisible("")).toBe(true);
     expect(sidebar.navNoteVisible("1")).toBe(false);
     expect(sidebar.navNoteVisible("garbage")).toBe(true);
-    expect(sidebar.NAV_NOTE_KEY).toBe("laf_admin_nav_note_v1");
+    // v2 since the palette (UI-6): the note now names ⌘K.
+    expect(sidebar.NAV_NOTE_KEY).toBe("laf_admin_nav_note_v2");
+    expect(
+      readFileSync("src/components/admin/admin-sidebar.tsx", "utf8"),
+    ).toContain("Menü sadeleşti: eski adlarla da {key} ile bulursun.");
     // The server snapshot is "dismissed": no flash for whoever closed it.
     expect(renderShell("owner")).not.toContain("Menü sadeleşti");
     const src = readFileSync("src/components/admin/admin-sidebar.tsx", "utf8");
