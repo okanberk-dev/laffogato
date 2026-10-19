@@ -12,6 +12,10 @@ import { logAudit, safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
+import {
+  readMenuAllergens,
+  tagsWithAllergens,
+} from "@/lib/admin/menu-allergens-schema";
 import { productFormSchema } from "@/lib/admin/product-schema";
 import {
   bulkUpdateProducts,
@@ -26,6 +30,9 @@ import {
   type ShopCategoryId,
 } from "@/lib/admin/store";
 import { sceneColumns } from "@/lib/backdrop/scene";
+import type { MenuAllergen } from "@/lib/menu/allergens";
+import { discountRefusal } from "@/lib/shop/discount";
+import { FOOD_LABEL_KEYS } from "@/lib/shop/food-label";
 
 function revalidateShop() {
   revalidatePath("/");
@@ -35,7 +42,57 @@ function revalidateShop() {
 
 type ParsedProduct = ReturnType<typeof productFormSchema.parse>;
 
-function toInput(parsed: ParsedProduct) {
+/**
+ * The posted form, checked: the schema's fields, the fourteen allergen
+ * boxes (their own schema, as on the menu form: nothing ticked is "not
+ * entered", never "none") and the `nuts` tag kept in step with them.
+ */
+function readProductForm(formData: FormData):
+  | {
+      ok: true;
+      parsed: ParsedProduct;
+      allergens: MenuAllergen[] | null | undefined;
+      tags: string[];
+    }
+  | { ok: false; state: ProductActionState } {
+  const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
+  const allergens = readMenuAllergens(formData);
+  const tags =
+    parsed.success && allergens.ok
+      ? tagsWithAllergens(parsed.data.tags, allergens.allergens)
+      : null;
+  if (!parsed.success || !allergens.ok || (tags && !tags.ok)) {
+    const fieldErrors: Record<string, string> = {};
+    const issues = [
+      ...(parsed.success ? [] : parsed.error.issues),
+      ...(allergens.ok ? [] : allergens.issues),
+    ];
+    for (const issue of issues) {
+      const k = issue.path.join(".") || "form";
+      if (!fieldErrors[k]) fieldErrors[k] = issue.message;
+    }
+    if (tags && !tags.ok) fieldErrors.allergens = tags.error;
+    return {
+      ok: false,
+      state: {
+        error: "Lütfen formdaki uyarıları gidermeden devam et.",
+        fieldErrors,
+      },
+    };
+  }
+  return {
+    ok: true,
+    parsed: parsed.data,
+    allergens: allergens.allergens,
+    tags: (tags as { ok: true; tags: string[] }).tags,
+  };
+}
+
+function toInput(
+  parsed: ParsedProduct,
+  allergens: MenuAllergen[] | null | undefined,
+  tags: string[],
+) {
   const variants: ProductVariantInput[] = parsed.variants.map((v, i) => ({
     id: v.id || `var-${i + 1}`,
     name: v.name,
@@ -52,12 +109,23 @@ function toInput(parsed: ParsedProduct) {
     tag: parsed.tag,
     priceMinor: parsed.priceMinor,
     compareAtPriceMinor: parsed.compareAtPriceMinor,
+    discountStartsOn: parsed.discountStartsOn,
+    discountEndsOn: parsed.discountEndsOn,
+    // The label fields the form sent; an absent one keeps the stored text.
+    ...Object.fromEntries(
+      FOOD_LABEL_KEYS.filter((k) => parsed[k] !== undefined).map((k) => [
+        k,
+        parsed[k],
+      ]),
+    ),
+    // Never `allergens: undefined` written: absent keeps the stored list.
+    ...(allergens === undefined ? {} : { allergens }),
     costMinor: parsed.costMinor,
     desc: parsed.desc,
     cat: parsed.cat,
     img: parsed.img,
     images: parsed.images,
-    tags: parsed.tags,
+    tags,
     brand: parsed.brand,
     notes: parsed.notes,
     stock: parsed.stock,
@@ -116,6 +184,8 @@ export interface ProductActionState {
 }
 
 const PRODUCT_GONE_ERROR = "Bu ürün silinmiş; listeye dön.";
+const DISCOUNT_REFUSED_ERROR =
+  "Kaydedilmedi: eski fiyat ya da indirim tarihleri tutmuyor. Uyarıya bakıp yeniden kaydet.";
 const STOCK_REFUSED_ERROR =
   "Fiyat, stok ve varyantlar kaydedilmedi; diğer alanlar kaydedildi. Uyarıya bakıp yeniden kaydet.";
 
@@ -124,20 +194,33 @@ export async function createProductAction(
   formData: FormData,
 ): Promise<ProductActionState> {
   await requireRole("products");
-  const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const k = issue.path.join(".") || "form";
-      if (!fieldErrors[k]) fieldErrors[k] = issue.message;
-    }
+  const form = readProductForm(formData);
+  if (!form.ok) return form.state;
+  const parsed = { data: form.parsed };
+  // A new product has no online price history, so a compare-at price has
+  // nothing to be the lowest of (Ticari Reklam Yön. m.14/3): refused here,
+  // under the field, with the reason.
+  const discount = discountRefusal({
+    priceMinor: parsed.data.priceMinor,
+    compareAtPriceMinor: parsed.data.compareAtPriceMinor,
+    startDay: parsed.data.discountStartsOn,
+    endDay: parsed.data.discountEndsOn,
+    hasPricedVariants: false,
+    history: [],
+    stored: null,
+    now: new Date(),
+  });
+  if (discount) {
     return {
       error: "Lütfen formdaki uyarıları gidermeden devam et.",
-      fieldErrors,
+      fieldErrors: { [discount.field]: discount.message },
     };
   }
   const scene = await productScene(parsed.data, null);
-  const created = await createProduct({ ...toInput(parsed.data), ...scene });
+  const created = await createProduct({
+    ...toInput(parsed.data, form.allergens, form.tags),
+    ...scene,
+  });
   await logAudit({
     action: "create",
     entity: "product",
@@ -155,18 +238,9 @@ export async function updateProductAction(
   formData: FormData,
 ): Promise<ProductActionState> {
   const session = await requireRole("products");
-  const parsed = productFormSchema.safeParse(readFormDataToObject(formData));
-  if (!parsed.success) {
-    const fieldErrors: Record<string, string> = {};
-    for (const issue of parsed.error.issues) {
-      const k = issue.path.join(".") || "form";
-      if (!fieldErrors[k]) fieldErrors[k] = issue.message;
-    }
-    return {
-      error: "Lütfen formdaki uyarıları gidermeden devam et.",
-      fieldErrors,
-    };
-  }
+  const form = readProductForm(formData);
+  if (!form.ok) return form.state;
+  const parsed = { data: form.parsed };
   const previous = await getProduct(id);
   // Deleted in another tab: say so instead of "kaydedildi" and an audit row
   // for a save that wrote nothing (admin audit CAT-28).
@@ -174,10 +248,20 @@ export async function updateProductAction(
   const scene = await productScene(parsed.data, previous);
   const saved = await updateProduct(
     id,
-    { ...toInput(parsed.data), ...scene },
+    { ...toInput(parsed.data, form.allergens, form.tags), ...scene },
     { actor: session.email },
   );
   if (!saved) return { error: PRODUCT_GONE_ERROR };
+  // The compare-at price or its days were refused before anything was
+  // written: nothing to audit, the form stays with the reason.
+  if ("discountRefusal" in saved) {
+    return {
+      error: DISCOUNT_REFUSED_ERROR,
+      fieldErrors: {
+        [saved.discountRefusal.field]: saved.discountRefusal.message,
+      },
+    };
+  }
   // The stock typed would go below zero (orders came in while the form was
   // open): price, variants and stock stay as stored, the rest is written.
   // The audit rows below come after the write: a failed one must not turn
@@ -208,6 +292,12 @@ export async function updateProductAction(
       name: parsed.data.name,
       sku: parsed.data.sku,
       taxRatePct: parsed.data.taxRatePct,
+      // The discount as saved: the record of what the page shows and from
+      // when (the seller proves the price before it, Fiyat Etiketi m.11/1).
+      compareAtPriceMinor: parsed.data.compareAtPriceMinor,
+      discountStartsOn: parsed.data.discountStartsOn,
+      discountEndsOn: parsed.data.discountEndsOn,
+      ...(form.allergens === undefined ? {} : { allergens: form.allergens }),
     },
   });
   revalidateShop();

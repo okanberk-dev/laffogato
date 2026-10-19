@@ -866,8 +866,24 @@ export interface Product {
   variants?: ProductVariant[];
   /** Base price in minor units (kuruş) for precise client-side math. */
   priceMinor?: number;
-  /** Compare-at price in minor units (kuruş). */
+  /** Compare-at price in minor units (kuruş). Set only while the discount runs. */
   compareAtPriceMinor?: number;
+  /** The running discount's first and last instant (UTC ISO), beside the
+      compare-at price only (Ticari Reklam Yön. m.14/1: the badge names them). */
+  discountStartsAt?: string;
+  discountEndsAt?: string;
+  /** Packaged food label (src/lib/shop/food-label.ts); absent = not entered. */
+  netQuantity?: string;
+  ingredients?: string;
+  nutrition?: string;
+  storageConditions?: string;
+  usageInstructions?: string;
+  origin?: string;
+  producer?: string;
+  businessRegNo?: string;
+  /** Ek-1 allergen keys (src/lib/menu/allergens.ts); [] = none of the
+      fourteen; absent = not entered (then only the `nuts` tag speaks). */
+  allergens?: string[];
   /** Admin-authored meta title for the PDP; falls back to the product name. */
   seoTitle?: string;
   /** Admin-authored meta description; falls back to the product blurb. */

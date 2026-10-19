@@ -71,6 +71,17 @@ import {
   walletProviderRef,
   walletSpendFor,
 } from "@/lib/mobile/wallet";
+import {
+  discountInstants,
+  discountRefusal,
+  liveDiscount,
+  type PricePoint,
+} from "@/lib/shop/discount";
+import {
+  EMPTY_FOOD_LABEL,
+  foodLabelOf,
+  type FoodLabelText,
+} from "@/lib/shop/food-label";
 import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
@@ -197,7 +208,18 @@ export const NO_BACKDROP: Readonly<BackdropColumns> = {
   vessel: null,
 };
 
-export interface AdminProduct extends BackdropColumns {
+/**
+ * The label of a packaged food (src/lib/shop/food-label.ts,
+ * 20261019160000_product_food_label.sql). Optional: a row read before the
+ * migration ran has none of the keys, and every surface reads them through
+ * `foodLabelOf` / `normalizeMenuAllergens`.
+ */
+export interface ProductFoodLabel extends Partial<FoodLabelText> {
+  /** Ek-1 groups: null not entered, [] none of the fourteen. */
+  allergens?: MenuAllergen[] | null;
+}
+
+export interface AdminProduct extends BackdropColumns, ProductFoodLabel {
   id: string;
   name: string;
   slug: string;
@@ -205,8 +227,16 @@ export interface AdminProduct extends BackdropColumns {
   tag: string;
   /** Minor units (kuruş) - e.g. 32000 = 320,00 ₺ */
   priceMinor: number;
-  /** Optional "was" price for striked-out display. 0 = none. */
+  /**
+   * The price before a discount, struck out beside the sale price. 0 = none.
+   * Shown only between `discountStartsAt` and `discountEndsAt` and only
+   * above the sale price (`liveDiscount`, src/lib/shop/discount.ts); the
+   * save takes it only as the lowest price of the ten days before the start.
+   */
   compareAtPriceMinor: number;
+  /** The discount's first and last instant (UTC ISO), or null: no discount. */
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   /** Internal cost (margin calc); not shown to customers. */
   costMinor: number;
   desc: string;
@@ -844,6 +874,12 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
+        // The label is copied from the pack in /admin/urunler; nothing is
+        // guessed, so a food page asks the customer to write until then.
+        allergens: null,
+        ...EMPTY_FOOD_LABEL,
+        discountStartsAt: null,
+        discountEndsAt: null,
         // No photo yet, so no scene pick and no cutout.
         ...NO_BACKDROP,
         stock: 25,
@@ -1170,13 +1206,20 @@ export async function listProductThumbs(
  * biçimi" fields (`src/lib/backdrop/scene.ts`), and `updateProduct` writes
  * them over the stored ones like every other field.
  */
-export interface ProductInput extends BackdropColumns {
+export interface ProductInput extends BackdropColumns, ProductFoodLabel {
   name: string;
   slug: string;
   sku: string;
   tag: string;
   priceMinor: number;
   compareAtPriceMinor: number;
+  /**
+   * The discount's Istanbul days ("YYYY-MM-DD") as the form posts them, or
+   * null. The store turns them into `discountStartsAt` / `discountEndsAt`
+   * once the price history has allowed the compare-at price.
+   */
+  discountStartsOn?: string | null;
+  discountEndsOn?: string | null;
   costMinor: number;
   desc: string;
   cat: ShopCategoryId;
@@ -1302,12 +1345,25 @@ export async function createProduct(
     stockAtOpen: _snapshot,
     saveToken: _token,
     stockFromVariants: _reset,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
     ...fields
   } = input;
   const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
     ...fields,
+    ...foodLabelOf(fields),
+    allergens:
+      fields.allergens === undefined
+        ? null
+        : normalizeMenuAllergens(fields.allergens),
+    // A new product has no price history, so no price before a discount
+    // can be shown for it (Ticari Reklam Yön. m.14/3): the action refuses
+    // a compare-at price first, and the row never carries one.
+    compareAtPriceMinor: 0,
+    discountStartsAt: null,
+    discountEndsAt: null,
     id,
     slug,
     sku,
@@ -1381,15 +1437,60 @@ function formStockBasis(
   return { stock, variants };
 }
 
+/**
+ * Why a product save was refused before anything was written: the
+ * compare-at price or its days (src/lib/shop/discount.ts). Answered under
+ * `field`.
+ */
+export interface ProductDiscountRefusal {
+  discountRefusal: { field: string; message: string };
+}
+
+/** The product's online price history, oldest first (Ticari Reklam Yön. m.14/3, m.14/5). */
+export async function listProductPriceHistory(
+  productId: string,
+): Promise<PricePoint[]> {
+  const sb = getDb();
+  return rows<PricePoint>(
+    await sb
+      .from(TABLES.productPriceHistory)
+      .select("priceMinor, startedAt")
+      .eq("productId", productId)
+      .order("startedAt", { ascending: true }),
+    "listProductPriceHistory",
+  );
+}
+
 export async function updateProduct(
   id: string,
   input: ProductInput,
   { actor = "system" }: { actor?: string } = {},
-): Promise<AdminProduct | ProductStockRefusal | null> {
+): Promise<
+  AdminProduct | ProductStockRefusal | ProductDiscountRefusal | null
+> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getProduct(id);
   if (!existing) return null;
+  // The compare-at price is checked before anything is written: it must be
+  // the lowest online price of the ten days before its start, so the
+  // history decides, and a refusal leaves the whole row as stored.
+  const startDay = input.discountStartsOn ?? null;
+  const endDay = input.discountEndsOn ?? null;
+  const discount = discountRefusal({
+    priceMinor: input.priceMinor,
+    compareAtPriceMinor: input.compareAtPriceMinor,
+    startDay,
+    endDay,
+    hasPricedVariants: input.variants.some(
+      (v) => v.isActive && v.priceDeltaMinor !== 0,
+    ),
+    history:
+      input.compareAtPriceMinor > 0 ? await listProductPriceHistory(id) : [],
+    stored: existing,
+    now: new Date(),
+  });
+  if (discount) return { discountRefusal: discount };
   const slug = await uniqueSlug(
     input.slug || slugify(input.name) || existing.slug,
     id,
@@ -1401,10 +1502,23 @@ export async function updateProduct(
     stockAtOpen,
     saveToken,
     stockFromVariants,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
     ...rest
   } = input;
   const fields = {
     ...rest,
+    ...discountInstants(input.compareAtPriceMinor, startDay, endDay),
+    // Only the label fields the form sent: an absent one keeps the stored
+    // text, like `taxRatePct` below.
+    ...Object.fromEntries(
+      Object.entries(foodLabelOf(input)).filter(
+        ([key]) => (input as unknown as Record<string, unknown>)[key] !== undefined,
+      ),
+    ),
+    ...(input.allergens === undefined
+      ? {}
+      : { allergens: normalizeMenuAllergens(input.allergens) }),
     slug,
     // An empty field keeps the stored code; a product that never had one
     // gets the one its name and id imply (the wizard no longer prefills it).
@@ -1574,6 +1688,8 @@ export type ProductImportPatch = Partial<
     | "isActive"
     | "brand"
     | "weightGrams"
+    | "discountStartsAt"
+    | "discountEndsAt"
   >
 > &
   Partial<BackdropColumns>;
@@ -6137,16 +6253,40 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 // ─── Public read for customer site ────────────────────────────────────────
 
-function toDesignProduct(p: AdminProduct): DesignProduct {
+/**
+ * The label fields a product page shows: only those entered (an empty one
+ * is left out, so nothing reads as "none"). Allergens keep the menu's
+ * three states: absent not entered, [] none of the fourteen.
+ */
+function designFoodLabel(p: AdminProduct): Partial<DesignProduct> {
+  const label = foodLabelOf(p);
+  const out: Partial<DesignProduct> = Object.fromEntries(
+    Object.entries(label).filter(([, value]) => value !== ""),
+  );
+  const allergens = normalizeMenuAllergens(p.allergens);
+  if (allergens !== null) out.allergens = allergens;
+  return out;
+}
+
+export function toDesignProduct(
+  p: AdminProduct,
+  now: Date = new Date(),
+): DesignProduct {
+  // A "was" price only while its discount runs and only above the sale
+  // price; without dates, or out of them, it is shown nowhere (Ticari
+  // Reklam Yön. m.14/1, m.14/3; src/lib/shop/discount.ts).
+  const discount = liveDiscount(p, now);
   return {
     id: p.id,
     name: p.name,
     tag: p.tag,
     price: priceLabel(p.priceMinor),
-    compareAtPrice:
-      p.compareAtPriceMinor > p.priceMinor
-        ? priceLabel(p.compareAtPriceMinor)
-        : undefined,
+    compareAtPrice: discount
+      ? priceLabel(discount.compareAtPriceMinor)
+      : undefined,
+    ...(discount
+      ? { discountStartsAt: discount.startsAt, discountEndsAt: discount.endsAt }
+      : {}),
     desc: p.desc,
     cat: p.cat,
     img: p.img,
@@ -6172,8 +6312,18 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor:
-      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    compareAtPriceMinor: discount?.compareAtPriceMinor,
+    // The maker and the tasting notes the product page's details read
+    // (product-facts.ts); empty sends nothing.
+    brand: typeof p.brand === "string" && p.brand.trim() ? p.brand.trim() : undefined,
+    notes:
+      Array.isArray(p.notes) && p.notes.some((n) => typeof n === "string" && n.trim())
+        ? p.notes
+            .filter((n): n is string => typeof n === "string")
+            .map((n) => n.trim())
+            .filter(Boolean)
+        : undefined,
+    ...designFoodLabel(p),
     seoTitle: p.seoTitle || undefined,
     seoDescription: p.seoDescription || undefined,
     variants: p.variants
@@ -6194,7 +6344,7 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   // against fiction. An empty shop plus the outage banner is honest.
   return publicRead("listShopProducts", [] as DesignProduct[], async () => {
     const all = await listProducts();
-    return all.filter((p) => p.isActive).map(toDesignProduct);
+    return all.filter((p) => p.isActive).map((p) => toDesignProduct(p));
   });
 }
 
@@ -6264,7 +6414,7 @@ async function listRelatedShopProductsLive(
       .limit(limit),
     "listRelatedShopProducts",
   );
-  return docs.map(toDesignProduct);
+  return docs.map((p) => toDesignProduct(p));
 }
 
 // ─── Cafe menu items ──────────────────────────────────────────────────────

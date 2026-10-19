@@ -339,8 +339,11 @@ describe("what a row will do", () => {
     const a = p.rows[0].action;
     expect(a?.kind).toBe("update");
     if (a?.kind !== "update") return;
+    // Ending the discount clears its days with it.
     expect(a.patch).toEqual({
       compareAtPriceMinor: 0,
+      discountStartsAt: null,
+      discountEndsAt: null,
       taxRatePct: null,
       brand: "",
       weightGrams: 0,
