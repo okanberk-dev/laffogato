@@ -20,6 +20,7 @@ import { formatTRYMinor } from "@/lib/utils/commerce";
 import { renderEmail, type RenderedEmail, type RenderInput } from "./render";
 import type { EmailTemplateName } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
+import { loadVenueVars } from "./venue";
 
 /**
  * Minimal transactional e-mail sender.
@@ -450,9 +451,16 @@ async function sendTemplateResult(
   { retryOnce }: { retryOnce?: boolean } = {},
 ): Promise<SendResult> {
   if (!to) return { ok: false, error: "Alıcı adresi boş." };
+  // Ayarlar's phone, address and hours for the footer; the caller's own
+  // fields still win.
+  const venue = await loadVenueVars();
   let r: RenderedEmail;
   try {
-    r = renderEmail(name, { ...input, text: EMAIL_TEXT[name] });
+    r = renderEmail(name, {
+      ...input,
+      vars: { ...venue, ...input.vars },
+      text: EMAIL_TEXT[name],
+    });
   } catch (err) {
     console.error(`[email] ${name} hazırlanamadı`, err);
     return { ok: false, error: "Şablon hazırlanamadı." };

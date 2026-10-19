@@ -32,6 +32,7 @@ import {
 } from "./send";
 import { EMAIL_TEMPLATES } from "./templates.generated";
 import { EMAIL_TEXT } from "./text";
+import { loadVenueVars } from "./venue";
 
 /**
  * Campaign e-mail: audience → queue → batches → send log.
@@ -68,12 +69,7 @@ import { EMAIL_TEXT } from "./text";
  */
 
 export type CampaignStatus =
-  | "draft"
-  | "queued"
-  | "sending"
-  | "sent"
-  | "failed"
-  | "cancelled";
+  "draft" | "queued" | "sending" | "sent" | "failed" | "cancelled";
 
 export type CampaignAudience = "marketing" | "newsletter" | "both";
 
@@ -362,18 +358,20 @@ export function subjectFor(input: {
 
 /**
  * The values a campaign's template needs that no form supplies, resolved
- * before the synchronous render: today only `[DAMGA_HEDEFI]`, which the app
- * announcement quotes ("6 damgada bir içecek bizden") from the panel's
- * loyalty settings. Asked for only by a template that carries the field, so
- * the other campaigns never touch the settings row.
+ * before the synchronous render: the footer's phone, address and hours
+ * (every template), and `[DAMGA_HEDEFI]`, which the app announcement quotes
+ * ("6 damgada bir içecek bizden") from the panel's loyalty settings - asked
+ * for only by a template that carries it.
  */
 export async function campaignServerVars(
   template: CampaignTemplateName,
 ): Promise<Record<string, string>> {
   const html = EMAIL_TEMPLATES[template]?.html ?? "";
   const text = EMAIL_TEXT[template] ?? "";
-  if (!`${html}${text}`.includes("[DAMGA_HEDEFI]")) return {};
-  return { DAMGA_HEDEFI: await stampTarget() };
+  // The footer's phone, address and hours from Ayarlar (`venue.ts`).
+  const venue = await loadVenueVars();
+  if (!`${html}${text}`.includes("[DAMGA_HEDEFI]")) return venue;
+  return { ...venue, DAMGA_HEDEFI: await stampTarget() };
 }
 
 /** The app announcement without both store links is refused everywhere. */

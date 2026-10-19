@@ -30,6 +30,7 @@ import {
   type TemplateVars,
 } from "./fill";
 import { EMAIL_TEMPLATES, type EmailTemplateName } from "./templates.generated";
+import { DEFAULT_VENUE_VARS } from "./venue";
 
 export interface RenderedEmail {
   subject: string;
@@ -74,6 +75,9 @@ export function commonVars(): TemplateVars {
     // the commercial footers, both halves.
     UNVAN: LEGAL_ENTITY.legalName,
     MERSIS: LEGAL_ENTITY.mersisNo,
+    // The footer's hours, phone and address: bundled here, the panel's
+    // values laid over them on the send paths (`venue.ts`).
+    ...DEFAULT_VENUE_VARS,
   };
 }
 

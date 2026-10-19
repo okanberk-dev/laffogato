@@ -11,10 +11,12 @@
  * account-deletion messages: "sen"), sentence case, no shouting.
  */
 
+// The address, hours and phone are Ayarlar's (`venue.ts`), as in the HTML
+// footer.
 const SIGNATURE = `-
 L'Affogato · Coffee Italiano
-Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla / İstanbul
-Her gün 09:00 - 02:00 · +90 536 429 09 19
+[KOSK_ADRES]
+[KOSK_SAAT] · [TELEFON]
 laffogato.net · @laffogatto`;
 
 /**
@@ -211,7 +213,7 @@ https://laffogato.net/hukuk/teslimat-ve-kargo
 
 Paketi teslim alırken görevlinin yanında kontrol edin: ezilme, ıslanma ya
 da açılmış bant görürseniz teslim almadan tutanak tutturun ve bizi arayın:
-+90 536 429 09 19
+[TELEFON]
 
 ${SIGNATURE}`,
 
@@ -233,7 +235,7 @@ bağlıdır.
 <!--/IF:ODEME_YOK-->
 Siparişiniz: [SIPARIS_URL]
 
-Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: [TELEFON]
 
 ${SIGNATURE}`,
 
@@ -252,7 +254,7 @@ iadeyi taksitler hâlinde yansıtabilir.
 Siparişiniz: [SIPARIS_URL]
 
 Tutar hesabınıza yansımazsa sipariş numaranızla bizi arayın:
-+90 536 429 09 19
+[TELEFON]
 
 ${SIGNATURE}`,
 
@@ -264,7 +266,7 @@ kalma restore bir köşkte sizi bekliyoruz.
 
 Menü - 12 kategori: [MENU_URL]
 Mağaza (500,00 ₺ üzeri kargo ücretsiz): laffogato.net/magaza
-Ziyaret - her gün 09:00 - 02:00: laffogato.net/ziyaret
+Ziyaret ([KOSK_SAAT]): laffogato.net/ziyaret
 
 Hesabınız: [HESAP_URL]
 
@@ -327,7 +329,7 @@ https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_ODENDI--><!
 rezervasyon sayfandan iptal edebilirsin.
 
 Rezervasyon sayfan:
-[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA--><!--IF:KARAOKE_MEKAN_ARA-->Ödemeyi köşkte yaparsın. Planın değişirse bizi ara: +90 536 429 09 19
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA--><!--IF:KARAOKE_MEKAN_ARA-->Ödemeyi köşkte yaparsın. Planın değişirse bizi ara: [TELEFON]
 
 Rezervasyon sayfan:
 [KARAOKE_LINK]<!--/IF:KARAOKE_MEKAN_ARA-->
@@ -388,7 +390,7 @@ Son durum, rezervasyon sayfanda:
 <!--/IF:KARAOKE_KISMI_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
 
 <!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
-Bir yanlışlık varsa bizi ara: +90 536 429 09 19
+Bir yanlışlık varsa bizi ara: [TELEFON]
 
 ${SIGNATURE}`,
 
@@ -408,7 +410,7 @@ Kişi: [KARAOKE_KISI]
 Rezervasyon sayfan:
 [KARAOKE_LINK]
 
-Bir yanlışlık varsa bizi ara: +90 536 429 09 19
+Bir yanlışlık varsa bizi ara: [TELEFON]
 
 ${SIGNATURE}`,
 

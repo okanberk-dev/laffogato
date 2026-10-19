@@ -839,6 +839,11 @@ describe("campaign-mail-schema mirrors the e-mail modules", () => {
     "MERSIS",
     // The loyalty card size, from the settings (`campaignServerVars`).
     "DAMGA_HEDEFI",
+    // The footer's hours, phone and address, from the settings (venue.ts).
+    "KOSK_SAAT",
+    "TELEFON",
+    "TELEFON_TEL",
+    "KOSK_ADRES",
   ]);
 
   it("gates the audience per template exactly as the store does", () => {
