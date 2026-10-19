@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
   PRODUCT_DEFAULT_SORT,
   PRODUCT_PAGE_SIZE,
@@ -47,7 +48,12 @@ interface PageProps {
  */
 export default async function AdminProductsPage({ searchParams }: PageProps) {
   await requireRole("products");
-  const sp = (await searchParams) ?? {};
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    PRODUCTS_PATH,
+    (await searchParams) ?? {},
+  );
   // The dashboard's stock tiles and old bookmarks use the names from
   // before the kit (`?status=out_of_stock`, `?sort=stock_asc`).
   const legacy = legacyProductsHref(sp);
@@ -57,14 +63,14 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
     listCategories(),
   ]);
   const fields = productFilterFields(categories);
-  const filters = parseFilters(sp, fields);
-  const tab = parseProductTab(sp);
-  const sort = parseSort(sp, PRODUCT_SORT_KEYS, PRODUCT_DEFAULT_SORT);
+  const filters = parseFilters(view, fields);
+  const tab = parseProductTab(view);
+  const sort = parseSort(view, PRODUCT_SORT_KEYS, PRODUCT_DEFAULT_SORT);
   const list = productsList(products, {
     tab,
     filters,
     sort,
-    page: parsePage(sp),
+    page: parsePage(view),
   });
   const thumbs = await listProductThumbs(list.rows.map((p) => p.id));
   const rows = list.rows.map((p) => toProductListRow(p, thumbs[p.id]));
@@ -116,11 +122,11 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         label="Ürün süzgeci"
       />
 
-      {/* Keyed by the address: a new tab, filter, sort or page starts with
-          nothing selected, so a bulk action never reaches rows that are no
-          longer on screen. */}
+      {/* Keyed by the address and the search: a new tab, filter, sort,
+          page or search starts with nothing selected, so a bulk action
+          never reaches rows that are no longer on screen. */}
       <ProductsList
-        key={JSON.stringify(sp)}
+        key={JSON.stringify(view)}
         rows={rows}
         categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
         sort={sort}
@@ -142,6 +148,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
                     ? `${PRODUCTS_PATH}?${PRODUCT_TAB_PARAM}=${tabValue}`
                     : PRODUCTS_PATH,
                   label: "Filtreleri temizle",
+                  clearsSearch: true,
                 }
               : null
         }

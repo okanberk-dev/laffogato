@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   Badge,
   KeyValueGrid,
+  ListSearchButton,
   NUMERIC_STYLE,
   Section,
   type KeyValueItem,
@@ -100,17 +101,16 @@ export default async function AuditEventPage({ params }: PageProps) {
                   {recordText}
                 </span>
               )}
-              <Link
-                href={withParams(
-                  {},
-                  { entity: row.entity, entityId: row.entityId },
-                  AUDIT_LOG_PATH,
-                )}
+              {/* A post: a member's or a panel user's record is their
+                  e-mail address, kept out of the list's address. */}
+              <ListSearchButton
+                href={withParams({}, { entity: row.entity }, AUDIT_LOG_PATH)}
+                terms={{ entityId: row.entityId }}
                 className="text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-                aria-label={`Geçmişi: ${entity} ${recordText}, bütün olaylar`}
+                ariaLabel={`Geçmişi: ${entity} ${recordText}, bütün olaylar`}
               >
                 Geçmişi
-              </Link>
+              </ListSearchButton>
             </span>
           ) : null}
         </span>

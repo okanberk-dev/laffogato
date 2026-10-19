@@ -485,8 +485,16 @@ async function loadPages(
   rows: Record<string, unknown>[],
   total: number,
   one: Record<string, unknown> | null = null,
+  /** The request's cookies: the list's remembered search lives there. */
+  jar: Record<string, string> = {},
 ) {
   vi.resetModules();
+  vi.doMock("next/headers", () => ({
+    cookies: async () => ({
+      get: (name: string) =>
+        name in jar ? { name, value: jar[name] } : undefined,
+    }),
+  }));
   vi.doMock("next/link", () => ({
     default: ({
       href,
@@ -539,11 +547,14 @@ describe("the page", () => {
         }),
       ],
       2,
+      null,
+      // "Kayıt no" is typed text: it comes from the list's cookie, not the
+      // address (lib/admin/list-search-core.ts).
+      { adm_q_audit: "entityId=prd-0001" },
     );
     const html = renderToStaticMarkup(
       await ListPage({
         searchParams: Promise.resolve({
-          entityId: "prd-0001",
           bas: "2026-10-16",
           bit: "2026-10-16",
         }),
@@ -559,11 +570,14 @@ describe("the page", () => {
       }),
     );
     expect(html).toContain('type="date"');
-    expect(html).toContain('name="entityId"');
+    expect(html).toMatch(/name="entityId"[^>]*value="prd-0001"/);
     expect(html).toContain('href="/admin/urunler/prd-0001/duzenle"');
+    // "Geçmişi" posts the record id (a member's is their e-mail): the
+    // kind rides in the address, the id in the body.
     expect(html).toContain(
-      'href="/admin/olay-kaydi?entity=product&amp;entityId=prd-0001"',
+      '<input type="hidden" name="_path" value="/admin/olay-kaydi"/><input type="hidden" name="_do" value="apply"/><input type="hidden" name="entity" value="product"/><input type="hidden" name="entityId" value="prd-0001"/><button type="submit"',
     );
+    expect(html).not.toMatch(/href="[^"]*entityId=/);
     // A karaoke row opens its booking's own page, not the list.
     expect(html).toContain('href="/admin/mobil/karaoke/krk-00042"');
     expect(html).not.toContain('href="/admin/mobil/karaoke"');
@@ -694,8 +708,9 @@ describe("the event's own page", () => {
     expect(html).toContain("Durum geçişi · Sipariş");
     expect(html).toContain('href="/admin/siparisler/ord-10023"');
     expect(html).toContain(
-      'href="/admin/olay-kaydi?entity=order&amp;entityId=ord-10023"',
+      '<input type="hidden" name="entity" value="order"/><input type="hidden" name="entityId" value="ord-10023"/><button type="submit"',
     );
+    expect(html).not.toMatch(/href="[^"]*entityId=/);
     expect(html).toContain("Yeni durum");
     expect(html).toContain("İptal edildi");
     // The list clips at 300 characters; this page does not.

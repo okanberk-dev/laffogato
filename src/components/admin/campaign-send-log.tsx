@@ -12,6 +12,7 @@ import {
   parseCampaignSendTab,
 } from "@/lib/admin/campaign-sends-core";
 import { pageCount, parseFilters, parsePage } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 
 import { CampaignSendTable } from "./campaign-send-table";
 import { FilterBar, Pagination, Section, StatusTabs } from "./ui";
@@ -40,13 +41,21 @@ export async function CampaignSendLog({
   pathname,
 }: {
   campaignId: string;
+  /** The page's (awaited) searchParams. */
   searchParams: Record<string, string | string[] | undefined>;
-  /** The campaign's page: the tabs, the search and the pages link to it. */
+  /**
+   * The campaign's page: the tabs, the search and the pages link to it,
+   * and the search box's text is remembered for it alone
+   * (lib/admin/list-search-core.ts).
+   */
   pathname: string;
 }) {
-  const filters = parseFilters(searchParams, CAMPAIGN_SEND_FILTER_FIELDS);
-  const status = parseCampaignSendTab(searchParams);
-  const asked = parsePage(searchParams);
+  // `url` is the address (the tabs' and pages' links), `view` adds the
+  // remembered search text: an address typed there stays out of the URL.
+  const { url, view } = await listSearchView(pathname, searchParams);
+  const filters = parseFilters(view, CAMPAIGN_SEND_FILTER_FIELDS);
+  const status = parseCampaignSendTab(view);
+  const asked = parsePage(view);
 
   let tally: CampaignSendTally;
   let rows: CampaignSendRow[];
@@ -106,14 +115,14 @@ export async function CampaignSendLog({
       <StatusTabs
         tabs={campaignSendTabs(tally, status)}
         current={status}
-        searchParams={searchParams}
+        searchParams={url}
         pathname={pathname}
         param={CAMPAIGN_SEND_TAB_PARAM}
         label="Alıcı durumları"
       />
       <FilterBar
         fields={CAMPAIGN_SEND_FILTER_FIELDS}
-        searchParams={searchParams}
+        searchParams={url}
         pathname={pathname}
         values={filters}
         label="Alıcı arama"
@@ -124,7 +133,7 @@ export async function CampaignSendLog({
           page={page}
           pageSize={CAMPAIGN_SENDS_PAGE_SIZE}
           total={inTab}
-          searchParams={searchParams}
+          searchParams={url}
           pathname={pathname}
           label="Gönderim defteri sayfaları"
         />

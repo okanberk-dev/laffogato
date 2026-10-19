@@ -6,6 +6,7 @@ import { MenuList } from "@/components/admin/menu-list";
 import { BUTTON, FilterBar, StatusTabs } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
   MENU_PATH,
   MENU_TAB_PARAM,
@@ -42,11 +43,16 @@ const FIELDS = menuFilterFields(
  */
 export default async function AdminMenuPage({ searchParams }: PageProps) {
   await requireRole("menu");
-  const sp = (await searchParams) ?? {};
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    MENU_PATH,
+    (await searchParams) ?? {},
+  );
   const [all, settings] = await Promise.all([listMenuItems(), getSettings()]);
   const items = all.map(toMenuListRow);
-  const filters = parseFilters(sp, FIELDS);
-  const tab = parseMenuTab(sp);
+  const filters = parseFilters(view, FIELDS);
+  const tab = parseMenuTab(view);
   const list = menuList(items, {
     tab,
     filters,
@@ -97,10 +103,11 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
         label="Menü süzgeci"
       />
 
-      {/* Keyed by the address: a new tab or filter starts with nothing
-          selected, so a bulk action never reaches hidden rows. */}
+      {/* Keyed by the address and the search: a new tab, filter or search
+          starts with nothing selected, so a bulk action never reaches
+          hidden rows. */}
       <MenuList
-        key={JSON.stringify(sp)}
+        key={JSON.stringify(view)}
         groups={list.groups}
         categoryKeys={[...MENU_CATEGORY_KEYS]}
         categoryLabels={MENU_CATEGORY_LABELS}
@@ -120,6 +127,7 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
                     ? `${MENU_PATH}?${MENU_TAB_PARAM}=${tabValue}`
                     : MENU_PATH,
                   label: "Filtreleri temizle",
+                  clearsSearch: true,
                 }
               : null
         }

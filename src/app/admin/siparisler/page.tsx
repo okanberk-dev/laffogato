@@ -13,6 +13,7 @@ import {
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { pageCount, withParams } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
   mayExportOrders,
   orderActions,
@@ -55,8 +56,13 @@ interface PageProps {
  */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   const session = await requireRole("orders");
-  const sp = await searchParams;
-  const parsed = parseOrderListParams(sp);
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    ORDER_LIST_PATH,
+    await searchParams,
+  );
+  const parsed = parseOrderListParams(view);
   const [page, counts] = await Promise.all([
     listOrdersFiltered({
       query: parsed.query,
@@ -116,9 +122,9 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           : counts[t.value as keyof typeof counts],
   }));
 
-  // The way out of an empty list: the filters go (the tab stays), a tab
-  // with nothing in it leads back to every order, and a shop with no
-  // order yet offers the first one.
+  // The way out of an empty list: the filters and the search go (the tab
+  // stays), a tab with nothing in it leads back to every order, and a shop
+  // with no order yet offers the first one.
   const filtered = Object.keys(parsed.values).length > 0;
   const emptyAction = filtered
     ? {
@@ -126,6 +132,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           ? withParams({ durum: parsed.tab }, {}, ORDER_LIST_PATH)
           : ORDER_LIST_PATH,
         label: "Filtreleri temizle",
+        clearsSearch: true,
       }
     : parsed.narrowed
       ? { href: ORDER_LIST_PATH, label: "Tüm siparişler" }
@@ -175,13 +182,13 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         label="Sipariş filtreleri"
       />
 
-      {/* Keyed by the URL: a tab, filter, sort or page link starts a fresh
-          selection. Next keeps a page's state across search-param changes,
-          so three ticked open orders stayed selected on the "Tamamlandı"
-          tab and "İptal et" cancelled orders no longer on screen (admin
-          audit ORD-07). */}
+      {/* Keyed by the URL and the search: a tab, filter, sort, page link
+          or new search starts a fresh selection. Next keeps a page's state
+          across search-param changes, so three ticked open orders stayed
+          selected on the "Tamamlandı" tab and "İptal et" cancelled orders
+          no longer on screen (admin audit ORD-07). */}
       <OrdersList
-        key={JSON.stringify(sp)}
+        key={JSON.stringify(view)}
         rows={rows}
         mayRefund={canAccess("refunds", session.role)}
         live={parsed.live}
