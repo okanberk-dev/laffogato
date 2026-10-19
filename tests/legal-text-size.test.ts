@@ -67,9 +67,10 @@ describe("16px: the pre-contract texts (MSY m.6/1, 12 pt = 16 CSS px)", () => {
         r.selectors.some((s) => s.includes(`.${cls}`)),
       )) {
         for (const m of rule.body.matchAll(/font-size:\s*([\d.]+)px/g)) {
-          expect(Number(m[1]), rule.selectors.join(", ")).toBeGreaterThanOrEqual(
-            16,
-          );
+          expect(
+            Number(m[1]),
+            rule.selectors.join(", "),
+          ).toBeGreaterThanOrEqual(16);
         }
       }
     }

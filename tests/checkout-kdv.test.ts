@@ -178,6 +178,6 @@ describe("checkout KDV note", () => {
         [14000, 10],
       ]),
     );
-    expect(text).not.toMatch(/[–—]/);
+    expect(text).not.toMatch(/[\u2013\u2014]/);
   });
 });

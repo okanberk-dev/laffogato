@@ -130,7 +130,7 @@ describe("'Cayma hakkın': the withdrawal terms in a few sentences", () => {
       /<a href="\/hukuk\/iade-ve-cayma" target="_blank" rel="noopener">İptal, iade ve cayma<\/a>/,
     );
     // No long dash in anything the customer reads here.
-    expect(text(html)).not.toMatch(/[–—]/);
+    expect(text(html)).not.toMatch(/[\u2013\u2014]/);
   });
 
   it("without a seller address, says where the address is instead of an empty one", () => {
@@ -380,7 +380,7 @@ describe("the contracts stay out of the browser bundle", () => {
   ])("%s imports the documents module for its types only", (file) => {
     const source = readFileSync(file, "utf8");
     for (const m of source.matchAll(
-      /^import\s+([^;]*?)\s+from\s+"([^"]+)";/gms,
+      /^import\s+([^;]*?)\s+from\s+"([^"]+)";/gm,
     )) {
       const [, what, from] = m;
       if (from === "./checkout-documents" || from.startsWith("@/lib/legal/")) {
