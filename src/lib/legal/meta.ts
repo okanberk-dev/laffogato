@@ -44,6 +44,23 @@ export const LEGAL_UPDATED = "19 Ekim 2026";
 export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
 
 /**
+ * Whether the legal texts describe Google's tags (Tag Manager, Analytics,
+ * Ads) as running on the site. They do not since 19 Ekim 2026: Google offers
+ * no Turkish standard contract for these services (its Ads/Analytics
+ * processor terms carry no KVKK clause), so the transfer they make on every
+ * page view has no KVKK m.9/4 safeguard, and the texts say "İnternet
+ * sitemizde bugün analitik veya reklam etiketi kullanılmaz"
+ * (docs/LEGAL-REDLINES-2026-09.md §15.6).
+ *
+ * The root layout loads Google Tag Manager only when this is true AND
+ * `NEXT_PUBLIC_GTM_ID` is set (`siteTagManagerId`), so an environment
+ * variable left in Vercel cannot bring the tags back under texts that say
+ * there are none. Flip it only in the PR that restores those texts, after a
+ * Google standard contract is signed and notified to the Kurum.
+ */
+export const GOOGLE_TAGS_IN_LEGAL_TEXTS = false;
+
+/**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
  * sona eklenir, böylece yeni kategori eklemek burayı güncellemeyi zorunlu
  * kılmaz.
