@@ -315,7 +315,8 @@ describe("the processor lists agree with the aydınlatma", () => {
     expect(keys).toContain(
       `Üyelik kimlik doğrulama hizmeti sağlayıcısı (${LEGAL_ENTITY.authProvider})`,
     );
-    expect(keys).toContain("Google LLC (harita hizmeti)");
+    // The map is a link out since 7d: no Google row (2026/347).
+    expect(keys.some((k) => k.startsWith("Google LLC"))).toBe(false);
   });
 });
 
@@ -375,7 +376,6 @@ describe("every recipient the texts list, and no reason without one (2026/347)",
       "PostgreSQL veri tabanı",
       "üyelik kimlik doğrulaması",
       "e-posta gönderimi",
-      "harita gösterimi",
     ]) {
       expect(reasons, reason).toContain(reason);
     }
@@ -384,9 +384,11 @@ describe("every recipient the texts list, and no reason without one (2026/347)",
       "Resend",
       LEGAL_ENTITY.dbProvider,
       LEGAL_ENTITY.authProvider,
-      "Google LLC",
     ]) {
       expect(recipients, recipient).toContain(recipient);
     }
+    // The map opens Google Maps in a new tab: no reason, no recipient.
+    expect(reasons).not.toContain("harita");
+    expect(recipients).not.toContain("Google LLC");
   });
 });
