@@ -74,6 +74,14 @@ describe("the post mail dialog", () => {
       }),
     );
     expect(html).toMatch(/^<dialog/);
+    // The consequences are the dialog's description, not only its text.
+    const described = html.match(
+      /^<dialog[^>]*aria-describedby="([^"]+)"/,
+    )?.[1];
+    expect(described).toBeTruthy();
+    expect(html).toMatch(
+      new RegExp(`<div id="${described}"[^>]*><p>Kaydedince[^<]*12 üyeye`),
+    );
     expect(html).toContain("Üyelere kampanya e-postası gitsin mi?");
     expect(html).toContain("12 üyeye");
     expect(html).toMatch(/Onaylamak için.*12.*yaz/);

@@ -46,6 +46,7 @@ export function ConfirmDialog({
   const ref = useRef<HTMLDialogElement>(null);
   const confirmed = useRef(false);
   const titleId = useId();
+  const linesId = useId();
   const phraseId = useId();
   const [typed, setTyped] = useState("");
   const ready = !ask.phrase || phraseMatches(typed, ask.phrase);
@@ -61,6 +62,9 @@ export function ConfirmDialog({
     <dialog
       ref={ref}
       aria-labelledby={titleId}
+      // Read out on open with the title, as the kit's ActionModal does:
+      // focus lands on the phrase box or a button, not on the sentences.
+      aria-describedby={linesId}
       onClose={() => {
         const form = ref.current?.closest("form");
         if (confirmed.current && form) onConfirm(form);
@@ -77,7 +81,10 @@ export function ConfirmDialog({
         >
           {ask.title}
         </h2>
-        <div className="grid gap-2 text-sm text-[var(--admin-text-soft)]">
+        <div
+          id={linesId}
+          className="grid gap-2 text-sm text-[var(--admin-text-soft)]"
+        >
           {ask.lines.map((line) => (
             <p key={line}>{line}</p>
           ))}
