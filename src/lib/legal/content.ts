@@ -495,7 +495,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "16. Fatura, Belge Düzeni ve Promosyon Kodları",
         paragraphs: [
-          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak düzenlenir ve ALICI'ya iletilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
+          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
           "Promosyon kodları, kampanya sayfasında veya kodun tanıtıldığı iletide belirtilen geçerlilik süresi, asgari sepet tutarı, ürün/kategori kapsamı ve kullanım adedi sınırlarına tabidir. Kodun sağladığı indirim, sepet ekranında ve sipariş özetinde ayrı bir kalem olarak gösterilir. Aksi belirtilmedikçe promosyon kodları birleştirilemez ve nakde çevrilemez.",
           "Cayma hakkının kullanılması hâlinde geri ödeme, ALICI'nın fiilen ödediği tutar üzerinden yapılır. Kuponla karşılanan kısım için nakit ödeme yapılmaz. Kısmi iadelerde, kampanya koşulu (örneğin asgari sepet tutarı) kalan üründe artık sağlanmıyorsa indirim orantılı olarak düşülerek hesaplanır; hesaplama yöntemi iade bildiriminde ALICI'ya kalem kalem açıklanır.",
         ],
@@ -994,7 +994,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "9. Fatura ve Belgelendirme",
         paragraphs: [
           "SATICI, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca her sipariş için fatura düzenler. Sipariş tutarından düşülen indirimler vergi mevzuatına uygun biçimde faturaya yansıtılır. Fatura, sipariş sırasında ALICI'nın beyan ettiği ad-soyad ve adres bilgileri esas alınarak düzenlenir.",
-          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Faturanın elektronik ortamda düzenlenmesi hâlinde ALICI, faturanın kayıtlı e-posta adresine elektronik ortamda iletilmesine muvafakat eder; talep etmesi hâlinde faturanın kâğıt çıktısı da gönderilir.",
+          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Fatura e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir.",
           "Kurumsal (tüzel kişi) fatura talebinde ALICI; ticaret unvanı, vergi dairesi ve vergi kimlik numarası bilgilerini fatura düzenlenmeden önce {{EMAIL}} adresine eksiksiz bildirmekle yükümlüdür. Fatura kesildikten sonra vergi mükellefiyet bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve ancak fatura iptali/yeniden düzenleme prosedürü çerçevesinde karşılanabilir.",
           "Cayma hakkının kullanılması veya iade hâlinde, kurumsal faturalı satışlarda ALICI'nın mevzuat gereği iade faturası düzenlemesi gerekir. Bireysel (nihai tüketici) satışlarda SATICI, iade işlemini kendi sistemlerinde belgelendirir ve ALICI'dan cayma bildirimi ile malın geri gönderilmesi dışında ek bir belge talep etmez.",
           "Faturanın ALICI'ya ulaşmaması veya kaybolması hâlinde ALICI, {{EMAIL}} adresine yapacağı talep ile faturanın yeniden gönderilmesini isteyebilir. SATICI, mevzuatta öngörülen saklama süreleri boyunca fatura kayıtlarını muhafaza eder.",
@@ -13248,8 +13248,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Faturalama ve Vergisel Bilgiler",
         paragraphs: [
-          "Tüm satışlar için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca fatura düzenlenir. Fatura türü, Şirketin mükellefiyet durumuna ve mevzuata göre belirlenir. Fatura talepleriniz ve fatura örneği isteğiniz için {{EMAIL}} adresine başvurabilirsiniz.",
-          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura talep ediyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş öncesinde eksiksiz girmeniz gerekir; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
+          "İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz.",
+          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
           "İade ve cayma hâllerinde, faturanın iade bölümünün doldurulup imzalanarak Şirkete ulaştırılması veya mükellef alıcılar bakımından iade faturası düzenlenmesi gerekebilir. Bu, muhasebe kaydının kapatılabilmesi için gerekli usuli bir adımdır; belge eksikliği cayma hakkınızın kullanımını ve iade süresini etkilemez.",
         ],
         table: [
@@ -13271,12 +13271,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "Fatura türü",
-            value:
-              "Mevzuata uygun fatura (türü Şirketin mükellefiyet durumuna göre belirlenir)",
+            value: "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
           },
           {
             key: "Fatura iletim yöntemi",
-            value: "Fatura örneği talebi üzerine {{EMAIL}} adresi üzerinden",
+            value:
+              "e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir (kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde); e-Fatura, e-Fatura sistemi üzerinden iletilir",
+          },
+          {
+            key: "Koliyle gönderilen belge",
+            value:
+              "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
           },
           {
             key: "KDV oranı",
