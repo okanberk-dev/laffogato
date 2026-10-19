@@ -15,7 +15,7 @@ import {
 } from "./customer-list-core";
 
 // Müşteriler's two reads (admin audit PEO-13). Both run in SQL
-// (db/migrations/20261019120000_admin_customer_list.sql): the merge of member
+// (db/migrations/20261019130000_admin_customer_list.sql): the merge of member
 // accounts with the order roll-up, the Turkish-folded search, the sort and
 // the page. The page used to read every member row and every order and write
 // the whole list into its HTML twice.

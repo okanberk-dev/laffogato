@@ -28,7 +28,7 @@ export const MENU_ALLERGEN_CONFLICT_ERROR =
 export const MENU_ALLERGEN_UNKNOWN_ERROR =
   "Listede olmayan bir alerjen geldi; sayfayı yenileyip yeniden seç.";
 export const MENU_ALLERGEN_NUTS_ERROR =
-  "Etiketlerde kuruyemiş (nuts) var: alerjenlerde “Sert kabuklu meyveler”i de işaretle ya da etiketi kaldır.";
+  "Etiketlerde “Sert kabuklu yemiş” işaretli: alerjenlerde “Sert kabuklu meyveler”i de işaretle ya da etiketi kaldır.";
 
 const menuAllergensSchema = z.object({
   allergens: z

@@ -24,7 +24,7 @@ import { TR_FOLD_SQL_FROM, TR_FOLD_SQL_TO } from "@/lib/admin/text-fold";
  */
 
 const MIGRATION = readFileSync(
-  "db/migrations/20261019120000_admin_customer_list.sql",
+  "db/migrations/20261019130000_admin_customer_list.sql",
   "utf8",
 );
 

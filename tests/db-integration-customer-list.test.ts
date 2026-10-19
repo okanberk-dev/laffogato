@@ -18,7 +18,7 @@ import {
 } from "./_support/db-suite-lock";
 
 /**
- * Müşteriler's SQL (db/migrations/20261019120000_admin_customer_list.sql)
+ * Müşteriler's SQL (db/migrations/20261019130000_admin_customer_list.sql)
  * against a real Postgres, through the app's own readers
  * (lib/admin/customer-list.ts): the merge of member accounts with the order
  * roll-up follows the TypeScript rule (`summarizeCustomers`), the search

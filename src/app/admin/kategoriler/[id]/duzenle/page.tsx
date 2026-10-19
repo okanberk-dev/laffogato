@@ -7,7 +7,7 @@ import { getCategory } from "@/lib/admin/store";
 
 import { updateCategoryAction } from "../../actions";
 
-export const metadata = { title: "Admin · Kategori Düzenle" };
+export const metadata = { title: "Admin · Kategori düzenle" };
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,7 +23,7 @@ export default async function EditCategoryPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
-      <PageHeader eyebrow={`Düzenle · ${category.id}`} title={category.label} />
+      <PageHeader eyebrow="Katalog · Kategoriler" title={category.label} />
       <CategoryForm
         action={boundUpdate}
         category={category}

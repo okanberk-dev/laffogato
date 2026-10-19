@@ -7,7 +7,7 @@ import { getMenuItem, getSettings } from "@/lib/admin/store";
 
 import { updateMenuItemAction } from "../../actions";
 
-export const metadata = { title: "Admin · Menü Kalemi Düzenle" };
+export const metadata = { title: "Admin · Menü kalemi düzenle" };
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -23,7 +23,7 @@ export default async function EditMenuItemPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
-      <PageHeader eyebrow={`Düzenle · ${item.id}`} title={item.name} />
+      <PageHeader eyebrow="Katalog · Kafe menüsü" title={item.name} />
       <MenuItemForm
         action={boundUpdate}
         item={item}
