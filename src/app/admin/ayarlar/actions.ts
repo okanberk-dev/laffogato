@@ -236,15 +236,25 @@ export async function saveHoursAction(
  *
  * The old single rate kept two decimals ("1.5" passed) and wrote them into
  * an integer column, which the database refused. Rates are whole numbers.
+ *
+ * A form without a key's field at all (a tab opened before `shipping`
+ * existed, 18 Eki 2026) leaves that stored rate alone; an empty field is
+ * still refused.
  */
 export async function saveTaxAction(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
   await requireRole("settings");
+  const before = await getSettings();
   const taxRates = {} as TaxRates;
   for (const key of TAX_RATE_KEYS) {
-    const parsed = parseTaxRateInput(formData.get(`taxRate_${key}`));
+    const raw = formData.get(`taxRate_${key}`);
+    if (raw === null) {
+      taxRates[key] = before.taxRates[key];
+      continue;
+    }
+    const parsed = parseTaxRateInput(raw);
     if (!parsed.ok || parsed.value === null) {
       return refuse(
         `${TAX_RATE_LABELS[key]}: ${TAX_RATE_INPUT_ERROR}`,
@@ -269,7 +279,6 @@ export async function saveTaxAction(
       ? {}
       : { menuPricesEffectiveDate }),
   };
-  const before = await getSettings();
   const moved = changedKeys(before, next);
   if (!moved) return NO_CHANGE;
   await updateSettings(next);

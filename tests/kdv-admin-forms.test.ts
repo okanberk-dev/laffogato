@@ -7,12 +7,13 @@ import type {
   AdminProduct,
   AdminSettings,
 } from "@/lib/admin/store";
-import { LEGAL_TAX_RATES } from "@/lib/utils/kdv";
+import { LEGAL_TAX_RATES, TAX_RATE_KEYS } from "@/lib/utils/kdv";
 
 /**
  * The panel's KDV fields as markup: the product's select names its
  * category's rate and keeps a stored own rate selected, and Ayarlar > Vergi
- * has one required whole-number field per kind of sale.
+ * has one required select per kind of sale (18 Eki 2026: a select like the
+ * product's, the shipping fee its own).
  */
 
 vi.mock("next/link", () => ({
@@ -53,7 +54,7 @@ function wizard(product?: Partial<AdminProduct>) {
       action: async () => ({}),
       submitLabel: "Kaydet",
       mode: "tabs",
-      taxRates: { ...LEGAL_TAX_RATES, beans: 1 },
+      taxRates: { ...LEGAL_TAX_RATES },
     }),
   );
 }
@@ -68,7 +69,8 @@ function taxSelect(html: string): string {
 describe("product wizard: KDV oranı", () => {
   it("a new product starts on its category's rate, named in the option", () => {
     const select = taxSelect(wizard());
-    expect(select).toContain("Kategorinin oranı (%1)");
+    // Coffee beans: the köşk's food is 10% (18 Eki 2026).
+    expect(select).toContain("Kategorinin oranı (%10)");
     expect(select).toMatch(/<option value="" selected="">/);
     for (const r of ["0", "1", "10", "20"]) {
       expect(select).toContain(`<option value="${r}"`);
@@ -107,11 +109,19 @@ describe("product wizard: KDV oranı", () => {
     );
     expect(select).toMatch(/<option value="8" selected="">/);
   });
+
+  it("the hint says the köşk's food is 10%, clothing and bags too", () => {
+    const html = wizard();
+    expect(html).toContain(
+      "Köşkün sattığı gıda %10, giyim ve çanta %10, ekipman ve diğer hediyelik %20.",
+    );
+    expect(html).not.toContain("Kahve ve gıda %1");
+  });
 });
 
 describe("Ayarlar > Vergi", () => {
-  it("has one required whole-number field per kind of sale, filled from settings", () => {
-    const html = renderToStaticMarkup(
+  function taxTab(taxRates: Record<string, number>) {
+    return renderToStaticMarkup(
       createElement(SettingsForm, {
         settings: {
           name: "L'Affogato",
@@ -127,7 +137,7 @@ describe("Ayarlar > Vergi", () => {
               { open: "09:00", close: "02:00", closed: false },
             ]),
           ),
-          taxRates: { ...LEGAL_TAX_RATES, menu: 8 },
+          taxRates,
           shippingFlatMinor: 4900,
           shippingFreeThresholdMinor: 50000,
           courierFeeMinor: 5500,
@@ -156,7 +166,20 @@ describe("Ayarlar > Vergi", () => {
         } as never,
       }),
     );
-    for (const key of [
+  }
+
+  /** The `<select name="taxRate_<key>">` and what it holds. */
+  function rateSelect(html: string, key: string): string {
+    const m = html.match(
+      new RegExp(`<select[^>]*name="taxRate_${key}"[\\s\\S]*?</select>`),
+    );
+    expect(m, key).not.toBeNull();
+    return m![0];
+  }
+
+  it("has one required select per kind of sale, the shipping fee last", () => {
+    const html = taxTab({ ...LEGAL_TAX_RATES });
+    expect(TAX_RATE_KEYS).toEqual([
       "menu",
       "karaoke",
       "beans",
@@ -164,17 +187,58 @@ describe("Ayarlar > Vergi", () => {
       "gift",
       "gear",
       "merch",
-    ]) {
-      const input = html.match(
-        new RegExp(`<input[^>]*name="taxRate_${key}"[^>]*>`),
+      "shipping",
+    ]);
+    for (const key of TAX_RATE_KEYS) {
+      const select = rateSelect(html, key);
+      expect(select).toContain("required");
+      for (const r of ["0", "1", "10", "20"]) {
+        expect(select, `${key} ${r}`).toContain(`<option value="${r}"`);
+      }
+      // No free number field any more.
+      expect(html).not.toMatch(
+        new RegExp(`<input[^>]*name="taxRate_${key}"`),
       );
-      expect(input, key).not.toBeNull();
-      expect(input![0]).toContain("required");
-      expect(input![0]).toContain('step="1"');
     }
-    expect(html).toMatch(/name="taxRate_menu"[^>]*value="8"/);
-    expect(html).toMatch(/name="taxRate_beans"[^>]*value="1"/);
+    expect(rateSelect(html, "beans")).toMatch(/<option value="10" selected="">/);
+    expect(rateSelect(html, "pantry")).toMatch(/<option value="10" selected="">/);
+    expect(rateSelect(html, "shipping")).toMatch(
+      /<option value="20" selected="">/,
+    );
+    expect(html).toContain("Kargo ve kurye ücreti");
     // The old single field is gone.
     expect(html).not.toContain('name="taxRatePct"');
+  });
+
+  it("a stored rate outside the four stays offered and selected, so a save never changes it unseen", () => {
+    const html = taxTab({ ...LEGAL_TAX_RATES, menu: 8, beans: 1 });
+    const menu = rateSelect(html, "menu");
+    expect(menu).toMatch(/<option value="8" selected="">/);
+    expect(menu.match(/<option /g)).toHaveLength(5);
+    // 1 is one of the four: offered once, selected.
+    const beans = rateSelect(html, "beans");
+    expect(beans).toMatch(/<option value="1" selected="">/);
+    expect(beans.match(/<option /g)).toHaveLength(4);
+  });
+
+  it("says the fee is its own line and gives the reviewed rates in the hints", () => {
+    const html = taxTab({ ...LEGAL_TAX_RATES });
+    expect(html).toContain(
+      "Kargo ve kurye ücreti faturada ayrı kalemdir ve kendi oranını alır.",
+    );
+    expect(html).not.toContain("taşıdığı ürünün oranını alır");
+    expect(html).toContain(
+      "Paketli kahve: %10. Köşk kafe işletmesi olduğu için internetten satıp gönderdiği gıda da %10 sayılır (KDV GUT III/B-2.4.1).",
+    );
+    expect(html).toContain(
+      "Matcha, bisküvi, krema, şurup gibi paketli gıda: %10, kahveyle aynı kural.",
+    );
+    expect(html).toContain(
+      "Önlük, tişört gibi giyim ve çanta %10: o üründe %10 seç.",
+    );
+    expect(html).toContain(
+      "Siparişteki kargo ve kurye ücreti ayrı bir taşıma hizmetidir: %20.",
+    );
+    expect(html).not.toMatch(/gıda: %1\b|%1\./);
   });
 });

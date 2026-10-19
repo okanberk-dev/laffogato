@@ -38,11 +38,12 @@ function baseSettings() {
     taxRates: {
       menu: 10,
       karaoke: 20,
-      beans: 1,
-      pantry: 1,
+      beans: 10,
+      pantry: 10,
       gift: 20,
       gear: 20,
       merch: 20,
+      shipping: 20,
     },
     // jsonb hands the hours back with its own key order (days sorted, then
     // open / close / closed): not the order the form posts them in.
@@ -678,11 +679,12 @@ describe("saveTaxAction (KDV oranları, 17 Eki 2026)", () => {
     form({
       taxRate_menu: "10",
       taxRate_karaoke: "20",
-      taxRate_beans: "1",
-      taxRate_pantry: "1",
+      taxRate_beans: "10",
+      taxRate_pantry: "10",
       taxRate_gift: "20",
       taxRate_gear: "20",
       taxRate_merch: "20",
+      taxRate_shipping: "20",
       ...over,
     });
 
@@ -699,11 +701,12 @@ describe("saveTaxAction (KDV oranları, 17 Eki 2026)", () => {
       taxRates: {
         menu: 8,
         karaoke: 20,
-        beans: 1,
-        pantry: 1,
+        beans: 10,
+        pantry: 10,
         gift: 20,
         gear: 20,
         merch: 20,
+        shipping: 20,
       },
     });
     expect(lastAudit()).toEqual(
@@ -743,6 +746,31 @@ describe("saveTaxAction (KDV oranları, 17 Eki 2026)", () => {
     const state = await saveTaxAction({}, tax());
     expect(state.message).toContain("Değişiklik yok");
     expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("stores the shipping and courier fee's own rate (18 Eki 2026)", async () => {
+    const state = await saveTaxAction({}, tax({ taxRate_shipping: "10" }));
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith({
+      taxRates: expect.objectContaining({ shipping: 10, beans: 10 }),
+    });
+    updateSettings.mockClear();
+    const empty = await saveTaxAction({}, tax({ taxRate_shipping: "" }));
+    expect(empty.error).toContain("Kargo ve kurye ücreti");
+    expect(empty.fieldErrors?.taxRate_shipping).toBe(empty.error);
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it("a form from before the shipping field existed keeps the stored fee rate", async () => {
+    // A tab opened before the deploy posts the seven old fields only: the
+    // other rates save, the fee keeps what was stored.
+    const fd = tax({ taxRate_menu: "8" });
+    fd.delete("taxRate_shipping");
+    const state = await saveTaxAction({}, fd);
+    expect(state.error).toBeUndefined();
+    expect(updateSettings).toHaveBeenCalledWith({
+      taxRates: { ...SETTINGS.taxRates, menu: 8 },
+    });
   });
 });
 

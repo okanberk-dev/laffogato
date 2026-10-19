@@ -942,7 +942,7 @@ export function ProductWizard({
             <div className="grid gap-1.5">
               <Field
                 label="KDV oranı"
-                hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Kahve ve gıda %1, ekipman ve hediye %20. Varsayılanlar Ayarlar > Vergi'de."
+                hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Köşkün sattığı gıda %10, giyim ve çanta %10, ekipman ve diğer hediyelik %20. Varsayılanlar Ayarlar > Vergi'de."
               >
                 <Select
                   name="taxRatePct"
