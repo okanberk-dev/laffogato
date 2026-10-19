@@ -7,6 +7,7 @@ import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getPublicSettings, listActiveAppPosts } from "@/lib/admin/store";
 import { openGraphBase } from "@/lib/seo/site";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -62,13 +63,7 @@ export default async function KampanyalarPage() {
           { name: "Kampanyalar", url: "/kampanyalar" },
         ])}
       />
-      <SiteChrome
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
-      >
+      <SiteChrome settings={footerSettings(settings)}>
         <CampaignsPage
           posts={posts.map((p) => ({
             id: p.id,

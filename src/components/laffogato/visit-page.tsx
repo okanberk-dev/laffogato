@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useMemo, Fragment } from "react";
+import { useMemo, Fragment } from "react";
 
 import { SITE } from "@/lib/seo/site";
 import { priceLabel } from "@/lib/utils/format";
@@ -24,8 +24,11 @@ import { cx } from "./cx";
 export function PageVisit({ visit, settings }: PageProps) {
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
   const addressLines = visit?.addressLines ?? LOCATION.address;
-  const visitPhone = visit?.phone ?? LOCATION.phone;
-  const visitEmail = visit?.email ?? LOCATION.email;
+  // `||`: a field cleared in Ayarlar arrives as "" and must not print (or
+  // dial) nothing.
+  const visitPhone = visit?.phone || LOCATION.phone;
+  const visitTel = visitPhone.replace(/[^\d+]/g, "") || SITE.phoneE164;
+  const visitEmail = visit?.email || LOCATION.email;
   const visitHours = visit?.hours ?? LOCATION.hours;
   /**
    * Seven identical rows is not information, it is a wall. When every day
@@ -42,12 +45,14 @@ export function PageVisit({ visit, settings }: PageProps) {
   }, [visitHours]);
   // A fixed query rather than the displayed address lines: those are editable
   // from the admin panel, and a stray edit must not send visitors to the wrong
-  // place or break the embed's geocoding.
+  // place.
   const mapQuery = LOCATION.mapsQuery;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
-  const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&hl=tr&z=16&output=embed`;
-  const [mapOn, setMapOn] = useState(false);
+  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+  // The stat under the facts: the closing time when every day shares it,
+  // today's otherwise. A fixed "02:00" outlived the first hours edit.
+  const closing = closingStat(compactHours, visit?.todayHours);
 
   return (
     <div className="page" data-screen-label="05 Visit">
@@ -57,7 +62,12 @@ export function PageVisit({ visit, settings }: PageProps) {
       <PageHero
         scene="house"
         eyebrow="Ziyaret · Tuzla, İstanbul"
-        title={["200 yıllık köşkte,", "gece 02:00'e kadar"]}
+        title={[
+          "200 yıllık köşkte,",
+          closing.label === "gece kapanış"
+            ? `gece ${untilTime(closing.value)} kadar`
+            : "gece geç saate kadar",
+        ]}
         lede="Postane Mahallesi'nde restore bir Rum köşkü: 24 koltuk, bahçe terası ve üst katta özel karaoke odası. Marmaray Tuzla'ya 6 dakika, ücretsiz vale."
       />
       <section className="visit-open">
@@ -121,8 +131,8 @@ export function PageVisit({ visit, settings }: PageProps) {
                   </div>
                 </div>
                 <div>
-                  <div className="visit-stat-n">02:00</div>
-                  <div className="visit-stat-l">gece kapanış</div>
+                  <div className="visit-stat-n">{closing.value}</div>
+                  <div className="visit-stat-l">{closing.label}</div>
                 </div>
                 <div>
                   <div className="visit-stat-n">{courierFee}</div>
@@ -256,40 +266,32 @@ export function PageVisit({ visit, settings }: PageProps) {
           </div>
 
           <figure className="reveal r1 visit-map" style={{ margin: 0 }}>
-            {/* Click to load. The embed used to load with the page: the
-                visitor's address went to Google before they had asked for a
-                map, with no consent behind it, and the frame sat as a blank
-                box while it came in. The drawn card costs nothing and says
-                where the köşk is; the real map is one tap away. */}
-            {mapOn ? (
-              <iframe
-                title="L’Affogato - Tuzla konumu, Google Haritalar"
-                src={mapEmbedUrl}
-                referrerPolicy="no-referrer-when-downgrade"
-                allow="fullscreen"
-                className="visit-map-frame"
-              />
-            ) : (
-              <div className="visit-map-frame visit-map-facade">
-                <MapSketch />
-                <span className="visit-map-pin" aria-hidden="true">
-                  <LafMark tone="cream" />
-                </span>
-                <div className="visit-map-cta">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => setMapOn(true)}
-                  >
-                    Haritayı göster
-                  </button>
-                  <p>
-                    Harita Google Haritalar&apos;dan yüklenir; gösterince
-                    tarayıcın Google&apos;a bağlanır.
-                  </p>
-                </div>
+            {/* A link, not an embed. The embed loaded only on a click, but
+                it still put Google's frame (and its cookies) inside our page
+                with no standard contract behind the transfer abroad (KVKK
+                m.9). The drawn card costs nothing and says where the köşk
+                is; the real map opens on Google's own site, in a new tab. */}
+            <div className="visit-map-frame visit-map-facade">
+              <MapSketch />
+              <span className="visit-map-pin" aria-hidden="true">
+                <LafMark tone="cream" />
+              </span>
+              <div className="visit-map-cta">
+                <a
+                  className="btn btn-primary"
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Haritayı göster
+                  <span className="arrow out" aria-hidden="true">
+                    ↗
+                  </span>
+                  <span className="sr-only"> (yeni sekmede açılır)</span>
+                </a>
+                <p>Google Haritalar yeni sekmede açılır.</p>
               </div>
-            )}
+            </div>
             <figcaption className="visit-map-caption">
               <span>
                 <strong>{LOCATION.landmark}</strong> ·{" "}
@@ -494,10 +496,7 @@ export function PageVisit({ visit, settings }: PageProps) {
               >
                 E-postayla sor <span className="arrow">→</span>
               </a>
-              <a
-                className="btn btn-glass-dark btn-lg"
-                href={`tel:${SITE.phoneE164}`}
-              >
+              <a className="btn btn-glass-dark btn-lg" href={`tel:${visitTel}`}>
                 Ara
               </a>
             </div>
@@ -563,7 +562,44 @@ function OpenNow({ rows }: { rows: [string, string][] }) {
 }
 
 /**
- * A drawn stand-in for the map until the visitor asks for the real one: the
+ * "02:00'ye", "01:00'e", "00:30'a": the dative follows the last number word
+ * read aloud (iki-ye, bir-e, otuz-a), so the hero can say the closing time
+ * the panel sets. Midnight reads "gece yarısına".
+ */
+export function untilTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (h === 0 && m === 0) return "yarısına";
+  const last = m === 0 ? h : m;
+  const unit = last % 10;
+  const tens = Math.floor(last / 10) % 10;
+  const UNIT = ["", "e", "ye", "e", "e", "e", "ya", "ye", "e", "a"];
+  const TENS = ["", "a", "ye", "a", "a", "ye"];
+  const suffix = unit ? UNIT[unit] : TENS[tens];
+  return `${hhmm}'${suffix}`;
+}
+
+/**
+ * "02:00 · gece kapanış" from the hours the page already shows: one row for
+ * the whole week gives its closing time; a week with different days gives
+ * today's ("Bugün kapalı" on a closed day).
+ */
+function closingStat(
+  rows: [string, string][],
+  today: string | undefined,
+): { value: string; label: string } {
+  const close = (range: string | undefined) =>
+    /^\d{2}:\d{2} - (\d{2}:\d{2})$/.exec(range ?? "")?.[1];
+  if (rows.length === 1) {
+    const c = close(rows[0][1]);
+    if (c) return { value: c, label: "gece kapanış" };
+  }
+  const t = close(today);
+  if (t) return { value: t, label: "bugün kapanış" };
+  return { value: "Kapalı", label: "bugün" };
+}
+
+/**
+ * A drawn stand-in for the map (the real one is a link to Google): the
  * Marmara shore along the bottom, the E-5 and the coast road, a few
  * neighbourhood streets, the station, a park - porcelain, not Google's
  * palette. Decorative only; the pin and the caption carry the meaning.

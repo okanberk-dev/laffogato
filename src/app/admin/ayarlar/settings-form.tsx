@@ -278,7 +278,15 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
     <SettingsTabForm form={form}>
       <Section title="Genel bilgiler">
         <div className="grid gap-5">
-          <SettingsField name="name" label="Kafe adı">
+          {/* Name and slogan reach only the panel and the printed receipt:
+              the site, the app and the mails use the brand on the tax
+              certificate (SITE.name), so the hints say so (admin audit
+              SYS-04). */}
+          <SettingsField
+            name="name"
+            label="Kafe adı"
+            hint="Panelin üst satırında ve yazdırılan fişte görünür. Sitede, uygulamada ve e-postalarda marka adı değişmez."
+          >
             <TextInput
               name="name"
               defaultValue={settings.name}
@@ -287,7 +295,11 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
               maxLength={GENERAL_LIMITS.name}
             />
           </SettingsField>
-          <SettingsField name="tagline" label="Slogan">
+          <SettingsField
+            name="tagline"
+            label="Slogan"
+            hint="Yalnız yazdırılan fişte, adın altında görünür."
+          >
             <TextInput
               name="tagline"
               defaultValue={settings.tagline}
@@ -295,7 +307,11 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
             />
           </SettingsField>
           <div className="grid gap-5 sm:grid-cols-2">
-            <SettingsField name="phone" label="Telefon">
+            <SettingsField
+              name="phone"
+              label="Telefon"
+              hint="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Boş bırakırsan kayıtlı numara görünür."
+            >
               <TextInput
                 name="phone"
                 type="tel"
@@ -316,7 +332,11 @@ function GeneralTab({ settings }: { settings: AdminSettings }) {
               />
             </SettingsField>
           </div>
-          <SettingsField name="address" label="Adres">
+          <SettingsField
+            name="address"
+            label="Adres"
+            hint="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Haritadaki konum sabittir, bu alanla değişmez."
+          >
             <Textarea
               name="address"
               defaultValue={settings.address}
@@ -366,7 +386,7 @@ function HoursTab({ settings }: { settings: AdminSettings }) {
     <SettingsTabForm form={form}>
       <Section
         title="Haftalık çalışma saatleri"
-        description="Gece yarısından sonra kapanıyorsan kapanışa 00:00 ya da 02:00 gibi bir saat yaz: açılıştan erken bir kapanış ertesi güne sayılır."
+        description="Sitenin alt bilgisinde, anasayfada, ziyaret sayfasında, e-postaların altında ve uygulamada görünür. Gece yarısından sonra kapanıyorsan kapanışa 00:00 ya da 02:00 gibi bir saat yaz: açılıştan erken bir kapanış ertesi güne sayılır."
       >
         <div className="grid gap-3">
           {DAYS_OF_WEEK.map((day: DayOfWeek) => {

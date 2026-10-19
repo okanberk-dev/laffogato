@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getPublicSettings } from "@/lib/admin/store";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const metadata: Metadata = {
   title: "Üyelik",
@@ -15,14 +16,6 @@ export default async function UyeLayout({
 }) {
   const settings = await getPublicSettings();
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
-      {children}
-    </SiteChrome>
+    <SiteChrome settings={footerSettings(settings)}>{children}</SiteChrome>
   );
 }

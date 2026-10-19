@@ -16,6 +16,7 @@ import { breadcrumbLd, productListLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { openGraphBase } from "@/lib/seo/site";
+import { footerSettings, venueContact } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -104,13 +105,9 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
         degraded={isDegradedRequest()}
         initialRoute="shop"
         products={products}
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
+        settings={footerSettings(settings)}
         menu={menu}
-        seoSlot={<SeoContent faq={FAQ} />}
+        seoSlot={<SeoContent faq={FAQ} contact={venueContact(settings)} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
         freeShippingThreshold={Math.round(

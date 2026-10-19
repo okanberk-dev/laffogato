@@ -18,6 +18,7 @@ import { JsonLd } from "@/lib/seo/json-ld";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { metaDescription, openGraphBase } from "@/lib/seo/site";
 import { shortProductName } from "@/lib/utils/format";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -180,13 +181,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       // rather than throwing, so this is safe in exactly this state.
       const fallbackSettings = await getPublicSettings();
       return (
-        <SiteChrome
-          settings={{
-            phone: fallbackSettings.phone,
-            email: fallbackSettings.email,
-            address: fallbackSettings.address,
-          }}
-        >
+        <SiteChrome settings={footerSettings(fallbackSettings)}>
           <ProductUnavailable />
         </SiteChrome>
       );
@@ -211,13 +206,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   const productJsonLd = singleProductLd(product, PATH(slug), settings);
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
+    <SiteChrome settings={footerSettings(settings)}>
       <JsonLd data={breadcrumb} />
       <JsonLd data={productJsonLd} />
       <ProductOpenGraph product={product} />

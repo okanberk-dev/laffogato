@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { SCENES, type SceneKey } from "@/components/laffogato/scenes";
 import { getPublicSettings } from "@/lib/admin/store";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const metadata: Metadata = {
   title: "Sayfa bulunamadı",
@@ -76,13 +77,7 @@ export default async function NotFound() {
   const settings = await getPublicSettings();
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
+    <SiteChrome settings={footerSettings(settings)}>
       <div className="nf-page">
         <div className="wrap">
           <section className="nf-hero" aria-labelledby="nf-title">

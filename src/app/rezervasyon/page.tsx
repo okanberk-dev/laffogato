@@ -20,6 +20,7 @@ import {
 import { ownsReservation } from "@/lib/mobile/karaoke-payment";
 import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
 import { SITE } from "@/lib/seo/site";
+import { footerSettings } from "@/lib/seo/contact";
 
 import { cancelKaraokeByLinkAction, payKaraokeByLinkAction } from "./actions";
 
@@ -115,13 +116,7 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
   }
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
+    <SiteChrome settings={footerSettings(settings)}>
       <div className="wrap karaoke-page">
         <div className="karaoke-link-page">
           <div className="karaoke-link-head">

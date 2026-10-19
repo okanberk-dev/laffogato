@@ -365,6 +365,31 @@ describe("copy says what the settings do (SYS-03, SYS-20, SYS-21)", () => {
     expect(html).not.toContain("sitemap yayınla");
   });
 
+  it("Genel: the phone and the address name every place they show (SYS-04)", () => {
+    // Both reach the footer, the home page's facts block, the visit page,
+    // the mail footers and the app (bootstrap `venue`); a hint that leaves
+    // one out tells the owner an edit stays off it.
+    const source = readFileSync(
+      "src/app/admin/ayarlar/settings-form.tsx",
+      "utf8",
+    );
+    for (const field of ["phone", "address"]) {
+      const hint = new RegExp(
+        `name="${field}"\\s+label="[^"]+"\\s+hint="([^"]+)"`,
+      ).exec(source)?.[1];
+      expect(hint, field).toBeTruthy();
+      for (const place of [
+        "alt bilgisinde",
+        "anasayfada",
+        "ziyaret sayfasında",
+        "e-postaların altında",
+        "uygulamada",
+      ]) {
+        expect(hint, `${field}: ${place}`).toContain(place);
+      }
+    }
+  });
+
   it("free shipping at the threshold itself, 0 switches it off", () => {
     const html = render("shipping");
     expect(html).toContain("bu tutara ulaşınca kargo ücretsiz");

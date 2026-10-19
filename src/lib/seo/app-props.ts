@@ -17,6 +17,7 @@ import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDegradedRequest } from "@/lib/db/health";
 import { istanbulDay } from "@/lib/mobile/menu-mapper";
+import { footerSettings, venueContact } from "@/lib/seo/contact";
 
 /**
  * Everything the customer shell renders from, loaded once.
@@ -66,9 +67,11 @@ export async function loadAppProps({
   // while the app (bootstrap `opensAt`/`closesAt`) already showed today's.
   const todayKey = istanbulDay(new Date());
   const todayH = settings.weeklyHours[todayKey];
+  const contact = venueContact(settings);
 
   return {
     settings,
+    contact,
     menu,
     products,
     customer,
@@ -76,9 +79,7 @@ export async function loadAppProps({
       degraded: isDegradedRequest(),
       products,
       settings: {
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
+        ...footerSettings(settings),
         courierFeeMinor: settings.courierFeeMinor,
         // The home page's order and rewards shortcuts (presentation only).
         pickupReadyMinutes: settings.pickupReadyMinutes,
@@ -119,8 +120,10 @@ export async function loadAppProps({
         : settings.heroImageUrl || undefined,
       visit: {
         addressLines: addressLines(settings.address, LOCATION.address),
-        phone: settings.phone,
-        email: settings.email,
+        // A field cleared in the panel falls back to the bundled one, as
+        // the footer does: "" printed nothing and dialled nothing.
+        phone: contact.phone,
+        email: contact.email,
         todayHours: todayH.closed
           ? "Bugün kapalı"
           : `${todayH.open} - ${todayH.close}`,
