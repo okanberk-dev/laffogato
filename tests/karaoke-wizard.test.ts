@@ -449,6 +449,40 @@ describe("the cancellation terms, from the server", () => {
     ).toBeNull();
   });
 
+  it("names no free moment that has already gone by", () => {
+    // Tonight at 20:00 under the 2-hour rule, the page drawn at 19:30 Tuzla:
+    // the booking's own snapshot is late from the start.
+    const pick = { date: "2026-10-30", startHour: 20, totalMinor: 100_000 };
+    const passed = terms.karaokeBookingTerms(src, {
+      ...pick,
+      now: new Date("2026-10-30T16:30:00.000Z"),
+    });
+    expect(passed?.freeUntil).toBeNull();
+    expect(passed?.freePassed).toBe(true);
+    // Exactly at the deadline the window has closed (`now < deadline`).
+    expect(
+      terms.karaokeBookingTerms(src, {
+        ...pick,
+        now: new Date("2026-10-30T15:00:00.000Z"),
+      })?.freePassed,
+    ).toBe(true);
+    const ahead = terms.karaokeBookingTerms(src, {
+      ...pick,
+      now: new Date("2026-10-30T14:59:00.000Z"),
+    });
+    expect(ahead?.freeUntil).toBe("30 Ekim 2026, 18:00");
+    expect(ahead?.freePassed).toBe(false);
+    // No clock given: the moment is named, as before.
+    expect(terms.karaokeBookingTerms(src, pick)?.freePassed).toBe(false);
+    // No window at all: nothing passed, nothing named.
+    expect(
+      terms.karaokeBookingTerms(
+        { ...src, freeCancelHours: 0 },
+        { ...pick, now: new Date("2026-10-30T16:30:00.000Z") },
+      ),
+    ).toMatchObject({ freeUntil: null, freePassed: false });
+  });
+
   it("reads the Istanbul day after midnight UTC", () => {
     expect(
       terms.karaokeInstantLabel(new Date("2026-10-29T21:30:00.000Z")),
@@ -540,6 +574,22 @@ describe("the booking page as the server renders it", () => {
     expect(html).toContain("edersen 500₺ kartına iade edilir");
     expect(html).toMatch(/name="expectedFreeCancelHours" value="24"/);
     expect(html).toMatch(/name="expectedLateRefundPercent" value="50"/);
+  });
+
+  it("tonight inside the window, says the free cancel is gone instead of naming a past moment", () => {
+    // 19:30 Tuzla, 20:00 picked, two free hours: 18:00 is behind the clock.
+    const html = booking({ now: "2026-10-30T16:30:00.000Z" });
+    expect(html).not.toContain("Ücretsiz iptal için son an");
+    expect(html).toContain(
+      "Seçtiğin saat için ücretsiz iptal süresi geçti; yapacağın her iptal geç iptal sayılır.",
+    );
+    // Earlier in the day the moment is still ahead and named.
+    expect(booking({ now: "2026-10-30T09:00:00.000Z" })).toContain(
+      "Ücretsiz iptal için son an: 30 Ekim 2026, 18:00 öncesi.",
+    );
+    expect(read("src/app/karaoke/page.tsx")).toContain(
+      "now={now.toISOString()}",
+    );
   });
 
   it("without a readable rule, echoes nothing and says so", () => {

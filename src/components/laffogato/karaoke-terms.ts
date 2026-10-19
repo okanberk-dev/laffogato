@@ -47,9 +47,16 @@ export interface KaraokeBookingTerms {
   policy: KaraokeCancelPolicy;
   /**
    * Until when a cancel refunds the whole payment ("30 Ekim 2026, 18:00");
-   * null with no free window, or before an hour is picked.
+   * null with no free window, before an hour is picked, or once that moment
+   * has passed (`freePassed`).
    */
   freeUntil: string | null;
+  /**
+   * The picked hour is already inside the window when the page was drawn
+   * (tonight at 21:00 with two free hours, at 19:30): there is no free
+   * cancel left to name, every cancel after booking is late.
+   */
+  freePassed: boolean;
   /**
    * What a cancel after that refunds of this total, in kuruş, when it is a
    * part of it (a late share of 1..99 %); null otherwise (the sentences
@@ -68,7 +75,13 @@ const whole = (v: unknown, max: number): v is number =>
  */
 export function karaokeBookingTerms(
   src: KaraokeTermsSource | null | undefined,
-  pick: { date: string; startHour: number | null; totalMinor: number },
+  pick: {
+    date: string;
+    startHour: number | null;
+    totalMinor: number;
+    /** The server's clock when the page was drawn; without it, never passed. */
+    now?: Date;
+  },
 ): KaraokeBookingTerms | null {
   if (!src) return null;
   const { freeCancelHours: h, lateRefundPercent: p, cancellationRules } = src;
@@ -86,20 +99,28 @@ export function karaokeBookingTerms(
   };
   // With a window the deadline is the start minus it; the booking instant
   // (the third argument) only matters without one, and then nothing prints.
-  const freeUntil =
+  const deadline =
     h > 0 && pick.startHour !== null
-      ? karaokeInstantLabel(
-          karaokeDeadlineFor(
-            policy,
-            { date: pick.date, startHour: pick.startHour },
-            new Date(0),
-          ),
+      ? karaokeDeadlineFor(
+          policy,
+          { date: pick.date, startHour: pick.startHour },
+          new Date(0),
         )
       : null;
+  // A deadline already behind the clock is not a moment to cancel before:
+  // the booking's own snapshot would be late from the start
+  // (`withinFreeCancel` is `now < deadline`).
+  const nowMs = pick.now?.getTime();
+  const freePassed =
+    deadline !== null &&
+    nowMs !== undefined &&
+    Number.isFinite(nowMs) &&
+    nowMs >= deadline.getTime();
   return {
     rules: [cancellationRules[0], cancellationRules[1]],
     policy,
-    freeUntil,
+    freeUntil: deadline && !freePassed ? karaokeInstantLabel(deadline) : null,
+    freePassed,
     lateShareMinor:
       p > 0 && p < 100 ? karaokeLateRefundMinor(pick.totalMinor, p) : null,
   };

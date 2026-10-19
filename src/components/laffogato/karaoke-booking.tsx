@@ -116,6 +116,12 @@ export interface KaraokeBookingProps {
   prepay: boolean;
   /** The signed-in member's details, to prefill the contact block. */
   contact?: { name: string; email: string; phone: string };
+  /**
+   * The server's clock when the page was drawn (ISO), so the box does not
+   * name a free-cancel moment that has already gone by. Without it the
+   * moment is always named.
+   */
+  now?: string;
 }
 
 /** How many step entries this page pushed above the one it opened on. */
@@ -169,6 +175,7 @@ export function KaraokeBooking({
   taxNo = "",
   prepay,
   contact,
+  now,
 }: KaraokeBookingProps) {
   const slots = availability?.slots ?? [];
   const firstFree = slots.find((s) => s.available)?.startHour;
@@ -220,6 +227,7 @@ export function KaraokeBooking({
     date,
     startHour,
     totalMinor: quote.totalMinor,
+    now: now ? new Date(now) : undefined,
   });
 
   const rules: KaraokeStepRules = {
@@ -1101,6 +1109,11 @@ export function KaraokeBooking({
                               <span className="kw-terms-line">
                                 Ücretsiz iptal için son an: {terms.freeUntil}{" "}
                                 öncesi.
+                              </span>
+                            ) : terms.freePassed ? (
+                              <span className="kw-terms-line">
+                                Seçtiğin saat için ücretsiz iptal süresi geçti;
+                                yapacağın her iptal geç iptal sayılır.
                               </span>
                             ) : null}
                             {terms.lateShareMinor !== null ? (

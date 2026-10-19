@@ -157,6 +157,9 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           // import entity.ts itself.
           sellerName={LEGAL_ENTITY.legalName}
           taxNo={LEGAL_ENTITY.taxNo}
+          // The request's clock: a free-cancel moment already gone by is
+          // not named as one still to come.
+          now={now.toISOString()}
           // Presentation only: the action re-reads the switch with
           // `getSettings()` and decides there.
           prepay={availability?.paymentRequired ?? settings.karaokePrepay}
