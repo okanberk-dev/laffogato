@@ -49,9 +49,13 @@ describe("the two-hour rule, on the köşk's clock", () => {
       true,
     );
     expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000))).toBe(true);
-    expect(time.withinFreeCancel(r, new Date(start - 2 * 3600_000 + 1))).toBe(
-      false,
-    );
+    // The minute the pages name lasts until its last millisecond.
+    expect(
+      time.withinFreeCancel(r, new Date(start - 2 * 3600_000 + 59_999)),
+    ).toBe(true);
+    expect(
+      time.withinFreeCancel(r, new Date(start - 2 * 3600_000 + 60_000)),
+    ).toBe(false);
     expect(time.withinFreeCancel(r, new Date(start - 3600_000))).toBe(false);
   });
 

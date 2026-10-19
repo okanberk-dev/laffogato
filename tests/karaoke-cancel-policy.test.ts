@@ -180,13 +180,17 @@ describe("the deadline and a member's own cancel", () => {
     expect(time.withinFreeCancel(booking, new Date(START - 2 * HOUR - 1))).toBe(
       true,
     );
-    // `cancellableUntil` is the last moment of a full refund (ASK-Y3-4).
+    // `cancellableUntil` is the last moment of a full refund (ASK-Y3-4),
+    // and the pages name it to the minute: 18:00 lasts until 18:00:59.999.
     expect(time.withinFreeCancel(booking, new Date(START - 2 * HOUR))).toBe(
       true,
     );
-    expect(time.withinFreeCancel(booking, new Date(START - 2 * HOUR + 1))).toBe(
-      false,
-    );
+    expect(
+      time.withinFreeCancel(booking, new Date(START - 2 * HOUR + 59_999)),
+    ).toBe(true);
+    expect(
+      time.withinFreeCancel(booking, new Date(START - 2 * HOUR + 60_000)),
+    ).toBe(false);
   });
 
   it("the start is never in the window, even where the deadline is the start", () => {

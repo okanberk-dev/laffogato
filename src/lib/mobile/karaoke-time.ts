@@ -179,13 +179,27 @@ export function karaokeCancelDeadline(r: {
 }
 
 /**
+ * Where the full refund ends, exclusive: the end of the minute the deadline
+ * falls in. Every page and e-mail prints the deadline to the minute ("son an:
+ * 30 Ekim 2026, 18:00."), and the terms count "bu an" itself (ASK-Y3-4): a
+ * member whose clock still reads 18:00 is inside it, whatever the seconds
+ * (TKHK m.5/4: a term read two ways is read for the consumer). Istanbul is a
+ * whole number of hours from UTC, so its minutes are the epoch's minutes.
+ * `cancellableUntil` itself stays the deadline (docs/API-MOBILE.md).
+ */
+export function karaokeFreeCancelEnd(deadline: Date): number {
+  return Math.floor(deadline.getTime() / MINUTE_MS) * MINUTE_MS + MINUTE_MS;
+}
+
+/**
  * True while the member may still cancel (and be refunded in full): up to
- * the deadline, and at the deadline itself. `cancellableUntil` is "the last
- * moment" of a full refund (docs/API-MOBILE.md) and the terms say "bu an
- * dahil" (ASK-Y3-4): "2 saatten fazla varken" says nothing of exactly two
- * hours, and a term read two ways is read for the consumer (TKHK m.5/4).
- * The sentences stay as they are; only the comparison moved. The start
- * itself is never in the window (a row whose deadline is its start).
+ * the deadline and through the minute it names (`karaokeFreeCancelEnd`).
+ * `cancellableUntil` is "the last moment" of a full refund
+ * (docs/API-MOBILE.md) and the terms say "bu an dahil" (ASK-Y3-4): "2 saatten
+ * fazla varken" says nothing of exactly two hours, and a term read two ways
+ * is read for the consumer (TKHK m.5/4). The sentences stay as they are; only
+ * the comparison moved. The start itself is never in the window (a row whose
+ * deadline is its start).
  */
 export function withinFreeCancel(
   r: Parameters<typeof karaokeCancelDeadline>[0],
@@ -193,7 +207,7 @@ export function withinFreeCancel(
 ): boolean {
   const t = now.getTime();
   return (
-    t <= karaokeCancelDeadline(r).getTime() &&
+    t < karaokeFreeCancelEnd(karaokeCancelDeadline(r)) &&
     t < karaokeStartInstant(r.date, r.startHour).getTime()
   );
 }
