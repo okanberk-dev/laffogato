@@ -1,9 +1,10 @@
 # Menü fotoğrafları
 
-> **Durum (17 Eki 2026):** 82 menü kaleminin 78'inde fotoğraf var. Üçü Ağustos
-> menüsüyle geldi (`matcha-latte`, `strawberry-matcha`, `matcha-affogato`);
-> 75'i bu belgede listelenen stok fotoğraflar. Dört kalem fotoğrafsız, çizimle
-> kalıyor (aşağıda, nedenleriyle).
+> **Durum (18 Eki 2026):** 82 kalemin 68'inde fotoğraf: üçü Ağustos menüsüyle
+> geldi (`matcha-latte`, `strawberry-matcha`, `matcha-affogato`), 65'i bu
+> belgede listelenen stok fotoğraflar; 14 kalem çizimle. 17 Ekim'de 75 stok
+> fotoğraf yayına girdi, içeriği kalemle çelişen onu 18 Ekim'de kalktı.
+> Fotoğrafsız kalemler nedenleriyle aşağıda.
 
 Operatör, 17 Eki 2026: _"menüdeki ürünlere telifsiz görseller bularak hem site
 hem uygulama tarafında yükle"_.
@@ -18,6 +19,10 @@ hem uygulama tarafında yükle"_.
   kaydına bakar). Panelden yüklenmiş ya da bağlanmış bir fotoğraf değişmez;
   panelden kaldırılan bir fotoğraf sonraki deploy'da geri gelmez (paket her
   yeni migration'da bütün migration'ları yeniden çalıştırır).
+- İçeriği tutmayan on fotoğrafı `db/migrations/20261018210000_menu_photos_mismatch.sql`
+  boşaltır: yalnız satır hâlâ eski migration'ın yazdığı yolu taşıyorsa ve dosya
+  daha önce çalışmamışsa. Panelden yüklenmiş başka bir fotoğrafa dokunmaz.
+  Dosyalar `public/menu`'da kalır (eski migration onlara yol veriyor).
 - Boş bir veritabanı (yeni ortam, CI) fotoğrafları paketteki tohumdan alır:
   `src/components/laffogato/data.ts` aynı yolları taşır. Veritabanına
   ulaşılamadığında gösterilen menü de bu tohumdur.
@@ -36,18 +41,53 @@ hem uygulama tarafında yükle"_.
 
 ## Lisans
 
-- 75 fotoğrafın 74'ü **CC0 1.0**, 1'i **Public Domain Mark 1.0** (Flickr):
-  ticari kullanım serbest, atıf zorunlu değil, copyleft yok. Atıf zorunlu
-  olmasa da her dosyanın kaynağı, yaratıcısı ve orijinal adresi aşağıda
-  kayıtlı.
-- Hepsi Openverse API'sinden bulundu (`license=cc0,pdm`): rawpixel 22,
-  Wikimedia Commons 21, WordPress Photo Directory 12, Flickr 11, StockSnap 9.
-- Lisans 44 dosyada kaynağın kendisinde de doğrulandı: Wikimedia Commons'ta
-  Commons API'siyle (hepsi CC0, atıf istemiyor), Flickr ve WordPress Photo
-  Directory'de fotoğrafın sayfasında. rawpixel ve StockSnap sayfaları bot
-  doğrulamasının arkasında, açılamadı; bu 31 dosyanın lisansı Openverse
-  kaydından, iki site de bu koleksiyonları CC0 olarak yayımlıyor
+- Kullanımdaki 65 stok fotoğrafın 64'ü **CC0 1.0**, 1'i **Public Domain
+  Mark 1.0** (Flickr): ticari kullanım serbest, atıf zorunlu değil, copyleft
+  yok. Atıf zorunlu olmasa da her dosyanın kaynağı, yaratıcısı ve orijinal
+  adresi aşağıda kayıtlı.
+- Hepsi Openverse API'sinden bulundu (`license=cc0,pdm`). Kullanımdakiler:
+  rawpixel 22, Wikimedia Commons 15, WordPress Photo Directory 11, Flickr 11,
+  StockSnap 6.
+- Lisans kullanımdaki 37 dosyada kaynağın kendisinde de doğrulandı: Wikimedia
+  Commons'ta Commons API'siyle (hepsi CC0, atıf istemiyor), Flickr ve
+  WordPress Photo Directory'de fotoğrafın sayfasında. rawpixel ve StockSnap
+  sayfaları bot doğrulamasının arkasında, açılamadı; bu 28 dosyanın lisansı
+  Openverse kaydından, iki site de bu koleksiyonları CC0 olarak yayımlıyor
   (StockSnap'in tamamı CC0). İstenirse sayfalar tarayıcıda açılıp bakılabilir.
+- Yapay zekâ kontrolü (Ticari Reklam Yön. m.18/8): "AI generated" ya da
+  benzeri işaret taşıyan görsel panelden kalkar ve buraya not düşülür.
+  Geliştiricinin payı 18 Eki 2026'da yapıldı, 37 kaynağın hiçbirinde işaret
+  yok: Wikimedia Commons'taki 15 dosyanın hiçbiri yapay zekâ kategorisinde
+  değil (Commons API, kategoriler ve lisans); Flickr'daki 11 fotoğraf
+  2007-2018 arasında yüklendi, gerçekçi görüntü üreten araçlardan önce;
+  WordPress Photo Directory yalnız fotoğraf kabul ediyor ve her gönderiyi
+  denetliyor, 11 sayfanın 8'inde kamera bilgisi (diyafram, ISO) var, mnu-0029,
+  mnu-0045 ve mnu-0060'ta yok ama işaret de yok. Kalan 22 rawpixel ve 6
+  StockSnap sayfası bot doğrulamasının arkasında: operatör 23 Ekim 2026'ya
+  kadar tarayıcıda açar. İşaretsiz yayımlanmış bir yapay zekâ görselini
+  tarama yakalamaz: kalıcı çözüm barın kendi fotoğrafları.
+- İçerik kontrolü (18 Eki 2026): kalan fotoğraflar kalemlerin metniyle
+  yeniden karşılaştırıldı. mnu-0061 ve mnu-0078 kalemde olmayan kuruyemişi
+  gösterdiği için kalktı (mnu-0067 ile aynı ölçüt). Kremalı ya da kakao
+  serpilmiş süslemeler (ör. mnu-0016, mnu-0026, mnu-0039, frappe'ler) barın
+  kendi sunumuna göre kendi fotoğraflarıyla değişirken kontrol edilir.
+
+## Ev kuralı
+
+Bir fotoğraf, kalemde olmayan bir malzemeyi, sosu, katmanı veya süslemeyi
+göstermez; kalem metninde adı geçen bir malzemeyi dışarıda bırakmaz ve hiçbir
+zaman başka bir ürün türünü göstermez. Yapay zekâ ile üretilmiş ya da kırpma,
+ışık ve renk düzeltmesi dışında değiştirilmiş bir görsel menü kalemi
+fotoğrafı olarak kullanılmaz. Kalemin tarifi değiştiğinde fotoğrafı yeniden
+kontrol edilir. Alerjenler yalnız metinle bildirilir.
+
+"Görseller temsilidir" notu yalnız sunum farkını (bardak, süsleme düzeni,
+ışık, porsiyon yerleşimi) karşılar; içeriği kalemle çelişen bir fotoğrafı
+hiçbir not kurtarmaz (TKHK m.61, m.62, m.8/2; Ticari Reklam Yön. m.7/5-a,
+m.18/6-7, m.29/2-a). Menü dışı bir reklamda yapay zekâ ile üretilmiş ya da
+değiştirilmiş bir görsel kullanılırsa hemen yanına, okunur büyüklükte: "Bu
+görsel yapay zekâ ile üretilmiştir."
+
 - Unsplash ve Pexels kullanılmadı: ikisi de sayfayı bot doğrulamasının arkasına
   alıyor (Anubis, Cloudflare) ve doğrulamayı aşmak kapsam dışı.
 - Elenenler: yüz görünen, başka bir markanın logosu ya da ambalajı olan,
@@ -71,19 +111,34 @@ olduğunu tutar.
   yaz.
 - Bir dosyanın yerine yenisini koyarken **yeni bir ad** ver: `/menu/*`
   tarayıcıda bir gün, `next/image` çıktısı kenarda bir ay önbellekte kalır.
-- Kendi fotoğrafın oldukça önce aşağıdaki "tam eşleşmeyenler" değişmeli.
+- Kendi fotoğrafın oldukça önce aşağıdaki "tam eşleşmeyenler" değişmeli;
+  barın kendi fotoğrafları 30 Kasım 2026'ya kadar stok fotoğrafların yerini
+  alır, fotoğrafı boşalan on kalemden başlayarak.
 
 ## Fotoğrafsız kalanlar
 
-| id       | Ad         | Neden                                                                                                                                                                            |
-| -------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| mnu-0041 | Salep      | Bardakta ya da fincanda salep fotoğrafı yok: tek sonuç tarçınlı yüzeyin yakın çekimi, içecek görünmüyor; tarçınlı köpüklü kahve salep değil.                                     |
-| mnu-0053 | Çarkıfelek | CC0 ya da PDM bir çarkıfelekli frozen ya da içecek fotoğrafı yok: sonuçlar bitki, çiçek ve botanik çizim; tek bardak fotoğrafı (buz ve çekirdek, yakın çekim) ürünü göstermiyor. |
-| mnu-0054 | Ananas     | Ananaslı frozen ya da smoothie yok: sonuçlar kokteyl kadehi (alkol izlenimi), plastik bardakta düşük kaliteli bir meyve suyu ya da bütün ananas.                                 |
-| mnu-0080 | Şurup      | Markasız bir şurup şişesi yok: sonuçlar akçaağaç şurubu, ilaç şişesi, bar şişeleri ya da çizim.                                                                                  |
+| id       | Ad                           | Neden                                                                                                                                                                            |
+| -------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mnu-0041 | Salep                        | Bardakta ya da fincanda salep fotoğrafı yok: tek sonuç tarçınlı yüzeyin yakın çekimi, içecek görünmüyor; tarçınlı köpüklü kahve salep değil.                                     |
+| mnu-0053 | Çarkıfelek                   | CC0 ya da PDM bir çarkıfelekli frozen ya da içecek fotoğrafı yok: sonuçlar bitki, çiçek ve botanik çizim; tek bardak fotoğrafı (buz ve çekirdek, yakın çekim) ürünü göstermiyor. |
+| mnu-0054 | Ananas                       | Ananaslı frozen ya da smoothie yok: sonuçlar kokteyl kadehi (alkol izlenimi), plastik bardakta düşük kaliteli bir meyve suyu ya da bütün ananas.                                 |
+| mnu-0080 | Şurup                        | Markasız bir şurup şişesi yok: sonuçlar akçaağaç şurubu, ilaç şişesi, bar şişeleri ya da çizim.                                                                                  |
+| mnu-0028 | Buzlu Balkabağı Latte        | Fotoğrafın adı "Iced Mocha": genel bir buzlu mocha, balkabağı yok (18 Eki 2026'da kalktı).                                                                                       |
+| mnu-0056 | Şeftalili Soğuk Çay          | Naneli soğuk çay, şeftali yok (18 Eki 2026'da kalktı).                                                                                                                           |
+| mnu-0059 | Yaban Mersinli San Sebastian | Bisküvi tabanlı, üstü yanık olmayan bir tart; San Sebastian değil (18 Eki 2026'da kalktı).                                                                                       |
+| mnu-0061 | L'Af Kahve                   | Dilimin yanında yığın hâlinde ceviz; kalemde ceviz ya da kuruyemiş etiketi yok (18 Eki 2026'da kalktı).                                                                          |
+| mnu-0063 | Çilek Magnolia               | Kadehte krema ve çilek; kalemin bisküvi kırığı yok (18 Eki 2026'da kalktı).                                                                                                      |
+| mnu-0067 | Klasik Spoonful              | Kuruyemiş ve granolalı bir parfe; kalemde kuruyemiş yok (18 Eki 2026'da kalktı).                                                                                                 |
+| mnu-0073 | Karabuğday Simit             | Beyaz susamlı klasik simit, karabuğdaylı değil (18 Eki 2026'da kalktı).                                                                                                          |
+| mnu-0074 | Rosbeef Sandviç              | Rosbif, çiğ soğan ve peynir; kalemin yeşilliği ve sosu yok (18 Eki 2026'da kalktı).                                                                                              |
+| mnu-0078 | Kakao Protein Bar            | Kakaolu barların yanında bademli, çekirdekli başka bir bar; kalemde kuruyemiş yok (18 Eki 2026'da kalktı).                                                                       |
+| mnu-0082 | Alternatif Süt               | Kenevir sütü ve kenevir tohumu; barda kenevir sütü yok (18 Eki 2026'da kalktı).                                                                                                  |
 
 Site ve uygulama bu kalemlerde bugünkü gibi çizimi gösterir. Başka bir meyvenin
-ya da içeceğin fotoğrafı ürünü yanlış gösterirdi.
+ya da içeceğin fotoğrafı ürünü yanlış gösterirdi. Son onunun fotoğrafı
+içeriği kalemle çeliştiği için kalktı (`20261018210000_menu_photos_mismatch.sql`
+ve `data.ts`): kalemde olmayanı gösteren ya da kalemin adındaki malzemeyi
+dışarıda bırakan bir fotoğrafı "Görseller temsilidir" notu düzeltmez.
 
 ## Notlar
 
@@ -99,33 +154,26 @@ Kırpılarak kadraj dışında bırakılanlar:
 - mnu-0057 Donostia: arkadaki barista.
 - mnu-0065 Lotus Magnolia: markalı bisküvi.
 - mnu-0071 Cookie Aşkı: kenardaki el ve bardak.
-- mnu-0073 Karabuğday Simit: simidi tutan el yalnız alt kenarda kalıyor.
 
-Temsilî ama tam eşleşmeyenler:
+Temsilî ama tam eşleşmeyenler (yalnız sunum farkı, not bunları karşılar):
 
-- mnu-0073 Karabuğday Simit: susamlı klasik simit, karabuğdaylı değil.
-- mnu-0074 Rosbeef Sandviç: rosbif, soğan ve peynir; menüde yeşillik ve sos.
-- mnu-0082 Alternatif Süt: bir bardak bitkisel süt (kenevir sütü).
-- mnu-0056 Şeftalili Soğuk Çay: naneli soğuk çay, şeftali görünmüyor.
-- mnu-0027 Buzlu Toffeenut Latte ve mnu-0028 Buzlu Balkabağı Latte: genel buzlu
-  latte.
-- mnu-0067 Klasik Spoonful: bardakta kremalı bir tatlı (parfe).
 - mnu-0018 Balkabağı Latte: tarçın serpilmiş köpüklü latte, balkabağı
   görünmüyor.
-- mnu-0059 Yaban Mersinli San Sebastian: yaban mersinli cheesecake dilimi,
-  bisküvi tabanlı ve üstü yanık değil.
-- mnu-0063 Çilek Magnolia: kadehte krema ve çilek dilimleri, bisküvi katı
-  görünmüyor.
+- mnu-0027 Buzlu Toffeenut Latte: genel buzlu latte.
+
+Bu listedeki diğer sekiz kalemin fotoğrafı 18 Ekim'de kalktı ("Fotoğrafsız
+kalanlar").
 
 Markaya bağlı ya da genel kalemler, brifteki gibi: mnu-0079 Koska Fındık için
 düz fındık (marka görünmez), mnu-0032 Sürpriz İçecek için nötr, renkli buzlu
 bir içecek (frambuazlı limonata); Su, Soda (limon dilimli bir bardak maden
-suyu), Ekstra Shot ve Alternatif Süt için genel birer fotoğraf.
+suyu) ve Ekstra Shot için genel birer fotoğraf.
 
 ## Kalem kalem kaynaklar
 
 Hepsi 17 Eki 2026'da alındı. "Yaratıcı" Openverse kaydındaki addır; rawpixel
-kayıtlarında ad yok.
+kayıtlarında ad yok. Lisansında "(kullanılmaz)" yazan on satırın fotoğrafı 18 Eki
+2026'da menüden kalktı; satır kayıt için, dosya eski migration için duruyor.
 
 | id       | Ad                           | Dosya                            | Kaynak sayfa                                                                                | Yaratıcı            | Lisans                       | Alındı     | Orijinal                                                                                                                                                                 |
 | -------- | ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------- | ------------------- | ---------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -153,7 +201,7 @@ kayıtlarında ad yok.
 | mnu-0025 | Buzlu Beyaz Çikolatalı Mocha | `iced-white-mocha.webp`          | https://wordpress.org/photos/photo/1696a187d8/                                              | Bijay Karki         | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2026/05/1696a187d8622f477.79668746-1536x2048.jpg                                                                                                        |
 | mnu-0026 | Buzlu Tuzlu Karamel Latte    | `iced-salted-caramel-latte.webp` | https://commons.wikimedia.org/w/index.php?curid=173936935                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/d/d4/Iced_mocha_-_ease_2025-08-29.jpg                                                                                     |
 | mnu-0027 | Buzlu Toffeenut Latte        | `iced-toffee-nut-latte.webp`     | https://www.rawpixel.com/image/5943783/free-public-domain-cc0-photo                         | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHg4NDg4ODUtaW1hZ2Uta3d5b2RnNzQuanBn.jpg                         |
-| mnu-0028 | Buzlu Balkabağı Latte        | `iced-pumpkin-latte.webp`        | https://commons.wikimedia.org/w/index.php?curid=151712200                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/b/ba/Iced_Mocha_-_Granny%27s_Caf%C3%A9_2024-08-21.jpg                                                                     |
+| mnu-0028 | Buzlu Balkabağı Latte        | `iced-pumpkin-latte.webp`        | https://commons.wikimedia.org/w/index.php?curid=151712200                                   | Andy Li             | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/b/ba/Iced_Mocha_-_Granny%27s_Caf%C3%A9_2024-08-21.jpg                                                                     |
 | mnu-0029 | Buzlu İspanyol Latte         | `iced-spanish-latte.webp`        | https://wordpress.org/photos/photo/847631584e/                                              | Enaan Farhan        | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2022/09/847631584e924bcb5.15126133-1536x2048.jpeg                                                                                                       |
 | mnu-0030 | Cold Brew                    | `cold-brew.webp`                 | https://commons.wikimedia.org/w/index.php?curid=70273087                                    | Roland Tanglao      | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/4/4b/Iced_cold_brew_coffee.jpg                                                                                            |
 | mnu-0031 | Çıtır Latte                  | `crunchy-latte.webp`             | https://wordpress.org/photos/photo/38678603fa/                                              | Pritam Sonone       | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2025/01/38678603fa8561a1.75647156-1536x2048.jpg                                                                                                         |
@@ -178,29 +226,29 @@ kayıtlarında ad yok.
 | mnu-0051 | Çilek                        | `strawberry-frozen.webp`         | https://stocksnap.io/photo/masonjars-jar-GHVUNMPQ3Q                                         | Anastasia Zhenina   | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/GHVUNMPQ3Q.jpg                                                                                                                  |
 | mnu-0052 | Frambuaz                     | `raspberry-frozen.webp`          | https://stocksnap.io/photo/jar-mug-QRDORARYQV                                               | Anastasia Zhenina   | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/QRDORARYQV.jpg                                                                                                                  |
 | mnu-0055 | Limonlu Soğuk Çay            | `lemon-iced-tea.webp`            | https://www.flickr.com/photos/38521643@N08/29565815426                                      | Liza Valero         | PDM 1.0 (Public Domain Mark) | 2026-10-17 | https://live.staticflickr.com/8473/29565815426_3220562722_b.jpg                                                                                                          |
-| mnu-0056 | Şeftalili Soğuk Çay          | `peach-iced-tea.webp`            | https://stocksnap.io/photo/drinks-tea-OR2IWR4B3S                                            | Sajjad Ghanavati    | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/OR2IWR4B3S.jpg                                                                                                                  |
+| mnu-0056 | Şeftalili Soğuk Çay          | `peach-iced-tea.webp`            | https://stocksnap.io/photo/drinks-tea-OR2IWR4B3S                                            | Sajjad Ghanavati    | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/OR2IWR4B3S.jpg                                                                                                                  |
 | mnu-0057 | Donostia (L'Af Özel)         | `donostia-cheesecake.webp`       | https://wordpress.org/photos/photo/1846a3cebb/                                              | sujal2003           | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2026/06/1846a3cebb16ce1b1.55257259-2048x2041.jpg                                                                                                        |
 | mnu-0058 | San Sebastian                | `san-sebastian-cheesecake.webp`  | https://www.rawpixel.com/image/5917566/image-public-domain-food-free                        | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvaXMxMDc5Mi1pbWFnZS1rd3Z3dmZ0eS5qcGc.jpg                          |
-| mnu-0059 | Yaban Mersinli San Sebastian | `blueberry-san-sebastian.webp`   | https://wordpress.org/photos/photo/2726a12c54/                                              | Alina Kakshapati    | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2026/05/2726a12c54ed9c3c5.70069418-2048x1536.jpg                                                                                                        |
+| mnu-0059 | Yaban Mersinli San Sebastian | `blueberry-san-sebastian.webp`   | https://wordpress.org/photos/photo/2726a12c54/                                              | Alina Kakshapati    | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://pd.w.org/2026/05/2726a12c54ed9c3c5.70069418-2048x1536.jpg                                                                                                        |
 | mnu-0060 | L'Af Mango                   | `mango-cake.webp`                | https://wordpress.org/photos/photo/375653a94f/                                              | Shilpa Manoj        | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2023/10/375653a94fe987d28.54130884-2048x922.jpg                                                                                                         |
-| mnu-0061 | L'Af Kahve                   | `coffee-cake.webp`               | https://commons.wikimedia.org/w/index.php?curid=185680508                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/3/33/A_slice_of_coffee_and_walnut_cake_-_Audit_Room_Caf%C3%A9%2C_Petworth_House.jpg                                       |
+| mnu-0061 | L'Af Kahve                   | `coffee-cake.webp`               | https://commons.wikimedia.org/w/index.php?curid=185680508                                   | Andy Li             | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/3/33/A_slice_of_coffee_and_walnut_cake_-_Audit_Room_Caf%C3%A9%2C_Petworth_House.jpg                                       |
 | mnu-0062 | L'Af Antep Fıstığı           | `pistachio-cake.webp`            | https://commons.wikimedia.org/w/index.php?curid=156988958                                   | Fumikas Sagisavas   | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/5/51/Double_crumble_pistachio_cake_%28close-up%29.jpg                                                                     |
-| mnu-0063 | Çilek Magnolia               | `strawberry-magnolia.webp`       | https://stocksnap.io/photo/yogurt-parfait-L6ATDVSEMJ                                        | Tim Sullivan        | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/L6ATDVSEMJ.jpg                                                                                                                  |
+| mnu-0063 | Çilek Magnolia               | `strawberry-magnolia.webp`       | https://stocksnap.io/photo/yogurt-parfait-L6ATDVSEMJ                                        | Tim Sullivan        | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/L6ATDVSEMJ.jpg                                                                                                                  |
 | mnu-0064 | Muz Magnolia                 | `banana-magnolia.webp`           | https://commons.wikimedia.org/w/index.php?curid=102658496                                   | Alabama Extension   | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/5/5a/Classic_Banana_Pudding.jpg                                                                                           |
 | mnu-0065 | Lotus Magnolia               | `lotus-magnolia.webp`            | https://commons.wikimedia.org/w/index.php?curid=138067834                                   | Andy Li             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/7/7c/Biscoff_Mousse_-_The_Roundhill_Pub_2023-09-24.jpg                                                                    |
 | mnu-0066 | Marlenka                     | `marlenka-honey-cake.webp`       | https://www.rawpixel.com/image/5928292/photo-image-public-domain-food-free                  | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmYxNzg0LWltYWdlLWt3dnltNDJiLmpwZw.jpg                           |
-| mnu-0067 | Klasik Spoonful              | `classic-spoonful.webp`          | https://stocksnap.io/photo/parfait-yogurt-EE782F841E                                        | Daria Nepriakhina   | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/EE782F841E.jpg                                                                                                                  |
+| mnu-0067 | Klasik Spoonful              | `classic-spoonful.webp`          | https://stocksnap.io/photo/parfait-yogurt-EE782F841E                                        | Daria Nepriakhina   | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/EE782F841E.jpg                                                                                                                  |
 | mnu-0068 | Frambuazlı Cheesecake        | `raspberry-cheesecake.webp`      | https://www.rawpixel.com/image/5924639/photo-image-public-domain-illustration-fruit         | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvcHgxMjgzNDAyLWltYWdlLWt3dnkxOGo0LmpwZw.jpg                       |
 | mnu-0069 | Limonlu Cheesecake           | `lemon-cheesecake.webp`          | https://www.rawpixel.com/image/5969178/lemon-cheesecake                                     | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvaXMxODExNy1pbWFnZS1rd3lzOWVxby5qcGc.jpg                          |
 | mnu-0070 | Brownie                      | `brownie.webp`                   | https://www.rawpixel.com/image/3338459/free-photo-image-chocolate-cake-animal               | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvd2s2NDQ4MDYxMy1pbWFnZS1rcDZjb2I1Ny5qcGc.jpg                      |
 | mnu-0071 | Cookie Aşkı (Dondurmalı)     | `cookie-ice-cream.webp`          | https://commons.wikimedia.org/w/index.php?curid=174028478                                   | RandomKatze         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/9/9d/Salted_caramel_cookie_skillet_from_Outback_Steakhouse.jpg                                                            |
 | mnu-0072 | Tiramisu                     | `tiramisu.webp`                  | https://wordpress.org/photos/photo/27569f2114/                                              | Uttkrista Chhetri   | CC0 1.0                      | 2026-10-17 | https://pd.w.org/2026/04/27569f2114503a8b2.88800969-1924x2048.jpeg                                                                                                       |
-| mnu-0073 | Karabuğday Simit             | `simit.webp`                     | https://commons.wikimedia.org/w/index.php?curid=157208484                                   | Tianadara           | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/e/ef/Simit%2C_salah_satu_roti_khas_Turki.jpg                                                                              |
-| mnu-0074 | Rosbeef Sandviç              | `roast-beef-sandwich.webp`       | https://commons.wikimedia.org/w/index.php?curid=94572842                                    | Daderot             | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/d/d5/Roast_beef%2C_blue_cheese%2C_and_onion_sandwich_-_Massachusetts.jpg                                                  |
+| mnu-0073 | Karabuğday Simit             | `simit.webp`                     | https://commons.wikimedia.org/w/index.php?curid=157208484                                   | Tianadara           | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/e/ef/Simit%2C_salah_satu_roti_khas_Turki.jpg                                                                              |
+| mnu-0074 | Rosbeef Sandviç              | `roast-beef-sandwich.webp`       | https://commons.wikimedia.org/w/index.php?curid=94572842                                    | Daderot             | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/d/d5/Roast_beef%2C_blue_cheese%2C_and_onion_sandwich_-_Massachusetts.jpg                                                  |
 | mnu-0075 | Hindi Fümeli Sandviç         | `smoked-turkey-sandwich.webp`    | https://www.flickr.com/photos/132795455@N08/18691945541                                     | Image Catalog       | CC0 1.0                      | 2026-10-17 | https://live.staticflickr.com/366/18691945541_99a97fd333_b.jpg                                                                                                           |
 | mnu-0076 | Çıtır Granola Bar (Kenya)    | `granola-bar.webp`               | https://commons.wikimedia.org/w/index.php?curid=151811897                                   | LironOmri12         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/9/97/Granola_bars.jpg                                                                                                     |
 | mnu-0077 | Hindistan Cevizli Bar        | `coconut-bar.webp`               | https://commons.wikimedia.org/w/index.php?curid=128465727                                   | Thomson200          | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/c/ce/Unreal_Coconut_Bars_Feb_2023.jpg                                                                                     |
-| mnu-0078 | Kakao Protein Bar            | `cocoa-protein-bar.webp`         | https://commons.wikimedia.org/w/index.php?curid=50486883                                    | Mx. Granger         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/c/c3/Three_protein_bars%2C_two_cut_in_half.jpg                                                                            |
+| mnu-0078 | Kakao Protein Bar            | `cocoa-protein-bar.webp`         | https://commons.wikimedia.org/w/index.php?curid=50486883                                    | Mx. Granger         | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/c/c3/Three_protein_bars%2C_two_cut_in_half.jpg                                                                            |
 | mnu-0079 | Koska Fındık                 | `hazelnuts.webp`                 | https://stocksnap.io/photo/hazelnuts-food-Z7DH3GTP8X                                        | Lukasz Dec          | CC0 1.0                      | 2026-10-17 | https://cdn.stocksnap.io/img-thumbs/960w/Z7DH3GTP8X.jpg                                                                                                                  |
 | mnu-0081 | Ekstra Shot                  | `extra-shot.webp`                | https://www.rawpixel.com/image/5928059/photo-image-public-domain-coffee-free                | rawpixel (ad yok)   | CC0 1.0                      | 2026-10-17 | https://images.rawpixel.com/editor_1024/czNmcy1wcml2YXRlL3Jhd3BpeGVsX2ltYWdlcy93ZWJzaXRlX2NvbnRlbnQvbHIvZmY0MjAwLWltYWdlLWt3dnlsNWtzLmpwZw.jpg                           |
-| mnu-0082 | Alternatif Süt               | `alternative-milk.webp`          | https://commons.wikimedia.org/w/index.php?curid=92369340                                    | Mx. Granger         | CC0 1.0                      | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/8/86/Hemp_milk_with_hemp_seeds_2.jpg                                                                                      |
+| mnu-0082 | Alternatif Süt               | `alternative-milk.webp`          | https://commons.wikimedia.org/w/index.php?curid=92369340                                    | Mx. Granger         | CC0 1.0 (kullanılmaz)        | 2026-10-17 | https://upload.wikimedia.org/wikipedia/commons/8/86/Hemp_milk_with_hemp_seeds_2.jpg                                                                                      |

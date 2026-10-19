@@ -804,9 +804,24 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panodaki "Ayarlar → E-posta" (SHE-24) ve Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantılar kendi dosyalarının PR'larında (7b, 7c) |
+| 🟢 | Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke`, panodaki "Ayarlar → E-posta" paket 7b'de `?sekme=email` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantı kendi dosyasının PR'ında (7c) |
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
+
+### Sistem: pano ve raporlar (paket 7b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Personel panoda dükkânın net cirosunu görüyordu; rol tablosu ciroyu (Raporlar) yalnız sahip ve yöneticiye açıyor (SHE-14) | Ciro kartı ve 14 günlük grafik yalnız `reports` rolüne (karar D1); personel için ciro hiç okunmuyor | `admin-dashboard` |
+| 🟡 | Panodaki ciro telefonda da masaüstünde de kartından taşıyordu (SHE-06); Raporlar'daki tutarlar 1024-1279 px'te yan karta giriyordu (SYS-15) | Ortak `StatCard` (`components/admin/dashboard/stat-card.tsx`): `min-w-0`, kitin rakam boyu, tutar kartın genişliğine göre küçülür (`cqi`) ve kesilmez; Raporlar ızgarası 2 / 3 / 5 sütun. 390, 1024 ve 1280 px'te çizilip bakıldı | `admin-dashboard`, `admin-reports-period` |
+| 🟡 | Ciro grafiği telefonda 5 px yazıyla okunmuyor, eksen etiketlerinin ₺'si her genişlikte kesiliyordu; etiketler 3,95:1; tutarlar yalnız fareyle; satışsız dönemde ₺0,01 basamakları (SYS-14) | Tutarlar SVG değil HTML: eksen sütunu en uzun etiketi kadar, çizim yanında sabit yükseklikte; yuvarlak basamaklar (₺40.000); `--admin-text-soft`; her dilimin tutarı grafiğin altında tabloda ("Tutarları tablo olarak göster", başlıklı); satış yoksa "Bu dönemde satış yok." | `admin-revenue-buckets` |
+| 🟡 | Raporlar'da kartlar ve en çok satanlar "Son 30 gün" seçiliyken tüm zamanları sayıyordu; liste paraya göre sıralı, çubuğu adede göreydi; liste iadeleri düşmüyor, tamamen iade edilmiş siparişi de sayıyordu (SYS-16) | Dönem kartlara ve listeye de uygulanır (grafiğin dilimleri, köşkün gece yarısı; veritabanı dönemin başından bir gün önceden okunur). Liste iadeyi sipariş başına düşer: önce "İptal" satırlardan, kalanı ayakta kalan satırlardan orantılı; sıralama ve çubuk aynı tutar; sayfada "Bu dönemde, liste fiyatıyla; iadeler düşülmüş" (karar D31) | `admin-reports-period`, `admin-order-reads` |
+| 🟢 | Selamlama ve tarih sunucunun UTC saatini okuyordu: 07:00-08:59 "İyi geceler", gece yarısından sonra dünün tarihi (SHE-15, KAR-M02) | `Europe/Istanbul` (`src/lib/admin/dashboard-core.ts`) | `admin-dashboard` |
+| 🟢 | Pano eski görünümdeydi: eğik serif, `neutral` / `amber` / `rose` bantlar (SHE-17, pano kısmı); kartlar bağlantı değildi (SHE-31, pano kısmı); "Acil dolum" 0'ın altında duruyordu, "Shop kategorileri", e-postanın baş kısmıyla selam ("İyi günler, info.") (SHE-22) | Kit kartları ve ton jetonları; her kart saydığı listeyi açar (Açık sekmesi, Dikkat süzgeci, stokta yok, Raporlar); ipucu yalnız sayı bir şey isterken; ürün ve kategori sayısı kartları kalktı; adsız selam (karar D35). Widget'lar `src/components/admin/dashboard/` altında: duruma göre açık siparişler, azalan stok (personel için stok sayfasına), hızlı erişim, son siparişler, 14 günlük ciro (karar D38) | `admin-dashboard` |
+| 🟢 | Son siparişler elle yazılmış bir tabloydu, ödeme durumu yoktu (ORD-30, pano kısmı) | Kit `DataTable`: telefonda kart, ödeme rozeti, tutar iadeler düşülmüş | `admin-dashboard` |
+| 🟢 | Pano kartı "bir işlem bekliyor" sayısını eski okumadan (bugün ve iade borçları) alıyordu (KAR-07, pano kısmı) | `loadKaraokeTodayCard`: Dikkat sekmesinin kümesi | `admin-dashboard`, `admin-karaoke-attention` |
+| 🟢 | E-posta denetimi takılan bir Resend'i süresiz bekliyor, ayarlar okunamayınca panoyu düşürüyordu (SHE-29); "Ayarlar → E-posta" Genel sekmesini açıyordu (SHE-24, pano kısmı) | `AbortSignal.timeout(3000)` (sonuç "bilinmiyor", bant yok); pano denetimin hatasını yakalar; bağlantı `?sekme=email` | `email-health`, `admin-dashboard` |
+| 🟢 | Raporlar'da hep boş bir "Dönüşüm" kartı, bir analiz aracı bağlanınca kendiliğinden dolacağını söylüyordu (SYS-17, SYS-22); başlık üstü "Operasyon · İçgörüler" (menüde "Satış"); kit dışı renkler, 2,59:1 sıra numaraları, 30 px dönem bağlantıları (SYS-24, raporlar kısmı) | Kart kalktı (karar D32); "Satış"; kit kartları, ton jetonları, kitin sekmeleri (`StatusTabs`); karaoke kartında önce dönem, tüm zamanlar ayrıca yazılı | `admin-reports-period`, `admin-reports-ltv` |
 
 ### İçerik: uygulama ayarları, canlı durum, slayt, duyuru, gönderi (paket 6b)
 
@@ -839,6 +854,8 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
+| 🟢 | Raporlarda tarih aralığı, önceki döneme göre karşılaştırma, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
+
 | 🟢 | Slayt, duyuru ve gönderide sıra elle yazılan bir sayı; süresi dolan içerik için toplu aç/kapa yok (CON-24) | Sürükle bırak sıra ve toplu işlem bu turun dışında |
 
 ### Karaoke ve masalar (paket 3a)
@@ -861,7 +878,6 @@ Açık (paket 3a'nın dışında kalan):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Karaoke listesi her istekte en çok 5000 satırı okuyup sekmeleri, sayıları ve sayfaları bellekte hesaplıyor (KAR-25, Dikkat dışı kısım) | Tek oda için yılda birkaç bin satır; sekme sorgularını ve sayfalamayı SQL'e taşımak beş sekmenin sayısını da ayrı sorgular ister. Sayfa sınıra gelince söylüyor; Dikkat artık sınırdan etkilenmiyor |
-| 🟢 | Pano kartı hâlâ eski okumayı (bugün + iade borçları) kullanıyor (KAR-07, pano kısmı) | `src/app/admin/page.tsx` paket 7b'nin; `loadKaraokeTodayCard` hazır |
 
 ### Karaoke iptal ve iade kuralı panelden (paket 3b, P2a)
 
@@ -1064,3 +1080,23 @@ Açık (paket 5b'nin dışında kalan kısımlar):
 | 🟡 | Ürünün markası ve tat notları mağazaya ulaşmıyor: `toDesignProduct` (`src/lib/admin/store.ts`) `brand` ve `notes`'u göndermiyor; sayfa ikisini de hazır okur | Arka yüz değişikliği, ön yüz PR'ında yapılmaz (iki satırlık ayrı PR) |
 | 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yok; sayfa şimdilik sipariş öncesi iletişimi gösteriyor (TGK Etiketleme m.17/2-a) | Ürün şemasına alan eklemek arka yüz (migration, panel, uygulama) işidir |
 | 🟢 | Panelde vitrin adresinin ve CTA'nın doğrulanması, panel önizlemesinin `Slide` + `cssUrl` kullanması (CAT-25, CAT-27'nin panel kısmı) | Paket 5c (catalog-forms) |
+
+### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
+
+Operatör kararı (18 Eki 2026): avukat turu yok, karar ve dayanak
+`docs/LEGAL-REDLINES-2026-09.md` §21'de. Kararlar OP-ALLERGEN-BOARD,
+OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Kafe menüsünde kalem başına alerjen yoktu: sitede genel bir çapraz temas bandı, uygulamada yalnız `nuts` etiketi. Toplu tüketim yerinde her kalemin Ek-1 alerjenleri menüde ya da panoda yazılır (TGK Etiketleme Yön. m.15/5), uzaktan satışta satın almadan önce (m.17/3); Gıda Güvenliği belgesi var olmayan bir listeye atıf yapıyordu (X-TGK-MENU) | `menu_items.allergens` (jsonb; NULL = girilmedi, `[]` = hiçbiri, kapalı 14 anahtar, migration `20261018210100`). Panelde 14 kutu ve "Hiçbirini içermez"; hiçbir kutu işaretli değilse "girilmedi" kalır, "yok" sayılmaz. Sert kabuklu meyve `nuts` etiketini ekler, çelişen `nuts` reddedilir. Kalem kartında "Alerjenler: gluten, süt", `/admin/menu`'de girilmemiş kalem sayısı, `GET /menu`'de isteğe bağlı `allergens` (v1 ekleme, API-MOBILE §1). §7 nerede yazdığını söyler | `menu-allergens` (v1 alanı dahil), `menu-food-info-display`, `db-integration-menu-food-info` |
+| 🟡 | Masa karekodunun açtığı `/masa/<kod>` fiyat listesi sayılır (Fiyat Etiketi Yön. m.8/2), ama fiyatların uygulanmaya başladığı tarih yoktu (m.5/2-d) (X-PRICE-LIST) | `settings."menuPricesEffectiveDate"` (İstanbul günü, migration `20261018210200`), Ayarlar > Vergi > Menü fiyat listesi; bugünden sonraki gün reddedilir. Menünün altında "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: …" (/menu, kategori sayfaları, /masa) | `menu-price-list`, `menu-food-info-display` |
+| 🟡 | On stok fotoğraf kalemde olmayanı gösteriyor ya da adındaki malzemeyi dışarıda bırakıyordu (kararın sekizi; yeniden bakışta mnu-0061 ve mnu-0078 kuruyemiş gösterdiği için eklendi); "Görseller temsilidir" bunu karşılamaz (TKHK m.61, m.62, m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7) (OTH-1) | Migration `20261018210000` onunu yalnız eski yolu taşıyorsa ve bir kez boşaltır; tohum da boş; `docs/MENU-PHOTOS.md` ev kuralı (yapay zekâ ya da rötuşlu görsel menü fotoğrafı olmaz), geliştiricinin yapay zekâ taraması (37 kaynak, işaret yok) | `menu-photos`, `db-integration-menu-photos` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | 82 kalemin alerjenleri girilmedi; köşkte alerjen panosu ve tarihli basılı fiyat listesi | Operatörün işi (23 Ekim 2026): tablo tedarikçi etiketlerinden hazırlanır, panelde her kaleme girilir. Bilgi uydurulmaz: yanlış alerjen alerjisi olan misafir için gerçek risk |
+| 🟡 | Uygulama kalem başına alerjeni ve fotoğraf notunu göstermiyor | lafmobil `app-menu-allergens` ve `app-menu-photo-note` (mağaza onayına bağlı); alan sözleşmede, eski sürümler bir şey kaybetmez |
+| 🟢 | 22 rawpixel ve 6 StockSnap kaynağı yapay zekâ işareti için taranmadı (Ticari Reklam Yön. m.18/8) | Sayfalar bot korumalı, operatör tarayıcıda açar (23 Ekim 2026); diğer 37 kaynakta işaret yok (`docs/MENU-PHOTOS.md` Lisans). Kalıcı çözüm 30 Kasım 2026'ya kadar barın kendi fotoğrafları |

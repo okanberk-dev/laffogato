@@ -38,6 +38,8 @@ export interface PageProps {
     courierFeeMinor?: number;
     pickupReadyMinutes?: number;
     stampTarget?: number;
+    /** The day under the menu: "YYYY-MM-DD", or "" (not entered). */
+    menuPricesEffectiveDate?: string;
   };
   addToCart: (item: CartItem) => void;
   openProduct: (p: Product | null) => void;

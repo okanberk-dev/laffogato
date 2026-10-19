@@ -22,6 +22,7 @@ import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import type { AdminSettings } from "@/lib/admin/store";
 import type { EmailHealth } from "@/lib/email/health";
+import { MENU_PRICES_DATE_FIELD } from "@/lib/menu/price-list";
 import {
   LEGAL_TAX_RATES,
   TAX_RATE_KEYS,
@@ -457,7 +458,7 @@ const TAX_HINTS: Record<TaxRateKey, string> = {
 function TaxTab({ settings }: { settings: AdminSettings }) {
   const form = useSettingsForm(saveTaxAction, { tab: "tax" });
   return (
-    <SettingsTabForm form={form}>
+    <SettingsTabForm form={form} className="grid gap-6">
       <Section
         title="KDV oranları"
         // Prices are KDV-included and no total is computed from a rate
@@ -487,6 +488,27 @@ function TaxTab({ settings }: { settings: AdminSettings }) {
               />
             </SettingsField>
           ))}
+        </div>
+      </Section>
+      {/* Fiyat Etiketi Yön. m.5/2-d: a price list carries the day its
+          prices started to apply; /menu and /masa print this one. */}
+      <Section
+        title="Menü fiyat listesi"
+        description="Menüdeki fiyatların uygulanmaya başladığı gün. Sitede menünün altında “Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: …” diye yazar (/menu, kategori sayfaları ve masa karekodu). Köşkteki basılı listelerle aynı gün olmalı."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <SettingsField
+            name={MENU_PRICES_DATE_FIELD}
+            label="Fiyatların uygulanmaya başladığı tarih"
+            hint="Bir menü fiyatını değiştirdiğin gün bunu da o güne çek ve basılı listeleri yenile. Bugünden sonraki bir gün seçilemez. Boş bırakırsan menüde yalnız “Fiyatlarımıza KDV dahildir” yazar."
+          >
+            <TextInput
+              name={MENU_PRICES_DATE_FIELD}
+              type="date"
+              min="2020-01-01"
+              defaultValue={settings.menuPricesEffectiveDate ?? ""}
+            />
+          </SettingsField>
         </div>
         <SaveBar form={form} />
       </Section>

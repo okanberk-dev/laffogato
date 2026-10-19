@@ -6399,3 +6399,162 @@ update public.customers
 
 insert into public._migrations (name) values ('20261018200000_clear_unused_card_user_keys.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210000_menu_photos_mismatch.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Ten menu photos that show something the item is not (18 Oct 2026).
+--
+-- Decision OP-MENU-PHOTOS / ASK-OTH-1 (operator, 18 Oct 2026: "avukata sorma,
+-- sen karar ver"): "Görseller temsilidir" covers a different glass, garnish
+-- or light, never a different product. Seven of the stock photos that
+-- 20261017120000_menu_photos.sql wrote show another make-up (a roast beef
+-- sandwich with raw onion and no greens or sauce, a biscuit-base tart for a
+-- burnt Basque cheesecake, nuts and granola on an item with no nut tag, a
+-- photo titled "Iced Mocha" for a pumpkin latte, a mint iced tea for a peach
+-- one, a magnolia with no biscuit layer, a white sesame simit for a buckwheat
+-- one), and mnu-0082 Alternatif Süt shows hemp milk and hemp seeds, which the
+-- bar does not serve. Two more show tree nuts on an item that names and tags
+-- none, the criterion that took off mnu-0067: walnuts heaped on the slice
+-- for mnu-0061 L'Af Kahve, and an almond and seed bar beside the chocolate
+-- ones for mnu-0078 Kakao Protein Bar. A picture that contradicts the item
+-- is a misleading advertisement whatever the footnote says (TKHK m.61, m.62,
+-- m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7, m.29/2-a). docs/MENU-PHOTOS.md
+-- lists each.
+--
+-- A row is emptied only when both hold:
+-- - it still carries the very path the old migration wrote. A photo the
+--   operator uploaded or linked since is never touched.
+-- - this file has not run before. The bundle (db/schema.sql) re-runs every
+--   migration whenever a deploy adds a new one; without this guard a stock
+--   path linked again by hand would be emptied on the next deploy.
+--   db:migrate and the bundle both record this file in _migrations after the
+--   body runs (the guard of 20261017120000).
+--
+-- The files stay in public/menu: the old migration still names them, and
+-- 20261017120000 itself is not edited. The site and the app draw the plate
+-- for these items, as they do for the other four without a photo.
+--
+-- `updatedAt` is left alone, as in 20261017120000: this is not an edit of the
+-- item, and the menu's ETag already changes with the body.
+--
+-- Rollback (no schema change): write the old path back on the rows that are
+-- still empty, e.g.
+--   update public.menu_items set image = '/menu/simit.webp'
+--    where id = 'mnu-0073' and image = '';
+
+update public.menu_items as m
+   set image = ''
+  from (
+    values
+    ('mnu-0028', '/menu/iced-pumpkin-latte.webp'),
+    ('mnu-0056', '/menu/peach-iced-tea.webp'),
+    ('mnu-0059', '/menu/blueberry-san-sebastian.webp'),
+    ('mnu-0061', '/menu/coffee-cake.webp'),
+    ('mnu-0063', '/menu/strawberry-magnolia.webp'),
+    ('mnu-0067', '/menu/classic-spoonful.webp'),
+    ('mnu-0073', '/menu/simit.webp'),
+    ('mnu-0074', '/menu/roast-beef-sandwich.webp'),
+    ('mnu-0078', '/menu/cocoa-protein-bar.webp'),
+    ('mnu-0082', '/menu/alternative-milk.webp')
+  ) as v (id, image)
+ where m.id = v.id
+   and m.image = v.image
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261018210000_menu_photos_mismatch.sql'
+   );
+
+insert into public._migrations (name) values ('20261018210000_menu_photos_mismatch.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210100_menu_item_allergens.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The fourteen allergen groups per cafe menu item (18 Oct 2026).
+--
+-- Decision OP-ALLERGEN-BOARD (operator, 18 Oct 2026: "avukata sorma, sen
+-- karar ver"): a place serving unpackaged food shows, for every item, which
+-- of the fourteen groups of TGK Gıda Etiketleme Yönetmeliği Ek-1 it contains,
+-- on the menu or a board (m.15/5), and before the purchase when it sells at
+-- a distance, as the app does (m.17/3). The menu had a general cross-contact
+-- line and, in the app, only the `nuts` tag. Keys and labels:
+-- src/lib/menu/allergens.ts.
+--
+--   menu_items.allergens  jsonb, nullable, no default.
+--     NULL      not entered yet: nothing is shown next to the item and
+--               GET /api/mobile/v1/menu leaves the field out (§1).
+--     []        entered: the item contains none of the fourteen.
+--     ["sut"]   the groups it contains, keys from the closed list below.
+--
+-- Every existing row starts NULL: the operator enters the items in
+-- /admin/menu from the table of the kiosk's allergen board. Nothing is
+-- guessed from the item's name or from the `nuts` tag.
+--
+-- The check refuses anything that is not an array of known keys, whatever
+-- writes it. Added NOT VALID: every existing value is NULL, which passes, and
+-- the table is not scanned under the lock. Re-runnable: the bundle replays
+-- every migration when a deploy adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.menu_items drop column if exists allergens;
+
+alter table public.menu_items add column if not exists allergens jsonb;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'menu_items_allergens_check'
+       and conrelid = 'public.menu_items'::regclass
+  ) then
+    alter table public.menu_items
+      add constraint menu_items_allergens_check
+      check (
+        allergens is null
+        or (
+          jsonb_typeof(allergens) = 'array'
+          and allergens <@ '["gluten", "kabuklular", "yumurta", "balik",
+            "yer_fistigi", "soya", "sut", "sert_kabuklu", "kereviz", "hardal",
+            "susam", "sulfit", "aci_bakla", "yumusakcalar"]'::jsonb
+        )
+      ) not valid;
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261018210100_menu_item_allergens.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210200_menu_prices_effective_date.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The day the cafe's menu prices started to apply (18 Oct 2026).
+--
+-- Decision OP-PRICE-LISTS (operator, 18 Oct 2026): a price list carries the
+-- all-taxes-included price and the day that price started to apply (Fiyat
+-- Etiketi Yönetmeliği m.5/2-c, d). A table's QR code opens /masa/<kod>, the
+-- menu, which stands for the table's price list (m.8/2); /menu and the
+-- category pages show the same prices. They now print the day under the
+-- menu, from Ayarlar > Vergi.
+--
+--   settings."menuPricesEffectiveDate"  text, the Istanbul calendar day
+--                                       "YYYY-MM-DD"; '' = not entered (the
+--                                       menu then says only that prices
+--                                       include KDV).
+--
+-- Starts empty: the day the current prices began is the operator's to say
+-- (the printed lists at the kiosk carry the same day), not something to
+-- guess from a row's updatedAt. Rules: src/lib/menu/price-list.ts.
+--
+-- Safe on the live table: a constant default changes only the catalogue (no
+-- rewrite). Re-runnable: the bundle replays every migration when a deploy
+-- adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.settings drop column if exists "menuPricesEffectiveDate";
+
+alter table public.settings add column if not exists "menuPricesEffectiveDate" text not null default '';
+
+insert into public._migrations (name) values ('20261018210200_menu_prices_effective_date.sql')
+  on conflict (name) do nothing;

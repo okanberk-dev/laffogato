@@ -14687,6 +14687,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gida-guvenligi-ve-alerjen",
     title: "Gıda Güvenliği ve Alerjen Bilgilendirmesi",
     shortTitle: "Gıda Güvenliği",
+    // 19 Ekim 2026: §7 says where each menu item's allergens are written
+    // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §21.
+    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafe servisinde ve {{SITE}} üzerinden satılan gıda ürünlerinde uygulanan gıda güvenliği yönetimi, zorunlu alerjen bildirimi, çapraz bulaşma uyarısı, saklama koşulları ve ürün geri çağırma prosedürü hakkında tüketici bilgilendirmesidir.",
@@ -14932,8 +14935,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "7. Zorunlu Bildirilen Alerjen Listesi ve Ürünlerimizdeki Karşılığı",
         paragraphs: [
-          "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde, alerjiye veya intoleransa yol açtığı bilinen maddeler ve ürünler sayılmıştır. Bu maddeler, bileşen listesinde diğer bileşenlerden ayırt edilebilir biçimde vurgulanarak bildirilir. Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi; menüde, ürün kartında, {{SITE_URL}} adresindeki ürün sayfasında, {{BRAND}} mobil uygulamasının ürün detay ekranında veya personel aracılığıyla tüketiciye aktarılır.",
-          "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını göstermektedir. Tablo yol gösterici niteliktedir; her ürün için bağlayıcı olan bilgi, o ürünün etiketinde, menü kartında ya da mobil uygulamanın ürün detay ekranında yer alan güncel bileşen listesidir.",
+          "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde, alerjiye veya intoleransa yol açtığı bilinen maddeler ve ürünler sayılmıştır. Bu maddeler, bileşen listesinde diğer bileşenlerden ayırt edilebilir biçimde vurgulanarak bildirilir. Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi, menüde ve köşkte asılı alerjen tablosunda her kalem için yazılı olarak verilir; personel aynı bilgiyi siparişten önce ayrıca sözlü olarak da aktarır.",
+          "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını gösterir ve yol gösterici niteliktedir. Kafe menüsündeki her kalemin içerdiği alerjen grupları, {{SITE_URL}}/menu adresindeki menüde kalemin yanında ve köşkte asılı alerjen tablosunda yazılıdır; bu bilginin henüz yazılmadığı bir kalemin alerjenlerini personel siparişten önce bildirir. Ön ambalajlı ürünlerde bağlayıcı bilgi, ürünün etiketindeki güncel bileşen listesidir.",
         ],
         table: [
           {

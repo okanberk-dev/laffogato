@@ -19,22 +19,16 @@ import { EYEBROW, MONO_STYLE } from "./ui/styles";
  * lib/admin/karaoke-today.ts), so the card and the tab count the same
  * bookings; null when they could not be read, so a karaoke outage never
  * takes the dashboard with it.
- *
- * `owed` is the older read (the refunds owed only) the dashboard still
- * passes until it moves to `loadKaraokeTodayCard`.
  */
 export function KaraokeTodayCard({
   today,
-  attention: given,
-  owed,
+  attention: others,
   now,
 }: {
   today: readonly KaraokeRowView[] | null;
-  attention?: readonly KaraokeRowView[] | null;
-  owed?: readonly KaraokeRowView[] | null;
+  attention: readonly KaraokeRowView[] | null;
   now: Date;
 }) {
-  const others = given ?? owed ?? null;
   if (!today || !others) {
     return (
       <Card>
@@ -123,7 +117,10 @@ export function KaraokeTodayCard({
                 className="flex min-h-[44px] flex-wrap items-center justify-between gap-2 py-2 hover:text-[var(--admin-primary)]"
               >
                 <span className="flex min-w-0 items-baseline gap-3">
-                  <span className="text-sm font-medium" style={MONO_STYLE}>
+                  <span
+                    className="shrink-0 text-sm font-medium whitespace-nowrap"
+                    style={MONO_STYLE}
+                  >
                     {v.time}
                   </span>
                   <span className="truncate text-sm text-[var(--admin-text-soft)]">
