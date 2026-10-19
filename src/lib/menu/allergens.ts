@@ -24,7 +24,7 @@ export const MENU_ALLERGENS = [
   {
     key: "gluten",
     label: "Gluten",
-    panel: "Gluten içeren tahıllar (buğday, çavdar, arpa, yulaf)",
+    panel: "Gluten içeren tahıllar (buğday, çavdar, arpa, yulaf ve melezleri)",
   },
   {
     key: "kabuklular",
@@ -39,7 +39,8 @@ export const MENU_ALLERGENS = [
   {
     key: "sert_kabuklu",
     label: "Sert kabuklu meyveler",
-    panel: "Sert kabuklu meyveler (badem, fındık, ceviz, kaju, Antep fıstığı)",
+    panel:
+      "Sert kabuklu meyveler (badem, fındık, ceviz, kaju, pekan cevizi, Brezilya cevizi, Antep fıstığı, makadamya)",
   },
   { key: "kereviz", label: "Kereviz", panel: "Kereviz" },
   { key: "hardal", label: "Hardal", panel: "Hardal" },

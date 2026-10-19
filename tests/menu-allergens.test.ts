@@ -116,6 +116,33 @@ describe("the closed list (TGK Ek-1)", () => {
   });
 });
 
+describe("the panel's checklist names what each group covers", () => {
+  it("lists every tree nut and grain the food safety document §7 names", async () => {
+    const { LEGAL_CONTENT } = await import("@/lib/legal/content");
+    const { MENU_ALLERGENS } = await import("@/lib/menu/allergens");
+    const table = LEGAL_CONTENT.find(
+      (d) => d.slug === "gida-guvenligi-ve-alerjen",
+    )!.sections.find((s) => s.heading.startsWith("7. "))!.table!;
+    // A box reading "(badem, fındık, ceviz, kaju, Antep fıstığı)" looks like
+    // the whole group: a macadamia or pecan cookie went unticked.
+    for (const [key, row] of [
+      ["sert_kabuklu", "Sert kabuklu meyveler"],
+      ["gluten", "Gluten içeren tahıllar"],
+    ] as const) {
+      const docKey = table.find((r) => r.key.startsWith(row))!.key;
+      const names = /\(([^)]+)\)/
+        .exec(docKey)![1]!
+        .split(/,\s*|\s+ve\s+/)
+        .map((n) => n.trim())
+        .filter(Boolean);
+      expect(names.length, key).toBeGreaterThan(3);
+      const panel = MENU_ALLERGENS.find((a) => a.key === key)!.panel;
+      for (const name of names)
+        expect(panel, `${key}: ${name}`).toContain(name);
+    }
+  });
+});
+
 describe("normalizeMenuAllergens / menuAllergenLine", () => {
   it("keeps not entered (null) apart from none ([])", () => {
     expect(normalizeMenuAllergens(null)).toBeNull();
