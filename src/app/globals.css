@@ -7557,8 +7557,10 @@ select {
   accent-color: var(--ink);
   cursor: pointer;
 }
+/* The pre-contract texts on the payment step are at least 16px: MSY m.6/1
+   asks for twelve points, and 12 pt is 16 CSS px (ASK-OTH-2, 18 Eki 2026). */
 .checkout-consent label {
-  font-size: 13.5px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-soft);
   cursor: pointer;
@@ -7570,7 +7572,7 @@ select {
 }
 .checkout-consent-note {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-mute);
 }
@@ -7982,8 +7984,10 @@ select {
   margin: 0 0 16px;
   color: var(--ink);
 }
+/* The contracts read at 16px or more, on /hukuk and in the payment step's
+   panel alike: MSY m.6/1, 12 pt = 16 CSS px. */
 .legal-section p {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.75;
   color: var(--ink-soft);
   margin: 0 0 12px;
@@ -7998,7 +8002,7 @@ select {
 }
 .legal-bullets li,
 .legal-ordered li {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--ink-soft);
   padding-left: 6px;
@@ -8021,13 +8025,13 @@ select {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 16px;
 }
 .legal-table th {
   text-align: left;
   vertical-align: top;
   padding: 12px 16px 12px 0;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
   font-weight: 600;
   width: 32%;
@@ -11558,16 +11562,18 @@ button.co-steps-link {
   padding: 14px 16px;
   border-radius: var(--r-md);
   background: var(--green-mist);
-  font-size: 14px;
+  font-size: 16px;
 }
 .co-ship-method-name {
   font-weight: 600;
   color: var(--ink);
 }
+/* "Yalnız Türkiye içindeki adreslere gönderiyoruz": a delivery restriction
+   said before the order (MSY m.6/2-b), at the 16px of the other notes. */
 .co-ship-method-meta {
   grid-row: 2;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 16px;
 }
 .co-ship-method-price {
   grid-row: 1 / span 2;
@@ -11636,7 +11642,7 @@ button.co-steps-link {
 }
 .co-docs {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 16px;
   color: var(--ink-soft);
 }
 .co-docs a {
@@ -11902,7 +11908,7 @@ button.co-steps-link {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
 }
 .co-schemes {
@@ -12316,7 +12322,7 @@ button.co-steps-link {
 }
 .co-docs-seller {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--ink-mute);
   overflow-wrap: anywhere;
