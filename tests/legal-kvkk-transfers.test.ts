@@ -318,3 +318,75 @@ describe("the processor lists agree with the aydınlatma", () => {
     expect(keys).toContain("Google LLC (harita hizmeti)");
   });
 });
+
+describe("every recipient the texts list, and no reason without one (2026/347)", () => {
+  const abroad = section(
+    "kvkk-aydinlatma-metni",
+    "15. Kişisel Verilerin Yurt Dışına",
+  );
+  const recipients = abroad.bullets!.find((b) =>
+    b.startsWith("Alıcılar ve bilinen konumlar"),
+  )!;
+  const reasons = abroad.bullets!.find((b) =>
+    b.startsWith("Aktarım gerekçeleri"),
+  )!;
+
+  it("names Paraşüt, which issues the e-invoices, as a processor and not as a maybe", () => {
+    // Operator, 19 Oct 2026: every e-invoice goes out through Paraşüt.
+    const row = section("kvkk-aydinlatma-metni", "14.").table!.find((r) =>
+      r.key.includes("Paraşüt"),
+    );
+    expect(row, "§14 row").toBeDefined();
+    expect(row!.key).toContain(
+      "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye)",
+    );
+    expect(row!.value).toContain("veri işleyen sıfatıyla");
+    expect(row!.value).toContain("Aktarılan veri:");
+    expect(JSON.stringify(LEGAL_CONTENT)).not.toContain(
+      "kullanılması hâlinde elektronik fatura",
+    );
+    // Its own notice says its suppliers may sit abroad: §15 says where the
+    // invoice data is held once Paraşüt states it in writing.
+    expect(recipients).toContain(
+      "fatura düzenlenmesi Paraşüt Yazılım Teknolojileri A.Ş. (Türkiye; veriler ona yurt içinde aktarılır;",
+    );
+    const privacy = section("gizlilik-politikasi", "8.").table!.map(
+      (r) => r.key,
+    );
+    expect(privacy.some((k) => k.includes("Paraşüt"))).toBe(true);
+  });
+
+  it("gives every listed reason a named recipient", () => {
+    // The CDN and the server's error and performance logs are Vercel's; the
+    // app stores distribute the app as controllers in their own right and we
+    // send them nothing (§14), so they are no transfer of ours.
+    expect(recipients).toContain(
+      "uygulama barındırma, içerik dağıtım ağı ve sunucu hata ve performans kayıtları Vercel Inc.",
+    );
+    expect(reasons).not.toContain("mağaza dağıtımı");
+    expect(abroad.paragraphs!.join("\n")).toContain(
+      "bu kanalla tarafımızca kişisel veri aktarılmaz (14. bölüm)",
+    );
+    expect(abroad.paragraphs![1]).not.toMatch(
+      /\([^)]*mobil uygulama mağaza dağıtımı[^)]*\) yurt dışında yerleşik/,
+    );
+    for (const reason of [
+      "Uygulama barındırma",
+      "PostgreSQL veri tabanı",
+      "üyelik kimlik doğrulaması",
+      "e-posta gönderimi",
+      "harita gösterimi",
+    ]) {
+      expect(reasons, reason).toContain(reason);
+    }
+    for (const recipient of [
+      "Vercel Inc.",
+      "Resend",
+      LEGAL_ENTITY.dbProvider,
+      LEGAL_ENTITY.authProvider,
+      "Google LLC",
+    ]) {
+      expect(recipients, recipient).toContain(recipient);
+    }
+  });
+});

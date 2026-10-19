@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { LEGAL_CONTENT } from "@/lib/legal/content";
@@ -126,7 +128,13 @@ describe("the fA'L recipient in the published texts", () => {
     const record = findLegalDoc("acik-riza-metni")!
       .sections.find((s) => s.heading.startsWith("20. "))!
       .bullets!.find((b) => b.startsWith("fA'L yapay zekâ yorumu onayı (R12)"))!;
-    expect(record).toContain("Onay, fA'L ekranındaki Bilgilendirme bölümünü okuyup anladığınızı ayrıca işaretlemenizden sonra verilebilir.");
+    // Only what the app and the server do today: POST /fal/consent takes
+    // `{ version }` alone, so the text promises no tick that nothing checks.
+    expect(record).toContain("Onay, fA'L ekranında fotoğraf gönderilmeden önce açılan ayrı bir pencereden verilir; pencere fotoğrafın nereye gönderildiğini özetler ve bu metnin tamamına bağlantı verir.");
+    expect(record).not.toMatch(/işaretle|okudum, anladım/);
+    expect(readFileSync("src/app/api/mobile/v1/fal/consent/route.ts", "utf8")).toContain(
+      "const GRANT = z.object({ version: z.string().min(1).max(40) });",
+    );
     // Still no app version in the record.
     expect(record).toContain("IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz");
   });
