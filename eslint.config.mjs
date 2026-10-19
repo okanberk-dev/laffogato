@@ -30,6 +30,36 @@ const eslintConfig = defineConfig([
       "react-hooks/immutability": "warn",
     },
   },
+  {
+    // The admin panel's UI libraries stay in the panel: the customer site,
+    // src/lib (server and pure modules), the mobile API and the scripts never
+    // load them. Inside the panel, tests/admin-ui-deps.test.ts holds the
+    // finer rules (lucide only through ui/icons.tsx, React Aria and
+    // @internationalized/date only in "use client" files, React Aria by
+    // sub-path) and catches the dynamic import() this rule cannot see.
+    ignores: ["src/components/admin/**", "src/app/admin/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "lucide-react",
+                "lucide-react/*",
+                "react-aria-components",
+                "react-aria-components/*",
+                "@internationalized/date",
+                "@internationalized/date/*",
+              ],
+              message:
+                "Admin UI libraries are for src/components/admin and src/app/admin only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     "out/**",
