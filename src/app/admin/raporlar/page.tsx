@@ -1,7 +1,12 @@
-import Link from "next/link";
-
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { StatCard } from "@/components/admin/dashboard/stat-card";
 import { RevenueChart } from "@/components/admin/revenue-chart";
+import { EmptyState, StatusTabs } from "@/components/admin/ui";
+import {
+  EYEBROW,
+  MONO_STYLE,
+  NUMERIC_STYLE,
+} from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import {
   analyticsHeadline,
@@ -23,12 +28,22 @@ const G_OPTIONS: Array<{
   value: BucketGranularity;
   label: string;
   count: number;
+  /** The chart's heading. */
+  chart: string;
 }> = [
-  { value: "day", label: "Günlük · 30 gün", count: 30 },
-  { value: "week", label: "Haftalık · 12 hafta", count: 12 },
-  { value: "month", label: "Aylık · 12 ay", count: 12 },
+  { value: "day", label: "Son 30 gün", count: 30, chart: "Günlük" },
+  { value: "week", label: "Son 12 hafta", count: 12, chart: "Haftalık" },
+  { value: "month", label: "Son 12 ay", count: 12, chart: "Aylık" },
 ];
 
+/**
+ * Raporlar: every figure on the page reads the period the tabs choose (the
+ * chart's buckets, cut at the köşk's midnight). The tiles and the top list
+ * used to read every order ever placed beside a "30 gün" switch, and the
+ * top list's bars were drawn by quantity under a ranking by money (admin
+ * audit SYS-16, decision D31). The "Dönüşüm" card, which promised to fill
+ * itself once an analytics tool was connected, is gone (D32).
+ */
 export default async function ReportsPage({ searchParams }: PageProps) {
   await requireRole("reports");
   const sp = await searchParams;
@@ -37,237 +52,177 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const opt = G_OPTIONS.find((x) => x.value === g) ?? G_OPTIONS[0];
 
   const [head, buckets, top, karaoke] = await Promise.all([
-    analyticsHeadline(),
+    analyticsHeadline(opt.value, opt.count),
     revenueBuckets(opt.value, opt.count),
-    topProducts(5),
+    topProducts(opt.value, opt.count, 5),
     karaokeRevenue(opt.value, opt.count),
   ]);
 
-  const periodRevenue = buckets.reduce((s, b) => s + b.revenueMinor, 0);
-  const periodOrders = buckets.reduce((s, b) => s + b.orderCount, 0);
   const peak = buckets.reduce(
     (best, b) => (b.revenueMinor > best.revenueMinor ? b : best),
     buckets[0] ?? { label: "-", revenueMinor: 0, orderCount: 0, bucket: "" },
   );
-  const maxQty = Math.max(1, ...top.map((t) => t.qty));
+  const maxRevenue = Math.max(1, ...top.map((t) => t.revenueMinor));
+  const period = opt.label.toLocaleLowerCase("tr-TR");
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Operasyon · İçgörüler"
+        eyebrow="Satış"
         title="Raporlar"
-        description="Ödemesi alınmış siparişler sayılır; ödeme bekleyen ve iptal edilenler hariç. Net ciro iadeler düşülmüş tutardır, iade siparişin kendi döneminden düşülür. Karaoke ön ödemeleri ayrı gösterilir."
+        description="Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen ve iptal edilenler sayılmaz. İade, siparişin verildiği dönemden düşülür. Karaoke ön ödemeleri ayrı."
       />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat
+      <StatusTabs
+        tabs={G_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+        current={opt.value}
+        searchParams={sp}
+        pathname="/admin/raporlar"
+        param="g"
+        label="Dönem"
+      />
+
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard
           label="Net ciro"
           value={formatTRY(head.netRevenueMinor)}
-          hint="Siparişler, iadeler düşülmüş"
+          hint="İadeler düşülmüş"
+          money
         />
-        <Stat
+        <StatCard
           label="Brüt ciro"
           value={formatTRY(head.grossRevenueMinor)}
           hint="İadeler düşülmeden"
+          money
         />
-        <Stat
+        <StatCard
           label="İade"
           value={
             head.refundedMinor > 0 ? `−${formatTRY(head.refundedMinor)}` : "-"
           }
-          tone={head.refundedMinor > 0 ? "warn" : undefined}
+          tone={head.refundedMinor > 0 ? "danger" : undefined}
+          money
         />
-        <Stat label="Sipariş" value={String(head.totalOrders)} />
-        <Stat
+        <StatCard
+          label="Sipariş"
+          value={head.totalOrders.toLocaleString("tr-TR")}
+        />
+        <StatCard
           label="Ortalama sepet"
           value={formatTRY(head.averageOrderMinor)}
           hint="Brüt / sipariş"
+          money
         />
       </div>
 
       <Card className="mb-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Karaoke ön ödemesi (net)
-            </h2>
-            <div
-              className="mt-1 text-2xl text-neutral-900"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {formatTRY(karaoke.netMinor)}
-            </div>
-            <p className="mt-1 text-xs text-neutral-500">
-              {karaoke.paidCount} ödenmiş rezervasyon · tahsil edilen{" "}
-              {formatTRY(karaoke.collectedMinor)} · iade edilen{" "}
-              {formatTRY(karaoke.refundedMinor)}
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-lg font-semibold text-[var(--admin-text)]">
+            {opt.chart} net ciro
+          </h2>
+          {peak.revenueMinor > 0 ? (
+            <p className="text-sm text-[var(--admin-text-soft)]">
+              En yüksek: {peak.label} ·{" "}
+              <span style={NUMERIC_STYLE}>{formatTRY(peak.revenueMinor)}</span>
             </p>
-            {karaoke.refundPendingMinor > 0 ? (
-              <p className="mt-1 text-xs text-[var(--admin-danger-ink)]">
-                {formatTRY(karaoke.refundPendingMinor)} için iade başlatıldı,
-                sonucu bekleniyor; nete dahil.
-              </p>
-            ) : null}
-          </div>
-          <div className="text-right text-xs text-neutral-500">
-            Bu dönemde ({opt.label.toLocaleLowerCase("tr-TR")}):{" "}
-            <span
-              className="text-sm text-neutral-900"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {formatTRY(karaoke.periodNetMinor)}
-            </span>{" "}
-            · {karaoke.periodCount} rezervasyon
-          </div>
+          ) : null}
         </div>
+        <RevenueChart data={buckets} caption={`${opt.chart} net ciro`} />
       </Card>
 
       <Card className="mb-4">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Net sipariş cirosu
-            </h2>
-            <div
-              className="mt-1 text-3xl"
-              style={{
-                fontFamily: "var(--serif), 'Playfair Display', serif",
-                fontStyle: "italic",
-              }}
-            >
-              {formatTRY(periodRevenue)}
-            </div>
-            <div className="text-xs text-neutral-500">
-              {periodOrders} sipariş · zirve: {peak.label} (
-              {formatTRY(peak.revenueMinor)})
-            </div>
-          </div>
-          <nav className="flex flex-wrap gap-1">
-            {G_OPTIONS.map((o) => (
-              <Link
-                key={o.value}
-                href={`/admin/raporlar?g=${o.value}`}
-                aria-current={o.value === opt.value ? "page" : undefined}
-                className={`rounded-full px-3 py-1.5 text-xs ${
-                  o.value === opt.value
-                    ? "bg-[var(--admin-primary)] text-white"
-                    : "border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                }`}
-              >
-                {o.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <RevenueChart data={buckets} />
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <Card>
-          <h2
-            className="mb-4 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-lg font-semibold text-[var(--admin-text)]">
             En çok satan 5 ürün
           </h2>
-          {top.length === 0 ? (
-            <p className="text-sm text-neutral-500">
-              Henüz satış yok. Siparişler geldikçe burası dolar.
-            </p>
-          ) : (
-            <ul className="grid gap-3">
-              {top.map((t, i) => {
-                const widthPct = Math.round((t.qty / maxQty) * 100);
-                return (
-                  <li key={t.productName} className="grid gap-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-900">
-                        <span
-                          className="mr-2 inline-block w-4 text-right text-neutral-400"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {i + 1}.
-                        </span>
-                        {t.productName}
-                      </span>
-                      <span
-                        className="text-neutral-700"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {t.qty} adet · {formatTRY(t.revenueMinor)}
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
-                      <div
-                        className="h-full rounded-full bg-[var(--admin-primary)] transition-all"
-                        style={{ width: `${widthPct}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <h2
-            className="mb-4 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Dönüşüm
-          </h2>
-          <div
-            className="text-3xl text-neutral-300"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            -
-          </div>
-          <p className="mt-3 text-xs text-neutral-500">
-            Sipariş / ziyaret oranı için ziyaret verisi gerekiyor. Vercel
-            Analytics / GA / Plausible bağlandığında bu kart otomatik aktif
-            olacak.
+          <p className="text-xs text-[var(--admin-text-soft)]">
+            Bu dönemde, liste fiyatıyla; iadeler düşülmüş
           </p>
-        </Card>
-      </div>
-    </main>
-  );
-}
+        </div>
+        {top.length === 0 ? (
+          <EmptyState
+            title="Bu dönemde satış yok."
+            description="Siparişler geldikçe burası dolar."
+          />
+        ) : (
+          <ul className="grid gap-3">
+            {top.map((t, i) => {
+              // The bar is the figure the list is sorted by (SYS-16).
+              const widthPct = Math.round((t.revenueMinor / maxRevenue) * 100);
+              return (
+                <li key={t.productName} className="grid gap-1">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+                    <span className="min-w-0 text-[var(--admin-text)]">
+                      <span
+                        className="mr-2 inline-block w-5 text-right text-[var(--admin-text-soft)]"
+                        style={NUMERIC_STYLE}
+                      >
+                        {i + 1}.
+                      </span>
+                      {t.productName}
+                    </span>
+                    <span
+                      className="text-[var(--admin-text-soft)]"
+                      style={NUMERIC_STYLE}
+                    >
+                      {t.qty} adet · {formatTRY(t.revenueMinor)}
+                    </span>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    className="h-2 w-full overflow-hidden rounded-full bg-[var(--admin-neutral-soft)]"
+                  >
+                    <div
+                      className="h-full rounded-full bg-[var(--admin-primary)]"
+                      style={{ width: `${widthPct}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
 
-function Stat({
-  label,
-  value,
-  tone,
-  hint,
-}: {
-  label: string;
-  value: string;
-  tone?: "warn";
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-[var(--admin-border)] bg-white p-4 shadow-sm">
-      <div
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {label}
-      </div>
-      <div
-        className={`mt-1 text-xl ${tone === "warn" ? "text-rose-700" : "text-neutral-900"}`}
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {value}
-      </div>
-      {hint ? (
-        <div className="mt-1 text-xs text-neutral-500">{hint}</div>
-      ) : null}
-    </div>
+      <Card>
+        <h2 className="text-lg font-semibold text-[var(--admin-text)]">
+          Karaoke ön ödemesi
+        </h2>
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0">
+            <div className={EYEBROW} style={MONO_STYLE}>
+              Bu dönemde, net
+            </div>
+            <div
+              className="mt-1 text-2xl font-semibold text-[var(--admin-text)]"
+              style={NUMERIC_STYLE}
+            >
+              {formatTRY(karaoke.periodNetMinor)}
+            </div>
+            <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
+              {karaoke.periodCount} rezervasyon ({period})
+            </p>
+          </div>
+          <p className="min-w-0 text-xs text-[var(--admin-text-soft)] sm:text-right">
+            Tüm zamanlar: net{" "}
+            <span style={NUMERIC_STYLE}>{formatTRY(karaoke.netMinor)}</span> ·{" "}
+            {karaoke.paidCount} ödenmiş rezervasyon · tahsil edilen{" "}
+            <span style={NUMERIC_STYLE}>
+              {formatTRY(karaoke.collectedMinor)}
+            </span>{" "}
+            · iade edilen{" "}
+            <span style={NUMERIC_STYLE}>
+              {formatTRY(karaoke.refundedMinor)}
+            </span>
+          </p>
+        </div>
+        {karaoke.refundPendingMinor > 0 ? (
+          <p className="mt-2 text-xs text-[var(--admin-danger-ink)]">
+            {formatTRY(karaoke.refundPendingMinor)} için iade başlatıldı, sonucu
+            bekleniyor; nete dahil.
+          </p>
+        ) : null}
+      </Card>
+    </main>
   );
 }

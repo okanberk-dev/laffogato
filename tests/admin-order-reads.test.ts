@@ -199,18 +199,22 @@ describe("customer roll-up and reports read only their columns", () => {
 
   it("the three report figures never select *, and only top products reads items", async () => {
     orderRows = [row(10001)];
-    await store.analyticsHeadline();
+    await store.analyticsHeadline("day", 7);
     await store.revenueBuckets("day", 7);
     const withoutItems = orderSelects();
     expect(withoutItems).toHaveLength(2);
     for (const sql of withoutItems) {
       expect(sql).not.toMatch(/^SELECT \*/);
       expect(sql).not.toContain('"items"');
+      // Only the period's orders (admin audit SYS-16).
+      expect(sql).toMatch(/WHERE "createdAt" >= \$1/);
     }
     seen.length = 0;
-    await store.topProducts(5);
+    await store.topProducts("day", 7, 5);
     const [top] = orderSelects();
-    expect(top).toMatch(/^SELECT "status", "items" FROM "orders"/);
+    expect(top).toMatch(
+      /^SELECT "status", "createdAt", "totalMinor", "refunds", "items" FROM "orders" WHERE "createdAt" >= \$1/,
+    );
   });
 });
 
