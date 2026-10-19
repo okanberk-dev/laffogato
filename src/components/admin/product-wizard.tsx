@@ -29,7 +29,7 @@ import {
   menuAllergenWords,
   normalizeMenuAllergens,
 } from "@/lib/menu/allergens";
-import { istanbulToday } from "@/lib/menu/price-list";
+import { istanbulToday, menuPricesDateLabel } from "@/lib/menu/price-list";
 import {
   DISCOUNT_END_FIELD,
   DISCOUNT_START_FIELD,
@@ -380,17 +380,30 @@ export function ProductWizard({
   const [price, setPrice] = useState(
     product ? (product.priceMinor / 100).toFixed(2) : "",
   );
+  // A discount past its last day opens empty: posted back as it was, it
+  // would be a new discount starting on a past day and refuse the whole
+  // save. The save clears it (withoutEndedDiscount, src/lib/shop/discount.ts,
+  // does the same for a form opened before the end). Its last day, or null.
+  const [endedDiscountDay] = useState(() => {
+    const end = product?.discountEndsAt;
+    return product &&
+      product.compareAtPriceMinor > 0 &&
+      typeof end === "string" &&
+      Date.parse(end) < Date.now()
+      ? istanbulDayOf(end)
+      : null;
+  });
   const [compareAtPrice, setCompareAtPrice] = useState(
-    product && product.compareAtPriceMinor > 0
+    product && product.compareAtPriceMinor > 0 && !endedDiscountDay
       ? (product.compareAtPriceMinor / 100).toFixed(2)
       : "",
   );
   // The discount's Istanbul days (Ticari Reklam Yön. m.14/1).
   const [discountStart, setDiscountStart] = useState(
-    istanbulDayOf(product?.discountStartsAt) ?? "",
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountStartsAt) ?? ""),
   );
   const [discountEnd, setDiscountEnd] = useState(
-    istanbulDayOf(product?.discountEndsAt) ?? "",
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountEndsAt) ?? ""),
   );
   const [cost, setCost] = useState(
     product && product.costMinor > 0
@@ -961,7 +974,11 @@ export function ProductWizard({
                   name={DISCOUNT_START_FIELD}
                   type="date"
                   value={discountStart}
-                  min={product?.discountStartsAt ? undefined : today}
+                  min={
+                    product?.discountStartsAt && !endedDiscountDay
+                      ? undefined
+                      : today
+                  }
                   onChange={(e) => setDiscountStart(e.target.value)}
                   required={compareMinor > 0}
                 />
@@ -984,6 +1001,12 @@ export function ProductWizard({
               </Field>
               {errorFor(DISCOUNT_END_FIELD)}
             </div>
+            {endedDiscountDay ? (
+              <p className="text-xs text-[var(--admin-text-soft)] sm:col-span-2">
+                Son indirim {menuPricesDateLabel(endedDiscountDay)} günü bitti;
+                eski fiyat artık gösterilmiyor, kaydedince silinir.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">

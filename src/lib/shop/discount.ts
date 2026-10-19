@@ -219,12 +219,16 @@ export interface DiscountCheck {
   /** The product's `product_price_history`, any order. */
   history: readonly PricePoint[];
   /** The stored product on an edit, null for a new one. */
-  stored: {
-    compareAtPriceMinor: number;
-    discountStartsAt?: string | null;
-    discountEndsAt?: string | null;
-  } | null;
+  stored: StoredDiscount | null;
   now: Date;
+}
+
+/** The stored row's price and discount, as an edit reads them. */
+export interface StoredDiscount {
+  priceMinor: number;
+  compareAtPriceMinor: number;
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
 }
 
 /**
@@ -269,11 +273,14 @@ export function discountShapeRefusal(c: {
  * (dates present, end after start, above the sale price) is the schema's
  * as well; this adds what needs the history and the stored row.
  *
- * A new discount (none stored, a different start, or the stored one over)
- * starts today: the price before it is the lowest of the ten days before
- * today, and a later start would let the lowered price apply, unmarked,
- * inside its own ten days. A running discount keeps its start, and the
- * price is checked against the same ten days again on every save.
+ * A new discount (none stored, a different start, or the stored one not
+ * live) starts today: the price before it is the lowest of the ten days
+ * before today, and a later start would let the lowered price apply,
+ * unmarked, inside its own ten days. A running discount keeps its start,
+ * and the price is checked against the same ten days again on every save.
+ * Running means live now, as the page shows it: a compare-at price stored
+ * beside a price it is not above was never on the page, so its start day
+ * names no day the discount ran.
  */
 export function discountRefusal(
   c: DiscountCheck,
@@ -289,15 +296,10 @@ export function discountRefusal(
   const stored = c.stored;
   const storedStart = istanbulDayOf(stored?.discountStartsAt);
   const storedEnd = istanbulDayOf(stored?.discountEndsAt);
-  const storedOver =
-    typeof stored?.discountEndsAt === "string" &&
-    Date.parse(stored.discountEndsAt) < c.now.getTime();
   const running =
     stored !== null &&
-    stored.compareAtPriceMinor > 0 &&
     storedStart === startDay &&
-    storedEnd !== null &&
-    !storedOver;
+    liveDiscount(stored, c.now) !== null;
   if (!running) {
     if (startDay < today) {
       return {
@@ -359,6 +361,43 @@ export function earliestStartDay(since: string): string | null {
     day = istanbulDayOf(istanbulDayStartIso(day, 1))!;
   }
   return day;
+}
+
+/** The compare-at price and the two days a product form posts. */
+export interface PostedDiscount {
+  compareAtPriceMinor: number;
+  startDay: string | null;
+  endDay: string | null;
+}
+
+/**
+ * The discount a product form posts, with an ended one let go. The form
+ * opens on the stored row, so after the last day it sends the old price
+ * and both days back as they were: that is a discount over, not a new one
+ * starting on a past day, and refusing it held every later save of the
+ * product (stock, text) behind "start it today". The save clears it
+ * instead. Any change to the three is a new discount, checked as one.
+ */
+export function withoutEndedDiscount(
+  posted: PostedDiscount,
+  stored: StoredDiscount | null,
+  now: Date,
+): PostedDiscount {
+  const endsAt = stored?.discountEndsAt;
+  const over =
+    stored !== null &&
+    stored.compareAtPriceMinor > 0 &&
+    typeof endsAt === "string" &&
+    Date.parse(endsAt) < now.getTime();
+  if (
+    over &&
+    posted.compareAtPriceMinor === stored.compareAtPriceMinor &&
+    posted.startDay === istanbulDayOf(stored.discountStartsAt) &&
+    posted.endDay === istanbulDayOf(endsAt)
+  ) {
+    return { compareAtPriceMinor: 0, startDay: null, endDay: null };
+  }
+  return posted;
 }
 
 /** The stored instants for the panel's two days, or nulls without a discount. */

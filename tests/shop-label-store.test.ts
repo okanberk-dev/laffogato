@@ -15,6 +15,8 @@ import type { AdminProduct, ProductInput } from "@/lib/admin/store";
 const seen: { text: string; params: readonly unknown[] }[] = [];
 let productRows: Record<string, unknown>[] = [];
 let historyRows: Record<string, unknown>[] = [];
+const SAVED_ANSWER = { stockBefore: 5, stockAfter: 5, variants: [], moves: 0 };
+let variantsAnswer: Record<string, unknown> = SAVED_ANSWER;
 
 const exec: Executor = async ({ text, params }) => {
   seen.push({ text, params });
@@ -23,12 +25,7 @@ const exec: Executor = async ({ text, params }) => {
     return { rows: [{ result: 41 }], rowCount: 1 };
   }
   if (/^SELECT "save_product_variants"\(/.test(text)) {
-    return {
-      rows: [
-        { result: { stockBefore: 5, stockAfter: 5, variants: [], moves: 0 } },
-      ],
-      rowCount: 1,
-    };
+    return { rows: [{ result: variantsAnswer }], rowCount: 1 };
   }
   if (/FROM "product_price_history"/.test(text)) {
     return { rows: historyRows, rowCount: historyRows.length };
@@ -96,6 +93,21 @@ function updateSql(): { text: string; params: readonly unknown[] } | undefined {
   return seen.find((q) => /^UPDATE "products"/.test(q.text));
 }
 
+/** The UPDATE that writes `column`, and where it ran among the queries. */
+function writeOf(column: string) {
+  const at = seen.findIndex(
+    (q) =>
+      /^UPDATE "products"/.test(q.text) && q.text.includes(`"${column}" =`),
+  );
+  return at === -1 ? undefined : { at, q: seen[at] };
+}
+
+function rpcAt(): number {
+  return seen.findIndex((q) =>
+    q.text.startsWith('SELECT "save_product_variants"('),
+  );
+}
+
 /** The value an UPDATE binds to a column. */
 function boundTo(
   q: { text: string; params: readonly unknown[] },
@@ -107,6 +119,7 @@ function boundTo(
 
 beforeEach(() => {
   seen.length = 0;
+  variantsAnswer = SAVED_ANSWER;
   productRows = [{ ...STORED }];
   historyRows = [{ priceMinor: 99_900, startedAt: "2026-09-01T09:00:00.000Z" }];
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -147,10 +160,86 @@ describe("updateProduct: the compare-at price is checked before any write", () =
       }),
     );
     expect(saved && "discountRefusal" in saved).toBe(false);
-    const q = updateSql()!;
+    const { q, at } = writeOf("compareAtPriceMinor")!;
     expect(boundTo(q, "compareAtPriceMinor")).toBe(99_900);
     expect(boundTo(q, "discountStartsAt")).toBe("2026-10-18T21:00:00.000Z");
     expect(boundTo(q, "discountEndsAt")).toBe("2026-10-31T20:59:59.999Z");
+    // With the price, after it: the price the history checked it against.
+    expect(at).toBeGreaterThan(rpcAt());
+    expect(saved).toMatchObject({
+      compareAtPriceMinor: 99_900,
+      discountStartsAt: "2026-10-18T21:00:00.000Z",
+    });
+  });
+
+  it("keeps the discount out of a save whose price and stock are refused", async () => {
+    // Orders came in while the form was open: price and stock stay as
+    // stored, and so does the discount checked against the new price.
+    variantsAnswer = {
+      error: "negative",
+      stock: 2,
+      variants: [],
+      applied: false,
+    };
+    const saved = await store.updateProduct(
+      "prd-0008",
+      input({
+        priceMinor: 75_000,
+        compareAtPriceMinor: 99_900,
+        discountStartsOn: "2026-10-19",
+        discountEndsOn: "2026-10-31",
+        desc: "Yeni açıklama",
+      }),
+    );
+    expect(saved && "refusal" in saved && saved.refusal.field).toBe("stock");
+    expect(writeOf("compareAtPriceMinor")).toBeUndefined();
+    expect(writeOf("discountStartsAt")).toBeUndefined();
+    // The rest of the form is written, as the answer says.
+    expect(boundTo(updateSql()!, "desc")).toBe("Yeni açıklama");
+  });
+
+  it("clears an ended discount the form sends back unchanged, and saves the rest", async () => {
+    // 1-10 Oct at 750 TL; on 19 Oct the operator tops up the text. The form
+    // opened on the stored row and posts the old price and days again.
+    productRows = [
+      {
+        ...STORED,
+        priceMinor: 75_000,
+        compareAtPriceMinor: 99_900,
+        discountStartsAt: "2026-09-30T21:00:00.000Z",
+        discountEndsAt: "2026-10-10T20:59:59.999Z",
+      },
+    ];
+    const resent = {
+      priceMinor: 75_000,
+      compareAtPriceMinor: 99_900,
+      discountStartsOn: "2026-10-01",
+      discountEndsOn: "2026-10-10",
+    };
+    const saved = await store.updateProduct(
+      "prd-0008",
+      input({ ...resent, desc: "Yeni açıklama" }),
+    );
+    expect(saved && "discountRefusal" in saved).toBe(false);
+    const { q, at } = writeOf("compareAtPriceMinor")!;
+    expect(at).toBeLessThan(rpcAt());
+    expect(boundTo(q, "compareAtPriceMinor")).toBe(0);
+    expect(boundTo(q, "discountStartsAt")).toBeNull();
+    expect(boundTo(q, "discountEndsAt")).toBeNull();
+    expect(boundTo(q, "desc")).toBe("Yeni açıklama");
+    expect(seen.some((x) => /FROM "product_price_history"/.test(x.text))).toBe(
+      false,
+    );
+    // Lengthened, it is a new discount on a past day: refused, as before.
+    seen.length = 0;
+    const longer = await store.updateProduct(
+      "prd-0008",
+      input({ ...resent, discountEndsOn: "2026-10-31" }),
+    );
+    expect(
+      longer && "discountRefusal" in longer && longer.discountRefusal.field,
+    ).toBe("discountStartsOn");
+    expect(updateSql()).toBeUndefined();
   });
 
   it("clears the days with the compare-at price, without reading the history", async () => {

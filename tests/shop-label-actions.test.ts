@@ -1,6 +1,6 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import type { AdminCategory, AdminProduct } from "@/lib/admin/store";
 
@@ -253,6 +253,41 @@ describe("the compare-at price on the save", () => {
   });
 });
 
+describe("the audit row of a saved discount", () => {
+  it("records the discount the store wrote, not the one the form sent", async () => {
+    // The form sent the ended 1-10 Oct discount back; the save cleared it.
+    h.store.getProduct.mockResolvedValue(STORED);
+    h.store.updateProduct.mockResolvedValue({
+      ...STORED,
+      compareAtPriceMinor: 0,
+      discountStartsAt: null,
+      discountEndsAt: null,
+    });
+    await expect(
+      products.updateProductAction(
+        "prd-0011",
+        {},
+        form({
+          ...VALID,
+          compareAtPrice: "240",
+          discountStartsOn: "2026-10-01",
+          discountEndsOn: "2026-10-10",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    const payload = (
+      h.logAudit.mock.calls[0] as unknown as [
+        { payload: Record<string, unknown> },
+      ]
+    )[0].payload;
+    expect(payload).toMatchObject({
+      compareAtPriceMinor: 0,
+      discountStartsOn: null,
+      discountEndsOn: null,
+    });
+  });
+});
+
 describe("the wizard", () => {
   const CATEGORIES: AdminCategory[] = [
     { id: "c1", slug: "pantry", label: "Kiler", icon: "", sortOrder: 0 },
@@ -289,7 +324,31 @@ describe("the wizard", () => {
     expect(out).toMatch(/<input type="hidden" name="tags" value="nuts"/);
   });
 
+  it("opens an ended discount empty and says when it ended", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-19T12:00:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const out = html({
+      ...STORED,
+      priceMinor: 75_000,
+      compareAtPriceMinor: 99_900,
+      discountStartsAt: "2026-09-30T21:00:00.000Z",
+      discountEndsAt: "2026-10-10T20:59:59.999Z",
+    });
+    expect(out).not.toContain('value="999.00"');
+    expect(out).not.toContain('value="2026-10-01"');
+    expect(out).not.toContain('value="2026-10-10"');
+    expect(out).toContain("Son indirim 10 Ekim 2026 günü bitti");
+  });
+
   it("asks for both discount days and shows the stored ones", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-19T12:00:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const out = html({
       ...STORED,
       priceMinor: 75_000,

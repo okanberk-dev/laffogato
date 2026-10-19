@@ -25,6 +25,7 @@ import {
   earliestStartDay,
   liveCompareAtMinor,
   lowestPriceIn,
+  withoutEndedDiscount,
   type DiscountCheck,
 } from "@/lib/shop/discount";
 
@@ -55,6 +56,7 @@ function check(over: Partial<DiscountCheck> = {}): DiscountCheck {
     hasPricedVariants: false,
     history: HISTORY,
     stored: {
+      priceMinor: 99_900,
       compareAtPriceMinor: 0,
       discountStartsAt: null,
       discountEndsAt: null,
@@ -146,6 +148,7 @@ describe("the save: a compare-at price is the lowest of the ten days before", ()
 
   it("lets a running discount be saved again with its own start", () => {
     const stored = {
+      priceMinor: 75_000,
       compareAtPriceMinor: 99_900,
       ...discountInstants(99_900, "2026-10-14", "2026-10-31"),
     };
@@ -163,6 +166,7 @@ describe("the save: a compare-at price is the lowest of the ten days before", ()
     ).toBe(DISCOUNT_START_PAST_ERROR);
     // Once it is over, the same days are a new discount too.
     const over = {
+      priceMinor: 75_000,
       compareAtPriceMinor: 99_900,
       ...discountInstants(99_900, "2026-10-01", "2026-10-10"),
     };
@@ -171,6 +175,68 @@ describe("the save: a compare-at price is the lowest of the ten days before", ()
         check({ startDay: "2026-10-01", endDay: "2026-10-31", stored: over }),
       )?.message,
     ).toBe(DISCOUNT_START_PAST_ERROR);
+  });
+
+  it("counts a stored discount as running only if it was live", () => {
+    // 19 Oct: the save meant to lower 999 to 750 with the badge from today,
+    // but orders came in while the form was open, so the price stayed 999
+    // (the stock refusal). Had the compare-at price and the day been kept,
+    // the 22 Oct save would have printed "İndirim 19 Ekim -" for days the
+    // price was 999.
+    const neverShown = {
+      priceMinor: 99_900,
+      compareAtPriceMinor: 99_900,
+      ...discountInstants(99_900, "2026-10-19", "2026-10-31"),
+    };
+    const on22 = new Date("2026-10-22T09:00:00.000Z");
+    expect(
+      discountRefusal(
+        check({ stored: neverShown, startDay: "2026-10-19", now: on22 }),
+      ),
+    ).toEqual({
+      field: "discountStartsOn",
+      message: DISCOUNT_START_PAST_ERROR,
+    });
+    const history = [
+      { priceMinor: 99_900, startedAt: "2026-09-01T09:00:00.000Z" },
+    ];
+    expect(
+      discountRefusal(
+        check({
+          stored: neverShown,
+          startDay: "2026-10-22",
+          now: on22,
+          history,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("lets an ended discount sent back unchanged go, and checks any change", () => {
+    const ended = {
+      priceMinor: 75_000,
+      compareAtPriceMinor: 99_900,
+      ...discountInstants(99_900, "2026-10-01", "2026-10-10"),
+    };
+    const resent = {
+      compareAtPriceMinor: 99_900,
+      startDay: "2026-10-01",
+      endDay: "2026-10-10",
+    };
+    expect(withoutEndedDiscount(resent, ended, NOW)).toEqual({
+      compareAtPriceMinor: 0,
+      startDay: null,
+      endDay: null,
+    });
+    // A longer end, another price or a running discount: as posted.
+    const longer = { ...resent, endDay: "2026-10-31" };
+    expect(withoutEndedDiscount(longer, ended, NOW)).toBe(longer);
+    const other = { ...resent, compareAtPriceMinor: 89_900 };
+    expect(withoutEndedDiscount(other, ended, NOW)).toBe(other);
+    expect(
+      withoutEndedDiscount(resent, ended, new Date("2026-10-10T12:00:00.000Z")),
+    ).toBe(resent);
+    expect(withoutEndedDiscount(resent, null, NOW)).toBe(resent);
   });
 
   it("refuses a compare-at price not above the price, and beside priced variants", () => {

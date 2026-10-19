@@ -75,6 +75,7 @@ import {
   discountInstants,
   discountRefusal,
   liveDiscount,
+  withoutEndedDiscount,
   type PricePoint,
 } from "@/lib/shop/discount";
 import {
@@ -1474,23 +1475,44 @@ export async function updateProduct(
   if (!existing) return null;
   // The compare-at price is checked before anything is written: it must be
   // the lowest online price of the ten days before its start, so the
-  // history decides, and a refusal leaves the whole row as stored.
-  const startDay = input.discountStartsOn ?? null;
-  const endDay = input.discountEndsOn ?? null;
+  // history decides, and a refusal leaves the whole row as stored. An
+  // ended discount the form sends back unchanged is cleared, not refused.
+  const now = new Date();
+  const posted = withoutEndedDiscount(
+    {
+      compareAtPriceMinor: input.compareAtPriceMinor,
+      startDay: input.discountStartsOn ?? null,
+      endDay: input.discountEndsOn ?? null,
+    },
+    existing,
+    now,
+  );
   const discount = discountRefusal({
     priceMinor: input.priceMinor,
-    compareAtPriceMinor: input.compareAtPriceMinor,
-    startDay,
-    endDay,
+    ...posted,
     hasPricedVariants: input.variants.some(
       (v) => v.isActive && v.priceDeltaMinor !== 0,
     ),
     history:
-      input.compareAtPriceMinor > 0 ? await listProductPriceHistory(id) : [],
+      posted.compareAtPriceMinor > 0 ? await listProductPriceHistory(id) : [],
     stored: existing,
-    now: new Date(),
+    now,
   });
   if (discount) return { discountRefusal: discount };
+  // The discount was checked against this save's price, so it is written
+  // with the price, after it: a save whose price and stock are refused
+  // below (orders came in) keeps the stored discount, never a compare-at
+  // price and a start day beside a price they were not checked against.
+  // Ending one is written at once: dropping a badge misleads no one.
+  const discountColumns = {
+    compareAtPriceMinor: posted.compareAtPriceMinor,
+    ...discountInstants(
+      posted.compareAtPriceMinor,
+      posted.startDay,
+      posted.endDay,
+    ),
+  };
+  const discountLater = posted.compareAtPriceMinor > 0;
   const slug = await uniqueSlug(
     input.slug || slugify(input.name) || existing.slug,
     id,
@@ -1504,11 +1526,12 @@ export async function updateProduct(
     stockFromVariants,
     discountStartsOn: _start,
     discountEndsOn: _end,
+    compareAtPriceMinor: _compare,
     ...rest
   } = input;
   const fields = {
     ...rest,
-    ...discountInstants(input.compareAtPriceMinor, startDay, endDay),
+    ...(discountLater ? {} : discountColumns),
     // Only the label fields the form sent: an absent one keeps the stored
     // text, like `taxRatePct` below.
     ...Object.fromEntries(
@@ -1612,9 +1635,21 @@ export async function updateProduct(
       },
     };
   }
+  if (discountLater) {
+    const kept = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update(discountColumns)
+        .eq("id", id)
+        .select("id"),
+      "updateProduct.discount",
+    );
+    if (kept.length === 0) return null;
+  }
   return {
     ...existing,
     ...(patch as Partial<AdminProduct>),
+    ...discountColumns,
     priceMinor: input.priceMinor,
     stock: answer.stockAfter,
     variants: answer.variants,

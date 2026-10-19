@@ -2766,7 +2766,13 @@ Ayrı PR'ın notları:
 - Yeni indirim bugün başlar: ileri tarihli başlangıçta düşürülen fiyat
   rozetsiz uygulanır ve kendi 10 gününe girer, geriye tarihli başlangıç da
   olmayan bir indirim günü ilan eder. Süren indirim kendi başlangıcıyla
-  yeniden kaydedilebilir.
+  yeniden kaydedilebilir; süren, şu an sayfada görünen indirimdir. Eski
+  fiyat fiyatla birlikte yazılır: stok reddiyle fiyatı yazılmayan kayıt
+  eski fiyatı ve başlangıç gününü de yazmaz (yazsaydı sonraki kayıt,
+  fiyatın düşmediği günleri indirim günü diye gösterirdi). Biten indirim
+  formda boş açılır; bitmeden açılmış bir formdan aynen geri gelirse kayıt
+  onu siler ve ürünün öteki alanlarını yazar (her indirim bittiği için
+  aksi, ürünün her sonraki kaydını reddederdi).
 - Fiyat farkı olan varyantı bulunan üründe eski fiyat reddedilir: geçmiş
   ürün fiyatını tutar, varyantınkini değil.
 - Tarihsiz, tarih aralığı dışındaki ya da satış fiyatından yüksek olmayan

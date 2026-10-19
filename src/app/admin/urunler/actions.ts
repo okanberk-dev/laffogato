@@ -31,7 +31,7 @@ import {
 } from "@/lib/admin/store";
 import { sceneColumns } from "@/lib/backdrop/scene";
 import type { MenuAllergen } from "@/lib/menu/allergens";
-import { discountRefusal } from "@/lib/shop/discount";
+import { discountRefusal, istanbulDayOf } from "@/lib/shop/discount";
 import { FOOD_LABEL_KEYS } from "@/lib/shop/food-label";
 
 function revalidateShop() {
@@ -294,9 +294,11 @@ export async function updateProductAction(
       taxRatePct: parsed.data.taxRatePct,
       // The discount as saved: the record of what the page shows and from
       // when (the seller proves the price before it, Fiyat Etiketi m.11/1).
-      compareAtPriceMinor: parsed.data.compareAtPriceMinor,
-      discountStartsOn: parsed.data.discountStartsOn,
-      discountEndsOn: parsed.data.discountEndsOn,
+      // Read from the row written, not the form: an ended discount sent
+      // back unchanged is cleared by the save.
+      compareAtPriceMinor: saved.compareAtPriceMinor,
+      discountStartsOn: istanbulDayOf(saved.discountStartsAt),
+      discountEndsOn: istanbulDayOf(saved.discountEndsAt),
       ...(form.allergens === undefined ? {} : { allergens: form.allergens }),
     },
   });
