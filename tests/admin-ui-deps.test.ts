@@ -171,6 +171,18 @@ describe("admin UI libraries: pins and the lockfile", () => {
     }
   });
 
+  it("react-aria-components is a runtime dependency at 1.21.1, its own halves at the versions it pins", () => {
+    // The palette (UI-6) brings it. 1.21.1 is from 4 Sep 2026; it pins
+    // react-aria 3.52.1 and react-stately 3.50.0 exactly, so a second copy
+    // of either would mean a second widget runtime in the chunk.
+    expect(pkg.dependencies[RAC]).toBe("1.21.1");
+    expect(lockVersions("react-aria")).toEqual(["3.52.1"]);
+    expect(lockVersions("react-stately")).toEqual(["3.50.0"]);
+    // The date package rides in as React Aria's dependency, one copy at the
+    // version design §1.3 pins for UI-14, before any file imports it.
+    expect(lockVersions(DATE)).toEqual(["3.12.4"]);
+  });
+
   it("the lockfile holds one copy of each, at the pinned version", () => {
     for (const name of UI_LIBRARIES) {
       const range = declared(name);
