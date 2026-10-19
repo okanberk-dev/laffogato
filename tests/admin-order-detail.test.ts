@@ -193,14 +193,9 @@ describe("the printed receipt", () => {
         method,
       ).toBe(AT_TILL);
     }
-    for (const method of ["havale", "diger"]) {
-      expect(
-        fiscalLine(manual, [
-          { provider: `manual:${method}`, status: "succeeded" },
-        ]),
-        method,
-      ).toBe(BY_MAIL);
-    }
+    expect(
+      fiscalLine(manual, [{ provider: "manual:havale", status: "succeeded" }]),
+    ).toBe(BY_MAIL);
   });
 
   it("promises nothing it cannot tell", () => {
@@ -219,6 +214,14 @@ describe("the printed receipt", () => {
     // A manual order marked paid before the method was recorded (ORD-19):
     // cash and transfer look the same.
     expect(fiscalLine(manual)).toBe(NOT_FISCAL);
+    // "Diğer" names no method: it may be a counter sale whose fiş is the
+    // fiscal document, and no invoice e-mail would ever come.
+    for (const over of [manual, { channel: "web" as const }]) {
+      expect(
+        fiscalLine(over, [{ provider: "manual:diger", status: "succeeded" }]),
+        JSON.stringify(over),
+      ).toBe(NOT_FISCAL);
+    }
   });
 
   it("reads the order page's own payment rows", () => {

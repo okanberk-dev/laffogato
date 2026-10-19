@@ -2767,7 +2767,7 @@ Ayrı PR'ın notları:
 | Şirket Bilgileri §2, tablo (iki yeni satır) | (yoktu) | "Kayıtlı olunan meslek odası": `{{CHAMBER}}`; "Meslek odasının davranış kuralları": `{{CHAMBER_RULES_URL}}`. İkisi de boş: satırlar basılmaz (§23.5) |
 | Şirket Bilgileri §9, belge tablosu (yeni satır) | (yoktu) | "İşlem Rehberi": /hukuk/islem-rehberi |
 | Site altı, Yasal sütunu | (yoktu) | İşlem rehberi (yedinci bağlantı, İptal, İade & Cayma'nın ardından) |
-| Panel, yazdırılan sipariş fişi | Bu fiş mali belge değildir. | İnternetten ödenen siparişte ve manuel siparişte havale ya da "Diğer" ödemede: "Bu fiş mali belge değildir. Faturan elektronik olarak e-postana gönderilir." Manuel siparişte nakit ya da kasadaki kart cihazında: "Bu fiş mali belge değildir. Mali belgen kasadan verilen fiştir." Ödenmemiş siparişte, e-postasız siparişte ve ödeme yolu kayıtlı olmayan manuel siparişte yalnız ilk cümle. |
+| Panel, yazdırılan sipariş fişi | Bu fiş mali belge değildir. | İnternetten ödenen siparişte ve havale ile ödenen manuel siparişte: "Bu fiş mali belge değildir. Faturan elektronik olarak e-postana gönderilir." Manuel siparişte nakit ya da kasadaki kart cihazında: "Bu fiş mali belge değildir. Mali belgen kasadan verilen fiştir." Ödenmemiş siparişte, e-postasız siparişte, ödeme yolu kayıtlı olmayan manuel siparişte ve "Diğer" ödemede (yol bilinmiyor, kasa fişi de olabilir) yalnız ilk cümle. |
 
 ### 23.3 Yeni belge: İşlem Rehberi (`/hukuk/islem-rehberi`)
 

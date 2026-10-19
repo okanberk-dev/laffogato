@@ -919,11 +919,13 @@ export function OrderDetail({
  * The receipt's second fiscal sentence: where the customer's fiscal
  * document comes from (legal decision ASK-INVOICE, X-FIS). The company
  * issues its invoices electronically and sends them by e-mail (operator, 19
- * Eki 2026), so an order paid online, by transfer or "Diğer" says so; one
- * taken in cash or on the counter's card terminal gets the till's ÖKC fişi
- * (VUK m.233) instead. Null while unpaid, without an e-mail on the order, or
- * for a manual order with no recorded method (rows from before ORD-19): the
- * receipt then says only that it is not a fiscal document.
+ * Eki 2026), so an order paid online or by transfer says so; one taken in
+ * cash or on the counter's card terminal gets the till's ÖKC fişi (VUK
+ * m.233) instead. Null while unpaid, without an e-mail on the order, for a
+ * manual order with no recorded method (rows from before ORD-19) and for
+ * "Diğer": a method the panel does not name may well be a counter sale with
+ * its own fiş, and the receipt must not promise an e-mail that never comes.
+ * The receipt then says only that it is not a fiscal document.
  */
 export function receiptInvoiceNote(
   order: Pick<AdminOrder, "paidAt" | "customerEmail" | "source">,
@@ -936,11 +938,13 @@ export function receiptInvoiceNote(
   if (manual.some((m) => m === "nakit" || m === "kart")) {
     return "Mali belgen kasadan verilen fiştir.";
   }
-  if (paid.length === 0) {
-    // Not paid, or a manual order marked paid with no payment row to say
-    // how: only a web or app order's paidAt means an online payment.
-    if (!order.paidAt || order.source === "manual") return null;
-  }
+  // Online: a POS or wallet row, or a web or app order's paidAt with no row
+  // (a total brought to zero). A manual order marked paid with no row says
+  // nothing about how it was paid.
+  const online =
+    paid.some((p) => !isManualProvider(p.provider)) ||
+    (paid.length === 0 && !!order.paidAt && order.source !== "manual");
+  if (!online && !manual.includes("havale")) return null;
   if (!order.customerEmail?.trim()) return null;
   return "Faturan elektronik olarak e-postana gönderilir.";
 }
