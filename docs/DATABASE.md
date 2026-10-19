@@ -324,8 +324,8 @@ pg_dump "$DATABASE_URL" > backup-$(date +%F).sql
 ## Panel: 2FA'lı telefon kaybolursa
 
 İki adımlı doğrulamayı panelden kapatmak o telefondaki kodu ister. Telefonu
-kaybeden kullanıcının 2FA'sını sahip Kullanıcılar sayfasından sıfırlar
-("2FA'yı sıfırla"); kendi hesabını ve ortam değişkeni (acil durum) hesabını
+kaybeden kullanıcının 2FA'sını sahip Kullanıcılar'da o hesabın sayfasından
+sıfırlar ("2FA'yı sıfırla"); kendi hesabını ve ortam değişkeni (acil durum) hesabını
 oradan sıfırlayamaz. Tek sahip telefonunu kaybederse ya da ortam değişkeni
 hesabı 2FA kurmuşsa yol veritabanıdır:
 

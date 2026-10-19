@@ -3,6 +3,12 @@
 import { useActionState, useState } from "react";
 
 import {
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "@/components/admin/action-form";
+import { FormError, FormSuccess } from "@/components/admin/form-feedback";
+import {
   Card,
   Field,
   PrimaryButton,
@@ -71,7 +77,14 @@ export function CampaignMailForm({
   submitLabel: string;
   appLinksReady?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
+  // Posted by hand, and a throw is an answer: the old `<form action>` sent a
+  // second click while the first was still saving, and a database hiccup
+  // replaced the whole composer with the error page.
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const post = useHandPost(formAction, pending);
   const [template, setTemplate] = useState<CampaignTemplateName>(
     defaults?.template ?? "kampanya-duyuru",
   );
@@ -97,7 +110,7 @@ export function CampaignMailForm({
   const membersOnly = audiences.length === 1;
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form action={post.action} onSubmit={post.onSubmit} className="grid gap-4">
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
@@ -134,7 +147,7 @@ export function CampaignMailForm({
               })}
             </Select>
             {!campaignMailTemplateAvailable(template, appLinksReady) && (
-              <p className="mt-2 text-xs text-amber-700">
+              <p className="mt-2 text-xs text-[var(--admin-warning)]">
                 {CAMPAIGN_MAIL_APP_LINKS_MISSING}
               </p>
             )}
@@ -184,7 +197,7 @@ export function CampaignMailForm({
             />
           </Field>
           {scheduledAt && (
-            <p className="mt-2 text-xs text-amber-700">
+            <p className="mt-2 text-xs text-[var(--admin-warning)]">
               Zamanı geldikten sonra birkaç saat içinde kampanya{" "}
               <strong>kendiliğinden</strong> gider; içeriğin tamam olduğundan
               emin ol. Vazgeçersen bu alanı boşaltıp taslağı yeniden kaydet.
@@ -195,7 +208,7 @@ export function CampaignMailForm({
 
       {!campaignMailHasFields(template) && (
         <Card>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-neutral-500 uppercase">
+          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
             Sabit metin
           </h3>
           <p className="text-xs text-[var(--admin-text-mute)]">
@@ -208,7 +221,7 @@ export function CampaignMailForm({
 
       {CAMPAIGN_MAIL_GROUPS[template].map((group) => (
         <Card key={`${template}:${group.title}`}>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-neutral-500 uppercase">
+          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
             {group.title}
           </h3>
           {group.hint && (
@@ -229,24 +242,31 @@ export function CampaignMailForm({
         </Card>
       ))}
 
-      <div className="sticky bottom-4 flex flex-wrap items-center gap-3">
-        <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Kaydediliyor…" : submitLabel}
-        </PrimaryButton>
-        {state.message && (
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm text-emerald-700">
-            {state.message}
-          </span>
-        )}
-        {state.error && (
-          <span className="rounded-full bg-red-50 px-3 py-1 text-sm text-red-700">
-            {state.error}
-          </span>
-        )}
-        <span className="text-xs text-[var(--admin-text-mute)]">
-          * işaretli alanlar bu şablonda zorunludur; eksik kalırsa
-          &ldquo;Gönder&rdquo; alanın adıyla reddeder.
-        </span>
+      {/* Out of the sticky bar: loose text there was printed across the
+          next field's label while the composer scrolled under it. */}
+      <p className="text-xs text-[var(--admin-text-mute)]">
+        * işaretli alanlar bu şablonda zorunludur; eksik kalırsa
+        &ldquo;Gönder&rdquo; alanın adıyla reddeder.
+      </p>
+
+      {/* The save bar has a ground of its own (admin audit PEO-12), as the
+          site-text form's: without one, the fields scrolled visibly under
+          the button and the answer pill, a quarter of a phone screen. The
+          answer is a block with its role, not a pill. */}
+      <div
+        data-sticky-save-bar
+        className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(44,29,17,0.14)] sm:flex-row sm:items-center"
+      >
+        <div className="shrink-0">
+          <PrimaryButton type="submit" disabled={pending}>
+            {pending ? "Kaydediliyor…" : submitLabel}
+          </PrimaryButton>
+        </div>
+        {/* Beside the button from sm up, so the bar stays one row tall. */}
+        <div className="min-w-0 flex-1 empty:hidden">
+          <FormError message={state.error} />
+          <FormSuccess message={state.error ? undefined : state.message} />
+        </div>
       </div>
     </form>
   );

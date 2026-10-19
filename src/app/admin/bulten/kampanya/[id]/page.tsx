@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
+import { CampaignSendLog } from "@/components/admin/campaign-send-log";
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { campaignAudienceCount } from "@/lib/admin/campaign-mail";
 import {
@@ -23,8 +26,6 @@ import {
   sendCampaignMailTestAction,
   updateCampaignMailAction,
 } from "../actions";
-import { CampaignSendLog } from "@/components/admin/campaign-send-log";
-
 import { CampaignSendForm, CampaignTestForm } from "../campaign-mail-controls";
 import { CampaignMailForm } from "../campaign-mail-form";
 import {
@@ -34,6 +35,12 @@ import {
 } from "../campaign-status";
 
 export const metadata = { title: "Admin · Kampanya e-postası" };
+
+const LIST_PATH = "/admin/bulten/kampanya";
+const DT = "text-[var(--admin-text-soft)]";
+const NOTE = "mt-3 text-xs text-[var(--admin-text-soft)]";
+const TEXT_LINK =
+  "text-[var(--admin-primary)] underline underline-offset-4 hover:text-[var(--admin-primary-hover)]";
 export const dynamic = "force-dynamic";
 // Hosts "Gönder": the Server Actions on this page get the route's max
 // duration, and `after()` keeps sending batches inside it (240 s, then cron).
@@ -59,11 +66,14 @@ async function preview(
 
 export default async function CampaignMailDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const session = await requireRole("newsletter");
   const { id } = await params;
+  const sp = (await searchParams) ?? {};
   const c = await getCampaignEmail(id);
   if (!c) notFound();
 
@@ -80,18 +90,11 @@ export default async function CampaignMailDetailPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink href={LIST_PATH}>Kampanyalar</BackLink>
       <PageHeader
         eyebrow="Pazarlama · Kampanya e-postası"
         title={c.subject || "Kampanya"}
         description={`${templateLabel} · ${audienceLabel}`}
-        action={
-          <Link
-            href="/admin/bulten/kampanya"
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 text-sm text-[var(--admin-text-soft)] sm:w-auto"
-          >
-            ← Kampanyalar
-          </Link>
-        }
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px] lg:items-start">
@@ -116,10 +119,7 @@ export default async function CampaignMailDetailPage({
         <aside className="grid gap-4 lg:sticky lg:top-6">
           <Card>
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2
-                className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                style={{ fontFamily: "var(--mono), monospace" }}
-              >
+              <h2 className={EYEBROW} style={MONO_STYLE}>
                 Durum
               </h2>
               <CampaignStatusPill status={c.status} />
@@ -127,44 +127,44 @@ export default async function CampaignMailDetailPage({
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
               {!isDraft && (
                 <>
-                  <dt className="text-neutral-500">Alıcı</dt>
+                  <dt className={DT}>Alıcı</dt>
                   <dd>{c.total}</dd>
-                  <dt className="text-neutral-500">Gönderildi</dt>
+                  <dt className={DT}>Gönderildi</dt>
                   <dd>{c.sentCount}</dd>
-                  <dt className="text-neutral-500">Başarısız</dt>
+                  <dt className={DT}>Başarısız</dt>
                   <dd>{c.failedCount}</dd>
                 </>
               )}
               {isDraft && c.scheduledAt && (
                 <>
-                  <dt className="text-neutral-500">Zamanlandı</dt>
+                  <dt className={DT}>Zamanlandı</dt>
                   <dd>{formatDateTime(c.scheduledAt)}</dd>
                 </>
               )}
               {c.queuedAt && (
                 <>
-                  <dt className="text-neutral-500">Kuyruk</dt>
+                  <dt className={DT}>Kuyruk</dt>
                   <dd>{formatDateTime(c.queuedAt)}</dd>
                 </>
               )}
               {c.sentAt && (
                 <>
-                  <dt className="text-neutral-500">Bitti</dt>
+                  <dt className={DT}>Bitti</dt>
                   <dd>{formatDateTime(c.sentAt)}</dd>
                 </>
               )}
-              <dt className="text-neutral-500">Oluşturan</dt>
+              <dt className={DT}>Oluşturan</dt>
               <dd className="truncate">
                 {c.createdBy || "-"}
                 {c.createdAt ? ` · ${formatDateTime(c.createdAt)}` : ""}
               </dd>
               {c.sourcePostId && (
                 <>
-                  <dt className="text-neutral-500">Kaynak</dt>
+                  <dt className={DT}>Kaynak</dt>
                   <dd>
                     <Link
                       href={`/admin/mobil/gonderiler/${c.sourcePostId}`}
-                      className="underline"
+                      className={TEXT_LINK}
                     >
                       Mobil gönderi
                     </Link>
@@ -173,17 +173,22 @@ export default async function CampaignMailDetailPage({
               )}
             </dl>
             {c.lastError && (
-              <p className="mt-3 text-xs text-red-600">{c.lastError}</p>
+              <p
+                role="alert"
+                className="mt-3 text-xs text-[var(--admin-danger-ink)]"
+              >
+                {c.lastError}
+              </p>
             )}
             {isDraft && c.scheduledAt && (
-              <p className="mt-3 text-xs text-neutral-500">
+              <p className={NOTE}>
                 Bu taslak zamanı geldikten sonraki ilk görev turunda (genelde
                 birkaç saat içinde) kendiliğinden kuyruğa alınır. Beklemek
                 istemezsen aşağıdan şimdi gönderebilirsin.
               </p>
             )}
             {resumable && (
-              <p className="mt-3 text-xs text-neutral-500">
+              <p className={NOTE}>
                 Gönderim sürüyor ya da yarım kaldı; kalan partileri günlük görev
                 tamamlar. Beklemek istemezsen aşağıdan sürdür - kimse iki kez
                 almaz.
@@ -192,13 +197,10 @@ export default async function CampaignMailDetailPage({
           </Card>
 
           <Card>
-            <h2
-              className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
+            <h2 className={`mb-3 ${EYEBROW}`} style={MONO_STYLE}>
               Test
             </h2>
-            <p className="mb-3 text-xs text-neutral-500">
+            <p className="mb-3 text-xs text-[var(--admin-text-soft)]">
               Gerçek bir e-posta; AD &ldquo;Test&rdquo; olur, çıkış bağlantısı
               sahtedir, gönderim defterine yazılmaz.
             </p>
@@ -210,14 +212,11 @@ export default async function CampaignMailDetailPage({
 
           {(sendable || resumable) && (
             <Card>
-              <h2
-                className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                style={{ fontFamily: "var(--mono), monospace" }}
-              >
+              <h2 className={`mb-3 ${EYEBROW}`} style={MONO_STYLE}>
                 Gönderim
               </h2>
               <p className="mb-1 text-sm">{audienceLabel}</p>
-              <p className="mb-3 text-xs text-neutral-500">
+              <p className="mb-3 text-xs text-[var(--admin-text-soft)]">
                 {count === null
                   ? "Kitle şu an sayılamadı."
                   : `Şu an ${count} adres. Kuyruğa alınırken yeniden sayılır.`}
@@ -238,7 +237,7 @@ export default async function CampaignMailDetailPage({
                 }
               />
               {isDraft && (
-                <p className="mt-3 text-xs text-neutral-500">
+                <p className={NOTE}>
                   Kaydedilmemiş değişiklik varsa önce &ldquo;Taslağı
                   kaydet&rdquo;. Kuyruğa alınan kampanya bir daha düzenlenemez.
                 </p>
@@ -251,13 +250,16 @@ export default async function CampaignMailDetailPage({
       {/* "Kime gitti": who the queued or sent campaign reached, row by row.
           Under 6563 the proof is the sender's to produce, and three counters
           named nobody. A draft has sent nothing. */}
-      {!isDraft && <CampaignSendLog campaignId={c.id} />}
+      {!isDraft && (
+        <CampaignSendLog
+          campaignId={c.id}
+          searchParams={sp}
+          pathname={`${LIST_PATH}/${encodeURIComponent(c.id)}`}
+        />
+      )}
 
       <Card className="mt-4">
-        <h2
-          className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
+        <h2 className={`mb-3 ${EYEBROW}`} style={MONO_STYLE}>
           Önizleme
         </h2>
         {"html" in rendered ? (
@@ -271,7 +273,7 @@ export default async function CampaignMailDetailPage({
             className="h-[900px] w-full rounded-xl border border-[var(--admin-border)] bg-white"
           />
         ) : (
-          <p className="text-sm text-amber-700">
+          <p role="alert" className="text-sm text-[var(--admin-warning)]">
             Önizleme hazırlanamadı: {rendered.error}
           </p>
         )}
@@ -294,18 +296,15 @@ function StoredFields({ c }: { c: CampaignEmail }) {
   }
   return (
     <Card>
-      <h2
-        className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
+      <h2 className={`mb-3 ${EYEBROW}`} style={MONO_STYLE}>
         İçerik
       </h2>
-      <p className="mb-4 text-xs text-neutral-500">
+      <p className="mb-4 text-xs text-[var(--admin-text-soft)]">
         Kuyruğa alınan kampanya düzenlenemez: gönderim defteri bu alanlarla
         kuruldu ve bir yeniden deneme aynı mesaj olmak zorunda.
       </p>
       {rows.length === 0 && (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-[var(--admin-text-soft)]">
           Bu şablon sabit metinlidir; doldurulan alan yok. Gönderilen ileti
           aşağıdaki önizlemededir.
         </p>
@@ -313,10 +312,7 @@ function StoredFields({ c }: { c: CampaignEmail }) {
       <dl className="grid gap-3 text-sm">
         {rows.map((r) => (
           <div key={r.label}>
-            <dt
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
+            <dt className={EYEBROW} style={MONO_STYLE}>
               {r.label}
             </dt>
             <dd className="break-words whitespace-pre-wrap">{r.value}</dd>

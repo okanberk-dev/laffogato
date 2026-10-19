@@ -45,13 +45,15 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 /**
  * Lists whose record has a page of its own AND sub-pages under it
- * (`/admin/musteriler/<e-posta>` and `.../duzenle`; a product's and a menu
- * item's view page since the catalog lists, admin audit P2b). Elsewhere a
- * record id followed by "duzenle" has no page, so the trail skips it
+ * (`/admin/musteriler/<e-posta>` and `.../duzenle`, a promo code's view
+ * page and its edit page; a product's and a menu item's view page since the
+ * catalog lists, admin audit P2b). Elsewhere a record id followed by
+ * "duzenle" has no page, so the trail skips it
  * instead of linking to a 404.
  */
 const DETAIL_BASES: ReadonlySet<string> = new Set([
   "/admin/musteriler",
+  "/admin/promosyon",
   "/admin/urunler",
   "/admin/menu",
 ]);

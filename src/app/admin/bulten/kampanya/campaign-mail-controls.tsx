@@ -73,7 +73,10 @@ export function CampaignSendForm({
   );
 }
 
-/** "Bana test gönder": one real message, to the operator's own inbox by default. */
+/**
+ * "Test gönder": one real message, to the operator's own inbox by default;
+ * any active panel account may be the address, so not "Bana" (PEO-21).
+ */
 export function CampaignTestForm({
   action,
   defaultTo,
@@ -97,7 +100,7 @@ export function CampaignTestForm({
         aria-label="Test alıcısı"
       />
       <GhostButton type="submit" disabled={pending}>
-        {pending ? "Gönderiliyor…" : "Bana test gönder"}
+        {pending ? "Gönderiliyor…" : "Test gönder"}
       </GhostButton>
       <Feedback state={state} />
     </form>

@@ -1,180 +1,263 @@
-import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
-import { ConfirmButton } from "@/components/admin/ui";
-import { requireRole } from "@/lib/admin/auth";
-import { listNewsletterSubscribers } from "@/lib/newsletter/store";
+import Link from "next/link";
 
+import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import {
-  deleteNewsletterSubscriberAction,
-  deactivateNewsletterAction,
-} from "./actions";
+  Badge,
+  DataTable,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { requireRole } from "@/lib/admin/auth";
+import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import {
+  NEWSLETTER_PATH,
+  SUBSCRIBER_DEFAULT_SORT,
+  SUBSCRIBER_FILTER_FIELDS,
+  SUBSCRIBER_PAGE_SIZE,
+  SUBSCRIBER_SORT_KEYS,
+  SUBSCRIBER_STATE_LABELS,
+  SUBSCRIBER_STATE_TONES,
+  SUBSCRIBER_TAB_PARAM,
+  SUBSCRIBER_TABS,
+  parseSubscriberTab,
+  sourceLabel,
+  subscriberHref,
+  subscriberList,
+  subscriberState,
+} from "@/lib/admin/newsletter-list";
+import {
+  listNewsletterSubscribers,
+  type NewsletterSubscriber,
+} from "@/lib/newsletter/store";
+
+import { SubscriberRowMenu } from "./subscriber-actions-ui";
 
 export const metadata = { title: "Admin · Bülten Aboneleri" };
 export const dynamic = "force-dynamic";
 
-const SOURCE_LABEL: Record<string, string> = {
-  footer: "Footer",
-  register: "Kayıt",
-  account: "Hesap",
-};
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
 
-export default async function NewsletterPage() {
+function StateBadge({ s }: { s: NewsletterSubscriber }) {
+  const state = subscriberState(s);
+  return (
+    <Badge tone={SUBSCRIBER_STATE_TONES[state]} dot>
+      {SUBSCRIBER_STATE_LABELS[state]}
+    </Badge>
+  );
+}
+
+/**
+ * When and from where consent was given; the wording is on the view page.
+ * In the table the IP goes under the date, on a card after it.
+ */
+function Consent({
+  s,
+  inline = false,
+}: {
+  s: NewsletterSubscriber;
+  inline?: boolean;
+}) {
+  if (!s.consentAt) {
+    return (
+      <span className="text-xs text-[var(--admin-warning)]">Kayıt yok</span>
+    );
+  }
+  const line = inline ? "" : "block";
+  return (
+    <span className="text-xs text-[var(--admin-text-soft)]">
+      <span className={`${line} whitespace-nowrap`}>
+        {formatDateTime(s.consentAt)}
+      </span>
+      {s.consentIp ? (
+        <span className={line} style={NUMERIC_STYLE}>
+          {inline ? " · " : ""}
+          {s.consentIp}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * Newsletter subscribers, Filament style (admin audit PEO-14): tabs (Aktif,
+ * Onay bekliyor, Pasif) with counts, a search on the address or the name, a
+ * source filter, numbered pages, cards on phones, and a page per subscriber
+ * that shows the consent record whole: the 6563 wording used to sit only in
+ * a hover tooltip, out of reach on a phone, a keyboard or a screen reader.
+ */
+export default async function NewsletterPage({ searchParams }: PageProps) {
   await requireRole("newsletter");
+  const sp = (await searchParams) ?? {};
   const subscribers = await listNewsletterSubscribers();
-  const active = subscribers.filter((s) => s.isActive);
-  const activeEmails = active.map((s) => s.email).join(", ");
+  const filters = parseFilters(sp, SUBSCRIBER_FILTER_FIELDS);
+  const tab = parseSubscriberTab(sp);
+  const sort = parseSort(sp, SUBSCRIBER_SORT_KEYS, SUBSCRIBER_DEFAULT_SORT);
+  const list = subscriberList(subscribers, {
+    tab,
+    filters,
+    sort,
+    page: parsePage(sp),
+  });
+  const tabValue = SUBSCRIBER_TABS.find((t) => t.tab === tab)?.value ?? null;
+  const activeEmails = subscribers
+    .filter((s) => s.isActive)
+    .map((s) => s.email);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="Pazarlama"
         title="Bülten Aboneleri"
-        description="Footer, kayıt ve hesap tercihlerinden gelen aboneler. Pasif aboneler bülten gönderiminden çıkarılır."
+        description="Site altı formu, kayıt ve hesap tercihlerinden gelen aboneler. Bülteni yalnız Aktif aboneler alır; onay bekleyen, e-postasındaki bağlantıya basınca Aktif olur."
       />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat label="Toplam abone" value={String(subscribers.length)} />
-        <Stat label="Aktif" value={String(active.length)} />
-        <Stat
-          label="Pasif"
-          value={String(subscribers.length - active.length)}
-        />
-      </div>
-
-      {active.length > 0 && (
-        <Card className="mb-4">
-          <h2
-            className="mb-2 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Aktif e-postalar - dışa aktar (kopyala)
-          </h2>
-          <textarea
-            readOnly
-            defaultValue={activeEmails}
-            rows={3}
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-xs text-neutral-700"
-            style={{ fontFamily: "var(--mono), monospace" }}
+      {subscribers.length === 0 ? (
+        <EmptyState title="Henüz abone yok." />
+      ) : (
+        <>
+          <StatusTabs
+            tabs={SUBSCRIBER_TABS.map((t) => ({
+              value: t.value,
+              label: t.label,
+              count: list.counts[t.tab],
+            }))}
+            current={tabValue}
+            searchParams={sp}
+            pathname={NEWSLETTER_PATH}
+            param={SUBSCRIBER_TAB_PARAM}
+            label="Abone sekmeleri"
           />
-        </Card>
-      )}
 
-      <Card>
-        {subscribers.length === 0 ? (
-          <p className="text-sm text-neutral-500">Henüz abone yok.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr
-                  className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                  style={{ fontFamily: "var(--mono), monospace" }}
+          <FilterBar
+            fields={SUBSCRIBER_FILTER_FIELDS}
+            searchParams={sp}
+            pathname={NEWSLETTER_PATH}
+            values={filters}
+          />
+
+          <DataTable<NewsletterSubscriber>
+            caption="Bülten aboneleri"
+            rows={list.rows}
+            rowKey={(s) => s.id}
+            rowHref={(s) => subscriberHref(s.id)}
+            sort={sort}
+            searchParams={sp}
+            pathname={NEWSLETTER_PATH}
+            empty={<EmptyState title="Bu görünümde abone yok." />}
+            columns={[
+              {
+                key: "eposta",
+                header: "E-posta",
+                sortable: true,
+                // Room for an ordinary address on one line; a long one
+                // breaks where it must instead of widening the table.
+                className: "min-w-[14rem] max-w-[22rem]",
+                cell: (s) => (
+                  <span className="block min-w-0 [overflow-wrap:anywhere]">
+                    {s.email}
+                    {s.name ? (
+                      <span className="block text-xs font-normal text-[var(--admin-text-soft)]">
+                        {s.name}
+                      </span>
+                    ) : null}
+                  </span>
+                ),
+              },
+              {
+                key: "kaynak",
+                header: "Kaynak",
+                cell: (s) => (
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    {sourceLabel(s.source)}
+                  </span>
+                ),
+              },
+              {
+                key: "durum",
+                header: "Durum",
+                cell: (s) => <StateBadge s={s} />,
+              },
+              {
+                key: "tarih",
+                header: "Kayıt",
+                sortable: true,
+                firstDir: "desc",
+                hideBelow: "xl",
+                cell: (s) => (
+                  <span className="text-xs whitespace-nowrap text-[var(--admin-text-soft)]">
+                    {s.createdAt ? formatDateTime(s.createdAt) : "-"}
+                  </span>
+                ),
+              },
+              {
+                key: "onay",
+                header: "Onay (6563)",
+                cell: (s) => <Consent s={s} />,
+              },
+            ]}
+            rowActions={(s) => <SubscriberRowMenu subscriber={s} />}
+            mobileCard={(s) => (
+              <div className="flex flex-col gap-1.5">
+                <Link
+                  href={subscriberHref(s.id)}
+                  className="font-medium break-all text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                 >
-                  <th className="py-3 pr-3">E-posta</th>
-                  <th className="pr-3">Kaynak</th>
-                  <th className="pr-3">Durum</th>
-                  <th className="pr-3">Tarih</th>
-                  <th className="pr-3">Onay (6563)</th>
-                  <th className="text-right">İşlem</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subscribers.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="border-b border-neutral-100 align-top last:border-b-0"
-                  >
-                    <td className="py-3 pr-3 text-neutral-900">
-                      {s.email}
-                      {s.name && (
-                        <div className="text-xs text-neutral-500">{s.name}</div>
-                      )}
-                    </td>
-                    <td className="pr-3 text-xs text-neutral-600">
-                      {SOURCE_LABEL[s.source] ?? s.source}
-                    </td>
-                    <td className="pr-3">
-                      {s.isActive ? (
-                        <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
-                          Aktif
-                        </span>
-                      ) : s.confirmToken ? (
-                        // Double opt-in: asked, not yet confirmed by the owner.
-                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
-                          Onay bekliyor
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                          Pasif
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      className="pr-3 text-xs text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatDateTime(s.createdAt)}
-                    </td>
-                    {/* Onayın ne zaman ve nereden alındığı: şikâyet hâlinde
-                        ispat yükümlülüğü bizde. */}
-                    <td
-                      className="pr-3 text-xs text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {s.consentAt ? (
-                        <span title={s.consentText}>
-                          {formatDateTime(s.consentAt)}
-                          {s.consentIp ? ` · ${s.consentIp}` : ""}
-                        </span>
-                      ) : (
-                        <span className="text-amber-700">kayıt yok</span>
-                      )}
-                    </td>
-                    <td className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {/* Off only: re-subscribing is the person's own
-                            act, confirmed from their inbox (6563). */}
-                        {s.isActive ? (
-                          <ConfirmButton
-                            action={deactivateNewsletterAction}
-                            hidden={{ id: s.id }}
-                            label="Pasifleştir"
-                            variant="ghost"
-                            className="text-xs"
-                            title={`${s.email} pasifleşsin mi?`}
-                            description="Bu adrese bülten gitmez. Panelden geri açılamaz; kişi yeniden abone olup e-postasından onaylamalı."
-                          />
-                        ) : null}
-                        <ConfirmButton
-                          action={deleteNewsletterSubscriberAction}
-                          hidden={{ id: s.id }}
-                          label="Sil"
-                          className="text-xs"
-                          title={`${s.email} silinsin mi?`}
-                          description="Abone ve onay kaydı (tarih, IP, metin) kalıcı olarak silinir. Şikâyette onayı göstermen gerekebilir: yalnız göndermeyi durdurmak için Pasifleştir yeterli."
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-    </main>
-  );
-}
+                  {s.email}
+                </Link>
+                {s.name ? (
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    {s.name}
+                  </span>
+                ) : null}
+                <span className="flex flex-wrap items-center gap-2">
+                  <StateBadge s={s} />
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    {sourceLabel(s.source)}
+                  </span>
+                </span>
+                <span className="text-xs text-[var(--admin-text-soft)]">
+                  Onay: <Consent s={s} inline />
+                </span>
+              </div>
+            )}
+          />
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--admin-border)] bg-white p-4 shadow-sm">
-      <div
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {label}
-      </div>
-      <div className="mt-1 text-xl text-neutral-900">{value}</div>
-    </div>
+          {list.total > SUBSCRIBER_PAGE_SIZE ? (
+            <Pagination
+              page={list.page}
+              pageSize={SUBSCRIBER_PAGE_SIZE}
+              total={list.total}
+              searchParams={sp}
+              pathname={NEWSLETTER_PATH}
+            />
+          ) : null}
+
+          {activeEmails.length > 0 ? (
+            <details className="mt-6 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
+              <summary
+                className={`${EYEBROW} flex min-h-[44px] cursor-pointer items-center`}
+                style={MONO_STYLE}
+              >
+                Aktif adresleri kopyala ({activeEmails.length})
+              </summary>
+              <textarea
+                readOnly
+                aria-label="Aktif abonelerin e-postaları"
+                defaultValue={activeEmails.join(", ")}
+                rows={4}
+                className="mt-2 w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs text-[var(--admin-text)]"
+                style={MONO_STYLE}
+              />
+            </details>
+          ) : null}
+        </>
+      )}
+    </main>
   );
 }

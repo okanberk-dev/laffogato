@@ -458,7 +458,7 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
 1. **Taslak** - şablon + alanlar + kitle. Alanlar `campaignFieldsSchema`'dan
    geçer (bilinmeyen anahtar düşer, uzunluk sınırı, `https` zorunlu);
    tarayıcı tarafında `required` yoktur - yarım taslak kaydedilir, eksik
-   alanı "Gönder" adıyla reddeder. "Bana test gönder" tek gerçek gönderimdir:
+   alanı "Gönder" adıyla reddeder. "Test gönder" tek gerçek gönderimdir:
    AD = Test, çıkış bağlantısı sahte ama üyelerinkiyle aynı yolda
    (`/api/bulten/cikis?token=onizleme` - başlıklar da aynı, uç ona 200
    "Bağlantı geçersiz" der), gönderim defterine yazılmaz. Alıcı yalnız

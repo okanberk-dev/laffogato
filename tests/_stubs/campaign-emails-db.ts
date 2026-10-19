@@ -66,8 +66,59 @@ export function rowsOf(table: string): FakeRow[] {
 resetFakeDb();
 
 type Op = "select" | "insert" | "update" | "delete";
-type FilterOp = "eq" | "neq" | "in" | "gte" | "lt" | "ilike";
+type FilterOp = "eq" | "neq" | "in" | "gte" | "lt" | "ilike" | "any";
 type Filter = [string, FilterOp, unknown];
+
+/** One alternative of `.anyOf()` (src/lib/db/sql.ts AnyOfCondition). */
+interface AnyOf {
+  column: string;
+  op: "eq" | "ieq" | "ilike" | "foldLike";
+  value: unknown;
+}
+
+/** A LIKE pattern as a RegExp: `%`, `_`, and `\` escaping either. */
+function likeRegex(pattern: string, flags: string): RegExp {
+  let out = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === "\\" && i + 1 < pattern.length) {
+      out += pattern[++i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    } else if (c === "%") out += ".*";
+    else if (c === "_") out += ".";
+    else out += c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${out}$`, flags);
+}
+
+/** Postgres translate(): each `from` letter becomes its `to` partner or goes. */
+function translate(text: string, from: string, to: string): string {
+  const fromChars = [...from];
+  const toChars = [...to];
+  return [...text]
+    .map((ch) => {
+      const at = fromChars.indexOf(ch);
+      if (at < 0) return ch;
+      return at < toChars.length ? toChars[at] : "";
+    })
+    .join("");
+}
+
+function matchesAny(row: FakeRow, c: AnyOf): boolean {
+  const cell = String(row[c.column] ?? "");
+  switch (c.op) {
+    case "eq":
+      return row[c.column] === c.value;
+    case "ieq":
+      return cell.toLowerCase() === String(c.value).toLowerCase();
+    case "ilike":
+      return likeRegex(String(c.value), "i").test(cell);
+    case "foldLike": {
+      const v = c.value as { pattern: string; from: string; to: string };
+      const fold = (x: string) => translate(x, v.from, v.to).toLowerCase();
+      return likeRegex(fold(v.pattern), "").test(fold(cell));
+    }
+  }
+}
 
 interface FakeResult {
   data: unknown;
@@ -102,6 +153,8 @@ function matches(row: FakeRow, [column, op, value]: Filter): boolean {
         .replace(/_/g, ".");
       return new RegExp(`^${pattern}$`, "i").test(String(cell ?? ""));
     }
+    case "any":
+      return (value as AnyOf[]).some((c) => matchesAny(row, c));
   }
 }
 
@@ -137,6 +190,7 @@ class FakeQuery implements PromiseLike<unknown> {
   private readonly filters: Filter[] = [];
   private readonly orders: Array<{ column: string; ascending: boolean }> = [];
   private limitValue: number | null = null;
+  private offsetValue = 0;
   private single = false;
   private returning = false;
   private head = false;
@@ -189,6 +243,14 @@ class FakeQuery implements PromiseLike<unknown> {
     this.limitValue = count;
     return this;
   }
+  offset(count: number) {
+    this.offsetValue = count;
+    return this;
+  }
+  anyOf(conditions: readonly AnyOf[]) {
+    this.filters.push(["", "any", [...conditions]]);
+    return this;
+  }
   maybeSingle() {
     this.single = true;
     return this;
@@ -208,7 +270,14 @@ class FakeQuery implements PromiseLike<unknown> {
         return 0;
       });
     }
-    if (this.limitValue !== null) found = found.slice(0, this.limitValue);
+    if (this.offsetValue > 0 || this.limitValue !== null) {
+      found = found.slice(
+        this.offsetValue,
+        this.limitValue === null
+          ? undefined
+          : this.offsetValue + this.limitValue,
+      );
+    }
     return found;
   }
 

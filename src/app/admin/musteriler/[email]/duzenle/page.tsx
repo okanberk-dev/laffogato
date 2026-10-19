@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { CustomerForm } from "@/components/admin/customer-form";
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
@@ -26,6 +27,11 @@ export default async function EditCustomerPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink
+        href={`/admin/musteriler/${encodeURIComponent(customer.email)}`}
+      >
+        Üye sayfası
+      </BackLink>
       <PageHeader
         eyebrow="Üye hesabı"
         title={`Düzenle · ${customer.name || customer.email}`}
