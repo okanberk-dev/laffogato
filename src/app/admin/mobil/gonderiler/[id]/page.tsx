@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/admin/forms";
 import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
+import { campaignAudienceCount } from "@/lib/admin/campaign-mail";
 import { canAccess } from "@/lib/admin/roles";
 import { getAppPost } from "@/lib/admin/store";
 
 import { BackLink, DELETE_TEXT } from "../../app-content-list";
 import { deletePostAction, updatePostAction } from "../actions";
 import { AppPostForm } from "../post-form";
+import { POST_MAIL_AUDIENCE, POST_MAIL_TEMPLATE } from "../post-mail-confirm";
 
 export const metadata = { title: "Admin · Gönderiyi düzenle" };
 export const dynamic = "force-dynamic";
@@ -25,6 +27,12 @@ export default async function EditAppPostPage({
   const { id } = await params;
   const row = await getAppPost(id);
   if (!row) notFound();
+  const canEmail = canAccess("newsletter", session.role);
+  // For the mail dialog; a post that had its mail has no box to tick.
+  const recipientCount =
+    canEmail && !row.emailCampaignId
+      ? await campaignAudienceCount(POST_MAIL_AUDIENCE, POST_MAIL_TEMPLATE)
+      : null;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
@@ -52,7 +60,8 @@ export default async function EditAppPostPage({
         defaults={row}
         mode="edit"
         submitLabel="Değişiklikleri kaydet"
-        canEmail={canAccess("newsletter", session.role)}
+        canEmail={canEmail}
+        recipientCount={recipientCount}
       />
     </main>
   );

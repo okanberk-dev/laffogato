@@ -152,6 +152,15 @@ vi.mock("@/lib/email/campaigns", async (importOriginal) => {
     getCampaignEmail: vi.fn(async (id: string) => campaigns.byId[id] ?? null),
   };
 });
+// The members a post's mail would reach, for its dialog (post-mail-confirm).
+const audienceCount = vi.hoisted(() =>
+  vi.fn(
+    async (_audience: string, _template: string): Promise<number | null> => 7,
+  ),
+);
+vi.mock("@/lib/admin/campaign-mail", () => ({
+  campaignAudienceCount: audienceCount,
+}));
 const fal = vi.hoisted(() => ({ rows: [] as unknown[] }));
 vi.mock("@/lib/mobile/fal", () => ({
   listFalReports: vi.fn(async (limit: number) => fal.rows.slice(0, limit)),
@@ -368,6 +377,46 @@ describe("new and edit pages (CON-24)", () => {
   ])("%s: a way back", async (path, back) => {
     const html = await renderPage(path);
     expect(html.match(new RegExp(`href="${back}"`, "g"))?.length).toBe(2);
+  });
+});
+
+describe("the post mail dialog's count", () => {
+  const pages = async () => {
+    await renderPage("@/app/admin/mobil/gonderiler/yeni/page");
+    await renderPage("@/app/admin/mobil/gonderiler/[id]/page", {
+      params: Promise.resolve({ id: "e1" }),
+    });
+  };
+
+  it("is read for the audience the post's campaign goes to", async () => {
+    audienceCount.mockClear();
+    await pages();
+    expect(audienceCount.mock.calls).toEqual([
+      ["marketing", "kampanya-duyuru"],
+      ["marketing", "kampanya-duyuru"],
+    ]);
+  });
+
+  it("is not read where the box cannot be ticked", async () => {
+    audienceCount.mockClear();
+    session.value = { email: "x@laffogato.net", role: "staff" };
+    await pages();
+    expect(audienceCount).not.toHaveBeenCalled();
+
+    session.value = { email: "patron@laffogato.net", role: "owner" };
+    const store = await import("@/lib/admin/store");
+    vi.mocked(store.getAppPost).mockResolvedValueOnce({
+      ...row("e2"),
+      kind: "campaign",
+      image: "",
+      linkUrl: "",
+      linkLabel: "",
+      emailCampaignId: "cmail-sent",
+    } as never);
+    await renderPage("@/app/admin/mobil/gonderiler/[id]/page", {
+      params: Promise.resolve({ id: "e2" }),
+    });
+    expect(audienceCount).not.toHaveBeenCalled();
   });
 });
 

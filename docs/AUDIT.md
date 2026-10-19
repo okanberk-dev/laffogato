@@ -827,6 +827,7 @@ Açık:
 | 🟢 | Gönderinin üye e-postası `mobileApp` yetkisiyle çıkıyordu, kampanya sayfası ise `newsletter` ister (CON-26) | Gönderi e-postası iki yetkiyi de ister, sunucuda ve formda (karar D27). Alıcı kuralı değişmedi: yalnız ticari ileti onayı kayıtlı üyeler (`campaign_email_audience`, `marketing`) | `admin-campaign-mail-actions`, `admin-mobile-content-lists` |
 | 🟢 | Sürüm alanı Türkçe iPhone'da virgüllü ondalık klavye açıyordu; "mono" alanlar Poppins'ti (CON-27) | `inputMode="text"`; Team ID ve parmak izlerinde gerçek eşaralıklı yazı (`NUMERIC_STYLE`) | `admin-app-config` |
 | 🟢 | Gönderi e-postası bandı adreste duruyordu (`?eposta=`): yenileyince ve silmeden sonra geri geliyordu (CON-29) | Sonuç kaydın toast'ı (`setAdminFlash`, gerekirse uyarı tonu) | `admin-campaign-mail-actions` |
+| 🟢 | Gönderinin üye e-postasını tarayıcının kendi onay kutusu soruyordu: "TÜM üyelere" diyor, kaç kişi olduğunu söylemiyordu, tek "Tamam" yetiyordu (formlar incelemesi, #148) | Kitin diyalog çerçevesinde soru: pazarlama izni olan üye sayısı (kuyruğun okuduğu sayım) ve sayı geri yazılınca açılan "Kaydet ve gönder"; sayılamazsa söyler ve GÖNDER yazdırır. Kampanya sayfasındaki "Gönder" ile aynı adım (karar D15); evet yalnız bir kaydı geçirir, reddedilen kayıt yeniden sorar | `admin-post-mail-confirm`, `admin-mobile-content-lists` |
 
 Aynı PR'da gelenler: ayarlar ve Canlı durum kayıt çubukları kit token'larıyla,
 bölüm başlıkları kitin `Section`'ı (italik değil) (KAR-06, KAR-17); satırlarda

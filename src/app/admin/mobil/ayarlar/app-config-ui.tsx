@@ -20,14 +20,10 @@ import {
   useNoResetSubmit,
   withPanelCatch,
 } from "@/components/admin/action-form";
-import { Field, PrimaryButton, TextInput } from "@/components/admin/forms";
-import {
-  announceAdminChange,
-  BUTTON,
-  NUMERIC_STYLE,
-  useToast,
-} from "@/components/admin/ui";
+import { Field, PrimaryButton } from "@/components/admin/forms";
+import { announceAdminChange, useToast } from "@/components/admin/ui";
 
+import { ConfirmDialog } from "../confirm-dialog";
 import {
   CONFIRMED_FIELD,
   type AppConfigConfirm,
@@ -214,117 +210,6 @@ export function ConfigField({
       </Field>
       <ConfigFieldError name={name} />
     </div>
-  );
-}
-
-/**
- * "Bunu kaydedersen…": a native modal dialog (focus stays inside, Esc is
- * Vazgeç). Inside the tab's form, so its buttons are type="button" and the
- * phrase box has no name: the yes posts through the hook, not by
- * submitting the form again. With a phrase, yes stays off until it is
- * typed back.
- */
-function ConfirmDialog({
-  ask,
-  onCancel,
-  onConfirm,
-}: {
-  ask: AppConfigConfirm;
-  onCancel: () => void;
-  onConfirm: (form: HTMLFormElement) => void;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const confirmed = useRef(false);
-  const titleId = useId();
-  const phraseId = useId();
-  const [typed, setTyped] = useState("");
-  const ready = !ask.phrase || typed.trim() === ask.phrase.trim();
-  const yes = () => {
-    confirmed.current = true;
-    ref.current?.close();
-  };
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      onClose={() => {
-        const form = ref.current?.closest("form");
-        if (confirmed.current && form) onConfirm(form);
-        else onCancel();
-      }}
-      // The kit dialog's frame (ActionModal), so both read the same.
-      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_24px_64px_rgba(44,29,17,0.28)] backdrop:bg-[rgba(44,29,17,0.45)] sm:max-w-lg"
-      style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
-    >
-      <div className="grid gap-4 p-5 sm:p-6">
-        <h2
-          id={titleId}
-          className="text-lg font-semibold text-[var(--admin-text)]"
-        >
-          {ask.title}
-        </h2>
-        <div className="grid gap-2 text-sm text-[var(--admin-text-soft)]">
-          {ask.lines.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-        </div>
-        {ask.phrase ? (
-          <div className="grid gap-2">
-            <label
-              htmlFor={phraseId}
-              className="text-sm text-[var(--admin-text-soft)]"
-            >
-              Onaylamak için{" "}
-              <strong
-                className="font-semibold text-[var(--admin-text)]"
-                style={NUMERIC_STYLE}
-              >
-                {ask.phrase}
-              </strong>{" "}
-              yaz
-            </label>
-            <TextInput
-              id={phraseId}
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              onKeyDown={(e) => {
-                // Enter here would submit the tab's form again, without
-                // the yes; it means yes once the phrase matches.
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                if (ready) yes();
-              }}
-              autoComplete="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              inputMode="text"
-              style={NUMERIC_STYLE}
-            />
-          </div>
-        ) : null}
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            className={BUTTON.ghost}
-            onClick={() => ref.current?.close()}
-          >
-            Vazgeç
-          </button>
-          <button
-            type="button"
-            disabled={!ready}
-            className={BUTTON.dangerSolid}
-            onClick={yes}
-          >
-            {ask.submitLabel}
-          </button>
-        </div>
-      </div>
-    </dialog>
   );
 }
 

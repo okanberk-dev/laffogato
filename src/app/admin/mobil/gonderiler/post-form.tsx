@@ -22,6 +22,8 @@ import { defaultEmailMembers } from "@/lib/admin/post-mail-default";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
 
 import { FieldRow, FormActions } from "../app-content-ui";
+import { ConfirmDialog } from "../confirm-dialog";
+import { createMailGate, postMailConfirm } from "./post-mail-confirm";
 
 export interface AppPostDefaults {
   kind?: AppPostKind;
@@ -60,8 +62,10 @@ function isAppPostKind(value: string): value is AppPostKind {
  * on by default only when a campaign post is being created; off on every
  * edit (`defaultEmailMembers` says why) and locked off once the post has had
  * its mail - the mark on the post is what actually prevents a second send;
- * the box just says so. Ticked, the submit asks once more: it is a
- * commercial send to the whole member base. Without the `newsletter` role
+ * the box just says so. Ticked, the submit asks first in a dialog that
+ * names how many members it reaches, with the number typed back: it is a
+ * commercial send to the whole member base, the same step as "Gönder" on
+ * the Kampanya e-postası page (decision D15). Without the `newsletter` role
  * (`canEmail`, decision D27) the box is off and says why; the action checks
  * the role again.
  *
@@ -80,6 +84,7 @@ export function AppPostForm({
   mode,
   submitLabel,
   canEmail = true,
+  recipientCount = null,
 }: {
   action: ModalAction;
   defaults?: AppPostDefaults;
@@ -88,6 +93,11 @@ export function AppPostForm({
   submitLabel: string;
   /** The signed-in role may send commercial mail (`newsletter`). */
   canEmail?: boolean;
+  /**
+   * Members with marketing consent now, for the mail dialog (the count the
+   * enqueue reads); null when it could not be counted.
+   */
+  recipientCount?: number | null;
 }) {
   const alreadyMailed = Boolean(defaults?.emailCampaignId);
   const [kind, setKind] = useState<AppPostKind>(defaults?.kind ?? "campaign");
@@ -97,16 +107,17 @@ export function AppPostForm({
     alreadyMailed || !canEmail
       ? false
       : (emailChoice ?? defaultEmailMembers({ mode, kind, alreadyMailed }));
+  const [gate] = useState(createMailGate);
+  const [asking, setAsking] = useState(false);
 
   return (
     <ActionForm
       action={action}
-      beforeSubmit={() =>
-        !emailMembers ||
-        window.confirm(
-          "Kaydedilince, gönderi yayındaysa pazarlama izni olan TÜM üyelere bir kez kampanya e-postası gidecek. Bu işlem geri alınamaz. Devam edilsin mi?",
-        )
-      }
+      beforeSubmit={() => {
+        if (gate.allows(emailMembers)) return true;
+        setAsking(true);
+        return false;
+      }}
       className="grid gap-4"
     >
       <Card>
@@ -288,6 +299,19 @@ export function AppPostForm({
         submitLabel={submitLabel}
         backHref="/admin/mobil/gonderiler"
       />
+      {asking ? (
+        <ConfirmDialog
+          ask={postMailConfirm(recipientCount)}
+          onCancel={() => setAsking(false)}
+          onConfirm={(form) => {
+            setAsking(false);
+            if (!form.reportValidity()) return;
+            // The yes lets exactly this post through (createMailGate).
+            gate.open();
+            form.requestSubmit();
+          }}
+        />
+      ) : null}
     </ActionForm>
   );
 }

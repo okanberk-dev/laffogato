@@ -353,9 +353,12 @@ pazarlama izni olan üyelere e-posta gönder" kutusu) aynı yoldan kendiliğinde
 bir `kampanya-duyuru` kampanyası açar ve gönderiyi `emailCampaignId` ile
 işaretler; sonraki kayıtlar bir daha mail çıkarmaz. Kutu yalnız **yeni** bir
 kampanya gönderisinde işaretli başlar; düzenlemede her zaman kapalıdır (eski
-bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için) ve
-işaretlenirse kayıt düğmesi "tüm üyelere bir kez gidecek" diye bir kez daha
-sorar (`src/lib/admin/post-mail-default.ts`). Kampanya sayfası gibi `newsletter`
+bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için;
+`src/lib/admin/post-mail-default.ts`). İşaretliyken kayıt önce bir pencerede
+sorar: pazarlama izni olan kaç üyeye gideceğini (kuyruğun okuduğu sayım)
+yazar ve sayı geri yazılınca kaydeder, kampanya sayfasındaki "Gönder" gibi
+(karar D15); sayılamazsa bunu söyler ve GÖNDER yazdırır
+(`src/app/admin/mobil/gonderiler/post-mail-confirm.ts`). Kampanya sayfası gibi `newsletter`
 yetkisi de ister (karar D27; yoksa kutu kapalıdır, action da göndermez). Ne
 olduğunu kaydın toast'ı söyler (kuyruğa alındı, kimseye gitmedi, kuyruğa
 alınamadı, gönderi yayında olmadığı için gitmedi); gönderi listesindeki
