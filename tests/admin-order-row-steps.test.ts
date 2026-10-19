@@ -34,7 +34,7 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-const { OrdersList, ROW_STEP_IDS, rowStep } =
+const { OrdersList, ROW_STEP_IDS, rowStep, rowStepArmKeys } =
   await import("@/components/admin/orders-list");
 const { orderActions, orderActionLabel } =
   await import("@/lib/admin/order-actions");
@@ -396,6 +396,59 @@ describe("money and modal actions stay in the ⋯ menu", () => {
   });
 });
 
+describe("the double-tap guard follows each row's place", () => {
+  // On a tab the order then leaves ("Açık" after "Tamamlandı", "Ödendi"
+  // after "Hazırlamaya başla") the next order moves up under the finger.
+  // Its button was armed long ago: a double tap, or a second tap while
+  // "İşleniyor…" shows, ran the same move on that order too.
+  const shipped = (id: string, orderNo: number) =>
+    row(order({ id, orderNo, status: "shipped" }));
+
+  it("re-arms the rows that moved up into a finished order's place", () => {
+    const before = rowStepArmKeys([
+      shipped("a", 3),
+      shipped("b", 2),
+      row(order({ id: "c", orderNo: 1, status: "paid" })),
+    ]);
+    // "Tamamlandı" on #3: it leaves the "Açık" tab, #2 and #1 move up.
+    const after = rowStepArmKeys([
+      shipped("b", 2),
+      row(order({ id: "c", orderNo: 1, status: "paid" })),
+    ]);
+    expect(after.get("b")).not.toBe(before.get("b"));
+    expect(after.get("c")).not.toBe(before.get("c"));
+  });
+
+  it("re-arms a row whose step changed and keeps a row that stayed put", () => {
+    const before = rowStepArmKeys([
+      row(order({ id: "a", orderNo: 2, status: "paid" })),
+      shipped("b", 1),
+    ]);
+    const after = rowStepArmKeys([
+      row(order({ id: "a", orderNo: 2, status: "preparing" })),
+      shipped("b", 1),
+    ]);
+    expect(after.get("a")).not.toBe(before.get("a"));
+    expect(after.get("b")).toBe(before.get("b"));
+  });
+
+  it("re-arms every row that new orders on top pushed down", () => {
+    const before = rowStepArmKeys([shipped("a", 2), shipped("b", 1)]);
+    const after = rowStepArmKeys([
+      shipped("new", 3),
+      shipped("a", 2),
+      shipped("b", 1),
+    ]);
+    expect(after.get("a")).not.toBe(before.get("a"));
+    expect(after.get("b")).not.toBe(before.get("b"));
+  });
+
+  it("keeps every key when the same rows come back", () => {
+    const rows = () => [shipped("a", 2), shipped("b", 1)];
+    expect(rowStepArmKeys(rows())).toEqual(rowStepArmKeys(rows()));
+  });
+});
+
 describe("the list keeps its live poll and sound", () => {
   it("still polls with newOrderCountAction and draws the sound toggle", () => {
     const src = readFileSync("src/components/admin/orders-list.tsx", "utf8");
@@ -409,11 +462,15 @@ describe("the list keeps its live poll and sound", () => {
     const src = readFileSync("src/components/admin/orders-list.tsx", "utf8");
     expect(src).toMatch(/const STEP_ARM_MS = \d{3};/);
     expect(src).toContain("onClickCapture=");
-    // Armed per step on the same button, so the next step ("Teslime
-    // hazır" after "Hazırlamaya başla") waits again and focus stays put.
-    expect(src).toContain("setTimeout(() => setArmedFor(id), STEP_ARM_MS)");
-    expect(src).toContain("}, [id]);");
+    // Armed per key on the same button: the next step ("Teslime hazır"
+    // after "Hazırlamaya başla") and a row that moved up both wait again.
+    expect(src).toContain("setTimeout(() => setArmedFor(armKey), STEP_ARM_MS)");
+    expect(src).toContain("}, [armKey]);");
     expect(src).not.toContain("<RowStepButton key=");
+    // Both placements, the table's Durum cell and the phone card.
+    expect(
+      src.match(/<RowStep row=\{r\} armKey=\{armKeyOf\(r\)\}/g),
+    ).toHaveLength(2);
   });
 
   it("does not re-implement a move: the step goes through the shared action", () => {

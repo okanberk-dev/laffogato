@@ -117,12 +117,31 @@ export function rowStep(actions: OrderActionMap): RowStepId | null {
 }
 
 /**
- * How long a freshly drawn step ignores taps. The next step lands where the
+ * How long a freshly drawn step ignores taps. A new button lands where the
  * last one was tapped the moment the answer arrives; a double tap would
- * otherwise run two moves, "Hazırlamaya başla" and then "Teslime hazır",
- * which mails the customer.
+ * otherwise run two moves: "Hazırlamaya başla" and then "Teslime hazır",
+ * which mails the customer, or, on a tab the order then leaves ("Açık"
+ * after "Tamamlandı"), the same move on the NEXT order, which moved up into
+ * the tapped row's place.
  */
 const STEP_ARM_MS = 700;
+
+/**
+ * Each row's place and step, by order id: what a row's button is armed for.
+ * A row whose step changed, or which moved to another place (a row above it
+ * left the tab, "Listeyi yenile" put new orders on top), gets a new key and
+ * waits STEP_ARM_MS again. A row that stayed where it was keeps its key.
+ */
+export function rowStepArmKeys(
+  rows: readonly OrderListRow[],
+): Map<string, string> {
+  return new Map(
+    rows.map((r, place) => [
+      r.order.id,
+      `${place}:${rowStep(r.actions) ?? ""}`,
+    ]),
+  );
+}
 
 /**
  * The step as a button, through the same Server Action as the menu row
@@ -130,16 +149,24 @@ const STEP_ARM_MS = 700;
  * again before it writes). Its name carries the order number: twenty
  * "Tamamlandı" buttons in a row are one name to a screen reader.
  */
-function RowStepButton({ order, id }: { order: AdminOrder; id: RowStepId }) {
+function RowStepButton({
+  order,
+  id,
+  armKey,
+}: {
+  order: AdminOrder;
+  id: RowStepId;
+  armKey: string;
+}) {
   const label = orderActionLabel(id, order);
-  // Armed per step, on the same button: a keyboard user's focus stays on
-  // it when "Teslime hazır" replaces "Hazırlamaya başla".
-  const [armedFor, setArmedFor] = useState<RowStepId | null>(null);
+  // Armed per key on the same button (no remount per step): the key moves
+  // with the row's step and with its place in the list.
+  const [armedFor, setArmedFor] = useState<string | null>(null);
   useEffect(() => {
-    const timer = setTimeout(() => setArmedFor(id), STEP_ARM_MS);
+    const timer = setTimeout(() => setArmedFor(armKey), STEP_ARM_MS);
     return () => clearTimeout(timer);
-  }, [id]);
-  const armed = armedFor === id;
+  }, [armKey]);
+  const armed = armedFor === armKey;
   return (
     <span
       className="inline-flex"
@@ -166,12 +193,20 @@ function RowStepButton({ order, id }: { order: AdminOrder; id: RowStepId }) {
  * The row's step where it is drawn: under the status in the table, the
  * last line of the phone card (a thumb's reach).
  */
-function RowStep({ row, className }: { row: OrderListRow; className: string }) {
+function RowStep({
+  row,
+  armKey,
+  className,
+}: {
+  row: OrderListRow;
+  armKey: string;
+  className: string;
+}) {
   const step = rowStep(row.actions);
   if (!step) return null;
   return (
     <span className={className}>
-      <RowStepButton order={row.order} id={step} />
+      <RowStepButton order={row.order} id={step} armKey={armKey} />
     </span>
   );
 }
@@ -347,6 +382,9 @@ export function OrdersList({
 
   const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
+  const armKeys = rowStepArmKeys(rows);
+  const armKeyOf = (r: OrderListRow) => armKeys.get(r.order.id) ?? "";
+
   // The table fits its card from md up (admin audit ORD-02: at 768-1366
   // px it was 50-130 px wider, the "⋯" column off screen). The No cell
   // wraps (its marks, and the date that sits under it until xl), the
@@ -438,7 +476,7 @@ export function OrdersList({
         <span className="flex flex-col items-start gap-1">
           <OrderStatusBadge order={r.order} />
           <PaymentBadge row={r} />
-          <RowStep row={r} className="mt-1" />
+          <RowStep row={r} armKey={armKeyOf(r)} className="mt-1" />
         </span>
       ),
     },
@@ -556,7 +594,7 @@ export function OrdersList({
               </span>
               <Amount order={r.order} />
             </div>
-            <RowStep row={r} className="pt-1" />
+            <RowStep row={r} armKey={armKeyOf(r)} className="pt-1" />
           </div>
         )}
         empty={
