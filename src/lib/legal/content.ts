@@ -265,7 +265,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Toplam Bedel, Vergiler ve Ek Masraf Kalemleri",
         paragraphs: [
-          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı yürürlükteki vergi mevzuatına göre ürünün türüne bağlıdır: kahve çekirdeği, öğütülmüş kahve ve diğer paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20'dir; gıda içeren hediye kutu ve setlerinde oran, içindeki ürünlere göre belirlenir. Kargo veya kurye bedeli, gönderilen ürünlerin satış bedelinin parçasıdır ve onların KDV oranına tabidir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde, sipariş tarihinde yürürlükte olan oran uygulanır.",
+          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı, yürürlükteki vergi mevzuatına göre her ürünün ve hizmetin tabi olduğu orandır. Kargo veya kurye bedeli faturada ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez.",
           "ALICI'nın ödeyeceği toplam bedel; ürünlerin vergiler dâhil satış bedelleri toplamından varsa promosyon kodu veya kupon indirimi düşülerek, üzerine varsa kargo veya kurye ücreti eklenmek suretiyle hesaplanır. Hesaplamanın her bir kalemi sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı ayrı gösterilir. Sipariş özetinde gösterilen tutar dışında ALICI'dan herhangi bir ad altında ilave ücret talep edilmez.",
           "Ücretsiz içecek kuponu gibi bir kupon kullanılmışsa, kuponun karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilerek vergiler dâhil toplam bedelden düşülür ve yalnızca kalan tutar tahsil edilir. Sadakat (damga) programındaki damgaların kendi başına parasal bir karşılığı yoktur; sipariş bedeli damga ile ödenemez. Sipariş toplamı kupon veya promosyonla sıfıra iniyorsa sipariş, kart ile ödeme alınmadan tamamlanır; kurye ile teslim edilen kafe siparişlerinde ise kurye ücreti kupon veya promosyonla karşılanmaz ve ayrıca ödenir.",
           "Fiyatlar, ALICI tarafından siparişin onaylandığı an itibarıyla bağlayıcıdır. Sipariş onayından sonra yapılan fiyat değişiklikleri, tamamlanmış siparişe uygulanmaz. Bariz yazım/sistem hatasından kaynaklanan ve tüketicinin de kolayca fark edebileceği açık fiyat hatalarında SATICI durumu derhâl ALICI'ya bildirir; ALICI dilerse siparişi doğru bedel üzerinden sürdürebilir, dilerse siparişi bedelsiz olarak iptal edebilir ve tahsil edilmiş tutar iade edilir.",
@@ -281,7 +281,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)",
+            value:
+              "Ürünün tabi olduğu yasal oran (fiyatlara dâhil, faturada kalem kalem gösterilir)",
           },
           {
             key: "Kupon ile indirim",
@@ -883,7 +884,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Sözleşme Konusu Mal, Fiyat ve Ödeme Bilgileri",
         paragraphs: [
           "Sözleşme konusu mal veya malların cinsi, türü, miktarı, marka ve modeli, rengi, varyantı, birim fiyatı, adedi, tüm vergiler dâhil toplam satış bedeli, kargo veya kurye ücreti, varsa uygulanan promosyon kodu veya kupon indirimi ve genel toplam; sipariş sırasında ALICI'ya gösterilen sipariş özetinde yer alır, sipariş kalemleri ve ödenen toplam tutar ayrıca ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada yer alır. ALICI tarafından onaylanan Ön Bilgilendirme Formu da işbu Sözleşme'nin ayrılmaz eki ve tamamlayıcı parçasıdır.",
-          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup ürünün türüne göre %1, %10 veya %20 oranındaki Katma Değer Vergisi dâhildir (kahve çekirdeği ve paketli gıda ürünlerinde %1, kafe menüsündeki yiyecek ve içeceklerde %10, ekipman ile gıda dışındaki hediyelik ve marka ürünlerinde %20; gıda içeren hediye kutu ve setlerinde içindeki ürünlere göre). Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir.",
+          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup her ürünün yürürlükteki mevzuata göre tabi olduğu oranda Katma Değer Vergisi dâhildir; her kalemin KDV oranı ve tutarı faturada gösterilir. Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez.",
           "SATICI, Site üzerindeki listeleme fiyatlarını, kampanyaları ve promosyon kodlarını dilediği zaman güncelleme hakkını saklı tutar. Ancak ALICI'nın siparişini onayladığı ve ödemesini tamamladığı an itibarıyla geçerli olan fiyat, o sipariş bakımından bağlayıcıdır; sipariş sonrasında yapılan fiyat değişiklikleri kurulmuş sözleşmeyi etkilemez.",
           "Sistemsel, teknik veya dizgi kaynaklı bariz fiyat hatası (örneğin ürünün maliyetiyle açıkça bağdaşmayan, ortalama bir tüketicinin dahi hata olduğunu anlayabileceği bir tutar) bulunması hâlinde SATICI, durumu tespit ettiği anda ALICI'yı derhâl bilgilendirir ve siparişi iptal ederek tahsil edilen bedelin tamamını herhangi bir kesinti yapılmaksızın en geç 14 (on dört) gün içinde iade eder. Bu durum, ALICI'nın Kanun'dan doğan diğer haklarını ortadan kaldırmaz.",
         ],
@@ -904,7 +905,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV Oranı",
-            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhildir)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)",
           },
           {
             key: "Kargo Bedeli",
@@ -2117,7 +2118,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Kargo ve Teslimat Ücretleri",
         paragraphs: [
-          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Ürünlere uygulanan KDV oranı ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Kargo ve teslimat bedeli, gönderilen ürünün satış bedelinin bir parçasıdır ve o ürünün KDV oranına tabidir; farklı oranlı ürünler birlikte gönderildiğinde bedel, ürün tutarlarıyla orantılı olarak paylaştırılır. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
+          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Ürünlere uygulanan KDV oranı ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Kargo ve teslimat bedeli faturada ürünlerden ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
           "Bottega siparişlerinde, teslimat adresinin bulunduğu yerden ve gönderinin ağırlığından bağımsız olarak tek tip sabit bir kargo ücreti uygulanır; ücretsiz kargo eşiğine ulaşan siparişlerden kargo ücreti alınmaz. Güncel kargo ücreti ile, uygulanıyorsa ücretsiz kargo eşiği ve eşiğe kalan tutar, sepet ve ödeme ekranında gösterilir. Ücretsiz kargo eşiğinin hesabında, promosyon kodu ve indirimler düşüldükten sonra kalan ürün bedeli toplamı esas alınır; kargo bedelinin kendisi bu hesaba dâhil edilmez. Ücretsiz kargo eşiğini aşan bir siparişin sonradan kısmen iade edilmesi ve kalan tutarın eşiğin altına düşmesi hâlinde, ALICI'dan geriye dönük kargo bedeli talep edilmez.",
           "Soğuk zincir gerektiren gönderilerde kullanılan yalıtımlı kutu, jel akü ve kuru buz malzemeleri için ALICI'dan ayrıca bir bedel alınmaz; bu maliyet ilgili kargo bedeline dâhildir.",
           "Ücret tarifesinde yapılacak değişiklikler yalnızca ileriye etkili olarak uygulanır; değişiklik tarihinden önce kurulmuş siparişlere, sipariş anında geçerli olan tarife uygulanır.",
@@ -2144,7 +2145,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Para birimi ve vergi",
             value:
-              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo bedeli, gönderilen ürünün KDV oranına tabidir)",
+              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo bedeli faturada ayrı kalem olarak gösterilir)",
           },
         ],
       },
@@ -3386,12 +3387,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Fiyatlandırma, Vergi ve Fiyat Gösterimi",
         paragraphs: [
-          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve ürünün tabi olduğu oranda katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında tam sayı biçiminde saklanır ve yalnızca ekranda gösterim amacıyla biçimlendirilir. Bu yöntem ondalık yuvarlama farklarını ortadan kaldırır; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
           "Sipariş tutarı, ödeme adımında sunucu tarafında yeniden hesaplanır. Sepetten gelen fiyat bilgisi doğrulama amacıyla kullanılır; tahsil edilecek tutar her hâlükârda PostgreSQL veri tabanındaki güncel ürün fiyatı, geçerli promosyon kodu veya kupon ile kargo ya da kurye ücreti kuralı esas alınarak belirlenir. İstemciden gelen tutar hiçbir koşulda doğrudan PayNkolay'a veya bankaya iletilmez.",
           "Bottega siparişlerinde kargo ücreti, indirimler düşüldükten sonraki ürün toplamına göre otomatik hesaplanır: ücretsiz kargo eşiğinin altındaki siparişlere sabit bir kargo ücreti uygulanır, eşiğe ulaşan siparişlerde kargo ücretsizdir. Mobil uygulamadan verilen kafe siparişlerinde gel-al için teslimat ücreti alınmaz; kurye ile teslimde sipariş tutarından bağımsız, tek tip bir kurye ücreti uygulanır. Uygulanacak kargo veya kurye ücreti ödeme özetinde açıkça gösterilir ve onayınıza sunulur.",
           "Promosyon kodu veya kupon (ücretsiz içecek kuponu dâhil) kullanılan siparişlerde ödeme özetinde ürün toplamı, uygulanan indirim ve kargo veya kurye ücreti ayrı ayrı gösterilir; kart ile tahsil edilecek nihai tutar onayınıza sunulur. Kupon veya promosyonun tutarın tamamını karşıladığı ve ödenecek tutarın sıfır olduğu siparişler kart ödemesi alınmadan tamamlanır.",
-          "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
+          "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
         ],
         table: [
           {
@@ -3414,7 +3415,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Ürüne göre %1, %10 veya %20 (fiyatlara dâhil)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)",
           },
           {
             key: "Para birimi",
@@ -3800,9 +3801,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Fiyatlandırma, Para Birimi ve Vergiler",
         paragraphs: [
-          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve ürünün türüne göre %1, %10 veya %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve ürünün tabi olduğu oranda katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında (minor unit) tam sayı biçiminde tutulur ve ekranda yalnızca gösterim amacıyla biçimlendirilir. Bu yöntem, ondalık yuvarlama farklarından doğan tutar uyuşmazlıklarını önler; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
-          "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
+          "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
           "Fiyat, kampanya ve stok bilgilerinde açık bir maddi hata (örneğin fiyatın virgül kayması nedeniyle olağan değerinin çok altında görünmesi) bulunması hâlinde Satıcı, siparişi onaylamadan önce durumu size bildirir ve dilerseniz siparişi ücretsiz iptal etme hakkını tanır. Bu durumda tahsil edilmiş bir tutar varsa iade edilir; bu hüküm, doğru fiyatla kurulmuş sözleşmelerden dönme hakkı vermez.",
         ],
       },
@@ -12718,7 +12719,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Fiyat gösterimi",
             value:
-              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürüne göre yüzde 1, 10 veya 20'dir",
+              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürünün tabi olduğu yasal orandır",
           },
           {
             key: "Sipariş koşulu",
@@ -12886,7 +12887,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Ürüne göre yüzde 1, 10 veya 20 (fiyatlara dahil)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dahil)",
           },
           {
             key: "İade süresi",
@@ -13290,7 +13291,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Ürüne ve hizmete göre yüzde 1, 10 veya 20",
+            value: "Ürünün ve hizmetin tabi olduğu yasal oran",
           },
           {
             key: "Fatura ile ilgili talepler",

@@ -304,25 +304,34 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
   soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
 
-## KDV (17 Eki 2026)
+## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 
 - **Fiyatlar KDV dahil; oran tutarı değiştirmez.** Oran yalnız fiyatın ne
   kadarının KDV olduğunu söyler (fiş, panel, CSV, uygulama). Hiçbir toplam
   orandan hesaplanmaz (`computeOrderTotals`'ta KDV yok).
 - **Oran ürüne göre** (`src/lib/utils/kdv.ts`): ürünün / menü kaleminin kendi
   `"taxRatePct"`'i, yoksa Ayarlar → Vergi varsayılanı (`settings."taxRates"`:
-  menü %10, karaoke %20, `beans`/`pantry` %1, `gift`/`gear`/`merch` %20).
-  Oran malın cinsine bağlıdır, rafına değil: `gift` altındaki gıda kendi
-  oranını taşır (yenilebilir kup kutusu `prd-0003` %1; seed ve migration).
-  Tam sayı 0-100; kesir reddedilir. Dayanak ve muhasebeci notları:
-  `docs/LEGAL-REDLINES-2026-09.md` §16.
+  menü %10, karaoke %20, `beans`/`pantry` %10, `gift`/`gear`/`merch` %20,
+  `shipping` %20). Köşk kafeterya işletmesi: sattığı bütün gıda %10, kargoyla
+  gönderilen paket kahve dahil (KDV GUT III/B-2.4.1); %1 hiçbir üründe
+  kullanılmaz. Oran malın cinsine bağlıdır, rafına değil: yenilebilir kup
+  kutusu (`prd-0003`, `gift`) ve pamuk önlük (`prd-0009`, `merch`) kendi
+  oranıyla %10; gıda ile gıda dışını tek fiyatla birleştiren set %20. Tam
+  sayı 0-100; kesir reddedilir. Ürün ürün karar ve dayanak:
+  `docs/LEGAL-REDLINES-2026-09.md` §16.3-§16.4.
 - **Satış anındaki oran saklanır.** Sipariş satırı `items[].taxRatePct`,
-  karaoke rezervasyonu `"taxRatePct"`; panelde sonradan değişen oran eski
-  fişi değiştirmez. Oranı olmayan eski sipariş döküm göstermez (tahmin yok).
-- **Kargo / kurye ücreti taşıdığı ürünün oranını alır** (KDV K. m.24/b),
-  indirim de satırlara orantılı dağıtılır (`kdvBreakdown`).
-- Oran metinde geçiyorsa (`src/lib/legal/content.ts`) panel varsayılanıyla
-  aynı kalmalı; ödeme belgelerinde değişiklik `LEGAL_UPDATED`'ı taşır.
+  siparişin kargo / kurye oranı `"shippingTaxRatePct"` (yoksa %20), karaoke
+  rezervasyonu `"taxRatePct"`; panelde sonradan değişen oran eski fişi
+  değiştirmez. Oranı olmayan eski sipariş döküm göstermez (tahmin yok).
+- **Kargo / kurye ücreti faturada ayrı kalem, kendi oranıyla** (taşıma
+  hizmeti, %20; KDV K. m.24/a, GİB özelge 32391, 28945): `kdvBreakdown`
+  ücreti satırlara paylaştırmaz. İndirim satırlara orantılı dağıtılır.
+- **Ödül kuponu iskonto değildir** (damga, kilometre taşı, davet; ya da
+  ürünlerin tamamını karşılayan kupon): panel sipariş sayfası ve CSV fatura
+  dökümünü (`invoiceKdvBreakdown`, ürünler tam fiyatla) gösterir; fiş ve
+  uygulamanın `taxBreakdown`'ı ödenen tutarın içindeki KDV'dir.
+- Hukuk metinleri oran saymaz, kuralı yazar (`src/lib/legal/content.ts`);
+  ödeme belgelerinde değişiklik `LEGAL_UPDATED`'ı taşır.
 
 ## Geliştirme Komutları
 

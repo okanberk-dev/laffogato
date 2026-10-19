@@ -47,17 +47,17 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    // 18 Ekim 2026: the ÖBF and the MSS follow the distance-sales rules in
-    // force since 1 Ocak 2026 and stop describing saved cards, and every
-    // document cites the e-commerce regulation by its current title. The
-    // consent version moved with the checkout documents, the set with it.
-    expect(LEGAL_UPDATED).toBe("18 Ekim 2026");
+    // 19 Ekim 2026: the ÖBF and the MSS state the KDV rule instead of a
+    // list of rates, the shipping fee as its own line (LEGAL-REDLINES
+    // §16.4). The consent version moved with the checkout documents, the
+    // set with it. (18 Ekim 2026: the distance-sales rules of 2026.)
+    expect(LEGAL_UPDATED).toBe("19 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
-    // Empty on 16 and again on 18 Ekim 2026: every coded document changed
-    // those days (on the 18th the e-commerce regulation's title in 23, the
-    // saved-card passages in the other two). Add a document here, with its
+    // Empty on 16, 18 and 19 Ekim 2026: every coded document carries the
+    // set's day (on the 19th the KDV wording moved the checkout documents,
+    // and with them the consent version). Add a document here, with its
     // date, when only it changes later.
     const expected: Record<string, string> = {
       // 19 Ekim 2026: §7 says where each menu item's allergens are written.
