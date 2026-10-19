@@ -176,7 +176,7 @@ export function MenuItemForm({
         <Field
           as="fieldset"
           label="Etiketler"
-          hint="Menüde ve uygulamada rozet olarak görünür. Sert kabuklu yemiş alerjen uyarısıdır: kalem fındık, fıstık ya da başka bir sert kabuklu yemiş içeriyorsa işaretle."
+          hint="Menüde ve uygulamada rozet olarak görünür. Sert kabuklu yemiş uygulamanın alerjen uyarısıdır: aşağıda Alerjenler'de “Sert kabuklu meyveler”i işaretlersen kendiliğinden eklenir."
         >
           <div className="grid gap-x-4 sm:grid-cols-2">
             {MENU_TAG_OPTIONS.map(([value, label]) => (
@@ -198,8 +198,8 @@ export function MenuItemForm({
               {droppedTags.length === 1 ? "bir etiket" : "etiketler"} var:{" "}
               <strong>{droppedTags.join(", ")}</strong>. Uygulama{" "}
               {droppedTags.length === 1 ? "bunu" : "bunları"} hiç göstermiyordu;
-              kaydedince silinir. Alerjen uyarısıysa “Sert kabuklu yemiş”i
-              işaretle.
+              kaydedince silinir. Alerjen uyarısıysa aşağıdaki Alerjenler
+              bölümünde grubunu işaretle.
             </p>
           ) : null}
         </Field>
@@ -211,7 +211,7 @@ export function MenuItemForm({
           <Field
             as="fieldset"
             label="Alerjenler"
-            hint="Türk Gıda Kodeksi'nin 14 alerjen grubu. Kalemin içerdiklerini işaretle: şurup, sos, süt ve süsleme dahil, tedarikçi etiketine bakarak; köşkteki alerjen tablosuyla aynı olmalı. Hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Hiçbir kutu işaretli değilse bilgi girilmemiş sayılır ve menüde yazmaz. Sert kabuklu meyve seçersen kuruyemiş (nuts) etiketi kendiliğinden eklenir. Tarif ya da tedarikçi değişince aynı gün güncelle."
+            hint="Türk Gıda Kodeksi'nin 14 alerjen grubu. Kalemin içerdiklerini işaretle: şurup, sos, süt ve süsleme dahil, tedarikçi etiketine bakarak; köşkteki alerjen tablosuyla aynı olmalı. Hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Hiçbir kutu işaretli değilse bilgi girilmemiş sayılır ve menüde yazmaz. Sert kabuklu meyveler seçersen “Sert kabuklu yemiş” etiketi kendiliğinden eklenir. Tarif ya da tedarikçi değişince aynı gün güncelle."
           >
             <input type="hidden" name={MENU_ALLERGENS_SHOWN_FIELD} value="1" />
             <div className="grid gap-x-4 sm:grid-cols-2">
