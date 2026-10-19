@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import { PromoForm } from "@/components/admin/promo-form";
 import { requireRole } from "@/lib/admin/auth";
+import { promoHref } from "@/lib/admin/promo-list";
 import { isPromoExpired } from "@/lib/admin/promo-schema";
 import { getPromo } from "@/lib/admin/store";
 
@@ -26,7 +28,8 @@ export default async function EditPromoPage({ params }: PageProps) {
   const action = updatePromoAction.bind(null, promo.id);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink href={promoHref(promo.id)}>{promo.code}</BackLink>
       <PageHeader
         eyebrow="Promosyon"
         title={`Kodu düzenle · ${promo.code}`}
