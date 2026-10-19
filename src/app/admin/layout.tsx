@@ -14,11 +14,11 @@ import {
   orderAlertsFor,
 } from "@/lib/admin/order-alerts-core";
 import {
-  canAccess,
-  landingPathFor,
-  ROLE_LABELS,
-  type AdminSection,
-} from "@/lib/admin/roles";
+  hasNavChrome,
+  visibleNav,
+  type NavGroupDef,
+} from "@/lib/admin/nav-match";
+import { canAccess, landingPathFor, ROLE_LABELS } from "@/lib/admin/roles";
 import { searchSectionsFor } from "@/lib/admin/search";
 
 import { logoutAction } from "./actions";
@@ -93,133 +93,252 @@ const adminFontStyle = {
 const shellClass = (fontVariable: string) =>
   `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`;
 
-interface NavItemDef {
-  href: string;
-  label: string;
-  section: AdminSection;
-  /**
-   * Its own icon (admin-sidebar.tsx ICONS) where entries share a section:
-   * NavIcon was keyed by section, so the six Mobil Uygulama entries were a
-   * column of identical phones (SHE-18, CON-19).
-   */
-  icon?: string;
-}
-
-const NAV_GROUPS: Array<{ title: string; items: NavItemDef[] }> = [
+/*
+ * The panel's nav (admin UI v2, UI-5): five groups, and items that own
+ * tabs. A tab is another existing page; the shell draws the strip on the
+ * tab's own page, so no route moved and every bookmark and mail link still
+ * lands. Tabs are filtered by role like items (visibleNav), and an item's
+ * href is its first permitted tab: a manager's Ayarlar opens Uygulama
+ * ayarları. Every item says its icon (ui/icons.tsx ADMIN_ICONS). Keywords
+ * keep the old names findable (the palette searches them).
+ */
+const NAV_GROUPS: NavGroupDef[] = [
   {
-    title: "Genel",
-    items: [{ href: "/admin", label: "Genel bakış", section: "dashboard" }],
-  },
-  {
-    title: "Katalog",
-    items: [
-      { href: "/admin/menu", label: "Menü", section: "menu" },
-      { href: "/admin/urunler", label: "Ürünler", section: "products" },
-      {
-        href: "/admin/kategoriler",
-        label: "Kategoriler",
-        section: "categories",
-      },
-      {
-        href: "/admin/magaza-hero",
-        label: "Mağaza vitrini",
-        section: "shopHero",
-      },
-    ],
-  },
-  {
-    title: "İçerik",
-    items: [
-      { href: "/admin/basin", label: "Basın", section: "press" },
-      { href: "/admin/hikaye", label: "Hikaye", section: "story" },
-      { href: "/admin/icerik", label: "Site Metinleri", section: "content" },
-      // The home page's hero: the same editors as the site's copy.
-      {
-        href: "/admin/anasayfa-hero",
-        label: "Anasayfa slaytları",
-        section: "content",
-        icon: "homeSlides",
-      },
-    ],
-  },
-  {
-    title: "Mobil Uygulama",
+    title: "Bugün",
     items: [
       {
-        href: "/admin/mobil/slaytlar",
-        label: "Slaytlar",
-        section: "mobileApp",
-        icon: "appSlides",
+        href: "/admin",
+        label: "Genel bakış",
+        section: "dashboard",
+        icon: "dashboard",
+        keywords: ["Genel", "pano", "dashboard", "özet"],
       },
       {
-        href: "/admin/mobil/duyurular",
-        label: "Duyurular",
-        section: "mobileApp",
-        icon: "appAnnouncements",
+        href: "/admin/siparisler",
+        label: "Siparişler",
+        section: "orders",
+        icon: "orders",
+        keywords: ["sipariş", "Satış", "orders", "fiş"],
       },
-      {
-        href: "/admin/mobil/gonderiler",
-        label: "Gönderiler",
-        section: "mobileApp",
-        icon: "appPosts",
-      },
-      {
-        href: "/admin/mobil/canli-durum",
-        label: "Canlı durum",
-        section: "mobileApp",
-        icon: "appLive",
-      },
-      {
-        href: "/admin/mobil/fal-bildirimleri",
-        label: "fA'L bildirimleri",
-        section: "mobileApp",
-        icon: "appFal",
-      },
-      {
-        href: "/admin/mobil/ayarlar",
-        label: "Uygulama ayarları",
-        section: "mobileApp",
-      },
-    ],
-  },
-  {
-    title: "Satış",
-    items: [
-      { href: "/admin/siparisler", label: "Siparişler", section: "orders" },
       // Its own section, not `mobileApp`: the köşk shift (Personel) runs the
       // evening's bookings. The path stays under /mobil, where the mails and
       // the operator's bookmarks point.
       { href: "/admin/mobil/karaoke", label: "Karaoke", section: "karaoke" },
       // `till`, not `orders`: this is the one page a cashier can open, and a
       // cashier must not reach the order list, refunds or customer records.
-      { href: "/admin/kasa", label: "Kasa · damga", section: "till" },
-      { href: "/admin/masalar", label: "Masalar · QR", section: "tables" },
-      { href: "/admin/musteriler", label: "Müşteriler", section: "customers" },
-      { href: "/admin/bulten", label: "Bülten", section: "newsletter" },
-      // Same section as Bülten: composing a commercial mail is the same trust
-      // as reading who consented to receive one.
       {
-        href: "/admin/bulten/kampanya",
-        label: "Kampanya e-postası",
-        section: "newsletter",
-        icon: "campaign",
+        href: "/admin/kasa",
+        label: "Kasa",
+        section: "till",
+        icon: "till",
+        keywords: ["Kasa · damga", "damga", "sadakat", "kart"],
       },
-      { href: "/admin/promosyon", label: "Promosyon", section: "promos" },
-      { href: "/admin/stok-hareketleri", label: "Stok", section: "stock" },
-      { href: "/admin/raporlar", label: "Raporlar", section: "reports" },
+      {
+        href: "/admin/mobil/canli-durum",
+        label: "Canlı durum",
+        section: "mobileApp",
+        icon: "appLive",
+        keywords: ["köşk", "açık kapalı", "boş masa", "Wi-Fi"],
+      },
     ],
   },
   {
-    title: "Sistem",
+    title: "Katalog",
     items: [
-      { href: "/admin/hukuk", label: "Yasal belgeler", section: "legal" },
-      { href: "/admin/olay-kaydi", label: "Olay kaydı", section: "audit" },
+      {
+        href: "/admin/menu",
+        label: "Kafe menüsü",
+        section: "menu",
+        icon: "menu",
+        keywords: ["Menü", "içecek", "yiyecek"],
+      },
+      {
+        href: "/admin/urunler",
+        label: "Ürünler",
+        section: "products",
+        icon: "products",
+        keywords: ["Mağaza", "shop", "ürün", "CSV"],
+        tabs: [
+          { href: "/admin/urunler", label: "Ürünler", section: "products" },
+          {
+            href: "/admin/kategoriler",
+            label: "Kategoriler",
+            section: "categories",
+          },
+        ],
+      },
+      {
+        href: "/admin/stok-hareketleri",
+        label: "Stok",
+        section: "stock",
+        icon: "stock",
+        keywords: ["Stok Hareketleri", "envanter", "sayım"],
+      },
+    ],
+  },
+  {
+    title: "Pazarlama",
+    items: [
+      {
+        href: "/admin/musteriler",
+        label: "Müşteriler",
+        section: "customers",
+        icon: "customers",
+        keywords: ["üye", "müşteri", "crm"],
+      },
+      {
+        href: "/admin/promosyon",
+        label: "Promosyonlar",
+        section: "promos",
+        icon: "promos",
+        keywords: ["Promosyon", "kupon", "indirim kodu"],
+      },
+      // Composing a commercial mail is the same trust as reading who
+      // consented to receive one: both tabs are `newsletter`.
+      {
+        href: "/admin/bulten/kampanya",
+        label: "Bülten",
+        section: "newsletter",
+        icon: "newsletter",
+        keywords: ["Kampanya e-postası", "abone", "e-posta", "newsletter"],
+        tabs: [
+          {
+            href: "/admin/bulten/kampanya",
+            label: "Kampanyalar",
+            section: "newsletter",
+          },
+          { href: "/admin/bulten", label: "Aboneler", section: "newsletter" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "İçerik",
+    items: [
+      // Every carousel in one place: the home page's, the shop's and the
+      // app's. "Slaytı değiştirmek istiyorum" has one answer.
+      {
+        href: "/admin/anasayfa-hero",
+        label: "Slaytlar",
+        section: "content",
+        icon: "slides",
+        keywords: [
+          "Anasayfa slaytları",
+          "Mağaza vitrini",
+          "Mağaza Hero",
+          "Mobil Slaytlar",
+          "vitrin",
+          "hero",
+          "slider",
+          "banner",
+        ],
+        tabs: [
+          {
+            href: "/admin/anasayfa-hero",
+            label: "Anasayfa",
+            section: "content",
+          },
+          { href: "/admin/magaza-hero", label: "Mağaza", section: "shopHero" },
+          {
+            href: "/admin/mobil/slaytlar",
+            label: "Uygulama",
+            section: "mobileApp",
+          },
+        ],
+      },
+      {
+        href: "/admin/icerik",
+        label: "Site metinleri",
+        section: "content",
+        icon: "content",
+        keywords: ["Site Metinleri", "metin", "hikayemiz", "basında biz"],
+        tabs: [
+          { href: "/admin/icerik", label: "Metinler", section: "content" },
+          { href: "/admin/hikaye", label: "Hikaye", section: "story" },
+          { href: "/admin/basin", label: "Basın", section: "press" },
+        ],
+      },
+      {
+        href: "/admin/mobil/duyurular",
+        label: "Uygulama akışı",
+        section: "mobileApp",
+        icon: "mobileApp",
+        keywords: ["Mobil Uygulama", "duyuru", "gönderi", "app"],
+        tabs: [
+          {
+            href: "/admin/mobil/duyurular",
+            label: "Duyurular",
+            section: "mobileApp",
+          },
+          {
+            href: "/admin/mobil/gonderiler",
+            label: "Gönderiler",
+            section: "mobileApp",
+          },
+        ],
+      },
+      {
+        href: "/admin/mobil/fal-bildirimleri",
+        label: "fA'L bildirimleri",
+        section: "mobileApp",
+        icon: "appFal",
+        keywords: ["fal", "fA'L", "bildir", "şikayet"],
+      },
+    ],
+  },
+  {
+    title: "Yönetim",
+    items: [
+      {
+        href: "/admin/raporlar",
+        label: "Raporlar",
+        section: "reports",
+        icon: "reports",
+        keywords: ["ciro", "rapor", "satış raporu"],
+      },
+      {
+        href: "/admin/masalar",
+        label: "Masalar",
+        section: "tables",
+        icon: "tables",
+        keywords: ["Masalar · QR", "qr", "masa kartı"],
+      },
+      {
+        href: "/admin/ayarlar",
+        label: "Ayarlar",
+        section: "settings",
+        icon: "settings",
+        keywords: ["Uygulama ayarları", "Site ayarları", "bakım", "kargo"],
+        tabs: [
+          { href: "/admin/ayarlar", label: "Site", section: "settings" },
+          {
+            href: "/admin/mobil/ayarlar",
+            label: "Uygulama",
+            section: "mobileApp",
+          },
+        ],
+      },
       {
         href: "/admin/kullanicilar",
         label: "Kullanıcılar",
         section: "adminUsers",
+        icon: "adminUsers",
+        keywords: ["yetki", "rol", "personel", "panel kullanıcısı"],
       },
-      { href: "/admin/ayarlar", label: "Ayarlar", section: "settings" },
+      {
+        href: "/admin/hukuk",
+        label: "Yasal belgeler",
+        section: "legal",
+        icon: "legal",
+        keywords: ["hukuk", "sözleşme", "KVKK", "aydınlatma"],
+      },
+      {
+        href: "/admin/olay-kaydi",
+        label: "Olay kaydı",
+        section: "audit",
+        icon: "audit",
+        keywords: ["audit", "kayıt", "geçmiş"],
+      },
     ],
   },
 ];
@@ -314,11 +433,12 @@ export default async function AdminLayout({
     );
   }
 
-  const groups: AdminNavGroup[] = NAV_GROUPS.map((g) => ({
-    title: g.title,
-    items: g.items.filter((i) => canAccess(i.section, session.role)),
-  })).filter((g) => g.items.length > 0);
+  const groups: AdminNavGroup[] = visibleNav(NAV_GROUPS, (section) =>
+    canAccess(section, session.role),
+  );
   const landingPath = landingPathFor(session.role);
+  // A one-page role (Kasiyer) has no sidebar, so nothing to clear room for.
+  const chrome = hasNavChrome(groups);
 
   return (
     <div
@@ -347,7 +467,20 @@ export default async function AdminLayout({
               ) : undefined
             }
           />
-          <div className="lg:pl-64 print:pl-0">{children}</div>
+          {/* "İçeriğe geç" (the shell's first link) lands here. The pages
+              draw their own <main>, so this is a plain wrapper. Focusable,
+              so a click on the page's empty space focuses it too, and the
+              next arrow key drew the panel's focus ring round the whole
+              page. That ring (globals.css) is unlayered and beats any
+              class: only an inline style turns it off here. */}
+          <div
+            id="admin-main"
+            tabIndex={-1}
+            className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}
+            style={{ outline: "none" }}
+          >
+            {children}
+          </div>
         </PanelHomeProvider>
       </ToastProvider>
     </div>

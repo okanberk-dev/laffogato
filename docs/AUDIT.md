@@ -1236,6 +1236,20 @@ Açık:
 | 🟢 | Anasayfa (`home-page.tsx` "gece 02:00'e kadar") ve `data.ts` karaoke metni ("Gece 02:00'e kadar açığız") saati hâlâ elle yazıyor; ziyaret sayfasında "Karaoke 12:00 - 24:00" ve "Mutfak 23:30'da kapanır" sabit | Anasayfa dosyası bu paketin dışında; mutfak saati Ayarlar'da bir alan değil |
 | 🟢 | `hos-geldin` "500,00 ₺ üzeri kargo ücretsiz"i elle yazıyor; Supabase'in dört giriş e-postası (`docs/email/`) footer'ı sabit | Kargo eşiği bu bulgunun dışında; Supabase şablonları panele elle yapıştırılır, ayardan okuyamaz |
 
+### Kabuk: menü beş grupta, sekmeler, kasiyerin üst çubuğu (admin UI v2, UI-5)
+
+Hiçbir adres taşınmadı: birleştirme menüde ve kabukta. Bir öğe başka mevcut
+sayfaları sekme olarak taşır; sayfalar kendi adresini, `requireRole`'ünü ve
+formunu korur, yer imleri ve e-posta bağlantıları aynı yere iner.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Sahibin menüsü altı grupta 29 girişti; aynı işin sayfaları dağınıktı (üç ayrı slayt yeri, Bülten ile Kampanya e-postası, Ürünler ile Kategoriler) | Beş grup (Bugün, Katalog, Pazarlama, İçerik, Yönetim): sahipte 21, yöneticide 18 öğe. Sekmeler rolüne göre süzülür, öğe ilk açık sekmesine gider (yöneticinin Ayarlar'ı Uygulama ayarları; tek sekme şerit çizmez). Şerit yalnız sekmenin kendi sayfasında, `/yeni` ve kayıt sayfalarında yok; ekmek kırıntısı ilk olmayan sekmeyi adlandırır ("Ürünler / Kategoriler / Yeni"). Her rol önceki adreslerinin tamamına, fazlasına değil, ulaşır (sahip 29, yönetici 25, personel 5, kasiyer 1); her admin sayfası bir öğeden ya da sekmeden ulaşılır. Eski adlar (`keywords`) palet için öğede durur | `admin-nav-ia`, `admin-shell-nav` |
+| 🟢 | Kasiyerin tek sayfası için kenar çubuğu, menü düğmesi ve çekmece | Kasiyerde kenar çubuğu, menü düğmesi, çekmece yok; üst çubukta logo, sayfanın adı ve Hesap menüsü (Güvenlik / 2FA, Çıkış), içerik sola yaslı | `admin-shell-nav`, `admin-nav-ia` |
+| 🟢 | Personelin beş girişi grup başlıkları altındaydı | Altı ve daha az öğe tek liste, başlıksız | `admin-nav-ia` |
+| 🟢 | Klavyeyle menüyü atlamanın yolu yoktu (WCAG 2.4.1) | Kabuğun ilk bağlantısı "İçeriğe geç", içerik sarmalayıcısı `#admin-main` | `admin-nav-ia`, `admin-shell-nav` |
+| 🟢 | Menü simgeleri dosyada el çizimiydi | lucide (`ui/icons.tsx`), menüde `nav-icon.tsx` üzerinden ayrı bir parçada (`next/dynamic`): kasiyerin Kasa'sı simge kodu indirmez. Her öğenin kendi simgesi | `admin-nav-ia`, `admin-karaoke-panel`, `admin-ui-deps` |
+
 ### Hukuk: fatura e-Arşiv olarak e-postayla, İşlem Rehberi, meslek odası (20 Eki 2026)
 
 Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,

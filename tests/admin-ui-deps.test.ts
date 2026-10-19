@@ -333,6 +333,8 @@ describe("ui/icons.tsx", () => {
       more: "Ellipsis",
       dateRange: "CalendarRange",
       close: "X",
+      security: "ShieldCheck",
+      logout: "LogOut",
     });
     const icons = Object.values(ADMIN_ICONS);
     for (const [key, icon] of Object.entries(ADMIN_ICONS)) {

@@ -169,19 +169,26 @@ export default async function AdminPromosPage() {
 
 ## 6. Admin nav'a link ekle
 
-`src/app/admin/layout.tsx` içindeki `NAV` array'ine satır ekle:
+`src/app/admin/layout.tsx` içindeki `NAV_GROUPS`'a ekle. Beş grup var
+(Bugün, Katalog, Pazarlama, İçerik, Yönetim); yeni sayfa ya kendi öğesi olur
+ya da var olan bir öğenin **sekmesi** (`tabs`: başka bir sayfa, kabuk şeridi
+o sayfanın üstünde çizer, adres değişmez):
 
 ```ts
-const NAV: Array<[string, string]> = [
-  ["/admin", "Genel bakış"],
-  ["/admin/menu", "Menü"],
-  ["/admin/urunler", "Ürünler"],
-  ["/admin/promosyon", "Promosyonlar"],  // ← yeni
-  ["/admin/kategoriler", "Kategoriler"],
-  ["/admin/siparisler", "Siparişler"],
-  ["/admin/ayarlar", "Ayarlar"],
-];
+{
+  href: "/admin/promosyon",
+  label: "Promosyonlar",
+  section: "promos",
+  icon: "promos", // ui/icons.tsx ADMIN_ICONS anahtarı, her öğeye ayrı simge
+  keywords: ["kupon", "indirim kodu"], // eski adlar ve eş anlamlılar
+},
 ```
+
+Rol süzgeci (`visibleNav` + `canAccess`) öğeye de sekmeye de aynı uygulanır.
+`tests/admin-nav-ia.test.ts` her rolün ulaştığı adresleri sabit listeyle
+tutar ve her admin sayfasının bir öğeden ya da sekmeden ulaşılabilmesini
+ister: yeni adresi oradaki listeye bilerek ekle. Yeni simge gerekirse
+`ui/icons.tsx` ve `tests/admin-ui-deps.test.ts`'e birlikte girer.
 
 ## 7. Dashboard stat (opsiyonel)
 
