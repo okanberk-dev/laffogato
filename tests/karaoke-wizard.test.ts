@@ -315,6 +315,30 @@ describe("the step in the address bar", () => {
     expect(wiz.karaokeSearchWithStep("", 0)).toBe("");
   });
 
+  it("Geri is the browser's back only when the entry under it is the step before", () => {
+    // Devam from 1 to 2: the entry under step 2 shows step 1.
+    expect(wiz.karaokeBackIsHistory({ step: 1, depth: 1, prev: 0 })).toBe(true);
+    // Özet ve onay, then "Değiştir" on Süre ve kişi: the entry under it is
+    // Özet ve onay, and the browser's back would go forward to it.
+    expect(wiz.karaokeBackIsHistory({ step: 1, depth: 4, prev: 3 })).toBe(
+      false,
+    );
+    // A refreshed page pushed nothing; the first step has no Geri.
+    expect(wiz.karaokeBackIsHistory({ step: 2, depth: 0, prev: 1 })).toBe(
+      false,
+    );
+    expect(wiz.karaokeBackIsHistory({ step: 0, depth: 2, prev: null })).toBe(
+      false,
+    );
+    const src = read("src/components/laffogato/karaoke-booking.tsx");
+    const onBack = src.slice(
+      src.indexOf("function onBack("),
+      src.indexOf("function goTo("),
+    );
+    expect(onBack).toMatch(/karaokeBackIsHistory\(\{[\s\S]*?prev: readPrev\(\)/);
+    expect(src).toContain("{ karaokeDepth: depth + 1, karaokePrev: prev }");
+  });
+
   it("never carries a typed value", () => {
     const src = read("src/components/laffogato/karaoke-booking.tsx");
     const pushes = [

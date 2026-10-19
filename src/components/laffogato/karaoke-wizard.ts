@@ -349,6 +349,23 @@ export function karaokeSearchWithStep(search: string, step: number): string {
   return s ? `?${s}` : "";
 }
 
+/**
+ * Whether "Geri" may be the browser's own back (which keeps the history in
+ * step): only when the entry under this one shows the step before, as after
+ * "Devam". After a jump back (the indicator, "Değiştir") that entry is a
+ * later step, and a refreshed page has none: then "Geri" moves the step
+ * itself.
+ */
+export function karaokeBackIsHistory(at: {
+  step: number;
+  /** Step entries this page pushed above the one it opened on. */
+  depth: number;
+  /** The step the entry under this one shows, or null. */
+  prev: number | null;
+}): boolean {
+  return at.step > 0 && at.depth > 0 && at.prev === at.step - 1;
+}
+
 // ─── The draft in sessionStorage (this tab only; cleared on submit) ───────
 
 export const KARAOKE_DRAFT_KEY = "laffogato_karaoke_draft_v1";

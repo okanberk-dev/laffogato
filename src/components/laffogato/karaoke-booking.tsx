@@ -22,6 +22,7 @@ import { hourToLabel } from "./karaoke-today";
 import {
   KARAOKE_DRAFT_KEY,
   KARAOKE_STEP_LABELS,
+  karaokeBackIsHistory,
   karaokeBlockIsFree,
   karaokeBookingInit,
   karaokeBookingReducer,
@@ -129,6 +130,13 @@ function readDepth(): number {
   const d = (window.history.state as { karaokeDepth?: unknown } | null)
     ?.karaokeDepth;
   return typeof d === "number" && Number.isInteger(d) && d > 0 ? d : 0;
+}
+
+/** The step the entry under this one shows (where the browser's back lands). */
+function readPrev(): number | null {
+  const p = (window.history.state as { karaokePrev?: unknown } | null)
+    ?.karaokePrev;
+  return typeof p === "number" && Number.isInteger(p) && p >= 0 ? p : null;
 }
 
 /**
@@ -324,9 +332,19 @@ export function KaraokeBooking({
     const url = `${window.location.pathname}${search}${window.location.hash}`;
     const depth = readDepth();
     if (s.nav === "push") {
-      window.history.pushState({ karaokeDepth: depth + 1 }, "", url);
+      // The entry left below shows the step being left.
+      const prev = karaokeStepFromSearch(window.location.search);
+      window.history.pushState(
+        { karaokeDepth: depth + 1, karaokePrev: prev },
+        "",
+        url,
+      );
     } else {
-      window.history.replaceState({ karaokeDepth: depth }, "", url);
+      window.history.replaceState(
+        { karaokeDepth: depth, karaokePrev: readPrev() },
+        "",
+        url,
+      );
     }
   }, [s.seq, s.enhanced, s.nav, s.step]);
 
@@ -401,9 +419,17 @@ export function KaraokeBooking({
 
   function onBack() {
     if (s.step === 0) return;
-    // An entry this page pushed: the browser's back is the same move, and
-    // keeps its history in step. A refreshed page has none to go back to.
-    if (readDepth() > 0) {
+    // The entry under this one is the step before: the browser's back is the
+    // same move, and keeps its history in step. After a jump back it is a
+    // later step (Geri went forward to Özet ve onay), and a refreshed page
+    // has none: the step goes back here instead.
+    if (
+      karaokeBackIsHistory({
+        step: s.step,
+        depth: readDepth(),
+        prev: readPrev(),
+      })
+    ) {
       window.history.back();
       return;
     }
