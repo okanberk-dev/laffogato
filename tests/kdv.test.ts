@@ -128,7 +128,7 @@ describe("the seeded shop catalogue", () => {
       /update public\.settings\s+set "taxRates" = "taxRates"[\s\S]*'\{"beans": 10\}'[\s\S]*'\{"pantry": 10\}'/,
     );
     // Once: a rate the operator sets later in the panel stays.
-    expect(migration.match(/'20261018220000_cafe_food_rate_10\.sql'/g)).toHaveLength(4);
+    expect(migration.match(/'20261018220000_cafe_food_rate_10\.sql'/g)).toHaveLength(6);
   });
 });
 

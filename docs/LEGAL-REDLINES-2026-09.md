@@ -1283,7 +1283,9 @@ KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
   eski siparişte NULL, 20 okunur (`20261018220100_order_shipping_tax_rate.sql`).
 - `20261018220000_cafe_food_rate_10.sql` (bir kez): prd-0003 1 ise 10,
   prd-0009 oransız, merch ve Pamuk Önlük ise 10, `orders.items`'ta 1 damgalı
-  her satır 10 (sıra ve toplamlar aynı), `settings."taxRates"`'ta `beans` ve
+  her satır 10 (sıra ve toplamlar aynı; satıştaki %1 kaybolmaz: her sipariş
+  için bir olay kaydı satırı, `system`, `kdv_rate_corrected`, sipariş no ve
+  %1 olan kalemler), `settings."taxRates"`'ta `beans` ve
   `pantry` yalnız 1 ise 10 (eski Vergi sekmesi her alanı eski varsayılanla
   doldurup hepsini kaydediyordu; o 1 de kodundu). Diğer anahtarlar değişmez.
 - Panel: Ayarlar > Vergi alanları seçim; ipuçları yukarıdaki kurala göre.
@@ -1301,7 +1303,10 @@ KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
 - Deploy'dan sonra `GET https://laffogato.net/api/mobile/v1/shop`: prd-0001,
   0002, 0003, 0005, 0009, 0011 `taxRatePct` 10, diğerleri 20 olmalı.
 - %1 ile kesilmiş bir fatura ya da kasada %1 departmanıyla satılmış gıda
-  varsa mali müşavire ilet (VUK m.371 pişmanlık; OP-31).
+  varsa mali müşavire ilet (VUK m.371 pişmanlık; OP-31). Faturalar Paraşüt'ten
+  kesildiği için (19 Ekim 2026) oranı düzeltilen siparişlerin listesi Olay
+  kaydı'nda: Kim "system", Kayıt türü Sipariş, İşlem Güncelleme; siparişin
+  Zaman çizelgesi de "KDV oranı %1'den %10'a düzeltildi" yazar.
 - e-Arşiv'de: ödül kuponlu ya da kuponun ürünlerin tamamını karşıladığı
   siparişte ürün tam fiyatla, ödeme şekli kupon; kısmi promosyon ve hediye
   kuponunda satır iskontosu. Kargo ve kurye ücreti ayrı %20 satır.

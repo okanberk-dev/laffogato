@@ -592,6 +592,59 @@ maybe("KDV per item in a real Postgres", () => {
       );
       expect(after.subtotalMinor).toBe(before.subtotalMinor);
       expect(after.totalMinor).toBe(before.totalMinor);
+      // The rate the line was sold at is not lost: one audit row per order
+      // keeps which lines were stamped 1, so an invoice already cut at 1%
+      // can still be found (Olay kaydı, the order's Zaman çizelgesi).
+      const corrections = async () =>
+        (
+          await client.query(
+            `select id, actor, action, payload, "createdAt"
+               from public.audit_logs
+              where entity = 'order' and "entityId" = $1
+                and payload->>'event' = 'kdv_rate_corrected'`,
+            [orderId],
+          )
+        ).rows as Array<{
+          id: string;
+          actor: string;
+          action: string;
+          payload: Record<string, unknown>;
+          createdAt: string;
+        }>;
+      const kept = await corrections();
+      expect(kept).toHaveLength(1);
+      expect(kept[0].id).toMatch(/^aud-\d{7,}$/);
+      expect(kept[0].actor).toBe("system");
+      expect(kept[0].action).toBe("update");
+      expect(kept[0].createdAt).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      );
+      const soldNo = (
+        await client.query(
+          `select "orderNo" from public.orders where id = $1`,
+          [orderId],
+        )
+      ).rows[0]?.orderNo;
+      expect(kept[0].payload).toEqual({
+        event: "kdv_rate_corrected",
+        migration: MIGRATION,
+        orderNo: soldNo,
+        from: 1,
+        to: 10,
+        count: 2,
+        lines: [
+          {
+            index: 0,
+            productName: before.items[0].productName,
+            qty: 2,
+          },
+          {
+            index: 2,
+            productName: before.items[2].productName,
+            qty: 1,
+          },
+        ],
+      });
 
       // Recorded: a 1 the operator saves later in the panel stays.
       await client.query(`insert into public._migrations (name) values ($1)`, [
@@ -606,6 +659,7 @@ maybe("KDV per item in a real Postgres", () => {
       await client.query(sql);
       expect(await product("prd-0003")).toBe(1);
       expect((await savedTaxRates()).beans).toBe(1);
+      expect(await corrections()).toHaveLength(1);
 
       // Unrecorded again: an operator's own rate is never touched.
       await client.query(`delete from public._migrations where name = $1`, [

@@ -614,4 +614,39 @@ describe("the timeline", () => {
     expect(cancel.description).toBe("Müşteri vazgeçti · stoğa alınmadı");
     expect(cancel.actor).toBe("mudur@laffogato.net");
   });
+
+  it("names the KDV correction the migration recorded, with the lines sold at 1%", () => {
+    const items = orderTimeline(
+      order(),
+      [
+        {
+          id: "aud-0000042",
+          actor: "system",
+          action: "update",
+          entity: "order",
+          entityId: "ord-1",
+          payload: {
+            event: "kdv_rate_corrected",
+            migration: "20261018220000_cafe_food_rate_10.sql",
+            orderNo: 10001,
+            from: 1,
+            to: 10,
+            count: 2,
+            lines: [
+              { index: 0, productName: "Etiyopya Yirgacheffe", qty: 2 },
+              { index: 2, productName: "Yenilebilir Kup", qty: 1 },
+            ],
+          },
+          createdAt: "2026-10-22T08:00:00.000Z",
+        },
+      ],
+      [],
+    );
+    const fix = items.find((i) => i.id === "aud-aud-0000042")!;
+    expect(fix.title).toBe("KDV oranı %1'den %10'a düzeltildi (2 kalem)");
+    expect(fix.tone).toBe("warning");
+    expect(fix.description).toBe(
+      "Satıştaki oran %1: 1. kalem Etiyopya Yirgacheffe, 3. kalem Yenilebilir Kup. %1 ile fatura kesildiyse mali müşavire ilet.",
+    );
+  });
 });

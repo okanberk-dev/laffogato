@@ -20,12 +20,16 @@
 --             and still the apron.
 --   orders.items  every line stamped 1% becomes 10%. The store copied that
 --             1 at sale time from the code's default (shopLineItems ->
---             productTaxRate) or from the cup box's row. No e-Arşiv invoice
---             was cut before 18 Oct 2026, and the invoices will be cut from
---             these stamps. Prices, totals and the order of the lines do not
---             change: a rate only says how much of a KDV-included price is
---             KDV. If an invoice was nevertheless cut at 1%, the operator
---             tells the mali müşavir, who corrects it.
+--             productTaxRate) or from the cup box's row. Prices, totals and
+--             the order of the lines do not change: a rate only says how
+--             much of a KDV-included price is KDV. Invoices go out through
+--             Paraşüt (operator, 19 Oct 2026), so some of these orders may
+--             already have an invoice at 1%. The stamp they were sold at is
+--             therefore kept: before the rewrite each such order gets one
+--             audit row (actor system, event kdv_rate_corrected, orderNo and
+--             the lines that were 1). Olay kaydı and the order's Zaman
+--             çizelgesi list them; the operator checks those invoices and
+--             tells the mali müşavir about any cut at 1% (VUK m.371).
 --
 --   settings."taxRates"  beans and pantry, each only while it is 1. That
 --             1 was the code's too: until this deploy Ayarlar > Vergi
@@ -79,6 +83,50 @@ update public.settings
        from public._migrations as applied
       where applied.name = '20261018220000_cafe_food_rate_10.sql'
    );
+
+-- The record first: once the stamps move, nothing else says which lines
+-- were sold at 1. One row per order, ids from the same `aud` counter
+-- logAudit uses, `createdAt` in its ISO-8601 form.
+insert into public.audit_logs (id, actor, action, entity, "entityId", payload, "createdAt")
+select 'aud-' || lpad(seq::text, greatest(7, length(seq::text)), '0'),
+       'system',
+       'update',
+       'order',
+       touched.id,
+       jsonb_build_object(
+         'event', 'kdv_rate_corrected',
+         'migration', '20261018220000_cafe_food_rate_10.sql',
+         'orderNo', touched."orderNo",
+         'from', 1,
+         'to', 10,
+         'count', jsonb_array_length(touched.lines),
+         'lines', touched.lines
+       ),
+       to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  from (
+    select o.id,
+           o."orderNo",
+           public.next_seq('aud') as seq,
+           (
+             select jsonb_agg(
+                      jsonb_build_object(
+                        'index', pos - 1,
+                        'productName', coalesce(line->>'productName', ''),
+                        'qty', line->'qty'
+                      )
+                      order by pos
+                    )
+               from jsonb_array_elements(o.items) with ordinality as l(line, pos)
+              where line->'taxRatePct' = '1'::jsonb
+           ) as lines
+      from public.orders as o
+     where o.items @> '[{"taxRatePct": 1}]'::jsonb
+       and not exists (
+         select 1
+           from public._migrations as applied
+          where applied.name = '20261018220000_cafe_food_rate_10.sql'
+       )
+  ) as touched;
 
 -- Line by line, in the stored order (with ordinality): a line stamped 1
 -- becomes 10, every other line and every other key stays as it was.
