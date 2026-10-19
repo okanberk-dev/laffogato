@@ -51,9 +51,9 @@ export function CustomerActions({
   const resendPost = useHandPost(resendAction, resending);
 
   return (
-    <Card className="grid gap-3">
+    <Card className="grid grid-cols-1 gap-3">
       <h2
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         Yönetim
@@ -98,14 +98,14 @@ export function CustomerActions({
           <FormSuccess message={resend.error ? undefined : resend.message} />
           {resend.url && (
             <div className="grid gap-1">
-              <span className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase">
+              <span className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase">
                 Doğrulama bağlantısı
               </span>
               <input
                 readOnly
                 value={resend.url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-2 py-1.5 text-[11px] text-neutral-700"
+                className="w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-2 py-1.5 text-xs text-[var(--admin-text)]"
                 style={{ fontFamily: "var(--mono), monospace" }}
               />
             </div>

@@ -2143,36 +2143,22 @@ export type CustomerSummaryOrder = Pick<
   | "createdAt"
 >;
 
-export async function listCustomers(): Promise<CustomerSummary[]> {
-  // Seven columns, not `select *`: the roll-up needs every order (it counts a
-  // lifetime) but none of the items, addresses or consent evidence. WP1,
-  // measured on 20k orders: 596 ms / 27 MB -> 67 ms / 3.4 MB.
-  await ensureSeed();
-  const orders = rows<CustomerSummaryOrder>(
-    await getDb()
-      .from(TABLES.orders)
-      .select(
-        "customerEmail, customerName, customerPhone, status, totalMinor, refunds, createdAt",
-      )
-      .order("orderNo", { ascending: false }),
-    "listCustomers",
-  );
-  return summarizeCustomers(orders);
-}
-
 /**
  * The placeholder a closed account's rows point at (`anonymizedEmail` in
  * lib/mobile/me.ts: `deleted-<id>@anon.local`). Its orders keep the invoice
  * name and phone for fiscal retention, so a roll-up keyed on it listed the
  * closed member under their real name, found by a name search. Müşteriler
- * leaves these out (decision D13).
+ * leaves these out (decision D13; in SQL, admin_customer_rows).
  */
 export function isClosedAccountEmail(email: string): boolean {
   return email.trim().toLowerCase().endsWith("@anon.local");
 }
 
 /**
- * The pure half of {@link listCustomers}, exported for tests.
+ * The customer roll-up rule, pure. Müşteriler runs it in SQL
+ * (`admin_customer_rows`, db/migrations/20261019130000_admin_customer_list.sql,
+ * lib/admin/customer-list.ts); this is the same rule in TypeScript, which the
+ * database test holds the SQL to (tests/db-integration-customer-list.test.ts).
  *
  * Order count, lifetime value and refunds follow the reports' rule
  * ({@link isReportableOrder}): an abandoned checkout (`pending_payment`) and
@@ -2286,6 +2272,26 @@ export async function customerLoyaltyOrders(
   email: string,
 ): Promise<LoyaltyOrderRow[]> {
   return readCustomerOrders<LoyaltyOrderRow>(email, "status, createdAt, items");
+}
+
+/** The columns {@link customerLifetime} reads. */
+export type LifetimeOrderRow = Pick<
+  AdminOrder,
+  "status" | "totalMinor" | "refunds"
+>;
+
+/**
+ * Every order of a customer, three columns: the member page's lifetime
+ * figures count them all, while its history lists only the newest few
+ * (admin audit ORD-30).
+ */
+export async function customerLifetimeOrders(
+  email: string,
+): Promise<LifetimeOrderRow[]> {
+  return readCustomerOrders<LifetimeOrderRow>(
+    email,
+    "status, totalMinor, refunds",
+  );
 }
 
 async function readCustomerOrders<T>(

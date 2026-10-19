@@ -739,7 +739,32 @@ Açık (paket 4a'nın dışında kalan kısımlar):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları (PEO-20'nin kalanı); kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`) | Kendi dosyalarının PR'larında (4b üye sayfası, 4c kampanya ekranları) |
+| 🟢 | Kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`). PEO-20'nin üye sayfası kısmı 4b'de kapandı | Kampanya ekranlarının PR'ında (4c) |
+
+### Kişiler: Müşteriler listesi ve üye sayfası (paket 4b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Müşteriler her üye satırını (`select *`) ve her siparişi okuyup JavaScript'te birleştiriyor, bütün listeyi sayfaya iki kez yazıyordu (telefon kartları ve masaüstü tablosu); sayfalama, sıralanabilir başlık, sekme yoktu; kutucuklar farklı kapsamları sayıyordu (PEO-13) | Birleştirme, arama, sıralama ve sayfa SQL'de: `admin_customer_rows` (üye hesabı + sipariş özeti, `summarizeCustomers` kuralıyla: bekleyen ödeme ve iptal harcama değil, kapatılan hesap ve kasanın misafir adresi dışarıda), `admin_customer_page` (bir sayfa), `admin_customer_counts` (sekme başına). Sayfa kitte: sekmeler sayılarıyla (Tümü, Üyeler, Misafirler, Pasif), süzgeç çubuğu (arama, ticari ileti izni, e-posta doğrulaması), sıralanabilir başlıklar, numaralı sayfalar, satır menüsü, telefonda kart. Sekme rozeti, sayfa toplamı ve kutucuklar aynı cevabı (bu sekme, bu süzgeç) okur. Tüm tabloyu okuyan `listCustomers` / `listAllCustomers` kalktı | `admin-customer-list`, `db-integration-customer-list`, `admin-order-reads` |
+| 🟡 | Arama "ismail" yazınca "İsmail"i bulmuyordu (yerelsiz `toLowerCase`) (PEO-05) | Aranan metin `foldTr` ile, sütunlar SQL'de `admin_fold_tr` (aynı harfler) ile katlanır; telefon rakamlarıyla da bulunur ("0532 …" yazınca "+90 532 …"); `%` ve `_` harf olarak aranır. Adlar her harmanlamada Türk alfabesi sırasıyla sıralanır (`admin_sort_tr`) | `admin-customer-list`, `db-integration-customer-list` |
+| 🟡 | Üye sayfası neredeyse her e-postada 390 px telefondan genişti; "Doğrulanmış" rozeti kesiliyordu (PEO-03). Sadakat kartı da damga geçmişi satırı yüzünden kolonundan taşıyordu | Bütün kolon izleri `minmax(0, …)`, adresler her yerden kırılabilir, rozet adresin altına iner; yan kartların ızgarası ve damga geçmişi `grid-cols-1` (satır kısalır); iki kolon `xl`'den (kenar çubuğunun yanında `lg`'de yan kolon 232 px'ti). 390 / 1024 / 1280 px'te yatay taşma yok | `admin-customer-detail` |
+| 🟡 | Gerçek bilgi `neutral-400` (2,59:1) ile yazılıydı: damga saatleri, davet durumları, boş liste cümleleri, doğrulama bağlantısı etiketi (PEO-10; ORD-05'in üye sayfası kısmı) | `--admin-text-soft` / `--admin-text`, büyük boş listelerde kitin `EmptyState`'i | `admin-customer-detail` |
+| 🟢 | 9 px rozetler, `neutral-500` / `neutral-100` hapları (4,34:1), Tailwind paleti, hap bağlantılar, kare düğmeler (PEO-17, PEO-18) | Kitin `Badge`'i (10 px, AA tonlar), `--admin-*` jetonları, `BUTTON`, `KeyValueGrid`, `DataTable`; damga kutucukları 10 px | `admin-customer-list`, `admin-customer-detail` |
+| 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları; listede de "-" başlık (PEO-20'nin kalanı, ORD-27'nin bu kısmı) | Davetler `KeyValueGrid` + gerçek liste; kit tablosunun işlem sütunu "İşlemler" adını taşır; başlık bağlantıları 44 px kit düğmeleri | `admin-customer-detail`, `admin-customer-list` |
+| 🟢 | "Lifetime value", ham ISO doğum günü (PEO-21'in bu kısmı) | "Toplam harcama", doğum günü gg.aa.yyyy | `admin-customer-detail`, `admin-customer-list` |
+| 🟢 | Tarayıcı sekmesi ve geçmişi müşterinin e-postasını başlıkta taşıyordu (PEO-25, karar D14) | Başlık "Admin · Müşteri" | `admin-customer-detail` |
+| 🟢 | "Sipariş" kutucuğu ile "Sipariş geçmişi (n)" farklı şeyler sayıyordu (PEO-26) | Kutucuk "Ödenen sipariş"; geçmişin üstünde "n sipariş · m ödenen" | `admin-customer-detail` |
+| 🟢 | Sipariş geçmişi sınırsızdı ve elle yazılmış bir tabloydu (ORD-30'un üye sayfası kısmı) | Kit tablosunda en yeni 20 sipariş; fazlası "Tümünü gör" ile sipariş listesinde; kutucuklar bütün geçmişi üç sütundan sayar (`customerLifetimeOrders`) | `admin-customer-detail` |
+| 🟢 | Hesap silme talebinin sekmesi, rozeti ve bandı (#145, #151) eski listenin JavaScript birleştirmesine bağlıydı | SQL listesine taşındı: `admin_customer_rows` üyenin `deletionRequestedAt`'ini taşır, `?filter=deletion` sekmesi (sayılı, sıralama ne olursa olsun en eski talep önce), satırda "Silme talebi" rozeti, altında son gün ya da "Süre doldu", bant süzgeçten bağımsız bütün açık talepleri sayar (`admin_customer_counts` en eski talebi döner); ekip e-postasının bağlantısı (`DELETION_ADMIN_PATH`) aynı | `admin-account-deletion-ui`, `db-integration-customer-list` |
+
+Açık (paket 4b'nin dışında kalanlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`), "Siparişleri" ve "Tümünü gör" bağlantıları da sipariş aramasına e-postayı `?q=` ile verir | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
+| 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
+| 🟢 | Bülten ve kampanya ekranlarındaki `neutral-*` renkler, "Footer", "Happy hour", uygulama bağlantıları cümlesi, "Bana test gönder" (PEO-10, PEO-17, PEO-18, PEO-21'in kalanı) | Kendi dosyalarının PR'ında (4c) |
+| 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
 ### İçerik: yasal belgeler ve site metinleri (paket 6a)
 
