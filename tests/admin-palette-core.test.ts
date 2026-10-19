@@ -954,7 +954,14 @@ describe("the palette is read-only and keeps to one modal system", () => {
     expect(src).toContain(
       'dialog?.querySelector<HTMLInputElement>("input")?.focus();',
     );
-    expect(src).toContain("const Body = loadedPalette ?? LazyPalette;");
+    // Picked once per opening, never per render: a list that came through
+    // next/dynamic must not be swapped for the loaded component when the
+    // shell re-renders while it is open (it would mount anew and drop what
+    // was typed; seen in a scripted browser).
+    expect(src).toContain(
+      "const [Body] = useState(() => loadedPalette ?? LazyPalette);",
+    );
+    expect(src).not.toMatch(/const Body = loadedPalette/);
     expect(src).toContain('window.addEventListener("keydown", onKey, true)');
     expect(src).toContain('querySelectorAll("dialog[open]")');
     expect(src).toContain("triggerRef.current?.focus()");

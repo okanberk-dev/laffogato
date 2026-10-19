@@ -257,7 +257,11 @@ function PaletteDialog({
   }, [dialogRef]);
 
   const close = useCallback(() => dialogRef.current?.close(), [dialogRef]);
-  const Body = loadedPalette ?? LazyPalette;
+  // Chosen once per opening. Read on every render, a list that came
+  // through next/dynamic turned into the loaded component at the shell's
+  // next render (a badge count changing): a new list, the text typed so
+  // far and its hits gone.
+  const [Body] = useState(() => loadedPalette ?? LazyPalette);
 
   return (
     <dialog
