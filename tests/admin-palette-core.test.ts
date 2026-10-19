@@ -1021,4 +1021,39 @@ describe("the trigger's server markup", () => {
     expect(a).toMatch(/\bw-11\b/);
     expect(html.match(/<a /g)).toHaveLength(1);
   });
+
+  it("a list that cannot load stays inside the dialog: a message and the results page, never the site's error page", async () => {
+    // The shell sits above admin/error.tsx: an error leaving the dialog
+    // (a chunk a deploy replaced, a köşk offline) reached app/error.tsx
+    // and the whole panel became the site's error page (seen in a
+    // scripted browser with the chunk missing).
+    const { PaletteBoundary } =
+      await import("@/components/admin/palette/trigger");
+    expect(PaletteBoundary.getDerivedStateFromError()).toEqual({
+      failed: true,
+    });
+    const draw = (failed: boolean) => {
+      const b = new PaletteBoundary({
+        children: createElement("p", null, "LIST"),
+      });
+      b.state = { failed };
+      return renderToStaticMarkup(createElement(() => b.render()));
+    };
+    expect(draw(false)).toBe("<p>LIST</p>");
+    const failed = draw(true);
+    expect(failed).toContain('role="alert"');
+    expect(failed).toContain(
+      "Arama yüklenemedi. Sayfayı yenileyip yeniden dene.",
+    );
+    expect(failed).toMatch(
+      /<a href="\/admin\/ara"[^>]*>Arama sayfasını aç<\/a>/,
+    );
+    expect(failed).not.toContain("LIST");
+    // It wraps the list, whichever way the list came.
+    const src = readFileSync(
+      "src/components/admin/palette/trigger.tsx",
+      "utf8",
+    );
+    expect(src).toMatch(/<PaletteBoundary>\s*<Body\b[^]*?<\/PaletteBoundary>/);
+  });
 });

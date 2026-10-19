@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import {
+  Component,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -10,6 +11,7 @@ import {
   useState,
   useSyncExternalStore,
   type MouseEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
@@ -64,6 +66,37 @@ function PaletteLoading() {
       </p>
     </div>
   );
+}
+
+/**
+ * The list could not load (a deploy replaced its chunk, the köşk lost the
+ * network) or broke while drawing. Caught here, inside the dialog: the
+ * shell is above the panel's own error screen, so an error that left the
+ * dialog took the whole panel down to the site's error page. The results
+ * page still works, and a fresh load brings the new chunk.
+ */
+export class PaletteBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div role="alert" className="px-4 py-4 text-sm text-[var(--admin-text)]">
+        <p>Arama yüklenemedi. Sayfayı yenileyip yeniden dene.</p>
+        <a
+          href={PALETTE_FALLBACK_HREF}
+          className="inline-flex min-h-11 items-center font-medium text-[var(--admin-primary)] underline underline-offset-4"
+        >
+          Arama sayfasını aç
+        </a>
+      </div>
+    );
+  }
 }
 
 /** The magnifier: the trigger's, and the palette's box (shared, no second copy). */
@@ -125,7 +158,7 @@ export function PaletteTrigger({
 
   const preload = useCallback(() => {
     void loadPalette().catch(() => {
-      // The click loads it again; next/dynamic shows the error state then.
+      // The click loads it again; PaletteBoundary says so if that fails.
     });
   }, []);
 
@@ -279,13 +312,15 @@ function PaletteDialog({
       className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_24px_64px_rgba(44,29,17,0.28)] backdrop:bg-[rgba(44,29,17,0.45)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden"
       style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
     >
-      <Body
-        groups={groups}
-        role={role}
-        accountKey={accountKey}
-        pathname={pathname}
-        close={close}
-      />
+      <PaletteBoundary>
+        <Body
+          groups={groups}
+          role={role}
+          accountKey={accountKey}
+          pathname={pathname}
+          close={close}
+        />
+      </PaletteBoundary>
     </dialog>
   );
 }
