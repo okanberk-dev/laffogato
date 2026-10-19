@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  actionError,
+  actionOk,
+  fieldErrorsFromIssues,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { isDbUnreachable } from "@/lib/db/health";
@@ -12,11 +18,6 @@ import {
   VENUE_OVERRIDES,
   VENUE_WIFI_LEVELS,
 } from "@/lib/mobile/venue";
-
-export interface VenueStatusState {
-  message?: string;
-  error?: string;
-}
 
 const tables = z.coerce
   .number({ error: "Masa sayısı bir sayı olmalı." })
@@ -44,11 +45,15 @@ const schema = z
 /**
  * Rol kapısı burada da açılır: sayfadaki `requireRole` bir Server Action'ı
  * korumaz - action, sayfadan bağımsız çağrılabilen bir POST ucudur.
+ *
+ * Answers with an ActionResult for ActionForm, which posts by hand: the
+ * `<form action>` it replaced put every field back to what was saved when
+ * this refused one (more free tables than tables).
  */
 export async function saveVenueStatusAction(
-  _prev: VenueStatusState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<VenueStatusState> {
+): Promise<ActionResult> {
   await requireRole("mobileApp");
 
   const parsed = schema.safeParse({
@@ -61,7 +66,15 @@ export async function saveVenueStatusAction(
     note: String(formData.get("note") ?? ""),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Form geçersiz." };
+    // The message is under its field; the line by the button only points
+    // there (one announcement, not the same sentence twice).
+    const fieldErrors = fieldErrorsFromIssues(parsed.error.issues);
+    return actionError(
+      Object.keys(fieldErrors).length
+        ? "Formdaki uyarıları gider."
+        : (parsed.error.issues[0]?.message ?? "Form geçersiz."),
+      fieldErrors,
+    );
   }
 
   try {
@@ -81,15 +94,13 @@ export async function saveVenueStatusAction(
     });
   } catch (err) {
     if (isDbUnreachable(err)) {
-      return {
-        error: "Veritabanına şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
-      };
+      return actionError(
+        "Veritabanına şu an ulaşılamıyor. Kısa süre içinde tekrar dene.",
+      );
     }
     throw err;
   }
 
   revalidatePath("/admin/mobil/canli-durum");
-  return {
-    message: "Canlı durum kaydedildi. Uygulama 30 saniye içinde görür.",
-  };
+  return actionOk("Canlı durum kaydedildi. Uygulama 30 saniye içinde görür.");
 }

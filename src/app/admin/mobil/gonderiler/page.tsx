@@ -1,82 +1,116 @@
 import Link from "next/link";
 
-import { Card, PageHeader } from "@/components/admin/forms";
-import { ConfirmButton } from "@/components/admin/ui";
+import { PageHeader } from "@/components/admin/forms";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
+  Badge,
+  ConfirmButton,
+  DataTable,
+  EmptyState,
+  StatusTabs,
+} from "@/components/admin/ui";
+import { appPublishStatus } from "@/lib/admin/app-content-schema";
 import { requireRole } from "@/lib/admin/auth";
-import { APP_POST_KIND_LABELS, listAppPosts } from "@/lib/admin/store";
+import { canAccess } from "@/lib/admin/roles";
+import {
+  APP_POST_KIND_LABELS,
+  listAppPosts,
+  type AdminAppPost,
+} from "@/lib/admin/store";
+import type { AdminTone } from "@/lib/admin/tone";
+import {
+  CAMPAIGN_STATUS_LABELS,
+  getCampaignEmail,
+  type CampaignEmail,
+} from "@/lib/email/campaigns";
 
+import {
+  DELETE_TEXT,
+  parsePublishFilter,
+  PublishCell,
+  PUBLISH_STATUS_PARAM,
+  publishTabs,
+} from "../app-content-list";
 import { deletePostAction } from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Gönderileri" };
 export const dynamic = "force-dynamic";
 
-interface PageProps {
-  /** Written by the save actions' redirect: the automatic e-mail's outcome. */
-  searchParams: Promise<{ eposta?: string; adet?: string; kampanya?: string }>;
+const PANEL = "/admin/mobil/gonderiler";
+
+/**
+ * The campaigns the posts were mailed with, by id. Only the marked posts
+ * are looked up (a handful); a list with none reads nothing.
+ */
+async function campaignsFor(
+  posts: readonly AdminAppPost[],
+): Promise<Map<string, CampaignEmail | null>> {
+  const ids = [
+    ...new Set(posts.map((p) => p.emailCampaignId ?? "").filter(Boolean)),
+  ];
+  const found = await Promise.all(ids.map((id) => getCampaignEmail(id)));
+  return new Map(ids.map((id, i) => [id, found[i]]));
 }
 
 /**
- * The one thing a void form action cannot say is what happened to its side
- * effect, so the save actions say it here, in the URL they redirect to. The
- * post itself is saved in every case; this is only about the mail.
+ * The post's mail as its campaign says it is. The list used to print
+ * "e-posta gönderildi" for any marked post, also when the queue refused the
+ * draft or the audience was empty; the mark stays (it is what keeps a later
+ * save from mailing again), the words come from the campaign.
  */
-function MailOutcomeBanner({
-  eposta,
-  adet,
-  kampanya,
-}: {
-  eposta?: string;
-  adet?: string;
-  kampanya?: string;
-}) {
-  if (eposta === "kuyrukta") {
-    const n = parseInt(adet ?? "", 10);
-    return (
-      <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-        Gönderi kaydedildi.{" "}
-        {Number.isFinite(n) && n > 0
-          ? `${n} üyeye kampanya e-postası kuyruğa alındı; gönderim arka planda sürüyor.`
-          : "Pazarlama izni olan üye bulunamadı; e-posta çıkmadı."}{" "}
-        <Link href="/admin/bulten/kampanya" className="underline">
-          Kampanya e-postası
-        </Link>
-      </div>
-    );
+function mailState(campaign: CampaignEmail | null | undefined): {
+  label: string;
+  tone: AdminTone;
+} {
+  if (!campaign) return { label: "Kampanya kaydı yok", tone: "neutral" };
+  switch (campaign.status) {
+    case "draft":
+      return { label: "Taslak, gönderilmedi", tone: "warning" };
+    case "queued":
+    case "sending":
+      return {
+        label: `${CAMPAIGN_STATUS_LABELS[campaign.status]} · ${campaign.total} alıcı`,
+        tone: "info",
+      };
+    case "sent":
+      return campaign.total > 0
+        ? { label: `Gönderildi · ${campaign.total} alıcı`, tone: "success" }
+        : { label: "Gönderildi · 0 alıcı", tone: "warning" };
+    case "failed":
+      return { label: "Gönderilemedi", tone: "danger" };
+    default:
+      return {
+        label: CAMPAIGN_STATUS_LABELS[campaign.status] ?? campaign.status,
+        tone: "neutral",
+      };
   }
-  if (eposta === "hata") {
-    return (
-      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        Gönderi kaydedildi ama kampanya e-postası kuyruğa alınamadı.{" "}
-        {kampanya ? (
-          <>
-            Taslak oluşturuldu; eksik alanı{" "}
-            <Link
-              href={`/admin/bulten/kampanya/${encodeURIComponent(kampanya)}`}
-              className="underline"
-            >
-              kampanya sayfasında
-            </Link>{" "}
-            tamamlayıp oradan gönder.
-          </>
-        ) : (
-          <>
-            Kampanya oluşturulamadı;{" "}
-            <Link href="/admin/bulten/kampanya/yeni" className="underline">
-              Kampanya e-postası
-            </Link>{" "}
-            sayfasından elle açabilirsin.
-          </>
-        )}
-      </div>
-    );
-  }
-  return null;
 }
 
-export default async function AdminAppPostsPage({ searchParams }: PageProps) {
-  await requireRole("mobileApp");
-  const sp = await searchParams;
-  const rows = await listAppPosts();
+export default async function AdminAppPostsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const session = await requireRole("mobileApp");
+  const [all, sp] = await Promise.all([
+    listAppPosts(),
+    searchParams ?? Promise.resolve({}),
+  ]);
+  const campaigns = await campaignsFor(all);
+  // The campaign page is the newsletter section's: link only where it opens.
+  const linkCampaigns = Boolean(
+    session.role && canAccess("newsletter", session.role),
+  );
+  // One reading of the clock for the whole list, tabs and badges alike.
+  const now = new Date().getTime();
+  const filter = parsePublishFilter(
+    (sp as Record<string, unknown>)[PUBLISH_STATUS_PARAM],
+  );
+  const rows = filter
+    ? all.filter((p) => appPublishStatus(p, now) === filter)
+    : all;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
@@ -86,7 +120,7 @@ export default async function AdminAppPostsPage({ searchParams }: PageProps) {
         description="Ana sayfada yatay kaydırılan kartlar: kampanyalar, iş birlikleri ve etkinlikler. Tarih aralığı verirsen kendiliğinden düşer."
         action={
           <Link
-            href="/admin/mobil/gonderiler/yeni"
+            href={`${PANEL}/yeni`}
             className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
           >
             + Yeni gönderi
@@ -94,60 +128,107 @@ export default async function AdminAppPostsPage({ searchParams }: PageProps) {
         }
       />
 
-      <MailOutcomeBanner
-        eposta={sp.eposta}
-        adet={sp.adet}
-        kampanya={sp.kampanya}
-      />
+      {all.length > 0 ? (
+        <StatusTabs
+          tabs={publishTabs(all, now, filter)}
+          current={filter}
+          searchParams={sp}
+          pathname={PANEL}
+          param={PUBLISH_STATUS_PARAM}
+          label="Yayın durumu"
+        />
+      ) : null}
 
-      {rows.length === 0 ? (
-        <Card>
-          <p className="text-sm text-neutral-500">Henüz gönderi yok.</p>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {rows.map((p) => (
-            <Card key={p.id}>
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="min-w-0">
-                  <p className="text-[11px] tracking-widest text-neutral-500 uppercase">
-                    {APP_POST_KIND_LABELS[p.kind]}
-                  </p>
-                  <p className="truncate font-medium">{p.title}</p>
-                  <p className="line-clamp-2 text-sm text-neutral-500">
-                    {p.body}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    Sıra {p.sortOrder}
-                    {p.isActive ? "" : " · YAYINDA DEĞİL"}
-                    {p.image ? " · görselli" : " · marka zemini"}
-                    {p.linkUrl ? " · bağlantılı" : ""}
-                    {p.startsAt || p.endsAt
-                      ? ` · ${p.startsAt || "…"} → ${p.endsAt || "…"}`
-                      : ""}
-                    {p.emailCampaignId ? " · e-posta gönderildi" : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/admin/mobil/gonderiler/${p.id}`}
-                    className="inline-flex min-h-[40px] items-center rounded-lg border border-[var(--admin-border)] px-4 text-sm"
-                  >
-                    Düzenle
-                  </Link>
-                  <ConfirmButton
-                    action={deletePostAction}
-                    hidden={{ id: p.id }}
-                    label="Sil"
-                    title={`"${p.title}" silinsin mi?`}
-                    description="Gönderi uygulamadan hemen kalkar ve kalıcı olarak silinir. Gönderilmiş e-posta geri alınmaz."
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+      <DataTable<AdminAppPost>
+        caption="Uygulama gönderileri"
+        rows={rows}
+        rowKey={(p) => p.id}
+        rowHref={(p) => `${PANEL}/${encodeURIComponent(p.id)}`}
+        empty={
+          all.length === 0 ? (
+            <EmptyState
+              title="Henüz gönderi yok."
+              description="Yeni bir gönderi ekleyerek başla."
+            />
+          ) : (
+            <EmptyState title="Bu durumda gönderi yok." />
+          )
+        }
+        columns={[
+          {
+            key: "post",
+            header: "Gönderi",
+            cell: (p) => (
+              <span className="block min-w-0 md:max-w-[13rem] xl:max-w-[22rem]">
+                <span className="block truncate text-xs text-[var(--admin-text-soft)]">
+                  {APP_POST_KIND_LABELS[p.kind]}
+                </span>
+                <span className="block truncate font-medium">{p.title}</span>
+                <span className="block truncate text-xs text-[var(--admin-text-soft)]">
+                  {p.image ? "Görselli" : "Marka zemini"}
+                  {p.linkUrl ? " · bağlantılı" : ""}
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            header: "Durum",
+            cell: (p) => <PublishCell row={p} now={now} />,
+          },
+          {
+            key: "mail",
+            header: "E-posta",
+            cell: (p) => {
+              if (!p.emailCampaignId) {
+                return (
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    Yok
+                  </span>
+                );
+              }
+              const state = mailState(campaigns.get(p.emailCampaignId));
+              return (
+                <span className="grid justify-items-start gap-1">
+                  <Badge tone={state.tone}>{state.label}</Badge>
+                  {linkCampaigns && campaigns.get(p.emailCampaignId) ? (
+                    <Link
+                      href={`/admin/bulten/kampanya/${encodeURIComponent(p.emailCampaignId)}`}
+                      className="text-xs text-[var(--admin-primary)] underline-offset-4 hover:underline"
+                    >
+                      Kampanyayı aç
+                    </Link>
+                  ) : null}
+                </span>
+              );
+            },
+          },
+          {
+            key: "order",
+            header: "Sıra",
+            align: "right",
+            hideBelow: "xl",
+            cell: (p) => p.sortOrder,
+          },
+        ]}
+        rowActions={(p) => (
+          <ActionMenu label={`${p.title} işlemleri`}>
+            <ActionMenuLink href={`${PANEL}/${encodeURIComponent(p.id)}`}>
+              Düzenle
+            </ActionMenuLink>
+            <ActionMenuSeparator />
+            <ConfirmButton
+              action={deletePostAction}
+              hidden={{ id: p.id }}
+              label="Sil"
+              variant="menuDanger"
+              ariaLabel={`Sil: ${p.title}`}
+              title={`"${p.title}" silinsin mi?`}
+              description={DELETE_TEXT.post}
+            />
+          </ActionMenu>
+        )}
+      />
     </main>
   );
 }

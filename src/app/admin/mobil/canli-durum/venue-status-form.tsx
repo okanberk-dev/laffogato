@@ -1,18 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import type { ReactNode } from "react";
 
+import {
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "@/components/admin/action-form";
 import {
   Card,
   Checkbox,
   Field,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
 
-import { saveVenueStatusAction, type VenueStatusState } from "./actions";
+import { saveVenueStatusAction } from "./actions";
 
 /**
  * Client-side copy of the venue vocabulary. `@/lib/mobile/venue` starts with
@@ -51,25 +56,34 @@ const NOISE_OPTIONS: { value: VenueStatusDefaults["noise"]; label: string }[] =
     { value: "high", label: "Yüksek" },
   ];
 
-const initial: VenueStatusState = {};
+/** A field with the last refusal for it underneath (outside the label). */
+function Row({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <div className="grid min-w-0 content-start gap-1.5">
+      {children}
+      <FormFieldError name={name} />
+    </div>
+  );
+}
 
+/**
+ * The live status form. ActionForm posts it by hand, so a refusal (more
+ * free tables than tables) leaves every field as typed, a second press
+ * before the answer is dropped, and the answer is a toast or a line by the
+ * button that a screen reader hears.
+ */
 export function VenueStatusForm({
   defaults,
 }: {
   defaults: VenueStatusDefaults;
 }) {
-  const [state, action, pending] = useActionState(
-    saveVenueStatusAction,
-    initial,
-  );
-
   return (
-    <form action={action} className="grid gap-4">
+    <ActionForm action={saveVenueStatusAction} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
           <Field
             label="Açık / kapalı"
-            hint="Otomatikte Ayarlar → Saatler'deki çalışma saatleri kullanılır; 02:00 kapanış gece yarısından sonra da açık sayılır."
+            hint="Otomatikte çalışma saatleri kullanılır (Ayarlar → Saatler; sahip değiştirir). 02:00 kapanış gece yarısından sonra da açık sayılır."
           >
             <Select
               name="manualOverride"
@@ -84,28 +98,32 @@ export function VenueStatusForm({
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Boş masa">
-              <TextInput
-                name="freeTables"
-                type="number"
-                min={0}
-                max={999}
-                inputMode="numeric"
-                defaultValue={String(defaults.freeTables)}
-                required
-              />
-            </Field>
-            <Field label="Toplam masa">
-              <TextInput
-                name="totalTables"
-                type="number"
-                min={0}
-                max={999}
-                inputMode="numeric"
-                defaultValue={String(defaults.totalTables)}
-                required
-              />
-            </Field>
+            <Row name="freeTables">
+              <Field label="Boş masa">
+                <TextInput
+                  name="freeTables"
+                  type="number"
+                  min={0}
+                  max={999}
+                  inputMode="numeric"
+                  defaultValue={String(defaults.freeTables)}
+                  required
+                />
+              </Field>
+            </Row>
+            <Row name="totalTables">
+              <Field label="Toplam masa">
+                <TextInput
+                  name="totalTables"
+                  type="number"
+                  min={0}
+                  max={999}
+                  inputMode="numeric"
+                  defaultValue={String(defaults.totalTables)}
+                  required
+                />
+              </Field>
+            </Row>
           </div>
         </div>
       </Card>
@@ -139,36 +157,29 @@ export function VenueStatusForm({
             defaultChecked={defaults.power}
           />
 
-          <Field
-            label="Not"
-            hint="En fazla 200 karakter. Uygulamada olduğu gibi görünür: “Çalışmaya uygun - priz var, gürültü düşük”."
-          >
-            <Textarea
-              name="note"
-              defaultValue={defaults.note}
-              maxLength={200}
-              rows={3}
-            />
-          </Field>
+          <Row name="note">
+            <Field
+              label="Not"
+              hint="En fazla 200 karakter. Uygulamada olduğu gibi görünür: “Çalışmaya uygun - priz var, gürültü düşük”."
+            >
+              <Textarea
+                name="note"
+                defaultValue={defaults.note}
+                maxLength={200}
+                rows={3}
+              />
+            </Field>
+          </Row>
         </div>
       </Card>
 
+      <FormMessage />
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="text-xs">
-          {state.error ? (
-            <span className="text-red-600">{state.error}</span>
-          ) : state.message ? (
-            <span className="text-emerald-700">{state.message}</span>
-          ) : (
-            <span className="text-neutral-400">
-              Kaydedince uygulamanın ana sayfası en geç 30 saniyede güncellenir.
-            </span>
-          )}
-        </span>
-        <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Kaydediliyor…" : "Kaydet"}
-        </PrimaryButton>
+        <p className="min-w-0 flex-1 basis-56 text-xs text-[var(--admin-text-soft)]">
+          Kaydedince uygulamanın ana sayfası en geç 30 saniyede güncellenir.
+        </p>
+        <SubmitButton>Kaydet</SubmitButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }
