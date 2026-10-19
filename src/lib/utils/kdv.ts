@@ -16,13 +16,24 @@
  *   are eaten. Alcohol would be 20% (the köşk serves none).
  * - Karaoke room: 20%, the general rate. An entertainment service is in
  *   neither list.
- * - Shop, by category: coffee beans and pantry food 1% (list (I) after
- *   Cumhurbaşkanı Kararı 5189, chapters 09 and 17-21), equipment, gifts and
- *   merch 20%. The rate follows the goods, not the shelf: a food under
- *   "gift" carries its own rate (the edible cup box, 1%).
- * - Shipping or courier fee charged with a sale: part of that sale's taxable
- *   base (KDV Kanunu m.24/b), so it takes the rate of what it carries. A
- *   parcel with mixed rates shares the fee out in proportion.
+ * - Shop food: 10% too. The köşk is a kafeterya business and KDV GUT
+ *   III/B-2.4.1 (Seri 51) puts every food sale of such a business at 10%,
+ *   internet orders sent to an address included. Equipment, gifts and merch
+ *   20%; textile garments and bags 10% (list (II) items 5 and 8), set per
+ *   product. A food under gift carries its own rate (the edible cup box,
+ *   10%). Operator decision 18 Oct 2026 (ASK-Y2-1, ASK-Y2-3-5): the 1% of
+ *   list (I) is for a plain retailer, which the köşk is not.
+ * - Shipping or courier fee: shown on its own line and carried by an outside
+ *   firm, so it is a transport service at the general rate (GİB özelge
+ *   32391, 28945; KDV K. m.24/a folds it into the goods only when it is
+ *   inside the goods price as one amount, özelge 32558). Its own key,
+ *   `shipping`, 20% (ASK-Y2-2, 18 Oct 2026).
+ *
+ * A decree that changes a rate between payment and dispatch does not move
+ * what the customer paid: the e-Arşiv invoice is cut at dispatch with the
+ * rate in force then and the same KDV-included total (KDV K. m.10; the
+ * köşk carries the difference). The rate stamped on an order line says what
+ * the rate was at the sale; it is informational (ASK-Y2-4).
  *
  * Rates are whole percentages. Turkish rates are 0, 1, 10 or 20. The panel
  * accepts any whole number from 0 to 100 so a future decree does not need a
@@ -44,6 +55,8 @@ export interface TaxRates {
   gift: number;
   gear: number;
   merch: number;
+  /** The shipping or courier fee, its own line on the invoice. */
+  shipping: number;
 }
 
 export type TaxRateKey = keyof TaxRates;
@@ -57,17 +70,19 @@ export const TAX_RATE_KEYS: readonly TaxRateKey[] = [
   "gift",
   "gear",
   "merch",
+  "shipping",
 ];
 
 /** What the law says today (see the header). Used when the panel set nothing. */
 export const LEGAL_TAX_RATES: Readonly<TaxRates> = Object.freeze({
   menu: 10,
   karaoke: 20,
-  beans: 1,
-  pantry: 1,
+  beans: 10,
+  pantry: 10,
   gift: 20,
   gear: 20,
   merch: 20,
+  shipping: 20,
 });
 
 /** Panel labels for each default. */
@@ -80,6 +95,7 @@ export const TAX_RATE_LABELS: Readonly<Record<TaxRateKey, string>> =
     gift: "Mağaza: hediye",
     gear: "Mağaza: ekipman",
     merch: "Mağaza: merch",
+    shipping: "Kargo ve kurye ücreti",
   });
 
 /** The rates Turkish law uses today, offered first in every select. */
@@ -163,6 +179,11 @@ export function karaokeTaxRate(rates: Partial<TaxRates> | undefined): number {
   return isTaxRate(rates?.karaoke) ? rates.karaoke : LEGAL_TAX_RATES.karaoke;
 }
 
+/** The shipping and courier fee's rate from `settings.taxRates`, 20% when unset. */
+export function shippingTaxRate(rates: Partial<TaxRates> | undefined): number {
+  return isTaxRate(rates?.shipping) ? rates.shipping : LEGAL_TAX_RATES.shipping;
+}
+
 /** "%10" - how a rate is written everywhere it is shown. */
 export function kdvRateLabel(ratePct: number): string {
   return `%${ratePct}`;
@@ -223,7 +244,10 @@ export interface KdvLine {
 /** One rate on a receipt: the KDV-included amount, its base and its KDV. */
 export interface KdvRow {
   ratePct: number;
-  /** KDV-included amount at this rate, after discount, with its share of shipping. */
+  /**
+   * KDV-included amount at this rate: the lines after discount, plus the
+   * shipping or courier fee when it is at this rate.
+   */
   grossMinor: number;
   /** Matrah: grossMinor − taxMinor. */
   netMinor: number;
@@ -241,13 +265,19 @@ export interface KdvBreakdown {
 /**
  * The per-rate KDV of a sale whose prices include KDV.
  *
- * 1. The discount (coupon, promo) is shared over the lines in proportion to
- *    what each was charged (KDV Kanunu m.25/a: a discount on the invoice is
- *    out of the base, rate by rate).
- * 2. The shipping or courier fee follows what it carries (m.24/b): shared over
- *    the lines in proportion to what each still costs after the discount. A
- *    coupon that covered every line leaves a courier fee that is still owed;
- *    it is then shared by the lines' prices before the discount.
+ * 1. The discount is shared over the lines in proportion to what each was
+ *    charged. Basket-wide promo and gift coupons are discounts on this sale
+ *    (KDV K. m.25/a, özelge 31994) and are shared over the lines. A future
+ *    product-scoped coupon comes off its own line only. Reward coupons
+ *    earned from earlier purchases or given free (loyalty, milestone,
+ *    invite), and any coupon that covers every line, are not discounts
+ *    (özelge 32079; GUT III/A-6.1; KDV K. m.27/1): they pay for the line,
+ *    the base stays the full price. That split is `invoiceKdvBreakdown`;
+ *    this function takes whatever discount it is given.
+ * 2. The shipping or courier fee is not shared over the lines: it is its own
+ *    amount at `shippingRatePct` (the header: a transport service, 20%), and
+ *    joins the row of the lines at that rate when there are any. A coupon
+ *    that covered every line leaves the fee on its own.
  * 3. The lines are added up by rate and each rate's KDV is taken out once,
  *    rounded to the kuruş.
  *
@@ -258,6 +288,8 @@ export function kdvBreakdown(input: {
   lines: readonly KdvLine[];
   discountMinor: number;
   shippingMinor: number;
+  /** The fee's own rate; the legal 20% when not given. */
+  shippingRatePct?: number;
 }): KdvBreakdown {
   const lines = input.lines.map((l) => ({
     grossMinor: Math.max(0, Math.round(l.grossMinor)),
@@ -270,16 +302,19 @@ export function kdvBreakdown(input: {
     subtotal,
   );
   const discountShares = allocateMinor(discount, gross);
-  const net = gross.map((g, i) => g - discountShares[i]);
   const shipping = Math.max(0, Math.round(input.shippingMinor));
-  const netSum = net.reduce((s, v) => s + v, 0);
-  const shippingShares = allocateMinor(shipping, netSum > 0 ? net : gross);
+  const shippingRate = isTaxRate(input.shippingRatePct)
+    ? input.shippingRatePct
+    : LEGAL_TAX_RATES.shipping;
 
   const byRate = new Map<number, number>();
   lines.forEach((l, i) => {
-    const amount = net[i] + shippingShares[i];
+    const amount = l.grossMinor - discountShares[i];
     byRate.set(l.ratePct, (byRate.get(l.ratePct) ?? 0) + amount);
   });
+  if (shipping > 0) {
+    byRate.set(shippingRate, (byRate.get(shippingRate) ?? 0) + shipping);
+  }
   const rows: KdvRow[] = [...byRate.entries()]
     .filter(([, amount]) => amount > 0)
     .sort(([a], [b]) => b - a)
@@ -310,10 +345,41 @@ export interface KdvOrderLike {
   discountMinor: number;
   shippingMinor: number;
   totalMinor: number;
+  /**
+   * The shipping or courier fee's rate, stamped when the order is written
+   * (`orders."shippingTaxRatePct"`, 18 Oct 2026). Null on an older order,
+   * which reads as the legal 20%: the rule applies to those too, since no
+   * e-Arşiv invoice was cut before it.
+   */
+  shippingTaxRatePct?: number | null;
+}
+
+/** The rate an order's shipping or courier fee is split at. */
+export function orderShippingTaxRate(order: {
+  shippingTaxRatePct?: number | null;
+}): number {
+  return isTaxRate(order.shippingTaxRatePct)
+    ? order.shippingTaxRatePct
+    : LEGAL_TAX_RATES.shipping;
+}
+
+/** The stored lines with their rates, or null when one has none. */
+function orderLines(order: KdvOrderLike): KdvLine[] | null {
+  const items = order.items ?? [];
+  if (items.length === 0) return null;
+  if (!items.every((it) => isTaxRate(it.taxRatePct))) return null;
+  const lines = items.map((it) => ({
+    grossMinor: it.unitPriceMinor * it.qty,
+    ratePct: it.taxRatePct as number,
+  }));
+  const subtotal = lines.reduce((s, l) => s + l.grossMinor, 0);
+  return subtotal === order.subtotalMinor ? lines : null;
 }
 
 /**
- * The KDV split of a stored order, from the rate each line was sold at.
+ * The KDV split of a stored order, from the rate each line was sold at:
+ * the KDV inside what the customer paid (`totalMinor`). The app's
+ * `taxBreakdown` and the printed receipt read this.
  *
  * Every line carries the rate it was sold at (`items[].taxRatePct`, written
  * when the order is placed), so a rate changed in the panel later never
@@ -323,19 +389,69 @@ export interface KdvOrderLike {
  * rather than a split that does not match what was charged.
  */
 export function orderKdvBreakdown(order: KdvOrderLike): KdvBreakdown | null {
-  const items = order.items ?? [];
-  if (items.length === 0) return null;
-  if (!items.every((it) => isTaxRate(it.taxRatePct))) return null;
-  const lines = items.map((it) => ({
-    grossMinor: it.unitPriceMinor * it.qty,
-    ratePct: it.taxRatePct as number,
-  }));
-  const subtotal = lines.reduce((s, l) => s + l.grossMinor, 0);
-  if (subtotal !== order.subtotalMinor) return null;
+  const lines = orderLines(order);
+  if (!lines) return null;
   const split = kdvBreakdown({
     lines,
     discountMinor: order.discountMinor,
     shippingMinor: order.shippingMinor,
+    shippingRatePct: orderShippingTaxRate(order),
   });
   return split.grossMinor === order.totalMinor ? split : null;
+}
+
+/**
+ * Coupon sources whose coupon is a reward, not a discount on this sale: a
+ * stamp-card drink (loyalty), a lifetime-stamp milestone gift and the
+ * invite drink (özelge 32079). Every other source (welcome, birthday, a gift
+ * from the panel, review) and every shared promo code is a discount.
+ */
+export const REWARD_COUPON_SOURCES: ReadonlySet<string> = new Set([
+  "loyalty",
+  "milestone",
+  "invite",
+]);
+
+/**
+ * How much of an order's discount pays for the goods instead of taking
+ * them off the base: all of it when the coupon was a reward
+ * (`REWARD_COUPON_SOURCES`) or when it covered every line (a 100% coupon,
+ * GUT III/A-6.1: not a discount in commercial practice), else 0.
+ * `couponSource` is the redeemed member coupon's `source`, null for a
+ * shared promo code or no coupon.
+ */
+export function invoiceRewardMinor(
+  order: Pick<KdvOrderLike, "discountMinor" | "subtotalMinor">,
+  couponSource: string | null | undefined,
+): number {
+  const discount = Math.max(0, Math.round(order.discountMinor));
+  if (discount <= 0) return 0;
+  if (discount >= order.subtotalMinor) return discount;
+  return couponSource && REWARD_COUPON_SOURCES.has(couponSource) ? discount : 0;
+}
+
+/**
+ * The KDV split the e-Arşiv invoice is cut from: like `orderKdvBreakdown`,
+ * but `rewardMinor` (`invoiceRewardMinor`) is not taken off the base. The
+ * rows then add up to `totalMinor + rewardMinor`: the goods at full price,
+ * the reward shown on the invoice as a means of payment. With no reward it
+ * is `orderKdvBreakdown` exactly.
+ */
+export function invoiceKdvBreakdown(
+  order: KdvOrderLike,
+  rewardMinor: number,
+): KdvBreakdown | null {
+  const lines = orderLines(order);
+  if (!lines) return null;
+  const reward = Math.min(
+    Math.max(0, Math.round(rewardMinor)),
+    Math.max(0, Math.round(order.discountMinor)),
+  );
+  const split = kdvBreakdown({
+    lines,
+    discountMinor: order.discountMinor - reward,
+    shippingMinor: order.shippingMinor,
+    shippingRatePct: orderShippingTaxRate(order),
+  });
+  return split.grossMinor === order.totalMinor + reward ? split : null;
 }

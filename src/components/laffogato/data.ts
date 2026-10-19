@@ -841,7 +841,7 @@ export interface Product {
       product that carries an allergen says so here. */
   tags?: string[];
   /** The product's own KDV rate (whole %), seeded onto the product row when
-      its category's default would be wrong: the edible cup box is food (1%)
+      its category's default would be wrong: the edible cup box is food (10%)
       though it sits under "gift" (20%). src/lib/utils/kdv.ts. */
   taxRatePct?: number;
 
@@ -898,8 +898,8 @@ export const PRODUCTS: Product[] = [
     desc: "Çıtır waffle kupları, içi yenilebilir glaze. Mekan ritüelini eve taşı.",
     cat: "gift",
     img: "cream",
-    // Bakery goods in a box (GTİP 19.05): list (I), 1%, not the gift 20%.
-    taxRatePct: 1,
+    // Food sold by the köşk, a kafeterya business: 10% (KDV GUT III/B-2.4.1).
+    taxRatePct: 10,
   },
   {
     name: "Affogato Seti - İki Kişilik",
@@ -949,6 +949,8 @@ export const PRODUCTS: Product[] = [
     desc: "Deri boyun askısı, gravür L'Affogato amblemi.",
     cat: "merch",
     img: "dark",
+    // Cotton canvas apron, a textile garment: list (II) item 5, 10%.
+    taxRatePct: 10,
   },
   {
     name: "Emaye Bardak",
