@@ -173,16 +173,36 @@ describe("the snapshot read back", () => {
 });
 
 describe("the deadline and a member's own cancel", () => {
-  it("a legacy row: two hours before the start, strictly", () => {
+  it("a legacy row: two hours before the start, the moment itself included", () => {
     expect(time.karaokeCancelDeadline(booking).getTime()).toBe(
       START - 2 * HOUR,
     );
     expect(time.withinFreeCancel(booking, new Date(START - 2 * HOUR - 1))).toBe(
       true,
     );
+    // `cancellableUntil` is the last moment of a full refund (ASK-Y3-4),
+    // and the pages name it to the minute: 18:00 lasts until 18:00:59.999.
     expect(time.withinFreeCancel(booking, new Date(START - 2 * HOUR))).toBe(
-      false,
+      true,
     );
+    expect(
+      time.withinFreeCancel(booking, new Date(START - 2 * HOUR + 59_999)),
+    ).toBe(true);
+    expect(
+      time.withinFreeCancel(booking, new Date(START - 2 * HOUR + 60_000)),
+    ).toBe(false);
+  });
+
+  it("the start is never in the window, even where the deadline is the start", () => {
+    // No window and no booking instant (a fixture): the deadline is the
+    // start, and from the start on a cancel is refused, as before.
+    const r = { ...booking, freeCancelHours: 0, lateRefundPercent: 50 };
+    expect(time.karaokeCancelDeadline(r).getTime()).toBe(START);
+    expect(time.withinFreeCancel(r, new Date(START - 1))).toBe(true);
+    expect(time.withinFreeCancel(r, new Date(START))).toBe(false);
+    expect(time.karaokeSelfCancelTerms(r, new Date(START))).toEqual({
+      kind: "refused",
+    });
   });
 
   it("the stored deadline wins over the hours", () => {
