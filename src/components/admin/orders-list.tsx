@@ -4,14 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { newOrderCountAction } from "@/app/admin/siparisler/actions";
+import {
+  newOrderCountAction,
+  transitionOrderAction,
+} from "@/app/admin/siparisler/actions";
 import type { ActionResult } from "@/lib/admin/action-result";
 import type { SortState } from "@/lib/admin/list-params";
-import type { OrderActionMap } from "@/lib/admin/order-actions";
+import {
+  orderActionLabel,
+  type OrderActionMap,
+} from "@/lib/admin/order-actions";
 import { orderStatusLabel } from "@/lib/admin/order-ui";
 import type { AdminOrder } from "@/lib/admin/store";
 import type { AdminTone } from "@/lib/admin/tone";
 
+import { ActionButton } from "./action-form";
 import { beep } from "./beep";
 import { BulkActionBar, useSelection } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
@@ -85,6 +92,84 @@ const POLL_MS = 30_000;
  * sesi, basılı" rather than "Ses kapalı, basılı değil" (admin audit ORD-27).
  */
 export const SOUND_TOGGLE_LABEL = "Yeni sipariş sesi";
+
+/**
+ * The moves a row runs in place, in the order an order goes through them
+ * (admin UI design 5 #4): the barista's most frequent click without
+ * opening the order. Forward only and free of money: taking a payment,
+ * asking the POS, shipping a parcel (carrier and tracking number),
+ * cancelling and refunding stay in the "⋯" menu and their modals.
+ */
+export const ROW_STEP_IDS = [
+  "start_preparing",
+  "mark_shipped",
+  "complete",
+] as const;
+export type RowStepId = (typeof ROW_STEP_IDS)[number];
+
+/**
+ * The one step a row offers: the first of ROW_STEP_IDS the server's
+ * `orderActions` enabled for this role, or none. A step the role may not
+ * take is not drawn here; it stays in the "⋯" menu with its reason.
+ */
+export function rowStep(actions: OrderActionMap): RowStepId | null {
+  return ROW_STEP_IDS.find((id) => actions[id]?.enabled === true) ?? null;
+}
+
+/**
+ * How long a freshly drawn step ignores taps. The next step lands where the
+ * last one was tapped the moment the answer arrives; a double tap would
+ * otherwise run two moves, "Hazırlamaya başla" and then "Teslime hazır",
+ * which mails the customer.
+ */
+const STEP_ARM_MS = 700;
+
+/**
+ * The step as a button, through the same Server Action as the menu row
+ * and the order page (`transitionOrderAction`, which asks `orderActions`
+ * again before it writes). Its name carries the order number: twenty
+ * "Tamamlandı" buttons in a row are one name to a screen reader. Keyed by
+ * the step where it is drawn, so each new step arms afresh.
+ */
+function RowStepButton({ order, id }: { order: AdminOrder; id: RowStepId }) {
+  const label = orderActionLabel(id, order);
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setArmed(true), STEP_ARM_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <span
+      className="inline-flex"
+      onClickCapture={(e) => {
+        if (armed) return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <ActionButton
+        action={transitionOrderAction}
+        hidden={{ id: order.id, transition: id }}
+        pendingLabel="İşleniyor…"
+        ariaLabel={`${label}: sipariş ${order.orderNo}`}
+        className="whitespace-nowrap"
+      >
+        {label}
+      </ActionButton>
+    </span>
+  );
+}
+
+/** The phone card's step: its own line under the amount, a thumb's reach. */
+function CardStep({ row }: { row: OrderListRow }) {
+  const step = rowStep(row.actions);
+  if (!step) return null;
+  return (
+    <div className="pt-1">
+      <RowStepButton key={step} order={row.order} id={step} />
+    </div>
+  );
+}
 
 function itemsSummary(order: AdminOrder): string {
   const names = order.items.map(
@@ -410,16 +495,31 @@ export function OrdersList({
         rowClassName={(r) =>
           isNew(r.order) ? "ring-2 ring-[var(--admin-warning)]/40" : null
         }
-        rowActions={(r) => (
-          <OrderActionMenu
-            order={r.order}
-            money={r.money}
-            actions={r.actions}
-            refundToken={r.refundToken}
-            mayRefund={mayRefund}
-            openLink
-          />
-        )}
+        rowActions={(r) => {
+          const step = rowStep(r.actions);
+          return (
+            <span className="inline-flex items-center justify-end gap-2">
+              {/* The table's step sits beside "⋯", in the pinned column, so
+                  it stays in view while the row scrolls. DataTable draws
+                  rowActions on the phone card too: there the step is the
+                  card's last line instead (mobileCard), not here. */}
+              {step ? (
+                <span className="hidden md:inline-flex">
+                  <RowStepButton key={step} order={r.order} id={step} />
+                </span>
+              ) : null}
+              <OrderActionMenu
+                order={r.order}
+                money={r.money}
+                actions={r.actions}
+                refundToken={r.refundToken}
+                mayRefund={mayRefund}
+                openLink
+                skip={step}
+              />
+            </span>
+          );
+        }}
         mobileCard={(r) => (
           <div className="flex flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -458,6 +558,7 @@ export function OrdersList({
               </span>
               <Amount order={r.order} />
             </div>
+            <CardStep row={r} />
           </div>
         )}
         empty={
