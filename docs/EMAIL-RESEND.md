@@ -604,8 +604,9 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 > Geliver kurulumu ve doğrulama planı: **`docs/GELIVER.md`**.
 
 Aradaki boşluğu `.github/workflows/campaign-hourly.yml` **ücretsiz daraltır**:
-programı `0 * * * *` olarak `/api/cron/campaign-emails`e vurur. Ama bu
-**saatlik değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
+programı `0 */3 * * *` (19 Ekim 2026'dan beri 3 saatte bir; her tur bir
+Actions dakikası sayılıyor ve Neon'u uyandırıyor) olarak `/api/cron/campaign-emails`e vurur. Ama bu
+**dakikası dakikasına değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
 erteler ve atlar. Ölçüm (22-23 Eyl 2026, `gh run list`): turlar arası 2 ile
 5,5 saat. Üstüne konan bir katman, tek bayrak direği değil; iş hiç çalışmasa
 da Vercel'in 06:00 ve 12:00 UTC geçişleri alır. Hiçbir kampanya kaybolmaz,
