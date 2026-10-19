@@ -4,6 +4,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -219,5 +220,33 @@ describe("the shop page's featured set", () => {
     const sold = await shop([{ ...featured, variants: withVariants.variants }]);
     expect(sold).toContain("Seçenekleri gör");
     expect(sold).not.toContain(">Sepete ekle<");
+  });
+});
+
+describe("the audit record (docs/AUDIT.md, package 5b)", () => {
+  // The server's refusal of a variantless line merged on its own (#144,
+  // "Sipariş satırı: varyantlı ürün varyant ister"). An "Açık" row here
+  // saying the server still takes the line was false on main, and main's
+  // tests/order-variant-lines.test.ts fails on exactly such a row.
+  it("lists no open row still waiting for the server refusal", () => {
+    const doc = readFileSync("docs/AUDIT.md", "utf8");
+    const start = doc.indexOf(
+      "### Katalog: mağaza ürün sayfası, kart, vitrin (paket 5b)",
+    );
+    expect(start).toBeGreaterThan(-1);
+    const end = doc.indexOf("\n### ", start + 1);
+    const section = doc.slice(start, end === -1 ? undefined : end);
+    const openAt = section.indexOf("Açık (");
+    expect(openAt).toBeGreaterThan(-1);
+    const waiting = section
+      .slice(openAt)
+      .split("\n")
+      .filter(
+        (line) =>
+          line.startsWith("|") &&
+          /resolveOrderLines/.test(line) &&
+          /varyantsız/.test(line),
+      );
+    expect(waiting).toEqual([]);
   });
 });
