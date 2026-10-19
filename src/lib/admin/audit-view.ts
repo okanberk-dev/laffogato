@@ -388,6 +388,9 @@ const KEY_LABELS: Record<string, string> = {
   count: "Adet",
   stamp: "Damga",
   stamps: "Damga",
+  // Kasa: a redemption that stopped after some of its stamps were written.
+  asked: "İstenen damga",
+  partial: "Yarım kaldı",
   source: "Kaynak",
   via: "Kanal",
   passwordReset: "Parola sıfırlandı",

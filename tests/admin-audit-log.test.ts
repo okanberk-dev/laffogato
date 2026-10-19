@@ -284,6 +284,17 @@ describe("Turkish labels (SYS-10)", () => {
     ).toBe("Onaylandı");
   });
 
+  it("names a till redemption that stopped after some stamps", () => {
+    // kasa/actions.ts writes this when redeemCounterToken answers "partial".
+    const by = entries(
+      { kind: "code", stamps: 1, asked: 3, partial: true },
+      { entity: "counter_token", action: "update" },
+    );
+    expect(by.stamps).toMatchObject({ label: "Damga", value: "1" });
+    expect(by.asked).toMatchObject({ label: "İstenen damga", value: "3" });
+    expect(by.partial).toMatchObject({ label: "Yarım kaldı", value: "evet" });
+  });
+
   it("names the rest of what the actions write", () => {
     expect(
       entries({ needs2FA: false }, { entity: "auth" }).needs2FA,
