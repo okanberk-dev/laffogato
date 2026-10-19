@@ -735,11 +735,7 @@ varyantlı üründe hızlı ekleme yerine ürünü açması ayrı bir ön yüz i
 | 🟡 | Kampanya bir `window.confirm` OK'iyle yüzlerce adrese gidiyordu; listede cevap satırla birlikte kayboluyordu; taslak "Sil" hiçbir şey söylemiyordu (PEO-08, karar D15) | `ActionModal`: alıcı sayısı açıklamada, onay için sayı (sayılamadıysa GÖNDER) yazılır; gönderim ve taslak silme `ActionResult` döner, cevap toast olur (boş kitle uyarı tonunda). `DeleteRowForm` kalktı | `admin-campaign-mail-actions`, `admin-people-forms` |
 | 🟢 | "Vazgeç" bağlantı içinde düğmeydi, promosyonda "Durum" etiket içinde etiketti (PEO-20'nin bu iki formdaki kısmı) | Tek `Link`, `BUTTON.ghost`; onay kutusu grupları `Field as="fieldset"` | `admin-people-forms` |
 
-Açık (paket 4a'nın dışında kalan kısımlar):
-
-| Derece | Bulgu | Neden açık |
-| --- | --- | --- |
-| 🟢 | Kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`). PEO-20'nin üye sayfası kısmı 4b'de kapandı | Kampanya ekranlarının PR'ında (4c) |
+Paket 4a'nın dışında kalan kısımlar 4b'de (üye sayfası) ve 4c'de (kampanya formu) kapandı.
 
 ### Kişiler: Müşteriler listesi ve üye sayfası (paket 4b)
 
@@ -763,7 +759,6 @@ Açık (paket 4b'nin dışında kalanlar):
 | --- | --- | --- |
 | 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`), "Siparişleri" ve "Tümünü gör" bağlantıları da sipariş aramasına e-postayı `?q=` ile verir | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
 | 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
-| 🟢 | Bülten ve kampanya ekranlarındaki `neutral-*` renkler, "Footer", "Happy hour", uygulama bağlantıları cümlesi, "Bana test gönder" (PEO-10, PEO-17, PEO-18, PEO-21'in kalanı) | Kendi dosyalarının PR'ında (4c) |
 | 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
 ### İçerik: yasal belgeler ve site metinleri (paket 6a)
@@ -1171,3 +1166,24 @@ kalır; bölüm yetkileri (`SECTION_ROLES`) değişmedi.
 | 🟢 | Personel girişte, 2FA adımından, 2FA kurulumundan ve "Panele dön"den panoya gidiyordu; panonun "Toplam ürün" ve "Kategori" kutuları vardiya işi değil | `landingPathFor("staff")` = `/admin/siparisler?durum=acik` (listenin "Açık" sekmesi). Sorgu girişte `next`'in içinde 2FA adımına geçer (`adminNextPath`), logo ve "Panele dön" aynı adrese gider, menüde Siparişler yanar | `admin-roles-matrix`, `admin-landing` |
 | 🟢 | `requireRole` reddi `${landing}?denied=1` diye yazıyordu: sorgulu açılış adresinde ikinci `?` olurdu (`?durum=acik?denied=1`: bilinmeyen sekme, yani bütün siparişler, ve uyarı yok). Arama sayfası #142'de `withDenied`'a geçmişti, `auth.ts` aynı kalmıştı | `deniedPathFor(role)` (`roles.ts`, `withDenied` ile birleştirir); `requireRole`, arama sayfası ve arama işlemi onu kullanır. `src/` altında `?denied=`'i elle yazan satır kalmadı (testle) | `admin-roles-matrix`, `admin-landing` |
 | 🟢 | Açılış artık bir liste: sekme, sıralama, sayfa ve süzgeç bağlantıları sayfanın parametrelerinden kurulduğu için `denied=1`'i taşıyacak, bir sonraki tıklamada "Bu sayfaya yetkin yok" yeniden çıkacaktı | `toSearchParams` (`list-params.ts`) tek seferlik `denied`'ı düşürür: kitin hiçbir bağlantısı ya da süzgeç formunun gizli alanı onu taşımaz | `admin-landing` |
+
+### Kişiler: promosyon, bülten, kampanya ve kullanıcı listeleri (paket 4c)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Kampanya düzenleyicisinin yapışkan kaydet çubuğunun zemini yoktu: telefonda alanlar düğmenin ve cevap hapının altından görünerek geçiyor, dipnot sonraki kartın başlığının üstüne yazılıyordu (PEO-12); hata kutusunda rol yoktu (PEO-09'un bu formdaki kısmı) | Çubuk site metinleri formununki gibi kendi zeminini taşır (kenarlık, yüzey, gölge, iç boşluk); dipnot çubuğun dışında; cevap hap değil, `role="alert"` kutusu (`FormError`, `FormSuccess`). Form `useHandPost` ile gönderir (yanıt beklenirken ikinci tık düşer, ret yazılanı korur), `withPanelCatch` bir veritabanı hatasını düzenleyiciyi silen hata ekranı yerine cevap yapar | `admin-people-lists` |
+| 🟢 | Bülten listesinde arama, sekme ve sayfa yoktu; telefonda işlemler ekranın dışındaydı; 6563 onay metni yalnız fareyle açılan ipucundaydı (PEO-14) | Kit listesi: sekmeler sayılarıyla (Tümü, Aktif, Onay bekliyor, Pasif), adres ya da adla Türkçe katlamalı arama, kaynak süzgeci, sıralanabilir başlıklar, 50'lik sayfalar, telefonda kart, satır menüsü (Onay kaydı, Pasifleştir, Sil). Her abonenin sayfası (`/admin/bulten/<kimlik>`, adres değil) onay zamanını, IP'sini ve onay verilen metni tam gösterir; onay bekleyende isteğin zamanını, IP'sini ve bağlantının süresini. Onay ve çıkış belirteçleri hiçbir yerde görünmez | `admin-people-lists` |
+| 🟢 | Gönderim defteri ilk 200 alıcıda duruyor, sayılarını da o 200'den çıkarıyordu: 412 alıcılı kampanyada "Alıcı 412" yanında "Tümü · 200"; 200. satırdan sonrası bulunamıyordu (PEO-15) | Durum sekmeleri bütün kampanya üzerinden SQL sayımıyla (`countCampaignSends`, durum başına bir sayım, arama uygulanmış), adres ya da adla arama (SQL'de iki tarafta `translate` ile Türkçe katlama, `%` ve `_` harf olarak), 50'lik sayfalar (`listCampaignSendsPage`, başarısızlar yine önce), telefonda kart | `admin-campaign-sends` |
+| 🟢 | Alt sayfalarda yükleme işareti ve geri yolu yoktu: listeden bir kayda basınca sunucu cevap verene kadar eski sayfa kalıyordu; kampanya oluşturma sayfası çıkmazdı; kampanya listesi taslak başına kitle sayısını birbiri ardınca bekliyordu (PEO-23) | Promosyon, bülten, kampanya, kullanıcılar ve müşteriler klasörlerinde `loading.tsx` panelin iskeletini gösterir (`admin/loading.tsx` yalnız bölüm değişince görünür); kampanya oluşturma, kampanya, promosyon yeni ve düzenle, üye düzenleme sayfalarının başında geri bağlantısı; kitle sayıları aynı anda sorulur (`campaignAudienceCounts`) | `admin-people-lists`, `admin-campaign-audience-counts` |
+| 🟢 | Promosyon listesinde sekme, arama ve sıralama yoktu; bir kodun hangi siparişlerde kullanıldığı görünmüyordu (PEO-24'ün liste kısmı) | Sekmeler sayılarıyla (Aktif, Pasif, Süresi dolmuş, Limit doldu; sepetin denetim sırasıyla), kodla arama, Kod / Kullanım / Geçerlilik sıralaması, 50'lik sayfalar, telefonda kart. Her kodun sayfası nerede durduğunu ve nedenini, rakamlarını ve kodla verilen siparişlerin en yeni 20'sini gösterir (yalnız siparişleri açabilen role; satırda ad ya da e-posta yok). İçerik haritasında düzenleme sayfasının "Ayrıntı"sı kodun sayfasına bağlanır | `admin-people-lists`, `admin-promo-usage` |
+| 🟢 | Kullanıcılar sayfası her hesap için açık bir düzenleme kartıydı: kimin hangi rolde olduğunu görmek için her parola kutusunun yanından geçiliyordu (P2b, karar D37) | Tablo (sekmeler Tümü, Aktif, Pasif; en yetkili rol önce), her hesabın kendi sayfası: bilgileri, rolünün açtığı bölümler, 2FA, hesabın formları. Sayfa adresle değil, adresten türeyen opak bir anahtarla bulunur (`adminUserKey`); sekme başlığında adres yok | `admin-people-lists` |
+| 🟢 | Bülten ve kampanya ekranlarında Tailwind paleti: başarısız sayısı `neutral-400` ile (2,59:1), "İptal edildi" hapı 4,34:1, durum hapları kitin dışında; promosyon yeni ve düzenle sayfaları telefonda `px-6 py-10` (PEO-10, PEO-17, PEO-18'in bu ekranlardaki kısmı) | `--admin-text-soft`, sıfırdan büyük başarısız sayısı tehlike renginde, kitin `Badge`'i, `EmptyState`'i, `BUTTON`'ı; panelin tek sayfa boşluğu | `admin-people-lists` |
+| 🟢 | "Footer", "Happy hour", operatöre ortam değişkeni adlarını gösteren uygulama bağlantısı cümlesi, "Bana test gönder" (PEO-21'in bu kısmı) | "Site altı", "Mutlu saat", "Uygulama duyurusu, uygulama App Store'da ve Google Play'de yayınlanıp iki mağaza bağlantısı da hazır olunca seçilebilir ve gönderilebilir.", "Test gönder" (her etkin panel hesabı alıcı olabilir) | `admin-people-lists` |
+
+Açık (paket 4c'nin dışında kalanlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Bülten onay kayıtlarının CSV dışa aktarımı yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
+| 🟢 | Bülten ve gönderim defteri aramasında yazılan e-posta süzgeç çubuğunun `?q=` adresine geçer | Bütün listelerin aramasını adresten çıkaran ortak iş (list-search-no-url) |
+| 🟢 | Gönderim sürerken defter ve sayılar kendiliğinden yenilenmez | Sayfa yenilenince güncellenir; canlı yoklama ayrı iş |
