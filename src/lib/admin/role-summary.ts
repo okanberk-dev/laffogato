@@ -20,6 +20,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   categories: "Kategoriler",
   shopHero: "Mağaza Hero",
   mobileApp: "Mobil uygulama",
+  venue: "Canlı durum",
   karaoke: "Karaoke",
   press: "Basın",
   story: "Hikaye",
