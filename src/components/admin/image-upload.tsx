@@ -25,6 +25,8 @@ import {
   type EncodeSource,
 } from "@/lib/admin/image-encode";
 
+import { BUTTON } from "./ui/styles";
+
 const DEFAULT_MAX_IMAGES = 8;
 const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
 const ACCEPTED_MIME = /^image\/(jpe?g|png|webp|avif|gif)$/i;
@@ -239,7 +241,10 @@ export function ImageUpload({
   const addUrl = () => {
     const v = urlDraft.trim();
     if (!isHttpUrl(v)) {
-      setStatus({ kind: "error", message: "Geçerli bir http(s) URL gir." });
+      setStatus({
+        kind: "error",
+        message: "https:// ile başlayan bir görsel adresi gir.",
+      });
       return;
     }
     if (images.length >= MAX_IMAGES) {
@@ -304,7 +309,7 @@ export function ImageUpload({
         >
           {remainingSlots > 0
             ? "Sürükle bırak veya tıkla"
-            : `Limit doldu - ${MAX_IMAGES} görsel`}
+            : `Sınır doldu: ${MAX_IMAGES} görsel`}
         </div>
         <div className="mt-2 text-sm text-neutral-700">
           {remainingSlots > 0 ? (
@@ -313,7 +318,11 @@ export function ImageUpload({
               ekleyebilirsin · JPG, PNG, WebP, AVIF, GIF
             </>
           ) : (
-            <>Silmek için aşağıdan görsel kaldır.</>
+            <>
+              {MAX_IMAGES > 1
+                ? "Yenisini eklemek için aşağıdan birini kaldır."
+                : "Değiştirmek için aşağıdakini kaldır."}
+            </>
           )}
         </div>
         <div className="mt-1 text-xs text-neutral-500">
@@ -354,7 +363,11 @@ export function ImageUpload({
       )}
 
       {images.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        // Columns by the field's own width, not the screen's: inside the
+        // menu form's narrow column md:grid-cols-4 made 96 px cards whose
+        // badges overlapped. Each card is at least 9.5rem, where the
+        // footer's arrows and × fit on one row.
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3">
           {images.map((src, i) => {
             const isPrimary = i === 0;
             const isData = src.startsWith("data:");
@@ -401,45 +414,54 @@ export function ImageUpload({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center justify-between gap-1 border-t border-neutral-100 px-2 py-1.5">
+                {/* Wraps instead of clipping: on a phone the two-column card
+                    is about 150 px, and "Birincil yap" pushed × out of it, so
+                    a second photo could not be removed (admin audit CAT-12).
+                    The arrows, × and "Birincil yap" each name the photo they
+                    act on (CAT-23); the arrows move left and right. */}
+                <div className="flex flex-wrap items-center justify-between gap-1 border-t border-neutral-100 px-1.5 py-1">
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => moveTo(i, i - 1)}
                       disabled={i === 0}
-                      aria-label="Yukarı taşı"
-                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                      aria-label={`Sola taşı: görsel ${i + 1}`}
+                      title="Sola taşı"
+                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
-                      ←
+                      <span aria-hidden="true">←</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => moveTo(i, i + 1)}
                       disabled={i === images.length - 1}
-                      aria-label="Aşağı taşı"
-                      className="grid h-7 w-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                      aria-label={`Sağa taşı: görsel ${i + 1}`}
+                      title="Sağa taşı"
+                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
-                      →
+                      <span aria-hidden="true">→</span>
                     </button>
-                    {!isPrimary && (
-                      <button
-                        type="button"
-                        onClick={() => makePrimary(i)}
-                        className="rounded-md px-2 py-1 text-[10px] tracking-[0.16em] text-neutral-500 uppercase hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        Birincil yap
-                      </button>
-                    )}
                   </div>
                   <button
                     type="button"
                     onClick={() => removeAt(i)}
-                    aria-label="Sil"
-                    className="grid h-7 w-7 place-items-center rounded-md text-red-600 hover:bg-red-50"
+                    aria-label={`Sil: görsel ${i + 1}`}
+                    title="Sil"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-lg text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)]"
                   >
-                    ×
+                    <span aria-hidden="true">×</span>
                   </button>
+                  {!isPrimary && (
+                    <button
+                      type="button"
+                      onClick={() => makePrimary(i)}
+                      aria-label={`Birincil yap: görsel ${i + 1}`}
+                      className="min-h-[44px] basis-full rounded-md px-2 text-[10px] tracking-[0.16em] text-[var(--admin-text-soft)] uppercase hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
+                      style={{ fontFamily: "var(--mono), monospace" }}
+                    >
+                      Birincil yap
+                    </button>
+                  )}
                 </div>
               </li>
             );
@@ -449,13 +471,17 @@ export function ImageUpload({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
         <span
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="basis-full text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase sm:basis-auto"
           style={{ fontFamily: "var(--mono), monospace" }}
+          aria-hidden="true"
         >
-          URL ile ekle
+          Bağlantıyla ekle
         </span>
         <input
           type="url"
+          inputMode="url"
+          autoComplete="off"
+          aria-label="Görsel bağlantısı"
           value={urlDraft}
           onChange={(e) => setUrlDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -465,13 +491,13 @@ export function ImageUpload({
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="flex-1 rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-1.5 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+          className="min-w-0 flex-[1_1_10rem] rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
         <button
           type="button"
           onClick={addUrl}
           disabled={!urlDraft.trim() || images.length >= MAX_IMAGES}
-          className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:opacity-40"
+          className={BUTTON.ghost}
         >
           Ekle
         </button>

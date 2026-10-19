@@ -1929,6 +1929,117 @@ kilidi açan PR bu cümleleri karaoke sözleşmesine yönlendirir.
 | Kayıtlı kart maddesi | Operatör kararı (kural 28, 23 Eyl ve 15 Eki 2026); KVKK m.4/2 (doğruluk) | Kart hiç saklanmadığı için anlatılan işlem yoktur; madde §19 (Y5) ile kaldırıldı, bu PR yeniden eklemez. |
 | Karaoke süresi talep anından | 6502 s. TKHK m.4/2 (koşullar tüketici aleyhine değiştirilemez), m.5/4 (belirsizlik tüketici lehine); 6098 s. TBK m.4/2 (kıyasen) | Üyenin talebi kaydedildiği an iptal beyanı sayılır; ekibin gecikmesi süreyi kısaltmaz. Talepten sonra yapılan rezervasyon kapanış anından hesaplanır: talep var olmayan bir rezervasyonu kapsayamaz, üye onu kapanışa kadar kendisi iptal edebilir (yapıldığı andan hesaplamak her kapanışta, oda kullanılmış olsa da, tam iade demekti). Saati kapanıştan önce geçen rezervasyonda oda kullanıldıysa ödeme kalır (hizmet ifa edilmiştir), kullanılmadıysa iade edilir; bunu personel kaydeder. Site talebi açıkken üye hesabı uygulamadan silerse aynı talep karşılanmış olur ve kural yine talep anından işler (üye bekleseydi alacağı iadeyi kendi silmesiyle kaybetmez); saati geçen rezervasyonda odayı soracak kimse olmadığından iade personelin kararına kalır. Kural yalnız Site talebi için yazıldı: e-postayla gelen talebin anı panelde henüz kaydedilmiyor. |
 
+## 21. Y7 - Menü bilgisi: kalem başına alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
+
+> **Durum: metin kodda değişti.** Dal `feat/legal-menu-food-info`. Operatör
+> kararı (18 Eki 2026): _"avukata sorma, sen karar ver, araştır ve doğru
+> olanı yap"_; avukat turu yok, karar ve dayanak aşağıda. Kararlar
+> OP-ALLERGEN-BOARD, OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
+
+### 21.1 Neden ve dayanak
+
+- **Alerjen.** Toplu tüketim yerinde ambalajsız gıdanın adı ve Ek-1'deki
+  alerjenleri menü, yazı tahtası, broşür benzeri araçlarla kolayca görülebilir
+  ve okunabilir şekilde sunulur (TGK Gıda Etiketleme ve Tüketicileri
+  Bilgilendirme Yönetmeliği m.15/5; mevcut işletmeler için Geçici m.1,
+  31.12.2019). Uzaktan iletişim araçlarıyla satışta bu bilgi satın almadan
+  önce erişilebilir olur (m.17/3); uygulamadan verilen kafe siparişi bu
+  kapsamdadır. Ek-1 on dört grup sayar. Menüde kalem başına alerjen yoktu;
+  §7 ise bağlayıcı bilginin "menü kartında ya da mobil uygulamanın ürün
+  detay ekranında" olduğunu söylüyordu ve böyle bir liste yoktu (TKHK m.61-62
+  doğruluk). "Baristaya danış" tek başına m.15/5'in yazılı aracı değildir.
+  https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=23282&MevzuatTertip=5
+- **Fiyat listesinin tarihi.** Listede tüm vergiler dahil satış fiyatı ve
+  satış fiyatının uygulanmaya başlandığı tarih bulunur (Fiyat Etiketi
+  Yönetmeliği m.5/2-c, d; para birimi m.9/4). Yiyecek-içecek işyerinde liste
+  girişte ve masalarda bulunur, masadaki liste karekodla sunulabilir (m.8/1,
+  m.8/2); masa karekodu `/masa/<kod>`'u, yani menüyü açar.
+  https://www.mevzuat.gov.tr/anasayfa/MevzuatFihristDetayIframe?MevzuatTur=7&MevzuatNo=19819&MevzuatTertip=5
+- **Fotoğraf.** Reklam doğru olmalı, malın bileşimi hakkında yanıltan görsel
+  içeremez; dipnot görselle çelişeni düzeltemez (TKHK m.61, m.62, m.8/2;
+  Ticari Reklam ve Haksız Ticari Uygulamalar Yönetmeliği m.7/5-a, m.18/6-7,
+  m.29/2-a). Yapay zekâ kullanımı belirtilir (m.18/8, 1.8.2026'dan beri);
+  menü kalemi için yapay zekâ görseli hiç kullanılmayarak bu yükümlülük doğmaz.
+  https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6502.pdf
+
+### 21.2 Kararlar
+
+1. Her kalemin içerdiği Ek-1 grupları panelden girilir (`menu_items.allergens`,
+   on dört anahtarlık kapalı liste). Hiçbir kutu işaretli değilse bilgi
+   **girilmemiş** sayılır ve menüde yazmaz; "içermez" yalnız açıkça
+   işaretlenince yazar. Alerjisi olan misafir için "yazmıyor" ile "yok"
+   ayrı tutulur. Bilgi koddan ya da kalem adından tahmin edilmez.
+2. Kart "Alerjenler: gluten, süt" der; uygulama aynı alanı `GET /menu`'den
+   isteğe bağlı `allergens` olarak alır (v1 ekleme). Çapraz temas uyarısı her
+   kalem için geçerli kalır.
+3. Menünün altında "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya
+   başladığı tarih: <gün ay yıl>". Kararın taslağındaki "geçerlilik tarihi"
+   yerine yönetmeliğin kendi sözü kullanıldı: "geçerlilik tarihi" bir bitiş
+   tarihi gibi okunur. Tarihi operatör Ayarlar > Vergi'den girer; bugünden
+   sonraki gün reddedilir; boşsa yalnız KDV cümlesi yazar.
+4. İçeriği kalemle çelişen fotoğraflar kalkar. Karardaki sekiz kaleme,
+   aynı ölçütle (kalemde olmayan kuruyemiş) mnu-0061 L'Af Kahve ve mnu-0078
+   Kakao Protein Bar eklendi: on fotoğraf.
+5. Menü bandındaki "Cölyak için baristaya bildirin, pirinç bisküvili
+   alternatif hazırlarız" sözü kalktı. Ortak mutfakta glutensiz bir
+   alternatif vaadi, bu belgenin §9'uyla ("hiçbir ürünümüz belirli bir
+   alerjenden tamamen arındırılmış olarak taahhüt edilemez") ve glutensiz
+   beyanın şartlarıyla çelişir; yerine "Çölyak ya da ciddi bir alerjin varsa
+   baristaya söyle." geldi.
+
+### 21.3 Değişen cümleler
+
+Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
+
+| Belge | Satır | Mevcut | Yeni |
+|---|---|---|---|
+| Gıda Güvenliği ve Alerjen, §7 | 14984 | "... Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi; menüde, ürün kartında, {{SITE_URL}} adresindeki ürün sayfasında, {{BRAND}} mobil uygulamasının ürün detay ekranında veya personel aracılığıyla tüketiciye aktarılır." | "... Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi, menüde ve köşkte asılı alerjen tablosunda her kalem için yazılı olarak verilir; personel aynı bilgiyi siparişten önce ayrıca sözlü olarak da aktarır." |
+| Gıda Güvenliği ve Alerjen, §7 | 14985 | "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını göstermektedir. Tablo yol gösterici niteliktedir; her ürün için bağlayıcı olan bilgi, o ürünün etiketinde, menü kartında ya da mobil uygulamanın ürün detay ekranında yer alan güncel bileşen listesidir." | "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını gösterir ve yol gösterici niteliktedir. Kafe menüsündeki her kalemin içerdiği alerjen grupları, {{SITE_URL}}/menu adresindeki menüde kalemin yanında ve köşkte asılı alerjen tablosunda yazılıdır; bu bilginin henüz yazılmadığı bir kalemin alerjenlerini personel siparişten önce bildirir. Ön ambalajlı ürünlerde bağlayıcı bilgi, ürünün etiketindeki güncel bileşen listesidir." |
+| Site, /menu "Alerjenler" bandı (`menu-page.tsx`, hukuki metin değil) | - | "Süt, gluten, kuruyemiş, soya - mutfağımızda çapraz temas olabilir. Cölyak için baristaya bildirin, pirinç bisküvili alternatif hazırlarız." | "Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa siparişten önce baristaya sor. Mutfağımızda süt, gluten, kuruyemiş ve soya ile çapraz temas olabilir. Çölyak ya da ciddi bir alerjin varsa baristaya söyle." ve belgeye bağlantı |
+| Site, /menu, kategori sayfaları, /masa (hukuki metin değil) | - | (yok) | "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: <gün ay yıl>" ve her kartta "Alerjenler: ..." |
+
+### 21.4 Sürüm
+
+- Gıda Güvenliği belgesi ödeme onayının belgelerinden değil:
+  `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi (D-SAME-DAY bu PR'a
+  uygulanmaz). Belge kendi tarihini aldı: 19 Ekim 2026
+  (`tests/legal-dates.test.ts`). PR başka bir gün birleşirse tarih o güne
+  çekilir.
+- Uygulamanın çevrimdışı kopyası (lafmobil `legal.seed.json`) ayrı bir
+  uygulama PR'ında yeniden dışa aktarılır; uygulama metni `GET /legal`'dan
+  okur.
+
+### 21.5 Operatöre
+
+1. 23 Ekim 2026'ya kadar 82 kalem × 14 grup tablosunu tedarikçi etiketlerinden
+   hazırla (şurup, sos, süt seçeneği ve süsleme dahil), köşkte kasanın
+   yanında okunur bir panoya as, altına çapraz temas cümlesini yaz,
+   baristalara göster.
+2. Aynı tabloyla `/admin/menu`'de her kalemi aç, Alerjenler kutularını
+   işaretle (hiçbirini içermiyorsa yalnız "Hiçbirini içermez"). Sayfanın
+   başındaki sayaç kaç kalem kaldığını söyler. Tarif ya da tedarikçi değişince
+   aynı gün güncelle.
+3. Ayarlar > Vergi > Menü fiyat listesi: fiyatların uygulanmaya başladığı
+   günü gir; köşkün her girişine ve her masaya KDV dahil, aynı tarihli basılı
+   liste koy, karekodlu masada isteyene basılı liste ver; servis, masa ya da
+   kuver ücreti alma. Fiyat değiştiği gün tarihi ve listeleri yenile.
+4. 22 rawpixel ve 6 StockSnap kaynak sayfasını yapay zekâ işareti için
+   tarayıcıda aç (geliştiricinin 37 kaynağında işaret yok,
+   `docs/MENU-PHOTOS.md`); 30 Kasım 2026'ya kadar stok fotoğrafları barın kendi
+   fotoğraflarıyla değiştir, boşalan on kalemden başla.
+
+### 21.6 Bilerek değişmeyenler
+
+- §7'nin 14 satırlık tablosu (alerjen gruplarının yelpazedeki olası
+  karşılığı) yol gösterici olarak kaldı. Kararın ara çözümü olan 82 × 14
+  tablo §7'ye eklenmedi: operatörün tablosu henüz gelmedi ve alerjen bilgisi
+  uydurulmaz. Kalem başına veri panelden girildikçe menüde görünür; §7'nin
+  yeni cümlesi her iki hâli de doğru anlatır.
+- Uygulama kalem başına alerjeni gösterince (lafmobil `app-menu-allergens`)
+  §7'ye "ve mobil uygulamada" eklenir.
+- "Görseller temsilidir" notu (`menu-photo-note.tsx`) aynen kaldı: sunum
+  farkı için yeterli.
+
 ## 21. Y7 - Ödeme sayfasında ön bilgilendirme ve kayıt onayı (19 Eki 2026)
 
 > **Durum: kodda değişti.** Dal `feat/legal-checkout-preinfo`. Operatör

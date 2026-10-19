@@ -83,6 +83,8 @@ export async function loadAppProps({
         // The home page's order and rewards shortcuts (presentation only).
         pickupReadyMinutes: settings.pickupReadyMinutes,
         stampTarget: settings.mobileApp.loyalty.stampTarget,
+        // The day under the menu (Fiyat Etiketi Yön. m.5/2-d).
+        menuPricesEffectiveDate: settings.menuPricesEffectiveDate,
       },
       menu,
       wishlist: customer?.wishlist,

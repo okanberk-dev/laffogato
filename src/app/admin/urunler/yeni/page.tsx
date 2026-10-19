@@ -5,7 +5,7 @@ import { getSettings, listCategories } from "@/lib/admin/store";
 
 import { createProductAction } from "../actions";
 
-export const metadata = { title: "Admin · Yeni Ürün" };
+export const metadata = { title: "Admin · Yeni ürün" };
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {

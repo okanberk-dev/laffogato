@@ -23,6 +23,10 @@ import {
   resolveStaffRecipients,
 } from "@/lib/email/staff-order-notice-core";
 import { forgetEmailHealth, senderDomainStatus } from "@/lib/email/health";
+import {
+  MENU_PRICES_DATE_FIELD,
+  parseMenuPricesDate,
+} from "@/lib/menu/price-list";
 import { MONEY_TOO_LARGE_ERROR } from "@/lib/utils/format";
 import {
   parseTaxRateInput,
@@ -249,15 +253,31 @@ export async function saveTaxAction(
     }
     taxRates[key] = parsed.value;
   }
+  // The day the menu prices started to apply, printed under /menu and
+  // /masa (Fiyat Etiketi Yön. m.5/2-d). A form without the field (a tab
+  // opened before it existed) leaves the stored day alone.
+  const dateRaw = formData.get(MENU_PRICES_DATE_FIELD);
+  let menuPricesEffectiveDate: string | undefined;
+  if (dateRaw !== null) {
+    const day = parseMenuPricesDate(dateRaw, new Date());
+    if (!day.ok) return refuse(day.error, MENU_PRICES_DATE_FIELD);
+    menuPricesEffectiveDate = day.value;
+  }
+  const next = {
+    taxRates,
+    ...(menuPricesEffectiveDate === undefined
+      ? {}
+      : { menuPricesEffectiveDate }),
+  };
   const before = await getSettings();
-  const moved = changedKeys(before, { taxRates });
+  const moved = changedKeys(before, next);
   if (!moved) return NO_CHANGE;
-  await updateSettings({ taxRates });
+  await updateSettings(next);
   revalidateAll();
   // The menu, the shop and karaoke pages print these rates.
   revalidatePath("/admin/menu");
   revalidatePath("/admin/urunler");
-  return ok("tax", "KDV oranları kaydedildi.", moved);
+  return ok("tax", "KDV oranları ve fiyat listesi tarihi kaydedildi.", moved);
 }
 
 export async function saveShippingAction(

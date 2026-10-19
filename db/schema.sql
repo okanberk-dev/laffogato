@@ -6399,3 +6399,538 @@ update public.customers
 
 insert into public._migrations (name) values ('20261018200000_clear_unused_card_user_keys.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210000_menu_photos_mismatch.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Ten menu photos that show something the item is not (18 Oct 2026).
+--
+-- Decision OP-MENU-PHOTOS / ASK-OTH-1 (operator, 18 Oct 2026: "avukata sorma,
+-- sen karar ver"): "Görseller temsilidir" covers a different glass, garnish
+-- or light, never a different product. Seven of the stock photos that
+-- 20261017120000_menu_photos.sql wrote show another make-up (a roast beef
+-- sandwich with raw onion and no greens or sauce, a biscuit-base tart for a
+-- burnt Basque cheesecake, nuts and granola on an item with no nut tag, a
+-- photo titled "Iced Mocha" for a pumpkin latte, a mint iced tea for a peach
+-- one, a magnolia with no biscuit layer, a white sesame simit for a buckwheat
+-- one), and mnu-0082 Alternatif Süt shows hemp milk and hemp seeds, which the
+-- bar does not serve. Two more show tree nuts on an item that names and tags
+-- none, the criterion that took off mnu-0067: walnuts heaped on the slice
+-- for mnu-0061 L'Af Kahve, and an almond and seed bar beside the chocolate
+-- ones for mnu-0078 Kakao Protein Bar. A picture that contradicts the item
+-- is a misleading advertisement whatever the footnote says (TKHK m.61, m.62,
+-- m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7, m.29/2-a). docs/MENU-PHOTOS.md
+-- lists each.
+--
+-- A row is emptied only when both hold:
+-- - it still carries the very path the old migration wrote. A photo the
+--   operator uploaded or linked since is never touched.
+-- - this file has not run before. The bundle (db/schema.sql) re-runs every
+--   migration whenever a deploy adds a new one; without this guard a stock
+--   path linked again by hand would be emptied on the next deploy.
+--   db:migrate and the bundle both record this file in _migrations after the
+--   body runs (the guard of 20261017120000).
+--
+-- The files stay in public/menu: the old migration still names them, and
+-- 20261017120000 itself is not edited. The site and the app draw the plate
+-- for these items, as they do for the other four without a photo.
+--
+-- `updatedAt` is left alone, as in 20261017120000: this is not an edit of the
+-- item, and the menu's ETag already changes with the body.
+--
+-- Rollback (no schema change): write the old path back on the rows that are
+-- still empty, e.g.
+--   update public.menu_items set image = '/menu/simit.webp'
+--    where id = 'mnu-0073' and image = '';
+
+update public.menu_items as m
+   set image = ''
+  from (
+    values
+    ('mnu-0028', '/menu/iced-pumpkin-latte.webp'),
+    ('mnu-0056', '/menu/peach-iced-tea.webp'),
+    ('mnu-0059', '/menu/blueberry-san-sebastian.webp'),
+    ('mnu-0061', '/menu/coffee-cake.webp'),
+    ('mnu-0063', '/menu/strawberry-magnolia.webp'),
+    ('mnu-0067', '/menu/classic-spoonful.webp'),
+    ('mnu-0073', '/menu/simit.webp'),
+    ('mnu-0074', '/menu/roast-beef-sandwich.webp'),
+    ('mnu-0078', '/menu/cocoa-protein-bar.webp'),
+    ('mnu-0082', '/menu/alternative-milk.webp')
+  ) as v (id, image)
+ where m.id = v.id
+   and m.image = v.image
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261018210000_menu_photos_mismatch.sql'
+   );
+
+insert into public._migrations (name) values ('20261018210000_menu_photos_mismatch.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210100_menu_item_allergens.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The fourteen allergen groups per cafe menu item (18 Oct 2026).
+--
+-- Decision OP-ALLERGEN-BOARD (operator, 18 Oct 2026: "avukata sorma, sen
+-- karar ver"): a place serving unpackaged food shows, for every item, which
+-- of the fourteen groups of TGK Gıda Etiketleme Yönetmeliği Ek-1 it contains,
+-- on the menu or a board (m.15/5), and before the purchase when it sells at
+-- a distance, as the app does (m.17/3). The menu had a general cross-contact
+-- line and, in the app, only the `nuts` tag. Keys and labels:
+-- src/lib/menu/allergens.ts.
+--
+--   menu_items.allergens  jsonb, nullable, no default.
+--     NULL      not entered yet: nothing is shown next to the item and
+--               GET /api/mobile/v1/menu leaves the field out (§1).
+--     []        entered: the item contains none of the fourteen.
+--     ["sut"]   the groups it contains, keys from the closed list below.
+--
+-- Every existing row starts NULL: the operator enters the items in
+-- /admin/menu from the table of the kiosk's allergen board. Nothing is
+-- guessed from the item's name or from the `nuts` tag.
+--
+-- The check refuses anything that is not an array of known keys, whatever
+-- writes it. Added NOT VALID: every existing value is NULL, which passes, and
+-- the table is not scanned under the lock. Re-runnable: the bundle replays
+-- every migration when a deploy adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.menu_items drop column if exists allergens;
+
+alter table public.menu_items add column if not exists allergens jsonb;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'menu_items_allergens_check'
+       and conrelid = 'public.menu_items'::regclass
+  ) then
+    alter table public.menu_items
+      add constraint menu_items_allergens_check
+      check (
+        allergens is null
+        or (
+          jsonb_typeof(allergens) = 'array'
+          and allergens <@ '["gluten", "kabuklular", "yumurta", "balik",
+            "yer_fistigi", "soya", "sut", "sert_kabuklu", "kereviz", "hardal",
+            "susam", "sulfit", "aci_bakla", "yumusakcalar"]'::jsonb
+        )
+      ) not valid;
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261018210100_menu_item_allergens.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210200_menu_prices_effective_date.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The day the cafe's menu prices started to apply (18 Oct 2026).
+--
+-- Decision OP-PRICE-LISTS (operator, 18 Oct 2026): a price list carries the
+-- all-taxes-included price and the day that price started to apply (Fiyat
+-- Etiketi Yönetmeliği m.5/2-c, d). A table's QR code opens /masa/<kod>, the
+-- menu, which stands for the table's price list (m.8/2); /menu and the
+-- category pages show the same prices. They now print the day under the
+-- menu, from Ayarlar > Vergi.
+--
+--   settings."menuPricesEffectiveDate"  text, the Istanbul calendar day
+--                                       "YYYY-MM-DD"; '' = not entered (the
+--                                       menu then says only that prices
+--                                       include KDV).
+--
+-- Starts empty: the day the current prices began is the operator's to say
+-- (the printed lists at the kiosk carry the same day), not something to
+-- guess from a row's updatedAt. Rules: src/lib/menu/price-list.ts.
+--
+-- Safe on the live table: a constant default changes only the catalogue (no
+-- rewrite). Re-runnable: the bundle replays every migration when a deploy
+-- adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.settings drop column if exists "menuPricesEffectiveDate";
+
+alter table public.settings add column if not exists "menuPricesEffectiveDate" text not null default '';
+
+insert into public._migrations (name) values ('20261018210200_menu_prices_effective_date.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019120000_clear_card_user_keys_again.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Card storage never went live: clear the member keys a second time.
+--
+-- 20261018200000_clear_unused_card_user_keys.sql cleared every
+-- `customers."cardUserKey"` once (18 Ekim 2026). From about 22:38 that night
+-- until 08:05 on 19 Ekim, laffogato.net was served by an older deployment
+-- (feat/home-hero-panel 014d51b, promoted to production by hand) whose app
+-- order and member karaoke payment still minted a key for every member who
+-- paid. Card storage was never on: Vercel's environment list (read 18 Ekim
+-- 2026) has no PAYNKOLAY_CARD_STORAGE in any environment, so no card sits
+-- under any key. Current main mints no key while storage is off (#150).
+--
+-- Only the key moves; "updatedAt" stays. Once only, like every data step the
+-- bundle replays: a key minted later, with card storage and its texts on,
+-- must stay.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+update public.customers
+   set "cardUserKey" = ''
+ where "cardUserKey" <> ''
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019120000_clear_card_user_keys_again.sql'
+   );
+
+insert into public._migrations (name) values ('20261019120000_clear_card_user_keys_again.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019130000_admin_customer_list.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Müşteriler as one paged query (admin audit PEO-13, PEO-05; 18 Oct 2026).
+--
+-- The list read every member row (`select *`, addresses and all) and every
+-- order, merged them in JavaScript and wrote the whole result into the page
+-- twice (phone cards and the desktop table). With a few thousand members
+-- that was one endless, heavy page; and its search lower-cased without the
+-- Turkish rules, so "ismail" never found "İsmail".
+--
+-- Now the database does the merge, the search, the sort and the paging, and
+-- the page receives one page of rows plus the tab counts:
+--
+--   admin_fold_tr(text)       The panel's Turkish search fold, the same
+--                             letters as TR_FOLD_SQL_FROM / TR_FOLD_SQL_TO in
+--                             src/lib/admin/text-fold.ts (U+0307 written as
+--                             chr(775)): İ, I and ı meet as i, the other
+--                             Turkish capitals are lowered by translate()
+--                             itself, so the "C" collation folds them too.
+--                             The search pattern arrives already folded by
+--                             foldTr() in TypeScript.
+--   admin_sort_tr(text)       A sort key in Turkish alphabet order under the
+--                             "C" collation: ç after c, ğ after g, ı between
+--                             h and i, ö after o, ş after s, ü after u.
+--   admin_customer_rows(...)  One row per customer: a member account and the
+--                             roll-up of the orders under the same address,
+--                             or the roll-up alone for a guest. The rule is
+--                             summarizeCustomers / customerLifetime in
+--                             src/lib/admin/store.ts: order count, spend and
+--                             refunds leave out abandoned checkouts and
+--                             cancelled orders (the reports' rule), the last
+--                             order of any status dates the activity, the
+--                             newest order's name and phone stand in for a
+--                             member's empty ones. A closed account
+--                             (`deleted-…@anon.local`, decision D13) and the
+--                             till's `guest@laffogato.local` are left out.
+--                             Filters: search (folded substring of address,
+--                             name or phone, or the phone's digits), the
+--                             member's commercial consent and verification.
+--                             A member's open web deletion request
+--                             ("deletionRequestedAt", /uye/hesap/sil) rides
+--                             along, "" when there is none.
+--   admin_customer_page(...)  One page of those rows for a tab (all,
+--                             members, guests, inactive, deletion), sorted
+--                             by last activity, name, order count or spend;
+--                             the deletion tab runs oldest request first
+--                             whatever the sort (the next one due). The
+--                             address breaks ties so a page boundary never
+--                             splits or repeats a customer.
+--   admin_customer_counts(...) Per tab: customers, paid orders, spend and
+--                             refunds under the same filters, for the tab
+--                             badges and the summary tiles, and the oldest
+--                             open deletion request for the panel's banner.
+--
+-- A new tab or column later is a new migration that drops and recreates
+-- these: RETURNS TABLE cannot change its columns in place. Here they are
+-- dropped first for the same reason (a development database may hold an
+-- earlier draft of them).
+--
+-- Read-only, additive and idempotent. No `insert into public._migrations`:
+-- scripts/db-migrate.mjs records the file itself.
+
+drop function if exists public.admin_customer_counts(text, text, text, text);
+drop function if exists public.admin_customer_page(
+  text, text, text, text, text, text, boolean, integer, integer);
+drop function if exists public.admin_customer_rows(text, text, text, text);
+
+create or replace function public.admin_fold_tr(p_text text)
+returns text
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select lower(translate(coalesce(p_text, ''),
+                         'İIıÇŞĞÖÜÂÎÛ' || chr(775),
+                         'iiiçşğöüâîû'))
+$$;
+
+create or replace function public.admin_sort_tr(p_text text)
+returns text
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select replace(replace(replace(replace(replace(replace(
+           lower(translate(coalesce(p_text, ''),
+                           'İIÇĞÖŞÜÂÎÛâîû',
+                           'iıçğöşüaiuaiu')),
+           'ç', 'c~'), 'ğ', 'g~'), 'ı', 'h~'), 'ö', 'o~'), 'ş', 's~'), 'ü', 'u~')
+$$;
+
+create or replace function public.admin_customer_rows(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text
+)
+returns table (
+  email                text,
+  name                 text,
+  phone                text,
+  "isMember"           boolean,
+  "isActive"           boolean,
+  "emailVerified"      boolean,
+  "memberSince"        text,
+  "marketingConsent"   boolean,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "lastOrderAt"        text,
+  "lastActivity"       text,
+  "deletionRequestedAt" text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  with ord as (
+    select lower(btrim(o."customerEmail")) as key,
+           o.status not in ('pending_payment', 'cancelled') as counts,
+           o."totalMinor"::bigint as total,
+           coalesce((
+             select sum(case when jsonb_typeof(r -> 'amountMinor') = 'number'
+                             then (r ->> 'amountMinor')::numeric
+                             else 0 end)
+               from jsonb_array_elements(
+                      case when jsonb_typeof(o.refunds) = 'array'
+                           then o.refunds
+                           else '[]'::jsonb end) as r
+           ), 0)::bigint as refunded,
+           o."createdAt" as at,
+           o."orderNo" as no,
+           o."customerName" as cname,
+           o."customerPhone" as cphone
+      from public.orders o
+     where btrim(o."customerEmail") <> ''
+       and lower(btrim(o."customerEmail")) <> 'guest@laffogato.local'
+       and lower(btrim(o."customerEmail")) not like '%@anon.local'
+  ),
+  rolled as (
+    select ord.key,
+           count(*) filter (where ord.counts) as n,
+           coalesce(sum(ord.total) filter (where ord.counts), 0)::bigint as v,
+           coalesce(sum(ord.refunded) filter (where ord.counts), 0)::bigint
+             as refunded,
+           max(ord.at) as last_at,
+           (array_agg(ord.cname order by ord.at desc, ord.no desc)
+              filter (where ord.cname <> ''))[1] as cname,
+           (array_agg(ord.cphone order by ord.at desc, ord.no desc)
+              filter (where ord.cphone <> ''))[1] as cphone
+      from ord
+     group by ord.key
+  ),
+  members as (
+    select lower(btrim(c.email)) as key,
+           c.email,
+           c.name,
+           c.phone,
+           c."isActive",
+           c."emailVerified",
+           c."createdAt",
+           coalesce(c."deletionRequestedAt", '') as deletion_at,
+           (coalesce(c."notificationPrefs" ->> 'marketing', 'false') = 'true'
+            and c."marketingConsentAt" <> '') as consent
+      from public.customers c
+     where lower(btrim(c.email)) not like '%@anon.local'
+  ),
+  merged as (
+    select coalesce(m.email, r.key) as email,
+           coalesce(nullif(m.name, ''), r.cname, '') as name,
+           coalesce(nullif(m.phone, ''), r.cphone, '') as phone,
+           m.key is not null as is_member,
+           coalesce(m."isActive", true) as is_active,
+           coalesce(m."emailVerified", false) as verified,
+           coalesce(m."createdAt", '') as member_since,
+           coalesce(m.consent, false) as consent,
+           coalesce(r.n, 0)::bigint as n,
+           coalesce(r.v, 0)::bigint as v,
+           coalesce(r.refunded, 0)::bigint as refunded,
+           coalesce(r.last_at, '') as last_at,
+           coalesce(nullif(r.last_at, ''), m."createdAt", '') as activity,
+           coalesce(m.deletion_at, '') as deletion_at
+      from members m
+      full outer join rolled r on r.key = m.key
+  )
+  select x.email,
+         x.name,
+         x.phone,
+         x.is_member,
+         x.is_active,
+         x.verified,
+         x.member_since,
+         x.consent,
+         x.n,
+         x.v,
+         x.refunded,
+         x.last_at,
+         x.activity,
+         x.deletion_at
+    from merged x
+   where (coalesce(p_search, '') = ''
+          or public.admin_fold_tr(x.email) like '%' || p_search || '%'
+          or public.admin_fold_tr(x.name) like '%' || p_search || '%'
+          or public.admin_fold_tr(x.phone) like '%' || p_search || '%'
+          or (coalesce(p_digits, '') <> ''
+              and regexp_replace(x.phone, '[^0-9]', '', 'g')
+                    like '%' || p_digits || '%'))
+     and (coalesce(p_consent, '') = ''
+          or (x.is_member and x.consent = (p_consent = 'yes')))
+     and (coalesce(p_verified, '') = ''
+          or (x.is_member and x.verified = (p_verified = 'yes')))
+$$;
+
+create or replace function public.admin_customer_page(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text,
+  p_kind     text,
+  p_sort     text,
+  p_desc     boolean,
+  p_limit    integer,
+  p_offset   integer
+)
+returns table (
+  email                text,
+  name                 text,
+  phone                text,
+  "isMember"           boolean,
+  "isActive"           boolean,
+  "emailVerified"      boolean,
+  "memberSince"        text,
+  "marketingConsent"   boolean,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "lastOrderAt"        text,
+  "lastActivity"       text,
+  "deletionRequestedAt" text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  select r.email,
+         r.name,
+         r.phone,
+         r."isMember",
+         r."isActive",
+         r."emailVerified",
+         r."memberSince",
+         r."marketingConsent",
+         r."orderCount",
+         r."lifetimeValueMinor",
+         r."refundedMinor",
+         r."lastOrderAt",
+         r."lastActivity",
+         r."deletionRequestedAt"
+    from public.admin_customer_rows(p_search, p_digits, p_consent, p_verified) r
+   -- The same tabs as admin_customer_counts.
+   where case coalesce(p_kind, '')
+           when 'members'  then r."isMember"
+           when 'guests'   then not r."isMember"
+           when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
+           else true
+         end
+   order by
+     -- Open deletion requests oldest first: the one closest to its thirty
+     -- days is the next to do.
+     case when p_kind = 'deletion' then r."deletionRequestedAt" end asc,
+     -- A row without a name sorts after the named ones, either way.
+     case when p_sort = 'name' then r.name = '' end,
+     -- In Turkish alphabet order, whatever the database's collation.
+     case when p_sort = 'name' and not p_desc
+          then public.admin_sort_tr(r.name) collate pg_catalog."C"
+     end asc,
+     case when p_sort = 'name' and p_desc
+          then public.admin_sort_tr(r.name) collate pg_catalog."C"
+     end desc,
+     case when p_sort = 'orders' and not p_desc then r."orderCount" end asc,
+     case when p_sort = 'orders' and p_desc then r."orderCount" end desc,
+     case when p_sort = 'value' and not p_desc
+          then r."lifetimeValueMinor" end asc,
+     case when p_sort = 'value' and p_desc
+          then r."lifetimeValueMinor" end desc,
+     case when coalesce(p_sort, '') not in ('name', 'orders', 'value')
+               and not p_desc
+          then r."lastActivity" end asc,
+     r."lastActivity" desc,
+     lower(r.email) asc
+   limit greatest(1, least(coalesce(p_limit, 50), 200))
+   offset greatest(0, coalesce(p_offset, 0))
+$$;
+
+create or replace function public.admin_customer_counts(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text
+)
+returns table (
+  kind                 text,
+  customers            bigint,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "oldestDeletionAt"   text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  with r as (
+    select *
+      from public.admin_customer_rows(p_search, p_digits, p_consent, p_verified)
+  )
+  select k.kind,
+         count(r.email)::bigint,
+         coalesce(sum(r."orderCount"), 0)::bigint,
+         coalesce(sum(r."lifetimeValueMinor"), 0)::bigint,
+         coalesce(sum(r."refundedMinor"), 0)::bigint,
+         coalesce(min(nullif(r."deletionRequestedAt", '')), '')
+    from (values ('all'), ('members'), ('guests'), ('inactive'), ('deletion'))
+           as k(kind)
+    -- The same tabs as admin_customer_page.
+    left join r
+      on case k.kind
+           when 'members'  then r."isMember"
+           when 'guests'   then not r."isMember"
+           when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
+           else true
+         end
+   group by k.kind
+$$;
+
+insert into public._migrations (name) values ('20261019130000_admin_customer_list.sql')
+  on conflict (name) do nothing;

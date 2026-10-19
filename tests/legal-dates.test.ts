@@ -60,6 +60,8 @@ describe("legal document dates", () => {
     // saved-card passages in the other two). Add a document here, with its
     // date, when only it changes later.
     const expected: Record<string, string> = {
+      // 19 Ekim 2026: §7 says where each menu item's allergens are written.
+      "gida-guvenligi-ve-alerjen": "19 Ekim 2026",
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,

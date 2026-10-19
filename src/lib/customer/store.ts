@@ -1235,17 +1235,6 @@ function toAdminCustomer(c: Customer): AdminCustomer {
   };
 }
 
-/** All member accounts, newest first. */
-export async function listAllCustomers(): Promise<AdminCustomer[]> {
-  const sb = getDb();
-  const { data, error } = await sb
-    .from(TABLES.customers)
-    .select("*")
-    .order("createdAt", { ascending: false });
-  checkErr(error, "listAllCustomers");
-  return ((data as Customer[] | null) ?? []).map(toAdminCustomer);
-}
-
 /** A single member account for the admin detail view, or null. */
 export async function getAdminCustomerByEmail(
   email: string,

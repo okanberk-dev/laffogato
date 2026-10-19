@@ -705,7 +705,7 @@ describe("the dashboard card", () => {
       CTX,
     );
     const markup = html(
-      createElement(KaraokeTodayCard, { today, owed, now: NOW }),
+      createElement(KaraokeTodayCard, { today, attention: owed, now: NOW }),
     );
     // Three standing, two paid, one waiting for its payment.
     expect(markup).toMatch(/Rezervasyon<\/dt><dd[^>]*>3</);
@@ -720,7 +720,11 @@ describe("the dashboard card", () => {
 
   it("says so when the bookings could not be read", () => {
     const markup = html(
-      createElement(KaraokeTodayCard, { today: null, owed: null, now: NOW }),
+      createElement(KaraokeTodayCard, {
+        today: null,
+        attention: null,
+        now: NOW,
+      }),
     );
     expect(markup).toContain("okunamadı");
   });

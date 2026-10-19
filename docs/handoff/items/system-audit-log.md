@@ -1,0 +1,2 @@
+- Plan §4 7c. Decision D30: append-only trigger (UPDATE raises P0001, DELETE only past the 10-year retention, createdAt format unchanged); src/lib/retention.ts must still delete old rows. Migration name sorts after the newest on origin/main (the 3b karaoke migration may land first: the ship step renames if needed).
+- Add the `export` audit action with labels and tone; the order CSV route writes an export row (ORD-15) with safeAudit; an owner-only, formula-safe audit CSV.

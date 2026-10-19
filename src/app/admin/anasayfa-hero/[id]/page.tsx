@@ -7,7 +7,7 @@ import { getHomeHeroSlide } from "@/lib/admin/home-hero";
 import { updateHomeSlideAction } from "../actions";
 import { HomeSlideForm } from "../slide-form";
 
-export const metadata = { title: "Anasayfa slaytı düzenle · Admin" };
+export const metadata = { title: "Admin · Anasayfa slaytı düzenle" };
 export const dynamic = "force-dynamic";
 
 export default async function EditHomeSlidePage({

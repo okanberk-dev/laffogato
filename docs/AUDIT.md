@@ -629,7 +629,7 @@ Açık (katalog paketinin kalanı; adım 4 ve 5 aşağıda, "Katalog: stok ve to
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Menü ve vitrin tarafı: menü toplu kaydı kimlik, vitrin silme başlık yazmıyor (CAT-20), menü / kategori / vitrin "Vazgeç" (CAT-22), vitrin güncellemesi silinmiş slaytta (CAT-28), diğer katalog ekranlarının metni (CAT-24), toplu geri çağırmalar `withPanelCatch` (CAT-17) | Kendi dosyalarının PR'larında (5c, 5d) |
+| 🟢 | Liste tarafı: ürün ve menü listesinin toplu geri çağırmaları `withPanelCatch` (CAT-17), liste ekranlarının metni (CAT-24) | Liste PR'ında (5d); menü ve vitrin formları aşağıda, "Katalog: menü, kategori ve vitrin formları" |
 
 Eklenen: **ürünleri CSV ile içe aktarma** (`/admin/urunler/ice-aktar`, ürün
 listesinden bağlantı, yalnız `products` rolü; kural ve sütunlar
@@ -739,7 +739,32 @@ Açık (paket 4a'nın dışında kalan kısımlar):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları (PEO-20'nin kalanı); kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`) | Kendi dosyalarının PR'larında (4b üye sayfası, 4c kampanya ekranları) |
+| 🟢 | Kampanya formunun hata kutusunda rol yok (PEO-09, `campaign-mail-form.tsx`). PEO-20'nin üye sayfası kısmı 4b'de kapandı | Kampanya ekranlarının PR'ında (4c) |
+
+### Kişiler: Müşteriler listesi ve üye sayfası (paket 4b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Müşteriler her üye satırını (`select *`) ve her siparişi okuyup JavaScript'te birleştiriyor, bütün listeyi sayfaya iki kez yazıyordu (telefon kartları ve masaüstü tablosu); sayfalama, sıralanabilir başlık, sekme yoktu; kutucuklar farklı kapsamları sayıyordu (PEO-13) | Birleştirme, arama, sıralama ve sayfa SQL'de: `admin_customer_rows` (üye hesabı + sipariş özeti, `summarizeCustomers` kuralıyla: bekleyen ödeme ve iptal harcama değil, kapatılan hesap ve kasanın misafir adresi dışarıda), `admin_customer_page` (bir sayfa), `admin_customer_counts` (sekme başına). Sayfa kitte: sekmeler sayılarıyla (Tümü, Üyeler, Misafirler, Pasif), süzgeç çubuğu (arama, ticari ileti izni, e-posta doğrulaması), sıralanabilir başlıklar, numaralı sayfalar, satır menüsü, telefonda kart. Sekme rozeti, sayfa toplamı ve kutucuklar aynı cevabı (bu sekme, bu süzgeç) okur. Tüm tabloyu okuyan `listCustomers` / `listAllCustomers` kalktı | `admin-customer-list`, `db-integration-customer-list`, `admin-order-reads` |
+| 🟡 | Arama "ismail" yazınca "İsmail"i bulmuyordu (yerelsiz `toLowerCase`) (PEO-05) | Aranan metin `foldTr` ile, sütunlar SQL'de `admin_fold_tr` (aynı harfler) ile katlanır; telefon rakamlarıyla da bulunur ("0532 …" yazınca "+90 532 …"); `%` ve `_` harf olarak aranır. Adlar her harmanlamada Türk alfabesi sırasıyla sıralanır (`admin_sort_tr`) | `admin-customer-list`, `db-integration-customer-list` |
+| 🟡 | Üye sayfası neredeyse her e-postada 390 px telefondan genişti; "Doğrulanmış" rozeti kesiliyordu (PEO-03). Sadakat kartı da damga geçmişi satırı yüzünden kolonundan taşıyordu | Bütün kolon izleri `minmax(0, …)`, adresler her yerden kırılabilir, rozet adresin altına iner; yan kartların ızgarası ve damga geçmişi `grid-cols-1` (satır kısalır); iki kolon `xl`'den (kenar çubuğunun yanında `lg`'de yan kolon 232 px'ti). 390 / 1024 / 1280 px'te yatay taşma yok | `admin-customer-detail` |
+| 🟡 | Gerçek bilgi `neutral-400` (2,59:1) ile yazılıydı: damga saatleri, davet durumları, boş liste cümleleri, doğrulama bağlantısı etiketi (PEO-10; ORD-05'in üye sayfası kısmı) | `--admin-text-soft` / `--admin-text`, büyük boş listelerde kitin `EmptyState`'i | `admin-customer-detail` |
+| 🟢 | 9 px rozetler, `neutral-500` / `neutral-100` hapları (4,34:1), Tailwind paleti, hap bağlantılar, kare düğmeler (PEO-17, PEO-18) | Kitin `Badge`'i (10 px, AA tonlar), `--admin-*` jetonları, `BUTTON`, `KeyValueGrid`, `DataTable`; damga kutucukları 10 px | `admin-customer-list`, `admin-customer-detail` |
+| 🟢 | Üye sayfasında `<ul>` içinde `<div>`, "-" başlıklı işlem sütunları, 32 px başlık bağlantıları; listede de "-" başlık (PEO-20'nin kalanı, ORD-27'nin bu kısmı) | Davetler `KeyValueGrid` + gerçek liste; kit tablosunun işlem sütunu "İşlemler" adını taşır; başlık bağlantıları 44 px kit düğmeleri | `admin-customer-detail`, `admin-customer-list` |
+| 🟢 | "Lifetime value", ham ISO doğum günü (PEO-21'in bu kısmı) | "Toplam harcama", doğum günü gg.aa.yyyy | `admin-customer-detail`, `admin-customer-list` |
+| 🟢 | Tarayıcı sekmesi ve geçmişi müşterinin e-postasını başlıkta taşıyordu (PEO-25, karar D14) | Başlık "Admin · Müşteri" | `admin-customer-detail` |
+| 🟢 | "Sipariş" kutucuğu ile "Sipariş geçmişi (n)" farklı şeyler sayıyordu (PEO-26) | Kutucuk "Ödenen sipariş"; geçmişin üstünde "n sipariş · m ödenen" | `admin-customer-detail` |
+| 🟢 | Sipariş geçmişi sınırsızdı ve elle yazılmış bir tabloydu (ORD-30'un üye sayfası kısmı) | Kit tablosunda en yeni 20 sipariş; fazlası "Tümünü gör" ile sipariş listesinde; kutucuklar bütün geçmişi üç sütundan sayar (`customerLifetimeOrders`) | `admin-customer-detail` |
+| 🟢 | Hesap silme talebinin sekmesi, rozeti ve bandı (#145, #151) eski listenin JavaScript birleştirmesine bağlıydı | SQL listesine taşındı: `admin_customer_rows` üyenin `deletionRequestedAt`'ini taşır, `?filter=deletion` sekmesi (sayılı, sıralama ne olursa olsun en eski talep önce), satırda "Silme talebi" rozeti, altında son gün ya da "Süre doldu", bant süzgeçten bağımsız bütün açık talepleri sayar (`admin_customer_counts` en eski talebi döner); ekip e-postasının bağlantısı (`DELETION_ADMIN_PATH`) aynı | `admin-account-deletion-ui`, `db-integration-customer-list` |
+
+Açık (paket 4b'nin dışında kalanlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`), "Siparişleri" ve "Tümünü gör" bağlantıları da sipariş aramasına e-postayı `?q=` ile verir | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
+| 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
+| 🟢 | Bülten ve kampanya ekranlarındaki `neutral-*` renkler, "Footer", "Happy hour", uygulama bağlantıları cümlesi, "Bana test gönder" (PEO-10, PEO-17, PEO-18, PEO-21'in kalanı) | Kendi dosyalarının PR'ında (4c) |
+| 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
 ### İçerik: yasal belgeler ve site metinleri (paket 6a)
 
@@ -804,9 +829,59 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panodaki "Ayarlar → E-posta" (SHE-24) ve Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantılar kendi dosyalarının PR'larında (7b, 7c) |
+| 🟢 | Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke`, panodaki "Ayarlar → E-posta" paket 7b'de `?sekme=email` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantı kendi dosyasının PR'ında (7c) |
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
+
+### Sistem: pano ve raporlar (paket 7b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Personel panoda dükkânın net cirosunu görüyordu; rol tablosu ciroyu (Raporlar) yalnız sahip ve yöneticiye açıyor (SHE-14) | Ciro kartı ve 14 günlük grafik yalnız `reports` rolüne (karar D1); personel için ciro hiç okunmuyor | `admin-dashboard` |
+| 🟡 | Panodaki ciro telefonda da masaüstünde de kartından taşıyordu (SHE-06); Raporlar'daki tutarlar 1024-1279 px'te yan karta giriyordu (SYS-15) | Ortak `StatCard` (`components/admin/dashboard/stat-card.tsx`): `min-w-0`, kitin rakam boyu, tutar kartın genişliğine göre küçülür (`cqi`) ve kesilmez; Raporlar ızgarası 2 / 3 / 5 sütun. 390, 1024 ve 1280 px'te çizilip bakıldı | `admin-dashboard`, `admin-reports-period` |
+| 🟡 | Ciro grafiği telefonda 5 px yazıyla okunmuyor, eksen etiketlerinin ₺'si her genişlikte kesiliyordu; etiketler 3,95:1; tutarlar yalnız fareyle; satışsız dönemde ₺0,01 basamakları (SYS-14) | Tutarlar SVG değil HTML: eksen sütunu en uzun etiketi kadar, çizim yanında sabit yükseklikte; yuvarlak basamaklar (₺40.000); `--admin-text-soft`; her dilimin tutarı grafiğin altında tabloda ("Tutarları tablo olarak göster", başlıklı); satış yoksa "Bu dönemde satış yok." | `admin-revenue-buckets` |
+| 🟡 | Raporlar'da kartlar ve en çok satanlar "Son 30 gün" seçiliyken tüm zamanları sayıyordu; liste paraya göre sıralı, çubuğu adede göreydi; liste iadeleri düşmüyor, tamamen iade edilmiş siparişi de sayıyordu (SYS-16) | Dönem kartlara ve listeye de uygulanır (grafiğin dilimleri, köşkün gece yarısı; veritabanı dönemin başından bir gün önceden okunur). Liste iadeyi sipariş başına düşer: önce "İptal" satırlardan, kalanı ayakta kalan satırlardan orantılı; sıralama ve çubuk aynı tutar; sayfada "Bu dönemde, liste fiyatıyla; iadeler düşülmüş" (karar D31) | `admin-reports-period`, `admin-order-reads` |
+| 🟢 | Selamlama ve tarih sunucunun UTC saatini okuyordu: 07:00-08:59 "İyi geceler", gece yarısından sonra dünün tarihi (SHE-15, KAR-M02) | `Europe/Istanbul` (`src/lib/admin/dashboard-core.ts`) | `admin-dashboard` |
+| 🟢 | Pano eski görünümdeydi: eğik serif, `neutral` / `amber` / `rose` bantlar (SHE-17, pano kısmı); kartlar bağlantı değildi (SHE-31, pano kısmı); "Acil dolum" 0'ın altında duruyordu, "Shop kategorileri", e-postanın baş kısmıyla selam ("İyi günler, info.") (SHE-22) | Kit kartları ve ton jetonları; her kart saydığı listeyi açar (Açık sekmesi, Dikkat süzgeci, stokta yok, Raporlar); ipucu yalnız sayı bir şey isterken; ürün ve kategori sayısı kartları kalktı; adsız selam (karar D35). Widget'lar `src/components/admin/dashboard/` altında: duruma göre açık siparişler, azalan stok (personel için stok sayfasına), hızlı erişim, son siparişler, 14 günlük ciro (karar D38) | `admin-dashboard` |
+| 🟢 | Son siparişler elle yazılmış bir tabloydu, ödeme durumu yoktu (ORD-30, pano kısmı) | Kit `DataTable`: telefonda kart, ödeme rozeti, tutar iadeler düşülmüş | `admin-dashboard` |
+| 🟢 | Pano kartı "bir işlem bekliyor" sayısını eski okumadan (bugün ve iade borçları) alıyordu (KAR-07, pano kısmı) | `loadKaraokeTodayCard`: Dikkat sekmesinin kümesi | `admin-dashboard`, `admin-karaoke-attention` |
+| 🟢 | E-posta denetimi takılan bir Resend'i süresiz bekliyor, ayarlar okunamayınca panoyu düşürüyordu (SHE-29); "Ayarlar → E-posta" Genel sekmesini açıyordu (SHE-24, pano kısmı) | `AbortSignal.timeout(3000)` (sonuç "bilinmiyor", bant yok); pano denetimin hatasını yakalar; bağlantı `?sekme=email` | `email-health`, `admin-dashboard` |
+| 🟢 | Raporlar'da hep boş bir "Dönüşüm" kartı, bir analiz aracı bağlanınca kendiliğinden dolacağını söylüyordu (SYS-17, SYS-22); başlık üstü "Operasyon · İçgörüler" (menüde "Satış"); kit dışı renkler, 2,59:1 sıra numaraları, 30 px dönem bağlantıları (SYS-24, raporlar kısmı) | Kart kalktı (karar D32); "Satış"; kit kartları, ton jetonları, kitin sekmeleri (`StatusTabs`); karaoke kartında önce dönem, tüm zamanlar ayrıca yazılı | `admin-reports-period`, `admin-reports-ltv` |
+
+### İçerik: uygulama ayarları, canlı durum, slayt, duyuru, gönderi (paket 6b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Uygulama ayarlarının dokuz sekmesi ve Canlı durum, React 19 `<form action>` sıfırlamasıyla reddedilen kayıtta yazılanı siliyor, kutuları yeniden işaretliyordu (CON-03 ve KAR-02, bu formlar) | Sekmeler elle gönderir (`useNoResetSubmit` + `withPanelCatch`), Canlı durum `ActionForm`; red alanın altında, kayıt toast | `admin-app-config`, `admin-venue-status` |
+| 🟡 | Slayt, duyuru ve gönderi formlarında bekleme yoktu, ikinci tıklama ikinci satırı açıyordu; boş başlıkta ve silinmiş satırda kayıt sessizce dönüyordu, hata sayfası formu götürüyordu (CON-04) | `ActionForm` + `SubmitButton` (yanıttan önce ikinci gönderim düşer); boş başlık, tarih olmayan başlangıç ya da bitiş, başlangıçtan önceki bitiş alanın altında reddedilir; silinmiş satır söylenir | `admin-mobile-content-actions` |
+| 🟡 | "Üyelere e-posta" (gönderide "Yayında", ayarlarda "Bakım modu") bir etiketin içindeydi: uzun ipucuna dokunmak üye e-postasını kapatıyordu (CON-05) | `Field as="fieldset"`, ipucu `aria-describedby` | `admin-mobile-content-lists`, `admin-app-config` |
+| 🟡 | Listeler saklanan UTC metnini yazıyor, yayın durumunu göstermiyordu; süresi dolmuş ya da planlı satır yayındaki gibi görünüyordu (CON-08) | Kit tablosu ve satır menüsü; uygulamanın okuduğu kuralla durum rozeti (Yayında, Planlandı, Süresi doldu, Kapalı, Tarih geçersiz), `?durum=` sekmeleri, tarihler İstanbul saatiyle. Tarih olmayan metin olduğu gibi ve rozetle görünür, liste çökmez | `admin-mobile-content-lists` |
+| 🟡 | "Bakım modu" ve "En düşük desteklenen sürüm" onaysız kaydediliyordu (CON-12) | Bakımın açılması ve sürümün yükselmesi önce sorar; karar sunucuda, kayıtlı belgeye göre verilir. Sürüm onayı yalnız o sürüm için geçer ve yeni sürüm yazılarak verilir; mağaza adresi boşsa diyalog bunu söyler. Sekmede "Bakımda" rozeti (karar D26) | `admin-app-config` |
+| 🟡 | İçerik ekranlarında AA altı gri ve kırmızı metin: "YAYINDA DEĞİL", tarih satırları, Canlı durum hatası (CON-07) | Panel token'ları ve kit rozetleri | `admin-mobile-content-lists`, `admin-venue-status`, `admin-app-config` |
+| 🟢 | Gönderi listesi kuyruğa alınamayan ya da kimseye gitmeyen e-postaya da "e-posta gönderildi" diyordu; işaretli kutu yayında olmayan gönderide sessizce atlanıyordu (CON-09) | Sütun kampanyanın kendi durumunu okur (Taslak, Kuyrukta, Gönderildi · N alıcı, Gönderilemedi) ve kampanyaya bağlanır; gönderideki işaret tekrar gönderim kilidi olarak kalır. Yayında olmayan gönderide kayıt toast'ı e-postanın gitmediğini söyler | `admin-mobile-content-lists`, `admin-campaign-mail-actions` |
+| 🟢 | Ayarlar sekmeleri sekme değildi, telefonda yedisi gizli bir şeritteydi, adres sekmeyi tutmuyordu (CON-20) | ARIA sekmeleri (oklar, Home, End), `?bolum=`, `sm` altında seçim kutusu | `admin-app-config` |
+| 🟢 | Hatırlatma kimliği deseni tarayıcının v bayrağında geçersizdi; kimliksiz satır "Kaydedildi" altında kayboluyordu; hata satırı söylemiyordu (CON-21) | Kaçışlı desen; metni olan kimliksiz satır reddedilir; her mesaj "Hatırlatma n ·" ile başlar ve alanın altına düşer | `admin-app-config`, `admin-reminder-hours` |
+| 🟢 | Kayıt sonucu okunmuyordu, satırlarda adsız "Sil" ve "Düzenle" (CON-23) | `role="status"` / `role="alert"`, "Sil: <başlık>", satır menüsü başlığı taşır | `admin-mobile-content-lists` |
+| 🟢 | Yeni ve düzenleme sayfalarında geri dönüş, "Vazgeç" ve silme yoktu; fA'L listesi 200'de sessizce kesiliyordu (CON-24) | Geri bağlantısı ve "Vazgeç"; silme düzenleme başlığında, sonra listeye döner. fA'L sayıyı ve daha eski bildirim varsa bunu söyler | `admin-mobile-content-lists`, `admin-mobile-content-actions` |
+| 🟢 | Ham zemin anahtarları, "(karar 20)", yöneticiyi sahibin Ayarlar sayfasına yollayan ipuçları, "hemen kalkar" (uygulama içeriği paylaşılan önbellekten okunur: `s-maxage=60` ve `stale-while-revalidate`) (CON-25, KAR-12) | Türkçe adlar; ipuçları fiyatı ve saatleri sahibin belirlediğini söyler; silme "birkaç dakika içinde kalkar" der | `admin-mobile-content-lists`, `admin-app-config`, `admin-mobile-content-actions` |
+| 🟢 | Gönderinin üye e-postası `mobileApp` yetkisiyle çıkıyordu, kampanya sayfası ise `newsletter` ister (CON-26) | Gönderi e-postası iki yetkiyi de ister, sunucuda ve formda (karar D27). Alıcı kuralı değişmedi: yalnız ticari ileti onayı kayıtlı üyeler (`campaign_email_audience`, `marketing`) | `admin-campaign-mail-actions`, `admin-mobile-content-lists` |
+| 🟢 | Sürüm alanı Türkçe iPhone'da virgüllü ondalık klavye açıyordu; "mono" alanlar Poppins'ti (CON-27) | `inputMode="text"`; Team ID ve parmak izlerinde gerçek eşaralıklı yazı (`NUMERIC_STYLE`) | `admin-app-config` |
+| 🟢 | Gönderi e-postası bandı adreste duruyordu (`?eposta=`): yenileyince ve silmeden sonra geri geliyordu (CON-29) | Sonuç kaydın toast'ı (`setAdminFlash`, gerekirse uyarı tonu) | `admin-campaign-mail-actions` |
+| 🟢 | Gönderinin üye e-postasını tarayıcının kendi onay kutusu soruyordu: "TÜM üyelere" diyor, kaç kişi olduğunu söylemiyordu, tek "Tamam" yetiyordu (formlar incelemesi, #148) | Kitin diyalog çerçevesinde soru: pazarlama izni olan üye sayısı (kuyruğun okuduğu sayım) ve sayı geri yazılınca açılan "Kaydet ve gönder"; sayılamazsa söyler ve GÖNDER yazdırır. Kampanya sayfasındaki "Gönder" ile aynı adım (karar D15); evet yalnız bir kaydı geçirir, reddedilen kayıt yeniden sorar | `admin-post-mail-confirm`, `admin-mobile-content-lists` |
+
+Aynı PR'da gelenler: ayarlar ve Canlı durum kayıt çubukları kit token'larıyla,
+bölüm başlıkları kitin `Section`'ı (italik değil) (KAR-06, KAR-17); satırlarda
+"Düzenle" ve "Sil" kit satır menüsünde, haplar kit rozeti (CON-19). Kenar
+çubuğunda giriş başına simge (CON-19) ve sayfa iskeleti `admin/loading.tsx`
+(CON-24) kabuk gezinme PR'ında (#142) geldi.
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Raporlarda tarih aralığı, önceki döneme göre karşılaştırma, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
+
+| 🟢 | Slayt, duyuru ve gönderide sıra elle yazılan bir sayı; süresi dolan içerik için toplu aç/kapa yok (CON-24) | Sürükle bırak sıra ve toplu işlem bu turun dışında |
 
 ### Karaoke ve masalar (paket 3a)
 
@@ -828,7 +903,6 @@ Açık (paket 3a'nın dışında kalan):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Karaoke listesi her istekte en çok 5000 satırı okuyup sekmeleri, sayıları ve sayfaları bellekte hesaplıyor (KAR-25, Dikkat dışı kısım) | Tek oda için yılda birkaç bin satır; sekme sorgularını ve sayfalamayı SQL'e taşımak beş sekmenin sayısını da ayrı sorgular ister. Sayfa sınıra gelince söylüyor; Dikkat artık sınırdan etkilenmiyor |
-| 🟢 | Pano kartı hâlâ eski okumayı (bugün + iade borçları) kullanıyor (KAR-07, pano kısmı) | `src/app/admin/page.tsx` paket 7b'nin; `loadKaraokeTodayCard` hazır |
 
 ### Karaoke iptal ve iade kuralı panelden (paket 3b, P2a)
 
@@ -848,8 +922,18 @@ Açık (paket 3b'nin dışında kalan):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli ve sitenin iki karaoke ekranı (alttaki satır) rezervasyonun kuralını yazmalı (`karaoke-cancel-policy-doc` testi ikisini de tutar) |
-| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyor | `karaoke-booking.tsx` ve `karaoke-reservation-view.tsx` paket 3c'nin (ön yüz); kilit kapalıyken sabitler rezervasyonun kuralıyla aynı. Kilit 3c'den önce açılırsa kutu sabit kuralı geri yollar ve her ön ödemeli web rezervasyonu `policy_changed` ile reddedilir, rezervasyon sayfası geç iptal payını sunmaz: `karaoke-cancel-policy-doc` kilit açıkken bu iki dosyada sabit görürse düşer |
+| 🟡 | Yalnız 2 saat / %0 kaydedilebiliyor (uygulama kilidi) | Yayındaki uygulama sürümleri rezervasyon ayrıntısında ve iptal adımında kendi sabit cümlelerini yazıyor; kilit `KARAOKE_POLICY_APP_VERSION` ve en düşük sürümle açılır (lafmobil izleme PR'ı, API-MOBILE §7.1). Açmadan önce kuralı kendi cümleleriyle anan beş belge (`iade-ve-cayma`, `odeme-kosullari`, `veri-saklama-ve-imha-politikasi`, `hesap-silme`, `kafe-hizmet-kosullari`) karaoke belgesine yönlendirilmeli (`karaoke-cancel-policy-doc` testi tutar). Sitenin iki karaoke ekranı artık rezervasyonun kuralını yazıyor (aşağıda, KW) |
+
+### Karaoke rezervasyon sihirbazı ve KDV satırı (KW, 18 Eki 2026)
+
+Operatör (18 Eki 2026): "karaoke sayfasını da mobile ve masaüstüne uygun yap ödeme esnasında kdv dahil olan kısımda kdv miktarı otomatik yazsın ... oraya da bir wizard hazırla". Paket 3c (karaoke-refund-policy-web) bunun içinde. Yalnız ön yüz.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟢 | Web rezervasyon sayfası ve ödeme öncesi kutu kuralı sabitlerden yazıyordu (3b'nin açık satırı) | Ödeme öncesi kutu sunucunun cümlelerini (`availability.cancellationRules`), son ücretsiz iptal anını tarih ve saatle (sayfa açıldığında o an geçmişse "ücretsiz iptal süresi geçti"), geç iptal payının tutarını yazar ve yazdığı sayıları geri yollar; rezervasyon sayfası kendi kaydındaki cümleleri, son anı (kendi gününde) ve iptalin ne getireceğini (tam, pay, yok, ret) sunucunun hesabıyla yazar; geç iptal reddinin bildirimi rezervasyonun cümlesi (`karaokeNoticeFor`). Ret adımında "Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin; odayı o kullanır." | `karaoke-wizard`, `karaoke-prepay-rules`, `karaoke-web-action` |
+| 🟢 | Toplamın yanında yalnız "%20 KDV dahil" yazıyordu, KDV tutarı yoktu | `kdvIncludedNote` (ön yüz, saf): oran sunucudan, tutar `kdvOfGross` ile kuruşa yuvarlanır: "%20 KDV dahil (KDV 166,67₺)"; oran yoksa yalnız "KDV dahil", %0'da "%0 KDV". Özet kartında, ödeme öncesi kutuda, Ödeme adımında, telefon çubuğunda ve rezervasyon sayfasında, küçük ve soluk | `karaoke-wizard`, `home-karaoke` |
+| 🟢 | Rezervasyon tek uzun formdu; telefonda toplam ve düğme sayfanın sonundaydı | Beş adım (Tarih ve saat, Süre ve kişi, Bilgilerin, Özet ve onay, Ödeme; köşkte ödenen istekte dört), her adım geçmeden denetlenir, adım göstergesi `aria-current="step"` ve canlı bölge, tarayıcının geri tuşu bir adım geri (`?adim=`, kişisel veri yok), yenileme yazılanları tutar (bu sekmede, kutular hariç, gönderince silinir, reddedilen gönderimden sonra yeniden yazılır; adresin `?saat=`'i eski taslağın saatini ezer). Reddedilen gönderim kutuları boşaltmaz (elle gönderim, React'in form sıfırlaması yok); Geri bir önceki adıma gider, geri atlamadan sonra da. Masaüstünde özet yanda yapışkan, telefonda toplam ve düğmeler alt çubukta (sekme çubuğunun yerinde, güvenli alan payıyla). JavaScript'siz sayfa yine tek form | `karaoke-wizard`, `frontend-form-contract` |
+| 🟢 | Satıcı satırında unvan ve vergi numarası yoktu (MSY m.5/1-b) | "Satıcı: {unvan} (L'Affogato), VKN {numara}, {adres}, {telefon}." (`LEGAL_ENTITY`'den sayfa verir; boşsa düşer) | `karaoke-wizard` |
 
 ### Kabuk: gezinme, arama, içerik haritası (paket 1c)
 
@@ -1004,3 +1088,73 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | E-posta veya postayla gelen silme talebinde karaoke kuralı hâlâ kapanış anına göre | Panelin kaydettiği tek talep anı Site'ninki; e-postayla gelen talebin anını "Hesabı sil" diyaloğuna yazdıracak alan ayrı bir PR. O zamana kadar ekip e-posta talebini ödenmiş rezervasyonun saatinden önce kapatır; `hesap-silme` §8 talep anı kuralını yalnız Site talebi için söyler |
+
+### Katalog: mağaza ürün sayfası, kart, vitrin (paket 5b)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Ürün sayfası ve hızlı bakış rafa göre sabit satırlar basıyordu: her hediyeye "Gluten · süt · soya izi" ve "90 gün", her ekipmana "Bialetti × L'Affogato" ve "Garanti: 2 yıl", her çekirdeğe Sirena'nın kökeni ve tat notları; paneldeki marka ve tat notları okunmuyordu. Kargo eşiği Ayarlar ne derse desin "500₺" yazıyordu, eşik kapalıyken de; sayfa yasal metinlerin vermediği "14 gün koşulsuz iade"yi vaat ediyordu (CAT-M01, karar D19) | Satırlar ürünün kendi verisinden gelir (`product-facts.ts`): marka, tat notları, SKU, 0'dan büyük ağırlık, `nuts` alerjeni; sabit köken, tat, demleme, saklama, içerik, marka, garanti ve alerjen satırları kalktı, satırı olmayan üründe "Ürün detayları" çizilmez. Gıda raflarında (çekirdek, kiler, hediye) içindekiler, alerjen ve saklama bilgisi için sipariş öncesi Ayarlar'daki e-posta ve telefon adıyla verilir (TGK Etiketleme m.17/2-a). Kargo eşiği Ayarlar'dan gelir (ürün sayfası, mağaza vitrini ve güvence kutuları), 0'da hiç yazılmaz. İade metni cayma hakkının istisnalarını söyler (MSY m.15) | `storefront-product-facts` |
+| 🟡 | Mağaza kartındaki hızlı "+" ve öne çıkan setin "Sepete ekle"si varyantlı ürünü varyantsız ekliyordu: satır taban fiyattan, yalnız ürün toplamından düşüyordu (5a'da bulundu) | `toCartItem` varyantlı üründe ürünün kendi aktif varyantı olmadan satır üretmez; kart böyle üründe "Seçenekleri gör" ile hızlı bakışı (yoksa ürün sayfasını) açar, öne çıkan set de; hızlı bakışın gövdesi ürüne göre anahtarlanır. Eski bir sepetten ya da elle yazılmış istekten gelen varyantsız satırı sunucu ayrıca reddeder (#144, "Sipariş satırı: varyantlı ürün varyant ister") | `storefront-variant-cart` |
+| 🟢 | Hızlı bakışın ızgarası `1fr 1fr` idi: fotoğrafın 4/5 kutusu satırla büyüyor, uzun ayrıntı listesi 1280 px'te metin sütununu daraltıyordu; "Sepete ekle" panelin kesilen kenarının altında kalıyordu (bu turda görüldü) | Sütunlar `minmax(0, 1fr)`, fotoğraf sütun genişliğinde ve en az satır yüksekliğinde; metin sütunu panelin 92vh'sıyla sınırlı ve kayar, telefonda sayfa tek parça kayar | `storefront-product-facts` |
+| 🟢 | Mağaza vitrininin fotoğrafı tırnaksız `url()` içindeydi: boşluk ya da parantez görseli düşürüyor, `");...;("` ile biten adres vitrine kendi CSS bildirimlerini ekliyordu (CAT-27'nin mağaza kısmı); panel önizlemesi canlı slaytı çizemiyordu (CAT-25'in mağaza kısmı) | `cssUrl()` (`css-url.ts`) adresi tırnaklar, tırnağı, ters bölüyü ve kontrol karakterlerini CSS kaçışıyla yazar; `Slide` dışa açıldı | `storefront-hero-slide` |
+
+Açık (paket 5b'nin dışında kalan kısımlar):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Ürünün markası ve tat notları mağazaya ulaşmıyor: `toDesignProduct` (`src/lib/admin/store.ts`) `brand` ve `notes`'u göndermiyor; sayfa ikisini de hazır okur | Arka yüz değişikliği, ön yüz PR'ında yapılmaz (iki satırlık ayrı PR) |
+| 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yok; sayfa şimdilik sipariş öncesi iletişimi gösteriyor (TGK Etiketleme m.17/2-a) | Ürün şemasına alan eklemek arka yüz (migration, panel, uygulama) işidir |
+| 🟢 | Panelde vitrin adresinin ve CTA'nın doğrulanması, panel önizlemesinin `Slide` + `cssUrl` kullanması (CAT-25, CAT-27'nin panel kısmı) | Paket 5c (catalog-forms) |
+
+### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
+
+Operatör kararı (18 Eki 2026): avukat turu yok, karar ve dayanak
+`docs/LEGAL-REDLINES-2026-09.md` §21'de. Kararlar OP-ALLERGEN-BOARD,
+OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Kafe menüsünde kalem başına alerjen yoktu: sitede genel bir çapraz temas bandı, uygulamada yalnız `nuts` etiketi. Toplu tüketim yerinde her kalemin Ek-1 alerjenleri menüde ya da panoda yazılır (TGK Etiketleme Yön. m.15/5), uzaktan satışta satın almadan önce (m.17/3); Gıda Güvenliği belgesi var olmayan bir listeye atıf yapıyordu (X-TGK-MENU) | `menu_items.allergens` (jsonb; NULL = girilmedi, `[]` = hiçbiri, kapalı 14 anahtar, migration `20261018210100`). Panelde 14 kutu ve "Hiçbirini içermez"; hiçbir kutu işaretli değilse "girilmedi" kalır, "yok" sayılmaz. Sert kabuklu meyve `nuts` etiketini ekler, çelişen `nuts` reddedilir. Kalem kartında "Alerjenler: gluten, süt", `/admin/menu`'de girilmemiş kalem sayısı, `GET /menu`'de isteğe bağlı `allergens` (v1 ekleme, API-MOBILE §1). §7 nerede yazdığını söyler | `menu-allergens` (v1 alanı dahil), `menu-food-info-display`, `db-integration-menu-food-info` |
+| 🟡 | Masa karekodunun açtığı `/masa/<kod>` fiyat listesi sayılır (Fiyat Etiketi Yön. m.8/2), ama fiyatların uygulanmaya başladığı tarih yoktu (m.5/2-d) (X-PRICE-LIST) | `settings."menuPricesEffectiveDate"` (İstanbul günü, migration `20261018210200`), Ayarlar > Vergi > Menü fiyat listesi; bugünden sonraki gün reddedilir. Menünün altında "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: …" (/menu, kategori sayfaları, /masa) | `menu-price-list`, `menu-food-info-display` |
+| 🟡 | On stok fotoğraf kalemde olmayanı gösteriyor ya da adındaki malzemeyi dışarıda bırakıyordu (kararın sekizi; yeniden bakışta mnu-0061 ve mnu-0078 kuruyemiş gösterdiği için eklendi); "Görseller temsilidir" bunu karşılamaz (TKHK m.61, m.62, m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7) (OTH-1) | Migration `20261018210000` onunu yalnız eski yolu taşıyorsa ve bir kez boşaltır; tohum da boş; `docs/MENU-PHOTOS.md` ev kuralı (yapay zekâ ya da rötuşlu görsel menü fotoğrafı olmaz), geliştiricinin yapay zekâ taraması (37 kaynak, işaret yok) | `menu-photos`, `db-integration-menu-photos` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | 82 kalemin alerjenleri girilmedi; köşkte alerjen panosu ve tarihli basılı fiyat listesi | Operatörün işi (23 Ekim 2026): tablo tedarikçi etiketlerinden hazırlanır, panelde her kaleme girilir. Bilgi uydurulmaz: yanlış alerjen alerjisi olan misafir için gerçek risk |
+| 🟡 | Uygulama kalem başına alerjeni ve fotoğraf notunu göstermiyor | lafmobil `app-menu-allergens` ve `app-menu-photo-note` (mağaza onayına bağlı); alan sözleşmede, eski sürümler bir şey kaybetmez |
+| 🟢 | 22 rawpixel ve 6 StockSnap kaynağı yapay zekâ işareti için taranmadı (Ticari Reklam Yön. m.18/8) | Sayfalar bot korumalı, operatör tarayıcıda açar (23 Ekim 2026); diğer 37 kaynakta işaret yok (`docs/MENU-PHOTOS.md` Lisans). Kalıcı çözüm 30 Kasım 2026'ya kadar barın kendi fotoğrafları |
+
+### Katalog: menü, kategori ve vitrin formları (paket 5c)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Mağaza vitrini formu çıplak `<form action>`'dı: çift tık iki slayt açıyordu; boş başlık (yalnız boşluk) yanıtsız dönüyor, React sıfırlaması düğme alanlarını, sırayı, temayı ve Aktif kutusunu siliyordu; düzenlemede boş başlık kaydediliyor, mağaza gri "Başlık" çiziyordu (CAT-13) | İşlemler `ActionResult` döner, form `ActionForm` (elle gönderim, yanıt gelmeden ikinci gönderim düşer); boş başlık eklemede de düzenlemede de alanın altında reddedilir | `admin-shop-hero` |
+| 🟡 | Kategoriler sayfası mağazanın filtre çubuğunu yönettiğini söylüyordu ama mağaza sabit beş kategoriyi kodda tutar; beş slug da tohumda olduğu için "+ Yeni kategori" ancak ikiz açabiliyordu, paneldeki her kategori seçiminde "Çekirdek" iki kez çıkıyordu (CAT-06, karar D18) | Başka satırın taşıdığı slug eklemede ve düzenlemede alanın altında reddedilir; yeni sayfası yalnız boş slug'ları sunar, beşi de listedeyse form yerine bunu söyler. Metin sayfanın yalnız paneldeki adı ve sırayı belirlediğini söyler; mağazaya bağlamak bu turda yok (D18) | `admin-catalog-actions`, `admin-catalog-forms` |
+| 🟡 | Menü etiketleri serbest metindi ("signature, new, iced, nuts, IGP"); uygulama dört kelime dışındakini sessizce atar, "fındık" ya da "nut" yazılan alerjen hiçbir müşteriye görünmüyordu (CAT-10, karar D21) | Dört kutu: İmza, Yeni, Buzlu, Sert kabuklu yemiş; işlem yalnız bu dördünü saklar (`menuTagsFromForm`, eski virgüllü liste de), #154'ün kuralı üstüne: Alerjenler'de sert kabuklu meyveler etiketi ekler, onsuz işaretli etiket reddedilir. Düzenleme, kayıtta silinecek tanımsız kelimeyi kayıttan önce adıyla söyler. Tohumlarda bu dördünden başka etiket yok; kodda yalnız `structured-data.ts`'in "vegan opt." dalı başka bir kelime okur (2c35333'ten beri tohumda yok, panel artık o kelimeyi kaydetmez; menü JSON-LD'sinin `suitableForDiet` alanı bu yüzden panelden açılamaz). Canlı veritabanında elle yazılmış bir kelime varsa o kalemin ilk kaydında düşer. API çıktısı ve `docs/API-MOBILE.md` değişmedi | `admin-catalog-actions`, `admin-catalog-forms` |
+| 🟡 | Telefonda iki sütunlu fotoğraf kartında "Birincil yap" × düğmesini kartın dışına itiyordu: ikinci fotoğraf silinemiyordu (CAT-12) | Kart altı satırı kırılır, × sabit 44 px, "Birincil yap" kendi satırında; sütunlar ekranın değil alanın genişliğine göre (en az 9,5rem; menü formunun dar sütununda `md:grid-cols-4` 96 px kart yapıyordu) | `admin-catalog-forms` |
+| 🟢 | Vitrin görseli ve düğme bağlantısı denetlenmiyordu, görsel tırnaksız CSS `url()` içine yazılıyordu: boşluk ya da parantezli adres görseli düşürüyor, `);position:fixed;...;(` ile biten adres mağaza vitrinine kendi CSS'ini ekliyordu (CAT-27, panel kısmı) | `src/lib/admin/shop-hero-schema.ts`: görsel ya panelin ürettiği yükleme ya da hiçbir karakteri `url()`'yi veya özniteliği bitiremeyecek biçimde yazılmış bir https adresi; düğme bağlantısı sitedeki bir yol, sayfadaki bir bölüm ya da https, yazısıyla birlikte (mağaza ikisini birlikte çizer). Panelde görsel `<img>`; mağaza tarafındaki tırnaklı `cssUrl()` 5b'nin işi, aynı değişiklik bu dalda da var | `admin-shop-hero`, `storefront-hero-slide` |
+| 🟢 | Vitrin "Önizleme"si canlı slayta benzemiyordu: başka katman, eğik başka yazı, başka vurgu rengi, ne üst etiket ne düğme (CAT-25) | Mağazanın kendi `Slide`'ı, etkin ve yüklü, mağazanın çerçevesinde; `inert` ve `aria-hidden` (bağlantısı formdan çıkarmasın). Panelin `a`/`button` sıfırlaması `[data-site-preview]` içini bırakır (`:where` ile, ağırlık aynı), düğme mağazadaki gibi görünür | `admin-shop-hero`, `admin-root-css` |
+| 🟢 | Silinmiş slaytı düzenlemek "kaydedildi" diyor, olay kaydı yazıyordu (CAT-28, vitrin) | "Bu slayt silinmiş; listeye dön.", olay kaydı yok | `admin-shop-hero` |
+| 🟢 | Menü toplu kaydı neye dokunduğunu, vitrin silme hangi slaytı sildiğini yazmıyordu (CAT-20, menü ve vitrin) | Menü: kimlikler ve yazımdan önce okunan adlar (ilk 100, fotoğrafsız okuma `listMenuItemLabels`); vitrin: silmeden önce okunan başlık | `admin-catalog-actions`, `admin-shop-hero` |
+| 🟢 | Menü fotoğraf yükleyicisi bir `<label>` içindeydi: başlığa, ipucuna ya da bağlantı satırına tıklamak dosya seçiciyi açıyor, bırakma alanı iki kez açıyordu (CAT-15) | `Field as="fieldset"` | `admin-catalog-forms` |
+| 🟢 | Fotoğraf okları sağa sola taşıdığı hâlde "Yukarı / Aşağı taşı", her × yalnız "Sil" diye okunuyordu, bağlantı alanının adı yoktu (CAT-23, yükleyici) | "Sola taşı: görsel 2", "Sil: görsel 2", "Birincil yap: görsel 2"; bağlantı alanı "Görsel bağlantısı" | `admin-catalog-forms` |
+| 🟢 | Menü, kategori ve iki vitrin formunda "Vazgeç" bağlantı içinde düğmeydi; mağaza vitrininde `history.back()` paneli terk edebiliyordu (CAT-22) | Tek `Link`, `BUTTON.ghost`; vitrinde listeye döner | `admin-catalog-forms`, `admin-shop-hero` |
+| 🟢 | İngilizce ve jargon: "Shop · Hero slider", "Mağaza sidebar'ı", "Shop ürün filtresinde", "light seç", "altın script", "Limit doldu", Pistachio, Rose, başlık üstünde iç kimlik ("Düzenle · mnu-0003"), "… · Admin" ile "Admin · …" karışık sayfa başlıkları (CAT-24, formlar) | Sade Türkçe, "sen"; başlık üstünde bölüm adı; sayfa başlıkları "Admin · …" | `admin-shop-hero`, `admin-catalog-forms` |
+
+Aynı PR'da gelenler: vitrin listesi yüklenen görseli `/gorsel/hero/<id>`
+yolundan gösterir, her slaytın fotoğrafını sayfaya gömmez (CAT-08'in vitrin
+kısmı); vitrin listesinde ve formunda el yapımı haplar kit düğmesi
+(`BUTTON.*`, CAT-11), satır düğmeleri slaytın adını taşır. Anasayfa
+slaytları paneli (#129) vitrin gibi kurulmuş ama zaten `ActionForm` ve
+denetlenen şemayla geldi; ortak tek kusuru "Vazgeç"ti, o da düzeldi.
+Kategoriler sayfasının açıklaması da yalnız metin olarak değişti (liste
+5d'nin dosyası).
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Aynı anda iki sekmede aynı boş slug'la açılan iki kategori ikisi de geçebilir (`categories.slug` benzersiz değil) | Eski veritabanlarında ikiz satırlar var; benzersiz dizin önce onların temizlenmesini ister (migration + operatör kararı). Panel artık ikizi kendisi açmaz |
+| 🟢 | Menü yükleyicisinin bağlantı yolu `http://` adresini kabul ediyor, kayıt onu sessizce siliyor (yalnız https saklanır) | Yükleyici ürünlerle ortak ve ürün şeması `http://` kabul ediyor; iki şemayı eşitlemek bu PR'ın dışında |

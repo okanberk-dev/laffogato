@@ -8,11 +8,14 @@ import {
   actionOk,
   type ActionResult,
 } from "@/lib/admin/action-result";
+import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
 import { logAudit } from "@/lib/admin/audit";
-import { requireRole } from "@/lib/admin/auth";
+import { requireRole, type AdminSession } from "@/lib/admin/auth";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
 import { setAdminFlash } from "@/lib/admin/flash";
+import type { AdminFlashTone } from "@/lib/admin/flash-core";
 import { isPublishWindowOpen } from "@/lib/admin/publish-window";
+import { canAccess } from "@/lib/admin/roles";
 import {
   createAppPost,
   deleteAppPost,
@@ -29,6 +32,8 @@ import {
 } from "@/lib/email/campaigns";
 
 const LIST_PATH = "/admin/mobil/gonderiler";
+const REFUSED = "Formdaki uyarıları gider.";
+const GONE = "Bu gönderi silinmiş; listeye dön.";
 
 /**
  * Her action kendi rol kapısını açar.
@@ -59,8 +64,24 @@ function parseInput(formData: FormData): AppPostInput {
 
 type MailOutcome =
   | { kind: "queued"; campaignId: string; total: number }
-  | { kind: "skipped" }
+  /**
+   * Nothing sent. `not_live`: the box was ticked but the post is off or
+   * outside its window, which the operator is told; the other reasons
+   * (box off, already mailed, another save marked it first) say nothing.
+   */
+  | { kind: "skipped"; reason: "not_asked" | "not_live" | "already" }
   | { kind: "failed"; campaignId: string };
+
+/**
+ * Whether this save may mail the members. A post's mail is a commercial
+ * message to everyone with marketing consent (6563), the same send as the
+ * Kampanya e-postası page, so it takes the same trust: the `newsletter`
+ * role as well as `mobileApp` (decision D27). The two hold the same roles
+ * today; this keeps it so if Personel is ever given the app content.
+ */
+function mayMailMembers(session: Pick<AdminSession, "role">): boolean {
+  return Boolean(session.role) && canAccess("newsletter", session.role);
+}
 
 /**
  * A post that is live right now - active, and inside its publish window -
@@ -75,7 +96,7 @@ type MailOutcome =
  * where that mail is sent by hand.
  *
  * Nothing here can undo the save that just happened, so a failure is
- * recorded (console, and the outcome the list page shows) rather than
+ * recorded (console, and the outcome the save's toast shows) rather than
  * thrown: the post is on every phone either way, and an error page would
  * only tempt a second submit that creates a second post.
  */
@@ -84,13 +105,10 @@ async function emailMembersForPost(
   wanted: boolean,
   actor: string,
 ): Promise<MailOutcome> {
-  if (
-    !wanted ||
-    !post.isActive ||
-    !isPublishWindowOpen(post) ||
-    post.emailCampaignId
-  ) {
-    return { kind: "skipped" };
+  if (!wanted) return { kind: "skipped", reason: "not_asked" };
+  if (post.emailCampaignId) return { kind: "skipped", reason: "already" };
+  if (!post.isActive || !isPublishWindowOpen(post)) {
+    return { kind: "skipped", reason: "not_live" };
   }
   let campaignId = "";
   try {
@@ -104,7 +122,7 @@ async function emailMembersForPost(
       // Another save marked the post first (or it was deleted meanwhile);
       // its campaign is the one that counts, this draft would be a second.
       await deleteCampaignEmail(created.id);
-      return { kind: "skipped" };
+      return { kind: "skipped", reason: "already" };
     }
     const { total } = await startCampaignSend(created.id);
     await logAudit({
@@ -127,26 +145,61 @@ async function emailMembersForPost(
   }
 }
 
-/** Where the list page reads the hook's outcome from (see its banner). */
-function listPathAfter(outcome: MailOutcome): string {
+/**
+ * The save's toast, with what happened to the mail. It used to ride in the
+ * list's address (`?eposta=kuyrukta&adet=12`), so it came back on every
+ * reload and stayed after the operator deleted posts on that page. The
+ * list row keeps the lasting answer: the campaign's own status.
+ */
+function savedFlash(
+  saved: string,
+  outcome: MailOutcome,
+): { message: string; tone: AdminFlashTone } {
   switch (outcome.kind) {
     case "queued":
-      return `${LIST_PATH}?eposta=kuyrukta&adet=${outcome.total}`;
+      return outcome.total > 0
+        ? {
+            message: `${saved} ${outcome.total} üyeye kampanya e-postası kuyruğa alındı; gönderim arka planda sürüyor.`,
+            tone: "success",
+          }
+        : {
+            message: `${saved} Pazarlama izni olan üye bulunamadı; e-posta çıkmadı.`,
+            tone: "warning",
+          };
     case "failed":
-      return `${LIST_PATH}?eposta=hata${
-        outcome.campaignId
-          ? `&kampanya=${encodeURIComponent(outcome.campaignId)}`
-          : ""
-      }`;
-    default:
-      return LIST_PATH;
+      return {
+        message: outcome.campaignId
+          ? `${saved} Kampanya e-postası kuyruğa alınamadı: taslağı "Kampanya e-postası" sayfasında tamamlayıp oradan gönder.`
+          : `${saved} Kampanya e-postası oluşturulamadı; "Kampanya e-postası" sayfasından elle açabilirsin.`,
+        tone: "warning",
+      };
+    case "skipped":
+      return outcome.reason === "not_live"
+        ? {
+            message: `${saved} Gönderi şu an yayında olmadığı için e-posta gitmedi; yayına girince "Kampanya e-postası" sayfasından gönder.`,
+            tone: "warning",
+          }
+        : { message: saved, tone: "success" };
   }
 }
 
-export async function createPostAction(formData: FormData) {
+/**
+ * Answers with an ActionResult for ActionForm (field errors under their
+ * fields); a save that went through redirects with its toast. It used to
+ * return nothing on a blank title, and a second press before the first
+ * answer created a second post (ActionForm drops it now).
+ */
+export async function createPostAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   const session = await requireRole("mobileApp");
   const input = parseInput(formData);
-  if (!input.title.trim()) return;
+  // The HTML `required` attribute is not a guard on a Server Action, and the
+  // store only trims the title - a titleless row renders as an empty card on
+  // every phone.
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const created = await createAppPost(input);
   await logAudit({
     action: "create",
@@ -156,25 +209,28 @@ export async function createPostAction(formData: FormData) {
   });
   const outcome = await emailMembersForPost(
     created,
-    formData.get("emailMembers") === "on",
+    mayMailMembers(session) && formData.get("emailMembers") === "on",
     session.email,
   );
   revalidatePath(LIST_PATH);
-  await setAdminFlash(`"${created.title}" gönderisi eklendi.`);
-  redirect(listPathAfter(outcome));
+  const flash = savedFlash(`"${created.title}" gönderisi eklendi.`, outcome);
+  await setAdminFlash(flash.message, flash.tone);
+  redirect(LIST_PATH);
 }
 
-export async function updatePostAction(id: string, formData: FormData) {
+export async function updatePostAction(
+  id: string,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   const session = await requireRole("mobileApp");
   const input = parseInput(formData);
-  // Same guard as the create action: the HTML `required` attribute is not a
-  // guard on a Server Action, and the store only trims the title - a titleless
-  // row renders as an empty card on every phone.
-  if (!input.title.trim()) return;
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const updated = await updateAppPost(id, input);
   // The row was deleted while this form was open; without the check the audit
   // log claims an update that never happened.
-  if (!updated) return;
+  if (!updated) return actionError(GONE);
   await logAudit({
     action: "update",
     entity: "app_post",
@@ -185,15 +241,20 @@ export async function updatePostAction(id: string, formData: FormData) {
   // had its campaign is recognised here, whatever the checkbox says.
   const outcome = await emailMembersForPost(
     updated,
-    formData.get("emailMembers") === "on",
+    mayMailMembers(session) && formData.get("emailMembers") === "on",
     session.email,
   );
   revalidatePath(LIST_PATH);
-  await setAdminFlash(`"${updated.title}" kaydedildi.`);
-  redirect(listPathAfter(outcome));
+  const flash = savedFlash(`"${updated.title}" kaydedildi.`, outcome);
+  await setAdminFlash(flash.message, flash.tone);
+  redirect(LIST_PATH);
 }
 
-/** "Sil", behind a confirm. It used to delete on the first click, silently. */
+/**
+ * "Sil", behind a confirm. It used to delete on the first click, silently.
+ * Not "kalktı": phones read the home content through a shared cache, so it
+ * takes a few minutes to leave every phone (see the slide delete).
+ */
 export async function deletePostAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -205,5 +266,12 @@ export async function deletePostAction(
   revalidatePath(LIST_PATH);
   if (!removed) return actionError("Gönderi zaten silinmiş.");
   await logAudit({ action: "delete", entity: "app_post", entityId: id });
-  return actionOk("Gönderi silindi, uygulamadan kalktı.");
+  const done = "Gönderi silindi; uygulamadan birkaç dakika içinde kalkar.";
+  // From the edit page's header: that page has nothing left to show, so the
+  // answer is the list, with the toast.
+  if (formData.get("then") === "list") {
+    await setAdminFlash(done);
+    redirect(LIST_PATH);
+  }
+  return actionOk(done);
 }

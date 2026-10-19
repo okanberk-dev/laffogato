@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 
+import { BackLink } from "../../app-content-list";
 import { createSlideAction } from "../actions";
 import { AppSlideForm } from "../slide-form";
 
@@ -12,6 +13,7 @@ export default async function NewAppSlidePage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink href="/admin/mobil/slaytlar" label="Slaytlar" />
       <PageHeader
         eyebrow="Mobil uygulama · Ana sayfa"
         title="Yeni slayt"

@@ -1201,6 +1201,10 @@ CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
   hiç açık olmadı (OP-28). Bir kez bile açık olduysa migration'dan önce her
   anahtar için PayNkolay'da kart listesi okunur, kart çıkarsa
   `deleteAllSavedCards` ile silinir.
+- 18 Eki 2026 22:38 ile 19 Eki 08:05 arasında canlıyı elle öne alınmış eski
+  bir deployment (feat/home-hero-panel 014d51b) çalıştırdı; o kod anahtar
+  üretmeye devam ediyordu. `20261019120000_clear_card_user_keys_again.sql`
+  aynı temizliği bir kez daha yapar (kart saklama hiç açılmadı).
 - Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
   girmez: ortak ödeme sayfasında `customerKey` boş kalır.
 - Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla

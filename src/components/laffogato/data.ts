@@ -27,6 +27,13 @@ export interface MenuItem {
    * says so next to them ("Görseller temsilidir").
    */
   image?: string;
+  /**
+   * The TGK Ek-1 allergen groups the item contains, as the panel entered them
+   * (src/lib/menu/allergens.ts); [] = none of the fourteen. Absent = not
+   * entered yet: the bundled seed never carries them, since a guessed
+   * allergen list is worse than none.
+   */
+  allergens?: string[];
 }
 
 export interface MenuCategory {
@@ -293,7 +300,8 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "270₺",
         tags: ["iced"],
         hue: "dawn",
-        image: "/menu/iced-pumpkin-latte.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Buzlu İspanyol Latte",
@@ -577,7 +585,8 @@ export const MENU: Record<string, MenuCategory> = {
         priceL: "265₺",
         tags: ["iced"],
         hue: "dawn",
-        image: "/menu/peach-iced-tea.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
     ],
   },
@@ -607,7 +616,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Yaban mersinli San Sebastian cheesecake.",
         price: "295₺",
         hue: "bougainvillea",
-        image: "/menu/blueberry-san-sebastian.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "L'Af Mango",
@@ -621,7 +631,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kahveli evin özel pastası.",
         price: "290₺",
         hue: "espresso",
-        image: "/menu/coffee-cake.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "L'Af Antep Fıstığı",
@@ -636,7 +647,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Çilekli magnolia, bisküvi kırığıyla.",
         price: "240₺",
         hue: "rose",
-        image: "/menu/strawberry-magnolia.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Muz Magnolia",
@@ -664,7 +676,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kaşık kaşık kremalı klasik tatlı.",
         price: "220₺",
         hue: "cream",
-        image: "/menu/classic-spoonful.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Frambuazlı Cheesecake",
@@ -715,14 +728,16 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Karabuğday unlu simit.",
         price: "90₺",
         hue: "warm",
-        image: "/menu/simit.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Rosbeef Sandviç",
         desc: "Rosbif, taze yeşillik ve sos.",
         price: "390₺",
         hue: "warm",
-        image: "/menu/roast-beef-sandwich.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Hindi Fümeli Sandviç",
@@ -750,7 +765,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Kakaolu protein bar.",
         price: "90₺",
         hue: "espresso",
-        image: "/menu/cocoa-protein-bar.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
       },
       {
         name: "Koska Fındık",
@@ -786,7 +802,8 @@ export const MENU: Record<string, MenuCategory> = {
         desc: "Yulaf, badem veya laktozsuz süt seçeneği.",
         price: "25₺",
         hue: "cream",
-        image: "/menu/alternative-milk.webp",
+        // Its stock photo showed something else (docs/MENU-PHOTOS.md).
+        image: "",
         // Almond is one of the three: the warning has to reach whoever picks it.
         tags: ["nuts"],
       },
@@ -841,6 +858,10 @@ export interface Product {
   lowStockThreshold?: number;
   /** Approximate shipping weight (grams). */
   weightGrams?: number;
+  /** The maker's name as the panel holds it ("Sirena"); '' or absent = none. */
+  brand?: string;
+  /** Tasting notes from the panel ("Kakao", "Kuru incir"); absent = none. */
+  notes?: string[];
   /** Selectable variants (size, grind, etc.). */
   variants?: ProductVariant[];
   /** Base price in minor units (kuruş) for precise client-side math. */

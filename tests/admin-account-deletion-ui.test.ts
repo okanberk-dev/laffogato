@@ -11,18 +11,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   member: null as Record<string, unknown> | null,
-  members: [] as Record<string, unknown>[],
+  // Müşteriler reads one page and the tab counts from SQL
+  // (lib/admin/customer-list.ts); the SQL side of the deletion tab runs in
+  // tests/db-integration-customer-list.test.ts.
+  rows: [] as Record<string, unknown>[],
+  counts: {} as Record<string, Record<string, unknown>>,
+  wholeCounts: null as Record<string, Record<string, unknown>> | null,
+  pageInput: null as Record<string, unknown> | null,
 }));
 
 vi.mock("next/link", () => ({
   default: ({
     href,
     children,
+    prefetch: _prefetch,
     ...rest
   }: {
     href: string;
     children?: ReactNode;
+    prefetch?: boolean;
   }) => createElement("a", { href, ...rest }, children),
+  useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
@@ -35,7 +44,7 @@ vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
 vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
   customerOrdersByEmail: vi.fn(async () => []),
-  listCustomers: vi.fn(async () => []),
+  customerLifetimeOrders: vi.fn(async () => []),
   listProducts: vi.fn(async () => []),
   getSettings: vi.fn(async () => ({ karaokePrepay: true })),
 }));
@@ -47,7 +56,15 @@ vi.mock("@/lib/admin/karaoke-audit", () => ({
 }));
 vi.mock("@/lib/customer/store", () => ({
   getAdminCustomerByEmail: vi.fn(async () => h.member),
-  listAllCustomers: vi.fn(async () => h.members),
+}));
+vi.mock("@/lib/admin/customer-list", () => ({
+  listCustomerPage: vi.fn(async (input: Record<string, unknown>) => {
+    h.pageInput = input;
+    return h.rows;
+  }),
+  countCustomers: vi.fn(async (query: { search: string }) =>
+    query.search === "" && h.wholeCounts ? h.wholeCounts : h.counts,
+  ),
 }));
 vi.mock("@/lib/customer/coupons", () => ({
   adminListCustomerCoupons: vi.fn(async () => []),
@@ -130,7 +147,10 @@ const triggers = (html: string, label: string) =>
 
 beforeEach(() => {
   h.member = null;
-  h.members = [];
+  h.rows = [];
+  h.counts = {};
+  h.wholeCounts = null;
+  h.pageInput = null;
   // "Süre doldu" is measured against the clock: pin it.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-18T12:00:00.000Z"));
@@ -381,45 +401,93 @@ describe("Müşteriler", () => {
       await CustomersPage({ searchParams: Promise.resolve(sp) }),
     );
 
+  function row(over: Record<string, unknown>) {
+    return {
+      email: "uye@ornek.com",
+      name: "Ayşe Yılmaz",
+      phone: "",
+      isMember: true,
+      isActive: true,
+      emailVerified: true,
+      memberSince: "2026-09-01T10:00:00.000Z",
+      marketingConsent: false,
+      orderCount: 0,
+      lifetimeValueMinor: 0,
+      refundedMinor: 0,
+      lastOrderAt: "",
+      lastActivity: "2026-09-01T10:00:00.000Z",
+      deletionRequestedAt: "",
+      ...over,
+    };
+  }
+
+  function tab(customers: number, oldestDeletionAt = "") {
+    return {
+      customers,
+      orderCount: 0,
+      lifetimeValueMinor: 0,
+      refundedMinor: 0,
+      oldestDeletionAt,
+    };
+  }
+
   beforeEach(() => {
-    h.members = [
-      member({
-        id: "cus-1",
+    h.rows = [
+      row({
         email: "yeni@ornek.com",
         name: "Yeni Talep",
-        deletionRequest: {
-          requestedAt: "2026-10-17T09:00:00.000Z",
-          reason: "",
-        },
+        deletionRequestedAt: "2026-10-17T09:00:00.000Z",
       }),
-      member({ id: "cus-2", email: "sade@ornek.com", name: "Sade Üye" }),
-      member({
-        id: "cus-3",
+      row({ email: "sade@ornek.com", name: "Sade Üye" }),
+      row({
         email: "eski@ornek.com",
         name: "Eski Talep",
-        deletionRequest: {
-          requestedAt: "2026-09-01T09:00:00.000Z",
-          reason: "",
-        },
+        deletionRequestedAt: "2026-09-01T09:00:00.000Z",
       }),
     ];
+    h.counts = {
+      all: tab(3, "2026-09-01T09:00:00.000Z"),
+      members: tab(3, "2026-09-01T09:00:00.000Z"),
+      guests: tab(0),
+      inactive: tab(0),
+      deletion: tab(2, "2026-09-01T09:00:00.000Z"),
+    };
   });
 
   it("badges a member with an open request, and says how many are open", async () => {
     const t = text(await render());
-    expect(t).toContain("Silme talebi · 17 Ekim 2026");
+    // Asked 17 Ekim: thirty days to 16 Kasım.
+    expect(t).toContain("Silme talebi Son gün 16 Kasım 2026");
     // Thirty days past 1 Eylül: shown as overdue.
-    expect(t).toContain("Silme talebi · süre doldu");
+    expect(t).toContain("Silme talebi Süre doldu (son gün 1 Ekim 2026)");
     expect(t).toContain("2 açık hesap silme talebi var");
     expect(t).toContain("En eskisinin son günü 1 Ekim 2026");
   });
 
-  it("lists only the requests, oldest first, behind ?filter=deletion", async () => {
+  it("counts the open requests of the whole list, not of a search", async () => {
+    h.wholeCounts = h.counts;
+    h.counts = {
+      all: tab(1),
+      members: tab(1),
+      guests: tab(0),
+      inactive: tab(0),
+      deletion: tab(0),
+    };
+    const t = text(await render({ q: "sade" }));
+    expect(t).toContain("2 açık hesap silme talebi var");
+  });
+
+  it("asks SQL for the requests behind ?filter=deletion, the staff mail's link", async () => {
+    const { DELETION_ADMIN_PATH } =
+      await import("@/lib/customer/deletion-request-core");
+    expect(DELETION_ADMIN_PATH).toBe("/admin/musteriler?filter=deletion");
+    h.rows = h.rows.filter((r) => r.deletionRequestedAt);
     const html = await render({ filter: "deletion" });
-    const t = text(html);
-    expect(t).not.toContain("Sade Üye");
-    expect(html.indexOf("Eski Talep")).toBeLessThan(html.indexOf("Yeni Talep"));
-    // The filter is one of the select's options, so the mail's link works.
-    expect(html).toMatch(/<option value="deletion" selected="">Silme talebi/);
+    expect(h.pageInput).toMatchObject({ kind: "deletion" });
+    // A tab of its own, with its count; the banner is not repeated there.
+    expect(text(html)).toMatch(/Silme talebi 2/);
+    expect(text(html)).not.toContain("açık hesap silme talebi var");
+    // Oldest first is the order (SQL): no column sorts this tab.
+    expect(html).not.toContain("sirala=");
   });
 });

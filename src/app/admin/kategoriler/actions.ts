@@ -15,6 +15,7 @@ import {
   categoryDeleteBlocker,
   categoryFormSchema,
   categorySlugChangeBlocker,
+  categorySlugTaken,
 } from "@/lib/admin/category-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
@@ -61,6 +62,8 @@ export async function createCategoryAction(
   await requireRole("categories");
   const form = parseInput(formData);
   if (!form.ok) return form.result;
+  const taken = categorySlugTaken(form.input.slug, await listCategories());
+  if (taken) return actionError("Formdaki uyarıları gider.", { slug: taken });
   const created = await createCategory(form.input);
   await logAudit({
     action: "create",
@@ -90,12 +93,14 @@ export async function updateCategoryAction(
       listCategories(),
       listProducts(),
     ]);
-    const blocker = categorySlugChangeBlocker(
-      existing,
-      form.input.slug,
-      categories,
-      products,
-    );
+    const blocker =
+      categorySlugTaken(form.input.slug, categories, id) ??
+      categorySlugChangeBlocker(
+        existing,
+        form.input.slug,
+        categories,
+        products,
+      );
     if (blocker) {
       return actionError("Formdaki uyarıları gider.", { slug: blocker });
     }
