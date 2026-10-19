@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  startTransition,
   useActionState,
   useEffect,
   useEffectEvent,
@@ -342,9 +343,11 @@ export function KaraokeBooking({
   }, [s.seq, s.enhanced, s.focus, s.step, steps]);
 
   // What a refresh keeps: this tab only, the values the form already holds,
-  // never a ticked box. Gone once the booking is sent.
+  // never a ticked box. Gone once the booking is sent; written again when
+  // the answer is a refusal (`state` is a new object with every answer), so
+  // a refresh or another day after a refused booking still has them.
   useEffect(() => {
-    if (!s.enhanced) return;
+    if (!s.enhanced || state.booked) return;
     try {
       window.sessionStorage.setItem(
         KARAOKE_DRAFT_KEY,
@@ -353,7 +356,13 @@ export function KaraokeBooking({
     } catch {
       // Storage blocked: nothing kept, nothing lost.
     }
-  }, [s.enhanced, s.draft, date]);
+  }, [s.enhanced, s.draft, date, state]);
+
+  // One booking post at a time: a second press before the answer is dropped.
+  const posting = useRef(false);
+  useEffect(() => {
+    if (!pending) posting.current = false;
+  }, [pending]);
 
   /** The browser's own checks on the step's fields, then the step's rules. */
   function onNext() {
@@ -430,11 +439,24 @@ export function KaraokeBooking({
       onNext();
       return;
     }
+    // Posted by hand, not as the form's action. React empties a form whose
+    // action finishes, whatever it answers: a refused booking came back with
+    // the boxes unticked behind a ticked state, so the next press on Ödeme
+    // was sent back to Özet ve onay without a word. A post started here is
+    // not a form action, so nothing is reset (the panel's forms post the same
+    // way, components/admin/ui/submit.ts). Without JavaScript there is no
+    // onSubmit and the form posts to the action itself.
+    e.preventDefault();
+    if (posting.current) return;
+    posting.current = true;
+    // The pay button has no name: the fields are the whole post.
+    const formData = new FormData(e.currentTarget);
     try {
       window.sessionStorage.removeItem(KARAOKE_DRAFT_KEY);
     } catch {
       // Storage blocked: there was nothing kept.
     }
+    startTransition(() => formAction(formData));
   }
 
   if (state.booked) {

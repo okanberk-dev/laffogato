@@ -375,6 +375,35 @@ describe("what a refresh keeps", () => {
   });
 });
 
+describe("a refused booking", () => {
+  const src = read("src/components/laffogato/karaoke-booking.tsx");
+  const onSubmit = src.slice(
+    src.indexOf("function onSubmit("),
+    src.indexOf("if (state.booked) {"),
+  );
+
+  it("is posted by hand, so React's form reset never unticks the boxes", () => {
+    // React empties a <form action={fn}> once the action answers: the boxes
+    // went unticked behind a ticked state, and the next press on Ödeme was
+    // sent back to Özet ve onay without a word (seen in a browser).
+    expect(onSubmit).toMatch(
+      /e\.preventDefault\(\);\s*if \(posting\.current\) return;\s*posting\.current = true;/,
+    );
+    expect(onSubmit).toContain("startTransition(() => formAction(formData))");
+    // A page without JavaScript still posts to the server action itself.
+    expect(src).toContain("action={formAction}");
+  });
+
+  it("keeps the typed values for a refresh: the draft is written again after a refusal", () => {
+    // Cleared when the booking is sent, written back when the answer is a
+    // refusal (`state` is a new object with each answer), never after one
+    // that was taken.
+    expect(src).toMatch(
+      /if \(!s\.enhanced \|\| state\.booked\) return;[\s\S]{0,400}?\}, \[s\.enhanced, s\.draft, date, state\]\);/,
+    );
+  });
+});
+
 describe("the cancellation terms, from the server", () => {
   const src = {
     freeCancelHours: 2,
