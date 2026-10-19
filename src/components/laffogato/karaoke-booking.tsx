@@ -1141,8 +1141,7 @@ export function KaraokeBooking({
                             {terms.rules[1]}
                             {terms.freeUntil ? (
                               <span className="kw-terms-line">
-                                Ücretsiz iptal için son an: {terms.freeUntil}{" "}
-                                öncesi.
+                                Ücretsiz iptal için son an: {terms.freeUntil}.
                               </span>
                             ) : terms.freePassed ? (
                               <span className="kw-terms-line">

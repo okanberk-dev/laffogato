@@ -267,8 +267,7 @@ export function KaraokeReservationView({
           <p>{lateRule}</p>
           {terms.kind === "full" ? (
             <p className="karaoke-mine-sub">
-              Ücretsiz iptal için son an: {karaokeInstantLabel(deadline)}{" "}
-              öncesi.
+              Ücretsiz iptal için son an: {karaokeInstantLabel(deadline)}.
             </p>
           ) : null}
         </div>

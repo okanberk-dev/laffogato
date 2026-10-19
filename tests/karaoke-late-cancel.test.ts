@@ -719,6 +719,137 @@ describe("a member cancels", () => {
   });
 });
 
+describe("the exact last moment (`cancellableUntil`)", () => {
+  // The contract's "son an" and the terms' "bu an dahil" (ASK-Y3-4): the
+  // deadline itself, and the minute the pages name it by, still refund in
+  // full; from the next minute on the late rule applies. The app's endpoint and the web pages (/uye/hesap/karaoke,
+  // /rezervasyon) all cancel through this one function.
+  const LINK = { kind: "link" as const, token: "x" };
+  const DEADLINE = START - 2 * HOUR;
+  const ms = (d: number) => ({ now: new Date(DEADLINE + d) });
+
+  it("the member, under the default rule: in full up to and at it, too_late a minute after", async () => {
+    for (const d of [-1, 0]) {
+      seedPaid();
+      h.refunds.length = 0;
+      const res = await payment.cancelKaraokeReservation(
+        "krk-00042",
+        MEMBER,
+        ms(d),
+      );
+      expect(res, `deadline ${d} ms`).toMatchObject({
+        ok: true,
+        refunded: true,
+      });
+      expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+      expect(row()).toMatchObject({
+        status: "cancelled",
+        paymentStatus: "refunded",
+      });
+    }
+    seedPaid();
+    h.refunds.length = 0;
+    const after = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      MEMBER,
+      ms(60_000),
+    );
+    expect(after).toMatchObject({
+      ok: false,
+      reason: "too_late",
+      message: time.KARAOKE_TOO_LATE_MESSAGE,
+    });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+  });
+
+  it("the member, under a late share: in full in the stored deadline's minute, the share after", async () => {
+    const deadline = START - 24 * HOUR;
+    const snapshot = {
+      ...HALF,
+      cancelDeadline: new Date(deadline).toISOString(),
+    };
+    seedPaid(snapshot);
+    const at0 = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
+      now: new Date(deadline),
+    });
+    expect(at0).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(row().refundMinor ?? null).toBeNull();
+
+    seedPaid(snapshot);
+    h.refunds.length = 0;
+    const after = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
+      now: new Date(deadline + 60_000),
+    });
+    expect(after).toMatchObject({ ok: true, refunded: false });
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunding",
+      refundMinor: 100_000,
+    });
+    expect(h.refunds).toEqual([]);
+  });
+
+  it("the member, in the minute the pages name: in full through 18:00:59, too_late from 18:01", async () => {
+    // The booking box and the reservation page print the moment to the
+    // minute ("son an: 30 Ekim 2026, 18:00."): a cancel the member makes
+    // while their clock still reads 18:00 is inside it (TKHK m.5/4).
+    for (const d of [30_000, 59_999]) {
+      seedPaid();
+      h.refunds.length = 0;
+      const res = await payment.cancelKaraokeReservation(
+        "krk-00042",
+        MEMBER,
+        ms(d),
+      );
+      expect(res, `deadline +${d} ms`).toMatchObject({
+        ok: true,
+        refunded: true,
+      });
+      expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    }
+    seedPaid();
+    h.refunds.length = 0;
+    const after = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      MEMBER,
+      ms(60_000),
+    );
+    expect(after).toMatchObject({ ok: false, reason: "too_late" });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+  });
+
+  it("a link holder: the same moment", async () => {
+    seedPaid({
+      guest: true,
+      customerEmail: "",
+      contactEmail: "eda@example.com",
+    });
+    const at0 = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      LINK,
+      ms(0),
+    );
+    expect(at0).toMatchObject({ ok: true, refunded: true });
+
+    seedPaid({
+      guest: true,
+      customerEmail: "",
+      contactEmail: "eda@example.com",
+    });
+    h.refunds.length = 0;
+    const after = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      LINK,
+      ms(60_000),
+    );
+    expect(after).toMatchObject({ ok: false, reason: "too_late" });
+    expect(h.refunds).toEqual([]);
+  });
+});
+
 describe("the member's confirmation", () => {
   it("prints the booking's own sentences, not the panel's current ones", async () => {
     const send = await import("@/lib/email/send");
