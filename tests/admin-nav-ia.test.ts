@@ -485,6 +485,16 @@ describe("tabs in the shell", () => {
       ["Slaytlar", "/admin/anasayfa-hero"],
       ["Yeni", null],
     ]);
+    // A subscriber's page sits under Bülten's second tab, Aboneler.
+    expect(t("/admin/bulten/sub-1")).toEqual([
+      ["Bülten", "/admin/bulten/kampanya"],
+      ["Aboneler", "/admin/bulten"],
+      ["Ayrıntı", null],
+    ]);
+    expect(t("/admin/bulten/kampanya/cmp-1")).toEqual([
+      ["Bülten", "/admin/bulten/kampanya"],
+      ["Ayrıntı", null],
+    ]);
     // A product's view page sits under the item's first tab: no tab crumb.
     expect(t("/admin/urunler/prd-1/duzenle")).toEqual([
       ["Ürünler", "/admin/urunler"],
