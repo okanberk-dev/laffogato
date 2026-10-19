@@ -72,8 +72,12 @@ describe("nothing writes the Gmail address back", () => {
 
   it("the seed starts empty, so a fresh database falls back to the contact address", () => {
     const store = readFileSync("src/lib/admin/store.ts", "utf8");
-    const seed = store.slice(store.indexOf("function defaultSettings(): AdminSettings {"));
-    expect(seed.slice(0, seed.indexOf("\n}\n"))).toMatch(/karaokeNotifyEmail: "",/);
+    const seed = store.slice(
+      store.indexOf("function defaultSettings(): AdminSettings {"),
+    );
+    expect(seed.slice(0, seed.indexOf("\n}\n"))).toMatch(
+      /karaokeNotifyEmail: "",/,
+    );
     expect(store).not.toContain(GMAIL);
   });
 

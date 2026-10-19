@@ -62,7 +62,9 @@ export function consentCategories(tagManager: boolean): typeof CATEGORIES {
  * the tags come back, they ask.
  */
 export function recordedChoice(choice: Choice, tagManager: boolean): Choice {
-  return tagManager ? choice : { ...choice, analytics: false, marketing: false };
+  return tagManager
+    ? choice
+    : { ...choice, analytics: false, marketing: false };
 }
 
 /**

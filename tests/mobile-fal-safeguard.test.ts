@@ -25,7 +25,11 @@ vi.mock("@/lib/db", () => ({
   getDb: () => {
     throw new Error("no database in this test");
   },
-  TABLES: { falReadings: "fal_readings", featureConsents: "feature_consents", falReports: "fal_reports" },
+  TABLES: {
+    falReadings: "fal_readings",
+    featureConsents: "feature_consents",
+    falReports: "fal_reports",
+  },
 }));
 // The consent route reads the member's answer from the database; the real
 // sender stays (it is what this file is about).
@@ -39,7 +43,10 @@ vi.mock("@/lib/admin/store", () => ({
     email: "info@nextgenlab.com.tr",
     address: "",
     weeklyHours: Object.fromEntries(
-      ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => [d, { open: "09:00", close: "02:00", closed: false }]),
+      ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map((d) => [
+        d,
+        { open: "09:00", close: "02:00", closed: false },
+      ]),
     ),
     courierFeeMinor: 5500,
     isShopOpen: true,
@@ -53,24 +60,41 @@ const consentRoute = await import("@/app/api/mobile/v1/fal/consent/route");
 const falRoute = await import("@/app/api/mobile/v1/fal/route");
 
 /** Switched on and keyed: everything the environment can do. */
-const ON = { FAL_AI_ENABLED: "true", FAL_AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "test-key-not-real" };
-const PHOTO = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]).toString("base64");
+const ON = {
+  FAL_AI_ENABLED: "true",
+  FAL_AI_PROVIDER: "anthropic",
+  ANTHROPIC_API_KEY: "test-key-not-real",
+};
+const PHOTO = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]).toString(
+  "base64",
+);
 const CONTEXT = { tier: "PEARL", visits: "regular", usual: "" } as const;
 
 /** A filed contract, for the pure check only. */
-const FILED = { signedOn: "2026-10-20", notifiedOn: "2026-10-24", receipt: "SS-2026-0001" };
+const FILED = {
+  signedOn: "2026-10-20",
+  notifiedOn: "2026-10-24",
+  receipt: "SS-2026-0001",
+};
 
 describe("the shipped record: no contract yet, so no photo leaves", () => {
   beforeEach(() => {
     for (const [name, value] of Object.entries(ON)) vi.stubEnv(name, value);
     vi.stubEnv("OPENAI_API_KEY", "");
-    requireMobileCustomer.mockResolvedValue({ ok: true, customer: { email: "eda@ornek.com", emailVerified: true } });
+    requireMobileCustomer.mockResolvedValue({
+      ok: true,
+      customer: { email: "eda@ornek.com", emailVerified: true },
+    });
   });
 
   it("is empty and frozen", () => {
     // Filling it is the enabling PR's job, with the signing and filing days
     // and the receipt from the KVKK folder (docs/LEGAL-REDLINES-2026-09.md §15.5).
-    expect(FAL_TRANSFER_SAFEGUARD).toEqual({ signedOn: "", notifiedOn: "", receipt: "" });
+    expect(FAL_TRANSFER_SAFEGUARD).toEqual({
+      signedOn: "",
+      notifiedOn: "",
+      receipt: "",
+    });
     expect(Object.isFrozen(FAL_TRANSFER_SAFEGUARD)).toBe(true);
     expect(falTransferSafeguardInForce()).toBe(false);
   });
@@ -85,7 +109,9 @@ describe("the shipped record: no contract yet, so no photo leaves", () => {
   });
 
   it("GET /fal/consent says enabled false", async () => {
-    const res = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
+    const res = await consentRoute.GET(
+      new Request("https://laffogato.net/api/mobile/v1/fal/consent"),
+    );
     expect((await res.json()).enabled).toBe(false);
   });
 
@@ -103,7 +129,10 @@ describe("the shipped record: no contract yet, so no photo leaves", () => {
 
   it("readCupWithAI sends nothing, even when called directly", async () => {
     const fetcher = vi.fn() as unknown as typeof fetch;
-    expect(await readCupWithAI(PHOTO, CONTEXT, ON, fetcher)).toEqual({ ok: false, reason: "failed" });
+    expect(await readCupWithAI(PHOTO, CONTEXT, ON, fetcher)).toEqual({
+      ok: false,
+      reason: "failed",
+    });
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
@@ -112,40 +141,75 @@ describe("falTransferSafeguardInForce: signed, filed, receipted, and filed by to
   const at = (iso: string) => new Date(iso);
 
   it("is in force from the filing day on", () => {
-    expect(falTransferSafeguardInForce(at("2026-10-24T09:00:00Z"), FILED)).toBe(true);
-    expect(falTransferSafeguardInForce(at("2027-03-01T09:00:00Z"), FILED)).toBe(true);
+    expect(falTransferSafeguardInForce(at("2026-10-24T09:00:00Z"), FILED)).toBe(
+      true,
+    );
+    expect(falTransferSafeguardInForce(at("2027-03-01T09:00:00Z"), FILED)).toBe(
+      true,
+    );
   });
 
   it("is not in force while the filing day is still ahead", () => {
-    expect(falTransferSafeguardInForce(at("2026-10-23T09:00:00Z"), FILED)).toBe(false);
+    expect(falTransferSafeguardInForce(at("2026-10-23T09:00:00Z"), FILED)).toBe(
+      false,
+    );
   });
 
   it("counts the day on the Istanbul calendar, not the server's UTC one", () => {
     // 21:30 UTC on the 23rd is 00:30 on the 24th in Istanbul (kural 22).
-    expect(falTransferSafeguardInForce(at("2026-10-23T21:30:00Z"), FILED)).toBe(true);
-    expect(falTransferSafeguardInForce(at("2026-10-23T20:30:00Z"), FILED)).toBe(false);
+    expect(falTransferSafeguardInForce(at("2026-10-23T21:30:00Z"), FILED)).toBe(
+      true,
+    );
+    expect(falTransferSafeguardInForce(at("2026-10-23T20:30:00Z"), FILED)).toBe(
+      false,
+    );
   });
 
   it("wants every field: a receipt, both days, and a signature before the filing", () => {
     const now = at("2026-11-01T09:00:00Z");
-    expect(falTransferSafeguardInForce(now, { ...FILED, receipt: "" })).toBe(false);
-    expect(falTransferSafeguardInForce(now, { ...FILED, receipt: "   " })).toBe(false);
-    expect(falTransferSafeguardInForce(now, { ...FILED, signedOn: "" })).toBe(false);
-    expect(falTransferSafeguardInForce(now, { ...FILED, notifiedOn: "" })).toBe(false);
-    expect(falTransferSafeguardInForce(now, { ...FILED, signedOn: "2026-10-25" })).toBe(false);
+    expect(falTransferSafeguardInForce(now, { ...FILED, receipt: "" })).toBe(
+      false,
+    );
+    expect(falTransferSafeguardInForce(now, { ...FILED, receipt: "   " })).toBe(
+      false,
+    );
+    expect(falTransferSafeguardInForce(now, { ...FILED, signedOn: "" })).toBe(
+      false,
+    );
+    expect(falTransferSafeguardInForce(now, { ...FILED, notifiedOn: "" })).toBe(
+      false,
+    );
+    expect(
+      falTransferSafeguardInForce(now, { ...FILED, signedOn: "2026-10-25" }),
+    ).toBe(false);
   });
 
   it("refuses a day that is not a calendar day or not written YYYY-MM-DD", () => {
     const now = at("2027-01-01T09:00:00Z");
-    for (const notifiedOn of ["2026-02-30", "2026-13-01", "24.10.2026", "2026-10-24T00:00:00Z", " 2026-10-24"]) {
-      expect(falTransferSafeguardInForce(now, { ...FILED, signedOn: "2026-01-01", notifiedOn }), notifiedOn).toBe(false);
+    for (const notifiedOn of [
+      "2026-02-30",
+      "2026-13-01",
+      "24.10.2026",
+      "2026-10-24T00:00:00Z",
+      " 2026-10-24",
+    ]) {
+      expect(
+        falTransferSafeguardInForce(now, {
+          ...FILED,
+          signedOn: "2026-01-01",
+          notifiedOn,
+        }),
+        notifiedOn,
+      ).toBe(false);
     }
   });
 
   it("is the first thing the switch and the sender check", () => {
     const core = readFileSync("src/lib/mobile/fal-core.ts", "utf8");
     const enabled = core.slice(core.indexOf("export function falAiEnabled"));
-    expect(enabled.split("\n")[1]).toContain("if (!falTransferSafeguardInForce(now)) return false;");
+    expect(enabled.split("\n")[1]).toContain(
+      "if (!falTransferSafeguardInForce(now)) return false;",
+    );
     const fal = readFileSync("src/lib/mobile/fal.ts", "utf8");
     const send = fal.slice(fal.indexOf("export async function readCupWithAI"));
     expect(send.slice(0, send.indexOf("const provider"))).toContain(
