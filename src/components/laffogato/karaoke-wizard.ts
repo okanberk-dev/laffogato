@@ -361,14 +361,23 @@ const LIMITS = {
   contactEmail: 200,
 } as const;
 
-/** What a refresh keeps: the values already in the form, never the boxes. */
-export function karaokeDraftToJson(date: string, d: KaraokeDraft): string {
-  return JSON.stringify({ v: 1, date, ...d });
+/**
+ * What a refresh keeps: the values already in the form, never the boxes,
+ * and the hour the address asked for (`?saat=`) when they were typed.
+ */
+export function karaokeDraftToJson(
+  date: string,
+  d: KaraokeDraft,
+  asked: number | null = null,
+): string {
+  return JSON.stringify({ v: 1, date, asked, ...d });
 }
 
 /**
  * The saved values that still fit this page, or nothing. The hour comes back
- * only on the same day and only while it is free; the numbers only inside
+ * only on the same day, only while it is free, and only when the address
+ * asks for no other one: a home page chip (`?saat=`) is a new choice, a
+ * refresh of the same address is not. The numbers come back only inside
  * today's limits; text only as text, cut to the field's own length.
  */
 export function karaokeDraftFromJson(
@@ -378,6 +387,8 @@ export function karaokeDraftFromJson(
     slots: KaraokeStepRules["slots"];
     capacity: number;
     maxHours: number;
+    /** The free hour this address asks for (`?saat=`), or null. */
+    asked?: number | null;
   },
 ): Partial<KaraokeDraft> {
   if (!raw) return {};
@@ -393,10 +404,12 @@ export function karaokeDraftFromJson(
   const out: Partial<KaraokeDraft> = {};
   const int = (v: unknown, min: number, max: number) =>
     typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+  const asked = at.asked ?? null;
   if (
     o.date === at.date &&
     typeof o.startHour === "number" &&
-    at.slots.some((s) => s.startHour === o.startHour && s.available)
+    at.slots.some((s) => s.startHour === o.startHour && s.available) &&
+    (asked === null || (o.asked ?? null) === asked)
   ) {
     out.startHour = o.startHour;
   }

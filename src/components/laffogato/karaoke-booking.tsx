@@ -182,6 +182,8 @@ export function KaraokeBooking({
   const askedFree =
     initialHour !== null &&
     slots.some((s) => s.startHour === initialHour && s.available);
+  // The hour this address asks for, as the draft remembers it.
+  const asked = askedFree ? initialHour : null;
   // Who may submit: a verified member, or - with prepayment on - anyone,
   // who then types their own contact details.
   const guest = !isAuthenticated && prepay;
@@ -279,7 +281,13 @@ export function KaraokeBooking({
     }
     dispatch({
       type: "restore",
-      draft: karaokeDraftFromJson(saved, { date, slots, capacity, maxHours }),
+      draft: karaokeDraftFromJson(saved, {
+        date,
+        slots,
+        capacity,
+        maxHours,
+        asked,
+      }),
       step: karaokeStepFromSearch(window.location.search),
       rules,
     });
@@ -359,12 +367,12 @@ export function KaraokeBooking({
     try {
       window.sessionStorage.setItem(
         KARAOKE_DRAFT_KEY,
-        karaokeDraftToJson(date, s.draft),
+        karaokeDraftToJson(date, s.draft, asked),
       );
     } catch {
       // Storage blocked: nothing kept, nothing lost.
     }
-  }, [s.enhanced, s.draft, date, state]);
+  }, [s.enhanced, s.draft, date, asked, state]);
 
   // One booking post at a time: a second press before the answer is dropped.
   const posting = useRef(false);

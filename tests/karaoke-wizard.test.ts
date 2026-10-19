@@ -354,6 +354,32 @@ describe("what a refresh keeps", () => {
     expect(back).not.toHaveProperty("guests");
   });
 
+  it("lets an hour the address asks for beat one kept from earlier, not a refresh of it", () => {
+    // 21:00 picked earlier in this tab, then a home page chip asks for 20:00.
+    const earlier = wiz.karaokeDraftToJson("2026-10-30", {
+      ...DRAFT,
+      startHour: 21,
+    });
+    const chip = wiz.karaokeDraftFromJson(earlier, { ...at, asked: 20 });
+    expect(chip).not.toHaveProperty("startHour");
+    // Everything else typed still comes back.
+    expect(chip.guestFirstName).toBe("Eda");
+    // On ?saat=20 the visitor moved to 21:00 and refreshed: 21:00 stays.
+    const moved = wiz.karaokeDraftToJson(
+      "2026-10-30",
+      { ...DRAFT, startHour: 21 },
+      20,
+    );
+    expect(wiz.karaokeDraftFromJson(moved, { ...at, asked: 20 }).startHour).toBe(
+      21,
+    );
+    // No hour in the address: the kept one, as before.
+    expect(wiz.karaokeDraftFromJson(earlier, at).startHour).toBe(21);
+    const src = read("src/components/laffogato/karaoke-booking.tsx");
+    expect(src).toContain("karaokeDraftToJson(date, s.draft, asked)");
+    expect(src).toMatch(/karaokeDraftFromJson\(saved, \{[^}]*\basked,?\s*\}/);
+  });
+
   it("reads nothing from a broken or foreign value, and cuts text to its field", () => {
     expect(wiz.karaokeDraftFromJson(null, at)).toEqual({});
     expect(wiz.karaokeDraftFromJson("{", at)).toEqual({});
@@ -399,7 +425,7 @@ describe("a refused booking", () => {
     // refusal (`state` is a new object with each answer), never after one
     // that was taken.
     expect(src).toMatch(
-      /if \(!s\.enhanced \|\| state\.booked\) return;[\s\S]{0,400}?\}, \[s\.enhanced, s\.draft, date, state\]\);/,
+      /if \(!s\.enhanced \|\| state\.booked\) return;[\s\S]{0,400}?\}, \[s\.enhanced, s\.draft, date, asked, state\]\);/,
     );
   });
 });
