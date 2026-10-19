@@ -450,7 +450,13 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
   it("draws tabs, a labelled search, sort links and a ⋯ menu with Aktif / Pasif", async () => {
     h.products = [
       product(),
-      product({ id: "prd-0002", name: "Moka", isActive: false, stock: 0 }),
+      product({
+        id: "prd-0002",
+        name: "Moka",
+        slug: "moka",
+        isActive: false,
+        stock: 0,
+      }),
     ];
     const html = await renderPage("@/app/admin/urunler/page", withSearch());
     expect(html).toContain('aria-label="Ürün sekmeleri"');
@@ -462,7 +468,7 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
     expect(html).toContain('href="/admin/urunler/prd-0001"');
     // The shop page only for an active product, in a new tab.
     expect(html).toContain('href="/magaza/urun/sirena-espresso"');
-    expect(html).not.toContain('href="/magaza/urun/sirena-espresso-2"');
+    expect(html).not.toContain('href="/magaza/urun/moka"');
     // The old GET form with "Uygula" under a raw select is gone: one bar.
     expect(html.match(/role="search"/g)).toHaveLength(1);
   });
