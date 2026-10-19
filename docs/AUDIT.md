@@ -831,14 +831,15 @@ Açık:
 
 Aynı PR'da gelenler: ayarlar ve Canlı durum kayıt çubukları kit token'larıyla,
 bölüm başlıkları kitin `Section`'ı (italik değil) (KAR-06, KAR-17); satırlarda
-"Düzenle" ve "Sil" kit satır menüsünde, haplar kit rozeti (CON-19).
+"Düzenle" ve "Sil" kit satır menüsünde, haplar kit rozeti (CON-19). Kenar
+çubuğunda giriş başına simge (CON-19) ve sayfa iskeleti `admin/loading.tsx`
+(CON-24) kabuk gezinme PR'ında (#142) geldi.
 
 Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Mobil uygulama grubunun altı girişi kenar çubuğunda aynı simgeyi taşıyor (CON-19) | Giriş başına simge kabuk gezinme PR'ında (SHE-18) |
-| 🟢 | Panelde sayfa iskeleti (`admin/loading.tsx`) yok; sıra elle yazılan sayı, süresi dolan içerik için toplu aç/kapa yok (CON-24) | İskelet kabuk gezinme PR'ında; toplu işlem ve sürükle bırak bu turun dışında |
+| 🟢 | Slayt, duyuru ve gönderide sıra elle yazılan bir sayı; süresi dolan içerik için toplu aç/kapa yok (CON-24) | Sürükle bırak sıra ve toplu işlem bu turun dışında |
 
 ### Karaoke ve masalar (paket 3a)
 
