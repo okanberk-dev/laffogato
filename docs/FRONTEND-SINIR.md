@@ -144,7 +144,10 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
   da paketteki içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde
   Davranış"). `getPublicSettings()` ve `store.ts`'in `list*` okuyucuları da
   aynı yedeğe düşer ama her seferinde veritabanını okur: ödeme, karaoke ve
-  uygulama API'si gibi canlı okuması gereken yollar içindir.
+  uygulama API'si gibi canlı okuması gereken yollar içindir. Genel bir
+  sayfa, kabuk ya da müşteri bileşeni onları import ederse
+  `tests/public-pages-cached-reads.test.ts` kırılır (üyenin kendi
+  sayfaları, `/uye/hesap/**`, kapsam dışı).
 - Bileşenler ve sayfalar **`@/lib/db`'yi doğrudan import etmez.**
 - İstemci bileşeni (`"use client"`) `import "server-only"` taşıyan bir modülü
   import edemez - build kırılır. Saf mantık gerekiyorsa `*-core.ts` /

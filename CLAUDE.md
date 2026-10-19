@@ -149,9 +149,15 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
      `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
      `/bulten/onay`, `/masa/[code]` (masalardaki basılı QR), `/api/**`.
-  6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
-     bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
-     edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
+  6. Genel sayfa veriyi `loadAppProps()` ya da `src/lib/seo/site-data.ts`'in
+     önbellekli okuyucularıyla (`getSiteSettings`, `listSite*`,
+     `getSiteProductBySlug`, ...) okur: sayfa görüntülemesi veritabanını
+     uyandırmaz. `getPublicSettings()` ve `store.ts`'in `list*` / `get*`
+     okuyucuları her seferinde veritabanına gider; ödeme, karaoke, uygulama
+     API'si ve üyenin kendi sayfaları içindir
+     (`tests/public-pages-cached-reads.test.ts`). Bileşende `@/lib/db` yok;
+     istemci bileşeni `server-only` modül import edemez (saf mantık için
+     `*-core.ts` / `*-utils.ts`).
 - **Ön yüz PR'ı bitmeden:** `git diff --stat origin/main -- src/lib src/app/api
   db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
   **boş** dönmeli.
@@ -417,7 +423,10 @@ durum bozulmaya uygundur.
 - `publicRead()` **yalnızca** salt-okunur sunum verisi içindir.
 - Fiyat, stok, yetki ya da siparişin verilebilirliği **asla** yedek veriden
   karar bağlanmaz — `getSettings()` (throw eden) ticari yollarda kalır,
-  `getPublicSettings()` yalnız sunum içindir.
+  `getPublicSettings()` yalnız sunum içindir. Genel sayfaların sunumu
+  önbellekten gelir (`getSiteSettings` ve `site-data.ts`'in diğer
+  okuyucuları, `docs/DATABASE.md` "Uyanmalar ve önbellek"); ticari yollar
+  önbellekten hiçbir şey okumaz (`tests/site-data-cache.test.ts`).
 - Mağaza bozulmada **boş** kalır, paketteki kurgusal ürünlere düşmez.
 
 ## Tasarım Sistemi
