@@ -47,10 +47,6 @@ const GET_FORMS: Record<
     personal:
       "Siparişler searches by e-mail or name, the audit log by actor address.",
   },
-  "src/app/admin/urunler/page.tsx": {
-    forms: 1,
-    why: "Products filter: name, SKU or slug, category, status, sort.",
-  },
   "src/app/admin/musteriler/page.tsx": {
     forms: 1,
     why: "Customers filter (a server page): search, type and sort.",

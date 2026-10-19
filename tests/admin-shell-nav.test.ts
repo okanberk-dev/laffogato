@@ -152,9 +152,26 @@ describe("breadcrumbs", () => {
       ["Siparişler", "/admin/siparisler"],
       ["Yeni", null],
     ]);
-    // No /admin/urunler/<id> page: the id is not a crumb of its own.
+    // A product has a view page (catalog lists, P2b): the edit page's
+    // trail leads back to it.
     expect(t("/admin/urunler/prd-0001/duzenle")).toEqual([
       ["Ürünler", "/admin/urunler"],
+      ["Ayrıntı", "/admin/urunler/prd-0001"],
+      ["Düzenle", null],
+    ]);
+    const catalog = (p: string) =>
+      breadcrumbTrail(p, [
+        { href: "/admin/menu", label: "Menü" },
+        { href: "/admin/kategoriler", label: "Kategoriler" },
+      ]).map((c) => [c.label, c.href]);
+    // No /admin/kategoriler/<id> page: the id is not a crumb of its own.
+    expect(catalog("/admin/kategoriler/cat-1/duzenle")).toEqual([
+      ["Kategoriler", "/admin/kategoriler"],
+      ["Düzenle", null],
+    ]);
+    expect(catalog("/admin/menu/mnu-0001/duzenle")).toEqual([
+      ["Menü", "/admin/menu"],
+      ["Ayrıntı", "/admin/menu/mnu-0001"],
       ["Düzenle", null],
     ]);
     // A member has a page and an edit page under it.

@@ -281,6 +281,7 @@ vi.mock("@/app/admin/menu/actions", () => ({
 vi.mock("@/app/admin/urunler/actions", () => ({
   bulkProductsAction: vi.fn(async () => ({})),
   deleteProductAction: stub(),
+  setProductActiveAction: stub(),
 }));
 vi.mock("@/app/admin/musteriler/[email]/actions", () => ({
   addCounterStampAction: stub(),
@@ -532,18 +533,19 @@ describe("catalog lists", () => {
     }
   });
 
-  it("products: Sil asks first", async () => {
+  it("products: Sil asks first, Pasif yap is one click, both name the product", async () => {
     const { ProductsList } = await import("@/components/admin/products-list");
     const html = renderToStaticMarkup(
       createElement(ProductsList, {
-        products: [
+        rows: [
           {
             id: "prd-0001",
             name: "Sirena Espresso",
+            slug: "sirena-espresso",
             tag: "Çekirdek",
             cat: "beans",
             sku: "SIRE",
-            images: [],
+            thumb: null,
             variants: [],
             priceMinor: 32_000,
             compareAtPriceMinor: 0,
@@ -552,13 +554,23 @@ describe("catalog lists", () => {
             isActive: true,
             featured: false,
             isNew: false,
+            updatedAt: STAMP,
           },
         ],
-        categories: [],
-        labelByCat: { beans: "Çekirdek" },
+        categories: [{ slug: "beans", label: "Çekirdek" }],
+        sort: { key: "guncel", dir: "desc" },
+        searchParams: {},
+        pathname: "/admin/urunler",
       } as never),
     );
     expectConfirmed(html, "Sil");
+    expect(html).toContain('aria-label="Sil: Sirena Espresso"');
+    const toggle = buttons(html, "Pasif yap");
+    expect(toggle.length).toBeGreaterThan(0);
+    for (const b of toggle) {
+      expect(b).toContain('type="submit"');
+      expect(b).toContain('aria-label="Pasif yap: Sirena Espresso"');
+    }
   });
 });
 
