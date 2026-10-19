@@ -8,6 +8,7 @@ import {
   Flag,
   GalleryHorizontalEnd,
   LayoutGrid,
+  LogOut,
   Mail,
   Menu,
   MicVocal,
@@ -19,6 +20,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Smartphone,
   Stamp,
@@ -74,6 +76,9 @@ export const ADMIN_ICONS = {
   more: Ellipsis,
   dateRange: CalendarRange,
   close: X,
+  // The account block: Güvenlik / 2FA and Çıkış.
+  security: ShieldCheck,
+  logout: LogOut,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;
