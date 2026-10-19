@@ -3,8 +3,7 @@
 import { redirect, unstable_rethrow } from "next/navigation";
 
 import { getAdminSession } from "@/lib/admin/auth";
-import { withDenied } from "@/lib/admin/nav-match";
-import { landingPathFor } from "@/lib/admin/roles";
+import { deniedPathFor } from "@/lib/admin/roles";
 import { parseSearch, searchAdmin } from "@/lib/admin/search";
 import {
   searchSectionsFor,
@@ -35,7 +34,7 @@ export async function adminSearchAction(
     const session = await getAdminSession();
     if (!session) redirect("/admin/giris");
     if (searchSectionsFor(session.role).length === 0) {
-      redirect(withDenied(landingPathFor(session.role)));
+      redirect(deniedPathFor(session.role));
     }
     const parsed = parseSearch(text);
     if (!parsed) {
