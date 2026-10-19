@@ -45,7 +45,7 @@ export function PageVisit({ visit, settings }: PageProps) {
   }, [visitHours]);
   // A fixed query rather than the displayed address lines: those are editable
   // from the admin panel, and a stray edit must not send visitors to the wrong
-  // place or break the embed's geocoding.
+  // place.
   const mapQuery = LOCATION.mapsQuery;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapQuery)}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`;
