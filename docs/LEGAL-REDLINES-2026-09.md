@@ -2040,7 +2040,7 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 - "Görseller temsilidir" notu (`menu-photo-note.tsx`) aynen kaldı: sunum
   farkı için yeterli.
 
-## 21. Y7 - Ödeme sayfasında ön bilgilendirme ve kayıt onayı (19 Eki 2026)
+## 22. Y8 - Ödeme sayfasında ön bilgilendirme ve kayıt onayı (19 Eki 2026)
 
 > **Durum: kodda değişti.** Dal `feat/legal-checkout-preinfo`. Operatör
 > kararı (18 Eki 2026): avukat turu yok, karar birincil kaynaklarla verildi
@@ -2049,7 +2049,7 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 > `KARAOKE_LEGAL_UPDATED` yerinde kaldı. Değişen, ödeme sayfasının ve kayıt
 > formunun kendi cümleleri ve yazı boyutu.
 
-### 21.1 Neden
+### 22.1 Neden
 
 Ödeme sayfası sipariş satırlarını ve toplamı yalnız yan özette gösteriyordu;
 özet telefonda kapalı açılır. Cayma şartları yalnız bağlantıdaki belgedeydi,
@@ -2057,7 +2057,7 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 yazıları 12-15 px idi ve teslimat satırı "Türkiye geneli" diyordu. Kayıt
 formu aydınlatma metnini "kabul" ettiriyordu.
 
-### 21.2 Değişen cümleler
+### 22.2 Değişen cümleler
 
 | Yer | Mevcut | Yeni |
 |---|---|---|
@@ -2084,7 +2084,7 @@ Yazı boyutu (`globals.css`, px):
 | `/hukuk` `.legal-section p`, `.legal-bullets li`, `.legal-ordered li` | 15 | 16 |
 | `/hukuk` `.legal-table`, `.legal-table th` | 14, 13 | 16 |
 
-### 21.3 Kararlar
+### 22.3 Kararlar
 
 - **Tutarlar:** ekrandaki tutarlar, sunucu sepeti fiyatladığında (reddedilen
   denemenin bıraktığı sipariş, fiyat onayı) onun teklifi (`quote`). Sipariş
@@ -2106,7 +2106,7 @@ Yazı boyutu (`globals.css`, px):
   PR'ının işi.
 - **Cayma notu** kararın metnini aynen yazar; e-posta `LEGAL_ENTITY.email`.
 
-### 21.4 Bilerek değişmeyenler
+### 22.4 Bilerek değişmeyenler
 
 - Sözleşme metinleri (`content.ts`): 14 günlük iade, ücretsiz iade kodu,
   yalnız Türkiye ve istisnalar §18 (Y4) ile zaten yazılı.
@@ -2120,7 +2120,7 @@ Yazı boyutu (`globals.css`, px):
 - Kart formunun içindeki küçük yazılar (güvenlik notu, ödeme altyapısı
   satırı): kart dosyalarına dokunulmadı (kural 28); ön bilgilendirme değil.
 
-### 21.5 Hukuki dayanak
+### 22.5 Hukuki dayanak
 
 | Konu | Dayanak | Karar |
 |---|---|---|

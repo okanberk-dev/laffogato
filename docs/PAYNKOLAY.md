@@ -1027,7 +1027,7 @@ olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görün
 üstünde, her genişlikte açık "Siparişin" (satırlar, kargo, indirim, KDV dahil
 toplam ve içindeki KDV) ve "Cayma hakkın" notu durur; Ön Bilgilendirme Formu
 ve Mesafeli Satış Sözleşmesi sayfadan çıkmadan, bu siparişin bilgileriyle
-dolu bir panelde açılır (MSY m.6/2-a; docs/LEGAL-REDLINES-2026-09.md §21).
+dolu bir panelde açılır (MSY m.6/2-a; docs/LEGAL-REDLINES-2026-09.md §22).
 
 **Akış.**
 
