@@ -1058,6 +1058,39 @@ describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK
     expect(rules[1]).not.toContain("iade edilir");
   });
 
+  it("a request recorded once the evening is over: kept, no mail after the fact (karar D7)", async () => {
+    seedPaid();
+    const end = START + 2 * HOUR;
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt: new Date(end + HOUR),
+      }),
+      { now: new Date(end + 2 * HOUR) },
+    );
+    expect(res).toMatchObject({
+      ok: true,
+      refunded: false,
+      kept: true,
+      silent: true,
+      notified: true,
+    });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+    expect(h.lateRequests).toEqual([]);
+    expect(h.audits.at(-1)).toMatchObject({
+      action: "transition",
+      payload: {
+        event: "late_guest_request",
+        ended: true,
+        channel: "telefon",
+        requestedAt: new Date(end + HOUR).toISOString(),
+      },
+    });
+  });
+
   it("a late request at 1..99 % takes the D9 path: cancelled, the share owed", async () => {
     seedPaid({ ...HALF }, 200_000);
     const res = await payment.cancelKaraokeReservation(

@@ -1391,7 +1391,8 @@ export type CancelKaraokeResult =
       notified: boolean;
       /**
        * No mail was due: the köşk cancelled a pay-at-the-venue evening that
-       * is already over (a no-show written down, karar D7).
+       * is already over (a no-show written down, karar D7), or recorded a
+       * guest's request once the evening was over (with `kept`).
        */
       silent?: true;
       /**
@@ -1500,7 +1501,7 @@ export async function cancelKaraokeReservation(
   if (lateMatters) {
     const terms = karaokeSelfCancelTerms(r, judgedAt);
     if (terms.kind === "refused" && guestRequest) {
-      return keepLateGuestRequest(r, by, judgedAt);
+      return keepLateGuestRequest(r, by, judgedAt, now);
     }
     if (terms.kind === "refused") {
       return {
@@ -1833,20 +1834,34 @@ function staffWhy(
  * (`late_guest_request`, with the channel and the instant) and the guest is
  * told. No money moves; a person with the refund right can still refund
  * everything ("Yine de tamamını iade et", `fullRefund`).
+ *
+ * Recorded once the evening is over (the guest calls the next morning), it
+ * is written down without a mail: "your booking stands, hand the code on"
+ * after the fact helps nobody (karar D7, as `silent` above).
  */
 async function keepLateGuestRequest(
   r: KaraokeReservation,
   by: Extract<KaraokeCanceller, { kind: "staff" }>,
   judgedAt: Date,
+  now: Date,
 ): Promise<CancelKaraokeResult> {
-  const notified = await notifyLateCancelRequest(r, judgedAt);
+  const ended = karaokeEndInstant(r).getTime() <= now.getTime();
+  const notified = ended ? true : await notifyLateCancelRequest(r, judgedAt);
   await auditStaff(r, by.actor, "transition", {
     event: "late_guest_request",
     by: "staff",
     ...staffWhy(by),
     requestedAt: judgedAt.toISOString(),
+    ...(ended ? { ended: true } : {}),
   });
-  return { ok: true, reservation: r, refunded: false, notified, kept: true };
+  return {
+    ok: true,
+    reservation: r,
+    refunded: false,
+    notified,
+    kept: true,
+    ...(ended ? { silent: true as const } : {}),
+  };
 }
 
 // ─── A person settles what did not settle itself ───────────────────────────

@@ -593,6 +593,27 @@ describe("a paid booking's cancel names its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))
     );
   });
 
+  it("a request recorded once the evening is over says it stands and no mail went", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: member,
+      refunded: false,
+      notified: true,
+      kept: true,
+      silent: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(res).toEqual({
+      ok: true,
+      message:
+        "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+      tone: "success",
+    });
+  });
+
   it("under 24 hours a business cancel says to call, when a phone is on the booking", async () => {
     h.reservation = { ...h.reservation!, contactPhone: "+905321234567" };
     const res = await admin.cancelReservationAction(

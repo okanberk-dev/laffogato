@@ -771,7 +771,8 @@ sözleriyle kalır (`KARAOKE_IPTAL_GENEL`). Bir açılış ve en çok bir para
 satırı (`karaokeCancellationFlags`). Misafirin geç isteğine kural iade
 vermiyorsa rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:
 rezervasyon onun adına durur, kodunu devredebilir, saat başkasına verilirse
-tamamı iade edilir. Onay maili son ücretsiz iptal anını yazar
+tamamı iade edilir. Akşam bittikten sonra kaydedilen istek yalnız denetim
+kaydına girer, mail gitmez (karar D7). Onay maili son ücretsiz iptal anını yazar
 (`[KARAOKE_SON_IPTAL]`, karaoke koşulları §7).
 
 ### Karaoke - yeni talep bildirimi (operatöre)

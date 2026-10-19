@@ -345,6 +345,11 @@ export async function cancelReservationAction(
     const detail = result.message ? ` (${result.message})` : "";
     return actionError(`${CANCEL_MESSAGE[result.reason]}${detail}`);
   }
+  if (result.kept && result.silent) {
+    return actionOk(
+      "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+    );
+  }
   if (result.silent) {
     return actionOk(
       "Rezervasyon iptal edildi. Saati geçtiği için müşteriye e-posta gönderilmedi.",

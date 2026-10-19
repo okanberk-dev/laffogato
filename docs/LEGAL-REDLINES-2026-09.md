@@ -1807,7 +1807,9 @@ verdiklerini kod yapar:
   iade et" diyebilir. İstek rezervasyon saati geldikten sonra geldiyse
   e-postadaki kural cümlesi "Rezervasyon saatin gelmişti; saati gelmiş bir
   rezervasyonda ücret iadesi yapılmaz." olur (geç iptal payı yalnız saatten
-  önceki iptallere uygulanır, §7). Köşkün onaylamadığı ödenmiş rezervasyon
+  önceki iptallere uygulanır, §7). Akşam bittikten sonra kaydedilen istek
+  (misafir ertesi sabah arar) yalnız `late_guest_request` kaydına girer
+  (`ended: true`), e-posta gitmez (karar D7) ve panel bunu söyler. Köşkün onaylamadığı ödenmiş rezervasyon
   (saat başka onaylı rezervasyonda, onay yarım kaldı) hiç söz verilmemiş
   sayılır: istek ne zaman gelmiş olursa olsun tamamı iade edilir (MSY m.16/4,
   TBK m.136). Panel istek anını pencere açıldığı an olarak doldurur, sayfanın
