@@ -335,7 +335,9 @@ describe("the step in the address bar", () => {
       src.indexOf("function onBack("),
       src.indexOf("function goTo("),
     );
-    expect(onBack).toMatch(/karaokeBackIsHistory\(\{[\s\S]*?prev: readPrev\(\)/);
+    expect(onBack).toMatch(
+      /karaokeBackIsHistory\(\{[\s\S]*?prev: readPrev\(\)/,
+    );
     expect(src).toContain("{ karaokeDepth: depth + 1, karaokePrev: prev }");
   });
 
@@ -394,9 +396,9 @@ describe("what a refresh keeps", () => {
       { ...DRAFT, startHour: 21 },
       20,
     );
-    expect(wiz.karaokeDraftFromJson(moved, { ...at, asked: 20 }).startHour).toBe(
-      21,
-    );
+    expect(
+      wiz.karaokeDraftFromJson(moved, { ...at, asked: 20 }).startHour,
+    ).toBe(21);
     // No hour in the address: the kept one, as before.
     expect(wiz.karaokeDraftFromJson(earlier, at).startHour).toBe(21);
     const src = read("src/components/laffogato/karaoke-booking.tsx");
