@@ -444,13 +444,14 @@ durum bozulmaya uygundur.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
-- **Admin arayüz kütüphaneleri:** panelde üç paket var, yalnız
+- **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve
   `@internationalized/date` (palet, tarih alanı, combobox gibi yalnız
-  etkileşimde yüklenen yaprak bileşenler). Her biri `package.json`'da tam
-  sürüme sabit (`^` yok), kilit dosyasında tek kopya; yükseltme ayrı bir
-  PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
+  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`.
+  Diğer ikisi onları ilk kullanan PR'la gelir ve bu listeye eklenir. Her biri
+  `package.json`'da tam sürüme sabit (`^` yok), kilit dosyasında tek kopya;
+  yükseltme ayrı bir PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
   import eder: her ikon orada bir kez adlandırılır, `AdminIcon` 18 px, 1.75
   çizgi, `aria-hidden` çizer; sayfa onu `@/components/admin/ui/icons`'tan
   alır, kit'in `ui/index.ts`'inden değil (oradan her sayfaya lucide girer).

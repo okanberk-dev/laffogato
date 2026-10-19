@@ -182,6 +182,18 @@ describe("admin UI libraries: pins and the lockfile", () => {
     }
   });
 
+  it("CLAUDE.md names the libraries that are installed, no more, no fewer", () => {
+    // The paragraph lists the three allowed packages; its "Kurulu olanlar"
+    // line says which of them package.json carries today, so a reader does
+    // not go looking for React Aria before the PR that brings it.
+    const doc = read("CLAUDE.md");
+    const line = doc.match(/Kurulu olanlar:([\s\S]*?)\.\s/);
+    expect(line, "Kurulu olanlar line").not.toBeNull();
+    const named = [...line![1].matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+    const installed = UI_LIBRARIES.filter((n) => declared(n) !== undefined);
+    expect(named.sort()).toEqual(installed.sort());
+  });
+
   it("the stale shadcn components.json is gone", () => {
     expect(existsSync(join(ROOT, "components.json"))).toBe(false);
   });
