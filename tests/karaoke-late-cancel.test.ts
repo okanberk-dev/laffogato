@@ -989,6 +989,27 @@ describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK
     });
   });
 
+  it("a late request on a paid booking the köşk never confirmed: everything back, never kept", async () => {
+    // Its hour went to another confirmed booking (or its confirmation never
+    // finished): it was never promised, so the late rule does not bind it
+    // and the guest is not told it stands (MSY m.16/4, TBK m.136).
+    seedPaid({ status: "requested" });
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(1.5) }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(res).not.toHaveProperty("kept");
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(h.lateRequests).toEqual([]);
+    expect(row()).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+    });
+    expect(h.cancellations[0]).toMatchObject({ cancelCause: "misafir" });
+  });
+
   it("'Yine de tamamını iade et' refunds everything, with the request's words", async () => {
     seedPaid();
     const res = await payment.cancelKaraokeReservation(

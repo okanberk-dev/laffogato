@@ -1464,13 +1464,15 @@ export async function cancelKaraokeReservation(
   }
   // A guest's request the staff took by phone or e-mail (ASK-Y3-4 (c)):
   // the booking's own rule applies, judged at the request. Only on a paid
-  // booking (nothing to refund otherwise), and not when a person refunds
-  // everything anyway.
+  // booking (nothing to refund otherwise) the köşk confirmed (one it never
+  // confirmed was never promised: it goes back in full, as below), and not
+  // when a person refunds everything anyway.
   const guestRequest =
     by.kind === "staff" &&
     by.cause === "misafir" &&
     !by.fullRefund &&
-    paymentStatusOf(r) === "paid";
+    paymentStatusOf(r) === "paid" &&
+    r.status === "confirmed";
   // The booking's own rule (its snapshot) binds every self-service
   // cancellation - for money, account closure too: closing an account must
   // not become a way to refund an evening already sung (or no-showed). The
