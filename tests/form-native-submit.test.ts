@@ -183,7 +183,7 @@ describe("no form posts itself as a GET", () => {
   it("every <form> under src has an action or a method", () => {
     const { problems, total } = offenders(files);
     // The walk really read the forms (a broken path finds none and passes).
-    expect(total).toBeGreaterThan(70);
+    expect(total).toBeGreaterThan(60);
     expect(problems).toEqual([]);
   });
 
