@@ -2240,10 +2240,9 @@ Yazı boyutu (`globals.css`, px):
 - **KDV notu:** her satırın siparişe damgalanacak oranı (`productTaxRate`,
   `shopLineItems`'ın kuralı). Bir satırın oranı bilinmiyorsa ya da satırlar
   gösterilen toplamı tutmuyorsa not çıkmaz, "KDV dahil" kalır; ödenen tutar
-  değişmez. Kargo ücreti: ayarlarda kargo oranı yokken (bugün) taşıdığı
-  ürünlere paylaştırılır (KDV K. m.24/a), sipariş sayfasının fişi gibi;
-  kdv-rates-and-invoice-lines birleşip `taxRates.shipping` (%20, ayrı kalem)
-  gelince not kendiliğinden ona uyar.
+  değişmez. Kargo ücreti ürünlere paylaştırılmaz: `taxRates.shipping`
+  oranında (varsayılan %20) ayrı kalemdir, sipariş sayfasının fişi gibi
+  (kdv-rates-and-invoice-lines, §16).
 - **Panel:** belge /hukuk/[slug] ile aynı okunur (`findLegalDoc` +
   `getPublishedLegalOverride`), panelde yayımlanmış metin varsa o. Metin
   sunucuda çizilir; 25 belgelik kayıt tarayıcı paketine girmez. "Bu
@@ -2276,7 +2275,7 @@ Yazı boyutu (`globals.css`, px):
 | 16 px | MSY m.6/1 (en az on iki punto); 1 pt = 1/72 inç, 1 CSS px = 1/96 inç | 12 pt = 16 CSS px; ekran için resmî bir çevirme yok, bu yüzden en az 16 px. Ödeme sayfasının notları, onay kutuları, yeni bloklar, panel ve /hukuk metinleri. |
 | İade kargo bedeli istenmez | MSY m.12/5, m.5/1-g (RG 24.05.2025-32909, yürürlük 1.1.2026); m.12/1, m.12/4, m.14/1 | Taşıyıcı adlandırılmadığı için not "iade koduyla gönderirsen ücret ödemezsin, başka kargoyla gönderirsen ödediğin ücreti geri öderiz" der (OP-RETURN-CARRIER). |
 | İstisnalar dar | MSY m.15/1-b, c, ç | Çabuk bozulan: gelato ve soğuk zincir; ambalajı açılınca hijyen: kahve paketi, yenilebilir kup kutusu, krema, şurup; isteğe göre öğütülen ve kişiye özel ürün. Kapalı kutu ve paket istisna değildir. |
-| KDV tutarı | KDV Kanunu m.24/a (navlun matraha dahil), m.25/a (faturadaki iskonto matraha girmez) | Not toplamın içindeki KDV'yi oran oran yazar, satırların damgalanacak oranından; iskonto satırlara, kargo (ayrı oranı tanımlanana kadar) taşıdığı ürünlere paylaştırılır. Bilgi amaçlıdır, tutarı değiştirmez. |
+| KDV tutarı | KDV Kanunu m.24/a (ayrı gösterilen taşıma ayrı kalem, özelge 32391), m.25/a (faturadaki iskonto matraha girmez) | Not toplamın içindeki KDV'yi oran oran yazar, satırların damgalanacak oranından; iskonto satırlara paylaştırılır, kargo kendi oranında (%20) ayrı kalemdir (§16). Bilgi amaçlıdır, tutarı değiştirmez. |
 | Kayıtta aydınlatma kabul ettirilmez | 6698 s. KVKK m.10; Kurul İlke Kararı 18.02.2026, 2026/347 (RG 24.03.2026-33203) | Aydınlatma bir bilgilendirmedir; ondan onay ya da "kabul" istenmez, açık rıza ve sözleşme metinleriyle tek kutuda birleştirilmez. Kutu yalnız Kullanım Şartları'nı kabul eder; Gizlilik Politikası ve KVKK Aydınlatma Metni kutusuz bir satırda okunacak metin olarak gösterilir. `acceptedTerms` alanı ve işaretsiz başlaması aynen kalır. Kullanım Şartları'nın aynı kararla çelişen iki cümlesi ayrı PR'da düzelir (§22.6). |
 
 ### 22.6 Açık: Kullanım Şartları kayıt kutusunu hâlâ Gizlilik Politikası'na bağlıyor

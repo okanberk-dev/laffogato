@@ -83,9 +83,9 @@ describe("checkout KDV note", () => {
     ]);
   });
 
-  it("while the settings carry no shipping rate, the fee follows the goods it carries (KDV K. m.24/a, as the receipt splits it)", () => {
-    // 200₺ at 1% + 100₺ at 20% + 60₺ shipping, shared 40/20:
-    // 240₺ at 1% = 237,6 -> 2,38₺; 120₺ at 20% = 20₺.
+  it("without a known shipping rate, the fee is its own line at the legal 20%, as the receipt splits it", () => {
+    // 200₺ at 1% + 100₺ at 20% + 60₺ shipping at 20%:
+    // 200₺ at 1% = 198,02 -> 1,98₺; 160₺ at 20% = 26,67₺.
     expect(
       note(
         input(
@@ -96,7 +96,7 @@ describe("checkout KDV note", () => {
           { shippingMinor: 6000 },
         ),
       ),
-    ).toBe("KDV dahil: %1 · 2,38₺, %20 · 20₺");
+    ).toBe("KDV dahil: %1 · 1,98₺, %20 · 26,67₺");
   });
 
   it("with its own rate, the fee is a line of its own (decided 18 Eki 2026, kdv-rates-and-invoice-lines)", () => {
@@ -128,10 +128,10 @@ describe("checkout KDV note", () => {
         }),
       ),
     ).toBe("KDV dahil: %20 · 10₺");
-    // Following the goods: the fee takes the line's 10%: 545,45 -> 5,45₺.
+    // No known rate: the same, the fee never takes the line's 10%.
     expect(
       note(input([[10000, 10]], { discountMinor: 10000, shippingMinor: 6000 })),
-    ).toBe("KDV dahil: %10 · 5,45₺");
+    ).toBe("KDV dahil: %20 · 10₺");
   });
 
   it("names no KDV at 0% and says nothing for a free order", () => {

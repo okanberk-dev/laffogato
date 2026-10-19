@@ -11,7 +11,11 @@ import { LEGAL_ADDRESS_LINE, LEGAL_ENTITY } from "@/lib/legal/entity";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { getPublishedLegalOverride } from "@/lib/legal/store";
 import { checkoutPaymentSetup } from "@/lib/payment/saved-cards";
-import { isTaxRate, productTaxRate, type TaxRates } from "@/lib/utils/kdv";
+import {
+  productTaxRate,
+  shippingTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 
 import { Checkout } from "../checkout";
 import { checkoutDocument, type CheckoutDocument } from "../checkout-documents";
@@ -53,25 +57,21 @@ async function checkoutDocuments(): Promise<CheckoutDocument[]> {
 
 /**
  * The rate each product's order line will carry (`productTaxRate`, the rule
- * `shopLineItems` stamps with) and the shipping fee's own rate once the
- * settings carry one, for the KDV note under the total. Display only: if the
+ * `shopLineItems` stamps with) and the shipping fee's own rate (the one
+ * `insertOrderRow` stamps), for the KDV note under the total. Display only: if the
  * catalogue cannot be read the note is left out, the order is unaffected.
  * Read without the photos (`listProductsForImport`: a stored upload is a data
  * URL of up to 2 MB, and this page loads on every visit).
  */
 async function checkoutKdvRates(taxRates: TaxRates): Promise<CheckoutKdvRates> {
   try {
-    // `shipping` joins the rates with the decided KDV rule (a separate line
-    // at its own rate, kdv-rates-and-invoice-lines); until then it is absent
-    // and the fee follows the goods, as the receipt and the ÖBF say.
-    const shipping = (taxRates as { shipping?: unknown } | undefined)?.shipping;
     const products: Record<string, number> = {};
     for (const p of await listProductsForImport()) {
       products[p.id] = productTaxRate(p, taxRates);
     }
     return {
       products,
-      shippingRatePct: isTaxRate(shipping) ? shipping : null,
+      shippingRatePct: shippingTaxRate(taxRates),
     };
   } catch {
     return NO_CHECKOUT_KDV_RATES;

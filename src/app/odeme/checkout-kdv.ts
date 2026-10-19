@@ -25,12 +25,11 @@ import {
 export interface CheckoutKdvRates {
   products: Record<string, number>;
   /**
-   * The shipping fee's rate when the fee is its own line on the invoice
-   * (`settings.taxRates.shipping`, decided 18 Eki 2026: a separate transport
-   * service at the general rate). `null` while the settings carry no such
-   * rate: the fee then follows the goods it carries (KDV K. m.24/a, freight
-   * in the base of the sale), as the receipt (`orderKdvBreakdown`) still
-   * splits it, so the checkout never shows a split the order page would not.
+   * The shipping fee's rate (`settings.taxRates.shipping`, decided 18 Eki
+   * 2026: the fee is its own line on the invoice, a separate transport
+   * service at the general rate). `null` when it is not known: the fee is
+   * then taken at the legal 20%, as the receipt (`orderKdvBreakdown`) takes
+   * it, so the checkout never shows a split the order page would not.
    */
   shippingRatePct: number | null;
 }
@@ -77,22 +76,18 @@ export function checkoutKdvRows(
   const subtotal = lines.reduce((s, l) => s + l.grossMinor, 0);
   if (subtotal !== input.subtotalMinor) return null;
 
-  const ownShippingRate = isTaxRate(input.shippingRatePct)
-    ? input.shippingRatePct
-    : null;
+  // The fee is never shared over the goods: it is its own amount at its own
+  // rate (20% when not known) and joins the row of the lines at that rate.
   const split = kdvBreakdown({
     lines,
     discountMinor: input.discountMinor,
-    // A fee on its own line is added at its own rate below; otherwise the
-    // breakdown shares it over the goods it carries.
-    shippingMinor: ownShippingRate === null ? input.shippingMinor : 0,
+    shippingMinor: input.shippingMinor,
+    ...(isTaxRate(input.shippingRatePct)
+      ? { shippingRatePct: input.shippingRatePct }
+      : {}),
   });
   const byRate = new Map<number, number>();
   for (const row of split.rows) byRate.set(row.ratePct, row.grossMinor);
-  const shipping = Math.max(0, Math.round(input.shippingMinor));
-  if (ownShippingRate !== null && shipping > 0) {
-    byRate.set(ownShippingRate, (byRate.get(ownShippingRate) ?? 0) + shipping);
-  }
   const gross = [...byRate.values()].reduce((s, g) => s + g, 0);
   if (gross !== input.totalMinor) return null;
 
