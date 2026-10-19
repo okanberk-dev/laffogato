@@ -228,7 +228,7 @@ kaybolduğunda kırılır. Asgari (zorunlu) sürelerde yıl **366 gün** sayıl�
 10 yıllık bir kayıt artık yıllar yüzünden bir gün erken imha edilemez.
 
 `audit_logs` veritabanında da append-only'dir
-(`20261019140000_audit_logs_append_only.sql`): UPDATE ve TRUNCATE P0001 ile
+(`20261019170000_audit_logs_append_only.sql`): UPDATE ve TRUNCATE P0001 ile
 reddedilir, DELETE yalnız `createdAt`'i yazılı ve on yıldan eski satırda
 geçer. İmha 10 × 366 gün bekler, yani her zaman tetikleyicinin sınırından
 sonra keser. Olay kaydından elle satır silmek ya da düzeltmek artık hata
