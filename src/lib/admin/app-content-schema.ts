@@ -14,6 +14,9 @@
  * `@/lib/db`, or from anything that pulls in `server-only`.
  */
 
+import { parsePublishInstant } from "./publish-window";
+import type { AdminTone } from "./tone";
+
 // ── Hero slides ────────────────────────────────────────────────────────────
 
 /** Brand ground a slide paints itself on. Mirrors the app's theme tokens. */
@@ -110,3 +113,78 @@ export const APP_POST_KIND_LABELS: Record<AppPostKind, string> = {
   collab: "İş birliği",
   event: "Etkinlik",
 };
+
+// ── Publish state, as the panel lists it ───────────────────────────────────
+
+/**
+ * Where a slide, announcement or post stands right now. The app shows a row
+ * only when it is active AND inside its window (`isPublishWindowOpen`, the
+ * store's `listActive*`); the list used to say only "YAYINDA DEĞİL" for an
+ * inactive row, so an expired or scheduled one looked exactly like a live
+ * one. `invalid`: a bound that is not a time (typed by hand into the
+ * database, or older than the date inputs); the window fails closed on it,
+ * so the row is not on any phone.
+ */
+export type AppPublishStatus =
+  "live" | "scheduled" | "expired" | "off" | "invalid";
+
+export const APP_PUBLISH_STATUSES: readonly AppPublishStatus[] = [
+  "live",
+  "scheduled",
+  "expired",
+  "off",
+  "invalid",
+];
+
+export const APP_PUBLISH_STATUS_LABELS: Record<AppPublishStatus, string> = {
+  live: "Yayında",
+  scheduled: "Planlandı",
+  expired: "Süresi doldu",
+  off: "Kapalı",
+  invalid: "Tarih geçersiz",
+};
+
+export const APP_PUBLISH_STATUS_TONES: Record<AppPublishStatus, AdminTone> = {
+  live: "success",
+  scheduled: "info",
+  expired: "neutral",
+  off: "neutral",
+  invalid: "danger",
+};
+
+/** Pure; `now` is passed in so a whole list reads one clock. */
+export function appPublishStatus(
+  row: { isActive: boolean; startsAt: string; endsAt: string },
+  now: number,
+): AppPublishStatus {
+  if (!row.isActive) return "off";
+  const from = row.startsAt.trim() ? parsePublishInstant(row.startsAt) : 0;
+  const to = row.endsAt.trim() ? parsePublishInstant(row.endsAt) : Infinity;
+  if (from === null || to === null) return "invalid";
+  if (from > now) return "scheduled";
+  if (to < now) return "expired";
+  return "live";
+}
+
+/**
+ * The refusals a slide, announcement or post save shares, by field name:
+ * a title of only spaces (the HTML `required` passes it, and the action used
+ * to return without a word), a start or end that is not a time, an end
+ * before the start. Empty when the input can be saved.
+ */
+export function appContentFieldErrors(input: {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+}): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!input.title.trim()) errors.title = "Başlık boş olamaz.";
+  const from = input.startsAt.trim() ? parsePublishInstant(input.startsAt) : 0;
+  const to = input.endsAt.trim() ? parsePublishInstant(input.endsAt) : Infinity;
+  if (from === null) errors.startsAt = "Başlangıç bir tarih ve saat olmalı.";
+  if (to === null) errors.endsAt = "Bitiş bir tarih ve saat olmalı.";
+  if (from !== null && to !== null && to <= from) {
+    errors.endsAt = "Bitiş başlangıçtan sonra olmalı.";
+  }
+  return errors;
+}

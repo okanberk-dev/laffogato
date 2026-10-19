@@ -46,7 +46,8 @@ describe("reminder hours", () => {
   it("refuses a reminder the app would silently drop", async () => {
     for (const hour of ["7", "22", "3"]) {
       const res = await saveRemindersAction({}, form(hour));
-      expect(res.error, hour).toMatch(/Hatırlatma saati/);
+      expect(res.error, hour).toMatch(/^Hatırlatma 1 · Saat /);
+      expect(res.fieldErrors?.["reminder-0-hour"], hour).toBeTruthy();
     }
     expect(updateSettings).not.toHaveBeenCalled();
   });

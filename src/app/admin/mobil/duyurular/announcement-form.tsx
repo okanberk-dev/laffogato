@@ -1,20 +1,23 @@
 "use client";
 
+import { ActionForm } from "@/components/admin/action-form";
 import {
   Card,
   Checkbox,
   Field,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import type { ModalAction } from "@/components/admin/ui";
 import {
   APP_ANNOUNCEMENT_KIND_LABELS,
   APP_ANNOUNCEMENT_KINDS,
   type AppAnnouncementKind,
 } from "@/lib/admin/app-content-schema";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
+
+import { FieldRow, FormActions } from "../app-content-ui";
 
 export interface AppAnnouncementDefaults {
   kind?: AppAnnouncementKind;
@@ -30,18 +33,21 @@ export interface AppAnnouncementDefaults {
  * Announcements carry no action by design: they say the thing and get out of
  * the way. Anything that needs a tap belongs in a slide, which has room for a
  * call to action and a ground to sit on.
+ *
+ * Posted through ActionForm: a refusal shows under its field and keeps
+ * what was typed, and a second press before the answer creates nothing.
  */
 export function AppAnnouncementForm({
   action,
   defaults,
   submitLabel,
 }: {
-  action: (formData: FormData) => void;
+  action: ModalAction;
   defaults?: AppAnnouncementDefaults;
   submitLabel: string;
 }) {
   return (
-    <form action={action} className="grid gap-4">
+    <ActionForm action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
           <Field
@@ -57,18 +63,20 @@ export function AppAnnouncementForm({
             </Select>
           </Field>
 
-          <Field
-            label="Başlık"
-            hint="En fazla 80 karakter. Tek satırda okunsun."
-          >
-            <TextInput
-              name="title"
-              defaultValue={defaults?.title ?? ""}
-              maxLength={80}
-              required
-              placeholder="Hafta sonu 24:00'e kadar"
-            />
-          </Field>
+          <FieldRow name="title">
+            <Field
+              label="Başlık"
+              hint="En fazla 80 karakter. Tek satırda okunsun."
+            >
+              <TextInput
+                name="title"
+                defaultValue={defaults?.title ?? ""}
+                maxLength={80}
+                required
+                placeholder="Hafta sonu 24:00'e kadar"
+              />
+            </Field>
+          </FieldRow>
 
           <Field label="Metin" hint="En fazla 200 karakter.">
             <Textarea
@@ -92,23 +100,27 @@ export function AppAnnouncementForm({
 
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Başlangıç"
-            hint="Boşsa hemen yayında. Saat İstanbul saatidir."
-          >
-            <TextInput
-              type="datetime-local"
-              name="startsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
-            />
-          </Field>
-          <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
-            <TextInput
-              type="datetime-local"
-              name="endsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
-            />
-          </Field>
+          <FieldRow name="startsAt">
+            <Field
+              label="Başlangıç"
+              hint="Boşsa hemen yayında. Saat İstanbul saatidir."
+            >
+              <TextInput
+                type="datetime-local"
+                name="startsAt"
+                defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
+          <FieldRow name="endsAt">
+            <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
+              <TextInput
+                type="datetime-local"
+                name="endsAt"
+                defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
         </div>
         <div className="mt-4">
           <Checkbox
@@ -119,9 +131,10 @@ export function AppAnnouncementForm({
         </div>
       </Card>
 
-      <div>
-        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
-      </div>
-    </form>
+      <FormActions
+        submitLabel={submitLabel}
+        backHref="/admin/mobil/duyurular"
+      />
+    </ActionForm>
   );
 }
