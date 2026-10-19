@@ -240,7 +240,7 @@ export default async function KaraokeReservationPage({
       value:
         policy.freeCancelHours > 0
           ? `${policy.freeCancelHours} saat`
-          : "Yok (her iptal geç iptal)",
+          : "0 saat (rezervasyon saatine kadar ücretsiz)",
     },
     {
       label: "Geç iptalde iade",
@@ -255,6 +255,7 @@ export default async function KaraokeReservationPage({
     {
       label: "Tam iade için son an",
       value: when(karaokeCancelDeadline(r).toISOString()),
+      hint: "Bu an da dâhil.",
     },
     {
       label: "Müşterinin gördüğü kural",

@@ -500,7 +500,7 @@ export async function createReservation(
     taxRatePct: karaokeTaxRate(settings.taxRates),
     freeCancelHours: policy.freeCancelHours,
     lateRefundPercent: policy.lateRefundPercent,
-    cancelDeadline: karaokeDeadlineFor(policy, req, now).toISOString(),
+    cancelDeadline: karaokeDeadlineFor(policy, req).toISOString(),
     cancellationRules: [...karaokeCancellationRules(policy).rules],
     refundMinor: null,
   };

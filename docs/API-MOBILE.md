@@ -1053,11 +1053,13 @@ iptal edilir, ekibe gider. Yanıt ve hata kodları aynı (18 Eki 2026).
 **İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para
 tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar →
 Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (0..72 saat,
-varsayılan 2; 0 = ücretsiz iptal yok, rezervasyondan sonraki her iptal geç
-iptal) ve geç iptalde iade `lateRefundPercent` (0..100, varsayılan 0). Süreden
-önceki iptal her zaman tamamını iade eder; gelmeyene iade yoktur; köşkün
-iptali her zaman tam iadedir (MSY m.16/4). Her rezervasyon yapıldığı andaki
-kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+varsayılan 2; 0 = rezervasyon saati gelene kadar ücretsiz iptal; ilk
+sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
+(0..100, varsayılan 0; yeniden satılan saatin iadesi hazır olana kadar panel
+yalnız 0 ya da 100 kaydeder). Süreden önceki iptal, son anın kendisi dahil
+(`now <= cancellableUntil`; ilk sürümde `<`), her zaman tamamını iade
+eder; gelmeyene iade yoktur; köşkün iptali her zaman tam iadedir (MSY
+m.16/4). Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
 `"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
 varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 
@@ -1074,7 +1076,8 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
   `invalid_request`. Alan yoksa davranış öncekiyle aynıdır. Web formu
   bastığı kuralı aynı biçimde gönderir.
 - Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
-  anıdır (eski satırda başlangıçtan 2 saat önce). Yeni alanlar:
+  anıdır, bu an dahil (eski satırda başlangıçtan 2 saat önce; 0 saatlik
+  kuralda başlangıç anı). Yeni alanlar:
   `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
   anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
   da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`).

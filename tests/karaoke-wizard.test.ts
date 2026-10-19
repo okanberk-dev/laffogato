@@ -482,12 +482,14 @@ describe("the cancellation terms, from the server", () => {
     );
     expect(t?.freeUntil).toBe("29 Ekim 2026, 20:00");
     expect(t?.lateShareMinor).toBe(50_000);
-    expect(
-      terms.karaokeBookingTerms(
-        { ...src, freeCancelHours: 0 },
-        { date: "2026-10-30", startHour: 20, totalMinor: 1 },
-      )?.freeUntil,
-    ).toBeNull();
+    // 0 hours is free until the start (ASK-OTH-3-CFG): the start is the
+    // moment, and there is no late share to name.
+    const zero = terms.karaokeBookingTerms(
+      { ...src, freeCancelHours: 0, lateRefundPercent: 50 },
+      { date: "2026-10-30", startHour: 20, totalMinor: 99_999 },
+    );
+    expect(zero?.freeUntil).toBe("30 Ekim 2026, 20:00");
+    expect(zero?.lateShareMinor).toBeNull();
   });
 
   it("prints nothing it cannot read", () => {
@@ -539,13 +541,13 @@ describe("the cancellation terms, from the server", () => {
     expect(ahead?.freePassed).toBe(false);
     // No clock given: the moment is named, as before.
     expect(terms.karaokeBookingTerms(src, pick)?.freePassed).toBe(false);
-    // No window at all: nothing passed, nothing named.
+    // 0 hours: free until the start, which is still ahead at 19:30.
     expect(
       terms.karaokeBookingTerms(
         { ...src, freeCancelHours: 0 },
         { ...pick, now: new Date("2026-10-30T16:30:00.000Z") },
       ),
-    ).toMatchObject({ freeUntil: null, freePassed: false });
+    ).toMatchObject({ freeUntil: "30 Ekim 2026, 20:00", freePassed: false });
   });
 
   it("reads the Istanbul day after midnight UTC", () => {
@@ -655,7 +657,9 @@ describe("the booking page as the server renders it", () => {
     );
   });
 
-  it("without a free window, the late share follows no moment", () => {
+  it("0 hours: free until the start, and no late share follows it", () => {
+    // ASK-OTH-3-CFG: 0 hours used to mean "every cancel is late", and the
+    // box then named the share with no moment before it.
     const NONE = karaokeCancellationRules({
       freeCancelHours: 0,
       lateRefundPercent: 50,
@@ -669,11 +673,9 @@ describe("the booking page as the server renders it", () => {
       },
     });
     expect(html).toContain(esc(NONE[0]));
-    expect(html).not.toContain("Ücretsiz iptal için son an");
+    expect(html).toContain("Ücretsiz iptal için son an");
     expect(html).not.toContain("Sonrasında");
-    expect(html).toContain(
-      "Rezervasyon saatinden önce iptal edersen 500₺ kartına iade edilir.",
-    );
+    expect(html).not.toContain("500₺ kartına iade edilir");
     // With a window it follows the named moment.
     expect(
       booking({

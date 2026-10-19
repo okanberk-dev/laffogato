@@ -47,9 +47,9 @@ export interface KaraokeBookingTerms {
   /** The two numbers the sentences were made from: echoed with the booking. */
   policy: KaraokeCancelPolicy;
   /**
-   * Until when a cancel refunds the whole payment ("30 Ekim 2026, 18:00");
-   * null with no free window, before an hour is picked, or once that moment
-   * has passed (`freePassed`).
+   * Until when a cancel refunds the whole payment ("30 Ekim 2026, 18:00"; at
+   * 0 hours the start itself); null before an hour is picked, or once that
+   * moment has passed (`freePassed`).
    */
   freeUntil: string | null;
   /**
@@ -60,8 +60,9 @@ export interface KaraokeBookingTerms {
   freePassed: boolean;
   /**
    * What a cancel after that refunds of this total, in kuruş, when it is a
-   * part of it (a late share of 1..99 %); null otherwise (the sentences
-   * already say "tamamı" or "iade yapılmaz").
+   * part of it (a late share of 1..99 % behind a free window); null
+   * otherwise (the sentences already say "tamamı" or "iade yapılmaz", and
+   * at 0 hours there is no late cancel).
    */
   lateShareMinor: number | null;
 }
@@ -98,15 +99,14 @@ export function karaokeBookingTerms(
     freeCancelHours: h,
     lateRefundPercent: p,
   };
-  // With a window the deadline is the start minus it; the booking instant
-  // (the third argument) only matters without one, and then nothing prints.
+  // The start minus the window; 0 hours is the start itself (free until
+  // then, ASK-OTH-3-CFG).
   const deadline =
-    h > 0 && pick.startHour !== null
-      ? karaokeDeadlineFor(
-          policy,
-          { date: pick.date, startHour: pick.startHour },
-          new Date(0),
-        )
+    pick.startHour !== null
+      ? karaokeDeadlineFor(policy, {
+          date: pick.date,
+          startHour: pick.startHour,
+        })
       : null;
   // A deadline already behind the clock is not a moment to cancel before:
   // the booking's own snapshot would be late from the start
@@ -124,6 +124,8 @@ export function karaokeBookingTerms(
     freeUntil: deadline && !freePassed ? karaokeInstantLabel(deadline) : null,
     freePassed,
     lateShareMinor:
-      p > 0 && p < 100 ? karaokeLateRefundMinor(pick.totalMinor, p) : null,
+      h > 0 && p > 0 && p < 100
+        ? karaokeLateRefundMinor(pick.totalMinor, p)
+        : null,
   };
 }

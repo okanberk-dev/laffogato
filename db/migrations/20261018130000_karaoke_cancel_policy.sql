@@ -7,8 +7,9 @@
 -- nothing (src/lib/mobile/karaoke-time.ts).
 --
 -- settings (Ayarlar > Karaoke, owner only):
---   "karaokeFreeCancelHours"    0..72, default 2. 0: no free window, every
---                               cancel after booking is late.
+--   "karaokeFreeCancelHours"    0..72, default 2. 0: free cancellation
+--                               until the start (ASK-OTH-3-CFG, 18 Eki 2026;
+--                               it read "every cancel is late" before).
 --   "karaokeLateRefundPercent"  0..100, default 0: the share of the payment a
 --                               cancel INSIDE the window refunds while the
 --                               start has not come. 0 = such a cancel is
