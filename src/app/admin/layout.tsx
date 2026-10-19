@@ -133,10 +133,13 @@ const NAV_GROUPS: NavGroupDef[] = [
         icon: "till",
         keywords: ["Kasa · damga", "damga", "sadakat", "kart"],
       },
+      // `venue`, not `mobileApp`: the köşk shift (Personel) says whether
+      // the house is open and how many tables are free (decision D3); the
+      // app's slides, posts and settings stay with owner and manager.
       {
         href: "/admin/mobil/canli-durum",
         label: "Canlı durum",
-        section: "mobileApp",
+        section: "venue",
         icon: "appLive",
         keywords: ["köşk", "açık kapalı", "boş masa", "Wi-Fi"],
       },

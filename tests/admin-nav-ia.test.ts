@@ -163,12 +163,15 @@ const BEFORE: Record<AdminRole, string[]> = {
     "/admin/mobil/karaoke",
     "/admin/kasa",
     "/admin/stok-hareketleri",
+    // Added on purpose (admin UI v2, UI-13, decision D3): the köşk shift
+    // updates Canlı durum through the `venue` section.
+    "/admin/mobil/canli-durum",
   ],
   cashier: ["/admin/kasa"],
 };
 
 describe("what each role sees", () => {
-  it("owner 21 items in 5 groups, manager 18 in 5, staff 5 flat, cashier no chrome", () => {
+  it("owner 21 items in 5 groups, manager 18 in 5, staff 6 flat, cashier no chrome", () => {
     const groupTitles = ["Bugün", "Katalog", "Pazarlama", "İçerik", "Yönetim"];
     expect(NAV.owner.map((g) => g.title)).toEqual(groupTitles);
     expect(NAV.manager.map((g) => g.title)).toEqual(groupTitles);
@@ -179,8 +182,12 @@ describe("what each role sees", () => {
       "Siparişler",
       "Karaoke",
       "Kasa",
+      "Canlı durum",
       "Stok",
     ]);
+    expect(items("staff").find((i) => i.label === "Canlı durum")?.section).toBe(
+      "venue",
+    );
     expect(nav.navIsFlat(NAV.staff)).toBe(true);
     expect(nav.navIsFlat(NAV.manager)).toBe(false);
     expect(items("cashier").map((i) => i.href)).toEqual(["/admin/kasa"]);
@@ -575,12 +582,13 @@ describe("the shell's markup", () => {
     expect(renderShell("owner")).not.toContain("bölümleri");
   });
 
-  it("Personel's five items are one list, without group headers", () => {
+  it("Personel's six items are one list, without group headers", () => {
     const html = renderShell("staff");
     const side = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
     expect(side).not.toMatch(/-nav-\d+-title/);
     expect(side.match(/<ul /g)).toHaveLength(1);
-    expect(side.match(/<li class="relative">/g)).toHaveLength(5);
+    expect(side.match(/<li class="relative">/g)).toHaveLength(6);
+    expect(side).toContain('href="/admin/mobil/canli-durum"');
     // The owner's are grouped.
     const owner = renderShell("owner");
     expect(owner).toContain('id="side-nav-0-title"');
