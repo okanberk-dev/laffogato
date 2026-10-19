@@ -677,10 +677,13 @@ function statusNames(ctx: AuditRowContext): Record<string, string> | null {
 }
 
 /** A key's own name for this row, where the generic one would mislead. */
-function keyLabel(key: string, ctx: AuditRowContext): string {
+function keyLabel(key: string, ctx: AuditRowContext, value: unknown): string {
   // A test mail's `to` is its recipient, not a "new" value (SYS-10).
   if (key === "to" && ctx.action === "send_test") return "Alıcı";
-  if (statusNames(ctx)) {
+  // `from` / `to` are a status only when they hold one: an order row may
+  // carry other before / after values (a KDV rate, 1 to 10).
+  const names = statusNames(ctx);
+  if (names && typeof value === "string" && Object.hasOwn(names, value)) {
     if (key === "to") return "Yeni durum";
     if (key === "from") return "Önceki durum";
   }
@@ -836,7 +839,7 @@ export function auditPayloadEntries(
       const label = keys
         .map((segment, i) =>
           i === keys.length - 1
-            ? keyLabel(segment, ctx)
+            ? keyLabel(segment, ctx, v)
             : (KEY_LABELS[segment] ?? segment),
         )
         .join(" · ");

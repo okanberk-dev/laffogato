@@ -284,6 +284,32 @@ describe("Turkish labels (SYS-10)", () => {
     ).toBe("Onaylandı");
   });
 
+  it("calls an order's from / to a status only when they hold one", () => {
+    // A system row on an order whose before / after is a KDV rate, not a
+    // status (the shape main's 20261019150000_cafe_food_rate_10.sql writes).
+    const rate = entries(
+      { event: "kdv_rate_corrected", orderNo: 10023, from: 1, to: 10 },
+      { entity: "order", action: "update", entityId: "ord-10023" },
+    );
+    expect(rate.from).toMatchObject({ label: "Önceki", value: "1" });
+    expect(rate.to).toMatchObject({ label: "Yeni", value: "10" });
+    // A string that is no status of the record keeps the plain name too,
+    // and a key named like an Object method is not mistaken for one.
+    const odd = entries(
+      { from: "constructor", to: "somewhere" },
+      { entity: "order", action: "transition" },
+    );
+    expect(odd.from.label).toBe("Önceki");
+    expect(odd.to.label).toBe("Yeni");
+    // The status pair still reads as one.
+    const status = entries(
+      { from: "paid", to: "cancelled" },
+      { entity: "order", action: "transition" },
+    );
+    expect(status.from.label).toBe("Önceki durum");
+    expect(status.to.label).toBe("Yeni durum");
+  });
+
   it("names a till redemption that stopped after some stamps", () => {
     // kasa/actions.ts writes this when redeemCounterToken answers "partial".
     const by = entries(
