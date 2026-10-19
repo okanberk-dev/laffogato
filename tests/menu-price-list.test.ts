@@ -115,11 +115,12 @@ describe("saveTaxAction: the menu price list's day", () => {
   const RATES = {
     taxRate_menu: "10",
     taxRate_karaoke: "20",
-    taxRate_beans: "1",
-    taxRate_pantry: "1",
+    taxRate_beans: "10",
+    taxRate_pantry: "10",
     taxRate_gift: "20",
     taxRate_gear: "20",
     taxRate_merch: "20",
+    taxRate_shipping: "20",
   };
   const tax = (date?: string) => {
     const fd = new FormData();
