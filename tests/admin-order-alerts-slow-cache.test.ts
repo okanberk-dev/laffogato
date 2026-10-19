@@ -87,7 +87,9 @@ vi.mock("@/lib/admin/auth", () => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "laffogato_admin_session" ? { value: "signed-token" } : undefined,
+      name === "laffogato_admin_session"
+        ? { value: "signed-token" }
+        : undefined,
   }),
 }));
 const db = vi.hoisted(() => ({ rows: [] as unknown[], reads: 0 }));
