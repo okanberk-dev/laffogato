@@ -44,14 +44,54 @@ const FOOD_SHELVES: ReadonlySet<string> = new Set(["beans", "pantry", "gift"]);
  * (ingredients, the Ek-1 allergens, storage...) before the purchase, on the
  * page or by another free means the seller names (TGK Etiketleme Yön.
  * m.17/2-a). The product carries the label fields since 19 Oct 2026
- * (src/lib/shop/food-label.ts); until the operator has entered the
- * ingredients and the allergens, a food page names the free means: ask us,
- * before the order.
+ * (src/lib/shop/food-label.ts); until the operator has entered every item
+ * in FOOD_LABEL_OWED, a food page names the free means for the ones still
+ * missing: ask us, before the order. Nothing entered yet reads as below.
  */
 export const FOOD_INFO_ASK =
   "İçindekiler, alerjenler ve saklama koşulu için siparişten önce bize sor";
-/** The ingredients are entered but the fourteen groups are not. */
+/** Only the fourteen groups are missing. */
 export const FOOD_ALLERGEN_ASK = "Alerjenler için siparişten önce bize sor";
+
+/**
+ * The m.9/1 items every packaged food's page owes before the order, as the
+ * ask row names them while they are missing. The date is on the pack
+ * (m.17/2-a leaves it out); the instructions for use are owed only where
+ * the food cannot be used properly without them (m.9/1-ı), so they never
+ * hold the row. Whole or ground coffee beans need no nutrition declaration
+ * (m.19/3, Ek-14), so on the coffee shelf it does not either.
+ */
+export const FOOD_LABEL_OWED: ReadonlyArray<
+  readonly [FoodLabelKey | "allergens", string]
+> = [
+  ["netQuantity", "net miktar"],
+  ["ingredients", "içindekiler"],
+  ["allergens", "alerjenler"],
+  ["nutrition", "besin değerleri"],
+  ["storageConditions", "saklama koşulu"],
+  ["origin", "menşe ülkesi"],
+  ["producer", "üretici ya da ithalatçı"],
+  ["businessRegNo", "işletme kayıt numarası"],
+];
+
+/** The owed items `p` lacks, in FOOD_LABEL_OWED's order. */
+export function missingFoodLabel(p: Product): string[] {
+  return FOOD_LABEL_OWED.filter(([key]) => {
+    if (key === "allergens") return menuAllergenWords(p.allergens) === null;
+    if (key === "nutrition" && p.cat === "beans") return false;
+    const raw = p[key];
+    return !(typeof raw === "string" && raw.trim());
+  }).map(([, word]) => word);
+}
+
+/** "Net miktar, saklama koşulu ve üretici ya da ithalatçı için ... sor". */
+function askFor(words: readonly string[]): string {
+  const list =
+    words.length > 1
+      ? `${words.slice(0, -1).join(", ")} ve ${words[words.length - 1]}`
+      : words[0];
+  return `${list.charAt(0).toLocaleUpperCase("tr-TR")}${list.slice(1)} için siparişten önce bize sor`;
+}
 /** The groups are entered and the product contains none of them. */
 export const NO_ALLERGENS = "14 alerjen grubunun hiçbirini içermez";
 
@@ -111,11 +151,17 @@ export function productFacts(p: Product): ProductFact[] {
     rows.push({ k: "Ağırlık", v: `${p.weightGrams} g` });
   }
   if (FOOD_SHELVES.has(p.cat)) {
-    const hasIngredients = Boolean(p.ingredients?.trim());
-    if (!hasIngredients) {
+    // The row stays until the last owed item is entered: ingredients and
+    // groups alone left the net quantity, the storage and the operator on
+    // neither the page nor a named means.
+    const missing = missingFoodLabel(p);
+    const owed = FOOD_LABEL_OWED.filter(
+      ([key]) => !(key === "nutrition" && p.cat === "beans"),
+    ).length;
+    if (missing.length === owed) {
       rows.push({ k: "İçindekiler", v: FOOD_INFO_ASK, ask: true });
-    } else if (allergens === null) {
-      rows.push({ k: "Alerjen bilgisi", v: FOOD_ALLERGEN_ASK, ask: true });
+    } else if (missing.length > 0) {
+      rows.push({ k: "Etiket bilgisi", v: askFor(missing), ask: true });
     }
   }
   return rows;

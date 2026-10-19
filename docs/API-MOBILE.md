@@ -419,9 +419,14 @@ bunları, panelde girilmişse gösterir:
   sadeleştirir, satır sonlarını korur, boş satırı atar. Boş alan
   gönderilmez: uygulama eksik anahtarı "yok" diye değil "girilmedi" diye
   okumalıdır.
-- `allergens` yoksa ya da `ingredients` yoksa gıda ürününde (kategori
-  `beans`, `pantry`, `gift`) uygulama müşteriye siparişten önce mağazaya
-  sormasını söyler, web sayfasının yaptığı gibi.
+- Gıda ürününde (kategori `beans`, `pantry`, `gift`) şu anahtarlardan biri
+  yoksa uygulama müşteriye, eksik olanları sayarak, siparişten önce
+  mağazaya sormasını söyler, web sayfasının yaptığı gibi: `netQuantity`,
+  `ingredients`, `allergens`, `nutrition` (`beans` dışında: kahve
+  çekirdeğinde beslenme bildirimi gerekmez), `storageConditions`,
+  `origin`, `producer`, `businessRegNo`. `usageInstructions` yalnız
+  gerektiğinde girilir ve satırı tutmaz. Kural sitede
+  `src/components/laffogato/product-facts.ts` (`missingFoodLabel`).
 - `tags` ve içindeki `nuts` **aynen kalır**: eski sürümler kuruyemiş
   uyarısını ondan okur. Panel `sert_kabuklu` işaretlenince `nuts` etiketini
   kendisi ekler; alerjenler girilmiş bir üründe `nuts` etiketi varsa

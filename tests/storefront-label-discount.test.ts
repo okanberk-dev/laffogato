@@ -9,8 +9,8 @@ import type { Product } from "@/components/laffogato/data";
  * The shop's product page, quick look and card for X-TGK-SHOP and
  * X-DISCOUNT (19 Oct 2026):
  * - a packaged food's label rows (TGK Etiketleme m.9/1, m.17/2-a), each only
- *   when entered, and the "ask us" row until the ingredients and the
- *   allergens are there;
+ *   when entered, and the "ask us" row, naming what is missing, until every
+ *   owed item is there;
  * - a struck price only with the sentence naming the discount's first and
  *   last day (Ticari Reklam Yön. m.14/1), and none without them.
  */
@@ -119,7 +119,7 @@ describe("label rows: each only when entered", () => {
     expect(rows.some((r) => r.ask)).toBe(false);
   });
 
-  it("keeps the ask row until the ingredients and the groups are entered", () => {
+  it("keeps the ask row until every owed item is entered, naming what is missing", () => {
     expect(productFacts(cantucci)).toContainEqual({
       k: "İçindekiler",
       v: FOOD_INFO_ASK,
@@ -129,19 +129,44 @@ describe("label rows: each only when entered", () => {
     const half = productFacts({ ...cantucci, ingredients: "Un, fıstık" });
     expect(half).toContainEqual({ k: "Alerjenler", v: NUTS_NOTICE });
     expect(half).toContainEqual({
-      k: "Alerjen bilgisi",
+      k: "Etiket bilgisi",
+      v: "Net miktar, alerjenler, besin değerleri, saklama koşulu, menşe ülkesi, üretici ya da ithalatçı ve işletme kayıt numarası için siparişten önce bize sor",
+      ask: true,
+    });
+    // Ingredients and groups alone, a natural first entry: the net
+    // quantity, the storage and the operator are still owed (m.9/1,
+    // m.17/2-a), so the row stays and names them.
+    const partial = productFacts({
+      ...cantucci,
+      ingredients: "Buğday unu, şeker",
+      allergens: ["gluten"],
+    });
+    expect(partial).toContainEqual({
+      k: "Etiket bilgisi",
+      v: "Net miktar, besin değerleri, saklama koşulu, menşe ülkesi, üretici ya da ithalatçı ve işletme kayıt numarası için siparişten önce bize sor",
+      ask: true,
+    });
+    // Only the groups missing.
+    const { allergens: _a, ...noGroups } = labelled;
+    expect(productFacts({ ...noGroups, tags: [] })).toContainEqual({
+      k: "Etiket bilgisi",
       v: FOOD_ALLERGEN_ASK,
       ask: true,
     });
-    // Entered as none of the fourteen.
-    const none = productFacts({
-      ...cantucci,
-      tags: [],
-      ingredients: "Un",
-      allergens: [],
-    });
+    // Entered as none of the fourteen, with the rest of the label.
+    const none = productFacts({ ...labelled, tags: [], allergens: [] });
     expect(none).toContainEqual({ k: "Alerjenler", v: NO_ALLERGENS });
     expect(none.some((r) => r.ask)).toBe(false);
+    // Coffee beans owe no nutrition declaration (Ek-14); the pantry does.
+    const { nutrition: _n, ...noNutrition } = labelled;
+    expect(
+      productFacts({ ...noNutrition, cat: "beans" }).some((r) => r.ask),
+    ).toBe(false);
+    expect(productFacts(noNutrition)).toContainEqual({
+      k: "Etiket bilgisi",
+      v: "Besin değerleri için siparişten önce bize sor",
+      ask: true,
+    });
   });
 
   it("draws nothing for a field left empty", () => {

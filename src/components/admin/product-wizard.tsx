@@ -896,9 +896,11 @@ export function ProductWizard({
             <p className="text-xs text-[var(--admin-text-mute)]">
               Paketli gıdada ambalajdaki etiketten aynen yaz; ürün sayfasında
               ve uygulamada siparişten önce görünür. Boş alan gösterilmez;
-              içindekiler ya da alerjenler boşsa sayfa müşteriye siparişten
-              önce bize sormasını söyler. Gıda olmayan üründe hepsini boş
-              bırak. Son tüketim tarihi buraya yazılmaz, ambalajda durur.
+              kullanım talimatı dışında boş kalan her alan ve girilmemiş
+              alerjenler için sayfa müşteriye siparişten önce bize sormasını
+              söyler (kahve çekirdeğinde beslenme bildirimi gerekmez). Gıda
+              olmayan üründe hepsini boş bırak. Son tüketim tarihi buraya
+              yazılmaz, ambalajda durur.
             </p>
             <div className="grid gap-5 md:grid-cols-2">
               {FOOD_LABEL_FIELDS.map((f) => (

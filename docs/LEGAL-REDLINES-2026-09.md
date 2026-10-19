@@ -2757,9 +2757,16 @@ Ayrı PR'ın notları:
   gruplarla sessizce düşmez: kayıt, menü formundaki gibi hangisinin doğru
   olduğunu sorar; uyarı yalnız "Kuruyemiş uyarısını kaldır" seçilince
   kalkar.
-- Gıda rafındaki üründe içindekiler ya da alerjenler girilmemişse sayfa
-  "siparişten önce bize sor" satırını tutar (m.17/2-a'nın "başka uygun
-  araç" yolu); girildiğinde satır kalkar.
+- Gıda rafındaki üründe m.9/1'in satın almadan önce verilmesi gereken
+  bilgilerinden biri eksikse sayfa "siparişten önce bize sor" satırını
+  tutar ve eksikleri sayar (m.17/2-a'nın "başka uygun araç" yolu): net
+  miktar, içindekiler, alerjenler, besin değerleri, saklama koşulu, menşe
+  ülkesi, üretici ya da ithalatçı, işletme kayıt numarası. Kullanım
+  talimatı yalnız gerektiğinde verildiği için (m.9/1-ı) satırı tutmaz;
+  kahve çekirdeği beslenme bildiriminden muaftır (m.19/3, Ek-14). Satır,
+  hepsi girildiğinde kalkar; yalnız içindekiler ve alerjenler girildiğinde
+  kalkması, net miktarı, saklama koşulunu ve işletmeciyi ne sayfada ne
+  adı verilen bir yolda bırakırdı.
 - **İndirim** (`src/lib/shop/discount.ts`): eski fiyat yalnız başlangıç ve
   bitiş günüyle kaydedilir; başlangıçtan önceki 10 İstanbul gününde bu
   ürünün çevrim içi satış fiyatı geçmişindeki en düşük fiyata eşit değilse
@@ -2801,7 +2808,7 @@ Sözleşme metni değişmedi. Yeni müşteri cümleleri:
 | Ürün sayfası ve hızlı bakış, üstü çizili fiyatın altı | (yoktu) | İndirim <gün ay yıl> - <gün ay yıl> tarihleri arasında geçerli |
 | Mağaza kartı, fiyatın altı | (yoktu) | İndirim <gün> <ay kısaltması> - <gün> <ay kısaltması> |
 | Ürün detayları, alerjenler girilmiş ve hiçbiri yok | (yoktu) | 14 alerjen grubunun hiçbirini içermez |
-| Ürün detayları, içindekiler var, alerjenler girilmemiş | (yoktu) | Alerjen bilgisi: Alerjenler için siparişten önce bize sor: <e-posta> ya da <telefon> |
+| Ürün detayları, etiketin bir kısmı girilmiş | (yoktu) | Etiket bilgisi: <eksikler, ör. "Net miktar, saklama koşulu ve işletme kayıt numarası"> için siparişten önce bize sor: <e-posta> ya da <telefon> |
 
 ### 23.4 Operatöre
 
