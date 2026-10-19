@@ -28,9 +28,9 @@ export interface CheckoutKdvRates {
    * The shipping fee's rate when the fee is its own line on the invoice
    * (`settings.taxRates.shipping`, decided 18 Eki 2026: a separate transport
    * service at the general rate). `null` while the settings carry no such
-   * rate: the fee then follows the goods it carries (KDV K. m.24/b), as the
-   * receipt (`orderKdvBreakdown`) and the ÖBF in force still say, so the
-   * checkout never shows a split the order page would not.
+   * rate: the fee then follows the goods it carries (KDV K. m.24/a, freight
+   * in the base of the sale), as the receipt (`orderKdvBreakdown`) still
+   * splits it, so the checkout never shows a split the order page would not.
    */
   shippingRatePct: number | null;
 }
@@ -105,13 +105,20 @@ export function checkoutKdvRows(
     .filter((row) => row.taxMinor > 0);
 }
 
+/** "%10 · 12,73₺, %20 · 8,33₺": each rate and its KDV; null when none. */
+export function checkoutKdvParts(
+  rows: readonly CheckoutKdvRow[] | null,
+): string | null {
+  if (!rows || rows.length === 0) return null;
+  return rows
+    .map((r) => `${kdvRateLabel(r.ratePct)} · ${priceLabel(r.taxMinor)}`)
+    .join(", ");
+}
+
 /** "KDV dahil: %10 · 12,73₺, %20 · 8,33₺", or null when there is none to name. */
 export function checkoutKdvNote(
   rows: readonly CheckoutKdvRow[] | null,
 ): string | null {
-  if (!rows || rows.length === 0) return null;
-  const parts = rows.map(
-    (r) => `${kdvRateLabel(r.ratePct)} · ${priceLabel(r.taxMinor)}`,
-  );
-  return `KDV dahil: ${parts.join(", ")}`;
+  const parts = checkoutKdvParts(rows);
+  return parts ? `KDV dahil: ${parts}` : null;
 }

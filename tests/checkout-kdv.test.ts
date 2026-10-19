@@ -83,7 +83,7 @@ describe("checkout KDV note", () => {
     ]);
   });
 
-  it("while the settings carry no shipping rate, the fee follows the goods it carries (KDV K. m.24/b, the ÖBF in force)", () => {
+  it("while the settings carry no shipping rate, the fee follows the goods it carries (KDV K. m.24/a, as the receipt splits it)", () => {
     // 200₺ at 1% + 100₺ at 20% + 60₺ shipping, shared 40/20:
     // 240₺ at 1% = 237,6 -> 2,38₺; 120₺ at 20% = 20₺.
     expect(
