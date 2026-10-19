@@ -13,6 +13,7 @@ import {
 import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
   NEWSLETTER_PATH,
   SUBSCRIBER_DEFAULT_SORT,
@@ -93,16 +94,21 @@ function Consent({
  */
 export default async function NewsletterPage({ searchParams }: PageProps) {
   await requireRole("newsletter");
-  const sp = (await searchParams) ?? {};
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    NEWSLETTER_PATH,
+    (await searchParams) ?? {},
+  );
   const subscribers = await listNewsletterSubscribers();
-  const filters = parseFilters(sp, SUBSCRIBER_FILTER_FIELDS);
-  const tab = parseSubscriberTab(sp);
-  const sort = parseSort(sp, SUBSCRIBER_SORT_KEYS, SUBSCRIBER_DEFAULT_SORT);
+  const filters = parseFilters(view, SUBSCRIBER_FILTER_FIELDS);
+  const tab = parseSubscriberTab(view);
+  const sort = parseSort(view, SUBSCRIBER_SORT_KEYS, SUBSCRIBER_DEFAULT_SORT);
   const list = subscriberList(subscribers, {
     tab,
     filters,
     sort,
-    page: parsePage(sp),
+    page: parsePage(view),
   });
   const tabValue = SUBSCRIBER_TABS.find((t) => t.tab === tab)?.value ?? null;
   const activeEmails = subscribers

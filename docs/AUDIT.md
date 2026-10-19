@@ -778,7 +778,7 @@ Açık (paket 4b'nin dışında kalanlar):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`), "Siparişleri" ve "Tümünü gör" bağlantıları da sipariş aramasına e-postayı `?q=` ile verir | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
+| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`). "Siparişleri" ve "Tümünü gör"ün `?q=<e-posta>`'sı kalktı (list-search-no-url, aşağıda) | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
 | 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
 | 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
@@ -1058,11 +1058,8 @@ Açık:
 | --- | --- | --- | --- |
 | 🟠 | Elle gönderilen 19 formun ne `action`'ı ne `method`'u vardı (`ActionForm`, `ActionModal`, `useNoResetSubmit` formları, kasa, sipariş notu, ödeme sayfasının sipariş formu). Sayfanın JavaScript'i yüklenmeden basılan Enter tarayıcının kendi gönderimiydi: sayfaya GET, bütün alanlar adres çubuğunda, geçmişte, vekil sunucuda ve istek kaydında. Yeni panel kullanıcısında `?email=…&password=…`, üye formunda telefon, kupon ve damga değerleri. Giriş formu #143'te düzelmişti (2c784cd), gerisi aynıydı | Kit `useHandPost` (`ui/submit.ts`) forma `action` ile `onSubmit`'i birlikte verir: React kendi korumasını (`action="javascript:..."`) çizer, erken Enter hiçbir şey göndermez; sayfa canlanınca onSubmit elle gönderir, React action'ı atlar (sıfırlama yok). React o erken basışı saklayıp sayfa canlanınca action'a verir: `replayByHand` onu da aynı kapıdan geçirir (yanıt beklenirken ikincisi düşer, üç sabırsız Enter tek kayıttır; `beforeSubmit` denetimi olan formda düşer). `ActionForm`, `ActionModal`, giriş, panel kullanıcıları, üye, promosyon, kupon, damga, doğrulama bağlantısı, kampanya testi, manuel sipariş, ürün sihirbazı ve içe aktarma bunu kullanır; kasa, sipariş notu ve ödeme sayfasının sipariş formu kendi işleyicisini action olarak taşır. `src/` altındaki her `<form>` artık `action` ya da `method` taşır; bilerek GET yapan süzgeçler `GET_FORMS`'ta gerekçesiyle | `form-native-submit`, `admin-action-form`, `admin-people-forms`, `admin-login-form`, `admin-product-wizard`, `admin-product-import`, `admin-manual-order`, `admin-cafe-tables-pages`, `admin-site-content`, `admin-legal-ui`, `checkout-consent` |
 
-Açık:
-
-| Derece | Bulgu | Neden açık |
-| --- | --- | --- |
-| 🟡 | Liste süzgeçleri bilerek GET'tir (adres paylaşılır, yenilenir, geri tuşu çalışır), ama arama kutusu kişisel veri alabilir: `FilterBar` (Siparişler e-posta ya da ad, Olay kaydı kişinin adresi) ve Müşteriler araması (e-posta, ad, telefon). Yazılan terim adreste ve istek kaydında kalır | Yazılan aramayı adresten çıkarmak admin UI v2'nin işi (`POST /admin/ara/sonuc`); Müşteriler süzgeci paket 4b'de `FilterBar`'a geçiyor. `GET_FORMS` her GET formunu ve kişisel veri alanını listeler; yeni bir GET formu ancak oraya gerekçesiyle yazılarak eklenir |
+Liste süzgeçleri FG'de bilerek GET kalmıştı; arama kutularının metni artık
+adrese yazılmıyor ve `GET_FORMS` boş (list-search-no-url, aşağıda).
 
 Ayarlar sekmeleri `method="post"` ile kalır (paket 7a): erken basış gövdeyle
 sayfaya POST'tur, adrese bir şey yazılmaz. Kart formları (`paynkolay-page.ts`,
@@ -1216,7 +1213,6 @@ Açık (paket 4c'nin dışında kalanlar):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Bülten onay kayıtlarının CSV dışa aktarımı yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
-| 🟢 | Bülten ve gönderim defteri aramasında yazılan e-posta süzgeç çubuğunun `?q=` adresine geçer | Bütün listelerin aramasını adresten çıkaran ortak iş (list-search-no-url) |
 | 🟢 | Gönderim sürerken defter ve sayılar kendiliğinden yenilenmez | Sayfa yenilenince güncellenir; canlı yoklama ayrı iş |
 
 ### Sistem: ayarların sitede ve e-postada ulaştığı yerler (paket 7d)
@@ -1249,6 +1245,25 @@ formunu korur, yer imleri ve e-posta bağlantıları aynı yere iner.
 | 🟢 | Personelin beş girişi grup başlıkları altındaydı | Altı ve daha az öğe tek liste, başlıksız | `admin-nav-ia` |
 | 🟢 | Klavyeyle menüyü atlamanın yolu yoktu (WCAG 2.4.1) | Kabuğun ilk bağlantısı "İçeriğe geç", içerik sarmalayıcısı `#admin-main` | `admin-nav-ia`, `admin-shell-nav` |
 | 🟢 | Menü simgeleri dosyada el çizimiydi | lucide (`ui/icons.tsx`), menüde `nav-icon.tsx` üzerinden ayrı bir parçada (`next/dynamic`): kasiyerin Kasa'sı simge kodu indirmez. Her öğenin kendi simgesi | `admin-nav-ia`, `admin-karaoke-panel`, `admin-ui-deps` |
+
+### Panel: liste aramaları adrese yazılmaz (list-search-no-url, 19 Eki 2026)
+
+Kabuk gezinme incelemesinin (#142) gizlilik bulgusu. İstenen: panelin
+ürettiği hiçbir adreste kişisel veriye benzeyen bir arama metni olmasın.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Liste aramaları GET'ti: Siparişler, Müşteriler, Ürünler, Kafe menüsü, Karaoke, Bülten, gönderim defteri, Promosyon ve Masalarda yazılan e-posta ya da telefon `?q=` ile, Olay kaydında "Kim" ve "Kayıt no" adres çubuğuna, tarayıcı geçmişine, vekil sunuculara ve Vercel istek kaydına düşüyordu; sekme, sıralama ve sayfa bağlantıları, karaoke rezervasyon sayfasının geri bağlantısı (`?geri=`) ve CSV bağlantısı da taşıyordu | Kitin `FilterBar`'ı POST eder: `listSearchAction` (oturum ve listenin sayfasının bölümü denetlenir, kural 27) metni listenin yoluna bağlı, 10 dakikalık, httpOnly, sameSite=lax çerezde (`adm_q_<liste>`; kampanya defterinde o kampanyanın sayfasına bağlı) tutar ve listeye metinsiz adresle yönlendirir. Sekme, açılır listeler, tarih ve sıralama adreste kalır. Sayfa metni çerezden okur (`listSearchView`: `url` bağlantılar için, `view` liste için); adresteki bir metin hiç okunmaz. CSV dışa aktarımları (Siparişler, Olay kaydı) metni çerezden alır. "Sıfırla", arama çipinin × düğmesi ve boş listenin "Filtreleri temizle"si de gönderir ve metni unutur. `LIST_SEARCHES`'ta olmayan bir yol ya da kayıtsız bir arama kutusu `FilterBar`'da hata verir; JavaScript'siz form sayfaya POST eder, 303'ü izler. `src/` altında GET form kalmadı (`GET_FORMS` boş). Kayıtlı görünümler (UI-11) adresten kurulacağı için metni taşıyamaz | `admin-list-search`, `admin-filter-bar`, `admin-ui-kit`, `form-native-submit`, `admin-catalog-lists`, `admin-customer-list`, `admin-audit-log`, `admin-order-csv` |
+| 🟢 | Müşteri satırındaki "Siparişleri", üye sayfasındaki "Tümünü gör" (`?q=<e-posta>`) ve Olay kaydındaki "Geçmişi" (`?entityId=<e-posta>`, üyenin ve panel kullanıcısının kaydı adresidir) kişinin adresini adrese yazıyordu | `ListSearchButton`: aynı listeye gider, metin gönderinin gövdesinde; kayıt türü adreste kalır. Panel kodunda bağlantıya metin koyan satır kalmadı (testle) | `admin-list-search`, `admin-customer-list`, `admin-customer-detail`, `admin-audit-log` |
+| 🟢 | Eski bir yer imi ya da bağlantı `?q=` taşıyordu; oturum yoksa girişin `next`'i de | Proxy, listenin kendi yolundaki bir sayfa görüntülemesinde (GET/HEAD) metni çereze taşır ve listeyi metinsiz yeniden açar (303), şifre sıfırlama belirtecinin yolunu izler; giriş yönlendirmesi ondan sonra gelir. Formun kendi POST'una, listenin altındaki sayfalara ve benzer yollara dokunmaz | `admin-list-search`, `admin-proxy-2fa` |
+| 🟢 | Paylaşılan köşk cihazında bir sonraki kişi öncekinin aramasını kutuda bulurdu | Çıkış (`signOutAdmin`) listelerin arama çerezlerini siler; kampanya defterininki 10 dakikada kendiliğinden düşer | `admin-list-search` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Arama çerezi tarayıcı başınadır: aynı listede iki sekmede ayrı arama yapılırsa son yazılan geçer | Metin adreste olmadığı için sekmeye bağlanamaz; uygulanan arama kutunun altındaki çipte görünür (docs/ADMIN.md "Listelerde arama") |
+| 🟢 | Panel aramasının (`/admin/ara`) "listeye git" bağlantısı listeyi aramasız açar | Palet (UI-6) aynı yere `ListSearchButton` ile metni gönderebilir |
 
 ### Hukuk: fatura e-Arşiv olarak e-postayla, İşlem Rehberi, meslek odası (20 Eki 2026)
 

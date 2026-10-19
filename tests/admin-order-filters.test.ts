@@ -137,12 +137,13 @@ describe("one set of open orders (ORD-21)", () => {
 });
 
 describe("selection and the URL (ORD-07)", () => {
-  it("a tab, filter, sort or page link starts a fresh selection", () => {
+  it("a tab, filter, sort, page link or new search starts a fresh selection", () => {
     // Next keeps a page's client state across search-param changes: three
     // open orders ticked, the "Tamamlandı" tab clicked, "İptal et" pressed,
-    // and three orders nobody could see were cancelled.
+    // and three orders nobody could see were cancelled. `view` is the
+    // address and the remembered search (lib/admin/list-search.ts).
     const page = readFileSync("src/app/admin/siparisler/page.tsx", "utf8");
-    expect(page).toMatch(/<OrdersList\s+key=\{JSON\.stringify\(sp\)\}/);
+    expect(page).toMatch(/<OrdersList\s+key=\{JSON\.stringify\(view\)\}/);
     expect(page).toContain("live={parsed.live}");
   });
 });

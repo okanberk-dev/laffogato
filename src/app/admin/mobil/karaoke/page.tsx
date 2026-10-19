@@ -33,6 +33,7 @@ import {
   parseSort,
   withParams,
 } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import {
@@ -106,12 +107,18 @@ async function attentionRows(
  */
 export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const session = await requireRole("karaoke");
-  const sp = await searchParams;
+  // `sp` is the address (every link below, the booking pages' way back
+  // too), `view` adds the remembered search text (what the list shows):
+  // lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    KARAOKE_PANEL_PATH,
+    await searchParams,
+  );
   const now = new Date();
   const today = istanbulClock(now).date;
-  const filters = parseFilters(sp, KARAOKE_FILTER_FIELDS);
-  const tab = parseKaraokeTab(sp);
-  const sort = parseSort(sp, KARAOKE_SORT_KEYS, defaultKaraokeSort(tab));
+  const filters = parseFilters(view, KARAOKE_FILTER_FIELDS);
+  const tab = parseKaraokeTab(view);
+  const sort = parseSort(view, KARAOKE_SORT_KEYS, defaultKaraokeSort(tab));
 
   const [rows, settings, attention] = await Promise.all([
     listReservationsForAdmin({ from: filters.bas, to: filters.bit }),
@@ -132,7 +139,7 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
     tab,
     filters,
     sort,
-    page: parsePage(sp),
+    page: parsePage(view),
     today,
     attention: attention ? karaokeAttentionViews(attention, ctx) : null,
   });

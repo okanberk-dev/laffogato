@@ -17,6 +17,7 @@ import {
   DataTable,
   EmptyState,
   KeyValueGrid,
+  ListSearchButton,
   NUMERIC_STYLE,
   OrderStatusBadge,
 } from "@/components/admin/ui";
@@ -34,7 +35,8 @@ import {
   karaokeRowViews,
   moneyOf,
 } from "@/lib/admin/karaoke-panel";
-import { formatIsoDate, withParams } from "@/lib/admin/list-params";
+import { formatIsoDate } from "@/lib/admin/list-params";
+import { ORDER_LIST_PATH } from "@/lib/admin/order-filters";
 import { canAccess } from "@/lib/admin/roles";
 import {
   customerLifetime,
@@ -549,12 +551,14 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             </p>
           </div>
           {orderTotal > ORDERS_SHOWN ? (
-            <Link
-              href={withParams({}, { q: email }, "/admin/siparisler")}
+            // The address goes in the post's body, not in `?q=`.
+            <ListSearchButton
+              href={ORDER_LIST_PATH}
+              terms={{ q: email }}
               className={BUTTON.ghost}
             >
               Tümünü gör
-            </Link>
+            </ListSearchButton>
           ) : null}
         </div>
         <DataTable

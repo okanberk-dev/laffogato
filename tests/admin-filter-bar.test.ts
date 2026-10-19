@@ -170,10 +170,13 @@ describe("markup", () => {
     }
   });
 
-  it("chips and the GET fallback stay as they were", () => {
+  it("chips stay; the form posts instead of the old GET", () => {
     const html = render({ kanal: "app", durum: "paid", sayfa: "3" });
     expect(html).toContain('role="search"');
-    expect(html).toContain('method="get"');
+    // The search box's text goes in a post's body (list-search-core.ts):
+    // no GET, no URL action.
+    expect(html).not.toMatch(/method="get"/i);
+    expect(html).not.toMatch(/<form[^>]*\saction="\//);
     expect(html).not.toContain('name="sayfa"');
     expect(html).toContain('aria-label="Etkin filtreler"');
     expect(html).toContain(">Uygula</button>");
@@ -181,10 +184,11 @@ describe("markup", () => {
   });
 
   it("Uygula says it is working until the filtered list is in", () => {
-    // router.push runs in a transition: `pending` holds until the new list
+    // The post runs as an action: `pending` holds until the new list
     // renders, and the old list no longer sits there with no sign of it.
     const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
-    expect(src).toMatch(/startTransition\(\(\) => \{\s*router\.push\(/);
+    expect(src).toContain("useActionState(postListSearch, null)");
+    expect(src).toContain("useNoResetSubmit(dispatch, pending)");
     expect(src).toContain('{pending ? "Uygulanıyor…" : "Uygula"}');
     expect(src).toContain("aria-busy={pending || undefined}");
   });

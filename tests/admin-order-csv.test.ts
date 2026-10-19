@@ -25,6 +25,15 @@ const couponSourcesForOrders = vi.hoisted(() =>
 vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders }));
 const safeAudit = vi.hoisted(() => vi.fn(async (_input: unknown) => true));
 vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
+// The list's typed search is not in the CSV link: its cookie (path
+// /admin/siparisler) reaches the export (lib/admin/list-search-core.ts).
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name in jar.cookies ? { name, value: jar.cookies[name] } : undefined,
+  }),
+}));
 
 const { csvCell, ordersCsv, ORDER_CSV_HEADER } = await import("@/lib/admin/order-csv");
 
@@ -174,7 +183,10 @@ describe("CSV export", () => {
       .mockResolvedValueOnce({ orders: Array.from({ length: 500 }, (_, i) => order({ id: `o${i}`, orderNo: i })), total: 501 })
       .mockResolvedValueOnce({ orders: [order({ id: "last", orderNo: 9 })], total: 501 });
     const { GET } = await import("@/app/admin/siparisler/csv/route");
-    const res = await GET(new Request("https://laffogato.net/admin/siparisler/csv?durum=paid&q=eda"));
+    jar.cookies = { adm_q_orders: "q=eda" };
+    // A text in the address is never read: the cookie's is the search.
+    const res = await GET(new Request("https://laffogato.net/admin/siparisler/csv?durum=paid&q=zzz"));
+    jar.cookies = {};
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("text/csv; charset=utf-8");
     expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="siparisler-\d{4}-\d{2}-\d{2}\.csv"$/);
@@ -198,9 +210,11 @@ describe("CSV export", () => {
       total: 2,
     });
     const { GET } = await import("@/app/admin/siparisler/csv/route");
+    jar.cookies = { adm_q_orders: "q=eda" };
     const res = await GET(
-      new Request("https://laffogato.net/admin/siparisler/csv?durum=acik&kanal=web&q=eda"),
+      new Request("https://laffogato.net/admin/siparisler/csv?durum=acik&kanal=web"),
     );
+    jar.cookies = {};
     expect(res.status).toBe(200);
     expect(safeAudit).toHaveBeenCalledTimes(1);
     expect(safeAudit).toHaveBeenCalledWith({

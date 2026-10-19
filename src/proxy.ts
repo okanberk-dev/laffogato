@@ -5,6 +5,12 @@ import {
   readSessionFromCookieValue,
 } from "@/lib/admin/auth";
 import {
+  encodeListSearch,
+  listSearchCookieName,
+  listSearchCookieOptions,
+  listSearchInAddress,
+} from "@/lib/admin/list-search-core";
+import {
   RESET_PATH,
   RESET_TOKEN_COOKIE,
   RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
@@ -39,6 +45,11 @@ import { updateSession } from "@/lib/supabase/proxy";
  *    redirects unauthenticated visitors to /admin/giris. The cookie is
  *    verified in full by the admin layout; this only checks for its presence,
  *    which is all that is needed before the render.
+ *
+ * Before them, two moves of a value out of the address into a cookie scoped
+ * to its page, then a reload without it: the password reset token, and a
+ * panel list's typed search from an old link (`?q=<e-mail>`,
+ * lib/admin/list-search-core.ts), which the list now reads from its cookie.
  */
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -67,6 +78,36 @@ export async function proxy(request: NextRequest) {
       });
     }
     return moved;
+  }
+
+  // A panel list opened from an old link with its search in the address:
+  // the text goes into the list's cookie and the list reloads without it,
+  // so it leaves the address bar and the history, and neither the page's
+  // links nor the sign-in's `next` (below) carry it on. Page views only: a
+  // POST here is the list's own form (a Server Action), never moved.
+  if (request.method === "GET" || request.method === "HEAD") {
+    const found = listSearchInAddress(path, request.nextUrl.searchParams);
+    if (found) {
+      const url = request.nextUrl.clone();
+      url.search = found.rest.toString();
+      const moved = NextResponse.redirect(url, 303);
+      const name = listSearchCookieName(found.list);
+      // The link's search replaces the remembered one; an empty `?q=`
+      // forgets it.
+      if (Object.keys(found.terms).length > 0) {
+        moved.cookies.set({
+          name,
+          value: encodeListSearch(found.terms),
+          ...listSearchCookieOptions(
+            path,
+            process.env.NODE_ENV === "production",
+          ),
+        });
+      } else {
+        moved.cookies.delete({ name, path });
+      }
+      return moved;
+    }
   }
 
   if (isCheckoutPath(path)) {
