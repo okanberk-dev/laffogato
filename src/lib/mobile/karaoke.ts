@@ -30,6 +30,7 @@ import {
   isPartialRefund,
   istanbulTimeLabel,
   karaokeCancelDeadline,
+  karaokeFreeCancelEnd,
   karaokeCancellationRules,
   karaokeCancelPolicyOf,
   karaokeDeadlineFor,
@@ -1009,10 +1010,6 @@ function manageUrlFor(r: KaraokeReservation): string {
 }
 
 /**
- * "30 Ekim 2026, 18:00": the booking's last free-cancel moment on the köşk's
- * clock, which the confirmation prints (karaoke terms §7, 19 Eki 2026).
- */
-/**
  * "Son ücretsiz iptal: …" for a booking made after its own last free moment
  * (19:00 for 20:00 under 2 hours): an instant already behind it would read
  * as a window it never had. The web summary says the same (`freePassed`).
@@ -1020,13 +1017,20 @@ function manageUrlFor(r: KaraokeReservation): string {
 export const KARAOKE_FREE_PASSED_AT_BOOKING =
   "rezervasyonu yaptığın sırada süresi geçmişti, her iptal geç iptal sayılır";
 
+/**
+ * "30 Ekim 2026, 18:00": the booking's last free-cancel moment on the köşk's
+ * clock, which the confirmation prints (karaoke terms §7, 19 Eki 2026).
+ */
 function freeUntilLabel(r: KaraokeReservation): string {
   const at = karaokeCancelDeadline(r);
   const ms = at.getTime();
   if (!Number.isFinite(ms)) return "";
-  // `withinFreeCancel` is `now <= deadline`: the moment itself still counts.
+  // `withinFreeCancel` counts the moment and the whole minute it names
+  // (`karaokeFreeCancelEnd`): a booking made inside that minute still has it.
   const made = Date.parse(r.createdAt);
-  if (Number.isFinite(made) && made > ms) return KARAOKE_FREE_PASSED_AT_BOOKING;
+  if (Number.isFinite(made) && made >= karaokeFreeCancelEnd(at)) {
+    return KARAOKE_FREE_PASSED_AT_BOOKING;
+  }
   const day = new Date(ms + 3 * 60 * 60_000).toISOString().slice(0, 10);
   return `${formatReservationDate(day)}, ${istanbulTimeLabel(at.toISOString())}`;
 }

@@ -898,7 +898,8 @@ describe("the member's confirmation", () => {
       karaoke.KARAOKE_FREE_PASSED_AT_BOOKING,
     );
     expect(sent.cancellation.freeUntil).not.toMatch(/\d{2}:\d{2}/);
-    // Made at that moment itself: it still counts (`<=`).
+    // Made at that moment itself: it still counts (the whole named minute,
+    // `karaokeFreeCancelEnd`).
     confirm.mockClear();
     seedPaid({
       freeCancelHours: 2,

@@ -1726,7 +1726,8 @@ yenilenir (ayrı PR).
 - Y3-4: Karaoke §7'ye iptal anı maddesi: telefonda görüşme anı, yanıtlanmayan
   aramada telefonda görünen arama saati (aynı gün teyitle), e-postada
   gönderme anı. Tam son an (varsayılan kuralda tam 2 saat kala) süresinde
-  sayılır; kod `<=` yapıldı. Panelde "Misafir iptal istedi" nedeni kanal ve
+  sayılır; kod son anı ve sayfaların yazdığı dakikanın tamamını süreye sayar
+  (`karaokeFreeCancelEnd`, #166). Panelde "Misafir iptal istedi" nedeni kanal ve
   istek anıyla kaydedilir, rezervasyonun kendi kuralı istek anına göre
   uygulanır.
 - Y3-6: Kafe §20 erişim bildirimi masa rezervasyonu değildir; erişimi en

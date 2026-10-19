@@ -1061,7 +1061,8 @@ varsayılan 2; 0 = rezervasyon saati gelene kadar ücretsiz iptal; ilk
 sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
 (0..100, varsayılan 0; yeniden satılan saatin iadesi hazır olana kadar panel
 yalnız 0 ya da 100 kaydeder). Süreden önceki iptal, son anın kendisi dahil
-(`now <= cancellableUntil`; ilk sürümde `<`), her zaman tamamını iade
+ve sayfaların yazdığı dakikanın tamamı (18:00 son an ise 18:00:59'a kadar;
+ilk sürümde `now < cancellableUntil`), her zaman tamamını iade
 eder; gelmeyene iade yoktur; köşkün kendi iptali her zaman tam iadedir (MSY
 m.16/4). Köşkün yalnız aktardığı istek (misafirin telefonla ya da e-postayla
 ilettiği iptal, panelde "Misafir iptal istedi") ise rezervasyonun kuralına
