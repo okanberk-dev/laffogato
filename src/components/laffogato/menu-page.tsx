@@ -332,7 +332,7 @@ export function PageMenu({ menu, settings }: PageProps) {
                   The table of the fourteen groups is in the food safety
                   document (§7). */}
               <p>
-                Kalemin içerdiği alerjenler kartında yazar; yazmıyorsa
+                Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa
                 siparişten önce baristaya sor. Mutfağımızda süt, gluten,
                 kuruyemiş ve soya ile çapraz temas olabilir. Çölyak ya da ciddi
                 bir alerjin varsa baristaya söyle.

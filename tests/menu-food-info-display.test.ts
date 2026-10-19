@@ -172,6 +172,20 @@ describe("the allergen band", () => {
     // document §9: no product is promised free of an allergen).
     expect(band).not.toContain("pirinç bisküvili");
   });
+
+  it("speaks of the product, as the rest of the menu does, not the panel's item", () => {
+    const html = render(desserts(ITEMS));
+    const band = html.slice(html.indexOf('data-row="menu-notes"'));
+    // "Kalem" is the panel's word (and a pen); the menu page says "ürün".
+    expect(band).toContain(
+      "Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa siparişten önce baristaya sor.",
+    );
+    expect(band).not.toMatch(/[Kk]alem/);
+    const redlines = readFileSync("docs/LEGAL-REDLINES-2026-09.md", "utf8");
+    expect(redlines).toContain(
+      '"Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa siparişten önce baristaya sor.',
+    );
+  });
 });
 
 describe("the day reaches all three routes", () => {
