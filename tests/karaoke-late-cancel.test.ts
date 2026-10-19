@@ -256,11 +256,11 @@ vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
     await importOriginal<typeof import("@/lib/mobile/karaoke-time")>();
   return {
     ...real,
-    // A share of 1..99 % stays closed in the code until the resale refund
-    // ships; these tests keep exercising its path (karar D9).
+    // The app lock opened by the test (a share of 1..99 % is open since
+    // the resale refund, karaoke-make-good-and-resale).
     effectiveKaraokeCancelPolicy: (
       s: Parameters<typeof real.effectiveKaraokeCancelPolicy>[0],
-    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion, true),
+    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion),
   };
 });
 

@@ -1,0 +1,1082 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/**
+ * The köşk's late cancel made good, and the hour cancelled late and sold
+ * again (19 Eki 2026; karaoke terms §7, §8, §9; OP-KARAOKE-GOODWILL,
+ * ASK-OTH-3-CFG, D-KAR-1-99), through the real karaoke.ts and
+ * karaoke-payment.ts over an in-memory table. The POS, the mail, the audit
+ * log and the settings are scripted; `karaoke_charge_resold_hours` is
+ * mirrored in JS the way the migration writes it.
+ *
+ * - Make-good: only `ariza`, `kapanis`, `diger`, only after the booking's
+ *   own free moment, only what a late cancel would keep (> 0): the whole
+ *   payment under 2 h / 0 %. `mucbir`, `misafir`, `yeniden` never. One of
+ *   "Telafi saati ver" / "Telafi ödendi" closes the other; the IBAN is
+ *   never stored.
+ * - Resale: an hour cancelled late and paid for again refunds the share
+ *   kept for it, each hour once, to the booking that cancelled it last; the
+ *   debt is owed by hand (`refunding` + a staff alert) and a refund by hand
+ *   asks only for what is left.
+ */
+
+type Row = Record<string, unknown>;
+
+const h = vi.hoisted(() => ({
+  tables: new Map<string, Row[]>(),
+  appVersion: null as string | null,
+  settings: {} as Record<string, unknown>,
+  pos: "ok" as "ok" | "refused" | "timeout",
+  refunds: [] as Array<{ ref: string; amountMinor: number }>,
+  cancellations: [] as Array<Record<string, unknown>>,
+  confirmations: [] as Array<Record<string, unknown>>,
+  alerts: [] as Array<Record<string, unknown>>,
+  audits: [] as Array<Record<string, unknown>>,
+  rpcs: [] as Array<{ fn: string; args: Record<string, unknown> }>,
+  seq: 100,
+}));
+
+// ─── An in-memory stand-in for the query builder (src/lib/db/client.ts) ────
+
+type Filter = (row: Row) => boolean;
+
+/** karaoke_charge_resold_hours, as 20261019180000_karaoke_make_good.sql. */
+function chargeResoldHoursSql(id: string, hours: number[]): number {
+  const r = (h.tables.get("karaoke_reservations") ?? []).find(
+    (x) => x.id === id,
+  );
+  if (
+    !r ||
+    r.status !== "cancelled" ||
+    typeof r.refundMinor !== "number" ||
+    !["refunding", "refunded"].includes(String(r.paymentStatus))
+  ) {
+    return 0;
+  }
+  const start = Number(r.startHour);
+  const length = Number(r.hours);
+  const counted = (r.resoldHours as number[] | null) ?? [];
+  const fresh = [...new Set(hours)]
+    .filter((x) => x >= start && x < start + length && !counted.includes(x))
+    .sort((a, b) => a - b);
+  if (fresh.length === 0) return 0;
+  const before = Number(r.resaleRefundMinor ?? 0);
+  const share = Number(r.refundMinor) - before;
+  const kept = Number(r.paidMinor) - share;
+  if (kept <= 0) return 0;
+  const after = Math.round((kept * (counted.length + fresh.length)) / length);
+  const wasRefunded = r.paymentStatus === "refunded";
+  r.resoldHours = [...counted, ...fresh];
+  r.resaleRefundMinor = after;
+  r.refundMinor = share + after;
+  if (after > before) {
+    r.paymentStatus = "refunding";
+    if (wasRefunded) {
+      r.refundSettledMinor = r.refundSettledMinor ?? Number(share + before);
+    }
+  }
+  return after - before;
+}
+
+function fakeDb() {
+  const table = (name: string) => {
+    if (!h.tables.has(name)) h.tables.set(name, []);
+    return h.tables.get(name)!;
+  };
+  return {
+    rpc(fn: string, args: Record<string, unknown>) {
+      h.rpcs.push({ fn, args });
+      const data =
+        fn === "karaoke_charge_resold_hours"
+          ? chargeResoldHoursSql(String(args.p_id), args.p_hours as number[])
+          : null;
+      return Promise.resolve({ data, error: null, status: 200 });
+    },
+    from(name: string) {
+      const filters: Filter[] = [];
+      let op: "select" | "insert" | "update" | "delete" = "select";
+      let payload: Row | Row[] | null = null;
+      let returning = false;
+      let single = false;
+      let limit = Infinity;
+      const q = {
+        select(_cols?: string) {
+          if (op !== "select") returning = true;
+          return q;
+        },
+        insert(rows: Row | Row[]) {
+          op = "insert";
+          payload = rows;
+          return q;
+        },
+        update(patch: Row) {
+          op = "update";
+          payload = patch;
+          return q;
+        },
+        delete() {
+          op = "delete";
+          return q;
+        },
+        eq(col: string, v: unknown) {
+          filters.push((r) => (v === null ? r[col] == null : r[col] === v));
+          return q;
+        },
+        neq(col: string, v: unknown) {
+          filters.push((r) => (v === null ? r[col] != null : r[col] !== v));
+          return q;
+        },
+        ieq(col: string, v: string) {
+          filters.push(
+            (r) => String(r[col] ?? "").toLowerCase() === v.toLowerCase(),
+          );
+          return q;
+        },
+        in(col: string, list: unknown[]) {
+          filters.push((r) => list.includes(r[col]));
+          return q;
+        },
+        gte(col: string, v: string) {
+          filters.push((r) => String(r[col] ?? "") >= v);
+          return q;
+        },
+        lt(col: string, v: string) {
+          filters.push((r) => String(r[col] ?? "") < v);
+          return q;
+        },
+        order() {
+          return q;
+        },
+        limit(n: number) {
+          limit = n;
+          return q;
+        },
+        maybeSingle() {
+          single = true;
+          return q;
+        },
+        then<T>(
+          resolve: (v: {
+            data: unknown;
+            error: { code?: string; message: string } | null;
+            status: number;
+          }) => T,
+        ) {
+          const rows = table(name);
+          const match = () => rows.filter((r) => filters.every((f) => f(r)));
+          if (op === "insert") {
+            const list = Array.isArray(payload) ? payload : [payload as Row];
+            for (const row of list) {
+              if (
+                name === "payment_transactions" &&
+                rows.some(
+                  (r) =>
+                    r.provider === row.provider &&
+                    r.providerRef === row.providerRef,
+                )
+              ) {
+                return Promise.resolve(
+                  resolve({
+                    data: null,
+                    error: { code: "23505", message: "duplicate" },
+                    status: 409,
+                  }),
+                );
+              }
+              // karaoke_reservations_make_good_once
+              if (
+                name === "karaoke_reservations" &&
+                row.makeGoodFor &&
+                rows.some(
+                  (r) =>
+                    r.makeGoodFor === row.makeGoodFor &&
+                    r.status !== "cancelled",
+                )
+              ) {
+                return Promise.resolve(
+                  resolve({
+                    data: null,
+                    error: { code: "23505", message: "make_good_once" },
+                    status: 409,
+                  }),
+                );
+              }
+              rows.push(structuredClone(row));
+            }
+            return Promise.resolve(
+              resolve({ data: null, error: null, status: 201 }),
+            );
+          }
+          if (op === "update") {
+            const hit = match();
+            for (const r of hit) Object.assign(r, structuredClone(payload));
+            return Promise.resolve(
+              resolve({
+                data: returning ? hit.map((r) => ({ id: r.id })) : null,
+                error: null,
+                status: 200,
+              }),
+            );
+          }
+          if (op === "delete") {
+            const hit = new Set(match());
+            h.tables.set(
+              name,
+              rows.filter((r) => !hit.has(r)),
+            );
+            return Promise.resolve(
+              resolve({ data: null, error: null, status: 200 }),
+            );
+          }
+          const found = match()
+            .slice(0, limit)
+            .map((r) => structuredClone(r));
+          return Promise.resolve(
+            resolve({
+              data: single ? (found[0] ?? null) : found,
+              error: null,
+              status: 200,
+            }),
+          );
+        },
+      };
+      return q;
+    },
+  };
+}
+
+vi.mock("@/lib/db", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/db")>();
+  const db = fakeDb();
+  return { ...real, getDb: () => db };
+});
+vi.mock("@/lib/db/counters", () => ({
+  nextSeq: vi.fn(async () => {
+    h.seq += 1;
+    return h.seq;
+  }),
+}));
+vi.mock("@/lib/admin/store", () => ({
+  getSettings: vi.fn(async () => h.settings),
+}));
+vi.mock("@/lib/admin/audit", () => ({
+  logAudit: vi.fn(async (row: Record<string, unknown>) => {
+    h.audits.push(row);
+  }),
+}));
+vi.mock("@/lib/admin/rate-limit", () => ({
+  clearLoginLimit: vi.fn(async () => {}),
+  reserveLoginAttempt: vi.fn(async () => ({
+    blocked: false,
+    retryAfterSeconds: 0,
+  })),
+}));
+vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: async () => "" }));
+vi.mock("@/lib/mobile/loyalty", () => ({ getLoyalty: async () => null }));
+vi.mock("@/lib/mobile/checkout-ref", () => ({
+  recordPendingCheckout: vi.fn(async () => {}),
+}));
+vi.mock("@/lib/mobile/karaoke-notify", () => ({
+  notifyOperatorOfReservation: vi.fn(async () => {}),
+}));
+vi.mock("@/lib/mobile/karaoke-link", () => ({
+  karaokeLinkUrl: () => "https://laffogato.net/rezervasyon?t=x",
+  verifyKaraokeLink: () => true,
+}));
+vi.mock("@/lib/email/send", () => ({
+  sendKaraokeCancellationEmail: vi.fn(async (k: Record<string, unknown>) => {
+    h.cancellations.push(k);
+    return true;
+  }),
+  sendKaraokeConfirmationEmail: vi.fn(async (k: Record<string, unknown>) => {
+    h.confirmations.push(k);
+    return true;
+  }),
+  sendKaraokeLateRequestEmail: vi.fn(async () => true),
+  sendKaraokeMoneyAlertEmail: vi.fn(async (a: Record<string, unknown>) => {
+    h.alerts.push(a);
+    return { ok: true };
+  }),
+  sendKaraokePaidOperatorEmail: vi.fn(async () => ({ ok: true })),
+}));
+vi.mock("@/lib/payment", async () => {
+  const { PaymentRefusedError } = await import("@/lib/payment/provider");
+  return {
+    getPaymentProvider: () => ({
+      name: "fakepos",
+      refund: async (ref: string, amountMinor: number) => {
+        if (h.pos === "refused") {
+          throw new PaymentRefusedError("paynkolay refund reddedildi");
+        }
+        if (h.pos === "timeout") throw new Error("socket hang up");
+        h.refunds.push({ ref, amountMinor });
+        return { providerRef: ref, status: "succeeded" };
+      },
+    }),
+  };
+});
+// The app lock (karaoke-time.ts) is the code's own null; a test that needs a
+// late share opens it as the app follow-up would.
+vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import("@/lib/mobile/karaoke-time")>();
+  return {
+    ...real,
+    effectiveKaraokeCancelPolicy: (
+      s: Parameters<typeof real.effectiveKaraokeCancelPolicy>[0],
+    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion),
+  };
+});
+
+const { DEFAULT_MOBILE_APP_CONFIG } = await import("@/lib/mobile/app-config");
+const payment = await import("@/lib/mobile/karaoke-payment");
+const core = await import("@/lib/mobile/karaoke-make-good-core");
+const time = await import("@/lib/mobile/karaoke-time");
+const panel = await import("@/lib/admin/karaoke-panel");
+
+// 30 Ekim 2026, 20:00 in Tuzla.
+const START = Date.parse("2026-10-30T17:00:00.000Z");
+const HOUR = 3600_000;
+const at = (hoursBefore: number) => new Date(START - hoursBefore * HOUR);
+const MEMBER = {
+  kind: "member" as const,
+  email: "eda@example.com",
+  emailVerified: true,
+};
+const staff = (cause: string) => ({
+  kind: "staff" as const,
+  actor: "yonetici@kosk",
+  canRefund: true,
+  reason: "Oda arızalı",
+  cause: cause as never,
+});
+
+function settingsWith(policy: { hours: number; percent: number }) {
+  return {
+    karaokePrepay: true,
+    karaokeHourlyMinor: 100_000,
+    karaokeCapacity: 8,
+    karaokeNotifyEmail: "",
+    email: "kosk@example.com",
+    taxRates: { karaoke: 20 },
+    karaokeFreeCancelHours: policy.hours,
+    karaokeLateRefundPercent: policy.percent,
+    karaokeCancelPolicyAt: "2026-10-18T09:00:00.000Z",
+    mobileApp: {
+      ...DEFAULT_MOBILE_APP_CONFIG,
+      minSupportedAppVersion: "1.1.0",
+    },
+  };
+}
+
+/** A paid, confirmed booking with its payment row. */
+function booking(over: Partial<Row> = {}, paidMinor = 200_000): Row {
+  const id = String(over.id ?? "krk-00042");
+  const ref = String(over.paymentRef ?? "PNK-1");
+  return {
+    id,
+    customerEmail: "eda@example.com",
+    customerName: "Eda Yılmaz",
+    date: "2026-10-30",
+    startHour: 20,
+    hours: 2,
+    guests: 4,
+    status: "confirmed",
+    priceMinor: paidMinor,
+    discountMinor: 0,
+    totalMinor: paidMinor,
+    note: "",
+    createdAt: "2026-10-20T09:00:00.000Z",
+    updatedAt: "2026-10-20T09:05:00.000Z",
+    paymentStatus: "paid",
+    paymentDueAt: "",
+    paidAt: "2026-10-20T09:05:00.000Z",
+    refundedAt: "",
+    paidMinor,
+    paymentRef: ref,
+    channel: "web",
+    guest: false,
+    contactEmail: "",
+    ...over,
+  };
+}
+
+function seed(...rows: Row[]): void {
+  h.tables.set("karaoke_reservations", rows);
+  h.tables.set(
+    "payment_transactions",
+    rows
+      .filter((r) => r.paymentRef)
+      .map((r) => ({
+        orderId: r.id,
+        provider: "fakepos",
+        providerRef: r.paymentRef,
+        status: "succeeded",
+        amountMinor: r.paidMinor,
+        trxDate: "2026-10-20",
+      })),
+  );
+}
+
+const rowOf = (id: string) =>
+  h.tables.get("karaoke_reservations")!.find((r) => r.id === id)!;
+const claimOf = (ref: string) =>
+  h.tables
+    .get("payment_transactions")!
+    .find((r) => r.providerRef === `${ref}:refund`);
+
+beforeEach(() => {
+  h.tables.clear();
+  h.appVersion = null;
+  h.settings = settingsWith({ hours: 2, percent: 0 });
+  h.pos = "ok";
+  h.refunds.length = 0;
+  h.cancellations.length = 0;
+  h.confirmations.length = 0;
+  h.alerts.length = 0;
+  h.audits.length = 0;
+  h.rpcs.length = 0;
+});
+
+// ─── The rules, pure ───────────────────────────────────────────────────────
+
+describe("the make-good rules (karaoke terms §8)", () => {
+  const r = {
+    date: "2026-10-30",
+    startHour: 20,
+    status: "confirmed",
+    paidMinor: 200_000,
+    totalMinor: 200_000,
+    createdAt: "2026-10-20T09:00:00.000Z",
+  };
+
+  it("six calendar months, the last month's own day or its last (TBK m.92/3)", () => {
+    expect(core.addCalendarMonths("2026-10-19", 6)).toBe("2027-04-19");
+    expect(core.addCalendarMonths("2026-08-31", 6)).toBe("2027-02-28");
+    expect(core.addCalendarMonths("2027-08-31", 6)).toBe("2028-02-29");
+    expect(core.addCalendarMonths("2026-12-31", 6)).toBe("2027-06-30");
+  });
+
+  it("only the köşk's own reasons, only after the free moment, only what a late cancel keeps", () => {
+    // 2 h / 0 %, one hour before the start: a late cancel keeps everything.
+    for (const cause of ["ariza", "kapanis", "diger"] as const) {
+      expect(core.karaokeMakeGoodFor(r, cause, at(1))).toEqual({
+        until: "2027-04-30",
+        minor: 200_000,
+      });
+    }
+    // Force majeure, a guest's request, an hour given away: never.
+    for (const cause of ["mucbir", "misafir", "yeniden", undefined] as const) {
+      expect(core.karaokeMakeGoodFor(r, cause, at(1))).toBeNull();
+    }
+    // Inside the free window, the deadline minute included: none.
+    expect(core.karaokeMakeGoodFor(r, "ariza", at(3))).toBeNull();
+    expect(
+      core.karaokeMakeGoodFor(r, "ariza", new Date(START - 2 * HOUR + 30_000)),
+    ).toBeNull();
+    // After the start (a closed köşk recorded the next day): everything.
+    expect(core.karaokeMakeGoodFor(r, "kapanis", at(-5))?.minor).toBe(200_000);
+    // A booking never confirmed was never promised: nothing kept.
+    expect(
+      core.karaokeMakeGoodFor({ ...r, status: "requested" }, "ariza", at(1)),
+    ).toBeNull();
+  });
+
+  it("follows the booking's own rule: the kept part of a share, nothing at 100 %", () => {
+    const half = { ...r, freeCancelHours: 24, lateRefundPercent: 50 };
+    expect(core.karaokeMakeGoodFor(half, "ariza", at(10))?.minor).toBe(100_000);
+    const all = { ...r, freeCancelHours: 24, lateRefundPercent: 100 };
+    expect(core.karaokeMakeGoodFor(all, "ariza", at(10))).toBeNull();
+  });
+});
+
+describe("the resale rules (ASK-OTH-3-CFG)", () => {
+  const late = (over: Partial<Row>) =>
+    ({
+      id: "krk-a",
+      date: "2026-10-30",
+      startHour: 20,
+      hours: 2,
+      status: "cancelled",
+      paymentStatus: "refunding",
+      paidMinor: 200_000,
+      totalMinor: 200_000,
+      refundMinor: 100_000,
+      updatedAt: "2026-10-30T10:00:00.000Z",
+      ...over,
+    }) as never;
+
+  it("each hour to the booking that cancelled it last, never twice", () => {
+    const a = late({});
+    const b = late({
+      id: "krk-b",
+      startHour: 20,
+      hours: 1,
+      updatedAt: "2026-10-30T12:00:00.000Z",
+    });
+    const sold = { id: "krk-c", date: "2026-10-30", startHour: 20, hours: 3 };
+    expect(core.resaleAllocation(sold, [a, b])).toEqual([
+      { id: "krk-b", hours: [20] },
+      { id: "krk-a", hours: [21] },
+    ]);
+    // An hour already refunded to its last canceller is not counted again.
+    const bDone = late({
+      id: "krk-b",
+      hours: 1,
+      updatedAt: "2026-10-30T12:00:00.000Z",
+      resoldHours: [20],
+    });
+    expect(core.resaleAllocation(sold, [a, bDone])).toEqual([
+      { id: "krk-a", hours: [21] },
+    ]);
+  });
+
+  it("a booking that went back in full, and a free hour, are no part of it", () => {
+    const full = late({ paymentStatus: "refunded", refundMinor: null });
+    const sold = { id: "krk-c", date: "2026-10-30", startHour: 20, hours: 2 };
+    expect(core.resaleAllocation(sold, [full])).toEqual([]);
+    expect(
+      core.resaleAllocation({ ...sold, makeGoodFor: "krk-a" }, [late({})]),
+    ).toEqual([]);
+    // Another day.
+    expect(
+      core.resaleAllocation({ ...sold, date: "2026-10-31" }, [late({})]),
+    ).toEqual([]);
+  });
+
+  it("the parts add up to exactly what was kept", () => {
+    const kept = 1001;
+    const parts = [1, 2, 3].map((n) => core.resaleRefundTotal(kept, 3, n));
+    expect(parts.at(-1)).toBe(kept);
+    expect(parts).toEqual([334, 667, 1001]);
+  });
+});
+
+// ─── The köşk cancels late ─────────────────────────────────────────────────
+
+describe("a köşk cancel after the free moment", () => {
+  it("ariza: the whole refund, and a make-good of what a late cancel keeps", async () => {
+    seed(booking());
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff("ariza"),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({
+      ok: true,
+      refunded: true,
+      makeGood: { minor: 200_000, until: "2027-04-30" },
+    });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(rowOf("krk-00042")).toMatchObject({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      makeGoodUntil: "2027-04-30",
+      makeGoodMinor: 200_000,
+    });
+    expect(rowOf("krk-00042").makeGoodUsedAt ?? null).toBeNull();
+    // The guest's mail offers it, with the amount and the last day.
+    expect(h.cancellations.at(-1)).toMatchObject({
+      cancelCause: "ariza",
+      refundedMinor: 200_000,
+      makeGood: { minor: 200_000, until: "30 Nisan 2027" },
+    });
+  });
+
+  it("before the free moment ends: the whole refund, no make-good", async () => {
+    seed(booking());
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff("kapanis"),
+      { now: at(5) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(res.ok && res.makeGood).toBeFalsy();
+    expect(rowOf("krk-00042").makeGoodUntil ?? null).toBeNull();
+    expect(h.cancellations.at(-1)?.makeGood).toBeUndefined();
+  });
+
+  it.each(["mucbir", "yeniden"])("%s: never a make-good", async (cause) => {
+    seed(booking());
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff(cause),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(rowOf("krk-00042").makeGoodMinor ?? null).toBeNull();
+  });
+
+  it("misafir refunded in full anyway: not the köşk's cancel, no make-good", async () => {
+    seed(booking());
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      {
+        ...staff("misafir"),
+        channel: "telefon",
+        requestedAt: at(1),
+        fullRefund: true,
+      },
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(rowOf("krk-00042").makeGoodMinor ?? null).toBeNull();
+  });
+
+  it("a declined refund: the booking stands and nothing is made good", async () => {
+    seed(booking());
+    h.pos = "refused";
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff("ariza"),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: false, reason: "refund_refused" });
+    expect(rowOf("krk-00042")).toMatchObject({
+      status: "confirmed",
+      paymentStatus: "paid",
+      makeGoodUntil: null,
+      makeGoodMinor: null,
+    });
+  });
+
+  it("an unanswered refund keeps the make-good for when it is settled", async () => {
+    seed(booking());
+    h.pos = "timeout";
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff("diger"),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: false, reason: "refund_unknown" });
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunding",
+      makeGoodMinor: 200_000,
+    });
+    // The person settles it: the guest's mail then carries the make-good.
+    const settled = await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(settled.ok).toBe(true);
+    expect(h.cancellations.at(-1)).toMatchObject({
+      makeGood: { minor: 200_000 },
+    });
+  });
+});
+
+// ─── Using it ──────────────────────────────────────────────────────────────
+
+describe("Telafi saati ver / Telafi ödendi", () => {
+  async function cancelledLate(): Promise<void> {
+    seed(
+      booking({
+        contactEmail: "eda@example.com",
+        contactPhone: "+905321234567",
+      }),
+    );
+    await payment.cancelKaraokeReservation("krk-00042", staff("ariza"), {
+      now: at(1),
+    });
+  }
+
+  it("gives a free confirmed hour of the same length to the same guest", async () => {
+    await cancelledLate();
+    const res = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const hour = rowOf(res.reservation.id);
+    expect(hour).toMatchObject({
+      customerEmail: "eda@example.com",
+      contactPhone: "+905321234567",
+      date: "2026-11-06",
+      startHour: 21,
+      hours: 2,
+      guests: 4,
+      status: "confirmed",
+      paymentStatus: "none",
+      totalMinor: 0,
+      paidMinor: 0,
+      channel: "staff",
+      note: "Telafi: KRK-00042",
+      makeGoodFor: "krk-00042",
+      legalConsent: null,
+    });
+    expect(typeof rowOf("krk-00042").makeGoodUsedAt).toBe("string");
+    // Its confirmation says nothing is paid for it.
+    expect(h.confirmations.at(-1)).toMatchObject({
+      makeGoodHourFor: "krk-00042",
+      payment: { kind: "venue" },
+    });
+    // The other option closes, and so does a second hour.
+    expect(
+      await payment.recordKaraokeMakeGoodPaid(
+        "krk-00042",
+        { paidOn: "2026-10-30", amountMinor: 200_000 },
+        "yonetici@kosk",
+        at(0),
+      ),
+    ).toMatchObject({ ok: false, reason: "not_open" });
+    expect(
+      await payment.giveKaraokeMakeGoodHour(
+        "krk-00042",
+        { date: "2026-11-07", startHour: 21 },
+        "yonetici@kosk",
+        at(0),
+      ),
+    ).toMatchObject({ ok: false, reason: "not_open" });
+    expect(h.audits.map((a) => (a.payload as Row).event)).toEqual(
+      expect.arrayContaining(["make_good_hour_given", "make_good_hour"]),
+    );
+  });
+
+  it("a taken hour is refused and the make-good stays open", async () => {
+    await cancelledLate();
+    h.tables.get("karaoke_reservations")!.push(
+      booking({
+        id: "krk-00050",
+        date: "2026-11-06",
+        startHour: 20,
+        paymentRef: "PNK-9",
+      }),
+    );
+    const res = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(res).toMatchObject({ ok: false, reason: "slot_taken" });
+    expect(rowOf("krk-00042").makeGoodUsedAt ?? null).toBeNull();
+  });
+
+  it("records the transfer's day and amount, never an IBAN, and closes the hour", async () => {
+    await cancelledLate();
+    const less = await payment.recordKaraokeMakeGoodPaid(
+      "krk-00042",
+      { paidOn: "2026-10-30", amountMinor: 199_999 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(less).toMatchObject({ ok: false, reason: "invalid" });
+    const ahead = await payment.recordKaraokeMakeGoodPaid(
+      "krk-00042",
+      { paidOn: "2026-11-30", amountMinor: 200_000 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(ahead).toMatchObject({ ok: false, reason: "invalid" });
+    const ok = await payment.recordKaraokeMakeGoodPaid(
+      "krk-00042",
+      { paidOn: "2026-10-30", amountMinor: 200_000 },
+      "yonetici@kosk",
+      at(0),
+      { reason: "Havale yapıldı" },
+    );
+    expect(ok.ok).toBe(true);
+    const r = rowOf("krk-00042");
+    expect(r).toMatchObject({
+      makeGoodPaidMinor: 200_000,
+      makeGoodPaidOn: "2026-10-30",
+    });
+    expect(JSON.stringify(r).toLowerCase()).not.toContain("iban");
+    expect(core.makeGoodStateOf(r as never)).toBe("paid");
+    expect(
+      await payment.giveKaraokeMakeGoodHour(
+        "krk-00042",
+        { date: "2026-11-06", startHour: 21 },
+        "yonetici@kosk",
+        at(0),
+      ),
+    ).toMatchObject({ ok: false, reason: "not_open" });
+  });
+
+  it("past its last day the free hour is gone, the money is not", async () => {
+    await cancelledLate();
+    const later = new Date("2027-05-01T09:00:00.000Z");
+    expect(
+      await payment.giveKaraokeMakeGoodHour(
+        "krk-00042",
+        { date: "2027-05-02", startHour: 21 },
+        "yonetici@kosk",
+        later,
+      ),
+    ).toMatchObject({ ok: false, reason: "expired" });
+    expect(
+      await payment.recordKaraokeMakeGoodPaid(
+        "krk-00042",
+        { paidOn: "2027-05-01", amountMinor: 200_000 },
+        "yonetici@kosk",
+        later,
+      ),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("the free hour cancelled before it begins opens the make-good again", async () => {
+    await cancelledLate();
+    const given = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(given.ok).toBe(true);
+    if (!given.ok) return;
+    const res = await payment.cancelKaraokeReservation(
+      given.reservation.id,
+      MEMBER,
+      { now: at(0) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: false });
+    expect(rowOf("krk-00042").makeGoodUsedAt).toBeNull();
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+  });
+
+  it("the panel offers both while open, needs the refund right, and none on a booking without one", () => {
+    const now = at(0);
+    const ctx = { today: "2026-10-30", now, prepay: true, canRefund: true };
+    const open = booking({
+      status: "cancelled",
+      paymentStatus: "refunded",
+      makeGoodUntil: "2027-04-30",
+      makeGoodMinor: 200_000,
+    }) as never;
+    const v = panel.karaokeRowView(open, ctx);
+    expect(v.makeGood).toBe("open");
+    expect(v.plan.makeGoodHour).toEqual({});
+    expect(v.plan.makeGoodPaid).toEqual({});
+    const staffOnly = panel.karaokeRowView(open, { ...ctx, canRefund: false });
+    expect(staffOnly.plan.makeGoodHour?.disabledReason).toBe(
+      panel.REFUND_PERMISSION_REASON,
+    );
+    const expired = panel.karaokeRowView(open, {
+      ...ctx,
+      now: new Date("2027-05-01T09:00:00.000Z"),
+    });
+    expect(expired.plan.makeGoodHour?.disabledReason).toMatch(/son günü/);
+    expect(expired.plan.makeGoodPaid).toEqual({});
+    const none = panel.karaokeRowView(booking() as never, ctx);
+    expect(none.plan.makeGoodHour).toBeNull();
+    expect(none.plan.makeGoodPaid).toBeNull();
+    // The free hour reads as one, and bills nothing (its KDV is declared on
+    // the market value).
+    const hour = booking({
+      paymentStatus: "none",
+      totalMinor: 0,
+      paidMinor: 0,
+      channel: "staff",
+      makeGoodFor: "krk-00042",
+    }) as never;
+    expect(panel.paymentLabel(hour)).toBe("Telafi saati, ücretsiz");
+    expect(panel.channelLabel("staff")).toBe("Köşk (telafi saati)");
+    expect(
+      panel.karaokeBillableMinor(hour, new Date("2026-11-01T00:00:00Z")),
+    ).toBeNull();
+  });
+});
+
+// ─── The hour sold again ───────────────────────────────────────────────────
+
+describe("an hour cancelled late and sold again", () => {
+  const HALF = { freeCancelHours: 24, lateRefundPercent: 50 };
+
+  /** A, booked 20-22 under 24 h / 50 %, cancelled late by its member. */
+  async function lateCancelled(): Promise<void> {
+    h.appVersion = "1.1.0";
+    h.settings = settingsWith({ hours: 24, percent: 50 });
+    seed(booking({ ...HALF }));
+    const res = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
+      now: at(10),
+    });
+    expect(res).toMatchObject({ ok: true, refundOwedMinor: 100_000 });
+  }
+
+  /** B, a hold for `startHour`..+`hours` that its payment confirms. */
+  async function soldAgain(
+    id: string,
+    startHour: number,
+    hours: number,
+    ref: string,
+    now = at(5),
+  ) {
+    h.tables.get("karaoke_reservations")!.push(
+      booking({
+        id,
+        customerEmail: "deniz@example.com",
+        startHour,
+        hours,
+        status: "requested",
+        paymentStatus: "pending",
+        paidMinor: 0,
+        paymentRef: "",
+        totalMinor: 100_000 * hours,
+        ...HALF,
+      }),
+    );
+    return payment.applyKaraokePaymentSucceeded({
+      reservationId: id,
+      provider: "fakepos",
+      providerRef: ref,
+      amountMinor: 100_000 * hours,
+      currency: "TRY",
+      trxDate: "2026-10-30",
+      now,
+    });
+  }
+
+  it("the share kept for the hour is owed back, by hand, and the köşk is told", async () => {
+    await lateCancelled();
+    const res = await soldAgain("krk-00043", 20, 1, "PNK-2");
+    expect(res).toMatchObject({ ok: true, outcome: "paid" });
+    expect(rowOf("krk-00043").status).toBe("confirmed");
+    // kept 100.000 over 2 hours; one hour sold: 50.000 more goes back.
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunding",
+      refundMinor: 150_000,
+      resaleRefundMinor: 50_000,
+      resoldHours: [20],
+    });
+    expect(h.alerts.at(-1)).toMatchObject({
+      title: "Geç iptal edilen saat yeniden satıldı",
+    });
+    expect(String(h.alerts.at(-1)?.summary)).toContain("₺500,00");
+    // Never sent to the POS: a person refunds it.
+    expect(h.refunds).toEqual([]);
+    expect(
+      await payment.retryKaraokeRefund("krk-00042", "yonetici@kosk", at(4)),
+    ).toMatchObject({ ok: false, reason: "by_hand" });
+    // The same payment reported again counts nothing twice.
+    await payment.applyKaraokePaymentSucceeded({
+      reservationId: "krk-00043",
+      provider: "fakepos",
+      providerRef: "PNK-2",
+      amountMinor: 100_000,
+      currency: "TRY",
+      now: at(4),
+    });
+    expect(rowOf("krk-00042").refundMinor).toBe(150_000);
+  });
+
+  it("after the share was refunded, a resale asks only for the rest and its mail says so", async () => {
+    await lateCancelled();
+    await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(9),
+    );
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunded",
+      refundSettledMinor: 100_000,
+    });
+    await soldAgain("krk-00043", 20, 2, "PNK-2");
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunding",
+      refundMinor: 200_000,
+      resaleRefundMinor: 100_000,
+      refundSettledMinor: 100_000,
+    });
+    expect(panel.refundOwedNowMinor(rowOf("krk-00042") as never)).toBe(100_000);
+    const v = panel.karaokeRowView(rowOf("krk-00042") as never, {
+      today: "2026-10-30",
+      now: at(4),
+      prepay: true,
+      canRefund: true,
+    });
+    expect(v.attention).toContain("resale_owed");
+    expect(v.plan.settle).toEqual({ kind: "share" });
+    expect(v.plan.refund).toBeNull();
+    h.cancellations.length = 0;
+    const settled = await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(3),
+    );
+    expect(settled.ok).toBe(true);
+    expect(h.cancellations.at(-1)).toMatchObject({
+      refundedMinor: 100_000,
+      refundIsShare: true,
+      refundIsResaleTopUp: true,
+    });
+    // The ledger says what went back in all.
+    expect(claimOf("PNK-1")).toMatchObject({
+      status: "refunded",
+      amountMinor: 200_000,
+    });
+    expect(rowOf("krk-00042").refundSettledMinor).toBe(200_000);
+  });
+
+  it("each hour once, to the booking that cancelled it last", async () => {
+    await lateCancelled();
+    // B takes 20:00 and is cancelled late in turn.
+    await soldAgain("krk-00043", 20, 1, "PNK-2", at(9));
+    const bCancel = await payment.cancelKaraokeReservation(
+      "krk-00043",
+      { kind: "member", email: "deniz@example.com", emailVerified: true },
+      { now: at(8) },
+    );
+    expect(bCancel).toMatchObject({ ok: true, refundOwedMinor: 50_000 });
+    expect(rowOf("krk-00042").resoldHours).toEqual([20]);
+    // C takes both hours: 20:00 counts to B (cancelled last), 21:00 to A.
+    await soldAgain("krk-00044", 20, 2, "PNK-3", at(6));
+    expect(rowOf("krk-00043")).toMatchObject({
+      resoldHours: [20],
+      resaleRefundMinor: 50_000,
+      refundMinor: 100_000,
+    });
+    expect(rowOf("krk-00042")).toMatchObject({
+      resoldHours: [20, 21],
+      resaleRefundMinor: 100_000,
+      refundMinor: 200_000,
+    });
+  });
+
+  it("a free hour the köşk gives is not a sale", async () => {
+    await lateCancelled();
+    // Another evening the köşk cancelled late, made good on A's hours.
+    h.tables.get("karaoke_reservations")!.push(
+      booking({
+        id: "krk-00010",
+        date: "2026-10-25",
+        status: "cancelled",
+        paymentStatus: "refunded",
+        paymentRef: "PNK-0",
+        makeGoodUntil: "2027-04-25",
+        makeGoodMinor: 200_000,
+      }),
+    );
+    const given = await payment.giveKaraokeMakeGoodHour(
+      "krk-00010",
+      { date: "2026-10-30", startHour: 20 },
+      "yonetici@kosk",
+      at(5),
+    );
+    expect(given.ok).toBe(true);
+    expect(h.rpcs).toEqual([]);
+    expect(rowOf("krk-00042")).toMatchObject({ refundMinor: 100_000 });
+    expect(rowOf("krk-00042").resoldHours ?? null).toBeNull();
+  });
+});
+
+describe("the late share and its sentence (D-KAR-1-99)", () => {
+  it("a share of 1..99 % is a rule the panel saves, and says the resale refund", () => {
+    expect(
+      time.karaokeCancelPolicyRefusal({
+        freeCancelHours: 24,
+        lateRefundPercent: 50,
+      }),
+    ).toBeNull();
+    const [, lateRule] = time.karaokeCancellationRules({
+      freeCancelHours: 24,
+      lateRefundPercent: 50,
+    }).rules;
+    expect(lateRule).toContain("en geç 14 gün içinde kartına iade edilir");
+    expect(lateRule).toContain(
+      "Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir.",
+    );
+  });
+});

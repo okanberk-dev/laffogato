@@ -175,8 +175,11 @@ export interface KaraokeReservation {
   paidMinor?: number;
   /** Provider reference of the payment that paid the row; "" until paid. */
   paymentRef?: string;
-  /** Where it was booked; decides where a payment return lands. */
-  channel?: "web" | "app" | "";
+  /**
+   * Where it was booked; decides where a payment return lands. `staff`: a
+   * free hour the köşk gave to make good its own late cancel (`makeGoodFor`).
+   */
+  channel?: "web" | "app" | "staff" | "";
   legalConsent?: KaraokeLegalConsent | null;
   /**
    * Booked on the web without an account (16 Eki 2026). Never listed for a
@@ -205,9 +208,36 @@ export interface KaraokeReservation {
   cancellationRules?: string[] | null;
   /**
    * Kuruş owed back, or refunded, when it is not the whole payment: a late
-   * cancel's share (`round(paid × P / 100)`). NULL: the whole payment.
+   * cancel's share (`round(paid × P / 100)`), plus what an hour cancelled
+   * late and sold again gives back (`resaleRefundMinor`). NULL: the whole
+   * payment.
    */
   refundMinor?: number | null;
+  /**
+   * The köşk's late cancel made good (20261019180000_karaoke_make_good.sql,
+   * karaoke-make-good-core.ts): the amount, the last day (Istanbul,
+   * YYYY-MM-DD) the free hour can be booked, when one of the two options
+   * was used, and the bank transfer when the money was chosen. NULL on
+   * every booking without one.
+   */
+  makeGoodUntil?: string | null;
+  makeGoodMinor?: number | null;
+  makeGoodUsedAt?: string | null;
+  makeGoodPaidMinor?: number | null;
+  makeGoodPaidOn?: string | null;
+  /** On the free hour itself: the booking it makes good. */
+  makeGoodFor?: string | null;
+  /**
+   * Hours (start hours) of a late-cancelled booking already refunded
+   * because they were sold again, and the part of `refundMinor` for them.
+   */
+  resoldHours?: number[] | null;
+  resaleRefundMinor?: number | null;
+  /**
+   * The part of `refundMinor` a person already recorded as refunded by
+   * hand: a resale after the late share went back owes only the rest.
+   */
+  refundSettledMinor?: number | null;
 }
 
 /** What the web form collects about who to reach for a booking. */

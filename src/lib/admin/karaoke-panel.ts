@@ -18,8 +18,15 @@ import {
   KARAOKE_PAYMENT_GRACE_MINUTES,
   karaokeEndInstant,
   refundAmountOf,
+  refundOwedNowOf,
 } from "@/lib/mobile/karaoke-time";
 import { sameSitePath } from "@/lib/http/same-site-path";
+import {
+  istanbulDayOf,
+  makeGoodHourOpen,
+  makeGoodStateOf,
+  type KaraokeMakeGoodState,
+} from "@/lib/mobile/karaoke-make-good-core";
 import {
   KARAOKE_CAUSE_LABEL,
   KARAOKE_CHANNEL_LABEL,
@@ -195,6 +202,20 @@ export function refundAmountMinor(
 }
 
 /**
+ * What a refund by hand still has to send: the above minus what a person
+ * already recorded (a late share refunded before its hour was sold again,
+ * `refundSettledMinor`). The dialogs ask for this, never the whole again.
+ */
+export function refundOwedNowMinor(
+  r: Pick<
+    KaraokeReservation,
+    "paidMinor" | "totalMinor" | "refundMinor" | "refundSettledMinor"
+  >,
+): number {
+  return refundOwedNowOf(r);
+}
+
+/**
  * What an evening that is over leaves to invoice, kuruş (ASK-KAR-KDV, 19
  * Eki 2026): the payment until the evening is an advance, and the e-Arşiv
  * invoice is cut at the köşk for what the köşk keeps, KDV included (KDV K.
@@ -215,10 +236,14 @@ export function karaokeBillableMinor(
     | "paidMinor"
     | "totalMinor"
     | "refundMinor"
-  >,
+  > &
+    Partial<Pick<KaraokeReservation, "makeGoodFor">>,
   now: Date,
 ): number | null {
   if (karaokeEndInstant(r).getTime() > now.getTime()) return null;
+  // A free hour the köşk gave collects nothing: its KDV is declared on the
+  // market value (KDV K. m.27/1), which the booking's page shows apart.
+  if (r.makeGoodFor) return null;
   const money = moneyOf(r);
   if (money === "none") return r.status === "confirmed" ? r.totalMinor : null;
   if (money !== "paid" && money !== "refunding" && money !== "refunded") {
@@ -259,14 +284,20 @@ export const KARAOKE_PAYMENT_TONE: Record<KaraokePaymentStatus, AdminTone> = {
  */
 export function paymentLabel(
   r: Pick<KaraokeReservation, "paymentStatus" | "paymentDueAt"> &
-    Partial<Pick<KaraokeReservation, "paidMinor" | "refundMinor">>,
+    Partial<
+      Pick<
+        KaraokeReservation,
+        "paidMinor" | "refundMinor" | "resaleRefundMinor" | "makeGoodFor"
+      >
+    >,
   lapsed = true,
   unverified = false,
 ): string {
   const money = moneyOf(r);
   switch (money) {
     case "none":
-      return "Köşkte ödeme";
+      // A free hour the köşk gave is not paid at the köşk either.
+      return r.makeGoodFor ? "Telafi saati, ücretsiz" : "Köşkte ödeme";
     case "pending": {
       const until = istanbulTimeLabel(r.paymentDueAt ?? "");
       return until ? `Ödeme bekleniyor · son ${until}` : "Ödeme bekleniyor";
@@ -289,6 +320,7 @@ export function paymentLabel(
 export const KARAOKE_CHANNEL_LABELS: Record<string, string> = {
   web: "Web",
   app: "Uygulama",
+  staff: "Köşk (telafi saati)",
 };
 
 export function channelLabel(channel: string | undefined): string {
@@ -316,6 +348,11 @@ export type KaraokeAttention =
    * back, which only a person can refund (PayNkolay refunds whole payments).
    */
   | "share_owed"
+  /**
+   * An hour the guest cancelled late was sold again: what was kept for it
+   * goes back, by hand like a late share (karaoke-make-good-core.ts).
+   */
+  | "resale_owed"
   /** A refund was sent and its answer never came. */
   | "refund_pending"
   /** Paid, but another confirmed booking holds the hour: never confirmed. */
@@ -338,6 +375,11 @@ export const KARAOKE_ATTENTION: Record<
   refund_owed: {
     title: "İade borcu",
     text: "Rezervasyon iptal edildi ama ödeme hâlâ köşkte. İadeyi başlat; PayNkolay panelinden zaten iade ettiysen öyle işaretle.",
+    tone: "danger",
+  },
+  resale_owed: {
+    title: "Yeniden satılan saat: iade bekliyor",
+    text: 'Misafirin geç iptal ettiği saat başka bir misafire satıldı; o saat için misafirde kalan tutar iade edilecek. Kısmi iade POS\'a otomatik gönderilemiyor: PayNkolay panelinden aşağıdaki tutarı karta iade et, sonra "Elle iade edildi" ile kaydet.',
     tone: "danger",
   },
   share_owed: {
@@ -423,7 +465,13 @@ export function karaokeAttention(
   const ended = karaokeEndInstant(r).getTime() <= ctx.now.getTime();
   const out: KaraokeAttention[] = [];
   if (money === "refunding") {
-    out.push(isPartialRefund(r) ? "share_owed" : "refund_pending");
+    out.push(
+      !isPartialRefund(r)
+        ? "refund_pending"
+        : (r.resaleRefundMinor ?? 0) > 0
+          ? "resale_owed"
+          : "share_owed",
+    );
   }
   if (money === "paid" && r.status === "cancelled") out.push("refund_owed");
   if (money === "paid" && r.status === "requested") {
@@ -477,6 +525,13 @@ export interface KaraokeActionPlan {
     kind: "after_cancel" | "pending_answer" | "share";
     disabledReason?: string;
   } | null;
+  /**
+   * The köşk's late cancel made good (karaoke-make-good-core.ts), while
+   * neither option is used: "Telafi saati ver" (until its last day) and
+   * "Telafi ödendi". Both need the refund right.
+   */
+  makeGoodHour: { disabledReason?: string } | null;
+  makeGoodPaid: { disabledReason?: string } | null;
 }
 
 /**
@@ -538,7 +593,22 @@ export function karaokeActionPlan(
         ? { kind: "after_cancel", ...noRefund }
         : null;
 
-  return { confirm, cancel, refund, settle };
+  // One of the two closes the other (OP-KARAOKE-GOODWILL); the free hour
+  // has a last day, the money none.
+  let makeGoodHour: KaraokeActionPlan["makeGoodHour"] = null;
+  let makeGoodPaid: KaraokeActionPlan["makeGoodPaid"] = null;
+  if (makeGoodStateOf(r) === "open") {
+    makeGoodPaid = { ...noRefund };
+    makeGoodHour = !ctx.canRefund
+      ? { ...noRefund }
+      : makeGoodHourOpen(r, istanbulDayOf(ctx.now))
+        ? {}
+        : {
+            disabledReason: `Ücretsiz saatin son günü ${formatReservationDate(r.makeGoodUntil ?? "")} idi; telafi artık yalnız ödenebilir.`,
+          };
+  }
+
+  return { confirm, cancel, refund, settle, makeGoodHour, makeGoodPaid };
 }
 
 // ─── One row, read once ────────────────────────────────────────────────────
@@ -561,6 +631,8 @@ export interface KaraokeRowView {
   refundOwed: boolean;
   attention: KaraokeAttention[];
   plan: KaraokeActionPlan;
+  /** The köşk's late cancel made good, and where it stands. */
+  makeGood: KaraokeMakeGoodState;
 }
 
 export function karaokeRowView(
@@ -587,9 +659,11 @@ export function karaokeRowView(
     refundOwed:
       attention.includes("refund_owed") ||
       attention.includes("refund_pending") ||
-      attention.includes("share_owed"),
+      attention.includes("share_owed") ||
+      attention.includes("resale_owed"),
     attention,
     plan: karaokeActionPlan(r, ctx, sameDay),
+    makeGood: makeGoodStateOf(r),
   };
 }
 
@@ -929,6 +1003,13 @@ const EVENT_TITLES: Record<string, string> = {
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
   late_guest_request:
     "Misafir geç iptal istedi; kural iade vermiyor, rezervasyon duruyor",
+  resale_refund_owed:
+    "Geç iptal edilen saat yeniden satıldı; misafirde kalan tutardan iade bekliyor",
+  resale_refund_unrecorded: "Yeniden satılan saatin iadesi kaydedilemedi",
+  make_good_hour_given: "Telafi saati verildi",
+  make_good_hour: "Telafi saati olarak verildi",
+  make_good_paid: "Telafi banka hesabına ödendi",
+  make_good_reopened: "Telafi saati iptal edildi; telafi yeniden açık",
 };
 
 const RETRY_OUTCOME: Record<string, { title: string; tone: AdminTone }> = {
@@ -975,9 +1056,12 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
         ? `Geç iptal edildi; kurala göre %${p.lateRefundPercent} iade bekliyor`
         : "Geç iptal edildi; kısmi iade bekliyor";
     tone = "warning";
+  } else if (event.startsWith("make_good")) {
+    title = EVENT_TITLES[event] ?? event;
+    tone = "info";
   } else if (event) {
     title = EVENT_TITLES[event] ?? event;
-    tone = /refused|unknown|mismatch|without/.test(event)
+    tone = /refused|unknown|mismatch|without|unrecorded/.test(event)
       ? "danger"
       : "warning";
   } else if (row.action === "refund") {
@@ -1002,8 +1086,19 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
   const channel =
     KARAOKE_CHANNEL_LABEL[str(p.channel) as KaraokeRequestChannel];
   const asked = str(p.requestedAt) ? formatDateTimeTr(str(p.requestedAt)) : "";
+  // The make-good and the resale point at another booking, or a transfer.
+  const code = (v: unknown) => str(v).toUpperCase();
+  const makeGood =
+    typeof p.makeGoodMinor === "number" && p.makeGoodMinor > 0 && !event
+      ? `Telafi: ${formatTRYMinor(p.makeGoodMinor)}`
+      : "";
   const parts = [
     amount,
+    makeGood,
+    str(p.hourId) ? `Telafi saati: ${code(p.hourId)}` : "",
+    str(p.makeGoodFor) ? `Telafi edilen: ${code(p.makeGoodFor)}` : "",
+    str(p.soldBy) ? `Satıldığı rezervasyon: ${code(p.soldBy)}` : "",
+    str(p.paidOn) ? `Havale: ${formatReservationDate(str(p.paidOn))}` : "",
     cause ?? "",
     channel || asked
       ? `İstek: ${[channel, asked].filter(Boolean).join(", ")}`
