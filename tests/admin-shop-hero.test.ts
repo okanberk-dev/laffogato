@@ -297,7 +297,10 @@ describe("the form", () => {
 
   it("posts by hand (ActionForm), never as a bare form action", () => {
     expect(html).toMatch(/<form[^>]*>/);
-    expect(html).not.toMatch(/<form[^>]*\saction=/);
+    // No post target of its own. The kit may still draw React's guard for a
+    // function action (`action="javascript:..."`, so an Enter pressed before
+    // hydration sends nothing): that is not a post, the onSubmit is.
+    expect(html).not.toMatch(/<form[^>]*\saction="(?!javascript:)/);
     const src = readFileSync(
       "src/app/admin/magaza-hero/slide-form.tsx",
       "utf8",
