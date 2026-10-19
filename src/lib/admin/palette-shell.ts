@@ -130,15 +130,27 @@ const NOT_A_RECORD = new Set([
 ]);
 
 /**
+ * A clock time ("20:00", "9:30"), with what comes before it. No phone is
+ * written with a colon, and a karaoke booking's heading carries two
+ * ("19 Ekim 2026, 20:00 - 22:00"): once the marks go, the year and both
+ * times read as twelve digits in a row.
+ */
+const CLOCK = /(^|[^\p{Nd}])\p{Nd}{1,2}:\p{Nd}{2}(?!\p{Nd})/gu;
+
+/**
  * Whether a title names a person by contact: piiLike (an "@", or seven
  * digits once a phone's usual separators go), and, stricter because this
  * text is kept, seven digits once every mark that is not a letter goes
- * ("0532/123/45/67", "0532_123_45_67", Arabic-Indic digits). A date
- * written as digits is refused too; that only costs a convenience.
+ * ("0532/123/45/67", "0532_123_45_67", Arabic-Indic digits). Clock times
+ * are taken out first. A date written as digits is refused too; that only
+ * costs a convenience.
  */
 export function personalTitle(text: string): boolean {
   if (piiLike(text)) return true;
-  const bare = text.normalize("NFKC").replace(/[^\p{L}\p{Nd}]/gu, "");
+  const bare = text
+    .normalize("NFKC")
+    .replace(CLOCK, "$1 ")
+    .replace(/[^\p{L}\p{Nd}]/gu, "");
   return /\p{Nd}{7,}/u.test(bare);
 }
 

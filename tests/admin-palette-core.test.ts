@@ -376,10 +376,37 @@ describe("Son açılanlar: what may be kept", () => {
     expect(core.recentLabel("Cumartesi 18 Ekim, 21:00")).toBe(
       "Cumartesi 18 Ekim, 21:00",
     );
+    // A colon between the groups does not make a phone a clock.
+    expect(core.recentLabel("0532:123:45:67")).toBeNull();
     expect(core.recentLabel("Bu sayfa ya da kayıt bulunamadı.")).toBeNull();
     expect(core.recentLabel("Bu ekran yüklenemedi.")).toBeNull();
     expect(core.recentLabel("")).toBeNull();
     expect(core.recentLabel(null)).toBeNull();
+  });
+
+  it("keeps a karaoke booking under its own heading: the year and the two clock times are not a phone", async () => {
+    // The booking page's h1 (mobil/karaoke/[id]/page.tsx): "{day}, {time}".
+    const { formatReservationDate, formatReservationTime } =
+      await import("@/lib/mobile/karaoke-format");
+    const heading = `${formatReservationDate("2026-10-19")}, ${formatReservationTime(20, 2)}`;
+    expect(heading).toBe("19 Ekim 2026, 20:00 - 22:00");
+    expect(core.recentLabel(heading)).toBe(heading);
+    expect(
+      core.addRecent([], "/admin/mobil/karaoke/krk-00042", heading),
+    ).toEqual([{ href: "/admin/mobil/karaoke/krk-00042", label: heading }]);
+    expect(
+      core.parseRecents(
+        JSON.stringify([
+          { href: "/admin/mobil/karaoke/krk-00042", label: heading },
+        ]),
+      ),
+    ).toHaveLength(1);
+    // Midnight closes the evening as 24:00; still a heading, not a phone.
+    expect(
+      core.recentLabel(
+        `${formatReservationDate("2026-12-31")}, ${formatReservationTime(22, 2)}`,
+      ),
+    ).toBe("31 Aralık 2026, 22:00 - 24:00");
   });
 
   it("the list is newest first, one entry a page, at most eight; refused pages leave it as it was", () => {
