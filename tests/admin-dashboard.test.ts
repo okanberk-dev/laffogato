@@ -139,6 +139,46 @@ describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
   });
 });
 
+describe("the stat tile (SHE-06)", () => {
+  // "₺123.456,78" in the old 30 px serif ran 17 px past its card on a phone
+  // and past the grid on a laptop: no min-w-0, no wrap, no shrink.
+  async function tile(props: {
+    label: string;
+    value: string;
+    money?: boolean;
+  }) {
+    const { StatCard } = await import("@/components/admin/dashboard/stat-card");
+    const html = renderToStaticMarkup(createElement(StatCard, props));
+    const value = html.match(
+      new RegExp(`<span title="${props.value}" class="([^"]*)"`),
+    );
+    return { html, value: value?.[1] ?? "" };
+  }
+
+  it("keeps the tile inside its grid cell", async () => {
+    const { html } = await tile({ label: "Açık sipariş", value: "7" });
+    expect(html).toMatch(/^<div class="@container flex min-w-0 /);
+  });
+
+  it("never cuts a money figure short: it shrinks with the tile and wraps last", async () => {
+    const { value } = await tile({
+      label: "Bugün net ciro",
+      value: "₺123.456,78",
+      money: true,
+    });
+    expect(value).toContain("text-[clamp(1rem,11cqi,1.5rem)]");
+    expect(value).toContain("[overflow-wrap:anywhere]");
+    expect(value).not.toContain("truncate");
+    expect(value).not.toContain("text-3xl");
+  });
+
+  it("truncates a count, with the whole figure in its title", async () => {
+    const { value } = await tile({ label: "Sipariş", value: "1.245" });
+    expect(value).toContain("truncate");
+    expect(value).toContain("text-xl");
+  });
+});
+
 describe("getDashboardStats", () => {
   it("counts the open orders by status and reads no revenue", async () => {
     const store = await import("@/lib/admin/store");
@@ -332,6 +372,19 @@ describe("the dashboard page", () => {
     expect(revenueBuckets).toHaveBeenCalledWith("day", 14);
     expect(text).toContain("Bugün net ciro ₺125,00");
     expect(text).toContain("Son 14 gün ₺625,00");
+  });
+
+  it("lays four tiles two abreast until there is room for four (SHE-06)", async () => {
+    // Five tiles in five columns beside the sidebar left each about 132 px.
+    const owner = await render("owner");
+    expect(owner.html).toContain(
+      'class="grid gap-3 sm:gap-4 grid-cols-2 xl:grid-cols-4"',
+    );
+    expect(owner.html).not.toContain("lg:grid-cols-5");
+    const staff = await render("staff");
+    expect(staff.html).toContain(
+      'class="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3"',
+    );
   });
 
   it("greets without a name and dates by Tuzla time", async () => {

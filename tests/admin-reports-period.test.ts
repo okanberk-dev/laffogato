@@ -314,6 +314,25 @@ describe("the reports page", () => {
     expect(html).toContain("iadeler düşülmüş");
   });
 
+  it("gives its five tiles three columns below 1280 px, each inside its cell (SYS-15)", async () => {
+    // At 1024 px the five tiles beside the sidebar put "₺1.284.567,89"
+    // 32 px past its content box and into the next tile.
+    const { html } = await render([]);
+    const grid = html.match(
+      /<div class="(mb-4 grid grid-cols-2[^"]*)">((?:<div class="@container[^"]*">[\s\S]*?<\/div>){5})<\/div>/,
+    );
+    expect(grid, "the tile grid").not.toBeNull();
+    expect(grid![1].split(" ")).toEqual(
+      expect.arrayContaining([
+        "grid-cols-2",
+        "lg:grid-cols-3",
+        "xl:grid-cols-5",
+      ]),
+    );
+    expect(grid![1]).not.toMatch(/(^| )lg:grid-cols-5/);
+    expect(grid![2].match(/class="@container flex min-w-0 /g)).toHaveLength(5);
+  });
+
   it("has no Dönüşüm card and no promise of one", async () => {
     const { html } = await render([]);
     expect(html).not.toContain("Dönüşüm");
