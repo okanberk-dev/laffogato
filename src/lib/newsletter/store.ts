@@ -317,6 +317,20 @@ export async function listNewsletterSubscribers(): Promise<
   return (data as NewsletterSubscriber[] | null) ?? [];
 }
 
+/** One subscriber, for the panel's view page; null when there is none. */
+export async function getNewsletterSubscriber(
+  id: string,
+): Promise<NewsletterSubscriber | null> {
+  if (!id) return null;
+  const { data, error } = await getDb()
+    .from(TABLES.newsletterSubscribers)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`getNewsletterSubscriber: ${error.message}`);
+  return (data as NewsletterSubscriber | null) ?? null;
+}
+
 /**
  * The panel can take someone OFF the list, never put them on it. Turning a
  * withdrawn subscriber back on used to reuse their old `consentAt` - consent
