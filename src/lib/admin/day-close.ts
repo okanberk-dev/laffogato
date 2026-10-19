@@ -295,8 +295,12 @@ export function dayCloseSummary(
     }
   }
 
-  // Per product line (a variant is its own line, "Ürün · Varyant"): the
+  // Per ledger line ("Ürün", or "Ürün · Varyant" for a variant's sale): the
   // first sale or correction that left it at 0, and where the day left it.
+  // A move's `stockAfter` is the PRODUCT's stock, a variant's sale included
+  // (claim_order_stock returns the product total), so a variant shows here
+  // when its sale emptied the whole product; one that ran out while another
+  // variant still had stock does not.
   const lines = new Map<
     string,
     { productId: string; name: string; outAt: string; last: number }

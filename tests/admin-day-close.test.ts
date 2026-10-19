@@ -571,6 +571,36 @@ describe("the figures", () => {
     expect(Object.keys(sheet.stamps)).toEqual(["given", "corrected"]);
   });
 
+  it("read the product's stock off the ledger, not a variant's", () => {
+    // claim_order_stock answers the product total for a variant line too,
+    // so "1 kg" running out while "250 g" still has 4 leaves stockAfter 4.
+    const schema = readFileSync("db/schema.sql", "utf8");
+    const claim = schema.slice(
+      schema.indexOf("function public.claim_order_stock"),
+    );
+    expect(claim.slice(0, claim.indexOf("end if;"))).toMatch(
+      /variants = \([\s\S]*returning stock into new_stock;/,
+    );
+    const rows = sheetRows();
+    rows.stockMoves = [
+      {
+        productId: "prd-0009",
+        productName: "Çekirdek · 1 kg",
+        delta: -1,
+        stockAfter: 4,
+        reason: "order_placed",
+        createdAt: "2026-10-19T11:05:00.000Z",
+      },
+    ];
+    const sheet = dayClose.dayCloseSummary(rows, DAY, AT_2230);
+    expect(sheet.soldOut).toEqual([]);
+    // The guide says so instead of promising variants.
+    const guide = readFileSync("docs/ADMIN.md", "utf8");
+    const section = guide.slice(guide.indexOf("## Gün sonu sayfası"));
+    expect(section).not.toMatch(/0'a inen ürün ve varyantlar/);
+    expect(section).toMatch(/biten tek varyant\s+burada görünmez/);
+  });
+
   it("name what went out of stock and whether it is still out", () => {
     const sheet = dayClose.dayCloseSummary(sheetRows(), DAY, AT_2230);
     expect(sheet.soldOut.map((s) => [s.name, s.time, s.stillOut])).toEqual([

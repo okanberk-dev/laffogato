@@ -104,8 +104,11 @@ açılmaz).
   günün ön ödeme neti (Raporlar'daki karaoke kartının o günü).
 - **Kasa damgaları**: kasadan ve üye sayfasından verilenler, "−1 düzeltme"
   ile geri alınanlar ayrı.
-- **Stokta biten**: o gün stoğu 0'a inen ürün ve varyantlar, saatiyle; gün
-  içinde yeniden doldurulduysa "Dolduruldu".
+- **Stokta biten**: o gün stoğu 0'a inen ürünler, saatiyle; gün içinde
+  yeniden doldurulduysa "Dolduruldu". Stok defteri ürünün toplam stoğunu
+  yazar: varyantlı ürün, son varyantı da bitince o satışın adıyla
+  ("Ürün · Varyant") görünür; başka varyantta stok varken biten tek varyant
+  burada görünmez, ürünün sayfasında görünür.
 
 **Yazdır.** Kâğıda yalnız sayfanın gövdesi çıkar (menü, üst çubuk ve
 düğmeler çıkmaz; panelin `[data-print-receipt]` kuralı). Müşterinin adı,
