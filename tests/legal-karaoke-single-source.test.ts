@@ -108,7 +108,9 @@ describe("one event-cancellation rule, in İade ve Cayma §21 (ASK-Y3-3)", () =>
       ]),
     );
     const late = bullets.find((b) => b.includes("24 saatten az kala"));
-    expect(late).toContain("böyle bir gider yoksa veya belgelenemiyorsa bedelin tamamı iade edilir");
+    expect(late).toContain(
+      "böyle bir gider yoksa veya belgelenemiyorsa bedelin tamamı iade edilir",
+    );
     expect(late).not.toContain("bedel iadesi yapılamaz");
   });
 
@@ -117,7 +119,9 @@ describe("one event-cancellation rule, in İade ve Cayma §21 (ASK-Y3-3)", () =>
     const text = JSON.stringify(six);
     expect(text).not.toMatch(/7 gün|72 saat|yirmi dört \(24\) saat/);
     expect(text).not.toContain("Süresinde yapılmayan iptallerde");
-    expect(text).toContain("İptal, İade ve Cayma Hakkı metninin 21. maddesindedir");
+    expect(text).toContain(
+      "İptal, İade ve Cayma Hakkı metninin 21. maddesindedir",
+    );
     expect(six.table).toEqual([
       {
         key: "Etkinlik iptali ve katılımcı devri",
@@ -175,7 +179,9 @@ describe("the access notice (ASK-Y3-6)", () => {
     );
     expect(twenty).not.toContain("tahsis edilebilir");
     // §5's "no table bookings" does not reach it.
-    expect(JSON.stringify(section(doc("kafe-hizmet-kosullari"), "5"))).toContain(
+    expect(
+      JSON.stringify(section(doc("kafe-hizmet-kosullari"), "5")),
+    ).toContain(
       "Bu kural, 20. maddede düzenlenen erişim ihtiyacına yönelik ön bildirimi kapsamaz.",
     );
   });

@@ -245,7 +245,10 @@ describe("the deadline and a member's own cancel", () => {
     // 0 hours is not the booking instant any more: free until the start.
     expect(
       time
-        .karaokeDeadlineFor({ freeCancelHours: 0, lateRefundPercent: 0 }, booking)
+        .karaokeDeadlineFor(
+          { freeCancelHours: 0, lateRefundPercent: 0 },
+          booking,
+        )
         .getTime(),
     ).toBe(START);
     const zero = { ...booking, freeCancelHours: 0, lateRefundPercent: 0 };
@@ -403,12 +406,10 @@ describe("the app lock: no other rule while app builds print their own", () => {
       lateRefundPercent: 0,
     });
     // ...and does once the resale refund opens it.
-    expect(time.effectiveKaraokeCancelPolicy(settings, "1.1.0", true)).toEqual(
-      {
-        freeCancelHours: 24,
-        lateRefundPercent: 50,
-      },
-    );
+    expect(time.effectiveKaraokeCancelPolicy(settings, "1.1.0", true)).toEqual({
+      freeCancelHours: 24,
+      lateRefundPercent: 50,
+    });
     expect(
       time.effectiveKaraokeCancelPolicy(
         { ...settings, karaokeLateRefundPercent: 100 },
@@ -532,7 +533,9 @@ describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () =
     expect(text).toContain(
       "Bizi arayarak yaptırdığınız iptalde görüşmenin yapıldığı an, e-postayla bildirdiğiniz iptalde e-postanızın gönderildiği an iptal anı sayılır.",
     );
-    expect(text).toContain("telefonumuzda görünen arama saatiniz iptal anı sayılır");
+    expect(text).toContain(
+      "telefonumuzda görünen arama saatiniz iptal anı sayılır",
+    );
     expect(text).toContain(
       "Telefonla verdiğiniz iptal isteğini aynı gün e-postayla teyit ederiz.",
     );
@@ -540,7 +543,9 @@ describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () =
 
   it("keeps the whole loss behind its four conditions, with no label (ASK-OTH-3)", () => {
     const seven = JSON.stringify(section(KARAOKE_ROOM_DOC, "7"));
-    expect(seven).toContain("rezervasyon kodunuzu bir başkasına verebilirsiniz");
+    expect(seven).toContain(
+      "rezervasyon kodunuzu bir başkasına verebilirsiniz",
+    );
     expect(seven).toContain(
       "gelmediğiniz ya da iptal edemediğiniz bir saati başka bir misafire verirsek ödediğiniz tutarın tamamını iade ederiz",
     );

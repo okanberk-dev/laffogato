@@ -326,7 +326,11 @@ describe("amounts typed the Turkish way (parseMoneyInput)", () => {
   it("reads 1.000 as a thousand lira for the karaoke hour", async () => {
     const state = await saveKaraokeAction(
       {},
-      form({ karaokeHourly: "1.000", karaokeCapacity: "8" }),
+      form({
+        karaokeHourly: "1.000",
+        karaokeCapacity: "8",
+        karaokePrepay: "on",
+      }),
     );
     expect(state.error).toBeUndefined();
     expect(updateSettings).toHaveBeenCalledWith(
@@ -409,6 +413,10 @@ describe("saveKaraokeAction", () => {
         karaokeHourly: "1000",
         karaokeCapacity: "10",
         karaokeNotifyEmail: " karaoke@nextgenlab.com.tr ",
+        // Online prepayment cannot be switched off (OP-KARAOKE-PREPAY, 18
+        // Eki 2026): the box always comes ticked, an unticked one is refused
+        // (tests/admin-karaoke-cancel-policy.test.ts).
+        karaokePrepay: "on",
       }),
     );
     expect(state.message).toBeTruthy();
@@ -416,8 +424,7 @@ describe("saveKaraokeAction", () => {
       karaokeHourlyMinor: 100000,
       karaokeCapacity: 10,
       karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
-      // An unticked checkbox sends nothing: the switch goes off.
-      karaokePrepay: false,
+      karaokePrepay: true,
     });
     expect(lastAudit().payload).toEqual({
       section: "karaoke",
@@ -425,13 +432,11 @@ describe("saveKaraokeAction", () => {
         karaokeHourlyMinor: 90000,
         karaokeCapacity: 8,
         karaokeNotifyEmail: "",
-        karaokePrepay: true,
       },
       after: {
         karaokeHourlyMinor: 100000,
         karaokeCapacity: 10,
         karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
-        karaokePrepay: false,
       },
     });
   });
@@ -452,7 +457,11 @@ describe("saveKaraokeAction", () => {
   it("accepts an empty notice address - the notice falls back to the contact e-mail", async () => {
     const state = await saveKaraokeAction(
       {},
-      form({ karaokeHourly: "1000", karaokeCapacity: "8" }),
+      form({
+        karaokeHourly: "1000",
+        karaokeCapacity: "8",
+        karaokePrepay: "on",
+      }),
     );
     expect(state.message).toBeTruthy();
     expect(updateSettings).toHaveBeenCalledWith(
