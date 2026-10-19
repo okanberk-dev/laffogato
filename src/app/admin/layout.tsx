@@ -18,6 +18,7 @@ import {
   visibleNav,
   type NavGroupDef,
 } from "@/lib/admin/nav-match";
+import { paletteAccountKey } from "@/lib/admin/palette-account";
 import { canAccess, landingPathFor, ROLE_LABELS } from "@/lib/admin/roles";
 import { searchSectionsFor } from "@/lib/admin/search";
 
@@ -439,6 +440,9 @@ export default async function AdminLayout({
   const landingPath = landingPathFor(session.role);
   // A one-page role (Kasiyer) has no sidebar, so nothing to clear room for.
   const chrome = hasNavChrome(groups);
+  // The ⌘K palette, for a role its record search covers: not the cashier,
+  // whose shell gets no trigger, no recents and no key.
+  const canSearch = searchSectionsFor(session.role).length > 0;
 
   return (
     <div
@@ -458,7 +462,16 @@ export default async function AdminLayout({
             roleLabel={ROLE_LABELS[session.role]}
             landingPath={landingPath}
             logout={logoutAction}
-            canSearch={searchSectionsFor(session.role).length > 0}
+            canSearch={canSearch}
+            palette={
+              canSearch
+                ? {
+                    role: session.role,
+                    // Never the e-mail: an HMAC of it (palette-account.ts).
+                    accountKey: paletteAccountKey(session.email),
+                  }
+                : undefined
+            }
             actions={
               orderAlertsFor(session.role) ? (
                 <OrderAlerts

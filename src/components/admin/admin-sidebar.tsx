@@ -17,7 +17,8 @@ import {
 
 import { karaokeTodayCountAction } from "@/app/admin/mobil/karaoke/actions";
 import { openOrderCountAction } from "@/app/admin/siparisler/actions";
-import { TopBarSearch } from "@/components/admin/admin-search";
+import { forgetRecents } from "@/components/admin/palette/recents";
+import { PaletteTrigger } from "@/components/admin/palette/trigger";
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
@@ -29,6 +30,11 @@ import {
   sectionTabsFor,
   type NavTab,
 } from "@/lib/admin/nav-match";
+import {
+  isApplePlatform,
+  paletteShortcutLabel,
+} from "@/lib/admin/palette-shell";
+import type { AdminRole } from "@/lib/admin/roles";
 
 export interface AdminNavItem {
   href: string;
@@ -69,6 +75,13 @@ interface SidebarProps {
   logout: () => void;
   /** Whether this role's search covers anything (lib/admin/search.ts). */
   canSearch?: boolean;
+  /**
+   * The ⌘K palette's inputs (admin UI v2, UI-6): the role, for its Oluştur
+   * list and to ask each recent page again, and the account's opaque key
+   * (an HMAC the layout computes; never the e-mail). Without it, or
+   * without `canSearch`, the top bar has no search at all (the cashier).
+   */
+  palette?: { role: AdminRole; accountKey: string };
   /**
    * Controls at the right end of the top bar, after the search, at every
    * width. Rendered once, so a panel-wide control mounted here (the new
@@ -308,8 +321,12 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
 const BADGE_CLASS =
   "min-w-[22px] rounded-full bg-[var(--admin-primary)] px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white";
 
-/** The one-time note about the regrouped nav, dismissed per browser. */
-export const NAV_NOTE_KEY = "laf_admin_nav_note_v1";
+/**
+ * The one-time note about the regrouped nav, dismissed per browser. v2
+ * since the palette (UI-6): the note now says the old names are found
+ * there, news to whoever closed v1.
+ */
+export const NAV_NOTE_KEY = "laf_admin_nav_note_v2";
 const NAV_NOTE_EVENT = "admin:nav-note";
 let noteFallback = "";
 
@@ -345,15 +362,23 @@ export function navNoteVisible(raw: string): boolean {
   return raw !== "1";
 }
 
+const noSubscribe = () => () => {};
+
 /**
  * "Menü sadeleşti": the panel's nav moved into five groups, and some
- * pages became an item's tab. Said once, in the grouped nav's footer
- * (Personel's five items only lost their headers), until dismissed. The
- * server and the first paint draw nothing (no flash for whoever dismissed
- * it); the stored choice applies after hydration.
+ * pages became an item's tab; the palette still finds every old name.
+ * Said once, in the grouped nav's footer (Personel's five items only lost
+ * their headers), until dismissed. The server and the first paint draw
+ * nothing (no flash for whoever dismissed it); the stored choice, and the
+ * keyboard's own ⌘K or Ctrl K, apply after hydration.
  */
 function NavNote() {
   const raw = useSyncExternalStore(subscribeNote, readNoteRaw, () => "1");
+  const key = useSyncExternalStore(
+    noSubscribe,
+    () => paletteShortcutLabel(isApplePlatform(navigator)),
+    () => "⌘K",
+  );
   if (!navNoteVisible(raw)) return null;
   return (
     <div
@@ -361,8 +386,7 @@ function NavNote() {
       className="mx-3 mb-2 flex items-start gap-2 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-accent-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-text-soft)]"
     >
       <p className="flex-1 pt-0.5">
-        Menü sadeleşti: bazı sayfalar artık sekmede, örneğin Kategoriler
-        Ürünler&apos;de.
+        Menü sadeleşti: eski adlarla da {key} ile bulursun.
       </p>
       <button
         type="button"
@@ -417,7 +441,9 @@ function AccountLinks({
         {icons && <NavIcon name="security" />}
         <span className="truncate">Güvenlik / 2FA</span>
       </Link>
-      <form action={logout}>
+      {/* The palette's recent pages go before the action posts: the next
+          person on a shared köşk device must not find them. */}
+      <form action={logout} onSubmit={() => forgetRecents()}>
         <button type="submit" className={`${ROW} ${ROW_IDLE} w-full`}>
           {icons && <NavIcon name="logout" />}
           Çıkış
@@ -841,9 +867,16 @@ export function AdminSidebar(props: SidebarProps) {
     };
   }, [open, setOpen]);
 
+  const palette = props.canSearch ? props.palette : undefined;
   const topBarEnd = (
     <>
-      {props.canSearch && <TopBarSearch />}
+      {palette && (
+        <PaletteTrigger
+          groups={props.groups}
+          role={palette.role}
+          accountKey={palette.accountKey}
+        />
+      )}
       <div data-admin-topbar-actions="" className="flex items-center gap-2">
         {props.actions}
       </div>
@@ -930,7 +963,7 @@ export function AdminSidebar(props: SidebarProps) {
         className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-64 lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
           // On a wide screen the bar is breadcrumbs, search and controls; a
           // role with neither search nor controls has nothing to put there.
-          props.canSearch || props.actions ? "" : "lg:hidden"
+          palette || props.actions ? "" : "lg:hidden"
         }`}
       >
         <button
