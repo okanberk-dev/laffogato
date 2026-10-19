@@ -28,7 +28,9 @@ import { LEGAL_TAX_RATES, type TaxRates } from "@/lib/utils/kdv";
  */
 
 const SITE_URL = "https://laffogato.net";
-const PANEL: TaxRates = { ...LEGAL_TAX_RATES, menu: 8, beans: 10, gear: 18 };
+// A panel whose values differ from every legal default, so a test can tell
+// which one an output read.
+const PANEL: TaxRates = { ...LEGAL_TAX_RATES, menu: 8, beans: 1, gear: 18 };
 
 function menuItem(over: Partial<AdminMenuItem> = {}): AdminMenuItem {
   return {
@@ -112,8 +114,11 @@ describe("GET /menu and GET /shop carry the rate (§1, §2)", () => {
   });
 
   it("a shop product takes its category's default, or its own", () => {
-    expect(toMobileShopProduct(product(), SITE_URL).taxRatePct).toBe(1);
-    expect(toMobileShopProduct(product(), SITE_URL, PANEL).taxRatePct).toBe(10);
+    // Coffee beans: the köşk's food is 10% (KDV GUT III/B-2.4.1, 18 Eki
+    // 2026); a panel that still says 1 is what the app shows until the
+    // operator saves 10 (the code never overrides a saved value).
+    expect(toMobileShopProduct(product(), SITE_URL).taxRatePct).toBe(10);
+    expect(toMobileShopProduct(product(), SITE_URL, PANEL).taxRatePct).toBe(1);
     expect(
       toMobileShopProduct(product({ cat: "gear" }), SITE_URL, PANEL).taxRatePct,
     ).toBe(18);
@@ -134,7 +139,7 @@ describe("GET /menu and GET /shop carry the rate (§1, §2)", () => {
     delete before.taxRatePct;
     expect(
       toMobileShopProduct(before as AdminProduct, SITE_URL).taxRatePct,
-    ).toBe(1);
+    ).toBe(10);
   });
 
   it("the loaders pass the panel's rates, not the legal fallback", () => {
@@ -167,7 +172,7 @@ describe("Order carries the rate it was sold at (§3)", () => {
           unitPriceMinor: 16000,
           status: "pending",
           productId: "prd-0001",
-          taxRatePct: 1,
+          taxRatePct: 10,
         },
         {
           productName: "Moka pot",
@@ -193,15 +198,37 @@ describe("Order carries the rate it was sold at (§3)", () => {
 
   it("each line says its rate and the breakdown adds up to the total", () => {
     const m = toMobileOrder(order(), new Date("2026-10-17T11:00:00.000Z"));
-    expect(m.items.map((i) => i.taxRatePct)).toEqual([1, 20]);
+    expect(m.items.map((i) => i.taxRatePct)).toEqual([10, 20]);
     expect(m.taxBreakdown).not.toBeNull();
-    expect(m.taxBreakdown!.map((r) => r.ratePct)).toEqual([20, 1]);
+    expect(m.taxBreakdown!.map((r) => r.ratePct)).toEqual([20, 10]);
     expect(m.taxBreakdown!.reduce((s, r) => s + r.grossMinor, 0)).toBe(46900);
     expect(Object.keys(m.taxBreakdown![0]).sort()).toEqual(
       ["grossMinor", "netMinor", "ratePct", "taxMinor"].sort(),
     );
     // Totals are what was stored, never recomputed.
     expect(m.totalMinor).toBe(46900);
+  });
+
+  it("the shipping fee is its own 20% amount, not shared over the lines (18 Eki 2026)", () => {
+    // Same fields and row shape as before (§3.0); only where the fee sits.
+    const m = toMobileOrder(order(), new Date("2026-10-17T11:00:00.000Z"));
+    expect(m.taxBreakdown!.map((r) => [r.ratePct, r.grossMinor])).toEqual([
+      [20, 10000 + 4900],
+      [10, 32000],
+    ]);
+    // A rate stamped on the order is the one the fee is split at.
+    const stamped = toMobileOrder(
+      order({ shippingTaxRatePct: 10 }),
+      new Date("2026-10-17T11:00:00.000Z"),
+    );
+    expect(
+      stamped.taxBreakdown!.map((r) => [r.ratePct, r.grossMinor]),
+    ).toEqual([
+      [20, 10000],
+      [10, 32000 + 4900],
+    ]);
+    // No new field on the order itself: the rate stays inside the split.
+    expect(Object.keys(stamped)).not.toContain("shippingTaxRatePct");
   });
 
   it("an order from before rates were kept has nulls, never a guessed rate", () => {
@@ -318,6 +345,23 @@ describe("order lines are stamped where they are written", () => {
     expect(store).toContain(
       "withShopNotes(shopLineItems(resolved, settings.taxRates), shop)",
     );
+  });
+
+  it("every order is stamped with the shipping fee's own rate where the row is built", () => {
+    // insertOrderRow builds the one row the web, app, wallet
+    // (wallet_place_order inserts the same jsonb) and manual paths write.
+    expect(
+      store.split("shippingTaxRatePct: shippingTaxRate(settings.taxRates),")
+        .length - 1,
+    ).toBe(1);
+    const insert = store.slice(
+      store.indexOf("async function insertOrderRow("),
+      store.indexOf("check(await sb.from(TABLES.orders).insert(order)"),
+    );
+    expect(insert).toContain(
+      "shippingTaxRatePct: shippingTaxRate(settings.taxRates),",
+    );
+    expect(insert).toContain('"wallet_place_order"');
   });
 
   it("no total is computed from a KDV rate any more", () => {
