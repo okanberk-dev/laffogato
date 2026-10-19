@@ -35,7 +35,7 @@ import {
   type ShopCategoryId,
 } from "@/lib/admin/store";
 import { presentationCache } from "@/lib/cache/presentation";
-import { TAG_CATALOG, TAG_SITE } from "@/lib/cache/tags";
+import { TAG_CATALOG, TAG_MENU, TAG_SITE } from "@/lib/cache/tags";
 import { isDegradedRequest, publicRead } from "@/lib/db/health";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
@@ -212,7 +212,7 @@ export const listSitemapProducts = presentationCache(
 // ── Menu ─────────────────────────────────────────────────────────────────
 
 const cachedMenu = cache(
-  presentationCache("site-menu", listMenuForCustomerLive, [TAG_CATALOG]),
+  presentationCache("site-menu", listMenuForCustomerLive, [TAG_MENU]),
 );
 
 /**

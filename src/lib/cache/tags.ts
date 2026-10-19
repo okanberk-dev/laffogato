@@ -18,8 +18,11 @@ import type { WriteTarget } from "@/lib/db/client";
  * reply was lost looks like a failure), and `expireTags` expires the answer
  * (src/lib/db/index.ts).
  *
- * Five tags:
- * - `pub:catalog`: products, categories, menu items (the shop and the menu).
+ * Six tags:
+ * - `pub:catalog`: products and categories (the shop, its link cards and
+ *   the sitemap).
+ * - `pub:menu`: menu items (the cafe menu, also the table's QR menu). Apart
+ *   from the shop so a shop stock move does not drop the menu.
  * - `pub:site`: settings and every panel-edited text, slide and legal
  *   override the public pages print, and the venue's live status.
  * - `live:orders`: orders (the new-order bell and the panel's counts).
@@ -32,10 +35,14 @@ import type { WriteTarget } from "@/lib/db/client";
  * Every table and every SQL function is listed here on purpose, tagged or
  * not, and tests/cache-write-tags.test.ts fails on one that is not: a new
  * table cannot be cached silently stale. A function missing from the map
- * expires every tag, because expiring too much only costs a read.
+ * expires every tag, because expiring too much only costs a read. A
+ * function's tags are those of the tables its body writes, and of the
+ * functions it calls; the same test reads db/schema.sql and fails on a
+ * function tagged with less (stale data) or more (a wake for nothing).
  */
 
 export const TAG_CATALOG = "pub:catalog";
+export const TAG_MENU = "pub:menu";
 export const TAG_SITE = "pub:site";
 export const TAG_ORDERS = "live:orders";
 export const TAG_KARAOKE = "live:karaoke";
@@ -43,6 +50,7 @@ export const TAG_ACCESS = "live:access";
 
 export const ALL_CACHE_TAGS = [
   TAG_CATALOG,
+  TAG_MENU,
   TAG_SITE,
   TAG_ORDERS,
   TAG_KARAOKE,
@@ -55,7 +63,9 @@ type TableName = (typeof TABLES)[keyof typeof TABLES];
 
 const NONE: readonly CacheTag[] = [];
 const CATALOG: readonly CacheTag[] = [TAG_CATALOG];
+const MENU: readonly CacheTag[] = [TAG_MENU];
 const SITE: readonly CacheTag[] = [TAG_SITE];
+const ORDERS: readonly CacheTag[] = [TAG_ORDERS];
 /** Stock moves with an order: the shop's stock and the order both change. */
 const STOCK_AND_ORDERS: readonly CacheTag[] = [TAG_CATALOG, TAG_ORDERS];
 
@@ -63,7 +73,7 @@ const STOCK_AND_ORDERS: readonly CacheTag[] = [TAG_CATALOG, TAG_ORDERS];
 export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   products: CATALOG,
   categories: CATALOG,
-  menu_items: CATALOG,
+  menu_items: MENU,
 
   settings: SITE,
   site_content: SITE,
@@ -77,7 +87,7 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   legal_docs: SITE,
   venue_status: SITE,
 
-  orders: [TAG_ORDERS],
+  orders: ORDERS,
   karaoke_reservations: [TAG_KARAOKE],
   // Who may still read the panel: the change markers (change-marker.ts).
   admin_users: [TAG_ACCESS],
@@ -120,21 +130,25 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
  * function nobody classified from one that writes nothing cached.
  */
 export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
-  // Stock, orders and refunds.
-  claim_order_stock: STOCK_AND_ORDERS,
-  release_order_stock: STOCK_AND_ORDERS,
-  adjust_product_stock: STOCK_AND_ORDERS,
-  adjust_variant_stock: STOCK_AND_ORDERS,
-  credit_product_stock: STOCK_AND_ORDERS,
+  // Stock: they write `products` only.
+  claim_order_stock: CATALOG,
+  release_order_stock: CATALOG,
+  adjust_product_stock: CATALOG,
+  adjust_variant_stock: CATALOG,
+  credit_product_stock: CATALOG,
+  save_product_variants: CATALOG,
+  // Stock given back with the order's own row.
   restock_order_lines: STOCK_AND_ORDERS,
   release_order_inventory: STOCK_AND_ORDERS,
-  save_product_variants: STOCK_AND_ORDERS,
-  record_stock_move: STOCK_AND_ORDERS,
-  set_order_item_status: STOCK_AND_ORDERS,
-  reserve_order_refund: STOCK_AND_ORDERS,
-  reserve_order_refund_once: STOCK_AND_ORDERS,
-  drop_order_refund: STOCK_AND_ORDERS,
-  wallet_place_order: STOCK_AND_ORDERS,
+  // The order row only: refunds, line status, a wallet order (a cafe
+  // order holds no stock; a shop line's claim is its own rpc).
+  set_order_item_status: ORDERS,
+  reserve_order_refund: ORDERS,
+  reserve_order_refund_once: ORDERS,
+  drop_order_refund: ORDERS,
+  wallet_place_order: ORDERS,
+  // The stock_moves ledger: read live by the panel, never cached.
+  record_stock_move: NONE,
 
   // Legal overrides the /hukuk pages print.
   legal_doc_save: SITE,

@@ -85,15 +85,22 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
    önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
    düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
-   Beş etiket: `pub:catalog` (ürün, kategori, menü), `pub:site` (ayarlar,
+   Altı etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
+   site haritası), `pub:menu` (menü kalemleri; mağazanın stok hareketi
+   menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
    içerikleri, hukuk override'ları, canlı durum), `live:orders`,
    `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
    okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
    Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
    sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
-   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc beş
-   etiketi birden düşürür. Her yazma etiketi bir kez daha, yanıt çıktıktan
+   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc
+   bütün etiketleri birden düşürür. Bir fonksiyonun etiketleri gövdesinin
+   yazdığı tabloların ve çağırdığı fonksiyonların etiketleridir; aynı test
+   `db/schema.sql`'i okur, eksik (bayat veri) ya da fazla (boşuna uyanma)
+   etiketi reddeder: iade, satır durumu ve cüzdan siparişi yalnız
+   `live:orders`, stok hareketi kaydı (`record_stock_move`) hiçbirini
+   düşürmez. Her yazma etiketi bir kez daha, yanıt çıktıktan
    sonra `after()` ile ayrı bir istekle düşürür (`SECOND_EXPIRY`): Next
    düşürmeleri sıraya alır ve sırayı route handler ancak bir Response
    döndürünce ya da yönlendirince gönderir. Yazdıktan sonra hata fırlatan
@@ -126,11 +133,11 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    anında eski deployment'ta süren istekler (en uzunu 300 sn: kampanya
    gönderimi, CSV içe aktarma; ödeme dönüşü, stok iadesi). Panelden yapılan
    bir kayıt yalnız kendi etiketini düşürür. Bunlardan sonra (her rollback
-   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de) beş
-   etiketi elle düşür:
+   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de)
+   bütün etiketleri elle düşür:
 
    ```bash
-   vercel cache dangerously-delete --tag pub:catalog,pub:site,live:orders,live:karaoke,live:access --yes
+   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:orders,live:karaoke,live:access --yes
    ```
 
    `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da

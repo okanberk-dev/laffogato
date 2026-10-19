@@ -438,6 +438,18 @@ describe("the key", () => {
     const settings = h.made.find((m) => m.keyParts[0] === "site-settings");
     expect(settings?.tags).toEqual(["pub:site"]);
   });
+
+  it("the menu sits under its own tag: a shop stock move does not drop it", async () => {
+    caching();
+    await site.listSiteMenu();
+    const menu = h.made.find((m) => m.keyParts[0] === "site-menu");
+    expect(menu?.tags).toEqual(["pub:menu"]);
+    const { tagsForWrite } = await import("@/lib/cache/tags");
+    for (const fn of ["claim_order_stock", "release_order_stock"]) {
+      expect(tagsForWrite({ fn })).not.toContain("pub:menu");
+    }
+    expect(tagsForWrite({ table: "menu_items" })).toEqual(["pub:menu"]);
+  });
 });
 
 describe("the switches", () => {

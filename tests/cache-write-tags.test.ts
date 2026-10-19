@@ -52,6 +52,56 @@ function schemaTables(): string[] {
 /** Tables only SQL functions write: the client never names them. */
 const SQL_ONLY_TABLES = ["_migrations", "product_form_saves"];
 
+/** The body of the LAST definition of `fn` (a later migration replaces it). */
+function functionBody(fn: string): string | null {
+  const heads = [
+    ...SCHEMA.matchAll(
+      new RegExp(
+        String.raw`create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?${fn}\s*\(`,
+        "gi",
+      ),
+    ),
+  ];
+  const head = heads.at(-1);
+  if (!head) return null;
+  const rest = SCHEMA.slice(head.index + head[0].length);
+  const quote = /\$[a-z_]*\$/i.exec(rest);
+  if (!quote) return null;
+  const start = quote.index + quote[0].length;
+  const end = rest.indexOf(quote[0], start);
+  return end === -1 ? null : rest.slice(start, end);
+}
+
+/**
+ * The tags a function's own SQL makes stale: those of every table its body
+ * inserts into, updates or deletes from (functions run with
+ * `search_path = ''`, so every name is `public.`-qualified; a dynamic
+ * `execute format('insert into public.orders ...')` is read too), and of
+ * every function it calls.
+ */
+function writtenTags(fn: string, seen: string[] = []): Set<string> | null {
+  const body = functionBody(fn);
+  if (body === null) return null;
+  const out = new Set<string>();
+  for (const m of body.matchAll(
+    /\b(?:insert\s+into|update|delete\s+from)\s+(?:only\s+)?public\.([a-z_0-9]+)/gi,
+  )) {
+    const table = m[1].toLowerCase();
+    if (SQL_ONLY_TABLES.includes(table)) continue;
+    const t = (tags.TABLE_TAGS as Record<string, readonly string[]>)[table];
+    // A table the map does not know: let the test say so.
+    for (const tag of t ?? [`unknown table ${table}`]) out.add(tag);
+  }
+  for (const m of body.matchAll(/\bpublic\.([a-z_0-9]+)\s*\(/gi)) {
+    const called = m[1].toLowerCase();
+    if (called === fn || seen.includes(called) || !(called in tags.RPC_TAGS)) {
+      continue;
+    }
+    for (const tag of writtenTags(called, [...seen, fn]) ?? []) out.add(tag);
+  }
+  return out;
+}
+
 beforeEach(() => {
   h.revalidateTag.mockReset();
   h.after.mockReset();
@@ -90,7 +140,7 @@ describe("every table and every function is classified", () => {
     expect(fns.filter((f) => !(f in tags.RPC_TAGS))).toEqual([]);
   });
 
-  it("only the five tags are used, each by something", () => {
+  it("only the six tags are used, each by something", () => {
     const used = new Set([
       ...Object.values(tags.TABLE_TAGS).flat(),
       ...Object.values(tags.RPC_TAGS).flat(),
@@ -99,11 +149,41 @@ describe("every table and every function is classified", () => {
   });
 });
 
+describe("each function's tags are what its SQL writes", () => {
+  it("the parse reads bodies, dynamic SQL and nested calls", () => {
+    expect([...(writtenTags("wallet_place_order") ?? [])]).toEqual([
+      "live:orders",
+    ]);
+    // restock_order_lines writes orders and calls credit_product_stock.
+    expect([...(writtenTags("restock_order_lines") ?? [])].sort()).toEqual([
+      "live:orders",
+      "pub:catalog",
+    ]);
+    expect([...(writtenTags("record_stock_move") ?? [])]).toEqual([]);
+  });
+
+  it("no function is tagged with less (stale data) or more (a wake for nothing)", () => {
+    const wrong = Object.keys(tags.RPC_TAGS)
+      .map((fn) => {
+        const written = writtenTags(fn);
+        const have = [...tags.RPC_TAGS[fn]].sort();
+        const want = written === null ? null : [...written].sort();
+        return { fn, have, want };
+      })
+      .filter(
+        ({ have, want }) =>
+          want === null || JSON.stringify(have) !== JSON.stringify(want),
+      );
+    expect(wrong).toEqual([]);
+  });
+});
+
 describe("tagsForWrite", () => {
   it.each([
     ["products", ["pub:catalog"]],
     ["categories", ["pub:catalog"]],
-    ["menu_items", ["pub:catalog"]],
+    // Apart from the shop: a stock move does not drop the menu.
+    ["menu_items", ["pub:menu"]],
     ["settings", ["pub:site"]],
     ["legal_docs", ["pub:site"]],
     ["venue_status", ["pub:site"]],
@@ -120,23 +200,31 @@ describe("tagsForWrite", () => {
     expect([...tags.tagsForWrite({ table })]).toEqual(expected);
   });
 
-  it("stock and order functions expire the catalog and the orders", () => {
-    for (const fn of [
-      "claim_order_stock",
-      "release_order_stock",
-      "adjust_product_stock",
-      "adjust_variant_stock",
-      "save_product_variants",
-      "set_order_item_status",
-      "reserve_order_refund_once",
-      "drop_order_refund",
-      "wallet_place_order",
-    ]) {
-      expect([...tags.tagsForWrite({ fn })].sort(), fn).toEqual([
-        "live:orders",
-        "pub:catalog",
-      ]);
+  it("stock functions expire the shop, order functions the orders, the ledger nothing", () => {
+    const expected: Record<string, string[]> = {
+      claim_order_stock: ["pub:catalog"],
+      release_order_stock: ["pub:catalog"],
+      adjust_product_stock: ["pub:catalog"],
+      adjust_variant_stock: ["pub:catalog"],
+      save_product_variants: ["pub:catalog"],
+      restock_order_lines: ["live:orders", "pub:catalog"],
+      release_order_inventory: ["live:orders", "pub:catalog"],
+      set_order_item_status: ["live:orders"],
+      reserve_order_refund_once: ["live:orders"],
+      drop_order_refund: ["live:orders"],
+      wallet_place_order: ["live:orders"],
+      record_stock_move: [],
+    };
+    for (const [fn, want] of Object.entries(expected)) {
+      expect([...tags.tagsForWrite({ fn })].sort(), fn).toEqual(want);
     }
+  });
+
+  it("no function writes the menu: only a menu_items write drops it", () => {
+    const menu = Object.entries(tags.RPC_TAGS)
+      .filter(([, t]) => t.includes("pub:menu"))
+      .map(([fn]) => fn);
+    expect(menu).toEqual([]);
   });
 
   it("the legal override functions expire the site", () => {
@@ -261,7 +349,6 @@ describe("a write whose reply was lost still expires its tags", () => {
     expect(h.revalidateTag.mock.calls).toEqual([
       ["pub:catalog", { expire: 0 }],
       ["pub:catalog", { expire: 0 }],
-      ["live:orders", { expire: 0 }],
     ]);
   });
 });

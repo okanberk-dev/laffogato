@@ -30,7 +30,7 @@ import type { CacheTag } from "./tags";
  * production database, a deployment from before this cache serving after
  * an Instant Rollback (its writes never reach the entries an "Undo
  * Rollback" brings back). docs/DATABASE.md "Etiket düşürmeyen yazmalar"
- * names them and the command that purges all four tags.
+ * names them and the command that purges every tag.
  *
  * Only for presentation. Prices, stock, whether something may be ordered,
  * who is signed in: never from here (CLAUDE.md "Veritabanı Kesintisinde

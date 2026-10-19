@@ -103,7 +103,7 @@ alamaz, hesabı okunur. Yetkisi alınan oturum bir sonraki soruda 401 ya da
 403 alır; ilk siparişin ne zaman yazıldığını ve köşkün açık olup olmadığını
 bu yoldan öğrenemez. Kalan tek fark: Neon konsolunda elle yapılan bir hesap
 değişikliği etiket düşürmez (`docs/DATABASE.md` "Etiket düşürmeyen
-yazmalar"); hesabı panelden değiştir ya da beş etiketi düşür.
+yazmalar"); hesabı panelden değiştir ya da bütün etiketleri düşür.
 "Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
 cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
 gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
