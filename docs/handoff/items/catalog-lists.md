@@ -1,0 +1,3 @@
+- Plan §4 5d. #137 (5a) is merged: per-variant stock (CAT-14 list part) is yours: show each variant's stock in the products list/view.
+- #135 changed product-wizard.tsx: touch it only for the beforeunload guard (CAT-30), minimal and reusable (UI-17 adds a generic guard later).
+- List DTOs carry no base64 images, no costMinor, no SEO fields (CAT-07).
