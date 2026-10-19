@@ -485,6 +485,12 @@ describe("tabs in the shell", () => {
       ["Slaytlar", "/admin/anasayfa-hero"],
       ["Yeni", null],
     ]);
+    // A product's view page sits under the item's first tab: no tab crumb.
+    expect(t("/admin/urunler/prd-1/duzenle")).toEqual([
+      ["Ürünler", "/admin/urunler"],
+      ["Ayrıntı", "/admin/urunler/prd-1"],
+      ["Düzenle", null],
+    ]);
     // A manager's Ayarlar is Uygulama ayarları alone: no tab crumb.
     expect(t("/admin/mobil/ayarlar", "manager")).toEqual([["Ayarlar", null]]);
   });
