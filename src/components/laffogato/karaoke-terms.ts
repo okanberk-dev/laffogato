@@ -3,6 +3,7 @@ import {
   KARAOKE_FREE_CANCEL_HOURS_MAX,
   istanbulTimeLabel,
   karaokeDeadlineFor,
+  karaokeFreeCancelEnd,
   karaokeLateRefundMinor,
   type KaraokeCancelPolicy,
 } from "@/lib/mobile/karaoke-time";
@@ -109,13 +110,14 @@ export function karaokeBookingTerms(
       : null;
   // A deadline already behind the clock is not a moment to cancel before:
   // the booking's own snapshot would be late from the start
-  // (`withinFreeCancel` is `now < deadline`).
+  // (`withinFreeCancel` counts the named minute itself: the page printed
+  // at 18:00:30 still names 18:00, and a cancel then refunds in full).
   const nowMs = pick.now?.getTime();
   const freePassed =
     deadline !== null &&
     nowMs !== undefined &&
     Number.isFinite(nowMs) &&
-    nowMs >= deadline.getTime();
+    nowMs >= karaokeFreeCancelEnd(deadline);
   return {
     rules: [cancellationRules[0], cancellationRules[1]],
     policy,
