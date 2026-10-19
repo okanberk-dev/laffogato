@@ -76,6 +76,7 @@ import {
   discountRefusal,
   liveDiscount,
   withoutEndedDiscount,
+  type DiscountFields,
   type PricePoint,
 } from "@/lib/shop/discount";
 import {
@@ -6134,12 +6135,19 @@ export async function refundOrder(
  */
 export const getPublicSettings = cache(
   async (): Promise<AdminSettings> =>
-    publicRead(
-      "getPublicSettings",
-      { ...defaultSettings(), isShopOpen: false },
-      () => getSettings(),
+    publicRead("getPublicSettings", publicSettingsFallback(), () =>
+      getSettings(),
     ),
 );
+
+/**
+ * What a presentation read of the settings shows when the database cannot
+ * be reached: the defaults, with the shop closed. Shared with the cached
+ * reader (src/lib/seo/site-data.ts) so both fall back to the same thing.
+ */
+export function publicSettingsFallback(): AdminSettings {
+  return { ...defaultSettings(), isShopOpen: false };
+}
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
@@ -6309,21 +6317,62 @@ export function toDesignProduct(
   p: AdminProduct,
   now: Date = new Date(),
 ): DesignProduct {
-  // A "was" price only while its discount runs and only above the sale
-  // price; without dates, or out of them, it is shown nowhere (Ticari
-  // Reklam Yön. m.14/1, m.14/3; src/lib/shop/discount.ts).
-  const discount = liveDiscount(p, now);
+  return shopProductAt(toShopListing(p), now);
+}
+
+/**
+ * A product as the site lists it, minus what depends on the hour: the
+ * mapped product without its "was" price, and the discount's fields to
+ * work that out from (`shopProductAt`). What the cached shop list
+ * (src/lib/seo/site-data.ts) stores, so a discount starts and ends on the
+ * minute however long the entry is kept.
+ */
+export interface ShopListing {
+  product: DesignProduct;
+  discount: DiscountFields;
+}
+
+/**
+ * The product at `now`: a "was" price only while its discount runs and only
+ * above the sale price; without dates, or out of them, it is shown nowhere
+ * (Ticari Reklam Yön. m.14/1, m.14/3; src/lib/shop/discount.ts).
+ */
+export function shopProductAt(
+  listing: ShopListing,
+  now: Date = new Date(),
+): DesignProduct {
+  const discount = liveDiscount(listing.discount, now);
   return {
-    id: p.id,
-    name: p.name,
-    tag: p.tag,
-    price: priceLabel(p.priceMinor),
+    ...listing.product,
     compareAtPrice: discount
       ? priceLabel(discount.compareAtPriceMinor)
       : undefined,
     ...(discount
       ? { discountStartsAt: discount.startsAt, discountEndsAt: discount.endsAt }
       : {}),
+    compareAtPriceMinor: discount?.compareAtPriceMinor,
+  };
+}
+
+/** `toDesignProduct` before the clock is read (see `ShopListing`). */
+export function toShopListing(p: AdminProduct): ShopListing {
+  return {
+    product: designProductBase(p),
+    discount: {
+      priceMinor: p.priceMinor,
+      compareAtPriceMinor: p.compareAtPriceMinor,
+      discountStartsAt: p.discountStartsAt ?? null,
+      discountEndsAt: p.discountEndsAt ?? null,
+    },
+  };
+}
+
+function designProductBase(p: AdminProduct): DesignProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    tag: p.tag,
+    price: priceLabel(p.priceMinor),
     desc: p.desc,
     cat: p.cat,
     img: p.img,
@@ -6349,7 +6398,6 @@ export function toDesignProduct(
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor: discount?.compareAtPriceMinor,
     // The maker and the tasting notes the product page's details read
     // (product-facts.ts); empty sends nothing.
     brand: typeof p.brand === "string" && p.brand.trim() ? p.brand.trim() : undefined,
@@ -6380,9 +6428,20 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   // a stock count from the seed would be fiction, and the shop must not sell
   // against fiction. An empty shop plus the outage banner is honest.
   return publicRead("listShopProducts", [] as DesignProduct[], async () => {
-    const all = await listProducts();
-    return all.filter((p) => p.isActive).map((p) => toDesignProduct(p));
+    const now = new Date();
+    return (await listShopListingsLive()).map((l) => shopProductAt(l, now));
   });
+}
+
+/**
+ * The active products as `ShopListing`s, without the outage fallback:
+ * uploaded photos as served paths (never base64), no "was" price yet.
+ * Throws when the database cannot be reached. The cached shop list
+ * (src/lib/seo/site-data.ts) stores this.
+ */
+export async function listShopListingsLive(): Promise<ShopListing[]> {
+  const all = await listProducts();
+  return all.filter((p) => p.isActive).map((p) => toShopListing(p));
 }
 
 /**
@@ -6700,7 +6759,7 @@ export async function bulkUpdateMenuItems(
  * showing a wrong price to someone standing at the counter is worse than
  * showing none.
  */
-function menuWithoutPrices(): Record<string, DesignMenuCategory> {
+export function menuWithoutPrices(): Record<string, DesignMenuCategory> {
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];
@@ -6725,7 +6784,8 @@ export async function listMenuForCustomer(): Promise<
   );
 }
 
-async function listMenuForCustomerLive(): Promise<
+/** `listMenuForCustomer` without the outage fallback (throws instead). */
+export async function listMenuForCustomerLive(): Promise<
   Record<string, DesignMenuCategory>
 > {
   const all = await listMenuItems();
@@ -7753,18 +7813,27 @@ export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
 export async function listActiveShopHeroSlides(): Promise<
   AdminShopHeroSlide[]
 > {
-  return publicRead("listActiveShopHeroSlides", [], async () => {
-    const all = await listShopHeroSlides();
-    return all
-      .filter((s) => s.isActive)
-      .map((s) => ({
-        ...s,
-        imageUrl: servedImage(
-          s.imageUrl,
-          heroImagePath(s.id, imageVersion(s.imageUrl)),
-        ),
-      }));
-  });
+  return publicRead(
+    "listActiveShopHeroSlides",
+    [],
+    listActiveShopHeroSlidesLive,
+  );
+}
+
+/** `listActiveShopHeroSlides` without the outage fallback (throws instead). */
+export async function listActiveShopHeroSlidesLive(): Promise<
+  AdminShopHeroSlide[]
+> {
+  const all = await listShopHeroSlides();
+  return all
+    .filter((s) => s.isActive)
+    .map((s) => ({
+      ...s,
+      imageUrl: servedImage(
+        s.imageUrl,
+        heroImagePath(s.id, imageVersion(s.imageUrl)),
+      ),
+    }));
 }
 
 export async function getShopHeroSlide(
@@ -7986,11 +8055,13 @@ const pressResource = contentResource<AdminPress>(
 );
 export const listPress = pressResource.list;
 export const listActivePress = (): Promise<AdminPress[]> =>
-  publicRead(
-    "listActivePress",
-    SEED_PRESS_ROWS.filter((r) => r.isActive),
-    () => pressResource.listActive(),
-  );
+  publicRead("listActivePress", pressFallback(), listActivePressLive);
+/** `listActivePress` without the outage fallback (throws instead). */
+export const listActivePressLive = (): Promise<AdminPress[]> =>
+  pressResource.listActive();
+/** The bundled press quotes an outage shows. */
+export const pressFallback = (): AdminPress[] =>
+  SEED_PRESS_ROWS.filter((r) => r.isActive);
 export const createPress = (i: PressInput) => pressResource.create(i);
 export const updatePress = (id: string, i: PressInput) =>
   pressResource.update(id, i);
@@ -8026,11 +8097,13 @@ const storyResource = contentResource<AdminStoryEvent>(
 );
 export const listStoryEvents = storyResource.list;
 export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
-  publicRead(
-    "listActiveStoryEvents",
-    SEED_STORY_ROWS.filter((r) => r.isActive),
-    () => storyResource.listActive(),
-  );
+  publicRead("listActiveStoryEvents", storyFallback(), listActiveStoryLive);
+/** `listActiveStoryEvents` without the outage fallback (throws instead). */
+export const listActiveStoryLive = (): Promise<AdminStoryEvent[]> =>
+  storyResource.listActive();
+/** The bundled timeline an outage shows. */
+export const storyFallback = (): AdminStoryEvent[] =>
+  SEED_STORY_ROWS.filter((r) => r.isActive);
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);

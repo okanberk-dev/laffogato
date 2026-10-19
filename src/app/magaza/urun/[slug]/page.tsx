@@ -7,18 +7,18 @@ import { isDegradedRequest } from "@/lib/db/health";
 import type { Product } from "@/components/laffogato/data";
 import { ProductDetail } from "@/components/laffogato/product-detail";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
-import {
-  getPublicSettings,
-  getShopProductBySlug,
-  listRelatedShopProducts,
-  type ShopCategoryId,
-} from "@/lib/admin/store";
+import type { ShopCategoryId } from "@/lib/admin/store";
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { metaDescription, openGraphBase } from "@/lib/seo/site";
 import { shortProductName } from "@/lib/utils/format";
 import { footerSettings } from "@/lib/seo/contact";
+import {
+  getSiteProductBySlug,
+  getSiteSettings,
+  listSiteRelatedProducts,
+} from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export async function generateMetadata({
   params,
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getShopProductBySlug(slug);
+  const product = await getSiteProductBySlug(slug);
   if (!product) return { title: { absolute: "Ürün bulunamadı · L'Affogato" } };
   // " · ", not " - ": product names carry their own hyphen now
   // ("Sirena - Espresso Harmanı"), and the dot is the site's title separator.
@@ -168,7 +168,7 @@ function ProductUnavailable() {
 
 export default async function ProductDetailPage({ params }: RouteParams) {
   const { slug } = await params;
-  const product = await getShopProductBySlug(slug);
+  const product = await getSiteProductBySlug(slug);
   if (!product) {
     // A missing product is a genuine 404 - but during a database outage every
     // product reads as missing, and 404-ing real product URLs would get them
@@ -177,9 +177,9 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       // Wrapped in the site's own chrome: the fallback used to render bare,
       // so a visitor who hit a database blip got a page with no header and no
       // footer - no way out of it - on the one screen whose entire message is
-      // "come back in a minute". `getPublicSettings()` degrades to defaults
+      // "come back in a minute". `getSiteSettings()` degrades to defaults
       // rather than throwing, so this is safe in exactly this state.
-      const fallbackSettings = await getPublicSettings();
+      const fallbackSettings = await getSiteSettings();
       return (
         <SiteChrome settings={footerSettings(fallbackSettings)}>
           <ProductUnavailable />
@@ -190,12 +190,12 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   }
 
   const [related, settings] = await Promise.all([
-    listRelatedShopProducts(
+    listSiteRelatedProducts(
       (product.cat as ShopCategoryId) ?? "beans",
       product.id ?? "",
       4,
     ),
-    getPublicSettings(),
+    getSiteSettings(),
   ]);
 
   const breadcrumb = breadcrumbLd([

@@ -46,18 +46,17 @@ vi.mock("@/lib/admin/store", () => ({
     sat: "Cumartesi",
     sun: "Pazar",
   },
-  getPublicSettings: vi.fn(async () => h.settings),
-  listActivePress: vi.fn(async () => []),
-  listActiveShopHeroSlides: vi.fn(async () => []),
-  listActiveStoryEvents: vi.fn(async () => []),
-  listMenuForCustomer: vi.fn(async () => ({})),
-  listShopProducts: vi.fn(async () => []),
 }));
-vi.mock("@/lib/admin/home-hero", () => ({
-  listHomeSlidesForSite: vi.fn(async () => null),
-}));
-vi.mock("@/lib/admin/site-content", () => ({
-  getSiteContent: vi.fn(async () => ({})),
+// loadAppProps reads the site's cached presentation readers.
+vi.mock("@/lib/seo/site-data", () => ({
+  getSiteSettings: vi.fn(async () => h.settings),
+  listSitePress: vi.fn(async () => []),
+  listSiteShopHeroSlides: vi.fn(async () => []),
+  listSiteStory: vi.fn(async () => []),
+  listSiteMenu: vi.fn(async () => ({})),
+  listSiteShopProducts: vi.fn(async () => []),
+  listSiteHomeSlides: vi.fn(async () => null),
+  getSiteContentForSite: vi.fn(async () => ({})),
 }));
 vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: vi.fn(async () => null),

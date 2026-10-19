@@ -3,12 +3,6 @@ import { notFound } from "next/navigation";
 
 import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
-import {
-  getPublicSettings,
-  listActiveShopHeroSlides,
-  listMenuForCustomer,
-  listShopProducts,
-} from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
@@ -17,6 +11,12 @@ import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { openGraphBase } from "@/lib/seo/site";
 import { footerSettings, venueContact } from "@/lib/seo/contact";
+import {
+  getSiteSettings,
+  listSiteMenu,
+  listSiteShopHeroSlides,
+  listSiteShopProducts,
+} from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -62,11 +62,11 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
 
   const [allProducts, settings, menu, customer, heroSlides] = await Promise.all(
     [
-      listShopProducts(),
-      getPublicSettings(),
-      listMenuForCustomer(),
+      listSiteShopProducts(),
+      getSiteSettings(),
+      listSiteMenu(),
       getActiveCustomer(),
-      listActiveShopHeroSlides(),
+      listSiteShopHeroSlides(),
     ],
   );
 

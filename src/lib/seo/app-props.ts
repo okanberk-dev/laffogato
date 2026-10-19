@@ -1,23 +1,22 @@
 import "server-only";
 
-import {
-  DAYS_OF_WEEK,
-  DAY_LABELS,
-  getPublicSettings,
-  listActivePress,
-  listActiveShopHeroSlides,
-  listActiveStoryEvents,
-  listMenuForCustomer,
-  listShopProducts,
-} from "@/lib/admin/store";
+import { DAYS_OF_WEEK, DAY_LABELS } from "@/lib/admin/store";
 import { LOCATION } from "@/components/laffogato/data";
-import { listHomeSlidesForSite } from "@/lib/admin/home-hero";
 import { addressLines } from "@/lib/utils/format";
-import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDegradedRequest } from "@/lib/db/health";
 import { istanbulDay } from "@/lib/mobile/menu-mapper";
 import { footerSettings, venueContact } from "@/lib/seo/contact";
+import {
+  getSiteContentForSite,
+  getSiteSettings,
+  listSiteHomeSlides,
+  listSiteMenu,
+  listSitePress,
+  listSiteShopHeroSlides,
+  listSiteShopProducts,
+  listSiteStory,
+} from "@/lib/seo/site-data";
 
 /**
  * Everything the customer shell renders from, loaded once.
@@ -29,6 +28,10 @@ import { footerSettings, venueContact } from "@/lib/seo/contact";
  * closing time in Ayarlar saw the home page and the footer update while the
  * contact page kept the old number - and /hikayemiz ignored the press quotes
  * and the timeline the admin panel exists to edit.
+ *
+ * Read through the Data Cache (src/lib/seo/site-data.ts): a page view by a
+ * visitor who is not signed in reads nothing from the database. The member
+ * (wishlist, signed-in state) is read live, from the cookie.
  */
 export async function loadAppProps({
   // Only the shop page renders the hero carousel. Fetching its slides for
@@ -50,15 +53,15 @@ export async function loadAppProps({
     content,
     homeHero,
   ] = await Promise.all([
-    listShopProducts(),
-    getPublicSettings(),
-    listMenuForCustomer(),
+    listSiteShopProducts(),
+    getSiteSettings(),
+    listSiteMenu(),
     getActiveCustomer(),
-    withShopHero ? listActiveShopHeroSlides() : Promise.resolve([]),
-    listActivePress(),
-    listActiveStoryEvents(),
-    getSiteContent(),
-    withHomeHero ? listHomeSlidesForSite() : Promise.resolve(null),
+    withShopHero ? listSiteShopHeroSlides() : Promise.resolve([]),
+    listSitePress(),
+    listSiteStory(),
+    getSiteContentForSite(),
+    withHomeHero ? listSiteHomeSlides() : Promise.resolve(null),
   ]);
 
   // Computed on the server so it is stable across hydration - and at the

@@ -59,6 +59,98 @@ yalnız `main` production'a gider. Bir dalın önizlemesi gerekirse
 `vercel deploy` ile elle açılır ve işi bitince `preview/*` Neon dalı silinir
 (`production` ve `vercel-dev` dalına dokunulmaz).
 
+## Uyanmalar ve önbellek (19 Eki 2026)
+
+**Ölçülen sebep.** Neon Free planda compute 5 dakika boşta kalınca uyur ve
+her istek onu yeniden uyandırır; uyanık geçen her dakika CU-saat yazar.
+1-19 Ekim: 70,2 CU-saat (19 Eki 15:05 UTC), günde ~92 uyanma, compute
+zamanın ~%57-59'unda açık (12-19 Ekim ortalaması günde ~14,7 saat) ve
+dağılım 24 saate neredeyse düz yayılmış: Tuzla saatiyle 02:00-08:00 arası
+günde ~2,4 saat açık, bu uyanmaların %67-77'si tek istekli (biri gelir,
+compute 5 dakika açık kalır, kimse gelmez). Gece müşteri yok; uyandıran
+tarayıcılar ve botlar. Her genel sayfa `force-dynamic` ve her görüntüleme
+ayarları, menüyü, ürünleri veritabanından okuyordu. Gündüz ayrıca açık bir
+panel sekmesi (yeni sipariş zili 10 sn'de bir, kenar çubuğu rozetleri
+60 sn'de bir, sipariş listesi 30 sn'de bir) Neon'u açık tutuyor; 5 dakikanın
+altındaki her aralık aynı sonucu verir. Production endpoint'i
+(`ep-plain-cake-ay3dvcuq`) 19 Eki'de 0,25 CU'ya sabitlendi (min = max).
+İstek dökümü doğrulanamadı: Vercel Hobby istek logu tutmaz.
+
+**Ne değişti.**
+
+1. **Yazma, etkilediği önbelleği hemen düşürür** (`src/lib/cache/tags.ts`).
+   Veri katmanı (`getDb()`) kabul edilen her insert, upsert, update, delete
+   ve rpc'den sonra ilgili etiketi `revalidateTag(tag, { expire: 0 })` ile
+   düşürür: bir sonraki okuma taze veriyi bekler, bayat veri hiç sunulmaz.
+   Dört etiket: `pub:catalog` (ürün, kategori, menü), `pub:site` (ayarlar,
+   site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
+   içerikleri, hukuk override'ları, canlı durum), `live:orders`,
+   `live:karaoke`. Her tablo ve `db/schema.sql`'deki her fonksiyon bu
+   dosyada sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
+   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc dört
+   etiketi birden düşürür. Render sırasında (Next E7) etiket `after()` ile
+   yanıt çıktıktan sonra düşer.
+2. **Genel sayfaların sunum okumaları Data Cache'ten gelir**
+   (`src/lib/cache/presentation.ts`, `src/lib/seo/site-data.ts`;
+   `unstable_cache`, Vercel'de bölgesel Runtime Cache). Anahtar deployment'ı
+   ve son migration'ı içerir: her deploy boş önbellekle başlar. Kayıt yazma
+   gelene kadar geçerlidir; 24 saatlik `revalidate` yalnız görülmemiş bir
+   yazmaya karşı emniyet ağıdır. Kapsam: `/`, `/menu`, `/magaza`,
+   `/hikayemiz`, `/ziyaret` (`loadAppProps`), `/menu/<kategori>`,
+   `/magaza/<kategori>`, `/magaza/urun/<slug>` ve kartı, `/ziyaret` kartı,
+   `/kampanyalar`, `/hukuk` ve `/hukuk/<slug>` gösterimi, `/rehber` ve
+   `/uye` çerçevesi, 404, `robots.txt`, `sitemap.xml`, iki `.well-known`
+   belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
+   saatleri, yayın aralıkları, ana sayfa slaytı) istek başına hesaplanır.
+   Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+
+**Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
+verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,
+sayfa, action'lar), `/karaoke`, `/rezervasyon`, `placeOrder` /
+`placeAppOrder`, `/api/mobile/v1/**` (başlıklar ve okuyucular aynı,
+`docs/API-MOBILE.md` değişmedi), e-postalar, onay sürümleri
+(`checkoutConsentVersion`, `karaokeConsentVersion`), ödeme belgeleri, admin
+sayfaları ve admin oturumu canlı okur. `tests/site-data-cache.test.ts` bu
+yolların önbellek okuyucularını içe aktarmadığını tutar. `/masa/<kod>`'un
+masa araması ve `/api/health` da canlıdır.
+
+**Kesinti davranışına etkisi.** Önbellekte kaydı olan bir sayfa veritabanı
+kapalıyken son bilinen gerçek içeriği gösterir ve kesinti bandı çıkmaz;
+kaydı olmayan sayfa eskisi gibi paketteki içeriğe düşer (o yedek hiçbir
+zaman önbelleğe yazılmaz, `publicRead` dış çağrıdır). Mağaza için bu,
+"bozulmada boş kalır" kuralından bir ayrışmadır: önbellek isabetinde mağaza
+son bilinen gerçek ürünleri gösterir, ama ödeme fiyatı veritabanından
+yeniden okur ve stoğu SQL'de ayırır, yani kimse bu listeden satın alamaz;
+ödeme, karaoke ve uygulama siparişleri yine sesli başarısız olur. Bu
+ayrışma operatörün onayına sunulmuştur (CLAUDE.md değiştirilmedi).
+
+**Kapatma anahtarı.** `LAF_DATA_CACHE=off` (Vercel env) her sunum okumasını
+eskisi gibi veritabanına gönderir. Önbellek hata verirse ya da kaydı
+düşürürse okuma veritabanına gider: daha çok compute, asla yanlış veri.
+
+**Yeniden ölçmek** (salt okunur; `NEON_API_KEY` operatörde):
+
+```bash
+# Dönemin toplamları: compute_time_seconds / 3600 = CU-saat,
+# active_time_seconds / 3600 = açık saat
+npx neonctl projects get misty-cell-35394291 -o json
+
+# Production endpoint'inin uyanmaları, Tuzla saatine göre (son 1000 işlem;
+# daha eskisi için yanıttaki pagination.cursor ile ?cursor= ver)
+curl -s -H "Authorization: Bearer $NEON_API_KEY" \
+  "https://console.neon.tech/api/v2/projects/misty-cell-35394291/operations?limit=1000" |
+  jq -r '.operations[]
+    | select(.action == "start_compute" and .endpoint_id == "ep-plain-cake-ay3dvcuq")
+    | .created_at | sub("\\.[0-9]+"; "") | fromdateiso8601 + 10800 | strftime("%d %H")' |
+  sort | uniq -c
+```
+
+Hedef (deploy'dan sonraki 48 saat): 02:00-08:00 arası saatte en çok bir
+uyanma; günde 9 saatin altında açık kalma (kalan bütçe 29,8 CU-saat / 12
+gün, 0,25 CU'da günde ~9,6 saat). Bir panel kaydı bir sonraki sayfa
+yüklemesinde görünmelidir. Ölçüm 9 saatin üstünde kalırsa çözüm Neon Launch
+planıdır (ayda ~12-15 $).
+
 ## Supabase'e geçiş yordamı
 
 Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
@@ -386,7 +478,9 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
-kalmaz.
+kalmaz. Tablodaki genel sayfa satırları önbellekte kaydı olmayan sayfa
+içindir: kaydı olan sayfa son bilinen gerçek içeriği bantsız gösterir
+(yukarıda "Uyanmalar ve önbellek").
 
 **Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
