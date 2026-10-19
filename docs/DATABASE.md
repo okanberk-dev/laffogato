@@ -160,12 +160,20 @@ masa araması ve `/api/health` da canlıdır.
 **Kesinti davranışına etkisi.** Önbellekte kaydı olan bir sayfa veritabanı
 kapalıyken son bilinen gerçek içeriği gösterir ve kesinti bandı çıkmaz;
 kaydı olmayan sayfa eskisi gibi paketteki içeriğe düşer (o yedek hiçbir
-zaman önbelleğe yazılmaz, `publicRead` dış çağrıdır). Mağaza için bu,
-"bozulmada boş kalır" kuralından bir ayrışmadır: önbellek isabetinde mağaza
-son bilinen gerçek ürünleri gösterir, ama ödeme fiyatı veritabanından
-yeniden okur ve stoğu SQL'de ayırır, yani kimse bu listeden satın alamaz;
-ödeme, karaoke ve uygulama siparişleri yine sesli başarısız olur. Bu
-ayrışma operatörün onayına sunulmuştur (CLAUDE.md değiştirilmedi).
+zaman önbelleğe yazılmaz, `publicRead` dış çağrıdır). Mağaza "bozulmada
+boş kalır": isteğin kendisi veritabanını kapalı gördüyse (giriş yapmış
+üyenin hesabı her sayfada canlı okunur, ya da önbellekte kaydı olmayan bir
+okuma düştü) liste önbellekten gelse de mağaza boş ve bant görünür
+(`shopForRequest`; `loadAppProps` ve iki kategori sayfası;
+`tests/site-data-outage-shop.test.ts`). Satın alabilecek tek ziyaretçi
+üyedir, yani satın almaya çalışan herkes kesintiyi görür. Hiçbir şeyi canlı
+okumayan anonim bir istek kesintiyi bilemez: son bilinen gerçek ürünleri
+bantsız gösterir. Bu, kuralın harfinden kalan tek ayrışmadır ve
+veritabanını uyandırmadan kapatılamaz; ödeme sayfası ayarları canlı okur ve
+"Şu an sipariş alamıyoruz" der, ödeme fiyatı veritabanından yeniden okur ve
+stoğu SQL'de ayırır, yani kimse bu listeden satın alamaz; ödeme, karaoke ve
+uygulama siparişleri yine sesli başarısız olur. Bu kalan ayrışma operatörün
+onayına sunulmuştur (CLAUDE.md değiştirilmedi).
 
 **Kapatma anahtarı.** `LAF_DATA_CACHE=off` (Vercel env) her sunum okumasını
 eskisi gibi veritabanına gönderir. Önbellek hata verirse ya da kaydı
@@ -522,8 +530,9 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
 kalmaz. Tablodaki genel sayfa satırları önbellekte kaydı olmayan sayfa
-içindir: kaydı olan sayfa son bilinen gerçek içeriği bantsız gösterir
-(yukarıda "Uyanmalar ve önbellek").
+içindir: kaydı olan sayfa, kesintiyi hiçbir canlı okumada görmeyen istekte
+son bilinen gerçek içeriği bantsız gösterir; giriş yapmış üyenin isteği
+bandı ve boş mağazayı görür (yukarıda "Uyanmalar ve önbellek").
 
 **Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin

@@ -55,6 +55,7 @@ vi.mock("@/lib/seo/site-data", () => ({
   listSiteStory: vi.fn(async () => []),
   listSiteMenu: vi.fn(async () => ({})),
   listSiteShopProducts: vi.fn(async () => []),
+  shopForRequest: vi.fn((products: unknown[]) => products),
   listSiteHomeSlides: vi.fn(async () => null),
   getSiteContentForSite: vi.fn(async () => ({})),
 }));

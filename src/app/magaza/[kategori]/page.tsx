@@ -16,6 +16,7 @@ import {
   listSiteMenu,
   listSiteShopHeroSlides,
   listSiteShopProducts,
+  shopForRequest,
 } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
@@ -60,15 +61,16 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
   const cat = SHOP_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) notFound();
 
-  const [allProducts, settings, menu, customer, heroSlides] = await Promise.all(
-    [
-      listSiteShopProducts(),
-      getSiteSettings(),
-      listSiteMenu(),
-      getActiveCustomer(),
-      listSiteShopHeroSlides(),
-    ],
-  );
+  const [listed, settings, menu, customer, heroSlides] = await Promise.all([
+    listSiteShopProducts(),
+    getSiteSettings(),
+    listSiteMenu(),
+    getActiveCustomer(),
+    listSiteShopHeroSlides(),
+  ]);
+  // Empty when this request saw the database down (the member's account is
+  // read live), cached list or not.
+  const allProducts = shopForRequest(listed);
 
   // Pre-filter shop products to the selected category for a focused landing
   // page. PageShop still renders its category sidebar so users can switch.

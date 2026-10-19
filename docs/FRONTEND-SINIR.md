@@ -133,7 +133,12 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
   (`getSiteSettings`, `listSite*`, `getSiteProductBySlug`, ...) alır; bunlar
   Data Cache'ten okur, sayfa görüntülemesi veritabanını uyandırmaz
   (`docs/DATABASE.md` "Uyanmalar ve önbellek"). Yeni bir sayfa yeni bir
-  sorgu yazmaz; var olan okuyucuyu çağırır.
+  sorgu yazmaz; var olan okuyucuyu çağırır. Ürün listesini kendisi okuyan
+  bir sayfa, bütün okumaları bittikten sonra onu `shopForRequest()`'ten
+  geçirir: kesintiyi gören istek (giriş yapmış üye) boş mağaza gösterir.
+  Önbellekli okuyucuyu kullanan sayfa listesi
+  `tests/site-data-cache.test.ts`'te tutulur; ödeme, karaoke ve
+  rezervasyon sayfaları oraya girmez.
 - **Sunumda `getSettings()` değil `getSiteSettings()`.** Birincisi veritabanı
   yoksa fırlatır (ticari yollar için doğru davranış), ikincisi önbellekten ya
   da paketteki içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde

@@ -36,7 +36,7 @@ import {
 } from "@/lib/admin/store";
 import { presentationCache } from "@/lib/cache/presentation";
 import { TAG_CATALOG, TAG_SITE } from "@/lib/cache/tags";
-import { publicRead } from "@/lib/db/health";
+import { isDegradedRequest, publicRead } from "@/lib/db/health";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
   getPublishedLegalOverride,
@@ -110,11 +110,9 @@ export const getSiteSettings = cache(async (): Promise<AdminSettings> =>
  * a product page's metadata, body and related products ask the cache once
  * and see the same minute.
  */
-const cachedListings = presentationCache(
-  "site-shop",
-  listShopListingsLive,
-  [TAG_CATALOG],
-);
+const cachedListings = presentationCache("site-shop", listShopListingsLive, [
+  TAG_CATALOG,
+]);
 
 const cachedShop = cache(async (): Promise<Product[]> => {
   const listings = await cachedListings();
@@ -130,6 +128,21 @@ export async function listSiteShopProducts(): Promise<Product[]> {
   return publicRead("listSiteShopProducts", [] as Product[], () =>
     cachedShop(),
   );
+}
+
+/**
+ * The shop list as this request may show it. A request that has already
+ * seen the database down (a live read in it fell back: the signed-in
+ * member's account, a cache miss) shows the empty shop the outage rule asks
+ * for (CLAUDE.md "Veritabanı Kesintisinde Davranış"), even when the list
+ * came from the cache: a member is the one visitor who could try to buy,
+ * and the checkout is closed. Call it once the request's reads have
+ * settled. A request that read nothing live cannot know and shows the last
+ * real list; /odeme then closes on its own live read (docs/DATABASE.md
+ * "Kesinti davranışına etkisi").
+ */
+export function shopForRequest(products: Product[]): Product[] {
+  return isDegradedRequest() ? [] : products;
 }
 
 /**

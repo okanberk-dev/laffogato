@@ -16,6 +16,7 @@ import {
   listSiteShopHeroSlides,
   listSiteShopProducts,
   listSiteStory,
+  shopForRequest,
 } from "@/lib/seo/site-data";
 
 /**
@@ -43,7 +44,7 @@ export async function loadAppProps({
   withHomeHero = false,
 }: { withShopHero?: boolean; withHomeHero?: boolean } = {}) {
   const [
-    products,
+    cachedProducts,
     settings,
     menu,
     customer,
@@ -63,6 +64,11 @@ export async function loadAppProps({
     getSiteContentForSite(),
     withHomeHero ? listSiteHomeSlides() : Promise.resolve(null),
   ]);
+
+  // After every read: the signed-in member's account is read live, so a
+  // member's request knows when the database is down and shows the empty
+  // shop, cached list or not.
+  const products = shopForRequest(cachedProducts);
 
   // Computed on the server so it is stable across hydration - and at the
   // venue's clock, not the server's. `getDay()` on Vercel is UTC, so from

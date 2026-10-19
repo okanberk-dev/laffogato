@@ -16,6 +16,7 @@ import {
   listSiteMenu,
   listSiteShopHeroSlides,
   listSiteShopProducts,
+  shopForRequest,
 } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
@@ -60,16 +61,18 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
   const cat = MENU_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) notFound();
 
-  const [products, settings, fullMenu, customer, heroSlides] =
-    await Promise.all([
-      listSiteShopProducts(),
-      getSiteSettings(),
-      listSiteMenu(),
-      getActiveCustomer(),
-      listSiteShopHeroSlides(),
-    ]);
+  const [listed, settings, fullMenu, customer, heroSlides] = await Promise.all([
+    listSiteShopProducts(),
+    getSiteSettings(),
+    listSiteMenu(),
+    getActiveCustomer(),
+    listSiteShopHeroSlides(),
+  ]);
 
   if (!fullMenu[cat.menuKey]) notFound();
+  // Empty when this request saw the database down (the member's account is
+  // read live), cached list or not.
+  const products = shopForRequest(listed);
 
   // Render only the chosen category so the page is laser-focused for SEO
   // and users see exactly what the URL promised.
