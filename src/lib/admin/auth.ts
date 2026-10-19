@@ -13,8 +13,8 @@ import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
   ADMIN_ROLES,
   canAccess,
+  deniedPathFor,
   isAdminRole,
-  landingPathFor,
   type AdminRole,
   type AdminSection,
 } from "./roles";
@@ -657,8 +657,9 @@ export async function requireRole(
   }
   if (!canAccess(section, session.role)) {
     // A role without dashboard access cannot be sent to /admin on denial: that
-    // page would deny it too and the two redirects would bounce forever.
-    redirect(`${landingPathFor(session.role)}?denied=1`);
+    // page would deny it too and the two redirects would bounce forever. The
+    // role's own landing page is, with the flag joined to its query.
+    redirect(deniedPathFor(session.role));
   }
   return session;
 }

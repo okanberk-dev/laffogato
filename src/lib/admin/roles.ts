@@ -1,5 +1,7 @@
 // Client-safe role vocabulary (no server-only).
 
+import { withDenied } from "./nav-match";
+
 export type AdminRole = "owner" | "manager" | "staff" | "cashier";
 
 /** Every role, in descending privilege - the order the user form offers them. */
@@ -107,20 +109,36 @@ export function sectionsFor(role: AdminRole): AdminSection[] {
  * Where a role lands after signing in, and where it is sent when a page denies
  * it. The dashboard cannot be that place for every role any more: a cashier
  * has no `dashboard` access, so sending them to /admin would deny them there
- * too and bounce them between two redirects forever.
+ * too and bounce them between two redirects forever. Personel's shift starts
+ * with the orders still open (admin UI v2, decision D2): the dashboard's
+ * catalogue tiles are not shift work.
  */
 const LANDING_SECTION: Record<AdminRole, AdminSection> = {
   owner: "dashboard",
   manager: "dashboard",
-  staff: "dashboard",
+  staff: "orders",
   cashier: "till",
 };
 
+/** A landing path may carry a query: the orders list opens on its "Açık" tab. */
 const SECTION_PATH: Partial<Record<AdminSection, string>> = {
   dashboard: "/admin",
+  orders: "/admin/siparisler?durum=acik",
   till: "/admin/kasa",
 };
 
 export function landingPathFor(role: AdminRole): string {
   return SECTION_PATH[LANDING_SECTION[role]] ?? "/admin";
+}
+
+/**
+ * Where a page that refuses the role sends it: the landing page with
+ * `denied=1`, which the shell says once ("Bu sayfaya yetkin yok.") and takes
+ * off the address again. Joined through `withDenied`, because the landing
+ * path may already have a query: `${landing}?denied=1` made Personel's
+ * `/admin/siparisler?durum=acik?denied=1`, a tab named "acik?denied=1" (so
+ * every order) and no notice.
+ */
+export function deniedPathFor(role: AdminRole): string {
+  return withDenied(landingPathFor(role));
 }

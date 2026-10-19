@@ -1158,3 +1158,15 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Aynı anda iki sekmede aynı boş slug'la açılan iki kategori ikisi de geçebilir (`categories.slug` benzersiz değil) | Eski veritabanlarında ikiz satırlar var; benzersiz dizin önce onların temizlenmesini ister (migration + operatör kararı). Panel artık ikizi kendisi açmaz |
 | 🟢 | Menü yükleyicisinin bağlantı yolu `http://` adresini kabul ediyor, kayıt onu sessizce siliyor (yalnız https saklanır) | Yükleyici ürünlerle ortak ve ürün şeması `http://` kabul ediyor; iki şemayı eşitlemek bu PR'ın dışında |
+
+### Kabuk: Personelin açılış sayfası (admin UI v2, UI-3)
+
+Karar D2 (admin UI v2, 18 Eki 2026): Personelin vardiyası açık siparişlerle
+başlar. Sahip ve yönetici panoda (`/admin`), kasiyer kasada (`/admin/kasa`)
+kalır; bölüm yetkileri (`SECTION_ROLES`) değişmedi.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Personel girişte, 2FA adımından, 2FA kurulumundan ve "Panele dön"den panoya gidiyordu; panonun "Toplam ürün" ve "Kategori" kutuları vardiya işi değil | `landingPathFor("staff")` = `/admin/siparisler?durum=acik` (listenin "Açık" sekmesi). Sorgu girişte `next`'in içinde 2FA adımına geçer (`adminNextPath`), logo ve "Panele dön" aynı adrese gider, menüde Siparişler yanar | `admin-roles-matrix`, `admin-landing` |
+| 🟢 | `requireRole` reddi `${landing}?denied=1` diye yazıyordu: sorgulu açılış adresinde ikinci `?` olurdu (`?durum=acik?denied=1`: bilinmeyen sekme, yani bütün siparişler, ve uyarı yok). Arama sayfası #142'de `withDenied`'a geçmişti, `auth.ts` aynı kalmıştı | `deniedPathFor(role)` (`roles.ts`, `withDenied` ile birleştirir); `requireRole`, arama sayfası ve arama işlemi onu kullanır. `src/` altında `?denied=`'i elle yazan satır kalmadı (testle) | `admin-roles-matrix`, `admin-landing` |
+| 🟢 | Açılış artık bir liste: sekme, sıralama, sayfa ve süzgeç bağlantıları sayfanın parametrelerinden kurulduğu için `denied=1`'i taşıyacak, bir sonraki tıklamada "Bu sayfaya yetkin yok" yeniden çıkacaktı | `toSearchParams` (`list-params.ts`) tek seferlik `denied`'ı düşürür: kitin hiçbir bağlantısı ya da süzgeç formunun gizli alanı onu taşımaz | `admin-landing` |
