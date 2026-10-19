@@ -113,6 +113,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   duzenle: "Düzenle",
   yazdir: "Yazdır",
   "ice-aktar": "İçe aktar",
+  "gun-sonu": "Gün sonu",
 };
 
 /**

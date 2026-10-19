@@ -76,3 +76,42 @@ açılamazsa ana iş parçacığında zamanlayıcı. Tek sekme Web Locks ile se�
 liste diğer sekmelere BroadcastChannel ile gider, "Gördüm" localStorage'da
 (`laffogato.admin.orderAlerts.acks.v1`). Zil Web Audio ile üretilir (dosya
 yok); sesin ayarı `laffogato.admin.orders.sound`.
+
+## Gün sonu sayfası (Raporlar > Gün sonu)
+
+Günü kapatırken beş ekran yerine tek sayfa: `/admin/raporlar/gun-sonu`.
+Raporlar başlığındaki **Gün sonu** düğmesiyle açılır. Yalnız Sahip ve
+Yönetici görür (Raporlar ile aynı yetki, `reports`): sayfada günün cirosu
+var. Salt okunur; hiçbir şeyi değiştirmez.
+
+**Hangi gün.** Köşkün takvim günü, 00:00 ile 24:00 arası (İstanbul saati).
+Gece yarısından sonra kapanıyorsan sayfa yeni günü açar: **Önceki gün**
+düğmesine bas (`?gun=YYYY-AA-GG`, en çok bir yıl geri; ileri bir gün
+açılmaz).
+
+**Ne yazar.**
+
+- **Ciro kutuları** Raporlar'ın o günkü çubuğunun aynısıdır: ödemesi alınmış
+  siparişler, ödeme bekleyen ve iptal edilen sayılmaz, iade siparişin
+  verildiği günden düşülür. Aynı fonksiyonlar sayar (`headlineFrom`,
+  `reportPeriodFilter`), bir test ikisini eşit tutar.
+- **Siparişler**: kanala (Web, Uygulama, Panelden) ve duruma göre.
+- **İadeler**: o gün yapılan iadeler, sipariş hangi gün verilmiş olursa
+  olsun, saatiyle ve nereye gittiğiyle. "Kayıt: para hareket etmez" satırının
+  parasını POS değil, kasadaki kişi verdi (nakit ya da havale).
+- **Karaoke**: yapılan, sıradaki, onay bekleyen, gelmeyen (saati geçtikten
+  sonra iptal edilen köşkte ödemeli rezervasyon, karar D7), iptal edilen ve
+  günün ön ödeme neti (Raporlar'daki karaoke kartının o günü).
+- **Kasa damgaları**: kasadan ve üye sayfasından verilenler, "−1 düzeltme"
+  ile geri alınanlar ayrı.
+- **Stokta biten**: o gün stoğu 0'a inen ürünler, saatiyle; gün içinde
+  yeniden doldurulduysa "Dolduruldu". Stok defteri ürünün toplam stoğunu
+  yazar: varyantlı ürün, son varyantı da bitince o satışın adıyla
+  ("Ürün · Varyant") görünür; başka varyantta stok varken biten tek varyant
+  burada görünmez, ürünün sayfasında görünür.
+
+**Yazdır.** Kâğıda yalnız sayfanın gövdesi çıkar (menü, üst çubuk ve
+düğmeler çıkmaz; panelin `[data-print-receipt]` kuralı). Müşterinin adı,
+e-postası ya da telefonu yoktur: sipariş numarayla, rezervasyon koduyla,
+damga sayıyla geçer. Sayfa iç kullanım içindir, **mali belge değildir**:
+ÖKC'nin gün sonu (Z) raporunun ya da faturanın yerine geçmez.
