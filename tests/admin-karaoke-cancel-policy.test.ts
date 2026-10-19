@@ -151,20 +151,9 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     expect(longNoRefund.fieldErrors?.karaokeFreeCancelHours).toMatch(
       /en fazla 24 saat/,
     );
-    const longLittleBack = await saveKaraokeAction(
-      {},
-      form({
-        ...BASE,
-        karaokeFreeCancelHours: "30",
-        karaokeLateRefundPercent: "40",
-      }),
-    );
-    expect(longLittleBack.fieldErrors?.karaokeLateRefundPercent).toMatch(
-      /en az %50/,
-    );
-    // No free window makes every cancel after booking late: the longest
-    // window of all, so it needs half back too.
-    const noWindowNothingBack = await saveKaraokeAction(
+    expect(h.updates).toEqual([]);
+    // 0 hours is free until the start (ASK-OTH-3-CFG): nothing to refuse.
+    const zero = await saveKaraokeAction(
       {},
       form({
         ...BASE,
@@ -172,10 +161,40 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         karaokeLateRefundPercent: "0",
       }),
     );
-    expect(noWindowNothingBack.fieldErrors?.karaokeLateRefundPercent).toMatch(
-      /en az %50/,
-    );
+    expect(zero.error).toBeUndefined();
+    expect(h.updates.at(-1)).toMatchObject({
+      karaokeFreeCancelHours: 0,
+      karaokeLateRefundPercent: 0,
+    });
+  });
+
+  it("refuses a late share of 1..99 % until the resale refund ships", async () => {
+    h.appVersion = "1.1.0";
+    h.settings = baseSettings("1.1.0");
+    for (const percent of ["1", "40", "50", "99"]) {
+      const state = await saveKaraokeAction(
+        {},
+        form({
+          ...BASE,
+          karaokeFreeCancelHours: "30",
+          karaokeLateRefundPercent: percent,
+        }),
+      );
+      expect(state.fieldErrors?.karaokeLateRefundPercent).toBe(
+        "Kısmi geç iptal iadesi, yeniden satılan saatin iadesi hazır olana kadar seçilemez; %0 ya da %100 seç.",
+      );
+    }
     expect(h.updates).toEqual([]);
+    const all = await saveKaraokeAction(
+      {},
+      form({
+        ...BASE,
+        karaokeFreeCancelHours: "30",
+        karaokeLateRefundPercent: "100",
+      }),
+    );
+    expect(all.error).toBeUndefined();
+    expect(h.updates).toHaveLength(1);
   });
 
   it("while the app lock is shut, only 2 h / 0 % can be saved", async () => {
@@ -184,7 +203,7 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       form({
         ...BASE,
         karaokeFreeCancelHours: "24",
-        karaokeLateRefundPercent: "50",
+        karaokeLateRefundPercent: "100",
       }),
     );
     expect(state.error).toMatch(/yalnız 2 saat ve %0/);
@@ -209,14 +228,14 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       form({
         ...BASE,
         karaokeFreeCancelHours: "24",
-        karaokeLateRefundPercent: "50",
+        karaokeLateRefundPercent: "100",
       }),
     );
     expect(state.error).toBeUndefined();
     expect(h.updates).toHaveLength(1);
     expect(h.updates[0]).toMatchObject({
       karaokeFreeCancelHours: 24,
-      karaokeLateRefundPercent: 50,
+      karaokeLateRefundPercent: 100,
     });
     expect(
       Number.isFinite(Date.parse(String(h.updates[0]!.karaokeCancelPolicyAt))),
@@ -224,7 +243,7 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     expect(h.audits.at(-1)?.payload).toMatchObject({
       section: "karaoke",
       before: { karaokeFreeCancelHours: 2, karaokeLateRefundPercent: 0 },
-      after: { karaokeFreeCancelHours: 24, karaokeLateRefundPercent: 50 },
+      after: { karaokeFreeCancelHours: 24, karaokeLateRefundPercent: 100 },
     });
     // The karaoke terms are rendered for the policy, the booking page
     // quotes it: both are rendered again.
@@ -266,14 +285,14 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     });
 
     it("refuses a new rule until the edit is taken down", async () => {
-      const state = await saveKaraokeAction({}, policyForm("24", "50"));
+      const state = await saveKaraokeAction({}, policyForm("24", "100"));
       expect(state.error).toMatch(/Yasal belgeler/);
       expect(state.fieldErrors?.karaokeFreeCancelHours).toMatch(
         /yayından kaldır/,
       );
       expect(h.updates).toEqual([]);
 
-      const percentOnly = await saveKaraokeAction({}, policyForm("2", "50"));
+      const percentOnly = await saveKaraokeAction({}, policyForm("2", "100"));
       expect(percentOnly.fieldErrors?.karaokeLateRefundPercent).toMatch(
         /Yasal belgeler/,
       );
@@ -286,7 +305,7 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         new Error("getLegalDocOverride: connection refused"),
       );
       await expect(
-        saveKaraokeAction({}, policyForm("24", "50")),
+        saveKaraokeAction({}, policyForm("24", "100")),
       ).rejects.toThrow(/getLegalDocOverride/);
       expect(h.updates).toEqual([]);
     });
@@ -296,14 +315,14 @@ describe("saveKaraokeAction: the cancellation policy", () => {
         "karaoke-odasi-rezervasyon": { ...live, isPublished: false },
       };
       expect(
-        (await saveKaraokeAction({}, policyForm("24", "50"))).error,
+        (await saveKaraokeAction({}, policyForm("24", "100"))).error,
       ).toBeUndefined();
       h.updates.length = 0;
       h.overrides = {
         "karaoke-odasi-rezervasyon": { ...live, bodyMarkdown: "  " },
       };
       expect(
-        (await saveKaraokeAction({}, policyForm("12", "50"))).error,
+        (await saveKaraokeAction({}, policyForm("12", "100"))).error,
       ).toBeUndefined();
       expect(h.updates).toHaveLength(1);
     });
@@ -312,11 +331,11 @@ describe("saveKaraokeAction: the cancellation policy", () => {
       h.settings = {
         ...baseSettings("1.1.0"),
         karaokeFreeCancelHours: 24,
-        karaokeLateRefundPercent: 50,
+        karaokeLateRefundPercent: 100,
       };
       const same = await saveKaraokeAction(
         {},
-        policyForm("24", "50", { karaokeCapacity: "10" }),
+        policyForm("24", "100", { karaokeCapacity: "10" }),
       );
       expect(same.error).toBeUndefined();
       expect(h.updates).toHaveLength(1);
@@ -353,6 +372,50 @@ describe("saveKaraokeAction: the cancellation policy", () => {
   });
 });
 
+describe("saveKaraokeAction: online prepayment stays on (OP-KARAOKE-PREPAY)", () => {
+  const OFF =
+    "Online ön ödeme kapatılamaz: talep usulündeki rezervasyonlarda ön bilgilendirme ve sözleşme onayı alınmıyor. Ödeme alınamıyorsa yeni rezervasyon zaten açılmaz ve karttan para çekilmez.";
+
+  it("an unticked box refuses the whole save and writes nothing", async () => {
+    const unticked: Record<string, string> = { ...BASE };
+    delete unticked.karaokePrepay;
+    const state = await saveKaraokeAction(
+      {},
+      form({ ...unticked, karaokeCapacity: "10" }),
+    );
+    expect(state.error).toBe(OFF);
+    expect(state.fieldErrors?.karaokePrepay).toBe(OFF);
+    expect(h.updates).toEqual([]);
+    // Any value but "on" is off too.
+    const odd = await saveKaraokeAction(
+      {},
+      form({ ...BASE, karaokePrepay: "off" }),
+    );
+    expect(odd.error).toBe(OFF);
+    expect(h.updates).toEqual([]);
+  });
+
+  it("a stored off (older data) is written on by the next save", async () => {
+    h.settings = { ...baseSettings(), karaokePrepay: false };
+    const state = await saveKaraokeAction({}, form(BASE));
+    expect(state.error).toBeUndefined();
+    expect(h.updates[0]).toMatchObject({ karaokePrepay: true });
+  });
+
+  it("the tab draws the box ticked and enabled, and no longer offers the old flow", () => {
+    const html = renderToStaticMarkup(
+      createElement(KaraokeTab, {
+        settings: { ...baseSettings(), karaokePrepay: false } as never,
+      }),
+    );
+    const box = /<input[^>]*name="karaokePrepay"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(box).toContain("checked");
+    expect(box).not.toContain("disabled");
+    expect(html).not.toContain("eski akış");
+    expect(html).toContain("Kapatılamaz");
+  });
+});
+
 describe("the Karaoke tab", () => {
   const settingsFor = (minVersion: string, hours = 2, percent = 0) =>
     ({
@@ -380,11 +443,20 @@ describe("the Karaoke tab", () => {
   it("previews a saved non-default policy in its own words", () => {
     h.appVersion = "1.1.0";
     const html = renderToStaticMarkup(
+      createElement(KaraokeTab, { settings: settingsFor("1.1.0", 24, 100) }),
+    );
+    expect(html).toContain("de ödediğin tutarın tamamı kartına iade edilir");
+    expect(html).not.toContain("yalnız 2 saat ve %0");
+  });
+
+  it("a share of 1..99 % previews as the refusal, not as a rule", () => {
+    h.appVersion = "1.1.0";
+    const html = renderToStaticMarkup(
       createElement(KaraokeTab, { settings: settingsFor("1.1.0", 24, 50) }),
     );
-    expect(html).toContain("%50&#x27;si kartına iade edilir");
-    expect(html).not.toContain("yalnız 2 saat ve %0");
-    expect(html).toContain("Elle iade edildi");
+    expect(html).toContain("%0 ya da %100 seç");
+    expect(html).not.toContain("%50&#x27;si kartına iade edilir");
+    expect(html).not.toContain("Elle iade edildi");
   });
 });
 

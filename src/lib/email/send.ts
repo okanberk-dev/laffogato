@@ -6,6 +6,11 @@ import {
 } from "@/lib/admin/campaign-mail-schema";
 import { hasAppLinks } from "@/lib/mobile/app-store";
 import {
+  isBusinessCause,
+  KARAOKE_CAUSE_MAIL,
+  type KaraokeCancelCause,
+} from "@/lib/mobile/karaoke-cancel-cause";
+import {
   KARAOKE_NO_REFUND_RULE,
   KARAOKE_REFUND_RULE,
 } from "@/lib/mobile/karaoke-time";
@@ -877,11 +882,24 @@ export interface KaraokeEmailData {
    * sentences a paid booking's confirmation prints, and until when a booking
    * paid at the venue may still be cancelled on its page (null: it may not,
    * the member calls). Absent: the default rule, 2 hours.
+   *
+   * `freeUntil`: the booking's last free-cancel moment on the köşk's clock
+   * ("30 Ekim 2026, 18:00"), which the karaoke terms §7 say the
+   * confirmation carries (19 Eki 2026).
    */
   cancellation?: {
     rules: readonly [string, string];
     venueUntil: string | null;
+    freeUntil?: string;
   };
+  /**
+   * Cancellation only: why the köşk cancelled a paid booking (the panel's
+   * fixed list, karaoke-cancel-cause.ts). A business reason opens with it
+   * and an apology (the MSY m.16/4 notice), a guest's request with "İsteğin
+   * üzerine", an hour given to another guest says so. Absent: the member's
+   * own cancel, an account closure, an unpaid booking - today's words.
+   */
+  cancelCause?: KaraokeCancelCause;
   /**
    * The booking's own page: its signed link (karaoke-link.ts), so a guest
    * without an account - and a member on a phone without the app - can see
@@ -892,6 +910,9 @@ export interface KaraokeEmailData {
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
 const DEFAULT_VENUE_UNTIL = "rezervasyon saatine 2 saatten fazla varken";
+
+/** The default rule's last free moment, when no instant was given. */
+const DEFAULT_FREE_UNTIL = "rezervasyon saatinden 2 saat önce";
 
 function karaokeVars(k: KaraokeEmailData) {
   const amount =
@@ -919,6 +940,12 @@ function karaokeVars(k: KaraokeEmailData) {
     KARAOKE_MEKAN_SURE: k.cancellation
       ? (k.cancellation.venueUntil ?? "")
       : DEFAULT_VENUE_UNTIL,
+    KARAOKE_SON_IPTAL: k.cancellation?.freeUntil || DEFAULT_FREE_UNTIL,
+    // A business cancel's reason, in the guest's words; never the note the
+    // staff typed (that stays in the audit row).
+    KARAOKE_NEDEN: isBusinessCause(k.cancelCause)
+      ? KARAOKE_CAUSE_MAIL[k.cancelCause]
+      : "",
   };
 }
 
@@ -957,17 +984,62 @@ export async function sendKaraokeConfirmationEmail(
 export async function sendKaraokeCancellationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
+  return sendTemplate("karaoke-iptal", k.to, {
+    vars: karaokeVars(k),
+    flags: karaokeCancellationFlags(k),
+  });
+}
+
+/**
+ * Which opening and which money line a cancellation prints: exactly one of
+ * each (or no money line, when nothing was paid and nothing said so).
+ * Exported for tests.
+ */
+export function karaokeCancellationFlags(
+  k: Pick<
+    KaraokeEmailData,
+    | "refundedMinor"
+    | "refundOwedMinor"
+    | "refundIsShare"
+    | "payment"
+    | "cancelCause"
+  >,
+): Record<string, boolean> {
   const refunded = k.refundedMinor !== undefined;
   const owed = !refunded && k.refundOwedMinor !== undefined;
   const share = k.refundIsShare === true;
-  return sendTemplate("karaoke-iptal", k.to, {
+  const business = isBusinessCause(k.cancelCause);
+  const request = k.cancelCause === "misafir";
+  // The hour went to another guest: the line says so, and the whole payment
+  // went back with it.
+  const resold = k.cancelCause === "yeniden" && refunded && !share;
+  return {
+    KARAOKE_IPTAL_GENEL: !business && !request && !resold,
+    KARAOKE_ISLETME: business,
+    KARAOKE_ISTEK: request,
+    KARAOKE_YENIDEN: resold,
+    // The member's own cancel keeps its words; ours say "iade ettik".
+    KARAOKE_IADE: refunded && !share && !business && !request && !resold,
+    KARAOKE_TAM_IADE: refunded && !share && (business || request),
+    KARAOKE_KISMI_IADE_EDILDI: refunded && share,
+    KARAOKE_KISMI_IADE: owed,
+    KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",
+  };
+}
+
+/**
+ * A guest asked by phone or e-mail to cancel after their free moment, and
+ * the booking's rule refunds nothing then (ASK-Y3-4 (c)): it is NOT
+ * cancelled. This tells them so, that the booking stands in their name, that
+ * they may hand the code to someone else, and that the whole payment comes
+ * back if the köşk gives the hour to another guest (karaoke terms §7).
+ * Transactional, like the other two.
+ */
+export async function sendKaraokeLateRequestEmail(
+  k: KaraokeEmailData,
+): Promise<boolean> {
+  return sendTemplate("karaoke-iptal-istegi", k.to, {
     vars: karaokeVars(k),
-    flags: {
-      KARAOKE_IADE: refunded && !share,
-      KARAOKE_KISMI_IADE_EDILDI: refunded && share,
-      KARAOKE_KISMI_IADE: owed,
-      KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",
-    },
   });
 }
 

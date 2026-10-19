@@ -64,6 +64,16 @@ function policyField(
     : "karaokeLateRefundPercent";
 }
 
+/**
+ * Online prepayment cannot be switched off (OP-KARAOKE-PREPAY, 18 Eki 2026;
+ * MSY m.5/1, m.7/1): the request mode it fell back to took a booking with
+ * no pre-information and no contract confirmed, and the legal texts no
+ * longer describe it. A payment provider that is down already stops new
+ * bookings without charging a card, which is the better failure.
+ */
+const MSG_PREPAY_LOCKED =
+  "Online ön ödeme kapatılamaz: talep usulündeki rezervasyonlarda ön bilgilendirme ve sözleşme onayı alınmıyor. Ödeme alınamıyorsa yeni rezervasyon zaten açılmaz ve karttan para çekilmez.";
+
 const MSG_TERMS_EDITED =
   "Karaoke odası koşullarının Yasal belgeler bölümünde yayında bir düzenlemesi var. Sitede ve uygulamada o metin görünür ve yeni kurala göre kendiliğinden değişmez; önce o düzenlemeyi yayından kaldır, sonra kuralı değiştir.";
 
@@ -153,8 +163,14 @@ export async function saveKaraokeAction(
       "karaokeNotifyEmail",
     );
   }
-  // The online-prepayment switch (16 Eki 2026). A checkbox: absent = off.
-  const prepay = formData.get("karaokePrepay") === "on";
+  // The online-prepayment box (16 Eki 2026). A checkbox: absent = off, and
+  // off is refused whole (MSG_PREPAY_LOCKED). A stored `false` (older data)
+  // already reads as on (`getSettings`) and is written true with the next
+  // save.
+  if (formData.get("karaokePrepay") !== "on") {
+    return refuse(MSG_PREPAY_LOCKED, "karaokePrepay");
+  }
+  const prepay = true;
   const before = await getSettings();
   const cancel = readCancelPolicy(
     formData,

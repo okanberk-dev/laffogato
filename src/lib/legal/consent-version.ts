@@ -129,12 +129,12 @@ export function consentVersionFrom(
 }
 
 /**
- * The karaoke document's version once its cancellation rule is rendered from
- * the panel's policy (P2a, 18 Eki 2026; `karaokeRoomDocFor`): `base` (the
- * coded revision, or a later live override), moved to the Istanbul day the
- * policy last changed when the policy in force is not the default. The
- * default renders the coded text word for word, so it keeps the coded
- * label; another policy is another text, dated by its save.
+ * The karaoke document's version under the panel's policy (P2a, 18 Eki
+ * 2026): `base` (the coded revision, or a later live override), moved to the
+ * Istanbul day the policy last changed when the policy in force is not the
+ * default. The text itself names no hours or percent since 19 Eki 2026 (it
+ * points at the booking's summary, content-karaoke.ts); the date still marks
+ * the day the rule a booking is shown changed.
  */
 export function karaokePolicyVersion(
   base: string,

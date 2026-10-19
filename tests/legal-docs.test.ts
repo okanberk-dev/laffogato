@@ -256,8 +256,10 @@ describe("legal content - identity is the tax certificate, never a placeholder",
           ...(s.table ?? []).map((r) => `${r.key}: ${r.value}`),
         ]) {
           if (!/masa(\/| )rezervasyon|grup rezervasyon/i.test(text)) continue;
+          // Or to say a notice is not one (the access notice, café terms
+          // §20, ASK-Y3-6).
           expect(text, `${d.slug}: ${s.heading}`).toMatch(
-            /rezervasyonu alınmaz/,
+            /rezervasyonu alınmaz|bir masa rezervasyonu değildir/,
           );
         }
       }

@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The karaoke terms as published (karar D11): /hukuk/karaoke-odasi-rezervasyon
- * and the app's `GET /legal/{slug}` render §7, §9 and §10 from the policy a
- * booking made now gets, dated by the day it was saved. Under the default
- * (and while the app lock is shut) they are the coded text with its coded
- * date. A database that cannot be read shows the coded text too.
+ * and the app's `GET /legal/{slug}`. Since ASK-OTH-3-CFG the text names no
+ * hours or percent (it points at the booking's summary), so it is the coded
+ * text under every policy; a policy other than the default dates it by the
+ * day it was saved, the version a booking's consent records. A database that
+ * cannot be read shows the coded text with its coded date.
  */
 
 const h = vi.hoisted(() => ({
@@ -25,9 +26,11 @@ vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
     await importOriginal<typeof import("@/lib/mobile/karaoke-time")>();
   return {
     ...real,
+    // A share of 1..99 % stays closed in the code until the resale refund
+    // ships; these tests keep exercising its path (karar D9).
     effectiveKaraokeCancelPolicy: (
       s: Parameters<typeof real.effectiveKaraokeCancelPolicy>[0],
-    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion),
+    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion, true),
   };
 });
 
@@ -62,19 +65,30 @@ describe("the karaoke terms as published", () => {
     expect(await karaokeLegalDocNow()).toEqual(findLegalDoc(SLUG));
   });
 
-  it("follow an open policy, dated by its save, on the site and in the app", async () => {
+  it("keep their words under an open policy, dated by its save, on the site and in the app", async () => {
     h.appVersion = "1.1.0";
     h.settings = settings(24, 50);
     const site = await liveLegalDoc(SLUG);
-    expect(site?.updatedAt).toBe("18 Ekim 2026");
-    expect(JSON.stringify(site)).toContain("24 saatten fazla varken");
-    expect(JSON.stringify(site)).toContain("%50'si kartınıza iade edilir");
+    // The save was 18 Ekim, before the coded revision: the later day wins.
+    expect(site?.updatedAt).toBe(findLegalDoc(SLUG)?.updatedAt);
+    h.settings = {
+      ...settings(24, 50),
+      karaokeCancelPolicyAt: "2026-11-02T09:00:00.000Z",
+    };
+    const later = await liveLegalDoc(SLUG);
+    expect(later?.updatedAt).toBe("2 Kasım 2026");
+    // The same words: only the date moved.
+    expect({ ...later, updatedAt: "" }).toEqual({
+      ...findLegalDoc(SLUG),
+      updatedAt: "",
+    });
+    expect(JSON.stringify(later)).not.toContain("24 saatten fazla varken");
 
     const app = await mobileLegal.legalDoc(SLUG);
-    expect(app).toEqual(site);
+    expect(app).toEqual(later);
     const index = await mobileLegal.legalIndex();
     expect(index.docs.find((d) => d.slug === SLUG)?.updatedAt).toBe(
-      "18 Ekim 2026",
+      "2 Kasım 2026",
     );
   });
 
@@ -89,12 +103,13 @@ describe("the karaoke terms as published", () => {
 
 describe("opening the app lock", () => {
   /**
-   * Five other documents quote the default rule in their own words
-   * (iade-ve-cayma, odeme-kosullari, veri-saklama-ve-imha-politikasi,
-   * hesap-silme, kafe-hizmet-kosullari). That is true while every booking is
-   * made under 2 hours / 0 %, which the lock guarantees. Whoever opens it
-   * (KARAOKE_POLICY_APP_VERSION) rewrites them first, to point at the
-   * karaoke terms instead of repeating a rule the panel may change.
+   * Other documents still quote the default rule in their own words
+   * (odeme-kosullari, hesap-silme; the café terms, iade-ve-cayma and
+   * veri-saklama-ve-imha-politikasi point at the karaoke terms since 19 Ekim
+   * 2026). That is true while every booking is made under 2 hours / 0 %,
+   * which the lock guarantees. Whoever opens it (KARAOKE_POLICY_APP_VERSION)
+   * rewrites them first, to point at the karaoke terms instead of repeating
+   * a rule the panel may change.
    */
   it("needs every other document to stop quoting the fixed rule", async () => {
     const { KARAOKE_POLICY_APP_VERSION } =

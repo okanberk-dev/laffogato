@@ -77,7 +77,9 @@ export function karaokeEndInstant(r: {
 export interface KaraokeCancelPolicy {
   /**
    * Up to how many hours before the start a member's own cancel refunds in
-   * full, 0..72. 0: no free window, every cancel after booking is late.
+   * full, 0..72. 0: free until the start itself (ASK-OTH-3-CFG, 18 Eki
+   * 2026), so there is no late window and only not turning up refunds
+   * nothing.
    */
   freeCancelHours: number;
   /**
@@ -139,15 +141,15 @@ export function samePolicy(
 
 /**
  * The deadline a NEW booking's snapshot stores (`"cancelDeadline"`): the
- * start minus the free window, or the booking instant itself when there is no
- * window (0 hours: every cancel after booking is late).
+ * start minus the free window; 0 hours is the start itself (ASK-OTH-3-CFG:
+ * "0 = rezervasyon saati gelene kadar ücretsiz iptal"). It used to be the
+ * booking instant, which made a booking under 0 hours late from the moment
+ * it was made.
  */
 export function karaokeDeadlineFor(
   policy: KaraokeCancelPolicy,
   r: { date: string; startHour: number },
-  bookedAt: Date,
 ): Date {
-  if (policy.freeCancelHours === 0) return new Date(bookedAt.getTime());
   return new Date(
     karaokeStartInstant(r.date, r.startHour).getTime() -
       policy.freeCancelHours * HOUR_MS,
@@ -169,13 +171,7 @@ export function karaokeCancelDeadline(r: {
 }): Date {
   const stored = Date.parse(r.cancelDeadline ?? "");
   if (Number.isFinite(stored)) return new Date(stored);
-  const policy = karaokeCancelPolicyOf(r);
-  const made = Date.parse(r.createdAt ?? "");
-  // No window and no booking instant to count from (a fixture): the start.
-  if (policy.freeCancelHours === 0 && !Number.isFinite(made)) {
-    return karaokeStartInstant(r.date, r.startHour);
-  }
-  return karaokeDeadlineFor(policy, r, new Date(made));
+  return karaokeDeadlineFor(karaokeCancelPolicyOf(r), r);
 }
 
 /**
@@ -319,22 +315,23 @@ export function karaokeCancellationRules(
   policy: KaraokeCancelPolicy,
 ): KaraokeCancellationText {
   const { freeCancelHours: h, lateRefundPercent: p } = policy;
+  // 0 hours: free until the start, so there is no late cancel to describe,
+  // whatever the percent (ASK-OTH-3-CFG).
   const refundRule =
     h > 0
       ? `Rezervasyon saatine ${h} saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.`
-      : "Bu rezervasyonda ücretsiz iptal süresi yok; rezervasyonu yaptıktan sonra yapacağın her iptal geç iptal sayılır.";
-  const late =
-    h > 0
-      ? `Rezervasyon saatine ${h} saatten az kala yapılan iptallerde`
-      : "Geç iptallerde";
+      : "Rezervasyon saati gelene kadar iptal edersen ödediğin tutarın tamamı kartına iade edilir.";
+  const late = `Rezervasyon saatine ${h} saatten az kala yapılan iptallerde`;
   const lateRule =
-    p === 0
-      ? `${late} ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
-      : p === 100
-        ? `${late} de ödediğin tutarın tamamı kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
-        : `${late} ödediğin tutarın ${percentPossessive(p)} kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`;
+    h === 0
+      ? "Rezervasyona gelinmediğinde ücret iadesi yapılmaz."
+      : p === 0
+        ? `${late} ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+        : p === 100
+          ? `${late} de ödediğin tutarın tamamı kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
+          : `${late} ödediğin tutarın ${percentPossessive(p)} kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`;
   const tooLateMessage =
-    p === 0
+    p === 0 && h > 0
       ? `Artık buradan iptal edemezsin. ${lateRule}`
       : "Rezervasyon saati geldi; artık buradan iptal edemezsin. Rezervasyona gelinmediğinde ücret iadesi yapılmaz.";
   return {
@@ -348,17 +345,19 @@ export function karaokeCancellationRules(
 /**
  * Until when a booking paid at the venue may still be cancelled on its own
  * page, worded to follow "Planın değişirse": no money moves, so a late share
- * above 0 lets it go until the start. Null when no member cancel is ever
- * accepted (no window, no late share): the confirmation says to call.
+ * above 0, or no window at all (0 hours: free until the start), lets it go
+ * until the start. Null when no member cancel is ever accepted: the
+ * confirmation then says to call. No policy is such a rule since 0 hours
+ * stopped meaning "every cancel is late"; the null stays for the caller's
+ * sake.
  */
 export function karaokeVenueCancelUntil(
   policy: KaraokeCancelPolicy,
 ): string | null {
-  if (policy.lateRefundPercent > 0) return "rezervasyon saatinden önce";
-  if (policy.freeCancelHours > 0) {
-    return `rezervasyon saatine ${policy.freeCancelHours} saatten fazla varken`;
+  if (policy.lateRefundPercent > 0 || policy.freeCancelHours === 0) {
+    return "rezervasyon saatinden önce";
   }
-  return null;
+  return `rezervasyon saatine ${policy.freeCancelHours} saatten fazla varken`;
 }
 
 /**
@@ -383,15 +382,33 @@ export function karaokeRulesOf(r: {
 }
 
 /**
- * Why the panel refuses a policy, or null. The ranges, then the fairness
- * limits (Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1
- * and EK (ç), (d); TBK m.182/3): a long window may not keep the whole
- * payment, so with no late refund the window is at most 24 hours, and above
- * 24 hours at least half goes back. 0 hours is the longest window of all
- * (every cancel after booking is late, up to the booking window before the
- * start), so it needs half back as well.
+ * May a late share of 1..99 % be chosen? Not yet (ASK-OTH-3-CFG, 18 Eki
+ * 2026): the terms promise that an hour cancelled late and sold again
+ * refunds the share kept for it, and that refund is not built
+ * (karaoke-make-good-and-resale). Until it is, the panel offers 0 or 100 and
+ * a stored share in between never takes effect. The share's own path (D9:
+ * cancelled, owed, refunded by hand) stays in the code and its tests, for
+ * the bookings that would carry one.
  */
-export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
+export const KARAOKE_PARTIAL_LATE_REFUND_OPEN = false;
+
+/** The refusal of a share between 0 and 100 while it is closed. */
+export const KARAOKE_PARTIAL_LATE_REFUND_CLOSED =
+  "Kısmi geç iptal iadesi, yeniden satılan saatin iadesi hazır olana kadar seçilemez; %0 ya da %100 seç.";
+
+/**
+ * Why the panel refuses a policy, or null. The ranges, the closed partial
+ * share (`KARAOKE_PARTIAL_LATE_REFUND_OPEN`), then the fairness limits
+ * (Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1 and
+ * EK (ç), (d); TBK m.182/3): a long window may not keep the whole payment,
+ * so with no late refund the window is at most 24 hours, and above 24 hours
+ * at least half goes back. 0 hours needs nothing more: it is free until the
+ * start.
+ */
+export function karaokeCancelPolicyRefusal(
+  policy: KaraokeCancelPolicy,
+  { partialLateRefund = KARAOKE_PARTIAL_LATE_REFUND_OPEN } = {},
+): {
   field: "karaokeFreeCancelHours" | "karaokeLateRefundPercent";
   message: string;
 } | null {
@@ -408,6 +425,12 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
       message: "Geç iptalde iade oranı 0 ile 100 arasında tam sayı olmalı.",
     };
   }
+  if (!partialLateRefund && p > 0 && p < 100) {
+    return {
+      field: "karaokeLateRefundPercent",
+      message: KARAOKE_PARTIAL_LATE_REFUND_CLOSED,
+    };
+  }
   if (p === 0 && h > 24) {
     return {
       field: "karaokeFreeCancelHours",
@@ -420,13 +443,6 @@ export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
       field: "karaokeLateRefundPercent",
       message:
         "Ücretsiz iptal süresi 24 saatten uzunsa geç iptalde en az %50 iade edilmeli.",
-    };
-  }
-  if (h === 0 && p < 50) {
-    return {
-      field: "karaokeLateRefundPercent",
-      message:
-        "Ücretsiz iptal süresi 0 iken rezervasyondan sonraki her iptal geç iptal sayılır; bu durumda geç iptalde en az %50 iade edilmeli.",
     };
   }
   return null;
@@ -491,6 +507,7 @@ export function effectiveKaraokeCancelPolicy(
     mobileApp?: { minSupportedAppVersion?: string } | null;
   },
   appVersion: string | null = KARAOKE_POLICY_APP_VERSION,
+  partialLateRefund: boolean = KARAOKE_PARTIAL_LATE_REFUND_OPEN,
 ): KaraokeCancelPolicy {
   if (
     karaokePolicyLockReason(
@@ -505,7 +522,7 @@ export function effectiveKaraokeCancelPolicy(
     lateRefundPercent: s.karaokeLateRefundPercent,
   });
   // A stored pair the panel would refuse today never takes effect.
-  return karaokeCancelPolicyRefusal(policy) === null
+  return karaokeCancelPolicyRefusal(policy, { partialLateRefund }) === null
     ? policy
     : { ...DEFAULT_KARAOKE_CANCEL_POLICY };
 }

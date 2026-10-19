@@ -12,6 +12,7 @@ import {
 import { logAudit } from "@/lib/admin/audit";
 import { getAdminSession, requireRole } from "@/lib/admin/auth";
 import { KARAOKE_PANEL_PATH } from "@/lib/admin/karaoke-panel";
+import { parsePublishInstant } from "@/lib/admin/publish-window";
 import { canAccess } from "@/lib/admin/roles";
 import {
   getReservation,
@@ -27,8 +28,18 @@ import {
   settleKaraokeRefundByHand,
   type CancelKaraokeFailure,
 } from "@/lib/mobile/karaoke-payment";
+import {
+  isBusinessCause,
+  KARAOKE_CALL_HINT,
+  KARAOKE_CANCEL_CAUSES,
+  KARAOKE_REQUEST_CHANNELS,
+  needsCallHint,
+  type KaraokeCancelCause,
+  type KaraokeRequestChannel,
+} from "@/lib/mobile/karaoke-cancel-cause";
 import { karaokeEndInstant } from "@/lib/mobile/karaoke-time";
 import { istanbulClock } from "@/lib/mobile/venue";
+import { formatTRYMinor } from "@/lib/utils/commerce";
 
 const FAILURE_MESSAGE: Record<SetReservationStatusFailure, string> = {
   not_found: "Rezervasyon bulunamadı. Silinmiş olabilir; sayfayı yenile.",
@@ -119,6 +130,114 @@ function readReason(
     return { ok: false, result: actionError(message, { reason: message }) };
   }
   return { ok: true, reason: parsed.data };
+}
+
+const CauseSchema = z.enum(KARAOKE_CANCEL_CAUSES, {
+  error: "İptal nedenini listeden seç.",
+});
+const ChannelSchema = z.enum(KARAOKE_REQUEST_CHANNELS, {
+  error: "Misafirin isteği nereden geldi? Telefon ya da e-posta seç.",
+});
+
+const MSG_REQUEST_FUTURE = "İstek anı ileri bir saat olamaz.";
+const MSG_REQUEST_BEFORE_BOOKING =
+  "İstek anı rezervasyonun yapıldığı andan önce olamaz.";
+const MSG_REQUEST_UNREADABLE =
+  "İstek anını tarih ve saat olarak gir (ör. 30.10.2026 18:00).";
+
+/**
+ * "30.10.2026 18:00" (the refusal's own example, and how staff write a time)
+ * as the `datetime-local` shape `parsePublishInstant` reads; anything else
+ * passes through untouched. A day the month does not have stays unreadable
+ * (`Date.parse` would roll 31.09 over into October).
+ */
+function fromTurkishInstant(typed: string): string {
+  const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2})$/.exec(typed);
+  if (!m) return typed;
+  const [, d, mo, y, hh, mi] = m;
+  const day = Number(d);
+  const month = Number(mo);
+  const days = new Date(Date.UTC(Number(y), month, 0)).getUTCDate();
+  if (month < 1 || month > 12 || day < 1 || day > days) return "";
+  if (Number(hh) > 23) return "";
+  const two = (v: string) => v.padStart(2, "0");
+  return `${y}-${two(mo)}-${two(d)}T${two(hh)}:${mi}`;
+}
+
+type StaffCancelInput =
+  | { cause: Exclude<KaraokeCancelCause, "misafir"> }
+  | {
+      cause: "misafir";
+      channel: KaraokeRequestChannel;
+      requestedAt: Date;
+      fullRefund: boolean;
+    };
+
+const MINUTE_MS = 60_000;
+
+/**
+ * A paid booking's cancel says why (ASK-OTH-3 (c), ASK-Y3-4 (c)): one code
+ * from the fixed list; for a guest's request also the channel and the
+ * instant it came in. The instant is the köşk's wall clock from the
+ * dialog's `datetime-local` (`parsePublishInstant`, rule 22), now when left
+ * empty; it may not lie ahead, nor before the booking was made (both at the
+ * minute the field can say). The free-text note stays the separate
+ * `reason`.
+ */
+function readStaffCancel(
+  formData: FormData,
+  createdAt: string,
+  now: Date,
+): { ok: true; input: StaffCancelInput } | { ok: false; result: ActionResult } {
+  const refuse = (field: string, message: string) => ({
+    ok: false as const,
+    result: actionError(message, { [field]: message }),
+  });
+  const cause = CauseSchema.safeParse(formData.get("neden"));
+  if (!cause.success) {
+    return refuse(
+      "neden",
+      cause.error.issues[0]?.message ?? "İptal nedenini seç.",
+    );
+  }
+  if (cause.data !== "misafir")
+    return { ok: true, input: { cause: cause.data } };
+  const channel = ChannelSchema.safeParse(formData.get("kanal"));
+  if (!channel.success) {
+    return refuse("kanal", channel.error.issues[0]?.message ?? "Kanal seç.");
+  }
+  const raw = formData.get("istekAni");
+  const typed = typeof raw === "string" ? raw.trim() : "";
+  let requestedAt = now;
+  if (typed) {
+    const at = parsePublishInstant(fromTurkishInstant(typed));
+    if (at === null) return refuse("istekAni", MSG_REQUEST_UNREADABLE);
+    requestedAt = new Date(at);
+  }
+  // The field holds whole minutes: a request typed for the current minute is
+  // "now", and one in the minute the booking was made is not "before" it.
+  const minuteOf = (ms: number) => Math.floor(ms / MINUTE_MS) * MINUTE_MS;
+  if (minuteOf(requestedAt.getTime()) > minuteOf(now.getTime())) {
+    return refuse("istekAni", MSG_REQUEST_FUTURE);
+  }
+  const made = Date.parse(createdAt);
+  if (
+    Number.isFinite(made) &&
+    minuteOf(requestedAt.getTime()) < minuteOf(made)
+  ) {
+    return refuse("istekAni", MSG_REQUEST_BEFORE_BOOKING);
+  }
+  // A request typed later than now within the same minute reads as now.
+  if (requestedAt.getTime() > now.getTime()) requestedAt = now;
+  return {
+    ok: true,
+    input: {
+      cause: "misafir",
+      channel: channel.data,
+      requestedAt,
+      fullRefund: formData.get("tamIade") === "on",
+    },
+  };
 }
 
 /** Who the booking's mail goes to, in the dative, for the result sentence. */
@@ -219,6 +338,14 @@ export async function cancelReservationAction(
     // Personel cannot take the refund route the sentence points at.
     return actionError(canRefund ? PAID_MEANWHILE : REFUND_FORBIDDEN);
   }
+  // A paid booking's cancel says why; the guest's mail opens with it.
+  const now = new Date();
+  let staff: StaffCancelInput | null = null;
+  if (expectsRefund) {
+    const read = readStaffCancel(formData, current.createdAt, now);
+    if (!read.ok) return read.result;
+    staff = read.input;
+  }
 
   const result = await cancelKaraokeReservation(id, {
     kind: "staff",
@@ -227,6 +354,7 @@ export async function cancelReservationAction(
     // turns out to have been paid for stops here instead (refund_forbidden).
     canRefund: canRefund && expectsRefund,
     ...(reason.reason ? { reason: reason.reason } : {}),
+    ...(staff ?? {}),
   });
   revalidate(id);
   if (!result.ok) {
@@ -236,15 +364,42 @@ export async function cancelReservationAction(
     const detail = result.message ? ` (${result.message})` : "";
     return actionError(`${CANCEL_MESSAGE[result.reason]}${detail}`);
   }
+  if (result.kept && result.silent) {
+    return actionOk(
+      "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+    );
+  }
   if (result.silent) {
     return actionOk(
       "Rezervasyon iptal edildi. Saati geçtiği için müşteriye e-posta gönderilmedi.",
     );
   }
+  if (result.kept) {
+    return okWithNotice(
+      "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi, misafirin adına duruyor.",
+      result.notified,
+      recipient(result.reservation),
+    );
+  }
   const done = result.refunded
     ? "Rezervasyon iptal edildi ve ödeme karta iade edildi."
-    : "Rezervasyon iptal edildi.";
-  return okWithNotice(done, result.notified, recipient(result.reservation));
+    : result.refundOwedMinor
+      ? `Rezervasyon iptal edildi. Kurala göre ${formatTRYMinor(result.refundOwedMinor)} iade edilecek: PayNkolay panelinden iade edip "Elle iade edildi" ile kaydet.`
+      : "Rezervasyon iptal edildi.";
+  const answer = okWithNotice(
+    done,
+    result.notified,
+    recipient(result.reservation),
+  );
+  // Under 24 hours, a business cancel also calls (karaoke terms §8).
+  if (
+    answer.ok &&
+    isBusinessCause(staff?.cause) &&
+    needsCallHint(current, now)
+  ) {
+    return { ...answer, message: `${answer.message} ${KARAOKE_CALL_HINT}` };
+  }
+  return answer;
 }
 
 /**

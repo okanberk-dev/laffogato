@@ -20,6 +20,7 @@ import {
   channelLabel,
   KARAOKE_BACK_PARAM,
   karaokeBackHref,
+  karaokeBillableMinor,
   karaokeHistory,
   karaokeRowView,
   maskPaymentRef,
@@ -32,6 +33,7 @@ import {
 import { firstParam } from "@/lib/admin/list-params";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
+import { karaokeTaxRate } from "@/lib/utils/kdv";
 import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
 import { getReservation, listReservationsForDate } from "@/lib/mobile/karaoke";
 import {
@@ -240,7 +242,7 @@ export default async function KaraokeReservationPage({
       value:
         policy.freeCancelHours > 0
           ? `${policy.freeCancelHours} saat`
-          : "Yok (her iptal geç iptal)",
+          : "0 saat (rezervasyon saatine kadar ücretsiz)",
     },
     {
       label: "Geç iptalde iade",
@@ -255,6 +257,7 @@ export default async function KaraokeReservationPage({
     {
       label: "Tam iade için son an",
       value: when(karaokeCancelDeadline(r).toISOString()),
+      hint: "Bu an da dâhil.",
     },
     {
       label: "Müşterinin gördüğü kural",
@@ -267,6 +270,14 @@ export default async function KaraokeReservationPage({
       full: true,
     },
   ];
+
+  // An evening that is over: what the köşk keeps is what is invoiced
+  // (ASK-KAR-KDV), at the booking's own rate (its snapshot, 17 Eki 2026).
+  const billable = karaokeBillableMinor(r, now);
+  const billRate =
+    typeof r.taxRatePct === "number"
+      ? r.taxRatePct
+      : karaokeTaxRate(settings.taxRates);
 
   const payment: Array<KeyValueItem | false> = [
     {
@@ -310,6 +321,14 @@ export default async function KaraokeReservationPage({
     Boolean(r.refundedAt) && {
       label: "İade zamanı",
       value: when(r.refundedAt),
+    },
+    billable !== null && {
+      label: `Faturalanacak tutar (KDV %${billRate} dahil)`,
+      value: <span style={NUMERIC_STYLE}>{formatTRY(billable)}</span>,
+      hint:
+        billable > 0
+          ? "Köşkte kalan tutar: e-Arşiv fatura rezervasyon gününden en geç 7 gün içinde kesilir."
+          : "Tamamı iade edildi ya da edilecek: fatura kesilmez.",
     },
     { label: "Kanal", value: channelLabel(r.channel) },
     view.money === "pending" && {

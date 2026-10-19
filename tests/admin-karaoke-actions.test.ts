@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The karaoke panel's Server Actions (/admin/mobil/karaoke, 17 Eki 2026).
@@ -278,7 +278,7 @@ describe("money moves only behind a reason", () => {
     });
     const ok = await admin.cancelReservationAction(
       null,
-      form({ id: ID, beklenen: "iade", reason: "Oda arızalı" }),
+      form({ id: ID, beklenen: "iade", neden: "ariza", reason: "Oda arızalı" }),
     );
     expect(ok.ok && ok.message).toMatch(/karta iade edildi/);
     expect(h.cancel).toHaveBeenCalledWith(ID, {
@@ -286,6 +286,7 @@ describe("money moves only behind a reason", () => {
       actor: "kosk@laffogato",
       canRefund: true,
       reason: "Oda arızalı",
+      cause: "ariza",
     });
   });
 
@@ -433,5 +434,234 @@ describe("the nav badge count", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await admin.karaokeTodayCountAction()).toBeNull();
     spy.mockRestore();
+  });
+});
+
+describe("a paid booking's cancel names its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))", () => {
+  const paidForm = (extra: Record<string, string>) =>
+    form({ id: ID, beklenen: "iade", reason: "Kayıt notu", ...extra });
+  const NOW = Date.parse("2026-10-30T12:00:30.000Z"); // 15:00:30 in Tuzla
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    h.reservation = {
+      id: ID,
+      status: "confirmed",
+      paymentStatus: "paid",
+      date: "2026-10-30",
+      startHour: 20,
+      createdAt: "2026-10-20T09:00:40.000Z",
+    };
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: member,
+      refunded: true,
+      notified: true,
+    });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("refuses a cancel without a code, or with one off the list, before any money moves", async () => {
+    for (const extra of [{}, { neden: "canim-istedi" }] as Array<
+      Record<string, string>
+    >) {
+      const res = await admin.cancelReservationAction(null, paidForm(extra));
+      expect(!res.ok && res.fieldErrors?.neden).toBe(
+        "İptal nedenini listeden seç.",
+      );
+    }
+    expect(h.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each(["ariza", "kapanis", "mucbir", "diger", "yeniden"])(
+    "%s goes through as a full refund with its code",
+    async (code) => {
+      await admin.cancelReservationAction(null, paidForm({ neden: code }));
+      expect(h.cancel).toHaveBeenCalledWith(ID, {
+        kind: "staff",
+        actor: "kosk@laffogato",
+        canRefund: true,
+        reason: "Kayıt notu",
+        cause: code,
+      });
+    },
+  );
+
+  it("a guest's request needs its channel", async () => {
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir" }),
+    );
+    expect(!res.ok && res.fieldErrors?.kanal).toMatch(/Telefon ya da e-posta/);
+    expect(h.cancel).not.toHaveBeenCalled();
+  });
+
+  it("takes the request's instant on the köşk's clock, and now when left empty", async () => {
+    await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "2026-10-30T14:05",
+      }),
+    );
+    expect(h.cancel).toHaveBeenLastCalledWith(ID, {
+      kind: "staff",
+      actor: "kosk@laffogato",
+      canRefund: true,
+      reason: "Kayıt notu",
+      cause: "misafir",
+      channel: "telefon",
+      requestedAt: new Date("2026-10-30T11:05:00.000Z"),
+      fullRefund: false,
+    });
+    await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "e-posta",
+        istekAni: "",
+        tamIade: "on",
+      }),
+    );
+    expect(h.cancel).toHaveBeenLastCalledWith(
+      ID,
+      expect.objectContaining({
+        channel: "e-posta",
+        requestedAt: new Date(NOW),
+        fullRefund: true,
+      }),
+    );
+  });
+
+  it("reads the instant typed as the refusal's example asks (gg.aa.yyyy ss:dd)", async () => {
+    await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "30.10.2026 14:05",
+      }),
+    );
+    expect(h.cancel).toHaveBeenLastCalledWith(
+      ID,
+      expect.objectContaining({
+        requestedAt: new Date("2026-10-30T11:05:00.000Z"),
+      }),
+    );
+    // A day the calendar does not have is not rolled over into the next.
+    const bad = await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "31.09.2026 14:05",
+      }),
+    );
+    expect(!bad.ok && bad.fieldErrors?.istekAni).toMatch(/ör\. 30\.10\.2026/);
+  });
+
+  it("refuses an instant ahead of now or before the booking was made", async () => {
+    const ahead = await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "2026-10-30T15:01",
+      }),
+    );
+    expect(!ahead.ok && ahead.fieldErrors?.istekAni).toBe(
+      "İstek anı ileri bir saat olamaz.",
+    );
+    const before = await admin.cancelReservationAction(
+      null,
+      paidForm({
+        neden: "misafir",
+        kanal: "telefon",
+        istekAni: "2026-10-20T11:59",
+      }),
+    );
+    expect(!before.ok && before.fieldErrors?.istekAni).toBe(
+      "İstek anı rezervasyonun yapıldığı andan önce olamaz.",
+    );
+    const junk = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon", istekAni: "dün akşam" }),
+    );
+    expect(!junk.ok && junk.fieldErrors?.istekAni).toBeTruthy();
+    expect(h.cancel).not.toHaveBeenCalled();
+    // The current minute and the minute of booking are both fine.
+    for (const istekAni of ["2026-10-30T15:00", "2026-10-20T12:00"]) {
+      const ok = await admin.cancelReservationAction(
+        null,
+        paidForm({ neden: "misafir", kanal: "telefon", istekAni }),
+      );
+      expect(ok.ok).toBe(true);
+    }
+  });
+
+  it("a late request that leaves the booking standing says so", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: member,
+      refunded: false,
+      notified: true,
+      kept: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(res.ok && res.message).toMatch(
+      /^İstek kaydedildi\..*rezervasyon iptal edilmedi, misafirin adına duruyor\. Üyeye e-posta gönderildi\.$/,
+    );
+  });
+
+  it("a request recorded once the evening is over says it stands and no mail went", async () => {
+    h.cancel.mockResolvedValue({
+      ok: true,
+      reservation: member,
+      refunded: false,
+      notified: true,
+      kept: true,
+      silent: true,
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(res).toEqual({
+      ok: true,
+      message:
+        "İstek kaydedildi. Ücretsiz iptal süresi geçmişti ve rezervasyonun kuralı geç iptalde iade vermiyor: rezervasyon iptal edilmedi. Saati geçtiği için misafire e-posta gönderilmedi.",
+      tone: "success",
+    });
+  });
+
+  it("under 24 hours a business cancel says to call, when a phone is on the booking", async () => {
+    h.reservation = { ...h.reservation!, contactPhone: "+905321234567" };
+    const res = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "ariza" }),
+    );
+    expect(res.ok && res.message).toMatch(
+      /Rezervasyona 24 saatten az kaldı: misafiri ara\.$/,
+    );
+    // A guest's own request needs no call.
+    const asked = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "misafir", kanal: "telefon" }),
+    );
+    expect(asked.ok && asked.message).not.toMatch(/misafiri ara/);
+    // No phone (an app booking): nothing to call.
+    h.reservation = { ...h.reservation!, contactPhone: "" };
+    const app = await admin.cancelReservationAction(
+      null,
+      paidForm({ neden: "kapanis" }),
+    );
+    expect(app.ok && app.message).not.toMatch(/misafiri ara/);
   });
 });

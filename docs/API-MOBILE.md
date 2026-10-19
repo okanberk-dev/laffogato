@@ -920,6 +920,10 @@ Operatör kararı: karaoke rezervasyonu yapılırken PayNkolay ile kartla ödeni
 alınmamış rezervasyon onaylanmaz (panelde de). Panelde bir anahtar var
 (`settings.karaokePrepay`, Ayarlar → Karaoke, varsayılan açık); kapalıyken eski
 akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none`'a düşer.
+19 Eki 2026'dan beri anahtar kapatılamaz (OP-KARAOKE-PREPAY): panel kapatmayı
+reddeder, kilitten önce kapalı kaydedilmiş bir değer de açık okunur
+(`getSettings`). Sunucu `paymentRequired: false` göndermez; uygulamanın talep
+dalı yalnız eski bir sunucuya karşı anlamlıdır.
 
 **`GET /karaoke/availability`** yanıtına eklenen alanlar:
 
@@ -1053,11 +1057,18 @@ iptal edilir, ekibe gider. Yanıt ve hata kodları aynı (18 Eki 2026).
 **İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para
 tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar →
 Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (0..72 saat,
-varsayılan 2; 0 = ücretsiz iptal yok, rezervasyondan sonraki her iptal geç
-iptal) ve geç iptalde iade `lateRefundPercent` (0..100, varsayılan 0). Süreden
-önceki iptal her zaman tamamını iade eder; gelmeyene iade yoktur; köşkün
-iptali her zaman tam iadedir (MSY m.16/4). Her rezervasyon yapıldığı andaki
-kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+varsayılan 2; 0 = rezervasyon saati gelene kadar ücretsiz iptal; ilk
+sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
+(0..100, varsayılan 0; yeniden satılan saatin iadesi hazır olana kadar panel
+yalnız 0 ya da 100 kaydeder). Süreden önceki iptal, son anın kendisi dahil
+ve sayfaların yazdığı dakikanın tamamı (18:00 son an ise 18:00:59'a kadar;
+ilk sürümde `now < cancellableUntil`), her zaman tamamını iade
+eder; gelmeyene iade yoktur; köşkün kendi iptali her zaman tam iadedir (MSY
+m.16/4). Köşkün yalnız aktardığı istek (misafirin telefonla ya da e-postayla
+ilettiği iptal, panelde "Misafir iptal istedi") ise rezervasyonun kuralına
+istek anına göre bağlıdır: süre içindeyse tamamı, geç iptalde iade yoksa
+rezervasyon iptal edilmez ve olduğu gibi durur, geç iptal payı varsa
+`refundMinor` o paydır. Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
 `"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
 varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 
@@ -1074,7 +1085,8 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
   `invalid_request`. Alan yoksa davranış öncekiyle aynıdır. Web formu
   bastığı kuralı aynı biçimde gönderir.
 - Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
-  anıdır (eski satırda başlangıçtan 2 saat önce). Yeni alanlar:
+  anıdır, bu an dahil (eski satırda başlangıçtan 2 saat önce; 0 saatlik
+  kuralda başlangıç anı). Yeni alanlar:
   `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
   anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
   da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`).

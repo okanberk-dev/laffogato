@@ -93,13 +93,18 @@ describe("the confirmation prints the booking's own rule", () => {
   });
 
   it("a rule no member can cancel under says to call", async () => {
+    // No policy is such a rule since 0 hours means free until the start
+    // (ASK-OTH-3-CFG); the mail keeps the branch for a null `venueUntil`.
     const none = { freeCancelHours: 0, lateRefundPercent: 0 };
+    expect(time.karaokeVenueCancelUntil(none)).toBe(
+      "rezervasyon saatinden önce",
+    );
     await send.sendKaraokeConfirmationEmail({
       ...BASE,
       payment: { kind: "venue" },
       cancellation: {
         rules: time.karaokeCancellationRules(none).rules,
-        venueUntil: time.karaokeVenueCancelUntil(none),
+        venueUntil: null,
       },
     });
     const m = h.sent[0]!;

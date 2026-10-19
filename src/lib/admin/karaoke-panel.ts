@@ -20,6 +20,12 @@ import {
   refundAmountOf,
 } from "@/lib/mobile/karaoke-time";
 import { sameSitePath } from "@/lib/http/same-site-path";
+import {
+  KARAOKE_CAUSE_LABEL,
+  KARAOKE_CHANNEL_LABEL,
+  type KaraokeCancelCause,
+  type KaraokeRequestChannel,
+} from "@/lib/mobile/karaoke-cancel-cause";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -186,6 +192,42 @@ export function refundAmountMinor(
   r: Pick<KaraokeReservation, "paidMinor" | "totalMinor" | "refundMinor">,
 ): number {
   return refundAmountOf(r);
+}
+
+/**
+ * What an evening that is over leaves to invoice, kuruş (ASK-KAR-KDV, 19
+ * Eki 2026): the payment until the evening is an advance, and the e-Arşiv
+ * invoice is cut at the köşk for what the köşk keeps, KDV included (KDV K.
+ * m.10/a-b; within 7 days of the evening, VUK m.231/5). Everything that went
+ * back, or is going back, is not invoiced; a booking refunded in full
+ * leaves 0 (no document). Null while the evening is still to come, and for
+ * a booking nothing was collected for (an unpaid hold, a venue booking never
+ * confirmed).
+ */
+export function karaokeBillableMinor(
+  r: Pick<
+    KaraokeReservation,
+    | "date"
+    | "startHour"
+    | "hours"
+    | "status"
+    | "paymentStatus"
+    | "paidMinor"
+    | "totalMinor"
+    | "refundMinor"
+  >,
+  now: Date,
+): number | null {
+  if (karaokeEndInstant(r).getTime() > now.getTime()) return null;
+  const money = moneyOf(r);
+  if (money === "none") return r.status === "confirmed" ? r.totalMinor : null;
+  if (money !== "paid" && money !== "refunding" && money !== "refunded") {
+    return null;
+  }
+  const paid = r.paidMinor && r.paidMinor > 0 ? r.paidMinor : r.totalMinor;
+  // Paid and cancelled: the köşk's cancel refunds everything, still owed.
+  if (money === "paid") return r.status === "cancelled" ? 0 : paid;
+  return Math.max(0, paid - refundAmountOf(r));
 }
 
 export const KARAOKE_STATUS_TEXT: Record<KaraokeReservationStatus, string> = {
@@ -885,6 +927,8 @@ const EVENT_TITLES: Record<string, string> = {
     "Hesap kapandı, iade süresi geçmiş ödenmiş rezervasyon duruyor",
   account_closed_payment_unknown:
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
+  late_guest_request:
+    "Misafir geç iptal istedi; kural iade vermiyor, rezervasyon duruyor",
 };
 
 const RETRY_OUTCOME: Record<string, { title: string; tone: AdminTone }> = {
@@ -895,6 +939,14 @@ const RETRY_OUTCOME: Record<string, { title: string; tone: AdminTone }> = {
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+/** "30 Ekim 2026 18:05" on the köşk's clock; "" if unreadable. */
+function formatDateTimeTr(iso: string): string {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return "";
+  const day = new Date(at + 3 * 60 * 60_000).toISOString().slice(0, 10);
+  return `${formatReservationDate(day)} ${istanbulTimeLabel(iso)}`;
 }
 
 function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
@@ -944,8 +996,18 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
   } else {
     title = row.action;
   }
+  // A paid booking's staff cancel: its code, and for a guest's request how
+  // and when it came (karaoke-cancel-cause.ts).
+  const cause = KARAOKE_CAUSE_LABEL[str(p.cause) as KaraokeCancelCause];
+  const channel =
+    KARAOKE_CHANNEL_LABEL[str(p.channel) as KaraokeRequestChannel];
+  const asked = str(p.requestedAt) ? formatDateTimeTr(str(p.requestedAt)) : "";
   const parts = [
     amount,
+    cause ?? "",
+    channel || asked
+      ? `İstek: ${[channel, asked].filter(Boolean).join(", ")}`
+      : "",
     reason ? `Neden: ${reason}` : "",
     str(p.message),
   ].filter(Boolean);

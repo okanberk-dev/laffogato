@@ -102,10 +102,14 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             />
           </SettingsField>
         </div>
+        {/* Always ticked and enabled: switching prepayment off is refused
+            (MSG_PREPAY_LOCKED), and a disabled box would not be posted, so
+            every save would be. A stored off (older data) is written on
+            with the next save. */}
         <Checkbox
           name="karaokePrepay"
-          defaultChecked={settings.karaokePrepay}
-          label="Online ön ödeme: rezervasyon ödenince kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz (üyeliksiz rezervasyon da bununla açılır). Kapatırsan web'de ve uygulamada eski akış döner: talep, köşkte ödeme, elle onay."
+          defaultChecked
+          label="Online ön ödeme: rezervasyon ödenince kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz (üyeliksiz rezervasyon da bununla açılır). Kapatılamaz: ödemesiz talepte ön bilgilendirme ve sözleşme onayı alınmıyor."
         />
       </Section>
 
@@ -120,7 +124,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="karaokeFreeCancelHours"
               label="Ücretsiz iptal (saat)"
-              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: ücretsiz iptal yok, o zaman geç iptalde en az %50 iade edilir.`}
+              hint={`Rezervasyon saatine bundan fazla varken yapılan iptalde tamamı iade edilir. 0 ile ${KARAOKE_FREE_CANCEL_HOURS_MAX} arası; 0: rezervasyon saati gelene kadar ücretsiz iptal.`}
             >
               <TextInput
                 name="karaokeFreeCancelHours"
@@ -137,7 +141,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
             <SettingsField
               name="karaokeLateRefundPercent"
               label="Geç iptalde iade (%)"
-              hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir. 0: geç iptal kabul edilmez."
+              hint="Süre geçtikten sonra, rezervasyon saatinden önce yapılan iptalde ödemenin ne kadarı iade edilir: şimdilik 0 ya da 100. 0: geç iptal kabul edilmez."
             >
               <TextInput
                 name="karaokeLateRefundPercent"
