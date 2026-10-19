@@ -35,6 +35,45 @@ export function isNotifyEmail(value: string): boolean {
   return value.length <= 254 && EMAIL_RE.test(value);
 }
 
+// Personal webmail, every one hosted abroad. Staff mail carries customer
+// data (a first name and the order; the deletion request: name and e-mail),
+// and keeping it in such an inbox is a transfer abroad that the KVKK
+// Aydınlatma Metni (§14, §15) does not name and no standard contract covers
+// (KVKK m.9/1, m.9/4; LEGAL-REDLINES §15.6). A company domain is trusted: its
+// host cannot be read from the address (operator step 3 there).
+const CONSUMER_MAILBOX_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "msn.com",
+  "ymail.com",
+  "rocketmail.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "ya.ru",
+  "mail.ru",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+]);
+const CONSUMER_MAILBOX_FAMILIES =
+  /^(?:hotmail|outlook|live|windowslive|yahoo|yandex|gmx)\.[a-z]{2,}(?:\.[a-z]{2})?$/;
+
+/** True for a personal webmail address (Gmail, Hotmail, iCloud...). */
+export function isConsumerMailbox(email: string): boolean {
+  const at = String(email ?? "").lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = String(email)
+    .slice(at + 1)
+    .trim()
+    .toLowerCase();
+  return (
+    CONSUMER_MAILBOX_DOMAINS.has(domain) ||
+    CONSUMER_MAILBOX_FAMILIES.test(domain)
+  );
+}
+
 /**
  * The stored role list as the code may trust it: known roles only, each once,
  * in the panel's order. Anything that is not an array (a hand-edited row, a
@@ -107,7 +146,10 @@ export interface RecipientSources {
  *
  * The extra addresses and the operations address carry no role; they get the
  * order link (the panel's own login still decides what they can see).
- * Addresses are compared lower-case, and each appears once.
+ * Addresses are compared lower-case, and each appears once. A personal
+ * webmail inbox (`isConsumerMailbox`) is never mailed, from any source: the
+ * panel refuses one in Bildirimler, but an env admin or a panel login may
+ * still be a Gmail address.
  */
 export function resolveStaffRecipients(
   src: RecipientSources,
@@ -127,6 +169,7 @@ export function resolveStaffRecipients(
   }
   const consider = (email: string, role: AdminRole) => {
     if (!roles.has(role) || !isNotifyEmail(email) || out.has(email)) return;
+    if (isConsumerMailbox(email)) return;
     out.set(email, { email, canOpenOrders: canAccess("orders", role) });
   };
   for (const [email, role] of activePanel) consider(email, role);
@@ -143,6 +186,7 @@ export function resolveStaffRecipients(
   ];
   for (const email of loose) {
     if (!email || out.has(email) || !isNotifyEmail(email)) continue;
+    if (isConsumerMailbox(email)) continue;
     out.set(email, { email, canOpenOrders: true });
   }
   return [...out.values()];

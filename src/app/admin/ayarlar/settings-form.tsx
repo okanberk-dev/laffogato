@@ -688,7 +688,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
           <Field
             as="fieldset"
             label="Alacak roller"
-            hint="Seçilen rollerdeki aktif panel kullanıcılarına gider. Kasiyer sipariş sayfasını açamaz; ona giden e-postanın düğmesi kasaya gider."
+            hint="Seçilen rollerdeki aktif panel kullanıcılarına gider; Gmail, Hotmail gibi kişisel kutusu olan hesaba gitmez (sipariş bilgisi yurt dışında kalırdı). Kasiyer sipariş sayfasını açamaz; ona giden e-postanın düğmesi kasaya gider."
           >
             <div className="grid gap-1 sm:grid-cols-2">
               {ADMIN_ROLES.map((role) => (
@@ -705,7 +705,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
           <SettingsField
             name="orderNotifyEmails"
             label="Ek adresler"
-            hint="Her satıra ya da virgülle ayırarak bir adres. Panel hesabı olmayan alıcılar için (ör. mutfak tableti)."
+            hint="Her satıra ya da virgülle ayırarak bir adres. Panel hesabı olmayan alıcılar için (ör. mutfak tableti). Yalnız şirketin kurumsal adresleri; kişisel kutu (Gmail, Hotmail vb.) kaydedilmez."
           >
             <Textarea
               name="orderNotifyEmails"

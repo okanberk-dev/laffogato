@@ -17,6 +17,7 @@ import { ADMIN_ROLES } from "@/lib/admin/roles";
 import { listAdminUsers } from "@/lib/admin/users";
 import { sendTestEmail } from "@/lib/email/send";
 import {
+  isConsumerMailbox,
   MAX_ORDER_NOTIFY_EMAILS,
   normalizeNotifyRoles,
   parseNotifyEmails,
@@ -404,6 +405,12 @@ export async function saveSeoAction(
   return ok("seo", "SEO ayarları kaydedildi.", moved);
 }
 
+// Staff mail carries customer data; a personal webmail inbox keeps it abroad
+// (KVKK m.9; `isConsumerMailbox`). The sender skips such an address anyway,
+// so the panel says so instead of saving one that would never be mailed.
+const CONSUMER_MAILBOX_REFUSAL =
+  "Gmail, Hotmail gibi kişisel bir kutu yazılamaz: sipariş bilgisi yurt dışındaki bir sunucuda kalır. Şirketin kurumsal adresini yaz.";
+
 const notificationsSchema = z.object({
   notificationEmail: z
     .string()
@@ -411,7 +418,8 @@ const notificationsSchema = z.object({
     .max(254, { error: "Operasyon e-postası çok uzun." })
     .refine((v) => !v || EMAIL_RE.test(v), {
       error: "Geçerli bir e-posta gir.",
-    }),
+    })
+    .refine((v) => !isConsumerMailbox(v), { error: CONSUMER_MAILBOX_REFUSAL }),
   orderNotifyEnabled: z.boolean(),
   orderNotifyRoles: z
     .array(z.enum(ADMIN_ROLES as [string, ...string[]]), {
@@ -427,6 +435,14 @@ const notificationsSchema = z.object({
         ctx.addIssue({
           code: "custom",
           message: `Geçersiz e-posta: ${invalid.slice(0, 3).join(", ")}`,
+        });
+        return z.NEVER;
+      }
+      const personal = valid.filter(isConsumerMailbox);
+      if (personal.length > 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${CONSUMER_MAILBOX_REFUSAL} (${personal.slice(0, 3).join(", ")})`,
         });
         return z.NEVER;
       }
@@ -539,7 +555,7 @@ export async function saveNotificationsAction(
         [
           {
             key: "no-recipients",
-            line: "Seçili rollerde aktif panel kullanıcısı yok; operasyon e-postası ve ek adresler de boş. Yeni sipariş e-postası kimseye gitmez.",
+            line: "Seçili rollerde kurumsal adresli aktif panel kullanıcısı yok (Gmail gibi kişisel kutulara gitmez); operasyon e-postası ve ek adresler de boş. Yeni sipariş e-postası kimseye gitmez.",
           },
         ],
         {
