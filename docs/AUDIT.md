@@ -845,7 +845,6 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Olay kaydındaki ayar satırlarının bağlantısı hâlâ `/admin/ayarlar` (karaoke panelininki paket 3a'da `?sekme=karaoke`, panodaki "Ayarlar → E-posta" paket 7b'de `?sekme=email` oldu) | `?sekme=` hazır (`settingsTabHref`, kayıt kimliği "email-test" de E-posta'yı açar); bağlantı kendi dosyasının PR'ında (7c) |
 | 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
 
@@ -863,6 +862,17 @@ Açık:
 | 🟢 | Pano kartı "bir işlem bekliyor" sayısını eski okumadan (bugün ve iade borçları) alıyordu (KAR-07, pano kısmı) | `loadKaraokeTodayCard`: Dikkat sekmesinin kümesi | `admin-dashboard`, `admin-karaoke-attention` |
 | 🟢 | E-posta denetimi takılan bir Resend'i süresiz bekliyor, ayarlar okunamayınca panoyu düşürüyordu (SHE-29); "Ayarlar → E-posta" Genel sekmesini açıyordu (SHE-24, pano kısmı) | `AbortSignal.timeout(3000)` (sonuç "bilinmiyor", bant yok); pano denetimin hatasını yakalar; bağlantı `?sekme=email` | `email-health`, `admin-dashboard` |
 | 🟢 | Raporlar'da hep boş bir "Dönüşüm" kartı, bir analiz aracı bağlanınca kendiliğinden dolacağını söylüyordu (SYS-17, SYS-22); başlık üstü "Operasyon · İçgörüler" (menüde "Satış"); kit dışı renkler, 2,59:1 sıra numaraları, 30 px dönem bağlantıları (SYS-24, raporlar kısmı) | Kart kalktı (karar D32); "Satış"; kit kartları, ton jetonları, kitin sekmeleri (`StatusTabs`); karaoke kartında önce dönem, tüm zamanlar ayrıca yazılı | `admin-reports-period`, `admin-reports-ltv` |
+
+### Sistem: olay kaydı (paket 7c)
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Sayfa ve yayımlanmış imha politikası kaydı "değiştirilemez (append-only)" diyordu ama `audit_logs` düz bir tabloydu; uygulama RLS'i aşan sahip bağlantısıyla bağlanır, her UPDATE ve DELETE geçerdi (SYS-13, karar D30) | `20261019170000_audit_logs_append_only.sql`: UPDATE ve TRUNCATE P0001 ile reddedilir; DELETE yalnız `createdAt`'i yazılı ve on yıldan eski satırda geçer, damgasız satır silinmez. İmha (`src/lib/retention.ts`, 10 × 366 gün) aynen çalışır. `createdAt` uygulamanın yazdığı ISO metni olarak kaldı (süzgeçler ve sıralama metin karşılaştırır) | `audit-logs-append-only-migration`, `db-integration-audit-append-only` (CI) |
+| 🟡 | Sipariş CSV'si müşteri adlarını, e-postalarını ve tutarları indiriyor, iz bırakmıyordu (ORD-15) | Yeni `export` işlemi ("Dışa aktarma", kendi tonu); dosya hazırlanınca `safeAudit` kimin, hangi süzgeçle, kaç satır aldığını yazar; satır yazılamazsa dosya yine gider, yanıt aynı | `admin-order-csv` |
+| 🟡 | "Ayrıntı" sütunu iç adları basıyordu: `before.shippingFlatMinor`, `owner, manager`, `cancelled`, İngilizce gün kısaltmaları, test e-postasının alıcısı "Yeni", "Kayıt" sütununda ayar bölümü kayıt numarası gibi ("general"); süzgeçte hiç yazılmayan "Reel" (SYS-10) | Her alan adı parça parça Türkçe ("Önceki · Kargo ücreti"), roller, sipariş ve karaoke durumları, ayar ve uygulama ayarı bölümleri, günler, dışa aktarma süzgeçleri listenin kendi sözleriyle; test e-postasında "Alıcı"; ayar satırı kendi sekmesine bağlanır (`?sekme=`, "email-test" E-posta'yı açar; 7a'da açık kalan bağlantı); "Reel" süzgeçten çıktı | `admin-audit-log` |
+| 🟡 | 1024-1279 px'te "Kim" 25 px'e, değerler 34 px'e sıkışıyordu, tek olay 565 px boyundaydı; telefonda 10 olay 2.931 px (SYS-11) | "Kim" sabit 12rem, uzun adres "…" ile kesilir ve tamamı başlıkta; alan adı değerin üstünde; listede ilk üç alan, kalanı "+n alan daha" ile olayın sayfasında; telefon kartı sade. 390, 1024 ve 1280 px'te çizilip bakıldı | `admin-audit-log` |
+| 🟢 | Sayfalama, ayrıntı sayfası ve dışa aktarma yoktu: her ziyaret 500 olayı iki kez çiziyordu (~2,4 MB HTML); değerler 300 karakterde kesiliyor, saatler saniyesiz (SYS-09) | Sayfa başına 50 olay, sayım ve kit `Pagination` (süzgeçler korunur); her olayın kendi sayfası (`/admin/olay-kaydi/<id>`: saniyesiyle zaman, kayda ve geçmişine bağlantı, her alan kısaltılmadan, ham JSON); yalnız sahibe (`audit`) süzgeçli "CSV indir": rota oturumu ve rolü kendi denetler, en çok 5.000 satır, dışa aktarmanın başladığı ana kadar, formül güvenli hücreler, kendisi de bir `export` satırı yazar | `admin-audit-log`, `admin-audit-csv` |
+| 🟢 | "Admin mutasyonlarının değiştirilemez tarihçesi", başlık üstü "Denetim", başlık "Olay Kaydı" (menüde "Sistem", "Olay kaydı") (SYS-22, olay kaydı kısmı) | Sade Türkçe açıklama; "Sistem", "Olay kaydı". "Değiştirilemez" sözü tetikleyici geldiği için kaldı | `admin-audit-log` |
 
 ### İçerik: uygulama ayarları, canlı durum, slayt, duyuru, gönderi (paket 6b)
 

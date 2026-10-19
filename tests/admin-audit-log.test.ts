@@ -7,7 +7,9 @@ import { createDb, type Executor } from "@/lib/db/client";
 /**
  * /admin/olay-kaydi: filters by date range and record id, a link from each
  * row to its record (and to that record's whole history), and the payload
- * as labelled fields instead of a raw JSON.stringify.
+ * as labelled fields instead of a raw JSON.stringify: every name and every
+ * known value in Turkish (SYS-10). Paged, with a page per event (SYS-09)
+ * and compact rows (SYS-11).
  */
 
 const seen: { text: string; params: readonly unknown[] }[] = [];
@@ -93,8 +95,15 @@ describe("auditPayloadEntries", () => {
     // The köşk's clock: 00:30 on the 17th.
     expect(by.rotatedAt.value).toMatch(/17 Eki 2026 00:30/);
     expect(by.tags.value).toBe("vegan, yeni");
-    expect(by["ok.op"].value).toBe("deactivate");
-    expect(by["ok.updated"].value).toBe("2");
+    // A nested key is named segment by segment; a known value in Turkish.
+    expect(by["ok.op"]).toMatchObject({
+      label: "ok · İşlem",
+      value: "Pasif etme",
+    });
+    expect(by["ok.updated"]).toMatchObject({
+      label: "ok · Güncellenen",
+      value: "2",
+    });
     expect(by.empty.value).toBe("-");
     expect(entries.map((e) => e.key)[0]).toBe("name");
   });
@@ -173,50 +182,366 @@ describe("listAuditLogs", () => {
   });
 });
 
+describe("Turkish labels (SYS-10)", () => {
+  const entries = (
+    payload: Record<string, unknown>,
+    ctx: { entity?: string; action?: string; entityId?: string } = {},
+  ) =>
+    Object.fromEntries(
+      view.auditPayloadEntries(payload, ctx).map((e) => [e.key, e]),
+    );
+
+  it("names a settings change's before / after / changed fields", () => {
+    const by = entries(
+      {
+        section: "notifications",
+        before: {
+          shippingFlatMinor: 4_900,
+          orderNotifyRoles: ["owner", "manager", "cashier"],
+        },
+        after: { courierFeeMinor: 7_500, orderNotifyRoles: ["owner"] },
+        changed: { orderNotifyEmailsAdded: 1 },
+      },
+      { entity: "settings", action: "update", entityId: "notifications" },
+    );
+    expect(by["before.shippingFlatMinor"]).toMatchObject({
+      label: "Önceki · Kargo ücreti",
+      value: "₺49,00",
+    });
+    expect(by["after.courierFeeMinor"]).toMatchObject({
+      label: "Yeni · Kurye ücreti",
+      value: "₺75,00",
+    });
+    expect(by["before.orderNotifyRoles"]).toMatchObject({
+      label: "Önceki · Bildirim alan roller",
+      value: "Sahip, Yönetici, Kasiyer",
+    });
+    expect(by["changed.orderNotifyEmailsAdded"]).toMatchObject({
+      label: "Değişti · Eklenen alıcı",
+      value: "1",
+    });
+    // The section is the row's record (the Kayıt column names it).
+    expect(by.section).toBeUndefined();
+    // No raw dotted key reaches the screen.
+    for (const e of Object.values(by)) {
+      expect(e.label).not.toMatch(/[a-z][A-Z]|\./);
+    }
+  });
+
+  it("prints the hours in Turkish day names", () => {
+    const by = entries(
+      {
+        before: { openingHours: "mon 09:00-02:00 · tue Kapalı" },
+        after: { openingHours: "sun 10:00-22:00" },
+      },
+      { entity: "settings", entityId: "hours" },
+    );
+    expect(by["before.openingHours"]).toMatchObject({
+      label: "Önceki · Çalışma saatleri",
+      value: "Pazartesi 09:00-02:00 · Salı Kapalı",
+    });
+    expect(by["after.openingHours"].value).toBe("Pazar 10:00-22:00");
+  });
+
+  it("calls a test mail's address the recipient, not a new value", () => {
+    const by = entries(
+      { section: "email-test", to: "okan@laffogato.com" },
+      { entity: "settings", action: "send_test", entityId: "email-test" },
+    );
+    expect(by.to).toMatchObject({
+      label: "Alıcı",
+      value: "okan@laffogato.com",
+    });
+    expect(
+      entries({ to: "a@b.co" }, { entity: "campaign_email", action: "send_test" })
+        .to.label,
+    ).toBe("Alıcı");
+  });
+
+  it("names an order's statuses and its transition", () => {
+    const by = entries(
+      {
+        transition: "cancel",
+        to: "cancelled",
+        from: "paid",
+        restock: true,
+        refundedMinor: 12_000,
+      },
+      { entity: "order", action: "transition" },
+    );
+    expect(by.transition).toMatchObject({ label: "Geçiş", value: "İptal" });
+    expect(by.to).toMatchObject({ label: "Yeni durum", value: "İptal edildi" });
+    expect(by.from).toMatchObject({ label: "Önceki durum", value: "Ödendi" });
+    expect(by.restock).toMatchObject({ label: "Stoğa dönen", value: "evet" });
+    expect(by.refundedMinor.value).toBe("₺120,00");
+    // A line's own state, a booking's state.
+    expect(
+      entries({ status: "ready" }, { entity: "order_item" }).status.value,
+    ).toBe("Hazır");
+    expect(
+      entries({ status: "confirmed" }, { entity: "karaoke_reservation" })
+        .status.value,
+    ).toBe("Onaylandı");
+  });
+
+  it("calls an order's from / to a status only when they hold one", () => {
+    // A system row on an order whose before / after is a KDV rate, not a
+    // status (the shape main's 20261019150000_cafe_food_rate_10.sql writes).
+    const rate = entries(
+      { event: "kdv_rate_corrected", orderNo: 10023, from: 1, to: 10 },
+      { entity: "order", action: "update", entityId: "ord-10023" },
+    );
+    expect(rate.from).toMatchObject({ label: "Önceki", value: "1" });
+    expect(rate.to).toMatchObject({ label: "Yeni", value: "10" });
+    // A string that is no status of the record keeps the plain name too,
+    // and a key named like an Object method is not mistaken for one.
+    const odd = entries(
+      { from: "constructor", to: "somewhere" },
+      { entity: "order", action: "transition" },
+    );
+    expect(odd.from.label).toBe("Önceki");
+    expect(odd.to.label).toBe("Yeni");
+    // The status pair still reads as one.
+    const status = entries(
+      { from: "paid", to: "cancelled" },
+      { entity: "order", action: "transition" },
+    );
+    expect(status.from.label).toBe("Önceki durum");
+    expect(status.to.label).toBe("Yeni durum");
+  });
+
+  it("names a till redemption that stopped after some stamps", () => {
+    // kasa/actions.ts writes this when redeemCounterToken answers "partial".
+    const by = entries(
+      { kind: "code", stamps: 1, asked: 3, partial: true },
+      { entity: "counter_token", action: "update" },
+    );
+    expect(by.stamps).toMatchObject({ label: "Damga", value: "1" });
+    expect(by.asked).toMatchObject({ label: "İstenen damga", value: "3" });
+    expect(by.partial).toMatchObject({ label: "Yarım kaldı", value: "evet" });
+  });
+
+  it("names the rest of what the actions write", () => {
+    expect(
+      entries({ needs2FA: false }, { entity: "auth" }).needs2FA,
+    ).toMatchObject({ label: "2FA gerekli", value: "hayır" });
+    expect(
+      entries(
+        { op: "delete", updated: 5, idCount: 5 },
+        { entity: "product", action: "bulk_delete" },
+      ).op,
+    ).toMatchObject({ label: "İşlem", value: "Silme" });
+    expect(
+      entries({ role: "barista" }, { entity: "staff_member" }).role.value,
+    ).toBe("Barista");
+    expect(
+      entries({ event: "code_rotated" }, { entity: "cafe_table" }).event.value,
+    ).toBe("Kod yenilendi");
+    // A manual order's total is kuruş though its key does not say so.
+    expect(
+      entries({ total: 15_000 }, { entity: "order", action: "create" }).total
+        .value,
+    ).toBe("₺150,00");
+    expect(
+      entries({ total: 120 }, { entity: "campaign_email", action: "send" })
+        .total,
+    ).toMatchObject({ label: "Alıcı sayısı", value: "120" });
+  });
+
+  it("names an export's filters with the list's own words", () => {
+    const by = entries(
+      {
+        filters: { q: "eda", kanal: "manuel", bas: "2026-10-01" },
+        tab: "acik",
+        rows: 42,
+      },
+      { entity: "order", action: "export" },
+    );
+    expect(by["filters.q"]).toMatchObject({
+      label: "Süzgeç · Arama",
+      value: "eda",
+    });
+    expect(by["filters.kanal"].value).toBe("Panelden (manuel)");
+    expect(by.tab).toMatchObject({ label: "Sekme", value: "Açık" });
+    expect(by.rows).toMatchObject({ label: "Satır", value: "42" });
+    const audit = entries(
+      { filters: { entity: "product", action: "delete" }, rows: 3 },
+      { entity: "audit_log", action: "export" },
+    );
+    expect(audit["filters.entity"].value).toBe("Ürün");
+    expect(audit["filters.action"].value).toBe("Silme");
+  });
+
+  it("shows a settings record as its section, linked to its tab", () => {
+    expect(view.auditRecordText("settings", "general")).toBe("Genel");
+    expect(view.auditRecordText("settings", "notifications")).toBe("Bildirim");
+    expect(view.auditRecordText("settings", "email-test")).toBe(
+      "Test e-postası",
+    );
+    expect(view.auditRecordText("mobile_app_config", "ordering")).toBe(
+      "Sipariş",
+    );
+    expect(view.auditRecordText("product", " prd-0001 ")).toBe("prd-0001");
+    expect(view.auditRecordHref("settings", "general")).toBe("/admin/ayarlar");
+    expect(view.auditRecordHref("settings", "shipping")).toBe(
+      "/admin/ayarlar?sekme=shipping",
+    );
+    expect(view.auditRecordHref("settings", "email-test")).toBe(
+      "/admin/ayarlar?sekme=email",
+    );
+  });
+
+  it("offers only kinds and actions that exist, under plain names", () => {
+    const entity = view.AUDIT_FILTER_FIELDS.find(
+      (f) => f.type === "select" && f.name === "entity",
+    );
+    const values =
+      entity?.type === "select" ? entity.options.map((o) => o.value) : [];
+    // Nothing writes a reel: the option could only show an empty log.
+    expect(values).not.toContain("reel");
+    expect(values).toContain("audit_log");
+    expect(view.AUDIT_ENTITY_LABELS.shop_hero_slide).toBe("Mağaza vitrini");
+    expect(view.AUDIT_ACTION_LABELS["2fa_enable"]).toBe("2FA açma");
+    expect(view.AUDIT_ACTION_LABELS.export).toBe("Dışa aktarma");
+    expect(view.AUDIT_ACTION_TONES.export).toBe("accent");
+  });
+
+  it("names the system and members, and keeps an address as it is", () => {
+    expect(view.auditActorText("system")).toBe("Sistem");
+    expect(view.auditActorText("customer")).toBe("Üye");
+    expect(view.auditActorText("okan@laffogato.com")).toBe(
+      "okan@laffogato.com",
+    );
+  });
+
+  it("prints the time to the second on the köşk's clock", () => {
+    // 21:30:05 UTC is 00:30:05 on the 17th in Istanbul.
+    expect(view.auditTime("2026-10-16T21:30:05.000Z")).toMatch(
+      /17 Eki 2026 00:30:05/,
+    );
+  });
+
+  it("gives the event's own page every character", () => {
+    const long = "x".repeat(1000);
+    const [clipped] = view.auditPayloadEntries({ note: long });
+    expect(clipped.value.length).toBe(300);
+    const [full] = view.auditPayloadEntries({ note: long }, {}, { clip: false });
+    expect(full.value).toBe(long);
+  });
+
+  it("accepts an event id from the URL only in its plain shape", () => {
+    expect(view.auditEventIdOf("aud-0000123")).toBe("aud-0000123");
+    expect(view.auditEventHref("aud-0000123")).toBe(
+      "/admin/olay-kaydi/aud-0000123",
+    );
+    for (const bad of ["", "../x", "aud 1", "a".repeat(101), 42, null]) {
+      expect(view.auditEventIdOf(bad)).toBeNull();
+    }
+  });
+});
+
+describe("paging (SYS-09)", () => {
+  it("reads one page newest first, ties broken by id", async () => {
+    await listAuditLogs({ entity: "order", limit: 50, offset: 100 });
+    const q = seen.find((s) => /FROM "audit_logs"/.test(s.text))!;
+    expect(q.text).toMatch(
+      /ORDER BY "createdAt" DESC, "id" DESC LIMIT \$\d+ OFFSET \$\d+/,
+    );
+    expect(q.params).toEqual(expect.arrayContaining(["order", 50, 100]));
+  });
+
+  it("counts the rows the same filters match", async () => {
+    const { countAuditLogs } = await import("@/lib/admin/audit");
+    await countAuditLogs({ actor: "ali", from: "2026-10-01T00:00:00.000Z" });
+    const q = seen.find((s) => /count\(\*\)/.test(s.text))!;
+    expect(q.text).toMatch(/FROM "audit_logs"/);
+    expect(q.text).toMatch(/"actor" ILIKE \$\d+/);
+    expect(q.text).toMatch(/"createdAt" >= \$\d+/);
+  });
+
+  it("reads one event by its id", async () => {
+    const { getAuditLog } = await import("@/lib/admin/audit");
+    expect(await getAuditLog("aud-0000001")).toBeNull();
+    const q = seen.find((s) => /FROM "audit_logs"/.test(s.text))!;
+    expect(q.text).toMatch(/"id" = \$\d+/);
+    expect(q.params).toContain("aud-0000001");
+  });
+});
+
+function row(over: Record<string, unknown> = {}) {
+  return {
+    id: "aud-0000001",
+    actor: "patron@laffogato.net",
+    action: "update",
+    entity: "product",
+    entityId: "prd-0001",
+    payload: { name: "Sirena", isActive: true },
+    createdAt: "2026-10-16T09:00:00.000Z",
+    ...over,
+  };
+}
+
+async function loadPages(
+  rows: Record<string, unknown>[],
+  total: number,
+  one: Record<string, unknown> | null = null,
+) {
+  vi.resetModules();
+  vi.doMock("next/link", () => ({
+    default: ({
+      href,
+      children,
+      prefetch: _prefetch,
+      ...rest
+    }: {
+      href: string;
+      children?: ReactNode;
+      prefetch?: boolean;
+    }) => createElement("a", { href, ...rest }, children),
+    useLinkStatus: () => ({ pending: false }),
+  }));
+  vi.doMock("next/navigation", () => ({
+    useRouter: () => ({ push: vi.fn() }),
+    usePathname: () => "/admin/olay-kaydi",
+    notFound: () => {
+      throw new Error("NEXT_NOT_FOUND");
+    },
+  }));
+  vi.doMock("@/lib/admin/auth", () => ({
+    requireRole: vi.fn(async () => ({})),
+  }));
+  const listed = vi.fn(async () => rows);
+  const counted = vi.fn(async () => total);
+  const got = vi.fn(async () => one);
+  vi.doMock("@/lib/admin/audit", () => ({
+    listAuditLogs: listed,
+    countAuditLogs: counted,
+    getAuditLog: got,
+  }));
+  const { default: ListPage } = await import("@/app/admin/olay-kaydi/page");
+  const { default: EventPage } =
+    await import("@/app/admin/olay-kaydi/[id]/page");
+  return { ListPage, EventPage, listed, counted, got };
+}
+
 describe("the page", () => {
   it("renders the filters, the record links and a readable payload", async () => {
-    vi.resetModules();
-    vi.doMock("next/link", () => ({
-      default: ({
-        href,
-        children,
-        ...rest
-      }: {
-        href: string;
-        children?: ReactNode;
-      }) => createElement("a", { href, ...rest }, children),
-    }));
-    vi.doMock("next/navigation", () => ({
-      useRouter: () => ({ push: vi.fn() }),
-    }));
-    vi.doMock("@/lib/admin/auth", () => ({
-      requireRole: vi.fn(async () => ({})),
-    }));
-    const listed = vi.fn(async () => [
-      {
-        id: "aud-0000001",
-        actor: "patron@laffogato.net",
-        action: "update",
-        entity: "product",
-        entityId: "prd-0001",
-        payload: { name: "Sirena", isActive: true },
-        createdAt: "2026-10-16T09:00:00.000Z",
-      },
-      {
-        id: "aud-0000002",
-        actor: "system",
-        action: "update",
-        entity: "karaoke_reservation",
-        entityId: "krk-00042",
-        payload: { event: "refund_unanswered", amountMinor: 200_000 },
-        createdAt: "2026-10-16T08:00:00.000Z",
-      },
-    ]);
-    vi.doMock("@/lib/admin/audit", () => ({ listAuditLogs: listed }));
-    const { default: AuditLogPage } =
-      await import("@/app/admin/olay-kaydi/page");
+    const { ListPage, listed } = await loadPages(
+      [
+        row(),
+        row({
+          id: "aud-0000002",
+          actor: "system",
+          entity: "karaoke_reservation",
+          entityId: "krk-00042",
+          payload: { event: "refund_unanswered", amountMinor: 200_000 },
+          createdAt: "2026-10-16T08:00:00.000Z",
+        }),
+      ],
+      2,
+    );
     const html = renderToStaticMarkup(
-      await AuditLogPage({
+      await ListPage({
         searchParams: Promise.resolve({
           entityId: "prd-0001",
           bas: "2026-10-16",
@@ -229,6 +554,8 @@ describe("the page", () => {
         entityId: "prd-0001",
         from: "2026-10-15T21:00:00.000Z",
         to: "2026-10-16T21:00:00.000Z",
+        limit: 50,
+        offset: 0,
       }),
     );
     expect(html).toContain('type="date"');
@@ -240,7 +567,152 @@ describe("the page", () => {
     // A karaoke row opens its booking's own page, not the list.
     expect(html).toContain('href="/admin/mobil/karaoke/krk-00042"');
     expect(html).not.toContain('href="/admin/mobil/karaoke"');
+    // Name above value, so a narrow column keeps the value readable.
     expect(html).toMatch(/<dt[^>]*>Ad<\/dt><dd[^>]*>Sirena<\/dd>/);
     expect(html).not.toContain("{&quot;name&quot;");
+    // Each event opens its own page; the system reads as Sistem.
+    expect(html).toContain('href="/admin/olay-kaydi/aud-0000001"');
+    expect(html).toContain(">Sistem<");
+    // Seconds, so two events in one minute do not look the same.
+    expect(html).toMatch(/16 Eki 2026 12:00:00/);
+  });
+
+  it("pages through the log 50 at a time, with the filters kept", async () => {
+    const { ListPage, listed } = await loadPages(
+      Array.from({ length: 50 }, (_, i) =>
+        row({ id: `aud-${String(1000 - i).padStart(7, "0")}` }),
+      ),
+      120,
+    );
+    const html = renderToStaticMarkup(
+      await ListPage({
+        searchParams: Promise.resolve({ action: "update", sayfa: "2" }),
+      }),
+    );
+    expect(listed).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "update", limit: 50, offset: 50 }),
+    );
+    expect(html).toContain("51-100 / 120");
+    expect(html).toContain('href="/admin/olay-kaydi?action=update&amp;sayfa=3"');
+    // The whole log of 500 rows rendered twice is gone.
+    expect(html).not.toContain("En yeni 500 olay");
+    // The CSV keeps the filters and drops the page.
+    expect(html).toContain('href="/admin/olay-kaydi/csv?action=update"');
+  });
+
+  it("shows three fields and links to the rest", async () => {
+    const { ListPage } = await loadPages(
+      [
+        row({
+          id: "aud-0000009",
+          entity: "settings",
+          entityId: "notifications",
+          payload: {
+            section: "notifications",
+            before: { orderNotifyEnabled: true, orderNotifyRoles: ["owner"] },
+            after: { orderNotifyEnabled: false, orderNotifyRoles: [] },
+            changed: { notificationEmail: false },
+          },
+        }),
+      ],
+      1,
+    );
+    const html = renderToStaticMarkup(
+      await ListPage({ searchParams: Promise.resolve({}) }),
+    );
+    expect(html).toContain("Önceki · Yeni sipariş e-postası");
+    expect(html).toContain("+2 alan daha");
+    expect(html).not.toContain("Değişti · Bildirim adresi");
+    // The record is the section's name, linked to its tab.
+    expect(html).toContain('href="/admin/ayarlar?sekme=notifications"');
+    expect(html).toMatch(/>Bildirim<\/a>/);
+  });
+
+  it("fits the table next to the sidebar: the actor moves under the time below xl (SYS-11)", async () => {
+    const { ListPage } = await loadPages(
+      [row({ actor: "okan.berk.manavoglu.uzun@laffogato.com" })],
+      1,
+    );
+    const html = renderToStaticMarkup(
+      await ListPage({ searchParams: Promise.resolve({}) }),
+    );
+    // The Kim column only from xl; under it, the time cell carries the actor.
+    expect(html).toMatch(/<th[^>]*class="[^"]*hidden xl:table-cell[^"]*"[^>]*>Kim<\/th>/);
+    expect(html).toMatch(
+      /<span class="min-w-0 text-\[var\(--admin-text-soft\)\] xl:hidden"><span class="block truncate text-xs" title="okan\.berk\.manavoglu\.uzun@laffogato\.com">/,
+    );
+    // Ayrıntı no longer claims 14rem of a 720 px table.
+    expect(html).not.toContain("min-w-[14rem]");
+  });
+
+  it("says what the log is in plain words, under the sidebar's names", async () => {
+    const { ListPage } = await loadPages([], 0);
+    const html = renderToStaticMarkup(
+      await ListPage({ searchParams: Promise.resolve({}) }),
+    );
+    expect(html).toContain(">Sistem<");
+    expect(html).toContain(">Olay kaydı</h1>");
+    expect(html).not.toMatch(/mutasyon/i);
+    expect(html).not.toContain(">Denetim<");
+    expect(html).toContain("Henüz olay yok.");
+    // Nothing to export: no CSV link.
+    expect(html).not.toContain("/admin/olay-kaydi/csv");
+  });
+
+  it("gives a page past the end a way back", async () => {
+    const { ListPage } = await loadPages([], 30);
+    const html = renderToStaticMarkup(
+      await ListPage({ searchParams: Promise.resolve({ sayfa: "9" }) }),
+    );
+    expect(html).toContain("Bu sayfada olay yok.");
+    expect(html).toContain('href="/admin/olay-kaydi"');
+  });
+});
+
+describe("the event's own page", () => {
+  it("shows every field unclipped, the raw record and the links", async () => {
+    const note = `${"uzun ".repeat(100)}son`;
+    const { EventPage, got } = await loadPages(
+      [],
+      0,
+      row({
+        id: "aud-0000077",
+        actor: "system",
+        action: "transition",
+        entity: "order",
+        entityId: "ord-10023",
+        payload: { transition: "cancel", to: "cancelled", reason: note },
+        createdAt: "2026-10-16T21:30:05.000Z",
+      }),
+    );
+    const html = renderToStaticMarkup(
+      await EventPage({ params: Promise.resolve({ id: "aud-0000077" }) }),
+    );
+    expect(got).toHaveBeenCalledWith("aud-0000077");
+    expect(html).toContain("17 Eki 2026 00:30:05");
+    expect(html).toContain("Sistem");
+    expect(html).toContain("Durum geçişi · Sipariş");
+    expect(html).toContain('href="/admin/siparisler/ord-10023"');
+    expect(html).toContain(
+      'href="/admin/olay-kaydi?entity=order&amp;entityId=ord-10023"',
+    );
+    expect(html).toContain("Yeni durum");
+    expect(html).toContain("İptal edildi");
+    // The list clips at 300 characters; this page does not.
+    expect(html).toContain(note);
+    expect(html).toContain("Ham kayıt (JSON)");
+    expect(html).toContain("&quot;transition&quot;: &quot;cancel&quot;");
+  });
+
+  it("answers 404 for an unknown or malformed id, without a read for the latter", async () => {
+    const { EventPage, got } = await loadPages([], 0, null);
+    await expect(
+      EventPage({ params: Promise.resolve({ id: "aud-0404" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(got).toHaveBeenCalledTimes(1);
+    await expect(
+      EventPage({ params: Promise.resolve({ id: "../etc" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(got).toHaveBeenCalledTimes(1);
   });
 });

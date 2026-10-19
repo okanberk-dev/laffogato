@@ -5,7 +5,8 @@ import type { AdminOrder } from "@/lib/admin/store";
 /**
  * "CSV indir" on the order list: the same parser and query as the page,
  * every page of it, Excel-friendly, formula-safe, behind the session and
- * the role (a route handler is not behind requireRole).
+ * the role (a route handler is not behind requireRole). Every file that
+ * leaves writes an `export` row to Olay kaydı (admin audit ORD-15).
  */
 
 const session = vi.hoisted(() => ({ value: null as null | { email: string; role: string } }));
@@ -22,6 +23,8 @@ const couponSourcesForOrders = vi.hoisted(() =>
   vi.fn(async (_orders: unknown) => new Map<number, string>()),
 );
 vi.mock("@/lib/customer/coupons", () => ({ couponSourcesForOrders }));
+const safeAudit = vi.hoisted(() => vi.fn(async (_input: unknown) => true));
+vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
 
 const { csvCell, ordersCsv, ORDER_CSV_HEADER } = await import("@/lib/admin/order-csv");
 
@@ -146,6 +149,8 @@ describe("CSV export", () => {
     session.value = null;
     listOrdersFiltered.mockReset();
     couponSourcesForOrders.mockClear();
+    safeAudit.mockReset();
+    safeAudit.mockResolvedValue(true);
   });
 
   it("checks the session and the role itself (a route handler is not behind requireRole)", async () => {
@@ -159,6 +164,8 @@ describe("CSV export", () => {
     session.value = { email: "vardiya@laffogato.net", role: "staff" };
     expect((await GET(req)).status).toBe(403);
     expect(listOrdersFiltered).not.toHaveBeenCalled();
+    // A refused request exported nothing, so it logs no export.
+    expect(safeAudit).not.toHaveBeenCalled();
   });
 
   it("exports the filtered list, every page of it", async () => {
@@ -183,8 +190,44 @@ describe("CSV export", () => {
       query: { statuses: ["paid"], search: { pattern: "%eda%" } },
     });
   });
-});
 
+  it("writes an export row: who, which filters, how many rows (ORD-15)", async () => {
+    session.value = { email: "patron@laffogato.net", role: "owner" };
+    listOrdersFiltered.mockResolvedValueOnce({
+      orders: [order(), order({ id: "ord-2", orderNo: 10024 })],
+      total: 2,
+    });
+    const { GET } = await import("@/app/admin/siparisler/csv/route");
+    const res = await GET(
+      new Request("https://laffogato.net/admin/siparisler/csv?durum=acik&kanal=web&q=eda"),
+    );
+    expect(res.status).toBe(200);
+    expect(safeAudit).toHaveBeenCalledTimes(1);
+    expect(safeAudit).toHaveBeenCalledWith({
+      action: "export",
+      entity: "order",
+      actor: "patron@laffogato.net",
+      payload: { filters: { q: "eda", kanal: "web" }, tab: "acik", rows: 2 },
+    });
+    // The row is a record of the file, not a change to it: header + 2.
+    const body = await res.text();
+    expect(body.trim().split("\r\n")).toHaveLength(3);
+  });
+
+  it("still sends the file when the audit row cannot be written", async () => {
+    session.value = { email: "a@b.c", role: "manager" };
+    safeAudit.mockResolvedValueOnce(false);
+    listOrdersFiltered.mockResolvedValueOnce({ orders: [order()], total: 1 });
+    const { GET } = await import("@/app/admin/siparisler/csv/route");
+    const res = await GET(new Request("https://laffogato.net/admin/siparisler/csv"));
+    expect(res.status).toBe(200);
+    expect(safeAudit.mock.calls[0]?.[0]).toMatchObject({
+      payload: { filters: {}, rows: 1 },
+    });
+    expect(safeAudit.mock.calls[0]?.[0]).not.toHaveProperty("payload.tab");
+    expect((await res.text()).trim().split("\r\n")).toHaveLength(2);
+  });
+});
 
 describe("CSV export: the coupon behind each order reaches the KDV columns", () => {
   beforeEach(() => {

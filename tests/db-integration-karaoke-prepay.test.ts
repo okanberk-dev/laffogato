@@ -1379,34 +1379,38 @@ maybe("karaoke prepayment (real Postgres)", () => {
         await import("@/lib/admin/karaoke-audit");
       const tag = `t${Date.now()}`;
       const ids = [`krk-9${tag.slice(-6)}1`, `krk-9${tag.slice(-6)}2`];
+      // Stamped more than ten years back: audit_logs only lets a row that
+      // old be deleted (20261019170000_audit_logs_append_only.sql), and the
+      // test removes its rows at the end. The reads do not look at the date
+      // beyond its order.
       const rows = [
         [
           `aud-${tag}-1`,
           "transition",
           ids[0],
           { status: "cancelled", paymentStatus: "expired", by: "staff" },
-          "2026-10-17T10:00:00.000Z",
+          "2010-10-17T10:00:00.000Z",
         ],
         [
           `aud-${tag}-2`,
           "transition",
           ids[1],
           { status: "cancelled", paymentStatus: "expired", by: "member" },
-          "2026-10-17T10:01:00.000Z",
+          "2010-10-17T10:01:00.000Z",
         ],
         [
           `aud-${tag}-3`,
           "update",
           ids[0],
           { event: "cancel_refund_unknown" },
-          "2026-10-17T10:02:00.000Z",
+          "2010-10-17T10:02:00.000Z",
         ],
         [
           `aud-${tag}-4`,
           "update",
           ids[1],
           { event: "hold_released_payment_unknown" },
-          "2026-10-17T10:03:00.000Z",
+          "2010-10-17T10:03:00.000Z",
         ],
       ] as const;
       for (const [id, action, entityId, payload, at] of rows) {
