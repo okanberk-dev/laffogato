@@ -248,6 +248,27 @@ describe("a write whose reply was lost still expires its tags", () => {
   });
 });
 
+describe("writes the hook never sees", () => {
+  it("the database docs name each one and purge every tag", () => {
+    const doc = readFileSync("docs/DATABASE.md", "utf8");
+    const purge = /vercel cache dangerously-delete --tag (\S+) --yes/.exec(doc);
+    expect(purge).not.toBeNull();
+    // A fifth tag must reach the operator's command too.
+    expect(purge![1].split(",").sort()).toEqual(
+      [...tags.ALL_CACHE_TAGS].sort(),
+    );
+    for (const way of [
+      "scripts/*.mjs",
+      "npm run dev",
+      "Instant Rollback",
+      "Undo Rollback",
+      "ilk deploy",
+    ]) {
+      expect(doc).toContain(way);
+    }
+  });
+});
+
 describe("getDb wires the hook", () => {
   it("index.ts hands every write to tagsForWrite and expireTags", () => {
     const src = readFileSync("src/lib/db/index.ts", "utf8");

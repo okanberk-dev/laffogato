@@ -25,7 +25,12 @@ import type { CacheTag } from "./tags";
  *
  * The key names the deployment and the newest migration: a deploy, or a
  * migration that reshapes a row, starts from an empty cache rather than
- * reading entries an older build wrote.
+ * reading entries an older build wrote. A write from code without the hook
+ * expires nothing: the Neon console, scripts/*.mjs, `npm run dev` on the
+ * production database, a deployment from before this cache serving after
+ * an Instant Rollback (its writes never reach the entries an "Undo
+ * Rollback" brings back). docs/DATABASE.md "Etiket düşürmeyen yazmalar"
+ * names them and the command that purges all four tags.
  *
  * Only for presentation. Prices, stock, whether something may be ordered,
  * who is signed in: never from here (CLAUDE.md "Veritabanı Kesintisinde

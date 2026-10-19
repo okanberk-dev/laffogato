@@ -108,10 +108,29 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
    her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.
    Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
-   Veri katmanının dışından yapılan yazma (Neon konsolunda elle SQL,
-   `scripts/*.mjs`) etiket düşürmez: ardından panelden bir kayıt yap, yeniden
-   deploy et ya da geçici olarak `LAF_DATA_CACHE=off` kullan; aksi halde
-   eski içerik en çok 24 saat görünür.
+
+   **Etiket düşürmeyen yazmalar.** Bu kancayı taşımayan bir koddan gelen her
+   yazma: (a) Neon konsolunda elle SQL ve `scripts/*.mjs`; (b) production
+   `DATABASE_URL`'iyle çalışan `npm run dev` ya da `vercel dev` (yerel
+   sunucu yalnız kendi önbelleğini düşürür); (c) Instant Rollback: geri
+   dönülen deployment'ta yapılan kayıtlar "Undo Rollback" ile dönen
+   deployment'ın kayıtlarını düşürmeyebilir, bu değişiklikten önceki bir
+   deployment hiç düşürmez; (d) bu değişikliğin ilk deploy'unda, promote
+   anında eski deployment'ta süren istekler (en uzunu 300 sn: kampanya
+   gönderimi, CSV içe aktarma; ödeme dönüşü, stok iadesi). Panelden yapılan
+   bir kayıt yalnız kendi etiketini düşürür. Bunlardan sonra (her rollback
+   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de) dört
+   etiketi elle düşür:
+
+   ```bash
+   vercel cache dangerously-delete --tag pub:catalog,pub:site,live:orders,live:karaoke --yes
+   ```
+
+   `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da
+   yeter (yeni deployment boş önbellekle başlar); `LAF_DATA_CACHE=off` da
+   ancak yeni bir deploy'la devreye girer. Aksi halde eski fiyat ve stok
+   24 saat, ardından bir istek daha görünür; veritabanı kapalıysa
+   yenilenemeyen kayıt kapalı kaldığı sürece görünür.
 3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
    (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
    `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
