@@ -347,7 +347,6 @@ export function DayCloseSheet({
           <Figures
             rows={[
               { label: "Verilen damga", value: stamps.given },
-              { label: "İşlem", value: stamps.operations },
               stamps.corrected > 0 && {
                 label: "Düzeltme",
                 value: `−${stamps.corrected}`,

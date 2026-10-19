@@ -112,10 +112,13 @@ export interface DayCloseKaraoke {
 }
 
 export interface DayCloseStamps {
-  /** Stamps given at the till (and on a member's page), the day's sum. */
+  /**
+   * Stamps given at the till (and on a member's page), the day's sum. No
+   * count of visits beside it: the till writes one ledger row per stamp
+   * (`addCounterStamp`, delta 1, called once per stamp of a go), so a
+   * count of rows is this same figure again, never the number of goes.
+   */
   given: number;
-  /** In how many goes. */
-  operations: number;
   /** Taken back with "−1 düzeltme". */
   corrected: number;
 }
@@ -281,12 +284,11 @@ export function dayCloseSummary(
     }
   }
 
-  const stamps: DayCloseStamps = { given: 0, operations: 0, corrected: 0 };
+  const stamps: DayCloseStamps = { given: 0, corrected: 0 };
   for (const s of rows.stamps) {
     if (!inIstanbulDay(s.createdAt, day)) continue;
     if (s.kind === "earn" && s.source === "counter") {
       stamps.given += s.delta;
-      stamps.operations += 1;
     } else if (s.kind === "reversal" && s.source === "admin" && !s.orderId) {
       // reverseCounterStamp: −1, by the panel, tied to no order.
       stamps.corrected += -s.delta;

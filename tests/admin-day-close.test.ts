@@ -291,12 +291,20 @@ function busyDay(): Rows {
         orderId: "",
         createdAt: "2026-10-19T09:00:00.000Z",
       },
+      // One go of two stamps: the till writes a row per stamp.
       {
         kind: "earn",
-        delta: 2,
+        delta: 1,
         source: "counter",
         orderId: "",
         createdAt: "2026-10-19T10:00:00.000Z",
+      },
+      {
+        kind: "earn",
+        delta: 1,
+        source: "counter",
+        orderId: "",
+        createdAt: "2026-10-19T10:00:00.040Z",
       },
       {
         kind: "earn",
@@ -533,7 +541,34 @@ describe("the figures", () => {
 
   it("count the till's stamps and its corrections, not order stamps", () => {
     const sheet = dayClose.dayCloseSummary(sheetRows(), DAY, AT_2230);
-    expect(sheet.stamps).toEqual({ given: 3, operations: 2, corrected: 1 });
+    expect(sheet.stamps).toEqual({ given: 3, corrected: 1 });
+  });
+
+  it("give no count of till visits: a row is a stamp, not a go", () => {
+    // The till gives N stamps as N calls of addCounterStamp, each a row of
+    // delta 1, so counting rows only repeats "Verilen damga" (it read
+    // "İşlem 3" for one customer's three stamps).
+    const loyalty = readFileSync("src/lib/mobile/loyalty.ts", "utf8");
+    const writer = loyalty.slice(
+      loyalty.indexOf("export async function addCounterStamp"),
+    );
+    expect(writer.slice(0, writer.indexOf("insert(row)"))).toMatch(
+      /kind: "earn",\s+delta: 1,\s+source: "counter"/,
+    );
+    expect(readFileSync("src/lib/mobile/counter.ts", "utf8")).toMatch(
+      /for \(let i = 0; i < stamps; i \+= 1\) \{\s+await addCounterStamp\(/,
+    );
+    const rows = sheetRows();
+    rows.stamps = [0, 1, 2].map((i) => ({
+      kind: "earn",
+      delta: 1,
+      source: "counter",
+      orderId: "",
+      createdAt: `2026-10-19T09:00:00.00${i}Z`,
+    }));
+    const sheet = dayClose.dayCloseSummary(rows, DAY, AT_2230);
+    expect(sheet.stamps).toEqual({ given: 3, corrected: 0 });
+    expect(Object.keys(sheet.stamps)).toEqual(["given", "corrected"]);
   });
 
   it("name what went out of stock and whether it is still out", () => {
@@ -642,6 +677,8 @@ describe("who opens it", () => {
       "Bu sayfa iç kullanım içindir, mali belge değildir.",
     );
     expect(sheet).toContain("break-inside-avoid");
+    expect(sheet).toContain(">Verilen damga</dt>");
+    expect(sheet).not.toContain(">İşlem</dt>");
     expect(html).not.toMatch(/Ayşe|ayse@ornek\.com/);
     // Today: no "Bugün" or "Sonraki gün" link, only the day before.
     expect(html).toContain(`href="${DAY_CLOSE_PATH}?gun=2026-10-18"`);
