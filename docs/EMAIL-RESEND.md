@@ -230,7 +230,7 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi - şablonlar
 
-Sitenin gönderdiği yirmi dört mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği yirmi beş mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
@@ -244,7 +244,7 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-Yirmi dört şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi beş şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -256,7 +256,8 @@ Yirmi dört şablon - her satırda **tetikleyici · izin sınıfı · idempotenc
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
 | `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
-| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı |
+| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
+| `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor: rezervasyon iptal edilmez (`notifyLateCancelRequest`) · kilit yok, her panel kaydı bir istek |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
 | `hesap-silme-talebi`                   | işlemsel          | üye `/uye/hesap/sil`'den silme talebi gönderdi (`requestAccountDeletionAction`) · yalnız talep **açıldığında**, `account-deletion-<üye>-<talep anı>-member` |
 | `hesap-silindi`                        | işlemsel          | ekip panelden "Hesabı sil" ile hesabı kapattı (`closeCustomerAccountAction`), kapanmadan önceki adrese · `account-deletion-<üye>-<talep anı>-closed`; giriş kimliği kaldıysa "kapatıldı" der |
@@ -754,6 +755,24 @@ da pay borçlu ve ekip elle iade edecek (`KARAOKE_KISMI_IADE`: tutar, "kartına
 iade edilir", tarih sözü yok; ekip "Elle iade edildi" deyince ikinci mail
 gider). Payı borçlu iptalde ekibe `sendKaraokeMoneyAlertEmail` ile "Geç iptal:
 kısmi iade bekliyor" gider (`late-share-<ref>`).
+
+**Personel iptalinin nedeni (19 Eki 2026, ASK-OTH-3 (c), ASK-Y3-4 (c)).**
+Ödenmiş rezervasyonu panelden iptal eden kişi nedeni sabit listeden seçer
+(`src/lib/mobile/karaoke-cancel-cause.ts`); yazdığı not yalnız denetim
+kaydında kalır, maile hiçbir alan taşımaz. `karaoke-iptal` açılışı nedene
+göre değişir: işletme nedeni (`ariza`, `kapanis`, `mucbir`, `diger`)
+`KARAOKE_ISLETME` ("Rezervasyonunu biz iptal etmek zorunda kaldık:
+[KARAOKE_NEDEN]. Özür dileriz.") ve `KARAOKE_TAM_IADE` ("... tutarın tamamını
+kartına iade ettik"); bu mail MSY m.16/4'ün yazılı bildirimidir ve iptal
+anında çıkar. Misafirin telefonla ya da e-postayla ilettiği istek
+(`misafir`) `KARAOKE_ISTEK` ("İsteğin üzerine ..."); saatin başka misafire
+verilmesi (`yeniden`) `KARAOKE_YENIDEN`. Üyenin kendi iptali bugünkü
+sözleriyle kalır (`KARAOKE_IPTAL_GENEL`). Bir açılış ve en çok bir para
+satırı (`karaokeCancellationFlags`). Misafirin geç isteğine kural iade
+vermiyorsa rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:
+rezervasyon onun adına durur, kodunu devredebilir, saat başkasına verilirse
+tamamı iade edilir. Onay maili son ücretsiz iptal anını yazar
+(`[KARAOKE_SON_IPTAL]`, karaoke koşulları §7).
 
 ### Karaoke - yeni talep bildirimi (operatöre)
 

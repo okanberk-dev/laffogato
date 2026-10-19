@@ -27,6 +27,7 @@ const h = vi.hoisted(() => ({
   pos: "ok" as "ok" | "refused" | "timeout",
   refunds: [] as Array<{ ref: string; amountMinor: number }>,
   cancellations: [] as Array<Record<string, unknown>>,
+  lateRequests: [] as Array<Record<string, unknown>>,
   alerts: [] as Array<Record<string, unknown>>,
   audits: [] as Array<Record<string, unknown>>,
   seq: 100,
@@ -222,6 +223,10 @@ vi.mock("@/lib/email/send", () => ({
     return true;
   }),
   sendKaraokeConfirmationEmail: vi.fn(async () => true),
+  sendKaraokeLateRequestEmail: vi.fn(async (k: Record<string, unknown>) => {
+    h.lateRequests.push(k);
+    return true;
+  }),
   sendKaraokeMoneyAlertEmail: vi.fn(async (a: Record<string, unknown>) => {
     h.alerts.push(a);
     return { ok: true };
@@ -355,6 +360,7 @@ beforeEach(() => {
   h.pos = "ok";
   h.refunds.length = 0;
   h.cancellations.length = 0;
+  h.lateRequests.length = 0;
   h.alerts.length = 0;
   h.audits.length = 0;
 });
@@ -865,6 +871,9 @@ describe("the member's confirmation", () => {
         cancellation: {
           rules: shown,
           venueUntil: "rezervasyon saatinden önce",
+          // The booking's last free moment, on the köşk's clock (karaoke
+          // terms §7: the confirmation names it, 19 Eki 2026).
+          freeUntil: "29 Ekim 2026, 20:00",
         },
       }),
     );
@@ -888,5 +897,176 @@ describe("the köşk cancels", () => {
     expect(h.cancellations).toEqual([
       expect.objectContaining({ refundedMinor: 200_000, refundIsShare: false }),
     ]);
+  });
+});
+
+describe("the köşk cancels a paid booking, with its reason (ASK-OTH-3 (c), ASK-Y3-4 (c))", () => {
+  const staff = (extra: Record<string, unknown> = {}) => ({
+    kind: "staff" as const,
+    actor: "yonetici@kosk",
+    canRefund: true,
+    reason: "Projektör yanmış, iç not",
+    ...extra,
+  });
+
+  it("a business reason: the whole payment back, the code in the audit row and the mail, the note in neither mail", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "ariza" }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(h.cancellations).toHaveLength(1);
+    expect(h.cancellations[0]).toMatchObject({
+      cancelCause: "ariza",
+      refundedMinor: 200_000,
+    });
+    // The typed note stays internal (karar: "serbest not e-postaya gitmez").
+    expect(JSON.stringify(h.cancellations[0])).not.toContain("Projektör");
+    expect(h.audits.at(-1)?.payload).toMatchObject({
+      cause: "ariza",
+      reason: "Projektör yanmış, iç not",
+      paymentStatus: "refunded",
+    });
+  });
+
+  it("a guest's request inside the free window: everything back, 'isteğin üzerine'", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(3) }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toHaveLength(1);
+    expect(h.cancellations[0]).toMatchObject({ cancelCause: "misafir" });
+    expect(h.audits.at(-1)?.payload).toMatchObject({
+      cause: "misafir",
+      channel: "telefon",
+      requestedAt: at(3).toISOString(),
+    });
+  });
+
+  it("a call at the last free moment itself is in time (ASK-Y3-4, <=)", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(2) }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+  });
+
+  it("a late request at 0 %: not cancelled, recorded with channel and instant, the guest told it stands", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "e-posta", requestedAt: at(1.5) }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: false, kept: true });
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    expect(h.refunds).toEqual([]);
+    expect(h.cancellations).toEqual([]);
+    expect(h.lateRequests).toHaveLength(1);
+    expect(h.lateRequests[0]).toMatchObject({
+      code: "krk-00042",
+      cancellation: {
+        rules: [time.KARAOKE_REFUND_RULE, time.KARAOKE_NO_REFUND_RULE],
+      },
+    });
+    expect(JSON.stringify(h.lateRequests[0])).not.toContain("Projektör");
+    expect(h.audits.at(-1)).toMatchObject({
+      action: "transition",
+      payload: {
+        event: "late_guest_request",
+        cause: "misafir",
+        channel: "e-posta",
+        requestedAt: at(1.5).toISOString(),
+      },
+    });
+  });
+
+  it("'Yine de tamamını iade et' refunds everything, with the request's words", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt: at(1.5),
+        fullRefund: true,
+      }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(h.refunds).toEqual([{ ref: "PNK-1", amountMinor: 200_000 }]);
+    expect(h.cancellations[0]).toMatchObject({ cancelCause: "misafir" });
+    expect(h.audits.at(-1)?.payload).toMatchObject({ fullRefund: true });
+  });
+
+  it("a late request at 100 %: everything back, as the rule says", async () => {
+    seedPaid({ freeCancelHours: 3, lateRefundPercent: 100 });
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(2) }),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+  });
+
+  it("a request once the evening began: kept, and the mail does not promise the late share", async () => {
+    seedPaid({ freeCancelHours: 3, lateRefundPercent: 100 });
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({
+        cause: "misafir",
+        channel: "telefon",
+        requestedAt: new Date(START + 10 * 60_000),
+      }),
+      { now: new Date(START + 20 * 60_000) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: false, kept: true });
+    expect(h.refunds).toEqual([]);
+    expect(row()).toMatchObject({ status: "confirmed", paymentStatus: "paid" });
+    const rules = (h.lateRequests[0] as { cancellation: { rules: string[] } })
+      .cancellation.rules;
+    expect(rules[1]).toBe(karaoke.KARAOKE_STARTED_REQUEST_RULE);
+    expect(rules[1]).not.toContain("iade edilir");
+  });
+
+  it("a late request at 1..99 % takes the D9 path: cancelled, the share owed", async () => {
+    seedPaid({ ...HALF }, 200_000);
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "misafir", channel: "telefon", requestedAt: at(10) }),
+      { now: at(9) },
+    );
+    expect(res).toMatchObject({
+      ok: true,
+      refunded: false,
+      refundOwedMinor: 100_000,
+    });
+    expect(h.refunds).toEqual([]);
+    expect(h.cancellations[0]).toMatchObject({
+      cancelCause: "misafir",
+      refundOwedMinor: 100_000,
+    });
+  });
+
+  it("the hour given to another guest: everything back, and the mail says why", async () => {
+    seedPaid();
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff({ cause: "yeniden" }),
+      { now: new Date(START + 40 * 60_000) },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: true });
+    expect(h.cancellations[0]).toMatchObject({
+      cancelCause: "yeniden",
+      refundedMinor: 200_000,
+    });
   });
 });

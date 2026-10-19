@@ -8,6 +8,7 @@ import {
   settleKaraokeRefundAction,
 } from "@/app/admin/mobil/karaoke/actions";
 import { cx } from "@/components/laffogato/cx";
+import { karaokeInstantLabel } from "@/components/laffogato/karaoke-terms";
 import {
   KARAOKE_ATTENTION,
   karaokeDetailHref,
@@ -20,8 +21,12 @@ import {
   type SearchParamsInput,
   type SortState,
 } from "@/lib/admin/list-params";
+import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
+import { needsCallHint } from "@/lib/mobile/karaoke-cancel-cause";
+import { karaokeCancelDeadline } from "@/lib/mobile/karaoke-time";
 
 import { formatTRY } from "./forms";
+import { KaraokeRefundCancel } from "./karaoke-cancel-dialog";
 import {
   ActionMenu,
   ActionMenuLink,
@@ -188,19 +193,20 @@ export function KaraokeActions({
   }
 
   if (plan.cancel?.kind === "refund") {
+    // A paid booking's cancel names its reason from a fixed list; a guest's
+    // own request also its channel and instant (karaoke-cancel-dialog.tsx).
+    // The clock is the request's: this is drawn on the server.
+    const now = new Date();
     items.push(
-      <ConfirmButton
+      <KaraokeRefundCancel
         key="cancel"
-        action={cancelReservationAction}
-        hidden={{ id: r.id, beklenen: "iade" }}
-        label="İptal et ve iade et"
-        title="İptal et ve iade et"
-        description={`${amount(view)} karta iade edilir, rezervasyon iptal olur ve müşteriye e-posta gider. İade geri alınamaz.`}
+        id={r.id}
+        amount={amount(view)}
+        freeUntil={karaokeInstantLabel(karaokeCancelDeadline(r))}
+        callHint={needsCallHint(r, now)}
+        now={toDateTimeLocalInput(now.toISOString())}
+        bookedAt={toDateTimeLocalInput(r.createdAt)}
         variant={menu ? "menuDanger" : "danger"}
-        reason={{
-          ...MONEY_REASON,
-          placeholder: "Ör. oda arızalı, müşteri istedi",
-        }}
         disabledReason={plan.cancel.disabledReason}
       />,
     );

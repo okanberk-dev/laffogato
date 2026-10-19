@@ -20,6 +20,12 @@ import {
   refundAmountOf,
 } from "@/lib/mobile/karaoke-time";
 import { sameSitePath } from "@/lib/http/same-site-path";
+import {
+  KARAOKE_CAUSE_LABEL,
+  KARAOKE_CHANNEL_LABEL,
+  type KaraokeCancelCause,
+  type KaraokeRequestChannel,
+} from "@/lib/mobile/karaoke-cancel-cause";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
 import {
@@ -885,6 +891,8 @@ const EVENT_TITLES: Record<string, string> = {
     "Hesap kapandı, iade süresi geçmiş ödenmiş rezervasyon duruyor",
   account_closed_payment_unknown:
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
+  late_guest_request:
+    "Misafir geç iptal istedi; kural iade vermiyor, rezervasyon duruyor",
 };
 
 const RETRY_OUTCOME: Record<string, { title: string; tone: AdminTone }> = {
@@ -895,6 +903,14 @@ const RETRY_OUTCOME: Record<string, { title: string; tone: AdminTone }> = {
 
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
+}
+
+/** "30 Ekim 2026 18:05" on the köşk's clock; "" if unreadable. */
+function formatDateTimeTr(iso: string): string {
+  const at = Date.parse(iso);
+  if (!Number.isFinite(at)) return "";
+  const day = new Date(at + 3 * 60 * 60_000).toISOString().slice(0, 10);
+  return `${formatReservationDate(day)} ${istanbulTimeLabel(iso)}`;
 }
 
 function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
@@ -944,8 +960,18 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
   } else {
     title = row.action;
   }
+  // A paid booking's staff cancel: its code, and for a guest's request how
+  // and when it came (karaoke-cancel-cause.ts).
+  const cause = KARAOKE_CAUSE_LABEL[str(p.cause) as KaraokeCancelCause];
+  const channel =
+    KARAOKE_CHANNEL_LABEL[str(p.channel) as KaraokeRequestChannel];
+  const asked = str(p.requestedAt) ? formatDateTimeTr(str(p.requestedAt)) : "";
   const parts = [
     amount,
+    cause ?? "",
+    channel || asked
+      ? `İstek: ${[channel, asked].filter(Boolean).join(", ")}`
+      : "",
     reason ? `Neden: ${reason}` : "",
     str(p.message),
   ].filter(Boolean);

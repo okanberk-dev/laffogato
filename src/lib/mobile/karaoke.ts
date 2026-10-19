@@ -11,6 +11,7 @@ import { raiseDbError } from "@/lib/db/health";
 import {
   sendKaraokeCancellationEmail,
   sendKaraokeConfirmationEmail,
+  sendKaraokeLateRequestEmail,
   type KaraokeEmailData,
 } from "@/lib/email/send";
 
@@ -19,6 +20,7 @@ import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
 
+import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
 import { karaokeLinkUrl } from "./karaoke-link";
 import { istanbulClock } from "./venue";
@@ -26,10 +28,13 @@ import {
   buildSlots,
   effectiveKaraokeCancelPolicy,
   isPartialRefund,
+  istanbulTimeLabel,
+  karaokeCancelDeadline,
   karaokeCancellationRules,
   karaokeCancelPolicyOf,
   karaokeDeadlineFor,
   karaokeRulesOf,
+  karaokeStartInstant,
   karaokeVenueCancelUntil,
   KARAOKE_OPEN_CAP,
   paymentDueFrom,
@@ -1003,14 +1008,27 @@ function manageUrlFor(r: KaraokeReservation): string {
   }
 }
 
-export async function notifyReservationStatus(
+/**
+ * "30 Ekim 2026, 18:00": the booking's last free-cancel moment on the köşk's
+ * clock, which the confirmation prints (karaoke terms §7, 19 Eki 2026).
+ */
+function freeUntilLabel(r: KaraokeReservation): string {
+  const at = karaokeCancelDeadline(r);
+  const ms = at.getTime();
+  if (!Number.isFinite(ms)) return "";
+  const day = new Date(ms + 3 * 60 * 60_000).toISOString().slice(0, 10);
+  return `${formatReservationDate(day)}, ${istanbulTimeLabel(at.toISOString())}`;
+}
+
+/** What a booking's mails say about it; null when it has no address. */
+function karaokeMailPayload(
   r: KaraokeReservation,
-): Promise<boolean> {
-  if (r.status !== "confirmed" && r.status !== "cancelled") return true;
+  cancelCause?: KaraokeCancelCause,
+): KaraokeEmailData | null {
   // The address the member gave on the form for exactly this, else the
   // account's.
   const to = r.contactEmail?.trim() || r.customerEmail;
-  if (!to) return false;
+  if (!to) return null;
   const money = paymentStatusOf(r);
   const paidOnline =
     money === "paid" || money === "refunding" || money === "refunded";
@@ -1031,7 +1049,10 @@ export async function notifyReservationStatus(
     cancellation: {
       rules: karaokeRulesOf(r),
       venueUntil: karaokeVenueCancelUntil(karaokeCancelPolicyOf(r)),
+      freeUntil: freeUntilLabel(r),
     },
+    // Why the köşk cancelled (the panel's code), never the note it typed.
+    ...(cancelCause ? { cancelCause } : {}),
     // What actually went back: the whole payment, or a late cancel's share.
     ...(r.status === "cancelled" && money === "refunded"
       ? { refundedMinor: refundAmountOf(r), refundIsShare: isPartialRefund(r) }
@@ -1041,17 +1062,79 @@ export async function notifyReservationStatus(
       ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }
       : {}),
   };
+  return payload;
+}
+
+/** A failed mail, logged with the address masked (KVKK). */
+function logMailFailure(r: KaraokeReservation, err: unknown): void {
+  const at = r.customerEmail.indexOf("@");
+  const masked =
+    at < 1
+      ? "***"
+      : `${r.customerEmail.slice(0, 2)}***${r.customerEmail.slice(at)}`;
+  console.error(`[karaoke] ${r.id} bildirimi gönderilemedi (${masked})`, err);
+}
+
+/**
+ * `opts.cause`: why the köşk cancelled a paid booking (the panel's code), so
+ * the cancellation opens with it (karaoke-cancel-cause.ts).
+ */
+export async function notifyReservationStatus(
+  r: KaraokeReservation,
+  opts: { cause?: KaraokeCancelCause } = {},
+): Promise<boolean> {
+  if (r.status !== "confirmed" && r.status !== "cancelled") return true;
+  const payload = karaokeMailPayload(
+    r,
+    r.status === "cancelled" ? opts.cause : undefined,
+  );
+  if (!payload) return false;
   try {
     return r.status === "confirmed"
       ? await sendKaraokeConfirmationEmail(payload)
       : await sendKaraokeCancellationEmail(payload);
   } catch (err) {
-    const at = r.customerEmail.indexOf("@");
-    const masked =
-      at < 1
-        ? "***"
-        : `${r.customerEmail.slice(0, 2)}***${r.customerEmail.slice(at)}`;
-    console.error(`[karaoke] ${r.id} bildirimi gönderilemedi (${masked})`, err);
+    logMailFailure(r, err);
+    return false;
+  }
+}
+
+/**
+ * The late request's middle sentence when it came once the evening had
+ * begun: the booking's own late sentence is about cancels "rezervasyon
+ * saatine H saatten az kala" and, for a share over 0, would promise a refund
+ * the started evening no longer gives (karaoke terms §7: the late share is
+ * for cancels before the start).
+ */
+export const KARAOKE_STARTED_REQUEST_RULE =
+  "Rezervasyon saatin gelmişti; saati gelmiş bir rezervasyonda ücret iadesi yapılmaz.";
+
+/**
+ * A guest's late request to cancel, taken by the staff, that the booking's
+ * rule refunds nothing for (ASK-Y3-4 (c)): the booking stands, and the guest
+ * is told so and what they can still do. `requestedAt`: the instant of the
+ * call or the e-mail; one at or after the start reads the started sentence
+ * instead of the booking's late one. Same rules as above: the guards before
+ * the call (one per panel action), failures swallowed and logged.
+ */
+export async function notifyLateCancelRequest(
+  r: KaraokeReservation,
+  requestedAt: Date,
+): Promise<boolean> {
+  const payload = karaokeMailPayload(r);
+  if (!payload) return false;
+  const started =
+    requestedAt.getTime() >= karaokeStartInstant(r.date, r.startHour).getTime();
+  if (started && payload.cancellation) {
+    payload.cancellation = {
+      ...payload.cancellation,
+      rules: [payload.cancellation.rules[0], KARAOKE_STARTED_REQUEST_RULE],
+    };
+  }
+  try {
+    return await sendKaraokeLateRequestEmail(payload);
+  } catch (err) {
+    logMailFailure(r, err);
     return false;
   }
 }

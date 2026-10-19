@@ -26,6 +26,7 @@ kilitlediğine bak.
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
+| karaoke-iptal-istegi.html | işlemsel          | Karaoke iptal isteğini aldık                |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
 | hesap-silme-talebi.html   | işlemsel          | L'Affogato - hesap silme talebin alındı     |
 | hesap-silindi.html        | işlemsel          | L'Affogato - hesabın silindi / kapatıldı    |

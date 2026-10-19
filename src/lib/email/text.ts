@@ -315,6 +315,7 @@ https://www.google.com/maps/search/?api=1&query=40.8165716,29.3032493
 
 [KARAOKE_IADE_KURALI]
 [KARAOKE_GEC_KURALI]
+Son ücretsiz iptal: [KARAOKE_SON_IPTAL].
 
 Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
 
@@ -334,15 +335,22 @@ Rezervasyon sayfan:
 ${SIGNATURE}`,
 
   // The cancellation twin. Same shape, same greeting without a name: the
-  // member is told what changed, what happened to their money (it went back:
-  // KARAOKE_IADE; a late cancel's share went back, or is owed and will:
+  // member is told who cancelled and why (their own cancel: KARAOKE_IPTAL_
+  // GENEL; the köşk's, with its reason and an apology: KARAOKE_ISLETME;
+  // their request taken by phone or e-mail: KARAOKE_ISTEK; the hour given
+  // to another guest: KARAOKE_YENIDEN), what happened to their money (it
+  // went back: KARAOKE_IADE, or "iade ettik" when we cancelled:
+  // KARAOKE_TAM_IADE; a late cancel's share went back, or is owed and will:
   // KARAOKE_KISMI_IADE_EDILDI / KARAOKE_KISMI_IADE; none was taken:
   // KARAOKE_ODEMESIZ) and how to get another evening - nothing to confirm,
-  // nothing to click.
+  // nothing to click. send.ts sets one opening and at most one money line.
   "karaoke-iptal": `Merhaba,
 
-Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
-
+<!--IF:KARAOKE_IPTAL_GENEL-->Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
+<!--/IF:KARAOKE_IPTAL_GENEL--><!--IF:KARAOKE_ISLETME-->Rezervasyonunu biz iptal etmek zorunda kaldık: [KARAOKE_NEDEN]. Özür dileriz.
+<!--/IF:KARAOKE_ISLETME--><!--IF:KARAOKE_ISTEK-->İsteğin üzerine karaoke rezervasyonunu iptal ettik.
+<!--/IF:KARAOKE_ISTEK--><!--IF:KARAOKE_YENIDEN-->Karaoke rezervasyonun iptal edildi.
+<!--/IF:KARAOKE_YENIDEN-->
 İptal edilen rezervasyon: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
 Saat: [KARAOKE_SAAT]
@@ -354,7 +362,17 @@ göre birkaç iş günü sürebilir.
 Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_KISMI_IADE_EDILDI-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edildi;
+<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_TAM_IADE-->Ödediğin [KARAOKE_TUTAR] tutarın tamamını kartına iade ettik; yansıması bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_TAM_IADE--><!--IF:KARAOKE_YENIDEN-->Rezervasyon saatini başka bir misafire verdiğimiz için ödediğin [KARAOKE_TUTAR] tutarın tamamını kartına iade ettik; yansıması bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_YENIDEN--><!--IF:KARAOKE_KISMI_IADE_EDILDI-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edildi;
 yansıması bankana göre birkaç iş günü sürebilir.
 
 Son durum, rezervasyon sayfanda:
@@ -370,6 +388,26 @@ Son durum, rezervasyon sayfanda:
 <!--/IF:KARAOKE_KISMI_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
 
 <!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
+Bir yanlışlık varsa bizi ara: +90 536 429 09 19
+
+${SIGNATURE}`,
+
+  // A guest's late request, taken by phone or e-mail, that the booking's
+  // rule refunds nothing for (ASK-Y3-4 (c)): the booking stands, and this
+  // says what they can still do (karaoke terms §7). The late sentence is the
+  // booking's own (KARAOKE_GEC_KURALI).
+  "karaoke-iptal-istegi": `Merhaba,
+
+İptal isteğini aldık. [KARAOKE_GEC_KURALI] Bu yüzden rezervasyonun senin adına duruyor; gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin, odayı o kullanır. Kodunu kimseye vermeyeceksen bu e-postayı yanıtlayarak bize yaz; odayı o saat için başka bir misafire verirsek ödediğin tutarın tamamını kartına iade ederiz.
+
+Rezervasyon kodu: [KARAOKE_KOD]
+Tarih: [KARAOKE_TARIH]
+Saat: [KARAOKE_SAAT]
+Kişi: [KARAOKE_KISI]
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]
+
 Bir yanlışlık varsa bizi ara: +90 536 429 09 19
 
 ${SIGNATURE}`,

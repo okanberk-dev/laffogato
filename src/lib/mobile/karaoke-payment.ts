@@ -25,6 +25,7 @@ import {
   getReservation,
   karaokeHoldKey,
   listMine,
+  notifyLateCancelRequest,
   notifyReservationStatus,
   setReservationStatus,
   type CreateReservationResult,
@@ -46,6 +47,10 @@ import {
   type KaraokeReservation,
   type ReservationContact,
 } from "./karaoke-core";
+import type {
+  KaraokeCancelCause,
+  KaraokeRequestChannel,
+} from "./karaoke-cancel-cause";
 import { verifyKaraokeLink } from "./karaoke-link";
 import { karaokeEndInstant } from "./karaoke-time";
 import { notifyOperatorOfReservation } from "./karaoke-notify";
@@ -1332,9 +1337,28 @@ export type KaraokeCanceller =
   /**
    * The köşk (a business cancellation, MSY m.16/4): any time. Sending money
    * back needs the panel's `refunds` permission. `reason` is what the staff
-   * member wrote in the panel; it goes into the audit row.
+   * member wrote in the panel; it goes into the audit row, never the mail.
+   *
+   * `cause` (a paid booking, karaoke-cancel-cause.ts) says why, and the
+   * guest's mail opens with it. `misafir` is the guest's own request taken
+   * by phone or e-mail: the booking's rule is judged at `requestedAt`, the
+   * moment of the call or the e-mail (karaoke terms §7), and refunds what
+   * it gives then - inside the free window all of it, past it the late
+   * share, and a late share of 0 leaves the booking standing (the request is
+   * recorded, the guest told; ASK-Y3-4 (c)). `fullRefund`: a person with the
+   * refund right refunds everything anyway ("Yine de tamamını iade et").
+   * Every other cause refunds everything.
    */
-  | { kind: "staff"; actor: string; canRefund: boolean; reason?: string }
+  | {
+      kind: "staff";
+      actor: string;
+      canRefund: boolean;
+      reason?: string;
+      cause?: KaraokeCancelCause;
+      channel?: KaraokeRequestChannel;
+      requestedAt?: Date;
+      fullRefund?: boolean;
+    }
   /**
    * An account that is closing: every future booking, refunded in full.
    * `windowAt`: when the member asked us to close it (the Site's deletion
@@ -1375,6 +1399,12 @@ export type CancelKaraokeResult =
        * refunds it in PayNkolay's panel (`refunded` is false).
        */
       refundOwedMinor?: number;
+      /**
+       * NOT cancelled: a guest's late request the booking's rule refunds
+       * nothing for (`cause: "misafir"`). It was recorded and the guest
+       * told that the booking stands in their name.
+       */
+      kept?: true;
     }
   | {
       ok: false;
@@ -1432,25 +1462,44 @@ export async function cancelKaraokeReservation(
   if (r.status === "cancelled") {
     return { ok: false, reason: "not_cancellable", reservation: r };
   }
+  // A guest's request the staff took by phone or e-mail (ASK-Y3-4 (c)):
+  // the booking's own rule applies, judged at the request. Only on a paid
+  // booking (nothing to refund otherwise), and not when a person refunds
+  // everything anyway.
+  const guestRequest =
+    by.kind === "staff" &&
+    by.cause === "misafir" &&
+    !by.fullRefund &&
+    paymentStatusOf(r) === "paid";
   // The booking's own rule (its snapshot) binds every self-service
   // cancellation - for money, account closure too: closing an account must
-  // not become a way to refund an evening already sung (or no-showed). Only
-  // the köşk overrides it, and the köşk always refunds in full (MSY m.16/4,
-  // TBK m.136/2): the late share is never applied to a staff cancel.
+  // not become a way to refund an evening already sung (or no-showed). The
+  // köşk's own cancel overrides it, and the köşk always refunds in full
+  // (MSY m.16/4, TBK m.136/2): the late share is never applied to a staff
+  // cancel, except one that only passes on the guest's request.
   const lateMatters =
     by.kind === "member" ||
     by.kind === "link" ||
+    guestRequest ||
     (by.kind === "account" && paymentStatusOf(r) === "paid");
   // A closure the member asked us for is judged at the request (a booking
   // made after it, at the closure: the request did not cover it): the
   // team's delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2).
-  // Only the decision moves back; the refund and every stamp are now.
+  // A guest's request taken by the staff, at the call or the e-mail. Only
+  // the decision moves back; the refund and every stamp are now.
   const judgedAt =
-    by.kind === "account" ? closureJudgedAt(r, by.windowAt, now) : now;
+    by.kind === "account"
+      ? closureJudgedAt(r, by.windowAt, now)
+      : guestRequest && by.requestedAt
+        ? by.requestedAt
+        : now;
   // The share of the payment this cancel refunds: null = all of it.
   let lateShare: number | null = null;
   if (lateMatters) {
     const terms = karaokeSelfCancelTerms(r, judgedAt);
+    if (terms.kind === "refused" && guestRequest) {
+      return keepLateGuestRequest(r, by, judgedAt);
+    }
     if (terms.kind === "refused") {
       return {
         ok: false,
@@ -1472,7 +1521,9 @@ export async function cancelKaraokeReservation(
         : by.kind === "link"
           ? "guest-link"
           : "account-closure";
-  const why = by.kind === "staff" && by.reason ? { reason: by.reason } : {};
+  const why = by.kind === "staff" ? staffWhy(by) : {};
+  // The guest's mail names why the köşk cancelled (never the typed note).
+  const cause = by.kind === "staff" ? by.cause : undefined;
 
   if (paymentStatusOf(r) === "pending") {
     const verdict = await askPosAboutHold(r, now, lookupProvider());
@@ -1566,6 +1617,8 @@ export async function cancelKaraokeReservation(
       actor,
       by: by.kind,
       now,
+      cause,
+      why,
     });
   }
 
@@ -1621,7 +1674,7 @@ export async function cancelKaraokeReservation(
       refundedAt: iso,
       updatedAt: iso,
     };
-    const notified = await notifyReservationStatus(cancelled);
+    const notified = await notifyReservationStatus(cancelled, { cause });
     await auditStaff(cancelled, actor, "refund", {
       status: "cancelled",
       paymentStatus: "refunded",
@@ -1679,7 +1732,13 @@ async function cancelWithShareOwed(
   r: KaraokeReservation,
   owedMinor: number,
   percent: number,
-  ctx: { actor: string; by: KaraokeCanceller["kind"]; now: Date },
+  ctx: {
+    actor: string;
+    by: KaraokeCanceller["kind"];
+    now: Date;
+    cause?: KaraokeCancelCause;
+    why?: Record<string, unknown>;
+  },
 ): Promise<CancelKaraokeResult> {
   const iso = ctx.now.toISOString();
   const moved = await moveRow(
@@ -1701,7 +1760,9 @@ async function cancelWithShareOwed(
     refundMinor: owedMinor,
     updatedAt: iso,
   };
-  const notified = await notifyReservationStatus(cancelled);
+  const notified = await notifyReservationStatus(cancelled, {
+    cause: ctx.cause,
+  });
   const slot = readableSlot(r);
   await alertMoney(
     cancelled,
@@ -1732,6 +1793,7 @@ async function cancelWithShareOwed(
     lateRefundPercent: percent,
     providerRef: r.paymentRef ?? "",
     by: ctx.by,
+    ...(ctx.why ?? {}),
   });
   return {
     ok: true,
@@ -1740,6 +1802,49 @@ async function cancelWithShareOwed(
     notified,
     refundOwedMinor: owedMinor,
   };
+}
+
+/**
+ * What a staff cancel writes into its audit rows: the typed note, the
+ * code, and for a guest's request the channel and the instant it came in
+ * (MSY m.20/1: the record of each step is kept; ASK-Y3-4 (c)).
+ */
+function staffWhy(
+  by: Extract<KaraokeCanceller, { kind: "staff" }>,
+): Record<string, unknown> {
+  return {
+    ...(by.reason ? { reason: by.reason } : {}),
+    ...(by.cause ? { cause: by.cause } : {}),
+    ...(by.cause === "misafir" && by.channel ? { channel: by.channel } : {}),
+    ...(by.cause === "misafir" && by.requestedAt
+      ? { requestedAt: by.requestedAt.toISOString() }
+      : {}),
+    ...(by.fullRefund ? { fullRefund: true } : {}),
+  };
+}
+
+/**
+ * A guest asked to cancel after their free moment, by phone or e-mail, and
+ * the booking's rule refunds nothing then (a late share of 0, or the start
+ * had come): nothing changes on the booking - it stands in their name and
+ * they may hand the code on (karaoke terms §7). The request is recorded
+ * (`late_guest_request`, with the channel and the instant) and the guest is
+ * told. No money moves; a person with the refund right can still refund
+ * everything ("Yine de tamamını iade et", `fullRefund`).
+ */
+async function keepLateGuestRequest(
+  r: KaraokeReservation,
+  by: Extract<KaraokeCanceller, { kind: "staff" }>,
+  judgedAt: Date,
+): Promise<CancelKaraokeResult> {
+  const notified = await notifyLateCancelRequest(r, judgedAt);
+  await auditStaff(r, by.actor, "transition", {
+    event: "late_guest_request",
+    by: "staff",
+    ...staffWhy(by),
+    requestedAt: judgedAt.toISOString(),
+  });
+  return { ok: true, reservation: r, refunded: false, notified, kept: true };
 }
 
 // ─── A person settles what did not settle itself ───────────────────────────

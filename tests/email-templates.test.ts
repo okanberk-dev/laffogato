@@ -73,9 +73,9 @@ function renderWith(
   });
 }
 
-describe("the twenty-four templates render", () => {
-  it("ships exactly the twenty-four designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
-    expect(NAMES).toHaveLength(24);
+describe("the twenty-five templates render", () => {
+  it("ships exactly the twenty-five designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
+    expect(NAMES).toHaveLength(25);
     // The web account deletion is a request to the team (18 Eki 2026): its
     // receipt and the "hesabın silindi" answer.
     expect(NAMES).toContain("hesap-silme-talebi");
@@ -96,6 +96,10 @@ describe("the twenty-four templates render", () => {
     // The cancellation half of the karaoke pair. Staff could cancel an
     // evening and the member only found out at the door.
     expect(NAMES).toContain("karaoke-iptal");
+    // A guest's late request taken by phone or e-mail that the booking's
+    // rule refunds nothing for: the booking stands (ASK-Y3-4 (c), 19 Eki
+    // 2026).
+    expect(NAMES).toContain("karaoke-iptal-istegi");
   });
 
   it.each(NAMES)("%s leaves no [FIELD] behind", (name) => {
@@ -191,11 +195,15 @@ describe("the twenty-four templates render", () => {
   it("karaoke's two messages ask for the same reservation fields", () => {
     // The cancellation rule is the confirmation's alone (the booking's own
     // two sentences, and until when a venue-paid booking may be cancelled,
-    // 18 Eki 2026): a cancelled booking has nothing left to cancel.
+    // 18 Eki 2026, and the last free moment, 19 Eki 2026): a cancelled
+    // booking has nothing left to cancel. Why the köşk cancelled is the
+    // cancellation's alone (ASK-OTH-3 (c)).
     const RULE_ONLY = new Set([
       "KARAOKE_IADE_KURALI",
       "KARAOKE_GEC_KURALI",
       "KARAOKE_MEKAN_SURE",
+      "KARAOKE_SON_IPTAL",
+      "KARAOKE_NEDEN",
     ]);
     const of = (name: EmailTemplateName) =>
       fieldsOf(name)
