@@ -21,6 +21,13 @@ import {
   unknownMenuTags,
 } from "@/lib/admin/menu-item-schema";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import {
+  MENU_ALLERGENS,
+  MENU_ALLERGENS_FIELD,
+  MENU_ALLERGENS_NONE,
+  MENU_ALLERGENS_SHOWN_FIELD,
+  normalizeMenuAllergens,
+} from "@/lib/menu/allergens";
 import { KDV_RATE_CHOICES, LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 const HUE_OPTIONS = [
@@ -66,6 +73,8 @@ export function MenuItemForm({
   // Words the old free-text field let in. The app never showed them, and
   // the boxes below cannot hold them: say so before the save drops them.
   const droppedTags = unknownMenuTags(tags);
+  // null: not entered yet, no box ticked; []: "Hiçbirini içermez".
+  const allergens = normalizeMenuAllergens(item?.allergens);
   const ownTaxRate =
     typeof item?.taxRatePct === "number" ? item.taxRatePct : null;
   // A stored rate the standard list does not have stays selectable.
@@ -194,6 +203,39 @@ export function MenuItemForm({
             </p>
           ) : null}
         </Field>
+
+        {/* TGK Etiketleme Yön. m.15/5: every item says which of the
+            fourteen Ek-1 groups it contains, on the menu and in the app.
+            A fieldset, not a label, so a tap on the hint toggles nothing. */}
+        <div className="grid content-start gap-1.5">
+          <Field
+            as="fieldset"
+            label="Alerjenler"
+            hint="Türk Gıda Kodeksi'nin 14 alerjen grubu. Kalemin içerdiklerini işaretle: şurup, sos, süt ve süsleme dahil, tedarikçi etiketine bakarak; köşkteki alerjen tablosuyla aynı olmalı. Hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Hiçbir kutu işaretli değilse bilgi girilmemiş sayılır ve menüde yazmaz. Sert kabuklu meyve seçersen kuruyemiş (nuts) etiketi kendiliğinden eklenir. Tarif ya da tedarikçi değişince aynı gün güncelle."
+          >
+            <input type="hidden" name={MENU_ALLERGENS_SHOWN_FIELD} value="1" />
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              {MENU_ALLERGENS.map((a) => (
+                <Checkbox
+                  key={a.key}
+                  name={MENU_ALLERGENS_FIELD}
+                  value={a.key}
+                  label={a.panel}
+                  defaultChecked={allergens?.includes(a.key) ?? false}
+                />
+              ))}
+            </div>
+            <div className="border-t border-[var(--admin-border)]">
+              <Checkbox
+                name={MENU_ALLERGENS_FIELD}
+                value={MENU_ALLERGENS_NONE}
+                label="Hiçbirini içermez"
+                defaultChecked={allergens?.length === 0}
+              />
+            </div>
+          </Field>
+          <FormFieldError name={MENU_ALLERGENS_FIELD} />
+        </div>
       </Card>
 
       <Card className="grid gap-5 self-start">

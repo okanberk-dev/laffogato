@@ -118,6 +118,10 @@ import type { OrderAlertRow } from "./order-alerts-core";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
 import { earnsStamp } from "@/lib/mobile/loyalty-core";
+import {
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
@@ -485,6 +489,14 @@ export interface AdminSettings {
    */
   taxRates: TaxRates;
 
+  /**
+   * The day the cafe menu's prices started to apply, as the Istanbul
+   * calendar day "YYYY-MM-DD"; '' = not entered (src/lib/menu/price-list.ts).
+   * /menu and /masa/<kod> print it under the menu (Fiyat Etiketi Yön.
+   * m.5/2-d). Presentation only: no price is read from it.
+   */
+  menuPricesEffectiveDate: string;
+
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
   shippingFreeThresholdMinor: number;
@@ -749,6 +761,9 @@ function defaultSettings(): AdminSettings {
     heroImageUrl: "",
     weeklyHours: defaultWeeklyHours(),
     taxRates: { ...LEGAL_TAX_RATES },
+    // 20261018210200_menu_prices_effective_date.sql gives the column the
+    // same default: not entered until the operator says the day.
+    menuPricesEffectiveDate: "",
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
@@ -5884,92 +5899,101 @@ export async function updateSettings(
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────
 
+/** A product at or under its low-stock line, for the dashboard. */
+export interface LowStockRow {
+  id: string;
+  name: string;
+  stock: number;
+  lowStockThreshold: number;
+}
+
+/**
+ * What the dashboard's tiles and lists count. Every figure is the count of
+ * a list a tile opens, read by the same rule, so the number on the tile is
+ * the number of rows behind it. No money: the revenue tile reads the
+ * report's buckets (`revenueBuckets`) and only for the roles that may see
+ * reports (admin audit SHE-14).
+ */
 export interface DashboardStats {
-  productCount: number;
-  activeProductCount: number;
+  /** `OPEN_ORDER_STATUSES`: the "Açık" tab's and the sidebar badge's set. */
+  openOrderCount: number;
+  /** The open orders per status, in `OPEN_ORDER_STATUSES` order. */
+  openByStatus: Array<{ status: AdminOrderStatus; count: number }>;
+  /** Orders flagged for a person (`attention`): the list's Dikkat filter. */
+  attentionOrderCount: number;
+  /** Stock 0, active or not: the product list's "Stokta yok". */
   outOfStockCount: number;
-  categoryCount: number;
-  orderCount: number;
-  pendingOrderCount: number;
-  revenueMinor: number;
+  /** Active products at or under their line, the emptiest first. */
+  lowStock: LowStockRow[];
+  /** How many active products are at or under their line. */
+  lowStockCount: number;
+}
+
+/** The product columns the dashboard's stock figures read. */
+export type DashboardProduct = LowStockRow & { isActive: boolean };
+
+/**
+ * The pure half of the dashboard's stock figures, exported for tests. A
+ * product counts as low at or under its own line (`stock <=
+ * lowStockThreshold`), sold out included: the shelf the shift has to fill
+ * first comes first.
+ */
+export function dashboardStockFrom(
+  products: readonly DashboardProduct[],
+  limit = 5,
+): Pick<DashboardStats, "outOfStockCount" | "lowStock" | "lowStockCount"> {
+  const low = products
+    .filter((p) => p.isActive && p.stock <= p.lowStockThreshold)
+    .sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "tr"));
+  return {
+    outOfStockCount: products.filter((p) => p.stock === 0).length,
+    lowStock: low.slice(0, limit).map((p) => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock,
+      lowStockThreshold: p.lowStockThreshold,
+    })),
+    lowStockCount: low.length,
+  };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
   const sb = getDb();
+  const ctx = "getDashboardStats";
 
-  const [
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueRows,
-  ] = await Promise.all([
-    countRows(TABLES.products),
-    sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("isActive", true)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.active: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("stock", 0)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.oos: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    countRows(TABLES.categories),
-    countRows(TABLES.orders),
+  // The tiles for products and categories went (a shift has nothing to do
+  // with how many there are), and with them two counts and the read of
+  // every paid order's total that the revenue tile used to make for staff
+  // as well.
+  const [open, attentionOrderCount, products] = await Promise.all([
     sb
       .from(TABLES.orders)
-      .select("*", { count: "exact", head: true })
+      .select("status")
       .in("status", [...OPEN_ORDER_STATUSES])
+      .then((r) => rows<{ status: AdminOrderStatus }>(r, `${ctx}.open`)),
+    sb
+      .from(TABLES.orders)
+      .select("*", { count: "exact", head: true })
+      .neq("attention", "")
       .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        if (r.error) raiseDbError(`${ctx}.attention`, r.error, r.status);
         return r.count ?? 0;
       }),
     sb
-      .from(TABLES.orders)
-      .select("totalMinor, refunds")
-      .in("status", ["paid", "preparing", "shipped", "completed"])
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
-        return (r.data ?? []) as Array<{
-          totalMinor: number;
-          refunds: AdminRefund[] | null;
-        }>;
-      }),
+      .from(TABLES.products)
+      .select("id, name, stock, lowStockThreshold, isActive")
+      .then((r) => rows<DashboardProduct>(r, `${ctx}.stock`)),
   ]);
 
-  // Net of refunds. The dashboard summed order totals and ignored the refund
-  // ledger entirely, so money handed back still counted as revenue - and a
-  // partially refunded order counted in full.
-  const revenueMinor = revenueRows.reduce((sum, o) => {
-    const refunded = (o.refunds ?? []).reduce(
-      (r, entry) => r + (entry?.amountMinor ?? 0),
-      0,
-    );
-    return sum + Math.max(0, (o.totalMinor ?? 0) - refunded);
-  }, 0);
-
   return {
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueMinor,
+    openOrderCount: open.length,
+    openByStatus: OPEN_ORDER_STATUSES.map((status) => ({
+      status,
+      count: open.filter((o) => o.status === status).length,
+    })),
+    attentionOrderCount,
+    ...dashboardStockFrom(products),
   };
 }
 
@@ -6161,6 +6185,13 @@ export interface AdminMenuItem extends BackdropColumns {
    * row written before the column existed has no key.
    */
   taxRatePct?: number | null;
+  /**
+   * The TGK Ek-1 allergen groups the item contains (src/lib/menu/allergens.ts):
+   * null = not entered yet, [] = none of the fourteen. Optional because a row
+   * read before the column existed has no key; read it through
+   * `normalizeMenuAllergens()`.
+   */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
   updatedAt: string;
@@ -6223,6 +6254,8 @@ export interface MenuItemInput extends BackdropColumns {
   tags: string[];
   /** Own KDV rate, or null for the menu default. Absent keeps the stored one. */
   taxRatePct?: number | null;
+  /** Allergens, null = not entered. Absent keeps the stored ones. */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
 }
@@ -6383,6 +6416,9 @@ async function listMenuForCustomerLive(): Promise<
         price: priceLabel(it.priceMinor),
         ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
+        // Left out until the operator has entered them (null): the page
+        // then shows nothing next to the item rather than "yok".
+        ...allergensField(it.allergens),
         hue: it.hue,
         ...(it.image
           ? {
@@ -6402,6 +6438,11 @@ async function listMenuForCustomerLive(): Promise<
     };
   }
   return out;
+}
+
+function allergensField(raw: unknown): { allergens?: MenuAllergen[] } {
+  const allergens = normalizeMenuAllergens(raw);
+  return allergens === null ? {} : { allergens };
 }
 
 export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
@@ -6786,15 +6827,67 @@ const MONTH_SHORT = [
 async function reportOrders<K extends keyof AdminOrder>(
   columns: readonly K[],
   ctx: string,
+  /** Only orders placed at or after this instant (`reportPeriodSince`). */
+  since?: string,
 ): Promise<Pick<AdminOrder, K>[]> {
   await ensureSeed();
+  let q = getDb().from(TABLES.orders).select(columns.join(", "));
+  if (since) q = q.gte("createdAt", since);
   return rows<Pick<AdminOrder, K>>(
-    await getDb()
-      .from(TABLES.orders)
-      .select(columns.join(", "))
-      .order("orderNo", { ascending: false }),
+    await q.order("orderNo", { ascending: false }),
     ctx,
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Where a report period starts in the database: the köşk's midnight of the
+ * period's first bucket, as a UTC instant, one day early. The day is a
+ * margin, not part of the period: which bucket an order falls in is still
+ * decided by {@link reportPeriodFilter}, so a `createdAt` written with an
+ * offset cannot slip out of the read. Exported for tests.
+ */
+export function reportPeriodSince(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): string {
+  const start = istanbulWall(now);
+  start.setUTCHours(0, 0, 0, 0);
+  const steps = Math.max(0, count - 1);
+  if (granularity === "day") {
+    start.setUTCDate(start.getUTCDate() - steps);
+  } else if (granularity === "week") {
+    const monday = startOfWeek(start);
+    start.setTime(monday.getTime());
+    start.setUTCDate(start.getUTCDate() - 7 * steps);
+  } else {
+    start.setUTCDate(1);
+    start.setUTCMonth(start.getUTCMonth() - steps);
+  }
+  return new Date(start.getTime() - REPORT_TZ_OFFSET_MS - DAY_MS).toISOString();
+}
+
+/**
+ * Whether an instant falls in the report's period: the same buckets the
+ * chart draws ({@link bucketRevenue}), cut at the köşk's midnight. The
+ * headline tiles and the top list used to read every order ever placed
+ * beside a "30 gün" switch (admin audit SYS-16).
+ */
+export function reportPeriodFilter(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): (createdAt: string) => boolean {
+  const keys = new Set(
+    bucketRevenue([], granularity, count, now).map((b) => b.bucket),
+  );
+  return (createdAt) => {
+    const at = new Date(createdAt);
+    if (Number.isNaN(at.getTime())) return false;
+    return keys.has(bucketKey(istanbulWall(at), granularity));
+  };
 }
 
 /** What {@link bucketRevenue} reads from an order. */
@@ -6807,11 +6900,13 @@ export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
+  const now = new Date();
   const orders = await reportOrders(
     ["status", "createdAt", "totalMinor", "refunds"],
     "revenueBuckets",
+    reportPeriodSince(granularity, count, now),
   );
-  return bucketRevenue(orders, granularity, count, new Date());
+  return bucketRevenue(orders, granularity, count, now);
 }
 
 /**
@@ -6865,32 +6960,100 @@ export function bucketRevenue(
 
 export interface TopProductRow {
   productName: string;
+  /** Units sold in the period; a fully refunded order's lines not counted. */
   qty: number;
+  /**
+   * Line value at list price (unit price x quantity, the promo discount not
+   * taken off), less each order's refunds in proportion: an order refunded
+   * by a quarter keeps three quarters of every line. The page says
+   * "liste fiyatıyla".
+   */
   revenueMinor: number;
 }
 
-export async function topProducts(limit = 5): Promise<TopProductRow[]> {
-  const orders = await reportOrders(["status", "items"], "topProducts");
+/** What {@link topProductsFrom} reads from an order. */
+export type TopProductOrder = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "totalMinor" | "refunds" | "items"
+>;
+
+export async function topProducts(
+  granularity: BucketGranularity,
+  count: number,
+  limit = 5,
+): Promise<TopProductRow[]> {
+  const now = new Date();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds", "items"],
+    "topProducts",
+    reportPeriodSince(granularity, count, now),
+  );
+  return topProductsFrom(orders, granularity, count, now, limit);
+}
+
+/**
+ * The pure half of {@link topProducts}, exported for tests.
+ *
+ * The list summed every order ever placed, fully refunded ones included,
+ * while the tiles beside it took refunds off (admin audit SYS-16). Now it
+ * reads the period the page shows and nets refunds the way the tiles do,
+ * per order. An order's refunds are not tied to its lines: they come off
+ * the lines marked "İptal" first (those are not counted, and their money
+ * is what a refund usually hands back), and only what was refunded beyond
+ * them comes off the standing lines, in proportion. Sorted by that
+ * revenue, the page's bars are drawn by it too.
+ */
+export function topProductsFrom(
+  orders: readonly TopProductOrder[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+  limit = 5,
+): TopProductRow[] {
+  const inPeriod = reportPeriodFilter(granularity, count, now);
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
-    if (!isReportableOrder(o)) continue;
-    for (const it of o.items) {
+    if (!isReportableOrder(o) || !inPeriod(o.createdAt)) continue;
+    const lines = o.items ?? [];
+    const refunded = (o.refunds ?? []).reduce((r, x) => r + x.amountMinor, 0);
+    const cancelledMinor = lines.reduce(
+      (s, it) =>
+        it.status === "cancelled" ? s + it.unitPriceMinor * it.qty : s,
+      0,
+    );
+    // What the standing lines were charged, and what of it the order kept.
+    const standingMinor = o.totalMinor - Math.min(refunded, cancelledMinor);
+    const kept =
+      refunded <= 0
+        ? 1
+        : standingMinor > 0
+          ? Math.max(0, o.totalMinor - refunded) / standingMinor
+          : 0;
+    if (kept === 0) continue;
+    for (const it of lines) {
       if (it.status === "cancelled") continue;
+      const value = it.unitPriceMinor * it.qty * kept;
       const row = tally.get(it.productName);
       if (row) {
         row.qty += it.qty;
-        row.revenueMinor += it.unitPriceMinor * it.qty;
+        row.revenueMinor += value;
       } else {
         tally.set(it.productName, {
           productName: it.productName,
           qty: it.qty,
-          revenueMinor: it.unitPriceMinor * it.qty,
+          revenueMinor: value,
         });
       }
     }
   }
   return Array.from(tally.values())
-    .sort((a, b) => b.revenueMinor - a.revenueMinor)
+    .map((row) => ({ ...row, revenueMinor: Math.round(row.revenueMinor) }))
+    .sort(
+      (a, b) =>
+        b.revenueMinor - a.revenueMinor ||
+        b.qty - a.qty ||
+        a.productName.localeCompare(b.productName, "tr"),
+    )
     .slice(0, limit);
 }
 
@@ -6904,15 +7067,26 @@ export interface AnalyticsHeadline {
   averageOrderMinor: number;
   /** Refunds on the counted orders: the difference between gross and net. */
   refundedMinor: number;
-  conversionRatePct: number | null;
 }
 
-export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+/**
+ * The report's tiles for the period the page shows (the chart's buckets).
+ * They used to sum every order ever placed beside a "30 gün" switch, so
+ * this month's chart sat under the café's whole history (admin audit
+ * SYS-16).
+ */
+export async function analyticsHeadline(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<AnalyticsHeadline> {
+  const now = new Date();
   const orders = await reportOrders(
-    ["status", "totalMinor", "refunds"],
+    ["status", "createdAt", "totalMinor", "refunds"],
     "analyticsHeadline",
+    reportPeriodSince(granularity, count, now),
   );
-  return headlineFrom(orders);
+  const inPeriod = reportPeriodFilter(granularity, count, now);
+  return headlineFrom(orders.filter((o) => inPeriod(o.createdAt)));
 }
 
 /**
@@ -6947,7 +7121,6 @@ export function headlineFrom(
     averageOrderMinor:
       totalOrders > 0 ? Math.round(grossRevenueMinor / totalOrders) : 0,
     refundedMinor,
-    conversionRatePct: null,
   };
 }
 

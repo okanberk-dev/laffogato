@@ -83,15 +83,26 @@ describe("the operator's exact wording (16 Eki 2026)", () => {
     expect(time.karaokeRulesOf({})).toEqual([REFUND, NO_REFUND]);
   });
 
-  it("is printed by the booking form, the reservation page and the late-cancel API", () => {
+  it("reaches the booking form and the reservation page from the server, not typed in", () => {
+    // The form prints the availability's sentences (the policy a booking
+    // made now gets), the reservation page its own snapshot (18 Eki 2026);
+    // under the default both are these words (rendered below).
     for (const file of [
       "src/components/laffogato/karaoke-booking.tsx",
       "src/components/uye/karaoke-reservation-view.tsx",
     ]) {
       const src = read(file);
-      expect(src, file).toContain("KARAOKE_REFUND_RULE");
-      expect(src, file).toContain("KARAOKE_NO_REFUND_RULE");
+      expect(src, file).not.toMatch(
+        /\b(KARAOKE_REFUND_RULE|KARAOKE_NO_REFUND_RULE|DEFAULT_KARAOKE_CANCEL_POLICY)\b/,
+      );
+      expect(src, file).not.toMatch(/\b2 saat/);
     }
+    expect(read("src/components/laffogato/karaoke-terms.ts")).toContain(
+      "cancellationRules",
+    );
+    expect(read("src/components/uye/karaoke-reservation-view.tsx")).toContain(
+      "karaokeRulesOf(r)",
+    );
     expect(
       read("src/app/api/mobile/v1/karaoke/reservations/[id]/cancel/route.ts"),
     ).toContain("KARAOKE_TOO_LATE_MESSAGE");
@@ -105,6 +116,9 @@ describe("the operator's exact wording (16 Eki 2026)", () => {
       "src/lib/legal/content-karaoke.ts",
       "src/components/uye/karaoke-reservation-view.tsx",
       "src/components/laffogato/karaoke-booking.tsx",
+      "src/components/laffogato/karaoke-wizard.ts",
+      "src/components/laffogato/karaoke-terms.ts",
+      "src/components/laffogato/kdv-note.ts",
       "src/app/rezervasyon/page.tsx",
       "src/app/api/mobile/v1/karaoke/reservations/[id]/cancel/route.ts",
     ]) {
@@ -281,7 +295,7 @@ describe("the booking form", () => {
 
   it("puts the pre-payment box above three separate, unticked boxes and the pay button", () => {
     const html = render();
-    const box = html.indexOf(">Ödemeden önce</h2>");
+    const box = html.indexOf(">Ödemeden önce</h3>");
     const boxes = ["consentPreInfo", "consentContract", "consentKvkk"].map(
       (n) => html.indexOf(`name="${n}"`),
     );
@@ -309,7 +323,7 @@ describe("the booking form", () => {
     expect(html.split(NO_REFUND)).toHaveLength(2);
     const open = html.indexOf("<details");
     const close = html.indexOf("</details>");
-    expect(open).toBeGreaterThan(html.indexOf(">Ödemeden önce</h2>"));
+    expect(open).toBeGreaterThan(html.indexOf(">Ödemeden önce</h3>"));
     expect(html.slice(open, close)).toContain("<summary>Ayrıntılar</summary>");
     // Payment and confirmation terms sit behind the disclosure; who sells
     // stays outside it (MSY m.5/1-c), above the boxes.
@@ -334,18 +348,28 @@ describe("the booking form", () => {
     expect(html).not.toContain('name="guestFirstName"');
   });
 
-  it("names the checkout section only by a heading that is there", () => {
-    // Prepayment off: a verified member books, the box and its heading are
-    // gone, so the section must not point at a missing id.
-    const html = render({
+  it("names every step only by a heading that is there", () => {
+    // Prepayment off: a verified member books, the pre-payment box and its
+    // heading are gone; each step is labelled by its own title.
+    for (const html of [
+      render({ prepay: false, isAuthenticated: true, emailVerified: true }),
+      render(),
+      render({ prepay: false }),
+    ]) {
+      const ids = [...html.matchAll(/aria-labelledby="([^"]+)"/g)].map(
+        (m) => m[1],
+      );
+      expect(ids.length).toBeGreaterThan(0);
+      for (const id of ids) expect(html, id).toContain(`id="${id}"`);
+    }
+    const off = render({
       prepay: false,
       isAuthenticated: true,
       emailVerified: true,
     });
-    expect(html).toContain('class="karaoke-checkout"');
-    expect(html).not.toContain("karaoke-preinfo-title");
-    const on = render();
-    expect(on).toContain('aria-labelledby="karaoke-preinfo-title"');
-    expect(on).toContain('id="karaoke-preinfo-title"');
+    expect(off).not.toContain("karaoke-preinfo-title");
+    expect(off).toContain('data-step="review"');
+    expect(off).not.toContain('data-step="pay"');
+    expect(render()).toContain('id="karaoke-preinfo-title"');
   });
 });

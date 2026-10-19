@@ -31,7 +31,9 @@ vi.mock("next/image", () => ({
  * The stock menu photos (17 Oct 2026, docs/MENU-PHOTOS.md): the migration
  * that wires them into the live menu, the files it points at, the bundled
  * seed that carries the same paths, and the "Görseller temsilidir" line the
- * menu shows next to them.
+ * menu shows next to them. On 18 Oct 2026 ten of them came off again
+ * (OP-MENU-PHOTOS): their content contradicts the item, which no footnote
+ * fixes. The old migration is left as it ran; a second one empties them.
  */
 
 const MIGRATION = "db/migrations/20261017120000_menu_photos.sql";
@@ -49,6 +51,26 @@ const rows = [
   name: name.replace(/''/g, "'"),
   image,
 }));
+
+/** The photo-off migration (18 Oct 2026) and its (id, image) rows. */
+const OFF_MIGRATION = "db/migrations/20261018210000_menu_photos_mismatch.sql";
+const offCode = readFileSync(OFF_MIGRATION, "utf8").replace(/--[^\n]*/g, "");
+const offRows = [
+  ...offCode.matchAll(/\('(mnu-\d{4})',\s*'(\/menu\/[a-z0-9-]+\.webp)'\)/g),
+].map(([, id, image]) => ({ id, image }));
+/** The ten items whose photo showed something the item is not. */
+const OFF_IDS = [
+  "mnu-0028",
+  "mnu-0056",
+  "mnu-0059",
+  "mnu-0061",
+  "mnu-0063",
+  "mnu-0067",
+  "mnu-0073",
+  "mnu-0074",
+  "mnu-0078",
+  "mnu-0082",
+];
 
 /** The seed, with the ids ensureSeed() gives it on an empty table. */
 const seed = MENU_CATEGORY_KEYS.flatMap((key) => MENU[key]?.items ?? []).map(
@@ -142,6 +164,43 @@ describe("the migration", () => {
   });
 });
 
+describe("the photo-off migration (18 Oct 2026)", () => {
+  it("names exactly the ten, each with the path the old migration wrote", () => {
+    expect(offRows.map((r) => r.id)).toEqual(OFF_IDS);
+    for (const off of offRows) {
+      expect(rows.find((r) => r.id === off.id)?.image, off.id).toBe(off.image);
+    }
+  });
+
+  it("is a single update that only empties the photo", () => {
+    const statements = offCode
+      .split(";")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    expect(statements).toHaveLength(1);
+    expect(statements[0]).toMatch(/^update public\.menu_items as m\s+set /);
+    expect(offCode).not.toMatch(/\b(insert|delete|alter|drop|truncate)\b/i);
+    const set = /\bset\s+([\s\S]*?)\s+from\s*\(/.exec(statements[0])?.[1];
+    expect(set?.replace(/\s+/g, " ")).toBe("image = ''");
+  });
+
+  it("empties a row only while it still carries that path, and only once", () => {
+    const where = offCode.slice(offCode.lastIndexOf(" where m.id"));
+    expect(where).toContain("m.id = v.id");
+    expect(where).toContain("m.image = v.image");
+    expect(offCode).toMatch(
+      new RegExp(
+        `not exists \\(\\s*select 1\\s+from public\\._migrations as applied\\s+` +
+          `where applied\\.name = '${basename(OFF_MIGRATION).replace(/\./g, "\\.")}'\\s*\\)`,
+      ),
+    );
+  });
+
+  it("runs after the migration it corrects", () => {
+    expect(basename(OFF_MIGRATION) > basename(MIGRATION)).toBe(true);
+  });
+});
+
 describe("the photo files", () => {
   const referenced = [
     ...new Set([
@@ -186,10 +245,14 @@ describe("the photo files", () => {
 });
 
 describe("the bundled seed", () => {
-  it("carries the same photo as the migration for every item", () => {
+  it("carries the same photo as the migration for every item, and none for the ten", () => {
     for (const row of rows) {
       const item = seed.find((s) => s.id === row.id);
-      expect(item?.image, row.id).toBe(row.image);
+      if (OFF_IDS.includes(row.id)) {
+        expect(item?.image, row.id).toBe("");
+      } else {
+        expect(item?.image, row.id).toBe(row.image);
+      }
     }
   });
 
@@ -207,7 +270,22 @@ describe("the bundled seed", () => {
 
   it("leaves only the items docs/MENU-PHOTOS.md lists without a photo", () => {
     const missing = seed.filter((s) => !s.image).map((s) => s.name);
-    expect(missing).toEqual(["Salep", "Çarkıfelek", "Ananas", "Şurup"]);
+    expect(missing).toEqual([
+      "Buzlu Balkabağı Latte",
+      "Salep",
+      "Çarkıfelek",
+      "Ananas",
+      "Şeftalili Soğuk Çay",
+      "Yaban Mersinli San Sebastian",
+      "L'Af Kahve",
+      "Çilek Magnolia",
+      "Klasik Spoonful",
+      "Karabuğday Simit",
+      "Rosbeef Sandviç",
+      "Kakao Protein Bar",
+      "Şurup",
+      "Alternatif Süt",
+    ]);
     const docs = readFileSync("docs/MENU-PHOTOS.md", "utf8");
     const section = docs.slice(
       docs.indexOf("## Fotoğrafsız kalanlar"),

@@ -15,6 +15,10 @@ import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import {
+  readMenuAllergens,
+  tagsWithAllergens,
+} from "@/lib/admin/menu-allergens-schema";
+import {
   menuItemFieldsSchema,
   menuTagsFromForm,
 } from "@/lib/admin/menu-item-schema";
@@ -30,6 +34,7 @@ import {
   type BulkMenuOp,
   type MenuCategoryKey,
 } from "@/lib/admin/store";
+import type { MenuAllergen } from "@/lib/menu/allergens";
 import { sceneColumns } from "@/lib/backdrop/scene";
 import {
   BACKDROP_FIELD,
@@ -55,11 +60,15 @@ const HUE_VALUES = [
   "strawberry",
 ];
 
-type ParsedMenuInput = ReturnType<typeof parseInput> & {
+type ParsedMenuInput = Omit<ReturnType<typeof parseInput>, "tags"> & {
+  /** The ticked four, plus `nuts` when the allergens name tree nuts. */
+  tags: string[];
   name: string;
   priceMinor: number;
   priceMinorL: number;
   taxRatePct: number | null;
+  /** Absent: the form had no allergen boxes, the stored value stays. */
+  allergens?: MenuAllergen[] | null;
 };
 
 /**
@@ -76,23 +85,44 @@ function readMenuForm(
     priceL: String(formData.get("priceL") ?? ""),
     taxRatePct: String(formData.get("taxRatePct") ?? ""),
   });
-  if (!fields.success) {
+  // The fourteen allergen groups (TGK m.15/5): their own schema, so a
+  // refused box answers under the group with the other fields' errors.
+  const allergens = readMenuAllergens(formData);
+  if (!fields.success || !allergens.ok) {
     return {
       ok: false,
       result: actionError(
         "Formdaki uyarıları gider.",
-        fieldErrorsFromIssues(fields.error.issues),
+        fieldErrorsFromIssues([
+          ...(fields.success ? [] : fields.error.issues),
+          ...(allergens.ok ? [] : allergens.issues),
+        ]),
       ),
+    };
+  }
+  const base = parseInput(formData);
+  const tags = tagsWithAllergens(base.tags, allergens.allergens);
+  if (!tags.ok) {
+    return {
+      ok: false,
+      result: actionError("Formdaki uyarıları gider.", {
+        allergens: tags.error,
+      }),
     };
   }
   return {
     ok: true,
     input: {
-      ...parseInput(formData),
+      ...base,
+      tags: tags.tags,
       name: fields.data.name,
       priceMinor: fields.data.price,
       priceMinorL: fields.data.priceL,
       taxRatePct: fields.data.taxRatePct ?? null,
+      // Never `allergens: undefined`: the store would write that as NULL.
+      ...(allergens.allergens === undefined
+        ? {}
+        : { allergens: allergens.allergens }),
     },
   };
 }
@@ -208,7 +238,11 @@ export async function createMenuItemAction(
     action: "create",
     entity: "menu_item",
     entityId: created.id,
-    payload: { name: created.name, categoryKey: created.categoryKey },
+    payload: {
+      name: created.name,
+      categoryKey: created.categoryKey,
+      ...(input.allergens === undefined ? {} : { allergens: input.allergens }),
+    },
   });
   revalidateMenu();
   await setAdminFlash(`"${created.name}" menüye eklendi.`);
@@ -236,6 +270,8 @@ export async function updateMenuItemAction(
       name: input.name,
       categoryKey: input.categoryKey,
       taxRatePct: input.taxRatePct,
+      // What the menu says an item contains is worth a trail.
+      ...(input.allergens === undefined ? {} : { allergens: input.allergens }),
     },
   });
   revalidateMenu();

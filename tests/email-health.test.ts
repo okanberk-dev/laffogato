@@ -101,6 +101,34 @@ describe("emailHealth", () => {
     expect(health.ok).toBe(true);
   });
 
+  it("gives up on a Resend that does not answer within 3 s", async () => {
+    // Every dashboard render waited on this fetch with no limit (admin audit
+    // SHE-29). The timeout's signal is made to fire at once here; a fetch
+    // that never settles on its own then rejects with the abort, and the
+    // check reads "unknown", which raises no banner.
+    const timeout = vi
+      .spyOn(AbortSignal, "timeout")
+      .mockImplementation(() => AbortSignal.abort());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            const signal = init?.signal;
+            if (!signal) return; // the old code: waits forever
+            if (signal.aborted) reject(signal.reason);
+            signal.addEventListener("abort", () => reject(signal.reason));
+          }),
+      ),
+    );
+    const { emailHealth } = await load();
+    const health = await emailHealth();
+    expect(timeout).toHaveBeenCalledWith(3_000);
+    expect(health.status).toBe("unknown");
+    expect(health.ok).toBe(true);
+    timeout.mockRestore();
+  }, 5_000);
+
   it("reports the missing key without asking Resend anything", async () => {
     delete process.env.RESEND_API_KEY;
     const fetchMock = vi.fn();

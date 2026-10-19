@@ -54,6 +54,8 @@ interface ResendDomain {
  * green while they are watching.
  */
 const TTL_MS = 120_000;
+/** How long the dashboard's check waits for Resend's domain list. */
+const HEALTH_LOOKUP_TIMEOUT_MS = 3_000;
 let cached: { at: number; value: EmailHealth } | null = null;
 
 function domainOf(from: string): string {
@@ -141,7 +143,16 @@ export async function emailHealth(): Promise<EmailHealth> {
         "E-posta sağlayıcısı bağlı değil: e-postalar gönderilmiyor. Geliştiriciye ilet: sunucuda RESEND_API_KEY tanımlı değil.",
     };
   } else {
-    const status = await lookup(domain, key);
+    // A Resend that does not answer must not hold the dashboard: every panel
+    // landing waited on this fetch with no limit (admin audit SHE-29). After
+    // 3 s the abort lands in lookup's catch as "unknown", which raises no
+    // alarm, and is kept like any answer: a slow Resend costs one render
+    // 3 s every two minutes, not every render.
+    const status = await lookup(
+      domain,
+      key,
+      AbortSignal.timeout(HEALTH_LOOKUP_TIMEOUT_MS),
+    );
     value = {
       hasProvider: true,
       from: identity.from,

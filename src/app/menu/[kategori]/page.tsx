@@ -101,6 +101,8 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
           phone: settings.phone,
           email: settings.email,
           address: settings.address,
+          // The day under the menu (Fiyat Etiketi Yön. m.5/2-d).
+          menuPricesEffectiveDate: settings.menuPricesEffectiveDate,
         }}
         menu={filteredMenu}
         seoSlot={<SeoContent faq={FAQ} />}

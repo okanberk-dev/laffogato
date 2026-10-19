@@ -1,0 +1,32 @@
+import type { RevenueBucket } from "@/lib/admin/store";
+
+import { formatTRY } from "../forms";
+import { RevenueChart } from "../revenue-chart";
+import { WidgetCard } from "./widget-card";
+
+/**
+ * The last 14 days of net revenue, for the roles that may see reports
+ * (decision D38; staff never get it, D1). The buckets are the report's own
+ * (`revenueBuckets`), so the figures here are the ones Raporlar shows for
+ * the same days.
+ */
+export function RevenueWidget({
+  buckets,
+}: {
+  buckets: readonly RevenueBucket[];
+}) {
+  const total = buckets.reduce((s, b) => s + b.revenueMinor, 0);
+  const orders = buckets.reduce((s, b) => s + b.orderCount, 0);
+  return (
+    <WidgetCard title="Son 14 gün" href="/admin/raporlar" linkLabel="Raporlar">
+      <p className="mb-4 text-sm text-[var(--admin-text-soft)]">
+        Net ciro{" "}
+        <span className="font-semibold text-[var(--admin-text)]">
+          {formatTRY(total)}
+        </span>{" "}
+        · {orders} sipariş · iadeler düşülmüş
+      </p>
+      <RevenueChart data={buckets} caption="Son 14 günün net cirosu" />
+    </WidgetCard>
+  );
+}
