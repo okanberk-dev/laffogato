@@ -181,13 +181,7 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       // rather than throwing, so this is safe in exactly this state.
       const fallbackSettings = await getPublicSettings();
       return (
-        <SiteChrome
-          settings={{
-            phone: fallbackSettings.phone,
-            email: fallbackSettings.email,
-            address: fallbackSettings.address,
-          }}
-        >
+        <SiteChrome settings={footerSettings(fallbackSettings)}>
           <ProductUnavailable />
         </SiteChrome>
       );

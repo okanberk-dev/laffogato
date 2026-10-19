@@ -228,7 +228,7 @@ describe("no page builds its footer settings by hand", () => {
     const offenders = files("src/app")
       .filter((f) => !f.startsWith(join("src", "app", "admin")))
       .filter((f) =>
-        /settings=\{\{\s*phone: settings\.phone,/.test(readFileSync(f, "utf8")),
+        /settings=\{\{\s*phone: \w+\.phone,/.test(readFileSync(f, "utf8")),
       );
     expect(offenders).toEqual([]);
   });
