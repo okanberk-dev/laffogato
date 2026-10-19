@@ -14687,9 +14687,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gida-guvenligi-ve-alerjen",
     title: "Gıda Güvenliği ve Alerjen Bilgilendirmesi",
     shortTitle: "Gıda Güvenliği",
-    // 18 Ekim 2026: §7 says where each menu item's allergens are written
-    // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §20.
-    updatedAt: "18 Ekim 2026",
+    // 19 Ekim 2026: §7 says where each menu item's allergens are written
+    // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §21.
+    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafe servisinde ve {{SITE}} üzerinden satılan gıda ürünlerinde uygulanan gıda güvenliği yönetimi, zorunlu alerjen bildirimi, çapraz bulaşma uyarısı, saklama koşulları ve ürün geri çağırma prosedürü hakkında tüketici bilgilendirmesidir.",

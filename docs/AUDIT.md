@@ -1008,7 +1008,7 @@ Açık:
 ### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
 
 Operatör kararı (18 Eki 2026): avukat turu yok, karar ve dayanak
-`docs/LEGAL-REDLINES-2026-09.md` §20'de. Kararlar OP-ALLERGEN-BOARD,
+`docs/LEGAL-REDLINES-2026-09.md` §21'de. Kararlar OP-ALLERGEN-BOARD,
 OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
 
 | Derece | Bulgu | Düzeltme | Test |

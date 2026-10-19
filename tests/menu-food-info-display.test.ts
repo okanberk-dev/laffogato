@@ -227,7 +227,7 @@ describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
   it("says where each menu item's allergens are written, and only that", async () => {
     const { findLegalDoc } = await import("@/lib/legal/documents");
     const doc = findLegalDoc("gida-guvenligi-ve-alerjen");
-    expect(doc?.updatedAt).toBe("18 Ekim 2026");
+    expect(doc?.updatedAt).toBe("19 Ekim 2026");
     const s7 = doc!.sections.find((s) => s.heading.startsWith("7. "));
     const text = (s7?.paragraphs ?? []).join("\n");
     expect(text).toContain(

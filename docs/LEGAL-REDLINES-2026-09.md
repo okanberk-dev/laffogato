@@ -1929,14 +1929,14 @@ kilidi açan PR bu cümleleri karaoke sözleşmesine yönlendirir.
 | Kayıtlı kart maddesi | Operatör kararı (kural 28, 23 Eyl ve 15 Eki 2026); KVKK m.4/2 (doğruluk) | Kart hiç saklanmadığı için anlatılan işlem yoktur; madde §19 (Y5) ile kaldırıldı, bu PR yeniden eklemez. |
 | Karaoke süresi talep anından | 6502 s. TKHK m.4/2 (koşullar tüketici aleyhine değiştirilemez), m.5/4 (belirsizlik tüketici lehine); 6098 s. TBK m.4/2 (kıyasen) | Üyenin talebi kaydedildiği an iptal beyanı sayılır; ekibin gecikmesi süreyi kısaltmaz. Talepten sonra yapılan rezervasyon kapanış anından hesaplanır: talep var olmayan bir rezervasyonu kapsayamaz, üye onu kapanışa kadar kendisi iptal edebilir (yapıldığı andan hesaplamak her kapanışta, oda kullanılmış olsa da, tam iade demekti). Saati kapanıştan önce geçen rezervasyonda oda kullanıldıysa ödeme kalır (hizmet ifa edilmiştir), kullanılmadıysa iade edilir; bunu personel kaydeder. Site talebi açıkken üye hesabı uygulamadan silerse aynı talep karşılanmış olur ve kural yine talep anından işler (üye bekleseydi alacağı iadeyi kendi silmesiyle kaybetmez); saati geçen rezervasyonda odayı soracak kimse olmadığından iade personelin kararına kalır. Kural yalnız Site talebi için yazıldı: e-postayla gelen talebin anı panelde henüz kaydedilmiyor. |
 
-## 20. Y6 - Menü bilgisi: kalem başına alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
+## 21. Y7 - Menü bilgisi: kalem başına alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
 
 > **Durum: metin kodda değişti.** Dal `feat/legal-menu-food-info`. Operatör
 > kararı (18 Eki 2026): _"avukata sorma, sen karar ver, araştır ve doğru
 > olanı yap"_; avukat turu yok, karar ve dayanak aşağıda. Kararlar
 > OP-ALLERGEN-BOARD, OP-PRICE-LISTS, OP-MENU-PHOTOS, ASK-OTH-1.
 
-### 20.1 Neden ve dayanak
+### 21.1 Neden ve dayanak
 
 - **Alerjen.** Toplu tüketim yerinde ambalajsız gıdanın adı ve Ek-1'deki
   alerjenleri menü, yazı tahtası, broşür benzeri araçlarla kolayca görülebilir
@@ -1962,7 +1962,7 @@ kilidi açan PR bu cümleleri karaoke sözleşmesine yönlendirir.
   menü kalemi için yapay zekâ görseli hiç kullanılmayarak bu yükümlülük doğmaz.
   https://www.mevzuat.gov.tr/MevzuatMetin/1.5.6502.pdf
 
-### 20.2 Kararlar
+### 21.2 Kararlar
 
 1. Her kalemin içerdiği Ek-1 grupları panelden girilir (`menu_items.allergens`,
    on dört anahtarlık kapalı liste). Hiçbir kutu işaretli değilse bilgi
@@ -1987,7 +1987,7 @@ kilidi açan PR bu cümleleri karaoke sözleşmesine yönlendirir.
    beyanın şartlarıyla çelişir; yerine "Çölyak ya da ciddi bir alerjin varsa
    baristaya söyle." geldi.
 
-### 20.3 Değişen cümleler
+### 21.3 Değişen cümleler
 
 Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 
@@ -1998,18 +1998,18 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 | Site, /menu "Alerjenler" bandı (`menu-page.tsx`, hukuki metin değil) | - | "Süt, gluten, kuruyemiş, soya - mutfağımızda çapraz temas olabilir. Cölyak için baristaya bildirin, pirinç bisküvili alternatif hazırlarız." | "Ürünün içerdiği alerjenler kartında yazar; yazmıyorsa siparişten önce baristaya sor. Mutfağımızda süt, gluten, kuruyemiş ve soya ile çapraz temas olabilir. Çölyak ya da ciddi bir alerjin varsa baristaya söyle." ve belgeye bağlantı |
 | Site, /menu, kategori sayfaları, /masa (hukuki metin değil) | - | (yok) | "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih: <gün ay yıl>" ve her kartta "Alerjenler: ..." |
 
-### 20.4 Sürüm
+### 21.4 Sürüm
 
 - Gıda Güvenliği belgesi ödeme onayının belgelerinden değil:
   `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi (D-SAME-DAY bu PR'a
-  uygulanmaz). Belge kendi tarihini aldı: 18 Ekim 2026
+  uygulanmaz). Belge kendi tarihini aldı: 19 Ekim 2026
   (`tests/legal-dates.test.ts`). PR başka bir gün birleşirse tarih o güne
   çekilir.
 - Uygulamanın çevrimdışı kopyası (lafmobil `legal.seed.json`) ayrı bir
   uygulama PR'ında yeniden dışa aktarılır; uygulama metni `GET /legal`'dan
   okur.
 
-### 20.5 Operatöre
+### 21.5 Operatöre
 
 1. 23 Ekim 2026'ya kadar 82 kalem × 14 grup tablosunu tedarikçi etiketlerinden
    hazırla (şurup, sos, süt seçeneği ve süsleme dahil), köşkte kasanın
@@ -2028,7 +2028,7 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
    `docs/MENU-PHOTOS.md`); 30 Kasım 2026'ya kadar stok fotoğrafları barın kendi
    fotoğraflarıyla değiştir, boşalan on kalemden başla.
 
-### 20.6 Bilerek değişmeyenler
+### 21.6 Bilerek değişmeyenler
 
 - §7'nin 14 satırlık tablosu (alerjen gruplarının yelpazedeki olası
   karşılığı) yol gösterici olarak kaldı. Kararın ara çözümü olan 82 × 14
