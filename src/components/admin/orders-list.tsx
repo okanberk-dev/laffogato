@@ -4,14 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { newOrderCountAction } from "@/app/admin/siparisler/actions";
+import {
+  newOrderCountAction,
+  transitionOrderAction,
+} from "@/app/admin/siparisler/actions";
 import type { ActionResult } from "@/lib/admin/action-result";
 import type { SortState } from "@/lib/admin/list-params";
-import type { OrderActionMap } from "@/lib/admin/order-actions";
+import {
+  orderActionLabel,
+  type OrderActionMap,
+} from "@/lib/admin/order-actions";
 import { orderStatusLabel } from "@/lib/admin/order-ui";
 import type { AdminOrder } from "@/lib/admin/store";
 import type { AdminTone } from "@/lib/admin/tone";
 
+import { ActionButton } from "./action-form";
 import { beep } from "./beep";
 import { BulkActionBar, useSelection } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
@@ -85,6 +92,124 @@ const POLL_MS = 30_000;
  * sesi, basılı" rather than "Ses kapalı, basılı değil" (admin audit ORD-27).
  */
 export const SOUND_TOGGLE_LABEL = "Yeni sipariş sesi";
+
+/**
+ * The moves a row runs in place, in the order an order goes through them
+ * (admin UI design 5 #4): the barista's most frequent click without
+ * opening the order. Forward only and free of money: taking a payment,
+ * asking the POS, shipping a parcel (carrier and tracking number),
+ * cancelling and refunding stay in the "⋯" menu and their modals.
+ */
+export const ROW_STEP_IDS = [
+  "start_preparing",
+  "mark_shipped",
+  "complete",
+] as const;
+export type RowStepId = (typeof ROW_STEP_IDS)[number];
+
+/**
+ * The one step a row offers: the first of ROW_STEP_IDS the server's
+ * `orderActions` enabled for this role, or none. A step the role may not
+ * take is not drawn here; it stays in the "⋯" menu with its reason.
+ */
+export function rowStep(actions: OrderActionMap): RowStepId | null {
+  return ROW_STEP_IDS.find((id) => actions[id]?.enabled === true) ?? null;
+}
+
+/**
+ * How long a freshly drawn step ignores taps. A new button lands where the
+ * last one was tapped the moment the answer arrives; a double tap would
+ * otherwise run two moves: "Hazırlamaya başla" and then "Teslime hazır",
+ * which mails the customer, or, on a tab the order then leaves ("Açık"
+ * after "Tamamlandı"), the same move on the NEXT order, which moved up into
+ * the tapped row's place.
+ */
+const STEP_ARM_MS = 700;
+
+/**
+ * Each row's place and step, by order id: what a row's button is armed for.
+ * A row whose step changed, or which moved to another place (a row above it
+ * left the tab, "Listeyi yenile" put new orders on top), gets a new key and
+ * waits STEP_ARM_MS again. A row that stayed where it was keeps its key.
+ */
+export function rowStepArmKeys(
+  rows: readonly OrderListRow[],
+): Map<string, string> {
+  return new Map(
+    rows.map((r, place) => [
+      r.order.id,
+      `${place}:${rowStep(r.actions) ?? ""}`,
+    ]),
+  );
+}
+
+/**
+ * The step as a button, through the same Server Action as the menu row
+ * and the order page (`transitionOrderAction`, which asks `orderActions`
+ * again before it writes). Its name carries the order number: twenty
+ * "Tamamlandı" buttons in a row are one name to a screen reader.
+ */
+function RowStepButton({
+  order,
+  id,
+  armKey,
+}: {
+  order: AdminOrder;
+  id: RowStepId;
+  armKey: string;
+}) {
+  const label = orderActionLabel(id, order);
+  // Armed per key on the same button (no remount per step): the key moves
+  // with the row's step and with its place in the list.
+  const [armedFor, setArmedFor] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setArmedFor(armKey), STEP_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [armKey]);
+  const armed = armedFor === armKey;
+  return (
+    <span
+      className="inline-flex"
+      onClickCapture={(e) => {
+        if (armed) return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <ActionButton
+        action={transitionOrderAction}
+        hidden={{ id: order.id, transition: id }}
+        pendingLabel="İşleniyor…"
+        ariaLabel={`${label}: sipariş ${order.orderNo}`}
+        className="whitespace-nowrap"
+      >
+        {label}
+      </ActionButton>
+    </span>
+  );
+}
+
+/**
+ * The row's step where it is drawn: under the status in the table, the
+ * last line of the phone card (a thumb's reach).
+ */
+function RowStep({
+  row,
+  armKey,
+  className,
+}: {
+  row: OrderListRow;
+  armKey: string;
+  className: string;
+}) {
+  const step = rowStep(row.actions);
+  if (!step) return null;
+  return (
+    <span className={className}>
+      <RowStepButton order={row.order} id={step} armKey={armKey} />
+    </span>
+  );
+}
 
 function itemsSummary(order: AdminOrder): string {
   const names = order.items.map(
@@ -257,6 +382,9 @@ export function OrdersList({
 
   const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
+  const armKeys = rowStepArmKeys(rows);
+  const armKeyOf = (r: OrderListRow) => armKeys.get(r.order.id) ?? "";
+
   // The table fits its card from md up (admin audit ORD-02: at 768-1366
   // px it was 50-130 px wider, the "⋯" column off screen). The No cell
   // wraps (its marks, and the date that sits under it until xl), the
@@ -340,10 +468,15 @@ export function OrdersList({
       key: "durum",
       header: "Durum",
       className: TIGHT,
+      // The step sits under the status it moves on from. Not beside the
+      // "⋯" in the pinned column: 160 px more there made the table wider
+      // than its card from 768 to 1279 px, and the pinned cell then
+      // covered this very column.
       cell: (r) => (
         <span className="flex flex-col items-start gap-1">
           <OrderStatusBadge order={r.order} />
           <PaymentBadge row={r} />
+          <RowStep row={r} armKey={armKeyOf(r)} className="mt-1" />
         </span>
       ),
     },
@@ -418,6 +551,9 @@ export function OrdersList({
             refundToken={r.refundToken}
             mayRefund={mayRefund}
             openLink
+            // The step is on the row itself (the Durum cell, the card's
+            // last line): the menu does not offer it twice.
+            skip={rowStep(r.actions)}
           />
         )}
         mobileCard={(r) => (
@@ -458,6 +594,7 @@ export function OrdersList({
               </span>
               <Amount order={r.order} />
             </div>
+            <RowStep row={r} armKey={armKeyOf(r)} className="pt-1" />
           </div>
         )}
         empty={
