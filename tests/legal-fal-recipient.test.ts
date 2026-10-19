@@ -48,14 +48,20 @@ describe("the fA'L recipient in the published texts", () => {
     // The consent items table and the transfer section of the same text.
     const all = text(findLegalDoc("acik-riza-metni"));
     expect(all).toContain("Anthropic, PBC (ABD) altyapısına aktarılır; fotoğraf şirketimizce saklanmaz.");
-    expect(all).toContain("yalnızca fA'L yapay zekâ yorumu onayınız hâlinde Anthropic, PBC.");
+    // R6 is no consent item since 19 Eki 2026 and lists no recipients; R12
+    // names the company the standard contract is to be signed with.
+    expect(all).toContain("Anthropic, PBC ile imzalanacak ve Kurul tarafından ilan edilen standart sözleşmeye dayandırılır");
   });
 
   it("the aydınlatma and the gizlilik texts name the same recipient", () => {
     const aydinlatma = text(findLegalDoc("kvkk-aydinlatma-metni"));
     // §9 consent-based processing, §12 the app, §15 abroad and its recipients.
     expect(aydinlatma.split("Anthropic, PBC'ye (ABD)").length - 1).toBe(3);
-    expect(aydinlatma).toContain("fA'L yapay zekâ yorumu için yalnızca açık rızanızla Anthropic, PBC (ABD).");
+    expect(aydinlatma).toContain(
+      "fA'L yapay zekâ yorumu için yalnızca açık rızanızla ve standart sözleşme imzalanıp Kurum'a bildirildikten sonra Anthropic, PBC (ABD).",
+    );
+    // §14 lists it among the recipients too (open item Y1-6).
+    expect(aydinlatma).toContain("Yapay zekâ hizmet sağlayıcısı Anthropic, PBC (ABD, yalnızca açık rızanızla)");
     const gizlilik = text(findLegalDoc("gizlilik-politikasi"));
     expect(gizlilik).toContain("yorumun üretilmesi amacıyla Anthropic, PBC'ye (ABD) aktarılması; fotoğraf şirketimizce saklanmaz");
   });
@@ -91,13 +97,38 @@ describe("the fA'L recipient in the published texts", () => {
     }
   });
 
-  it("R12 promises nothing the Messages API does not do: no 'do not keep' instruction, no training or retention term", () => {
+  it("R12 promises nothing the Messages API does not do, and states the provider's published terms", () => {
     const consent = r12();
     // OpenAI took `store: false`; the Messages API has no such switch.
     expect(consent).not.toContain("saklamaması talimat");
-    // The provider's own keeping is left to its terms, without a number.
-    expect(consent).toContain("kendi ticari hizmet koşulları ve politikalarında belirlenen süre boyunca saklayabileceğini");
-    expect(consent).not.toMatch(/eğit/i);
+    // 19 Eki 2026 (ASK-FAL-1): Anthropic's commercial retention policy
+    // (privacy.claude.com 7996866) and its Commercial Terms §B, by name and
+    // with their numbers, instead of "its own terms".
+    expect(consent).not.toContain("kendi ticari hizmet koşulları ve politikalarında belirlenen süre boyunca saklayabileceğini");
+    expect(consent).toContain(
+      "Hizmet sağlayıcı Anthropic, PBC, yayımladığı ticari veri saklama politikasına göre ilettiğimiz fotoğrafı ve ürettiği yanıtı en geç 30 gün içinde siler; içerik, kullanım politikasına aykırılık şüphesiyle otomatik olarak işaretlenirse 2 yıla kadar, bu işaretlemeye ilişkin güvenlik puanları 7 yıla kadar ve kanunen gerekli hâllerde daha uzun süre saklanabilir.",
+    );
+    expect(consent).toContain("Anthropic, PBC sözleşme gereği bu içeriği yapay zekâ modellerini eğitmek için kullanamaz.");
+    expect(consent).toContain(
+      "Hizmet sağlayıcı fotoğrafı ve yanıtı kendi politikasına göre en geç 30 gün içinde siler; işaretlenen içerik 2 yıla kadar saklanabilir.",
+    );
+    // No zero-retention agreement exists, so no text says the provider keeps nothing.
+    expect(consent).not.toMatch(/sıfır veri saklama/i);
+  });
+
+  it("R12 says no photo leaves before the contract is signed and notified, and that it is not signed yet", () => {
+    const consent = r12();
+    expect(consent).toContain("Bu sözleşme imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez.");
+    // OP-FAL-OFF: the enabling PR dates this ("<gün Ay yıl> tarihinde
+    // imzalanan, ... bildirilen ve") together with fal-safeguard.ts.
+    expect(consent).toContain("Anthropic, PBC ile imzalanacak ve Kurul");
+    expect(consent).not.toContain("akdedilen");
+    const record = findLegalDoc("acik-riza-metni")!
+      .sections.find((s) => s.heading.startsWith("20. "))!
+      .bullets!.find((b) => b.startsWith("fA'L yapay zekâ yorumu onayı (R12)"))!;
+    expect(record).toContain("Onay, fA'L ekranındaki Bilgilendirme bölümünü okuyup anladığınızı ayrıca işaretlemenizden sonra verilebilir.");
+    // Still no app version in the record.
+    expect(record).toContain("IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz");
   });
 });
 
@@ -138,8 +169,11 @@ describe("the transfer abroad rests on the standard contract, not on consent alo
 
 describe("the R12 consent version follows the recipient", () => {
   it("names the provider the texts name, so a new recipient is a new version", () => {
-    expect(FAL_CONSENT_VERSION).toBe(`2026-10-17-${FAL_DISCLOSED_PROVIDER}`);
+    expect(FAL_CONSENT_VERSION).toBe(`2026-10-19-${FAL_DISCLOSED_PROVIDER}`);
     // The 23 Eyl 2026 text named OpenAI; consents to it are not consents to this.
     expect(FAL_CONSENT_VERSION).not.toBe("2026-09-23");
+    // The 17 Eki text named Anthropic but not its retention terms or the
+    // contract condition: R12's words changed, so the version moved.
+    expect(FAL_CONSENT_VERSION).not.toBe("2026-10-17-anthropic");
   });
 });

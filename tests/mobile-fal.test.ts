@@ -327,12 +327,14 @@ describe("/fal/consent", () => {
   });
 
   it("refuses the 23 Eyl version, whose text named OpenAI: the new recipient is read first", async () => {
-    expect(FAL_CONSENT_VERSION).toBe("2026-10-17-anthropic");
+    expect(FAL_CONSENT_VERSION).toBe("2026-10-19-anthropic");
     const old = await consent.POST(req({ version: "2026-09-23" }));
     expect(old.status).toBe(409);
     expect((await old.json()).error).toBe("consent_outdated");
     // The same day's text naming another recipient is another version too.
-    expect((await consent.POST(req({ version: "2026-10-17-openai" }))).status).toBe(409);
+    expect((await consent.POST(req({ version: "2026-10-19-openai" }))).status).toBe(409);
+    // So is the 17 Eki text, which named Anthropic without its retention term.
+    expect((await consent.POST(req({ version: "2026-10-17-anthropic" }))).status).toBe(409);
     expect(lib.grantFalConsent).not.toHaveBeenCalled();
   });
 

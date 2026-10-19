@@ -1240,7 +1240,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
-    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20); false iken uygulama yalnız cihazda okur (§20)
+    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20)
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
@@ -1817,10 +1817,15 @@ kapatır (yazım hatası fotoğrafı bir alıcıya göndermez).
 
 **Açık/kapalı.** Yalnız `FAL_AI_ENABLED=true` **ve** seçilen sağlayıcının anahtarı
 (`ANTHROPIC_API_KEY` ya da `OPENAI_API_KEY`) birlikte varsa açıktır
-(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat okumasından
-geçmeden ve yurt dışı aktarım için Kurul'un standart sözleşmesi imzalanıp beş iş günü
-içinde Kurum'a bildirilmeden açılmamalıdır (aktarım her yorumda tekrarlanır, arızi
-değildir; R12 rızası tek başına dayanak olamaz). Seçilen sağlayıcı
+(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: yurt dışı aktarım için Kurul'un
+standart sözleşmesi imzalanıp beş iş günü içinde Kurum'a bildirilmeden açılmaz
+(aktarım her yorumda tekrarlanır, arızi değildir; R12 rızası tek başına dayanak
+olamaz). 19 Eki 2026'dan beri bu bir kod kapısıdır: sözleşmenin imza günü, bildirim
+günü ve bildirim makbuzu `src/lib/mobile/fal-safeguard.ts`'e yazılmadan (bildirim günü
+İstanbul takvimiyle bugün ya da önce) ortam ne derse desin özellik kapalıdır:
+`/bootstrap.app.fal.ai` `false`, `GET /fal/consent` `enabled: false`, `POST /fal`
+**503** `fal_unavailable`, fotoğrafı gönderen tek fonksiyon (`readCupWithAI`) da hiçbir
+istek atmaz. Yanıt biçimleri değişmez (yalnız ekleme). Seçilen sağlayıcı
 hukuki metinlerin alıcı olarak andığı sağlayıcı değilse (17 Eki 2026'dan beri
 Anthropic, PBC; `fal-core.ts` `FAL_DISCLOSED_PROVIDER`) özellik yine kapalıdır: metinler
 ve R12 sürümü değişmeden OpenAI'ye dönülmez.
@@ -1833,16 +1838,20 @@ ve R12 sürümü değişmeden OpenAI'ye dönülmez.
 İki sağlayıcıya da aynı talimat, aynı kimliksiz not ve aynı küçültülmüş fotoğraf gider;
 yanıt aynı kurallarla süzülür. Model 20 saniyede yanıt vermezse istek kesilir.
 
-`GET /fal/consent` → `{ "enabled": false, "version": "2026-10-17-anthropic", "granted": false, "doc": "acik-riza-metni" }`
+`GET /fal/consent` → `{ "enabled": false, "version": "2026-10-19-anthropic", "granted": false, "doc": "acik-riza-metni" }`
 
-`POST /fal/consent { "version": "2026-10-17-anthropic" }` → `{ "granted": true, "version": "2026-10-17-anthropic" }`.
+`POST /fal/consent { "version": "2026-10-19-anthropic" }` → `{ "granted": true, "version": "2026-10-19-anthropic" }`.
 Güncel olmayan sürüm **409** `consent_outdated` (üye yürürlükteki metni görmüş olmalı).
 Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rızanın ispatıdır.
 
 **Sürüm alıcıyı da söyler (17 Eki 2026).** `version` opak bir dizedir: R12 metninin
-günü ve andığı alıcı (`2026-10-17-anthropic`). Alıcı değişince sürüm de değişir; eski
-sürümle verilmiş rıza sayılmaz, `GET` `granted: false` döner ve uygulama rızayı yeniden
-sorar. 23 Eyl 2026 rızaları (`2026-09-23`, alıcı OpenAI) bu yüzden artık sayılmaz.
+günü ve andığı alıcı (`2026-10-19-anthropic`). Alıcı ya da metin değişince sürüm de
+değişir; eski sürümle verilmiş rıza sayılmaz, `GET` `granted: false` döner ve uygulama
+rızayı yeniden sorar. 23 Eyl 2026 rızaları (`2026-09-23`, alıcı OpenAI) bu yüzden artık
+sayılmaz. 19 Eki 2026'da R12'nin sözleri değişti (Anthropic'in saklama süresi ve eğitim
+yasağı, sözleşme imzalanıp bildirilmeden fotoğraf gönderilmez); sürüm
+`2026-10-19-anthropic` oldu ve `2026-10-17-anthropic` rızaları da artık sayılmaz.
+Uygulama sürümü `GET`'ten aldığı gibi geri yolladığı için bu v1'i bozmaz.
 
 **Rıza sayfası da alıcıyı söyler.** Sunucu üyenin hangi metni gördüğünü bilemez:
 uygulama `POST`'a `GET`'te aldığı `version`'ı yollar. Bu yüzden uygulamanın rıza
@@ -1861,7 +1870,7 @@ sayfası `version`'ın andığı alıcıyı adlandırır. Başka bir alıcıyı 
                "trait": "Sen yeni başlangıçlara cesaretle yürüyensin.",
                "forecast": "Bu hafta güzel bir sohbet seni bulacak." },
   "ai": true,
-  "consentVersion": "2026-10-17-anthropic",
+  "consentVersion": "2026-10-19-anthropic",
   "remainingToday": 4,
   "model": "claude-opus-5-5"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
 }
@@ -1881,7 +1890,9 @@ yorumu reddetti, şemaya uymadı ya da yanıt bir vaat içeriyordu) · **503** `
 > meta verisiz). Modele giden: fotoğraf ve kimliksiz bir not - seviye adı
 > (L'AF/PEARL/RUBY), ziyaret sıklığı kelimesi, varsa "her zamanki" içeceğin adı. Ad,
 > e-posta, telefon, üye no **gitmez**. Alıcı Anthropic, PBC'dir (ABD, veri işleyen;
-> R12). Fotoğraf bizde **saklanmaz**; üretilen metin
+> R12). Anthropic fotoğrafı ve yanıtı yayımladığı ticari saklama politikasına göre en
+> geç 30 günde siler, kural ihlali şüphesiyle işaretlenen içeriği 2 yıla kadar
+> tutabilir ve içerikle model eğitmez (R12, 19 Eki 2026). Fotoğraf bizde **saklanmaz**; üretilen metin
 > yalnız üye onu bildirirse `fal_reports`'ta 90 gün durur (aşağıda, `POST
 > /fal/report`). `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90
 > günde silinir (`src/lib/retention.ts`).

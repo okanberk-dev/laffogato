@@ -6,6 +6,7 @@ import {
   ANTHROPIC_MESSAGES_URL,
   ANTHROPIC_VERSION,
   FAL_ANTHROPIC_MAX_TOKENS,
+  FAL_CONSENT_VERSION,
   FAL_DISCLOSED_PROVIDER,
   FAL_INSTRUCTIONS,
   FAL_PROVIDER_INFO,
@@ -550,7 +551,7 @@ describe("the documents that describe it", () => {
       "OPENAI_FAL_MODEL",
       "store: false",
       "FAL_DISCLOSED_PROVIDER",
-      "2026-10-17-anthropic",
+      FAL_CONSENT_VERSION,
       "consent_outdated",
     ]) {
       expect(fal, fact).toContain(fact);

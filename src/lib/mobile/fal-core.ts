@@ -97,12 +97,17 @@ export const FAL_PROVIDER_INFO: Record<
  */
 export const FAL_DISCLOSED_PROVIDER: FalProvider = "anthropic";
 
-/** The day the R12 text last changed: its recipient became Anthropic. */
-export const FAL_CONSENT_TEXT_DAY = "2026-10-17";
+/**
+ * The day the R12 text last changed. 17 Eki 2026: its recipient became
+ * Anthropic. 19 Eki 2026: it states Anthropic's retention and no-training
+ * terms and that no photo is sent before the standard contract is signed
+ * and notified, so members who said yes to the 17 Eki text are asked again.
+ */
+export const FAL_CONSENT_TEXT_DAY = "2026-10-19";
 
 /**
  * The R12 consent's version for a recipient: the text's day and the
- * provider it names ("2026-10-17-anthropic"). The consent row keeps it, so
+ * provider it names ("2026-10-19-anthropic"). The consent row keeps it, so
  * the proof says whom the member agreed to send the photo to.
  */
 export function falConsentVersionFor(provider: FalProvider): string {

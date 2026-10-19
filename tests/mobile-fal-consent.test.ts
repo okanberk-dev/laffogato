@@ -82,8 +82,8 @@ function consentRow(version: string, patch: Partial<Row> = {}): Row {
 
 describe("the R12 version names the recipient", () => {
   it("is a different version for each provider, and the current one names the disclosed provider", () => {
-    expect(falConsentVersionFor("anthropic")).toBe("2026-10-17-anthropic");
-    expect(falConsentVersionFor("openai")).toBe("2026-10-17-openai");
+    expect(falConsentVersionFor("anthropic")).toBe("2026-10-19-anthropic");
+    expect(falConsentVersionFor("openai")).toBe("2026-10-19-openai");
     expect(FAL_CONSENT_VERSION).toBe(falConsentVersionFor(FAL_DISCLOSED_PROVIDER));
   });
 });
@@ -95,6 +95,14 @@ describe("hasFalConsent after the recipient changed", () => {
 
   it("does not count a consent given to the 23 Eyl text, which named OpenAI", async () => {
     rows = [consentRow("2026-09-23")];
+    expect(await hasFalConsent(EDA)).toBe(false);
+  });
+
+  it("does not count a consent given to the 17 Eki text, which promised no retention term", async () => {
+    // 19 Eki 2026: R12 now states Anthropic's 30-day retention, its
+    // no-training term and that no photo leaves before the standard
+    // contract is notified. A yes to the earlier words is asked again.
+    rows = [consentRow("2026-10-17-anthropic")];
     expect(await hasFalConsent(EDA)).toBe(false);
   });
 
@@ -117,7 +125,7 @@ describe("hasFalConsent after the recipient changed", () => {
     expect(rows.find((r) => r.customerEmail === EDA)).toEqual({
       customerEmail: EDA,
       feature: FAL_FEATURE,
-      version: "2026-10-17-anthropic",
+      version: "2026-10-19-anthropic",
       grantedAt: "2026-10-18T09:00:00.000Z",
       revokedAt: "",
     });
@@ -137,7 +145,7 @@ describe("GET /fal/consent tells the app to ask again", () => {
 
   it("answers on, not granted, at the new version: the old yes is not carried over", async () => {
     const res = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
-    expect(await res.json()).toEqual({ enabled: true, version: "2026-10-17-anthropic", granted: false, doc: "acik-riza-metni" });
+    expect(await res.json()).toEqual({ enabled: true, version: "2026-10-19-anthropic", granted: false, doc: "acik-riza-metni" });
   });
 
   it("refuses the old version, then takes the new one", async () => {
@@ -152,7 +160,7 @@ describe("GET /fal/consent tells the app to ask again", () => {
     expect((await post("2026-09-23")).status).toBe(409);
     expect(rows[0]!.version).toBe("2026-09-23");
     const ok = await post(FAL_CONSENT_VERSION);
-    expect(await ok.json()).toEqual({ granted: true, version: "2026-10-17-anthropic" });
+    expect(await ok.json()).toEqual({ granted: true, version: "2026-10-19-anthropic" });
     const after = await consentRoute.GET(new Request("https://laffogato.net/api/mobile/v1/fal/consent"));
     expect((await after.json()).granted).toBe(true);
   });

@@ -66,6 +66,22 @@ export const LEGAL_ENTITY = {
   authProvider: "Supabase",
 
   /**
+   * Yurt dışındaki iki alıcının KVKK Aydınlatma Metni §15'teki tanımı:
+   * sözleşen şirket, ülkesi ve sunucu bölgesi (KVKK m.10/1-c; Kurul İlke
+   * Kararı 2026/347: her alıcı şirketi ve ülkesiyle). `dbProvider` ve
+   * `authProvider` ile AYNI ANDA değişir: veri tabanı taşınınca hem ad hem
+   * bu satır hem DATABASE_URL.
+   *
+   * Asla boş değil: boş bir token, `fillList` yüzünden alıcılar satırının
+   * TAMAMINI düşürür. Kaynak (18-19 Eki 2026): Neon DPA (Databricks, Inc.,
+   * Neon, LLC'nin ana şirketi) ve proje bölgesi aws-us-east-2; Supabase DPA
+   * (Supabase Pte. Ltd., Singapur) ve proje adresinin AWS ap-southeast-1
+   * aralığında olması (docs/LEGAL-REDLINES-2026-09.md §15.6).
+   */
+  dbRecipient: "Databricks, Inc. / Neon, LLC; ABD; sunucu bölgesi ABD, Ohio",
+  authRecipient: "Supabase Pte. Ltd.; Singapur; proje bölgesi Singapur",
+
+  /**
    * Kafenin açılış saatleri — koddaki TEK kaynak.
    *
    * `closes` `opens`'tan KÜÇÜKTÜR: 01:00 ertesi sabaha aittir. schema.org bunu
@@ -158,6 +174,8 @@ const TOKENS: Record<string, string> = {
   CAFE_HOURS: LEGAL_ENTITY.cafeHours.display,
   DB_PROVIDER: LEGAL_ENTITY.dbProvider,
   AUTH_PROVIDER: LEGAL_ENTITY.authProvider,
+  DB_RECIPIENT: LEGAL_ENTITY.dbRecipient,
+  AUTH_RECIPIENT: LEGAL_ENTITY.authRecipient,
   PHONE: LEGAL_ENTITY.phone,
   EMAIL: LEGAL_ENTITY.email,
   TAX_OFFICE: LEGAL_ENTITY.taxOffice,
