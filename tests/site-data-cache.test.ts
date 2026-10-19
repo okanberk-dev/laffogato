@@ -487,8 +487,130 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-const CACHED_READERS =
-  /@\/lib\/seo\/site-data|@\/lib\/cache\/presentation|\b(getSiteSettings|listSiteShopProducts|getSiteProductBySlug|listSiteMenu|getSiteLegalOverride|presentationCache)\b/;
+/**
+ * The modules that serve cached data: the readers themselves and the two
+ * page shells built on them (`loadAppProps` is the whole customer shell's
+ * settings, products and menu; `renderSectionPage` wraps it). A commercial
+ * page that adopted either would show cached prices, fees and
+ * `isShopOpen` while importing nothing from site-data.
+ */
+const CACHED_MODULES = [
+  "src/lib/seo/site-data.ts",
+  "src/lib/cache/presentation.ts",
+  "src/lib/seo/app-props.ts",
+  "src/lib/seo/section-page.tsx",
+];
+
+/** Every value a cached module exports, read from its source. */
+function cachedExports(): string[] {
+  const names = new Set<string>();
+  for (const file of CACHED_MODULES) {
+    const src = readFileSync(file, "utf8");
+    for (const m of src.matchAll(
+      /export\s+(?:async\s+)?(?:function|const)\s+([A-Za-z_$][\w$]*)/g,
+    )) {
+      names.add(m[1]);
+    }
+  }
+  return [...names].sort();
+}
+
+/**
+ * An import of a cached module by any path (`@/lib/seo/site-data`,
+ * `../seo/site-data`, `./app-props`), or any of their exports by name.
+ */
+const CACHED_READERS = new RegExp(
+  [
+    String.raw`["'][^"'\n]*\/(?:site-data|presentation|app-props|section-page)(?:\.tsx?)?["']`,
+    String.raw`\b(?:${cachedExports().join("|")})\b`,
+  ].join("|"),
+);
+
+describe("the guard itself", () => {
+  it("knows every reader and both shells", () => {
+    expect(cachedExports()).toEqual(
+      expect.arrayContaining([
+        "getSiteSettings",
+        "listSiteShopProducts",
+        "getSiteProductBySlugStrict",
+        "listSitePress",
+        "listSitemapProducts",
+        "getSiteLegalOverride",
+        "presentationCache",
+        "loadAppProps",
+        "renderSectionPage",
+      ]),
+    );
+  });
+
+  it.each([
+    `import { loadAppProps } from "@/lib/seo/app-props";`,
+    `import { renderSectionPage } from "@/lib/seo/section-page";`,
+    `import { listSitePress } from "../seo/site-data";`,
+    `import { getSiteProductBySlugStrict as p } from "./site-data";`,
+    `import { presentationCache } from "../../lib/cache/presentation";`,
+    `const m = await import("@/lib/seo/site-data");`,
+    `const { products } = await loadAppProps();`,
+  ])("catches %s", (line) => {
+    expect(CACHED_READERS.test(line)).toBe(true);
+  });
+
+  it("does not catch the live readers", () => {
+    for (const line of [
+      `import { getPublicSettings, getSettings } from "@/lib/admin/store";`,
+      `import { getPublishedLegalOverride } from "@/lib/legal/store";`,
+      `// the cached reader (src/lib/seo/site-data.ts) stores it`,
+      `<span role="presentation" aria-hidden="true" />`,
+    ]) {
+      expect(CACHED_READERS.test(line)).toBe(false);
+    }
+  });
+
+  /**
+   * Who reads cached data, by file. A new page that adopts a cached reader
+   * or one of the two shells lands here on purpose, after someone checked
+   * it shows nothing a purchase, a booking or a permission is decided on.
+   * Commercial pages (/odeme, /karaoke, /rezervasyon, the app's API) never
+   * do: they read `getSettings` / `getPublicSettings` and the store live.
+   */
+  it("the cached readers' importers are a known list", () => {
+    const importers = sourceFiles("src")
+      .filter((f) => !CACHED_MODULES.includes(f))
+      .filter((f) =>
+        /["'][^"'\n]*\/(?:site-data|presentation|app-props|section-page)(?:\.tsx?)?["']/.test(
+          readFileSync(f, "utf8"),
+        ),
+      )
+      .sort();
+    expect(importers).toEqual([
+      "src/app/.well-known/apple-app-site-association/route.ts",
+      "src/app/.well-known/assetlinks.json/route.ts",
+      "src/app/hikayemiz/page.tsx",
+      "src/app/hukuk/[slug]/page.tsx",
+      "src/app/hukuk/layout.tsx",
+      "src/app/kampanyalar/page.tsx",
+      "src/app/magaza/[kategori]/page.tsx",
+      "src/app/magaza/page.tsx",
+      "src/app/magaza/urun/[slug]/page.tsx",
+      // The table's QR menu: display only, no ordering on the web; the
+      // table lookup itself is live.
+      "src/app/masa/[code]/page.tsx",
+      "src/app/menu/[kategori]/page.tsx",
+      "src/app/menu/page.tsx",
+      "src/app/not-found.tsx",
+      "src/app/page.tsx",
+      "src/app/rehber/layout.tsx",
+      "src/app/robots.ts",
+      "src/app/sitemap.ts",
+      "src/app/uye/layout.tsx",
+      "src/app/ziyaret/opengraph-image.tsx",
+      "src/app/ziyaret/page.tsx",
+      // Markers only (no data) and the bell's cadence.
+      "src/lib/admin/change-marker.ts",
+      "src/lib/seo/og-product.tsx",
+    ]);
+  });
+});
 
 describe("commercial paths stay live", () => {
   it.each([
@@ -501,6 +623,8 @@ describe("commercial paths stay live", () => {
     "src/lib/email",
     "src/lib/checkout",
     "src/lib/payment",
+    "src/lib/customer",
+    "src/lib/legal",
   ])("nothing under %s reads the presentation cache", (dir) => {
     const offenders = sourceFiles(dir).filter((f) =>
       CACHED_READERS.test(readFileSync(f, "utf8")),
