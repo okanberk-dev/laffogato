@@ -147,15 +147,9 @@ export default async function PromoViewPage({ params }: PageProps) {
         {orders ? (
           <Section
             title="Bu kodla verilen siparişler"
-            description={
-              "error" in orders
-                ? undefined
-                : orders.total > orders.rows.length
-                  ? `${orders.total} siparişin en yeni ${PROMO_ORDERS_LIMIT} tanesi.`
-                  : `${orders.total} sipariş.`
-            }
+            description={ordersDescription(orders, promo.usageCount)}
           >
-            <PromoOrdersTable orders={orders} />
+            <PromoOrdersTable orders={orders} usageCount={promo.usageCount} />
           </Section>
         ) : null}
       </div>
@@ -163,10 +157,34 @@ export default async function PromoViewPage({ params }: PageProps) {
   );
 }
 
+/**
+ * Every use is taken by an order carrying the code (finalizeOrder), and a
+ * cancelled order keeps the code while giving its use back, so the orders
+ * found are never fewer than the uses. Fewer means the code was renamed
+ * after it was used (updatePromo allows it): the older orders keep the old
+ * name. Saying "not used yet" beside "Kullanım 12" was the page lying.
+ */
+const RENAMED_NOTE =
+  "Kullanım sayısından az: kodun adı sonradan değiştiyse önceki siparişler eski adıyla kayıtlı.";
+
+function ordersDescription(
+  orders: PromoOrders | { error: true },
+  usageCount: number,
+): string | undefined {
+  if ("error" in orders) return undefined;
+  const found =
+    orders.total > orders.rows.length
+      ? `${orders.total} siparişin en yeni ${PROMO_ORDERS_LIMIT} tanesi.`
+      : `${orders.total} sipariş.`;
+  return orders.total < usageCount ? `${found} ${RENAMED_NOTE}` : found;
+}
+
 function PromoOrdersTable({
   orders,
+  usageCount,
 }: {
   orders: PromoOrders | { error: true };
+  usageCount: number;
 }) {
   if ("error" in orders) {
     return (
@@ -182,10 +200,17 @@ function PromoOrdersTable({
       rowKey={(o) => o.id}
       rowHref={(o) => `/admin/siparisler/${encodeURIComponent(o.id)}`}
       empty={
-        <EmptyState
-          title="Bu kod henüz bir siparişte kullanılmadı."
-          description="Kullanım sayısı sepette kodun alındığı her siparişte artar."
-        />
+        usageCount > 0 ? (
+          <EmptyState
+            title="Bu adı taşıyan sipariş yok."
+            description="Kod sonradan yeniden adlandırıldıysa önceki siparişler eski adıyla kayıtlı."
+          />
+        ) : (
+          <EmptyState
+            title="Bu kod henüz bir siparişte kullanılmadı."
+            description="Kullanım sayısı sepette kodun alındığı her siparişte artar."
+          />
+        )
       }
       columns={[
         {

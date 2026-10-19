@@ -334,6 +334,45 @@ describe("promo list (PEO-24)", () => {
     expect(page).not.toContain("@ornek.com");
   });
 
+  it("never says 'not used' beside a usage count: a renamed code says why", async () => {
+    const { default: View } = await import("@/app/admin/promosyon/[id]/page");
+    const view = async (id: string) =>
+      html(await View({ params: Promise.resolve({ id }) }));
+    const order = (n: number) => ({
+      id: `ord-${n}`,
+      orderNo: 10000 + n,
+      status: "paid",
+      discountMinor: 100,
+      totalMinor: 900,
+      createdAt: "2026-10-02T09:00:00.000Z",
+    });
+    h.promos.push(promo({ id: "prm-5", code: "YENI", usageCount: 0 }));
+
+    // A fresh code with no orders: nothing to explain.
+    h.promoOrders = { rows: [], total: 0 };
+    let page = await view("prm-5");
+    expect(page).toContain("Bu kod henüz bir siparişte kullanılmadı.");
+    expect(page).not.toContain("eski adıyla");
+
+    // YAZ25 was used 3 times, but no order carries this name (renamed).
+    page = await view("prm-1");
+    expect(page).not.toContain("henüz bir siparişte kullanılmadı");
+    expect(page).toContain("Bu adı taşıyan sipariş yok.");
+    expect(page).toContain("eski adıyla kayıtlı");
+
+    // Fewer orders than uses: the note rides on the count.
+    h.promoOrders = { rows: [order(1), order(2)], total: 2 };
+    page = await view("prm-1");
+    expect(page).toContain("2 sipariş. Kullanım sayısından az");
+
+    // As many orders as uses, or more (a cancelled order gives its use
+    // back and keeps the code): no note.
+    h.promoOrders = { rows: [order(1), order(2), order(3)], total: 3 };
+    page = await view("prm-1");
+    expect(page).toContain("3 sipariş.");
+    expect(page).not.toContain("eski adıyla");
+  });
+
   it("a failed read of the orders says so and keeps the page", async () => {
     h.promoOrders = new Error("boom");
     const { default: View } = await import("@/app/admin/promosyon/[id]/page");
