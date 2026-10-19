@@ -237,6 +237,46 @@ export async function deleteProductAction(
   return actionOk(`"${product?.name ?? id}" silindi.`);
 }
 
+/**
+ * The row's one-click "Pasif yap" / "Aktif yap" (list ⋯ menu and the
+ * product's page). The delete dialog told the operator to "pasif yap"
+ * without offering it anywhere but the bulk bar (admin audit CAT-30).
+ * `isActive` is the state asked for, not a flip, so a double click cannot
+ * undo itself.
+ */
+export async function setProductActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("products");
+  const id = String(formData.get("id") ?? "");
+  const raw = String(formData.get("isActive") ?? "");
+  if (!id || (raw !== "true" && raw !== "false")) {
+    return actionError("Geçersiz istek.");
+  }
+  const isActive = raw === "true";
+  const product = await getProduct(id);
+  if (!product) return actionError("Ürün bulunamadı; sayfayı yenile.");
+  const { updated } = await bulkUpdateProducts([id], {
+    kind: isActive ? "activate" : "deactivate",
+  });
+  revalidateShop();
+  revalidatePath(`/admin/urunler/${id}`);
+  if (updated > 0) {
+    await safeAudit({
+      action: "update",
+      entity: "product",
+      entityId: id,
+      payload: { name: product.name, sku: product.sku, isActive },
+    });
+  }
+  return actionOk(
+    isActive
+      ? `"${product.name}" yeniden mağazada.`
+      : `"${product.name}" mağazadan kaldırıldı (pasif).`,
+  );
+}
+
 /** How many product names one bulk audit row carries; the ids are all there. */
 const BULK_AUDIT_NAMES = 100;
 

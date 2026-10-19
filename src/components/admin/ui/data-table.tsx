@@ -53,6 +53,11 @@ export interface DataTableProps<T> {
   selection?: Selection;
   /** Accessible name of a row's checkbox, e.g. `Sipariş 10023`. */
   rowLabel?: (row: T) => string;
+  /**
+   * Accessible name of the header's select-all; default "Tümünü seç".
+   * Name it when one page holds several tables (the menu's categories).
+   */
+  selectAllLabel?: string;
   /** Last column: usually an ActionMenu. */
   rowActions?: (row: T) => ReactNode;
   /** Extra classes for a row and its phone card (a "yeni" ring, a muted row). */
@@ -158,6 +163,7 @@ export function DataTable<T>({
   rowHref,
   selection,
   rowLabel,
+  selectAllLabel,
   rowActions,
   rowClassName,
   empty,
@@ -299,7 +305,11 @@ export function DataTable<T>({
             <tr className={EYEBROW} style={MONO_STYLE}>
               {selection ? (
                 <th scope="col" className="w-10 px-4 py-3 text-left">
-                  <SelectAllCheckbox ids={ids} selection={selection} />
+                  <SelectAllCheckbox
+                    ids={ids}
+                    selection={selection}
+                    label={selectAllLabel}
+                  />
                 </th>
               ) : null}
               {columns.map((col) => (

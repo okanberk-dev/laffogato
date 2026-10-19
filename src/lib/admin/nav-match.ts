@@ -46,13 +46,16 @@ const SEGMENT_LABELS: Record<string, string> = {
 /**
  * Lists whose record has a page of its own AND sub-pages under it
  * (`/admin/musteriler/<e-posta>` and `.../duzenle`, a promo code's view
- * page and its edit page). Elsewhere a record id followed by "duzenle" has
- * no page (`/admin/urunler/<id>` is not a route), so the trail skips it
+ * page and its edit page; a product's and a menu item's view page since the
+ * catalog lists, admin audit P2b). Elsewhere a record id followed by
+ * "duzenle" has no page, so the trail skips it
  * instead of linking to a 404.
  */
 const DETAIL_BASES: ReadonlySet<string> = new Set([
   "/admin/musteriler",
   "/admin/promosyon",
+  "/admin/urunler",
+  "/admin/menu",
 ]);
 
 /**
@@ -63,7 +66,7 @@ const DETAIL_BASES: ReadonlySet<string> = new Set([
  *
  *   /admin/siparisler            Siparişler
  *   /admin/siparisler/ord-12     Siparişler / Ayrıntı
- *   /admin/urunler/prd-1/duzenle Ürünler / Düzenle
+ *   /admin/urunler/prd-1/duzenle Ürünler / Ayrıntı / Düzenle
  *   /admin/musteriler/a@b/duzenle Müşteriler / Ayrıntı / Düzenle
  */
 export function breadcrumbTrail(

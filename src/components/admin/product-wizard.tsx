@@ -53,6 +53,7 @@ import {
 import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
 import { BUTTON } from "./ui/styles";
+import { useUnsavedGuard } from "./unsaved-guard";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -324,6 +325,8 @@ export function ProductWizard({
   );
 
   const formRef = useRef<HTMLFormElement>(null);
+  // A reload or a closed tab asks first once something was changed (CAT-30).
+  useUnsavedGuard(formRef);
   const baseId = useId();
   const errorId = (key: string) => `${baseId}-err-${key}`;
   // Steps the last check in the browser found a problem in.
