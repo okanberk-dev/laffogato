@@ -27,6 +27,7 @@ import {
   parseCafeTableTab,
 } from "@/lib/admin/cafe-tables-panel";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 
 import { CafeTableRowMenu } from "./table-actions";
 
@@ -64,16 +65,21 @@ function Code({ table }: { table: CafeTable }) {
  */
 export default async function CafeTablesPage({ searchParams }: PageProps) {
   await requireRole("tables");
-  const sp = (await searchParams) ?? {};
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    CAFE_TABLES_PATH,
+    (await searchParams) ?? {},
+  );
   const tables = await listCafeTables();
-  const filters = parseFilters(sp, CAFE_TABLE_FILTER_FIELDS);
-  const tab = parseCafeTableTab(sp);
-  const sort = parseSort(sp, CAFE_TABLE_SORT_KEYS, CAFE_TABLE_DEFAULT_SORT);
+  const filters = parseFilters(view, CAFE_TABLE_FILTER_FIELDS);
+  const tab = parseCafeTableTab(view);
+  const sort = parseSort(view, CAFE_TABLE_SORT_KEYS, CAFE_TABLE_DEFAULT_SORT);
   const list = cafeTablesList(tables, {
     tab,
     filters,
     sort,
-    page: parsePage(sp),
+    page: parsePage(view),
   });
   const active = tables.filter((t) => t.isActive).length;
   const tabValue = CAFE_TABLE_TABS.find((t) => t.tab === tab)?.value ?? null;

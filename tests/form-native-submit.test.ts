@@ -31,28 +31,17 @@ import { expectReactGuard, formOpenTags } from "./_support/form-guard";
  */
 
 /**
- * The forms that GET on purpose: list filters whose state is the address,
- * so a filtered list can be linked, reloaded and gone back to. `forms` is
- * how many such forms the file may hold (at most). A filter whose search
- * box may hold a personal detail says so in `personal`; admin UI v2 takes
- * typed search off the address (POST /admin/ara/sonuc) and these go with it.
+ * The forms that GET on purpose, with why. `forms` is how many such forms
+ * the file may hold (at most); a form whose fields may hold a personal
+ * detail says so in `personal`. None is left: the list filters (the kit's
+ * FilterBar, Müşteriler's own before it moved onto the kit) were the last,
+ * and they post now, so a typed e-mail or phone is kept in the list's
+ * cookie, never in the address (lib/admin/list-search-core.ts).
  */
 const GET_FORMS: Record<
   string,
   { forms: number; why: string; personal?: string }
-> = {
-  "src/components/admin/ui/filter-bar.tsx": {
-    forms: 1,
-    why: 'The shared list filter: method="get", action={pathname}.',
-    personal:
-      "Siparişler searches by e-mail or name, the audit log by actor address.",
-  },
-  "src/app/admin/musteriler/page.tsx": {
-    forms: 1,
-    why: "Customers filter (a server page): search, type and sort.",
-    personal: "The search box takes an e-mail, a name or a phone number.",
-  },
-};
+> = {};
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -179,6 +168,14 @@ describe("no form posts itself as a GET", () => {
     // sits below today's count rather than on it.
     expect(total).toBeGreaterThan(50);
     expect(problems).toEqual([]);
+  });
+
+  it("the list filters post: FilterBar has no GET form left", () => {
+    const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
+    const tags = formTags("src/components/admin/ui/filter-bar.tsx", src);
+    expect(tags.length).toBeGreaterThan(0);
+    expect(tags.filter((t) => t.get || t.bare)).toEqual([]);
+    expect(src).not.toMatch(/method="get"/i);
   });
 
   it("gives every GET form a reason, and the card pages post", () => {

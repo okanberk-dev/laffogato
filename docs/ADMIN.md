@@ -115,3 +115,25 @@ düğmeler çıkmaz; panelin `[data-print-receipt]` kuralı). Müşterinin adı,
 e-postası ya da telefonu yoktur: sipariş numarayla, rezervasyon koduyla,
 damga sayıyla geçer. Sayfa iç kullanım içindir, **mali belge değildir**:
 ÖKC'nin gün sonu (Z) raporunun ya da faturanın yerine geçmez.
+
+## Listelerde arama
+
+Siparişler, Müşteriler, Ürünler, Kafe menüsü, Karaoke, Bülten (ve bir
+kampanyanın gönderim defteri), Promosyon, Masalar ve Olay kaydındaki arama
+kutusuna yazılan **adrese yazılmaz**. Kutu bir e-posta ya da telefon alır;
+adres çubuğundaki metin tarayıcı geçmişine, vekil sunuculara ve Vercel'in
+istek kaydına düşerdi. Metin o listenin kendi tarayıcı çerezinde **10
+dakika** durur (`adm_q_<liste>`, yalnız o listenin ve altındaki sayfaların
+yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
+
+- Bir siparişe girip listeye dönünce arama yerindedir; 10 dakika sonra ya da
+  **Sıfırla**, çipin × düğmesi, boş listenin "Filtreleri temizle"si ve
+  **Çıkış** ile gider.
+- Bir listenin bağlantısını paylaşırsan arama gitmez: karşı taraf süzgeçleri
+  görür, aramayı kendi yazar.
+- Çerez tarayıcı başınadır: aynı listede iki sekmede ayrı arama yaparsan son
+  yazılan geçer. Hangisinin uygulandığını kutunun altındaki çip söyler.
+- Müşteri satırındaki "Siparişleri", üye sayfasındaki "Tümünü gör" ve Olay
+  kaydındaki "Geçmişi" aynı yoldan gider: adres gönderinin içindedir.
+- Eski bir yer imi `?q=` ile açılırsa metin çereze taşınır ve sayfa onsuz
+  yeniden açılır. Kural tek yerde: `src/lib/admin/list-search-core.ts`.

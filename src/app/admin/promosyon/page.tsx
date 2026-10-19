@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
   PROMO_DEFAULT_SORT,
   PROMO_FILTER_FIELDS,
@@ -83,17 +84,22 @@ const NEW_CODE = (
  */
 export default async function PromoCodesPage({ searchParams }: PageProps) {
   await requireRole("promos");
-  const sp = (await searchParams) ?? {};
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    PROMOS_PATH,
+    (await searchParams) ?? {},
+  );
   const promos = await listPromos();
   const now = new Date().getTime();
-  const filters = parseFilters(sp, PROMO_FILTER_FIELDS);
-  const tab = parsePromoTab(sp);
-  const sort = parseSort(sp, PROMO_SORT_KEYS, PROMO_DEFAULT_SORT);
+  const filters = parseFilters(view, PROMO_FILTER_FIELDS);
+  const tab = parsePromoTab(view);
+  const sort = parseSort(view, PROMO_SORT_KEYS, PROMO_DEFAULT_SORT);
   const list = promoList(promos, {
     tab,
     filters,
     sort,
-    page: parsePage(sp),
+    page: parsePage(view),
     now,
   });
   const tabValue = PROMO_TABS.find((t) => t.tab === tab)?.value ?? null;

@@ -318,7 +318,12 @@ describe("customer detail", () => {
     expect(t).toContain("25 sipariş · 25 ödenen · en yeni 20 tanesi aşağıda");
     expect(html).toContain("#10100");
     expect(html).not.toContain("#10080");
-    expect(html).toContain('href="/admin/siparisler?q=misafir%40ornek.com"');
+    // "Tümünü gör" posts the address to the order list's search: it is
+    // never in a link (the address bar, the history, the request log).
+    expect(html).toContain(
+      '<input type="hidden" name="_path" value="/admin/siparisler"/><input type="hidden" name="_do" value="apply"/><input type="hidden" name="q" value="misafir@ornek.com"/><button type="submit"',
+    );
+    expect(html).not.toMatch(/href="[^"]*\?q=/);
     expect(t).toContain("Tümünü gör");
     // Each row opens its order; the kit table names its columns, no "-".
     expect(html).toContain('href="/admin/siparisler/ord-10100"');

@@ -203,9 +203,11 @@ describe("the list's pages and empty state (ORD-25)", () => {
     h.total = 0;
     const props = await listProps({ durum: "acik", kanal: "app" });
     expect(props.emptyTitle).toBe("Bu süzgece uyan sipariş yok.");
+    // It forgets the typed search too: the text is not in the address.
     expect(props.emptyAction).toEqual({
       href: "/admin/siparisler?durum=acik",
       label: "Filtreleri temizle",
+      clearsSearch: true,
     });
   });
 

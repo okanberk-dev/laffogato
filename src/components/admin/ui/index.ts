@@ -6,8 +6,10 @@
 // `selection`), StatusTabs, Pagination, Section, KeyValueGrid, Timeline,
 // EmptyState, PageShell. The page header is PageHeader in ../forms.tsx.
 // Client components, usable from a server page with plain props:
-// FilterBar, ActionMenu (+ items), ActionModal, ConfirmButton, ToastProvider.
+// FilterBar, ListSearchButton, ActionMenu (+ items), ActionModal,
+// ConfirmButton, ToastProvider.
 // Pure helpers live in lib/admin: list-params.ts (URL), action-result.ts,
+// list-search-core.ts (the typed search, kept off the address),
 // order-ui.ts, tone.ts, flash-core.ts (+ server-only flash.ts),
 // text-fold.ts (Turkish-aware search). Forms that keep their own
 // useActionState post through useHandPost / withPanelCatch
@@ -53,6 +55,11 @@ export {
   type TimelineItem,
 } from "./detail";
 export { FilterBar, type FilterBarProps } from "./filter-bar";
+export {
+  EmptyListActionLink,
+  ListSearchButton,
+  type EmptyListAction,
+} from "./list-search-button";
 export type { AdminIconName, AdminIconProps } from "./icons";
 export {
   PAGE_WIDTHS,

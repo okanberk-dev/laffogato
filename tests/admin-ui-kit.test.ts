@@ -1015,24 +1015,33 @@ describe("server-rendered markup", () => {
     expect(out).not.toContain("h-10 min-w-10");
   });
 
-  it("FilterBar: a GET search form that carries the tab and drops the page", () => {
+  it("FilterBar: a posted search form that carries the tab and drops the page", () => {
+    const fields = [
+      { type: "search", name: "q", label: "Ara" },
+      { type: "date-range", label: "Tarih", from: "bas", to: "bit" },
+    ] as const;
     const out = html(
       createElement(ui.FilterBar, {
-        fields: [
-          { type: "search", name: "q", label: "Ara" },
-          { type: "date-range", label: "Tarih", from: "bas", to: "bit" },
-        ],
-        searchParams: { durum: "paid", q: "çay", sayfa: "3" },
+        fields,
+        // A text in the address is ignored; the page's `view` (the cookie's
+        // text) arrives as `values`.
+        searchParams: { durum: "paid", q: "ayse@ornek.com", sayfa: "3" },
+        values: { q: "çay" },
         pathname: "/admin/siparisler",
       }),
     );
     expect(out).toContain('role="search"');
-    expect(out).toContain('method="get"');
+    expect(out).not.toMatch(/method="get"/i);
     expect(out).toContain('<input type="hidden" name="durum" value="paid"/>');
     expect(out).not.toContain('name="sayfa"');
     expect(out).toContain('value="çay"');
+    expect(out).not.toContain("ayse@ornek.com");
+    // The search chip's × is a post that forgets the text; the address it
+    // lands on keeps the tab.
+    expect(out).toContain(
+      '<input type="hidden" name="_path" value="/admin/siparisler"/><input type="hidden" name="_do" value="clear"/><input type="hidden" name="_clear" value="q"/><input type="hidden" name="durum" value="paid"/><button type="submit" class="inline-flex h-7 w-7',
+    );
     expect(out).toContain('aria-label="Filtreyi kaldır: Ara çay"');
-    expect(out).toContain('href="/admin/siparisler?durum=paid"');
   });
 
   it("Badge and OrderStatusBadge use the shared tone", () => {

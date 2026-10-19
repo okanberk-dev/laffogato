@@ -1,8 +1,17 @@
 import { getAdminSession } from "@/lib/admin/auth";
-import { listAuditLogs, safeAudit, type AdminAuditLog } from "@/lib/admin/audit";
+import {
+  listAuditLogs,
+  safeAudit,
+  type AdminAuditLog,
+} from "@/lib/admin/audit";
 import { AUDIT_CSV_MAX_ROWS, auditCsv } from "@/lib/admin/audit-csv";
-import { AUDIT_FILTER_FIELDS, auditFilterOf } from "@/lib/admin/audit-view";
+import {
+  AUDIT_FILTER_FIELDS,
+  AUDIT_LOG_PATH,
+  auditFilterOf,
+} from "@/lib/admin/audit-view";
 import { parseFilters } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import { istanbulStamp } from "@/lib/admin/order-csv";
 import { canAccess } from "@/lib/admin/roles";
 
@@ -13,7 +22,8 @@ export const dynamic = "force-dynamic";
 const BATCH = 500;
 
 /**
- * `GET /admin/olay-kaydi/csv?<the log's filters>` - the filtered log as a
+ * `GET /admin/olay-kaydi/csv?<the log's filters>` - the filtered log (and
+ * its remembered search texts, lib/admin/list-search-core.ts) as a
  * CSV file, for an accountant, a lawyer or an investigation (admin audit
  * SYS-09): the same filters as the page, newest first, up to
  * AUDIT_CSV_MAX_ROWS.
@@ -38,10 +48,13 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   }
-  const values = parseFilters(
+  // The page's "Kim" and "Kayıt no" texts are not in this link either:
+  // the list's cookie reaches the export below its path.
+  const { view } = await listSearchView(
+    AUDIT_LOG_PATH,
     new URL(request.url).searchParams,
-    AUDIT_FILTER_FIELDS,
   );
+  const values = parseFilters(view, AUDIT_FILTER_FIELDS);
   const filter = auditFilterOf(values);
   // Rows written while the file is read would shift the pages under it
   // (newest first): the export stops at the moment it started, and an id

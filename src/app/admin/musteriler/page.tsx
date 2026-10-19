@@ -13,6 +13,7 @@ import {
   DataTable,
   EmptyState,
   FilterBar,
+  ListSearchButton,
   NUMERIC_STYLE,
   Pagination,
   StatusTabs,
@@ -34,6 +35,8 @@ import {
   type CustomerSortKey,
 } from "@/lib/admin/customer-list-core";
 import { withParams } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
+import { ORDER_LIST_PATH } from "@/lib/admin/order-filters";
 import type { AdminTone } from "@/lib/admin/tone";
 import {
   DELETION_ADMIN_PATH,
@@ -151,11 +154,15 @@ function RowMenu({ row }: { row: CustomerListRow }) {
     <ActionMenu label={`${row.name || row.email} işlemleri`}>
       <ActionMenuLink href={memberHref(row)}>Müşteri sayfası</ActionMenuLink>
       {row.lastOrderAt ? (
-        <ActionMenuLink
-          href={withParams({}, { q: row.email }, "/admin/siparisler")}
+        // The address goes in the post's body, not in `?q=` (the
+        // address bar, the history, the request log).
+        <ListSearchButton
+          href={ORDER_LIST_PATH}
+          terms={{ q: row.email }}
+          className={BUTTON.menu}
         >
           Siparişleri
-        </ActionMenuLink>
+        </ListSearchButton>
       ) : null}
       {row.isMember ? (
         <ActionMenuLink href={`${memberHref(row)}/duzenle`}>
@@ -248,8 +255,13 @@ function Tile({ label, value }: { label: string; value: string }) {
 export default async function CustomersPage({ searchParams }: PageProps) {
   // Names, addresses and phones: the gate comes before any read.
   await requireRole("customers");
-  const sp = await searchParams;
-  const parsed = parseCustomerListParams(sp);
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    CUSTOMER_LIST_PATH,
+    await searchParams,
+  );
+  const parsed = parseCustomerListParams(view);
   const kind = parsed.tab ?? "all";
   const unfiltered = isUnfilteredQuery(parsed.query);
   const [rows, counts, wholeList] = await Promise.all([
@@ -296,9 +308,14 @@ export default async function CustomersPage({ searchParams }: PageProps) {
       <EmptyState
         title="Bu süzgece uyan müşteri yok."
         action={
-          <Link href={CUSTOMER_LIST_PATH} className={BUTTON.ghost}>
+          // The search too: it is not in the address a link could drop.
+          <ListSearchButton
+            href={CUSTOMER_LIST_PATH}
+            intent="reset"
+            className={BUTTON.ghost}
+          >
             Süzgeçleri temizle
-          </Link>
+          </ListSearchButton>
         }
       />
     ) : (

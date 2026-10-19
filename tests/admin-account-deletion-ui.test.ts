@@ -18,6 +18,8 @@ const h = vi.hoisted(() => ({
   counts: {} as Record<string, Record<string, unknown>>,
   wholeCounts: null as Record<string, Record<string, unknown>> | null,
   pageInput: null as Record<string, unknown> | null,
+  /** The request's cookies: the list's typed search lives there. */
+  jar: {} as Record<string, string>,
 }));
 
 vi.mock("next/link", () => ({
@@ -41,6 +43,12 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock("@/lib/admin/auth", () => ({ requireRole: vi.fn(async () => ({})) }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name in h.jar ? { name, value: h.jar[name] } : undefined,
+  }),
+}));
 vi.mock("@/lib/admin/store", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/admin/store")>()),
   customerOrdersByEmail: vi.fn(async () => []),
@@ -151,6 +159,7 @@ beforeEach(() => {
   h.counts = {};
   h.wholeCounts = null;
   h.pageInput = null;
+  h.jar = {};
   // "Süre doldu" is measured against the clock: pin it.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-18T12:00:00.000Z"));
@@ -473,7 +482,10 @@ describe("Müşteriler", () => {
       inactive: tab(0),
       deletion: tab(0),
     };
-    const t = text(await render({ q: "sade" }));
+    // A search typed in the box (kept in the list's cookie, not the URL).
+    h.jar = { adm_q_customers: "q=sade" };
+    const t = text(await render());
+    expect(h.pageInput).toMatchObject({ query: { search: "sade" } });
     expect(t).toContain("2 açık hesap silme talebi var");
   });
 

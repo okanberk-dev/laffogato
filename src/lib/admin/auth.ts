@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 
 import { getDb, TABLES } from "@/lib/db";
 
+import { forgetListSearches } from "./list-search-core";
 import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
   ADMIN_ROLES,
@@ -667,6 +668,9 @@ export async function requireRole(
 export async function signOutAdmin(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+  // The lists' remembered search texts go with the session: the next person
+  // on a shared device does not find them under the box.
+  forgetListSearches(cookieStore);
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   DataTable,
   EmptyState,
   FilterBar,
+  ListSearchButton,
   NUMERIC_STYLE,
   Pagination,
 } from "@/components/admin/ui";
@@ -32,6 +33,7 @@ import {
 } from "@/lib/admin/audit-view";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters, parsePage, withParams } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 
 export const metadata = { title: "Admin · Olay kaydı" };
 export const dynamic = "force-dynamic";
@@ -42,6 +44,10 @@ const PREVIEW_FIELDS = 3;
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
+
+/** "Geçmişi": a quiet text link to the record's other events. */
+const HISTORY_LINK =
+  "text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline";
 
 function RecordCell({ row }: { row: AdminAuditLog }) {
   const label = AUDIT_ENTITY_LABELS[row.entity] ?? row.entity;
@@ -71,18 +77,17 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
             </span>
           )}
           {/* The name starts with the visible word "Geçmişi", so voice
-              control still finds the link. */}
-          <Link
-            href={withParams(
-              {},
-              { entity: row.entity, entityId: row.entityId },
-              AUDIT_LOG_PATH,
-            )}
-            className="text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-            aria-label={`Geçmişi: ${label} ${text}, bütün olaylar`}
+              control still finds it. A post: a member's or a panel user's
+              record is their e-mail address, which `?entityId=` put in the
+              address bar and the request log. */}
+          <ListSearchButton
+            href={withParams({}, { entity: row.entity }, AUDIT_LOG_PATH)}
+            terms={{ entityId: row.entityId }}
+            className={HISTORY_LINK}
+            ariaLabel={`Geçmişi: ${label} ${text}, bütün olaylar`}
           >
             Geçmişi
-          </Link>
+          </ListSearchButton>
         </span>
       ) : null}
     </div>
@@ -142,10 +147,15 @@ function Actor({ actor }: { actor: string }) {
  */
 export default async function AuditLogPage({ searchParams }: PageProps) {
   await requireRole("audit");
-  const sp = await searchParams;
-  const filters = parseFilters(sp, AUDIT_FILTER_FIELDS);
+  // `sp` is the address (every link below, the CSV link too), `view` adds
+  // the remembered "Kim" and "Kayıt no" texts: lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    AUDIT_LOG_PATH,
+    await searchParams,
+  );
+  const filters = parseFilters(view, AUDIT_FILTER_FIELDS);
   const filter = auditFilterOf(filters);
-  const page = parsePage(sp);
+  const page = parsePage(view);
   const [rows, total] = await Promise.all([
     listAuditLogs({
       ...filter,

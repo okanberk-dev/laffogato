@@ -6,7 +6,9 @@ import {
   ordersCsv,
 } from "@/lib/admin/order-csv";
 import { mayExportOrders } from "@/lib/admin/order-actions";
+import { listSearchView } from "@/lib/admin/list-search";
 import {
+  ORDER_LIST_PATH,
   ORDER_SORT_COLUMNS,
   parseOrderListParams,
   type OrderSortKey,
@@ -56,7 +58,14 @@ export async function GET(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   }
-  const parsed = parseOrderListParams(new URL(request.url).searchParams);
+  // The list's search text is not in this link: its cookie (path
+  // /admin/siparisler) reaches the export, so the file still holds what
+  // the screen shows.
+  const { view } = await listSearchView(
+    ORDER_LIST_PATH,
+    new URL(request.url).searchParams,
+  );
+  const parsed = parseOrderListParams(view);
   const sort = {
     column: ORDER_SORT_COLUMNS[parsed.sort.key as OrderSortKey],
     ascending: parsed.sort.dir === "asc",
