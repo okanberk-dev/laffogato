@@ -122,7 +122,9 @@ afterEach(() => {
 });
 
 describe("the gates, in order", () => {
-  it("answers POST only: Next gives every other method a 405", () => {
+  // Next answers GET, PUT and the rest with a 405, and OPTIONS with its own
+  // 204 carrying only `Allow` (no CORS header, so no other site may ask).
+  it("answers POST only: no other method has a handler", () => {
     const methods = Object.keys(route).filter((k) => /^[A-Z]+$/.test(k));
     expect(methods).toEqual(["POST"]);
   });
