@@ -122,11 +122,11 @@ maybe("the menu-photos migration in a real Postgres", () => {
     });
   });
 
-  // 18 Oct 2026 (OP-MENU-PHOTOS): eight of those photos contradict the item.
+  // 18 Oct 2026 (OP-MENU-PHOTOS): ten of those photos contradict the item.
   const OFF_FILE = "20261018210000_menu_photos_mismatch.sql";
   const OFF_MIGRATION = readFileSync(`db/migrations/${OFF_FILE}`, "utf8");
 
-  it("empties the eight only while they carry the path the first migration wrote", async () => {
+  it("empties the ten only while they carry the path the first migration wrote", async () => {
     await inRollback(async (db) => {
       await db.query(`delete from public._migrations where name = $1`, [
         OFF_FILE,
@@ -143,7 +143,7 @@ maybe("the menu-photos migration in a real Postgres", () => {
         "Alternatif Süt",
         "/menu/alternative-milk.webp",
       );
-      // The operator's own photo on one of the eight, and a stock photo
+      // The operator's own photo on one of the ten, and a stock photo
       // that is not among them.
       await put(db, "mnu-0073", "Karabuğday Simit", OPERATOR_PHOTO);
       await put(db, "mnu-0072", "Tiramisu", "/menu/tiramisu.webp");
