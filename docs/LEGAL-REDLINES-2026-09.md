@@ -2725,13 +2725,13 @@ Ayrı PR'ın notları:
 - O PR birleşince `tests/register-consent.test.ts`'teki koşullu kontrol
   kesin bir kontrole döner ve bu alt bölüm "Düzeltilenler"e taşınır.
 
-## 25. Y11 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (19 Eki 2026)
+## 23. Y9 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (19 Eki 2026)
 
 > **Durum: metin ve kod değişti.** Dal `feat/legal-karaoke-make-good-and-resale`.
 > Operatör kararı (18 Eki 2026): avukat turu yok; OP-KARAOKE-GOODWILL,
 > ASK-OTH-3-CFG ve D-KAR-1-99 aşağıdaki dayanaklarla uygulandı.
 
-### 25.1 Sürüm
+### 23.1 Sürüm
 
 Karaoke belgesi değişti (§8, §9): `KARAOKE_LEGAL_UPDATED` yayın günüdür,
 bu dalda 19 Ekim 2026. Aynı İstanbul gününde `KARAOKE_LEGAL_UPDATED`'i
@@ -2743,7 +2743,7 @@ Politikası, KVKK Aydınlatma Metni ve Gizlilik Politikası'nın kendi tarihi
 iki belge değişmedi, `LEGAL_UPDATED` yerinde kaldı. Uygulamanın çevrimdışı
 kopyası lafmobil'de yenilenir (ayrı PR).
 
-### 25.2 Değişen cümleler
+### 23.2 Değişen cümleler
 
 | Belge | Yer | Mevcut | Yeni |
 |---|---|---|---|
@@ -2758,7 +2758,7 @@ kopyası lafmobil'de yenilenir (ayrı PR).
 | E-posta, telafi saatinin onayı (sen) | ödeme satırı | "Ödemeyi köşkte yaparsın. ..." | "Bu saat, [kod] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz. Planın değişirse [süre] rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir." |
 | E-posta, yeniden satış iadesi (sen) | para satırı | (yok) | "Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan [tutar] daha kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
 
-### 25.3 Kararlar ve kod
+### 23.3 Kararlar ve kod
 
 - **Telafi kimde doğar.** Personelin ödenmiş rezervasyonu iptalinde neden
   `ariza`, `kapanis` ya da `diger` ise, iptal anı rezervasyonun kendi son
@@ -2801,7 +2801,7 @@ kopyası lafmobil'de yenilenir (ayrı PR).
   kalır. Canlıda kural hâlâ 2 saat / %0: uygulama kilidi
   (`KARAOKE_POLICY_APP_VERSION` null) açılmadıkça başka kural kaydedilmez.
 
-### 25.4 Bilerek değişmeyenler
+### 23.4 Bilerek değişmeyenler
 
 - Ödeme Koşulları ve Hesap Silme'deki karaoke "2 saat" ve "kısmi iade
   yapılmaz" cümleleri: her rezervasyon 2 saat / %0 ile yapıldığı sürece
@@ -2812,7 +2812,7 @@ kopyası lafmobil'de yenilenir (ayrı PR).
   saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade
   edilir"); kod şimdi bunu yapıyor.
 
-### 25.5 Hukuki dayanak
+### 23.5 Hukuki dayanak
 
 | Konu | Dayanak | Karar |
 |---|---|---|
@@ -2824,7 +2824,7 @@ kopyası lafmobil'de yenilenir (ayrı PR).
 | Kısmi iade 14 gün | Mesafeli Sözleşmeler Yönetmeliği m.16/4 (kıyasen), TKHK m.4/2 | Tam iade iptalle POS'tan başlar; elle yapılan kısmi iade en geç 14 günde karta; ön bilgi cümlesi bunu yazar. |
 | Banka hesap bilgisi | 6698 s. KVKK m.4/2-ç, m.5/2-c, m.10; Aydınlatma Yükümlülüğü Tebliği m.4 | Telafi ödemesi için bildirilen hesap bilgisi aydınlatma metninde ve gizlilik politikasında adıyla geçer, yalnız bu ödeme için kullanılır, rezervasyon kaydına yazılmaz; saklama süresi iade için bildirilen hesap bilgisiyle aynı satırda. |
 
-### 25.6 Operatöre
+### 23.6 Operatöre
 
 - Telafi saati verdiğin ay o saati emsal bedeli üzerinden %20 KDV ile
   beyannameye al (KDV K. m.5, m.27/1); para olarak ödenen telafiyi KDV'siz

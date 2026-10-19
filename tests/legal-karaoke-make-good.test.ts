@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * What the guest reads about the köşk's late cancel made good and the hour
- * sold again (19 Eki 2026, LEGAL-REDLINES §25): the karaoke terms §8 and §9,
+ * sold again (19 Eki 2026, LEGAL-REDLINES §23): the karaoke terms §8 and §9,
  * the privacy texts that name the make-good's bank details, and the three
  * mails (the business cancel with its make-good, the free hour's
  * confirmation, the resale refund) with the amounts they actually carry.

@@ -1238,7 +1238,7 @@ Açık:
 
 ### Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 (19 Eki 2026)
 
-Hukuk programı OP-KARAOKE-GOODWILL, ASK-OTH-3-CFG, D-KAR-1-99 (LEGAL-REDLINES §25).
+Hukuk programı OP-KARAOKE-GOODWILL, ASK-OTH-3-CFG, D-KAR-1-99 (LEGAL-REDLINES §23).
 
 | Derece | Bulgu | Düzeltme | Test |
 | --- | --- | --- | --- |
