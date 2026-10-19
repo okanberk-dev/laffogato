@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+
+import { findLegalDoc } from "@/lib/legal/documents";
 
 /**
  * Sign-up asks the member to accept the Kullanım Şartları, and only tells
@@ -64,5 +67,48 @@ describe("sign-up consent", () => {
       html.indexOf('name="marketing"'),
     );
     expect(html).not.toContain("aydınlatma metni dahil");
+  });
+});
+
+describe("the Kullanım Şartları the box accepts", () => {
+  // The box above accepts the Kullanım Şartları alone, but §1 and §3 of
+  // that text still made the Gizlilik Politikası an annex and part of the
+  // box's acceptance. The sentences live in content.ts (back end), so this
+  // front-end PR records them as open in LEGAL-REDLINES §22.6 with the
+  // decided wording. When the back-end PR rewrites them, this turns into a
+  // plain check that no Terms sentence ties the box to the privacy notice.
+  it("while the Terms tie the sign-up box to the Gizlilik Politikası, LEGAL-REDLINES lists both sentences as open", () => {
+    const terms = findLegalDoc("kullanim-sartlari");
+    expect(terms).toBeDefined();
+    const text = terms!.sections
+      .flatMap((s) => [...(s.paragraphs ?? []), ...(s.bullets ?? [])])
+      .join("\n");
+    const boxTiesPrivacy =
+      /onay kutucuğunu işaretlemek suretiyle işbu Şartları ve Gizlilik/.test(
+        text,
+      );
+    const privacyIsAnnex =
+      /İşbu Şartlar; Gizlilik ve Kişisel Verilerin Korunması Politikası/.test(
+        text,
+      );
+    if (!boxTiesPrivacy && !privacyIsAnnex) return;
+
+    const redlines = readFileSync("docs/LEGAL-REDLINES-2026-09.md", "utf8");
+    const open = redlines.match(
+      /### 22\.6 Açık: Kullanım Şartları kayıt kutusunu[\s\S]*?(?=\n## |\n### )/,
+    )?.[0];
+    expect(open, "LEGAL-REDLINES §22.6 is missing").toBeTruthy();
+    if (boxTiesPrivacy) {
+      expect(open).toContain(
+        "onay kutucuğunu işaretlemek suretiyle işbu Şartları ve Gizlilik ve Kişisel Verilerin Korunması Politikası'nı açıkça kabul etmiş sayılırsınız",
+      );
+    }
+    if (privacyIsAnnex) {
+      expect(open).toContain(
+        "İşbu Şartlar; Gizlilik ve Kişisel Verilerin Korunması Politikası, Çerez Politikası",
+      );
+    }
+    // The section status says it is open, not done.
+    expect(redlines).toMatch(/\*\*Açık:\*\* Kullanım Şartları §1 ve\n> §3/);
   });
 });

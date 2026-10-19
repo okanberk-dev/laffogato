@@ -2047,7 +2047,9 @@ Satır numaraları `src/lib/legal/content.ts`'in bu PR'daki hâline aittir.
 > (ASK-OTH-2, OP-RETURN-CARRIER; aşağıda "Hukuki dayanak"). Sözleşme
 > metinleri (`content.ts`) değişmedi; `LEGAL_UPDATED` (18 Ekim 2026) ve
 > `KARAOKE_LEGAL_UPDATED` yerinde kaldı. Değişen, ödeme sayfasının ve kayıt
-> formunun kendi cümleleri ve yazı boyutu.
+> formunun kendi cümleleri ve yazı boyutu. **Açık:** Kullanım Şartları §1 ve
+> §3 kayıt kutusunu hâlâ Gizlilik Politikası'na bağlıyor; ayrı arka yüz PR'ı
+> (§22.6).
 
 ### 22.1 Neden
 
@@ -2112,7 +2114,7 @@ Yazı boyutu (`globals.css`, px):
   yalnız Türkiye ve istisnalar §18 (Y4) ile zaten yazılı.
 - `src/app/uye/actions.ts`'teki ret cümlesi "Devam etmek için kullanım
   şartları ve gizlilik politikasını kabul etmelisin." ve
-  `src/lib/customer/store.ts`'teki `acceptedTerms` yorumu: arka yüz
+  `src/lib/customer/store.ts`'teki aynı ret cümlesi: arka yüz
   dosyaları ön yüz PR'ında değişmez (CLAUDE.md, ön yüz ↔ arka yüz sınırı).
   Kutu `required` olduğu için tarayıcı bu cümleyi neredeyse hiç göstermez.
   Ayrı PR: "Devam etmek için Kullanım Şartları'nı kabul etmelisin."
@@ -2131,7 +2133,33 @@ Yazı boyutu (`globals.css`, px):
 | İade kargo bedeli istenmez | MSY m.12/5, m.5/1-g (RG 24.05.2025-32909, yürürlük 1.1.2026); m.12/1, m.12/4, m.14/1 | Taşıyıcı adlandırılmadığı için not "iade koduyla gönderirsen ücret ödemezsin, başka kargoyla gönderirsen ödediğin ücreti geri öderiz" der (OP-RETURN-CARRIER). |
 | İstisnalar dar | MSY m.15/1-b, c, ç | Çabuk bozulan: gelato ve soğuk zincir; ambalajı açılınca hijyen: kahve paketi, yenilebilir kup kutusu, krema, şurup; isteğe göre öğütülen ve kişiye özel ürün. Kapalı kutu ve paket istisna değildir. |
 | KDV tutarı | KDV Kanunu m.24/a (navlun matraha dahil), m.25/a (faturadaki iskonto matraha girmez) | Not toplamın içindeki KDV'yi oran oran yazar, satırların damgalanacak oranından; iskonto satırlara, kargo (ayrı oranı tanımlanana kadar) taşıdığı ürünlere paylaştırılır. Bilgi amaçlıdır, tutarı değiştirmez. |
-| Kayıtta aydınlatma kabul ettirilmez | 6698 s. KVKK m.10; Kurul İlke Kararı 18.02.2026, 2026/347 (RG 24.03.2026-33203) | Aydınlatma bir bilgilendirmedir; ondan onay ya da "kabul" istenmez, açık rıza ve sözleşme metinleriyle tek kutuda birleştirilmez. Kutu yalnız Kullanım Şartları'nı kabul eder; Gizlilik Politikası ve KVKK Aydınlatma Metni kutusuz bir satırda okunacak metin olarak gösterilir. `acceptedTerms` alanı ve işaretsiz başlaması aynen kalır. |
+| Kayıtta aydınlatma kabul ettirilmez | 6698 s. KVKK m.10; Kurul İlke Kararı 18.02.2026, 2026/347 (RG 24.03.2026-33203) | Aydınlatma bir bilgilendirmedir; ondan onay ya da "kabul" istenmez, açık rıza ve sözleşme metinleriyle tek kutuda birleştirilmez. Kutu yalnız Kullanım Şartları'nı kabul eder; Gizlilik Politikası ve KVKK Aydınlatma Metni kutusuz bir satırda okunacak metin olarak gösterilir. `acceptedTerms` alanı ve işaretsiz başlaması aynen kalır. Kullanım Şartları'nın aynı kararla çelişen iki cümlesi ayrı PR'da düzelir (§22.6). |
+
+### 22.6 Açık: Kullanım Şartları kayıt kutusunu hâlâ Gizlilik Politikası'na bağlıyor
+
+Kayıt formu artık yalnız Kullanım Şartları'nı kabul ettiriyor, ama kutuyla
+kabul edilen Kullanım Şartları'nın iki cümlesi Gizlilik Politikası'nı hâlâ
+kabulün ve sözleşmenin parçası sayıyor. Sayfa ile metin çelişiyor ve metin
+§22.5'teki karara (KVKK m.10, Kurul İlke Kararı 2026/347) aykırı. Cümleler
+`src/lib/legal/content.ts`'te (arka yüz); bu ön yüz PR'ında değişmez.
+
+| Yer | Mevcut | Yeni (ayrı PR) |
+|---|---|---|
+| Kullanım Şartları §1, 4. paragraf | "İşbu Şartlar; Gizlilik ve Kişisel Verilerin Korunması Politikası, Çerez Politikası, Ön Bilgilendirme Formu, ... ile sitede yayımlanan diğer politika metinleriyle bir bütün oluşturur. Anılan metinler işbu Şartların ayrılmaz ekleri niteliğindedir." | "İşbu Şartlar; Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları, Teslimat ve Kargo Koşulları, Mobil Uygulama Kullanım Koşulları (/hukuk/mobil-uygulama-kosullari) ve Sadakat (Damga) Programı Kuralları (/hukuk/odul-programi) ile bir bütün oluşturur. Anılan metinler işbu Şartların ayrılmaz ekleri niteliğindedir. Gizlilik ve Kişisel Verilerin Korunması Politikası, KVKK Aydınlatma Metni ve Çerez Politikası kişisel verilerin nasıl işlendiğini anlatan bilgilendirme metinleridir; işbu Şartların eki değildir ve kabul edilmez." |
+| Kullanım Şartları §3, 2. paragraf | "Üyelik oluşturma adımında, kayıt formunda yer alan onay kutucuğunu işaretlemek suretiyle işbu Şartları ve Gizlilik ve Kişisel Verilerin Korunması Politikası'nı açıkça kabul etmiş sayılırsınız. ..." | "Üyelik oluşturma adımında, kayıt formunda yer alan onay kutucuğunu işaretlemek suretiyle işbu Şartları açıkça kabul etmiş sayılırsınız. Gizlilik ve Kişisel Verilerin Korunması Politikası ile KVKK Aydınlatma Metni bilgilendirme amaçlıdır; kabul edilmez ve bu kutucuğun kapsamında değildir. ..." (cümlenin geri kalanı aynen) |
+| `src/app/uye/actions.ts` ve `src/lib/customer/store.ts`, ret cümlesi | "Devam etmek için kullanım şartları ve gizlilik politikasını kabul etmelisin." | "Devam etmek için Kullanım Şartları'nı kabul etmelisin." |
+
+Ayrı PR'ın notları:
+
+- Kullanım Şartları `CHECKOUT_CONSENT_DOCS`'ta değil: `LEGAL_UPDATED`
+  yerinde kalır, yalnız belgenin kendi `updatedAt`'i o günün İstanbul
+  tarihine taşınır (`tests/legal-dates.test.ts`).
+- `feat/legal-karaoke-terms` de Kullanım Şartları'na dokunuyor (başka
+  paragraflar, kendi `updatedAt`'i); sonra birleşen tarihi uzlaştırır.
+- Uygulamanın kayıt ekranı ve paketlenmiş hukuk metni lafmobil'de ayrı
+  (`app-auth-footer-privacy-wording`).
+- O PR birleşince `tests/register-consent.test.ts`'teki koşullu kontrol
+  kesin bir kontrole döner ve bu alt bölüm "Düzeltilenler"e taşınır.
 
 ## Ek A - Cümle cümle düzeltme listesi
 
