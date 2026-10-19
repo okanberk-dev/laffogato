@@ -7,6 +7,8 @@ import {
 } from "@/lib/utils/format";
 import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
 
+import { PRODUCT_TAG_VALUES } from "./product-schema";
+
 /**
  * The menu item form's checked fields: name and the two prices.
  *
@@ -74,3 +76,41 @@ export const menuItemFieldsSchema = z.object({
       return parsed.value;
     }),
 });
+
+type ItemTag = (typeof PRODUCT_TAG_VALUES)[number];
+
+/**
+ * The menu item's tags as the form offers them: the app's whole vocabulary
+ * (`PRODUCT_TAG_VALUES`, docs/API-MOBILE.md §1), in Turkish. The field used
+ * to be free text with the hint "signature, new, iced, nuts, IGP": any word
+ * was saved, and the app drops every tag outside the four, so "fındık" or
+ * "nut" was an allergen warning no customer ever saw (admin audit CAT-10).
+ */
+export const MENU_TAG_OPTIONS: ReadonlyArray<readonly [ItemTag, string]> = [
+  ["signature", "İmza"],
+  ["new", "Yeni"],
+  ["iced", "Buzlu"],
+  ["nuts", "Sert kabuklu yemiş (fındık · fıstık)"],
+];
+
+const isItemTag = (t: string): t is ItemTag =>
+  (PRODUCT_TAG_VALUES as readonly string[]).includes(t);
+
+/**
+ * The tags a menu save stores: the ticked boxes (one `tags` value each), or
+ * a comma list from an older form, kept only where the app knows the word,
+ * once each, in the vocabulary's order.
+ */
+export function menuTagsFromForm(values: readonly unknown[]): ItemTag[] {
+  const seen = new Set<string>();
+  for (const value of values) {
+    if (typeof value !== "string") continue;
+    for (const part of value.split(",")) seen.add(part.trim().toLowerCase());
+  }
+  return PRODUCT_TAG_VALUES.filter((t) => seen.has(t));
+}
+
+/** The stored tags the form cannot show, and the next save will drop. */
+export function unknownMenuTags(tags: readonly string[]): string[] {
+  return tags.filter((t) => !isItemTag(t));
+}

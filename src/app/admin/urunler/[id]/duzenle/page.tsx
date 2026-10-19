@@ -7,7 +7,7 @@ import { getProduct, getSettings, listCategories } from "@/lib/admin/store";
 
 import { updateProductAction } from "../../actions";
 
-export const metadata = { title: "Admin · Ürün Düzenle" };
+export const metadata = { title: "Admin · Ürün düzenle" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {

@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
     deleteAppSlide: vi.fn(),
     deleteAppPost: vi.fn(),
     deleteShopHeroSlide: vi.fn(),
+    getShopHeroSlide: vi.fn(),
     deleteStoryEvent: vi.fn(),
     deletePress: vi.fn(),
     createStoryEvent: vi.fn(),
