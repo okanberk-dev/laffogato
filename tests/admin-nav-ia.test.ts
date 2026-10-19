@@ -582,6 +582,22 @@ describe("the shell's markup", () => {
     );
   });
 
+  it("the skip link shows on focus: no sr-only, which the site's unlayered rule pins", () => {
+    // globals.css has its own `.sr-only` outside any layer, and it beats
+    // Tailwind's layered `focus:not-sr-only`: the focused link stayed a
+    // clipped 32 px sliver (seen in the browser pass).
+    expect(readFileSync("src/app/globals.css", "utf8")).toMatch(
+      /^\.sr-only \{/m,
+    );
+    const html = renderShell("owner");
+    const link = /<a [^>]*href="#admin-main"[^>]*>/.exec(html)?.[0] ?? "";
+    expect(link).not.toContain("sr-only");
+    expect(link).toMatch(/\bfixed\b/);
+    expect(link).toContain("-translate-y-[calc(100%+1rem)]");
+    expect(link).toContain("focus:translate-y-0");
+    expect(link).toContain("min-h-11");
+  });
+
   it("the regroup note: unseen until dismissed, never drawn on the server", () => {
     expect(sidebar.navNoteVisible("")).toBe(true);
     expect(sidebar.navNoteVisible("1")).toBe(false);

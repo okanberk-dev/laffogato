@@ -688,12 +688,18 @@ function AccountMenu(
   );
 }
 
-/** "İçeriğe geç" (WCAG 2.4.1): the shell's first link, seen on focus. */
+/**
+ * "İçeriğe geç" (WCAG 2.4.1): the shell's first link, parked above the
+ * screen and slid in on focus. Not `sr-only focus:not-sr-only`: the site's
+ * own `.sr-only` in globals.css is unlayered, so it beats the layered
+ * `focus:` utilities and the focused link stayed a clipped 32 px sliver.
+ */
 function SkipLink() {
   return (
     <a
       href="#admin-main"
-      className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-lg focus:bg-[var(--admin-primary)] focus:px-4 focus:text-sm focus:font-medium focus:text-white print:hidden"
+      data-admin-skip-link=""
+      className="fixed top-2 left-2 z-50 inline-flex min-h-11 -translate-y-[calc(100%+1rem)] items-center rounded-lg bg-[var(--admin-primary)] px-4 text-sm font-medium whitespace-nowrap text-white transition-transform focus:translate-y-0 motion-reduce:transition-none print:hidden"
     >
       İçeriğe geç
     </a>
