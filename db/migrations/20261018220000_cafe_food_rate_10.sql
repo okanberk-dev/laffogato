@@ -27,9 +27,16 @@
 --             KDV. If an invoice was nevertheless cut at 1%, the operator
 --             tells the mali müşavir, who corrects it.
 --
--- settings."taxRates" is NOT touched: a value there was saved in the panel
--- (Ayarlar > Vergi), and the operator sets beans and pantry to 10 there
--- (operator step OP-01). A row that never saved a key reads the new default.
+--   settings."taxRates"  beans and pantry, each only while it is 1. That
+--             1 was the code's too: until this deploy Ayarlar > Vergi
+--             prefilled every field from the old default and its save
+--             writes every key, so a save of any other field (the menu
+--             rate, the price-list date) stored beans 1 and pantry 1. Left
+--             there, every new shop food line would be stamped 1 again
+--             after this file moved the old stamps. The decision offers 1
+--             for no food, so a stored 1 is never the operator's choice of
+--             today. Every other key and value stays; a row that never
+--             saved a key reads the new default.
 --
 -- Once only: the bundle replays every migration when a deploy adds one, and
 -- a rate the operator sets later in the panel must stay what they set.
@@ -54,6 +61,19 @@ update public.products
    and cat = 'merch'
    and "taxRatePct" is null
    and name like 'Pamuk Önlük%'
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261018220000_cafe_food_rate_10.sql'
+   );
+
+update public.settings
+   set "taxRates" = "taxRates"
+         || case when "taxRates"->'beans' = '1'::jsonb
+                 then '{"beans": 10}'::jsonb else '{}'::jsonb end
+         || case when "taxRates"->'pantry' = '1'::jsonb
+                 then '{"pantry": 10}'::jsonb else '{}'::jsonb end
+ where ("taxRates"->'beans' = '1'::jsonb or "taxRates"->'pantry' = '1'::jsonb)
    and not exists (
      select 1
        from public._migrations as applied

@@ -1283,7 +1283,9 @@ KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
   eski siparişte NULL, 20 okunur (`20261018220100_order_shipping_tax_rate.sql`).
 - `20261018220000_cafe_food_rate_10.sql` (bir kez): prd-0003 1 ise 10,
   prd-0009 oransız, merch ve Pamuk Önlük ise 10, `orders.items`'ta 1 damgalı
-  her satır 10 (sıra ve toplamlar aynı). `settings."taxRates"` değişmez.
+  her satır 10 (sıra ve toplamlar aynı), `settings."taxRates"`'ta `beans` ve
+  `pantry` yalnız 1 ise 10 (eski Vergi sekmesi her alanı eski varsayılanla
+  doldurup hepsini kaydediyordu; o 1 de kodundu). Diğer anahtarlar değişmez.
 - Panel: Ayarlar > Vergi alanları seçim; ipuçları yukarıdaki kurala göre.
   Sipariş sayfasının KDV tablosu ve sipariş CSV'si ödül kuponlu siparişte
   fatura dökümünü verir ve "Ödül kuponu <kod>: <tutar> ödeme olarak düşülür,
@@ -1292,7 +1294,8 @@ KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve ...") doğru
 **Operatöre.**
 
 - Ayarlar > Vergi: "Mağaza: kahve çekirdeği" ve "Mağaza: kiler (gıda)" %10
-  değilse %10 seç ve kaydet (OP-01). Kod kayıtlı değeri ezmez.
+  mı, kontrol et (OP-01). Migration kayıtlı 1'i bir kez 10'a çeker; başka
+  bir değer kayıtlıysa onu ezmez, %10 seç ve kaydet.
 - Ürünler: Yenilebilir Kup ve Pamuk Önlük kendi oranı %10 mu, kontrol et
   (migration yalnız kodun yazdığı değeri düzeltir).
 - Deploy'dan sonra `GET https://laffogato.net/api/mobile/v1/shop`: prd-0001,

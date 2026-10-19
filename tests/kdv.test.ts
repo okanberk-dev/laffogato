@@ -123,8 +123,12 @@ describe("the seeded shop catalogue", () => {
     expect(migration).toMatch(
       /update public\.products\s+set "taxRatePct" = 10\s+where id = 'prd-0009'\s+and cat = 'merch'\s+and "taxRatePct" is null/,
     );
+    // The Vergi tab's old prefill saved beans 1 and pantry 1 too.
+    expect(migration).toMatch(
+      /update public\.settings\s+set "taxRates" = "taxRates"[\s\S]*'\{"beans": 10\}'[\s\S]*'\{"pantry": 10\}'/,
+    );
     // Once: a rate the operator sets later in the panel stays.
-    expect(migration.match(/'20261018220000_cafe_food_rate_10\.sql'/g)).toHaveLength(3);
+    expect(migration.match(/'20261018220000_cafe_food_rate_10\.sql'/g)).toHaveLength(4);
   });
 });
 

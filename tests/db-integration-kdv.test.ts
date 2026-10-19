@@ -533,6 +533,12 @@ maybe("KDV per item in a real Postgres", () => {
           [id],
         )
       ).rows[0]?.taxRatePct;
+    const savedTaxRates = async () =>
+      (
+        await client.query(
+          `select "taxRates" from public.settings where id = 'main'`,
+        )
+      ).rows[0]?.taxRates as Record<string, number>;
     const order = async () =>
       (
         await client.query(
@@ -557,6 +563,12 @@ maybe("KDV per item in a real Postgres", () => {
                 ('prd-0009', 'Pamuk Önlük', $2, 'Önlük', 90000, 'merch', 10, true, null)`,
         [`yenilebilir-kup-${RUN}`, `pamuk-onluk-${RUN}`],
       );
+      // The old Vergi tab saved every key from its prefill: beans 1 and
+      // pantry 1 sit in the row though the operator only moved the menu.
+      await client.query(
+        `update public.settings set "taxRates" = $1::jsonb where id = 'main'`,
+        [JSON.stringify({ ...RATES, menu: 8, beans: 1, pantry: 1 })],
+      );
       // The first run, as db-migrate.mjs does it: the file, then its record.
       await client.query(`delete from public._migrations where name = $1`, [
         MIGRATION,
@@ -564,6 +576,12 @@ maybe("KDV per item in a real Postgres", () => {
       await client.query(sql);
       expect(await product("prd-0003")).toBe(10);
       expect(await product("prd-0009")).toBe(10);
+      expect(await savedTaxRates()).toEqual({
+        ...RATES,
+        menu: 8,
+        beans: 10,
+        pantry: 10,
+      });
       const after = await order();
       // Every 1 is 10, every other line and key as it was, in its place.
       expect(after.items.map((it) => it.taxRatePct)).toEqual([10, 20, 10]);
@@ -582,8 +600,12 @@ maybe("KDV per item in a real Postgres", () => {
       await client.query(
         `update public.products set "taxRatePct" = 1 where id = 'prd-0003'`,
       );
+      await client.query(
+        `update public.settings set "taxRates" = "taxRates" || '{"beans": 1}'::jsonb where id = 'main'`,
+      );
       await client.query(sql);
       expect(await product("prd-0003")).toBe(1);
+      expect((await savedTaxRates()).beans).toBe(1);
 
       // Unrecorded again: an operator's own rate is never touched.
       await client.query(`delete from public._migrations where name = $1`, [
