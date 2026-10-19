@@ -38,11 +38,13 @@ describe("admin proxy and the 2FA step", () => {
 
   it("carries the page's query in next, not on the sign-in URL", async () => {
     // A re-login used to land on the unfiltered list, and the original query
-    // (here a customer e-mail) stayed on /admin/giris's own URL.
+    // stayed on /admin/giris's own URL. (A typed search never gets this
+    // far: the proxy first moves it into the list's cookie,
+    // tests/admin-list-search.test.ts.)
     const { proxy } = await import("@/proxy");
     const res = await proxy(
       new NextRequest(
-        "https://site.test/admin/siparisler?durum=acik&q=ayse%40example.com",
+        "https://site.test/admin/siparisler?durum=acik&kanal=web&sayfa=2",
       ),
     );
     expect(res.status).toBe(307);
@@ -50,7 +52,7 @@ describe("admin proxy and the 2FA step", () => {
     expect(to.pathname).toBe("/admin/giris");
     expect([...to.searchParams.keys()]).toEqual(["next"]);
     expect(to.searchParams.get("next")).toBe(
-      "/admin/siparisler?durum=acik&q=ayse%40example.com",
+      "/admin/siparisler?durum=acik&kanal=web&sayfa=2",
     );
   });
 
