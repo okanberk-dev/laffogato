@@ -9,7 +9,14 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": true
+      "main": true,
+      "feat/**": false,
+      "fix/**": false,
+      "docs/**": false,
+      "chore/**": false,
+      "test/**": false,
+      "refactor/**": false,
+      "claude/**": false
     }
   },
   "headers": [

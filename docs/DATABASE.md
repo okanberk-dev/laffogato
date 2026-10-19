@@ -37,6 +37,19 @@ iyi bir sebep var - geçişten önce şunun yazılı olarak doğrulanması gerek
 Bu doğrulanmadan taşıma, siteyi bir kez daha aynı şekilde kapatır. Karar
 operatöründür; bu belge yalnızca bedelin ne olduğunu kayda geçirir.
 
+## Önizleme deployment'ları kapalı (19 Eki 2026)
+
+Vercel'deki Neon entegrasyonu her önizleme deployment'ı için `preview/<dal>`
+adında bir Neon dalı açıyor ve deployment'ı o dalın bağlantısıyla bir kez daha
+tetikliyordu. Ücretsiz planlarda bu iki sınırı birden dolduruyordu: Neon'da
+proje başına 10 dal, Vercel Hobby'de günde 100 deployment (19 Eki 2026'da
+doldu; kota dolunca `main`'in production deployment'ı da bekler). Bu yüzden
+`vercel.json` `git.deploymentEnabled` iş dallarını (`feat/**`, `fix/**`,
+`docs/**`, `chore/**`, `test/**`, `refactor/**`, `claude/**`) deploy etmez;
+yalnız `main` production'a gider. Bir dalın önizlemesi gerekirse
+`vercel deploy` ile elle açılır ve işi bitince `preview/*` Neon dalı silinir
+(`production` ve `vercel-dev` dalına dokunulmaz).
+
 ## Supabase'e geçiş yordamı
 
 Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
