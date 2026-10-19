@@ -45,11 +45,15 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 /**
  * Lists whose record has a page of its own AND sub-pages under it
- * (`/admin/musteriler/<e-posta>` and `.../duzenle`). Elsewhere a record id
- * followed by "duzenle" has no page (`/admin/urunler/<id>` is not a route),
- * so the trail skips it instead of linking to a 404.
+ * (`/admin/musteriler/<e-posta>` and `.../duzenle`, a promo code's view
+ * page and its edit page). Elsewhere a record id followed by "duzenle" has
+ * no page (`/admin/urunler/<id>` is not a route), so the trail skips it
+ * instead of linking to a 404.
  */
-const DETAIL_BASES: ReadonlySet<string> = new Set(["/admin/musteriler"]);
+const DETAIL_BASES: ReadonlySet<string> = new Set([
+  "/admin/musteriler",
+  "/admin/promosyon",
+]);
 
 /**
  * Where the operator is, as links back up: the sidebar entry the path
