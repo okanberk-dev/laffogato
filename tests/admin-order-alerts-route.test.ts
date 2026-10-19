@@ -34,12 +34,12 @@ vi.mock("@/lib/admin/auth", () => ({
         : session.value
       : null,
 }));
+/** The session cookie the request carries (its value, as the jar has it). */
+const cookie = vi.hoisted(() => ({ value: "signed-token" }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "laffogato_admin_session"
-        ? { value: "signed-token" }
-        : undefined,
+      name === "laffogato_admin_session" ? { value: cookie.value } : undefined,
   }),
 }));
 const listOrderAlertRows = vi.hoisted(() => vi.fn());
@@ -63,6 +63,7 @@ vi.mock("@/lib/admin/change-marker", () => ({
 const { GET } = await import("@/app/admin/siparisler/uyari/route");
 const { formatOrderAlertCursor, parseOrderAlertCursor } =
   await import("@/lib/admin/order-alerts-core");
+const { sessionBinding } = await import("@/lib/admin/poll-binding");
 
 const ROUTE = "https://laffogato.net/admin/siparisler/uyari";
 const req = (cursor?: string) =>
@@ -91,6 +92,7 @@ function dbRow(over: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  cookie.value = "signed-token";
   session.value = null;
   session.throws = null;
   session.signed = undefined;
@@ -266,7 +268,12 @@ describe("the cursor: nothing changed, no database", () => {
   /** A marker made two hours ago, as change-marker.ts makes them. */
   const M = `${(Date.now() - 2 * 3600_000).toString(36)}-k3j9x0q2`;
   const cursorAt = (fullAt: number, newestPaidAt = 0, m = M) =>
-    formatOrderAlertCursor({ marker: m, fullAt, newestPaidAt });
+    formatOrderAlertCursor({
+      marker: m,
+      fullAt,
+      newestPaidAt,
+      session: sessionBinding("signed-token"),
+    });
 
   beforeEach(() => {
     session.value = STAFF;
@@ -376,8 +383,67 @@ describe("the cursor: nothing changed, no database", () => {
   });
 
   it("junk in ?c= is a full answer, never an error", async () => {
-    const res = await GET(req("a1.<script>.0.0"));
+    const res = await GET(req("a2.<script>.0.0"));
     expect(res.status).toBe(200);
     expect((await res.json()).alerts).toHaveLength(1);
+  });
+
+  it("an a1 cursor from before the session binding gets one full answer", async () => {
+    const res = await GET(
+      req(`a1.${M}.${(Date.now() - 60_000).toString(36)}.0`),
+    );
+    const body = await res.json();
+    expect(body.alerts).toHaveLength(1);
+    expect(parseOrderAlertCursor(body.cursor)?.session).toBe(
+      sessionBinding("signed-token"),
+    );
+  });
+});
+
+describe("a session revoked since its cursor (rule 30)", () => {
+  const STAFF = { email: "s@laffogato.net", role: "staff" };
+  const M = `${(Date.now() - 2 * 3600_000).toString(36)}-k3j9x0q2`;
+
+  beforeEach(() => {
+    session.value = STAFF;
+    marker.read.mockResolvedValue(M);
+  });
+
+  it("a cursor answers unchanged only for the session it was handed to", async () => {
+    cookie.value = "token-of-a";
+    const first = await (await GET(req())).json();
+    expect(first.cursor).toEqual(expect.any(String));
+    expect((await (await GET(req(first.cursor))).json()).unchanged).toBe(true);
+    // Another cookie, still validly signed, whose account was deactivated
+    // before the current marker was made, with the first session's cursor:
+    // the account is read, and it says no.
+    getAdminSession.mockClear();
+    cookie.value = "token-of-b";
+    session.signed = STAFF;
+    session.value = null;
+    const res = await GET(req(first.cursor));
+    expect(res.status).toBe(401);
+    expect(getAdminSession).toHaveBeenCalled();
+    expect(listOrderAlertRows).toHaveBeenCalledTimes(1);
+  });
+
+  it("a deactivated, demoted or reset account is refused on the next poll: the account write moved the marker", async () => {
+    const first = await (await GET(req())).json();
+    // What an admin_users write does (change-marker.ts carries live:access).
+    marker.read.mockResolvedValue(`${(Date.now() - 1000).toString(36)}-acct`);
+    session.signed = STAFF;
+    session.value = null;
+    expect((await GET(req(first.cursor))).status).toBe(401);
+    session.value = { email: STAFF.email, role: "cashier" };
+    expect((await GET(req(first.cursor))).status).toBe(403);
+    expect(listOrderAlertRows).toHaveBeenCalledTimes(1);
+  });
+
+  it("the marker is read before the account, so a revocation in between moves it", async () => {
+    const res = await GET(req());
+    expect(res.status).toBe(200);
+    expect(marker.read.mock.invocationCallOrder[0]).toBeLessThan(
+      getAdminSession.mock.invocationCallOrder[0],
+    );
   });
 });

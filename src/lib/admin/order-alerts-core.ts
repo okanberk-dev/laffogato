@@ -228,6 +228,9 @@ export function buildOrderAlerts(
 // is still the one in the cursor the route answers `{ unchanged: true }`
 // without touching the database. A moved, missing or unreadable marker
 // always gets the full answer, so failures lean to asking, not to silence.
+// The cursor is bound to the session it was handed to (poll-binding.ts),
+// and the marker also moves when a panel account is written: "nothing
+// changed" means nothing changed for this session's account either.
 
 /** While the köşk is busy, a full answer at least this often anyway. */
 export const ORDER_ALERT_FULL_REFRESH_MS = 60 * 60_000;
@@ -249,17 +252,28 @@ export interface OrderAlertCursor {
   fullAt: number;
   /** The newest alert's paidAt in that answer (ms), 0 for none. */
   newestPaidAt: number;
+  /** The session it was handed to (poll-binding.ts `sessionBinding`). */
+  session: string;
 }
 
 /** "<time base36>-<random base36>", as change-marker.ts makes them. */
 const MARKER_RE = /^[0-9a-z]{1,12}-[0-9a-z]{1,24}$/;
+/** 12 hex digits, as poll-binding.ts makes them. */
+const SESSION_BINDING_RE = /^[0-9a-f]{12}$/;
 const CURSOR_RE =
-  /^a1\.([0-9a-z]{1,12}-[0-9a-z]{1,24})\.([0-9a-z]{1,12})\.([0-9a-z]{1,12})$/;
-/** Longer than any cursor this file makes; anything longer is junk. */
+  /^a2\.([0-9a-z]{1,12}-[0-9a-z]{1,24})\.([0-9a-z]{1,12})\.([0-9a-z]{1,12})\.([0-9a-f]{12})$/;
+/**
+ * Longer than any cursor this file makes (the poller keeps none longer);
+ * anything longer is junk.
+ */
 const MAX_CURSOR_LENGTH = 80;
 
 export function isChangeMarker(value: unknown): value is string {
   return typeof value === "string" && MARKER_RE.test(value);
+}
+
+export function isSessionBinding(value: unknown): value is string {
+  return typeof value === "string" && SESSION_BINDING_RE.test(value);
 }
 
 /** When the marker was made (ms), or null for a marker that says nothing. */
@@ -269,16 +283,22 @@ export function markerMadeAt(marker: string): number | null {
   return Number.isFinite(t) && t > 0 ? t : null;
 }
 
+/** The cursor, or "" (no cursor) for a marker or session it cannot carry. */
 export function formatOrderAlertCursor(c: OrderAlertCursor): string {
+  if (!isChangeMarker(c.marker) || !isSessionBinding(c.session)) return "";
   return [
-    "a1",
+    "a2",
     c.marker,
     Math.max(0, Math.trunc(c.fullAt)).toString(36),
     Math.max(0, Math.trunc(c.newestPaidAt)).toString(36),
+    c.session,
   ].join(".");
 }
 
-/** The cursor the poller sent back, or null for none, junk or an old shape. */
+/**
+ * The cursor the poller sent back, or null for none, junk or an old shape
+ * (an `a1` cursor from before the session binding: one full answer).
+ */
 export function parseOrderAlertCursor(
   raw: string | null | undefined,
 ): OrderAlertCursor | null {
@@ -288,7 +308,7 @@ export function parseOrderAlertCursor(
   const fullAt = parseInt(m[2], 36);
   const newestPaidAt = parseInt(m[3], 36);
   if (!Number.isFinite(fullAt) || !Number.isFinite(newestPaidAt)) return null;
-  return { marker: m[1], fullAt, newestPaidAt };
+  return { marker: m[1], fullAt, newestPaidAt, session: m[4] };
 }
 
 /**
@@ -318,20 +338,24 @@ export function stillRinging(paidAtMs: number, nowMs: number): boolean {
 }
 
 /**
- * May the route answer "nothing changed" without reading the orders?
- * Only when the marker is readable and is the one the last full answer was
- * read under, that answer was read a settle period after the marker was
- * made, is not from the future, and, while the köşk is busy, is under an
- * hour old. Everything else gets the full answer.
+ * May the route answer "nothing changed" without reading the orders or the
+ * account? Only when the cursor was handed to this session, the marker is
+ * readable and is the one the last full answer was read under (no order and
+ * no panel account written since), that answer was read a settle period
+ * after the marker was made, is not from the future, and, while the köşk is
+ * busy, is under an hour old. Everything else gets the full answer.
  */
 export function mayAnswerUnchanged(opts: {
   cursor: OrderAlertCursor | null;
   marker: string | null;
+  /** This request's session (poll-binding.ts `sessionBinding`). */
+  session: string;
   nowMs: number;
   busy: boolean;
 }): boolean {
-  const { cursor, marker, nowMs, busy } = opts;
+  const { cursor, marker, session, nowMs, busy } = opts;
   if (!cursor || marker === null || cursor.marker !== marker) return false;
+  if (!isSessionBinding(session) || cursor.session !== session) return false;
   const made = markerMadeAt(marker);
   if (made === null) return false;
   if (cursor.fullAt < made + ORDER_ALERT_MARKER_SETTLE_MS) return false;

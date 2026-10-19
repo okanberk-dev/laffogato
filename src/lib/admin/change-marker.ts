@@ -11,7 +11,12 @@ import {
   presentationCacheEnabled,
   presentationCacheKey,
 } from "@/lib/cache/presentation";
-import { TAG_KARAOKE, TAG_ORDERS, TAG_SITE } from "@/lib/cache/tags";
+import {
+  TAG_ACCESS,
+  TAG_KARAOKE,
+  TAG_ORDERS,
+  TAG_SITE,
+} from "@/lib/cache/tags";
 import {
   getVenueStatus,
   isCafeOpenNow,
@@ -42,14 +47,19 @@ import {
  * missed order.
  *
  * Markers carry no data. Whatever is read when one moves goes through the
- * normal checks (the account re-read, rule 30).
+ * normal checks (the account re-read, rule 30). Every marker also sits
+ * under `live:access`, which every write to the panel accounts expires: a
+ * user deactivated, demoted or given a new password moves it too, so the
+ * "nothing changed" answer lasts only while no account changed since the
+ * full answer that re-read this session's account (the poll cursors are
+ * bound to that session, poll-binding.ts).
  */
 
 export type ChangeMarkerKind = "orders" | "karaoke";
 
-const MARKER_TAGS: Record<ChangeMarkerKind, string> = {
-  orders: TAG_ORDERS,
-  karaoke: TAG_KARAOKE,
+const MARKER_TAGS: Record<ChangeMarkerKind, readonly string[]> = {
+  orders: [TAG_ORDERS, TAG_ACCESS],
+  karaoke: [TAG_KARAOKE, TAG_ACCESS],
 };
 
 /** "<now base36>-<64 random bits base36>" (order-alerts-core `isChangeMarker`). */
@@ -66,7 +76,7 @@ export async function readChangeMarker(
     const marker = await unstable_cache(
       async () => newChangeMarker(),
       presentationCacheKey(`laf-marker-${kind}`),
-      { tags: [MARKER_TAGS[kind]] },
+      { tags: [...MARKER_TAGS[kind]] },
     )();
     return isChangeMarker(marker) ? marker : null;
   } catch {

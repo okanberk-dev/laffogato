@@ -348,31 +348,38 @@ describe('the cursor: answering "nothing changed" without the database', () => {
   const markerAt = (at: number) => `${at.toString(36)}-k3j9x0q2`;
   const MADE = NOW - 30 * 60_000;
   const MARKER = markerAt(MADE);
+  /** This request's session, as poll-binding.ts makes it. */
+  const SESSION = "0123456789ab";
   const cursor = (
     over: Partial<{ fullAt: number; newestPaidAt: number }> = {},
   ) => ({
     marker: MARKER,
     fullAt: MADE + 60_000,
     newestPaidAt: 0,
+    session: SESSION,
     ...over,
   });
 
   it("round-trips, and refuses junk, old shapes and oversized input", () => {
     const c = cursor({ newestPaidAt: NOW - 60_000 });
     const raw = formatOrderAlertCursor(c);
-    expect(raw).toMatch(/^a1\./);
+    expect(raw).toMatch(/^a2\./);
     expect(parseOrderAlertCursor(raw)).toEqual(c);
     for (const junk of [
       null,
       undefined,
       "",
-      "a1",
-      "a2." + raw.slice(3),
+      "a2",
+      "a3." + raw.slice(3),
       raw + ".x",
-      "a1.no marker.1.0",
-      "a1.ABC-def.1.0",
-      `a1.${MARKER}.1`,
-      `a1.${MARKER}.${"z".repeat(13)}.0`,
+      // The shape from before the session binding.
+      `a1.${MARKER}.${(MADE + 60_000).toString(36)}.0`,
+      `a2.${MARKER}.1.0`,
+      `a2.${MARKER}.1.0.0123456789AB`,
+      `a2.${MARKER}.1.0.0123456789a`,
+      "a2.no marker.1.0." + SESSION,
+      "a2.ABC-def.1.0." + SESSION,
+      `a2.${MARKER}.${"z".repeat(13)}.0.${SESSION}`,
       raw + "0".repeat(100),
       "<script>",
     ]) {
@@ -381,6 +388,25 @@ describe('the cursor: answering "nothing changed" without the database', () => {
         String(junk),
       ).toBeNull();
     }
+    // Nothing a bad marker or session would make: no cursor at all.
+    expect(formatOrderAlertCursor({ ...c, session: "" })).toBe("");
+    expect(formatOrderAlertCursor({ ...c, marker: "nope" })).toBe("");
+  });
+
+  it("the longest cursor it accepts still fits what the poller keeps (80)", () => {
+    const z = (n: number) => "z".repeat(n);
+    const longest = `a2.${z(12)}-${z(24)}.${z(12)}.${z(12)}.${SESSION}`;
+    expect(parseOrderAlertCursor(longest)).not.toBeNull();
+    expect(longest.length).toBeLessThanOrEqual(80);
+  });
+
+  it("answers unchanged only for the session the cursor was handed to", () => {
+    const base = { cursor: cursor(), marker: MARKER, nowMs: NOW, busy: false };
+    expect(mayAnswerUnchanged({ ...base, session: SESSION })).toBe(true);
+    expect(mayAnswerUnchanged({ ...base, session: "ba9876543210" })).toBe(
+      false,
+    );
+    expect(mayAnswerUnchanged({ ...base, session: "" })).toBe(false);
   });
 
   it("reads when a marker was made", () => {
@@ -395,6 +421,7 @@ describe('the cursor: answering "nothing changed" without the database', () => {
       mayAnswerUnchanged({
         cursor: cursor({ fullAt: MADE + 60_000 }),
         marker: MARKER,
+        session: SESSION,
         nowMs: NOW + 10 * 60 * 60_000,
         busy: false,
       }),
@@ -408,6 +435,7 @@ describe('the cursor: answering "nothing changed" without the database', () => {
       mayAnswerUnchanged({
         cursor: { ...cursor({ fullAt: NOW - age }), marker: older },
         marker: older,
+        session: SESSION,
         nowMs: NOW,
         busy: true,
       });
@@ -417,7 +445,12 @@ describe('the cursor: answering "nothing changed" without the database', () => {
   });
 
   it("a moved, missing or unreadable marker answers no", () => {
-    const base = { cursor: cursor(), nowMs: NOW, busy: false };
+    const base = {
+      cursor: cursor(),
+      session: SESSION,
+      nowMs: NOW,
+      busy: false,
+    };
     expect(mayAnswerUnchanged({ ...base, marker: markerAt(NOW - 1000) })).toBe(
       false,
     );
@@ -432,6 +465,7 @@ describe('the cursor: answering "nothing changed" without the database', () => {
       mayAnswerUnchanged({
         cursor: cursor({ fullAt: NOW + 1000 }),
         marker: MARKER,
+        session: SESSION,
         nowMs: NOW,
         busy: false,
       }),
@@ -445,6 +479,7 @@ describe('the cursor: answering "nothing changed" without the database', () => {
       mayAnswerUnchanged({
         cursor: cursor({ fullAt: MADE + gap }),
         marker: MARKER,
+        session: SESSION,
         nowMs: NOW,
         busy: false,
       });

@@ -27,8 +27,10 @@ const signed = vi.hoisted(() => ({
 const marker = vi.hoisted(() => ({
   read: vi.fn(async (): Promise<string | null> => null),
 }));
+/** The session cookie the request carries. */
+const cookie = vi.hoisted(() => ({ value: "signed-token" }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => ({ value: "signed-token" }) }),
+  cookies: async () => ({ get: () => ({ value: cookie.value }) }),
 }));
 vi.mock("@/lib/admin/change-marker", () => ({
   readChangeMarker: marker.read,
@@ -61,13 +63,18 @@ vi.mock("@/lib/admin/store", () => ({
 
 const { newOrderCountAction, newOrderSignalAction, openOrderSignalAction } =
   await import("@/app/admin/siparisler/actions");
-const { formatSignalCursor, parseSignalCursor } =
+const { formatSignalCursor: formatFor, parseSignalCursor } =
   await import("@/lib/admin/panel-signal-core");
+const { sessionBinding } = await import("@/lib/admin/poll-binding");
+/** A cursor as this request's session ("signed-token") is handed one. */
+const formatSignalCursor = (marker: string, key: string) =>
+  formatFor(marker, key, sessionBinding("signed-token"));
 
 /** A marker made an hour ago (settled), as change-marker.ts makes them. */
 const M = `${(Date.now() - 3600_000).toString(36)}-k3j9x0q2`;
 
 beforeEach(() => {
+  cookie.value = "signed-token";
   countOpenOrders.mockReset();
   countOpenOrders.mockResolvedValue(4);
   countOrdersAfter.mockReset();
@@ -118,11 +125,48 @@ describe("openOrderSignalAction", () => {
     });
   });
 
-  it("reads the marker before the count", async () => {
+  it("reads the marker before the account and the count", async () => {
     await openOrderSignalAction("");
+    expect(marker.read.mock.invocationCallOrder[0]).toBeLessThan(
+      getAdminSession.mock.invocationCallOrder[0],
+    );
     expect(marker.read.mock.invocationCallOrder[0]).toBeLessThan(
       countOpenOrders.mock.invocationCallOrder[0],
     );
+  });
+
+  it("a cursor answers unchanged only for the session it was handed to (rule 30)", async () => {
+    const first = (await openOrderSignalAction("")) as { cursor: string };
+    expect(first.cursor).not.toBe("");
+    expect(await openOrderSignalAction(first.cursor)).toEqual({
+      unchanged: true,
+    });
+    // Another cookie, still validly signed, whose account was deactivated
+    // before the current marker was made: the account is read, no badge.
+    getAdminSession.mockClear();
+    countOpenOrders.mockClear();
+    cookie.value = "another-signed-token";
+    getAdminSession.mockResolvedValue(null);
+    await expect(openOrderSignalAction(first.cursor)).resolves.toEqual({
+      count: null,
+      cursor: "",
+    });
+    expect(getAdminSession).toHaveBeenCalled();
+    expect(countOpenOrders).not.toHaveBeenCalled();
+  });
+
+  it("an account write since the cursor (the marker moved) re-reads the account: deactivated, no badge", async () => {
+    const first = (await openOrderSignalAction("")) as { cursor: string };
+    // What a write to admin_users does (change-marker.ts carries live:access).
+    marker.read.mockResolvedValue(
+      `${(Date.now() - 600_000).toString(36)}-acct`,
+    );
+    getAdminSession.mockResolvedValue(null);
+    await expect(openOrderSignalAction(first.cursor)).resolves.toEqual({
+      count: null,
+      cursor: "",
+    });
+    expect(countOpenOrders).toHaveBeenCalledTimes(1);
   });
 
   it("an invalid signature is no badge, without the database", async () => {

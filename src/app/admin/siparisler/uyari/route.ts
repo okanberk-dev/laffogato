@@ -22,6 +22,7 @@ import {
   parseOrderAlertCursor,
   stillRinging,
 } from "@/lib/admin/order-alerts-core";
+import { sessionBinding } from "@/lib/admin/poll-binding";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listOrderAlertRows } from "@/lib/admin/store";
 import { getVenueStatus } from "@/lib/mobile/venue";
@@ -42,29 +43,36 @@ const NO_STORE = { "Cache-Control": "private, no-store" } as const;
  *
  * Two answers:
  *
- * - `?c=<cursor>` with a cursor whose change marker is still current
- *   (change-marker.ts: every write to `orders` replaces it) gets
+ * - `?c=<cursor>` with a cursor handed to this same session cookie
+ *   (poll-binding.ts) whose change marker is still current gets
  *   `{ now, unchanged: true, cursor, pollAfterMs }`: no orders, no database.
- *   It needs a validly signed session cookie of a role with Siparişler, and
- *   carries no data, so it does not re-read the account; while the köşk is
- *   busy at least one answer an hour is a full one anyway
- *   (`mayAnswerUnchanged`).
+ *   The marker (change-marker.ts) moves on every write to `orders` and on
+ *   every write to the panel accounts, so "still current" also means this
+ *   session's account has not changed since the full answer that re-read it
+ *   (rule 30): a user deactivated, demoted or given a new password is
+ *   re-read, and refused, on the next poll. It needs a validly signed
+ *   session cookie of a role with Siparişler; while the köşk is busy at
+ *   least one answer an hour is a full one anyway (`mayAnswerUnchanged`).
  * - Everything else, the full answer, as before: the session and the orders
  *   section are checked here, on every request (a route handler is not
  *   behind `requireRole`, and `proxy.ts` only redirects page views): 401
  *   without a session (the poller stops), 403 for a role without Siparişler
  *   (a cashier), 503 when the account or the orders could not be read (the
  *   poller keeps asking). It adds the cursor for the next ask, made from the
- *   marker read BEFORE the orders, so an order paid in between moves it.
+ *   marker read BEFORE the account and the orders, so a write to either in
+ *   between moves it.
  */
 export async function GET(request: Request) {
   const now = Date.now();
 
   // The cheap check first: the cookie's signature, no database.
   let signed;
+  let bound = "";
   try {
     const jar = await cookies();
-    signed = readSessionFromCookieValue(jar.get(ADMIN_COOKIE_NAME)?.value);
+    const token = jar.get(ADMIN_COOKIE_NAME)?.value;
+    signed = readSessionFromCookieValue(token);
+    bound = sessionBinding(token);
   } catch {
     signed = null;
   }
@@ -75,16 +83,19 @@ export async function GET(request: Request) {
     );
   }
 
+  // Before the account and the orders: a write to either that lands after
+  // this read moves the marker, so the next ask reads again and sees it. A
+  // token without Siparişler could never use a cursor: it gets none.
   let marker: string | null = null;
-  let markerRead = false;
-  const rawCursor = new URL(request.url).searchParams.get("c");
-  const cursor = parseOrderAlertCursor(rawCursor);
-  if (cursor && rawCursor && canAccess("orders", signed.role)) {
+  if (canAccess("orders", signed.role)) {
     marker = await readChangeMarker("orders");
-    markerRead = true;
-    if (marker !== null) {
+    const rawCursor = new URL(request.url).searchParams.get("c");
+    const cursor = parseOrderAlertCursor(rawCursor);
+    if (marker !== null && cursor && rawCursor) {
       const busy = await cachedBusyWindow(now);
-      if (mayAnswerUnchanged({ cursor, marker, nowMs: now, busy })) {
+      if (
+        mayAnswerUnchanged({ cursor, marker, session: bound, nowMs: now, busy })
+      ) {
         return Response.json(
           {
             now: new Date(now).toISOString(),
@@ -125,9 +136,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Before the orders: a write that lands after this read moves the
-    // marker, so the next ask reads again and sees it.
-    if (!markerRead) marker = await readChangeMarker("orders");
     const rows = await listOrderAlertRows(
       orderAlertsSince(now),
       ORDER_ALERT_LIMIT,
@@ -147,6 +155,7 @@ export async function GET(request: Request) {
                 marker,
                 fullAt: now,
                 newestPaidAt: newestAlertPaidAt(alerts),
+                session: bound,
               }),
             }
           : {}),

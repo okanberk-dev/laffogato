@@ -20,53 +20,76 @@ import {
 const NOW = Date.parse("2026-10-19T20:00:00.000Z");
 const markerAt = (at: number) => `${at.toString(36)}-k3j9x0q2`;
 const M = markerAt(NOW - 3600_000);
+/** The session, as poll-binding.ts makes it. */
+const S = "0123456789ab";
 
 describe("the signal cursor", () => {
   it("round-trips, and refuses junk and oversized input", () => {
-    const raw = formatSignalCursor(M, "2026-10-19");
-    expect(parseSignalCursor(raw)).toEqual({ marker: M, key: "2026-10-19" });
-    expect(parseSignalCursor(formatSignalCursor(M, "1042-open"))).toEqual({
+    const raw = formatSignalCursor(M, "2026-10-19", S);
+    expect(parseSignalCursor(raw)).toEqual({
+      marker: M,
+      key: "2026-10-19",
+      session: S,
+    });
+    expect(parseSignalCursor(formatSignalCursor(M, "1042-open", S))).toEqual({
       marker: M,
       key: "1042-open",
+      session: S,
     });
     for (const junk of [
       "",
       null,
       42,
-      "s1",
+      "s2",
+      // The shape from before the session binding.
+      `s1.${M}.open`,
       `s2.${M}.open`,
-      `s1.${M}.OPEN`,
-      `s1.${M}.open.extra`,
-      `s1.not a marker.open`,
-      `s1.${M}.${"a".repeat(40)}`,
+      `s2.${M}.OPEN.${S}`,
+      `s2.${M}.open.${S}.extra`,
+      `s2.${M}.open.0123456789AB`,
+      `s2.not a marker.open.${S}`,
+      `s2.${M}.${"a".repeat(40)}.${S}`,
       raw + "x".repeat(100),
     ]) {
       expect(parseSignalCursor(junk), String(junk)).toBeNull();
     }
-    // Nothing a bad marker or key would make.
-    expect(formatSignalCursor("nope", "open")).toBe("");
-    expect(formatSignalCursor(M, "")).toBe("");
+    // Nothing a bad marker, key or session would make.
+    expect(formatSignalCursor("nope", "open", S)).toBe("");
+    expect(formatSignalCursor(M, "", S)).toBe("");
+    expect(formatSignalCursor(M, "open", "")).toBe("");
   });
 
-  it("answers unchanged only for the same marker and the same key", () => {
-    const c = parseSignalCursor(formatSignalCursor(M, "open"));
-    expect(signalUnchanged(c, M, "open")).toBe(true);
-    expect(signalUnchanged(c, markerAt(NOW), "open")).toBe(false);
-    expect(signalUnchanged(c, null, "open")).toBe(false);
-    expect(signalUnchanged(c, M, "1042-open")).toBe(false);
-    expect(signalUnchanged(null, M, "open")).toBe(false);
+  it("the longest cursor it makes still parses", () => {
+    const longest = formatSignalCursor(
+      `${"z".repeat(12)}-${"z".repeat(24)}`,
+      "z".repeat(32),
+      S,
+    );
+    expect(parseSignalCursor(longest)).not.toBeNull();
+  });
+
+  it("answers unchanged only for the same marker, the same key and the same session", () => {
+    const c = parseSignalCursor(formatSignalCursor(M, "open", S));
+    expect(signalUnchanged(c, M, "open", S)).toBe(true);
+    expect(signalUnchanged(c, markerAt(NOW), "open", S)).toBe(false);
+    expect(signalUnchanged(c, null, "open", S)).toBe(false);
+    expect(signalUnchanged(c, M, "1042-open", S)).toBe(false);
+    expect(signalUnchanged(null, M, "open", S)).toBe(false);
+    // Another session's cookie with this cursor: the account decides.
+    expect(signalUnchanged(c, M, "open", "ba9876543210")).toBe(false);
+    expect(signalUnchanged(c, M, "open", "")).toBe(false);
   });
 
   it("the karaoke day rolls over at midnight in Tuzla and forces a read", () => {
     const yesterday = parseSignalCursor(
-      formatSignalCursor(M, karaokeSignalKey("2026-10-19")),
+      formatSignalCursor(M, karaokeSignalKey("2026-10-19"), S),
     );
-    expect(signalUnchanged(yesterday, M, karaokeSignalKey("2026-10-19"))).toBe(
-      true,
-    );
-    expect(signalUnchanged(yesterday, M, karaokeSignalKey("2026-10-20"))).toBe(
-      false,
-    );
+    expect(
+      signalUnchanged(yesterday, M, karaokeSignalKey("2026-10-19"), S),
+    ).toBe(true);
+    expect(
+      signalUnchanged(yesterday, M, karaokeSignalKey("2026-10-20"), S),
+    ).toBe(false);
     expect(karaokeSignalKey("not a date!")).toBe("");
   });
 
@@ -79,12 +102,19 @@ describe("the signal cursor", () => {
 
   it("does not vouch for a marker made moments ago", () => {
     const fresh = markerAt(NOW - 1000);
-    expect(signalCursorFor(fresh, "open", NOW)).toBe("");
+    expect(signalCursorFor(fresh, "open", S, NOW)).toBe("");
     expect(
-      signalCursorFor(fresh, "open", NOW - 1000 + ORDER_ALERT_MARKER_SETTLE_MS),
-    ).toBe(formatSignalCursor(fresh, "open"));
-    expect(signalCursorFor(null, "open", NOW)).toBe("");
-    expect(signalCursorFor(M, "open", NOW)).toBe(formatSignalCursor(M, "open"));
+      signalCursorFor(
+        fresh,
+        "open",
+        S,
+        NOW - 1000 + ORDER_ALERT_MARKER_SETTLE_MS,
+      ),
+    ).toBe(formatSignalCursor(fresh, "open", S));
+    expect(signalCursorFor(null, "open", S, NOW)).toBe("");
+    expect(signalCursorFor(M, "open", S, NOW)).toBe(
+      formatSignalCursor(M, "open", S),
+    );
   });
 
   it("reads an answer defensively", () => {

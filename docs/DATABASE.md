@@ -85,12 +85,14 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
    önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
    düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
-   Dört etiket: `pub:catalog` (ürün, kategori, menü), `pub:site` (ayarlar,
+   Beş etiket: `pub:catalog` (ürün, kategori, menü), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
    içerikleri, hukuk override'ları, canlı durum), `live:orders`,
-   `live:karaoke`. Her tablo ve `db/schema.sql`'deki her fonksiyon bu
-   dosyada sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
-   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc dört
+   `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
+   okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
+   Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
+   sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
+   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc beş
    etiketi birden düşürür. Render sırasında (Next E7) etiket `after()` ile
    yanıt çıktıktan sonra düşer.
 2. **Genel sayfaların sunum okumaları Data Cache'ten gelir**
@@ -119,11 +121,11 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    anında eski deployment'ta süren istekler (en uzunu 300 sn: kampanya
    gönderimi, CSV içe aktarma; ödeme dönüşü, stok iadesi). Panelden yapılan
    bir kayıt yalnız kendi etiketini düşürür. Bunlardan sonra (her rollback
-   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de) dört
+   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de) beş
    etiketi elle düşür:
 
    ```bash
-   vercel cache dangerously-delete --tag pub:catalog,pub:site,live:orders,live:karaoke --yes
+   vercel cache dangerously-delete --tag pub:catalog,pub:site,live:orders,live:karaoke,live:access --yes
    ```
 
    `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da
@@ -135,8 +137,11 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
    `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
    aynıyken cevap `{ unchanged: true }`, veri ve veritabanı yok. Köşk açıkken
-   en az saatte bir tam cevap. Ayrıntı `docs/ADMIN.md` "Yeni sipariş
-   uyarısı".
+   en az saatte bir tam cevap. İşaret `admin_users` yazmalarında da
+   yenilenir (`live:access`) ve imleç onu alan oturum çerezine bağlıdır:
+   pasifleşen, rolü düşen ya da parolası sıfırlanan oturum bir sonraki
+   soruda hesabı yeniden okutur ve reddedilir (kural 30). Ayrıntı
+   `docs/ADMIN.md` "Yeni sipariş uyarısı".
 4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
    (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
    (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık

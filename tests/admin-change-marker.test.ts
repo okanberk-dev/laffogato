@@ -10,12 +10,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => ({
   entries: new Map<string, unknown>(),
+  /** The tags each entry was stored under, as the Data Cache keeps them. */
+  entryTags: new Map<string, string[]>(),
   made: [] as Array<{ keyParts: string[]; tags: string[] }>,
   broken: false,
 }));
 
 vi.mock("next/cache", () => ({
-  revalidateTag: vi.fn(),
+  // What an expired tag does: every entry stored under it is gone.
+  revalidateTag: vi.fn((tag: string) => {
+    for (const [key, tags] of h.entryTags) {
+      if (tags.includes(tag)) h.entries.delete(key);
+    }
+  }),
   unstable_cache: (
     fn: () => Promise<unknown>,
     keyParts: string[],
@@ -25,11 +32,15 @@ vi.mock("next/cache", () => ({
     return async () => {
       if (h.broken) throw new Error("cache service down");
       const key = keyParts.join("|");
-      if (!h.entries.has(key)) h.entries.set(key, await fn());
+      if (!h.entries.has(key)) {
+        h.entries.set(key, await fn());
+        h.entryTags.set(key, opts.tags);
+      }
       return h.entries.get(key);
     };
   },
 }));
+vi.mock("next/server", () => ({ after: vi.fn() }));
 const settings = vi.hoisted(() => ({ fail: false }));
 vi.mock("@/lib/admin/store", () => ({
   getSettings: vi.fn(async () => {
@@ -43,11 +54,13 @@ vi.mock("@/lib/mobile/venue", () => ({
 }));
 
 const marker = await import("@/lib/admin/change-marker");
+const { expireTags, tagsForWrite } = await import("@/lib/cache/tags");
 const { isChangeMarker, markerMadeAt } =
   await import("@/lib/admin/order-alerts-core");
 
 beforeEach(() => {
   h.entries.clear();
+  h.entryTags.clear();
   h.made.length = 0;
   h.broken = false;
   settings.fail = false;
@@ -83,9 +96,31 @@ describe("change markers", () => {
     await marker.readChangeMarker("orders");
     await marker.readChangeMarker("karaoke");
     expect(h.made.map((m) => [m.keyParts[0], m.keyParts[1], m.tags])).toEqual([
-      ["laf-marker-orders", "dpl_marker", ["live:orders"]],
-      ["laf-marker-karaoke", "dpl_marker", ["live:karaoke"]],
+      ["laf-marker-orders", "dpl_marker", ["live:orders", "live:access"]],
+      ["laf-marker-karaoke", "dpl_marker", ["live:karaoke", "live:access"]],
     ]);
+  });
+
+  it("move when a panel account is written: a revoked session is re-read on its next poll (rule 30)", async () => {
+    const orders = await marker.readChangeMarker("orders");
+    const karaoke = await marker.readChangeMarker("karaoke");
+    // A user deactivated, demoted or given a new password: what the data
+    // layer expires after that write (src/lib/db/index.ts).
+    expireTags(tagsForWrite({ table: "admin_users" }));
+    const ordersNext = await marker.readChangeMarker("orders");
+    const karaokeNext = await marker.readChangeMarker("karaoke");
+    expect(ordersNext).not.toBeNull();
+    expect(ordersNext).not.toBe(orders);
+    expect(karaokeNext).not.toBeNull();
+    expect(karaokeNext).not.toBe(karaoke);
+  });
+
+  it("an order write moves the orders marker, not the karaoke one", async () => {
+    const orders = await marker.readChangeMarker("orders");
+    const karaoke = await marker.readChangeMarker("karaoke");
+    expireTags(tagsForWrite({ table: "orders" }));
+    expect(await marker.readChangeMarker("orders")).not.toBe(orders);
+    expect(await marker.readChangeMarker("karaoke")).toBe(karaoke);
   });
 
   it("are null when the cache cannot say: off, switched off, or failing", async () => {

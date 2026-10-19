@@ -88,8 +88,22 @@ hesap okuması yok, veritabanı yok; yalnız çerezin imzası ve rolü (Sipariş
 bakılır. İşaret değiştiyse, okunamadıysa, imleç yoksa ya da bozuksa,
 çerezdeki rol Siparişler'e erişemiyorsa eski tam cevap gelir (hesap yeniden
 okunur, 401/403/503 aynı). Köşk açıkken en az saatte bir cevap yine tamdır.
-İşaret siparişlerden önce okunur, arada ödenen sipariş onu mutlaka
-değiştirir; ödenen bir masa siparişi bir sonraki 10 saniyelik soruda çalar.
+İşaret hesaptan ve siparişlerden önce okunur, arada ödenen sipariş onu
+mutlaka değiştirir; ödenen bir masa siparişi bir sonraki 10 saniyelik soruda
+çalar.
+
+Yetkisi alınan oturum (kural 30): işaret `admin_users`'a her yazmada da
+yenilenir (`live:access` etiketi: kullanıcı pasifleşti, rolü değişti,
+parolası sıfırlandı, silindi), yani "değişmedi" cevabı yalnız bu oturumun
+hesabını yeniden okuyan son tam cevaptan beri hiçbir hesap değişmediyse
+verilir. İmleç onu alan oturuma bağlıdır (oturum çerezinin SHA-256 özetinin
+ilk 12 hanesi, `src/lib/admin/poll-binding.ts`; adres ya da kimlik
+taşımaz): başka bir çerez, imzası geçerli olsa da, bu imleçle "değişmedi"
+alamaz, hesabı okunur. Yetkisi alınan oturum bir sonraki soruda 401 ya da
+403 alır; ilk siparişin ne zaman yazıldığını ve köşkün açık olup olmadığını
+bu yoldan öğrenemez. Kalan tek fark: Neon konsolunda elle yapılan bir hesap
+değişikliği etiket düşürmez (`docs/DATABASE.md` "Etiket düşürmeyen
+yazmalar"); hesabı panelden değiştir ya da beş etiketi düşür.
 "Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
 cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
 gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
@@ -108,7 +122,9 @@ bir imleç taşır (`src/lib/admin/panel-signal.ts`,
 `karaoke_reservations` (karaoke rozeti) yazılmadıysa ve aynı şey sayılıyorsa
 (karaokede Tuzla'nın bugünü, gece yarısı yeni gün; listede son sipariş no ve
 sekme) cevap `{ unchanged: true }`: sayı yok, hesap okuması yok, veritabanı
-yok, rozet sayısını korur. Sayı taşıyan her cevap hesabı yeniden okur. Bir
+yok, rozet sayısını korur. Sayı taşıyan her cevap hesabı yeniden okur. İmleç
+zilinki gibi oturuma bağlıdır ve işaret hesap yazmalarında da yenilenir:
+yetkisi alınan oturum bir sonraki soruda rozetsiz kalır. Bir
 işlem (`admin:changed`) ve sayfa değişimi imleci düşürür, sonraki okuma
 tamdır; liste yenilenince (`latestOrderNo`) yeniden imleçsiz başlar. Bir
 yazmanın düşürme isteği kaybolursa rozet bir sonraki işleme ya da sayfa

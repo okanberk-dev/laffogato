@@ -1258,7 +1258,7 @@ describe("the engine", () => {
 // ── The cursor: "nothing changed" without the database ──────────────────
 
 describe("the cursor", () => {
-  const CURSOR = "a1.mgx1k2-abc123.mgx1kz.0";
+  const CURSOR = "a2.mgx1k2-abc123.mgx1kz.0.0123456789ab";
   const URL_ = "https://laffogato.net/admin/siparisler/uyari";
 
   it("an unchanged answer keeps the list; anything else as before", () => {
@@ -1287,8 +1287,8 @@ describe("the cursor", () => {
     expect(pollUrl(URL_, "")).toBe(URL_);
     expect(pollUrl(URL_, CURSOR)).toBe(`${URL_}?c=${CURSOR}`);
     const ok = (json: unknown) => ({ status: 200, type: "basic", json });
-    expect(nextCursor(ok({ alerts: [], cursor: "a1.new" }), CURSOR)).toBe(
-      "a1.new",
+    expect(nextCursor(ok({ alerts: [], cursor: "a2.new" }), CURSOR)).toBe(
+      "a2.new",
     );
     expect(nextCursor(ok({ alerts: [] }), CURSOR)).toBe("");
     expect(nextCursor({ status: 503, type: "basic", json: null }, CURSOR)).toBe(

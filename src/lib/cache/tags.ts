@@ -18,29 +18,35 @@ import type { WriteTarget } from "@/lib/db/client";
  * reply was lost looks like a failure), and `expireTags` expires the answer
  * (src/lib/db/index.ts).
  *
- * Four tags:
+ * Five tags:
  * - `pub:catalog`: products, categories, menu items (the shop and the menu).
  * - `pub:site`: settings and every panel-edited text, slide and legal
  *   override the public pages print, and the venue's live status.
  * - `live:orders`: orders (the new-order bell and the panel's counts).
  * - `live:karaoke`: karaoke bookings (the nav badge).
+ * - `live:access`: panel accounts. Nothing cached reads them; both change
+ *   markers carry the tag, so a user deactivated, demoted or given a new
+ *   password moves every marker and each open panel tab's next poll
+ *   re-reads its account (rule 30).
  *
  * Every table and every SQL function is listed here on purpose, tagged or
  * not, and tests/cache-write-tags.test.ts fails on one that is not: a new
  * table cannot be cached silently stale. A function missing from the map
- * expires all four tags, because expiring too much only costs a read.
+ * expires every tag, because expiring too much only costs a read.
  */
 
 export const TAG_CATALOG = "pub:catalog";
 export const TAG_SITE = "pub:site";
 export const TAG_ORDERS = "live:orders";
 export const TAG_KARAOKE = "live:karaoke";
+export const TAG_ACCESS = "live:access";
 
 export const ALL_CACHE_TAGS = [
   TAG_CATALOG,
   TAG_SITE,
   TAG_ORDERS,
   TAG_KARAOKE,
+  TAG_ACCESS,
 ] as const;
 
 export type CacheTag = (typeof ALL_CACHE_TAGS)[number];
@@ -73,6 +79,8 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
 
   orders: [TAG_ORDERS],
   karaoke_reservations: [TAG_KARAOKE],
+  // Who may still read the panel: the change markers (change-marker.ts).
+  admin_users: [TAG_ACCESS],
 
   // Read live wherever they are read: nothing caches them.
   promos: NONE,
@@ -93,7 +101,6 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   auth_attempts: NONE,
   loyalty_stamps: NONE,
   invites: NONE,
-  admin_users: NONE,
   counter_tokens: NONE,
   staff_members: NONE,
   campaign_emails: NONE,

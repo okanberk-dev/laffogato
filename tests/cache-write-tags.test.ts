@@ -90,7 +90,7 @@ describe("every table and every function is classified", () => {
     expect(fns.filter((f) => !(f in tags.RPC_TAGS))).toEqual([]);
   });
 
-  it("only the four tags are used", () => {
+  it("only the five tags are used, each by something", () => {
     const used = new Set([
       ...Object.values(tags.TABLE_TAGS).flat(),
       ...Object.values(tags.RPC_TAGS).flat(),
@@ -110,6 +110,9 @@ describe("tagsForWrite", () => {
     ["home_hero_slides", ["pub:site"]],
     ["orders", ["live:orders"]],
     ["karaoke_reservations", ["live:karaoke"]],
+    // A user deactivated, demoted or given a new password: the change
+    // markers move and each panel poll re-reads its account (rule 30).
+    ["admin_users", ["live:access"]],
     ["customers", []],
     ["auth_attempts", []],
     ["payment_transactions", []],
