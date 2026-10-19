@@ -227,6 +227,14 @@ her kural, geldiği cümleyi `basis` alanında taşır ve
 kaybolduğunda kırılır. Asgari (zorunlu) sürelerde yıl **366 gün** sayılır -
 10 yıllık bir kayıt artık yıllar yüzünden bir gün erken imha edilemez.
 
+`audit_logs` veritabanında da append-only'dir
+(`20261019140000_audit_logs_append_only.sql`): UPDATE ve TRUNCATE P0001 ile
+reddedilir, DELETE yalnız `createdAt`'i yazılı ve on yıldan eski satırda
+geçer. İmha 10 × 366 gün bekler, yani her zaman tetikleyicinin sınırından
+sonra keser. Olay kaydından elle satır silmek ya da düzeltmek artık hata
+verir; tetikleyici uygulamayı ve kazaları durdurur, tablo sahibini değil
+(`alter table ... disable trigger` sahibin elindedir).
+
 ### Çalıştırma - varsayılan **rapor modu**
 
 `vercel.json` → `crons`: imha, `/api/cron/daily` içinde **son adım** olarak
