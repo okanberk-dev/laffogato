@@ -227,4 +227,26 @@ describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
     expect(text).not.toContain("mobil uygulamanın ürün detay ekranında");
     expect(text).not.toContain("veya personel aracılığıyla");
   });
+
+  it("names the staff's part in a sentence that parses, recorded as it ships", async () => {
+    const { LEGAL_CONTENT } = await import("@/lib/legal/content");
+    const s7 = LEGAL_CONTENT.find(
+      (d) => d.slug === "gida-guvenligi-ve-alerjen",
+    )!.sections.find((s) => s.heading.startsWith("7. "))!;
+    // "bu bilgi henüz yazılmamış bir kalemin ... personel bildirir" left the
+    // staff without a clause of its own; the item the information is
+    // missing for takes the genitive.
+    const staff =
+      "bu bilginin henüz yazılmadığı bir kalemin alerjenlerini personel siparişten önce bildirir.";
+    expect(s7.paragraphs[1]).toContain(staff);
+    expect(s7.paragraphs.join("\n")).not.toContain("bu bilgi henüz yazılmamış");
+    // LEGAL-REDLINES records the changed text word for word: the first
+    // paragraph from its changed sentence on, the second whole.
+    const redlines = readFileSync("docs/LEGAL-REDLINES-2026-09.md", "utf8");
+    const first = s7.paragraphs[0]!;
+    expect(redlines).toContain(
+      `"... ${first.slice(first.indexOf("Ambalajsız olarak"))}"`,
+    );
+    expect(redlines).toContain(`"${s7.paragraphs[1]}"`);
+  });
 });
