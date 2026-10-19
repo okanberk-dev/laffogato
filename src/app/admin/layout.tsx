@@ -7,6 +7,7 @@ import {
 import { OrderAlerts } from "@/components/admin/order-alerts";
 import { PanelHomeProvider } from "@/components/admin/panel-home";
 import { ToastProvider } from "@/components/admin/ui/toast";
+import { VenueQuick } from "@/components/admin/venue-quick";
 import { getAdminSession, type AdminSession } from "@/lib/admin/auth";
 import { readAdminFlash } from "@/lib/admin/flash";
 import {
@@ -442,6 +443,10 @@ export default async function AdminLayout({
   const landingPath = landingPathFor(session.role);
   // A one-page role (Kasiyer) has no sidebar, so nothing to clear room for.
   const chrome = hasNavChrome(groups);
+  // The top bar's controls. The köşk chip polls its own status (a Server
+  // Action, once a minute): the layout reads nothing for it.
+  const venueChip = canAccess("venue", session.role);
+  const orderAlerts = orderAlertsFor(session.role);
 
   return (
     <div
@@ -452,9 +457,10 @@ export default async function AdminLayout({
       <ToastProvider flash={flash}>
         <PanelHomeProvider href={landingPath}>
           {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
-              the search, at every width, mounted once). The new-order
-              alert lives there for the roles with Siparişler, on every
-              panel page (the till included). */}
+              the search, at every width, mounted once): the köşk chip for
+              the roles with Canlı durum, then the new-order alert for the
+              roles with Siparişler, on every panel page (the till
+              included). */}
           <AdminSidebar
             groups={groups}
             email={session.email}
@@ -463,10 +469,15 @@ export default async function AdminLayout({
             logout={logoutAction}
             canSearch={searchSectionsFor(session.role).length > 0}
             actions={
-              orderAlertsFor(session.role) ? (
-                <OrderAlerts
-                  mayStartPreparing={alertMayStartPreparing(session.role)}
-                />
+              venueChip || orderAlerts ? (
+                <>
+                  {venueChip ? <VenueQuick /> : null}
+                  {orderAlerts ? (
+                    <OrderAlerts
+                      mayStartPreparing={alertMayStartPreparing(session.role)}
+                    />
+                  ) : null}
+                </>
               ) : undefined
             }
           />
