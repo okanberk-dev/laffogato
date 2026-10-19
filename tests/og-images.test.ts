@@ -738,11 +738,13 @@ describe("the cards' typeface", () => {
 });
 
 describe("the product card's price", () => {
-  it("is the price the product page opens on, KDV included, in whole lira", async () => {
+  it("is the price the product page opens on, KDV included, to the kuruş", async () => {
     const { ogProductPrice, ogProductSoldOut } =
       await import("@/lib/seo/og-product");
     expect(ogProductPrice({ priceMinor: 45000 })).toEqual({ now: "450 TL" });
-    expect(ogProductPrice({ priceMinor: 125050 })).toEqual({ now: "1.251 TL" });
+    expect(ogProductPrice({ priceMinor: 125050 })).toEqual({
+      now: "1.250,50 TL",
+    });
     // The page preselects the first variant in stock and adds its delta.
     const variants = [
       { id: "a", name: "250 g", priceDelta: 50, stock: 0, isActive: true },
@@ -759,11 +761,18 @@ describe("the product card's price", () => {
       }),
     ).toBe(true);
     expect(ogProductSoldOut({ priceMinor: 45000, stock: 0 })).toBe(true);
-    expect(
-      ogProductPrice({ priceMinor: 45000, compareAtPriceMinor: 60000 }),
-    ).toEqual({ now: "450 TL", was: "600 TL" });
     expect(ogProductPrice({ priceMinor: 0 })).toBeNull();
     expect(ogProductPrice({})).toBeNull();
+  });
+
+  it("never strikes a price out", async () => {
+    // A discount advertised names its first and last day (Ticari Reklam
+    // Yön. m.14/1); the card has no room for them and is kept past the end.
+    const { ogProductPrice } = await import("@/lib/seo/og-product");
+    const discounted = { priceMinor: 45000, compareAtPriceMinor: 60000 };
+    expect(ogProductPrice(discounted)).toEqual({ now: "450 TL" });
+    const src = readFileSync("src/lib/seo/og-product.tsx", "utf8");
+    expect(src).not.toContain("line-through");
   });
 
   it("never prints the lira sign next/og cannot draw", async () => {

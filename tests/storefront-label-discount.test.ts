@@ -206,6 +206,22 @@ describe("a struck price names the discount's days", () => {
     expect(html).toContain(`<p class="pdp-discount-note">${NOTICE}</p>`);
   });
 
+  it("prints both prices to the kuruş, as the save proved them", () => {
+    // 149,90 TL was the lowest of the ten days; rounded to 150 the page
+    // overstated it (Fiyat Etiketi m.11/1), and 99,90 read as 100.
+    const html = pdp({
+      ...discounted,
+      price: "99,90₺",
+      priceMinor: 9_990,
+      compareAtPrice: "149,90₺",
+      compareAtPriceMinor: 14_990,
+    });
+    expect(html).toContain('<span class="pdp-price">99,90₺</span>');
+    expect(html).toContain('<span class="pdp-compare">149,90₺</span>');
+    expect(html).toMatch(/Sepete ekle · (<!-- -->)?99,90₺/);
+    expect(html).not.toContain("150₺");
+  });
+
   it("strikes nothing out without the days", () => {
     const {
       discountStartsAt: _s,
