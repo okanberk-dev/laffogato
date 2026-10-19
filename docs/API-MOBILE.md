@@ -391,7 +391,7 @@ mağazaya esas olmaz). Bu yüzden:
   düşük çevrim içi satış fiyatına eşitse kaydeder (`/admin/urunler` → **Fiyat
   ve stok**). Fiyat geçmişi `product_price_history` tablosunda, her fiyat
   değişikliğinde tetikleyiciyle yazılır; migration
-  `20261019170100_product_price_history.sql` tarihsiz eski fiyatları 0 yapar.
+  `20261019170300_product_price_history.sql` tarihsiz eski fiyatları 0 yapar.
 - Kaynak: `products."compareAtPriceMinor"`, `"discountStartsAt"`,
   `"discountEndsAt"`; kural `src/lib/shop/discount.ts` (`liveDiscount`), web
   sayfası da aynı fonksiyonu okur.
@@ -428,7 +428,7 @@ bunları, panelde girilmişse gösterir:
   `sert_kabuklu` da işaretlidir.
 - Kaynak: `products.allergens` (jsonb, NULL = girilmedi;
   `products_allergens_check` §1'deki listeyi tutar) ve aynı adlı `text`
-  sütunları, migration `20261019170000_product_food_label.sql`; alan listesi
+  sütunları, migration `20261019170200_product_food_label.sql`; alan listesi
   `src/lib/shop/food-label.ts`. Panelde `/admin/urunler` → **Temel bilgi** →
   *Alerjen* ve *Gıda etiketi*.
 - Eski sürümler alanları okumaz; bir şey kırılmaz.

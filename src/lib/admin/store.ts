@@ -210,7 +210,7 @@ export const NO_BACKDROP: Readonly<BackdropColumns> = {
 
 /**
  * The label of a packaged food (src/lib/shop/food-label.ts,
- * 20261019170000_product_food_label.sql). Optional: a row read before the
+ * 20261019170200_product_food_label.sql). Optional: a row read before the
  * migration ran has none of the keys, and every surface reads them through
  * `foodLabelOf` / `normalizeMenuAllergens`.
  */
