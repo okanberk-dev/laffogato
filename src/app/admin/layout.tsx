@@ -468,11 +468,16 @@ export default async function AdminLayout({
             }
           />
           {/* "İçeriğe geç" (the shell's first link) lands here. The pages
-              draw their own <main>, so this is a plain wrapper. */}
+              draw their own <main>, so this is a plain wrapper. Focusable,
+              so a click on the page's empty space focuses it too, and the
+              next arrow key drew the panel's focus ring round the whole
+              page. That ring (globals.css) is unlayered and beats any
+              class: only an inline style turns it off here. */}
           <div
             id="admin-main"
             tabIndex={-1}
             className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}
+            style={{ outline: "none" }}
           >
             {children}
           </div>

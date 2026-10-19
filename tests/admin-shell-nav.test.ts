@@ -650,7 +650,7 @@ describe("the layout", () => {
     expect(html).not.toContain('class="lucide');
     // Nothing to clear room for: the page is not pushed right.
     expect(html).toContain(
-      '<div id="admin-main" tabindex="-1" class="print:pl-0">',
+      '<div id="admin-main" tabindex="-1" class="print:pl-0" style="outline:none">',
     );
     // The skip link is still the first thing to focus.
     expect(html.indexOf('href="#admin-main"')).toBeLessThan(

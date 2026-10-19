@@ -598,6 +598,27 @@ describe("the shell's markup", () => {
     );
   });
 
+  it("the skip link's target draws no ring of its own: a click and an arrow key framed the whole page", async () => {
+    // The wrapper takes focus from the skip link (tabindex -1), and so from
+    // any click on the page's empty space too. The panel's one focus ring,
+    // `[data-admin-root] :focus-visible` in globals.css, is unlayered, so
+    // no Tailwind class turns it off: the first arrow key or PageDown after
+    // such a click drew a 2 px espresso frame round the whole page (seen in
+    // the browser). An inline style does.
+    expect(readFileSync("src/app/globals.css", "utf8")).toMatch(
+      /^\[data-admin-root\] :focus-visible \{\s+outline: 2px solid/m,
+    );
+    for (const role of ["owner", "cashier"] as const) {
+      session.role = role;
+      const html = renderToStaticMarkup(
+        await AdminLayout({ children: createElement("p", null, "PAGE") }),
+      );
+      const wrapper = /<div id="admin-main"[^>]*>/.exec(html)?.[0] ?? "";
+      expect(wrapper, role).toContain('tabindex="-1"');
+      expect(wrapper, role).toContain('style="outline:none"');
+    }
+  });
+
   it("the skip link shows on focus: no sr-only, which the site's unlayered rule pins", () => {
     // globals.css has its own `.sr-only` outside any layer, and it beats
     // Tailwind's layered `focus:not-sr-only`: the focused link stayed a
