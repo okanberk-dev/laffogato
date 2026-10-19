@@ -225,9 +225,8 @@ describe("the day reaches all three routes", () => {
 
 describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
   it("says where each menu item's allergens are written, and only that", async () => {
-    const { findLegalDoc, LEGAL_UPDATED } = await import(
-      "@/lib/legal/documents"
-    );
+    const { findLegalDoc, LEGAL_UPDATED } =
+      await import("@/lib/legal/documents");
     const doc = findLegalDoc("gida-guvenligi-ve-alerjen");
     // Its own 19 Ekim 2026 gave way to the set's later revision (20 Ekim
     // 2026, tests/legal-dates.test.ts).

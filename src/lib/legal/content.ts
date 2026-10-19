@@ -13416,7 +13416,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "Fatura türü",
-            value: "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
+            value:
+              "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
           },
           {
             key: "Fatura iletim yöntemi",
