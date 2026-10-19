@@ -9,7 +9,7 @@ import { getAdminSession } from "./auth";
  * Append-only event log of admin mutations. Persisted to the Postgres
  * `audit_logs` table, where a trigger refuses UPDATE, TRUNCATE and any
  * DELETE of a row younger than the ten-year retention
- * (db/migrations/20261019140000_audit_logs_append_only.sql); the periodic
+ * (db/migrations/20261019170000_audit_logs_append_only.sql); the periodic
  * destruction (src/lib/retention.ts) is the only thing that removes rows.
  */
 
