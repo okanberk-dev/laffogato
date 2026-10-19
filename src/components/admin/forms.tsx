@@ -1,6 +1,11 @@
-import { useId, type ReactNode } from "react";
+import Link from "next/link";
+import { isValidElement, useId, type ReactNode } from "react";
 
+import { cx } from "@/components/laffogato/cx";
 import { parsePublishInstant } from "@/lib/admin/publish-window";
+
+import { ActionMenu } from "./ui/action-menu";
+import { BUTTON, HEADER_EYEBROW } from "./ui/styles";
 
 const FIELD_LABEL =
   "text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase";
@@ -168,45 +173,187 @@ export function Card({
   );
 }
 
+/** A header button: a link drawn by the kit, or an element of the page's own. */
+export type PageHeaderAction = { href: string; label: string } | ReactNode;
+
+function isLinkAction(
+  value: PageHeaderAction,
+): value is { href: string; label: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !isValidElement(value) &&
+    typeof (value as { href?: unknown }).href === "string" &&
+    typeof (value as { label?: unknown }).label === "string"
+  );
+}
+
+export interface PageHeaderProps {
+  /**
+   * A short line above the title. Not the nav group ("Katalog"): the
+   * sidebar and the breadcrumbs already say where the page is.
+   */
+  eyebrow?: string;
+  /** The nav label, or the record's name. */
+  title: string;
+  /** One line, at most 12 words: what the page is for. */
+  description?: string;
+  /** The old free slot on the right; new pages use primary / secondary / menu. */
+  action?: ReactNode;
+  /**
+   * Rules, caveats and policy text, behind a closed "Nasıl çalışır?"
+   * disclosure under the header: there when wanted, not read on every
+   * visit. Money caveats stay next to the control they belong to.
+   */
+  help?: ReactNode;
+  /**
+   * Record facts (date, SKU, order number) on a record page. Drawn in the
+   * eyebrow's place; with `meta` set, `eyebrow` is not drawn.
+   */
+  meta?: ReactNode;
+  /** Status badges on the title's line. */
+  badges?: ReactNode;
+  /**
+   * The one solid button of the screen. `{ href, label }` is drawn as a
+   * BUTTON.primary link; an element (a submit, an ActionModal) is drawn
+   * as given. Either way it carries `data-admin-new`, which the `n`
+   * shortcut clicks (the link itself, or the first link or button inside
+   * the element's wrapper).
+   */
+  primary?: PageHeaderAction;
+  /** A quieter action before the primary; a link is drawn as BUTTON.ghost. */
+  secondary?: PageHeaderAction;
+  /**
+   * The "⋯" overflow: ActionMenuLink, ActionMenuButton and the like, for
+   * the rare and destructive actions (CSV indir, İçe aktar, Yazdır, Sil).
+   */
+  menu?: ReactNode;
+  /** The overflow's accessible name; default "Diğer işlemler". */
+  menuLabel?: string;
+}
+
+/**
+ * The top of every panel page: title, one line on what the page is for,
+ * and its buttons ([secondary] [Primary] [⋯]) on the right, wrapping under
+ * the title on a phone. `eyebrow`, `title`, `description` and `action`
+ * draw what they always did; everything else is optional and drawn only
+ * when given. Server-safe: the "⋯" is the kit's ActionMenu, which works
+ * before hydration.
+ *
+ * @example
+ * <PageHeader
+ *   title="Ürünler"
+ *   description="Online mağazada satılan ürünler."
+ *   help={<p>Stok, varyantlı üründe varyantların toplamıdır.</p>}
+ *   primary={{ href: "/admin/urunler/yeni", label: "Yeni ürün" }}
+ *   menu={<ActionMenuLink href="/admin/urunler/ice-aktar">İçe aktar</ActionMenuLink>}
+ * />
+ */
 export function PageHeader({
   eyebrow,
   title,
   description,
   action,
-}: {
-  eyebrow?: string;
-  title: string;
-  description?: string;
-  action?: ReactNode;
-}) {
+  help,
+  meta,
+  badges,
+  primary,
+  secondary,
+  menu,
+  menuLabel = "Diğer işlemler",
+}: PageHeaderProps) {
+  const heading = (
+    <h1
+      className="text-2xl text-[var(--admin-text)] sm:text-3xl"
+      style={{
+        fontFamily: "var(--font-poppins), var(--sans)",
+        fontWeight: 600,
+        letterSpacing: "-0.02em",
+      }}
+    >
+      {title}
+    </h1>
+  );
+  const buttons = Boolean(primary || secondary || menu);
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">
       <div className="min-w-0">
-        {eyebrow && (
+        {meta ? (
           <div
-            className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
+            className={cx(
+              "mb-2 flex flex-wrap items-center gap-x-3 gap-y-1",
+              HEADER_EYEBROW,
+            )}
           >
-            {eyebrow}
+            {meta}
           </div>
+        ) : eyebrow ? (
+          <div className={cx("mb-2", HEADER_EYEBROW)}>{eyebrow}</div>
+        ) : null}
+        {badges ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {heading}
+            {badges}
+          </div>
+        ) : (
+          heading
         )}
-        <h1
-          className="text-2xl text-[var(--admin-text)] sm:text-3xl"
-          style={{
-            fontFamily: "var(--font-poppins), var(--sans)",
-            fontWeight: 600,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          {title}
-        </h1>
         {description && (
           <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-soft)]">
             {description}
           </p>
         )}
       </div>
-      {action && <div className="w-full sm:w-auto">{action}</div>}
+      {buttons ? (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {action}
+          {secondary ? (
+            isLinkAction(secondary) ? (
+              <Link
+                href={secondary.href}
+                className={cx(BUTTON.ghost, "flex-1 sm:flex-none")}
+              >
+                {secondary.label}
+              </Link>
+            ) : (
+              secondary
+            )
+          ) : null}
+          {primary ? (
+            isLinkAction(primary) ? (
+              <Link
+                href={primary.href}
+                data-admin-new=""
+                className={cx(BUTTON.primary, "flex-1 sm:flex-none")}
+              >
+                {primary.label}
+              </Link>
+            ) : (
+              <div data-admin-new="" className="contents">
+                {primary}
+              </div>
+            )
+          ) : null}
+          {menu ? <ActionMenu label={menuLabel}>{menu}</ActionMenu> : null}
+        </div>
+      ) : (
+        action && <div className="w-full sm:w-auto">{action}</div>
+      )}
+      {help ? (
+        <details className="group -mt-2 w-full sm:-mt-3">
+          <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 rounded-md text-sm text-[var(--admin-primary)] select-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            {/* A drawn chevron: Poppins has no arrow glyphs. */}
+            <span
+              aria-hidden="true"
+              className="inline-block h-1.5 w-1.5 -rotate-45 border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:rotate-45"
+            />
+            Nasıl çalışır?
+          </summary>
+          <div className="mt-1 max-w-2xl rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
+            {help}
+          </div>
+        </details>
+      ) : null}
     </header>
   );
 }
