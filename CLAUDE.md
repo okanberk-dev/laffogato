@@ -454,8 +454,10 @@ durum bozulmaya uygundur.
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve
   `@internationalized/date` (palet, tarih alanı, combobox gibi yalnız
-  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`.
-  Diğer ikisi onları ilk kullanan PR'la gelir ve bu listeye eklenir. Her biri
+  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`,
+  `react-aria-components`. Tarih paketi onu ilk kullanan PR'la gelir ve bu
+  listeye eklenir (React Aria onu kilit dosyasına dolaylı olarak getirir; o
+  PR'a kadar kod onu doğrudan import etmez). Her biri
   `package.json`'da tam sürüme sabit (`^` yok), kilit dosyasında tek kopya;
   yükseltme ayrı bir PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
   import eder: her ikon orada bir kez adlandırılır, `AdminIcon` 18 px, 1.75

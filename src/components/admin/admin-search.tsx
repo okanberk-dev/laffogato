@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import {
   useActionState,
   type FormEvent,
@@ -26,6 +24,11 @@ import {
  * to the results page, which is drawn with the answer; with it, the box
  * hands the text to the results page in memory. What is searched, and for
  * whom: lib/admin/search.ts.
+ *
+ * The top bar no longer draws this box (admin UI v2, UI-6): it holds the
+ * ⌘K palette's trigger (palette/trigger.tsx), a link to the results page
+ * without JavaScript. The hand-off below still opens that page with a
+ * text in memory for whichever caller needs it.
  */
 
 export { ADMIN_SEARCH_PATH };
@@ -163,42 +166,5 @@ export function AdminSearchField({
         <SearchIcon />
       </button>
     </form>
-  );
-}
-
-/**
- * The top bar's search: the box itself on a wide screen; on a phone, where
- * the bar holds the menu button and the logo, a 44 px link to the results
- * page and its own box. With JavaScript the text is handed to the results
- * page and the box empties (the results page shows it); without, the form
- * posts there.
- */
-export function TopBarSearch() {
-  const [, formAction] = useAdminSearch();
-  const router = useRouter();
-  const pathname = usePathname();
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const text = String(new FormData(form).get("q") ?? "");
-    form.reset();
-    sendToResultsPage(text, pathname, (href) => router.push(href));
-  };
-  return (
-    <>
-      <Link
-        href={ADMIN_SEARCH_PATH}
-        aria-label="Ara"
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:hidden"
-      >
-        <SearchIcon />
-      </Link>
-      <AdminSearchField
-        id="admin-top-search"
-        formAction={formAction}
-        onSubmit={onSubmit}
-        className="hidden w-72 lg:flex xl:w-80"
-      />
-    </>
   );
 }

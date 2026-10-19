@@ -366,6 +366,7 @@ const renderSidebar = (
         landingPath: "/admin/kasa",
         logout: () => {},
         canSearch: true,
+        palette: { role: "owner", accountKey: "0123456789abcdef" },
         ...props,
       }),
     ),
@@ -440,43 +441,47 @@ describe("the sidebar and the top bar", () => {
     expect(header).toMatch(
       /<div data-admin-topbar-actions="" class="[^"]*"><button id="bell">Zil<\/button><\/div>/,
     );
-    expect(header).toContain('action="/admin/ara"');
-    expect(header.indexOf('action="/admin/ara"')).toBeLessThan(
+    // The search (the palette's trigger since UI-6) comes first.
+    expect(header).toContain("data-admin-palette-trigger");
+    expect(header.indexOf("data-admin-palette-trigger")).toBeLessThan(
       header.indexOf("data-admin-topbar-actions"),
     );
     expect(html.match(/data-admin-topbar-actions/g)).toHaveLength(1);
   });
 
-  it("shows the search only to a role it covers; it posts, so the text is in no address", () => {
+  it("shows the search only to a role it covers; without JavaScript it is a link to the results page", () => {
+    // Admin UI v2, UI-6: the top bar's box became the ⌘K palette's trigger.
+    // Its server markup is one link to /admin/ara (whose own box posts, so
+    // the text is in no address), at every width: a 44 px square on a
+    // phone, the box's look from lg.
     const html = renderSidebar();
-    expect(html).toContain('<a href="/admin/ara" aria-label="Ara"');
-    const form = tag(html, /<form[^>]*action="\/admin\/ara"[^>]*>/);
-    // A POST to the results page (the action's permalink), never a GET.
-    expect(form).toContain('method="POST"');
-    expect(form).toMatch(/enctype="multipart\/form-data"/i);
-    expect(form).not.toMatch(/method="get"/i);
-    expect(form).toContain('role="search"');
-    const body = html.slice(
-      html.indexOf(form),
-      html.indexOf("</form>", html.indexOf(form)),
+    const header = html.slice(
+      html.indexOf("<header"),
+      html.indexOf("</header>"),
     );
-    // The key a no-JS post is answered under on /admin/ara.
-    expect(body).toMatch(
-      /<input type="hidden" name="\$ACTION_KEY" value="p\/admin\/ara"\/>/,
+    const trigger = tag(header, /<a [^>]*data-admin-palette-trigger[^>]*>/);
+    expect(trigger).toContain('href="/admin/ara"');
+    expect(trigger).toContain('aria-label="Ara"');
+    expect(trigger).toContain('aria-haspopup="dialog"');
+    expect(trigger).toContain('aria-keyshortcuts="Meta+K Control+K"');
+    expect(header.match(/href="\/admin\/ara"/g)).toHaveLength(1);
+    // No form and no text box in the bar any more: nothing typed there.
+    expect(header).not.toContain("<form");
+    expect(header).not.toContain('name="q"');
+    const classes = /class="([^"]*)"/.exec(trigger)![1].split(" ");
+    expect(classes).toEqual(
+      expect.arrayContaining(["h-11", "w-11", "lg:w-72"]),
     );
-    const input = tag(html, /<input[^>]*id="admin-top-search"[^>]*>/);
-    expect(input).toContain('name="q"');
-    expect(input).toContain('type="search"');
-    // `hidden` below lg and `flex` from lg: no bare `flex` beside `hidden`.
-    const classes = /class="([^"]*)"/.exec(form)![1].split(" ");
-    expect(classes).toContain("hidden");
-    expect(classes).toContain("lg:flex");
-    expect(classes).not.toContain("flex");
     const none = renderSidebar({ canSearch: false });
     expect(none).not.toContain("/admin/ara");
+    expect(none).not.toContain("data-admin-palette-trigger");
     // Nothing for the wide bar to hold: it is not drawn there.
     expect(tag(none, /<header[^>]*>/)).toMatch(/\blg:hidden\b/);
     expect(tag(html, /<header[^>]*>/)).not.toMatch(/\blg:hidden\b/);
+    // Without the palette's inputs there is no trigger either.
+    expect(renderSidebar({ palette: undefined })).not.toContain(
+      "data-admin-palette-trigger",
+    );
   });
 
   it("with JavaScript, hands the text to the results page in memory, not in its address", () => {
