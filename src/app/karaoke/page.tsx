@@ -18,6 +18,7 @@ import { openGraphBase, SITE } from "@/lib/seo/site";
 
 import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
 import { parseSaatParam } from "@/components/laffogato/karaoke-today";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -112,13 +113,7 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           { name: "Karaoke", url: "/karaoke" },
         ])}
       />
-      <SiteChrome
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
-      >
+      <SiteChrome settings={footerSettings(settings)}>
         <KaraokeBooking
           days={days}
           date={date}

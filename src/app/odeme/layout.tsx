@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getPublicSettings } from "@/lib/admin/store";
+import { footerSettings } from "@/lib/seo/contact";
 
 import { OdemeChrome } from "./odeme-chrome";
 
@@ -16,14 +17,6 @@ export default async function OdemeLayout({
 }) {
   const settings = await getPublicSettings();
   return (
-    <OdemeChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
-      {children}
-    </OdemeChrome>
+    <OdemeChrome settings={footerSettings(settings)}>{children}</OdemeChrome>
   );
 }

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Fragment } from "react";
 
+import { venueContact, type VenueContact } from "@/lib/seo/contact";
 import type { FaqEntry } from "@/lib/seo/faq";
 import { GUIDE_LINKS } from "@/lib/seo/guide-nav";
 import { SITE } from "@/lib/seo/site";
@@ -22,7 +24,14 @@ import { SITE } from "@/lib/seo/site";
  * Styled from globals.css (`.seo-block`): it used to carry its own inline
  * colours, which is how the retired house green outlived two palettes here.
  */
-export function SeoContent({ faq }: { faq: FaqEntry[] }) {
+export function SeoContent({
+  faq,
+  contact = venueContact(),
+}: {
+  faq: FaqEntry[];
+  /** Ayarlar → Genel / Saatler (`venueContact(settings)`); bundled values when absent. */
+  contact?: VenueContact;
+}) {
   return (
     <section id="sss" aria-labelledby="sss-heading" className="seo-block">
       <div className="seo-block-inner">
@@ -54,11 +63,12 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
             <h3 className="seo-facts-label">Adres</h3>
             <address>
               {SITE.address.venue}
-              <br />
-              {SITE.address.streetAddress}
-              <br />
-              {SITE.address.postalCode} {SITE.address.addressLocality},{" "}
-              {SITE.address.addressRegion}
+              {contact.addressLines.map((line, i) => (
+                <Fragment key={i}>
+                  <br />
+                  {line}
+                </Fragment>
+              ))}
               <br />
               Türkiye
             </address>
@@ -66,14 +76,21 @@ export function SeoContent({ faq }: { faq: FaqEntry[] }) {
           <div>
             <h3 className="seo-facts-label">İletişim</h3>
             <p>
-              <a href={`tel:${SITE.phoneE164}`}>{SITE.phone}</a>
+              <a href={`tel:${contact.phoneTel}`}>{contact.phone}</a>
               <br />
-              <a href={`mailto:${SITE.email}`}>{SITE.email}</a>
+              <a href={`mailto:${contact.email}`}>{contact.email}</a>
             </p>
           </div>
           <div>
             <h3 className="seo-facts-label">Saatler</h3>
-            <p>Her gün: 09:00 - 02:00</p>
+            <p>
+              {contact.hoursRows.map(([label, value], i) => (
+                <Fragment key={i}>
+                  {i > 0 && <br />}
+                  {label ? `${label}: ${value}` : value}
+                </Fragment>
+              ))}
+            </p>
           </div>
           <div>
             <h3 className="seo-facts-label">Ulaşım</h3>

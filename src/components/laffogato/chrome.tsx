@@ -893,6 +893,8 @@ export interface FooterSettings {
   phone?: string;
   email?: string;
   address?: string;
+  /** Ayarlar → Saatler as label/value rows (`footerSettings`, seo/contact.ts). */
+  hours?: [string, string][];
   /** Courier fee in kuruş, from /admin/ayarlar. */
   courierFeeMinor?: number;
   /** Ayarlar → "Gel-al hazırlık süresi", for the home page's order card. */
@@ -915,6 +917,17 @@ const DEFAULT_ADDRESS_LINES = [
   "34940 Tuzla / İstanbul",
 ];
 
+/** The bundled week, for a page that passes no settings (error pages). */
+const DEFAULT_HOURS: [string, string][] = [
+  [
+    "Her gün",
+    `${LEGAL_ENTITY.cafeHours.opens} - ${LEGAL_ENTITY.cafeHours.closes}`,
+  ],
+];
+
+/** The registered seat: the tax certificate's address, one line. */
+const COMPANY_ADDRESS = `${LEGAL_ENTITY.address.line1}, ${LEGAL_ENTITY.address.postalCode} ${LEGAL_ENTITY.address.district} / ${LEGAL_ENTITY.address.city}`;
+
 export function Footer({ navigate, settings }: FooterProps) {
   const hrefFor = (r: Route) => ROUTE_PATHS[r];
   const go = (r: Route) => (e: React.MouseEvent) => {
@@ -923,9 +936,12 @@ export function Footer({ navigate, settings }: FooterProps) {
     navigate(r);
     window.scrollTo({ top: 0 });
   };
-  const phone = settings?.phone ?? "+90 536 429 09 19";
-  const email = settings?.email ?? SITE.email;
+  // `||`, not `??`: a field cleared in the panel arrives as "", and "" made
+  // an empty `tel:` / `mailto:` link.
+  const phone = settings?.phone?.trim() || SITE.phone;
+  const email = settings?.email?.trim() || SITE.email;
   const lines = addressLines(settings?.address ?? "", DEFAULT_ADDRESS_LINES);
+  const hours = settings?.hours?.length ? settings.hours : DEFAULT_HOURS;
   const year = new Date().getFullYear();
   return (
     <footer className="footer" data-ground="dark">
@@ -1068,7 +1084,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               ))}
               <li>
                 <a
-                  href={`tel:${phone.replace(/\s+/g, "")}`}
+                  href={`tel:${phone.replace(/[^\d+]/g, "")}`}
                   className="tabular"
                 >
                   {phone}
@@ -1077,9 +1093,15 @@ export function Footer({ navigate, settings }: FooterProps) {
               <li>
                 <a href={`mailto:${email}`}>{email}</a>
               </li>
+              {/* Ayarlar → Saatler: one row for a uniform week, one per run
+                  otherwise ("Pzt-Cum", "Cmt-Paz", "Paz Kapalı"). */}
               <li className="footer-contact-hours">
-                <span>Her gün</span>
-                <span className="tabular">09:00 - 02:00</span>
+                {hours.map(([label, value], i) => (
+                  <span key={i} className="footer-hours-row">
+                    <span>{label}</span>
+                    <span className="tabular">{value}</span>
+                  </span>
+                ))}
               </li>
             </ul>
             {/* The handle is the same on every network, so it is written once
@@ -1111,6 +1133,37 @@ export function Footer({ navigate, settings }: FooterProps) {
                 </a>
               </div>
             </div>
+            {/* Who runs the site, where it can be reached directly (ETHS
+                Yön. m.5/1, 6563 m.3/1): the title, MERSİS, the registered
+                seat and, once there is one, the KEP address, straight from
+                LEGAL_ENTITY. The chamber and the rules of conduct sit one
+                click away on the company page. */}
+            <dl className="footer-company">
+              <div>
+                <dt>Ticaret unvanı</dt>
+                <dd>{LEGAL_ENTITY.legalName}</dd>
+              </div>
+              <div>
+                <dt>MERSİS</dt>
+                <dd className="tabular">{LEGAL_ENTITY.mersisNo}</dd>
+              </div>
+              <div>
+                <dt>Merkez</dt>
+                <dd>{COMPANY_ADDRESS}</dd>
+              </div>
+              {LEGAL_ENTITY.kep ? (
+                <div>
+                  <dt>KEP</dt>
+                  <dd>{LEGAL_ENTITY.kep}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <Link
+              href="/hukuk/sirket-bilgileri"
+              className="footer-company-link"
+            >
+              Şirket bilgileri
+            </Link>
           </div>
         </div>
 

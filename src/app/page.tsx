@@ -60,7 +60,7 @@ interface PageProps {
 export default async function HomePage({ searchParams }: PageProps) {
   const [
     { cart, item, available, hesap },
-    { settings, menu, products, appProps },
+    { settings, menu, products, appProps, contact },
   ] = await Promise.all([searchParams, loadAppProps({ withHomeHero: true })]);
 
   // The site's old self-service deletion landed here, and its `/?hesap=`
@@ -97,7 +97,7 @@ export default async function HomePage({ searchParams }: PageProps) {
       <LaffogatoApp
         {...appProps}
         notice={notice}
-        seoSlot={<SeoContent faq={FAQ} />}
+        seoSlot={<SeoContent faq={FAQ} contact={contact} />}
         // The karaoke band and hero slide say what the panel says: the room's
         // size, hours, price and the top tier's discount (presentation only;
         // the booking re-reads every one of them on the server).

@@ -16,6 +16,7 @@ import { breadcrumbLd, menuSectionLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { openGraphBase } from "@/lib/seo/site";
+import { footerSettings, venueContact } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -98,14 +99,12 @@ export default async function MenuCategoryPage({ params }: RouteParams) {
         initialRoute="menu"
         products={products}
         settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
+          ...footerSettings(settings),
           // The day under the menu (Fiyat Etiketi Yön. m.5/2-d).
           menuPricesEffectiveDate: settings.menuPricesEffectiveDate,
         }}
         menu={filteredMenu}
-        seoSlot={<SeoContent faq={FAQ} />}
+        seoSlot={<SeoContent faq={FAQ} contact={venueContact(settings)} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
         shopHeroSlides={heroSlides.map((s) => ({

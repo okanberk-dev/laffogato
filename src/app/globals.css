@@ -4202,13 +4202,52 @@ summary:focus-visible,
   color: rgba(251, 248, 244, 0.9);
 }
 .footer-contact-col .footer-contact-hours {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
   padding-top: 10px;
   margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--green-mint);
+}
+.footer-hours-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* The company's identity under the social pills: small print, the same
+   mint as the column titles for the labels. */
+.footer-company {
+  margin: 20px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(251, 248, 244, 0.86);
+}
+.footer-company div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 8px;
+}
+.footer-company dt {
+  color: var(--green-mint);
+}
+.footer-company dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.footer .footer-company-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(251, 248, 244, 0.9);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer .footer-company-link:hover {
+  color: #fff;
 }
 .footer-social {
   margin-top: 20px;
@@ -5732,8 +5771,8 @@ summary:focus-visible,
 /* Visit page */
 
 /* ── Visit map ─────────────────────────────────────────────────────────────
-   A real embedded map rather than an illustration: this page exists to get
-   someone to the door. */
+   A drawn card with a link to Google Maps: this page exists to get someone
+   to the door, and no Google frame loads inside it (KVKK m.9). */
 .visit-map {
   position: relative;
 }
@@ -5744,15 +5783,11 @@ summary:focus-visible,
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
   background: var(--bg-warm);
-  /* The embed is a light-mode Google map; a hair of warmth stops it reading as
-     a cold rectangle dropped into the cream page. */
-  filter: saturate(0.92) contrast(1.02);
 }
-/* The drawn stand-in (click to load the real map). */
+/* The drawn stand-in; "Haritayı göster" opens Google Maps in a new tab. */
 .visit-map-facade {
   position: relative;
   overflow: hidden;
-  filter: none;
   display: grid;
   place-items: end center;
 }
