@@ -18,13 +18,34 @@ export const BUTTON = {
   /** A destructive row in an ActionMenu. */
   menuDanger:
     "flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)] focus-visible:bg-[var(--admin-danger-soft)] focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent",
+  /**
+   * An icon-only control: a 44px square in the ghost button's outline. It
+   * has no text, so it always takes an `aria-label` (the icon is
+   * `aria-hidden`).
+   */
+  icon: `${BUTTON_BASE} h-11 w-11 shrink-0 border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]`,
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON;
 
-/** The mono, spaced, uppercase label used across the panel's headers. */
+/**
+ * The mono, spaced, uppercase label of table column heads and filter
+ * fields. Page headers, badges and KeyValueGrid labels no longer use it:
+ * 10px capitals with wide tracking were the hardest text on the panel to
+ * read, so those are 12px sentence case (HEADER_EYEBROW, LABEL).
+ */
 export const EYEBROW =
   "text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase";
+
+/**
+ * The line above a page title (PageHeader `eyebrow` and `meta`): 12px
+ * sentence-case muted text. --admin-text-mute clears 4.5:1 on every panel
+ * ground (tests/admin-ui-kit.test.ts).
+ */
+export const HEADER_EYEBROW = "text-xs text-[var(--admin-text-mute)]";
+
+/** A label over its value (KeyValueGrid): 12px, weight 500, sentence case. */
+export const LABEL = "text-xs font-medium text-[var(--admin-text-soft)]";
 export const MONO_STYLE = { fontFamily: "var(--mono), monospace" } as const;
 
 /**

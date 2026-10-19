@@ -741,6 +741,32 @@ describe("tone colours clear AA", () => {
     }
   });
 
+  it("the 12px sentence-case labels clear AA on every panel ground", async () => {
+    // Page header eyebrow / meta, KeyValueGrid labels and the "Nasıl
+    // çalışır?" summary: smaller than body text, so 4.5:1 everywhere.
+    const { HEADER_EYEBROW, LABEL } =
+      await import("@/components/admin/ui/styles");
+    expect(HEADER_EYEBROW).toContain("text-[var(--admin-text-mute)]");
+    expect(LABEL).toContain("text-[var(--admin-text-soft)]");
+    for (const ink of [
+      "--admin-text-mute",
+      "--admin-text-soft",
+      "--admin-primary",
+    ]) {
+      for (const ground of [
+        "#FFFFFF",
+        token("--admin-bg"),
+        token("--admin-surface-2"),
+        token("--admin-neutral-soft"),
+      ]) {
+        expect(
+          contrast(token(ink), ground),
+          `${ink} on ${ground}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
   it("a field's outline clears 3:1 on a white card and on its own fill", () => {
     for (const ground of ["#FFFFFF", token("--admin-surface-2")]) {
       expect(
@@ -1022,6 +1048,34 @@ describe("server-rendered markup", () => {
     expect(out).toContain("bg-[var(--admin-primary-soft)]");
   });
 
+  it("Badge text is 12px sentence case, no longer 10px capitals", () => {
+    const out = html(
+      withKids(ui.Badge, { tone: "success", dot: true }, "Ödendi"),
+    );
+    const cls = /<span[^>]*class="([^"]+)"/.exec(out)?.[1] ?? "";
+    expect(cls).toContain("text-xs font-medium");
+    expect(cls).not.toContain("uppercase");
+    expect(cls).not.toMatch(/tracking-|text-\[10px\]/);
+    // Same tone pair as before.
+    expect(cls).toContain(ui.TONE_SOFT.success);
+    expect(out).toContain(">Ödendi</span>");
+  });
+
+  it("KeyValueGrid labels are 12px, weight 500, sentence case", async () => {
+    const { LABEL } = await import("@/components/admin/ui/styles");
+    const out = html(
+      createElement(ui.KeyValueGrid, {
+        items: [{ label: "Ödeme yöntemi", value: "Kart", mono: true }],
+      }),
+    );
+    expect(out).toContain(`<dt class="${LABEL}">Ödeme yöntemi</dt>`);
+    expect(LABEL).toBe("text-xs font-medium text-[var(--admin-text-soft)]");
+    // The value still takes the mono voice when asked; the label does not.
+    expect(out).toMatch(
+      /<dd [^>]*style="font-family:var\(--mono\), monospace">Kart/,
+    );
+  });
+
   it("KeyValueGrid skips false items and shows a dash for blanks", () => {
     const out = html(
       createElement(ui.KeyValueGrid, {
@@ -1137,5 +1191,202 @@ describe("server-rendered markup", () => {
     expect(out).toContain('aria-haspopup="dialog"');
     expect(out).toContain(">Sil<");
     expect(out).not.toContain("<dialog");
+  });
+});
+
+describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
+  const H1 =
+    '<h1 class="text-2xl text-[var(--admin-text)] sm:text-3xl" style="font-family:var(--font-poppins), var(--sans);font-weight:600;letter-spacing:-0.02em">';
+  const header = (props: Record<string, unknown>) =>
+    html(createElement(forms.PageHeader, props as never));
+  const link = (href: string, text: string) =>
+    createElement("a", { href }, text);
+
+  it("eyebrow, title, description and action draw what they did; the eyebrow is 12px sentence case", () => {
+    expect(
+      header({
+        eyebrow: "Satış",
+        title: "Siparişler",
+        description: "Ara, süz, sırala.",
+        action: link("/admin/siparisler/yeni", "Yeni sipariş"),
+      }),
+    ).toBe(
+      '<header class="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">' +
+        '<div class="min-w-0">' +
+        '<div class="mb-2 text-xs text-[var(--admin-text-mute)]">Satış</div>' +
+        `${H1}Siparişler</h1>` +
+        '<p class="mt-2 max-w-2xl text-sm text-[var(--admin-text-soft)]">Ara, süz, sırala.</p>' +
+        "</div>" +
+        '<div class="w-full sm:w-auto"><a href="/admin/siparisler/yeni">Yeni sipariş</a></div>' +
+        "</header>",
+    );
+    // A title alone is a title alone: no disclosure, no button row, no menu.
+    expect(header({ title: "Raporlar" })).toBe(
+      '<header class="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">' +
+        `<div class="min-w-0">${H1}Raporlar</h1></div></header>`,
+    );
+  });
+
+  it("help is a closed 'Nasıl çalışır?' disclosure under the header", () => {
+    const out = header({
+      title: "Karaoke",
+      description: "Bu akşamın ve gelecek günlerin rezervasyonları.",
+      help: createElement("p", null, "Ön ödeme açıksa iptal kuralı geçerli."),
+    });
+    const details = /<details class="([^"]*)">([\s\S]*)<\/details>/.exec(out);
+    expect(details).not.toBeNull();
+    // Closed: no `open` attribute, the text is one tap away.
+    expect(out).not.toMatch(/<details[^>]* open/);
+    expect(details?.[1]).toContain("w-full");
+    const summary = /<summary class="([^"]*)">([\s\S]*?)<\/summary>/.exec(
+      details?.[2] ?? "",
+    );
+    expect(summary?.[2]).toContain("Nasıl çalışır?");
+    // A 44px target, like every other control in the panel.
+    expect(summary?.[1]).toContain("min-h-[44px]");
+    expect(details?.[2]).toContain(
+      "<p>Ön ödeme açıksa iptal kuralı geçerli.</p>",
+    );
+    // After the title block, so the buttons stay on the title's line.
+    expect(out.indexOf("<details")).toBeGreaterThan(out.indexOf("</h1>"));
+    expect(out.indexOf("<details")).toBeGreaterThan(
+      out.indexOf("Bu akşamın ve"),
+    );
+  });
+
+  it("meta takes the eyebrow's place on a record page; badges sit on the title's line", () => {
+    const out = header({
+      eyebrow: "Sipariş",
+      meta: createElement("span", null, "12 Eki 2026 14:05"),
+      title: "#10023",
+      badges: withKids(ui.Badge, { tone: "success" }, "Ödendi"),
+    });
+    expect(out).not.toContain(">Sipariş<");
+    expect(out).toContain(
+      '<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--admin-text-mute)]"><span>12 Eki 2026 14:05</span></div>',
+    );
+    expect(out.indexOf("12 Eki 2026")).toBeLessThan(out.indexOf("<h1"));
+    const line =
+      /<div class="flex flex-wrap items-center gap-x-3 gap-y-2">([\s\S]*?)<\/div>/.exec(
+        out,
+      );
+    expect(line?.[1]).toContain(`${H1}#10023</h1>`);
+    expect(line?.[1]).toContain(">Ödendi</span>");
+  });
+
+  it("primary and secondary links: one solid button, the primary marked for the n shortcut", () => {
+    const out = header({
+      title: "Ürünler",
+      secondary: { href: "/admin/kategoriler", label: "Kategoriler" },
+      primary: { href: "/admin/urunler/yeni", label: "Yeni ürün" },
+    });
+    expect(out).toContain(
+      `<a href="/admin/urunler/yeni" data-admin-new="" class="${ui.BUTTON.primary} flex-1 sm:flex-none">Yeni ürün</a>`,
+    );
+    expect(out).toContain(
+      `<a href="/admin/kategoriler" class="${ui.BUTTON.ghost} flex-1 sm:flex-none">Kategoriler</a>`,
+    );
+    expect(out.match(/data-admin-new/g)).toHaveLength(1);
+    // [secondary] [Primary], in reading order.
+    expect(out.indexOf("Kategoriler")).toBeLessThan(out.indexOf("Yeni ürün"));
+    expect(out).toContain(
+      '<div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">',
+    );
+  });
+
+  it("an element as primary is drawn as given, inside the data-admin-new wrapper", () => {
+    const out = header({
+      title: "Masalar",
+      primary: createElement(
+        "button",
+        { type: "submit", className: "own" },
+        "Kaydet",
+      ),
+      secondary: link("/admin/masalar/yazdir", "Yazdır"),
+    });
+    expect(out).toContain(
+      '<div data-admin-new="" class="contents"><button type="submit" class="own">Kaydet</button></div>',
+    );
+    expect(out).toContain('<a href="/admin/masalar/yazdir">Yazdır</a>');
+    expect(out.match(/data-admin-new/g)).toHaveLength(1);
+  });
+
+  it("menu is the kit's ⋯ ActionMenu at the end of the row", () => {
+    const out = header({
+      title: "Siparişler",
+      action: link("/x", "Eski"),
+      primary: { href: "/admin/siparisler/yeni", label: "Yeni sipariş" },
+      menu: withKids(
+        ui.ActionMenuLink,
+        { href: "/admin/siparisler/csv" },
+        "CSV indir",
+      ),
+    });
+    expect(out).toContain("<details");
+    expect(out).toContain('aria-label="Diğer işlemler"');
+    expect(out).toContain('href="/admin/siparisler/csv"');
+    // The old slot joins the same row instead of a second one.
+    const row =
+      /<div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">([\s\S]*)<\/div><\/header>/.exec(
+        out,
+      )?.[1] ?? "";
+    expect(row.indexOf("Eski")).toBeGreaterThan(-1);
+    expect(row.indexOf("Eski")).toBeLessThan(row.indexOf("Yeni sipariş"));
+    expect(row.indexOf("Yeni sipariş")).toBeLessThan(row.indexOf("<details"));
+    expect(
+      header({ title: "X", menu: "y", menuLabel: "Ürün işlemleri" }),
+    ).toContain('aria-label="Ürün işlemleri"');
+    // Without primary, secondary or menu there is no button row.
+    expect(header({ title: "X", action: link("/x", "Eski") })).not.toContain(
+      "flex w-full flex-wrap items-center gap-2",
+    );
+  });
+
+  it("PageShell: three widths, the panel's padding, a 20px header gap, the skip-link target", () => {
+    expect(ui.PAGE_WIDTHS).toEqual({
+      list: "max-w-7xl",
+      detail: "max-w-6xl",
+      form: "max-w-3xl",
+    });
+    for (const width of ["list", "detail", "form"] as const) {
+      const out = html(
+        withKids(ui.PageShell, { width }, createElement("p", null, "x")),
+      );
+      expect(out).toBe(
+        `<main id="admin-main" class="mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&amp;&gt;header]:mb-5 ${ui.PAGE_WIDTHS[width]}"><p>x</p></main>`,
+      );
+    }
+    // A list by default; extra classes go after.
+    expect(
+      html(withKids(ui.PageShell, { className: "print:p-0" }, "x")),
+    ).toContain("max-w-7xl print:p-0");
+    // The header gap beats PageHeader's own mb-6 / sm:mb-8 (a child
+    // selector outranks a single class), so old headers need no change.
+    const src = read("src/components/admin/ui/page-shell.tsx");
+    expect(src).toContain("[&>header]:mb-5");
+    expect(src).not.toMatch(/useState|useEffect|"use client"/);
+  });
+
+  it("EmptyState offers its one next step", () => {
+    const out = html(
+      createElement(ui.EmptyState, {
+        title: "Bu filtreyle sipariş yok.",
+        action: link("/admin/siparisler", "Filtreyi temizle"),
+      }),
+    );
+    expect(out).toContain(
+      '<div class="mt-2"><a href="/admin/siparisler">Filtreyi temizle</a></div>',
+    );
+    expect(
+      html(createElement(ui.EmptyState, { title: "Henüz kampanya yok." })),
+    ).not.toContain("mt-2");
+  });
+
+  it("BUTTON.icon is a 44px square in the ghost outline", () => {
+    expect(ui.BUTTON.icon).toContain("h-11 w-11");
+    expect(ui.BUTTON.icon).toContain("min-h-[44px]");
+    expect(ui.BUTTON.icon).toContain("border-[var(--admin-border-strong)]");
+    expect(ui.BUTTON.icon).toContain("focus-visible:ring-2");
+    expect(ui.BUTTON.icon).not.toMatch(/\bpx-\d/);
   });
 });

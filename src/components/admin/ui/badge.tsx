@@ -21,6 +21,10 @@ export interface BadgeProps {
 /**
  * The panel's pill. Server- and client-safe (no hooks).
  *
+ * 12px sentence case: the text reads as written ("Ödeme bekleniyor"), not
+ * as 10px capitals with wide tracking. The tone pairs are the same, so the
+ * contrast tests hold.
+ *
  * @example <Badge tone="warning">Ödeme bekleniyor</Badge>
  */
 export function Badge({
@@ -34,7 +38,7 @@ export function Badge({
     <span
       title={title}
       className={cx(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium tracking-[0.18em] whitespace-nowrap uppercase",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
         TONE_SOFT[tone],
         className,
       )}
