@@ -765,7 +765,7 @@ iletişim adresi (`settings.email`). 19 Ekim 2026'dan beri boş: bildirim
 şirketin Türkiye'de barındırılan kurumsal kutusuna gider. 26 Eyl 2026'da buraya
 yazılan kişisel Gmail adresi misafirin adını, e-postasını, telefonunu ve notunu
 Google'ın yurt dışındaki sunucularında tutuyordu (KVKK m.9; standart sözleşme
-yok); `20261019090000_karaoke_notify_company_mailbox.sql` onu temizledi.
+yok); `20261019160000_karaoke_notify_company_mailbox.sql` onu temizledi.
 Buraya ya da Ayarlar → Bildirimler'e Gmail gibi yurt dışındaki kişisel bir
 kutu yazılmaz; kurumsal kutu da Gmail'e yönlendirilmez ya da Gmail'den
 okunmaz (aktarım geri gelir).

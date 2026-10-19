@@ -27,5 +27,5 @@ update public.settings
    and not exists (
      select 1
        from public._migrations as applied
-      where applied.name = '20261019090000_karaoke_notify_company_mailbox.sql'
+      where applied.name = '20261019160000_karaoke_notify_company_mailbox.sql'
    );

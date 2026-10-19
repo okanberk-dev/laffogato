@@ -796,7 +796,7 @@ function defaultSettings(): AdminSettings {
     karaokeCapacity: 8,
     // Empty: alerts go to the contact address, the company's own mailbox in
     // Türkiye. Never a personal inbox abroad (KVKK m.9; the Gmail address the
-    // 26 Eyl migration wrote is cleared by 20261019090000).
+    // 26 Eyl migration wrote is cleared by 20261019160000).
     karaokeNotifyEmail: "",
     // 20261016063311_karaoke_prepay.sql gives the column the same default.
     karaokePrepay: true,

@@ -15,7 +15,7 @@
 -- bundle whenever a deploy adds a migration (src/lib/db/bootstrap.ts), and
 -- unguarded it wrote this price and this address back over the panel's
 -- values each time. The address itself is cleared by
--- 20261019090000_karaoke_notify_company_mailbox.sql (a personal Gmail inbox
+-- 20261019160000_karaoke_notify_company_mailbox.sql (a personal Gmail inbox
 -- abroad, KVKK m.9).
 --
 -- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does

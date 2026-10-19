@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * it back when the bundle replays.
  */
 
-const FILE = "20261019090000_karaoke_notify_company_mailbox.sql";
+const FILE = "20261019160000_karaoke_notify_company_mailbox.sql";
 const OLD = "20260926090000_karaoke_price_and_notify.sql";
 const GMAIL = "bizimfutbol9@gmail.com";
 const DIR = join(process.cwd(), "db", "migrations");
