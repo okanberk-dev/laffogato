@@ -1,4 +1,7 @@
 import Link from "next/link";
+import type { MouseEvent } from "react";
+
+import type { CheckoutDocSlug } from "./checkout-documents";
 
 /**
  * The confirmations a distance sale needs before the order exists
@@ -21,6 +24,11 @@ import Link from "next/link";
  * `form`: the one-page checkout keeps the boxes beside the pay button, away
  * from the order form the server reads; the hidden field names that form so
  * it still travels with it (and never with the card's own form).
+ *
+ * `onDocClick`: the checkout opens each document in a panel on the page,
+ * filled with the order (ASK-OTH-2, 18 Eki 2026). The links keep their
+ * address and new tab, so without it (or with a modifier key) they open the
+ * document's own page as before.
  */
 export interface CheckoutConsentTicks {
   /** Ön Bilgilendirme Formu read and confirmed. */
@@ -44,13 +52,23 @@ export function CheckoutConsent({
   onTick,
   disabled,
   form,
+  onDocClick,
 }: {
   ticks: CheckoutConsentTicks;
   onTick: (key: keyof CheckoutConsentTicks, ticked: boolean) => void;
   disabled: boolean;
   /** The id of the form the hidden `legalConsent` belongs to. */
   form?: string;
+  /** Opens a document in the checkout's panel instead of a new tab. */
+  onDocClick?: (
+    event: MouseEvent<HTMLAnchorElement>,
+    slug: CheckoutDocSlug,
+  ) => void;
 }) {
+  const docClick = (slug: CheckoutDocSlug) =>
+    onDocClick
+      ? (event: MouseEvent<HTMLAnchorElement>) => onDocClick(event, slug)
+      : undefined;
   return (
     <>
       <div
@@ -68,7 +86,11 @@ export function CheckoutConsent({
             disabled={disabled}
           />
           <label htmlFor="consentPreInfo">
-            <Link href="/hukuk/on-bilgilendirme-formu" target="_blank">
+            <Link
+              href="/hukuk/on-bilgilendirme-formu"
+              target="_blank"
+              onClick={docClick("on-bilgilendirme-formu")}
+            >
               Ön Bilgilendirme Formu
             </Link>
             &apos;nu okudum, anladım ve onaylıyorum.
@@ -84,7 +106,11 @@ export function CheckoutConsent({
             disabled={disabled}
           />
           <label htmlFor="consentContract">
-            <Link href="/hukuk/mesafeli-satis-sozlesmesi" target="_blank">
+            <Link
+              href="/hukuk/mesafeli-satis-sozlesmesi"
+              target="_blank"
+              onClick={docClick("mesafeli-satis-sozlesmesi")}
+            >
               Mesafeli Satış Sözleşmesi
             </Link>
             &apos;ni okudum, anladım ve onaylıyorum. Siparişimin ödeme

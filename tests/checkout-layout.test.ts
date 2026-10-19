@@ -79,8 +79,14 @@ describe("phone sizes", () => {
       block.indexOf("</ul>"),
     );
     const links = list.match(/<li>\s*<a\s[^>]*href="\/hukuk\/[^"]+"/g) ?? [];
-    expect(links).toHaveLength(3);
-    expect(list.match(/<a\s/g)).toHaveLength(3);
+    // The two documents the boxes confirm; the withdrawal document is the
+    // same kind of item, under "Cayma hakkın" (checkout-preinfo.tsx).
+    expect(links).toHaveLength(2);
+    expect(list.match(/<a\s/g)).toHaveLength(2);
+    const note = readFileSync("src/app/odeme/checkout-preinfo.tsx", "utf8");
+    expect(note).toMatch(
+      /<ul className="co-docs-links">\s*<li>\s*<a href="\/hukuk\/iade-ve-cayma"/,
+    );
     // No dot typed between them: a wrapped row would start or end with it.
     expect(list).not.toContain("·");
     // Each link is one 44px box (11 + 22 + 11) with no negative margin, and
@@ -94,6 +100,14 @@ describe("phone sizes", () => {
     expect(css).not.toMatch(/\.co-docs a[,\s][^{]*\{[^}]*margin-block: -/);
     expect(css).not.toMatch(/,\s*\.co-docs a \{/);
     expect(rule(".co-docs-links")).toContain("flex-wrap: wrap;");
+  });
+
+  it("a long product name wraps beside its price instead of pushing it out of the summary", () => {
+    // The card hides what overflows it: a shrinking price column lost the
+    // last digits and "Çıkar" (seen at 1280px with a 50-letter name).
+    expect(rule(".co-summary")).toContain("overflow: hidden;");
+    expect(css).toMatch(/\n\.co-line-side \{[^}]*flex: none;/);
+    expect(rule(".co-line-name")).toContain("overflow-wrap: anywhere;");
   });
 
   it("the promo input is 16px, so iOS does not zoom", () => {
@@ -134,14 +148,14 @@ describe("what the summary and the notes must keep saying", () => {
     expect(block).toContain("co-docs-seller");
     expect(block).toContain("Satıcı: {sellerLine}");
     // The contract links and the withdrawal terms sit in the same block,
-    // before any card field.
+    // before any card field (the withdrawal link inside "Cayma hakkın").
     for (const slug of [
       "on-bilgilendirme-formu",
       "mesafeli-satis-sozlesmesi",
-      "iade-ve-cayma",
     ]) {
       expect(block).toContain(`href="/hukuk/${slug}"`);
     }
+    expect(block).toContain("<WithdrawalNote ");
     const cardForm = checkout.search(/<CardPayment\s/);
     expect(cardForm).toBeGreaterThan(-1);
     expect(checkout.indexOf('className="co-docs"')).toBeLessThan(cardForm);
@@ -204,6 +218,10 @@ const settings = vi.hoisted(() => ({ value: { isShopOpen: true } as never }));
 const customer = vi.hoisted(() => ({ value: null as unknown }));
 vi.mock("@/lib/admin/store", () => ({
   getPublicSettings: async () => settings.value,
+  listProductsForImport: async () => [],
+}));
+vi.mock("@/lib/legal/store", () => ({
+  getPublishedLegalOverride: async () => null,
 }));
 vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: async () => customer.value,

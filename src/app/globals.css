@@ -7588,8 +7588,10 @@ select {
   accent-color: var(--ink);
   cursor: pointer;
 }
+/* The pre-contract texts on the payment step are at least 16px: MSY m.6/1
+   asks for twelve points, and 12 pt is 16 CSS px (ASK-OTH-2, 18 Eki 2026). */
 .checkout-consent label {
-  font-size: 13.5px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-soft);
   cursor: pointer;
@@ -7601,7 +7603,7 @@ select {
 }
 .checkout-consent-note {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-mute);
 }
@@ -8013,8 +8015,10 @@ select {
   margin: 0 0 16px;
   color: var(--ink);
 }
+/* The contracts read at 16px or more, on /hukuk and in the payment step's
+   panel alike: MSY m.6/1, 12 pt = 16 CSS px. */
 .legal-section p {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.75;
   color: var(--ink-soft);
   margin: 0 0 12px;
@@ -8029,7 +8033,7 @@ select {
 }
 .legal-bullets li,
 .legal-ordered li {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--ink-soft);
   padding-left: 6px;
@@ -8052,13 +8056,13 @@ select {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 16px;
 }
 .legal-table th {
   text-align: left;
   vertical-align: top;
   padding: 12px 16px 12px 0;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
   font-weight: 600;
   width: 32%;
@@ -10236,11 +10240,22 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   accent-color: var(--green);
   cursor: pointer;
 }
-.auth-consent a {
+.auth-consent a,
+.auth-consent-note a {
   color: var(--ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+/* Under the terms box, without a box of its own: where the KVKK notice is
+   (Kurul İlke Kararı 2026/347: an aydınlatma is read, not accepted).
+   Indented to the label's text: the 20px box and its 10px gap. */
+.auth-consent-note {
+  margin: -4px 0 0;
+  padding-left: 30px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 .auth-submit {
   width: 100%;
@@ -12039,16 +12054,18 @@ button.co-steps-link {
   padding: 14px 16px;
   border-radius: var(--r-md);
   background: var(--green-mist);
-  font-size: 14px;
+  font-size: 16px;
 }
 .co-ship-method-name {
   font-weight: 600;
   color: var(--ink);
 }
+/* "Yalnız Türkiye içindeki adreslere gönderiyoruz": a delivery restriction
+   said before the order (MSY m.6/2-b), at the 16px of the other notes. */
 .co-ship-method-meta {
   grid-row: 2;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 16px;
 }
 .co-ship-method-price {
   grid-row: 1 / span 2;
@@ -12117,7 +12134,7 @@ button.co-steps-link {
 }
 .co-docs {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 16px;
   color: var(--ink-soft);
 }
 .co-docs a {
@@ -12142,12 +12159,248 @@ button.co-steps-link {
   padding-block: 11px;
   line-height: 22px;
 }
+
+/* "Siparişin" and "Cayma hakkın" (ASK-OTH-2, 18 Eki 2026): the order and
+   the withdrawal terms as one block right above the card, open on every
+   screen size and never folded (MSY m.6/2-a), 16px like the notes above. */
+.co-brief,
+.co-withdrawal {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.co-withdrawal {
+  margin-top: 12px;
+}
+.co-brief-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.co-brief-lines {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.co-brief-lines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+}
+.co-brief-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.co-brief-lines .tabular {
+  flex: none;
+  font-weight: 600;
+}
+.co-brief-totals {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ink-line-strong);
+}
+.co-brief-totals div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.co-brief-totals dt,
+.co-brief-totals dd {
+  margin: 0;
+}
+.co-brief-total {
+  padding-top: 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-brief-total dd {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 20px;
+}
+/* The KDV inside the total: one quiet line under it, never the headline. */
+.co-brief-totals .co-brief-kdv,
+.co-totals .co-totals-kdv {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0 6px;
+  color: var(--ink-mute);
+}
+.co-withdrawal p {
+  margin: 0;
+}
+.co-withdrawal .co-docs-links {
+  margin-top: -6px;
+}
+
+/* The documents in a panel on the page (ASK-OTH-2 (1) c): a native modal
+   <dialog>, full screen on a phone, a centred sheet on a wide screen. */
+.co-docpanel {
+  width: min(760px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 24px 64px rgba(59, 42, 30, 0.24);
+  overflow: hidden;
+}
+.co-docpanel[open] {
+  display: flex;
+  flex-direction: column;
+}
+.co-docpanel::backdrop {
+  background: rgba(44, 29, 17, 0.45);
+}
+.co-docpanel-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.co-docpanel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 12px 14px 20px;
+  border-bottom: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+.co-docpanel-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 6px;
+}
+.co-docpanel-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: clamp(19px, 2.4vw, 22px);
+  line-height: 1.25;
+  color: var(--ink);
+}
+.co-docpanel-meta {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-mute);
+}
+.co-docpanel-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.co-docpanel-close:hover {
+  background: var(--bg-stone);
+}
+.co-docpanel-body {
+  display: grid;
+  gap: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 16px;
+}
+.co-docpanel .legal-article {
+  padding: clamp(18px, 3vw, 28px);
+}
+.co-facts {
+  display: grid;
+  gap: 4px;
+  padding: 16px 20px 8px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.co-facts-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--ink);
+}
+.co-facts .legal-table-wrap {
+  margin-top: 4px;
+}
+.co-facts-table td {
+  overflow-wrap: anywhere;
+}
+.co-docpanel-foot {
+  margin: 0;
+}
+.co-docpanel-foot a {
+  display: inline-block;
+  padding-block: 11px;
+  line-height: 22px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.co-docpanel-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+@media (max-width: 639.98px) {
+  .co-docpanel {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .co-docpanel-body {
+    padding: 16px;
+  }
+  .co-facts {
+    padding: 14px 16px 6px;
+  }
+  .co-docpanel-done {
+    width: 100%;
+  }
+}
+
 .co-accepted {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
 }
 .co-schemes {
@@ -12477,7 +12730,10 @@ button.co-steps-link {
   gap: 6px;
   min-width: 0;
 }
+/* The price and "Çıkar" keep their own width: a long product name wraps
+   instead of pushing them out of the card, whose overflow hides them. */
 .co-line-side {
+  flex: none;
   justify-items: end;
   font-weight: 600;
   color: var(--ink);
@@ -12561,7 +12817,7 @@ button.co-steps-link {
 }
 .co-docs-seller {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--ink-mute);
   overflow-wrap: anywhere;

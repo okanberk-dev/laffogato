@@ -1023,7 +1023,11 @@ yenilenmez; 2. adım tarayıcı geçmişine kendi kaydıyla girer (Geri tuşu 1.
 adıma döner), görünür "Değiştir" de aynı işi yapar. Varsayılan adresi tam
 olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görünür
 (masaüstünde yapışkan sağ sütun; telefonda üstte açılır "Sipariş özeti · ₺X"
-çubuğu ve 2. adımda altta sabit ödeme çubuğu).
+çubuğu ve 2. adımda altta sabit ödeme çubuğu). 2. adımda kartın hemen
+üstünde, her genişlikte açık "Siparişin" (satırlar, kargo, indirim, KDV dahil
+toplam ve içindeki KDV) ve "Cayma hakkın" notu durur; Ön Bilgilendirme Formu
+ve Mesafeli Satış Sözleşmesi sayfadan çıkmadan, bu siparişin bilgileriyle
+dolu bir panelde açılır (MSY m.6/2-a; docs/LEGAL-REDLINES-2026-09.md §22).
 
 **Akış.**
 
