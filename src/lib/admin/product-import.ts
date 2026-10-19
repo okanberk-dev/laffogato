@@ -177,6 +177,11 @@ const CLEARED_LABEL: Record<ClearedField, string> = {
 export const COMPARE_AT_CSV_ERROR =
   "Eski fiyat CSV ile girilmez: indirimi ürün formunda başlangıç ve bitiş tarihiyle gir. İndirimi bitirmek için hücreyi boş bırak.";
 
+/** Why a price cell may not reach the product's stored "Eski fiyat" (see planRow). */
+export function compareAtPriceFloorError(compareAtMinor: number): string {
+  return `Fiyat, ürünün eski fiyatının (${priceLabel(compareAtMinor)}) altında kalmalı. Fiyatı yükseltmek için indirimi bitir: Eski fiyat hücresini boş bırak.`;
+}
+
 /** The KDV rates a CSV cell may set, besides the product's stored one. */
 const KDV_CELL_ERROR =
   "KDV: 0, 1, 10 ya da 20 yaz. Boş hücre kategorinin oranını geçirir.";
@@ -551,6 +556,21 @@ function planRow(
   // A new price must keep every variant at 1 kuruş or more, like the wizard.
   const below = variantsBelowFloor(d.priceMinor, existing.variants ?? []);
   if (below.length > 0) return refuse(below.map((v) => variantFloorError(v.name)), d.name);
+
+  // A stored compare-at price stays above the sale price, as in the form
+  // (DISCOUNT_NOT_ABOVE_ERROR): a price lifted over it and lowered again
+  // later would bring the old badge and start day back without the ten-day
+  // check (Ticari Reklam Yön. m.14/1, m.14/3). A row that empties the cell
+  // ends the discount and may raise the price with it.
+  if (
+    storedCompare > 0 &&
+    !compareClears &&
+    priceCell &&
+    d.priceMinor !== existing.priceMinor &&
+    d.priceMinor >= storedCompare
+  ) {
+    return refuse([compareAtPriceFloorError(storedCompare)], d.name);
+  }
 
   // Only what the file speaks about is compared: a stored value the schema
   // would merely tidy (a trailing space) is not a change the file asked for.

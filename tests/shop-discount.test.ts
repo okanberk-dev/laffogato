@@ -8,6 +8,7 @@ import { productFormSchema } from "@/lib/admin/product-schema";
 import {
   planProductImport,
   COMPARE_AT_CSV_ERROR,
+  compareAtPriceFloorError,
 } from "@/lib/admin/product-import";
 import { toMobileShopProduct } from "@/lib/mobile/menu-mapper";
 import {
@@ -423,6 +424,53 @@ describe("the CSV import cannot start a discount", () => {
         discountEndsAt: null,
       });
     }
+  });
+
+  it("keeps the price under a stored compare-at unless the row ends the discount", () => {
+    // A price lifted over the was-price and lowered again later would bring
+    // the old badge and start day back without the ten-day check (the form
+    // refuses the lift with DISCOUNT_NOT_ABOVE_ERROR).
+    const patchOf = (text: string) => {
+      const p = planProductImport(text, ctx);
+      const action = p.ok ? p.rows[0].action : null;
+      return action?.kind === "update" ? action.patch : null;
+    };
+    for (const text of [
+      "sku;price\nBAMB-00008;1.100\n",
+      "sku;price\nBAMB-00008;999\n",
+      "sku;price;compareAtPrice\nBAMB-00008;1.100;999\n",
+    ]) {
+      const p = planProductImport(text, ctx);
+      expect(p.ok && p.rows[0].view, text).toMatchObject({
+        status: "error",
+        messages: [compareAtPriceFloorError(99_900)],
+      });
+      expect(p.ok && p.rows[0].action, text).toBeNull();
+    }
+    // Under it the discount runs on, as a form save would.
+    expect(patchOf("sku;price\nBAMB-00008;900\n")).toEqual({
+      priceMinor: 90_000,
+    });
+    // Emptying the cell in the same row ends the discount with its days.
+    for (const cell of ["", "0"]) {
+      expect(
+        patchOf(`sku;price;compareAtPrice\nBAMB-00008;1.100;${cell}\n`),
+      ).toEqual({
+        priceMinor: 110_000,
+        compareAtPriceMinor: 0,
+        discountStartsAt: null,
+        discountEndsAt: null,
+      });
+    }
+    // A product without one is not held back.
+    const plain = planProductImport("sku;price\nBAMB-00008;1.100\n", {
+      ...ctx,
+      products: [{ ...view, compareAtPriceMinor: 0 }],
+    });
+    const plainAction = plain.ok ? plain.rows[0].action : null;
+    expect(plainAction?.kind === "update" && plainAction.patch).toEqual({
+      priceMinor: 110_000,
+    });
   });
 });
 

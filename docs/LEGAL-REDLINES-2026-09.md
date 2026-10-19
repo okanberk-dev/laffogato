@@ -2774,7 +2774,10 @@ Ayrı PR'ın notları:
   öne çıkan set, "İndirimde" süzgeci, Google verisi, paylaşım kartı, `GET
   /api/mobile/v1/shop`). Migration tarihsiz eski fiyatları 0 yapar
   (OP-COMPARE-AT'in Bambu Chasen adımı, bütün ürünlerde). CSV içe aktarma
-  eski fiyatı yalnız aynen bırakır ya da siler.
+  eski fiyatı yalnız aynen bırakır ya da siler; eski fiyatı olan üründe
+  fiyatı ona ya da üstüne çıkaran satırı, formdaki gibi, aynı satırda eski
+  fiyat silinmedikçe reddeder (yükseltilip sonra indirilen fiyat eski
+  rozeti ve başlangıç gününü 10 gün denetimi olmadan geri getirirdi).
 - Uygulama (`compareAtPriceMinor` v1'de zorunlu sayı, 0 = indirim yok)
   tarihleri isteğe bağlı yeni alanlarla alır; tarihli rozeti çizen sürüm
   asgari sürüm olana kadar operatör ürünlere eski fiyat girmez.
