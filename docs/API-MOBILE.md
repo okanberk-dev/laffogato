@@ -1059,8 +1059,9 @@ tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar
 Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (0..72 saat,
 varsayılan 2; 0 = rezervasyon saati gelene kadar ücretsiz iptal; ilk
 sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
-(0..100, varsayılan 0; yeniden satılan saatin iadesi hazır olana kadar panel
-yalnız 0 ya da 100 kaydeder). Süreden önceki iptal, son anın kendisi dahil
+(0..100, varsayılan 0; 19 Eki 2026'ya kadar panel yalnız 0 ya da 100
+kaydediyordu, yeniden satılan saatin iadesiyle 1..99 da açıldı; uygulama
+kilidi aşağıda). Süreden önceki iptal, son anın kendisi dahil
 ve sayfaların yazdığı dakikanın tamamı (18:00 son an ise 18:00:59'a kadar;
 ilk sürümde `now < cancellableUntil`), her zaman tamamını iade
 eder; gelmeyene iade yoktur; köşkün kendi iptali her zaman tam iadedir (MSY
@@ -1089,7 +1090,12 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
   kuralda başlangıç anı). Yeni alanlar:
   `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
   anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
-  da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`).
+  da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`). 19 Eki 2026'dan
+  beri `refundMinor` geç iptal edilen saat yeniden satılınca o saat için
+  iade edilen payı da içerir (alan ve tipi aynı; değer büyüyebilir ve
+  `paymentStatus` `refunded`'dan yeniden `refunding`'e dönebilir, ekip payı
+  elle iade edince yine `refunded` olur). Her saat bir kez, o saati en son
+  geç iptal eden rezervasyona sayılır.
 - `POST /karaoke/reservations/{id}/cancel`: süre içinde (`cancellableUntil`
   geçti) ve başlangıçtan önce, `lateRefundPercent` 0 ise eskisi gibi **409**
   `too_late`. 100 ise tamamı POS'tan iade edilir (**200**, `refunded: true`).
@@ -1119,6 +1125,17 @@ varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
 - Hesap silinince (`DELETE /me`) yukarıdaki kural rezervasyonun kendi
   kuralıyla uygulanır: süreden önce tam iade, süre içinde geç iptal payı
   (`lateRefundPercent` 0 ise iade yok, rezervasyon kalır, ekibe haber gider).
+- **Telafi saati (19 Eki 2026, yalnız ekleme; uçlar ve alanlar değişmedi).**
+  Köşk, ücretsiz iptal süresi geçtikten sonra kendi sebebiyle (arıza,
+  kapanış, başka bir işletme sebebi; mücbir sebep değil) iptal ederse tam
+  iadeye ek olarak telafi verir: misafir isterse ekip aynı uzunlukta
+  ücretsiz bir saat açar. Bu saat üyenin listesinde (`GET
+  /karaoke/reservations`) sıradan bir rezervasyon olarak görünür:
+  `status: "confirmed"`, `paymentStatus: "none"`, `totalMinor` 0; üye
+  onu `POST /karaoke/reservations/{id}/cancel` ile kuralına göre iptal
+  edebilir (ödeme yok, iade yok). Açık rezervasyon tavanına
+  (`too_many_reservations`) sayılmaz. Uygulama `none` için ödeme satırı
+  basmaz, 0 tutarı göstermez (lafmobil `karaoke-rezervasyon/[id].tsx`).
 
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)

@@ -1235,3 +1235,20 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Anasayfa (`home-page.tsx` "gece 02:00'e kadar") ve `data.ts` karaoke metni ("Gece 02:00'e kadar açığız") saati hâlâ elle yazıyor; ziyaret sayfasında "Karaoke 12:00 - 24:00" ve "Mutfak 23:30'da kapanır" sabit | Anasayfa dosyası bu paketin dışında; mutfak saati Ayarlar'da bir alan değil |
 | 🟢 | `hos-geldin` "500,00 ₺ üzeri kargo ücretsiz"i elle yazıyor; Supabase'in dört giriş e-postası (`docs/email/`) footer'ı sabit | Kargo eşiği bu bulgunun dışında; Supabase şablonları panele elle yapıştırılır, ayardan okuyamaz |
+
+### Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 (19 Eki 2026)
+
+Hukuk programı OP-KARAOKE-GOODWILL, ASK-OTH-3-CFG, D-KAR-1-99 (LEGAL-REDLINES §25).
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Misafir geç iptal ederse ödediğini kaybediyordu, köşk aynı geç anda iptal ederse yalnız iade ediyordu (Haksız Şartlar Yön. EK-1 (ç)) | `ariza`, `kapanis`, `diger` ile ücretsiz iptal anından sonra yapılan işletme iptali, geç iptalde tutulacak tutar kadar telafi yazar (6 ay içinde aynı uzunlukta ücretsiz saat ya da misafirin kendi hesabına ödeme); `mucbir`, `misafir`, `yeniden` yazmaz; reddedilen iade telafiyi geri alır; e-posta tutarı ve son günü söyler; panelde "Telafi saati ver" ve "Telafi ödendi" (iade yetkisi), biri diğerini kapatır, IBAN yazılmaz; telafi saati başlamadan iptal edilirse telafi geri açılır | `karaoke-make-good`, `legal-karaoke-make-good` |
+| 🟡 | Koşullar §7 geç iptal edilip yeniden satılan saatin payını iade ediyordu ama kod etmiyordu; bu yüzden panel %1-99'u kabul etmiyordu | Onaylanan her satış aynı gündeki geç iptal edilmiş rezervasyonların saatlerini sayar (her saat bir kez, en son geç iptal edene; `karaoke_charge_resold_hours` satır kilidiyle), tutulan pay `refunding` + ekibe e-postayla elle iadeye girer, daha önce elle iade edilen kısım yeniden istenmez (`refundSettledMinor`); panel %1-99'u kabul eder (uygulama kilidi açıldığında) | `karaoke-make-good`, `karaoke-cancel-policy`, `admin-karaoke-cancel-policy` |
+| 🟢 | %1-99 cümlesi 14 günü ve yeniden satış iadesini yazmıyordu; koşullar §9 "kısmi iade yapılmaz" diyordu | Cümle "en geç 14 gün içinde" ve yeniden satış cümlesiyle; §9 kısmi iadeyi 14 günle yazar | `karaoke-cancel-policy`, `legal-karaoke-make-good` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Ciro raporu, payı elle iade edilmiş ve sonra yeniden satış iadesi bekleyen rezervasyonda daha önce iade edileni "iadesi bekleyen" sayar | Rapor `store.ts`'te (`karaokeRevenueFrom`), bu PR'ın dışında; yalnız %1-99 açıldıktan sonra ve elle iade kaydedilene kadar görülür |
+| 🟢 | Sisteme rezervasyon olarak girmeden köşkte nakit satılan saat yeniden satış sayılmaz | Panelde rezervasyon açma yok (backlog, D8); sistemdeki her onaylı satış sayılır. Böyle bir satış, karar metnindeki kalan risk gibi, personelin elle izlemesine kalır |
