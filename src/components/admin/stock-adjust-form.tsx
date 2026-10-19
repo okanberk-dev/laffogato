@@ -1,7 +1,7 @@
 "use client";
 
 import { adjustStockAction } from "@/app/admin/stok-hareketleri/actions";
-import type { AdminProduct } from "@/lib/admin/store";
+import type { StockAdjustOption } from "@/lib/admin/stock-moves-panel";
 
 import {
   ActionForm,
@@ -10,6 +10,7 @@ import {
   SubmitButton,
 } from "./action-form";
 import { Card, Field, Select, TextInput, Textarea } from "./forms";
+import { EYEBROW, MONO_STYLE } from "./ui/styles";
 
 /**
  * The manual stock correction. The amount is a plain text field: a numeric
@@ -21,14 +22,20 @@ import { Card, Field, Select, TextInput, Textarea } from "./forms";
  * A product with variants is corrected one variant at a time (admin audit
  * CAT-14): it is listed as a group of its variants, each posting
  * "productId#variantId", and its total follows them.
+ *
+ * It is told a product's name, stock and variants' stock, nothing else
+ * (toStockAdjustOption): this is a client component on a page Personel
+ * opens, and it used to receive whole product rows, cost and photos
+ * included (admin audit CAT-07).
  */
-export function StockAdjustForm({ products }: { products: AdminProduct[] }) {
+export function StockAdjustForm({
+  products,
+}: {
+  products: readonly StockAdjustOption[];
+}) {
   return (
     <Card>
-      <h2
-        className="mb-4 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
+      <h2 className={`mb-4 ${EYEBROW}`} style={MONO_STYLE}>
         Manuel stok düzeltmesi
       </h2>
       <ActionForm

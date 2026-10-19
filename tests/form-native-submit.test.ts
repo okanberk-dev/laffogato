@@ -51,10 +51,6 @@ const GET_FORMS: Record<
     forms: 1,
     why: "Products filter: name, SKU or slug, category, status, sort.",
   },
-  "src/app/admin/stok-hareketleri/page.tsx": {
-    forms: 1,
-    why: "Stock movements filter: a product and a reason, both selects.",
-  },
   "src/app/admin/musteriler/page.tsx": {
     forms: 1,
     why: "Customers filter (a server page): search, type and sort.",
