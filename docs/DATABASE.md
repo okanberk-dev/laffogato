@@ -25,7 +25,16 @@ değil, bir kesintiydi:
 
 Neon'un ücretsiz planı **proje başına** kota verir ve limitlere takılmak veriyi
 silmez (Neon'un kendi ifadesiyle: _"None of these limits delete your data."_),
-yani aynı arıza Neon'da tekrarlanamaz.
+yani aynı veri kaybı Neon'da tekrarlanamaz. **Ama erişim kesilebilir:** Free
+planda proje başına ayda 100 CU-saat hesaplama var; dolunca compute bir sonraki
+fatura dönemine kadar askıya alınır (https://neon.com/docs/introduction/plans).
+19 Eki 2026 ölçümü: 1-19 Ekim arası 70,2 CU-saat, yani ay sonu tahmini ~117;
+açık bir admin sekmesi (yeni sipariş zili) Neon'u açılış saatlerinde uyanık
+tutuyor ve Neon 5 dakikalık boşta kalmadan önce uyumadığı için yoklama aralığını
+uzatmak bunu çözmüyor. Eylül'de veritabanı 29 Eyl 22:21 UTC'den 1 Eki 00:00
+UTC'ye kadar kapalı kaldı (büyük ihtimalle aynı kota). Kalıcı çözüm Neon'un
+kullanım başına ücretli planı (Launch, aylık asgari ücret yok; azami ölçek
+0,25 CU ile ayda ~15-20 $).
 
 **Supabase'e geri dönmek isteniyorsa** - ki mobil uygulamayla ortak kimlik için
 iyi bir sebep var - geçişten önce şunun yazılı olarak doğrulanması gerekir:

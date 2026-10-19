@@ -10,6 +10,7 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
+      "**": false,
       "feat/**": false,
       "fix/**": false,
       "docs/**": false,
