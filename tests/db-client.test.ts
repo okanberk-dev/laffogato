@@ -288,3 +288,85 @@ describe("laziness", () => {
     expect(exec).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("onWrite (the cache hook getDb wires to src/lib/cache/tags.ts)", () => {
+  function recordingDb(exec: Executor) {
+    const seen: unknown[] = [];
+    const db = createDb(exec, { onWrite: (target) => seen.push(target) });
+    return { db, seen };
+  }
+
+  it("fires once after each kind of successful write, with what it touched", async () => {
+    const { exec } = fakeExecutor({ rows: [{ result: 1 }], rowCount: 1 });
+    const { db, seen } = recordingDb(exec);
+    await db.from("products").insert({ id: "a" });
+    await db.from("press").upsert([{ id: "p1" }]);
+    await db.from("orders").update({ status: "paid" }).eq("id", "o1");
+    await db.from("menu_items").delete().eq("id", "m1").select("id");
+    await db.rpc("claim_order_stock", { p_lines: [], p_now: "now" });
+    await db.rpcRows("birthday_greeting_audience", { p_month_days: [] });
+    expect(seen).toEqual([
+      { table: "products" },
+      { table: "press" },
+      { table: "orders" },
+      { table: "menu_items" },
+      { fn: "claim_order_stock" },
+      { fn: "birthday_greeting_audience" },
+    ]);
+  });
+
+  it("does not fire for a select or a count", async () => {
+    const { exec } = fakeExecutor({ rows: [{ count: 3 }], rowCount: 1 });
+    const { db, seen } = recordingDb(exec);
+    await db.from("products").select("*").eq("id", "a");
+    await db.from("orders").select("*", { count: "exact", head: true });
+    await db.from("orders").select("id").maybeSingle();
+    expect(seen).toEqual([]);
+  });
+
+  it("does not fire when the statement failed, or never left", async () => {
+    const failing = recordingDb(
+      throwingExecutor(pgError("23505", "duplicate key")),
+    );
+    await failing.db.from("orders").insert({ id: "o1" });
+    await failing.db.rpc("claim_order_stock", { p_lines: [], p_now: "now" });
+    const offline = recordingDb(
+      throwingExecutor(
+        Object.assign(new Error("connect"), { code: "ECONNREFUSED" }),
+      ),
+    );
+    await offline.db.from("products").update({ stock: 1 }).eq("id", "a");
+    // An empty upsert sends nothing, so nothing was written.
+    const { exec } = fakeExecutor();
+    const empty = recordingDb(exec);
+    await empty.db.from("press").upsert([]);
+    // A bad identifier is refused before any SQL runs.
+    await empty.db.from('bad"name').insert({ id: 1 });
+    expect(failing.seen).toEqual([]);
+    expect(offline.seen).toEqual([]);
+    expect(empty.seen).toEqual([]);
+  });
+
+  it("a hook that throws never fails the write", async () => {
+    const { exec } = fakeExecutor({ rows: [{ id: "a" }], rowCount: 1 });
+    const db = createDb(exec, {
+      onWrite: () => {
+        throw new Error("cache down");
+      },
+    });
+    const res = await db.from("products").insert({ id: "a" }).select("id");
+    expect(res.error).toBeNull();
+    expect(res.data).toEqual([{ id: "a" }]);
+  });
+
+  it("plain createDb has no hook and behaves as before", async () => {
+    const exec = vi.fn(async () => ({ rows: [], rowCount: 1 }));
+    const db = createDb(exec);
+    const res = await db
+      .from("orders")
+      .update({ status: "paid" })
+      .eq("id", "o");
+    expect(res.error).toBeNull();
+    expect(exec).toHaveBeenCalledTimes(1);
+  });
+});
