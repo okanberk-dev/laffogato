@@ -18,12 +18,16 @@ import {
   readMenuAllergens,
   tagsWithAllergens,
 } from "@/lib/admin/menu-allergens-schema";
-import { menuItemFieldsSchema } from "@/lib/admin/menu-item-schema";
+import {
+  menuItemFieldsSchema,
+  menuTagsFromForm,
+} from "@/lib/admin/menu-item-schema";
 import {
   bulkUpdateMenuItems,
   createMenuItem,
   deleteMenuItem,
   getMenuItem,
+  listMenuItemLabels,
   MENU_CATEGORY_KEYS,
   updateMenuItem,
   type AdminMenuItem,
@@ -56,7 +60,9 @@ const HUE_VALUES = [
   "strawberry",
 ];
 
-type ParsedMenuInput = ReturnType<typeof parseInput> & {
+type ParsedMenuInput = Omit<ReturnType<typeof parseInput>, "tags"> & {
+  /** The ticked four, plus `nuts` when the allergens name tree nuts. */
+  tags: string[];
   name: string;
   priceMinor: number;
   priceMinorL: number;
@@ -132,11 +138,7 @@ function parseInput(formData: FormData) {
   const image = parseMenuImage(String(formData.get("image") ?? ""));
   const hueRaw = String(formData.get("hue") ?? "cream");
   const hue = HUE_VALUES.includes(hueRaw) ? hueRaw : "cream";
-  const tagsRaw = String(formData.get("tags") ?? "");
-  const tags = tagsRaw
-    .split(",")
-    .map((t) => t.trim().toLowerCase())
-    .filter(Boolean);
+  const tags = menuTagsFromForm(formData.getAll("tags"));
   const sortOrder = parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
   const isActive = formData.get("isActive") === "on";
 
@@ -337,6 +339,9 @@ export async function setMenuItemActiveAction(
   );
 }
 
+/** How many item names one bulk audit row carries; the ids are all there. */
+const BULK_AUDIT_NAMES = 100;
+
 export interface BulkMenuActionState {
   error?: string;
   ok?: { op: string; updated: number };
@@ -356,6 +361,9 @@ export async function bulkMenuAction(
     return { error: parsed.error.issues[0]?.message ?? "Geçersiz istek." };
   }
   const { ids, op, value } = parsed.data;
+  // Read before the write: after a bulk delete the names are gone, and the
+  // audit row is the only record of what was removed (admin audit CAT-20).
+  const labels = await listMenuItemLabels(ids);
   let storeOp: BulkMenuOp;
   if (op === "set_category") {
     storeOp = { kind: "set_category", categoryKey: value as MenuCategoryKey };
@@ -366,7 +374,14 @@ export async function bulkMenuAction(
   await logAudit({
     action: op === "delete" ? "bulk_delete" : "bulk_update",
     entity: "menu_item",
-    payload: { op, value, updated, idCount: ids.length },
+    payload: {
+      op,
+      value,
+      updated,
+      idCount: ids.length,
+      ids,
+      names: labels.slice(0, BULK_AUDIT_NAMES).map((m) => m.name),
+    },
   });
   revalidateMenu();
   return { ok: { op, updated } };

@@ -614,7 +614,7 @@ describe("the post hook", () => {
     );
     queueCampaignEmail.mockResolvedValue({ total: 12 });
 
-    await createPostAction(postForm());
+    await createPostAction(null, postForm());
 
     expect(createCampaignEmail).toHaveBeenCalledTimes(1);
     expect(createCampaignEmail).toHaveBeenCalledWith(
@@ -653,13 +653,22 @@ describe("the post hook", () => {
         }),
       }),
     );
-    expect(redirect).toHaveBeenCalledWith(`${POSTS}?eposta=kuyrukta&adet=12`);
+    // The outcome rides in the toast, not in the list's address (CON-29).
+    expect(redirect).toHaveBeenCalledWith(POSTS);
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      '"Sabah ritüeli" gönderisi eklendi. 12 üyeye kampanya e-postası kuyruğa alındı; gönderim arka planda sürüyor.',
+      "success",
+    );
   });
 
   it("a later save of a mailed post does not mail again, whatever the box says", async () => {
     updateAppPost.mockResolvedValue(post({ emailCampaignId: "cmail-p1" }));
 
-    await updatePostAction("apost-1", postForm({ title: "Sabah ritüeli v2" }));
+    await updatePostAction(
+      "apost-1",
+      null,
+      postForm({ title: "Sabah ritüeli v2" }),
+    );
 
     expect(updateAppPost).toHaveBeenCalled();
     expect(createCampaignEmail).not.toHaveBeenCalled();
@@ -669,26 +678,40 @@ describe("the post hook", () => {
       expect.objectContaining({ entity: "campaign_email" }),
     );
     expect(redirect).toHaveBeenCalledWith(POSTS);
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      '"Sabah ritüeli" kaydedildi.',
+      "success",
+    );
   });
 
   it("sends nothing for a post that is not live: box off, inactive, or scheduled", async () => {
     createAppPost.mockResolvedValue(post());
-    await createPostAction(postForm({ emailMembers: "" }));
+    await createPostAction(null, postForm({ emailMembers: "" }));
 
     createAppPost.mockResolvedValue(post({ isActive: false }));
-    await createPostAction(postForm({ isActive: "" }));
+    await createPostAction(null, postForm({ isActive: "" }));
 
     // Scheduled: the hook does not fire now, and - with no mark - it will not
     // fire by itself when the window opens either; the form says so.
     createAppPost.mockResolvedValue(
       post({ startsAt: "2099-01-01T00:00:00.000Z" }),
     );
-    await createPostAction(postForm({ startsAt: "2099-01-01T00:00" }));
+    await createPostAction(null, postForm({ startsAt: "2099-01-01T00:00" }));
 
     expect(createCampaignEmail).not.toHaveBeenCalled();
     expect(setAppPostEmailCampaign).not.toHaveBeenCalled();
     expect(redirect).toHaveBeenCalledTimes(3);
     expect(redirect).toHaveBeenLastCalledWith(POSTS);
+    // Box off: just the save. Ticked but not live: the operator is told no
+    // mail went out (CON-09), instead of nothing at all.
+    expect(setAdminFlash.mock.calls.map((c) => c[1])).toEqual([
+      "success",
+      "warning",
+      "warning",
+    ]);
+    expect(setAdminFlash.mock.calls[2][0]).toMatch(
+      /şu an yayında olmadığı için e-posta gitmedi/,
+    );
   });
 
   it("an unmarked post edited into publication mails once, from the stored row", async () => {
@@ -697,12 +720,12 @@ describe("the post hook", () => {
       draft({ id: "cmail-p2", sourcePostId: "apost-1" }),
     );
 
-    await updatePostAction("apost-1", postForm());
+    await updatePostAction("apost-1", null, postForm());
 
     expect(createCampaignEmail).toHaveBeenCalledTimes(1);
     expect(setAppPostEmailCampaign).toHaveBeenCalledWith("apost-1", "cmail-p2");
     expect(queueCampaignEmail).toHaveBeenCalledWith("cmail-p2");
-    expect(redirect).toHaveBeenCalledWith(`${POSTS}?eposta=kuyrukta&adet=3`);
+    expect(redirect).toHaveBeenCalledWith(POSTS);
   });
 
   it("yields to a save that marked the post first", async () => {
@@ -710,7 +733,7 @@ describe("the post hook", () => {
     createCampaignEmail.mockResolvedValue(draft({ id: "cmail-dup" }));
     setAppPostEmailCampaign.mockResolvedValue(false);
 
-    await createPostAction(postForm());
+    await createPostAction(null, postForm());
 
     expect(deleteCampaignEmail).toHaveBeenCalledWith("cmail-dup");
     expect(queueCampaignEmail).not.toHaveBeenCalled();
@@ -724,7 +747,7 @@ describe("the post hook", () => {
       new Error("kampanya-duyuru: doldurulmamış alan - [KAMPANYA_METIN]"),
     );
 
-    await createPostAction(postForm({ body: "" }));
+    await createPostAction(null, postForm({ body: "" }));
 
     expect(setAppPostEmailCampaign).toHaveBeenCalledWith("apost-1", "cmail-p3");
     expect(after).not.toHaveBeenCalled();
@@ -732,9 +755,38 @@ describe("the post hook", () => {
       expect.objectContaining({ action: "send" }),
     );
     expect(console.error).toHaveBeenCalled();
-    expect(redirect).toHaveBeenCalledWith(
-      `${POSTS}?eposta=hata&kampanya=cmail-p3`,
+    expect(redirect).toHaveBeenCalledWith(POSTS);
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringMatching(/Kampanya e-postası kuyruğa alınamadı/),
+      "warning",
     );
+  });
+
+  it("says so when nobody has marketing consent", async () => {
+    createAppPost.mockResolvedValue(post());
+    queueCampaignEmail.mockResolvedValue({ total: 0 });
+
+    await createPostAction(null, postForm());
+
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringMatching(/Pazarlama izni olan üye bulunamadı/),
+      "warning",
+    );
+  });
+
+  it("mails only for a role that may send commercial mail (D27)", async () => {
+    const roles = await import("@/lib/admin/roles");
+    vi.spyOn(roles, "canAccess").mockImplementation(
+      (section) => section !== "newsletter",
+    );
+    createAppPost.mockResolvedValue(post());
+
+    await createPostAction(null, postForm());
+
+    expect(roles.canAccess).toHaveBeenCalledWith("newsletter", "owner");
+    expect(createCampaignEmail).not.toHaveBeenCalled();
+    expect(queueCampaignEmail).not.toHaveBeenCalled();
+    expect(createAppPost).toHaveBeenCalledTimes(1);
   });
 });
 

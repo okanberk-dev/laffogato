@@ -1,4 +1,5 @@
 import { Card, formatDateTime, PageHeader } from "@/components/admin/forms";
+import { Badge } from "@/components/admin/ui";
 import { getSettings } from "@/lib/admin/store";
 import { requireRole } from "@/lib/admin/auth";
 import { getVenueStatus, isCafeOpenNow } from "@/lib/mobile/venue";
@@ -32,21 +33,10 @@ export default async function AdminVenueStatusPage() {
       <div className="grid gap-4">
         <Card>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-medium ${
-                openNow
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-neutral-100 text-neutral-600"
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  openNow ? "bg-emerald-500" : "bg-neutral-400"
-                }`}
-              />
+            <Badge tone={openNow ? "success" : "neutral"} dot>
               {openNow ? "Şu an açık görünüyor" : "Şu an kapalı görünüyor"}
-            </span>
-            <span className="text-neutral-500">
+            </Badge>
+            <span className="text-[var(--admin-text-soft)]">
               {status.updatedAt
                 ? `Son güncelleme: ${formatDateTime(status.updatedAt)}`
                 : "Henüz hiç güncellenmedi - varsayılanlar gösteriliyor."}

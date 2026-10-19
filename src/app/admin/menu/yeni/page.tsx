@@ -9,7 +9,7 @@ import {
 
 import { createMenuItemAction } from "../actions";
 
-export const metadata = { title: "Admin · Yeni Menü Kalemi" };
+export const metadata = { title: "Admin · Yeni menü kalemi" };
 
 interface PageProps {
   searchParams: Promise<{ cat?: string }>;

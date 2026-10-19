@@ -27,6 +27,7 @@ const h = vi.hoisted(() => ({
     deleteMenuItem: vi.fn(),
     deleteProduct: vi.fn(),
     getMenuItem: vi.fn(),
+    listMenuItemLabels: vi.fn(),
     getProduct: vi.fn(),
     updateMenuItem: vi.fn(),
     updateProduct: vi.fn(),
@@ -175,6 +176,71 @@ describe("menu item create / update", () => {
   });
 });
 
+describe("menu tags (admin audit CAT-10, decision D21)", () => {
+  it("keeps only the four tags the app knows, from the ticked boxes", async () => {
+    const fd = form(MENU_FORM);
+    fd.delete("tags");
+    for (const t of ["nuts", "new", "IGP", "nuts"]) fd.append("tags", t);
+    await expect(menu.createMenuItemAction(null, fd)).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    // In the vocabulary's order, once each; "IGP" never reached the app.
+    expect(h.store.createMenuItem.mock.calls[0][0].tags).toEqual([
+      "new",
+      "nuts",
+    ]);
+  });
+
+  it("reads an older form's comma list the same way", async () => {
+    h.store.getMenuItem.mockResolvedValue(ITEM);
+    await expect(
+      menu.updateMenuItemAction(
+        "mnu-0042",
+        null,
+        form({ ...MENU_FORM, tags: "Signature, fındık, nut, ICED " }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(h.store.updateMenuItem.mock.calls[0][1].tags).toEqual([
+      "signature",
+      "iced",
+    ]);
+  });
+});
+
+describe("menu bulk tool (admin audit CAT-20)", () => {
+  it("logs the ids and the names it read before the write", async () => {
+    h.store.listMenuItemLabels.mockResolvedValue([
+      { id: "mnu-0001", name: "Matcha Latte" },
+      { id: "mnu-0002", name: "Affogato" },
+    ]);
+    h.store.bulkUpdateMenuItems.mockResolvedValue({ updated: 2 });
+    const res = await menu.bulkMenuAction(
+      {},
+      form({ ids: "mnu-0001,mnu-0002", op: "delete" }),
+    );
+    expect(res).toEqual({ ok: { op: "delete", updated: 2 } });
+    expect(h.store.listMenuItemLabels).toHaveBeenCalledWith([
+      "mnu-0001",
+      "mnu-0002",
+    ]);
+    const read = h.store.listMenuItemLabels.mock.invocationCallOrder[0];
+    const write = h.store.bulkUpdateMenuItems.mock.invocationCallOrder[0];
+    expect(read).toBeLessThan(write);
+    expect(h.logAudit).toHaveBeenCalledWith({
+      action: "bulk_delete",
+      entity: "menu_item",
+      payload: {
+        op: "delete",
+        value: undefined,
+        updated: 2,
+        idCount: 2,
+        ids: ["mnu-0001", "mnu-0002"],
+        names: ["Matcha Latte", "Affogato"],
+      },
+    });
+  });
+});
+
 describe("the row's Tükendi / Satışa aç", () => {
   it("hides the item in one click and says so", async () => {
     h.store.getMenuItem.mockResolvedValue(ITEM);
@@ -251,6 +317,7 @@ describe("categories", () => {
   });
 
   it("creates with a toast for the list", async () => {
+    h.store.listCategories.mockResolvedValue([]);
     h.store.createCategory.mockResolvedValue({ ...BEANS, id: "cat-9" });
     await expect(
       categories.createCategoryAction(
@@ -267,6 +334,43 @@ describe("categories", () => {
     expect(h.setAdminFlash).toHaveBeenCalledWith(
       '"Çekirdek" kategorisi eklendi.',
     );
+  });
+
+  it("refuses a slug another category already has (admin audit CAT-06)", async () => {
+    // All five slugs are seeded: "+ Yeni kategori" could only make a twin,
+    // and every category select in the panel then listed "Çekirdek" twice.
+    h.store.listCategories.mockResolvedValue([BEANS]);
+    const res = await categories.createCategoryAction(
+      null,
+      form({ slug: "beans", label: "Kahve", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: { slug: expect.stringContaining('"Çekirdek"') },
+    });
+    expect(h.store.createCategory).not.toHaveBeenCalled();
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses an edit that moves a category onto another one's slug", async () => {
+    const GIFT = { id: "cat-3", slug: "gift", label: "Hediye" };
+    h.store.getCategory.mockResolvedValue({
+      ...BEANS,
+      icon: "◯",
+      sortOrder: 0,
+    });
+    h.store.listCategories.mockResolvedValue([BEANS, GIFT]);
+    h.store.listProducts.mockResolvedValue([]);
+    const res = await categories.updateCategoryAction(
+      "cat-1",
+      null,
+      form({ slug: "gift", label: "Çekirdek", icon: "", sortOrder: "" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      fieldErrors: { slug: expect.stringContaining('"Hediye"') },
+    });
+    expect(h.store.updateCategory).not.toHaveBeenCalled();
   });
 
   it("refuses to delete a category its products still use", async () => {

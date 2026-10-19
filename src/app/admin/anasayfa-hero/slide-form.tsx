@@ -13,13 +13,12 @@ import {
   Card,
   Checkbox,
   Field,
-  GhostButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
 import { ImageUpload } from "@/components/admin/image-upload";
-import type { ModalAction } from "@/components/admin/ui";
+import { BUTTON, type ModalAction } from "@/components/admin/ui";
 import { SCENES } from "@/components/laffogato/scenes";
 import {
   HOME_HERO_BUNDLED_IMAGES,
@@ -367,8 +366,8 @@ export function HomeSlideForm({
       <FormMessage />
       <div className="flex flex-wrap gap-2">
         <SubmitButton>{submitLabel}</SubmitButton>
-        <Link href="/admin/anasayfa-hero">
-          <GhostButton type="button">Vazgeç</GhostButton>
+        <Link href="/admin/anasayfa-hero" className={BUTTON.ghost}>
+          Vazgeç
         </Link>
       </div>
     </ActionForm>

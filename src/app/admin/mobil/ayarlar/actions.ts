@@ -12,13 +12,15 @@ import {
   mergeMobileAppConfig,
   reminderCopyIssue,
   type MobileAppConfig,
+  type MobileAppReminder,
 } from "@/lib/mobile/app-config";
 import { parseMoneyInput } from "@/lib/utils/format";
 
-export interface AppConfigState {
-  message?: string;
-  error?: string;
-}
+import {
+  CONFIRMED_FIELD,
+  versionGateConfirm,
+  type AppConfigState,
+} from "./app-config-core";
 
 const SAVED = "Kaydedildi. Uygulama en geç 5 dakika içinde görür.";
 
@@ -66,9 +68,16 @@ function parseMoneyMinor(raw: string): number {
 async function saveSection(
   section: keyof MobileAppConfig,
   patch: Partial<MobileAppConfig>,
+  /**
+   * Read against the live document before anything is written; an answer
+   * (a confirm question) goes back instead of the save.
+   */
+  guard?: (current: MobileAppConfig) => AppConfigState | null,
 ): Promise<AppConfigState> {
   try {
     const { mobileApp } = await getSettings();
+    const held = guard?.(mobileApp);
+    if (held) return held;
     const merged = mergeMobileAppConfig(mobileApp, patch);
     await updateSettings({ mobileApp: merged });
     await logAudit({
@@ -89,9 +98,31 @@ async function saveSection(
   return { message: SAVED };
 }
 
-function firstIssue(error: z.ZodError): AppConfigState {
-  return { error: error.issues[0]?.message ?? "Form geçersiz." };
+/**
+ * A refusal: the first message next to the button, and every message under
+ * the field it is about. `field` turns a schema path into the form's input
+ * name (the schema's shape is the document's, not the form's).
+ */
+function refused(
+  error: z.ZodError,
+  field: (path: string) => string = (path) => path.split(".")[0],
+): AppConfigState {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of error.issues) {
+    const name = field(issue.path.map(String).join("."));
+    if (name && !(name in fieldErrors)) fieldErrors[name] = issue.message;
+  }
+  return {
+    error: error.issues[0]?.message ?? "Form geçersiz.",
+    fieldErrors,
+  };
 }
+
+/** A schema path to its input name, through a table; else the first key. */
+const fieldsBy =
+  (table: Record<string, string>) =>
+  (path: string): string =>
+    table[path] ?? table[path.split(".")[0]] ?? path.split(".")[0];
 
 // ─── 1. Sürüm ve bakım ────────────────────────────────────────────────────
 
@@ -107,6 +138,13 @@ const versionSchema = z.object({
   }),
 });
 
+/**
+ * Maintenance going on and the minimum version going up close the app for
+ * everyone (or for every older install), so they are not written on the
+ * first press: the action answers with a question (versionGateConfirm),
+ * and the form posts again with the operator's yes (`confirmed`). Checked
+ * here, against the saved document, not only in the browser.
+ */
 export async function saveVersionAction(
   _prev: AppConfigState,
   formData: FormData,
@@ -120,9 +158,21 @@ export async function saveVersionAction(
       message: str(formData, "maintenanceMessage"),
     },
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) {
+    return refused(
+      parsed.error,
+      fieldsBy({
+        "maintenance.title": "maintenanceTitle",
+        "maintenance.message": "maintenanceMessage",
+      }),
+    );
+  }
+  const confirmed = formData.getAll(CONFIRMED_FIELD).map(String);
   // Two sections of the document share one form; both are written together.
-  return saveSection("maintenance", parsed.data);
+  return saveSection("maintenance", parsed.data, (current) => {
+    const confirm = versionGateConfirm(current, parsed.data, confirmed);
+    return confirm ? { confirm } : null;
+  });
 }
 
 // ─── 2. Sipariş ───────────────────────────────────────────────────────────
@@ -156,7 +206,16 @@ export async function saveOrderingAction(
     courierEtaMinutes: [str(formData, "etaMin"), str(formData, "etaMax")],
     closedMessage: str(formData, "closedMessage"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) {
+    return refused(
+      parsed.error,
+      fieldsBy({
+        "courierEtaMinutes.0": "etaMin",
+        "courierEtaMinutes.1": "etaMax",
+        courierEtaMinutes: "etaMin",
+      }),
+    );
+  }
   return saveSection("ordering", { ordering: parsed.data });
 }
 
@@ -191,7 +250,9 @@ export async function saveLoyaltyAction(
     rewardValueMinor: parseMoneyMinor(str(formData, "rewardValue")),
     rewardTtlDays: str(formData, "rewardTtlDays"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) {
+    return refused(parsed.error, fieldsBy({ rewardValueMinor: "rewardValue" }));
+  }
   return saveSection("loyalty", { loyalty: parsed.data });
 }
 
@@ -226,7 +287,7 @@ export async function saveKaraokeRulesAction(
     bookingWindowDays: str(formData, "bookingWindowDays"),
     oroDiscountPct: str(formData, "oroDiscountPct"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) return refused(parsed.error);
   return saveSection("karaoke", { karaoke: parsed.data });
 }
 
@@ -253,57 +314,71 @@ const reminderItemSchema = z.object({
     .trim()
     .regex(
       L.reminderIdPattern,
-      "Hatırlatma kimliği yalnız küçük harf, rakam ve tire içerebilir (en fazla 24).",
+      "Kimlik yalnız küçük harf, rakam ve tire içerebilir (en fazla 24).",
     ),
-  hour: intField(L.reminderHourMin, L.reminderHourMax, "Hatırlatma saati"),
+  hour: intField(L.reminderHourMin, L.reminderHourMax, "Saat"),
   minute: intField(0, 59, "Dakika"),
-  title: textField(L.reminderTitleMax, "Hatırlatma başlığı").pipe(
-    noSalesCopy("Başlık"),
-  ),
-  body: textField(L.reminderBodyMax, "Hatırlatma metni").pipe(
-    noSalesCopy("Metin"),
-  ),
+  title: textField(L.reminderTitleMax, "Başlık").pipe(noSalesCopy("Başlık")),
+  body: textField(L.reminderBodyMax, "Metin").pipe(noSalesCopy("Metin")),
 });
 
-const remindersSchema = z
-  .object({
-    enabled: z.boolean(),
-    items: z
-      .array(reminderItemSchema)
-      .max(
-        L.reminderItemsMax,
-        `En fazla ${L.reminderItemsMax} hatırlatma tanımlanabilir.`,
-      ),
-  })
-  .refine((v) => new Set(v.items.map((it) => it.id)).size === v.items.length, {
-    message: "Hatırlatma kimlikleri benzersiz olmalı.",
-    path: ["items"],
-  });
-
+/**
+ * Four fixed rows. A row with nothing written in it is unused (its hour and
+ * minute always carry the form's defaults); a row with a title or a text
+ * but no Kimlik is refused, not dropped: it used to vanish on save under a
+ * "Kaydedildi". Every message names its row ("Hatırlatma 2 · ...") and
+ * lands under its own field.
+ */
 export async function saveRemindersAction(
   _prev: AppConfigState,
   formData: FormData,
 ): Promise<AppConfigState> {
   await requireRole("mobileApp");
-  // Four fixed rows in the form; a row whose id is blank is "unused".
-  const items = [];
+  const items: MobileAppReminder[] = [];
+  const fieldErrors: Record<string, string> = {};
+  let error: string | undefined;
+  const refuse = (row: number, key: string, message: string) => {
+    const name = `reminder-${row}-${key}`;
+    if (!(name in fieldErrors)) fieldErrors[name] = message;
+    error ??= `Hatırlatma ${row + 1} · ${message}`;
+  };
+  const seen = new Map<string, number>();
   for (let i = 0; i < L.reminderItemsMax; i++) {
-    const id = str(formData, `reminder-${i}-id`).trim();
-    if (!id) continue;
-    items.push({
-      id,
+    const row = {
+      id: str(formData, `reminder-${i}-id`).trim(),
       hour: str(formData, `reminder-${i}-hour`),
       minute: str(formData, `reminder-${i}-minute`),
       title: str(formData, `reminder-${i}-title`),
       body: str(formData, `reminder-${i}-body`),
-    });
+    };
+    if (!row.id && !row.title.trim() && !row.body.trim()) continue;
+    if (!row.id) {
+      refuse(i, "id", "Kimlik yaz: küçük harf, rakam ve tire (örn. sabah).");
+      continue;
+    }
+    const parsed = reminderItemSchema.safeParse(row);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        refuse(i, String(issue.path[0] ?? "id"), issue.message);
+      }
+      continue;
+    }
+    const first = seen.get(parsed.data.id);
+    if (first !== undefined) {
+      refuse(
+        i,
+        "id",
+        `Bu kimlik ${first + 1}. hatırlatmada da var; her hatırlatmanın kimliği ayrı olmalı.`,
+      );
+      continue;
+    }
+    seen.set(parsed.data.id, i);
+    items.push(parsed.data);
   }
-  const parsed = remindersSchema.safeParse({
-    enabled: flag(formData, "remindersEnabled"),
-    items,
+  if (error) return { error, fieldErrors };
+  return saveSection("reminders", {
+    reminders: { enabled: flag(formData, "remindersEnabled"), items },
   });
-  if (!parsed.success) return firstIssue(parsed.error);
-  return saveSection("reminders", { reminders: parsed.data });
 }
 
 // ─── 6. Kampanya kartları ─────────────────────────────────────────────────
@@ -364,7 +439,17 @@ export async function saveHappyHourAction(
     to: str(formData, "happyTo"),
     pct: str(formData, "happyPct"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) {
+    return refused(
+      parsed.error,
+      fieldsBy({
+        days: "happyDays",
+        from: "happyFrom",
+        to: "happyTo",
+        pct: "happyPct",
+      }),
+    );
+  }
   return saveSection("happyHour", { happyHour: parsed.data });
 }
 
@@ -386,7 +471,7 @@ export async function saveVenueAction(
     landmark: str(formData, "landmark"),
     mapsQuery: str(formData, "mapsQuery"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) return refused(parsed.error);
   return saveSection("venue", { venue: parsed.data });
 }
 
@@ -494,7 +579,7 @@ export async function saveStoreAction(
     bundleId: str(formData, "bundleId"),
     androidSha256: str(formData, "androidSha256"),
   });
-  if (!parsed.success) return firstIssue(parsed.error);
+  if (!parsed.success) return refused(parsed.error);
   const saved = await saveSection("store", { store: parsed.data });
   if (saved.message) {
     // These two documents are read by iOS and Android, not by the app, and
