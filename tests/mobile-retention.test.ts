@@ -54,6 +54,9 @@ describe("every retention period is quoted from the published policy", () => {
       // "Bu yorumu bildir": the reported words, ninety days.
       "fal_reports",
       "feature_consents",
+      // Every legal text shown, by hash: what a consent's textHashes points
+      // at, as long as that consent record lives (D-VERSIONS-TABLE).
+      "legal_doc_versions",
       // The panel's earlier legal texts: what an order's consent version
       // points at, as long as that consent record lives.
       "legal_override_history",
@@ -78,6 +81,10 @@ describe("every retention period is quoted from the published policy", () => {
     expect(by("legal-override-history").days).toBeGreaterThanOrEqual(
       11 * 365 + 2,
     );
+    // The stored texts the consents name: as long, for the same reason, and
+    // only through the function that keeps what a recent consent names.
+    expect(by("legal-doc-versions").days).toBeGreaterThanOrEqual(11 * 365 + 2);
+    expect(by("legal-doc-versions").rpc).toBe("legal_doc_versions_retention");
   });
 
   it("keeps the security counter far inside its one-year ceiling", () => {
@@ -148,6 +155,8 @@ describe("report mode is the default", () => {
         featureConsents: "feature_consents",
         falReadings: "fal_readings",
         falReports: "fal_reports",
+        legalOverrideHistory: "legal_override_history",
+        legalDocVersions: "legal_doc_versions",
       },
     }));
     vi.resetModules();
@@ -209,6 +218,8 @@ describe("report mode is the default", () => {
         featureConsents: "feature_consents",
         falReadings: "fal_readings",
         falReports: "fal_reports",
+        legalOverrideHistory: "legal_override_history",
+        legalDocVersions: "legal_doc_versions",
       },
     }));
     vi.resetModules();

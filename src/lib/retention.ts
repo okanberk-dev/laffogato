@@ -156,6 +156,29 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "datum is archivedBy, the panel user's address for the act.",
   },
   {
+    id: "legal-doc-versions",
+    table: TABLES.legalDocVersions,
+    column: "createdAt",
+    idColumn: "hash",
+    days: 11 * YEAR_DAYS,
+    rpc: "legal_doc_versions_retention",
+    basis:
+      "Sözleşmenin ifasından itibaren 10 yıl; uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar.",
+    note:
+      "Every legal text shown, by hash (decision D-VERSIONS-TABLE; the İşlem " +
+      "Rehberi says the confirmed version 'en az 11 yıl saklanır'). The same " +
+      "reasoning as legal-override-history: the text is what a consent's " +
+      "`textHashes` points at, and the contract it proves is performed after " +
+      "the consent and kept ten years from then; one year past the decade " +
+      "covers the performance, in 366-day years. `createdAt` is when a text " +
+      "was FIRST stored, which says nothing of when it was last shown, so a " +
+      "row goes only through the SQL function: stored before the cutoff, " +
+      "replaced by a newer text of its document before the cutoff too, and " +
+      "named by no order or karaoke consent accepted at or after it. The " +
+      "table's trigger refuses any other DELETE of a row younger than eleven " +
+      "years. No personal data: the texts are public.",
+  },
+  {
     id: "fal-readings",
     table: TABLES.falReadings,
     column: "createdAt",
