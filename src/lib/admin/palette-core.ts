@@ -7,6 +7,7 @@
 
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import type { SearchHit, SearchSection } from "./search-core";
+import { singleKeysForRole } from "./shortcut-core";
 import { foldTr } from "./text-fold";
 
 export * from "./palette-shell";
@@ -64,7 +65,7 @@ export interface PaletteEntry {
   keywords: readonly string[];
 }
 
-export type PaletteCommand = "toggleSound";
+export type PaletteCommand = "toggleSound" | "shortcutSheet";
 
 /**
  * How well `entry` answers the folded query: 0 the label starts with it,
@@ -342,8 +343,9 @@ export function createEntries(
 /**
  * "Komutlar": navigation and this browser's own preferences, never a
  * change to the shop (no Çıkış, no order step: the palette is read-only).
- * The order sound is the panel's one sound switch (sound-pref.ts), for the
- * roles that hear it.
+ * "Klavye kısayolları" opens the shortcut sheet (UI-8) for the roles with
+ * single keys. The order sound is the panel's one sound switch
+ * (sound-pref.ts), for the roles that hear it.
  */
 export function commandEntries(
   role: AdminRole | null | undefined,
@@ -358,6 +360,14 @@ export function commandEntries(
       keywords: ["iki aşamalı doğrulama", "doğrulama kodu"],
     },
   ];
+  if (singleKeysForRole(role)) {
+    out.push({
+      id: "cmd:shortcuts",
+      label: "Klavye kısayolları",
+      command: "shortcutSheet",
+      keywords: ["kısayol", "tuş"],
+    });
+  }
   if (canAccess("orders", role)) {
     out.push({
       id: "cmd:sound",

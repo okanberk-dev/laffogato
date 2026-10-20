@@ -1,6 +1,7 @@
 // Client-safe (no server-only): the always-loaded half of the panel's
 // palette (admin UI v2, UI-6, design §4). The shell's trigger runs these on
-// every page: the ⌘K / Ctrl+K key, its label, and the rules for what the
+// every page: the ⌘K / Ctrl+K key, its label, the events the single keys
+// open it and the shortcut sheet with (UI-8), and the rules for what the
 // "Son açılanlar" list may keep. Everything else (the entries, the Turkish
 // matching, the search answer) is in palette-core.ts, which only the lazy
 // palette loads and which re-exports this file.
@@ -39,6 +40,35 @@ export function isPaletteShortcut(e: {
   if (e.isComposing || e.altKey || e.shiftKey) return false;
   if (!e.metaKey && !e.ctrlKey) return false;
   return typeof e.key === "string" && e.key.toLocaleLowerCase("tr-TR") === "k";
+}
+
+/**
+ * The palette opened by something other than its trigger: the single keys
+ * (shortcuts.tsx) send this on `window`, the trigger listens. `/` without
+ * a search box on the page opens it as usual; `n` without a "Yeni" link
+ * opens it on Oluştur alone ("create").
+ */
+export const PALETTE_OPEN_EVENT = "admin:palette-open";
+
+export type PaletteView = "all" | "create";
+
+/** The view an open request asked for; anything else is the whole palette. */
+export function paletteViewOf(detail: unknown): PaletteView {
+  return detail === "create" ? "create" : "all";
+}
+
+export function openPalette(view: PaletteView): void {
+  window.dispatchEvent(new CustomEvent(PALETTE_OPEN_EVENT, { detail: view }));
+}
+
+/**
+ * The shortcut sheet, asked for from the palette's Komutlar ("Klavye
+ * kısayolları"); the shell's shortcut layer listens and opens it.
+ */
+export const SHORTCUT_SHEET_EVENT = "admin:shortcut-sheet";
+
+export function openShortcutSheet(): void {
+  window.dispatchEvent(new Event(SHORTCUT_SHEET_EVENT));
 }
 
 /** The key as the trigger prints it: Apple keyboards say ⌘. */
