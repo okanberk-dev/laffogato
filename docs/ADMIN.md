@@ -220,3 +220,20 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
 - Oturum kapandıysa "Oturumun kapandı." ve yeniden giriş bağlantısı çıkar;
   veritabanı yanıt vermezse "Arama şu an çalışmıyor." (sonuç yok demek
   değildir).
+
+## Telefonda alt çubuk
+
+Telefon ve tablette (geniş ekranda değil, orada kenar çubuğu var) ekranın
+altında en çok beş düğme durur: menüyü açmadan tek dokunuşla vardiyanın
+sayfaları. Rozetler menüdekilerle aynı sayılardır.
+
+- **Sahip ve yönetici**: Genel bakış, Siparişler, Karaoke, Kasa ve
+  **Tümü** (bütün menüyü açar). Açık sayfa çubukta değilse Tümü yanar.
+- **Personel**: Siparişler, Karaoke, Kasa, Stok, Genel bakış. Beş sayfası
+  da sığdığı için Tümü yok; menü üst çubukta.
+- **Kasiyer**: çubuk yok (tek sayfası var).
+- Siparişler düğmesi rozetin saydığı "Açık" sekmesini açar.
+- Toplu işlem çubuğu açıkken, bir onay penceresi ya da menü açıkken ve
+  telefonda bir yazı alanına dokununca (klavye açıkken) çubuk çekilir.
+- Bildirimler, toplu işlem çubuğu, yeni sipariş kartları ve kaydet
+  çubukları çubuğun üstünde durur; sayfanın sonu çubuğun altında kalmaz.
