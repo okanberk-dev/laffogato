@@ -288,6 +288,7 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
   kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama
   metni, tarih aralığı ve sayfa kaydedilmez; e-posta ya da telefon
   numarasına benzeyen bir değer de. Adda e-posta ya da telefon olamaz.
+  Aynı adı yeniden yazarsan o görünümün üzerine yazılır.
 - Kayıtlı bir görünüme dokununca liste o hâliyle açılır; o an kutuda bir
   arama varsa gider. Açık görünümün adı menü düğmesinde yazar.
 - **Varsayılan yap**: liste menüden ya da bir yer iminden süzgeçsiz
@@ -302,4 +303,7 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
   Çıkış onları silmez. Site verisi kapalıyken ya da tarayıcının yeri
   doluyken kaydedilemez; pencere bunu söyler. Gizli pencerede kaydedilen
   görünüm o pencere kapanınca gider.
+- Menünün kodu ayrı bir parça olarak, sayfa tarayıcıya gelince yüklenir.
+  Yüklenemezse (ağ koptu, yeni sürüm çıktı) Görünümler çizilmez, liste
+  olduğu gibi çalışır; sayfayı yenilemek menüyü geri getirir.
 - Kasiyerde menü yok. Kurallar tek yerde: `src/lib/admin/saved-views.ts`.
