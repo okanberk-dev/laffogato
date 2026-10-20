@@ -357,9 +357,11 @@ describe("the bar's markup", () => {
       }),
     );
     expect(html).toMatch(
-      /href="\/admin\/siparisler\?durum=acik"[^]*?>7<span class="sr-only"> Açık sipariş<\/span>/,
+      /href="\/admin\/siparisler\?durum=acik"[^]*?>7<\/span>[^]*?>Siparişler<\/span><span class="sr-only"> 7 Açık sipariş<\/span>/,
     );
-    expect(html).toMatch(/>99\+<span class="sr-only"> Bugünkü karaoke</);
+    expect(html).toMatch(
+      />99\+<\/span>[^]*?>Karaoke<\/span><span class="sr-only"> 99\+ Bugünkü karaoke</,
+    );
     // A zero or an unknown count draws nothing.
     const none = renderToStaticMarkup(
       createElement(BottomBar, {
@@ -373,6 +375,7 @@ describe("the bar's markup", () => {
     );
     expect(none).not.toContain("sr-only");
     expect(none).not.toContain("aria-current");
+    expect(none).not.toMatch(/>(0|99\+)</);
     // No second poll: the bar asks for nothing itself, the sidebar hands it
     // the two counts its nav already reads.
     const bar = read("src/components/admin/ui/bottom-bar.tsx");
@@ -380,6 +383,47 @@ describe("the bar's markup", () => {
     const src = read("src/components/admin/admin-sidebar.tsx");
     expect(src.match(/useNavCount\(/g)).toHaveLength(3);
     expect(src).toMatch(/<BottomBar[^>]*counts=\{counts\}/);
+  });
+
+  it("says each slot's name first and its count after, as the sidebar's rows do", () => {
+    // The pill (icon and badge) is drawn above the name, so in source order
+    // the badge came first: VoiceOver read "7 Açık sipariş (ödeme bekleyen
+    // ...) Siparişler" for one tab. The number in the pill is hidden from
+    // screen readers and said after the name instead.
+    const html = renderToStaticMarkup(
+      createElement(BottomBar, {
+        slots: slotsFor("owner"),
+        active: 1,
+        counts: { orders: 7, karaoke: 120 },
+        badgeTitles: { orders: "Açık sipariş", karaoke: "Bugünkü karaoke" },
+        onMore: () => {},
+        drawerId: "admin-nav-drawer",
+        drawerOpen: false,
+      }),
+    );
+    /** A target's text as a screen reader gets it: no aria-hidden parts. */
+    const spoken = (target: string) =>
+      target
+        .replace(/<svg[^]*?<\/svg>/g, "")
+        .replace(/<span aria-hidden="true"[^>]*>[^<]*<\/span>/g, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    const targets = html.match(/<(a|button) [^]*?<\/\1>/g) ?? [];
+    expect(targets.map(spoken)).toEqual([
+      "Genel bakış",
+      "Siparişler 7 Açık sipariş",
+      "Karaoke 99+ Bugünkü karaoke",
+      "Kasa",
+      "Tümü",
+    ]);
+    // The pill still shows the number.
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="absolute [^>]*>7<\/span>/,
+    );
+    expect(html).toMatch(
+      /<span aria-hidden="true" class="absolute [^>]*>99\+<\/span>/,
+    );
   });
 
   it("brings no library into the shell: lucide only through the lazy nav icon", () => {

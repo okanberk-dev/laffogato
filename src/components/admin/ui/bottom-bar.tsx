@@ -45,14 +45,22 @@ function SlotPending() {
   );
 }
 
-function Badge({ n, title }: { n: number; title?: string }) {
+/** A count as its badge prints it. */
+const countLabel = (n: number) => (n > 99 ? "99+" : String(n));
+
+/**
+ * The pill's number. Hidden from screen readers: the pill comes before the
+ * name in the markup, so the slot read "7 Açık sipariş ... Siparişler";
+ * the slot says the count after its name instead (as the sidebar's rows).
+ */
+function Badge({ n }: { n: number }) {
   return (
     <span
+      aria-hidden="true"
       className="absolute -top-1 left-[calc(50%+0.375rem)] min-w-[18px] rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-white"
       style={MONO}
     >
-      {n > 99 ? "99+" : n}
-      {title ? <span className="sr-only"> {title}</span> : null}
+      {countLabel(n)}
     </span>
   );
 }
@@ -137,6 +145,8 @@ export function BottomBar({
           }
           const { item } = slot;
           const n = counts[item.section] ?? null;
+          const badge = n !== null && n > 0 ? n : null;
+          const title = badgeTitles[item.section];
           return (
             <li key={item.href} className="flex min-w-0 flex-1 items-center">
               <Link
@@ -149,11 +159,14 @@ export function BottomBar({
                   className={cx(PILL, lit && "bg-[var(--admin-primary-soft)]")}
                 >
                   <NavIcon name={item.icon ?? item.section} />
-                  {n !== null && n > 0 ? (
-                    <Badge n={n} title={badgeTitles[item.section]} />
-                  ) : null}
+                  {badge !== null ? <Badge n={badge} /> : null}
                 </span>
                 <span className="max-w-full truncate">{item.label}</span>
+                {badge !== null ? (
+                  <span className="sr-only">
+                    {` ${countLabel(badge)}${title ? ` ${title}` : ""}`}
+                  </span>
+                ) : null}
               </Link>
             </li>
           );
