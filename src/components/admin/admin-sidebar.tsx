@@ -871,11 +871,6 @@ export function AdminSidebar(props: SidebarProps) {
     [props.groups],
   );
   const chrome = hasNavChrome(props.groups);
-  // The phone's bottom bar (UI-7): none for the cashier (no chrome).
-  const slots = useMemo(
-    () => bottomBarSlots(props.groups, props.landingPath, BADGE_LINKS),
-    [props.groups, props.landingPath],
-  );
 
   // The drawer is a native modal <dialog> (SHE-13): the page behind it is
   // inert, focus moves in, Esc closes it. The page behind does not scroll.
@@ -975,6 +970,9 @@ export function AdminSidebar(props: SidebarProps) {
     onToggleGroup: toggleGroup,
   };
   const strip = sectionTabsFor(pathname, navLinks);
+  // The phone's bottom bar (UI-7), past the cashier's return above: a
+  // one-page shell runs none of it.
+  const slots = bottomBarSlots(props.groups, props.landingPath, BADGE_LINKS);
   const openDrawer = (opener: HTMLElement) => {
     openerRef.current = opener;
     setOpen(true);

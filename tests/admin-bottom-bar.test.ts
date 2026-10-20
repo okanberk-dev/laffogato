@@ -197,6 +197,13 @@ describe("the slots, per role", () => {
     expect(core.bottomBarSlots([], "/admin")).toEqual([]);
     expect(barOf(renderShell("cashier"))).toBe("");
     expect(renderShell("cashier")).not.toContain("data-admin-tabbar");
+    // Not even computed: the shell asks for slots past the one-page
+    // shell's own return, so a cashier runs none of the bar's code.
+    const src = read("src/components/admin/admin-sidebar.tsx");
+    expect(src.indexOf("bottomBarSlots(props.groups")).toBeGreaterThan(
+      src.indexOf("if (!chrome) {"),
+    );
+    expect(src.match(/bottomBarSlots\(/g)).toHaveLength(1);
   });
 
   it("never more than five, and every slot is a page of the role's own nav", () => {
