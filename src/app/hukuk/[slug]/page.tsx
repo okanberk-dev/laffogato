@@ -6,10 +6,10 @@ import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { LegalMarkdown } from "@/lib/legal/markdown";
 import { liveLegalDoc } from "@/lib/legal/karaoke-doc";
-import { getPublishedLegalOverride } from "@/lib/legal/store";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
+import { getSiteLegalOverride } from "@/lib/seo/site-data";
 
 export async function generateMetadata({
   params,
@@ -19,7 +19,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const doc = findLegalDoc(slug);
   if (!doc) return {};
-  const override = await getPublishedLegalOverride(slug);
+  const override = await getSiteLegalOverride(slug);
   const title = override?.title || doc.title;
   const description = metaDescription(override?.summary || doc.summary);
   const url = `/hukuk/${slug}`;
@@ -51,7 +51,7 @@ export default async function LegalDocPage({
   if (!doc) notFound();
 
   // Admin override (published + non-empty) replaces the coded default content.
-  const override = await getPublishedLegalOverride(slug);
+  const override = await getSiteLegalOverride(slug);
   const title = override?.title || doc.title;
   const summary = override?.summary || doc.summary;
   const updatedAt = override?.effectiveDate || doc.updatedAt;

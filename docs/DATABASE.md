@@ -59,6 +59,167 @@ yalnız `main` production'a gider. Bir dalın önizlemesi gerekirse
 `vercel deploy` ile elle açılır ve işi bitince `preview/*` Neon dalı silinir
 (`production` ve `vercel-dev` dalına dokunulmaz).
 
+## Uyanmalar ve önbellek (19 Eki 2026)
+
+**Ölçülen sebep.** Neon Free planda compute 5 dakika boşta kalınca uyur ve
+her istek onu yeniden uyandırır; uyanık geçen her dakika CU-saat yazar.
+1-19 Ekim: 70,2 CU-saat (19 Eki 15:05 UTC), günde ~92 uyanma, compute
+zamanın ~%57-59'unda açık (12-19 Ekim ortalaması günde ~14,7 saat) ve
+dağılım 24 saate neredeyse düz yayılmış: Tuzla saatiyle 02:00-08:00 arası
+günde ~2,4 saat açık, bu uyanmaların %67-77'si tek istekli (biri gelir,
+compute 5 dakika açık kalır, kimse gelmez). Gece müşteri yok; uyandıran
+tarayıcılar ve botlar. Her genel sayfa `force-dynamic` ve her görüntüleme
+ayarları, menüyü, ürünleri veritabanından okuyordu. Gündüz ayrıca açık bir
+panel sekmesi (yeni sipariş zili 10 sn'de bir, kenar çubuğu rozetleri
+60 sn'de bir, sipariş listesi 30 sn'de bir) Neon'u açık tutuyor; 5 dakikanın
+altındaki her aralık aynı sonucu verir. Production endpoint'i
+(`ep-plain-cake-ay3dvcuq`) 19 Eki'de 0,25 CU'ya sabitlendi (min = max).
+İstek dökümü doğrulanamadı: Vercel Hobby istek logu tutmaz.
+
+**Ne değişti.**
+
+1. **Yazma, etkilediği önbelleği hemen düşürür** (`src/lib/cache/tags.ts`).
+   Veri katmanı (`getDb()`) gönderdiği her insert, upsert, update, delete
+   ve rpc'den sonra ilgili etiketi `revalidateTag(tag, { expire: 0 })` ile
+   düşürür: bir sonraki okuma taze veriyi bekler, bayat veri hiç sunulmaz.
+   Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
+   önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
+   düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
+   Altı etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
+   site haritası), `pub:menu` (menü kalemleri; mağazanın stok hareketi
+   menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
+   site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
+   içerikleri, hukuk override'ları, canlı durum), `live:orders`,
+   `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
+   okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
+   Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
+   sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
+   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc
+   bütün etiketleri birden düşürür. Bir fonksiyonun etiketleri gövdesinin
+   yazdığı tabloların ve çağırdığı fonksiyonların etiketleridir; aynı test
+   `db/schema.sql`'i okur, eksik (bayat veri) ya da fazla (boşuna uyanma)
+   etiketi reddeder: iade, satır durumu ve cüzdan siparişi yalnız
+   `live:orders`, stok hareketi kaydı (`record_stock_move`) hiçbirini
+   düşürmez. Her yazma etiketi bir kez daha, yanıt çıktıktan
+   sonra `after()` ile ayrı bir istekle düşürür (`SECOND_EXPIRY`): Next
+   düşürmeleri sıraya alır ve sırayı route handler ancak bir Response
+   döndürünce ya da yönlendirince gönderir. Yazdıktan sonra hata fırlatan
+   bir handler'da (ödeme dönüşü, uygulama ucu, cron) ilk istek hiç gitmez,
+   `after()` yine çalışır (`tests/cache-expire-retry.test.ts` bunu Next'in
+   kendi koduyla dener). Render sırasında (Next E7) yalnız ikincisi vardır.
+2. **Genel sayfaların sunum okumaları Data Cache'ten gelir**
+   (`src/lib/cache/presentation.ts`, `src/lib/seo/site-data.ts`;
+   `unstable_cache`, Vercel'de bölgesel Runtime Cache). Anahtar deployment'ı
+   ve son migration'ı içerir: her deploy boş önbellekle başlar. Kayıt yazma
+   gelene kadar geçerlidir; 24 saatlik `revalidate` yalnız görülmemiş bir
+   yazmaya karşı emniyet ağıdır. Kapsam: `/`, `/menu`, `/magaza`,
+   `/hikayemiz`, `/ziyaret` (`loadAppProps`), `/menu/<kategori>`,
+   `/magaza/<kategori>`, `/magaza/urun/<slug>` ve kartı, `/ziyaret` kartı,
+   `/kampanyalar`, `/hukuk` ve `/hukuk/<slug>` gösterimi, `/rehber` ve
+   `/uye` çerçevesi, 404, `robots.txt`, `sitemap.xml`, iki `.well-known`
+   belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
+   saatleri, yayın aralıkları, ana sayfa slaytı, mağazadaki indirimin "eski
+   fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
+   her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.
+   Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+
+   **Etiket düşürmeyen yazmalar.** Bu kancayı taşımayan bir koddan gelen her
+   yazma: (a) Neon konsolunda elle SQL ve `scripts/*.mjs`; (b) production
+   `DATABASE_URL`'iyle çalışan `npm run dev` ya da `vercel dev` (yerel
+   sunucu yalnız kendi önbelleğini düşürür); (c) Instant Rollback: geri
+   dönülen deployment'ta yapılan kayıtlar "Undo Rollback" ile dönen
+   deployment'ın kayıtlarını düşürmeyebilir, bu değişiklikten önceki bir
+   deployment hiç düşürmez; (d) bu değişikliğin ilk deploy'unda, promote
+   anında eski deployment'ta süren istekler (en uzunu 300 sn: kampanya
+   gönderimi, CSV içe aktarma; ödeme dönüşü, stok iadesi). Panelden yapılan
+   bir kayıt yalnız kendi etiketini düşürür. Bunlardan sonra (her rollback
+   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de)
+   bütün etiketleri elle düşür:
+
+   ```bash
+   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:orders,live:karaoke,live:access --yes
+   ```
+
+   `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da
+   yeter (yeni deployment boş önbellekle başlar); `LAF_DATA_CACHE=off` da
+   ancak yeni bir deploy'la devreye girer. Aksi halde eski fiyat ve stok
+   24 saat, ardından bir istek daha görünür; veritabanı kapalıysa
+   yenilenemeyen kayıt kapalı kaldığı sürece görünür.
+
+3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
+   (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
+   `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
+   aynıyken cevap `{ unchanged: true }`, veri ve veritabanı yok. Köşk açıkken
+   en az saatte bir tam cevap. İşaret `admin_users` yazmalarında da
+   yenilenir (`live:access`) ve imleç onu alan oturum çerezine bağlıdır:
+   pasifleşen, rolü düşen ya da parolası sıfırlanan oturum bir sonraki
+   soruda hesabı yeniden okutur ve reddedilir (kural 30). Ayrıntı
+   `docs/ADMIN.md` "Yeni sipariş uyarısı".
+4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
+   (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
+   (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
+   Neon'u bütün gece uyanık tutmaz.
+
+**Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
+verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,
+sayfa, action'lar), `/karaoke`, `/rezervasyon`, `placeOrder` /
+`placeAppOrder`, `/api/mobile/v1/**` (başlıklar ve okuyucular aynı,
+`docs/API-MOBILE.md` değişmedi), e-postalar, onay sürümleri
+(`checkoutConsentVersion`, `karaokeConsentVersion`), ödeme belgeleri, admin
+sayfaları ve admin oturumu canlı okur. Onay alınan üç belgenin `/hukuk`
+sayfası da canlıdır (Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi,
+karaoke odası şartları): siparişin ya da rezervasyonun kaydettiği onay
+sürümü hangi satırdan çıkıyorsa yeni sekmede açılan metin de o satırdır;
+kaybolmuş bir etiket düşürmesi müşteriye kaydedilenden eski bir metni
+gösteremez. `tests/site-data-cache.test.ts` bu yolların önbellek
+okuyucularını içe aktarmadığını tutar. `/masa/<kod>`'un
+masa araması ve `/api/health` da canlıdır.
+
+**Kesinti davranışına etkisi.** Önbellekte kaydı olan bir sayfa veritabanı
+kapalıyken son bilinen gerçek içeriği gösterir ve kesinti bandı çıkmaz;
+kaydı olmayan sayfa eskisi gibi paketteki içeriğe düşer (o yedek hiçbir
+zaman önbelleğe yazılmaz, `publicRead` dış çağrıdır). Mağaza "bozulmada
+boş kalır": isteğin kendisi veritabanını kapalı gördüyse (giriş yapmış
+üyenin hesabı her sayfada canlı okunur, ya da önbellekte kaydı olmayan bir
+okuma düştü) liste önbellekten gelse de mağaza boş ve bant görünür
+(`shopForRequest`; `loadAppProps` ve iki kategori sayfası;
+`tests/site-data-outage-shop.test.ts`). Satın alabilecek tek ziyaretçi
+üyedir, yani satın almaya çalışan herkes kesintiyi görür. Hiçbir şeyi canlı
+okumayan anonim bir istek kesintiyi bilemez: son bilinen gerçek ürünleri
+bantsız gösterir. Bu, kuralın harfinden kalan tek ayrışmadır ve
+veritabanını uyandırmadan kapatılamaz; ödeme sayfası ayarları canlı okur ve
+"Şu an sipariş alamıyoruz" der, ödeme fiyatı veritabanından yeniden okur ve
+stoğu SQL'de ayırır, yani kimse bu listeden satın alamaz; ödeme, karaoke ve
+uygulama siparişleri yine sesli başarısız olur. Bu kalan ayrışma operatörün
+onayına sunulmuştur (CLAUDE.md değiştirilmedi).
+
+**Kapatma anahtarı.** `LAF_DATA_CACHE=off` (Vercel env) her sunum okumasını
+eskisi gibi veritabanına gönderir. Önbellek hata verirse ya da kaydı
+düşürürse okuma veritabanına gider: daha çok compute, asla yanlış veri.
+
+**Yeniden ölçmek** (salt okunur; `NEON_API_KEY` operatörde):
+
+```bash
+# Dönemin toplamları: compute_time_seconds / 3600 = CU-saat,
+# active_time_seconds / 3600 = açık saat
+npx neonctl projects get misty-cell-35394291 -o json
+
+# Production endpoint'inin uyanmaları, Tuzla saatine göre (son 1000 işlem;
+# daha eskisi için yanıttaki pagination.cursor ile ?cursor= ver)
+curl -s -H "Authorization: Bearer $NEON_API_KEY" \
+  "https://console.neon.tech/api/v2/projects/misty-cell-35394291/operations?limit=1000" |
+  jq -r '.operations[]
+    | select(.action == "start_compute" and .endpoint_id == "ep-plain-cake-ay3dvcuq")
+    | .created_at | sub("\\.[0-9]+"; "") | fromdateiso8601 + 10800 | strftime("%d %H")' |
+  sort | uniq -c
+```
+
+Hedef (deploy'dan sonraki 48 saat): 02:00-08:00 arası saatte en çok bir
+uyanma; günde 9 saatin altında açık kalma (kalan bütçe 29,8 CU-saat / 12
+gün, 0,25 CU'da günde ~9,6 saat). Bir panel kaydı bir sonraki sayfa
+yüklemesinde görünmelidir. Ölçüm 9 saatin üstünde kalırsa çözüm Neon Launch
+planıdır (ayda ~12-15 $).
+
 ## Supabase'e geçiş yordamı
 
 Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
@@ -386,7 +547,10 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
-kalmaz.
+kalmaz. Tablodaki genel sayfa satırları önbellekte kaydı olmayan sayfa
+içindir: kaydı olan sayfa, kesintiyi hiçbir canlı okumada görmeyen istekte
+son bilinen gerçek içeriği bantsız gösterir; giriş yapmış üyenin isteği
+bandı ve boş mağazayı görür (yukarıda "Uyanmalar ve önbellek").
 
 **Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin

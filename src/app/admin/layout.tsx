@@ -19,6 +19,7 @@ import {
   visibleNav,
   type NavGroupDef,
 } from "@/lib/admin/nav-match";
+import { paletteAccountKey } from "@/lib/admin/palette-account";
 import { canAccess, landingPathFor, ROLE_LABELS } from "@/lib/admin/roles";
 import { searchSectionsFor } from "@/lib/admin/search";
 
@@ -91,8 +92,16 @@ const adminFontStyle = {
 // signed-in wrapper used to be bg-neutral-50 and only the logged-out one
 // carried the (never styled) `admin-shell` class. `data-admin-root` lets
 // the panel's Tailwind classes beat the site's element resets (globals.css).
+//
+// The phone's bottom bar (ui/bottom-bar.tsx, UI-7) takes the bottom 3.5rem
+// and the home indicator below `lg`. That room is one variable here,
+// `--admin-bottom-inset`, set while the bar is on the page and no bulk
+// bar has taken its place; the page ends that much higher, and the toasts,
+// the bulk bar, the order alert sheet and the sticky save bars add it to
+// their own distance from the bottom. Unset (0) everywhere else: from
+// `lg`, for the cashier and on the sign-in screens.
 const shellClass = (fontVariable: string) =>
-  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`;
+  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
 
 /*
  * The panel's nav (admin UI v2, UI-5): five groups, and items that own
@@ -443,6 +452,9 @@ export default async function AdminLayout({
   const landingPath = landingPathFor(session.role);
   // A one-page role (Kasiyer) has no sidebar, so nothing to clear room for.
   const chrome = hasNavChrome(groups);
+  // The ⌘K palette, for a role its record search covers: not the cashier,
+  // whose shell gets no trigger, no recents and no key.
+  const canSearch = searchSectionsFor(session.role).length > 0;
   // The top bar's controls. The köşk chip polls its own status (a Server
   // Action, once a minute): the layout reads nothing for it.
   const venueChip = canAccess("venue", session.role);
@@ -467,7 +479,16 @@ export default async function AdminLayout({
             roleLabel={ROLE_LABELS[session.role]}
             landingPath={landingPath}
             logout={logoutAction}
-            canSearch={searchSectionsFor(session.role).length > 0}
+            canSearch={canSearch}
+            palette={
+              canSearch
+                ? {
+                    role: session.role,
+                    // Never the e-mail: an HMAC of it (palette-account.ts).
+                    accountKey: paletteAccountKey(session.email),
+                  }
+                : undefined
+            }
             actions={
               venueChip || orderAlerts ? (
                 <>

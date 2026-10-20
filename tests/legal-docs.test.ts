@@ -596,3 +596,179 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
   });
 });
+
+describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (20 Ekim 2026)", () => {
+  // The company issues its invoices electronically (operator, 19 Ekim 2026)
+  // and the texts said "a copy on request" (ASK-INVOICE, ASK-KAR-KDV;
+  // LEGAL-REDLINES §24). The e-commerce regulation of 29.12.2022 asks for an
+  // "işlem rehberi" on the home page (m.7/1) and the professional chamber in
+  // the company details (m.5/1-c, OP-KEP-CHAMBER).
+  const email = LEGAL_ENTITY.email;
+
+  it("says in the MSS and the ÖBF that the invoice is an e-Arşiv invoice sent by e-mail", () => {
+    const sent =
+      "Fatura e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir.";
+    const mss = sectionOf(
+      "mesafeli-satis-sozlesmesi",
+      "9. Fatura ve Belgelendirme",
+    );
+    expect(mss.paragraphs?.[1]).toBe(
+      `Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. ${sent}`,
+    );
+    const obf = sectionOf(
+      "on-bilgilendirme-formu",
+      "16. Fatura, Belge Düzeni ve Promosyon Kodları",
+    );
+    expect(obf.paragraphs?.[0]).toContain(
+      "e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer",
+    );
+  });
+
+  it("drops the old invoice sentences everywhere", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "Fatura örneği talebi üzerine",
+      "muvafakat eder; talep etmesi hâlinde faturanın kâğıt çıktısı da gönderilir",
+      "sipariş öncesinde eksiksiz girmeniz gerekir",
+      "Mevzuata uygun fatura (türü Şirketin mükellefiyet durumuna göre belirlenir)",
+      "Tüm satışlar için 213 sayılı Vergi Usul Kanunu",
+      "faturanızın bir örneğini",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+  });
+
+  it("sends the invoice by e-mail and takes corporate details after the order (Şirket Bilgileri §14)", () => {
+    const s14 = sectionOf(
+      "sirket-bilgileri",
+      "14. Faturalama ve Vergisel Bilgiler",
+    );
+    const row = (key: string) => s14.table?.find((r) => r.key === key)?.value;
+    expect(row("Fatura iletim yöntemi")).toMatch(
+      /^e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir \(kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde\)/,
+    );
+    expect(row("Fatura türü")).toBe(
+      "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
+    );
+    expect(row("Koliyle gönderilen belge")).toBe(
+      "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
+    );
+    expect(s14.paragraphs?.[1]).toContain(
+      `Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce ${email} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir`,
+    );
+  });
+
+  it("invoices the karaoke advance on the booked day (karaoke terms §12)", () => {
+    const s12 = sectionOf("karaoke-odasi-rezervasyon", "12. Fatura");
+    expect(s12.paragraphs).toEqual([
+      "Ödediğiniz tutar hizmet gününe kadar ön ödeme niteliğindedir. Fatura, e-Arşiv fatura olarak rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir ve rezervasyonda bildirdiğiniz e-posta adresine gönderilir. İptalde size iade edilen tutar faturalanmaz; iade edilmeyen tutar karaoke odası hizmet bedeli olarak faturalanır. Ödediğiniz KDV dâhil tutar, rezervasyon ile hizmet günü arasında vergi oranı değişse de değişmez.",
+    ]);
+  });
+
+  it("links the İşlem Rehberi from the footer, a Sipariş document", () => {
+    expect(FOOTER_LEGAL_DOCS).toContainEqual({
+      slug: "islem-rehberi",
+      label: "İşlem rehberi",
+    });
+    const doc = findLegalDoc("islem-rehberi");
+    expect(doc?.title).toBe("İşlem Rehberi");
+    expect(doc?.category).toBe("Sipariş");
+    // Şirket Bilgileri §9 lists the published documents.
+    expect(
+      sectionOf(
+        "sirket-bilgileri",
+        "9. Sözleşmeler, Bilgilendirme Belgeleri ve Belge Sürümleri",
+      ).table,
+    ).toContainEqual({ key: "İşlem Rehberi", value: "/hukuk/islem-rehberi" });
+  });
+
+  it("covers the four parts of ETHS Yön. m.7/1", () => {
+    const text = (heading: string) => {
+      const s = sectionOf("islem-rehberi", heading);
+      return [
+        ...(s.paragraphs ?? []),
+        ...(s.ordered ?? []),
+        ...(s.bullets ?? []),
+      ].join("\n");
+    };
+    // (a) The technical steps to an order, web and karaoke as numbered steps.
+    const web = sectionOf(
+      "islem-rehberi",
+      "3. İnternet Sitesinde Sipariş Adımları",
+    );
+    expect(web.ordered?.length).toBeGreaterThanOrEqual(8);
+    expect(web.ordered?.join("\n")).toContain("Siparişi onayla ve öde");
+    expect(
+      sectionOf("islem-rehberi", "5. Karaoke Odası Rezervasyonu").ordered
+        ?.length,
+    ).toBeGreaterThanOrEqual(5);
+    expect(text("4. Mobil Uygulamada Sipariş")).toContain("3D Secure");
+    // (b) Whether and how long the contract text is kept and reachable: the
+    // D-ISLEM-DURABLE paragraph word for word, until the durable copy.
+    expect(
+      sectionOf(
+        "islem-rehberi",
+        "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
+      ).paragraphs?.[0],
+    ).toBe(
+      `Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini ${email} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.`,
+    );
+    expect(text("8. Sözleşme Metninin Saklanması ve Size Ulaşması")).toContain(
+      "en az 3 yıl",
+    );
+    // (c) The tools to see and correct the input before the order.
+    const fix = text("6. Girdiğiniz Bilgileri Görme ve Düzeltme");
+    for (const tool of ["Sil", "Değiştir", "Geri", "sipariş özetinde"]) {
+      expect(fix, tool).toContain(tool);
+    }
+    // (ç) The dispute routes.
+    const routes = text("11. Şikâyet ve Uyuşmazlık Çözümü");
+    expect(routes).toContain("tüketici hakem heyetine");
+    expect(routes).toContain("arabulucuya başvurmanız");
+    expect(routes).toContain("73/A");
+  });
+
+  it("prints the numbers of the numbered steps", () => {
+    // Tailwind's preflight sets `ol { list-style: none }`: the guide's order
+    // and karaoke steps (and ÖBF §9) printed with no numbers at all.
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toMatch(/\.legal-ordered \{\s*list-style: decimal;\s*\}/);
+  });
+
+  it("knows the chamber tokens and prints their rows only with a value (rule 13)", () => {
+    expect(LEGAL_TOKEN_NAMES).toContain("CHAMBER");
+    expect(LEGAL_TOKEN_NAMES).toContain("CHAMBER_RULES_URL");
+    const source = LEGAL_CONTENT.find((d) => d.slug === "sirket-bilgileri")!
+      .sections[1].table!;
+    expect(source).toContainEqual({
+      key: "Kayıtlı olunan meslek odası",
+      value: "{{CHAMBER}}",
+    });
+    expect(source).toContainEqual({
+      key: "Meslek odasının davranış kuralları",
+      value: "{{CHAMBER_RULES_URL}}",
+    });
+    const rendered = sectionOf(
+      "sirket-bilgileri",
+      "2. Hizmet Sağlayıcı Kimlik ve Tanıtıcı Bilgileri",
+    ).table!;
+    const keys = rendered.map((r) => r.key);
+    for (const [key, token, value] of [
+      ["Kayıtlı olunan meslek odası", "CHAMBER", LEGAL_ENTITY.chamber],
+      [
+        "Meslek odasının davranış kuralları",
+        "CHAMBER_RULES_URL",
+        LEGAL_ENTITY.chamberRulesUrl,
+      ],
+    ] as const) {
+      if (value.trim() === "") {
+        // Unknown until read from the company's chamber registration
+        // (OP-KEP-CHAMBER): the row is not printed, nothing is guessed.
+        expect(hasEmptyToken(`{{${token}}}`), token).toBe(true);
+        expect(keys, key).not.toContain(key);
+      } else {
+        expect(rendered).toContainEqual({ key, value });
+      }
+    }
+  });
+});

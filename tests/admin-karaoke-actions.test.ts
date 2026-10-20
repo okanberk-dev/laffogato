@@ -20,11 +20,24 @@ const h = vi.hoisted(() => ({
   settle: vi.fn(),
   listDate: vi.fn(),
   logAudit: vi.fn(async () => {}),
+  /** The karaoke change marker (change-marker.ts); null: unreadable. */
+  marker: null as string | null,
+  /** What the cookie's signature alone says (the badge's cheap path). */
+  signed: true,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: h.logAudit }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => ({ value: "signed-token" }) }),
+}));
+vi.mock("@/lib/admin/change-marker", () => ({
+  readChangeMarker: vi.fn(async () => h.marker),
+}));
 vi.mock("@/lib/admin/auth", () => ({
+  ADMIN_COOKIE_NAME: "laffogato_admin_session",
+  readSessionFromCookieValue: () =>
+    h.signed ? { email: "kosk@laffogato", role: h.role, expiresAt: 0 } : null,
   requireRole: vi.fn(async (section: string) => {
     h.required.push(section);
     return { email: "kosk@laffogato", role: h.role, expiresAt: 0 };
@@ -411,28 +424,74 @@ describe("an evening that is over (karar D7)", () => {
 });
 
 describe("the nav badge count", () => {
-  it("counts today's bookings that still stand", async () => {
-    h.listDate.mockResolvedValue([
-      { status: "confirmed" },
-      { status: "requested" },
-      { status: "cancelled" },
-    ]);
-    expect(await admin.karaokeTodayCountAction()).toBe(2);
+  // A settled marker (an hour old), as change-marker.ts makes them.
+  const M = `${(Date.now() - 3600_000).toString(36)}-k4r40k3`;
+  const STANDING = [
+    { status: "confirmed" },
+    { status: "requested" },
+    { status: "cancelled" },
+  ];
+  const countOf = (a: unknown) => (a as { count: number | null }).count;
+
+  beforeEach(() => {
+    h.marker = M;
+    h.signed = true;
+    h.session = true;
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it("answers null, without reading, for a role without the panel or no session", async () => {
+  it("counts today's bookings that still stand", async () => {
+    h.listDate.mockResolvedValue(STANDING);
+    expect(countOf(await admin.karaokeTodaySignalAction(""))).toBe(2);
+  });
+
+  it("answers unchanged for a current cursor on the same Tuzla day, without reading", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(Date.parse("2026-10-19T18:00:00.000Z")); // 21:00 in Tuzla
+    h.marker = `${(Date.now() - 3600_000).toString(36)}-k4r40k3`;
+    h.listDate.mockResolvedValue(STANDING);
+    const first = (await admin.karaokeTodaySignalAction("")) as {
+      cursor: string;
+    };
+    expect(first.cursor).toContain(".2026-10-19");
+    h.listDate.mockClear();
+    expect(await admin.karaokeTodaySignalAction(first.cursor)).toEqual({
+      unchanged: true,
+    });
+    expect(h.listDate).not.toHaveBeenCalled();
+    // Midnight in Tuzla (21:00 UTC): a new day, a new count.
+    vi.setSystemTime(Date.parse("2026-10-19T21:00:30.000Z"));
+    expect(countOf(await admin.karaokeTodaySignalAction(first.cursor))).toBe(2);
+    expect(h.listDate).toHaveBeenCalledWith("2026-10-20");
+  });
+
+  it("a booking written since (a new marker) is read again", async () => {
+    h.listDate.mockResolvedValue(STANDING);
+    const first = (await admin.karaokeTodaySignalAction("")) as {
+      cursor: string;
+    };
+    h.marker = `${(Date.now() - 60_000).toString(36)}-n3w`;
+    expect(countOf(await admin.karaokeTodaySignalAction(first.cursor))).toBe(2);
+    expect(h.listDate).toHaveBeenCalledTimes(2);
+  });
+
+  it("answers no badge, without reading, for a role without the panel or no session", async () => {
     h.role = "cashier";
-    expect(await admin.karaokeTodayCountAction()).toBeNull();
+    expect(countOf(await admin.karaokeTodaySignalAction(""))).toBeNull();
     h.role = "staff";
     h.session = false;
-    expect(await admin.karaokeTodayCountAction()).toBeNull();
+    expect(countOf(await admin.karaokeTodaySignalAction(""))).toBeNull();
+    h.signed = false;
+    expect(countOf(await admin.karaokeTodaySignalAction(""))).toBeNull();
     expect(h.listDate).not.toHaveBeenCalled();
   });
 
   it("never throws: a failed read draws no badge", async () => {
     h.listDate.mockRejectedValue(new Error("db down"));
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(await admin.karaokeTodayCountAction()).toBeNull();
+    expect(countOf(await admin.karaokeTodaySignalAction(""))).toBeNull();
     spy.mockRestore();
   });
 });

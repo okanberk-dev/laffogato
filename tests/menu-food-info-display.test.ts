@@ -46,18 +46,18 @@ vi.mock("@/lib/admin/store", () => ({
     sat: "Cumartesi",
     sun: "Pazar",
   },
-  getPublicSettings: vi.fn(async () => h.settings),
-  listActivePress: vi.fn(async () => []),
-  listActiveShopHeroSlides: vi.fn(async () => []),
-  listActiveStoryEvents: vi.fn(async () => []),
-  listMenuForCustomer: vi.fn(async () => ({})),
-  listShopProducts: vi.fn(async () => []),
 }));
-vi.mock("@/lib/admin/home-hero", () => ({
-  listHomeSlidesForSite: vi.fn(async () => null),
-}));
-vi.mock("@/lib/admin/site-content", () => ({
-  getSiteContent: vi.fn(async () => ({})),
+// loadAppProps reads the site's cached presentation readers.
+vi.mock("@/lib/seo/site-data", () => ({
+  getSiteSettings: vi.fn(async () => h.settings),
+  listSitePress: vi.fn(async () => []),
+  listSiteShopHeroSlides: vi.fn(async () => []),
+  listSiteStory: vi.fn(async () => []),
+  listSiteMenu: vi.fn(async () => ({})),
+  listSiteShopProducts: vi.fn(async () => []),
+  shopForRequest: vi.fn((products: unknown[]) => products),
+  listSiteHomeSlides: vi.fn(async () => null),
+  getSiteContentForSite: vi.fn(async () => ({})),
 }));
 vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: vi.fn(async () => null),
@@ -225,9 +225,12 @@ describe("the day reaches all three routes", () => {
 
 describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
   it("says where each menu item's allergens are written, and only that", async () => {
-    const { findLegalDoc } = await import("@/lib/legal/documents");
+    const { findLegalDoc, LEGAL_UPDATED } =
+      await import("@/lib/legal/documents");
     const doc = findLegalDoc("gida-guvenligi-ve-alerjen");
-    expect(doc?.updatedAt).toBe("19 Ekim 2026");
+    // Its own 19 Ekim 2026 gave way to the set's later revision (20 Ekim
+    // 2026, tests/legal-dates.test.ts).
+    expect(doc?.updatedAt).toBe(LEGAL_UPDATED);
     const s7 = doc!.sections.find((s) => s.heading.startsWith("7. "));
     const text = (s7?.paragraphs ?? []).join("\n");
     expect(text).toContain(

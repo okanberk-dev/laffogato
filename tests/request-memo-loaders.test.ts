@@ -14,6 +14,8 @@ import { createDb, type Executor } from "@/lib/db/client";
  * - getPublicSettings: home metadata + body, /odeme and /uye layout + page
  * - getShopProductBySlug: product page metadata + body
  * - getPublishedLegalOverride: /hukuk/[slug] metadata + body
+ * - and their cached twins in src/lib/seo/site-data.ts, which the public
+ *   pages read (getSiteSettings, getSiteProductBySlug, getSiteLegalOverride)
  *
  * The memo is request-scoped and is a pass-through outside a render, so it
  * can never serve one visitor's read to another or make a commercial path
@@ -28,6 +30,11 @@ describe("the double-read loaders are request-memoised", () => {
     ["src/lib/admin/store.ts", "getPublicSettings"],
     ["src/lib/admin/store.ts", "getShopProductBySlug"],
     ["src/lib/legal/store.ts", "getPublishedLegalOverride"],
+    // The cached presentation readers the public pages use instead
+    // (src/lib/seo/site-data.ts): one Data Cache lookup per request.
+    ["src/lib/seo/site-data.ts", "getSiteSettings"],
+    ["src/lib/seo/site-data.ts", "getSiteProductBySlug"],
+    ["src/lib/seo/site-data.ts", "getSiteLegalOverride"],
   ])("%s: %s", (file, name) => {
     const src = read(file);
     expect(src).toContain('import { cache } from "react";');

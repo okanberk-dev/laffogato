@@ -230,6 +230,8 @@ export function startEngine(
         const out = interpretPoll(res);
         if (out.kind === "alerts") {
           controller.receive(out.alerts);
+        } else if (out.kind === "unchanged") {
+          controller.receiveUnchanged(out.now);
         } else if (out.kind === "stop") {
           // Signed out or no longer allowed: the page itself says so on the
           // next navigation; the alert goes quiet now. The lock goes to the
@@ -755,8 +757,10 @@ export interface OrderAlertPanelProps {
 /**
  * Top right from `sm` up; below it a sheet across the bottom, above
  * `--admin-bottom-inset` (the phone tab bar, when there is one) and the
- * home indicator. z-40: over the top bar and the bulk bar, under the
- * toasts (a result toast stays readable) and the modal dialogs.
+ * home indicator. The inset already holds the home indicator, so over the
+ * tab bar the sheet's own bottom padding is the plain 0.5rem. z-40: over
+ * the top bar and the bulk bar, under the toasts (a result toast stays
+ * readable) and the modal dialogs.
  */
 export function OrderAlertPanel(props: OrderAlertPanelProps) {
   const { alerts, collapsed = false } = props;
@@ -776,7 +780,7 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
           props.onRelease?.();
         }
       }}
-      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(44,29,17,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(44,29,17,0.2)] print:hidden"
+      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(44,29,17,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(44,29,17,0.2)] print:hidden"
     >
       <div className="flex min-h-11 items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">

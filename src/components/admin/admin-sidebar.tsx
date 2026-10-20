@@ -11,17 +11,30 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ComponentType,
   type MouseEvent,
   type ReactNode,
 } from "react";
 
-import { karaokeTodayCountAction } from "@/app/admin/mobil/karaoke/actions";
-import { openOrderCountAction } from "@/app/admin/siparisler/actions";
-import { TopBarSearch } from "@/components/admin/admin-search";
+import { karaokeTodaySignalAction } from "@/app/admin/mobil/karaoke/actions";
+import { openOrderSignalAction } from "@/app/admin/siparisler/actions";
+import {
+  readSignalAnswer,
+  type PanelSignalAnswer,
+} from "@/lib/admin/panel-signal-core";
+import { forgetRecents } from "@/components/admin/palette/recents";
+import { PaletteTrigger } from "@/components/admin/palette/trigger";
+import {
+  useShortcutPref,
+  writeShortcutPref,
+} from "@/components/admin/shortcut-pref";
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
+import { BottomBar } from "@/components/admin/ui/bottom-bar";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
+import { SwitchMark } from "@/components/admin/ui/switch-mark";
 import { useToast } from "@/components/admin/ui/toast";
+import { activeBottomSlot, bottomBarSlots } from "@/lib/admin/bottom-bar-core";
 import {
   activeNavPlace,
   hasNavChrome,
@@ -29,6 +42,12 @@ import {
   sectionTabsFor,
   type NavTab,
 } from "@/lib/admin/nav-match";
+import {
+  isApplePlatform,
+  paletteShortcutLabel,
+} from "@/lib/admin/palette-shell";
+import type { AdminRole } from "@/lib/admin/roles";
+import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
 
 export interface AdminNavItem {
   href: string;
@@ -70,6 +89,13 @@ interface SidebarProps {
   /** Whether this role's search covers anything (lib/admin/search.ts). */
   canSearch?: boolean;
   /**
+   * The ⌘K palette's inputs (admin UI v2, UI-6): the role, for its Oluştur
+   * list and to ask each recent page again, and the account's opaque key
+   * (an HMAC the layout computes; never the e-mail). Without it, or
+   * without `canSearch`, the top bar has no search at all (the cashier).
+   */
+  palette?: { role: AdminRole; accountKey: string };
+  /**
    * Controls at the right end of the top bar, after the search, at every
    * width. Rendered once, so a panel-wide control mounted here (the new
    * order alert) runs once per tab.
@@ -89,6 +115,12 @@ export const NAV_BADGE_POLL_MS = 60_000;
  * cancelled tonight's booking (admin audit KAR-23). A change that lands
  * while a read is out is read again once that read is back: the read in
  * flight may have started before the change. Returns the stop function.
+ *
+ * Each answer carries a cursor (panel-signal-core.ts) that the next read
+ * sends back; while nothing was written the answer is `{ unchanged: true }`,
+ * read without the database, and the badge keeps its number.
+ * `admin:changed` drops the cursor, so the read after an action is a full
+ * one; a new poll (the effect restarting on navigation) starts without one.
  */
 export function startNavCountPoll({
   read,
@@ -97,7 +129,7 @@ export function startNavCountPoll({
   target = window,
   isVisible = () => document.visibilityState === "visible",
 }: {
-  read: () => Promise<number | null>;
+  read: (cursor: string) => Promise<PanelSignalAnswer>;
   onCount: (count: number | null) => void;
   intervalMs?: number;
   target?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
@@ -106,6 +138,7 @@ export function startNavCountPoll({
   let stopped = false;
   let busy = false;
   let again = false;
+  let cursor = "";
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   async function tick() {
@@ -114,8 +147,13 @@ export function startNavCountPoll({
     if (isVisible()) {
       busy = true;
       try {
-        const n = await read();
-        if (!stopped) onCount(typeof n === "number" ? n : null);
+        const answer = readSignalAnswer(await read(cursor));
+        if (!stopped && !("unchanged" in answer)) {
+          // A change landed while this read was out: the next read is a
+          // full one, whatever this answer's cursor says.
+          cursor = again ? "" : answer.cursor;
+          onCount(answer.count);
+        }
       } catch {
         // Never let a background count take the panel down.
       } finally {
@@ -133,6 +171,7 @@ export function startNavCountPoll({
 
   const onChanged = () => {
     if (stopped) return;
+    cursor = "";
     if (busy) {
       again = true;
       return;
@@ -163,7 +202,7 @@ export function startNavCountPoll({
  */
 function useNavCount(
   pathname: string,
-  read: () => Promise<number | null>,
+  read: (cursor: string) => Promise<PanelSignalAnswer>,
   enabled: boolean,
 ): number | null {
   const [count, setCount] = useState<number | null>(null);
@@ -308,8 +347,12 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
 const BADGE_CLASS =
   "min-w-[22px] rounded-full bg-[var(--admin-primary)] px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white";
 
-/** The one-time note about the regrouped nav, dismissed per browser. */
-export const NAV_NOTE_KEY = "laf_admin_nav_note_v1";
+/**
+ * The one-time note about the regrouped nav, dismissed per browser. v2
+ * since the palette (UI-6): the note now says the old names are found
+ * there, news to whoever closed v1.
+ */
+export const NAV_NOTE_KEY = "laf_admin_nav_note_v2";
 const NAV_NOTE_EVENT = "admin:nav-note";
 let noteFallback = "";
 
@@ -345,15 +388,23 @@ export function navNoteVisible(raw: string): boolean {
   return raw !== "1";
 }
 
+const noSubscribe = () => () => {};
+
 /**
  * "Menü sadeleşti": the panel's nav moved into five groups, and some
- * pages became an item's tab. Said once, in the grouped nav's footer
- * (Personel's five items only lost their headers), until dismissed. The
- * server and the first paint draw nothing (no flash for whoever dismissed
- * it); the stored choice applies after hydration.
+ * pages became an item's tab; the palette still finds every old name.
+ * Said once, in the grouped nav's footer (Personel's five items only lost
+ * their headers), until dismissed. The server and the first paint draw
+ * nothing (no flash for whoever dismissed it); the stored choice, and the
+ * keyboard's own ⌘K or Ctrl K, apply after hydration.
  */
 function NavNote() {
   const raw = useSyncExternalStore(subscribeNote, readNoteRaw, () => "1");
+  const key = useSyncExternalStore(
+    noSubscribe,
+    () => paletteShortcutLabel(isApplePlatform(navigator)),
+    () => "⌘K",
+  );
   if (!navNoteVisible(raw)) return null;
   return (
     <div
@@ -361,8 +412,7 @@ function NavNote() {
       className="mx-3 mb-2 flex items-start gap-2 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-accent-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-text-soft)]"
     >
       <p className="flex-1 pt-0.5">
-        Menü sadeleşti: bazı sayfalar artık sekmede, örneğin Kategoriler
-        Ürünler&apos;de.
+        Menü sadeleşti: eski adlarla da {key} ile bulursun.
       </p>
       <button
         type="button"
@@ -377,6 +427,62 @@ function NavNote() {
 }
 
 /**
+ * "Tek tuş kısayolları" (admin UI v2, UI-8): the single keys' off switch
+ * (WCAG 2.1.4), per browser. The server draws it on (the default); a
+ * browser that turned it off shows so once hydrated.
+ */
+function ShortcutSwitch() {
+  const on = useShortcutPref();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => writeShortcutPref(!on)}
+      className={`${ROW} ${ROW_IDLE} w-full text-left`}
+    >
+      <NavIcon name="shortcuts" />
+      <span className="min-w-0 flex-1 truncate">Tek tuş kısayolları</span>
+      <SwitchMark on={on} />
+    </button>
+  );
+}
+
+type ShortcutLayerComponent = ComponentType<{ role: AdminRole }>;
+
+/** The layer once its chunk is here: a remount (a new session) draws it at once. */
+let loadedShortcutLayer: ShortcutLayerComponent | null = null;
+
+/**
+ * The single keys' layer (shortcuts.tsx: the listener, the `?` sheet),
+ * fetched after hydration and drawn only for the roles that have them: a
+ * chunk of its own, so the cashier's one-page shell never asks for it.
+ * Nothing on the server. Without it the panel works as before; ⌘K is the
+ * trigger's.
+ */
+function ShortcutLayer({ role }: { role: AdminRole }) {
+  const [Layer, setLayer] = useState(() => loadedShortcutLayer);
+  useEffect(() => {
+    if (Layer) return;
+    let live = true;
+    import("@/components/admin/shortcuts").then(
+      (m) => {
+        loadedShortcutLayer = m.AdminShortcuts;
+        if (live) setLayer(() => m.AdminShortcuts);
+      },
+      () => {
+        // No single keys this time (a deploy replaced the chunk); a fresh
+        // load brings them back.
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [Layer]);
+  return Layer ? <Layer role={role} /> : null;
+}
+
+/**
  * Who is signed in, their 2FA and Çıkış: the sidebar's footer, and the
  * cashier's account menu. `icons` is off for the cashier, whose shell
  * loads no icon chunk.
@@ -388,10 +494,13 @@ function AccountLinks({
   pathname,
   onNavigate,
   icons,
+  shortcuts = false,
 }: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
   pathname: string;
   onNavigate?: () => void;
   icons: boolean;
+  /** The single-key switch, for the roles with single keys. */
+  shortcuts?: boolean;
 }) {
   const securityActive = pathname === "/admin/2fa-kurulum";
   return (
@@ -417,7 +526,10 @@ function AccountLinks({
         {icons && <NavIcon name="security" />}
         <span className="truncate">Güvenlik / 2FA</span>
       </Link>
-      <form action={logout}>
+      {shortcuts && <ShortcutSwitch />}
+      {/* The palette's recent pages go before the action posts: the next
+          person on a shared köşk device must not find them. */}
+      <form action={logout} onSubmit={() => forgetRecents()}>
         <button type="submit" className={`${ROW} ${ROW_IDLE} w-full`}>
           {icons && <NavIcon name="logout" />}
           Çıkış
@@ -444,6 +556,7 @@ export function AdminSidebarBody({
   onToggleGroup,
   onNavigate,
   idPrefix,
+  shortcuts = false,
 }: Pick<
   SidebarProps,
   "groups" | "email" | "roleLabel" | "landingPath" | "logout"
@@ -454,6 +567,8 @@ export function AdminSidebarBody({
   onToggleGroup?: (title: string) => void;
   onNavigate?: () => void;
   idPrefix: string;
+  /** The account block's "Tek tuş kısayolları" switch. */
+  shortcuts?: boolean;
 }) {
   const items = groups.flatMap((g) => g.items);
   // Item and tab hrefs alike: /admin/kategoriler lights Ürünler.
@@ -612,6 +727,7 @@ export function AdminSidebarBody({
           pathname={pathname}
           onNavigate={onNavigate}
           icons
+          shortcuts={shortcuts}
         />
       </section>
     </div>
@@ -802,15 +918,22 @@ export function AdminSidebar(props: SidebarProps) {
   );
   const dialogRef = useRef<HTMLDialogElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  // What opened the drawer (the top bar's button or the bottom bar's
+  // "Tümü"): focus goes back there when it closes.
+  const openerRef = useRef<HTMLElement | null>(null);
   const downOnBackdrop = useRef(false);
   const [collapsed, toggleGroup] = useCollapsedGroups();
 
   const has = (section: string) =>
     props.groups.some((g) => g.items.some((i) => i.section === section));
-  const openOrders = useNavCount(pathname, openOrderCountAction, has("orders"));
+  const openOrders = useNavCount(
+    pathname,
+    openOrderSignalAction,
+    has("orders"),
+  );
   const karaokeToday = useNavCount(
     pathname,
-    karaokeTodayCountAction,
+    karaokeTodaySignalAction,
     has("karaoke"),
   );
   const counts = { orders: openOrders, karaoke: karaokeToday };
@@ -841,9 +964,17 @@ export function AdminSidebar(props: SidebarProps) {
     };
   }, [open, setOpen]);
 
+  const palette = props.canSearch ? props.palette : undefined;
+  const shortcuts = singleKeysForRole(palette?.role);
   const topBarEnd = (
     <>
-      {props.canSearch && <TopBarSearch />}
+      {palette && (
+        <PaletteTrigger
+          groups={props.groups}
+          role={palette.role}
+          accountKey={palette.accountKey}
+        />
+      )}
       <div data-admin-topbar-actions="" className="flex items-center gap-2">
         {props.actions}
       </div>
@@ -909,8 +1040,16 @@ export function AdminSidebar(props: SidebarProps) {
     counts,
     collapsed,
     onToggleGroup: toggleGroup,
+    shortcuts,
   };
   const strip = sectionTabsFor(pathname, navLinks);
+  // The phone's bottom bar (UI-7), past the cashier's return above: a
+  // one-page shell runs none of it.
+  const slots = bottomBarSlots(props.groups, props.landingPath, BADGE_LINKS);
+  const openDrawer = (opener: HTMLElement) => {
+    openerRef.current = opener;
+    setOpen(true);
+  };
 
   return (
     <>
@@ -918,6 +1057,7 @@ export function AdminSidebar(props: SidebarProps) {
       <Suspense fallback={null}>
         <DeniedNotice />
       </Suspense>
+      {palette && shortcuts && <ShortcutLayer role={palette.role} />}
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden">
@@ -930,13 +1070,13 @@ export function AdminSidebar(props: SidebarProps) {
         className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-64 lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
           // On a wide screen the bar is breadcrumbs, search and controls; a
           // role with neither search nor controls has nothing to put there.
-          props.canSearch || props.actions ? "" : "lg:hidden"
+          palette || props.actions ? "" : "lg:hidden"
         }`}
       >
         <button
           ref={toggleRef}
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={(e) => openDrawer(e.currentTarget)}
           aria-label="Menüyü aç"
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -979,7 +1119,8 @@ export function AdminSidebar(props: SidebarProps) {
         aria-label="Menü"
         onClose={() => {
           setOpenOn(null);
-          toggleRef.current?.focus();
+          (openerRef.current ?? toggleRef.current)?.focus();
+          openerRef.current = null;
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
@@ -1004,6 +1145,21 @@ export function AdminSidebar(props: SidebarProps) {
           </>
         )}
       </dialog>
+
+      {/* Phone bottom bar: the role's first pages and "Tümü" (the
+          drawer above), with the same badge counts as the nav. */}
+      <BottomBar
+        slots={slots}
+        active={activeBottomSlot(
+          slots,
+          activeNavPlace(pathname, navLinks)?.item.href ?? null,
+        )}
+        counts={counts}
+        badgeTitles={BADGE_TITLES}
+        onMore={openDrawer}
+        drawerId={DRAWER_ID}
+        drawerOpen={open}
+      />
     </>
   );
 }

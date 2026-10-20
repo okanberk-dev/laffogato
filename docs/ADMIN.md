@@ -77,6 +77,63 @@ liste diğer sekmelere BroadcastChannel ile gider, "Gördüm" localStorage'da
 (`laffogato.admin.orderAlerts.acks.v1`). Zil Web Audio ile üretilir (dosya
 yok); sesin ayarı `laffogato.admin.orders.sound`.
 
+**Değişiklik yokken veritabanı yok (19 Eki 2026).** Sıklık aynı kaldı, ama
+10 saniyelik soru artık çoğu zaman Neon'a gitmiyor. Her tam cevap bir imleç
+(`cursor`) taşır; Worker onu bir sonraki soruda `?c=` olarak geri yollar.
+`orders` tablosuna her yazma (ödendi, durum değişikliği, iptal, iade, yeni
+sipariş) Data Cache'teki değişiklik işaretini yeniler
+(`src/lib/admin/change-marker.ts`, `src/lib/cache/tags.ts`). İşaret
+imleçtekiyle aynıysa cevap yalnız `{ unchanged: true }` olur: sipariş yok,
+hesap okuması yok, veritabanı yok; yalnız çerezin imzası ve rolü (Siparişler)
+bakılır. İşaret değiştiyse, okunamadıysa, imleç yoksa ya da bozuksa,
+çerezdeki rol Siparişler'e erişemiyorsa eski tam cevap gelir (hesap yeniden
+okunur, 401/403/503 aynı). Köşk açıkken en az saatte bir cevap yine tamdır.
+İşaret hesaptan ve siparişlerden önce okunur, arada ödenen sipariş onu
+mutlaka değiştirir; ödenen bir masa siparişi bir sonraki 10 saniyelik soruda
+çalar.
+
+Yetkisi alınan oturum (kural 30): işaret `admin_users`'a her yazmada da
+yenilenir (`live:access` etiketi: kullanıcı pasifleşti, rolü değişti,
+parolası sıfırlandı, silindi), yani "değişmedi" cevabı yalnız bu oturumun
+hesabını yeniden okuyan son tam cevaptan beri hiçbir hesap değişmediyse
+verilir. İmleç onu alan oturuma bağlıdır (oturum çerezinin SHA-256 özetinin
+ilk 12 hanesi, `src/lib/admin/poll-binding.ts`; adres ya da kimlik
+taşımaz): başka bir çerez, imzası geçerli olsa da, bu imleçle "değişmedi"
+alamaz, hesabı okunur. Yetkisi alınan oturum bir sonraki soruda 401 ya da
+403 alır; ilk siparişin ne zaman yazıldığını ve köşkün açık olup olmadığını
+bu yoldan öğrenemez. Kalan tek fark: Neon konsolunda elle yapılan bir hesap
+değişikliği etiket düşürmez (`docs/DATABASE.md` "Etiket düşürmeyen
+yazmalar"); hesabı panelden değiştir ya da bütün etiketleri düşür.
+"Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
+cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
+gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
+Her yazma işareti iki kez düşürür: hemen, ve cevap çıktıktan sonra
+`after()` ile ayrı bir istekle; siparişi ödendi yapıp sonra hata fırlatan
+bir route handler'da Next ilkini hiç göndermez, ikincisi yine gider
+(`docs/DATABASE.md` madde 1). İkisi de kaybolursa (önbellek hatası) zil en
+geç bir sonraki tam cevapta (açıkken en geç bir saat) çalar; personel
+e-postası bundan bağımsız gider. Önbellek çalışmazsa her soru tam cevap olur: eski
+maliyet, kaçan sipariş yok. Deploy'dan önce açılmış sekmeler yenilenene kadar
+eski Worker'la (imleçsiz, her 10 sn tam cevap) çalışır: tezgâh
+bilgisayarında paneli bir kez yenile.
+
+**Rozetler ve sipariş listesinin sayacı da aynı yolla (19 Eki 2026).** Kenar
+çubuğundaki açık sipariş ve bugünkü karaoke rozetleri (60 sn) ve sipariş
+listesinin "yeni sipariş" sayacı (30 sn) aynı sıklıkta sorar, ama her cevap
+bir imleç taşır (`src/lib/admin/panel-signal.ts`,
+`src/lib/admin/panel-signal-core.ts`). `orders` (rozet ve liste) ya da
+`karaoke_reservations` (karaoke rozeti) yazılmadıysa ve aynı şey sayılıyorsa
+(karaokede Tuzla'nın bugünü, gece yarısı yeni gün; listede son sipariş no ve
+sekme) cevap `{ unchanged: true }`: sayı yok, hesap okuması yok, veritabanı
+yok, rozet sayısını korur. Sayı taşıyan her cevap hesabı yeniden okur. İmleç
+zilinki gibi oturuma bağlıdır ve işaret hesap yazmalarında da yenilenir:
+yetkisi alınan oturum bir sonraki soruda rozetsiz kalır. Bir
+işlem (`admin:changed`) ve sayfa değişimi imleci düşürür, sonraki okuma
+tamdır; liste yenilenince (`latestOrderNo`) yeniden imleçsiz başlar. Bir
+yazmanın düşürme isteği kaybolursa rozet bir sonraki işleme ya da sayfa
+değişimine kadar eski sayıyı gösterir; listenin kendisi her zaman sunucuda
+taze çizilir.
+
 ## Gün sonu sayfası (Raporlar > Gün sonu)
 
 Günü kapatırken beş ekran yerine tek sayfa: `/admin/raporlar/gun-sonu`.
@@ -137,3 +194,86 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
   kaydındaki "Geçmişi" aynı yoldan gider: adres gönderinin içindedir.
 - Eski bir yer imi `?q=` ile açılırsa metin çereze taşınır ve sayfa onsuz
   yeniden açılır. Kural tek yerde: `src/lib/admin/list-search-core.ts`.
+
+## Palet (⌘K / Ctrl K)
+
+Üst çubuktaki **Ara** paleti açar; klavyeden Mac'te ⌘K, Windows'ta Ctrl K
+(bir alanın içindeyken de çalışır). Kasiyerde palet yok.
+
+- **Son açılanlar**: bu sekmede açtığın son 8 kayıt sayfası (sipariş,
+  karaoke, ürün, menü kalemi, kategori, slayt, promosyon, kampanya, masa,
+  duyuru, gönderi). Müşteri, panel kullanıcısı, abone ve olay kaydı sayfası
+  tutulmaz; başlığında e-posta ya da telefon olan kayıt da. Liste hesabına
+  bağlıdır, sekme kapanınca ve **Çıkış**'ta silinir.
+- **Git**: menüdeki her sayfa ve sekme, eski adlarıyla da ("Mağaza Hero",
+  "kupon", "damga", "qr"). Harfleri işaretsiz yazmak yeter: "siparis"
+  Siparişler'i bulur.
+- **Oluştur**: rolünün açabildiği "Yeni" sayfaları.
+- **Kayıtlar**: 2 harften sonra sipariş, müşteri, ürün, menü ve karaoke
+  kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
+  adrese ve kayda düşmez. 5'ten fazlası varsa "Listede ara": liste aramasız
+  açılır (metin adrese yazılmaz), metni listenin kutusuna sen yazarsın.
+- **Komutlar**: Güvenlik / 2FA, Klavye kısayolları ve sipariş sesini aç /
+  kapat (bu tarayıcıda).
+- Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
+- Esc ilk basışta kutuyu boşaltır, ikinci basışta paleti kapatır; telefonda
+  × düğmesi kapatır.
+- Oturum kapandıysa "Oturumun kapandı." ve yeniden giriş bağlantısı çıkar;
+  veritabanı yanıt vermezse "Arama şu an çalışmıyor." (sonuç yok demek
+  değildir).
+
+## Telefonda alt çubuk
+
+Telefon ve tablette (geniş ekranda değil, orada kenar çubuğu var) ekranın
+altında en çok beş düğme durur: menüyü açmadan tek dokunuşla vardiyanın
+sayfaları. Rozetler menüdekilerle aynı sayılardır.
+
+- **Sahip ve yönetici**: Genel bakış, Siparişler, Karaoke, Kasa ve
+  **Tümü** (bütün menüyü açar). Açık sayfa çubukta değilse Tümü yanar.
+- **Personel**: Siparişler, Karaoke, Kasa, Stok, Genel bakış. Beş sayfası
+  da sığdığı için Tümü yok; menü üst çubukta.
+- **Kasiyer**: çubuk yok (tek sayfası var).
+- Siparişler düğmesi rozetin saydığı "Açık" sekmesini açar.
+- Toplu işlem çubuğu açıkken, bir onay penceresi ya da menü açıkken ve
+  telefonda bir yazı alanına dokununca (klavye açıkken) çubuk çekilir.
+- Bildirimler, toplu işlem çubuğu, yeni sipariş kartları ve kaydet
+  çubukları çubuğun üstünde durur; sayfanın sonu çubuğun altında kalmaz.
+
+## Klavye kısayolları
+
+⌘K / Ctrl K her sayfada paleti açar. Sahip, yönetici ve personel için ayrıca
+tek tuşlar vardır; `?` listelerini açar (paletin Komutlar'ındaki "Klavye
+kısayolları" da).
+
+| Tuş                                               | Ne yapar                                                                         |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `/`                                               | Listenin arama kutusuna geçer; sayfada kutu yoksa paleti açar                    |
+| `n`                                               | Sayfanın "Yeni" bağlantısını açar; yoksa paleti yalnız Oluştur'la açar           |
+| `?`                                               | Kısayol listesi                                                                  |
+| `g` sonra `b` / `s` / `k` / `d` / `m` / `u` / `r` | Genel bakış, Siparişler, Karaoke, Kasa ("damga"), Kafe menüsü, Ürünler, Raporlar |
+
+- `g`'den sonra ikinci harf 1,5 saniye içinde gelmeli. İkinci harfte ü, ş,
+  ç, ö, ğ işaretsiz harf gibi sayılır (`g ü` = `g u`). `i` ve `ı`'ya bir şey
+  bağlı değil.
+- Rolün açamadığı sayfanın harfi hiçbir şey yapmaz (personelde `g m`, `g u`,
+  `g r`).
+- Tek tuşlar çalışmaz: bir alana yazarken, IME ile yazarken, bir pencere
+  (palet, onay, menü çekmecesi) açıkken, ⌘, Ctrl ya da Alt basılıyken (AltGr
+  dahil), **Kasa'da** (okutulan ve yazılan kodlar oraya gelir) ve
+  **kasiyerde** hiç.
+- `n` yalnız bir bağlantıyı açar: sayfanın ana düğmesi bir gönderme ya da
+  yazdırma düğmesiyse ona basmaz, paleti Oluştur'la açar.
+- 20 Ekim 2026'da hiçbir sayfa "Yeni" bağlantısını başlığın ana bağlantısı
+  (`PageHeader` `primary`, `data-admin-new`) olarak çizmiyor ("+ Yeni
+  sipariş" `action` içinde): şimdilik `n` her sayfada paleti Oluştur'la
+  açar. Bir sayfa `primary`'ye geçince `n` o bağlantıyı doğrudan açar.
+- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı) tuşlar sayfadan
+  çıkmaz: `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
+  "+ Varyant ekle"den sonra odak sayfaya düşer; oraya yazılan "Guatemala"
+  `g u` olup sihirbazı kapatmasın diye (tarayıcı sayfa içi geçişte sormaz).
+- **Kapatmak için**: menünün altındaki Hesap bölümünde "Tek tuş kısayolları"
+  (bu tarayıcıda hatırlanır; kısayol listesinde de aynı düğme var). Kapalıyken
+  yalnız ⌘K / Ctrl K kalır.
+- Kurallar tek yerde: `src/lib/admin/shortcut-core.ts`; dinleyici
+  `src/components/admin/shortcuts.tsx` (yalnız tek tuşlu rollere, ayrı bir
+  parça olarak yüklenir).

@@ -1,6 +1,14 @@
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from "vitest";
 
 import type { AdminCategory, AdminProduct } from "@/lib/admin/store";
 
@@ -118,9 +126,18 @@ const STORED = {
 } as AdminProduct;
 
 beforeEach(() => {
+  // The discount days below are written for 19 Ekim 2026; a real clock turned
+  // "2026-10-19" into a past start at midnight and the save refused it under
+  // another field. Only Date is faked: timers and promises run as usual.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T12:00:00.000Z"));
   for (const fn of Object.values(h.store)) fn.mockReset();
   h.logAudit.mockClear();
   h.redirect.mockClear();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("the fourteen groups and the nuts tag", () => {
@@ -409,8 +426,10 @@ describe("the panel list", () => {
     });
     const { toProductListRow } = await import("@/lib/admin/products-panel");
     const struck = (product: Partial<AdminProduct>) =>
-      toProductListRow({ ...STORED, priceMinor: 75_000, ...product } as never, null)
-        .compareAtPriceMinor > 0;
+      toProductListRow(
+        { ...STORED, priceMinor: 75_000, ...product } as never,
+        null,
+      ).compareAtPriceMinor > 0;
     const was = { compareAtPriceMinor: 99_900 };
     // 1-10 Oct ended: still stored until the next save, gone from the shop.
     expect(

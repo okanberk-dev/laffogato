@@ -4,8 +4,9 @@ import type { ReactElement } from "react";
 
 import type { Product } from "@/components/laffogato/data";
 import { decodeDataImage } from "@/lib/admin/image-bytes";
-import { getProduct, getShopProductBySlugLive } from "@/lib/admin/store";
+import { getProduct } from "@/lib/admin/store";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
+import { getSiteProductBySlugStrict } from "@/lib/seo/site-data";
 import { priceLabel } from "@/lib/utils/format";
 
 import { OG_INK, OgFramedPhoto, OgPageCard, ogPhoto, ogText } from "./og-card";
@@ -19,9 +20,9 @@ import { OG_BAG_SIZE, OgCoffeeBag } from "./og-drawings";
  * hour here and far longer by the sites that fetched it, past the day the
  * discount ends.
  *
- * Read at request time (the route revalidates hourly), from the same query
- * the page reads, without its outage fallback. Three outcomes, as the page
- * has them:
+ * Read at request time (the route revalidates hourly), from the same cached
+ * list the page reads (src/lib/seo/site-data.ts), without its outage
+ * fallback. Three outcomes, as the page has them:
  * - the product: its card, with the coffee bag when no photo can be drawn;
  * - no such active product: null, and the route answers 404 like the page;
  * - the database down or failing: the read throws. The route then errors,
@@ -103,7 +104,7 @@ function PriceLine({ now }: { now: string }) {
 }
 
 export async function productCard(slug: string): Promise<ReactElement | null> {
-  const product: Product | null = await getShopProductBySlugLive(slug);
+  const product: Product | null = await getSiteProductBySlugStrict(slug);
   if (!product) return null;
   const photo = await productPhoto(product.id);
 

@@ -91,10 +91,10 @@ vi.mock("@/lib/admin/flash", () => ({
 // The sidebar's badge polls and the top bar's search: server actions the
 // markup only references.
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 0),
+  openOrderSignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 0),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
 }));
 vi.mock("@/app/admin/ara/actions", () => ({ adminSearchAction: vi.fn() }));
 
@@ -265,9 +265,14 @@ describe("the shell on the landing page", () => {
   it("links the logo to the open orders and lights Siparişler", () => {
     const markup = html();
     expect(markup).toContain(`href="${OPEN_ORDERS}"`);
+    // One lit link per nav: the sidebar's, and the phone's bottom bar's
+    // (UI-7), whose Siparişler opens the Açık tab its badge counts.
     const lit = markup.match(/<a[^>]*aria-current="page"[^>]*>/g) ?? [];
-    expect(lit).toHaveLength(1);
+    expect(lit).toHaveLength(2);
     expect(lit[0]).toContain('href="/admin/siparisler"');
+    expect(lit[1]).toContain(`href="${OPEN_ORDERS}"`);
+    const bar = markup.slice(markup.indexOf("data-admin-tabbar"));
+    expect(bar.match(/aria-current="page"/g)).toHaveLength(1);
   });
 
   it("sends Panele dön (error and 404 screens) to the landing page", () => {

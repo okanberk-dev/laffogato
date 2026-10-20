@@ -284,8 +284,30 @@ export function liveHomeHeroSlides(
   rows: readonly HomeHeroSlide[],
   now: number = Date.now(),
 ): HomeHeroSlide[] {
+  return homeSlidesInWindow(rows.filter(homeSlideReady), now);
+}
+
+/**
+ * The half of `homeSlideOffReason` that does not depend on the clock: on,
+ * with a title and a picture. A row that fails it is off at every hour, so
+ * the site's cached rows (src/lib/seo/site-data.ts) leave it out.
+ */
+export function homeSlideReady(row: HomeHeroSlide): boolean {
+  return row.isActive && !!row.titleLine1.trim() && !!safeSlideImage(row.image);
+}
+
+/**
+ * The other half, read at `now`: the rows inside their window, in the
+ * panel's order, at most `MAX_LIVE_HOME_SLIDES`. For rows that already
+ * passed `homeSlideReady` (the cached ones carry a served picture path,
+ * which `safeSlideImage` would not accept again).
+ */
+export function homeSlidesInWindow(
+  rows: readonly HomeHeroSlide[],
+  now: number = Date.now(),
+): HomeHeroSlide[] {
   return rows
-    .filter((r) => homeSlideOffReason(r, now) === null)
+    .filter((r) => isPublishWindowOpen(r, now))
     .sort(compareHomeHeroSlides)
     .slice(0, MAX_LIVE_HOME_SLIDES);
 }

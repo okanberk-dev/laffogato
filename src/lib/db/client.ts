@@ -65,6 +65,46 @@ export interface ExecutorResult {
 /** Runs compiled SQL. Injected so the builder is testable without a database. */
 export type Executor = (query: CompiledQuery) => Promise<ExecutorResult>;
 
+/** What a write touched: a table, or the SQL function it called. */
+export type WriteTarget = { table: string } | { fn: string };
+
+export interface DbOptions {
+  /**
+   * Called once after each write that was sent: an insert, upsert, update
+   * or delete (`{ table }`), or an rpc (`{ fn }`), whether it succeeded or
+   * failed. A failure does not prove nothing was written: Postgres can
+   * commit and the connection drop before the reply arrives, and the caller
+   * then sees an error for a price that is already in the table. Never
+   * after a select or a write that sent nothing (an empty upsert, an
+   * identifier refused before any SQL). `getDb()` uses it to expire the
+   * cached reads the write made stale (src/lib/cache/tags.ts): one expiry
+   * too many costs a read, one too few leaves a price stale for a day. It
+   * cannot fail the write or change its result: a throw is swallowed.
+   */
+  onWrite?: (target: WriteTarget) => void;
+}
+
+/** The executor for a write: the same SQL, then `onWrite`, failure included. */
+function writingExecutor(
+  execute: Executor,
+  target: WriteTarget,
+  onWrite: DbOptions["onWrite"],
+): Executor {
+  if (!onWrite) return execute;
+  return async (query) => {
+    try {
+      return await execute(query);
+    } finally {
+      try {
+        onWrite(target);
+      } catch {
+        // A cache that could not be told is not an error the caller can do
+        // anything about; the write's own result stands.
+      }
+    }
+  };
+}
+
 /**
  * Normalises a driver error into the PostgREST error shape.
  *
@@ -447,10 +487,16 @@ class DeleteBuilder<T> extends MutationBuilder<T> {
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 class TableQuery {
+  /** Runs this table's writes and reports each one that was sent. */
+  private readonly write: Executor;
+
   constructor(
     private readonly execute: Executor,
     private readonly table: string,
-  ) {}
+    onWrite?: DbOptions["onWrite"],
+  ) {
+    this.write = writingExecutor(execute, { table }, onWrite);
+  }
 
   select<T = any>(columns = "*", options: SelectOptions = {}) {
     return new SelectBuilder<T>(this.execute, this.table, columns, options);
@@ -458,7 +504,7 @@ class TableQuery {
 
   insert<T = any>(values: RowInput | RowInput[]) {
     return new InsertBuilder<T>(
-      this.execute,
+      this.write,
       this.table,
       (Array.isArray(values) ? values : [values]) as Row[],
     );
@@ -466,7 +512,7 @@ class TableQuery {
 
   upsert<T = any>(values: RowInput | RowInput[], options: UpsertOptions = {}) {
     return new UpsertBuilder<T>(
-      this.execute,
+      this.write,
       this.table,
       (Array.isArray(values) ? values : [values]) as Row[],
       options,
@@ -474,11 +520,11 @@ class TableQuery {
   }
 
   update<T = any>(patch: RowInput) {
-    return new UpdateBuilder<T>(this.execute, this.table, patch as Row);
+    return new UpdateBuilder<T>(this.write, this.table, patch as Row);
   }
 
   delete<T = any>() {
-    return new DeleteBuilder<T>(this.execute, this.table);
+    return new DeleteBuilder<T>(this.write, this.table);
   }
 }
 
@@ -532,14 +578,17 @@ class RpcBuilder<T> implements PromiseLike<DbResult<T>> {
 }
 
 export class Db {
-  constructor(private readonly execute: Executor) {}
+  constructor(
+    private readonly execute: Executor,
+    private readonly options: DbOptions = {},
+  ) {}
 
   from(table: string): TableQuery {
-    return new TableQuery(this.execute, table);
+    return new TableQuery(this.execute, table, this.options.onWrite);
   }
 
   rpc<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T> {
-    return new RpcBuilder<T>(this.execute, fn, args as Row);
+    return new RpcBuilder<T>(this.rpcExecutor(fn), fn, args as Row);
   }
 
   /**
@@ -548,11 +597,16 @@ export class Db {
    * that as "no audience" every day and still reported success.
    */
   rpcRows<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T[]> {
-    return new RpcBuilder<T[]>(this.execute, fn, args as Row, "table");
+    return new RpcBuilder<T[]>(this.rpcExecutor(fn), fn, args as Row, "table");
+  }
+
+  /** An rpc may write, so each one sent is reported like a write. */
+  private rpcExecutor(fn: string): Executor {
+    return writingExecutor(this.execute, { fn }, this.options.onWrite);
   }
 }
 
-export function createDb(execute: Executor): Db {
-  return new Db(execute);
+export function createDb(execute: Executor, options: DbOptions = {}): Db {
+  return new Db(execute, options);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

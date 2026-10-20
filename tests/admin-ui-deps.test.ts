@@ -171,6 +171,18 @@ describe("admin UI libraries: pins and the lockfile", () => {
     }
   });
 
+  it("react-aria-components is a runtime dependency at 1.21.1, its own halves at the versions it pins", () => {
+    // The palette (UI-6) brings it. 1.21.1 is from 4 Sep 2026; it pins
+    // react-aria 3.52.1 and react-stately 3.50.0 exactly, so a second copy
+    // of either would mean a second widget runtime in the chunk.
+    expect(pkg.dependencies[RAC]).toBe("1.21.1");
+    expect(lockVersions("react-aria")).toEqual(["3.52.1"]);
+    expect(lockVersions("react-stately")).toEqual(["3.50.0"]);
+    // The date package rides in as React Aria's dependency, one copy at the
+    // version design §1.3 pins for UI-14, before any file imports it.
+    expect(lockVersions(DATE)).toEqual(["3.12.4"]);
+  });
+
   it("the lockfile holds one copy of each, at the pinned version", () => {
     for (const name of UI_LIBRARIES) {
       const range = declared(name);
@@ -244,6 +256,41 @@ describe("admin UI libraries: who may import them", () => {
       if (specs.includes(RAC)) bad.push(`${f}: imports the ${RAC} barrel`);
     }
     expect(bad).toEqual([]);
+  });
+
+  it("every page's shell reaches React Aria only through the palette's lazy import()", () => {
+    // The trigger is in every admin page's bundle (the Kasa's included,
+    // whose budget is 0 KB of library code); the list is loaded with
+    // import() on the first sign of use. A static value import anywhere on
+    // the shell's path would put React Aria on every page.
+    const staticReach = (entry: string): string[] => {
+      const hits: string[] = [];
+      const seen = new Set<string>();
+      const stack = [entry];
+      while (stack.length > 0) {
+        const file = stack.pop()!;
+        if (seen.has(file)) continue;
+        seen.add(file);
+        for (const spec of valueImportsOf(read(file))) {
+          if (spec.startsWith(".") || spec.startsWith("@/")) {
+            const next = resolveLocal(file, spec);
+            if (next) stack.push(next);
+          } else if (isPackage(spec, RAC)) hits.push(`${file} -> ${spec}`);
+        }
+      }
+      return hits;
+    };
+    for (const entry of [
+      "src/app/admin/layout.tsx",
+      "src/components/admin/admin-sidebar.tsx",
+      "src/components/admin/palette/trigger.tsx",
+    ]) {
+      expect(staticReach(entry), entry).toEqual([]);
+    }
+    // The checker sees it: the list itself imports React Aria statically.
+    expect(staticReach("src/components/admin/palette/palette.tsx")).not.toEqual(
+      [],
+    );
   });
 
   it("the server-safe kit files reach neither React Aria nor the date package", () => {
@@ -334,6 +381,7 @@ describe("ui/icons.tsx", () => {
       dateRange: "CalendarRange",
       close: "X",
       security: "ShieldCheck",
+      shortcuts: "Keyboard",
       logout: "LogOut",
     });
     const icons = Object.values(ADMIN_ICONS);

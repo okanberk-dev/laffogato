@@ -5,11 +5,11 @@ import { SeoContent } from "@/components/laffogato/seo-content";
 import { FAQ } from "@/lib/seo/faq";
 import { SITE, openGraphDefaults } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
-import { getPublicSettings } from "@/lib/admin/store";
 import { accountClosureNotice } from "@/lib/customer/account-closure";
 import { TIER_LABELS } from "@/lib/mobile/loyalty-core";
 import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
+import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato - L'Affogato";
  * panel offered control it did not have.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
   const title = settings.seoTitle?.trim() || HOME_TITLE;
   const ogImage = settings.seoOgImageUrl?.trim();
   return {

@@ -8096,6 +8096,12 @@ select {
   font-family: var(--mono);
   font-size: 13px;
 }
+/* Tailwind's preflight sets `ol { list-style: none }`, so the numbered
+   steps (ÖBF §9, the İşlem Rehberi's order and karaoke steps) printed no
+   numbers and the marker style above had nothing to draw. */
+.legal-ordered {
+  list-style: decimal;
+}
 
 .legal-table-wrap {
   margin-top: 14px;
