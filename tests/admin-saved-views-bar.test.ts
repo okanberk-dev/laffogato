@@ -263,6 +263,32 @@ describe("what the bar loads statically", () => {
     expect(files.has("src/lib/admin/saved-views-key.ts")).toBe(true);
   });
 
+  it("nor the shell's own modules: the account key's shape has a file of its own", () => {
+    // The key check once imported palette-shell.ts, and with it the roles,
+    // the nav matching, the shortcut roles and piiLike came into the bar's
+    // graph: modules the shell already carries, but the bar is not the shell
+    // (and the bundler regroups what two entries share). Five modules for
+    // one regular expression.
+    const { files } = closure(BAR);
+    for (const shell of [
+      "src/lib/admin/palette-shell.ts",
+      "src/lib/admin/roles.ts",
+      "src/lib/admin/nav-match.ts",
+      "src/lib/admin/shortcut-roles.ts",
+      "src/lib/admin/pii-like.ts",
+    ]) {
+      expect(files.has(shell), shell).toBe(false);
+    }
+    expect(files.has("src/lib/admin/account-key.ts")).toBe(true);
+    // Everything the bar's graph gained is the saved views' key half.
+    const gained = [...files].filter((f) => /saved-views|account-key/.test(f));
+    expect(gained.sort()).toEqual([
+      "src/components/admin/ui/saved-views-key.ts",
+      "src/lib/admin/account-key.ts",
+      "src/lib/admin/saved-views-key.ts",
+    ]);
+  });
+
   it("the menu itself is reached by import() alone", () => {
     expect(read(BAR)).toMatch(
       /dynamic\(\s*\(\) => import\("\.\/saved-views"\)\.then\(\(m\) => m\.SavedViews\),\s*\{ ssr: false \},?\s*\)/,

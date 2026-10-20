@@ -9,7 +9,7 @@
 
 import { Component, useSyncExternalStore, type ReactNode } from "react";
 
-import { validAccountKey } from "@/lib/admin/palette-shell";
+import { validAccountKey } from "@/lib/admin/account-key";
 import { savedViewsStorageKey } from "@/lib/admin/saved-views-key";
 
 const noSubscribe = () => () => {};

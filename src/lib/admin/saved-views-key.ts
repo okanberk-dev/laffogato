@@ -3,7 +3,7 @@
 // every page with a filter bar runs this to decide whether to draw the
 // menu at all; the rules and the menu load only where a list uses them.
 
-import { validAccountKey } from "./palette-shell";
+import { validAccountKey } from "./account-key";
 
 /** localStorage, per account and list: `laf_admin_views_v1:<account>:<list>`. */
 export const SAVED_VIEWS_KEY_PREFIX = "laf_admin_views_v1:";

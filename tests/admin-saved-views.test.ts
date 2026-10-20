@@ -240,6 +240,27 @@ describe("where the views are kept", () => {
     }
   });
 
+  it("the account key's shape is the palette's: one function, two ways to it", async () => {
+    // The bar checks the key through account-key.ts, so it does not import
+    // the palette's shell file; palette-shell.ts re-exports the same function.
+    const shape = await import("@/lib/admin/account-key");
+    const shell = await import("@/lib/admin/palette-shell");
+    expect(shell.validAccountKey).toBe(shape.validAccountKey);
+    expect(shape.validAccountKey(A)).toBe(true);
+    for (const key of [
+      "",
+      "abc",
+      `${A}0`,
+      "0123456789ABCDEF",
+      "0123456789abcdeg",
+      `${A}\n`,
+      null,
+      16,
+    ]) {
+      expect(shape.validAccountKey(key), String(key)).toBe(false);
+    }
+  });
+
   it("under the palette's HMAC of the e-mail, never the address", () => {
     const key = lib.savedViewsStorageKey(
       paletteAccountKey("ayse@laffogato.net"),
