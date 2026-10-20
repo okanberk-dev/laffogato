@@ -5,6 +5,8 @@ import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
+import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import { consentTextHashes } from "@/lib/legal/version-core";
 
 import {
   STATUS_LABEL,
@@ -22,6 +24,10 @@ const ORDER_DOCS = [
   { slug: "teslimat-ve-kargo", label: "Teslimat ve Kargo Koşulları" },
   { slug: "garanti-ve-ayipli-mal", label: "Garanti ve Ayıplı Mal" },
 ];
+
+/** Over the download of the confirmed text (ASK-DURABLE, sen). */
+const COPY_NOTE =
+  "Siparişini verirken onayladığın belgelerin o günkü metni. Aynı metin sipariş onayı e-postanın ekinde de var.";
 
 export const metadata = { title: "Sipariş detayı · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -51,6 +57,13 @@ export default async function OrderDetailPage({
   const consent =
     raw && "acceptedAt" in raw && raw.acceptedAt
       ? (raw as OrderLegalConsent)
+      : null;
+  // The confirmed text itself, as a file (ASK-DURABLE): only for an order
+  // whose consent recorded the hash of every confirmed document; the route
+  // checks the owner again (./sozlesme/route.ts).
+  const copyHref =
+    consent && consentTextHashes(consent, CHECKOUT_CONSENT_DOCS)
+      ? `/uye/hesap/siparislerim/${order.orderNo}/sozlesme`
       : null;
 
   return (
@@ -206,6 +219,24 @@ export default async function OrderDetailPage({
           <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
             <DetailRow k="Onay tarihi" v={formatDate(consent.acceptedAt)} />
             <DetailRow k="Belge sürümü" v={consent.version} />
+          </div>
+        ) : null}
+        {copyHref ? (
+          <div style={{ margin: "16px 0 0" }}>
+            <p
+              style={{
+                margin: "0 0 10px",
+                color: "var(--ink-soft)",
+                fontSize: 14,
+                lineHeight: 1.6,
+              }}
+            >
+              {COPY_NOTE}
+            </p>
+            {/* A file, not a page: a plain link, never prefetched. */}
+            <a href={copyHref} download className="btn btn-outline btn-sm">
+              Belgeleri indir
+            </a>
           </div>
         ) : null}
         <p

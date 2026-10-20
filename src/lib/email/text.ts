@@ -182,11 +182,16 @@ Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
 içecek bizden.
 <!--/IF:DAMGA-->
 Sipariş durumu: [SIPARIS_URL]
-
+<!--IF:BELGE_EKI-->
+Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış
+Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın
+ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz:
+[BELGE_SURUMLERI]
+<!--/IF:BELGE_EKI--><!--IF:BELGE_GUNCEL-->
 Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel
 metnini açar):
 [BELGELER]
-
+<!--/IF:BELGE_GUNCEL-->
 ${SIGNATURE}`,
 
   // ── Order notices ───────────────────────────────────────────────────────
@@ -298,7 +303,9 @@ ${COMMERCIAL_FOOTER}`,
   // sentences, KARAOKE_IADE_KURALI / KARAOKE_GEC_KURALI); one paid at the
   // venue only how to cancel (KARAOKE_ODEME_MEKANDA), or, under a rule that
   // lets no member cancel, to call (KARAOKE_MEKAN_ARA). send.ts sets exactly
-  // one of them.
+  // one of them. A paid booking then says where its terms are: the
+  // confirmed text attached, with its version page (KARAOKE_BELGE_EKI), or,
+  // when no copy could be attached, the terms' page (KARAOKE_BELGE_GUNCEL).
   // Both karaoke messages speak "sen", like the /karaoke page that took the
   // booking and the cancellation rule they quote.
   "karaoke-rezervasyon": `Merhaba,
@@ -322,10 +329,15 @@ Son ücretsiz iptal: [KARAOKE_SON_IPTAL].
 Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
 
 Rezervasyon sayfandan görebilir ve iptal edebilirsin:
-[KARAOKE_LINK]
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_BELGE_EKI-->
+
+Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet
+Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın
+ekinde. Aynı sürümü buradan da okuyabilirsin:
+[KARAOKE_SURUM_URL]<!--/IF:KARAOKE_BELGE_EKI--><!--IF:KARAOKE_BELGE_GUNCEL-->
 
 Tüm koşullar:
-https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse [KARAOKE_MEKAN_SURE]
+https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_BELGE_GUNCEL--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse [KARAOKE_MEKAN_SURE]
 rezervasyon sayfandan iptal edebilirsin.
 
 Rezervasyon sayfan:

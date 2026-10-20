@@ -9,6 +9,8 @@ import {
 } from "@/lib/admin/order-channel";
 import type { AdminOrder, AdminRefund } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
+import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import { consentTextHashes } from "@/lib/legal/version-core";
 import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 
 import {
@@ -24,6 +26,7 @@ import {
   sendOrderPaidEmail,
   sendOrderRefundedEmail,
   sendOrderShippedEmail,
+  type MailDurableCopy,
   type SendResult,
 } from "./send";
 
@@ -392,6 +395,35 @@ export async function notifyOrderRefunded(
 export { claim as claimOrderNotice, settle as settleOrderNotice };
 
 /**
+ * The confirmed Ön Bilgilendirme Formu and Mesafeli Satış Sözleşmesi, filled
+ * with the order, for the paid mail (ASK-DURABLE): built from the versions
+ * the consent recorded (src/lib/legal/durable-copy-load.ts), or null. An
+ * order whose consent recorded no text hashes (placed before 21 Ekim 2026,
+ * a manual order) has none and asks nothing. The copy is bounded in time
+ * and never throws: the mail goes without it rather than late or not at all.
+ * The loader is imported on demand: the store imports this module, and the
+ * loader reads the store.
+ */
+async function paidMailCopy(order: AdminOrder): Promise<MailDurableCopy | null> {
+  if (!consentTextHashes(order.legalConsent, CHECKOUT_CONSENT_DOCS)) {
+    return null;
+  }
+  try {
+    const { durableCopyForMail, orderDurableCopy } = await import(
+      "@/lib/legal/durable-copy-load"
+    );
+    return await durableCopyForMail(`order=${order.id}`, () =>
+      orderDurableCopy(order),
+    );
+  } catch (err) {
+    console.warn(
+      `[durable-copy] order=${order.id}: no attachment (${(err instanceof Error ? err.message : String(err)).slice(0, 120)})`,
+    );
+    return null;
+  }
+}
+
+/**
  * "Ödemen alındı", once per order, after the payment moved it to `paid`.
  * Every channel and kind (a shop parcel, an app cafe order) gets it; a
  * checkout placeholder or a closed account does not. The caller is the one
@@ -404,9 +436,11 @@ export async function notifyOrderPaid(
   opts: { kind?: string } = {},
 ): Promise<OrderNoticeOutcome> {
   if (orderNoticeRecipient(order) === null) return "not_due";
-  return once(order, opts.kind ?? PAID_NOTICE_KIND, (key) =>
+  return once(order, opts.kind ?? PAID_NOTICE_KIND, async (key) =>
     sendOrderPaidEmail(
       {
+        // Built after the claim, so a duplicate trigger builds nothing.
+        durableCopy: await paidMailCopy(order),
         to: orderNoticeRecipient(order) as string,
         customerName: order.customerName ?? "",
         orderNo: order.orderNo,

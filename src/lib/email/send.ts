@@ -14,6 +14,7 @@ import {
   KARAOKE_NO_REFUND_RULE,
   KARAOKE_REFUND_RULE,
 } from "@/lib/mobile/karaoke-time";
+import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
@@ -157,6 +158,24 @@ interface SendArgs {
    * customer's one order mail asks for it; everything else keeps trying once.
    */
   retryOnce?: boolean;
+  /**
+   * Files sent with this one message (Resend: `attachments`, base64
+   * `content`). Single sends only: the campaign batch (`deliverBatch`,
+   * `/emails/batch`) builds its messages field by field and never carries
+   * one. Today only the confirmed contract (ASK-DURABLE).
+   */
+  attachments?: readonly MailAttachment[];
+}
+
+/** One attached file: its name and its bytes as base64. */
+export interface MailAttachment {
+  filename: string;
+  content: string;
+}
+
+/** An HTML document as an attachment (UTF-8, base64). */
+export function htmlAttachment(filename: string, html: string): MailAttachment {
+  return { filename, content: Buffer.from(html, "utf8").toString("base64") };
 }
 
 /** The longest pause before the one retry; `Retry-After` is honoured up to it. */
@@ -165,7 +184,18 @@ const MAIL_REQUEST_TIMEOUT_MS = 4_000;
 
 const RETRY_WAIT_MS = 1_500;
 
-export type SendResult = { ok: true } | { ok: false; error: string };
+export type SendResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /**
+       * The provider's HTTP status when it answered with a refusal; absent
+       * when no request was answered (no key, unreachable, a template that
+       * did not render). A 4xx other than 429 means nothing was sent.
+       */
+      status?: number;
+    };
 
 /**
  * One delivery attempt, with the provider's own words on failure.
@@ -184,6 +214,7 @@ async function deliver({
   idempotencyKey,
   replyTo: replyToOverride,
   retryOnce,
+  attachments,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   const identity = await emailIdentity();
@@ -221,6 +252,14 @@ async function deliver({
           },
         }
       : {}),
+    ...(attachments && attachments.length > 0
+      ? {
+          attachments: attachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+          })),
+        }
+      : {}),
   });
   for (let attempt = 0; ; attempt++) {
     const again = retryOnce === true && attempt === 0;
@@ -250,7 +289,11 @@ async function deliver({
         );
         continue;
       }
-      return { ok: false, error: resendErrorText(res.status, body) };
+      return {
+        ok: false,
+        error: resendErrorText(res.status, body),
+        status: res.status,
+      };
     } catch (err) {
       console.error("[email] send error", err);
       if (again) {
@@ -448,7 +491,10 @@ async function sendTemplateResult(
   to: string,
   input: Omit<RenderInput, "text">,
   idempotencyKey?: string,
-  { retryOnce }: { retryOnce?: boolean } = {},
+  {
+    retryOnce,
+    attachments,
+  }: { retryOnce?: boolean; attachments?: readonly MailAttachment[] } = {},
 ): Promise<SendResult> {
   if (!to) return { ok: false, error: "Alıcı adresi boş." };
   // Ayarlar's phone, address and hours for the footer; the caller's own
@@ -473,7 +519,55 @@ async function sendTemplateResult(
     ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
     ...(idempotencyKey ? { idempotencyKey } : {}),
     ...(retryOnce ? { retryOnce } : {}),
+    ...(attachments && attachments.length > 0 ? { attachments } : {}),
   });
+}
+
+/**
+ * The confirmed contract that rides with a confirmation mail
+ * (src/lib/legal/durable-copy-load.ts `DurableCopy`): the file, and each
+ * document's version page for the sentence under it.
+ */
+export interface MailDurableCopy {
+  filename: string;
+  html: string;
+  links: readonly { slug: string; title: string; url: string }[];
+}
+
+/** A refusal that proves nothing was sent: a 4xx other than 429. */
+function refusedOutright(result: SendResult): boolean {
+  return (
+    !result.ok &&
+    typeof result.status === "number" &&
+    result.status >= 400 &&
+    result.status < 500 &&
+    result.status !== 429
+  );
+}
+
+/**
+ * Sends a confirmation with its contract attached, and, when the provider
+ * refuses that message outright (a 4xx: the attachment's size or type, say),
+ * the same confirmation without it, saying the old sentence (`plain`). The
+ * copy must never cost the customer the mail itself (ASK-DURABLE). Nothing
+ * is resent after a timeout or a 5xx: that request may have been delivered,
+ * and the caller's own retry (with the same key) settles it. The second
+ * message gets a key of its own: the first one's was refused, not used.
+ */
+async function sendWithCopy(
+  label: string,
+  copy: MailDurableCopy,
+  send: (
+    attachments: readonly MailAttachment[] | null,
+    keySuffix: string,
+  ) => Promise<SendResult>,
+): Promise<SendResult> {
+  const first = await send([htmlAttachment(copy.filename, copy.html)], "");
+  if (first.ok || !refusedOutright(first)) return first;
+  console.warn(
+    `[email] ${label}: refused with the contract attached (HTTP ${first.ok ? "" : first.status}); sent without it`,
+  );
+  return send(null, "-ek-yok");
 }
 
 export async function sendVerificationEmail(
@@ -698,25 +792,62 @@ export async function stampTarget(): Promise<string> {
  * left out when it is 0 or absent, so a shop order is never promised a stamp.
  */
 export async function sendOrderPaidEmail(
-  o: OrderEmailData & { stampsEarned?: number },
+  o: OrderEmailData & {
+    stampsEarned?: number;
+    /**
+     * The confirmed Ön Bilgilendirme Formu and Mesafeli Satış Sözleşmesi,
+     * filled with the order (ASK-DURABLE): attached, with each document's
+     * version page under the sentence that says so. Absent or null: the
+     * mail says what the links are (`BELGE_GUNCEL`), as before.
+     */
+    durableCopy?: MailDurableCopy | null;
+  },
   idempotencyKey?: string,
 ): Promise<SendResult> {
   const stamps = Math.max(0, Math.round(Number(o.stampsEarned ?? 0)) || 0);
-  return sendTemplateResult(
-    "odeme-onaylandi",
-    o.to,
-    {
-      vars: {
-        ...orderVars(o),
-        DAMGA_HEDEFI: await stampTarget(),
-        DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
-      },
-      loops: { ITEMS: itemRows(o.items) },
-    },
-    idempotencyKey,
-    // The one mail the customer gets before the parcel: worth one more try.
-    { retryOnce: true },
-  );
+  const vars = {
+    ...orderVars(o),
+    DAMGA_HEDEFI: await stampTarget(),
+    DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+  };
+  const loops = { ITEMS: itemRows(o.items) };
+  const copyVars = o.durableCopy ? orderCopyVars(o.durableCopy) : null;
+  const send = (
+    attachments: readonly MailAttachment[] | null,
+    keySuffix: string,
+  ) =>
+    sendTemplateResult(
+      "odeme-onaylandi",
+      o.to,
+      attachments && copyVars
+        ? { vars: { ...vars, ...copyVars }, loops, flags: { BELGE_EKI: true } }
+        : { vars, loops, flags: { BELGE_GUNCEL: true } },
+      idempotencyKey ? `${idempotencyKey}${keySuffix}` : undefined,
+      // The one mail the customer gets before the parcel: worth one more try.
+      { retryOnce: true, ...(attachments ? { attachments } : {}) },
+    );
+  if (!o.durableCopy || !copyVars) return send(null, "");
+  return sendWithCopy(`odeme-onaylandi #${o.orderNo}`, o.durableCopy, send);
+}
+
+/**
+ * The version links under the paid mail's sentence: one per confirmed
+ * document, both or none (a copy without either link is not offered).
+ */
+function orderCopyVars(copy: MailDurableCopy): Record<string, string> | null {
+  const url = (slug: string) =>
+    copy.links.find((l) => l.slug === slug)?.url ?? "";
+  const obf = url(CHECKOUT_CONSENT_DOCS[0]);
+  const mss = url(CHECKOUT_CONSENT_DOCS[1]);
+  if (!obf || !mss) return null;
+  return {
+    BELGE_OBF_URL: obf,
+    BELGE_MSS_URL: mss,
+    BELGE_SURUMLERI: [
+      `- Ön Bilgilendirme Formu: ${obf}`,
+      `- Mesafeli Satış Sözleşmesi: ${mss}`,
+    ].join("\n"),
+  };
 }
 
 // ── Order notices ──────────────────────────────────────────────────────────
@@ -914,6 +1045,13 @@ export interface KaraokeEmailData {
    * and cancel it. Falls back to the karaoke page when no link can be made.
    */
   manageUrl?: string;
+  /**
+   * Confirmation of a booking paid online: the confirmed Karaoke Odası Ön
+   * Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi, filled with the
+   * booking (ASK-DURABLE), attached, with its version page. Absent or null:
+   * the terms' page is linked, as before.
+   */
+  durableCopy?: MailDurableCopy | null;
 }
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
@@ -972,14 +1110,36 @@ export async function sendKaraokeConfirmationEmail(
   // A booking paid at the venue says until when its page cancels it, or -
   // under a rule with no window and no late cancel - to call instead.
   const selfCancel = k.cancellation ? k.cancellation.venueUntil !== null : true;
-  return sendTemplate("karaoke-rezervasyon", k.to, {
-    vars: karaokeVars(k),
-    flags: {
-      KARAOKE_ODENDI: online,
-      KARAOKE_ODEME_MEKANDA: !online && selfCancel,
-      KARAOKE_MEKAN_ARA: !online && !selfCancel,
-    },
-  });
+  const flags = {
+    KARAOKE_ODENDI: online,
+    KARAOKE_ODEME_MEKANDA: !online && selfCancel,
+    KARAOKE_MEKAN_ARA: !online && !selfCancel,
+  };
+  const vars = karaokeVars(k);
+  // Only a booking paid online confirmed the terms (its consent is the
+  // record the copy is made from).
+  const copy = online ? (k.durableCopy ?? null) : null;
+  const versionUrl =
+    copy?.links.find((l) => l.slug === KARAOKE_CONSENT_DOCS[0])?.url ?? "";
+  const send = (attachments: readonly MailAttachment[] | null) =>
+    sendTemplateResult(
+      "karaoke-rezervasyon",
+      k.to,
+      attachments && versionUrl
+        ? {
+            vars: { ...vars, KARAOKE_SURUM_URL: versionUrl },
+            flags: { ...flags, KARAOKE_BELGE_EKI: true },
+          }
+        : { vars, flags: { ...flags, KARAOKE_BELGE_GUNCEL: online } },
+      undefined,
+      attachments ? { attachments } : {},
+    );
+  if (!copy || !versionUrl) return (await send(null)).ok;
+  return (
+    await sendWithCopy(`karaoke-rezervasyon ${k.code}`, copy, (attachments) =>
+      send(attachments),
+    )
+  ).ok;
 }
 
 /**

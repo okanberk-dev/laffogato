@@ -13,10 +13,13 @@ import {
   sendKaraokeConfirmationEmail,
   sendKaraokeLateRequestEmail,
   type KaraokeEmailData,
+  type MailDurableCopy,
 } from "@/lib/email/send";
 
 import { karaokePolicyVersion } from "@/lib/legal/consent-version";
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
+import { karaokeConsentTextHashes } from "@/lib/legal/store";
+import { consentTextHashes } from "@/lib/legal/version-core";
 import { SITE } from "@/lib/seo/site";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
 
@@ -455,6 +458,14 @@ export async function createReservation(
   );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
+  // The text the customer confirmed, by hash, from the same settings read
+  // that decides the policy and moves the version below: one rule for the
+  // web form and the app (legalConsent.textHashes, 21 Ekim 2026). Never
+  // the caller's: whatever `options.legalConsent` carries is replaced.
+  const textHashes =
+    prepay && options.legalConsent
+      ? await karaokeConsentTextHashes(settings)
+      : null;
   // The rule this booking is made under (`policy` above) is kept with it
   // (TKHK m.4/2, MSY m.5/2): the panel changing it later changes nothing
   // here.
@@ -499,6 +510,7 @@ export async function createReservation(
               policy,
               settings.karaokeCancelPolicyAt,
             ),
+            textHashes: textHashes ?? {},
           }
         : null,
     guest,
@@ -1080,6 +1092,37 @@ function karaokeMailPayload(
   return payload;
 }
 
+/**
+ * The confirmed karaoke terms, filled with the booking, for its confirmation
+ * (ASK-DURABLE): only a booking paid online confirmed them, and only one
+ * whose consent recorded the text's hash has a copy to give
+ * (src/lib/legal/durable-copy-load.ts). Bounded in time, never a throw: the
+ * mail goes without it rather than late or not at all. Imported on demand,
+ * like the store in the mail module.
+ */
+async function confirmationCopy(
+  r: KaraokeReservation,
+): Promise<MailDurableCopy | null> {
+  const money = paymentStatusOf(r);
+  if (money !== "paid" && money !== "refunding" && money !== "refunded") {
+    return null;
+  }
+  if (!consentTextHashes(r.legalConsent, KARAOKE_CONSENT_DOCS)) return null;
+  try {
+    const { durableCopyForMail, karaokeDurableCopy } = await import(
+      "@/lib/legal/durable-copy-load"
+    );
+    return await durableCopyForMail(`karaoke=${r.id}`, () =>
+      karaokeDurableCopy(r),
+    );
+  } catch (err) {
+    console.warn(
+      `[durable-copy] karaoke=${r.id}: no attachment (${(err instanceof Error ? err.message : String(err)).slice(0, 120)})`,
+    );
+    return null;
+  }
+}
+
 /** A failed mail, logged with the address masked (KVKK). */
 function logMailFailure(r: KaraokeReservation, err: unknown): void {
   const at = r.customerEmail.indexOf("@");
@@ -1106,7 +1149,10 @@ export async function notifyReservationStatus(
   if (!payload) return false;
   try {
     return r.status === "confirmed"
-      ? await sendKaraokeConfirmationEmail(payload)
+      ? await sendKaraokeConfirmationEmail({
+          ...payload,
+          durableCopy: await confirmationCopy(r),
+        })
       : await sendKaraokeCancellationEmail(payload);
   } catch (err) {
     logMailFailure(r, err);

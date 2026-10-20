@@ -143,6 +143,17 @@ export function renderEmail(
     // cafe order of at least 140 TL of goods, one per started 320 TL. A shop
     // or web order used to be told "+1 damga" for a stamp it never got.
     DAMGA: Boolean(vars.DAMGA_SAYISI) && vars.DAMGA_SAYISI !== "0",
+    // "...tam metni bu e-postanın ekindedir": only when the sender says the
+    // file is attached (send.ts `sendWithCopy`) AND the version links under
+    // the sentence are filled. Never a promise of an attachment that is not
+    // there, never a link to nothing (ASK-DURABLE).
+    BELGE_EKI:
+      input.flags?.BELGE_EKI === true &&
+      Boolean(vars.BELGE_OBF_URL) &&
+      Boolean(vars.BELGE_MSS_URL),
+    KARAOKE_BELGE_EKI:
+      input.flags?.KARAOKE_BELGE_EKI === true &&
+      Boolean(vars.KARAOKE_SURUM_URL),
   };
 
   // The holes are counted on the template's own fields while it is filled,
