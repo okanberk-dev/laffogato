@@ -225,9 +225,12 @@ describe("the day reaches all three routes", () => {
 
 describe("the food safety document §7 (decision OP-ALLERGEN-BOARD)", () => {
   it("says where each menu item's allergens are written, and only that", async () => {
-    const { findLegalDoc } = await import("@/lib/legal/documents");
+    const { findLegalDoc, LEGAL_UPDATED } =
+      await import("@/lib/legal/documents");
     const doc = findLegalDoc("gida-guvenligi-ve-alerjen");
-    expect(doc?.updatedAt).toBe("19 Ekim 2026");
+    // Its own 19 Ekim 2026 gave way to the set's later revision (20 Ekim
+    // 2026, tests/legal-dates.test.ts).
+    expect(doc?.updatedAt).toBe(LEGAL_UPDATED);
     const s7 = doc!.sections.find((s) => s.heading.startsWith("7. "));
     const text = (s7?.paragraphs ?? []).join("\n");
     expect(text).toContain(

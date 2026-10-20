@@ -693,7 +693,7 @@ yakalar).
 | 🟢 | E-posta ya da olay kaydı okunamayınca sayfa "Bu sipariş için e-posta kaydı yok." diyor, "Yeniden gönder" düğmeleri kayboluyordu (ORD-20; zaman çizelgesinin "Kayıt yok" kısmı doğrulamada çürüdü) | Okuma `{ rows, failed }` döner; "E-posta kaydı okunamadı, sayfayı yenile." ve zaman çizelgesinin üstünde "Olay kaydı okunamadı" notu | `admin-orders-ui-pages` |
 | 🟢 | "Hazır - teslime hazır", kasada "opsiyonel", liste ve yeni sipariş başlığında "E-ticaret"; dikkat bandı personele kullanamadığı "Dikkat işaretini kaldır"ı söylüyordu (ORD-26); yeni sipariş sayfasında hap biçimli geri bağlantı ve gri metin, kasa fişi ham yeşil (ORD-22) | "Teslime hazır", "Not (isteğe bağlı)", başlık "Satış"; bant, işareti kaldıramayan role "Çözülmesi için bir yöneticiye haber ver." der; metin bağlantısı, ürün yoksa boş durum ("Ürün ekle" yalnız Ürünler'i açabilen rolde; personele "bir yöneticiye haber ver"), fiş panelin başarı tonunda | `admin-orders-ui`, `admin-orders-ui-pages` |
 | 🟢 | Kasa kamerasının çerçevesi yatay kamerada (iPad, dizüstü) kutunun genişliğinden çiziliyordu: 340 px kutuda 523 px, okunan kare ekranda 294 px; çerçevenin içinde ama ortanın dışındaki QR okunmuyordu (ORD-14). "Yeniden dene" kamerayı hiç yeniden açmıyordu: hata yanıtı video ve tuvali kaldırıyordu | `reticleSize()`: okunan kare `object-fit: cover` ölçeğiyle ekrana taşınır, kutunun kısa kenarının %92'sini aşmaz; çerçeve okunan karenin içinde kalır. Okuyucu hata yanıtının altında gizli olarak takılı kalır, "Yeniden dene" onu açar | `till-scan-engine` |
-| 🟢 | Yazdırılan sipariş fişi mali belge olmadığını söylemiyordu (hukuk kararı ASK-INVOICE, X-FIS) | Fişin altında tek satır: "Bu fiş mali belge değildir." Mali belge fatura / e-Arşiv faturadır (VUK m.229, VUK GT 509) ya da kasanın ÖKC fişi (VUK m.233). e-Arşiv'in e-postayla gitmesi başlayınca ikinci cümle eklenir | `admin-order-detail` |
+| 🟢 | Yazdırılan sipariş fişi mali belge olmadığını söylemiyordu (hukuk kararı ASK-INVOICE, X-FIS) | Fişin altında tek satır: "Bu fiş mali belge değildir." Mali belge fatura / e-Arşiv faturadır (VUK m.229, VUK GT 509) ya da kasanın ÖKC fişi (VUK m.233). 20 Eki 2026'dan beri ikinci cümle ödeme yoluna göre: internetten ya da havaleyle ödenende "Faturan elektronik olarak e-postana gönderilir.", nakit ve kasadaki kart cihazında "Mali belgen kasadan verilen fiştir."; "Diğer" ödemede söz verilmez (`receiptInvoiceNote`) | `admin-order-detail` |
 | 🟢 | Kit'e taşınan müşteri kartı formunun `action`'ı düşmüştü: action'sız ve method'suz form tarayıcının kendi GET'idir, ad, e-posta, telefon ve adres adrese yazılır (inceleme bulgusu) | Form React'in korumasını (`action`) yeniden taşır, gönderim yine onSubmit'ten; ret yazılanı korur | `admin-order-detail` |
 
 ### Katalog: stok ve tohumlar (paket 5a, 4-5. adımlar)
@@ -1277,3 +1277,23 @@ Server Action'a uzanmaz.
 | 🟢 | Paylaşılan köşk cihazında bir sonraki kişi öncekinin açtığı kayıtları görebilirdi | Son açılanlar sekmenin `sessionStorage`'ında, hesap başına (`laf_admin_recent_v1:<anahtar>`; anahtar e-postanın `ADMIN_SESSION_SECRET` ile HMAC'inin 16 hex'i, e-posta sayfaya gitmez). Yalnız izinli kayıt sayfaları (müşteri, panel kullanıcısı, abone, olay kaydı asla); başlığında e-posta ya da 7 rakam olan kayıt tutulmaz; okurken rol yeniden sorulur. Çıkış listeyi action'dan önce siler; kasiyerde ne tetikleyici ne liste var | `admin-palette-core` |
 | 🟢 | Oturum düşünce arama "sonuç yok" gibi görünebilirdi | 401 ya da proxy'nin girişe yönlendirmesi: "Oturumun kapandı." ve buraya dönen giriş bağlantısı; 503 ve diğerleri: "Arama şu an çalışmıyor."; 5'ten fazla sonuçta liste satırı "Listede ara" (aramasız liste: listeler aramayı adreste değil çerezde tutar, satır sonuçları listede gösterdiğini söylemez), "Tüm sonuçlar" satırı yok | `admin-palette-core` |
 | 🟢 | Paket bütçesi | Her admin rotasına +2,4 KB gz (tetikleyici, kayıt ve kısayol; üst çubuğun eski arama formu çıktı); palet açılınca 44,97 KB gz (React Aria 40,60 + palet 4,37), `/admin/kasa`'da React Aria yok | `admin-ui-deps` |
+
+### Hukuk: fatura e-Arşiv olarak e-postayla, İşlem Rehberi, meslek odası (20 Eki 2026)
+
+Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
+18 Eki 2026: avukat ve mali müşavir turu yok). Cümle cümle eski ve yeni metin
+`docs/LEGAL-REDLINES-2026-09.md` §24'te.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Şirket Bilgileri §14 faturayı yalnız "talep üzerine" e-postayla gönderiyor, MSS §9 e-postaya "muvafakat" istiyordu; şirket faturalarını elektronik olarak düzenleyip e-postayla gönderiyor ve koliye ayrı irsaliye koymuyor (X-INV-EARSIV, X-INV-IRSALIYE) | MSS §9, ÖBF §16 ve Şirket Bilgileri §14: e-Arşiv fatura sipariş e-postasına; kargoda faturanın kâğıt çıktısı irsaliye yerine geçer; e-Fatura kullanıcısına e-Fatura | `legal-docs` |
+| 🟡 | Kurumsal fatura bilgisinin "sipariş öncesinde girilmesi" isteniyordu; ödeme adımında alan yok (X-INV-CORP) | Bilgi sipariş numarasıyla, siparişten sonra ve kargodan önce e-postayla | `legal-docs` |
+| 🟢 | Karaoke §12 faturanın ne zaman ve hangi tutar için kesildiğini söylemiyordu (X-KAR-KDV) | Ödeme hizmet gününe kadar avans; fatura rezervasyon gününden itibaren 7 gün içinde, köşkte kalan tutar için | `legal-docs` |
+| 🟡 | Ana sayfadan ulaşılan bir "işlem rehberi" yoktu (ETHS Yön. m.7/1, X-ETHS-ISLEM) | `/hukuk/islem-rehberi`: adımlar, düzeltme araçları, sözleşme metninin saklanması, uyuşmazlık yolları; site altında "İşlem rehberi" | `legal-docs` |
+| 🟢 | Şirket Bilgileri'nde meslek odası ve davranış kuralları satırı yoktu (ETHS Yön. m.5/1-c, X-ETHS-ILETISIM) | `{{CHAMBER}}`, `{{CHAMBER_RULES_URL}}` satırları; değer belgeden gelene kadar boş ve basılmaz | `legal-docs` |
+| 🟢 | Fişteki "mali belge değildir" satırı gerçek belgenin nereden geldiğini söylemiyordu (X-FIS, ikinci cümle) | Ödeme yoluna göre e-posta ya da kasa fişi; yolu bilinmeyen ("Diğer", kayıtsız) ödemede ikinci cümle yok | `admin-order-detail` |
+| 🟢 | /hukuk'taki numaralı adımlar (ÖBF §9, İşlem Rehberi) numarasız basılıyordu: Tailwind'in temel stili `ol`'un listesini kapatıyor | `.legal-ordered { list-style: decimal }` | `legal-docs` |
+
+Açık (operatörde): oda, kurallar adresi ve KEP değerleri (31 Eki 2026'ya
+kadar, `entity.ts`); Paraşüt'te internet satışı ibareleri ve koliye giren
+"İrsaliye yerine geçer." çıktısı (LEGAL-REDLINES §24.5).

@@ -54,8 +54,9 @@ function override(patch: Partial<ConsentOverride> = {}): ConsentOverride {
   return {
     isPublished: true,
     bodyMarkdown: "## 1. Taraflar\n\nYeni metin.",
-    effectiveDate: "20 Ekim 2026",
-    updatedAt: "2026-10-20T09:00:00.000Z",
+    // Later than LEGAL_UPDATED, so "follows" is not the label itself.
+    effectiveDate: "2 Kasım 2026",
+    updatedAt: "2026-11-02T09:00:00.000Z",
     ...patch,
   };
 }
@@ -64,7 +65,7 @@ const [PRE, DISTANCE] = CHECKOUT_CONSENT_DOCS;
 
 describe("legal day labels", () => {
   it("reads the documents' own date shape, month in any case", () => {
-    expect(legalDayNumber(LEGAL_UPDATED)).toBe(20261019);
+    expect(legalDayNumber(LEGAL_UPDATED)).toBe(20261020);
     expect(legalDayNumber("15 Ekim 2026")).toBe(20261015);
     expect(legalDayNumber(" 2 şubat 2027 ")).toBe(20270202);
     expect(legalDayNumber("1 AĞUSTOS 2026")).toBe(20260801);
@@ -97,15 +98,15 @@ describe("consentVersionFrom", () => {
   });
 
   it("follows a later published override of a checkout document", () => {
-    expect(consentVersionFrom({ [DISTANCE]: override() })).toBe("20 Ekim 2026");
-    expect(consentVersionFrom({ [PRE]: override() })).toBe("20 Ekim 2026");
+    expect(consentVersionFrom({ [DISTANCE]: override() })).toBe("2 Kasım 2026");
+    expect(consentVersionFrom({ [PRE]: override() })).toBe("2 Kasım 2026");
   });
 
   it("takes the later of the two checkout overrides", () => {
     expect(
       consentVersionFrom({
         [PRE]: override({ effectiveDate: "3 Kasım 2026" }),
-        [DISTANCE]: override({ effectiveDate: "20 Ekim 2026" }),
+        [DISTANCE]: override({ effectiveDate: "2 Kasım 2026" }),
       }),
     ).toBe("3 Kasım 2026");
   });
@@ -137,11 +138,11 @@ describe("consentVersionFrom", () => {
         consentVersionFrom({
           [DISTANCE]: override({
             effectiveDate,
-            updatedAt: "2026-10-19T22:30:00.000Z",
+            updatedAt: "2026-11-01T22:30:00.000Z",
           }),
         }),
         effectiveDate,
-      ).toBe("20 Ekim 2026");
+      ).toBe("2 Kasım 2026");
     }
   });
 });
@@ -167,9 +168,9 @@ describe("checkoutConsentVersion", () => {
       slug: PRE,
       title: "",
       summary: "",
-      ...override({ effectiveDate: "25 Ekim 2026" }),
+      ...override({ effectiveDate: "25 Kasım 2026" }),
     });
-    expect(await checkoutConsentVersion()).toBe("25 Ekim 2026");
+    expect(await checkoutConsentVersion()).toBe("25 Kasım 2026");
   });
 
   it("stays out of the 1.5 MB contract registry", () => {

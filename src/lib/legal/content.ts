@@ -495,7 +495,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "16. Fatura, Belge Düzeni ve Promosyon Kodları",
         paragraphs: [
-          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak düzenlenir ve ALICI'ya iletilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
+          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
           "Promosyon kodları, kampanya sayfasında veya kodun tanıtıldığı iletide belirtilen geçerlilik süresi, asgari sepet tutarı, ürün/kategori kapsamı ve kullanım adedi sınırlarına tabidir. Kodun sağladığı indirim, sepet ekranında ve sipariş özetinde ayrı bir kalem olarak gösterilir. Aksi belirtilmedikçe promosyon kodları birleştirilemez ve nakde çevrilemez.",
           "Cayma hakkının kullanılması hâlinde geri ödeme, ALICI'nın fiilen ödediği tutar üzerinden yapılır. Kuponla karşılanan kısım için nakit ödeme yapılmaz. Kısmi iadelerde, kampanya koşulu (örneğin asgari sepet tutarı) kalan üründe artık sağlanmıyorsa indirim orantılı olarak düşülerek hesaplanır; hesaplama yöntemi iade bildiriminde ALICI'ya kalem kalem açıklanır.",
         ],
@@ -994,7 +994,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "9. Fatura ve Belgelendirme",
         paragraphs: [
           "SATICI, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca her sipariş için fatura düzenler. Sipariş tutarından düşülen indirimler vergi mevzuatına uygun biçimde faturaya yansıtılır. Fatura, sipariş sırasında ALICI'nın beyan ettiği ad-soyad ve adres bilgileri esas alınarak düzenlenir.",
-          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Faturanın elektronik ortamda düzenlenmesi hâlinde ALICI, faturanın kayıtlı e-posta adresine elektronik ortamda iletilmesine muvafakat eder; talep etmesi hâlinde faturanın kâğıt çıktısı da gönderilir.",
+          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Fatura e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir.",
           "Kurumsal (tüzel kişi) fatura talebinde ALICI; ticaret unvanı, vergi dairesi ve vergi kimlik numarası bilgilerini fatura düzenlenmeden önce {{EMAIL}} adresine eksiksiz bildirmekle yükümlüdür. Fatura kesildikten sonra vergi mükellefiyet bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve ancak fatura iptali/yeniden düzenleme prosedürü çerçevesinde karşılanabilir.",
           "Cayma hakkının kullanılması veya iade hâlinde, kurumsal faturalı satışlarda ALICI'nın mevzuat gereği iade faturası düzenlemesi gerekir. Bireysel (nihai tüketici) satışlarda SATICI, iade işlemini kendi sistemlerinde belgelendirir ve ALICI'dan cayma bildirimi ile malın geri gönderilmesi dışında ek bir belge talep etmez.",
           "Faturanın ALICI'ya ulaşmaması veya kaybolması hâlinde ALICI, {{EMAIL}} adresine yapacağı talep ile faturanın yeniden gönderilmesini isteyebilir. SATICI, mevzuatta öngörülen saklama süreleri boyunca fatura kayıtlarını muhafaza eder.",
@@ -1246,12 +1246,152 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     ],
   },
   {
+    // Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet
+    // Sağlayıcılar Hakkında Yönetmelik m.7/1 (20 Ekim 2026): the ordering
+    // steps, the input-correction tools, whether and how long the contract
+    // text is kept and reachable, and the dispute routes, under an "işlem
+    // rehberi" heading reached from the home page (footer, `nav.ts`). §8 is
+    // the D-ISLEM-DURABLE paragraph word for word until the durable copy of
+    // the confirmed text ships. LEGAL-REDLINES §24.
+    slug: "islem-rehberi",
+    title: "İşlem Rehberi",
+    shortTitle: "İşlem Rehberi",
+    category: "Sipariş",
+    summary:
+      "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden sipariş vermenin ve karaoke odası ayırtmanın adımlarını, girdiğiniz bilgileri sipariş vermeden önce nasıl görüp düzelteceğinizi, sözleşme metninin nasıl saklandığını ve ona nasıl ulaşacağınızı, faturanın size nasıl geldiğini ve uyuşmazlıkta başvuru yollarını anlatır.",
+    references: [
+      "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG: 29.12.2022, 32058) - m.7 işlem rehberi",
+      "6502 sayılı Tüketicinin Korunması Hakkında Kanun - m.73/A arabuluculuk",
+      "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188) - m.5 ön bilgilendirme, m.20 kayıtların saklanması",
+      "213 sayılı Vergi Usul Kanunu",
+    ],
+    sections: [
+      {
+        heading: "1. Bu Rehber Ne Anlatır",
+        paragraphs: [
+          "Bu rehber, {{LEGAL_NAME}} ({{BRAND}}) tarafından işletilen {{SITE_URL}} internet sitesi ve {{BRAND}} mobil uygulaması üzerinden mağaza ve kafe siparişi vermenin ve karaoke odası rezervasyonu yapmanın adımlarını anlatır. Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7 uyarınca hazırlanmıştır; ana sayfanın alt bölümündeki İşlem rehberi bağlantısından her zaman ulaşabilirsiniz.",
+          "Rehber bilgilendirme amaçlıdır. Siparişinize uygulanan hak ve yükümlülükler ödeme adımında onayladığınız Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'nde, karaoke odası rezervasyonunda ise Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır. Bu rehber o belgelerin yerine geçmez ve onlardaki haklarınızı sınırlamaz.",
+        ],
+      },
+      {
+        heading: "2. Sipariş Vermeden Önce",
+        paragraphs: [
+          "Mağaza siparişi ve mobil uygulamadan kafe siparişi vermek için e-posta adresi doğrulanmış bir üyelik hesabınız olmalıdır. İnternet sitesinde ve mobil uygulamada aynı hesap geçerlidir; sipariş geçmişiniz iki kanalda da görünür. Karaoke odası rezervasyonu üyelik açmadan da yapılabilir.",
+          "Mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine kargoyla gönderilir. Ödeme kartla, PayNkolay sanal POS altyapısı üzerinden, bankanızın 3D Secure doğrulamasıyla ve tek çekim olarak alınır.",
+        ],
+      },
+      {
+        heading: "3. İnternet Sitesinde Sipariş Adımları",
+        paragraphs: [
+          "İnternet sitesinde mağaza siparişi aşağıdaki adımlarla verilir. Ödeme düğmesine basana kadar her adımda geri dönüp değişiklik yapabilir ya da siparişten vazgeçebilirsiniz.",
+        ],
+        ordered: [
+          "Ürünü seçin: ürün sayfasında varsa varyantı (ağırlık, öğütüm gibi) ve adedi seçip Sepete ekle düğmesine basın.",
+          "Sepeti kontrol edin: açılan sepette ürünleri, adetleri ve ara toplamı görürsünüz; kargo ücreti ödeme adımında hesaplanır. Hazırsanız Ödemeye geç düğmesine basın.",
+          "Giriş yapın: oturumunuz açık değilse üye girişine ya da yeni hesap açmaya yönlendirilirsiniz; e-posta adresiniz doğrulanmadan ödeme adımına geçilmez.",
+          "Teslimat (1. adım): kayıtlı adreslerinizden birini seçin ya da Yeni adres ekle ile ad soyad, telefon, adres, ilçe, şehir ve posta kodunu girin. Varsa indirim kodunuzu sipariş özetindeki alana yazıp Uygula düğmesine basın. Ardından Ödemeye geç düğmesine basın.",
+          "Ödeme (2. adım): teslimat adresinizin özeti, siparişinizin satırları, kargo ücreti, varsa indirim, KDV dâhil toplam ve cayma hakkınızın özeti gösterilir. Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'ni bu siparişin bilgileriyle açıp okuyabilirsiniz.",
+          "Kart bilgilerinizi aynı sayfadaki kart alanlarına girin. Sipariş toplamı indirimle sıfıra iniyorsa kart bilgisi istenmez.",
+          "Ön Bilgilendirme Formu'nu okuduğunuzu ve Mesafeli Satış Sözleşmesi'ni kabul ettiğinizi iki ayrı onay kutusuyla işaretleyin. Kutular işaretsiz gelir; ikisi de işaretlenmeden sipariş verilemez.",
+          "Siparişi onayla ve öde düğmesine basın (sipariş toplamı sıfırsa düğmenin adı Siparişi onayla'dır). Bu düğmeye bastığınızda ödeme yükümlülüğü altına girersiniz. Ardından bankanızın 3D Secure ekranında ödemeyi onaylayın.",
+          "Ödemenin sonucu PayNkolay'a sorularak teyit edilir. Ödeme alındığında sipariş numaranız ekranda gösterilir ve ödemenin onaylandığını bildiren e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "4. Mobil Uygulamada Sipariş",
+        paragraphs: [
+          "Mobil uygulamada mağaza ürünlerinin yanında kafe menüsünden de sipariş verebilirsiniz. Kafe siparişini kafeden gel-al olarak teslim alabilir ya da kurye ile adresinize getirtebilirsiniz; uygulamanın sunduğu teslim seçenekleri sipariş ekranında gösterilir. İnternet sitesindeki menü yalnızca bilgilendirme içindir; sitede kafe siparişi alınmaz.",
+          "Adımlar internet sitesindekiyle aynı sırayı izler: ürünleri sepete ekleyin, sepette adetleri ve seçimleri kontrol edin, teslim şeklini ve gerekiyorsa adresi seçin, varsa promosyon kodunu ekleyin, sipariş özetini kontrol edin ve Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi için ayrı onay kutularını işaretleyin. Kart bilgileri, uygulamanın cihazınızın tarayıcı penceresinde açtığı {{SITE}} ödeme sayfasında girilir ve ödeme bankanızın 3D Secure ekranında onaylanır.",
+        ],
+      },
+      {
+        heading: "5. Karaoke Odası Rezervasyonu",
+        paragraphs: [
+          "Karaoke odası internet sitesindeki karaoke sayfasından ya da mobil uygulamadan aşağıdaki adımlarla ayrılır.",
+        ],
+        ordered: [
+          "Tarih ve saat: günü ve başlangıç saatini seçin; dolu saatler seçilemez.",
+          "Süre ve kişi: kaç saat kalacağınızı ve kaç kişi olacağınızı seçin.",
+          "Bilgileriniz: üye olmadan rezervasyon yapıyorsanız adınızı, soyadınızı, cep telefonunuzu ve e-posta adresinizi girin.",
+          "Özet ve onay: gün, saat, süre, toplam tutar ve son ücretsiz iptal anı gösterilir. Karaoke Odası Ön Bilgilendirme Formu'nu onayladığınızı, Mesafeli Hizmet Sözleşmesi'ni kabul ettiğinizi ve KVKK Aydınlatma Metni'ni okuduğunuzu üç ayrı kutuyla işaretleyin.",
+          "Ödeme: Rezervasyonu onayla ve öde düğmesine bastıktan sonra kart bilgilerinizi açılan ödeme sayfasında girin ve bankanızın 3D Secure ekranında onaylayın. Ödeme sayfası 30 dakika geçerlidir; seçtiğiniz saatler bu süre boyunca sizin adınıza tutulur.",
+          "Ödemeniz onaylandığında rezervasyonunuz kesinleşir; rezervasyon bilgileri ve rezervasyonunuzu görüp iptal edebileceğiniz kişiye özel bağlantı e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "6. Girdiğiniz Bilgileri Görme ve Düzeltme",
+        paragraphs: [
+          "Siparişi vermeden önce girdiğiniz bilgileri görebilir ve hataları düzeltebilirsiniz:",
+        ],
+        bullets: [
+          "Sepette her ürünün adedini eksi (-) ve artı (+) düğmeleriyle değiştirebilir, ürünü Sil düğmesiyle sepetten çıkarabilirsiniz. Mobil uygulamada bir satırın seçimlerini düzenleyebilir ya da satırı sepetten çıkarabilirsiniz.",
+          "Ödeme adımında teslimat adresinin yanındaki Değiştir bağlantısıyla ya da tarayıcınızın geri tuşuyla Teslimat adımına dönüp adınızı, telefonunuzu ve adresinizi düzeltebilirsiniz.",
+          "İndirim kodunun uygulanıp uygulanmadığı ve indirimin tutarı sipariş özetinde gösterilir.",
+          "Ödeme düğmesinin hemen üstünde siparişinizin satırları, kargo ücreti, indirim ve KDV dâhil toplam bir arada gösterilir. Sepetiniz fiyatlanırken farklı bir toplam çıkarsa ödeme başlatılmaz, yeni tutar size gösterilir ve yeniden onayınız istenir.",
+          "Karaoke rezervasyonunda Geri düğmesiyle ya da özetteki Değiştir bağlantılarıyla önceki adımlara dönebilirsiniz.",
+          "Ödeme düğmesine basmadan sayfadan çıkarak siparişten vazgeçebilirsiniz. Bankanızın 3D Secure ekranında onay vermezseniz ödeme alınmaz; ödemesi tamamlanmayan bir sipariş size herhangi bir bedel doğurmaz.",
+        ],
+      },
+      {
+        heading: "7. Sözleşmenin Kurulması",
+        paragraphs: [
+          "Mağaza ve kafe siparişlerinde sözleşme, ödemenizin PayNkolay'a sorularak teyit edilmesi ve siparişin ödenmiş olarak kaydedilmesiyle kurulur; tutarın tamamı indirimle karşılanan siparişlerde sipariş kaydedildiği anda kurulur. Ödeme tamamlanmadan bırakılan bir siparişte sözleşme kurulmaz.",
+          "Karaoke odası rezervasyonunda sözleşme, ödemenizin onaylanmasıyla kurulur ve rezervasyonunuz o anda kesinleşir.",
+        ],
+      },
+      {
+        heading: "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
+        paragraphs: [
+          "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.",
+          "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz.",
+          "Belgelerin güncel metni her zaman {{SITE_URL}}/hukuk adresinde yayımlanır; belgeleri kendi cihazınıza kaydedebilir ya da çıktısını alabilirsiniz.",
+        ],
+      },
+      {
+        heading: "9. Fatura",
+        paragraphs: [
+          "Ödenen her sipariş için fatura e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Karaoke odası rezervasyonunun faturası rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir.",
+          "Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletin; ödeme adımında bu bilgiler için ayrı bir alan yoktur. Ayrıntılar Şirket ve İletişim Bilgileri sayfasının 14. bölümündedir.",
+        ],
+      },
+      {
+        heading: "10. Siparişten Sonra: İptal, Cayma ve İade",
+        paragraphs: [
+          "Mağaza siparişlerinde ürünü teslim aldığınız günden itibaren 14 gün içinde gerekçe göstermeden cayabilirsiniz; cayma bildiriminizi {{EMAIL}} adresine iletmeniz yeterlidir. Cayma hakkının kullanılamayacağı hâller, iade usulü ve geri ödeme Ön Bilgilendirme Formu'nda ve İptal, İade ve Cayma Hakkı belgesinde yazılıdır.",
+          "Mobil uygulamadan verilen kafe siparişlerinde cayma hakkı, Ön Bilgilendirme Formu'nun 12. maddesindeki istisna nedeniyle kullanılamaz; ürün ayıplı veya eksik gelirse yasal haklarınız saklıdır.",
+          "Karaoke odası rezervasyonunda 14 günlük cayma hakkı yoktur; iptal ve iade kuralları Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır ve son ücretsiz iptal anı rezervasyon özetinizde gösterilir.",
+        ],
+      },
+      {
+        heading: "11. Şikâyet ve Uyuşmazlık Çözümü",
+        paragraphs: [
+          "Şikâyet ve taleplerinizi {{EMAIL}} adresine ya da {{PHONE}} numarasına iletebilirsiniz; başvurunuz kayda alınır ve en geç 3 iş günü içinde size dönülür.",
+          "Bizimle çözülemeyen uyuşmazlıklarda, her yıl Ticaret Bakanlığınca ilan edilen parasal sınırlar içinde yerleşim yerinizdeki veya tüketici işleminin yapıldığı yerdeki tüketici hakem heyetine başvurabilirsiniz. Bu sınırların üzerindeki uyuşmazlıklarda tüketici mahkemesinde dava açmadan önce arabulucuya başvurmanız 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur. Hakem heyeti başvurusunu e-Devlet üzerinden Tüketici Bilgi Sistemi (TÜBİS) ile elektronik ortamda da yapabilirsiniz.",
+          "Başvuru yollarının ayrıntısı Şikâyet ve Uyuşmazlık Çözümü sayfasındadır.",
+        ],
+      },
+      {
+        heading: "12. İletişim",
+        table: [
+          { key: "Satıcı", value: "{{LEGAL_NAME}}" },
+          { key: "Marka", value: "{{BRAND}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "MERSİS numarası", value: "{{MERSIS}}" },
+          { key: "KEP adresi", value: "{{KEP}}" },
+          { key: "Hukuki belgeler", value: "{{SITE_URL}}/hukuk" },
+        ],
+      },
+    ],
+  },
+  {
     slug: "iade-ve-cayma",
     title: "İptal, İade ve Cayma Hakkı",
     shortTitle: "İade ve Cayma",
     // 19 Ekim 2026: §21 points at the karaoke terms instead of repeating
     // them, and holds the single event-cancellation rule. LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden verilen siparişlerin iptali, 14 günlük cayma hakkı, ürün iadesi, mobil uygulamadan verilen kafe siparişlerinin durumu, PayNkolay üzerinden geri ödeme ve kuponlu siparişlerde iade esaslarının adım adım açıklandığı uygulama belgesidir.",
@@ -4736,7 +4876,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
-    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
     category: "Veri & Gizlilik",
@@ -5563,7 +5702,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
-    updatedAt: "19 Ekim 2026",
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     category: "Veri & Gizlilik",
     summary:
@@ -6321,7 +6459,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
     // 19 Ekim 2026: R5 ve R6 kalemleri kalktı (numaraları korunur), R12'ye Anthropic'in saklama süresi ve sözleşme koşulu; rıza sürümü ilerledi.
-    updatedAt: "19 Ekim 2026",
     // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
     // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
     category: "Veri & Gizlilik",
@@ -7502,7 +7639,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
     // the karaoke row points at the karaoke terms §10 for the refund on
     // account closure (LEGAL-REDLINES §17).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -8209,7 +8345,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
     // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SITE_URL}} sitesinde kullanılan çerezleri ve benzeri teknolojileri, {{BRAND}} mobil uygulamasının cihazda tuttuğu verileri ve istediği izinleri; her teknolojinin amacını, süresini ve rıza gerektirip gerektirmediğini, rıza yönetimini ve silme yollarını açıklayan politikadır.",
@@ -8859,7 +8994,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Ticari Elektronik İleti ve İYS Aydınlatması",
     shortTitle: "Ticari İleti",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
-    updatedAt: "19 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6563 sayılı Kanun uyarınca {{SHORT_NAME}}'nin ticari elektronik ileti onayını nasıl aldığını ve kayıt altına aldığını, İleti Yönetim Sistemi'ni (İYS), e-posta iletileri ile mobil uygulama bildirimlerine ilişkin kuralları ve ücretsiz ret hakkınızı açıklar.",
@@ -9616,7 +9750,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Kullanım Şartları",
     // 19 Ekim 2026: the karaoke definition no longer describes the request
     // mode (online prepayment cannot be switched off). LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Site & Üyelik",
     // 18 Ekim 2026: §7 says how membership ends on each channel (the app at
     // once, the Site's request page and e-mail within thirty days).
@@ -12595,6 +12728,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "{{KEP}}",
           },
           {
+            key: "Kayıtlı olunan meslek odası",
+            value: "{{CHAMBER}}",
+          },
+          {
+            key: "Meslek odasının davranış kuralları",
+            value: "{{CHAMBER_RULES_URL}}",
+          },
+          {
             key: "Vergi dairesi",
             value: "{{TAX_OFFICE}}",
           },
@@ -12970,6 +13111,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "/hukuk/mesafeli-satis-sozlesmesi",
           },
           {
+            key: "İşlem Rehberi",
+            value: "/hukuk/islem-rehberi",
+          },
+          {
             key: "İptal, İade ve Cayma Hakkı",
             value: "/hukuk/iade-ve-cayma",
           },
@@ -13248,8 +13393,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Faturalama ve Vergisel Bilgiler",
         paragraphs: [
-          "Tüm satışlar için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca fatura düzenlenir. Fatura türü, Şirketin mükellefiyet durumuna ve mevzuata göre belirlenir. Fatura talepleriniz ve fatura örneği isteğiniz için {{EMAIL}} adresine başvurabilirsiniz.",
-          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura talep ediyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş öncesinde eksiksiz girmeniz gerekir; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
+          "İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz.",
+          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
           "İade ve cayma hâllerinde, faturanın iade bölümünün doldurulup imzalanarak Şirkete ulaştırılması veya mükellef alıcılar bakımından iade faturası düzenlenmesi gerekebilir. Bu, muhasebe kaydının kapatılabilmesi için gerekli usuli bir adımdır; belge eksikliği cayma hakkınızın kullanımını ve iade süresini etkilemez.",
         ],
         table: [
@@ -13272,11 +13417,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Fatura türü",
             value:
-              "Mevzuata uygun fatura (türü Şirketin mükellefiyet durumuna göre belirlenir)",
+              "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
           },
           {
             key: "Fatura iletim yöntemi",
-            value: "Fatura örneği talebi üzerine {{EMAIL}} adresi üzerinden",
+            value:
+              "e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir (kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde); e-Fatura, e-Fatura sistemi üzerinden iletilir",
+          },
+          {
+            key: "Koliyle gönderilen belge",
+            value:
+              "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
           },
           {
             key: "KDV oranı",
@@ -14069,7 +14220,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: the karaoke rules live in the karaoke terms only (§1,
     // §4, §5), events follow İade ve Cayma §21 (§6), and the access notice
     // holds a table for 15 minutes (§20). LEGAL-REDLINES §17.
-    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
@@ -14654,7 +14804,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Gıda Güvenliği",
     // 19 Ekim 2026: §7 says where each menu item's allergens are written
     // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §21.
-    updatedAt: "19 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafe servisinde ve {{SITE}} üzerinden satılan gıda ürünlerinde uygulanan gıda güvenliği yönetimi, zorunlu alerjen bildirimi, çapraz bulaşma uyarısı, saklama koşulları ve ürün geri çağırma prosedürü hakkında tüketici bilgilendirmesidir.",

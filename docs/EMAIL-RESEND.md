@@ -296,7 +296,10 @@ listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
 Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
 e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
 ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
-Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
+Fatura e-postası bu kodun dışında: şirket e-Arşiv faturayı Paraşüt'te
+düzenler ve müşterinin siparişteki e-posta adresine gönderir (operatör, 19
+Eki 2026); sözleşme metinleri bunu yazar (`docs/LEGAL-REDLINES-2026-09.md`
+§24).
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` - ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için

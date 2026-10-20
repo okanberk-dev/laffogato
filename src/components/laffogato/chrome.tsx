@@ -1053,7 +1053,7 @@ export function Footer({ navigate, settings }: FooterProps) {
               </li>
             </ul>
           </div>
-          {/* Six documents, not twenty-four; the criterion for each is in
+          {/* Seven documents, not twenty-six; the criterion for each is in
               src/lib/legal/nav.ts. The rest are one click away. */}
           <div>
             <h3 className="footer-col-title">Yasal</h3>

@@ -2831,6 +2831,152 @@ Sözleşme metni değişmedi. Yeni müşteri cümleleri:
 - Fiyat Etiketi Yönetmeliği m.11/1 (indirimli satışta etikette ve listede
   indirimli fiyat, indirimden önceki fiyat ve indirim; ispat satıcıda).
 
+## 24. Y10 - Fatura e-Arşiv olarak e-postayla, kurumsal fatura bilgisi e-postayla, karaoke faturası; İşlem Rehberi; meslek odası (20 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-invoice-and-company-info`.
+> Operatör kararı (18 Ekim 2026): avukat ve mali müşavir turu yok, karar
+> birincil kaynaklarla verildi (ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER,
+> D-ISLEM-DURABLE). Operatör (19 Ekim 2026): şirket faturalarını zaten
+> elektronik olarak düzenliyor. `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+> **20 Ekim 2026** (§24.4). Bu bölüm §11'deki R9 (E1) önerisinin yerine
+> geçer.
+
+### 24.1 Neden
+
+- Şirket Bilgileri §14 faturanın yalnız "talep üzerine" e-postayla
+  gönderildiğini, MSS §9 ise e-postaya "muvafakat" ve "talep edilirse kâğıt
+  çıktı" diyordu. Fatura alıcıya verilir (VUK m.229) ve şirket her faturasını
+  elektronik olarak düzenleyip e-postayla gönderiyor; kargodaki koliye ayrı
+  irsaliye konmuyor.
+- Şirket Bilgileri §14 kurumsal fatura bilgisinin "sipariş öncesinde"
+  girilmesini istiyordu; ödeme adımında bunun için alan yok
+  (`src/app/odeme/actions.ts`). Satış Politikası §24 ve Teslimat ve Kargo
+  zaten "siparişten sonra e-postayla" diyor.
+- Karaoke §12 faturanın ne zaman, hangi tutar için düzenlendiğini
+  söylemiyordu.
+- Elektronik ticaret yönetmeliğinin istediği "işlem rehberi" yoktu (içerik
+  ÖBF §9 ve §22'ye dağılmıştı); Şirket Bilgileri'nde meslek odası satırı
+  yoktu.
+
+### 24.2 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| MSS §9, 2. paragraf, 2. cümle | Faturanın elektronik ortamda düzenlenmesi hâlinde ALICI, faturanın kayıtlı e-posta adresine elektronik ortamda iletilmesine muvafakat eder; talep etmesi hâlinde faturanın kâğıt çıktısı da gönderilir. | Fatura e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. |
+| ÖBF §16, 1. paragraf | Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak düzenlenir ve ALICI'ya iletilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur. | Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur. |
+| Şirket Bilgileri §14, 1. paragraf | Tüm satışlar için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca fatura düzenlenir. Fatura türü, Şirketin mükellefiyet durumuna ve mevzuata göre belirlenir. Fatura talepleriniz ve fatura örneği isteğiniz için {{EMAIL}} adresine başvurabilirsiniz. | İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz. |
+| Şirket Bilgileri §14, 2. paragraf (baş) | Kurumsal fatura talep ediyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş öncesinde eksiksiz girmeniz gerekir; | Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; (cümlenin geri kalanı aynı) |
+| Şirket Bilgileri §14, tablo "Fatura türü" | Mevzuata uygun fatura (türü Şirketin mükellefiyet durumuna göre belirlenir) | e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura |
+| Şirket Bilgileri §14, tablo "Fatura iletim yöntemi" | Fatura örneği talebi üzerine {{EMAIL}} adresi üzerinden | e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir (kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde); e-Fatura, e-Fatura sistemi üzerinden iletilir |
+| Şirket Bilgileri §14, tablo (yeni satır) "Koliyle gönderilen belge" | (yoktu) | Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir |
+| Karaoke koşulları §12 (tek paragraf) | Ödenen bedel için fatura mevzuata uygun olarak düzenlenir; faturanızın bir örneğini {{EMAIL}} adresinden talep edebilirsiniz. İptal ve iade hâlinde gerekli düzeltme belgesi düzenlenir. | Ödediğiniz tutar hizmet gününe kadar ön ödeme niteliğindedir. Fatura, e-Arşiv fatura olarak rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir ve rezervasyonda bildirdiğiniz e-posta adresine gönderilir. İptalde size iade edilen tutar faturalanmaz; iade edilmeyen tutar karaoke odası hizmet bedeli olarak faturalanır. Ödediğiniz KDV dâhil tutar, rezervasyon ile hizmet günü arasında vergi oranı değişse de değişmez. |
+| Şirket Bilgileri §2, tablo (iki yeni satır) | (yoktu) | "Kayıtlı olunan meslek odası": `{{CHAMBER}}`; "Meslek odasının davranış kuralları": `{{CHAMBER_RULES_URL}}`. İkisi de boş: satırlar basılmaz (§24.5) |
+| Şirket Bilgileri §9, belge tablosu (yeni satır) | (yoktu) | "İşlem Rehberi": /hukuk/islem-rehberi |
+| Site altı, Yasal sütunu | (yoktu) | İşlem rehberi (yedinci bağlantı, İptal, İade & Cayma'nın ardından) |
+| Panel, yazdırılan sipariş fişi | Bu fiş mali belge değildir. | İnternetten ödenen siparişte ve havale ile ödenen manuel siparişte: "Bu fiş mali belge değildir. Faturan elektronik olarak e-postana gönderilir." Manuel siparişte nakit ya da kasadaki kart cihazında: "Bu fiş mali belge değildir. Mali belgen kasadan verilen fiştir." Ödenmemiş siparişte, e-postasız siparişte, ödeme yolu kayıtlı olmayan manuel siparişte ve "Diğer" ödemede (yol bilinmiyor, kasa fişi de olabilir) yalnız ilk cümle. |
+
+### 24.3 Yeni belge: İşlem Rehberi (`/hukuk/islem-rehberi`)
+
+Kategori "Sipariş", belgelerin "siz" dili, on iki bölüm: 1. Bu Rehber Ne
+Anlatır, 2. Sipariş Vermeden Önce, 3. İnternet Sitesinde Sipariş Adımları
+(dokuz adım, sayfadaki düğme adlarıyla), 4. Mobil Uygulamada Sipariş, 5.
+Karaoke Odası Rezervasyonu (altı adım), 6. Girdiğiniz Bilgileri Görme ve
+Düzeltme, 7. Sözleşmenin Kurulması, 8. Sözleşme Metninin Saklanması ve Size
+Ulaşması, 9. Fatura, 10. Siparişten Sonra: İptal, Cayma ve İade, 11. Şikâyet
+ve Uyuşmazlık Çözümü, 12. İletişim. İçerik ÖBF §9, §21 ve §22'den, MSS
+§5'ten (sözleşmenin kurulması) ve karaoke koşullarından alındı; o belgeler
+değişmedi.
+
+§8'in ilk paragrafı D-ISLEM-DURABLE kararının metnidir, durable-copy yayına
+girene kadar aynen kalır:
+
+> Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış
+> Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte
+> siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine
+> sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki
+> bağlantılar belgelerin güncel metnini açar.
+
+durable-copy bu paragrafı onaylanan metnin eki ve sürüm bağlantısı cümlesiyle
+değiştirir.
+
+Bilerek yazılmayanlar: masaya sipariş (uygulamanın masa ekranı henüz
+yayında değil; AASA `/masa/*` talep etmez), kayıtlı kart (kural 28). §11 yalnız
+yasal uyuşmazlık yollarını sayar (hakem heyeti, zorunlu arabuluculuk,
+mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
+
+### 24.4 Sürüm
+
+- `LEGAL_UPDATED` 19 Ekim 2026'dan **20 Ekim 2026**'ya: ÖBF ve MSS değişti,
+  ödeme onayının kaydettiği sürüm taşınır. 19 Ekim 2026 #163'ün (KDV, §16.4)
+  etiketi; aynı İstanbul gününde ikinci bir taşıyıcı birleşmez (D-SAME-DAY).
+  Bu PR daha geç bir gün birleşirse etiket o güne çekilir.
+- `KARAOKE_LEGAL_UPDATED` 19 Ekim 2026'dan **20 Ekim 2026**'ya: karaoke §12
+  değişti. 19 Ekim 2026 #170'in (§17.6) etiketi; aynı kural.
+- 19 Ekim 2026'yı kendi tarihi olarak taşıyan on belge (İade ve Cayma,
+  Gizlilik, KVKK Aydınlatma, Açık Rıza, Veri Saklama, Çerez, Ticari İleti,
+  Kullanım Şartları, Kafe Hizmet Koşulları, Gıda Güvenliği) yeni revizyondan
+  önceki bir gün basamayacağı için (`tests/legal-dates.test.ts`) kendi
+  tarihini bıraktı ve setin gününü okur. Şirket Bilgileri ve İşlem Rehberi de
+  setin gününde.
+
+### 24.5 Operatöre
+
+- **Fatura içeriği (e-Arşiv, internet satışı).** Paraşüt'te internet satışı
+  faturasında VUK GT 509 IV.2.4.5'in istediği alanlar dolu olmalı: "Bu satış
+  internet üzerinden yapılmıştır." ibaresi, web adresi (laffogato.net), ödeme
+  şekli ve tarihi, kargoda taşıyıcının unvanı ve VKN'si, gönderim tarihi ve
+  iade bölümü.
+- **Koliye giren belge.** Kargo siparişinde fatura koli taşıyıcıya verildiği
+  anda saat ve dakikasıyla düzenlenir; kâğıt çıktıya "İrsaliye yerine
+  geçer." yazılır, imzalanır ve koliye konur (509 V.5.2). Paneldeki "Sipariş
+  Fişi" bunun yerine geçmez.
+- **Karaoke.** Her gün, önceki günün rezervasyonları için e-Arşiv fatura:
+  satır "Karaoke odası, <gün> <saat>, <süre> saat" (gelinmediyse ", gelinmedi",
+  geç iptalde ", geç iptal"), tutar ödenen eksi iade edilen (rezervasyon
+  sayfasındaki "Faturalanacak tutar"), KDV %20. Fatura kesilmeden yapılan tam
+  iade için belge yok. Fatura kesildikten sonra iade olursa tüketiciye KDV'si
+  ayrı gösterilen gider makbuzu, mükellefe iade faturası; KDV düzeltmesi
+  (KDV K. m.35) o ayın beyannamesinde.
+- **Kurumsal fatura.** E-postayla gelen unvan, vergi dairesi ve VKN
+  kargodan önce faturaya işlenir; alıcı e-Fatura kullanıcısıysa e-Fatura
+  düzenlenir.
+- **Meslek odası ve KEP (31 Ekim 2026'ya kadar).** Şirketin oda kayıt ya da
+  faaliyet belgesinden kayıtlı olduğu oda ve odanın meslek kuralları
+  sayfasının adresi; KEP adresi (yoksa BTK yetkili bir KEP sağlayıcısından).
+  Üç değer `src/lib/legal/entity.ts`'e (`chamber`, `chamberRulesUrl`, `kep`)
+  girer; satırlar o zaman basılır ve Şirket Bilgileri'nin tarihi o gün olur.
+  Tahminle yazılmaz.
+- **Uygulama.** lafmobil'in çevrimdışı kopyası (`legal:export`) ayrı PR'da
+  (app-legal-seed-invoice); İşlem Rehberi paketlenen belgelerden değil,
+  dizinde görünür.
+
+### 24.6 Bilerek değişmeyenler
+
+- ÖBF §9 ve §22: sipariş adımları ve onay kaydı sözleşmenin parçası olarak
+  yerinde kaldı; İşlem Rehberi onları özetler, yerine geçmez.
+- MSS §9'un kurumsal fatura paragrafı ("fatura düzenlenmeden önce {{EMAIL}}
+  adresine") ve iade faturası paragrafı: yeni kuralla zaten uyumlu.
+- Ödeme Koşulları §20, Satış Politikası §24, Teslimat ve Kargo'nun kurumsal
+  teslimat cümleleri: fatura bilgisini siparişten sonra e-postayla alıyorlar.
+- Şirket Bilgileri §15'teki "Kurumsal siparişlerde fatura, sipariş öncesinde
+  bildirilen ticaret unvanı..." maddesi: sepet dışı, yazılı teklifle yürüyen
+  toplu satış içindir.
+- Ödeme formuna kurumsal fatura alanı eklenmedi (form sözleşmesi ve mobil
+  sözleşme değişmez).
+
+### 24.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Fatura alıcıya verilir, 7 gün | 213 s. VUK m.229, m.231/5; m.353 (belge düzenine aykırılık) | Fatura e-postayla gönderilir, talebe bırakılmaz; kargoda koli taşıyıcıya verildiği anda, diğer siparişlerde teslimden ve hizmetten itibaren en geç 7 gün içinde. |
+| Her fatura elektronik | VUK GT 509 IV.2.4.3 (GT 573 ve 589 ile değişik): 1.1.2026'dan beri bilanço esasındaki mükellefin her faturası e-Arşiv; GT 509 V. bölüm: e-Fatura kayıtlı alıcıya e-Fatura | Tüketiciye e-Arşiv fatura; e-Fatura kullanıcısı kurumsal alıcıya e-Fatura. Şirket Paraşüt ile düzenliyor (operatör, 19 Ekim 2026); müşteri metinlerinde sağlayıcı adı geçmez, KVKK metinleri onu alıcı olarak sayar. |
+| İnternet satışında iletim ve koli belgesi | VUK m.230/5; VUK GT 509 IV.2.4.5, V.5.2 | e-Arşiv fatura elektronik ortamda iletilir; malın yanında sevk irsaliyesi ya da irsaliye yerine geçen e-Arşiv fatura çıktısı bulunur. Seçilen: çıktı, "İrsaliye yerine geçer." ibaresi ve imzayla. |
+| Kurumsal fatura bilgisi | VUK m.230 (faturada alıcının unvanı ve vergi numarası) | Ödeme adımına alan eklenmez; bilgi sipariş numarasıyla, siparişten sonra ve kargodan önce e-postayla alınır (Satış Politikası §24 ile aynı kural). |
+| Karaoke ön ödemesi | 3065 s. KDV K. m.10/a-b, m.35; KDV GUT I/A-11.1; GİB özelgesi 29823 (ön ödeme fatura kesilmedikçe vergiyi doğurmaz); VUK m.231/5 | Ödeme hizmet gününe kadar avanstır; fatura rezervasyon gününden itibaren en geç 7 gün içinde köşkte kalan tutar için (%20) kesilir; iade edilen tutar faturalanmaz. Güven orta: karaoke için doğrudan özelge yok, kafeterya içi oyun hizmeti özelgelerinden kıyas (33087, 32291). |
+| Fiş mali belge değildir | VUK m.229, m.233 | Panel fişi fatura ya da ÖKC fişi gibi görünmez; gerçek belgenin nereden geldiğini söyler (ödeme yoluna göre e-posta ya da kasa fişi). |
+| İşlem rehberi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG 29.12.2022-32058) m.7/1; Mesafeli Sözleşmeler Yönetmeliği m.5/6, m.20/1 | Ana sayfadan (site altı) ulaşılan /hukuk/islem-rehberi: sözleşmenin kurulması için teknik adımlar, giriş hatalarını görme ve düzeltme araçları, sözleşme metninin saklanıp saklanmadığı ve ne kadar erişilebildiği (sürüm ve onay anı siparişle en az 3 yıl, metin e-postayla istenir), uyuşmazlık yolları (hakem heyeti, zorunlu arabuluculuk, TÜBİS). |
+| Meslek odası | Aynı yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a | Oda ve davranış kuralları satırı Şirket Bilgileri'nde, değer belgeden gelene kadar basılmaz (kural 13: yasal kimlik uydurulmaz). |
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

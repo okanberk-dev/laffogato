@@ -10,6 +10,7 @@ import {
   ORDER_FULFILLMENT_LABELS,
 } from "@/lib/admin/order-channel";
 import {
+  MANUAL_PROVIDER_PREFIX,
   REFUND_DESTINATION_LABELS,
   isManualProvider,
   refundedMinor,
@@ -909,18 +910,56 @@ export function OrderDetail({
       </div>
 
       {/* Print-only receipt - hidden in normal flow, revealed by @media print */}
-      <PrintableReceipt order={order} settings={settings} />
+      <PrintableReceipt order={order} settings={settings} payments={payments} />
     </>
   );
+}
+
+/**
+ * The receipt's second fiscal sentence: where the customer's fiscal
+ * document comes from (legal decision ASK-INVOICE, X-FIS). The company
+ * issues its invoices electronically and sends them by e-mail (operator, 19
+ * Eki 2026), so an order paid online or by transfer says so; one taken in
+ * cash or on the counter's card terminal gets the till's ÖKC fişi (VUK
+ * m.233) instead. Null while unpaid, without an e-mail on the order, for a
+ * manual order with no recorded method (rows from before ORD-19) and for
+ * "Diğer": a method the panel does not name may well be a counter sale with
+ * its own fiş, and the receipt must not promise an e-mail that never comes.
+ * The receipt then says only that it is not a fiscal document.
+ */
+export function receiptInvoiceNote(
+  order: Pick<AdminOrder, "paidAt" | "customerEmail" | "source">,
+  payments: readonly Pick<OrderPaymentRow, "provider" | "status">[],
+): string | null {
+  const paid = payments.filter((p) => p.status === "succeeded");
+  const manual = paid
+    .filter((p) => isManualProvider(p.provider))
+    .map((p) => p.provider.slice(MANUAL_PROVIDER_PREFIX.length));
+  if (manual.some((m) => m === "nakit" || m === "kart")) {
+    return "Mali belgen kasadan verilen fiştir.";
+  }
+  // Online: a POS or wallet row, or a web or app order's paidAt with no row
+  // (a total brought to zero). A manual order marked paid with no row says
+  // nothing about how it was paid.
+  const online =
+    paid.some((p) => !isManualProvider(p.provider)) ||
+    (paid.length === 0 && !!order.paidAt && order.source !== "manual");
+  if (!online && !manual.includes("havale")) return null;
+  if (!order.customerEmail?.trim()) return null;
+  return "Faturan elektronik olarak e-postana gönderilir.";
 }
 
 export function PrintableReceipt({
   order,
   settings,
+  payments = [],
 }: {
   order: AdminOrder;
   settings: AdminSettings;
+  /** The order's payment rows: how it was paid decides the fiscal line. */
+  payments?: readonly OrderPaymentRow[];
 }) {
+  const invoiceNote = receiptInvoiceNote(order, payments);
   const refunded = refundedMinor(order);
   const table = orderTable(order);
   const kdv = orderKdvBreakdown(order);
@@ -1073,10 +1112,12 @@ export function PrintableReceipt({
         {/* The panel's printout is not a fiscal document: those are the
             fatura / e-Arşiv fatura (VUK m.229, VUK GT 509) and the till's
             ÖKC fişi (VUK m.233). It must not pass for one (legal decision
-            ASK-INVOICE, X-FIS). The e-Arşiv sentence joins it once invoices
-            go out by e-mail. */}
+            ASK-INVOICE, X-FIS), and it says where the real one comes from
+            (`receiptInvoiceNote`). */}
         <p data-receipt-fiscal-note className="mt-2 text-neutral-700">
-          Bu fiş mali belge değildir.
+          {invoiceNote
+            ? `Bu fiş mali belge değildir. ${invoiceNote}`
+            : "Bu fiş mali belge değildir."}
         </p>
       </footer>
     </section>
