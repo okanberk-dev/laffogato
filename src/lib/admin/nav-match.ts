@@ -250,7 +250,7 @@ const itemCount = (groups: readonly { items: readonly unknown[] }[]) =>
   groups.reduce((n, g) => n + g.items.length, 0);
 
 /**
- * Whether the nav is one flat list (Personel's five items). Group headers
+ * Whether the nav is one flat list (Personel's six items). Group headers
  * over one or two items each are only noise.
  */
 export function navIsFlat(groups: readonly { items: readonly unknown[] }[]) {
