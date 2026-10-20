@@ -58,6 +58,20 @@ export interface SavedViewsProps {
 }
 
 /**
+ * Puts the focus on the menu's button (its summary). A save or a delete
+ * swaps the menu's items (the view on screen is saved now, or no longer),
+ * so the dialog's trigger leaves the page with the dialog, before
+ * ActionModal can hand the focus back; "Varsayılan yap" is a button in a
+ * menu that closes on the click. Either way the keyboard was dropped on
+ * <body>. Exported for tests.
+ */
+export function focusMenuButton(
+  root: Pick<ParentNode, "querySelector"> | null,
+): void {
+  root?.querySelector<HTMLElement>("summary")?.focus();
+}
+
+/**
  * The "Görünümler" menu: the saved views (each opens the list as saved,
  * without the search), and for the view on screen "Bu görünümü kaydet", or
  * "Varsayılan yap" and "Görünümü sil" when it is one of them. The default
@@ -106,6 +120,11 @@ export function SavedViews({
   // saved since this one drew its menu.
   const stored = () => parseSavedViews(readViews(storageKey), rules);
 
+  // Around the menu, for focusMenuButton (`contents`: the menu stays the
+  // row's own item).
+  const menuRoot = useRef<HTMLDivElement>(null);
+  const refocus = () => focusMenuButton(menuRoot.current);
+
   const save: ModalAction = async (_prev, formData) => {
     const result = saveView(stored(), formData.get("name"), current);
     if (!result.ok) return actionError(result.error);
@@ -123,6 +142,7 @@ export function SavedViews({
 
   const toggleDefault = () => {
     if (!here) return;
+    refocus();
     const next = menu.hereIsDefault ? null : here.query;
     if (!writeViews(storageKey, setDefaultView(stored(), next))) {
       toast.show({ tone: "danger", message: NOT_KEPT });
@@ -136,93 +156,99 @@ export function SavedViews({
   };
 
   return (
-    <ActionMenu label={menu.label} showLabel className={className}>
-      {menu.entries.length > 0 ? (
-        <>
-          <p className="px-3 pt-1.5 pb-1 text-xs text-[var(--admin-text-soft)]">
-            Kayıtlı görünümler
-          </p>
-          {/* Eight views are taller than the room under or over the
+    <div ref={menuRoot} className="contents">
+      <ActionMenu label={menu.label} showLabel className={className}>
+        {menu.entries.length > 0 ? (
+          <>
+            <p className="px-3 pt-1.5 pb-1 text-xs text-[var(--admin-text-soft)]">
+              Kayıtlı görünümler
+            </p>
+            {/* Eight views are taller than the room under or over the
               button on a laptop: the list scrolls inside the menu (a
               scroll there does not close it, a page scroll does). */}
-          <div className="-mx-1.5 flex max-h-[min(15rem,35dvh)] flex-col gap-0.5 overflow-y-auto px-1.5 py-1">
-            {menu.entries.map((entry) => (
-              // A post, as "Sıfırla": the view replaces the search too.
-              <ListSearchButton
-                key={entry.href}
-                href={entry.href}
-                intent="reset"
-                className={BUTTON.menu}
-                ariaLabel={entry.ariaLabel}
-              >
-                <span className="min-w-0 flex-1 break-words">{entry.name}</span>
-                {entry.isDefault ? (
-                  <span className="shrink-0 text-xs text-[var(--admin-text-soft)]">
-                    Varsayılan
-                  </span>
-                ) : null}
-                <span
-                  aria-hidden="true"
-                  className={cx(
-                    "w-4 shrink-0 text-center text-[var(--admin-primary)]",
-                    !entry.open && "invisible",
-                  )}
+            <div className="-mx-1.5 flex max-h-[min(15rem,35dvh)] flex-col gap-0.5 overflow-y-auto px-1.5 py-1">
+              {menu.entries.map((entry) => (
+                // A post, as "Sıfırla": the view replaces the search too.
+                <ListSearchButton
+                  key={entry.href}
+                  href={entry.href}
+                  intent="reset"
+                  className={BUTTON.menu}
+                  ariaLabel={entry.ariaLabel}
                 >
-                  ✓
-                </span>
-              </ListSearchButton>
-            ))}
-          </div>
-          <ActionMenuSeparator />
-        </>
-      ) : null}
-      {here ? (
-        <>
-          <ActionMenuButton onClick={toggleDefault}>
-            {menu.hereIsDefault ? "Varsayılandan çıkar" : "Varsayılan yap"}
-          </ActionMenuButton>
-          <ActionModal
-            action={remove}
-            title="Görünümü sil"
-            description={`"${here.name}" bu tarayıcıdan silinir. Listedeki kayıtlar değişmez.`}
-            trigger="Görünümü sil"
-            triggerVariant="menuDanger"
-            tone="danger"
-            submitLabel="Sil"
-            size="sm"
-          />
-        </>
-      ) : menu.save === "save" ? (
-        <ActionModal
-          action={save}
-          title="Görünümü kaydet"
-          description="Sekme, süzgeçler ve sıralama bu tarayıcıda, senin hesabına kaydedilir. Arama metni, tarihler ve sayfa kaydedilmez."
-          trigger="Bu görünümü kaydet"
-          triggerVariant="menu"
-          submitLabel="Kaydet"
-          size="sm"
-        >
-          <Field label="Görünümün adı">
-            <TextInput
-              name="name"
-              required
-              maxLength={SAVED_VIEW_NAME_MAX}
-              autoComplete="off"
-              placeholder="Örn. Masa siparişleri"
+                  <span className="min-w-0 flex-1 break-words">
+                    {entry.name}
+                  </span>
+                  {entry.isDefault ? (
+                    <span className="shrink-0 text-xs text-[var(--admin-text-soft)]">
+                      Varsayılan
+                    </span>
+                  ) : null}
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      "w-4 shrink-0 text-center text-[var(--admin-primary)]",
+                      !entry.open && "invisible",
+                    )}
+                  >
+                    ✓
+                  </span>
+                </ListSearchButton>
+              ))}
+            </div>
+            <ActionMenuSeparator />
+          </>
+        ) : null}
+        {here ? (
+          <>
+            <ActionMenuButton onClick={toggleDefault}>
+              {menu.hereIsDefault ? "Varsayılandan çıkar" : "Varsayılan yap"}
+            </ActionMenuButton>
+            <ActionModal
+              action={remove}
+              title="Görünümü sil"
+              description={`"${here.name}" bu tarayıcıdan silinir. Listedeki kayıtlar değişmez.`}
+              trigger="Görünümü sil"
+              triggerVariant="menuDanger"
+              tone="danger"
+              submitLabel="Sil"
+              size="sm"
+              onSuccess={refocus}
             />
-          </Field>
-        </ActionModal>
-      ) : (
-        <ActionMenuButton
-          disabledReason={
-            menu.save === "full"
-              ? `En fazla ${SAVED_VIEWS_MAX} görünüm. Yenisi için birini sil.`
-              : "Önce bir sekme, süzgeç ya da sıralama seç."
-          }
-        >
-          Bu görünümü kaydet
-        </ActionMenuButton>
-      )}
-    </ActionMenu>
+          </>
+        ) : menu.save === "save" ? (
+          <ActionModal
+            action={save}
+            title="Görünümü kaydet"
+            description="Sekme, süzgeçler ve sıralama bu tarayıcıda, senin hesabına kaydedilir. Arama metni, tarihler ve sayfa kaydedilmez."
+            trigger="Bu görünümü kaydet"
+            triggerVariant="menu"
+            submitLabel="Kaydet"
+            size="sm"
+            onSuccess={refocus}
+          >
+            <Field label="Görünümün adı">
+              <TextInput
+                name="name"
+                required
+                maxLength={SAVED_VIEW_NAME_MAX}
+                autoComplete="off"
+                placeholder="Örn. Masa siparişleri"
+              />
+            </Field>
+          </ActionModal>
+        ) : (
+          <ActionMenuButton
+            disabledReason={
+              menu.save === "full"
+                ? `En fazla ${SAVED_VIEWS_MAX} görünüm. Yenisi için birini sil.`
+                : "Önce bir sekme, süzgeç ya da sıralama seç."
+            }
+          >
+            Bu görünümü kaydet
+          </ActionMenuButton>
+        )}
+      </ActionMenu>
+    </div>
   );
 }

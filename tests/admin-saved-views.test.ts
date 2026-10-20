@@ -71,7 +71,8 @@ const store = await import("@/components/admin/ui/saved-views-store");
 const { pageAccountKey } =
   await import("@/components/admin/ui/saved-views-key");
 const { FilterBar } = await import("@/components/admin/ui/filter-bar");
-const { SavedViews } = await import("@/components/admin/ui/saved-views");
+const { SavedViews, focusMenuButton } =
+  await import("@/components/admin/ui/saved-views");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
 const { AUDIT_FILTER_FIELDS } = await import("@/lib/admin/audit-view");
 const { parseFilters } = await import("@/lib/admin/list-params");
@@ -568,7 +569,8 @@ describe("the markup", () => {
         }),
       );
     const bare = menu({});
-    expect(bare).toMatch(/^<details/);
+    // The wrapper is focusMenuButton's root: `contents`, no box of its own.
+    expect(bare).toMatch(/^<div class="contents"><details/);
     expect(bare).toContain("<span>Görünümler</span>");
     expect(bare).toContain('aria-disabled="true"');
     expect(bare).toContain("Önce bir sekme, süzgeç ya da sıralama seç.");
@@ -576,6 +578,34 @@ describe("the markup", () => {
     expect(filtered).toContain('aria-haspopup="dialog"');
     expect(filtered).toContain("Bu görünümü kaydet");
     expect(filtered).not.toContain('aria-disabled="true"');
+  });
+
+  it("hands the keyboard back to the menu button after a save, a delete or the default", () => {
+    // Each swaps the menu's items: the dialog's trigger leaves the page
+    // with its dialog before ActionModal can return the focus, and
+    // "Varsayılan yap" sits in a menu that closes on the click. The
+    // keyboard was left on <body> (checked in a browser: the kit's own
+    // ActionModal in an ActionMenu lands on the menu's button).
+    const focused: string[] = [];
+    const root = {
+      querySelector: (sel: string) =>
+        sel === "summary" ? { focus: () => focused.push(sel) } : null,
+    } as unknown as ParentNode;
+    focusMenuButton(root);
+    expect(focused).toEqual(["summary"]);
+    expect(() => focusMenuButton(null)).not.toThrow();
+    expect(() => focusMenuButton({ querySelector: () => null })).not.toThrow();
+
+    const src = readFileSync("src/components/admin/ui/saved-views.tsx", "utf8");
+    expect(src).toMatch(/<div ref=\{menuRoot\} className="contents">/);
+    expect(src).toMatch(
+      /const refocus = \(\) => focusMenuButton\(menuRoot\.current\);/,
+    );
+    // The save and the delete dialogs, and the default's toggle.
+    expect(src.match(/onSuccess=\{refocus\}/g)).toHaveLength(2);
+    expect(src).toMatch(
+      /const toggleDefault = \(\) => \{\s+if \(!here\) return;\s+refocus\(\);/,
+    );
   });
 
   it("the bar loads the menu as a chunk of its own, never with the page", () => {
