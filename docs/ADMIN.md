@@ -230,14 +230,55 @@ sayfaları. Rozetler menüdekilerle aynı sayılardır.
 
 - **Sahip ve yönetici**: Genel bakış, Siparişler, Karaoke, Kasa ve
   **Tümü** (bütün menüyü açar). Açık sayfa çubukta değilse Tümü yanar.
-- **Personel**: Siparişler, Karaoke, Kasa, Stok, Genel bakış. Beş sayfası
-  da sığdığı için Tümü yok; menü üst çubukta.
+- **Personel**: Siparişler, Karaoke, Kasa, Canlı durum ve **Tümü** (Stok ve
+  Genel bakış menüde). Canlı durum 20 Ekim 2026'dan beri Personel'in de
+  (aşağıda "Köşk durumu"); altı sayfa beşe sığmadığı için Tümü geldi.
 - **Kasiyer**: çubuk yok (tek sayfası var).
 - Siparişler düğmesi rozetin saydığı "Açık" sekmesini açar.
 - Toplu işlem çubuğu açıkken, bir onay penceresi ya da menü açıkken ve
   telefonda bir yazı alanına dokununca (klavye açıkken) çubuk çekilir.
 - Bildirimler, toplu işlem çubuğu, yeni sipariş kartları ve kaydet
   çubukları çubuğun üstünde durur; sayfanın sonu çubuğun altında kalmaz.
+
+## Köşk durumu (üst çubuk) ve Personel'in Canlı durumu
+
+Uygulamanın ana sayfasındaki "Şu an açık", boş masa, Wi-Fi, gürültü, priz ve
+not Canlı durum'dan gelir (`GET /api/mobile/v1/live-status`). Vardiya bunu
+akşam boyunca en çok değiştiren kişidir, o yüzden (karar D3, 20 Ekim 2026):
+
+- **Kim.** Canlı durum ayrı bir bölüm (`venue`): Sahip, Yönetici ve
+  **Personel**. Kasiyerde yok (ne sayfa ne çip). Uygulamanın slaytları,
+  duyuruları, gönderileri ve ayarları eskisi gibi yalnız Sahip ve
+  Yönetici'de (`mobileApp`).
+- **Toplam masa yalnız Sahip ve Yönetici'de.** Personel sayfada toplam
+  masayı görür ama değiştiremez (alanın adı yok, gönderilmez); sunucu
+  Personel'in gönderdiği toplamı yok sayar ve kayıtlı olanı korur. Boş masa
+  kayıtlı toplamı geçemez; bu kural veritabanındaki tek `UPDATE`'in içinde
+  denetlenir (`patchVenueStatus`), arada toplamı düşüren bir yöneticinin
+  kaydı da sayılır.
+- **Üst çubuktaki çip** ("Köşk: Açık / Yoğun / Kapalı"): her panel
+  sayfasında, arama ile zilin arasında. Açılınca Otomatik / Açık / Yoğun /
+  Kapalı ve boş masa −/+ (44 px), Kaydet; sonuç bildirim olarak gelir.
+  "Diğer ayarlar" sayfaya götürür. Yoğun ayrı bir durum değildir: Otomatik
+  ve boş masa 0 olarak kaydedilir (uygulama "masaların hepsi dolu" der);
+  saatler kapalıysa köşk kapalı görünür. Saat dışı dolu bir gece için Açık
+  seçilip boş masa 0'a indirilir.
+- **Yalnız iki alan.** Çip yalnız açık/kapalı seçimini ve boş masayı yazar,
+  tek bir SQL `UPDATE` ile: aynı anda başka birinin değiştirdiği Wi-Fi,
+  gürültü, priz ya da not ezilmez. Her kayıt olay kaydına bir satır yazar
+  (`venue_status`, kim, ne).
+- **Veritabanını uyandırmaz.** Çip durumunu dakikada bir, yalnız sekme
+  görünürken sorar; düzende veritabanı okuması yok. Rozetler gibi her cevap
+  bir imleç taşır (`src/lib/admin/venue-signal.ts`): Canlı durum, Ayarlar
+  (saatler) ya da bir panel hesabı yazılmadıysa ve saatler köşkü açıp
+  kapatmadıysa cevap `{ unchanged: true }`: hesap okuması yok, veritabanı
+  yok, yalnız çerezin imzası ve Data Cache'teki işaret. Durumu taşıyan her
+  cevap hesabı yeniden okur (kural 30). Bir kayıt (`admin:changed`) imleci
+  düşürür, çip hemen yeniden okur; saatler köşkü açtığı ya da kapattığı
+  dakikadan sonraki ilk soru da tamdır. Önbellek çalışmazsa her soru tam
+  cevap olur (dakikada bir okuma).
+- Uygulama yeni durumu en geç 30 saniyede görür (uç `s-maxage=30`);
+  `/api/mobile/v1` değişmedi.
 
 ## Klavye kısayolları
 
