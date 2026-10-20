@@ -71,6 +71,10 @@ describe("legal document dates", () => {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
+      // 21 Ekim 2026: §8 says the durable copy that shipped (the confirmed
+      // text attached, downloadable, kept by hash; LEGAL-REDLINES §25). No
+      // checkout document changed, so LEGAL_UPDATED did not move.
+      "islem-rehberi": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
@@ -120,6 +124,32 @@ describe("legal document dates", () => {
       const src = readFileSync(file, "utf8");
       expect(src, file).toContain("version: await checkoutConsentVersion()");
       expect(src, file).not.toContain("version: LEGAL_UPDATED");
+    }
+  });
+
+  it("both checkout paths and the karaoke booking record the text hashes through one rule", () => {
+    // Next to the label, the hash of each text shown (D-VERSIONS-TABLE):
+    // the two checkout paths through `checkoutConsentTextHashes`, every
+    // karaoke booking (web form and app) in `createReservation` through
+    // `karaokeConsentTextHashes`, from the settings that decide its policy.
+    for (const file of [
+      "src/lib/mobile/orders.ts",
+      "src/app/odeme/actions.ts",
+    ]) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).toContain(
+        "textHashes: await checkoutConsentTextHashes()",
+      );
+    }
+    const karaoke = readFileSync("src/lib/mobile/karaoke.ts", "utf8");
+    expect(karaoke).toContain("await karaokeConsentTextHashes(settings)");
+    expect(karaoke).toContain("textHashes: textHashes ?? {}");
+    // The surfaces never compute or pass their own.
+    for (const file of [
+      "src/app/karaoke/actions.ts",
+      "src/app/api/mobile/v1/karaoke/reservations/route.ts",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).not.toContain("textHashes");
     }
   });
 });

@@ -2977,6 +2977,107 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 | İşlem rehberi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG 29.12.2022-32058) m.7/1; Mesafeli Sözleşmeler Yönetmeliği m.5/6, m.20/1 | Ana sayfadan (site altı) ulaşılan /hukuk/islem-rehberi: sözleşmenin kurulması için teknik adımlar, giriş hatalarını görme ve düzeltme araçları, sözleşme metninin saklanıp saklanmadığı ve ne kadar erişilebildiği (sürüm ve onay anı siparişle en az 3 yıl, metin e-postayla istenir), uyuşmazlık yolları (hakem heyeti, zorunlu arabuluculuk, TÜBİS). |
 | Meslek odası | Aynı yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a | Oda ve davranış kuralları satırı Şirket Bilgileri'nde, değer belgeden gelene kadar basılmaz (kural 13: yasal kimlik uydurulmaz). |
 
+## 25. Y11 - Onaylanan metnin kalıcı kopyası: her gösterilen sürüm saklanır, onay e-postası doldurulmuş metni ek olarak taşır (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-durable-copy`. Operatör kararı
+> (18 Ekim 2026): avukat turu yok, karar birincil kaynaklarla verildi
+> (ASK-DURABLE, ASK-OTH-2, D-VERSIONS-TABLE, D-ISLEM-DURABLE). Yalnız İşlem
+> Rehberi'nin metni değişti; tarihi **21 Ekim 2026** (§25.4). ÖBF, MSS ve
+> karaoke sözleşmesi değişmedi: `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+> 20 Ekim 2026'da kalır.
+
+### 25.1 Neden
+
+- Onay kaydı yalnız bir sürüm ETİKETİ tutuyordu ("20 Ekim 2026"). Aynı gün
+  yayımlanan iki metin (kodlu metin ve panel metni, ya da aynı gün birleşen
+  iki PR) aynı etiketi taşıyabiliyordu; hangisinin onaylandığı ispat
+  edilemezdi (D-SAME-DAY bu yüzden vardı).
+- Onay e-postası ve sipariş sayfası yalnız güncel /hukuk sayfalarına
+  bağlanıyordu ("bağlantılar belgelerin güncel metnini açar"). Onaylanan
+  metin, değiştirilmeden saklanabilecek biçimde tüketiciye verilmiyordu
+  (kalıcı veri saklayıcısı).
+
+### 25.2 Ne değişti (kod)
+
+- Gösterilen her metin (kodlu ve panel) kanonik biçimiyle SHA-256 anahtarıyla
+  `legal_doc_versions` tablosunda saklanır; tablo yalnız eklenir, satırın
+  hash'i metninkiyle tutmazsa veritabanı satırı reddeder. Onay kaydı sürüm
+  etiketinin yanına her belgenin hash'ini yazar (`legalConsent.textHashes`):
+  web ve uygulama ödemesi, karaoke rezervasyonu.
+- `odeme-onaylandi` ve `karaoke-rezervasyon` e-postaları, onaylanan
+  belgelerin o sürümünü sipariş ya da rezervasyon bilgileriyle doldurulmuş
+  tek bir HTML dosyası olarak ekler (`siparis-<NO>-on-bilgilendirme-ve-sozlesme.html`,
+  `karaoke-sozlesme-<KOD>.html`); dosya 16 px, satır içi CSS, harici kaynak ve
+  betik yok, yazdırmaya uygun.
+- Aynı sürüm `/hukuk/<slug>?surum=<16 hane>` adresinde değişmeden okunur
+  (indekslenmez). Üye sipariş sayfasından ve karaoke rezervasyonunun kişiye
+  özel bağlantısından aynı dosya indirilir.
+
+### 25.3 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| İşlem Rehberi §8, 1. paragraf | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar. | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| İşlem Rehberi §8, 2. paragraf, son cümle | Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz. | Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| `odeme-onaylandi` e-postası (siz), belgeler satırı | Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel metnini açar): Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı | Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz: Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi (iki sürüm bağlantısı). Ek oluşturulamazsa eski satır aynen kalır. |
+| `karaoke-rezervasyon` e-postası (sen), ödenmiş rezervasyon | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Tüm koşullar. | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın ekinde. Aynı sürümü buradan da okuyabilirsin: (sürüm bağlantısı). Ek oluşturulamazsa "Tüm koşullar" bağlantısı kalır. |
+| Üye sipariş sayfası (sen), "Sözleşmeler ve onay kaydı" | (yoktu) | Siparişini verirken onayladığın belgelerin o günkü metni. Aynı metin sipariş onayı e-postanın ekinde de var. [Belgeleri indir] |
+| Karaoke rezervasyon sayfası (imzalı bağlantı, sen) | (yoktu) | [Onayladığın sözleşmenin metnini indir] |
+
+§8'in 2. paragrafındaki karaoke cümlesi kararın metninde yoktu; 1. paragraf
+değişince "aynı yolla" (e-postayla isteme) karşılıksız kaldığı için, karaoke
+rezervasyonunun da aldığı eki söyleyen aynı kalıpta yazıldı. Bu PR'dan önceki
+siparişlerin onay kaydında hash yoktur: onlara ek gitmez, eski cümle (ve
+e-postayla isteme yolu) onlar için geçerli kalır.
+
+### 25.4 Sürüm
+
+- İşlem Rehberi kendi `updatedAt`'ini alır: **21 Ekim 2026**
+  (`src/lib/legal/content.ts`; `tests/legal-dates.test.ts`). #180 setin
+  tarihini 20 Ekim 2026 yaptığı için bu PR bir sonraki gün olan 21 Ekim 2026'yı
+  taşır; daha geç bir gün birleşirse tarih o güne çekilir.
+- `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi: onaylanan belgelerin
+  metni aynı.
+- **D-SAME-DAY bu PR'la bitti.** Kural (ÖBF/MSS'yi ya da karaoke sözleşmesini
+  değiştiren en fazla bir PR aynı İstanbul gününde birleşir) bir etiketin iki
+  metni taşımasını önlemek içindi. Artık her onay, gösterilen metnin hash'ini
+  etiketin yanında tutuyor ve metin saklanıyor; aynı günün etiketini taşıyan
+  iki metin hash'leriyle ayrılır. Etiket yayın gününü göstermeye devam eder.
+  Kuralın geçmişi §16.4, §17.6, §18, §24.4'te olduğu gibi kalır.
+
+### 25.5 Operatöre
+
+- Yayından sonraki ilk gerçek siparişte ödeme onayı e-postasının ekini aç
+  (Gmail ve bir kurumsal posta kutusu): dosya açılmalı, sipariş bilgileri ve
+  iki belgenin tam metni görünmeli, e-postadaki iki sürüm bağlantısı aynı
+  metni açmalı. Bazı kurumsal e-posta geçitleri HTML eki ayıklar; o durumda
+  sürüm bağlantısı ve üye sayfasındaki indirme ispat olarak kalır.
+- Bir onay itirazında (chargeback, tüketici şikâyeti) siparişin onay
+  kaydındaki `textHashes` değeri ve `/hukuk/<slug>?surum=<ilk 16 hane>`
+  sayfası, siparişte onaylanan metnin kendisidir.
+- Uygulamanın çevrimdışı hukuk kopyası (lafmobil `legal.seed.json`) İşlem
+  Rehberi'nin yeni metnini bir sonraki `npm run legal:export` ile alır.
+
+### 25.6 Bilerek değişmeyenler
+
+- ÖBF §22 ("kalıcı bağlantıları ... e-postada ALICI'ya gönderilir") ve MSS
+  §21 ("bağlantıları ... e-postada yer alır"): doğru kalıyor (e-postada
+  bağlantılar var, artık sürüm bağlantısı); ek eklendiği için yanlış olmuyor.
+  Değiştirmek onay sürümünü taşırdı.
+- Karaoke sözleşmesi §7 ("son ücretsiz iptal anı ve geç iptalde iade edilecek
+  tutar rezervasyon onay e-postanızda da yazılıdır") doğru; "ve ekindeki
+  belgede" eki yazılmadı, sözleşmenin sürümünü taşımamak için.
+- Ek kampanya (toplu) e-postalarına hiç eklenmez; yalnız tekil gönderimde.
+
+### 25.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Onaylanan metnin kalıcı veri saklayıcısıyla verilmesi | 6502 s. TKHK m.4/1 (sözleşme ve ön bilgilendirme kalıcı veri saklayıcısıyla), m.48/4; Mesafeli Sözleşmeler Yönetmeliği m.4/1-c (kalıcı veri saklayıcısı: bilgiyi değiştirilmeden saklamaya ve erişmeye imkân veren araç), m.6/1, m.5/6 (ön bilgilendirmenin ispat yükü satıcıda) | Bağlantı tek başına yetmez: doldurulmuş metin e-postanın ekinde gider, sipariş sayfasından indirilir, değişmez sürüm bağlantısı kalır (ASK-DURABLE). |
+| Kayıtların saklanması | MSY m.20/1 (3 yıl); Veri Saklama ve İmha Politikası "Mesafeli satış onay kaydı: sözleşmenin ifasından itibaren 10 yıl" | Metin, ona atıf yapan en yeni onaydan itibaren en az 11 × 366 gün saklanır (`legal-doc-versions` kuralı, `legal_doc_versions_retention`). |
+| Sözleşme metninin saklanıp saklanmadığı ve erişimi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7/1, m.8/1-d | İşlem Rehberi §8 bunu söyler (D-ISLEM-DURABLE). |
+| Kişisel veri | 6698 s. KVKK m.4/2-d | Saklanan metinler kamuya açık hukuk metinleridir, kişisel veri yoktur; ekteki sipariş bilgileri yalnız alıcının kendi e-postasına ve oturumdaki sahibine gider. |
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

@@ -389,6 +389,7 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | `email_suppressions`   | `updatedAt` | **3 yıl**  | Ticari ileti gönderim kaydı ("kayıt tarihinden itibaren 3 yıl"); son bounce/şikâyetten sayılır                            |
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" - **asgari**                                               |
 | `legal_override_history` | `archivedAt` | **11 yıl** | "Sözleşmenin ifasından itibaren 10 yıl…" (Mesafeli satış onay kaydı); ifa arşivden sonra gelir, fazladan yıl onu karşılar |
+| `legal_doc_versions`   | (fonksiyon) | **11 yıl** | Aynı dayanak; metne atıf yapan en yeni onaydan sayılır, belgenin en yeni metni hiç silinmez - aşağıya bak                  |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
 
 Süreler **politikadan okunur, uydurulmaz**: `src/lib/retention.ts` içindeki
@@ -473,8 +474,10 @@ değiştirmeyen kayıt hiçbir şey yazmaz: `updatedAt` metnin yayına girdiği 
 kalır, böylece her metnin gösterildiği aralık `updatedAt` → `archivedAt`
 olarak tam bilinir. Panel arşivi listeler,
 önizler ve geri yükler (geri yükleme bir `legal_doc_save`'dir, değiştirdiği
-metni de arşive alır). Sipariş onayı yalnız sürüm etiketini kaydeder
-(`legalConsent.version`); o etiketin arkasındaki metin buradadır. Satır
+metni de arşive alır). Sipariş onayı 21 Ekim 2026'ya kadar yalnız sürüm
+etiketini kaydediyordu (`legalConsent.version`); o etiketin arkasındaki panel
+metni buradadır. O günden beri onay her metnin hash'ini de tutar ve metnin
+kendisi `legal_doc_versions`'tadır (aşağıda). Satır
 güncellenemez (`legal_override_history_no_update`); yalnız periyodik imha
 siler: `archivedAt`'ten 11 yıl sonra (`legal-override-history` kuralı).
 Dayanak, siparişin sürüm etiketinin bağlı olduğu "Mesafeli satış onay kaydı"
@@ -483,6 +486,43 @@ kadar onaylandı, sözleşme ondan sonra ifa edilir, fazladan yıl ifayı karş�
 Satırdaki tek kişisel veri `archivedBy`, panel kullanıcısının adresidir.
 Testler: `tests/db-integration-legal-history.test.ts`,
 `tests/admin-legal-actions.test.ts`, `tests/mobile-retention.test.ts`.
+
+### Gösterilen hukuk metinleri (`legal_doc_versions`, 21 Eki 2026)
+
+`/hukuk/<slug>`'in gösterdiği **her** metin (kodlu metin ya da panelin
+yayımladığı metin), kanonik biçimiyle (`src/lib/legal/version-core.ts`:
+sabit anahtar sıralı JSON; başlık, özet, "Son güncelleme" tarihi, token'ları
+doldurulmuş bölümler ya da panelin Markdown'ı) ve o biçimin SHA-256'sı
+anahtarıyla burada durur (karar D-VERSIONS-TABLE). Sipariş ve karaoke onay
+kaydı sürüm etiketinin yanında her belgenin hash'ini yazar
+(`legalConsent.textHashes`); onay e-postasının eki, üyenin indirdiği dosya ve
+`/hukuk/<slug>?surum=<ilk 16 hane>` sayfası metni bu tablodan, hash ile
+okur. `legal_override_history` panelin düzenleme kaydı olarak kalır; iki
+tablo yan yana durur.
+
+- **Bütünlük:** `hash = encode(sha256(convert_to(body, 'UTF8')), 'hex')`
+  CHECK'i: hash'i metnini tutmayan satır yazılamaz. Okuyan kod da hash'i
+  yeniden hesaplar ve kanonik biçimden sapan metni yok sayar.
+- **Yazanlar** (hepsi `INSERT ... ON CONFLICT (hash) DO NOTHING`, tek ifade):
+  web ve uygulama ödeme onayı ile karaoke rezervasyonu (gösterdikleri
+  metinler, ilk onayda; yazılamazsa sipariş etkilenmez, loglanır), panelin
+  kaydet, varsayılana döndür ve geri yükle işlemleri (önceki ve sonraki metin,
+  değişiklikten ÖNCE; yazılamazsa değişiklik reddedilir), günlük cron
+  (`/api/cron/daily`, "legal-versions": bütün belgelerin o günkü metni, bir
+  deploy'dan sonra en geç bir gün içinde) ve onay e-postası (onayda yazılmamış
+  ama bugün gösterilen metinle hash'i aynı olan metni). Hiçbir genel sayfa
+  görüntülemesi yazmaz; yalnız `?surum=` dalı okur.
+- **Yalnız eklenir:** UPDATE ve TRUNCATE P0001; DELETE yalnız `createdAt`'i
+  on bir yıldan eski satırda geçer (`legal_doc_versions_append_only`).
+- **İmha** (`legal-doc-versions`, 11 × 366 gün, `legal_doc_versions_retention`):
+  `createdAt` metnin ilk saklandığı andır, son gösterildiği an değil; bu
+  yüzden bir satır yalnız (a) kesimden önce saklanmış, (b) belgenin daha yeni
+  bir metni de kesimden önce saklanmış ve (c) kesimden sonra kabul edilmiş
+  hiçbir sipariş ya da karaoke onayı onun hash'ini taşımıyorsa gider.
+  Kişisel veri yoktur (metinler kamuya açık).
+
+Testler: `tests/db-integration-legal-versions.test.ts`,
+`tests/legal-version-core.test.ts`, `tests/mobile-retention.test.ts`.
 
 ### Kapsam dışı - bilerek
 

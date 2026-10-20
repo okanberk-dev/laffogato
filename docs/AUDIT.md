@@ -1083,12 +1083,12 @@ cümle cümle eski/yeni metin `docs/LEGAL-REDLINES-2026-09.md` §18-§19.
 | 🟡 | KKTC ve yurt dışına gönderim, gümrük ve tarife anlatılıyordu; mağaza yalnız Türkiye'ye gönderiyor | Satırlar ve paragraflar kalktı; Teslimat ve Kargo §16 "Teslimat Bölgesi" | `legal-docs` |
 | 🟢 | Mülga 2015 e-ticaret yönetmeliği adıyla anılıyordu (32 yer) | Güncel ad (RG 29.12.2022-32058) | `legal-docs` |
 | 🟢 | Ödeme e-postası ve üye sipariş sayfası güncel metni açan bağlantıları "kalıcı veri saklayıcısı" diye anıyordu | "Bağlantılar belgelerin güncel metnini açar" (kalıcı kopya ayrı PR) | `consent-docs-wording` |
+| 🟡 | Onaylanan sürümün kalıcı kopyası e-postada yoktu; onay kaydı yalnız sürüm etiketini tutuyordu, panel metni değişince onaylanan metin gösterilemeyebilirdi (X-LEGAL-VERSIONS, OTH-2, OTH-3) | 21 Ekim 2026 (legal-durable-copy, LEGAL-REDLINES §25): gösterilen her metin hash'iyle yalnız eklenen `legal_doc_versions`'ta; onay kaydı `textHashes` taşır; ödeme ve karaoke onay e-postası doldurulmuş metni HTML ek olarak taşır, `/hukuk/<slug>?surum=` aynı sürümü açar, üye sipariş sayfası ve karaoke bağlantısı indirir; panelin denetim satırı eski ve yeni hash'i yazar | `legal-version-core`, `legal-durable-copy`, `legal-durable-copy-load`, `email-durable-copy`, `legal-version-page`, `legal-durable-copy-routes`, `legal-consent-text-hashes`, `admin-legal-actions`, `db-integration-legal-versions`, `legal-dates` |
 
 Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Onaylanan sürümün kalıcı kopyası e-postada yok | Ayrı PR (legal-versions-durable-copy): ek, indirme, sürüm arşivi |
 | 🟢 | İade ve Cayma §17, Teslimat ve Kargo §9 waffle kupu soğuk zincirle gönderilen ürünler arasında sayıyor | Ürün ve sevkiyat bilgisi ayrı PR'ın; cayma istisnasından çıkarıldı |
 | 🟢 | Uygulamanın hukuk kopyası (`lafmobil` `legal.seed.json`) eski metni taşır | Uygulama PR'ı (app-legal-seed-distance-sales) |
 

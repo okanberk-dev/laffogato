@@ -704,18 +704,25 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     ).toBeGreaterThanOrEqual(5);
     expect(text("4. Mobil Uygulamada Sipariş")).toContain("3D Secure");
     // (b) Whether and how long the contract text is kept and reachable: the
-    // D-ISLEM-DURABLE paragraph word for word, until the durable copy.
-    expect(
-      sectionOf(
-        "islem-rehberi",
-        "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
-      ).paragraphs?.[0],
-    ).toBe(
-      `Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini ${email} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.`,
+    // D-ISLEM-DURABLE paragraph word for word, now that the durable copy
+    // ships (21 Ekim 2026: attached to the confirmation, downloadable, the
+    // same version behind the mail's link, kept at least 11 years).
+    const s8 = sectionOf(
+      "islem-rehberi",
+      "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
     );
-    expect(text("8. Sözleşme Metninin Saklanması ve Size Ulaşması")).toContain(
-      "en az 3 yıl",
+    expect(s8.paragraphs?.[0]).toBe(
+      "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
     );
+    // The karaoke sentence says the same of the booking's copy; it used to
+    // point at "the same way" of the paragraph above, which is gone.
+    expect(s8.paragraphs?.[1]).toContain(
+      "Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+    );
+    const s8text = text("8. Sözleşme Metninin Saklanması ve Size Ulaşması");
+    expect(s8text).toContain("en az 3 yıl");
+    expect(s8text).not.toContain("aynı yolla");
+    expect(s8text).not.toContain("güncel metnini açar");
     // (c) The tools to see and correct the input before the order.
     const fix = text("6. Girdiğiniz Bilgileri Görme ve Düzeltme");
     for (const tool of ["Sil", "Değiştir", "Geri", "sipariş özetinde"]) {
