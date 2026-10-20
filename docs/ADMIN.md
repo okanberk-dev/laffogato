@@ -277,3 +277,28 @@ kısayolları" da).
 - Kurallar tek yerde: `src/lib/admin/shortcut-core.ts`; dinleyici
   `src/components/admin/shortcuts.tsx` (yalnız tek tuşlu rollere, ayrı bir
   parça olarak yüklenir).
+
+## Kayıtlı görünümler
+
+Siparişler listesinde süzgeç çipleriyle aynı satırdaki **Görünümler**
+menüsü, sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
+siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
+
+- **Bu görünümü kaydet**: sekme, açılır listeler ve sıralama bir adla
+  kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama
+  metni, tarih aralığı ve sayfa kaydedilmez; e-posta ya da telefon
+  numarasına benzeyen bir değer de. Adda e-posta ya da telefon olamaz.
+- Kayıtlı bir görünüme dokununca liste o hâliyle açılır; o an kutuda bir
+  arama varsa gider. Açık görünümün adı menü düğmesinde yazar.
+- **Varsayılan yap**: liste menüden ya da bir yer iminden süzgeçsiz
+  açılınca bu görünüme geçer. Listenin kendi "Tümü"sü, "Sıfırla"sı ve
+  çipleri süzgeçsiz listeyi yine gösterir; kutuda hatırlanan bir arama
+  varken varsayılan uygulanmaz.
+- **Görünümü sil**: onay sorar; yalnız kısayol gider, siparişler değişmez.
+- Görünümler bu tarayıcıda, hesabına bağlı durur (`localStorage`,
+  `laf_admin_views_v1:<hesap anahtarı>:<liste>`; anahtar Son
+  açılanlar'daki gibi e-postanın HMAC'i, e-posta değil). Aynı köşk
+  tabletinde başka bir hesap onları görmez, başka cihaza taşınmazlar,
+  Çıkış onları silmez. Gizli pencerede ya da site verisi kapalıyken
+  kaydedilemez; pencere bunu söyler.
+- Kasiyerde menü yok. Kurallar tek yerde: `src/lib/admin/saved-views.ts`.
