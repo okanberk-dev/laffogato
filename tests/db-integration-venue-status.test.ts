@@ -45,7 +45,8 @@ vi.mock("@/lib/db", async (importOriginal) => {
   return { ...real, getDb: () => db };
 });
 
-const { getVenueStatus, patchVenueStatus } = await import("@/lib/mobile/venue");
+const { getVenueStatus, patchVenueStatus, toLiveStatus } =
+  await import("@/lib/mobile/venue");
 
 const COLLEAGUE = {
   id: "main",
@@ -182,6 +183,42 @@ maybe("Canlı durum partial saves against a real Postgres", () => {
       (await pool!.query(`select count(*)::int as n from public.venue_status`))
         .rows[0].n,
     ).toBe(0);
+  });
+
+  it("the app's live-status answer after a quick save: the same fields, the colleague's as they were", async () => {
+    const day = { open: "00:00", close: "24:00", closed: false };
+    const settings = {
+      weeklyHours: {
+        mon: day,
+        tue: day,
+        wed: day,
+        thu: day,
+        fri: day,
+        sat: day,
+        sun: day,
+      },
+      karaokeCapacity: 8,
+    };
+    const now = new Date("2026-10-19T19:00:00.000Z");
+    const before = toLiveStatus(await getVenueStatus(), settings, now);
+    await patchVenueStatus({ manualOverride: "closed", freeTables: 0 }, now);
+    const after = toLiveStatus(await getVenueStatus(), settings, now);
+    expect(Object.keys(after)).toEqual(Object.keys(before));
+    expect(after).toEqual({
+      ...before,
+      isOpen: false,
+      openLabel: "Şu an kapalı",
+      freeTables: 0,
+      updatedAt: now.toISOString(),
+      updatedAgoMinutes: 0,
+    });
+    expect(after).toMatchObject({
+      wifi: "slow",
+      noise: "high",
+      power: false,
+      note: "Maç gecesi",
+      totalTables: 12,
+    });
   });
 
   it("two quick saves at once both land on their own fields", async () => {

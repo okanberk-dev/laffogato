@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDb, type Executor } from "@/lib/db/client";
@@ -22,15 +24,34 @@ const execute: Executor = async (q) => {
   return { rows, rowCount: rows.length };
 };
 
+/** The tags the data layer expired, as getDb's write hook does it. */
+const expired = vi.hoisted(() => ({ tags: [] as string[] }));
+vi.mock("next/cache", () => ({
+  revalidateTag: vi.fn((tag: string) => {
+    expired.tags.push(tag);
+  }),
+}));
+vi.mock("next/server", () => ({ after: vi.fn() }));
+
 vi.mock("@/lib/db", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/db")>();
-  const db = createDb(execute);
+  const { expireTags, tagsForWrite } = await import("@/lib/cache/tags");
+  // The same hook src/lib/db/index.ts gives the real getDb().
+  const db = createDb(execute, {
+    onWrite: (target) => expireTags(tagsForWrite(target)),
+  });
   return { ...real, getDb: () => db };
 });
 vi.mock("@/lib/admin/store", () => ({ getSettings: vi.fn() }));
 
-const { patchVenueStatus, venuePatchColumns } =
-  await import("@/lib/mobile/venue");
+const {
+  normalizeVenueStatus,
+  patchVenueStatus,
+  toLiveStatus,
+  updateVenueStatus,
+  venuePatchColumns,
+} = await import("@/lib/mobile/venue");
+const { TAG_SITE, tagsForWrite } = await import("@/lib/cache/tags");
 
 const NOW = new Date("2026-10-19T18:30:00.000Z");
 const STORED = {
@@ -49,6 +70,52 @@ beforeEach(() => {
   queries.length = 0;
   answers = [];
   fail = null;
+  expired.tags.length = 0;
+});
+
+describe("every venue write expires what reads the venue (#185 cache)", () => {
+  // `pub:site` is the tag of the two cached reads that follow the venue:
+  // the bell's busy-hours inputs and the köşk chip's change marker
+  // (src/lib/admin/change-marker.ts). GET /api/mobile/v1/live-status reads
+  // live (30 s at the CDN), so nothing cached stands between a save and
+  // the app.
+  it("venue_status is a pub:site table", () => {
+    expect(tagsForWrite({ table: "venue_status" })).toEqual([TAG_SITE]);
+  });
+
+  it("a quick save expires pub:site", async () => {
+    answers = [[STORED]];
+    await patchVenueStatus({ manualOverride: "open", freeTables: 2 }, NOW);
+    expect(expired.tags).toEqual([TAG_SITE]);
+  });
+
+  it("so does a refused one (no row matched): a lost reply looks the same", async () => {
+    answers = [[], [], []];
+    expect(await patchVenueStatus({ freeTables: 13 }, NOW)).toBeNull();
+    expect(new Set(expired.tags)).toEqual(new Set([TAG_SITE]));
+  });
+
+  it("so does a failed statement: Postgres may have committed it", async () => {
+    fail = { message: "connection reset", code: "08006" };
+    await expect(patchVenueStatus({ freeTables: 1 }, NOW)).rejects.toThrow();
+    expect(expired.tags).toEqual([TAG_SITE]);
+  });
+
+  it("and the full form's save (owner and manager)", async () => {
+    await updateVenueStatus(
+      {
+        manualOverride: "auto",
+        freeTables: 1,
+        totalTables: 12,
+        wifi: "stable",
+        noise: "low",
+        power: true,
+        note: "",
+      },
+      NOW,
+    );
+    expect(expired.tags).toEqual([TAG_SITE]);
+  });
 });
 
 describe("patchVenueStatus", () => {
@@ -164,5 +231,79 @@ describe("venuePatchColumns", () => {
     expect(venuePatchColumns({ totalTables: 50 } as never)).not.toHaveProperty(
       "totalTables",
     );
+  });
+});
+
+describe("GET /api/mobile/v1/live-status keeps its shape (docs/API-MOBILE.md §6)", () => {
+  /** The §6 answer's fields, in the order toLiveStatus writes them. */
+  const LIVE_KEYS = [
+    "isOpen",
+    "openLabel",
+    "updatedAt",
+    "updatedAgoMinutes",
+    "freeTables",
+    "totalTables",
+    "wifi",
+    "noise",
+    "power",
+    "note",
+    "hours",
+    "karaoke",
+  ];
+  const day = { open: "00:00", close: "24:00", closed: false };
+  const settings = {
+    weeklyHours: {
+      mon: day,
+      tue: day,
+      wed: day,
+      thu: day,
+      fri: day,
+      sat: day,
+      sun: day,
+    },
+    karaokeCapacity: 8,
+  };
+
+  it("a row a quick save returns maps to the same answer: the two fields and the time change, nothing else", async () => {
+    answers = [
+      [
+        {
+          ...STORED,
+          manualOverride: "closed",
+          freeTables: 0,
+          updatedAt: NOW.toISOString(),
+        },
+      ],
+    ];
+    const saved = await patchVenueStatus(
+      { manualOverride: "closed", freeTables: 0 },
+      NOW,
+    );
+    expect(saved).not.toBeNull();
+    const before = toLiveStatus(normalizeVenueStatus(STORED), settings, NOW);
+    const after = toLiveStatus(saved!, settings, NOW);
+    expect(Object.keys(before)).toEqual(LIVE_KEYS);
+    expect(Object.keys(after)).toEqual(LIVE_KEYS);
+    expect(after).toEqual({
+      ...before,
+      isOpen: false,
+      openLabel: "Şu an kapalı",
+      freeTables: 0,
+      updatedAt: NOW.toISOString(),
+      updatedAgoMinutes: 0,
+    });
+    // Nothing of the row beyond §6 (no id, no override) reaches the wire.
+    expect(after).not.toHaveProperty("id");
+    expect(after).not.toHaveProperty("manualOverride");
+  });
+
+  it("each of those fields is the one §6 documents", () => {
+    const doc = readFileSync("docs/API-MOBILE.md", "utf8");
+    const s6 = doc.slice(
+      doc.indexOf("## 6. Canlı durum"),
+      doc.indexOf("## 7. Karaoke"),
+    );
+    expect(s6.length).toBeGreaterThan(100);
+    for (const key of LIVE_KEYS) expect(s6, key).toContain(`"${key}":`);
   });
 });
