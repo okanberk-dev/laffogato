@@ -245,11 +245,11 @@ sayfaları. Rozetler menüdekilerle aynı sayılardır.
 tek tuşlar vardır; `?` listelerini açar (paletin Komutlar'ındaki "Klavye
 kısayolları" da).
 
-| Tuş | Ne yapar |
-| --- | --- |
-| `/` | Listenin arama kutusuna geçer; sayfada kutu yoksa paleti açar |
-| `n` | Sayfanın "Yeni" bağlantısını açar; yoksa paleti yalnız Oluştur'la açar |
-| `?` | Kısayol listesi |
+| Tuş                                               | Ne yapar                                                                         |
+| ------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `/`                                               | Listenin arama kutusuna geçer; sayfada kutu yoksa paleti açar                    |
+| `n`                                               | Sayfanın "Yeni" bağlantısını açar; yoksa paleti yalnız Oluştur'la açar           |
+| `?`                                               | Kısayol listesi                                                                  |
 | `g` sonra `b` / `s` / `k` / `d` / `m` / `u` / `r` | Genel bakış, Siparişler, Karaoke, Kasa ("damga"), Kafe menüsü, Ürünler, Raporlar |
 
 - `g`'den sonra ikinci harf 1,5 saniye içinde gelmeli. İkinci harfte ü, ş,
