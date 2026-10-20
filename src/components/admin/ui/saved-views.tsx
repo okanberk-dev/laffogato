@@ -161,32 +161,37 @@ export function SavedViews({
           <p className="px-3 pt-1.5 pb-1 text-xs text-[var(--admin-text-soft)]">
             Kayıtlı görünümler
           </p>
-          {menu.entries.map((entry) => (
-            // A post, as "Sıfırla": the view replaces the search too.
-            <ListSearchButton
-              key={entry.href}
-              href={entry.href}
-              intent="reset"
-              className={BUTTON.menu}
-              ariaLabel={entry.ariaLabel}
-            >
-              <span className="min-w-0 flex-1 break-words">{entry.name}</span>
-              {entry.isDefault ? (
-                <span className="shrink-0 text-xs text-[var(--admin-text-soft)]">
-                  Varsayılan
-                </span>
-              ) : null}
-              <span
-                aria-hidden="true"
-                className={cx(
-                  "w-4 shrink-0 text-center text-[var(--admin-primary)]",
-                  !entry.open && "invisible",
-                )}
+          {/* Eight views are taller than the room under or over the
+              button on a laptop: the list scrolls inside the menu (a
+              scroll there does not close it, a page scroll does). */}
+          <div className="-mx-1.5 flex max-h-[min(15rem,35dvh)] flex-col gap-0.5 overflow-y-auto px-1.5 py-1">
+            {menu.entries.map((entry) => (
+              // A post, as "Sıfırla": the view replaces the search too.
+              <ListSearchButton
+                key={entry.href}
+                href={entry.href}
+                intent="reset"
+                className={BUTTON.menu}
+                ariaLabel={entry.ariaLabel}
               >
-                ✓
-              </span>
-            </ListSearchButton>
-          ))}
+                <span className="min-w-0 flex-1 break-words">{entry.name}</span>
+                {entry.isDefault ? (
+                  <span className="shrink-0 text-xs text-[var(--admin-text-soft)]">
+                    Varsayılan
+                  </span>
+                ) : null}
+                <span
+                  aria-hidden="true"
+                  className={cx(
+                    "w-4 shrink-0 text-center text-[var(--admin-primary)]",
+                    !entry.open && "invisible",
+                  )}
+                >
+                  ✓
+                </span>
+              </ListSearchButton>
+            ))}
+          </div>
           <ActionMenuSeparator />
         </>
       ) : null}
