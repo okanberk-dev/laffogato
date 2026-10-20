@@ -1121,7 +1121,11 @@ describe("the card stack", () => {
     const html = panel();
     const section = /<section[^>]*>/.exec(html)![0];
     expect(section).toContain("bottom-[var(--admin-bottom-inset,0px)]");
-    expect(section).toContain("pb-[max(0.5rem,env(safe-area-inset-bottom))]");
+    // The home indicator's room, unless the inset (the phone's bottom bar,
+    // UI-7) already holds it: then the plain 0.5rem.
+    expect(section).toContain(
+      "pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))]",
+    );
     expect(section).toContain("sm:top-[4.5rem]");
     expect(section).toContain("sm:right-4");
     expect(section).toContain("z-40");
