@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { SCENES, type SceneKey } from "@/components/laffogato/scenes";
-import { getPublicSettings } from "@/lib/admin/store";
+import { getSiteSettings } from "@/lib/seo/site-data";
 import { footerSettings } from "@/lib/seo/contact";
 
 export const metadata: Metadata = {
@@ -69,12 +69,12 @@ const STOPS: Array<{
  * the line under it says what the picture already does: the coffee is ready,
  * the page is not. Pure CSS; under reduced motion the mark is simply full.
  *
- * getPublicSettings() degrades to sane defaults on a database outage rather
+ * getSiteSettings() degrades to sane defaults on a database outage rather
  * than throwing, so this page never itself breaks while explaining that
  * another page could not be found.
  */
 export default async function NotFound() {
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
 
   return (
     <SiteChrome settings={footerSettings(settings)}>

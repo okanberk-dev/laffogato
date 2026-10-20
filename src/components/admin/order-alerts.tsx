@@ -230,6 +230,8 @@ export function startEngine(
         const out = interpretPoll(res);
         if (out.kind === "alerts") {
           controller.receive(out.alerts);
+        } else if (out.kind === "unchanged") {
+          controller.receiveUnchanged(out.now);
         } else if (out.kind === "stop") {
           // Signed out or no longer allowed: the page itself says so on the
           // next navigation; the alert goes quiet now. The lock goes to the

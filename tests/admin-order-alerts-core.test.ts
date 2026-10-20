@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ORDER_ALERT_FULL_REFRESH_MS,
+  ORDER_ALERT_MARKER_SETTLE_MS,
+  formatOrderAlertCursor,
+  isChangeMarker,
+  markerMadeAt,
+  mayAnswerUnchanged,
+  newestAlertPaidAt,
+  parseOrderAlertCursor,
+  parseUnchangedPayload,
+  stillRinging,
   ORDER_ALERT_ACK_TTL_MS,
   ORDER_ALERT_LIMIT,
   ORDER_ALERT_WINDOW_MS,
@@ -330,5 +340,197 @@ describe("poll pacing", () => {
     expect(nextPollDelay({ pollAfterMs: 99_999_999 }, 10_000)).toBe(7_200_000);
     expect(nextPollDelay({ pollAfterMs: "x" }, 10_000)).toBe(10_000);
     expect(nextPollDelay(null, 10_000)).toBe(10_000);
+  });
+});
+
+describe('the cursor: answering "nothing changed" without the database', () => {
+  /** A marker made at `at`, as change-marker.ts makes them. */
+  const markerAt = (at: number) => `${at.toString(36)}-k3j9x0q2`;
+  const MADE = NOW - 30 * 60_000;
+  const MARKER = markerAt(MADE);
+  /** This request's session, as poll-binding.ts makes it. */
+  const SESSION = "0123456789ab";
+  const cursor = (
+    over: Partial<{ fullAt: number; newestPaidAt: number }> = {},
+  ) => ({
+    marker: MARKER,
+    fullAt: MADE + 60_000,
+    newestPaidAt: 0,
+    session: SESSION,
+    ...over,
+  });
+
+  it("round-trips, and refuses junk, old shapes and oversized input", () => {
+    const c = cursor({ newestPaidAt: NOW - 60_000 });
+    const raw = formatOrderAlertCursor(c);
+    expect(raw).toMatch(/^a2\./);
+    expect(parseOrderAlertCursor(raw)).toEqual(c);
+    for (const junk of [
+      null,
+      undefined,
+      "",
+      "a2",
+      "a3." + raw.slice(3),
+      raw + ".x",
+      // The shape from before the session binding.
+      `a1.${MARKER}.${(MADE + 60_000).toString(36)}.0`,
+      `a2.${MARKER}.1.0`,
+      `a2.${MARKER}.1.0.0123456789AB`,
+      `a2.${MARKER}.1.0.0123456789a`,
+      "a2.no marker.1.0." + SESSION,
+      "a2.ABC-def.1.0." + SESSION,
+      `a2.${MARKER}.${"z".repeat(13)}.0.${SESSION}`,
+      raw + "0".repeat(100),
+      "<script>",
+    ]) {
+      expect(
+        parseOrderAlertCursor(junk as string | null),
+        String(junk),
+      ).toBeNull();
+    }
+    // Nothing a bad marker or session would make: no cursor at all.
+    expect(formatOrderAlertCursor({ ...c, session: "" })).toBe("");
+    expect(formatOrderAlertCursor({ ...c, marker: "nope" })).toBe("");
+  });
+
+  it("the longest cursor it accepts still fits what the poller keeps (80)", () => {
+    const z = (n: number) => "z".repeat(n);
+    const longest = `a2.${z(12)}-${z(24)}.${z(12)}.${z(12)}.${SESSION}`;
+    expect(parseOrderAlertCursor(longest)).not.toBeNull();
+    expect(longest.length).toBeLessThanOrEqual(80);
+  });
+
+  it("answers unchanged only for the session the cursor was handed to", () => {
+    const base = { cursor: cursor(), marker: MARKER, nowMs: NOW, busy: false };
+    expect(mayAnswerUnchanged({ ...base, session: SESSION })).toBe(true);
+    expect(mayAnswerUnchanged({ ...base, session: "ba9876543210" })).toBe(
+      false,
+    );
+    expect(mayAnswerUnchanged({ ...base, session: "" })).toBe(false);
+  });
+
+  it("reads when a marker was made", () => {
+    expect(isChangeMarker(MARKER)).toBe(true);
+    expect(markerMadeAt(MARKER)).toBe(MADE);
+    expect(isChangeMarker("nope")).toBe(false);
+    expect(markerMadeAt("nope")).toBeNull();
+  });
+
+  it("the same marker while the köşk is idle answers unchanged, however old the last full answer", () => {
+    expect(
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: MADE + 60_000 }),
+        marker: MARKER,
+        session: SESSION,
+        nowMs: NOW + 10 * 60 * 60_000,
+        busy: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("while busy, a full answer at least every hour", () => {
+    // A marker from before the oldest full answer below.
+    const older = markerAt(NOW - 3 * ORDER_ALERT_FULL_REFRESH_MS);
+    const at = (age: number) =>
+      mayAnswerUnchanged({
+        cursor: { ...cursor({ fullAt: NOW - age }), marker: older },
+        marker: older,
+        session: SESSION,
+        nowMs: NOW,
+        busy: true,
+      });
+    expect(at(59 * 60_000)).toBe(true);
+    expect(at(ORDER_ALERT_FULL_REFRESH_MS)).toBe(false);
+    expect(at(2 * ORDER_ALERT_FULL_REFRESH_MS)).toBe(false);
+  });
+
+  it("a moved, missing or unreadable marker answers no", () => {
+    const base = {
+      cursor: cursor(),
+      session: SESSION,
+      nowMs: NOW,
+      busy: false,
+    };
+    expect(mayAnswerUnchanged({ ...base, marker: markerAt(NOW - 1000) })).toBe(
+      false,
+    );
+    expect(mayAnswerUnchanged({ ...base, marker: null })).toBe(false);
+    expect(mayAnswerUnchanged({ ...base, cursor: null, marker: MARKER })).toBe(
+      false,
+    );
+  });
+
+  it("a full answer from the future answers no", () => {
+    expect(
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: NOW + 1000 }),
+        marker: MARKER,
+        session: SESSION,
+        nowMs: NOW,
+        busy: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("a full answer read right after the marker was made does not vouch for it", () => {
+    // The cache keeps the time it STORED the marker; a write in between
+    // could have been missed. The next ask reads again.
+    const at = (gap: number) =>
+      mayAnswerUnchanged({
+        cursor: cursor({ fullAt: MADE + gap }),
+        marker: MARKER,
+        session: SESSION,
+        nowMs: NOW,
+        busy: false,
+      });
+    expect(at(0)).toBe(false);
+    expect(at(ORDER_ALERT_MARKER_SETTLE_MS - 1)).toBe(false);
+    expect(at(ORDER_ALERT_MARKER_SETTLE_MS)).toBe(true);
+  });
+
+  it("stillRinging uses the ring window and skew of ringsForOrder", () => {
+    for (const minutes of [-6, -4, 0, 30, 239, 241]) {
+      const paidAt = NOW - minutes * 60_000;
+      const row: OrderAlertRow = {
+        id: "o",
+        orderNo: 1,
+        status: "paid",
+        kind: "cafe",
+        fulfillment: "pickup",
+        paidAt: new Date(paidAt).toISOString(),
+        totalMinor: 0,
+      };
+      expect(stillRinging(paidAt, NOW), String(minutes)).toBe(
+        ringsForOrder(row, NOW),
+      );
+    }
+    expect(stillRinging(0, NOW)).toBe(false);
+    expect(stillRinging(Number.NaN, NOW)).toBe(false);
+  });
+
+  it("newestAlertPaidAt is the newest alert, 0 for none", () => {
+    const a = toOrderAlert({
+      id: "a",
+      orderNo: 1,
+      status: "paid",
+      paidAt: minutesAgo(30),
+      totalMinor: 0,
+    });
+    const b = { ...a, id: "b", paidAt: minutesAgo(5) };
+    expect(newestAlertPaidAt([a, b])).toBe(NOW - 5 * 60_000);
+    expect(newestAlertPaidAt([])).toBe(0);
+  });
+
+  it("reads the unchanged answer, and nothing else as one", () => {
+    expect(
+      parseUnchangedPayload({
+        now: "2026-10-18T18:00:00.000Z",
+        unchanged: true,
+      }),
+    ).toEqual({ now: "2026-10-18T18:00:00.000Z" });
+    expect(parseUnchangedPayload({ unchanged: true })).toEqual({ now: "" });
+    expect(parseUnchangedPayload({ alerts: [] })).toBeNull();
+    expect(parseUnchangedPayload({ unchanged: 1 })).toBeNull();
+    expect(parseUnchangedPayload(null)).toBeNull();
   });
 });

@@ -6,9 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   newOrderCountAction,
+  newOrderSignalAction,
   transitionOrderAction,
 } from "@/app/admin/siparisler/actions";
 import type { ActionResult } from "@/lib/admin/action-result";
+import { readSignalAnswer } from "@/lib/admin/panel-signal-core";
 import type { SortState } from "@/lib/admin/list-params";
 import {
   orderActionLabel,
@@ -312,7 +314,10 @@ export function OrdersList({
    * operator's click.
    *
    * Sleeps while the tab is hidden - a till screen left open overnight should
-   * not spend the night counting.
+   * not spend the night counting. While the tab is visible and no order has
+   * been written, the answer is "unchanged" (panel-signal-core.ts): the
+   * cursor goes back each time, the database is not asked and the count
+   * stays. A new `latestOrderNo` (a refresh) restarts this without one.
    */
   useEffect(() => {
     lastCount.current = 0;
@@ -320,14 +325,21 @@ export function OrdersList({
     if (!live) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let cursor = "";
 
     async function tick() {
       if (!cancelled && document.visibilityState === "visible") {
         try {
-          const n =
-            live === "open"
-              ? await newOrderCountAction(latestOrderNo, "open")
-              : await newOrderCountAction(latestOrderNo);
+          const answer = readSignalAnswer(
+            await newOrderSignalAction(
+              latestOrderNo,
+              live === "open" ? "open" : "all",
+              cursor,
+            ),
+          );
+          // Nothing written since the last answer: the count stands.
+          const n = "unchanged" in answer ? undefined : answer.count;
+          if (!("unchanged" in answer)) cursor = answer.cursor;
           if (!cancelled && typeof n === "number") {
             setSignal({ since: latestOrderNo, count: n });
             // Only on the way up: a barista who left the tab open should hear

@@ -42,6 +42,11 @@ import {
   orderDetailsRefusal,
 } from "@/lib/admin/order-details";
 import { OPEN_ORDER_STATUSES } from "@/lib/admin/order-filters";
+import { panelSignal } from "@/lib/admin/panel-signal";
+import {
+  orderListSignalKey,
+  type PanelSignalAnswer,
+} from "@/lib/admin/panel-signal-core";
 import { canAccess } from "@/lib/admin/roles";
 import {
   BULK_ORDER_TRANSITIONS,
@@ -653,7 +658,11 @@ export async function createManualOrderAction(
  * A gel-al order arrives from the app with nobody touching this browser, and
  * a server-rendered page is dead the moment it is rendered: without a poll
  * the barista learns about the order by remembering to press F5. Both
- * answers are `head: true` counts, cheap enough to ask for every half minute.
+ * answers are `head: true` counts. The polls go through `panelSignal`
+ * (src/lib/admin/panel-signal.ts): while no order has been written since
+ * the last answer, the answer is `{ unchanged: true }` and the database is
+ * not asked at all (it sleeps after five idle minutes, and a till screen
+ * left on used to keep it awake all night).
  *
  * `requireRole` cannot be used here. It REDIRECTS on denial, and a redirect
  * thrown out of a background poll would move the operator's page under them;
@@ -666,24 +675,53 @@ async function ordersSignalAllowed(): Promise<boolean> {
   return Boolean(session && canAccess("orders", session.role));
 }
 
-/** Open orders (`OPEN_ORDER_STATUSES`, the "Açık" tab's set), for the nav badge. */
-export async function openOrderCountAction(): Promise<number | null> {
-  if (!(await ordersSignalAllowed())) return null;
-  try {
-    return await countOpenOrders();
-  } catch (err) {
-    // A poll must never turn a working panel into an error boundary.
-    console.error("[admin/siparisler] açık sipariş sayılamadı", err);
-    return null;
-  }
+/**
+ * Open orders (`OPEN_ORDER_STATUSES`, the "Açık" tab's set), for the nav
+ * badge: the count and a cursor, or `{ unchanged: true }` for a cursor that
+ * is still current. A count of null: no badge.
+ */
+export async function openOrderSignalAction(
+  cursor: string,
+): Promise<PanelSignalAnswer> {
+  return panelSignal({
+    kind: "orders",
+    section: "orders",
+    key: "open",
+    cursor,
+    read: countOpenOrders,
+    label: "açık sipariş sayılamadı",
+  });
 }
 
 /**
- * Orders newer than the highest `orderNo` the list has rendered.
- *
- * The count comes back without the list being re-fetched, so the rows the
- * operator is reading stay exactly where they are until they choose to
- * refresh.
+ * The order list's poll: orders above the highest `orderNo` it has
+ * rendered, in its tab (`open`: the "Açık" tab; anything else: all), as
+ * `openOrderSignalAction` answers. The rows on screen stay where they are
+ * until the operator refreshes.
+ */
+export async function newOrderSignalAction(
+  sinceOrderNo: number,
+  scope: string,
+  cursor: string,
+): Promise<PanelSignalAnswer> {
+  const since = Number(sinceOrderNo);
+  const statuses = scope === "open" ? OPEN_ORDER_STATUSES : undefined;
+  return panelSignal({
+    kind: "orders",
+    section: "orders",
+    key: orderListSignalKey(since, scope),
+    cursor,
+    read: () =>
+      statuses ? countOrdersAfter(since, statuses) : countOrdersAfter(since),
+    label: "yeni sipariş sayılamadı",
+  });
+}
+
+/**
+ * Orders newer than the highest `orderNo` the list has rendered, as a plain
+ * count. The list's poll uses `newOrderSignalAction`; this stays for the
+ * shop-only count its beep asks after the count has grown (a change, so the
+ * database is awake anyway).
  */
 export async function newOrderCountAction(
   sinceOrderNo: number,

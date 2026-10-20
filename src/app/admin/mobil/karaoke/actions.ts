@@ -10,8 +10,13 @@ import {
   type ActionResult,
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
-import { getAdminSession, requireRole } from "@/lib/admin/auth";
+import { requireRole } from "@/lib/admin/auth";
 import { KARAOKE_PANEL_PATH } from "@/lib/admin/karaoke-panel";
+import { panelSignal } from "@/lib/admin/panel-signal";
+import {
+  karaokeSignalKey,
+  type PanelSignalAnswer,
+} from "@/lib/admin/panel-signal-core";
 import { parsePublishInstant } from "@/lib/admin/publish-window";
 import { canAccess } from "@/lib/admin/roles";
 import {
@@ -477,19 +482,27 @@ export async function settleKaraokeRefundAction(
 
 /**
  * Today's live bookings (not cancelled: paid, waiting for payment or for
- * Onayla), for the nav badge. Null for a role without the karaoke panel and
- * for a read that failed: the badge then simply does not draw. Never throws
- * and never redirects - it runs in the background on every screen.
+ * Onayla), for the nav badge: the count and a cursor, or `{ unchanged: true }`
+ * while no booking has been written since and it is still the same day in
+ * Tuzla (panelSignal, src/lib/admin/panel-signal.ts). A count of null for a
+ * role without the karaoke panel and for a read that failed: the badge then
+ * simply does not draw. Never redirects - it runs in the background on
+ * every screen.
  */
-export async function karaokeTodayCountAction(): Promise<number | null> {
-  const session = await getAdminSession();
-  if (!session || !canAccess("karaoke", session.role)) return null;
-  try {
-    const today = istanbulClock(new Date()).date;
-    const rows = await listReservationsForDate(today);
-    return rows.filter((r) => r.status !== "cancelled").length;
-  } catch (err) {
-    console.error("[admin/karaoke] bugünkü rezervasyonlar sayılamadı", err);
-    return null;
-  }
+export async function karaokeTodaySignalAction(
+  cursor: string,
+): Promise<PanelSignalAnswer> {
+  const today = istanbulClock(new Date()).date;
+  return panelSignal({
+    kind: "karaoke",
+    section: "karaoke",
+    // Midnight on the köşk's clock is a new key: the badge reads again.
+    key: karaokeSignalKey(today),
+    cursor,
+    read: async () => {
+      const rows = await listReservationsForDate(today);
+      return rows.filter((r) => r.status !== "cancelled").length;
+    },
+    label: "bugünkü karaoke rezervasyonları sayılamadı",
+  });
 }

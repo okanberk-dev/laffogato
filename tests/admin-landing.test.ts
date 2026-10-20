@@ -91,10 +91,10 @@ vi.mock("@/lib/admin/flash", () => ({
 // The sidebar's badge polls and the top bar's search: server actions the
 // markup only references.
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 0),
+  openOrderSignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 0),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
 }));
 vi.mock("@/app/admin/ara/actions", () => ({ adminSearchAction: vi.fn() }));
 

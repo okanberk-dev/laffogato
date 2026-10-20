@@ -450,10 +450,12 @@ describe("the double-tap guard follows each row's place", () => {
 });
 
 describe("the list keeps its live poll and sound", () => {
-  it("still polls with newOrderCountAction and draws the sound toggle", () => {
+  it("still polls (newOrderSignalAction, with its cursor) and draws the sound toggle", () => {
     const src = readFileSync("src/components/admin/orders-list.tsx", "utf8");
     expect(src).toContain("const POLL_MS = 30_000;");
-    expect(src).toContain("newOrderCountAction(latestOrderNo");
+    expect(src).toMatch(/newOrderSignalAction\(\s*latestOrderNo,/);
+    // The beep's shop count stays a plain count, asked after a change.
+    expect(src).toMatch(/newOrderCountAction\(\s*latestOrderNo,/);
     expect(src).toContain("shouldListBeep(");
     expect(list([row(order())])).toContain("Yeni sipariş sesi");
   });

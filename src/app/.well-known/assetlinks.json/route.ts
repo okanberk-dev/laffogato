@@ -1,4 +1,4 @@
-import { getPublicSettings } from "@/lib/admin/store";
+import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * as belonging to nobody".
  */
 export async function GET() {
-  const { mobileApp } = await getPublicSettings();
+  const { mobileApp } = await getSiteSettings();
   const { bundleId, androidSha256 } = mobileApp.store;
 
   if (!bundleId || androidSha256.length === 0) {
