@@ -386,6 +386,14 @@ export interface OrderLegalConsent {
   documents: string[];
   /** Revision label of those documents (their "son güncelleme" date). */
   version: string;
+  /**
+   * The SHA-256 of each document's text exactly as shown, by slug (decision
+   * D-VERSIONS-TABLE, 21 Ekim 2026). The label names a day, the hash the
+   * text; the text itself is kept in `legal_doc_versions` under it and is
+   * what the confirmation mail attaches and the order page downloads
+   * (src/lib/legal/version-core.ts). Absent on orders placed before.
+   */
+  textHashes?: Record<string, string>;
   /** Origin of the confirmation - evidence only. */
   ip?: string;
   userAgent?: string;

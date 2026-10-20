@@ -118,6 +118,14 @@ export interface KaraokeLegalConsent {
   documents: string[];
   version: string;
   /**
+   * The SHA-256 of the karaoke terms exactly as shown, by slug, as an
+   * order's `legalConsent.textHashes` (21 Ekim 2026). Written by
+   * `createReservation` for both surfaces, never taken from a caller; the
+   * text is kept in `legal_doc_versions` and is what the confirmation mail
+   * attaches. Absent on bookings made before.
+   */
+  textHashes?: Record<string, string>;
+  /**
    * The separate boxes that were ticked, each its own act (operator, 16 Eki
    * 2026): `on-bilgilendirme` (MSY m.7 teyit), `hizmet-sozlesmesi` (the
    * contract accepted) and `kvkk-aydinlatma` - an ACKNOWLEDGEMENT that the

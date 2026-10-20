@@ -23,15 +23,23 @@ import {
   istanbulDayLabel,
 } from "@/lib/legal/consent-version";
 import { findLegalDoc } from "@/lib/legal/documents";
+import { liveLegalDoc } from "@/lib/legal/karaoke-doc";
 import {
   getLegalDocOverride,
   getLegalOverrideArchive,
+  legalDocRow,
   listConsentArchive,
   listLegalDocOverrides,
   resetLegalDoc,
   upsertLegalDoc,
   type LegalDocInput,
 } from "@/lib/legal/store";
+import {
+  legalVersionOf,
+  shownVersionDoc,
+  type ShownOverride,
+} from "@/lib/legal/version-core";
+import { recordLegalVersions } from "@/lib/legal/versions";
 
 // Every export here is a public POST endpoint (CLAUDE.md rule 27): each one
 // checks the session and the owner-only `legal` section itself.
@@ -78,6 +86,40 @@ async function consentRefusal(
   });
 }
 
+const VERSION_NOT_STORED =
+  "Metin şu an kaydedilemedi: gösterilen sürüm arşive yazılamadı. Birazdan yeniden dene.";
+
+/**
+ * The text /hukuk/<slug> shows now and the one it will show once `after`
+ * is written (null: the coded text), both stored in `legal_doc_versions`
+ * BEFORE the change (decision D-VERSIONS-TABLE): no text goes live, and none
+ * goes away, without its copy. Their hashes go into the audit row. Null when
+ * the copy could not be stored; the change is then refused.
+ *
+ * Not exported: every export of a "use server" file is a public endpoint
+ * (CLAUDE.md rule 27).
+ */
+async function storeShownTexts(
+  slug: string,
+  after: ShownOverride | null,
+): Promise<{ before: string; after: string } | null> {
+  try {
+    const doc = await liveLegalDoc(slug);
+    if (!doc) return null;
+    const current = await getLegalDocOverride(slug);
+    const before = legalVersionOf(shownVersionDoc(doc, current));
+    const next = legalVersionOf(shownVersionDoc(doc, after));
+    await recordLegalVersions([before, next]);
+    return { before: before.hash, after: next.hash };
+  } catch (err) {
+    console.error(
+      `[admin/hukuk] ${slug}: shown texts not stored`,
+      err instanceof Error ? err.message.slice(0, 160) : "unknown",
+    );
+    return null;
+  }
+}
+
 /** The editor's save; a success goes back to the list with a toast. */
 export async function updateLegalDocAction(
   slug: string,
@@ -109,6 +151,8 @@ export async function updateLegalDocAction(
       effectiveDate: refusal,
     });
   }
+  const texts = await storeShownTexts(slug, legalDocRow(slug, next, at));
+  if (!texts) return actionError(VERSION_NOT_STORED);
   const saved = await upsertLegalDoc(slug, next, { by: session.email });
   await safeAudit({
     action: "update",
@@ -118,6 +162,8 @@ export async function updateLegalDocAction(
       published: next.isPublished,
       effectiveDate: next.effectiveDate,
       archivedId: saved.archivedId,
+      textHashBefore: texts.before,
+      textHashAfter: texts.after,
     },
   });
   revalidateLegal(slug);
@@ -142,6 +188,9 @@ export async function resetLegalDocAction(
   const slug = String(formData.get("slug") ?? "");
   const doc = findLegalDoc(slug);
   if (!doc) return actionError("Belge bulunamadı.");
+  // The coded text comes back: stored with the one it replaces, first.
+  const texts = await storeShownTexts(slug, null);
+  if (!texts) return actionError(VERSION_NOT_STORED);
   const archivedId = await resetLegalDoc(slug, { by: session.email });
   revalidateLegal(slug);
   if (!archivedId) {
@@ -151,7 +200,12 @@ export async function resetLegalDocAction(
     action: "delete",
     entity: "legal_doc",
     entityId: slug,
-    payload: { reset: true, archivedId },
+    payload: {
+      reset: true,
+      archivedId,
+      textHashBefore: texts.before,
+      textHashAfter: texts.after,
+    },
   });
   return actionOk(
     `${doc.title} sitedeki hazır metne döndü. Özel metin arşivde; oradan geri yükleyebilirsin.`,
@@ -203,6 +257,8 @@ export async function restoreLegalDocAction(
     next = { ...next, isPublished: false };
   }
 
+  const texts = await storeShownTexts(slug, legalDocRow(slug, next, at));
+  if (!texts) return actionError(VERSION_NOT_STORED);
   const saved = await upsertLegalDoc(slug, next, { by: session.email });
   await safeAudit({
     action: "update",
@@ -212,6 +268,8 @@ export async function restoreLegalDocAction(
       restoredFrom: archived.id,
       published: next.isPublished,
       archivedId: saved.archivedId,
+      textHashBefore: texts.before,
+      textHashAfter: texts.after,
     },
   });
   revalidateLegal(slug);

@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConsentOverride } from "@/lib/legal/consent-version";
 import { findLegalDoc } from "@/lib/legal/documents";
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "@/lib/legal/meta";
+import {
+  codedVersionDoc,
+  legalVersionOf,
+  shownVersionDoc,
+} from "@/lib/legal/version-core";
 
 /**
  * The legal editor's three actions (/admin/hukuk), with the store in memory:
@@ -102,7 +107,13 @@ const resetLegalDoc = vi.hoisted(() =>
     return id;
   }),
 );
-vi.mock("@/lib/legal/store", () => ({
+vi.mock("@/lib/legal/store", async () => ({
+  // The real row shaping: the panel stores the text a save will show from it.
+  legalDocRow: (
+    await vi.importActual<typeof import("@/lib/legal/store")>(
+      "@/lib/legal/store",
+    )
+  ).legalDocRow,
   upsertLegalDoc,
   resetLegalDoc,
   getLegalDocOverride: vi.fn(
@@ -119,6 +130,12 @@ vi.mock("@/lib/legal/store", () => ({
     (db.archive as Archived[]).filter((r) => slugs.includes(r.slug)),
   ),
 }));
+
+// legal_doc_versions, in memory: what the panel stores before a change.
+const recordLegalVersions = vi.hoisted(() =>
+  vi.fn(async (_versions: { hash: string; slug: string; text: string }[]) => {}),
+);
+vi.mock("@/lib/legal/versions", () => ({ recordLegalVersions }));
 
 const actions = await import("@/app/admin/hukuk/actions");
 
@@ -159,11 +176,20 @@ describe("resetLegalDocAction (Varsayılana döndür)", () => {
     expect(resetLegalDoc).toHaveBeenCalledWith(KVKK, { by: OWNER });
     expect(db.overrides.has(KVKK)).toBe(false);
     expect(db.archive).toHaveLength(1);
+    // The hashes of the text shown before (the override) and after (the
+    // coded text), both stored first (decision D-VERSIONS-TABLE).
+    const coded = findLegalDoc(KVKK)!;
     expect(safeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "delete",
         entityId: KVKK,
-        payload: { reset: true, archivedId: "1" },
+        payload: {
+          reset: true,
+          archivedId: "1",
+          textHashBefore: legalVersionOf(shownVersionDoc(coded, live(KVKK)))
+            .hash,
+          textHashAfter: legalVersionOf(codedVersionDoc(coded)).hash,
+        },
       }),
     );
   });
@@ -375,5 +401,156 @@ describe("owner only", () => {
       "legal",
       "legal",
     ]);
+  });
+});
+
+/**
+ * Every text /hukuk shows is kept by hash (decision D-VERSIONS-TABLE): the
+ * panel stores the text shown before a change and the one shown after it,
+ * BEFORE the change is written, and the audit row names both hashes rather
+ * than only `{ published }`. A copy that cannot be stored refuses the change:
+ * no text goes live, and none goes away, without it.
+ */
+describe("the shown texts are stored before the change", () => {
+  const order: string[] = [];
+  beforeEach(() => {
+    order.length = 0;
+    recordLegalVersions.mockImplementation(async () => {
+      order.push("record");
+    });
+    upsertLegalDoc.mockImplementationOnce(async (slug, input) => {
+      order.push("save");
+      const row = { slug, ...input, updatedAt: "2030-03-12T09:00:00.000Z" };
+      db.overrides.set(slug, row);
+      return { override: row as never, archivedId: null };
+    });
+  });
+
+  it("a save stores the text shown now and the one it publishes, then audits both hashes", async () => {
+    await expect(
+      actions.updateLegalDocAction(
+        KVKK,
+        null,
+        form({
+          title: "  KVKK Aydınlatma Metni  ",
+          effectiveDate: LATER,
+          bodyMarkdown: BODY,
+          isPublished: "on",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT /admin/hukuk");
+    expect(order).toEqual(["record", "save"]);
+    const coded = findLegalDoc(KVKK)!;
+    const before = legalVersionOf(codedVersionDoc(coded));
+    // What the page will print: the title as the save trims it.
+    const after = legalVersionOf(
+      shownVersionDoc(coded, {
+        title: "KVKK Aydınlatma Metni",
+        summary: "",
+        effectiveDate: LATER,
+        bodyMarkdown: BODY,
+        isPublished: true,
+        updatedAt: "",
+      }),
+    );
+    const stored = recordLegalVersions.mock.calls[0][0];
+    expect(stored.map((v) => v.hash)).toEqual([before.hash, after.hash]);
+    expect(stored[1].text).toContain('"source":"override"');
+    expect(stored[1].text).toContain('"title":"KVKK Aydınlatma Metni"');
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "update",
+        entityId: KVKK,
+        payload: expect.objectContaining({
+          published: true,
+          textHashBefore: before.hash,
+          textHashAfter: after.hash,
+        }),
+      }),
+    );
+  });
+
+  it("a draft leaves the coded text shown: before and after are the same text", async () => {
+    await expect(
+      actions.updateLegalDocAction(
+        KVKK,
+        null,
+        form({ title: "KVKK", effectiveDate: "", bodyMarkdown: "x" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    const coded = legalVersionOf(codedVersionDoc(findLegalDoc(KVKK)!)).hash;
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          textHashBefore: coded,
+          textHashAfter: coded,
+        }),
+      }),
+    );
+  });
+
+  it("refuses a save whose texts cannot be stored, and writes nothing", async () => {
+    recordLegalVersions.mockRejectedValueOnce(new Error("db down"));
+    const r = await actions.updateLegalDocAction(
+      KVKK,
+      null,
+      form({
+        title: "KVKK",
+        effectiveDate: LATER,
+        bodyMarkdown: BODY,
+        isPublished: "on",
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toMatch(/sürüm arşive yazılamadı/);
+    expect(upsertLegalDoc).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses a reset whose texts cannot be stored, and removes nothing", async () => {
+    db.overrides.set(KVKK, live(KVKK));
+    recordLegalVersions.mockRejectedValueOnce(new Error("db down"));
+    const r = await actions.resetLegalDocAction(null, form({ slug: KVKK }));
+    expect(r.ok).toBe(false);
+    expect(resetLegalDoc).not.toHaveBeenCalled();
+    expect(db.overrides.has(KVKK)).toBe(true);
+  });
+
+  it("refuses a restore whose texts cannot be stored, and restores nothing", async () => {
+    db.archive.push({
+      ...live(KVKK),
+      id: "1",
+      archivedAt: "2030-03-11T09:00:00.000Z",
+      archivedBy: OWNER,
+      reason: "reset",
+    });
+    recordLegalVersions.mockRejectedValueOnce(new Error("db down"));
+    const r = await actions.restoreLegalDocAction(null, form({ id: "1" }));
+    expect(r.ok).toBe(false);
+    expect(upsertLegalDoc).not.toHaveBeenCalled();
+  });
+
+  it("a restore audits the hash of the text it brings back", async () => {
+    const row = {
+      ...live(KVKK, { bodyMarkdown: "## Geri gelen\n\nMetin." }),
+      id: "1",
+      archivedAt: "2030-03-11T09:00:00.000Z",
+      archivedBy: OWNER,
+      reason: "reset",
+    };
+    db.archive.push(row);
+    const r = await actions.restoreLegalDocAction(null, form({ id: "1" }));
+    expect(r.ok).toBe(true);
+    expect(order).toEqual(["record", "save"]);
+    const back = legalVersionOf(shownVersionDoc(findLegalDoc(KVKK)!, row));
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          restoredFrom: "1",
+          textHashAfter: back.hash,
+        }),
+      }),
+    );
   });
 });

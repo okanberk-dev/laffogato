@@ -146,7 +146,10 @@ vi.mock("@/lib/db", () => ({
 // The consent version reads the panel overrides; none are published here.
 vi.mock("@/lib/legal/store", async () => {
   const { LEGAL_UPDATED } = await import("@/lib/legal/meta");
-  return { checkoutConsentVersion: async () => LEGAL_UPDATED };
+  return {
+    checkoutConsentVersion: async () => LEGAL_UPDATED,
+    checkoutConsentTextHashes: async () => ({}),
+  };
 });
 
 const { createAppOrder, payAppOrder } = await import("@/lib/mobile/orders");
