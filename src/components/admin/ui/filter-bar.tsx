@@ -23,7 +23,7 @@ import {
 
 import { FIELD_INPUT } from "../forms";
 import { ListSearchButton } from "./list-search-button";
-import { useSavedViewsKey } from "./saved-views-key";
+import { SavedViewsBoundary, useSavedViewsKey } from "./saved-views-key";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
 import { useNoResetSubmit } from "./submit";
 
@@ -394,15 +394,18 @@ export function FilterBar({
                 "flex min-w-0 flex-[1_1_14rem] flex-wrap gap-2 self-center",
               )
             : null}
-          <SavedViews
-            storageKey={viewsKey}
-            pathname={pathname}
-            address={address}
-            fields={fields}
-            values={values}
-            pageParam={pageParam}
-            className="ml-auto"
-          />
+          {/* A menu that cannot load is not drawn; the list stays. */}
+          <SavedViewsBoundary>
+            <SavedViews
+              storageKey={viewsKey}
+              pathname={pathname}
+              address={address}
+              fields={fields}
+              values={values}
+              pageParam={pageParam}
+              className="ml-auto"
+            />
+          </SavedViewsBoundary>
         </div>
       ) : chips.length > 0 ? (
         chipList("mt-2 flex flex-wrap gap-2")

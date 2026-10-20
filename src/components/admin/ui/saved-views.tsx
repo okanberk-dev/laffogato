@@ -93,11 +93,12 @@ export function SavedViews({
 }: SavedViewsProps) {
   const router = useRouter();
   const toast = useToast();
-  const raw = useSyncExternalStore(
-    subscribeViews,
-    () => readViews(storageKey),
-    () => "",
-  );
+  // The same read on the server's side: this menu is never drawn there (the
+  // bar loads it with ssr: false, once the page is in the browser), and
+  // readViews says "" where there is no storage. A node test draws it
+  // with a stored list this way.
+  const read = () => readViews(storageKey);
+  const raw = useSyncExternalStore(subscribeViews, read, read);
   const rules: ViewRules = {
     searchNames: fields.flatMap((f) => (f.type === "search" ? [f.name] : [])),
     pageParam,
