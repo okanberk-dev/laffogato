@@ -115,6 +115,24 @@ describe("change markers", () => {
     expect(karaokeNext).not.toBe(karaoke);
   });
 
+  it("the köşk chip's marker (UI-13) moves with the venue's status, the hours and the accounts, not with an order", async () => {
+    let venue = await marker.readChangeMarker("venue");
+    expect(h.made.at(-1)?.keyParts[0]).toBe("laf-marker-venue");
+    expect(h.made.at(-1)?.tags).toEqual(["pub:site", "live:access"]);
+    expireTags(tagsForWrite({ table: "orders" }));
+    expireTags(tagsForWrite({ table: "karaoke_reservations" }));
+    expect(await marker.readChangeMarker("venue")).toBe(venue);
+    // Canlı durum saved (the chip, the page), the hours changed (Ayarlar),
+    // a panel account written (rule 30): each one moves it.
+    for (const table of ["venue_status", "settings", "admin_users"]) {
+      expireTags(tagsForWrite({ table }));
+      const next = await marker.readChangeMarker("venue");
+      expect(next, table).not.toBeNull();
+      expect(next, table).not.toBe(venue);
+      venue = next;
+    }
+  });
+
   it("an order write moves the orders marker, not the karaoke one", async () => {
     const orders = await marker.readChangeMarker("orders");
     const karaoke = await marker.readChangeMarker("karaoke");

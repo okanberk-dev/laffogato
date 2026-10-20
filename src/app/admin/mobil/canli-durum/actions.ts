@@ -10,20 +10,18 @@ import {
   type ActionResult,
 } from "@/lib/admin/action-result";
 import { logAudit, safeAudit } from "@/lib/admin/audit";
-import { getAdminSession, requireRole } from "@/lib/admin/auth";
+import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";
-import { getSettings } from "@/lib/admin/store";
 import {
   quickChoiceOf,
   quickPatchFor,
   VENUE_QUICK_CHOICES,
   VENUE_QUICK_LABELS,
-  type VenueQuickStatus,
+  type VenueSignalAnswer,
 } from "@/lib/admin/venue-quick-core";
+import { venueSignal } from "@/lib/admin/venue-signal";
 import { isDbUnreachable } from "@/lib/db/health";
 import {
-  getVenueStatus,
-  isCafeOpenNow,
   patchVenueStatus,
   updateVenueStatus,
   VENUE_NOISE_LEVELS,
@@ -218,31 +216,17 @@ export async function saveVenueQuickAction(
 }
 
 /**
- * What the köşk chip shows, polled once a minute while the tab is visible
- * (no database read in the layout). Null for a role without `venue`, before
- * sign-in and for a read that failed: the chip then says nothing. Never
- * throws and never redirects: it runs in the background on every screen.
+ * The köşk chip's poll (components/admin/venue-quick.tsx), once a minute
+ * while the tab is visible: the layout reads nothing for it. The gate and
+ * the cheap path are venueSignal's (src/lib/admin/venue-signal.ts), the nav
+ * badges' pattern: `{ unchanged: true }` without the database while
+ * nothing changed, and a status only after the account was read again and
+ * still has Canlı durum. Never redirects: it runs in the background on
+ * every screen. `cursor` is whatever the browser sent; venueSignal trusts
+ * none of it.
  */
-export async function venueQuickStatusAction(): Promise<VenueQuickStatus | null> {
-  try {
-    const session = await getAdminSession();
-    if (!session || !canAccess("venue", session.role)) return null;
-    const [status, settings] = await Promise.all([
-      getVenueStatus(),
-      getSettings(),
-    ]);
-    return {
-      manualOverride: status.manualOverride,
-      freeTables: status.freeTables,
-      totalTables: status.totalTables,
-      isOpen: isCafeOpenNow(settings.weeklyHours, status.manualOverride),
-      saved: status.updatedAt !== "",
-    };
-  } catch (err) {
-    console.error(
-      "[admin/canli-durum] köşk durumu okunamadı",
-      err instanceof Error ? err.name : "error",
-    );
-    return null;
-  }
+export async function venueQuickSignalAction(
+  cursor: string,
+): Promise<VenueSignalAnswer> {
+  return venueSignal(cursor);
 }

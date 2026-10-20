@@ -6,12 +6,13 @@ import { useActionState, useEffect, useId, useRef, useState } from "react";
 
 import {
   saveVenueQuickAction,
-  venueQuickStatusAction,
+  venueQuickSignalAction,
 } from "@/app/admin/mobil/canli-durum/actions";
 import type { ActionResult } from "@/lib/admin/action-result";
 import {
   choiceAfterStep,
   quickChoiceOf,
+  readVenueAnswer,
   stepFreeTables,
   VENUE_QUICK_CHOICES,
   VENUE_QUICK_LABELS,
@@ -20,6 +21,7 @@ import {
   type VenueChipTone,
   type VenueQuickChoice,
   type VenueQuickStatus,
+  type VenueSignalAnswer,
 } from "@/lib/admin/venue-quick-core";
 
 import { ADMIN_CHANGED_EVENT, announceAdminChange } from "./ui/admin-changed";
@@ -36,7 +38,10 @@ import { useToast } from "./ui/toast";
  *
  * - The status is polled through a Server Action (no database read in the
  *   layout), now and once a minute while the tab is visible, and again
- *   after any panel save (`admin:changed`).
+ *   after any panel save (`admin:changed`). Like the nav badges, each
+ *   answer carries a cursor: while nothing was written and the hours have
+ *   not turned, the answer is `{ unchanged: true }`, read without the
+ *   database (src/lib/admin/venue-signal.ts), and the chip keeps its word.
  * - The popover is a native `<details>`: it opens before hydration too,
  *   and then links to the page. Esc, a click outside it and a save close
  *   it; the answer is a toast.
@@ -51,21 +56,29 @@ import { useToast } from "./ui/toast";
 export const VENUE_POLL_MS = 60_000;
 
 /**
- * The chip's poll: now, then every `intervalMs` while the tab is visible,
- * and again at once whenever the panel announces a change. A change that
- * lands while a read is out is read again once that read is back. The
- * nav badges' poll (startNavCountPoll, admin-sidebar.tsx) for a status
- * instead of a count. Returns the stop function.
+ * The chip's poll: now, then every `intervalMs` while the tab is visible
+ * (a hidden tab asks nothing), and again at once whenever the panel
+ * announces a change. The nav badges' poll (startNavCountPoll,
+ * admin-sidebar.tsx) for a status instead of a count:
+ *
+ * - each answer's cursor goes back with the next read; `{ unchanged: true }`
+ *   (read without the database) keeps the status as it is;
+ * - `admin:changed` drops the cursor, so the read after a save is a full
+ *   one; a change that lands while a read is out is read again, in full,
+ *   once that read is back (the read in flight may have started before it);
+ * - a read that throws keeps what the chip shows.
+ *
+ * Returns the stop function.
  */
-export function startVenuePoll<T>({
+export function startVenuePoll({
   read,
-  onValue,
+  onStatus,
   intervalMs = VENUE_POLL_MS,
   target = window,
   isVisible = () => document.visibilityState === "visible",
 }: {
-  read: () => Promise<T | null>;
-  onValue: (value: T | null) => void;
+  read: (cursor: string) => Promise<VenueSignalAnswer>;
+  onStatus: (status: VenueQuickStatus | null) => void;
   intervalMs?: number;
   target?: Pick<EventTarget, "addEventListener" | "removeEventListener">;
   isVisible?: () => boolean;
@@ -73,6 +86,7 @@ export function startVenuePoll<T>({
   let stopped = false;
   let busy = false;
   let again = false;
+  let cursor = "";
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   async function tick() {
@@ -81,8 +95,13 @@ export function startVenuePoll<T>({
     if (isVisible()) {
       busy = true;
       try {
-        const value = await read();
-        if (!stopped) onValue(value ?? null);
+        const answer = readVenueAnswer(await read(cursor));
+        if (!stopped && !("unchanged" in answer)) {
+          // A change landed while this read was out: the next read is a
+          // full one, whatever this answer's cursor says.
+          cursor = again ? "" : answer.cursor;
+          onStatus(answer.status);
+        }
       } catch {
         // A background read never takes the panel down; the chip keeps
         // what it showed.
@@ -101,6 +120,7 @@ export function startVenuePoll<T>({
 
   const onChanged = () => {
     if (stopped) return;
+    cursor = "";
     if (busy) {
       again = true;
       return;
@@ -138,7 +158,7 @@ export function VenueQuick({
   initialStatus?: VenueQuickStatus | null;
   /** Rendered open (tests, screenshots). */
   initialOpen?: boolean;
-} = {}) {
+}) {
   const pathname = usePathname();
   const ref = useRef<HTMLDetailsElement>(null);
   const [status, setStatus] = useState<VenueQuickStatus | null>(initialStatus);
@@ -147,11 +167,14 @@ export function VenueQuick({
   // A new form each time the popover opens, from the latest status.
   const [round, setRound] = useState(0);
 
+  // One poll for the tab's life: the layout stays mounted across pages, and
+  // a page change writes nothing the chip shows (a save says so itself,
+  // through `admin:changed`).
   useEffect(
     () =>
       startVenuePoll({
-        read: venueQuickStatusAction,
-        onValue: (value) => {
+        read: venueQuickSignalAction,
+        onStatus: (value) => {
           setStatus(value);
           setAnswered(true);
         },

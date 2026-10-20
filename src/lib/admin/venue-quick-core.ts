@@ -31,7 +31,11 @@ export const VENUE_QUICK_LABELS: Record<
   closed: { label: "Kapalı", hint: "Saatlerden bağımsız" },
 };
 
-/** What the top bar polls (venueQuickStatusAction). */
+/**
+ * What the top bar polls (venueQuickSignalAction): the venue's status as
+ * the chip needs it, and nothing else. Every field is one the app's public
+ * GET /api/mobile/v1/live-status already shows; no person, no account.
+ */
 export interface VenueQuickStatus {
   manualOverride: VenueOverride;
   freeTables: number;
@@ -43,6 +47,102 @@ export interface VenueQuickStatus {
    * table count (`freeTables: null` on the wire), so 0 is not "full".
    */
   saved: boolean;
+}
+
+/** The status's fields, in order: the poll answers these and no others. */
+export const VENUE_QUICK_STATUS_KEYS = [
+  "manualOverride",
+  "freeTables",
+  "totalTables",
+  "isOpen",
+  "saved",
+] as const satisfies readonly (keyof VenueQuickStatus)[];
+
+/**
+ * What the chip's poll answers (src/lib/admin/venue-signal.ts), the nav
+ * badges' shape (panel-signal-core.ts) with a status for a count:
+ *
+ * - `{ unchanged: true }`: nothing written since the cursor was handed out
+ *   and the hours have not turned; read without the database. The chip
+ *   keeps what it shows.
+ * - `{ status, cursor }`: read now, after the account was read again.
+ *   `status` is null for a role without Canlı durum, signed out, or a read
+ *   that failed: the chip then shows no state.
+ */
+export type VenueSignalAnswer =
+  { unchanged: true } | { status: VenueQuickStatus | null; cursor: string };
+
+/** One full read stands at most this long without a write (a day). */
+export const VENUE_SIGNAL_HORIZON_MS = 24 * 60 * 60 * 1000;
+
+const MINUTE_MS = 60_000;
+const VENUE_KEY_RE = /^v([0-9a-z]{1,10})$/;
+
+/**
+ * The cursor's key for an answer that holds until `untilMs`: "v" and the
+ * minute (since 1970, base 36) the open/closed of the hours next turns, or
+ * the horizon. Fits panel-signal-core's key shape.
+ */
+export function venueSignalKey(untilMs: number): string {
+  const minute = Math.max(0, Math.ceil(untilMs / MINUTE_MS));
+  return `v${minute.toString(36)}`;
+}
+
+/**
+ * Whether a cursor's key still holds at `nowMs`: before its minute, and no
+ * further out than the horizon (a key from elsewhere, or made up, never
+ * holds; it only costs its sender a full read).
+ */
+export function venueKeyHolds(key: string, nowMs: number): boolean {
+  const m = VENUE_KEY_RE.exec(key);
+  if (!m) return false;
+  const until = parseInt(m[1], 36) * MINUTE_MS;
+  return (
+    Number.isFinite(until) &&
+    nowMs < until &&
+    until - nowMs <= VENUE_SIGNAL_HORIZON_MS + MINUTE_MS
+  );
+}
+
+const isTableCount = (n: unknown): n is number =>
+  typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 999;
+
+/** A status as the browser trusts it, or null for anything else. */
+export function readVenueStatus(value: unknown): VenueQuickStatus | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const override = v.manualOverride;
+  if (override !== "auto" && override !== "open" && override !== "closed") {
+    return null;
+  }
+  if (!isTableCount(v.freeTables) || !isTableCount(v.totalTables)) return null;
+  if (typeof v.isOpen !== "boolean" || typeof v.saved !== "boolean") {
+    return null;
+  }
+  return {
+    manualOverride: override,
+    freeTables: v.freeTables,
+    totalTables: v.totalTables,
+    isOpen: v.isOpen,
+    saved: v.saved,
+  };
+}
+
+/** The poll's answer as the browser trusts it; junk reads as "no state". */
+export function readVenueAnswer(value: unknown): VenueSignalAnswer {
+  if (value && typeof value === "object") {
+    const v = value as {
+      unchanged?: unknown;
+      status?: unknown;
+      cursor?: unknown;
+    };
+    if (v.unchanged === true) return { unchanged: true };
+    return {
+      status: readVenueStatus(v.status),
+      cursor: typeof v.cursor === "string" ? v.cursor : "",
+    };
+  }
+  return { status: null, cursor: "" };
 }
 
 /** The radio a stored status opens the popover on. */

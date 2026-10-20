@@ -38,18 +38,18 @@ vi.mock("@/components/admin/admin-search", () => ({
   TopBarSearch: () => createElement("div", { id: "search" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 0),
+  openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
   transitionOrderAction: vi.fn(),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 0),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 const venueActions = vi.hoisted(() => ({
-  status: vi.fn(async () => null),
+  signal: vi.fn(async () => ({ status: null, cursor: "" })),
   save: vi.fn(),
 }));
 vi.mock("@/app/admin/mobil/canli-durum/actions", () => ({
-  venueQuickStatusAction: venueActions.status,
+  venueQuickSignalAction: venueActions.signal,
   saveVenueQuickAction: venueActions.save,
 }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
@@ -171,14 +171,22 @@ describe("the chip's poll", () => {
     vi.useRealTimers();
   });
 
-  const setup = (visible = true) => {
+  type Answer = import("@/lib/admin/venue-quick-core").VenueSignalAnswer;
+
+  const setup = (
+    visible = true,
+    answer: (cursor: string) => Answer = (cursor) =>
+      cursor === "c1"
+        ? { unchanged: true }
+        : { status: status(), cursor: "c1" },
+  ) => {
     const target = new EventTarget();
-    const read = vi.fn(async () => status());
-    const onValue = vi.fn();
+    const read = vi.fn(async (cursor: string) => answer(cursor));
+    const onStatus = vi.fn();
     let isVisible = visible;
     const stop = startVenuePoll({
       read,
-      onValue,
+      onStatus,
       target,
       isVisible: () => isVisible,
       intervalMs: 60_000,
@@ -186,7 +194,7 @@ describe("the chip's poll", () => {
     return {
       target,
       read,
-      onValue,
+      onStatus,
       stop,
       show: (v: boolean) => {
         isVisible = v;
@@ -194,24 +202,67 @@ describe("the chip's poll", () => {
     };
   };
 
-  it("reads at once, then once a minute", async () => {
-    const { read, onValue, stop } = setup();
+  it("reads at once, then once a minute, sending back the cursor it was handed", async () => {
+    const { read, onStatus, stop } = setup();
     await vi.advanceTimersByTimeAsync(0);
     expect(read).toHaveBeenCalledTimes(1);
-    expect(onValue).toHaveBeenLastCalledWith(status());
+    expect(read).toHaveBeenLastCalledWith("");
+    expect(onStatus).toHaveBeenLastCalledWith(status());
     await vi.advanceTimersByTimeAsync(60_000);
     expect(read).toHaveBeenCalledTimes(2);
+    expect(read).toHaveBeenLastCalledWith("c1");
     stop();
     await vi.advanceTimersByTimeAsync(120_000);
     expect(read).toHaveBeenCalledTimes(2);
   });
 
-  it("reads again on admin:changed (a save anywhere in the panel)", async () => {
+  it("keeps the status on `unchanged` (the read without the database)", async () => {
+    const { read, onStatus, stop } = setup();
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(3 * 60_000);
+    expect(read).toHaveBeenCalledTimes(4);
+    // Only the first answer carried a status; three were `unchanged`.
+    expect(onStatus).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it("reads again on admin:changed (a save anywhere in the panel), in full: the cursor is dropped", async () => {
     const { target, read, stop } = setup();
     await vi.advanceTimersByTimeAsync(0);
     target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
     await vi.advanceTimersByTimeAsync(0);
     expect(read).toHaveBeenCalledTimes(2);
+    expect(read).toHaveBeenLastCalledWith("");
+    stop();
+  });
+
+  it("a change while a read is out is read again in full once that read is back", async () => {
+    let release: (a: Answer) => void = () => {};
+    const target = new EventTarget();
+    const read = vi
+      .fn<(cursor: string) => Promise<Answer>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Answer>((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockResolvedValue({ status: status({ freeTables: 1 }), cursor: "c2" });
+    const onStatus = vi.fn();
+    const stop = startVenuePoll({
+      read,
+      onStatus,
+      target,
+      isVisible: () => true,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
+    release({ status: status(), cursor: "c1" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(read).toHaveBeenCalledTimes(2);
+    // Not "c1": that answer may predate the change.
+    expect(read).toHaveBeenLastCalledWith("");
+    expect(onStatus).toHaveBeenLastCalledWith(status({ freeTables: 1 }));
     stop();
   });
 
@@ -227,23 +278,45 @@ describe("the chip's poll", () => {
 
   it("keeps what it showed when a read throws", async () => {
     const target = new EventTarget();
-    const onValue = vi.fn();
+    const onStatus = vi.fn();
     const stop = startVenuePoll({
       read: async () => {
         throw new Error("network");
       },
-      onValue,
+      onStatus,
       target,
       isVisible: () => true,
     });
     await vi.advanceTimersByTimeAsync(0);
-    expect(onValue).not.toHaveBeenCalled();
+    expect(onStatus).not.toHaveBeenCalled();
+    stop();
+  });
+
+  it("trusts nothing in the answer: junk reads as no state", async () => {
+    const { onStatus, stop } = setup(
+      true,
+      () =>
+        ({
+          status: { manualOverride: "busy" },
+          cursor: 1,
+        }) as unknown as Answer,
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(onStatus).toHaveBeenLastCalledWith(null);
     stop();
   });
 });
 
-const render = (props: Parameters<typeof VenueQuick>[0] = {}) =>
-  renderToStaticMarkup(createElement(VenueQuick, props));
+const render = (
+  props: { initialStatus?: Status | null; initialOpen?: boolean } = {},
+) =>
+  renderToStaticMarkup(
+    createElement(VenueQuick, {
+      initialStatus: null,
+      initialOpen: false,
+      ...props,
+    }),
+  );
 
 describe("the chip's markup", () => {
   it("is a native disclosure with a 44 px summary, saying Köşk until the first answer", () => {
@@ -330,6 +403,8 @@ describe("the chip's markup", () => {
       "react-aria",
       "@/lib/db",
       "@/lib/mobile/venue",
+      "@/lib/admin/venue-signal",
+      "@/lib/cache",
       '@/components/admin/ui"',
       './ui"',
       "action-form",
@@ -378,8 +453,10 @@ describe("the chip in the shell", () => {
   it("reads nothing in the layout: the status comes from the chip's poll", () => {
     const src = readFileSync("src/app/admin/layout.tsx", "utf8");
     expect(src).not.toMatch(
-      /getVenueStatus|@\/lib\/mobile\/venue|venueQuickStatusAction/,
+      /getVenueStatus|@\/lib\/mobile\/venue|venueQuickSignalAction|venueSignal|venue-signal/,
     );
+    // The chip is drawn with no status: nothing is handed down from here.
+    expect(src).toContain("{venueChip ? <VenueQuick /> : null}");
     expect(src).toContain('canAccess("venue", session.role)');
     expect(src).toMatch(
       /href: "\/admin\/mobil\/canli-durum",\s+label: "Canlı durum",\s+section: "venue",/,

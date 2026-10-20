@@ -15,11 +15,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * changes the table count: Personel's save ignores a posted one and goes
  * through patchVenueStatus, which never writes it. The top bar's köşk chip
  * saves through saveVenueQuickAction (the override and the free tables
- * only) and reads through venueQuickStatusAction.
+ * only) and reads through venueQuickSignalAction (its own tests:
+ * admin-venue-signal).
  */
 
 const updateVenueStatus = vi.fn(async (input: Record<string, unknown>) => ({
   ...input,
+}));
+const getSettings = vi.fn(async () => ({
+  weeklyHours: {
+    mon: { open: "00:00", close: "24:00", closed: false },
+    tue: { open: "00:00", close: "24:00", closed: false },
+    wed: { open: "00:00", close: "24:00", closed: false },
+    thu: { open: "00:00", close: "24:00", closed: false },
+    fri: { open: "00:00", close: "24:00", closed: false },
+    sat: { open: "00:00", close: "24:00", closed: false },
+    sun: { open: "00:00", close: "24:00", closed: false },
+  },
+}));
+const venueSignal = vi.fn(async (_cursor: unknown) => ({
+  status: null,
+  cursor: "",
 }));
 const patchVenueStatus = vi.fn(
   async (
@@ -72,19 +88,8 @@ vi.mock("@/lib/admin/auth", async () => {
   };
 });
 vi.mock("@/lib/admin/audit", () => ({ logAudit, safeAudit }));
-vi.mock("@/lib/admin/store", () => ({
-  getSettings: vi.fn(async () => ({
-    weeklyHours: {
-      mon: { open: "00:00", close: "24:00", closed: false },
-      tue: { open: "00:00", close: "24:00", closed: false },
-      wed: { open: "00:00", close: "24:00", closed: false },
-      thu: { open: "00:00", close: "24:00", closed: false },
-      fri: { open: "00:00", close: "24:00", closed: false },
-      sat: { open: "00:00", close: "24:00", closed: false },
-      sun: { open: "00:00", close: "24:00", closed: false },
-    },
-  })),
-}));
+vi.mock("@/lib/admin/store", () => ({ getSettings }));
+vi.mock("@/lib/admin/venue-signal", () => ({ venueSignal }));
 vi.mock("@/lib/mobile/venue", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/mobile/venue")>();
   return {
@@ -95,10 +100,12 @@ vi.mock("@/lib/mobile/venue", async (importOriginal) => {
   };
 });
 
-const { saveVenueQuickAction, saveVenueStatusAction, venueQuickStatusAction } =
+const { saveVenueQuickAction, saveVenueStatusAction, venueQuickSignalAction } =
   await import("@/app/admin/mobil/canli-durum/actions");
 const { VenueStatusForm } =
   await import("@/app/admin/mobil/canli-durum/venue-status-form");
+const VenueStatusPage = (await import("@/app/admin/mobil/canli-durum/page"))
+  .default;
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -121,9 +128,11 @@ beforeEach(() => {
   updateVenueStatus.mockClear();
   patchVenueStatus.mockClear();
   getVenueStatus.mockClear();
+  getSettings.mockClear();
   logAudit.mockClear();
   safeAudit.mockClear();
   revalidatePath.mockClear();
+  venueSignal.mockClear();
 });
 
 describe("saveVenueStatusAction", () => {
@@ -288,7 +297,56 @@ describe("saveVenueQuickAction (the köşk chip)", () => {
     auth.role = null;
     await expect(quick("open", "1")).rejects.toThrow(/giris/);
     expect(patchVenueStatus).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
     expect(auth.sections).toEqual(["venue", "venue"]);
+  });
+
+  it("opens the gate before it reads the form: a refused caller learns nothing from a bad body", async () => {
+    auth.role = "cashier";
+    await expect(quick("busyish", "-5")).rejects.toThrow(/denied/);
+    auth.role = null;
+    await expect(quick("", "")).rejects.toThrow(/giris/);
+    expect(patchVenueStatus).not.toHaveBeenCalled();
+  });
+
+  it("takes nothing else from the post: a table count, Wi-Fi or note sent along never reaches the save", async () => {
+    auth.role = "staff";
+    const res = await saveVenueQuickAction(
+      null,
+      form({
+        status: "open",
+        freeTables: "2",
+        totalTables: "500",
+        wifi: "down",
+        noise: "low",
+        power: "on",
+        note: "Herkese bedava",
+        manualOverride: "closed",
+      }),
+    );
+    expect(res.ok).toBe(true);
+    expect(patchVenueStatus).toHaveBeenCalledTimes(1);
+    expect(patchVenueStatus).toHaveBeenCalledWith({
+      manualOverride: "open",
+      freeTables: 2,
+    });
+    expect(safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: { manualOverride: "open", freeTables: 2 },
+      }),
+    );
+  });
+
+  it("writes nothing more than one patch, then the audit row, then the revalidation", async () => {
+    await quick("open", "4");
+    expect(patchVenueStatus.mock.invocationCallOrder[0]).toBeLessThan(
+      safeAudit.mock.invocationCallOrder[0],
+    );
+    expect(safeAudit.mock.invocationCallOrder[0]).toBeLessThan(
+      revalidatePath.mock.invocationCallOrder[0],
+    );
+    expect(updateVenueStatus).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
   });
 
   it("says the database is unreachable instead of throwing", async () => {
@@ -298,53 +356,88 @@ describe("saveVenueQuickAction (the köşk chip)", () => {
     const res = await quick("open", "1");
     expect(res).toMatchObject({ ok: false });
     expect(!res.ok && res.error).toMatch(/ulaşılamıyor/);
+    expect(safeAudit).not.toHaveBeenCalled();
   });
 });
 
-describe("venueQuickStatusAction (the chip's poll)", () => {
-  it("answers the stored status and what the app shows", async () => {
-    auth.role = "staff";
-    expect(await venueQuickStatusAction()).toEqual({
-      manualOverride: "auto",
-      freeTables: 3,
-      totalTables: 12,
-      isOpen: true,
-      saved: true,
+describe("venueQuickSignalAction (the chip's poll)", () => {
+  it("hands the browser's cursor to venueSignal as it came, and its answer back", async () => {
+    venueSignal.mockResolvedValueOnce({ status: null, cursor: "s2.x" });
+    expect(await venueQuickSignalAction("s2.abc")).toEqual({
+      status: null,
+      cursor: "s2.x",
     });
-  });
-
-  it("says nothing to the cashier or before sign-in, and never throws", async () => {
-    auth.role = "cashier";
-    expect(await venueQuickStatusAction()).toBeNull();
-    auth.role = null;
-    expect(await venueQuickStatusAction()).toBeNull();
-    expect(getVenueStatus).not.toHaveBeenCalled();
-    auth.role = "owner";
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    getVenueStatus.mockRejectedValueOnce(new Error("boom"));
-    expect(await venueQuickStatusAction()).toBeNull();
-    err.mockRestore();
+    expect(venueSignal).toHaveBeenCalledWith("s2.abc");
+    // It opens no gate of its own that could redirect a background poll:
+    // venueSignal's is the gate (tests/admin-venue-signal.test.ts).
+    expect(auth.sections).toEqual([]);
   });
 });
 
 describe("the page", () => {
-  it("opens to `venue` and reads the table-count right from `mobileApp`", () => {
-    const src = readFileSync(
-      "src/app/admin/mobil/canli-durum/page.tsx",
-      "utf8",
-    );
-    expect(src).toContain('await requireRole("venue")');
-    expect(src).not.toContain('requireRole("mobileApp")');
-    expect(src).toContain('canAccess("mobileApp", session.role)');
-    expect(src).toContain("canEditTotal={canEditTotal}");
+  const render = async () => renderToStaticMarkup(await VenueStatusPage());
+
+  it("opens to `venue`: owner, manager and Personel see it; the cashier and a signed-out visitor are sent away before any read", async () => {
+    for (const role of ["owner", "manager", "staff"]) {
+      auth.role = role;
+      expect(await render(), role).toContain("Canlı durum");
+    }
+    expect(new Set(auth.sections)).toEqual(new Set(["venue"]));
+    getVenueStatus.mockClear();
+    getSettings.mockClear();
+    auth.role = "cashier";
+    await expect(render()).rejects.toThrow(/denied/);
+    auth.role = null;
+    await expect(render()).rejects.toThrow(/giris/);
+    expect(getVenueStatus).not.toHaveBeenCalled();
+    expect(getSettings).not.toHaveBeenCalled();
+  });
+
+  it("gives Personel the table count read-only, and owner and manager the field", async () => {
+    auth.role = "staff";
+    const staff = await render();
+    expect(staff).not.toContain('name="totalTables"');
+    expect(staff).toContain("data-venue-total-readonly");
+    for (const role of ["owner", "manager"]) {
+      auth.role = role;
+      const html = await render();
+      expect(html, role).toMatch(/<input[^>]*name="totalTables"/);
+      expect(html, role).not.toContain("data-venue-total-readonly");
+    }
+  });
+
+  it("every action in the file opens its own gate (rule 27)", () => {
     const actions = readFileSync(
       "src/app/admin/mobil/canli-durum/actions.ts",
       "utf8",
     );
-    // Every action of the file opens its own gate (rule 27).
-    expect(actions.match(/await requireRole\("venue"\)/g)).toHaveLength(2);
-    expect(actions).toContain('canAccess("venue", session.role)');
+    const exported = [
+      ...actions.matchAll(/export async function (\w+)\(/g),
+    ].map((m) => m[1]);
+    expect(exported).toEqual([
+      "saveVenueStatusAction",
+      "saveVenueQuickAction",
+      "venueQuickSignalAction",
+    ]);
+    const bodyOf = (name: string) => {
+      const at = actions.indexOf(`export async function ${name}(`);
+      const next = actions.indexOf("export async function", at + 1);
+      return actions.slice(at, next === -1 ? undefined : next);
+    };
+    for (const name of ["saveVenueStatusAction", "saveVenueQuickAction"]) {
+      // The gate is the first statement, before the form is read.
+      const body = bodyOf(name);
+      const gate = body.indexOf('await requireRole("venue")');
+      expect(gate, name).toBeGreaterThan(-1);
+      expect(gate, name).toBeLessThan(body.indexOf("formData.get("));
+    }
+    expect(bodyOf("venueQuickSignalAction")).toContain(
+      "return venueSignal(cursor);",
+    );
     expect(actions).not.toContain('requireRole("mobileApp")');
+    // The three actions are the file's only exports: no helper is an
+    // endpoint by accident.
+    expect(actions.match(/^export /gm)).toHaveLength(3);
   });
 });
 
