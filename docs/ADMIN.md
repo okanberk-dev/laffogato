@@ -299,6 +299,7 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
   `laf_admin_views_v1:<hesap anahtarı>:<liste>`; anahtar Son
   açılanlar'daki gibi e-postanın HMAC'i, e-posta değil). Aynı köşk
   tabletinde başka bir hesap onları görmez, başka cihaza taşınmazlar,
-  Çıkış onları silmez. Gizli pencerede ya da site verisi kapalıyken
-  kaydedilemez; pencere bunu söyler.
+  Çıkış onları silmez. Site verisi kapalıyken ya da tarayıcının yeri
+  doluyken kaydedilemez; pencere bunu söyler. Gizli pencerede kaydedilen
+  görünüm o pencere kapanınca gider.
 - Kasiyerde menü yok. Kurallar tek yerde: `src/lib/admin/saved-views.ts`.

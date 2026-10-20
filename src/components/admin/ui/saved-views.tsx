@@ -40,8 +40,13 @@ import { useToast } from "./toast";
 // markup without JavaScript stays as it was, and the panel's other pages,
 // the till included, do not download it.
 
-const NOT_KEPT =
-  "Kaydedilemedi: bu tarayıcı site verisi tutmuyor (gizli pencere ya da kapalı site verisi).";
+/**
+ * A refused write: site data turned off, or no room left. Not a private
+ * window: today's browsers write there too, and the view goes when the
+ * window closes. Exported for tests.
+ */
+export const NOT_KEPT =
+  "Kaydedilemedi: tarayıcı bu siteye veri yazdırmıyor (site verisi kapalı ya da yer dolu).";
 
 export interface SavedViewsProps {
   /** useSavedViewsKey's answer (saved-views-key.ts). */

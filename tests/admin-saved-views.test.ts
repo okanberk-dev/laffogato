@@ -71,7 +71,7 @@ const store = await import("@/components/admin/ui/saved-views-store");
 const { pageAccountKey } =
   await import("@/components/admin/ui/saved-views-key");
 const { FilterBar } = await import("@/components/admin/ui/filter-bar");
-const { SavedViews, focusMenuButton } =
+const { SavedViews, focusMenuButton, NOT_KEPT } =
   await import("@/components/admin/ui/saved-views");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
 const { AUDIT_FILTER_FIELDS } = await import("@/lib/admin/audit-view");
@@ -511,6 +511,20 @@ describe("the browser's storage", () => {
       store.writeViews("k", state([["Masa", "teslimat=table"]]), refusing),
     ).toBe(false);
     expect(store.writeViews("k", state([]), null)).toBe(false);
+  });
+
+  it("a refused write names what refuses one, not a private window", () => {
+    // Private windows write to localStorage today (the view goes when the
+    // window closes): blaming them sent the operator after the wrong cause.
+    expect(NOT_KEPT).toBe(
+      "Kaydedilemedi: tarayıcı bu siteye veri yazdırmıyor (site verisi kapalı ya da yer dolu).",
+    );
+    const doc = readFileSync("docs/ADMIN.md", "utf8");
+    const section = doc.slice(doc.indexOf("## Kayıtlı görünümler"));
+    expect(section).not.toMatch(/Gizli pencerede[^.]*kaydedilemez/);
+    expect(section).toMatch(
+      /Gizli pencerede kaydedilen\s+görünüm o pencere kapanınca gider\./,
+    );
   });
 
   it("the account key is the admin root's, if it is one", () => {
