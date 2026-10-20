@@ -47,7 +47,7 @@ import {
   paletteShortcutLabel,
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
-import { singleKeysForRole } from "@/lib/admin/shortcut-core";
+import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
 
 export interface AdminNavItem {
   href: string;

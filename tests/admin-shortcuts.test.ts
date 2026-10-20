@@ -692,6 +692,23 @@ describe("the user menu's switch", () => {
     expect(src).toContain(
       "const shortcuts = singleKeysForRole(palette?.role);",
     );
+    // What every page loads is the role check alone: the rules ride in the
+    // layer's chunk, and the palette's list chunk (at its 45 KB budget)
+    // takes none of them.
+    const valueFrom = (code: string, mod: string) =>
+      new RegExp(`^import (?!type\\b)[^;]*from "${mod}";`, "m").test(code);
+    expect(valueFrom(src, "@/lib/admin/shortcut-roles")).toBe(true);
+    expect(valueFrom(src, "@/lib/admin/shortcut-core")).toBe(false);
+    for (const f of [
+      "src/lib/admin/palette-shell.ts",
+      "src/lib/admin/palette-core.ts",
+      "src/components/admin/palette/palette.tsx",
+      "src/components/admin/palette/trigger.tsx",
+    ]) {
+      const code = read(f);
+      expect(valueFrom(code, "./shortcut-core"), f).toBe(false);
+      expect(valueFrom(code, "@/lib/admin/shortcut-core"), f).toBe(false);
+    }
   });
 });
 
@@ -810,7 +827,9 @@ describe("the palette's side", () => {
 });
 
 describe("roles", () => {
-  it("single keys for owner, manager and staff; never the cashier", () => {
+  it("single keys for owner, manager and staff; never the cashier", async () => {
+    const roles = await import("@/lib/admin/shortcut-roles");
+    expect(core.singleKeysForRole).toBe(roles.singleKeysForRole);
     expect(ROLES.filter((r) => core.singleKeysForRole(r))).toEqual([
       "owner",
       "manager",

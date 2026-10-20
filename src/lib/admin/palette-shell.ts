@@ -1,13 +1,15 @@
 // Client-safe (no server-only): the always-loaded half of the panel's
 // palette (admin UI v2, UI-6, design §4). The shell's trigger runs these on
 // every page: the ⌘K / Ctrl+K key, its label, the events the single keys
-// open it and the shortcut sheet with (UI-8), and the rules for what the
-// "Son açılanlar" list may keep. Everything else (the entries, the Turkish
+// open it and the shortcut sheet with (UI-8), the rules for what the
+// "Son açılanlar" list may keep, and the few Komutlar entries (kept here
+// for the list's 45 KB budget). Everything else (the entries, the Turkish
 // matching, the search answer) is in palette-core.ts, which only the lazy
 // palette loads and which re-exports this file.
 
 import { piiLike } from "./pii-like";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
+import { singleKeysForRole } from "./shortcut-roles";
 
 /**
  * The no-JavaScript answer of the trigger: the results page. The same path
@@ -269,4 +271,60 @@ export function visibleRecents(
       e.href !== currentPath
     );
   });
+}
+
+// ── Komutlar ──────────────────────────────────────────────────────────────
+
+/** A static entry: a page to go to, a page to create on, or a command. */
+export interface PaletteEntry {
+  /** Unique in the list: also the ListBox key. */
+  id: string;
+  label: string;
+  /** Where it sits: the nav item a tab belongs to, or the group. */
+  hint?: string;
+  href?: string;
+  /** For a command that is not a page (a local preference). */
+  command?: PaletteCommand;
+  keywords: readonly string[];
+}
+
+export type PaletteCommand = "toggleSound" | "shortcutSheet";
+
+/**
+ * "Komutlar": navigation and this browser's own preferences, never a
+ * change to the shop (no Çıkış, no order step: the palette is read-only).
+ * "Klavye kısayolları" opens the shortcut sheet (UI-8) for the roles with
+ * single keys. The order sound is the panel's one sound switch
+ * (sound-pref.ts), for the roles that hear it.
+ */
+export function commandEntries(
+  role: AdminRole | null | undefined,
+  { soundOn }: { soundOn: boolean },
+): PaletteEntry[] {
+  if (!role) return [];
+  const out: PaletteEntry[] = [
+    {
+      id: "cmd:2fa",
+      label: "Güvenlik / 2FA",
+      href: "/admin/2fa-kurulum",
+      keywords: ["iki aşamalı doğrulama", "doğrulama kodu"],
+    },
+  ];
+  if (singleKeysForRole(role)) {
+    out.push({
+      id: "cmd:shortcuts",
+      label: "Klavye kısayolları",
+      command: "shortcutSheet",
+      keywords: ["kısayol", "tuş"],
+    });
+  }
+  if (canAccess("orders", role)) {
+    out.push({
+      id: "cmd:sound",
+      label: soundOn ? "Sipariş sesini kapat" : "Sipariş sesini aç",
+      command: "toggleSound",
+      keywords: ["ses", "zil", "sessiz"],
+    });
+  }
+  return out;
 }

@@ -6,6 +6,9 @@
 // is the palette's own key (palette-shell.ts) and works everywhere.
 
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
+import { singleKeysForRole } from "./shortcut-roles";
+
+export { singleKeysForRole };
 
 /** How long `g` waits for its second key. */
 export const G_SEQUENCE_MS = 1500;
@@ -74,17 +77,6 @@ const MODIFIER_KEYS = new Set([
 /** The key as typed (`event.key`), lowered the Turkish way: Caps Lock's "N" is n. */
 export function typedKey(key: unknown): string {
   return typeof key === "string" ? key.toLocaleLowerCase("tr-TR") : "";
-}
-
-/**
- * The roles with single keys. Not the cashier: one page, the Kasa, where
- * typed and scanned codes arrive. A role added later gets none until it is
- * named here.
- */
-export function singleKeysForRole(
-  role: AdminRole | null | undefined,
-): role is AdminRole {
-  return role === "owner" || role === "manager" || role === "staff";
 }
 
 /** The Kasa: a scanner types its codes as keys, often outside any field. */
