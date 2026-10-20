@@ -62,6 +62,13 @@ const SECOND_KEY: ReadonlyMap<string, string> = new Map([
   ["ğ", "g"],
 ]);
 
+/** The marked letters that also stand for this `g` letter (`u`: ü), for the sheet. */
+export function markedFormsOf(key: string): string[] {
+  return [...SECOND_KEY]
+    .filter(([, plain]) => plain === key)
+    .map(([marked]) => marked);
+}
+
 /** A key that is only a modifier: pressed between `g` and its letter, it waits. */
 const MODIFIER_KEYS = new Set([
   "shift",

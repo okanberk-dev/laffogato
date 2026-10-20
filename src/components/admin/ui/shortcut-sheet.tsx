@@ -2,7 +2,7 @@
 
 import { useRef, type ReactNode, type Ref } from "react";
 
-import { goShortcutsFor } from "@/lib/admin/shortcut-core";
+import { goShortcutsFor, markedFormsOf } from "@/lib/admin/shortcut-core";
 import type { AdminRole } from "@/lib/admin/roles";
 
 import { SwitchMark } from "./switch-mark";
@@ -81,6 +81,10 @@ export function ShortcutSheet({
 }: ShortcutSheetProps) {
   const downOnBackdrop = useRef(false);
   const targets = goShortcutsFor(role);
+  // The role's own letters that a marked one also stands for: "s yerine ş".
+  const marked = targets.flatMap((t) =>
+    markedFormsOf(t.key).map((m) => `${t.key} yerine ${m}`),
+  );
   const single = enabled && !pausedHere;
 
   return (
@@ -157,7 +161,8 @@ export function ShortcutSheet({
             ))}
           </dl>
           <p className="mt-2 text-xs leading-5 text-[var(--admin-text-soft)]">
-            İkinci harfe 1,5 saniye içinde bas; ü, ş, ç, ö, ğ işaretsiz de olur.
+            İkinci harfe 1,5 saniye içinde bas
+            {marked.length > 0 ? `; ${marked.join(", ")} de olur` : ""}.
             Yazarken, bir pencere açıkken ve Kasa&apos;da tek tuşlar çalışmaz;
             kaydedilmemiş bir form varken sayfadan çıkmaz.
           </p>

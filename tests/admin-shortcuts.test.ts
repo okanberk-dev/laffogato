@@ -616,6 +616,26 @@ describe("the sheet's server markup", () => {
     expect(owner).not.toMatch(/[–—]/);
   });
 
+  it("names the marked letters that stand for the role's own `g` letters, no others", async () => {
+    expect(core.markedFormsOf("u")).toEqual(["ü"]);
+    expect(core.markedFormsOf("s")).toEqual(["ş"]);
+    expect(core.markedFormsOf("b")).toEqual([]);
+    const owner = await sheet();
+    expect(owner).toContain(
+      "İkinci harfe 1,5 saniye içinde bas; s yerine ş, u yerine ü de olur.",
+    );
+    // Staff have no `g u`; ç, ö and ğ stand for no page at all.
+    const staff = await sheet({ role: "staff" });
+    expect(staff).toContain(
+      "İkinci harfe 1,5 saniye içinde bas; s yerine ş de olur.",
+    );
+    for (const html of [owner, staff]) {
+      expect(html).not.toContain("işaretsiz");
+      expect(html).not.toMatch(/yerine [çöğ]/);
+      expect(html).not.toContain("ü, ş, ç, ö, ğ");
+    }
+  });
+
   it("carries the switch, and says where the keys stand", async () => {
     const on = await sheet();
     expect(on).toMatch(
