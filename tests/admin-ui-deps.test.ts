@@ -381,6 +381,7 @@ describe("ui/icons.tsx", () => {
       dateRange: "CalendarRange",
       close: "X",
       security: "ShieldCheck",
+      shortcuts: "Keyboard",
       logout: "LogOut",
     });
     const icons = Object.values(ADMIN_ICONS);

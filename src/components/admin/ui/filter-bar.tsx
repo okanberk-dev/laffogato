@@ -184,6 +184,8 @@ export function FilterBar({
             placeholder={field.placeholder}
             maxLength={field.maxLength ?? 100}
             enterKeyHint="search"
+            // The `/` shortcut's box (shortcuts.tsx): the bar's lead search only.
+            data-admin-search={field === lead ? "" : undefined}
             className={FIELD_INPUT}
           />
         </div>

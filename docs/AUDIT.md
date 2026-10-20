@@ -1278,6 +1278,17 @@ Server Action'a uzanmaz.
 | 🟢 | Oturum düşünce arama "sonuç yok" gibi görünebilirdi | 401 ya da proxy'nin girişe yönlendirmesi: "Oturumun kapandı." ve buraya dönen giriş bağlantısı; 503 ve diğerleri: "Arama şu an çalışmıyor."; 5'ten fazla sonuçta liste satırı "Listede ara" (aramasız liste: listeler aramayı adreste değil çerezde tutar, satır sonuçları listede gösterdiğini söylemez), "Tüm sonuçlar" satırı yok | `admin-palette-core` |
 | 🟢 | Paket bütçesi | Her admin rotasına +2,4 KB gz (tetikleyici, kayıt ve kısayol; üst çubuğun eski arama formu çıktı); palet açılınca 44,97 KB gz (React Aria 40,60 + palet 4,37), `/admin/kasa`'da React Aria yok | `admin-ui-deps` |
 
+### Kabuk: tek tuş kısayolları (admin UI v2, UI-8)
+
+Karar D7: ⌘K / Ctrl K her rol için açık; tek tuşlar sahip, yönetici ve
+personel için varsayılan açık, kasiyerde ve Kasa'da hiç yok.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Yoğun saatte fareye uzanmadan listeye, aramaya ve yeni kayda gitmenin yolu yoktu | `/` listenin arama kutusu (FilterBar'ın ilk kutusu, `data-admin-search`), yoksa palet; `n` sayfanın "Yeni" bağlantısı (`data-admin-new`; 20 Ekim 2026'da hiçbir sayfa çizmiyor), yoksa paletin yalnız Oluştur'u; `?` kısayol listesi (yerli `<dialog>`); `g` ve 1,5 saniye içinde `b s k d m u r` rolün açabildiği sayfaya. Tuş `event.key`'den, Türkçe küçültmeyle; ikinci harfte ü/u, ş/s, ç/c, ö/o, ğ/g; `i` / `ı` boş. Paletin Komutlar'ında "Klavye kısayolları" | `admin-shortcuts`, `admin-palette-core` |
+| 🟢 | Tek harfli kısayollar yazıyla, okutucuyla ve ekran okuyucuyla çakışabilir (WCAG 2.1.4) | Alanda (input, textarea, select, contenteditable), IME'de, açık bir `<dialog>`'da, ⌘/Ctrl/Alt/AltGr ile, betiğin gönderdiği tuşta, bir denetimin aldığı tuşta, kasiyerde ve `/admin/kasa`'da çalışmaz. Hesap bölümünde ve listede "Tek tuş kısayolları" anahtarı (bu tarayıcıda, `localStorage` try/catch içinde, varsayılan açık). `n` düğmeye basmaz, yalnız bağlantı açar. `aria-keyshortcuts` yalnız tuşlar çalışırken yazılır (sunucu çizmez): arama kutusunda `/`, ana bağlantıda `n`, kutu yoksa tetikleyicide `/` | `admin-shortcuts` |
+| 🟢 | Paket bütçesi | Katman ayrı bir parça, sayfa hidrasyondan sonra ister, yalnız tek tuşlu rollerde: kasiyerin Kasa'sı onu hiç indirmez (ölçüm PR gövdesinde) | `admin-shortcuts` |
+
 ### Hukuk: fatura e-Arşiv olarak e-postayla, İşlem Rehberi, meslek odası (20 Eki 2026)
 
 Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,

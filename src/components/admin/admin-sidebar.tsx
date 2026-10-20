@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type ComponentType,
   type MouseEvent,
   type ReactNode,
 } from "react";
@@ -23,10 +24,15 @@ import {
 } from "@/lib/admin/panel-signal-core";
 import { forgetRecents } from "@/components/admin/palette/recents";
 import { PaletteTrigger } from "@/components/admin/palette/trigger";
+import {
+  useShortcutPref,
+  writeShortcutPref,
+} from "@/components/admin/shortcut-pref";
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
 import { BottomBar } from "@/components/admin/ui/bottom-bar";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
+import { SwitchMark } from "@/components/admin/ui/switch-mark";
 import { useToast } from "@/components/admin/ui/toast";
 import { activeBottomSlot, bottomBarSlots } from "@/lib/admin/bottom-bar-core";
 import {
@@ -41,6 +47,7 @@ import {
   paletteShortcutLabel,
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
+import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
 
 export interface AdminNavItem {
   href: string;
@@ -420,6 +427,62 @@ function NavNote() {
 }
 
 /**
+ * "Tek tuş kısayolları" (admin UI v2, UI-8): the single keys' off switch
+ * (WCAG 2.1.4), per browser. The server draws it on (the default); a
+ * browser that turned it off shows so once hydrated.
+ */
+function ShortcutSwitch() {
+  const on = useShortcutPref();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => writeShortcutPref(!on)}
+      className={`${ROW} ${ROW_IDLE} w-full text-left`}
+    >
+      <NavIcon name="shortcuts" />
+      <span className="min-w-0 flex-1 truncate">Tek tuş kısayolları</span>
+      <SwitchMark on={on} />
+    </button>
+  );
+}
+
+type ShortcutLayerComponent = ComponentType<{ role: AdminRole }>;
+
+/** The layer once its chunk is here: a remount (a new session) draws it at once. */
+let loadedShortcutLayer: ShortcutLayerComponent | null = null;
+
+/**
+ * The single keys' layer (shortcuts.tsx: the listener, the `?` sheet),
+ * fetched after hydration and drawn only for the roles that have them: a
+ * chunk of its own, so the cashier's one-page shell never asks for it.
+ * Nothing on the server. Without it the panel works as before; ⌘K is the
+ * trigger's.
+ */
+function ShortcutLayer({ role }: { role: AdminRole }) {
+  const [Layer, setLayer] = useState(() => loadedShortcutLayer);
+  useEffect(() => {
+    if (Layer) return;
+    let live = true;
+    import("@/components/admin/shortcuts").then(
+      (m) => {
+        loadedShortcutLayer = m.AdminShortcuts;
+        if (live) setLayer(() => m.AdminShortcuts);
+      },
+      () => {
+        // No single keys this time (a deploy replaced the chunk); a fresh
+        // load brings them back.
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [Layer]);
+  return Layer ? <Layer role={role} /> : null;
+}
+
+/**
  * Who is signed in, their 2FA and Çıkış: the sidebar's footer, and the
  * cashier's account menu. `icons` is off for the cashier, whose shell
  * loads no icon chunk.
@@ -431,10 +494,13 @@ function AccountLinks({
   pathname,
   onNavigate,
   icons,
+  shortcuts = false,
 }: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
   pathname: string;
   onNavigate?: () => void;
   icons: boolean;
+  /** The single-key switch, for the roles with single keys. */
+  shortcuts?: boolean;
 }) {
   const securityActive = pathname === "/admin/2fa-kurulum";
   return (
@@ -460,6 +526,7 @@ function AccountLinks({
         {icons && <NavIcon name="security" />}
         <span className="truncate">Güvenlik / 2FA</span>
       </Link>
+      {shortcuts && <ShortcutSwitch />}
       {/* The palette's recent pages go before the action posts: the next
           person on a shared köşk device must not find them. */}
       <form action={logout} onSubmit={() => forgetRecents()}>
@@ -489,6 +556,7 @@ export function AdminSidebarBody({
   onToggleGroup,
   onNavigate,
   idPrefix,
+  shortcuts = false,
 }: Pick<
   SidebarProps,
   "groups" | "email" | "roleLabel" | "landingPath" | "logout"
@@ -499,6 +567,8 @@ export function AdminSidebarBody({
   onToggleGroup?: (title: string) => void;
   onNavigate?: () => void;
   idPrefix: string;
+  /** The account block's "Tek tuş kısayolları" switch. */
+  shortcuts?: boolean;
 }) {
   const items = groups.flatMap((g) => g.items);
   // Item and tab hrefs alike: /admin/kategoriler lights Ürünler.
@@ -657,6 +727,7 @@ export function AdminSidebarBody({
           pathname={pathname}
           onNavigate={onNavigate}
           icons
+          shortcuts={shortcuts}
         />
       </section>
     </div>
@@ -894,6 +965,7 @@ export function AdminSidebar(props: SidebarProps) {
   }, [open, setOpen]);
 
   const palette = props.canSearch ? props.palette : undefined;
+  const shortcuts = singleKeysForRole(palette?.role);
   const topBarEnd = (
     <>
       {palette && (
@@ -968,6 +1040,7 @@ export function AdminSidebar(props: SidebarProps) {
     counts,
     collapsed,
     onToggleGroup: toggleGroup,
+    shortcuts,
   };
   const strip = sectionTabsFor(pathname, navLinks);
   // The phone's bottom bar (UI-7), past the cashier's return above: a
@@ -984,6 +1057,7 @@ export function AdminSidebar(props: SidebarProps) {
       <Suspense fallback={null}>
         <DeniedNotice />
       </Suspense>
+      {palette && shortcuts && <ShortcutLayer role={palette.role} />}
 
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden">

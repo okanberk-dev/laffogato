@@ -2,9 +2,10 @@
 // UI v2, UI-6, design §4). What it lists for a role, how it matches
 // Turkish, how it ranks, and how it reads the record search's answer.
 // Pure: palette.tsx (loaded on open) draws it, the tests run it. The
-// always-loaded half (the key, the recents rules) is palette-shell.ts,
-// re-exported here.
+// always-loaded half (the key, the recents rules, Komutlar) is
+// palette-shell.ts, re-exported here.
 
+import type { PaletteEntry } from "./palette-shell";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import type { SearchHit, SearchSection } from "./search-core";
 import { foldTr } from "./text-fold";
@@ -50,21 +51,6 @@ export function foldLoose(value: string): string {
 }
 
 const words = (folded: string) => folded.split(/[\s·/,.()-]+/).filter(Boolean);
-
-/** A static entry: a page to go to, a page to create on, or a command. */
-export interface PaletteEntry {
-  /** Unique in the list: also the ListBox key. */
-  id: string;
-  label: string;
-  /** Where it sits: the nav item a tab belongs to, or the group. */
-  hint?: string;
-  href?: string;
-  /** For a command that is not a page (a local preference). */
-  command?: PaletteCommand;
-  keywords: readonly string[];
-}
-
-export type PaletteCommand = "toggleSound";
 
 /**
  * How well `entry` answers the folded query: 0 the label starts with it,
@@ -339,35 +325,9 @@ export function createEntries(
 
 // ── Komutlar ──────────────────────────────────────────────────────────────
 
-/**
- * "Komutlar": navigation and this browser's own preferences, never a
- * change to the shop (no Çıkış, no order step: the palette is read-only).
- * The order sound is the panel's one sound switch (sound-pref.ts), for the
- * roles that hear it.
- */
-export function commandEntries(
-  role: AdminRole | null | undefined,
-  { soundOn }: { soundOn: boolean },
-): PaletteEntry[] {
-  if (!role) return [];
-  const out: PaletteEntry[] = [
-    {
-      id: "cmd:2fa",
-      label: "Güvenlik / 2FA",
-      href: "/admin/2fa-kurulum",
-      keywords: ["iki aşamalı doğrulama", "doğrulama kodu"],
-    },
-  ];
-  if (canAccess("orders", role)) {
-    out.push({
-      id: "cmd:sound",
-      label: soundOn ? "Sipariş sesini kapat" : "Sipariş sesini aç",
-      command: "toggleSound",
-      keywords: ["ses", "zil", "sessiz"],
-    });
-  }
-  return out;
-}
+// commandEntries is in palette-shell.ts, re-exported above: the list's chunk
+// is at its 45 KB budget, and a few lines of Komutlar on every page cost
+// less than a second chunk.
 
 // ── Kayıtlar: the record search's answer ─────────────────────────────────
 

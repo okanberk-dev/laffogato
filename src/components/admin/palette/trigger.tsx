@@ -22,7 +22,10 @@ import {
   isApplePlatform,
   isPaletteShortcut,
   PALETTE_FALLBACK_HREF,
+  PALETTE_OPEN_EVENT,
   paletteShortcutLabel,
+  paletteViewOf,
+  type PaletteView,
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 
@@ -153,6 +156,7 @@ export function PaletteTrigger({
   const label = useShortcutLabel();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(0);
+  const [view, setView] = useState<PaletteView>("all");
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -162,12 +166,16 @@ export function PaletteTrigger({
     });
   }, []);
 
-  const show = useCallback(() => {
-    if (otherDialogOpen(dialogRef.current)) return;
-    preload();
-    setSession((n) => n + 1);
-    setOpen(true);
-  }, [preload]);
+  const show = useCallback(
+    (as: PaletteView = "all") => {
+      if (otherDialogOpen(dialogRef.current)) return;
+      preload();
+      setSession((n) => n + 1);
+      setView(as);
+      setOpen(true);
+    },
+    [preload],
+  );
 
   // ⌘K / Ctrl+K anywhere in the panel, in a field too. Capture phase: a
   // field's own key handling (React Aria's included) stops propagation.
@@ -186,6 +194,17 @@ export function PaletteTrigger({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
+  }, [show]);
+
+  // The single keys (shortcuts.tsx): `/` with no search box on the page,
+  // `n` with no "Yeni" link (then on Oluştur alone).
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      if (dialogRef.current?.open) return;
+      show(paletteViewOf((e as CustomEvent).detail));
+    };
+    window.addEventListener(PALETTE_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(PALETTE_OPEN_EVENT, onOpen);
   }, [show]);
 
   // Son açılanlar: another account's list in this tab goes, and this
@@ -255,6 +274,7 @@ export function PaletteTrigger({
               role={role}
               accountKey={accountKey}
               pathname={pathname}
+              view={view}
             />,
             adminPortalRoot(),
           )
@@ -270,10 +290,12 @@ function PaletteDialog({
   role,
   accountKey,
   pathname,
+  view,
 }: PaletteTriggerProps & {
   dialogRef: RefObject<HTMLDialogElement | null>;
   onClosed: () => void;
   pathname: string;
+  view: PaletteView;
 }) {
   const downOnBackdrop = useRef(false);
 
@@ -318,6 +340,7 @@ function PaletteDialog({
           role={role}
           accountKey={accountKey}
           pathname={pathname}
+          view={view}
           close={close}
         />
       </PaletteBoundary>

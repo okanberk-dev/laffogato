@@ -24,6 +24,7 @@ import {
   createEntries,
   goEntries,
   listRow,
+  openShortcutSheet,
   PALETTE_SEARCH_DEBOUNCE_MS,
   PALETTE_SEARCH_MIN,
   PALETTE_SEARCH_ROUTE,
@@ -37,6 +38,7 @@ import {
   type PaletteEntry,
   type PaletteHitGroup,
   type PaletteNavGroup,
+  type PaletteView,
 } from "@/lib/admin/palette-core";
 import type { AdminRole } from "@/lib/admin/roles";
 
@@ -51,9 +53,10 @@ import { SearchIcon } from "./trigger";
  * entries as the text changes, and the server's record hits are drawn as
  * they came. Read-only: an entry opens a page (router.push, never
  * prefetched while the arrow keys pass over it: every panel page is
- * dynamic, so each would be a server render and its database reads) or
- * flips this browser's own order sound. No Server Action is imported
- * here.
+ * dynamic, so each would be a server render and its database reads),
+ * flips this browser's own order sound or opens the shortcut sheet. No
+ * Server Action is imported here. Opened by `n` on a page with no "Yeni"
+ * link, it lists Oluştur alone (view "create").
  */
 
 type SearchState =
@@ -70,6 +73,8 @@ export interface PaletteProps {
   role: AdminRole;
   accountKey: string;
   pathname: string;
+  /** "create": Oluştur alone (the `n` key); the whole palette otherwise. */
+  view?: PaletteView;
   /** Closes the dialog; the trigger takes focus back. */
   close: () => void;
 }
@@ -172,13 +177,15 @@ export function Palette({
   role,
   accountKey,
   pathname,
+  view,
   close,
 }: PaletteProps) {
   const router = useRouter();
   const toast = useToast();
   const soundOn = useSoundPref();
   const [text, setText] = useState("");
-  const search = useRecordSearch(text);
+  const all = view !== "create";
+  const search = useRecordSearch(all ? text : "");
 
   // Read once per opening: the list cannot change while the dialog is up.
   const [recents] = useState(() =>
@@ -246,7 +253,7 @@ export function Palette({
     );
   };
 
-  if (!query) {
+  if (!query && all) {
     section(
       "recent",
       "Son açılanlar",
@@ -260,7 +267,7 @@ export function Palette({
       ),
     );
   }
-  section("go", "Git", entryItems(goShown));
+  if (all) section("go", "Git", entryItems(goShown));
   section("create", "Oluştur", entryItems(createShown));
   for (const g of hitGroups) {
     const rows = g.hits.map((hit) => {
@@ -297,7 +304,7 @@ export function Palette({
     }
     section(`records:${g.section}`, `Kayıtlar · ${g.label}`, rows);
   }
-  section("commands", "Komutlar", entryItems(commandsShown));
+  if (all) section("commands", "Komutlar", entryItems(commandsShown));
 
   // This render's entries: onAction below is this render's too.
   const run = (key: string) => {
@@ -306,6 +313,11 @@ export function Palette({
     if ("href" in target) {
       close();
       router.push(target.href);
+      return;
+    }
+    if (target.command === "shortcutSheet") {
+      close();
+      openShortcutSheet();
       return;
     }
     if (target.command === "toggleSound") {
@@ -350,7 +362,9 @@ export function Palette({
             {/* Autocomplete sets autocomplete, autocorrect and spellcheck
                 off and the Enter key's hint itself. */}
             <Input
-              placeholder="Sayfa, kayıt ya da komut ara"
+              placeholder={
+                all ? "Sayfa, kayıt ya da komut ara" : "Ne oluşturulsun?"
+              }
               maxLength={80}
               className="-mx-2 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-base text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-text-mute)]"
             />

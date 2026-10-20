@@ -7,6 +7,7 @@ import {
   FileText,
   Flag,
   GalleryHorizontalEnd,
+  Keyboard,
   LayoutGrid,
   LogOut,
   Mail,
@@ -76,8 +77,9 @@ export const ADMIN_ICONS = {
   more: Ellipsis,
   dateRange: CalendarRange,
   close: X,
-  // The account block: Güvenlik / 2FA and Çıkış.
+  // The account block: Güvenlik / 2FA, the single-key switch, Çıkış.
   security: ShieldCheck,
+  shortcuts: Keyboard,
   logout: LogOut,
 } as const satisfies Record<string, LucideIcon>;
 
