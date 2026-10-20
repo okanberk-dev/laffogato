@@ -123,6 +123,14 @@ async function readAudit(id: string): Promise<KaraokeAuditRow[] | null> {
   }
 }
 
+/** `day` (YYYY-MM-DD) plus `days` calendar days. */
+function addIstanbulDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map((n) => parseInt(n, 10));
+  return new Date(Date.UTC(y, m - 1, d + Math.max(0, days)))
+    .toISOString()
+    .slice(0, 10);
+}
+
 export default async function KaraokeReservationPage({
   params,
   searchParams,
@@ -441,7 +449,10 @@ export default async function KaraokeReservationPage({
     hours: r.hours,
     until: formatReservationDate(r.makeGoodUntil ?? ""),
     today,
-    lastDay: r.makeGoodUntil ?? today,
+    // The guest asks by the last day (karaoke terms §8: "6 ay içinde ...
+    // ayırtabilirsiniz"); the hour itself is any day the room's calendar
+    // is open, as for every booking (the server checks the same window).
+    lastDay: addIstanbulDays(today, roomRules.bookingWindowDays),
     firstHour: roomRules.firstHour,
     closeHour: roomRules.closeHour,
   };

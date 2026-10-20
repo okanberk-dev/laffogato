@@ -2336,7 +2336,8 @@ export async function giveKaraokeMakeGoodHour(
       ok: false,
       reason: "invalid",
       message: valid.message,
-      field: /saat/i.test(valid.message) ? "saat" : "tarih",
+      // A day the room does not take, else the hour (its start, its end).
+      field: /tarih|gün/i.test(valid.message) ? "tarih" : "saat",
     };
   }
   const req = valid.value;

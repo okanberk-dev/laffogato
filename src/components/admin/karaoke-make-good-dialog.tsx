@@ -23,9 +23,12 @@ export interface KaraokeMakeGoodProps {
   amountInput: string;
   /** The booking's length, which the free hour keeps. */
   hours: number;
-  /** "19 Nisan 2027": the free hour's last day. */
+  /** "19 Nisan 2027": the last day the guest may ask for the free hour. */
   until: string;
-  /** Today and the free hour's last day, `YYYY-MM-DD` (the date box). */
+  /**
+   * Today and the last day the room's calendar is open, `YYYY-MM-DD` (the
+   * date box): the hour itself may fall after `until`.
+   */
   today: string;
   lastDay: string;
   /** The room's first hour and closing hour (Ayarlar). */
@@ -53,7 +56,10 @@ function HourFields(p: KaraokeMakeGoodProps) {
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Field label="Tarih" hint={`En geç ${p.until}.`}>
+          <Field
+            label="Tarih"
+            hint={`Misafir ${p.until} tarihine kadar istediyse; saat odanın takviminde açık bir gün.`}
+          >
             <TextInput
               type="date"
               name="tarih"

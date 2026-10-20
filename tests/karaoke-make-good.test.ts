@@ -872,6 +872,30 @@ describe("Telafi saati ver / Telafi ödendi", () => {
     );
   });
 
+  it("a day or an hour the room does not take points at its own box", async () => {
+    await cancelledLate();
+    const late = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 23 },
+      "yonetici@kosk",
+      at(0),
+    );
+    // 23:00 for two hours runs past the 24:00 close: the hour's box.
+    expect(late).toMatchObject({ ok: false, reason: "invalid", field: "saat" });
+    const past = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-10-29", startHour: 20 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(past).toMatchObject({
+      ok: false,
+      reason: "invalid",
+      field: "tarih",
+    });
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+  });
+
   it("a taken hour is refused and the make-good stays open", async () => {
     await cancelledLate();
     h.tables.get("karaoke_reservations")!.push(
