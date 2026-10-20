@@ -47,11 +47,17 @@ vi.mock("next/dynamic", async () => {
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
+// The badge polls' actions, under both of their names: main renamed them
+// (#185, the cursor polls: openOrderSignalAction, karaokeTodaySignalAction)
+// after this branch was cut, and a mock without the name the shell imports
+// throws on the first render. Static markup never runs the polls.
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderCountAction: vi.fn(async () => null),
+  openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
   karaokeTodayCountAction: vi.fn(async () => null),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("@/components/admin/order-alerts", () => ({
