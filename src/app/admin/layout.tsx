@@ -451,10 +451,15 @@ export default async function AdminLayout({
   // The ⌘K palette, for a role its record search covers: not the cashier,
   // whose shell gets no trigger, no recents and no key.
   const canSearch = searchSectionsFor(session.role).length > 0;
+  // Never the e-mail: an HMAC of it (palette-account.ts). The palette's
+  // recents and the lists' saved views (ui/saved-views.tsx, read from the
+  // root's data-admin-account) are kept under it in the browser.
+  const accountKey = canSearch ? paletteAccountKey(session.email) : "";
 
   return (
     <div
       data-admin-root=""
+      data-admin-account={accountKey || undefined}
       className={shellClass(poppins.variable)}
       style={adminFontStyle}
     >
@@ -471,15 +476,7 @@ export default async function AdminLayout({
             landingPath={landingPath}
             logout={logoutAction}
             canSearch={canSearch}
-            palette={
-              canSearch
-                ? {
-                    role: session.role,
-                    // Never the e-mail: an HMAC of it (palette-account.ts).
-                    accountKey: paletteAccountKey(session.email),
-                  }
-                : undefined
-            }
+            palette={canSearch ? { role: session.role, accountKey } : undefined}
             actions={
               orderAlertsFor(session.role) ? (
                 <OrderAlerts
