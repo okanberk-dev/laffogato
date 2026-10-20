@@ -213,7 +213,8 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
   kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
   adrese ve kayda düşmez. 5'ten fazlası varsa "Listede ara": liste aramasız
   açılır (metin adrese yazılmaz), metni listenin kutusuna sen yazarsın.
-- **Komutlar**: Güvenlik / 2FA ve sipariş sesini aç / kapat (bu tarayıcıda).
+- **Komutlar**: Güvenlik / 2FA, Klavye kısayolları ve sipariş sesini aç /
+  kapat (bu tarayıcıda).
 - Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
 - Esc ilk basışta kutuyu boşaltır, ikinci basışta paleti kapatır; telefonda
   × düğmesi kapatır.
@@ -237,3 +238,34 @@ sayfaları. Rozetler menüdekilerle aynı sayılardır.
   telefonda bir yazı alanına dokununca (klavye açıkken) çubuk çekilir.
 - Bildirimler, toplu işlem çubuğu, yeni sipariş kartları ve kaydet
   çubukları çubuğun üstünde durur; sayfanın sonu çubuğun altında kalmaz.
+
+## Klavye kısayolları
+
+⌘K / Ctrl K her sayfada paleti açar. Sahip, yönetici ve personel için ayrıca
+tek tuşlar vardır; `?` listelerini açar (paletin Komutlar'ındaki "Klavye
+kısayolları" da).
+
+| Tuş | Ne yapar |
+| --- | --- |
+| `/` | Listenin arama kutusuna geçer; sayfada kutu yoksa paleti açar |
+| `n` | Sayfanın "Yeni" bağlantısını açar; yoksa paleti yalnız Oluştur'la açar |
+| `?` | Kısayol listesi |
+| `g` sonra `b` / `s` / `k` / `d` / `m` / `u` / `r` | Genel bakış, Siparişler, Karaoke, Kasa ("damga"), Kafe menüsü, Ürünler, Raporlar |
+
+- `g`'den sonra ikinci harf 1,5 saniye içinde gelmeli. İkinci harfte ü, ş,
+  ç, ö, ğ işaretsiz harf gibi sayılır (`g ü` = `g u`). `i` ve `ı`'ya bir şey
+  bağlı değil.
+- Rolün açamadığı sayfanın harfi hiçbir şey yapmaz (personelde `g m`, `g u`,
+  `g r`).
+- Tek tuşlar çalışmaz: bir alana yazarken, IME ile yazarken, bir pencere
+  (palet, onay, menü çekmecesi) açıkken, ⌘, Ctrl ya da Alt basılıyken (AltGr
+  dahil), **Kasa'da** (okutulan ve yazılan kodlar oraya gelir) ve
+  **kasiyerde** hiç.
+- `n` yalnız bir bağlantıyı açar: sayfanın ana düğmesi bir gönderme ya da
+  yazdırma düğmesiyse ona basmaz, paleti Oluştur'la açar.
+- **Kapatmak için**: menünün altındaki Hesap bölümünde "Tek tuş kısayolları"
+  (bu tarayıcıda hatırlanır; kısayol listesinde de aynı düğme var). Kapalıyken
+  yalnız ⌘K / Ctrl K kalır.
+- Kurallar tek yerde: `src/lib/admin/shortcut-core.ts`; dinleyici
+  `src/components/admin/shortcuts.tsx` (yalnız tek tuşlu rollere, ayrı bir
+  parça olarak yüklenir).
