@@ -313,15 +313,19 @@ açılınca, `KARAOKE_POLICY_APP_VERSION`). Kod bu payı **POS'a göndermez**:
 panelinden karta iade eder ve panelde "Elle iade edildi" ile kaydeder
 (`settleKaraokeRefundByHand`, talep satırı payın tutarıyla yazılır).
 "İadeyi yeniden dene" bu satırda yoktur (`retryKaraokeRefund` → `by_hand`).
-Geç iptal edilen saat yeniden satılınca (19 Eki 2026,
+Geç iptal edilen saat yeniden satılınca (21 Eki 2026,
 `karaoke_charge_resold_hours`) o saat için tutulan pay da aynı yolla
 borçlanır: `refundMinor` büyür, rezervasyon yeniden `refunding` olur, ekibe
 "Geç iptal edilen saat yeniden satıldı" e-postası gider; daha önce elle
 iade edilen kısım `refundSettledMinor`'da durur ve panel yalnız kalanı
-ister, talep satırının tutarı toplam iadeye yükseltilir. İşletmenin geç
-iptalinde verilen para telafisi (karaoke koşulları §8) POS'tan değil
-misafirin kendi banka hesabına havaleyle ödenir; panel yalnız günü ve
-tutarı kaydeder.
+ister, talep satırının tutarı toplam iadeye yükseltilir. "Elle iade
+edildi" okunan tutara bağlıdır: arada bir saat daha satılıp tutar
+büyüdüyse kayıt reddedilir, sayfa yenilenip kalan tutar iade edilir.
+Yeniden satış iadesi, hepsi toplanınca ödenen tutara eşit olsa bile POS'a
+gönderilmez (önceki kısmı elle iade edilmiş olabilir, POS tamamını yeniden
+gönderirdi). İşletmenin geç iptalinde verilen para telafisi (karaoke
+koşulları §8) POS'tan değil misafirin kendi banka hesabına havaleyle
+ödenir; panel yalnız günü ve tutarı kaydeder, IBAN hiçbir yere yazılmaz.
 %100 geç iptal ve işletme iptali tam iadedir ve POS'tan otomatik gider (kural
 29: red geri alır, yanıtsızlık `refunding` bırakır). Kısmi iade sandbox'ta
 ölçülünce bu yol otomatikleştirilebilir; o zamana kadar elle kalır.
