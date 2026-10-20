@@ -1297,3 +1297,18 @@ Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
 Açık (operatörde): oda, kurallar adresi ve KEP değerleri (31 Eki 2026'ya
 kadar, `entity.ts`); Paraşüt'te internet satışı ibareleri ve koliye giren
 "İrsaliye yerine geçer." çıktısı (LEGAL-REDLINES §24.5).
+
+### Kabuk: telefonda alt çubuk (admin UI v2, UI-7)
+
+`lg` altında, menüsü olan her rol için (sahip, yönetici, personel) ekranın
+altında en çok beş yuva. Yuvalar rolün kendi menüsünden gelir
+(`bottom-bar-core.ts`): açılış sayfası başta, açılış değilse Genel bakış
+sonda, altıncı öğe varsa beşinci yuva Tümü (çekmece). UI-13 Personel'e
+Canlı durum ekleyince yuvalar kendiliğinden Siparişler, Karaoke, Kasa,
+Canlı durum, Tümü olur.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Telefonda her sayfa değişimi menü düğmesi, çekmece, öğe demekti | `ui/bottom-bar.tsx`: 44 px yuvalar, lucide simge (menünün tembel `nav-icon.tsx` parçasından) ve ad, menünün rozet sayıları (ikinci bir sorgu yok). Siparişler rozetin saydığı Açık sekmesini açar; açık sayfanın yuvası `aria-current`, çubukta olmayan sayfada Tümü yanar. Tümü çekmeceyi açar, kapanınca odak ona döner. Kasiyerde çubuk yok, kabuğu çubuk kodunu çalıştırmaz | `admin-bottom-bar`, `admin-landing` |
+| 🟢 | Alt kenarda üst üste binme (çubuk, toplu işlem çubuğu, bildirimler, yeni sipariş kartları, kaydet çubukları, klavye) | Tek değişken: admin kökü `has-[[data-admin-tabbar]]` ile `--admin-bottom-inset`'i (3,5rem + `env(safe-area-inset-bottom)`) toplu işlem çubuğu yokken kurar; sayfa o kadar yukarıda biter. Bildirimler ve toplu işlem çubuğu onu kenar boşluğu olarak ekler, Site metinleri ve kampanya formunun kaydet çubukları 1rem üstünde durur, yeni sipariş kartları çubuğun üstüne oturur ve ev göstergesi payını ikinci kez eklemez. Çubuk toplu işlem çubuğu açıkken, bir `dialog` açıkken ve dokunmatik ekranda yazı alanı odaktayken çekilir (yalnız Tailwind sınıfları, dinleyici yok). `globals.css`'e kural eklenmedi | `admin-bottom-bar`, `admin-order-alerts-client` |
+| 🟢 | Paket bütçesi | Her admin rotasına +1,0 KB gz (`/admin/siparisler` +0,96, `/admin/kasa` +0,99); lucide parçası değişmedi, `/admin/kasa`'nın rota parçalarında lucide yok | `admin-bottom-bar` |

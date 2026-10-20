@@ -252,10 +252,11 @@ export function CampaignMailForm({
       {/* The save bar has a ground of its own (admin audit PEO-12), as the
           site-text form's: without one, the fields scrolled visibly under
           the button and the answer pill, a quarter of a phone screen. The
-          answer is a block with its role, not a pill. */}
+          answer is a block with its role, not a pill. Above the phone's
+          bottom bar (--admin-bottom-inset, layout.tsx), not under it. */}
       <div
         data-sticky-save-bar
-        className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(44,29,17,0.14)] sm:flex-row sm:items-center"
+        className="sticky bottom-[calc(1rem+var(--admin-bottom-inset,0px))] z-10 flex flex-col gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(44,29,17,0.14)] sm:flex-row sm:items-center"
       >
         <div className="shrink-0">
           <PrimaryButton type="submit" disabled={pending}>

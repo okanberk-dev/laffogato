@@ -273,13 +273,17 @@ export function BulkActionBar({
           A solid ground, no backdrop-blur: a backdrop filter makes the bar
           the containing block of fixed descendants, and the ActionMenu a
           phone bar folds its buttons into (order-actions-ui.tsx) placed its
-          panel 750 px below the screen. */}
+          panel 750 px below the screen.
+          It takes the phone's bottom bar's place (the bar hides, and the
+          shared --admin-bottom-inset drops to 0 while this bar is up,
+          layout.tsx); the margin adds that inset all the same, so the bar
+          never sits on a bar under it. */}
       <div
         ref={barRef}
         data-admin-bulk-bar=""
         role="region"
         aria-label="Toplu işlem"
-        className="fixed inset-x-4 bottom-4 z-30 lg:left-[calc(16rem+1rem)]"
+        className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:left-[calc(16rem+1rem)]"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
           <div className="flex flex-wrap items-center gap-x-3">

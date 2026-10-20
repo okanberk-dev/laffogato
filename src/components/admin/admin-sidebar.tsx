@@ -24,9 +24,11 @@ import {
 import { forgetRecents } from "@/components/admin/palette/recents";
 import { PaletteTrigger } from "@/components/admin/palette/trigger";
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
+import { BottomBar } from "@/components/admin/ui/bottom-bar";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
 import { useToast } from "@/components/admin/ui/toast";
+import { activeBottomSlot, bottomBarSlots } from "@/lib/admin/bottom-bar-core";
 import {
   activeNavPlace,
   hasNavChrome,
@@ -845,6 +847,9 @@ export function AdminSidebar(props: SidebarProps) {
   );
   const dialogRef = useRef<HTMLDialogElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
+  // What opened the drawer (the top bar's button or the bottom bar's
+  // "Tümü"): focus goes back there when it closes.
+  const openerRef = useRef<HTMLElement | null>(null);
   const downOnBackdrop = useRef(false);
   const [collapsed, toggleGroup] = useCollapsedGroups();
 
@@ -965,6 +970,13 @@ export function AdminSidebar(props: SidebarProps) {
     onToggleGroup: toggleGroup,
   };
   const strip = sectionTabsFor(pathname, navLinks);
+  // The phone's bottom bar (UI-7), past the cashier's return above: a
+  // one-page shell runs none of it.
+  const slots = bottomBarSlots(props.groups, props.landingPath, BADGE_LINKS);
+  const openDrawer = (opener: HTMLElement) => {
+    openerRef.current = opener;
+    setOpen(true);
+  };
 
   return (
     <>
@@ -990,7 +1002,7 @@ export function AdminSidebar(props: SidebarProps) {
         <button
           ref={toggleRef}
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={(e) => openDrawer(e.currentTarget)}
           aria-label="Menüyü aç"
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -1033,7 +1045,8 @@ export function AdminSidebar(props: SidebarProps) {
         aria-label="Menü"
         onClose={() => {
           setOpenOn(null);
-          toggleRef.current?.focus();
+          (openerRef.current ?? toggleRef.current)?.focus();
+          openerRef.current = null;
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
@@ -1058,6 +1071,21 @@ export function AdminSidebar(props: SidebarProps) {
           </>
         )}
       </dialog>
+
+      {/* Phone bottom bar: the role's first pages and "Tümü" (the
+          drawer above), with the same badge counts as the nav. */}
+      <BottomBar
+        slots={slots}
+        active={activeBottomSlot(
+          slots,
+          activeNavPlace(pathname, navLinks)?.item.href ?? null,
+        )}
+        counts={counts}
+        badgeTitles={BADGE_TITLES}
+        onMore={openDrawer}
+        drawerId={DRAWER_ID}
+        drawerOpen={open}
+      />
     </>
   );
 }
