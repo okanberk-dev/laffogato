@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createDb, type Executor } from "@/lib/db/client";
+
 /**
  * `/api/cron/daily` - the day's scheduled work in one request. Each job runs
  * inside its own try and reports its own outcome, so the property pinned here
  * is that one job going wrong never swallows the others. The Supabase
- * keep-alive is the real `keepSupabaseAwake` against a stubbed `fetch`; the
- * other four jobs are stubs, since each has its own tests.
+ * keep-alive is the real `keepSupabaseAwake` against a stubbed `fetch`, and
+ * its record the real `recordSupabaseKeepalive` against a stubbed data layer
+ * (every statement it sends is captured); the other four jobs are stubs,
+ * since each has its own tests.
  */
 
 const resumePendingCampaigns = vi.fn();
@@ -14,6 +18,24 @@ const expireUnpaidReservations = vi.fn();
 const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
 
+/** What the route sent to the database, and in what order the jobs ran. */
+const db = vi.hoisted(() => ({
+  sent: [] as { text: string; params: readonly unknown[] }[],
+  order: [] as string[],
+  answer: null as null | ((text: string) => Promise<unknown>),
+}));
+
+vi.mock("@/lib/db", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/db")>();
+  const exec: Executor = async (q) => {
+    db.sent.push({ text: q.text, params: q.params });
+    db.order.push("db");
+    if (db.answer) await db.answer(q.text);
+    return { rows: [], rowCount: 1 };
+  };
+  const stub = createDb(exec);
+  return { ...real, getDb: () => stub };
+});
 vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/email/campaigns", () => ({ resumePendingCampaigns }));
 vi.mock("@/app/api/cron/_birthday", () => ({ runBirthdayGreetings }));
@@ -21,6 +43,14 @@ vi.mock("@/lib/mobile/karaoke-payment", () => ({ expireUnpaidReservations }));
 vi.mock("@/lib/retention", () => ({ destructionEnabled, runRetention }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
+const { KEEPALIVE_RECORD_TIMEOUT_MS } = await import(
+  "@/lib/admin/supabase-keepalive"
+);
+
+/** The keep-alive record's statements (the only ones the stubs leave). */
+function records() {
+  return db.sent.filter((s) => s.text.includes('"supabase_keepalive"'));
+}
 
 const ORIGINAL_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const FAKE_KEY = "test-service-role-key-not-a-real-one";
@@ -52,6 +82,7 @@ function expectOtherJobsRan(): void {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("CRON_SECRET", "s3cret");
+  vi.stubEnv("SUPABASE_SECRET_KEY", undefined);
   process.env.SUPABASE_SERVICE_ROLE_KEY = FAKE_KEY;
   vi.stubGlobal("fetch", fetchMock);
   fetchMock.mockReset();
@@ -60,7 +91,13 @@ beforeEach(() => {
   runBirthdayGreetings.mockResolvedValue(BIRTHDAY);
   expireUnpaidReservations.mockResolvedValue(0);
   destructionEnabled.mockReturnValue(false);
-  runRetention.mockResolvedValue(RETENTION);
+  runRetention.mockImplementation(async () => {
+    db.order.push("retention");
+    return RETENTION;
+  });
+  db.sent.length = 0;
+  db.order.length = 0;
+  db.answer = null;
   logged = [];
   const capture = (...args: unknown[]) => {
     logged.push(args.map(String).join(" "));
@@ -93,7 +130,7 @@ describe("/api/cron/daily", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toEqual({
       ok: true,
-      keepalive: { ok: true, ping: "ok" },
+      keepalive: { ok: true, ping: "ok", recorded: true },
       campaigns: { ok: true, campaigns: [] },
       birthday: { ok: true, ...BIRTHDAY },
       karaoke: { ok: true, expired: 0 },
@@ -114,7 +151,7 @@ describe("/api/cron/daily", () => {
     const res = await GET(get());
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.keepalive).toEqual({ ok: true, ping: "failed" });
+    expect(body.keepalive).toEqual({ ok: true, ping: "failed", recorded: true });
     expect(body.campaigns).toEqual({ ok: true, campaigns: [] });
     expect(body.retention).toEqual({ ok: true, ...RETENTION });
     expectOtherJobsRan();
@@ -129,7 +166,11 @@ describe("/api/cron/daily", () => {
     );
     const res = await GET(get());
     expect(res.status).toBe(200);
-    expect((await res.json()).keepalive).toEqual({ ok: true, ping: "failed" });
+    expect((await res.json()).keepalive).toEqual({
+      ok: true,
+      ping: "failed",
+      recorded: true,
+    });
     expectOtherJobsRan();
   });
 
@@ -137,7 +178,11 @@ describe("/api/cron/daily", () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     const res = await GET(get());
     expect(res.status).toBe(200);
-    expect((await res.json()).keepalive).toEqual({ ok: true, ping: "skipped" });
+    expect((await res.json()).keepalive).toEqual({
+      ok: true,
+      ping: "skipped",
+      recorded: true,
+    });
     expect(fetchMock).not.toHaveBeenCalled();
     expectOtherJobsRan();
   });
@@ -148,7 +193,103 @@ describe("/api/cron/daily", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.campaigns).toEqual({ ok: false, error: "internal" });
-    expect(body.keepalive).toEqual({ ok: true, ping: "ok" });
+    expect(body.keepalive).toEqual({ ok: true, ping: "ok", recorded: true });
     expectOtherJobsRan();
+  });
+});
+
+describe("/api/cron/daily records the ping for the owner's dashboard", () => {
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+  const UPSERT_HEAD =
+    /^INSERT INTO "supabase_keepalive" \("id", "lastStatus", "lastAttemptAt"(, "lastSuccessAt")?\) VALUES /;
+
+  it("writes one statement, after every job; an ok sets the last success too", async () => {
+    const res = await GET(get());
+    expect((await res.json()).keepalive.recorded).toBe(true);
+    const sent = records();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toMatch(UPSERT_HEAD);
+    expect(sent[0].text).toMatch(
+      /ON CONFLICT \("id"\) DO UPDATE SET "lastStatus" = EXCLUDED\."lastStatus", "lastAttemptAt" = EXCLUDED\."lastAttemptAt", "lastSuccessAt" = EXCLUDED\."lastSuccessAt"$/,
+    );
+    const [id, status, attemptAt, successAt] = sent[0].params;
+    expect([id, status]).toEqual(["supabase", "ok"]);
+    expect(attemptAt).toMatch(ISO);
+    expect(successAt).toBe(attemptAt);
+    // Bookkeeping comes last: retention ran, then the record.
+    expect(db.order).toEqual(["retention", "db"]);
+  });
+
+  it("a failed ping and a skipped one leave the last success where it was", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 503 }));
+    await GET(get());
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    await GET(get());
+    const sent = records();
+    expect(sent.map((s) => s.params[1])).toEqual(["failed", "skipped"]);
+    for (const s of sent) {
+      expect(s.text).toMatch(UPSERT_HEAD);
+      // Not in the insert, so not in the update: the old success stays.
+      expect(s.text).not.toContain("lastSuccessAt");
+      expect(s.params).toHaveLength(3);
+      expect(s.params[2]).toMatch(ISO);
+    }
+  });
+
+  it("stores no key and nothing from the response", async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ users: [{ id: "u-eda", email: "eda@example.com" }] }),
+    );
+    await GET(get());
+    const stored = JSON.stringify(records());
+    expect(stored).not.toContain(FAKE_KEY);
+    expect(stored).not.toContain("eda@example.com");
+    expect(stored).not.toContain("u-eda");
+  });
+
+  it("an unreachable database neither fails the run nor turns a good ping into an error", async () => {
+    db.answer = async (text) => {
+      if (text.includes('"supabase_keepalive"')) {
+        throw Object.assign(
+          new Error("connect ECONNREFUSED 10.1.2.3:5432 as neondb_owner"),
+          { code: "ECONNREFUSED" },
+        );
+      }
+    };
+    const res = await GET(get());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.keepalive).toEqual({ ok: true, ping: "ok", recorded: false });
+    expect(body.retention).toEqual({ ok: true, ...RETENTION });
+    expectOtherJobsRan();
+    // Logged by class, masked: not the driver's message.
+    const line = logged.find((l) => l.includes("keep-alive not recorded"));
+    expect(line).toContain("database unreachable");
+    expect(line).not.toContain("10.1.2.3");
+    expect(line).not.toContain("neondb_owner");
+  });
+
+  it(`a database that never answers holds the run ${KEEPALIVE_RECORD_TIMEOUT_MS} ms at most`, async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      db.answer = (text) =>
+        text.includes('"supabase_keepalive"')
+          ? new Promise(() => {})
+          : Promise.resolve();
+      const pending = GET(get());
+      await vi.advanceTimersByTimeAsync(KEEPALIVE_RECORD_TIMEOUT_MS);
+      const res = await pending;
+      expect(res.status).toBe(200);
+      expect((await res.json()).keepalive).toEqual({
+        ok: true,
+        ping: "ok",
+        recorded: false,
+      });
+      expect(logged.join("\n")).toContain(
+        `keep-alive not recorded: no answer in ${KEEPALIVE_RECORD_TIMEOUT_MS} ms`,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

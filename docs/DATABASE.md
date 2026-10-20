@@ -530,6 +530,11 @@ aynı adrese yeniden ticari ileti gönderilmesine yol açar, ki Yönetmelik ret
 kaydını tam da bunun için 3 yıl tutturur. Sipariş, fatura ve ödeme kayıtları
 da kapsam dışıdır (VUK/TTK saklama süreleri).
 
+`supabase_keepalive` (20 Eki 2026) bir günlük değil, tek satırdır: günlük
+Supabase yoklamasının son denemesi ve son başarısı, her yoklamada üzerine
+yazılır. Kişisel veri taşımaz (bir sonuç kelimesi ve iki ISO zamanı; tablo
+kısıtları başka bir şeyi kabul etmez), büyümez, imha kuralı gerekmez.
+
 ## Yedek
 
 Ücretsiz planda otomatik yedek sınırlıdır. Düzenli olarak:

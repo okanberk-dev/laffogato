@@ -398,7 +398,9 @@ export const KEEPALIVE_TIMEOUT_MS = 5_000;
  * nothing safe to read. GoTrue's admin user list is a `select` on
  * `auth.users`, read-only, the same endpoint and headers
  * `findSupabaseIdentityByEmail` already uses, and needs no new dependency.
- * One user per page, and that user's record is never read.
+ * One user per page, and that user's record is never read. The cron records
+ * the outcome in our own Postgres (src/lib/admin/supabase-keepalive.ts), so
+ * a key Supabase stops accepting turns the owner's dashboard line amber.
  *
  * Never throws: it runs inside the daily cron beside jobs it must not take
  * down. Logs the HTTP status or the error message only, never the key, the

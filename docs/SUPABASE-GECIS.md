@@ -40,6 +40,19 @@ inmediği için yetmez. Sonuç cron yanıtındaki `keepalive.ping`'dir (`ok` ·
 yalnız duraklamayı önler, yukarıdaki 2 proje sınırı yüzünden kaldırılmayı
 değil. Pro planda duraklama yoktur; orada adım silinebilir.
 
+**Yoklama görünür (20 Eki 2026).** `CRON_SECRET` Vercel'de "sensitive"
+olduğu için cron elle çağrılamaz; sonucu yalnız yanıt gövdesinde kalıyordu.
+Artık her yoklamanın sonucu (`ok` · `failed` · `skipped` ve ISO zamanı;
+anahtar ve yanıt gövdesi asla) Neon'daki tek satırlık `supabase_keepalive`
+tablosuna yazılır: son deneme ve son başarı, tek bir upsert ile
+(`recordSupabaseKeepalive`, `src/lib/admin/supabase-keepalive.ts`). Kayıt
+cron'un işlerinden sonra, 5 sn sınırıyla yazılır; yazılamazsa günlüğe sınıfı
+düşer (SQLSTATE, ulaşılamıyor, süre), cron ve yoklamanın sonucu etkilenmez
+(yanıtta `keepalive.recorded`). Sahibin Genel bakış sayfasında
+"Supabase uyanık tutma: son başarılı ping <tarih>" satırı durur; son başarı
+İstanbul takvimiyle 3 günden eskiyse ya da son deneme başarısızsa uyarı
+renginde (`docs/ADMIN.md`).
+
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
 
 `src/lib/db/index.ts` düz `pg` sürücüsüdür; sorgular adlandırılmış prepared
@@ -54,7 +67,7 @@ Supabase'de rol bayrakları (canlı sorgu, pg_roles):
   anon          rolbypassrls = false
 ```
 
-Şemadaki 46 tablonun hepsi (`_migrations` dahil; 20 Eki 2026'da şema boş
+Şemadaki 47 tablonun hepsi (`_migrations` dahil; 20 Eki 2026'da şema boş
 bir Postgres'e kurulup `pg_class.relrowsecurity` ile sayıldı) "RLS açık,
 policy yok" durumundadır ve `postgres` kullanıcısıyla bağlanan uygulama için
 davranış Neon'dakiyle BİREBİR aynıdır: RLS baypas edilir, hiçbir sorgu boş

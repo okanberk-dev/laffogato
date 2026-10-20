@@ -285,4 +285,5 @@ export const TABLES = {
   orderNoticeEmails: "order_notice_emails",
   cafeTables: "cafe_tables",
   productPriceHistory: "product_price_history",
+  supabaseKeepalive: "supabase_keepalive",
 } as const;
