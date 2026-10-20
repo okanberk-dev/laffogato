@@ -69,8 +69,9 @@ const CONTROL = /\p{Cc}/u;
  * The params a view keeps of this address, sorted by name, so one view has
  * one spelling. Dropped: `q`, the list's search boxes, the page, the
  * one-time `denied`, an odd name, an empty or long value, a control
- * character, and any value piiLike() reads as an e-mail or a phone (and so
- * a date). A repeated name keeps its first value, as the lists read it.
+ * character, and any name or value piiLike() reads as an e-mail or a phone
+ * (and so a date). A repeated name keeps its first value, as the lists
+ * read it.
  */
 export function viewParams(
   address: SearchParamsInput,
@@ -88,7 +89,9 @@ export function viewParams(
     seen.add(key);
     if (dropped.has(key) || !PARAM_NAME.test(key)) continue;
     if (!value || value.length > VALUE_MAX || CONTROL.test(value)) continue;
-    if (piiLike(value)) continue;
+    // The name too: a link someone wrote by hand can carry a number in it
+    // (`?p05321234567=1`), and the name is kept as much as the value.
+    if (piiLike(key) || piiLike(value)) continue;
     out.push([key, value]);
     if (out.length === PARAMS_MAX) break;
   }

@@ -151,6 +151,15 @@ describe("what a view keeps of the address", () => {
     expect(q({ no: "123456" })).toBe("no=123456");
   });
 
+  it("drops a name that carries a phone number too, as it does a value", () => {
+    // A link written by hand: the name is kept as much as the value is.
+    expect(
+      q({ p05321234567: "1", "a-0532-123-45-67": "x", durum: "paid" }),
+    ).toBe("durum=paid");
+    // A few digits in a name are a numbered filter, not a person.
+    expect(q({ f2: "1", p123456: "1" })).toBe("f2=1&p123456=1");
+  });
+
   it("drops a date as well (piiLike counts it), so a range is never kept", () => {
     expect(q({ bas: "2026-10-01", bit: "2026-10-31", kanal: "web" })).toBe(
       "kanal=web",
@@ -325,6 +334,72 @@ describe("saving, the default and deleting", () => {
   });
 });
 
+describe("whatever is done, the rules hold", () => {
+  // Seeded, so a failure repeats: random saves (new, same name in another
+  // case, same query under a new name), defaults, deletes and a trip through
+  // storage. After each step: at most eight views, one name and one query to
+  // a view, a default that is one of them, and storage reads back what was
+  // written.
+  const lcg = (seed: number) => {
+    let s = seed >>> 0;
+    return () => {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 2 ** 32;
+    };
+  };
+  const NAMES = ["Masa", "MASA", "masa", "İade", "iade", "Ağır", "ağır"].concat(
+    ["Kargo", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+  );
+  const KEYS = ["durum", "teslimat", "kanal", "tur", "sirala", "odeme"];
+  const VALUES = ["acik", "paid", "shipped", "table", "pickup", "app", "web"];
+
+  it("at most eight, one name and one query each, a default that exists", () => {
+    for (let seed = 1; seed <= 120; seed += 1) {
+      const next = lcg(seed);
+      const pick = <T>(list: readonly T[]) =>
+        list[Math.floor(next() * list.length)];
+      let s: ReturnType<typeof lib.parseSavedViews> = lib.NO_SAVED_VIEWS;
+      for (let step = 0; step < 50; step += 1) {
+        const params = new URLSearchParams();
+        for (let i = 0, n = 1 + Math.floor(next() * 3); i < n; i += 1) {
+          params.set(pick(KEYS), pick(VALUES));
+        }
+        const query = q(params);
+        const roll = next();
+        if (roll < 0.55) {
+          const r = lib.saveView(s, pick(NAMES), query);
+          if (r.ok) s = r.state;
+        } else if (roll < 0.75 && s.views.length > 0) {
+          s = lib.removeView(s, pick(s.views).query);
+        } else if (roll < 0.9) {
+          const target =
+            s.views.length > 0 && next() < 0.8 ? pick(s.views).query : query;
+          s = lib.setDefaultView(s, next() < 0.15 ? null : target);
+        } else {
+          expect(
+            lib.parseSavedViews(lib.serializeSavedViews(s), ORDERS),
+          ).toEqual(s);
+        }
+        const where = `seed ${seed}, step ${step}`;
+        expect(s.views.length, where).toBeLessThanOrEqual(lib.SAVED_VIEWS_MAX);
+        expect(new Set(s.views.map((v) => v.query)).size, where).toBe(
+          s.views.length,
+        );
+        expect(
+          new Set(s.views.map((v) => v.name.toLocaleLowerCase("tr-TR"))).size,
+          where,
+        ).toBe(s.views.length);
+        if (s.defaultQuery !== null) {
+          expect(
+            s.views.some((v) => v.query === s.defaultQuery),
+            where,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+});
+
 describe("reading the stored views back", () => {
   it("anything that is not a list of views is none", () => {
     for (const raw of [
@@ -365,6 +440,18 @@ describe("reading the stored views back", () => {
         ],
         "durum=paid",
       ),
+    );
+  });
+
+  it("a stored name with a phone number in it is dropped on the way back", () => {
+    const raw = JSON.stringify({
+      views: [
+        { name: "Kargo", query: "p05321234567=1&teslimat=shipping" },
+        { name: "Hepsi", query: "p05321234567=1" },
+      ],
+    });
+    expect(lib.parseSavedViews(raw, ORDERS)).toEqual(
+      state([["Kargo", "teslimat=shipping"]]),
     );
   });
 
