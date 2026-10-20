@@ -53,9 +53,14 @@ Supabase'de rol bayrakları (canlı sorgu, pg_roles):
   anon          rolbypassrls = false
 ```
 
-Şemadaki 27 tablo "RLS açık, policy yok" durumundadır ve `postgres`
-kullanıcısıyla bağlanan uygulama için davranış Neon'dakiyle BİREBİR aynıdır:
-RLS baypas edilir, hiçbir sorgu boş dönmez.
+Şemadaki 46 tablonun hepsi (`_migrations` dahil; 20 Eki 2026'da şema boş
+bir Postgres'e kurulup `pg_class.relrowsecurity` ile sayıldı) "RLS açık,
+policy yok" durumundadır ve `postgres` kullanıcısıyla bağlanan uygulama için
+davranış Neon'dakiyle BİREBİR aynıdır: RLS baypas edilir, hiçbir sorgu boş
+dönmez. Tek istisna `customer_milestone_rewards`'tı (RLS'siz yaratılmıştı,
+`20261020175000_customer_milestone_rewards_rls.sql` kapattı). Yeni bir tablo
+RLS'siz kalırsa `tests/db-rls.test.ts` (şemadan) ve
+`tests/db-integration-schema-objects.test.ts` (gerçek Postgres'te) kırılır.
 
 ## 2. ⚠️ Tek gerçek tuzak: doğrudan bağlantı IPv6-yalnız, Vercel IPv6 konuşmaz
 
