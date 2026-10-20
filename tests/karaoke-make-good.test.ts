@@ -1335,6 +1335,31 @@ describe("an hour cancelled late and sold again", () => {
     expect(h.cancellations.at(-1)?.refundIsResaleTopUp).toBeUndefined();
   });
 
+  it("all of it sold again: what goes back equals the payment and still never reaches the POS", async () => {
+    await lateCancelled();
+    await soldAgain("krk-00043", 20, 2, "PNK-2");
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunding",
+      refundMinor: 200_000,
+      resaleRefundMinor: 100_000,
+    });
+    // The parts add up to the whole payment, yet it stays a refund by hand:
+    // the POS would send the whole payment again (rule 25).
+    expect(time.isPartialRefund(rowOf("krk-00042") as never)).toBe(true);
+    expect(
+      await payment.retryKaraokeRefund("krk-00042", "yonetici@kosk", at(4)),
+    ).toMatchObject({ ok: false, reason: "by_hand" });
+    const v = panel.karaokeRowView(rowOf("krk-00042") as never, {
+      today: "2026-10-30",
+      now: at(4),
+      prepay: true,
+      canRefund: true,
+    });
+    expect(v.plan.refund).toBeNull();
+    expect(v.plan.settle).toEqual({ kind: "share" });
+    expect(h.refunds).toEqual([]);
+  });
+
   it("charges the resale right after the sale, before the guest's mail", async () => {
     await lateCancelled();
     await soldAgain("krk-00043", 20, 1, "PNK-2");
