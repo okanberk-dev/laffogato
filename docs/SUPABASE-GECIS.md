@@ -35,7 +35,8 @@ servis rolüyle auth yönetim API'sinden tek kullanıcılık bir sayfa ister
 (`keepSupabaseAwake`, `src/lib/supabase/admin.ts`): `auth.users` üzerinde
 gerçek bir okuma; yanıt okunmadan atılır. `/auth/v1/health` veritabanına
 inmediği için yetmez. Sonuç cron yanıtındaki `keepalive.ping`'dir (`ok` ·
-`failed` · `skipped`; `SUPABASE_SERVICE_ROLE_KEY` yoksa `skipped`). Bu
+`failed` · `skipped`; servis anahtarı, yani `SUPABASE_SECRET_KEY` ya da eski
+`SUPABASE_SERVICE_ROLE_KEY` yoksa `skipped`). Bu
 yalnız duraklamayı önler, yukarıdaki 2 proje sınırı yüzünden kaldırılmayı
 değil. Pro planda duraklama yoktur; orada adım silinebilir.
 

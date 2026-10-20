@@ -46,20 +46,68 @@ import { SUPABASE_URL } from "./config";
  * sign-in, the app's and the site's. The daily cron asks the auth admin API
  * for one page of one user and throws the answer away unread: read-only, no
  * member data kept or logged. On Supabase Pro it is not needed.
+ *
+ * Which key (20 Oct 2026). Supabase replaces the legacy `service_role` JWT
+ * with secret keys (`sb_secret_...`) and deprecates the legacy keys by the
+ * end of 2026 (https://supabase.com/docs/guides/api/api-keys). Both grant
+ * the same service role. `SUPABASE_SECRET_KEY` is read first; the legacy
+ * `SUPABASE_SERVICE_ROLE_KEY` only when the new one is unset, empty or
+ * blank. A secret key is not a JWT, so the direct calls below send it on
+ * `apikey` only (`adminHeaders`); supabase-js handles its own calls with
+ * either key (docs/AUTH-BRIDGE.md §1, which records what was verified).
  */
 
 declare global {
-  var __laffogatoSupabaseAdmin: SupabaseClient | undefined;
+  var __laffogatoSupabaseAdmin:
+    | { key: string; client: SupabaseClient }
+    | undefined;
 }
 
-function serviceRoleKey(): string {
+/** The skip logs' reason: no key under either name. */
+export const NO_SECRET_KEY =
+  "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set";
+
+/**
+ * The service key this deployment holds, or "" for none: the new secret key
+ * first, the legacy service-role JWT when the new one is absent. The value
+ * never leaves this module.
+ */
+function serviceKey(): string {
+  const secret = (process.env.SUPABASE_SECRET_KEY ?? "").trim();
+  if (secret) return secret;
   return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
 }
 
 /**
- * Whether this deployment holds a service-role key. Presence only: the value
- * never leaves this module, and nothing that calls this can learn more than
- * the one bit.
+ * Supabase's new key formats, the same test supabase-js applies
+ * (`isNewApiKey`, @supabase/supabase-js 2.117.1 src/lib/fetch.ts). Neither is
+ * a JWT.
+ */
+function isOpaqueKey(key: string): boolean {
+  return key.startsWith("sb_secret_") || key.startsWith("sb_publishable_");
+}
+
+/**
+ * Headers for a direct call to the auth admin API.
+ *
+ * A secret key travels on `apikey` and nowhere else: "Send publishable and
+ * secret keys on the apikey header, not on Authorization: Bearer"
+ * (https://supabase.com/docs/guides/api/api-keys), "pass in the user's JWT,
+ * or leave the header empty" (Supabase's API key announcement,
+ * github.com/orgs/supabase/discussions/29260). The gateway gives such a
+ * request the service role. The legacy key IS a JWT and keeps the bearer
+ * GoTrue reads its role from, exactly the pair supabase-js sends with it.
+ */
+function adminHeaders(key: string): Record<string, string> {
+  return isOpaqueKey(key)
+    ? { apikey: key }
+    : { apikey: key, Authorization: `Bearer ${key}` };
+}
+
+/**
+ * Whether this deployment holds a service key, the new secret key or the
+ * legacy service-role JWT. Presence only: the value never leaves this module,
+ * and nothing that calls this can learn more than the one bit.
  *
  * It exists because a missing key used to be invisible. Every job below
  * answers `skipped` without it and the site carries on, which is correct, but
@@ -69,22 +117,32 @@ function serviceRoleKey(): string {
  * now logged with their reason.
  */
 export function hasServiceRole(): boolean {
-  return serviceRoleKey() !== "";
+  return serviceKey() !== "";
 }
 
+/**
+ * One client per key. supabase-js 2.117.1 takes either format: it sends the
+ * key as `apikey` and as the auth client's bearer, which Supabase accepts for
+ * a new key only because the two values match exactly (the announcement's
+ * backward-compatibility rule). No session is kept or refreshed: this client
+ * never signs anyone in, it only carries the key (Supabase's server-side
+ * admin example sets the same two options; detectSessionInUrl has no URL to
+ * read on a server).
+ */
 function getSupabaseAdminClient(): SupabaseClient | null {
-  const key = serviceRoleKey();
+  const key = serviceKey();
   if (!key) return null;
-  if (!global.__laffogatoSupabaseAdmin) {
-    global.__laffogatoSupabaseAdmin = createClient(SUPABASE_URL, key, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-  }
-  return global.__laffogatoSupabaseAdmin;
+  const cached = global.__laffogatoSupabaseAdmin;
+  if (cached?.key === key) return cached.client;
+  const client = createClient(SUPABASE_URL, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  global.__laffogatoSupabaseAdmin = { key, client };
+  return client;
 }
 
 /**
@@ -168,7 +226,7 @@ export async function updateSupabasePassword(
   const admin = getSupabaseAdminClient();
   if (!admin) {
     console.warn(
-      "[supabase] password sync skipped: SUPABASE_SERVICE_ROLE_KEY is not set, the previous password still opens the app",
+      `[supabase] password sync skipped: ${NO_SECRET_KEY}, the previous password still opens the app`,
     );
     return "skipped";
   }
@@ -241,17 +299,16 @@ function isExactPasswordIdentity(user: AdminUserRow, needle: string): boolean {
  * an address is a LIKE wildcard, so every row is re-checked here for exact,
  * case-insensitive equality before it counts.
  *
- * Headers are the ones supabase-js itself sends to the auth API with this key
- * (`apikey` and a bearer), so the call authenticates exactly as
- * `updateUserById` does. Never throws. PII rule: nothing about the address or
- * the id is logged.
+ * Headers: `adminHeaders`, the service key on `apikey`, plus the bearer only
+ * for the legacy JWT key. Never throws. PII rule: nothing about the address or
+ * the id is logged, nor the key.
  */
 export async function findSupabaseIdentityByEmail(
   email: string,
 ): Promise<IdentityLookup> {
   const needle = email.trim().toLowerCase();
   if (!needle.includes("@")) return { status: "none" };
-  const key = serviceRoleKey();
+  const key = serviceKey();
   if (!key) return { status: "skipped" };
 
   const matches: AdminUserRow[] = [];
@@ -263,7 +320,7 @@ export async function findSupabaseIdentityByEmail(
         filter: needle,
       });
       const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?${query}`, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        headers: adminHeaders(key),
         cache: "no-store",
         signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
       });
@@ -348,10 +405,10 @@ export const KEEPALIVE_TIMEOUT_MS = 5_000;
  * response body or anything about a member.
  */
 export async function keepSupabaseAwake(): Promise<SupabaseKeepalive> {
-  const key = serviceRoleKey();
+  const key = serviceKey();
   if (!key) {
     console.warn(
-      "[supabase] keep-alive skipped: SUPABASE_SERVICE_ROLE_KEY is not set, a free-plan project pauses after 7 quiet days",
+      `[supabase] keep-alive skipped: ${NO_SECRET_KEY}, a free-plan project pauses after 7 quiet days`,
     );
     return "skipped";
   }
@@ -359,7 +416,7 @@ export async function keepSupabaseAwake(): Promise<SupabaseKeepalive> {
     const res = await fetch(
       `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=1`,
       {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        headers: adminHeaders(key),
         cache: "no-store",
         signal: AbortSignal.timeout(KEEPALIVE_TIMEOUT_MS),
       },

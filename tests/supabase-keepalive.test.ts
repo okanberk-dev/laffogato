@@ -126,7 +126,9 @@ describe("keepSupabaseAwake", () => {
     expect(logged).toHaveLength(3);
     for (const line of logged) {
       expect(line).toContain("keep-alive skipped");
-      expect(line).toContain("SUPABASE_SERVICE_ROLE_KEY is not set");
+      expect(line).toContain(
+        "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set",
+      );
     }
   });
 });
