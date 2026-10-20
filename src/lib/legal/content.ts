@@ -4875,6 +4875,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
+    // 21 Ekim 2026: §3 karaoke satırı köşkün geç iptalindeki telafiyi ve
+    // telafi ödemesinin banka hesap bilgisini adlandırır (LEGAL-REDLINES §25).
+    updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
@@ -5701,6 +5704,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
+    // 21 Ekim 2026: §6 karaoke verisi köşkün geç iptalindeki telafiyi ve
+    // telafi ödemesinin banka hesap bilgisini adlandırır (LEGAL-REDLINES §25).
+    updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     category: "Veri & Gizlilik",
@@ -7636,6 +7642,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
+    // 21 Ekim 2026: §8 banka hesap satırı karaoke telafisi için bildirilen
+    // banka hesap bilgisini de kapsar (LEGAL-REDLINES §25).
+    updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
     // the karaoke row points at the karaoke terms §10 for the refund on
     // account closure (LEGAL-REDLINES §17).
