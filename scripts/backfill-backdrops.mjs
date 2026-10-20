@@ -36,6 +36,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import pg from "pg";
 
+import {
+  databaseUrlFrom,
+  isDatabaseUrlMissing,
+} from "../src/lib/db/database-url.mjs";
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC_DIR = join(ROOT, "public");
 
@@ -79,8 +84,27 @@ async function loadModules() {
             path: "server-only",
             namespace: "stub",
           }));
-          b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({
+          b.onLoad({ filter: /^server-only$/, namespace: "stub" }, () => ({
             contents: "export {};",
+          }));
+        },
+      },
+      {
+        // `@/lib/db` expires the site's cached reads after each write through
+        // `getDb()` (src/lib/cache/tags.ts, `next/cache`). This script never
+        // writes through `getDb()`, it has its own `pg` pool, and bundling
+        // `next/cache` fails outright (Next's tracer requires
+        // `@opentelemetry/api`, which is not installed): the script could not
+        // start at all since the data layer began importing it (#185).
+        name: "cache-tags-stub",
+        setup(b) {
+          b.onResolve({ filter: /^@\/lib\/cache\/tags$/ }, () => ({
+            path: "cache-tags",
+            namespace: "stub",
+          }));
+          b.onLoad({ filter: /^cache-tags$/, namespace: "stub" }, () => ({
+            contents:
+              "export const tagsForWrite = () => [];\nexport const expireTags = () => {};",
           }));
         },
       },
@@ -234,10 +258,15 @@ const cell = (value, width) => {
 async function main() {
   const apply = process.argv.includes("--apply");
   const remote = process.argv.includes("--remote");
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (!url) {
+  // DATABASE_URL only, the app's rule from the file both share; never
+  // POSTGRES_URL (Supabase's Vercel integration, a database without our data).
+  let url;
+  try {
+    url = databaseUrlFrom(process.env);
+  } catch (err) {
+    if (!isDatabaseUrlMissing(err)) throw err;
     console.error(
-      "DATABASE_URL yok. Örnek:\n  DATABASE_URL='postgres://...' node scripts/backfill-backdrops.mjs [--apply] [--remote]",
+      `${err.message}\nÖrnek:\n  DATABASE_URL='postgres://...' node scripts/backfill-backdrops.mjs [--apply] [--remote]`,
     );
     process.exit(1);
   }

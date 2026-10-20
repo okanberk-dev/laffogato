@@ -25,6 +25,10 @@
  */
 
 import {
+  DATABASE_URL_MISSING,
+  isDatabaseUrlMissing,
+} from "./database-url.mjs";
+import {
   compile,
   type AnyOfCondition,
   type CompiledQuery,
@@ -114,6 +118,22 @@ function writingExecutor(
  * `status: 0` + empty `code` rather than being flattened into a string.
  */
 export function toDbError(err: unknown): { error: DbError; status: number } {
+  // No DATABASE_URL is a configuration error, not an outage. It carries no
+  // SQLSTATE either, so the rule below would read it as one (status 0, empty
+  // code) and the public pages would quietly serve bundled content over a
+  // lost configuration. Its own code and a 500 make `raiseDbError` treat it
+  // as the real failure it is (./database-url.mjs).
+  if (isDatabaseUrlMissing(err)) {
+    return {
+      error: {
+        message: (err as Error).message,
+        code: DATABASE_URL_MISSING,
+        details: "",
+        hint: "",
+      },
+      status: 500,
+    };
+  }
   const e = err as {
     message?: string;
     code?: string;

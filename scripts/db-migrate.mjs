@@ -17,6 +17,11 @@ import { fileURLToPath } from "node:url";
 
 import pg from "pg";
 
+import {
+  databaseUrlFrom,
+  isDatabaseUrlMissing,
+} from "../src/lib/db/database-url.mjs";
+
 const MIGRATIONS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -56,11 +61,17 @@ function sslFor(connectionString) {
 }
 
 async function main() {
-  const url =
-    process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (!url) {
+  // The app's own rule, from the one file both share: DATABASE_URL and
+  // nothing else. POSTGRES_URL is never a fallback here either: it is what
+  // Supabase's Vercel integration writes, and migrating that database by
+  // accident is how an empty schema would appear next to the real one.
+  let url;
+  try {
+    url = databaseUrlFrom(process.env);
+  } catch (err) {
+    if (!isDatabaseUrlMissing(err)) throw err;
     console.error(
-      "DATABASE_URL yok. Örnek:\n  DATABASE_URL='postgres://...' npm run db:migrate",
+      `${err.message}\nÖrnek:\n  DATABASE_URL='postgres://...' npm run db:migrate`,
     );
     process.exit(1);
   }

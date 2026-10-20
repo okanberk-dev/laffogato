@@ -264,8 +264,10 @@ Bunun iki somut faydası var:
 > Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) _gerçek_ bir hata sayar ve
 > haklı olarak 500 döndürür - bu bilinçli bir tercih, çünkü şema hatasını
 > yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
-> bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
-> hazır olmadan env değişkenini eklemeyin.
+> bağlanmak siteyi bozar. Yani şema hazır olmadan env değişkenini eklemeyin.
+> `DATABASE_URL`'i silmek de bir geri dönüş yolu değildir: değişken yoksa
+> site pakete düşmez, yapılandırma hatası verir (aşağıda "Bağlantı dizesi
+> yalnız `DATABASE_URL`").
 
 1. **Plan/slot doğrula** - hedef Supabase organizasyonu için
    [SUPABASE-GECIS.md §0](SUPABASE-GECIS.md) ön koşulunu geç. Bu adım
@@ -324,7 +326,44 @@ Bunun iki somut faydası var:
 
 Veri erişimi tamamen **server-only**. Bağlantı `src/lib/db/index.ts` içinde
 tembel (lazy) bir singleton olarak kurulur - `next build` canlı kimlik bilgisi
-olmadan da çalışır.
+olmadan da çalışır (derleme veritabanı okumaz; bağlantı dizesi ilk sorguda
+okunur, modül yüklenirken değil).
+
+### Bağlantı dizesi yalnız `DATABASE_URL` (20 Eki 2026)
+
+Uygulama ve veritabanını açan iki betik (`npm run db:migrate`,
+`scripts/backfill-backdrops.mjs`) bağlantı dizesini **tek bir dosyadan**
+okur: `src/lib/db/database-url.mjs` (düz JavaScript, çünkü betikler
+TypeScript içe aktaramaz). Kural tektir: `DATABASE_URL`, başka hiçbir şey.
+
+Eskiden zincir `DATABASE_URL` → `POSTGRES_URL` → `SUPABASE_DB_URL` idi (betikler
+`DATABASE_URL` → `POSTGRES_URL`). Supabase'in Vercel entegrasyonu
+`POSTGRES_URL`'i Production'a yazar ve o dize kimlik projesinin kendi, bizim
+verimizi taşımayan Postgres'ini gösterir. `DATABASE_URL` bir gün kaybolsaydı
+site oraya sessizce bağlanır, boş bir şema kurar (`bootstrap.ts`) ve
+siparişleri oraya yazardı. `SUPABASE_DB_URL` da taşıma yordamının bir adımı
+değildir: [SUPABASE-GECIS.md](SUPABASE-GECIS.md) veriyi `DATABASE_URL`'i
+değiştirerek taşır. İkisi de artık okunmaz.
+
+`DATABASE_URL` yoksa (tanımsız, boş ya da yalnız boşluk) bu bir **kesinti
+değil, yapılandırma hatasıdır** ve öyle davranır:
+
+- Her sorgu `DATABASE_URL_MISSING` koduyla ve 500 durumuyla döner; veri katmanı
+  bunu "ulaşılamıyor" saymaz (`toDbError`), yani `publicRead` paketteki içeriğe
+  düşmez, sayfa hata verir. Hata mesajı eksik değişkeni ve tanımlı olup
+  okunmayan adları (`POSTGRES_URL`, `SUPABASE_DB_URL`) söyler, değerlerini
+  asla. Sunucu günlüğüne örnek başına bir kez `[db] DATABASE_URL tanımlı
+  değil` yazılır.
+- `/api/health` `db: "unconfigured"` (503) döner; `down` yalnız gerçek
+  ulaşılamazlıktır.
+- İki betik hiçbir yere bağlanmadan aynı mesajla çıkar (çıkış kodu 1).
+- `/api/mobile/v1` bu durumda 503 `unavailable` dalına girmez, gerçek bir
+  hata gibi 500 döner (sözleşmenin zaten tanıdığı durum; `docs/API-MOBILE.md`
+  değişmedi).
+
+Testler: `tests/db-connection-url.test.ts` aynı on durumu ortak kurala, veri
+katmanına ve iki betiğe (gerçekten çalıştırarak; hangi adrese bağlanmaya
+çalıştıklarını sayan geçici dinleyicilerle) uygular.
 
 Kod, Supabase'in PostgREST sorgu kurucusuna göre yazılmıştı (~122 çağrı noktası,
 sipariş/stok/ödeme yolları dahil). Bunları elle SQL'e çevirmek yerine aynı
@@ -556,6 +595,11 @@ bandı ve boş mağazayı görür (yukarıda "Uyanmalar ve önbellek").
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
 verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
 
+**`DATABASE_URL` hiç yoksa bu tablo geçerli değildir.** Ulaşılamayan bir
+veritabanı ile tanımlanmamış bir bağlantı dizesi ayrı şeylerdir: ikincisi
+yapılandırma hatasıdır, sayfalar pakete düşmez, hata verir (yukarıda
+"Bağlantı dizesi yalnız `DATABASE_URL`").
+
 Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
 (`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak
 bozuyor, düzelme için yeniden deploy gerekiyordu.
@@ -579,10 +623,11 @@ Eksik olan tek şey bağlantı dizesi ve verinin kendisi.
 6. **Aynı anda:** `dbProvider` alanını `"Supabase"` yap **ve** Vercel'deki
    `DATABASE_URL`'i değiştir, sonra deploy et.
 
-Kodda eski sağlayıcıya özel bir değişken yoktur: `src/lib/db/index.ts`
-`DATABASE_URL` → `POSTGRES_URL` → `SUPABASE_DB_URL`, `scripts/db-migrate.mjs`
-`DATABASE_URL` → `POSTGRES_URL` okur. Cutover'da kaldırılacak bir yedek dize
-kalmadı.
+Kodda sağlayıcıya özel bir değişken yoktur: uygulama da betikler de yalnız
+`DATABASE_URL`'i okur (`src/lib/db/database-url.mjs`, yukarıda "Bağlantı
+dizesi yalnız `DATABASE_URL`"). Vercel'deki `POSTGRES_URL` (Supabase
+entegrasyonu) cutover'da da okunmaz; taşıma `DATABASE_URL`'i değiştirmektir.
+Cutover'da kaldırılacak bir yedek dize yok.
 
 Neon projesini **hemen silme.** Birkaç gün elde tut; geri dönmek gerekirse tek
 yapılacak şey bağlantı dizesini geri almak olsun.

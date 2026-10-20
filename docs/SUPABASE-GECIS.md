@@ -169,10 +169,12 @@ Sıfır kesinti hedefiyle, adım adım:
    uygulanır) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
    (bkz. adım 8).
 8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır. Kodda
-   kaldırılacak bir şey yok: eski sağlayıcıya özel değişken zincirden zaten
-   çıkarıldı (`src/lib/db/index.ts` `DATABASE_URL` → `POSTGRES_URL` →
-   `SUPABASE_DB_URL`, `scripts/db-migrate.mjs` `DATABASE_URL` →
-   `POSTGRES_URL` okur).
+   kaldırılacak bir şey yok: uygulama da betikler de bağlantı dizesini yalnız
+   `DATABASE_URL`'den okur (`src/lib/db/database-url.mjs`). Supabase'in
+   Vercel entegrasyonunun yazdığı `POSTGRES_URL` ve eski `SUPABASE_DB_URL`
+   adı bilerek okunmaz; `DATABASE_URL` yoksa site başka bir veritabanına
+   düşmez, yapılandırma hatası verir ([DATABASE.md](DATABASE.md) "Bağlantı
+   dizesi yalnız `DATABASE_URL`").
 
 ## 5. Cutover'dan sonra: veri aynı projede, kimlik hâlâ iki sistem
 

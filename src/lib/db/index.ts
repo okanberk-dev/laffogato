@@ -11,6 +11,7 @@ import {
 import { expireTags, tagsForWrite } from "@/lib/cache/tags";
 
 import { createDb, type Db, type Executor } from "./client";
+import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
 import type { CompiledQuery } from "./sql";
 
 export { type Db, type DbError, type DbResult } from "./client";
@@ -34,24 +35,33 @@ declare global {
   var __laffogatoPool: Pool | undefined;
 }
 
+/** Whether this instance has already said that DATABASE_URL is missing. */
+let missingUrlLogged = false;
+
+/**
+ * DATABASE_URL, and nothing else (`./database-url.mjs`, shared with the two
+ * scripts that open the same database). There used to be a chain to
+ * POSTGRES_URL and SUPABASE_DB_URL; Supabase's Vercel integration writes the
+ * first into Production, so a lost DATABASE_URL would have connected the site
+ * to an empty database and bootstrapped it there.
+ *
+ * Without it every query fails with `DatabaseUrlMissingError`, which the data
+ * layer reports as a configuration error and never as "unreachable"
+ * (`toDbError`): the public pages answer 500 instead of serving bundled
+ * content over it, and `/api/health` says `unconfigured`. Called on the first
+ * query, never at import, so `next build` (which has no database and reads
+ * none) is unaffected. Logged once per instance; the value never is.
+ */
 function resolveConnectionString(): string {
-  // Order matters: the explicit variable wins, then the one Vercel's Postgres
-  // integrations (Supabase included) set automatically, then Supabase's own.
-  // There is deliberately NO legacy provider variable here: the operator asked
-  // for the old host to be gone entirely, production sets DATABASE_URL
-  // explicitly, and a dead fallback name is one more place for a stale
-  // connection string to hide.
-  const url =
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    process.env.SUPABASE_DB_URL ??
-    "";
-  if (!url) {
-    throw new Error(
-      "Veritabanı bağlantı dizesi yok - DATABASE_URL (veya POSTGRES_URL) set edilmeli.",
-    );
+  try {
+    return databaseUrlFrom(process.env);
+  } catch (err) {
+    if (isDatabaseUrlMissing(err) && !missingUrlLogged) {
+      missingUrlLogged = true;
+      console.error(`[db] ${(err as Error).message}`);
+    }
+    throw err;
   }
-  return url;
 }
 
 /**
@@ -180,7 +190,11 @@ function createExecutor(): Executor {
 }
 
 export type DbHealth = {
-  db: "up" | "down";
+  /**
+   * `unconfigured`: this deployment has no DATABASE_URL. Not an outage, and
+   * not reported as one: the fix is a deploy setting, not waiting.
+   */
+  db: "up" | "down" | "unconfigured";
   schema: "fresh" | "stale" | "unknown";
 };
 
@@ -193,15 +207,19 @@ export type DbHealth = {
  * one thing that was invisible before, because the apply path swallows its
  * own failures by design.
  *
- * Never throws: an unreachable database is an answer (`down`), not an error.
+ * Never throws: an unreachable database is an answer (`down`), not an error,
+ * and so is a deployment without DATABASE_URL (`unconfigured`).
  */
 export async function dbHealth(): Promise<DbHealth> {
   try {
     const pool = getPool();
     await ensureSchemaFresh(pool);
     return { db: "up", schema: (await schemaIsFresh(pool)) ? "fresh" : "stale" };
-  } catch {
-    return { db: "down", schema: "unknown" };
+  } catch (err) {
+    return {
+      db: isDatabaseUrlMissing(err) ? "unconfigured" : "down",
+      schema: "unknown",
+    };
   }
 }
 
