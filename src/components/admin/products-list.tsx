@@ -33,10 +33,12 @@ import {
   BUTTON,
   ConfirmButton,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   NUMERIC_STYLE,
   useToast,
   type DataTableColumn,
+  type EmptyListAction,
 } from "./ui";
 
 interface Props {
@@ -48,7 +50,7 @@ interface Props {
   /** Shown when there are no rows. */
   emptyTitle?: string;
   /** The way out of an empty list ("Filtreleri temizle", "+ Yeni ürün"). */
-  emptyAction?: { href: string; label: string } | null;
+  emptyAction?: EmptyListAction | null;
 }
 
 const initialBulkState: BulkActionState = {};
@@ -448,9 +450,10 @@ export function ProductsList({
             title={emptyTitle}
             action={
               emptyAction ? (
-                <Link href={emptyAction.href} className={BUTTON.ghost}>
-                  {emptyAction.label}
-                </Link>
+                <EmptyListActionLink
+                  action={emptyAction}
+                  className={BUTTON.ghost}
+                />
               ) : null
             }
           />

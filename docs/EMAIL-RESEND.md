@@ -296,7 +296,10 @@ listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
 Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
 e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
 ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
-Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
+Fatura e-postası bu kodun dışında: şirket e-Arşiv faturayı Paraşüt'te
+düzenler ve müşterinin siparişteki e-posta adresine gönderir (operatör, 19
+Eki 2026); sözleşme metinleri bunu yazar (`docs/LEGAL-REDLINES-2026-09.md`
+§24).
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` - ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
@@ -601,8 +604,9 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 > Geliver kurulumu ve doğrulama planı: **`docs/GELIVER.md`**.
 
 Aradaki boşluğu `.github/workflows/campaign-hourly.yml` **ücretsiz daraltır**:
-programı `0 * * * *` olarak `/api/cron/campaign-emails`e vurur. Ama bu
-**saatlik değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
+programı `0 */3 * * *` (19 Ekim 2026'dan beri 3 saatte bir; her tur bir
+Actions dakikası sayılıyor ve Neon'u uyandırıyor) olarak `/api/cron/campaign-emails`e vurur. Ama bu
+**dakikası dakikasına değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
 erteler ve atlar. Ölçüm (22-23 Eyl 2026, `gh run list`): turlar arası 2 ile
 5,5 saat. Üstüne konan bir katman, tek bayrak direği değil; iş hiç çalışmasa
 da Vercel'in 06:00 ve 12:00 UTC geçişleri alır. Hiçbir kampanya kaybolmaz,

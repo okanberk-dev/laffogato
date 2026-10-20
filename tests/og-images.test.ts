@@ -26,11 +26,15 @@ import type { OpeningHour, WeeklyHours } from "@/lib/admin/days";
  */
 
 const store = vi.hoisted(() => ({
-  getShopProductBySlugLive: vi.fn(),
   getProduct: vi.fn(),
-  getPublicSettings: vi.fn(),
 }));
 vi.mock("@/lib/admin/store", () => store);
+// The cards read the site's cached presentation readers (site-data.ts).
+const site = vi.hoisted(() => ({
+  getSiteProductBySlugStrict: vi.fn(),
+  getSiteSettings: vi.fn(),
+}));
+vi.mock("@/lib/seo/site-data", () => site);
 
 const PREVIEW_DIR = process.env.OG_PREVIEW_DIR;
 const APP = join(process.cwd(), "src/app");
@@ -148,10 +152,10 @@ function weekly(over: Partial<WeeklyHours> = {}, every?: OpeningHour) {
 }
 
 beforeEach(() => {
-  store.getShopProductBySlugLive.mockReset();
+  site.getSiteProductBySlugStrict.mockReset();
   store.getProduct.mockReset();
-  store.getPublicSettings.mockReset();
-  store.getPublicSettings.mockResolvedValue({ weeklyHours: weekly() });
+  site.getSiteSettings.mockReset();
+  site.getSiteSettings.mockResolvedValue({ weeklyHours: weekly() });
 });
 
 afterEach(() => {
@@ -310,24 +314,24 @@ describe("the page cards' copy", () => {
     );
     expect(source).toContain("export const revalidate = 3600;");
 
-    store.getPublicSettings.mockResolvedValue({
+    site.getSiteSettings.mockResolvedValue({
       weeklyHours: weekly({
         sun: { open: "10:00", close: "20:00", closed: false },
       }),
     });
     const image = await render(route, "ziyaret-varying-hours");
     expect(await dims(image)).toEqual({ ...CARD, format: "jpeg" });
-    expect(store.getPublicSettings).toHaveBeenCalledTimes(1);
+    expect(site.getSiteSettings).toHaveBeenCalledTimes(1);
 
     // `next build` has no database: the card is drawn without asking.
     vi.stubEnv("NEXT_PHASE", "phase-production-build");
-    store.getPublicSettings.mockClear();
+    site.getSiteSettings.mockClear();
     await render(route, "ziyaret-build");
-    expect(store.getPublicSettings).not.toHaveBeenCalled();
+    expect(site.getSiteSettings).not.toHaveBeenCalled();
     vi.unstubAllEnvs();
 
     // A settings read that throws still draws the card, on the constant.
-    store.getPublicSettings.mockRejectedValue(new Error("boom"));
+    site.getSiteSettings.mockRejectedValue(new Error("boom"));
     expect(await dims(await render(route, "ziyaret-error"))).toEqual({
       ...CARD,
       format: "jpeg",
@@ -463,7 +467,7 @@ describe("the product card", () => {
   });
 
   it("draws the uploaded photo, the name, the shelf and the price", async () => {
-    store.getShopProductBySlugLive.mockResolvedValue(sirena);
+    site.getSiteProductBySlugStrict.mockResolvedValue(sirena);
     store.getProduct.mockResolvedValue({ images: [await webp()] });
     const { productCard } = await import("@/lib/seo/og-product");
     const card = await productCard("sirena");
@@ -481,7 +485,7 @@ describe("the product card", () => {
 
   it("draws the coffee bag when the photo is an https link, without fetching it", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    store.getShopProductBySlugLive.mockResolvedValue({
+    site.getSiteProductBySlugStrict.mockResolvedValue({
       ...sirena,
       name: "Bialetti × L’Affogato Moka Pot, 3 fincanlık ☕",
       tag: "3 fincanlık, fırçalanmış alüminyum",
@@ -508,7 +512,7 @@ describe("the product card", () => {
   });
 
   it("keeps a very long name inside its column", async () => {
-    store.getShopProductBySlugLive.mockResolvedValue({
+    site.getSiteProductBySlugStrict.mockResolvedValue({
       ...sirena,
       name: "Notturna Kenya AA Nyeri Filtre Kahve Çekirdeği Hediye Kutusunda İki Paket ve Seramik Fincan",
       tag: "Süperuzunkelimelerlebirliktegelenbiretiketsatırı · 2 x 250 g",
@@ -527,7 +531,7 @@ describe("the product card", () => {
   });
 
   it("is a 404 when there is no such active product, as the page is", async () => {
-    store.getShopProductBySlugLive.mockResolvedValue(null);
+    site.getSiteProductBySlugStrict.mockResolvedValue(null);
     const { productCard } = await import("@/lib/seo/og-product");
     expect(await productCard("yok")).toBeNull();
     expect(store.getProduct).not.toHaveBeenCalled();
@@ -557,12 +561,12 @@ describe("the product card", () => {
     // card on revalidation. The read is the one without the page's outage
     // fallback, so an outage cannot read as "no product" either.
     const outage = new Error("ECONNREFUSED");
-    store.getShopProductBySlugLive.mockRejectedValue(outage);
+    site.getSiteProductBySlugStrict.mockRejectedValue(outage);
     await expect(
       render(await route(), "urun-db-down", { slug: "sirena" }),
     ).rejects.toBe(outage);
 
-    store.getShopProductBySlugLive.mockResolvedValue(sirena);
+    site.getSiteProductBySlugStrict.mockResolvedValue(sirena);
     store.getProduct.mockRejectedValue(outage);
     await expect(
       render(await route(), "urun-photo-db-down", { slug: "sirena" }),
@@ -570,7 +574,7 @@ describe("the product card", () => {
   });
 
   it("draws the coffee bag when the stored photo is not an upload sharp can read", async () => {
-    store.getShopProductBySlugLive.mockResolvedValue(sirena);
+    site.getSiteProductBySlugStrict.mockResolvedValue(sirena);
     const { productCard } = await import("@/lib/seo/og-product");
     for (const stored of [
       `data:image/webp;base64,${Buffer.from("not a photo").toString("base64")}`,
@@ -602,7 +606,7 @@ describe("the product card", () => {
       ["Matcha 抹茶 Latte", "✓ Seremonyal"],
       ["Kupa 1️⃣ numara", "Ελληνικά ☕"],
     ]) {
-      store.getShopProductBySlugLive.mockResolvedValue({
+      site.getSiteProductBySlugStrict.mockResolvedValue({
         ...sirena,
         name,
         tag,
@@ -738,11 +742,13 @@ describe("the cards' typeface", () => {
 });
 
 describe("the product card's price", () => {
-  it("is the price the product page opens on, KDV included, in whole lira", async () => {
+  it("is the price the product page opens on, KDV included, to the kuruş", async () => {
     const { ogProductPrice, ogProductSoldOut } =
       await import("@/lib/seo/og-product");
     expect(ogProductPrice({ priceMinor: 45000 })).toEqual({ now: "450 TL" });
-    expect(ogProductPrice({ priceMinor: 125050 })).toEqual({ now: "1.251 TL" });
+    expect(ogProductPrice({ priceMinor: 125050 })).toEqual({
+      now: "1.250,50 TL",
+    });
     // The page preselects the first variant in stock and adds its delta.
     const variants = [
       { id: "a", name: "250 g", priceDelta: 50, stock: 0, isActive: true },
@@ -759,11 +765,18 @@ describe("the product card's price", () => {
       }),
     ).toBe(true);
     expect(ogProductSoldOut({ priceMinor: 45000, stock: 0 })).toBe(true);
-    expect(
-      ogProductPrice({ priceMinor: 45000, compareAtPriceMinor: 60000 }),
-    ).toEqual({ now: "450 TL", was: "600 TL" });
     expect(ogProductPrice({ priceMinor: 0 })).toBeNull();
     expect(ogProductPrice({})).toBeNull();
+  });
+
+  it("never strikes a price out", async () => {
+    // A discount advertised names its first and last day (Ticari Reklam
+    // Yön. m.14/1); the card has no room for them and is kept past the end.
+    const { ogProductPrice } = await import("@/lib/seo/og-product");
+    const discounted = { priceMinor: 45000, compareAtPriceMinor: 60000 };
+    expect(ogProductPrice(discounted)).toEqual({ now: "450 TL" });
+    const src = readFileSync("src/lib/seo/og-product.tsx", "utf8");
+    expect(src).not.toContain("line-through");
   });
 
   it("never prints the lira sign next/og cannot draw", async () => {

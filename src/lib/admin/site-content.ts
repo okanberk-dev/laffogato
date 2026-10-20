@@ -36,23 +36,32 @@ const VALID_KEYS = new Set(CONTENT_FIELDS.map((f) => f.key));
 
 /** Defaults overlaid with persisted overrides. Always a full key map. */
 export async function getSiteContent(): Promise<Record<string, string>> {
-  const out = contentDefaults();
   try {
-    const sb = getDb();
-    const { data, error, status } = await sb
-      .from(TABLES.siteContent)
-      .select("key, value");
-    if (error) raiseDbError("getSiteContent", error, status);
-    for (const row of data ?? []) {
-      if (VALID_KEYS.has(row.key) && typeof row.value === "string") {
-        out[row.key] = row.value;
-      }
-    }
+    return await getSiteContentLive();
   } catch (err) {
     // An unreachable database falls back to the bundled defaults; a rejected
     // query is a bug and must not be swallowed.
     if (!isDbUnreachable(err)) throw err;
     markDegraded();
+    return contentDefaults();
+  }
+}
+
+/**
+ * `getSiteContent` without the outage fallback: throws when the database
+ * cannot be reached. The cached reader (src/lib/seo/site-data.ts) stores it.
+ */
+export async function getSiteContentLive(): Promise<Record<string, string>> {
+  const out = contentDefaults();
+  const sb = getDb();
+  const { data, error, status } = await sb
+    .from(TABLES.siteContent)
+    .select("key, value");
+  if (error) raiseDbError("getSiteContent", error, status);
+  for (const row of data ?? []) {
+    if (VALID_KEYS.has(row.key) && typeof row.value === "string") {
+      out[row.key] = row.value;
+    }
   }
   return out;
 }

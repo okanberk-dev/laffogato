@@ -149,9 +149,15 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
      `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
      `/bulten/onay`, `/masa/[code]` (masalardaki basılı QR), `/api/**`.
-  6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
-     bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
-     edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
+  6. Genel sayfa veriyi `loadAppProps()` ya da `src/lib/seo/site-data.ts`'in
+     önbellekli okuyucularıyla (`getSiteSettings`, `listSite*`,
+     `getSiteProductBySlug`, ...) okur: sayfa görüntülemesi veritabanını
+     uyandırmaz. `getPublicSettings()` ve `store.ts`'in `list*` / `get*`
+     okuyucuları her seferinde veritabanına gider; ödeme, karaoke, uygulama
+     API'si ve üyenin kendi sayfaları içindir
+     (`tests/public-pages-cached-reads.test.ts`). Bileşende `@/lib/db` yok;
+     istemci bileşeni `server-only` modül import edemez (saf mantık için
+     `*-core.ts` / `*-utils.ts`).
 - **Ön yüz PR'ı bitmeden:** `git diff --stat origin/main -- src/lib src/app/api
   db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
   **boş** dönmeli.
@@ -346,8 +352,14 @@ npm run db:migrate   # Migration'ları uygula (DATABASE_URL gerekir)
 npm run db:bundle    # db/schema.sql'i yeniden üret
 ```
 
-CI her PR'da ve `main`'e her push'ta `npm run typecheck` + `npm test` +
-`npm run build` koşar. Bu ortamda `NODE_ENV=development` tanımlıysa build
+CI her PR'da ve `main`'e doğrudan yapılan her push'ta `npm run typecheck` +
+`npm test` + `npm run build` koşar; başlığında "(#N)" olan squash merge
+push'unda koşmaz (o ağaç PR'da `main` güncelken zaten test edildi; Actions
+ücretsiz kotası 19 Eki 2026'da bu yüzden doldu). GitHub Actions çalışmıyorsa
+(kota, ödeme) aynı adımlar yerelde koşturulur: typecheck, lint
+`--max-warnings=0`, `TEST_DATABASE_URL` ile gerçek Postgres 16'ya karşı tam
+`vitest run`, `npm run build` (Turbopack symlink'li `node_modules`'ta
+çöker: APFS kopyası `cp -cR` kullan). Bu ortamda `NODE_ENV=development` tanımlıysa build
 `/_global-error` prerender'ında düşer; yerelde
 `NODE_ENV=production npm run build` kullan (CI değişkeni hiç set etmez).
 
@@ -411,7 +423,10 @@ durum bozulmaya uygundur.
 - `publicRead()` **yalnızca** salt-okunur sunum verisi içindir.
 - Fiyat, stok, yetki ya da siparişin verilebilirliği **asla** yedek veriden
   karar bağlanmaz — `getSettings()` (throw eden) ticari yollarda kalır,
-  `getPublicSettings()` yalnız sunum içindir.
+  `getPublicSettings()` yalnız sunum içindir. Genel sayfaların sunumu
+  önbellekten gelir (`getSiteSettings` ve `site-data.ts`'in diğer
+  okuyucuları, `docs/DATABASE.md` "Uyanmalar ve önbellek"); ticari yollar
+  önbellekten hiçbir şey okumaz (`tests/site-data-cache.test.ts`).
 - Mağaza bozulmada **boş** kalır, paketteki kurgusal ürünlere düşmez.
 
 ## Tasarım Sistemi
@@ -448,8 +463,10 @@ durum bozulmaya uygundur.
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve
   `@internationalized/date` (palet, tarih alanı, combobox gibi yalnız
-  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`.
-  Diğer ikisi onları ilk kullanan PR'la gelir ve bu listeye eklenir. Her biri
+  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`,
+  `react-aria-components`. Tarih paketi onu ilk kullanan PR'la gelir ve bu
+  listeye eklenir (React Aria onu kilit dosyasına dolaylı olarak getirir; o
+  PR'a kadar kod onu doğrudan import etmez). Her biri
   `package.json`'da tam sürüme sabit (`^` yok), kilit dosyasında tek kopya;
   yükseltme ayrı bir PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
   import eder: her ikon orada bir kez adlandırılır, `AdminIcon` 18 px, 1.75

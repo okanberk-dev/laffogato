@@ -4,19 +4,25 @@ import type { ReactElement } from "react";
 
 import type { Product } from "@/components/laffogato/data";
 import { decodeDataImage } from "@/lib/admin/image-bytes";
-import { getProduct, getShopProductBySlugLive } from "@/lib/admin/store";
+import { getProduct } from "@/lib/admin/store";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
+import { getSiteProductBySlugStrict } from "@/lib/seo/site-data";
+import { priceLabel } from "@/lib/utils/format";
 
 import { OG_INK, OgFramedPhoto, OgPageCard, ogPhoto, ogText } from "./og-card";
 import { OG_BAG_SIZE, OgCoffeeBag } from "./og-drawings";
 
 /**
  * The product page's link preview: the product's first photo, its name and
- * the price the page shows first, KDV included.
+ * the price the page shows first, KDV included. Never a struck "was" price:
+ * an advertisement of a discount names its first and last day (Ticari
+ * Reklam Yön. m.14/1), the card has no room for them, and it is kept an
+ * hour here and far longer by the sites that fetched it, past the day the
+ * discount ends.
  *
- * Read at request time (the route revalidates hourly), from the same query
- * the page reads, without its outage fallback. Three outcomes, as the page
- * has them:
+ * Read at request time (the route revalidates hourly), from the same cached
+ * list the page reads (src/lib/seo/site-data.ts), without its outage
+ * fallback. Three outcomes, as the page has them:
  * - the product: its card, with the coffee bag when no photo can be drawn;
  * - no such active product: null, and the route answers 404 like the page;
  * - the database down or failing: the read throws. The route then errors,
@@ -26,15 +32,12 @@ import { OG_BAG_SIZE, OgCoffeeBag } from "./og-drawings";
 
 const PHOTO = 446;
 
-/** Whole lira, as the product page prints them, with thousands dots. */
-function lira(amount: number): string {
-  return `${String(Math.round(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, ".")} TL`;
+/** As the product page prints a price ("1.250,50"), with "TL" for "₺". */
+function lira(amountMinor: number): string {
+  return priceLabel(amountMinor).replace("₺", " TL");
 }
 
-type PricedProduct = Pick<
-  Product,
-  "priceMinor" | "compareAtPriceMinor" | "variants" | "stock"
->;
+type PricedProduct = Pick<Product, "priceMinor" | "variants" | "stock">;
 
 /**
  * The variant the product page preselects (product-detail.tsx): the first
@@ -53,25 +56,15 @@ export function ogProductSoldOut(product: PricedProduct): boolean {
 
 /**
  * The price the product page opens on (product-detail.tsx): the base price
- * plus the preselected variant's delta, and the struck compare-at price when
- * it is higher. Null when the product carries no price.
+ * plus the preselected variant's delta. No compare-at price (see above).
+ * Null when the product carries no price.
  */
-export function ogProductPrice(
-  product: PricedProduct,
-): { now: string; was?: string } | null {
+export function ogProductPrice(product: PricedProduct): { now: string } | null {
   if (typeof product.priceMinor !== "number" || product.priceMinor <= 0) {
     return null;
   }
-  const unit =
-    product.priceMinor / 100 + (preselectedVariant(product)?.priceDelta ?? 0);
-  const compareAt =
-    product.compareAtPriceMinor !== undefined
-      ? product.compareAtPriceMinor / 100
-      : undefined;
-  return {
-    now: lira(unit),
-    ...(compareAt && compareAt > unit ? { was: lira(compareAt) } : {}),
-  };
+  const delta = preselectedVariant(product)?.priceDelta ?? 0;
+  return { now: lira(product.priceMinor + Math.round(delta * 100)) };
 }
 
 /**
@@ -90,7 +83,7 @@ async function productPhoto(id: string | undefined): Promise<string | null> {
   return upload ? ogPhoto(upload.body, PHOTO, PHOTO) : null;
 }
 
-function PriceLine({ now, was }: { now: string; was?: string }) {
+function PriceLine({ now }: { now: string }) {
   return (
     <div
       style={{
@@ -103,18 +96,6 @@ function PriceLine({ now, was }: { now: string; was?: string }) {
       <div style={{ display: "flex", fontSize: 52, color: OG_INK.brass }}>
         {now}
       </div>
-      {was ? (
-        <div
-          style={{
-            display: "flex",
-            fontSize: 30,
-            color: OG_INK.mint,
-            textDecoration: "line-through",
-          }}
-        >
-          {was}
-        </div>
-      ) : null}
       <div style={{ display: "flex", fontSize: 22, color: OG_INK.mint }}>
         KDV dahil
       </div>
@@ -123,7 +104,7 @@ function PriceLine({ now, was }: { now: string; was?: string }) {
 }
 
 export async function productCard(slug: string): Promise<ReactElement | null> {
-  const product: Product | null = await getShopProductBySlugLive(slug);
+  const product: Product | null = await getSiteProductBySlugStrict(slug);
   if (!product) return null;
   const photo = await productPhoto(product.id);
 

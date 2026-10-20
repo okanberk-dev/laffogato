@@ -11,7 +11,7 @@ import type { Product } from "./data";
 import { Illustration } from "./illustration";
 import type { PageProps } from "./page-shared";
 import { PageHero } from "./page-hero";
-import { freeShippingFrom } from "./product-facts";
+import { freeShippingFrom, productDiscount } from "./product-facts";
 import { productPath } from "./route-paths";
 import { ShopHeroSlider } from "./shop-hero-slider";
 import { activeVariants, ProductCard, toCartItem } from "./ui";
@@ -56,7 +56,7 @@ const FLAGS = [
   {
     id: "sale",
     label: "İndirimde",
-    test: (p: Product) => Boolean(p.compareAtPrice),
+    test: (p: Product) => productDiscount(p) !== null,
   },
 ] as const;
 
@@ -176,6 +176,7 @@ export function PageShop({
       ),
     [shopProducts],
   );
+  const featuredDiscount = featured ? productDiscount(featured) : null;
 
   // The threshold arrives in whole lira (the cart bar's figure).
   const freeFrom = freeShippingFrom(
@@ -557,12 +558,17 @@ export function PageShop({
               </p>
               <div className="shop-featured-price">
                 <span className="shop-featured-now">{featured.price}</span>
-                {featured.compareAtPrice && (
+                {featuredDiscount && (
                   <span className="shop-featured-was">
-                    {featured.compareAtPrice}
+                    {featuredDiscount.was}
                   </span>
                 )}
               </div>
+              {/* The discount's days beside the struck price (Ticari Reklam
+                  Yön. m.14/1). */}
+              {featuredDiscount && (
+                <p className="pdp-discount-note">{featuredDiscount.notice}</p>
+              )}
               <div className="cta-row">
                 {/* A set sold in variants opens for the choice, like a card:
                     a line without its variant has no price or stock of its

@@ -354,9 +354,89 @@ Anahtarlar kapalı bir liste (site `src/lib/menu/allergens.ts`, veritabanında
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
   "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ],  // yalnız category === "beans"
-  "taxRatePct": 10                    // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
+  "taxRatePct": 10,                   // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
+  "discountStartsAt": null, "discountEndsAt": null,   // 19 Eki 2026, eklemeli: süren indirimin ilk ve son anı (ISO-8601) ya da null
+  "allergens": ["gluten", "sut"],     // 19 Eki 2026, eklemeli: §1'deki Ek-1 grupları; girilmediyse alan YOK
+  "netQuantity": "250 g", "ingredients": "…"   // 19 Eki 2026, eklemeli: gıda etiketi; girilmeyen anahtar YOK
 } ], "shippingFlatMinor": 4900, "shippingFreeThresholdMinor": 50000 }
 ```
+
+### `compareAtPriceMinor` · `discountStartsAt` · `discountEndsAt` - indirim ve tarihleri (19 Eki 2026, yalnız ekleme)
+
+İndirim gösteren her reklamda indirimden önceki fiyat ile indirimin başlangıç
+ve bitiş tarihi yazılır (Ticari Reklam ve Haksız Ticari Uygulamalar
+Yönetmeliği m.14/1). Malda indirimden önceki fiyat, indirimin başladığı günden
+önceki 10 günde uygulanan en düşük fiyattır (m.14/3) ve yalnız indirimin
+yapıldığı kanalın fiyatına bakılır (m.14/5: köşk rafındaki fiyat çevrim içi
+mağazaya esas olmaz). Bu yüzden:
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `compareAtPriceMinor` | number (her üründe, değişmedi) | Süren indirimin indirim öncesi fiyatı; **0 = gösterilecek indirim yok**. Tarih yoksa, tarih aralığı dışındaysa ya da satış fiyatından yüksek değilse 0 gelir. |
+| `discountStartsAt` | string \| null (her üründe) | İndirimin ilk anı, ISO-8601 UTC (İstanbul günü 00:00). `compareAtPriceMinor` 0 ise `null`. |
+| `discountEndsAt` | string \| null (her üründe) | İndirimin son anı, ISO-8601 UTC (İstanbul günü 23:59:59.999). `compareAtPriceMinor` 0 ise `null`. |
+
+- `compareAtPriceMinor` v1'de olduğu gibi her üründe zorunlu bir sayıdır;
+  alan hiçbir zaman düşürülmez. Uygulama yalnız `compareAtPriceMinor >
+  priceMinor` iken üstü çizili fiyat ve indirim rozeti çizer (bugünkü kural).
+- Rozetin yanında **"İndirim <başlangıç> - <bitiş> tarihleri arasında
+  geçerli"** yazılır; günler `Europe/Istanbul` günü olarak okunur ("19 Ekim
+  2026 - 31 Ekim 2026"). Tarihleri okumayan eski sürüm rozeti tarihsiz çizer:
+  operatör, tarihli rozeti gösteren sürüm asgari sürüm olana kadar ürünlere
+  eski fiyat girmez (karar OP-COMPARE-AT).
+- Sunucu son anı geçen indirimi kendisi kapatır (bir sonraki yanıtta 0 ve
+  `null`); uygulama yine de `discountEndsAt` geçtiyse rozeti çizmemelidir
+  (önbellekteki yanıt).
+- Panel eski fiyatı yalnız iki tarihle ve başlangıçtan önceki 10 günün en
+  düşük çevrim içi satış fiyatına eşitse kaydeder (`/admin/urunler` → **Fiyat
+  ve stok**). Fiyat geçmişi `product_price_history` tablosunda, her fiyat
+  değişikliğinde tetikleyiciyle yazılır; migration
+  `20261019170300_product_price_history.sql` tarihsiz eski fiyatları 0 yapar.
+- Kaynak: `products."compareAtPriceMinor"`, `"discountStartsAt"`,
+  `"discountEndsAt"`; kural `src/lib/shop/discount.ts` (`liveDiscount`), web
+  sayfası da aynı fonksiyonu okur.
+
+### `allergens` ve gıda etiketi alanları (19 Eki 2026, yalnız ekleme)
+
+Uzaktan satılan paketli gıdada etiketin zorunlu bilgileri, son tüketim tarihi
+hariç, satın alma tamamlanmadan önce verilir (TGK Gıda Etiketleme ve
+Tüketicileri Bilgilendirme Yönetmeliği m.17/2-a; bilgiler m.9/1). Ürün ekranı
+bunları, panelde girilmişse gösterir:
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `allergens` | string[] **ya da alan yok** | §1'deki 14 Ek-1 grubu, aynı anahtarlar ve aynı üç durum: `[]` = hiçbirini içermez, alan **yoksa** girilmemiştir. |
+| `netQuantity` | string **ya da alan yok** | Net miktar ("250 g", "6 adet"). |
+| `ingredients` | string **ya da alan yok** | İçindekiler, etiketteki gibi. |
+| `nutrition` | string **ya da alan yok** | Beslenme bildirimi; satır satır (`\n`). |
+| `storageConditions` | string **ya da alan yok** | Saklama koşulu. |
+| `usageInstructions` | string **ya da alan yok** | Kullanım talimatı. |
+| `origin` | string **ya da alan yok** | Menşe ülkesi. |
+| `producer` | string **ya da alan yok** | Gıda işletmecisinin adı ya da unvanı ve adresi. |
+| `businessRegNo` | string **ya da alan yok** | İşletme kayıt numarası ya da onay işareti. |
+
+- Metin operatörün etiketten yazdığıdır; sunucu satır içi boşlukları
+  sadeleştirir, satır sonlarını korur, boş satırı atar. Boş alan
+  gönderilmez: uygulama eksik anahtarı "yok" diye değil "girilmedi" diye
+  okumalıdır.
+- Gıda ürününde (kategori `beans`, `pantry`, `gift`) şu anahtarlardan biri
+  yoksa uygulama müşteriye, eksik olanları sayarak, siparişten önce
+  mağazaya sormasını söyler, web sayfasının yaptığı gibi: `netQuantity`,
+  `ingredients`, `allergens`, `nutrition` (`beans` dışında: kahve
+  çekirdeğinde beslenme bildirimi gerekmez), `storageConditions`,
+  `origin`, `producer`, `businessRegNo`. `usageInstructions` yalnız
+  gerektiğinde girilir ve satırı tutmaz. Kural sitede
+  `src/components/laffogato/product-facts.ts` (`missingFoodLabel`).
+- `tags` ve içindeki `nuts` **aynen kalır**: eski sürümler kuruyemiş
+  uyarısını ondan okur. Panel `sert_kabuklu` işaretlenince `nuts` etiketini
+  kendisi ekler; alerjenler girilmiş bir üründe `nuts` etiketi varsa
+  `sert_kabuklu` da işaretlidir.
+- Kaynak: `products.allergens` (jsonb, NULL = girilmedi;
+  `products_allergens_check` §1'deki listeyi tutar) ve aynı adlı `text`
+  sütunları, migration `20261019170200_product_food_label.sql`; alan listesi
+  `src/lib/shop/food-label.ts`. Panelde `/admin/urunler` → **Temel bilgi** →
+  *Alerjen* ve *Gıda etiketi*.
+- Eski sürümler alanları okumaz; bir şey kırılmaz.
 
 ### `tags` — alerjen (16 Eyl 2026, yalnız ekleme)
 
@@ -1375,7 +1455,7 @@ Uygulama kendi sözleşme kopyasını yazmaz. Sipariş kaydı sitenin sözleşme
 revizyonuna rıza kaydeder; iki taraf farklı metin gösterirse o kayıt anlamsız
 kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 
-**`GET /api/mobile/v1/legal`** — 25 belgelik dizin.
+**`GET /api/mobile/v1/legal`**: 26 belgelik dizin (20 Eki 2026'dan beri İşlem Rehberi dahil).
 
 ```json
 {
@@ -1434,7 +1514,7 @@ ulaşılamazsa iki uç da kodlu belgeye döner — 5xx vermez.
 ### Çevrimdışı taban
 
 `npm run legal:export` (site deposu) `scripts/legal-export.mjs`'yi çalıştırıp
-`laffogato-mobil/src/data/legal.seed.json` üretir: 25 belgelik dizin + **14
+`laffogato-mobil/src/data/legal.seed.json` üretir: 26 belgelik dizin + **14
 belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
 bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
 

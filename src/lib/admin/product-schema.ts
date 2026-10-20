@@ -14,6 +14,12 @@ import {
   parseSignedMoneyInput,
 } from "@/lib/utils/format";
 import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
+import { discountShapeRefusal } from "@/lib/shop/discount";
+import {
+  FOOD_LABEL_FIELDS,
+  tidyLabelText,
+  type FoodLabelKey,
+} from "@/lib/shop/food-label";
 
 const HUE_VALUES = [
   "cream",
@@ -328,6 +334,39 @@ const variantsJson = z
     }
   });
 
+/**
+ * A label field (src/lib/shop/food-label.ts): the operator's text, tidied,
+ * within its cap. Absent (a form from before the field) is undefined and
+ * keeps the stored text; empty is '' and clears it.
+ */
+function labelText(label: string, max: number) {
+  return z
+    .string()
+    .optional()
+    .transform((raw, ctx) => {
+      if (raw === undefined) return undefined;
+      const text = tidyLabelText(raw);
+      if (text.length > max) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${label} en fazla ${max} karakter olabilir.`,
+        });
+        return z.NEVER;
+      }
+      return text;
+    });
+}
+
+const foodLabelShape = Object.fromEntries(
+  FOOD_LABEL_FIELDS.map((f) => [f.key, labelText(f.panel, f.max)]),
+) as Record<FoodLabelKey, ReturnType<typeof labelText>>;
+
+/** A discount day from the form's date field: "YYYY-MM-DD", or null when empty. */
+const discountDay = z
+  .string()
+  .optional()
+  .transform((raw) => raw?.trim() || null);
+
 /** Length caps shared by the wizard and the CSV import. */
 export const PRODUCT_NAME_MAX_LENGTH = 120;
 export const PRODUCT_SKU_MAX_LENGTH = 40;
@@ -385,6 +424,11 @@ export const productFormSchema = z
     notes: notesList,
     price: salePriceToMinor,
     compareAtPrice: moneyToMinor.optional(),
+    // The discount's days (Ticari Reklam Yön. m.14/1): required beside a
+    // compare-at price; the store checks the price against the history.
+    discountStartsOn: discountDay,
+    discountEndsOn: discountDay,
+    ...foodLabelShape,
     cost: moneyToMinor.optional(),
     stock: intInput,
     stockAtOpen: stockSnapshot,
@@ -416,6 +460,19 @@ export const productFormSchema = z
         message: variantFloorError(variant.name),
       });
     }
+    const discount = discountShapeRefusal({
+      priceMinor: v.price,
+      compareAtPriceMinor: v.compareAtPrice ?? 0,
+      startDay: v.discountStartsOn,
+      endDay: v.discountEndsOn,
+    });
+    if (discount) {
+      ctx.addIssue({
+        code: "custom",
+        path: [discount.field],
+        message: discount.message,
+      });
+    }
   })
   .transform((v) => ({
     name: v.name,
@@ -431,6 +488,12 @@ export const productFormSchema = z
     notes: v.notes,
     priceMinor: v.price,
     compareAtPriceMinor: v.compareAtPrice ?? 0,
+    // No compare-at price, no days: an emptied "Eski fiyat" ends the discount.
+    discountStartsOn: (v.compareAtPrice ?? 0) > 0 ? v.discountStartsOn : null,
+    discountEndsOn: (v.compareAtPrice ?? 0) > 0 ? v.discountEndsOn : null,
+    ...Object.fromEntries(
+      FOOD_LABEL_FIELDS.map((f) => [f.key, v[f.key]]),
+    ) as Partial<Record<FoodLabelKey, string>>,
     costMinor: v.cost ?? 0,
     stock: v.stock,
     stockAtOpen: v.stockAtOpen,

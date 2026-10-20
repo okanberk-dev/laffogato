@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getPublicSettings } from "@/lib/admin/store";
+import { getSiteSettings } from "@/lib/seo/site-data";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 
 // Dynamic: the admin's "open to search engines" switch is read at request
@@ -53,9 +53,9 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   }
 
   // A database outage must not silently open a site the owner closed, nor
-  // close one they left open. `getPublicSettings` degrades to the defaults,
+  // close one they left open. `getSiteSettings` degrades to the defaults,
   // where `seoIndexable` is true - the same answer as an untouched install.
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
   if (!settings.seoIndexable) {
     return { rules: [{ userAgent: "*", disallow: "/" }] };
   }

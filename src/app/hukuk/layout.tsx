@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { SiteChrome } from "@/components/laffogato/site-chrome";
-import { getPublicSettings } from "@/lib/admin/store";
+import { getSiteSettings } from "@/lib/seo/site-data";
 import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function HukukLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
   return (
     <SiteChrome settings={footerSettings(settings)}>{children}</SiteChrome>
   );

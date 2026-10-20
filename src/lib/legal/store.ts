@@ -51,7 +51,12 @@ export const getPublishedLegalOverride = cache(
     ),
 );
 
-async function getPublishedLegalOverrideLive(
+/**
+ * `getPublishedLegalOverride` without the outage fallback (throws instead).
+ * The cached display reader (src/lib/seo/site-data.ts) stores it; the
+ * consent versions below keep reading live.
+ */
+export async function getPublishedLegalOverrideLive(
   slug: string,
 ): Promise<LegalDocOverride | null> {
   const sb = getDb();

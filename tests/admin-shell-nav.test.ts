@@ -81,14 +81,20 @@ const searchRef = vi.hoisted(() => {
 vi.mock("@/app/admin/ara/actions", () => ({
   adminSearchAction: searchRef.ref,
 }));
+// The sidebar draws its icons through next/dynamic (a chunk of their own,
+// so the cashier's Kasa loads no lucide). Here the module is simply there.
+vi.mock("next/dynamic", async () => {
+  const { NavIcon } = await import("@/components/admin/nav-icon");
+  return { default: () => NavIcon };
+});
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 3),
+  openOrderSignalAction: vi.fn(async () => ({ count: 3, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 1),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: 1, cursor: "" })),
 }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
 
@@ -101,6 +107,8 @@ vi.mock("@/lib/admin/auth", () => ({
 vi.mock("@/lib/admin/flash", () => ({ readAdminFlash: async () => null }));
 
 const { breadcrumbTrail } = await import("@/lib/admin/nav-match");
+type PanelSignalAnswer =
+  import("@/lib/admin/panel-signal-core").PanelSignalAnswer;
 const sidebar = await import("@/components/admin/admin-sidebar");
 const { ToastProvider } = await import("@/components/admin/ui/toast");
 const { PanelHomeProvider } = await import("@/components/admin/panel-home");
@@ -196,7 +204,7 @@ describe("badges re-read after an action", () => {
 
   const setup = (visible = true) => {
     const target = new EventTarget();
-    const read = vi.fn(async () => 4);
+    const read = vi.fn(async (_cursor: string) => ({ count: 4, cursor: "" }));
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,
@@ -234,11 +242,11 @@ describe("badges re-read after an action", () => {
 
   it("reads again after a change that lands while a read is out", async () => {
     const target = new EventTarget();
-    let release: (n: number) => void = () => {};
+    let release: (n: { count: number; cursor: string }) => void = () => {};
     const read = vi
-      .fn<() => Promise<number | null>>()
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
       .mockImplementationOnce(() => new Promise((r) => (release = r)))
-      .mockResolvedValue(2);
+      .mockResolvedValue({ count: 2, cursor: "" });
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,
@@ -248,7 +256,7 @@ describe("badges re-read after an action", () => {
     });
     target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
     expect(read).toHaveBeenCalledTimes(1);
-    release(5);
+    release({ count: 5, cursor: "" });
     await vi.advanceTimersByTimeAsync(0);
     expect(read).toHaveBeenCalledTimes(2);
     expect(onCount).toHaveBeenLastCalledWith(2);
@@ -265,12 +273,76 @@ describe("badges re-read after an action", () => {
     expect(read).not.toHaveBeenCalled();
   });
 
+  it("sends the cursor back and keeps the number on an unchanged answer", async () => {
+    const target = new EventTarget();
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockResolvedValueOnce({ count: 3, cursor: "s1.c1" })
+      .mockResolvedValue({ unchanged: true });
+    const onCount = vi.fn();
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount,
+      target,
+      isVisible: () => true,
+      intervalMs: 1_000,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", "s1.c1", "s1.c1"]);
+    // The badge was set once and kept: unchanged sets nothing.
+    expect(onCount.mock.calls).toEqual([[3]]);
+    stop();
+  });
+
+  it("admin:changed drops the cursor: the read after an action is a full one", async () => {
+    const target = new EventTarget();
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockResolvedValueOnce({ count: 3, cursor: "s1.c1" })
+      .mockResolvedValue({ count: 2, cursor: "s1.c2" });
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount: vi.fn(),
+      target,
+      isVisible: () => true,
+      intervalMs: 60_000,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", "", "s1.c2"]);
+    stop();
+  });
+
+  it("a change that lands while a read is out does not keep that read's cursor", async () => {
+    const target = new EventTarget();
+    let release: (n: PanelSignalAnswer) => void = () => {};
+    const read = vi
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
+      .mockImplementationOnce(() => new Promise((r) => (release = r)))
+      .mockResolvedValue({ count: 1, cursor: "s1.c2" });
+    const stop = sidebar.startNavCountPoll({
+      read,
+      onCount: vi.fn(),
+      target,
+      isVisible: () => true,
+    });
+    target.dispatchEvent(new Event(ADMIN_CHANGED_EVENT));
+    release({ count: 4, cursor: "s1.before-the-change" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(read.mock.calls.map((c) => c[0])).toEqual(["", ""]);
+    stop();
+  });
+
   it("a failed read leaves the badge alone and the poll running", async () => {
     const target = new EventTarget();
     const read = vi
-      .fn<() => Promise<number | null>>()
+      .fn<(cursor: string) => Promise<PanelSignalAnswer>>()
       .mockRejectedValueOnce(new Error("offline"))
-      .mockResolvedValue(1);
+      .mockResolvedValue({ count: 1, cursor: "" });
     const onCount = vi.fn();
     const stop = sidebar.startNavCountPoll({
       read,
@@ -360,6 +432,7 @@ const renderSidebar = (
         landingPath: "/admin/kasa",
         logout: () => {},
         canSearch: true,
+        palette: { role: "owner", accountKey: "0123456789abcdef" },
         ...props,
       }),
     ),
@@ -401,7 +474,7 @@ describe("the sidebar and the top bar", () => {
     expect(tag(html, /<header[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<dialog[^>]*>/)).toContain("print:hidden");
     expect(read("src/app/admin/layout.tsx")).toContain(
-      '<div className="lg:pl-64 print:pl-0">',
+      'className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}',
     );
   });
 
@@ -434,43 +507,47 @@ describe("the sidebar and the top bar", () => {
     expect(header).toMatch(
       /<div data-admin-topbar-actions="" class="[^"]*"><button id="bell">Zil<\/button><\/div>/,
     );
-    expect(header).toContain('action="/admin/ara"');
-    expect(header.indexOf('action="/admin/ara"')).toBeLessThan(
+    // The search (the palette's trigger since UI-6) comes first.
+    expect(header).toContain("data-admin-palette-trigger");
+    expect(header.indexOf("data-admin-palette-trigger")).toBeLessThan(
       header.indexOf("data-admin-topbar-actions"),
     );
     expect(html.match(/data-admin-topbar-actions/g)).toHaveLength(1);
   });
 
-  it("shows the search only to a role it covers; it posts, so the text is in no address", () => {
+  it("shows the search only to a role it covers; without JavaScript it is a link to the results page", () => {
+    // Admin UI v2, UI-6: the top bar's box became the ⌘K palette's trigger.
+    // Its server markup is one link to /admin/ara (whose own box posts, so
+    // the text is in no address), at every width: a 44 px square on a
+    // phone, the box's look from lg.
     const html = renderSidebar();
-    expect(html).toContain('<a href="/admin/ara" aria-label="Ara"');
-    const form = tag(html, /<form[^>]*action="\/admin\/ara"[^>]*>/);
-    // A POST to the results page (the action's permalink), never a GET.
-    expect(form).toContain('method="POST"');
-    expect(form).toMatch(/enctype="multipart\/form-data"/i);
-    expect(form).not.toMatch(/method="get"/i);
-    expect(form).toContain('role="search"');
-    const body = html.slice(
-      html.indexOf(form),
-      html.indexOf("</form>", html.indexOf(form)),
+    const header = html.slice(
+      html.indexOf("<header"),
+      html.indexOf("</header>"),
     );
-    // The key a no-JS post is answered under on /admin/ara.
-    expect(body).toMatch(
-      /<input type="hidden" name="\$ACTION_KEY" value="p\/admin\/ara"\/>/,
+    const trigger = tag(header, /<a [^>]*data-admin-palette-trigger[^>]*>/);
+    expect(trigger).toContain('href="/admin/ara"');
+    expect(trigger).toContain('aria-label="Ara"');
+    expect(trigger).toContain('aria-haspopup="dialog"');
+    expect(trigger).toContain('aria-keyshortcuts="Meta+K Control+K"');
+    expect(header.match(/href="\/admin\/ara"/g)).toHaveLength(1);
+    // No form and no text box in the bar any more: nothing typed there.
+    expect(header).not.toContain("<form");
+    expect(header).not.toContain('name="q"');
+    const classes = /class="([^"]*)"/.exec(trigger)![1].split(" ");
+    expect(classes).toEqual(
+      expect.arrayContaining(["h-11", "w-11", "lg:w-72"]),
     );
-    const input = tag(html, /<input[^>]*id="admin-top-search"[^>]*>/);
-    expect(input).toContain('name="q"');
-    expect(input).toContain('type="search"');
-    // `hidden` below lg and `flex` from lg: no bare `flex` beside `hidden`.
-    const classes = /class="([^"]*)"/.exec(form)![1].split(" ");
-    expect(classes).toContain("hidden");
-    expect(classes).toContain("lg:flex");
-    expect(classes).not.toContain("flex");
     const none = renderSidebar({ canSearch: false });
     expect(none).not.toContain("/admin/ara");
+    expect(none).not.toContain("data-admin-palette-trigger");
     // Nothing for the wide bar to hold: it is not drawn there.
     expect(tag(none, /<header[^>]*>/)).toMatch(/\blg:hidden\b/);
     expect(tag(html, /<header[^>]*>/)).not.toMatch(/\blg:hidden\b/);
+    // Without the palette's inputs there is no trigger either.
+    expect(renderSidebar({ palette: undefined })).not.toContain(
+      "data-admin-palette-trigger",
+    );
   });
 
   it("with JavaScript, hands the text to the results page in memory, not in its address", () => {
@@ -583,7 +660,7 @@ describe("the layout", () => {
   const render = async () =>
     renderToStaticMarkup(await AdminLayout({ children: page }));
 
-  it("gives each Mobil Uygulama entry its own icon and says Mağaza vitrini (SHE-18, CON-19, SHE-22)", async () => {
+  it("draws five groups, each item with an icon of its own (UI-5, SHE-18, CON-19)", async () => {
     session.read = async () => ({
       email: "o@b.c",
       role: "owner",
@@ -591,26 +668,30 @@ describe("the layout", () => {
     });
     pathname = "/admin";
     const html = await render();
-    expect(html).toContain("Mağaza vitrini");
-    expect(html).not.toContain("Mağaza Hero");
-    const icons = [
-      "slaytlar",
-      "duyurular",
-      "gonderiler",
-      "canli-durum",
-      "fal-bildirimleri",
-      "ayarlar",
-    ].map((p) =>
-      tag(html, new RegExp(`<a href="/admin/mobil/${p}"[^]*?</svg>`)).replace(
-        /^[^]*?<svg/,
-        "<svg",
-      ),
-    );
-    expect(new Set(icons).size).toBe(6);
+    const side = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    const titles = [
+      ...side.matchAll(/id="side-nav-\d+-title"[^>]*>(?:<span>)?([^<]+)</g),
+    ].map((m) => m[1]);
+    expect(titles).toEqual([
+      "Bugün",
+      "Katalog",
+      "Pazarlama",
+      "İçerik",
+      "Yönetim",
+    ]);
+    const rows = [
+      ...side.matchAll(/<li class="relative"><a href="([^"]+)"[^]*?<\/a>/g),
+    ];
+    expect(rows).toHaveLength(21);
+    // Each row draws a lucide icon, and no two rows draw the same one.
+    const icons = rows.map((m) => /class="lucide ([^" ]+)/.exec(m[0])?.[1]);
+    expect(icons.every(Boolean)).toBe(true);
+    expect(new Set(icons).size).toBe(21);
+    expect(side).not.toContain("Mağaza Hero");
     expect(html).toContain("PAGE");
   });
 
-  it("a cashier's shell: the till as home, no search", async () => {
+  it("a cashier's shell: no sidebar, menu button or drawer; logo, page name, account menu (UI-5)", async () => {
     session.read = async () => ({
       email: "k@b.c",
       role: "cashier",
@@ -618,10 +699,34 @@ describe("the layout", () => {
     });
     pathname = "/admin/kasa";
     const html = await render();
-    expect(html).toContain('href="/admin/kasa"');
+    expect(html).not.toContain("<aside");
+    expect(html).not.toContain("admin-nav-drawer");
+    expect(html).not.toContain("Menüyü aç");
+    expect(html).not.toContain('aria-label="Panel"');
     expect(html).not.toContain("/admin/siparisler");
     expect(html).not.toContain("/admin/ara");
-    expect(html).toContain("/admin/2fa-kurulum");
+    const header = html.slice(
+      html.indexOf("<header"),
+      html.indexOf("</header>"),
+    );
+    expect(header).toMatch(
+      /<a href="\/admin\/kasa"[^>]*aria-label="L&#x27;Affogato Admin"/,
+    );
+    expect(header).toMatch(/>Kasa<\/span>/);
+    // The account menu: a native disclosure holding 2FA and Çıkış.
+    expect(header).toContain("<details");
+    expect(header).toContain('href="/admin/2fa-kurulum"');
+    expect(header).toContain("Çıkış");
+    // No icon chunk for the cashier: nothing lucide in the shell.
+    expect(html).not.toContain('class="lucide');
+    // Nothing to clear room for: the page is not pushed right.
+    expect(html).toContain(
+      '<div id="admin-main" tabindex="-1" class="print:pl-0" style="outline:none">',
+    );
+    // The skip link is still the first thing to focus.
+    expect(html.indexOf('href="#admin-main"')).toBeLessThan(
+      html.indexOf("<header"),
+    );
   });
 
   it("an unreachable session check shows the shell with a notice, not the sign-in (SHE-11)", async () => {

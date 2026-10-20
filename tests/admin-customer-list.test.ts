@@ -196,6 +196,8 @@ const h = vi.hoisted(() => ({
   denied: false,
   reads: [] as string[],
   pageInput: null as unknown,
+  /** The request's cookies: the list's remembered search lives there. */
+  jar: {} as Record<string, string>,
 }));
 
 vi.mock("next/link", () => ({
@@ -213,6 +215,12 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+}));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name in h.jar ? { name, value: h.jar[name] } : undefined,
+  }),
 }));
 vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async (section: string) => {
@@ -286,6 +294,12 @@ beforeEach(() => {
   h.denied = false;
   h.reads = [];
   h.pageInput = null;
+  h.jar = {};
+});
+
+/** The customers list's cookie holding a typed search. */
+const searched = (q: string) => ({
+  adm_q_customers: new URLSearchParams({ q }).toString(),
 });
 
 describe("Müşteriler page", () => {
@@ -295,10 +309,10 @@ describe("Müşteriler page", () => {
     expect(h.reads).toEqual(["gate:customers"]);
   });
 
-  it("asks for one page of the tab, filters and sort in the URL", async () => {
+  it("asks for one page of the tab, filters and sort in the URL, the search from its cookie", async () => {
+    h.jar = searched("İsmail");
     await render({
       filter: "guests",
-      q: "İsmail",
       sirala: "ad",
       yon: "asc",
       sayfa: "2",
@@ -310,6 +324,14 @@ describe("Müşteriler page", () => {
       page: 2,
       pageSize: 50,
     });
+  });
+
+  it("never reads a search from the address (the proxy moves an old one)", async () => {
+    const { html } = await render({ q: "ayse@ornek.com" });
+    expect(h.pageInput).toMatchObject({
+      query: { search: "", digits: "" },
+    });
+    expect(html).not.toContain("ayse@ornek.com");
   });
 
   it("draws the rows on the kit table with tabs, counts and pages", async () => {
@@ -369,8 +391,12 @@ describe("Müşteriler page", () => {
     expect(html).toContain("sirala=harcama&amp;yon=desc");
     // A member without orders says so instead of a blank.
     expect(text).toContain("üye oldu, sipariş yok");
-    // The menu reaches the orders and the edit form.
-    expect(html).toContain('href="/admin/siparisler?q=ayse%40ornek.com"');
+    // The menu reaches the orders (the address posted to their search,
+    // never in a link) and the edit form.
+    expect(html).toContain(
+      '<input type="hidden" name="_path" value="/admin/siparisler"/><input type="hidden" name="_do" value="apply"/><input type="hidden" name="q" value="ayse@ornek.com"/><button type="submit"',
+    );
+    expect(html).not.toMatch(/href="[^"]*\?q=/);
     expect(html).toContain('href="/admin/musteriler/ayse%40ornek.com/duzenle"');
     expect(html).not.toContain(
       'href="/admin/musteriler/misafir%40ornek.com/duzenle"',
@@ -394,9 +420,15 @@ describe("Müşteriler page", () => {
     expect((await render()).text).toContain(
       "Henüz üye hesabı ya da sipariş yok.",
     );
-    const narrowed = await render({ q: "kimse" });
+    h.jar = searched("kimse");
+    const narrowed = await render();
     expect(narrowed.text).toContain("Bu süzgece uyan müşteri yok.");
-    expect(narrowed.html).toContain("Süzgeçleri temizle");
+    // The way out forgets the search too: a post, not a link that would
+    // land on the same empty list.
+    expect(narrowed.html).toMatch(
+      /<input type="hidden" name="_path" value="\/admin\/musteriler"\/><input type="hidden" name="_do" value="reset"\/><button type="submit" class="[^"]*">Süzgeçleri temizle<\/button>/,
+    );
+    h.jar = {};
     // Past the last page of a tab that has rows.
     h.counts!.all = totals(10);
     const past = await render({ sayfa: "9" });

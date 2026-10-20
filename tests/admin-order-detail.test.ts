@@ -130,19 +130,107 @@ describe("the printed receipt", () => {
     for (const over of [
       {},
       { kind: "shop", fulfillment: "shipping", channel: "web" },
-      { channel: "manual", fulfillment: "pickup" },
+      { source: "manual", channel: "web", fulfillment: "pickup" },
       { fulfillment: "table", tableCode: "K7P42M9XQA", tableName: "Bahçe 5" },
+      { status: "pending_payment", paidAt: "" },
     ] as Partial<AdminOrder>[]) {
       const out = renderToStaticMarkup(
         createElement(PrintableReceipt, { order: order(over), settings }),
       );
       const footer = out.slice(out.indexOf("<footer"));
       expect(footer, JSON.stringify(over)).toMatch(
-        /<p data-receipt-fiscal-note="true"[^>]*>Bu fiş mali belge değildir\.<\/p>/,
+        /<p data-receipt-fiscal-note="true"[^>]*>Bu fiş mali belge değildir\.(<\/p>| )/,
       );
-      // Only this sentence until e-Arşiv invoices go out by e-mail.
-      expect(footer).not.toContain("e-Arşiv");
     }
+  });
+
+  // Where the real fiscal document comes from (ASK-INVOICE; the company
+  // issues its invoices electronically, operator 19 Eki 2026).
+  const fiscalLine = (
+    over: Partial<AdminOrder>,
+    payments: { provider: string; status: string }[] = [],
+  ) => {
+    const out = renderToStaticMarkup(
+      createElement(PrintableReceipt, {
+        order: order(over),
+        settings,
+        payments: payments.map((p) => ({
+          ...p,
+          providerRef: "ref",
+          amountMinor: 12_000,
+          currency: "TRY",
+          trxDate: "",
+          createdAt: "2026-10-17T08:01:00.000Z",
+        })),
+      }),
+    );
+    return /<p data-receipt-fiscal-note="true"[^>]*>([^<]*)<\/p>/.exec(
+      out,
+    )?.[1];
+  };
+  const NOT_FISCAL = "Bu fiş mali belge değildir.";
+  const BY_MAIL = `${NOT_FISCAL} Faturan elektronik olarak e-postana gönderilir.`;
+  const AT_TILL = `${NOT_FISCAL} Mali belgen kasadan verilen fiştir.`;
+  const manual = { source: "manual", channel: "web" as const };
+
+  it("sends the customer of an order paid online to the e-mailed invoice", () => {
+    // App and web orders are paid only through the POS, the wallet or a
+    // total brought to zero: paidAt alone says it was paid online.
+    expect(fiscalLine({})).toBe(BY_MAIL);
+    expect(
+      fiscalLine({ kind: "shop", fulfillment: "shipping", channel: "web" }, [
+        { provider: "paynkolay", status: "succeeded" },
+      ]),
+    ).toBe(BY_MAIL);
+  });
+
+  it("sends a counter sale to the till's fiş, a transfer to the e-mail", () => {
+    for (const method of ["nakit", "kart"]) {
+      expect(
+        fiscalLine(manual, [
+          { provider: `manual:${method}`, status: "succeeded" },
+        ]),
+        method,
+      ).toBe(AT_TILL);
+    }
+    expect(
+      fiscalLine(manual, [{ provider: "manual:havale", status: "succeeded" }]),
+    ).toBe(BY_MAIL);
+  });
+
+  it("promises nothing it cannot tell", () => {
+    // Not paid yet.
+    expect(
+      fiscalLine({ status: "pending_payment", paidAt: "" }, [
+        { provider: "paynkolay", status: "failed" },
+      ]),
+    ).toBe(NOT_FISCAL);
+    // A manual order paid by transfer with no e-mail to send the invoice to.
+    expect(
+      fiscalLine({ ...manual, customerEmail: "" }, [
+        { provider: "manual:havale", status: "succeeded" },
+      ]),
+    ).toBe(NOT_FISCAL);
+    // A manual order marked paid before the method was recorded (ORD-19):
+    // cash and transfer look the same.
+    expect(fiscalLine(manual)).toBe(NOT_FISCAL);
+    // "Diğer" names no method: it may be a counter sale whose fiş is the
+    // fiscal document, and no invoice e-mail would ever come.
+    for (const over of [manual, { channel: "web" as const }]) {
+      expect(
+        fiscalLine(over, [{ provider: "manual:diger", status: "succeeded" }]),
+        JSON.stringify(over),
+      ).toBe(NOT_FISCAL);
+    }
+  });
+
+  it("reads the order page's own payment rows", () => {
+    const out = detail(
+      order({ ...manual, kind: "cafe", fulfillment: "pickup" }),
+    );
+    const footer = out.slice(out.indexOf("<footer"));
+    // detail() passes a PayNkolay charge: an online payment.
+    expect(footer).toContain(BY_MAIL);
   });
 
   it("has no discount row without a discount", () => {

@@ -71,6 +71,19 @@ import {
   walletProviderRef,
   walletSpendFor,
 } from "@/lib/mobile/wallet";
+import {
+  discountInstants,
+  discountRefusal,
+  liveDiscount,
+  withoutEndedDiscount,
+  type DiscountFields,
+  type PricePoint,
+} from "@/lib/shop/discount";
+import {
+  EMPTY_FOOD_LABEL,
+  foodLabelOf,
+  type FoodLabelText,
+} from "@/lib/shop/food-label";
 import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
@@ -114,7 +127,11 @@ import {
   manualShippingMode,
   type ManualFulfillment,
 } from "./manual-order-schema";
-import { OPEN_ORDER_STATUSES, type OrderListQuery } from "./order-filters";
+import {
+  OPEN_ORDER_STATUSES,
+  istanbulDayStartIso,
+  type OrderListQuery,
+} from "./order-filters";
 import type { OrderAlertRow } from "./order-alerts-core";
 import { ORDER_STATUS_LABELS } from "./order-ui";
 import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
@@ -193,7 +210,18 @@ export const NO_BACKDROP: Readonly<BackdropColumns> = {
   vessel: null,
 };
 
-export interface AdminProduct extends BackdropColumns {
+/**
+ * The label of a packaged food (src/lib/shop/food-label.ts,
+ * 20261019170200_product_food_label.sql). Optional: a row read before the
+ * migration ran has none of the keys, and every surface reads them through
+ * `foodLabelOf` / `normalizeMenuAllergens`.
+ */
+export interface ProductFoodLabel extends Partial<FoodLabelText> {
+  /** Ek-1 groups: null not entered, [] none of the fourteen. */
+  allergens?: MenuAllergen[] | null;
+}
+
+export interface AdminProduct extends BackdropColumns, ProductFoodLabel {
   id: string;
   name: string;
   slug: string;
@@ -201,8 +229,16 @@ export interface AdminProduct extends BackdropColumns {
   tag: string;
   /** Minor units (kuruş) - e.g. 32000 = 320,00 ₺ */
   priceMinor: number;
-  /** Optional "was" price for striked-out display. 0 = none. */
+  /**
+   * The price before a discount, struck out beside the sale price. 0 = none.
+   * Shown only between `discountStartsAt` and `discountEndsAt` and only
+   * above the sale price (`liveDiscount`, src/lib/shop/discount.ts); the
+   * save takes it only as the lowest price of the ten days before the start.
+   */
   compareAtPriceMinor: number;
+  /** The discount's first and last instant (UTC ISO), or null: no discount. */
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   /** Internal cost (margin calc); not shown to customers. */
   costMinor: number;
   desc: string;
@@ -840,6 +876,12 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
+        // The label is copied from the pack in /admin/urunler; nothing is
+        // guessed, so a food page asks the customer to write until then.
+        allergens: null,
+        ...EMPTY_FOOD_LABEL,
+        discountStartsAt: null,
+        discountEndsAt: null,
         // No photo yet, so no scene pick and no cutout.
         ...NO_BACKDROP,
         stock: 25,
@@ -1109,6 +1151,8 @@ export type ProductPanelView = Pick<
   | "cat"
   | "priceMinor"
   | "compareAtPriceMinor"
+  | "discountStartsAt"
+  | "discountEndsAt"
   | "stock"
   | "lowStockThreshold"
   | "featured"
@@ -1125,7 +1169,7 @@ export async function listProductsForPanel(): Promise<ProductPanelView[]> {
     await sb
       .from(TABLES.products)
       .select(
-        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
+        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, discountStartsAt, discountEndsAt, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
       )
       .order("updatedAt", { ascending: false }),
     "listProductsForPanel",
@@ -1166,13 +1210,20 @@ export async function listProductThumbs(
  * biçimi" fields (`src/lib/backdrop/scene.ts`), and `updateProduct` writes
  * them over the stored ones like every other field.
  */
-export interface ProductInput extends BackdropColumns {
+export interface ProductInput extends BackdropColumns, ProductFoodLabel {
   name: string;
   slug: string;
   sku: string;
   tag: string;
   priceMinor: number;
   compareAtPriceMinor: number;
+  /**
+   * The discount's Istanbul days ("YYYY-MM-DD") as the form posts them, or
+   * null. The store turns them into `discountStartsAt` / `discountEndsAt`
+   * once the price history has allowed the compare-at price.
+   */
+  discountStartsOn?: string | null;
+  discountEndsOn?: string | null;
   costMinor: number;
   desc: string;
   cat: ShopCategoryId;
@@ -1298,12 +1349,25 @@ export async function createProduct(
     stockAtOpen: _snapshot,
     saveToken: _token,
     stockFromVariants: _reset,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
     ...fields
   } = input;
   const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
     ...fields,
+    ...foodLabelOf(fields),
+    allergens:
+      fields.allergens === undefined
+        ? null
+        : normalizeMenuAllergens(fields.allergens),
+    // A new product has no price history, so no price before a discount
+    // can be shown for it (Ticari Reklam Yön. m.14/3): the action refuses
+    // a compare-at price first, and the row never carries one.
+    compareAtPriceMinor: 0,
+    discountStartsAt: null,
+    discountEndsAt: null,
     id,
     slug,
     sku,
@@ -1377,15 +1441,81 @@ function formStockBasis(
   return { stock, variants };
 }
 
+/**
+ * Why a product save was refused before anything was written: the
+ * compare-at price or its days (src/lib/shop/discount.ts). Answered under
+ * `field`.
+ */
+export interface ProductDiscountRefusal {
+  discountRefusal: { field: string; message: string };
+}
+
+/** The product's online price history, oldest first (Ticari Reklam Yön. m.14/3, m.14/5). */
+export async function listProductPriceHistory(
+  productId: string,
+): Promise<PricePoint[]> {
+  const sb = getDb();
+  return rows<PricePoint>(
+    await sb
+      .from(TABLES.productPriceHistory)
+      .select("priceMinor, startedAt")
+      .eq("productId", productId)
+      .order("startedAt", { ascending: true }),
+    "listProductPriceHistory",
+  );
+}
+
 export async function updateProduct(
   id: string,
   input: ProductInput,
   { actor = "system" }: { actor?: string } = {},
-): Promise<AdminProduct | ProductStockRefusal | null> {
+): Promise<
+  AdminProduct | ProductStockRefusal | ProductDiscountRefusal | null
+> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getProduct(id);
   if (!existing) return null;
+  // The compare-at price is checked before anything is written: it must be
+  // the lowest online price of the ten days before its start, so the
+  // history decides, and a refusal leaves the whole row as stored. An
+  // ended discount the form sends back unchanged is cleared, not refused.
+  const now = new Date();
+  const posted = withoutEndedDiscount(
+    {
+      compareAtPriceMinor: input.compareAtPriceMinor,
+      startDay: input.discountStartsOn ?? null,
+      endDay: input.discountEndsOn ?? null,
+    },
+    existing,
+    now,
+  );
+  const discount = discountRefusal({
+    priceMinor: input.priceMinor,
+    ...posted,
+    hasPricedVariants: input.variants.some(
+      (v) => v.isActive && v.priceDeltaMinor !== 0,
+    ),
+    history:
+      posted.compareAtPriceMinor > 0 ? await listProductPriceHistory(id) : [],
+    stored: existing,
+    now,
+  });
+  if (discount) return { discountRefusal: discount };
+  // The discount was checked against this save's price, so it is written
+  // with the price, after it: a save whose price and stock are refused
+  // below (orders came in) keeps the stored discount, never a compare-at
+  // price and a start day beside a price they were not checked against.
+  // Ending one is written at once: dropping a badge misleads no one.
+  const discountColumns = {
+    compareAtPriceMinor: posted.compareAtPriceMinor,
+    ...discountInstants(
+      posted.compareAtPriceMinor,
+      posted.startDay,
+      posted.endDay,
+    ),
+  };
+  const discountLater = posted.compareAtPriceMinor > 0;
   const slug = await uniqueSlug(
     input.slug || slugify(input.name) || existing.slug,
     id,
@@ -1397,10 +1527,24 @@ export async function updateProduct(
     stockAtOpen,
     saveToken,
     stockFromVariants,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
+    compareAtPriceMinor: _compare,
     ...rest
   } = input;
   const fields = {
     ...rest,
+    ...(discountLater ? {} : discountColumns),
+    // Only the label fields the form sent: an absent one keeps the stored
+    // text, like `taxRatePct` below.
+    ...Object.fromEntries(
+      Object.entries(foodLabelOf(input)).filter(
+        ([key]) => (input as unknown as Record<string, unknown>)[key] !== undefined,
+      ),
+    ),
+    ...(input.allergens === undefined
+      ? {}
+      : { allergens: normalizeMenuAllergens(input.allergens) }),
     slug,
     // An empty field keeps the stored code; a product that never had one
     // gets the one its name and id imply (the wizard no longer prefills it).
@@ -1494,9 +1638,21 @@ export async function updateProduct(
       },
     };
   }
+  if (discountLater) {
+    const kept = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update(discountColumns)
+        .eq("id", id)
+        .select("id"),
+      "updateProduct.discount",
+    );
+    if (kept.length === 0) return null;
+  }
   return {
     ...existing,
     ...(patch as Partial<AdminProduct>),
+    ...discountColumns,
     priceMinor: input.priceMinor,
     stock: answer.stockAfter,
     variants: answer.variants,
@@ -1570,6 +1726,8 @@ export type ProductImportPatch = Partial<
     | "isActive"
     | "brand"
     | "weightGrams"
+    | "discountStartsAt"
+    | "discountEndsAt"
   >
 > &
   Partial<BackdropColumns>;
@@ -5977,12 +6135,19 @@ export async function refundOrder(
  */
 export const getPublicSettings = cache(
   async (): Promise<AdminSettings> =>
-    publicRead(
-      "getPublicSettings",
-      { ...defaultSettings(), isShopOpen: false },
-      () => getSettings(),
+    publicRead("getPublicSettings", publicSettingsFallback(), () =>
+      getSettings(),
     ),
 );
+
+/**
+ * What a presentation read of the settings shows when the database cannot
+ * be reached: the defaults, with the shop closed. Shared with the cached
+ * reader (src/lib/seo/site-data.ts) so both fall back to the same thing.
+ */
+export function publicSettingsFallback(): AdminSettings {
+  return { ...defaultSettings(), isShopOpen: false };
+}
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
@@ -6133,16 +6298,81 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
 // ─── Public read for customer site ────────────────────────────────────────
 
-function toDesignProduct(p: AdminProduct): DesignProduct {
+/**
+ * The label fields a product page shows: only those entered (an empty one
+ * is left out, so nothing reads as "none"). Allergens keep the menu's
+ * three states: absent not entered, [] none of the fourteen.
+ */
+function designFoodLabel(p: AdminProduct): Partial<DesignProduct> {
+  const label = foodLabelOf(p);
+  const out: Partial<DesignProduct> = Object.fromEntries(
+    Object.entries(label).filter(([, value]) => value !== ""),
+  );
+  const allergens = normalizeMenuAllergens(p.allergens);
+  if (allergens !== null) out.allergens = allergens;
+  return out;
+}
+
+export function toDesignProduct(
+  p: AdminProduct,
+  now: Date = new Date(),
+): DesignProduct {
+  return shopProductAt(toShopListing(p), now);
+}
+
+/**
+ * A product as the site lists it, minus what depends on the hour: the
+ * mapped product without its "was" price, and the discount's fields to
+ * work that out from (`shopProductAt`). What the cached shop list
+ * (src/lib/seo/site-data.ts) stores, so a discount starts and ends on the
+ * minute however long the entry is kept.
+ */
+export interface ShopListing {
+  product: DesignProduct;
+  discount: DiscountFields;
+}
+
+/**
+ * The product at `now`: a "was" price only while its discount runs and only
+ * above the sale price; without dates, or out of them, it is shown nowhere
+ * (Ticari Reklam Yön. m.14/1, m.14/3; src/lib/shop/discount.ts).
+ */
+export function shopProductAt(
+  listing: ShopListing,
+  now: Date = new Date(),
+): DesignProduct {
+  const discount = liveDiscount(listing.discount, now);
+  return {
+    ...listing.product,
+    compareAtPrice: discount
+      ? priceLabel(discount.compareAtPriceMinor)
+      : undefined,
+    ...(discount
+      ? { discountStartsAt: discount.startsAt, discountEndsAt: discount.endsAt }
+      : {}),
+    compareAtPriceMinor: discount?.compareAtPriceMinor,
+  };
+}
+
+/** `toDesignProduct` before the clock is read (see `ShopListing`). */
+export function toShopListing(p: AdminProduct): ShopListing {
+  return {
+    product: designProductBase(p),
+    discount: {
+      priceMinor: p.priceMinor,
+      compareAtPriceMinor: p.compareAtPriceMinor,
+      discountStartsAt: p.discountStartsAt ?? null,
+      discountEndsAt: p.discountEndsAt ?? null,
+    },
+  };
+}
+
+function designProductBase(p: AdminProduct): DesignProduct {
   return {
     id: p.id,
     name: p.name,
     tag: p.tag,
     price: priceLabel(p.priceMinor),
-    compareAtPrice:
-      p.compareAtPriceMinor > p.priceMinor
-        ? priceLabel(p.compareAtPriceMinor)
-        : undefined,
     desc: p.desc,
     cat: p.cat,
     img: p.img,
@@ -6168,8 +6398,17 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor:
-      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    // The maker and the tasting notes the product page's details read
+    // (product-facts.ts); empty sends nothing.
+    brand: typeof p.brand === "string" && p.brand.trim() ? p.brand.trim() : undefined,
+    notes:
+      Array.isArray(p.notes) && p.notes.some((n) => typeof n === "string" && n.trim())
+        ? p.notes
+            .filter((n): n is string => typeof n === "string")
+            .map((n) => n.trim())
+            .filter(Boolean)
+        : undefined,
+    ...designFoodLabel(p),
     seoTitle: p.seoTitle || undefined,
     seoDescription: p.seoDescription || undefined,
     variants: p.variants
@@ -6189,9 +6428,20 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   // a stock count from the seed would be fiction, and the shop must not sell
   // against fiction. An empty shop plus the outage banner is honest.
   return publicRead("listShopProducts", [] as DesignProduct[], async () => {
-    const all = await listProducts();
-    return all.filter((p) => p.isActive).map(toDesignProduct);
+    const now = new Date();
+    return (await listShopListingsLive()).map((l) => shopProductAt(l, now));
   });
+}
+
+/**
+ * The active products as `ShopListing`s, without the outage fallback:
+ * uploaded photos as served paths (never base64), no "was" price yet.
+ * Throws when the database cannot be reached. The cached shop list
+ * (src/lib/seo/site-data.ts) stores this.
+ */
+export async function listShopListingsLive(): Promise<ShopListing[]> {
+  const all = await listProducts();
+  return all.filter((p) => p.isActive).map((p) => toShopListing(p));
 }
 
 /**
@@ -6260,7 +6510,7 @@ async function listRelatedShopProductsLive(
       .limit(limit),
     "listRelatedShopProducts",
   );
-  return docs.map(toDesignProduct);
+  return docs.map((p) => toDesignProduct(p));
 }
 
 // ─── Cafe menu items ──────────────────────────────────────────────────────
@@ -6509,7 +6759,7 @@ export async function bulkUpdateMenuItems(
  * showing a wrong price to someone standing at the counter is worse than
  * showing none.
  */
-function menuWithoutPrices(): Record<string, DesignMenuCategory> {
+export function menuWithoutPrices(): Record<string, DesignMenuCategory> {
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];
@@ -6534,7 +6784,8 @@ export async function listMenuForCustomer(): Promise<
   );
 }
 
-async function listMenuForCustomerLive(): Promise<
+/** `listMenuForCustomer` without the outage fallback (throws instead). */
+export async function listMenuForCustomerLive(): Promise<
   Record<string, DesignMenuCategory>
 > {
   const all = await listMenuItems();
@@ -7358,6 +7609,129 @@ export function karaokeRevenueFrom(
   return out;
 }
 
+// ─── Gün sonu (admin UI v2, UI-18) ────────────────────────────────────────
+
+/** An order as the Gün sonu sheet counts it. */
+export type DayCloseOrder = RevenueOrder &
+  Pick<AdminOrder, "id" | "orderNo" | "channel" | "kind" | "source">;
+
+/** An order that carries a refund: the day's refunds are read off its ledger. */
+export type DayCloseRefundedOrder = Pick<
+  AdminOrder,
+  "id" | "orderNo" | "refunds"
+>;
+
+/** A booking on the day's calendar, as far as the evening's tally goes. */
+export interface DayCloseBooking {
+  id: string;
+  date: string;
+  startHour: number;
+  hours: number;
+  status: string;
+  paymentStatus?: string | null;
+  updatedAt: string;
+}
+
+/** A booking whose money reached the POS: `karaokeRevenue`'s rows, with the refund's day. */
+export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
+  id: string;
+  refundedAt?: string | null;
+};
+
+/** A loyalty ledger row, without the member (the sheet names nobody). */
+export interface DayCloseStamp {
+  kind: string;
+  delta: number;
+  source: string;
+  orderId: string;
+  createdAt: string;
+}
+
+export type DayCloseStockMove = Pick<
+  AdminStockMove,
+  "productId" | "productName" | "delta" | "stockAfter" | "reason" | "createdAt"
+>;
+
+/** Everything the Gün sonu sheet reads, for one Istanbul day. */
+export interface DayCloseRows {
+  /**
+   * Orders placed in the day, read with a day's margin on each side, as the
+   * reports read theirs (`reportPeriodSince`): which day an order belongs
+   * to is decided by `reportPeriodFilter`, not by the SQL bound.
+   */
+  orders: DayCloseOrder[];
+  /** Every order with a refund; the day's refunds are those dated in it. */
+  refunded: DayCloseRefundedOrder[];
+  /** The karaoke bookings on the day's calendar. */
+  bookings: DayCloseBooking[];
+  /** The bookings whose money reached the POS (`karaokeRevenue`'s read). */
+  karaokeMoney: DayCloseKaraokeMoney[];
+  /** The loyalty ledger rows written in the day. */
+  stamps: DayCloseStamp[];
+  /** The stock moves of the day, oldest first. */
+  stockMoves: DayCloseStockMove[];
+}
+
+/**
+ * The one read of the Gün sonu sheet (`/admin/raporlar/gun-sonu`): the rows
+ * of one Istanbul day (`day` = "YYYY-MM-DD"), for owner and manager only
+ * (the page's `requireRole("reports")`). Money is counted by the report
+ * functions above (`headlineFrom`, `reportPeriodFilter`,
+ * `karaokeRevenueFrom`) in `lib/admin/day-close.ts`, so the sheet and
+ * Raporlar never disagree about the same day. No customer column is read:
+ * not the name, the e-mail or the phone of an order, a booking or a stamp.
+ */
+export async function dayCloseRows(day: string): Promise<DayCloseRows> {
+  await ensureSeed();
+  const sb = getDb();
+  const ctx = "dayCloseRows";
+  const start = istanbulDayStartIso(day);
+  const end = istanbulDayStartIso(day, 1);
+  const [orders, refunded, bookings, karaokeMoney, stamps, stockMoves] =
+    await Promise.all([
+      sb
+        .from(TABLES.orders)
+        .select(
+          "id, orderNo, status, createdAt, totalMinor, refunds, channel, kind, source",
+        )
+        .gte("createdAt", istanbulDayStartIso(day, -1))
+        .lt("createdAt", istanbulDayStartIso(day, 2))
+        .order("orderNo", { ascending: true })
+        .then((r) => rows<DayCloseOrder>(r, `${ctx}.orders`)),
+      sb
+        .from(TABLES.orders)
+        .select("id, orderNo, refunds")
+        .neq("refunds", [])
+        .then((r) => rows<DayCloseRefundedOrder>(r, `${ctx}.refunds`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select("id, date, startHour, hours, status, paymentStatus, updatedAt")
+        .eq("date", day)
+        .then((r) => rows<DayCloseBooking>(r, `${ctx}.bookings`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select(
+          "id, paymentStatus, paidMinor, refundMinor, paidAt, createdAt, refundedAt",
+        )
+        .in("paymentStatus", [...KARAOKE_COLLECTED])
+        .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),
+      sb
+        .from(TABLES.loyaltyStamps)
+        .select("kind, delta, source, orderId, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .then((r) => rows<DayCloseStamp>(r, `${ctx}.stamps`)),
+      sb
+        .from(TABLES.stockMoves)
+        .select("productId, productName, delta, stockAfter, reason, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .order("createdAt", { ascending: true })
+        .then((r) => rows<DayCloseStockMove>(r, `${ctx}.stock`)),
+    ]);
+  return { orders, refunded, bookings, karaokeMoney, stamps, stockMoves };
+}
+
 // ─── Shop hero slides ─────────────────────────────────────────────────────
 
 export interface AdminShopHeroSlide {
@@ -7439,18 +7813,27 @@ export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
 export async function listActiveShopHeroSlides(): Promise<
   AdminShopHeroSlide[]
 > {
-  return publicRead("listActiveShopHeroSlides", [], async () => {
-    const all = await listShopHeroSlides();
-    return all
-      .filter((s) => s.isActive)
-      .map((s) => ({
-        ...s,
-        imageUrl: servedImage(
-          s.imageUrl,
-          heroImagePath(s.id, imageVersion(s.imageUrl)),
-        ),
-      }));
-  });
+  return publicRead(
+    "listActiveShopHeroSlides",
+    [],
+    listActiveShopHeroSlidesLive,
+  );
+}
+
+/** `listActiveShopHeroSlides` without the outage fallback (throws instead). */
+export async function listActiveShopHeroSlidesLive(): Promise<
+  AdminShopHeroSlide[]
+> {
+  const all = await listShopHeroSlides();
+  return all
+    .filter((s) => s.isActive)
+    .map((s) => ({
+      ...s,
+      imageUrl: servedImage(
+        s.imageUrl,
+        heroImagePath(s.id, imageVersion(s.imageUrl)),
+      ),
+    }));
 }
 
 export async function getShopHeroSlide(
@@ -7672,11 +8055,13 @@ const pressResource = contentResource<AdminPress>(
 );
 export const listPress = pressResource.list;
 export const listActivePress = (): Promise<AdminPress[]> =>
-  publicRead(
-    "listActivePress",
-    SEED_PRESS_ROWS.filter((r) => r.isActive),
-    () => pressResource.listActive(),
-  );
+  publicRead("listActivePress", pressFallback(), listActivePressLive);
+/** `listActivePress` without the outage fallback (throws instead). */
+export const listActivePressLive = (): Promise<AdminPress[]> =>
+  pressResource.listActive();
+/** The bundled press quotes an outage shows. */
+export const pressFallback = (): AdminPress[] =>
+  SEED_PRESS_ROWS.filter((r) => r.isActive);
 export const createPress = (i: PressInput) => pressResource.create(i);
 export const updatePress = (id: string, i: PressInput) =>
   pressResource.update(id, i);
@@ -7712,11 +8097,13 @@ const storyResource = contentResource<AdminStoryEvent>(
 );
 export const listStoryEvents = storyResource.list;
 export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
-  publicRead(
-    "listActiveStoryEvents",
-    SEED_STORY_ROWS.filter((r) => r.isActive),
-    () => storyResource.listActive(),
-  );
+  publicRead("listActiveStoryEvents", storyFallback(), listActiveStoryLive);
+/** `listActiveStoryEvents` without the outage fallback (throws instead). */
+export const listActiveStoryLive = (): Promise<AdminStoryEvent[]> =>
+  storyResource.listActive();
+/** The bundled timeline an outage shows. */
+export const storyFallback = (): AdminStoryEvent[] =>
+  SEED_STORY_ROWS.filter((r) => r.isActive);
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);

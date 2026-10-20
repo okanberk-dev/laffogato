@@ -103,10 +103,10 @@ describe("legal index", () => {
     // follows a published override of the text checkout shows.
     const index = legalIndexFrom({
       "mesafeli-satis-sozlesmesi": override("mesafeli-satis-sozlesmesi", {
-        effectiveDate: "20 Ekim 2026",
+        effectiveDate: "2 Kasım 2026",
       }),
     });
-    expect(index.updatedAt).toBe("20 Ekim 2026");
+    expect(index.updatedAt).toBe("2 Kasım 2026");
     expect(index.consentDocs).toEqual([...CHECKOUT_CONSENT_DOCS]);
   });
 

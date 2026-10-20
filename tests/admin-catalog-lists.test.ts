@@ -49,6 +49,8 @@ const h = vi.hoisted(() => ({
   bulkUpdateProducts: vi.fn(async () => ({ updated: 1 })),
   safeAudit: vi.fn(async () => true),
   props: {} as Record<string, unknown>,
+  /** The request's cookies: a list's typed search lives there. */
+  jar: {} as Record<string, string>,
 }));
 
 vi.mock("next/link", () => ({
@@ -73,6 +75,12 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name in h.jar ? { name, value: h.jar[name] } : undefined,
+  }),
+}));
 vi.mock("@/lib/admin/auth", () => ({
   requireRole: vi.fn(async () => ({ email: "m@ornek.com", role: "manager" })),
 }));
@@ -415,12 +423,17 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
 
   it("the box shows the query as typed, not folded", async () => {
     h.products = [product({ name: "İtalyan Kavrum" })];
-    const html = await renderPage(
-      "@/app/admin/urunler/page",
-      withSearch({ q: "İtalyan" }),
-    );
+    // Typed text comes from the list's cookie (list-search-core.ts).
+    h.jar = {
+      adm_q_products: new URLSearchParams({ q: "İtalyan" }).toString(),
+    };
+    const html = await renderPage("@/app/admin/urunler/page", withSearch());
+    h.jar = {};
     expect(html).toContain('value="İtalyan"');
     expect(html).not.toContain("i\u0307talyan");
+    // It filters (the row matches) and no link carries it.
+    expect(html).toContain("İtalyan Kavrum");
+    expect(html).not.toMatch(/href="[^"]*[?&]q=/);
   });
 
   it("tabs count with the filters applied; pages of 50", () => {
@@ -520,6 +533,8 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
     expect(await landing({ sort: "stock_asc" })).toEqual([
       "/admin/urunler?sirala=stok&yon=asc",
     ]);
+    // A typed `q` is the proxy's to move into the cookie before the page
+    // runs; the page builds its links without it.
     expect(
       await landing({
         q: "kahve",
@@ -528,7 +543,7 @@ describe("Ürünler on the kit (CAT-19, CAT-30, CAT-14, CAT-26)", () => {
         sort: "price_desc",
       }),
     ).toEqual([
-      "/admin/urunler?q=kahve&durum=dusuk&kategori=beans&sirala=fiyat&yon=desc",
+      "/admin/urunler?durum=dusuk&kategori=beans&sirala=fiyat&yon=desc",
     ]);
     // "all" was the old default; today's names win over the old ones.
     expect(

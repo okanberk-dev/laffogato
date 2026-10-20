@@ -693,7 +693,7 @@ yakalar).
 | 🟢 | E-posta ya da olay kaydı okunamayınca sayfa "Bu sipariş için e-posta kaydı yok." diyor, "Yeniden gönder" düğmeleri kayboluyordu (ORD-20; zaman çizelgesinin "Kayıt yok" kısmı doğrulamada çürüdü) | Okuma `{ rows, failed }` döner; "E-posta kaydı okunamadı, sayfayı yenile." ve zaman çizelgesinin üstünde "Olay kaydı okunamadı" notu | `admin-orders-ui-pages` |
 | 🟢 | "Hazır - teslime hazır", kasada "opsiyonel", liste ve yeni sipariş başlığında "E-ticaret"; dikkat bandı personele kullanamadığı "Dikkat işaretini kaldır"ı söylüyordu (ORD-26); yeni sipariş sayfasında hap biçimli geri bağlantı ve gri metin, kasa fişi ham yeşil (ORD-22) | "Teslime hazır", "Not (isteğe bağlı)", başlık "Satış"; bant, işareti kaldıramayan role "Çözülmesi için bir yöneticiye haber ver." der; metin bağlantısı, ürün yoksa boş durum ("Ürün ekle" yalnız Ürünler'i açabilen rolde; personele "bir yöneticiye haber ver"), fiş panelin başarı tonunda | `admin-orders-ui`, `admin-orders-ui-pages` |
 | 🟢 | Kasa kamerasının çerçevesi yatay kamerada (iPad, dizüstü) kutunun genişliğinden çiziliyordu: 340 px kutuda 523 px, okunan kare ekranda 294 px; çerçevenin içinde ama ortanın dışındaki QR okunmuyordu (ORD-14). "Yeniden dene" kamerayı hiç yeniden açmıyordu: hata yanıtı video ve tuvali kaldırıyordu | `reticleSize()`: okunan kare `object-fit: cover` ölçeğiyle ekrana taşınır, kutunun kısa kenarının %92'sini aşmaz; çerçeve okunan karenin içinde kalır. Okuyucu hata yanıtının altında gizli olarak takılı kalır, "Yeniden dene" onu açar | `till-scan-engine` |
-| 🟢 | Yazdırılan sipariş fişi mali belge olmadığını söylemiyordu (hukuk kararı ASK-INVOICE, X-FIS) | Fişin altında tek satır: "Bu fiş mali belge değildir." Mali belge fatura / e-Arşiv faturadır (VUK m.229, VUK GT 509) ya da kasanın ÖKC fişi (VUK m.233). e-Arşiv'in e-postayla gitmesi başlayınca ikinci cümle eklenir | `admin-order-detail` |
+| 🟢 | Yazdırılan sipariş fişi mali belge olmadığını söylemiyordu (hukuk kararı ASK-INVOICE, X-FIS) | Fişin altında tek satır: "Bu fiş mali belge değildir." Mali belge fatura / e-Arşiv faturadır (VUK m.229, VUK GT 509) ya da kasanın ÖKC fişi (VUK m.233). 20 Eki 2026'dan beri ikinci cümle ödeme yoluna göre: internetten ya da havaleyle ödenende "Faturan elektronik olarak e-postana gönderilir.", nakit ve kasadaki kart cihazında "Mali belgen kasadan verilen fiştir."; "Diğer" ödemede söz verilmez (`receiptInvoiceNote`) | `admin-order-detail` |
 | 🟢 | Kit'e taşınan müşteri kartı formunun `action`'ı düşmüştü: action'sız ve method'suz form tarayıcının kendi GET'idir, ad, e-posta, telefon ve adres adrese yazılır (inceleme bulgusu) | Form React'in korumasını (`action`) yeniden taşır, gönderim yine onSubmit'ten; ret yazılanı korur | `admin-order-detail` |
 
 ### Katalog: stok ve tohumlar (paket 5a, 4-5. adımlar)
@@ -778,7 +778,7 @@ Açık (paket 4b'nin dışında kalanlar):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`), "Siparişleri" ve "Tümünü gör" bağlantıları da sipariş aramasına e-postayı `?q=` ile verir | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
+| 🟢 | Üye sayfasının adresi hâlâ e-postayı taşıyor (`/admin/musteriler/<e-posta>`). "Siparişleri" ve "Tümünü gör"ün `?q=<e-posta>`'sı kalktı (list-search-no-url, aşağıda) | Opak kimlikli rota ayrı iş (karar D14); bütün bağlantıları değiştirir |
 | 🟢 | Müşteri listesinde CSV dışa aktarma yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
 | 🟢 | Panodaki "Son siparişler" kartı hâlâ elle yazılmış tablo (ORD-30'un pano kısmı) | Pano PR'ında (7b) |
 
@@ -1058,11 +1058,8 @@ Açık:
 | --- | --- | --- | --- |
 | 🟠 | Elle gönderilen 19 formun ne `action`'ı ne `method`'u vardı (`ActionForm`, `ActionModal`, `useNoResetSubmit` formları, kasa, sipariş notu, ödeme sayfasının sipariş formu). Sayfanın JavaScript'i yüklenmeden basılan Enter tarayıcının kendi gönderimiydi: sayfaya GET, bütün alanlar adres çubuğunda, geçmişte, vekil sunucuda ve istek kaydında. Yeni panel kullanıcısında `?email=…&password=…`, üye formunda telefon, kupon ve damga değerleri. Giriş formu #143'te düzelmişti (2c784cd), gerisi aynıydı | Kit `useHandPost` (`ui/submit.ts`) forma `action` ile `onSubmit`'i birlikte verir: React kendi korumasını (`action="javascript:..."`) çizer, erken Enter hiçbir şey göndermez; sayfa canlanınca onSubmit elle gönderir, React action'ı atlar (sıfırlama yok). React o erken basışı saklayıp sayfa canlanınca action'a verir: `replayByHand` onu da aynı kapıdan geçirir (yanıt beklenirken ikincisi düşer, üç sabırsız Enter tek kayıttır; `beforeSubmit` denetimi olan formda düşer). `ActionForm`, `ActionModal`, giriş, panel kullanıcıları, üye, promosyon, kupon, damga, doğrulama bağlantısı, kampanya testi, manuel sipariş, ürün sihirbazı ve içe aktarma bunu kullanır; kasa, sipariş notu ve ödeme sayfasının sipariş formu kendi işleyicisini action olarak taşır. `src/` altındaki her `<form>` artık `action` ya da `method` taşır; bilerek GET yapan süzgeçler `GET_FORMS`'ta gerekçesiyle | `form-native-submit`, `admin-action-form`, `admin-people-forms`, `admin-login-form`, `admin-product-wizard`, `admin-product-import`, `admin-manual-order`, `admin-cafe-tables-pages`, `admin-site-content`, `admin-legal-ui`, `checkout-consent` |
 
-Açık:
-
-| Derece | Bulgu | Neden açık |
-| --- | --- | --- |
-| 🟡 | Liste süzgeçleri bilerek GET'tir (adres paylaşılır, yenilenir, geri tuşu çalışır), ama arama kutusu kişisel veri alabilir: `FilterBar` (Siparişler e-posta ya da ad, Olay kaydı kişinin adresi) ve Müşteriler araması (e-posta, ad, telefon). Yazılan terim adreste ve istek kaydında kalır | Yazılan aramayı adresten çıkarmak admin UI v2'nin işi (`POST /admin/ara/sonuc`); Müşteriler süzgeci paket 4b'de `FilterBar`'a geçiyor. `GET_FORMS` her GET formunu ve kişisel veri alanını listeler; yeni bir GET formu ancak oraya gerekçesiyle yazılarak eklenir |
+Liste süzgeçleri FG'de bilerek GET kalmıştı; arama kutularının metni artık
+adrese yazılmıyor ve `GET_FORMS` boş (list-search-no-url, aşağıda).
 
 Ayarlar sekmeleri `method="post"` ile kalır (paket 7a): erken basış gövdeyle
 sayfaya POST'tur, adrese bir şey yazılmaz. Kart formları (`paynkolay-page.ts`,
@@ -1216,7 +1213,6 @@ Açık (paket 4c'nin dışında kalanlar):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Bülten onay kayıtlarının CSV dışa aktarımı yok | Kişisel veri dışa aktarımı olay kaydının `export` eylemiyle gelir (7c) |
-| 🟢 | Bülten ve gönderim defteri aramasında yazılan e-posta süzgeç çubuğunun `?q=` adresine geçer | Bütün listelerin aramasını adresten çıkaran ortak iş (list-search-no-url) |
 | 🟢 | Gönderim sürerken defter ve sayılar kendiliğinden yenilenmez | Sayfa yenilenince güncellenir; canlı yoklama ayrı iş |
 
 ### Sistem: ayarların sitede ve e-postada ulaştığı yerler (paket 7d)
@@ -1235,6 +1231,98 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Anasayfa (`home-page.tsx` "gece 02:00'e kadar") ve `data.ts` karaoke metni ("Gece 02:00'e kadar açığız") saati hâlâ elle yazıyor; ziyaret sayfasında "Karaoke 12:00 - 24:00" ve "Mutfak 23:30'da kapanır" sabit | Anasayfa dosyası bu paketin dışında; mutfak saati Ayarlar'da bir alan değil |
 | 🟢 | `hos-geldin` "500,00 ₺ üzeri kargo ücretsiz"i elle yazıyor; Supabase'in dört giriş e-postası (`docs/email/`) footer'ı sabit | Kargo eşiği bu bulgunun dışında; Supabase şablonları panele elle yapıştırılır, ayardan okuyamaz |
+
+### Kabuk: menü beş grupta, sekmeler, kasiyerin üst çubuğu (admin UI v2, UI-5)
+
+Hiçbir adres taşınmadı: birleştirme menüde ve kabukta. Bir öğe başka mevcut
+sayfaları sekme olarak taşır; sayfalar kendi adresini, `requireRole`'ünü ve
+formunu korur, yer imleri ve e-posta bağlantıları aynı yere iner.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Sahibin menüsü altı grupta 29 girişti; aynı işin sayfaları dağınıktı (üç ayrı slayt yeri, Bülten ile Kampanya e-postası, Ürünler ile Kategoriler) | Beş grup (Bugün, Katalog, Pazarlama, İçerik, Yönetim): sahipte 21, yöneticide 18 öğe. Sekmeler rolüne göre süzülür, öğe ilk açık sekmesine gider (yöneticinin Ayarlar'ı Uygulama ayarları; tek sekme şerit çizmez). Şerit yalnız sekmenin kendi sayfasında, `/yeni` ve kayıt sayfalarında yok; ekmek kırıntısı ilk olmayan sekmeyi adlandırır ("Ürünler / Kategoriler / Yeni"). Her rol önceki adreslerinin tamamına, fazlasına değil, ulaşır (sahip 29, yönetici 25, personel 5, kasiyer 1); her admin sayfası bir öğeden ya da sekmeden ulaşılır. Eski adlar (`keywords`) palet için öğede durur | `admin-nav-ia`, `admin-shell-nav` |
+| 🟢 | Kasiyerin tek sayfası için kenar çubuğu, menü düğmesi ve çekmece | Kasiyerde kenar çubuğu, menü düğmesi, çekmece yok; üst çubukta logo, sayfanın adı ve Hesap menüsü (Güvenlik / 2FA, Çıkış), içerik sola yaslı | `admin-shell-nav`, `admin-nav-ia` |
+| 🟢 | Personelin beş girişi grup başlıkları altındaydı | Altı ve daha az öğe tek liste, başlıksız | `admin-nav-ia` |
+| 🟢 | Klavyeyle menüyü atlamanın yolu yoktu (WCAG 2.4.1) | Kabuğun ilk bağlantısı "İçeriğe geç", içerik sarmalayıcısı `#admin-main` | `admin-nav-ia`, `admin-shell-nav` |
+| 🟢 | Menü simgeleri dosyada el çizimiydi | lucide (`ui/icons.tsx`), menüde `nav-icon.tsx` üzerinden ayrı bir parçada (`next/dynamic`): kasiyerin Kasa'sı simge kodu indirmez. Her öğenin kendi simgesi | `admin-nav-ia`, `admin-karaoke-panel`, `admin-ui-deps` |
+
+### Panel: liste aramaları adrese yazılmaz (list-search-no-url, 19 Eki 2026)
+
+Kabuk gezinme incelemesinin (#142) gizlilik bulgusu. İstenen: panelin
+ürettiği hiçbir adreste kişisel veriye benzeyen bir arama metni olmasın.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Liste aramaları GET'ti: Siparişler, Müşteriler, Ürünler, Kafe menüsü, Karaoke, Bülten, gönderim defteri, Promosyon ve Masalarda yazılan e-posta ya da telefon `?q=` ile, Olay kaydında "Kim" ve "Kayıt no" adres çubuğuna, tarayıcı geçmişine, vekil sunuculara ve Vercel istek kaydına düşüyordu; sekme, sıralama ve sayfa bağlantıları, karaoke rezervasyon sayfasının geri bağlantısı (`?geri=`) ve CSV bağlantısı da taşıyordu | Kitin `FilterBar`'ı POST eder: `listSearchAction` (oturum ve listenin sayfasının bölümü denetlenir, kural 27) metni listenin yoluna bağlı, 10 dakikalık, httpOnly, sameSite=lax çerezde (`adm_q_<liste>`; kampanya defterinde o kampanyanın sayfasına bağlı) tutar ve listeye metinsiz adresle yönlendirir. Sekme, açılır listeler, tarih ve sıralama adreste kalır. Sayfa metni çerezden okur (`listSearchView`: `url` bağlantılar için, `view` liste için); adresteki bir metin hiç okunmaz. CSV dışa aktarımları (Siparişler, Olay kaydı) metni çerezden alır. "Sıfırla", arama çipinin × düğmesi ve boş listenin "Filtreleri temizle"si de gönderir ve metni unutur. `LIST_SEARCHES`'ta olmayan bir yol ya da kayıtsız bir arama kutusu `FilterBar`'da hata verir; JavaScript'siz form sayfaya POST eder, 303'ü izler. `src/` altında GET form kalmadı (`GET_FORMS` boş). Kayıtlı görünümler (UI-11) adresten kurulacağı için metni taşıyamaz | `admin-list-search`, `admin-filter-bar`, `admin-ui-kit`, `form-native-submit`, `admin-catalog-lists`, `admin-customer-list`, `admin-audit-log`, `admin-order-csv` |
+| 🟢 | Müşteri satırındaki "Siparişleri", üye sayfasındaki "Tümünü gör" (`?q=<e-posta>`) ve Olay kaydındaki "Geçmişi" (`?entityId=<e-posta>`, üyenin ve panel kullanıcısının kaydı adresidir) kişinin adresini adrese yazıyordu | `ListSearchButton`: aynı listeye gider, metin gönderinin gövdesinde; kayıt türü adreste kalır. Panel kodunda bağlantıya metin koyan satır kalmadı (testle) | `admin-list-search`, `admin-customer-list`, `admin-customer-detail`, `admin-audit-log` |
+| 🟢 | Eski bir yer imi ya da bağlantı `?q=` taşıyordu; oturum yoksa girişin `next`'i de | Proxy, listenin kendi yolundaki bir sayfa görüntülemesinde (GET/HEAD) metni çereze taşır ve listeyi metinsiz yeniden açar (303), şifre sıfırlama belirtecinin yolunu izler; giriş yönlendirmesi ondan sonra gelir. Formun kendi POST'una, listenin altındaki sayfalara ve benzer yollara dokunmaz | `admin-list-search`, `admin-proxy-2fa` |
+| 🟢 | Paylaşılan köşk cihazında bir sonraki kişi öncekinin aramasını kutuda bulurdu | Çıkış (`signOutAdmin`) listelerin arama çerezlerini siler; kampanya defterininki 10 dakikada kendiliğinden düşer | `admin-list-search` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Arama çerezi tarayıcı başınadır: aynı listede iki sekmede ayrı arama yapılırsa son yazılan geçer | Metin adreste olmadığı için sekmeye bağlanamaz; uygulanan arama kutunun altındaki çipte görünür (docs/ADMIN.md "Listelerde arama") |
+| 🟢 | Panel aramasının (`/admin/ara`) "listeye git" bağlantısı listeyi aramasız açar | Palet (UI-6) aynı yere `ListSearchButton` ile metni gönderebilir |
+
+### Kabuk: ⌘K paleti (admin UI v2, UI-6)
+
+Üst çubuğun arama kutusu paletin tetikleyicisi oldu. Palet yalnız okur: bir
+sayfaya götürür ya da bu tarayıcının sipariş sesini açıp kapatır; hiçbir
+Server Action'a uzanmaz.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Menü sadeleşince eski adlar ("Mağaza Hero", "Kasa · damga", "kupon", "qr") kayboluyordu; bir kayda gitmek için arama sayfasına geçmek gerekiyordu | ⌘K / Ctrl K (alanın içinde de; Alt'la, Shift'le, IME'de ve başka bir diyalog açıkken değil) ya da Ara: Son açılanlar, Git (rolün menüsü ve sekmeleri, eski adlarıyla, Gün sonu), Oluştur (her biri sayfasının `requireRole`'üyle), Kayıtlar (2 harften, 200 ms sonra, `POST /admin/ara/sonuc`, eski istek iptal edilir) ve Komutlar. Eşleşme `foldTr` artı gevşek ASCII ("siparis" → Siparişler), sıra etiket başı > kelime başı > anahtar kelime > içinde geçen, eşitlikte Türkçe alfabe. JavaScript yoksa tetikleyici `/admin/ara` bağlantısıdır | `admin-palette-core`, `admin-shell-nav`, `admin-nav-ia` |
+| 🟢 | Paylaşılan köşk cihazında bir sonraki kişi öncekinin açtığı kayıtları görebilirdi | Son açılanlar sekmenin `sessionStorage`'ında, hesap başına (`laf_admin_recent_v1:<anahtar>`; anahtar e-postanın `ADMIN_SESSION_SECRET` ile HMAC'inin 16 hex'i, e-posta sayfaya gitmez). Yalnız izinli kayıt sayfaları (müşteri, panel kullanıcısı, abone, olay kaydı asla); başlığında e-posta ya da 7 rakam olan kayıt tutulmaz; okurken rol yeniden sorulur. Çıkış listeyi action'dan önce siler; kasiyerde ne tetikleyici ne liste var | `admin-palette-core` |
+| 🟢 | Oturum düşünce arama "sonuç yok" gibi görünebilirdi | 401 ya da proxy'nin girişe yönlendirmesi: "Oturumun kapandı." ve buraya dönen giriş bağlantısı; 503 ve diğerleri: "Arama şu an çalışmıyor."; 5'ten fazla sonuçta liste satırı "Listede ara" (aramasız liste: listeler aramayı adreste değil çerezde tutar, satır sonuçları listede gösterdiğini söylemez), "Tüm sonuçlar" satırı yok | `admin-palette-core` |
+| 🟢 | Paket bütçesi | Her admin rotasına +2,4 KB gz (tetikleyici, kayıt ve kısayol; üst çubuğun eski arama formu çıktı); palet açılınca 44,97 KB gz (React Aria 40,60 + palet 4,37), `/admin/kasa`'da React Aria yok | `admin-ui-deps` |
+
+### Kabuk: tek tuş kısayolları (admin UI v2, UI-8)
+
+Karar D7: ⌘K / Ctrl K her rol için açık; tek tuşlar sahip, yönetici ve
+personel için varsayılan açık, kasiyerde ve Kasa'da hiç yok.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Yoğun saatte fareye uzanmadan listeye, aramaya ve yeni kayda gitmenin yolu yoktu | `/` listenin arama kutusu (FilterBar'ın ilk kutusu, `data-admin-search`), yoksa palet; `n` sayfanın "Yeni" bağlantısı (`data-admin-new`; 20 Ekim 2026'da hiçbir sayfa çizmiyor), yoksa paletin yalnız Oluştur'u; `?` kısayol listesi (yerli `<dialog>`); `g` ve 1,5 saniye içinde `b s k d m u r` rolün açabildiği sayfaya. Tuş `event.key`'den, Türkçe küçültmeyle; ikinci harfte ü/u, ş/s, ç/c, ö/o, ğ/g; `i` / `ı` boş. Paletin Komutlar'ında "Klavye kısayolları" | `admin-shortcuts`, `admin-palette-core` |
+| 🟢 | Tek harfli kısayollar yazıyla, okutucuyla ve ekran okuyucuyla çakışabilir (WCAG 2.1.4) | Alanda (input, textarea, select, contenteditable), IME'de, açık bir `<dialog>`'da, ⌘/Ctrl/Alt/AltGr ile, betiğin gönderdiği tuşta, bir denetimin aldığı tuşta, kasiyerde ve `/admin/kasa`'da çalışmaz. Hesap bölümünde ve listede "Tek tuş kısayolları" anahtarı (bu tarayıcıda, `localStorage` try/catch içinde, varsayılan açık). `n` düğmeye basmaz, yalnız bağlantı açar. `aria-keyshortcuts` yalnız tuşlar çalışırken yazılır (sunucu çizmez): arama kutusunda `/`, ana bağlantıda `n`, kutu yoksa tetikleyicide `/` | `admin-shortcuts` |
+| 🟢 | Paket bütçesi | Katman ayrı bir parça, sayfa hidrasyondan sonra ister, yalnız tek tuşlu rollerde: kasiyerin Kasa'sı onu hiç indirmez (ölçüm PR gövdesinde) | `admin-shortcuts` |
+
+### Hukuk: fatura e-Arşiv olarak e-postayla, İşlem Rehberi, meslek odası (20 Eki 2026)
+
+Kararlar ASK-INVOICE, ASK-KAR-KDV, OP-KEP-CHAMBER, D-ISLEM-DURABLE (operatör,
+18 Eki 2026: avukat ve mali müşavir turu yok). Cümle cümle eski ve yeni metin
+`docs/LEGAL-REDLINES-2026-09.md` §24'te.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Şirket Bilgileri §14 faturayı yalnız "talep üzerine" e-postayla gönderiyor, MSS §9 e-postaya "muvafakat" istiyordu; şirket faturalarını elektronik olarak düzenleyip e-postayla gönderiyor ve koliye ayrı irsaliye koymuyor (X-INV-EARSIV, X-INV-IRSALIYE) | MSS §9, ÖBF §16 ve Şirket Bilgileri §14: e-Arşiv fatura sipariş e-postasına; kargoda faturanın kâğıt çıktısı irsaliye yerine geçer; e-Fatura kullanıcısına e-Fatura | `legal-docs` |
+| 🟡 | Kurumsal fatura bilgisinin "sipariş öncesinde girilmesi" isteniyordu; ödeme adımında alan yok (X-INV-CORP) | Bilgi sipariş numarasıyla, siparişten sonra ve kargodan önce e-postayla | `legal-docs` |
+| 🟢 | Karaoke §12 faturanın ne zaman ve hangi tutar için kesildiğini söylemiyordu (X-KAR-KDV) | Ödeme hizmet gününe kadar avans; fatura rezervasyon gününden itibaren 7 gün içinde, köşkte kalan tutar için | `legal-docs` |
+| 🟡 | Ana sayfadan ulaşılan bir "işlem rehberi" yoktu (ETHS Yön. m.7/1, X-ETHS-ISLEM) | `/hukuk/islem-rehberi`: adımlar, düzeltme araçları, sözleşme metninin saklanması, uyuşmazlık yolları; site altında "İşlem rehberi" | `legal-docs` |
+| 🟢 | Şirket Bilgileri'nde meslek odası ve davranış kuralları satırı yoktu (ETHS Yön. m.5/1-c, X-ETHS-ILETISIM) | `{{CHAMBER}}`, `{{CHAMBER_RULES_URL}}` satırları; değer belgeden gelene kadar boş ve basılmaz | `legal-docs` |
+| 🟢 | Fişteki "mali belge değildir" satırı gerçek belgenin nereden geldiğini söylemiyordu (X-FIS, ikinci cümle) | Ödeme yoluna göre e-posta ya da kasa fişi; yolu bilinmeyen ("Diğer", kayıtsız) ödemede ikinci cümle yok | `admin-order-detail` |
+| 🟢 | /hukuk'taki numaralı adımlar (ÖBF §9, İşlem Rehberi) numarasız basılıyordu: Tailwind'in temel stili `ol`'un listesini kapatıyor | `.legal-ordered { list-style: decimal }` | `legal-docs` |
+
+Açık (operatörde): oda, kurallar adresi ve KEP değerleri (31 Eki 2026'ya
+kadar, `entity.ts`); Paraşüt'te internet satışı ibareleri ve koliye giren
+"İrsaliye yerine geçer." çıktısı (LEGAL-REDLINES §24.5).
+
+### Kabuk: telefonda alt çubuk (admin UI v2, UI-7)
+
+`lg` altında, menüsü olan her rol için (sahip, yönetici, personel) ekranın
+altında en çok beş yuva. Yuvalar rolün kendi menüsünden gelir
+(`bottom-bar-core.ts`): açılış sayfası başta, açılış değilse Genel bakış
+sonda, altıncı öğe varsa beşinci yuva Tümü (çekmece). UI-13 Personel'e
+Canlı durum ekleyince yuvalar kendiliğinden Siparişler, Karaoke, Kasa,
+Canlı durum, Tümü olur.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Telefonda her sayfa değişimi menü düğmesi, çekmece, öğe demekti | `ui/bottom-bar.tsx`: 44 px yuvalar, lucide simge (menünün tembel `nav-icon.tsx` parçasından) ve ad, menünün rozet sayıları (ikinci bir sorgu yok). Siparişler rozetin saydığı Açık sekmesini açar; açık sayfanın yuvası `aria-current`, çubukta olmayan sayfada Tümü yanar. Tümü çekmeceyi açar, kapanınca odak ona döner. Kasiyerde çubuk yok, kabuğu çubuk kodunu çalıştırmaz | `admin-bottom-bar`, `admin-landing` |
+| 🟢 | Alt kenarda üst üste binme (çubuk, toplu işlem çubuğu, bildirimler, yeni sipariş kartları, kaydet çubukları, klavye) | Tek değişken: admin kökü `has-[[data-admin-tabbar]]` ile `--admin-bottom-inset`'i (3,5rem + `env(safe-area-inset-bottom)`) toplu işlem çubuğu yokken kurar; sayfa o kadar yukarıda biter. Bildirimler ve toplu işlem çubuğu onu kenar boşluğu olarak ekler, Site metinleri ve kampanya formunun kaydet çubukları 1rem üstünde durur, yeni sipariş kartları çubuğun üstüne oturur ve ev göstergesi payını ikinci kez eklemez. Çubuk toplu işlem çubuğu açıkken, bir `dialog` açıkken ve dokunmatik ekranda yazı alanı odaktayken çekilir (yalnız Tailwind sınıfları, dinleyici yok). `globals.css`'e kural eklenmedi | `admin-bottom-bar`, `admin-order-alerts-client` |
+| 🟢 | Paket bütçesi | Her admin rotasına +1,0 KB gz (`/admin/siparisler` +0,96, `/admin/kasa` +0,99); lucide parçası değişmedi, `/admin/kasa`'nın rota parçalarında lucide yok | `admin-bottom-bar` |
 
 ### Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 (19 Eki 2026)
 

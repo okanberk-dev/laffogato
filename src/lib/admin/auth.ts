@@ -9,6 +9,7 @@ import bcrypt from "bcryptjs";
 
 import { getDb, TABLES } from "@/lib/db";
 
+import { forgetListSearches } from "./list-search-core";
 import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
   ADMIN_ROLES,
@@ -667,6 +668,9 @@ export async function requireRole(
 export async function signOutAdmin(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+  // The lists' remembered search texts go with the session: the next person
+  // on a shared device does not find them under the box.
+  forgetListSearches(cookieStore);
 }
 
 /**
@@ -724,8 +728,11 @@ export async function sessionFromToken(
 
 /**
  * Signature-only read for `proxy.ts`, which decides nothing but whether to
- * redirect a page view to the login screen. Authorisation - every page and
- * every server action - goes through getAdminSession / requireRole.
+ * redirect a page view to the login screen, and for the panel's background
+ * polls (`/admin/siparisler/uyari`, the nav badges), which use it only to
+ * answer "nothing changed" with no data in it. Authorisation - every page,
+ * every server action and every answer that carries data - goes through
+ * getAdminSession / requireRole.
  */
 export function readSessionFromCookieValue(
   value: string | undefined,

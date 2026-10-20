@@ -32,15 +32,12 @@ vi.mock("next/link", () => ({
 vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
-vi.mock("@/components/admin/admin-search", () => ({
-  TopBarSearch: () => createElement("div", { id: "search" }),
-}));
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => 0),
+  openOrderSignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
   transitionOrderAction: vi.fn(),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => 0),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),
 }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
 const session = vi.hoisted(() => ({ role: "owner" as string | null }));

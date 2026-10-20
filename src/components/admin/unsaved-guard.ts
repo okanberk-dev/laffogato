@@ -54,6 +54,28 @@ export function createUnsavedGuard(read: () => string) {
   };
 }
 
+/** The guards mounted now, for a client navigation to ask (hasUnsavedForm). */
+const mountedGuards = new Set<{ dirty(): boolean }>();
+
+/** Counts `guard` while its form is mounted; returns the release. */
+export function trackUnsavedGuard(guard: { dirty(): boolean }): () => void {
+  mountedGuards.add(guard);
+  return () => {
+    mountedGuards.delete(guard);
+  };
+}
+
+/**
+ * Whether a guarded form on the page has unsaved changes. The browser asks
+ * nothing on a client navigation, so the panel's single keys (`g` and a
+ * letter, `n`) ask this before they leave the page: a word typed while
+ * focus was off the form's fields ("Guatemala") must not drop it.
+ */
+export function hasUnsavedForm(): boolean {
+  for (const guard of mountedGuards) if (guard.dirty()) return true;
+  return false;
+}
+
 /** Guards `formRef`'s form while it is mounted; `enabled: false` turns it off. */
 export function useUnsavedGuard(
   formRef: RefObject<HTMLFormElement | null>,
@@ -69,7 +91,9 @@ export function useUnsavedGuard(
     form.addEventListener("input", touch);
     form.addEventListener("change", touch);
     window.addEventListener("beforeunload", guard.onBeforeUnload);
+    const untrack = trackUnsavedGuard(guard);
     return () => {
+      untrack();
       form.removeEventListener("input", touch);
       form.removeEventListener("change", touch);
       window.removeEventListener("beforeunload", guard.onBeforeUnload);
