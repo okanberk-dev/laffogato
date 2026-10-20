@@ -7515,6 +7515,11 @@ export interface KaraokeRevenueRow {
   paidMinor?: number | null;
   /** A late cancel's share owed / refunded; null = the whole payment. */
   refundMinor?: number | null;
+  /**
+   * The part of `refundMinor` that had already gone back when an hour sold
+   * again made the booking owe money again (karaoke-make-good-core.ts).
+   */
+  refundSettledMinor?: number | null;
   paidAt?: string | null;
   createdAt: string;
 }
@@ -7545,10 +7550,12 @@ const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
  * Read from `karaoke_reservations`: `paidMinor` of every booking the POS
  * collected, minus what was refunded: the whole payment (a `refunded` row
  * nets to 0), or a late cancel's share (`refundMinor`, P2a), whose kept part
- * is the köşk's revenue. A `refunding` row still counts in full: the money
- * has not gone back (CLAUDE.md rule 29); what is owed is shown apart as
- * "iadesi bekleyen". The period figure books a payment in the bucket of its
- * `paidAt`, and its refund against that same bucket, as the order chart does.
+ * is the köşk's revenue. A `refunding` row still counts in full, but for
+ * what had already gone back by hand before an hour sold again made it owe
+ * more (`refundSettledMinor`): the money owed has not gone back (CLAUDE.md
+ * rule 29) and is shown apart as "iadesi bekleyen". The period figure books
+ * a payment in the bucket of its `paidAt`, and its refund against that same
+ * bucket, as the order chart does.
  */
 export async function karaokeRevenue(
   granularity: BucketGranularity,
@@ -7557,7 +7564,9 @@ export async function karaokeRevenue(
   const data = rows<KaraokeRevenueRow>(
     await getDb()
       .from(TABLES.karaokeReservations)
-      .select("paymentStatus, paidMinor, refundMinor, paidAt, createdAt")
+      .select(
+        "paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt",
+      )
       .in("paymentStatus", [...KARAOKE_COLLECTED]),
     "karaokeRevenue",
   );
@@ -7593,12 +7602,25 @@ export function karaokeRevenueFrom(
       typeof r.refundMinor === "number" && r.refundMinor >= 0
         ? Math.min(paid, Math.round(r.refundMinor))
         : paid;
-    const kept = status === "refunded" ? paid - share : paid;
+    // Of a share still owed, what had already gone back (a late share
+    // refunded before its hour was sold again).
+    const settled =
+      typeof r.refundMinor === "number" &&
+      typeof r.refundSettledMinor === "number" &&
+      r.refundSettledMinor > 0
+        ? Math.min(share, Math.round(r.refundSettledMinor))
+        : 0;
+    const kept =
+      status === "refunded"
+        ? paid - share
+        : status === "refunding"
+          ? paid - settled
+          : paid;
     out.collectedMinor += paid;
     out.refundedMinor += paid - kept;
     out.netMinor += kept;
     if (kept > 0) out.paidCount += 1;
-    if (status === "refunding") out.refundPendingMinor += share;
+    if (status === "refunding") out.refundPendingMinor += share - settled;
     const at = new Date(r.paidAt || r.createdAt);
     if (Number.isNaN(at.getTime())) continue;
     if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {
@@ -7711,7 +7733,7 @@ export async function dayCloseRows(day: string): Promise<DayCloseRows> {
       sb
         .from(TABLES.karaokeReservations)
         .select(
-          "id, paymentStatus, paidMinor, refundMinor, paidAt, createdAt, refundedAt",
+          "id, paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt, refundedAt",
         )
         .in("paymentStatus", [...KARAOKE_COLLECTED])
         .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),
