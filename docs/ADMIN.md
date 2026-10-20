@@ -267,13 +267,53 @@ kısayolları" da).
   (`PageHeader` `primary`, `data-admin-new`) olarak çizmiyor ("+ Yeni
   sipariş" `action` içinde): şimdilik `n` her sayfada paleti Oluştur'la
   açar. Bir sayfa `primary`'ye geçince `n` o bağlantıyı doğrudan açar.
-- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı) tuşlar sayfadan
-  çıkmaz: `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
+- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı, Ayarlar,
+  Uygulama ayarları, yasal belge, kampanya e-postası) tuşlar sayfadan çıkmaz:
+  `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
   "+ Varyant ekle"den sonra odak sayfaya düşer; oraya yazılan "Guatemala"
   `g u` olup sihirbazı kapatmasın diye (tarayıcı sayfa içi geçişte sormaz).
+  Tuşlar sormaz, çünkü yazarken çıkan bir pencere Enter ya da boşlukla
+  yanlışlıkla onaylanabilir; sayfadan çıkmak isteyen bağlantıya ya da palete
+  basar ve orada sorulur.
 - **Kapatmak için**: menünün altındaki Hesap bölümünde "Tek tuş kısayolları"
   (bu tarayıcıda hatırlanır; kısayol listesinde de aynı düğme var). Kapalıyken
   yalnız ⌘K / Ctrl K kalır.
 - Kurallar tek yerde: `src/lib/admin/shortcut-core.ts`; dinleyici
   `src/components/admin/shortcuts.tsx` (yalnız tek tuşlu rollere, ayrı bir
   parça olarak yüklenir).
+
+## Kaydedilmemiş değişiklik uyarısı
+
+Uzun bir formda yazdığın şey kaydedilmeden panelin başka bir sayfasına geçmek
+istersen panel önce sorar: **"Kaydedilmemiş değişiklikler var. Sayfadan
+çıkılsın mı?"** Tamam dersen sayfa değişir ve yazdığın gider; Vazgeç dersen
+yerinde kalırsın.
+
+Bu formlarda var: **Ayarlar** (sekmelerden biri kaydedilmemişse; sekmedeki
+nokta zaten bunu gösterir), **Uygulama ayarları** (dokuz bölümün hepsi),
+**yasal belge düzenleyici** ve **kampanya e-postası** (yeni ve taslak). Ürün
+sihirbazı kendi uyarısını kullanır: yenilemede ve sekme kapanışında sorar,
+menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
+
+- **Sorduğu yerler**: başka bir sayfaya giden bağlantı (menü, üst çubuk,
+  "Vazgeç", bildirimdeki bağlantı) ve ⌘K paletinde bir sayfa seçmek (Vazgeç
+  dersen palet açık kalır). Sayfayı yenilemek, sekmeyi kapatmak ya da adres
+  çubuğuna başka bir adres yazmak da tarayıcının kendi sorusunu çıkarır.
+- **Sormadığı yerler**: yazdığını kaydettikten sonra. Kayıt reddedilirse
+  (kırmızı hata) form kaydedilmemiş kalır ve sorar. Forma hiç dokunmadıysan ya
+  da yazdığını eski hâline getirdiysen de sormaz. Ctrl, ⌘, Shift ya da Alt'la
+  (yeni sekme ya da pencere) açılan bağlantılar, indirmeler, aynı sayfada kalan
+  bağlantılar (Ayarlar'da başka bir sekmeye geçmek, sayfa içi `#` atlaması,
+  "İçeriğe geç") ve "Ara" düğmesi de sormaz.
+- **Sorulamayan yerler**: tarayıcının Geri ve İleri düğmeleri ile Çıkış.
+  Tarayıcı ilkine kanca vermiyor, Çıkış bir bağlantı değil form gönderimi. Bu
+  yüzden uzun bir formdan sonra kaydetmeden Geri'ye ya da Çıkış'a basma.
+- Kaydedince sayfada kalan formlar (Ayarlar, Uygulama ayarları, kampanya
+  taslağı) kaydedilen hâli esas alır; yanıt gelene kadar yazdıkların
+  kaydedilmemiş sayılır. Kaydedince listeye dönen formlar (yasal belge, yeni
+  kampanya) sayfayı bıraktığı için sormaz.
+- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Bir formu
+  korumak için `useUnsavedGuard(formRef, { saved: savedAnswer(state) })` yeter
+  (kayıttan sonra sayfada kalan formlar `saved`'i verir, yönlendirenler
+  vermez); kendi "kaydedilmemiş" bilgisini tutan bir sayfa
+  `useUnsavedFlag(dirty)` çağırır.
