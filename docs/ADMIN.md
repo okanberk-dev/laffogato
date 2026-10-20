@@ -263,6 +263,10 @@ kısayolları" da).
   **kasiyerde** hiç.
 - `n` yalnız bir bağlantıyı açar: sayfanın ana düğmesi bir gönderme ya da
   yazdırma düğmesiyse ona basmaz, paleti Oluştur'la açar.
+- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı) tuşlar sayfadan
+  çıkmaz: `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
+  "+ Varyant ekle"den sonra odak sayfaya düşer; oraya yazılan "Guatemala"
+  `g u` olup sihirbazı kapatmasın diye (tarayıcı sayfa içi geçişte sormaz).
 - **Kapatmak için**: menünün altındaki Hesap bölümünde "Tek tuş kısayolları"
   (bu tarayıcıda hatırlanır; kısayol listesinde de aynı düğme var). Kapalıyken
   yalnız ⌘K / Ctrl K kalır.

@@ -158,7 +158,8 @@ export function ShortcutSheet({
           </dl>
           <p className="mt-2 text-xs leading-5 text-[var(--admin-text-soft)]">
             İkinci harfe 1,5 saniye içinde bas; ü, ş, ç, ö, ğ işaretsiz de olur.
-            Yazarken, bir pencere açıkken ve Kasa&apos;da tek tuşlar çalışmaz.
+            Yazarken, bir pencere açıkken ve Kasa&apos;da tek tuşlar çalışmaz;
+            kaydedilmemiş bir form varken sayfadan çıkmaz.
           </p>
         </section>
 

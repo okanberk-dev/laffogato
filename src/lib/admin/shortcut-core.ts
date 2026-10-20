@@ -151,6 +151,11 @@ export interface ShortcutFacts {
   typing: boolean;
   /** Some <dialog> is open: the palette, a modal, the drawer, the sheet. */
   dialogOpen: boolean;
+  /**
+   * A guarded form on the page has unsaved changes (unsaved-guard.ts, the
+   * product wizard): no key leaves the page.
+   */
+  unsaved?: boolean;
   /** The key's time in ms (event.timeStamp), for the `g` window. */
   now: number;
 }
@@ -226,7 +231,10 @@ const COMMANDS: ReadonlyMap<string, ShortcutCommand> = new Map([
  * role may open goes there if it comes within 1.5 s; any other key (a page
  * the role may not open, a late letter) is read on its own, so `g` then
  * `/` still searches. A skipped key forgets a waiting `g`; a held key's
- * repeats and a lone modifier change nothing.
+ * repeats and a lone modifier change nothing. With unsaved changes on the
+ * page the page's letter does nothing: the browser asks nothing on a
+ * client navigation, and "Guatemala" typed after the wizard's "+ Varyant
+ * ekle" (focus gone with the button) is `g u`.
  */
 export function readShortcut(
   state: ShortcutState,
@@ -246,6 +254,9 @@ export function readShortcut(
     f.now - state.gAt <= G_SEQUENCE_MS
   ) {
     const target = goTarget(key, f.role);
+    if (target && f.unsaved) {
+      return { state: SHORTCUT_IDLE, command: null, handled: false };
+    }
     if (target) {
       return {
         state: SHORTCUT_IDLE,

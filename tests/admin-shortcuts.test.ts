@@ -393,6 +393,35 @@ describe("`g` and a letter", () => {
     expect(core.typedKey("İ")).toBe("i");
   });
 
+  it("unsaved changes on the page: the page's letter leaves nothing, the other keys still work", () => {
+    for (const letter of ["b", "s", "k", "d", "m", "u", "r", "ü", "ş"]) {
+      expect(last(["g", letter], { unsaved: true }), letter).toEqual({
+        state: core.SHORTCUT_IDLE,
+        command: null,
+        handled: false,
+      });
+    }
+    // "Guatemala" typed after the wizard's "+ Varyant ekle": the button
+    // goes with the click, focus falls to the page, and G, u is `g u`.
+    const wizard = { pathname: "/admin/urunler/yeni" };
+    expect(
+      press(["G", "u", "a"], { ...wizard, unsaved: true }).map(
+        (s) => s.command,
+      ),
+    ).toEqual([null, null, null]);
+    expect(last(["G", "r"], { ...wizard, unsaved: true }).command).toBeNull();
+    // Without unsaved changes the letter goes, as before.
+    expect(last(["G", "u"], wizard).command).toEqual({
+      kind: "go",
+      href: "/admin/urunler",
+    });
+    // Keys that stay on the page still work; `n` opens the palette there
+    // (the layer follows no link while the form is unsaved).
+    expect(last(["/"], { unsaved: true }).command).toEqual({ kind: "search" });
+    expect(last(["?"], { unsaved: true }).command).toEqual({ kind: "sheet" });
+    expect(last(["n"], { unsaved: true }).command).toEqual({ kind: "new" });
+  });
+
   it("a lone modifier between `g` and its letter waits; a held key's repeats do nothing", () => {
     const shift = key("Shift");
     expect(last(["g", shift, "s"]).command).toEqual({
@@ -709,6 +738,61 @@ describe("the user menu's switch", () => {
       expect(valueFrom(code, "./shortcut-core"), f).toBe(false);
       expect(valueFrom(code, "@/lib/admin/shortcut-core"), f).toBe(false);
     }
+  });
+});
+
+describe("unsaved changes (the product wizard's guard)", () => {
+  it("the guard module answers for every mounted guard and forgets a released one", async () => {
+    const guard = await import("@/components/admin/unsaved-guard");
+    expect(guard.hasUnsavedForm()).toBe(false);
+    // A real guard: unsaved once the operator typed and the fields differ.
+    let fields = "name=";
+    const wizard = guard.createUnsavedGuard(() => fields);
+    const release = guard.trackUnsavedGuard(wizard);
+    expect(guard.hasUnsavedForm()).toBe(false);
+    wizard.touch();
+    fields = "name=Kenya";
+    expect(guard.hasUnsavedForm()).toBe(true);
+    // Another, clean guard does not hide it.
+    const other = guard.trackUnsavedGuard({ dirty: () => false });
+    expect(guard.hasUnsavedForm()).toBe(true);
+    release();
+    expect(guard.hasUnsavedForm()).toBe(false);
+    other();
+    expect(guard.hasUnsavedForm()).toBe(false);
+  });
+
+  it("the hook counts its form while mounted; the layer asks before it leaves the page", () => {
+    const hook = read("src/components/admin/unsaved-guard.ts");
+    expect(hook).toContain("const untrack = trackUnsavedGuard(guard);");
+    expect(hook).toMatch(/return \(\) => \{\s*untrack\(\);/);
+    expect(read("src/components/admin/product-wizard.tsx")).toContain(
+      "useUnsavedGuard(formRef);",
+    );
+    const layer = read("src/components/admin/shortcuts.tsx");
+    expect(layer).toContain(
+      "unsaved: !typing && !dialogOpen && hasUnsavedForm(),",
+    );
+    expect(layer).toContain(
+      "const link = hasUnsavedForm() ? null : newLink();",
+    );
+  });
+
+  it("the sheet says so", async () => {
+    const { ShortcutSheet } =
+      await import("@/components/admin/ui/shortcut-sheet");
+    const html = renderToStaticMarkup(
+      createElement(ShortcutSheet, {
+        role: "owner",
+        paletteKey: "⌘K",
+        enabled: true,
+        onToggle: () => {},
+        onClose: () => {},
+      }),
+    );
+    expect(html).toContain(
+      "tek tuşlar çalışmaz; kaydedilmemiş bir form varken sayfadan çıkmaz.",
+    );
   });
 });
 

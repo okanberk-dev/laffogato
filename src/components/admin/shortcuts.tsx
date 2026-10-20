@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/shortcut-pref";
 import { ShortcutSheet } from "@/components/admin/ui/shortcut-sheet";
 import { adminPortalRoot } from "@/components/admin/ui/toast";
+import { hasUnsavedForm } from "@/components/admin/unsaved-guard";
 import {
   isApplePlatform,
   openPalette,
@@ -116,7 +117,9 @@ export function AdminShortcuts({ role }: { role: AdminRole }) {
         box.focus();
         if (box instanceof HTMLInputElement) box.select();
       } else {
-        const link = newLink();
+        // Unsaved changes on the page: the palette, which leaves only on a
+        // chosen entry, not the link.
+        const link = hasUnsavedForm() ? null : newLink();
         if (link) link.click();
         else openPalette("create");
       }
@@ -130,6 +133,10 @@ export function AdminShortcuts({ role }: { role: AdminRole }) {
     state.current = SHORTCUT_IDLE;
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
+      const typing =
+        typingTarget(e.target as HTMLElement | null) ||
+        typingTarget(document.activeElement as HTMLElement | null);
+      const dialogOpen = anyDialogOpen();
       const step = readShortcut(
         state.current,
         {
@@ -147,10 +154,10 @@ export function AdminShortcuts({ role }: { role: AdminRole }) {
           role,
           pathname,
           enabled,
-          typing:
-            typingTarget(e.target as HTMLElement | null) ||
-            typingTarget(document.activeElement as HTMLElement | null),
-          dialogOpen: anyDialogOpen(),
+          typing,
+          dialogOpen,
+          // Read only when a key may act: it reads the guarded form whole.
+          unsaved: !typing && !dialogOpen && hasUnsavedForm(),
           now: e.timeStamp,
         },
       );
