@@ -129,11 +129,25 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
 ## 4. Veri okuma - sayfalar arka yüzden ne alır
 
 - Müşteri sayfaları veriyi **`loadAppProps()`** (`src/lib/seo/app-props.ts`) ya
-  da `src/lib/admin/store.ts`'in `list*` / `getPublicSettings()` okuyucularından
-  alır. Yeni bir sayfa yeni bir sorgu yazmaz; var olan okuyucuyu çağırır.
-- **Sunumda `getSettings()` değil `getPublicSettings()`.** Birincisi veritabanı
-  yoksa fırlatır (ticari yollar için doğru davranış), ikincisi paketteki
-  içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde Davranış").
+  da `src/lib/seo/site-data.ts`'in önbellekli sunum okuyucularından
+  (`getSiteSettings`, `listSite*`, `getSiteProductBySlug`, ...) alır; bunlar
+  Data Cache'ten okur, sayfa görüntülemesi veritabanını uyandırmaz
+  (`docs/DATABASE.md` "Uyanmalar ve önbellek"). Yeni bir sayfa yeni bir
+  sorgu yazmaz; var olan okuyucuyu çağırır. Ürün listesini kendisi okuyan
+  bir sayfa, bütün okumaları bittikten sonra onu `shopForRequest()`'ten
+  geçirir: kesintiyi gören istek (giriş yapmış üye) boş mağaza gösterir.
+  Önbellekli okuyucuyu kullanan sayfa listesi
+  `tests/site-data-cache.test.ts`'te tutulur; ödeme, karaoke ve
+  rezervasyon sayfaları oraya girmez.
+- **Sunumda `getSettings()` değil `getSiteSettings()`.** Birincisi veritabanı
+  yoksa fırlatır (ticari yollar için doğru davranış), ikincisi önbellekten ya
+  da paketteki içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde
+  Davranış"). `getPublicSettings()` ve `store.ts`'in `list*` okuyucuları da
+  aynı yedeğe düşer ama her seferinde veritabanını okur: ödeme, karaoke ve
+  uygulama API'si gibi canlı okuması gereken yollar içindir. Genel bir
+  sayfa, kabuk ya da müşteri bileşeni onları import ederse
+  `tests/public-pages-cached-reads.test.ts` kırılır (üyenin kendi
+  sayfaları, `/uye/hesap/**`, kapsam dışı).
 - Bileşenler ve sayfalar **`@/lib/db`'yi doğrudan import etmez.**
 - İstemci bileşeni (`"use client"`) `import "server-only"` taşıyan bir modülü
   import edemez - build kırılır. Saf mantık gerekiyorsa `*-core.ts` /

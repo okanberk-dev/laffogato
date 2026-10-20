@@ -77,6 +77,63 @@ liste diğer sekmelere BroadcastChannel ile gider, "Gördüm" localStorage'da
 (`laffogato.admin.orderAlerts.acks.v1`). Zil Web Audio ile üretilir (dosya
 yok); sesin ayarı `laffogato.admin.orders.sound`.
 
+**Değişiklik yokken veritabanı yok (19 Eki 2026).** Sıklık aynı kaldı, ama
+10 saniyelik soru artık çoğu zaman Neon'a gitmiyor. Her tam cevap bir imleç
+(`cursor`) taşır; Worker onu bir sonraki soruda `?c=` olarak geri yollar.
+`orders` tablosuna her yazma (ödendi, durum değişikliği, iptal, iade, yeni
+sipariş) Data Cache'teki değişiklik işaretini yeniler
+(`src/lib/admin/change-marker.ts`, `src/lib/cache/tags.ts`). İşaret
+imleçtekiyle aynıysa cevap yalnız `{ unchanged: true }` olur: sipariş yok,
+hesap okuması yok, veritabanı yok; yalnız çerezin imzası ve rolü (Siparişler)
+bakılır. İşaret değiştiyse, okunamadıysa, imleç yoksa ya da bozuksa,
+çerezdeki rol Siparişler'e erişemiyorsa eski tam cevap gelir (hesap yeniden
+okunur, 401/403/503 aynı). Köşk açıkken en az saatte bir cevap yine tamdır.
+İşaret hesaptan ve siparişlerden önce okunur, arada ödenen sipariş onu
+mutlaka değiştirir; ödenen bir masa siparişi bir sonraki 10 saniyelik soruda
+çalar.
+
+Yetkisi alınan oturum (kural 30): işaret `admin_users`'a her yazmada da
+yenilenir (`live:access` etiketi: kullanıcı pasifleşti, rolü değişti,
+parolası sıfırlandı, silindi), yani "değişmedi" cevabı yalnız bu oturumun
+hesabını yeniden okuyan son tam cevaptan beri hiçbir hesap değişmediyse
+verilir. İmleç onu alan oturuma bağlıdır (oturum çerezinin SHA-256 özetinin
+ilk 12 hanesi, `src/lib/admin/poll-binding.ts`; adres ya da kimlik
+taşımaz): başka bir çerez, imzası geçerli olsa da, bu imleçle "değişmedi"
+alamaz, hesabı okunur. Yetkisi alınan oturum bir sonraki soruda 401 ya da
+403 alır; ilk siparişin ne zaman yazıldığını ve köşkün açık olup olmadığını
+bu yoldan öğrenemez. Kalan tek fark: Neon konsolunda elle yapılan bir hesap
+değişikliği etiket düşürmez (`docs/DATABASE.md` "Etiket düşürmeyen
+yazmalar"); hesabı panelden değiştir ya da bütün etiketleri düşür.
+"Hazırlamaya başla" ve başka sekmenin istediği soru imleçsiz gider (tam
+cevap); yeni lider sekme de imleçsiz başlar. Değişiklik yokken liste olduğu
+gibi kalır, 4 saatlik pencereden çıkan kart sunucunun saatine göre düşer.
+Her yazma işareti iki kez düşürür: hemen, ve cevap çıktıktan sonra
+`after()` ile ayrı bir istekle; siparişi ödendi yapıp sonra hata fırlatan
+bir route handler'da Next ilkini hiç göndermez, ikincisi yine gider
+(`docs/DATABASE.md` madde 1). İkisi de kaybolursa (önbellek hatası) zil en
+geç bir sonraki tam cevapta (açıkken en geç bir saat) çalar; personel
+e-postası bundan bağımsız gider. Önbellek çalışmazsa her soru tam cevap olur: eski
+maliyet, kaçan sipariş yok. Deploy'dan önce açılmış sekmeler yenilenene kadar
+eski Worker'la (imleçsiz, her 10 sn tam cevap) çalışır: tezgâh
+bilgisayarında paneli bir kez yenile.
+
+**Rozetler ve sipariş listesinin sayacı da aynı yolla (19 Eki 2026).** Kenar
+çubuğundaki açık sipariş ve bugünkü karaoke rozetleri (60 sn) ve sipariş
+listesinin "yeni sipariş" sayacı (30 sn) aynı sıklıkta sorar, ama her cevap
+bir imleç taşır (`src/lib/admin/panel-signal.ts`,
+`src/lib/admin/panel-signal-core.ts`). `orders` (rozet ve liste) ya da
+`karaoke_reservations` (karaoke rozeti) yazılmadıysa ve aynı şey sayılıyorsa
+(karaokede Tuzla'nın bugünü, gece yarısı yeni gün; listede son sipariş no ve
+sekme) cevap `{ unchanged: true }`: sayı yok, hesap okuması yok, veritabanı
+yok, rozet sayısını korur. Sayı taşıyan her cevap hesabı yeniden okur. İmleç
+zilinki gibi oturuma bağlıdır ve işaret hesap yazmalarında da yenilenir:
+yetkisi alınan oturum bir sonraki soruda rozetsiz kalır. Bir
+işlem (`admin:changed`) ve sayfa değişimi imleci düşürür, sonraki okuma
+tamdır; liste yenilenince (`latestOrderNo`) yeniden imleçsiz başlar. Bir
+yazmanın düşürme isteği kaybolursa rozet bir sonraki işleme ya da sayfa
+değişimine kadar eski sayıyı gösterir; listenin kendisi her zaman sunucuda
+taze çizilir.
+
 ## Gün sonu sayfası (Raporlar > Gün sonu)
 
 Günü kapatırken beş ekran yerine tek sayfa: `/admin/raporlar/gun-sonu`.

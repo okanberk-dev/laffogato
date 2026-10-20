@@ -7,6 +7,7 @@ import { publicRead, raiseDbError } from "@/lib/db/health";
 import {
   compareHomeHeroSlides,
   HOME_HERO_LIMITS as L,
+  homeSlideReady,
   homeSlideToInput,
   isHomeHeroScene,
   isHomeSlideAction,
@@ -289,6 +290,20 @@ export async function importDefaultHomeSlides(
 export function homeSlidePhoto(slide: Pick<HomeHeroSlide, "id" | "image">) {
   const image = safeSlideImage(slide.image);
   return servedImage(image, homeHeroImagePath(slide.id, imageVersion(image)));
+}
+
+/**
+ * The rows the home page can draw at some hour, with each picture as the
+ * browser fetches it (an upload as its served path, never base64): what the
+ * cached reader (src/lib/seo/site-data.ts) stores. The publish window is
+ * left to the request (`homeSlidesInWindow`). Throws when the database
+ * cannot be reached.
+ */
+export async function listHomeHeroSiteRowsLive(): Promise<HomeHeroSlide[]> {
+  const rows = await listHomeHeroSlides();
+  return rows
+    .filter(homeSlideReady)
+    .map((row) => ({ ...row, image: homeSlidePhoto(row) }));
 }
 
 /**

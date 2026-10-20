@@ -8,6 +8,8 @@ import {
   isSchemaGap,
   schemaIsFresh,
 } from "./bootstrap";
+import { expireTags, tagsForWrite } from "@/lib/cache/tags";
+
 import { createDb, type Db, type Executor } from "./client";
 import type { CompiledQuery } from "./sql";
 
@@ -205,7 +207,13 @@ export async function dbHealth(): Promise<DbHealth> {
 
 export function getDb(): Db {
   if (!global.__laffogatoDb) {
-    global.__laffogatoDb = createDb(createExecutor());
+    global.__laffogatoDb = createDb(createExecutor(), {
+      // Every write expires the cached reads it made stale
+      // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
+      // after the commit. After the statement, never before: each one
+      // commits on its own, and the multi-step writes are SQL functions.
+      onWrite: (target) => expireTags(tagsForWrite(target)),
+    });
   }
   return global.__laffogatoDb;
 }

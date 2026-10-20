@@ -5,6 +5,7 @@ import {
   parseAcks,
   pendingAlerts,
   ringLevel,
+  stillRinging,
   type OrderAlert,
   type OrderAlertAcks,
 } from "@/lib/admin/order-alerts-core";
@@ -103,6 +104,22 @@ export class OrderAlertController {
   receive(alerts: OrderAlert[]): void {
     if (!this.leader) return;
     this.alerts = alerts;
+    this.update();
+  }
+
+  /**
+   * The leader's poll answered "nothing changed" (the route's cheap
+   * answer): the list stays, minus what has aged out of the ring window
+   * by the server's clock (`nowIso`; this tab's clock when it is missing).
+   * Shared with the other tabs as any answer is.
+   */
+  receiveUnchanged(nowIso: string): void {
+    if (!this.leader) return;
+    const parsed = Date.parse(nowIso);
+    const now = Number.isFinite(parsed) ? parsed : this.env.now();
+    this.alerts = this.alerts.filter((a) =>
+      stillRinging(Date.parse(a.paidAt), now),
+    );
     this.update();
   }
 

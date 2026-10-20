@@ -48,10 +48,10 @@ vi.mock("next/font/google", () => ({
   Poppins: () => ({ variable: "font-poppins", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
-  openOrderCountAction: vi.fn(async () => null),
+  openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
-  karaokeTodayCountAction: vi.fn(async () => null),
+  karaokeTodaySignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
 vi.mock("@/app/admin/ara/actions", () => ({ adminSearchAction: vi.fn() }));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));

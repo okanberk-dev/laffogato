@@ -802,7 +802,7 @@ describe("sidebar", () => {
     const src = read("src/components/admin/admin-sidebar.tsx");
     expect(src).toContain("<NavIcon name={item.icon ?? item.section} />");
     expect(read("src/components/admin/nav-icon.tsx")).toContain("ADMIN_ICONS");
-    expect(src).toContain("karaokeTodayCountAction");
+    expect(src).toContain("karaokeTodaySignalAction");
     // One active entry, over item and tab hrefs (nav-match.ts).
     expect(src).toContain("activeNavPlace(");
     expect(src).not.toMatch(/function isActive\(/);
