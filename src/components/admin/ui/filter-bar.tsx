@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useActionState, useId } from "react";
 
@@ -22,7 +23,7 @@ import {
 
 import { FIELD_INPUT } from "../forms";
 import { ListSearchButton } from "./list-search-button";
-import { SavedViews, useSavedViewsKey } from "./saved-views";
+import { useSavedViewsKey } from "./saved-views-key";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
 import { useNoResetSubmit } from "./submit";
 
@@ -55,6 +56,13 @@ export interface FilterBarProps {
    */
   views?: { key: string };
 }
+
+// The saved views menu (UI-11): its own chunk, asked for only once a list
+// with `views` is in the browser. Never drawn on the server either way.
+const SavedViews = dynamic(
+  () => import("./saved-views").then((m) => m.SavedViews),
+  { ssr: false },
+);
 
 /** A chip's × (a link, or a button for a search text). */
 const CHIP_REMOVE =

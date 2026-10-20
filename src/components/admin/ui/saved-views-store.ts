@@ -4,7 +4,6 @@
 // window, blocked site data or a full quota leaves the menu empty, never the
 // list broken.
 
-import { validAccountKey } from "@/lib/admin/palette-shell";
 import {
   serializeSavedViews,
   type SavedViewsState,
@@ -67,19 +66,4 @@ export function subscribeViews(onChange: () => void): () => void {
     window.removeEventListener("storage", onChange);
     window.removeEventListener(SAVED_VIEWS_EVENT, onChange);
   };
-}
-
-/**
- * The account key the layout puts on the admin root (`data-admin-account`:
- * the palette's HMAC of the e-mail, never the e-mail), or "" without one
- * (the cashier, the sign-in screens).
- */
-export function pageAccountKey(
-  root: Pick<ParentNode, "querySelector"> = document,
-): string {
-  const value =
-    root
-      .querySelector("[data-admin-root]")
-      ?.getAttribute("data-admin-account") ?? "";
-  return validAccountKey(value) ? value : "";
 }

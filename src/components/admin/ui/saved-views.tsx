@@ -13,7 +13,6 @@ import {
   SAVED_VIEW_NAME_MAX,
   SAVED_VIEWS_MAX,
   saveView,
-  savedViewsStorageKey,
   setDefaultView,
   viewQuery,
   viewsMenu,
@@ -28,42 +27,24 @@ import {
 } from "./action-menu";
 import { ActionModal, type ModalAction } from "./action-modal";
 import { ListSearchButton } from "./list-search-button";
-import {
-  pageAccountKey,
-  readViews,
-  subscribeViews,
-  writeViews,
-} from "./saved-views-store";
+import { readViews, subscribeViews, writeViews } from "./saved-views-store";
 import { BUTTON } from "./styles";
 import { useToast } from "./toast";
 
 // A list's saved views (admin UI v2, UI-11, design §5 #11): the
 // "Görünümler" menu the FilterBar draws at the end of its chips' row. The
 // rules are in lib/admin/saved-views.ts, the storage in saved-views-store.ts.
-// Nothing here exists before the page is in the browser: the server cannot
-// read localStorage, and the bar's markup without JavaScript stays as it was.
-
-const noSubscribe = () => () => {};
+// The FilterBar loads this file as a chunk of its own (next/dynamic), only
+// for a list that passes `views` and only once the page is in the browser
+// (saved-views-key.ts): the server cannot read localStorage, the bar's
+// markup without JavaScript stays as it was, and the panel's other pages,
+// the till included, do not download it.
 
 const NOT_KEPT =
   "Kaydedilemedi: bu tarayıcı site verisi tutmuyor (gizli pencere ya da kapalı site verisi).";
 
-/**
- * Where this list's views live for the signed-in account, once the page is
- * in the browser; null before (the server's render and hydration), without
- * `listKey`, and without an account key. The FilterBar draws the menu, and
- * the row it sits in, only when this is set.
- */
-export function useSavedViewsKey(listKey: string | undefined): string | null {
-  return useSyncExternalStore(
-    noSubscribe,
-    () => (listKey ? savedViewsStorageKey(pageAccountKey(), listKey) : null),
-    () => null,
-  );
-}
-
 export interface SavedViewsProps {
-  /** useSavedViewsKey's answer. */
+  /** useSavedViewsKey's answer (saved-views-key.ts). */
   storageKey: string;
   /** The list's path (the FilterBar's). */
   pathname: string;

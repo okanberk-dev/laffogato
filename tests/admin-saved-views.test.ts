@@ -68,6 +68,8 @@ process.env.ADMIN_SESSION_SECRET ??=
 
 const lib = await import("@/lib/admin/saved-views");
 const store = await import("@/components/admin/ui/saved-views-store");
+const { pageAccountKey } =
+  await import("@/components/admin/ui/saved-views-key");
 const { FilterBar } = await import("@/components/admin/ui/filter-bar");
 const { SavedViews } = await import("@/components/admin/ui/saved-views");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
@@ -517,10 +519,10 @@ describe("the browser's storage", () => {
           ? ({ getAttribute: () => value } as unknown as Element)
           : null,
     });
-    expect(store.pageAccountKey(root(A))).toBe(A);
-    expect(store.pageAccountKey(root("ayse@laffogato.net"))).toBe("");
-    expect(store.pageAccountKey(root(null))).toBe("");
-    expect(store.pageAccountKey({ querySelector: () => null })).toBe("");
+    expect(pageAccountKey(root(A))).toBe(A);
+    expect(pageAccountKey(root("ayse@laffogato.net"))).toBe("");
+    expect(pageAccountKey(root(null))).toBe("");
+    expect(pageAccountKey({ querySelector: () => null })).toBe("");
   });
 });
 
@@ -574,6 +576,22 @@ describe("the markup", () => {
     expect(filtered).toContain('aria-haspopup="dialog"');
     expect(filtered).toContain("Bu görünümü kaydet");
     expect(filtered).not.toContain('aria-disabled="true"');
+  });
+
+  it("the bar loads the menu as a chunk of its own, never with the page", () => {
+    const bar = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
+    expect(bar).toMatch(/import\("\.\/saved-views"\)/);
+    expect(bar).not.toMatch(/from "\.\/saved-views(-store)?"/);
+    // The always-loaded half needs only the key, not the rules or storage.
+    const key = readFileSync(
+      "src/components/admin/ui/saved-views-key.ts",
+      "utf8",
+    );
+    expect(key).not.toMatch(/"@\/lib\/admin\/saved-views"|saved-views-store/);
+    const keyLib = readFileSync("src/lib/admin/saved-views-key.ts", "utf8");
+    expect(keyLib).not.toMatch(
+      /from "\.\/(saved-views|pii-like|text-fold|list-params)"/,
+    );
   });
 
   it("the orders list adopts it, with one prop", () => {

@@ -14,21 +14,19 @@
 // is not kept either; a fixed range would go stale in a week anyway.
 
 import { toSearchParams, type SearchParamsInput } from "./list-params";
-import { validAccountKey } from "./palette-shell";
 import { piiLike } from "./pii-like";
 import { foldTr } from "./text-fold";
 
-/** localStorage, per account and list: `laf_admin_views_v1:<account>:<list>`. */
-export const SAVED_VIEWS_KEY_PREFIX = "laf_admin_views_v1:";
+export {
+  SAVED_VIEWS_KEY_PREFIX,
+  savedViewsStorageKey,
+} from "./saved-views-key";
 
 /** Views per list and account. */
 export const SAVED_VIEWS_MAX = 8;
 
 /** A view's name, in characters. */
 export const SAVED_VIEW_NAME_MAX = 30;
-
-/** A list's key (`views.key` on the FilterBar): short, lower-case ASCII. */
-const LIST_KEY = /^[a-z][a-z0-9-]{0,31}$/;
 
 /** A param a view may keep: the name listSearchAction accepts in a post. */
 const PARAM_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
@@ -63,20 +61,6 @@ export const NO_SAVED_VIEWS: SavedViewsState = {
   views: [],
   defaultQuery: null,
 };
-
-/**
- * Where this account's views of this list live, or null when either key is
- * not one the panel writes (no account key: the layout gives none to the
- * cashier, nor without ADMIN_SESSION_SECRET). Null turns the menu off.
- */
-export function savedViewsStorageKey(
-  accountKey: string,
-  listKey: string,
-): string | null {
-  if (!validAccountKey(accountKey)) return null;
-  if (typeof listKey !== "string" || !LIST_KEY.test(listKey)) return null;
-  return `${SAVED_VIEWS_KEY_PREFIX}${accountKey}:${listKey}`;
-}
 
 /** A control character: never part of a value a view keeps. */
 const CONTROL = /\p{Cc}/u;
