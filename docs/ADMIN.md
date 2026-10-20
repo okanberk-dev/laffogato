@@ -263,6 +263,10 @@ kısayolları" da).
   **kasiyerde** hiç.
 - `n` yalnız bir bağlantıyı açar: sayfanın ana düğmesi bir gönderme ya da
   yazdırma düğmesiyse ona basmaz, paleti Oluştur'la açar.
+- 20 Ekim 2026'da hiçbir sayfa "Yeni" bağlantısını başlığın ana bağlantısı
+  (`PageHeader` `primary`, `data-admin-new`) olarak çizmiyor ("+ Yeni
+  sipariş" `action` içinde): şimdilik `n` her sayfada paleti Oluştur'la
+  açar. Bir sayfa `primary`'ye geçince `n` o bağlantıyı doğrudan açar.
 - Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı) tuşlar sayfadan
   çıkmaz: `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
   "+ Varyant ekle"den sonra odak sayfaya düşer; oraya yazılan "Guatemala"
