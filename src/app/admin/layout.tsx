@@ -91,8 +91,16 @@ const adminFontStyle = {
 // signed-in wrapper used to be bg-neutral-50 and only the logged-out one
 // carried the (never styled) `admin-shell` class. `data-admin-root` lets
 // the panel's Tailwind classes beat the site's element resets (globals.css).
+//
+// The phone's bottom bar (ui/bottom-bar.tsx, UI-7) takes the bottom 3.5rem
+// and the home indicator below `lg`. That room is one variable here,
+// `--admin-bottom-inset`, set while the bar is on the page and no bulk
+// bar has taken its place; the page ends that much higher, and the toasts,
+// the bulk bar, the order alert sheet and the sticky save bars add it to
+// their own distance from the bottom. Unset (0) everywhere else: from
+// `lg`, for the cashier and on the sign-in screens.
 const shellClass = (fontVariable: string) =>
-  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)]`;
+  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
 
 /*
  * The panel's nav (admin UI v2, UI-5): five groups, and items that own
