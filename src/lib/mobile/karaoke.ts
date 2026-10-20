@@ -997,12 +997,14 @@ export async function setReservationStatus(
     status,
     updatedAt: now.toISOString(),
   };
-  const notified =
-    opts.notify === false ? true : await notifyReservationStatus(reservation);
   // The hour is sold (paid and confirmed, or confirmed to be paid at the
   // köşk): a booking that cancelled it late gets back the share it kept for
-  // it (ASK-OTH-3-CFG). Never fails the confirmation.
+  // it (ASK-OTH-3-CFG). Right after the write that sold it, before the mail
+  // (a slow mail must not stand between the sale and what it owes); never
+  // fails the confirmation.
   if (status === "confirmed") await chargeResale(reservation, sameDay);
+  const notified =
+    opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
 }
 
@@ -1144,7 +1146,11 @@ function karaokeMailPayload(
       ? {
           refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
           refundIsShare: isPartialRefund(r),
-          ...(note.resaleTopUp ? { refundIsResaleTopUp: true } : {}),
+          ...(note.resaleTopUp
+            ? { refundIsResaleTopUp: true }
+            : (r.resaleRefundMinor ?? 0) > 0
+              ? { refundIncludesResale: true }
+              : {}),
         }
       : {}),
     // A late cancel's share the köşk still owes (refunded by hand).

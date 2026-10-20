@@ -214,7 +214,7 @@ export interface KaraokeReservation {
    */
   refundMinor?: number | null;
   /**
-   * The köşk's late cancel made good (20261019180000_karaoke_make_good.sql,
+   * The köşk's late cancel made good (20261020203619_karaoke_make_good.sql,
    * karaoke-make-good-core.ts): the amount, the last day (Istanbul,
    * YYYY-MM-DD) the free hour can be booked, when one of the two options
    * was used, and the bank transfer when the money was chosen. NULL on
@@ -234,8 +234,10 @@ export interface KaraokeReservation {
   resoldHours?: number[] | null;
   resaleRefundMinor?: number | null;
   /**
-   * The part of `refundMinor` a person already recorded as refunded by
-   * hand: a resale after the late share went back owes only the rest.
+   * The part of `refundMinor` that had already gone back (recorded by hand)
+   * when an hour sold again made the booking owe money again: the step
+   * under way asks only for the rest, and on a `refunded` row the last step
+   * was `refundMinor` minus this.
    */
   refundSettledMinor?: number | null;
 }

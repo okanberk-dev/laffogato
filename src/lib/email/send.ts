@@ -892,6 +892,12 @@ export interface KaraokeEmailData {
    */
   refundIsResaleTopUp?: boolean;
   /**
+   * Cancellation only: what went back in this one refund holds both the
+   * late share and the part an hour cancelled late and sold again gave
+   * back (`refundedMinor` is their sum).
+   */
+  refundIncludesResale?: boolean;
+  /**
    * Cancellation only: the köşk cancelled late for its own reason and makes
    * it good (karaoke terms §8): `minor` kuruş, as a free hour of the same
    * length booked by `until` ("19 Nisan 2027") or paid to the guest's own
@@ -1047,6 +1053,7 @@ export function karaokeCancellationFlags(
     | "refundOwedMinor"
     | "refundIsShare"
     | "refundIsResaleTopUp"
+    | "refundIncludesResale"
     | "payment"
     | "cancelCause"
     | "makeGood"
@@ -1057,6 +1064,9 @@ export function karaokeCancellationFlags(
   const share = k.refundIsShare === true;
   // Only the resale part went back now: the late share already had its mail.
   const resale = refunded && share && k.refundIsResaleTopUp === true;
+  // The share and the resale part went back in one refund.
+  const shareAndResale =
+    refunded && share && !resale && k.refundIncludesResale === true;
   const business = isBusinessCause(k.cancelCause);
   const request = k.cancelCause === "misafir";
   // The hour went to another guest: the line says so, and the whole payment
@@ -1070,7 +1080,8 @@ export function karaokeCancellationFlags(
     // The member's own cancel keeps its words; ours say "iade ettik".
     KARAOKE_IADE: refunded && !share && !business && !request && !resold,
     KARAOKE_TAM_IADE: refunded && !share && (business || request),
-    KARAOKE_KISMI_IADE_EDILDI: refunded && share && !resale,
+    KARAOKE_KISMI_IADE_EDILDI: refunded && share && !resale && !shareAndResale,
+    KARAOKE_KISMI_SATIS_IADE_EDILDI: shareAndResale,
     KARAOKE_SATIS_IADE: resale,
     KARAOKE_KISMI_IADE: owed,
     KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",

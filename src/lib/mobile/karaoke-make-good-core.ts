@@ -7,9 +7,9 @@ import {
 
 /**
  * The köşk's late cancel made good, and the hour cancelled late and sold
- * again (19 Eki 2026). Pure and dependency-free like karaoke-time.ts: the
- * panel's page, the server and the tests reason about one set of rules;
- * karaoke-payment.ts and karaoke.ts do the writing.
+ * again (karaoke terms §8, §9; 21 Eki 2026). Pure and dependency-free like
+ * karaoke-time.ts: the panel's page, the server and the tests reason about
+ * one set of rules; karaoke-payment.ts and karaoke.ts do the writing.
  *
  * ## Make-good (OP-KARAOKE-GOODWILL, Haksız Şartlar Yön. EK-1 (ç))
  *
@@ -167,6 +167,26 @@ export function makeGoodStateOf(r: MakeGoodRow): KaraokeMakeGoodState {
 /** May the free hour still be given on `today` (YYYY-MM-DD, Istanbul)? */
 export function makeGoodHourOpen(r: MakeGoodRow, today: string): boolean {
   return makeGoodStateOf(r) === "open" && today <= (r.makeGoodUntil ?? "");
+}
+
+/** An IBAN as people write it: country, check digits, then groups. */
+const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]){11,30}\b/gi;
+/** Sixteen or more digits in a row (a card number, an IBAN without "TR"). */
+const LONG_NUMBER_RE = /\d(?:[ -]?\d){15,}/;
+
+/**
+ * Does a note typed with "Telafi ödendi" carry a bank account (an IBAN,
+ * with or without its "TR") or a card number? The make-good's bank details
+ * are used for the transfer and never written into our records (karaoke
+ * terms §8, Veri Saklama §8, KVKK m.4/2-ç): the note goes into the audit
+ * log, so such a note is refused. A date, a time, an amount, a phone
+ * number or a receipt number of up to 15 digits passes.
+ */
+export function looksLikeBankAccount(text: string): boolean {
+  for (const m of text.matchAll(IBAN_RE)) {
+    if (m[0].replace(/\D/g, "").length >= 12) return true;
+  }
+  return LONG_NUMBER_RE.test(text);
 }
 
 // ─── Resale ────────────────────────────────────────────────────────────────

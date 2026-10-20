@@ -216,6 +216,25 @@ export function refundOwedNowMinor(
 }
 
 /**
+ * A free hour the köşk gave to make good its late cancel (karaoke terms
+ * §8): nothing is collected, and the köşk declares KDV on the hour's market
+ * value (KDV K. m.5, m.27/1), the hourly rate times its hours. `amountMinor`
+ * and the note the booking's page prints beside it ("Emsal bedel").
+ */
+export function makeGoodHourMarketValue(
+  hourlyMinor: number,
+  hours: number,
+  taxRatePct: number,
+): { amountMinor: number; note: string } {
+  const hourly = Math.max(0, Math.round(hourlyMinor));
+  const amountMinor = hourly * Math.max(0, hours);
+  return {
+    amountMinor,
+    note: `Emsal bedel ${formatTRYMinor(amountMinor)} (saatlik ücret ${formatTRYMinor(hourly)} x ${hours} saat, KDV %${taxRatePct} dahil), KDV köşkçe beyan edilir. Misafirden para alınmaz.`,
+  };
+}
+
+/**
  * What an evening that is over leaves to invoice, kuruş (ASK-KAR-KDV, 19
  * Eki 2026): the payment until the evening is an advance, and the e-Arşiv
  * invoice is cut at the köşk for what the köşk keeps, KDV included (KDV K.

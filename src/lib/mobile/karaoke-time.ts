@@ -253,8 +253,9 @@ export function refundAmountOf(r: {
 
 /**
  * What is still to go back by hand: what goes back (`refundAmountOf`) minus
- * what a person already recorded as refunded (`refundSettledMinor`, a late
- * share refunded before its hour was sold again).
+ * what had already gone back before this step (`refundSettledMinor`, a late
+ * share refunded before its hour was sold again). On a `refunded` row: what
+ * the last step sent.
  */
 export function refundOwedNowOf(r: {
   paidMinor?: number;
@@ -411,7 +412,7 @@ export function karaokeRulesOf(r: {
  * until the start.
  *
  * A share of 1..99 % is open since the hour cancelled late and sold again
- * refunds the share kept for it (karaoke-make-good-core.ts, 19 Eki 2026):
+ * refunds the share kept for it (karaoke-make-good-core.ts, 21 Eki 2026):
  * the terms §7 promise that refund, and until it was built the panel
  * offered only 0 or 100 (ASK-OTH-3-CFG, D-KAR-1-99).
  */

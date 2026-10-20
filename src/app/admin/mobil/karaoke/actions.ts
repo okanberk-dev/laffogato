@@ -541,7 +541,7 @@ export async function giveKaraokeMakeGoodHourAction(
   if (!result.ok) {
     if (result.reason === "invalid") {
       const message = result.message ?? MAKE_GOOD_MESSAGE.invalid;
-      return actionError(message, { tarih: message });
+      return actionError(message, { [result.field ?? "tarih"]: message });
     }
     if (result.reason === "slot_taken") {
       return actionError(MAKE_GOOD_MESSAGE.slot_taken, {
@@ -595,8 +595,7 @@ export async function recordKaraokeMakeGoodPaidAction(
   if (!result.ok) {
     if (result.reason === "invalid") {
       const message = result.message ?? MAKE_GOOD_MESSAGE.invalid;
-      const field = /tarih/i.test(message) ? "havaleTarihi" : "tutar";
-      return actionError(message, { [field]: message });
+      return actionError(message, { [result.field ?? "tutar"]: message });
     }
     return actionError(MAKE_GOOD_MESSAGE[result.reason]);
   }

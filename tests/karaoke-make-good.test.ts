@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * again (19 Eki 2026; karaoke terms §7, §8, §9; OP-KARAOKE-GOODWILL,
  * ASK-OTH-3-CFG, D-KAR-1-99), through the real karaoke.ts and
  * karaoke-payment.ts over an in-memory table. The POS, the mail, the audit
- * log and the settings are scripted; `karaoke_charge_resold_hours` is
- * mirrored in JS the way the migration writes it.
+ * log and the settings are scripted; `karaoke_charge_resold_hours` and
+ * `karaoke_give_make_good_hour` are mirrored in JS the way the migration
+ * writes them (tests/db-integration-karaoke-make-good.test.ts runs the real
+ * ones, and their races, against Postgres).
  *
  * - Make-good: only `ariza`, `kapanis`, `diger`, only after the booking's
  *   own free moment, only what a late cancel would keep (> 0): the whole
@@ -32,6 +34,12 @@ const h = vi.hoisted(() => ({
   alerts: [] as Array<Record<string, unknown>>,
   audits: [] as Array<Record<string, unknown>>,
   rpcs: [] as Array<{ fn: string; args: Record<string, unknown> }>,
+  /** What happened, in order (an rpc, a mail): the resale before the mail. */
+  events: [] as string[],
+  /** Runs once, inside the next rpc: another person's write in between. */
+  beforeRpc: null as null | (() => void),
+  /** Runs once, just before the next UPDATE is applied (the same, for writes). */
+  beforeUpdate: null as null | (() => void),
   seq: 100,
 }));
 
@@ -39,7 +47,7 @@ const h = vi.hoisted(() => ({
 
 type Filter = (row: Row) => boolean;
 
-/** karaoke_charge_resold_hours, as 20261019180000_karaoke_make_good.sql. */
+/** karaoke_charge_resold_hours, as 20261020203619_karaoke_make_good.sql. */
 function chargeResoldHoursSql(id: string, hours: number[]): number {
   const r = (h.tables.get("karaoke_reservations") ?? []).find(
     (x) => x.id === id,
@@ -48,7 +56,8 @@ function chargeResoldHoursSql(id: string, hours: number[]): number {
     !r ||
     r.status !== "cancelled" ||
     typeof r.refundMinor !== "number" ||
-    !["refunding", "refunded"].includes(String(r.paymentStatus))
+    !["refunding", "refunded"].includes(String(r.paymentStatus)) ||
+    r.makeGoodFor
   ) {
     return 0;
   }
@@ -65,16 +74,120 @@ function chargeResoldHoursSql(id: string, hours: number[]): number {
   if (kept <= 0) return 0;
   const after = Math.round((kept * (counted.length + fresh.length)) / length);
   const wasRefunded = r.paymentStatus === "refunded";
+  const refundBefore = Number(r.refundMinor);
   r.resoldHours = [...counted, ...fresh];
   r.resaleRefundMinor = after;
   r.refundMinor = share + after;
   if (after > before) {
     r.paymentStatus = "refunding";
-    if (wasRefunded) {
-      r.refundSettledMinor = r.refundSettledMinor ?? Number(share + before);
-    }
+    // What had already gone back when it owes money again.
+    if (wasRefunded) r.refundSettledMinor = refundBefore;
   }
   return after - before;
+}
+
+/** karaoke_release_make_good_hour, as the same migration writes it. */
+function releaseMakeGoodHourSql(a: Record<string, unknown>): string {
+  const rows = h.tables.get("karaoke_reservations") ?? [];
+  const hour = rows.find(
+    (x) =>
+      x.id === a.p_id &&
+      x.status === "confirmed" &&
+      x.paymentStatus === "none" &&
+      x.makeGoodFor,
+  );
+  if (!hour) return "raced";
+  hour.status = "cancelled";
+  hour.updatedAt = a.p_now;
+  if (a.p_reopen) {
+    const original = rows.find(
+      (x) =>
+        x.id === hour.makeGoodFor &&
+        x.makeGoodPaidMinor == null &&
+        x.makeGoodUsedAt != null,
+    );
+    if (original) {
+      original.makeGoodUsedAt = null;
+      return "reopened";
+    }
+  }
+  return "cancelled";
+}
+
+/** karaoke_give_make_good_hour, as the same migration writes it. */
+function giveMakeGoodHourSql(a: Record<string, unknown>): {
+  data: unknown;
+  error: { code: string; message: string } | null;
+} {
+  const rows = h.tables.get("karaoke_reservations") ?? [];
+  const r = rows.find((x) => x.id === a.p_for);
+  if (
+    !r ||
+    r.status !== "cancelled" ||
+    r.makeGoodMinor == null ||
+    r.makeGoodUntil == null ||
+    r.makeGoodUsedAt != null
+  ) {
+    return { data: "not_open", error: null };
+  }
+  if (String(a.p_today) > String(r.makeGoodUntil)) {
+    return { data: "expired", error: null };
+  }
+  const start = Number(a.p_start_hour);
+  const length = Number(r.hours);
+  // karaoke_reservations_no_overlap
+  if (
+    rows.some(
+      (x) =>
+        x.status !== "cancelled" &&
+        x.date === a.p_date &&
+        start < Number(x.startHour) + Number(x.hours) &&
+        Number(x.startHour) < start + length,
+    )
+  ) {
+    return { data: null, error: { code: "23P01", message: "no_overlap" } };
+  }
+  // karaoke_reservations_make_good_once
+  if (rows.some((x) => x.makeGoodFor === r.id && x.status !== "cancelled")) {
+    return { data: null, error: { code: "23505", message: "make_good_once" } };
+  }
+  r.makeGoodUsedAt = a.p_now;
+  rows.push({
+    id: a.p_id,
+    customerEmail: r.customerEmail,
+    customerName: r.customerName,
+    contactEmail: r.contactEmail ?? "",
+    contactPhone: r.contactPhone ?? "",
+    contactConsentAt: r.contactConsentAt ?? "",
+    date: a.p_date,
+    startHour: start,
+    hours: length,
+    guests: a.p_guests,
+    status: "confirmed",
+    priceMinor: 0,
+    discountMinor: 0,
+    totalMinor: 0,
+    note: `Telafi: ${String(r.id).toUpperCase()}`,
+    createdAt: a.p_now,
+    updatedAt: a.p_now,
+    paymentStatus: "none",
+    paymentDueAt: "",
+    paidAt: "",
+    refundedAt: "",
+    paidMinor: 0,
+    paymentRef: "",
+    channel: "staff",
+    legalConsent: null,
+    guest: r.guest === true,
+    taxRatePct: a.p_tax_rate_pct,
+    freeCancelHours: a.p_free_cancel_hours,
+    lateRefundPercent: a.p_late_refund_percent,
+    cancelDeadline: a.p_cancel_deadline,
+    cancellationRules: a.p_cancellation_rules,
+    refundMinor: null,
+    makeGoodFor: r.id,
+  });
+  return { data: "given", error: null };
 }
 
 function fakeDb() {
@@ -85,10 +198,25 @@ function fakeDb() {
   return {
     rpc(fn: string, args: Record<string, unknown>) {
       h.rpcs.push({ fn, args });
+      h.events.push(`rpc:${fn}`);
+      if (h.beforeRpc) {
+        const run = h.beforeRpc;
+        h.beforeRpc = null;
+        run();
+      }
+      if (fn === "karaoke_give_make_good_hour") {
+        const res = giveMakeGoodHourSql(args);
+        return Promise.resolve({
+          ...res,
+          status: res.error ? 409 : 200,
+        });
+      }
       const data =
         fn === "karaoke_charge_resold_hours"
           ? chargeResoldHoursSql(String(args.p_id), args.p_hours as number[])
-          : null;
+          : fn === "karaoke_release_make_good_hour"
+            ? releaseMakeGoodHourSql(args)
+            : null;
       return Promise.resolve({ data, error: null, status: 200 });
     },
     from(name: string) {
@@ -207,6 +335,11 @@ function fakeDb() {
             );
           }
           if (op === "update") {
+            if (h.beforeUpdate) {
+              const run = h.beforeUpdate;
+              h.beforeUpdate = null;
+              run();
+            }
             const hit = match();
             for (const r of hit) Object.assign(r, structuredClone(payload));
             return Promise.resolve(
@@ -289,6 +422,7 @@ vi.mock("@/lib/email/send", () => ({
   }),
   sendKaraokeConfirmationEmail: vi.fn(async (k: Record<string, unknown>) => {
     h.confirmations.push(k);
+    h.events.push(`mail:confirmation:${String(k.code)}`);
     return true;
   }),
   sendKaraokeLateRequestEmail: vi.fn(async () => true),
@@ -435,6 +569,9 @@ beforeEach(() => {
   h.alerts.length = 0;
   h.audits.length = 0;
   h.rpcs.length = 0;
+  h.events.length = 0;
+  h.beforeRpc = null;
+  h.beforeUpdate = null;
 });
 
 // ─── The rules, pure ───────────────────────────────────────────────────────
@@ -833,8 +970,132 @@ describe("Telafi saati ver / Telafi ödendi", () => {
       { now: at(0) },
     );
     expect(res).toMatchObject({ ok: true, refunded: false });
+    expect(rowOf(given.reservation.id).status).toBe("cancelled");
     expect(rowOf("krk-00042").makeGoodUsedAt).toBeNull();
     expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+    // The cancel and the reopen were one statement.
+    expect(h.rpcs.map((c) => c.fn)).toContain("karaoke_release_make_good_hour");
+    expect(h.audits.map((a) => (a.payload as Row).event)).toContain(
+      "make_good_reopened",
+    );
+  });
+
+  it("a free hour written off once it began does not open the make-good again", async () => {
+    await cancelledLate();
+    const given = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(given.ok).toBe(true);
+    if (!given.ok) return;
+    // 6 Kasım 23:30 in Tuzla: the hour began at 21:00 and is over.
+    const res = await payment.cancelKaraokeReservation(
+      given.reservation.id,
+      staff("diger"),
+      { now: new Date("2026-11-06T20:30:00.000Z") },
+    );
+    expect(res).toMatchObject({ ok: true, refunded: false, silent: true });
+    expect(rowOf(given.reservation.id).status).toBe("cancelled");
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("hour");
+  });
+
+  it("an hour taken between the check and the write: refused, the make-good stays open", async () => {
+    await cancelledLate();
+    // Another booking takes 21:00 after the page's check, inside the write.
+    h.beforeRpc = () => {
+      h.tables.get("karaoke_reservations")!.push(
+        booking({
+          id: "krk-00051",
+          date: "2026-11-06",
+          startHour: 21,
+          hours: 1,
+          paymentRef: "PNK-8",
+        }),
+      );
+    };
+    const res = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(res).toMatchObject({ ok: false, reason: "slot_taken" });
+    expect(rowOf("krk-00042").makeGoodUsedAt ?? null).toBeNull();
+    expect(
+      h.tables.get("karaoke_reservations")!.filter((r) => r.makeGoodFor),
+    ).toEqual([]);
+    expect(h.confirmations).toEqual([]);
+    expect(
+      h.audits.filter((a) =>
+        String((a.payload as Row).event).startsWith("make_good"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("the money recorded in between: the hour is refused, nothing written", async () => {
+    await cancelledLate();
+    h.beforeRpc = () => {
+      Object.assign(rowOf("krk-00042"), {
+        makeGoodUsedAt: at(0).toISOString(),
+        makeGoodPaidMinor: 200_000,
+        makeGoodPaidOn: "2026-10-30",
+      });
+    };
+    const res = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    expect(res).toMatchObject({ ok: false, reason: "raced" });
+    expect(
+      h.tables.get("karaoke_reservations")!.filter((r) => r.makeGoodFor),
+    ).toEqual([]);
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("paid");
+  });
+
+  it("a note with an IBAN or a card number is refused and nothing is written", async () => {
+    await cancelledLate();
+    for (const note of [
+      "Havale TR33 0006 1005 1978 6457 8413 26 hesabına",
+      "tr330006100519786457841326",
+      "Hesap 33 0006 1005 1978 6457 8413 26",
+      "Kart 4111 1111 1111 1111",
+    ]) {
+      const res = await payment.recordKaraokeMakeGoodPaid(
+        "krk-00042",
+        { paidOn: "2026-10-30", amountMinor: 200_000 },
+        "yonetici@kosk",
+        at(0),
+        { reason: note },
+      );
+      expect(res, note).toMatchObject({
+        ok: false,
+        reason: "invalid",
+        field: "reason",
+      });
+    }
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+    expect(JSON.stringify(h.audits)).not.toMatch(/0006|4111/);
+    // A note without one passes.
+    const ok = await payment.recordKaraokeMakeGoodPaid(
+      "krk-00042",
+      { paidOn: "2026-10-30", amountMinor: 200_000 },
+      "yonetici@kosk",
+      at(0),
+      { reason: "30 Eki havale yapıldı, dekont no 123456789012345 muhasebede" },
+    );
+    expect(ok.ok).toBe(true);
+  });
+
+  it("the free hour's page names its market value, KDV declared by the köşk", () => {
+    const v = panel.makeGoodHourMarketValue(100_000, 2, 20);
+    expect(v.amountMinor).toBe(200_000);
+    expect(v.note).toBe(
+      "Emsal bedel ₺2.000,00 (saatlik ücret ₺1.000,00 x 2 saat, KDV %20 dahil), KDV köşkçe beyan edilir. Misafirden para alınmaz.",
+    );
   });
 
   it("the panel offers both while open, needs the refund right, and none on a booking without one", () => {
@@ -969,10 +1230,9 @@ describe("an hour cancelled late and sold again", () => {
       "yonetici@kosk",
       at(9),
     );
-    expect(rowOf("krk-00042")).toMatchObject({
-      paymentStatus: "refunded",
-      refundSettledMinor: 100_000,
-    });
+    expect(rowOf("krk-00042")).toMatchObject({ paymentStatus: "refunded" });
+    // The first step leaves nothing "before" it.
+    expect(rowOf("krk-00042").refundSettledMinor ?? null).toBeNull();
     await soldAgain("krk-00043", 20, 2, "PNK-2");
     expect(rowOf("krk-00042")).toMatchObject({
       paymentStatus: "refunding",
@@ -1002,12 +1262,62 @@ describe("an hour cancelled late and sold again", () => {
       refundIsShare: true,
       refundIsResaleTopUp: true,
     });
-    // The ledger says what went back in all.
+    // The ledger says what went back in all; the row keeps what went back
+    // before the last step, so the step itself stays readable (Gün sonu).
     expect(claimOf("PNK-1")).toMatchObject({
       status: "refunded",
       amountMinor: 200_000,
     });
-    expect(rowOf("krk-00042").refundSettledMinor).toBe(200_000);
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunded",
+      refundMinor: 200_000,
+      refundSettledMinor: 100_000,
+    });
+    expect(panel.refundOwedNowMinor(rowOf("krk-00042") as never)).toBe(100_000);
+  });
+
+  it("a refund by hand that a resale overtakes loses, and the larger amount stays owed", async () => {
+    await lateCancelled();
+    await soldAgain("krk-00043", 20, 1, "PNK-2");
+    expect(rowOf("krk-00042")).toMatchObject({ refundMinor: 150_000 });
+    // The person refunds the 1.500 the page showed; the other hour is sold
+    // in between (its row lock, before this write).
+    h.beforeUpdate = () => {
+      chargeResoldHoursSql("krk-00042", [21]);
+    };
+    const lost = await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(4),
+    );
+    expect(lost).toMatchObject({ ok: false, reason: "raced" });
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunding",
+      refundMinor: 200_000,
+    });
+    // Read again, it records all of it, and says the resale was in it.
+    h.cancellations.length = 0;
+    const settled = await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(3),
+    );
+    expect(settled.ok).toBe(true);
+    expect(h.cancellations.at(-1)).toMatchObject({
+      refundedMinor: 200_000,
+      refundIsShare: true,
+      refundIncludesResale: true,
+    });
+    expect(h.cancellations.at(-1)?.refundIsResaleTopUp).toBeUndefined();
+  });
+
+  it("charges the resale right after the sale, before the guest's mail", async () => {
+    await lateCancelled();
+    await soldAgain("krk-00043", 20, 1, "PNK-2");
+    const charge = h.events.indexOf("rpc:karaoke_charge_resold_hours");
+    const mail = h.events.indexOf("mail:confirmation:krk-00043");
+    expect(charge).toBeGreaterThanOrEqual(0);
+    expect(mail).toBeGreaterThan(charge);
   });
 
   it("each hour once, to the booking that cancelled it last", async () => {
@@ -1056,7 +1366,7 @@ describe("an hour cancelled late and sold again", () => {
       at(5),
     );
     expect(given.ok).toBe(true);
-    expect(h.rpcs).toEqual([]);
+    expect(h.rpcs.map((c) => c.fn)).toEqual(["karaoke_give_make_good_hour"]);
     expect(rowOf("krk-00042")).toMatchObject({ refundMinor: 100_000 });
     expect(rowOf("krk-00042").resoldHours ?? null).toBeNull();
   });

@@ -10,7 +10,7 @@ import { ActionModal, FieldError, useActionModalState } from "./ui";
 import type { ButtonVariant } from "./ui/styles";
 
 // The köşk's late cancel made good (karaoke terms §8, OP-KARAOKE-GOODWILL,
-// 19 Eki 2026): the guest chooses a free hour of the same length or the
+// 21 Eki 2026): the guest chooses a free hour of the same length or the
 // amount paid to their own bank account. One of the two closes the other;
 // the server decides (giveKaraokeMakeGoodHour, recordKaraokeMakeGoodPaid),
 // these only ask.

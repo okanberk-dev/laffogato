@@ -28,6 +28,7 @@ import {
   karaokeDetailHref,
   karaokeHistory,
   karaokeRowView,
+  makeGoodHourMarketValue,
   maskPaymentRef,
   moneyOf,
   refundAmountMinor,
@@ -444,7 +445,12 @@ export default async function KaraokeReservationPage({
     firstHour: roomRules.firstHour,
     closeHour: roomRules.closeHour,
   };
-  const hourlyMinor = settings.karaokeHourlyMinor;
+  // The free hour's market value, on which the köşk declares KDV.
+  const marketValue = makeGoodHourMarketValue(
+    settings.karaokeHourlyMinor,
+    r.hours,
+    billRate,
+  );
   const madeGoodItems: KeyValueItem[] = r.makeGoodFor
     ? [
         {
@@ -464,10 +470,10 @@ export default async function KaraokeReservationPage({
           label: "Emsal bedel",
           value: (
             <span style={NUMERIC_STYLE}>
-              {formatTRY(hourlyMinor * r.hours)}
+              {formatTRY(marketValue.amountMinor)}
             </span>
           ),
-          hint: `Saatlik ${formatTRY(hourlyMinor)} x ${r.hours} saat, KDV %${billRate} dahil. Misafirden para alınmaz; KDV köşkçe emsal bedel üzerinden beyan edilir.`,
+          hint: marketValue.note,
         },
       ]
     : [];

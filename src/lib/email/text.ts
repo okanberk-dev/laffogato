@@ -354,7 +354,8 @@ ${SIGNATURE}`,
   // went back: KARAOKE_IADE, or "iade ettik" when we cancelled:
   // KARAOKE_TAM_IADE; a late cancel's share went back, or is owed and will:
   // KARAOKE_KISMI_IADE_EDILDI / KARAOKE_KISMI_IADE; the hour cancelled late
-  // was sold again and what was kept for it went back: KARAOKE_SATIS_IADE;
+  // was sold again and what was kept for it went back: KARAOKE_SATIS_IADE,
+  // or with the share in one refund: KARAOKE_KISMI_SATIS_IADE_EDILDI;
   // none was taken: KARAOKE_ODEMESIZ), the make-good of a late köşk cancel
   // (KARAOKE_TELAFI, karaoke terms §8) and how to get another evening -
   // nothing to confirm, nothing to click. send.ts sets one opening and at
@@ -393,7 +394,14 @@ yansıması bankana göre birkaç iş günü sürebilir.
 Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_KISMI_IADE_EDILDI--><!--IF:KARAOKE_SATIS_IADE-->Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan
+<!--/IF:KARAOKE_KISMI_IADE_EDILDI--><!--IF:KARAOKE_KISMI_SATIS_IADE_EDILDI-->Rezervasyonundaki geç iptal kuralına göre ve geç iptal ettiğin saat başka bir
+misafire satıldığı için [KARAOKE_TUTAR] kartına iade edildi; yansıması
+bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_KISMI_SATIS_IADE_EDILDI--><!--IF:KARAOKE_SATIS_IADE-->Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan
 [KARAOKE_TUTAR] daha kartına iade edildi; yansıması bankana göre birkaç iş
 günü sürebilir.
 
