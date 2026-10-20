@@ -86,6 +86,27 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   campaign_email: "Kampanya e-postası",
   cafe_table: "Masa · QR",
   audit_log: "Olay kaydı",
+  retention: "Periyodik imha",
+};
+
+/**
+ * The periodic destruction's rules (src/lib/retention.ts, `RETENTION_RULES`)
+ * by id, as a `retention` row names them. Kept here because that module is
+ * server-only; tests/admin-audit-log.test.ts fails on a rule with no name.
+ */
+export const RETENTION_RULE_LABELS: Record<string, string> = {
+  "auth-attempts": "Giriş denemeleri",
+  "campaign-email-sends": "Kampanya e-postası gönderimleri",
+  "email-suppressions": "E-posta gönderim engelleri",
+  "customer-consents": "Ticari ileti onay geçmişi",
+  "audit-logs": "Olay kaydı",
+  "legal-override-history": "Hukuk metni arşivi",
+  "fal-readings": "fA'L kullanım kaydı",
+  "fal-reports": "fA'L yorum bildirimleri",
+  "feature-consents": "Özellik açık rızaları",
+  "counter-tokens": "Kasa kodları",
+  "karaoke-guest-data": "Karaoke misafir ve iletişim bilgisi",
+  "karaoke-reservations": "Karaoke rezervasyonları",
 };
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
@@ -277,6 +298,9 @@ export function auditRecordText(entity: EntityName, entityId: string): string {
   const id = entityId.trim();
   if (entity === "settings") return SETTINGS_SECTIONS[id] ?? id;
   if (entity === "mobile_app_config") return APP_CONFIG_SECTIONS[id] ?? id;
+  // A destruction run is filed under its instant: read it on the köşk's
+  // clock, to the second.
+  if (entity === "retention") return auditTime(id);
   return id;
 }
 
@@ -680,6 +704,8 @@ function statusNames(ctx: AuditRowContext): Record<string, string> | null {
 function keyLabel(key: string, ctx: AuditRowContext, value: unknown): string {
   // A test mail's `to` is its recipient, not a "new" value (SYS-10).
   if (key === "to" && ctx.action === "send_test") return "Alıcı";
+  // A destruction run's own instant.
+  if (key === "at" && ctx.entity === "retention") return "Çalışma anı";
   // `from` / `to` are a status only when they hold one: an order row may
   // carry other before / after values (a KDV rate, 1 to 10).
   const names = statusNames(ctx);
@@ -782,6 +808,39 @@ function scalar(
 }
 
 /**
+ * A destruction run's `results` (src/lib/retention.ts, `destructionRecord`):
+ * one line per rule, named in Turkish, with its counts and its cutoff on the
+ * köşk's clock, instead of the list as raw JSON.
+ */
+function retentionResultEntries(
+  results: readonly unknown[],
+  ctx: AuditRowContext,
+  limit: number,
+): AuditPayloadEntry[] {
+  return results.map((item, i) => {
+    if (!isPlainObject(item)) {
+      return {
+        key: `results.${i}`,
+        label: "Kural",
+        value: clip(JSON.stringify(item) ?? String(item), limit),
+      };
+    }
+    const id = typeof item.id === "string" ? item.id : String(i);
+    const parts = [
+      `Eşleşen ${scalar(["matched"], item.matched, ctx, limit)}`,
+      `İmha edilen ${scalar(["destroyed"], item.destroyed, ctx, limit)}`,
+      `Sınır ${scalar(["cutoff"], item.cutoff, ctx, limit)}`,
+    ];
+    if (item.failed === true) parts.push("Çalışmadı");
+    return {
+      key: `results.${id}`,
+      label: `Kural · ${RETENTION_RULE_LABELS[id] ?? id}`,
+      value: clip(parts.join(" · "), limit),
+    };
+  });
+}
+
+/**
  * A row's payload as label / value lines: nested objects are flattened to
  * dotted keys (three levels) and named segment by segment ("before" is
  * Önceki, "after" Yeni, "changed" Değişti), a list of plain values is
@@ -793,7 +852,8 @@ function scalar(
  * passes `{ clip: false }` and shows every character.
  *
  * A settings row's `section` is left out where it repeats the record (the
- * Kayıt column already names it).
+ * Kayıt column already names it). A destruction run's `results` read rule
+ * by rule (`retentionResultEntries`).
  */
 export function auditPayloadEntries(
   payload: Record<string, unknown> | null | undefined,
@@ -816,6 +876,15 @@ export function auditPayloadEntries(
         ctx.entity === "settings" &&
         v === ctx.entityId
       ) {
+        continue;
+      }
+      if (
+        depth === 0 &&
+        k === "results" &&
+        ctx.entity === "retention" &&
+        Array.isArray(v)
+      ) {
+        out.push(...retentionResultEntries(v, ctx, limit));
         continue;
       }
       if (isPlainObject(v) && depth < MAX_DEPTH && Object.keys(v).length > 0) {

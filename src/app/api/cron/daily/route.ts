@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
-import { destructionEnabled, runRetention } from "@/lib/retention";
+import {
+  destructionEnabled,
+  retentionLogLine,
+  runRetention,
+} from "@/lib/retention";
 import { keepSupabaseAwake } from "@/lib/supabase/admin";
 
 import { cronGate, NO_STORE } from "../_auth";
@@ -73,9 +77,14 @@ export async function GET(request: Request) {
   const karaoke = await step("karaoke-holds", async () => ({
     expired: await expireUnpaidReservations(),
   }));
-  const retention = await step("retention", () =>
-    runRetention({ apply: destructionEnabled() }),
-  );
+  // An applied run leaves its own destruction record in audit_logs
+  // (runRetention); the line below is the same one /api/cron/retention logs,
+  // counts only.
+  const retention = await step("retention", async () => {
+    const report = await runRetention({ apply: destructionEnabled() });
+    console.info(retentionLogLine(report));
+    return report;
+  });
 
   return NextResponse.json(
     { ok: true, keepalive, campaigns, birthday, karaoke, retention },

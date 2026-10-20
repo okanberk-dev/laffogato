@@ -390,6 +390,8 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" - **asgari**                                               |
 | `legal_override_history` | `archivedAt` | **11 yıl** | "Sözleşmenin ifasından itibaren 10 yıl…" (Mesafeli satış onay kaydı); ifa arşivden sonra gelir, fazladan yıl onu karşılar |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
+| `karaoke_reservations` | `date` (fonksiyon) | **3 yıl** | "rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir" - satır kalır, kişi bilgisi temizlenir (aşağıya bak) |
+| `karaoke_reservations` | `date` (fonksiyon) | **11 yıl** | "ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir" - TTK m.82/6: süre yıl sonundan başlar, 11 × 366 gün hiçbir kaydı erken silmez |
 
 Süreler **politikadan okunur, uydurulmaz**: `src/lib/retention.ts` içindeki
 her kural, geldiği cümleyi `basis` alanında taşır ve
@@ -428,7 +430,67 @@ Bu tam değer aranır - `1`, `true`, `yes` açmaz. **Önce birkaç gün kuru
 çalıştırma yapın**, `totalMatched` sayılarını okuyun, sonra açın.
 
 Yanıt gövdesi yalnızca **sayı** taşır; hiçbir anahtar, adres ya da IP ne
-loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir).
+loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir). İki rota da
+aynı tek satırı loglar (`retentionLogLine`): `[cron/retention] destroy
+matched=<n> destroyed=<n>` ya da `report ...`.
+
+### İmha kaydı (Silme Yönetmeliği m.7/3)
+
+Her **uygulanan** çalıştırma (`RETENTION_APPLY=destroy`) tek bir kalıcı kayıt
+bırakır ve kayıt **`audit_logs`** tablosundadır: `actor` `system`, `action`
+`bulk_delete`, `entity` `retention`, `entityId` çalıştırmanın ISO anı (UTC),
+`payload` `{ at, results: [{ id, table, cutoff, matched, destroyed }] }`.
+Yalnız sayı: satır, anahtar, adres ya da hata metni yazılmaz; çalışamayan
+kuralın satırında `failed: true` durur. Kaydı `runRetention` yazar
+(`src/lib/retention.ts`, `safeAudit` ile: yazılamazsa imha geri alınmaz,
+hata `[audit] row not written retention:<an> bulk_delete` diye loglanır ve
+yanıttaki `recorded` `false` olur), bu yüzden `/api/cron/daily` de
+`/api/cron/retention` da kayıt bırakır. **Rapor modu hiçbir şey yazmaz**:
+ne veri ne kayıt.
+
+Yönetmelik m.7/3 imha işlemlerinin kaydının en az üç yıl saklanmasını ister;
+`audit_logs` on yıl tutulur (`audit-logs` kuralı) ve append-only'dir.
+Panelde: **Olay kaydı** (`/admin/olay-kaydi`, yalnız sahip) → Kayıt türü
+"Periyodik imha"; her kural Türkçe adıyla, eşleşen ve imha edilen sayısı ve
+sınır anıyla görünür, CSV dışa aktarma da aynı satırları taşır.
+
+### Karaoke rezervasyonları (ASK-RETENTION)
+
+İki SQL fonksiyonu (`20261020174226_karaoke_guest_retention.sql`), ikisi de
+`(p_cutoff text, p_apply boolean) returns integer`, `rpc()` ile çağrılır
+(kural 23):
+
+- `karaoke_guest_retention` (3 × 366 gün): misafir rezervasyonunda
+  `"customerName"` boşalır, `"customerEmail"` `anon-<id>@anon.local` olur
+  (hesap kapatmanın `deleted-<müşteri id>@anon.local` yer tutucusuyla
+  çakışmaz); **her** rezervasyonda `"contactEmail"`, `"contactPhone"` ve
+  `note` boşalır, `"legalConsent"`'ten yalnız `ip` ve `userAgent` çıkar (NULL
+  NULL kalır; onayın anı, belgeleri ve sürümü kalır, MSY m.20). Üyenin kendi
+  adı ve adresi kalır: onları üyelik tutar, hesap kapatma siler. Satır
+  silinmez. Temizlenecek bir şeyi kalmamış satırı saymaz, ikinci çalıştırma 0
+  döner.
+- `karaoke_reservation_retention` (11 × 366 gün): satırı siler.
+
+İkisi de aynı süzgeci kullanır: `date < left(p_cutoff, 10)` (metin
+karşılaştırması), `"paymentStatus" not in ('pending', 'refunding')` (POS'un
+sonuçlandırmadığı para; kural 29) ve `"retentionHold" = ''`. `date` köşkün
+takvim günüdür; `retention.ts` bu iki kuralın sınırını İstanbul saatiyle
+(`…+03:00`) yazar, böylece ilk on karakter köşkün günüdür (kural 22: UTC
+00:00-03:00 arası dünü verir). Biçimi `YYYY-MM-DD` olmayan bir gün hiç
+kapsama girmez; gün olmayan ya da bugünden ileri bir sınır hata verir
+(22007), hiçbir şey yazılmaz.
+
+**Hukuki saklama (`"retentionHold"`).** Boşsa imhayı hiçbir şey durdurmaz.
+Uyuşmazlık, şikâyet ya da resmî talep olan rezervasyonda nedeniyle doldurulur
+ve iş bitince boşaltılır; uygulama bu sütunu yazmaz, hiçbir yanıtta yoktur:
+
+```sql
+update public.karaoke_reservations set "retentionHold" = 'Hakem heyeti 2027/123' where id = 'krk-00042';
+update public.karaoke_reservations set "retentionHold" = '' where id = 'krk-00042';
+```
+
+`payment_transactions`'taki `krk-` ödeme satırları bu kurallara girmez; onların
+kendi kuralı henüz yok (on yıllık asgari süre, en erken 2036'da gerekir).
 
 ### Rıza defteri (`customer_consents`)
 

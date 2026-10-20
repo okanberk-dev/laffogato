@@ -2977,6 +2977,108 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 | İşlem rehberi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG 29.12.2022-32058) m.7/1; Mesafeli Sözleşmeler Yönetmeliği m.5/6, m.20/1 | Ana sayfadan (site altı) ulaşılan /hukuk/islem-rehberi: sözleşmenin kurulması için teknik adımlar, giriş hatalarını görme ve düzeltme araçları, sözleşme metninin saklanıp saklanmadığı ve ne kadar erişilebildiği (sürüm ve onay anı siparişle en az 3 yıl, metin e-postayla istenir), uyuşmazlık yolları (hakem heyeti, zorunlu arabuluculuk, TÜBİS). |
 | Meslek odası | Aynı yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a | Oda ve davranış kuralları satırı Şirket Bilgileri'nde, değer belgeden gelene kadar basılmaz (kural 13: yasal kimlik uydurulmaz). |
 
+## 25. Y11 - Karaoke verisinin saklama süresi, imha kaydı, ticari yazışma (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-retention-and-till`. Operatör
+> kararı (18 Ekim 2026): avukat ve mali müşavir turu yok, karar birincil
+> kaynaklarla verildi (ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE).
+> `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi; yalnız Veri Saklama ve
+> İmha Politikası kendi tarihini taşır (§25.4).
+
+### 25.1 Neden
+
+- Veri Saklama §8'in karaoke satırı üye olmadan yapılan rezervasyonun ad,
+  soyad, e-posta ve telefonu için "kendiliğinden silme veya anonimleştirme
+  süresi henüz belirlenmemiştir" diyordu; onay kaydı satırı "kendiliğinden
+  işleyen bir silme düzeni henüz tanımlı değildir" diyordu. Veri yalnız
+  amacın gerektirdiği süre tutulur ve sebep bitince silinir (X-KAR-RETENTION).
+- Periyodik imha yalnız rapor üretiyordu ve bir imha çalıştırması iz
+  bırakmıyordu (X-RETENTION-APPLY).
+- İletişim satırı her yazışmaya üç yıl veriyordu; sipariş, iade, rezervasyon,
+  fatura ve ödeme yazışması ticari mektuptur ve on yıl saklanır
+  (D-CORRESPONDENCE). Etkinlik ve atölye kaydı için satır yoktu
+  (X-EVENT-PROOF).
+
+### 25.2 Değişen cümleler (Veri Saklama ve İmha Politikası §8, tablo)
+
+| Satır | Mevcut | Yeni |
+|---|---|---|
+| Karaoke rezervasyon kayıtları (değer) | Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu kayıtlar için kendiliğinden silme veya anonimleştirme süresi henüz belirlenmemiştir ve bu bilgiler ilgili kişinin talebi üzerine, ödeme ve onay kaydına ilişkin yasal saklama yükümlülükleri saklı kalmak kaydıyla 16. bölüm uyarınca değerlendirilir. | Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca, en geç ise bu satırda belirtilen sürenin sonunda silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu bilgiler ile tüm rezervasyonlarda iletişim için yazılan e-posta adresi, telefon numarası ve not, rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir. Rezervasyonun kodu, tarihi, saati, süresi, kişi sayısı, tutarı ile ödeme ve iade kayıtları ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir. Hakkında uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak sonuçlanana kadar saklanır. |
+| Karaoke odası onay kaydı (değer) | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır; bu kayıt için kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. |
+| Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması) (yeni satır, karaoke onay kaydı satırının ardından) | (yoktu) | Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir. |
+| İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları) (değer) | Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir. | Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır. |
+
+### 25.3 Kod
+
+- `db/migrations/20261020174226_karaoke_guest_retention.sql`:
+  `karaoke_reservations."retentionHold"` (boşsa imha engellenmez) ve iki
+  fonksiyon. `karaoke_guest_retention` misafirin adını ve adresini
+  (`anon-<id>@anon.local`), her rezervasyonun iletişim adresini, telefonunu,
+  notunu ve onaydaki `ip` ile `userAgent`'ı temizler; satırı silmez.
+  `karaoke_reservation_retention` satırı siler. Süzgeç: `date <
+  left(p_cutoff, 10)`, `"paymentStatus"` `pending` ya da `refunding` değil,
+  `"retentionHold" = ''`. Temizlenmiş satır ikinci kez sayılmaz.
+- `src/lib/retention.ts`: `karaoke-guest-data` (3 × 366 gün) ve
+  `karaoke-reservations` (11 × 366 gün) kuralları; `basis` cümleleri yukarıdaki
+  yeni karaoke satırından birebir (`tests/mobile-retention.test.ts`). Sınır
+  köşkün saatiyle yazılır (CLAUDE.md kural 22).
+- İmha kaydı: uygulanan her çalıştırma `audit_logs`'a tek satır yazar (actor
+  `system`, action `bulk_delete`, entity `retention`, kayıt no çalıştırmanın
+  anı, yalnız sayılar); rapor modu hiçbir şey yazmaz. Olay kaydında "Periyodik
+  imha" olarak görünür. Ayrıntı `docs/DATABASE.md` "Periyodik imha".
+
+### 25.4 Sürüm
+
+- Veri Saklama ve İmha Politikası kendi tarihini taşır: **21 Ekim 2026**
+  (`updatedAt`, `src/lib/legal/content.ts`). 20 Ekim 2026 setin günü olarak
+  #180 ile kullanıldı; bu PR 21 Ekim'de ya da sonra birleşir, daha geç
+  birleşirse tarih o güne çekilir.
+- `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmez: ödeme ve karaoke
+  onayında gösterilen belgeler değişmedi.
+
+### 25.5 Operatöre
+
+- **İmhayı açmak (OP-18).** Önce rapor: `curl -s -H "Authorization: Bearer
+  $CRON_SECRET" https://laffogato.net/api/cron/retention`. Sayıları oku
+  (`karaoke-guest-data` ve `karaoke-reservations` bugün 0 olmalı: ilk
+  rezervasyonlar 2026'da). Sonra Production'da `RETENTION_APPLY=destroy`,
+  redeploy, bir kez daha çağır; yanıt `"applied": true` ve `"recorded": true`
+  demeli, Olay kaydında "Periyodik imha" satırı görünmeli. İlk imha
+  raporunun JSON'u KVKK klasörüne.
+- **Hukuki saklama.** Uyuşmazlık, şikâyet ya da resmî talep olan karaoke
+  rezervasyonunda `"retentionHold"` nedeniyle doldurulur, iş bitince
+  boşaltılır (SQL `docs/DATABASE.md`'de).
+- **Etkinlik ve atölye.** Kayıt ve onay e-postaları kurumsal kutuda on yıl
+  kalır; alerjen ve diyet bilgisi yazılı istenmez, girişte ad yazmadan sırayla
+  not alınır ve not etkinlik bitince yok edilir.
+- **Yazışma.** Sipariş, iade, rezervasyon, fatura ve ödeme yazışmaları kutuda
+  yazıldığı yılın sonundan itibaren on yıl kalır; işlemle ilgisiz mesajlar ve
+  telefon notları üç yıl. Şüphede on yıl.
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile (ayrı PR).
+
+### 25.6 Bilerek değişmeyenler
+
+- Gizlilik Politikası ("Talep, şikâyet ve iade yazışmaları"), KVKK Aydınlatma
+  ("Müşteri hizmetleri yazışmaları ve şikâyet kayıtları") ve Hesap Silme
+  ("Tüketici başvuru ve uyuşmazlık yazışmaları") özet satırları "zamanaşımı
+  süresi boyunca" diyor; Veri Saklama tablosu bunu artık açar, çelişki yok.
+- Hesap Silme'nin karaoke maddesi iletişim bilgisinin ve notun hesap
+  kapatmada "kayıtta kaldığını" söyler; Veri Saklama artık en geç üç yılda
+  silindiğini söyler. İkisi birlikte doğrudur.
+- `payment_transactions`'taki karaoke ödeme satırları için ayrı bir imha
+  kuralı yok (on yıllık asgari süre; en erken 2036'da gerekir).
+
+### 25.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Süre ve imha | 6698 s. KVKK m.4/2-d (amaç için gerekli süre kadar muhafaza), m.7/1 (sebep kalkınca resen silme) | Misafirin kimliği, her rezervasyonun iletişim bilgisi ve onayın IP ile tarayıcı bilgisi rezervasyon tarihinden 3 yıl sonra; rezervasyon kaydı 11 yıl sonra. |
+| Periyodik imha | Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik (RG 28.10.2017-30224) m.11/1-2 (ilk periyodik imhada, aralık altı ayı geçemez) | Süre dolduktan sonraki ilk periyodik imhada; iş her gün koşar. |
+| İmha kaydı | Aynı yönetmelik m.7/3 (tüm işlemler kayıt altına alınır, kayıtlar en az üç yıl saklanır) | Her uygulanan çalıştırma `audit_logs`'a veri içermeyen tek satır; olay kaydı on yıl, append-only. |
+| Onay kaydı | Mesafeli Sözleşmeler Yönetmeliği (RG 27.11.2014-29188) m.20/1 (bilgi ve belgeler üç yıl saklanır) | Onay kaydının kendisi (an, belgeler, sürüm) rezervasyonla kalır; IP ve tarayıcı bilgisi üç yıl sonra çıkar. |
+| Ödeme kaydı ve ticari yazışma | 6102 s. TTK m.82/1-b,c (alınan ve gönderilen ticari mektuplar), m.82/5 (on yıl), m.82/6 (süre takvim yılının bitişiyle başlar) | Rezervasyon kaydı 11 × 366 günde silinir: yıl sonundan başlayan on yılı her durumda kapsar. İşlemle ilgili yazışma on yıl, ilgisiz mesaj üç yıl. |
+| Hukuki saklama | KVKK m.5/2-e (bir hakkın tesisi, kullanılması veya korunması için zorunlu olması) | Uyuşmazlık, şikâyet ya da resmî talep olan kayıt `"retentionHold"` ile imhadan çıkar. |
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

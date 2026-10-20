@@ -71,6 +71,9 @@ describe("legal document dates", () => {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
+      // 21 Ekim 2026: the karaoke periods, the event row and the commercial
+      // correspondence row (LEGAL-REDLINES §25).
+      "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

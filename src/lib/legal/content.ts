@@ -7636,9 +7636,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
-    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
-    // the karaoke row points at the karaoke terms §10 for the refund on
-    // account closure (LEGAL-REDLINES §17).
+    // 21 Ekim 2026: the karaoke rows give the guest's data and every
+    // booking's contact details three years and the booking eleven, run by
+    // src/lib/retention.ts; a new row for event and workshop records; the
+    // correspondence row splits into commercial mail (TTK m.82, ten years)
+    // and the rest (three). LEGAL-REDLINES §25. (19 Ekim 2026: yurt dışına
+    // aktarım bugünkü durumuyla, §15.6; the karaoke row points at the karaoke
+    // terms §10 for the refund on account closure, §17.)
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -7933,12 +7938,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Karaoke rezervasyon kayıtları (rezervasyon sahibinin adı ve e-posta adresi, varsa formda iletişim için yazılan e-posta adresi ve telefon numarası, üyeliksiz rezervasyon yapan kişinin adı, soyadı, e-posta adresi ve telefon numarası, tarih, saat, süre, kişi sayısı, not, tutar, ödeme ve iade durumu)",
             value:
-              "Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu kayıtlar için kendiliğinden silme veya anonimleştirme süresi henüz belirlenmemiştir ve bu bilgiler ilgili kişinin talebi üzerine, ödeme ve onay kaydına ilişkin yasal saklama yükümlülükleri saklı kalmak kaydıyla 16. bölüm uyarınca değerlendirilir.",
+              "Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca, en geç ise bu satırda belirtilen sürenin sonunda silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu bilgiler ile tüm rezervasyonlarda iletişim için yazılan e-posta adresi, telefon numarası ve not, rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir. Rezervasyonun kodu, tarihi, saati, süresi, kişi sayısı, tutarı ile ödeme ve iade kayıtları ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir. Hakkında uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
           },
           {
             key: "Karaoke odası onay kaydı (Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi onayı, Aydınlatma Metni'nin okunduğuna ilişkin teyit, onay tarihi ve saati, IP adresi, tarayıcı veya uygulama istemci bilgisi (user-agent), belge sürümü)",
             value:
-              "Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır; bu kayıt için kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır.",
+              "Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır.",
+          },
+          {
+            key: "Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması)",
+            value:
+              "Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir.",
           },
           {
             key: "Kasa (barista) yetki kayıtları (yetki verilen üyenin e-posta adresi, yetkiyi veren yönetici, yetkinin verildiği tarih ve durumu)",
@@ -7986,7 +7996,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları)",
             value:
-              "Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir.",
+              "Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
           },
           {
             key: "Ticari elektronik ileti (e-posta bülteni ve kampanya e-postaları) onay kaydı",

@@ -1323,3 +1323,19 @@ Canlı durum, Tümü olur.
 | 🟢 | Telefonda her sayfa değişimi menü düğmesi, çekmece, öğe demekti | `ui/bottom-bar.tsx`: 44 px yuvalar, lucide simge (menünün tembel `nav-icon.tsx` parçasından) ve ad, menünün rozet sayıları (ikinci bir sorgu yok). Siparişler rozetin saydığı Açık sekmesini açar; açık sayfanın yuvası `aria-current`, çubukta olmayan sayfada Tümü yanar. Tümü çekmeceyi açar, kapanınca odak ona döner. Kasiyerde çubuk yok, kabuğu çubuk kodunu çalıştırmaz | `admin-bottom-bar`, `admin-landing` |
 | 🟢 | Alt kenarda üst üste binme (çubuk, toplu işlem çubuğu, bildirimler, yeni sipariş kartları, kaydet çubukları, klavye) | Tek değişken: admin kökü `has-[[data-admin-tabbar]]` ile `--admin-bottom-inset`'i (3,5rem + `env(safe-area-inset-bottom)`) toplu işlem çubuğu yokken kurar; sayfa o kadar yukarıda biter. Bildirimler ve toplu işlem çubuğu onu kenar boşluğu olarak ekler, Site metinleri ve kampanya formunun kaydet çubukları 1rem üstünde durur, yeni sipariş kartları çubuğun üstüne oturur ve ev göstergesi payını ikinci kez eklemez. Çubuk toplu işlem çubuğu açıkken, bir `dialog` açıkken ve dokunmatik ekranda yazı alanı odaktayken çekilir (yalnız Tailwind sınıfları, dinleyici yok). `globals.css`'e kural eklenmedi | `admin-bottom-bar`, `admin-order-alerts-client` |
 | 🟢 | Paket bütçesi | Her admin rotasına +1,0 KB gz (`/admin/siparisler` +0,96, `/admin/kasa` +0,99); lucide parçası değişmedi, `/admin/kasa`'nın rota parçalarında lucide yok | `admin-bottom-bar` |
+
+### Hukuk: karaoke verisinin süresi, imha kaydı, ticari yazışma (21 Eki 2026)
+
+Kararlar ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE (operatör,
+18 Eki 2026: avukat turu yok). Cümle cümle eski ve yeni metin
+`docs/LEGAL-REDLINES-2026-09.md` §25'te, imhanın işleyişi ve kaydın yeri
+`docs/DATABASE.md` "Periyodik imha"da.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Üye olmadan karaoke rezervasyonu yapanın adı, e-postası ve telefonu ile her rezervasyonun iletişim adresi, telefonu ve notu için saklama süresi yoktu; Veri Saklama "henüz belirlenmemiştir" diyordu (X-KAR-RETENTION) | Rezervasyon gününden 3 yıl sonra misafirin adı silinir, adresi `anon-<id>@anon.local` olur, her rezervasyonun iletişim bilgisi, notu ve onaydaki IP ile tarayıcı bilgisi silinir; 11 yıl sonra satır silinir (`karaoke_guest_retention`, `karaoke_reservation_retention`). Açık ödeme (`pending`, `refunding`) ve `"retentionHold"` atlanır, temizlenmiş satır ikinci kez sayılmaz, gün köşkün saatiyle kesilir, gün olmayan ya da ileri bir sınır hata verir | `db-integration-karaoke-retention`, `mobile-retention` |
+| 🟡 | Periyodik imha çalıştırması hiçbir iz bırakmıyordu (Silme Yön. m.7/3) (X-RETENTION-APPLY) | Uygulanan her çalıştırma `audit_logs`'a tek satır yazar (`system`, `bulk_delete`, `retention`, yalnız sayılar, `safeAudit`); rapor modu hiçbir şey yazmaz; iki cron rotası da kaydı bırakır ve aynı satırı loglar; Olay kaydında "Periyodik imha", kural kural Türkçe | `api-cron-retention-record`, `mobile-retention`, `admin-audit-log`, `db-integration-karaoke-retention` |
+| 🟢 | İletişim satırı sipariş ve ödeme yazışmasına da üç yıl veriyordu; etkinlik ve atölye kaydının satırı yoktu (D-CORRESPONDENCE, X-EVENT-PROOF) | İşlemle ilgili yazışma ticari yazışma olarak yıl sonundan itibaren 10 yıl (TTK m.82), ilgisiz mesaj ve telefon notu 3 yıl; "Etkinlik ve atölye kayıtları" satırı | `legal-docs`, `legal-dates` |
+
+Açık (operatörde): Production'da `RETENTION_APPLY=destroy` (OP-18), önce bir
+rapor çalıştırması okunduktan sonra (LEGAL-REDLINES §25.5).
