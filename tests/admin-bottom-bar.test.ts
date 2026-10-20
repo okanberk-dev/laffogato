@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { createElement, type FunctionComponent, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -143,6 +144,13 @@ const barOf = (html: string) => {
 };
 
 const read = (p: string) => readFileSync(p, "utf8");
+/** Every .ts / .tsx file under `dir`, as repo-relative paths. */
+const sourceFiles = (dir: string): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const rel = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(rel);
+    return /\.tsx?$/.test(entry.name) ? [rel] : [];
+  });
 const withKids = (
   type: unknown,
   props: Record<string, unknown> | null,
@@ -555,14 +563,39 @@ describe("the shared bottom inset", () => {
       );
       expect(src, p).not.toContain("sticky bottom-4");
     }
-    // No other bottom-pinned surface in the panel forgets it.
-    const fixedBottom = [
-      "src/components/admin/ui/toast.tsx",
-      "src/components/admin/bulk.tsx",
-      "src/components/admin/order-alerts.tsx",
+  });
+
+  it("no bottom-pinned surface in the panel forgets it", () => {
+    // Every class string that pins something to the bottom of the screen
+    // (fixed or sticky, with a bottom offset other than auto), in every
+    // admin file: its file reads the inset. The bar itself is the one
+    // surface that sits at 0. A new save bar written `sticky bottom-4`
+    // would sit under the bar on a phone.
+    const files = [
+      ...sourceFiles("src/components/admin"),
+      ...sourceFiles("src/app/admin"),
     ];
-    for (const p of fixedBottom) {
-      expect(read(p), p).toContain("--admin-bottom-inset");
+    const pinned = files.filter((p) =>
+      (read(p).match(/"[^"\n]*"|`[^`]*`/g) ?? []).some(
+        (s) =>
+          /(?:^|[\s"`])(?:fixed|sticky)(?=[\s"`])/.test(s) &&
+          /(?:^|[\s"`])bottom-(?!auto\b)/.test(s),
+      ),
+    );
+    // The scan finds the surfaces this PR moved (it is not vacuous).
+    expect(pinned).toEqual(
+      expect.arrayContaining([
+        "src/components/admin/ui/bottom-bar.tsx",
+        "src/components/admin/ui/toast.tsx",
+        "src/components/admin/bulk.tsx",
+        "src/components/admin/order-alerts.tsx",
+        "src/app/admin/bulten/kampanya/campaign-mail-form.tsx",
+        "src/app/admin/icerik/content-form.tsx",
+      ]),
+    );
+    for (const p of pinned) {
+      if (p === "src/components/admin/ui/bottom-bar.tsx") continue;
+      expect(read(p), p).toContain("var(--admin-bottom-inset,0px)");
     }
   });
 
