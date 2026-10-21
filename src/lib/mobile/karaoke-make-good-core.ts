@@ -91,17 +91,25 @@ function paidOf(r: { paidMinor?: number; totalMinor: number }): number {
 
 /**
  * What a late cancel by the guest at `at` would keep, kuruş: the payment
- * minus what the booking's own rule refunds then. Nothing inside the free
- * window, nothing for a booking the köşk never confirmed (it was never
- * promised: it goes back in full, as `cancelKaraokeReservation` does).
+ * minus what the booking's own rule refunds then, exactly as
+ * `cancelKaraokeReservation` would treat the guest's own cancel. Whoever is
+ * bound by the late rule gets the late make-good (Haksız Şartlar Yön. EK-1
+ * (ç); review R3, orchestrator decision, 21 Ekim 2026):
+ *
+ * - inside the free window: nothing;
+ * - past it with no late refund (or once the start has come): the guest's
+ *   own cancel is refused whatever the köşk did with the booking, so a
+ *   paid booking still `requested` keeps the whole payment as well;
+ * - a late share: only a booking the köşk confirmed keeps the rest; one it
+ *   never confirmed goes back in full, so its guest would lose nothing.
  */
 export function karaokeKeptShareMinor(r: Money, at: Date): number {
-  if (r.status !== "confirmed") return 0;
   const paid = paidOf(r);
   if (paid <= 0) return 0;
   const terms = karaokeSelfCancelTerms(r, at);
   if (terms.kind === "full") return 0;
   if (terms.kind === "refused") return paid;
+  if (r.status !== "confirmed") return 0;
   return Math.max(0, paid - karaokeLateRefundMinor(paid, terms.percent));
 }
 

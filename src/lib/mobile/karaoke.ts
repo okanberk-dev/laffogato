@@ -1104,6 +1104,11 @@ function freeUntilLabel(r: KaraokeReservation): string {
 export interface KaraokeRefundNote {
   refundedNowMinor?: number;
   resaleTopUp?: boolean;
+  /**
+   * A free hour let go before it began: the make-good it opened again
+   * (`until`: YYYY-MM-DD), which its cancellation mail names.
+   */
+  makeGoodReopened?: { minor: number; until: string };
 }
 
 /** What a booking's mails say about it; null when it has no address. */
@@ -1167,7 +1172,14 @@ function karaokeMailPayload(
             until: formatReservationDate(r.makeGoodUntil ?? ""),
           },
         }
-      : {}),
+      : note.makeGoodReopened
+        ? {
+            makeGood: {
+              minor: note.makeGoodReopened.minor,
+              until: formatReservationDate(note.makeGoodReopened.until),
+            },
+          }
+        : {}),
     // A free hour the köşk gave: no payment, and which booking it makes good.
     ...(r.makeGoodFor ? { makeGoodHourFor: r.makeGoodFor } : {}),
   };

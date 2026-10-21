@@ -17,6 +17,8 @@ import {
   istanbulTimeLabel,
   KARAOKE_PAYMENT_GRACE_MINUTES,
   karaokeEndInstant,
+  karaokeSelfCancelTerms,
+  karaokeStartInstant,
   refundAmountOf,
   refundOwedNowOf,
 } from "@/lib/mobile/karaoke-time";
@@ -590,6 +592,19 @@ export function karaokeActionPlan(
     else if (money === "pending") cancel = { kind: "hold" };
     else if (money === "none") {
       cancel = ended ? { kind: "plain", ended: true } : { kind: "plain" };
+      // A free hour the köşk gave, inside the window where its guest may no
+      // longer cancel it and before it begins: letting it go opens a used
+      // make-good again, which is the refund right's (review A2; the server
+      // refuses it the same way, `free_hour_forbidden`).
+      if (
+        r.makeGoodFor &&
+        !ctx.canRefund &&
+        ctx.now.getTime() <
+          karaokeStartInstant(r.date, r.startHour).getTime() &&
+        karaokeSelfCancelTerms(r, ctx.now).kind === "refused"
+      ) {
+        cancel = { ...cancel, disabledReason: REFUND_PERMISSION_REASON };
+      }
     }
   }
 
@@ -1018,6 +1033,8 @@ const EVENT_TITLES: Record<string, string> = {
   refund_without_payment_row: "İade edilecek ödeme kaydı bulunamadı",
   account_closed_late_paid_booking:
     "Hesap kapandı, iade süresi geçmiş ödenmiş rezervasyon duruyor",
+  account_closed_late_make_good_hour:
+    "Hesap kapandı, iptal süresi geçmiş telafi saati duruyor",
   account_closed_payment_unknown:
     "Hesap kapandı, ödeme durumu sorulamadan saat bırakıldı",
   late_guest_request:

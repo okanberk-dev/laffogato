@@ -78,6 +78,8 @@ describe("legal document dates", () => {
       "gizlilik-politikasi": "21 Ekim 2026",
       "kvkk-aydinlatma-metni": "21 Ekim 2026",
       "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
+      // The make-good's transfer is the third bank-transfer case (§14).
+      "odeme-kosullari": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

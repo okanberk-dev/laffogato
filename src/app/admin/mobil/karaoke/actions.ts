@@ -99,6 +99,8 @@ const CANCEL_MESSAGE: Record<CancelKaraokeFailure, string> = {
   refund_unknown:
     "İade isteği gönderildi ama POS yanıt vermedi. Rezervasyon 'iade sonucu bekleniyor' durumunda; PayNkolay panelinden bakıp sonucu buradan işaretle.",
   refund_forbidden: REFUND_FORBIDDEN,
+  free_hour_forbidden:
+    "Bu bir telafi saati ve misafir onu artık kendisi iptal edemiyor: iptal etmek kullanılmış telafiyi yeniden açar. Bunu yalnız sahip ya da yönetici yapar.",
   raced: "Bu rezervasyonu az önce başka biri değiştirdi. Sayfayı yenile.",
 };
 

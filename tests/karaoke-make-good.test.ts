@@ -612,9 +612,25 @@ describe("the make-good rules (karaoke terms §8)", () => {
     ).toBeNull();
     // After the start (a closed köşk recorded the next day): everything.
     expect(core.karaokeMakeGoodFor(r, "kapanis", at(-5))?.minor).toBe(200_000);
-    // A booking never confirmed was never promised: nothing kept.
+    // Paid but never confirmed: the guest's own late cancel is refused all
+    // the same (2 h / 0 %), so the köşk's late cancel makes it good too
+    // (review R3: whoever bears the late rule gets the make-good).
     expect(
       core.karaokeMakeGoodFor({ ...r, status: "requested" }, "ariza", at(1)),
+    ).toEqual({ until: "2027-04-30", minor: 200_000 });
+    // Under a late share such a booking goes back in full when its guest
+    // cancels late (it was never confirmed): nothing kept, nothing made good.
+    expect(
+      core.karaokeMakeGoodFor(
+        {
+          ...r,
+          status: "requested",
+          freeCancelHours: 24,
+          lateRefundPercent: 50,
+        },
+        "ariza",
+        at(10),
+      ),
     ).toBeNull();
   });
 
@@ -1672,6 +1688,102 @@ describe("review: the money fixes", () => {
       paymentStatus: "paid",
       makeGoodUntil: null,
       makeGoodMinor: null,
+    });
+  });
+});
+
+// ─── The access and regression reviews of PR #191 (21 Ekim 2026) ───────────
+
+describe("review: who may let the free hour go, and what its mail says", () => {
+  /** A make-good open on krk-00042, its free hour given for 6 Kasım 21:00. */
+  async function freeHour(): Promise<string> {
+    seed(
+      booking({
+        contactEmail: "eda@example.com",
+        contactPhone: "+905321234567",
+      }),
+    );
+    await payment.cancelKaraokeReservation("krk-00042", staff("ariza"), {
+      now: at(1),
+    });
+    const given = await payment.giveKaraokeMakeGoodHour(
+      "krk-00042",
+      { date: "2026-11-06", startHour: 21 },
+      "yonetici@kosk",
+      at(0),
+    );
+    if (!given.ok) throw new Error(given.reason);
+    return given.reservation.id;
+  }
+  // 6 Kasım 2026, 20:50 in Tuzla: ten minutes before the free hour.
+  const LATE = new Date("2026-11-06T17:50:00.000Z");
+  const PERSONEL = {
+    kind: "staff" as const,
+    actor: "personel@kosk",
+    canRefund: false,
+  };
+
+  it("A2: Personel cannot let the free hour go where its guest no longer may; the panel says why", async () => {
+    const id = await freeHour();
+    expect(
+      await payment.cancelKaraokeReservation(id, MEMBER, { now: LATE }),
+    ).toMatchObject({ ok: false, reason: "too_late" });
+    expect(
+      await payment.cancelKaraokeReservation(id, PERSONEL, { now: LATE }),
+    ).toMatchObject({ ok: false, reason: "free_hour_forbidden" });
+    expect(rowOf(id).status).toBe("confirmed");
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("hour");
+    const plan = (canRefund: boolean) =>
+      panel.karaokeActionPlan(rowOf(id) as never, {
+        now: LATE,
+        prepay: true,
+        canRefund,
+      }).cancel;
+    expect(plan(false)).toEqual({
+      kind: "plain",
+      disabledReason: panel.REFUND_PERMISSION_REASON,
+    });
+    expect(plan(true)).toEqual({ kind: "plain" });
+    // With the refund right it goes, and opens the make-good again.
+    expect(
+      await payment.cancelKaraokeReservation(
+        id,
+        { ...PERSONEL, actor: "yonetici@kosk", canRefund: true },
+        { now: LATE },
+      ),
+    ).toMatchObject({ ok: true });
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+  });
+
+  it("A2: before its guest's own deadline Personel may let it go, as the guest could", async () => {
+    const id = await freeHour();
+    expect(
+      await payment.cancelKaraokeReservation(id, PERSONEL, { now: at(0) }),
+    ).toMatchObject({ ok: true });
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+  });
+
+  it("A4: an account closure is held to the free hour's own rule", async () => {
+    const id = await freeHour();
+    expect(
+      await payment.cancelKaraokeReservation(
+        id,
+        { kind: "account", email: "eda@example.com" },
+        { now: LATE },
+      ),
+    ).toMatchObject({ ok: false, reason: "too_late" });
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("hour");
+  });
+
+  it("R4: the free hour let go before it began: its mail names the make-good open again", async () => {
+    const id = await freeHour();
+    h.cancellations.length = 0;
+    expect(
+      await payment.cancelKaraokeReservation(id, MEMBER, { now: at(0) }),
+    ).toMatchObject({ ok: true });
+    expect(h.cancellations.at(-1)).toMatchObject({
+      code: id,
+      makeGood: { minor: 200_000, until: "30 Nisan 2027" },
     });
   });
 });

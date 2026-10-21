@@ -570,6 +570,7 @@ const VALUE_LABELS: Record<string, Record<string, string>> = {
       "Hesap kapandı, saat talepten sonra geçti",
     account_closed_late_paid_booking:
       "Hesap kapandı, ödenmiş rezervasyon duruyor",
+    account_closed_late_make_good_hour: "Hesap kapandı, telafi saati duruyor",
     account_closed_payment_unknown: "Hesap kapandı, ödeme durumu belirsiz",
   },
   destination: REFUND_DESTINATION_LABELS,

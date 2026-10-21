@@ -482,7 +482,9 @@ maybe("karaoke make-good and resale: the money review (real Postgres)", () => {
     expect(day1After).toEqual([["KRK-90001", "14:00", 100_000]]);
     // The claim row still says what went back in all.
     expect(claim.map((c) => Number(c.amountMinor))).toEqual([150_000]);
-  });
+    // The sheet's first read may seed the catalogue on a fresh database
+    // (ensureSeed): seconds under a full parallel run, not a hang.
+  }, 60_000);
 
   it("M4: an hour booked for 0 TL (100 % ORO) is no sale: the late canceller is not refunded for it", async () => {
     await insert(lateCancelled());

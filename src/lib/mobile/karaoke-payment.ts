@@ -1422,6 +1422,12 @@ export type CancelKaraokeFailure =
   | "refund_unknown"
   /** A paid booking, and this panel user may not send money back. */
   | "refund_forbidden"
+  /**
+   * A free hour the köşk gave, inside the window where its guest may no
+   * longer cancel it: letting it go would open a used make-good again, so
+   * only someone with the refund right may (review A2).
+   */
+  | "free_hour_forbidden"
   | "raced";
 
 export type CancelKaraokeResult =
@@ -1528,11 +1534,15 @@ export async function cancelKaraokeReservation(
   // köşk's own cancel overrides it, and the köşk always refunds in full
   // (MSY m.16/4, TBK m.136/2): the late share is never applied to a staff
   // cancel, except one that only passes on the guest's request.
+  // A free hour the köşk gave counts like money for an account closure: let
+  // go, it opens its make-good again, so the closure is held to the hour's
+  // own rule as the member would be (review A4).
   const lateMatters =
     by.kind === "member" ||
     by.kind === "link" ||
     guestRequest ||
-    (by.kind === "account" && paymentStatusOf(r) === "paid");
+    (by.kind === "account" &&
+      (paymentStatusOf(r) === "paid" || Boolean(r.makeGoodFor)));
   // A closure the member asked us for is judged at the request (a booking
   // made after it, at the closure: the request did not cover it): the
   // team's delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2).
@@ -1618,6 +1628,17 @@ export async function cancelKaraokeReservation(
       by.kind === "staff" && karaokeEndInstant(r).getTime() <= now.getTime();
     // A free hour the köşk gave: let go together with its make-good.
     if (r.makeGoodFor) {
+      // Inside the window where the guest may no longer cancel it, letting
+      // it go would open a used make-good that a manager could then pay out:
+      // the refund right's call, as every make-good is (review A2).
+      if (
+        by.kind === "staff" &&
+        !by.canRefund &&
+        now.getTime() < karaokeStartInstant(r.date, r.startHour).getTime() &&
+        karaokeSelfCancelTerms(r, now).kind === "refused"
+      ) {
+        return { ok: false, reason: "free_hour_forbidden", reservation: r };
+      }
       return releaseMakeGoodHour(r, { by: by.kind, actor, why, silent, now });
     }
     const res = await setReservationStatus(id, "cancelled", now, {
@@ -2608,7 +2629,26 @@ async function releaseMakeGoodHour(
     status: "cancelled",
     updatedAt: iso,
   };
-  const notified = ctx.silent ? true : await notifyReservationStatus(cancelled);
+  // The make-good this let go of is open again: the cancellation mail says
+  // how much and until when, as the free hour's confirmation promised
+  // ("telafin o zaman geri gelir"; review R4).
+  const original =
+    outcome === "reopened" && hour.makeGoodFor
+      ? await getReservation(hour.makeGoodFor)
+      : null;
+  const notified = ctx.silent
+    ? true
+    : await notifyReservationStatus(
+        cancelled,
+        original && makeGoodStateOf(original) === "open"
+          ? {
+              makeGoodReopened: {
+                minor: original.makeGoodMinor ?? 0,
+                until: original.makeGoodUntil ?? "",
+              },
+            }
+          : {},
+      );
   await auditStaff(cancelled, ctx.actor, "transition", {
     status: "cancelled",
     by: ctx.by,
@@ -2616,7 +2656,6 @@ async function releaseMakeGoodHour(
     ...ctx.why,
   });
   if (outcome === "reopened" && hour.makeGoodFor) {
-    const original = await getReservation(hour.makeGoodFor);
     if (original) {
       await auditStaff(original, ctx.actor, "update", {
         event: "make_good_reopened",
@@ -2781,6 +2820,27 @@ export async function cancelKaraokeForClosedAccount(
       const current = (await getReservation(r.id)) ?? r;
       if (current.status === "cancelled") return;
       const money = paymentStatusOf(current);
+      if (res.reason === "too_late" && current.makeGoodFor) {
+        // A free hour the köşk gave, inside the window where the member may
+        // no longer let it go: it stands, and the make-good it used stays
+        // used (review A4). A person decides whether it is let go.
+        const original = await getReservation(current.makeGoodFor);
+        const { freeCancelHours: h } = karaokeCancelPolicyOf(current);
+        await alertMoney(current, {
+          event: "account_closed_late_make_good_hour",
+          key: "account-late-free-hour",
+          title:
+            h > 0
+              ? `Kapanan hesabın ${h} saatten az kalan telafi saati`
+              : "Kapanan hesabın ücretsiz iptal süresi olmayan telafi saati",
+          summary: `Hesap kapandı; bu ücretsiz telafi saati (${current.makeGoodFor.toUpperCase()} için) iptal kuralı gereği misafir tarafından artık iptal edilemiyordu: saat olduğu gibi duruyor, telafi yeniden açılmadı.`,
+          footnote:
+            "Saat kullanılmayacaksa panelden iptal et (iade yetkisi gerekir); başlamadan yapılan iptal telafiyi yeniden açar.",
+          amountMinor: original?.makeGoodMinor ?? 0,
+          providerRef: "",
+        });
+        return;
+      }
       if (res.reason === "too_late") {
         // Paid, and inside the booking's window with no late share (or
         // already under way): no refund under its rule, and the evening

@@ -591,14 +591,20 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     expect(purpose).toMatch(/gönderim bedelinin ödenmesi/);
   });
 
-  it("keeps the payment terms' bank transfer list to the two cases", () => {
+  it("keeps the payment terms' bank transfer list to its three cases", () => {
+    // The third since 21 Ekim 2026: the karaoke make-good paid to the
+    // guest's own account (karaoke terms §8; LEGAL-REDLINES §25).
     const transfer = sectionOf(
       "odeme-kosullari",
       "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
     ).paragraphs?.[1];
-    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca iki hâlde/);
+    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca üç hâlde/);
     expect(transfer).toMatch(/22\. maddede açıklanan istisnai hâlde/);
     expect(transfer).toMatch(/gönderim bedelinin ödenmesi/);
+    expect(transfer).toMatch(/telafi/);
+    expect(transfer).toMatch(
+      /Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 \(on dört\) gün içinde ödenir\./,
+    );
     expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
   });
 });

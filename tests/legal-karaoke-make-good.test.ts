@@ -218,3 +218,32 @@ describe("the mails print the actual amounts", () => {
     expect(money).toEqual(["KARAOKE_SATIS_IADE"]);
   });
 });
+
+describe("the texts that list the cases and the purposes name the make-good (review R1, R2)", () => {
+  it("Ödeme Koşulları §14: the make-good's transfer is the third bank-transfer case", () => {
+    expect(section(doc("odeme-kosullari"), "14").paragraphs?.[1]).toBe(
+      "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz.",
+    );
+    expect(doc("odeme-kosullari").updatedAt).toBe("21 Ekim 2026");
+  });
+
+  it("KVKK Aydınlatma §7 and §8 and Gizlilik §5 name the make-good as a purpose", () => {
+    const clause =
+      "rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının";
+    const purpose = (
+      section(doc("kvkk-aydinlatma-metni"), "7").bullets ?? []
+    ).find((b) => b.startsWith("Karaoke odası rezervasyonu:"));
+    expect(purpose).toContain(
+      "rezervasyonun iptali ve iadenin yapılması, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının bildireceğiniz, kendi adınıza kayıtlı banka hesabına ödenmesi,",
+    );
+    const basis = (section(doc("kvkk-aydinlatma-metni"), "8").table ?? []).find(
+      (r) => r.key.startsWith("Karaoke odası rezervasyonunun alınması"),
+    );
+    expect(basis?.key).toContain(clause);
+    const policy = (section(doc("gizlilik-politikasi"), "5").table ?? []).find(
+      (r) => r.key.startsWith("Karaoke odası rezervasyonunun alınması"),
+    );
+    expect(policy?.key).toContain(clause);
+    expect(policy?.key).toMatch(/sizinle iletişim kurulması$/);
+  });
+});

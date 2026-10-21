@@ -3825,6 +3825,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odeme-kosullari",
     title: "Ödeme Koşulları ve Sanal POS",
     shortTitle: "Ödeme Koşulları",
+    // 21 Ekim 2026: §14 banka hesabına transferin üçüncü hâli, karaoke
+    // telafisinin ödenmesi (LEGAL-REDLINES §25).
+    updatedAt: "21 Ekim 2026",
     category: "Ödeme & Güvenlik",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulamasındaki ödemelerin ödeme hizmeti sağlayıcısı PayNkolay ile nasıl alındığını; ödeme sayfası, 3D Secure, tek çekim, iade, mükerrer çekim ve kart itirazı süreçlerini düzenler.",
@@ -4082,7 +4085,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
         paragraphs: [
           "Havale, EFT ve FAST ile ödeme kabul edilmemektedir; sipariş bedeli yalnızca 5. maddede sayılan yöntemlerle ödenir.",
-          "Banka hesabına transfer yalnızca iki hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi ve iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz.",
+          "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz.",
         ],
       },
       {
@@ -4876,7 +4879,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
     // 21 Ekim 2026: §3 karaoke satırı köşkün geç iptalindeki telafiyi ve
-    // telafi ödemesinin banka hesap bilgisini adlandırır (LEGAL-REDLINES §25).
+    // telafi ödemesinin banka hesap bilgisini, §5 telafiyi amaç olarak
+    // adlandırır (LEGAL-REDLINES §25).
     updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
@@ -5185,7 +5189,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Açık rıza (KVKK m.5/1); 6563 sayılı Kanun kapsamında onay",
           },
           {
-            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi ile rezervasyonla ilgili sizinle iletişim kurulması",
+            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi ile rezervasyonla ilgili sizinle iletişim kurulması",
             value: "Sözleşmenin kurulması veya ifası (KVKK m.5/2-c)",
           },
           {
@@ -5705,7 +5709,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
     // 21 Ekim 2026: §6 karaoke verisi köşkün geç iptalindeki telafiyi ve
-    // telafi ödemesinin banka hesap bilgisini adlandırır (LEGAL-REDLINES §25).
+    // telafi ödemesinin banka hesap bilgisini, §7 ve §8 telafiyi amaç
+    // olarak adlandırır (LEGAL-REDLINES §25).
     updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
@@ -5920,7 +5925,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşe alım süreçleri: Başvuruların değerlendirilmesi, mülakat planlanması, adaya geri bildirim yapılması ve adayın açık rızası hâlinde başvurunun ileride açılacak pozisyonlar için havuzda tutulması.",
           "Mobil uygulamanın sunulması ve yönetilmesi: Uygulamanın cihazınıza uygun sürümde çalıştırılması, oturumun sürdürülmesi, uygulama içi menü, kafe ve mağaza siparişi, sadakat kartı (damga), karaoke rezervasyonu ve fA'L işlevlerinin sunulması, kafede kasa koduyla damga eklenmesi, sürüm güncellemelerinin uygulanması, sunucu tarafındaki hataların giderilmesi ve izin verdiğiniz ölçüde hatırlatmaların cihazınızda gösterilmesi.",
           "Sadakat (damga) programının yürütülmesi: Mobil uygulamadan verilip ödemesi tamamlanan ve Ödül Programı Kuralları'ndaki koşulları sağlayan kafe siparişleri ile kafede kasada eklenen damgaların kaydedilmesi, damga kartının ve kademenin gösterilmesi, dolan kartın ücretsiz içecek kuponuna çevrilmesi, kilometre taşı ve davet kuponlarının tanımlanması ve davet programının yürütülmesi, siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damganın geri alınması ve iptal edilen siparişte kullanılan kuponun hesaba geri tanımlanması, damga ve kuponların kötüye kullanılmasının denetlenmesi.",
-          "Karaoke odası rezervasyonu: Rezervasyonun alınması, uygunluğun ve ücretin hesaplanması, saatin ödeme sayfasının açık kaldığı 30 dakika boyunca sizin için tutulması, ödemenin PayNkolay üzerinden tahsili ve rezervasyonun ödemenin onaylanmasıyla kesinleşmesi, rezervasyonun iptali ve iadenin yapılması, rezervasyon bağlantısının e-postayla gönderilmesi, rezervasyonun ekibimize bildirilmesi ve bu konularda tarafınıza e-posta veya telefonla bilgi verilmesi; çevrim içi ödemenin kapalı olduğu hâllerde talebin ekibimizce onaylanması.",
+          "Karaoke odası rezervasyonu: Rezervasyonun alınması, uygunluğun ve ücretin hesaplanması, saatin ödeme sayfasının açık kaldığı 30 dakika boyunca sizin için tutulması, ödemenin PayNkolay üzerinden tahsili ve rezervasyonun ödemenin onaylanmasıyla kesinleşmesi, rezervasyonun iptali ve iadenin yapılması, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının bildireceğiniz, kendi adınıza kayıtlı banka hesabına ödenmesi, rezervasyon bağlantısının e-postayla gönderilmesi, rezervasyonun ekibimize bildirilmesi ve bu konularda tarafınıza e-posta veya telefonla bilgi verilmesi; çevrim içi ödemenin kapalı olduğu hâllerde talebin ekibimizce onaylanması.",
           "Doğum günü kuponu ve doğum günü e-postası: Doğum tarihinizi isteğe bağlı olarak bildirdiyseniz, doğum gününüzde e-postası doğrulanmış üyelik hesabınıza yılda bir kez, yedi gün geçerli bir doğum günü kuponu tanımlanması; ticari elektronik ileti onayınız varsa aynı gün kutlama ve kampanya içeren bir e-posta gönderilmesi.",
         ],
       },
@@ -6026,7 +6031,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "İzinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; izin verilmemesi yalnızca ilgili özelliğin çalışmamasına yol açar ve uygulamanın kullanımı bu izinlere bağlanmaz. fA'L fotoğrafı cihazınızda kaldığı sürece tarafımızca işlenmez; yapay zekâ yorumu için fotoğrafın işlenmesi ve yurt dışına aktarılması KVKK m.5/1 uyarınca açık rızanıza (Açık Rıza Metni R12) dayanır; yurt dışına aktarım ayrıca Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Uygulama konum izni istemez.",
           },
           {
-            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi",
+            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi",
             value:
               "KVKK m.5/2-c: Rezervasyona ilişkin sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması",
           },
