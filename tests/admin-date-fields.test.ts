@@ -37,6 +37,7 @@ vi.mock("next/navigation", () => ({
 
 const { FilterBar } = await import("@/components/admin/ui/filter-bar");
 const { FIELD_INPUT } = await import("@/components/admin/forms");
+const { BUTTON, EYEBROW } = await import("@/components/admin/ui/styles");
 const { parseFilters } = await import("@/lib/admin/list-params");
 type Fields = Parameters<typeof parseFilters>[1];
 
@@ -62,13 +63,31 @@ const DATES = {
   to: "bit",
 } as const;
 // Fields of the test's own: the markup below is frozen from origin/main's
-// bar (7ed355b2, before UI-14) and must not move when a list's labels do.
+// bar (f47831d3, before UI-14) and must not move when a list's labels do.
 const PLAIN: Fields = [SEARCH, SELECT];
 const DATED: Fields = [SEARCH, SELECT, DATES];
 
 const PATH = "/admin/siparisler";
-const bar = (fields: Fields, sp: Record<string, string>, remembered?: string) =>
-  renderToStaticMarkup(
+const KIT_CLASSES = [
+  ["FIELD_INPUT", FIELD_INPUT],
+  ["BUTTON_PRIMARY", BUTTON.primary],
+  ["BUTTON_GHOST", BUTTON.ghost],
+  ["EYEBROW", EYEBROW],
+] as const;
+
+/**
+ * The bar's markup as a golden reads it: React's own function-action URL
+ * and form-replay script out, and the kit's shared class strings (a field,
+ * the two buttons, an eyebrow) as tokens, so a restyle of the kit (the
+ * density variants of UI-9 moved them) does not break a test about what the
+ * bar draws.
+ */
+const bar = (
+  fields: Fields,
+  sp: Record<string, string>,
+  remembered?: string,
+) => {
+  let html = renderToStaticMarkup(
     createElement(FilterBar, {
       fields,
       searchParams: sp,
@@ -80,10 +99,13 @@ const bar = (fields: Fields, sp: Record<string, string>, remembered?: string) =>
       label: "Filtreler",
     }),
   )
-    // React draws a function action as a javascript: URL and, after a form,
-    // its replay script; both are React's, not the bar's.
     .replace(/action="javascript:[^"]*"/g, 'action="FN"')
     .replace(/<script>[\s\S]*?<\/script>$/, "");
+  for (const [token, classes] of KIT_CLASSES) {
+    html = html.replaceAll(classes.replaceAll("&", "&amp;"), `{${token}}`);
+  }
+  return html;
+};
 
 const sha = (html: string) => createHash("sha256").update(html).digest("hex");
 const PRESET_LIST =
@@ -98,14 +120,15 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("lists without a date range", () => {
-  // SHA-256 of the bar's markup on origin/main 7ed355b2 (see `bar`). A
+  // SHA-256 of the bar's markup on origin/main f47831d3 (before UI-14; see `bar`
+  // for what is normalised). A
   // changed kit class changes it on purpose: refresh it with the change.
   it("draw the markup they drew before, byte for byte", () => {
     expect(sha(bar(PLAIN, {}))).toBe(
-      "cce0f8cb606570fc017eef859fd1547fb98292eaa59c5046269544aabdccea31",
+      "561caef9f342a7d2cc57868c64b907c843a03383601fa065524e5a5da3408bbe",
     );
     expect(sha(bar(PLAIN, { durum: "acik", kanal: "app" }, "ayşe"))).toBe(
-      "a295fe542d8a2ec5ffb802a6bc7cfd2261439e631030ec568fdb42c6627a2f66",
+      "499d5638dc37df843168497ef9e0309e1e0e9ae5c29f8ee90bd0ef13b0a0b385",
     );
     expect(bar(PLAIN, {})).not.toContain("hazır aralıklar");
   });
@@ -113,7 +136,7 @@ describe("lists without a date range", () => {
 
 describe("lists with a date range keep their native boxes", () => {
   const OLD_BOXES = (id: string, from: string, to: string) =>
-    `<div class="flex items-center gap-2"><label for="${id}-bas" class="sr-only">Tarih: başlangıç</label><input id="${id}-bas" type="date" class="${FIELD_INPUT} min-w-0" name="bas" value="${from}"/><span aria-hidden="true" class="text-[var(--admin-text-soft)]">-</span><label for="${id}-bit" class="sr-only">Tarih: bitiş</label><input id="${id}-bit" type="date" class="${FIELD_INPUT} min-w-0" name="bit" value="${to}"/></div>`;
+    `<div class="flex items-center gap-2"><label for="${id}-bas" class="sr-only">Tarih: başlangıç</label><input id="${id}-bas" type="date" class="{FIELD_INPUT} min-w-0" name="bas" value="${from}"/><span aria-hidden="true" class="text-[var(--admin-text-soft)]">-</span><label for="${id}-bit" class="sr-only">Tarih: bitiş</label><input id="${id}-bit" type="date" class="{FIELD_INPUT} min-w-0" name="bit" value="${to}"/></div>`;
 
   it("the bas and bit inputs, their ids, labels and values are the old ones", () => {
     const set = bar(DATED, { bas: "2026-10-01", bit: "2026-10-15" });
@@ -148,12 +171,12 @@ describe("lists with a date range keep their native boxes", () => {
           ),
         ),
       ),
-    ).toBe("9de3d492d404750fce0182b562b19a8ee7d969301607693e13111e6bca95ce25");
+    ).toBe("98dec12a34ac66445dd4d7a413f41467cea1b7adba7bef643a51a4777c0ece34");
     expect(sha(without(bar(DATED, {})))).toBe(
-      "4675bdb02de335d073562b592cf13698fdf0059bc3c1d304c305ad5bd458cd6a",
+      "4c7e7be4d1dd2b11832e4eb02903a03bcdb7c5fda0c2100443c55bcf5485694e",
     );
     expect(sha(without(bar(DATED, { bas: "2026-10-01" })))).toBe(
-      "6ff7e39f3ad666bf87bd7209c64de1ed3196c744d4ae7531381f8d9aae84d509",
+      "a7c168c51a65eef8255e4cf757100aa73412fd3dd3706276d295db56f586f418",
     );
   });
 

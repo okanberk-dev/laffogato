@@ -1,5 +1,7 @@
 import { cx } from "@/components/laffogato/cx";
 
+import { COMPACT } from "./compact";
+
 /*
  * The class strings the two React Aria date widgets share (date-range-field
  * and date-time-picker): the segmented field in the panel's field look, its
@@ -14,8 +16,7 @@ import { cx } from "@/components/laffogato/cx";
  */
 
 /** The field: what FIELD_INPUT is for a native box (forms.tsx). */
-export const DATE_GROUP =
-  "flex min-h-11 w-full min-w-0 items-center gap-1 rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] pr-1 pl-3.5 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-2 data-[focus-within]:ring-[var(--admin-accent)]/25 data-[invalid]:border-[var(--admin-danger)] sm:text-sm";
+export const DATE_GROUP = `flex min-h-11 w-full min-w-0 items-center gap-1 rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] pr-1 pl-3.5 text-base text-[var(--admin-text)] transition-[border-color,background-color,box-shadow] data-[focus-within]:border-[var(--admin-primary)] data-[focus-within]:bg-white data-[focus-within]:ring-2 data-[focus-within]:ring-[var(--admin-accent)]/25 data-[invalid]:border-[var(--admin-danger)] sm:text-sm ${COMPACT.minH9}`;
 
 /** One date's (or time's) segments. */
 export const DATE_INPUT = "flex min-w-0 items-center";
