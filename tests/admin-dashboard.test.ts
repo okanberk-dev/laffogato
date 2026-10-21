@@ -405,8 +405,11 @@ describe("the dashboard page", () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-17T21:30:00.000Z"));
       const { html } = await render("manager");
-      expect(html).toContain("İyi geceler.</h1>");
-      expect(html).toContain("L&#x27;Affogato · 18 Ekim Pazar");
+      // The h1 is the nav's word; the greeting and the date open the
+      // one-line description (UI-20).
+      expect(html).toContain(">Genel bakış</h1>");
+      expect(html).toContain("İyi geceler. 18 Ekim Pazar:");
+      expect(html).not.toContain("L&#x27;Affogato · 18 Ekim Pazar");
       expect(html).not.toContain("info.");
     } finally {
       if (tz === undefined) delete process.env.TZ;

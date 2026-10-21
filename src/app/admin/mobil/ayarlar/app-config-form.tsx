@@ -561,7 +561,7 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
     <ConfigForm form={form}>
       <Section
         title="Hatırlatmalar"
-        description="Uygulamanın yerel bildirimleri (sunucu göndermez; telefon kendi planlar). Bir hatırlatma bir davettir, reklam değil: fiyat, indirim ve aciliyet dili (₺, %, indirim, son, kaçırma, hemen) kabul edilmez."
+        description="Uygulamanın yerel hatırlatma bildirimleri (sunucu göndermez; telefon kendi planlar). Bir hatırlatma bir davettir, reklam değil: fiyat, indirim ve aciliyet dili (₺, %, indirim, son, kaçırma, hemen) kabul edilmez."
       >
         <Checkbox
           name="remindersEnabled"
@@ -599,7 +599,7 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                 <ConfigField
                   name={`reminder-${i}-hour`}
                   label="Saat"
-                  hint={`${L.reminderHourMin}-${L.reminderHourMax}; gece bildirimi yok.`}
+                  hint={`${L.reminderHourMin}-${L.reminderHourMax}; gece hatırlatması yok.`}
                 >
                   <TextInput
                     name={`reminder-${i}-hour`}

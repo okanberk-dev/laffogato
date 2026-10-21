@@ -374,7 +374,9 @@ describe("Turkish labels (SYS-10)", () => {
 
   it("shows a settings record as its section, linked to its tab", () => {
     expect(view.auditRecordText("settings", "general")).toBe("Genel");
-    expect(view.auditRecordText("settings", "notifications")).toBe("Bildirim");
+    expect(view.auditRecordText("settings", "notifications")).toBe(
+      "Sipariş bildirimi",
+    );
     expect(view.auditRecordText("settings", "email-test")).toBe(
       "Test e-postası",
     );
@@ -713,7 +715,7 @@ describe("the page", () => {
     expect(html).not.toContain("Değişti · Bildirim adresi");
     // The record is the section's name, linked to its tab.
     expect(html).toContain('href="/admin/ayarlar?sekme=notifications"');
-    expect(html).toMatch(/>Bildirim<\/a>/);
+    expect(html).toMatch(/>Sipariş bildirimi<\/a>/);
   });
 
   it("fits the table next to the sidebar: the actor moves under the time below xl (SYS-11)", async () => {
@@ -738,7 +740,8 @@ describe("the page", () => {
     const html = renderToStaticMarkup(
       await ListPage({ searchParams: Promise.resolve({}) }),
     );
-    expect(html).toContain(">Sistem<");
+    // No eyebrow naming the sidebar's group: the h1 is the nav's word.
+    expect(html).not.toContain(">Sistem<");
     expect(html).toContain(">Olay kaydı</h1>");
     expect(html).not.toMatch(/mutasyon/i);
     expect(html).not.toContain(">Denetim<");
