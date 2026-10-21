@@ -287,14 +287,22 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
 - **Bu görünümü kaydet**: sekme, açılır listeler ve sıralama bir adla
   kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama
   metni, tarih aralığı ve sayfa kaydedilmez; e-posta ya da telefon
-  numarasına benzeyen bir değer de. Adda e-posta ya da telefon olamaz.
-  Aynı adı yeniden yazarsan o görünümün üzerine yazılır.
+  numarasına benzeyen bir değer de. Yalnız listenin kendi parametreleri
+  (süzgeçleri, sekmesi, sıralaması) ve onların yazdığı türden değerler
+  (harf, rakam, `_`, `-`) kalır: adrese elle eklenmiş başka bir şey
+  kaydedilmez. Adda e-posta ya da telefon olamaz. Aynı adı yeniden
+  yazarsan o görünümün üzerine yazılır. Kaydetmek ve silmek yalnız bu
+  tarayıcıyı değiştirir, sunucuya gidilmez.
 - Kayıtlı bir görünüme dokununca liste o hâliyle açılır; o an kutuda bir
   arama varsa gider. Açık görünümün adı menü düğmesinde yazar.
 - **Varsayılan yap**: liste menüden ya da bir yer iminden süzgeçsiz
-  açılınca bu görünüme geçer. Listenin kendi "Tümü"sü, "Sıfırla"sı ve
-  çipleri süzgeçsiz listeyi yine gösterir; kutuda hatırlanan bir arama
-  varken varsayılan uygulanmaz.
+  açılınca bu görünüme geçer, her sekmede bir kez (sonradan seçilen yeni
+  bir varsayılan da bir kez). Listenin kendi "Tümü"sü, "Sıfırla"sı ve
+  çipleri süzgeçsiz listeyi gösterir; varsayılan o sekmede açıldıktan
+  sonra bir siparişten Geri'yle dönmek ve sayfayı yenilemek de. Kutuda
+  hatırlanan bir arama varken ya da menü gelmeden sayfada bir şeye
+  basıldıysa (bir sekme, Uygula, bir bağlantı, bir tuş) varsayılan
+  uygulanmaz: başlattığın gezinmenin üstüne yazmaz.
 - **Görünümü sil**: onay sorar; yalnız kısayol gider, siparişler değişmez.
 - Görünümler bu tarayıcıda, hesabına bağlı durur (`localStorage`,
   `laf_admin_views_v1:<hesap anahtarı>:<liste>`; anahtar Son
@@ -302,7 +310,10 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
   tabletinde başka bir hesap onları görmez, başka cihaza taşınmazlar,
   Çıkış onları silmez. Site verisi kapalıyken ya da tarayıcının yeri
   doluyken kaydedilemez; pencere bunu söyler. Gizli pencerede kaydedilen
-  görünüm o pencere kapanınca gider.
+  görünüm o pencere kapanınca gider. Sekme, açtığı varsayılanı
+  `sessionStorage`'da not eder
+  (`laf_admin_views_tab_v1:<hesap anahtarı>:<liste>`); not sekme
+  kapanınca gider.
 - Menünün kodu ayrı bir parça olarak, sayfa tarayıcıya gelince yüklenir.
   Yüklenemezse (ağ koptu, yeni sürüm çıktı) Görünümler çizilmez, liste
   olduğu gibi çalışır; sayfayı yenilemek menüyü geri getirir.
