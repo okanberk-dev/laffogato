@@ -7,7 +7,14 @@
 // no dialog (tests/admin-saved-views-bar.test.ts holds the FilterBar's
 // static imports to a list).
 
-import { Component, useSyncExternalStore, type ReactNode } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import { validAccountKey } from "@/lib/admin/account-key";
 import { savedViewsStorageKey } from "@/lib/admin/saved-views-key";
@@ -41,6 +48,48 @@ export function useSavedViewsKey(listKey: string | undefined): string | null {
     () => (listKey ? savedViewsStorageKey(pageAccountKey(), listKey) : null),
     () => null,
   );
+}
+
+/** The operator starting something: a press, a key, a form sent. */
+export const TOUCH_EVENTS = ["pointerdown", "keydown", "submit"] as const;
+
+/**
+ * Calls `onTouch` when the operator presses, types or sends a form anywhere
+ * on the page (capture phase: a control that stops the event still counts);
+ * returns the cleanup. Exported for tests.
+ */
+export function watchFirstTouch(
+  target: Pick<EventTarget, "addEventListener" | "removeEventListener">,
+  onTouch: () => void,
+): () => void {
+  const touch = () => onTouch();
+  // The options form: Node's EventTarget (the tests) does not match a
+  // boolean `true` on removal, browsers match either.
+  for (const type of TOUCH_EVENTS) {
+    target.addEventListener(type, touch, { capture: true, passive: true });
+  }
+  return () => {
+    for (const type of TOUCH_EVENTS) {
+      target.removeEventListener(type, touch, { capture: true });
+    }
+  };
+}
+
+/**
+ * Whether the operator has started something since the bar came up in the
+ * browser (`enabled`: a list with saved views). The menu's default asks it
+ * once its chunk is in: a tab clicked or "Uygula" sent in the meantime is a
+ * navigation under way, and the default's router.replace would cancel it.
+ */
+export function useTouchedSince(enabled: boolean): () => boolean {
+  const touched = useRef(false);
+  useEffect(() => {
+    if (!enabled) return;
+    return watchFirstTouch(window, () => {
+      touched.current = true;
+    });
+  }, [enabled]);
+  return useCallback(() => touched.current, []);
 }
 
 /**

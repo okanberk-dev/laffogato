@@ -1,4 +1,5 @@
-// A list's saved views in this browser's localStorage (admin UI v2, UI-11).
+// A list's saved views in this browser's localStorage (admin UI v2, UI-11),
+// and in this tab's sessionStorage the default the tab has already opened.
 // What a view may keep is pure, in lib/admin/saved-views.ts; this file only
 // reads, writes and listens. Every storage call is in try/catch: a private
 // window, blocked site data or a full quota leaves the menu empty, never the
@@ -66,4 +67,49 @@ export function subscribeViews(onChange: () => void): () => void {
     window.removeEventListener("storage", onChange);
     window.removeEventListener(SAVED_VIEWS_EVENT, onChange);
   };
+}
+
+// ── The default, once per tab ─────────────────────────────────────────────
+
+function tabStore(): ViewStore | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The default this tab has already opened the list with
+ * (savedViewsTabKey), "" for none or when it cannot be read.
+ */
+export function readTabDefault(
+  key: string | null,
+  store: ViewStore | null = key ? tabStore() : null,
+): string {
+  if (!key || !store) return "";
+  try {
+    return store.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Notes that this tab opened the list with the default `query`; false when
+ * the browser refused. The menu opens the default only once this is noted:
+ * a tab that cannot remember would open it again on every Back.
+ */
+export function writeTabDefault(
+  key: string | null,
+  query: string,
+  store: ViewStore | null = key ? tabStore() : null,
+): boolean {
+  if (!key || !store) return false;
+  try {
+    store.setItem(key, query);
+    return true;
+  } catch {
+    return false;
+  }
 }

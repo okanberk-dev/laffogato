@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -179,6 +179,51 @@ describe("what a view keeps of the address", () => {
     for (let i = 0; i < 20; i += 1)
       many[`p${String(i).padStart(2, "0")}`] = "1";
     expect(lib.viewParams(many, ORDERS)).toHaveLength(16);
+  });
+});
+
+describe("the menu's rules: the list's own names only", () => {
+  it("its filters, its tab and its sort; never the search box", () => {
+    const rules = lib.viewRulesFor(ORDER_FILTER_FIELDS, "sayfa");
+    expect(rules.searchNames).toEqual(["q"]);
+    expect(rules.pageParam).toBe("sayfa");
+    expect([...(rules.names ?? [])].sort()).toEqual(
+      [
+        "bas",
+        "bit",
+        "dikkat",
+        "durum",
+        "kanal",
+        "odeme",
+        "sirala",
+        "teslimat",
+        "tur",
+        "yon",
+      ].sort(),
+    );
+    expect(
+      lib.viewQuery(
+        { durum: "acik", kanal: "app", sirala: "tarih", yon: "asc", x: "1" },
+        rules,
+      ),
+    ).toBe("durum=acik&kanal=app&sirala=tarih&yon=asc");
+  });
+
+  it("the tab's name is StatusTabs' own default", async () => {
+    const { StatusTabs } = await import("@/components/admin/ui/status-tabs");
+    const html = renderToStaticMarkup(
+      createElement(StatusTabs, {
+        tabs: [
+          { value: null, label: "Tümü" },
+          { value: "acik", label: "Açık" },
+        ],
+        current: null,
+        searchParams: {},
+        pathname: PATH,
+      }),
+    );
+    expect(html).toContain('href="/admin/siparisler?durum=acik"');
+    expect(lib.LIST_VIEW_PARAMS).toContain("durum");
   });
 });
 
@@ -524,6 +569,60 @@ describe("the default view on opening the list", () => {
   });
 });
 
+describe("the default, once per tab and never over the operator", () => {
+  const s = state([["Masa", "teslimat=table"]], "teslimat=table");
+
+  it("a tab that opened this default does not open it again (Tümü, an order, Back)", () => {
+    // Next mounts the list anew on Back (its back cache holds one page): the
+    // bare address there is the operator's own "Tümü", not the menu's.
+    expect(
+      lib.defaultViewHref(s, PATH, {}, false, {
+        appliedInTab: "teslimat=table",
+      }),
+    ).toBeNull();
+    // A tab that has opened nothing yet, or another default: once.
+    for (const appliedInTab of [null, undefined, "durum=paid"]) {
+      expect(
+        lib.defaultViewHref(s, PATH, {}, false, { appliedInTab }),
+        String(appliedInTab),
+      ).toBe("/admin/siparisler?teslimat=table");
+    }
+  });
+
+  it("not once the operator pressed, typed or sent something on the page", () => {
+    // A tab or "Uygula" clicked before the menu's chunk came: the default's
+    // replace would cancel that navigation.
+    expect(
+      lib.defaultViewHref(s, PATH, {}, false, { touched: true }),
+    ).toBeNull();
+    expect(lib.defaultViewHref(s, PATH, {}, false, { touched: false })).toBe(
+      "/admin/siparisler?teslimat=table",
+    );
+  });
+
+  it("the tab's note is kept per account and list, under its own key", () => {
+    expect(lib.savedViewsTabKey(`laf_admin_views_v1:${A}:orders`)).toBe(
+      `laf_admin_views_tab_v1:${A}:orders`,
+    );
+    expect(lib.savedViewsTabKey(`laf_admin_views_v1:${B}:orders`)).not.toBe(
+      lib.savedViewsTabKey(`laf_admin_views_v1:${A}:orders`),
+    );
+    expect(lib.savedViewsTabKey("orders")).toBeNull();
+  });
+
+  it("the menu notes the default before it opens it, and asks the tab and the page first", () => {
+    const src = readFileSync("src/components/admin/ui/saved-views.tsx", "utf8");
+    expect(src).toMatch(
+      /appliedInTab: readTabDefault\(tabKey\) \|\| null,\s*touched: touched\(\),/,
+    );
+    // Not noted (storage refused), not opened: it would reopen on every Back.
+    expect(src).toMatch(
+      /if \(!writeTabDefault\(tabKey, state\.defaultQuery\)\) return;\s*router\.replace\(target/,
+    );
+    expect(src.match(/router\.replace\(/g)).toHaveLength(1);
+  });
+});
+
 describe("the menu", () => {
   it("a bare list: nothing to save yet", () => {
     expect(lib.viewsMenu(lib.NO_SAVED_VIEWS, PATH, "")).toEqual({
@@ -621,6 +720,21 @@ describe("the browser's storage", () => {
     expect(store.writeViews("k", state([]), null)).toBe(false);
   });
 
+  it("the tab's note of the default: read, written, refused without a throw", () => {
+    const mem = memory();
+    const key = `laf_admin_views_tab_v1:${A}:orders`;
+    expect(store.readTabDefault(key, mem)).toBe("");
+    expect(store.writeTabDefault(key, "durum=paid", mem)).toBe(true);
+    expect(store.readTabDefault(key, mem)).toBe("durum=paid");
+    expect(store.writeTabDefault(key, "durum=paid", refusing)).toBe(false);
+    expect(store.readTabDefault(key, refusing)).toBe("");
+    expect(store.writeTabDefault(null, "durum=paid", mem)).toBe(false);
+    expect(store.readTabDefault(null, mem)).toBe("");
+    // No sessionStorage here (node): nothing noted, nothing thrown.
+    expect(store.writeTabDefault(key, "durum=paid")).toBe(false);
+    expect(store.readTabDefault(key)).toBe("");
+  });
+
   it("a refused write names what refuses one, not a private window", () => {
     // Private windows write to localStorage today (the view goes when the
     // window closes): blaming them sent the operator after the wrong cause.
@@ -688,6 +802,7 @@ describe("the markup", () => {
           fields: ORDER_FILTER_FIELDS,
           values: parseFilters(address, ORDER_FILTER_FIELDS),
           pageParam: "sayfa",
+          touched: () => false,
         }),
       );
     const bare = menu({});
@@ -749,6 +864,35 @@ describe("the markup", () => {
   it("the orders list adopts it, with one prop", () => {
     const page = readFileSync("src/app/admin/siparisler/page.tsx", "utf8");
     expect(page).toContain('views={{ key: "orders" }}');
+  });
+});
+
+describe("saving or deleting a view does not wake the server", () => {
+  it("ActionModal still announces a success by default", () => {
+    // The sidebar's badges and the panel signal read the server again on
+    // admin:changed; every other dialog keeps telling them.
+    const modal = readFileSync(
+      "src/components/admin/ui/action-modal.tsx",
+      "utf8",
+    );
+    expect(modal).toMatch(/\n  announce\?: boolean;\n/);
+    expect(modal).toMatch(/\n  announce = true,\n/);
+    expect(modal).toMatch(
+      /if \(result\.ok\) \{[^}]*if \(announce\) announceAdminChange\(\);/,
+    );
+  });
+
+  it("only the saved views' dialogs turn it off", () => {
+    const users = readdirSync("src", { recursive: true })
+      .map(String)
+      .filter((f) => /\.tsx?$/.test(f))
+      .filter((f) =>
+        /\bannounce=\{false\}/.test(readFileSync(`src/${f}`, "utf8")),
+      );
+    expect(users).toEqual(["components/admin/ui/saved-views.tsx"]);
+    const src = readFileSync("src/components/admin/ui/saved-views.tsx", "utf8");
+    expect(src.match(/<ActionModal\b/g)).toHaveLength(2);
+    expect(src.match(/announce=\{false\}/g)).toHaveLength(2);
   });
 });
 

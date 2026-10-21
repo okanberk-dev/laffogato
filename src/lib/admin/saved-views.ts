@@ -8,19 +8,42 @@
 //
 // A view never keeps what names a person. The typed search is not in the
 // address any more (list-search-core.ts), and `q` and the list's own search
-// boxes are dropped all the same, as is any value piiLike() reads as an
-// e-mail or a phone: a counter tablet is shared, and localStorage outlives
-// the session. piiLike counts a date written as digits too, so a date range
-// is not kept either; a fixed range would go stale in a week anyway.
+// boxes are dropped all the same. Beyond that a view keeps only the list's
+// own params (its filters, its tab, its sort: viewRulesFor) with a value its
+// controls write (letters, digits, `_` and `-`, no run of seven digits), and
+// nothing piiLike() reads as an e-mail or a phone: a counter tablet is
+// shared, and localStorage outlives the session. A date has eight digits, so
+// a date range is not kept either; a fixed range would go stale in a week.
 
-import { toSearchParams, type SearchParamsInput } from "./list-params";
+import {
+  DEFAULT_DIR_PARAM,
+  DEFAULT_SORT_PARAM,
+  filterParamNames,
+  toSearchParams,
+  type FilterField,
+  type SearchParamsInput,
+} from "./list-params";
 import { piiLike } from "./pii-like";
 import { foldTr } from "./text-fold";
+
+import { SAVED_VIEWS_KEY_PREFIX } from "./saved-views-key";
 
 export {
   SAVED_VIEWS_KEY_PREFIX,
   savedViewsStorageKey,
 } from "./saved-views-key";
+
+/**
+ * sessionStorage, per tab, account and list: the default view this tab has
+ * already opened the list with (defaultViewHref's `appliedInTab`).
+ */
+export const SAVED_VIEWS_TAB_PREFIX = "laf_admin_views_tab_v1:";
+
+/** The tab's note for a list's views (the same account and list), or null. */
+export function savedViewsTabKey(storageKey: string): string | null {
+  if (!storageKey.startsWith(SAVED_VIEWS_KEY_PREFIX)) return null;
+  return `${SAVED_VIEWS_TAB_PREFIX}${storageKey.slice(SAVED_VIEWS_KEY_PREFIX.length)}`;
+}
 
 /** Views per list and account. */
 export const SAVED_VIEWS_MAX = 8;
@@ -30,8 +53,16 @@ export const SAVED_VIEW_NAME_MAX = 30;
 
 /** A param a view may keep: the name listSearchAction accepts in a post. */
 const PARAM_NAME = /^[A-Za-z][A-Za-z0-9_-]{0,39}$/;
-const VALUE_MAX = 100;
+/**
+ * A value a list's own controls write: a tab, an option, a sort ("acik",
+ * "pending_payment", "1"). No space, dot, slash, comma, "@" or "%": a name,
+ * an address, a split phone or an encoded e-mail cannot be one.
+ */
+const VALUE = /^[A-Za-z0-9_-]{1,100}$/;
 const PARAMS_MAX = 16;
+
+/** Seven digits once `_` and `-` go: piiLike leaves `0532_123_45_67` whole. */
+const digitRun = (text: string) => /\d{7,}/.test(text.replace(/[_-]/g, ""));
 
 /** The typed search's usual name: never kept, whatever the list calls its boxes. */
 const SEARCH_PARAM = "q";
@@ -42,6 +73,38 @@ export interface ViewRules {
   searchNames: readonly string[];
   /** The page param: a view opens on page 1. */
   pageParam: string;
+  /**
+   * The only names a view keeps (viewRulesFor: the list's filters, its tab
+   * and its sort); without it, any name the other rules let through.
+   */
+  names?: readonly string[];
+}
+
+/**
+ * Every list's own params besides its filters: the tab (StatusTabs'
+ * default param) and the sort (DataTable's). A test holds the tab's name
+ * to StatusTabs.
+ */
+export const LIST_VIEW_PARAMS: readonly string[] = [
+  "durum",
+  DEFAULT_SORT_PARAM,
+  DEFAULT_DIR_PARAM,
+];
+
+/** The rules for a list with these FilterBar fields: what the menu uses. */
+export function viewRulesFor(
+  fields: readonly FilterField[],
+  pageParam: string,
+): ViewRules {
+  const boxes = fields.filter((f) => f.type === "search");
+  return {
+    searchNames: boxes.map((f) => f.name),
+    pageParam,
+    names: [
+      ...filterParamNames(fields.filter((f) => f.type !== "search")),
+      ...LIST_VIEW_PARAMS,
+    ],
+  };
 }
 
 export interface SavedView {
@@ -62,16 +125,13 @@ export const NO_SAVED_VIEWS: SavedViewsState = {
   defaultQuery: null,
 };
 
-/** A control character: never part of a value a view keeps. */
-const CONTROL = /\p{Cc}/u;
-
 /**
  * The params a view keeps of this address, sorted by name, so one view has
  * one spelling. Dropped: `q`, the list's search boxes, the page, the
- * one-time `denied`, an odd name, an empty or long value, a control
- * character, and any name or value piiLike() reads as an e-mail or a phone
- * (and so a date). A repeated name keeps its first value, as the lists
- * read it.
+ * one-time `denied`, a name the list does not own (`rules.names`), an odd
+ * name, a value its controls would not write (VALUE), and any name or value
+ * that reads as an e-mail or a phone (piiLike, or seven digits in a row:
+ * a date too). A repeated name keeps its first value, as the lists read it.
  */
 export function viewParams(
   address: SearchParamsInput,
@@ -88,10 +148,13 @@ export function viewParams(
     if (seen.has(key)) continue;
     seen.add(key);
     if (dropped.has(key) || !PARAM_NAME.test(key)) continue;
-    if (!value || value.length > VALUE_MAX || CONTROL.test(value)) continue;
+    if (rules.names && !rules.names.includes(key)) continue;
+    if (!VALUE.test(value)) continue;
     // The name too: a link someone wrote by hand can carry a number in it
     // (`?p05321234567=1`), and the name is kept as much as the value.
-    if (piiLike(key) || piiLike(value)) continue;
+    if (piiLike(key) || piiLike(value) || digitRun(key) || digitRun(value)) {
+      continue;
+    }
     out.push([key, value]);
     if (out.length === PARAMS_MAX) break;
   }
@@ -274,20 +337,41 @@ export function setDefaultView(
   return { views: state.views, defaultQuery: query };
 }
 
+/** What the tab and the page say about opening the default now. */
+export interface DefaultViewContext {
+  /**
+   * The default this tab has already opened the list with (sessionStorage,
+   * savedViewsTabKey), or null. Next mounts the list anew on Back (its back
+   * cache holds one page), and the bare address there is the operator's own
+   * "Tümü": the same default is not opened twice in a tab.
+   */
+  appliedInTab?: string | null;
+  /**
+   * The operator pressed, typed or sent something on the page since the
+   * list came up (ui/saved-views-key.ts): the default's replace would cancel
+   * the navigation they started, or undo the tab they chose.
+   */
+  touched?: boolean;
+}
+
 /**
  * Where the list goes when it opens: its default view, but only for a
  * plain address (no tab, filter, sort or page: the menu, a bookmark of the
- * bare list) and no remembered search. A list opened with anything in its
- * address shows that, and so does the bare list reached from the list
- * itself ("Tümü", "Sıfırla"): ui/saved-views.tsx asks once per visit.
+ * bare list), no remembered search, nothing the operator has started yet,
+ * and once per tab for a default (a new default opens once too). A list
+ * opened with anything in its address shows that, and so does the bare
+ * list reached from the list itself ("Tümü", "Sıfırla", and Back to them):
+ * ui/saved-views.tsx asks once per mount.
  */
 export function defaultViewHref(
   state: SavedViewsState,
   pathname: string,
   address: SearchParamsInput,
   searchActive: boolean,
+  { appliedInTab = null, touched = false }: DefaultViewContext = {},
 ): string | null {
-  if (!state.defaultQuery || searchActive) return null;
+  if (!state.defaultQuery || searchActive || touched) return null;
+  if (state.defaultQuery === appliedInTab) return null;
   if ([...toSearchParams(address)].length > 0) return null;
   return viewHref(pathname, state.defaultQuery);
 }

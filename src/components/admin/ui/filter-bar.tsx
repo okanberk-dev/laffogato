@@ -23,7 +23,11 @@ import {
 
 import { FIELD_INPUT } from "../forms";
 import { ListSearchButton } from "./list-search-button";
-import { SavedViewsBoundary, useSavedViewsKey } from "./saved-views-key";
+import {
+  SavedViewsBoundary,
+  useSavedViewsKey,
+  useTouchedSince,
+} from "./saved-views-key";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
 import { useNoResetSubmit } from "./submit";
 
@@ -163,6 +167,8 @@ export function FilterBar({
   const list = listSearchFor(pathname, fields);
   // Null before the page is in the browser, and without `views`.
   const viewsKey = useSavedViewsKey(views?.key);
+  // A press, key or form sent since then: the menu's default stays away.
+  const touched = useTouchedSince(viewsKey !== null);
   const baseId = useId();
   const resetId = `${baseId}-reset`;
   // The post runs as an action, so `pending` holds until the filtered list
@@ -403,6 +409,7 @@ export function FilterBar({
               fields={fields}
               values={values}
               pageParam={pageParam}
+              touched={touched}
               className="ml-auto"
             />
           </SavedViewsBoundary>

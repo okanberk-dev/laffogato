@@ -13,10 +13,11 @@ import {
   SAVED_VIEW_NAME_MAX,
   SAVED_VIEWS_MAX,
   saveView,
+  savedViewsTabKey,
   setDefaultView,
   viewQuery,
+  viewRulesFor,
   viewsMenu,
-  type ViewRules,
 } from "@/lib/admin/saved-views";
 
 import { Field, TextInput } from "../forms";
@@ -27,7 +28,13 @@ import {
 } from "./action-menu";
 import { ActionModal, type ModalAction } from "./action-modal";
 import { ListSearchButton } from "./list-search-button";
-import { readViews, subscribeViews, writeViews } from "./saved-views-store";
+import {
+  readTabDefault,
+  readViews,
+  subscribeViews,
+  writeTabDefault,
+  writeViews,
+} from "./saved-views-store";
 import { BUTTON } from "./styles";
 import { useToast } from "./toast";
 
@@ -59,6 +66,8 @@ export interface SavedViewsProps {
   /** What the list shows, the remembered search included. */
   values: FilterValues;
   pageParam: string;
+  /** useTouchedSince's answer: the operator started something already. */
+  touched: () => boolean;
   className?: string;
 }
 
@@ -80,7 +89,7 @@ export function focusMenuButton(
  * The "Görünümler" menu: the saved views (each opens the list as saved,
  * without the search), and for the view on screen "Bu görünümü kaydet", or
  * "Varsayılan yap" and "Görünümü sil" when it is one of them. The default
- * view is opened once per visit, when the list is opened bare.
+ * view is opened when the list is opened bare, once per tab.
  */
 export function SavedViews({
   storageKey,
@@ -89,6 +98,7 @@ export function SavedViews({
   fields,
   values,
   pageParam,
+  touched,
   className,
 }: SavedViewsProps) {
   const router = useRouter();
@@ -99,10 +109,7 @@ export function SavedViews({
   // with a stored list this way.
   const read = () => readViews(storageKey);
   const raw = useSyncExternalStore(subscribeViews, read, read);
-  const rules: ViewRules = {
-    searchNames: fields.flatMap((f) => (f.type === "search" ? [f.name] : [])),
-    pageParam,
-  };
+  const rules = viewRulesFor(fields, pageParam);
   const state = parseSavedViews(raw, rules);
   const current = viewQuery(address, rules);
   const menu = viewsMenu(state, pathname, current);
@@ -111,16 +118,27 @@ export function SavedViews({
     (f) => f.type === "search" && Boolean(values[f.name]),
   );
 
-  // The default, once per visit: this runs when the bar mounts, and the
-  // bar stays mounted while the list's own links ("Tümü", "Sıfırla", a
-  // chip's ×) change the address, so those still reach the bare list.
+  // The default, asked once per mount: the bar stays mounted while the
+  // list's own links ("Tümü", "Sıfırla", a chip's ×) change the address,
+  // so those reach the bare list. Back mounts the list anew (Next's back
+  // cache holds one page), so the tab notes the default it opened and does
+  // not open it again; and a press, key or post since the bar came up
+  // means a navigation of the operator's own is under way.
   const asked = useRef(false);
-  const target = defaultViewHref(state, pathname, address, searchActive);
+  const tabKey = savedViewsTabKey(storageKey);
   useEffect(() => {
     if (asked.current) return;
     asked.current = true;
-    if (target) router.replace(target, { scroll: false });
-  }, [router, target]);
+    const target = defaultViewHref(state, pathname, address, searchActive, {
+      appliedInTab: readTabDefault(tabKey) || null,
+      touched: touched(),
+    });
+    if (!target || !state.defaultQuery) return;
+    // Not noted, not opened: a tab that cannot remember would reopen it on
+    // every Back.
+    if (!writeTabDefault(tabKey, state.defaultQuery)) return;
+    router.replace(target, { scroll: false });
+  }, [router, state, pathname, address, searchActive, tabKey, touched]);
 
   // Every write starts from what is stored now: another tab may have
   // saved since this one drew its menu.
@@ -219,6 +237,7 @@ export function SavedViews({
               tone="danger"
               submitLabel="Sil"
               size="sm"
+              announce={false}
               onSuccess={refocus}
             />
           </>
@@ -231,6 +250,7 @@ export function SavedViews({
             triggerVariant="menu"
             submitLabel="Kaydet"
             size="sm"
+            announce={false}
             onSuccess={refocus}
           >
             <Field label="Görünümün adı">

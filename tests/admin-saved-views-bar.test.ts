@@ -43,6 +43,7 @@ vi.mock("next/dynamic", () => ({
       pathname: string;
       address: unknown;
       pageParam: string;
+      touched?: unknown;
       className?: string;
     }) =>
       createElement("span", {
@@ -51,6 +52,7 @@ vi.mock("next/dynamic", () => ({
         "data-pathname": props.pathname,
         "data-address": JSON.stringify(props.address),
         "data-page-param": props.pageParam,
+        "data-touched": typeof props.touched,
         "data-class": props.className,
       }),
 }));
@@ -64,8 +66,24 @@ vi.mock("@/components/admin/ui/saved-views-key", async (importOriginal) => ({
     listKey ? page.key : null,
 }));
 
+// The dialogs the real menu draws, with the props it gives them.
+const modals = vi.hoisted(() => ({
+  props: [] as Array<Record<string, unknown>>,
+}));
+vi.mock("@/components/admin/ui/action-modal", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/components/admin/ui/action-modal")>();
+  return {
+    ...actual,
+    ActionModal: (props: Parameters<typeof actual.ActionModal>[0]) => {
+      modals.props.push(props as unknown as Record<string, unknown>);
+      return createElement(actual.ActionModal, props);
+    },
+  };
+});
+
 const { FilterBar } = await import("@/components/admin/ui/filter-bar");
-const { SavedViewsBoundary } =
+const { SavedViewsBoundary, TOUCH_EVENTS, watchFirstTouch } =
   await import("@/components/admin/ui/saved-views-key");
 const { SavedViews } = await import("@/components/admin/ui/saved-views");
 const { ORDER_FILTER_FIELDS } = await import("@/lib/admin/order-filters");
@@ -351,6 +369,8 @@ describe("once the page is in the browser", () => {
     expect(attr("storage-key")).toBe(KEY);
     expect(attr("pathname")).toBe(PATH);
     expect(attr("page-param")).toBe("sayfa");
+    // And the question "has the operator started something?" (F2).
+    expect(attr("touched")).toBe("function");
     expect(attr("class")).toBe("ml-auto");
     // The page and the notice may ride along (the rules drop them); the
     // typed search and the one-time notice never reach the menu.
@@ -415,6 +435,7 @@ describe("the menu for a stored list", () => {
           fields: ORDER_FILTER_FIELDS,
           values: extra.values ?? parseFilters(address, ORDER_FILTER_FIELDS),
           pageParam: "sayfa",
+          touched: () => false,
         }),
       );
     } finally {
@@ -498,5 +519,100 @@ describe("the menu for a stored list", () => {
     const html = drawn(null, {});
     expect(html).not.toContain("Kayıtlı görünümler");
     expect(html).toContain("Önce bir sekme, süzgeç ya da sıralama seç.");
+  });
+});
+
+describe("the operator's first touch, which keeps the default away", () => {
+  it("a press, a key or a form sent counts, anywhere, even when stopped", () => {
+    expect([...TOUCH_EVENTS]).toEqual(["pointerdown", "keydown", "submit"]);
+    const page = new EventTarget();
+    let touches = 0;
+    const stop = watchFirstTouch(page, () => {
+      touches += 1;
+    });
+    for (const type of ["pointermove", "scroll", "wheel", "focus", "click"]) {
+      page.dispatchEvent(new Event(type));
+    }
+    expect(touches).toBe(0);
+    for (const type of TOUCH_EVENTS) page.dispatchEvent(new Event(type));
+    expect(touches).toBe(3);
+    stop();
+    page.dispatchEvent(new Event("pointerdown"));
+    expect(touches).toBe(3);
+  });
+
+  it("listens in the capture phase, so a control that stops the event still counts", () => {
+    const calls: Array<
+      [string, boolean | AddEventListenerOptions | undefined]
+    > = [];
+    const target = {
+      addEventListener: (
+        type: string,
+        _fn: unknown,
+        options?: boolean | AddEventListenerOptions,
+      ) => void calls.push([type, options]),
+      removeEventListener: () => {},
+    };
+    watchFirstTouch(target, () => {});
+    expect(calls).toEqual(
+      TOUCH_EVENTS.map((type) => [type, { capture: true, passive: true }]),
+    );
+  });
+
+  it("the bar asks it only for a list with views, once the page is in the browser", () => {
+    const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
+    expect(src).toMatch(
+      /const touched = useTouchedSince\(viewsKey !== null\);/,
+    );
+    expect(src).toMatch(/touched=\{touched\}/);
+  });
+});
+
+describe("saving or deleting a view stays in the browser", () => {
+  it("both dialogs tell the panel nothing changed on the server", () => {
+    modals.props.length = 0;
+    // An open saved view: its delete dialog. An unsaved filter: the save.
+    const TABS = ["acik", "paid"];
+    const raw = JSON.stringify({
+      views: TABS.map((tab, i) => ({
+        name: `V${i + 1}`,
+        query: `durum=${tab}`,
+      })),
+    });
+    const withStorage = (
+      stored: string | null,
+      address: Record<string, string>,
+    ) => {
+      vi.stubGlobal("window", {
+        localStorage: { getItem: () => stored, setItem() {}, removeItem() {} },
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent: () => true,
+      });
+      try {
+        return renderToStaticMarkup(
+          createElement(SavedViews, {
+            storageKey: KEY,
+            pathname: PATH,
+            address,
+            fields: ORDER_FILTER_FIELDS,
+            values: parseFilters(address, ORDER_FILTER_FIELDS),
+            pageParam: "sayfa",
+            touched: () => false,
+          }),
+        );
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    };
+    expect(withStorage(raw, { durum: "paid" })).toContain(">Görünümü sil<");
+    expect(withStorage(null, { durum: "acik", teslimat: "table" })).toContain(
+      ">Bu görünümü kaydet<",
+    );
+    const drawnModals = modals.props.map((p) => [p.title, p.announce]);
+    expect(drawnModals).toEqual([
+      ["Görünümü sil", false],
+      ["Görünümü kaydet", false],
+    ]);
   });
 });
