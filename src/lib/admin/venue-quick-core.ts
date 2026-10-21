@@ -7,10 +7,10 @@ export type VenueOverride = "auto" | "open" | "closed";
 
 /**
  * The chip's four choices. "Yoğun" is not a stored state: the room is full,
- * which the app reads from `freeTables = 0` ("Masaların hepsi dolu.") while
- * the hours still decide open and closed. So it saves as Otomatik with no
- * free table. An after-hours night that fills up is "Açık" with the count
- * stepped down to 0: "Yoğun" never keeps the house open past its hours.
+ * which the app reads from `freeTables = 0` ("Masaların hepsi dolu."), the
+ * same as the page's "Boş masa 0". It writes only that: the open/closed
+ * stays as it is, so an Açık match night stays open past the hours and a
+ * manual Kapalı stays closed (PR #189 review, F1).
  */
 export type VenueQuickChoice = "auto" | "open" | "busy" | "closed";
 
@@ -27,7 +27,7 @@ export const VENUE_QUICK_LABELS: Record<
 > = {
   auto: { label: "Otomatik", hint: "Çalışma saatlerine göre" },
   open: { label: "Açık", hint: "Saatlerden bağımsız" },
-  busy: { label: "Yoğun", hint: "Masalar dolu, saatlere göre" },
+  busy: { label: "Yoğun", hint: "Masalar dolu, açık/kapalı değişmez" },
   closed: { label: "Kapalı", hint: "Saatlerden bağımsız" },
 };
 
@@ -145,19 +145,26 @@ export function readVenueAnswer(value: unknown): VenueSignalAnswer {
   return { status: null, cursor: "" };
 }
 
-/** The radio a stored status opens the popover on. */
+/**
+ * The radio a stored status opens the popover on: the chip's own word
+ * (venueChipState) where it says Yoğun, whichever mode the köşk is open
+ * in; otherwise the stored mode.
+ */
 export function quickChoiceOf(status: VenueQuickStatus): VenueQuickChoice {
-  if (status.manualOverride === "open") return "open";
   if (status.manualOverride === "closed") return "closed";
-  return status.saved && status.freeTables === 0 ? "busy" : "auto";
+  if (venueChipState(status).label === "Yoğun") return "busy";
+  return status.manualOverride;
 }
 
-/** The two fields a choice saves (the quick action writes nothing else). */
+/**
+ * The fields a choice saves (the quick action writes nothing else): the
+ * mode and the free tables, or for Yoğun the free tables alone.
+ */
 export function quickPatchFor(
   choice: VenueQuickChoice,
   freeTables: number,
-): { manualOverride: VenueOverride; freeTables: number } {
-  if (choice === "busy") return { manualOverride: "auto", freeTables: 0 };
+): { manualOverride?: VenueOverride; freeTables: number } {
+  if (choice === "busy") return { freeTables: 0 };
   return { manualOverride: choice, freeTables };
 }
 
@@ -202,14 +209,17 @@ export function stepFreeTables(
 }
 
 /**
- * The radio after a −/+ step. Under the hours, a full room is "Yoğun" and
- * a free table makes it "Otomatik" again; a manual Açık or Kapalı stays as
- * chosen.
+ * The radio after a −/+ step. A free table ends Yoğun: the radio goes back
+ * to the mode the köşk is in (`stored`, which Yoğun never changed), never
+ * to Otomatik, which would close an Açık night past the hours. A mode the
+ * operator picked stays as picked; stepping it to 0 saves that mode with
+ * no free table, the same full room.
  */
 export function choiceAfterStep(
   choice: VenueQuickChoice,
   freeTables: number,
+  stored: VenueOverride,
 ): VenueQuickChoice {
-  if (choice !== "auto" && choice !== "busy") return choice;
-  return freeTables === 0 ? "busy" : "auto";
+  if (choice === "busy" && freeTables > 0) return stored;
+  return choice;
 }

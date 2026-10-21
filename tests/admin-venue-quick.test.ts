@@ -80,26 +80,44 @@ const status = (over: Partial<Status> = {}): Status => ({
 });
 
 describe("the chip's rules", () => {
-  it("opens the popover on the stored choice; Yoğun is Otomatik with no free table", () => {
+  it("opens the popover where the chip's word is: Yoğun for an open köşk with no free table, in either mode", () => {
     expect(core.quickChoiceOf(status())).toBe("auto");
     expect(core.quickChoiceOf(status({ freeTables: 0 }))).toBe("busy");
     // Never saved: 0 is the default, not a full room.
     expect(core.quickChoiceOf(status({ freeTables: 0, saved: false }))).toBe(
       "auto",
     );
-    expect(
-      core.quickChoiceOf(status({ manualOverride: "open", freeTables: 0 })),
-    ).toBe("open");
-    expect(core.quickChoiceOf(status({ manualOverride: "closed" }))).toBe(
-      "closed",
+    // An Açık night with no free table: the chip says Yoğun, so does the
+    // popover (PR #189 review, F1).
+    const full = status({ manualOverride: "open", freeTables: 0 });
+    expect(core.venueChipState(full).label).toBe("Yoğun");
+    expect(core.quickChoiceOf(full)).toBe("busy");
+    expect(core.quickChoiceOf(status({ manualOverride: "open" }))).toBe("open");
+    // Closed by the hours: the chip says Kapalı, the mode is Otomatik.
+    expect(core.quickChoiceOf(status({ isOpen: false, freeTables: 0 }))).toBe(
+      "auto",
     );
+    expect(
+      core.quickChoiceOf(
+        status({ manualOverride: "closed", isOpen: false, freeTables: 0 }),
+      ),
+    ).toBe("closed");
+    for (const s of [
+      status(),
+      full,
+      status({ freeTables: 0 }),
+      status({ manualOverride: "open" }),
+    ]) {
+      const word = core.venueChipState(s).label;
+      expect(core.quickChoiceOf(s) === "busy", JSON.stringify(s)).toBe(
+        word === "Yoğun",
+      );
+    }
   });
 
-  it("saves two fields only, and Yoğun never keeps the house open past its hours", () => {
-    expect(core.quickPatchFor("busy", 7)).toEqual({
-      manualOverride: "auto",
-      freeTables: 0,
-    });
+  it("Yoğun writes the free tables alone: the open/closed stays as it is (F1)", () => {
+    expect(core.quickPatchFor("busy", 7)).toEqual({ freeTables: 0 });
+    expect(core.quickPatchFor("busy", 0)).toEqual({ freeTables: 0 });
     expect(core.quickPatchFor("open", 3)).toEqual({
       manualOverride: "open",
       freeTables: 3,
@@ -113,10 +131,9 @@ describe("the chip's rules", () => {
       freeTables: 5,
     });
     for (const c of core.VENUE_QUICK_CHOICES) {
-      expect(Object.keys(core.quickPatchFor(c, 1)).sort()).toEqual([
-        "freeTables",
-        "manualOverride",
-      ]);
+      expect(Object.keys(core.quickPatchFor(c, 1)).sort()).toEqual(
+        c === "busy" ? ["freeTables"] : ["freeTables", "manualOverride"],
+      );
     }
   });
 
@@ -155,11 +172,17 @@ describe("the chip's rules", () => {
     expect(core.stepFreeTables(25, 0, 20)).toBe(20);
   });
 
-  it("moves the radio with the stepper under the hours, not over a manual choice", () => {
-    expect(core.choiceAfterStep("auto", 0)).toBe("busy");
-    expect(core.choiceAfterStep("busy", 1)).toBe("auto");
-    expect(core.choiceAfterStep("open", 0)).toBe("open");
-    expect(core.choiceAfterStep("closed", 3)).toBe("closed");
+  it("a free table ends Yoğun on the mode the köşk is in, never on Otomatik; a picked mode stays", () => {
+    // An Açık night: + from Yoğun goes back to Açık, which keeps the köşk
+    // open past the hours (Otomatik would close it).
+    expect(core.choiceAfterStep("busy", 1, "open")).toBe("open");
+    expect(core.choiceAfterStep("busy", 1, "auto")).toBe("auto");
+    expect(core.choiceAfterStep("busy", 1, "closed")).toBe("closed");
+    expect(core.choiceAfterStep("busy", 0, "open")).toBe("busy");
+    // A mode the operator picked is saved as picked, 0 included.
+    expect(core.choiceAfterStep("auto", 0, "open")).toBe("auto");
+    expect(core.choiceAfterStep("open", 0, "auto")).toBe("open");
+    expect(core.choiceAfterStep("closed", 3, "auto")).toBe("closed");
   });
 });
 

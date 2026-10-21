@@ -47,7 +47,8 @@ import { useToast } from "./ui/toast";
  *   it; the answer is a toast.
  * - Saving writes only those two columns, in one UPDATE
  *   (saveVenueQuickAction → patchVenueStatus): a colleague's Wi-Fi or note
- *   saved a second earlier is never put back.
+ *   saved a second earlier is never put back. Yoğun writes the free tables
+ *   alone (0); the open/closed stays as it is.
  * - No library code: this file is in every admin page's bundle, the Kasa
  *   included (CLAUDE.md, admin UI libraries).
  */
@@ -357,7 +358,7 @@ export function VenueQuickForm({
   const step = (delta: number) => {
     const next = stepFreeTables(free, delta, total);
     setFree(next);
-    setChoice((c) => choiceAfterStep(c, next));
+    setChoice((c) => choiceAfterStep(c, next, status.manualOverride));
   };
 
   return (

@@ -166,7 +166,8 @@ export async function saveVenueStatusAction(
  * The top bar's köşk chip (components/admin/venue-quick.tsx): open, busy or
  * closed, and the free tables, nothing else. One UPDATE of those two
  * columns (patchVenueStatus), so Wi-Fi, noise, power and the note a
- * colleague saved meanwhile stay as they are. Its own gate and parse: like
+ * colleague saved meanwhile stay as they are; Yoğun sets the free tables
+ * alone and leaves the open/closed as it is. Its own gate and parse: like
  * every export here it is a public POST endpoint.
  */
 export async function saveVenueQuickAction(
@@ -195,20 +196,23 @@ export async function saveVenueQuickAction(
   if (!saved) return actionError(OVER_TOTAL, { freeTables: OVER_TOTAL });
 
   // The row is saved: an audit insert that fails is logged, not shown as a
-  // failed save the operator would repeat.
+  // failed save the operator would repeat. It names what was written: a
+  // Yoğun leaves the open/closed out.
   await safeAudit({
     action: "update",
     entity: "venue_status",
     entityId: "main",
     payload: {
-      manualOverride: saved.manualOverride,
+      ...(patch.manualOverride !== undefined
+        ? { manualOverride: saved.manualOverride }
+        : {}),
       freeTables: saved.freeTables,
     },
   });
 
   revalidatePath("/admin/mobil/canli-durum");
-  // Named from what was saved, the way the chip will read it back:
-  // Otomatik with no free table is "Yoğun".
+  // Named from what was saved, the way the popover reads it back: open with
+  // no free table is "Yoğun", whichever mode.
   const choice = quickChoiceOf({ ...saved, isOpen: true, saved: true });
   return actionOk(
     `Köşk: ${VENUE_QUICK_LABELS[choice].label}, boş masa ${saved.freeTables} / ${saved.totalTables}. Uygulama 30 saniye içinde görür.`,

@@ -244,13 +244,14 @@ describe("saveVenueQuickAction (the köşk chip)", () => {
     );
   });
 
-  it("saves Yoğun as Otomatik with no free table", async () => {
+  it("saves Yoğun as no free table alone: the open/closed is not written (F1)", async () => {
     const res = await quick("busy", "7");
-    expect(patchVenueStatus).toHaveBeenCalledWith({
-      manualOverride: "auto",
-      freeTables: 0,
-    });
+    expect(patchVenueStatus).toHaveBeenCalledWith({ freeTables: 0 });
     expect(res.ok && res.message).toMatch(/^Köşk: Yoğun, boş masa 0 \/ 12\./);
+    // The audit row names what was written, not the mode it left alone.
+    expect(safeAudit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payload: { freeTables: 0 } }),
+    );
     // Otomatik with 0 free tables is the same room: the toast says so.
     patchVenueStatus.mockClear();
     const auto = await quick("auto", "0");
