@@ -283,7 +283,7 @@ export function BulkActionBar({
         data-admin-bulk-bar=""
         role="region"
         aria-label="Toplu işlem"
-        className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:left-[calc(16rem+1rem)]"
+        className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:left-[calc(var(--admin-side,16rem)+1rem)]"
       >
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
           <div className="flex flex-wrap items-center gap-x-3">

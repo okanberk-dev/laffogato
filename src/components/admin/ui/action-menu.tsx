@@ -13,7 +13,7 @@ import {
 
 import { cx } from "@/components/laffogato/cx";
 
-import { BUTTON } from "./styles";
+import { BUTTON, COMPACT } from "./styles";
 
 export interface ActionMenuProps {
   /** Accessible name of the "⋯" button; default "İşlemler". */
@@ -158,6 +158,8 @@ export function ActionMenu({
         aria-controls={panelId}
         className={cx(
           "inline-flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] select-none hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
+          COMPACT.minH9,
+          COMPACT.minW9,
           open && "border-[var(--admin-primary)] text-[var(--admin-primary)]",
         )}
       >

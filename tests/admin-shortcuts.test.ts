@@ -923,9 +923,11 @@ describe("the palette's side", () => {
     expect(list).toContain(
       'if (all) section("commands", "Komutlar", entryItems(commandsShown));',
     );
-    // The sheet command closes the palette first: one dialog at a time.
+    // The commands the shell answers (the sheet, since UI-9 the density
+    // too) close the palette first (one dialog at a time), then go out as
+    // an event; the order sound is the one command the list runs itself.
     expect(list).toMatch(
-      /target\.command === "shortcutSheet"\) \{\s*close\(\);\s*openShortcutSheet\(\);/,
+      /target\.command !== "toggleSound"\) \{\s*close\(\);\s*runPaletteCommand\(target\.command\);/,
     );
   });
 });
