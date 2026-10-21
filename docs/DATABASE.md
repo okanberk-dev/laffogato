@@ -460,7 +460,7 @@ sınır anıyla görünür, CSV dışa aktarma da aynı satırları taşır.
 
 ### Karaoke rezervasyonları (ASK-RETENTION)
 
-İki SQL fonksiyonu (`20261020174226_karaoke_guest_retention.sql`), ikisi de
+İki SQL fonksiyonu (`20261021090000_karaoke_guest_retention.sql`), ikisi de
 `(p_cutoff text, p_apply boolean) returns integer`, `rpc()` ile çağrılır
 (kural 23):
 

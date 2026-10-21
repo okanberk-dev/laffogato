@@ -19,7 +19,7 @@ import {
 
 /**
  * Karaoke retention against a real Postgres (decision ASK-RETENTION,
- * db/migrations/20261020174226_karaoke_guest_retention.sql):
+ * db/migrations/20261021090000_karaoke_guest_retention.sql):
  *
  *   karaoke_guest_retention        three years after the booking day: the
  *                                  guest's name and address, every booking's

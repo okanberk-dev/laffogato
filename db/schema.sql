@@ -7455,7 +7455,7 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
   on conflict (name) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────
--- 20261020174226_karaoke_guest_retention.sql
+-- 20261021090000_karaoke_guest_retention.sql
 -- ─────────────────────────────────────────────────────────────────────
 -- Karaoke bookings: the guest's identity and every contact detail go three
 -- years after the booking day, the booking itself after eleven (decision
@@ -7637,5 +7637,5 @@ begin
 end;
 $$;
 
-insert into public._migrations (name) values ('20261020174226_karaoke_guest_retention.sql')
+insert into public._migrations (name) values ('20261021090000_karaoke_guest_retention.sql')
   on conflict (name) do nothing;

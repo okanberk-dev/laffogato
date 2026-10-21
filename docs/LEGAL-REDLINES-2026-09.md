@@ -3010,7 +3010,7 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 
 ### 25.3 Kod
 
-- `db/migrations/20261020174226_karaoke_guest_retention.sql`:
+- `db/migrations/20261021090000_karaoke_guest_retention.sql`:
   `karaoke_reservations."retentionHold"` (boşsa imha engellenmez) ve iki
   fonksiyon. `karaoke_guest_retention` misafirin adını ve adresini
   (`anon-<id>@anon.local`), her rezervasyonun iletişim adresini, telefonunu,
