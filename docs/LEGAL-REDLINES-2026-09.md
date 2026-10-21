@@ -3290,6 +3290,9 @@ yayında değil; canlı kural 2 saat / %0.
 | Karaoke odası onay kaydı (değer) | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır; bu kayıt için kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. |
 | Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması) (yeni satır, karaoke onay kaydı satırının ardından) | (yoktu) | Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir. |
 | İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları) (değer) | Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir. | Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır. |
+| İmha (silme, yok etme, anonimleştirme) kayıtları (değer, son cümle; inceleme R1) | Kayıt, yetkili personelin yürüttüğü imhalar için tutulur; sistem tarafından otomatik yürütülen imhalar için ayrı bir kayıt oluşturulmaz. | Yetkili personelin yürüttüğü imhalar için imha kaydı tutulur. Sistem tarafından otomatik yürütülen her periyodik imha çalışması da, kişisel veri içermeyen bir kayıt olarak değiştirilemez olay kaydına yazılır ve 10 yıl saklanır; bu kayıt çalışmanın tarih ve saatini, her kural için veri kategorisini, saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını gösterir. |
+| §17, 1. paragraf, 2. cümle (inceleme R1) | Saklama süresi dolan kayıtların otomatik görevle silinmesi ve üyenin kendi hesabını kapatması gibi sistem tarafından yürütülen işlemler için ayrı bir imha kaydı oluşturulmaz; bu işlemlerin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. | Saklama süresi dolan kayıtların otomatik görevle silinmesi veya alanlarının boşaltılması da kayıt altına alınır: uygulanan her periyodik imha çalışması için sistem, çalışmanın tarih ve saatini, her kuralın veri kategorisini ve saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını içeren, kişisel veri taşımayan bir kaydı değiştirilemez olay kaydına yazar; bu kayıt on yıl saklanır. Üyenin kendi hesabını kapatması için ayrı bir imha kaydı oluşturulmaz; bu işlemin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. |
+| §17, ilk madde (sonuna eklendi; inceleme R1) | İmha kaydında yer alan asgari bilgiler: işlem tarihi ve saati, veri kategorisi, kayıt sayısı, imha gerekçesi, uygulanan yöntem, işlemi gerçekleştiren kişi ve onaylayan kişi. | (aynı cümle, ardından) Otomatik imhalarda işlemi gerçekleştiren sistemdir; imha gerekçesi (saklama süresinin dolması) ve yöntem (silme veya alanların boşaltılması) ilgili kuralın bu Politikadaki tanımından anlaşılır, onay ise dönem raporunun onaylanmasıyla verilir. |
 
 ### 27.3 Kod
 
@@ -3299,15 +3302,21 @@ yayında değil; canlı kural 2 saat / %0.
   (`anon-<id>@anon.local`), her rezervasyonun iletişim adresini, telefonunu,
   notunu ve onaydaki `ip` ile `userAgent`'ı temizler; satırı silmez.
   `karaoke_reservation_retention` satırı siler. Süzgeç: `date <
-  left(p_cutoff, 10)`, `"paymentStatus"` `pending` ya da `refunding` değil,
-  `"retentionHold" = ''`. Temizlenmiş satır ikinci kez sayılmaz.
+  left(p_cutoff, 10)` (silmede rezervasyon günü, `paidAt` ve `refundedAt`'in
+  en geç olanı; inceleme M2), `"paymentStatus"` `pending` ya da `refunding`
+  değil, panelin hâlâ borçlu saydığı rezervasyon değil (ödenmiş ve iptal
+  edilmiş ya da onaylanmamış; M1), `payment_transactions`'ta cevabı gelmemiş
+  `refunding` iade talebi yok (M3), `"retentionHold" = ''`. Gün olmayan ya da
+  bir yıldan yakın bir sınır hata verir (R5). Temizlenmiş satır ikinci kez
+  sayılmaz.
 - `src/lib/retention.ts`: `karaoke-guest-data` (3 × 366 gün) ve
   `karaoke-reservations` (11 × 366 gün) kuralları; `basis` cümleleri yukarıdaki
   yeni karaoke satırından birebir (`tests/mobile-retention.test.ts`). Sınır
   köşkün saatiyle yazılır (CLAUDE.md kural 22).
 - İmha kaydı: uygulanan her çalıştırma `audit_logs`'a tek satır yazar (actor
   `system`, action `bulk_delete`, entity `retention`, kayıt no çalıştırmanın
-  anı, yalnız sayılar); rapor modu hiçbir şey yazmaz. Olay kaydında "Periyodik
+  anı, kural başına yöntem (`delete` silindi, `clear` alanlar boşaltıldı) ve
+  sayılar); rapor modu hiçbir şey yazmaz. Olay kaydında "Periyodik
   imha" olarak görünür. Ayrıntı `docs/DATABASE.md` "Periyodik imha".
 
 ### 27.4 Sürüm
@@ -3393,21 +3402,28 @@ belgenin kendi diliyle (Üye, Katılımcı) kullanıldı.
 | Gizlilik §3, tablo "Sadakat (damga) programı verisi" (son cümle; spec 4959) | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir. | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. |
 | Gizlilik §4, "Kafe ziyareti" (spec 4989) | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. |
 | Gizlilik §5, amaç tablosu anahtarı (spec'te yok) | Kafede kasa kodu okutularak veya üyelik e-posta adresi girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi | Kafede kasa kodu okutularak ya da girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi |
-| Gizlilik §15, 1. paragraf (spec 5397) | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... |
+| Gizlilik §15, 1. paragraf (spec 5397) | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... |
 | KVKK Aydınlatma §10, "Sadakat programı kanalları" (spec 5966) | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları. | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları. |
 | KVKK Aydınlatma §13, "Kasada damga" (spec 6018) | Kod okunamazsa damga, üyelik e-posta adresiniz girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. |
-| Üyelik Sözleşmesi §10, 2. paragraf (spec'te yok) | ... personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. ... | ... personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinde görünür. ... |
+| Üyelik Sözleşmesi §10, 2. paragraf (spec'te yok) | ... personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. ... | ... personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır. ... |
 | Sadakat Programı Kuralları §2, tanım "Kasa Damgası" (spec'te yok) | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak veya üyelik e-posta adresi girilerek hesaba eklenen damga | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak ya da elle girilerek hesaba eklenen damga |
 | Sadakat Programı Kuralları §7, 1. paragraf (spec'te yok) | Kod okunamazsa damga, Katılımcı'nın üyelik e-posta adresi girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez. |
-| Sadakat Programı Kuralları §14, yeni 2. paragraf (spec'te yok) | (yoktu) | Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'nde görünür. |
+| Sadakat Programı Kuralları §14, yeni 3. paragraf, geri almanın iki paragrafından sonra (spec'te yok) | (yoktu) | Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'ne yazılır. |
 | Sadakat Programı Kuralları §20, 1. paragraf (spec'te yok) | ... maskelenmiş e-posta adresi ve kart durumu gösterilir (e-posta ile ekleme yolunda personel adresi kendisi yazar); damgayı ekleyen personelin hesabı kayda geçer. | ... maskelenmiş e-posta adresi ve kart durumu gösterilir; damgayı ekleyen personelin hesabı kayda geçer. |
 | Mobil Uygulama Koşulları §11 (spec'te yok) | ... personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. | ... personele gösterilir; personel kodu okutur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. |
 | Kafe Hizmet Koşulları §10 (spec'te yok) | ... personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. ... | ... personel kendi cihazıyla okur ya da kod okunamazsa kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. ... |
-| Kafe Hizmet Koşulları §10 (spec'te yok) | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır. | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür. |
+| Kafe Hizmet Koşulları §10 (spec'te yok) | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır. | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır. |
 
 Gizlilik §15'te spec cümlesi bir cümle başladığı için önündeki "; " ". "
 oldu; aradaki düzeltme cümlesinden sonra "Bu sırada" belirsiz kalacağından
 "Kasada damga eklenirken" yazıldı (aynı belgenin §3'teki ifadesi).
+
+İnceleme R3: spec'in "düzeltme damga hareketlerinizde görünür" ifadesi üyeye
+açık bir damga hareketi ekranı vaat ediyordu; böyle bir ekran yok, üye tarihli
+dökümü talep üzerine alır (Sadakat Programı §14, §21). Bu yüzden Gizlilik ve
+Kafe Hizmet'te "düzeltme damga hareketlerinize kayıt olarak işlenir ve
+talebiniz üzerine iletilen tarihli dökümde yer alır.", Üyelik'te aynı anlam
+üçüncü kişiyle, Sadakat §14'te "düzeltme Damga Defteri'ne yazılır." yazıldı.
 
 ### 28.3 Kod
 
@@ -3434,13 +3450,16 @@ oldu; aradaki düzeltme cümlesinden sonra "Bu sırada" belirsiz kalacağından
   Mobil Uygulama Koşulları, Kafe Hizmet Koşulları (`updatedAt`,
   `src/lib/legal/content.ts`). `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
   değişmez.
-- Bildirim: Üyelik Sözleşmesi §22 üye aleyhine esaslı değişiklik için on beş
-  gün önceden bildirim ister, mevzuata uyum amaçlı zorunlu değişikliği
-  ayırır. Bu değişiklik esaslı ve aleyhe değil: damga sayısı ve kazanma
-  yolları aynı, okunamayan kod elle girilir, kasanın kaçırdığı damga talep
-  üzerine verilir; ayrıca KVKK m.12/1 uyumu içindir. Sadakat Programı §12 ve
-  §23 katılımcı aleyhine değişikliğin önceden duyurulmasını ister; sonuç
-  aleyhe olmadığı için bekleme süresi aranmadı, uygulamada duyuru önerilir
+- Bildirim (inceleme R4, orkestratörün operatör yetkisiyle verdiği karar):
+  kasada elle yazılan e-postayla damga yolu kaldırıldı. Bu, Üyelik Sözleşmesi
+  §22 anlamında üye aleyhine esaslı bir değişiklik ve Sadakat Programı §12 ile
+  §23 anlamında Katılımcı aleyhine sonuç doğuran bir değişiklik sayılmadı: her
+  damga üyenin kendi koduyla alınabilir (kamera okumazsa kod elle girilir),
+  kasada kaçan damga üyenin kendi kayıtlı e-postasından ilettiği talep üzerine
+  düzeltilir, damga değeri, ödül ve eşikler değişmez. Değişiklik ayrıca
+  mevzuata uyum içindir (KVKK m.12/1), Üyelik §22 bunu on beş günlük süreden
+  ayırır. On beş günlük bekleme uygulanmadı; değişiklik yayın günü
+  uygulamada duyurulur ve üyelere kısa bir bilgilendirme e-postası gider
   (§28.5).
 
 ### 28.5 Operatöre
@@ -3452,8 +3471,13 @@ oldu; aradaki düzeltme cümlesinden sonra "Bu sırada" belirsiz kalacağından
 - **Yönetici.** Eksik damga: üyenin müşteri sayfası, "Damga düzelt (+1)", sebep
   (kimin istediği ve nasıl doğrulandığı). Talep üyenin kayıtlı adresinden
   gelmeli.
-- **Duyuru (öneri).** Yayın günü uygulama duyurusu: "Kasada damga artık
-  yalnızca uygulamandaki kasa koduyla (QR ya da 8 karakter) eklenir."
+- **Duyuru ve e-posta (yayın günü).** Uygulama duyurusu: "Kasada damga
+  artık yalnızca uygulamandaki kasa koduyla (QR ya da 8 karakter) eklenir."
+  Üyelere kısa bilgilendirme e-postası (işlemsel bilgilendirme, ticari ileti
+  değildir): "Kasada damga artık yalnızca uygulamandaki kasa koduyla (QR ya
+  da altındaki 8 karakter) eklenir; e-posta adresinle damga eklenmez. Kasada
+  bir damgan eksik kaldıysa kayıtlı e-posta adresinden bize yaz, yönetici
+  düzeltsin. Damga sayın, ödüllerin ve eşikler değişmedi."
 - **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile; ayrıca
   `docs/API-MOBILE.md` §17 "Kasa tarafı" ve §21 `kind` satırı değişti
   (lafmobil kopyası ve `RECONCILED`).

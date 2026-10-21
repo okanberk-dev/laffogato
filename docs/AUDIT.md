@@ -411,6 +411,19 @@ formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu (17 
 2026'da canlıda doğrulandı, `docs/PAYNKOLAY.md` §2) ve dönüş hash'inin
 `CURRENCY_CODE` alanı.
 
+PR #196'nın incelemesinde bulunan, önceden var olan ve orada düzeltilmeyenler
+(21 Eki 2026):
+
+- 🟢 `audit-logs` imha kuralı 10 × 366 günü `createdAt`'ten sayıyor, takvim
+  yılının bitişinden değil (TTK m.82/6). Bugün hiçbir satıra değmiyor (en eski
+  satır 2026); kural ilk kez 2036'da işler.
+- 🟢 `payment_transactions.raw.params` `withoutHolderName`'den geçmeden
+  yazılıyor (sertleştirme; belgelenen dönüş gövdesi kart sahibinin adını
+  taşımıyor).
+- 🟢 Mobil Uygulama Koşulları ve Kullanım Şartları damga hareketlerinin
+  bildirimler ekranında göründüğünü söylüyor; ekran yalnız ödül hazır ve
+  kilometre taşı öğelerini gösteriyor.
+
 PR #189 (UI-13, köşk çipi) güvenlik incelemesinin main'de bulduğu, o PR'ın
 değiştirmediği iki madde (21 Eki 2026):
 
@@ -1458,8 +1471,8 @@ Kararlar ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE (operatör,
 
 | Derece | Bulgu | Düzeltme | Test |
 | --- | --- | --- | --- |
-| 🟠 | Üye olmadan karaoke rezervasyonu yapanın adı, e-postası ve telefonu ile her rezervasyonun iletişim adresi, telefonu ve notu için saklama süresi yoktu; Veri Saklama "henüz belirlenmemiştir" diyordu (X-KAR-RETENTION) | Rezervasyon gününden 3 yıl sonra misafirin adı silinir, adresi `anon-<id>@anon.local` olur, her rezervasyonun iletişim bilgisi, notu ve onaydaki IP ile tarayıcı bilgisi silinir; 11 yıl sonra satır silinir (`karaoke_guest_retention`, `karaoke_reservation_retention`). Açık ödeme (`pending`, `refunding`) ve `"retentionHold"` atlanır, temizlenmiş satır ikinci kez sayılmaz, gün köşkün saatiyle kesilir, gün olmayan ya da ileri bir sınır hata verir | `db-integration-karaoke-retention`, `mobile-retention` |
-| 🟡 | Periyodik imha çalıştırması hiçbir iz bırakmıyordu (Silme Yön. m.7/3) (X-RETENTION-APPLY) | Uygulanan her çalıştırma `audit_logs`'a tek satır yazar (`system`, `bulk_delete`, `retention`, yalnız sayılar, `safeAudit`); rapor modu hiçbir şey yazmaz; iki cron rotası da kaydı bırakır ve aynı satırı loglar; Olay kaydında "Periyodik imha", kural kural Türkçe | `api-cron-retention-record`, `mobile-retention`, `admin-audit-log`, `db-integration-karaoke-retention` |
+| 🟠 | Üye olmadan karaoke rezervasyonu yapanın adı, e-postası ve telefonu ile her rezervasyonun iletişim adresi, telefonu ve notu için saklama süresi yoktu; Veri Saklama "henüz belirlenmemiştir" diyordu (X-KAR-RETENTION) | Rezervasyon gününden 3 yıl sonra misafirin adı silinir, adresi `anon-<id>@anon.local` olur, her rezervasyonun iletişim bilgisi, notu ve onaydaki IP ile tarayıcı bilgisi silinir; 11 yıl sonra satır silinir (`karaoke_guest_retention`, `karaoke_reservation_retention`). Açık ödeme (`pending`, `refunding`), panelin hâlâ borçlu saydığı rezervasyon (ödenmiş ve iptal ya da onaylanmamış), `payment_transactions`'ta cevapsız `refunding` talebi ve `"retentionHold"` atlanır; silme rezervasyon günü, ödeme ve iadenin en geç olanından sayılır; temizlenmiş satır ikinci kez sayılmaz, gün köşkün saatiyle kesilir, gün olmayan ya da bir yıldan yakın sınır hata verir (inceleme M1-M3, R5) | `db-integration-karaoke-retention`, `mobile-retention` |
+| 🟡 | Periyodik imha çalıştırması hiçbir iz bırakmıyordu ve politika "ayrı bir kayıt oluşturulmaz" diyordu (Silme Yön. m.7/3) (X-RETENTION-APPLY, inceleme R1) | Uygulanan her çalıştırma `audit_logs`'a tek satır yazar (`system`, `bulk_delete`, `retention`, kural başına yöntem ve sayılar, `safeAudit`); politika §8 ve §17 bunu söyler; rapor modu hiçbir şey yazmaz; iki cron rotası da kaydı bırakır ve aynı satırı loglar; Olay kaydında "Periyodik imha", kural kural Türkçe | `api-cron-retention-record`, `mobile-retention`, `admin-audit-log`, `db-integration-karaoke-retention` |
 | 🟢 | İletişim satırı sipariş ve ödeme yazışmasına da üç yıl veriyordu; etkinlik ve atölye kaydının satırı yoktu (D-CORRESPONDENCE, X-EVENT-PROOF) | İşlemle ilgili yazışma ticari yazışma olarak yıl sonundan itibaren 10 yıl (TTK m.82), ilgisiz mesaj ve telefon notu 3 yıl; "Etkinlik ve atölye kayıtları" satırı | `legal-docs`, `legal-dates` |
 
 Açık (operatörde): Production'da `RETENTION_APPLY=destroy` (OP-18), önce bir

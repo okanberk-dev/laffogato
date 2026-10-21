@@ -487,7 +487,8 @@ matched=<n> destroyed=<n>` ya da `report ...`.
 Her **uygulanan** çalıştırma (`RETENTION_APPLY=destroy`) tek bir kalıcı kayıt
 bırakır ve kayıt **`audit_logs`** tablosundadır: `actor` `system`, `action`
 `bulk_delete`, `entity` `retention`, `entityId` çalıştırmanın ISO anı (UTC),
-`payload` `{ at, results: [{ id, table, cutoff, matched, destroyed }] }`.
+`payload` `{ at, results: [{ id, table, method, cutoff, matched, destroyed }] }`
+(`method`: `delete` satır silindi, `clear` alanlar boşaltıldı).
 Yalnız sayı: satır, anahtar, adres ya da hata metni yazılmaz; çalışamayan
 kuralın satırında `failed: true` durur. Kaydı `runRetention` yazar
 (`src/lib/retention.ts`, `safeAudit` ile: yazılamazsa imha geri alınmaz,
@@ -520,12 +521,16 @@ sınır anıyla görünür, CSV dışa aktarma da aynı satırları taşır.
 - `karaoke_reservation_retention` (11 × 366 gün): satırı siler.
 
 İkisi de aynı süzgeci kullanır: `date < left(p_cutoff, 10)` (metin
-karşılaştırması), `"paymentStatus" not in ('pending', 'refunding')` (POS'un
-sonuçlandırmadığı para; kural 29) ve `"retentionHold" = ''`. `date` köşkün
+karşılaştırması; silmede rezervasyon günü, `"paidAt"` ve `"refundedAt"`'in en
+geç olanı, TTK m.82/6), `"paymentStatus" not in ('pending', 'refunding')`
+(POS'un sonuçlandırmadığı para; kural 29), panelin hâlâ borçlu saydığı
+rezervasyon değil (`paid` ve `cancelled` ya da `requested`:
+`listKaraokeRefundsOwed`, `listKaraokeAttention`), `payment_transactions`'ta
+cevabı gelmemiş `refunding` talebi yok ve `"retentionHold" = ''`. `date` köşkün
 takvim günüdür; `retention.ts` bu iki kuralın sınırını İstanbul saatiyle
 (`…+03:00`) yazar, böylece ilk on karakter köşkün günüdür (kural 22: UTC
 00:00-03:00 arası dünü verir). Biçimi `YYYY-MM-DD` olmayan bir gün hiç
-kapsama girmez; gün olmayan ya da bugünden ileri bir sınır hata verir
+kapsama girmez; gün olmayan ya da bir yıldan yakın bir sınır hata verir
 (22007), hiçbir şey yazılmaz.
 
 **Hukuki saklama (`"retentionHold"`).** Boşsa imhayı hiçbir şey durdurmaz.

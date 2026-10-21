@@ -429,6 +429,7 @@ describe("Turkish labels (SYS-10)", () => {
           {
             id: "karaoke-guest-data",
             table: "karaoke_reservations",
+            method: "clear",
             cutoff: "2023-10-19T09:00:00.000+03:00",
             matched: 3,
             destroyed: 3,
@@ -436,6 +437,7 @@ describe("Turkish labels (SYS-10)", () => {
           {
             id: "auth-attempts",
             table: "auth_attempts",
+            method: "delete",
             cutoff: "2026-10-14T06:00:00.000Z",
             matched: 0,
             destroyed: 0,
@@ -455,14 +457,14 @@ describe("Turkish labels (SYS-10)", () => {
         key: "results.karaoke-guest-data",
         label: "Kural · Karaoke misafir ve iletişim bilgisi",
         value: expect.stringMatching(
-          /^Eşleşen 3 · İmha edilen 3 · Sınır 19 Eki 2023 09:00$/,
+          /^Alanlar boşaltıldı · Eşleşen 3 · İmha edilen 3 · Sınır 19 Eki 2023 09:00$/,
         ),
       },
       {
         key: "results.auth-attempts",
         label: "Kural · Giriş denemeleri",
         value: expect.stringMatching(
-          /^Eşleşen 0 · İmha edilen 0 · Sınır 14 Eki 2026 09:00 · Çalışmadı$/,
+          /^Silindi · Eşleşen 0 · İmha edilen 0 · Sınır 14 Eki 2026 09:00 · Çalışmadı$/,
         ),
       },
     ]);

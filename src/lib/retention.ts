@@ -86,6 +86,11 @@ export interface RetentionRule {
    * 22). The function compares `column < left(p_cutoff, 10)`.
    */
   istanbulDay?: boolean;
+  /**
+   * The function empties the personal fields of a row instead of deleting
+   * it; the destruction record names the method (`destructionRecord`).
+   */
+  clears?: true;
 }
 
 export const RETENTION_RULES: readonly RetentionRule[] = [
@@ -273,15 +278,18 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     days: 3 * YEAR_DAYS,
     rpc: "karaoke_guest_retention",
     istanbulDay: true,
+    clears: true,
     basis:
       "rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir",
     note:
-      "Decision ASK-RETENTION. Not a delete: on a guest booking the name " +
+      "Decision ASK-RETENTION. Not a delete (clears): on a guest booking the name " +
       "goes and the address becomes 'anon-<id>@anon.local'; on every " +
       "booking the contact address, phone and note go, and the consent " +
       "record loses its IP and user agent (its time, documents and version " +
       "stay with the row, MSY m.20). A booking whose money is still open " +
-      "('pending', 'refunding') or that carries a retentionHold is skipped; " +
+      "('pending', 'refunding'), still owed (paid and cancelled or never " +
+      "confirmed), with a 'refunding' payment claim, or under a " +
+      "retentionHold is skipped; " +
       "a row already cleared is not counted again. Counted in 366-day years " +
       "from the booking day on the köşk's clock.",
   },
@@ -295,7 +303,7 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     istanbulDay: true,
     basis:
       "ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir",
-    note: "TTK m.82/6: süre takvim yılının bitişiyle başlar; 11 yıl hiçbir kaydı erken silmez.",
+    note: "TTK m.82/6: süre takvim yılının bitişiyle başlar; 11 yıl rezervasyon günü, ödeme ve iadenin en geç olanından sayılır ve hiçbir kaydı erken silmez. Hâlâ borçlu olunan (ödenmiş ve iptal edilmiş ya da onaylanmamış) ve POS'ta iadesi açık rezervasyon silinmez.",
   },
 ] as const;
 
@@ -345,7 +353,8 @@ function cutoffFor(rule: RetentionRule, now: Date): string {
 
 /**
  * The destruction record of an applied run (Silme Yönetmeliği m.7/3): when,
- * and rule by rule which table, from which cutoff, how many rows matched and
+ * and rule by rule which table, by which method (`delete` the row, or
+ * `clear` its personal fields), from which cutoff, how many rows matched and
  * how many went. Counts only - never a row, a key, an address or an error
  * text (a database error can quote the value it refused). A rule that could
  * not run says so with `failed`, so its zero is not read as "nothing to do".
@@ -355,6 +364,7 @@ export function destructionRecord(report: RetentionReport): {
   results: Array<{
     id: string;
     table: string;
+    method: "delete" | "clear";
     cutoff: string;
     matched: number;
     destroyed: number;
@@ -366,6 +376,9 @@ export function destructionRecord(report: RetentionReport): {
     results: report.results.map((r) => ({
       id: r.id,
       table: r.table,
+      method: RETENTION_RULES.find((rule) => rule.id === r.id)?.clears
+        ? ("clear" as const)
+        : ("delete" as const),
       cutoff: r.cutoff,
       matched: r.matched,
       destroyed: r.destroyed,

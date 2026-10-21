@@ -835,6 +835,7 @@ function retentionResultEntries(
     }
     const id = typeof item.id === "string" ? item.id : String(i);
     const parts = [
+      item.method === "clear" ? "Alanlar boşaltıldı" : "Silindi",
       `Eşleşen ${scalar(["matched"], item.matched, ctx, limit)}`,
       `İmha edilen ${scalar(["destroyed"], item.destroyed, ctx, limit)}`,
       `Sınır ${scalar(["cutoff"], item.cutoff, ctx, limit)}`,

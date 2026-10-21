@@ -21,15 +21,19 @@
 --                                  NULL). The member's own name and address
 --                                  stay: the membership keeps them, and
 --                                  account deletion clears them.
---   karaoke_reservation_retention  11 x 366 days after "date": the row goes.
+--   karaoke_reservation_retention  11 x 366 days after the latest of "date",
+--                                  "paidAt" and "refundedAt": the row goes.
 --                                  Payment and refund records are kept ten
 --                                  years from the end of their calendar year
 --                                  (TTK m.82/5-6), so eleven 366-day years
---                                  never take one early.
+--                                  from the last of them never take one early.
 --
 -- Both skip a booking whose money is still open ('pending': a hold the POS
 -- has not settled; 'refunding': a refund the POS has not confirmed; neither
--- is finished, CLAUDE.md rule 29) and one under a hold:
+-- is finished, CLAUDE.md rule 29), one the panel still lists as money owed
+-- (paid and cancelled, or paid and never confirmed: listKaraokeRefundsOwed,
+-- listKaraokeAttention), one with a 'refunding' claim in payment_transactions
+-- (a second charge's refund whose answer never came), and one under a hold:
 --
 --   "retentionHold"  '' (the default): nothing stops the destruction.
 --                    Otherwise the reason the row is kept past its period: a
@@ -42,10 +46,10 @@
 -- "date" is the köşk's calendar day ("YYYY-MM-DD", Europe/Istanbul), compared
 -- as text with the first ten characters of p_cutoff, which retention.ts
 -- writes on the köşk's clock (+03:00, CLAUDE.md rule 22). Two guards keep a
--- bad value from destroying early: a cutoff that is not a day, or that lies
--- after today, raises (22007) instead of matching; a row whose "date" is not
--- in that shape is never in scope (a malformed day can sort before any
--- cutoff).
+-- bad value from destroying early: a cutoff that is not a day, or is less
+-- than a year back (every period here is years), raises (22007) instead of
+-- matching; a row whose "date" is not in that shape is never in scope (a
+-- malformed day can sort before any cutoff).
 --
 -- The guest placeholder never collides with account deletion's
 -- 'deleted-<customer id>@anon.local' (src/lib/mobile/me.ts): another prefix
@@ -85,9 +89,9 @@ declare
 begin
   if cutoff_day is null
      or cutoff_day !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date,
+     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date - 365,
                              'YYYY-MM-DD') then
-    raise exception 'karaoke_guest_retention: cutoff % is not a past day', p_cutoff
+    raise exception 'karaoke_guest_retention: cutoff % is not a day a year or more back', p_cutoff
       using errcode = '22007';
   end if;
 
@@ -106,6 +110,15 @@ begin
      where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
        and r.date < cutoff_day
        and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
        and r."retentionHold" = ''
        and (
          (r.guest and (r."customerName" <> ''
@@ -123,6 +136,15 @@ begin
      where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
        and r.date < cutoff_day
        and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
        and r."retentionHold" = ''
        and (
          (r.guest and (r."customerName" <> ''
@@ -153,25 +175,47 @@ declare
 begin
   if cutoff_day is null
      or cutoff_day !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date,
+     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date - 365,
                              'YYYY-MM-DD') then
-    raise exception 'karaoke_reservation_retention: cutoff % is not a past day', p_cutoff
+    raise exception 'karaoke_reservation_retention: cutoff % is not a day a year or more back', p_cutoff
       using errcode = '22007';
   end if;
 
   if p_apply then
     delete from public.karaoke_reservations r
      where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-       and r.date < cutoff_day
+       and greatest(r.date,
+                    left(nullif(r."paidAt", ''), 10),
+                    left(nullif(r."refundedAt", ''), 10)) < cutoff_day
        and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
        and r."retentionHold" = '';
     get diagnostics affected = row_count;
   else
     select count(*) into affected
       from public.karaoke_reservations r
      where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
-       and r.date < cutoff_day
+       and greatest(r.date,
+                    left(nullif(r."paidAt", ''), 10),
+                    left(nullif(r."refundedAt", ''), 10)) < cutoff_day
        and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
        and r."retentionHold" = '';
   end if;
   return affected;

@@ -873,7 +873,7 @@ describe("legal content - the till stamps only the member's own code (21 Ekim 20
   it("says so in the privacy notice, in the decided words", () => {
     const privacy = text("gizlilik-politikasi");
     expect(privacy).toContain(
-      "Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür.",
+      "Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır.",
     );
     expect(privacy).toContain(
       "Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir.",
@@ -902,7 +902,7 @@ describe("legal content - the till stamps only the member's own code (21 Ekim 20
       "Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez.",
     );
     expect(program).toContain(
-      "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'nde görünür.",
+      "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'ne yazılır.",
     );
     expect(text("mobil-uygulama-kosullari")).toContain(
       "Üye'nin e-posta adresiyle damga eklenmez.",
@@ -926,5 +926,66 @@ describe("legal content - the till stamps only the member's own code (21 Ekim 20
     ]) {
       expect(all, stale).not.toContain(stale);
     }
+  });
+});
+
+describe("legal content - review of PR #196 (21 Ekim 2026)", () => {
+  // R1: the policy said automatic destruction left no record; every applied
+  // run now writes one (src/lib/retention.ts). R2, R3: the correction
+  // paragraph's place and its words. LEGAL-REDLINES §27.2, §28.2.
+  const doc = (slug: string) => findLegalDoc(slug)!;
+  const text = (slug: string) => JSON.stringify(doc(slug));
+
+  it("says the automatic destruction leaves a record (R1)", () => {
+    const policy = text("veri-saklama-ve-imha-politikasi");
+    for (const stale of [
+      "sistem tarafından otomatik yürütülen imhalar için ayrı bir kayıt oluşturulmaz",
+      "otomatik görevle silinmesi ve üyenin kendi hesabını kapatması gibi sistem tarafından yürütülen işlemler için ayrı bir imha kaydı oluşturulmaz",
+    ]) {
+      expect(policy, stale).not.toContain(stale);
+    }
+    expect(policy).not.toContain("ayrı bir kayıt oluşturulmaz");
+    expect(policy).toContain(
+      "Sistem tarafından otomatik yürütülen her periyodik imha çalışması da, kişisel veri içermeyen bir kayıt olarak değiştirilemez olay kaydına yazılır ve 10 yıl saklanır; bu kayıt çalışmanın tarih ve saatini, her kural için veri kategorisini, saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını gösterir.",
+    );
+    const s17 = sectionOf(
+      "veri-saklama-ve-imha-politikasi",
+      "17. İmha Kayıtlarının Tutulması, Loglanması ve Denetimi",
+    );
+    expect(s17.paragraphs?.[0]).toContain(
+      "Saklama süresi dolan kayıtların otomatik görevle silinmesi veya alanlarının boşaltılması da kayıt altına alınır: uygulanan her periyodik imha çalışması için sistem, çalışmanın tarih ve saatini, her kuralın veri kategorisini ve saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını içeren, kişisel veri taşımayan bir kaydı değiştirilemez olay kaydına yazar; bu kayıt on yıl saklanır. Üyenin kendi hesabını kapatması için ayrı bir imha kaydı oluşturulmaz;",
+    );
+    expect(s17.bullets?.[0]).toMatch(
+      /Otomatik imhalarda işlemi gerçekleştiren sistemdir; imha gerekçesi \(saklama süresinin dolması\) ve yöntem \(silme veya alanların boşaltılması\) ilgili kuralın bu Politikadaki tanımından anlaşılır, onay ise dönem raporunun onaylanmasıyla verilir\.$/,
+    );
+  });
+
+  it("puts the member's correction after the reversal's two paragraphs (R2)", () => {
+    const s14 = doc("odul-programi").sections.find((s) =>
+      s.heading.startsWith("14. "),
+    )!;
+    const at = (start: string) =>
+      s14.paragraphs!.findIndex((p) => p.startsWith(start));
+    expect(at("Kasada yanlışlıkla eklenen bir damga")).toBe(0);
+    expect(at("Düzeltme, Katılımcı'nın kullanılabilir damgası")).toBe(1);
+    expect(at("Kasada eksik işlenen bir damga")).toBe(2);
+  });
+
+  it("does not promise a member-facing ledger (R3)", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "düzeltme damga hareketlerinizde görünür",
+      "düzeltme damga hareketlerinde görünür",
+      "düzeltme Damga Defteri'nde görünür",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+    const yours =
+      "düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır.";
+    expect(text("gizlilik-politikasi")).toContain(yours);
+    expect(text("kafe-hizmet-kosullari")).toContain(yours);
+    expect(text("uyelik-sozlesmesi")).toContain(
+      "düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır.",
+    );
   });
 });

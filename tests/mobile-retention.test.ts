@@ -349,6 +349,8 @@ describe("report mode is the default", () => {
         results: report.results.map((r) => ({
           id: r.id,
           table: r.table,
+          // Fields emptied or rows deleted (R1).
+          method: r.id === "karaoke-guest-data" ? "clear" : "delete",
           cutoff: r.cutoff,
           matched: r.matched,
           destroyed: r.destroyed,
@@ -358,10 +360,10 @@ describe("report mode is the default", () => {
     const [input] = safeAudit.mock.calls[0] as [
       { payload: { results: Record<string, unknown>[] } },
     ];
-    // Nothing but the five fields per rule: no row, no key, no address.
+    // Nothing but the six fields per rule: no row, no key, no address.
     for (const row of input.payload.results) {
       expect(Object.keys(row).sort()).toEqual(
-        ["cutoff", "destroyed", "id", "matched", "table"].sort(),
+        ["cutoff", "destroyed", "id", "matched", "method", "table"].sort(),
       );
     }
     expect(input.payload.results).toHaveLength(mod.RETENTION_RULES.length);

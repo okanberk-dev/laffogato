@@ -31,9 +31,10 @@ import {
  * runRetention: the köşk's clock, one destruction record per applied run and
  * none for a report. Skipped without TEST_DATABASE_URL.
  *
- * The functions act on the whole table, so every row here is dated before
- * 2010 (no other suite writes a karaoke booking that old) and carries the
- * `krk-ret-` prefix; the suite checks the first and removes its own.
+ * The functions act on the whole table, so every row here is dated more
+ * than a year back (no other suite writes a karaoke booking that old, and
+ * the suite checks it first) and carries the `krk-ret-` prefix; the suite
+ * removes its own rows and refund claims.
  */
 const URL_ = process.env.TEST_DATABASE_URL;
 const maybe = URL_ ? describe : describe.skip;
@@ -80,6 +81,8 @@ interface Booking {
   status?: string;
   hold?: string;
   startHour?: number;
+  paidAt?: string;
+  refundedAt?: string;
 }
 
 async function book(b: Booking): Promise<void> {
@@ -87,9 +90,10 @@ async function book(b: Booking): Promise<void> {
     `insert into public.karaoke_reservations
        (id, "customerEmail", "customerName", date, "startHour", hours, guests,
         status, guest, "contactEmail", "contactPhone", note, "legalConsent",
-        "paymentStatus", "retentionHold", "createdAt", "updatedAt")
+        "paymentStatus", "retentionHold", "paidAt", "refundedAt",
+        "createdAt", "updatedAt")
      values ($1, $2, $3, $4, $5, 1, 2, $6, $7, $8, $9, $10, $11, $12, $13,
-             '2004-01-01T10:00:00.000Z', '2004-01-01T10:00:00.000Z')`,
+             $14, $15, '2004-01-01T10:00:00.000Z', '2004-01-01T10:00:00.000Z')`,
     [
       `${P}${b.id}`,
       b.email ?? `misafir-${b.id}@ornek.com`,
@@ -104,8 +108,27 @@ async function book(b: Booking): Promise<void> {
       b.legalConsent === undefined ? JSON.stringify(CONSENT) : b.legalConsent,
       b.paymentStatus ?? "paid",
       b.hold ?? "",
+      b.paidAt ?? "",
+      b.refundedAt ?? "",
     ],
   );
+}
+
+/** A refund claim in payment_transactions whose answer never came (M3). */
+async function refundingClaim(id: string): Promise<void> {
+  await pool!.query(
+    `insert into public.payment_transactions
+       ("orderId", provider, "providerRef", status, "amountMinor", "createdAt")
+     values ($1, 'paynkolay', $2, 'refunding', 90000, '2004-04-02T10:00:00.000Z')`,
+    [`${P}${id}`, `${P}${id}:refund`],
+  );
+}
+
+/** The köşk's day, shifted by whole days (CLAUDE.md rule 22). */
+function istanbulDay(addDays = 0): string {
+  return new Date(Date.now() + 3 * 3_600_000 + addDays * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 type Row = Record<string, unknown>;
@@ -159,17 +182,22 @@ maybe("karaoke retention in a real Postgres", () => {
     // A booking this old from another suite would be counted with ours.
     const { rows: foreign } = await pool.query(
       `select id from public.karaoke_reservations
-        where date < '2010-01-01' and id not like $1`,
-      [`${P}%`],
+        where date < $2 and id not like $1`,
+      [`${P}%`, istanbulDay(-366)],
     );
-    expect(foreign, "another suite left a pre-2010 karaoke booking").toEqual(
-      [],
-    );
+    expect(
+      foreign,
+      "another suite left a karaoke booking more than a year old",
+    ).toEqual([]);
   }, SUITE_LOCK_WAIT_MS);
 
   beforeEach(async () => {
     await pool!.query(
       `delete from public.karaoke_reservations where id like $1`,
+      [`${P}%`],
+    );
+    await pool!.query(
+      `delete from public.payment_transactions where "orderId" like $1`,
       [`${P}%`],
     );
   });
@@ -178,6 +206,10 @@ maybe("karaoke retention in a real Postgres", () => {
     if (pool) {
       await pool.query(
         `delete from public.karaoke_reservations where id like $1`,
+        [`${P}%`],
+      );
+      await pool.query(
+        `delete from public.payment_transactions where "orderId" like $1`,
         [`${P}%`],
       );
       // The runs' destruction records are young: the append-only trigger
@@ -364,6 +396,48 @@ maybe("karaoke retention in a real Postgres", () => {
       expect((await rows()).p2.customerEmail).toBe(`anon-${P}p2@anon.local`);
     });
 
+    it("keeps the identity of a booking the panel still owes money on (M1)", async () => {
+      // Paid and cancelled after a refused refund (listKaraokeRefundsOwed),
+      // and paid but never confirmed (the Dikkat list).
+      await book({ id: "w1", date: "2004-04-01", status: "cancelled" });
+      await book({ id: "w2", date: "2004-04-02", status: "requested" });
+      // Control: paid and confirmed is settled, so it is cleared.
+      await book({ id: "w3", date: "2004-04-03" });
+      const before = await rows();
+      expect(await guestRetention(CUTOFF, false)).toBe(1);
+      expect(await guestRetention(CUTOFF, true)).toBe(1);
+      const after = await rows();
+      expect(after.w1).toEqual(before.w1);
+      expect(after.w2).toEqual(before.w2);
+      expect(after.w3.customerName).toBe("");
+    });
+
+    it("keeps a booking with an unanswered refund claim in payment_transactions (M3)", async () => {
+      await book({ id: "x1", date: "2004-04-01" });
+      await refundingClaim("x1");
+      await book({ id: "x2", date: "2004-04-02" });
+      expect(await guestRetention(CUTOFF, true)).toBe(1);
+      const after = await rows();
+      expect(after.x1.customerName).toBe("Deniz Misafir");
+      expect(after.x2.customerName).toBe("");
+    });
+
+    it("refuses today's day and any day less than a year back (R5)", async () => {
+      await book({ id: "t1", date: "2004-06-01" });
+      const before = await rows();
+      for (const bad of [istanbulDay(0), istanbulDay(-1), istanbulDay(-364)]) {
+        await expect(guestRetention(bad, true), bad).rejects.toMatchObject({
+          code: "22007",
+        });
+        await expect(bookingRetention(bad, true), bad).rejects.toMatchObject({
+          code: "22007",
+        });
+      }
+      expect(await rows()).toEqual(before);
+      // A year back is a cutoff like any other.
+      expect(await guestRetention(istanbulDay(-366), false)).toBe(1);
+    });
+
     it("refuses a cutoff that is not a past day, writing nothing", async () => {
       await book({ id: "b1", date: "2004-06-01" });
       const before = await rows();
@@ -407,6 +481,52 @@ maybe("karaoke retention in a real Postgres", () => {
         "k3",
         "k4",
       ]);
+    });
+
+    it("keeps a booking the panel still owes money on, or with an open refund claim (M1, M3)", async () => {
+      await book({ id: "v1", date: "1996-01-01", status: "cancelled" });
+      await book({ id: "v2", date: "1996-01-02", status: "requested" });
+      await book({ id: "v3", date: "1996-01-03" });
+      await refundingClaim("v3");
+      // Control: settled, deleted.
+      await book({ id: "v4", date: "1996-01-04" });
+      expect(await bookingRetention(CUTOFF, false)).toBe(1);
+      expect(await bookingRetention(CUTOFF, true)).toBe(1);
+      expect(Object.keys(await rows()).sort()).toEqual(["v1", "v2", "v3"]);
+    });
+
+    it("counts the eleven years from a later payment or refund (M2)", async () => {
+      // A run on 10 Mart 2021 cuts at 2 Mart 2010 (eleven 366-day years).
+      // Booked on 1 Mart 2010 and refunded on 1 Şubat 2011: the refund's ten
+      // years run to the end of 2021 (TTK m.82/6), so the row stays; the
+      // booking day alone would have let it go.
+      const cutoff = "2010-03-02T09:00:00.000+03:00";
+      await book({
+        id: "r1",
+        date: "2010-03-01",
+        paymentStatus: "refunded",
+        status: "cancelled",
+        paidAt: "2010-02-20T10:00:00.000Z",
+        refundedAt: "2011-02-01T10:00:00.000Z",
+      });
+      // Paid after the booking day, on the cutoff's day: kept too.
+      await book({
+        id: "r2",
+        date: "2010-02-28",
+        paidAt: "2010-03-02T10:00:00.000Z",
+      });
+      // Control: day, payment and refund all before the cutoff.
+      await book({
+        id: "r3",
+        date: "2010-02-27",
+        paymentStatus: "refunded",
+        status: "cancelled",
+        paidAt: "2010-02-20T10:00:00.000Z",
+        refundedAt: "2010-02-26T10:00:00.000Z",
+      });
+      expect(await bookingRetention(cutoff, false)).toBe(1);
+      expect(await bookingRetention(cutoff, true)).toBe(1);
+      expect(Object.keys(await rows()).sort()).toEqual(["r1", "r2"]);
     });
 
     it("refuses a cutoff that is not a past day, deleting nothing", async () => {
@@ -487,6 +607,7 @@ maybe("karaoke retention in a real Postgres", () => {
       ).toEqual({
         id: "karaoke-guest-data",
         table: "karaoke_reservations",
+        method: "clear",
         cutoff: "2005-05-31T00:30:00.000+03:00",
         matched: 3,
         destroyed: 3,
