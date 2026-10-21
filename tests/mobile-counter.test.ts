@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -264,14 +265,20 @@ describe("redeemCounterToken · kod", () => {
     expect(allTokens().find((r) => r.code === code)?.usedAt).toBe("");
   });
 
-  it("says not_found for a code nobody ever held", async () => {
+  it("says not_found for a code nobody ever held, pointing at a new QR", async () => {
     const res = await redeemCounterToken({
       kind: "code",
       value: "ABCD2345",
       stamps: 1,
       actor: CASHIER,
     });
-    expect(res).toMatchObject({ ok: false, error: "not_found" });
+    // The till no longer has an e-mail path to send the cashier to.
+    expect(res).toEqual({
+      ok: false,
+      error: "not_found",
+      message:
+        "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni QR göstermesini iste.",
+    });
     expect(addCounterStamp).not.toHaveBeenCalled();
   });
 
@@ -383,33 +390,81 @@ describe("redeemCounterToken · refuseOwner (barista in the app)", () => {
   });
 });
 
-describe("redeemCounterToken · e-posta", () => {
-  it("keeps the address the cashier typed unmasked", async () => {
+/**
+ * The typed address is refused (decision ASK-LOYALTY, 21 Ekim 2026): it named
+ * a member who showed nothing and burned no code. The kind stays in the type,
+ * and its "Kasa · e-posta" ledger note in the source, for the rows written
+ * before that day.
+ */
+describe("redeemCounterToken · e-posta kapalı", () => {
+  const REFUSED = {
+    ok: false,
+    error: "email_refused",
+    message:
+      "E-postayla damga verilmiyor. Üyeden uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste.",
+  };
+
+  it("refuses a member's address: no stamp, no lookup, no label", async () => {
     const res = await redeemCounterToken({
       kind: "email",
       value: " Eda@Ornek.com ",
       stamps: 1,
       actor: CASHIER,
     });
-    if (!res.ok) throw new Error(res.error);
-    expect(res.redemption.memberLabel).toBe(MEMBER);
-    expect(res.redemption.code).toBe("");
-    expect(addCounterStamp).toHaveBeenCalledWith(
-      MEMBER,
-      CASHIER,
-      "Kasa · e-posta",
-    );
+    expect(res).toEqual(REFUSED);
+    expect(addCounterStamp).not.toHaveBeenCalled();
+    expect(getCustomerByEmail).not.toHaveBeenCalled();
+    expect(getLoyalty).not.toHaveBeenCalled();
   });
 
-  it("refuses something that is not an address", async () => {
+  it("refuses something that is not an address the same way, no longer invalid_email", async () => {
     const res = await redeemCounterToken({
       kind: "email",
       value: "eda",
       stamps: 1,
       actor: CASHIER,
     });
-    expect(res).toMatchObject({ ok: false, error: "invalid_email" });
+    expect(res).toEqual(REFUSED);
     expect(addCounterStamp).not.toHaveBeenCalled();
+  });
+
+  it("refuses before the stamp count is even read", async () => {
+    const res = await redeemCounterToken({
+      kind: "email",
+      value: MEMBER,
+      stamps: 99,
+      actor: CASHIER,
+    });
+    expect(res).toEqual(REFUSED);
+  });
+
+  it("cannot be used to burn anybody's code: an open code stays usable", async () => {
+    const { code } = await issue();
+    const res = await redeemCounterToken({
+      kind: "email",
+      value: code,
+      stamps: 1,
+      actor: CASHIER,
+    });
+    expect(res).toEqual(REFUSED);
+    expect(allTokens().find((r) => r.code === code)?.usedAt).toBe("");
+    const atTill = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 1,
+      actor: CASHIER,
+    });
+    expect(atTill.ok).toBe(true);
+  });
+
+  it("keeps the old ledger note's name in the source, for the rows before the change", () => {
+    const src = readFileSync("src/lib/mobile/counter.ts", "utf8");
+    expect(src).toContain(
+      'export type CounterRedeemKind = "token" | "code" | "email";',
+    );
+    expect(src).toContain('email: "Kasa · e-posta",');
+    // The address shape check went with the path.
+    expect(src).not.toMatch(/\bEMAIL_RE\b/);
   });
 });
 
@@ -463,7 +518,7 @@ describe("redeemCounterToken · yarıda kalan", () => {
     });
   });
 
-  it("answers partial on the e-mail path too: the first insert may have landed", async () => {
+  it("never answers partial for a typed address: it is refused before the first insert", async () => {
     addCounterStamp.mockRejectedValue(new Error("connection reset"));
     const res = await redeemCounterToken({
       kind: "email",
@@ -471,12 +526,26 @@ describe("redeemCounterToken · yarıda kalan", () => {
       stamps: 1,
       actor: CASHIER,
     });
+    expect(res).toMatchObject({ ok: false, error: "email_refused" });
+    expect(res).not.toHaveProperty("stampsWritten");
+    expect(addCounterStamp).not.toHaveBeenCalled();
+  });
+
+  it("answers partial on the code path when the first insert fails: it may have landed", async () => {
+    const { code } = await issue();
+    addCounterStamp.mockRejectedValue(new Error("connection reset"));
+    const res = await redeemCounterToken({
+      kind: "code",
+      value: code,
+      stamps: 1,
+      actor: CASHIER,
+    });
     expect(res).toMatchObject({
       ok: false,
       error: "partial",
       stampsWritten: 0,
-      code: "",
-      memberLabel: MEMBER,
+      code,
+      memberLabel: "e***@ornek.com",
     });
   });
 });
@@ -525,12 +594,25 @@ describe("housekeeping", () => {
   it("sweeps rows nobody can use a day later", async () => {
     const { code } = await issue();
     at(2 * 24 * 60 * 60 * 1000);
+    // Any real scan runs the sweep, even one that finds nothing.
+    await redeemCounterToken({
+      kind: "code",
+      value: "ABCD2345",
+      stamps: 1,
+      actor: CASHIER,
+    });
+    expect(allTokens().some((r) => r.code === code)).toBe(false);
+  });
+
+  it("a refused typed address touches nothing, not even the sweep", async () => {
+    const { code } = await issue();
+    at(2 * 24 * 60 * 60 * 1000);
     await redeemCounterToken({
       kind: "email",
       value: MEMBER,
       stamps: 1,
       actor: CASHIER,
     });
-    expect(allTokens().some((r) => r.code === code)).toBe(false);
+    expect(allTokens().some((r) => r.code === code)).toBe(true);
   });
 });

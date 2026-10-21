@@ -1707,18 +1707,27 @@ Hatalar: **401** `unauthorized` · **403** `email_unverified` · **429**
 ### Kasa tarafı (panel, `/admin/kasa`)
 
 Okutma bir API ucu değil, `redeemCounterTokenAction` sunucu eylemidir
-(`requireRole("till")` hem sayfada hem eylemde). Üç yol — kamera · kod ·
-e-posta — aynı eylemde birleşir ve `stamps` (1–5) kadar `loyalty_stamps`
-satırı yazar (`source: "counter"`, not `Kasa · QR` / `Kasa · kod` /
-`Kasa · e-posta`).
+(`requireRole("till")` hem sayfada hem eylemde). İki yol - kamera · kod -
+aynı eylemde birleşir ve `stamps` (1-5) kadar `loyalty_stamps` satırı yazar
+(`source: "counter"`, not `Kasa · QR` / `Kasa · kod`).
 
-| Sonuç            | Türkçe karşılık                                            |
-| ---------------- | ---------------------------------------------------------- |
-| `expired`        | "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste." |
-| `already_used`   | "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez."      |
-| `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara."   |
-| `invalid_email`  | "Geçerli bir üye e-postası gir."                           |
-| `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                    |
+**E-postayla damga yok (21 Ekim 2026, ASK-LOYALTY).** Kasada damga yalnız
+üyenin uygulamasının gösterdiği kasa koduyla (QR ya da 8 karakter) verilir;
+`kind: "email"` eylemde de `redeemCounterToken`'da da reddedilir
+(`email_refused`), hiçbir şey okunmaz ve yazılmaz. `Kasa · e-posta` notu ve
+`invalid_email` sonucu yalnız bu tarihten önceki satırlarda ve isteklerde
+görünür. Kasanın kaçırdığı bir damgayı, üyenin talebi üzerine panelin üye
+sayfasında sahip ya da yönetici gerekçesiyle ekler; not `Düzeltme · ` ile
+başlar.
+
+| Sonuç            | Türkçe karşılık                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `expired`        | "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste."                                                        |
+| `already_used`   | "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez."                                                             |
+| `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni QR göstermesini iste."                                         |
+| `email_refused`  | "E-postayla damga verilmiyor. Üyeden uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste." |
+| `invalid_email`  | Yalnız 21 Ekim 2026'dan önceki isteklerde: "Geçerli bir üye e-postası gir."                                       |
+| `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                                                                           |
 
 Kamera her tarayıcıda çalışır. Tercih sırası `BarcodeDetector` (Chrome/Edge,
 donanım hızlandırmalı) → **jsQR** (saf JavaScript, yalnız ilki yoksa dinamik
@@ -1738,8 +1747,7 @@ hemen yeniden okunabilir).
 Tek kullanım koşullu UPDATE ile sağlanır (`where "usedAt" = ''`): aynı QR'ı
 aynı saniyede okutan iki kasa da ayrı bir okuma kontrolünden geçer, ama
 yalnız biri satırı günceller — 0 satır dönen `already_used` olur ve damga
-yazılmaz. Kasiyer üyenin e-postasının tamamını **görmez** (`e***@ornek.com`);
-e-posta yolunda adresi zaten kendisi yazdığı için maskeleme uygulanmaz.
+yazılmaz. Kasiyer üyenin e-postasının tamamını **görmez** (`e***@ornek.com`).
 
 > **Uygulama notu (§17).** `token` yalnız yanıt gövdesinde bulunur, uygulama
 > onu saklamaz; süre dolmadan ~10 sn önce yeni jeton istenir. 429 gelirse
@@ -2074,7 +2082,7 @@ kaldırma `audit_logs`'a `staff_member` olarak yazılır. Üye hesabını silers
 
 | Alan | Kural |
 | --- | --- |
-| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). Kasanın üçüncü yolu olan **e-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak panel kararıdır. Başka bir değer **400** `invalid_request`. |
+| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). **E-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak 21 Ekim 2026'dan beri kasada da yok (§17 "Kasa tarafı"). Başka bir değer **400** `invalid_request`. |
 | `value` | Boş olamaz, en fazla 200 karakter → aksi **400** `invalid_request`. |
 | `stamps` | Tam sayı, verilmezse 1. Aralık (**1-5**) burada değil, kasanın kendi fonksiyonunda denetlenir: dışındaysa **400** `invalid_stamps`. Kırpılmaz. |
 

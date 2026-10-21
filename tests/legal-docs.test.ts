@@ -837,3 +837,69 @@ describe("legal content - karaoke retention, event records, correspondence (21 E
     }
   });
 });
+
+describe("legal content - the till stamps only the member's own code (21 Ekim 2026)", () => {
+  // Decision ASK-LOYALTY (operator, 18 Ekim 2026): no stamp by a typed
+  // e-mail address; a stamp the till missed is corrected by a manager at the
+  // member's request (src/app/admin/kasa/actions.ts,
+  // src/app/admin/musteriler/[email]/actions.ts). LEGAL-REDLINES §26.
+  const text = (slug: string) => JSON.stringify(findLegalDoc(slug));
+
+  it("says so in the privacy notice, in the decided words", () => {
+    const privacy = text("gizlilik-politikasi");
+    expect(privacy).toContain(
+      "Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür.",
+    );
+    expect(privacy).toContain(
+      "Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir.",
+    );
+    expect(privacy).toContain(
+      "kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları",
+    );
+  });
+
+  it("says so in the KVKK notice, in the decided words", () => {
+    const kvkk = text("kvkk-aydinlatma-metni");
+    expect(kvkk).toContain(
+      "Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez.",
+    );
+    expect(kvkk).toContain(
+      "kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları.",
+    );
+  });
+
+  it("says so in the contracts that described the till", () => {
+    expect(text("uyelik-sozlesmesi")).toContain(
+      "personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez.",
+    );
+    const program = text("odul-programi");
+    expect(program).toContain(
+      "Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez.",
+    );
+    expect(program).toContain(
+      "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'nde görünür.",
+    );
+    expect(text("mobil-uygulama-kosullari")).toContain(
+      "Üye'nin e-posta adresiyle damga eklenmez.",
+    );
+    expect(text("kafe-hizmet-kosullari")).toContain(
+      "doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır.",
+    );
+  });
+
+  it("no document offers a stamp by e-mail address any more", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "e-posta adresi girilerek",
+      "e-posta adresinizi girerek",
+      "e-posta adresiniz girilerek",
+      "elle yazılmışsa tam adres",
+      "e-posta ile ekleme yolunda",
+      "e-posta adresini seçerek",
+      "e-posta adresiniz seçilerek",
+      "kasa kodu veya üyelik e-posta adresiniz üzerinden",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+  });
+});

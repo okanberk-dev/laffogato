@@ -3079,6 +3079,120 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 | Ödeme kaydı ve ticari yazışma | 6102 s. TTK m.82/1-b,c (alınan ve gönderilen ticari mektuplar), m.82/5 (on yıl), m.82/6 (süre takvim yılının bitişiyle başlar) | Rezervasyon kaydı 11 × 366 günde silinir: yıl sonundan başlayan on yılı her durumda kapsar. İşlemle ilgili yazışma on yıl, ilgisiz mesaj üç yıl. |
 | Hukuki saklama | KVKK m.5/2-e (bir hakkın tesisi, kullanılması veya korunması için zorunlu olması) | Uyuşmazlık, şikâyet ya da resmî talep olan kayıt `"retentionHold"` ile imhadan çıkar. |
 
+## 26. Y12 - Kasada damga yalnız üyenin kendi kasa koduyla (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-retention-and-till`. Operatör
+> kararı (18 Ekim 2026): avukat turu yok (ASK-LOYALTY). `LEGAL_UPDATED`
+> değişmedi; değişen altı belge kendi tarihini taşır (§26.4).
+
+### 26.1 Neden
+
+- Kasada damga, üyenin uygulamasındaki kasa kodu (QR ya da 8 karakter)
+  okunamazsa kasiyerin elle yazdığı üyelik e-posta adresiyle de veriliyordu;
+  üyenin müşteri sayfasında da yönetici gerekçesiz "+1 damga" verebiliyordu.
+  Elle yazılan e-posta, üyenin kendisini göstermediği bir tanımlamadır
+  (X-LOYALTY). Karar: kasada damga yalnız üyenin kendi koduyla; e-posta yolu
+  kalkar; müşteri sayfasında yalnız gerekçeli yönetici düzeltmesi kalır.
+- Metinler e-posta yolunu yedi yerde anlatıyordu. Spec Gizlilik ve KVKK
+  metinlerindeki beş yeri satır numarasıyla verdi (eski numaralar 4959, 4989,
+  5397, 5966, 6018); aynı yolu anlatan Gizlilik §5 amaç satırı, Üyelik
+  Sözleşmesi §10, Sadakat Programı Kuralları §2, §7 ve §20, Mobil Uygulama
+  Koşulları §11 ve Kafe Hizmet Koşulları §10 da aynı karara göre düzeltildi:
+  aksi hâlde sözleşmeler kasanın artık reddettiği bir yolu vaat ederdi.
+
+### 26.2 Değişen cümleler
+
+Spec cümleleri birebir uygulandı; spec'te olmayan yerlerde aynı cümleler
+belgenin kendi diliyle (Üye, Katılımcı) kullanıldı.
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Gizlilik §3, tablo "Sadakat (damga) programı verisi" (son cümle; spec 4959) | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir. | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. |
+| Gizlilik §4, "Kafe ziyareti" (spec 4989) | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. |
+| Gizlilik §5, amaç tablosu anahtarı (spec'te yok) | Kafede kasa kodu okutularak veya üyelik e-posta adresi girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi | Kafede kasa kodu okutularak ya da girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi |
+| Gizlilik §15, 1. paragraf (spec 5397) | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... |
+| KVKK Aydınlatma §10, "Sadakat programı kanalları" (spec 5966) | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları. | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları. |
+| KVKK Aydınlatma §13, "Kasada damga" (spec 6018) | Kod okunamazsa damga, üyelik e-posta adresiniz girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. |
+| Üyelik Sözleşmesi §10, 2. paragraf (spec'te yok) | ... personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. ... | ... personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinde görünür. ... |
+| Sadakat Programı Kuralları §2, tanım "Kasa Damgası" (spec'te yok) | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak veya üyelik e-posta adresi girilerek hesaba eklenen damga | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak ya da elle girilerek hesaba eklenen damga |
+| Sadakat Programı Kuralları §7, 1. paragraf (spec'te yok) | Kod okunamazsa damga, Katılımcı'nın üyelik e-posta adresi girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez. |
+| Sadakat Programı Kuralları §14, yeni 2. paragraf (spec'te yok) | (yoktu) | Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'nde görünür. |
+| Sadakat Programı Kuralları §20, 1. paragraf (spec'te yok) | ... maskelenmiş e-posta adresi ve kart durumu gösterilir (e-posta ile ekleme yolunda personel adresi kendisi yazar); damgayı ekleyen personelin hesabı kayda geçer. | ... maskelenmiş e-posta adresi ve kart durumu gösterilir; damgayı ekleyen personelin hesabı kayda geçer. |
+| Mobil Uygulama Koşulları §11 (spec'te yok) | ... personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. | ... personele gösterilir; personel kodu okutur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. |
+| Kafe Hizmet Koşulları §10 (spec'te yok) | ... personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. ... | ... personel kendi cihazıyla okur ya da kod okunamazsa kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. ... |
+| Kafe Hizmet Koşulları §10 (spec'te yok) | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır. | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür. |
+
+Gizlilik §15'te spec cümlesi bir cümle başladığı için önündeki "; " ". "
+oldu; aradaki düzeltme cümlesinden sonra "Bu sırada" belirsiz kalacağından
+"Kasada damga eklenirken" yazıldı (aynı belgenin §3'teki ifadesi).
+
+### 26.3 Kod
+
+- Kasa (`/admin/kasa`): "E-posta ile" sekmesi kalktı; kod sekmesinin altında
+  "QR okunmuyorsa üyeden kodun altındaki 8 karakteri söylemesini iste.";
+  sayfanın açıklaması "E-postayla damga verilmez." der. Eylem (`KINDS =
+  ['token', 'code']`) `kind: "email"`'i "E-postayla damga verilmiyor. Üyeden
+  uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste."
+  ile reddeder; üye araması ve tekrar penceresi kalktı.
+- `redeemCounterToken` `email`'i `email_refused` ile, hiçbir şey okumadan ya da
+  yazmadan reddeder; tür değeri ve `Kasa · e-posta` not öneki eski satırlar
+  için kalır. `not_found`: "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni
+  QR göstermesini iste." Uygulamanın `POST /staff/stamp`'ı zaten yalnız
+  `token` ve `code` alıyordu, sözleşme değişmedi.
+- Müşteri sayfası: düğme "Damga düzelt (+1)", rol `customers` (sahip,
+  yönetici); en az 10 karakterlik sebep zorunlu ("Düzeltme sebebini yaz:
+  üyenin kendi talebi ve nasıl doğrulandığı (ör. QR okunmadı, üye kayıtlı
+  e-postasından yazdı)."), defter notu `Düzeltme · ` ile başlar.
+
+### 26.4 Sürüm
+
+- Kendi tarihini taşıyan belgeler, **21 Ekim 2026**: Gizlilik Politikası, KVKK
+  Aydınlatma Metni, Üyelik Sözleşmesi, Sadakat (Damga) Programı Kuralları,
+  Mobil Uygulama Koşulları, Kafe Hizmet Koşulları (`updatedAt`,
+  `src/lib/legal/content.ts`). `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+  değişmez.
+- Bildirim: Üyelik Sözleşmesi §22 üye aleyhine esaslı değişiklik için on beş
+  gün önceden bildirim ister, mevzuata uyum amaçlı zorunlu değişikliği
+  ayırır. Bu değişiklik esaslı ve aleyhe değil: damga sayısı ve kazanma
+  yolları aynı, okunamayan kod elle girilir, kasanın kaçırdığı damga talep
+  üzerine verilir; ayrıca KVKK m.12/1 uyumu içindir. Sadakat Programı §12 ve
+  §23 katılımcı aleyhine değişikliğin önceden duyurulmasını ister; sonuç
+  aleyhe olmadığı için bekleme süresi aranmadı, uygulamada duyuru önerilir
+  (§26.5).
+
+### 26.5 Operatöre
+
+- **Kasa ekibi.** Bu PR yayına girdiği gün: e-postayla damga yok. QR
+  okunmuyorsa üye kodun altındaki 8 karakteri söyler, kasiyer "Kodu yaz"
+  sekmesine girer. Telefonu çalışmayan üyeye "uygulamadan ya da kayıtlı
+  e-postanızdan bize yazın, yönetici ekler" denir.
+- **Yönetici.** Eksik damga: üyenin müşteri sayfası, "Damga düzelt (+1)", sebep
+  (kimin istediği ve nasıl doğrulandığı). Talep üyenin kayıtlı adresinden
+  gelmeli.
+- **Duyuru (öneri).** Yayın günü uygulama duyurusu: "Kasada damga artık
+  yalnızca uygulamandaki kasa koduyla (QR ya da 8 karakter) eklenir."
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile; ayrıca
+  `docs/API-MOBILE.md` §17 "Kasa tarafı" ve §21 `kind` satırı değişti
+  (lafmobil kopyası ve `RECONCILED`).
+
+### 26.6 Bilerek değişmeyenler
+
+- Uygulamanın `POST /staff/stamp` uçu ve iletileri (`not_found` için
+  uygulamanın kendi cümlesi "Kod bulunamadı. Üyeden kartını yeniden açmasını
+  iste.") aynen kalır.
+- Sadakat Programı §21'deki "eksik damga elle tanımlanır" cümlesi zaten
+  düzeltmeyi anlatır.
+- Eski olay kaydı satırlarındaki `kind: "email"` ve eski defter satırlarının
+  `Kasa · e-posta` notu silinmez; o günün kaydıdır.
+
+### 26.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Kasada üyenin tanımlanması | KVKK Kurul İlke Kararı 2026/266 (RG 28.02.2026; uyum 28.02.2027'ye uzadı, 2026/1491) - program kararı ASK-LOYALTY'nin dayanağı; bu PR'da kararın kendi metni doğrulanamadı (RG PDF'i taranmış görüntü) | Kasada damga yalnız üyenin uygulamasının ürettiği tek kullanımlık kodla; elle yazılan e-posta reddedilir. |
+| Doğruluk ve güvenlik | 6698 s. KVKK m.4/2-b (doğru ve gerektiğinde güncel olma), m.12/1 (hukuka aykırı işlemeyi önleme, uygun güvenlik düzeyi için teknik ve idari tedbir) | Yanlış adrese yazılan damga ve üyenin bilgisi olmadan adının kullanılması önlenir; düzeltme yalnız yetkili yöneticide, gerekçesi kayıtta. |
+| Sözleşme ve veri işleme şartı | KVKK m.5/2-c | Damga işlemi sözleşmenin ifası olarak sürer; değişen yalnız tanımlamanın yolu. |
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

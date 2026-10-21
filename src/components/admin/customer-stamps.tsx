@@ -7,6 +7,10 @@ import {
   reverseCounterStampAction,
   type CounterStampState,
 } from "@/app/admin/musteriler/[email]/actions";
+import {
+  STAMP_CORRECTION_MAX,
+  STAMP_CORRECTION_MIN,
+} from "@/lib/admin/stamp-correction";
 import type { LoyaltyStamp, LoyaltyView } from "@/lib/mobile/loyalty-core";
 
 import {
@@ -91,17 +95,31 @@ export function CustomerStamps({
           className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          Damga ekle (kasa)
+          Damga ekle (düzeltme)
         </h3>
-        <Field label="Not (opsiyonel)">
-          <TextInput name="note" placeholder="Kasa · QR" maxLength={120} />
+        {/* The till stamps only a member who shows their own code
+            (ASK-LOYALTY); a stamp it missed is put right here, at the
+            member's request and with the reason. The action refuses a
+            reason under ten characters and starts the note with
+            "Düzeltme · ". */}
+        <Field
+          label="Düzeltme sebebi"
+          hint={`Üyenin talebi ve nasıl doğrulandığı, en az ${STAMP_CORRECTION_MIN} karakter. Damga geçmişinde "Düzeltme" olarak görünür.`}
+        >
+          <TextInput
+            name="note"
+            required
+            minLength={STAMP_CORRECTION_MIN}
+            maxLength={STAMP_CORRECTION_MAX}
+            placeholder="QR okunmadı, üye kayıtlı e-postasından yazdı"
+          />
         </Field>
         {/* Only needed after the server refuses a repeat inside its window. */}
         <Checkbox name="force" label="Tekrar (aynı üyeye ikinci damga)" />
         <FormError message={state.error} />
         <FormSuccess message={state.error ? undefined : state.message} />
         <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Ekleniyor…" : "+1 damga"}
+          {pending ? "Ekleniyor…" : "Damga düzelt (+1)"}
         </PrimaryButton>
       </form>
 

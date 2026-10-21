@@ -4878,6 +4878,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
     // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -5065,7 +5069,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Sadakat (damga) programı verisi",
             value:
-              "Üyelik kimliğiniz (e-posta adresi), damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı (personelin kendi üyelik e-posta adresi), hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademe ile kasada damga eklenirken uygulamanın gösterdiği kasa kodunun özet (hash) değeri, geçerlilik süresi ve kullanıldığı an. Davet programı kapsamında davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı kaydedilir. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir.",
+              "Üyelik kimliğiniz (e-posta adresi), damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı (personelin kendi üyelik e-posta adresi), hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademe ile kasada damga eklenirken uygulamanın gösterdiği kasa kodunun özet (hash) değeri, geçerlilik süresi ve kullanıldığı an. Davet programı kapsamında davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı kaydedilir. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir.",
           },
           {
             key: "Karaoke rezervasyon verisi",
@@ -5095,7 +5099,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler, açık rızanıza bağlı tercih çerezleri ve yerel depolama (internet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri ile piksel yerleştirilmez); mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
           "Sunucu ve uygulama logları: Barındırma altyapısı, veri tabanı ve uygulama katmanında otomatik olarak üretilen erişim, hata, çökme, güvenlik ve performans kayıtları.",
           "Mobil uygulama: Uygulamayı kullanmanız hâlinde uygulamada kendi girdiğiniz bilgiler ile uygulamanın sunucuya yaptığı isteklerde görülen IP adresi, istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama çökme kaydı, reklam tanımlayıcısı, anlık bildirim (push) tokeni veya konum verisi toplamaz; fA'L fotoğrafı yalnızca yapay zekâ yorumuna açıkça onay vermeniz hâlinde iletilir.",
-          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
+          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
           "İletişim kanalları: {{EMAIL}} adresine gönderdiğiniz e-postalar ve {{PHONE}} numarası üzerinden yürütülen görüşmeler kapsamında ilettiğiniz bilgiler.",
           "Sosyal medya: {{HANDLE}} kullanıcı adıyla yürütülen {{IG}}, {{TIKTOK}} ve {{YOUTUBE}} hesapları üzerinden gönderdiğiniz mesaj, yorum ve etiketlemeler; bu platformlarda paylaştığınız içeriklere ilişkin olarak platformların kendileri de bağımsız veri sorumlusudur.",
           "Üçüncü taraflar: Kargo gönderi platformu Geliver üzerinden gelen gönderi durum bildirimleri, PayNkolay işlem doğrulama servisinden alınan işlem sonucu, itirazlarda (chargeback) bankanın ve PayNkolay'ın ilettiği bilgiler, e-posta gönderim sağlayıcısının bildirebildiği kalıcı olarak teslim edilemeyen adres ve istenmeyen posta şikâyeti bildirimleri, üyelik girişinde kimlik doğrulama hizmeti sağlayıcısından alınan kimlik doğrulama sonucu ve yetkili kamu kurumlarından gelen bildirimler.",
@@ -5195,7 +5199,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Sözleşmenin kurulması veya ifası (KVKK m.5/2-c); meşru menfaat (m.5/2-f)",
           },
           {
-            key: "Kafede kasa kodu okutularak veya üyelik e-posta adresi girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi",
+            key: "Kafede kasa kodu okutularak ya da girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi",
             value: "Sözleşmenin ifası (KVKK m.5/2-c); meşru menfaat (m.5/2-f)",
           },
           {
@@ -5498,7 +5502,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Sadakat (Damga) Programı Kapsamında Veri İşleme",
         paragraphs: [
           "{{BRAND}} sadakat programı damga esaslıdır. Damga, mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Sadakat (Damga) Programı Kuralları'nda belirtilen koşulları sağlayan kafe siparişlerinden ve kafede kasada personel tarafından eklenen damgalardan kazanılır; online mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Programda puan yoktur; sipariş bedeli damga ile ödenemez ve damganın kendi başına parasal bir karşılığı yoktur. Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresindeki Sadakat (Damga) Programı Kuralları'ndadır.",
-          "Sadakat programı kapsamında üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz işlenir. Bir siparişin damga kazandırıp kazandırmadığı, sipariş kaydındaki ödeme durumu ve tutar üzerinden belirlenir. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir. Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Davet programına katılırsanız davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı da kaydedilir.",
+          "Sadakat programı kapsamında üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz işlenir. Bir siparişin damga kazandırıp kazandırmadığı, sipariş kaydındaki ödeme durumu ve tutar üzerinden belirlenir. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir. Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Davet programına katılırsanız davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı da kaydedilir.",
           "Bu işleme, programın işletilmesi bakımından sözleşmenin kurulması ve ifasına (KVKK m.5/2-c), damga ve kuponların kötüye kullanımının önlenmesi bakımından meşru menfaate (KVKK m.5/2-f) dayanır. Program konum verisi, reklam tanımlayıcısı veya sizin cihaz kameranızı kullanmaz; harcama geçmişine dayalı profilleme programın parçası değildir.",
           "Siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damga geri alınır; sipariş iptal edilirse siparişte kullanılan kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödediğiniz tutar PayNkolay üzerinden ödemenin yapıldığı karta iade edilir. Kısmi iadenin karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde bilgilendirilirsiniz ve iade tutarı, aynı yasal süre içinde kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına havale veya EFT ile ödenir.",
           "Damga hareketleri, bağlı olduğu sipariş kaydının saklama süresine tabidir; kasada eklenen damgalar ve düzeltmeleri de aynı süreyle saklanır. Kasa kodu kayıtları, kullanıldıktan veya süresi dolduktan bir gün sonra silinir. Hesabınızı kapattığınızda biriken damgalar ve kullanılmamış kuponlar sona erer ve damga hareketleri hesabınızdan koparılır.",
@@ -5703,6 +5707,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Aydınlatma Metni",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -6067,7 +6075,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Otomatik altyapı kayıtları: Sunucu ve uygulama log kayıtları, güvenlik ve hata kayıtları, oturum bilgileri, yönetici işlemlerine ilişkin olay kaydı.",
           "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler ve yerel depolama (sepetin cihazınızda tutulması dahil). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; piksel veya ölçümleme etiketi yüklenmez.",
           "Mobil uygulama: Uygulama üzerinden doldurduğunuz formlar ve gerçekleştirdiğiniz işlemler; sunucumuza yapılan isteklerde oluşan IP adresi, istemci bilgisi (user-agent) ve zaman kayıtları; kafede damga eklenirken kasada okutulan veya girilen kasa kodu. Uygulama konum, reklam tanımlayıcısı, anlık bildirim tokeni veya çökme kaydı toplamaz.",
-          "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları.",
+          "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları.",
           "Ödeme altyapısı: {{SITE}} üzerindeki güvenli ödeme sayfasında girdiğiniz kart bilgileri (kaydedilmeden yalnızca PayNkolay'a iletilir); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisine sunucumuzdan yapılan sorgu ile alınan işlem sonucu, referans kodu ve maskelenmiş kart bilgisi; itirazlarda bankanın ve PayNkolay'ın ilettiği bilgiler.",
           "Kargo ve teslimat kanalları: Geliver kargo gönderi platformunun sitemize bildirdiği gönderi durumu ve takip bilgileri ile kafe siparişlerinde kurye teslimatına ilişkin kayıtlar.",
           "Yazılı ve sözlü iletişim: {{EMAIL}} adresine gönderilen e-postalar, {{PHONE}} numarası üzerinden yapılan görüşmeler, {{ADDRESS}} adresine yapılan yazılı başvurular.",
@@ -6119,7 +6127,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Damga ve kupon verisi: damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), damgayı kazandıran sipariş ve hareketin tarihi; hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile bunların kullanım durumu. Hukuki sebep: KVKK m.5/2-c.",
           "Kademe verisi: son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz; kademe uygulamada gösterilir ve kademeye bağlı avantajların (örneğin karaoke rezervasyonunda kademe indirimi) uygulanmasında kullanılır. Hukuki sebep: KVKK m.5/2-c. Bu veriler segmentasyon veya profilleme amacıyla analiz edilmez.",
-          "Kasada damga: Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; damga hareketine işlemi yapan personelin kimliği yazılır ve kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Kod okunamazsa damga, üyelik e-posta adresiniz girilerek de eklenebilir. Hukuki sebep: KVKK m.5/2-c. Uygulama damga için sizin kameranızı kullanmaz; kodu personel kendi cihazıyla okutur.",
+          "Kasada damga: Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; damga hareketine işlemi yapan personelin kimliği yazılır ve kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. Hukuki sebep: KVKK m.5/2-c. Uygulama damga için sizin kameranızı kullanmaz; kodu personel kendi cihazıyla okutur.",
           "Davet programı: davet kodunuz, davet eden ve edilen üye kaydı, davetin durumu ve tarihleri ile davet nedeniyle tanımlanan kupon işlenir; davet eden üye, davet ettiği kişinin adını ve soyadının yalnızca baş harfini görür. Hukuki sebep: KVKK m.5/2-c.",
           "Damga durumu, dolan kart ve tanımlanan kuponlara ilişkin işlemsel bilgiler sözleşmenin ifası kapsamında uygulama içinde ve kupon tanımlandığında e-posta ile iletilir; kampanya ve indirim duyuruları ise ticari elektronik ileti niteliğindedir ve yalnızca onayınızla gönderilir.",
           "Suistimalin önlenmesi: Aynı siparişten mükerrer damga kazanımı, kasa kodunun başkasıyla paylaşılması veya çoğaltılması ve program kurallarının kötüye kullanılması hâllerinin tespiti için damga ve kupon hareketleri incelenebilir. Hukuki sebep: KVKK m.5/2-f meşru menfaat.",
@@ -10291,6 +10299,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // adımı adıyla söylüyor, uygulamadaki anında silme kalıyor; eklenenler
     // talebi geri alma ve sonucun bildirilmesi, otuz gün de KVKK m.13/2'nin
     // zaten koyduğu üst sınır.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    // Not a substantive change against the member (§22): the stamps and the
+    // ways to earn them stay, a code the camera cannot read is typed, and a
+    // stamp the till missed is still given, on request; it is also a change
+    // for compliance (KVKK m.12/1), which §22 exempts from the fifteen days.
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10590,7 +10606,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "10. Sadakat (Damga) Programı",
         paragraphs: [
           "Şirket, üyelerine yönelik bir sadakat programı yürütür. Üye, Mobil Uygulama üzerinden verdiği ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan kafe siparişlerinden, ürün tutarının başlanan her 320,00 ₺'si için bir damga kazanır (140,00 ₺ ile 320,00 ₺ arası 1, 320,01 ₺ ile 640,00 ₺ arası 2 damga ve böyle devam eder); 140,00 ₺'nin altında kalan siparişler damga kazandırmaz. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
-          "Kafede damga, kasada personel tarafından eklenir: Üye, Mobil Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Mobil Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; kendi koduna damga veremez. Mobil Uygulama, damga kazanmak amacıyla Üye'nin kamerasını kullanmaz.",
+          "Kafede damga, kasada personel tarafından eklenir: Üye, Mobil Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinde görünür. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Mobil Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; kendi koduna damga veremez. Mobil Uygulama, damga kazanmak amacıyla Üye'nin kamerasını kullanmaz.",
           "Damga bir para birimi ya da elektronik para değildir; tek başına parasal bir karşılığı yoktur. Nakde çevrilemez, başka bir üyeye devredilemez, satılamaz, miras yoluyla intikal etmez ve üyelik hesabı dışında kullanılamaz.",
           "Kartın dolması için gereken damga sayısı (varsayılan altı; Şirket tarafından 3 ile 20 arasında belirlenebilir), ödülün tutarı ve kuponun geçerlilik süresi Platform'da yayımlanan Sadakat Programı Kuralları'nda ve Mobil Uygulama'nın ödüller ekranında gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış damgaların toplam sayısını azaltmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder. Ayrıntı Sadakat Programı Kuralları'ndadır.",
           "Şirket, Programı tümüyle sonlandırmaya karar verirse üyeleri en az otuz gün önceden bilgilendirir ve bu süre boyunca dolmuş kartların ödüle çevrilmesine imkân tanır.",
@@ -11086,6 +11102,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odul-programi",
     title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    // §12 and §23 ask that a change against the participant be announced
+    // first: the result is not one (no stamp is lost), and the operator
+    // announces it in the app on the publish day (LEGAL-REDLINES §26.5).
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
@@ -11184,7 +11207,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kasa Damgası",
             value:
-              "Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak veya üyelik e-posta adresi girilerek hesaba eklenen damga",
+              "Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak ya da elle girilerek hesaba eklenen damga",
           },
           {
             key: "Damga Defteri",
@@ -11277,7 +11300,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Kafede Kasada Damga Eklenmesi",
         paragraphs: [
-          "Kasa Damgası, personel tarafından Şirket'in yönetim panelinden eklenir. Katılımcı, Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık bir karekod ile sekiz karakterlik bir kod) personele gösterir; personel kodu okur veya elle girer. Kod okunamazsa damga, Katılımcı'nın üyelik e-posta adresi girilerek de eklenebilir. İşlem kasada, personelin kendi yetkili hesabı üzerinden yapılır. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; personel kendi koduna damga veremez. Her işlemde en fazla beş damga eklenebilir.",
+          "Kasa Damgası, personel tarafından Şirket'in yönetim panelinden eklenir. Katılımcı, Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık bir karekod ile sekiz karakterlik bir kod) personele gösterir; personel kodu okur veya elle girer. Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez. İşlem kasada, personelin kendi yetkili hesabı üzerinden yapılır. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; personel kendi koduna damga veremez. Her işlemde en fazla beş damga eklenebilir.",
           "Katılımcı'dan bu işlem için karekod okutması istenmez: kodu personel kendi cihazıyla okutur. Uygulama, damga kazanmak amacıyla Katılımcı'nın kamerasına erişmez. Uygulama'daki kasa okuyucusu yalnızca Şirket'in kasa yetkisi verdiği personel hesaplarında açılır; okuyucuda görüntü kaydedilmez, yalnızca okunan kod sunucuya iletilir.",
           "Kasada eklenen her damga, işlemi yapan personelin kimliği ve işlem anı ile birlikte Damga Defteri'ne yazılır. Yanlışlıkla eklenen bir damga, aynı panelden bir düzeltme kaydı yazılarak geri alınabilir (bkz. 14. madde).",
           "Kasada eklenen damga, Uygulama'nın ödüller ekranındaki kart sayısına yansır.",
@@ -11353,6 +11376,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Kasa Damgasının Düzeltilmesi",
         paragraphs: [
           "Kasada yanlışlıkla eklenen bir damga, personel tarafından aynı panelden geri alınabilir. Geri alma, kazanım kaydını silmez; Damga Defteri'ne bir düzeltme satırı yazılır ve düzeltmeyi yapan personel ile işlem anı kayda geçer.",
+          "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'nde görünür.",
           "Düzeltme, Katılımcı'nın kullanılabilir damgası bulunmuyorsa yapılamaz; böylece tekrarlanan bir düzeltme, bakiyeyi eksiye düşürüp Katılımcı'nın sonradan hak ettiği bir kartı yutamaz.",
           "Katılımcı, hesabına işlenen veya hesabından düşülen damgalara ilişkin kayıtların dökümünü {{EMAIL}} adresine yapacağı talep üzerine alabilir ve itiraz edebilir (bkz. 21. madde).",
         ],
@@ -11415,7 +11439,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "20. Kişisel Verilerin İşlenmesi",
         paragraphs: [
-          "Program kapsamında; üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, düzeltme, ödül), hareketin kaynağı (uygulama siparişi veya kasa) ve kasada işlem yapan personelin kimliği işlenir. Ayrıca hesaba tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kayıtları (davet eden, davet edilen, durum ve tarih) ile son 365 gündeki ödenmiş sipariş sayısından hesaplanan kademe işlenir. Kasada damga eklenirken personele Katılımcı'nın adı, maskelenmiş e-posta adresi ve kart durumu gösterilir (e-posta ile ekleme yolunda personel adresi kendisi yazar); damgayı ekleyen personelin hesabı kayda geçer. Kasa kodunun yalnızca özet değeri, geçerlilik süresi ve kullanıldığı an kaydedilir.",
+          "Program kapsamında; üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, düzeltme, ödül), hareketin kaynağı (uygulama siparişi veya kasa) ve kasada işlem yapan personelin kimliği işlenir. Ayrıca hesaba tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kayıtları (davet eden, davet edilen, durum ve tarih) ile son 365 gündeki ödenmiş sipariş sayısından hesaplanan kademe işlenir. Kasada damga eklenirken personele Katılımcı'nın adı, maskelenmiş e-posta adresi ve kart durumu gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Kasa kodunun yalnızca özet değeri, geçerlilik süresi ve kullanıldığı an kaydedilir.",
           "Bu verilerin işlenmesi, Programa katılımla kurulan sözleşmenin ifası ve Şirket'in hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır. Ayrıntı: {{SITE_URL}}/hukuk/kvkk-aydinlatma-metni.",
           "Program, Katılımcı'nın konum verisini veya reklam kimliğini kullanmaz; damga kazanımı için hiçbir cihaz izni istenmez ve Katılımcı'nın kamerası kullanılmaz. Uygulama'daki kasa okuyucusu (kamera) yalnızca Şirket'in kasa yetkisi verdiği personel hesaplarında açılır.",
           "Harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması Programın bir parçası değildir; böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır ve rıza her zaman geri alınabilir.",
@@ -11462,6 +11486,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "mobil-uygulama-kosullari",
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
     // 18 Ekim 2026: §17 names the Site's request page beside e-mail, both
     // answered within thirty days.
@@ -11820,7 +11848,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Sadakat damgası, üyelik hesabına bağlı olarak kazanılan ve tek başına parasal karşılığı bulunmayan bir kayıttır. Damga bir ödeme aracı, elektronik para veya menkul kıymet değildir; nakde çevrilemez, üçüncü kişilere devredilemez, satılamaz ve başka bir hesaba aktarılamaz.",
           "Damga iki yoldan kazanılır: Uygulama üzerinden verilen ve ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişinin ödemesinin tamamlanması (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabına eklediği damga; kasada eklenen damga için tutar şartı aranmaz. Kart, Uygulama'da gösterilen hedef sayıda damga ile dolar (varsayılan altı) ve dolan kart, Kullanıcı'nın talebiyle bir ücretsiz içecek kuponuna çevrilir.",
-          "Kasada damga eklenirken Uygulama'nın gösterdiği kasa kodu (iki dakika geçerli ve tek kullanımlık karekod ile sekiz karakterlik kod) personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. Üye'nin cihazındaki Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
+          "Kasada damga eklenirken Uygulama'nın gösterdiği kasa kodu (iki dakika geçerli ve tek kullanımlık karekod ile sekiz karakterlik kod) personele gösterilir; personel kodu okutur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Üye'nin cihazındaki Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
           "Şirket, panelden belirlediği üye hesaplarına (personel hesapları) Uygulama'da kasa ekranını açabilir. Bu ekran yalnızca yetki verilen hesapta görünür; yetki Şirket tarafından her zaman kaldırılabilir ve sunucu her okutmada yetkiyi yeniden denetler. Kasa ekranında kamera, üyenin kasa kodunu okumak için kullanılır; görüntü kaydedilmez, yalnızca okunan kodun metni sunucuya iletilir ve personele üyenin adı ile maskelenmiş e-posta adresi gösterilir. Her damga, işlemi yapan personel hesabıyla kaydedilir; personel kendi koduna damga veremez ve hatalı okutmalar sınırlandırılır. Bu ekranın kötüye kullanılması, Yasak Kullanımlar kapsamında yetkinin kaldırılmasına yol açabilir.",
           "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir, tek kullanımlıktır ve tanımlandığı tarihten itibaren Uygulama'da gösterilen süre boyunca (varsayılan doksan gün) kullanılabilir. Kuponun karşıladığı tutar sipariş özetinde ve faturada indirim olarak gösterilir.",
           "Programın ayrıntılı kuralları {{SITE_URL}}/hukuk/odul-programi adresinde yayımlanır; çelişki hâlinde o metin esas alınır.",
@@ -14230,6 +14258,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 19 Ekim 2026: the karaoke rules live in the karaoke terms only (§1,
     // §4, §5), events follow İade ve Cayma §21 (§6), and the access notice
     // holds a table for 15 minutes (§20). LEGAL-REDLINES §17.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §26).
+    updatedAt: "21 Ekim 2026",
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
@@ -14502,10 +14534,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişi (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabınıza eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder.",
           "Damga bir ödeme aracı, elektronik para veya kıymetli evrak değildir; tek başına parasal bir karşılığı yoktur. Damga nakde çevrilemez, banka hesabına aktarılamaz, üçüncü kişilere devredilemez, satılamaz ve başka bir üyelik hesabıyla birleştirilemez.",
           "Damgalar üyelik hesabına bağlıdır. Üyeliğin Misafir tarafından kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir ödeme talep edilemez.",
-          "Kafede damga kazanmak için uygulama kameranıza erişmez: kasada uygulamanın gösterdiği kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. Kasa kodunu başkasıyla paylaşmayınız.",
+          "Kafede damga kazanmak için uygulama kameranıza erişmez: kasada uygulamanın gösterdiği kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personel kendi cihazıyla okur ya da kod okunamazsa kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. Kasa kodunu başkasıyla paylaşmayınız.",
         ],
         ordered: [
-          "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır.",
+          "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinizde görünür.",
           "Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir; kartınızdaki güncel damga sayısı uygulamanın ödüller ekranında gösterilir ve damga hareketlerinizin tarihli dökümünü {{EMAIL}} adresine yapacağınız talep üzerine isteyebilirsiniz.",
           "Yanlışlıkla eklenen bir damga, personel tarafından aynı panelden bir düzeltme kaydı yazılarak geri alınabilir; kullanılabilir damganız yoksa düzeltme yapılamaz.",
           "İptal edilen veya tamamen iade edilen bir siparişten kazanılmış damgaların tamamı geri alınır; kısmi iadede siparişin damga sayısı kalan ürün tutarına göre yeniden hesaplanır. Kartınızdaki damga sayısı buna göre güncellenir.",

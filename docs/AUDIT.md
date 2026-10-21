@@ -1339,3 +1339,14 @@ Kararlar ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE (operatör,
 
 Açık (operatörde): Production'da `RETENTION_APPLY=destroy` (OP-18), önce bir
 rapor çalıştırması okunduktan sonra (LEGAL-REDLINES §25.5).
+
+### Hukuk ve kasa: damga yalnız üyenin kendi koduyla (21 Eki 2026)
+
+Karar ASK-LOYALTY (operatör, 18 Eki 2026: avukat turu yok). Cümle cümle eski
+ve yeni metin `docs/LEGAL-REDLINES-2026-09.md` §26'da.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Kasada QR okunmazsa kasiyerin elle yazdığı üyelik e-postasıyla damga veriliyordu: üye kendini göstermeden adıyla işlem yapılıyordu (X-LOYALTY) | "E-posta ile" sekmesi kalktı, kod sekmesinde "QR okunmuyorsa..." ipucu; eylem `kind: "email"`'i kararlaştırılan cümleyle reddeder (üye araması ve tekrar penceresi kalktı); `redeemCounterToken` `email_refused` ile hiçbir şey okumadan ya da yazmadan reddeder; `not_found` yeni QR ister. `POST /staff/stamp` zaten yalnız `token` ve `code` alıyordu | `admin-kasa`, `mobile-counter`, `mobile-staff-stamp-route` |
+| 🟡 | Müşteri sayfasındaki "+1 damga" gerekçesizdi | "Damga düzelt (+1)": rol `customers` (sahip, yönetici), en az 10 karakterlik sebep zorunlu, defter notu `Düzeltme · ` ile başlar | `admin-customer-actions`, `admin-people-forms` |
+| 🟢 | Yedi hukuk metni kasada e-postayla damgayı anlatıyordu | Gizlilik, KVKK, Üyelik, Sadakat Programı, Mobil Uygulama ve Kafe Hizmet metinleri yalnız kasa kodunu ve yönetici düzeltmesini anlatır | `legal-docs`, `legal-dates` |

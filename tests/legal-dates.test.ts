@@ -74,6 +74,14 @@ describe("legal document dates", () => {
       // 21 Ekim 2026: the karaoke periods, the event row and the commercial
       // correspondence row (LEGAL-REDLINES §25).
       "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
+      // 21 Ekim 2026: the till stamps only the member's own code
+      // (ASK-LOYALTY, LEGAL-REDLINES §26).
+      "gizlilik-politikasi": "21 Ekim 2026",
+      "kvkk-aydinlatma-metni": "21 Ekim 2026",
+      "uyelik-sozlesmesi": "21 Ekim 2026",
+      "odul-programi": "21 Ekim 2026",
+      "mobil-uygulama-kosullari": "21 Ekim 2026",
+      "kafe-hizmet-kosullari": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
