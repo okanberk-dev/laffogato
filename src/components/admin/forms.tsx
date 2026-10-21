@@ -5,7 +5,7 @@ import { cx } from "@/components/laffogato/cx";
 import { parsePublishInstant } from "@/lib/admin/publish-window";
 
 import { ActionMenu } from "./ui/action-menu";
-import { BUTTON, HEADER_EYEBROW } from "./ui/styles";
+import { BUTTON, COMPACT, HEADER_EYEBROW } from "./ui/styles";
 
 const FIELD_LABEL =
   "text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase";
@@ -68,8 +68,7 @@ export function Field({
 // The panel's field: the outline is --admin-border-field (3:1 against the
 // white card and the field's own fill, so an empty field can be found) and
 // the placeholder is the full label ink, not a faded one (it was 2.41:1).
-export const FIELD_INPUT =
-  "w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm";
+export const FIELD_INPUT = `w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm ${COMPACT.fieldPy}`;
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -99,7 +98,12 @@ export function Checkbox({
   ...rest
 }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className="flex min-h-[44px] cursor-pointer items-center gap-3 py-2 text-sm text-[var(--admin-text-soft)]">
+    <label
+      className={cx(
+        "flex min-h-[44px] cursor-pointer items-center gap-3 py-2 text-sm text-[var(--admin-text-soft)]",
+        COMPACT.minH9,
+      )}
+    >
       {/* shrink-0: a label that wraps to two lines (the allergen boxes)
           squeezed the 20px box. */}
       <input
@@ -119,7 +123,7 @@ export function PrimaryButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -133,7 +137,7 @@ export function GhostButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -147,7 +151,7 @@ export function DangerButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger)] transition-colors hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white disabled:opacity-50 ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger)] transition-colors hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -165,7 +169,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)] sm:p-6 ${className ?? ""}`}
+      className={`rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)] sm:p-6 ${COMPACT.p4} ${className ?? ""}`}
       style={style}
     >
       {children}
