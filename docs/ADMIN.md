@@ -314,13 +314,99 @@ kısayolları" da).
   (`PageHeader` `primary`, `data-admin-new`) olarak çizmiyor ("+ Yeni
   sipariş" `action` içinde): şimdilik `n` her sayfada paleti Oluştur'la
   açar. Bir sayfa `primary`'ye geçince `n` o bağlantıyı doğrudan açar.
-- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı) tuşlar sayfadan
-  çıkmaz: `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
+- Kaydedilmemiş değişikliği olan bir formda (ürün sihirbazı, Ayarlar,
+  Uygulama ayarları, yasal belge, kampanya e-postası) tuşlar sayfadan çıkmaz:
+  `g` ve harf hiçbir şey yapmaz, `n` bağlantıyı değil paleti açar.
   "+ Varyant ekle"den sonra odak sayfaya düşer; oraya yazılan "Guatemala"
   `g u` olup sihirbazı kapatmasın diye (tarayıcı sayfa içi geçişte sormaz).
+  Tuşlar sormaz, çünkü yazarken çıkan bir pencere Enter ya da boşlukla
+  yanlışlıkla onaylanabilir; sayfadan çıkmak isteyen bağlantıya ya da palete
+  basar ve orada sorulur.
 - **Kapatmak için**: menünün altındaki Hesap bölümünde "Tek tuş kısayolları"
   (bu tarayıcıda hatırlanır; kısayol listesinde de aynı düğme var). Kapalıyken
   yalnız ⌘K / Ctrl K kalır.
 - Kurallar tek yerde: `src/lib/admin/shortcut-core.ts`; dinleyici
   `src/components/admin/shortcuts.tsx` (yalnız tek tuşlu rollere, ayrı bir
   parça olarak yüklenir).
+
+## Kaydedilmemiş değişiklik uyarısı
+
+Uzun bir formda yazdığın şey kaydedilmeden panelin başka bir sayfasına geçmek
+istersen panel önce sorar: **"Kaydedilmemiş değişiklikler var. Sayfadan
+çıkılsın mı?"** Tamam dersen sayfa değişir ve yazdığın gider; Vazgeç dersen
+yerinde kalırsın.
+
+Bu formlarda var: **Ayarlar** (sekmelerden biri kaydedilmemişse; sekmedeki
+nokta zaten bunu gösterir), **Uygulama ayarları** (dokuz bölümün hepsi),
+**yasal belge düzenleyici** ve **kampanya e-postası** (yeni ve taslak). Ürün
+sihirbazı kendi uyarısını kullanır: yenilemede ve sekme kapanışında sorar,
+menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
+
+- **Sorduğu yerler**: başka bir sayfaya giden bağlantı (menü, üst çubuk,
+  "Vazgeç", bildirimdeki bağlantı) ve ⌘K paletinde bir sayfa seçmek (Vazgeç
+  dersen palet açık kalır). Sayfayı yenilemek, sekmeyi kapatmak ya da adres
+  çubuğuna başka bir adres yazmak da tarayıcının kendi sorusunu çıkarır.
+- **Sormadığı yerler**: yazdığını kaydettikten sonra. Kayıt reddedilirse
+  (kırmızı hata) form kaydedilmemiş kalır ve sorar. Forma hiç dokunmadıysan ya
+  da yazdığını eski hâline getirdiysen de sormaz. Ctrl, ⌘, Shift ya da Alt'la
+  (yeni sekme ya da pencere) açılan bağlantılar, indirmeler, aynı sayfada kalan
+  bağlantılar (Ayarlar'da başka bir sekmeye geçmek, sayfa içi `#` atlaması,
+  "İçeriğe geç") ve "Ara" düğmesi de sormaz.
+- **Sorulamayan yerler**: tarayıcının Geri ve İleri düğmeleri ile Çıkış.
+  Tarayıcı ilkine kanca vermiyor, Çıkış bir bağlantı değil form gönderimi. Bu
+  yüzden uzun bir formdan sonra kaydetmeden Geri'ye ya da Çıkış'a basma.
+- Kaydedince sayfada kalan formlar (Ayarlar, Uygulama ayarları, kampanya
+  taslağı) kaydedilen hâli esas alır; yanıt gelene kadar yazdıkların
+  kaydedilmemiş sayılır. Kaydedince listeye dönen formlar (yasal belge, yeni
+  kampanya) sayfayı bıraktığı için sormaz.
+- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Bir form
+  `useUnsavedGuard(formRef, { saved })` ile korunur: `formRef` `<form>`'un
+  kendisi (`ActionForm`'da `formRef` prop'u), `saved` her başarılı kayıtta
+  yeni gelen cevap (`savedAnswer(state)`); kayıttan sonra yönlenen form
+  `saved` vermez. Koruma yalnız operatörün değiştirdiği alanları karşılaştırır:
+  alan, adıyla (`name`) bir `input` ya da `change` olayından tanınır. Sayfanın
+  kendisinin değiştirdiği alan sayılmaz; operatör adına bir alanı kodla
+  değiştiren bir denetim olayı o alanda göndermeli, adı olmayan denetim hiç
+  sayılmaz. Kendi "kaydedilmemiş" bilgisini tutan bir sayfa
+  `useUnsavedFlag(dirty)` çağırır.
+
+## Kayıtlı görünümler
+
+Siparişler listesinde süzgeç çipleriyle aynı satırdaki **Görünümler**
+menüsü, sık açılan bir listeyi tek dokunuşla geri getirir ("Masa
+siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
+
+- **Bu görünümü kaydet**: sekme, açılır listeler ve sıralama bir adla
+  kaydedilir (en çok 30 karakter, liste başına en çok 8 görünüm). Arama
+  metni, tarih aralığı ve sayfa kaydedilmez; e-posta ya da telefon
+  numarasına benzeyen bir değer de. Yalnız listenin kendi parametreleri
+  (süzgeçleri, sekmesi, sıralaması) ve onların yazdığı türden değerler
+  (harf, rakam, `_`, `-`) kalır: adrese elle eklenmiş başka bir şey
+  kaydedilmez. Adda e-posta ya da telefon olamaz. Aynı adı yeniden
+  yazarsan o görünümün üzerine yazılır. Kaydetmek ve silmek yalnız bu
+  tarayıcıyı değiştirir, sunucuya gidilmez.
+- Kayıtlı bir görünüme dokununca liste o hâliyle açılır; o an kutuda bir
+  arama varsa gider. Açık görünümün adı menü düğmesinde yazar.
+- **Varsayılan yap**: liste menüden ya da bir yer iminden süzgeçsiz
+  açılınca bu görünüme geçer, her sekmede bir kez (sonradan seçilen yeni
+  bir varsayılan da bir kez). Listenin kendi "Tümü"sü, "Sıfırla"sı ve
+  çipleri süzgeçsiz listeyi gösterir; varsayılan o sekmede açıldıktan
+  sonra bir siparişten Geri'yle dönmek ve sayfayı yenilemek de. Kutuda
+  hatırlanan bir arama varken ya da menü gelmeden sayfada bir şeye
+  basıldıysa (bir sekme, Uygula, bir bağlantı, bir tuş) varsayılan
+  uygulanmaz: başlattığın gezinmenin üstüne yazmaz.
+- **Görünümü sil**: onay sorar; yalnız kısayol gider, siparişler değişmez.
+- Görünümler bu tarayıcıda, hesabına bağlı durur (`localStorage`,
+  `laf_admin_views_v1:<hesap anahtarı>:<liste>`; anahtar Son
+  açılanlar'daki gibi e-postanın HMAC'i, e-posta değil). Aynı köşk
+  tabletinde başka bir hesap onları görmez, başka cihaza taşınmazlar,
+  Çıkış onları silmez. Site verisi kapalıyken ya da tarayıcının yeri
+  doluyken kaydedilemez; pencere bunu söyler. Gizli pencerede kaydedilen
+  görünüm o pencere kapanınca gider. Sekme, açtığı varsayılanı
+  `sessionStorage`'da not eder
+  (`laf_admin_views_tab_v1:<hesap anahtarı>:<liste>`); not sekme
+  kapanınca gider.
+- Menünün kodu ayrı bir parça olarak, sayfa tarayıcıya gelince yüklenir.
+  Yüklenemezse (ağ koptu, yeni sürüm çıktı) Görünümler çizilmez, liste
+  olduğu gibi çalışır; sayfayı yenilemek menüyü geri getirir.
+- Kasiyerde menü yok. Kurallar tek yerde: `src/lib/admin/saved-views.ts`.

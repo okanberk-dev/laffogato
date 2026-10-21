@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useActionState, useId } from "react";
 
@@ -22,6 +23,11 @@ import {
 
 import { FIELD_INPUT } from "../forms";
 import { ListSearchButton } from "./list-search-button";
+import {
+  SavedViewsBoundary,
+  useSavedViewsKey,
+  useTouchedSince,
+} from "./saved-views-key";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
 import { useNoResetSubmit } from "./submit";
 
@@ -45,7 +51,22 @@ export interface FilterBarProps {
   pageParam?: string;
   /** Accessible name of the search landmark; default "Filtreler". */
   label?: string;
+  /**
+   * Saved views (admin UI v2, UI-11): a "Görünümler" menu at the end of
+   * the chips' row, for this list (`key`: short lower-case ASCII, one per
+   * list, e.g. "orders"). Kept in this browser per signed-in account and
+   * drawn only once the page is in the browser, so the bar's markup
+   * without JavaScript, and before hydration, is the same as without it.
+   */
+  views?: { key: string };
 }
+
+// The saved views menu (UI-11): its own chunk, asked for only once a list
+// with `views` is in the browser. Never drawn on the server either way.
+const SavedViews = dynamic(
+  () => import("./saved-views").then((m) => m.SavedViews),
+  { ssr: false },
+);
 
 /** A chip's × (a link, or a button for a search text). */
 const CHIP_REMOVE =
@@ -141,8 +162,13 @@ export function FilterBar({
   values: given,
   pageParam = DEFAULT_PAGE_PARAM,
   label = "Filtreler",
+  views,
 }: FilterBarProps) {
   const list = listSearchFor(pathname, fields);
+  // Null before the page is in the browser, and without `views`.
+  const viewsKey = useSavedViewsKey(views?.key);
+  // A press, key or form sent since then: the menu's default stays away.
+  const touched = useTouchedSince(viewsKey !== null);
   const baseId = useId();
   const resetId = `${baseId}-reset`;
   // The post runs as an action, so `pending` holds until the filtered list
@@ -256,6 +282,44 @@ export function FilterBar({
     );
   };
 
+  const chipList = (className: string) => (
+    <ul aria-label="Etkin filtreler" className={className}>
+      {chips.map((chip) => (
+        <li
+          key={chip.key}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface)] py-1 pr-1 pl-3 text-xs text-[var(--admin-text-soft)]"
+        >
+          <span>
+            {chip.label}:{" "}
+            <strong className="font-medium text-[var(--admin-text)]">
+              {chip.value}
+            </strong>
+          </span>
+          {boxes.has(chip.key) ? (
+            // The text is not in the address: removing it is a post.
+            <ListSearchButton
+              href={chip.removeHref}
+              intent="clear"
+              clear={chip.key}
+              ariaLabel={`Filtreyi kaldır: ${chip.label} ${chip.value}`}
+              className={CHIP_REMOVE}
+            >
+              <span aria-hidden="true">×</span>
+            </ListSearchButton>
+          ) : (
+            <Link
+              href={chip.removeHref}
+              aria-label={`Filtreyi kaldır: ${chip.label} ${chip.value}`}
+              className={CHIP_REMOVE}
+            >
+              <span aria-hidden="true">×</span>
+            </Link>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="mb-4">
       <form
@@ -326,42 +390,32 @@ export function FilterBar({
         </form>
       ) : null}
 
-      {chips.length > 0 ? (
-        <ul aria-label="Etkin filtreler" className="mt-2 flex flex-wrap gap-2">
-          {chips.map((chip) => (
-            <li
-              key={chip.key}
-              className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface)] py-1 pr-1 pl-3 text-xs text-[var(--admin-text-soft)]"
-            >
-              <span>
-                {chip.label}:{" "}
-                <strong className="font-medium text-[var(--admin-text)]">
-                  {chip.value}
-                </strong>
-              </span>
-              {boxes.has(chip.key) ? (
-                // The text is not in the address: removing it is a post.
-                <ListSearchButton
-                  href={chip.removeHref}
-                  intent="clear"
-                  clear={chip.key}
-                  ariaLabel={`Filtreyi kaldır: ${chip.label} ${chip.value}`}
-                  className={CHIP_REMOVE}
-                >
-                  <span aria-hidden="true">×</span>
-                </ListSearchButton>
-              ) : (
-                <Link
-                  href={chip.removeHref}
-                  aria-label={`Filtreyi kaldır: ${chip.label} ${chip.value}`}
-                  className={CHIP_REMOVE}
-                >
-                  <span aria-hidden="true">×</span>
-                </Link>
-              )}
-            </li>
-          ))}
-        </ul>
+      {viewsKey ? (
+        // The menu shares the chips' row, at its end. It is outside the
+        // form: that one remounts on every address change, and a form
+        // inside a form is not allowed.
+        <div className="mt-2 flex flex-wrap items-start gap-2">
+          {chips.length > 0
+            ? chipList(
+                "flex min-w-0 flex-[1_1_14rem] flex-wrap gap-2 self-center",
+              )
+            : null}
+          {/* A menu that cannot load is not drawn; the list stays. */}
+          <SavedViewsBoundary>
+            <SavedViews
+              storageKey={viewsKey}
+              pathname={pathname}
+              address={address}
+              fields={fields}
+              values={values}
+              pageParam={pageParam}
+              touched={touched}
+              className="ml-auto"
+            />
+          </SavedViewsBoundary>
+        </div>
+      ) : chips.length > 0 ? (
+        chipList("mt-2 flex flex-wrap gap-2")
       ) : null}
     </div>
   );

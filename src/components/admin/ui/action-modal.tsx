@@ -117,6 +117,13 @@ export interface ActionModalProps {
   onSuccess?: (result: Extract<ActionResult, { ok: true }>) => void;
   /** Show the success message as a toast; default true. */
   toastOnSuccess?: boolean;
+  /**
+   * After a success, tell the panel something changed
+   * (announceAdminChange: the sidebar's badges read the server again);
+   * default true. False for a dialog that changes only this browser (a
+   * saved list view): the database is not woken for nothing.
+   */
+  announce?: boolean;
   /** Dialog width; default `md`. */
   size?: "sm" | "md" | "lg";
 }
@@ -321,6 +328,7 @@ function ModalDialog({
   children,
   onSuccess,
   toastOnSuccess = true,
+  announce = true,
   size = "md",
   onClosed,
 }: ActionModalProps & { onClosed: () => void }) {
@@ -361,7 +369,7 @@ function ModalDialog({
     }
     if (result.ok) {
       if (toastOnSuccess) toast.fromResult(result);
-      announceAdminChange();
+      if (announce) announceAdminChange();
       dialogRef.current?.close();
       onSuccess?.(result);
     }

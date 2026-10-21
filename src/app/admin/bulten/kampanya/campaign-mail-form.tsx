@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import {
   PANEL_ACTION_FAILED,
@@ -16,6 +16,10 @@ import {
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import {
+  savedAnswer,
+  useUnsavedGuard,
+} from "@/components/admin/ui/unsaved-guard";
 import {
   CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
@@ -85,6 +89,11 @@ export function CampaignMailForm({
     initial,
   );
   const post = useHandPost(formAction, pending);
+  // Leaving the composer with edits not saved asks (a link, the palette, a
+  // reload). "Taslağı kaydet" answers in place, and what it posted is then
+  // the saved state; "Taslağı oluştur" redirects, and the page is gone.
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedGuard(formRef, { saved: savedAnswer(state) });
   const [template, setTemplate] = useState<CampaignTemplateName>(
     defaults?.template ?? "kampanya-duyuru",
   );
@@ -110,7 +119,12 @@ export function CampaignMailForm({
   const membersOnly = audiences.length === 1;
 
   return (
-    <form action={post.action} onSubmit={post.onSubmit} className="grid gap-4">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-4"
+    >
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
