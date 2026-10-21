@@ -8,6 +8,7 @@ import {
   withPanelCatch,
 } from "@/components/admin/action-form";
 import { FormError, FormSuccess } from "@/components/admin/form-feedback";
+import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import {
   Card,
   Field,
@@ -203,11 +204,11 @@ export function CampaignMailForm({
             label="Gönderim zamanı"
             hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih-saat yazarsan zamanı geldikten sonraki ilk görev turu onu kendisi kuyruğa alır: bu genelde birkaç saat içindedir, tam o dakikada değil. Belli bir sabah çıkması gerekiyorsa (Anneler Günü, yılbaşı, 14 Şubat) saati birkaç saat öne kur; panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
           >
-            <TextInput
+            <DateTimeField
               name="scheduledAt"
-              type="datetime-local"
+              aria-label="Gönderim tarihi ve saati"
               value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
+              onChange={setScheduledAt}
             />
           </Field>
           {scheduledAt && (

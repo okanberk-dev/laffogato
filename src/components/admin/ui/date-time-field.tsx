@@ -18,8 +18,10 @@ import {
  * A date and a time for a form (admin UI v2, UI-14, design §5 #7 and D12),
  * in place of `<input type="datetime-local">`: the same name, the same
  * `YYYY-MM-DDTHH:mm` Istanbul wall-clock value, the same min, max and
- * required, and the same markup on the server. UI-15 puts it in the ten
- * publish-window boxes; no form uses it yet.
+ * required, and the same markup on the server. UI-15 put it in the ten
+ * publish-window boxes (promo expiry, campaign send time, hero and app
+ * slides, announcements, posts); each passes an aria-label, because the
+ * widget sits inside the Field's label next to a calendar button.
  *
  * It draws the native box: what the server renders, what works before and
  * without JavaScript, and what a phone keeps (the OS pickers there are

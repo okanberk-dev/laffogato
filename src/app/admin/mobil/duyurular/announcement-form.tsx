@@ -10,6 +10,7 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 import type { ModalAction } from "@/components/admin/ui";
+import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import {
   APP_ANNOUNCEMENT_KIND_LABELS,
   APP_ANNOUNCEMENT_KINDS,
@@ -105,18 +106,18 @@ export function AppAnnouncementForm({
               label="Başlangıç"
               hint="Boşsa hemen yayında. Saat İstanbul saatidir."
             >
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="startsAt"
+                aria-label="Başlangıç tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
               />
             </Field>
           </FieldRow>
           <FieldRow name="endsAt">
             <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="endsAt"
+                aria-label="Bitiş tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
               />
             </Field>

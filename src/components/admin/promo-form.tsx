@@ -22,6 +22,7 @@ import {
   TextInput,
 } from "./forms";
 import { BUTTON } from "./ui";
+import { DateTimeField } from "./ui/date-time-field";
 
 const initial: PromoActionState = {};
 
@@ -171,9 +172,9 @@ export function PromoForm({
                   : "Boş = süresiz. Geçmiş bir tarih kabul edilmez."
               }
             >
-              <TextInput
+              <DateTimeField
                 name="expiresAt"
-                type="datetime-local"
+                aria-label="Son geçerlilik tarihi ve saati"
                 // The Istanbul wall clock of the stored UTC instant.
                 defaultValue={
                   promo?.expiresAt ? toDateTimeLocalInput(promo.expiresAt) : ""
