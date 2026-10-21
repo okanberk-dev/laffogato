@@ -88,9 +88,18 @@ export async function updateSession(
 
   // Do not drop this call or move logic between it and the return: it is what
   // triggers the refresh. Its result is deliberately unused - identity for a
-  // page is re-checked where the page is rendered.
+  // page is re-checked where the page is rendered (the site's own signed
+  // cookie, `getActiveCustomer`).
+  //
+  // `getClaims()`, not `getUser()` (Supabase's SSR guide since asymmetric
+  // signing keys): it refreshes an expired session exactly as `getUser()` did,
+  // but a still-valid access token is verified against the project's cached
+  // public keys instead of a round trip to the auth server on EVERY page view.
+  // Production logged "getUser timed out" on every page a signed-in visitor
+  // opened, each one held for the full three seconds. On a project still on
+  // the legacy shared secret it falls back to `getUser()` - never slower.
   try {
-    await withTimeout(supabase.auth.getUser(), GET_USER_TIMEOUT_MS);
+    await withTimeout(supabase.auth.getClaims(), GET_USER_TIMEOUT_MS);
   } catch (err) {
     // Auth server unreachable: the visitor keeps their current cookies and the
     // page renders as it would for a stale session. Never an error page.
