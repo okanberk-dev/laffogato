@@ -251,12 +251,12 @@ Yirmi beş şablon - her satırda **tetikleyici · izin sınıfı · idempotency
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
-| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
+| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve onaylanan ÖBF + MSS'nin doldurulmuş metni **ek olarak** (sürüm bağlantılarıyla); ek yoksa güncel metin bağlantıları - aşağıda "Ek: onaylanan sözleşme" |
 | `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
-| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
+| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı + onaylanan karaoke sözleşmesinin doldurulmuş metni ek olarak |
 | `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
 | `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor: rezervasyon iptal edilmez (`notifyLateCancelRequest`) · kilit yok, her panel kaydı bir istek |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
@@ -882,6 +882,67 @@ eskisi gibi anında siler.
 - `VERCEL_ENV` tanımlı ve `production` değilse gerçek gönderim reddedilir
   (`skipped` + `failed`): her bağlantı önizleme adresine işaret ederdi.
 - `CAMPAIGN_EMAIL_DRY_RUN=1` - derle, `skipped` işaretle, HTTP yok.
+
+### Ek: onaylanan sözleşme (21 Eki 2026)
+
+Karar ASK-DURABLE: ödeme onayı (`odeme-onaylandi`) ve ödenmiş karaoke
+rezervasyonunun onayı (`karaoke-rezervasyon`), müşterinin onayladığı
+belgelerin **o sürümünü** sipariş ya da rezervasyon bilgileriyle doldurulmuş
+tek bir HTML dosyası olarak taşır (`src/lib/legal/durable-copy.ts`):
+`siparis-<NO>-on-bilgilendirme-ve-sozlesme.html`,
+`karaoke-sozlesme-<KOD>.html`. Dosya onay kaydındaki hash'lerden
+(`legalConsent.textHashes`) `legal_doc_versions` tablosundan okunur, bugünkü
+metinden değil; satır içi CSS, 16 px, yazdırmaya uygun, görsel, font, betik
+ya da bağlantı yok; içindeki her değer kaçışlanır.
+
+- **Yalnız tekil gönderim.** `deliver()` Resend'in `/emails` ucuna
+  `attachments: [{ filename, content: <base64> }]` ekler. Toplu uç
+  (`deliverBatch`, `/emails/batch`, kampanyalar) mesajı alan alan kurar ve hiç
+  ek taşımaz.
+- **E-postayı geciktirmez, düşürmez.** İki onay ödeme dönüşünün içinde
+  beklenir; ek dahil tek bir süreye sığar (`src/lib/email/budget.ts`
+  `MAIL_BUDGET`): ödeme onayı her zamanki **9,5 sn** (4 sn, 1,5 sn ara, 4 sn),
+  karaoke onayı **5,5 sn** (eskisi gibi tek 4 sn deneme ve ekin payı). Ekin
+  payı **1,5 sn**'dir ve yükleyicinin modül yüklemesi de bu süreye dahildir
+  (`durableCopyWithin`). Hiçbir deneme 1 sn'den az kala başlamaz, her deneme
+  kalan süreyle kesilir, sığmayan ikinci deneme yapılmaz. Ek bu sürede
+  kurulamazsa, onay kaydında hash yoksa (21 Ekim 2026'dan önceki ve manuel
+  siparişler) ya da sürüm bulunamazsa e-posta eksiz ve eski cümleyle
+  ("bağlantılar belgelerin güncel metnini açar") gider; log yalnız sipariş ya
+  da rezervasyon kimliğini yazar (adres yok, kural 9). İşlem Rehberi §8 bu
+  durumda metni e-postayla isteme yolunu söyler.
+- **Bir ileti, bir anahtar.** Resend eki içeren iletiyi 4xx ile (429 ve 409
+  hariç) reddederse aynı ileti eksiz, `<anahtar>-ek-yok` idempotency
+  anahtarıyla, kalan süreye sığarsa bir kez daha gönderilir. **409 hiçbir
+  zaman ret sayılmaz** (inceleme M1, 21 Eki 2026): `concurrent_idempotent_requests`
+  aynı anahtarlı ilk isteğin hâlâ işlendiğini, `invalid_idempotent_request`
+  ise o anahtarla gövdesi farklı bir isteğin (bir tetikte eksiz, sonrakinde
+  ekli) 24 saat içinde **alındığını** söyler. İlki başarısız sayılır ve
+  `-ek-yok` gönderilmez; ikincisi gönderilmiş sayılır (ileti çıktı, ikinci
+  kopya gitmez). 5xx ve zaman aşımında da `-ek-yok` gönderilmez (ilk istek
+  ulaşmış olabilir), sipariş bildirimi kendi yeniden deneme yolunu izler.
+- **Cümle yalnız ek varken.** "...tam metni bu e-postanın ekindedir" bloğu
+  (`BELGE_EKI`, karaokede `KARAOKE_BELGE_EKI`) yalnız gönderen ekin iletiye
+  girdiğini söylediğinde VE sürüm bağlantıları doluysa açılır (`render.ts`);
+  aksi hâlde eski satır (`BELGE_GUNCEL` / `KARAOKE_BELGE_GUNCEL`).
+- **Aynı dosya** üye sipariş sayfasından
+  (`/uye/hesap/siparislerim/<NO>/sozlesme`, yalnız oturumdaki sahibi) ve
+  karaoke rezervasyonunun kişiye özel imzalı bağlantısından
+  (`/rezervasyon/sozlesme?t=`) indirilir; başka herkese aynı 404. Okuma
+  başarısız olursa sahibine `503` + `Retry-After: 30` (çıplak 500 değil).
+  Sipariş sayfası "Belgeleri indir"i yalnız dosya kurulabiliyorsa gösterir;
+  kurulamıyorsa e-postayla isteme cümlesini. İki yolun kendi CSP'si
+  (`sandbox`) ve `Referrer-Policy: no-referrer` başlıkları `next.config.ts`
+  ve `vercel.json`'da aynı değerle tekrarlanır: sitenin genel kuralları
+  aynı başlığı önce koyduğu için route'un değeri tek başına tele çıkmaz
+  (`tests/security-headers.test.ts`).
+- **Ek, siparişin kendi anlık görüntüsünü basar.** Alıcı adı ve teslimat
+  adresi sipariş verilirken onay kaydına yazılır (`legalConsent.buyer`);
+  panelden sonradan düzeltilen satır e-postayla giden dosyayı ve indirileni
+  değiştirmez. Karaoke dosyası rezervasyonun kendi son ücretsiz iptal anını
+  basar; rezervasyon o andan sonra yapıldıysa yanına "rezervasyon
+  yapıldığında geçmişti; her iptal geç iptal sayılır" yazar (onay
+  e-postasının söylediği gibi).
 
 ### Resend sınırları
 

@@ -17,6 +17,7 @@ const runBirthdayGreetings = vi.fn();
 const expireUnpaidReservations = vi.fn();
 const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
+const recordShownLegalVersions = vi.fn();
 
 /** What the route sent to the database, and in what order the jobs ran. */
 const db = vi.hoisted(() => ({
@@ -41,6 +42,7 @@ vi.mock("@/lib/email/campaigns", () => ({ resumePendingCampaigns }));
 vi.mock("@/app/api/cron/_birthday", () => ({ runBirthdayGreetings }));
 vi.mock("@/lib/mobile/karaoke-payment", () => ({ expireUnpaidReservations }));
 vi.mock("@/lib/retention", () => ({ destructionEnabled, runRetention }));
+vi.mock("@/lib/legal/store", () => ({ recordShownLegalVersions }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
 const { KEEPALIVE_RECORD_TIMEOUT_MS } = await import(
@@ -76,6 +78,7 @@ function expectOtherJobsRan(): void {
   expect(resumePendingCampaigns).toHaveBeenCalledTimes(1);
   expect(runBirthdayGreetings).toHaveBeenCalledTimes(1);
   expect(expireUnpaidReservations).toHaveBeenCalledTimes(1);
+  expect(recordShownLegalVersions).toHaveBeenCalledTimes(1);
   expect(runRetention).toHaveBeenCalledTimes(1);
 }
 
@@ -94,6 +97,10 @@ beforeEach(() => {
   runRetention.mockImplementation(async () => {
     db.order.push("retention");
     return RETENTION;
+  });
+  recordShownLegalVersions.mockResolvedValue({
+    documents: 27,
+    hashes: ["a".repeat(64), "b".repeat(64)],
   });
   db.sent.length = 0;
   db.order.length = 0;
@@ -134,8 +141,21 @@ describe("/api/cron/daily", () => {
       campaigns: { ok: true, campaigns: [] },
       birthday: { ok: true, ...BIRTHDAY },
       karaoke: { ok: true, expired: 0 },
+      legalVersions: { ok: true, documents: 27 },
       retention: { ok: true, ...RETENTION },
     });
+    // Every legal text as shown today is stored before the one step that
+    // deletes (D-VERSIONS-TABLE).
+    expect(recordShownLegalVersions.mock.invocationCallOrder[0]).toBeLessThan(
+      runRetention.mock.invocationCallOrder[0],
+    );
+    // And retention keeps those texts whatever their age (review R1); the
+    // response counts them, never lists them.
+    expect(runRetention).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keep: { "legal-doc-versions": ["a".repeat(64), "b".repeat(64)] },
+      }),
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain(
       "/auth/v1/admin/users?page=1&per_page=1",
@@ -184,6 +204,20 @@ describe("/api/cron/daily", () => {
       recorded: true,
     });
     expect(fetchMock).not.toHaveBeenCalled();
+    expectOtherJobsRan();
+  });
+
+  it("reports a failed legal-version step on its own and still runs retention", async () => {
+    recordShownLegalVersions.mockRejectedValue(new Error("db down"));
+    const res = await GET(get());
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.legalVersions).toEqual({ ok: false, error: "internal" });
+    expect(body.retention).toEqual({ ok: true, ...RETENTION });
+    // Without the texts shown today that rule removes nothing.
+    expect(runRetention).toHaveBeenCalledWith(
+      expect.objectContaining({ keep: {} }),
+    );
     expectOtherJobsRan();
   });
 

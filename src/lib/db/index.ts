@@ -267,6 +267,7 @@ export const TABLES = {
   newsletterSubscribers: "newsletter_subscribers",
   legalDocs: "legal_docs",
   legalOverrideHistory: "legal_override_history",
+  legalDocVersions: "legal_doc_versions",
   admin2fa: "admin_2fa",
   authAttempts: "auth_attempts",
   appHeroSlides: "app_hero_slides",
