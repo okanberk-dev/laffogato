@@ -295,15 +295,17 @@ describe("Git, Oluştur and Komutlar per role", () => {
     }
   });
 
-  it("Komutlar: the 2FA page for everyone, the shortcut sheet for the roles with single keys, the order sound for the roles that hear it", () => {
+  it("Komutlar: the 2FA page for everyone, the shortcut sheet and Sıkı görünüm for the roles with the full shell, the order sound for the roles that hear it", () => {
     expect(labels(core.commandEntries("staff", { soundOn: true }))).toEqual([
       "Güvenlik / 2FA",
       "Klavye kısayolları",
+      "Sıkı görünüm",
       "Sipariş sesini kapat",
     ]);
     expect(labels(core.commandEntries("owner", { soundOn: false }))).toEqual([
       "Güvenlik / 2FA",
       "Klavye kısayolları",
+      "Sıkı görünüm",
       "Sipariş sesini aç",
     ]);
     expect(labels(core.commandEntries("cashier", { soundOn: true }))).toEqual([
@@ -312,7 +314,10 @@ describe("Git, Oluştur and Komutlar per role", () => {
     const sheet = core.commandEntries("staff", { soundOn: true })[1];
     expect(sheet).toMatchObject({ command: "shortcutSheet" });
     expect(sheet.href).toBeUndefined();
-    const sound = core.commandEntries("staff", { soundOn: true })[2];
+    const density = core.commandEntries("staff", { soundOn: true })[2];
+    expect(density).toMatchObject({ command: "toggleDensity" });
+    expect(density.href).toBeUndefined();
+    const sound = core.commandEntries("staff", { soundOn: true })[3];
     expect(sound).toMatchObject({ command: "toggleSound" });
     expect(sound.href).toBeUndefined();
   });

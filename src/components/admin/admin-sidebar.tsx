@@ -7,13 +7,16 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
+  type ComponentProps,
   type ComponentType,
   type MouseEvent,
   type ReactNode,
+  type SyntheticEvent,
 } from "react";
 
 import { karaokeTodaySignalAction } from "@/app/admin/mobil/karaoke/actions";
@@ -34,6 +37,14 @@ import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
 import { SwitchMark } from "@/components/admin/ui/switch-mark";
 import { useToast } from "@/components/admin/ui/toast";
+import {
+  ViewPrefs,
+  useDensityPref,
+  useRailPref,
+  writeDensityPref,
+  writeRailPref,
+} from "@/components/admin/view-prefs";
+import { cx } from "@/components/laffogato/cx";
 import { activeBottomSlot, bottomBarSlots } from "@/lib/admin/bottom-bar-core";
 import {
   activeNavPlace,
@@ -48,6 +59,11 @@ import {
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
+import {
+  RAIL_LINK_ATTR,
+  placeRailTip,
+  releaseRailTip,
+} from "@/lib/admin/view-prefs-core";
 
 export interface AdminNavItem {
   href: string;
@@ -335,6 +351,99 @@ const ROW_IDLE =
 const ROW_ACTIVE =
   "bg-[var(--admin-primary-soft)] font-medium text-[var(--admin-primary)]";
 
+/*
+ * The laptop rail (admin UI v2, UI-9, design 3.6): the sidebar folded to 64
+ * px of icons, from `lg`, remembered per browser (view-prefs.tsx). Every
+ * rail control names itself with `aria-label` and shows a CSS tooltip: a
+ * child these classes reveal on hover and on focus-visible (a click's focus
+ * is not one), that Esc hides until the pointer or the focus leaves
+ * (view-prefs.tsx). The tooltip is `fixed`, so the nav's own scrolling
+ * cannot clip it; `--tip-y`, the control's centre, is written when the
+ * pointer or the focus arrives (view-prefs-core.ts placeRailTip). Its left
+ * padding keeps it a part of the control, so the pointer can cross to it
+ * (WCAG 1.4.13). The server and hydration draw the expanded sidebar: none
+ * of this is in the first markup.
+ */
+const SIDE_ID = "admin-side";
+const ROW_RAIL =
+  "group/tip relative flex h-10 w-full items-center justify-center rounded-lg transition-colors";
+const BADGE_RAIL =
+  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white";
+const TIP =
+  "fixed top-[var(--tip-y,0px)] left-[3.25rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
+const TIP_PILL =
+  "block rounded-md bg-[var(--admin-primary)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
+
+function RailTip({ children }: { children: ReactNode }) {
+  return (
+    <span aria-hidden="true" className={TIP}>
+      <span className={TIP_PILL}>{children}</span>
+    </span>
+  );
+}
+
+const placeTip = (e: SyntheticEvent<HTMLElement>) =>
+  placeRailTip(e.currentTarget);
+const releaseTip = (e: SyntheticEvent<HTMLElement>) =>
+  releaseRailTip(e.currentTarget);
+
+/** What a rail control carries besides its classes: its name, and the tooltip's hooks. */
+function railControl(label: string) {
+  return {
+    "aria-label": label,
+    [RAIL_LINK_ATTR]: "",
+    onPointerEnter: placeTip,
+    onFocus: placeTip,
+    onPointerLeave: releaseTip,
+    onBlur: releaseTip,
+  };
+}
+
+/**
+ * Folds the sidebar to the rail and back (from `lg`; the phone's drawer has
+ * none). The same button in both layouts, so keyboard focus stays on it
+ * when it flips. `aria-expanded` is whether the sidebar is wide.
+ */
+function RailToggle({
+  rail,
+  onToggle,
+}: {
+  rail: boolean;
+  onToggle: () => void;
+}) {
+  const label = rail ? "Menüyü genişlet" : "Menüyü daralt";
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={!rail}
+      aria-controls={SIDE_ID}
+      {...(rail ? railControl(label) : { "aria-label": label, title: label })}
+      className={cx(
+        "grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)]",
+        rail ? "group/tip relative" : "mr-2",
+      )}
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className={rail ? "rotate-180" : undefined}
+      >
+        <path d="m11 17-5-5 5-5" />
+        <path d="m18 17-5-5 5-5" />
+      </svg>
+      {rail ? <RailTip>{label}</RailTip> : null}
+    </button>
+  );
+}
+
 function BadgeCount({ section, n }: { section: string; n: number }) {
   return (
     <>
@@ -346,6 +455,11 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
 
 const BADGE_CLASS =
   "min-w-[22px] rounded-full bg-[var(--admin-primary)] px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white";
+
+/** A badge as a name carries it, for a control that shows only the icon (the rail). */
+function badgeText(section: string, n: number): string {
+  return `${n > 99 ? "99+" : n} ${BADGE_TITLES[section] ?? ""}`.trim();
+}
 
 /**
  * The one-time note about the regrouped nav, dismissed per browser. v2
@@ -448,6 +562,40 @@ function ShortcutSwitch() {
   );
 }
 
+/**
+ * "Sıkı görünüm" (admin UI v2, UI-9): the kit's rows and cards tighten and
+ * its controls drop to 36 px, for a mouse or a trackpad. Per browser; the
+ * server draws it off and a browser that turned it on shows so once
+ * hydrated. A touch screen keeps the 44 px targets whatever this says, and
+ * only there the row says so.
+ */
+function DensitySwitch() {
+  const on = useDensityPref();
+  const hint = useId();
+  return (
+    <>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-describedby={hint}
+        onClick={() => writeDensityPref(!on)}
+        className={`${ROW} ${ROW_IDLE} w-full text-left`}
+      >
+        <NavIcon name="density" />
+        <span className="min-w-0 flex-1 truncate">Sıkı görünüm</span>
+        <SwitchMark on={on} />
+      </button>
+      <p
+        id={hint}
+        className="hidden px-3 pb-1 text-[11px] leading-4 text-[var(--admin-text-mute)] pointer-coarse:block"
+      >
+        Dokunmatik ekranda uygulanmaz.
+      </p>
+    </>
+  );
+}
+
 type ShortcutLayerComponent = ComponentType<{ role: AdminRole }>;
 
 /** The layer once its chunk is here: a remount (a new session) draws it at once. */
@@ -495,12 +643,15 @@ function AccountLinks({
   onNavigate,
   icons,
   shortcuts = false,
+  density = false,
 }: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
   pathname: string;
   onNavigate?: () => void;
   icons: boolean;
   /** The single-key switch, for the roles with single keys. */
   shortcuts?: boolean;
+  /** The "Sıkı görünüm" switch, for the roles with the full nav. */
+  density?: boolean;
 }) {
   const securityActive = pathname === "/admin/2fa-kurulum";
   return (
@@ -527,6 +678,7 @@ function AccountLinks({
         <span className="truncate">Güvenlik / 2FA</span>
       </Link>
       {shortcuts && <ShortcutSwitch />}
+      {density && <DensitySwitch />}
       {/* The palette's recent pages go before the action posts: the next
           person on a shared köşk device must not find them. */}
       <form action={logout} onSubmit={() => forgetRecents()}>
@@ -542,7 +694,9 @@ function AccountLinks({
 /**
  * The sidebar's contents: the logo, the nav and the account block. Drawn
  * twice (the desktop column and the phone's drawer), so ids take a prefix.
- * Six items or fewer (Personel) are one list without group headers.
+ * Six items or fewer (Personel) are one list without group headers. With
+ * `rail` (the desktop column, folded; UI-9) it is the 64 px rail instead:
+ * icons only, every group open, the account block behind an initial.
  */
 export function AdminSidebarBody({
   groups,
@@ -557,6 +711,9 @@ export function AdminSidebarBody({
   onNavigate,
   idPrefix,
   shortcuts = false,
+  density = false,
+  rail = false,
+  onToggleRail,
 }: Pick<
   SidebarProps,
   "groups" | "email" | "roleLabel" | "landingPath" | "logout"
@@ -569,6 +726,12 @@ export function AdminSidebarBody({
   idPrefix: string;
   /** The account block's "Tek tuş kısayolları" switch. */
   shortcuts?: boolean;
+  /** The account block's "Sıkı görünüm" switch. */
+  density?: boolean;
+  /** The folded laptop rail (only the desktop column passes it). */
+  rail?: boolean;
+  /** Folds or unfolds the rail; given, the fold control is drawn. */
+  onToggleRail?: () => void;
 }) {
   const items = groups.flatMap((g) => g.items);
   // Item and tab hrefs alike: /admin/kategoriler lights Ürünler.
@@ -583,6 +746,35 @@ export function AdminSidebarBody({
     const n = counts[item.section] ?? null;
     const badge = n && n > 0 ? n : null;
     const badgeHref = BADGE_LINKS[item.section];
+    if (rail) {
+      // The icon alone: its name is the label and, with a badge, the count
+      // (the pill over the icon is for the eye). One link, not the wide
+      // layout's two: a second hit area would sit on the icon.
+      return (
+        <li key={item.href} className="relative">
+          <Link
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={`${ROW_RAIL} ${active ? ROW_ACTIVE : ROW_IDLE}`}
+            {...railControl(
+              badge !== null
+                ? `${item.label}, ${badgeText(item.section, badge)}`
+                : item.label,
+            )}
+          >
+            <NavPending />
+            <NavIcon name={item.icon ?? item.section} />
+            {badge !== null && (
+              <span aria-hidden="true" className={BADGE_RAIL} style={MONO}>
+                {badge > 99 ? "99+" : badge}
+              </span>
+            )}
+            <RailTip>{item.label}</RailTip>
+          </Link>
+        </li>
+      );
+    }
     return (
       <li key={item.href} className="relative">
         <Link
@@ -629,28 +821,51 @@ export function AdminSidebarBody({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Brand */}
-      <Link
-        href={landingPath}
-        onClick={onNavigate}
-        className="flex items-center gap-2.5 px-5 py-4"
-        aria-label="L'Affogato Admin"
+      {/* Brand, and the rail's fold control (the desktop column only). The
+          control is the same button folded or not, so focus stays on it. */}
+      <div
+        className={
+          rail ? "flex flex-col items-center pb-2" : "flex items-center"
+        }
       >
-        <span
-          className="brand-mark h-8"
-          style={{ color: "var(--admin-primary)" }}
-          aria-hidden="true"
-        />
-        <span
-          className="text-[11px] tracking-[0.26em] text-[var(--admin-text-soft)] uppercase"
-          style={MONO}
+        <Link
+          href={landingPath}
+          onClick={onNavigate}
+          className={
+            rail
+              ? "flex items-center justify-center py-4"
+              : "flex flex-1 items-center gap-2.5 px-5 py-4"
+          }
+          aria-label="L'Affogato Admin"
         >
-          Admin
-        </span>
-      </Link>
+          <span
+            className="brand-mark h-8"
+            style={{ color: "var(--admin-primary)" }}
+            aria-hidden="true"
+          />
+          {rail ? null : (
+            <span
+              className="text-[11px] tracking-[0.26em] text-[var(--admin-text-soft)] uppercase"
+              style={MONO}
+            >
+              Admin
+            </span>
+          )}
+        </Link>
+        {onToggleRail ? (
+          <RailToggle rail={rail} onToggle={onToggleRail} />
+        ) : null}
+      </div>
 
-      {/* Nav */}
-      <nav aria-label="Panel" className="flex-1 overflow-y-auto px-3 pb-4">
+      {/* Nav. Folded, its scrollbar goes (it would take a quarter of the
+          rail); the wheel and the keys still scroll it. */}
+      <nav
+        aria-label="Panel"
+        className={cx(
+          "flex-1 overflow-y-auto px-3 pb-4",
+          rail && "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        )}
+      >
         {flat ? (
           <ul id={`${idPrefix}-nav`} className="flex flex-col gap-0.5 pt-2">
             {items.map(row)}
@@ -658,13 +873,29 @@ export function AdminSidebarBody({
         ) : (
           groups.map((group, gi) => {
             const isActiveGroup = group.title === activeGroup;
-            const open = navGroupOpen(group.title, collapsed, activeGroup);
+            // The rail has no titles to unfold a group with: all are open.
+            const open =
+              rail || navGroupOpen(group.title, collapsed, activeGroup);
             const listId = `${idPrefix}-nav-${gi}`;
             const titleClass =
               "text-[10px] font-semibold tracking-[0.16em] text-[var(--admin-text-soft)] uppercase";
             return (
               <div key={group.title} className="mb-1">
-                {isActiveGroup || !onToggleGroup ? (
+                {rail ? (
+                  // A rule between groups; the title stays for screen
+                  // readers (the list is labelled by it).
+                  <>
+                    {gi > 0 ? (
+                      <div
+                        aria-hidden="true"
+                        className="mx-2 my-2 border-t border-[var(--admin-border)]"
+                      />
+                    ) : null}
+                    <div id={`${listId}-title`} className="sr-only">
+                      {group.title}
+                    </div>
+                  </>
+                ) : isActiveGroup || !onToggleGroup ? (
                   <div
                     id={`${listId}-title`}
                     className={`px-3 pt-4 pb-1.5 ${titleClass}`}
@@ -711,39 +942,65 @@ export function AdminSidebarBody({
         )}
       </nav>
 
-      {!flat && <NavNote />}
-
       {/* Account: who is signed in, their 2FA, sign out. Every role sees
           the 2FA link here; the dashboard's quick link was the only one,
-          and a cashier never sees the dashboard (SHE-25). */}
-      <section
-        aria-label="Hesap"
-        className="border-t border-[var(--admin-border)] px-3 py-3"
-      >
-        <AccountLinks
-          email={email}
-          roleLabel={roleLabel}
-          logout={logout}
-          pathname={pathname}
-          onNavigate={onNavigate}
-          icons
-          shortcuts={shortcuts}
-        />
-      </section>
+          and a cashier never sees the dashboard (SHE-25). Folded, the same
+          block opens from the account's initial, beside the rail (and the
+          regroup note, which the rail has no room for, is not drawn). */}
+      {rail ? (
+        <div className="border-t border-[var(--admin-border)] px-3 py-3">
+          <AccountMenu
+            email={email}
+            roleLabel={roleLabel}
+            logout={logout}
+            pathname={pathname}
+            rail
+            shortcuts={shortcuts}
+            density={density}
+          />
+        </div>
+      ) : (
+        <>
+          {!flat && <NavNote />}
+          <section
+            aria-label="Hesap"
+            className="border-t border-[var(--admin-border)] px-3 py-3"
+          >
+            <AccountLinks
+              email={email}
+              roleLabel={roleLabel}
+              logout={logout}
+              pathname={pathname}
+              onNavigate={onNavigate}
+              icons
+              shortcuts={shortcuts}
+              density={density}
+            />
+          </section>
+        </>
+      )}
     </div>
   );
 }
 
 /**
- * The cashier's account menu in the top bar (no sidebar to hold it): a
- * native disclosure, so it opens before hydration too. Esc, a click
- * outside it and a click on its link close it.
+ * The account menu: the cashier's in the top bar (no sidebar to hold it),
+ * and the folded rail's, opened from the account's initial. A native
+ * disclosure, so it opens before hydration too. Esc, a click outside it and
+ * a click on its link close it.
  */
-function AccountMenu(
-  props: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
-    pathname: string;
-  },
-) {
+function AccountMenu({
+  rail = false,
+  shortcuts = false,
+  density = false,
+  ...props
+}: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
+  pathname: string;
+  /** In the folded rail: an initial that opens the block beside it. */
+  rail?: boolean;
+  shortcuts?: boolean;
+  density?: boolean;
+}) {
   const ref = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
   const close = (focusSummary: boolean) => {
@@ -773,31 +1030,53 @@ function AccountMenu(
         if (e.key === "Escape") close(true);
       }}
     >
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-[var(--admin-border)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] [&::-webkit-details-marker]:hidden">
-        Hesap
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="shrink-0"
+      {rail ? (
+        <summary
+          {...railControl("Hesap")}
+          className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-lg select-none hover:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden"
         >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </summary>
+          <span
+            aria-hidden="true"
+            className="grid size-7 place-items-center rounded-full bg-[var(--admin-primary-soft)] text-xs font-semibold text-[var(--admin-primary)]"
+          >
+            {props.email.trim().charAt(0).toUpperCase() || "?"}
+          </span>
+          {open ? null : <RailTip>Hesap</RailTip>}
+        </summary>
+      ) : (
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-[var(--admin-border)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] [&::-webkit-details-marker]:hidden">
+          Hesap
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="shrink-0"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+      )}
       <section
         aria-label="Hesap"
-        className="absolute top-full right-0 z-40 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-lg"
+        className={cx(
+          "absolute z-40 w-64 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-lg",
+          rail
+            ? "bottom-0 left-full ml-3 max-w-[calc(100vw-5rem)]"
+            : "top-full right-0 mt-2 max-w-[calc(100vw-2rem)]",
+        )}
       >
         <AccountLinks
           {...props}
           onNavigate={() => close(false)}
-          icons={false}
+          icons={rail}
+          shortcuts={shortcuts}
+          density={density}
         />
       </section>
     </details>
@@ -904,6 +1183,35 @@ const LOGO_SMALL = (
     </span>
   </>
 );
+
+type BodyProps = Omit<
+  ComponentProps<typeof AdminSidebarBody>,
+  "idPrefix" | "rail" | "onToggleRail"
+>;
+
+/**
+ * The laptop sidebar: 16rem, or the rail's 4rem once the shell wrote
+ * `data-admin-rail` on the admin root (the layout's `--admin-side`; the top
+ * bar, the tab strip, the page's left edge and the bulk bar follow the same
+ * variable). Its own component, so the cashier's one-page shell never reads
+ * the preference. The server and hydration draw it wide.
+ */
+function DesktopAside({ body }: { body: BodyProps }) {
+  const rail = useRailPref();
+  return (
+    <aside
+      id={SIDE_ID}
+      className="fixed inset-y-0 left-0 z-30 hidden w-[var(--admin-side,16rem)] border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden"
+    >
+      <AdminSidebarBody
+        {...body}
+        idPrefix="side"
+        rail={rail}
+        onToggleRail={() => writeRailPref(!rail)}
+      />
+    </aside>
+  );
+}
 
 export function AdminSidebar(props: SidebarProps) {
   const pathname = usePathname();
@@ -1041,6 +1349,7 @@ export function AdminSidebar(props: SidebarProps) {
     collapsed,
     onToggleGroup: toggleGroup,
     shortcuts,
+    density: true,
   };
   const strip = sectionTabsFor(pathname, navLinks);
   // The phone's bottom bar (UI-7), past the cashier's return above: a
@@ -1058,16 +1367,17 @@ export function AdminSidebar(props: SidebarProps) {
         <DeniedNotice />
       </Suspense>
       {palette && shortcuts && <ShortcutLayer role={palette.role} />}
+      {/* The rail and "Sıkı görünüm" (UI-9): past the cashier's return, so
+          a one-page shell runs none of it. */}
+      <ViewPrefs />
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden">
-        <AdminSidebarBody {...body} idPrefix="side" />
-      </aside>
+      <DesktopAside body={body} />
 
       {/* Top bar: on a phone the menu button and the logo; on a wide screen
           the breadcrumbs. Then the search and the bar's own controls. */}
       <header
-        className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-64 lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
+        className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-[var(--admin-side,16rem)] lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
           // On a wide screen the bar is breadcrumbs, search and controls; a
           // role with neither search nor controls has nothing to put there.
           palette || props.actions ? "" : "lg:hidden"
@@ -1108,7 +1418,7 @@ export function AdminSidebar(props: SidebarProps) {
           label={`${strip.item.label} bölümleri`}
           tabs={strip.tabs}
           activeHref={strip.activeHref}
-          className="mt-3 lg:mt-0 lg:ml-64 print:hidden"
+          className="mt-3 lg:mt-0 lg:ml-[var(--admin-side,16rem)] print:hidden"
         />
       )}
 
