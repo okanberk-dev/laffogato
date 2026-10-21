@@ -111,21 +111,14 @@ describe("legal index", () => {
   });
 
   it("without a database, the live index is the coded one", async () => {
-    // A database that refuses the connection: the override read fails and
-    // the index must still answer with the documents the site ships with.
-    // Set here rather than left to the runner: a run with no DATABASE_URL at
-    // all is a configuration error now, not an outage
-    // (src/lib/db/database-url.mjs), and this case is about the outage.
-    vi.stubEnv("DATABASE_URL", "postgres://ci@127.0.0.1:1/unreachable");
+    // No DATABASE_URL in the test run: the override read fails and the index
+    // must still answer with the documents the site ships with.
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const index = await legalIndex();
       expect(index).toEqual(legalIndexFrom(NO_OVERRIDES));
     } finally {
       spy.mockRestore();
-      warn.mockRestore();
-      vi.unstubAllEnvs();
     }
   });
 });

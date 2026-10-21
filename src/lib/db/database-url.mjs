@@ -18,12 +18,12 @@
  * taken orders into it. `SUPABASE_DB_URL` is no step of the move to Supabase
  * either: docs/SUPABASE-GECIS.md moves the data by changing `DATABASE_URL`.
  *
- * A missing `DATABASE_URL` is therefore a configuration error that names
- * itself. It is never "database unreachable": the public pages serve bundled
- * content over an outage (`src/lib/db/health.ts`), and a site that has lost
- * its configuration must not look like one that is only waiting for its
- * database. Nothing here reads a value back out: the error names variables,
- * never what they hold (a connection string carries a password).
+ * A missing `DATABASE_URL` is therefore an error that names itself, thrown
+ * before any connection is made. The data layer degrades it exactly like an
+ * unreachable database (bundled content on the public pages, 503 on the
+ * app's API, `src/lib/db/health.ts`); `/api/health` alone reports it apart,
+ * as `unconfigured`. Nothing here reads a value back out: the error names
+ * variables, never what they hold (a connection string carries a password).
  */
 
 /** The one variable a connection string is read from. */
@@ -42,8 +42,8 @@ export const IGNORED_DATABASE_URL_VARS = Object.freeze([
 /**
  * The code a missing connection string carries through the data layer
  * (`toDbError`). Not a SQLSTATE (those are five characters), so no caller
- * can mistake it for one, and not empty, so it is never read as the
- * transport signature of an unreachable database.
+ * can mistake it for one; `raiseDbError` turns it into the same
+ * `DbUnreachableError` an outage gets, with this error's message.
  */
 export const DATABASE_URL_MISSING = "DATABASE_URL_MISSING";
 

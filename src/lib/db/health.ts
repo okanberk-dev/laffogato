@@ -1,5 +1,7 @@
 import { cache } from "react";
 
+import { DATABASE_URL_MISSING } from "./database-url.mjs";
+
 /**
  * Telling "the database is unreachable" apart from "the database said no".
  *
@@ -54,6 +56,14 @@ export function isDbUnreachable(err: unknown): boolean {
  * Raises the right error type for a failed query result. `status === 0` with an
  * empty code is the transport signature; anything else carries a SQLSTATE and
  * is a real query failure.
+ *
+ * A deployment without DATABASE_URL (`DATABASE_URL_MISSING`,
+ * ./database-url.mjs) degrades exactly like an unreachable database: no
+ * query ever reached a Postgres, the public pages serve their bundled
+ * content and the app's API answers 503. What differs is what it says: the
+ * message names the missing variable, `/api/health` answers `unconfigured`
+ * (`dbHealth`), and nothing is dialled, least of all POSTGRES_URL. Checked
+ * by code, not status: some callers rebuild the status from the code.
  */
 export function raiseDbError(
   ctx: string,
@@ -61,6 +71,9 @@ export function raiseDbError(
   status: number,
 ): never {
   const message = error.message || "request failed";
+  if (error.code === DATABASE_URL_MISSING) {
+    throw new DbUnreachableError(ctx, message);
+  }
   if (status === 0 && error.code === "") {
     throw new DbUnreachableError(ctx, message);
   }

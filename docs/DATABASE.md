@@ -270,8 +270,8 @@ Bunun iki somut faydası var:
 > yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
 > bağlanmak siteyi bozar. Yani şema hazır olmadan env değişkenini eklemeyin.
 > `DATABASE_URL`'i silmek de bir geri dönüş yolu değildir: değişken yoksa
-> site pakete düşmez, yapılandırma hatası verir (aşağıda "Bağlantı dizesi
-> yalnız `DATABASE_URL`").
+> site hiçbir veritabanına bağlanmaz ve kesintideki gibi pakete düşer
+> (aşağıda "Bağlantı dizesi yalnız `DATABASE_URL`").
 
 1. **Plan/slot doğrula** - hedef Supabase organizasyonu için
    [SUPABASE-GECIS.md §0](SUPABASE-GECIS.md) ön koşulunu geç. Bu adım
@@ -349,25 +349,29 @@ siparişleri oraya yazardı. `SUPABASE_DB_URL` da taşıma yordamının bir adı
 değildir: [SUPABASE-GECIS.md](SUPABASE-GECIS.md) veriyi `DATABASE_URL`'i
 değiştirerek taşır. İkisi de artık okunmaz.
 
-`DATABASE_URL` yoksa (tanımsız, boş ya da yalnız boşluk) bu bir **kesinti
-değil, yapılandırma hatasıdır** ve öyle davranır:
+`DATABASE_URL` yoksa (tanımsız, boş ya da yalnız boşluk) **hiçbir
+veritabanına bağlanılmaz** ve site, veritabanı ulaşılamıyormuş gibi davranır
+(aşağıda "Veritabanı ulaşılamazsa ne oluyor"); farkı adını söylemesidir:
 
-- Her sorgu `DATABASE_URL_MISSING` koduyla ve 500 durumuyla döner; veri katmanı
-  bunu "ulaşılamıyor" saymaz (`toDbError`), yani `publicRead` paketteki içeriğe
-  düşmez, sayfa hata verir. Hata mesajı eksik değişkeni ve tanımlı olup
-  okunmayan adları (`POSTGRES_URL`, `SUPABASE_DB_URL`) söyler, değerlerini
-  asla. Sunucu günlüğüne örnek başına bir kez `[db] DATABASE_URL tanımlı
-  değil` yazılır.
-- `/api/health` `db: "unconfigured"` (503) döner; `down` yalnız gerçek
-  ulaşılamazlıktır.
+- Her sorgu bağlantı kurulmadan `DATABASE_URL_MISSING` koduyla döner;
+  `raiseDbError` onu kesintideki aynı `DbUnreachableError`'a çevirir. Genel
+  sayfalar, `robots.txt`, `sitemap.xml` ve önbellekli okuyucular paketteki
+  içeriğe düşer, `/api/mobile/v1` 503 `unavailable` döner (sözleşme
+  değişmedi). Hata mesajı eksik değişkeni ve tanımlı olup okunmayan adları
+  (`POSTGRES_URL`, `SUPABASE_DB_URL`) söyler, değerlerini asla. Sunucu
+  günlüğüne örnek başına bir kez `[db] DATABASE_URL tanımlı değil` yazılır;
+  her düşüş ayrıca `[db-degraded]` satırında bu mesajla görünür.
+- `/api/health` `db: "unconfigured"` (503) döner, `down` değil: düzeltme
+  beklemek değil, bir dağıtım ayarıdır.
 - İki betik hiçbir yere bağlanmadan aynı mesajla çıkar (çıkış kodu 1).
-- `/api/mobile/v1` bu durumda 503 `unavailable` dalına girmez, gerçek bir
-  hata gibi 500 döner (sözleşmenin zaten tanıdığı durum; `docs/API-MOBILE.md`
-  değişmedi).
 
 Testler: `tests/db-connection-url.test.ts` aynı on durumu ortak kurala, veri
 katmanına ve iki betiğe (gerçekten çalıştırarak; hangi adrese bağlanmaya
-çalıştıklarını sayan geçici dinleyicilerle) uygular.
+çalıştıklarını sayan geçici dinleyicilerle) uygular;
+`tests/db-url-missing-degrades.test.ts` aynı dağıtımın genel okuyucularını
+ve uygulama uçlarını `DATABASE_URL`'siz ve ulaşılamayan veritabanıyla yan
+yana koşturur, cevapların aynı olduğunu ve `POSTGRES_URL`'e hiç
+bağlanılmadığını tutar.
 
 Kod, Supabase'in PostgREST sorgu kurucusuna göre yazılmıştı (~122 çağrı noktası,
 sipariş/stok/ödeme yolları dahil). Bunları elle SQL'e çevirmek yerine aynı
@@ -604,10 +608,10 @@ bandı ve boş mağazayı görür (yukarıda "Uyanmalar ve önbellek").
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
 verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
 
-**`DATABASE_URL` hiç yoksa bu tablo geçerli değildir.** Ulaşılamayan bir
-veritabanı ile tanımlanmamış bir bağlantı dizesi ayrı şeylerdir: ikincisi
-yapılandırma hatasıdır, sayfalar pakete düşmez, hata verir (yukarıda
-"Bağlantı dizesi yalnız `DATABASE_URL`").
+**`DATABASE_URL` hiç yoksa da bu tablo geçerlidir:** hiçbir veritabanına
+bağlanılmaz ve her alan ulaşılamazken nasıl davranıyorsa öyle davranır;
+yalnız `/api/health` `unconfigured` der (yukarıda "Bağlantı dizesi yalnız
+`DATABASE_URL`").
 
 Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
 (`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak

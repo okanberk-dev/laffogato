@@ -22,8 +22,9 @@ import {
  * POSTGRES_URL. Supabase's Vercel integration writes POSTGRES_URL into
  * Production: a site that lost DATABASE_URL would have connected to that
  * empty database without a word and bootstrapped a schema in it. A missing
- * DATABASE_URL is now a configuration error that names itself, and never
- * "unreachable", which the public pages would quietly paper over.
+ * DATABASE_URL now dials nothing at all: it degrades exactly like an
+ * unreachable database (bundled content, 503 on the app's API), names the
+ * missing variable, and /api/health reports it as `unconfigured`.
  *
  * The same cases run against the shared rule, the app's data layer and both
  * scripts (spawned for real, against throwaway TCP listeners that count who
@@ -211,7 +212,7 @@ describe("the app's data layer (src/lib/db)", () => {
   });
 
   for (const c of CASES) {
-    it(`${c.name}: ${c.picks ? "builds its pool from DATABASE_URL" : "refuses loudly, as a configuration error"}`, async () => {
+    it(`${c.name}: ${c.picks ? "builds its pool from DATABASE_URL" : "dials nothing, names itself and degrades like an outage"}`, async () => {
       const errors: string[] = [];
       vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
         errors.push(args.map(String).join(" "));
@@ -231,36 +232,38 @@ describe("the app's data layer (src/lib/db)", () => {
 
       // No pool, so nothing was dialled: not POSTGRES_URL, not anything.
       expect(pg.pools).toEqual([]);
-      expect(res.status).toBe(500);
+      // Never reached a Postgres, under a code of its own.
+      expect(res.status).toBe(0);
       expect(res.error?.code).toBe(DATABASE_URL_MISSING);
-      // A real failure, never the outage signature...
-      expect(() => lib.raiseDbError("ctx", res.error!, res.status)).toThrow(
-        lib.DbQueryError,
-      );
-      let raised: unknown;
-      try {
-        lib.raiseDbError("ctx", res.error!, res.status);
-      } catch (err) {
-        raised = err;
+      // Degrades exactly like an outage, whatever status a caller passes
+      // (some rebuild it from the code), with the message that names it...
+      for (const status of [res.status, 400]) {
+        let raised: unknown;
+        try {
+          lib.raiseDbError("ctx", res.error!, status);
+        } catch (err) {
+          raised = err;
+        }
+        expect(lib.isDbUnreachable(raised)).toBe(true);
+        expect((raised as Error).message).toContain("DATABASE_URL tanımlı değil");
       }
-      expect(lib.isDbUnreachable(raised)).toBe(false);
-      // ...so a public page does not serve bundled content over it.
+      // ...so a public page serves its bundled content, as over an outage.
       await expect(
         lib.publicRead("probe", "bundled", async () => {
           const r = await lib.getDb().from("settings").select("*");
           if (r.error) lib.raiseDbError("probe", r.error, r.status);
           return "live";
         }),
-      ).rejects.toThrow(/DATABASE_URL tanımlı değil/);
+      ).resolves.toBe("bundled");
       // `/api/health` names it instead of calling it "down".
       await expect(lib.dbHealth()).resolves.toEqual({
         db: "unconfigured",
         schema: "unknown",
       });
       // Said once per instance, by name, never by value.
-      const said = errors.filter((l) => l.includes("DATABASE_URL tanımlı değil"));
+      const said = errors.filter((l) => l.startsWith("[db] "));
       expect(said).toHaveLength(1);
-      expect(said[0]).toMatch(/^\[db\] /);
+      expect(said[0]).toContain("DATABASE_URL tanımlı değil");
       for (const name of c.mentions ?? []) expect(said[0]).toContain(name);
       for (const line of errors) expect(line).not.toContain(SECRET);
     });
@@ -275,7 +278,7 @@ describe("the app's data layer (src/lib/db)", () => {
     });
   });
 
-  it("maps the configuration error on its own in toDbError", async () => {
+  it("maps the configuration error under its own code in toDbError", async () => {
     const { toDbError } = await import("@/lib/db/client");
     expect(toDbError(new DatabaseUrlMissingError(["POSTGRES_URL"]))).toEqual({
       error: {
@@ -284,7 +287,7 @@ describe("the app's data layer (src/lib/db)", () => {
         details: "",
         hint: "",
       },
-      status: 500,
+      status: 0,
     });
     // A transport failure keeps its signature.
     expect(

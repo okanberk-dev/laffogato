@@ -45,10 +45,11 @@ let missingUrlLogged = false;
  * first into Production, so a lost DATABASE_URL would have connected the site
  * to an empty database and bootstrapped it there.
  *
- * Without it every query fails with `DatabaseUrlMissingError`, which the data
- * layer reports as a configuration error and never as "unreachable"
- * (`toDbError`): the public pages answer 500 instead of serving bundled
- * content over it, and `/api/health` says `unconfigured`. Called on the first
+ * Without it every query fails with `DatabaseUrlMissingError` before any
+ * connection is made, and degrades exactly like an unreachable database
+ * (`toDbError`, `raiseDbError`): bundled content on the public pages, 503 on
+ * the app's API. It stays nameable: the message names the variable, and
+ * `/api/health` says `unconfigured` instead of `down`. Called on the first
  * query, never at import, so `next build` (which has no database and reads
  * none) is unaffected. Logged once per instance; the value never is.
  */
