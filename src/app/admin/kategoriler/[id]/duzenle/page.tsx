@@ -36,7 +36,6 @@ export default async function EditCategoryPage({ params }: PageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Katalog · Kategoriler"
         title={category.label}
         menuLabel={`${category.label} işlemleri`}
         menu={

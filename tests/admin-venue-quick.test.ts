@@ -358,8 +358,10 @@ describe("the chip's markup", () => {
   it("names the state in words, with Köşk: kept for screen readers on a phone", () => {
     const html = render({ initialStatus: status({ freeTables: 0 }) });
     const summary = /<summary[^>]*>[^]*?<\/summary>/.exec(html)?.[0] ?? "";
+    // Below 360 px the word goes to the screen reader too, the dot stays:
+    // the top bar did not fit a 360 px phone (21 Eki 2026).
     expect(summary).toContain(
-      '<span class="max-sm:sr-only">Köşk: </span><span class="font-medium">Yoğun</span>',
+      '<span class="max-sm:sr-only">Köşk: </span><span class="font-medium max-[359px]:sr-only">Yoğun</span>',
     );
     expect(summary).toContain("bg-[var(--admin-warning)]");
     expect(summary).toContain(

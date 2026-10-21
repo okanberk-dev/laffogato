@@ -40,6 +40,7 @@ export {
   type ModalAction,
 } from "./action-modal";
 export { Badge, OrderStatusBadge, type BadgeProps } from "./badge";
+export { CardLink } from "./card-link";
 export {
   DataTable,
   type DataTableColumn,

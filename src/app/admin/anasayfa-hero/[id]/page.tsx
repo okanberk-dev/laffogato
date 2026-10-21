@@ -29,7 +29,6 @@ export default async function EditHomeSlidePage({
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="İçerik · Anasayfa slaytları"
         title={name || "Slayt düzenle"}
         description="Kaydettiğin değişiklik anasayfaya hemen yansır."
         menuLabel="Slayt işlemleri"

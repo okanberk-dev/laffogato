@@ -122,14 +122,15 @@ afterEach(() => vi.useRealTimers());
 describe("lists without a date range", () => {
   // SHA-256 of the bar's markup on origin/main f47831d3 (before UI-14; see
   // `bar` for what is normalised), refreshed for the AkmanOS look (21 Eki
-  // 2026: the box's own classes). A changed kit class changes it on
-  // purpose: refresh it with the change.
+  // 2026: the box's own classes) and for the top-aligned row, whose buttons
+  // sit under an empty label (21 Eki 2026). A changed kit class changes it
+  // on purpose: refresh it with the change.
   it("draw the markup they drew before, byte for byte", () => {
     expect(sha(bar(PLAIN, {}))).toBe(
-      "1d85f96068527475b93dcabc6377e5cd35740089e4c5efe1668d307fdcb301ab",
+      "cd84262c988e73acfe4e047d351713750b8bd6f1dbfe8ed8fd966a727a459a6f",
     );
     expect(sha(bar(PLAIN, { durum: "acik", kanal: "app" }, "ayşe"))).toBe(
-      "964ddeee1922fada068a4425a54d171ce880eb4cf63e35026d71257614e78e03",
+      "5a0b8dbcfa5bb5075532a98522fcfc779fd44430ebbcd11598743934b2abced5",
     );
     expect(bar(PLAIN, {})).not.toContain("hazır aralıklar");
   });
@@ -150,7 +151,8 @@ describe("lists with a date range keep their native boxes", () => {
   });
 
   it("everything but the added preset links is the old markup, byte for byte", () => {
-    // Frozen from origin/main for the same fields and addresses. The links
+    // Frozen from origin/main for the same fields and addresses (refreshed
+    // for the top-aligned row, 21 Eki 2026). The links
     // are the whole difference; the fieldset gains no attribute (the hover
     // and focus handlers that load the widget are not markup).
     expect(
@@ -172,23 +174,30 @@ describe("lists with a date range keep their native boxes", () => {
           ),
         ),
       ),
-    ).toBe("d84b39f8a306aaadff98ec1fc20c5769cd27e433d95a146876e67b2a6b6c823b");
+    ).toBe("05faac12f2bde7c405abd91d68612e0a3e2a6ccb7bb0fc1a2541d9c0cfdc5665");
     expect(sha(without(bar(DATED, {})))).toBe(
-      "cd41cdf4046d6fb9edee5047ea936a061b767a9382e6090a43d816c7417fa472",
+      "70503cf582c426dbe86a8cc0b8ef7f8623b81699e955e7dbfbe4729bdd55eba4",
     );
     expect(sha(without(bar(DATED, { bas: "2026-10-01" })))).toBe(
-      "043b52b76e45df66946e318afbfb33150611efabfe17c340a7f66821ee68994e",
+      "59f4a12da3438ccbda503fbc809b6c6852490d34d840b8b2ad03c84baac36d91",
     );
   });
 
-  it("the legend stays first, the links come before the boxes", () => {
+  it("the legend stays first, the links come after the boxes", () => {
+    // Under the boxes since 21 Oct 2026: above them they made the date
+    // column three rows tall, and the boxes beside it floated low.
     const html = bar(DATED, {});
     const legend = html.indexOf("<legend");
     const links = html.indexOf('<ul aria-label="Tarih: hazır aralıklar"');
     const boxes = html.indexOf('<div class="flex items-center gap-2">');
     expect(legend).toBeGreaterThan(0);
-    expect(links).toBeGreaterThan(legend);
-    expect(boxes).toBeGreaterThan(links);
+    expect(boxes).toBeGreaterThan(legend);
+    expect(links).toBeGreaterThan(boxes);
+    // Every box on the row's first line: the row is top-aligned.
+    expect(html).toContain(
+      'class="flex flex-wrap items-start gap-3 rounded-3xl',
+    );
+    expect(html).not.toContain("items-end");
   });
 });
 

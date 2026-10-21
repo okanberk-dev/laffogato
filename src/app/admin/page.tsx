@@ -30,7 +30,6 @@ import {
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
 import { canAccess } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
-import { has2FA } from "@/lib/admin/twofa";
 import {
   keepaliveView,
   readKeepaliveFor,
@@ -70,19 +69,6 @@ async function withMoney(orders: AdminOrder[]): Promise<RecentOrderRow[]> {
     order,
     collected: money.get(order.id)?.collected ?? Boolean(order.paidAt),
   }));
-}
-
-/**
- * Whether the signed-in account has 2FA on, or null when it could not be
- * read: a failed read draws no notice rather than taking the page down.
- */
-async function readTwoFactor(email: string): Promise<boolean | null> {
-  try {
-    return await has2FA(email);
-  } catch (err) {
-    console.error("[admin] 2FA durumu okunamadı", err);
-    return null;
-  }
 }
 
 /** Each tile's icon, by its key (dashboard-core's dashboardTiles). */
@@ -142,7 +128,7 @@ export default async function AdminDashboardPage() {
     : null;
   // The settings read is awaited for its failure only: the header no longer
   // prints the café's name.
-  const [stats, recent, , mail, revenue, karaoke, keepalive, twoFactor] =
+  const [stats, recent, , mail, revenue, karaoke, keepalive] =
     await Promise.all([
       getDashboardStats(),
       // Five rows, read as five rows: this used to be every order in the
@@ -157,8 +143,8 @@ export default async function AdminDashboardPage() {
       // The daily Supabase ping's record, for the owner alone: for any
       // other role the read is never made (null), not merely not shown.
       readKeepaliveFor(role, loadSupabaseKeepalive),
-      readTwoFactor(session.email),
     ]);
+  const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
 
   const tiles = dashboardTiles(
     {
@@ -210,27 +196,14 @@ export default async function AdminDashboardPage() {
       )}
 
       {/*
-        Whether the daily ping that keeps the free-plan Supabase project
-        awake still gets through. Nobody can call the cron by hand, so this
-        line is the only place its result shows (owner only, see above).
+        The daily ping that keeps the free-plan Supabase project awake, and
+        only when it stopped getting through (owner only, see above): the
+        project pauses after 7 quiet days and every sign-in fails. While it
+        works the line stays in Ayarlar → Sistem durumu (operator, 21 Oct
+        2026: the routine line does not belong here).
       */}
-      {keepalive !== null ? (
-        <KeepaliveStatusLine view={keepaliveView(keepalive, now)} />
-      ) : null}
-
-      {/* The panel moves money and members' data: an account on a password
-          alone is told so where it lands, not only in the account menu. */}
-      {twoFactor === false ? (
-        <DashboardNotice tone="warning">
-          <strong>İki adımlı doğrulama kapalı.</strong> Bu hesap yalnız
-          parolayla korunuyor.{" "}
-          <Link
-            href="/admin/2fa-kurulum"
-            className="font-medium underline underline-offset-4"
-          >
-            Şimdi aç
-          </Link>
-        </DashboardNotice>
+      {keepaliveAlarm?.tone === "warning" ? (
+        <KeepaliveStatusLine view={keepaliveAlarm} />
       ) : null}
 
       <div

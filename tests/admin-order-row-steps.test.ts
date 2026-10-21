@@ -457,7 +457,11 @@ describe("the list keeps its live poll and sound", () => {
     // The beep's shop count stays a plain count, asked after a change.
     expect(src).toMatch(/newOrderCountAction\(\s*latestOrderNo,/);
     expect(src).toContain("shouldListBeep(");
-    expect(list([row(order())])).toContain("Yeni sipariş sesi");
+    // The sound switch rides in the filter bar's row now (sound-toggle.tsx),
+    // handed over by the page while the list polls.
+    expect(readFileSync("src/app/admin/siparisler/page.tsx", "utf8")).toContain(
+      "toolbar={parsed.live ? <SoundToggle /> : null}",
+    );
   });
 
   it("a new step ignores taps for a moment, so a double tap runs one move", () => {

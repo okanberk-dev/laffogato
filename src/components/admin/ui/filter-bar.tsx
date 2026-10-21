@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useActionState, useId, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState, type ReactNode } from "react";
 
 import { listSearchAction } from "@/app/admin/liste-arama/actions";
 import { cx } from "@/components/laffogato/cx";
@@ -26,6 +26,7 @@ import {
 
 import { FIELD_INPUT } from "../forms";
 import { LinkPending } from "./link-pending";
+import { openFromMd } from "./open-from-md";
 import { ListSearchButton } from "./list-search-button";
 import {
   SavedViewsBoundary,
@@ -71,6 +72,12 @@ export interface FilterBarProps {
    * without JavaScript, and before hydration, is the same as without it.
    */
   views?: { key: string };
+  /**
+   * The list's own controls for the row under the bar (the orders' sound
+   * switch): drawn at its end, before "Görünümler", so a list has one row
+   * of controls there rather than a row each.
+   */
+  toolbar?: ReactNode;
 }
 
 // The saved views menu (UI-11): its own chunk, asked for only once a list
@@ -111,11 +118,16 @@ const PRESET_ACTIVE =
 type RangeSwap = RangeSnapshot & { Widget: DateRangeWidget };
 
 /**
- * A date range: the preset links, then the two native `<input type="date">`
- * boxes (what the server draws, what works without JavaScript and what a
- * phone keeps). On a fine pointer the boxes give way to the React Aria
- * widget once the pointer or focus reaches the field and its chunk is in,
- * with the dates they hold and the focus they had.
+ * A date range: the two native `<input type="date">` boxes (what the server
+ * draws, what works without JavaScript and what a phone keeps), then the
+ * preset links under them. On a fine pointer the boxes give way to the
+ * React Aria widget once the pointer or focus reaches the field and its
+ * chunk is in, with the dates they hold and the focus they had.
+ *
+ * The links come after the boxes (21 Oct 2026): above them they made the
+ * date column three rows tall, and the search and select boxes beside it,
+ * aligned to its bottom, floated under an empty band. Now every box sits
+ * on the row's first line and the links hang under the dates like help.
  */
 function DateRangeFieldset({
   field,
@@ -157,33 +169,12 @@ function DateRangeFieldset({
 
   const Widget = swapped?.Widget;
   return (
-    <fieldset className="flex min-w-[16rem] flex-[2_1_18rem] flex-col gap-2">
+    // Capped: on a row of its own (Olay kaydı) the two dates stretched to
+    // 300 px each.
+    <fieldset className="flex max-w-[34rem] min-w-[16rem] flex-[2_1_18rem] flex-col gap-2">
       <legend className={cx(EYEBROW, "mb-2")} style={MONO_STYLE}>
         {field.label}
       </legend>
-      <ul
-        aria-label={`${field.label}: hazır aralıklar`}
-        className="flex flex-wrap gap-1.5"
-      >
-        {presets.map((p) => (
-          <li key={p.id}>
-            {/* The clock decides the links; the server's reading stands. */}
-            <Link
-              href={p.href}
-              prefetch={false}
-              aria-current={p.active ? "true" : undefined}
-              suppressHydrationWarning
-              className={cx(
-                PRESET_LINK,
-                p.active ? PRESET_ACTIVE : PRESET_IDLE,
-              )}
-            >
-              {p.label}
-              <LinkPending className="bottom-0.5" />
-            </Link>
-          </li>
-        ))}
-      </ul>
       {swapped && Widget ? (
         <Widget
           label={field.label}
@@ -228,6 +219,29 @@ function DateRangeFieldset({
           />
         </div>
       )}
+      <ul
+        aria-label={`${field.label}: hazır aralıklar`}
+        className="flex flex-wrap gap-1.5"
+      >
+        {presets.map((p) => (
+          <li key={p.id}>
+            {/* The clock decides the links; the server's reading stands. */}
+            <Link
+              href={p.href}
+              prefetch={false}
+              aria-current={p.active ? "true" : undefined}
+              suppressHydrationWarning
+              className={cx(
+                PRESET_LINK,
+                p.active ? PRESET_ACTIVE : PRESET_IDLE,
+              )}
+            >
+              {p.label}
+              <LinkPending className="bottom-0.5" />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </fieldset>
   );
 }
@@ -262,22 +276,9 @@ export function foldedFiltersLabel(active: number): string {
   return active > 0 ? `Filtreler (${active})` : "Filtreler";
 }
 
-// The folded group is always open from md up: CSS shows a closed
-// <details>' content there (::details-content), and this opens it as well
-// for a browser without that pseudo-element, also when the window grows
-// past md later (a tablet turned sideways): the summary is hidden there,
-// so a group still closed could not be opened at all. The group's ref;
-// exported for tests.
-export const openFromMd = (el: HTMLDetailsElement | null) => {
-  if (!el) return;
-  const md = window.matchMedia("(min-width: 48rem)");
-  const sync = () => {
-    if (md.matches) el.open = true;
-  };
-  sync();
-  md.addEventListener("change", sync);
-  return () => md.removeEventListener("change", sync);
-};
+// The folded group is always open from md up (open-from-md.ts); exported
+// from here too for the tests that read it with the bar.
+export { openFromMd };
 
 /** listSearchAction as a useActionState step: the post with JavaScript. */
 async function postListSearch(_prev: null, formData: FormData): Promise<null> {
@@ -327,6 +328,7 @@ export function FilterBar({
   pageParam = DEFAULT_PAGE_PARAM,
   label = "Filtreler",
   views,
+  toolbar,
 }: FilterBarProps) {
   const list = listSearchFor(pathname, fields);
   // Null before the page is in the browser, and without `views`.
@@ -485,7 +487,7 @@ export function FilterBar({
         aria-busy={pending || undefined}
         action={listSearchAction}
         onSubmit={onSubmit}
-        className="flex flex-wrap items-end gap-3 rounded-3xl bg-[var(--admin-panel)] p-4"
+        className="flex flex-wrap items-start gap-3 rounded-3xl bg-[var(--admin-panel)] p-4"
       >
         {listField}
         {kept.map(([key, value], i) => (
@@ -512,23 +514,35 @@ export function FilterBar({
                 className="mb-0.5 inline-block h-2 w-2 rotate-45 border-r-2 border-b-2 border-current transition-transform group-open:mt-1 group-open:mb-0 group-open:-rotate-135"
               />
             </summary>
-            <div className="mt-3 flex flex-wrap items-end gap-3 md:contents">
+            <div className="mt-3 flex flex-wrap items-start gap-3 md:contents">
               {folded.map(renderField)}
             </div>
           </details>
         ) : null}
 
-        <div className="flex flex-[1_0_auto] flex-wrap items-center justify-end gap-2">
-          {chips.length > 0 ? (
-            // Submits the reset form below, not this one: Enter in the box
-            // presses the form's first own submit button, "Uygula".
-            <button type="submit" form={resetId} className={BUTTON.ghost}>
-              Sıfırla
+        <div className="flex flex-[1_0_auto] flex-col gap-2">
+          {/* An empty label's height from md up: the boxes sit under their
+              labels and the row is top-aligned, so the buttons line up with
+              the boxes, not with the labels. */}
+          <span
+            aria-hidden="true"
+            className={cx(EYEBROW, "invisible hidden md:block")}
+            style={MONO_STYLE}
+          >
+            &nbsp;
+          </span>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {chips.length > 0 ? (
+              // Submits the reset form below, not this one: Enter in the box
+              // presses the form's first own submit button, "Uygula".
+              <button type="submit" form={resetId} className={BUTTON.ghost}>
+                Sıfırla
+              </button>
+            ) : null}
+            <button type="submit" className={BUTTON.primary}>
+              {pending ? "Uygulanıyor…" : "Uygula"}
             </button>
-          ) : null}
-          <button type="submit" className={BUTTON.primary}>
-            {pending ? "Uygulanıyor…" : "Uygula"}
-          </button>
+          </div>
         </div>
       </form>
 
@@ -544,29 +558,33 @@ export function FilterBar({
         </form>
       ) : null}
 
-      {viewsKey ? (
-        // The menu shares the chips' row, at its end. It is outside the
-        // form: that one remounts on every address change, and a form
-        // inside a form is not allowed.
+      {toolbar || viewsKey ? (
+        // The chips, then the list's controls and "Görünümler" at the row's
+        // end. Outside the form: that one remounts on every address change,
+        // and a form inside a form is not allowed.
         <div className="mt-2 flex flex-wrap items-start gap-2">
           {chips.length > 0
             ? chipList(
                 "flex min-w-0 flex-[1_1_14rem] flex-wrap gap-2 self-center",
               )
             : null}
-          {/* A menu that cannot load is not drawn; the list stays. */}
-          <SavedViewsBoundary>
-            <SavedViews
-              storageKey={viewsKey}
-              pathname={pathname}
-              address={address}
-              fields={fields}
-              values={values}
-              pageParam={pageParam}
-              touched={touched}
-              className="ml-auto"
-            />
-          </SavedViewsBoundary>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {toolbar}
+            {viewsKey ? (
+              // A menu that cannot load is not drawn; the list stays.
+              <SavedViewsBoundary>
+                <SavedViews
+                  storageKey={viewsKey}
+                  pathname={pathname}
+                  address={address}
+                  fields={fields}
+                  values={values}
+                  pageParam={pageParam}
+                  touched={touched}
+                />
+              </SavedViewsBoundary>
+            ) : null}
+          </div>
         </div>
       ) : chips.length > 0 ? (
         chipList("mt-2 flex flex-wrap gap-2")

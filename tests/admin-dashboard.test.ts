@@ -441,6 +441,15 @@ describe("the dashboard page", () => {
     expect(bad.html).toContain('href="/admin/ayarlar?sekme=email"');
   });
 
+  it("draws no 2FA notice and never reads the account's 2FA (operator, 21 Oct 2026)", async () => {
+    // The 2FA state lives in the account menu's Güvenlik / 2FA page and on
+    // Kullanıcılar; the landing page no longer nags an account without it.
+    const { html, text } = await render("owner");
+    expect(seen.filter((s) => /"admin_2fa"/.test(s.text))).toEqual([]);
+    expect(text).not.toContain("İki adımlı doğrulama");
+    expect(html).not.toContain("/admin/2fa-kurulum");
+  });
+
   it("reads the karaoke card from the Dikkat tab's set (KAR-07)", async () => {
     const { loadKaraokeTodayCard, text } = await render("staff");
     expect(loadKaraokeTodayCard).toHaveBeenCalledWith(
@@ -449,7 +458,10 @@ describe("the dashboard page", () => {
     expect(text).toContain("Bugün karaoke");
   });
 
-  describe("the Supabase keep-alive line (owner only)", () => {
+  describe("the Supabase keep-alive line (owner only, warnings only)", () => {
+    // The routine line moved to Ayarlar → Sistem durumu (operator, 21 Oct
+    // 2026); the dashboard draws it only when the ping stopped getting
+    // through (tests/admin-system-status.test.ts has the settings rows).
     const keepaliveReads = () =>
       seen.filter((s) => /"supabase_keepalive"/.test(s.text));
     /** The line's own class attribute (other cards use the tones too). */
@@ -458,7 +470,7 @@ describe("the dashboard page", () => {
         html,
       )?.[1] ?? "";
 
-    it("reads the record for the owner and names the last successful ping", async () => {
+    it("reads the record for the owner and draws nothing while the ping gets through", async () => {
       vi.useFakeTimers({ toFake: ["Date"] });
       vi.setSystemTime(new Date("2026-10-20T10:00:00.000Z"));
       keepaliveRows = [
@@ -470,12 +482,8 @@ describe("the dashboard page", () => {
       ];
       const { html, text } = await render("owner");
       expect(keepaliveReads()).toHaveLength(1);
-      expect(text).toContain(
-        "Supabase uyanık tutma: son başarılı ping 20 Eki 2026 09:00.",
-      );
-      expect(html).toContain('data-state="fresh"');
-      expect(lineClass(html)).toContain("bg-[var(--admin-neutral-soft)]");
-      expect(lineClass(html)).not.toContain("bg-[var(--admin-warning-soft)]");
+      expect(text).not.toContain("Supabase");
+      expect(html).not.toContain("supabase-keepalive-status");
     });
 
     it("never reads it for a manager or staff, and shows them nothing", async () => {
@@ -504,13 +512,14 @@ describe("the dashboard page", () => {
       expect(html).toContain('data-state="silent"');
       expect(lineClass(html)).toContain("bg-[var(--admin-warning-soft)]");
       expect(text).toContain("günlük görev çalışmıyor olabilir");
+      expect(text).toContain("7 gün sessiz kalırsa duraklar");
     });
 
-    it("says plainly that nothing is recorded yet", async () => {
+    it("says nothing before the first record is due", async () => {
       const { html, text } = await render("owner");
       expect(keepaliveReads()).toHaveLength(1);
-      expect(text).toContain("Supabase uyanık tutma: henüz kayıt yok");
-      expect(html).toContain('data-state="none"');
+      expect(text).not.toContain("Supabase uyanık tutma");
+      expect(html).not.toContain("supabase-keepalive-status");
     });
 
     it("is amber after a failed attempt", async () => {

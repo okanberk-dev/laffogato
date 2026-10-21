@@ -8,6 +8,7 @@ import {
 import {
   Badge,
   BUTTON,
+  CardLink,
   DataTable,
   EmptyListActionLink,
   EmptyState,
@@ -250,13 +251,13 @@ export default async function PromoCodesPage({ searchParams }: PageProps) {
             )}
             mobileCard={(p) => (
               <div className="flex flex-col gap-1.5">
-                <Link
+                <CardLink
                   href={promoHref(p.id)}
                   className="font-medium break-all text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                   style={NUMERIC_STYLE}
                 >
                   {p.code}
-                </Link>
+                </CardLink>
                 <span className="flex flex-wrap items-center gap-2 text-sm text-[var(--admin-text-soft)]">
                   <StateBadge promo={p} now={now} />
                   <span style={NUMERIC_STYLE}>{discountLabel(p)}</span>

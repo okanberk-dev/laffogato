@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";
@@ -8,7 +8,6 @@ import { getCafeTable } from "@/lib/admin/cafe-tables";
 import { cafeTableHref } from "@/lib/admin/cafe-tables-panel";
 
 import { updateCafeTableAction } from "../../actions";
-import { BACK_LINK } from "../../back-link";
 import { CafeTableForm } from "../../table-form";
 
 export const metadata = { title: "Admin · Masayı düzenle" };
@@ -27,11 +26,8 @@ export default async function EditCafeTablePage({
   const back = cafeTableHref(table.id);
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href={back} className={BACK_LINK}>
-        ← {table.name}
-      </Link>
+      <BackLink href={back}>{table.name}</BackLink>
       <PageHeader
-        eyebrow="Satış · Masalar"
         title={`${table.name} - düzenle`}
         description="Adı ve sırayı değiştirmek QR kodunu değiştirmez; basılı kart çalışmaya devam eder."
       />

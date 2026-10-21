@@ -1420,6 +1420,30 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
     );
   });
 
+  it("a lone ⋯ menu stays beside the title", () => {
+    const out = header({
+      title: "Olay kaydı",
+      description: "Kim, neyi, ne zaman değiştirdi.",
+      menu: "x",
+    });
+    expect(out).toContain('<div class="min-w-0 flex-1">');
+    expect(out).toContain(
+      '<div class="flex shrink-0 items-center gap-2 self-start">',
+    );
+    expect(out).not.toContain("w-full");
+  });
+
+  it("a secondary link alone keeps its own width on a phone", () => {
+    const out = header({
+      title: "Karaoke",
+      secondary: { href: "/admin/ayarlar", label: "Karaoke ayarları" },
+    });
+    const attr = (classes: string) => classes.replaceAll("&", "&amp;");
+    expect(out).toContain(
+      `<a href="/admin/ayarlar" class="${attr(ui.BUTTON.ghost)}">Karaoke ayarları</a>`,
+    );
+  });
+
   it("an element as primary is drawn as given, inside the data-admin-new wrapper", () => {
     const out = header({
       title: "Masalar",

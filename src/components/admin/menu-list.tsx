@@ -33,14 +33,15 @@ import {
   ActionModal,
   Badge,
   BUTTON,
+  CardLink,
   ConfirmButton,
   DataTable,
+  type DataTableColumn,
+  type EmptyListAction,
   EmptyListActionLink,
   EmptyState,
   NUMERIC_STYLE,
   useToast,
-  type DataTableColumn,
-  type EmptyListAction,
 } from "./ui";
 import { EYEBROW, MONO_STYLE, ROW_CONTROL } from "./ui/styles";
 
@@ -155,9 +156,9 @@ export function SoldOutToggle({
       variant={row ? "bare" : item.isActive ? "ghost" : "primary"}
       className={
         row
-          ? item.isActive
-            ? ROW_CONTROL.text
-            : ROW_CONTROL.textStrong
+          ? // One width for both words: the action column (and the tables
+            // under each other) no longer shifts by a few pixels per row.
+            `${item.isActive ? ROW_CONTROL.text : ROW_CONTROL.textStrong} min-w-[5.75rem]`
           : "whitespace-nowrap"
       }
       ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
@@ -216,7 +217,9 @@ export function DeleteMenuItem({
 // 700 px wide, so Etiket and the Sıra number join it from xl (the tags ride
 // under the name below that). The ↑ / ↓ are small enough to join from md
 // (columnsFor), with the name's column a little narrower until xl: no
-// sideways scroll at 768 or 1024, with a mouse or a finger.
+// sideways scroll at 768 or 1024, with a mouse or a finger. Every column
+// but the name has a set width, so the categories' tables, one under the
+// other, line their columns up (they drifted by 40 px with their content).
 const COLUMNS: readonly DataTableColumn<MenuListRow>[] = [
   {
     key: "ad",
@@ -243,6 +246,7 @@ const COLUMNS: readonly DataTableColumn<MenuListRow>[] = [
     header: "Sıra",
     align: "right",
     hideBelow: "xl",
+    className: "w-24",
     cell: (it) => (
       <span className="text-[var(--admin-text-soft)]" style={NUMERIC_STYLE}>
         {String(it.sortOrder).padStart(2, "0")}
@@ -253,18 +257,20 @@ const COLUMNS: readonly DataTableColumn<MenuListRow>[] = [
     key: "etiket",
     header: "Etiket",
     hideBelow: "xl",
+    className: "w-36",
     cell: (it) => <MenuTags tags={it.tags} />,
   },
   {
     key: "fiyat",
     header: "Fiyat",
     align: "right",
-    className: "whitespace-nowrap",
+    className: "w-28 whitespace-nowrap",
     cell: (it) => <Price it={it} />,
   },
   {
     key: "durum",
     header: "Durum",
+    className: "w-28",
     cell: (it) => <StatusBadge it={it} />,
   },
 ];
@@ -392,12 +398,12 @@ export function MenuList({
                 mobileCard={(it) => (
                   <div className="flex flex-col gap-2">
                     <div className="min-w-0">
-                      <Link
+                      <CardLink
                         href={menuItemHref(it.id)}
                         className="font-medium text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
                       >
                         {it.name}
-                      </Link>
+                      </CardLink>
                       {it.desc ? (
                         <span className="mt-0.5 line-clamp-2 block text-xs text-[var(--admin-text-soft)]">
                           {it.desc}

@@ -1,9 +1,7 @@
-import Link from "next/link";
-
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
 import {
   Badge,
-  BUTTON,
+  CardLink,
   DataTable,
   EmptyState,
   PageShell,
@@ -102,14 +100,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
       <div className="grid gap-4">
         {users.length === 0 ? (
+          // No "Yeni kullanıcı" of its own: the header's goes to the form,
+          // which is right below (three of the same button on a phone).
           <EmptyState
             title="Henüz panelden eklenmiş kullanıcı yok."
-            description="Şu an yalnız ortam değişkenindeki hesaplar girebiliyor."
-            action={
-              <Link href="#yeni-kullanici" className={BUTTON.ghost}>
-                Yeni kullanıcı
-              </Link>
-            }
+            description="Şu an yalnız ortam değişkenindeki hesaplar girebiliyor. İlkini aşağıdaki formla ekle."
           />
         ) : (
           // min-w-0: the grid's track otherwise grows to the table's width
@@ -186,12 +181,12 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               ]}
               mobileCard={(u) => (
                 <div className="flex min-w-0 flex-col gap-1.5">
-                  <Link
+                  <CardLink
                     href={adminUserHref(u.email)}
                     className="font-medium break-all text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                   >
                     {u.name || u.email}
-                  </Link>
+                  </CardLink>
                   {u.name ? (
                     <span className="text-xs break-all text-[var(--admin-text-soft)]">
                       {u.email}

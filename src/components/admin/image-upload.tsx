@@ -297,10 +297,10 @@ export function ImageUpload({
         aria-label="Görsel yükle"
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors ${
           dragOver
-            ? "border-neutral-900 bg-neutral-50"
+            ? "border-[var(--admin-primary)] bg-[var(--admin-surface-2)]"
             : remainingSlots > 0
-              ? "border-neutral-300 bg-neutral-50/50 hover:border-neutral-500"
-              : "border-[var(--admin-border)] bg-neutral-100 opacity-60"
+              ? "border-[var(--admin-border-strong)] bg-[var(--admin-surface-2)]/50 hover:border-[var(--admin-border-field)]"
+              : "border-[var(--admin-border)] bg-[var(--admin-surface-2)] opacity-60"
         }`}
       >
         <div className="text-[13px] font-medium text-[var(--admin-text-soft)]">
@@ -308,7 +308,7 @@ export function ImageUpload({
             ? "Sürükle bırak veya tıkla"
             : `Sınır doldu: ${MAX_IMAGES} görsel`}
         </div>
-        <div className="mt-2 text-sm text-neutral-700">
+        <div className="mt-2 text-sm text-[var(--admin-text-soft)]">
           {remainingSlots > 0 ? (
             <>
               <span className="font-medium">{remainingSlots}</span> görsel daha
@@ -322,7 +322,7 @@ export function ImageUpload({
             </>
           )}
         </div>
-        <div className="mt-1 text-xs text-neutral-500">
+        <div className="mt-1 text-xs text-[var(--admin-text-mute)]">
           Uzun kenarı {MAX_DIMENSION} px&apos;e küçültülür. Saydam arka planlı
           (dekupe) fotoğraf saydamlığıyla WebP, diğerleri JPEG olarak saklanır.
           {MAX_IMAGES > 1 &&
@@ -341,19 +341,19 @@ export function ImageUpload({
       </div>
 
       {status.kind === "processing" && (
-        <div className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+        <div className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs text-[var(--admin-text-soft)]">
           İşleniyor… ({status.current}/{status.total})
         </div>
       )}
       {status.kind === "error" && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div className="rounded-md border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-3 py-2 text-xs text-[var(--admin-danger-ink)]">
           {status.message}
         </div>
       )}
       {overTotal && (
         <div
           role="alert"
-          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          className="rounded-md border border-[var(--admin-warning)]/30 bg-[var(--admin-warning-soft)] px-3 py-2 text-xs text-[var(--admin-warning)]"
         >
           {uploadTotalNotice(json.length)}
         </div>
@@ -373,11 +373,11 @@ export function ImageUpload({
                 key={`${i}-${src.slice(0, 32)}`}
                 className={`group relative overflow-hidden rounded-lg border bg-white ${
                   isPrimary
-                    ? "border-neutral-900"
+                    ? "border-[var(--admin-primary)]"
                     : "border-[var(--admin-border)]"
                 }`}
               >
-                <div className="relative aspect-square w-full bg-neutral-100">
+                <div className="relative aspect-square w-full bg-[var(--admin-surface-2)]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={src}
@@ -391,13 +391,13 @@ export function ImageUpload({
                       Birincil
                     </span>
                   )}
-                  <span className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-neutral-700 backdrop-blur">
+                  <span className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-[var(--admin-text-soft)] backdrop-blur">
                     {isData ? `${approxKB(src)} KB` : "URL"}
                   </span>
                   {isData && (
                     // The stored format: WEBP or PNG is a photo that kept
                     // its transparency (a cutout), JPEG an opaque one.
-                    <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-neutral-700 backdrop-blur">
+                    <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-[var(--admin-text-soft)] backdrop-blur">
                       {formatLabel(src)}
                     </span>
                   )}
@@ -407,7 +407,7 @@ export function ImageUpload({
                     a second photo could not be removed (admin audit CAT-12).
                     The arrows, × and "Birincil yap" each name the photo they
                     act on (CAT-23); the arrows move left and right. */}
-                <div className="flex flex-wrap items-center justify-between gap-1 border-t border-neutral-100 px-1.5 py-1">
+                <div className="flex flex-wrap items-center justify-between gap-1 border-t border-[var(--admin-border)] px-1.5 py-1">
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -415,7 +415,7 @@ export function ImageUpload({
                       disabled={i === 0}
                       aria-label={`Sola taşı: görsel ${i + 1}`}
                       title="Sola taşı"
-                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <span aria-hidden="true">←</span>
                     </button>
@@ -425,7 +425,7 @@ export function ImageUpload({
                       disabled={i === images.length - 1}
                       aria-label={`Sağa taşı: görsel ${i + 1}`}
                       title="Sağa taşı"
-                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="grid h-11 w-10 shrink-0 place-items-center rounded-md text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <span aria-hidden="true">→</span>
                     </button>
@@ -444,7 +444,7 @@ export function ImageUpload({
                       type="button"
                       onClick={() => makePrimary(i)}
                       aria-label={`Birincil yap: görsel ${i + 1}`}
-                      className="min-h-[44px] basis-full rounded-md px-2 text-xs font-medium text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
+                      className="min-h-[44px] basis-full rounded-md px-2 text-xs font-medium text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)]"
                     >
                       Birincil yap
                     </button>
@@ -456,7 +456,7 @@ export function ImageUpload({
         </ul>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
+      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--admin-border)] pt-3">
         <span
           className="basis-full text-[13px] font-medium text-[var(--admin-text-soft)] sm:basis-auto"
           aria-hidden="true"
@@ -477,7 +477,7 @@ export function ImageUpload({
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="min-w-0 flex-[1_1_10rem] rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+          className="min-h-[44px] min-w-0 flex-[1_1_10rem] rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm"
         />
         <button
           type="button"

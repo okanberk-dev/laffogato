@@ -20,7 +20,6 @@ export default async function NewCategoryPage() {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Katalog · Kategoriler"
         title="Yeni kategori"
         description="Mağazanın beş sabit kategorisinden listede olmayanı panele ekle: ürün formunda ve listelerde görünecek adını ve sırasını sen verirsin."
       />

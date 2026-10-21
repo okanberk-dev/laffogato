@@ -10,9 +10,11 @@ import {
   FormMessage,
   SubmitButton,
 } from "./action-form";
-import { Card, Field, TextInput, Textarea } from "./forms";
+import { Field, TextInput, Textarea } from "./forms";
 import { ComboboxField } from "./ui/combobox-field";
-import { EYEBROW, MONO_STYLE } from "./ui/styles";
+import { AdminIcon } from "./ui/icons";
+import { openFromMd } from "./ui/open-from-md";
+import { CARD_TITLE } from "./ui/styles";
 
 /**
  * The picker's options: a product with variants is a group of them (its
@@ -56,63 +58,75 @@ export function StockAdjustForm({
   products: readonly StockAdjustOption[];
 }) {
   return (
-    <Card>
-      <h2 className={`mb-4 ${EYEBROW}`} style={MONO_STYLE}>
-        Manuel stok düzeltmesi
-      </h2>
-      <ActionForm
-        action={adjustStockAction}
-        resetOnSuccess
-        className="grid gap-4 md:grid-cols-[2fr_1fr_2fr_auto] md:items-start"
-      >
-        <div className="grid content-start gap-1.5">
-          <Field label="Ürün">
-            <ComboboxField
-              name="productId"
-              label="Ürün"
-              defaultValue=""
-              required
-              placeholder="Ürün seç…"
-              placeholderDisabled
-              options={stockOptions(products)}
-            />
-          </Field>
-          <FormFieldError name="productId" />
-        </div>
-        <div className="grid content-start gap-1.5">
-          <Field label="Değişiklik (±)" hint="Ekle: +12 · düş: -3. Tam sayı.">
-            <TextInput
-              name="delta"
-              type="text"
-              placeholder="+12"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              enterKeyHint="done"
-              maxLength={12}
-              required
-            />
-          </Field>
-          <FormFieldError name="delta" />
-        </div>
-        <div className="grid content-start gap-1.5">
-          <Field label="Not (zorunlu)" hint="Denetim için kısa açıklama.">
-            <Textarea
-              name="note"
-              rows={1}
-              placeholder="Sayım fazlası · Hasar · Tedarikçi iadesi…"
-              required
-            />
-          </Field>
-          <FormFieldError name="note" />
-        </div>
-        <div className="grid gap-2 md:pt-6">
-          <SubmitButton>Düzelt</SubmitButton>
-        </div>
-        <div className="md:col-span-4">
-          <FormMessage />
-        </div>
-      </ActionForm>
-    </Card>
+    // A white card with an outline, not the stone panel the filter bar
+    // under it is drawn on: two grey forms one above the other read as
+    // one. On a phone it folds behind its title (the moves are what the
+    // page is opened for); from md up it is always open (openFromMd).
+    <section className="rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 sm:p-6">
+      <details ref={openFromMd} className="group md:details-content:contents">
+        <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 select-none md:hidden [&::-webkit-details-marker]:hidden">
+          <span className={CARD_TITLE}>Stok düzelt</span>
+          <AdminIcon
+            name="chevron"
+            size={16}
+            className="shrink-0 text-[var(--admin-text-mute)] transition-transform group-open:rotate-180 motion-reduce:transition-none"
+          />
+        </summary>
+        <h2 className={`mb-4 hidden md:block ${CARD_TITLE}`}>Stok düzelt</h2>
+        <ActionForm
+          action={adjustStockAction}
+          resetOnSuccess
+          className="mt-3 grid gap-4 md:mt-0 md:grid-cols-[2fr_1fr_2fr_auto] md:items-start"
+        >
+          <div className="grid content-start gap-1.5">
+            <Field label="Ürün">
+              <ComboboxField
+                name="productId"
+                label="Ürün"
+                defaultValue=""
+                required
+                placeholder="Ürün seç…"
+                placeholderDisabled
+                options={stockOptions(products)}
+              />
+            </Field>
+            <FormFieldError name="productId" />
+          </div>
+          <div className="grid content-start gap-1.5">
+            <Field label="Değişiklik (±)" hint="Ekle: +12 · düş: -3. Tam sayı.">
+              <TextInput
+                name="delta"
+                type="text"
+                placeholder="+12"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="done"
+                maxLength={12}
+                required
+              />
+            </Field>
+            <FormFieldError name="delta" />
+          </div>
+          <div className="grid content-start gap-1.5">
+            <Field label="Not (zorunlu)" hint="Denetim için kısa açıklama.">
+              <Textarea
+                name="note"
+                rows={1}
+                placeholder="Sayım fazlası · Hasar · Tedarikçi iadesi…"
+                required
+              />
+            </Field>
+            <FormFieldError name="note" />
+          </div>
+          <div className="grid gap-2 md:pt-6">
+            <SubmitButton>Düzelt</SubmitButton>
+          </div>
+          <div className="md:col-span-4">
+            <FormMessage />
+          </div>
+        </ActionForm>
+      </details>
+    </section>
   );
 }

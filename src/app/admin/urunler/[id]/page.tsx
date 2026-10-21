@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import {
   DeleteProduct,
@@ -36,9 +37,6 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const BACK_LINK =
-  "mb-4 inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline";
-
 /**
  * One product, read-only (Filament's view page, admin audit P2b / D37):
  * what the shop sells it at, its stock and each variant's, its photos, and
@@ -69,13 +67,11 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href={PRODUCTS_PATH} className={BACK_LINK}>
-        ← Ürünler
-      </Link>
+      <BackLink href={PRODUCTS_PATH}>Ürünler</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
         <div className={EYEBROW} style={MONO_STYLE}>
-          Katalog · Mağaza ürünleri
+          Mağaza ürünü
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-words text-[var(--admin-text)] sm:text-3xl">
           {product.name}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { CustomerActions } from "@/components/admin/customer-actions";
 import { CustomerCoupons } from "@/components/admin/customer-coupons";
 import { CustomerDeletionRequest } from "@/components/admin/customer-deletion-request";
@@ -188,26 +189,17 @@ export default async function CustomerDetailPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <BackLink href="/admin/musteriler">Tüm müşteriler</BackLink>
       {/* A guest without a name is titled by the address: it wraps. */}
       <div className="[&_h1]:[overflow-wrap:anywhere] [&_header_p]:[overflow-wrap:anywhere]">
         <PageHeader
           eyebrow={member ? "Üye hesabı" : "Misafir müşteri"}
           title={displayName}
           description={`${email}${member?.phone ? ` · ${member.phone}` : ""}`}
-          action={
-            <div className="flex flex-wrap gap-2">
-              {member && (
-                <Link
-                  href={`${customerHref(email)}/duzenle`}
-                  className={BUTTON.primary}
-                >
-                  Düzenle
-                </Link>
-              )}
-              <Link href="/admin/musteriler" className={BUTTON.ghost}>
-                ← Tüm müşteriler
-              </Link>
-            </div>
+          primary={
+            member
+              ? { href: `${customerHref(email)}/duzenle`, label: "Düzenle" }
+              : undefined
           }
         />
       </div>
@@ -280,7 +272,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                         {member.emailVerified ? (
                           <Badge tone="success">Doğrulanmış</Badge>
                         ) : (
-                          <Badge tone="accent">Doğrulanmamış</Badge>
+                          <Badge tone="warning">Doğrulanmamış</Badge>
                         )}
                       </span>
                     ),

@@ -204,7 +204,10 @@ describe("the forms (KAR-14, KAR-24)", () => {
     expect(formOpenTags(created)).toHaveLength(1);
     expectReactGuard(formOpenTags(created)[0]);
     expect(created).toContain('name="name"');
-    expect(created).toContain("← Masalar");
+    // The kit's BackLink: the arrow drawn apart from the words.
+    expect(created).toMatch(
+      /<a href="\/admin\/masalar" data-admin-back=""[^>]*><span aria-hidden="true">←<\/span>Masalar<\/a>/,
+    );
     expect(created).toMatch(/href="\/admin\/masalar"[^>]*>Vazgeç</);
 
     const edited = html(

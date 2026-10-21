@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import {
   DeleteMenuItem,
@@ -40,9 +41,6 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const BACK_LINK =
-  "mb-4 inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline";
-
 /**
  * One menu item, read-only (Filament's view page, admin audit P2b / D37):
  * its prices, tags, Sıra and photo, with "Düzenle" and the one-click
@@ -63,13 +61,12 @@ export default async function MenuItemPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href={MENU_PATH} className={BACK_LINK}>
-        ← Kafe menüsü
-      </Link>
+      <BackLink href={MENU_PATH}>Kafe menüsü</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
         <div className={EYEBROW} style={MONO_STYLE}>
-          Katalog · {MENU_CATEGORY_LABELS[item.categoryKey] ?? item.categoryKey}
+          Menü kalemi ·{" "}
+          {MENU_CATEGORY_LABELS[item.categoryKey] ?? item.categoryKey}
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-words text-[var(--admin-text)] sm:text-3xl">
           {item.name}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
@@ -32,6 +31,7 @@ import {
   ActionMenuLink,
   ActionMenuSeparator,
   Badge,
+  CardLink,
   ConfirmButton,
   DataTable,
   EmptyState,
@@ -517,12 +517,12 @@ export function KaraokeTable({
       mobileCard={(v) => (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-            <Link
+            <CardLink
               href={karaokeDetailHref(v.r.id, back)}
               className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
             >
               {v.time}
-            </Link>
+            </CardLink>
             <span className="text-xs text-[var(--admin-text-soft)]">
               {v.day} · <span style={NUMERIC_STYLE}>{v.r.id}</span>
             </span>

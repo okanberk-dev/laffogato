@@ -16,7 +16,6 @@ export default async function NewCampaignMailPage() {
       {/* The composer was a dead end: no way back but the sidebar (PEO-23). */}
       <BackLink href="/admin/bulten/kampanya">Kampanyalar</BackLink>
       <PageHeader
-        eyebrow="Pazarlama · Kampanya e-postası"
         title="Yeni kampanya"
         description="Önce taslak olarak kaydedilir; önizleme, test gönderimi ve asıl gönderim taslağın kendi sayfasındadır."
       />

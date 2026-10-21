@@ -12,7 +12,6 @@ export default async function NewSlidePage() {
   return (
     <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Katalog · Mağaza vitrini"
         title="Yeni slayt"
         description="Mağaza sayfasının en üstündeki kayan alana bir slayt ekle: görsel, başlık, alt yazı ve isteğe bağlı bir düğme."
       />

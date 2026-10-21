@@ -66,7 +66,6 @@ export default async function PrintCafeTablesPage({ searchParams }: PageProps) {
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <style>{PRINT_CSS}</style>
       <PageHeader
-        eyebrow="Satış · Masalar"
         title={
           single && tables[0] ? `${tables[0].name} kartı` : "Masa kartları"
         }

@@ -48,11 +48,12 @@ tablosuna yazılır: son deneme ve son başarı, tek bir upsert ile
 (`recordSupabaseKeepalive`, `src/lib/admin/supabase-keepalive.ts`). Kayıt
 cron'un işlerinden sonra, 5 sn sınırıyla yazılır; yazılamazsa günlüğe sınıfı
 düşer (SQLSTATE, ulaşılamıyor, süre), cron ve yoklamanın sonucu etkilenmez
-(yanıtta `keepalive.recorded`). Sahibin Genel bakış sayfasında
-"Supabase uyanık tutma: son başarılı ping <tarih>" satırı durur; son başarı
-İstanbul takvimiyle 3 günden eskiyse, son deneme başarısızsa ya da tablo
-kurulalı 2 günden fazla olduğu hâlde hiç kayıt yoksa (cron hiç çalışmıyor)
-uyarı renginde (`docs/ADMIN.md`).
+(yanıtta `keepalive.recorded`). Sahibin Ayarlar sayfasındaki Sistem durumu
+kartında "Supabase uyanık tutma: son başarılı ping <tarih>" satırı durur;
+son başarı İstanbul takvimiyle 3 günden eskiyse, son deneme başarısızsa ya da
+tablo kurulalı 2 günden fazla olduğu hâlde hiç kayıt yoksa (cron hiç
+çalışmıyor) uyarı renginde, ve o zaman Genel bakış'ta da belirir
+(`docs/ADMIN.md`).
 
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
 

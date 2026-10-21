@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,19 +31,18 @@ import {
 } from "./order-actions-ui";
 import {
   Badge,
+  CardLink,
   DataTable,
+  type DataTableColumn,
+  type EmptyListAction,
   EmptyListActionLink,
   EmptyState,
   OrderStatusBadge,
-  type DataTableColumn,
-  type EmptyListAction,
 } from "./ui";
 import {
   orderAlertsMounted,
   readSoundPref,
   shouldListBeep,
-  useSoundPref,
-  writeSoundPref,
 } from "./sound-pref";
 import { BUTTON, MONO_STYLE, ROW_CONTROL } from "./ui/styles";
 
@@ -89,13 +87,6 @@ interface Props {
  * `head: true` count, not a re-read of the list.
  */
 const POLL_MS = 30_000;
-
-/**
- * The sound toggle's name. It stays the same whatever the state: the state
- * is `aria-pressed` (and the dot), so a screen reader hears "Yeni sipariş
- * sesi, basılı" rather than "Ses kapalı, basılı değil" (admin audit ORD-27).
- */
-export const SOUND_TOGGLE_LABEL = "Yeni sipariş sesi";
 
 /**
  * The moves a row runs in place, in the order an order goes through them
@@ -296,10 +287,6 @@ export function OrdersList({
   const [signal, setSignal] = useState({ since: 0, count: 0 });
   const newCount = signal.since === latestOrderNo ? signal.count : 0;
 
-  // The panel's one sound switch (sound-pref.ts), shared with the
-  // new-order alert in the top bar.
-  const sound = useSoundPref();
-
   // Orders numbered above this get the "yeni" mark after a refresh; null
   // until the operator has actually refreshed once.
   const [markAfter, setMarkAfter] = useState<number | null>(null);
@@ -386,14 +373,6 @@ export function OrdersList({
     lastShop.current = 0;
     router.refresh();
   }, [latestOrderNo, router]);
-
-  const toggleSound = useCallback(() => {
-    const next = !readSoundPref();
-    writeSoundPref(next);
-    // Proof it works, on the click that turned it on - and the gesture a
-    // browser wants before it will let a page make a sound at all.
-    if (next) beep(true);
-  }, []);
 
   const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
@@ -521,32 +500,6 @@ export function OrdersList({
         </div>
       )}
 
-      {live ? (
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={sound}
-            title="Yeni sipariş geldiğinde kısa bir ses çalar."
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border px-3.5 text-sm transition-colors ${
-              sound
-                ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
-                : "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className={`h-2.5 w-2.5 rounded-full border ${
-                sound
-                  ? "border-[var(--admin-primary)] bg-[var(--admin-primary)]"
-                  : "border-[var(--admin-text-mute)] bg-transparent"
-              }`}
-            />
-            {SOUND_TOGGLE_LABEL}
-          </button>
-        </div>
-      ) : null}
-
       <DataTable
         caption="Siparişler"
         columns={columns}
@@ -577,13 +530,13 @@ export function OrdersList({
               {/* The way into the order on a phone, so it looks like one:
                   the number was plain text until hovered, and touch has no
                   hover (admin audit ORD-25). */}
-              <Link
+              <CardLink
                 href={`/admin/siparisler/${r.order.id}`}
                 className="inline-flex min-h-[44px] items-center font-medium whitespace-nowrap text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
                 style={MONO_STYLE}
               >
                 #{r.order.orderNo}
-              </Link>
+              </CardLink>
               {r.order.attention ? (
                 <Badge
                   tone="danger"

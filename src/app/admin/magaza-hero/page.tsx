@@ -116,17 +116,21 @@ export default async function AdminShopHeroPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-[11px] text-amber-900">
+                    <span className="text-[11px] text-[var(--admin-warning)]">
                       Görsel yok
                     </span>
                   )}
                 </span>
                 {/* Capped like the app's slides: the order buttons and the
                     ⋯ menu keep their room beside the sidebar. */}
+                {/* Two lines on a phone card, where one cut the subtitle
+                    at "500₺ üzeri ücretsi…"; one line in the table. */}
                 <span className="min-w-0 md:max-w-[14rem] xl:max-w-[20rem] 2xl:max-w-[28rem]">
-                  <span className="block truncate font-medium">{title(s)}</span>
+                  <span className="font-medium max-md:line-clamp-2 md:block md:truncate">
+                    {title(s)}
+                  </span>
                   {s.subtitle ? (
-                    <span className="block truncate text-xs text-[var(--admin-text-mute)]">
+                    <span className="text-xs text-[var(--admin-text-mute)] max-md:line-clamp-2 md:block md:truncate">
                       {s.subtitle}
                     </span>
                   ) : null}
