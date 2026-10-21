@@ -39,7 +39,11 @@ export function Section({
     <section
       id={id}
       aria-labelledby={headingId}
-      className={cx("rounded-3xl bg-[var(--admin-panel)]", className)}
+      className={cx(
+        // On paper the zinc-100 ground does not print: a line keeps the box.
+        "rounded-3xl bg-[var(--admin-panel)] print:border print:border-[var(--admin-border-strong)] print:bg-white",
+        className,
+      )}
     >
       <header
         className={cx(

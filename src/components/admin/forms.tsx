@@ -169,7 +169,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 ${COMPACT.p4} ${className ?? ""}`}
+      className={`rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white ${COMPACT.p4} ${className ?? ""}`}
       style={style}
     >
       {children}

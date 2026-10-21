@@ -7,7 +7,7 @@ import { TONE_INK } from "../ui/tone";
 import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "../ui/styles";
 
 const CARD =
-  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--admin-panel)] p-4";
+  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--admin-panel)] p-4 print:border print:border-[var(--admin-border-strong)] print:bg-white";
 
 /**
  * A figure on a tile: the dashboard's and the report's. Server-safe.

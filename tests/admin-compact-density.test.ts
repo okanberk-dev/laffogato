@@ -189,7 +189,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       /<div class="[^"]*"/,
     );
     expect(defaults(card)).toBe(
-      "rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6",
+      "rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white",
     );
     expect(compact(card)).toEqual([COMPACT.p4]);
   });
