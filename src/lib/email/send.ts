@@ -819,9 +819,11 @@ export async function sendOrderPaidEmail(
     sendTemplateResult(
       "odeme-onaylandi",
       o.to,
+      // render.ts opens the copy's sentence only with this flag and both
+      // links, and the old line otherwise.
       attachments && copyVars
         ? { vars: { ...vars, ...copyVars }, loops, flags: { BELGE_EKI: true } }
-        : { vars, loops, flags: { BELGE_GUNCEL: true } },
+        : { vars, loops },
       idempotencyKey ? `${idempotencyKey}${keySuffix}` : undefined,
       // The one mail the customer gets before the parcel: worth one more try.
       { retryOnce: true, ...(attachments ? { attachments } : {}) },
@@ -1130,7 +1132,7 @@ export async function sendKaraokeConfirmationEmail(
             vars: { ...vars, KARAOKE_SURUM_URL: versionUrl },
             flags: { ...flags, KARAOKE_BELGE_EKI: true },
           }
-        : { vars, flags: { ...flags, KARAOKE_BELGE_GUNCEL: online } },
+        : { vars, flags },
       undefined,
       attachments ? { attachments } : {},
     );

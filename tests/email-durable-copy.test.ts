@@ -305,6 +305,9 @@ describe("sendOrderPaidEmail and the attachment", () => {
     });
     expect(r.html).not.toContain("e-postanın ekindedir");
     expect(r.text).not.toContain("e-postanın ekindedir");
+    // Exactly one documents line: the old one stands in.
+    expect(flat(r.html)).toContain(OLD_SENTENCE);
+    expect(flat(r.text)).toContain(OLD_SENTENCE);
   });
 });
 
