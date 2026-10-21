@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { OrdersList, type OrderListRow } from "@/components/admin/orders-list";
+import { SoundToggle } from "@/components/admin/sound-toggle";
 import {
   BUTTON,
   FilterBar,
@@ -179,6 +180,9 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         pathname={ORDER_LIST_PATH}
         label="Sipariş filtreleri"
         views={{ key: "orders" }}
+        // Only while the list polls for new orders (`live`): elsewhere
+        // there is nothing to ring for.
+        toolbar={parsed.live ? <SoundToggle /> : null}
       />
 
       {/* Keyed by the URL and the search: a tab, filter, sort, page link

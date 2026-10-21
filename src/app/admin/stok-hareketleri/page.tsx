@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmailText } from "@/components/admin/ui/email-text";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { StockAdjustForm } from "@/components/admin/stock-adjust-form";
 import {
@@ -240,8 +241,8 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
                 <div className="font-medium text-[var(--admin-text)]">
                   {m.productName || m.productId}
                 </div>
-                <div className="mt-0.5 text-xs break-all text-[var(--admin-text-soft)]">
-                  {formatDateTime(m.createdAt)} · {m.actor}
+                <div className="mt-0.5 text-xs [overflow-wrap:anywhere] text-[var(--admin-text-soft)]">
+                  {formatDateTime(m.createdAt)} · <EmailText value={m.actor} />
                 </div>
               </div>
               <div className="shrink-0 text-right">

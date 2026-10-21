@@ -261,8 +261,8 @@ export function SlideForm({
               }}
               className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-12 text-center transition-colors ${
                 dragOver
-                  ? "border-neutral-900 bg-neutral-50"
-                  : "border-neutral-300 bg-neutral-50/50 hover:border-neutral-500"
+                  ? "border-[var(--admin-primary)] bg-[var(--admin-surface-2)]"
+                  : "border-[var(--admin-border-strong)] bg-[var(--admin-surface-2)]/50 hover:border-[var(--admin-border-field)]"
               }`}
             >
               <div className="text-[13px] font-medium text-[var(--admin-text-soft)]">
@@ -289,13 +289,13 @@ export function SlideForm({
           {error && (
             <div
               role="alert"
-              className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-[var(--admin-danger-ink)]"
+              className="rounded-md border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-3 py-2 text-xs text-[var(--admin-danger-ink)]"
             >
               {error}
             </div>
           )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
+          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--admin-border)] pt-3">
             <span
               className="text-[13px] font-medium text-[var(--admin-text-soft)]"
               aria-hidden="true"

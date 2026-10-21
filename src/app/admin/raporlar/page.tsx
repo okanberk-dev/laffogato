@@ -90,7 +90,9 @@ export default async function ReportsPage({ searchParams }: PageProps) {
         label="Dönem"
       />
 
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
+      {/* Five tiles: on two columns the last spans both, not half a row
+          beside a hole. */}
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5 max-lg:[&>:last-child:nth-child(odd)]:col-span-2">
         <StatCard
           label="Net ciro"
           value={formatTRY(head.netRevenueMinor)}
@@ -180,8 +182,10 @@ export default async function ReportsPage({ searchParams }: PageProps) {
                     aria-hidden="true"
                     className="h-2 w-full overflow-hidden rounded-full bg-[var(--admin-neutral-soft)]"
                   >
+                    {/* The money's green, as the chart above draws it
+                        (Raporlar is in the green group, ui/hues.ts). */}
                     <div
-                      className="h-full rounded-full bg-[var(--admin-primary)]"
+                      className="h-full rounded-full bg-[var(--admin-hue-green)]"
                       style={{ width: `${widthPct}%` }}
                     />
                   </div>

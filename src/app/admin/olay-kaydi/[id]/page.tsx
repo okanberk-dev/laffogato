@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import {
   Badge,
   KeyValueGrid,
@@ -36,9 +37,6 @@ export async function generateMetadata({ params }: PageProps) {
   const id = auditEventIdOf((await params).id);
   return { title: id ? `Admin · Olay ${id}` : "Admin · Olay kaydı" };
 }
-
-const BACK_LINK =
-  "mb-4 inline-flex min-h-[44px] items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline";
 
 /**
  * One event of Olay kaydı (Filament's view page, admin audit SYS-09): the
@@ -120,9 +118,7 @@ export default async function AuditEventPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href={AUDIT_LOG_PATH} className={BACK_LINK}>
-        ← Olay kaydı
-      </Link>
+      <BackLink href={AUDIT_LOG_PATH}>Olay kaydı</BackLink>
 
       <header className="mb-6 flex flex-col gap-2">
         <div className={EYEBROW} style={MONO_STYLE}>

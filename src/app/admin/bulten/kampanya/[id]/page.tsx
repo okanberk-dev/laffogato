@@ -92,7 +92,6 @@ export default async function CampaignMailDetailPage({
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <BackLink href={LIST_PATH}>Kampanyalar</BackLink>
       <PageHeader
-        eyebrow="Pazarlama · Kampanya e-postası"
         title={c.subject || "Kampanya"}
         description={`${templateLabel} · ${audienceLabel}`}
       />

@@ -825,7 +825,7 @@ export function ItemStatusSelect({
         setShown(next);
         run({ id: orderId, index, status: next });
       }}
-      className="min-h-[36px] rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-2 py-1 text-xs text-[var(--admin-text)] focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none disabled:opacity-60"
+      className="min-h-[36px] rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-2 py-1 text-xs text-[var(--admin-text)] focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none disabled:opacity-60 pointer-coarse:min-h-11"
     >
       {ITEM_STATUS_OPTIONS.map(([value, label]) => (
         <option key={value} value={value}>

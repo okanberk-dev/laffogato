@@ -552,14 +552,15 @@ hemen uygulanır (tercihle yenileyince menü bir an geniş görünüp daralır).
 - Kurallar tek yerde: `src/lib/admin/view-prefs-core.ts`; tercihlerin deposu
   ve kök öğeye yazan bileşen `src/components/admin/view-prefs.tsx`.
 
-## Supabase uyanık tutma satırı (Genel bakış, yalnız sahip)
+## Supabase uyanık tutma satırı (Ayarlar → Sistem durumu, yalnız sahip)
 
 Ücretsiz plandaki Supabase projesi 7 gün veritabanı etkinliği görmezse
 duraklar ve uygulamada da sitede de her girişi reddeder; günlük cron bu yüzden
 her sabah projeyi yoklar (`docs/SUPABASE-GECIS.md` §0). Cron elle
 çağrılamadığı için sonucu görünmüyordu; artık her yoklama Neon'daki
-`supabase_keepalive` satırına yazılır ve Genel bakış'ta, posta uyarısının
-altında bir satır durur:
+`supabase_keepalive` satırına yazılır ve Ayarlar'ın en üstündeki **Sistem
+durumu** kartında, servis anahtarı satırının altında bir satır durur
+(`src/app/admin/ayarlar/system-status.tsx`):
 
 - **"Supabase uyanık tutma: son başarılı ping 20 Eki 2026 09:00."** Tarih
   panelin geri kalanı gibi İstanbul saatiyle yazılır.
@@ -572,10 +573,19 @@ altında bir satır durur:
   görev çalışmıyor olabilir" der (`CRON_SECRET` tanımsız ya da program
   bozuk: başka hiçbir yer bunu söylemez, proje 7 günde duraklar).
 
-Yalnız sahip görür (Ayarlar'daki servis anahtarı satırını görenler):
-yönetici, personel ve kasiyer için kayıt sunucuda hiç okunmaz
-(`readKeepaliveFor`), satır sayfaya da girmez. Kayıt okunamazsa sayfa yine
-açılır, satır "kayıt okunamadı" der.
+Kart her şey yolundayken kapalıdır ("Her şey yolunda"); bir satır uyarı ya
+da tehlike renginde olunca kendiliğinden açılır ("Dikkat istiyor").
+
+**Genel bakış yalnız uyarıyı gösterir** (operatör, 21 Eki 2026: olağan satır
+orada durmasın). Yoklama çalıştığı sürece panoda hiçbir şey yazmaz; uyarı
+durumlarından biri olunca satır, posta uyarısının altında, ne yapılacağıyla
+birlikte belirir. Çünkü o durumda proje birkaç gün içinde duraklar ve bunu
+başka hiçbir ekran söylemez.
+
+Yalnız sahip görür (Ayarlar'ı açabilenler): yönetici, personel ve kasiyer
+için kayıt sunucuda hiç okunmaz (`readKeepaliveFor`, iki sayfada da), satır
+sayfaya da girmez. Kayıt okunamazsa sayfa yine açılır, satır "kayıt
+okunamadı" der.
 
 ## Kullanıcılar: kendi hesabın (21 Eki 2026)
 
@@ -588,11 +598,10 @@ reddeder. Kendi satırı yalnız adı kaydeder: rol ve erişim kayıttaki gibi
 kalır, böylece env ile girilmiş bir sahibin aynı adresli pasif satırı
 kaydetmekle açılmaz. Bu değişiklikleri başka bir sahip yapar.
 
-## Genel bakış: iki adımlı doğrulama uyarısı (21 Eki 2026)
+## Genel bakış: iki adımlı doğrulama uyarısı yok (21 Eki 2026)
 
-İki adımlı doğrulaması kapalı bir hesapla girilince Genel bakış'ın üstünde
-uyarı renginde bir satır durur: "İki adımlı doğrulama kapalı. Bu hesap yalnız
-parolayla korunuyor. Şimdi aç" (`/admin/2fa-kurulum`). Panel para ve üye
-verisi taşıdığı için; 2FA zorunlu değildir (operatör kararı, `docs/AUDIT.md`
-§11). 2FA durumu okunamazsa satır çıkmaz, sayfa yine açılır.
-
+Genel bakış, 2FA'sı kapalı bir hesaba uyarı göstermez (operatör, 21 Eki 2026:
+bir önceki sürümde eklenen satır kaldırıldı; pano o hesap için 2FA durumunu
+okumaz bile). 2FA isteğe bağlıdır (operatör kararı, `docs/AUDIT.md` §11).
+Durumu görmek ve açmak için: hesap menüsünde **Güvenlik / 2FA**
+(`/admin/2fa-kurulum`); sahip bütün hesaplarınkini Kullanıcılar'da görür.

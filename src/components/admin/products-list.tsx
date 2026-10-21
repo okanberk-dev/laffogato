@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import {
@@ -31,14 +30,15 @@ import {
   ActionModal,
   Badge,
   BUTTON,
+  CardLink,
   ConfirmButton,
   DataTable,
+  type DataTableColumn,
+  type EmptyListAction,
   EmptyListActionLink,
   EmptyState,
   NUMERIC_STYLE,
   useToast,
-  type DataTableColumn,
-  type EmptyListAction,
 } from "./ui";
 
 interface Props {
@@ -417,12 +417,12 @@ export function ProductsList({
             <div className="flex items-start gap-3">
               <ProductThumb src={p.thumb} />
               <div className="min-w-0 flex-1">
-                <Link
+                <CardLink
                   href={productHref(p.id)}
                   className="font-medium text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
                 >
                   {p.name}
-                </Link>
+                </CardLink>
                 <span className="block text-xs text-[var(--admin-text-soft)]">
                   {[
                     categories.find((c) => c.slug === p.cat)?.label ?? p.cat,

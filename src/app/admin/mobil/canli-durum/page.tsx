@@ -28,9 +28,10 @@ export default async function AdminVenueStatusPage() {
   const openNow = isCafeOpenNow(settings.weeklyHours, status.manualOverride);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    // A form page at the form width (PAGE_WIDTHS.form): at 1280 px the
+    // two-digit table counts sat in 440 px boxes.
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Mobil uygulama · Köşk"
         title="Canlı durum"
         description="Uygulamanın ana sayfasındaki açık/kapalı, boş masa, Wi-Fi ve gürültü bilgisi buradan güncellenir."
       />

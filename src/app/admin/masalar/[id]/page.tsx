@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import { formatDateTime } from "@/components/admin/forms";
 import {
   Badge,
@@ -17,7 +17,6 @@ import { getCafeTable } from "@/lib/admin/cafe-tables";
 import { tableUrl } from "@/lib/admin/cafe-tables-core";
 import { CAFE_TABLES_PATH } from "@/lib/admin/cafe-tables-panel";
 
-import { BACK_LINK } from "../back-link";
 import { CafeTablePageActions } from "../table-actions";
 
 export const dynamic = "force-dynamic";
@@ -83,13 +82,11 @@ export default async function CafeTablePage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href={CAFE_TABLES_PATH} className={BACK_LINK}>
-        ← Masalar
-      </Link>
+      <BackLink href={CAFE_TABLES_PATH}>Masalar</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
         <div className={EYEBROW} style={MONO_STYLE}>
-          Satış · Masalar
+          Masa
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-words text-[var(--admin-text)] sm:text-3xl">
           {table.name}

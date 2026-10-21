@@ -135,7 +135,7 @@ export function storedSceneStatus({
 
 const TONE_CLASS: Record<Tone, string> = {
   ok: "border-[var(--admin-border)] bg-[var(--admin-surface-2)] text-[var(--admin-text)]",
-  warn: "border-amber-200 bg-amber-50 text-amber-800",
+  warn: "border-[var(--admin-warning)]/30 bg-[var(--admin-warning-soft)] text-[var(--admin-warning)]",
   info: "border-[var(--admin-border)] bg-[var(--admin-surface-2)] text-[var(--admin-text-soft)]",
 };
 

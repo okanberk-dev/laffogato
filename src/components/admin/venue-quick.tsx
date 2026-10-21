@@ -238,7 +238,11 @@ export function VenueQuick({
             />
             <span>
               <span className="max-sm:sr-only">Köşk: </span>
-              <span className="font-medium">{chip.label}</span>
+              {/* Below 360 px the dot alone says it (its colour; the name
+                  stays for a screen reader). */}
+              <span className="font-medium max-[359px]:sr-only">
+                {chip.label}
+              </span>
             </span>
           </>
         ) : (

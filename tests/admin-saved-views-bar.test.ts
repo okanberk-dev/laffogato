@@ -253,6 +253,8 @@ describe("what the bar loads statically", () => {
         "../forms",
         "./link-pending",
         "./list-search-button",
+        // openFromMd, shared with Stok's correction form: one small function.
+        "./open-from-md",
         "./saved-views-key",
         "./styles",
         "./submit",
@@ -349,16 +351,17 @@ describe("once the page is in the browser", () => {
     // Both chips are still there, and the menu follows them.
     expect(html).toContain("Filtreyi kaldır: Ara ayşe");
     expect(html).toContain("Filtreyi kaldır: Kanal Uygulama");
-    // The menu is the row's last item, and the row the bar's last.
+    // The menu is the row's last item (in the row's end group, after the
+    // list's own controls), and the row the bar's last.
     expect(html).toMatch(
-      /<\/ul><span data-lazy-menu=""[^>]*><\/span><\/div><\/div>/,
+      /<\/ul><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""[^>]*><\/span><\/div><\/div><\/div>/,
     );
   });
 
   it("with no chip the menu is the row", () => {
     const html = withKey(() => bar({}, { views: { key: "orders" } }));
     expect(html).toContain(
-      '<div class="mt-2 flex flex-wrap items-start gap-2"><span data-lazy-menu=""',
+      '<div class="mt-2 flex flex-wrap items-start gap-2"><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""',
     );
     expect(html).not.toContain("Etkin filtreler");
   });
@@ -377,12 +380,29 @@ describe("once the page is in the browser", () => {
     expect(attr("page-param")).toBe("sayfa");
     // And the question "has the operator started something?" (F2).
     expect(attr("touched")).toBe("function");
-    expect(attr("class")).toBe("ml-auto");
+    // The row's end group pushes it right; the menu takes no class.
+    expect(html).not.toContain("data-class=");
     // The page and the notice may ride along (the rules drop them); the
     // typed search and the one-time notice never reach the menu.
     const address = JSON.parse(attr("address").replaceAll("&quot;", '"'));
     expect(address).toEqual({ durum: "acik", sayfa: "3" });
     expect(html).not.toContain("ayse@x.co");
+  });
+
+  it("the list's own toolbar shares the row, before the menu, with or without views", () => {
+    const tool = createElement("button", { type: "button" }, "Ses");
+    const withViews = withKey(() =>
+      bar({ durum: "acik" }, { views: { key: "orders" }, toolbar: tool }),
+    );
+    expect(withViews).toMatch(
+      /<div class="ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses<\/button><span data-lazy-menu=""/,
+    );
+    // Drawn on the server too: no views key needed for the row.
+    const alone = bar({}, { toolbar: tool });
+    expect(alone).toContain(
+      '<div class="mt-2 flex flex-wrap items-start gap-2"><div class="ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses</button></div></div>',
+    );
+    expect(alone).not.toContain("data-lazy-menu");
   });
 
   it("no `views`, no row, whatever the page says", () => {

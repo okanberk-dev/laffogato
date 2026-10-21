@@ -1197,14 +1197,14 @@ export function ProductWizard({
           </p>
           {errorFor("variants")}
           {variants.length === 0 ? (
-            <Card className="bg-neutral-50 text-center">
+            <Card className="bg-[var(--admin-surface-2)] text-center">
               <p className="text-sm text-[var(--admin-text-soft)]">
                 Henüz varyant yok. Bu ürün tek seçenekle satılır.
               </p>
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -1268,21 +1268,21 @@ export function ProductWizard({
                       </Field>
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <label className="flex min-h-[44px] items-center gap-2 text-sm text-neutral-700">
+                      <label className="flex min-h-[44px] items-center gap-2 text-sm text-[var(--admin-text-soft)]">
                         <input
                           type="checkbox"
                           checked={v.isActive}
                           onChange={(e) =>
                             updateVariant(i, "isActive", e.target.checked)
                           }
-                          className="h-5 w-5 rounded border-neutral-300"
+                          className="h-5 w-5 rounded border-[var(--admin-border-strong)]"
                         />
                         Aktif
                       </label>
                       <button
                         type="button"
                         onClick={() => removeVariant(i)}
-                        className="min-h-[44px] text-xs text-red-600 underline-offset-4 hover:underline"
+                        className="min-h-[44px] text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
                       >
                         Bu varyantı sil
                       </button>
@@ -1315,7 +1315,7 @@ export function ProductWizard({
                     {variants.map((v, i) => (
                       <tr
                         key={v.id}
-                        className="border-b border-neutral-100 last:border-b-0"
+                        className="border-b border-[var(--admin-border)] last:border-b-0"
                       >
                         <td className="py-2 pr-3">
                           <TextInput
@@ -1372,7 +1372,7 @@ export function ProductWizard({
                             onChange={(e) =>
                               updateVariant(i, "isActive", e.target.checked)
                             }
-                            className="h-5 w-5 rounded border-neutral-300 accent-[var(--admin-primary)]"
+                            className="h-5 w-5 rounded border-[var(--admin-border-strong)] accent-[var(--admin-primary)]"
                           />
                         </td>
                         <td className="text-right">
@@ -1380,7 +1380,7 @@ export function ProductWizard({
                             type="button"
                             onClick={() => removeVariant(i)}
                             aria-label={`Sil: ${v.name || `${i + 1}. varyant`}`}
-                            className="min-h-[44px] text-xs text-red-600 underline-offset-4 hover:underline"
+                            className="min-h-[44px] text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
                           >
                             Sil
                           </button>
@@ -1393,7 +1393,7 @@ export function ProductWizard({
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -1507,7 +1507,7 @@ export function ProductWizard({
             Kaydetmeden önce bir bak. Bir şeyi değiştirmek için üstteki adıma
             dokun.
           </p>
-          <Card className="bg-neutral-50">
+          <Card className="bg-[var(--admin-surface-2)]">
             <SummaryRow k="Ad" v={name || "-"} />
             <SummaryRow k="Adres" v={slug || "-"} mono />
             <SummaryRow k="Kategori" v={categoryLabel} />
@@ -1518,12 +1518,12 @@ export function ProductWizard({
                   <span>
                     {formatTRY(priceMinor)}
                     {compareMinor > priceMinor && (
-                      <span className="ml-2 text-xs text-neutral-500 line-through">
+                      <span className="ml-2 text-xs text-[var(--admin-text-mute)] line-through">
                         {formatTRY(compareMinor)}
                       </span>
                     )}
                     {discountPct !== null && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                      <span className="ml-2 rounded-full bg-[var(--admin-warning-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--admin-warning)]">
                         −%{discountPct}
                       </span>
                     )}
@@ -1655,7 +1655,7 @@ export function ProductWizard({
                         : flagged
                           ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
                           : step > s.id
-                            ? "bg-neutral-100 text-neutral-700"
+                            ? "bg-[var(--admin-surface-2)] text-[var(--admin-text-soft)]"
                             : "border border-[var(--admin-border)] text-[var(--admin-text-soft)]"
                     }`}
                   >
@@ -1772,7 +1772,7 @@ function SummaryRow({
     <div className="grid gap-1 border-b border-[var(--admin-border)] py-2 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
       <div className={LABEL}>{k}</div>
       <div
-        className={`text-sm ${muted ? "text-[var(--admin-text-soft)]" : "text-neutral-900"}`}
+        className={`text-sm ${muted ? "text-[var(--admin-text-soft)]" : "text-[var(--admin-text)]"}`}
         style={mono ? { fontFamily: "var(--mono), monospace" } : undefined}
       >
         {v}

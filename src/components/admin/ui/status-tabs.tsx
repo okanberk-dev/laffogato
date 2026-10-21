@@ -21,8 +21,11 @@ export interface StatusTab {
 /**
  * Filament-style status tabs: links (no JavaScript needed) that set one URL
  * param and keep the others, with a count on each. On phones the row
- * scrolls sideways instead of wrapping. A clicked tab marks itself while
- * its list loads (LinkPending).
+ * scrolls sideways instead of wrapping; from sm up it wraps, so every tab
+ * stays in sight (the orders' eight ran off the card's edge at 1280 px,
+ * where a mouse wheel cannot scroll sideways). 40 px targets, 44 on a
+ * touch screen. A clicked tab marks itself while its list loads
+ * (LinkPending).
  *
  * @example
  * <StatusTabs
@@ -58,7 +61,7 @@ export function StatusTabs({
       aria-label={label}
       className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
-      <ul className="inline-flex min-w-max gap-1 rounded-xl bg-[var(--admin-panel)] p-1">
+      <ul className="inline-flex min-w-max gap-1 rounded-xl bg-[var(--admin-panel)] p-1 sm:max-w-full sm:min-w-0 sm:flex-wrap">
         {tabs.map((tab) => {
           const active = (tab.value ?? null) === (current ?? null);
           return (
@@ -71,7 +74,7 @@ export function StatusTabs({
                 )}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+                  "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none pointer-coarse:min-h-11",
                   COMPACT.minH9,
                   active
                     ? "bg-[var(--admin-surface)] font-medium text-[var(--admin-text)] shadow-[0_1px_2px_rgba(28,25,23,0.08),0_0_0_1px_rgba(28,25,23,0.04)]"

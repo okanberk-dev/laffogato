@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { EmailText } from "@/components/admin/ui/email-text";
 import {
   PageHeader,
   formatDateTime,
@@ -8,8 +9,9 @@ import {
 import {
   ActionMenu,
   ActionMenuLink,
-  BUTTON,
   Badge,
+  BUTTON,
+  CardLink,
   DataTable,
   EmptyState,
   FilterBar,
@@ -64,7 +66,9 @@ function memberHref(c: CustomerListRow): string {
 /**
  * A row's state as badges, the exceptions only: a member who cannot sign
  * in, or whose address is not confirmed, stands out; "verified" is the
- * normal case and says nothing.
+ * normal case and says nothing. Both in the warning tone: an unconfirmed
+ * address cannot reach the checkout, and the lime accent it wore read as a
+ * good sign (21 Oct 2026).
  */
 function customerBadges(
   c: CustomerListRow,
@@ -76,7 +80,7 @@ function customerBadges(
   ];
   if (c.isMember && !c.isActive) out.push({ label: "Pasif", tone: "warning" });
   if (c.isMember && !c.emailVerified) {
-    out.push({ label: "Doğrulanmamış", tone: "accent" });
+    out.push({ label: "Doğrulanmamış", tone: "warning" });
   }
   return out;
 }
@@ -178,12 +182,12 @@ function RowMenu({ row }: { row: CustomerListRow }) {
 function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
   return (
     <div className="min-w-0">
-      <Link
+      <CardLink
         href={memberHref(row)}
         className="font-medium [overflow-wrap:anywhere] text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
       >
-        {row.name || row.email}
-      </Link>
+        {row.name || <EmailText value={row.email} />}
+      </CardLink>
       <div className="mt-1.5">
         <CustomerBadges row={row} now={now} />
       </div>
@@ -194,7 +198,7 @@ function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
               E-posta
             </dt>
             <dd className="min-w-0 [overflow-wrap:anywhere] text-[var(--admin-text)]">
-              {row.email}
+              <EmailText value={row.email} />
             </dd>
           </>
         ) : null}

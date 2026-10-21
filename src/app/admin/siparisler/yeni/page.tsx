@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import Link from "next/link";
 
+import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import {
   ManualOrderForm,
@@ -40,6 +41,7 @@ export default async function NewOrderPage() {
 
   return (
     <PageShell width="detail">
+      <BackLink href="/admin/siparisler">Tüm siparişler</BackLink>
       <PageHeader
         title="Yeni sipariş"
         description="Telefon ya da köşkteki satışı elle gir."
@@ -48,13 +50,6 @@ export default async function NewOrderPage() {
             Gel-al, kurye ya da kargo olabilir. Fiyatlar üründen sunucuda
             çözülür, stok düşülür.
           </p>
-        }
-        action={
-          // A text link, as on the order page: the old pill read as a
-          // second button next to the form's own (admin audit ORD-22).
-          <Link href="/admin/siparisler" className={BUTTON.link}>
-            ← Tüm siparişler
-          </Link>
         }
       />
 

@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import {
   Badge,
   BUTTON,
+  CardLink,
   DataTable,
   EmptyListActionLink,
   EmptyState,
@@ -237,12 +236,12 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
             rowActions={(s) => <SubscriberRowMenu subscriber={s} />}
             mobileCard={(s) => (
               <div className="flex flex-col gap-1.5">
-                <Link
+                <CardLink
                   href={subscriberHref(s.id)}
                   className="font-medium break-all text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                 >
                   {s.email}
-                </Link>
+                </CardLink>
                 {s.name ? (
                   <span className="text-xs text-[var(--admin-text-soft)]">
                     {s.name}

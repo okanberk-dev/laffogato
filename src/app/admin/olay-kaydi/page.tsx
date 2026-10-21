@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/admin/forms";
 import {
   Badge,
   BUTTON,
+  CardLink,
   DataTable,
   EmptyState,
   FilterBar,
@@ -46,9 +47,12 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/** On a touch screen the record's two links are 44 px tall, not 16. */
+const TOUCH_TALL =
+  "pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center";
+
 /** "Geçmişi": a quiet text link to the record's other events. */
-const HISTORY_LINK =
-  "text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline";
+const HISTORY_LINK = `text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline ${TOUCH_TALL}`;
 
 function RecordCell({ row }: { row: AdminAuditLog }) {
   const label = AUDIT_ENTITY_LABELS[row.entity] ?? row.entity;
@@ -64,7 +68,7 @@ function RecordCell({ row }: { row: AdminAuditLog }) {
           {href ? (
             <Link
               href={href}
-              className="break-all text-[var(--admin-primary)] underline-offset-4 hover:underline"
+              className={`break-all text-[var(--admin-primary)] underline-offset-4 hover:underline ${TOUCH_TALL}`}
               style={coded ? NUMERIC_STYLE : undefined}
             >
               {text}
@@ -174,8 +178,8 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
         description="Kim, neyi, ne zaman değiştirdi: panelin ve sistemin kaydı."
         help={
           <p>
-            Paneldeki değişikliklerin ve sistem olaylarının kaydı: kim, neyi,
-            ne zaman. Kayıtlar değiştirilemez ve on yıl saklanır.
+            Paneldeki değişikliklerin ve sistem olaylarının kaydı: kim, neyi, ne
+            zaman. Kayıtlar değiştirilemez ve on yıl saklanır.
           </p>
         }
         menu={
@@ -296,13 +300,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
         mobileCard={(r) => (
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Link
+              <CardLink
                 href={auditEventHref(r.id)}
                 className="text-xs text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                 style={NUMERIC_STYLE}
               >
                 {auditTime(r.createdAt)}
-              </Link>
+              </CardLink>
               <Badge tone={AUDIT_ACTION_TONES[r.action] ?? "neutral"}>
                 {AUDIT_ACTION_LABELS[r.action] ?? r.action}
               </Badge>

@@ -191,7 +191,7 @@ describe("the photo grid", () => {
   it("wraps its footer and keeps × a fixed 44 px target", () => {
     const footers = tags(
       two,
-      /<div class="[^"]*border-t border-neutral-100 px-1\.5[^"]*"/g,
+      /<div class="[^"]*border-t border-\[var\(--admin-border\)\] px-1\.5[^"]*"/g,
     );
     expect(footers).toHaveLength(2);
     for (const f of footers) expect(f).toContain("flex-wrap");

@@ -174,11 +174,11 @@ export default async function AdminHomeHeroPage() {
                   </span>
                   <span className="min-w-0">
                     {s.kicker ? (
-                      <span className="block truncate text-xs text-[var(--admin-text-mute)]">
+                      <span className="text-xs text-[var(--admin-text-mute)] max-md:line-clamp-2 md:block md:truncate">
                         {s.kicker}
                       </span>
                     ) : null}
-                    <span className="block truncate font-medium">
+                    <span className="font-medium max-md:line-clamp-2 md:block md:truncate">
                       {title(s) || "(başlıksız)"}
                     </span>
                   </span>

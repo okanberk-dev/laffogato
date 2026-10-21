@@ -128,7 +128,9 @@ describe("markup", () => {
     expect(group).toMatch(/<div class="[^"]*md:contents/);
     // A browser without ::details-content gets the group opened instead.
     const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
-    expect(src).toContain('window.matchMedia("(min-width: 48rem)")');
+    expect(
+      readFileSync("src/components/admin/ui/open-from-md.ts", "utf8"),
+    ).toContain('window.matchMedia("(min-width: 48rem)")');
     expect(src).toContain("ref={openFromMd}");
   });
 

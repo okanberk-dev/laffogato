@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackLink } from "@/components/admin/back-link";
 import {
   PageHeader,
   formatDateTime,
@@ -21,6 +21,7 @@ import {
   refundableMinor,
 } from "@/lib/admin/order-actions";
 import { orderDetailsRules, orderForClient } from "@/lib/admin/order-details";
+import { orderStatusLabel } from "@/lib/admin/order-ui";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
 import { couponSourcesForOrders } from "@/lib/customer/coupons";
@@ -122,14 +123,9 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
   return (
     <PageShell width="detail">
-      <div className="mb-4 print:hidden">
-        <Link
-          href="/admin/siparisler"
-          className="text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-        >
-          ← Tüm siparişler
-        </Link>
-      </div>
+      <BackLink href="/admin/siparisler" className="print:hidden">
+        Tüm siparişler
+      </BackLink>
 
       <PageHeader
         className="print:hidden"
@@ -138,7 +134,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         badges={
           <>
             <OrderStatusBadge order={order} className="px-3 py-1" />
-            <Badge tone={payment.tone}>{payment.label}</Badge>
+            {/* As the list and the dashboard draw it: a paid order said
+                "Ödendi" twice, in two colours. */}
+            {payment.label !== orderStatusLabel(order) ? (
+              <Badge tone={payment.tone}>{payment.label}</Badge>
+            ) : null}
             <OrderChannelBadges order={order} />
             {order.source === "manual" ? <Badge>Panelden</Badge> : null}
           </>

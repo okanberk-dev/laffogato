@@ -2,9 +2,10 @@ import Link from "next/link";
 
 import { formatDateTime, PageHeader } from "@/components/admin/forms";
 import {
+  ActionMenuLink,
   Badge,
   BUTTON,
-  ActionMenuLink,
+  CardLink,
   DataTable,
   EmptyListActionLink,
   EmptyState,
@@ -221,12 +222,12 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
             rowActions={(t) => <CafeTableRowMenu table={t} />}
             mobileCard={(t) => (
               <div className="flex flex-col gap-1.5">
-                <Link
+                <CardLink
                   href={cafeTableHref(t.id)}
                   className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                 >
                   {t.name}
-                </Link>
+                </CardLink>
                 <span className="flex flex-wrap items-center gap-2">
                   <StatusBadge table={t} />
                   <Code table={t} />

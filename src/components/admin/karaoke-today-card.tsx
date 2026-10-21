@@ -74,11 +74,13 @@ export function KaraokeTodayCard({
         <h2 className="text-lg font-semibold text-[var(--admin-text)]">
           Bugün karaoke
         </h2>
+        {/* The other widgets' link (WidgetCard): 44 px tall, the arrow
+            drawn apart from the words. */}
         <Link
           href={KARAOKE_PANEL_PATH}
-          className="text-xs text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
         >
-          Tümünü gör →
+          Tümünü gör <span aria-hidden="true">→</span>
         </Link>
       </div>
 

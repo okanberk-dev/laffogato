@@ -38,7 +38,6 @@ export default async function EditAppPostPage({
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <BackLink href="/admin/mobil/gonderiler" label="Gönderiler" />
       <PageHeader
-        eyebrow="Mobil uygulama · Ana sayfa"
         title="Gönderiyi düzenle"
         description={row.title}
         menuLabel="Gönderi işlemleri"

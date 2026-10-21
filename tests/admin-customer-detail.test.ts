@@ -414,11 +414,15 @@ describe("member page layout and words (package 4b)", () => {
       /\b(?:text|bg|border)-(?:neutral|rose|green|orange|amber|blue)-\d/,
     );
     expect(html).not.toMatch(/text-\[9px\]/);
-    // Header links are 44 px buttons, not 32 px pills (PEO-20).
-    for (const label of ["Düzenle", "← Tüm müşteriler"]) {
-      const a = html.match(new RegExp(`<a [^>]*>${label}</a>`))?.[0] ?? "";
-      expect(a, label).toContain("min-h-[44px]");
-    }
+    // Header links are 44 px buttons, not 32 px pills (PEO-20); the way
+    // back is the kit's BackLink above the header, 44 px too.
+    const edit = html.match(/<a [^>]*>Düzenle<\/a>/)?.[0] ?? "";
+    expect(edit).toContain("min-h-[44px]");
+    const back =
+      html.match(
+        /<a [^>]*data-admin-back=""[^>]*><span aria-hidden="true">←<\/span>Tüm müşteriler<\/a>/,
+      )?.[0] ?? "";
+    expect(back).toContain("min-h-[44px]");
     // Davetler is a definition list and a real list: no <div> in a <ul>.
     expect(html).not.toMatch(/<ul[^>]*>\s*<div/);
     expect(t).toContain("Davet kodu AYSE42");

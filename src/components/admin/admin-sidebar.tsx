@@ -1413,7 +1413,10 @@ const LOGO_SMALL = (
       style={{ color: "var(--admin-primary)" }}
       aria-hidden="true"
     />
-    <span className="text-[11px] font-medium text-[var(--admin-text-mute)]">
+    {/* The link is named "L'Affogato Admin"; the word goes below 380 px,
+        where the top bar's controls did not fit beside it and the page
+        scrolled sideways (360 px Android phones). */}
+    <span className="text-[11px] font-medium text-[var(--admin-text-mute)] max-[379px]:hidden">
       Yönetim
     </span>
   </>
@@ -1651,10 +1654,16 @@ export function AdminSidebar(props: SidebarProps) {
           {topBarEnd}
         </div>
       </header>
-      <Breadcrumbs
-        items={navLinks}
-        className="px-4 pt-3 sm:px-6 lg:hidden print:hidden"
-      />
+      {/* The phone's trail, under the top bar. Not on a tab's own page,
+          where the strip below names the same two places, and not on a
+          page with its own "←" link (BackLink, data-admin-back): the
+          same way back twice in the first screen (21 Oct 2026). */}
+      {strip ? null : (
+        <Breadcrumbs
+          items={navLinks}
+          className="px-4 pt-3 sm:px-6 lg:hidden print:hidden [body:has([data-admin-back])_&]:hidden"
+        />
+      )}
       {/* An item's tabs, on a tab's own page only (not on /yeni or a
           record below it). */}
       {strip && (

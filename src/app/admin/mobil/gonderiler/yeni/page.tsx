@@ -26,7 +26,6 @@ export default async function NewAppPostPage() {
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <BackLink href="/admin/mobil/gonderiler" label="Gönderiler" />
       <PageHeader
-        eyebrow="Mobil uygulama · Ana sayfa"
         title="Yeni gönderi"
         description="Kampanya, iş birliği ya da etkinlik kartı."
       />

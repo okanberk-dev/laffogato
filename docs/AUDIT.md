@@ -1564,6 +1564,6 @@ Açık (bu turda değişmedi):
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟠 | Panel sitenin kökeninde: sitedeki bir betik `fetch('/admin/…')` ile oturumlu operatör adına istek atabilir (§13, `src/lib/admin/session-cookie.ts`) | Ayrı alan adı (alt alan, yalnız-ana-makine çerezi) altyapı işi: DNS ve Vercel |
-| 🟡 | 2FA isteğe bağlı | Operatör kararı (§11); Genel bakış artık 2FA'sı kapalı hesaba uyarı gösterir |
+| 🟡 | 2FA isteğe bağlı | Operatör kararı (§11); durum hesap menüsünün "Güvenlik / 2FA" sayfasında ve Kullanıcılar'da. Genel bakış'a bir sürüm eklenen uyarı operatörün isteğiyle kaldırıldı (21 Eki 2026) |
 | 🟢 | Çıkış kopyalanmış bir çerezi iptal etmez (7 gün) | Sunucu tarafı oturum sürümü bir migration ister (§11) |
 

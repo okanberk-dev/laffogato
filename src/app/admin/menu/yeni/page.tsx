@@ -37,7 +37,6 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
-        eyebrow="Katalog · Kafe menüsü"
         title={source ? "Menü kalemini kopyala" : "Yeni menü kalemi"}
         description={
           source

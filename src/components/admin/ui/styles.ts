@@ -49,8 +49,10 @@ const ROW_ICON =
  */
 export const ROW_CONTROL = {
   /** The stepper's frame: a hairline around its two halves. */
+  // `relative z-[1]`: above a phone card's stretched title (CardLink), the
+  // faded half included, which would otherwise open the record.
   stepper:
-    "inline-flex shrink-0 items-center rounded-lg border border-[var(--admin-border)] p-0.5",
+    "relative z-[1] inline-flex shrink-0 items-center rounded-lg border border-[var(--admin-border)] p-0.5",
   /** One half of the stepper: a chevron. */
   step: "inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--admin-text-mute)] transition-colors hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pointer-fine:h-7 pointer-fine:w-7",
   /** The half with nowhere to go: the first row's ↑, the last row's ↓. */

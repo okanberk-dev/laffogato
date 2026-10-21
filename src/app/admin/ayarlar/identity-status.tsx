@@ -1,4 +1,4 @@
-import { TONE_RULE, TONE_SOFT } from "@/components/admin/ui/tone";
+import { StatusRow } from "./system-status";
 
 /**
  * One line the operator could not see before: whether this deployment holds
@@ -12,16 +12,17 @@ import { TONE_RULE, TONE_SOFT } from "@/components/admin/ui/tone";
  *
  * Presence only. The page is handed a boolean; the key itself never reaches
  * this component, the page, or the browser. The fix is a deploy setting, so
- * it is worded as something to pass to the developer.
+ * it is worded as something to pass to the developer. A row of Sistem
+ * durumu (./system-status.tsx), which opens by itself when the key is
+ * missing.
  */
 export function IdentityKeyStatus({ hasKey }: { hasKey: boolean }) {
-  const tone = hasKey ? "success" : "danger";
   return (
-    <p
-      data-testid="supabase-service-role-status"
-      className={`mb-4 rounded-xl border-l-4 px-3.5 py-2.5 text-sm ${TONE_SOFT[tone]} ${TONE_RULE[tone]}`}
+    <StatusRow
+      tone={hasKey ? "success" : "danger"}
+      testId="supabase-service-role-status"
     >
-      <strong>
+      <strong className="font-medium text-[var(--admin-text)]">
         Supabase servis anahtarı: {hasKey ? "tanımlı" : "tanımlı değil"}
       </strong>
       {hasKey ? (
@@ -42,6 +43,6 @@ export function IdentityKeyStatus({ hasKey }: { hasKey: boolean }) {
           2026 sonunda kalkıyor) tanımlanıp site yeniden yayına alınmalı.
         </>
       )}
-    </p>
+    </StatusRow>
   );
 }

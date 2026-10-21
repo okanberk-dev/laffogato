@@ -32,8 +32,9 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn(),
 }));
 
-const { OrdersList, SOUND_TOGGLE_LABEL } =
-  await import("@/components/admin/orders-list");
+const { OrdersList } = await import("@/components/admin/orders-list");
+const { SoundToggle, SOUND_TOGGLE_LABEL } =
+  await import("@/components/admin/sound-toggle");
 const { OrderChannelBadges } = await import("@/components/admin/order-badges");
 const { BulkOrderButtons } =
   await import("@/components/admin/order-actions-ui");
@@ -179,12 +180,8 @@ describe("channel pills on the kit's tones (ORD-22)", () => {
 
 describe("the sound toggle (ORD-27)", () => {
   it("keeps one name and tells its state only by aria-pressed", () => {
-    const html = list();
+    const button = renderToStaticMarkup(createElement(SoundToggle));
     expect(SOUND_TOGGLE_LABEL).toBe("Yeni sipariş sesi");
-    const button =
-      html
-        .match(/<button[^>]*>(?:(?!<\/button>).)*?<\/button>/g)
-        ?.find((b) => b.includes(SOUND_TOGGLE_LABEL)) ?? "";
     // The name is the text alone: a dot drawn beside it is aria-hidden.
     expect(button).toMatch(
       /<span aria-hidden="true"[^>]*><\/span>Yeni sipariş sesi<\/button>$/,
@@ -192,7 +189,7 @@ describe("the sound toggle (ORD-27)", () => {
     // Rendered before the browser's stored answer is read: the panel's
     // default (sound-pref.ts, on unless switched off).
     expect(button).toContain('aria-pressed="true"');
-    expect(html).not.toMatch(/Ses (kapalı|açık)/);
+    expect(button).not.toMatch(/Ses (kapalı|açık)/);
     // A 44 px target, not a 26 px chip.
     expect(button).toContain("min-h-[44px]");
   });
@@ -203,13 +200,19 @@ describe("the sound toggle (ORD-27)", () => {
       'export const SOUND_KEY = "laffogato.admin.orders.sound";',
     );
     expect(pref).toContain("export function readSoundPref(): boolean");
-    const src = read("src/components/admin/orders-list.tsx");
+    const src = read("src/components/admin/sound-toggle.tsx");
     expect(src).toContain('from "./sound-pref"');
     expect(src).not.toContain("localStorage");
   });
 
-  it("is not on a list that does not poll", () => {
-    expect(list({ live: null })).not.toContain(SOUND_TOGGLE_LABEL);
+  it("sits in the filter bar's row, and only on a list that polls", () => {
+    // Its own row above the table made four rows of controls before the
+    // first order on a phone (21 Oct 2026); it shares Görünümler's now.
+    const page = read("src/app/admin/siparisler/page.tsx");
+    expect(page).toContain("toolbar={parsed.live ? <SoundToggle /> : null}");
+    for (const live of ["all", "open", null] as const) {
+      expect(list({ live })).not.toContain(SOUND_TOGGLE_LABEL);
+    }
   });
 });
 
@@ -324,9 +327,11 @@ describe("orders copy (ORD-26, ORD-22)", () => {
   });
 
   it("the new-order page's way back is a text link, and no raw grey is left", () => {
+    // The kit's BackLink above the header, as on every sub-page (21 Eki
+    // 2026): a quiet text link, not a second button beside the form's.
     const src = read("src/app/admin/siparisler/yeni/page.tsx");
     expect(src).toContain(
-      '<Link href="/admin/siparisler" className={BUTTON.link}>',
+      '<BackLink href="/admin/siparisler">Tüm siparişler</BackLink>',
     );
     expect(src).not.toMatch(/neutral-\d/);
   });

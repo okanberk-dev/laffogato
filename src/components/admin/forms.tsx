@@ -282,6 +282,9 @@ export function PageHeader({
     </h1>
   );
   const buttons = Boolean(primary || secondary || menu);
+  // A "⋯" alone (Olay kaydı) stays beside the title: on a phone it had a
+  // row of its own under the description, a lone button in the open.
+  const menuOnly = Boolean(menu) && !primary && !secondary && !action;
   return (
     <header
       className={cx(
@@ -289,7 +292,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="min-w-0">
+      <div className={cx("min-w-0", menuOnly && "flex-1")}>
         {meta ? (
           <div
             className={cx(
@@ -317,13 +320,25 @@ export function PageHeader({
         )}
       </div>
       {buttons ? (
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <div
+          className={
+            menuOnly
+              ? "flex shrink-0 items-center gap-2 self-start"
+              : "flex w-full flex-wrap items-center gap-2 sm:w-auto"
+          }
+        >
           {action}
           {secondary ? (
             isLinkAction(secondary) ? (
               <Link
                 href={secondary.href}
-                className={cx(BUTTON.ghost, "flex-1 sm:flex-none")}
+                // Beside a primary on a phone the two share the row; alone
+                // ("Karaoke ayarları") it keeps its own width rather than
+                // a full-width bar for a way to another page.
+                className={cx(
+                  BUTTON.ghost,
+                  primary ? "flex-1 sm:flex-none" : null,
+                )}
               >
                 {secondary.label}
               </Link>

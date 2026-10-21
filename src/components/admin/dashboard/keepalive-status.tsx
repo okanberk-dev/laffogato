@@ -17,7 +17,8 @@ function attemptNote(view: KeepaliveView): string {
     : `son deneme atlandı (${at}): servis anahtarı tanımlı değil`;
 }
 
-function sentence(view: KeepaliveView): string {
+/** What the record says, after "Supabase uyanık tutma:". */
+export function keepaliveSentence(view: KeepaliveView): string {
   if (view.state === "none") {
     return "henüz kayıt yok; ilk kayıt günlük görevin bir sonraki sabah çalışmasıyla düşer.";
   }
@@ -36,12 +37,18 @@ function sentence(view: KeepaliveView): string {
   return `${success}${age}${note ? `; ${note}` : ""}.`;
 }
 
+/** What a warning adds: what a silent week costs, and who fixes it. */
+export const KEEPALIVE_WARNING_ADVICE =
+  "Ücretsiz plandaki proje 7 gün sessiz kalırsa duraklar ve uygulamada da sitede de her girişi reddeder. Geliştiriciye ilet.";
+
 /**
- * The owner's line about the daily Supabase ping
+ * The owner's band about the daily Supabase ping
  * (src/lib/admin/supabase-keepalive-core.ts): when it last got through, in
  * the warning tone when that was more than three Istanbul days ago or the
- * latest attempt failed. Rendered only for a role `readKeepaliveFor` let
- * through; it is handed a view, never the record's source. Server-safe.
+ * latest attempt failed. The dashboard draws it for a warning only; Ayarlar
+ * → Sistem durumu always says the same sentence. Rendered only for a role
+ * `readKeepaliveFor` let through; it is handed a view, never the record's
+ * source. Server-safe.
  */
 export function KeepaliveStatusLine({ view }: { view: KeepaliveView }) {
   const warn = view.tone === "warning";
@@ -55,14 +62,8 @@ export function KeepaliveStatusLine({ view }: { view: KeepaliveView }) {
         TONE_RULE[view.tone],
       )}
     >
-      <strong>Supabase uyanık tutma:</strong> {sentence(view)}
-      {warn ? (
-        <>
-          {" "}
-          Ücretsiz plandaki proje 7 gün sessiz kalırsa duraklar ve uygulamada
-          da sitede de her girişi reddeder. Geliştiriciye ilet.
-        </>
-      ) : null}
+      <strong>Supabase uyanık tutma:</strong> {keepaliveSentence(view)}
+      {warn ? <> {KEEPALIVE_WARNING_ADVICE}</> : null}
     </p>
   );
 }

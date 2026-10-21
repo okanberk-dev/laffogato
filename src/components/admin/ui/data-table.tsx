@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin/list-params";
 
 import { RowCheckbox, SelectAllCheckbox, type Selection } from "../bulk";
+import { CardLink } from "./card-link";
 import { EmptyState } from "./detail";
 import { LinkPending } from "./link-pending";
 import { COMPACT, EYEBROW, MONO_STYLE } from "./styles";
@@ -111,6 +112,19 @@ const PINNED_SELECTED =
 // (the menu's z-40 counts only inside its own cell). While a row's menu is
 // open, its cell goes on top, and so does the row: a see-through row
 // (opacity) is a stacking context too and would hold the cell down.
+/**
+ * A phone card's controls above its stretched title (CardLink): every
+ * link, button, field, label and menu button but the title itself. The
+ * card is `relative`, the title's `::after` covers it; without the lift a
+ * tap on "Tükendi" or the checkbox would open the record.
+ */
+const CARD_LIFT =
+  "relative [&_:is(a,button,input,select,textarea,label,summary):not([data-card-link])]:relative [&_:is(a,button,input,select,textarea,label,summary):not([data-card-link])]:z-[1]";
+
+/** A card whose title is pressed darkens a little: the tap landed. */
+const CARD_PRESSED =
+  "has-[[data-card-link]:active]:bg-[var(--admin-surface-2)]";
+
 const MENU_OPEN_CELL = "has-[details[open]]:z-40";
 const MENU_OPEN_ROW = "has-[details[open]]:relative has-[details[open]]:z-40";
 
@@ -247,7 +261,9 @@ export function DataTable<T>({
             <li
               key={id}
               className={cx(
-                "rounded-2xl border bg-[var(--admin-surface)] p-4",
+                "rounded-2xl border bg-[var(--admin-surface)] p-4 transition-colors",
+                CARD_LIFT,
+                CARD_PRESSED,
                 selection?.has(id)
                   ? "border-[var(--admin-primary)]"
                   : "border-[var(--admin-border)]",
@@ -271,7 +287,17 @@ export function DataTable<T>({
                     <>
                       {first ? (
                         <div className="text-sm">
-                          {linked(row, first.cell(row))}
+                          {rowHref?.(row) ? (
+                            // The whole card opens the record (CardLink).
+                            <CardLink
+                              href={rowHref(row) as string}
+                              className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+                            >
+                              {first.cell(row)}
+                            </CardLink>
+                          ) : (
+                            first.cell(row)
+                          )}
                         </div>
                       ) : null}
                       {rest.length > 0 ? (

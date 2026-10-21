@@ -115,7 +115,7 @@ export default async function PromoViewPage({ params }: PageProps) {
 
       <header className="mb-6 flex flex-col gap-3">
         <div className={EYEBROW} style={MONO_STYLE}>
-          Pazarlama · Promosyon
+          Promosyon kodu
         </div>
         <h1
           className="text-2xl font-semibold tracking-tight break-all text-[var(--admin-text)] sm:text-3xl"
