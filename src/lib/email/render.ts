@@ -80,6 +80,32 @@ export function commonVars(): TemplateVars {
   };
 }
 
+/**
+ * Which documents line a confirmation prints: the attached copy's sentence
+ * with its version links (`BELGE_EKI`, karaoke `KARAOKE_BELGE_EKI`), or the
+ * old line (`BELGE_GUNCEL`; karaoke `KARAOKE_BELGE_GUNCEL`, a paid booking's
+ * only). Derived here so no caller can open both, or neither.
+ */
+function documentLineFlags(
+  flags: Record<string, boolean>,
+  vars: TemplateVars,
+): Record<string, boolean> {
+  const order =
+    flags.BELGE_EKI === true &&
+    Boolean(vars.BELGE_OBF_URL) &&
+    Boolean(vars.BELGE_MSS_URL);
+  const karaoke =
+    flags.KARAOKE_ODENDI === true &&
+    flags.KARAOKE_BELGE_EKI === true &&
+    Boolean(vars.KARAOKE_SURUM_URL);
+  return {
+    BELGE_EKI: order,
+    BELGE_GUNCEL: !order,
+    KARAOKE_BELGE_EKI: karaoke,
+    KARAOKE_BELGE_GUNCEL: flags.KARAOKE_ODENDI === true && !karaoke,
+  };
+}
+
 export function renderEmail(
   name: EmailTemplateName,
   input: RenderInput,
@@ -143,6 +169,12 @@ export function renderEmail(
     // cafe order of at least 140 TL of goods, one per started 320 TL. A shop
     // or web order used to be told "+1 damga" for a stamp it never got.
     DAMGA: Boolean(vars.DAMGA_SAYISI) && vars.DAMGA_SAYISI !== "0",
+    // "...tam metni bu e-postanın ekindedir": only when the sender says the
+    // file is attached (send.ts `sendWithCopy`) AND the version links under
+    // the sentence are filled. Never a promise of an attachment that is not
+    // there, never a link to nothing (ASK-DURABLE). Otherwise the line the
+    // mail always had (the current texts' links): exactly one of the two.
+    ...documentLineFlags(input.flags ?? {}, vars),
   };
 
   // The holes are counted on the template's own fields while it is filled,

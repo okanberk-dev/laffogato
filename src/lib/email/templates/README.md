@@ -160,6 +160,7 @@ kampanya başlığını koyar.
 | `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                                             | `src/lib/mobile/app-store.ts` (env)                                                                       |
 | `[TAKIP_NO]` `[KARGO_FIRMASI]` `[TAKIP_URL]`                                                                     | siparişin `trackingNumber` · `carrier` (panelin kargo formu) · `trackingUrl` (Geliver, yalnız https)      |
 | `[IADE_TUTARI]` `[TOPLAM_IADE]`                                                                                  | bu iade ve siparişteki iadelerin toplamı (`order.refunds`) · `formatTRYMinor`                             |
+| `[BELGE_OBF_URL]` `[BELGE_MSS_URL]` `[BELGE_SURUMLERI]` `[KARAOKE_SURUM_URL]`                                    | onaylanan sürümün sayfası (`/hukuk/<slug>?surum=`), yalnız sözleşme ekiyle (`BELGE_EKI`, `KARAOKE_BELGE_EKI`) |
 
 ## Görseller
 
@@ -261,4 +262,7 @@ silip bölümün nasıl düştüğünü oradan görebilirsin.
 Müşterinin kargoya kadar aldığı tek sipariş maili `odeme-onaylandi`'dir:
 ödeme siparişi `paid`'e taşıyınca (`notifyOrderPaid`, `order_notice_emails`
 türü `paid`) bir kez gider; satırlar, Ara toplam, Kargo (masa siparişinde yok),
-İndirim ve toplam ile ÖBF/MSS/cayma bağlantılarını taşır.
+İndirim ve toplam ile onaylanan ÖBF ve MSS'nin sipariş bilgileriyle
+doldurulmuş metnini ek olarak ve sürüm bağlantılarını taşır (`BELGE_EKI`, 21
+Ekim 2026); ek kurulamazsa eski satır, ÖBF/MSS/cayma bağlantıları
+(`BELGE_GUNCEL`). Ayrıntı `docs/EMAIL-RESEND.md` "Ek: onaylanan sözleşme".

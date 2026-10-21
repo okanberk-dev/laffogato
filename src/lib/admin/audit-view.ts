@@ -101,6 +101,7 @@ export const RETENTION_RULE_LABELS: Record<string, string> = {
   "customer-consents": "Ticari ileti onay geçmişi",
   "audit-logs": "Olay kaydı",
   "legal-override-history": "Hukuk metni arşivi",
+  "legal-doc-versions": "Gösterilen hukuk metni sürümleri",
   "fal-readings": "fA'L kullanım kaydı",
   "fal-reports": "fA'L yorum bildirimleri",
   "feature-consents": "Özellik açık rızaları",

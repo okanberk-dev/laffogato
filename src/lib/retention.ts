@@ -73,6 +73,12 @@ export interface RetentionRule {
    */
   rpc?: string;
   /**
+   * The function also takes `p_keep jsonb`: ids that must stay whatever
+   * their age, given by the caller (`runRetention({ keep: { [id]: [...] } })`).
+   * Without that list the rule counts and removes nothing.
+   */
+  keep?: true;
+  /**
    * `column` holds a calendar day on the köşk's clock ("YYYY-MM-DD",
    * Europe/Istanbul), not an instant. The cutoff is then written on that
    * clock ("…+03:00"), so its first ten characters are the köşk's day: the
@@ -176,6 +182,33 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "performance. One year past the decade covers the performance; " +
       "counted in 366-day years so nothing goes early. The only personal " +
       "datum is archivedBy, the panel user's address for the act.",
+  },
+  {
+    id: "legal-doc-versions",
+    table: TABLES.legalDocVersions,
+    column: "createdAt",
+    idColumn: "hash",
+    days: 11 * YEAR_DAYS,
+    rpc: "legal_doc_versions_retention",
+    // The texts shown today (`recordShownLegalVersions`): a text replaced
+    // long ago can be shown again (a reset to the coded text) and keeps its
+    // first "createdAt" (review R1, 21 Eki 2026).
+    keep: true,
+    basis:
+      "Sözleşmenin ifasından itibaren 10 yıl; uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar.",
+    note:
+      "Every legal text shown, by hash (decision D-VERSIONS-TABLE; the İşlem " +
+      "Rehberi says the confirmed version 'en az 11 yıl saklanır'). The same " +
+      "reasoning as legal-override-history: the text is what a consent's " +
+      "`textHashes` points at, and the contract it proves is performed after " +
+      "the consent and kept ten years from then; one year past the decade " +
+      "covers the performance, in 366-day years. `createdAt` is when a text " +
+      "was FIRST stored, which says nothing of when it was last shown, so a " +
+      "row goes only through the SQL function: stored before the cutoff, " +
+      "replaced by a newer text of its document before the cutoff too, and " +
+      "named by no order or karaoke consent accepted at or after it. The " +
+      "table's trigger refuses any other DELETE of a row younger than eleven " +
+      "years. No personal data: the texts are public.",
   },
   {
     id: "fal-readings",
@@ -366,18 +399,32 @@ export function destructionEnabled(
   return (value ?? "").trim().toLowerCase() === "destroy";
 }
 
+/** Ids a rule must keep whatever their age, by rule id (`RetentionRule.keep`). */
+export type RetentionKeep = Readonly<Record<string, readonly string[]>>;
+
 async function runRule(
   rule: RetentionRule,
   now: Date,
   apply: boolean,
+  keep: RetentionKeep,
 ): Promise<RetentionOutcome> {
   const cutoff = cutoffFor(rule, now);
   const base = { id: rule.id, table: rule.table, cutoff };
+
+  if (rule.keep && !keep[rule.id]) {
+    return {
+      ...base,
+      matched: 0,
+      destroyed: 0,
+      error: "keep list not given: nothing counted or removed",
+    };
+  }
 
   if (rule.rpc) {
     const { data, error } = await getDb().rpc<number>(rule.rpc, {
       p_cutoff: cutoff,
       p_apply: apply,
+      ...(rule.keep ? { p_keep: [...keep[rule.id]] } : {}),
     });
     if (error) {
       return { ...base, matched: 0, destroyed: 0, error: error.message };
@@ -430,13 +477,13 @@ async function runRule(
  * must not turn it into an error the cron would retry.
  */
 export async function runRetention(
-  options: { now?: Date; apply?: boolean } = {},
+  options: { now?: Date; apply?: boolean; keep?: RetentionKeep } = {},
 ): Promise<RetentionReport> {
   const now = options.now ?? new Date();
   const apply = options.apply === true;
   const results: RetentionOutcome[] = [];
   for (const rule of RETENTION_RULES) {
-    results.push(await runRule(rule, now, apply));
+    results.push(await runRule(rule, now, apply, options.keep ?? {}));
   }
   const report: RetentionReport = {
     at: now.toISOString(),

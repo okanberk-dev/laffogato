@@ -46,6 +46,9 @@ const vercel = JSON.parse(
   readFileSync(join(process.cwd(), "vercel.json"), "utf8"),
 ) as { crons: { path: string; schedule: string }[] };
 
+/** The texts shown today: none, so the legal-versions rule runs too. */
+const KEEP = { "legal-doc-versions": [] as string[] };
+
 beforeEach(() => {
   safeAudit.mockReset();
   safeAudit.mockImplementation(async () => true);
@@ -163,6 +166,9 @@ describe("every retention period is quoted from the published policy", () => {
       // years; the booking itself after eleven.
       "karaoke_reservations",
       "karaoke_reservations",
+      // Every legal text shown, by hash: what a consent's textHashes points
+      // at, as long as that consent record lives (D-VERSIONS-TABLE).
+      "legal_doc_versions",
       // The panel's earlier legal texts: what an order's consent version
       // points at, as long as that consent record lives.
       "legal_override_history",
@@ -200,6 +206,7 @@ describe("every retention period is quoted from the published policy", () => {
     const withRpc = RETENTION_RULES.filter((r) => r.rpc);
     expect(withRpc.map((r) => r.rpc)).toEqual([
       "customer_consents_retention",
+      "legal_doc_versions_retention",
       "karaoke_guest_retention",
       "karaoke_reservation_retention",
     ]);
@@ -207,7 +214,7 @@ describe("every retention period is quoted from the published policy", () => {
       const heads = [
         ...schema.matchAll(
           new RegExp(
-            String.raw`create\s+or\s+replace\s+function\s+public\.${rule.rpc}\s*\(\s*p_cutoff\s+text,\s*p_apply\s+boolean\s*\)\s*returns\s+(\w+)`,
+            String.raw`create\s+or\s+replace\s+function\s+public\.${rule.rpc}\s*\(\s*p_cutoff\s+text,\s*p_apply\s+boolean(?:,\s*p_keep\s+jsonb)?\s*\)\s*returns\s+(\w+)`,
             "gi",
           ),
         ),
@@ -243,6 +250,10 @@ describe("every retention period is quoted from the published policy", () => {
     expect(by("karaoke-reservations").days).toBeGreaterThanOrEqual(
       11 * 365 + 3,
     );
+    // The stored texts the consents name: as long, for the same reason, and
+    // only through the function that keeps what a recent consent names.
+    expect(by("legal-doc-versions").days).toBeGreaterThanOrEqual(11 * 365 + 2);
+    expect(by("legal-doc-versions").rpc).toBe("legal_doc_versions_retention");
   });
 
   it("keeps the security counter far inside its one-year ceiling", () => {
@@ -275,6 +286,7 @@ describe("report mode is the default", () => {
     const mod = await withDb(fake);
     const report = await mod.runRetention({
       now: new Date("2026-09-16T04:00:00.000Z"),
+      keep: { "legal-doc-versions": [] },
     });
     expect(report.applied).toBe(false);
     expect(report.totalDestroyed).toBe(0);
@@ -285,6 +297,7 @@ describe("report mode is the default", () => {
       "count:customer_consents_retention",
       "count:karaoke_guest_retention",
       "count:karaoke_reservation_retention",
+      "count:legal_doc_versions_retention",
     ]);
     // Report mode writes nothing at all: no destruction record either.
     expect(safeAudit).not.toHaveBeenCalled();
@@ -296,7 +309,11 @@ describe("report mode is the default", () => {
     const fake = fakeDb({ count: 2 });
     const mod = await withDb(fake);
     const now = new Date("2026-09-16T04:00:00.000Z");
-    const report = await mod.runRetention({ now, apply: true });
+    const report = await mod.runRetention({
+      now,
+      apply: true,
+      keep: { "legal-doc-versions": [] },
+    });
     expect(report.applied).toBe(true);
     expect(fake.deleted.sort()).toEqual(
       mod.RETENTION_RULES.map((r) => r.table).sort(),
@@ -320,7 +337,7 @@ describe("report mode is the default", () => {
     const fake = fakeDb({ count: 2 });
     const mod = await withDb(fake);
     const now = new Date("2026-10-21T06:00:00.000Z");
-    const report = await mod.runRetention({ now, apply: true });
+    const report = await mod.runRetention({ now, apply: true, keep: KEEP });
     expect(safeAudit).toHaveBeenCalledTimes(1);
     expect(safeAudit).toHaveBeenCalledWith({
       actor: "system",
@@ -359,6 +376,7 @@ describe("report mode is the default", () => {
     const report = await mod.runRetention({
       now: new Date("2026-10-21T06:00:00.000Z"),
       apply: true,
+      keep: KEEP,
     });
     expect(report.totalDestroyed).toBeGreaterThan(0);
     expect(report.recorded).toBe(false);
@@ -378,6 +396,7 @@ describe("report mode is the default", () => {
     const report = await mod.runRetention({
       now: new Date("2026-10-21T06:00:00.000Z"),
       apply: true,
+      keep: KEEP,
     });
     const failed = report.results.find((r) => r.id === "karaoke-guest-data")!;
     expect(failed.error).toMatch(/misafir@ornek\.com/);
@@ -404,7 +423,7 @@ describe("report mode is the default", () => {
     const fake = fakeDb({ count: 0 });
     const mod = await withDb(fake);
     const now = new Date("2026-10-20T21:30:00.000Z");
-    const report = await mod.runRetention({ now });
+    const report = await mod.runRetention({ now, keep: KEEP });
     const guest = report.results.find((r) => r.id === "karaoke-guest-data")!;
     expect(guest.cutoff).toBe("2023-10-19T00:30:00.000+03:00");
     expect(fake.rpcCutoffs.karaoke_guest_retention.slice(0, 10)).toBe(
@@ -420,6 +439,79 @@ describe("report mode is the default", () => {
     const audit = report.results.find((r) => r.id === "audit-logs")!;
     expect(audit.cutoff.endsWith("Z")).toBe(true);
     await dropDb();
+  });
+});
+
+/**
+ * Review R1 (21 Eki 2026): legal_doc_versions_retention could remove a text
+ * shown today - one replaced long ago and shown again (a reset to the coded
+ * text) keeps its first "createdAt". The texts shown today now go to the
+ * function as `p_keep`; a caller that cannot say which those are removes
+ * nothing under that rule.
+ */
+describe("the legal texts shown today are kept whatever their age", () => {
+  async function run(keep?: Record<string, string[]>) {
+    const calls: { fn: string; args: Record<string, unknown> }[] = [];
+    const db = {
+      from() {
+        const api = {
+          select: () => api,
+          delete: () => api,
+          lt: () => api,
+          neq: () => api,
+          then: (resolve: (r: unknown) => void) =>
+            resolve({ data: null, error: null, status: 200, count: 0 }),
+        };
+        return api;
+      },
+      rpc(fn: string, args: Record<string, unknown>) {
+        calls.push({ fn, args });
+        return Promise.resolve({ data: 0, error: null });
+      },
+    };
+    vi.doMock("@/lib/db", () => ({
+      getDb: () => db,
+      TABLES: new Proxy({}, { get: (_t, k) => String(k) }),
+    }));
+    vi.resetModules();
+    const mod = await import("@/lib/retention");
+    const report = await mod.runRetention({ apply: true, keep });
+    vi.doUnmock("@/lib/db");
+    vi.resetModules();
+    return {
+      report,
+      legal: calls.filter((c) => c.fn === "legal_doc_versions_retention"),
+      others: calls.filter((c) => c.fn !== "legal_doc_versions_retention"),
+    };
+  }
+
+  it("hands the function the hashes shown today", async () => {
+    const live = ["a".repeat(64), "b".repeat(64)];
+    const { legal, others } = await run({ "legal-doc-versions": live });
+    expect(legal).toHaveLength(1);
+    expect(legal[0].args).toMatchObject({ p_apply: true, p_keep: live });
+    // The other functions keep their two arguments.
+    for (const c of others) expect(c.args).not.toHaveProperty("p_keep");
+  });
+
+  it("removes nothing under that rule without the list, and says so", async () => {
+    const { report, legal } = await run();
+    expect(legal).toEqual([]);
+    const r = report.results.find((x) => x.id === "legal-doc-versions")!;
+    expect(r).toMatchObject({ matched: 0, destroyed: 0 });
+    expect(r.error).toMatch(/keep list/);
+  });
+
+  it("the function itself keeps them, and refuses to act without a list", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "db/migrations/20261020180000_legal_doc_versions.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("p_keep   jsonb");
+    expect(sql.match(/and not \(p_keep \? v\.hash\)/g)).toHaveLength(2);
+    expect(sql).toContain(
+      "if p_keep is null or jsonb_typeof(p_keep) <> 'array' then\n    return 0;",
+    );
   });
 });
 

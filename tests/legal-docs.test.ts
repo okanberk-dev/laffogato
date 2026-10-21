@@ -704,18 +704,31 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     ).toBeGreaterThanOrEqual(5);
     expect(text("4. Mobil Uygulamada Sipariş")).toContain("3D Secure");
     // (b) Whether and how long the contract text is kept and reachable: the
-    // D-ISLEM-DURABLE paragraph word for word, until the durable copy.
-    expect(
-      sectionOf(
-        "islem-rehberi",
-        "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
-      ).paragraphs?.[0],
-    ).toBe(
-      `Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini ${email} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.`,
+    // D-ISLEM-DURABLE paragraph word for word, now that the durable copy
+    // ships (21 Ekim 2026: attached to the confirmation, downloadable, the
+    // same version behind the mail's link, kept at least 11 years).
+    const s8 = sectionOf(
+      "islem-rehberi",
+      "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
     );
-    expect(text("8. Sözleşme Metninin Saklanması ve Size Ulaşması")).toContain(
-      "en az 3 yıl",
+    expect(s8.paragraphs?.[0]).toBe(
+      "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
     );
+    // The karaoke sentence says the same of the booking's copy; it used to
+    // point at "the same way" of the paragraph above, which is gone.
+    expect(s8.paragraphs?.[1]).toContain(
+      "Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+    );
+    // Review R5 (21 Eki 2026): the mail goes without the file when it
+    // cannot be built in time, and older orders have no stored text; the
+    // request route stays for both, in its own paragraph.
+    expect(s8.paragraphs?.[2]).toBe(
+      `Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla ${LEGAL_ENTITY.email} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.`,
+    );
+    const s8text = text("8. Sözleşme Metninin Saklanması ve Size Ulaşması");
+    expect(s8text).toContain("en az 3 yıl");
+    expect(s8text).not.toContain("aynı yolla");
+    expect(s8text).not.toContain("güncel metnini açar");
     // (c) The tools to see and correct the input before the order.
     const fix = text("6. Girdiğiniz Bilgileri Görme ve Düzeltme");
     for (const tool of ["Sil", "Değiştir", "Geri", "sipariş özetinde"]) {
@@ -777,7 +790,7 @@ describe("legal content - karaoke retention, event records, correspondence (21 E
   // Decisions ASK-RETENTION and D-CORRESPONDENCE (operator, 18 Ekim 2026: no
   // lawyer round); src/lib/retention.ts runs the karaoke periods
   // (tests/mobile-retention.test.ts finds its two basis sentences here).
-  // LEGAL-REDLINES §25.
+  // LEGAL-REDLINES §27.
   const table = () =>
     sectionOf(
       "veri-saklama-ve-imha-politikasi",
@@ -842,7 +855,7 @@ describe("legal content - the till stamps only the member's own code (21 Ekim 20
   // Decision ASK-LOYALTY (operator, 18 Ekim 2026): no stamp by a typed
   // e-mail address; a stamp the till missed is corrected by a manager at the
   // member's request (src/app/admin/kasa/actions.ts,
-  // src/app/admin/musteriler/[email]/actions.ts). LEGAL-REDLINES §26.
+  // src/app/admin/musteriler/[email]/actions.ts). LEGAL-REDLINES §28.
   const text = (slug: string) => JSON.stringify(findLegalDoc(slug));
 
   it("says so in the privacy notice, in the decided words", () => {

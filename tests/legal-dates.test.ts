@@ -71,11 +71,15 @@ describe("legal document dates", () => {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
+      // 21 Ekim 2026: §8 says the durable copy that shipped (the confirmed
+      // text attached, downloadable, kept by hash; LEGAL-REDLINES §25). No
+      // checkout document changed, so LEGAL_UPDATED did not move.
+      "islem-rehberi": "21 Ekim 2026",
       // 21 Ekim 2026: the karaoke periods, the event row and the commercial
-      // correspondence row (LEGAL-REDLINES §25).
+      // correspondence row (LEGAL-REDLINES §27).
       "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
       // 21 Ekim 2026: the till stamps only the member's own code
-      // (ASK-LOYALTY, LEGAL-REDLINES §26).
+      // (ASK-LOYALTY, LEGAL-REDLINES §28).
       "gizlilik-politikasi": "21 Ekim 2026",
       "kvkk-aydinlatma-metni": "21 Ekim 2026",
       "uyelik-sozlesmesi": "21 Ekim 2026",
@@ -129,8 +133,37 @@ describe("legal document dates", () => {
       "src/app/odeme/actions.ts",
     ]) {
       const src = readFileSync(file, "utf8");
-      expect(src, file).toContain("version: await checkoutConsentVersion()");
+      // The label and the hashes from one read (review R4, 21 Eki 2026):
+      // `checkoutConsentShown` applies `checkoutConsentVersion`'s rule.
+      expect(src, file).toContain("...(await checkoutConsentShown())");
       expect(src, file).not.toContain("version: LEGAL_UPDATED");
+    }
+  });
+
+  it("both checkout paths and the karaoke booking record the text hashes through one rule", () => {
+    // Next to the label and from the same read, the hash of each text shown
+    // (D-VERSIONS-TABLE; review R4): the two checkout paths through
+    // `checkoutConsentShown`, every karaoke booking (web form and app) in
+    // `createReservation` through `karaokeConsentShown`, from the settings
+    // that decide its policy.
+    for (const file of [
+      "src/lib/mobile/orders.ts",
+      "src/app/odeme/actions.ts",
+    ]) {
+      const src = readFileSync(file, "utf8");
+      expect(src, file).toContain("...(await checkoutConsentShown())");
+      expect(src, file).not.toContain("textHashes:");
+    }
+    const karaoke = readFileSync("src/lib/mobile/karaoke.ts", "utf8");
+    expect(karaoke).toContain("await karaokeConsentShown(settings)");
+    expect(karaoke).toContain("textHashes: shown.textHashes");
+    expect(karaoke).toContain("shown.version,");
+    // The surfaces never compute or pass their own.
+    for (const file of [
+      "src/app/karaoke/actions.ts",
+      "src/app/api/mobile/v1/karaoke/reservations/route.ts",
+    ]) {
+      expect(readFileSync(file, "utf8"), file).not.toContain("textHashes");
     }
   });
 });

@@ -63,7 +63,21 @@ function publicFiles(): string[] {
 
 /** The modules whose readers query the database on every call. */
 const LIVE_MODULE =
-  /^(?:@\/lib\/(?:admin\/store|admin\/site-content|admin\/home-hero|legal\/store|db|db\/client)|(?:\.\.?\/)+(?:[\w-]+\/)*(?:admin\/store|admin\/site-content|admin\/home-hero|legal\/store|db\/client|db))$/;
+  /^(?:@\/lib\/(?:admin\/store|admin\/site-content|admin\/home-hero|legal\/store|legal\/versions|db|db\/client)|(?:\.\.?\/)+(?:[\w-]+\/)*(?:admin\/store|admin\/site-content|admin\/home-hero|legal\/store|legal\/versions|db\/client|db))$/;
+
+/**
+ * The one live read a public page may make, and only behind its own
+ * parameter: /hukuk/<slug>?surum=<prefix> reads the stored version it names
+ * (decision ASK-DURABLE). That address is printed in a customer's
+ * confirmation mail, is noindex and is not linked from any page, and
+ * without the parameter the page reads exactly what it read before
+ * (tests/legal-version-page.test.ts proves both).
+ */
+const ALLOWED_LIVE_READS: Record<string, readonly string[]> = {
+  "src/app/hukuk/[slug]/legal-version.tsx": [
+    "findLegalVersionByPrefix from @/lib/legal/versions",
+  ],
+};
 
 /** A reader, by the store's naming: getX, listX, findX, searchX, countX, loadX. */
 const READER = /^(?:get|list|find|search|count|load)[A-Z]/;
@@ -101,6 +115,8 @@ describe("the parse", () => {
     `import * as store from "@/lib/admin/store";`,
     `const { listProducts } = await import("@/lib/admin/store");`,
     `import { getDb } from "@/lib/db";`,
+    `import { findLegalVersionByPrefix } from "@/lib/legal/versions";`,
+    `import { loadLegalVersions } from "../../lib/legal/versions";`,
   ])("catches %s", (line) => {
     expect(liveReadsIn(line)).not.toEqual([]);
   });
@@ -137,8 +153,41 @@ describe("public pages read the cached presentation readers", () => {
 
   it("no public page, shell or customer component imports a live reader", () => {
     const offenders = publicFiles()
-      .map((f) => ({ file: f, reads: liveReadsIn(readFileSync(f, "utf8")) }))
+      .map((f) => ({
+        file: f,
+        reads: liveReadsIn(readFileSync(f, "utf8")).filter(
+          (r) => !(ALLOWED_LIVE_READS[f] ?? []).includes(r),
+        ),
+      }))
       .filter((o) => o.reads.length > 0);
     expect(offenders).toEqual([]);
+  });
+
+  it("allows the stored-version read in one file only, and it still needs the allowance", () => {
+    // The allowance is not dead weight: the file does import the reader...
+    for (const [file, reads] of Object.entries(ALLOWED_LIVE_READS)) {
+      expect(publicFiles()).toContain(file);
+      expect(liveReadsIn(readFileSync(file, "utf8"))).toEqual([...reads]);
+    }
+    // ...and the page reaches it only through the `?surum=` branch.
+    const page = readFileSync("src/app/hukuk/[slug]/page.tsx", "utf8");
+    expect(liveReadsIn(page)).toEqual([]);
+    expect(page).toContain('import { LegalVersionView } from "./legal-version";');
+  });
+
+  /**
+   * Review R8 (21 Eki 2026): the allowance names the file that runs the
+   * read, and the check above looks only at imports of the live modules, so
+   * any other public page could import `LegalVersionView` (which runs the
+   * query on every view) without failing it. Only the hukuk page, behind
+   * its `?surum=` branch, may.
+   */
+  it("lets only the hukuk page import the view that runs the read", () => {
+    const importers = publicFiles().filter((f) =>
+      /\bfrom\s+["'][^"']*legal-version["']|\bimport\(\s*["'][^"']*legal-version["']\s*\)/.test(
+        readFileSync(f, "utf8"),
+      ),
+    );
+    expect(importers).toEqual(["src/app/hukuk/[slug]/page.tsx"]);
   });
 });

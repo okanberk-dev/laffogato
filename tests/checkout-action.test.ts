@@ -61,7 +61,7 @@ vi.mock("@/lib/customer/coupons", () => ({
 }));
 vi.mock("@/lib/customer/store", () => ({ ensureCardUserKey: async () => "" }));
 vi.mock("@/lib/legal/store", () => ({
-  checkoutConsentVersion: async () => "v1",
+  checkoutConsentShown: async () => ({ version: "v1", textHashes: {} }),
 }));
 vi.mock("@/lib/payment", () => ({ getPaymentProvider: () => provider }));
 vi.mock("@/lib/payment/saved-cards", () => ({

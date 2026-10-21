@@ -107,6 +107,10 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   wallet_transactions: NONE,
   newsletter_subscribers: NONE,
   legal_override_history: NONE,
+  // Every legal text shown, by hash (20261020180000): read live by the
+  // ?surum= page and the durable copy, never cached; a text that changes
+  // writes a new row, and the pages it is shown on expire with legal_docs.
+  legal_doc_versions: NONE,
   admin_2fa: NONE,
   auth_attempts: NONE,
   loyalty_stamps: NONE,
@@ -179,6 +183,8 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   email_suppression_record: NONE,
   reserve_fal_reading: NONE,
   customer_consents_retention: NONE,
+  // Deletes only legal_doc_versions rows past their eleven years.
+  legal_doc_versions_retention: NONE,
 
   // Read-only helpers.
   admin_customer_counts: NONE,
@@ -196,6 +202,7 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   counter_token_issue_cap: NONE,
   customer_consents_append_only: NONE,
   legal_override_history_append_only: NONE,
+  legal_doc_versions_append_only: NONE,
   // Writes product_price_history inside the products write that fired it.
   record_product_price: NONE,
 };

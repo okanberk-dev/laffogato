@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
+import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import {
   destructionEnabled,
@@ -77,17 +78,42 @@ export async function GET(request: Request) {
   const karaoke = await step("karaoke-holds", async () => ({
     expired: await expireUnpaidReservations(),
   }));
+  // Every legal text as shown today, stored once per hash (decision
+  // D-VERSIONS-TABLE): a coded text no consent reads (KVKK, the İşlem
+  // Rehberi) is kept within a day of the deploy that changed it. Before
+  // retention, the one step that deletes.
+  //
+  // Retention keeps every text shown today whatever its age (review R1); a
+  // step that could not say which those are leaves the rule removing
+  // nothing. The response carries the count, not the hashes.
+  const shown: { hashes?: string[] } = {};
+  const legalVersions = await step("legal-versions", async () => {
+    const { documents, hashes } = await recordShownLegalVersions();
+    shown.hashes = hashes;
+    return { documents };
+  });
   // An applied run leaves its own destruction record in audit_logs
   // (runRetention); the line below is the same one /api/cron/retention logs,
   // counts only.
   const retention = await step("retention", async () => {
-    const report = await runRetention({ apply: destructionEnabled() });
+    const report = await runRetention({
+      apply: destructionEnabled(),
+      keep: shown.hashes ? { "legal-doc-versions": shown.hashes } : {},
+    });
     console.info(retentionLogLine(report));
     return report;
   });
 
   return NextResponse.json(
-    { ok: true, keepalive, campaigns, birthday, karaoke, retention },
+    {
+      ok: true,
+      keepalive,
+      campaigns,
+      birthday,
+      karaoke,
+      legalVersions,
+      retention,
+    },
     { headers: NO_STORE },
   );
 }

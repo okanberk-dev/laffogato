@@ -79,7 +79,11 @@ vi.mock("@/lib/email/send", async (importOriginal) => {
 });
 vi.mock("@/lib/legal/store", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/legal/store")>();
-  return { ...real, checkoutConsentVersion: async () => "test" };
+  return {
+    ...real,
+    checkoutConsentVersion: async () => "test",
+    checkoutConsentShown: async () => ({ version: "test", textHashes: {} }),
+  };
 });
 vi.mock("@/lib/mobile/venue", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/mobile/venue")>();
