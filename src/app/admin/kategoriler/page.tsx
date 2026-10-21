@@ -5,9 +5,11 @@ import {
   ActionMenu,
   ActionMenuLink,
   ActionMenuSeparator,
+  BUTTON,
   ConfirmButton,
   DataTable,
   EmptyState,
+  PageShell,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { categoryDeleteBlocker } from "@/lib/admin/category-schema";
@@ -38,19 +40,19 @@ export default async function AdminCategoriesPage() {
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Katalog · Kategoriler"
         title="Kategoriler"
-        description="Ürünlerin kategorileri: ürün formunda, ürün listesinde ve süzgeçlerinde görünen adları ve sıraları. Mağazadaki filtre çubuğu ve kategori sayfaları sabittir, buradaki değişiklik onları değiştirmez. İçinde ürün olan kategori silinemez."
-        action={
-          <Link
-            href="/admin/kategoriler/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni kategori
-          </Link>
+        description="Ürünlerin kategorileri, adları ve sıraları."
+        help={
+          <p>
+            Adlar ve sıralar ürün formunda, ürün listesinde ve süzgeçlerinde
+            görünür. Mağazadaki filtre çubuğu ve kategori sayfaları sabittir,
+            buradaki değişiklik onları değiştirmez. İçinde ürün olan kategori
+            silinemez.
+          </p>
         }
+        primary={{ href: "/admin/kategoriler/yeni", label: "Yeni kategori" }}
       />
 
       <DataTable
@@ -61,7 +63,11 @@ export default async function AdminCategoriesPage() {
         empty={
           <EmptyState
             title="Henüz kategori yok."
-            description="“+ Yeni kategori” ile ekle."
+            action={
+              <Link href="/admin/kategoriler/yeni" className={BUTTON.ghost}>
+                Yeni kategori
+              </Link>
+            }
           />
         }
         columns={[
@@ -125,6 +131,6 @@ export default async function AdminCategoriesPage() {
           );
         }}
       />
-    </main>
+    </PageShell>
   );
 }
