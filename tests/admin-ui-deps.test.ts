@@ -140,6 +140,31 @@ function serverReach(entry: string, pkgs: string[]): string[] {
   return hits;
 }
 
+/**
+ * The libraries a file reaches through static value imports, across "use
+ * client" boundaries too: what the browser downloads with the file, before
+ * any import() runs. A widget behind import() is not followed, so its
+ * chunk is not counted (it loads on interaction).
+ */
+function staticReach(entry: string, pkgs: string[] = [RAC]): string[] {
+  const hits: string[] = [];
+  const seen = new Set<string>();
+  const stack = [entry];
+  while (stack.length > 0) {
+    const file = stack.pop()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    for (const spec of valueImportsOf(read(file))) {
+      if (spec.startsWith(".") || spec.startsWith("@/")) {
+        const next = resolveLocal(file, spec);
+        if (next) stack.push(next);
+      } else if (pkgs.some((p) => isPackage(spec, p)))
+        hits.push(`${file} -> ${spec}`);
+    }
+  }
+  return hits;
+}
+
 const pkg = JSON.parse(read("package.json")) as {
   dependencies: Record<string, string>;
   devDependencies: Record<string, string>;
@@ -287,10 +312,12 @@ describe("admin UI libraries: who may import them", () => {
     expect(portalUsers).toEqual(["src/components/admin/ui/overlay.ts"]);
   });
 
-  it("the date widgets' chunks are reached by import() alone, never by a static import", () => {
+  it("the widgets' chunks are reached by import() alone, never by a static import", () => {
     const widgets = [
       "src/components/admin/ui/date-range-field",
       "src/components/admin/ui/date-time-picker",
+      "src/components/admin/ui/combobox-picker",
+      "src/components/admin/palette/palette",
     ];
     for (const f of sources.filter((f) => inAdminTree(f))) {
       const statics = valueImportsOf(read(f));
@@ -308,23 +335,6 @@ describe("admin UI libraries: who may import them", () => {
     // whose budget is 0 KB of library code); the list is loaded with
     // import() on the first sign of use. A static value import anywhere on
     // the shell's path would put React Aria on every page.
-    const staticReach = (entry: string): string[] => {
-      const hits: string[] = [];
-      const seen = new Set<string>();
-      const stack = [entry];
-      while (stack.length > 0) {
-        const file = stack.pop()!;
-        if (seen.has(file)) continue;
-        seen.add(file);
-        for (const spec of valueImportsOf(read(file))) {
-          if (spec.startsWith(".") || spec.startsWith("@/")) {
-            const next = resolveLocal(file, spec);
-            if (next) stack.push(next);
-          } else if (isPackage(spec, RAC)) hits.push(`${file} -> ${spec}`);
-        }
-      }
-      return hits;
-    };
     for (const entry of [
       "src/app/admin/layout.tsx",
       "src/components/admin/admin-sidebar.tsx",
@@ -336,6 +346,45 @@ describe("admin UI libraries: who may import them", () => {
     expect(staticReach("src/components/admin/palette/palette.tsx")).not.toEqual(
       [],
     );
+  });
+
+  it("no admin route's first load reaches React Aria or the date package", () => {
+    // The date widgets (about 110 KB gz with their shared React Aria core),
+    // the combobox (about 77 KB gz) and the palette load by import() on
+    // interaction (UI-14, UI-16, measured in docs/AUDIT.md). A static value
+    // import on any route file's path would put them in that route's first
+    // load: every page, layout, loading, error and not-found file of the
+    // panel is walked, /admin/kasa included (its budget is 0 KB).
+    const routeFiles = walk("src/app/admin").filter((f) =>
+      /\/(page|layout|loading|error|not-found|template|default)\.tsx$/.test(f),
+    );
+    for (const route of [
+      "src/app/admin/siparisler/page.tsx",
+      "src/app/admin/siparisler/yeni/page.tsx",
+      "src/app/admin/stok-hareketleri/page.tsx",
+      "src/app/admin/promosyon/yeni/page.tsx",
+      "src/app/admin/kasa/page.tsx",
+    ]) {
+      expect(routeFiles).toContain(route);
+    }
+    const bad = routeFiles.flatMap((f) => staticReach(f, [RAC, DATE]));
+    expect(bad).toEqual([]);
+    // The walk sees through "use client" and the kit: each widget's chunk
+    // does reach the libraries statically, and its light loader does not.
+    for (const chunk of [
+      "src/components/admin/ui/date-range-field.tsx",
+      "src/components/admin/ui/date-time-picker.tsx",
+      "src/components/admin/ui/combobox-picker.tsx",
+    ]) {
+      expect(staticReach(chunk, [RAC, DATE]), chunk).not.toEqual([]);
+    }
+    for (const loader of [
+      "src/components/admin/ui/filter-bar.tsx",
+      "src/components/admin/ui/date-time-field.tsx",
+      "src/components/admin/ui/combobox-field.tsx",
+    ]) {
+      expect(staticReach(loader, [RAC, DATE]), loader).toEqual([]);
+    }
   });
 
   it("the server-safe kit files reach neither React Aria nor the date package", () => {

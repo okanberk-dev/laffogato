@@ -1475,12 +1475,13 @@ gün, Bu ay, Geçen ay) köşkün saatiyle, sunucuda çizilen düz bağlantılar
 | 🟢 | İnceleme F1: kapatma anahtarı (`DATE_WIDGETS_ENABLED`) parçanın içinde okunuyordu; kapalıyken de parça indirilirdi | Anahtar hafif `widget-loader.ts`'te, `import()`'tan önce okunur | `admin-widget-loader` |
 | 🟢 | İnceleme F2: hazır aralığa tıklamak için alana gelmek de takvimin parçasını indiriyordu | Yükleme yalnız tarih kutularına gelince ya da odak onlara düşünce | `admin-widget-loader` |
 | 🟢 | İnceleme F3: takvim açıkken tek tuş kısayolları çalışıyordu | React Aria açılır penceresi (`[data-admin-portal] [role=dialog]`) de açık pencere sayılır | `admin-shortcuts` |
+| 🟢 | Ölçüm (21 Eki 2026, `next build`, Turbopack): hiçbir admin rotasının ilk yüklemesinde React Aria ya da tarih paketi yok. `/admin/siparisler` (195,6 KB gz JS), `/admin/stok-hareketleri` (189,7), `/admin/siparisler/yeni` (282,3), `/admin/promosyon/yeni` (188,1) ve `/admin/kasa` (187,1) rotalarının `entryJSFiles` + `rootMainFiles` listesinde kütüphane parçası 0 KB; kural "her admin rotasına en fazla 8 KB" ilk yüklemede tutuyor | Bekçi: her `page`, `layout`, `loading`, `error`, `not-found` dosyasından statik değer importlarıyla ("use client" sınırını da geçerek) yürünür, React Aria ya da tarih paketine varan yol olmamalı; üç widget parçasına ve paletin listesine yalnız `import()` ile varılır | `admin-ui-deps` |
 
 Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Takvim parçası yaklaşık 84 KB gz; tasarımın bütçesi 45 KB | React Aria'nın tarih bileşenleri tek başına ~50 KB. Parça yalnız fareli cihazda, tarih kutusuna gelince ve bir kez iner; telefon, dokunmatik, Kasa ve tarih alanı olmayan listeler hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~13 KB kazandırır, `next.config.ts` istediği için ayrı PR |
+| 🟢 | Takvim parçası tasarımın 45 KB bütçesini aşıyor. Ölçüm (gzip -9, parça parça): tarih aralığı 110,4 KB gz (kendi 6,2 + tarih ve takvim 47,9 + React Aria çekirdeği 39,4 + Popover, Dialog, Button 16,9), tarih ve saat 110,7 KB gz (kendi 6,5 + aynı üç parça). Eski "84 KB" tek paket (esbuild) ölçümüydü; Turbopack'in gerçek parçaları büyük. Çekirdek ve Popover parçası seçici ve paletle ortak: biri indikten sonra ikinci tarih alanı 6,5 KB, seçiciden sonra takvim 54,1 KB | Yalnız fareli cihazda, tarih kutusuna gelince ve bir kez iner; ilk yüklemede yok (yukarıdaki ölçüm). Koddan ucuz kazanç yok (21 Eki 2026 denendi): importlar zaten alt yoldan, `I18nProvider` tek modül, iki tarih alanı ve seçici çekirdeği zaten tek parçada paylaşıyor, iki takvim (`Calendar`, `RangeCalendar`) React Aria'da tek modül. Kalan iki kaldıraç yapılandırma ister (`next.config.ts`, Turbopack `resolveAlias` ya da `rules`; `@react-aria/optimize-locales-plugin` bir webpack eklentisi, Turbopack çalıştırmaz): tr-TR ve en-US dışındaki dil sözlükleri ~17 KB gz (110 → ~93, kurulu parçadan sözlükler çıkarılarak ölçüldü); Gregoryen dışı takvimler ~10 KB ham (~3 KB gz), React Aria `DateField` `createCalendar`'ı statik içe aldığı için `createCalendar` prop'u onları düşürmez. İkisiyle de ~90 KB: React Aria çekirdeği (39,4 + 16,9) tek başına bütçeyi aşıyor, 45 KB React Aria ile ulaşılamaz; bütçe yeniden kararlaştırılmalı ya da widget değişmeli. Orkestratör kararı (21 Eki 2026): kabul |
 
 ### Hukuk: karaoke verisinin süresi, imha kaydı, ticari yazışma (21 Eki 2026)
 
@@ -1515,11 +1516,15 @@ Stok düzeltme ve elle sipariş formlarında ürün ve varyant seçicileri yazar
 aranır ("sire" Şire'yi, "findik" Fındık'ı bulur); sunucu ve JavaScript'siz
 yol yerel `<select>` olarak kalır, adlar değişmedi.
 
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Ölçüm (21 Eki 2026, `next build`): seçici `/admin/siparisler/yeni` ve `/admin/stok-hareketleri` dahil hiçbir rotanın ilk yüklemesinde yok; parça yalnız `import("./combobox-picker")` ile iner | `combobox-picker` ve paletin listesi de "yalnız `import()` ile" bekçisinde; rota dosyalarından statik yürüyüş React Aria'ya varmaz (UI-14'teki satır) | `admin-ui-deps` |
+
 Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Seçici parçası yaklaşık 64 KB gz; tasarımın bütçesi 35 KB | React Aria ve bütün dillerin metinleri; yalnız seçiciye gelince ve bir kez iner, diğer sayfalar ve Kasa hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~30 KB ham kazandırır, `next.config.ts` istediği için ayrı PR |
+| 🟢 | Seçici parçası tasarımın 35 KB bütçesini aşıyor. Ölçüm (gzip -9, parça parça): 77,5 KB gz (ComboBox 10,6 + ListBox 10,7 + React Aria çekirdeği 39,4 + Popover, Dialog, Button 16,9). Eski "64 KB" tek paket (esbuild) ölçümüydü. Çekirdek ve Popover parçası takvimle ortak: takvimden sonra seçici 21,3 KB | Yalnız seçiciye gelince ve bir kez iner; ilk yüklemede yok, Kasa hiçbir şey indirmez. Koddan ucuz kazanç yok (UI-14'teki satır). Dil sözlüklerini tr-TR ve en-US'e indirmek ~7 KB gz kazandırır (77 → ~71) ve `next.config.ts` ister; çekirdek tek başına (39,4 + 16,9) bütçeyi aştığı için 35 KB React Aria ile ulaşılamaz. Paletin ListBox'ı ayrı parçada (7,5 KB): ikisini de açan bunu iki kez indirir, Turbopack'in parça kararı. Orkestratör kararı (21 Eki 2026): kabul |
 
 ### Kabuk: lafmaliyet (AkmanOS) görünümü (21 Eki 2026)
 
