@@ -39,6 +39,7 @@ export type AdminSection =
   | "categories"
   | "shopHero"
   | "mobileApp"
+  | "venue"
   | "karaoke"
   | "press"
   | "story"
@@ -73,6 +74,12 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   categories: ["owner", "manager"],
   shopHero: ["owner", "manager"],
   mobileApp: ["owner", "manager"],
+  // Canlı durum (/admin/mobil/canli-durum and the top bar's köşk chip): the
+  // shift at the köşk sees the room, so Personel says whether it is open
+  // and how many tables are free (admin UI v2, decision D3). The table
+  // count itself stays with `mobileApp`, and so do the app's slides, posts
+  // and settings.
+  venue: ["owner", "manager", "staff"],
   // Karaoke bookings are the köşk shift's evening: Personel sees who is
   // coming, confirms and cancels unpaid ones. Anything that sends money back
   // (cancelling a paid booking, a refund retry) still needs `refunds`, which

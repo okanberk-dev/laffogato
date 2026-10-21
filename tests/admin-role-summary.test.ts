@@ -29,6 +29,9 @@ describe("role summary on /admin/kullanicilar", () => {
     expect(manager).toContain("Bülten ve kampanya e-postası");
     expect(manager).not.toContain("Kullanıcılar");
     expect(roleSectionLabels("staff")).toContain("Karaoke");
+    // Decision D3: Personel updates the köşk's live status, not the app.
+    expect(roleSectionLabels("staff")).toContain("Canlı durum");
+    expect(roleSectionLabels("staff")).not.toContain("Mobil uygulama");
     expect(roleSectionLabels("cashier")).toEqual(["Kasa · damga"]);
   });
 

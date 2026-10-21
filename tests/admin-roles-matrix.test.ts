@@ -138,3 +138,37 @@ describe("tables", () => {
     expect(canAccess("tables", "cashier")).toBe(false);
   });
 });
+
+/**
+ * Admin UI v2, decision D3: the köşk shift updates Canlı durum (open,
+ * busy, closed, free tables, Wi-Fi, noise, power, note) through its own
+ * section. `mobileApp` (the app's slides, posts and settings, and the
+ * table count) stays with owner and manager, and the cashier gets neither.
+ */
+describe("venue", () => {
+  it("is open to owner, manager and Personel, not to the cashier", () => {
+    expect(canAccess("venue", "owner")).toBe(true);
+    expect(canAccess("venue", "manager")).toBe(true);
+    expect(canAccess("venue", "staff")).toBe(true);
+    expect(canAccess("venue", "cashier")).toBe(false);
+  });
+
+  it("leaves mobileApp with owner and manager", () => {
+    expect(canAccess("mobileApp", "owner")).toBe(true);
+    expect(canAccess("mobileApp", "manager")).toBe(true);
+    expect(canAccess("mobileApp", "staff")).toBe(false);
+    expect(canAccess("mobileApp", "cashier")).toBe(false);
+  });
+
+  it("adds exactly one section to Personel, and none to the cashier", () => {
+    expect(sectionsFor("staff")).toEqual([
+      "dashboard",
+      "till",
+      "orders",
+      "venue",
+      "karaoke",
+      "stock",
+    ]);
+    expect(sectionsFor("cashier")).toEqual(["till"]);
+  });
+});

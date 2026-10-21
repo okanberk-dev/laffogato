@@ -232,6 +232,8 @@ describe("Git, Oluştur and Komutlar per role", () => {
       "/admin/siparisler",
       "/admin/mobil/karaoke",
       "/admin/kasa",
+      // UI-13 (decision D3): Canlı durum through the `venue` section.
+      "/admin/mobil/canli-durum",
       "/admin/stok-hareketleri",
     ]);
     expect(hrefs("cashier")).toEqual(["/admin/kasa"]);
