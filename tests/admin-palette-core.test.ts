@@ -1287,3 +1287,10 @@ describe("Ayarlar içinde: the settings tabs, built by the layout", () => {
     expect(create).not.toContain("Kargo ücreti");
   });
 });
+
+describe("foldLoose and decomposed input (review of #198)", () => {
+  it("a decomposed İ folds like a composed one", () => {
+    expect(core.foldLoose("I\u0307ade")).toBe(core.foldLoose("İade"));
+    expect(core.foldLoose("I\u0307ade")).toBe("iade");
+  });
+});

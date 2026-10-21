@@ -32,7 +32,8 @@ export const PALETTE_SEARCH_ROUTE = "/admin/ara/sonuc";
  * keeps the marks (search.ts folds in SQL).
  */
 export function foldLoose(value: string): string {
-  return foldTr(value)
+  // NFC first: a decomposed "İ" (I + combining dot) must fold to "i".
+  return foldTr(value.normalize("NFC"))
     .normalize("NFD")
     .replace(/[\u0300-\u036f'’`]/g, "")
     .replace(/\s+/g, " ")
