@@ -842,3 +842,147 @@ describe("the import page form", () => {
     expect(html).toContain('href="/admin/stok-hareketleri"');
   });
 });
+
+describe("the food label columns (TGK Etiketleme m.9/1, m.17/2-a)", () => {
+  const LABEL_HEADER = "sku;allergens;netQuantity;ingredients;storageConditions";
+  const label = (...lines: string[]) =>
+    `${[LABEL_HEADER, ...lines].join("\r\n")}\r\n`;
+
+  it("the template carries the allergens and every label field, and Turkish headers read", async () => {
+    const { PRODUCT_IMPORT_COLUMNS, importColumnFor } = await import(
+      "@/lib/admin/product-import-core"
+    );
+    const { FOOD_LABEL_KEYS } = await import("@/lib/shop/food-label");
+    const header = productImportTemplate("Kahve çekirdeği").split("\r\n")[0];
+    for (const key of ["allergens", ...FOOD_LABEL_KEYS]) {
+      expect(header.split(";"), key).toContain(key);
+    }
+    expect(importColumnFor("Alerjenler")).toBe("allergens");
+    expect(importColumnFor("İçindekiler")).toBe("ingredients");
+    expect(importColumnFor("Net miktar")).toBe("netQuantity");
+    expect(importColumnFor("Saklama koşulu")).toBe("storageConditions");
+    // No spelling names two columns.
+    const { headerKey } = await import("@/lib/admin/product-import-core");
+    const spellings = PRODUCT_IMPORT_COLUMNS.flatMap((c) =>
+      [c.key, ...c.aliases].map(headerKey),
+    );
+    expect(new Set(spellings).size).toBe(spellings.length);
+  });
+
+  it("leaves the template's allergen example empty, so a copied row declares nothing", async () => {
+    const { PRODUCT_IMPORT_COLUMNS } = await import("@/lib/admin/product-import-core");
+    expect(PRODUCT_IMPORT_COLUMNS.find((c) => c.key === "allergens")?.example).toBe("");
+  });
+
+  it("reads groups by label or key in Ek-1 order, 'yok' as none, and refuses a guess", async () => {
+    const { parseAllergenCell } = await import("@/lib/admin/product-import-core");
+    expect(parseAllergenCell("")).toEqual({ ok: true, value: null });
+    expect(parseAllergenCell("yok")).toEqual({ ok: true, value: [] });
+    expect(parseAllergenCell("SÜT; gluten, sert_kabuklu / Sert kabuklu meyveler")).toEqual({
+      ok: true,
+      value: ["gluten", "sut", "sert_kabuklu"],
+    });
+    const guess = parseAllergenCell("Süt, fıstık");
+    expect(guess.ok).toBe(false);
+    expect(!guess.ok && guess.error).toContain('tanımadığım grup "fıstık"');
+    expect(!guess.ok && guess.error).toContain("Yer fıstığı");
+    const both = parseAllergenCell("yok, süt");
+    expect(both.ok).toBe(false);
+  });
+
+  it("writes the label of an existing product and names each change", async () => {
+    const p = okPlan(
+      label("SIRE-00001;Süt;250 g;\"Kahve çekirdeği,\n  süt tozu \";Serin ve kuru yerde saklayın."),
+    );
+    const row = p.rows[0];
+    expect(row.view.status).toBe("update");
+    expect(row.view.messages).toEqual([
+      "Alerjenler: girilmedi → süt",
+      "Net miktar: yok → 250 g",
+      "İçindekiler değişiyor.",
+      "Saklama koşulu: yok → Serin ve kuru yerde saklayın.",
+    ]);
+    expect(row.action).toMatchObject({
+      kind: "update",
+      patch: {
+        allergens: ["sut"],
+        netQuantity: "250 g",
+        ingredients: "Kahve çekirdeği,\nsüt tozu",
+        storageConditions: "Serin ve kuru yerde saklayın.",
+      },
+    });
+    expect(row.action?.kind === "update" && row.action.patch).not.toHaveProperty("tags");
+
+    await applyProductImport(p, { actor: "owner@laffogato.net" });
+    expect(h.db.products[0]).toMatchObject({
+      allergens: ["sut"],
+      ingredients: "Kahve çekirdeği,\nsüt tozu",
+    });
+    // The same file again changes nothing.
+    const again = okPlan(
+      label("SIRE-00001;süt;250 g;\"Kahve çekirdeği,\n  süt tozu \";Serin ve kuru yerde saklayın."),
+      [h.db.products[0] as unknown as ProductImportView],
+    );
+    expect(again.rows[0].view.status).toBe("unchanged");
+  });
+
+  it("an empty label cell keeps the stored text and list; 'yok' enters none", () => {
+    const stored = product({
+      allergens: ["gluten"],
+      ingredients: "Buğday unu",
+      netQuantity: "180 g",
+    });
+    const kept = okPlan(label("SIRE-00001;;;;"), [stored]);
+    expect(kept.rows[0].view.status).toBe("unchanged");
+    expect(kept.notices).toEqual([]);
+    const none = okPlan(label("SIRE-00001;yok;;;"), [stored]);
+    expect(none.rows[0].view.messages).toEqual(["Alerjenler: gluten → yok"]);
+    expect(none.rows[0].action).toMatchObject({ patch: { allergens: [] } });
+  });
+
+  it("keeps the app's nut warning in step: tree nuts add it, a list without them may not drop it", () => {
+    const added = okPlan(label("SIRE-00001;Sert kabuklu meyveler;;;"));
+    expect(added.rows[0].action).toMatchObject({
+      patch: { allergens: ["sert_kabuklu"], tags: ["nuts"] },
+    });
+    expect(added.rows[0].view.messages).toContain("Kuruyemiş uyarısı eklenecek.");
+
+    const refused = okPlan(label("SIRE-00001;Süt;;;"), [product({ tags: ["nuts"] })]);
+    expect(refused.rows[0].view.status).toBe("error");
+    expect(refused.rows[0].view.messages).toContain(
+      "Alerjenler: bu üründe kuruyemiş uyarısı var ama hücrede Sert kabuklu meyveler yok. İçeriyorsa ekle; içermiyorsa uyarıyı ürün formunda kaldır.",
+    );
+  });
+
+  it("takes an ingredient list over the short cell cap, up to the form's own", () => {
+    const long = "Un, ".repeat(400).trim(); // 1599 characters
+    const ok = okPlan(label(`SIRE-00001;;;${long};`));
+    expect(ok.rows[0].view.status).toBe("update");
+    const over = okPlan(label(`SIRE-00001;;;${"x".repeat(2001)};`));
+    expect(over.rows[0].view.messages).toEqual([
+      "İçindekiler çok uzun (en fazla 2000 karakter).",
+    ]);
+    const short = okPlan(label(`SIRE-00001;;${"9".repeat(61)};;`));
+    expect(short.rows[0].view.messages).toEqual([
+      "Net miktar çok uzun (en fazla 60 karakter).",
+    ]);
+  });
+
+  it("a new product gets the label and allergens it is given", () => {
+    const p = okPlan(
+      [
+        "sku;name;category;price;description;allergens;netQuantity;ingredients",
+        "N-9;Fıstıklı Kurabiye;İkram;120;Tereyağlı kurabiye.;Gluten, Süt, Sert kabuklu meyveler;180 g;Un, tereyağı, %20 Antep fıstığı",
+      ].join("\r\n"),
+      [],
+    );
+    const a = p.rows[0].action;
+    expect(a?.kind).toBe("create");
+    expect(a?.kind === "create" && a.input).toMatchObject({
+      allergens: ["gluten", "sut", "sert_kabuklu"],
+      tags: ["nuts"],
+      netQuantity: "180 g",
+      ingredients: "Un, tereyağı, %20 Antep fıstığı",
+    });
+  });
+});

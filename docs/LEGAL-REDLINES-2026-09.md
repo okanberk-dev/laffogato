@@ -2767,6 +2767,15 @@ Ayrı PR'ın notları:
   hepsi girildiğinde kalkar; yalnız içindekiler ve alerjenler girildiğinde
   kalkması, net miktarı, saklama koşulunu ve işletmeciyi ne sayfada ne
   adı verilen bir yolda bırakırdı.
+- **CSV içe aktarma** (21 Eki 2026, `feat/product-food-label-fields`):
+  ürün CSV'si `allergens` ve sekiz etiket sütununu okur. Alerjen hücresi
+  Ek-1 gruplarını adıyla ya da anahtarıyla alır, "yok" hiçbirini
+  içermez demektir; listede olmayan bir ad ("fıstık": yer fıstığı mı Antep
+  fıstığı mı) satırı reddeder, tahmin edilmez. Boş etiket hücresi kayıtlı
+  değeri korur: şablondan hazırlanan bir stok dosyası ambalajdan elle
+  yazılmış etiketleri silmez; bir alanı silmek ürün formunun işidir.
+  Kuruyemiş uyarısı formdaki kuralla aynı: sert kabuklu meyveler onu
+  ekler, onu düşürecek liste reddedilir.
 - **İndirim** (`src/lib/shop/discount.ts`): eski fiyat yalnız başlangıç ve
   bitiş günüyle kaydedilir; başlangıçtan önceki 10 İstanbul gününde bu
   ürünün çevrim içi satış fiyatı geçmişindeki en düşük fiyata eşit değilse
