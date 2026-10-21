@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Header } from "react-aria-components/Header";
@@ -51,7 +50,8 @@ import { SearchIcon } from "./trigger";
  * <dialog> (one modal system: no React Aria Modal, Dialog, Popover or
  * Menu). React Aria does not filter: palette-core ranks the panel's own
  * entries as the text changes, and the server's record hits are drawn as
- * they came. Read-only: an entry opens a page (router.push, never
+ * they came. Read-only: an entry opens a page (`navigate`, the trigger's:
+ * it asks a form with unsaved changes first, then opens the page; never
  * prefetched while the arrow keys pass over it: every panel page is
  * dynamic, so each would be a server render and its database reads),
  * flips this browser's own order sound or opens the shortcut sheet. No
@@ -77,6 +77,8 @@ export interface PaletteProps {
   view?: PaletteView;
   /** Closes the dialog; the trigger takes focus back. */
   close: () => void;
+  /** Opens a page and closes the dialog, unless unsaved changes say no. */
+  navigate: (href: string) => void;
 }
 
 /**
@@ -179,8 +181,8 @@ export function Palette({
   pathname,
   view,
   close,
+  navigate,
 }: PaletteProps) {
-  const router = useRouter();
   const toast = useToast();
   const soundOn = useSoundPref();
   const [text, setText] = useState("");
@@ -311,8 +313,7 @@ export function Palette({
     const target = map.get(key);
     if (!target) return;
     if ("href" in target) {
-      close();
-      router.push(target.href);
+      navigate(target.href);
       return;
     }
     if (target.command === "shortcutSheet") {

@@ -158,7 +158,11 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
 4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
    (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
    (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
-   Neon'u bütün gece uyanık tutmaz.
+   Neon'u bütün gece uyanık tutmaz. Üst çubuğun **köşk çipi** (UI-13, 20 Eki
+   2026) de öyle: kendi işareti `pub:site` ve `live:access` altında
+   (`venue_status`, ayarlar ve panel hesapları yazılınca yenilenir), imleci
+   saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli
+   (`src/lib/admin/venue-signal.ts`); arada cevap `{ unchanged: true }`.
 
 **Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
 verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,

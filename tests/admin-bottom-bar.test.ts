@@ -170,39 +170,30 @@ describe("the slots, per role", () => {
     }
   });
 
-  it("staff: their five pages, open orders first and the dashboard last; no Tümü", () => {
+  it("staff (UI-13, Canlı durum through `venue`): open orders first, Canlı durum fourth, the rest under Tümü", () => {
     expect(labels(slotsFor("staff"))).toEqual([
-      "Siparişler",
-      "Karaoke",
-      "Kasa",
-      "Stok",
-      "Genel bakış",
-    ]);
-  });
-
-  it("staff with Canlı durum (UI-13): the first four and Tümü, with no change here", () => {
-    const [today, ...rest] = NAV("staff");
-    const groups = [
-      {
-        ...today,
-        items: [
-          ...today.items,
-          {
-            href: "/admin/mobil/canli-durum",
-            label: "Canlı durum",
-            section: "venue",
-            icon: "appLive",
-          },
-        ],
-      },
-      ...rest,
-    ];
-    expect(labels(slotsFor("staff", groups))).toEqual([
       "Siparişler",
       "Karaoke",
       "Kasa",
       "Canlı durum",
       "Tümü",
+    ]);
+    const live = slotsFor("staff")[3];
+    expect(live.kind === "link" && live.item.section).toBe("venue");
+    expect(live.kind === "link" && live.href).toBe("/admin/mobil/canli-durum");
+  });
+
+  it("the slots follow the nav: without Canlı durum, Personel's five pages fit with no Tümü", () => {
+    const groups = NAV("staff").map((g) => ({
+      ...g,
+      items: g.items.filter((i) => i.section !== "venue"),
+    }));
+    expect(labels(slotsFor("staff", groups))).toEqual([
+      "Siparişler",
+      "Karaoke",
+      "Kasa",
+      "Stok",
+      "Genel bakış",
     ]);
   });
 
@@ -267,9 +258,10 @@ describe("the slots, per role", () => {
     // Reached through the drawer: Tümü.
     expect(at("owner", "/admin/kategoriler")).toBe("Tümü");
     expect(at("manager", "/admin/2fa-kurulum")).toBe("Tümü");
-    // Personel has no Tümü: nothing lit outside their five pages.
-    expect(at("staff", "/admin/2fa-kurulum")).toBeNull();
-    expect(at("staff", "/admin/stok-hareketleri")).toBe("Stok");
+    // Personel's Stok and Genel bakış are in the drawer since UI-13.
+    expect(at("staff", "/admin/mobil/canli-durum")).toBe("Canlı durum");
+    expect(at("staff", "/admin/stok-hareketleri")).toBe("Tümü");
+    expect(at("staff", "/admin/2fa-kurulum")).toBe("Tümü");
   });
 });
 
@@ -348,8 +340,9 @@ describe("the bar's markup", () => {
     expect(src).toContain("onClick={(e) => openDrawer(e.currentTarget)}");
     expect(src).toContain("onMore={openDrawer}");
     expect(src).toContain("(openerRef.current ?? toggleRef.current)?.focus();");
-    // Personel's five pages all fit: no Tümü.
-    expect(barOf(renderShell("staff"))).not.toContain("<button");
+    // Personel's six pages do not fit since UI-13: Tümü opens the drawer.
+    const staffMore = /<button [^>]*>/.exec(barOf(renderShell("staff")))?.[0];
+    expect(staffMore).toContain('aria-controls="admin-nav-drawer"');
   });
 
   it("shows the sidebar's badge counts, from the sidebar's own polls", () => {

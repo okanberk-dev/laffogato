@@ -7,9 +7,14 @@
 // matching, the search answer) is in palette-core.ts, which only the lazy
 // palette loads and which re-exports this file.
 
+import { validAccountKey } from "./account-key";
 import { piiLike } from "./pii-like";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import { singleKeysForRole } from "./shortcut-roles";
+
+// The account key's shape lives in account-key.ts (the saved views check it
+// without this file); the palette's callers keep importing it from here.
+export { validAccountKey };
 
 /**
  * The no-JavaScript answer of the trigger: the results page. The same path
@@ -73,6 +78,23 @@ export function openShortcutSheet(): void {
   window.dispatchEvent(new Event(SHORTCUT_SHEET_EVENT));
 }
 
+/**
+ * "May this page be left?": the palette asks before it opens a page, with a
+ * cancelable event on `window`. The unsaved-changes guard
+ * (components/admin/ui/unsaved-guard.ts) listens only while a guarded form
+ * is mounted, asks the operator and cancels on a no. A page with no guarded
+ * form has no listener: the answer is yes, and none of the guard's code was
+ * loaded for it (the palette's chunk has no room for it either).
+ */
+export const PANEL_LEAVE_EVENT = "admin:leave";
+
+/** Whether the page lets `href` be opened (false: the guard's answer was no). */
+export function mayOpenPage(href: string): boolean {
+  return window.dispatchEvent(
+    new CustomEvent(PANEL_LEAVE_EVENT, { cancelable: true, detail: href }),
+  );
+}
+
 /** The key as the trigger prints it: Apple keyboards say ⌘. */
 export function paletteShortcutLabel(apple: boolean): string {
   return apple ? "⌘K" : "Ctrl K";
@@ -98,11 +120,6 @@ export function isApplePlatform(nav: {
 export const RECENT_KEY_PREFIX = "laf_admin_recent_v1:";
 export const RECENT_MAX = 8;
 export const RECENT_LABEL_MAX = 60;
-
-/** The account key the layout computes: 16 hex of an HMAC, never an e-mail. */
-export function validAccountKey(key: unknown): key is string {
-  return typeof key === "string" && /^[0-9a-f]{16}$/.test(key);
-}
 
 export function recentStorageKey(accountKey: string): string | null {
   return validAccountKey(accountKey)
