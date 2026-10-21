@@ -166,11 +166,19 @@ export function parseCsv(
   return { ok: true, delimiter: sep, records };
 }
 
-/** One cell, quoted when it holds the delimiter, a quote or a line break. */
+/**
+ * One cell, quoted when it holds the delimiter, a quote or a line break. A
+ * cell that starts with = + - @ (or a tab / CR) gets a ' first, so a
+ * spreadsheet shows it as text instead of running it as a formula (CSV
+ * injection, as order-csv.ts's csvCell): the import template carries the
+ * first category's label, which a manager can set to `=HYPERLINK(…)` for the
+ * owner to open in Excel.
+ */
 export function csvField(value: string, delimiter: CsvDelimiter): string {
-  return value.includes(delimiter) || /["\r\n]/.test(value)
-    ? `"${value.replace(/"/g, '""')}"`
-    : value;
+  const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return text.includes(delimiter) || /["\r\n]/.test(text)
+    ? `"${text.replace(/"/g, '""')}"`
+    : text;
 }
 
 /** Records as CSV text: CRLF line ends, a byte order mark when asked. */

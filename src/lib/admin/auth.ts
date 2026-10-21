@@ -30,6 +30,7 @@ import {
   type AdminRole,
   type AdminSection,
 } from "./roles";
+import { adminSessionKey } from "./session-key";
 import { has2FA, verifyToken as verify2FAToken } from "./twofa";
 import {
   anyAdminUserExists,
@@ -165,6 +166,11 @@ function getSecret(): string {
   return secret;
 }
 
+/** The cookies' signing key (session-key.ts; changing it signed everyone out once). */
+function sessionKey(): Buffer {
+  return adminSessionKey(getSecret());
+}
+
 /**
  * A short, keyed digest of the credential a session was issued for: the
  * bcrypt hash of a panel account, or the password of an env (break-glass)
@@ -182,7 +188,7 @@ function credentialFingerprint(source: "db" | "env", material: string): string {
 
 function signToken(session: SignedSession): string {
   const payload = `${session.email}|${session.role}|${session.expiresAt}|${session.fingerprint}`;
-  const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
+  const sig = createHmac("sha256", sessionKey()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
@@ -206,7 +212,7 @@ function verifyToken(token: string): SignedSession | null {
     return null;
   }
 
-  const expected = createHmac("sha256", getSecret())
+  const expected = createHmac("sha256", sessionKey())
     .update(`${email}|${role}|${expiresAt}|${fingerprint}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
@@ -408,6 +414,13 @@ export async function signInAdmin(
   const limit = perAddress.blocked
     ? perAddress
     : await reserveLoginAttempt("admin-login", ip, email);
+  // A guess nobody counted is never checked. With the database down the
+  // break-glass env passwords were compared with no budget at all; no
+  // sign-in can finish without the database anyway (the 2FA read, the
+  // session's account read), so waiting costs the operator nothing.
+  if (perAddress.uncounted || limit.uncounted) {
+    return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
+  }
   if (limit.blocked) {
     return {
       ok: false,
@@ -528,7 +541,7 @@ function signPendingToken(user: {
 }): string {
   const expiresAt = Date.now() + PENDING_MAX_AGE_SECONDS * 1000;
   const payload = `pending|${user.email}|${user.role}|${user.source}|${expiresAt}`;
-  const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
+  const sig = createHmac("sha256", sessionKey()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
@@ -551,7 +564,7 @@ function verifyPendingToken(token: string): PendingAuthSession | null {
   ) {
     return null;
   }
-  const expected = createHmac("sha256", getSecret())
+  const expected = createHmac("sha256", sessionKey())
     .update(`pending|${email}|${role}|${source}|${expiresAt}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");

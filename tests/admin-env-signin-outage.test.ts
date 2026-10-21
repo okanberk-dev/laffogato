@@ -3,9 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 /**
  * What the env break-glass account can do while the database is away
  * (admin audit SHE-11). Its open session stands (admin-session-unavailable);
- * a NEW sign-in does not: the 2FA read throws rather than answer "no 2FA",
- * so the login is refused instead of passing on the password alone. The
- * docs said "env hesabı girer"; this pins what really happens.
+ * a NEW sign-in does not. Nothing can be counted then (the attempt budget
+ * lives in the database), so no password is compared at all: the answer is
+ * "unavailable" for a right and a wrong one alike. It used to compare the
+ * env passwords with no budget and refuse only at the 2FA read after a right
+ * one. The docs said "env hesabı girer"; this pins what really happens.
  */
 
 const jar = new Map<string, string>();
@@ -59,7 +61,7 @@ vi.mock("@/lib/db", () => {
 });
 
 describe("a fresh env sign-in with the database down", () => {
-  it("is refused at the 2FA read, with no session cookie", async () => {
+  it("is refused before any password is compared, with no session cookie", async () => {
     process.env.ADMIN_SESSION_SECRET = "test-secret";
     process.env.ADMIN_USERS = JSON.stringify([
       { email: "sahip@laffogato.net", password: "envParolasi", role: "owner" },
@@ -67,10 +69,12 @@ describe("a fresh env sign-in with the database down", () => {
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const auth = await import("@/lib/admin/auth");
-    await expect(
-      auth.signInAdmin("sahip@laffogato.net", "envParolasi"),
-    ).rejects.toThrow(/twofa\.read/);
+    const right = await auth.signInAdmin("sahip@laffogato.net", "envParolasi");
+    expect(right).toMatchObject({ ok: false, unavailable: true });
     expect(jar.get(auth.ADMIN_COOKIE_NAME)).toBeUndefined();
+    // A wrong password is answered the same: an uncounted guess says nothing.
+    const wrong = await auth.signInAdmin("sahip@laffogato.net", "yanlis");
+    expect(wrong).toEqual(right);
     quiet.mockRestore();
     warn.mockRestore();
   });

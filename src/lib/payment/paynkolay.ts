@@ -1136,7 +1136,13 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       providerRef: returnedRef || orderId,
       amountMinor: 0,
       currency: "TRY",
-      raw: { source: "paynkolay_return", reason, params },
+      // Adı çıkarılmış: belgelenen dönüş gövdesi onu taşımıyor, ama
+      // taşırsa da `payment_transactions.raw`'a yazılmasın (withoutHolderName).
+      raw: {
+        source: "paynkolay_return",
+        reason,
+        params: withoutHolderName(params),
+      },
     });
 
     const merchantNo = (params.MERCHANT_NO ?? "").trim();

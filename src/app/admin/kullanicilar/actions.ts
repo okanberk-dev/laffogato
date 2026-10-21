@@ -22,6 +22,10 @@ import {
   type AdminUserResult,
   type PublicAdminUser,
 } from "@/lib/admin/users";
+import {
+  SELF_CHANGE_REFUSED,
+  SELF_DELETE_REFUSED,
+} from "@/lib/admin/users-self";
 
 /**
  * Every action opens its own role gate.
@@ -111,8 +115,19 @@ export async function saveAdminUserAction(
   _prev: AdminUserState,
   formData: FormData,
 ): Promise<AdminUserState> {
-  await requireRole("adminUsers");
+  const session = await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
+  // An owner taking their own role or access away is signed out of this
+  // page at once (the session's account is re-read on every request), with
+  // nobody's confirmation; the last-owner rule only covers the last one.
+  // Another owner makes that change.
+  if (
+    email === normalizeAdminEmail(session.email) &&
+    (String(formData.get("role") ?? "") !== session.role ||
+      formData.get("isActive") !== "on")
+  ) {
+    return { error: SELF_CHANGE_REFUSED };
+  }
   const result = await updateAdminUser(email, {
     name: String(formData.get("name") ?? ""),
     role: String(formData.get("role") ?? ""),
@@ -162,8 +177,11 @@ export async function deleteAdminUserAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  await requireRole("adminUsers");
+  const session = await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
+  if (email === normalizeAdminEmail(session.email)) {
+    return actionError(SELF_DELETE_REFUSED);
+  }
   const result = await deleteAdminUser(email);
   if (!result.ok) return actionError(result.message);
   // The authenticator goes with the account: admin_2fa is keyed by the

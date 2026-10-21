@@ -230,6 +230,12 @@ export interface RateLimitStatus {
   blocked: boolean;
   retryAfterSeconds: number;
   remaining: number;
+  /**
+   * The counter could not be reached, so nothing was counted. Most callers
+   * go on (a limiter that is down must not lock every member out); a
+   * credential check that can afford to wait reads this and stops.
+   */
+  uncounted?: true;
 }
 
 const OPEN: RateLimitStatus = {
@@ -237,6 +243,9 @@ const OPEN: RateLimitStatus = {
   retryAfterSeconds: 0,
   remaining: MAX_FAILS,
 };
+
+/** OPEN, marked as not counted: what an unreachable limiter answers. */
+const UNCOUNTED: RateLimitStatus = { ...OPEN, uncounted: true };
 
 /**
  * The address a budget is kept for. IPv4 as it came; IPv6 cut to its /64.
@@ -395,10 +404,11 @@ export async function reserveLoginAttempt(
     p_lockout_ms: lockoutMs(purpose),
   });
   // Same stance as checkLoginLimit: a limiter that cannot reach the database
-  // must not lock everyone out; the credential check behind it still runs.
+  // must not lock everyone out; the credential check behind it still runs,
+  // unless the caller reads `uncounted` (the panel's sign-in does).
   if (error || !data) {
     if (error) console.error("[rate-limit] reserve failed", error);
-    return OPEN;
+    return UNCOUNTED;
   }
   if (!data.allowed) {
     const until = Date.parse(data.lockedUntil);

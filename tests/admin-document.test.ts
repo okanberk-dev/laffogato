@@ -10,6 +10,7 @@ import {
   LEGACY_ADMIN_PENDING_COOKIE,
   LEGACY_ADMIN_SESSION_COOKIE,
 } from "@/lib/admin/session-cookie";
+import { adminSessionKey } from "@/lib/admin/session-key";
 import { adminCsp, isAdminDocumentPath } from "@/lib/security/admin-document";
 import { newCspNonce } from "@/lib/security/checkout-csp";
 
@@ -44,7 +45,9 @@ function directives(csp: string): Map<string, string[]> {
 /** A session token as auth.ts signs it (email|role|exp|fingerprint|sig). */
 function sessionToken(expiresAt: number, secret = SECRET): string {
   const payload = `sahip@laffogato.net|owner|${expiresAt}|abcdef0123456789abcdef01`;
-  const sig = createHmac("sha256", secret).update(payload).digest("hex");
+  const sig = createHmac("sha256", adminSessionKey(secret))
+    .update(payload)
+    .digest("hex");
   return `${payload}|${sig}`;
 }
 

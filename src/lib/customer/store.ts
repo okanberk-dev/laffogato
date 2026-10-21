@@ -283,7 +283,13 @@ export type RegisterResult =
   | { ok: true; customer: PublicCustomer; verifyToken: string }
   | { ok: false; error: string };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// No "|" and no control characters: the session cookie is `email|exp|fp|sig`
+// (customer/auth.ts), and an address holding a "|" split into one field more
+// than the cookie has, so its owner could never stay signed in, while its
+// `email|exp|fp` lined up with the panel cookie's `email|role|exp|fp`
+// (admin/session-key.ts). RFC 5321 allows "|" in a local part; no mail
+// provider a member uses hands one out.
+const EMAIL_RE = /^[^\s@|\p{Cc}]+@[^\s@|\p{Cc}]+\.[^\s@|\p{Cc}]+$/u;
 
 export async function registerCustomer(
   input: RegisterInput,

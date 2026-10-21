@@ -15,6 +15,7 @@ import { landingPathFor } from "@/lib/admin/roles";
 import {
   cancelEnrollment,
   disable2FA,
+  has2FA,
   verifyAndEnable,
   verifyToken,
 } from "@/lib/admin/twofa";
@@ -37,8 +38,25 @@ export async function verifyEnrollAction(
 ): Promise<EnrollState> {
   const session = await getAdminSession();
   if (!session) return { error: "Oturum yok." };
+  // Already on: nothing to turn on, and no code is checked against the live
+  // secret from here (this step used to be an unlimited guessing ground for it).
+  if (await has2FA(session.email)) {
+    return { error: "İki adımlı doğrulama zaten açık." };
+  }
   const token = String(formData.get("token") ?? "").trim();
   if (!/^\d{6}$/.test(token)) return { error: "6 haneli kodu gir." };
+  // The sign-in step's two budgets, as turning it off counts them: per
+  // address, and the account from anywhere.
+  const ip = await clientIp();
+  const perAddress = await reserveLoginAttempt("admin-2fa", ip, session.email);
+  const limit = perAddress.blocked
+    ? perAddress
+    : await reserveLoginAttempt("admin-2fa-account", "*", session.email);
+  if (limit.blocked) {
+    return {
+      error: `Çok fazla hatalı kod. ${limit.retryAfterSeconds} saniye sonra tekrar dene.`,
+    };
+  }
   const ok = await verifyAndEnable(session.email, token);
   if (!ok) {
     // The page keeps its QR for 15 minutes (twofa.ts DRAFT_REUSE_MS); after
@@ -48,6 +66,8 @@ export async function verifyEnrollAction(
         "Kod doğrulanmadı. Kodu yeniden gir; yine olmazsa sayfayı yenileyip QR kodu yeniden tarat. Telefonunun saati otomatik ayarda olmalı.",
     };
   }
+  await clearLoginLimit("admin-2fa", ip, session.email);
+  await clearLoginLimit("admin-2fa-account", "*", session.email);
   // 2FA is on whatever happens to the row: the row records it, it is not
   // a condition of it.
   await safeAudit({
