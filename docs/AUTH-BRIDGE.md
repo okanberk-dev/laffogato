@@ -175,11 +175,18 @@ gerçek id ile eşlenir.
 ## 4. `src/proxy.ts`: oturum yenileme
 
 Server Component çerez yazamaz; süresi dolan access token tarayıcıda kalırdı.
-`updateSession` her sayfa isteğinde (Supabase çerezi varsa) `getUser()`
-çağırarak yenilemeyi tetikler ve dönen çerezleri hem isteğe hem yanıta yazar.
-Admin koruması aynen durur; admin yönlendirmesine yenilenen çerezler
-kopyalanır. `api/mobile` ve `api/webhooks` matcher dışındadır - biri bearer,
-diğeri HMAC kullanır, yenilenecek çerezleri yoktur.
+`updateSession` her sayfa isteğinde (Supabase çerezi varsa) `getClaims()`
+çağırarak yenilemeyi tetikler ve dönen çerezleri hem isteğe hem yanıta yazar
+(3 sn sınırıyla). Süresi dolmuş oturum eskisi gibi kimlik sunucusunda
+yenilenir; geçerli erişim token'ı ise projenin önbellekteki açık anahtarlarıyla
+yerelde doğrulanır, proje hâlâ ortak sırla imzalıyorsa kütüphane `getUser()`'a
+düşer (#100). Sonucu hiçbir şeye yetki vermez: sayfa kimliği sitenin kendi
+imzalı çerezinden (`getActiveCustomer`), uygulamanınki istek başına
+`getUser(jwt)`'den gelir. Admin koruması aynen durur; admin yönlendirmesine
+yenilenen çerezler kopyalanır. `/api/*` vekilde atlanır (bearer, HMAC, sır,
+token); eşleyici statik dosyaları uzantıyla (`js|css|woff2|txt|xml|…`) dışarıda
+bırakır, `/admin/` altındakiler hariç: orada dosya gibi görünen bir adres de
+panel sayfasıdır, panel CSP'sini ve çerez taşımasını alır.
 
 ## 5. Sınırlar ve bilinçli boşluklar
 
