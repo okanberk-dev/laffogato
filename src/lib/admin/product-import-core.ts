@@ -20,8 +20,25 @@
  * - A KDV cell takes the rates the law uses today (0, 1, 10, 20) or the
  *   product's own stored rate. The panel stores any whole rate up to 100,
  *   but a spreadsheet is where an old 18 or 8 comes from.
+ * - The food label columns (`allergens` and the text fields of
+ *   src/lib/shop/food-label.ts, TGK Etiketleme m.9/1, m.17/2-a) follow the
+ *   main columns: an empty cell keeps the stored value. A stock file built
+ *   from the template would otherwise wipe every product's label, copied by
+ *   hand from the pack; clearing one is the product form's job.
+ * - An `allergens` cell names Ek-1 groups (the menu's closed list,
+ *   src/lib/menu/allergens.ts) by label or key, "yok" for none of the
+ *   fourteen. A word that is not a group refuses the row: a guessed
+ *   allergen is the failure the closed list exists to prevent.
  * - Images are not imported.
  */
+
+import {
+  isMenuAllergen,
+  MENU_ALLERGENS,
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
+import { FOOD_LABEL_FIELDS, type FoodLabelKey } from "@/lib/shop/food-label";
 
 import { toCsv } from "./csv";
 import { foldTr } from "./text-fold";
@@ -63,7 +80,9 @@ export type ImportColumn =
   | "description"
   | "brand"
   | "weight"
-  | "tag";
+  | "tag"
+  | "allergens"
+  | FoodLabelKey;
 
 export interface ImportColumnSpec {
   key: ImportColumn;
@@ -74,6 +93,30 @@ export interface ImportColumnSpec {
   /** Other header spellings accepted (Turkish names, with or without spaces). */
   aliases: readonly string[];
 }
+
+/** The template's example cell for each label field ('' where a guess would mislead). */
+const LABEL_EXAMPLE: Readonly<Record<FoodLabelKey, string>> = {
+  netQuantity: "250 g",
+  ingredients: "%100 Arabica kahve çekirdeği",
+  nutrition: "",
+  storageConditions: "Serin ve kuru yerde, ağzı kapalı saklayın.",
+  usageInstructions: "",
+  origin: "Brezilya, Etiyopya",
+  producer: "",
+  businessRegNo: "",
+};
+
+/** Turkish header spellings of the label columns. */
+const LABEL_ALIASES: Readonly<Record<FoodLabelKey, readonly string[]>> = {
+  netQuantity: ["net miktar", "miktar"],
+  ingredients: ["içindekiler", "bileşenler"],
+  nutrition: ["besin değerleri", "beslenme bildirimi"],
+  storageConditions: ["saklama koşulu", "saklama"],
+  usageInstructions: ["kullanım talimatı", "kullanım"],
+  origin: ["menşe", "menşe ülkesi"],
+  producer: ["üretici", "gıda işletmecisi", "ithalatçı"],
+  businessRegNo: ["işletme kayıt no", "kayıt no", "onay no"],
+};
 
 /** The template's columns, in its order. */
 export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
@@ -161,6 +204,22 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
     note: "Kartta adın altındaki satır. Boşsa değişmez; yeni üründe kategorinin adı.",
     aliases: ["etiket", "altbaslik"],
   },
+  {
+    key: "allergens",
+    need: "optional",
+    example: "yok",
+    note: "Ek-1'deki 14 gruptan içerdiklerini virgülle yaz (ör. Gluten, Süt, Sert kabuklu meyveler); hiçbirini içermiyorsa yok. Sert kabuklu meyveler kuruyemiş uyarısını da ekler. Boşsa değişmez; listeyi silmek için ürün formunu kullan.",
+    aliases: ["alerjen", "alerjenler"],
+  },
+  ...FOOD_LABEL_FIELDS.map(
+    (f): ImportColumnSpec => ({
+      key: f.key,
+      need: "optional",
+      example: LABEL_EXAMPLE[f.key],
+      note: `${f.panel}. ${f.hint} En fazla ${f.max} karakter. Boşsa değişmez; silmek için ürün formunu kullan.`,
+      aliases: LABEL_ALIASES[f.key],
+    }),
+  ),
 ];
 
 export const IMPORT_NEED_LABEL: Readonly<Record<ImportColumnSpec["need"], string>> = {
@@ -186,6 +245,60 @@ const HEADER_LOOKUP: ReadonlyMap<string, ImportColumn> = new Map(
 /** The column a header cell names, or null for one the import does not read. */
 export function importColumnFor(header: string): ImportColumn | null {
   return HEADER_LOOKUP.get(headerKey(header)) ?? null;
+}
+
+/** Words an `allergens` cell takes for "none of the fourteen". */
+const NO_ALLERGEN_WORDS = new Set(["yok", "hicbiri", "hicbirini", "hicbiriniicermez", "icermez"]);
+
+const ALLERGEN_LOOKUP: ReadonlyMap<string, MenuAllergen> = new Map(
+  MENU_ALLERGENS.flatMap((a) =>
+    [a.key, a.label].map((w) => [headerKey(w), a.key] as const),
+  ),
+);
+
+/** The group names an `allergens` cell takes, for its error. */
+const ALLERGEN_NAMES = MENU_ALLERGENS.map((a) => a.label).join(", ");
+
+/**
+ * An `allergens` cell: null when empty (the stored list stays), [] for
+ * "yok", or the groups in Ek-1 order. Groups are split at commas,
+ * semicolons, slashes or line breaks and read by label or key, the Turkish
+ * letters folded ("sut", "Süt", "SÜT"). Nothing else is read: "fıstık"
+ * could be a peanut or a pistachio, so it is refused, not guessed.
+ */
+export function parseAllergenCell(
+  raw: string,
+): { ok: true; value: MenuAllergen[] | null } | { ok: false; error: string } {
+  const parts = raw
+    .split(/[,;/|\n]/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return { ok: true, value: null };
+  let none = false;
+  const keys: MenuAllergen[] = [];
+  const unknown: string[] = [];
+  for (const part of parts) {
+    const word = headerKey(part);
+    if (NO_ALLERGEN_WORDS.has(word)) none = true;
+    else {
+      const key = ALLERGEN_LOOKUP.get(word);
+      if (key && isMenuAllergen(key)) keys.push(key);
+      else unknown.push(part.length > 30 ? `${part.slice(0, 29)}…` : part);
+    }
+  }
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      error: `Alerjenler: tanımadığım grup ${unknown.map((u) => `"${u}"`).join(", ")}. Gruplar: ${ALLERGEN_NAMES}. Hiçbirini içermiyorsa yok yaz.`,
+    };
+  }
+  if (none && keys.length > 0) {
+    return {
+      ok: false,
+      error: "Alerjenler: yok ile bir grup birlikte yazılmış; birini sil.",
+    };
+  }
+  return { ok: true, value: none ? [] : normalizeMenuAllergens(keys) };
 }
 
 const TRUE_WORDS = new Set(["1", "evet", "e", "true", "yes", "y", "aktif", "acik", "var", "x"]);
