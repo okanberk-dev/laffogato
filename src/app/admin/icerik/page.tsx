@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/admin/forms";
+import { PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getSiteContent } from "@/lib/admin/site-content";
 
@@ -12,13 +13,20 @@ export default async function AdminContentPage() {
   const content = await getSiteContent();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="form">
       <PageHeader
-        eyebrow="İçerik · Site metinleri"
-        title="Site Metinleri"
-        description="Ana sayfadaki tanıtım bandı ile Hikaye sayfasının ve uygulamanın Hikâye ekranının metinleri. Kaydettiğinde site hemen güncellenir; uygulama kopyasını günde bir yenilediği için yeni metni bir gün içinde gösterir. Her alanın altında nerede göründüğü yazar."
+        title="Site metinleri"
+        description="Ana sayfa bandının ve Hikaye ekranlarının metinleri."
+        help={
+          <p>
+            Ana sayfadaki tanıtım bandı ile Hikaye sayfasının ve uygulamanın
+            Hikâye ekranının metinleri. Kaydettiğinde site hemen güncellenir;
+            uygulama kopyasını günde bir yenilediği için yeni metni bir gün
+            içinde gösterir. Her alanın altında nerede göründüğü yazar.
+          </p>
+        }
       />
       <ContentForm content={content} />
-    </main>
+    </PageShell>
   );
 }
