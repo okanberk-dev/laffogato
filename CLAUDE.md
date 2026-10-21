@@ -200,6 +200,8 @@ src/
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
+    api/panel/karaoke/       → Köşkün panelinin imzalı karaoke okuması
+                               (HMAC, docs/PANEL-KARAOKE.md)
     api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
@@ -247,6 +249,8 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
+    panel/                   → Köşkün paneliyle karaoke bağlantısı: imza,
+                               pencere, beyaz liste (karaoke-sync-core) · ping
     payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
                                paynkolay-card (kart doğrulama) · paynkolay-page
                                (ödeme sayfaları + kendi CSP'leri)
@@ -309,6 +313,21 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   şablonu). Alıcılar Ayarlar → Bildirimler: roller, ek adresler, operasyon
   adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
   soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
+
+## Köşkün paneli: karaoke bağlantısı (21 Eki 2026)
+
+Köşkün iç paneli (ladmin.laffogato.net, `RiosenBeq/lafmaliyet`) bardaki hep
+açık ekranda karaoke odasını sayar ve yeni rezervasyonda çalar. `live:karaoke`
+etiketini düşüren her yazım, yazım kancasından (`src/lib/db/index.ts`
+`onWrite`) yanıttan sonra panele içeriksiz, imzalı bir ping atar
+(`src/lib/panel/karaoke-ping.ts`); panel pencerenin rezervasyonlarını imzalı
+`GET /api/panel/karaoke`'tan çeker. Paylaşılan anahtar `KARAOKE_SYNC_SECRET`
+(iki projede aynı); yoksa ikisi de kapalıdır. Panele yalnız ad, saat, kişi
+sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
+(`toPanelReservation` beyaz listesi). İmza kuralları
+`src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
+testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
+`docs/PANEL-KARAOKE.md`.
 
 ## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 
