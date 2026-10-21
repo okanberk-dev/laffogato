@@ -425,6 +425,7 @@ describe("ui/icons.tsx", () => {
       more: "Ellipsis",
       dateRange: "CalendarRange",
       close: "X",
+      chevron: "ChevronDown",
       security: "ShieldCheck",
       shortcuts: "Keyboard",
       density: "Rows3",

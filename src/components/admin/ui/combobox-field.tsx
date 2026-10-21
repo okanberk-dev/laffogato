@@ -148,8 +148,6 @@ export function ComboboxField({
     <select
       ref={box}
       name={name}
-      // As the kit's Select writes it, so the markup is the old select's.
-      className={`${FIELD_INPUT} ${className ?? ""}`}
       aria-invalid={ariaInvalid}
       {...native}
       {...(value !== undefined
@@ -161,6 +159,8 @@ export function ComboboxField({
         : { defaultValue })}
       onPointerEnter={arm}
       onFocus={arm}
+      // Last, as the kit's Select writes it, so the markup is the old select's.
+      className={`${FIELD_INPUT} ${className ?? ""}`}
     >
       {placeholder !== undefined && (
         <option value="" disabled={placeholderDisabled}>
