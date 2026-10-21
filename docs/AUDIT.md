@@ -411,6 +411,14 @@ formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu (17 
 2026'da canlıda doğrulandı, `docs/PAYNKOLAY.md` §2) ve dönüş hash'inin
 `CURRENCY_CODE` alanı.
 
+PR #189 (UI-13, köşk çipi) güvenlik incelemesinin main'de bulduğu, o PR'ın
+değiştirmediği iki madde (21 Eki 2026):
+
+| Derece | Bulgu | Önerilen düzeltme |
+| --- | --- | --- |
+| 🟡 | P1: Canlı durum elle **Açık**'ken `placeAppOrder` planlı kafe siparişini `SCHEDULE_MAX_DAYS` (7) gün içindeki her saat için kabul ediyor: `isCafeOpenNow(hours, manualOverride, at)` elle Açık'ta `at`'a bakmaz (`src/lib/admin/store.ts`, `const at = scheduled.value ...`). Karar D3'le Personel de Açık seçebiliyor; maç gecesi için açılan köşk, ertesi gün 04:00'e ödenmiş bir sipariş alabilir | Elle Açık / Kapalı yalnız "hemen" siparişe uygulansın; planlı sipariş saatlere göre denetlensin |
+| 🟢 | P2: her `venue_status` yazması `pub:site`'ı düşürüyor. Etiket ayarları, site metinlerini, slaytları ve hukuk metinlerini de taşıdığı için çipin her kaydı genel sayfaların bütün önbelleğini boşaltıyor (sonraki görüntülemeler veritabanını okur). Güvenlik değil, maliyet | Canlı duruma ayrı bir etiket (`TABLE_TAGS.venue_status`); onu okuyan iki önbellek (zilin `panel-busy-inputs`'u, çipin `venue` işareti) o etiketi de dinler, genel sayfalar dinlemez |
+
 ## 9. Mobil denetim turu - 14 Eki 2026
 
 lafmobil'in uygulama denetimi (`lafmobil/docs/AUDIT-APP-2026-10-14.md`,
@@ -1323,3 +1331,20 @@ Canlı durum, Tümü olur.
 | 🟢 | Telefonda her sayfa değişimi menü düğmesi, çekmece, öğe demekti | `ui/bottom-bar.tsx`: 44 px yuvalar, lucide simge (menünün tembel `nav-icon.tsx` parçasından) ve ad, menünün rozet sayıları (ikinci bir sorgu yok). Siparişler rozetin saydığı Açık sekmesini açar; açık sayfanın yuvası `aria-current`, çubukta olmayan sayfada Tümü yanar. Tümü çekmeceyi açar, kapanınca odak ona döner. Kasiyerde çubuk yok, kabuğu çubuk kodunu çalıştırmaz | `admin-bottom-bar`, `admin-landing` |
 | 🟢 | Alt kenarda üst üste binme (çubuk, toplu işlem çubuğu, bildirimler, yeni sipariş kartları, kaydet çubukları, klavye) | Tek değişken: admin kökü `has-[[data-admin-tabbar]]` ile `--admin-bottom-inset`'i (3,5rem + `env(safe-area-inset-bottom)`) toplu işlem çubuğu yokken kurar; sayfa o kadar yukarıda biter. Bildirimler ve toplu işlem çubuğu onu kenar boşluğu olarak ekler, Site metinleri ve kampanya formunun kaydet çubukları 1rem üstünde durur, yeni sipariş kartları çubuğun üstüne oturur ve ev göstergesi payını ikinci kez eklemez. Çubuk toplu işlem çubuğu açıkken, bir `dialog` açıkken ve dokunmatik ekranda yazı alanı odaktayken çekilir (yalnız Tailwind sınıfları, dinleyici yok). `globals.css`'e kural eklenmedi | `admin-bottom-bar`, `admin-order-alerts-client` |
 | 🟢 | Paket bütçesi | Her admin rotasına +1,0 KB gz (`/admin/siparisler` +0,96, `/admin/kasa` +0,99); lucide parçası değişmedi, `/admin/kasa`'nın rota parçalarında lucide yok | `admin-bottom-bar` |
+
+### Kabuk: köşk çipi, Personel'e Canlı durum (admin UI v2, UI-13)
+
+Karar D3: köşkteki vardiya odayı görür; açık, yoğun, kapalı ve boş masayı
+Personel de söyler. Toplam masa Sahip ve Yönetici'de kalır, uygulamanın
+slaytları, gönderileri ve ayarları (`mobileApp`) değişmedi. Güvenlik
+incelemeli PR.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Personel Canlı durum'u açamıyordu; akşam boyunca en sık değişen bilgi (açık mı, boş masa) yalnız Sahip ve Yönetici'deydi | Yeni bölüm `venue` (sahip, yönetici, personel; kasiyer yok): sayfa ve iki action `requireRole("venue")`, menü öğesi `venue`. Personel'in menüsü altı öğe, alt çubuğu Siparişler, Karaoke, Kasa, Canlı durum, Tümü; paletin Git'i ve rol özeti (`Canlı durum`) aynı | `admin-roles-matrix`, `admin-venue-status`, `admin-nav-ia`, `admin-bottom-bar`, `admin-palette-core`, `admin-role-summary` |
+| 🟢 | Toplam masa Personel'e açılmamalı | Sayfada salt okunur (adı yok, gönderilmez); action Personel'in gönderdiği `totalTables`'ı yok sayar, kayıt `patchVenueStatus` ile toplamı hiç yazmaz; boş masa kayıtlı toplamı geçemez, denetim aynı `UPDATE`'in `WHERE`'inde (`"totalTables" >= $n`), arada toplamı düşüren kayıt da sayılır | `admin-venue-status`, `venue-status-patch`, `db-integration-venue-status` |
+| 🟢 | Hızlı bir değişiklik başkasının Wi-Fi, gürültü, priz ya da notunu ezebilirdi (tüm satırı yazan upsert) | Üst çubuktaki çip (`saveVenueQuickAction`: kendi kapısı, Zod, olay kaydı satırı, `revalidatePath`) yalnız açık/kapalı seçimini ve boş masayı tek `UPDATE` ile yazar; satır yoksa varsayılanlarla `ON CONFLICT DO NOTHING`. Yoğun yalnız boş masayı 0 yapar | `admin-venue-status`, `venue-status-patch`, `db-integration-venue-status`, `admin-venue-quick`, `db-integration-venue-quick-security` |
+| 🟡 | İnceleme F1: çipin Yoğun'u Otomatik ve boş masa 0 yazıyordu; elle Açık bir gecede saat dışında köşkü uygulamada kapatıyor (`placeAppOrder` `cafe_closed`), saat içinde elle Kapalı'yı kaldırıyordu | Yoğun yalnız `freeTables = 0` yazar (`quickPatchFor`), açık/kapalı aynı kalır, yine tek `UPDATE`; kutu, çip "Yoğun" dediğinde Yoğun'da açılır (`quickChoiceOf`, `venueChipState` ile aynı); + ile çıkış köşkün kayıtlı ayarına döner (`choiceAfterStep`), Otomatik'e değil; olay kaydı yalnız yazılanı söyler | `db-integration-venue-quick-findings`, `db-integration-venue-quick-security`, `admin-venue-quick`, `admin-venue-status` |
+| 🟢 | İnceleme F2: sorgunun ucuz kapısı çerezdeki role bakıyordu; Personel'e yükseltilen bir kasiyer, sayfa ve hızlı kayıt ona açıkken, yeniden girene kadar (7 güne kadar) durumu göremiyordu | Rolü Canlı durum'u açmayan çerez imleç denetimine girmez ve imleç almaz, karar hesabındır (`panelSignal` ve zilin yolu gibi); kasiyer hesap okumasından sonra yine durum alamaz, durum ve ayar okunmaz | `db-integration-venue-quick-findings`, `db-integration-venue-quick-security`, `admin-venue-signal` |
+| 🟢 | Çipin durumu dakikada bir veritabanından okunsaydı açık bir panel sekmesi Neon'u yine bütün gün uyanık tutardı (#185'in kapattığı) | Düzende okuma yok; çip rozetlerin yoluyla sorar (`venueSignal`): `venue` işareti `pub:site` ve `live:access` altında, imleç oturuma bağlı ve saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli (`nextOpenChangeAt`); arada cevap `{ unchanged: true }`, hesap ve durum okunmaz. Durum taşıyan cevap hesabı yeniden okur; cevapta yalnız beş alan (seçim, boş ve toplam masa, açık mı, kaydedildi mi), kişi bilgisi yok. Her `venue_status` yazması `pub:site`'ı düşürür | `admin-venue-signal`, `admin-change-marker`, `venue-status-patch` |
+| 🟢 | Uygulamanın canlı durum cevabı | `GET /api/mobile/v1/live-status` ve `toLiveStatus` değişmedi; kısmi kayıttan sonra aynı on iki alan (§6), yalnız yazılan alanlar ve zaman değişir; 216 durumluk bir matriste cevap main'inkiyle bayt bayt aynı | `venue-status-patch`, `db-integration-venue-status`, `mobile-hours`, `venue-live-status-parity` |
