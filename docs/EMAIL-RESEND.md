@@ -213,9 +213,10 @@ Supabase'deki kimlik. Artık ikisi de değiştirilebiliyor, dolayısıyla:
 
 Servis rolü anahtarı **yoksa** ilk madde çalışmaz, o yüzden ikinci madde de
 devre dışı kalır: anahtar olmadan sitenin kendi kopyası tek yetkili sayılır
-ve uyuşmazlık reddedilir (`hasSupabaseAdmin`). Yani `SUPABASE_SERVICE_ROLE_KEY`
-tanımlıysa iki yön de kapalı; değilse uygulamada sıfırlama sitenin girişini
-çözmez.
+ve uyuşmazlık reddedilir (`hasSupabaseAdmin`). Yani servis anahtarı
+(`SUPABASE_SECRET_KEY`, ya da yoksa eski `SUPABASE_SERVICE_ROLE_KEY`;
+`docs/AUTH-BRIDGE.md` §1) tanımlıysa iki yön de kapalı; değilse uygulamada
+sıfırlama sitenin girişini çözmez.
 
 > Masaüstünde açılan bir uygulama sıfırlama postası hâlâ tamamlanamaz:
 > bağlantı `laffogato://` şemasını taşır, tarayıcı bunu açamaz. Masaüstündeki

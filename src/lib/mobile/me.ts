@@ -754,7 +754,7 @@ function logIdentitySkip(identityId: string): void {
   // `deleteSupabaseIdentity` skips for exactly two reasons: no id to delete,
   // or no key to delete it with.
   const reason = identityId
-    ? "SUPABASE_SERVICE_ROLE_KEY is not set, the identity stays in Supabase"
+    ? "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set, the identity stays in Supabase"
     : "the row was never linked to a Supabase identity";
   console.warn(`[deleteMe] identity skipped: ${reason}`);
 }

@@ -8049,3 +8049,81 @@ $$;
 
 insert into public._migrations (name) values ('20261020203619_karaoke_make_good.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261021050500_customer_milestone_rewards_rls.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Row level security on customer_milestone_rewards (20 Oct 2026).
+--
+-- Every other table in the schema has RLS on and no policy;
+-- customer_milestone_rewards (20260923200000) was the one table created
+-- without it. On Neon nothing changes: the app connects as the table's
+-- owner, and an owner is not subject to RLS. On a Supabase database the
+-- difference is real: every table in `public` is exposed through PostgREST,
+-- and without RLS the anon and authenticated roles could read which member
+-- got which gift, and write rows that stop a milestone from ever being
+-- granted (its primary key is the grant's guard). RLS without a policy
+-- closes the table to those roles, as for every other table.
+--
+-- No policy on purpose, and no grant: the roles above do not exist on Neon,
+-- and the app never needs one (docs/SUPABASE-GECIS.md §1).
+-- tests/db-rls.test.ts holds RLS on for every table the schema creates.
+--
+-- Re-runnable (enabling RLS twice is a no-op). Rollback:
+--   alter table public.customer_milestone_rewards disable row level security;
+
+alter table public.customer_milestone_rewards enable row level security;
+
+insert into public._migrations (name) values ('20261021050500_customer_milestone_rewards_rls.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261021050600_supabase_keepalive.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The daily Supabase keep-alive, made visible (20 Oct 2026).
+--
+-- /api/cron/daily pings the free-plan Supabase project every morning so it
+-- never pauses for inactivity (keepSupabaseAwake, docs/SUPABASE-GECIS.md
+-- §0). The result went into the cron's response body and nowhere else, and
+-- CRON_SECRET is "sensitive" on Vercel: nobody could see whether the ping
+-- still got through. A paused project refuses every sign-in.
+--
+--   supabase_keepalive
+--     One row (id 'supabase'): the latest attempt (its outcome and when)
+--     and the latest success. Written by the cron in ONE statement, an
+--     upsert that sets "lastSuccessAt" only on an "ok" (CLAUDE.md rule 20:
+--     no read-modify-write). Read live by the owner's dashboard
+--     (/admin, Genel bakış), never cached.
+--
+-- A single row rather than a log: the dashboard needs exactly these two
+-- facts, a log would grow by a row a day and need a retention rule, and this
+-- row holds no personal data, so nothing in the published retention policy
+-- applies to it. The checks pin its shape: an outcome word and two
+-- ISO-8601 UTC instants. No key, no response body, no member data can be
+-- stored here, by mistake or otherwise.
+--
+-- Row level security on, no policy, like every other table
+-- (tests/db-rls.test.ts). Re-runnable. Rollback:
+--   drop table if exists public.supabase_keepalive;
+
+create table if not exists public.supabase_keepalive (
+  id              text primary key,
+  "lastStatus"    text not null,
+  "lastAttemptAt" text not null,
+  "lastSuccessAt" text not null default '',
+  constraint supabase_keepalive_one_row check (id = 'supabase'),
+  constraint supabase_keepalive_status
+    check ("lastStatus" in ('ok', 'failed', 'skipped')),
+  constraint supabase_keepalive_attempt_at
+    check ("lastAttemptAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$'),
+  constraint supabase_keepalive_success_at
+    check (
+      "lastSuccessAt" = ''
+      or "lastSuccessAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$'
+    )
+);
+
+alter table public.supabase_keepalive enable row level security;
+
+insert into public._migrations (name) values ('20261021050600_supabase_keepalive.sql')
+  on conflict (name) do nothing;

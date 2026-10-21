@@ -131,12 +131,14 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `PAYMENT_PROVIDER`               | `mock` \| `paynkolay`                               |
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (yalnız `mock`)            |
 | `RESEND_API_KEY`                 | Sipariş, doğrulama ve şifre sıfırlama e-postaları   |
-| `SUPABASE_SERVICE_ROLE_KEY`      | Sıfırlanan parolayı Supabase'e de yazar             |
+| `SUPABASE_SECRET_KEY`            | Sıfırlanan parolayı Supabase'e de yazar             |
 
 `RESEND_API_KEY` olmadan hiçbir e-posta çıkmaz; doğrulama bağlantısı da bir
 e-posta olduğu için **yeni hiçbir üye ilk siparişini tamamlayamaz**.
-`SUPABASE_SERVICE_ROLE_KEY` olmadan sitede sıfırlanan parola uygulamada eski
-kalır. İkisinin de ayrıntısı [docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) ve
+`SUPABASE_SECRET_KEY` (Supabase'in yeni gizli anahtarı; boşsa eski
+`SUPABASE_SERVICE_ROLE_KEY` okunur) olmadan sitede sıfırlanan parola
+uygulamada eski kalır. İkisinin de ayrıntısı
+[docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) ve
 [docs/AUTH-BRIDGE.md](docs/AUTH-BRIDGE.md)'de.
 
 PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,

@@ -35,9 +35,24 @@ servis rolüyle auth yönetim API'sinden tek kullanıcılık bir sayfa ister
 (`keepSupabaseAwake`, `src/lib/supabase/admin.ts`): `auth.users` üzerinde
 gerçek bir okuma; yanıt okunmadan atılır. `/auth/v1/health` veritabanına
 inmediği için yetmez. Sonuç cron yanıtındaki `keepalive.ping`'dir (`ok` ·
-`failed` · `skipped`; `SUPABASE_SERVICE_ROLE_KEY` yoksa `skipped`). Bu
+`failed` · `skipped`; servis anahtarı, yani `SUPABASE_SECRET_KEY` ya da eski
+`SUPABASE_SERVICE_ROLE_KEY` yoksa `skipped`). Bu
 yalnız duraklamayı önler, yukarıdaki 2 proje sınırı yüzünden kaldırılmayı
 değil. Pro planda duraklama yoktur; orada adım silinebilir.
+
+**Yoklama görünür (20 Eki 2026).** `CRON_SECRET` Vercel'de "sensitive"
+olduğu için cron elle çağrılamaz; sonucu yalnız yanıt gövdesinde kalıyordu.
+Artık her yoklamanın sonucu (`ok` · `failed` · `skipped` ve ISO zamanı;
+anahtar ve yanıt gövdesi asla) Neon'daki tek satırlık `supabase_keepalive`
+tablosuna yazılır: son deneme ve son başarı, tek bir upsert ile
+(`recordSupabaseKeepalive`, `src/lib/admin/supabase-keepalive.ts`). Kayıt
+cron'un işlerinden sonra, 5 sn sınırıyla yazılır; yazılamazsa günlüğe sınıfı
+düşer (SQLSTATE, ulaşılamıyor, süre), cron ve yoklamanın sonucu etkilenmez
+(yanıtta `keepalive.recorded`). Sahibin Genel bakış sayfasında
+"Supabase uyanık tutma: son başarılı ping <tarih>" satırı durur; son başarı
+İstanbul takvimiyle 3 günden eskiyse, son deneme başarısızsa ya da tablo
+kurulalı 2 günden fazla olduğu hâlde hiç kayıt yoksa (cron hiç çalışmıyor)
+uyarı renginde (`docs/ADMIN.md`).
 
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
 
@@ -53,9 +68,14 @@ Supabase'de rol bayrakları (canlı sorgu, pg_roles):
   anon          rolbypassrls = false
 ```
 
-Şemadaki 27 tablo "RLS açık, policy yok" durumundadır ve `postgres`
-kullanıcısıyla bağlanan uygulama için davranış Neon'dakiyle BİREBİR aynıdır:
-RLS baypas edilir, hiçbir sorgu boş dönmez.
+Şemadaki her tablo (`_migrations` dahil) "RLS açık, policy yok"
+durumundadır (sayı yazılmıyor, her yeni tabloyla eskir; tutan testler
+aşağıda) ve `postgres` kullanıcısıyla bağlanan uygulama için
+davranış Neon'dakiyle BİREBİR aynıdır: RLS baypas edilir, hiçbir sorgu boş
+dönmez. Tek istisna `customer_milestone_rewards`'tı (RLS'siz yaratılmıştı,
+`20261021050500_customer_milestone_rewards_rls.sql` kapattı). Yeni bir tablo
+RLS'siz kalırsa `tests/db-rls.test.ts` (şemadan) ve
+`tests/db-integration-schema-objects.test.ts` (gerçek Postgres'te) kırılır.
 
 ## 2. ⚠️ Tek gerçek tuzak: doğrudan bağlantı IPv6-yalnız, Vercel IPv6 konuşmaz
 
@@ -169,10 +189,13 @@ Sıfır kesinti hedefiyle, adım adım:
    uygulanır) ve Neon'daki veri cutover'dan sonra da silinmemiş olacak
    (bkz. adım 8).
 8. **Söküm (en az 1 hafta sonra):** Neon projesi kapatılır. Kodda
-   kaldırılacak bir şey yok: eski sağlayıcıya özel değişken zincirden zaten
-   çıkarıldı (`src/lib/db/index.ts` `DATABASE_URL` → `POSTGRES_URL` →
-   `SUPABASE_DB_URL`, `scripts/db-migrate.mjs` `DATABASE_URL` →
-   `POSTGRES_URL` okur).
+   kaldırılacak bir şey yok: uygulama da betikler de bağlantı dizesini yalnız
+   `DATABASE_URL`'den okur (`src/lib/db/database-url.mjs`). Supabase'in
+   Vercel entegrasyonunun yazdığı `POSTGRES_URL` ve eski `SUPABASE_DB_URL`
+   adı bilerek okunmaz; `DATABASE_URL` yoksa site başka bir veritabanına
+   bağlanmaz, kesintideki gibi pakete düşer ve `/api/health`
+   `unconfigured` der ([DATABASE.md](DATABASE.md) "Bağlantı dizesi yalnız
+   `DATABASE_URL`").
 
 ## 5. Cutover'dan sonra: veri aynı projede, kimlik hâlâ iki sistem
 
