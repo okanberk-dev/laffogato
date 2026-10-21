@@ -65,28 +65,31 @@ const adminFontStyle = {
   // MONO_STYLE's labels (role, counts, column heads) are sans in AkmanOS;
   // real monospace (codes, amounts) is NUMERIC_STYLE's Geist Mono.
   "--mono": ADMIN_SANS,
+  // AkmanOS, softened (operator, 21 Oct 2026: "yumuşat, daha estetik,
+  // biraz renklendir"): the same white page and controls, the cards and
+  // the sidebar a warm stone instead of cold zinc, the ink a warm
+  // near-black, and five pastel colours for the nav groups (below).
   // Surfaces: the page and every control, menu and dialog are white; cards
-  // and the sidebar are zinc-100 (--admin-panel), hovers and wells too.
+  // and the sidebar are warm stone (--admin-panel), hovers and wells too.
   "--admin-bg": "#FFFFFF",
   "--admin-surface": "#FFFFFF",
-  "--admin-surface-2": "#F4F4F5",
-  "--admin-panel": "#F4F4F5",
-  "--admin-border": "#E4E4E7",
-  "--admin-border-strong": "#D4D4D8",
-  // A field's outline: 3.33:1 on zinc-100 and 3.6:1 on white, so an empty
-  // field can be found (non-text contrast is 3:1). --admin-border
-  // (zinc-200) stays for cards and dividers.
-  "--admin-border-field": "#85858D",
-  // Text (AkmanOS ink)
-  "--admin-text": "#171717",
-  "--admin-text-soft": "#3F3F46",
-  // Labels, hints, eyebrows and placeholders. AkmanOS's zinc-500 #71717A
-  // is 4.40:1 on its own zinc-100 cards; this clears 4.5:1 on white and
-  // on zinc-100 (tests/admin-ui-kit.test.ts).
-  "--admin-text-mute": "#6B6B73",
-  // Actions: black primary, lime accent (a fill only, under dark ink)
-  "--admin-primary": "#171717",
-  "--admin-primary-hover": "#27272A",
+  "--admin-surface-2": "#F6F4F0",
+  "--admin-panel": "#F6F4F0",
+  "--admin-border": "#E9E5DE",
+  "--admin-border-strong": "#D9D3CA",
+  // A field's outline: 3.45:1 on the stone cards and 3.8:1 on white, so an
+  // empty field can be found (non-text contrast is 3:1). --admin-border
+  // stays for cards and dividers.
+  "--admin-border-field": "#8A8278",
+  // Text: a warm near-black and its two greys
+  "--admin-text": "#1C1917",
+  "--admin-text-soft": "#44403C",
+  // Labels, hints, eyebrows and placeholders: 5.2:1 on the stone cards
+  // and 4.7:1 on a hovered control (tests/admin-ui-kit.test.ts).
+  "--admin-text-mute": "#6B655E",
+  // Actions: a warm black primary, lime accent (a fill only, under dark ink)
+  "--admin-primary": "#1C1917",
+  "--admin-primary-hover": "#292524",
   "--admin-accent": "#C0F21E",
   "--admin-danger": "#DC2626",
   // Tones (components/admin/ui/tone.ts): an ink for text and a soft ground
@@ -94,8 +97,8 @@ const adminFontStyle = {
   // ground and on white - tests/admin-ui-kit.test.ts holds them to it.
   // --admin-danger (red-600) stays for buttons and borders; on its soft
   // red-50 it is 4.41:1, so danger TEXT uses --admin-danger-ink (red-700).
-  "--admin-neutral-soft": "#F4F4F5",
-  "--admin-primary-soft": "#E4E4E7",
+  "--admin-neutral-soft": "#F6F4F0",
+  "--admin-primary-soft": "#ECE8E1",
   "--admin-accent-ink": "#1F3A08",
   "--admin-accent-soft": "#EFFCC7",
   "--admin-info": "#2563EB",
@@ -106,6 +109,19 @@ const adminFontStyle = {
   "--admin-warning-soft": "#FFF7ED",
   "--admin-danger-ink": "#B91C1C",
   "--admin-danger-soft": "#FEF2F2",
+  // The nav groups' colours (ui/hues.ts): a pastel ground and a deep ink,
+  // 5.3:1 or more on each other and on white. Bugün, Katalog, Pazarlama,
+  // İçerik, Yönetim.
+  "--admin-hue-blue": "#1E50C8",
+  "--admin-hue-blue-soft": "#E9F0FF",
+  "--admin-hue-amber": "#9A4F0A",
+  "--admin-hue-amber-soft": "#FDF0DA",
+  "--admin-hue-rose": "#B8195A",
+  "--admin-hue-rose-soft": "#FDE8EF",
+  "--admin-hue-violet": "#6930C8",
+  "--admin-hue-violet-soft": "#F0EBFE",
+  "--admin-hue-green": "#0C6E50",
+  "--admin-hue-green-soft": "#E3F4EC",
 } as React.CSSProperties;
 
 // The same ground for the signed-in panel and the login / 2FA screens. The

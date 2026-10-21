@@ -17,6 +17,7 @@ import {
 } from "@/components/admin/dashboard/recent-orders";
 import { RevenueWidget } from "@/components/admin/dashboard/revenue-widget";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
+import type { AdminHue } from "@/components/admin/ui/hues";
 import type { AdminIconName } from "@/components/admin/ui/icons";
 import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
 import { requireRole } from "@/lib/admin/auth";
@@ -90,6 +91,19 @@ const TILE_ICONS: Record<string, AdminIconName> = {
   attention: "attention",
   soldOut: "soldOut",
   revenue: "revenue",
+};
+
+/**
+ * Each tile's soft colour (ui/hues.ts): the orders' blue, rose for what
+ * asks for a person (its figure turns danger red), amber for the empty
+ * shelf (its figure turns warning orange), green for the day's money. Each
+ * tone's ink clears AA on its tile's ground (tests/admin-ui-kit.test.ts).
+ */
+const TILE_HUES: Record<string, AdminHue> = {
+  open: "blue",
+  attention: "rose",
+  soldOut: "amber",
+  revenue: "green",
 };
 
 /** Tile columns by how many tiles the role gets. */
@@ -232,6 +246,7 @@ export default async function AdminDashboardPage() {
             tone={t.tone}
             money={t.money}
             icon={TILE_ICONS[t.key]}
+            hue={TILE_HUES[t.key]}
           />
         ))}
       </div>

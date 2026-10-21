@@ -55,6 +55,18 @@ describe("Hızlı ekle", () => {
     expect(html).toContain('href="/admin/masalar/yeni"');
   });
 
+  it("keeps the chips' screen-reader words inside the phone's scroll box", () => {
+    // The sr-only "Yeni " is absolute: without a positioned scroll box it
+    // hung past the screen from the last chips and the phone zoomed the
+    // whole dashboard out.
+    const html = renderToStaticMarkup(
+      createElement(QuickCreate, { entries: quickCreateEntries("owner") }),
+    );
+    const list = /<ul class="([^"]*)"/.exec(html)![1];
+    expect(list).toContain("overflow-x-auto");
+    expect(list.split(" ")).toContain("relative");
+  });
+
   it("draws nothing for a role with no new page", () => {
     expect(
       renderToStaticMarkup(createElement(QuickCreate, { entries: [] })),

@@ -38,6 +38,14 @@ import {
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
 import { BottomBar } from "@/components/admin/ui/bottom-bar";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
+import {
+  GROUP_HUE,
+  HUE_DOT,
+  HUE_INK,
+  HUE_SOFT,
+  HUE_TILE,
+  type AdminHue,
+} from "@/components/admin/ui/hues";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
 import { SwitchMark } from "@/components/admin/ui/switch-mark";
 import { useToast } from "@/components/admin/ui/toast";
@@ -358,24 +366,35 @@ function NavPending() {
 }
 
 /*
- * The nav's look is AkmanOS's sidebar (lafmaliyet, 21 Eki 2026): the rows
- * sit in a white list box on the zinc-100 column, each icon in a small
- * zinc-100 tile, and the current page is the one black row.
+ * The nav's look is AkmanOS's sidebar (lafmaliyet, 21 Eki 2026), softened
+ * the same evening (operator: "yumuşat, daha estetik, biraz renklendir"):
+ * the rows sit in a white list box on the stone column, each icon in a
+ * small tile of its group's pastel colour (ui/hues.ts), and the current
+ * page is its row in that colour, with its tile turned white. It was the
+ * one black row.
  */
 const ROW =
   "group/row relative flex min-h-11 items-center gap-2.5 rounded-xl py-1.5 pr-2.5 pl-1.5 text-sm transition-colors duration-200";
 const ROW_IDLE =
   "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]";
-const ROW_ACTIVE = "bg-[var(--admin-primary)] font-medium text-white";
+/** The current row; its ground is the group's colour (HUE_SOFT). */
+const ROW_ACTIVE = "font-medium text-[var(--admin-text)]";
+/** The current row that belongs to no group (the account's Güvenlik). */
+const ROW_ACTIVE_PLAIN = `${ROW_ACTIVE} bg-[var(--admin-primary-soft)]`;
 /** The white list box the rows sit in. */
 const LIST_BOX = "flex flex-col gap-0.5 rounded-2xl bg-[var(--admin-surface)]";
-/** The icon's tile; white-on-black in the current row. */
+/** The icon's tile; white, a little raised, in the current row. */
 const TILE =
-  "grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--admin-panel)] transition-colors duration-200 group-aria-[current=page]/row:bg-white/15";
+  "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-200 group-aria-[current=page]/row:bg-[var(--admin-surface)] group-aria-[current=page]/row:shadow-[0_1px_2px_rgba(28,25,23,0.1)]";
+/** The account block's tiles: no group, no colour. */
+const TILE_PLAIN = "bg-[var(--admin-panel)] text-[var(--admin-text-soft)]";
 
-function Tile({ name }: { name: string }) {
+function Tile({ name, hue }: { name: string; hue?: AdminHue }) {
   return (
-    <span aria-hidden="true" className={TILE}>
+    <span
+      aria-hidden="true"
+      className={`${TILE} ${hue ? HUE_TILE[hue] : TILE_PLAIN}`}
+    >
       <NavIcon name={name} />
     </span>
   );
@@ -397,8 +416,9 @@ function Tile({ name }: { name: string }) {
 const SIDE_ID = "admin-side";
 const ROW_RAIL =
   "group/tip relative flex h-10 w-full items-center justify-center rounded-xl transition-colors duration-200";
+/** The rail's count over the icon; its colour comes from HUE_DOT. */
 const BADGE_RAIL =
-  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
+  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
 const TIP =
   "fixed top-[var(--tip-y,0px)] left-[3.15rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
 const TIP_PILL =
@@ -557,11 +577,9 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
   );
 }
 
+/** A count: white on the group's ink (HUE_DOT), on any row. */
 const BADGE_CLASS =
-  "min-w-[22px] rounded-full px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium";
-/** The count's colours: black on a white row, white on the black one. */
-const BADGE_IDLE = "bg-[var(--admin-primary)] text-white";
-const BADGE_ON_ACTIVE = "bg-white text-[var(--admin-text)]";
+  "min-w-[22px] rounded-full px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white";
 
 /** A badge as a name carries it, for a control that shows only the icon (the rail). */
 function badgeText(section: string, n: number): string {
@@ -780,7 +798,7 @@ function AccountLinks({
         href="/admin/2fa-kurulum"
         onClick={onNavigate}
         aria-current={securityActive ? "page" : undefined}
-        className={`${ROW} ${securityActive ? ROW_ACTIVE : ROW_IDLE}`}
+        className={`${ROW} ${securityActive ? ROW_ACTIVE_PLAIN : ROW_IDLE}`}
       >
         <NavPending />
         {icons && <Tile name="security" />}
@@ -865,6 +883,12 @@ export function AdminSidebarBody({
     groups.find((g) => g.items.some((i) => i.href === activeHref))?.title ??
     null;
   const flat = navIsFlat(groups);
+  // Each row's colour is its group's (ui/hues.ts), in the flat list too.
+  const hueOf = new Map(
+    groups.flatMap((g) =>
+      g.items.map((i) => [i.href, GROUP_HUE[g.title]] as const),
+    ),
+  );
   const navRef = useRef<HTMLElement>(null);
   // The open page's row stays in sight. The owner's five groups are taller
   // than a laptop's column (1280 x 800-900), so a page under İçerik or
@@ -882,6 +906,9 @@ export function AdminSidebarBody({
     const n = counts[item.section] ?? null;
     const badge = n && n > 0 ? n : null;
     const badgeHref = BADGE_LINKS[item.section];
+    const hue: AdminHue | undefined = hueOf.get(item.href);
+    const current = hue ? `${ROW_ACTIVE} ${HUE_SOFT[hue]}` : ROW_ACTIVE_PLAIN;
+    const count = hue ? HUE_DOT[hue] : "bg-[var(--admin-primary)]";
     if (rail) {
       // The icon alone: its name is the label and, with a badge, the count
       // (the pill over the icon is for the eye). One link, not the wide
@@ -892,7 +919,7 @@ export function AdminSidebarBody({
             href={item.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`${ROW_RAIL} ${active ? ROW_ACTIVE : ROW_IDLE}`}
+            className={`${ROW_RAIL} ${active ? current : ROW_IDLE}`}
             {...railControl(
               badge !== null
                 ? `${item.label}, ${badgeText(item.section, badge)}`
@@ -900,9 +927,15 @@ export function AdminSidebarBody({
             )}
           >
             <NavPending />
-            <NavIcon name={item.icon ?? item.section} />
+            <span className={hue ? HUE_INK[hue] : undefined}>
+              <NavIcon name={item.icon ?? item.section} />
+            </span>
             {badge !== null && (
-              <span aria-hidden="true" className={BADGE_RAIL} style={MONO}>
+              <span
+                aria-hidden="true"
+                className={`${BADGE_RAIL} ${count}`}
+                style={MONO}
+              >
                 {badge > 99 ? "99+" : badge}
               </span>
             )}
@@ -917,16 +950,16 @@ export function AdminSidebarBody({
           href={item.href}
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
-          className={`${ROW} ${active ? ROW_ACTIVE : ROW_IDLE} ${
+          className={`${ROW} ${active ? current : ROW_IDLE} ${
             badge !== null && badgeHref ? "pr-12" : ""
           }`}
         >
           <NavPending />
-          <Tile name={item.icon ?? item.section} />
+          <Tile name={item.icon ?? item.section} hue={hue} />
           <span className="truncate">{item.label}</span>
           {badge !== null && !badgeHref && (
             <span
-              className={`ml-auto ${BADGE_CLASS} ${active ? BADGE_ON_ACTIVE : BADGE_IDLE}`}
+              className={`ml-auto ${BADGE_CLASS} ${count}`}
               style={MONO}
               title={BADGE_TITLES[item.section]}
             >
@@ -944,11 +977,7 @@ export function AdminSidebarBody({
             className="group/badge absolute top-1/2 right-2 grid min-h-6 min-w-6 -translate-y-1/2 place-items-center rounded-full px-1"
           >
             <span
-              className={`${BADGE_CLASS} ${
-                active
-                  ? BADGE_ON_ACTIVE
-                  : `${BADGE_IDLE} group-hover/badge:bg-[var(--admin-primary-hover)]`
-              }`}
+              className={`${BADGE_CLASS} ${count} transition-opacity group-hover/badge:opacity-85`}
               style={MONO}
             >
               <BadgeCount section={item.section} n={badge} />
@@ -1025,6 +1054,14 @@ export function AdminSidebarBody({
             // AkmanOS's small capitals: the one place the panel uses them.
             const titleClass =
               "text-[11px] font-medium tracking-wide text-[var(--admin-text-mute)] uppercase";
+            // The group's colour, as a dot before its name (ui/hues.ts).
+            const groupHue = GROUP_HUE[group.title];
+            const dot = groupHue ? (
+              <span
+                aria-hidden="true"
+                className={`size-1.5 shrink-0 rounded-full ${HUE_DOT[groupHue]}`}
+              />
+            ) : null;
             return (
               <div key={group.title} className="mb-1">
                 {rail ? (
@@ -1044,8 +1081,9 @@ export function AdminSidebarBody({
                 ) : isActiveGroup || !onToggleGroup ? (
                   <div
                     id={`${listId}-title`}
-                    className={`px-2 pt-4 pb-1.5 ${titleClass}`}
+                    className={`flex items-center gap-1.5 px-2 pt-4 pb-1.5 ${titleClass}`}
                   >
+                    {dot}
                     {group.title}
                   </div>
                 ) : (
@@ -1057,7 +1095,10 @@ export function AdminSidebarBody({
                     onClick={() => onToggleGroup(group.title)}
                     className={`mt-1 flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2 pt-2 pb-1 text-left hover:text-[var(--admin-text)] ${titleClass}`}
                   >
-                    <span>{group.title}</span>
+                    <span className="flex items-center gap-1.5">
+                      {dot}
+                      {group.title}
+                    </span>
                     <svg
                       width="14"
                       height="14"
@@ -1256,7 +1297,7 @@ function AccountMenu({
       <section
         aria-label="Hesap"
         className={cx(
-          "absolute z-40 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.14)]",
+          "absolute z-40 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-[0_12px_40px_rgba(28,25,23,0.14)]",
           rail
             ? "bottom-0 left-full ml-3 w-64 max-w-[calc(100vw-5rem)]"
             : side
@@ -1637,7 +1678,7 @@ export function AdminSidebar(props: SidebarProps) {
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
-        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-panel)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(0,0,0,0.18)] backdrop:bg-[rgba(23,23,23,0.32)] lg:hidden print:hidden"
+        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-panel)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.18)] backdrop:bg-[rgba(28,25,23,0.32)] lg:hidden print:hidden"
         style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
       >
         {open && (

@@ -480,10 +480,15 @@ durum bozulmaya uygundur.
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
 - **Admin paneli görünümü** (21 Eki 2026, operatör): `/admin`, kafenin arka
   ofis paneli lafmaliyet'in AkmanOS açık temasını izler (beyaz zemin,
-  zinc-100 kart, siyah birincil, limon yalnız dolgu, Geist Sans + Geist
-  Mono yalnız admin layout'ta). Değerler `src/app/admin/layout.tsx`
-  `--admin-*`; yukarıdaki site kuralları panele uygulanmaz, panel de siteyi
-  değiştirmez (`docs/BRAND.md` "Admin paneli görünümü").
+  limon yalnız dolgu, Geist Sans + Geist Mono yalnız admin layout'ta);
+  aynı akşam yumuşatıldı ("yumuşat, daha estetik, biraz renklendir"):
+  kart ve çizgiler sıcak taş (`#F6F4F0`, `#E9E5DE`), mürekkep ve birincil
+  sıcak siyah (`#1C1917`), menünün beş grubu birer pastel renk
+  (`src/components/admin/ui/hues.ts`: Bugün mavi, Katalog bal, Pazarlama
+  gül, İçerik mor, Yönetim yeşil) ve etkin satır siyah değil, grubunun
+  rengi. Değerler `src/app/admin/layout.tsx` `--admin-*`; yukarıdaki site
+  kuralları panele uygulanmaz, panel de siteyi değiştirmez (`docs/BRAND.md`
+  "Admin paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve

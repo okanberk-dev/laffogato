@@ -261,7 +261,7 @@ export function VenueQuick({
       </summary>
       <section
         aria-label="Köşk durumu"
-        className="absolute top-full z-40 mt-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-sm whitespace-normal text-[var(--admin-text)] shadow-[0_8px_24px_rgba(0,0,0,0.14)] max-sm:inset-x-2 sm:right-0 sm:w-80"
+        className="absolute top-full z-40 mt-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-sm whitespace-normal text-[var(--admin-text)] shadow-[0_8px_24px_rgba(28,25,23,0.14)] max-sm:inset-x-2 sm:right-0 sm:w-80"
       >
         <p className="font-semibold">Köşk durumu</p>
         <p className="mt-0.5 text-xs text-[var(--admin-text-soft)]">

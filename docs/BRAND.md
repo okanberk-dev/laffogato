@@ -467,20 +467,31 @@ panel tasarımı gibi bizim laffogato'nun admin panelini tasarla"_) kafenin arka
 ofis panelinin (`RiosenBeq/lafmaliyet`, ladmin.laffogato.net) **AkmanOS açık
 temasını** izler; kaynak orada `docs/TASARIM.md`:
 
-- Beyaz zemin ve kontroller, zinc-100 (`#f4f4f5`) kart ve kenar çubuğu,
-  zinc-200 çizgi, mürekkep `#171717`, ikincil `#3f3f46`, etiket `#6b6b73`
-  (AkmanOS'un `#71717a`'sı kendi zinc-100 kartında 4.40:1; bu 4.81:1).
-- Birincil düğme ve etkin satır **siyah**; limon `#c0f21e` yalnız dolgu,
+- Beyaz zemin ve kontroller. Aynı akşam yumuşatıldı (operatör: _"panel
+  tasarımını da yumuşatmayı ve daha estetik güzel bir görünümde vermeyi
+  unutma, renklendirebilirsin birazcık da"_): kart ve kenar çubuğu soğuk
+  zinc yerine sıcak taş `#f6f4f0`, çizgi `#e9e5de`, mürekkep `#1c1917`,
+  ikincil `#44403c`, etiket `#6b655e` (taş kartta 5.2:1).
+- Birincil düğme sıcak siyah (`#1c1917`); limon `#c0f21e` yalnız dolgu,
   üstünde koyu `#1f3a08`. Durum: kırmızı `#dc2626` / `#b91c1c` metin, turuncu
   `#c2410c`, mavi `#2563eb`, yeşil `#3f6212`.
+- **Grup renkleri** (`src/components/admin/ui/hues.ts`, `--admin-hue-*`):
+  menünün beş grubu birer pastel zemin ve koyu mürekkep alır, Bugün mavi
+  (`#e9f0ff` / `#1e50c8`), Katalog bal (`#fdf0da` / `#9a4f0a`), Pazarlama
+  gül (`#fde8ef` / `#b8195a`), İçerik mor (`#f0ebfe` / `#6930c8`), Yönetim
+  yeşil (`#e3f4ec` / `#0c6e50`). Kenar çubuğunun ikon karoları ve grup
+  başlığındaki nokta, sayaç rozeti, etkin satır (siyah değil, grubunun
+  zemini; karosu beyaz), telefonun alt çubuğundaki etkin hap, Genel
+  bakış'ın kartları ve "Hızlı ekle" ikonları bu rengi taşır; ciro grafiği
+  yeşil. Her mürekkep kendi zemininde ve beyazda AA'yı geçer.
 - Yazı **Geist Sans**, kod ve kısayol **Geist Mono** (`next/font/google`,
   yalnız `src/app/admin/layout.tsx`); panel kökünde sitenin yazı token'ları
   (`--headline`, `--display`, `--mono` ...) Geist'e yönlenir. Panel içindeki
   site önizlemesi (`data-site-preview`) ve basılı masa kartları sitenin
   sesinde (Poppins / Gabarito) kalır.
 - Kart `rounded-3xl`, istatistik `rounded-2xl`, pencere `rounded-3xl` ve
-  gölge `0 12px 40px rgba(0,0,0,.14)`, rozet 11px hap, kenar çubuğu 17.5rem
-  (`--admin-side`; dar menü 4rem). Logo L'Af kalır.
+  sıcak gölge `0 12px 40px rgba(28,25,23,.14)`, rozet 11px hap, kenar
+  çubuğu 17.5rem (`--admin-side`; dar menü 4rem). Logo L'Af kalır.
 - Satırda tekrar eden küçük kontroller (↑ / ↓, tek başına ⋯, satırın metin
   eylemi) sakin: soluk mürekkep, en çok ince çizgi; dokunmatikte 44 px,
   fareyle 28-32 px (`ROW_CONTROL`; `docs/ADMIN.md` "Satır kontrolleri").
@@ -488,8 +499,9 @@ temasını** izler; kaynak orada `docs/TASARIM.md`:
   etiketlerinde.
 
 Değerler `src/app/admin/layout.tsx` (`adminFontStyle`, `--admin-*`) içinde;
-`tests/admin-ui-kit.test.ts` temayı ve her tonun AA oranını tutar. Sitenin
-paleti, yazısı ve bu belgedeki kurallar değişmedi.
+`tests/admin-ui-kit.test.ts` temayı, her tonun ve grup renginin AA oranını
+ve bölümlerin renginin menü grubuyla aynı olduğunu tutar. Sitenin paleti,
+yazısı ve bu belgedeki kurallar değişmedi.
 
 ---
 
@@ -507,6 +519,7 @@ paleti, yazısı ve bu belgedeki kurallar değişmedi.
 | 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
 | 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                    |
 | 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi. |
+| 21 Eki 2026 | **Admin paneli yumuşatıldı** (operatör, akşam): zinc yerine sıcak taş, sıcak siyah mürekkep, menü gruplarına beş pastel renk, etkin satır siyah değil grubunun rengi; müşteri sitesi değişmedi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

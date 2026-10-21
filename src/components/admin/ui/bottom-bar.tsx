@@ -11,6 +11,8 @@ import {
   type BottomBarSlot,
 } from "@/lib/admin/bottom-bar-core";
 
+import { HUE_DOT, HUE_TILE, hueOfSection } from "./hues";
+
 /* Lucide through the nav's own lazy chunk (nav-icon.tsx), as in the
    sidebar: this file is in the shell, and the shell is in every admin
    page's bundle, /admin/kasa included. */
@@ -28,12 +30,14 @@ const SLOT_IDLE =
   "text-[var(--admin-text-soft)] hover:text-[var(--admin-primary)]";
 const SLOT_ACTIVE = "font-semibold text-[var(--admin-text)]";
 /**
- * The pill behind the icon; on the current page's slot it is black under
- * a white icon (AkmanOS's active state).
+ * The pill behind the icon; on the current page's slot it is the page's
+ * soft colour under its ink (ui/hues.ts), as the sidebar's current row. It
+ * was black under a white icon (AkmanOS's active state).
  */
 const PILL =
   "relative grid h-7 w-12 place-items-center rounded-full transition-colors duration-200";
-const PILL_ACTIVE = "bg-[var(--admin-primary)] text-white";
+/** "Tümü", which belongs to no group. */
+const PILL_ACTIVE_PLAIN = "bg-[var(--admin-primary-soft)]";
 
 /** A tapped slot's answer while its page loads (the sidebar's NavPending). */
 function SlotPending() {
@@ -58,11 +62,14 @@ const countLabel = (n: number) => (n > 99 ? "99+" : String(n));
  * name in the markup, so the slot read "7 Açık sipariş ... Siparişler";
  * the slot says the count after its name instead (as the sidebar's rows).
  */
-function Badge({ n }: { n: number }) {
+function Badge({ n, tint }: { n: number; tint: string }) {
   return (
     <span
       aria-hidden="true"
-      className="absolute -top-1 left-[calc(50%+0.375rem)] min-w-[18px] rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-white"
+      className={cx(
+        "absolute -top-1 left-[calc(50%+0.375rem)] min-w-[18px] rounded-full px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-white",
+        tint,
+      )}
       style={MONO}
     >
       {countLabel(n)}
@@ -133,7 +140,7 @@ export function BottomBar({
                   aria-controls={drawerId}
                   className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
                 >
-                  <span className={cx(PILL, lit && PILL_ACTIVE)}>
+                  <span className={cx(PILL, lit && PILL_ACTIVE_PLAIN)}>
                     <NavIcon name="drawer" />
                   </span>
                   <span className="max-w-full truncate">
@@ -147,6 +154,7 @@ export function BottomBar({
           const n = counts[item.section] ?? null;
           const badge = n !== null && n > 0 ? n : null;
           const title = badgeTitles[item.section];
+          const hue = hueOfSection(item.section);
           return (
             <li key={item.href} className="flex min-w-0 flex-1 items-center">
               <Link
@@ -155,9 +163,19 @@ export function BottomBar({
                 className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
               >
                 <SlotPending />
-                <span className={cx(PILL, lit && PILL_ACTIVE)}>
+                <span
+                  className={cx(
+                    PILL,
+                    lit && (hue ? HUE_TILE[hue] : PILL_ACTIVE_PLAIN),
+                  )}
+                >
                   <NavIcon name={item.icon ?? item.section} />
-                  {badge !== null ? <Badge n={badge} /> : null}
+                  {badge !== null ? (
+                    <Badge
+                      n={badge}
+                      tint={hue ? HUE_DOT[hue] : "bg-[var(--admin-primary)]"}
+                    />
+                  ) : null}
                 </span>
                 <span className="max-w-full truncate">{item.label}</span>
                 {badge !== null ? (

@@ -45,7 +45,7 @@ export function SectionTabs({
                   "relative inline-flex min-h-10 items-center rounded-lg px-3 text-sm whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 pointer-coarse:min-h-11",
                   COMPACT.minH9,
                   active
-                    ? "bg-[var(--admin-surface)] font-medium text-[var(--admin-text)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
+                    ? "bg-[var(--admin-surface)] font-medium text-[var(--admin-text)] shadow-[0_1px_2px_rgba(28,25,23,0.08),0_0_0_1px_rgba(28,25,23,0.04)]"
                     : "text-[var(--admin-text-soft)] hover:text-[var(--admin-text)]",
                 )}
               >

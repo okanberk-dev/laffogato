@@ -449,6 +449,28 @@ mürekkep, en çok ince bir çizgi; çerçeve ve zemin imleç üstündeyken geli
 `tests/admin-row-controls.test.ts` ve `tests/admin-compact-density.test.ts`
 tutar.
 
+### Renkler (21 Eki 2026)
+
+Operatör: _"panel tasarımını da yumuşatmayı ve daha estetik güzel bir
+görünümde vermeyi unutma, renklendirebilirsin birazcık da"_. AkmanOS teması
+yerinde, yumuşatıldı:
+
+- Kart, kenar çubuğu ve çizgiler soğuk zinc yerine sıcak taş; mürekkep ve
+  birincil düğme sıcak siyah; gölgeler ve pencere arkası da sıcak.
+- Menünün beş grubu birer renk taşır (`src/components/admin/ui/hues.ts`):
+  **Bugün** mavi, **Katalog** bal, **Pazarlama** gül, **İçerik** mor,
+  **Yönetim** yeşil. Kenar çubuğunda her satırın ikon karosu grubunun
+  pastel zemininde, grup başlığının önünde renkli nokta, sayaç rozeti
+  grubun renginde. Açık sayfanın satırı artık siyah değil: grubunun
+  zemini, karosu beyaz. Telefonun alt çubuğunda etkin hap da öyle.
+- Genel bakış: dört kart dört renk (açık sipariş mavi, dikkat isteyen gül,
+  stokta yok bal, net ciro yeşil); "Hızlı ekle" ikonları bölümlerinin
+  renginde; 14 günlük ciro grafiği yeşil.
+- Her renk kendi zemininde ve beyazda AA'yı geçer, sayfanın mürekkepleri de
+  renkli zeminlerde (`tests/admin-ui-kit.test.ts`); bir bölümün rengi
+  menüdeki grubunun rengidir (aynı test, `layout.tsx` NAV_GROUPS'tan
+  okur).
+
 ## Kayıtlı görünümler
 
 Siparişler listesinde süzgeç çipleriyle aynı satırdaki **Görünümler**
