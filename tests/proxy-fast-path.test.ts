@@ -1,8 +1,16 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
+import * as pageStaticInfo from "next/dist/build/analysis/get-page-static-info";
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { config as proxyConfig } from "@/proxy";
+
+// Exported at runtime, left out of Next's type declarations.
+const { getMiddlewareMatchers } = pageStaticInfo as unknown as {
+  getMiddlewareMatchers: (
+    matcher: unknown,
+    nextConfig: object,
+  ) => Array<{ regexp: string }>;
+};
 
 /**
  * The page proxy's two speed rules (9 Eki 2026). Production logged
@@ -12,19 +20,40 @@ import { afterEach, describe, expect, it, vi } from "vitest";
  */
 
 describe("the proxy matcher", () => {
-  const source = readFileSync(join(process.cwd(), "src/proxy.ts"), "utf8");
-  const pattern = /matcher:\s*\[\s*(?:\/\/.*\n\s*)*"([^"]+)"/.exec(source)?.[1];
-  // Next reads the matcher as a path pattern; anchored, it is this regex.
-  const matcher = new RegExp(`^${(pattern ?? "").replace(/\\\\/g, "\\")}$`);
+  // Next's own compiler for `config.matcher` (the build runs this one), so
+  // the `.rsc` / `_next/data` forms are tested as the router sees them.
+  const [compiled] = getMiddlewareMatchers(proxyConfig.matcher, {});
+  const matcher = new RegExp(compiled.regexp);
 
   it.each([
     "/",
     "/rehber/matcha-nedir",
     "/menu",
+    "/menu.rsc",
     "/uye/hesap",
-    "/admin/siparisler",
+    "/uye/sifre-sifirla",
     "/odeme",
+    "/masa/ABCDEFGHJK",
+    "/gorsel/urun/prd-0001",
+    "/admin",
+    "/admin/siparisler",
+    "/admin/siparisler.rsc",
+    "/admin/siparisler/csv",
+    "/admin/olay-kaydi/csv",
+    "/admin/masalar/tbl-1/qr",
   ])("still runs on the page %s", (path) => {
+    expect(matcher.test(path)).toBe(true);
+  });
+
+  // A file-like address under /admin still renders a panel page (a dynamic
+  // `[id]`, the `[...rest]` 404): it keeps the panel CSP and the cookie move.
+  it.each([
+    "/admin/urunler/x.js",
+    "/admin/siparisler/10001.txt",
+    "/admin/kategoriler/x.xml",
+    "/admin/nope.css",
+    "/admin/logo.png",
+  ])("keeps the panel address %s, file-like or not", (path) => {
     expect(matcher.test(path)).toBe(true);
   });
 
@@ -34,8 +63,10 @@ describe("the proxy matcher", () => {
     "/robots.txt",
     "/sitemap.xml",
     "/browserconfig.xml",
+    "/manifest.webmanifest",
     "/photos/facade-night.webp",
     "/brand/laf.svg",
+    "/gorsel/urun/prd-0001.webp",
     "/api/mobile/v1/menu",
     "/_next/static/chunks/main.js",
   ])("leaves the static file %s alone", (path) => {
@@ -70,5 +101,23 @@ describe("the session refresh", () => {
     await updateSession(new NextRequest("https://laffogato.net/rehber"));
     expect(getClaims).not.toHaveBeenCalled();
     expect(getUser).not.toHaveBeenCalled();
+  });
+
+  it("keeps the three-second bound when the identity service hangs", async () => {
+    vi.useFakeTimers();
+    try {
+      getClaims.mockImplementationOnce(() => new Promise(() => {}));
+      const { updateSession } = await import("@/lib/supabase/proxy");
+      const pending = updateSession(
+        new NextRequest("https://laffogato.net/", {
+          headers: { cookie: "sb-wvivcgctebyxojtyidfg-auth-token=base64-abc" },
+        }),
+      );
+      await vi.advanceTimersByTimeAsync(3000);
+      await expect(pending).resolves.toBeDefined();
+      expect(getUser).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
