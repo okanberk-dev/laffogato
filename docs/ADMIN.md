@@ -259,10 +259,13 @@ akşam boyunca en çok değiştiren kişidir, o yüzden (karar D3, 20 Ekim 2026)
 - **Üst çubuktaki çip** ("Köşk: Açık / Yoğun / Kapalı"): her panel
   sayfasında, arama ile zilin arasında. Açılınca Otomatik / Açık / Yoğun /
   Kapalı ve boş masa −/+ (44 px), Kaydet; sonuç bildirim olarak gelir.
-  "Diğer ayarlar" sayfaya götürür. Yoğun ayrı bir durum değildir: Otomatik
-  ve boş masa 0 olarak kaydedilir (uygulama "masaların hepsi dolu" der);
-  saatler kapalıysa köşk kapalı görünür. Saat dışı dolu bir gece için Açık
-  seçilip boş masa 0'a indirilir.
+  "Diğer ayarlar" sayfaya götürür. Yoğun ayrı bir durum değildir: yalnız
+  boş masayı 0 yapar, açık/kapalı ayarı olduğu gibi kalır (sayfadaki "Boş
+  masa 0" ile aynı; uygulama "masaların hepsi dolu" der). Elle Açık
+  bırakılmış bir maç gecesi saat dışında da açık kalır, elle Kapalı kapalı
+  kalır. Açık bir köşkte boş masa 0 ise çip "Yoğun" der ve kutu Yoğun'da
+  açılır; + ile bir masa boşalınca seçim köşkün kendi ayarına (Otomatik ya
+  da Açık) döner, hiçbir zaman kendiliğinden Otomatik'e değil.
 - **Yalnız iki alan.** Çip yalnız açık/kapalı seçimini ve boş masayı yazar,
   tek bir SQL `UPDATE` ile: aynı anda başka birinin değiştirdiği Wi-Fi,
   gürültü, priz ya da not ezilmez. Her kayıt olay kaydına bir satır yazar
@@ -276,7 +279,10 @@ akşam boyunca en çok değiştiren kişidir, o yüzden (karar D3, 20 Ekim 2026)
   cevap hesabı yeniden okur (kural 30). Bir kayıt (`admin:changed`) imleci
   düşürür, çip hemen yeniden okur; saatler köşkü açtığı ya da kapattığı
   dakikadan sonraki ilk soru da tamdır. Önbellek çalışmazsa her soru tam
-  cevap olur (dakikada bir okuma).
+  cevap olur (dakikada bir okuma). Çerezdeki rol Canlı durum'u açmıyorsa
+  karar hesabındır: rolü sonradan Personel'e yükseltilen bir kasiyer durumu
+  hemen görür, ama yeniden girene kadar her sorusu tam cevaptır (imleç
+  yok).
 - Uygulama yeni durumu en geç 30 saniyede görür (uç `s-maxage=30`);
   `/api/mobile/v1` değişmedi.
 
