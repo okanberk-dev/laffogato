@@ -1,153 +1,173 @@
 import Link from "next/link";
 
-import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
+import { PageHeader } from "@/components/admin/forms";
+import { PageShell } from "@/components/admin/ui";
+import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
+import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-status";
+import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
+import { DashboardNotice } from "@/components/admin/dashboard/notice";
+import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
+import { QuickLinks } from "@/components/admin/dashboard/quick-links";
+import {
+  RecentOrders,
+  type RecentOrderRow,
+} from "@/components/admin/dashboard/recent-orders";
+import { RevenueWidget } from "@/components/admin/dashboard/revenue-widget";
+import { StatCard } from "@/components/admin/dashboard/stat-card";
+import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
 import { requireRole } from "@/lib/admin/auth";
+import {
+  dashboardDateLabel,
+  dashboardGreeting,
+  dashboardTiles,
+  stockLinks,
+} from "@/lib/admin/dashboard-core";
+import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
 import { canAccess } from "@/lib/admin/roles";
+import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
+import {
+  keepaliveView,
+  readKeepaliveFor,
+} from "@/lib/admin/supabase-keepalive-core";
 import {
   getDashboardStats,
   getSettings,
+  listOrderMoney,
   listRecentOrders,
-  type AdminOrderStatus,
+  revenueBuckets,
+  type AdminOrder,
 } from "@/lib/admin/store";
-import { emailHealth } from "@/lib/email/health";
+import { emailHealth, type EmailHealth } from "@/lib/email/health";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Genel Bakış" };
 export const dynamic = "force-dynamic";
 
-interface PageProps {
-  searchParams: Promise<{ denied?: string }>;
+/**
+ * The mail check, or null when it could not run. It reads the settings
+ * (the sender) before asking Resend, and a failure there used to take the
+ * whole landing page down for a banner (admin audit SHE-29).
+ */
+async function readMailHealth(): Promise<EmailHealth | null> {
+  try {
+    return await emailHealth();
+  } catch (err) {
+    console.error("[admin] e-posta durumu okunamadı", err);
+    return null;
+  }
 }
 
-const ORDER_STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal",
-  refunded: "İade",
+/** The newest orders with whether money was taken for each. */
+async function withMoney(orders: AdminOrder[]): Promise<RecentOrderRow[]> {
+  const money = await listOrderMoney(orders);
+  return orders.map((order) => ({
+    order,
+    collected: money.get(order.id)?.collected ?? Boolean(order.paidAt),
+  }));
+}
+
+/** Tile columns by how many tiles the role gets. */
+const TILE_GRID: Record<number, string> = {
+  4: "grid-cols-2 xl:grid-cols-4",
+  3: "grid-cols-2 md:grid-cols-3",
 };
 
-const ORDER_STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
-
-function turkishGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 6) return "İyi geceler";
-  if (hour < 12) return "Günaydın";
-  if (hour < 18) return "İyi günler";
-  return "İyi akşamlar";
-}
-
-function todayLabel(): string {
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "numeric",
-    month: "long",
-    weekday: "long",
-  }).format(new Date());
-}
-
-export default async function AdminDashboardPage({ searchParams }: PageProps) {
+/**
+ * The panel's landing page (decision D38): tiles that lead to the lists
+ * they count, by role; for owner and manager the last 14 days of revenue;
+ * the open orders by status, today's karaoke and what waits for a person,
+ * the shelves running low and the newest orders. Every widget is its own
+ * component (components/admin/dashboard), so another screen can reuse it.
+ */
+export default async function AdminDashboardPage() {
   const session = await requireRole("dashboard");
-  const sp = await searchParams;
-  const [stats, recent, settings, mail] = await Promise.all([
-    getDashboardStats(),
-    // Five rows, read as five rows: this used to be every order in the
-    // table, sliced here (WP1).
-    listRecentOrders(5),
-    getSettings(),
-    emailHealth(),
-  ]);
+  const now = new Date();
+  const role = session.role;
+  const showOrders = canAccess("orders", role);
+  const showRevenue = canAccess("reports", role);
+  const showStock = canAccess("products", role) || canAccess("stock", role);
 
-  const userLabel = session.email.split("@")[0];
+  const settingsRead = getSettings();
+  // The karaoke card needs the prepay switch; it waits for the settings and
+  // nothing else, and comes back null rather than throwing.
+  const karaokeRead = canAccess("karaoke", role)
+    ? settingsRead.then((settings) =>
+        loadKaraokeTodayCard({
+          today: istanbulClock(now).date,
+          now,
+          prepay: settings.karaokePrepay,
+          canRefund: canAccess("refunds", role),
+        }),
+      )
+    : null;
+  // The settings read is awaited for its failure only: the header no longer
+  // prints the café's name.
+  const [stats, recent, , mail, revenue, karaoke, keepalive] =
+    await Promise.all([
+      getDashboardStats(),
+      // Five rows, read as five rows: this used to be every order in the
+      // table, sliced here (WP1). Their payment rows too, so the payment
+      // badge says what the order list says.
+      showOrders ? listRecentOrders(5).then(withMoney) : [],
+      settingsRead,
+      readMailHealth(),
+      // Revenue is read only for the roles that may see it (D1).
+      showRevenue ? revenueBuckets("day", 14) : null,
+      karaokeRead,
+      // The daily Supabase ping's record, for the owner alone: for any
+      // other role the read is never made (null), not merely not shown.
+      readKeepaliveFor(role, loadSupabaseKeepalive),
+    ]);
 
-  const cards = [
+  const tiles = dashboardTiles(
     {
-      label: "Toplam ürün",
-      value: String(stats.productCount),
-      hint: `${stats.activeProductCount} aktif`,
+      openOrderCount: stats.openOrderCount,
+      attentionOrderCount: stats.attentionOrderCount,
+      outOfStockCount: stats.outOfStockCount,
+      revenue: revenue
+        ? {
+            todayMinor: revenue.at(-1)?.revenueMinor ?? 0,
+            periodMinor: revenue.reduce((s, b) => s + b.revenueMinor, 0),
+          }
+        : null,
     },
-    {
-      label: "Stok dışı",
-      value: String(stats.outOfStockCount),
-      hint: "Acil dolum",
-    },
-    {
-      label: "Kategori",
-      value: String(stats.categoryCount),
-      hint: "Shop kategorileri",
-    },
-    {
-      label: "Aktif sipariş",
-      value: String(stats.pendingOrderCount),
-      hint: `${stats.orderCount} toplam`,
-    },
-    {
-      label: "Net ciro",
-      value: formatTRY(stats.revenueMinor),
-      hint: "Ödenen siparişler, iadeler düşülmüş",
-    },
-  ];
+    role,
+  );
+  const stock = stockLinks(role);
 
-  const quickLinks: Array<{ href: string; label: string; show: boolean }> = [
+  const quickLinks = [
     {
       href: "/admin/urunler/yeni",
-      label: "+ Yeni ürün ekle",
-      show: canAccess("products", session.role),
+      label: "Yeni ürün ekle",
+      show: canAccess("products", role),
     },
     {
       href: "/admin/kategoriler/yeni",
-      label: "+ Yeni kategori",
-      show: canAccess("categories", session.role),
+      label: "Yeni kategori",
+      show: canAccess("categories", role),
     },
     {
       href: "/admin/promosyon/yeni",
-      label: "+ Yeni promosyon kodu",
-      show: canAccess("promos", session.role),
-    },
-    {
-      href: "/admin/siparisler",
-      label: "Siparişler",
-      show: canAccess("orders", session.role),
-    },
-    {
-      href: "/admin/raporlar",
-      label: "Raporlar",
-      show: canAccess("reports", session.role),
+      label: "Yeni promosyon kodu",
+      show: canAccess("promos", role),
     },
     {
       href: "/admin/ayarlar",
       label: "Kafe ayarları",
-      show: canAccess("settings", session.role),
+      show: canAccess("settings", role),
     },
-    {
-      href: "/admin/2fa-kurulum",
-      label: "İki adımlı doğrulama",
-      show: true,
-    },
+    { href: "/admin/2fa-kurulum", label: "İki adımlı doğrulama", show: true },
   ].filter((q) => q.show);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow={`${settings.name} · ${todayLabel()}`}
-        title={`${turkishGreeting()}, ${userLabel}.`}
-        description="Canlı veritabanı - tüm değişiklikler anında siteye yansır."
+        title="Genel bakış"
+        description={`${dashboardGreeting(now)}. ${dashboardDateLabel(now)}: kartlar saydıkları listeyi açar.`}
       />
 
-      {sp.denied && (
-        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          O sayfa için yetkin yok. Bu paneldeki yetkinle erişebileceğin bölümler
-          nav&apos;da görünüyor.
-        </div>
-      )}
+      {/* `?denied=1` is answered by the shell, on every landing page
+          (admin-sidebar.tsx DeniedNotice), not only here. */}
 
       {/*
         An unverified sending domain is not a degraded feature, it is a closed
@@ -156,176 +176,80 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         screen would say so - the send paths swallow failures on purpose - so
         the one place it can surface is here, before anyone thinks to ask.
       */}
-      {!mail.ok && mail.message && (
-        <div className="mb-6 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+      {mail && !mail.ok && mail.message && (
+        <DashboardNotice tone="danger">
           <strong>E-posta gönderilemiyor.</strong> {mail.message}{" "}
-          {canAccess("settings", session.role) && (
-            <Link href="/admin/ayarlar" className="underline">
+          {canAccess("settings", role) && (
+            <Link
+              href={settingsTabHref("email")}
+              className="font-medium underline underline-offset-4"
+            >
               Ayarlar → E-posta
             </Link>
           )}
-        </div>
+        </DashboardNotice>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        {cards.map((c) => (
-          <Card key={c.label} className="flex flex-col gap-2">
-            <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {c.label}
-            </div>
-            <div
-              className="text-3xl"
-              style={{
-                fontFamily: "var(--serif), 'Playfair Display', serif",
-                fontStyle: "italic",
-                fontWeight: 500,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {c.value}
-            </div>
-            <div className="text-xs text-neutral-500">{c.hint}</div>
-          </Card>
+      {/*
+        Whether the daily ping that keeps the free-plan Supabase project
+        awake still gets through. Nobody can call the cron by hand, so this
+        line is the only place its result shows (owner only, see above).
+      */}
+      {keepalive !== null ? (
+        <KeepaliveStatusLine view={keepaliveView(keepalive, now)} />
+      ) : null}
+
+      <div
+        className={`grid gap-3 sm:gap-4 ${TILE_GRID[tiles.length] ?? "grid-cols-2"}`}
+      >
+        {tiles.map((t) => (
+          <StatCard
+            key={t.key}
+            label={t.label}
+            value={t.value}
+            hint={t.hint}
+            href={t.href}
+            tone={t.tone}
+            money={t.money}
+          />
         ))}
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2
-              className="text-xl"
-              style={{
-                fontFamily: "var(--serif), 'Playfair Display', serif",
-                fontStyle: "italic",
-                fontWeight: 500,
-              }}
-            >
-              Son siparişler
-            </h2>
-            <Link
-              href="/admin/siparisler"
-              className="text-xs text-neutral-600 underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
-            >
-              Tümünü gör →
-            </Link>
-          </div>
-          {recent.length === 0 ? (
-            <p className="text-sm text-neutral-500">Henüz sipariş yok.</p>
-          ) : (
-            <>
-              {/* Mobile cards */}
-              <ul className="flex flex-col gap-2 sm:hidden">
-                {recent.map((o) => (
-                  <li key={o.id}>
-                    <Link
-                      href={`/admin/siparisler/${o.id}`}
-                      className="flex items-start justify-between gap-3 rounded-lg border border-[var(--admin-border)] p-3 hover:border-[var(--admin-primary)]"
-                    >
-                      <div className="min-w-0">
-                        <div
-                          className="font-medium text-neutral-900"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          #{o.orderNo}
-                        </div>
-                        <div className="truncate text-xs text-neutral-700">
-                          {o.customerName}
-                        </div>
-                        <span
-                          className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
-                      </div>
-                      <div
-                        className="shrink-0 text-right text-sm text-neutral-900"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatTRY(o.totalMinor)}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Desktop table */}
-              <table className="hidden w-full text-sm sm:table">
-                <thead>
-                  <tr
-                    className="text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    <th className="py-2">No</th>
-                    <th>Müşteri</th>
-                    <th>Durum</th>
-                    <th className="text-right">Tutar</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((o) => (
-                    <tr key={o.id} className="border-t border-neutral-100">
-                      <td
-                        className="py-3 font-medium"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        <Link
-                          href={`/admin/siparisler/${o.id}`}
-                          className="text-neutral-900 hover:underline"
-                        >
-                          #{o.orderNo}
-                        </Link>
-                      </td>
-                      <td className="text-neutral-700">{o.customerName}</td>
-                      <td>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${ORDER_STATUS_TONE[o.status]}`}
-                        >
-                          {ORDER_STATUS_LABEL[o.status]}
-                        </span>
-                      </td>
-                      <td
-                        className="text-right"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatTRY(o.totalMinor)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </Card>
-
-        <Card>
-          <h2
-            className="mb-3 text-xl"
-            style={{
-              fontFamily: "var(--serif), 'Playfair Display', serif",
-              fontStyle: "italic",
-              fontWeight: 500,
-            }}
-          >
-            Hızlı erişim
-          </h2>
-          <ul className="flex flex-col gap-2 text-sm">
-            {quickLinks.map((q) => (
-              <li key={q.href}>
-                <Link
-                  href={q.href}
-                  className="flex items-center justify-between rounded-md border border-[var(--admin-border)] px-3 py-2.5 hover:border-[var(--admin-primary)]"
-                >
-                  <span>{q.label}</span>
-                  <span aria-hidden>→</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+      {/* Two columns from xl only: beside the sidebar at 1024 px the side
+          column was 224 px and cut every product name short. Below xl the
+          side widgets sit two abreast under the main ones. */}
+      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-6 xl:col-span-2">
+          {revenue ? <RevenueWidget buckets={revenue} /> : null}
+          {karaokeRead ? (
+            <KaraokeTodayCard
+              today={karaoke?.today ?? null}
+              attention={karaoke?.attention ?? null}
+              now={now}
+            />
+          ) : null}
+        </div>
+        <div className="grid min-w-0 content-start gap-6 md:grid-cols-2 xl:grid-cols-1">
+          {showOrders ? (
+            <OpenOrdersWidget openByStatus={stats.openByStatus} />
+          ) : null}
+          {showStock ? (
+            <LowStockWidget
+              rows={stats.lowStock}
+              count={stats.lowStockCount}
+              productHref={stock.product}
+              allHref={stock.all}
+            />
+          ) : null}
+          <QuickLinks links={quickLinks} />
+        </div>
       </div>
-    </main>
+
+      {showOrders ? (
+        <div className="mt-6">
+          <RecentOrders rows={recent} />
+        </div>
+      ) : null}
+    </PageShell>
   );
 }

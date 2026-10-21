@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { ProductWizard } from "@/components/admin/product-wizard";
 import { requireRole } from "@/lib/admin/auth";
-import { getProduct, listCategories } from "@/lib/admin/store";
+import { getProduct, getSettings, listCategories } from "@/lib/admin/store";
 
 import { updateProductAction } from "../../actions";
 
-export const metadata = { title: "Admin · Ürün Düzenle" };
+export const metadata = { title: "Admin · Ürün düzenle" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -17,9 +17,10 @@ interface PageProps {
 export default async function EditProductPage({ params }: PageProps) {
   await requireRole("products");
   const { id } = await params;
-  const [product, categories] = await Promise.all([
+  const [product, categories, settings] = await Promise.all([
     getProduct(id),
     listCategories(),
+    getSettings(),
   ]);
 
   if (!product) {
@@ -33,7 +34,7 @@ export default async function EditProductPage({ params }: PageProps) {
       <PageHeader
         eyebrow={`SKU ${product.sku} · son güncelleme ${formatDateTime(product.updatedAt)}`}
         title={product.name}
-        description="Tüm alanlar tek sayfada. Kaydedince /, /admin/urunler ve genel bakış tazelenir."
+        description="Bütün alanlar tek sayfada. Kaydedince mağaza ve panel hemen güncellenir."
       />
       <ProductWizard
         product={product}
@@ -41,6 +42,7 @@ export default async function EditProductPage({ params }: PageProps) {
         action={boundUpdate}
         submitLabel="Değişiklikleri kaydet"
         mode="tabs"
+        taxRates={settings.taxRates}
       />
     </main>
   );

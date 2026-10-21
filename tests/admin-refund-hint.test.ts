@@ -14,24 +14,42 @@ const getOrderPaymentRef = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/admin/auth", () => ({
-  requireRole: vi.fn(async () => ({ email: "a@b.c" })),
+  requireRole: vi.fn(async () => ({ email: "a@b.c", role: "owner" })),
   getAdminSession: vi.fn(),
 }));
-vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
+vi.mock("@/lib/admin/audit", () => ({
+  logAudit: vi.fn(),
+  safeAudit: vi.fn(async () => true),
+}));
+vi.mock("@/lib/admin/flash", () => ({ setAdminFlash: vi.fn() }));
 vi.mock("@/lib/payment", () => ({
   getPaymentProvider: () => ({ name: "paynkolay", refund }),
 }));
+const paidOrder = {
+  id: "ord-1",
+  orderNo: 10023,
+  status: "paid",
+  totalMinor: 128_010,
+  refunds: [],
+  items: [],
+};
 vi.mock("@/lib/admin/store", () => ({
-  getOrder: vi.fn(async () => ({ id: "ord-1", status: "paid" })),
-  orderWasCollected: vi.fn(async () => true),
+  getOrder: vi.fn(async () => paidOrder),
+  orderMoney: vi.fn(async () => ({
+    collected: true,
+    collectedMinor: 128_010,
+    destination: "card",
+  })),
   refundRefusal: vi.fn(() => null),
   reserveRefund: vi.fn(async () => ({
     ok: true,
     refund: { id: "rfn-1" },
-    order: { id: "ord-1" },
+    order: { ...paidOrder, refunds: [{ id: "rfn-1", amountMinor: 128_010 }] },
   })),
   releaseRefund: vi.fn(),
-  finalizeRefund: vi.fn(),
+  finalizeRefund: vi.fn(async (order: unknown) => ({ order, mail: "sent" })),
+  restockOrderLines: vi.fn(async () => []),
+  setOrderAttention: vi.fn(async () => true),
   getOrderPaymentRef,
 }));
 
@@ -58,10 +76,15 @@ describe("refundOrderAction", () => {
       trxDate: "2026-09-01",
     });
     const state = await refundOrderAction(
-      {},
-      form({ id: "ord-1", amount: "1.280,10", reason: "Müşteri iptali" }),
+      null,
+      form({
+        id: "ord-1",
+        amount: "1.280,10",
+        reason: "Müşteri iptali",
+        confirm: "10023",
+      }),
     );
-    expect(state.error).toBeUndefined();
+    expect(state).toMatchObject({ ok: true });
     expect(refund).toHaveBeenCalledWith("IKSIRPF102168", 128_010, {
       trxDate: "2026-09-01",
       paidMinor: 128_010,
@@ -76,8 +99,13 @@ describe("refundOrderAction", () => {
       trxDate: "",
     });
     await refundOrderAction(
-      {},
-      form({ id: "ord-1", amount: "1280,10", reason: "Müşteri iptali" }),
+      null,
+      form({
+        id: "ord-1",
+        amount: "1280,10",
+        reason: "Müşteri iptali",
+        confirm: "10023",
+      }),
     );
     expect(refund).toHaveBeenCalledWith("IKSIRPF102168", 128_010, {
       trxDate: "",

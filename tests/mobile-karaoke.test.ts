@@ -354,6 +354,17 @@ describe("toReservationJson - allow-list", () => {
       paymentStatus: "none",
       paymentDueAt: "",
       cancellableUntil: "2026-09-05T13:00:00.000Z",
+      // Additive (17 Eki 2026): the booking's KDV rate; none was kept then.
+      taxRatePct: null,
+      // Additive (18 Eki 2026): the booking's own cancellation rule. A row
+      // from before the snapshot reads 2 h / 0 % and the default sentences.
+      freeCancelHours: 2,
+      lateRefundPercent: 0,
+      cancellationRules: [
+        "Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
+        "Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+      ],
+      refundMinor: null,
     });
   });
 });

@@ -1,4 +1,4 @@
-import { getPublicSettings } from "@/lib/admin/store";
+import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ const PATHS = [
 ];
 
 export async function GET() {
-  const { mobileApp } = await getPublicSettings();
+  const { mobileApp } = await getSiteSettings();
   const { appleTeamId, bundleId } = mobileApp.store;
 
   if (!appleTeamId || !bundleId) {

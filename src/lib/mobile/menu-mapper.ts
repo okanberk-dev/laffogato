@@ -24,6 +24,18 @@ import {
 } from "@/lib/admin/image-url";
 import { MENU as SEED_MENU } from "@/components/laffogato/data";
 import { addressLines } from "@/lib/utils/format";
+import {
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
+import { liveDiscount } from "@/lib/shop/discount";
+import { foodLabelOf, type FoodLabelKey } from "@/lib/shop/food-label";
+import {
+  LEGAL_TAX_RATES,
+  menuItemTaxRate,
+  productTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 
 import {
   DEFAULT_MOBILE_APP_CONFIG,
@@ -219,6 +231,19 @@ export interface MobileMenuItem extends MobileScene {
   tags: string[];
   hue: string;
   image: string | null;
+  /**
+   * The KDV rate (whole %) inside `priceMinor`: the item's own, else the
+   * menu default from Ayarlar > Vergi. Additive (17 Eki 2026, §1).
+   */
+  taxRatePct: number;
+  /**
+   * The TGK Ek-1 allergen groups the item contains, keys from the closed
+   * list (src/lib/menu/allergens.ts); [] = none of the fourteen. Left out
+   * while the panel has not entered them: the app then keeps "Alerjenler
+   * için baristaya danış.". Additive (18 Eki 2026, §1); `tags` and its
+   * `nuts` stay as they are.
+   */
+  allergens?: MenuAllergen[];
 }
 
 export interface MobileMenuCategory {
@@ -230,9 +255,15 @@ export interface MobileMenuCategory {
   items: MobileMenuItem[];
 }
 
+/**
+ * `rates` are the panel's defaults (`settings.taxRates`); the loader always
+ * passes them. The legal defaults stand in only for a caller with no
+ * settings at hand (tests, fixtures).
+ */
 export function toMobileMenuItem(
   it: AdminMenuItem,
   siteUrl: string,
+  rates: TaxRates = LEGAL_TAX_RATES,
 ): MobileMenuItem {
   const image = it.image
     ? absoluteImageUrl(
@@ -256,7 +287,21 @@ export function toMobileMenuItem(
     // the photo is untouched. docs/API-MOBILE.md §1.
     image,
     ...toMobileScene(it, image !== null),
+    taxRatePct: menuItemTaxRate(it, rates),
+    ...mobileAllergens(it.allergens),
   };
+}
+
+/** The label texts the panel holds; '' (or a row before the migration) sends none. */
+function mobileFoodLabel(p: AdminProduct): MobileShopFoodLabel {
+  return Object.fromEntries(
+    Object.entries(foodLabelOf(p)).filter(([, value]) => value !== ""),
+  );
+}
+
+function mobileAllergens(raw: unknown): { allergens?: MenuAllergen[] } {
+  const allergens = normalizeMenuAllergens(raw);
+  return allergens === null ? {} : { allergens };
 }
 
 /**
@@ -269,6 +314,7 @@ export function buildMobileMenuCategories(
   items: readonly AdminMenuItem[],
   keys: readonly string[],
   siteUrl: string,
+  rates: TaxRates,
 ): MobileMenuCategory[] {
   const out: MobileMenuCategory[] = [];
   for (const key of keys) {
@@ -277,7 +323,7 @@ export function buildMobileMenuCategories(
     const active = items
       .filter((it) => it.categoryKey === key && it.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((it) => toMobileMenuItem(it, siteUrl));
+      .map((it) => toMobileMenuItem(it, siteUrl, rates));
     out.push({
       key,
       title: meta.title,
@@ -311,14 +357,36 @@ export interface MobileShopVariant {
   inStock: boolean;
 }
 
-export interface MobileShopProduct extends MobileScene {
+/**
+ * The packaged-food label (contract §2, 19 Eki 2026, additive): each key
+ * only when the panel holds it, so an absent key is "not entered".
+ */
+export type MobileShopFoodLabel = Partial<Record<FoodLabelKey, string>>;
+
+export interface MobileShopProduct extends MobileScene, MobileShopFoodLabel {
   id: string;
   slug: string;
   name: string;
   tag: string;
   description: string;
   priceMinor: number;
+  /**
+   * The price before the running discount, or 0: no discount to show. 0
+   * also while the dates are not set or not reached, and once the end has
+   * passed (Ticari Reklam Yön. m.14/1; contract §2).
+   */
   compareAtPriceMinor: number;
+  /**
+   * The running discount's first and last instant (ISO-8601 UTC), beside a
+   * compare-at price above 0 only; null otherwise. Additive (19 Eki 2026).
+   */
+  discountStartsAt: string | null;
+  discountEndsAt: string | null;
+  /**
+   * Ek-1 allergen groups, as `MobileMenuItem.allergens`: left out while not
+   * entered, [] for none of the fourteen. Additive (19 Eki 2026, §2).
+   */
+  allergens?: MenuAllergen[];
   category: AdminProduct["cat"];
   /**
    * Same field name, same shape and same vocabulary as `MobileMenuItem.tags`
@@ -342,12 +410,22 @@ export interface MobileShopProduct extends MobileScene {
   variants: MobileShopVariant[];
   /** Only on `category === "beans"` (contract §2). */
   grinds?: string[];
+  /**
+   * The KDV rate (whole %) inside `priceMinor` and every variant's price: the
+   * product's own, else its category's default from Ayarlar > Vergi.
+   * Additive (17 Eki 2026, §2).
+   */
+  taxRatePct: number;
 }
 
+/** `rates` as in `toMobileMenuItem`: the loader passes the panel's. */
 export function toMobileShopProduct(
   p: AdminProduct,
   siteUrl: string,
+  rates: TaxRates = LEGAL_TAX_RATES,
+  now: Date = new Date(),
 ): MobileShopProduct {
+  const discount = liveDiscount(p, now);
   const first = p.images[0];
   const image = first
     ? absoluteImageUrl(
@@ -362,10 +440,12 @@ export function toMobileShopProduct(
     tag: p.tag,
     description: p.desc,
     priceMinor: p.priceMinor,
-    // A "was" price only means something above the current one; the web card
-    // applies the same rule.
-    compareAtPriceMinor:
-      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : 0,
+    // A "was" price only above the current one and only between its dates;
+    // the web mapper applies the same rule (src/lib/shop/discount.ts). The
+    // field stays a number on every product: 0 is v1's "no discount".
+    compareAtPriceMinor: discount?.compareAtPriceMinor ?? 0,
+    discountStartsAt: discount?.startsAt ?? null,
+    discountEndsAt: discount?.endsAt ?? null,
     category: p.cat,
     // Allergens are never withheld (lafmobil rule 4). The menu has published
     // this field since v1; the shop shelf carries a pistachio biscotti and
@@ -408,6 +488,9 @@ export function toMobileShopProduct(
         priceMinor: p.priceMinor + v.priceDeltaMinor,
         inStock: v.stock > 0,
       })),
+    taxRatePct: productTaxRate(p, rates),
+    ...mobileAllergens(p.allergens),
+    ...mobileFoodLabel(p),
   };
   if (p.cat === "beans") product.grinds = [...BEAN_GRINDS];
   return product;

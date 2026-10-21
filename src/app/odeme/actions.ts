@@ -34,7 +34,7 @@ import {
 } from "@/lib/customer/coupons";
 import { ensureCardUserKey } from "@/lib/customer/store";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
-import { checkoutConsentVersion } from "@/lib/legal/store";
+import { checkoutConsentShown } from "@/lib/legal/store";
 import { getPaymentProvider } from "@/lib/payment";
 import { PaynkolayPaymentProvider } from "@/lib/payment/paynkolay";
 import { deleteCheckoutSavedCard } from "@/lib/payment/saved-cards";
@@ -182,6 +182,9 @@ function parseItems(raw: string): ClientCartItem[] {
  * Formu and the Mesafeli Satış Sözleşmesi before the order was created - the
  * evidence Mesafeli Sözleşmeler Yönetmeliği requires and an acquiring bank asks
  * for on a chargeback. Returns `null` when the box was not ticked.
+ *
+ * `textHashes`: the hash of each document's shown text, next to its label
+ * (the same rule as the app's `POST /orders`, src/lib/legal/store.ts).
  */
 async function readLegalConsent(formData: FormData) {
   if (String(formData.get("legalConsent") ?? "") !== "on") return null;
@@ -189,7 +192,9 @@ async function readLegalConsent(formData: FormData) {
   return {
     acceptedAt: new Date().toISOString(),
     documents: [...CHECKOUT_CONSENT_DOCS],
-    version: await checkoutConsentVersion(),
+    // The label and the hash of each text shown, from one read of the
+    // overrides (src/lib/legal/store.ts `checkoutConsentShown`).
+    ...(await checkoutConsentShown()),
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };
@@ -233,7 +238,11 @@ function cartRefusal(result: PlaceOrderFailure): CheckoutStart {
           : `${name} şu an stokta yok. Sepetten çıkarıp yeniden dene.`;
       break;
     case "not_found":
-      message = `${name} artık satışta değil. Sepetten çıkarıp yeniden dene.`;
+      // A product sold by its variants, in the cart without one (the shop
+      // card's quick add): it is on sale, the line is what has to change.
+      message = result.variantRequired
+        ? `${name} için bir seçenek seç. Sepetten çıkarıp ürün sayfasından seçerek yeniden ekle.`
+        : `${name} artık satışta değil. Sepetten çıkarıp yeniden dene.`;
       break;
     case "qty_too_high":
       message = `${name} için en çok ${result.max} adet sipariş verebilirsin.`;

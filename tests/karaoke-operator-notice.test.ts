@@ -56,10 +56,10 @@ describe("karaokeNoticeRecipient", () => {
     const { karaokeNoticeRecipient } = await load();
     expect(
       karaokeNoticeRecipient({
-        karaokeNotifyEmail: " bizimfutbol9@gmail.com ",
+        karaokeNotifyEmail: " karaoke@nextgenlab.com.tr ",
         email: "info@laffogato.net",
       }),
-    ).toBe("bizimfutbol9@gmail.com");
+    ).toBe("karaoke@nextgenlab.com.tr");
   });
 
   it("falls back to the contact address when the field is empty", async () => {
@@ -76,7 +76,7 @@ describe("karaokeNoticeRecipient", () => {
 describe("sendKaraokeOperatorEmail", () => {
   it("mails the karaoke address, says where the booking came from, and replies to the member", async () => {
     getSettings.mockResolvedValue({
-      karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
       email: "info@laffogato.net",
     });
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
@@ -93,7 +93,7 @@ describe("sendKaraokeOperatorEmail", () => {
       RequestInit,
     ];
     const body = JSON.parse(String(init.body));
-    expect(body.to).toBe("bizimfutbol9@gmail.com");
+    expect(body.to).toBe("karaoke@nextgenlab.com.tr");
     expect(body.reply_to).toBe("eda@ornek.com");
     expect(body.text).toContain("Web sitesinden geldi");
     // The designed template, not a <pre> log: same shell as customer mail.
@@ -110,7 +110,7 @@ describe("sendKaraokeOperatorEmail", () => {
 
   it("names the app when the phone took the booking", async () => {
     getSettings.mockResolvedValue({
-      karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+      karaokeNotifyEmail: "karaoke@nextgenlab.com.tr",
       email: "info@laffogato.net",
     });
     const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));

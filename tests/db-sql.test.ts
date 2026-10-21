@@ -132,6 +132,131 @@ describe("select", () => {
     expect(q.text).toBe('SELECT * FROM "products" WHERE "orderId" IS NULL');
     expect(q.params).toEqual([]);
   });
+
+  it("ORs an any-of group in parentheses, its values parameterised", () => {
+    // One search box across an order number, a name and an e-mail.
+    const q = compile({
+      ...base,
+      table: "orders",
+      filters: [
+        { op: "eq", column: "status", value: "paid" },
+        {
+          op: "any",
+          column: "",
+          value: [
+            { column: "orderNo", op: "eq", value: 10023 },
+            { column: "customerName", op: "ilike", value: "%ay%" },
+            { column: "customerEmail", op: "ieq", value: "a@b.c" },
+          ],
+        },
+      ],
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "orders" WHERE "status" = $1 AND ("orderNo" = $2 OR ' +
+        '"customerName" ILIKE $3 OR lower("customerEmail") = lower($4))',
+    );
+    expect(q.params).toEqual(["paid", 10023, "%ay%", "a@b.c"]);
+  });
+
+  it("matches nothing for an empty any-of group, and refuses other ops in it", () => {
+    expect(
+      compile({ ...base, filters: [{ op: "any", column: "", value: [] }] }).text,
+    ).toBe('SELECT * FROM "products" WHERE false');
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "any",
+            column: "",
+            value: [{ column: "id", op: "in", value: ["a"] }],
+          },
+        ],
+      }),
+    ).toThrow(/unsupported any-of op/);
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "any",
+            column: "",
+            value: [{ column: 'x"; drop', op: "eq", value: 1 }],
+          },
+        ],
+      }),
+    ).toThrow(UnsafeIdentifierError);
+  });
+
+  it("folds a substring search on both sides, every part a parameter", () => {
+    // The panel's search: ILIKE does not fold İ / I / ı, so "ismail" missed
+    // "İsmail". translate() + lower() on the column AND on the pattern.
+    const q = compile({
+      ...base,
+      table: "orders",
+      filters: [
+        {
+          op: "any",
+          column: "",
+          value: [
+            { column: "orderNo", op: "eq", value: 10023 },
+            {
+              column: "customerName",
+              op: "foldLike",
+              value: { pattern: "%ismail%", from: "İIı", to: "iii" },
+            },
+          ],
+        },
+      ],
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "orders" WHERE ("orderNo" = $1 OR ' +
+        'lower(translate("customerName", $2, $3)) LIKE ' +
+        "lower(translate($4, $2, $3)))",
+    );
+    expect(q.params).toEqual([10023, "İIı", "iii", "%ismail%"]);
+  });
+
+  it("refuses a foldLike without its three strings, and a bad column", () => {
+    for (const value of [
+      "%a%",
+      null,
+      { pattern: "%a%", from: "x" },
+      { pattern: 1, from: "x", to: "y" },
+    ]) {
+      expect(() =>
+        compile({
+          ...base,
+          filters: [{ op: "foldLike", column: "name", value }],
+        }),
+      ).toThrow(/foldLike needs/);
+    }
+    expect(() =>
+      compile({
+        ...base,
+        filters: [
+          {
+            op: "foldLike",
+            column: 'name") OR true --',
+            value: { pattern: "%", from: "", to: "" },
+          },
+        ],
+      }),
+    ).toThrow(UnsafeIdentifierError);
+  });
+
+  it("skips rows with OFFSET after LIMIT, both parameterised", () => {
+    const q = compile({
+      ...base,
+      orders: [{ column: "orderNo", ascending: false }],
+      limit: 50,
+      offset: 100,
+    });
+    expect(q.text).toBe(
+      'SELECT * FROM "products" ORDER BY "orderNo" DESC LIMIT $1 OFFSET $2',
+    );
+    expect(q.params).toEqual([50, 100]);
+  });
 });
 
 describe("insert", () => {

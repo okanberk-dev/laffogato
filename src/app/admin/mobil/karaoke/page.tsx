@@ -1,206 +1,308 @@
+import Link from "next/link";
+
+import { PageHeader } from "@/components/admin/forms";
+import { KaraokeTable } from "@/components/admin/karaoke-panel";
 import {
-  Card,
-  formatDateTime,
-  formatTRY,
-  PageHeader,
-} from "@/components/admin/forms";
-import { KaraokeReservationActions } from "@/components/admin/karaoke-reservation-actions";
+  BUTTON,
+  EmptyListActionLink,
+  EmptyState,
+  FilterBar,
+  PageShell,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
+import {
+  listReleasedHolds,
+  type KaraokeReleasedHolds,
+} from "@/lib/admin/karaoke-audit";
+import {
+  defaultKaraokeSort,
+  KARAOKE_FILTER_FIELDS,
+  KARAOKE_PAGE_SIZE,
+  KARAOKE_PANEL_PATH,
+  KARAOKE_SORT_KEYS,
+  KARAOKE_TAB_PARAM,
+  KARAOKE_TABS,
+  karaokeAttentionViews,
+  karaokeList,
+  karaokeRowViews,
+  moneyOf,
+  parseKaraokeTab,
+} from "@/lib/admin/karaoke-panel";
+import {
+  parseFilters,
+  parsePage,
+  parseSort,
+  withParams,
+} from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import {
-  KARAOKE_PAYMENT_LABELS,
-  KARAOKE_STATUS_LABELS,
-  istanbulTimeLabel,
+  KARAOKE_ADMIN_LIST_LIMIT,
+  listKaraokeAttention,
   listReservationsForAdmin,
-  paymentStatusOf,
-  type KaraokePaymentStatus,
   type KaraokeReservation,
 } from "@/lib/mobile/karaoke";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Karaoke" };
+
+/** Ayarlar opens on its Karaoke tab (`?sekme=`, admin audit KAR-12). */
+const KARAOKE_SETTINGS_HREF = "/admin/ayarlar?sekme=karaoke";
+/** The manager has no site settings: the app's karaoke rules are hers. */
+const KARAOKE_APP_SETTINGS_HREF = "/admin/mobil/ayarlar?bolum=karaoke";
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<KaraokeReservation["status"], string> = {
-  requested: "bg-amber-50 text-amber-700",
-  confirmed: "bg-emerald-50 text-emerald-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-};
-
-const PAYMENT_TONE: Record<KaraokePaymentStatus, string> = {
-  none: "bg-neutral-100 text-neutral-600",
-  pending: "bg-amber-50 text-amber-700",
-  paid: "bg-emerald-50 text-emerald-700",
-  refunding: "bg-rose-50 text-rose-700",
-  refunded: "bg-sky-50 text-sky-700",
-  expired: "bg-neutral-100 text-neutral-500",
-};
-
-function dateLabel(date: string): string {
-  const [y, m, d] = date.split("-").map((s) => parseInt(s, 10));
-  return new Intl.DateTimeFormat("tr-TR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
-}
-
-function hourRange(r: KaraokeReservation): string {
-  const pad = (h: number) => `${String(h).padStart(2, "0")}:00`;
-  return `${pad(r.startHour)} - ${pad(r.startHour + r.hours)}`;
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
- * Reservation panel. With prepayment on (Ayarlar → Karaoke) a booking is an
- * unpaid hold until its payment confirms it on its own; nobody confirms an
- * unpaid one by hand. Cancelling a paid booking refunds it in full, which
- * needs the refunds permission. Holds that lapsed unpaid are left out: they
- * were never bookings. Pricing lives in Ayarlar → Karaoke; the amounts below
- * were fixed at booking time and do not follow later changes.
+ * The released holds a panel user let go, and those let go without the
+ * POS's answer, so the list keeps both under İptal / İade. A failed read
+ * hides them with the lapsed ones (the old behaviour) rather than taking
+ * the page down.
  */
-export default async function AdminKaraokePage() {
-  const session = await requireRole("mobileApp");
-  const canRefund = canAccess("refunds", session.role);
-  const [all, settings] = await Promise.all([
-    listReservationsForAdmin(),
-    getSettings(),
-  ]);
-  const reservations = all.filter((r) => paymentStatusOf(r) !== "expired");
-  const lapsed = all.length - reservations.length;
-
-  const byDate = new Map<string, KaraokeReservation[]>();
-  for (const r of reservations) {
-    const list = byDate.get(r.date) ?? [];
-    list.push(r);
-    byDate.set(r.date, list);
+async function releasedHolds(
+  rows: readonly KaraokeReservation[],
+): Promise<KaraokeReleasedHolds> {
+  const released = rows
+    .filter((r) => r.status === "cancelled" && moneyOf(r) === "expired")
+    .map((r) => r.id);
+  if (released.length === 0) {
+    return { staff: new Set(), unverified: new Set() };
   }
+  try {
+    return await listReleasedHolds(released);
+  } catch (err) {
+    console.error("[admin/karaoke] iptal kayıtları okunamadı", err);
+    return { staff: new Set(), unverified: new Set() };
+  }
+}
+
+/**
+ * Dikkat's own rows, any day (`listKaraokeAttention`). A failed read falls
+ * back to the list's rows (the old behaviour) rather than taking the page
+ * down.
+ */
+async function attentionRows(
+  today: string,
+): Promise<KaraokeReservation[] | null> {
+  try {
+    return await listKaraokeAttention(today);
+  } catch (err) {
+    console.error("[admin/karaoke] dikkat listesi okunamadı", err);
+    return null;
+  }
+}
+
+/**
+ * Karaoke bookings, Filament style: tabs with counts, a filter row, a table
+ * (cards on phones) and a ⋯ menu per row; the booking's page has the rest.
+ *
+ * With prepayment on (Ayarlar → Karaoke) a booking is an unpaid hold until
+ * its payment confirms it on its own; nobody confirms an unpaid one by hand.
+ * Cancelling a paid booking refunds it in full, which needs the refunds
+ * permission. A hold that lapsed unpaid was never a booking and shows only
+ * when the payment filter asks for it; one a person cancelled, or one let go
+ * without the POS's answer, stays under İptal / İade. Amounts were fixed at
+ * booking time.
+ */
+export default async function AdminKaraokePage({ searchParams }: PageProps) {
+  const session = await requireRole("karaoke");
+  // `sp` is the address (every link below, the booking pages' way back
+  // too), `view` adds the remembered search text (what the list shows):
+  // lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    KARAOKE_PANEL_PATH,
+    await searchParams,
+  );
+  const now = new Date();
+  const today = istanbulClock(now).date;
+  const filters = parseFilters(view, KARAOKE_FILTER_FIELDS);
+  const tab = parseKaraokeTab(view);
+  const sort = parseSort(view, KARAOKE_SORT_KEYS, defaultKaraokeSort(tab));
+
+  const [rows, settings, attention] = await Promise.all([
+    listReservationsForAdmin({ from: filters.bas, to: filters.bit }),
+    getSettings(),
+    attentionRows(today),
+  ]);
+  const released = await releasedHolds(rows);
+  const ctx = {
+    today,
+    now,
+    prepay: settings.karaokePrepay,
+    canRefund: canAccess("refunds", session.role),
+    staffReleased: released.staff,
+    unverified: released.unverified,
+  };
+  const views = karaokeRowViews(rows, ctx);
+  const list = karaokeList(views, {
+    tab,
+    filters,
+    sort,
+    page: parsePage(view),
+    today,
+    attention: attention ? karaokeAttentionViews(attention, ctx) : null,
+  });
+  // Dikkat reads its own rows, whatever the list's limit.
+  const truncated =
+    rows.length >= KARAOKE_ADMIN_LIST_LIMIT && !(tab === "dikkat" && attention);
+  const tabValue = KARAOKE_TABS.find((t) => t.tab === tab)?.value ?? null;
+  // The way out of an empty tab: a filtered list clears its filters and
+  // the typed search (the tab stays); an empty tab leads back to today.
+  const emptyAction =
+    Object.keys(filters).length > 0
+      ? {
+          href: tabValue
+            ? withParams(
+                { [KARAOKE_TAB_PARAM]: tabValue },
+                {},
+                KARAOKE_PANEL_PATH,
+              )
+            : KARAOKE_PANEL_PATH,
+          label: "Filtreyi temizle",
+          clearsSearch: true,
+        }
+      : tabValue
+        ? { href: KARAOKE_PANEL_PATH, label: "Bugünkü rezervasyonlar" }
+        : null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Mobil uygulama · Rezervasyon"
         title="Karaoke"
         description={
+          // One line (admin audit KAR-10): a phone sees the first booking
+          // without scrolling. The rules are behind "Nasıl çalışır?"; the
+          // refund warning is also on the cancel control itself.
           settings.karaokePrepay
-            ? "Web ve uygulamadan gelen karaoke rezervasyonları. Ödeme online alınır ve rezervasyon ödemeyle kendiliğinden kesinleşir; ödenmemiş rezervasyon onaylanmaz. Ödenmiş bir rezervasyonu iptal etmek tutarın tamamını karta iade eder."
-            : "Ön ödeme kapalı (Ayarlar → Karaoke): talepler köşkte ödenir, onayla ya da iptal et. İptal edilen saat yeniden boşa düşer."
+            ? "Ön ödeme açık: ödenen rezervasyon kendiliğinden onaylanır."
+            : "Ön ödeme kapalı: talepler köşkte ödenir, onayla ya da iptal et."
+        }
+        help={
+          settings.karaokePrepay ? (
+            <p>
+              Ön ödeme açıkken rezervasyon, ödemesi onaylanana kadar ödenmemiş
+              bir tutmadır; ödenmemiş olanı elle onaylayan olmaz. Ödenmişi iptal
+              etmek tutarın tamamını iade eder.
+            </p>
+          ) : (
+            <p>
+              Ön ödeme kapalıyken talepler köşkte ödenir: onayla ya da iptal et.
+            </p>
+          )
+        }
+        // One link per role: the owner's is the site's Karaoke tab (price,
+        // prepay), the manager's the app's karaoke rules; staff get none.
+        secondary={
+          canAccess("settings", session.role)
+            ? { href: KARAOKE_SETTINGS_HREF, label: "Karaoke ayarları" }
+            : canAccess("mobileApp", session.role)
+              ? { href: KARAOKE_APP_SETTINGS_HREF, label: "Karaoke ayarları" }
+              : undefined
         }
       />
-      {lapsed > 0 ? (
-        <p className="mb-4 text-xs text-neutral-500">
-          Ödenmediği için düşen {lapsed} rezervasyon denemesi listede
-          gösterilmiyor.
+
+      {list.counts.dikkat > 0 && tab !== "dikkat" ? (
+        <p
+          role="status"
+          className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+        >
+          {list.counts.dikkat} rezervasyon bir işlem bekliyor.{" "}
+          <Link
+            href={withParams(
+              sp,
+              { [KARAOKE_TAB_PARAM]: "dikkat", sayfa: null },
+              KARAOKE_PANEL_PATH,
+            )}
+            className="font-medium underline underline-offset-4"
+          >
+            Dikkat sekmesine git
+          </Link>
         </p>
       ) : null}
 
-      {reservations.length === 0 ? (
-        <Card>
-          <p className="text-sm text-neutral-500">
-            Bugünden itibaren rezervasyon yok.
+      <StatusTabs
+        tabs={KARAOKE_TABS.map((t) => ({
+          value: t.value,
+          label: t.label,
+          count: list.counts[t.tab],
+        }))}
+        current={tabValue}
+        searchParams={sp}
+        pathname={KARAOKE_PANEL_PATH}
+        param={KARAOKE_TAB_PARAM}
+        label="Rezervasyon sekmeleri"
+      />
+
+      <div className="mb-4">
+        <FilterBar
+          fields={KARAOKE_FILTER_FIELDS}
+          searchParams={sp}
+          pathname={KARAOKE_PANEL_PATH}
+          values={filters}
+          views={{ key: "karaoke" }}
+        />
+      </div>
+
+      <KaraokeTable
+        views={list.rows}
+        sort={sort}
+        searchParams={sp}
+        pathname={KARAOKE_PANEL_PATH}
+        empty={
+          <EmptyState
+            title="Bu sekmede rezervasyon yok."
+            action={
+              emptyAction ? (
+                <EmptyListActionLink
+                  action={emptyAction}
+                  className={BUTTON.ghost}
+                />
+              ) : undefined
+            }
+          />
+        }
+      />
+
+      {list.total > KARAOKE_PAGE_SIZE ? (
+        <Pagination
+          page={list.page}
+          pageSize={KARAOKE_PAGE_SIZE}
+          total={list.total}
+          searchParams={sp}
+          pathname={KARAOKE_PANEL_PATH}
+        />
+      ) : null}
+
+      <div className="mt-4 flex flex-col gap-1 text-xs text-[var(--admin-text-soft)]">
+        {list.hiddenLapsed > 0 && filters.odeme !== "expired" ? (
+          <p>
+            Ödenmediği için süresi dolan {list.hiddenLapsed} rezervasyon
+            denemesi gizli.{" "}
+            <Link
+              href={withParams(
+                sp,
+                { odeme: "expired", [KARAOKE_TAB_PARAM]: "iptal", sayfa: null },
+                KARAOKE_PANEL_PATH,
+              )}
+              className="underline underline-offset-4 hover:text-[var(--admin-primary)]"
+            >
+              Göster
+            </Link>
           </p>
-        </Card>
-      ) : (
-        <div className="grid gap-6">
-          {Array.from(byDate.entries()).map(([date, list]) => (
-            <section key={date} className="grid gap-3">
-              <h2 className="text-sm font-medium tracking-wide text-neutral-600 uppercase">
-                {dateLabel(date)}
-              </h2>
-              {list.map((r) => {
-                const money = paymentStatusOf(r);
-                const live = r.status !== "cancelled";
-                return (
-                  <Card key={r.id}>
-                    <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{hourRange(r)}</span>
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_TONE[r.status]}`}
-                          >
-                            {KARAOKE_STATUS_LABELS[r.status]}
-                          </span>
-                          <span
-                            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PAYMENT_TONE[money]}`}
-                          >
-                            {KARAOKE_PAYMENT_LABELS[money]}
-                            {money === "pending" && r.paymentDueAt
-                              ? ` · ${istanbulTimeLabel(r.paymentDueAt)}'e kadar`
-                              : ""}
-                          </span>
-                          {r.guest ? (
-                            <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
-                              Üyeliksiz
-                            </span>
-                          ) : null}
-                          <span className="text-xs text-neutral-400">
-                            {r.id}
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-sm">
-                          {r.customerName || "İsimsiz"}{" "}
-                          <span className="text-neutral-500">
-                            · {r.contactEmail || r.customerEmail}
-                          </span>
-                          {r.contactPhone ? (
-                            <a
-                              href={`tel:${r.contactPhone}`}
-                              className="ml-1 text-neutral-700 underline"
-                            >
-                              {r.contactPhone}
-                            </a>
-                          ) : null}
-                        </p>
-                        <p className="text-sm text-neutral-500">
-                          {r.guests} kişi · {r.hours} saat ·{" "}
-                          {formatTRY(r.totalMinor)}
-                          {r.discountMinor > 0
-                            ? ` (${formatTRY(r.priceMinor)} − RUBY ${formatTRY(r.discountMinor)})`
-                            : ""}
-                        </p>
-                        {r.note ? (
-                          <p className="mt-1 text-sm text-neutral-600">
-                            “{r.note}”
-                          </p>
-                        ) : null}
-                        <p className="mt-1 text-xs text-neutral-400">
-                          Talep: {formatDateTime(r.createdAt)}
-                        </p>
-                      </div>
-                      <KaraokeReservationActions
-                        id={r.id}
-                        canConfirm={
-                          r.status === "requested" &&
-                          (money === "paid" ||
-                            (money === "none" && !settings.karaokePrepay))
-                        }
-                        canCancel={
-                          live &&
-                          (money === "none" ||
-                            money === "pending" ||
-                            (money === "paid" && canRefund))
-                        }
-                        cancelRefunds={money === "paid"}
-                        canResolveRefund={
-                          canRefund &&
-                          (money === "refunding" || (money === "paid" && !live))
-                        }
-                      />
-                    </div>
-                    {money === "paid" && !canRefund && live ? (
-                      <p className="mt-2 text-xs text-neutral-500">
-                        Ödenmiş rezervasyonu iptal etmek iade demektir; iade
-                        yetkisi olan biri iptal edebilir.
-                      </p>
-                    ) : null}
-                  </Card>
-                );
-              })}
-            </section>
-          ))}
-        </div>
-      )}
-    </main>
+        ) : null}
+        {truncated ? (
+          <p>
+            En yeni {KARAOKE_ADMIN_LIST_LIMIT} kayıt okundu; daha eskileri için
+            tarih aralığı seç.
+          </p>
+        ) : null}
+      </div>
+    </PageShell>
   );
 }

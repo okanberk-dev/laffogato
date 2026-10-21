@@ -19,9 +19,8 @@ vi.mock("@/lib/admin/store", () => ({
   getMenuItem: vi.fn(),
   getSettings: vi.fn(),
 }));
-vi.mock("@/lib/customer/consent-ledger", () => ({
-  appendConsentChanges: vi.fn(async () => undefined),
-}));
+const appendConsentChanges = vi.fn(async () => undefined);
+vi.mock("@/lib/customer/consent-ledger", () => ({ appendConsentChanges }));
 vi.mock("@/lib/customer/store", () => ({
   getCustomerByEmail: vi.fn(),
   updateCustomerProfile: vi.fn(),
@@ -99,7 +98,9 @@ describe("deleteMe logs a skipped identity deletion", () => {
     expect(deleteSupabaseIdentity).toHaveBeenCalledWith("u-linked-1");
     const lines = skipLines();
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("SUPABASE_SERVICE_ROLE_KEY is not set");
+    expect(lines[0]).toContain(
+      "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set",
+    );
     expect(lines[0]).not.toContain("u-linked-1");
     expect(lines[0]).not.toContain("eda@example.com");
   });
@@ -120,5 +121,36 @@ describe("deleteMe logs a skipped identity deletion", () => {
       identity: "deleted",
     });
     expect(skipLines()).toHaveLength(0);
+  });
+});
+
+/**
+ * The panel's "Hesabı sil" runs the same deleteMe on the member's behalf. The
+ * consent history must not record the ADMIN's IP and browser as the member's
+ * withdrawal: like the admin customer form (`adminUpdateCustomer`), the
+ * panel's act is written with no IP and no User-Agent.
+ */
+describe("deleteMe records the consent withdrawal by who closed the account", () => {
+  const ctxOfLastCall = () => {
+    const calls = appendConsentChanges.mock.calls as unknown as Array<
+      [string, unknown, unknown, Record<string, unknown>]
+    >;
+    return calls[calls.length - 1][3];
+  };
+
+  it("reads the member's own request when the member closes it", async () => {
+    deleteSupabaseIdentity.mockResolvedValue("skipped");
+    await deleteMe(MEMBER);
+    const ctx = ctxOfLastCall();
+    expect(ctx.source).toBe("account-deletion");
+    expect("ip" in ctx).toBe(false);
+  });
+
+  it("writes no IP or User-Agent when the panel closes it", async () => {
+    deleteSupabaseIdentity.mockResolvedValue("skipped");
+    await deleteMe(MEMBER, { by: "admin" });
+    const ctx = ctxOfLastCall();
+    expect(ctx.source).toBe("account-deletion");
+    expect(ctx.ip).toBe("");
   });
 });

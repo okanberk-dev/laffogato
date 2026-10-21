@@ -34,7 +34,7 @@ import {
   CAFE_ONLY_COUPON_MESSAGE,
 } from "@/lib/customer/coupons";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
-import { checkoutConsentVersion } from "@/lib/legal/store";
+import { checkoutConsentShown } from "@/lib/legal/store";
 import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
@@ -115,6 +115,19 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
     case "empty":
       return { status: 400, code: "empty_cart", message: MSG.empty };
     case "not_found":
+      // A shop line without the variant its product is sold by. The app's
+      // product page always sends one; an older basket or a reorder of a
+      // product that has since gained variants may not. The existing 400
+      // for a line the product cannot take (docs/API-MOBILE.md §3), which
+      // the app answers like `line_not_found`: the server's words, and the
+      // way out is the basket.
+      if (result.variantRequired) {
+        return {
+          status: 400,
+          code: "invalid_line",
+          message: `${result.productName} için bir seçenek seç. Sepeti güncelle.`,
+        };
+      }
       return {
         status: 400,
         code: "line_not_found",
@@ -149,14 +162,17 @@ export function failureFromResult(result: AppOrderFailure): AppFailure {
 /**
  * The durable record that the member confirmed the Ön Bilgilendirme Formu
  * and the Mesafeli Satış Sözleşmesi - same shape the web checkout writes,
- * so a chargeback review reads one format.
+ * so a chargeback review reads one format: the label and, through the same
+ * rule, the hash of each text shown (`textHashes`).
  */
 async function buildLegalConsent(): Promise<OrderLegalConsent> {
   const h = await headers();
   return {
     acceptedAt: new Date().toISOString(),
     documents: [...CHECKOUT_CONSENT_DOCS],
-    version: await checkoutConsentVersion(),
+    // The label and the hash of each text shown, from one read of the
+    // overrides (src/lib/legal/store.ts `checkoutConsentShown`).
+    ...(await checkoutConsentShown()),
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };
@@ -180,8 +196,11 @@ async function createAppPaymentSession(
   const provider = getPaymentProvider();
   // Saved cards: the member's key lets the payment page list the cards they
   // saved at PayNkolay and save a new one (docs/PAYNKOLAY.md §16). Created on
-  // the member's first checkout.
-  const cardUserKey = await ensureCardUserKey(customer.email);
+  // the member's first checkout, and only while card storage is on - as on
+  // the web (`src/app/odeme/actions.ts`). Off, no key is minted at all.
+  const cardUserKey = provider.cardStorageEnabled
+    ? await ensureCardUserKey(customer.email)
+    : "";
   const address = {
     city: "",
     district: "",
@@ -902,6 +921,11 @@ export interface AppOrderPreviewLine {
   qty: number;
   unitPriceMinor: number;
   lineTotalMinor: number;
+  /**
+   * The KDV rate (whole %) the line would be sold at; the price already
+   * includes it. Additive (17 Eki 2026, docs/API-MOBILE.md §3).
+   */
+  taxRatePct: number;
 }
 
 export interface AppOrderPreview {
@@ -958,7 +982,7 @@ export async function previewAppOrder(
     };
   }
 
-  const linesRes = await previewAppOrderLines(body.lines);
+  const linesRes = await previewAppOrderLines(body.lines, settings.taxRates);
   if (!linesRes.ok) {
     return { ok: false, failure: failureFromResult(linesRes.result) };
   }
@@ -968,6 +992,8 @@ export async function previewAppOrder(
     qty: it.qty,
     unitPriceMinor: it.unitPriceMinor,
     lineTotalMinor: it.unitPriceMinor * it.qty,
+    // Always set: previewAppOrderLines stamps every line it resolves.
+    taxRatePct: it.taxRatePct ?? 0,
   }));
   const subtotalMinor = lines.reduce((s, l) => s + l.lineTotalMinor, 0);
 
@@ -996,7 +1022,6 @@ export async function previewAppOrder(
     {
       shippingFlatMinor: settings.shippingFlatMinor,
       shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-      taxRatePct: settings.taxRatePct,
     },
   );
 

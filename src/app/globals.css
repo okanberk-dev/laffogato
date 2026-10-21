@@ -1988,14 +1988,16 @@ summary:focus-visible,
 
 /* Thumbnails: glass tiles; the selected one is opaque white with the
    two-tone rim and the lift shadow (the app's selected state, §13.10). */
+/* One column per slide: the slider sets `--thumbs` from the slides it draws
+   (the panel's, /admin/anasayfa-hero, or the bundled HOME_SLIDES). */
 .hero-x-thumbs {
   list-style: none;
   margin: clamp(18px, 2.6vw, 36px) 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--thumbs, 3), minmax(0, 1fr));
   gap: 10px;
-  width: min(100%, 440px);
+  width: min(100%, 480px);
 }
 .hero-x-thumb {
   position: relative;
@@ -2049,6 +2051,10 @@ summary:focus-visible,
 }
 .hero-x-thumb-name {
   position: relative;
+  /* A panel slide's title can carry a word longer than the thumbnail
+     ("kampanyası"): it breaks instead of being clipped by the card. */
+  max-width: 100%;
+  overflow-wrap: break-word;
   font-family: var(--display);
   font-size: 12px;
   font-weight: 500;
@@ -2161,7 +2167,12 @@ summary:focus-visible,
   position: relative;
   height: calc(var(--stage) * 0.92);
   width: auto;
-  max-width: none;
+  /* A cut-out is far narrower than the stage, so this never binds for the
+     bundled slides. A panel upload can be a wide campaign picture: at the
+     stage's height it ran past the frame and was cut off, so it is held to
+     the stage's width and letterboxed instead. */
+  max-width: 100%;
+  object-fit: contain;
   filter: drop-shadow(0 30px 34px rgba(59, 42, 30, 0.22));
   animation: hero-x-rise 0.7s var(--ease-spring) both;
 }
@@ -2230,6 +2241,11 @@ summary:focus-visible,
   .hero-x-text-more {
     display: none;
   }
+  /* Five or six slides leave a thumbnail too narrow for its name: the
+     picture stays, the name is still each button's aria-label. */
+  .hero-x-thumbs[data-dense] .hero-x-thumb-name {
+    display: none;
+  }
 }
 
 /* Statement band ────────────────────────────────────────────────
@@ -2279,6 +2295,278 @@ summary:focus-visible,
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--ink);
+}
+
+/* Karaoke band ──────────────────────────────────────────────────
+   The operator's ask for the home page (17 Eki 2026: "sitede anasayfada da
+   karaokeyi vurgula"), home-karaoke.tsx: the room upstairs drawn as a square
+   stage window, the facts from the panel and today's free hours as chips.
+   Porcelain on the room's berry light, like the page heroes; never bordo -
+   the loyalty block is the page's one bordo surface. */
+.home-karaoke {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 440px);
+  grid-template-areas: "copy stage";
+  align-items: center;
+  gap: clamp(24px, 4vw, 64px);
+  padding: clamp(24px, 3.6vw, 48px);
+  padding-left: clamp(24px, 4.4vw, 64px);
+  border-radius: 36px;
+  background:
+    radial-gradient(
+      70% 90% at 84% 44%,
+      var(--scene-edge) 0%,
+      rgba(251, 248, 244, 0) 70%
+    ),
+    linear-gradient(180deg, var(--bg-warm) 0%, var(--bg) 100%);
+  border: 1px solid var(--ink-line);
+  box-shadow: var(--rim), var(--shadow-glass);
+}
+/* The room's light behind the stage, the page heroes' corner light. */
+.home-karaoke-light {
+  position: absolute;
+  right: -8%;
+  top: 50%;
+  width: min(64vw, 620px);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    var(--scene-core) 0%,
+    var(--scene-mid) 42%,
+    rgba(251, 248, 244, 0) 100%
+  );
+  opacity: 0.5;
+  filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
+}
+.home-karaoke-copy {
+  grid-area: copy;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+  min-width: 0;
+}
+.home-karaoke-kicker {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--green);
+}
+.home-karaoke-kicker::before {
+  content: "";
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tricolore);
+  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.1);
+}
+.home-karaoke-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-size: clamp(34px, 4.6vw, 60px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.home-karaoke-lede {
+  margin: 0;
+  max-width: 48ch;
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+/* The facts read as a short list, each behind a dot of the room's light, so
+   a wrapped line never starts with a stray separator. */
+.home-karaoke-facts {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.home-karaoke-facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-karaoke-facts li::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--scene-core);
+  box-shadow: 0 0 0 1px rgba(33, 28, 24, 0.12);
+}
+/* Today's hours. Whatever the calendar answers (hours, a full or finished
+   day, no answer at all) the line keeps the height it held while it was
+   asked: its label and one row of chips, so nothing below jumps when the
+   answer lands. The label's line, the gap and one 44 px row: measured
+   75.6 px on the built page, so the line is that tall, not 74. */
+.home-karaoke-live {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  margin-top: 4px;
+  min-height: calc(13.5px * 1.6 + 10px + 44px);
+}
+.home-karaoke-live-label {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+.home-karaoke-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-karaoke-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: 1px solid var(--ink-line-strong);
+  box-shadow: var(--rim), var(--shadow-lift);
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    transform 0.2s var(--ease-spring);
+}
+.home-karaoke-chip:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+.home-karaoke-chip:active {
+  transform: scale(var(--press-scale));
+}
+.home-karaoke-chip:focus-visible,
+.home-karaoke-tomorrow:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.home-karaoke-tomorrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--green);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+.home-karaoke-actions {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 6px;
+}
+.home-karaoke-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-mute);
+}
+/* The stage window: the drawing, square, its corners rounded like a card. */
+.home-karaoke-stage {
+  grid-area: stage;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  aspect-ratio: 1;
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 1px rgba(33, 28, 24, 0.08),
+    0 24px 48px -26px rgba(59, 42, 30, 0.45);
+}
+.home-karaoke-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* One sheen as the band arrives (the app's light pass: a 38 % band at 18°,
+   peak 0.2, 1.5 s) - only when `.reveal` brought it in, never again. */
+.home-karaoke-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    108deg,
+    rgba(255, 255, 255, 0) 31%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 69%
+  );
+  transform: translateX(-101%);
+  pointer-events: none;
+}
+.home-karaoke.will-reveal.is-in .home-karaoke-stage::after {
+  animation: home-karaoke-sheen 1.5s var(--ease-out) 0.3s 1 both;
+}
+@keyframes home-karaoke-sheen {
+  from {
+    transform: translateX(-101%);
+  }
+  to {
+    transform: translateX(101%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-karaoke-stage::after {
+    display: none;
+    animation: none;
+  }
+}
+@media (max-width: 760px) {
+  .home-karaoke {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "stage"
+      "copy";
+    gap: 22px;
+    padding: 14px 14px 26px;
+    border-radius: 30px;
+  }
+  .home-karaoke-stage {
+    border-radius: 22px;
+  }
+  .home-karaoke-copy {
+    padding: 0 8px;
+  }
+  .home-karaoke-light {
+    right: -30%;
+    top: 22%;
+    width: 120vw;
+  }
 }
 
 /* The SEO block (seo-content.tsx) ──────────────────────────────── */
@@ -2593,6 +2881,52 @@ summary:focus-visible,
     bottom: -8%;
   }
 }
+/* A page's own drawing (`<PageHero art>`, 17 Eki 2026) stands in the light's
+   corner, where the watermark was: the two would only crowd each other. On a
+   phone it moves above the kicker, smaller. */
+.page-hero-frame.has-art {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: clamp(20px, 4vw, 56px);
+}
+.page-hero-frame.has-art .page-hero-watermark {
+  display: none;
+}
+.page-hero-art {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+.page-hero-art .illo {
+  display: block;
+  width: clamp(150px, 17vw, 220px);
+  height: auto;
+}
+/* A raster picture (the karaoke room) is framed like a window, not cut out;
+   wherever it is used (the page hero, "Görüşmek üzere", /rezervasyon). */
+.illo-framed {
+  border-radius: 26px;
+  box-shadow:
+    0 0 0 1px rgba(33, 28, 24, 0.08),
+    0 20px 40px -22px rgba(59, 42, 30, 0.45);
+}
+@media (max-width: 760px) {
+  .page-hero-frame.has-art {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 18px;
+  }
+  .page-hero-art {
+    order: -1;
+    justify-items: start;
+  }
+  .page-hero-art .illo {
+    width: 116px;
+  }
+  .page-hero-art .illo-framed {
+    border-radius: 20px;
+  }
+}
 
 /* Promo banners ─────────────────────────────────────────────────
    A green board, the app's gradient.brand (#1D6D56 → #0C3B2D, 135°), with a
@@ -2703,12 +3037,41 @@ summary:focus-visible,
 .promo-banner.gold .promo-banner-cta {
   color: var(--gold-ink);
 }
+/* The home page's banner carries a drawing between the copy and the pill
+   (illustrations/kosk-ticket.svg); under 520 px it gives the room back. */
+.promo-banner--art {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.promo-banner-art {
+  position: relative;
+  display: block;
+  width: clamp(150px, 17vw, 240px);
+  height: auto;
+  margin: -14px 0;
+}
 @media (max-width: 620px) {
   .promo-banner {
     grid-template-columns: minmax(0, 1fr);
   }
   .promo-banner-cta {
     justify-self: start;
+  }
+  .promo-banner--art {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .promo-banner--art .promo-banner-art {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 130px;
+    margin: 0;
+  }
+}
+@media (max-width: 520px) {
+  .promo-banner--art {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .promo-banner-art {
+    display: none;
   }
 }
 
@@ -2747,22 +3110,14 @@ summary:focus-visible,
   height: 100%;
   object-fit: cover;
 }
+/* No photo: the kind's drawing on the kind's light (campaigns-page.tsx sets
+   the scene inline), contained so the drawing is never cropped. */
 .campaign-card-photo.empty {
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(
-      70% 90% at 30% 20%,
-      rgba(114, 203, 172, 0.35) 0%,
-      rgba(114, 203, 172, 0) 60%
-    ),
-    linear-gradient(135deg, #1d6d56 0%, #0c3b2d 100%);
-  color: #fbf6f1;
+  padding: 4% 6%;
+  background: var(--bg-warm);
 }
-.campaign-card-photo.empty .brand-mark {
-  width: 72px;
-  height: 60px;
-  opacity: 0.9;
+.campaign-card-photo.empty img {
+  object-fit: contain;
 }
 .campaign-card-body {
   display: grid;
@@ -2802,8 +3157,21 @@ summary:focus-visible,
   color: var(--green);
 }
 .campaign-empty {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 12px 0 8px;
+  text-align: center;
+}
+.campaign-empty p {
   margin: 0;
+  max-width: 46ch;
   color: var(--ink-soft);
+}
+.campaign-empty-art {
+  display: block;
+  width: 160px;
+  height: auto;
 }
 
 /* Section rhythm ────────────────────────────────────────────────
@@ -3405,6 +3773,61 @@ summary:focus-visible,
   border-color: var(--gold-soft);
   color: var(--gold-soft);
 }
+/* The stamp press (17 Eki 2026, the app's stamp-press): when the loyalty
+   block arrives, its two filled stamps land one after the other like a
+   rubber stamp - 1.3 → 1 on a stiff spring and one brass ring that widens
+   and fades, half a second each, once. Only on `.reveal`'s arrival (the
+   block was below the fold); under reduced motion they simply sit there. */
+.loyalty-block .stamp.filled {
+  position: relative;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled {
+  animation: stamp-press 0.5s var(--ease-spring) 0.45s both;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--gold-soft);
+  pointer-events: none;
+  animation: stamp-ring 0.5s var(--ease-out) 0.6s both;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2) {
+  animation-delay: 0.8s;
+}
+.loyalty-block.will-reveal.is-in .stamp.filled:nth-child(2)::after {
+  animation-delay: 0.95s;
+}
+@keyframes stamp-press {
+  from {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes stamp-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loyalty-block .stamp.filled,
+  .loyalty-block .stamp.filled::after {
+    animation: none;
+  }
+}
 .loyalty-headline {
   margin-top: 18px;
   font-family: var(--headline);
@@ -3779,13 +4202,52 @@ summary:focus-visible,
   color: rgba(251, 248, 244, 0.9);
 }
 .footer-contact-col .footer-contact-hours {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
   padding-top: 10px;
   margin-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   color: var(--green-mint);
+}
+.footer-hours-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* The company's identity under the social pills: small print, the same
+   mint as the column titles for the labels. */
+.footer-company {
+  margin: 20px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: rgba(251, 248, 244, 0.86);
+}
+.footer-company div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 8px;
+}
+.footer-company dt {
+  color: var(--green-mint);
+}
+.footer-company dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.footer .footer-company-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(251, 248, 244, 0.9);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer .footer-company-link:hover {
+  color: #fff;
 }
 .footer-social {
   margin-top: 20px;
@@ -3987,6 +4449,19 @@ summary:focus-visible,
   color: var(--ink-mute);
   font-size: 13px;
   font-weight: 500;
+}
+/* Price and, under a struck price, the discount's days (Ticari Reklam Yön.
+   m.14/1). min-width 0 lets the line wrap beside the "+" disc. */
+.product-card-pricing {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.product-card-discount {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--ink-mute);
 }
 /* The "+" disc: the app's price-pill well, green when it can take a tap. */
 .product-card-add {
@@ -4193,10 +4668,10 @@ summary:focus-visible,
     gap: 40px !important;
   }
   /* A grid item's default `min-width: auto` will not shrink below its
-     min-content, so one long unbreakable label - the visit page's
-     "2 kişi · Bu akşam · 19:30 için ara" CTA - widened its track past the
-     single column and scrolled the whole document sideways at 390px. The
-     column collapse above is useless without this. */
+     min-content, so one long unbreakable label (once a CTA on the visit
+     page) widened its track past the single column and scrolled the whole
+     document sideways at 390px. The column collapse above is useless
+     without this. */
   [data-row="visit-map-row"] > *,
   [data-row="visit-book-row"] > *,
   [data-row="private-row"] > *,
@@ -4335,6 +4810,10 @@ summary:focus-visible,
   .menu-grid .rail-card-price {
     font-size: 14.5px;
   }
+  .menu-grid .menu-card-allergens {
+    margin-top: 6px;
+    font-size: 12px;
+  }
   .menu-grid .rail-card-badge {
     top: 8px;
     left: 8px;
@@ -4344,6 +4823,34 @@ summary:focus-visible,
 }
 .menu-card-name {
   font-size: 19px;
+}
+/* "Görseller temsilidir" under the menu grid and the home rail
+   (menu-photo-note.tsx): most menu photos are stock photos. */
+.menu-photo-note {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+/* An item's own allergens (TGK Etiketleme Yön. m.15/5), under the
+   description. Not clamped with it on a phone: an allergen is never cut. */
+.menu-card-allergens {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.menu-card-allergens-key {
+  font-weight: 600;
+  color: var(--ink);
+}
+/* "Fiyatlarımıza KDV dahildir · Fiyatların uygulanmaya başladığı tarih"
+   under the grid (Fiyat Etiketi Yön. m.5/2): the list's own line. */
+.menu-price-note {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 /* M / L pricing reads as two labelled figures, not one long number. */
 .size-key {
@@ -4446,12 +4953,13 @@ summary:focus-visible,
   text-align: center;
   padding: clamp(40px, 7vw, 80px) 0;
 }
-.menu-empty-mark {
-  font-size: 56px;
-  font-weight: 300;
-  color: var(--ink-line-strong);
-  line-height: 1;
-  margin-bottom: 14px;
+/* The empty state's drawing: a saucer for a search with no match, an empty
+   cake stand for a category with nothing in it (menu-page.tsx). */
+.menu-empty-art {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 14px;
 }
 
 /* Shop page ─────────────────────────────────────────────────── */
@@ -4688,6 +5196,12 @@ summary:focus-visible,
   text-align: center;
   padding: 64px 20px;
 }
+.shop-empty-art {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin: 0 auto 16px;
+}
 .shop-empty-title {
   margin: 0 0 18px;
   font-family: var(--headline);
@@ -4817,6 +5331,12 @@ summary:focus-visible,
   font-weight: 500;
   letter-spacing: -0.015em;
   line-height: 1.35;
+}
+/* Three tiles when free shipping is off (Ayarlar, threshold 0). */
+@media (min-width: 901px) {
+  .trust-row[data-count="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @media (max-width: 900px) {
   .trust-row {
@@ -5102,6 +5622,18 @@ summary:focus-visible,
   background: var(--gold-soft);
   box-shadow: 0 0 0 5px rgba(232, 200, 119, 0.16);
 }
+/* The year over its drawing (story-page.tsx TIMELINE_ART); beside it on a
+   phone, where the row is one column. */
+.timeline-when {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+}
+.timeline-art {
+  display: block;
+  width: 120px;
+  height: auto;
+}
 @media (max-width: 720px) {
   .timeline-row {
     grid-template-columns: 1fr;
@@ -5112,6 +5644,15 @@ summary:focus-visible,
   }
   .timeline-year {
     font-size: 36px;
+  }
+  .timeline-when {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+    gap: 16px;
+  }
+  .timeline-art {
+    width: 72px;
   }
 }
 
@@ -5132,11 +5673,27 @@ summary:focus-visible,
 }
 
 .value-card {
+  position: relative;
   padding: 30px;
   background: var(--glass);
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
   box-shadow: var(--rim), var(--shadow-glass);
+}
+/* Each principle's line icon, in the corner across from its number. */
+.value-icon {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 48px;
+  height: 48px;
+}
+/* The closing: the bitten cup over "Drink it. Eat the cup." */
+.story-close-art {
+  display: block;
+  width: clamp(140px, 22vw, 200px);
+  height: auto;
+  margin: 0 auto 20px;
 }
 .value-num {
   display: inline-grid;
@@ -5227,8 +5784,8 @@ summary:focus-visible,
 /* Visit page */
 
 /* ── Visit map ─────────────────────────────────────────────────────────────
-   A real embedded map rather than an illustration: this page exists to get
-   someone to the door. */
+   A drawn card with a link to Google Maps: this page exists to get someone
+   to the door, and no Google frame loads inside it (KVKK m.9). */
 .visit-map {
   position: relative;
 }
@@ -5239,15 +5796,11 @@ summary:focus-visible,
   border: 1px solid var(--ink-line);
   border-radius: var(--r-lg);
   background: var(--bg-warm);
-  /* The embed is a light-mode Google map; a hair of warmth stops it reading as
-     a cold rectangle dropped into the cream page. */
-  filter: saturate(0.92) contrast(1.02);
 }
-/* The drawn stand-in (click to load the real map). */
+/* The drawn stand-in; "Haritayı göster" opens Google Maps in a new tab. */
 .visit-map-facade {
   position: relative;
   overflow: hidden;
-  filter: none;
   display: grid;
   place-items: end center;
 }
@@ -5424,109 +5977,10 @@ summary:focus-visible,
   line-height: 1.55;
   color: var(--ink-soft);
 }
-
-.reserve-card {
-  padding: clamp(22px, 3vw, 34px);
-  background: var(--surface-sheet);
-  border: 1px solid var(--ink-line);
-  border-radius: var(--r-xl);
-  box-shadow: var(--rim), var(--shadow-md);
-}
-.reserve-card-head {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 22px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--ink-line);
-}
-.reserve-card-title {
-  margin: 0;
-  font-family: var(--headline);
-  font-size: clamp(22px, 2.6vw, 28px);
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-}
-.reserve-section {
-  margin-bottom: 22px;
-}
-.reserve-section:last-of-type {
-  margin-bottom: 0;
-}
-/* Eight equal columns, or two rows of four when the card is narrow - the
-   free wrap left "8" alone on a second line at 1024 px. The card is the
-   query container, so the rule follows the card, not the window. */
-.reserve-card {
-  container: reserve / inline-size;
-}
-.reserve-party {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 6px;
-  max-width: 420px;
-}
-@container reserve (max-width: 400px) {
-  .reserve-party {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-.reserve-num {
-  width: 100%;
-  height: 44px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 16px;
-  background: var(--bg-warm);
-  color: var(--ink);
-  transition:
-    background-color 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    transform 0.2s var(--ease-spring);
-}
-.reserve-num:active,
-.reserve-chip:active {
-  transform: scale(0.94);
-}
-.reserve-num.on {
-  background: var(--bg-espresso);
-  color: #fff;
-  border-color: var(--bg-espresso);
-}
-
-.reserve-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.reserve-chip {
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--ink-line);
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 13.5px;
-  background: var(--bg-warm);
-  transition:
-    background-color 0.2s,
-    color 0.2s,
-    border-color 0.2s,
-    transform 0.2s var(--ease-spring);
-}
-.reserve-chip:hover {
-  border-color: var(--ink-line-strong);
-  background: #fff;
-}
-.reserve-chip.on {
-  background: var(--bg-espresso);
-  color: #fff;
-  border-color: var(--bg-espresso);
+/* The right half of the hours row: the live line and today's card. Its
+   first card needs no top margin; the grid gap already spaces it. */
+.visit-today-col > :first-child {
+  margin-top: 0;
 }
 
 /* A 4 × 2 bento: one 2 × 2 scene and four singles - five cells, eight
@@ -5594,9 +6048,7 @@ select {
 
 /* Buttons inside chip-row scenarios get a min-height for tap targets. */
 .menu-tab,
-.shop-cat,
-.reserve-chip,
-.reserve-num {
+.shop-cat {
   min-height: 44px;
 }
 
@@ -5744,17 +6196,6 @@ select {
 @media (max-width: 480px) {
   [data-row="private-stats"] {
     grid-template-columns: 1fr;
-  }
-}
-
-/* Reserve card padding tighter */
-@media (max-width: 540px) {
-  .reserve-card {
-    padding: 24px;
-  }
-  .reserve-card-head {
-    padding-bottom: 16px;
-    margin-bottom: 16px;
   }
 }
 
@@ -6018,18 +6459,11 @@ select {
   box-shadow: var(--rim), var(--shadow-glass);
 }
 .cart-empty-title {
-  margin: 0;
+  margin: 0 0 22px;
   font-family: var(--headline);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-.cart-empty-text {
-  margin: 10px auto 22px;
-  max-width: 280px;
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--ink-mute);
 }
 .cart-drawer-foot {
   padding: 16px 20px 20px;
@@ -6057,13 +6491,6 @@ select {
 }
 .cart-checkout {
   width: 100%;
-}
-.cart-foot-hint {
-  margin: 10px 0 0;
-  font-size: 12.5px;
-  color: var(--ink-mute);
-  text-align: center;
-  line-height: 1.5;
 }
 @media (max-width: 560px) {
   .cart-drawer {
@@ -6118,6 +6545,10 @@ select {
     aspect-ratio: auto !important;
     height: 280px !important;
   }
+  /* The sheet scrolls as one; the text column does not scroll inside it. */
+  .product-modal > div:last-of-type {
+    max-height: none !important;
+  }
 }
 
 /* Misc - prevent horizontal overflow on grid sections at tiny widths */
@@ -6127,15 +6558,99 @@ select {
   min-width: 0;
 }
 
+/* The admin panel is styled with Tailwind utilities, and those live in a
+   cascade layer: the unlayered element resets near the top of this file
+   (`a`, `button`) beat every one of them. A button's bg-, text-, border-
+   and px- classes never applied - "Uygula" and every modal's submit drew as
+   bare text, the active status tab as dark text on a dark ground. Inside the
+   admin root (app/admin/layout.tsx) those properties roll back to the
+   layers, so the utilities win again; with no utility, Tailwind's own reset
+   applies, which is the same as the one above.
+
+   The font as well (admin audit SHE-03, 17 Eki 2026): a <button> took its
+   parent's 16px / 400 / 1.6 instead of its text-sm, font-medium and
+   leading-*, so a button and a link with the same classes differed side by
+   side ("Uygula" at 16px next to "Sıfırla" at 14px). The cursor is NOT
+   rolled back: Tailwind 4's own reset sets none on buttons, so every panel
+   button would lose its pointer.
+
+   Not inside a site preview (`data-site-preview`, the shop hero editor's
+   "Önizleme"): that draws the storefront's own slide, and its `.btn` link
+   must look as it does on the shop (admin audit CAT-25). `:where` keeps the
+   rule's weight where it was. */
+[data-admin-root] :is(a, button):where(:not([data-site-preview] *)) {
+  color: revert-layer;
+  background: revert-layer;
+  border: revert-layer;
+  padding: revert-layer;
+  text-decoration: revert-layer;
+  font: revert-layer;
+}
+
+/* A disabled control looks it: `button { cursor: pointer }` beat
+   disabled:cursor-not-allowed, so a disabled "Kaydet" and a menu row that
+   only shows its reason (aria-disabled) still looked clickable. */
+[data-admin-root] :is(button:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
+
+/* The fields' size classes too (KAR-M01): `font: inherit` near the top and
+   the 16px rule for iOS (Responsive overrides) beat the kit's
+   `text-base sm:text-sm`, so a field drew at 16px on a desktop beside 14px
+   labels and buttons. `min-width: 0` stays as it is. */
+[data-admin-root] :is(input, textarea, select) {
+  font: revert-layer;
+}
+/* Below the kit's `sm` (40rem) a field keeps the 16px floor: iOS Safari
+   zooms into a smaller field when it takes focus. The kit fields say
+   text-base there anyway; this holds the hand-made ones (the sign-in form,
+   the small selects in list rows). On a touch screen too, at any width: a
+   phone on its side is wider than 40rem and zooms the same way, and a
+   tablet keeps the 16px it always had. */
+@media (width < 40rem), (pointer: coarse) {
+  [data-admin-root]
+    :is(
+      input:not(
+        [type="checkbox"],
+        [type="radio"],
+        [type="range"],
+        [type="color"],
+        [type="file"]
+      ),
+      textarea,
+      select
+    ) {
+    font-size: 16px;
+  }
+}
+
+/* One focus ring in the panel (SHE-16): the site's green ring and halo
+   (`:focus-visible` near the top) beat the kit's ring classes, and a
+   focused field showed both. The kit's own gold ring at /45 measures 1.59:1
+   on white, under the 3:1 a focus indicator needs, so the panel does not
+   roll back to it: a 2px espresso outline (12.46:1 on white), and no shadow,
+   so neither the halo nor the kit's ring doubles it. */
+[data-admin-root] :focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
 /* ────────────────────────────────────────────────────────────────
-   Print rules - used by admin order detail "Fiş yazdır"
-   ──────────���───────────────────────────────────────────────────── */
+   Print rules - the pages with a receipt: the order's "Fiş yazdır" and
+   the table cards (admin/masalar/yazdir)
+   ──────────────────────────────────────────────────────────────── */
 @media print {
   body {
     background: #fff !important;
   }
-  /* Hide everything; only the receipt section will be re-shown. */
-  body * {
+  /* On a page with a receipt, hide everything; only the receipt is shown
+     again. Every other page prints as it is: unscoped, this rule blanked
+     the dashboard, the reports, the legal texts (/hukuk) and the menu on
+     paper (SHE-08). `:where` keeps the weight of the old `body *`, so the
+     receipt's own rules here and in masalar/yazdir still win. A browser
+     without :has() skips the rule and prints the whole page. */
+  body:where(:has([data-print-receipt])) * {
     visibility: hidden;
   }
   [data-print-receipt],
@@ -6391,6 +6906,20 @@ select {
   font-size: 48px;
   color: var(--gold);
   margin-bottom: 14px;
+}
+/* The list's own drawing (EmptyState `art`). The karaoke room is a picture,
+   so it gets a rounded frame - a soft square, not a circle: the drawing
+   carries the L'Af mark, and the mark is never set inside a circle. */
+.account-empty-art {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 14px;
+}
+.account-empty-art.is-picture {
+  border-radius: 28px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--ink-line-strong);
 }
 .account-empty-title {
   font-family: var(--serif-display);
@@ -6819,9 +7348,6 @@ select {
 }
 .order-done-facts {
   margin: 28px 0 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
 }
 .order-done-facts > div {
   padding: 14px 16px;
@@ -6915,20 +7441,6 @@ select {
   font-size: 13.5px;
   color: var(--ink-mute);
 }
-.order-done-foot a {
-  color: var(--green);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-@media (max-width: 520px) {
-  .order-done-facts {
-    grid-template-columns: 1fr 1fr;
-  }
-  .order-done-facts > div:last-child {
-    grid-column: 1 / -1;
-  }
-}
 
 /* Signed out, unverified or shop closed: one glass card, like sign-in. */
 .checkout-gate {
@@ -6990,8 +7502,6 @@ select {
   stroke-linecap: round;
 }
 
-
-
 /* Skeleton (mount) */
 .checkout-skeleton {
   height: 360px;
@@ -7029,11 +7539,6 @@ select {
   line-height: 1;
   margin-bottom: 14px;
 }
-
-
-
-
-
 
 /* Promo block (inside summary) */
 .checkout-promo {
@@ -7106,7 +7611,6 @@ select {
   color: #15803d;
 }
 
-
 /* Distance-selling consent - Mesafeli Sözleşmeler Yönetmeliği requires an
    explicit, never pre-ticked confirmation before the order is created: one
    row per document (ön bilgilendirme formu, mesafeli satış sözleşmesi). */
@@ -7132,8 +7636,10 @@ select {
   accent-color: var(--ink);
   cursor: pointer;
 }
+/* The pre-contract texts on the payment step are at least 16px: MSY m.6/1
+   asks for twelve points, and 12 pt is 16 CSS px (ASK-OTH-2, 18 Eki 2026). */
 .checkout-consent label {
-  font-size: 13.5px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-soft);
   cursor: pointer;
@@ -7145,7 +7651,7 @@ select {
 }
 .checkout-consent-note {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.6;
   color: var(--ink-mute);
 }
@@ -7393,6 +7899,13 @@ select {
   border-color: var(--gold);
   transform: translateY(-2px);
 }
+/* Each guide's small drawing (rehber/page.tsx GUIDE_ART). */
+.guide-card-art {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+}
 .guide-card-title {
   font-family: var(--serif);
   font-size: clamp(19px, 2.2vw, 22px);
@@ -7550,8 +8063,10 @@ select {
   margin: 0 0 16px;
   color: var(--ink);
 }
+/* The contracts read at 16px or more, on /hukuk and in the payment step's
+   panel alike: MSY m.6/1, 12 pt = 16 CSS px. */
 .legal-section p {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.75;
   color: var(--ink-soft);
   margin: 0 0 12px;
@@ -7566,7 +8081,7 @@ select {
 }
 .legal-bullets li,
 .legal-ordered li {
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--ink-soft);
   padding-left: 6px;
@@ -7581,6 +8096,12 @@ select {
   font-family: var(--mono);
   font-size: 13px;
 }
+/* Tailwind's preflight sets `ol { list-style: none }`, so the numbered
+   steps (ÖBF §9, the İşlem Rehberi's order and karaoke steps) printed no
+   numbers and the marker style above had nothing to draw. */
+.legal-ordered {
+  list-style: decimal;
+}
 
 .legal-table-wrap {
   margin-top: 14px;
@@ -7589,13 +8110,13 @@ select {
 .legal-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 16px;
 }
 .legal-table th {
   text-align: left;
   vertical-align: top;
   padding: 12px 16px 12px 0;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
   font-weight: 600;
   width: 32%;
@@ -8620,6 +9141,15 @@ select {
   color: var(--ink-mute);
   margin-top: 4px;
 }
+/* "İndirim <başlangıç> - <bitiş> tarihleri arasında geçerli", under the
+   struck price on the product page, the quick look and the featured set. */
+.pdp-discount-note {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
 .pdp-desc {
   margin-top: 20px;
   font-size: 17px;
@@ -8754,16 +9284,30 @@ select {
 .pdp-detail-grid > div:first-child {
   border-top: 0;
 }
+/* Baseline, not centre: a label row (ingredients, nutrition) runs to
+   several lines and its name sits on the first one. */
+.pdp-detail-grid > div {
+  align-items: baseline;
+}
 .pdp-detail-grid dt {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink-mute);
-  align-self: center;
 }
 .pdp-detail-grid dd {
   margin: 0;
   font-size: 14.5px;
   color: var(--ink);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* The shop's e-mail and phone in a detail row (product page and quick look). */
+.fact-contact {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
 }
 .pdp-related {
   margin-top: clamp(56px, 8vw, 96px);
@@ -9683,6 +10227,13 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .auth-back:hover {
   color: var(--green-pressed);
 }
+/* A drawing over the title (the newsletter's sealed envelope). */
+.auth-art {
+  display: block;
+  width: clamp(104px, 28vw, 140px);
+  height: auto;
+  margin: -6px 0 12px;
+}
 .auth-title {
   margin: 0 0 10px;
   font-family: var(--headline);
@@ -9758,11 +10309,22 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   accent-color: var(--green);
   cursor: pointer;
 }
-.auth-consent a {
+.auth-consent a,
+.auth-consent-note a {
   color: var(--ink);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+/* Under the terms box, without a box of its own: where the KVKK notice is
+   (Kurul İlke Kararı 2026/347: an aydınlatma is read, not accepted).
+   Indented to the label's text: the 20px box and its 10px gap. */
+.auth-consent-note {
+  margin: -4px 0 0;
+  padding-left: 30px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 .auth-submit {
   width: 100%;
@@ -9870,30 +10432,83 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-page {
   padding-bottom: clamp(52px, 7vw, 96px);
 }
+/* The steps on the left, the summary beside them on a wide screen; one
+   column below that, with the summary folded into the steps and the bar. */
 .karaoke-layout {
   margin-top: 26px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
-.karaoke-picker {
+.karaoke-flow {
   /* A grid item defaults to `min-width: auto`, so the scrolling day strip
      inside stretched this column past the card border instead of scrolling. */
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+  scroll-margin-top: calc(var(--header-h) + 12px);
+}
+/* One step of the booking (karaoke-wizard.ts). Without JavaScript every
+   step shows, one under the other: the form the page always was. */
+.kw-step {
   min-width: 0;
   padding: 26px;
   border-radius: var(--r-lg);
   border: 1px solid var(--ink-line);
+  background: var(--surface);
   display: grid;
-  gap: 24px;
+  gap: 22px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink);
 }
-.karaoke-picker > div {
+.kw-step[hidden] {
+  display: none;
+}
+.kw-step-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-family: var(--headline);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  scroll-margin-top: calc(var(--header-h) + 12px);
+}
+.kw-step-title:focus:not(:focus-visible) {
+  outline: none;
+}
+.kw-step-n {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg-espresso);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.kw-field {
   min-width: 0;
 }
 /* The field labels are `span`s so they can be `<label>`-adjacent; they still
    need to sit on their own line above the control. */
-.karaoke-picker .eyebrow {
+.kw-step .eyebrow {
   display: block;
+}
+.kw-field > .input {
+  margin-top: 10px;
+}
+.kw-size {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 22px;
 }
 .karaoke-days {
   margin-top: 12px;
@@ -9929,7 +10544,8 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-hours {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  /* Three to a row on a 390px phone, six on a desk. */
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 10px;
 }
 .karaoke-hour {
@@ -10010,7 +10626,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   min-width: 0;
 }
 .karaoke-contact legend {
-  padding: 0;
+  padding: 0 0 8px;
 }
 .karaoke-contact-card {
   display: grid;
@@ -10038,6 +10654,10 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-contact-edit {
   grid-column: 2;
   grid-row: 1 / span 2;
+  /* Small type, a full tap target. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 13px;
   font-weight: 600;
   color: var(--green);
@@ -10075,7 +10695,8 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .karaoke-hint {
   margin-top: 8px;
-  font-size: 12.5px;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--ink-mute);
 }
 /* A warning, so it takes the warning token - not the brand accent. Painting
@@ -10104,7 +10725,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 .karaoke-photo {
   border-radius: var(--r-lg);
   overflow: hidden;
-  min-height: 230px;
+  aspect-ratio: 16 / 9;
   position: relative;
 }
 .karaoke-photo img {
@@ -10160,24 +10781,24 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   font-weight: 800;
   letter-spacing: -0.035em;
 }
-.karaoke-error {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--accent-on-dark);
-  color: var(--accent-on-dark);
-  font-size: 13.5px;
-  line-height: 1.55;
+/* "%20 KDV dahil (KDV 166,67₺)": the rate and the KDV inside the total,
+   quiet under it, never the headline number (kdv-note.ts). White at 88 %
+   on the green, the floor noted above. */
+.karaoke-kdv {
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+  text-align: right;
 }
 .karaoke-fine {
   margin: 0;
-  font-size: 12px;
+  font-size: 13.5px;
   line-height: 1.55;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--ink-soft);
 }
 .karaoke-link {
-  color: #fff;
+  color: var(--green);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -10186,44 +10807,49 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   padding: clamp(40px, 7vw, 88px) 0;
   max-width: 60ch;
 }
+.karaoke-done-art {
+  display: block;
+  width: clamp(150px, 30vw, 220px);
+  height: auto;
+  margin-bottom: 26px;
+}
 
-/* Guest contact block and the checkout band under the picker (16 Eki 2026):
-   both sit on the light ground, so the summary's on-dark text styles are
-   re-pointed at the ink tokens here. */
+/* Guest contact block and the review and pay steps (16 Eki 2026): they sit
+   on the light ground, so the summary's on-dark text styles are re-pointed
+   at the ink tokens here. */
 .karaoke-guest-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
   gap: 12px;
   margin-top: 10px;
 }
-.karaoke-contact .karaoke-link,
-.karaoke-mine .karaoke-link {
-  color: var(--green);
-}
-.karaoke-checkout {
-  grid-column: 1 / -1;
-  min-width: 0;
-  padding: 26px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--ink-line);
-  background: var(--bg-warm);
-  display: grid;
-  gap: 18px;
-}
 /* MSY m.6/1: the pre-payment information at a readable size - 16px. */
 .karaoke-preinfo {
+  padding: 18px 20px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
   font-size: 16px;
   line-height: 1.6;
   color: var(--ink);
 }
-.karaoke-preinfo h2 {
+.karaoke-preinfo h3 {
   margin: 0 0 10px;
+  font-family: var(--headline);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
 }
 .karaoke-preinfo ul {
   margin: 0;
   padding-left: 18px;
   display: grid;
   gap: 8px;
+}
+/* The deadline and the late share under the rule, each on its own line. */
+.kw-terms-line {
+  display: block;
+  margin-top: 4px;
 }
 /* "Ayrıntılar": the rest of the pre-information, closed by default. Same
    16px as the box when open; the platform triangle gives way to the FAQ's
@@ -10235,6 +10861,7 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   list-style: none;
   cursor: pointer;
   font-weight: 600;
@@ -10258,46 +10885,433 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   rotate: -135deg;
 }
 .karaoke-preinfo-more ul {
-  margin-top: 10px;
+  margin-top: 4px;
 }
 @media (prefers-reduced-motion: reduce) {
   .karaoke-preinfo-more summary::after {
     transition: none;
   }
 }
-/* The seller, always in sight under the box (MSY m.5/1-c), at the box's
+/* The seller, always in sight under the box (MSY m.5/1-b, c), at the box's
    16px (m.6/1). */
 .karaoke-seller {
   margin: -6px 0 0;
   font-size: 16px;
   line-height: 1.6;
   color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.karaoke-consents {
+  display: grid;
+  gap: 14px;
 }
 .karaoke-consents .karaoke-consent {
+  margin-top: 0;
   font-size: 15px;
   color: var(--ink);
 }
-.karaoke-consents .karaoke-consent:first-child {
-  margin-top: 0;
-}
-.karaoke-checkout .karaoke-error {
-  background: #fff;
-  border-color: var(--rose);
-  color: var(--rose);
-}
-.karaoke-checkout .karaoke-fine {
-  color: var(--ink-soft);
-  font-size: 13px;
+/* The box sits in a 44px row: the label is the tap target. */
+.karaoke-consents .karaoke-consent input {
+  width: 22px;
+  height: 22px;
 }
 .karaoke-pay {
   width: 100%;
   max-width: 420px;
+  min-height: 52px;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+}
+/* Why "Devam" did not move, or why the booking was refused. */
+.kw-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: #fff;
+  border: 1px solid var(--rose);
+  color: var(--rose);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+/* A visitor who must sign in (or verify) first: said on Bilgilerin. */
+.kw-signin {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 18px 20px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+}
+.kw-signin p {
+  margin: 0;
+}
+
+/* Özet ve onay: what was picked, each with its way back. */
+.kw-review {
+  margin: 0;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-md);
+}
+.kw-review > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 10px 6px 10px 16px;
+}
+.kw-review > div + div {
+  border-top: 1px solid var(--ink-line);
+}
+.kw-review dt {
+  grid-column: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+/* The value takes the whole row under its label and its "Değiştir". */
+.kw-review dd {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kw-review-line {
+  display: block;
+}
+.kw-review-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.kw-change {
+  grid-column: 2;
+  grid-row: 1;
+  margin: -6px 0 -6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green);
+}
+.kw-change:hover {
+  background: var(--bg-warm);
+}
+
+/* Ödeme: what is bought and its price, right above the button (MSY
+   m.6/2-a). */
+.kw-paybox {
+  display: grid;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  border: 1px solid var(--ink-line);
+}
+.kw-paybox p {
+  margin: 0;
+}
+.kw-paybox-what {
+  font-weight: 600;
+}
+.kw-paybox-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.kw-paybox-total strong {
+  font-family: var(--headline);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.kw-paybox-note {
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+/* The KDV note on the light ground: small and muted, never the number. */
+.kw-kdv {
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--ink-mute);
+}
+/* A narrow line breaks between "%20 KDV dahil" and "(KDV 166,67₺)", and
+   around a phone number, never inside it. */
+.kdv-part,
+.kw-nowrap {
+  white-space: nowrap;
+}
+.kw-paybox-kdv {
+  margin: -4px 0 0;
+}
+
+/* The step indicator: one bar per step, the current one named. */
+.kw-progress ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--kw-count, 5), minmax(0, 1fr));
+  gap: 8px;
+}
+.kw-progress-cell {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 0 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--ink-mute);
+}
+button.kw-progress-cell:hover .kw-progress-label {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.kw-progress-bar {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-line-strong);
+}
+.kw-progress-item[data-state="done"] .kw-progress-bar,
+.kw-progress-item[data-state="current"] .kw-progress-bar {
+  background: var(--green);
+}
+.kw-progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.kw-progress-item[data-state="current"] .kw-progress-label {
+  color: var(--ink);
+}
+.kw-progress-caption {
+  display: none;
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-mute);
+}
+
+/* Geri and Devam under the step; on a phone, a floating bar. */
+.kw-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.kw-nav-total {
+  display: none;
+}
+.kw-nav-actions {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+}
+/* Geri at the start, Devam at the end, as in every flow. */
+.kw-next {
+  min-width: 140px;
+  margin-left: auto;
+}
+/* Geri: a chevron and the word; on a phone the chevron alone, the word
+   still its name. */
+.kw-back-icon {
+  width: 9px;
+  height: 9px;
+  margin-left: 3px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  rotate: 45deg;
+}
+
+@media (min-width: 960px) {
+  .karaoke-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    gap: 24px 32px;
+  }
+  /* The summary stays beside the step while it scrolls, the price first
+     and the room under it. */
+  .karaoke-side {
+    position: sticky;
+    top: calc(var(--header-h) + 16px);
+  }
+  .karaoke-summary {
+    order: -1;
+  }
+}
+
+@media (max-width: 959.98px) {
+  /* One column: the steps carry the summary (Özet ve onay, Ödeme) and the
+     bar carries the total, so the card would only repeat them. */
+  .karaoke-page[data-wizard="on"] .karaoke-side {
+    display: none;
+  }
+  /* The bar floats where the tab bar does (DESIGN-GLASS §4.5): real glass,
+     the app's capsule, clear of the home indicator. */
+  .karaoke-page[data-wizard="on"] .kw-nav {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    z-index: 58;
+    min-height: 64px;
+    padding: 8px 8px 8px 18px;
+    border-radius: 32px;
+    background: rgba(251, 248, 244, 0.86);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(33, 28, 24, 0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      var(--shadow-chrome);
+  }
+  @supports not (
+    (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+  ) {
+    .karaoke-page[data-wizard="on"] .kw-nav {
+      background: rgba(251, 248, 244, 0.97);
+    }
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-total {
+    display: grid;
+    min-width: 0;
+    gap: 1px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-total strong {
+    font-family: var(--headline);
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-total .kw-kdv {
+    font-size: 12px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav-actions {
+    flex: none;
+    gap: 8px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-nav .btn {
+    min-height: 48px;
+    padding: 0 18px;
+  }
+  .karaoke-page[data-wizard="on"] .kw-next {
+    min-width: 0;
+  }
+  .karaoke-page[data-wizard="on"] .kw-back {
+    width: 48px;
+    padding: 0;
+  }
+  .karaoke-page[data-wizard="on"] .kw-back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* The end of the page clears the bar, and so does a field scrolled into
+     view. */
+  .karaoke-page[data-wizard="on"] {
+    padding-bottom: calc(
+      var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom)
+    );
+  }
+  html:has(.karaoke-page[data-wizard="on"]) {
+    scroll-padding-bottom: calc(
+      var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom)
+    );
+  }
+  body:has(.karaoke-page[data-wizard="on"]) .footer {
+    padding-bottom: calc(
+      var(--bottom-nav-h) + 24px + env(safe-area-inset-bottom)
+    );
+  }
+}
+
+@media (max-width: 760px) {
+  /* While the booking runs, its bar takes the tab bar's place: two floating
+     bars would cover a fifth of the screen. The header keeps the way out. */
+  body:has(.karaoke-page[data-wizard="on"]) .tab-bar {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .kw-step {
+    padding: 20px 18px;
+    gap: 20px;
+  }
+  .kw-step-title {
+    font-size: 20px;
+  }
+  /* Five bars and a caption; the names would wrap into two lines each. */
+  .kw-progress-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* "Adım 2 / 5" over the bars; each bar is still a 44px row. */
+  .kw-progress {
+    display: grid;
+  }
+  .kw-progress-caption {
+    display: block;
+    order: -1;
+    margin: 0;
+  }
+  .kw-progress-cell {
+    align-content: center;
+    padding: 0;
+  }
+  .karaoke-preinfo,
+  .kw-paybox,
+  .kw-signin {
+    padding: 16px;
+  }
 }
 
 /* The booking's own page: "Karaoke rezervasyonlarım" and the guest link. */
 .karaoke-link-page {
   padding: clamp(32px, 6vw, 72px) 0 0;
   max-width: 720px;
+}
+/* The heading beside the room's drawing; the drawing goes on top on a phone. */
+.karaoke-link-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+}
+.karaoke-link-art {
+  display: block;
+  width: 180px;
+  height: auto;
+}
+@media (max-width: 620px) {
+  .karaoke-link-head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .karaoke-link-art {
+    order: -1;
+    width: 120px;
+    border-radius: 20px;
+  }
 }
 .karaoke-link-page .karaoke-mine {
   margin-top: 20px;
@@ -10355,6 +11369,15 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   font-weight: 400;
   color: var(--ink-mute);
 }
+/* The rate and the KDV inside the total, on its own quiet line. */
+.karaoke-mine-kdv {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-mute);
+}
 .karaoke-mine-rules {
   display: grid;
   gap: 6px;
@@ -10396,6 +11419,16 @@ html[data-consent="set"] .cookie-banner[data-pending] {
 }
 .karaoke-mine-confirm h3 {
   margin: 0;
+  font-family: var(--headline);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* The confirm and the way back: full tap targets on a phone. */
+.karaoke-mine-confirm .btn {
+  min-height: 44px;
+  white-space: normal;
+  text-align: center;
 }
 .karaoke-mine-outcome {
   font-weight: 600;
@@ -10688,6 +11721,106 @@ html[data-consent="set"] .cookie-banner[data-pending] {
   color: var(--rose);
 }
 
+/* /uye/hesap/sil: the deletion request (18 Eki 2026) - the team deletes,
+   the member asks. The open request is a quiet status block, not an alarm:
+   rose rule on the warm ground, the way back as a ghost button. */
+.deletion-lede {
+  margin: 0 0 12px;
+  max-width: 560px;
+}
+.deletion-form {
+  display: grid;
+  gap: 16px;
+  max-width: 520px;
+  margin-top: 20px;
+}
+.deletion-form .account-field label small {
+  margin-left: 4px;
+  font-weight: 500;
+  color: var(--ink-mute);
+}
+.deletion-form .account-field > small {
+  justify-self: end;
+  font-size: 12px;
+  color: var(--ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+.deletion-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+.deletion-form .btn {
+  justify-self: start;
+}
+.deletion-more {
+  margin: 20px 0 0;
+  max-width: 560px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.deletion-more a,
+.deletion-notice-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.deletion-notice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px 18px;
+  align-items: start;
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--ink-line);
+  border-left: 4px solid var(--rose);
+  background: var(--bg-warm);
+}
+.deletion-notice-copy p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.deletion-notice-title {
+  font-size: 15px;
+  color: var(--ink);
+}
+.deletion-notice-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.deletion-notice-msg {
+  grid-column: 1 / -1;
+}
+@media (max-width: 540px) {
+  .deletion-notice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.deletion-channels-title {
+  margin: 28px 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.deletion-channels {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.deletion-channels a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
 /* ─────────────────────────────────────────────────────────────
    One-page checkout (/odeme, checkout.tsx) - 1 Teslimat → 2 Ödeme
    Its own chrome (no nav, no footer farm), a sticky order summary on the
@@ -10879,9 +12012,6 @@ button.co-steps-link {
 .co-section-title:focus {
   outline: none;
 }
-.co-section-secure {
-  margin-left: auto;
-}
 
 .co-addresses {
   display: grid;
@@ -10993,16 +12123,18 @@ button.co-steps-link {
   padding: 14px 16px;
   border-radius: var(--r-md);
   background: var(--green-mist);
-  font-size: 14px;
+  font-size: 16px;
 }
 .co-ship-method-name {
   font-weight: 600;
   color: var(--ink);
 }
+/* "Yalnız Türkiye içindeki adreslere gönderiyoruz": a delivery restriction
+   said before the order (MSY m.6/2-b), at the 16px of the other notes. */
 .co-ship-method-meta {
   grid-row: 2;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: 16px;
 }
 .co-ship-method-price {
   grid-row: 1 / span 2;
@@ -11071,19 +12203,273 @@ button.co-steps-link {
 }
 .co-docs {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 16px;
   color: var(--ink-soft);
 }
 .co-docs a {
   color: var(--ink);
+  text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* The documents as items: a padded link inside a sentence that wrapped on
+   a phone reached over the next line, and its tap area covered the link
+   there. Here each link is one 44px box in its own place in the row; the
+   underline, not a dot, tells one from the next when they wrap. */
+.co-docs-links {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.co-docs-links a {
+  display: inline-block;
+  padding-block: 11px;
+  line-height: 22px;
+}
+
+/* "Siparişin" and "Cayma hakkın" (ASK-OTH-2, 18 Eki 2026): the order and
+   the withdrawal terms as one block right above the card, open on every
+   screen size and never folded (MSY m.6/2-a), 16px like the notes above. */
+.co-brief,
+.co-withdrawal {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-md);
+  background: var(--bg-warm);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.co-withdrawal {
+  margin-top: 12px;
+}
+.co-brief-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.co-brief-lines {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.co-brief-lines li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink);
+}
+.co-brief-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.co-brief-lines .tabular {
+  flex: none;
+  font-weight: 600;
+}
+.co-brief-totals {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px dashed var(--ink-line-strong);
+}
+.co-brief-totals div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.co-brief-totals dt,
+.co-brief-totals dd {
+  margin: 0;
+}
+.co-brief-total {
+  padding-top: 4px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.co-brief-total dd {
+  font-family: var(--headline);
+  font-weight: 700;
+  font-size: 20px;
+}
+/* The KDV inside the total: one quiet line under it, never the headline. */
+.co-brief-totals .co-brief-kdv,
+.co-totals .co-totals-kdv {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0 6px;
+  color: var(--ink-mute);
+}
+.co-withdrawal p {
+  margin: 0;
+}
+.co-withdrawal .co-docs-links {
+  margin-top: -6px;
+}
+
+/* The documents in a panel on the page (ASK-OTH-2 (1) c): a native modal
+   <dialog>, full screen on a phone, a centred sheet on a wide screen. */
+.co-docpanel {
+  width: min(760px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 24px 64px rgba(59, 42, 30, 0.24);
+  overflow: hidden;
+}
+.co-docpanel[open] {
+  display: flex;
+  flex-direction: column;
+}
+.co-docpanel::backdrop {
+  background: rgba(44, 29, 17, 0.45);
+}
+.co-docpanel-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+.co-docpanel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 12px 14px 20px;
+  border-bottom: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+.co-docpanel-heading {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 6px;
+}
+.co-docpanel-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: clamp(19px, 2.4vw, 22px);
+  line-height: 1.25;
+  color: var(--ink);
+}
+.co-docpanel-meta {
+  margin: 0;
+  font-size: 16px;
+  color: var(--ink-mute);
+}
+.co-docpanel-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.co-docpanel-close:hover {
+  background: var(--bg-stone);
+}
+.co-docpanel-body {
+  display: grid;
+  gap: 20px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-size: 16px;
+}
+.co-docpanel .legal-article {
+  padding: clamp(18px, 3vw, 28px);
+}
+.co-facts {
+  display: grid;
+  gap: 4px;
+  padding: 16px 20px 8px;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.co-facts-title {
+  margin: 0;
+  font-family: var(--headline);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--ink);
+}
+.co-facts .legal-table-wrap {
+  margin-top: 4px;
+}
+.co-facts-table td {
+  overflow-wrap: anywhere;
+}
+.co-docpanel-foot {
+  margin: 0;
+}
+.co-docpanel-foot a {
+  display: inline-block;
+  padding-block: 11px;
+  line-height: 22px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.co-docpanel-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ink-line);
+  background: var(--surface);
+}
+@media (max-width: 639.98px) {
+  .co-docpanel {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .co-docpanel-body {
+    padding: 16px;
+  }
+  .co-facts {
+    padding: 14px 16px 6px;
+  }
+  .co-docpanel-done {
+    width: 100%;
+  }
+}
+
 .co-accepted {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--ink-mute);
 }
 .co-schemes {
@@ -11287,8 +12673,7 @@ button.co-steps-link {
 }
 /* The document links sit inside a sentence; their hit area grows
    vertically without moving the lines. */
-.co-confirm .checkout-consent a,
-.co-docs a {
+.co-confirm .checkout-consent a {
   padding-block: 11px;
   margin-block: -11px;
 }
@@ -11330,16 +12715,6 @@ button.co-steps-link {
   margin: 0;
   font-size: 12.5px;
   text-align: center;
-  color: var(--ink-mute);
-}
-.co-trust {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 6px 14px;
-  margin: 0;
-  font-size: 12px;
   color: var(--ink-mute);
 }
 
@@ -11424,7 +12799,10 @@ button.co-steps-link {
   gap: 6px;
   min-width: 0;
 }
+/* The price and "Çıkar" keep their own width: a long product name wraps
+   instead of pushing them out of the card, whose overflow hides them. */
 .co-line-side {
+  flex: none;
   justify-items: end;
   font-weight: 600;
   color: var(--ink);
@@ -11507,30 +12885,20 @@ button.co-steps-link {
   color: var(--ink);
 }
 .co-docs-seller {
-  display: inline-block;
   margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ink-mute);
-}
-.co-freeship {
-  margin: 0 16px 16px;
-}
-.co-seller {
-  margin: 0;
-  font-size: 11.5px;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--ink-mute);
   overflow-wrap: anywhere;
+}
+.co-freeship {
+  margin: 0 16px 16px;
 }
 .co-order-form {
   display: none;
 }
 
 @media (min-width: 960px) {
-  .co-docs-seller {
-    display: none;
-  }
   .co-freeship {
     margin: 0 22px 22px;
   }
@@ -11599,9 +12967,6 @@ button.co-steps-link {
   .co-field-row,
   .co-field-row-3 {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .co-section-secure {
-    margin-left: 0;
   }
   .co-chrome-help-label {
     display: none;

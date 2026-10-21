@@ -6,6 +6,7 @@ import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { customerOrdersByEmail, getPublicSettings } from "@/lib/admin/store";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import { getAvailability, isCalendarDate } from "@/lib/mobile/karaoke";
 import {
   computeTier,
@@ -13,9 +14,11 @@ import {
   TIER_LABELS,
 } from "@/lib/mobile/loyalty-core";
 import { istanbulClock } from "@/lib/mobile/venue";
-import { openGraphDefaults, SITE } from "@/lib/seo/site";
+import { openGraphBase, SITE } from "@/lib/seo/site";
 
 import { KaraokeBooking } from "@/components/laffogato/karaoke-booking";
+import { parseSaatParam } from "@/components/laffogato/karaoke-today";
+import { footerSettings } from "@/lib/seo/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +31,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: "/karaoke" },
   openGraph: {
-    ...openGraphDefaults(),
+    ...openGraphBase(),
     title: TITLE,
     description: DESCRIPTION,
     url: "/karaoke",
@@ -55,11 +58,11 @@ function nextDays(today: string, count: number): string[] {
 }
 
 interface PageProps {
-  searchParams: Promise<{ tarih?: string }>;
+  searchParams: Promise<{ tarih?: string; saat?: string }>;
 }
 
 export default async function KaraokePage({ searchParams }: PageProps) {
-  const { tarih } = await searchParams;
+  const { tarih, saat } = await searchParams;
   // One reading of the clock per request: the calendar day and the tier
   // window below must agree on what "now" is.
   const now = new Date();
@@ -110,20 +113,20 @@ export default async function KaraokePage({ searchParams }: PageProps) {
           { name: "Karaoke", url: "/karaoke" },
         ])}
       />
-      <SiteChrome
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
-      >
+      <SiteChrome settings={footerSettings(settings)}>
         <KaraokeBooking
           days={days}
           date={date}
+          // `?saat=` (the home page's free-hour chips): preselected only if
+          // that hour is free on this day; otherwise the first free one.
+          initialHour={parseSaatParam(saat)}
           availability={availability}
           unavailable={unavailable}
           capacity={settings.karaokeCapacity}
           hourlyMinor={settings.karaokeHourlyMinor}
+          // The heading's closing hour: the panel's, like the hours the
+          // calendar offers (/admin/mobil/ayarlar → karaoke.closeHour).
+          closeHour={settings.mobileApp.karaoke.closeHour}
           tier={tier}
           tierLabel={
             tier ? TIER_LABELS[tier as keyof typeof TIER_LABELS] : null
@@ -144,6 +147,14 @@ export default async function KaraokePage({ searchParams }: PageProps) {
             settings.address ||
             `${SITE.address.streetAddress}, ${SITE.address.postalCode} ${SITE.address.addressLocality} / ${SITE.address.addressRegion}`
           }
+          // Who sells, above the boxes (MSY m.5/1-b): the title and tax
+          // number from the one legal source; the client component does not
+          // import entity.ts itself.
+          sellerName={LEGAL_ENTITY.legalName}
+          taxNo={LEGAL_ENTITY.taxNo}
+          // The request's clock: a free-cancel moment already gone by is
+          // not named as one still to come.
+          now={now.toISOString()}
           // Presentation only: the action re-reads the switch with
           // `getSettings()` and decides there.
           prepay={availability?.paymentRequired ?? settings.karaokePrepay}

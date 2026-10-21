@@ -1,90 +1,145 @@
 import Link from "next/link";
 
-import { Card, GhostButton, PageHeader } from "@/components/admin/forms";
+import { Card, PageHeader } from "@/components/admin/forms";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  Badge,
+  BUTTON,
+  ConfirmButton,
+  PageShell,
+} from "@/components/admin/ui";
+import { AdminIcon } from "@/components/admin/ui/icons";
 import { requireRole } from "@/lib/admin/auth";
+import type { AdminTone } from "@/lib/admin/tone";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
-import { listLegalDocOverrides } from "@/lib/legal/store";
+import {
+  listLegalDocOverrides,
+  listLegalOverrideArchive,
+  type LegalDocOverride,
+} from "@/lib/legal/store";
 
 import { resetLegalDocAction } from "./actions";
+import { LegalArchiveList } from "./archive-list";
 
-export const metadata = { title: "Admin · Yasal Belgeler" };
+export const metadata = { title: "Admin · Yasal belgeler" };
 export const dynamic = "force-dynamic";
+
+function statusOf(ov: LegalDocOverride | undefined): {
+  label: string;
+  tone: AdminTone;
+} {
+  if (!ov) return { label: "Hazır metin", tone: "neutral" };
+  return ov.isPublished
+    ? { label: "Özel metin yayında", tone: "success" }
+    : { label: "Taslak", tone: "warning" };
+}
 
 export default async function LegalDocsPage() {
   await requireRole("legal");
-  const overrides = await listLegalDocOverrides();
+  const [overrides, archive] = await Promise.all([
+    listLegalDocOverrides(),
+    listLegalOverrideArchive({ limit: 10 }),
+  ]);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="detail">
       <PageHeader
-        eyebrow="Sistem · Hukuk"
-        title="Yasal Belgeler"
-        description="KVKK, gizlilik, mesafeli satış, iade ve diğer belgeler. Bir belgeyi düzenleyip yayınladığında /hukuk sayfasında kodlu varsayılan yerine senin metnin gösterilir; yayından kaldırınca varsayılana döner."
+        title="Yasal belgeler"
+        description="KVKK, gizlilik, mesafeli satış, iade ve diğer belgelerin metinleri."
+        help={
+          <p>
+            Bir belgeyi düzenleyip yayınladığında /hukuk sayfasında ve
+            uygulamada sitedeki hazır metnin yerine senin metnin görünür;
+            yayından kaldırınca ya da varsayılana döndürünce hazır metin geri
+            gelir. Değiştirilen ve kaldırılan metinler arşivde kalır.
+          </p>
+        }
       />
 
       <Card>
-        <div className="grid gap-2">
+        <ul className="grid gap-2">
           {LEGAL_DOCS.map((doc) => {
             const ov = overrides[doc.slug];
-            const status = !ov
-              ? { label: "Varsayılan", tone: "bg-neutral-100 text-neutral-500" }
-              : ov.isPublished
-                ? {
-                    label: "Yayında (özel)",
-                    tone: "bg-green-50 text-green-700",
-                  }
-                : { label: "Taslak", tone: "bg-amber-50 text-amber-700" };
+            const status = statusOf(ov);
             return (
-              <div
+              <li
                 key={doc.slug}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--admin-border)] p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] p-3"
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-neutral-900">
-                      {doc.title}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.16em] uppercase ${status.tone}`}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/admin/hukuk/${doc.slug}`}
+                      className="font-medium break-words text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
                     >
-                      {status.label}
-                    </span>
+                      {doc.title}
+                    </Link>
+                    <Badge tone={status.tone}>{status.label}</Badge>
                   </div>
                   <div
-                    className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
+                    className="mt-1 text-[10px] tracking-[0.18em] break-all text-[var(--admin-text-soft)] uppercase"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {doc.category} · /hukuk/{doc.slug}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Link
+                {/* One text action (Düzenle); the published page is an icon
+                    link, and the draft preview and the reset sit in ⋯. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
                     href={`/hukuk/${doc.slug}`}
                     target="_blank"
-                    className="inline-flex items-center justify-center rounded-full border border-[var(--admin-border)] px-3 py-1.5 text-xs text-neutral-600 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                    rel="noopener"
+                    className={BUTTON.icon}
+                    aria-label={`Yayındakini aç: ${doc.title} (yeni sekme)`}
+                    title="Yayındakini aç"
                   >
-                    Önizle ↗
-                  </Link>
-                  {ov && (
-                    <form action={resetLegalDocAction}>
-                      <input type="hidden" name="slug" value={doc.slug} />
-                      <GhostButton type="submit" className="text-xs">
-                        Varsayılana döndür
-                      </GhostButton>
-                    </form>
-                  )}
+                    <AdminIcon name="external" />
+                  </a>
                   <Link
                     href={`/admin/hukuk/${doc.slug}`}
-                    className="inline-flex items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+                    className={BUTTON.ghost}
+                    aria-label={`Düzenle: ${doc.title}`}
                   >
                     Düzenle
                   </Link>
+                  {ov ? (
+                    <ActionMenu label={`${doc.title} işlemleri`}>
+                      {!ov.isPublished ? (
+                        <ActionMenuLink
+                          href={`/admin/hukuk/${doc.slug}/onizle`}
+                        >
+                          Taslağı önizle
+                        </ActionMenuLink>
+                      ) : null}
+                      <ConfirmButton
+                        action={resetLegalDocAction}
+                        hidden={{ slug: doc.slug }}
+                        label="Varsayılana döndür"
+                        variant="menuDanger"
+                        ariaLabel={`Varsayılana döndür: ${doc.title}`}
+                        title={`${doc.title} varsayılana dönsün mü?`}
+                        description={
+                          ov.isPublished
+                            ? "Yayındaki özel metin kalkar; /hukuk sayfası ve uygulama sitedeki hazır metni gösterir. Özel metin arşive alınır, aşağıdan geri yükleyebilirsin."
+                            : "Taslak kalkar; sitede zaten hazır metin görünüyor. Taslak arşive alınır, aşağıdan geri yükleyebilirsin."
+                        }
+                      />
+                    </ActionMenu>
+                  ) : null}
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </Card>
-    </main>
+
+      <LegalArchiveList
+        rows={archive}
+        showDoc
+        description="Varsayılana döndürülen ya da üzerine kaydedilen son 10 metin. Geri yükleyince şu anki metin de arşive alınır; bir belgenin bütün arşivi düzenleme sayfasında."
+      />
+    </PageShell>
   );
 }

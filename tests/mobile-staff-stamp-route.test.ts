@@ -229,6 +229,40 @@ describe("the scan", () => {
     expect(recordLoginFailure).not.toHaveBeenCalled();
   });
 
+  it("answers a stamp run that stopped half-way exactly as the throw it was", async () => {
+    // The till now says "verilmiş olabilir"; the app's contract is unchanged.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    redeemCounterToken.mockResolvedValue({
+      ok: false,
+      error: "partial",
+      message: "Damga verilmiş olabilir, üyenin kartını kontrol et.",
+      stampsWritten: 1,
+      stampsAsked: 2,
+      code: "K7P42M9X",
+      memberLabel: "e***@ornek.com",
+      cause: new DbUnreachableError("addCounterStamp", "ECONNRESET"),
+    });
+    const down = await POST(request({ kind: "code", value: "K7P42M9X" }));
+    expect(down.status).toBe(503);
+    expect(await errorOf(down)).toBe("unavailable");
+    redeemCounterToken.mockResolvedValue({
+      ok: false,
+      error: "partial",
+      message: "x",
+      stampsWritten: 0,
+      stampsAsked: 1,
+      code: "K7P42M9X",
+      memberLabel: "e***@ornek.com",
+      cause: new Error("insert failed"),
+    });
+    const broken = await POST(request({ kind: "code", value: "K7P42M9X" }));
+    spy.mockRestore();
+    expect(broken.status).toBe(500);
+    expect(await errorOf(broken)).toBe("internal");
+    expect(logAudit).not.toHaveBeenCalled();
+    expect(recordLoginFailure).not.toHaveBeenCalled();
+  });
+
   it("answers 503 when the database is unreachable", async () => {
     isActiveBarista.mockRejectedValue(new DbUnreachableError("staff", "down"));
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});

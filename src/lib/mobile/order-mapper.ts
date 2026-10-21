@@ -18,6 +18,7 @@ import type {
   AdminOrderStatus,
   OrderItemSize,
 } from "@/lib/admin/store";
+import { isTaxRate, orderKdvBreakdown, type KdvRow } from "@/lib/utils/kdv";
 
 export const ORDER_STATUS_LABELS: Record<AdminOrderStatus, string> = {
   pending_payment: "Ödeme bekleniyor",
@@ -46,6 +47,12 @@ export interface MobileOrderItem {
   variantId: string | null;
   size: OrderItemSize | null;
   options: Record<string, unknown> | null;
+  /**
+   * The KDV rate (whole %) the line was sold at; its price includes it.
+   * null on orders placed before lines carried a rate (17 Eki 2026, yalnız
+   * ekleme).
+   */
+  taxRatePct: number | null;
 }
 
 export interface MobileOrder {
@@ -77,6 +84,13 @@ export interface MobileOrder {
    * then (15 Eki 2026, yalnız ekleme); null on every other order.
    */
   table: { code: string; name: string } | null;
+  /**
+   * The KDV inside `totalMinor`, one row per rate, highest first (17 Eki
+   * 2026, yalnız ekleme). The discount and the shipping or courier fee are
+   * shared over the lines (src/lib/utils/kdv.ts), so the rows' `grossMinor`
+   * add up to `totalMinor`. null on orders placed before lines carried a rate.
+   */
+  taxBreakdown: KdvRow[] | null;
 }
 
 /**
@@ -300,6 +314,7 @@ function toMobileItem(it: AdminOrderItem): MobileOrderItem {
     variantId: it.variantId ?? null,
     size: it.size ?? null,
     options: it.options ?? null,
+    taxRatePct: isTaxRate(it.taxRatePct) ? it.taxRatePct : null,
   };
 }
 
@@ -388,5 +403,6 @@ export function toMobileOrder(
     paidAt: order.paidAt || null,
     shipment: toMobileShipment(order),
     table: orderTable(order),
+    taxBreakdown: orderKdvBreakdown(order)?.rows ?? null,
   };
 }

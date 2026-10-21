@@ -19,7 +19,55 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
-export const LEGAL_UPDATED = "16 Ekim 2026";
+// 20 Ekim 2026: the ÖBF (§16) and the MSS (§9) say the invoice is an
+// e-Arşiv invoice sent by e-mail, its paper copy in the parcel standing in
+// for the waybill; Şirket Bilgileri §14 takes corporate details by e-mail
+// after the order, and the İşlem Rehberi joins the set. LEGAL-REDLINES §24.
+// The set carries the publish day. Until 21 Ekim 2026 only one PR that moved
+// this label merged per Istanbul day (D-SAME-DAY; 19 Ekim 2026 was the KDV
+// wording, §16.4; 18 Ekim 2026 the distance-sales set, §18 and §19), because
+// two texts under one label left the confirmed one unprovable. That rule
+// ended with the durable copy (LEGAL-REDLINES §25): a consent now records,
+// next to this label, the hash of every text it confirmed
+// (`legalConsent.textHashes`) and the text is stored under it
+// (`legal_doc_versions`), so the hash, not the day, tells two texts apart.
+// The label still names the day the set was published.
+export const LEGAL_UPDATED = "20 Ekim 2026";
+
+/**
+ * Whether the legal texts describe saved cards (PayNkolay's card storage,
+ * docs/PAYNKOLAY.md §16). They do not since 18 Ekim 2026: the passages that
+ * said "kart saklama özelliği açıldığında ..." are kept in
+ * docs/LEGAL-REDLINES-2026-09.md §19, to come back word for word.
+ *
+ * The payment provider ANDs this with `PAYNKOLAY_CARD_STORAGE`, so the env
+ * switch alone cannot turn card storage on, and no member key is minted
+ * while it is off. Flip it only in the PR that restores those texts, and
+ * publish that text before the first card is saved (Aydınlatma Tebliği
+ * m.5/1-b: the notice comes before the processing). tests/legal-docs.test.ts
+ * holds the texts to this value.
+ */
+export const SAVED_CARDS_IN_LEGAL_TEXTS = false;
+
+/**
+ * Whether the legal texts describe Google's tags (Tag Manager, Analytics,
+ * Ads) as running on the site. They do not since 19 Ekim 2026: Google offers
+ * no Turkish standard contract for these services (its Ads/Analytics
+ * processor terms carry no KVKK clause), so the transfer they make on every
+ * page view has no KVKK m.9/4 safeguard, and the texts say "İnternet
+ * sitemizde bugün analitik veya reklam etiketi kullanılmaz"
+ * (docs/LEGAL-REDLINES-2026-09.md §15.6).
+ *
+ * The root layout loads Google Tag Manager only when this is true AND
+ * `NEXT_PUBLIC_GTM_ID` is set (`siteTagManagerId`), so an environment
+ * variable left in Vercel cannot bring the tags back under texts that say
+ * there are none. Flip it only in the PR that restores those texts, after a
+ * Google standard contract is signed and notified to the Kurum. Flipping it
+ * also moves the cookie consent version (`consentVersionFor`,
+ * `src/lib/consent/cookie.ts`), so every visitor is asked again and no
+ * stored choice turns the tags on.
+ */
+export const GOOGLE_TAGS_IN_LEGAL_TEXTS = false;
 
 /**
  * /hukuk dizin sayfasındaki kategori sırası. Listede olmayan bir kategori
@@ -61,4 +109,17 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-export const KARAOKE_LEGAL_UPDATED = "16 Ekim 2026";
+// 21 Ekim 2026: §8 makes good the köşk's late cancel (a free hour of the
+// same length, or the amount paid to the guest's own bank account), §9 says
+// a share goes back within 14 days, now that a late share of 1..99 % can be
+// chosen (karaoke-make-good-and-resale, LEGAL-REDLINES §26). (20 Ekim 2026:
+// §12 says the payment is an advance until the service day, invoiced as an
+// e-Arşiv invoice within 7 days of it for the amount the köşk keeps
+// (ASK-KAR-KDV), §24. 19 Ekim 2026: §7 and §10 name the booking's own
+// summary instead of fixed hours, §7 says when a cancel by phone or e-mail
+// counts, §8 says when and why the köşk cancels, §17. 17 Ekim 2026: §1 no
+// longer points table bookings to the café terms.) Until 21 Ekim 2026 one
+// PR that moved this label merged per Istanbul day (D-SAME-DAY); a
+// booking's consent now records the hash of the text it confirmed as well
+// (LEGAL-REDLINES §25), and the rule ended.
+export const KARAOKE_LEGAL_UPDATED = "21 Ekim 2026";

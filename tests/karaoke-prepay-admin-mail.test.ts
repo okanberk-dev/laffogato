@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * The panel side of karaoke prepayment, and the two member mails as they are
- * actually rendered (16 Eki 2026):
- * - an unpaid booking is never confirmed by hand, and the panel says why;
- * - cancelling sends the money back only for someone allowed to move money;
- * - the confirmation carries the receipt, the exact two-hour wording and the
- *   booking's own page; the cancellation says what went back.
+ * The two member mails of karaoke prepayment as they are actually rendered
+ * (16 Eki 2026): the confirmation carries the receipt, the exact two-hour
+ * wording and the booking's own page; the cancellation says what went back.
+ * The panel's actions are tests/admin-karaoke-actions.test.ts.
  */
 
 const h = vi.hoisted(() => ({
@@ -42,70 +40,14 @@ vi.mock("@/lib/admin/store", () => ({
   }),
 }));
 
-const admin = await import("@/app/admin/mobil/karaoke/actions");
 const send = await import("@/lib/email/send");
 const { KARAOKE_NO_REFUND_RULE, KARAOKE_REFUND_RULE } =
   await import("@/lib/mobile/karaoke-time");
-
-const form = (id: string) => {
-  const fd = new FormData();
-  fd.set("id", id);
-  return fd;
-};
 
 beforeEach(() => {
   h.role = "manager";
   h.required.length = 0;
   for (const fn of [h.setStatus, h.cancel, h.retry, h.settle]) fn.mockReset();
-});
-
-describe("panel actions", () => {
-  it("Onayla on an unpaid booking is refused with the reason", async () => {
-    h.setStatus.mockResolvedValue({ ok: false, reason: "payment_open" });
-    const state = await admin.confirmReservationAction({}, form("krk-00042"));
-    expect(state.error).toMatch(/ödemesi alınmadı/);
-    expect(h.required).toEqual(["mobileApp"]);
-  });
-
-  it("refuses an id that is not a karaoke reference before touching anything", async () => {
-    const state = await admin.cancelReservationAction({}, form("ord-1; drop"));
-    expect(state.error).toBeTruthy();
-    expect(h.cancel).not.toHaveBeenCalled();
-  });
-
-  it("cancels as staff, with the refund right taken from the role", async () => {
-    h.cancel.mockResolvedValue({
-      ok: true,
-      reservation: {},
-      refunded: true,
-      notified: true,
-    });
-    const state = await admin.cancelReservationAction({}, form("krk-00042"));
-    expect(h.cancel).toHaveBeenCalledWith("krk-00042", {
-      kind: "staff",
-      actor: "yonetici@kosk",
-      canRefund: true,
-    });
-    expect(state.message).toMatch(/iade edildi/);
-    h.role = "staff";
-    await admin.cancelReservationAction({}, form("krk-00042"));
-    expect(h.cancel.mock.calls[1]![1]).toMatchObject({ canRefund: false });
-  });
-
-  it("says plainly when the refund needs someone else", async () => {
-    h.cancel.mockResolvedValue({ ok: false, reason: "refund_forbidden" });
-    expect(
-      (await admin.cancelReservationAction({}, form("krk-00042"))).error,
-    ).toMatch(/İade yetkisi/);
-  });
-
-  it("retrying or settling a refund needs the refunds permission", async () => {
-    h.retry.mockResolvedValue({ ok: true, reservation: {}, refunded: true });
-    h.settle.mockResolvedValue({ ok: true, reservation: {}, refunded: true });
-    await admin.retryKaraokeRefundAction({}, form("krk-00042"));
-    await admin.settleKaraokeRefundAction({}, form("krk-00042"));
-    expect(h.required).toEqual(["refunds", "refunds"]);
-  });
 });
 
 describe("the member's mails, rendered", () => {

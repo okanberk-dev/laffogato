@@ -1,13 +1,12 @@
 /**
  * Template + values -> the three strings `send()` wants.
  *
- * Everything a template says about the business - address, hours, phone,
- * socials - is baked into the HTML, and every one of those values was
- * checked against `SITE` and `LEGAL_ENTITY` when the templates were
- * migrated. The sender's registered title and MERSİS number on commercial
- * mail are the exception: they come from `LEGAL_ENTITY` through
- * `commonVars`, so `entity.ts` stays the single source. What varies per
- * message comes through `vars`.
+ * The socials and the brand lines are baked into the HTML. Two groups are
+ * fields instead, through `commonVars`: the sender's registered title and
+ * MERSİS number on commercial mail (from `LEGAL_ENTITY`, so `entity.ts`
+ * stays the single source), and the footer's hours, phone and address
+ * (bundled here, Ayarlar's values laid over them on the send paths,
+ * `venue.ts`). What varies per message comes through `vars`.
  *
  * Deliberately NO "server-only": `templates.test.ts` renders every template
  * here, and that test is the thing standing between an unfilled `[FIELD]` and
@@ -30,6 +29,7 @@ import {
   type TemplateVars,
 } from "./fill";
 import { EMAIL_TEMPLATES, type EmailTemplateName } from "./templates.generated";
+import { DEFAULT_VENUE_VARS } from "./venue";
 
 export interface RenderedEmail {
   subject: string;
@@ -74,6 +74,35 @@ export function commonVars(): TemplateVars {
     // the commercial footers, both halves.
     UNVAN: LEGAL_ENTITY.legalName,
     MERSIS: LEGAL_ENTITY.mersisNo,
+    // The footer's hours, phone and address: bundled here, the panel's
+    // values laid over them on the send paths (`venue.ts`).
+    ...DEFAULT_VENUE_VARS,
+  };
+}
+
+/**
+ * Which documents line a confirmation prints: the attached copy's sentence
+ * with its version links (`BELGE_EKI`, karaoke `KARAOKE_BELGE_EKI`), or the
+ * old line (`BELGE_GUNCEL`; karaoke `KARAOKE_BELGE_GUNCEL`, a paid booking's
+ * only). Derived here so no caller can open both, or neither.
+ */
+function documentLineFlags(
+  flags: Record<string, boolean>,
+  vars: TemplateVars,
+): Record<string, boolean> {
+  const order =
+    flags.BELGE_EKI === true &&
+    Boolean(vars.BELGE_OBF_URL) &&
+    Boolean(vars.BELGE_MSS_URL);
+  const karaoke =
+    flags.KARAOKE_ODENDI === true &&
+    flags.KARAOKE_BELGE_EKI === true &&
+    Boolean(vars.KARAOKE_SURUM_URL);
+  return {
+    BELGE_EKI: order,
+    BELGE_GUNCEL: !order,
+    KARAOKE_BELGE_EKI: karaoke,
+    KARAOKE_BELGE_GUNCEL: flags.KARAOKE_ODENDI === true && !karaoke,
   };
 }
 
@@ -140,6 +169,12 @@ export function renderEmail(
     // cafe order of at least 140 TL of goods, one per started 320 TL. A shop
     // or web order used to be told "+1 damga" for a stamp it never got.
     DAMGA: Boolean(vars.DAMGA_SAYISI) && vars.DAMGA_SAYISI !== "0",
+    // "...tam metni bu e-postanın ekindedir": only when the sender says the
+    // file is attached (send.ts `sendWithCopy`) AND the version links under
+    // the sentence are filled. Never a promise of an attachment that is not
+    // there, never a link to nothing (ASK-DURABLE). Otherwise the line the
+    // mail always had (the current texts' links): exactly one of the two.
+    ...documentLineFlags(input.flags ?? {}, vars),
   };
 
   // The holes are counted on the template's own fields while it is filled,

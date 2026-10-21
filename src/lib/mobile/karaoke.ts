@@ -8,28 +8,49 @@ import { getSettings } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
+import { MAIL_BUDGET } from "@/lib/email/budget";
 import {
   sendKaraokeCancellationEmail,
   sendKaraokeConfirmationEmail,
+  sendKaraokeLateRequestEmail,
   type KaraokeEmailData,
+  type MailDurableCopy,
 } from "@/lib/email/send";
 
+import { karaokePolicyVersion } from "@/lib/legal/consent-version";
+import { durableCopyWithin } from "@/lib/legal/durable-copy-time";
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
+import { karaokeConsentShown } from "@/lib/legal/store";
+import { consentTextHashes } from "@/lib/legal/version-core";
 import { SITE } from "@/lib/seo/site";
+import { karaokeTaxRate } from "@/lib/utils/kdv";
 
+import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
+import { makeGoodStateOf, resaleAllocation } from "./karaoke-make-good-core";
 import { karaokeLinkUrl } from "./karaoke-link";
 import { istanbulClock } from "./venue";
 import {
   buildSlots,
-  KARAOKE_FREE_CANCEL_HOURS,
-  KARAOKE_NO_REFUND_RULE,
+  effectiveKaraokeCancelPolicy,
+  isPartialRefund,
+  istanbulTimeLabel,
+  karaokeCancelDeadline,
+  karaokeFreeCancelEnd,
+  karaokeCancellationRules,
+  karaokeCancelPolicyOf,
+  karaokeDeadlineFor,
+  karaokeRulesOf,
+  karaokeStartInstant,
+  karaokeVenueCancelUntil,
   KARAOKE_OPEN_CAP,
-  KARAOKE_REFUND_RULE,
   paymentDueFrom,
   paymentStatusOf,
   quoteReservation,
   rangeConflicts,
+  readExpectedCancelPolicy,
+  refundAmountOf,
+  samePolicy,
   validateReservationRequest,
   type KaraokeAvailability,
   type KaraokeLegalConsent,
@@ -137,6 +158,9 @@ export async function getAvailability(
   ]);
   const clock = istanbulClock(now);
   const rules = settings.mobileApp.karaoke;
+  // The policy a booking made now gets (Ayarlar > Karaoke); each booking then
+  // keeps its own (`toReservationJson`).
+  const policy = effectiveKaraokeCancelPolicy(settings);
   return {
     date,
     slots: buildSlots(
@@ -152,10 +176,12 @@ export async function getAvailability(
     maxHours: rules.maxHours,
     bookingWindowDays: rules.bookingWindowDays,
     paymentRequired: settings.karaokePrepay,
-    freeCancelHours: KARAOKE_FREE_CANCEL_HOURS,
+    freeCancelHours: policy.freeCancelHours,
+    lateRefundPercent: policy.lateRefundPercent,
     consentDocs: [...KARAOKE_CONSENT_DOCS],
     privacyDoc: "kvkk-aydinlatma-metni",
-    cancellationRules: [KARAOKE_REFUND_RULE, KARAOKE_NO_REFUND_RULE],
+    cancellationRules: [...karaokeCancellationRules(policy).rules],
+    taxRatePct: karaokeTaxRate(settings.taxRates),
   };
 }
 
@@ -168,7 +194,8 @@ export type CreateReservationResult =
         | "invalid_request"
         | "slot_taken"
         | "too_many_reservations"
-        | "rate_limited";
+        | "rate_limited"
+        | "policy_changed";
       message: string;
       /**
        * §7: the request field a 400 is about - `note`, or `legalConsent`
@@ -177,6 +204,15 @@ export type CreateReservationResult =
       field?: "note" | "legalConsent";
       /** With 429 `rate_limited`: seconds until another hold is accepted. */
       retryAfterSeconds?: number;
+      /**
+       * With 409 `policy_changed` (§7.1): the rule a booking made now gets,
+       * for the customer to read before trying again.
+       */
+      policy?: {
+        freeCancelHours: number;
+        lateRefundPercent: number;
+        cancellationRules: string[];
+      };
     };
 
 /** What a booking is, beyond the evening itself (16 Eki 2026). */
@@ -203,6 +239,11 @@ export interface CreateReservationOptions {
 
 const MSG_CONSENT_REQUIRED =
   "Ödemeden önce ön bilgilendirme formunu ve hizmet sözleşmesini onaylaman gerekiyor.";
+
+const MSG_POLICY_CHANGED =
+  "İptal ve iade kuralı sen rezervasyon yaparken değişti. Yeni kuralı okuyup yeniden dene.";
+
+const MSG_EXPECTED_POLICY_INVALID = "Gösterilen iptal kuralı okunamadı.";
 
 const MSG_GUEST_PREPAY_OFF =
   "Üye olmadan rezervasyon şu an alınmıyor. Giriş yaparak rezervasyon yapabilirsin.";
@@ -289,6 +330,36 @@ export async function createReservation(
     };
   }
 
+  // The rule this booking is made under (Ayarlar > Karaoke), and the one the
+  // customer was shown. They differ only when the panel changed it while the
+  // page was open: the booking is refused before anything is counted or
+  // held, so nobody is bound by sentences they never read (TKHK m.4/2, MSY
+  // m.5/1-h). A request without the echo (an older app build) is not
+  // compared.
+  const policy = effectiveKaraokeCancelPolicy(settings);
+  const expected = readExpectedCancelPolicy(input);
+  if (expected === "invalid") {
+    return {
+      ok: false,
+      status: 400,
+      error: "invalid_request",
+      message: MSG_EXPECTED_POLICY_INVALID,
+    };
+  }
+  if (expected && !samePolicy(expected, policy)) {
+    return {
+      ok: false,
+      status: 409,
+      error: "policy_changed",
+      message: MSG_POLICY_CHANGED,
+      policy: {
+        freeCancelHours: policy.freeCancelHours,
+        lateRefundPercent: policy.lateRefundPercent,
+        cancellationRules: [...karaokeCancellationRules(policy).rules],
+      },
+    };
+  }
+
   // A guest is counted per network before anything else runs: the sweep
   // below asks the POS about up to KARAOKE_SWEEP_BATCH holds, and a flood of
   // refused guest attempts must not turn into a flood of POS calls.
@@ -315,8 +386,10 @@ export async function createReservation(
   // guest the same, counted per address and per phone number among GUEST
   // bookings only - a typed address must not use up a member's own cap (the
   // trigger counts the two apart as well).
+  // A free hour the köşk gave (`makeGoodFor`) is not one of their own
+  // bookings: it neither counts nor is capped (karaoke_open_cap agrees).
   const isOpen = (r: KaraokeReservation) =>
-    r.status !== "cancelled" && r.date >= clock.date;
+    r.status !== "cancelled" && r.date >= clock.date && !r.makeGoodFor;
   const mine = guest
     ? (await listByAddress(customer.email)).filter((r) => r.guest)
     : await listMine(customer.email);
@@ -390,6 +463,19 @@ export async function createReservation(
   );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
+  // The label and the text the customer confirmed, by hash, from one read
+  // of the overrides and the same settings read that decides the policy
+  // and moves the version below: one rule for the web form and the app
+  // (legalConsent.version and .textHashes, 21 Ekim 2026; review R4). Never
+  // the caller's: whatever `options.legalConsent` carries for either is
+  // replaced.
+  const shown =
+    prepay && options.legalConsent
+      ? await karaokeConsentShown(settings)
+      : null;
+  // The rule this booking is made under (`policy` above) is kept with it
+  // (TKHK m.4/2, MSY m.5/2): the panel changing it later changes nothing
+  // here.
   const reservation: KaraokeReservation = {
     id: `krk-${String(seq).padStart(5, "0")}`,
     customerEmail: normalizeEmail(customer.email),
@@ -419,8 +505,30 @@ export async function createReservation(
     paidMinor: 0,
     paymentRef: "",
     channel: options.channel ?? "",
-    legalConsent: prepay ? (options.legalConsent ?? null) : null,
+    legalConsent:
+      options.legalConsent && shown
+        ? {
+            ...options.legalConsent,
+            // The karaoke document is dated by the policy it is shown
+            // under, so the version the customer saw moves with it
+            // (karaoke-doc.ts).
+            version: karaokePolicyVersion(
+              shown.version,
+              policy,
+              settings.karaokeCancelPolicyAt,
+            ),
+            textHashes: shown.textHashes,
+          }
+        : null,
     guest,
+    // The rate at booking time: a later change in the panel leaves this
+    // booking's receipt as it was.
+    taxRatePct: karaokeTaxRate(settings.taxRates),
+    freeCancelHours: policy.freeCancelHours,
+    lateRefundPercent: policy.lateRefundPercent,
+    cancelDeadline: karaokeDeadlineFor(policy, req).toISOString(),
+    cancellationRules: [...karaokeCancellationRules(policy).rules],
+    refundMinor: null,
   };
 
   const sb = getDb();
@@ -573,21 +681,197 @@ export async function listReservationDecisions(
 
 // ─── Admin ─────────────────────────────────────────────────────────────────
 
-/** Every reservation from `fromDate` on (default: today), soonest first. */
+/**
+ * The panel's columns: everything but `legalConsent` (the buyer's IP and
+ * browser), which only the booking's own page reads.
+ */
+const ADMIN_LIST_COLUMNS = [
+  "id",
+  "customerEmail",
+  "customerName",
+  "date",
+  "startHour",
+  "hours",
+  "guests",
+  "status",
+  "priceMinor",
+  "discountMinor",
+  "totalMinor",
+  "note",
+  "createdAt",
+  "updatedAt",
+  "contactEmail",
+  "contactPhone",
+  "contactConsentAt",
+  "paymentStatus",
+  "paymentDueAt",
+  "paidAt",
+  "refundedAt",
+  "paidMinor",
+  "paymentRef",
+  "channel",
+  "guest",
+  "freeCancelHours",
+  "lateRefundPercent",
+  "cancelDeadline",
+  "cancellationRules",
+  "refundMinor",
+  "makeGoodUntil",
+  "makeGoodMinor",
+  "makeGoodUsedAt",
+  "makeGoodPaidMinor",
+  "makeGoodPaidOn",
+  "makeGoodFor",
+  "resoldHours",
+  "resaleRefundMinor",
+  "refundSettledMinor",
+  "refundSteps",
+].join(", ");
+
+/** Rows one panel read returns at most; the page says so when it is hit. */
+export const KARAOKE_ADMIN_LIST_LIMIT = 5000;
+
+/**
+ * The panel's list: every reservation (or those between `from` and `to`,
+ * both YYYY-MM-DD and inclusive), newest day first. One room booked by the
+ * hour is a few thousand rows a year, so the panel sorts, searches and
+ * counts its tabs in memory; the date range is the one filter the database
+ * applies (`karaoke_reservations_date_idx`).
+ */
 export async function listReservationsForAdmin(
-  fromDate?: string,
+  opts: { from?: string; to?: string; limit?: number } = {},
 ): Promise<KaraokeReservation[]> {
-  const from = fromDate ?? istanbulClock(new Date()).date;
-  const sb = getDb();
+  let q = getDb().from(TABLES.karaokeReservations).select(ADMIN_LIST_COLUMNS);
+  if (opts.from) q = q.gte("date", opts.from);
+  if (opts.to) q = q.lt("date", nextDay(opts.to));
   return rows<KaraokeReservation>(
-    await sb
-      .from(TABLES.karaokeReservations)
-      .select("*")
-      .gte("date", from)
-      .order("date", { ascending: true })
-      .order("startHour", { ascending: true }),
+    await q
+      .order("date", { ascending: false })
+      .order("startHour", { ascending: false })
+      .limit(opts.limit ?? KARAOKE_ADMIN_LIST_LIMIT),
     "karaoke.listReservationsForAdmin",
   );
+}
+
+/** The day after a YYYY-MM-DD, as YYYY-MM-DD (for an inclusive upper bound). */
+function nextDay(date: string): string {
+  const [y, m, d] = date.split("-").map((s) => parseInt(s, 10));
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+/** One day's bookings, earliest first (the nav badge, the dashboard). */
+export async function listReservationsForDate(
+  date: string,
+): Promise<KaraokeReservation[]> {
+  return listByDate(date);
+}
+
+/**
+ * Money the köşk owes back, whatever the day: a refund whose answer never
+ * came (`refunding`), and a cancelled booking that is still `paid`. Both are
+ * small sets; the dashboard shows them so they do not wait for someone to
+ * open the karaoke page.
+ */
+export async function listKaraokeRefundsOwed(): Promise<KaraokeReservation[]> {
+  const db = getDb();
+  const [refunding, held] = await Promise.all([
+    db
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("paymentStatus", "refunding"),
+    db
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("paymentStatus", "paid")
+      .eq("status", "cancelled"),
+  ]);
+  return [
+    ...rows<KaraokeReservation>(refunding, "karaoke.listKaraokeRefundsOwed"),
+    ...rows<KaraokeReservation>(held, "karaoke.listKaraokeRefundsOwed"),
+  ];
+}
+
+/**
+ * Every booking that may wait for a person, whatever its day: the karaoke
+ * panel's Dikkat tab and the dashboard's karaoke card read this instead of
+ * the panel's list (newest 5000 rows) or today's rows, so a paid request
+ * from last week or an old refund owed never falls off either (admin audit
+ * KAR-07, KAR-25). Four small reads, one per payment state, so no row comes
+ * twice:
+ *
+ * - `refunding`: a refund whose answer never came;
+ * - `paid` and still `requested` (never confirmed, any day) or `cancelled`
+ *   (the money is still in);
+ * - `pending`: an unpaid hold (the sweep lets them go within the day);
+ * - `none` and still `requested`, from `today` on: a request waiting for
+ *   Onayla, or one taken as pay-at-the-venue before prepayment.
+ *
+ * Plus the confirmed bookings on the days of the paid requests still to
+ * come, so the panel can tell an hour lost to another booking (`slot_lost`)
+ * from a free one. Which rows need a person is `karaokeAttention`
+ * (lib/admin/karaoke-panel.ts): pass these through `karaokeAttentionViews`.
+ */
+export async function listKaraokeAttention(
+  today: string,
+): Promise<KaraokeReservation[]> {
+  const db = getDb();
+  const read = () =>
+    db.from(TABLES.karaokeReservations).select(ADMIN_LIST_COLUMNS);
+  const ctx = "karaoke.listKaraokeAttention";
+  const [refunding, paid, pending, requests] = await Promise.all([
+    read().eq("paymentStatus", "refunding"),
+    read().eq("paymentStatus", "paid").in("status", ["requested", "cancelled"]),
+    read().eq("paymentStatus", "pending"),
+    read()
+      .eq("paymentStatus", "none")
+      .eq("status", "requested")
+      .gte("date", today),
+  ]);
+  const found = [
+    ...rows<KaraokeReservation>(refunding, ctx),
+    ...rows<KaraokeReservation>(paid, ctx),
+    ...rows<KaraokeReservation>(pending, ctx),
+    ...rows<KaraokeReservation>(requests, ctx),
+  ];
+  const days = [
+    ...new Set(
+      found
+        .filter(
+          (r) =>
+            r.status === "requested" &&
+            paymentStatusOf(r) === "paid" &&
+            r.date >= today,
+        )
+        .map((r) => r.date),
+    ),
+  ];
+  if (days.length === 0) return found;
+  // A confirmed booking whose refund is under way is already in `found`.
+  const seen = new Set(found.map((r) => r.id));
+  const confirmed = rows<KaraokeReservation>(
+    await read().eq("status", "confirmed").in("date", days),
+    ctx,
+  ).filter((r) => !seen.has(r.id));
+  return [...found, ...confirmed];
+}
+
+/**
+ * The free hour given to make good booking `id` (`makeGoodFor`), the live
+ * one first; null when none was given. For the booking's page.
+ */
+export async function getMakeGoodHourFor(
+  id: string,
+): Promise<KaraokeReservation | null> {
+  const found = rows<KaraokeReservation>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("makeGoodFor", id)
+      .order("createdAt", { ascending: false })
+      .limit(5),
+    "karaoke.getMakeGoodHourFor",
+  );
+  return found.find((r) => r.status !== "cancelled") ?? found[0] ?? null;
 }
 
 export async function getReservation(
@@ -668,11 +952,16 @@ export type SetReservationStatusResult =
  * booking is cancelled through this path: a paid one needs its refund, an
  * unpaid hold needs the POS asked first (rule 29), and both are
  * `cancelKaraokeReservation` in karaoke-payment.ts.
+ *
+ * `notify: false` writes the change without the member's mail (and answers
+ * `notified: true`, none being due): the köşk cancelling a pay-at-the-venue
+ * evening that is already over (karar D7).
  */
 export async function setReservationStatus(
   id: string,
   status: KaraokeReservationStatus,
   now: Date = new Date(),
+  opts: { notify?: boolean } = {},
 ): Promise<SetReservationStatusResult> {
   const existing = await getReservation(id);
   if (!existing) return { ok: false, reason: "not_found" };
@@ -693,8 +982,9 @@ export async function setReservationStatus(
   if (!moneyAllows) return { ok: false, reason: "payment_open" };
 
   // Confirming takes the hour: refuse if another confirmed booking has it.
+  let sameDay: KaraokeReservation[] = [];
   if (status === "confirmed") {
-    const sameDay = await listByDate(existing.date);
+    sameDay = await listByDate(existing.date);
     const clash = rangeConflicts(
       existing.startHour,
       existing.hours,
@@ -724,8 +1014,36 @@ export async function setReservationStatus(
     status,
     updatedAt: now.toISOString(),
   };
-  const notified = await notifyReservationStatus(reservation);
+  // The hour is sold (paid and confirmed, or confirmed to be paid at the
+  // köşk): a booking that cancelled it late gets back the share it kept for
+  // it (ASK-OTH-3-CFG). Right after the write that sold it, before the mail
+  // (a slow mail must not stand between the sale and what it owes); never
+  // fails the confirmation.
+  if (status === "confirmed") await chargeResale(reservation, sameDay);
+  const notified =
+    opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
+}
+
+/**
+ * The resale refund of an hour just sold, best effort: what each
+ * late-cancelled booking of the day is owed is worked out here
+ * (`resaleAllocation`, pure), and only when one is owed something does the
+ * money side load (karaoke-payment.ts imports this module, hence the
+ * dynamic import, as for the sweep above).
+ */
+async function chargeResale(
+  sold: KaraokeReservation,
+  sameDay: readonly KaraokeReservation[],
+): Promise<void> {
+  try {
+    const allocation = resaleAllocation(sold, sameDay);
+    if (allocation.length === 0) return;
+    const { chargeResoldHours } = await import("./karaoke-payment");
+    await chargeResoldHours(sold, allocation, sameDay);
+  } catch (err) {
+    console.error(`[karaoke] resale refund not worked out ${sold.id}`, err);
+  }
 }
 
 // ─── Notifying the member ──────────────────────────────────────────────────
@@ -767,14 +1085,58 @@ function manageUrlFor(r: KaraokeReservation): string {
   }
 }
 
-export async function notifyReservationStatus(
+/**
+ * "Son ücretsiz iptal: …" for a booking made after its own last free moment
+ * (19:00 for 20:00 under 2 hours): an instant already behind it would read
+ * as a window it never had. The web summary says the same (`freePassed`).
+ */
+export const KARAOKE_FREE_PASSED_AT_BOOKING =
+  "rezervasyonu yaptığın sırada süresi geçmişti, her iptal geç iptal sayılır";
+
+/**
+ * "30 Ekim 2026, 18:00": the booking's last free-cancel moment on the köşk's
+ * clock, which the confirmation prints (karaoke terms §7, 19 Eki 2026).
+ */
+function freeUntilLabel(r: KaraokeReservation): string {
+  const at = karaokeCancelDeadline(r);
+  const ms = at.getTime();
+  if (!Number.isFinite(ms)) return "";
+  // `withinFreeCancel` counts the moment and the whole minute it names
+  // (`karaokeFreeCancelEnd`): a booking made inside that minute still has it.
+  const made = Date.parse(r.createdAt);
+  if (Number.isFinite(made) && made >= karaokeFreeCancelEnd(at)) {
+    return KARAOKE_FREE_PASSED_AT_BOOKING;
+  }
+  const day = new Date(ms + 3 * 60 * 60_000).toISOString().slice(0, 10);
+  return `${formatReservationDate(day)}, ${istanbulTimeLabel(at.toISOString())}`;
+}
+
+/**
+ * What a refund mail says beyond the row: `refundedNowMinor` is what this
+ * refund sent back when it is not everything the row says went back (an
+ * hour sold again, refunded after the late share was), and `resaleTopUp`
+ * says that is what it is.
+ */
+export interface KaraokeRefundNote {
+  refundedNowMinor?: number;
+  resaleTopUp?: boolean;
+  /**
+   * A free hour let go before it began: the make-good it opened again
+   * (`until`: YYYY-MM-DD), which its cancellation mail names.
+   */
+  makeGoodReopened?: { minor: number; until: string };
+}
+
+/** What a booking's mails say about it; null when it has no address. */
+function karaokeMailPayload(
   r: KaraokeReservation,
-): Promise<boolean> {
-  if (r.status !== "confirmed" && r.status !== "cancelled") return true;
+  cancelCause?: KaraokeCancelCause,
+  note: KaraokeRefundNote = {},
+): KaraokeEmailData | null {
   // The address the member gave on the form for exactly this, else the
   // account's.
   const to = r.contactEmail?.trim() || r.customerEmail;
-  if (!to) return false;
+  if (!to) return null;
   const money = paymentStatusOf(r);
   const paidOnline =
     money === "paid" || money === "refunding" || money === "refunded";
@@ -791,21 +1153,163 @@ export async function notifyReservationStatus(
       ? { kind: "online", paidMinor: r.paidMinor ?? r.totalMinor }
       : { kind: "venue" },
     manageUrl: manageUrlFor(r),
+    // The booking's own rule, never the panel's current one.
+    cancellation: {
+      rules: karaokeRulesOf(r),
+      venueUntil: karaokeVenueCancelUntil(karaokeCancelPolicyOf(r)),
+      freeUntil: freeUntilLabel(r),
+    },
+    // Why the köşk cancelled (the panel's code), never the note it typed.
+    ...(cancelCause ? { cancelCause } : {}),
+    // What actually went back: the whole payment, or a late cancel's share
+    // (with what an hour sold again gave back). A refund that only adds the
+    // resale part says that part.
     ...(r.status === "cancelled" && money === "refunded"
-      ? { refundedMinor: r.paidMinor ?? r.totalMinor }
+      ? {
+          refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
+          refundIsShare: isPartialRefund(r),
+          ...(note.resaleTopUp
+            ? { refundIsResaleTopUp: true }
+            : (r.resaleRefundMinor ?? 0) > 0
+              ? { refundIncludesResale: true }
+              : {}),
+        }
       : {}),
+    // A late cancel's share the köşk still owes (refunded by hand).
+    ...(r.status === "cancelled" && money === "refunding" && isPartialRefund(r)
+      ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }
+      : {}),
+    // The köşk's late cancel made good, while neither option was used
+    // (karaoke terms §8).
+    ...(makeGoodStateOf(r) === "open"
+      ? {
+          makeGood: {
+            minor: r.makeGoodMinor ?? 0,
+            until: formatReservationDate(r.makeGoodUntil ?? ""),
+          },
+        }
+      : note.makeGoodReopened
+        ? {
+            makeGood: {
+              minor: note.makeGoodReopened.minor,
+              until: formatReservationDate(note.makeGoodReopened.until),
+            },
+          }
+        : {}),
+    // A free hour the köşk gave: no payment, and which booking it makes good.
+    ...(r.makeGoodFor ? { makeGoodHourFor: r.makeGoodFor } : {}),
   };
+  return payload;
+}
+
+/**
+ * The confirmed karaoke terms, filled with the booking, for its confirmation
+ * (ASK-DURABLE): only a booking paid online confirmed them, and only one
+ * whose consent recorded the text's hash has a copy to give
+ * (src/lib/legal/durable-copy-load.ts). The loader's import and read run
+ * inside the copy's share of the budget (`MAIL_BUDGET.copy`); never a
+ * throw: the mail goes without it rather than late or not at all.
+ */
+async function confirmationCopy(
+  r: KaraokeReservation,
+  deadline: number,
+): Promise<MailDurableCopy | null> {
+  const money = paymentStatusOf(r);
+  if (money !== "paid" && money !== "refunding" && money !== "refunded") {
+    return null;
+  }
+  if (!consentTextHashes(r.legalConsent, KARAOKE_CONSENT_DOCS)) return null;
+  return durableCopyWithin(
+    `karaoke=${r.id}`,
+    async () => {
+      const { karaokeDurableCopy } = await import(
+        "@/lib/legal/durable-copy-load"
+      );
+      return karaokeDurableCopy(r);
+    },
+    Math.min(MAIL_BUDGET.copy, deadline - Date.now()),
+  );
+}
+
+/** A failed mail, logged with the address masked (KVKK). */
+function logMailFailure(r: KaraokeReservation, err: unknown): void {
+  const at = r.customerEmail.indexOf("@");
+  const masked =
+    at < 1
+      ? "***"
+      : `${r.customerEmail.slice(0, 2)}***${r.customerEmail.slice(at)}`;
+  console.error(`[karaoke] ${r.id} bildirimi gönderilemedi (${masked})`, err);
+}
+
+/**
+ * `opts.cause`: why the köşk cancelled a paid booking (the panel's code), so
+ * the cancellation opens with it (karaoke-cancel-cause.ts).
+ */
+export async function notifyReservationStatus(
+  r: KaraokeReservation,
+  opts: { cause?: KaraokeCancelCause } & KaraokeRefundNote = {},
+): Promise<boolean> {
+  if (r.status !== "confirmed" && r.status !== "cancelled") return true;
+  const payload = karaokeMailPayload(
+    r,
+    r.status === "cancelled" ? opts.cause : undefined,
+    opts,
+  );
+  if (!payload) return false;
   try {
-    return r.status === "confirmed"
-      ? await sendKaraokeConfirmationEmail(payload)
-      : await sendKaraokeCancellationEmail(payload);
+    if (r.status !== "confirmed") {
+      return await sendKaraokeCancellationEmail(payload);
+    }
+    // Awaited inside the payment return: the copy and the send share one
+    // budget (src/lib/email/budget.ts `MAIL_BUDGET.karaoke`).
+    const deadline = Date.now() + MAIL_BUDGET.karaoke;
+    return await sendKaraokeConfirmationEmail({
+      ...payload,
+      durableCopy: await confirmationCopy(r, deadline),
+      deadline,
+    });
   } catch (err) {
-    const at = r.customerEmail.indexOf("@");
-    const masked =
-      at < 1
-        ? "***"
-        : `${r.customerEmail.slice(0, 2)}***${r.customerEmail.slice(at)}`;
-    console.error(`[karaoke] ${r.id} bildirimi gönderilemedi (${masked})`, err);
+    logMailFailure(r, err);
+    return false;
+  }
+}
+
+/**
+ * The late request's middle sentence when it came once the evening had
+ * begun: the booking's own late sentence is about cancels "rezervasyon
+ * saatine H saatten az kala" and, for a share over 0, would promise a refund
+ * the started evening no longer gives (karaoke terms §7: the late share is
+ * for cancels before the start).
+ */
+export const KARAOKE_STARTED_REQUEST_RULE =
+  "Rezervasyon saatin gelmişti; saati gelmiş bir rezervasyonda ücret iadesi yapılmaz.";
+
+/**
+ * A guest's late request to cancel, taken by the staff, that the booking's
+ * rule refunds nothing for (ASK-Y3-4 (c)): the booking stands, and the guest
+ * is told so and what they can still do. `requestedAt`: the instant of the
+ * call or the e-mail; one at or after the start reads the started sentence
+ * instead of the booking's late one. Same rules as above: the guards before
+ * the call (one per panel action), failures swallowed and logged.
+ */
+export async function notifyLateCancelRequest(
+  r: KaraokeReservation,
+  requestedAt: Date,
+): Promise<boolean> {
+  const payload = karaokeMailPayload(r);
+  if (!payload) return false;
+  const started =
+    requestedAt.getTime() >= karaokeStartInstant(r.date, r.startHour).getTime();
+  if (started && payload.cancellation) {
+    payload.cancellation = {
+      ...payload.cancellation,
+      rules: [payload.cancellation.rules[0], KARAOKE_STARTED_REQUEST_RULE],
+    };
+  }
+  try {
+    return await sendKaraokeLateRequestEmail(payload);
+  } catch (err) {
+    logMailFailure(r, err);
     return false;
   }
 }

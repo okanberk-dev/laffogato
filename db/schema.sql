@@ -4131,6 +4131,13 @@ insert into public._migrations (name) values ('20260924001000_backdrop_fields.sq
 -- bookings made in the app. Empty falls back to `email`, so clearing the field
 -- in the panel is safe.
 --
+-- 19 Ekim 2026: the update below runs once. The app replays the whole
+-- bundle whenever a deploy adds a migration (src/lib/db/bootstrap.ts), and
+-- unguarded it wrote this price and this address back over the panel's
+-- values each time. The address itself is cleared by
+-- 20261019160000_karaoke_notify_company_mailbox.sql (a personal Gmail inbox
+-- abroad, KVKK m.9).
+--
 -- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
 -- that itself, inside the same transaction.
 
@@ -4139,7 +4146,12 @@ alter table public.settings alter column "karaokeHourlyMinor" set default 100000
 
 update public.settings
    set "karaokeHourlyMinor" = 100000,
-       "karaokeNotifyEmail" = 'bizimfutbol9@gmail.com';
+       "karaokeNotifyEmail" = 'bizimfutbol9@gmail.com'
+ where not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20260926090000_karaoke_price_and_notify.sql'
+   );
 
 insert into public._migrations (name) values ('20260926090000_karaoke_price_and_notify.sql')
   on conflict (name) do nothing;
@@ -4662,4 +4674,3686 @@ end;
 $$;
 
 insert into public._migrations (name) values ('20261016063311_karaoke_prepay.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017100000_admin_order_management.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Admin order management (17 Eki 2026): the rules the order screens enforce
+-- on the server, and the columns behind the order list's filters.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- ── Indexes the order page reads by ─────────────────────────────────────
+-- The order page lists an order's audit rows, stock movements and payment
+-- rows. Each of those was a sequential scan of its whole table.
+create index if not exists audit_logs_entity_id_idx
+  on public.audit_logs (entity, "entityId");
+create index if not exists stock_moves_order_idx
+  on public.stock_moves ("orderId");
+create index if not exists payment_transactions_order_idx
+  on public.payment_transactions ("orderId");
+
+-- ── orders.attention ──────────────────────────────────────────────────────
+-- Something on the order needs a human:
+--   amount_mismatch    the POS collected a different amount
+--   order_not_open     a payment landed on a cancelled or refunded order
+--   duplicate_payment  a second charge on an order that was already paid
+--   refund_due         cancelled after money was taken, and not refunded yet
+--   refund_unknown     the POS did not answer a refund: it may have gone through
+-- '' = nothing to look at. The first three lived only in an audit row
+-- (noteUnreconciledPayment) that nobody opened; the order list's "Dikkat"
+-- filter and the red banner on the order page read this column now.
+alter table public.orders
+  add column if not exists attention text not null default '';
+create index if not exists orders_attention_idx
+  on public.orders ("orderNo")
+  where attention <> '';
+
+-- ── orders.source ─────────────────────────────────────────────────────────
+-- 'manual' for an order typed into the panel (createManualOrder), '' for
+-- every other order. A manual "Ödeme bekleniyor" order has no POS payment
+-- behind it, and the 45-minute sweep used to cancel it and hand its stock
+-- back without telling anyone. The sweep skips it now.
+alter table public.orders
+  add column if not exists source text not null default '';
+
+-- Manual orders written before the column: their creation's audit row says
+-- so (createManualOrderAction logs `payload.manual = true`).
+update public.orders o
+   set source = 'manual'
+ where o.source = ''
+   and exists (
+     select 1
+       from public.audit_logs a
+      where a.entity = 'order'
+        and a.action = 'create'
+        and a."entityId" = o.id
+        and a.payload ->> 'manual' = 'true'
+   );
+
+-- ── credit_product_stock ──────────────────────────────────────────────────
+-- Gives `p_qty` units back to a product (and to its variant's JSONB stock).
+-- Returns the product's stock after the credit, or NULL when the product row
+-- is gone. Shared by the two functions below.
+create or replace function public.credit_product_stock(
+  p_product_id text,
+  p_variant_id text,
+  p_qty        int,
+  p_now        text
+)
+returns int
+language plpgsql
+set search_path = ''
+as $$
+declare
+  new_stock int;
+begin
+  if coalesce(p_variant_id, '') <> '' then
+    update public.products
+       set stock = stock + p_qty,
+           "updatedAt" = p_now,
+           variants = coalesce((
+             select jsonb_agg(
+               case when v ->> 'id' = p_variant_id
+                 then jsonb_set(
+                   v, '{stock}', to_jsonb(coalesce((v ->> 'stock')::int, 0) + p_qty))
+                 else v end)
+               from jsonb_array_elements(variants) v
+           ), variants)
+     where id = p_product_id
+    returning stock into new_stock;
+  else
+    update public.products
+       set stock = stock + p_qty,
+           "updatedAt" = p_now
+     where id = p_product_id
+    returning stock into new_stock;
+  end if;
+  return new_stock;
+end;
+$$;
+
+-- ── release_order_inventory ───────────────────────────────────────────────
+-- The claim and the stock credit in ONE transaction.
+--
+-- The store used to flip "stockReleasedAt" with one statement and call
+-- release_order_stock with the next. When the second failed, the order was
+-- already cancelled and its marker set: the stock was never given back and
+-- nothing could retry it. Now either both happen or neither does.
+--
+-- Every line that took stock is given back what it has not given back yet
+-- (`qty` minus `restockedQty`), whatever its line status: a line marked
+-- "İptal" on its own changes no stock, so skipping it lost those units for
+-- good. Each credited line is stamped `restockedQty = qty`, so a later
+-- per-line restock (restock_order_lines) cannot credit it twice.
+--
+-- `p_restock = false` claims the marker and credits nothing: the operator
+-- cancelled a parcel that is already with the carrier.
+--
+-- Returns NULL when the marker was already set (another call released it),
+-- otherwise {"lines": [{index, productId, productName, qty, stockAfter}]}.
+create or replace function public.release_order_inventory(
+  p_order_id text,
+  p_restock  boolean,
+  p_now      text
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  o_items    jsonb;
+  item       jsonb;
+  idx        int;
+  give       int;
+  new_stock  int;
+  next_items jsonb := '[]'::jsonb;
+  released   jsonb := '[]'::jsonb;
+begin
+  update public.orders
+     set "stockReleasedAt" = p_now
+   where id = p_order_id
+     and "stockReleasedAt" = ''
+  returning coalesce(items, '[]'::jsonb) into o_items;
+  if not found then
+    return null;
+  end if;
+  if not p_restock then
+    return jsonb_build_object('lines', released);
+  end if;
+
+  for item, idx in
+    select e.value, (e.n - 1)::int
+      from jsonb_array_elements(o_items) with ordinality as e(value, n)
+  loop
+    give := coalesce((item ->> 'qty')::int, 0)
+          - coalesce((item ->> 'restockedQty')::int, 0);
+    if coalesce(item ->> 'productId', '') <> '' and give > 0 then
+      new_stock := public.credit_product_stock(
+        item ->> 'productId', item ->> 'variantId', give, p_now);
+      if new_stock is not null then
+        item := jsonb_set(item, '{restockedQty}', to_jsonb((item ->> 'qty')::int));
+        released := released || jsonb_build_array(jsonb_build_object(
+          'index', idx,
+          'productId', item ->> 'productId',
+          'productName', coalesce(item ->> 'productName', ''),
+          'qty', give,
+          'stockAfter', new_stock));
+      end if;
+    end if;
+    next_items := next_items || jsonb_build_array(item);
+  end loop;
+
+  if jsonb_array_length(released) > 0 then
+    update public.orders set items = next_items where id = p_order_id;
+  end if;
+  return jsonb_build_object('lines', released);
+end;
+$$;
+
+-- ── restock_order_lines ───────────────────────────────────────────────────
+-- Gives chosen lines back to stock: the refund modal's "stoğa geri al".
+-- `p_lines` is [{index, qty}]; each line gives at most what it has not given
+-- back yet, under the order's row lock, so two refunds of the same line
+-- cannot both credit it. Returns NULL for an unknown order, otherwise
+-- {"lines": [...]} as release_order_inventory does.
+create or replace function public.restock_order_lines(
+  p_order_id text,
+  p_lines    jsonb,
+  p_now      text
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  o_items   jsonb;
+  req       jsonb;
+  idx       int;
+  want      int;
+  item      jsonb;
+  done      int;
+  give      int;
+  new_stock int;
+  released  jsonb := '[]'::jsonb;
+begin
+  select coalesce(items, '[]'::jsonb) into o_items
+    from public.orders
+   where id = p_order_id
+     for update;
+  if not found then
+    return null;
+  end if;
+
+  for req in select value from jsonb_array_elements(coalesce(p_lines, '[]'::jsonb))
+  loop
+    idx := (req ->> 'index')::int;
+    want := coalesce((req ->> 'qty')::int, 0);
+    if idx is null or idx < 0 or idx >= jsonb_array_length(o_items) or want <= 0 then
+      continue;
+    end if;
+    item := o_items -> idx;
+    done := coalesce((item ->> 'restockedQty')::int, 0);
+    give := least(want, coalesce((item ->> 'qty')::int, 0) - done);
+    if coalesce(item ->> 'productId', '') = '' or give <= 0 then
+      continue;
+    end if;
+    new_stock := public.credit_product_stock(
+      item ->> 'productId', item ->> 'variantId', give, p_now);
+    if new_stock is null then
+      continue;
+    end if;
+    o_items := jsonb_set(o_items, array[idx::text, 'restockedQty'], to_jsonb(done + give));
+    released := released || jsonb_build_array(jsonb_build_object(
+      'index', idx,
+      'productId', item ->> 'productId',
+      'productName', coalesce(item ->> 'productName', ''),
+      'qty', give,
+      'stockAfter', new_stock));
+  end loop;
+
+  if jsonb_array_length(released) > 0 then
+    update public.orders set items = o_items where id = p_order_id;
+  end if;
+  return jsonb_build_object('lines', released);
+end;
+$$;
+
+-- ── set_order_item_status ─────────────────────────────────────────────────
+-- One line's status, written in place. The panel read the whole items array,
+-- changed one line in JavaScript and wrote the array back, so a save that
+-- raced a stock release overwrote the release's `restockedQty`. Refused
+-- (NULL) for an unknown line, an unknown status, or an order whose status is
+-- not in `p_allowed` (a jsonb array of statuses).
+create or replace function public.set_order_item_status(
+  p_order_id text,
+  p_index    int,
+  p_status   text,
+  p_allowed  jsonb
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  out_items jsonb;
+begin
+  update public.orders o
+     set items = jsonb_set(o.items, array[p_index::text, 'status'], to_jsonb(p_status))
+   where o.id = p_order_id
+     and p_status in ('pending', 'ready', 'cancelled')
+     and p_index >= 0
+     and p_index < jsonb_array_length(o.items)
+     and coalesce(p_allowed, '[]'::jsonb) ? o.status
+  returning o.items into out_items;
+  return out_items;
+end;
+$$;
+
+-- ── reserve_order_refund_once ─────────────────────────────────────────────
+-- reserve_order_refund with two more guards, in the same single UPDATE:
+--
+--   · the cap is what was actually collected (`p_cap`), not the order total:
+--     a POS that took ₺1 for a ₺500 order must not be asked to refund ₺500;
+--   · the refund modal's one-time token (`p_refund ->> 'token'`): a second
+--     submit of the same modal - a double click, a retry after a lost
+--     answer - finds its token already in the ledger and is refused before
+--     the POS is asked again. The entry is only taken back
+--     (drop_order_refund) when the POS certainly refunded nothing; one it
+--     did not answer for stays, token and amount included.
+--
+-- Returns the new refunds array, or NULL when refused. The old function
+-- stays for the deployment that is still running while this one rolls out.
+create or replace function public.reserve_order_refund_once(
+  p_order_id text,
+  p_refund   jsonb,
+  p_cap      int
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  out_refunds jsonb;
+begin
+  update public.orders o
+     set refunds = coalesce(o.refunds, '[]'::jsonb) || jsonb_build_array(p_refund)
+   where o.id = p_order_id
+     and (p_refund ->> 'amountMinor')::int > 0
+     and least(o."totalMinor", greatest(coalesce(p_cap, 0), 0)) - coalesce((
+           select sum((r ->> 'amountMinor')::int)
+             from jsonb_array_elements(coalesce(o.refunds, '[]'::jsonb)) r
+         ), 0) >= (p_refund ->> 'amountMinor')::int
+     and (
+       coalesce(p_refund ->> 'token', '') = ''
+       or not exists (
+         select 1
+           from jsonb_array_elements(coalesce(o.refunds, '[]'::jsonb)) r
+          where r ->> 'token' = p_refund ->> 'token'
+       )
+     )
+  returning o.refunds into out_refunds;
+  return out_refunds;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261017100000_admin_order_management.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017120000_menu_photos.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Menu photos for 75 of the 79 items that had none (17 Oct 2026).
+--
+-- Operator, 17 Oct 2026: "menüdeki ürünlere telifsiz görseller bularak hem
+-- site hem uygulama tarafında yükle". Each photo is a stock photo released as
+-- CC0 or marked Public Domain (commercial use, no attribution required),
+-- cropped to a 900 px square WebP in public/menu/. Source, creator and licence
+-- for every file: docs/MENU-PHOTOS.md. They show the kind of product, not the
+-- one served, and the menu says so next to them ("Görseller temsilidir").
+--
+-- `image` gets a site-relative path, the same form as the three photos the
+-- August menu shipped with (20260827124000_menu_two_sizes_and_photos.sql).
+-- The web menu and GET /api/mobile/v1/menu both read this column, so the app
+-- shows the photos too. "photoCutout" is false: these are opaque squares,
+-- which the app shows in a square tile (round in its small thumbnails), never
+-- cut free. The scene family (`backdrop`, "backdropHex") is not set here. A
+-- site-relative photo gets it from scripts/backfill-backdrops.mjs (dry run
+-- first, then --apply), like the three August photos, which have no pick yet
+-- either; until it runs, the app keeps drawing the scene from `hue`, as it
+-- does today.
+--
+-- A row is written only when all three hold:
+-- - it has no photo (`image = ''`). A photo the operator uploaded or linked is
+--   never replaced.
+-- - it still has the name the photo was chosen for. A row renamed or reused
+--   for another product since keeps the drawn fallback; the operator can add
+--   the file by hand in the panel (the field takes /menu/<file>.webp).
+-- - this file has not run before. The bundle (db/schema.sql) re-runs every
+--   migration whenever a deploy adds a new one, so without this guard a photo
+--   the operator removed in the panel would come back on the next deploy.
+--   db:migrate and the bundle both record this file in _migrations after the
+--   body runs: the same guard as 20260827124000.
+--
+-- `updatedAt` is left alone: this is not an edit of the item, and the menu's
+-- ETag already changes with the body (as in scripts/backfill-backdrops.mjs).
+--
+-- Rollback (no schema change): set `image` back to '' on the rows that still
+-- carry the path given here, e.g.
+--   update public.menu_items set image = ''
+--    where id = 'mnu-0004' and image = '/menu/affogato.webp';
+
+update public.menu_items as m
+   set image = v.image,
+       "photoCutout" = false
+  from (
+    values
+    ('mnu-0004', 'L''Affogato',                  '/menu/affogato.webp'),
+    ('mnu-0005', 'Espresso',                     '/menu/espresso.webp'),
+    ('mnu-0006', 'Americano',                    '/menu/americano.webp'),
+    ('mnu-0007', 'Latte',                        '/menu/caffe-latte.webp'),
+    ('mnu-0008', 'Flat White',                   '/menu/flat-white.webp'),
+    ('mnu-0009', 'Mocha',                        '/menu/mocha.webp'),
+    ('mnu-0010', 'Cappuccino',                   '/menu/cappuccino.webp'),
+    ('mnu-0011', 'Espresso Macchiato',           '/menu/espresso-macchiato.webp'),
+    ('mnu-0012', 'İspanyol Latte',               '/menu/spanish-latte.webp'),
+    ('mnu-0013', 'Cortado',                      '/menu/cortado.webp'),
+    ('mnu-0014', 'Beyaz Çikolatalı Mocha',       '/menu/white-chocolate-mocha.webp'),
+    ('mnu-0015', 'Karamel Latte',                '/menu/caramel-latte.webp'),
+    ('mnu-0016', 'Tuzlu Karamel Latte',          '/menu/salted-caramel-latte.webp'),
+    ('mnu-0017', 'Toffeenut Latte',              '/menu/toffee-nut-latte.webp'),
+    ('mnu-0018', 'Balkabağı Latte',              '/menu/pumpkin-latte.webp'),
+    ('mnu-0019', 'Türk Kahvesi',                 '/menu/turkish-coffee.webp'),
+    ('mnu-0020', 'Filtre Kahve',                 '/menu/filter-coffee.webp'),
+    ('mnu-0021', 'Buzlu Chai',                   '/menu/iced-chai.webp'),
+    ('mnu-0022', 'Buzlu Americano',              '/menu/iced-americano.webp'),
+    ('mnu-0023', 'Buzlu Caffè Latte',            '/menu/iced-caffe-latte.webp'),
+    ('mnu-0024', 'Buzlu Caffè Mocha',            '/menu/iced-mocha.webp'),
+    ('mnu-0025', 'Buzlu Beyaz Çikolatalı Mocha', '/menu/iced-white-mocha.webp'),
+    ('mnu-0026', 'Buzlu Tuzlu Karamel Latte',    '/menu/iced-salted-caramel-latte.webp'),
+    ('mnu-0027', 'Buzlu Toffeenut Latte',        '/menu/iced-toffee-nut-latte.webp'),
+    ('mnu-0028', 'Buzlu Balkabağı Latte',        '/menu/iced-pumpkin-latte.webp'),
+    ('mnu-0029', 'Buzlu İspanyol Latte',         '/menu/iced-spanish-latte.webp'),
+    ('mnu-0030', 'Cold Brew',                    '/menu/cold-brew.webp'),
+    ('mnu-0031', 'Çıtır Latte',                  '/menu/crunchy-latte.webp'),
+    ('mnu-0032', 'Sürpriz İçecek',               '/menu/surprise-drink.webp'),
+    ('mnu-0033', 'Cool Lime',                    '/menu/cool-lime.webp'),
+    ('mnu-0034', 'L''Af Limon',                  '/menu/lemonade.webp'),
+    ('mnu-0035', 'Soda',                         '/menu/soda.webp'),
+    ('mnu-0036', 'Su',                           '/menu/water.webp'),
+    ('mnu-0037', 'Chai Latte',                   '/menu/chai-latte.webp'),
+    ('mnu-0038', 'Sıcak Çikolata',               '/menu/hot-chocolate.webp'),
+    ('mnu-0039', 'Beyaz Sıcak Çikolata',         '/menu/white-hot-chocolate.webp'),
+    ('mnu-0040', 'Karamelli Sıcak Çikolata',     '/menu/caramel-hot-chocolate.webp'),
+    ('mnu-0042', 'Çay',                          '/menu/turkish-tea.webp'),
+    ('mnu-0043', 'Frappe',                       '/menu/frappe.webp'),
+    ('mnu-0044', 'Espresso Frappe',              '/menu/espresso-frappe.webp'),
+    ('mnu-0045', 'Mocha Frappe',                 '/menu/mocha-frappe.webp'),
+    ('mnu-0046', 'Karamel Frappe',               '/menu/caramel-frappe.webp'),
+    ('mnu-0047', 'Yaban Mersini',                '/menu/blueberry-smoothie.webp'),
+    ('mnu-0048', 'Mango',                        '/menu/mango-smoothie.webp'),
+    ('mnu-0049', 'Elma',                         '/menu/apple-smoothie.webp'),
+    ('mnu-0050', 'Protein Shake',                '/menu/protein-shake.webp'),
+    ('mnu-0051', 'Çilek',                        '/menu/strawberry-frozen.webp'),
+    ('mnu-0052', 'Frambuaz',                     '/menu/raspberry-frozen.webp'),
+    ('mnu-0055', 'Limonlu Soğuk Çay',            '/menu/lemon-iced-tea.webp'),
+    ('mnu-0056', 'Şeftalili Soğuk Çay',          '/menu/peach-iced-tea.webp'),
+    ('mnu-0057', 'Donostia (L''Af Özel)',        '/menu/donostia-cheesecake.webp'),
+    ('mnu-0058', 'San Sebastian',                '/menu/san-sebastian-cheesecake.webp'),
+    ('mnu-0059', 'Yaban Mersinli San Sebastian', '/menu/blueberry-san-sebastian.webp'),
+    ('mnu-0060', 'L''Af Mango',                  '/menu/mango-cake.webp'),
+    ('mnu-0061', 'L''Af Kahve',                  '/menu/coffee-cake.webp'),
+    ('mnu-0062', 'L''Af Antep Fıstığı',          '/menu/pistachio-cake.webp'),
+    ('mnu-0063', 'Çilek Magnolia',               '/menu/strawberry-magnolia.webp'),
+    ('mnu-0064', 'Muz Magnolia',                 '/menu/banana-magnolia.webp'),
+    ('mnu-0065', 'Lotus Magnolia',               '/menu/lotus-magnolia.webp'),
+    ('mnu-0066', 'Marlenka',                     '/menu/marlenka-honey-cake.webp'),
+    ('mnu-0067', 'Klasik Spoonful',              '/menu/classic-spoonful.webp'),
+    ('mnu-0068', 'Frambuazlı Cheesecake',        '/menu/raspberry-cheesecake.webp'),
+    ('mnu-0069', 'Limonlu Cheesecake',           '/menu/lemon-cheesecake.webp'),
+    ('mnu-0070', 'Brownie',                      '/menu/brownie.webp'),
+    ('mnu-0071', 'Cookie Aşkı (Dondurmalı)',     '/menu/cookie-ice-cream.webp'),
+    ('mnu-0072', 'Tiramisu',                     '/menu/tiramisu.webp'),
+    ('mnu-0073', 'Karabuğday Simit',             '/menu/simit.webp'),
+    ('mnu-0074', 'Rosbeef Sandviç',              '/menu/roast-beef-sandwich.webp'),
+    ('mnu-0075', 'Hindi Fümeli Sandviç',         '/menu/smoked-turkey-sandwich.webp'),
+    ('mnu-0076', 'Çıtır Granola Bar (Kenya)',    '/menu/granola-bar.webp'),
+    ('mnu-0077', 'Hindistan Cevizli Bar',        '/menu/coconut-bar.webp'),
+    ('mnu-0078', 'Kakao Protein Bar',            '/menu/cocoa-protein-bar.webp'),
+    ('mnu-0079', 'Koska Fındık',                 '/menu/hazelnuts.webp'),
+    ('mnu-0081', 'Ekstra Shot',                  '/menu/extra-shot.webp'),
+    ('mnu-0082', 'Alternatif Süt',               '/menu/alternative-milk.webp')
+  ) as v (id, name, image)
+ where m.id = v.id
+   and m.name = v.name
+   and m.image = ''
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261017120000_menu_photos.sql'
+   );
+
+insert into public._migrations (name) values ('20261017120000_menu_photos.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017150000_kdv_rates.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- KDV per item, editable in the panel (17 Oct 2026).
+--
+-- Operator, 17 Oct 2026: "KDV oranlarında da ürünlere özel kdv oranı
+-- eklenebilir olsun ... karakoke'de %20 kdv var, menüden sipariş ederlerse %10,
+-- ve kahve çekirdeği vs alırlarsa %1 ... panelden düzenlenebilir olsun ve
+-- düzenleyince uygulamada da güncellensin". Until now one number,
+-- settings."taxRatePct", stood for every sale, and nothing ever showed what
+-- it produced. Rules and legal basis: src/lib/utils/kdv.ts.
+--
+--   settings."taxRates"   jsonb, the default rate per kind of sale:
+--                         { menu, karaoke, beans, pantry, gift, gear, merch }.
+--                         '{}' reads as the legal defaults (10, 20, 1, 1, 20,
+--                         20, 20) key by key, so nothing has to be written
+--                         for the live row (normalizeTaxRates).
+--   products."taxRatePct"            the product's own rate; NULL = its
+--   menu_items."taxRatePct"          category's (menu's) default. Every
+--                                    existing row starts NULL, except the
+--                                    seeded edible cup box (below).
+--   karaoke_reservations."taxRatePct" the karaoke rate the booking was made
+--                                    at; NULL on bookings made before this.
+--
+-- Order lines get their rate inside orders.items (jsonb, `taxRatePct` per
+-- line, written by the store when the order is placed), so `orders` itself
+-- does not change and neither does wallet_place_order.
+--
+-- settings."taxRatePct" is no longer read. Kept, like every column: dropping
+-- one is never part of a deploy.
+--
+-- Prices and totals do not change: every price is KDV-included, and the rate
+-- only says how much of it is KDV.
+--
+-- Safe on live tables: nullable columns without a default and a jsonb column
+-- with a constant default change only the catalogue (no rewrite). The checks
+-- are added NOT VALID: every existing value is NULL, which passes anyway, and
+-- the table is not scanned under the lock. Re-runnable: the bundle replays
+-- every migration when a deploy adds one.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.settings add column if not exists "taxRates" jsonb not null default '{}'::jsonb;
+alter table public.products add column if not exists "taxRatePct" integer;
+alter table public.menu_items add column if not exists "taxRatePct" integer;
+alter table public.karaoke_reservations add column if not exists "taxRatePct" integer;
+
+-- Whole percentages from 0 to 100 (the panel refuses fractions).
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'products_tax_rate_pct_check'
+       and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_tax_rate_pct_check
+      check ("taxRatePct" is null or "taxRatePct" between 0 and 100) not valid;
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'menu_items_tax_rate_pct_check'
+       and conrelid = 'public.menu_items'::regclass
+  ) then
+    alter table public.menu_items
+      add constraint menu_items_tax_rate_pct_check
+      check ("taxRatePct" is null or "taxRatePct" between 0 and 100) not valid;
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_tax_rate_pct_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_tax_rate_pct_check
+      check ("taxRatePct" is null or "taxRatePct" between 0 and 100) not valid;
+  end if;
+end $$;
+
+-- The edible cup box (prd-0003, seeded under "gift") is boxed waffle cups:
+-- bakery goods, GTİP 19.05, list (I) after Karar 5189, so 1%, not the gift
+-- default of 20%. Its own rate, so the category default stays as the law
+-- has it for non-food gifts. Only the seeded product as the renames left it
+-- (20260922120000, 20260923230500), only while it has no rate of its own,
+-- and only once: the bundle replays every migration when a deploy adds one,
+-- and a rate the operator later clears in the panel must stay cleared. A
+-- fresh database gets the same rate from the seed (data.ts).
+update public.products
+   set "taxRatePct" = 1
+ where id = 'prd-0003'
+   and cat = 'gift'
+   and "taxRatePct" is null
+   and (name like 'Yenilebilir Kup%' or tag = 'Waffle kupları')
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261017150000_kdv_rates.sql'
+   );
+
+insert into public._migrations (name) values ('20261017150000_kdv_rates.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017173000_home_hero_slides.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The home page hero, editable from the panel (17 Oct 2026).
+--
+-- Operator, 17 Oct 2026: "site slider alanı, 3-4 kampanya slaytı, panelden
+-- tamamen düzenlenebilir olsun". Until now the hero on / was the fixed
+-- HOME_SLIDES list in src/components/laffogato/data.ts. One row is one slide,
+-- edited at /admin/anasayfa-hero (src/lib/admin/home-hero.ts).
+--
+-- - Empty table, or no row live right now: the site keeps drawing the bundled
+--   HOME_SLIDES, so this migration changes nothing on its own. The panel's
+--   "Varsayılanları içe aktar" copies those slides in as editable rows.
+-- - "startsAt" / "endsAt": an optional publish window, ISO-8601 UTC text like
+--   the app's slides ('' = unbounded; src/lib/admin/publish-window.ts).
+-- - image: one of the site's own pictures in public/ (the panel's list in
+--   home-hero-core.ts), an uploaded data:image/... (served from
+--   /gorsel/ana-hero/<id>), or an https URL.
+-- - Each of the two buttons is a label plus EITHER a known action code
+--   ("menu", "karaoke", ...) OR a link (a same-site path or an https URL).
+--   The panel validates both; the site drops a button whose target does not
+--   pass the same check on read.
+--
+-- Additive and idempotent: the bundle re-runs every migration on a deploy
+-- that adds one. No `insert into public._migrations`: scripts/db-migrate.mjs
+-- records the file itself.
+
+create table if not exists public.home_hero_slides (
+  id                text    primary key,
+  "sortOrder"       integer not null default 0,
+  "isActive"        boolean not null default true,
+  "startsAt"        text    not null default '',
+  "endsAt"          text    not null default '',
+  kicker            text    not null default '',
+  "titleLine1"      text    not null default '',
+  "titleLine2"      text    not null default '',
+  body              text    not null default '',
+  image             text    not null default '',
+  alt               text    not null default '',
+  scene             text    not null default 'latte',
+  "primaryLabel"    text    not null default '',
+  "primaryAction"   text    not null default '',
+  "primaryHref"     text    not null default '',
+  "secondaryLabel"  text    not null default '',
+  "secondaryAction" text    not null default '',
+  "secondaryHref"   text    not null default '',
+  "createdAt"       text    not null default '',
+  "updatedAt"       text    not null default ''
+);
+create index if not exists home_hero_slides_order_idx
+  on public.home_hero_slides ("sortOrder");
+alter table public.home_hero_slides enable row level security;
+
+insert into public._migrations (name) values ('20261017173000_home_hero_slides.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017173100_pickup_ready_minutes.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- How long a pickup ("Gel-al") order takes to get ready, in minutes
+-- (17 Oct 2026).
+--
+-- The home page's order shortcut said "Gel-al · 15 dk" in the component
+-- itself; it now reads this column, edited in Ayarlar → Kargo ve kurye. The
+-- default is the 15 the card has always shown, so nothing on the site changes
+-- until the operator changes it. Presentation only: no order, price or ETA
+-- in the mobile API reads it.
+--
+-- Additive and idempotent. No `insert into public._migrations`:
+-- scripts/db-migrate.mjs records the file itself.
+
+alter table public.settings add column if not exists "pickupReadyMinutes" integer not null default 15;
+
+insert into public._migrations (name) values ('20261017173100_pickup_ready_minutes.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017200000_variant_stock_adjust.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Variant stock, kept in step with the product's total (admin audit CAT-03,
+-- CAT-14, decision D16, 17 Oct 2026).
+--
+-- A product with variants keeps two counts: each variant's own stock inside
+-- products.variants (jsonb) and the product's total in products.stock.
+-- claim_order_stock needs both to cover a variant line and takes the units
+-- from both; credit_product_stock gives them back to both. Nothing else kept
+-- the two together:
+--   - the product form wrote both from the values it read when it was
+--     opened, so an order taken meanwhile was undone on save, and no stock
+--     move was written (CAT-03);
+--   - the total started at 0 while every variant had stock, so the product
+--     read "Stoksuz" and its order failed at the claim (CAT-14);
+--   - no screen could correct one variant's stock.
+--
+-- From here on, under the product's row lock like the claim:
+--   variant_stock_total     what the total of a product with variants is
+--                           made of: the stock of its active variants.
+--   adjust_variant_stock    the Stok screen's correction of one variant. The
+--                           variant moves by the delta, the total by the same
+--                           delta when the variant is active.
+--   save_product_variants   the product form's save of price, variants and
+--                           stock. Each variant moves by its change since the
+--                           form was opened, never to the opened value, and
+--                           once per form (product_form_saves). Asked to, it
+--                           sets the total to the active variants' sum.
+--   adjust_product_stock    now refuses (-3) a product with variants: its
+--                           total follows the variants, it is not set alone.
+-- Every change writes its stock move in the same transaction.
+--
+-- The total moves by deltas instead of being recomputed as the sum: the
+-- shop card's quick add can still sell a product with variants without a
+-- variant, which takes a unit from the total only, and a recomputed sum
+-- would hand that unit back for sale. The exceptions: a product getting its
+-- first variants takes their sum, and so does a form that asks for it
+-- (p_total_from_variants). That is the way back for a total gone apart from
+-- its variants: a unit sold without a variant and then corrected on one
+-- variant on Stok took the total down twice, and nothing else sets it.
+--
+-- Re-runnable: the bundle replays every migration when a deploy adds one.
+-- The data step at the end runs once (guarded on _migrations).
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- The variant list as an array, whatever the column holds.
+create or replace function public.product_variant_list(p_variants jsonb)
+returns jsonb
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+           when jsonb_typeof(p_variants) = 'array' then p_variants
+           else '[]'::jsonb
+         end
+$$;
+
+-- The stock of the active variants, summed. Active means `isActive` is true,
+-- as resolveOrderLines reads it: a variant without the key is not sold.
+create or replace function public.variant_stock_total(p_variants jsonb)
+returns int
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(sum(greatest(0, coalesce((v ->> 'stock')::int, 0))), 0)::int
+    from jsonb_array_elements(public.product_variant_list(p_variants)) as v
+   where coalesce((v ->> 'isActive')::boolean, false)
+$$;
+
+-- One stock move, numbered like recordStockMove in the store (mov-000123).
+create or replace function public.record_stock_move(
+  p_product_id   text,
+  p_product_name text,
+  p_delta        int,
+  p_stock_after  int,
+  p_note         text,
+  p_actor        text,
+  p_now          text
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  seq     text := public.next_seq('mov')::text;
+  move_id text;
+begin
+  move_id := 'mov-' || case when length(seq) < 6 then lpad(seq, 6, '0') else seq end;
+  insert into public.stock_moves
+    (id, "productId", "productName", delta, "stockAfter", reason, note, actor, "createdAt")
+  values
+    (move_id, p_product_id, coalesce(p_product_name, ''), p_delta, p_stock_after,
+     'manual_adjust', left(coalesce(p_note, ''), 500), coalesce(p_actor, 'system'), p_now);
+  return move_id;
+end;
+$$;
+
+-- ── adjust_variant_stock ──────────────────────────────────────────────────
+-- Moves one variant's stock by p_delta and records the move (named
+-- "Ürün · Varyant", stockAfter = the variant's new stock). Returns
+--   {"error": "product" | "variant"}             nothing to adjust,
+--   {"error": "negative", "variantStock": n}     it would go below zero,
+--   {"variantStock", "stock", "stockBefore", "variantName", "productName",
+--    "active", "moveId"}                         done.
+create or replace function public.adjust_variant_stock(
+  p_product_id text,
+  p_variant_id text,
+  p_delta      int,
+  p_note       text,
+  p_actor      text,
+  p_now        text
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cur_variants jsonb;
+  cur_total    int;
+  prod_name    text;
+  hit          jsonb;
+  cur_stock    int;
+  next_stock   int;
+  active       boolean;
+  next_total   int;
+  residual     int;
+  move_id      text;
+begin
+  select public.product_variant_list(variants), stock, name
+    into cur_variants, cur_total, prod_name
+    from public.products
+   where id = p_product_id
+     for update;
+  if not found then
+    return jsonb_build_object('error', 'product');
+  end if;
+
+  select v into hit
+    from jsonb_array_elements(cur_variants) as v
+   where v ->> 'id' = p_variant_id
+   limit 1;
+  if hit is null then
+    return jsonb_build_object('error', 'variant');
+  end if;
+
+  cur_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+  next_stock := cur_stock + p_delta;
+  if next_stock < 0 then
+    return jsonb_build_object('error', 'negative', 'variantStock', cur_stock);
+  end if;
+  active := coalesce((hit ->> 'isActive')::boolean, false);
+  next_total := case when active then greatest(0, cur_total + p_delta) else cur_total end;
+
+  update public.products
+     set variants = (
+           select jsonb_agg(
+                    case when e.v ->> 'id' = p_variant_id
+                      then jsonb_set(e.v, '{stock}', to_jsonb(next_stock))
+                      else e.v end
+                    order by e.n)
+             from jsonb_array_elements(cur_variants) with ordinality as e(v, n)),
+         stock = next_total,
+         "updatedAt" = p_now
+   where id = p_product_id;
+
+  move_id := public.record_stock_move(
+    p_product_id, prod_name || ' · ' || coalesce(hit ->> 'name', ''),
+    p_delta, next_stock, p_note, p_actor, p_now);
+  -- The total stopped at 0 (units sold without a variant had already left
+  -- it): the product's own move says by how much less it went down.
+  residual := (next_total - cur_total) - case when active then p_delta else 0 end;
+  if residual <> 0 then
+    perform public.record_stock_move(
+      p_product_id, prod_name, residual, next_total,
+      coalesce(p_note, '') || ': varyant toplamı', p_actor, p_now);
+  end if;
+
+  return jsonb_build_object(
+    'variantStock', next_stock,
+    'stock', next_total,
+    'stockBefore', cur_total,
+    'variantName', coalesce(hit ->> 'name', ''),
+    'productName', prod_name,
+    'active', active,
+    'moveId', move_id);
+end;
+$$;
+
+-- ── product_form_saves ────────────────────────────────────────────────────
+-- What each opened product form has already moved. The form posts a token
+-- of its own with every save, and save_product_variants applies a change
+-- less what the same token has applied: the same form saved again after an
+-- answer that never arrived (a dropped connection, an error after the
+-- write) does not move the stock twice, and a count changed again moves by
+-- the difference. One row per form and product, kept for two days.
+create table if not exists public.product_form_saves (
+  "productId" text  not null,
+  token       text  not null,
+  applied     jsonb not null default '{}'::jsonb,
+  "createdAt" text  not null default '',
+  primary key ("productId", token)
+);
+alter table public.product_form_saves enable row level security;
+
+-- ── save_product_variants ─────────────────────────────────────────────────
+-- The product form's save of what has to stay together: the sale price, the
+-- variant list and the stock. p_variants is the form's list:
+--   [{id, name, priceDeltaMinor, sku, isActive, stockDelta, initialStock}]
+-- A variant already stored keeps its stored stock plus `stockDelta` (the
+-- change typed since the form was opened); one not stored yet starts at
+-- `initialStock`; a stored one missing from the list is removed with its
+-- units. p_stock_delta is the change to the product's own stock, used only
+-- when the list is empty. The total of a product with variants follows them
+-- (see the header); a product getting its first variants takes their sum.
+-- With p_save_token, what earlier saves of the same form applied
+-- (product_form_saves) is taken off each change first. With
+-- p_total_from_variants the total of a product with variants becomes the
+-- stock of its active variants after the save: the operator counted the
+-- shelf and says the variants are right.
+--
+-- Every stock change is written as a stock move: one per variant whose
+-- stock changed ("Ürün · Varyant", stockAfter = its new stock), and one for
+-- the product ("Ürün", stockAfter = the new total) for whatever the variant
+-- moves do not explain (a variant switched on or off, the first variants
+-- replacing the product's own count, the variants removed, the total set
+-- to the variants).
+--
+-- Nothing is written when anything is refused. Returns
+--   {"error": "product"}                                 the row is gone,
+--   {"error": "floor", "variant": name, "stock", "variants", "applied"}
+--                                                        a variant would sell
+--                                                        under 1 kuruş,
+--   {"error": "negative", "variant"?, "variantId"?, "stock", "variants",
+--    "applied"}                                          a count would go
+--                                                        below zero;
+--   "stock" and "variants" are the stored ones now, "applied" what this
+--   form's earlier saves moved ({"stock": n, "variants": {id: n}}),
+--   {"stockBefore", "stockAfter", "variants", "moves"}   saved.
+--
+-- The signatures without the token and without the total's reset came
+-- first in this file; they are dropped so a call by name cannot find two.
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text
+);
+drop function if exists public.save_product_variants(
+  text, integer, jsonb, integer, text, text, text, text
+);
+create or replace function public.save_product_variants(
+  p_product_id  text,
+  p_price_minor int,
+  p_variants    jsonb,
+  p_stock_delta int,
+  p_note        text,
+  p_actor       text,
+  p_now         text,
+  p_save_token  text default null,
+  p_total_from_variants boolean default false
+)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cur_variants jsonb;
+  cur_total    int;
+  prod_name    text;
+  prior        jsonb;
+  requested    jsonb := '{}'::jsonb;
+  inc          jsonb;
+  hit          jsonb;
+  before_stock int;
+  next_stock   int;
+  inc_active   boolean;
+  next_list    jsonb := '[]'::jsonb;
+  changes      jsonb := '[]'::jsonb;
+  ch           jsonb;
+  explained    int := 0;
+  next_total   int;
+  moves        int := 0;
+begin
+  select public.product_variant_list(variants), stock, name
+    into cur_variants, cur_total, prod_name
+    from public.products
+   where id = p_product_id
+     for update;
+  if not found then
+    return jsonb_build_object('error', 'product');
+  end if;
+
+  -- Under the product's lock, like every save of it.
+  if p_save_token is not null then
+    select s.applied into prior
+      from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s.token = p_save_token;
+  end if;
+  prior := coalesce(prior, '{}'::jsonb);
+
+  for inc in
+    select value from jsonb_array_elements(public.product_variant_list(p_variants))
+  loop
+    if p_price_minor + coalesce((inc ->> 'priceDeltaMinor')::int, 0) < 1 then
+      return jsonb_build_object(
+        'error', 'floor',
+        'variant', coalesce(inc ->> 'name', ''),
+        'stock', cur_total,
+        'variants', cur_variants,
+        'applied', prior);
+    end if;
+    inc_active := coalesce((inc ->> 'isActive')::boolean, false);
+    hit := null;
+    select v into hit
+      from jsonb_array_elements(cur_variants) as v
+     where v ->> 'id' = inc ->> 'id'
+     limit 1;
+    if hit is null then
+      before_stock := 0;
+      next_stock := greatest(0, coalesce((inc ->> 'initialStock')::int, 0));
+    else
+      before_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+      requested := requested || jsonb_build_object(
+        inc ->> 'id', coalesce((inc ->> 'stockDelta')::int, 0));
+      next_stock := before_stock
+        + coalesce((inc ->> 'stockDelta')::int, 0)
+        - coalesce((prior -> 'variants' ->> (inc ->> 'id'))::int, 0);
+      if next_stock < 0 then
+        return jsonb_build_object(
+          'error', 'negative',
+          'variant', coalesce(inc ->> 'name', ''),
+          'variantId', inc ->> 'id',
+          'stock', cur_total,
+          'variants', cur_variants,
+          'applied', prior);
+      end if;
+    end if;
+    next_list := next_list || jsonb_build_array(jsonb_build_object(
+      'id', inc ->> 'id',
+      'name', coalesce(inc ->> 'name', ''),
+      'priceDeltaMinor', coalesce((inc ->> 'priceDeltaMinor')::int, 0),
+      'stock', next_stock,
+      'sku', coalesce(inc ->> 'sku', ''),
+      'isActive', inc_active));
+    if next_stock <> before_stock then
+      changes := changes || jsonb_build_array(jsonb_build_object(
+        'name', coalesce(inc ->> 'name', ''),
+        'delta', next_stock - before_stock,
+        'after', next_stock,
+        'counted', inc_active,
+        'removed', false));
+    end if;
+  end loop;
+
+  -- A stored variant the form no longer lists leaves with its units.
+  for hit in
+    select v
+      from jsonb_array_elements(cur_variants) as v
+     where not exists (
+       select 1 from jsonb_array_elements(next_list) as n where n ->> 'id' = v ->> 'id')
+  loop
+    before_stock := greatest(0, coalesce((hit ->> 'stock')::int, 0));
+    if before_stock <> 0 then
+      changes := changes || jsonb_build_array(jsonb_build_object(
+        'name', coalesce(hit ->> 'name', ''),
+        'delta', -before_stock,
+        'after', 0,
+        'counted', coalesce((hit ->> 'isActive')::boolean, false),
+        'removed', true));
+    end if;
+  end loop;
+
+  if jsonb_array_length(next_list) = 0 then
+    -- No variants (any more): the product's own count, moved by the form.
+    next_total := cur_total
+      + coalesce(p_stock_delta, 0)
+      - coalesce((prior ->> 'stock')::int, 0);
+    if next_total < 0 then
+      return jsonb_build_object(
+        'error', 'negative', 'stock', cur_total, 'variants', cur_variants,
+        'applied', prior);
+    end if;
+  elsif jsonb_array_length(cur_variants) = 0 or coalesce(p_total_from_variants, false) then
+    next_total := public.variant_stock_total(next_list);
+  else
+    next_total := greatest(0,
+      cur_total
+      + public.variant_stock_total(next_list)
+      - public.variant_stock_total(cur_variants));
+  end if;
+
+  update public.products
+     set variants = next_list,
+         stock = next_total,
+         "priceMinor" = p_price_minor,
+         "updatedAt" = p_now
+   where id = p_product_id;
+
+  for ch in select value from jsonb_array_elements(changes)
+  loop
+    perform public.record_stock_move(
+      p_product_id,
+      prod_name || ' · ' || (ch ->> 'name'),
+      (ch ->> 'delta')::int,
+      (ch ->> 'after')::int,
+      coalesce(p_note, '') || case when (ch ->> 'removed')::boolean then ': varyant silindi' else '' end,
+      p_actor,
+      p_now);
+    moves := moves + 1;
+    if (ch ->> 'counted')::boolean then
+      explained := explained + (ch ->> 'delta')::int;
+    end if;
+  end loop;
+
+  if next_total - cur_total <> explained then
+    perform public.record_stock_move(
+      p_product_id,
+      prod_name,
+      next_total - cur_total - explained,
+      next_total,
+      coalesce(p_note, '')
+        || case
+             when jsonb_array_length(next_list) = 0 and jsonb_array_length(cur_variants) = 0 then ''
+             else ': varyant toplamı'
+           end,
+      p_actor,
+      p_now);
+    moves := moves + 1;
+  end if;
+
+  if p_save_token is not null then
+    -- This form has now moved each count by what it asked for in all.
+    insert into public.product_form_saves as s ("productId", token, applied, "createdAt")
+    values (
+      p_product_id,
+      p_save_token,
+      jsonb_build_object('stock', coalesce(p_stock_delta, 0), 'variants', requested),
+      p_now)
+    on conflict ("productId", token) do update set applied = excluded.applied;
+    delete from public.product_form_saves as s
+     where s."productId" = p_product_id
+       and s."createdAt" < to_char(
+             (now() - interval '2 days') at time zone 'UTC',
+             'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
+  end if;
+
+  return jsonb_build_object(
+    'stockBefore', cur_total,
+    'stockAfter', next_total,
+    'variants', next_list,
+    'moves', moves);
+end;
+$$;
+
+-- ── adjust_product_stock ──────────────────────────────────────────────────
+-- As in 20260901150000_atomic_stock_adjust.sql, plus -3 for a product with
+-- variants: its total follows them, so the Stok screen and the CSV import
+-- move a variant instead.
+create or replace function public.adjust_product_stock(
+  p_product_id text,
+  p_delta      int,
+  p_now        text
+)
+returns int
+language plpgsql
+set search_path = ''
+as $$
+declare
+  new_stock  int;
+  exists_id  text;
+  n_variants int;
+begin
+  update public.products
+    set stock = stock + p_delta,
+        "updatedAt" = p_now
+    where id = p_product_id
+      and stock + p_delta >= 0
+      and jsonb_array_length(public.product_variant_list(variants)) = 0
+    returning stock into new_stock;
+
+  if found then
+    return new_stock;
+  end if;
+
+  select id, jsonb_array_length(public.product_variant_list(variants))
+    into exists_id, n_variants
+    from public.products
+   where id = p_product_id;
+  if exists_id is null then
+    return -1;
+  end if;
+  if n_variants > 0 then
+    return -3;
+  end if;
+  return -2;
+end;
+$$;
+
+-- ── once: products the form left at 0 ─────────────────────────────────────
+-- A product with variants whose total is 0 while its active variants hold
+-- stock is the CAT-14 state: the field defaulted to 0 and the operator only
+-- filled the variants, so nothing of it could be sold. Its total becomes the
+-- sum, with a stock move. Only a product nothing ever moved: no stock move
+-- and no order line names it. A total that reached 0 through sales is sold
+-- out, not unfilled: units sold without a variant (the shop card's quick
+-- add) left the total and not the variants, so the variants still read
+-- stock that is gone, and the sum would put it back on sale. Any other
+-- total is left as it stands for the same reason. Once only, like every
+-- data step the bundle replays.
+with fixed as (
+  update public.products as p
+     set stock = public.variant_stock_total(p.variants),
+         "updatedAt" = to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+   where p.stock = 0
+     and public.variant_stock_total(p.variants) > 0
+     and not exists (
+       select 1 from public.stock_moves as m where m."productId" = p.id
+     )
+     and not exists (
+       select 1
+         from public.orders as o
+        cross join lateral jsonb_array_elements(
+                case when jsonb_typeof(o.items) = 'array' then o.items else '[]'::jsonb end
+              ) as line
+        where line ->> 'productId' = p.id
+     )
+     and not exists (
+       select 1
+         from public._migrations as applied
+        where applied.name = '20261017200000_variant_stock_adjust.sql'
+     )
+  returning p.id, p.name, p.stock, p."updatedAt"
+)
+select public.record_stock_move(
+         f.id, f.name, f.stock, f.stock,
+         'Varyant stoklarının toplamı (ürün stoğu 0 kalmıştı)', 'system', f."updatedAt")
+  from fixed as f;
+
+insert into public._migrations (name) values ('20261017200000_variant_stock_adjust.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017200100_seed_markers.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Seeds run once per database, not whenever a table is empty (admin audit
+-- CAT-04, CON-01, decision D17, 17 Oct 2026).
+--
+-- The store seeded a table whenever it found it empty, once per server
+-- instance, so every cold start re-checked. Deleting the last product, menu
+-- item, category, shop hero slide, story period, press quote, app slide,
+-- announcement or post brought the bundled rows back on the next deploy:
+-- demo products for sale, a "500₺ üzeri ücretsiz kargo" slide, a weekend
+-- closing at 24:00 and a half-price offer the till does not honour, in the
+-- app's notification feed too. And setCounter put the id counters back to
+-- the seed's size, so the next new row reused a deleted row's id, which old
+-- orders and stock moves still point at.
+--
+-- From here on:
+--   counters "seed:<table>"   the marker the store writes the first time it
+--                             decides about a table (src/lib/admin/store.ts
+--                             seedOnce). With the marker present an empty
+--                             table stays empty.
+--   raise_counter            what setCounter calls: it sets a counter to at
+--                            least the given value and never lowers it.
+--
+-- A database already in use gets every marker now: its tables were seeded
+-- long ago, and one emptied by the operator must stay empty. "In use" is a
+-- settings row (written by the first seed) or a table with rows. A fresh
+-- database has neither, so the store seeds it as before (the catalogue only
+-- outside production). Once only, like every data step the bundle replays.
+--
+-- To seed a development database again: delete its `seed:%` counters.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create or replace function public.raise_counter(counter_key text, floor_seq bigint)
+returns bigint
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v bigint;
+begin
+  insert into public.counters (id, seq) values (counter_key, floor_seq)
+  on conflict (id) do update set seq = greatest(public.counters.seq, excluded.seq)
+  returning seq into v;
+  return v;
+end;
+$$;
+
+insert into public.counters (id, seq)
+select m.id, 1
+  from (values
+    ('seed:products',          exists (select 1 from public.products)),
+    ('seed:categories',        exists (select 1 from public.categories)),
+    ('seed:menu_items',        exists (select 1 from public.menu_items)),
+    ('seed:shop_hero_slides',  exists (select 1 from public.shop_hero_slides)),
+    ('seed:story_timeline',    exists (select 1 from public.story_timeline)),
+    ('seed:press',             exists (select 1 from public.press)),
+    ('seed:app_hero_slides',   exists (select 1 from public.app_hero_slides)),
+    ('seed:app_announcements', exists (select 1 from public.app_announcements)),
+    ('seed:app_posts',         exists (select 1 from public.app_posts))
+  ) as m (id, has_rows)
+ where (m.has_rows or exists (select 1 from public.settings))
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261017200100_seed_markers.sql'
+   )
+on conflict (id) do nothing;
+
+insert into public._migrations (name) values ('20261017200100_seed_markers.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261017210000_legal_override_history.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Earlier texts of the panel's legal overrides (admin audit CON-02, 17 Oct
+-- 2026).
+--
+-- `legal_docs` holds one override per document and nothing else: "Varsayılana
+-- döndür" deleted it on one click, and every save overwrote the text before
+-- it. A lawyer-reviewed KVKK or Mesafeli Satış text was then gone for good,
+-- and so was the answer to "which text did this order's customer accept":
+-- the order records the version label (`legalConsent.version`), the text
+-- behind an old label lived nowhere.
+--
+-- Now every write that replaces or removes an override first copies the row
+-- it replaces here, in the same transaction:
+--   - legal_doc_save:  a save (or a restore) over a row that differs from
+--     what is being written ('replaced');
+--   - legal_doc_reset: "Varsayılana döndür" ('reset').
+-- The panel lists these rows, previews them and puts one back (a restore is
+-- a legal_doc_save of the archived text, so the text it replaces is archived
+-- in turn). `updatedAt` is when that text was saved; `archivedAt` and
+-- `archivedBy` when and by whom it was replaced.
+--
+-- Rows are never updated (a trigger refuses it). Only the periodic
+-- destruction deletes them (src/lib/retention.ts, "legal-override-history"):
+-- eleven years after archivedAt, the published period of the consent record
+-- whose version label points at them.
+-- Both functions take a per-document advisory lock, so two saves of one
+-- document cannot both archive the same row and lose the one in between.
+--
+-- Additive and idempotent. No `insert into public._migrations`:
+-- scripts/db-migrate.mjs records the file itself.
+
+create table if not exists public.legal_override_history (
+  id              bigint  generated always as identity primary key,
+  slug            text    not null,
+  title           text    not null default '',
+  summary         text    not null default '',
+  "effectiveDate" text    not null default '',
+  "bodyMarkdown"  text    not null default '',
+  "isPublished"   boolean not null default false,
+  "updatedAt"     text    not null default '',
+  "archivedAt"    text    not null default '',
+  "archivedBy"    text    not null default '',
+  reason          text    not null default ''
+);
+
+create index if not exists legal_override_history_slug_idx
+  on public.legal_override_history (slug, id);
+
+alter table public.legal_override_history enable row level security;
+
+-- ── append-only ─────────────────────────────────────────────────────────
+create or replace function public.legal_override_history_append_only()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  raise exception 'legal_override_history is append-only' using errcode = 'P0001';
+end;
+$$;
+
+drop trigger if exists legal_override_history_no_update on public.legal_override_history;
+create trigger legal_override_history_no_update
+  before update on public.legal_override_history
+  for each row execute function public.legal_override_history_append_only();
+
+-- ── legal_doc_save ──────────────────────────────────────────────────────
+-- Writes the override of p_slug. When a row is already there and any of its
+-- text fields or its published flag differ from what is written, that row is
+-- archived first ('replaced'). Returns the archive row's id, or null when
+-- nothing was archived (a new override, or a save that changed nothing).
+--
+-- A save that changes nothing writes nothing, so "updatedAt" stays the
+-- moment the text went up: with the archive's "archivedAt" that gives the
+-- exact span each text was shown, which is what tells the text behind an
+-- order's consent (and the version rule dates an undated live text by it).
+create or replace function public.legal_doc_save(
+  p_slug           text,
+  p_title          text,
+  p_summary        text,
+  p_effective_date text,
+  p_body           text,
+  p_published      boolean,
+  p_at             text,
+  p_by             text
+)
+returns bigint
+language plpgsql
+set search_path = ''
+as $$
+declare
+  prev public.legal_docs%rowtype;
+  archived bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('legal_doc:' || p_slug));
+
+  select * into prev from public.legal_docs where slug = p_slug for update;
+  if found and (prev.title, prev.summary, prev."effectiveDate",
+                prev."bodyMarkdown", prev."isPublished")
+       is not distinct from (p_title, p_summary, p_effective_date, p_body, p_published)
+  then
+    return null;
+  end if;
+
+  if found then
+    insert into public.legal_override_history
+      (slug, title, summary, "effectiveDate", "bodyMarkdown", "isPublished",
+       "updatedAt", "archivedAt", "archivedBy", reason)
+    values
+      (prev.slug, prev.title, prev.summary, prev."effectiveDate",
+       prev."bodyMarkdown", prev."isPublished", prev."updatedAt",
+       p_at, p_by, 'replaced')
+    returning id into archived;
+  end if;
+
+  insert into public.legal_docs
+    (slug, title, summary, "effectiveDate", "bodyMarkdown", "isPublished", "updatedAt")
+  values
+    (p_slug, p_title, p_summary, p_effective_date, p_body, p_published, p_at)
+  on conflict (slug) do update set
+    title           = excluded.title,
+    summary         = excluded.summary,
+    "effectiveDate" = excluded."effectiveDate",
+    "bodyMarkdown"  = excluded."bodyMarkdown",
+    "isPublished"   = excluded."isPublished",
+    "updatedAt"     = excluded."updatedAt";
+
+  return archived;
+end;
+$$;
+
+-- ── legal_doc_reset ─────────────────────────────────────────────────────
+-- "Varsayılana döndür": archives the override of p_slug ('reset') and
+-- deletes it, so /hukuk/<slug> shows the coded text again. Returns the
+-- archive row's id, or null when the document had no override.
+create or replace function public.legal_doc_reset(
+  p_slug text,
+  p_at   text,
+  p_by   text
+)
+returns bigint
+language plpgsql
+set search_path = ''
+as $$
+declare
+  prev public.legal_docs%rowtype;
+  archived bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('legal_doc:' || p_slug));
+
+  delete from public.legal_docs where slug = p_slug returning * into prev;
+  if not found then
+    return null;
+  end if;
+
+  insert into public.legal_override_history
+    (slug, title, summary, "effectiveDate", "bodyMarkdown", "isPublished",
+     "updatedAt", "archivedAt", "archivedBy", reason)
+  values
+    (prev.slug, prev.title, prev.summary, prev."effectiveDate",
+     prev."bodyMarkdown", prev."isPublished", prev."updatedAt",
+     p_at, p_by, 'reset')
+  returning id into archived;
+
+  return archived;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261017210000_legal_override_history.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018090000_customer_deletion_request.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- A member's request to have their account deleted (operator, 18 Oct 2026).
+--
+-- On the web an account is no longer deleted by the member's own click:
+-- /uye/hesap/sil sends a request, the team is mailed, and an owner or
+-- manager closes the account from the panel ("Hesabı sil", the same
+-- `deleteMe` the app's DELETE /me runs). KVKK m.13/2 and the application
+-- Tebliğ m.6/5 give the controller thirty days to answer; the panel counts
+-- them from this stamp.
+--
+--   "deletionRequestedAt"  ISO-8601 instant of the open request; NULL when
+--                          there is none. Set only while it is NULL (one
+--                          open request per member, a second press keeps
+--                          the first date), cleared when the member takes
+--                          the request back and when the account is closed.
+--   "deletionReason"       the member's optional words, capped in the app
+--                          (500 characters); '' when none. Blanked with the
+--                          rest of the row when the account is closed.
+--
+-- The app's in-app deletion (Apple 5.1.1(v), Google Play) is unchanged and
+-- never reads these columns.
+--
+-- Additive and idempotent. No `insert into public._migrations`:
+-- scripts/db-migrate.mjs records the file itself.
+
+alter table public.customers
+  add column if not exists "deletionRequestedAt" text;
+
+alter table public.customers
+  add column if not exists "deletionReason" text not null default '';
+
+-- The panel lists and counts the open requests; almost every row is NULL.
+create index if not exists customers_deletion_requested_idx
+  on public.customers ("deletionRequestedAt")
+  where "deletionRequestedAt" is not null;
+
+insert into public._migrations (name) values ('20261018090000_customer_deletion_request.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018090100_deletion_request_commercial_mail.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- No commercial mail to a member who asked for their account to be deleted.
+--
+-- Until 18 Oct 2026 the site deleted an account on the member's click, and
+-- `deleteMe` switched marketing and the bulletin off in the same second. Now
+-- /uye/hesap/sil only opens a request (`customers."deletionRequestedAt"`,
+-- 20261018090000) and the team closes the account within thirty days (KVKK
+-- m.13/2). In that window the campaign audience and the birthday greeting
+-- still named the member.
+--
+-- 6563 m.8/3 has the sender stop within three working days of a refusal,
+-- and the site's own İleti onayı text says ending the membership ends the
+-- consent with no separate request. A request to delete the account is read
+-- as that refusal from the moment it arrives. Reversible: nothing in the
+-- consent record changes, so a member who takes the request back
+-- (`withdrawDeletionRequest` clears the stamp) is in the audience again.
+--
+-- Both functions are the 20260923230300_email_suppressions versions, with
+-- one more clause each. Subscriber rows under the same address are left out
+-- too: the closure deletes that subscription with the account. The coupon
+-- stays (an account right, not a message); only the greeting's mail flag
+-- turns false. The count, the enqueue and the claim all read the audience,
+-- so a request opened after a campaign was queued is honoured when its batch
+-- is claimed.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+-- ── campaign_email_audience ─────────────────────────────────────────────
+create or replace function public.campaign_email_audience(
+  p_audience text,
+  p_pref text
+)
+returns table (email text, name text, kind text, token text)
+language plpgsql
+set search_path = ''
+as $$
+begin
+  return query
+    with members as (
+      select lower(c.email)     as email,
+             c.name             as name,
+             'customer'::text   as kind,
+             c."unsubToken"     as token
+        from public.customers c
+       where p_audience in ('marketing', 'both')
+         and c."isActive"
+         and c."emailVerified"
+         and coalesce(c."notificationPrefs" ->> p_pref, 'false') = 'true'
+         and (case p_pref
+                when 'marketing' then c."marketingConsentAt" <> ''
+                else exists (
+                  select 1
+                    from public.newsletter_subscribers n
+                   where lower(n.email) = lower(c.email)
+                     and n."isActive"
+                     and n."consentAt" <> ''
+                )
+              end)
+         and c.email not like '%@laffogato.local'
+         and c.email not like '%@anon.local'
+    ),
+    news as (
+      select lower(s.email)     as email,
+             s.name             as name,
+             'subscriber'::text as kind,
+             s."unsubToken"     as token
+        from public.newsletter_subscribers s
+       where p_audience in ('newsletter', 'both')
+         and s."isActive"
+         and s."consentAt" <> ''
+         and s."unsubToken" <> ''
+    ),
+    everyone as (
+      select m.email, m.name, m.kind, m.token from members m
+      union all
+      select n.email, n.name, n.kind, n.token from news n
+    )
+    select distinct on (e.email) e.email, e.name, e.kind, e.token
+      from everyone e
+     where not exists (
+       select 1
+         from public.email_suppressions x
+        where x.email = e.email
+     )
+       and not exists (
+         select 1
+           from public.customers d
+          where d."deletionRequestedAt" is not null
+            and lower(d.email) = e.email
+       )
+     order by e.email, (e.kind = 'customer') desc;
+end;
+$$;
+
+-- ── birthday_greeting_audience ──────────────────────────────────────────
+create or replace function public.birthday_greeting_audience(
+  p_month_days jsonb
+)
+returns table (email text, name text, marketing boolean)
+language plpgsql
+set search_path = ''
+as $$
+begin
+  return query
+    select lower(c.email) as email,
+           c.name         as name,
+           (coalesce(c."notificationPrefs" ->> 'marketing', 'false') = 'true'
+            and c."marketingConsentAt" <> ''
+            and c."deletionRequestedAt" is null
+            and not exists (
+              select 1
+                from public.email_suppressions x
+               where x.email = lower(c.email)
+            )) as marketing
+      from public.customers c
+     where c."isActive"
+       and c."emailVerified"
+       and length(c.birthday) >= 5
+       and right(c.birthday, 5) in (
+             select jsonb_array_elements_text(p_month_days)
+           )
+       and c.email not like '%@laffogato.local'
+       and c.email not like '%@anon.local'
+     order by lower(c.email);
+end;
+$$;
+
+insert into public._migrations (name) values ('20261018090100_deletion_request_commercial_mail.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018130000_karaoke_cancel_policy.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke: the cancellation and refund rule is set from the panel, and each
+-- booking keeps the rule it was made under.
+--
+-- Operator, 17 Eki 2026: "para tutarı iade edilir kısmını da panelden ayarla".
+-- Until now the rule was code: a member's cancel more than 2 hours before the
+-- start refunds the whole payment, a later one (and not turning up) refunds
+-- nothing (src/lib/mobile/karaoke-time.ts).
+--
+-- settings (Ayarlar > Karaoke, owner only):
+--   "karaokeFreeCancelHours"    0..72, default 2. 0: free cancellation
+--                               until the start (ASK-OTH-3-CFG, 18 Eki 2026;
+--                               it read "every cancel is late" before).
+--   "karaokeLateRefundPercent"  0..100, default 0: the share of the payment a
+--                               cancel INSIDE the window refunds while the
+--                               start has not come. 0 = such a cancel is
+--                               refused, as before.
+--   "karaokeCancelPolicyAt"     when the two numbers last moved (ISO, '' =
+--                               never). The karaoke document's version moves
+--                               with it (src/lib/legal/karaoke-doc.ts).
+--
+-- karaoke_reservations, the snapshot (TKHK m.4/2, MSY m.5/2: the
+-- pre-information a consumer confirmed is part of the contract, and the panel
+-- must not change it afterwards). Written by createReservation, never later:
+--   "freeCancelHours" "lateRefundPercent"  the policy of the booking
+--   "cancelDeadline"                       its last full-refund instant (ISO)
+--   "cancellationRules"                    the two sentences shown at booking
+--   "refundMinor"                          kuruş owed back / refunded when it
+--                                          is NOT the whole payment (a late
+--                                          cancel's share); NULL = the whole
+-- All NULL on every row written before this: such a row reads 2 hours / 0 %,
+-- its deadline is computed from the start, its sentences are the defaults,
+-- and its refunds are whole.
+--
+-- Safe on a live table: nullable columns and checks every existing row
+-- satisfies; the settings columns have defaults equal to the old rule.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.settings add column if not exists "karaokeFreeCancelHours"   integer not null default 2;
+alter table public.settings add column if not exists "karaokeLateRefundPercent" integer not null default 0;
+alter table public.settings add column if not exists "karaokeCancelPolicyAt"    text    not null default '';
+
+alter table public.karaoke_reservations add column if not exists "freeCancelHours"   integer;
+alter table public.karaoke_reservations add column if not exists "lateRefundPercent" integer;
+alter table public.karaoke_reservations add column if not exists "cancelDeadline"    text;
+alter table public.karaoke_reservations add column if not exists "cancellationRules" jsonb;
+alter table public.karaoke_reservations add column if not exists "refundMinor"       integer;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'settings_karaoke_cancel_policy_check'
+       and conrelid = 'public.settings'::regclass
+  ) then
+    alter table public.settings
+      add constraint settings_karaoke_cancel_policy_check
+      check ("karaokeFreeCancelHours" between 0 and 72
+             and "karaokeLateRefundPercent" between 0 and 100);
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_cancel_policy_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_cancel_policy_check
+      check (("freeCancelHours" is null or "freeCancelHours" between 0 and 72)
+             and ("lateRefundPercent" is null
+                  or "lateRefundPercent" between 0 and 100));
+  end if;
+  -- A partial refund is a share of what was collected: never more, never
+  -- negative.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_minor_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_minor_check
+      check ("refundMinor" is null
+             or ("refundMinor" >= 0 and "refundMinor" <= "paidMinor"));
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261018130000_karaoke_cancel_policy.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018200000_clear_unused_card_user_keys.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Card storage never went live: clear the member keys minted for it.
+--
+-- `customers."cardUserKey"` is the key PayNkolay files a member's saved cards
+-- under (docs/PAYNKOLAY.md §16). Card storage was never turned on (rule 28),
+-- yet the app order (src/lib/mobile/orders.ts) and the member's karaoke
+-- payment (src/lib/mobile/karaoke-payment.ts) minted one for every member
+-- who paid there. No card sits under any of them: the key reaches PayNkolay
+-- only while card storage is on (`cardStorageEnabled`, paynkolay.ts), and
+-- Vercel's environment list (read 18 Ekim 2026) has no PAYNKOLAY_CARD_STORAGE
+-- in any environment, so storage was never on in production (OP-28). Since 18 Ekim 2026 the legal texts name no
+-- saved card and no path mints a key while storage is off, so a stored key is
+-- personal data no notice names (KVKK m.4/2-ç, m.10; Aydınlatma Tebliği
+-- m.5/1-j). Cleared here, once.
+--
+-- Only the key moves; "updatedAt" stays (the code wrote the key, not the
+-- member). Once only, like every data step the bundle replays: a key minted
+-- after this ran, with card storage and its texts on, must stay.
+--
+-- Undo: nothing to restore. The key is random; ensureCardUserKey mints a new
+-- one at the member's next payment while card storage is on.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+update public.customers
+   set "cardUserKey" = ''
+ where "cardUserKey" <> ''
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261018200000_clear_unused_card_user_keys.sql'
+   );
+
+insert into public._migrations (name) values ('20261018200000_clear_unused_card_user_keys.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210000_menu_photos_mismatch.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Ten menu photos that show something the item is not (18 Oct 2026).
+--
+-- Decision OP-MENU-PHOTOS / ASK-OTH-1 (operator, 18 Oct 2026: "avukata sorma,
+-- sen karar ver"): "Görseller temsilidir" covers a different glass, garnish
+-- or light, never a different product. Seven of the stock photos that
+-- 20261017120000_menu_photos.sql wrote show another make-up (a roast beef
+-- sandwich with raw onion and no greens or sauce, a biscuit-base tart for a
+-- burnt Basque cheesecake, nuts and granola on an item with no nut tag, a
+-- photo titled "Iced Mocha" for a pumpkin latte, a mint iced tea for a peach
+-- one, a magnolia with no biscuit layer, a white sesame simit for a buckwheat
+-- one), and mnu-0082 Alternatif Süt shows hemp milk and hemp seeds, which the
+-- bar does not serve. Two more show tree nuts on an item that names and tags
+-- none, the criterion that took off mnu-0067: walnuts heaped on the slice
+-- for mnu-0061 L'Af Kahve, and an almond and seed bar beside the chocolate
+-- ones for mnu-0078 Kakao Protein Bar. A picture that contradicts the item
+-- is a misleading advertisement whatever the footnote says (TKHK m.61, m.62,
+-- m.8/2; Ticari Reklam Yön. m.7/5-a, m.18/6-7, m.29/2-a). docs/MENU-PHOTOS.md
+-- lists each.
+--
+-- A row is emptied only when both hold:
+-- - it still carries the very path the old migration wrote. A photo the
+--   operator uploaded or linked since is never touched.
+-- - this file has not run before. The bundle (db/schema.sql) re-runs every
+--   migration whenever a deploy adds a new one; without this guard a stock
+--   path linked again by hand would be emptied on the next deploy.
+--   db:migrate and the bundle both record this file in _migrations after the
+--   body runs (the guard of 20261017120000).
+--
+-- The files stay in public/menu: the old migration still names them, and
+-- 20261017120000 itself is not edited. The site and the app draw the plate
+-- for these items, as they do for the other four without a photo.
+--
+-- `updatedAt` is left alone, as in 20261017120000: this is not an edit of the
+-- item, and the menu's ETag already changes with the body.
+--
+-- Rollback (no schema change): write the old path back on the rows that are
+-- still empty, e.g.
+--   update public.menu_items set image = '/menu/simit.webp'
+--    where id = 'mnu-0073' and image = '';
+
+update public.menu_items as m
+   set image = ''
+  from (
+    values
+    ('mnu-0028', '/menu/iced-pumpkin-latte.webp'),
+    ('mnu-0056', '/menu/peach-iced-tea.webp'),
+    ('mnu-0059', '/menu/blueberry-san-sebastian.webp'),
+    ('mnu-0061', '/menu/coffee-cake.webp'),
+    ('mnu-0063', '/menu/strawberry-magnolia.webp'),
+    ('mnu-0067', '/menu/classic-spoonful.webp'),
+    ('mnu-0073', '/menu/simit.webp'),
+    ('mnu-0074', '/menu/roast-beef-sandwich.webp'),
+    ('mnu-0078', '/menu/cocoa-protein-bar.webp'),
+    ('mnu-0082', '/menu/alternative-milk.webp')
+  ) as v (id, image)
+ where m.id = v.id
+   and m.image = v.image
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261018210000_menu_photos_mismatch.sql'
+   );
+
+insert into public._migrations (name) values ('20261018210000_menu_photos_mismatch.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210100_menu_item_allergens.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The fourteen allergen groups per cafe menu item (18 Oct 2026).
+--
+-- Decision OP-ALLERGEN-BOARD (operator, 18 Oct 2026: "avukata sorma, sen
+-- karar ver"): a place serving unpackaged food shows, for every item, which
+-- of the fourteen groups of TGK Gıda Etiketleme Yönetmeliği Ek-1 it contains,
+-- on the menu or a board (m.15/5), and before the purchase when it sells at
+-- a distance, as the app does (m.17/3). The menu had a general cross-contact
+-- line and, in the app, only the `nuts` tag. Keys and labels:
+-- src/lib/menu/allergens.ts.
+--
+--   menu_items.allergens  jsonb, nullable, no default.
+--     NULL      not entered yet: nothing is shown next to the item and
+--               GET /api/mobile/v1/menu leaves the field out (§1).
+--     []        entered: the item contains none of the fourteen.
+--     ["sut"]   the groups it contains, keys from the closed list below.
+--
+-- Every existing row starts NULL: the operator enters the items in
+-- /admin/menu from the table of the kiosk's allergen board. Nothing is
+-- guessed from the item's name or from the `nuts` tag.
+--
+-- The check refuses anything that is not an array of known keys, whatever
+-- writes it. Added NOT VALID: every existing value is NULL, which passes, and
+-- the table is not scanned under the lock. Re-runnable: the bundle replays
+-- every migration when a deploy adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.menu_items drop column if exists allergens;
+
+alter table public.menu_items add column if not exists allergens jsonb;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'menu_items_allergens_check'
+       and conrelid = 'public.menu_items'::regclass
+  ) then
+    alter table public.menu_items
+      add constraint menu_items_allergens_check
+      check (
+        allergens is null
+        or (
+          jsonb_typeof(allergens) = 'array'
+          and allergens <@ '["gluten", "kabuklular", "yumurta", "balik",
+            "yer_fistigi", "soya", "sut", "sert_kabuklu", "kereviz", "hardal",
+            "susam", "sulfit", "aci_bakla", "yumusakcalar"]'::jsonb
+        )
+      ) not valid;
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261018210100_menu_item_allergens.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261018210200_menu_prices_effective_date.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The day the cafe's menu prices started to apply (18 Oct 2026).
+--
+-- Decision OP-PRICE-LISTS (operator, 18 Oct 2026): a price list carries the
+-- all-taxes-included price and the day that price started to apply (Fiyat
+-- Etiketi Yönetmeliği m.5/2-c, d). A table's QR code opens /masa/<kod>, the
+-- menu, which stands for the table's price list (m.8/2); /menu and the
+-- category pages show the same prices. They now print the day under the
+-- menu, from Ayarlar > Vergi.
+--
+--   settings."menuPricesEffectiveDate"  text, the Istanbul calendar day
+--                                       "YYYY-MM-DD"; '' = not entered (the
+--                                       menu then says only that prices
+--                                       include KDV).
+--
+-- Starts empty: the day the current prices began is the operator's to say
+-- (the printed lists at the kiosk carry the same day), not something to
+-- guess from a row's updatedAt. Rules: src/lib/menu/price-list.ts.
+--
+-- Safe on the live table: a constant default changes only the catalogue (no
+-- rewrite). Re-runnable: the bundle replays every migration when a deploy
+-- adds one.
+--
+-- Rollback (nothing else reads the column):
+--   alter table public.settings drop column if exists "menuPricesEffectiveDate";
+
+alter table public.settings add column if not exists "menuPricesEffectiveDate" text not null default '';
+
+insert into public._migrations (name) values ('20261018210200_menu_prices_effective_date.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019120000_clear_card_user_keys_again.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Card storage never went live: clear the member keys a second time.
+--
+-- 20261018200000_clear_unused_card_user_keys.sql cleared every
+-- `customers."cardUserKey"` once (18 Ekim 2026). From about 22:38 that night
+-- until 08:05 on 19 Ekim, laffogato.net was served by an older deployment
+-- (feat/home-hero-panel 014d51b, promoted to production by hand) whose app
+-- order and member karaoke payment still minted a key for every member who
+-- paid. Card storage was never on: Vercel's environment list (read 18 Ekim
+-- 2026) has no PAYNKOLAY_CARD_STORAGE in any environment, so no card sits
+-- under any key. Current main mints no key while storage is off (#150).
+--
+-- Only the key moves; "updatedAt" stays. Once only, like every data step the
+-- bundle replays: a key minted later, with card storage and its texts on,
+-- must stay.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+update public.customers
+   set "cardUserKey" = ''
+ where "cardUserKey" <> ''
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019120000_clear_card_user_keys_again.sql'
+   );
+
+insert into public._migrations (name) values ('20261019120000_clear_card_user_keys_again.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019130000_admin_customer_list.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Müşteriler as one paged query (admin audit PEO-13, PEO-05; 18 Oct 2026).
+--
+-- The list read every member row (`select *`, addresses and all) and every
+-- order, merged them in JavaScript and wrote the whole result into the page
+-- twice (phone cards and the desktop table). With a few thousand members
+-- that was one endless, heavy page; and its search lower-cased without the
+-- Turkish rules, so "ismail" never found "İsmail".
+--
+-- Now the database does the merge, the search, the sort and the paging, and
+-- the page receives one page of rows plus the tab counts:
+--
+--   admin_fold_tr(text)       The panel's Turkish search fold, the same
+--                             letters as TR_FOLD_SQL_FROM / TR_FOLD_SQL_TO in
+--                             src/lib/admin/text-fold.ts (U+0307 written as
+--                             chr(775)): İ, I and ı meet as i, the other
+--                             Turkish capitals are lowered by translate()
+--                             itself, so the "C" collation folds them too.
+--                             The search pattern arrives already folded by
+--                             foldTr() in TypeScript.
+--   admin_sort_tr(text)       A sort key in Turkish alphabet order under the
+--                             "C" collation: ç after c, ğ after g, ı between
+--                             h and i, ö after o, ş after s, ü after u.
+--   admin_customer_rows(...)  One row per customer: a member account and the
+--                             roll-up of the orders under the same address,
+--                             or the roll-up alone for a guest. The rule is
+--                             summarizeCustomers / customerLifetime in
+--                             src/lib/admin/store.ts: order count, spend and
+--                             refunds leave out abandoned checkouts and
+--                             cancelled orders (the reports' rule), the last
+--                             order of any status dates the activity, the
+--                             newest order's name and phone stand in for a
+--                             member's empty ones. A closed account
+--                             (`deleted-…@anon.local`, decision D13) and the
+--                             till's `guest@laffogato.local` are left out.
+--                             Filters: search (folded substring of address,
+--                             name or phone, or the phone's digits), the
+--                             member's commercial consent and verification.
+--                             A member's open web deletion request
+--                             ("deletionRequestedAt", /uye/hesap/sil) rides
+--                             along, "" when there is none.
+--   admin_customer_page(...)  One page of those rows for a tab (all,
+--                             members, guests, inactive, deletion), sorted
+--                             by last activity, name, order count or spend;
+--                             the deletion tab runs oldest request first
+--                             whatever the sort (the next one due). The
+--                             address breaks ties so a page boundary never
+--                             splits or repeats a customer.
+--   admin_customer_counts(...) Per tab: customers, paid orders, spend and
+--                             refunds under the same filters, for the tab
+--                             badges and the summary tiles, and the oldest
+--                             open deletion request for the panel's banner.
+--
+-- A new tab or column later is a new migration that drops and recreates
+-- these: RETURNS TABLE cannot change its columns in place. Here they are
+-- dropped first for the same reason (a development database may hold an
+-- earlier draft of them).
+--
+-- Read-only, additive and idempotent. No `insert into public._migrations`:
+-- scripts/db-migrate.mjs records the file itself.
+
+drop function if exists public.admin_customer_counts(text, text, text, text);
+drop function if exists public.admin_customer_page(
+  text, text, text, text, text, text, boolean, integer, integer);
+drop function if exists public.admin_customer_rows(text, text, text, text);
+
+create or replace function public.admin_fold_tr(p_text text)
+returns text
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select lower(translate(coalesce(p_text, ''),
+                         'İIıÇŞĞÖÜÂÎÛ' || chr(775),
+                         'iiiçşğöüâîû'))
+$$;
+
+create or replace function public.admin_sort_tr(p_text text)
+returns text
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select replace(replace(replace(replace(replace(replace(
+           lower(translate(coalesce(p_text, ''),
+                           'İIÇĞÖŞÜÂÎÛâîû',
+                           'iıçğöşüaiuaiu')),
+           'ç', 'c~'), 'ğ', 'g~'), 'ı', 'h~'), 'ö', 'o~'), 'ş', 's~'), 'ü', 'u~')
+$$;
+
+create or replace function public.admin_customer_rows(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text
+)
+returns table (
+  email                text,
+  name                 text,
+  phone                text,
+  "isMember"           boolean,
+  "isActive"           boolean,
+  "emailVerified"      boolean,
+  "memberSince"        text,
+  "marketingConsent"   boolean,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "lastOrderAt"        text,
+  "lastActivity"       text,
+  "deletionRequestedAt" text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  with ord as (
+    select lower(btrim(o."customerEmail")) as key,
+           o.status not in ('pending_payment', 'cancelled') as counts,
+           o."totalMinor"::bigint as total,
+           coalesce((
+             select sum(case when jsonb_typeof(r -> 'amountMinor') = 'number'
+                             then (r ->> 'amountMinor')::numeric
+                             else 0 end)
+               from jsonb_array_elements(
+                      case when jsonb_typeof(o.refunds) = 'array'
+                           then o.refunds
+                           else '[]'::jsonb end) as r
+           ), 0)::bigint as refunded,
+           o."createdAt" as at,
+           o."orderNo" as no,
+           o."customerName" as cname,
+           o."customerPhone" as cphone
+      from public.orders o
+     where btrim(o."customerEmail") <> ''
+       and lower(btrim(o."customerEmail")) <> 'guest@laffogato.local'
+       and lower(btrim(o."customerEmail")) not like '%@anon.local'
+  ),
+  rolled as (
+    select ord.key,
+           count(*) filter (where ord.counts) as n,
+           coalesce(sum(ord.total) filter (where ord.counts), 0)::bigint as v,
+           coalesce(sum(ord.refunded) filter (where ord.counts), 0)::bigint
+             as refunded,
+           max(ord.at) as last_at,
+           (array_agg(ord.cname order by ord.at desc, ord.no desc)
+              filter (where ord.cname <> ''))[1] as cname,
+           (array_agg(ord.cphone order by ord.at desc, ord.no desc)
+              filter (where ord.cphone <> ''))[1] as cphone
+      from ord
+     group by ord.key
+  ),
+  members as (
+    select lower(btrim(c.email)) as key,
+           c.email,
+           c.name,
+           c.phone,
+           c."isActive",
+           c."emailVerified",
+           c."createdAt",
+           coalesce(c."deletionRequestedAt", '') as deletion_at,
+           (coalesce(c."notificationPrefs" ->> 'marketing', 'false') = 'true'
+            and c."marketingConsentAt" <> '') as consent
+      from public.customers c
+     where lower(btrim(c.email)) not like '%@anon.local'
+  ),
+  merged as (
+    select coalesce(m.email, r.key) as email,
+           coalesce(nullif(m.name, ''), r.cname, '') as name,
+           coalesce(nullif(m.phone, ''), r.cphone, '') as phone,
+           m.key is not null as is_member,
+           coalesce(m."isActive", true) as is_active,
+           coalesce(m."emailVerified", false) as verified,
+           coalesce(m."createdAt", '') as member_since,
+           coalesce(m.consent, false) as consent,
+           coalesce(r.n, 0)::bigint as n,
+           coalesce(r.v, 0)::bigint as v,
+           coalesce(r.refunded, 0)::bigint as refunded,
+           coalesce(r.last_at, '') as last_at,
+           coalesce(nullif(r.last_at, ''), m."createdAt", '') as activity,
+           coalesce(m.deletion_at, '') as deletion_at
+      from members m
+      full outer join rolled r on r.key = m.key
+  )
+  select x.email,
+         x.name,
+         x.phone,
+         x.is_member,
+         x.is_active,
+         x.verified,
+         x.member_since,
+         x.consent,
+         x.n,
+         x.v,
+         x.refunded,
+         x.last_at,
+         x.activity,
+         x.deletion_at
+    from merged x
+   where (coalesce(p_search, '') = ''
+          or public.admin_fold_tr(x.email) like '%' || p_search || '%'
+          or public.admin_fold_tr(x.name) like '%' || p_search || '%'
+          or public.admin_fold_tr(x.phone) like '%' || p_search || '%'
+          or (coalesce(p_digits, '') <> ''
+              and regexp_replace(x.phone, '[^0-9]', '', 'g')
+                    like '%' || p_digits || '%'))
+     and (coalesce(p_consent, '') = ''
+          or (x.is_member and x.consent = (p_consent = 'yes')))
+     and (coalesce(p_verified, '') = ''
+          or (x.is_member and x.verified = (p_verified = 'yes')))
+$$;
+
+create or replace function public.admin_customer_page(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text,
+  p_kind     text,
+  p_sort     text,
+  p_desc     boolean,
+  p_limit    integer,
+  p_offset   integer
+)
+returns table (
+  email                text,
+  name                 text,
+  phone                text,
+  "isMember"           boolean,
+  "isActive"           boolean,
+  "emailVerified"      boolean,
+  "memberSince"        text,
+  "marketingConsent"   boolean,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "lastOrderAt"        text,
+  "lastActivity"       text,
+  "deletionRequestedAt" text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  select r.email,
+         r.name,
+         r.phone,
+         r."isMember",
+         r."isActive",
+         r."emailVerified",
+         r."memberSince",
+         r."marketingConsent",
+         r."orderCount",
+         r."lifetimeValueMinor",
+         r."refundedMinor",
+         r."lastOrderAt",
+         r."lastActivity",
+         r."deletionRequestedAt"
+    from public.admin_customer_rows(p_search, p_digits, p_consent, p_verified) r
+   -- The same tabs as admin_customer_counts.
+   where case coalesce(p_kind, '')
+           when 'members'  then r."isMember"
+           when 'guests'   then not r."isMember"
+           when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
+           else true
+         end
+   order by
+     -- Open deletion requests oldest first: the one closest to its thirty
+     -- days is the next to do.
+     case when p_kind = 'deletion' then r."deletionRequestedAt" end asc,
+     -- A row without a name sorts after the named ones, either way.
+     case when p_sort = 'name' then r.name = '' end,
+     -- In Turkish alphabet order, whatever the database's collation.
+     case when p_sort = 'name' and not p_desc
+          then public.admin_sort_tr(r.name) collate pg_catalog."C"
+     end asc,
+     case when p_sort = 'name' and p_desc
+          then public.admin_sort_tr(r.name) collate pg_catalog."C"
+     end desc,
+     case when p_sort = 'orders' and not p_desc then r."orderCount" end asc,
+     case when p_sort = 'orders' and p_desc then r."orderCount" end desc,
+     case when p_sort = 'value' and not p_desc
+          then r."lifetimeValueMinor" end asc,
+     case when p_sort = 'value' and p_desc
+          then r."lifetimeValueMinor" end desc,
+     case when coalesce(p_sort, '') not in ('name', 'orders', 'value')
+               and not p_desc
+          then r."lastActivity" end asc,
+     r."lastActivity" desc,
+     lower(r.email) asc
+   limit greatest(1, least(coalesce(p_limit, 50), 200))
+   offset greatest(0, coalesce(p_offset, 0))
+$$;
+
+create or replace function public.admin_customer_counts(
+  p_search   text,
+  p_digits   text,
+  p_consent  text,
+  p_verified text
+)
+returns table (
+  kind                 text,
+  customers            bigint,
+  "orderCount"         bigint,
+  "lifetimeValueMinor" bigint,
+  "refundedMinor"      bigint,
+  "oldestDeletionAt"   text
+)
+language sql
+stable
+set search_path = ''
+as $$
+  with r as (
+    select *
+      from public.admin_customer_rows(p_search, p_digits, p_consent, p_verified)
+  )
+  select k.kind,
+         count(r.email)::bigint,
+         coalesce(sum(r."orderCount"), 0)::bigint,
+         coalesce(sum(r."lifetimeValueMinor"), 0)::bigint,
+         coalesce(sum(r."refundedMinor"), 0)::bigint,
+         coalesce(min(nullif(r."deletionRequestedAt", '')), '')
+    from (values ('all'), ('members'), ('guests'), ('inactive'), ('deletion'))
+           as k(kind)
+    -- The same tabs as admin_customer_page.
+    left join r
+      on case k.kind
+           when 'members'  then r."isMember"
+           when 'guests'   then not r."isMember"
+           when 'inactive' then r."isMember" and not r."isActive"
+           when 'deletion' then r."deletionRequestedAt" <> ''
+           else true
+         end
+   group by k.kind
+$$;
+
+insert into public._migrations (name) values ('20261019130000_admin_customer_list.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019150000_cafe_food_rate_10.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- KDV: every food the köşk sells is 10%, the cotton apron 10% (18 Oct 2026).
+--
+-- Operator decision, 18 Oct 2026 (no lawyer or accountant round; research
+-- and basis in docs/LEGAL-REDLINES-2026-09.md §16.4 and src/lib/utils/kdv.ts):
+-- the köşk is a kafeterya business, and KDV GUT III/B-2.4.1 (Tebliğ Seri
+-- No 51, RG 27.04.2024) puts every food sale of such a business at 10%,
+-- internet orders sent to an address included. The 1% of list (I) is for a
+-- plain retailer. A cotton canvas apron is a textile garment, list (II)
+-- item 5: 10%, not the merch default of 20%.
+--
+-- The code defaults move with this deploy (LEGAL_TAX_RATES beans 10,
+-- pantry 10). This file corrects the rows the CODE wrote, nothing an
+-- operator chose:
+--
+--   prd-0003  the edible cup box. 20261017150000_kdv_rates.sql gave it its
+--             own 1%; only while it is still that 1.
+--   prd-0009  the cotton apron. The seed (data.ts) and the rename of
+--             20260922120000 left it with no rate of its own, so it sold at
+--             the merch 20%; only while it has none, is still under merch
+--             and still the apron.
+--   orders.items  every line stamped 1% becomes 10%. The store copied that
+--             1 at sale time from the code's default (shopLineItems ->
+--             productTaxRate) or from the cup box's row. Prices, totals and
+--             the order of the lines do not change: a rate only says how
+--             much of a KDV-included price is KDV. Invoices go out through
+--             Paraşüt (operator, 19 Oct 2026), so some of these orders may
+--             already have an invoice at 1%. The stamp they were sold at is
+--             therefore kept: before the rewrite each such order gets one
+--             audit row (actor system, event kdv_rate_corrected, orderNo and
+--             the lines that were 1). Olay kaydı and the order's Zaman
+--             çizelgesi list them; the operator checks those invoices and
+--             tells the mali müşavir about any cut at 1% (VUK m.371).
+--
+--   settings."taxRates"  beans and pantry, each only while it is 1. That
+--             1 was the code's too: until this deploy Ayarlar > Vergi
+--             prefilled every field from the old default and its save
+--             writes every key, so a save of any other field (the menu
+--             rate, the price-list date) stored beans 1 and pantry 1. Left
+--             there, every new shop food line would be stamped 1 again
+--             after this file moved the old stamps. The decision offers 1
+--             for no food, so a stored 1 is never the operator's choice of
+--             today. Every other key and value stays; a row that never
+--             saved a key reads the new default.
+--
+-- Once only: the bundle replays every migration when a deploy adds one, and
+-- a rate the operator sets later in the panel must stay what they set.
+-- Each statement checks this file's own `_migrations` record.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs and
+-- the bundle do that themselves, right after the file.
+
+update public.products
+   set "taxRatePct" = 10
+ where id = 'prd-0003'
+   and "taxRatePct" = 1
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
+   );
+
+update public.products
+   set "taxRatePct" = 10
+ where id = 'prd-0009'
+   and cat = 'merch'
+   and "taxRatePct" is null
+   and name like 'Pamuk Önlük%'
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
+   );
+
+update public.settings
+   set "taxRates" = "taxRates"
+         || case when "taxRates"->'beans' = '1'::jsonb
+                 then '{"beans": 10}'::jsonb else '{}'::jsonb end
+         || case when "taxRates"->'pantry' = '1'::jsonb
+                 then '{"pantry": 10}'::jsonb else '{}'::jsonb end
+ where ("taxRates"->'beans' = '1'::jsonb or "taxRates"->'pantry' = '1'::jsonb)
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
+   );
+
+-- The record first: once the stamps move, nothing else says which lines
+-- were sold at 1. One row per order, ids from the same `aud` counter
+-- logAudit uses, `createdAt` in its ISO-8601 form.
+insert into public.audit_logs (id, actor, action, entity, "entityId", payload, "createdAt")
+select 'aud-' || lpad(seq::text, greatest(7, length(seq::text)), '0'),
+       'system',
+       'update',
+       'order',
+       touched.id,
+       jsonb_build_object(
+         'event', 'kdv_rate_corrected',
+         'migration', '20261019150000_cafe_food_rate_10.sql',
+         'orderNo', touched."orderNo",
+         'from', 1,
+         'to', 10,
+         'count', jsonb_array_length(touched.lines),
+         'lines', touched.lines
+       ),
+       to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+  from (
+    select o.id,
+           o."orderNo",
+           public.next_seq('aud') as seq,
+           (
+             select jsonb_agg(
+                      jsonb_build_object(
+                        'index', pos - 1,
+                        'productName', coalesce(line->>'productName', ''),
+                        'qty', line->'qty'
+                      )
+                      order by pos
+                    )
+               from jsonb_array_elements(o.items) with ordinality as l(line, pos)
+              where line->'taxRatePct' = '1'::jsonb
+           ) as lines
+      from public.orders as o
+     where o.items @> '[{"taxRatePct": 1}]'::jsonb
+       and not exists (
+         select 1
+           from public._migrations as applied
+          where applied.name = '20261019150000_cafe_food_rate_10.sql'
+       )
+  ) as touched;
+
+-- Line by line, in the stored order (with ordinality): a line stamped 1
+-- becomes 10, every other line and every other key stays as it was.
+update public.orders as o
+   set items = (
+     select jsonb_agg(
+              case
+                when line->'taxRatePct' = '1'::jsonb
+                  then jsonb_set(line, '{taxRatePct}', '10'::jsonb)
+                else line
+              end
+              order by pos
+            )
+       from jsonb_array_elements(o.items) with ordinality as l(line, pos)
+   )
+ where o.items @> '[{"taxRatePct": 1}]'::jsonb
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019150000_cafe_food_rate_10.sql'
+   );
+
+insert into public._migrations (name) values ('20261019150000_cafe_food_rate_10.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019150100_order_shipping_tax_rate.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The shipping or courier fee's own KDV rate on every order (18 Oct 2026).
+--
+-- Operator decision, 18 Oct 2026 (ASK-Y2-2; basis in src/lib/utils/kdv.ts
+-- and docs/LEGAL-REDLINES-2026-09.md §16.4): the fee is shown on its own
+-- line and an outside firm carries the parcel, so on the invoice it is a
+-- transport service at the general rate, 20% (GİB özelge 32391, 28945,
+-- 32558; KDV K. m.24/a folds it into the goods only inside one price). It
+-- used to follow the rate of the goods it carried.
+--
+--   orders."shippingTaxRatePct"  the fee's rate when the order was written
+--                                (settings."taxRates".shipping), stamped by
+--                                the store on the web, app (the wallet's
+--                                wallet_place_order inserts the same row)
+--                                and manual paths. NULL on every order
+--                                written before this; the code reads NULL
+--                                as 20, because the rule applies to them
+--                                too: the invoice is cut at dispatch and no
+--                                e-Arşiv invoice was cut before 18 Oct 2026.
+--
+-- Old rows are not rewritten. Totals do not change.
+--
+-- Safe on a live table: a nullable column without a default changes only
+-- the catalogue (no rewrite), and the check is added NOT VALID (every
+-- existing value is NULL, which passes anyway; the table is not scanned
+-- under the lock). Re-runnable: the bundle replays every migration when a
+-- deploy adds one.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs and
+-- the bundle do that themselves, right after the file.
+
+alter table public.orders add column if not exists "shippingTaxRatePct" integer;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'orders_shipping_tax_rate_pct_check'
+       and conrelid = 'public.orders'::regclass
+  ) then
+    alter table public.orders
+      add constraint orders_shipping_tax_rate_pct_check
+      check ("shippingTaxRatePct" is null or "shippingTaxRatePct" between 0 and 100) not valid;
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261019150100_order_shipping_tax_rate.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019160000_karaoke_notify_company_mailbox.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke alerts leave the consumer Gmail inbox (OP-KARAOKE-MAILBOX,
+-- 19 Ekim 2026).
+--
+-- 20260926090000_karaoke_price_and_notify.sql pointed "karaokeNotifyEmail"
+-- at a personal Gmail address. Every karaoke alert carries the guest's name,
+-- e-mail, phone and note, so that inbox kept customer data on Google's
+-- servers abroad with no processor agreement and no KVKK m.9/4 safeguard
+-- (KVKK m.9/1, m.12/2; Yurt Dışına Aktarım Rehberi s.16: storage in a
+-- provider's cloud abroad is a transfer). Alerts now go to the company's own
+-- mailbox, hosted in Türkiye: empty falls back to the contact address
+-- (`settings.email`, `karaokeNoticeRecipient` in src/lib/email/send.ts), and
+-- the operator may enter a dedicated company address in Ayarlar -> Karaoke.
+--
+-- Only that literal is cleared; an address the operator typed later stays.
+-- Once only, like every data step the bundle replays (the 26 Eyl update is
+-- guarded the same way since this day, so a replay no longer writes the
+-- Gmail address back).
+--
+-- Undo: none wanted. The old address must not come back.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+update public.settings
+   set "karaokeNotifyEmail" = ''
+ where lower(trim("karaokeNotifyEmail")) = 'bizimfutbol9@gmail.com'
+   and not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20261019160000_karaoke_notify_company_mailbox.sql'
+   );
+
+insert into public._migrations (name) values ('20261019160000_karaoke_notify_company_mailbox.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019170000_audit_logs_append_only.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Olay kaydı (audit_logs) becomes append-only in the database, not only in
+-- the page's words (admin audit SYS-13, operator decision D30).
+--
+-- The panel called the log "değiştirilemez" and the published Veri Saklama
+-- ve İmha Politikası says "Kayıtlar değiştirilemez (append-only) olarak
+-- tutulur", but audit_logs was a plain table: the app connects as the owner
+-- role, which bypasses RLS, so any UPDATE or DELETE went through. Now:
+--
+--   * UPDATE is refused (P0001), like customer_consents.
+--   * TRUNCATE is refused (P0001).
+--   * DELETE is allowed only for a row whose "createdAt" is a written
+--     ISO-8601 instant older than ten years: the policy's minimum. The
+--     periodic destruction (src/lib/retention.ts, rule "audit-logs") cuts at
+--     10 x 366 days, which is always older than ten calendar years, so every
+--     row it removes passes; a younger row, or one with no stamp ('' sorts
+--     before every instant), is refused.
+--
+-- "createdAt" stays text written by the app (`new Date().toISOString()`,
+-- "2026-10-19T11:00:00.000Z"): the filters and the ordering compare strings,
+-- and the cutoff below is printed in the same shape.
+--
+-- Idempotent: create or replace + drop trigger if exists. No data changes.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+create or replace function public.audit_logs_append_only()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cutoff text;
+begin
+  if tg_op = 'DELETE' then
+    cutoff := to_char(
+      (now() at time zone 'UTC') - interval '10 years',
+      'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+    );
+    if old."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}'
+       and old."createdAt" < cutoff then
+      return old;
+    end if;
+    raise exception 'audit_logs rows are kept for ten years (%)', old.id
+      using errcode = 'P0001';
+  end if;
+  raise exception 'audit_logs is append-only' using errcode = 'P0001';
+end;
+$$;
+
+drop trigger if exists audit_logs_no_update on public.audit_logs;
+create trigger audit_logs_no_update
+  before update on public.audit_logs
+  for each row execute function public.audit_logs_append_only();
+
+drop trigger if exists audit_logs_retention_delete on public.audit_logs;
+create trigger audit_logs_retention_delete
+  before delete on public.audit_logs
+  for each row execute function public.audit_logs_append_only();
+
+drop trigger if exists audit_logs_no_truncate on public.audit_logs;
+create trigger audit_logs_no_truncate
+  before truncate on public.audit_logs
+  for each statement execute function public.audit_logs_append_only();
+
+insert into public._migrations (name) values ('20261019170000_audit_logs_append_only.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019170200_product_food_label.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The label of a packaged food in the shop (19 Oct 2026, X-TGK-SHOP).
+--
+-- Packaged food sold at a distance carries every mandatory label item but
+-- the date before the purchase is completed, and all of them at delivery
+-- (TGK Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği m.17/2-a,
+-- b): the items of m.9/1 are the name, the ingredients, the Ek-1 allergens,
+-- the net quantity, special storage or use conditions, the food business
+-- operator's name and address, the business registration number, the
+-- country of origin, the instructions where needed and the nutrition
+-- declaration. The product had a description, a shipping weight and the
+-- `nuts` tag; the distance sales pre-information already says the product
+-- page carries the rest.
+--
+--   allergens          jsonb, nullable, no default. The menu's three states
+--                      (20261018210100_menu_item_allergens.sql): NULL not
+--                      entered, [] none of the fourteen, keys the groups.
+--   ingredients        the ingredient list as the label prints it (with
+--                      the quantity of a named ingredient, m.9/1-ç)
+--   netQuantity        "250 g", "6 adet"
+--   storageConditions  special storage conditions
+--   usageInstructions  how to use it, where it cannot be used properly
+--                      without them
+--   producer           the operator's name or trade name and address
+--   businessRegNo      işletme kayıt numarası or approval mark (m.12)
+--   origin             country of origin
+--   nutrition          the nutrition declaration as written on the label
+--
+-- '' and NULL mean "not entered": nothing is shown on the product page or
+-- sent to the app, and a food page keeps naming the free means (ask the
+-- shop before the order). Nothing is guessed: every row starts empty and
+-- the operator copies the label.
+--
+-- Re-runnable: the bundle replays every migration when a deploy adds one.
+--
+-- Rollback (nothing else reads the columns):
+--   alter table public.products drop column if exists allergens,
+--     drop column if exists ingredients, drop column if exists "netQuantity",
+--     drop column if exists "storageConditions",
+--     drop column if exists "usageInstructions", drop column if exists producer,
+--     drop column if exists "businessRegNo", drop column if exists origin,
+--     drop column if exists nutrition;
+
+alter table public.products
+  add column if not exists allergens jsonb,
+  add column if not exists ingredients text not null default '',
+  add column if not exists "netQuantity" text not null default '',
+  add column if not exists "storageConditions" text not null default '',
+  add column if not exists "usageInstructions" text not null default '',
+  add column if not exists producer text not null default '',
+  add column if not exists "businessRegNo" text not null default '',
+  add column if not exists origin text not null default '',
+  add column if not exists nutrition text not null default '';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'products_allergens_check'
+       and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_allergens_check
+      check (
+        allergens is null
+        or (
+          jsonb_typeof(allergens) = 'array'
+          and allergens <@ '["gluten", "kabuklular", "yumurta", "balik",
+            "yer_fistigi", "soya", "sut", "sert_kabuklu", "kereviz", "hardal",
+            "susam", "sulfit", "aci_bakla", "yumusakcalar"]'::jsonb
+        )
+      ) not valid;
+  end if;
+end $$;
+
+insert into public._migrations (name) values ('20261019170200_product_food_label.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261019170300_product_price_history.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The shop's price history and the dates of a discount (19 Oct 2026,
+-- X-DISCOUNT, decision OP-COMPARE-AT).
+--
+-- An advertisement that says a price is reduced names the price before the
+-- discount and the days the discount starts and ends (Ticari Reklam ve
+-- Haksız Ticari Uygulamalar Yönetmeliği m.14/1). For goods the price before
+-- the discount is the lowest price applied in the ten days before the
+-- discount starts (m.14/3), counted in the channel where the discount runs
+-- only (m.14/5: the kiosk's shelf price is not the online shop's), and the
+-- seller proves it (Fiyat Etiketi Yönetmeliği m.11/1). The panel took any
+-- "Eski fiyat" with no date and no record behind it.
+--
+--   products."discountStartsAt" / "discountEndsAt"
+--     text, nullable: ISO-8601 UTC instants. The start is 00:00 and the end
+--     23:59:59.999 of the Istanbul days the operator picked (UTC+3, CLAUDE.md
+--     rule 22). NULL: no discount. A compare-at price without both dates is
+--     never shown (src/lib/shop/discount.ts).
+--
+--   product_price_history
+--     One row each time a product's online sale price ("priceMinor") is
+--     set: the price and the instant it started to apply. Written by the
+--     trigger below, so every path that sets a price (the product form,
+--     the CSV import, a migration) leaves its row; nothing in the app
+--     writes it. The panel refuses a compare-at price that is not the
+--     lowest of the ten days before the start, and a start whose ten days
+--     the history does not reach.
+--
+-- Each existing product gets one row with its current price from its
+-- "updatedAt": every path that sets a price also sets "updatedAt", so the
+-- price has applied at least since then. A product never written since
+-- the column had no value starts now. The ten days are counted from there:
+-- a discount on such a product can start ten days later at the earliest.
+--
+-- A compare-at price stored before this has no dates, so it can never be
+-- shown and would refuse every save of its product: it is set to 0 (the
+-- operator's step of 18 Oct 2026 for prd-0008, done for every product).
+-- From here on the panel stores a compare-at price only with both dates.
+--
+-- Re-runnable: the bundle replays every migration when a deploy adds one.
+-- The backfill skips a product that already has a row; the clearing finds
+-- nothing once every compare-at price carries its dates.
+--
+-- Rollback (the cleared compare-at prices are not restored: they were
+-- shown without the dates the regulation asks for):
+--   drop trigger if exists products_price_history on public.products;
+--   drop function if exists public.record_product_price();
+--   drop table if exists public.product_price_history;
+--   alter table public.products drop column if exists "discountStartsAt",
+--     drop column if exists "discountEndsAt";
+
+alter table public.products
+  add column if not exists "discountStartsAt" text,
+  add column if not exists "discountEndsAt" text;
+
+create table if not exists public.product_price_history (
+  id           bigserial primary key,
+  "productId"  text    not null references public.products (id) on delete cascade,
+  "priceMinor" integer not null,
+  "startedAt"  text    not null
+);
+create index if not exists product_price_history_product_idx
+  on public.product_price_history ("productId", "startedAt");
+alter table public.product_price_history enable row level security;
+
+create or replace function public.record_product_price()
+returns trigger
+language plpgsql
+as $$
+begin
+  if tg_op = 'INSERT' or new."priceMinor" is distinct from old."priceMinor" then
+    insert into public.product_price_history ("productId", "priceMinor", "startedAt")
+    values (
+      new.id,
+      new."priceMinor",
+      to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists products_price_history on public.products;
+create trigger products_price_history
+  after insert or update of "priceMinor" on public.products
+  for each row execute function public.record_product_price();
+
+insert into public.product_price_history ("productId", "priceMinor", "startedAt")
+select p.id,
+       p."priceMinor",
+       coalesce(
+         nullif(p."updatedAt", ''),
+         to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+       )
+  from public.products p
+ where not exists (
+   select 1 from public.product_price_history h where h."productId" = p.id
+ );
+
+update public.products
+   set "compareAtPriceMinor" = 0
+ where "compareAtPriceMinor" <> 0
+   and ("discountStartsAt" is null or "discountEndsAt" is null);
+
+insert into public._migrations (name) values ('20261019170300_product_price_history.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261020180000_legal_doc_versions.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Every legal text the site has shown, kept by the SHA-256 of the text itself
+-- (decisions D-VERSIONS-TABLE and ASK-DURABLE, 20 Oct 2026; LEGAL-REDLINES
+-- §25).
+--
+-- A consent recorded only a version label (`legalConsent.version`, "20 Ekim
+-- 2026"), and two different texts could carry the same label: a panel
+-- override and the coded text, or two changes merged on one Istanbul day
+-- (the D-SAME-DAY rule existed for that). Now every consent also records the
+-- hash of each text it confirmed (`legalConsent.textHashes`, { slug: sha256 })
+-- and the text behind each hash lives here:
+--
+--   hash        sha256 (lowercase hex) of `body`, its UTF-8 bytes exactly.
+--               The CHECK below makes the database refuse a row whose hash
+--               is not the hash of its text: a row is its own proof.
+--               Collation "C" so a hex prefix is a plain byte range.
+--   slug        the document (`/hukuk/<slug>`).
+--   body        the document as /hukuk/<slug> showed it, in the one form its
+--               hash is taken of: canonical JSON written by
+--               src/lib/legal/version-core.ts (title, summary, date, then the
+--               coded sections with their tokens filled, or the panel's
+--               Markdown). The database never parses it.
+--   "createdAt" when the text was first stored (ISO-8601 UTC). It defaults to
+--               the database clock and the app never writes it, so a row's
+--               age is the database's word (a direct INSERT could still set
+--               it; the app has no such path).
+--
+-- Writers (INSERT ... ON CONFLICT (hash) DO NOTHING in one statement, never a
+-- read-modify-write): the checkout and karaoke consents (the texts they
+-- record), the panel's save, reset and restore (the text shown before the
+-- change, written before it, and the one shown after, once the change is
+-- written), the daily cron (every document as shown that day: a text no
+-- consent names is here within a day of the deploy that changed it), and the
+-- confirmation mails and the two contract downloads, which store a confirmed
+-- text that is still shown but missing. No public page view writes here.
+--
+-- Readers: /hukuk/<slug>?surum=<prefix> (only with that parameter), the
+-- confirmation e-mails' attachment and the member's download.
+--
+-- Append-only: UPDATE and TRUNCATE are refused (P0001). DELETE passes only
+-- for a row whose "createdAt" is a written instant older than eleven years:
+-- the periodic destruction (src/lib/retention.ts, rule "legal-doc-versions")
+-- cuts at 11 x 366 days through legal_doc_versions_retention below, which
+-- also keeps every text a consent of the last eleven years names, every text
+-- that was not replaced before the cutoff and every text shown today.
+--
+-- Idempotent: create if not exists, create or replace, drop trigger if
+-- exists. No `insert into public._migrations`: scripts/db-migrate.mjs records
+-- the file itself.
+--
+-- Rollback (loses every stored text; only before the first consent records a
+-- hash):
+--   drop function if exists public.legal_doc_versions_retention(text, boolean, jsonb);
+--   drop table if exists public.legal_doc_versions;
+--   drop function if exists public.legal_doc_versions_append_only();
+
+create table if not exists public.legal_doc_versions (
+  hash        text collate "C" primary key,
+  slug        text not null,
+  body        text not null,
+  "createdAt" text not null
+              default to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  constraint legal_doc_versions_hash_shape
+    check (hash ~ '^[0-9a-f]{64}$'),
+  constraint legal_doc_versions_hash_of_body
+    check (hash = encode(sha256(convert_to(body, 'UTF8')), 'hex')),
+  constraint legal_doc_versions_slug_shape
+    check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$')
+);
+
+create index if not exists legal_doc_versions_slug_idx
+  on public.legal_doc_versions (slug, "createdAt");
+
+alter table public.legal_doc_versions enable row level security;
+
+-- ── append-only ─────────────────────────────────────────────────────────
+create or replace function public.legal_doc_versions_append_only()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cutoff text;
+begin
+  if tg_op = 'DELETE' then
+    cutoff := to_char(
+      (now() at time zone 'UTC') - interval '11 years',
+      'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+    );
+    if old."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}'
+       and old."createdAt" < cutoff then
+      return old;
+    end if;
+    raise exception 'legal_doc_versions rows are kept for eleven years (%)', old.hash
+      using errcode = 'P0001';
+  end if;
+  raise exception 'legal_doc_versions is append-only' using errcode = 'P0001';
+end;
+$$;
+
+drop trigger if exists legal_doc_versions_no_update on public.legal_doc_versions;
+create trigger legal_doc_versions_no_update
+  before update on public.legal_doc_versions
+  for each row execute function public.legal_doc_versions_append_only();
+
+drop trigger if exists legal_doc_versions_retention_delete on public.legal_doc_versions;
+create trigger legal_doc_versions_retention_delete
+  before delete on public.legal_doc_versions
+  for each row execute function public.legal_doc_versions_append_only();
+
+drop trigger if exists legal_doc_versions_no_truncate on public.legal_doc_versions;
+create trigger legal_doc_versions_no_truncate
+  before truncate on public.legal_doc_versions
+  for each statement execute function public.legal_doc_versions_append_only();
+
+-- ── legal_doc_versions_retention ────────────────────────────────────────
+-- The period as a query. A row is in scope only when ALL of these hold:
+--   - it was first stored before p_cutoff;
+--   - a later text of the same document was first stored, also before
+--     p_cutoff (the text stopped being the newest more than eleven years ago:
+--     the newest text of a document is never in scope, however old);
+--   - it is not a text shown today (p_keep, a JSON array of hashes the
+--     caller works out from the live documents: a text replaced long ago can
+--     be shown again, a coded text after a reset, and its row keeps its
+--     first "createdAt");
+--   - no order and no karaoke booking whose consent was accepted at or after
+--     p_cutoff names it in `legalConsent.textHashes`.
+-- A text first stored twelve years ago and confirmed by an order last year
+-- stays; the contract it proves is still inside its ten years.
+--
+-- Without p_keep (null, or not an array) nothing is in scope: the caller
+-- that cannot say what is shown today removes nothing.
+--
+-- p_apply false counts only; true deletes and returns how many went.
+drop function if exists public.legal_doc_versions_retention(text, boolean);
+
+create or replace function public.legal_doc_versions_retention(
+  p_cutoff text,
+  p_apply  boolean,
+  p_keep   jsonb
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  affected integer := 0;
+begin
+  if p_keep is null or jsonb_typeof(p_keep) <> 'array' then
+    return 0;
+  end if;
+  if p_apply then
+    delete from public.legal_doc_versions v
+     where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+       and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
+       and exists (
+         select 1
+           from public.legal_doc_versions w
+          where w.slug = v.slug
+            and w."createdAt" > v."createdAt"
+            and w."createdAt" < p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.orders o
+          where o."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(o."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.karaoke_reservations k
+          where k."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(k."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       );
+    get diagnostics affected = row_count;
+  else
+    select count(*) into affected
+      from public.legal_doc_versions v
+     where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+       and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
+       and exists (
+         select 1
+           from public.legal_doc_versions w
+          where w.slug = v.slug
+            and w."createdAt" > v."createdAt"
+            and w."createdAt" < p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.orders o
+          where o."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(o."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.karaoke_reservations k
+          where k."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(k."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       );
+  end if;
+  return affected;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261020180000_legal_doc_versions.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261020203619_karaoke_make_good.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke: the köşk's late cancel is made good, and an hour cancelled late
+-- and sold again refunds the share kept for it.
+--
+-- OP-KARAOKE-GOODWILL (18 Eki 2026; Haksız Şartlar Yön. EK-1 (ç)): when the
+-- köşk has to cancel after the guest's own free moment, for a reason that is
+-- not force majeure, and the booking keeps a share on a late cancel, the
+-- guest gets that share again as a make-good on top of the full refund: an
+-- hour of the same length for free (booked within 6 months) or the amount
+-- paid to their own bank account. One of the two; the other then closes.
+--
+-- ASK-OTH-3-CFG (18 Eki 2026; TBK m.325/2 kıyasen): an hour a guest
+-- cancelled late (a late share of 1..99 %) that is sold again refunds the
+-- share kept for it. Each hour once, to the booking that last cancelled it
+-- late; the hours already counted are kept on that booking.
+--
+-- karaoke_reservations, on the cancelled booking:
+--   "makeGoodUntil"      the last day (YYYY-MM-DD, Istanbul) the free hour
+--                        can be booked: the cancel day plus 6 months
+--   "makeGoodMinor"      the make-good, kuruş (the share a late cancel keeps)
+--   "makeGoodUsedAt"     when it was used (ISO): an hour given or the money
+--                        paid; NULL while open
+--   "makeGoodPaidMinor"  paid by bank transfer: the amount, kuruş
+--   "makeGoodPaidOn"     and the day of the transfer (YYYY-MM-DD). The IBAN
+--                        is never written here; the receipt stays with the
+--                        accounts.
+--   "resoldHours"        hours (start hours, jsonb array) already refunded
+--                        because they were sold again
+--   "resaleRefundMinor"  the part of "refundMinor" owed or refunded for them
+--   "refundSettledMinor" the part of "refundMinor" that had already gone back
+--                        (recorded by hand) when the booking was owed money
+--                        again because one of its hours was sold again: the
+--                        step under way asks for "refundMinor" minus this
+--   "refundSteps"        every refund recorded by hand ("Elle iade edildi"),
+--                        each with its own amount and instant (jsonb array of
+--                        {"minor", "at"}): a late share refunded one day and
+--                        the rest of it, after a resale, another day stay two
+--                        refunds on two days (the Gün sonu sheet)
+-- on the free hour itself:
+--   "makeGoodFor"        the booking it makes good. Total 0, paid nothing
+--                        (paymentStatus 'none'), made by the staff
+--                        (channel 'staff'); at most one live per booking.
+--
+-- karaoke_open_cap: a free hour the staff give is not one of the guest's own
+-- open bookings, so it neither hits nor uses up the cap.
+--
+-- karaoke_charge_resold_hours: counts sold-again hours on a late-cancelled
+-- booking under its row lock (rule 20: two payments for different hours of
+-- the same evening must not lose each other's count, and the same hour
+-- reported twice is counted once).
+--
+-- karaoke_give_make_good_hour: "Telafi saati ver" in one statement: the
+-- make-good is claimed and the free hour written together, under the made
+-- good booking's row lock, so a free hour that cannot be written (its hour
+-- taken, 23P01) leaves the make-good open, and the claim never survives
+-- without its hour.
+--
+-- karaoke_release_make_good_hour: the free hour cancelled, and (before it
+-- began) its make-good open again, in one statement: the guest never loses
+-- the make-good to a cancel whose second write did not happen.
+--
+-- Safe on a live table: nullable columns, checks every existing row
+-- satisfies (all NULL), a partial unique index over no rows yet.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.karaoke_reservations add column if not exists "makeGoodUntil"     text;
+alter table public.karaoke_reservations add column if not exists "makeGoodMinor"     integer;
+alter table public.karaoke_reservations add column if not exists "makeGoodUsedAt"    text;
+alter table public.karaoke_reservations add column if not exists "makeGoodPaidMinor" integer;
+alter table public.karaoke_reservations add column if not exists "makeGoodPaidOn"    text;
+alter table public.karaoke_reservations add column if not exists "makeGoodFor"       text;
+alter table public.karaoke_reservations add column if not exists "resoldHours"       jsonb;
+alter table public.karaoke_reservations add column if not exists "resaleRefundMinor" integer;
+alter table public.karaoke_reservations add column if not exists "refundSettledMinor" integer;
+alter table public.karaoke_reservations add column if not exists "refundSteps"       jsonb;
+
+do $$
+begin
+  -- A make-good has an amount and a last day together, is used at most once,
+  -- and a transfer has both its amount and its day.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_make_good_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_make_good_check
+      check (
+        ("makeGoodUntil" is null) = ("makeGoodMinor" is null)
+        and ("makeGoodMinor" is null or "makeGoodMinor" > 0)
+        and ("makeGoodUsedAt" is null or "makeGoodUntil" is not null)
+        and ("makeGoodPaidMinor" is null) = ("makeGoodPaidOn" is null)
+        and ("makeGoodPaidMinor" is null
+             or ("makeGoodPaidMinor" > 0 and "makeGoodUsedAt" is not null))
+      );
+  end if;
+  -- The resale part is a part of what goes back: never more, never negative.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_resale_refund_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_resale_refund_check
+      check ("resaleRefundMinor" is null
+             or ("resaleRefundMinor" >= 0
+                 and "refundMinor" is not null
+                 and "resaleRefundMinor" <= "refundMinor"));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_settled_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_settled_check
+      check ("refundSettledMinor" is null
+             or ("refundSettledMinor" >= 0
+                 and "refundMinor" is not null
+                 and "refundSettledMinor" <= "refundMinor"));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_steps_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_steps_check
+      check ("refundSteps" is null or jsonb_typeof("refundSteps") = 'array');
+  end if;
+end $$;
+
+-- One live free hour per booking made good: two staff members pressing
+-- "Telafi saati ver" at once cannot give two.
+create unique index if not exists karaoke_reservations_make_good_once
+  on public.karaoke_reservations ("makeGoodFor")
+  where "makeGoodFor" is not null and status <> 'cancelled';
+
+-- Same as 20261016063311_karaoke_prepay.sql, plus: a free hour the staff
+-- give ("makeGoodFor" set) is neither capped nor counted.
+create or replace function public.karaoke_open_cap()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  today      text;
+  open_count int;
+begin
+  if new.status = 'cancelled' or new."makeGoodFor" is not null then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(
+    hashtext('karaoke-open-cap:' || case when new.guest then 'guest:' else '' end
+             || lower(new."customerEmail")));
+  today := to_char((now() at time zone 'Europe/Istanbul')::date, 'YYYY-MM-DD');
+  select count(*) into open_count
+    from public.karaoke_reservations
+   where lower("customerEmail") = lower(new."customerEmail")
+     and guest = new.guest
+     and status <> 'cancelled'
+     and "makeGoodFor" is null
+     and date >= today;
+  if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+    raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+  end if;
+  if new.guest and new."contactPhone" <> '' then
+    perform pg_advisory_xact_lock(
+      hashtext('karaoke-open-cap-phone:' || new."contactPhone"));
+    select count(*) into open_count
+      from public.karaoke_reservations
+     where guest
+       and "contactPhone" = new."contactPhone"
+       and status <> 'cancelled'
+       and "makeGoodFor" is null
+       and date >= today;
+    if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+      raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Hours of a late-cancelled booking that were sold again (`p_hours`, a jsonb
+-- array of start hours; those outside the booking and those already counted
+-- are ignored). Returns the kuruş this call added to what goes back, 0 when
+-- nothing new. The share a late cancel kept is "paidMinor" minus the late
+-- refund ("refundMinor" without its resale part); the resale part is
+-- round(kept x counted hours / hours) of it, counted as a whole each time
+-- (half a kuruş rounds up, numeric round), so the parts add up to exactly
+-- what was kept and never more. Money owed again puts the booking back in
+-- 'refunding': a person refunds it in PayNkolay's panel (partial refunds are
+-- not sent to the POS, docs/PAYNKOLAY.md §3.2). A booking that was
+-- 'refunded' keeps what had already gone back in "refundSettledMinor", so
+-- the panel asks only for the rest. "updatedAt" is not touched: on a
+-- cancelled row it is the cancel instant, which decides the booking that
+-- cancelled an hour last.
+create or replace function public.karaoke_charge_resold_hours(
+  p_id    text,
+  p_hours jsonb
+)
+returns int
+language plpgsql
+set search_path = ''
+as $$
+declare
+  r       public.karaoke_reservations%rowtype;
+  counted jsonb;
+  fresh   jsonb;
+  before  int;
+  share   int;
+  kept    int;
+  after   int;
+begin
+  select * into r
+    from public.karaoke_reservations
+   where id = p_id
+     for update;
+  if not found
+     or r.status <> 'cancelled'
+     or r."refundMinor" is null
+     or r."paymentStatus" not in ('refunding', 'refunded')
+     or r."makeGoodFor" is not null
+     or r.hours <= 0 then
+    return 0;
+  end if;
+  counted := coalesce(r."resoldHours", '[]'::jsonb);
+  select coalesce(jsonb_agg(h order by h), '[]'::jsonb) into fresh
+    from (
+      select distinct (value)::int as h
+        from jsonb_array_elements_text(coalesce(p_hours, '[]'::jsonb))
+    ) asked
+   where h >= r."startHour"
+     and h < r."startHour" + r.hours
+     and not counted @> to_jsonb(h);
+  if jsonb_array_length(fresh) = 0 then
+    return 0;
+  end if;
+  before := coalesce(r."resaleRefundMinor", 0);
+  share := r."refundMinor" - before;
+  kept := r."paidMinor" - share;
+  if kept <= 0 then
+    return 0;
+  end if;
+  after := round(
+    kept::numeric * (jsonb_array_length(counted) + jsonb_array_length(fresh))
+      / r.hours
+  )::int;
+  update public.karaoke_reservations
+     set "resoldHours" = counted || fresh,
+         "resaleRefundMinor" = after,
+         "refundMinor" = share + after,
+         "paymentStatus" = case
+           when after > before then 'refunding'
+           else "paymentStatus"
+         end,
+         "refundSettledMinor" = case
+           when after > before and r."paymentStatus" = 'refunded'
+             then r."refundMinor"
+           else r."refundSettledMinor"
+         end
+   where id = p_id;
+  return after - before;
+end;
+$$;
+
+-- "Telafi saati ver": the free hour of the same length for the guest of a
+-- booking the köşk cancelled late, and the make-good used by it, in one
+-- statement. 'given'; 'not_open' when the booking has no open make-good
+-- (never had one, or its hour or its money was used: the other then
+-- closes); 'expired' past the free hour's last day (`p_today`, Istanbul).
+-- The hour copies the guest (address, name, contact, guest flag) and the
+-- length from the booking; the day, the start, the group and the policy
+-- snapshot come from the caller, which checked them against the room
+-- (karaoke-payment.ts). The overlap constraint (23P01) and the one live hour
+-- per booking (23505) still hold: either error undoes the claim too.
+create or replace function public.karaoke_give_make_good_hour(
+  p_for                 text,
+  p_id                  text,
+  p_date                text,
+  p_start_hour          integer,
+  p_guests              integer,
+  p_today               text,
+  p_now                 text,
+  p_tax_rate_pct        integer,
+  p_free_cancel_hours   integer,
+  p_late_refund_percent integer,
+  p_cancel_deadline     text,
+  p_cancellation_rules  jsonb
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  r public.karaoke_reservations%rowtype;
+begin
+  select * into r
+    from public.karaoke_reservations
+   where id = p_for
+     for update;
+  if not found
+     or r.status <> 'cancelled'
+     or r."makeGoodMinor" is null
+     or r."makeGoodUntil" is null
+     or r."makeGoodUsedAt" is not null then
+    return 'not_open';
+  end if;
+  if p_today > r."makeGoodUntil" then
+    return 'expired';
+  end if;
+  update public.karaoke_reservations
+     set "makeGoodUsedAt" = p_now
+   where id = p_for;
+  insert into public.karaoke_reservations (
+    id, "customerEmail", "customerName", "contactEmail", "contactPhone",
+    "contactConsentAt", date, "startHour", hours, guests, status,
+    "priceMinor", "discountMinor", "totalMinor", note, "createdAt",
+    "updatedAt", "paymentStatus", "paymentDueAt", "paidAt", "refundedAt",
+    "paidMinor", "paymentRef", channel, "legalConsent", guest, "taxRatePct",
+    "freeCancelHours", "lateRefundPercent", "cancelDeadline",
+    "cancellationRules", "refundMinor", "makeGoodFor"
+  ) values (
+    p_id, r."customerEmail", r."customerName", r."contactEmail",
+    r."contactPhone", r."contactConsentAt", p_date, p_start_hour, r.hours,
+    p_guests, 'confirmed', 0, 0, 0, 'Telafi: ' || upper(r.id), p_now, p_now,
+    'none', '', '', '', 0, '', 'staff', null, r.guest, p_tax_rate_pct,
+    p_free_cancel_hours, p_late_refund_percent, p_cancel_deadline,
+    p_cancellation_rules, null, r.id
+  );
+  return 'given';
+end;
+$$;
+
+-- A free hour let go (the guest on its page or through the app, the köşk in
+-- the panel): cancelled while it is still the confirmed free hour it was
+-- read as; with `p_reopen` (the caller's clock says the hour has not begun)
+-- the make-good it used is open again, unless the money was recorded.
+-- 'reopened', 'cancelled', or 'raced' when the hour had moved on (nothing
+-- written). "updatedAt" is the cancel instant, as on every cancelled row.
+create or replace function public.karaoke_release_make_good_hour(
+  p_id     text,
+  p_now    text,
+  p_reopen boolean
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  hour_for text;
+begin
+  update public.karaoke_reservations
+     set status = 'cancelled',
+         "updatedAt" = p_now
+   where id = p_id
+     and status = 'confirmed'
+     and "paymentStatus" = 'none'
+     and "makeGoodFor" is not null
+  returning "makeGoodFor" into hour_for;
+  if not found then
+    return 'raced';
+  end if;
+  if p_reopen then
+    update public.karaoke_reservations
+       set "makeGoodUsedAt" = null
+     where id = hour_for
+       and "makeGoodPaidMinor" is null
+       and "makeGoodUsedAt" is not null;
+    if found then
+      return 'reopened';
+    end if;
+  end if;
+  return 'cancelled';
+end;
+$$;
+
+insert into public._migrations (name) values ('20261020203619_karaoke_make_good.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261021050500_customer_milestone_rewards_rls.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Row level security on customer_milestone_rewards (20 Oct 2026).
+--
+-- Every other table in the schema has RLS on and no policy;
+-- customer_milestone_rewards (20260923200000) was the one table created
+-- without it. On Neon nothing changes: the app connects as the table's
+-- owner, and an owner is not subject to RLS. On a Supabase database the
+-- difference is real: every table in `public` is exposed through PostgREST,
+-- and without RLS the anon and authenticated roles could read which member
+-- got which gift, and write rows that stop a milestone from ever being
+-- granted (its primary key is the grant's guard). RLS without a policy
+-- closes the table to those roles, as for every other table.
+--
+-- No policy on purpose, and no grant: the roles above do not exist on Neon,
+-- and the app never needs one (docs/SUPABASE-GECIS.md §1).
+-- tests/db-rls.test.ts holds RLS on for every table the schema creates.
+--
+-- Re-runnable (enabling RLS twice is a no-op). Rollback:
+--   alter table public.customer_milestone_rewards disable row level security;
+
+alter table public.customer_milestone_rewards enable row level security;
+
+insert into public._migrations (name) values ('20261021050500_customer_milestone_rewards_rls.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261021050600_supabase_keepalive.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- The daily Supabase keep-alive, made visible (20 Oct 2026).
+--
+-- /api/cron/daily pings the free-plan Supabase project every morning so it
+-- never pauses for inactivity (keepSupabaseAwake, docs/SUPABASE-GECIS.md
+-- §0). The result went into the cron's response body and nowhere else, and
+-- CRON_SECRET is "sensitive" on Vercel: nobody could see whether the ping
+-- still got through. A paused project refuses every sign-in.
+--
+--   supabase_keepalive
+--     One row (id 'supabase'): the latest attempt (its outcome and when)
+--     and the latest success. Written by the cron in ONE statement, an
+--     upsert that sets "lastSuccessAt" only on an "ok" (CLAUDE.md rule 20:
+--     no read-modify-write). Read live by the owner's dashboard
+--     (/admin, Genel bakış), never cached.
+--
+-- A single row rather than a log: the dashboard needs exactly these two
+-- facts, a log would grow by a row a day and need a retention rule, and this
+-- row holds no personal data, so nothing in the published retention policy
+-- applies to it. The checks pin its shape: an outcome word and two
+-- ISO-8601 UTC instants. No key, no response body, no member data can be
+-- stored here, by mistake or otherwise.
+--
+-- Row level security on, no policy, like every other table
+-- (tests/db-rls.test.ts). Re-runnable. Rollback:
+--   drop table if exists public.supabase_keepalive;
+
+create table if not exists public.supabase_keepalive (
+  id              text primary key,
+  "lastStatus"    text not null,
+  "lastAttemptAt" text not null,
+  "lastSuccessAt" text not null default '',
+  constraint supabase_keepalive_one_row check (id = 'supabase'),
+  constraint supabase_keepalive_status
+    check ("lastStatus" in ('ok', 'failed', 'skipped')),
+  constraint supabase_keepalive_attempt_at
+    check ("lastAttemptAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$'),
+  constraint supabase_keepalive_success_at
+    check (
+      "lastSuccessAt" = ''
+      or "lastSuccessAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}[.][0-9]{3}Z$'
+    )
+);
+
+alter table public.supabase_keepalive enable row level security;
+
+insert into public._migrations (name) values ('20261021050600_supabase_keepalive.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261021090000_karaoke_guest_retention.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke bookings: the guest's identity and every contact detail go three
+-- years after the booking day, the booking itself after eleven (decision
+-- ASK-RETENTION, legal programme of 18 Oct 2026; KVKK m.4/2-d and m.7/1;
+-- Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi
+-- Hakkında Yönetmelik m.11: at the first periodic destruction once the
+-- period is over).
+--
+-- The Veri Saklama ve İmha Politikası gave a booking made without an account
+-- no period at all: the name, e-mail and phone a guest typed stayed for ever,
+-- and so did the contact address, phone and note of every booking. The
+-- policy now publishes two periods (src/lib/legal/content.ts) and
+-- src/lib/retention.ts runs them, daily, through the two functions below:
+--
+--   karaoke_guest_retention        3 x 366 days after "date". On a guest
+--                                  booking the name goes and "customerEmail"
+--                                  becomes 'anon-<id>@anon.local'. On every
+--                                  booking "contactEmail", "contactPhone" and
+--                                  note go, and the consent record keeps its
+--                                  time, documents and version but loses
+--                                  "ip" and "userAgent" (a NULL record stays
+--                                  NULL). The member's own name and address
+--                                  stay: the membership keeps them, and
+--                                  account deletion clears them.
+--   karaoke_reservation_retention  11 x 366 days after the latest of "date",
+--                                  "paidAt" and "refundedAt": the row goes.
+--                                  Payment and refund records are kept ten
+--                                  years from the end of their calendar year
+--                                  (TTK m.82/5-6), so eleven 366-day years
+--                                  from the last of them never take one early.
+--
+-- Both skip a booking whose money is still open ('pending': a hold the POS
+-- has not settled; 'refunding': a refund the POS has not confirmed; neither
+-- is finished, CLAUDE.md rule 29), one the panel still lists as money owed
+-- (paid and cancelled, or paid and never confirmed: listKaraokeRefundsOwed,
+-- listKaraokeAttention), one with a 'refunding' claim in payment_transactions
+-- (a second charge's refund whose answer never came), and one under a hold:
+--
+--   "retentionHold"  '' (the default): nothing stops the destruction.
+--                    Otherwise the reason the row is kept past its period: a
+--                    dispute, a complaint or an official request ("Hakkında
+--                    uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak
+--                    sonuçlanana kadar saklanır"). Written and cleared by
+--                    hand in SQL; nothing in the app writes it, and no API
+--                    response carries it.
+--
+-- "date" is the köşk's calendar day ("YYYY-MM-DD", Europe/Istanbul), compared
+-- as text with the first ten characters of p_cutoff, which retention.ts
+-- writes on the köşk's clock (+03:00, CLAUDE.md rule 22). Two guards keep a
+-- bad value from destroying early: a cutoff that is not a day, or is less
+-- than a year back (every period here is years), raises (22007) instead of
+-- matching; a row whose "date" is not in that shape is never in scope (a
+-- malformed day can sort before any cutoff).
+--
+-- The guest placeholder never collides with account deletion's
+-- 'deleted-<customer id>@anon.local' (src/lib/mobile/me.ts): another prefix
+-- and the booking's own id, so it is unique per row. Account deletion only
+-- rewrites member rows (guest = false), so it never meets one.
+--
+-- A row already cleared is not counted again: the guest function counts and
+-- updates only rows that still hold something to clear, so a second run with
+-- the same cutoff answers 0. p_apply false only counts and writes nothing.
+-- Both return integer (one cell), so retention.ts calls them through rpc(),
+-- never rpcRows() (CLAUDE.md rule 23).
+--
+-- Safe on a live table: one column with a default every row satisfies, and
+-- two functions. Undo:
+--   drop function if exists public.karaoke_guest_retention(text, boolean);
+--   drop function if exists public.karaoke_reservation_retention(text, boolean);
+--   alter table public.karaoke_reservations drop column if exists "retentionHold";
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.karaoke_reservations
+  add column if not exists "retentionHold" text not null default '';
+
+-- ── karaoke_guest_retention ─────────────────────────────────────────────
+create or replace function public.karaoke_guest_retention(
+  p_cutoff text,
+  p_apply boolean
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cutoff_day text := left(p_cutoff, 10);
+  affected   integer := 0;
+begin
+  if cutoff_day is null
+     or cutoff_day !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date - 365,
+                             'YYYY-MM-DD') then
+    raise exception 'karaoke_guest_retention: cutoff % is not a day a year or more back', p_cutoff
+      using errcode = '22007';
+  end if;
+
+  if p_apply then
+    update public.karaoke_reservations r
+       set "customerName"  = case when r.guest then '' else r."customerName" end,
+           "customerEmail" = case when r.guest
+                                  then 'anon-' || r.id || '@anon.local'
+                                  else r."customerEmail" end,
+           "contactEmail"  = '',
+           "contactPhone"  = '',
+           note            = '',
+           "legalConsent"  = case when jsonb_typeof(r."legalConsent") = 'object'
+                                  then r."legalConsent" - 'ip' - 'userAgent'
+                                  else r."legalConsent" end
+     where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+       and r.date < cutoff_day
+       and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
+       and r."retentionHold" = ''
+       and (
+         (r.guest and (r."customerName" <> ''
+                       or r."customerEmail" <> ('anon-' || r.id || '@anon.local')))
+         or r."contactEmail" <> ''
+         or r."contactPhone" <> ''
+         or r.note <> ''
+         or (jsonb_typeof(r."legalConsent") = 'object'
+             and ((r."legalConsent" ? 'ip') or (r."legalConsent" ? 'userAgent')))
+       );
+    get diagnostics affected = row_count;
+  else
+    select count(*) into affected
+      from public.karaoke_reservations r
+     where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+       and r.date < cutoff_day
+       and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
+       and r."retentionHold" = ''
+       and (
+         (r.guest and (r."customerName" <> ''
+                       or r."customerEmail" <> ('anon-' || r.id || '@anon.local')))
+         or r."contactEmail" <> ''
+         or r."contactPhone" <> ''
+         or r.note <> ''
+         or (jsonb_typeof(r."legalConsent") = 'object'
+             and ((r."legalConsent" ? 'ip') or (r."legalConsent" ? 'userAgent')))
+       );
+  end if;
+  return affected;
+end;
+$$;
+
+-- ── karaoke_reservation_retention ───────────────────────────────────────
+create or replace function public.karaoke_reservation_retention(
+  p_cutoff text,
+  p_apply boolean
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cutoff_day text := left(p_cutoff, 10);
+  affected   integer := 0;
+begin
+  if cutoff_day is null
+     or cutoff_day !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+     or cutoff_day > to_char((now() at time zone 'Europe/Istanbul')::date - 365,
+                             'YYYY-MM-DD') then
+    raise exception 'karaoke_reservation_retention: cutoff % is not a day a year or more back', p_cutoff
+      using errcode = '22007';
+  end if;
+
+  if p_apply then
+    delete from public.karaoke_reservations r
+     where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+       and greatest(r.date,
+                    left(nullif(r."paidAt", ''), 10),
+                    left(nullif(r."refundedAt", ''), 10)) < cutoff_day
+       and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
+       and r."retentionHold" = '';
+    get diagnostics affected = row_count;
+  else
+    select count(*) into affected
+      from public.karaoke_reservations r
+     where r.date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+       and greatest(r.date,
+                    left(nullif(r."paidAt", ''), 10),
+                    left(nullif(r."refundedAt", ''), 10)) < cutoff_day
+       and r."paymentStatus" not in ('pending', 'refunding')
+       -- Money still owed, as the panel reads it (listKaraokeRefundsOwed,
+       -- listKaraokeAttention): paid and cancelled, or paid and never
+       -- confirmed.
+       and not (r."paymentStatus" = 'paid' and r.status in ('requested', 'cancelled'))
+       -- A refund claim the POS has not answered, a second charge's included.
+       and not exists (
+         select 1 from public.payment_transactions t
+          where t."orderId" = r.id and t.status = 'refunding'
+       )
+       and r."retentionHold" = '';
+  end if;
+  return affected;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261021090000_karaoke_guest_retention.sql')
   on conflict (name) do nothing;

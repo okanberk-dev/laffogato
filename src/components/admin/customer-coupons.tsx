@@ -1,14 +1,21 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   grantCustomerCouponAction,
   revokeCustomerCouponAction,
   type CouponGrantState,
 } from "@/app/admin/musteriler/actions";
+import type { AdminTone } from "@/lib/admin/tone";
 import { couponStatus, type CustomerCoupon } from "@/lib/customer/coupon-utils";
 
+import {
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "./action-form";
+import { FormError, FormSuccess } from "./form-feedback";
 import {
   Card,
   Field,
@@ -17,14 +24,17 @@ import {
   TextInput,
   formatTRY,
 } from "./forms";
+import { Badge, ConfirmButton } from "./ui";
 
 const initial: CouponGrantState = {};
 
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  active: { label: "Hazır", cls: "bg-green-50 text-green-700" },
-  redeemed: { label: "Kullanıldı", cls: "bg-neutral-100 text-neutral-500" },
-  expired: { label: "Süresi doldu", cls: "bg-neutral-100 text-neutral-500" },
-  inactive: { label: "Pasif", cls: "bg-neutral-100 text-neutral-500" },
+// Kit tones (AA on their ground, tests/admin-ui-kit.test.ts); the grey
+// pills they replace were 4.34:1 (PEO-17).
+const STATUS_BADGE: Record<string, { label: string; tone: AdminTone }> = {
+  active: { label: "Hazır", tone: "success" },
+  redeemed: { label: "Kullanıldı", tone: "neutral" },
+  expired: { label: "Süresi doldu", tone: "neutral" },
+  inactive: { label: "Pasif", tone: "neutral" },
 };
 
 export function CustomerCoupons({
@@ -34,40 +44,53 @@ export function CustomerCoupons({
   email: string;
   coupons: CustomerCoupon[];
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const boundGrant = grantCustomerCouponAction.bind(null, email);
-  const [state, action, pending] = useActionState(boundGrant, initial);
+  // Posted by hand: a refused grant used to reset the form, putting "Tür"
+  // back on % so a retyped "15" became 15% instead of 15 TL. A grant that
+  // went through empties it for the next one.
+  const [state, action, pending] = useActionState(
+    withPanelCatch(boundGrant, () => ({ error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const post = useHandPost(action, pending);
+  useEffect(() => {
+    if (state.message && !state.error) formRef.current?.reset();
+  }, [state]);
   // Read once when the card mounts; a render-time Date.now() is impure and
   // would let two renders disagree about which coupon has expired.
   const [now] = useState(() => Date.now());
 
   return (
-    <Card className="grid gap-4">
+    <Card className="grid grid-cols-1 gap-4">
       <h2
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         Kuponlar ({coupons.length})
       </h2>
 
       {coupons.length === 0 ? (
-        <p className="text-sm text-neutral-400">Bu üyeye tanımlı kupon yok.</p>
+        <p className="text-sm text-[var(--admin-text-soft)]">
+          Bu üyeye tanımlı kupon yok.
+        </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid grid-cols-1 gap-2">
           {coupons.map((c) => {
             const badge = STATUS_BADGE[couponStatus(c, now)];
             return (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-2.5"
+                className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border)] p-2.5"
               >
                 <div className="min-w-0">
                   <div
-                    className="text-sm font-medium text-neutral-900"
+                    className="text-sm font-medium text-[var(--admin-text)]"
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
                     {c.code}
                   </div>
-                  <div className="text-xs text-neutral-500">
+                  <div className="text-xs text-[var(--admin-text-soft)]">
                     {c.kind === "pct" ? `%${c.value}` : formatTRY(c.value)}{" "}
                     indirim
                     {c.minSubtotalMinor > 0 &&
@@ -75,34 +98,27 @@ export function CustomerCoupons({
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.16em] uppercase ${badge.cls}`}
-                  >
-                    {badge.label}
-                  </span>
+                  <Badge tone={badge.tone}>{badge.label}</Badge>
                   {/* A stamp-card or milestone coupon is never deleted (its
                       card would lose its coupon and give the stamps back):
                       unused ones are deactivated, used or inactive ones have
                       nothing left to do. */}
                   {(c.source === "loyalty" || c.source === "milestone") &&
                   (c.redeemedAt || !c.isActive) ? null : (
-                    <form action={revokeCustomerCouponAction}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="email" value={email} />
-                      <button
-                        type="submit"
-                        className="text-xs text-rose-600 underline-offset-2 hover:underline"
-                        title={
-                          c.source === "loyalty" || c.source === "milestone"
-                            ? "Kuponu pasifleştir"
-                            : "Kuponu sil"
-                        }
-                      >
-                        {c.source === "loyalty" || c.source === "milestone"
+                    <ConfirmButton
+                      action={revokeCustomerCouponAction}
+                      hidden={{ id: c.id, email }}
+                      label={
+                        c.source === "loyalty" || c.source === "milestone"
                           ? "Pasifleştir"
-                          : "Sil"}
-                      </button>
-                    </form>
+                          : "Sil"
+                      }
+                      description={
+                        c.source === "loyalty" || c.source === "milestone"
+                          ? `${c.code} pasifleşir, üye artık kullanamaz. Damgalar geri dönmez.`
+                          : `${c.code} silinir, üye artık kullanamaz.`
+                      }
+                    />
                   )}
                 </div>
               </li>
@@ -112,11 +128,13 @@ export function CustomerCoupons({
       )}
 
       <form
-        action={action}
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Yeni kupon tanımla
@@ -152,10 +170,8 @@ export function CustomerCoupons({
         <Field label="Başlık (opsiyonel)">
           <TextInput name="title" placeholder="Hediye kuponu" maxLength={80} />
         </Field>
-        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
-        {state.message && (
-          <p className="text-xs text-green-700">{state.message}</p>
-        )}
+        <FormError message={state.error} />
+        <FormSuccess message={state.error ? undefined : state.message} />
         <PrimaryButton type="submit" disabled={pending}>
           {pending ? "Tanımlanıyor…" : "Kupon tanımla"}
         </PrimaryButton>

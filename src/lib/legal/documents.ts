@@ -96,6 +96,15 @@ function hasContent(s: LegalSection): boolean {
   );
 }
 
+/**
+ * A source document with its tokens filled. Exported for the one document
+ * built at request time: the karaoke terms under the panel's cancellation
+ * policy (`./karaoke-doc.ts`).
+ */
+export function hydrateLegalDoc(src: LegalDocSource): LegalDoc {
+  return hydrate(src);
+}
+
 function hydrate(src: LegalDocSource): LegalDoc {
   return {
     slug: src.slug,

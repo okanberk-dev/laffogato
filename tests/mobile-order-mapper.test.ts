@@ -96,8 +96,11 @@ describe("toMobileOrder", () => {
         variantId: null,
         size: "M",
         options: { milk: "oat", extraShot: true },
+        // A line written before rates were kept: null, never a guess.
+        taxRatePct: null,
       },
     ]);
+    expect(m.taxBreakdown).toBeNull();
   });
 
   it("never leaks the internal note, consent evidence or refunds", () => {

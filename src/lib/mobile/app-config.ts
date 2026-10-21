@@ -166,9 +166,10 @@ export interface BootstrapApp {
   reminders: MobileAppConfig["reminders"];
   campaignCards: MobileAppConfig["campaignCards"];
   /**
-   * Karar 177: whether fA'L's AI reading is on - the OpenAI key AND the
-   * explicit switch (`fal-core.ts` `falAiEnabled`). Off, the app never offers
-   * it and reads the cup on the device.
+   * Karar 177: whether fA'L's AI reading is on - the explicit switch AND the
+   * chosen provider's key, Anthropic or OpenAI, for a provider the published
+   * texts name as the recipient (`fal-core.ts` `falAiEnabled`). Off, the app
+   * never offers it and reads the cup on the device.
    */
   fal: { ai: boolean };
 }

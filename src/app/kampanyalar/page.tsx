@@ -5,8 +5,9 @@ import { breadcrumbLd } from "@/lib/seo/structured-data";
 
 import { CampaignsPage } from "@/components/laffogato/campaigns-page";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
-import { getPublicSettings, listActiveAppPosts } from "@/lib/admin/store";
-import { openGraphDefaults } from "@/lib/seo/site";
+import { openGraphBase } from "@/lib/seo/site";
+import { footerSettings } from "@/lib/seo/contact";
+import { getSiteSettings, listSiteAppPosts } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   alternates: { canonical: "/kampanyalar" },
   openGraph: {
-    ...openGraphDefaults(),
+    ...openGraphBase(),
     title: TITLE,
     description: DESCRIPTION,
     url: "/kampanyalar",
@@ -38,9 +39,10 @@ export const metadata: Metadata = {
  * Deliberately the SAME two sources the app's Kampanyalar screen reads, so an
  * operator publishes once and both surfaces move:
  *
- *  - `listActiveAppPosts()` - the panel's campaigns, collaborations and
- *    events (/admin/mobil/icerik), already filtered to active and in-window.
- *    This is exactly what `GET /api/mobile/v1/app-content` serves.
+ *  - `listSiteAppPosts()` - the panel's campaigns, collaborations and
+ *    events (/admin/mobil/icerik), filtered to active and in-window: the
+ *    rows `GET /api/mobile/v1/app-content` serves (`listActiveAppPosts`),
+ *    read through the site's cache (src/lib/seo/site-data.ts).
  *  - `mobileApp.campaignCards` - the switches for the two house programmes
  *    (/admin/mobil/ayarlar). Pausing the invite scheme takes the card off the
  *    web and out of the app at once, with no release on either side.
@@ -50,8 +52,8 @@ export const metadata: Metadata = {
  */
 export default async function KampanyalarPage() {
   const [settings, posts] = await Promise.all([
-    getPublicSettings(),
-    listActiveAppPosts(),
+    getSiteSettings(),
+    listSiteAppPosts(),
   ]);
 
   return (
@@ -62,13 +64,7 @@ export default async function KampanyalarPage() {
           { name: "Kampanyalar", url: "/kampanyalar" },
         ])}
       />
-      <SiteChrome
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
-      >
+      <SiteChrome settings={footerSettings(settings)}>
         <CampaignsPage
           posts={posts.map((p) => ({
             id: p.id,

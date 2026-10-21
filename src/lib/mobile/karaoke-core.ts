@@ -6,7 +6,14 @@ import {
   quoteKaraoke,
   type KaraokeQuote,
 } from "./karaoke-quote";
-import { karaokeCancelDeadline } from "./karaoke-time";
+import {
+  isPartialRefund,
+  karaokeCancelDeadline,
+  karaokeCancelPolicyOf,
+  karaokeRulesOf,
+  type KaraokeCancelPolicy,
+} from "./karaoke-time";
+import { isTaxRate } from "@/lib/utils/kdv";
 
 export * from "./karaoke-time";
 
@@ -111,6 +118,14 @@ export interface KaraokeLegalConsent {
   documents: string[];
   version: string;
   /**
+   * The SHA-256 of the karaoke terms exactly as shown, by slug, as an
+   * order's `legalConsent.textHashes` (21 Ekim 2026). Written by
+   * `createReservation` for both surfaces, never taken from a caller; the
+   * text is kept in `legal_doc_versions` and is what the confirmation mail
+   * attaches. Absent on bookings made before.
+   */
+  textHashes?: Record<string, string>;
+  /**
    * The separate boxes that were ticked, each its own act (operator, 16 Eki
    * 2026): `on-bilgilendirme` (MSY m.7 teyit), `hizmet-sozlesmesi` (the
    * contract accepted) and `kvkk-aydinlatma` - an ACKNOWLEDGEMENT that the
@@ -168,8 +183,11 @@ export interface KaraokeReservation {
   paidMinor?: number;
   /** Provider reference of the payment that paid the row; "" until paid. */
   paymentRef?: string;
-  /** Where it was booked; decides where a payment return lands. */
-  channel?: "web" | "app" | "";
+  /**
+   * Where it was booked; decides where a payment return lands. `staff`: a
+   * free hour the köşk gave to make good its own late cancel (`makeGoodFor`).
+   */
+  channel?: "web" | "app" | "staff" | "";
   legalConsent?: KaraokeLegalConsent | null;
   /**
    * Booked on the web without an account (16 Eki 2026). Never listed for a
@@ -177,6 +195,72 @@ export interface KaraokeReservation {
    * reached through its signed link (karaoke-link.ts) only.
    */
   guest?: boolean;
+  /**
+   * The karaoke KDV rate (whole %) the booking was made at, from
+   * `settings.taxRates.karaoke`; its total includes it. null (or absent) on
+   * bookings made before 20261017150000_kdv_rates.sql.
+   */
+  taxRatePct?: number | null;
+  /**
+   * The cancellation policy the booking was made under, and what it showed
+   * (20261018130000_karaoke_cancel_policy.sql): every deadline, sentence and
+   * refund of the booking reads these, never the panel's current values.
+   * NULL on rows made before the snapshot: 2 hours / 0 %, default sentences
+   * (`karaokeCancelPolicyOf`, `karaokeRulesOf`).
+   */
+  freeCancelHours?: number | null;
+  lateRefundPercent?: number | null;
+  /** The last instant a member's own cancel refunds in full (ISO). */
+  cancelDeadline?: string | null;
+  /** The two sentences shown at booking, `[refundRule, lateRule]`. */
+  cancellationRules?: string[] | null;
+  /**
+   * Kuruş owed back, or refunded, when it is not the whole payment: a late
+   * cancel's share (`round(paid × P / 100)`), plus what an hour cancelled
+   * late and sold again gives back (`resaleRefundMinor`). NULL: the whole
+   * payment.
+   */
+  refundMinor?: number | null;
+  /**
+   * The köşk's late cancel made good (20261020203619_karaoke_make_good.sql,
+   * karaoke-make-good-core.ts): the amount, the last day (Istanbul,
+   * YYYY-MM-DD) the free hour can be booked, when one of the two options
+   * was used, and the bank transfer when the money was chosen. NULL on
+   * every booking without one.
+   */
+  makeGoodUntil?: string | null;
+  makeGoodMinor?: number | null;
+  makeGoodUsedAt?: string | null;
+  makeGoodPaidMinor?: number | null;
+  makeGoodPaidOn?: string | null;
+  /** On the free hour itself: the booking it makes good. */
+  makeGoodFor?: string | null;
+  /**
+   * Hours (start hours) of a late-cancelled booking already refunded
+   * because they were sold again, and the part of `refundMinor` for them.
+   */
+  resoldHours?: number[] | null;
+  resaleRefundMinor?: number | null;
+  /**
+   * The part of `refundMinor` that had already gone back (recorded by hand)
+   * when an hour sold again made the booking owe money again: the step
+   * under way asks only for the rest, and on a `refunded` row the last step
+   * was `refundMinor` minus this.
+   */
+  refundSettledMinor?: number | null;
+  /**
+   * Every refund a person recorded by hand ("Elle iade edildi"), with its
+   * own amount (kuruş) and instant: a late share one day and, after its
+   * hour was sold again, the rest another day are two refunds on two days.
+   */
+  refundSteps?: KaraokeRefundStep[] | null;
+}
+
+/** One refund recorded by hand (`KaraokeReservation.refundSteps`). */
+export interface KaraokeRefundStep {
+  minor: number;
+  /** ISO instant the person recorded it. */
+  at: string;
 }
 
 /** What the web form collects about who to reach for a booking. */
@@ -252,8 +336,17 @@ export interface KaraokeAvailability {
    * (`settings.karaokePrepay`). Off, the old request flow, paid at the venue.
    */
   paymentRequired: boolean;
-  /** Up to how many hours before the start the member may cancel for a full refund. */
+  /**
+   * Up to how many hours before the start the member may cancel for a full
+   * refund: the policy a booking made NOW gets (Ayarlar > Karaoke). 0: no
+   * free window.
+   */
   freeCancelHours: number;
+  /**
+   * Additive (18 Eki 2026, §7.1): the share (whole %) of the payment a
+   * cancel inside the window refunds, before the start. 0: refused.
+   */
+  lateRefundPercent: number;
   /**
    * Additive (16 Eki 2026, §7): the documents a paid booking confirms
    * (`/legal/{slug}`, §13) and the privacy notice it acknowledges - the app
@@ -264,6 +357,11 @@ export interface KaraokeAvailability {
   privacyDoc: string;
   /** The cancellation rule, verbatim, to print above the boxes. */
   cancellationRules: string[];
+  /**
+   * Additive (17 Eki 2026, §7): the KDV rate (whole %) inside `hourlyMinor`
+   * and every total, from Ayarlar > Vergi (`settings.taxRates.karaoke`).
+   */
+  taxRatePct: number;
 }
 
 /** Wire shape of a reservation - an explicit allow-list (§7). */
@@ -285,8 +383,29 @@ export interface KaraokeReservationJson {
   paymentStatus: KaraokePaymentStatus;
   /** When an unpaid hold's payment page closes (ISO); "" unless `pending`. */
   paymentDueAt: string;
-  /** Last moment the member may cancel it themselves (ISO, 2 h before). */
+  /**
+   * Last moment the member may cancel it themselves for a full refund (ISO):
+   * the booking's own snapshot (2 h before the start on older rows).
+   */
   cancellableUntil: string;
+  /**
+   * Additive (17 Eki 2026, §7): the KDV rate the booking was made at; its
+   * total includes it. null on bookings made before rates were recorded.
+   */
+  taxRatePct: number | null;
+  /**
+   * Additive (18 Eki 2026, §7.1): the booking's own cancellation policy and
+   * the two sentences it was shown (2 / 0 and the default pair on older
+   * rows), so a screen after the booking prints the rule it was booked under.
+   */
+  freeCancelHours: number;
+  lateRefundPercent: number;
+  cancellationRules: string[];
+  /**
+   * Additive (18 Eki 2026, §7.1): what goes back to the card when it is not
+   * the whole payment (a late cancel's share), kuruş; null otherwise.
+   */
+  refundMinor: number | null;
 }
 
 export function toReservationJson(
@@ -307,6 +426,10 @@ export function toReservationJson(
     paymentStatus,
     paymentDueAt: paymentStatus === "pending" ? (r.paymentDueAt ?? "") : "",
     cancellableUntil: karaokeCancelDeadline(r).toISOString(),
+    taxRatePct: isTaxRate(r.taxRatePct) ? r.taxRatePct : null,
+    ...karaokeCancelPolicyOf(r),
+    cancellationRules: [...karaokeRulesOf(r)],
+    refundMinor: isPartialRefund(r) ? (r.refundMinor ?? null) : null,
   };
 }
 
@@ -513,4 +636,30 @@ export function validateReservationRequest(
     };
   }
   return { ok: true, value: v };
+}
+
+/**
+ * `expectedCancelPolicy` on a booking request (18 Eki 2026, additive): the
+ * cancellation rule the customer was shown before booking - the
+ * `freeCancelHours` and `lateRefundPercent` the app read from
+ * `GET /karaoke/availability`, or the web form's hidden pair. The way
+ * `expectedTotalMinor` guards a wallet order's total, it lets the server
+ * refuse a booking whose rule the panel changed while the page was open.
+ * Absent (an app build from before it): null, nothing to compare.
+ */
+const ExpectedCancelPolicySchema = z.object({
+  expectedCancelPolicy: z
+    .object({
+      freeCancelHours: z.number().int(),
+      lateRefundPercent: z.number().int(),
+    })
+    .nullish(),
+});
+
+export function readExpectedCancelPolicy(
+  input: unknown,
+): KaraokeCancelPolicy | null | "invalid" {
+  const parsed = ExpectedCancelPolicySchema.safeParse(input);
+  if (!parsed.success) return "invalid";
+  return parsed.data.expectedCancelPolicy ?? null;
 }

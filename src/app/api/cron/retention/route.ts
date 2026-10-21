@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { destructionEnabled, runRetention } from "@/lib/retention";
+import { recordShownLegalVersions } from "@/lib/legal/store";
+import {
+  destructionEnabled,
+  retentionLogLine,
+  runRetention,
+} from "@/lib/retention";
 
 import { cronGate, NO_STORE } from "../_auth";
 
@@ -18,7 +23,9 @@ export const maxDuration = 300;
  * REPORT MODE IS THE DEFAULT. Destruction is irreversible, so it happens only
  * when `RETENTION_APPLY=destroy` is set on the deployment; until then the run
  * answers with what it WOULD remove, per rule, so the numbers can be read
- * before anything goes. See docs/DATABASE.md, "Periyodik imha".
+ * before anything goes, and records nothing. An applied run leaves one
+ * `audit_logs` row (entity `retention`, counts only). See docs/DATABASE.md,
+ * "Periyodik imha".
  */
 
 export async function GET(request: Request) {
@@ -26,12 +33,22 @@ export async function GET(request: Request) {
   if (denied) return denied;
 
   try {
-    const report = await runRetention({ apply: destructionEnabled() });
-    // The report counts rows; it never names one. Nothing here may log a key,
-    // an address or an IP - `auth_attempts.key` is all three at once.
-    console.info(
-      `[cron/retention] ${report.applied ? "destroy" : "report"} matched=${report.totalMatched} destroyed=${report.totalDestroyed}`,
-    );
+    // The texts shown today stay whatever their age (review R1); without
+    // them that rule removes nothing.
+    const shown = await recordShownLegalVersions().catch((err: unknown) => {
+      console.error(
+        "[cron/retention] legal versions",
+        err instanceof Error ? err.message.slice(0, 160) : "unknown",
+      );
+      return null;
+    });
+    const report = await runRetention({
+      apply: destructionEnabled(),
+      keep: shown ? { "legal-doc-versions": shown.hashes } : {},
+    });
+    // The report counts rows; it never names one. The same line as the daily
+    // run's (`retentionLogLine`), so one search finds every run.
+    console.info(retentionLogLine(report));
     return NextResponse.json(report, { headers: NO_STORE });
   } catch (err) {
     console.error("[cron/retention]", err);

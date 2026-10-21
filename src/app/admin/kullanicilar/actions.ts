@@ -2,13 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
-import { requireRole } from "@/lib/admin/auth";
+import { listEnvAdminContacts, requireRole } from "@/lib/admin/auth";
 import { grantBarista, revokeBarista } from "@/lib/admin/staff-members";
 import { staffEmailSchema } from "@/lib/admin/staff-schema";
+import { disable2FA } from "@/lib/admin/twofa";
 import {
   createAdminUser,
   deleteAdminUser,
+  listAdminUsers,
   normalizeAdminEmail,
   setAdminPassword,
   updateAdminUser,
@@ -36,6 +43,37 @@ function failed(result: AdminUserResult<PublicAdminUser>): AdminUserState {
   return result.ok ? {} : { error: result.message };
 }
 
+/**
+ * An env (break-glass) account's address. Its 2FA row is keyed by the same
+ * address as a panel account would be (admin_2fa has no owner column), so
+ * the panel must not drop it while removing or re-creating a panel account
+ * of that address.
+ */
+function isEnvAccount(email: string): boolean {
+  return listEnvAdminContacts().some(
+    (u) => normalizeAdminEmail(u.email) === email,
+  );
+}
+
+/**
+ * Drops the address's 2FA row after an account write. The account is
+ * already written by then, so a failing delete must not stop its audit
+ * row: it is logged (without the address, rule 9) and answered as false.
+ */
+async function dropAccount2FA(email: string): Promise<boolean> {
+  if (isEnvAccount(email)) return true;
+  try {
+    await disable2FA(email);
+    return true;
+  } catch (err) {
+    console.error(
+      "[admin/kullanicilar] 2FA row not dropped:",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    return false;
+  }
+}
+
 export async function createAdminUserAction(
   _prev: AdminUserState,
   formData: FormData,
@@ -50,6 +88,11 @@ export async function createAdminUserAction(
   });
   if (!result.ok) return failed(result);
 
+  // A 2FA row left by an earlier account of this address (deleted before
+  // deletes dropped it) would challenge the new person for a code from
+  // someone else's phone.
+  const twoFactorDropped = await dropAccount2FA(result.value.email);
+
   await logAudit({
     action: "create",
     entity: "admin_user",
@@ -57,7 +100,11 @@ export async function createAdminUserAction(
     payload: { role: result.value.role, name: result.value.name },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} eklendi.` };
+  return {
+    message: twoFactorDropped
+      ? `${result.value.email} eklendi.`
+      : `${result.value.email} eklendi. Bu adresin eski 2FA kaydı silinemedi; giriş kod isterse 2FA'yı sıfırla.`,
+  };
 }
 
 export async function saveAdminUserAction(
@@ -107,14 +154,21 @@ export async function resetAdminPasswordAction(
   return { message: "Parola değiştirildi." };
 }
 
+/**
+ * "Kullanıcıyı sil", behind a confirm (it used to delete on the first
+ * click). Answers an ActionResult for ConfirmButton's toast.
+ */
 export async function deleteAdminUserAction(
-  _prev: AdminUserState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<AdminUserState> {
+): Promise<ActionResult> {
   await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
   const result = await deleteAdminUser(email);
-  if (!result.ok) return failed(result);
+  if (!result.ok) return actionError(result.message);
+  // The authenticator goes with the account: admin_2fa is keyed by the
+  // address with no foreign key, so a re-created account inherited it.
+  const twoFactorDropped = await dropAccount2FA(result.value.email);
 
   await logAudit({
     action: "delete",
@@ -123,7 +177,64 @@ export async function deleteAdminUserAction(
     payload: { role: result.value.role },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} silindi.` };
+  return twoFactorDropped
+    ? actionOk(`${result.value.email} silindi.`)
+    : actionOk(
+        `${result.value.email} silindi. 2FA kaydı silinemedi; bu adresle hesap yeniden açılınca silinir.`,
+        "warning",
+      );
+}
+
+/**
+ * "2FA'yı sıfırla": for a user who lost or replaced the phone. Turning 2FA
+ * off was only possible from the signed-in user's own 2FA page, with a code
+ * from that phone, so a locked-out cashier or manager needed a SQL console.
+ *
+ * Owner-only (`adminUsers`), behind the user's address typed out, and
+ * never for the signed-in owner's own account: there the 2FA page asks for
+ * a code, so a stolen session cannot strip it (2fa-kurulum/actions.ts).
+ * Not for an env (break-glass) account either, which this page does not
+ * manage. The audit row is written first and names no secret; the user
+ * sets 2FA up again after the next sign-in.
+ */
+export async function reset2FAAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("adminUsers");
+  const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
+  if (!email) return actionError("Kullanıcı seçilmedi.");
+  if (email === normalizeAdminEmail(session.email)) {
+    return actionError(
+      "Kendi 2FA'nı buradan sıfırlayamazsın; 2FA kurulumu sayfasından telefonundaki kodla kapat.",
+    );
+  }
+  if (isEnvAccount(email)) {
+    return actionError(
+      "Bu adres ortam değişkenindeki acil giriş hesabının; 2FA'sı buradan sıfırlanmaz.",
+    );
+  }
+  const typed = normalizeAdminEmail(String(formData.get("confirm") ?? ""));
+  if (typed !== email) {
+    return actionError("Onay için kullanıcının e-posta adresini birebir yaz.");
+  }
+  const users = await listAdminUsers();
+  if (!users.some((u) => u.email === email)) {
+    return actionError("Kullanıcı bulunamadı; sayfayı yenile.");
+  }
+
+  await logAudit({
+    action: "2fa_disable",
+    entity: "2fa",
+    entityId: email,
+    payload: { reset: "owner" },
+  });
+  await disable2FA(email);
+  revalidatePath("/admin/kullanicilar");
+  return actionOk(
+    `${email} için 2FA sıfırlandı. Kullanıcı bir sonraki girişte yalnız parolasıyla girer; 2FA'yı yeniden kurmasını söyle.`,
+    "warning",
+  );
 }
 
 // ─── Uygulamadan kasa (barista) ─────────────────────────────────────────
@@ -162,16 +273,17 @@ export async function grantBaristaAction(
   };
 }
 
+/** "Yetkiyi kaldır", behind a confirm; the answer is ConfirmButton's toast. */
 export async function revokeBaristaAction(
-  _prev: AdminUserState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<AdminUserState> {
+): Promise<ActionResult> {
   await requireRole("adminUsers");
   const email = staffEmail(formData);
-  if (!email) return { error: "Geçerli bir e-posta gir." };
+  if (!email) return actionError("Geçerli bir e-posta gir.");
 
   const result = await revokeBarista(email);
-  if (!result.ok) return { error: result.message };
+  if (!result.ok) return actionError(result.message);
 
   await logAudit({
     action: "delete",
@@ -180,5 +292,5 @@ export async function revokeBaristaAction(
     payload: { role: result.value.role },
   });
   revalidatePath("/admin/kullanicilar");
-  return { message: `${result.value.email} kasa yetkisi kaldırıldı.` };
+  return actionOk(`${result.value.email} kasa yetkisi kaldırıldı.`);
 }

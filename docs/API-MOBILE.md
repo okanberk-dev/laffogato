@@ -90,6 +90,10 @@ zaten varsa o satır kullanılır (**tek üyelik**).
           "backdrop": "caramel",
           "photoCutout": false,
           "vessel": null,
+          // 17 Eki 2026, eklemeli: fiyatın içindeki KDV oranı, tam yüzde (aşağı bak)
+          "taxRatePct": 10,
+          // 18 Eki 2026, eklemeli: TGK Ek-1 alerjen grupları; girilmemişse alan yok (aşağı bak)
+          "allergens": ["sut"],
         },
       ],
     },
@@ -184,7 +188,7 @@ tam sha256'sıdır (`"<64 hex>"`), `v` onun ilk 12 hanesi.
 | Adım | Gecikme |
 | --- | --- |
 | Panel kaydeder → site | anında (`revalidatePath`) |
-| Panel kaydeder → `/menu` yanıtı CDN'de | **en çok 300 sn** |
+| Panel kaydeder → `/menu` yanıtı CDN'de | **300 sn** (`s-maxage`); arada istek gelmediyse süresi dolmuş kopya bir kez daha servis edilir: en çok 3900 sn (`stale-while-revalidate=3600`) |
 | Yeni `image` URL'si → uygulama fotoğrafı çizer | anında (yeni URL = önbellek ıskası) |
 
 300 sn'yi panel kısaltamaz: `revalidatePath()` Next'in **sunucu** önbelleğini
@@ -254,6 +258,87 @@ seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve m
   koşu, `--apply` ile yazar, elle seçilmiş satırlara dokunmaz).
 - Eski sürümler üç alanı da okumaz; bir şey kırılmaz.
 
+### `taxRatePct` - KDV oranı (17 Eki 2026, yalnız ekleme)
+
+Operatör kararı (17 Eki 2026): KDV oranı ürüne göre, panelden düzenlenir ve
+uygulama da aynı oranı gösterir. Fiyatlar **KDV dahildir**; oran fiyatı
+değiştirmez, yalnız fiyatın ne kadarının KDV olduğunu söyler.
+
+| Alan | Tip | Nerede | Değer |
+| --- | --- | --- | --- |
+| `taxRatePct` | integer | menü kalemi (§1), mağaza ürünü (§2), sipariş satırı (§3), önizleme satırı (§3), karaoke müsaitliği ve rezervasyonu (§7) | Tam yüzde, 0-100. Bugünkü oranlar 0 · 1 · 10 · 20. |
+
+- **Hangi oran.** Kalemin kendi oranı seçiliyse odur; değilse panelin
+  varsayılanı (`/admin/ayarlar` → Vergi, `settings."taxRates"`): kafe menüsü
+  **%10** (masa, gel-al, kurye; KDV GUT III/B-2.4, Seri No 51), karaoke odası
+  **%20**, mağazada kategoriye göre `beans` ve `pantry` **%10** (köşk kafe
+  işletmesi; KDV GUT III/B-2.4.1, Seri No 51), `gift`, `gear`, `merch`
+  **%20**; kargo ve kurye ücreti **%20** (`shipping`, 18 Eki 2026). Kural ve
+  dayanak: site `src/lib/utils/kdv.ts`.
+- §1 ve §2'de alan **her zaman vardır** ve o anki oranı söyler. Panel bir oranı
+  değiştirince gövde değişir (§1'de `ETag` de; §2 `ETag` göndermez). Yeni
+  gövde CDN'den şu pencerelerle çıkar: `/menu` `s-maxage=300,
+  stale-while-revalidate=3600`, yani 300 sn'den sonraki ilk istek eski kopyayı
+  bir kez daha alıp yenilemeyi başlatır; arada istek gelmezse eski kopya en
+  çok **3900 sn** sonra bir kez daha servis edilebilir. `/shop` `s-maxage=60,
+  stale-while-revalidate=300`: aynı kuralla en çok **360 sn**. Uygulamanın
+  kendi `staleTime`'ı bu pencerelerin üstüne eklenir.
+- Karaoke müsaitliği (§7) CDN'de tutulmaz (`Cache-Control` yok, Vercel
+  varsayılanı `max-age=0`): oran uygulamanın bir sonraki sorgusunda gelir.
+  Sipariş satırının oranı (§3) satış anında sunucuda yazılır, beklemesi yoktur.
+- Varyant fiyatları (§2) ürünün oranındadır.
+- Sipariş satırının oranı (§3) **satış anındaki** orandır ve sonra değişmez.
+  Oranlar kaydedilmeden önce verilmiş siparişte ve rezervasyonda `null`
+  gelir; uygulama oran uydurmaz, "KDV dahil" yazmakla yetinir.
+- Uygulama KDV'yi kendisi hesaplamaz ve oran yazmaz: sabit bir oran (ör. "%20")
+  kodda durmamalıdır. Alan yoksa (eski sunucu) oran gösterilmez.
+- Eski sürümler alanı okumaz; bir şey kırılmaz.
+
+### `allergens` - alerjen grupları (18 Eki 2026, yalnız ekleme)
+
+Toplu tüketim yerinde ambalajsız gıdanın alerjenleri menüde, panoda ya da
+benzeri bir araçta kalem kalem yazılır (TGK Gıda Etiketleme ve Tüketicileri
+Bilgilendirme Yönetmeliği m.15/5); uzaktan satışta bu bilgi satın almadan
+önce verilir (m.17/3), uygulamadan verilen kafe siparişi de bu kapsamdadır.
+"Alerjenler için baristaya danış." tek başına yetmez.
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `allergens` | string[] **ya da alan yok** | Kalemin içerdiği gruplar, Yönetmelik Ek-1 sırasıyla, her biri bir kez. `[]` = 14 grubun hiçbirini içermez. Alan **yoksa** panelde henüz girilmemiştir. |
+
+Anahtarlar kapalı bir liste (site `src/lib/menu/allergens.ts`, veritabanında
+`menu_items_allergens_check` aynı listeyi tutar):
+
+| Anahtar | Etiket | Anahtar | Etiket |
+| --- | --- | --- | --- |
+| `gluten` | Gluten | `sert_kabuklu` | Sert kabuklu meyveler |
+| `kabuklular` | Kabuklular | `kereviz` | Kereviz |
+| `yumurta` | Yumurta | `hardal` | Hardal |
+| `balik` | Balık | `susam` | Susam |
+| `yer_fistigi` | Yer fıstığı | `sulfit` | Sülfit |
+| `soya` | Soya | `aci_bakla` | Acı bakla |
+| `sut` | Süt | `yumusakcalar` | Yumuşakçalar |
+
+- **Alan yok ≠ `[]`.** Alan yoksa uygulama bugünkü gibi "Alerjenler için
+  baristaya danış." yazar; `[]` ise kalemin 14 gruptan hiçbirini içermediğini
+  söyler. Uygulama eksik alanı `[]` saymamalıdır: girilmemiş bilgi "alerjen
+  yok" diye gösterilirse alerjisi olan misafir yanılır.
+- Bilmediği bir anahtarı uygulama atmamalı, okuyamadığı bir grup olarak
+  göstermelidir (ör. ham anahtar ya da "Diğer alerjen"); sunucu listeyi
+  genişletirse eski sürüm alerjeni gizlememiş olur (lafmobil kural 4).
+- `tags` ve içindeki `nuts` **aynen kalır**: eski sürümler kuruyemiş uyarısını
+  ondan okur. Panel `sert_kabuklu` işaretlenince `nuts` etiketini kendisi
+  ekler; `nuts` etiketi olan bir kalemde alerjenler girildiyse `sert_kabuklu`
+  da işaretli olmak zorundadır. Yer fıstığı (`yer_fistigi`) bir baklagildir,
+  `nuts` etiketi eklemez.
+- Çapraz temas bilgisi bu alanda değildir: "Mutfağımızda süt, gluten,
+  kuruyemiş ve soya ile çapraz temas olabilir." uyarısı her kalem için
+  geçerlidir ve kalem ekranında `allergens` ile birlikte gösterilmelidir.
+- Kaynak: `menu_items.allergens` (jsonb, NULL = girilmedi; migration
+  `20261018210100_menu_item_allergens.sql`), panelde `/admin/menu` → kalem →
+  *Alerjenler*. Değişince gövde ve `ETag` değişir (§1'in önbellek pencereleri).
+- Eski sürümler alanı okumaz; bir şey kırılmaz.
+
 ## 2. `GET /shop` — mağaza ürünleri (herkese açık)
 
 ```jsonc
@@ -268,9 +353,90 @@ seçer; operatör seçimi elle değiştirebilir. Üç alan, menü kaleminde ve m
   "backdrop": "espresso", "photoCutout": false, "vessel": null,   // 24 Eyl 2026, eklemeli: §1'deki sahne alanları, ilk görseli anlatır
   "inStock": true,
   "variants": [ { "id": "var-…", "name": "250 g", "priceMinor": 32000, "inStock": true }, { "id": "var-…", "name": "1 kg", "priceMinor": 109000, "inStock": true } ],
-  "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ]   // yalnız category === "beans"
+  "grinds": [ "Çekirdek", "Espresso", "Filtre", "French Press" ],  // yalnız category === "beans"
+  "taxRatePct": 10,                   // 17 Eki 2026, eklemeli: fiyatın (ve varyant fiyatlarının) içindeki KDV oranı, §1'deki kural
+  "discountStartsAt": null, "discountEndsAt": null,   // 19 Eki 2026, eklemeli: süren indirimin ilk ve son anı (ISO-8601) ya da null
+  "allergens": ["gluten", "sut"],     // 19 Eki 2026, eklemeli: §1'deki Ek-1 grupları; girilmediyse alan YOK
+  "netQuantity": "250 g", "ingredients": "…"   // 19 Eki 2026, eklemeli: gıda etiketi; girilmeyen anahtar YOK
 } ], "shippingFlatMinor": 4900, "shippingFreeThresholdMinor": 50000 }
 ```
+
+### `compareAtPriceMinor` · `discountStartsAt` · `discountEndsAt` - indirim ve tarihleri (19 Eki 2026, yalnız ekleme)
+
+İndirim gösteren her reklamda indirimden önceki fiyat ile indirimin başlangıç
+ve bitiş tarihi yazılır (Ticari Reklam ve Haksız Ticari Uygulamalar
+Yönetmeliği m.14/1). Malda indirimden önceki fiyat, indirimin başladığı günden
+önceki 10 günde uygulanan en düşük fiyattır (m.14/3) ve yalnız indirimin
+yapıldığı kanalın fiyatına bakılır (m.14/5: köşk rafındaki fiyat çevrim içi
+mağazaya esas olmaz). Bu yüzden:
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `compareAtPriceMinor` | number (her üründe, değişmedi) | Süren indirimin indirim öncesi fiyatı; **0 = gösterilecek indirim yok**. Tarih yoksa, tarih aralığı dışındaysa ya da satış fiyatından yüksek değilse 0 gelir. |
+| `discountStartsAt` | string \| null (her üründe) | İndirimin ilk anı, ISO-8601 UTC (İstanbul günü 00:00). `compareAtPriceMinor` 0 ise `null`. |
+| `discountEndsAt` | string \| null (her üründe) | İndirimin son anı, ISO-8601 UTC (İstanbul günü 23:59:59.999). `compareAtPriceMinor` 0 ise `null`. |
+
+- `compareAtPriceMinor` v1'de olduğu gibi her üründe zorunlu bir sayıdır;
+  alan hiçbir zaman düşürülmez. Uygulama yalnız `compareAtPriceMinor >
+  priceMinor` iken üstü çizili fiyat ve indirim rozeti çizer (bugünkü kural).
+- Rozetin yanında **"İndirim <başlangıç> - <bitiş> tarihleri arasında
+  geçerli"** yazılır; günler `Europe/Istanbul` günü olarak okunur ("19 Ekim
+  2026 - 31 Ekim 2026"). Tarihleri okumayan eski sürüm rozeti tarihsiz çizer:
+  operatör, tarihli rozeti gösteren sürüm asgari sürüm olana kadar ürünlere
+  eski fiyat girmez (karar OP-COMPARE-AT).
+- Sunucu son anı geçen indirimi kendisi kapatır (bir sonraki yanıtta 0 ve
+  `null`); uygulama yine de `discountEndsAt` geçtiyse rozeti çizmemelidir
+  (önbellekteki yanıt).
+- Panel eski fiyatı yalnız iki tarihle ve başlangıçtan önceki 10 günün en
+  düşük çevrim içi satış fiyatına eşitse kaydeder (`/admin/urunler` → **Fiyat
+  ve stok**). Fiyat geçmişi `product_price_history` tablosunda, her fiyat
+  değişikliğinde tetikleyiciyle yazılır; migration
+  `20261019170300_product_price_history.sql` tarihsiz eski fiyatları 0 yapar.
+- Kaynak: `products."compareAtPriceMinor"`, `"discountStartsAt"`,
+  `"discountEndsAt"`; kural `src/lib/shop/discount.ts` (`liveDiscount`), web
+  sayfası da aynı fonksiyonu okur.
+
+### `allergens` ve gıda etiketi alanları (19 Eki 2026, yalnız ekleme)
+
+Uzaktan satılan paketli gıdada etiketin zorunlu bilgileri, son tüketim tarihi
+hariç, satın alma tamamlanmadan önce verilir (TGK Gıda Etiketleme ve
+Tüketicileri Bilgilendirme Yönetmeliği m.17/2-a; bilgiler m.9/1). Ürün ekranı
+bunları, panelde girilmişse gösterir:
+
+| Alan | Tip | Değer |
+| --- | --- | --- |
+| `allergens` | string[] **ya da alan yok** | §1'deki 14 Ek-1 grubu, aynı anahtarlar ve aynı üç durum: `[]` = hiçbirini içermez, alan **yoksa** girilmemiştir. |
+| `netQuantity` | string **ya da alan yok** | Net miktar ("250 g", "6 adet"). |
+| `ingredients` | string **ya da alan yok** | İçindekiler, etiketteki gibi. |
+| `nutrition` | string **ya da alan yok** | Beslenme bildirimi; satır satır (`\n`). |
+| `storageConditions` | string **ya da alan yok** | Saklama koşulu. |
+| `usageInstructions` | string **ya da alan yok** | Kullanım talimatı. |
+| `origin` | string **ya da alan yok** | Menşe ülkesi. |
+| `producer` | string **ya da alan yok** | Gıda işletmecisinin adı ya da unvanı ve adresi. |
+| `businessRegNo` | string **ya da alan yok** | İşletme kayıt numarası ya da onay işareti. |
+
+- Metin operatörün etiketten yazdığıdır; sunucu satır içi boşlukları
+  sadeleştirir, satır sonlarını korur, boş satırı atar. Boş alan
+  gönderilmez: uygulama eksik anahtarı "yok" diye değil "girilmedi" diye
+  okumalıdır.
+- Gıda ürününde (kategori `beans`, `pantry`, `gift`) şu anahtarlardan biri
+  yoksa uygulama müşteriye, eksik olanları sayarak, siparişten önce
+  mağazaya sormasını söyler, web sayfasının yaptığı gibi: `netQuantity`,
+  `ingredients`, `allergens`, `nutrition` (`beans` dışında: kahve
+  çekirdeğinde beslenme bildirimi gerekmez), `storageConditions`,
+  `origin`, `producer`, `businessRegNo`. `usageInstructions` yalnız
+  gerektiğinde girilir ve satırı tutmaz. Kural sitede
+  `src/components/laffogato/product-facts.ts` (`missingFoodLabel`).
+- `tags` ve içindeki `nuts` **aynen kalır**: eski sürümler kuruyemiş
+  uyarısını ondan okur. Panel `sert_kabuklu` işaretlenince `nuts` etiketini
+  kendisi ekler; alerjenler girilmiş bir üründe `nuts` etiketi varsa
+  `sert_kabuklu` da işaretlidir.
+- Kaynak: `products.allergens` (jsonb, NULL = girilmedi;
+  `products_allergens_check` §1'deki listeyi tutar) ve aynı adlı `text`
+  sütunları, migration `20261019170200_product_food_label.sql`; alan listesi
+  `src/lib/shop/food-label.ts`. Panelde `/admin/urunler` → **Temel bilgi** →
+  *Alerjen* ve *Gıda etiketi*.
+- Eski sürümler alanları okumaz; bir şey kırılmaz.
 
 ### `tags` — alerjen (16 Eyl 2026, yalnız ekleme)
 
@@ -365,6 +531,13 @@ Kurallar:
 
 - `customers.emailVerified` yoksa **403** `email_unverified`.
 - Kafe satırları `menu_items` (aktif) ile, mağaza satırları `products` ile çözülür; **fiyat DB'den**.
+- Mağaza satırında `variantId` (18 Eki 2026): aktif varyantı olan ürün yalnız varyantıyla satılır.
+  `variantId`'siz satır **400** `invalid_line` alır ("<ürün> için bir seçenek seç. Sepeti güncelle."),
+  stok ve fiyat dokunulmadan; eskiden taban fiyattan satılıyor, birimi yalnız ürün toplamından düşüyordu.
+  Bütün varyantları pasif olan ürün `/shop`'ta `variants: []` ile yayımlanır ve varyantsız ürün gibi satılır.
+  Ürün sayfası her zaman bir varyant gönderdiği için uygulamanın bugünkü yolu değişmez; varyant
+  eklenmeden önce sepete giren ya da o zamanki siparişten tekrar eklenen satır bu cevabı alır.
+  `/orders/preview` aynı kuralla yanıtlar.
 - Seçenek fiyatları `customization` sabitinden; `size: "L"` → `priceMinorL`, yoksa **400**.
 - Özelleştirilemeyen kategoriler (`dessert` · `snack` · `extras`; uygulamanın `NON_CUSTOMIZABLE`
   listesi) seçenek almaz (14 Eki 2026, yalnız ekleme): bu satırlarda gönderilen `options`
@@ -414,7 +587,7 @@ Kurallar:
 > **Uygulama notu (POST /orders).**
 >
 > - Hata kodları — 400: `invalid_json`, `invalid_body` (Zod), `invalid_address`,
->   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün), `line_not_found`,
+>   `invalid_line` (L boyu yok / bilinmeyen seçenek / pasif ürün / varyantlı üründe `variantId` yok), `line_not_found`,
 >   `qty_too_high` (satır başına en fazla 99, en fazla 30 satır), `empty_cart`,
 >   `fulfillment_unavailable` (kafe siparişinde seçilen `delivery`/`pickup`/`table` panelden kapatılmış —
 >   `mobileApp.ordering.deliveryEnabled` / `pickupEnabled` / `tableEnabled`; mesaj "Bu teslimat seçeneği şu an kapalı."),
@@ -535,11 +708,13 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
                 { "key": "on_the_way", "label": "Kuryede", "at": null, "done": false },   // pickup: "Hazır - gel al"
                 { "key": "delivered", "label": "Kapında", "at": null, "done": false } ],
   "channel": "app", "kind": "cafe", "fulfillment": "delivery",
-  "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … } } ],
+  "items": [ { "name": "Cappuccino", "detail": "M · yulaf · +1 shot", "qty": 1, "unitPriceMinor": 24500, "menuItemId": "mnu-0007", "productId": null, "variantId": null, "size": "M", "options": { … },
+               "taxRatePct": 10 } ],   // 17 Eki 2026, yalnız ekleme: satış anındaki KDV oranı; eski siparişte null
   "subtotalMinor": 83500, "discountMinor": 0, "shippingMinor": 5500, "totalMinor": 89000,
   "promoCode": "", "address": "Evim - …", "scheduledFor": null, "etaMinutes": 35, "etaAt": "…",
   "shipment": null,   // yalnız fulfillment === "shipping" → §3.1
   "table": null,      // 15 Eki 2026, yalnız ekleme: fulfillment === "table" ise { "code": "7K3M9QX2TA", "name": "Bahçe 3" } (sipariş anındaki ad), aksi hâlde null
+  "taxBreakdown": [ { "ratePct": 10, "grossMinor": 89000, "netMinor": 80909, "taxMinor": 8091 } ],  // 17 Eki 2026, yalnız ekleme; aşağı bak. Eski siparişte null
   "stampsEarned": 1, "createdAt": "…", "paidAt": "…" | null
   // stampsEarned = loyalty_stamps LEDGER'ından okunur: siparişin `earn` satırının
   // delta'sı eksi o siparişin `reversal` satırlarının toplamı (15 Eki 2026'dan
@@ -548,6 +723,35 @@ ekranından çıkınca artık tutmuyor; bu uç aynı tekrarı sipariş kimliğiy
   // edilen siparişin damgası geri alınır.
 }
 ```
+
+### 3.0 KDV - `items[].taxRatePct` · `taxBreakdown` (17 Eki 2026, yalnız ekleme)
+
+Sipariş yazılırken her satıra o anki oranı (§1 `taxRatePct` kuralı) kopyalanır
+(`orders.items[].taxRatePct`, jsonb). Panelde sonradan değişen oran verilmiş
+siparişi değiştirmez. `taxBreakdown`, `totalMinor`'ın içindeki KDV'nin oran oran
+dökümüdür, en yüksek oran önce:
+
+| Alan | Anlamı |
+| --- | --- |
+| `ratePct` | Oran (tam yüzde) |
+| `grossMinor` | Bu orandaki KDV dahil tutar: satırlar indirim düşülmüş; kargo/kurye ücreti kendi oranının satırında |
+| `netMinor` | Matrah: `grossMinor − taxMinor` |
+| `taxMinor` | KDV: `round(grossMinor × r / (100 + r))`, kuruşa yuvarlanır |
+
+- İndirim (kupon, promosyon) satırlara tutarlarıyla orantılı dağıtılır.
+- Kargo ve kurye ücreti ayrı bir taşıma hizmetidir ve kendi oranıyla (%20)
+  eklenir; aynı orandaki ürün satırlarıyla tek ratePct satırında toplanır
+  (18 Eki 2026; alanlar ve satır biçimi değişmedi; eski siparişlerin dökümü de
+  bu kuralla gelir).
+- Satırların `grossMinor` toplamı her zaman `totalMinor`'dır. İadeler düşülmez:
+  döküm satış anına aittir.
+- Oranlar kaydedilmeden önce verilmiş siparişte satırlarda `taxRatePct: null`,
+  siparişte `taxBreakdown: null` gelir.
+- **Toplamlar değişmedi.** `subtotalMinor`, `discountMinor`, `shippingMinor`,
+  `totalMinor` önceki kuralla hesaplanır; oran ödenecek tutara hiç girmez.
+- `POST /orders/preview` satırlarına da `taxRatePct` eklendi (yalnız ekleme):
+  o satırın şimdi satılacağı oran.
+- Eski sürümler alanları okumaz; bir şey kırılmaz.
 
 ### 3.1 `shipment` — kargo (22 Eyl 2026, yalnız ekleme)
 
@@ -599,7 +803,7 @@ kümesidir (resmî JS SDK'sı); sunucu `TRACK_UPDATED` webhook'unda eşler:
 ### `POST /orders/preview` → sepet hesabı (kimlik gerekli değil ama varsa kupon denenir)
 
 Gövde `POST /orders` ile aynı (legalConsent hariç). Yanıt:
-`{ "lines": [ { "name", "detail", "qty", "unitPriceMinor", "lineTotalMinor" } ], "subtotalMinor", "discountMinor", "shippingMinor", "totalMinor", "promo": { "code", "ok": true } | { "code", "ok": false, "message" } | null, "stampsToEarn": 1 }`
+`{ "lines": [ { "name", "detail", "qty", "unitPriceMinor", "lineTotalMinor", "taxRatePct" } ], "subtotalMinor", "discountMinor", "shippingMinor", "totalMinor", "promo": { "code", "ok": true } | { "code", "ok": false, "message" } | null, "stampsToEarn": 1 }`
 
 > **Uygulama notu (preview).** `promoCode` verilmişse `promo-preview` hız sınırı burada da
 > uygulanır; sınıra takılan istek **429 dönmez** — yanıt 200'dür ve `promo`
@@ -756,9 +960,14 @@ Cache: `public, s-maxage=30` — `stale-while-revalidate` **yok**: panel persone
 
 ## 7. Karaoke
 
-- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
-- `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt" } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
+- `GET /karaoke/availability?date=YYYY-MM-DD` → `{ "date", "slots": [ { "startHour": 16, "available": true } ], "hourlyMinor": 90000, "capacity": 8, "oroDiscountPct": 15, "firstHour": 12, "closeHour": 24, "maxHours": 4, "bookingWindowDays": 60, "taxRatePct": 20 }` (`slots` `firstHour`..`closeHour-1`; fiyat `settings.karaokeHourlyMinor`, kapasite `settings.karaokeCapacity`; `firstHour/closeHour/maxHours/bookingWindowDays/oroDiscountPct` `/admin/mobil/ayarlar` → Karaoke kuralları, §10 `settings.mobileApp.karaoke`).
+- `POST /karaoke/reservations { "date", "startHour", "hours", "guests", "note" }` (kimlik) → 201 `{ "reservation": { "id", "date", "startHour", "hours", "guests", "status": "requested", "priceMinor", "discountMinor", "totalMinor", "createdAt", "taxRatePct": 20 } }`. Çakışma **409** `slot_taken`. Tablo `karaoke_reservations`; panel `/admin/mobil/karaoke` (onayla/iptal).
 - `GET /karaoke/reservations` → benimkiler.
+- **`taxRatePct` (17 Eki 2026, yalnız ekleme):** müsaitlikte karaoke odasının
+  şimdiki KDV oranı (panel varsayılanı, yasal **%20**), rezervasyonda
+  rezervasyon anındaki oran (`karaoke_reservations."taxRatePct"`; daha önce
+  yapılmış rezervasyonda `null`). Fiyat ve toplamlar KDV dahildir ve
+  değişmedi; uygulama özet satırında "Toplam (%20 KDV dahil)" yazabilir. Kural §1.
 - **409 `too_many_reservations`**: aynı anda en fazla **2** açık (`requested`/`confirmed`)
   rezervasyon (`KARAOKE_OPEN_CAP`). `slot_taken` gibi bu da kurala dayalı bir ret;
   uygulama sunucunun mesajını gösterir, tekrar denemeyi önermez.
@@ -791,6 +1000,10 @@ Operatör kararı: karaoke rezervasyonu yapılırken PayNkolay ile kartla ödeni
 alınmamış rezervasyon onaylanmaz (panelde de). Panelde bir anahtar var
 (`settings.karaokePrepay`, Ayarlar → Karaoke, varsayılan açık); kapalıyken eski
 akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none`'a düşer.
+19 Eki 2026'dan beri anahtar kapatılamaz (OP-KARAOKE-PREPAY): panel kapatmayı
+reddeder, kilitten önce kapalı kaydedilmiş bir değer de açık okunur
+(`getSettings`). Sunucu `paymentRequired: false` göndermez; uygulamanın talep
+dalı yalnız eski bir sunucuya karşı anlamlıdır.
 
 **`GET /karaoke/availability`** yanıtına eklenen alanlar:
 
@@ -863,7 +1076,7 @@ akış döner (talep, köşkte ödeme, elle onay) ve aşağıdaki her şey `none
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `paymentStatus`    | `none` (köşkte ödeme; eski kayıtlar) · `pending` (ödeme bekliyor, saat tutuluyor) · `paid` · `refunding` (iade sonucu bekleniyor) · `refunded` · `expired` (ödenmedi, düştü) |
 | `paymentDueAt`     | `pending` iken ödeme sayfasının kapandığı an (ISO), yoksa `""`                                                                                                               |
-| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (başlangıçtan 2 saat önce, ISO)                                                                                        |
+| `cancellableUntil` | Üyenin kendisi iptal edip tam iade alabileceği son an (rezervasyonun kendi kuralı; eski satırda başlangıçtan 2 saat önce, ISO; aşağıda "İptal ve iade kuralı panelden") |
 
 `status` üç değerini korur: `pending` rezervasyon `requested`'dır (saati tutar,
 2 açık rezervasyon sınırına sayılır), `refunded` ve `expired` her zaman
@@ -915,7 +1128,96 @@ yönetilir. Üye web'de "Karaoke rezervasyonlarım" (`/uye/hesap/karaoke`)
 bölümünden aynı iptali yapar. Hesap silinince (`DELETE /me`) başlangıca 2
 saatten fazla olan ödenmiş rezervasyonlar karta iade edilerek iptal edilir; 2
 saatten az kalanlara iade yapılmaz, rezervasyon kalır ve ekibe haber gider.
+Üyenin Site'den açtığı silme talebi açıksa (`/uye/hesap/sil`) bu süre talebin
+anına göre hesaplanır (`hesap-silme` §8; talepten sonra yapılan rezervasyonda
+silme anına göre); saati talepten sonra geçen ödenmiş rezervasyon ne iade ne
+iptal edilir, ekibe gider. Yanıt ve hata kodları aynı (18 Eki 2026).
 Üyeliksiz rezervasyonlar hesap silmeden etkilenmez.
+
+**İptal ve iade kuralı panelden (18 Eki 2026, yalnız ekleme).** Operatör: "para
+tutarı iade edilir kısmını da panelden ayarla". Kural iki sayıdır (Ayarlar →
+Karaoke, yalnız sahip): ücretsiz iptal süresi `freeCancelHours` (0..72 saat,
+varsayılan 2; 0 = rezervasyon saati gelene kadar ücretsiz iptal; ilk
+sürümde "her iptal geç" demekti) ve geç iptalde iade `lateRefundPercent`
+(0..100, varsayılan 0; 21 Eki 2026'ya kadar panel yalnız 0 ya da 100
+kaydediyordu, yeniden satılan saatin iadesiyle 1..99 da açıldı; uygulama
+kilidi aşağıda). Süreden önceki iptal, son anın kendisi dahil
+ve sayfaların yazdığı dakikanın tamamı (18:00 son an ise 18:00:59'a kadar;
+ilk sürümde `now < cancellableUntil`), her zaman tamamını iade
+eder; gelmeyene iade yoktur; köşkün kendi iptali her zaman tam iadedir (MSY
+m.16/4). Köşkün yalnız aktardığı istek (misafirin telefonla ya da e-postayla
+ilettiği iptal, panelde "Misafir iptal istedi") ise rezervasyonun kuralına
+istek anına göre bağlıdır: süre içindeyse tamamı, geç iptalde iade yoksa
+rezervasyon iptal edilmez ve olduğu gibi durur, geç iptal payı varsa
+`refundMinor` o paydır. Her rezervasyon yapıldığı andaki kuralı saklar (`karaoke_reservations."freeCancelHours"`, `"lateRefundPercent"`,
+`"cancelDeadline"`, `"cancellationRules"`; eski satırlarda `NULL` = 2 / 0 ve
+varsayılan iki cümle) ve her süre, cümle ve iade o kayıttan okunur.
+
+- `GET /karaoke/availability`: `freeCancelHours` ve `cancellationRules` artık
+  **şu an yapılacak** rezervasyonun kuralıdır. Yeni alan `lateRefundPercent`
+  (tam sayı). Varsayılan kuralda iki cümle yukarıdakilerle bayt bayt aynıdır.
+- `POST /karaoke/reservations`: opsiyonel yeni alan `expectedCancelPolicy`
+  `{ "freeCancelHours", "lateRefundPercent" }` (tam sayılar): üyeye gösterilen
+  kural, müsaitlik yanıtındaki iki sayı. `expectedTotalMinor` gibi çalışır:
+  panel kuralı sayfa açıkken değiştirdiyse **409** `policy_changed` döner,
+  gövdede yeni kural bulunur (`{ "error": "policy_changed", "message": "…",
+  "freeCancelHours": 2, "lateRefundPercent": 0, "cancellationRules": […] }`);
+  rezervasyon yazılmaz, saat tutulmaz. Okunamayan değer **400**
+  `invalid_request`. Alan yoksa davranış öncekiyle aynıdır. Web formu
+  bastığı kuralı aynı biçimde gönderir.
+- Rezervasyon nesnesi: `cancellableUntil` rezervasyonun kendi son tam iade
+  anıdır, bu an dahil (eski satırda başlangıçtan 2 saat önce; 0 saatlik
+  kuralda başlangıç anı). Yeni alanlar:
+  `freeCancelHours`, `lateRefundPercent`, `cancellationRules` (rezervasyon
+  anında gösterilen iki cümle) ve `refundMinor` (geç iptalde iade edilecek ya
+  da edilmiş pay, kuruş; tamamı iade ediliyorsa `null`). 21 Eki 2026'dan
+  beri `refundMinor` geç iptal edilen saat yeniden satılınca o saat için
+  iade edilen payı da içerir (alan ve tipi aynı; değer büyüyebilir, bütün
+  saatler yeniden satılırsa ödenen tutara eşit olabilir ve yine `null`
+  olmaz; `paymentStatus` `refunded`'dan yeniden `refunding`'e dönebilir,
+  ekip payı elle iade edince yine `refunded` olur). Her saat bir kez, o
+  saati en son geç iptal eden rezervasyona sayılır.
+- `POST /karaoke/reservations/{id}/cancel`: süre içinde (`cancellableUntil`
+  geçti) ve başlangıçtan önce, `lateRefundPercent` 0 ise eskisi gibi **409**
+  `too_late`. 100 ise tamamı POS'tan iade edilir (**200**, `refunded: true`).
+  1..99 ise onaylı rezervasyon iptal edilir ve saat boşalır, pay
+  `round(paidMinor × P / 100)` olarak borçlanır: **200** `refunded: false`,
+  `reservation.status: "cancelled"`, `paymentStatus: "refunding"`,
+  `refundMinor` dolu. PayNkolay kısmi iadeyi otomatik yapamadığı için ekip payı
+  PayNkolay panelinden iade eder ve "Elle iade edildi" ile kaydeder; o zaman
+  `paymentStatus: "refunded"` olur ve üyeye e-posta gider (docs/PAYNKOLAY.md
+  §3.2). Ödenmiş ama köşkün hiç onaylamadığı (`status: "requested"`)
+  rezervasyonda pay uygulanmaz: tamamı POS'tan iade edilir (**200**,
+  `refunded: true`). Başlangıçtan sonra her üye iptali `too_late`'tir. `too_late`
+  mesajı rezervasyonun kendi kuralından gelir; varsayılan kuralda aynı cümle.
+  Hata kodları ve durum kodları değişmedi.
+- **Uygulama kilidi.** Yayındaki uygulama sürümleri rezervasyon ayrıntısında
+  ve iptal adımında kendi sabit "2 saat, iade yok" cümlelerini yazıyor,
+  `cancellableUntil` geçince iptal düğmesi sunmuyor (`cancelOutcome` `late`) ve
+  `freeCancelHours`'u 1..168 dışında 2 okuyor; istekleri de sunucunun
+  ayırabileceği bir sürüm bilgisi taşımıyor. Bu yüzden sitedeki
+  `KARAOKE_POLICY_APP_VERSION` (`src/lib/mobile/karaoke-time.ts`) `null`
+  kaldıkça panel yalnız 2 saat / %0 kaydeder ve her rezervasyon 2 / 0 ile
+  yapılır: hiçbir istemci rezervasyonun kuralından farklı bir kural göstermez.
+  Kilit, rezervasyonun kendi `cancellationRules`'unu her karaoke ekranında
+  basan, geç iptal payını gösteren ve rezervasyonda `expectedCancelPolicy`
+  gönderen sürüm yayınlanıp bu sabite yazılınca ve `minSupportedAppVersion` o
+  sürüme çıkınca açılır.
+- Hesap silinince (`DELETE /me`) yukarıdaki kural rezervasyonun kendi
+  kuralıyla uygulanır: süreden önce tam iade, süre içinde geç iptal payı
+  (`lateRefundPercent` 0 ise iade yok, rezervasyon kalır, ekibe haber gider).
+- **Telafi saati (21 Eki 2026, yalnız ekleme; uçlar ve alanlar değişmedi).**
+  Köşk, ücretsiz iptal süresi geçtikten sonra kendi sebebiyle (arıza,
+  kapanış, başka bir işletme sebebi; mücbir sebep değil) iptal ederse tam
+  iadeye ek olarak telafi verir: misafir isterse ekip aynı uzunlukta
+  ücretsiz bir saat açar. Bu saat üyenin listesinde (`GET
+  /karaoke/reservations`) sıradan bir rezervasyon olarak görünür:
+  `status: "confirmed"`, `paymentStatus: "none"`, `totalMinor` 0; üye
+  onu `POST /karaoke/reservations/{id}/cancel` ile kuralına göre iptal
+  edebilir (ödeme yok, iade yok; saat başlamadan iptal edilirse telafi
+  misafir için yeniden açılır). Açık rezervasyon tavanına
+  (`too_many_reservations`) sayılmaz. Uygulama `none` için ödeme satırı
+  basmaz, 0 tutarı göstermez (lafmobil `karaoke-rezervasyon/[id].tsx`).
 
 
 ## 8. Bildirimler — `GET /notifications` (kimlik)
@@ -1049,7 +1351,7 @@ panelde yapılan değişiklik uygulamaya en geç 5 dakikada ulaşır.
       "items": [ { "id": "morning", "hour": 10, "minute": 0, "title": "Günaydın ☕", "body": "Sabah kahven köşkte hazır. Bugün ne içiyoruz?" } ]   // 0..4 öğe; fiyat/indirim/aciliyet dili yok; "hour" 8..21 (panel dışını kaydetmez, uygulama okurken düşürür)
     },
     "campaignCards": { "loyalty": true, "invite": true, "subscription": true },  // Kampanyalar ekranındaki sabit kartlar; "subscription" artık hiçbir kartı çizmez (karar 20)
-    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - OPENAI_API_KEY VE FAL_AI_ENABLED=true; false iken uygulama yalnız cihazda okur (§20)
+    "fal": { "ai": false },   // 23 Eyl 2026, karar 177 (eklemeli): fA'L'ın yapay zekâ yorumu açık mı - FAL_AI_ENABLED=true VE seçilen sağlayıcının anahtarı (17 Eki 2026'dan beri Anthropic, §20) VE standart sözleşmenin imza ve bildirim kaydı (19 Eki 2026, §20); false iken uygulama yalnız cihazda okur (§20)
     "store": { "appStoreUrl": "", "playStoreUrl": "" }   // /admin/mobil/ayarlar → Mağaza. Zorunlu güncelleme ekranındaki düğme buraya gider; boşken düğme çizilmez. Yalnız listeleme adresleri — imza parmak izleri sitenin işidir, uygulamaya gitmez
   }
 }
@@ -1155,7 +1457,7 @@ Uygulama kendi sözleşme kopyasını yazmaz. Sipariş kaydı sitenin sözleşme
 revizyonuna rıza kaydeder; iki taraf farklı metin gösterirse o kayıt anlamsız
 kalır. Bu yüzden tek kaynak `src/lib/legal/content.ts`'tir ve mobil onu okur.
 
-**`GET /api/mobile/v1/legal`** — 25 belgelik dizin.
+**`GET /api/mobile/v1/legal`**: 26 belgelik dizin (20 Eki 2026'dan beri İşlem Rehberi dahil).
 
 ```json
 {
@@ -1214,7 +1516,7 @@ ulaşılamazsa iki uç da kodlu belgeye döner — 5xx vermez.
 ### Çevrimdışı taban
 
 `npm run legal:export` (site deposu) `scripts/legal-export.mjs`'yi çalıştırıp
-`laffogato-mobil/src/data/legal.seed.json` üretir: 25 belgelik dizin + **14
+`laffogato-mobil/src/data/legal.seed.json` üretir: 26 belgelik dizin + **14
 belgenin tam metni** (`BUNDLED_SLUGS`). Paketlenen 14, uygulamanın içeriden
 bağlandığı belgelerdir — ağ yokken de açılabilmeleri gerekir:
 
@@ -1424,18 +1726,27 @@ Hatalar: **401** `unauthorized` · **403** `email_unverified` · **429**
 ### Kasa tarafı (panel, `/admin/kasa`)
 
 Okutma bir API ucu değil, `redeemCounterTokenAction` sunucu eylemidir
-(`requireRole("till")` hem sayfada hem eylemde). Üç yol — kamera · kod ·
-e-posta — aynı eylemde birleşir ve `stamps` (1–5) kadar `loyalty_stamps`
-satırı yazar (`source: "counter"`, not `Kasa · QR` / `Kasa · kod` /
-`Kasa · e-posta`).
+(`requireRole("till")` hem sayfada hem eylemde). İki yol - kamera · kod -
+aynı eylemde birleşir ve `stamps` (1-5) kadar `loyalty_stamps` satırı yazar
+(`source: "counter"`, not `Kasa · QR` / `Kasa · kod`).
 
-| Sonuç            | Türkçe karşılık                                            |
-| ---------------- | ---------------------------------------------------------- |
-| `expired`        | "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste." |
-| `already_used`   | "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez."      |
-| `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara."   |
-| `invalid_email`  | "Geçerli bir üye e-postası gir."                           |
-| `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                    |
+**E-postayla damga yok (21 Ekim 2026, ASK-LOYALTY).** Kasada damga yalnız
+üyenin uygulamasının gösterdiği kasa koduyla (QR ya da 8 karakter) verilir;
+`kind: "email"` eylemde de `redeemCounterToken`'da da reddedilir
+(`email_refused`), hiçbir şey okunmaz ve yazılmaz. `Kasa · e-posta` notu ve
+`invalid_email` sonucu yalnız bu tarihten önceki satırlarda ve isteklerde
+görünür. Kasanın kaçırdığı bir damgayı, üyenin talebi üzerine panelin üye
+sayfasında sahip ya da yönetici gerekçesiyle ekler; not `Düzeltme · ` ile
+başlar.
+
+| Sonuç            | Türkçe karşılık                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `expired`        | "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste."                                                        |
+| `already_used`   | "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez."                                                             |
+| `not_found`      | "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni QR göstermesini iste."                                         |
+| `email_refused`  | "E-postayla damga verilmiyor. Üyeden uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste." |
+| `invalid_email`  | Yalnız 21 Ekim 2026'dan önceki isteklerde: "Geçerli bir üye e-postası gir."                                       |
+| `invalid_stamps` | "Damga sayısı 1 ile 5 arasında olmalı."                                                                           |
 
 Kamera her tarayıcıda çalışır. Tercih sırası `BarcodeDetector` (Chrome/Edge,
 donanım hızlandırmalı) → **jsQR** (saf JavaScript, yalnız ilki yoksa dinamik
@@ -1455,8 +1766,7 @@ hemen yeniden okunabilir).
 Tek kullanım koşullu UPDATE ile sağlanır (`where "usedAt" = ''`): aynı QR'ı
 aynı saniyede okutan iki kasa da ayrı bir okuma kontrolünden geçer, ama
 yalnız biri satırı günceller — 0 satır dönen `already_used` olur ve damga
-yazılmaz. Kasiyer üyenin e-postasının tamamını **görmez** (`e***@ornek.com`);
-e-posta yolunda adresi zaten kendisi yazdığı için maskeleme uygulanmaz.
+yazılmaz. Kasiyer üyenin e-postasının tamamını **görmez** (`e***@ornek.com`).
 
 > **Uygulama notu (§17).** `token` yalnız yanıt gövdesinde bulunur, uygulama
 > onu saklamaz; süre dolmadan ~10 sn önce yeni jeton istenir. 429 gelirse
@@ -1614,22 +1924,59 @@ Hatalar: **400** `invalid_request` (`legalConsent` yok, §3 siparişiyle aynı `
 ## 20. fA'L yapay zekâ yorumu - `POST /fal` · `GET|POST|DELETE /fal/consent` (kimlik)
 
 23 Eyl 2026, karar 177, yalnız ekleme. Üye içeceğinin fotoğrafını çeker; açık rızası
-(Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp OpenAI'nin Responses
-API'sine gider ve eğlence amaçlı bir fal döner. Rıza yoksa, özellik kapalıysa ya da
-yorum başarısızsa uygulama falı **cihazda** okur (karar 169); hiçbir hata üyenin
-önüne falsız bir ekran koymaz.
+(Açık Rıza Metni **R12**, bölüm 15/A) varsa fotoğraf küçültülüp yapay zekâ
+sağlayıcısına gider ve eğlence amaçlı bir fal döner. Sağlayıcı 17 Eki 2026'dan beri
+Anthropic'tir (Claude, Messages API); OpenAI'nin Responses API'si kodda seçenek olarak
+durur. Rıza yoksa, özellik kapalıysa ya da yorum başarısızsa uygulama falı **cihazda**
+okur (karar 169); hiçbir hata üyenin önüne falsız bir ekran koymaz.
 
-**Açık/kapalı.** Yalnız `OPENAI_API_KEY` **ve** `FAL_AI_ENABLED=true` ikisi birden
-varsa açıktır (`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: R12 metni avukat
-okumasından ve yurt dışı aktarım için standart sözleşmeden geçmeden açılmamalıdır.
-Model `OPENAI_FAL_MODEL` (varsayılan `gpt-5.4-mini`), görüntü `detail: "low"`,
-yanıt katı JSON şeması, `store: false`.
+**Sağlayıcı (17 Eki 2026).** `FAL_AI_PROVIDER` = `anthropic` | `openai`. Boşsa
+`ANTHROPIC_API_KEY` tanımlıysa `anthropic`, değilse `openai`. Başka bir değer özelliği
+kapatır (yazım hatası fotoğrafı bir alıcıya göndermez).
 
-`GET /fal/consent` → `{ "enabled": false, "version": "2026-09-23", "granted": false, "doc": "acik-riza-metni" }`
+**Açık/kapalı.** Yalnız `FAL_AI_ENABLED=true` **ve** seçilen sağlayıcının anahtarı
+(`ANTHROPIC_API_KEY` ya da `OPENAI_API_KEY`) birlikte varsa açıktır
+(`/bootstrap.app.fal.ai`). Anahtar tek başına açmaz: yurt dışı aktarım için Kurul'un
+standart sözleşmesi imzalanıp beş iş günü içinde Kurum'a bildirilmeden açılmaz
+(aktarım her yorumda tekrarlanır, arızi değildir; R12 rızası tek başına dayanak
+olamaz). 19 Eki 2026'dan beri bu bir kod kapısıdır: sözleşmenin imza günü, bildirim
+günü ve bildirim makbuzu `src/lib/mobile/fal-safeguard.ts`'e yazılmadan (bildirim günü
+İstanbul takvimiyle bugün ya da önce) ortam ne derse desin özellik kapalıdır:
+`/bootstrap.app.fal.ai` `false`, `GET /fal/consent` `enabled: false`, `POST /fal`
+**503** `fal_unavailable`, fotoğrafı gönderen tek fonksiyon (`readCupWithAI`) da hiçbir
+istek atmaz. Yanıt biçimleri değişmez (yalnız ekleme). Seçilen sağlayıcı
+hukuki metinlerin alıcı olarak andığı sağlayıcı değilse (17 Eki 2026'dan beri
+Anthropic, PBC; `fal-core.ts` `FAL_DISCLOSED_PROVIDER`) özellik yine kapalıdır: metinler
+ve R12 sürümü değişmeden OpenAI'ye dönülmez.
 
-`POST /fal/consent { "version": "2026-09-23" }` → `{ "granted": true, "version": "2026-09-23" }`.
+| Sağlayıcı | Model (varsayılan) | İstek |
+| --- | --- | --- |
+| `anthropic` | `ANTHROPIC_FAL_MODEL` (`claude-opus-5-5`; `claude-sonnet-5-5` ve `claude-haiku-5-5` de olur) | `POST https://api.anthropic.com/v1/messages`, başlıklar `x-api-key` ve `anthropic-version: 2023-06-01`. Fotoğraf base64 `image` bloğu; yanıt `output_config.format` ile JSON şemasına bağlı (`effort: "low"`, `max_tokens` 2048). Yalnız `stop_reason: "end_turn"` okunur; `refusal` ya da `max_tokens` cihaza düşer. |
+| `openai` | `OPENAI_FAL_MODEL` (`gpt-5.4-mini`) | Responses API; görüntü `detail: "low"`, yanıt katı JSON şeması, `store: false`. |
+
+İki sağlayıcıya da aynı talimat, aynı kimliksiz not ve aynı küçültülmüş fotoğraf gider;
+yanıt aynı kurallarla süzülür. Model 20 saniyede yanıt vermezse istek kesilir.
+
+`GET /fal/consent` → `{ "enabled": false, "version": "2026-10-19-anthropic", "granted": false, "doc": "acik-riza-metni" }`
+
+`POST /fal/consent { "version": "2026-10-19-anthropic" }` → `{ "granted": true, "version": "2026-10-19-anthropic" }`.
 Güncel olmayan sürüm **409** `consent_outdated` (üye yürürlükteki metni görmüş olmalı).
 Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rızanın ispatıdır.
+
+**Sürüm alıcıyı da söyler (17 Eki 2026).** `version` opak bir dizedir: R12 metninin
+günü ve andığı alıcı (`2026-10-19-anthropic`). Alıcı ya da metin değişince sürüm de
+değişir; eski sürümle verilmiş rıza sayılmaz, `GET` `granted: false` döner ve uygulama
+rızayı yeniden sorar. 23 Eyl 2026 rızaları (`2026-09-23`, alıcı OpenAI) bu yüzden artık
+sayılmaz. 19 Eki 2026'da R12'nin sözleri değişti (Anthropic'in saklama süresi ve eğitim
+yasağı, sözleşme imzalanıp bildirilmeden fotoğraf gönderilmez); sürüm
+`2026-10-19-anthropic` oldu ve `2026-10-17-anthropic` rızaları da artık sayılmaz.
+Uygulama sürümü `GET`'ten aldığı gibi geri yolladığı için bu v1'i bozmaz.
+
+**Rıza sayfası da alıcıyı söyler.** Sunucu üyenin hangi metni gördüğünü bilemez:
+uygulama `POST`'a `GET`'te aldığı `version`'ı yollar. Bu yüzden uygulamanın rıza
+sayfası `version`'ın andığı alıcıyı adlandırır. Başka bir alıcıyı adlandıran sürüm
+(17 Eki 2026 öncesi sayfa OpenAI der) üyelere verildiyse özellik,
+`minSupportedAppVersion` doğru alıcıyı adlandıran ilk sürüme yükseltilmeden açılmaz.
 
 `DELETE /fal/consent` → `{ "granted": false }`; satır silinmez, `revokedAt` yazılır.
 
@@ -1642,9 +1989,9 @@ Kayıt `feature_consents` satırıdır (üye, özellik, sürüm, zaman) ve rıza
                "trait": "Sen yeni başlangıçlara cesaretle yürüyensin.",
                "forecast": "Bu hafta güzel bir sohbet seni bulacak." },
   "ai": true,
-  "consentVersion": "2026-09-23",
+  "consentVersion": "2026-10-19-anthropic",
   "remainingToday": 4,
-  "model": "gpt-5.4-mini"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
+  "model": "claude-opus-5-5"   // 23 Eyl 2026, eklemeli: yorumu yazan model; bildirimde geri gönderilir
 }
 ```
 
@@ -1654,13 +2001,17 @@ bir model çağrısı, onaysız kayıtlar günlük hakkı adres başına yeniden
 her retteki gibi falı cihazda okur) · **403**
 `consent_required` (güncel rıza yok) · **429** `fal_limit` (İstanbul gününde üye başına
 5) · **400** `invalid_json` / `invalid_request` / `invalid_image` (JPEG değil ya da
-çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi, şemaya
-uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable` (veritabanı).
+çözülmüş hâli 900 KB'tan büyük) · **502** `fal_failed` (model yanıt vermedi ya da
+yorumu reddetti, şemaya uymadı ya da yanıt bir vaat içeriyordu) · **503** `unavailable`
+(veritabanı).
 
 > **Gizlilik (R12).** Sunucuya giden: fotoğraf (uygulamada 768 px'e küçültülmüş,
 > meta verisiz). Modele giden: fotoğraf ve kimliksiz bir not - seviye adı
 > (L'AF/PEARL/RUBY), ziyaret sıklığı kelimesi, varsa "her zamanki" içeceğin adı. Ad,
-> e-posta, telefon, üye no **gitmez**. Fotoğraf **saklanmaz**; üretilen metin
+> e-posta, telefon, üye no **gitmez**. Alıcı Anthropic, PBC'dir (ABD, veri işleyen;
+> R12). Anthropic fotoğrafı ve yanıtı yayımladığı ticari saklama politikasına göre en
+> geç 30 günde siler, kural ihlali şüphesiyle işaretlenen içeriği 2 yıla kadar
+> tutabilir ve içerikle model eğitmez (R12, 19 Eki 2026). Fotoğraf bizde **saklanmaz**; üretilen metin
 > yalnız üye onu bildirirse `fal_reports`'ta 90 gün durur (aşağıda, `POST
 > /fal/report`). `fal_readings` yalnız gün, `cupSeen` ve model adını tutar, 90
 > günde silinir (`src/lib/retention.ts`).
@@ -1684,9 +2035,9 @@ açılmadan önce gereken uç budur.
 | `reason` | Kapalı liste: `offensive` (Kırıcı ya da uygunsuz) · `promise` (Bir şey vaat ediyor) · `sensitive` (Sağlık, para ya da ilişki hakkında) · `other` (Başka bir sebep). Verilmezse ya da bilinmeyen bir değer gelirse `other` kaydedilir. Serbest metin alınmaz: üye oraya kişisel veri yazabilirdi. |
 | `model` | `POST /fal` yanıtındaki `model`, olduğu gibi. Yoksa ya da model adına benzemiyorsa boş kaydedilir. |
 
-- **Fotoğraf asla.** Gövdedeki başka alanlar yok sayılır. Fotoğraf zaten hiçbir
-  yerde saklanmaz, bildirim bunu değiştirmez; bildirim yapay zekâ hizmet
-  sağlayıcısına da gönderilmez.
+- **Fotoğraf asla.** Gövdedeki başka alanlar yok sayılır. Fotoğraf bizde zaten
+  saklanmaz, bildirim bunu değiştirmez; bildirim yapay zekâ hizmet sağlayıcısına
+  da gönderilmez.
 - **Anahtara ve rızaya bağlı değil (karar).** `FAL_AI_ENABLED` kapalıyken ya da
   üye R12 rızasını geri çektikten sonra da çalışır: ekranda duran bir yapay
   zekâ yorumu bildirilebilir kalmalı. Uygulama bağlantıyı **yalnız** `ai: true`
@@ -1750,7 +2101,7 @@ kaldırma `audit_logs`'a `staff_member` olarak yazılır. Üye hesabını silers
 
 | Alan | Kural |
 | --- | --- |
-| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). Kasanın üçüncü yolu olan **e-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak panel kararıdır. Başka bir değer **400** `invalid_request`. |
+| `kind` | `token` (kameranın çözdüğü QR içeriği, olduğu gibi) ya da `code` (8 karakter; boşluk, tire ve küçük harf kasadaki gibi normalleşir). **E-posta yok**: üyenin kendisi olmadan bir üyeyi adıyla damgalamak 21 Ekim 2026'dan beri kasada da yok (§17 "Kasa tarafı"). Başka bir değer **400** `invalid_request`. |
 | `value` | Boş olamaz, en fazla 200 karakter → aksi **400** `invalid_request`. |
 | `stamps` | Tam sayı, verilmezse 1. Aralık (**1-5**) burada değil, kasanın kendi fonksiyonunda denetlenir: dışındaysa **400** `invalid_stamps`. Kırpılmaz. |
 

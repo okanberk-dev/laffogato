@@ -84,8 +84,6 @@ const TOKEN_BYTES = 16;
 export const MIN_COUNTER_STAMPS = 1;
 export const MAX_COUNTER_STAMPS = 5;
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 interface CounterTokenRow {
   tokenHash: string;
   customerEmail: string;
@@ -347,11 +345,22 @@ export async function issueCounterToken(
   };
 }
 
+/**
+ * How a till scan names the member: the QR's token or the typed code.
+ *
+ * `email` is history. Until 21 Ekim 2026 a cashier could type the member's
+ * address (ledger note "Kasa · e-posta"). Decision ASK-LOYALTY (legal
+ * programme of 18 Oct 2026, read against Kurul İlke Kararı 2026/266): at the
+ * till a stamp goes only to the member who shows their own code, so
+ * `redeemCounterToken` refuses the typed address. The value stays in the
+ * type, and its note prefix in `NOTE_PREFIX`, because the ledger rows written
+ * before that day still carry them.
+ */
 export type CounterRedeemKind = "token" | "code" | "email";
 
 export interface RedeemCounterTokenInput {
   kind: CounterRedeemKind;
-  /** The QR payload, the typed code, or the member's address. */
+  /** The QR payload or the typed code. */
   value: string;
   stamps: number;
   /** The cashier's e-mail; written onto every ledger row. */
@@ -367,9 +376,14 @@ export interface RedeemCounterTokenInput {
   refuseOwner?: string;
 }
 
+/**
+ * The till's refusals. `email_refused` answers the retired e-mail path;
+ * `invalid_email` (its old shape check) is no longer produced and appears
+ * only for requests before 21 Ekim 2026 (docs/API-MOBILE.md §17).
+ */
 export type CounterRedeemError =
   | "invalid_stamps"
-  | "invalid_email"
+  | "email_refused"
   | "expired"
   | "already_used"
   | "not_found"
@@ -378,24 +392,57 @@ export type CounterRedeemError =
 export interface CounterRedemption {
   /** The member's name, empty when the account has none. */
   name: string;
-  /** What the till may print: masked on the QR and code paths. */
+  /** What the till may print: the masked address. */
   memberLabel: string;
-  /** Empty on the e-mail path - there was no code to burn. */
+  /** The burned code. */
   code: string;
   stampsGiven: number;
   loyalty: LoyaltyView;
 }
 
+/** The till's answer once something may have been given (ORD-12, ORD-M02). */
+export const COUNTER_MAYBE_STAMPED =
+  "Damga verilmiş olabilir, üyenin kartını kontrol et.";
+
+/**
+ * The till's answer to a typed address, the path ASK-LOYALTY retired: the
+ * panel action and `redeemCounterToken` say the same words.
+ */
+export const COUNTER_EMAIL_REFUSED =
+  "E-postayla damga verilmiyor. Üyeden uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste.";
+
+/**
+ * The code was burned, or a stamp insert was sent, and then something
+ * failed (an insert, the milestone gift, the balance read): some or all of
+ * the stamps may have landed. Never "Damga verilemedi. Tekrar dene.": the
+ * retry answers "already used".
+ */
+export interface CounterRedeemPartial {
+  ok: false;
+  error: "partial";
+  message: string;
+  /** Inserts that answered; the one that failed may have landed too. */
+  stampsWritten: number;
+  stampsAsked: number;
+  /** As on a receipt: the burned code and the masked label. */
+  code: string;
+  memberLabel: string;
+  /** What failed. The app's route rethrows it, so its answer is unchanged. */
+  cause: unknown;
+}
+
 export type RedeemCounterTokenResult =
   | { ok: true; redemption: CounterRedemption }
-  | { ok: false; error: CounterRedeemError; message: string };
+  | { ok: false; error: CounterRedeemError; message: string }
+  | CounterRedeemPartial;
 
 const MESSAGES: Record<CounterRedeemError, string> = {
   invalid_stamps: `Damga sayısı ${MIN_COUNTER_STAMPS} ile ${MAX_COUNTER_STAMPS} arasında olmalı.`,
-  invalid_email: "Geçerli bir üye e-postası gir.",
+  email_refused: COUNTER_EMAIL_REFUSED,
   expired: "Bu kodun süresi doldu. Üyeden yeni QR göstermesini iste.",
   already_used: "Bu kod kullanıldı. Aynı QR ikinci kez damga vermez.",
-  not_found: "Kod bulunamadı. Kodu kontrol et ya da e-posta ile ara.",
+  not_found:
+    "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni QR göstermesini iste.",
   self_stamp:
     "Kendi koduna damga veremezsin. Damganı başka bir barista ya da kasa versin.",
 };
@@ -404,6 +451,10 @@ function fail(error: CounterRedeemError): RedeemCounterTokenResult {
   return { ok: false, error, message: MESSAGES[error] };
 }
 
+/**
+ * The ledger note each path writes. Nothing writes "Kasa · e-posta" any
+ * more; it stays as the name of the rows written before 21 Ekim 2026.
+ */
 const NOTE_PREFIX: Record<CounterRedeemKind, string> = {
   token: "Kasa · QR",
   code: "Kasa · kod",
@@ -462,13 +513,18 @@ async function burn(
 /**
  * Hands out the stamps behind one scan (docs/API-MOBILE.md §17, spec §5).
  *
- * All three paths at the till - camera, typed code, typed address - end here
- * so they cannot drift apart: the same validation, the same ledger rows, the
- * same answer on screen.
+ * Both paths at the till - camera and typed code - end here so they cannot
+ * drift apart: the same validation, the same ledger rows, the same answer on
+ * screen. Each burns a single-use token minted for the member who shows it.
+ * A typed address is refused before anything is read or written
+ * (ASK-LOYALTY): it names a member who showed nothing, and it burned nothing,
+ * so a second press gave the same member another 1-5 stamps.
  */
 export async function redeemCounterToken(
   input: RedeemCounterTokenInput,
 ): Promise<RedeemCounterTokenResult> {
+  if (input.kind === "email") return fail("email_refused");
+
   const stamps = Math.trunc(Number(input.stamps));
   if (
     !Number.isFinite(stamps) ||
@@ -483,67 +539,77 @@ export async function redeemCounterToken(
   const actor = normalizeEmail(input.actor);
   await purgeStale(now);
 
-  let owner = "";
-  let code = "";
-
-  if (input.kind === "email") {
-    owner = normalizeEmail(input.value);
-    if (!EMAIL_RE.test(owner)) return fail("invalid_email");
+  let row: CounterTokenRow | null = null;
+  if (input.kind === "token") {
+    row = await rowWithHash(hashCounterToken((input.value ?? "").trim()));
+    if (!row) return fail("not_found");
+    if (row.usedAt) return fail("already_used");
+    if (row.expiresAt <= nowIso) return fail("expired");
   } else {
-    let row: CounterTokenRow | null = null;
-    if (input.kind === "token") {
-      row = await rowWithHash(hashCounterToken((input.value ?? "").trim()));
-      if (!row) return fail("not_found");
-      if (row.usedAt) return fail("already_used");
-      if (row.expiresAt <= nowIso) return fail("expired");
-    } else {
-      const typed = normalizeCounterCode(input.value);
-      if (typed.length !== CODE_LENGTH) return fail("not_found");
-      const candidates = await rowsWithCode(typed);
-      if (candidates.length === 0) return fail("not_found");
-      row = candidates.find((c) => !c.usedAt && c.expiresAt > nowIso) ?? null;
-      if (!row) {
-        // A code is only unique among open tokens, so the same eight
-        // characters can exist twice: say "used" only when one of them
-        // actually was.
-        return candidates.some((c) => c.usedAt)
-          ? fail("already_used")
-          : fail("expired");
-      }
+    const typed = normalizeCounterCode(input.value);
+    if (typed.length !== CODE_LENGTH) return fail("not_found");
+    const candidates = await rowsWithCode(typed);
+    if (candidates.length === 0) return fail("not_found");
+    row = candidates.find((c) => !c.usedAt && c.expiresAt > nowIso) ?? null;
+    if (!row) {
+      // A code is only unique among open tokens, so the same eight
+      // characters can exist twice: say "used" only when one of them
+      // actually was.
+      return candidates.some((c) => c.usedAt)
+        ? fail("already_used")
+        : fail("expired");
     }
-
-    const refuse = normalizeEmail(input.refuseOwner ?? "");
-    if (refuse && normalizeEmail(row.customerEmail) === refuse) {
-      return fail("self_stamp");
-    }
-
-    if (!(await burn(row.tokenHash, actor, nowIso))) {
-      return fail("already_used");
-    }
-    owner = normalizeEmail(row.customerEmail);
-    code = row.code;
   }
 
+  const refuse = normalizeEmail(input.refuseOwner ?? "");
+  if (refuse && normalizeEmail(row.customerEmail) === refuse) {
+    return fail("self_stamp");
+  }
+
+  if (!(await burn(row.tokenHash, actor, nowIso))) {
+    return fail("already_used");
+  }
+  const owner = normalizeEmail(row.customerEmail);
+  const code = row.code;
+
+  // The cashier sees the member's address masked (e***@ornek.com).
+  const memberLabel = maskEmail(owner);
   const note = noteFor(input.kind, input.note ?? "");
-  for (let i = 0; i < stamps; i += 1) {
-    await addCounterStamp(owner, actor, note);
-  }
+  // From here on something is spent: the code is burned, every insert is a
+  // stamp. A throw used to reach the till as "Damga verilemedi. Tekrar
+  // dene." with some or all of the stamps written.
+  let written = 0;
+  try {
+    for (let i = 0; i < stamps; i += 1) {
+      await addCounterStamp(owner, actor, note);
+      written += 1;
+    }
 
-  const [loyalty, customer] = await Promise.all([
-    getLoyalty(owner),
-    getCustomerByEmail(owner),
-  ]);
+    const [loyalty, customer] = await Promise.all([
+      getLoyalty(owner),
+      getCustomerByEmail(owner),
+    ]);
 
-  return {
-    ok: true,
-    redemption: {
-      name: customer?.name ?? "",
-      // The cashier typed the address on the e-mail path, so masking it there
-      // would hide nothing and only make the receipt harder to check.
-      memberLabel: input.kind === "email" ? owner : maskEmail(owner),
+    return {
+      ok: true,
+      redemption: {
+        name: customer?.name ?? "",
+        memberLabel,
+        code,
+        stampsGiven: stamps,
+        loyalty,
+      },
+    };
+  } catch (cause) {
+    return {
+      ok: false,
+      error: "partial",
+      message: COUNTER_MAYBE_STAMPED,
+      stampsWritten: written,
+      stampsAsked: stamps,
       code,
-      stampsGiven: stamps,
-      loyalty,
-    },
-  };
+      memberLabel,
+      cause,
+    };
+  }
 }

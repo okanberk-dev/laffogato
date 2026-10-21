@@ -1,16 +1,19 @@
 import Link from "next/link";
 
+import { kdvIncludedParts } from "@/components/laffogato/kdv-note";
+import { karaokeInstantLabel } from "@/components/laffogato/karaoke-terms";
 import {
   formatReservationDate,
   formatReservationTime,
 } from "@/lib/mobile/karaoke-format";
 import {
-  KARAOKE_NO_REFUND_RULE,
-  KARAOKE_REFUND_RULE,
-  istanbulTimeLabel,
+  isPartialRefund,
   karaokeCancelDeadline,
+  karaokeLateRefundMinor,
+  karaokeRulesOf,
+  karaokeSelfCancelTerms,
   mayReopenPayment,
-  withinFreeCancel,
+  refundAmountOf,
 } from "@/lib/mobile/karaoke-time";
 import { priceLabel } from "@/lib/utils/format";
 
@@ -21,9 +24,10 @@ import { priceLabel } from "@/lib/utils/format";
  * The cancel action is deliberately quiet (operator, 16 Eki 2026: "iptali
  * zorlaştırabilirsin biraz silinik vs. gibi"): a muted text link at the very
  * bottom, then a separate step that says what happens to the money under the
- * two-hour rule, in the operator's words, then the confirm. Nothing on this
- * page decides anything: the actions it posts to check ownership, the rule
- * and the POS again (karaoke-payment.ts `cancelKaraokeReservation`).
+ * booking's own rule (its snapshot: the sentences it was shown, its
+ * deadline, its late share), then the confirm. Nothing on this page decides
+ * anything: the actions it posts to check ownership, the rule and the POS
+ * again (karaoke-payment.ts `cancelKaraokeReservation`).
  *
  * A server component with no data access of its own (CLAUDE.md: the caller
  * reads, the component renders).
@@ -44,6 +48,21 @@ export interface KaraokeViewReservation {
   createdAt: string;
   customerName: string;
   note?: string;
+  /** The karaoke KDV rate at booking time; null or absent on older bookings. */
+  taxRatePct?: number | null;
+  /**
+   * The cancellation policy the booking was made under and what it showed
+   * (karaoke-core `KaraokeReservation`); null or absent on older bookings,
+   * which read as the default rule.
+   */
+  freeCancelHours?: number | null;
+  lateRefundPercent?: number | null;
+  cancelDeadline?: string | null;
+  cancellationRules?: string[] | null;
+  /** A late cancel's share, owed or refunded; null: the whole payment. */
+  refundMinor?: number | null;
+  /** A free hour the köşk gave to make good its late cancel of this code. */
+  makeGoodFor?: string | null;
 }
 
 export type KaraokeViewNotice = { tone: "ok" | "warn" | "error"; text: string };
@@ -75,6 +94,39 @@ export function karaokeStatusLine(r: {
   return { label: "Onay bekliyor", tone: "pending_payment" };
 }
 
+/**
+ * What a cancel by the booking's owner would do right now, as the server
+ * does it (`cancelKaraokeReservation`): refused, nothing to refund, the
+ * whole payment back, or the late share, which a person refunds by hand
+ * (PayNkolay refunds whole payments only, operator decision D9). Only a
+ * confirmed booking keeps a share: one the köşk never confirmed goes back in
+ * full, and so does a share that rounds to nothing or to all of it.
+ */
+export type KaraokeCancelOutcome =
+  | { kind: "refused" }
+  | { kind: "nothing" }
+  | { kind: "full"; amountMinor: number }
+  | { kind: "share"; amountMinor: number };
+
+export function karaokeCancelOutcome(
+  r: KaraokeViewReservation,
+  now: Date,
+): KaraokeCancelOutcome {
+  const terms = karaokeSelfCancelTerms(r, now);
+  if (terms.kind === "refused") return { kind: "refused" };
+  if (r.paymentStatus !== "paid") return { kind: "nothing" };
+  const paid = r.paidMinor && r.paidMinor > 0 ? r.paidMinor : r.totalMinor;
+  if (
+    terms.kind === "late" &&
+    terms.percent < 100 &&
+    r.status === "confirmed"
+  ) {
+    const owed = karaokeLateRefundMinor(paid, terms.percent);
+    if (owed > 0 && owed < paid) return { kind: "share", amountMinor: owed };
+  }
+  return { kind: "full", amountMinor: paid };
+}
+
 export function KaraokeReservationView({
   r,
   now,
@@ -85,6 +137,7 @@ export function KaraokeReservationView({
   backHref,
   confirming,
   notice,
+  contractHref,
 }: {
   r: KaraokeViewReservation;
   now: Date;
@@ -98,6 +151,11 @@ export function KaraokeReservationView({
   backHref: string;
   confirming: boolean;
   notice?: KaraokeViewNotice;
+  /**
+   * The confirmed terms as a file (ASK-DURABLE), for a paid booking whose
+   * consent recorded its text: the signed-link download. Absent: no link.
+   */
+  contractHref?: string;
 }) {
   const state = karaokeStatusLine(r);
   const live = r.status !== "cancelled";
@@ -106,14 +164,19 @@ export function KaraokeReservationView({
     r.paymentStatus === "pending" ||
     r.paymentStatus === "paid";
   const cancellable = live && moneyOpen;
-  const inWindow = withinFreeCancel(r, now);
+  // The booking's own rule: the two sentences it was shown at booking.
+  const [refundRule, lateRule] = karaokeRulesOf(r);
+  const terms = karaokeSelfCancelTerms(r, now);
+  const outcome = karaokeCancelOutcome(r, now);
   const deadline = karaokeCancelDeadline(r);
+  // The rate the booking was made at; older bookings kept none, and then
+  // only the words are printed.
+  const kdv = kdvIncludedParts(r.totalMinor, r.taxRatePct);
   const canPay =
     live &&
     r.paymentStatus === "pending" &&
     r.totalMinor > 0 &&
     mayReopenPayment(r, now);
-  const paid = r.paidMinor && r.paidMinor > 0 ? r.paidMinor : r.totalMinor;
   const fields = Object.entries(hidden).map(([name, value]) => (
     <input key={name} type="hidden" name={name} value={value} />
   ));
@@ -154,7 +217,7 @@ export function KaraokeReservationView({
           <dd>{r.guests} kişi</dd>
         </div>
         <div>
-          <dt>Toplam (KDV dahil)</dt>
+          <dt>Toplam</dt>
           <dd>
             {priceLabel(r.totalMinor)}
             {r.discountMinor > 0 ? (
@@ -164,12 +227,40 @@ export function KaraokeReservationView({
                 {priceLabel(r.discountMinor)})
               </span>
             ) : null}
+            <span className="karaoke-mine-kdv">
+              <span className="kdv-part">{kdv.rate}</span>
+              {kdv.amount ? (
+                <>
+                  {" "}
+                  <span className="kdv-part">({kdv.amount})</span>
+                </>
+              ) : null}
+            </span>
           </dd>
         </div>
         <div>
           <dt>Ödeme</dt>
-          <dd>{PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus}</dd>
+          <dd>
+            {r.makeGoodFor && r.paymentStatus === "none"
+              ? "Telafi saati, senden ödeme alınmaz"
+              : (PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus)}
+          </dd>
         </div>
+        {r.status === "cancelled" && isPartialRefund(r) ? (
+          <div>
+            {/* A late cancel's share (karar D9): what goes back, not the
+                whole payment. */}
+            <dt>Geç iptal iadesi</dt>
+            <dd>
+              {priceLabel(refundAmountOf(r))}
+              {r.paymentStatus === "refunding" ? (
+                <span className="karaoke-mine-kdv">
+                  Ekibimiz kartına iade edince e-postayla haber veririz.
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ) : null}
       </dl>
 
       {canPay ? (
@@ -184,15 +275,23 @@ export function KaraokeReservationView({
 
       {live ? (
         <div className="karaoke-mine-rules">
-          <p>{KARAOKE_REFUND_RULE}</p>
-          <p>{KARAOKE_NO_REFUND_RULE}</p>
-          {inWindow ? (
+          <p>{refundRule}</p>
+          <p>{lateRule}</p>
+          {terms.kind === "full" ? (
             <p className="karaoke-mine-sub">
-              Ücretsiz iptal için son an: {formatReservationDate(r.date)}{" "}
-              {istanbulTimeLabel(deadline.toISOString())} öncesi.
+              Ücretsiz iptal için son an: {karaokeInstantLabel(deadline)}.
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {contractHref ? (
+        <p className="karaoke-mine-sub">
+          {/* A file, not a page: a plain link, never prefetched. */}
+          <a href={contractHref} download>
+            Onayladığın sözleşmenin metnini indir
+          </a>
+        </p>
       ) : null}
 
       {cancellable && confirming ? (
@@ -203,13 +302,15 @@ export function KaraokeReservationView({
           <h3 id="karaoke-cancel-title" className="h4">
             Rezervasyonu iptal etmek üzeresin
           </h3>
-          {inWindow ? (
+          {outcome.kind !== "refused" ? (
             <>
-              <p>{KARAOKE_REFUND_RULE}</p>
+              <p>{terms.kind === "full" ? refundRule : lateRule}</p>
               <p className="karaoke-mine-outcome">
-                {r.paymentStatus === "paid"
-                  ? `Şimdi iptal edersen ödediğin ${priceLabel(paid)} kartına iade edilir; yansıması bankana göre birkaç iş günü sürebilir.`
-                  : "Ödeme alınmadığı için iade edilecek tutar yok; saat başkasına açılır."}
+                {outcome.kind === "full"
+                  ? `Şimdi iptal edersen ödediğin ${priceLabel(outcome.amountMinor)} kartına iade edilir; yansıması bankana göre birkaç iş günü sürebilir.`
+                  : outcome.kind === "share"
+                    ? `Şimdi iptal edersen rezervasyonundaki geç iptal kuralına göre ${priceLabel(outcome.amountMinor)} kartına iade edilir. İadeyi ekibimiz yapar; yapılınca sana e-postayla haber veririz.`
+                    : "Ödeme alınmadığı için iade edilecek tutar yok; saat başkasına açılır."}
               </p>
               <form action={cancelAction} className="karaoke-mine-confirm-row">
                 {fields}
@@ -224,8 +325,13 @@ export function KaraokeReservationView({
             </>
           ) : (
             <>
-              <p className="karaoke-mine-outcome">{KARAOKE_NO_REFUND_RULE}</p>
+              <p className="karaoke-mine-outcome">{lateRule}</p>
               <p>Artık buradan iptal edemezsin; sorun varsa bizi ara.</p>
+              {/* The way out a no-refund rule leaves (legal program, Y3-4). */}
+              <p>
+                Gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin;
+                odayı o kullanır.
+              </p>
               <Link href={backHref} className="btn btn-primary btn-sm">
                 Geri dön
               </Link>

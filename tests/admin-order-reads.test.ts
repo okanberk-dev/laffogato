@@ -39,6 +39,9 @@ vi.mock("@/lib/db", async (importOriginal) => {
 });
 
 const store = await import("@/lib/admin/store");
+const { parseOrderListParams, withoutStatuses } = await import(
+  "@/lib/admin/order-filters"
+);
 
 function orderSelects(): string[] {
   return seen
@@ -88,66 +91,174 @@ describe("dashboard: five recent orders", () => {
   });
 });
 
-describe("order list: one keyset page", () => {
-  it("reads one row more than the page and points at the next page", async () => {
-    orderRows = [row(10010), row(10009), row(10008)];
-    const page = await store.listOrdersPage({ pageSize: 2 });
+describe("order list: one filtered, numbered page", () => {
+  const base = {
+    query: parseOrderListParams({}).query,
+    sort: { column: "orderNo" as const, ascending: false },
+    page: 1,
+    pageSize: 50,
+  };
+
+  it("reads one page with LIMIT and OFFSET, and counts the matches", async () => {
+    orderRows = [row(10010), row(10009)];
+    const page = await store.listOrdersFiltered({ ...base, page: 3 });
     expect(page.orders.map((o) => o.orderNo)).toEqual([10010, 10009]);
-    expect(page.nextBefore).toBe(10009);
     expect(page.total).toBe(250);
     const [sql] = orderSelects();
-    expect(sql).toMatch(/LIMIT \$\d+$/);
-    expect(seen.find((s) => s.text === sql)!.params.at(-1)).toBe(3);
-    expect(sql).not.toContain('"orderNo" <');
+    expect(sql).toMatch(/ORDER BY "orderNo" DESC LIMIT \$\d+ OFFSET \$\d+$/);
+    const q = seen.find((s) => s.text === sql)!;
+    expect(q.params.slice(-2)).toEqual([50, 100]);
   });
 
-  it("an older page filters below `before` and ends when nothing is left", async () => {
-    orderRows = [row(10008)];
-    const page = await store.listOrdersPage({ before: 10009, pageSize: 2 });
-    expect(page.nextBefore).toBeNull();
+  it("breaks ties by order number so a page boundary never repeats a row", async () => {
+    await store.listOrdersFiltered({
+      ...base,
+      sort: { column: "totalMinor", ascending: true },
+    });
     const [sql] = orderSelects();
-    expect(sql).toContain('"orderNo" < $');
-    expect(seen.find((s) => s.text === sql)!.params).toContain(10009);
+    expect(sql).toContain('ORDER BY "totalMinor" ASC, "orderNo" DESC');
   });
 
-  it("defaults to a bounded page", async () => {
-    await store.listOrdersPage({});
+  it("searches number, name and e-mail in one box, with % and _ taken literally", async () => {
+    const { query } = parseOrderListParams({ q: "%50_ #" });
+    await store.listOrdersFiltered({ ...base, query });
     const [sql] = orderSelects();
-    expect(seen.find((s) => s.text === sql)!.params.at(-1)).toBe(
-      store.ORDERS_PAGE_SIZE + 1,
+    expect(sql).toMatch(/\("customerName" ILIKE \$\d+ OR "customerEmail" ILIKE \$\d+\)/);
+    const q = seen.find((s) => s.text === sql)!;
+    expect(q.params).toContain("%\\%50\\_ #%");
+    seen.length = 0;
+    const byNo = parseOrderListParams({ q: "#10023" }).query;
+    await store.listOrdersFiltered({ ...base, query: byNo });
+    const [sql2] = orderSelects();
+    expect(sql2).toMatch(/\("orderNo" = \$\d+ OR "customerName" ILIKE/);
+    expect(seen.find((s) => s.text === sql2)!.params).toContain(10023);
+  });
+
+  it("turns every filter into SQL, and the count runs the same WHERE", async () => {
+    const { query } = parseOrderListParams({
+      durum: "acik",
+      kanal: "manuel",
+      tur: "shop",
+      teslimat: "shipping",
+      odeme: "iadeli",
+      dikkat: "1",
+      bas: "2026-10-01",
+      bit: "2026-10-02",
+    });
+    await store.listOrdersFiltered({ ...base, query });
+    const [sql] = orderSelects();
+    expect(sql).toContain('"status" IN (');
+    expect(sql).toContain('"source" = $');
+    expect(sql).toContain('"kind" = $');
+    expect(sql).toContain('"fulfillment" = $');
+    expect(sql).toContain('"refunds" <> $');
+    expect(sql).toContain('"attention" <> $');
+    expect(sql).toContain('"createdAt" >= $');
+    expect(sql).toContain('"createdAt" < $');
+    const q = seen.find((s) => s.text === sql)!;
+    // Istanbul days (UTC+3): 1 Oct starts at 30 Sep 21:00Z; 2 Oct runs to 2 Oct 21:00Z.
+    expect(q.params).toContain("2026-09-30T21:00:00.000Z");
+    expect(q.params).toContain("2026-10-02T21:00:00.000Z");
+    const count = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(count.text.slice(count.text.indexOf("WHERE"))).toBe(
+      sql.slice(sql.indexOf("WHERE"), sql.indexOf(" ORDER BY")),
     );
+  });
+
+  it("counts every status tab with the other filters, without the tab's own", async () => {
+    const { query } = parseOrderListParams({ durum: "paid", kanal: "app" });
+    const counts = await store.countOrdersByStatus(withoutStatuses(query));
+    expect(Object.keys(counts).sort()).toEqual(
+      ["cancelled", "completed", "paid", "pending_payment", "preparing", "refunded", "shipped"],
+    );
+    const countSql = seen.filter((s) => /count\(\*\)/i.test(s.text));
+    expect(countSql).toHaveLength(7);
+    for (const c of countSql) {
+      expect(c.text).toContain('"channel" = $');
+      expect(c.text).not.toContain('"status" IN');
+    }
   });
 
   it("there is no whole-table order reader left to fall back to", () => {
     expect("listOrders" in store).toBe(false);
+    expect("listOrdersPage" in store).toBe(false);
   });
 });
 
 describe("customer roll-up and reports read only their columns", () => {
-  it("listCustomers projects the six columns it sums", async () => {
-    orderRows = [row(10002), row(10001)];
-    const customers = await store.listCustomers();
-    expect(customers).toHaveLength(2);
-    for (const sql of orderSelects()) {
-      expect(sql).not.toMatch(/^SELECT \*/);
-      expect(sql).not.toContain('"items"');
-      expect(sql).not.toContain('"legalConsent"');
-    }
+  it("Müşteriler rolls the orders up in SQL, one page at a time", async () => {
+    // listCustomers read every order into JavaScript for the roll-up; the
+    // list now asks admin_customer_page / admin_customer_counts (PEO-13).
+    expect("listCustomers" in store).toBe(false);
+    const { countCustomers, listCustomerPage } =
+      await import("@/lib/admin/customer-list");
+    const { parseCustomerListParams } =
+      await import("@/lib/admin/customer-list-core");
+    const parsed = parseCustomerListParams({});
+    await listCustomerPage({
+      query: parsed.query,
+      kind: "all",
+      sort: { key: "hareket", dir: "desc" },
+      page: 3,
+      pageSize: 50,
+    });
+    await countCustomers(parsed.query);
+    expect(orderSelects()).toEqual([]);
+    const texts = seen.map((q) => q.text);
+    expect(texts[0]).toMatch(/^SELECT \* FROM "admin_customer_page"\(/);
+    expect(seen[0].params).toEqual([
+      "",
+      "",
+      "",
+      "",
+      "all",
+      "activity",
+      true,
+      50,
+      100,
+    ]);
+    expect(texts[1]).toMatch(/^SELECT \* FROM "admin_customer_counts"\(/);
   });
 
   it("the three report figures never select *, and only top products reads items", async () => {
     orderRows = [row(10001)];
-    await store.analyticsHeadline();
+    await store.analyticsHeadline("day", 7);
     await store.revenueBuckets("day", 7);
     const withoutItems = orderSelects();
     expect(withoutItems).toHaveLength(2);
     for (const sql of withoutItems) {
       expect(sql).not.toMatch(/^SELECT \*/);
       expect(sql).not.toContain('"items"');
+      // Only the period's orders (admin audit SYS-16).
+      expect(sql).toMatch(/WHERE "createdAt" >= \$1/);
     }
     seen.length = 0;
-    await store.topProducts(5);
+    await store.topProducts("day", 7, 5);
     const [top] = orderSelects();
-    expect(top).toMatch(/^SELECT "status", "items" FROM "orders"/);
+    expect(top).toMatch(
+      /^SELECT "status", "createdAt", "totalMinor", "refunds", "items" FROM "orders" WHERE "createdAt" >= \$1/,
+    );
+  });
+});
+
+describe("the open-order counts (ORD-09, ORD-21)", () => {
+  it("the badge counts the Açık tab's four statuses", async () => {
+    await store.countOpenOrders();
+    const q = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(q.text).toMatch(/FROM "orders" WHERE "status"/);
+    expect(q.params.flat()).toEqual(
+      expect.arrayContaining(["pending_payment", "paid", "preparing", "shipped"]),
+    );
+  });
+
+  it("the Açık tab's poll counts new open orders only, the plain list every order", async () => {
+    await store.countOrdersAfter(10_041, ["pending_payment", "paid"]);
+    const open = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(open.text).toMatch(/"orderNo" >= \$1 AND "status"/);
+    expect(open.params.flat()).toEqual([10_042, "pending_payment", "paid"]);
+    seen.length = 0;
+    await store.countOrdersAfter(10_041);
+    const all = seen.find((s) => /count\(\*\)/i.test(s.text))!;
+    expect(all.text).not.toContain('"status"');
   });
 });

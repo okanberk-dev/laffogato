@@ -5,7 +5,11 @@
  * Pure: imported by pages and by the tests.
  */
 
-import { KARAOKE_TOO_LATE_MESSAGE } from "./karaoke-time";
+import {
+  karaokeCancellationRules,
+  karaokeCancelPolicyOf,
+  KARAOKE_TOO_LATE_MESSAGE,
+} from "./karaoke-time";
 
 export type KaraokeNoticeTone = "ok" | "warn" | "error";
 
@@ -18,6 +22,12 @@ export const KARAOKE_RESULT_NOTICES: Record<
     text: "Rezervasyonun iptal edildi, ödediğin tutarın tamamı kartına iade edildi. Yansıması bankana göre birkaç iş günü sürebilir.",
   },
   iptal: { tone: "ok", text: "Rezervasyonun iptal edildi." },
+  // A late cancel whose share the köşk refunds by hand (operator decision D9):
+  // the amount, and that it is not instant, are in the mail and on the page.
+  "iptal-kismi-iade": {
+    tone: "ok",
+    text: "Rezervasyonun iptal edildi. Rezervasyonundaki geç iptal kuralına göre iade edilecek tutar kartına iade edilir; iade yapılınca sana e-postayla haber veririz.",
+  },
   "gec-iptal": { tone: "error", text: KARAOKE_TOO_LATE_MESSAGE },
   "iade-reddedildi": {
     tone: "error",
@@ -94,6 +104,31 @@ export function cancelNoticeCode(reason: string): string {
     default:
       return "zaten-iptal";
   }
+}
+
+/** A cancel that went through → the code the page reads. */
+export function cancelResultCode(result: {
+  refunded: boolean;
+  refundOwedMinor?: number;
+}): string {
+  if (result.refunded) return "iptal-iade";
+  return result.refundOwedMinor !== undefined ? "iptal-kismi-iade" : "iptal";
+}
+
+/**
+ * The notice for a code, about one booking: a late-cancel refusal speaks the
+ * booking's own rule (its snapshot), every other code is the fixed sentence.
+ */
+export function karaokeNoticeFor(
+  code: string,
+  r: Parameters<typeof karaokeCancelPolicyOf>[0] | null,
+): { tone: KaraokeNoticeTone; text: string } | undefined {
+  const fixed = KARAOKE_RESULT_NOTICES[code];
+  if (code !== "gec-iptal" || !fixed || !r) return fixed;
+  return {
+    tone: fixed.tone,
+    text: karaokeCancellationRules(karaokeCancelPolicyOf(r)).tooLateMessage,
+  };
 }
 
 /** Reopen failure reason → the code the page reads. */

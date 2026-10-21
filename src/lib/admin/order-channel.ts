@@ -67,7 +67,7 @@ export function shippedStatusLabel(fulfillment: OrderFulfillment): string {
 
 /** The button that moves an order into `shipped`, in its own vocabulary. */
 export function markShippedLabel(fulfillment: OrderFulfillment): string {
-  if (fulfillment === "pickup") return "Hazır - teslime hazır";
+  if (fulfillment === "pickup") return "Teslime hazır";
   if (fulfillment === "delivery") return "Kuryeye ver";
   if (fulfillment === "table") return "Masaya götürüldü";
   return "Kargoya ver";

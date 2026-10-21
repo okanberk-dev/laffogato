@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin/store";
 import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
+import { getDeletionRequest } from "@/lib/customer/deletion-request";
 import {
   getCardUserKey,
   getCustomerByEmail,
@@ -388,10 +389,18 @@ export const ANON_SWEEPS: ReadonlyArray<{
  * put in front of a person (`cancelKaraokeForClosedAccount`). Never fatal:
  * the account closes either way.
  */
-async function cancelFutureKaraoke(email: string, now: Date): Promise<void> {
+async function cancelFutureKaraoke(
+  email: string,
+  now: Date,
+  opts: {
+    windowAt?: Date;
+    roomUsed?: readonly string[];
+    roomUseUnknown?: boolean;
+  },
+): Promise<void> {
   try {
     const { cancelKaraokeForClosedAccount } = await import("./karaoke-payment");
-    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now);
+    await cancelKaraokeForClosedAccount(email.trim().toLowerCase(), now, opts);
   } catch (err) {
     console.error(
       "[deleteMe] karaoke cancel failed",
@@ -532,6 +541,33 @@ export type DeleteMeResult =
   | { ok: true; identity: IdentityDeletion }
   | { ok: false; error: "orders_in_progress"; count: number };
 
+export interface DeleteMeOptions {
+  /**
+   * Who is closing the account. `admin`: the panel's "Hesabı sil", on the
+   * member's behalf. The consent history then records the withdrawal as the
+   * panel's act, with no IP or User-Agent, the way the admin customer form
+   * does (`adminUpdateCustomer`): the request is the admin's, and its IP is
+   * neither the member's evidence nor the member's data. The admin's
+   * identity is in the audit row the action writes.
+   */
+  by?: "member" | "admin";
+  /**
+   * The member's web deletion request this closure answers (its ISO stamp),
+   * read by the caller before this function blanks it. Each karaoke booking's
+   * rule is judged at that instant, not at the closure (ASK-Y3-4 (d)): the
+   * team's delay does not shorten the member's window. Refunds happen now.
+   * The member's own deletion (the app's DELETE /me) passes none: deleteMe
+   * reads the open request itself, since this closure answers it too.
+   */
+  deletionRequestedAt?: string;
+  /**
+   * Bookings whose start came after that request and whose room the panel
+   * user recorded as used: they keep the payment
+   * (`cancelKaraokeForClosedAccount`).
+   */
+  karaokeRoomUsed?: readonly string[];
+}
+
 /**
  * `DELETE /me`: the member row stays (orders reference it, and invoices must
  * be kept for the statutory period) but every personal field is blanked and
@@ -553,6 +589,11 @@ export type DeleteMeResult =
  */
 export async function deleteMe(
   customer: PublicCustomer,
+  {
+    by = "member",
+    deletionRequestedAt,
+    karaokeRoomUsed = [],
+  }: DeleteMeOptions = {},
 ): Promise<DeleteMeResult> {
   const at = new Date();
   const now = at.toISOString();
@@ -578,7 +619,24 @@ export async function deleteMe(
   }
 
   const identityId = await linkedIdentityId(customer.email);
-  await cancelFutureKaraoke(customer.email, at);
+  // The member deleting in the app while a web request is open answers that
+  // request too (the row below blanks it): hesap-silme §8 judges its karaoke
+  // at the request, as the panel's closure would have. Read before the
+  // closure touches anything; an unreadable request throws (the app may
+  // retry) rather than being judged now.
+  const requestedAt =
+    deletionRequestedAt ??
+    (by === "member"
+      ? (await getDeletionRequest(customer.email))?.requestedAt
+      : undefined);
+  const requested = Date.parse(requestedAt ?? "");
+  const windowAt = Number.isFinite(requested) ? new Date(requested) : null;
+  await cancelFutureKaraoke(customer.email, at, {
+    ...(windowAt ? { windowAt } : {}),
+    roomUsed: karaokeRoomUsed,
+    // Nobody in the app is asked whether a room was used since the request.
+    ...(windowAt && by === "member" ? { roomUseUnknown: true } : {}),
+  });
   const karaokeIds = await karaokeIdsOf(customer.email);
   await deleteSavedCardsAtPos(customer.email);
   const { error } = await getDb()
@@ -612,6 +670,11 @@ export async function deleteMe(
       inviteCode: "",
       invitedBy: "",
       usual: usualColumnValue(null),
+      // A web deletion request (/uye/hesap/sil) is answered by this very
+      // closure, from the panel or from the app: the open request goes,
+      // and the member's free-text reason is personal data like the rest.
+      deletionRequestedAt: null,
+      deletionReason: "",
       isActive: false,
       updatedAt: now,
     })
@@ -626,7 +689,9 @@ export async function deleteMe(
     customer.email,
     customer.notificationPrefs,
     { marketing: false, newsletter: false },
-    { source: "account-deletion", now: at },
+    by === "admin"
+      ? { source: "account-deletion", now: at, ip: "" }
+      : { source: "account-deletion", now: at },
   );
 
   // The same address sits in the loyalty ledger, the invite graph, the
@@ -689,7 +754,7 @@ function logIdentitySkip(identityId: string): void {
   // `deleteSupabaseIdentity` skips for exactly two reasons: no id to delete,
   // or no key to delete it with.
   const reason = identityId
-    ? "SUPABASE_SERVICE_ROLE_KEY is not set, the identity stays in Supabase"
+    ? "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set, the identity stays in Supabase"
     : "the row was never linked to a Supabase identity";
   console.warn(`[deleteMe] identity skipped: ${reason}`);
 }

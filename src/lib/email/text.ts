@@ -7,14 +7,16 @@
  * carries the same `[FIELD]`s as its HTML twin, so `renderEmail` fills both
  * from one set of values and `assertFilled` guards both.
  *
- * Same voice as the templates: "siz" (the two karaoke messages: "sen"),
- * sentence case, no shouting.
+ * Same voice as the templates: "siz" (the two karaoke messages and the two
+ * account-deletion messages: "sen"), sentence case, no shouting.
  */
 
+// The address, hours and phone are Ayarlar's (`venue.ts`), as in the HTML
+// footer.
 const SIGNATURE = `-
 L'Affogato · Coffee Italiano
-Postane Mah. Atatürk Cad. No: 28 İç Kapı No: 1, Tuzla / İstanbul
-Her gün 09:00 - 02:00 · +90 536 429 09 19
+[KOSK_ADRES]
+[KOSK_SAAT] · [TELEFON]
 laffogato.net · @laffogatto`;
 
 /**
@@ -128,6 +130,41 @@ siz yapmadıysanız hiçbir şey yapmanıza gerek yok - mevcut şifreniz değiş
 
 ${SIGNATURE}`,
 
+  // The two account-deletion messages speak "sen", like /uye/hesap/sil
+  // that sent the request.
+  "hesap-silme-talebi": `Merhaba,
+
+[TALEP_TARIHI] tarihinde hesabının silinmesini istedin. Talebin bize
+ulaştı; en geç [SON_GUN] tarihine kadar sonuçlandırırız. Hesabını
+çoğunlukla 3 iş günü içinde sileriz ve bittiğinde sana yeniden yazarız.
+Devam eden bir siparişin varsa hesabını sipariş tamamlanınca sileriz.
+
+Talebin: [TALEP_URL]
+
+Siparişlerin ve fatura bilgilerin, vergi ve ticaret mevzuatının saklama
+süresi boyunca saklanır. Fikrini değiştirirsen talebini aynı sayfadan geri
+alabilirsin. Bu talebi sen göndermediysen sayfadan geri al ve şifreni
+değiştir.
+
+${SIGNATURE}`,
+
+  "hesap-silindi": `Merhaba,
+
+[SONUC_BASLIK]. L'Affogato hesabını kapattık: adın, telefonun, adreslerin,
+favorilerin ve bildirim tercihlerin silindi; damgaların ve kullanılmamış
+kuponların sona erdi. Siparişlerin ve fatura bilgilerin, vergi ve ticaret
+mevzuatının saklama süresi boyunca bu e-posta adresinden ayrılarak saklanır.
+<!--IF:KIMLIK_KALDI-->
+Uygulamanın giriş kimliğinde duran e-posta adresin ve adın bu adımda
+silinemedi; ekibimiz bunu ayrıca tamamlayacak.
+<!--/IF:KIMLIK_KALDI-->
+Neler silindi, neler saklanıyor: [PROSEDUR_URL]
+
+Yeniden üye olmak istersen aynı adresle kaydolabilirsin; eski siparişlerin
+ve damgaların yeni hesaba taşınmaz.
+
+${SIGNATURE}`,
+
   "odeme-onaylandi": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 Ödemeniz alındı ve siparişiniz onaylandı - hazırlanmaya başlandı.
@@ -145,11 +182,18 @@ Bu siparişle [DAMGA_SAYISI] damga kazandınız; [DAMGA_HEDEFI] damgada bir
 içecek bizden.
 <!--/IF:DAMGA-->
 Sipariş durumu: [SIPARIS_URL]
-
-Sipariş sırasında onayladığınız belgeler - kalıcı veri saklayıcısı olarak
-saklamanız için:
+<!--IF:BELGE_EKI-->
+Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış
+Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın
+ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz:
+[BELGE_SURUMLERI]
+Cayma hakkınız ve iade usulü (İptal, İade ve Cayma Hakkı):
+https://laffogato.net/hukuk/iade-ve-cayma
+<!--/IF:BELGE_EKI--><!--IF:BELGE_GUNCEL-->
+Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel
+metnini açar):
 [BELGELER]
-
+<!--/IF:BELGE_GUNCEL-->
 ${SIGNATURE}`,
 
   // ── Order notices ───────────────────────────────────────────────────────
@@ -176,7 +220,7 @@ https://laffogato.net/hukuk/teslimat-ve-kargo
 
 Paketi teslim alırken görevlinin yanında kontrol edin: ezilme, ıslanma ya
 da açılmış bant görürseniz teslim almadan tutanak tutturun ve bizi arayın:
-+90 536 429 09 19
+[TELEFON]
 
 ${SIGNATURE}`,
 
@@ -198,7 +242,7 @@ bağlıdır.
 <!--/IF:ODEME_YOK-->
 Siparişiniz: [SIPARIS_URL]
 
-Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: +90 536 429 09 19
+Bir yanlışlık olduğunu düşünüyorsanız bizi arayın: [TELEFON]
 
 ${SIGNATURE}`,
 
@@ -217,7 +261,7 @@ iadeyi taksitler hâlinde yansıtabilir.
 Siparişiniz: [SIPARIS_URL]
 
 Tutar hesabınıza yansımazsa sipariş numaranızla bizi arayın:
-+90 536 429 09 19
+[TELEFON]
 
 ${SIGNATURE}`,
 
@@ -229,7 +273,7 @@ kalma restore bir köşkte sizi bekliyoruz.
 
 Menü - 12 kategori: [MENU_URL]
 Mağaza (500,00 ₺ üzeri kargo ücretsiz): laffogato.net/magaza
-Ziyaret - her gün 09:00 - 02:00: laffogato.net/ziyaret
+Ziyaret ([KOSK_SAAT]): laffogato.net/ziyaret
 
 Hesabınız: [HESAP_URL]
 
@@ -257,8 +301,15 @@ ${COMMERCIAL_FOOTER}`,
 
   // The redesigned HTML greets without the name; the two halves of one
   // message say the same thing. A booking paid online carries its receipt
-  // and its cancellation terms (KARAOKE_ODENDI); one paid at the venue only
-  // how to cancel (KARAOKE_ODEME_MEKANDA). send.ts sets exactly one of them.
+  // and its cancellation terms (KARAOKE_ODENDI: the booking's own two
+  // sentences, KARAOKE_IADE_KURALI / KARAOKE_GEC_KURALI); one paid at the
+  // venue only how to cancel (KARAOKE_ODEME_MEKANDA), or, under a rule that
+  // lets no member cancel, to call (KARAOKE_MEKAN_ARA); a free hour the köşk
+  // gave to make good a late cancel, that nothing is paid for
+  // (KARAOKE_TELAFI_SAATI, or _ARA). send.ts sets exactly one of them. A
+  // paid booking then says where its terms are: the confirmed text
+  // attached, with its version page (KARAOKE_BELGE_EKI), or, when no copy
+  // could be attached, the terms' page (KARAOKE_BELGE_GUNCEL).
   // Both karaoke messages speak "sen", like the /karaoke page that took the
   // booking and the cancellation rule they quote.
   "karaoke-rezervasyon": `Merhaba,
@@ -275,31 +326,62 @@ https://www.google.com/maps/search/?api=1&query=40.8165716,29.3032493
 
 <!--IF:KARAOKE_ODENDI-->Ödenen: [KARAOKE_TUTAR] (KDV dahil).
 
-Rezervasyon saatine 2 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.
-Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.
+[KARAOKE_IADE_KURALI]
+[KARAOKE_GEC_KURALI]
+Son ücretsiz iptal: [KARAOKE_SON_IPTAL].
 
 Belirli bir tarihte sunulan eğlence hizmeti olduğu için cayma hakkı yoktur (MSY m.15/1-g).
 
 Rezervasyon sayfandan görebilir ve iptal edebilirsin:
-[KARAOKE_LINK]
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_BELGE_EKI-->
+
+Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet
+Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın
+ekinde. Aynı sürümü buradan da okuyabilirsin:
+[KARAOKE_SURUM_URL]<!--/IF:KARAOKE_BELGE_EKI--><!--IF:KARAOKE_BELGE_GUNCEL-->
 
 Tüm koşullar:
-https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_ODENDI--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse rezervasyon saatine 2 saatten
-fazla varken rezervasyon sayfandan iptal edebilirsin.
+https://laffogato.net/hukuk/karaoke-odasi-rezervasyon<!--/IF:KARAOKE_BELGE_GUNCEL--><!--IF:KARAOKE_ODEME_MEKANDA-->Ödemeyi köşkte yaparsın. Planın değişirse [KARAOKE_MEKAN_SURE]
+rezervasyon sayfandan iptal edebilirsin.
 
 Rezervasyon sayfan:
-[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA-->
+[KARAOKE_LINK]<!--/IF:KARAOKE_ODEME_MEKANDA--><!--IF:KARAOKE_MEKAN_ARA-->Ödemeyi köşkte yaparsın. Planın değişirse bizi ara: [TELEFON]
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]<!--/IF:KARAOKE_MEKAN_ARA--><!--IF:KARAOKE_TELAFI_SAATI-->Bu saat, [KARAOKE_TELAFI_KOD] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz.
+Planın değişirse [KARAOKE_MEKAN_SURE] rezervasyon sayfandan iptal
+edebilirsin; telafin o zaman geri gelir.
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]<!--/IF:KARAOKE_TELAFI_SAATI--><!--IF:KARAOKE_TELAFI_SAATI_ARA-->Bu saat, [KARAOKE_TELAFI_KOD] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz.
+Planın değişirse bizi ara: [TELEFON]
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]<!--/IF:KARAOKE_TELAFI_SAATI_ARA-->
 
 ${SIGNATURE}`,
 
   // The cancellation twin. Same shape, same greeting without a name: the
-  // member is told what changed, what happened to their money (it went back:
-  // KARAOKE_IADE; none was taken: KARAOKE_ODEMESIZ) and how to get another
-  // evening - nothing to confirm, nothing to click.
+  // member is told who cancelled and why (their own cancel: KARAOKE_IPTAL_
+  // GENEL; the köşk's, with its reason and an apology: KARAOKE_ISLETME;
+  // their request taken by phone or e-mail: KARAOKE_ISTEK; the hour given
+  // to another guest: KARAOKE_YENIDEN), what happened to their money (it
+  // went back: KARAOKE_IADE, or "iade ettik" when we cancelled:
+  // KARAOKE_TAM_IADE; a late cancel's share went back, or is owed and will:
+  // KARAOKE_KISMI_IADE_EDILDI / KARAOKE_KISMI_IADE; the hour cancelled late
+  // was sold again and what was kept for it went back: KARAOKE_SATIS_IADE,
+  // or with the share in one refund: KARAOKE_KISMI_SATIS_IADE_EDILDI;
+  // none was taken: KARAOKE_ODEMESIZ), the make-good of a late köşk cancel
+  // (KARAOKE_TELAFI, karaoke terms §8) and how to get another evening -
+  // nothing to confirm, nothing to click. send.ts sets one opening and at
+  // most one money line.
   "karaoke-iptal": `Merhaba,
 
-Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
-
+<!--IF:KARAOKE_IPTAL_GENEL-->Karaoke rezervasyonun iptal edildi. Oda serbest bırakıldı.
+<!--/IF:KARAOKE_IPTAL_GENEL--><!--IF:KARAOKE_ISLETME-->Rezervasyonunu biz iptal etmek zorunda kaldık: [KARAOKE_NEDEN]. Özür dileriz.
+<!--/IF:KARAOKE_ISLETME--><!--IF:KARAOKE_ISTEK-->İsteğin üzerine karaoke rezervasyonunu iptal ettik.
+<!--/IF:KARAOKE_ISTEK--><!--IF:KARAOKE_YENIDEN-->Karaoke rezervasyonun iptal edildi.
+<!--/IF:KARAOKE_YENIDEN-->
 İptal edilen rezervasyon: [KARAOKE_KOD]
 Tarih: [KARAOKE_TARIH]
 Saat: [KARAOKE_SAAT]
@@ -311,10 +393,69 @@ göre birkaç iş günü sürebilir.
 Son durum, rezervasyon sayfanda:
 [KARAOKE_LINK]
 
-<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
+<!--/IF:KARAOKE_IADE--><!--IF:KARAOKE_TAM_IADE-->Ödediğin [KARAOKE_TUTAR] tutarın tamamını kartına iade ettik; yansıması bankana göre birkaç iş günü sürebilir.
 
-<!--/IF:KARAOKE_ODEMESIZ-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
-Bir yanlışlık varsa bizi ara: +90 536 429 09 19
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_TAM_IADE--><!--IF:KARAOKE_YENIDEN-->Rezervasyon saatini başka bir misafire verdiğimiz için ödediğin [KARAOKE_TUTAR] tutarın tamamını kartına iade ettik; yansıması bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_YENIDEN--><!--IF:KARAOKE_KISMI_IADE_EDILDI-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edildi;
+yansıması bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_KISMI_IADE_EDILDI--><!--IF:KARAOKE_KISMI_SATIS_IADE_EDILDI-->Rezervasyonundaki geç iptal kuralına göre ve geç iptal ettiğin saat başka bir
+misafire satıldığı için [KARAOKE_TUTAR] kartına iade edildi; yansıması
+bankana göre birkaç iş günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_KISMI_SATIS_IADE_EDILDI--><!--IF:KARAOKE_SATIS_IADE-->Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan
+[KARAOKE_TUTAR] daha kartına iade edildi; yansıması bankana göre birkaç iş
+günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_SATIS_IADE--><!--IF:KARAOKE_KISMI_IADE-->Rezervasyonundaki geç iptal kuralına göre [KARAOKE_TUTAR] kartına iade edilir.
+İade yapılınca sana ayrıca haber veririz; yansıması bankana göre birkaç iş
+günü sürebilir.
+
+Son durum, rezervasyon sayfanda:
+[KARAOKE_LINK]
+
+<!--/IF:KARAOKE_KISMI_IADE--><!--IF:KARAOKE_ODEMESIZ-->Bu rezervasyon için senden ödeme alınmadı.
+
+<!--/IF:KARAOKE_ODEMESIZ--><!--IF:KARAOKE_TELAFI-->Ayrıca sana [KARAOKE_TELAFI_TUTAR] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([KARAOKE_TELAFI_SON] tarihine kadar bizi arayarak ya da bu e-postayı yanıtlayarak boş bir saat için ayırtabilirsin), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (bu e-postayı yanıtlayıp IBAN'ını yaz, 14 gün içinde öderiz).
+
+<!--/IF:KARAOKE_TELAFI-->Yeni bir saat ayırtmak için: https://laffogato.net/karaoke
+Bir yanlışlık varsa bizi ara: [TELEFON]
+
+${SIGNATURE}`,
+
+  // A guest's late request, taken by phone or e-mail, that the booking's
+  // rule refunds nothing for (ASK-Y3-4 (c)): the booking stands, and this
+  // says what they can still do (karaoke terms §7). The late sentence is the
+  // booking's own (KARAOKE_GEC_KURALI).
+  "karaoke-iptal-istegi": `Merhaba,
+
+İptal isteğini aldık. [KARAOKE_GEC_KURALI] Bu yüzden rezervasyonun senin adına duruyor; gelemeyeceksen rezervasyon kodunu bir başkasına verebilirsin, odayı o kullanır. Kodunu kimseye vermeyeceksen bu e-postayı yanıtlayarak bize yaz; odayı o saat için başka bir misafire verirsek ödediğin tutarın tamamını kartına iade ederiz.
+
+Rezervasyon kodu: [KARAOKE_KOD]
+Tarih: [KARAOKE_TARIH]
+Saat: [KARAOKE_SAAT]
+Kişi: [KARAOKE_KISI]
+
+Rezervasyon sayfan:
+[KARAOKE_LINK]
+
+Bir yanlışlık varsa bizi ara: [TELEFON]
 
 ${SIGNATURE}`,
 

@@ -1,21 +1,36 @@
+import { randomUUID } from "node:crypto";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import {
+  PageHeader,
+  formatDateTime,
+  formatTRY,
+} from "@/components/admin/forms";
 import { OrderChannelBadges } from "@/components/admin/order-badges";
+import { OrderHeaderActions } from "@/components/admin/order-actions-ui";
 import { OrderDetail } from "@/components/admin/order-detail";
-import { PageHeader, formatDateTime } from "@/components/admin/forms";
+import { Badge, OrderStatusBadge, PageShell } from "@/components/admin/ui";
+import { listOrderAuditLogs } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
-  orderFulfillment,
-  shippedStatusLabel,
-} from "@/lib/admin/order-channel";
+  attentionText,
+  orderActions,
+  orderPaymentState,
+  refundableMinor,
+} from "@/lib/admin/order-actions";
+import { orderDetailsRules, orderForClient } from "@/lib/admin/order-details";
+import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
+import { couponSourcesForOrders } from "@/lib/customer/coupons";
 import {
-  availableTransitions,
   getOrder,
   getSettings,
-  orderWasCollected,
-  type AdminOrderStatus,
+  listOrderNotices,
+  listPaymentTransactions,
+  orderEmailLedgerHeld,
+  orderMoneyFromRows,
 } from "@/lib/admin/store";
 
 export const dynamic = "force-dynamic";
@@ -24,28 +39,6 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const STATUS_LABEL: Record<AdminOrderStatus, string> = {
-  pending_payment: "Ödeme bekleniyor",
-  paid: "Ödendi",
-  preparing: "Hazırlanıyor",
-  // Replaced per fulfillment below: a pickup order is "Hazır", a kurye order
-  // "Kuryede". Only a shop parcel is actually in kargo.
-  shipped: "Kargoda",
-  completed: "Tamamlandı",
-  cancelled: "İptal edildi",
-  refunded: "İade edildi",
-};
-
-const STATUS_TONE: Record<AdminOrderStatus, string> = {
-  pending_payment: "bg-amber-50 text-amber-700",
-  paid: "bg-blue-50 text-blue-700",
-  preparing: "bg-purple-50 text-purple-700",
-  shipped: "bg-indigo-50 text-indigo-700",
-  completed: "bg-green-50 text-green-700",
-  cancelled: "bg-neutral-100 text-neutral-500",
-  refunded: "bg-rose-50 text-rose-700",
-};
-
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
   const order = await getOrder(id);
@@ -53,72 +46,149 @@ export async function generateMetadata({ params }: PageProps) {
   return { title: `Admin · Sipariş #${order.orderNo}` };
 }
 
+/**
+ * A history that cannot be read must not take the order page with it, and
+ * must not pass for an empty one either: an empty mail list read as "no
+ * mail went out" and hid every "Yeniden gönder" (admin audit ORD-20). The
+ * page says which read failed.
+ */
+async function readOrFlag<T>(
+  work: Promise<T[]>,
+  what: string,
+): Promise<{ rows: T[]; failed: boolean }> {
+  try {
+    return { rows: await work, failed: false };
+  } catch (err) {
+    console.error(`[admin/siparisler] ${what} okunamadı`, err);
+    return { rows: [], failed: true };
+  }
+}
+
 export default async function AdminOrderDetailPage({ params }: PageProps) {
   const session = await requireRole("orders");
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
-  // The SAME rule refundRefusal applies (paidAt or a succeeded transaction):
-  // a payment that landed after the sweep cancelled the order has no paidAt,
-  // and it is exactly the money that must go back.
-  const collected = await orderWasCollected(order);
-
-  const transitions = availableTransitions(order.status);
-  const statusLabel =
-    order.status === "shipped"
-      ? shippedStatusLabel(orderFulfillment(order))
-      : STATUS_LABEL[order.status];
-  const refundedMinor = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remainingRefundableMinor = Math.max(
-    0,
-    order.totalMinor - refundedMinor,
+  const [payments, auditRead, noticeRead, couponRead] = await Promise.all([
+    listPaymentTransactions(order.id),
+    readOrFlag(listOrderAuditLogs(order.id), "olay kaydı"),
+    readOrFlag(listOrderNotices(order.id), "e-posta kaydı"),
+    // Which coupon paid: a reward coupon is a payment, not a discount, and
+    // the KDV table then shows the invoice's split (ASK-COUPON).
+    readOrFlag(
+      couponSourcesForOrders([order]).then((m) => {
+        const source = m.get(order.orderNo);
+        return source ? [source] : [];
+      }),
+      "kupon",
+    ),
+  ]);
+  const audits = auditRead.rows;
+  const notices = noticeRead.rows;
+  // The SAME money facts the server actions decide by (orderWasCollected:
+  // paidAt or a succeeded payment row): a payment that landed after the
+  // sweep cancelled the order has no paidAt, and it is exactly the money
+  // that must go back.
+  const m = orderMoneyFromRows(order, payments);
+  const money = {
+    collected: m.collected,
+    collectedMinor: m.collectedMinor,
+    destination: m.destination,
+  };
+  const actions = orderActions(
+    order,
+    session.role,
+    m.collected,
+    m.collectedMinor,
   );
+  const payment = orderPaymentState(order, m.collected);
+  const attention = attentionText(order.attention);
+  const owed =
+    order.status === "cancelled"
+      ? refundableMinor(order, m.collected, m.collectedMinor)
+      : 0;
+  const customerHref =
+    canAccess("customers", session.role) && order.customerEmail.includes("@")
+      ? `/admin/musteriler/${encodeURIComponent(order.customerEmail)}`
+      : null;
+  // Stamps or a member coupon filed under the e-mail lock it (the store
+  // refuses the move either way). A read that fails draws it locked too.
+  const ledgerHeld =
+    orderDetailsRules(order, session.role).emailEditable &&
+    (await orderEmailLedgerHeld(order).catch((err) => {
+      console.error("[admin/siparisler] damga ve kupon okunamadı", err);
+      return true;
+    }));
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <PageShell width="detail">
+      <div className="mb-4 print:hidden">
+        <Link
+          href="/admin/siparisler"
+          className="text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+        >
+          ← Tüm siparişler
+        </Link>
+      </div>
+
       <PageHeader
-        eyebrow={`Sipariş · ${formatDateTime(order.createdAt)}`}
-        title={`#${order.orderNo}`}
-        description={`${order.customerName} · ${statusLabel}`}
+        className="print:hidden"
+        meta={<span>Sipariş · {formatDateTime(order.createdAt)}</span>}
+        title={`#${order.orderNo} ${order.customerName}`}
+        badges={
+          <>
+            <OrderStatusBadge order={order} className="px-3 py-1" />
+            <Badge tone={payment.tone}>{payment.label}</Badge>
+            <OrderChannelBadges order={order} />
+            {order.source === "manual" ? <Badge>Panelden</Badge> : null}
+          </>
+        }
         action={
-          <Link
-            href="/admin/siparisler"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--admin-border)] px-4 py-2 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-          >
-            ← Tüm siparişler
-          </Link>
+          <OrderHeaderActions
+            order={orderForClient(order)}
+            money={money}
+            actions={actions}
+            refundToken={randomUUID()}
+            mayRefund={canAccess("refunds", session.role)}
+          />
         }
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <OrderChannelBadges order={order} />
-        {order.scheduledFor ? (
-          <span
-            className="text-[10px] tracking-[0.18em] text-neutral-500 uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Planlanan · {formatDateTime(order.scheduledFor)}
-          </span>
-        ) : null}
-        {order.deliveryNote ? (
-          <span className="text-xs text-neutral-600">
-            {orderFulfillment(order) === "delivery" ? "Kurye notu" : "Not"}:{" "}
-            {order.deliveryNote}
-          </span>
-        ) : null}
-      </div>
+      {attention ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-2xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)] sm:px-6 print:hidden"
+        >
+          <p className="font-semibold">{attention.title}</p>
+          <p className="mt-1">{attention.body}</p>
+          {owed > 0 ? (
+            <p className="mt-1">İade edilecek: {formatTRY(owed)}</p>
+          ) : null}
+          {/* "Dikkat işaretini kaldır" needs the refunds role: staff saw it
+              disabled under an instruction to press it (ORD-26). */}
+          <p className="mt-1 text-xs">
+            {actions.clear_attention?.enabled
+              ? 'Çözünce ⋯ menüsünden "Dikkat işaretini kaldır".'
+              : "Çözülmesi için bir yöneticiye haber ver."}
+          </p>
+        </div>
+      ) : null}
 
       <OrderDetail
         order={order}
         settings={settings}
-        transitions={transitions}
-        statusLabel={statusLabel}
-        statusTone={STATUS_TONE[order.status]}
-        refundedMinor={refundedMinor}
-        remainingRefundableMinor={remainingRefundableMinor}
-        canRefund={canAccess("refunds", session.role)}
-        collected={collected}
+        money={money}
+        actions={actions}
+        payments={payments}
+        timeline={orderTimeline(order, audits, notices)}
+        notices={notices.filter((n) => n.kind !== "staff-new")}
+        customerHref={customerHref}
+        historyUnread={{ audit: auditRead.failed, mail: noticeRead.failed }}
+        detailsRules={orderDetailsRules(order, session.role, ledgerHeld)}
+        canSeeEvidence={canAccess("customers", session.role)}
+        couponSource={couponRead.rows[0] ?? null}
+        couponUnread={couponRead.failed}
       />
-    </main>
+    </PageShell>
   );
 }

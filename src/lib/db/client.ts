@@ -10,7 +10,8 @@
  *
  * Supported surface (everything the codebase uses, nothing more):
  *   .from().select()/.insert()/.update()/.upsert()/.delete()
- *   .eq() .neq() .in() .gte() .ilike() .ieq() .order() .limit() .maybeSingle()
+ *   .eq() .neq() .in() .gte() .ilike() .ieq() .anyOf() .order() .limit()
+ *   .offset() .maybeSingle()
  *   .select("*", { count: "exact", head: true })
  *   .rpc(fn, namedArgs)
  *
@@ -24,7 +25,12 @@
  */
 
 import {
+  DATABASE_URL_MISSING,
+  isDatabaseUrlMissing,
+} from "./database-url.mjs";
+import {
   compile,
+  type AnyOfCondition,
   type CompiledQuery,
   type Filter,
   type OrderBy,
@@ -63,6 +69,46 @@ export interface ExecutorResult {
 /** Runs compiled SQL. Injected so the builder is testable without a database. */
 export type Executor = (query: CompiledQuery) => Promise<ExecutorResult>;
 
+/** What a write touched: a table, or the SQL function it called. */
+export type WriteTarget = { table: string } | { fn: string };
+
+export interface DbOptions {
+  /**
+   * Called once after each write that was sent: an insert, upsert, update
+   * or delete (`{ table }`), or an rpc (`{ fn }`), whether it succeeded or
+   * failed. A failure does not prove nothing was written: Postgres can
+   * commit and the connection drop before the reply arrives, and the caller
+   * then sees an error for a price that is already in the table. Never
+   * after a select or a write that sent nothing (an empty upsert, an
+   * identifier refused before any SQL). `getDb()` uses it to expire the
+   * cached reads the write made stale (src/lib/cache/tags.ts): one expiry
+   * too many costs a read, one too few leaves a price stale for a day. It
+   * cannot fail the write or change its result: a throw is swallowed.
+   */
+  onWrite?: (target: WriteTarget) => void;
+}
+
+/** The executor for a write: the same SQL, then `onWrite`, failure included. */
+function writingExecutor(
+  execute: Executor,
+  target: WriteTarget,
+  onWrite: DbOptions["onWrite"],
+): Executor {
+  if (!onWrite) return execute;
+  return async (query) => {
+    try {
+      return await execute(query);
+    } finally {
+      try {
+        onWrite(target);
+      } catch {
+        // A cache that could not be told is not an error the caller can do
+        // anything about; the write's own result stands.
+      }
+    }
+  };
+}
+
 /**
  * Normalises a driver error into the PostgREST error shape.
  *
@@ -72,6 +118,21 @@ export type Executor = (query: CompiledQuery) => Promise<ExecutorResult>;
  * `status: 0` + empty `code` rather than being flattened into a string.
  */
 export function toDbError(err: unknown): { error: DbError; status: number } {
+  // No DATABASE_URL: like a transport failure, the request never reached a
+  // Postgres (status 0), but under a code of its own so it stays nameable:
+  // `raiseDbError` degrades it exactly like an unreachable database, and the
+  // message says which variable is missing (./database-url.mjs).
+  if (isDatabaseUrlMissing(err)) {
+    return {
+      error: {
+        message: (err as Error).message,
+        code: DATABASE_URL_MISSING,
+        details: "",
+        hint: "",
+      },
+      status: 0,
+    };
+  }
   const e = err as {
     message?: string;
     code?: string;
@@ -123,6 +184,7 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
   protected readonly filters: Filter[] = [];
   protected readonly orders: OrderBy[] = [];
   protected limitValue: number | null = null;
+  protected offsetValue: number | null = null;
   protected singleMode: "maybe" | null = null;
 
   constructor(protected readonly execute: Executor) {}
@@ -177,6 +239,17 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
     return this;
   }
 
+  /**
+   * At least one of `conditions` holds: `(a OR b OR c)`, ANDed with the
+   * other filters. Not PostgREST's `.or("a.eq.1,...")` string: the
+   * conditions are values, parameterised like every other filter. Built for
+   * one search box across an order number, a name and an e-mail.
+   */
+  anyOf(conditions: readonly AnyOfCondition[]): this {
+    this.filters.push({ op: "any", column: "", value: [...conditions] });
+    return this;
+  }
+
   order(column: string, options?: OrderOptions): this {
     this.orders.push({ column, ascending: options?.ascending !== false });
     return this;
@@ -184,6 +257,12 @@ abstract class QueryBuilder<T> implements PromiseLike<DbResult<T>> {
 
   limit(count: number): this {
     this.limitValue = count;
+    return this;
+  }
+
+  /** Skip this many rows (numbered pages); use with `order` and `limit`. */
+  offset(count: number): this {
+    this.offsetValue = count;
     return this;
   }
 
@@ -285,6 +364,7 @@ class SelectBuilder<T> extends QueryBuilder<T> {
       filters: this.filters,
       orders: this.orders,
       limit: this.limitValue,
+      offset: this.offsetValue,
       count: this.options.count ?? null,
       head: this.options.head === true,
     };
@@ -426,10 +506,16 @@ class DeleteBuilder<T> extends MutationBuilder<T> {
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 class TableQuery {
+  /** Runs this table's writes and reports each one that was sent. */
+  private readonly write: Executor;
+
   constructor(
     private readonly execute: Executor,
     private readonly table: string,
-  ) {}
+    onWrite?: DbOptions["onWrite"],
+  ) {
+    this.write = writingExecutor(execute, { table }, onWrite);
+  }
 
   select<T = any>(columns = "*", options: SelectOptions = {}) {
     return new SelectBuilder<T>(this.execute, this.table, columns, options);
@@ -437,7 +523,7 @@ class TableQuery {
 
   insert<T = any>(values: RowInput | RowInput[]) {
     return new InsertBuilder<T>(
-      this.execute,
+      this.write,
       this.table,
       (Array.isArray(values) ? values : [values]) as Row[],
     );
@@ -445,7 +531,7 @@ class TableQuery {
 
   upsert<T = any>(values: RowInput | RowInput[], options: UpsertOptions = {}) {
     return new UpsertBuilder<T>(
-      this.execute,
+      this.write,
       this.table,
       (Array.isArray(values) ? values : [values]) as Row[],
       options,
@@ -453,11 +539,11 @@ class TableQuery {
   }
 
   update<T = any>(patch: RowInput) {
-    return new UpdateBuilder<T>(this.execute, this.table, patch as Row);
+    return new UpdateBuilder<T>(this.write, this.table, patch as Row);
   }
 
   delete<T = any>() {
-    return new DeleteBuilder<T>(this.execute, this.table);
+    return new DeleteBuilder<T>(this.write, this.table);
   }
 }
 
@@ -511,14 +597,17 @@ class RpcBuilder<T> implements PromiseLike<DbResult<T>> {
 }
 
 export class Db {
-  constructor(private readonly execute: Executor) {}
+  constructor(
+    private readonly execute: Executor,
+    private readonly options: DbOptions = {},
+  ) {}
 
   from(table: string): TableQuery {
-    return new TableQuery(this.execute, table);
+    return new TableQuery(this.execute, table, this.options.onWrite);
   }
 
   rpc<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T> {
-    return new RpcBuilder<T>(this.execute, fn, args as Row);
+    return new RpcBuilder<T>(this.rpcExecutor(fn), fn, args as Row);
   }
 
   /**
@@ -527,11 +616,16 @@ export class Db {
    * that as "no audience" every day and still reported success.
    */
   rpcRows<T = any>(fn: string, args: RowInput = {}): RpcBuilder<T[]> {
-    return new RpcBuilder<T[]>(this.execute, fn, args as Row, "table");
+    return new RpcBuilder<T[]>(this.rpcExecutor(fn), fn, args as Row, "table");
+  }
+
+  /** An rpc may write, so each one sent is reported like a write. */
+  private rpcExecutor(fn: string): Executor {
+    return writingExecutor(this.execute, { fn }, this.options.onWrite);
   }
 }
 
-export function createDb(execute: Executor): Db {
-  return new Db(execute);
+export function createDb(execute: Executor, options: DbOptions = {}): Db {
+  return new Db(execute, options);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

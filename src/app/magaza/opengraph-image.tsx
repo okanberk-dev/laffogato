@@ -1,0 +1,13 @@
+import { OG_CONTENT_TYPE, OG_SIZE, ogImage } from "@/lib/seo/og-card";
+import { shopCard } from "@/lib/seo/og-pages";
+import { SITE } from "@/lib/seo/site";
+
+/** /magaza's link preview: the house coffee bag. Drawn at build time; no database. */
+export const runtime = "nodejs";
+export const alt = `${SITE.name} mağazası: çekirdek kahve paketi`;
+export const size = OG_SIZE;
+export const contentType = OG_CONTENT_TYPE;
+
+export default function Image() {
+  return ogImage(shopCard());
+}

@@ -2,56 +2,84 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useActionState,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  bulkOrdersAction,
   newOrderCountAction,
-  type BulkOrderActionState,
+  newOrderSignalAction,
+  transitionOrderAction,
 } from "@/app/admin/siparisler/actions";
-import type { AdminOrder, AdminOrderStatus } from "@/lib/admin/store";
-
-import { beep } from "./beep";
+import type { ActionResult } from "@/lib/admin/action-result";
+import { readSignalAnswer } from "@/lib/admin/panel-signal-core";
+import type { SortState } from "@/lib/admin/list-params";
 import {
-  BulkActionBar,
-  RowCheckbox,
-  SelectAllCheckbox,
-  useSelection,
-} from "./bulk";
+  orderActionLabel,
+  type OrderActionMap,
+} from "@/lib/admin/order-actions";
+import { orderStatusLabel } from "@/lib/admin/order-ui";
+import type { AdminOrder } from "@/lib/admin/store";
+import type { AdminTone } from "@/lib/admin/tone";
+
+import { ActionButton } from "./action-form";
+import { beep } from "./beep";
+import { BulkActionBar, useSelection } from "./bulk";
 import { formatDateTime, formatTRY } from "./forms";
 import { OrderChannelBadges } from "./order-badges";
+import {
+  BulkOrderButtons,
+  OrderActionMenu,
+  type OrderMoneyView,
+} from "./order-actions-ui";
+import {
+  Badge,
+  DataTable,
+  EmptyListActionLink,
+  EmptyState,
+  OrderStatusBadge,
+  type DataTableColumn,
+  type EmptyListAction,
+} from "./ui";
+import {
+  orderAlertsMounted,
+  readSoundPref,
+  shouldListBeep,
+  useSoundPref,
+  writeSoundPref,
+} from "./sound-pref";
+import { BUTTON, MONO_STYLE } from "./ui/styles";
 
-interface Props {
-  orders: AdminOrder[];
-  /** Every status, for the badge label. */
-  statusOptions: Array<[AdminOrderStatus, string]>;
-  /**
-   * The subset the bulk tool may set. Narrower than `statusOptions`: the
-   * dropdown used to offer `paid` and `refunded`, which the store refuses
-   * because neither writes the ledger row that moves the money.
-   */
-  bulkStatusOptions: Array<[AdminOrderStatus, string]>;
-  statusTone: Record<AdminOrderStatus, string>;
-  /**
-   * Every order in the table. The list is paged (WP1), so `orders.length` is
-   * only this page; omitted, the line counts the page as before.
-   */
-  total?: number;
-  /**
-   * Whether to poll for new arrivals. Off on older pages: a new order is
-   * never on them, and "Listeyi yenile" there would not show it.
-   */
-  live?: boolean;
+/** One row of the order list, decided on the server. */
+export interface OrderListRow {
+  order: AdminOrder;
+  money: OrderMoneyView;
+  /** `orderActions(order, role, collected)`: what the row menu offers. */
+  actions: OrderActionMap;
+  /** The payment column (`orderPaymentState`). */
+  payment: { label: string; tone: AdminTone };
+  refundToken: string;
 }
 
-const initialBulkState: BulkOrderActionState = {};
+interface Props {
+  rows: OrderListRow[];
+  /** The signed-in role may refund (the cancel modal's refund box). */
+  mayRefund: boolean;
+  /**
+   * Poll for new arrivals (`ParsedOrderList.live`): every order on the
+   * plain first page, open orders on the plain "Açık" tab, nothing behind a
+   * filter, a sort, on page 2 or another tab.
+   */
+  live: "all" | "open" | null;
+  sort: SortState;
+  searchParams: Record<string, string | string[] | undefined>;
+  pathname: string;
+  /** Shown when there are no rows. */
+  emptyTitle: string;
+  /**
+   * The way out of an empty list: "Filtreleri temizle" behind a filter,
+   * "+ Yeni sipariş" when there is no order at all (admin audit ORD-25).
+   */
+  emptyAction?: EmptyListAction | null;
+}
 
 /**
  * How often the page asks whether anything arrived.
@@ -62,68 +90,204 @@ const initialBulkState: BulkOrderActionState = {};
  */
 const POLL_MS = 30_000;
 
-/** Remembered per browser; a shared till screen and a back-office laptop want different answers. */
-const SOUND_KEY = "laffogato.admin.orders.sound";
+/**
+ * The sound toggle's name. It stays the same whatever the state: the state
+ * is `aria-pressed` (and the dot), so a screen reader hears "Yeni sipariş
+ * sesi, basılı" rather than "Ses kapalı, basılı değil" (admin audit ORD-27).
+ */
+export const SOUND_TOGGLE_LABEL = "Yeni sipariş sesi";
 
 /**
- * The sound preference, read as an external store rather than mirrored into
- * React state.
- *
- * `localStorage` cannot be read while rendering on the server, so a
- * `useState` seeded from it either mismatches on hydration or has to be
- * corrected inside an effect - the cascading-render pattern React now warns
- * about. `useSyncExternalStore` is the sanctioned shape for exactly this: the
- * server snapshot is "off", the client reads the real value, and a change in
- * another tab arrives through the same `storage` event.
+ * The moves a row runs in place, in the order an order goes through them
+ * (admin UI design 5 #4): the barista's most frequent click without
+ * opening the order. Forward only and free of money: taking a payment,
+ * asking the POS, shipping a parcel (carrier and tracking number),
+ * cancelling and refunding stay in the "⋯" menu and their modals.
  */
-const soundListeners = new Set<() => void>();
+export const ROW_STEP_IDS = [
+  "start_preparing",
+  "mark_shipped",
+  "complete",
+] as const;
+export type RowStepId = (typeof ROW_STEP_IDS)[number];
 
-function readSoundPref(): boolean {
-  try {
-    return window.localStorage.getItem(SOUND_KEY) === "1";
-  } catch {
-    // Private window, blocked storage: silence is the safe default.
-    return false;
-  }
+/**
+ * The one step a row offers: the first of ROW_STEP_IDS the server's
+ * `orderActions` enabled for this role, or none. A step the role may not
+ * take is not drawn here; it stays in the "⋯" menu with its reason.
+ */
+export function rowStep(actions: OrderActionMap): RowStepId | null {
+  return ROW_STEP_IDS.find((id) => actions[id]?.enabled === true) ?? null;
 }
 
-function subscribeSound(onChange: () => void): () => void {
-  soundListeners.add(onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    soundListeners.delete(onChange);
-    window.removeEventListener("storage", onChange);
-  };
+/**
+ * How long a freshly drawn step ignores taps. A new button lands where the
+ * last one was tapped the moment the answer arrives; a double tap would
+ * otherwise run two moves: "Hazırlamaya başla" and then "Teslime hazır",
+ * which mails the customer, or, on a tab the order then leaves ("Açık"
+ * after "Tamamlandı"), the same move on the NEXT order, which moved up into
+ * the tapped row's place.
+ */
+const STEP_ARM_MS = 700;
+
+/**
+ * Each row's place and step, by order id: what a row's button is armed for.
+ * A row whose step changed, or which moved to another place (a row above it
+ * left the tab, "Listeyi yenile" put new orders on top), gets a new key and
+ * waits STEP_ARM_MS again. A row that stayed where it was keeps its key.
+ */
+export function rowStepArmKeys(
+  rows: readonly OrderListRow[],
+): Map<string, string> {
+  return new Map(
+    rows.map((r, place) => [
+      r.order.id,
+      `${place}:${rowStep(r.actions) ?? ""}`,
+    ]),
+  );
 }
 
-function writeSoundPref(next: boolean): void {
-  try {
-    window.localStorage.setItem(SOUND_KEY, next ? "1" : "0");
-  } catch {
-    /* Not remembered next time; the toggle still works this session. */
-  }
-  for (const listener of soundListeners) listener();
+/**
+ * The step as a button, through the same Server Action as the menu row
+ * and the order page (`transitionOrderAction`, which asks `orderActions`
+ * again before it writes). Its name carries the order number: twenty
+ * "Tamamlandı" buttons in a row are one name to a screen reader.
+ */
+function RowStepButton({
+  order,
+  id,
+  armKey,
+}: {
+  order: AdminOrder;
+  id: RowStepId;
+  armKey: string;
+}) {
+  const label = orderActionLabel(id, order);
+  // Armed per key on the same button (no remount per step): the key moves
+  // with the row's step and with its place in the list.
+  const [armedFor, setArmedFor] = useState<string | null>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setArmedFor(armKey), STEP_ARM_MS);
+    return () => clearTimeout(timer);
+  }, [armKey]);
+  const armed = armedFor === armKey;
+  return (
+    <span
+      className="inline-flex"
+      onClickCapture={(e) => {
+        if (armed) return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <ActionButton
+        action={transitionOrderAction}
+        hidden={{ id: order.id, transition: id }}
+        pendingLabel="İşleniyor…"
+        ariaLabel={`${label}: sipariş ${order.orderNo}`}
+        className="whitespace-nowrap"
+      >
+        {label}
+      </ActionButton>
+    </span>
+  );
+}
+
+/**
+ * The row's step where it is drawn: under the status in the table, the
+ * last line of the phone card (a thumb's reach).
+ */
+function RowStep({
+  row,
+  armKey,
+  className,
+}: {
+  row: OrderListRow;
+  armKey: string;
+  className: string;
+}) {
+  const step = rowStep(row.actions);
+  if (!step) return null;
+  return (
+    <span className={className}>
+      <RowStepButton order={row.order} id={step} armKey={armKey} />
+    </span>
+  );
+}
+
+function itemsSummary(order: AdminOrder): string {
+  const names = order.items.map(
+    (it) =>
+      `${it.qty > 1 ? `${it.qty}× ` : ""}${it.productName}${it.detail ? ` (${it.detail})` : ""}`,
+  );
+  const shown = names.slice(0, 2).join(", ");
+  return names.length > 2 ? `${shown} +${names.length - 2}` : shown;
+}
+
+function refundedMinorOf(order: AdminOrder): number {
+  return order.refunds.reduce((s, r) => s + r.amountMinor, 0);
+}
+
+function Amount({ order }: { order: AdminOrder }) {
+  const refunded = refundedMinorOf(order);
+  return (
+    <span className="inline-flex flex-col items-end" style={MONO_STYLE}>
+      <span>{formatTRY(order.totalMinor - refunded)}</span>
+      {refunded > 0 ? (
+        <span className="text-[11px] text-[var(--admin-danger-ink)]">
+          {formatTRY(refunded)} iade
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/** The payment badge, left out where it would repeat the status ("Ödendi"). */
+function PaymentBadge({ row }: { row: OrderListRow }) {
+  if (row.payment.label === orderStatusLabel(row.order)) return null;
+  return <Badge tone={row.payment.tone}>{row.payment.label}</Badge>;
+}
+
+/** The number and its marks. The marks wrap under a long number. */
+function OrderNo({ order, isNew }: { order: AdminOrder; isNew: boolean }) {
+  return (
+    <span
+      className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+      style={MONO_STYLE}
+    >
+      <span className="whitespace-nowrap">#{order.orderNo}</span>
+      {order.attention ? (
+        <Badge tone="danger" title="Dikkat: sipariş sayfasındaki banda bak">
+          Dikkat
+        </Badge>
+      ) : null}
+      {isNew ? <Badge tone="warning">Yeni</Badge> : null}
+    </span>
+  );
 }
 
 export function OrdersList({
-  orders,
-  statusOptions,
-  bulkStatusOptions,
-  statusTone,
-  total,
-  live = true,
+  rows,
+  mayRefund,
+  live,
+  sort,
+  searchParams,
+  pathname,
+  emptyTitle,
+  emptyAction = null,
 }: Props) {
-  const selection = useSelection();
   const router = useRouter();
-  const [state, formAction, pending] = useActionState(
-    bulkOrdersAction,
-    initialBulkState,
-  );
-  const lastFlash = useRef<string>("");
+  // The last bulk answer that succeeded: each new one clears the selection
+  // once (bulk.tsx useSelection), so the bar closes after a bulk action.
+  const [state, setState] = useState<{ ok?: ActionResult }>({});
+  const selection = useSelection({ resetOn: state.ok });
 
   // The newest order on screen. Everything the poll reports is counted
   // strictly above it, so the answer is "how many has this page not seen".
-  const latestOrderNo = orders.reduce((max, o) => Math.max(max, o.orderNo), 0);
+  const latestOrderNo = rows.reduce(
+    (max, r) => Math.max(max, r.order.orderNo),
+    0,
+  );
 
   // The poll's answer, stamped with the orderNo it was asked about. Stamped
   // rather than reset in an effect: after a refresh the rendered list is
@@ -131,16 +295,15 @@ export function OrdersList({
   const [signal, setSignal] = useState({ since: 0, count: 0 });
   const newCount = signal.since === latestOrderNo ? signal.count : 0;
 
-  const sound = useSyncExternalStore(
-    subscribeSound,
-    readSoundPref,
-    () => false,
-  );
+  // The panel's one sound switch (sound-pref.ts), shared with the
+  // new-order alert in the top bar.
+  const sound = useSoundPref();
 
   // Orders numbered above this get the "yeni" mark after a refresh; null
   // until the operator has actually refreshed once.
   const [markAfter, setMarkAfter] = useState<number | null>(null);
   const lastCount = useRef(0);
+  const lastShop = useRef(0);
 
   /**
    * The poll.
@@ -151,24 +314,55 @@ export function OrdersList({
    * operator's click.
    *
    * Sleeps while the tab is hidden - a till screen left open overnight should
-   * not spend the night counting.
+   * not spend the night counting. While the tab is visible and no order has
+   * been written, the answer is "unchanged" (panel-signal-core.ts): the
+   * cursor goes back each time, the database is not asked and the count
+   * stays. A new `latestOrderNo` (a refresh) restarts this without one.
    */
   useEffect(() => {
     lastCount.current = 0;
+    lastShop.current = 0;
     if (!live) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let cursor = "";
 
     async function tick() {
       if (!cancelled && document.visibilityState === "visible") {
         try {
-          const n = await newOrderCountAction(latestOrderNo);
+          const answer = readSignalAnswer(
+            await newOrderSignalAction(
+              latestOrderNo,
+              live === "open" ? "open" : "all",
+              cursor,
+            ),
+          );
+          // Nothing written since the last answer: the count stands.
+          const n = "unchanged" in answer ? undefined : answer.count;
+          if (!("unchanged" in answer)) cursor = answer.cursor;
           if (!cancelled && typeof n === "number") {
             setSignal({ since: latestOrderNo, count: n });
             // Only on the way up: a barista who left the tab open should hear
-            // an arrival, not the same three orders every half minute.
-            if (n > lastCount.current && readSoundPref()) beep(true);
+            // an arrival, not the same three orders every half minute. Beside
+            // the panel-wide alert, only for a shop order: the alert rings
+            // for the cafe orders itself.
+            const grew = n > lastCount.current;
             lastCount.current = n;
+            const decision = await shouldListBeep({
+              grew,
+              soundOn: readSoundPref(),
+              alertsMounted: orderAlertsMounted(),
+              lastShop: lastShop.current,
+              countShop: () =>
+                newOrderCountAction(
+                  latestOrderNo,
+                  live === "open" ? "open" : undefined,
+                  "shop",
+                ),
+            });
+            if (cancelled) return;
+            if (decision.shop !== null) lastShop.current = decision.shop;
+            if (decision.beep) beep(true);
           }
         } catch {
           // A failed poll is not an error the operator has to read; the next
@@ -188,6 +382,7 @@ export function OrdersList({
   const refreshNow = useCallback(() => {
     setMarkAfter(latestOrderNo);
     lastCount.current = 0;
+    lastShop.current = 0;
     router.refresh();
   }, [latestOrderNo, router]);
 
@@ -199,51 +394,117 @@ export function OrdersList({
     if (next) beep(true);
   }, []);
 
-  useEffect(() => {
-    if (state.ok && state.ok.updated >= 0) {
-      const flashKey = `${state.ok.op}:${state.ok.updated}:${Date.now()}`;
-      if (flashKey !== lastFlash.current) {
-        lastFlash.current = flashKey;
-        selection.clear();
-      }
-    }
-  }, [state, selection]);
+  const isNew = (o: AdminOrder) => markAfter !== null && o.orderNo > markAfter;
 
-  const ids = orders.map((o) => o.id);
-  const idsCsv = selection.ids.join(",");
-  // The skipped count is the whole point of naming it: the machine refuses an
-  // id whose current status cannot reach the target, and a silent "0 sipariş
-  // güncellendi" left staff re-clicking.
-  const flash = state.ok
-    ? [
-        `${state.ok.updated} sipariş güncellendi.`,
-        state.ok.skipped > 0
-          ? `${state.ok.skipped} sipariş bu durumda bu işleme uygun değildi, atlandı.`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-    : state.error;
+  const armKeys = rowStepArmKeys(rows);
+  const armKeyOf = (r: OrderListRow) => armKeys.get(r.order.id) ?? "";
+
+  // The table fits its card from md up (admin audit ORD-02: at 768-1366
+  // px it was 50-130 px wider, the "⋯" column off screen). The No cell
+  // wraps (its marks, and the date that sits under it until xl), the
+  // customer column is 12rem, the cells are a little tighter below xl
+  // (768 and 1024 leave the table the same 718 px), and the channel pills
+  // ride under the customer until 2xl, where they get their own column,
+  // capped at 14rem. The "⋯" column is pinned (ui/data-table.tsx) for
+  // whatever still scrolls.
+  const TIGHT = "max-xl:px-3";
+  const columns: DataTableColumn<OrderListRow>[] = [
+    {
+      key: "no",
+      header: "No",
+      sortable: true,
+      firstDir: "desc",
+      className: TIGHT,
+      cell: (r) => (
+        <span className="flex flex-col gap-0.5">
+          <OrderNo order={r.order} isNew={isNew(r.order)} />
+          <span className="text-xs font-normal text-[var(--admin-text-soft)] xl:hidden">
+            {formatDateTime(r.order.createdAt)}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "tarih",
+      header: "Tarih",
+      sortable: true,
+      firstDir: "desc",
+      hideBelow: "xl",
+      className: "whitespace-nowrap",
+      cell: (r) => (
+        <span className="text-xs text-[var(--admin-text-soft)]">
+          {formatDateTime(r.order.createdAt)}
+        </span>
+      ),
+    },
+    {
+      key: "musteri",
+      header: "Müşteri",
+      sortable: true,
+      className: TIGHT,
+      cell: (r) => (
+        <span className="flex max-w-[12rem] min-w-0 flex-col">
+          <span className="truncate">{r.order.customerName}</span>
+          <span className="truncate text-xs text-[var(--admin-text-soft)]">
+            {r.order.customerEmail}
+          </span>
+          <span className="truncate text-xs text-[var(--admin-text-soft)]">
+            {itemsSummary(r.order)}
+          </span>
+          <span className="mt-1 flex flex-wrap gap-1 2xl:hidden">
+            <OrderChannelBadges order={r.order} />
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "kanal",
+      header: "Kanal",
+      // From 2xl only (DataTable's hideBelow stops at xl); the pills sit
+      // under the customer below that.
+      className: "hidden 2xl:table-cell",
+      cell: (r) => (
+        <span className="flex max-w-[14rem] flex-col items-start gap-1">
+          <OrderChannelBadges order={r.order} />
+        </span>
+      ),
+    },
+    {
+      key: "tutar",
+      header: "Tutar",
+      sortable: true,
+      firstDir: "desc",
+      align: "right",
+      className: `whitespace-nowrap ${TIGHT}`,
+      cell: (r) => <Amount order={r.order} />,
+    },
+    {
+      key: "durum",
+      header: "Durum",
+      className: TIGHT,
+      // The step sits under the status it moves on from. Not beside the
+      // "⋯" in the pinned column: 160 px more there made the table wider
+      // than its card from 768 to 1279 px, and the pinned cell then
+      // covered this very column.
+      cell: (r) => (
+        <span className="flex flex-col items-start gap-1">
+          <OrderStatusBadge order={r.order} />
+          <PaymentBadge row={r} />
+          <RowStep row={r} armKey={armKeyOf(r)} className="mt-1" />
+        </span>
+      ),
+    },
+  ];
 
   return (
     <>
-      {flash && (
-        <div
-          className={`mb-3 rounded-md border px-3 py-2 text-sm ${
-            state.error
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
-          }`}
-        >
-          {flash}
-        </div>
-      )}
-
       {newCount > 0 && (
         <div
           role="status"
           aria-live="polite"
-          className="sticky top-2 z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 shadow-sm"
+          // Below lg the panel's top bar is sticky too (about 61 px):
+          // stuck at top-2, the sentence slid under it (admin audit ORD-10).
+          className="sticky top-[4.25rem] z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm lg:top-2"
         >
           <span>
             <strong>{newCount} yeni sipariş</strong> geldi. Liste, sen
@@ -259,195 +520,129 @@ export function OrdersList({
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-3 rounded-md border border-[var(--admin-border)] bg-white px-4 py-2.5">
-        <SelectAllCheckbox ids={ids} selection={selection} label="Tümünü seç" />
-        <span
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          {total !== undefined && total > orders.length
-            ? `${orders.length} / ${total} sipariş`
-            : `${orders.length} sipariş`}
-        </span>
-        <button
-          type="button"
-          onClick={toggleSound}
-          aria-pressed={sound}
-          title="Yeni sipariş geldiğinde kısa bir ses çalar."
-          className={`ml-auto rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] uppercase ${
-            sound
-              ? "border-[var(--admin-primary)] text-[var(--admin-primary)]"
-              : "border-[var(--admin-border)] text-neutral-500"
-          }`}
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Ses {sound ? "açık" : "kapalı"}
-        </button>
-      </div>
-
-      <div className="flex flex-col gap-4">
-        {orders.map((o) => {
-          const statusLabel =
-            statusOptions.find(([k]) => k === o.status)?.[1] ?? o.status;
-          const tone = statusTone[o.status];
-          const isSelected = selection.has(o.id);
-          const isNew = markAfter !== null && o.orderNo > markAfter;
-          return (
-            <div
-              key={o.id}
-              className={`rounded-xl border bg-white p-6 shadow-sm transition-shadow hover:shadow-md ${
-                isSelected
-                  ? "border-neutral-900"
-                  : isNew
-                    ? "border-amber-300 ring-2 ring-amber-200"
-                    : "border-[var(--admin-border)]"
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="pt-1">
-                    <RowCheckbox
-                      id={o.id}
-                      selection={selection}
-                      label={`Sipariş ${o.orderNo}`}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <span
-                        className="text-lg font-medium"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        #{o.orderNo}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] uppercase ${tone}`}
-                      >
-                        {statusLabel}
-                      </span>
-                      {isNew && (
-                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] tracking-[0.18em] text-amber-800 uppercase">
-                          Yeni
-                        </span>
-                      )}
-                      <OrderChannelBadges order={o} />
-                    </div>
-                    <div className="mt-1 text-sm text-neutral-700">
-                      {o.customerName}{" "}
-                      <span className="text-neutral-400">·</span>{" "}
-                      <span className="text-neutral-500">
-                        {o.customerEmail}
-                      </span>
-                    </div>
-                    <div
-                      className="mt-1 text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {formatDateTime(o.createdAt)}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div
-                    className="text-xl"
-                    style={{
-                      fontFamily: "var(--serif), 'Playfair Display', serif",
-                      fontStyle: "italic",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {formatTRY(o.totalMinor)}
-                  </div>
-                  <div
-                    className="text-[10px] tracking-[0.18em] text-neutral-400 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    {o.items.length} kalem
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 border-t border-neutral-100 pt-4">
-                <ul className="grid gap-1 text-sm text-neutral-700">
-                  {o.items.map((it, i) => (
-                    <li key={i} className="flex justify-between">
-                      <span>
-                        {it.productName}
-                        {it.detail ? (
-                          <span className="text-neutral-500">
-                            {" "}
-                            · {it.detail}
-                          </span>
-                        ) : null}{" "}
-                        <span className="text-neutral-400">× {it.qty}</span>
-                      </span>
-                      <span style={{ fontFamily: "var(--mono), monospace" }}>
-                        {formatTRY(it.unitPriceMinor * it.qty)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-                {o.refunds.length > 0 ? (
-                  <span
-                    className="text-[10px] tracking-[0.22em] text-rose-600 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    {o.refunds.length} iade kaydı
-                  </span>
-                ) : (
-                  <span
-                    className="text-[10px] tracking-[0.22em] text-neutral-400 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    Detaylı yönetim için sipariş sayfasına git
-                  </span>
-                )}
-                <Link
-                  href={`/admin/siparisler/${o.id}`}
-                  className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-                >
-                  Sipariş detayı →
-                </Link>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <form action={formAction}>
-        <input type="hidden" name="ids" value={idsCsv} />
-        <input type="hidden" name="op" value="set_status" />
-        <BulkActionBar
-          selection={selection}
-          pending={pending}
-          message={<span>Seçili siparişlerin durumunu birlikte güncelle:</span>}
-        >
-          <select
-            name="value"
-            defaultValue=""
-            className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs text-neutral-700 focus:border-[var(--admin-primary)] focus:outline-none"
-          >
-            <option value="" disabled>
-              Yeni durum…
-            </option>
-            {bulkStatusOptions.map(([k, l]) => (
-              <option key={k} value={k}>
-                {l}
-              </option>
-            ))}
-          </select>
+      {live ? (
+        <div className="mb-3 flex justify-end">
           <button
-            type="submit"
-            disabled={pending}
-            className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)] disabled:opacity-40"
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={sound}
+            title="Yeni sipariş geldiğinde kısa bir ses çalar."
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl border px-3.5 text-sm transition-colors ${
+              sound
+                ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+                : "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+            }`}
           >
-            Uygula
+            <span
+              aria-hidden="true"
+              className={`h-2.5 w-2.5 rounded-full border ${
+                sound
+                  ? "border-[var(--admin-primary)] bg-[var(--admin-primary)]"
+                  : "border-[var(--admin-text-mute)] bg-transparent"
+              }`}
+            />
+            {SOUND_TOGGLE_LABEL}
           </button>
-        </BulkActionBar>
-      </form>
+        </div>
+      ) : null}
+
+      <DataTable
+        caption="Siparişler"
+        columns={columns}
+        rows={rows}
+        rowKey={(r) => r.order.id}
+        rowHref={(r) => `/admin/siparisler/${r.order.id}`}
+        rowLabel={(r) => `Sipariş ${r.order.orderNo}`}
+        selection={selection}
+        rowClassName={(r) =>
+          isNew(r.order) ? "ring-2 ring-[var(--admin-warning)]/40" : null
+        }
+        rowActions={(r) => (
+          <OrderActionMenu
+            order={r.order}
+            money={r.money}
+            actions={r.actions}
+            refundToken={r.refundToken}
+            mayRefund={mayRefund}
+            openLink
+            // The step is on the row itself (the Durum cell, the card's
+            // last line): the menu does not offer it twice.
+            skip={rowStep(r.actions)}
+          />
+        )}
+        mobileCard={(r) => (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* The way into the order on a phone, so it looks like one:
+                  the number was plain text until hovered, and touch has no
+                  hover (admin audit ORD-25). */}
+              <Link
+                href={`/admin/siparisler/${r.order.id}`}
+                className="inline-flex min-h-[44px] items-center font-medium whitespace-nowrap text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
+                style={MONO_STYLE}
+              >
+                #{r.order.orderNo}
+              </Link>
+              {r.order.attention ? (
+                <Badge
+                  tone="danger"
+                  title="Dikkat: sipariş sayfasındaki banda bak"
+                >
+                  Dikkat
+                </Badge>
+              ) : null}
+              {isNew(r.order) ? <Badge tone="warning">Yeni</Badge> : null}
+              <OrderStatusBadge order={r.order} />
+              <PaymentBadge row={r} />
+            </div>
+            <div className="text-sm">{r.order.customerName}</div>
+            <div className="flex flex-wrap gap-1">
+              <OrderChannelBadges order={r.order} />
+            </div>
+            <div className="text-xs text-[var(--admin-text-soft)]">
+              {itemsSummary(r.order)}
+            </div>
+            <div className="flex items-end justify-between gap-2 text-sm">
+              <span className="text-xs text-[var(--admin-text-soft)]">
+                {formatDateTime(r.order.createdAt)}
+              </span>
+              <Amount order={r.order} />
+            </div>
+            <RowStep row={r} armKey={armKeyOf(r)} className="pt-1" />
+          </div>
+        )}
+        empty={
+          <EmptyState
+            title={emptyTitle}
+            action={
+              emptyAction ? (
+                <EmptyListActionLink
+                  action={emptyAction}
+                  className={BUTTON.ghost}
+                />
+              ) : null
+            }
+          />
+        }
+        sort={sort}
+        searchParams={searchParams}
+        pathname={pathname}
+      />
+
+      <BulkActionBar
+        selection={selection}
+        pending={false}
+        // A phone has room for one row: the count, "Seçimi temizle" and the
+        // one menu the four buttons fold into (BulkOrderButtons).
+        message={
+          <span className="hidden sm:inline">Seçili siparişlere uygula:</span>
+        }
+      >
+        <BulkOrderButtons
+          ids={selection.ids}
+          onSuccess={(result) => setState({ ok: result })}
+        />
+      </BulkActionBar>
     </>
   );
 }

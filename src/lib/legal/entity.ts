@@ -8,7 +8,8 @@
  * MERSİS numarası işletme sahibinin ibraz ettiği ticaret sicil kaydından
  * alınmıştır.
  *
- * ⚠️ Boş bırakılan alanlar (`kep`, `bank`) bilinmiyor. Uydurma değer YAZMAYIN
+ * ⚠️ Boş bırakılan alanlar (`kep`, `chamber`, `chamberRulesUrl`, `bank`)
+ * bilinmiyor. Uydurma değer YAZMAYIN
  * — boş kaldıkları sürece belgelerdeki ilgili tablo satırları otomatik olarak
  * gizlenir (bkz. `fillTokens`). Gerçek değerler öğrenildiğinde yalnızca burayı
  * doldurmak yeterlidir.
@@ -66,6 +67,22 @@ export const LEGAL_ENTITY = {
   authProvider: "Supabase",
 
   /**
+   * Yurt dışındaki iki alıcının KVKK Aydınlatma Metni §15'teki tanımı:
+   * sözleşen şirket, ülkesi ve sunucu bölgesi (KVKK m.10/1-c; Kurul İlke
+   * Kararı 2026/347: her alıcı şirketi ve ülkesiyle). `dbProvider` ve
+   * `authProvider` ile AYNI ANDA değişir: veri tabanı taşınınca hem ad hem
+   * bu satır hem DATABASE_URL.
+   *
+   * Asla boş değil: boş bir token, `fillList` yüzünden alıcılar satırının
+   * TAMAMINI düşürür. Kaynak (18-19 Eki 2026): Neon DPA (Databricks, Inc.,
+   * Neon, LLC'nin ana şirketi) ve proje bölgesi aws-us-east-2; Supabase DPA
+   * (Supabase Pte. Ltd., Singapur) ve proje adresinin AWS ap-southeast-1
+   * aralığında olması (docs/LEGAL-REDLINES-2026-09.md §15.6).
+   */
+  dbRecipient: "Databricks, Inc. / Neon, LLC; ABD; sunucu bölgesi ABD, Ohio",
+  authRecipient: "Supabase Pte. Ltd.; Singapur; proje bölgesi Singapur",
+
+  /**
    * Kafenin açılış saatleri — koddaki TEK kaynak.
    *
    * `closes` `opens`'tan KÜÇÜKTÜR: 01:00 ertesi sabaha aittir. schema.org bunu
@@ -121,6 +138,20 @@ export const LEGAL_ENTITY = {
    * anlamına gelirdi.
    */
   kep: "",
+  /**
+   * Şirketin kayıtlı olduğu meslek odası ve odanın meslekle ilgili davranış
+   * kurallarına elektronik olarak ulaşılan adres (Elektronik Ticaret Aracı
+   * Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında
+   * Yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a).
+   *
+   * Operatör odayı şirketin oda kayıt ya da faaliyet belgesinden okuyup
+   * bildirene kadar boş (OP-KEP-CHAMBER). Tahminle yazılmaz: yanlış oda
+   * yanlış bir kimlik beyanıdır. Boş kaldıkları sürece Şirket Bilgileri §2'deki
+   * iki satır hiç basılmaz; değer gelince yalnız burası doldurulur ve
+   * `sirket-bilgileri` belgesinin `updatedAt`'i o gün olur.
+   */
+  chamber: "",
+  chamberRulesUrl: "",
   /** TODO: Para iadesi/havale için banka ve IBAN bilgisi. */
   bank: { name: "", iban: "" },
 
@@ -158,6 +189,8 @@ const TOKENS: Record<string, string> = {
   CAFE_HOURS: LEGAL_ENTITY.cafeHours.display,
   DB_PROVIDER: LEGAL_ENTITY.dbProvider,
   AUTH_PROVIDER: LEGAL_ENTITY.authProvider,
+  DB_RECIPIENT: LEGAL_ENTITY.dbRecipient,
+  AUTH_RECIPIENT: LEGAL_ENTITY.authRecipient,
   PHONE: LEGAL_ENTITY.phone,
   EMAIL: LEGAL_ENTITY.email,
   TAX_OFFICE: LEGAL_ENTITY.taxOffice,
@@ -168,6 +201,8 @@ const TOKENS: Record<string, string> = {
   MERSIS: LEGAL_ENTITY.mersisNo,
   TRADE_REGISTRY: LEGAL_ENTITY.tradeRegistryNo,
   KEP: LEGAL_ENTITY.kep,
+  CHAMBER: LEGAL_ENTITY.chamber,
+  CHAMBER_RULES_URL: LEGAL_ENTITY.chamberRulesUrl,
   IBAN: LEGAL_ENTITY.bank.iban,
   BANK: LEGAL_ENTITY.bank.name,
   SITE: LEGAL_ENTITY.siteDomain,

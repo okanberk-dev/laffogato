@@ -1,3 +1,4 @@
+import { cx } from "./cx";
 import { SCENES, type SceneKey } from "./scenes";
 
 /**
@@ -18,6 +19,7 @@ export function PageHero({
   title,
   lede,
   scene = "house",
+  art,
   children,
 }: {
   eyebrow: string;
@@ -36,6 +38,12 @@ export function PageHero({
   lede: string;
   /** Whose light fills the corner. `house` is the L'Af green. */
   scene?: SceneKey;
+  /**
+   * A drawing for the page (an `<Illustration>`), set in the light's corner
+   * where the watermark would be; above the copy, smaller, on a phone.
+   * Decorative: the wrapper is out of the accessibility tree.
+   */
+  art?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const s = SCENES[scene];
@@ -43,7 +51,7 @@ export function PageHero({
     <section className="page-hero">
       <div className="wrap">
         <div
-          className="page-hero-frame"
+          className={cx("page-hero-frame", art != null && "has-art")}
           style={
             {
               "--scene-core": s.core,
@@ -69,6 +77,11 @@ export function PageHero({
             <p className="page-hero-lede">{lede}</p>
             {children}
           </div>
+          {art != null ? (
+            <div className="page-hero-art" aria-hidden="true">
+              {art}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

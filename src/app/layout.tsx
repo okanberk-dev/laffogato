@@ -7,13 +7,18 @@ import {
   CookieBanner,
   TagManager,
 } from "@/components/laffogato/site-tags";
+import { siteTagManagerId } from "@/lib/consent/script";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
 import "./globals.css";
 
-// Google Tag Manager container - all analytics/marketing tags (GA4, Meta Pixel,
-// conversions, …) are managed inside GTM, not in code. Override the public
-// container id with NEXT_PUBLIC_GTM_ID; empty value disables the integration.
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-KZ2QCHTT";
+// Google Tag Manager container - all analytics/marketing tags (GA4,
+// conversions, ...) would be managed inside GTM, not in code. Off since
+// 19 Ekim 2026 (no Google standard contract for the transfer, KVKK m.9):
+// `siteTagManagerId` returns "" while the legal texts say the site runs no
+// analytics or ad tags, whatever NEXT_PUBLIC_GTM_ID holds, and there is no
+// built-in container id any more. Empty, the banner offers only the
+// necessary and preference cookies.
+const GTM_ID = siteTagManagerId(process.env.NEXT_PUBLIC_GTM_ID);
 
 // Two voices (operator, 14 Eki 2026: "sitede yapay zeka gibi duruyor, yazı
 // tipleri poppins ve biennale vs kullan"; docs/BRAND.md §2).
@@ -181,9 +186,11 @@ export default function RootLayout({
     >
       <head>
         {/* The consent scripts, GTM and the cookie banner render in every
-            document but the checkout's (site-tags.tsx): the card is typed
-            on /odeme under a policy that admits no third party. The
-            Consent Mode defaults stay ahead of the GTM container. */}
+            document but the checkout's and the admin panel's
+            (site-tags.tsx): the card is typed on /odeme under a policy that
+            admits no third party, and the panel shows customer data under
+            an admin session. The Consent Mode defaults stay ahead of the
+            GTM container. */}
         <ConsentScripts withTagManager={!!GTM_ID} />
         {/* next/font self-hosts the fonts - no Google Fonts origin is hit at
             runtime, so preconnect/dns-prefetch hints would be dead weight. */}
@@ -203,7 +210,7 @@ export default function RootLayout({
       {GTM_ID ? <TagManager gtmId={GTM_ID} /> : null}
       <body>
         {children}
-        <CookieBanner />
+        <CookieBanner tagManager={!!GTM_ID} />
         <RevealMotion />
       </body>
     </html>

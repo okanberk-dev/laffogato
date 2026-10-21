@@ -1,3 +1,9 @@
+import {
+  DEFAULT_KARAOKE_CANCEL_POLICY,
+  samePolicy,
+  type KaraokeCancelPolicy,
+} from "@/lib/mobile/karaoke-time";
+
 import { CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED } from "./meta";
 
 /**
@@ -82,8 +88,12 @@ export function isLiveLegalOverride<T extends ConsentOverride>(
   return !!o && o.isPublished && o.bodyMarkdown.trim() !== "";
 }
 
-/** The day a live override's text counts from, as a label; null if unknown. */
-function overrideLabel(o: ConsentOverride): string | null {
+/**
+ * The day a live override's text counts from, as a label; null if unknown.
+ * The version an order records when this override is the latest one; the
+ * panel checks a new effective date with it (lib/admin/legal-schema.ts).
+ */
+export function overrideLabel(o: ConsentOverride): string | null {
   const typed = o.effectiveDate.trim();
   if (legalDayNumber(typed) !== null) return typed;
   return istanbulDayLabel(o.updatedAt);
@@ -116,4 +126,24 @@ export function consentVersionFrom(
     }
   }
   return version;
+}
+
+/**
+ * The karaoke document's version under the panel's policy (P2a, 18 Eki
+ * 2026): `base` (the coded revision, or a later live override), moved to the
+ * Istanbul day the policy last changed when the policy in force is not the
+ * default. The text itself names no hours or percent since 19 Eki 2026 (it
+ * points at the booking's summary, content-karaoke.ts); the date still marks
+ * the day the rule a booking is shown changed.
+ */
+export function karaokePolicyVersion(
+  base: string,
+  policy: KaraokeCancelPolicy,
+  policyChangedAt: string | undefined,
+): string {
+  if (samePolicy(policy, DEFAULT_KARAOKE_CANCEL_POLICY)) return base;
+  const label = istanbulDayLabel(policyChangedAt ?? "");
+  const day = label === null ? null : legalDayNumber(label);
+  if (label === null || day === null) return base;
+  return day > (legalDayNumber(base) ?? 0) ? label : base;
 }

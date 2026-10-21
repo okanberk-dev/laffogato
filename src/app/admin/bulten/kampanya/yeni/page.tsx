@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/admin/back-link";
 import { PageHeader } from "@/components/admin/forms";
 import { requireRole } from "@/lib/admin/auth";
 import { hasAppLinks } from "@/lib/mobile/app-store";
@@ -12,6 +13,8 @@ export default async function NewCampaignMailPage() {
   await requireRole("newsletter");
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      {/* The composer was a dead end: no way back but the sidebar (PEO-23). */}
+      <BackLink href="/admin/bulten/kampanya">Kampanyalar</BackLink>
       <PageHeader
         eyebrow="Pazarlama · Kampanya e-postası"
         title="Yeni kampanya"

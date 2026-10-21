@@ -74,8 +74,9 @@ Her satır "bu action şu alanları okur, şu dosyadaki form onları gönderir" 
 | `deleteAddressAction` / `setDefaultAddressAction` | `src/app/uye/hesap/adreslerim/page.tsx`             | `addressId`                                                                      |
 | `toggleWishlistAction`                          | `src/components/laffogato/ui.tsx`, `…/favorilerim/page.tsx` | `productId`, `back` (yalnız site içi yol; dışarısı yok sayılır)            |
 | `updateNotificationsAction`                     | `src/app/uye/hesap/bildirimler/notifications-form.tsx` | `orderUpdates`, `marketing`, `newsletter`                                       |
-| `deleteAccountAction`                           | `src/app/uye/hesap/sil/delete-account-form.tsx`       | `confirmEmail`, `password`                                                       |
-| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz; tests/frontend-form-contract.test.ts) |
+| `requestAccountDeletionAction` (18 Eki 2026'dan beri; site artık hesabı kendisi silmez, ekibe talep gider) | `src/app/uye/hesap/sil/deletion-request-form.tsx` | `reason` (isteğe bağlı, 500 karakter), `confirm` (işaretsiz başlar) |
+| `withdrawAccountDeletionAction`                 | `src/components/uye/deletion-request-notice.tsx`      | alan yok (oturumdaki üyenin açık talebi)                                         |
+| `bookKaraokeAction`                             | `src/components/laffogato/karaoke-booking.tsx`        | `date`, `startHour`, `hours`, `guests`, `note`, `contactName`, `contactEmail`, `contactPhone`, `guestFirstName`, `guestLastName`, `consentPreInfo`, `consentContract`, `consentKvkk` (üç kutu ayrı ve işaretsiz; tests/frontend-form-contract.test.ts), `expectedFreeCancelHours`, `expectedLateRefundPercent` (kutunun yazdığı kural, sunucudan). Adımlı sihirbaz (18 Eki 2026) hydrate sonrası çizilir: sunucunun çizdiği sayfa bu alanların hepsiyle tek formdur; adres yalnız `?adim=` taşır, yazılanlar yalnız bu sekmede `sessionStorage["laffogato_karaoke_draft_v1"]`'de durur (kutular hiç), gönderince silinir |
 | `subscribeNewsletterAction`                     | `src/components/laffogato/newsletter-form.tsx`        | `email`, `consent`                                                               |
 | `confirmNewsletterAction`                       | `src/app/bulten/onay/page.tsx`                        | `token` (gizli) - bülten onayı bir **düğme**dir, bağlantı değil                   |
 | `unsubscribeNewsletterAction`                   | `src/app/bulten/cikis/page.tsx`                       | `token` (gizli) - çıkış da düğmeyle; sayfa GET'te hiçbir şey harcamaz            |
@@ -128,11 +129,25 @@ boşaltır. Değişmesi gerekiyorsa eskiyi okuyup yeniye taşıyan bir geçiş y
 ## 4. Veri okuma - sayfalar arka yüzden ne alır
 
 - Müşteri sayfaları veriyi **`loadAppProps()`** (`src/lib/seo/app-props.ts`) ya
-  da `src/lib/admin/store.ts`'in `list*` / `getPublicSettings()` okuyucularından
-  alır. Yeni bir sayfa yeni bir sorgu yazmaz; var olan okuyucuyu çağırır.
-- **Sunumda `getSettings()` değil `getPublicSettings()`.** Birincisi veritabanı
-  yoksa fırlatır (ticari yollar için doğru davranış), ikincisi paketteki
-  içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde Davranış").
+  da `src/lib/seo/site-data.ts`'in önbellekli sunum okuyucularından
+  (`getSiteSettings`, `listSite*`, `getSiteProductBySlug`, ...) alır; bunlar
+  Data Cache'ten okur, sayfa görüntülemesi veritabanını uyandırmaz
+  (`docs/DATABASE.md` "Uyanmalar ve önbellek"). Yeni bir sayfa yeni bir
+  sorgu yazmaz; var olan okuyucuyu çağırır. Ürün listesini kendisi okuyan
+  bir sayfa, bütün okumaları bittikten sonra onu `shopForRequest()`'ten
+  geçirir: kesintiyi gören istek (giriş yapmış üye) boş mağaza gösterir.
+  Önbellekli okuyucuyu kullanan sayfa listesi
+  `tests/site-data-cache.test.ts`'te tutulur; ödeme, karaoke ve
+  rezervasyon sayfaları oraya girmez.
+- **Sunumda `getSettings()` değil `getSiteSettings()`.** Birincisi veritabanı
+  yoksa fırlatır (ticari yollar için doğru davranış), ikincisi önbellekten ya
+  da paketteki içerikle ayakta kalır (`CLAUDE.md` → "Veritabanı Kesintisinde
+  Davranış"). `getPublicSettings()` ve `store.ts`'in `list*` okuyucuları da
+  aynı yedeğe düşer ama her seferinde veritabanını okur: ödeme, karaoke ve
+  uygulama API'si gibi canlı okuması gereken yollar içindir. Genel bir
+  sayfa, kabuk ya da müşteri bileşeni onları import ederse
+  `tests/public-pages-cached-reads.test.ts` kırılır (üyenin kendi
+  sayfaları, `/uye/hesap/**`, kapsam dışı).
 - Bileşenler ve sayfalar **`@/lib/db`'yi doğrudan import etmez.**
 - İstemci bileşeni (`"use client"`) `import "server-only"` taşıyan bir modülü
   import edemez - build kırılır. Saf mantık gerekiyorsa `*-core.ts` /
@@ -158,7 +173,7 @@ okumaya devam etmezse müşteri "hiçbir şey olmadı" ekranında kalır.
 | `/odeme?odeme=<kod>[&alan=][&dk=]` | `/odeme/paynkolay` (`return=checkout`) | `src/lib/checkout/return-codes.ts` - yalnız sabit kodlar |
 | `/odeme?verify=required` | `startCheckoutAction` | Sayfa doğrulama panelini üyenin durumundan zaten gösterir; parametre bilgi amaçlı |
 | `/uye/giris?next=/odeme` | `startCheckoutAction`, `/odeme` kapısı | `src/app/uye/giris/page.tsx` |
-| `/?hesap=silindi\|kapatildi`                          | `deleteAccountAction`           | ana sayfa (`accountClosureNotice`): `silindi` yalnız Supabase giriş kimliği de silindiyse |
+| `/?hesap=silindi\|kapatildi`                          | Eski `deleteAccountAction` (18 Eki 2026'da kaldırıldı; site artık talep alır) | ana sayfa (`accountClosureNotice`, eski bağlantılar için duruyor): `silindi` yalnız Supabase giriş kimliği de silindiyse |
 | `/bulten/onay?sonuc=tamam\|gecersiz\|hata`             | `confirmNewsletterAction`       | `src/app/bulten/onay/page.tsx`    |
 | `/bulten/cikis?sonuc=tamam&adres=…`, `?sonuc=gecersiz\|hata` | `unsubscribeNewsletterAction` | `src/app/bulten/cikis/page.tsx` (`adres` maskeli: `a***@alan.com`) |
 
@@ -183,7 +198,7 @@ uygulama, arama motoru. Yeniden adlandırmak geri alınamaz şekilde kırar.
 | `/bulten/cikis`, `/api/bulten/cikis`                    | Her ticari e-postadaki tek tıkla çıkış                     |
 | `/bulten/onay?token=`                                   | Bülten onay e-postası (çift onay, 7 gün geçerli)           |
 | `/uye/sifre-sifirla?token=`, `/uye/dogrula?token=`      | Parola sıfırlama ve e-posta doğrulama e-postaları          |
-| `/uye/hesap/siparislerim/[orderNo]`, `/uye/hesap/sil`   | İşlemsel e-postalar, uygulama                              |
+| `/uye/hesap/siparislerim/[orderNo]`, `/uye/hesap/sil`   | İşlemsel e-postalar, uygulama, hukuki metinler; `/uye/hesap/sil` aynı zamanda Google Play'in web silme talebi sayfası (oturumsuz ziyaretçiye başvuru kanallarını gösterir) |
 | `/hukuk/[slug]`                                         | E-postalar, uygulama (`GET /legal`), sözleşme metinleri    |
 | `/gorsel/**`                                            | Uygulamanın ürün/menü görselleri (`image` alanı)           |
 | `/magaza/urun/[slug]`, `/menu`, `/magaza`, `/rehber/**` | Arama motoru, sitemap, paylaşılan bağlantılar              |

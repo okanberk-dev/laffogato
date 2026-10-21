@@ -5,10 +5,11 @@ import { SeoContent } from "@/components/laffogato/seo-content";
 import { FAQ } from "@/lib/seo/faq";
 import { SITE, openGraphDefaults } from "@/lib/seo/site";
 import { siteGraphLd } from "@/lib/seo/structured-data";
-import { getPublicSettings } from "@/lib/admin/store";
 import { accountClosureNotice } from "@/lib/customer/account-closure";
+import { TIER_LABELS } from "@/lib/mobile/loyalty-core";
 import { loadAppProps } from "@/lib/seo/app-props";
 import { JsonLd } from "@/lib/seo/json-ld";
+import { getSiteSettings } from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ const HOME_TITLE = "Tuzla'da İtalyan Kahve, Affogato & Gelato - L'Affogato";
  * panel offered control it did not have.
  */
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
   const title = settings.seoTitle?.trim() || HOME_TITLE;
   const ogImage = settings.seoOgImageUrl?.trim();
   return {
@@ -59,12 +60,13 @@ interface PageProps {
 export default async function HomePage({ searchParams }: PageProps) {
   const [
     { cart, item, available, hesap },
-    { settings, menu, products, appProps },
-  ] = await Promise.all([searchParams, loadAppProps()]);
+    { settings, menu, products, appProps, contact },
+  ] = await Promise.all([searchParams, loadAppProps({ withHomeHero: true })]);
 
-  // deleteAccountAction lands here; without a word the member could not tell
-  // the deletion had gone through. Which sentence depends on whether the
-  // sign-in identity went too (`accountClosureNotice`).
+  // The site's old self-service deletion landed here, and its `/?hesap=`
+  // links are still out there (the page now sends a request instead).
+  // Which sentence depends on whether the sign-in identity went too
+  // (`accountClosureNotice`).
   let notice: string | undefined = accountClosureNotice(hesap);
   if (notice !== undefined) {
     // The account notice stands alone; a cart reason cannot ride along.
@@ -95,7 +97,18 @@ export default async function HomePage({ searchParams }: PageProps) {
       <LaffogatoApp
         {...appProps}
         notice={notice}
-        seoSlot={<SeoContent faq={FAQ} />}
+        seoSlot={<SeoContent faq={FAQ} contact={contact} />}
+        // The karaoke band and hero slide say what the panel says: the room's
+        // size, hours, price and the top tier's discount (presentation only;
+        // the booking re-reads every one of them on the server).
+        karaoke={{
+          capacity: settings.karaokeCapacity,
+          hourlyMinor: settings.karaokeHourlyMinor,
+          closeHour: settings.mobileApp.karaoke.closeHour,
+          rubyDiscountPct: settings.mobileApp.karaoke.oroDiscountPct,
+          rubyLabel: TIER_LABELS.oro,
+          prepay: settings.karaokePrepay,
+        }}
       />
     </>
   );

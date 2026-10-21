@@ -29,9 +29,14 @@ Tam sınır: **`docs/FRONTEND-SINIR.md`**. Bu skill onun iş akışı.
   `/odeme?error=…`, `/uye/giris?next=…` (§5).
 - **Dışarıdan çağrılan yolları yeniden adlandırma** (§6): e-posta linkleri,
   `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/api/**`.
-- Veri için var olan okuyucuları kullan (`loadAppProps`, `getPublicSettings`,
-  `list*`). Bileşende `@/lib/db` import etme; istemci bileşeninde
-  `server-only` modül import etme - `*-core.ts` / `*-utils.ts` kardeşini al.
+- Veri için var olan önbellekli okuyucuları kullan: `loadAppProps` ya da
+  `src/lib/seo/site-data.ts` (`getSiteSettings`, `listSite*`,
+  `getSiteProductBySlug`, ...). `getPublicSettings` ve `store.ts`'in
+  `list*` / `get*` okuyucuları her görüntülemede veritabanını uyandırır;
+  genel sayfada kullanma (`tests/public-pages-cached-reads.test.ts` reddeder,
+  `docs/FRONTEND-SINIR.md` §4). Bileşende `@/lib/db` import etme; istemci
+  bileşeninde `server-only` modül import etme - `*-core.ts` / `*-utils.ts`
+  kardeşini al.
 - Renk/token değişikliği `tests/contrast.test.ts` ve
   `tests/brand-theme.test.ts`'ten geçmeli; bordo ile yeşil üst üste yazılmaz.
 - Hash router hydration kuralı (CLAUDE.md → "Sık Karşılaşılan Hatalar").

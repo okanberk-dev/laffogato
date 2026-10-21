@@ -9,15 +9,28 @@ import {
 } from "@/lib/admin/order-channel";
 import type { AdminOrder, AdminRefund } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
+import { durableCopyWithin } from "@/lib/legal/durable-copy-time";
+import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
+import { consentTextHashes } from "@/lib/legal/version-core";
 import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 
+import {
+  CANCEL_NOTICE_KIND,
+  PAID_NOTICE_KIND,
+  RESEND_MARK,
+  RESENT_STATUS,
+  baseNoticeKind,
+  isResendableKind,
+} from "./notice-kinds";
 import {
   sendOrderCancelledEmail,
   sendOrderPaidEmail,
   sendOrderRefundedEmail,
   sendOrderShippedEmail,
+  type MailDurableCopy,
   type SendResult,
 } from "./send";
+import { MAIL_BUDGET } from "./budget";
 
 /**
  * The order mails, each sent once.
@@ -43,6 +56,13 @@ import {
  * out is final. The provider gets `order-<id>-<kind>` as its idempotency key
  * as well, so even a retry after a timeout that did reach Resend is answered
  * from its record instead of a second copy.
+ *
+ * A failed delivery keeps its row as `failed`, with the provider's error
+ * (addresses masked): the order page shows which mail did not go out, and
+ * the next trigger takes the row over as if it were free. "Yeniden gönder"
+ * on the order page sends the same mail under a new kind,
+ * `<kind>#resend-<n>` (`resendOrderNotice`), so the provider does not answer
+ * it from its record of the first one.
  *
  * Only shop orders are due any of this. A cafe order - gel-al, or the
  * köşk's own courier - is followed on the phone and at the counter; it has
@@ -126,10 +146,7 @@ export function refundNoticeKind(refundId: string): string {
   return `refund:${refundId}`;
 }
 
-export const CANCEL_NOTICE_KIND = "cancelled";
-
-/** One "ödemen alındı" per order, whichever confirmation gets there first. */
-export const PAID_NOTICE_KIND = "paid";
+export { CANCEL_NOTICE_KIND, PAID_NOTICE_KIND };
 
 /** A 'sending' claim older than this belongs to a request that died. */
 const STALE_CLAIM_MS = 15 * 60_000;
@@ -157,6 +174,19 @@ async function claim(orderId: string, kind: string): Promise<boolean> {
   if (ins.error.code !== "23505") {
     throw new Error(`order notice claim: ${ins.error.message}`);
   }
+  // A delivery that failed left its row behind as a record; the next
+  // trigger takes it over, exactly as it would take a free one.
+  const retried = await db
+    .from(TABLES.orderNoticeEmails)
+    .update({ status: "sending", createdAt: now.toISOString(), error: "" })
+    .eq("orderId", orderId)
+    .eq("kind", kind)
+    .eq("status", "failed")
+    .select("orderId");
+  if (retried.error) {
+    throw new Error(`order notice retry claim: ${retried.error.message}`);
+  }
+  if (((retried.data as unknown[] | null) ?? []).length > 0) return true;
   const retaken = await db
     .from(TABLES.orderNoticeEmails)
     .update({ createdAt: now.toISOString(), error: "" })
@@ -171,7 +201,17 @@ async function claim(orderId: string, kind: string): Promise<boolean> {
   return ((retaken.data as unknown[] | null) ?? []).length > 0;
 }
 
-/** Sent is final; a failure hands the notice back to the next trigger. */
+/** A provider error with any e-mail address in it masked (rule 9). */
+export function maskedNoticeError(error: string): string {
+  return error
+    .replace(/[^\s@<>"']+@[^\s@<>"']+/g, "[e-posta]")
+    .slice(0, 300);
+}
+
+/**
+ * Sent is final; a failure is recorded as `failed` and hands the notice
+ * back to the next trigger (`claim` takes a failed row over).
+ */
 async function settle(
   orderId: string,
   kind: string,
@@ -194,16 +234,16 @@ async function settle(
     }
     return;
   }
-  const del = await db
+  const failed = await db
     .from(TABLES.orderNoticeEmails)
-    .delete()
+    .update({ status: "failed", error: maskedNoticeError(result.error) })
     .eq("orderId", orderId)
     .eq("kind", kind)
     .eq("status", "sending");
-  if (del.error) {
+  if (failed.error) {
     console.error(
       `[order-notice] ${kind} failed and the claim could not be released order=${orderId}`,
-      del.error.message,
+      failed.error.message,
     );
   }
 }
@@ -264,10 +304,11 @@ async function once(
  */
 export async function notifyOrderShipped(
   order: AdminOrder,
+  opts: { kind?: string } = {},
 ): Promise<OrderNoticeOutcome> {
   if (!shipmentNoticeDue(order)) return "not_due";
   const trackingNumber = (order.trackingNumber ?? "").trim();
-  return once(order, shipmentNoticeKind(trackingNumber), (key) =>
+  return once(order, opts.kind ?? shipmentNoticeKind(trackingNumber), (key) =>
     sendOrderShippedEmail(
       {
         to: orderNoticeRecipient(order) as string,
@@ -289,10 +330,10 @@ export async function notifyOrderShipped(
  */
 export async function notifyOrderCancelled(
   order: AdminOrder,
-  { collected }: { collected: boolean | null },
+  { collected, kind }: { collected: boolean | null; kind?: string },
 ): Promise<OrderNoticeOutcome> {
   if (!cancelNoticeDue(order)) return "not_due";
-  return once(order, CANCEL_NOTICE_KIND, (key) =>
+  return once(order, kind ?? CANCEL_NOTICE_KIND, (key) =>
     sendOrderCancelledEmail(
       {
         to: orderNoticeRecipient(order) as string,
@@ -321,7 +362,7 @@ export async function notifyOrderCancelled(
 export async function notifyOrderRefunded(
   order: AdminOrder,
   refund: Pick<AdminRefund, "id" | "amountMinor">,
-  { viaCard }: { viaCard: boolean },
+  { viaCard, kind }: { viaCard: boolean; kind?: string },
 ): Promise<OrderNoticeOutcome> {
   if (!cancelNoticeDue(order) || !(refund.amountMinor > 0) || !refund.id) {
     return "not_due";
@@ -331,7 +372,7 @@ export async function notifyOrderRefunded(
   const refundedTotalMinor =
     refunds.reduce((sum, r) => sum + r.amountMinor, 0) +
     (listed ? 0 : refund.amountMinor);
-  return once(order, refundNoticeKind(refund.id), (key) =>
+  return once(order, kind ?? refundNoticeKind(refund.id), (key) =>
     sendOrderRefundedEmail(
       {
         to: orderNoticeRecipient(order) as string,
@@ -356,6 +397,34 @@ export async function notifyOrderRefunded(
 export { claim as claimOrderNotice, settle as settleOrderNotice };
 
 /**
+ * The confirmed Ön Bilgilendirme Formu and Mesafeli Satış Sözleşmesi, filled
+ * with the order, for the paid mail (ASK-DURABLE): built from the versions
+ * the consent recorded (src/lib/legal/durable-copy-load.ts), or null. An
+ * order whose consent recorded no text hashes (placed before 21 Ekim 2026,
+ * a manual order) has none and asks nothing. The loader's import and its
+ * read both run inside the copy's share of the mail's budget
+ * (`MAIL_BUDGET.copy`), and nothing here throws: the mail goes without the
+ * file rather than late or not at all. Imported on demand: the store
+ * imports this module, and the loader reads the store.
+ */
+async function paidMailCopy(
+  order: AdminOrder,
+  deadline: number,
+): Promise<MailDurableCopy | null> {
+  if (!consentTextHashes(order.legalConsent, CHECKOUT_CONSENT_DOCS)) {
+    return null;
+  }
+  return durableCopyWithin(
+    `order=${order.id}`,
+    async () => {
+      const { orderDurableCopy } = await import("@/lib/legal/durable-copy-load");
+      return orderDurableCopy(order);
+    },
+    Math.min(MAIL_BUDGET.copy, deadline - Date.now()),
+  );
+}
+
+/**
  * "Ödemen alındı", once per order, after the payment moved it to `paid`.
  * Every channel and kind (a shop parcel, an app cafe order) gets it; a
  * checkout placeholder or a closed account does not. The caller is the one
@@ -365,11 +434,17 @@ export { claim as claimOrderNotice, settle as settleOrderNotice };
  */
 export async function notifyOrderPaid(
   order: AdminOrder,
+  opts: { kind?: string } = {},
 ): Promise<OrderNoticeOutcome> {
   if (orderNoticeRecipient(order) === null) return "not_due";
-  return once(order, PAID_NOTICE_KIND, (key) =>
-    sendOrderPaidEmail(
+  return once(order, opts.kind ?? PAID_NOTICE_KIND, async (key) => {
+    // The payment return waits for this mail: the copy and the sends share
+    // one budget, the 9.5 s the mail always had (./budget.ts `MAIL_BUDGET`).
+    const deadline = Date.now() + MAIL_BUDGET.paid;
+    return sendOrderPaidEmail(
       {
+        // Built after the claim, so a duplicate trigger builds nothing.
+        durableCopy: await paidMailCopy(order, deadline),
         to: orderNoticeRecipient(order) as string,
         customerName: order.customerName ?? "",
         orderNo: order.orderNo,
@@ -394,6 +469,89 @@ export async function notifyOrderPaid(
             : 0,
       },
       key,
-    ),
-  );
+      { deadline },
+    );
+  });
+}
+
+
+/**
+ * "Yeniden gönder" on the order page: the customer mail `kind` again, under
+ * the next free `<kind>#resend-<n>`, only while it is still true. The paid
+ * mail for an order that is paid, the cancel mail for a cancelled one, the
+ * shipped mail for the parcel's CURRENT number, a refund's mail for an
+ * entry still in the ledger. Anything else is `not_due`.
+ *
+ * A resent mail whose own row had FAILED is marked `resent` once the copy
+ * is out. `claim` takes a failed row over, so the next trigger of the same
+ * mail (Geliver's hand-over event for the same number, a repeated payment
+ * confirmation) would otherwise send it once more: two copies, one the
+ * operator asked for and one nobody did.
+ */
+export async function resendOrderNotice(
+  order: AdminOrder,
+  kind: string,
+  { collected }: { collected: boolean | null },
+): Promise<OrderNoticeOutcome> {
+  const base = baseNoticeKind(kind);
+  if (!isResendableKind(base)) return "not_due";
+  const { data, error } = await getDb()
+    .from(TABLES.orderNoticeEmails)
+    .select("kind")
+    .eq("orderId", order.id);
+  if (error) {
+    console.error(`[order-notice] resend lookup failed order=${order.id}`, error.message);
+    return "failed";
+  }
+  const kinds = ((data as Array<{ kind: string }> | null) ?? []).map((r) => r.kind);
+  const taken = kinds.filter((k) => k.startsWith(`${base}${RESEND_MARK}`)).length;
+  const next = `${base}${RESEND_MARK}${taken + 1}`;
+  const outcome = await sendAgain(order, base, next, collected);
+  if (outcome === "sent") {
+    const done = await getDb()
+      .from(TABLES.orderNoticeEmails)
+      .update({ status: RESENT_STATUS })
+      .eq("orderId", order.id)
+      .eq("kind", base)
+      .eq("status", "failed");
+    if (done.error) {
+      console.error(
+        `[order-notice] ${base} resent but its failed row not closed order=${order.id}`,
+        done.error.message,
+      );
+    }
+  }
+  return outcome;
+}
+
+async function sendAgain(
+  order: AdminOrder,
+  base: string,
+  next: string,
+  collected: boolean | null,
+): Promise<OrderNoticeOutcome> {
+  if (base === PAID_NOTICE_KIND) {
+    const settled = ["paid", "preparing", "shipped", "completed"].includes(order.status);
+    return settled ? notifyOrderPaid(order, { kind: next }) : "not_due";
+  }
+  if (base === CANCEL_NOTICE_KIND) {
+    return order.status === "cancelled"
+      ? notifyOrderCancelled(order, { collected, kind: next })
+      : "not_due";
+  }
+  if (base.startsWith("shipped:")) {
+    const current = shipmentNoticeKind((order.trackingNumber ?? "").trim());
+    return base === current ? notifyOrderShipped(order, { kind: next }) : "not_due";
+  }
+  const refundId = base.slice("refund:".length);
+  const refund = (order.refunds ?? []).find((r) => r.id === refundId);
+  if (!refund) return "not_due";
+  return notifyOrderRefunded(order, refund, {
+    // Said only when known: the panel's entries carry their destination,
+    // the provider's webhook entries were card refunds by definition.
+    viaCard:
+      refund.destination === "card" ||
+      refund.reason.startsWith("Sağlayıcı iadesi"),
+    kind: next,
+  });
 }

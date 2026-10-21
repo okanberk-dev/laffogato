@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createAppAnnouncement,
   deleteAppAnnouncement,
@@ -12,6 +19,10 @@ import {
   type AppAnnouncementInput,
   type AppAnnouncementKind,
 } from "@/lib/admin/store";
+
+const PANEL = "/admin/mobil/duyurular";
+const REFUSED = "Formdaki uyarıları gider.";
+const GONE = "Bu duyuru silinmiş; listeye dön.";
 
 /**
  * Her action kendi rol kapısını açar.
@@ -35,10 +46,22 @@ function parseInput(formData: FormData): AppAnnouncementInput {
   };
 }
 
-export async function createAnnouncementAction(formData: FormData) {
+/**
+ * Answers with an ActionResult for ActionForm (field errors under their
+ * fields); a save that went through redirects with its toast. It used to
+ * return nothing on a blank title, so "Kaydet" looked dead.
+ */
+export async function createAnnouncementAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const input = parseInput(formData);
-  if (!input.title.trim()) return;
+  // The HTML `required` attribute is not a guard on a Server Action, and the
+  // store only trims the title - a titleless row renders as an empty card on
+  // every phone.
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const created = await createAppAnnouncement(input);
   await logAudit({
     action: "create",
@@ -46,40 +69,61 @@ export async function createAnnouncementAction(formData: FormData) {
     entityId: created.id,
     payload: { title: created.title, kind: created.kind },
   });
-  revalidatePath("/admin/mobil/duyurular");
-  redirect("/admin/mobil/duyurular");
+  revalidatePath(PANEL);
+  await setAdminFlash(`"${created.title}" duyurusu eklendi.`);
+  redirect(PANEL);
 }
 
-export async function updateAnnouncementAction(id: string, formData: FormData) {
+export async function updateAnnouncementAction(
+  id: string,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const input = parseInput(formData);
-  // Same guard as the create action: the HTML `required` attribute is not a
-  // guard on a Server Action, and the store only trims the title - a titleless
-  // row renders as an empty card on every phone.
-  if (!input.title.trim()) return;
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const updated = await updateAppAnnouncement(id, input);
   // The row was deleted while this form was open; without the check the audit
   // log claims an update that never happened.
-  if (!updated) return;
+  if (!updated) return actionError(GONE);
   await logAudit({
     action: "update",
     entity: "app_announcement",
     entityId: id,
     payload: { title: input.title, isActive: input.isActive },
   });
-  revalidatePath("/admin/mobil/duyurular");
-  redirect("/admin/mobil/duyurular");
+  revalidatePath(PANEL);
+  await setAdminFlash(`"${updated.title}" kaydedildi.`);
+  redirect(PANEL);
 }
 
-export async function deleteAnnouncementAction(formData: FormData) {
+/**
+ * "Sil", behind a confirm. It used to delete on the first click, silently.
+ * Not "kalktı": phones read the home content through a shared cache, so it
+ * takes a few minutes to leave every phone (see the slide delete).
+ */
+export async function deleteAnnouncementAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteAppAnnouncement(id);
+  if (!id) return actionError("Duyuru seçilmedi.");
+  const removed = await deleteAppAnnouncement(id);
+  revalidatePath(PANEL);
+  if (!removed) return actionError("Duyuru zaten silinmiş.");
   await logAudit({
     action: "delete",
     entity: "app_announcement",
     entityId: id,
   });
-  revalidatePath("/admin/mobil/duyurular");
+  const done = "Duyuru silindi; uygulamadan birkaç dakika içinde kalkar.";
+  // From the edit page's header: that page has nothing left to show, so the
+  // answer is the list, with the toast.
+  if (formData.get("then") === "list") {
+    await setAdminFlash(done);
+    redirect(PANEL);
+  }
+  return actionOk(done);
 }

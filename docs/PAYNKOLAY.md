@@ -304,6 +304,34 @@ yalnızca **tam iade**yi destekler (`amountMinor` verilmezse sipariş tutarı).
 Kısmi tutar geldiğinde, davranış canlı testte ölçülene kadar hata fırlatılır -
 sessizce yanlış tutar iade etmektense reddetmek doğrudur.
 
+**Karaoke geç iptalinde kısmi iade (P2a, 18 Eki 2026, karar D9).** Panelden
+"geç iptalde iade %1-99" seçilebilir (Ayarlar > Karaoke; uygulama kilidi
+açılınca, `KARAOKE_POLICY_APP_VERSION`). Kod bu payı **POS'a göndermez**:
+üyenin geç iptali rezervasyonu iptal eder, saati boşaltır ve payı
+`karaoke_reservations."refundMinor"` olarak `refunding` durumunda bırakır
+(`cancelWithShareOwed`); ekibe e-posta gider, personel tutarı PayNkolay
+panelinden karta iade eder ve panelde "Elle iade edildi" ile kaydeder
+(`settleKaraokeRefundByHand`, talep satırı payın tutarıyla yazılır).
+"İadeyi yeniden dene" bu satırda yoktur (`retryKaraokeRefund` → `by_hand`).
+Geç iptal edilen saat yeniden satılınca (21 Eki 2026,
+`karaoke_charge_resold_hours`) o saat için tutulan pay da aynı yolla
+borçlanır: `refundMinor` büyür, rezervasyon yeniden `refunding` olur, ekibe
+"Geç iptal edilen saat yeniden satıldı" e-postası gider; daha önce elle
+iade edilen kısım `refundSettledMinor`'da durur ve panel yalnız kalanı
+ister, talep satırının tutarı toplam iadeye yükseltilir. "Elle iade
+edildi" penceresinin gösterdiği tutarı gönderir ve kayıt yalnız o tutarla
+yapılır: sayfa açıldıktan sonra bir saat daha satılıp tutar büyüdüyse
+kayıt reddedilir, sayfa yenilenip kalan tutar iade edilir. Her elle iade
+kendi tutarı ve anıyla ayrı bir adımdır (`refundSteps`, Gün sonu).
+Yeniden satış iadesi, hepsi toplanınca ödenen tutara eşit olsa bile POS'a
+gönderilmez (önceki kısmı elle iade edilmiş olabilir, POS tamamını yeniden
+gönderirdi). İşletmenin geç iptalinde verilen para telafisi (karaoke
+koşulları §8) POS'tan değil misafirin kendi banka hesabına havaleyle
+ödenir; panel yalnız günü ve tutarı kaydeder, IBAN hiçbir yere yazılmaz.
+%100 geç iptal ve işletme iptali tam iadedir ve POS'tan otomatik gider (kural
+29: red geri alır, yanıtsızlık `refunding` bırakır). Kısmi iade sandbox'ta
+ölçülünce bu yol otomatikleştirilebilir; o zamana kadar elle kalır.
+
 ---
 
 ## 4. Sunucudan sunucuya bildirim (webhook)
@@ -754,7 +782,8 @@ olduğuna her yerde tek fonksiyon karar verir: `isKaraokeRef`
 `/odeme/donus` POS'un teyit ettiği referansa bakarak dallanır (gönderilen alana
 değil), rezervasyonu `applyKaraokePaymentSucceeded` ile işler ve dönüşte hiçbir
 şeyi iptal etmez (kural 29). Ödenmemiş rezervasyonu `expireUnpaidReservations`
-POS'a sorduktan sonra düşürür; iptal ve iadeler yalnız tam tutardır (§3.2).
+POS'a sorduktan sonra düşürür; POS'a giden iptal ve iadeler yalnız tam
+tutardır (§3.2; geç iptalin kısmi payı elle iade edilir, aynı yer).
 Süresi geçmiş ya da iptal edilmiş rezervasyona gelen ödeme ve ikinci tahsilat
 kendiliğinden iade edilir. Akışın tamamı `src/lib/mobile/karaoke-payment.ts`.
 
@@ -1009,7 +1038,11 @@ yenilenmez; 2. adım tarayıcı geçmişine kendi kaydıyla girer (Geri tuşu 1.
 adıma döner), görünür "Değiştir" de aynı işi yapar. Varsayılan adresi tam
 olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görünür
 (masaüstünde yapışkan sağ sütun; telefonda üstte açılır "Sipariş özeti · ₺X"
-çubuğu ve 2. adımda altta sabit ödeme çubuğu).
+çubuğu ve 2. adımda altta sabit ödeme çubuğu). 2. adımda kartın hemen
+üstünde, her genişlikte açık "Siparişin" (satırlar, kargo, indirim, KDV dahil
+toplam ve içindeki KDV) ve "Cayma hakkın" notu durur; Ön Bilgilendirme Formu
+ve Mesafeli Satış Sözleşmesi sayfadan çıkmadan, bu siparişin bilgileriyle
+dolu bir panelde açılır (MSY m.6/2-a; docs/LEGAL-REDLINES-2026-09.md §22).
 
 **Akış.**
 
@@ -1020,7 +1053,8 @@ olan üye doğrudan 2. adımda açılır. Sipariş özeti iki adımda da görün
    siparişi açar ya da reddedilen denemenin bıraktığı siparişi yeniden
    kullanır, `createCheckoutSession`'dan `d`/`s`'yi çıkarıp döner. Kart bu
    isteğe hiç girmez (`tests/saved-cards.test.ts`).
-3. Tutar düğmedekiyle aynıysa tarayıcı `d`/`s`'yi kartın **yerli** formuna
+3. Tutar düğmenin üstündeki "Toplam (KDV dahil)" ile aynıysa tarayıcı
+   `d`/`s`'yi kartın **yerli** formuna
    (`<form method="post" action="/odeme/paynkolay">`, kontrolsüz alanlar,
    React state'i yok) yazar ve `form.submit()` eder; yanıt bankanın 3D
    sayfasıdır. Tutar farklıysa (panelde fiyat değişti, kod uygulanamadı)
@@ -1121,11 +1155,26 @@ detaylarını toplamayalım, PayNkolay'da kalsın"_. §9.1'deki "kart saklama v1
 dışında" kararının yerini alır. Kart PayNkolay'ın kart saklama hizmetinde
 durur; biz yalnız onu üyeyle eşleştiren anahtarı tutarız.
 
-**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on`. PayNkolay kart saklamayı üye
-işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da istedi. Yetki
-gelene kadar değişken boş kalır: yüke üye anahtarı girmez, kayıtlı kart
-listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez. Yetki
-gelince Vercel'de `on` yapılıp yeniden yayınlanır.
+**Açma anahtarı:** `PAYNKOLAY_CARD_STORAGE=on` **ve**
+`SAVED_CARDS_IN_LEGAL_TEXTS = true` (`src/lib/legal/meta.ts`). PayNkolay kart
+saklamayı üye işyerine ayrıca yetkiyle açar; operatör yetkiyi 16 Eki 2026'da
+istedi. İkisinden biri kapalıyken: yüke üye anahtarı girmez, kayıtlı kart
+listesi, "kartımı kaydet" ve silme görünmez, POS'a `cs*` alanı gitmez ve
+uygulama siparişi ya da karaoke ödemesi üye anahtarı **üretmez**
+(`provider.cardStorageEnabled`; web ödemesi bunu zaten soruyordu).
+
+18 Eki 2026'dan beri hukuk metinleri kayıtlı kartı anlatmıyor (kart
+saklanmadığı hâlde "özellik açıldığında" diye anlatıyorlardı; Aydınlatma
+Tebliği m.5/1-j). Kaldırılan pasajlar `docs/LEGAL-REDLINES-2026-09.md`
+§19'da olduğu gibi durur. Yetki gelince açma sırası:
+
+1. Aynı PR'da: §19'daki metinler `content.ts`'e geri gelir (tarihler ve
+   `LEGAL_UPDATED` yayın gününe), `SAVED_CARDS_IN_LEGAL_TEXTS = true`,
+   `tests/legal-docs.test.ts` bunu tutar.
+2. O PR yayına girer; metin, ilk kart kaydedilmeden önce yayımda olur
+   (Aydınlatma Tebliği m.5/1-b: aydınlatma işlemeden önce).
+3. Ancak sonra Vercel'de `PAYNKOLAY_CARD_STORAGE=on` yapılıp yeniden
+   yayınlanır. Değişken tek başına hiçbir şeyi açmaz.
 
 ### 16.1 Ölçülen API (sandbox, Postman "Kart Saklama")
 
@@ -1157,8 +1206,20 @@ CARDISSUER, CARDTYPE, CARDBRAND, CARD_ALIACE, EXP_DATE}]}}}}}`. Kart yoksa
 ### 16.2 Bizdeki karşılığı
 
 - Anahtar `customers."cardUserKey"`'de (sütun zaten vardı, hiç dolmamıştı).
-  Üyenin ilk ödemesinde `ensureCardUserKey` üretir; karşılaştır-ve-yaz ile
-  yazılır, aynı anda açılan iki ödeme tek anahtarda buluşur.
+  Kart saklama açıkken üyenin ilk ödemesinde `ensureCardUserKey` üretir;
+  karşılaştır-ve-yaz ile yazılır, aynı anda açılan iki ödeme tek anahtarda
+  buluşur. Kapalıyken hiçbir yol anahtar üretmez.
+- Kart saklama hiç açılmadan üretilmiş anahtarlar (18 Eki 2026'ya kadar
+  uygulama siparişi ve üye karaoke ödemesi her üyeye üretiyordu)
+  `20261018200000_clear_unused_card_user_keys.sql` ile bir kez boşaltılır
+  (`updatedAt` değişmez). Ön şart: Production'da `PAYNKOLAY_CARD_STORAGE`
+  hiç açık olmadı (OP-28). Bir kez bile açık olduysa migration'dan önce her
+  anahtar için PayNkolay'da kart listesi okunur, kart çıkarsa
+  `deleteAllSavedCards` ile silinir.
+- 18 Eki 2026 22:38 ile 19 Eki 08:05 arasında canlıyı elle öne alınmış eski
+  bir deployment (feat/home-hero-panel 014d51b) çalıştırdı; o kod anahtar
+  üretmeye devam ediyordu. `20261019120000_clear_card_user_keys_again.sql`
+  aynı temizliği bir kez daha yapar (kart saklama hiç açılmadı).
 - Anahtar ödeme yükünde **imzalı** taşınır (`member`), formun alanlarına
   girmez: ortak ödeme sayfasında `customerKey` boş kalır.
 - Kart sayfası: saklı kartlar maskeli (son 4), bankası, markası ve adıyla

@@ -69,6 +69,47 @@ describe("phone sizes", () => {
     );
   });
 
+  it("the document links above the card form are items, so no tap area covers another link", () => {
+    // Inside one sentence, a padded link that wrapped on a 375px phone
+    // reached over the next line, and the later link won the tap there.
+    const docs = checkout.slice(checkout.indexOf('className="co-docs"'));
+    const block = docs.slice(0, docs.indexOf("</div>"));
+    const list = block.slice(
+      block.indexOf('<ul className="co-docs-links">'),
+      block.indexOf("</ul>"),
+    );
+    const links = list.match(/<li>\s*<a\s[^>]*href="\/hukuk\/[^"]+"/g) ?? [];
+    // The two documents the boxes confirm; the withdrawal document is the
+    // same kind of item, under "Cayma hakkın" (checkout-preinfo.tsx).
+    expect(links).toHaveLength(2);
+    expect(list.match(/<a\s/g)).toHaveLength(2);
+    const note = readFileSync("src/app/odeme/checkout-preinfo.tsx", "utf8");
+    expect(note).toMatch(
+      /<ul className="co-docs-links">\s*<li>\s*<a href="\/hukuk\/iade-ve-cayma"/,
+    );
+    // No dot typed between them: a wrapped row would start or end with it.
+    expect(list).not.toContain("·");
+    // Each link is one 44px box (11 + 22 + 11) with no negative margin, and
+    // no rule pulls it back over a neighbour; the underline tells them apart.
+    const a = rule(".co-docs-links a");
+    expect(a).toContain("display: inline-block;");
+    expect(a).toContain("padding-block: 11px;");
+    expect(a).toContain("line-height: 22px;");
+    expect(a).not.toContain("margin");
+    expect(rule(".co-docs a")).toContain("text-decoration: underline;");
+    expect(css).not.toMatch(/\.co-docs a[,\s][^{]*\{[^}]*margin-block: -/);
+    expect(css).not.toMatch(/,\s*\.co-docs a \{/);
+    expect(rule(".co-docs-links")).toContain("flex-wrap: wrap;");
+  });
+
+  it("a long product name wraps beside its price instead of pushing it out of the summary", () => {
+    // The card hides what overflows it: a shrinking price column lost the
+    // last digits and "Çıkar" (seen at 1280px with a 50-letter name).
+    expect(rule(".co-summary")).toContain("overflow: hidden;");
+    expect(css).toMatch(/\n\.co-line-side \{[^}]*flex: none;/);
+    expect(rule(".co-line-name")).toContain("overflow-wrap: anywhere;");
+  });
+
   it("the promo input is 16px, so iOS does not zoom", () => {
     expect(css).toMatch(
       /\.co-summary \.checkout-promo input \{\s*font-size: 16px;/,
@@ -92,18 +133,82 @@ describe("what the summary and the notes must keep saying", () => {
     const summary = checkout.slice(checkout.indexOf('className="co-summary"'));
     const hint = summary.indexOf("co-freeship");
     expect(hint).toBeGreaterThan(-1);
-    // After the body closes, so a closed summary on a phone still shows it.
-    expect(hint).toBeGreaterThan(summary.indexOf('className="co-seller"'));
+    // After the body (whose last part is the totals list) closes, so a
+    // closed summary on a phone still shows it.
+    const totals = summary.indexOf('className="co-totals"');
+    expect(totals).toBeGreaterThan(-1);
+    expect(summary.slice(totals, hint)).toMatch(/<\/dl>\s*<\/div>/);
     // And not a second copy in step 1.
     expect(checkout.match(/checkout-freeship-hint/g)).toHaveLength(1);
   });
 
-  it("the seller is named beside the contract links, from the entity only", () => {
+  it("the seller is named once, in full, beside the contract links, from the entity only", () => {
     const docs = checkout.slice(checkout.indexOf('className="co-docs"'));
-    expect(docs.slice(0, 1400)).toContain("co-docs-seller");
-    expect(docs.slice(0, 1400)).toContain("seller.name");
+    const block = docs.slice(0, docs.indexOf("</div>"));
+    expect(block).toContain("co-docs-seller");
+    expect(block).toContain("Satıcı: {sellerLine}");
+    // The contract links and the withdrawal terms sit in the same block,
+    // before any card field (the withdrawal link inside "Cayma hakkın").
+    for (const slug of [
+      "on-bilgilendirme-formu",
+      "mesafeli-satis-sozlesmesi",
+    ]) {
+      expect(block).toContain(`href="/hukuk/${slug}"`);
+    }
+    expect(block).toContain("<WithdrawalNote ");
+    const cardForm = checkout.search(/<CardPayment\s/);
+    expect(cardForm).toBeGreaterThan(-1);
+    expect(checkout.indexOf('className="co-docs"')).toBeLessThan(cardForm);
+    // One identity line on the page: the summary no longer repeats it, and
+    // no screen size hides it (it used to be name + MERSİS on a phone only).
+    expect(checkout.match(/Satıcı:/g)).toHaveLength(1);
+    expect(checkout).not.toContain("co-seller");
+    expect(css).not.toMatch(/\.co-docs-seller \{\s*display: none;/);
+    // Built from the entity fields the page passes, nothing typed here.
+    const line = checkout.slice(
+      checkout.indexOf("const sellerLine = ["),
+      checkout.indexOf('.join(" · ");', checkout.indexOf("const sellerLine")),
+    );
+    for (const field of ["name", "address", "phone", "email", "mersis"]) {
+      expect(line).toContain(`seller.${field}`);
+    }
     const page = readFileSync("src/app/odeme/(checkout)/page.tsx", "utf8");
     expect(page).toContain("name: LEGAL_ENTITY.legalName");
+    expect(page).toContain("address: LEGAL_ADDRESS_LINE");
+  });
+
+  it("says each thing once: the total beside the button, trust marks and 'Güvenli ödeme' once", () => {
+    // The pay bar shows "Toplam (KDV dahil)" right above the button, so
+    // the button no longer repeats the amount.
+    const bar = checkout.slice(checkout.indexOf('className="co-paybar"'));
+    expect(bar.slice(0, 400)).toContain("(KDV dahil)");
+    expect(checkout).toMatch(
+      /const payLabel = nothingToPay \? "Siparişi onayla" : "Siparişi onayla ve öde";/,
+    );
+    // The accepted-cards row is shown once (and not when there is nothing
+    // to pay); the old row under the pay button repeated it with 3D Secure,
+    // which the card form's own note already says.
+    expect(checkout.match(/<AcceptedSchemes/g)).toHaveLength(1);
+    // The hint under the button fits a ₺0 order too, where the button reads
+    // "Siparişi onayla" and nothing is paid: it says what onPay says.
+    const hint = bar.slice(bar.indexOf('className="co-paybar-hint"'));
+    expect(hint.slice(0, 200)).toContain(
+      "Devam etmek için iki sözleşme onayını da işaretle.",
+    );
+    expect(checkout).toContain(
+      'setPayError("Devam etmek için iki sözleşme onayını da işaretle.");',
+    );
+    expect(checkout).not.toContain("Ödemek için");
+    expect(checkout).not.toContain('className="co-trust"');
+    expect(checkout).toMatch(
+      /\{nothingToPay \? null : \(\s*<div className="co-accepted">/,
+    );
+    expect(css).not.toMatch(/\n\.co-trust \{/);
+    // "Güvenli ödeme" is in the checkout's own header on every step.
+    expect(checkout).not.toContain("Güvenli ödeme");
+    expect(css).not.toContain(".co-section-secure");
+    const chrome = readFileSync("src/app/odeme/checkout-chrome.tsx", "utf8");
+    expect(chrome).toContain("Güvenli ödeme");
   });
 });
 
@@ -113,6 +218,10 @@ const settings = vi.hoisted(() => ({ value: { isShopOpen: true } as never }));
 const customer = vi.hoisted(() => ({ value: null as unknown }));
 vi.mock("@/lib/admin/store", () => ({
   getPublicSettings: async () => settings.value,
+  listProductsForImport: async () => [],
+}));
+vi.mock("@/lib/legal/store", () => ({
+  getPublishedLegalOverride: async () => null,
 }));
 vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: async () => customer.value,

@@ -1,14 +1,24 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import {
   addCounterStampAction,
   reverseCounterStampAction,
   type CounterStampState,
 } from "@/app/admin/musteriler/[email]/actions";
+import {
+  STAMP_CORRECTION_MAX,
+  STAMP_CORRECTION_MIN,
+} from "@/lib/admin/stamp-correction";
 import type { LoyaltyStamp, LoyaltyView } from "@/lib/mobile/loyalty-core";
 
+import {
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "./action-form";
+import { FormError, FormSuccess } from "./form-feedback";
 import {
   Card,
   Checkbox,
@@ -17,6 +27,7 @@ import {
   TextInput,
   formatDateTime,
 } from "./forms";
+import { ConfirmButton } from "./ui";
 
 const initial: CounterStampState = {};
 
@@ -44,18 +55,25 @@ export function CustomerStamps({
    */
   canReverse?: boolean;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const bound = addCounterStampAction.bind(null, email);
-  const [state, action, pending] = useActionState(bound, initial);
-  const boundReverse = reverseCounterStampAction.bind(null, email);
-  const [undoState, undoAction, undoPending] = useActionState(
-    boundReverse,
+  // Posted by hand: a refused stamp used to reset the form and drop the note
+  // exactly when the server asked to tick "tekrar". A stamp that went
+  // through empties it (note and "tekrar" off) for the next one.
+  const [state, action, pending] = useActionState(
+    withPanelCatch(bound, () => ({ error: PANEL_ACTION_FAILED })),
     initial,
   );
+  const post = useHandPost(action, pending);
+  useEffect(() => {
+    if (state.message && !state.error) formRef.current?.reset();
+  }, [state]);
+  const boundReverse = reverseCounterStampAction.bind(null, email);
 
   return (
-    <Card className="grid gap-4">
+    <Card className="grid grid-cols-1 gap-4">
       <h2
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         Sadakat · {loyalty.tierLabel}
@@ -68,81 +86,94 @@ export function CustomerStamps({
       </div>
 
       <form
-        action={action}
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
         <h3
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
-          Damga ekle (kasa)
+          Damga ekle (düzeltme)
         </h3>
-        <Field label="Not (opsiyonel)">
-          <TextInput name="note" placeholder="Kasa · QR" maxLength={120} />
+        {/* The till stamps only a member who shows their own code
+            (ASK-LOYALTY); a stamp it missed is put right here, at the
+            member's request and with the reason. The action refuses a
+            reason under ten characters and starts the note with
+            "Düzeltme · ". */}
+        <Field
+          label="Düzeltme sebebi"
+          hint={`Üyenin talebi ve nasıl doğrulandığı, en az ${STAMP_CORRECTION_MIN} karakter. Damga geçmişinde "Düzeltme" olarak görünür.`}
+        >
+          <TextInput
+            name="note"
+            required
+            minLength={STAMP_CORRECTION_MIN}
+            maxLength={STAMP_CORRECTION_MAX}
+            placeholder="QR okunmadı, üye kayıtlı e-postasından yazdı"
+          />
         </Field>
         {/* Only needed after the server refuses a repeat inside its window. */}
         <Checkbox name="force" label="Tekrar (aynı üyeye ikinci damga)" />
-        {state.error && <p className="text-xs text-red-600">{state.error}</p>}
-        {state.message && (
-          <p className="text-xs text-green-700">{state.message}</p>
-        )}
+        <FormError message={state.error} />
+        <FormSuccess message={state.error ? undefined : state.message} />
         <PrimaryButton type="submit" disabled={pending}>
-          {pending ? "Ekleniyor…" : "+1 damga"}
+          {pending ? "Ekleniyor…" : "Damga düzelt (+1)"}
         </PrimaryButton>
       </form>
 
       {canReverse && (
-        <form
-          action={undoAction}
-          className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
-        >
+        <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4">
           <h3
-            className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+            className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
             style={{ fontFamily: "var(--mono), monospace" }}
           >
             Damga geri al (düzeltme)
           </h3>
-          <Field label="Sebep (opsiyonel)">
-            <TextInput
-              name="note"
-              placeholder="Yanlış üyeye verildi"
-              maxLength={120}
-            />
-          </Field>
-          {undoState.error && (
-            <p className="text-xs text-red-600" role="alert">
-              {undoState.error}
-            </p>
-          )}
-          {undoState.message && (
-            <p className="text-xs text-green-700">{undoState.message}</p>
-          )}
-          <PrimaryButton type="submit" disabled={undoPending}>
-            {undoPending ? "Geri alınıyor…" : "−1 düzeltme"}
-          </PrimaryButton>
-        </form>
+          {/* Takes a stamp away from the member: asks first, and the reason
+              goes into the stamp history as its note. */}
+          <ConfirmButton
+            action={boundReverse}
+            label="−1 düzeltme"
+            title="Bir damga geri alınsın mı?"
+            description="Üyenin kartından bir damga düşülür ve geçmişe düzeltme olarak yazılır."
+            confirmLabel="Damgayı geri al"
+            variant="ghost"
+            reason={{
+              name: "note",
+              label: "Sebep (isteğe bağlı)",
+              maxLength: 120,
+              placeholder: "Yanlış üyeye verildi",
+            }}
+          />
+        </div>
       )}
 
       <div className="border-t border-[var(--admin-border)] pt-4">
         <h3
-          className="mb-2 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+          className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
           style={{ fontFamily: "var(--mono), monospace" }}
         >
           Damga geçmişi ({history.length})
         </h3>
         {history.length === 0 ? (
-          <p className="text-sm text-neutral-400">Henüz damga yok.</p>
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Henüz damga yok.
+          </p>
         ) : (
-          <ul className="grid gap-1.5">
+          <ul className="grid grid-cols-1 gap-1.5">
             {history.slice(0, 30).map((s) => (
               <li
                 key={s.id}
                 className="flex items-center justify-between gap-2 text-xs"
               >
-                <span className="min-w-0 truncate text-neutral-700">
+                <span className="min-w-0 truncate text-[var(--admin-text)]">
                   <span
                     className={
-                      s.kind === "earn" ? "text-green-700" : "text-rose-700"
+                      s.kind === "earn"
+                        ? "text-[var(--admin-success)]"
+                        : "text-[var(--admin-danger-ink)]"
                     }
                     style={{ fontFamily: "var(--mono), monospace" }}
                   >
@@ -153,7 +184,7 @@ export function CustomerStamps({
                   {s.actor ? ` · ${s.actor}` : ""}
                 </span>
                 <span
-                  className="shrink-0 text-neutral-400"
+                  className="shrink-0 text-[var(--admin-text-soft)]"
                   style={{ fontFamily: "var(--mono), monospace" }}
                 >
                   {formatDateTime(s.createdAt)}
@@ -171,13 +202,13 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--admin-border)] p-2">
       <div
-        className="text-[9px] tracking-[0.18em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {label}
       </div>
       <div
-        className="mt-0.5 text-base text-neutral-900"
+        className="mt-0.5 text-base text-[var(--admin-text)]"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {value}

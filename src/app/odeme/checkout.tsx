@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type MouseEvent,
 } from "react";
 
 import { BusyDots } from "@/components/laffogato/busy-dots";
@@ -59,6 +60,22 @@ import {
   type CheckoutConsentTicks,
   NO_CHECKOUT_CONSENT,
 } from "./checkout-consent";
+import { CheckoutDocPanel } from "./checkout-doc-panel";
+import type { CheckoutDocSlug, CheckoutDocument } from "./checkout-documents";
+import {
+  checkoutKdvParts,
+  checkoutKdvRows,
+  type CheckoutKdvRates,
+} from "./checkout-kdv";
+import {
+  CARD_PAYMENT_METHOD,
+  istanbulDateLabel,
+  NOTHING_TO_PAY_METHOD,
+  OrderBrief,
+  type OrderBriefLine,
+  type OrderFacts,
+  WithdrawalNote,
+} from "./checkout-preinfo";
 import { AcceptedSchemes } from "./scheme-marks";
 
 /**
@@ -75,10 +92,10 @@ import { AcceptedSchemes } from "./scheme-marks";
  * 2. calls `startCheckoutAction` with the ORDER form below - hidden fields
  *    only, no card field can be in it - which creates the order, or reuses
  *    the one a declined attempt left (sessionStorage `PENDING`);
- * 3. compares the server's total with the amount on the button. Equal: the
- *    card form posts itself to /odeme/paynkolay and the bank's 3D page
- *    opens. Different (a price changed, a code could not be applied): the
- *    new amount is shown and the customer presses again.
+ * 3. compares the server's total with the total shown beside the button.
+ *    Equal: the card form posts itself to /odeme/paynkolay and the bank's
+ *    3D page opens. Different (a price changed, a code could not be
+ *    applied): the new amount is shown and the customer presses again.
  *
  * This document must have been LOADED at /odeme: only then does it run
  * under the checkout's policy, with no Google Tag Manager ever in it. A
@@ -87,6 +104,14 @@ import { AcceptedSchemes } from "./scheme-marks";
  */
 
 export const ORDER_FORM_ID = "order-form";
+
+/**
+ * The order form's `action`, never called: nothing submits that form (onPay
+ * reads it). A bare form would post itself the browser's way, a GET with the
+ * name, phone and address in the URL; a function action makes React draw its
+ * guard (`action="javascript:..."`) instead, and onSubmit stops the rest.
+ */
+const orderFormNeverPosts = () => {};
 
 /** Per-line ceiling, the server's MAX_LINE_QTY (store.ts). */
 const MAX_LINE_QTY = 99;
@@ -160,6 +185,14 @@ export interface CheckoutProps {
   config: CheckoutConfig;
   payment: CheckoutPaymentProps;
   seller: CheckoutSeller;
+  /**
+   * The Ön Bilgilendirme Formu and the Mesafeli Satış Sözleşmesi, rendered
+   * by the page, for the panel the payment step opens them in. A document
+   * missing here opens its own page in a new tab instead.
+   */
+  documents: CheckoutDocument[];
+  /** The rate each product's line will carry, for the KDV note. */
+  kdv: CheckoutKdvRates;
   /** Why the page opened with `?odeme=` / `?error=`, if it did. */
   returned: CheckoutReturn | null;
 }
@@ -422,6 +455,8 @@ function CheckoutForm({
   config,
   payment,
   seller,
+  documents,
+  kdv,
   returned,
   boot,
   owner,
@@ -615,6 +650,38 @@ function CheckoutForm({
   const payAmountMinor = totals.totalMinor;
   const reuse = pending && pending.cartKey === cartKey ? pending : null;
 
+  /** A line's amount: the server's price once it has quoted this basket. */
+  const lineMinorOf = (it: CartItem): number => {
+    const qty = it.qty || 1;
+    const line = quoted?.lines.find(
+      (l) =>
+        l.productId === it.productId &&
+        (l.variantId ?? "") === (it.variantId ?? ""),
+    );
+    return line ? line.unitPriceMinor * qty : unitMinor(it) * qty;
+  };
+  const briefLines: OrderBriefLine[] = items.map((it) => ({
+    key: `${it.productId ?? it.name}::${it.variantId ?? ""}`,
+    label: itemLabel(it),
+    qty: it.qty || 1,
+    lineMinor: lineMinorOf(it),
+  }));
+  // The KDV inside the total, per rate (operator, 18 Eki 2026): from the
+  // rate each line will carry, never assumed; without one, no note.
+  const kdvParts = checkoutKdvParts(
+    checkoutKdvRows({
+      lines: items.map((it, i) => ({
+        grossMinor: briefLines[i].lineMinor,
+        ratePct: it.productId ? kdv.products[it.productId] : null,
+      })),
+      subtotalMinor: totals.subtotalMinor,
+      discountMinor: totals.discountMinor,
+      shippingMinor: totals.shippingMinor,
+      totalMinor: totals.totalMinor,
+      shippingRatePct: kdv.shippingRatePct,
+    }),
+  );
+
   const itemsJson = useMemo(
     () =>
       JSON.stringify(
@@ -635,6 +702,27 @@ function CheckoutForm({
   const [notice, setNotice] = useState<string | null>(null);
   const [banner, setBanner] = useState<CheckoutReturn | null>(returned);
   const [summaryOpen, setSummaryOpen] = useState(false);
+
+  // Documents ──────────────────────────────────────────────────────────
+  // The Ön Bilgilendirme Formu and the Mesafeli Satış Sözleşmesi open in a
+  // panel on this page, filled with the order (ASK-OTH-2, 18 Eki 2026), so
+  // reading them never takes the customer away from a typed card.
+  const [openDoc, setOpenDoc] = useState<CheckoutDocSlug | null>(null);
+  const openDocFrom = (
+    event: MouseEvent<HTMLAnchorElement>,
+    slug: CheckoutDocSlug,
+  ) => {
+    // A new tab when asked for one (Cmd/Ctrl/Shift, middle button), and
+    // the page itself when the text did not come with this one.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey) return;
+    if (event.shiftKey || event.altKey) return;
+    if (!documents.some((d) => d.slug === slug)) return;
+    event.preventDefault();
+    setOpenDoc(slug);
+  };
+  const docLink =
+    (slug: CheckoutDocSlug) => (event: MouseEvent<HTMLAnchorElement>) =>
+      openDocFrom(event, slug);
 
   // Steps ──────────────────────────────────────────────────────────────
   // 1 Teslimat → 2 Ödeme, on this one page: no reload between them, so the
@@ -928,7 +1016,7 @@ function CheckoutForm({
       setPending(record);
     }
     if (q && q.totalMinor !== shownAmount) {
-      // Not the amount on the button: the bank is not asked for it. The
+      // Not the total on screen: the bank is not asked for it. The
       // customer sees the order's real total and decides again.
       adoptQuote(q);
       stop();
@@ -966,12 +1054,9 @@ function CheckoutForm({
         <div className="checkout-empty-mark" aria-hidden="true">
           ✻
         </div>
-        <h1 className="h2" style={{ marginBottom: 10 }}>
+        <h1 className="h2" style={{ marginBottom: 24 }}>
           Sepetin <span className="script">boş</span>
         </h1>
-        <p className="lede" style={{ margin: "0 auto 24px" }}>
-          Mağazaya göz at; seçtiklerin burada, tek sayfada ödemeye hazır olur.
-        </p>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full page load on purpose: the checkout document keeps its own policy (checkout-chrome.tsx) */}
         <a href="/magaza" className="btn btn-primary">
           Mağazaya git <span className="arrow">→</span>
@@ -1005,11 +1090,25 @@ function CheckoutForm({
   ]
     .filter(Boolean)
     .join(" · ");
-  const payLabel = nothingToPay ? (
-    "Siparişi onayla"
-  ) : (
-    <>Siparişi onayla ve öde · {priceLabel(payAmountMinor)}</>
-  );
+  // The total stands right above the button ("Toplam (KDV dahil)"), so the
+  // button only says what pressing it does: order, and pay.
+  const payLabel = nothingToPay ? "Siparişi onayla" : "Siparişi onayla ve öde";
+  // The head of a document opened from here: this order, from what the
+  // page shows (the address from step 1, the amounts from the quote).
+  const orderFacts = (): OrderFacts => ({
+    buyer: delivery.customerName,
+    email: customer.email,
+    phone: delivery.customerPhone,
+    address: delivery.shippingAddress,
+    lines: briefLines,
+    shippingMinor: totals.shippingMinor,
+    discountMinor: totals.discountMinor,
+    totalMinor: totals.totalMinor,
+    promoCode: promoFresh?.code,
+    kdvParts,
+    paymentMethod: nothingToPay ? NOTHING_TO_PAY_METHOD : CARD_PAYMENT_METHOD,
+    date: istanbulDateLabel(),
+  });
 
   return (
     <div className="co-layout" data-step={step} ref={topRef}>
@@ -1087,14 +1186,7 @@ function CheckoutForm({
                   MAX_LINE_QTY,
                   Math.max(1, it.maxStock ?? 99),
                 );
-                const line = quoted?.lines.find(
-                  (l) =>
-                    l.productId === it.productId &&
-                    (l.variantId ?? "") === (it.variantId ?? ""),
-                );
-                const lineMinor = line
-                  ? line.unitPriceMinor * qty
-                  : unitMinor(it) * qty;
+                const lineMinor = lineMinorOf(it);
                 return (
                   <li key={`${it.productId ?? it.name}::${it.variantId ?? ""}`}>
                     <div className="co-line-info">
@@ -1248,10 +1340,13 @@ function CheckoutForm({
                 </dt>
                 <dd className="tabular">{priceLabel(totals.totalMinor)}</dd>
               </div>
+              {kdvParts ? (
+                <div className="co-totals-kdv">
+                  <dt>KDV dahil:</dt>
+                  <dd className="tabular">{kdvParts}</dd>
+                </div>
+              ) : null}
             </dl>
-            {sellerLine ? (
-              <p className="co-seller">Satıcı: {sellerLine}</p>
-            ) : null}
           </div>
           {/* Outside the collapsible body: on a phone the summary is closed,
               and this is what tells the customer how far free shipping is,
@@ -1446,7 +1541,9 @@ function CheckoutForm({
           </p>
           <div className="co-ship-method">
             <span className="co-ship-method-name">Kargo ile teslimat</span>
-            <span className="co-ship-method-meta">Türkiye geneli</span>
+            <span className="co-ship-method-meta">
+              Yalnız Türkiye içindeki adreslere gönderiyoruz
+            </span>
             <span className="co-ship-method-price tabular">
               {totals.shippingMinor > 0
                 ? priceLabel(totals.shippingMinor)
@@ -1502,13 +1599,6 @@ function CheckoutForm({
               <h2 className="co-section-title" id="co-pay-title" tabIndex={-1}>
                 Ödeme
               </h2>
-              <span className="checkout-secure co-section-secure">
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M4.5 7V5.2a3.5 3.5 0 0 1 7 0V7" />
-                  <rect x="3" y="7" width="10" height="7" rx="2" />
-                </svg>
-                Güvenli ödeme
-              </span>
             </header>
 
             {copy ? (
@@ -1526,35 +1616,60 @@ function CheckoutForm({
               </div>
             ) : null}
 
-            <p className="co-docs">
-              Ödemeden önce okuyabilirsin:{" "}
-              <a
-                href="/hukuk/on-bilgilendirme-formu"
-                target="_blank"
-                rel="noopener"
-              >
-                Ön Bilgilendirme Formu
-              </a>{" "}
-              ·{" "}
-              <a
-                href="/hukuk/mesafeli-satis-sozlesmesi"
-                target="_blank"
-                rel="noopener"
-              >
-                Mesafeli Satış Sözleşmesi
-              </a>
-              {seller.name ? (
-                <span className="co-docs-seller">
-                  <br />
-                  Satıcı: {seller.name}
-                  {seller.mersis ? ` · MERSİS ${seller.mersis}` : ""}
-                </span>
+            <div className="co-docs">
+              <p>Ödemeden önce okuyabilirsin:</p>
+              {/* One item each: inside a sentence a link that wraps on a
+                  phone had its tap area over the line of the next one. Each
+                  opens in the panel, filled with this order. */}
+              <ul className="co-docs-links">
+                <li>
+                  <a
+                    href="/hukuk/on-bilgilendirme-formu"
+                    target="_blank"
+                    rel="noopener"
+                    onClick={docLink("on-bilgilendirme-formu")}
+                  >
+                    Ön Bilgilendirme Formu
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/hukuk/mesafeli-satis-sozlesmesi"
+                    target="_blank"
+                    rel="noopener"
+                    onClick={docLink("mesafeli-satis-sozlesmesi")}
+                  >
+                    Mesafeli Satış Sözleşmesi
+                  </a>
+                </li>
+              </ul>
+              {/* The seller's one identity line on the page (MSY m.5/1-b, c),
+                  on every screen size, before the card and the pay button. */}
+              {sellerLine ? (
+                <p className="co-docs-seller">Satıcı: {sellerLine}</p>
               ) : null}
-            </p>
-            <div className="co-accepted">
-              <span>Kabul edilen kartlar</span>
-              <AcceptedSchemes className="co-schemes" />
+              {/* MSY m.6/2-a: the lines, the total with its taxes and the
+                  withdrawal terms as one block right above the card, open on
+                  every screen size (the side summary folds on a phone), then
+                  the withdrawal document itself. */}
+              <OrderBrief
+                lines={briefLines}
+                totals={{
+                  shippingMinor: totals.shippingMinor,
+                  discountMinor: totals.discountMinor,
+                  totalMinor: totals.totalMinor,
+                  promoCode: promoFresh?.code,
+                }}
+                kdvParts={kdvParts}
+              />
+              <WithdrawalNote sellerEmail={seller.email} />
             </div>
+            {nothingToPay ? null : (
+              <div className="co-accepted">
+                <span>Kabul edilen kartlar</span>
+                <AcceptedSchemes className="co-schemes" />
+              </div>
+            )}
 
             <CardPayment
               ref={cardRef}
@@ -1600,6 +1715,7 @@ function CheckoutForm({
                 }
                 disabled={placing}
                 form={ORDER_FORM_ID}
+                onDocClick={openDocFrom}
               />
             </div>
             <div className="co-paybar">
@@ -1632,22 +1748,29 @@ function CheckoutForm({
               </button>
               {!consentGiven && !placing ? (
                 <p className="co-paybar-hint">
-                  Ödemek için sözleşme onaylarını işaretle.
+                  Devam etmek için iki sözleşme onayını da işaretle.
                 </p>
               ) : null}
             </div>
-            <p className="co-trust">
-              <span>3D Secure ile onay</span>
-              <span>SSL/TLS ile şifreli bağlantı</span>
-              <AcceptedSchemes className="co-schemes" />
-            </p>
           </section>
         </div>
       </div>
 
+      <CheckoutDocPanel
+        doc={documents.find((d) => d.slug === openDoc) ?? null}
+        facts={openDoc ? orderFacts() : null}
+        onClose={() => setOpenDoc(null)}
+      />
+
       {/* The order form: what the server action reads. Hidden fields only -
           the card is in the pay form above, which this one never contains. */}
-      <form id={ORDER_FORM_ID} ref={orderFormRef} className="co-order-form">
+      <form
+        id={ORDER_FORM_ID}
+        ref={orderFormRef}
+        action={orderFormNeverPosts}
+        onSubmit={(e) => e.preventDefault()}
+        className="co-order-form"
+      >
         <input type="hidden" name="items" value={itemsJson} />
         <input
           type="hidden"

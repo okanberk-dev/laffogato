@@ -3,10 +3,13 @@
 import { useActionState } from "react";
 
 import {
-  GhostButton,
-  PrimaryButton,
-  TextInput,
-} from "@/components/admin/forms";
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "@/components/admin/action-form";
+import { FormError, FormSuccess } from "@/components/admin/form-feedback";
+import { GhostButton, TextInput } from "@/components/admin/forms";
+import { ActionModal, type ModalAction } from "@/components/admin/ui";
 
 import type { CampaignMailState } from "./actions";
 
@@ -18,19 +21,25 @@ type StateAction = (
 const initial: CampaignMailState = {};
 
 function Feedback({ state }: { state: CampaignMailState }) {
-  if (state.error) return <p className="text-xs text-red-600">{state.error}</p>;
-  if (state.message) {
-    return <p className="text-xs text-emerald-700">{state.message}</p>;
-  }
-  return null;
+  if (state.error) return <FormError message={state.error} />;
+  return <FormSuccess message={state.message} />;
+}
+
+/** What the operator types to send: the count they agree to, or GÖNDER. */
+export function campaignSendPhrase(audienceCount: number | null): string {
+  return audienceCount === null ? "GÖNDER" : String(audienceCount);
 }
 
 /**
- * "Gönder", behind a confirm that says how many addresses the audience rule
- * resolves to right now - the same function the enqueue reads, so the number
- * the operator agrees to is the number that gets queued. A null count means
- * the database could not be asked; the operator is told so rather than shown
- * a zero.
+ * "Gönder": a commercial e-mail to everyone the audience rule resolves to,
+ * behind a dialog that quotes how many addresses that is right now (the
+ * same function the enqueue reads) and asks for the number typed back
+ * (decision D15). It was one OK on the browser's own dialog. A null count
+ * means the database could not be asked; the operator is told so rather
+ * than shown a zero, and types GÖNDER instead.
+ *
+ * The answer is a toast: on the list the row stops offering "Gönder" as
+ * soon as the campaign is queued, and the old inline message went with it.
  */
 export function CampaignSendForm({
   action,
@@ -38,33 +47,36 @@ export function CampaignSendForm({
   audienceLabel,
   label = "Gönder",
 }: {
-  action: StateAction;
+  action: ModalAction;
   audienceCount: number | null;
   audienceLabel: string;
   label?: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
-  const confirmText =
+  const description =
     audienceCount === null
-      ? `Kitle şu an sayılamadı (${audienceLabel}). Yine de gönderim başlatılsın mı? Bu işlem geri alınamaz.`
-      : `${audienceCount} adrese gönderilecek: ${audienceLabel}. Gönderim başlatılsın mı? Bu işlem geri alınamaz.`;
+      ? `Kitle şu an sayılamadı (${audienceLabel}). Gönderim başlarsa geri alınamaz.`
+      : audienceCount === 0
+        ? `Kitle boş (${audienceLabel}): kimseye e-posta gitmez, kampanya 0 alıcıyla “Gönderildi” olarak kapanır.`
+        : `${audienceCount} adrese ticari e-posta gider: ${audienceLabel}. Kitle kuyruğa alınırken yeniden sayılır. Gönderim başlayınca geri alınamaz.`;
   return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (!confirm(confirmText)) e.preventDefault();
-      }}
-      className="grid gap-2"
-    >
-      <PrimaryButton type="submit" disabled={pending}>
-        {pending ? "Kuyruğa alınıyor…" : label}
-      </PrimaryButton>
-      <Feedback state={state} />
-    </form>
+    <ActionModal
+      action={action}
+      title="Kampanya gönderilsin mi?"
+      description={description}
+      trigger={label}
+      triggerVariant="primary"
+      submitLabel={label}
+      pendingLabel="Kuyruğa alınıyor…"
+      confirmPhrase={campaignSendPhrase(audienceCount)}
+      size="sm"
+    />
   );
 }
 
-/** "Bana test gönder": one real message, to the operator's own inbox by default. */
+/**
+ * "Test gönder": one real message, to the operator's own inbox by default;
+ * any active panel account may be the address, so not "Bana" (PEO-21).
+ */
 export function CampaignTestForm({
   action,
   defaultTo,
@@ -72,9 +84,14 @@ export function CampaignTestForm({
   action: StateAction;
   defaultTo: string;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
+  // Posted by hand: a refused address used to be wiped with the answer.
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
+    initial,
+  );
+  const post = useHandPost(formAction, pending);
   return (
-    <form action={formAction} className="grid gap-2">
+    <form action={post.action} onSubmit={post.onSubmit} className="grid gap-2">
       <TextInput
         name="to"
         type="email"
@@ -83,7 +100,7 @@ export function CampaignTestForm({
         aria-label="Test alıcısı"
       />
       <GhostButton type="submit" disabled={pending}>
-        {pending ? "Gönderiliyor…" : "Bana test gönder"}
+        {pending ? "Gönderiliyor…" : "Test gönder"}
       </GhostButton>
       <Feedback state={state} />
     </form>

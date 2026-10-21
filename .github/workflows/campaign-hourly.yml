@@ -28,7 +28,10 @@ name: campaign-hourly
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    # Every 3 hours, not hourly (19 Oct 2026): each run is billed as a full
+    # Actions minute and wakes the Neon compute, and GitHub skipped about
+    # two of every three hourly runs anyway. Vercel's two daily passes stay.
+    - cron: "0 */3 * * *"
   workflow_dispatch:
 
 concurrency:

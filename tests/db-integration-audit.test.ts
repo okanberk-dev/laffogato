@@ -413,5 +413,34 @@ maybe("audit fixes against a real Postgres", () => {
       );
       expect((await row()).isActive).toBe(false);
     });
+
+    it("Pasifleştir keeps the date of someone already off", async () => {
+      const { subscribeNewsletter, deactivateNewsletterSubscriber } =
+        await import("@/lib/newsletter/store");
+      await subscribeNewsletter(
+        EMAIL,
+        "",
+        "account",
+        { at: new Date().toISOString(), ip: "10.1.1.1" },
+        { confirmed: true },
+      );
+      const { rows } = await pool!.query(
+        `select id from public.newsletter_subscribers where email = $1`,
+        [EMAIL],
+      );
+      // Unsubscribed by the link at T1; the panel's list is older than T1.
+      const T1 = "2026-10-01T09:00:00.000Z";
+      await pool!.query(
+        `update public.newsletter_subscribers
+            set "isActive" = false, "unsubscribedAt" = $2 where id = $1`,
+        [rows[0].id, T1],
+      );
+      expect(await deactivateNewsletterSubscriber(rows[0].id)).toBe(false);
+      const after = await pool!.query(
+        `select "unsubscribedAt" from public.newsletter_subscribers where id = $1`,
+        [rows[0].id],
+      );
+      expect(after.rows[0].unsubscribedAt).toBe(T1);
+    });
   });
 });

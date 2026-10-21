@@ -19,8 +19,14 @@
  * - **Hesap Silme** — Google Play'in "Data deletion URL" alanı bu sayfayı
  *   gösterir; uygulamayı kurmamış bir üyenin de talebi iletebileceği tek
  *   genel adres burasıdır, dolayısıyla footer'dan düşürülemez.
+ * - **İşlem Rehberi** (20 Ekim 2026): Elektronik Ticaret Aracı Hizmet
+ *   Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik
+ *   m.7/1, sipariş adımlarını, düzeltme araçlarını, sözleşme metninin
+ *   saklanmasını ve uyuşmazlık yollarını anlatan "işlem rehberi"nin ana
+ *   sayfada bulunmasını ister; footer her sayfada, ana sayfada da durur.
  *
- * Operatör 7 Eyl'de listeyi **altıya** indirdi. Çıkan ikisi:
+ * Operatör 7 Eyl'de listeyi **altıya** indirdi; İşlem Rehberi yedinci
+ * olarak yönetmelik gereği eklendi. 7 Eyl'de çıkan ikisi:
  *
  * - **Kullanım Şartları** — yasal olarak bir yerde bulunması yeterli; hiçbir
  *   mağaza formu ona kalıcı bir URL olarak sormuyor.
@@ -36,6 +42,7 @@
 export const FOOTER_LEGAL_DOCS = [
   { slug: "mesafeli-satis-sozlesmesi", label: "Mesafeli Satış Sözleşmesi" },
   { slug: "iade-ve-cayma", label: "İptal, İade & Cayma" },
+  { slug: "islem-rehberi", label: "İşlem rehberi" },
   { slug: "gizlilik-politikasi", label: "Gizlilik Politikası" },
   { slug: "kvkk-aydinlatma-metni", label: "KVKK Aydınlatma" },
   { slug: "cerez-politikasi", label: "Çerez Politikası" },

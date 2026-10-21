@@ -1,14 +1,16 @@
 "use client";
 
+import { ActionForm } from "@/components/admin/action-form";
 import {
   Card,
   Checkbox,
   Field,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import type { ModalAction } from "@/components/admin/ui";
+import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import {
   APP_SLIDE_ROUTE_LABELS,
   APP_SLIDE_ROUTES,
@@ -17,6 +19,8 @@ import {
   type AppSlideTone,
 } from "@/lib/admin/app-content-schema";
 import { toDateTimeLocalInput } from "@/lib/admin/publish-window";
+
+import { FieldRow, FormActions } from "../app-content-ui";
 
 export interface AppSlideDefaults {
   eyebrow?: string;
@@ -46,18 +50,21 @@ export interface AppSlideDefaults {
  *    the row and paid for on every home-screen load. The tone stays
  *    mandatory so a slide whose image fails to load is still a legible,
  *    on-palette card rather than a blank rectangle.
+ *
+ * Posted through ActionForm: a refusal shows under its field and keeps
+ * what was typed, and a second press before the answer creates nothing.
  */
 export function AppSlideForm({
   action,
   defaults,
   submitLabel,
 }: {
-  action: (formData: FormData) => void;
+  action: ModalAction;
   defaults?: AppSlideDefaults;
   submitLabel: string;
 }) {
   return (
-    <form action={action} className="grid gap-4">
+    <ActionForm action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
           <Field
@@ -72,15 +79,17 @@ export function AppSlideForm({
             />
           </Field>
 
-          <Field label="Başlık" hint="En fazla 80 karakter.">
-            <TextInput
-              name="title"
-              defaultValue={defaults?.title ?? ""}
-              maxLength={80}
-              required
-              placeholder="L'Affogato"
-            />
-          </Field>
+          <FieldRow name="title">
+            <Field label="Başlık" hint="En fazla 80 karakter.">
+              <TextInput
+                name="title"
+                defaultValue={defaults?.title ?? ""}
+                maxLength={80}
+                required
+                placeholder="L'Affogato"
+              />
+            </Field>
+          </FieldRow>
 
           <Field
             label="Metin"
@@ -166,23 +175,27 @@ export function AppSlideForm({
 
       <Card>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Başlangıç"
-            hint="Boşsa hemen yayında. Saat İstanbul saatidir."
-          >
-            <TextInput
-              type="datetime-local"
-              name="startsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
-            />
-          </Field>
-          <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
-            <TextInput
-              type="datetime-local"
-              name="endsAt"
-              defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
-            />
-          </Field>
+          <FieldRow name="startsAt">
+            <Field
+              label="Başlangıç"
+              hint="Boşsa hemen yayında. Saat İstanbul saatidir."
+            >
+              <DateTimeField
+                name="startsAt"
+                aria-label="Başlangıç tarihi ve saati"
+                defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
+          <FieldRow name="endsAt">
+            <Field label="Bitiş" hint="Boşsa süresiz yayında kalır.">
+              <DateTimeField
+                name="endsAt"
+                aria-label="Bitiş tarihi ve saati"
+                defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
+              />
+            </Field>
+          </FieldRow>
         </div>
         <div className="mt-4">
           <Checkbox
@@ -193,9 +206,7 @@ export function AppSlideForm({
         </div>
       </Card>
 
-      <div>
-        <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
-      </div>
-    </form>
+      <FormActions submitLabel={submitLabel} backHref="/admin/mobil/slaytlar" />
+    </ActionForm>
   );
 }

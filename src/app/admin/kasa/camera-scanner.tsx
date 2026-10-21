@@ -10,6 +10,7 @@ import {
   cameraFault,
   createDecoder,
   DECODE_SIZE,
+  reticleSize,
   ScanGate,
   scanRegion,
   setTorch,
@@ -43,9 +44,9 @@ interface CameraOption {
  *   iPad - the likeliest till there is - used to be told its browser could
  *   not read QR at all. `createDecoder()` falls back to jsQR.
  * - **It decodes a crop, not the frame.** The reticle is not decoration: the
- *   square it draws is exactly the region handed to the decoder, downscaled
- *   to a fixed 480px. Less work per attempt, and no locking onto a poster
- *   behind the member.
+ *   square it draws lies inside the region handed to the decoder (sized from
+ *   the picture on screen, `reticleSize`), downscaled to a fixed 480px. Less
+ *   work per attempt, and no locking onto a poster behind the member.
  * - **It reads every frame the camera produces**, via
  *   `requestVideoFrameCallback`, instead of sampling on a 400 ms timer that
  *   could sit between two good frames.
@@ -105,11 +106,41 @@ export function CameraScanner({
   const [flash, setFlash] = useState(false);
   /** Bumped to restart the camera effect; setting state to its own value would not. */
   const [attempt, setAttempt] = useState(0);
+  /** The frame's side in CSS px (`reticleSize`); 0 until the video has a size. */
+  const [reticle, setReticle] = useState(0);
 
   useEffect(() => {
     pausedRef.current = paused;
     onScanRef.current = onScan;
   }, [paused, onScan]);
+
+  // The frame follows the box and the picture: a resize, a rotated iPad, a
+  // camera switched to one with another shape.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const measure = () => {
+      const rect = video.getBoundingClientRect();
+      setReticle(
+        reticleSize(
+          { width: rect.width, height: rect.height },
+          { width: video.videoWidth, height: video.videoHeight },
+        ),
+      );
+    };
+    video.addEventListener("loadedmetadata", measure);
+    video.addEventListener("resize", measure);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measure);
+    observer?.observe(video);
+    return () => {
+      video.removeEventListener("loadedmetadata", measure);
+      video.removeEventListener("resize", measure);
+      observer?.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!outcome) return;
@@ -284,100 +315,112 @@ export function CameraScanner({
     void setTorch(trackRef.current, next).catch(() => setTorchOn(!next));
   };
 
-  if (status === "fault") {
-    return (
-      <div className="grid gap-3">
-        <p role="alert" className="text-sm text-[var(--admin-danger)]">
-          {CAMERA_FAULT_MESSAGE[fault]}
-        </p>
-        <div>
-          <GhostButton type="button" onClick={() => setAttempt((n) => n + 1)}>
-            Yeniden dene
-          </GhostButton>
-        </div>
-      </div>
-    );
-  }
+  // The fault answer takes the scanner's place, but the scanner stays
+  // mounted (hidden): returned on its own, the answer unmounted the video
+  // and the canvas, so "Yeniden dene" re-ran the camera effect with no
+  // element to attach to and the till stayed on the fault for good.
+  const faulted = status === "fault";
 
   return (
     <div className="grid gap-3">
-      <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-black">
-        <video
-          ref={videoRef}
-          muted
-          playsInline
-          className="block w-full"
-          style={{ maxHeight: 340, objectFit: "cover" }}
-        />
-        {/* The decoder is handed exactly this square (scan-engine.ts:
-            `scanRegion`), so the reticle is a promise the code keeps. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
-        >
-          <div
-            className="rounded-2xl border-4 transition-colors duration-150"
-            style={{
-              width: "78%",
-              aspectRatio: "1 / 1",
-              borderColor: flash
-                ? "rgb(16 185 129)"
-                : "rgba(255,255,255,0.85)",
-              boxShadow: flash
-                ? "0 0 0 9999px rgba(16,185,129,0.18)"
-                : "0 0 0 9999px rgba(0,0,0,0.35)",
-            }}
-          />
-        </div>
-        {paused ? (
-          <div className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-xs text-white">
-            Okuma duraklatıldı - sonuç ekranda.
+      {faulted ? (
+        <div className="grid gap-3">
+          <p role="alert" className="text-sm text-[var(--admin-danger-ink)]">
+            {CAMERA_FAULT_MESSAGE[fault]}
+          </p>
+          <div>
+            <GhostButton type="button" onClick={() => setAttempt((n) => n + 1)}>
+              Yeniden dene
+            </GhostButton>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
+      <div className={faulted ? "hidden" : "grid gap-3"}>
+        <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-black">
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            className="block w-full"
+            style={{ maxHeight: 340, objectFit: "cover" }}
+          />
+          {/* The decoded square as it lands on screen (scan-engine.ts:
+            `reticleSize`), so whatever is inside the frame is read. Until
+            the video has a size, the old 78%-wide guess. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          >
+            <div
+              data-reticle
+              className="rounded-2xl border-4 transition-colors duration-150"
+              style={{
+                ...(reticle > 0
+                  ? { width: reticle, height: reticle }
+                  : { width: "78%", aspectRatio: "1 / 1" }),
+                borderColor: flash
+                  ? "rgb(16 185 129)"
+                  : "rgba(255,255,255,0.85)",
+                boxShadow: flash
+                  ? "0 0 0 9999px rgba(16,185,129,0.18)"
+                  : "0 0 0 9999px rgba(0,0,0,0.35)",
+              }}
+            />
+          </div>
+          {paused ? (
+            <div className="absolute inset-x-0 bottom-0 bg-black/60 px-3 py-2 text-center text-xs text-white">
+              Okuma duraklatıldı - sonuç ekranda.
+            </div>
+          ) : null}
+        </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {canTorch && (
-          <GhostButton type="button" onClick={toggleTorch} aria-pressed={torch}>
-            {torch ? "Işığı kapat" : "Işığı aç"}
-          </GhostButton>
-        )}
-        {paused && (
-          <GhostButton type="button" onClick={onResume}>
-            Yeni okuma
-          </GhostButton>
-        )}
-        {cameras.length > 1 && (
-          <label className="flex items-center gap-2 text-xs text-[var(--admin-text-soft)]">
-            <span>Kamera</span>
-            <select
-              value={cameraId}
-              onChange={(e) => pickCamera(e.target.value)}
-              className="min-h-[36px] rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-2 py-1 text-xs"
+        <div className="flex flex-wrap items-center gap-2">
+          {canTorch && (
+            <GhostButton
+              type="button"
+              onClick={toggleTorch}
+              aria-pressed={torch}
             >
-              <option value="">Otomatik (arka)</option>
-              {cameras.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
+              {torch ? "Işığı kapat" : "Işığı aç"}
+            </GhostButton>
+          )}
+          {paused && (
+            <GhostButton type="button" onClick={onResume}>
+              Yeni okuma
+            </GhostButton>
+          )}
+          {cameras.length > 1 && (
+            <label className="flex items-center gap-2 text-xs text-[var(--admin-text-soft)]">
+              <span>Kamera</span>
+              <select
+                value={cameraId}
+                onChange={(e) => pickCamera(e.target.value)}
+                className="min-h-[36px] rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-2 py-1 text-xs"
+              >
+                <option value="">Otomatik (arka)</option>
+                {cameras.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
 
-      <p className="text-xs text-[var(--admin-text-mute)]">
-        {status === "starting"
-          ? "Kamera açılıyor…"
-          : "Üyenin telefonundaki QR'ı çerçevenin içine tut; okunduğunda damga kendiliğinden düşer."}
-        {decoder === "js" && status === "scanning" ? (
-          <>
-            {" "}
-            Bu tarayıcıda okuma yazılımla yapılıyor; ekran parlaklığını
-            açtırmak okumayı hızlandırır.
-          </>
-        ) : null}
-      </p>
+        <p className="text-xs text-[var(--admin-text-mute)]">
+          {status === "starting"
+            ? "Kamera açılıyor…"
+            : "Üyenin telefonundaki QR'ı çerçevenin içine tut; okunduğunda damga kendiliğinden düşer."}
+          {decoder === "js" && status === "scanning" ? (
+            <>
+              {" "}
+              Bu tarayıcıda okuma yazılımla yapılıyor; ekran parlaklığını
+              açtırmak okumayı hızlandırır.
+            </>
+          ) : null}
+        </p>
+      </div>
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );

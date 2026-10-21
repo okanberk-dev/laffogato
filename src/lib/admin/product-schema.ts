@@ -2,10 +2,24 @@ import { z } from "zod";
 
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
 import { slugify } from "@/lib/admin/store";
+import { parseStockSnapshot } from "@/lib/admin/stock-delta";
 import {
   parseBackdropChoice,
   parseVesselChoice,
 } from "@/lib/backdrop/scene-core";
+import {
+  CATALOG_MONEY_MAX_MINOR,
+  MONEY_TOO_LARGE_ERROR,
+  parseMoneyInput,
+  parseSignedMoneyInput,
+} from "@/lib/utils/format";
+import { parseTaxRateInput, TAX_RATE_INPUT_ERROR } from "@/lib/utils/kdv";
+import { discountShapeRefusal } from "@/lib/shop/discount";
+import {
+  FOOD_LABEL_FIELDS,
+  tidyLabelText,
+  type FoodLabelKey,
+} from "@/lib/shop/food-label";
 
 const HUE_VALUES = [
   "cream",
@@ -109,15 +123,93 @@ const notesList = z
       ),
   );
 
-const moneyToMinor = z
+/** What an amount the panel cannot read is answered with, under its field. */
+export const MONEY_INPUT_ERROR = "Tutarı rakamla yaz, ör. 250 ya da 1.250,00.";
+
+/**
+ * A lira field as kuruş. Empty is 0 (the optional prices); anything else goes
+ * through parseMoneyInput (CLAUDE.md rule 24). `parseFloat(s.replace(",",
+ * "."))` read "1.250,00" as 1,25 TL, and an unreadable value was saved as 0
+ * without a word.
+ */
+const moneyToMinor = z.string().transform((s, ctx) => {
+  const text = s.trim();
+  if (!text) return 0;
+  const minor = parseMoneyInput(text);
+  if (minor === null) {
+    ctx.addIssue({ code: "custom", message: MONEY_INPUT_ERROR });
+    return z.NEVER;
+  }
+  if (minor > CATALOG_MONEY_MAX_MINOR) {
+    ctx.addIssue({ code: "custom", message: MONEY_TOO_LARGE_ERROR });
+    return z.NEVER;
+  }
+  return minor;
+});
+
+/** The smallest price anything in the shop may be sold for: 1 kuruş. */
+export const PRICE_FLOOR_MINOR = 1;
+
+export const PRICE_REQUIRED_ERROR = "Satış fiyatını yaz.";
+export const PRICE_FLOOR_ERROR = "Fiyat en az 0,01 TL olmalı.";
+
+/** Why a variant is refused when its price plus difference is under 1 kuruş. */
+export function variantFloorError(name: string): string {
+  return `"${name}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`;
+}
+
+/** The variants that would sell under 1 kuruş at this price. */
+export function variantsBelowFloor<V extends { priceDeltaMinor: number }>(
+  priceMinor: number,
+  variants: readonly V[],
+): V[] {
+  return variants.filter((v) => priceMinor + v.priceDeltaMinor < PRICE_FLOOR_MINOR);
+}
+
+/**
+ * The sale price: required, and at least 1 kuruş (admin audit CAT-05). A "0"
+ * left as a placeholder gave the product away: a basket of such items
+ * totals 0 and is settled as paid without the POS. The optional prices keep
+ * moneyToMinor, where empty is 0 ("no was price", "no cost").
+ */
+const salePriceToMinor = z.string().transform((s, ctx) => {
+  const text = s.trim();
+  if (!text) {
+    ctx.addIssue({ code: "custom", message: PRICE_REQUIRED_ERROR });
+    return z.NEVER;
+  }
+  const minor = parseMoneyInput(text);
+  if (minor === null) {
+    ctx.addIssue({ code: "custom", message: MONEY_INPUT_ERROR });
+    return z.NEVER;
+  }
+  if (minor > CATALOG_MONEY_MAX_MINOR) {
+    ctx.addIssue({ code: "custom", message: MONEY_TOO_LARGE_ERROR });
+    return z.NEVER;
+  }
+  if (minor < PRICE_FLOOR_MINOR) {
+    ctx.addIssue({ code: "custom", message: PRICE_FLOOR_ERROR });
+    return z.NEVER;
+  }
+  return minor;
+});
+
+/**
+ * The product's own KDV rate: "" is the category default (null), anything
+ * else a whole number from 0 to 100. A fraction or text is refused under the
+ * field, never rounded into a rate nobody chose.
+ */
+const taxRateInput = z
   .string()
-  .transform((s) => s.trim().replace(",", "."))
-  .transform((s) => {
-    if (!s) return 0;
-    const v = parseFloat(s);
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  })
-  .pipe(z.number().int().nonnegative());
+  .optional()
+  .transform((raw, ctx) => {
+    const parsed = parseTaxRateInput(raw);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: TAX_RATE_INPUT_ERROR });
+      return z.NEVER;
+    }
+    return parsed.value;
+  });
 
 const intInput = z
   .string()
@@ -126,6 +218,23 @@ const intInput = z
     const v = parseInt(s ?? "0", 10);
     return Number.isFinite(v) ? Math.max(0, v) : 0;
   });
+
+// The stock a form was opened with (admin audit CAT-03). It lives with the
+// other client-safe stock helpers: the wizard reads its own post with it.
+export { parseStockSnapshot };
+
+const stockSnapshot = z.string().optional().transform(parseStockSnapshot);
+
+/**
+ * The opened form's own token (admin audit CAT-03): a save of the same form
+ * sent again moves the stock once (`product_form_saves`). Anything that is
+ * not one reads as none, and that save is a change of its own.
+ */
+export function parseSaveToken(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const token = raw.trim();
+  return /^[A-Za-z0-9-]{8,64}$/.test(token) ? token : null;
+}
 
 const MAX_IMAGES = 8;
 /**
@@ -169,7 +278,7 @@ const imagesJsonArray = z
 const variantsJson = z
   .string()
   .optional()
-  .transform((raw) => {
+  .transform((raw, ctx) => {
     if (!raw) return [];
     try {
       const data = JSON.parse(raw);
@@ -179,21 +288,44 @@ const variantsJson = z
           if (typeof v !== "object" || v === null) return null;
           const o = v as Record<string, unknown>;
           const name = String(o.name ?? "").trim();
-          if (!name) return null;
-          const priceDeltaText = String(o.priceDelta ?? "0").replace(",", ".");
-          const priceDelta = parseFloat(priceDeltaText);
+          // A row without a name used to vanish on save with its stock and
+          // price (admin audit CAT-29); it is refused under "Varyantlar".
+          if (!name) {
+            ctx.addIssue({
+              code: "custom",
+              message: `${idx + 1}. varyantın adını yaz ya da satırı sil.`,
+            });
+            return null;
+          }
+          // Signed: a smaller bag is cheaper ("-10,50"). Same reading as every
+          // other amount; an unreadable one is refused under "Varyantlar"
+          // instead of quietly becoming 0.
+          const priceDeltaText = String(o.priceDelta ?? "").trim();
+          const priceDeltaMinor = priceDeltaText
+            ? parseSignedMoneyInput(priceDeltaText)
+            : 0;
+          if (priceDeltaMinor === null) {
+            ctx.addIssue({
+              code: "custom",
+              message: `"${name}" varyantının fiyat farkı okunamadı. ${MONEY_INPUT_ERROR} İndirim için başına - koy.`,
+            });
+          } else if (Math.abs(priceDeltaMinor) > CATALOG_MONEY_MAX_MINOR) {
+            ctx.addIssue({
+              code: "custom",
+              message: `"${name}" varyantının fiyat farkı çok büyük. ${MONEY_TOO_LARGE_ERROR}`,
+            });
+          }
           const stock = parseInt(String(o.stock ?? "0"), 10);
           const sku = String(o.sku ?? "").trim();
           const isActive = Boolean(o.isActive ?? true);
           return {
             id: String(o.id ?? `var-${idx + 1}`),
             name,
-            priceDeltaMinor: Number.isFinite(priceDelta)
-              ? Math.round(priceDelta * 100)
-              : 0,
+            priceDeltaMinor: priceDeltaMinor ?? 0,
             stock: Number.isFinite(stock) ? Math.max(0, stock) : 0,
             sku,
             isActive,
+            stockAtOpen: parseStockSnapshot(o.stockAtOpen),
           };
         })
         .filter((v): v is NonNullable<typeof v> => v !== null);
@@ -202,13 +334,80 @@ const variantsJson = z
     }
   });
 
+/**
+ * A label field (src/lib/shop/food-label.ts): the operator's text, tidied,
+ * within its cap. Absent (a form from before the field) is undefined and
+ * keeps the stored text; empty is '' and clears it.
+ */
+function labelText(label: string, max: number) {
+  return z
+    .string()
+    .optional()
+    .transform((raw, ctx) => {
+      if (raw === undefined) return undefined;
+      const text = tidyLabelText(raw);
+      if (text.length > max) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${label} en fazla ${max} karakter olabilir.`,
+        });
+        return z.NEVER;
+      }
+      return text;
+    });
+}
+
+const foodLabelShape = Object.fromEntries(
+  FOOD_LABEL_FIELDS.map((f) => [f.key, labelText(f.panel, f.max)]),
+) as Record<FoodLabelKey, ReturnType<typeof labelText>>;
+
+/** A discount day from the form's date field: "YYYY-MM-DD", or null when empty. */
+const discountDay = z
+  .string()
+  .optional()
+  .transform((raw) => raw?.trim() || null);
+
+/** Length caps shared by the wizard and the CSV import. */
+export const PRODUCT_NAME_MAX_LENGTH = 120;
+export const PRODUCT_SKU_MAX_LENGTH = 40;
+export const PRODUCT_TAG_MAX_LENGTH = 80;
+export const PRODUCT_DESC_MAX_LENGTH = 2000;
+
 export const productFormSchema = z
   .object({
-    name: z.string().trim().min(2, "Ürün adı en az 2 karakter olmalı."),
+    name: z
+      .string()
+      .trim()
+      .min(2, "Ürün adı en az 2 karakter olmalı.")
+      .max(
+        PRODUCT_NAME_MAX_LENGTH,
+        `Ürün adı en fazla ${PRODUCT_NAME_MAX_LENGTH} karakter olabilir.`,
+      ),
     slug: z.string().trim().optional(),
-    sku: z.string().trim().optional(),
-    tag: z.string().trim().min(1, "Etiket gerekli."),
-    desc: z.string().trim().min(1, "Açıklama gerekli."),
+    sku: z
+      .string()
+      .trim()
+      .max(
+        PRODUCT_SKU_MAX_LENGTH,
+        `SKU en fazla ${PRODUCT_SKU_MAX_LENGTH} karakter olabilir.`,
+      )
+      .optional(),
+    tag: z
+      .string()
+      .trim()
+      .min(1, "Etiket gerekli.")
+      .max(
+        PRODUCT_TAG_MAX_LENGTH,
+        `Etiket en fazla ${PRODUCT_TAG_MAX_LENGTH} karakter olabilir.`,
+      ),
+    desc: z
+      .string()
+      .trim()
+      .min(1, "Açıklama gerekli.")
+      .max(
+        PRODUCT_DESC_MAX_LENGTH,
+        `Açıklama en fazla ${PRODUCT_DESC_MAX_LENGTH} karakter olabilir.`,
+      ),
     cat: z.enum(CAT_VALUES).default("beans"),
     img: z.enum(HUE_VALUES).default("cream"),
     images: imagesJsonArray,
@@ -223,12 +422,22 @@ export const productFormSchema = z
       .optional()
       .default(""),
     notes: notesList,
-    price: moneyToMinor,
+    price: salePriceToMinor,
     compareAtPrice: moneyToMinor.optional(),
+    // The discount's days (Ticari Reklam Yön. m.14/1): required beside a
+    // compare-at price; the store checks the price against the history.
+    discountStartsOn: discountDay,
+    discountEndsOn: discountDay,
+    ...foodLabelShape,
     cost: moneyToMinor.optional(),
     stock: intInput,
+    stockAtOpen: stockSnapshot,
+    saveToken: z.string().optional().transform(parseSaveToken),
+    // A product with variants: set its total to their stock (CAT-14).
+    stockFromVariants: z.string().optional(),
     lowStockThreshold: intInput,
     weightGrams: intInput,
+    taxRatePct: taxRateInput,
     seoTitle: z.string().trim().max(80).optional().default(""),
     seoDescription: z.string().trim().max(220).optional().default(""),
     featured: z.string().optional(),
@@ -239,6 +448,31 @@ export const productFormSchema = z
     // choices and the first photo into the scene columns (scene.ts).
     backdrop: z.string().optional().transform(parseBackdropChoice),
     vessel: z.string().optional().transform(parseVesselChoice),
+  })
+  // Each variant sells at price + its difference, and the order line is
+  // max(0, that): a "-400" on a 320 TL product gave the variant away, and
+  // the app's shop feed published the negative price (CAT-05).
+  .superRefine((v, ctx) => {
+    for (const variant of variantsBelowFloor(v.price, v.variants)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["variants"],
+        message: variantFloorError(variant.name),
+      });
+    }
+    const discount = discountShapeRefusal({
+      priceMinor: v.price,
+      compareAtPriceMinor: v.compareAtPrice ?? 0,
+      startDay: v.discountStartsOn,
+      endDay: v.discountEndsOn,
+    });
+    if (discount) {
+      ctx.addIssue({
+        code: "custom",
+        path: [discount.field],
+        message: discount.message,
+      });
+    }
   })
   .transform((v) => ({
     name: v.name,
@@ -254,10 +488,20 @@ export const productFormSchema = z
     notes: v.notes,
     priceMinor: v.price,
     compareAtPriceMinor: v.compareAtPrice ?? 0,
+    // No compare-at price, no days: an emptied "Eski fiyat" ends the discount.
+    discountStartsOn: (v.compareAtPrice ?? 0) > 0 ? v.discountStartsOn : null,
+    discountEndsOn: (v.compareAtPrice ?? 0) > 0 ? v.discountEndsOn : null,
+    ...Object.fromEntries(
+      FOOD_LABEL_FIELDS.map((f) => [f.key, v[f.key]]),
+    ) as Partial<Record<FoodLabelKey, string>>,
     costMinor: v.cost ?? 0,
     stock: v.stock,
+    stockAtOpen: v.stockAtOpen,
+    saveToken: v.saveToken,
+    stockFromVariants: v.stockFromVariants === "on",
     lowStockThreshold: v.lowStockThreshold,
     weightGrams: v.weightGrams,
+    taxRatePct: v.taxRatePct ?? null,
     seoTitle: v.seoTitle ?? "",
     seoDescription: v.seoDescription ?? "",
     featured: v.featured === "on",

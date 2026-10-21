@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Illustration } from "@/components/laffogato/illustration";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
 import {
   KaraokeReservationView,
@@ -10,15 +11,17 @@ import {
 } from "@/components/uye/karaoke-reservation-view";
 import { getPublicSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { karaokeDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import { KARAOKE_LINK_COOKIE, karaokeLinkId } from "@/lib/mobile/karaoke-link";
 import {
-  KARAOKE_RESULT_NOTICES,
   KARAOKE_RETURN_NOTICES,
+  karaokeNoticeFor,
 } from "@/lib/mobile/karaoke-notices";
 import { ownsReservation } from "@/lib/mobile/karaoke-payment";
 import { isKaraokeRef } from "@/lib/mobile/karaoke-ref";
 import { SITE } from "@/lib/seo/site";
+import { footerSettings } from "@/lib/seo/contact";
 
 import { cancelKaraokeByLinkAction, payKaraokeByLinkAction } from "./actions";
 
@@ -75,16 +78,31 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
     const r = await getReservation(tokenId).catch(() => null);
     if (r && ownsReservation({ kind: "link", token }, r, now)) {
       const notice: KaraokeViewNotice | undefined =
-        (q.sonuc && KARAOKE_RESULT_NOTICES[q.sonuc]) ||
-        (q.hata && KARAOKE_RESULT_NOTICES[q.hata]) ||
+        (q.sonuc && karaokeNoticeFor(q.sonuc, r)) ||
+        // A late-cancel refusal speaks this booking's own rule (its snapshot).
+        (q.hata && karaokeNoticeFor(q.hata, r)) ||
         (q.odeme && r.status !== "cancelled"
           ? KARAOKE_RETURN_NOTICES[q.odeme]
           : undefined) ||
         undefined;
       const self = `/rezervasyon?t=${encodeURIComponent(token)}`;
+      // The confirmed terms as a file, for a booking whose payment made them
+      // a contract and whose recorded text the route can build (ASK-DURABLE;
+      // never a link to a 404, review B); the download checks the same link
+      // again (./sozlesme/route.ts). A failing check hides the link.
+      const paymentStatus = paymentStatusOf(r);
+      const contracted =
+        paymentStatus === "paid" ||
+        paymentStatus === "refunding" ||
+        paymentStatus === "refunded";
+      const contractHref =
+        contracted &&
+        (await karaokeDurableCopyAvailable(r).catch(() => false))
+          ? `/rezervasyon/sozlesme?t=${encodeURIComponent(token)}`
+          : undefined;
       body = (
         <KaraokeReservationView
-          r={{ ...r, paymentStatus: paymentStatusOf(r) }}
+          r={{ ...r, paymentStatus }}
           now={now}
           hidden={{ t: token }}
           cancelAction={cancelKaraokeByLinkAction}
@@ -93,6 +111,7 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
           backHref={self}
           confirming={q.iptal === "1"}
           notice={notice}
+          contractHref={contractHref}
         />
       );
     }
@@ -113,19 +132,24 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
   }
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
+    <SiteChrome settings={footerSettings(settings)}>
       <div className="wrap karaoke-page">
         <div className="karaoke-link-page">
-          <div className="eyebrow">Karaoke · rezervasyon</div>
-          <h1 className="h2" style={{ marginTop: 12 }}>
-            Karaoke rezervasyonun
-          </h1>
+          <div className="karaoke-link-head">
+            <div>
+              <div className="eyebrow">Karaoke · rezervasyon</div>
+              <h1 className="h2" style={{ marginTop: 12 }}>
+                Karaoke rezervasyonun
+              </h1>
+            </div>
+            <Illustration
+              name="karaoke-room"
+              width={220}
+              className="karaoke-link-art illo-framed"
+              sizes="(max-width: 620px) 120px, 180px"
+              priority
+            />
+          </div>
           {body ?? (
             <div className="karaoke-mine">
               <p>

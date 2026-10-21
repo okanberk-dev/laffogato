@@ -30,6 +30,40 @@ export async function campaignAudienceCount(
   }
 }
 
+/** Two campaigns to the same audience under the same preference share a count. */
+export function campaignAudienceKey(
+  audience: CampaignAudience,
+  template: CampaignTemplateName,
+): string {
+  return `${audience}:${prefForTemplate(template)}`;
+}
+
+/**
+ * The dry counts for a list of campaigns, one per distinct
+ * campaignAudienceKey, all asked at once (admin audit PEO-23): the
+ * campaign list used to await them one after another before painting.
+ * Null for a count that could not be had, as campaignAudienceCount.
+ */
+export async function campaignAudienceCounts(
+  campaigns: ReadonlyArray<{
+    audience: CampaignAudience;
+    template: CampaignTemplateName;
+  }>,
+): Promise<Map<string, number | null>> {
+  const wanted = new Map<string, (typeof campaigns)[number]>();
+  for (const c of campaigns) {
+    const key = campaignAudienceKey(c.audience, c.template);
+    if (!wanted.has(key)) wanted.set(key, c);
+  }
+  const counted = await Promise.all(
+    [...wanted].map(
+      async ([key, c]) =>
+        [key, await campaignAudienceCount(c.audience, c.template)] as const,
+    ),
+  );
+  return new Map(counted);
+}
+
 /**
  * How long the background runner may keep sending after the panel's response
  * has gone back. The pages hosting a send action declare `maxDuration = 300`

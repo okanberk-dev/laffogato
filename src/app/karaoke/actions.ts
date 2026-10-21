@@ -58,6 +58,16 @@ const FormSchema = z.object({
   consentPreInfo: z.literal("on").optional(),
   consentContract: z.literal("on").optional(),
   consentKvkk: z.literal("on").optional(),
+  // The cancellation rule the form printed, echoed back: a rule the panel
+  // changed while the page was open refuses the booking (createReservation).
+  expectedFreeCancelHours: z
+    .string()
+    .regex(/^\d{1,3}$/)
+    .optional(),
+  expectedLateRefundPercent: z
+    .string()
+    .regex(/^\d{1,3}$/)
+    .optional(),
 });
 
 /** A posted value as a string, or undefined (absent, or a file). */
@@ -98,6 +108,8 @@ export async function bookKaraokeAction(
     consentPreInfo: text(formData.get("consentPreInfo")),
     consentContract: text(formData.get("consentContract")),
     consentKvkk: text(formData.get("consentKvkk")),
+    expectedFreeCancelHours: text(formData.get("expectedFreeCancelHours")),
+    expectedLateRefundPercent: text(formData.get("expectedLateRefundPercent")),
   });
   if (!parsed.success) {
     return { error: "Formdaki bilgileri kontrol edip yeniden dene." };
@@ -166,6 +178,15 @@ export async function bookKaraokeAction(
         hours: form.hours,
         guests: form.guests,
         note: form.note,
+        ...(form.expectedFreeCancelHours !== undefined &&
+        form.expectedLateRefundPercent !== undefined
+          ? {
+              expectedCancelPolicy: {
+                freeCancelHours: Number(form.expectedFreeCancelHours),
+                lateRefundPercent: Number(form.expectedLateRefundPercent),
+              },
+            }
+          : {}),
       },
       {
         channel: "web",

@@ -1,184 +1,163 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 
-import { Card, PageHeader } from "@/components/admin/forms";
+import { PageHeader } from "@/components/admin/forms";
 import { ProductsList } from "@/components/admin/products-list";
+import {
+  ActionMenuLink,
+  FilterBar,
+  PageShell,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { listCategories, listProducts } from "@/lib/admin/store";
+import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
+import {
+  PRODUCT_DEFAULT_SORT,
+  PRODUCT_PAGE_SIZE,
+  PRODUCT_SORT_KEYS,
+  PRODUCT_TAB_PARAM,
+  PRODUCT_TABS,
+  PRODUCTS_PATH,
+  legacyProductsHref,
+  parseProductTab,
+  productFilterFields,
+  productsList,
+  toProductListRow,
+} from "@/lib/admin/products-panel";
+import {
+  listCategories,
+  listProductsForPanel,
+  listProductThumbs,
+} from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Ürünler" };
 export const dynamic = "force-dynamic";
 
-type Status = "all" | "active" | "inactive" | "low_stock" | "out_of_stock";
-type SortKey =
-  | "recent"
-  | "name"
-  | "price_asc"
-  | "price_desc"
-  | "stock_asc"
-  | "stock_desc";
-
 interface PageProps {
-  searchParams: Promise<{
-    q?: string;
-    cat?: string;
-    status?: Status;
-    sort?: SortKey;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const STATUS_LABEL: Record<Status, string> = {
-  all: "Tümü",
-  active: "Aktif",
-  inactive: "Pasif",
-  low_stock: "Düşük stok",
-  out_of_stock: "Stokta yok",
-};
-
-const SORT_LABEL: Record<SortKey, string> = {
-  recent: "Son güncellenen",
-  name: "Ad (A→Z)",
-  price_asc: "Fiyat (artan)",
-  price_desc: "Fiyat (azalan)",
-  stock_asc: "Stok (azdan çoka)",
-  stock_desc: "Stok (çoktan aza)",
-};
-
+/**
+ * The shop's products, Filament style: tabs with counts (Tümü, Aktif, Pasif,
+ * Düşük stok, Stokta yok), a search box and a category, sortable headers, 50
+ * per page, a ⋯ menu per row (Görüntüle, Düzenle, Mağazada gör, Aktif /
+ * Pasif, Sil) and the bulk bar. The list's client component gets only what
+ * it draws: a served thumbnail, never the stored photos, the cost or the
+ * SEO fields (admin audit CAT-07, CAT-08, CAT-30).
+ */
 export default async function AdminProductsPage({ searchParams }: PageProps) {
   await requireRole("products");
-  const sp = await searchParams;
-  const q = (sp.q ?? "").trim().toLowerCase();
-  const cat = (sp.cat ?? "all").trim();
-  const status: Status = (sp.status ?? "all") as Status;
-  const sort: SortKey = (sp.sort ?? "recent") as SortKey;
-
-  const [allProducts, categories] = await Promise.all([
-    listProducts(),
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    PRODUCTS_PATH,
+    (await searchParams) ?? {},
+  );
+  // The dashboard's stock tiles and old bookmarks use the names from
+  // before the kit (`?status=out_of_stock`, `?sort=stock_asc`).
+  const legacy = legacyProductsHref(sp);
+  if (legacy) redirect(legacy);
+  const [products, categories] = await Promise.all([
+    listProductsForPanel(),
     listCategories(),
   ]);
-
-  let list = allProducts;
-  if (q) {
-    list = list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q) ||
-        p.slug.toLowerCase().includes(q) ||
-        p.tag.toLowerCase().includes(q),
-    );
-  }
-  if (cat !== "all") {
-    list = list.filter((p) => p.cat === cat);
-  }
-  if (status === "active") list = list.filter((p) => p.isActive);
-  if (status === "inactive") list = list.filter((p) => !p.isActive);
-  if (status === "out_of_stock") list = list.filter((p) => p.stock === 0);
-  if (status === "low_stock")
-    list = list.filter((p) => p.stock > 0 && p.stock <= p.lowStockThreshold);
-
-  list = [...list].sort((a, b) => {
-    if (sort === "name") return a.name.localeCompare(b.name, "tr");
-    if (sort === "price_asc") return a.priceMinor - b.priceMinor;
-    if (sort === "price_desc") return b.priceMinor - a.priceMinor;
-    if (sort === "stock_asc") return a.stock - b.stock;
-    if (sort === "stock_desc") return b.stock - a.stock;
-    return b.updatedAt.localeCompare(a.updatedAt);
+  const fields = productFilterFields(categories);
+  const filters = parseFilters(view, fields);
+  const tab = parseProductTab(view);
+  const sort = parseSort(view, PRODUCT_SORT_KEYS, PRODUCT_DEFAULT_SORT);
+  const list = productsList(products, {
+    tab,
+    filters,
+    sort,
+    page: parsePage(view),
   });
-
-  const labelByCat = Object.fromEntries(
-    categories.map((c) => [c.slug, c.label] as const),
-  );
+  const thumbs = await listProductThumbs(list.rows.map((p) => p.id));
+  const rows = list.rows.map((p) => toProductListRow(p, thumbs[p.id]));
+  const tabValue = PRODUCT_TABS.find((t) => t.tab === tab)?.value ?? null;
+  const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Shop · La bottega"
         title="Ürünler"
-        description="Online mağazada satılan ürünler. Yeni: 5 adımlı sihirbaz; düzenleme: tüm sekmeler tek formda. Birden fazla seç ⇒ toplu işlem."
-        action={
-          <Link
-            href="/admin/urunler/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni ürün
-          </Link>
+        description="Online mağazada satılan ürünler."
+        help={
+          <p>
+            Yenisini 5 adımlı sihirbazla ekle, çok ürünü CSV ile içe aktar.
+            Birden fazlasını seçince toplu işlem yaparsın.
+          </p>
+        }
+        primary={{ href: `${PRODUCTS_PATH}/yeni`, label: "Yeni ürün" }}
+        menu={
+          <ActionMenuLink href={`${PRODUCTS_PATH}/ice-aktar`}>
+            CSV ile içe aktar
+          </ActionMenuLink>
         }
       />
 
-      <Card className="mb-4">
-        <form className="grid gap-3 sm:grid-cols-2 md:grid-cols-[1fr_auto_auto_auto]">
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Ürün adı, SKU, slug…"
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white sm:col-span-2 sm:text-sm md:col-span-1"
-          />
-          <select
-            name="cat"
-            defaultValue={cat}
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-          >
-            <option value="all">Kategori: hepsi</option>
-            {categories.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <select
-            name="status"
-            defaultValue={status}
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-          >
-            {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <select
-            name="sort"
-            defaultValue={sort}
-            className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-          >
-            {(Object.keys(SORT_LABEL) as SortKey[]).map((s) => (
-              <option key={s} value={s}>
-                {SORT_LABEL[s]}
-              </option>
-            ))}
-          </select>
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 md:col-span-4">
-            <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {list.length} / {allProducts.length} ürün
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href="/admin/urunler"
-                className="inline-flex min-h-[40px] items-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-              >
-                Sıfırla
-              </Link>
-              <button
-                type="submit"
-                className="inline-flex min-h-[40px] items-center rounded-xl bg-[var(--admin-primary)] px-4 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-              >
-                Uygula
-              </button>
-            </div>
-          </div>
-        </form>
-      </Card>
+      <StatusTabs
+        tabs={PRODUCT_TABS.map((t) => ({
+          value: t.value,
+          label: t.label,
+          count: list.counts[t.tab],
+        }))}
+        current={tabValue}
+        searchParams={sp}
+        pathname={PRODUCTS_PATH}
+        param={PRODUCT_TAB_PARAM}
+        label="Ürün sekmeleri"
+      />
 
-      <Card>
-        <ProductsList
-          products={list}
-          categories={categories}
-          labelByCat={labelByCat}
+      <FilterBar
+        fields={fields}
+        searchParams={sp}
+        pathname={PRODUCTS_PATH}
+        values={filters}
+        label="Ürün süzgeci"
+      />
+
+      {/* Keyed by the address and the search: a new tab, filter, sort,
+          page or search starts with nothing selected, so a bulk action
+          never reaches rows that are no longer on screen. */}
+      <ProductsList
+        key={JSON.stringify(view)}
+        rows={rows}
+        categories={categories.map((c) => ({ slug: c.slug, label: c.label }))}
+        sort={sort}
+        searchParams={sp}
+        pathname={PRODUCTS_PATH}
+        emptyTitle={
+          products.length === 0
+            ? "Henüz ürün yok."
+            : filtered
+              ? "Bu süzgece uyan ürün yok."
+              : "Bu sekmede ürün yok."
+        }
+        emptyAction={
+          products.length === 0
+            ? { href: `${PRODUCTS_PATH}/yeni`, label: "Yeni ürün" }
+            : filtered
+              ? {
+                  href: tabValue
+                    ? `${PRODUCTS_PATH}?${PRODUCT_TAB_PARAM}=${tabValue}`
+                    : PRODUCTS_PATH,
+                  label: "Filtreyi temizle",
+                  clearsSearch: true,
+                }
+              : null
+        }
+      />
+
+      {list.total > PRODUCT_PAGE_SIZE ? (
+        <Pagination
+          page={list.page}
+          pageSize={PRODUCT_PAGE_SIZE}
+          total={list.total}
+          searchParams={sp}
+          pathname={PRODUCTS_PATH}
         />
-      </Card>
-    </main>
+      ) : null}
+    </PageShell>
   );
 }

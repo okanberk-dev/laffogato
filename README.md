@@ -91,10 +91,13 @@ yazılır ve render'da doldurulur. Değeri **bilinmeyen** bir alan (MERSİS, tic
 sicil, KEP, IBAN) boş bırakılır ve o tablo satırı hiç basılmaz - site asla
 uydurma bir sicil numarası yayımlamaz.
 
-**2. Menü görselleri çizimdir, fotoğraf değil.** `menu-visuals.tsx` her içecek
-ve tatlı ailesi için parametrik SVG üretir; kategori bazlı bir yönlendirici
-hangi çizimin kullanılacağına karar verir. Gerçek fotoğraf eklendiğinde
-(`image` alanı) çizimin yerini alır. Telif riski yok, boyut birkaç KB.
+**2. Menü görselleri fotoğraftır, yedeği çizimdir.** Kalemlerin çoğunda
+`public/menu/` altında bir fotoğraf var (`image` alanı); Ağustos'taki üç matcha
+fotoğrafı dışındakiler CC0 ya da Public Domain Mark stok fotoğraflarıdır, atıf
+istemez (kaynaklar `docs/MENU-PHOTOS.md`) ve menü yanlarında "Görseller
+temsilidir" der. Fotoğrafı olmayan kalemde `menu-visuals.tsx` her içecek ve
+tatlı ailesi için parametrik SVG üretir; kategori bazlı bir yönlendirici hangi
+çizimin kullanılacağına karar verir. Telif riski yok, boyut birkaç KB.
 
 **3. Mesafeli satış onayı kanıtla saklanır.** Ödeme adımındaki onay kutusu ön
 işaretli olamaz; sunucu onaysız siparişi reddeder ve onayı - tarih, IP, tarayıcı,
@@ -128,12 +131,14 @@ verildiği kadar kolay geri alınır (footer → "Çerez Tercihleri").
 | `PAYMENT_PROVIDER`               | `mock` \| `paynkolay`                               |
 | `PAYMENT_WEBHOOK_SECRET`         | Webhook imza doğrulaması (yalnız `mock`)            |
 | `RESEND_API_KEY`                 | Sipariş, doğrulama ve şifre sıfırlama e-postaları   |
-| `SUPABASE_SERVICE_ROLE_KEY`      | Sıfırlanan parolayı Supabase'e de yazar             |
+| `SUPABASE_SECRET_KEY`            | Sıfırlanan parolayı Supabase'e de yazar             |
 
 `RESEND_API_KEY` olmadan hiçbir e-posta çıkmaz; doğrulama bağlantısı da bir
 e-posta olduğu için **yeni hiçbir üye ilk siparişini tamamlayamaz**.
-`SUPABASE_SERVICE_ROLE_KEY` olmadan sitede sıfırlanan parola uygulamada eski
-kalır. İkisinin de ayrıntısı [docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) ve
+`SUPABASE_SECRET_KEY` (Supabase'in yeni gizli anahtarı; boşsa eski
+`SUPABASE_SERVICE_ROLE_KEY` okunur) olmadan sitede sıfırlanan parola
+uygulamada eski kalır. İkisinin de ayrıntısı
+[docs/EMAIL-RESEND.md](docs/EMAIL-RESEND.md) ve
 [docs/AUTH-BRIDGE.md](docs/AUTH-BRIDGE.md)'de.
 
 PayNkolay kullanılacaksa ayrıca `PAYNKOLAY_SX`, `PAYNKOLAY_SX_LIST`,

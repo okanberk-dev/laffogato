@@ -3,19 +3,65 @@
 import Link from "next/link";
 import {
   useActionState,
+  useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
+import { skuPrefix } from "@/lib/admin/sku";
+import {
+  readPostedStock,
+  rebaseStockSnapshots,
+  variantStockTotal,
+} from "@/lib/admin/stock-delta";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import {
+  MENU_ALLERGENS,
+  MENU_ALLERGENS_FIELD,
+  MENU_ALLERGENS_NONE,
+  MENU_ALLERGENS_SHOWN_FIELD,
+  NUTS_ALLERGEN,
+  menuAllergenWords,
+  normalizeMenuAllergens,
+} from "@/lib/menu/allergens";
+import { istanbulToday, menuPricesDateLabel } from "@/lib/menu/price-list";
+import {
+  DISCOUNT_END_FIELD,
+  DISCOUNT_START_FIELD,
+  discountDatesLabel,
+  istanbulDayEndIso,
+  istanbulDayOf,
+  istanbulDayStartIso,
+} from "@/lib/shop/discount";
+import {
+  FOOD_LABEL_FIELDS,
+  foodLabelOf,
+  type FoodLabelText,
+} from "@/lib/shop/food-label";
+import { parseMoneyInput } from "@/lib/utils/format";
+import {
+  KDV_RATE_CHOICES,
+  LEGAL_TAX_RATES,
+  productTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
 import type {
   AdminCategory,
   AdminProduct,
   AdminProductVariant,
 } from "@/lib/admin/store";
 
+import {
+  markFieldErrors,
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "./action-form";
 import {
   Card,
   Checkbox,
@@ -29,6 +75,8 @@ import {
 } from "./forms";
 import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
+import { BUTTON } from "./ui/styles";
+import { useUnsavedGuard } from "./unsaved-guard";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -37,27 +85,138 @@ const HUE_OPTIONS = [
   ["caramel", "Karamel"],
   ["espresso", "Espresso"],
   ["matcha", "Matcha"],
-  ["pistachio", "Pistachio"],
-  ["rose", "Rose"],
+  ["pistachio", "Antep fıstığı"],
+  ["rose", "Gül"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
   ["sky", "Gök"],
 ] as const;
 
 /**
- * Allergens, as a closed list - the operator picks, never types.
- *
- * The values are the cafe menu's own tag vocabulary (`menu_items.tags`), and
- * the app filters every tag it receives against that same list and drops
- * anything else without a word. So a free-text box here could store "fıstık"
- * or "NUTS " and publish an allergen that no customer would ever see, which
- * is exactly the failure this list rules out. `nuts` is the only allergen the
- * vocabulary carries today; adding a second one means adding it to the app's
- * `ItemTag` union and `PRODUCT_TAG_VALUES` in the same release.
+ * The allergen tag the shipped app reads (`tags`, the menu's vocabulary):
+ * `nuts`. The fourteen Ek-1 groups below are a closed list too (TGK
+ * Etiketleme m.9/1-c, src/lib/menu/allergens.ts); ticking tree nuts keeps
+ * this tag in step, as on the menu form.
  */
-const ALLERGEN_OPTIONS = [
-  ["nuts", "Sert kabuklu yemiş (fındık · fıstık)"],
-] as const;
+const NUTS_TAG = "nuts";
+
+/**
+ * Whether the `tags` field posts `nuts`, the nut warning the shipped app
+ * reads. The tree-nut box adds it. A stored one stays while the groups are
+ * not entered, and also beside groups without tree nuts unless the
+ * operator removes it on purpose: ticking gluten and egg on a pistachio
+ * biscuit and missing the tree-nut box must not drop the app's only nut
+ * warning in silence. Posted with such a list, the save refuses the
+ * mismatch, as on the menu form (`tagsWithAllergens`). Exported for tests.
+ */
+export function postedNutsTag(
+  storedNuts: boolean,
+  allergens: readonly string[] | null,
+  dropStoredNuts: boolean,
+): boolean {
+  if (allergens?.includes(NUTS_ALLERGEN)) return true;
+  if (!storedNuts) return false;
+  return allergens === null || !dropStoredNuts;
+}
+
+/**
+ * Which step holds each posted field, so a refusal can open the step with
+ * the field in it and mark its pill. A key the server answers under that is
+ * not here (a "form" error) belongs to the summary. Exported for tests.
+ */
+export const FIELD_STEP: Readonly<Record<string, number>> = {
+  name: 1,
+  slug: 1,
+  tag: 1,
+  desc: 1,
+  brand: 1,
+  notes: 1,
+  cat: 1,
+  isActive: 1,
+  tags: 1,
+  allergens: 1,
+  ...Object.fromEntries(FOOD_LABEL_FIELDS.map((f) => [f.key, 1])),
+  price: 2,
+  compareAtPrice: 2,
+  [DISCOUNT_START_FIELD]: 2,
+  [DISCOUNT_END_FIELD]: 2,
+  cost: 2,
+  sku: 2,
+  stock: 2,
+  stockAtOpen: 2,
+  saveToken: 2,
+  stockFromVariants: 2,
+  lowStockThreshold: 2,
+  weightGrams: 2,
+  taxRatePct: 2,
+  variants: 3,
+  img: 4,
+  images: 4,
+  backdrop: 4,
+  vessel: 4,
+  seoTitle: 4,
+  seoDescription: 4,
+  featured: 4,
+  isNew: 4,
+};
+
+const SUMMARY_STEP = 5;
+
+export function stepOfField(key: string): number {
+  return FIELD_STEP[key.split(".")[0]] ?? SUMMARY_STEP;
+}
+
+/** The first step holding a refused field, or null when none is refused. */
+export function firstErrorStep(
+  fieldErrors?: Record<string, string>,
+): number | null {
+  const keys = Object.keys(fieldErrors ?? {});
+  return keys.length > 0 ? Math.min(...keys.map(stepOfField)) : null;
+}
+
+type Validatable = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+/** The controls under `root` the browser would refuse, in document order. */
+function invalidControls(root: ParentNode): Validatable[] {
+  return Array.from(
+    root.querySelectorAll<Validatable>("input, select, textarea"),
+  ).filter((el) => el.willValidate && !el.validity.valid);
+}
+
+/** The wizard step a control sits in (its `data-step` wrapper), or 0. */
+function stepOfControl(el: Element): number {
+  return Number(el.closest("[data-step]")?.getAttribute("data-step") ?? 0);
+}
+
+/**
+ * The browser-side check before a post: every step holding an invalid
+ * control, and the step of the first one (0 when it sits outside the
+ * steps). Exported for tests.
+ */
+export function checkSteps(
+  root: ParentNode,
+): { ok: true } | { ok: false; steps: number[]; first: number } {
+  const bad = invalidControls(root);
+  if (bad.length === 0) return { ok: true };
+  return {
+    ok: false,
+    steps: [...new Set(bad.map(stepOfControl).filter((s) => s > 0))],
+    first: stepOfControl(bad[0]),
+  };
+}
+
+/**
+ * Shows the browser's own message on the first invalid control under
+ * `root` that is drawn. Variant rows are rendered twice (cards on a phone,
+ * a table on a wide screen) and the browser cannot show its bubble on the
+ * copy that is hidden. Exported for tests.
+ */
+export function reportFirstInvalid(root: ParentNode): boolean {
+  const bad = invalidControls(root);
+  const target = bad.find((el) => el.getClientRects().length > 0) ?? bad[0];
+  target?.reportValidity();
+  return Boolean(target);
+}
 
 function slugifyClient(input: string): string {
   const map: Record<string, string> = {
@@ -84,15 +243,6 @@ function slugifyClient(input: string): string {
     .slice(0, 80);
 }
 
-function skuFromName(name: string, n = 1): string {
-  const prefix = name
-    .replace(/[^A-Za-z0-9]+/g, "")
-    .slice(0, 4)
-    .toUpperCase()
-    .padEnd(4, "X");
-  return `${prefix}-${String(n).padStart(5, "0")}`;
-}
-
 interface VariantRow {
   id: string;
   name: string;
@@ -100,6 +250,13 @@ interface VariantRow {
   stock: string;
   sku: string;
   isActive: boolean;
+}
+
+/** A token for one opened product form (see `saveToken` in the wizard). */
+export function newSaveToken(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid;
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
 function variantToRow(v: AdminProductVariant): VariantRow {
@@ -123,25 +280,100 @@ export interface ProductWizardProps {
   submitLabel: string;
   /** "wizard" walks step-by-step, "tabs" shows all sections at once. */
   mode: "wizard" | "tabs";
+  /** KDV defaults from Ayarlar > Vergi, to name the category's rate. */
+  taxRates?: TaxRates;
 }
 
 const initialState: ProductActionState = {};
 
+/**
+ * The product form: a five-step wizard for a new product, every section on
+ * one page for an edit.
+ *
+ * It posts by hand (useHandPost), not through `<form action>`: React
+ * resets an action form after every answer, so a refused save came back
+ * with the category, the scene and the image tone on their first option and
+ * the Aktif / Öne çıkan boxes flipped, and the next save stored them
+ * (admin audit CAT-01). The browser's own validation is off (`noValidate`):
+ * on step 5 the earlier steps are hidden, the browser cannot show its
+ * message on a hidden field and silently dropped the submit (CAT-02). The
+ * form checks itself instead, opens the step with the first problem and
+ * shows the message there; a server refusal does the same and marks the
+ * step pills that hold errors. A thrown save answers in place (CAT-17).
+ */
 export function ProductWizard({
   product,
   categories,
   action,
   submitLabel,
   mode,
+  taxRates = LEGAL_TAX_RATES,
 }: ProductWizardProps) {
-  const [state, formAction, pending] = useActionState(action, initialState);
-
   const [step, setStep] = useState(1);
   const totalSteps = 5;
 
+  /* The stock the form was opened with (admin audit CAT-03). The save
+     moves stock by what was typed since, so an order taken while the form
+     is open keeps its decrement. A save refused for stock answers with the
+     stored counts: a count whose change would still go below zero is
+     measured from the stored one next time, every other keeps its own
+     (rebaseStockSnapshots). */
+  const [stockSnapshot, setStockSnapshot] = useState<number | null>(
+    product ? product.stock : null,
+  );
+  const [variantSnapshots, setVariantSnapshots] = useState<
+    Record<string, number>
+  >(() =>
+    Object.fromEntries((product?.variants ?? []).map((v) => [v.id, v.stock])),
+  );
+
+  /* One token for every save of this opened form: when an answer is lost
+     after the write (a dropped connection) and the operator saves again,
+     the stock moves once (product_form_saves). Made at the first save, not
+     in render, so the server markup and the browser agree. */
+  const saveToken = useRef<string | null>(null);
+
+  const save = withPanelCatch<ProductActionState>(action, () => ({
+    error: PANEL_ACTION_FAILED,
+  }));
+  const [state, formAction, pending] = useActionState(
+    async (prev: ProductActionState, formData: FormData) => {
+      saveToken.current ??= newSaveToken();
+      formData.set("saveToken", saveToken.current);
+      const next = await save(prev, formData);
+      if (next.stockNow) {
+        // Read back from what was posted, not from state that may have
+        // moved on while the save was out.
+        const rebased = rebaseStockSnapshots(
+          readPostedStock({
+            stock: formData.get("stock"),
+            stockAtOpen: formData.get("stockAtOpen"),
+            variants: formData.get("variants"),
+          }),
+          next.stockNow,
+        );
+        setStockSnapshot(rebased.stock);
+        setVariantSnapshots((was) => ({ ...was, ...rebased.variants }));
+      }
+      // Open the step that holds the first refused field.
+      const target = firstErrorStep(next.fieldErrors);
+      if (target !== null) setStep(target);
+      return next;
+    },
+    initialState,
+  );
+
+  const formRef = useRef<HTMLFormElement>(null);
+  // A reload or a closed tab asks first once something was changed (CAT-30).
+  useUnsavedGuard(formRef);
+  const baseId = useId();
+  const errorId = (key: string) => `${baseId}-err-${key}`;
+  // Steps the last check in the browser found a problem in.
+  const [invalidSteps, setInvalidSteps] = useState<number[]>([]);
+
   const [name, setName] = useState(product?.name ?? "");
-  /* A product saved without a slug or SKU starts with the ones its name
-     implies, exactly what the old mount-time effect filled in. */
+  /* A product saved without a slug starts with the one its name implies,
+     exactly what the old mount-time effect filled in. */
   const [slug, setSlug] = useState(
     product?.slug || slugifyClient(product?.name ?? ""),
   );
@@ -150,38 +382,76 @@ export function ProductWizard({
   const [desc, setDesc] = useState(product?.desc ?? "");
   const [brand, setBrand] = useState(product?.brand ?? "");
   const [notes, setNotes] = useState((product?.notes ?? []).join(", "));
-  const [cat, setCat] = useState(product?.cat ?? "beans");
+  const [cat, setCat] = useState(
+    product?.cat ?? categories[0]?.slug ?? "beans",
+  );
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
-  const [allergens, setAllergens] = useState<string[]>(
-    (product?.tags ?? []).filter((t) =>
-      ALLERGEN_OPTIONS.some(([v]) => v === t),
-    ),
+  /* The fourteen groups: null = not entered (nothing ticked), [] = none
+     of them ("Hiçbirini içermez"), else the groups. */
+  const [allergens, setAllergens] = useState<string[] | null>(() =>
+    normalizeMenuAllergens(product?.allergens),
+  );
+  const storedNuts = (product?.tags ?? []).includes(NUTS_TAG);
+  const [label, setLabel] = useState<FoodLabelText>(() =>
+    foodLabelOf(product),
   );
 
   const [price, setPrice] = useState(
     product ? (product.priceMinor / 100).toFixed(2) : "",
   );
+  // A discount past its last day opens empty: posted back as it was, it
+  // would be a new discount starting on a past day and refuse the whole
+  // save. The save clears it (withoutEndedDiscount, src/lib/shop/discount.ts,
+  // does the same for a form opened before the end). Its last day, or null.
+  const [endedDiscountDay] = useState(() => {
+    const end = product?.discountEndsAt;
+    return product &&
+      product.compareAtPriceMinor > 0 &&
+      typeof end === "string" &&
+      Date.parse(end) < Date.now()
+      ? istanbulDayOf(end)
+      : null;
+  });
   const [compareAtPrice, setCompareAtPrice] = useState(
-    product && product.compareAtPriceMinor > 0
+    product && product.compareAtPriceMinor > 0 && !endedDiscountDay
       ? (product.compareAtPriceMinor / 100).toFixed(2)
       : "",
+  );
+  // The discount's Istanbul days (Ticari Reklam Yön. m.14/1).
+  const [discountStart, setDiscountStart] = useState(
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountStartsAt) ?? ""),
+  );
+  const [discountEnd, setDiscountEnd] = useState(
+    endedDiscountDay ? "" : (istanbulDayOf(product?.discountEndsAt) ?? ""),
   );
   const [cost, setCost] = useState(
     product && product.costMinor > 0
       ? (product.costMinor / 100).toFixed(2)
       : "",
   );
-  const [sku, setSku] = useState(
-    product?.sku || (product?.name ? skuFromName(product.name) : ""),
-  );
-  const [skuTouched, setSkuTouched] = useState(Boolean(product?.sku));
+  // Empty unless typed: the server then derives a code numbered by the
+  // product's own sequence (CAT-18). A prefilled "-00001" was posted as is
+  // and two products with the same first letters shared one SKU.
+  const [sku, setSku] = useState(product?.sku ?? "");
   const [stock, setStock] = useState(String(product?.stock ?? 0));
   const [lowStockThreshold, setLowStockThreshold] = useState(
     String(product?.lowStockThreshold ?? 5),
   );
+  // Empty (not shown) unless known: a default of 250 g was published on the
+  // product page and to Google for a mug or an apron (CAT-M02, D20).
   const [weightGrams, setWeightGrams] = useState(
-    String(product?.weightGrams ?? 250),
+    product?.weightGrams ? String(product.weightGrams) : "",
   );
+  // "" = the category's default; a number = the product's own rate.
+  const [taxRate, setTaxRate] = useState(
+    typeof product?.taxRatePct === "number" ? String(product.taxRatePct) : "",
+  );
+  const categoryTaxRate = productTaxRate({ cat }, taxRates);
+  const effectiveTaxRate = taxRate === "" ? categoryTaxRate : Number(taxRate);
+  // A stored rate the standard list does not have stays selectable.
+  const taxRateChoices = KDV_RATE_CHOICES.includes(effectiveTaxRate)
+    ? KDV_RATE_CHOICES
+    : [...KDV_RATE_CHOICES, effectiveTaxRate].sort((a, b) => a - b);
 
   const [variants, setVariants] = useState<VariantRow[]>(
     product?.variants?.map(variantToRow) ?? [],
@@ -196,27 +466,22 @@ export function ProductWizard({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [isNew, setIsNew] = useState(product?.isNew ?? false);
 
-  /* Auto-fill slug + sku as the operator types the name, until either field
-     has been edited by hand. Done in the change handler, not an effect, so
-     the three fields update in one render. */
+  /* Auto-fill the slug as the operator types the name, until it has been
+     edited by hand. Done in the change handler, not an effect, so both
+     fields update in one render. */
   const onNameChange = (next: string) => {
     setName(next);
     if (!slugTouched) setSlug(slugifyClient(next));
-    if (!skuTouched && next) setSku(skuFromName(next));
   };
 
-  const priceMinor = useMemo(() => {
-    const v = parseFloat(price.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [price]);
-  const compareMinor = useMemo(() => {
-    const v = parseFloat(compareAtPrice.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [compareAtPrice]);
-  const costMinor = useMemo(() => {
-    const v = parseFloat(cost.replace(",", "."));
-    return Number.isFinite(v) ? Math.round(v * 100) : 0;
-  }, [cost]);
+  // The preview reads the amounts the way the save does (parseMoneyInput):
+  // "1.250,00" is 1.250 TL here too, not the 1,25 TL parseFloat made of it.
+  const priceMinor = useMemo(() => parseMoneyInput(price) ?? 0, [price]);
+  const compareMinor = useMemo(
+    () => parseMoneyInput(compareAtPrice) ?? 0,
+    [compareAtPrice],
+  );
+  const costMinor = useMemo(() => parseMoneyInput(cost) ?? 0, [cost]);
 
   const marginPct = useMemo(() => {
     if (priceMinor <= 0 || costMinor <= 0) return null;
@@ -240,25 +505,164 @@ export function ProductWizard({
           stock: v.stock,
           sku: v.sku,
           isActive: v.isActive,
+          // Null for a row added here: it starts at the stock typed.
+          stockAtOpen: variantSnapshots[v.id] ?? null,
+        })),
+      ),
+    [variants, variantSnapshots],
+  );
+
+  /* With variants the product's total is theirs, not typed (D16): what the
+     save will make of it, the way save_product_variants counts it. */
+  const hasVariants = variants.length > 0;
+  const typedVariantSum = useMemo(
+    () =>
+      variantStockTotal(
+        variants.map((v) => ({
+          stock: Number.parseInt(v.stock, 10) || 0,
+          isActive: v.isActive,
         })),
       ),
     [variants],
   );
+  const variantTotal = useMemo(() => {
+    const stored = (product?.variants ?? []).map((v) => ({
+      stock: variantSnapshots[v.id] ?? v.stock,
+      isActive: v.isActive,
+    }));
+    if (stored.length === 0 || stockSnapshot === null) return typedVariantSum;
+    return Math.max(
+      0,
+      stockSnapshot + typedVariantSum - variantStockTotal(stored),
+    );
+  }, [typedVariantSum, product?.variants, variantSnapshots, stockSnapshot]);
+
+  /* The total moves by deltas, so a unit sold without a variant (the shop
+     card's quick add) and then corrected on a variant on Stok takes it down
+     twice (admin audit CAT-14). When it stands apart from the active
+     variants the operator can set it to them (`stockFromVariants`); nothing
+     else sets it. */
+  const [totalFromVariants, setTotalFromVariants] = useState(false);
+  const totalApart = hasVariants && variantTotal !== typedVariantSum;
+  const shownTotal =
+    totalApart && totalFromVariants ? typedVariantSum : variantTotal;
 
   /**
-   * What the `tags` field posts: the allergens ticked above, plus any tag the
-   * row already carried that this form does not offer (`signature`, `new`,
-   * `iced`). Dropping those on every save would make an edit to the price
-   * quietly strip a badge nobody meant to touch.
+   * What the `tags` field posts: any tag the row already carried that this
+   * form does not offer (`signature`, `new`, `iced`), plus `nuts` (see
+   * `postedNutsTag`). Dropping a tag on every save would make an edit to
+   * the price quietly strip a badge nobody meant to touch.
    */
+  const [dropStoredNuts, setDropStoredNuts] = useState(false);
+  const nutsConflict =
+    storedNuts && allergens !== null && !allergens.includes(NUTS_ALLERGEN);
+  const nutsTag = postedNutsTag(storedNuts, allergens, dropStoredNuts);
   const tagsValue = useMemo(() => {
-    const kept = (product?.tags ?? []).filter(
-      (t) => !ALLERGEN_OPTIONS.some(([v]) => v === t),
-    );
-    return [...new Set([...allergens, ...kept])].join(", ");
-  }, [allergens, product?.tags]);
+    const kept = (product?.tags ?? []).filter((t) => t !== NUTS_TAG);
+    return [...new Set([...(nutsTag ? [NUTS_TAG] : []), ...kept])].join(", ");
+  }, [nutsTag, product?.tags]);
+
+  /** Ticks or unticks one group; "none" stands alone. */
+  const toggleAllergen = (key: string, on: boolean) =>
+    setAllergens((prev) => {
+      if (key === MENU_ALLERGENS_NONE) return on ? [] : null;
+      const next = new Set(prev ?? []);
+      if (on) next.add(key);
+      else next.delete(key);
+      return next.size > 0 ? normalizeMenuAllergens([...next]) : null;
+    });
+  const allergenWords = menuAllergenWords(allergens);
+  const labelCount = FOOD_LABEL_FIELDS.filter((f) => label[f.key]).length;
+
+  // The days the page will name beside the badge, as the save stores them.
+  const discountDates =
+    compareMinor > 0 && discountStart && discountEnd
+      ? discountDatesLabel(
+          istanbulDayStartIso(discountStart),
+          istanbulDayEndIso(discountEnd),
+        )
+      : null;
+  const today = istanbulToday(new Date());
 
   const fieldError = (key: string) => state.fieldErrors?.[key];
+
+  /** The refusal under a field: danger ink, announced, tied by its id. */
+  const errorFor = (key: string) => {
+    const message = fieldError(key);
+    if (!message) return null;
+    return (
+      <p
+        id={errorId(key)}
+        role="alert"
+        tabIndex={-1}
+        className="text-xs text-[var(--admin-danger-ink)]"
+      >
+        {message}
+      </p>
+    );
+  };
+
+  // Steps holding a field the server refused, plus what the browser found.
+  const flaggedSteps = new Set<number>([
+    ...Object.keys(state.fieldErrors ?? {}).map(stepOfField),
+    ...invalidSteps,
+  ]);
+
+  // After each answer: mark the refused controls for assistive tech and put
+  // focus on the first one (its step is already open, see the action
+  // above). A refusal with no control of its own (Varyantlar) focuses its
+  // message instead.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || state === initialState) return;
+    const errors = state.fieldErrors ?? {};
+    const first = markFieldErrors(
+      Array.from(form.elements),
+      errors,
+      (key) => `${baseId}-err-${key}`,
+    );
+    // A control on a step that is not open cannot take focus (Varyantlar
+    // and a later field refused together): its step's message does.
+    if (first instanceof HTMLElement && first.getClientRects().length > 0) {
+      first.focus();
+      return;
+    }
+    const [firstKey] = Object.keys(errors).sort(
+      (a, b) => stepOfField(a) - stepOfField(b),
+    );
+    if (firstKey) document.getElementById(`${baseId}-err-${firstKey}`)?.focus();
+  }, [state, baseId]);
+
+  /**
+   * The check the browser no longer runs on its own: before the post, find
+   * every invalid field, mark its step, open the step of the first one and
+   * show the browser's message there. Nothing is sent until all are fixed.
+   */
+  const beforeSubmit = (form: HTMLFormElement) => {
+    const check = checkSteps(form);
+    setInvalidSteps(check.ok ? [] : check.steps);
+    if (check.ok) return true;
+    const target = check.first || step;
+    if (mode === "wizard" && target !== step) {
+      // Render the step now, so its field can show the message.
+      flushSync(() => setStep(target));
+    }
+    reportFirstInvalid(form.querySelector(`[data-step="${target}"]`) ?? form);
+    return false;
+  };
+
+  const post = useHandPost(formAction, pending, { beforeSubmit });
+
+  /** "Sonraki adım": only once this step's fields are fine. */
+  const goNext = () => {
+    const root = formRef.current?.querySelector(`[data-step="${step}"]`);
+    if (root && reportFirstInvalid(root)) {
+      setInvalidSteps((prev) => [...new Set([...prev, step])]);
+      return;
+    }
+    setInvalidSteps((prev) => prev.filter((s) => s !== step));
+    setStep((s) => Math.min(totalSteps, s + 1));
+  };
 
   const addVariant = () => {
     setVariants((vs) => [
@@ -286,133 +690,248 @@ export function ProductWizard({
     );
   };
 
+  const categoryLabel = categories.find((c) => c.slug === cat)?.label ?? cat;
+  // An emptied SKU field keeps the stored code on an edit (updateProduct);
+  // only a product without one gets a new code. The hint and the summary
+  // say which, so the CSV import's match key does not change unseen.
+  const storedSku = product?.sku ?? "";
+  const skuPlaceholder = storedSku
+    ? storedSku
+    : name
+      ? `${skuPrefix(name)}-00042`
+      : "SIRE-00042";
+
   const steps: Array<{ id: number; title: string; body: ReactNode }> = [
     {
       id: 1,
       title: "Temel bilgi",
       body: (
         <div className="grid gap-5">
-          <Field
-            label="Ürün adı"
-            hint={fieldError("name") ?? "Müşterinin gördüğü ad - kısa, çekici."}
-          >
-            <TextInput
-              name="name"
-              value={name}
-              onChange={(e) => onNameChange(e.target.value)}
-              required
-              aria-invalid={Boolean(fieldError("name"))}
-            />
-          </Field>
-          <div className="grid gap-5 md:grid-cols-2">
+          <div className="grid gap-1.5">
             <Field
-              label="Slug"
-              hint={
-                fieldError("slug") ??
-                "URL'de görünecek. Ad'dan otomatik üretilir; gerekirse override et."
-              }
+              label="Ürün adı"
+              hint="Müşterinin gördüğü ad: kısa ve açık."
             >
               <TextInput
-                name="slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlug(slugifyClient(e.target.value));
-                  setSlugTouched(true);
-                }}
-                placeholder="sirena-espresso-blend"
-              />
-            </Field>
-            <Field label="Etiket / alt başlık" hint={fieldError("tag")}>
-              <TextInput
-                name="tag"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="Çekirdek · 250 g"
+                name="name"
+                value={name}
+                onChange={(e) => onNameChange(e.target.value)}
                 required
+                minLength={2}
+                maxLength={120}
               />
             </Field>
-          </div>
-          <Field label="Açıklama" hint={fieldError("desc")}>
-            <Textarea
-              name="desc"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              required
-              rows={4}
-            />
-          </Field>
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              label="Marka (künye)"
-              hint={
-                fieldError("brand") ??
-                "Uygulamada ürün adının üstünde, yazdığın büyük/küçük harflerle görünür; otomatik büyütülmez. Boş bırakılırsa gösterilmez."
-              }
-            >
-              <TextInput
-                name="brand"
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                maxLength={40}
-                placeholder="Sirena"
-              />
-            </Field>
-            <Field
-              label="Tat notları"
-              hint={
-                fieldError("notes") ??
-                "Virgülle ayır; en fazla 5 not, her biri en fazla 24 karakter. Uygulamada başlığın altında çip olarak görünür; açıklama her durumda tamamen gösterilir."
-              }
-            >
-              <TextInput
-                name="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Kakao, Kuru incir, Esmer şeker"
-              />
-            </Field>
+            {errorFor("name")}
           </div>
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Kategori">
-              <Select
-                name="cat"
-                value={cat}
-                onChange={(e) => setCat(e.target.value as typeof cat)}
+            <div className="grid gap-1.5">
+              <Field
+                label="Adres (slug)"
+                hint="Ürün sayfasının adresinde görünür. Addan üretilir; istersen değiştir."
               >
-                {categories.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.label}
-                  </option>
-                ))}
-              </Select>
+                <TextInput
+                  name="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlug(slugifyClient(e.target.value));
+                    setSlugTouched(true);
+                  }}
+                  placeholder="sirena-espresso-blend"
+                />
+              </Field>
+              {errorFor("slug")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Etiket / alt başlık"
+                hint="Kartta adın altında görünür."
+              >
+                <TextInput
+                  name="tag"
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  placeholder="Çekirdek · 250 g"
+                  required
+                  maxLength={80}
+                />
+              </Field>
+              {errorFor("tag")}
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Field label="Açıklama">
+              <Textarea
+                name="desc"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                required
+                maxLength={2000}
+                rows={4}
+              />
             </Field>
-            <Field label="Yayın durumu">
+            {errorFor("desc")}
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field
+                label="Marka (künye)"
+                hint="Uygulamada ürün adının üstünde, yazdığın büyük/küçük harflerle görünür; otomatik büyütülmez. Boş bırakırsan gösterilmez."
+              >
+                <TextInput
+                  name="brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  maxLength={40}
+                  placeholder="Sirena"
+                />
+              </Field>
+              {errorFor("brand")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Tat notları"
+                hint="Virgülle ayır; en fazla 5 not, her biri en fazla 24 karakter. Uygulamada başlığın altında çip olarak görünür; açıklama her durumda tamamen gösterilir."
+              >
+                <TextInput
+                  name="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Kakao, Kuru incir, Esmer şeker"
+                />
+              </Field>
+              {errorFor("notes")}
+            </div>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field label="Kategori">
+                <Select
+                  name="cat"
+                  value={cat}
+                  onChange={(e) => setCat(e.target.value as typeof cat)}
+                >
+                  {categories.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {errorFor("cat")}
+            </div>
+            <Field as="fieldset" label="Yayın durumu">
               <Checkbox
                 name="isActive"
-                label="Aktif (vitrinde göster)"
+                label="Aktif (mağazada göster)"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
               />
             </Field>
           </div>
-          <Field
-            label="Alerjen"
-            hint="Ürün içeriyorsa işaretle. Ürün sayfasında ve sepette uyarı olarak görünür - gizlenmez."
-          >
-            <div className="grid gap-1">
-              {ALLERGEN_OPTIONS.map(([value, label]) => (
+          {/* A fieldset, not a label: inside a label a tap on the hint
+              ticked or unticked a box, and with it the customer's allergen
+              warning (admin audit SYS-M02). TGK Etiketleme m.9/1-c and
+              m.17/2-a: the fourteen Ek-1 groups, before the purchase. */}
+          <div className="grid gap-1.5">
+            <Field
+              as="fieldset"
+              label="Alerjen"
+              hint="Ürün içeriyorsa işaretle. Ambalajdaki etikete bakarak Türk Gıda Kodeksi'nin 14 grubundan içerdiklerini seç; hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Gıda olmayan üründe boş bırak. Ürün sayfasında, uygulamada ve sepette görünür - gizlenmez. Sert kabuklu meyveler seçersen kuruyemiş uyarısı kendiliğinden eklenir."
+            >
+              <input type="hidden" name={MENU_ALLERGENS_SHOWN_FIELD} value="1" />
+              <div className="grid gap-x-4 sm:grid-cols-2">
+                {MENU_ALLERGENS.map((a) => (
+                  <Checkbox
+                    key={a.key}
+                    name={MENU_ALLERGENS_FIELD}
+                    value={a.key}
+                    label={a.panel}
+                    checked={allergens?.includes(a.key) ?? false}
+                    onChange={(e) => toggleAllergen(a.key, e.target.checked)}
+                  />
+                ))}
+              </div>
+              <div className="border-t border-[var(--admin-border)]">
                 <Checkbox
-                  key={value}
-                  label={label}
-                  checked={allergens.includes(value)}
+                  name={MENU_ALLERGENS_FIELD}
+                  value={MENU_ALLERGENS_NONE}
+                  label="Hiçbirini içermez"
+                  checked={allergens !== null && allergens.length === 0}
                   onChange={(e) =>
-                    setAllergens((prev) =>
-                      e.target.checked
-                        ? [...new Set([...prev, value])]
-                        : prev.filter((t) => t !== value),
-                    )
+                    toggleAllergen(MENU_ALLERGENS_NONE, e.target.checked)
                   }
                 />
+              </div>
+              {allergens === null && storedNuts ? (
+                <p className="text-xs text-[var(--admin-text-soft)]">
+                  Bu üründe kuruyemiş uyarısı var; grupları işaretleyene kadar
+                  uyarı aynen kalır.
+                </p>
+              ) : null}
+              {nutsConflict ? (
+                <div
+                  role="note"
+                  className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+                >
+                  <p>
+                    Bu üründe kuruyemiş uyarısı var ama “Sert kabuklu
+                    meyveler” işaretli değil. İçeriyorsa onu da işaretle;
+                    içermiyorsa uyarıyı kaldır. İkisi de yapılmazsa kayıt
+                    reddedilir.
+                  </p>
+                  <Checkbox
+                    label="Kuruyemiş uyarısını kaldır: ürün sert kabuklu meyve içermiyor"
+                    checked={dropStoredNuts}
+                    onChange={(e) => setDropStoredNuts(e.target.checked)}
+                  />
+                </div>
+              ) : null}
+            </Field>
+            {errorFor("allergens")}
+          </div>
+
+          {/* TGK Etiketleme m.9/1 and m.17/2-a: what the pack's label says,
+              on the product page before the order (the date excepted). */}
+          <Field as="fieldset" label="Gıda etiketi">
+            <p className="text-xs text-[var(--admin-text-mute)]">
+              Paketli gıdada ambalajdaki etiketten aynen yaz; ürün sayfasında
+              ve uygulamada siparişten önce görünür. Boş alan gösterilmez;
+              kullanım talimatı dışında boş kalan her alan ve girilmemiş
+              alerjenler için sayfa müşteriye siparişten önce bize sormasını
+              söyler (kahve çekirdeğinde beslenme bildirimi gerekmez). Gıda
+              olmayan üründe hepsini boş bırak. Son tüketim tarihi buraya
+              yazılmaz, ambalajda durur.
+            </p>
+            <div className="grid gap-5 md:grid-cols-2">
+              {FOOD_LABEL_FIELDS.map((f) => (
+                <div
+                  key={f.key}
+                  className={`grid gap-1.5 ${f.multiline ? "md:col-span-2" : ""}`}
+                >
+                  <Field label={f.panel} hint={f.hint}>
+                    {f.multiline ? (
+                      <Textarea
+                        name={f.key}
+                        value={label[f.key]}
+                        onChange={(e) =>
+                          setLabel((was) => ({ ...was, [f.key]: e.target.value }))
+                        }
+                        maxLength={f.max}
+                        rows={f.key === "nutrition" ? 7 : f.key === "ingredients" ? 4 : 2}
+                      />
+                    ) : (
+                      <TextInput
+                        name={f.key}
+                        value={label[f.key]}
+                        onChange={(e) =>
+                          setLabel((was) => ({ ...was, [f.key]: e.target.value }))
+                        }
+                        maxLength={f.max}
+                      />
+                    )}
+                  </Field>
+                  {errorFor(f.key)}
+                </div>
               ))}
             </div>
           </Field>
@@ -422,104 +941,244 @@ export function ProductWizard({
     },
     {
       id: 2,
-      title: "Fiyatlandırma & stok",
+      title: "Fiyat ve stok",
       body: (
         <div className="grid gap-5">
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-            <Field label="Satış fiyatı (₺)" hint={fieldError("price")}>
-              <TextInput
-                name="price"
-                inputMode="decimal"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="320,00"
-                required
-              />
-            </Field>
-            <Field
-              label="Eski fiyat (was, ₺)"
-              hint={
-                discountPct !== null
-                  ? `−%${discountPct} indirim olarak görünür`
-                  : "Opsiyonel - boşsa indirim gösterilmez."
-              }
-            >
-              <TextInput
-                name="compareAtPrice"
-                inputMode="decimal"
-                value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value)}
-                placeholder="360,00"
-              />
-            </Field>
-            <Field
-              label="Maliyet (₺)"
-              hint={
-                marginPct !== null
-                  ? `Marj: %${marginPct}`
-                  : "Müşteriye gizli; raporlama için."
-              }
-            >
-              <TextInput
-                name="cost"
-                inputMode="decimal"
-                value={cost}
-                onChange={(e) => setCost(e.target.value)}
-                placeholder="180,00"
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field
+                label="Satış fiyatı (₺)"
+                hint="KDV dahil, en az 0,01 TL."
+              >
+                <TextInput
+                  name="price"
+                  inputMode="decimal"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="320,00"
+                  required
+                />
+              </Field>
+              {errorFor("price")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Eski fiyat (₺)"
+                hint={
+                  discountPct !== null
+                    ? `İndirim tarihleri arasında −%${discountPct} indirim olarak görünür. Eski fiyat, indirimden önceki 10 günde uygulanan en düşük satış fiyatıdır.`
+                    : "İsteğe bağlı. İndirimden önceki 10 günde bu üründe uygulanan en düşük satış fiyatı; kayıtta fiyat geçmişine bakılır."
+                }
+              >
+                <TextInput
+                  name="compareAtPrice"
+                  inputMode="decimal"
+                  value={compareAtPrice}
+                  onChange={(e) => setCompareAtPrice(e.target.value)}
+                  placeholder="360,00"
+                />
+              </Field>
+              {errorFor("compareAtPrice")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Maliyet (₺)"
+                hint={
+                  marginPct !== null
+                    ? `Marj: %${marginPct}`
+                    : "Müşteri görmez; marj hesabı için."
+                }
+              >
+                <TextInput
+                  name="cost"
+                  inputMode="decimal"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value)}
+                  placeholder="180,00"
+                />
+              </Field>
+              {errorFor("cost")}
+            </div>
+          </div>
+
+          {/* Ticari Reklam Yön. m.14/1: a discount names its first and last
+              day, and the page writes them beside the badge. */}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field
+                label="İndirim başlangıcı"
+                hint="Eski fiyat yazınca zorunlu. Yeni indirim bugün başlar: fiyatı düşürdüğün gün."
+              >
+                <TextInput
+                  name={DISCOUNT_START_FIELD}
+                  type="date"
+                  value={discountStart}
+                  min={
+                    product?.discountStartsAt && !endedDiscountDay
+                      ? undefined
+                      : today
+                  }
+                  onChange={(e) => setDiscountStart(e.target.value)}
+                  required={compareMinor > 0}
+                />
+              </Field>
+              {errorFor(DISCOUNT_START_FIELD)}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="İndirim bitişi"
+                hint="Eski fiyat yazınca zorunlu. Bu günün sonunda indirim ve üstü çizili fiyat kalkar."
+              >
+                <TextInput
+                  name={DISCOUNT_END_FIELD}
+                  type="date"
+                  value={discountEnd}
+                  min={discountStart || today}
+                  onChange={(e) => setDiscountEnd(e.target.value)}
+                  required={compareMinor > 0}
+                />
+              </Field>
+              {errorFor(DISCOUNT_END_FIELD)}
+            </div>
+            {endedDiscountDay ? (
+              <p className="text-xs text-[var(--admin-text-soft)] sm:col-span-2">
+                Son indirim {menuPricesDateLabel(endedDiscountDay)} günü bitti;
+                eski fiyat artık gösterilmiyor, kaydedince silinir.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
-            <Field
-              label="SKU"
-              hint={
-                fieldError("sku") ??
-                "Stok-takip kodu. Ad'dan otomatik; override edebilirsin."
-              }
-            >
-              <TextInput
-                name="sku"
-                value={sku}
-                onChange={(e) => {
-                  setSku(e.target.value.toUpperCase());
-                  setSkuTouched(true);
-                }}
-                placeholder="SIRE-00001"
-              />
-            </Field>
-            <Field label="Stok adet">
-              <TextInput
-                name="stock"
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-              />
-            </Field>
-            <Field
-              label="Düşük stok uyarısı"
-              hint="Bu seviyenin altına düşince admin tabloda turuncu görünür."
-            >
-              <TextInput
-                name="lowStockThreshold"
-                type="number"
-                min={0}
-                value={lowStockThreshold}
-                onChange={(e) => setLowStockThreshold(e.target.value)}
-              />
-            </Field>
+            <div className="grid gap-1.5">
+              <Field
+                label="SKU"
+                hint={
+                  storedSku
+                    ? "Stok takip kodu, CSV içe aktarmada ürünü bulan anahtar. Boş bırakırsan kayıtlı kod kalır."
+                    : "Stok takip kodu. Boş bırakırsan kayıtta addan üretilir, her ürüne ayrı numarayla."
+                }
+              >
+                <TextInput
+                  name="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value.toUpperCase())}
+                  maxLength={40}
+                  placeholder={skuPlaceholder}
+                />
+              </Field>
+              {errorFor("sku")}
+            </div>
+            <div className="grid gap-1.5">
+              {hasVariants ? (
+                <Field
+                  label="Toplam stok (adet)"
+                  hint={
+                    totalApart
+                      ? `Toplam aktif varyantlardan (${typedVariantSum} adet) farklı: varyant seçilmeden satılan adet yalnız toplamdan düşer. Varyant stokları raftakiyle aynıysa toplamı onlara eşitle.`
+                      : "Aktif varyantların stoğundan gelir. Varyant stoğunu Varyantlar adımında ya da Stok ekranında değiştir."
+                  }
+                >
+                  {/* Not a field: nothing to type. An output is labelable,
+                      so the label still names it. */}
+                  <output className="block w-full rounded-xl border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
+                    {shownTotal} adet
+                  </output>
+                </Field>
+              ) : (
+                <Field
+                  label="Stok (adet)"
+                  hint={
+                    product
+                      ? "Form açıkken gelen siparişler kaybolmaz: kayıt yalnız senin yaptığın değişikliği uygular."
+                      : undefined
+                  }
+                >
+                  <TextInput
+                    name="stock"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={stock}
+                    onChange={(e) => setStock(e.target.value)}
+                  />
+                </Field>
+              )}
+              {totalApart && (
+                <Checkbox
+                  name="stockFromVariants"
+                  label={`Toplamı aktif varyantlara eşitle (${typedVariantSum} adet)`}
+                  checked={totalFromVariants}
+                  onChange={(e) => setTotalFromVariants(e.target.checked)}
+                />
+              )}
+              {stockSnapshot !== null && (
+                <input
+                  type="hidden"
+                  name="stockAtOpen"
+                  value={String(stockSnapshot)}
+                />
+              )}
+              {errorFor("stock")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="Düşük stok uyarısı"
+                hint={
+                  'Stok bu sayıya inince panelde turuncu görünür, mağazada "Son N adet" rozeti çıkar.'
+                }
+              >
+                <TextInput
+                  name="lowStockThreshold"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={lowStockThreshold}
+                  onChange={(e) => setLowStockThreshold(e.target.value)}
+                />
+              </Field>
+              {errorFor("lowStockThreshold")}
+            </div>
           </div>
 
-          <Field label="Ağırlık (gram)" hint="Kargo hesabı için.">
-            <TextInput
-              name="weightGrams"
-              type="number"
-              min={0}
-              value={weightGrams}
-              onChange={(e) => setWeightGrams(e.target.value)}
-            />
-          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Field
+                label="Ağırlık (gram)"
+                hint="Ürün sayfasında ve Google'da görünür. Boş bırakırsan gösterilmez; kargo ücretini değiştirmez."
+              >
+                <TextInput
+                  name="weightGrams"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={weightGrams}
+                  onChange={(e) => setWeightGrams(e.target.value)}
+                  placeholder="Ör. 250"
+                />
+              </Field>
+              {errorFor("weightGrams")}
+            </div>
+            <div className="grid gap-1.5">
+              <Field
+                label="KDV oranı"
+                hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Köşkün sattığı gıda %10, giyim ve çanta %10, ekipman ve diğer hediyelik %20. Varsayılanlar Ayarlar > Vergi'de."
+              >
+                <Select
+                  name="taxRatePct"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                >
+                  <option value="">Kategorinin oranı (%{categoryTaxRate})</option>
+                  {taxRateChoices.map((r) => (
+                    <option key={r} value={String(r)}>
+                      %{r}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {errorFor("taxRatePct")}
+            </div>
+          </div>
         </div>
       ),
     },
@@ -528,20 +1187,23 @@ export function ProductWizard({
       title: "Varyantlar",
       body: (
         <div className="grid gap-5">
-          <p className="text-sm text-neutral-600">
-            Boyut, lezzet veya seçenek varyantları - örn. &quot;Küçük&quot;,
-            &quot;250g&quot;, &quot;Stracciatella&quot;. Her varyantın kendi
-            stoğu ve fiyat delta&apos;sı olur.
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Boyut ya da lezzet seçenekleri, ör. &quot;250 g&quot;, &quot;1
+            kg&quot;, &quot;Stracciatella&quot;. Her varyantın kendi stoğu ve
+            satış fiyatına eklenen (ucuzsa düşülen) fiyat farkı olur; ürünün
+            toplam stoğu aktif varyantların stoğundan gelir. Tek seçenekle
+            satılan ürüne varyant eklemen gerekmez.
           </p>
+          {errorFor("variants")}
           {variants.length === 0 ? (
             <Card className="bg-neutral-50 text-center">
-              <p className="text-sm text-neutral-500">
-                Henüz varyant eklenmedi. Bu ürün tek seçenekle satılır.
+              <p className="text-sm text-[var(--admin-text-soft)]">
+                Henüz varyant yok. Bu ürün tek seçenekle satılır.
               </p>
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex items-center justify-center rounded-full border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-neutral-300 px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -562,7 +1224,8 @@ export function ProductWizard({
                           onChange={(e) =>
                             updateVariant(i, "name", e.target.value)
                           }
-                          placeholder="250g"
+                          placeholder="250 g"
+                          required
                         />
                       </Field>
                       <Field label="SKU">
@@ -578,13 +1241,16 @@ export function ProductWizard({
                           placeholder="SIRE-V1"
                         />
                       </Field>
-                      <Field label="Fiyat Δ (₺)">
+                      <Field
+                        label="Fiyat farkı (₺)"
+                        hint="Ucuzsa başına - koy: -10,50"
+                      >
+                        {/* No decimal keypad: on iOS it has no minus key. */}
                         <TextInput
                           value={v.priceDelta}
                           onChange={(e) =>
                             updateVariant(i, "priceDelta", e.target.value)
                           }
-                          inputMode="decimal"
                           placeholder="0,00"
                         />
                       </Field>
@@ -596,6 +1262,7 @@ export function ProductWizard({
                           }
                           type="number"
                           min={0}
+                          step={1}
                         />
                       </Field>
                     </div>
@@ -632,11 +1299,13 @@ export function ProductWizard({
                       style={{ fontFamily: "var(--mono), monospace" }}
                     >
                       <th className="py-2 pr-3">Ad</th>
-                      <th className="pr-3">Fiyat Δ (₺)</th>
+                      <th className="pr-3">Fiyat farkı (₺)</th>
                       <th className="pr-3">Stok</th>
                       <th className="pr-3">SKU</th>
                       <th className="pr-3">Aktif</th>
-                      <th className="text-right">-</th>
+                      <th className="text-right">
+                        <span className="sr-only">Sil</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -647,35 +1316,40 @@ export function ProductWizard({
                       >
                         <td className="py-2 pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın adı`}
                             value={v.name}
                             onChange={(e) =>
                               updateVariant(i, "name", e.target.value)
                             }
-                            placeholder="250g"
+                            placeholder="250 g"
+                            required
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın fiyat farkı`}
                             value={v.priceDelta}
                             onChange={(e) =>
                               updateVariant(i, "priceDelta", e.target.value)
                             }
-                            inputMode="decimal"
                             placeholder="0,00"
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın stoğu`}
                             value={v.stock}
                             onChange={(e) =>
                               updateVariant(i, "stock", e.target.value)
                             }
                             type="number"
                             min={0}
+                            step={1}
                           />
                         </td>
                         <td className="pr-3">
                           <TextInput
+                            aria-label={`${i + 1}. varyantın SKU'su`}
                             value={v.sku}
                             onChange={(e) =>
                               updateVariant(
@@ -690,18 +1364,20 @@ export function ProductWizard({
                         <td className="pr-3">
                           <input
                             type="checkbox"
+                            aria-label={`${i + 1}. varyant aktif`}
                             checked={v.isActive}
                             onChange={(e) =>
                               updateVariant(i, "isActive", e.target.checked)
                             }
-                            className="h-4 w-4 rounded border-neutral-300"
+                            className="h-5 w-5 rounded border-neutral-300 accent-[var(--admin-primary)]"
                           />
                         </td>
                         <td className="text-right">
                           <button
                             type="button"
                             onClick={() => removeVariant(i)}
-                            className="text-xs text-red-600 underline-offset-4 hover:underline"
+                            aria-label={`Sil: ${v.name || `${i + 1}. varyant`}`}
+                            className="min-h-[44px] text-xs text-red-600 underline-offset-4 hover:underline"
                           >
                             Sil
                           </button>
@@ -730,7 +1406,7 @@ export function ProductWizard({
       body: (
         <div className="grid gap-5">
           <Field
-            label="Görsel ton (placeholder)"
+            label="Görsel tonu"
             hint="Fotoğraf yokken sitedeki kartın çizim rengi. Uygulamada sahne seçiminin ipucu; seçim yoksa sahne bu tondan gelir."
           >
             <Select
@@ -748,18 +1424,17 @@ export function ProductWizard({
 
           <div className="flex flex-col gap-2">
             <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               Görseller
             </div>
             <ImageUpload name="images" initial={initialImages} />
-            <span className="text-xs text-neutral-500">
-              Sürükle bırak, tıkla veya URL yapıştır. İlk görsel kart görseli
-              olur ve uygulamanın sahnesi ondan seçilir. Yüklenen dosyalar
-              tarayıcıda küçültülüp base64 olarak saklanır (nesne depolama
-              gelene kadar); saydam arka planlı (dekupe) fotoğraf saydamlığını
-              korur.
+            <span className="text-xs text-[var(--admin-text-mute)]">
+              Sürükle bırak, tıkla ya da bağlantı yapıştır. İlk görsel kartta
+              görünür, uygulamanın sahnesi de ondan seçilir. Dosyalar
+              yüklenmeden önce küçültülür; arka planı saydam (dekupe) fotoğraf
+              saydam kalır.
             </span>
           </div>
 
@@ -774,36 +1449,42 @@ export function ProductWizard({
 
           <div className="border-t border-[var(--admin-border)] pt-5">
             <div
-              className="mb-3 text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+              className="mb-3 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
               style={{ fontFamily: "var(--mono), monospace" }}
             >
               SEO
             </div>
             <div className="grid gap-5">
-              <Field
-                label="Meta başlık"
-                hint={`${seoTitle.length}/80 karakter`}
-              >
-                <TextInput
-                  name="seoTitle"
-                  value={seoTitle}
-                  onChange={(e) => setSeoTitle(e.target.value)}
-                  maxLength={80}
-                  placeholder="Sirena Espresso Blend · 250g · L’Affogato"
-                />
-              </Field>
-              <Field
-                label="Meta açıklama"
-                hint={`${seoDescription.length}/220 karakter`}
-              >
-                <Textarea
-                  name="seoDescription"
-                  value={seoDescription}
-                  onChange={(e) => setSeoDescription(e.target.value)}
-                  maxLength={220}
-                  rows={3}
-                />
-              </Field>
+              <div className="grid gap-1.5">
+                <Field
+                  label="Meta başlık"
+                  hint={`${seoTitle.length}/80 karakter. Boşsa ürün adı kullanılır.`}
+                >
+                  <TextInput
+                    name="seoTitle"
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    maxLength={80}
+                    placeholder="Sirena Espresso Blend · 250g · L’Affogato"
+                  />
+                </Field>
+                {errorFor("seoTitle")}
+              </div>
+              <div className="grid gap-1.5">
+                <Field
+                  label="Meta açıklama"
+                  hint={`${seoDescription.length}/220 karakter`}
+                >
+                  <Textarea
+                    name="seoDescription"
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    maxLength={220}
+                    rows={3}
+                  />
+                </Field>
+                {errorFor("seoDescription")}
+              </div>
             </div>
           </div>
 
@@ -829,10 +1510,14 @@ export function ProductWizard({
       title: "Özet & onayla",
       body: (
         <div className="grid gap-4">
+          <p className="text-sm text-[var(--admin-text-soft)]">
+            Kaydetmeden önce bir bak. Bir şeyi değiştirmek için üstteki adıma
+            dokun.
+          </p>
           <Card className="bg-neutral-50">
             <SummaryRow k="Ad" v={name || "-"} />
-            <SummaryRow k="Slug" v={slug || "-"} mono />
-            <SummaryRow k="Kategori" v={cat} />
+            <SummaryRow k="Adres" v={slug || "-"} mono />
+            <SummaryRow k="Kategori" v={categoryLabel} />
             <SummaryRow
               k="Fiyat"
               v={
@@ -851,7 +1536,7 @@ export function ProductWizard({
                     )}
                   </span>
                 ) : (
-                  "-"
+                  "Yazılmadı"
                 )
               }
             />
@@ -863,28 +1548,76 @@ export function ProductWizard({
               />
             )}
             <SummaryRow
-              k="Alerjen"
-              v={
-                allergens.length > 0
-                  ? allergens
-                      .map(
-                        (t) =>
-                          ALLERGEN_OPTIONS.find(([v]) => v === t)?.[1] ?? t,
-                      )
-                      .join(" · ")
-                  : "Yok"
-              }
+              k="KDV"
+              v={`%${effectiveTaxRate} dahil${taxRate === "" ? " (kategorinin oranı)" : ""}`}
             />
-            <SummaryRow k="Stok" v={`${stock} adet`} />
-            <SummaryRow k="SKU" v={sku || "-"} mono />
-            {variants.length > 0 && (
+            {compareMinor > 0 && (
               <SummaryRow
-                k="Varyant"
-                v={`${variants.length} varyant: ${variants.map((v) => v.name || "?").join(", ")}`}
+                k="İndirim"
+                v={discountDates ?? "Tarihleri seç (zorunlu)"}
+                muted={!discountDates}
               />
             )}
             <SummaryRow
-              k="Bayraklar"
+              k="Alerjen"
+              v={
+                allergenWords === null
+                  ? nutsTag
+                    ? "Girilmedi (kuruyemiş uyarısı kalır)"
+                    : "Girilmedi"
+                  : (allergenWords.length > 0
+                      ? allergenWords.join(", ")
+                      : "Hiçbirini içermez") +
+                    (!nutsConflict
+                      ? ""
+                      : dropStoredNuts
+                        ? " (kuruyemiş uyarısı kalkar)"
+                        : " (kuruyemiş uyarısıyla çelişiyor)")
+              }
+              muted={allergenWords === null}
+            />
+            <SummaryRow
+              k="Gıda etiketi"
+              v={
+                labelCount > 0
+                  ? `${labelCount} / ${FOOD_LABEL_FIELDS.length} alan dolu`
+                  : "Boş"
+              }
+              muted={labelCount === 0}
+            />
+            <SummaryRow
+              k="Stok"
+              v={
+                hasVariants
+                  ? `${shownTotal} adet (varyantlardan)`
+                  : `${stock || 0} adet`
+              }
+            />
+            <SummaryRow
+              k="SKU"
+              v={
+                sku ||
+                (storedSku
+                  ? `${storedSku} (kayıtlı kod kalır)`
+                  : name
+                    ? `Kayıtta üretilir (${skuPrefix(name)}-…)`
+                    : "Kayıtta üretilir")
+              }
+              mono={Boolean(sku || storedSku)}
+            />
+            <SummaryRow
+              k="Ağırlık"
+              v={Number(weightGrams) > 0 ? `${weightGrams} g` : "Gösterilmez"}
+              muted={!(Number(weightGrams) > 0)}
+            />
+            {variants.length > 0 && (
+              <SummaryRow
+                k="Varyant"
+                v={`${variants.length} varyant: ${variants.map((v) => v.name || "(adsız)").join(", ")}`}
+              />
+            )}
+            <SummaryRow
+              k="Durum"
               v={
                 [
                   isActive ? "Aktif" : "Pasif",
@@ -897,77 +1630,98 @@ export function ProductWizard({
               muted
             />
           </Card>
-
-          {state.error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {state.error}
-            </div>
-          )}
         </div>
       ),
     },
   ];
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      noValidate
+      className="grid gap-6"
+    >
       {mode === "wizard" && (
         <Card>
-          <div className="-mx-1 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
-            {steps.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setStep(s.id)}
-                className={`flex shrink-0 items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
-                  step === s.id
-                    ? "bg-[var(--admin-primary)] text-white"
-                    : step > s.id
-                      ? "bg-neutral-100 text-neutral-700"
-                      : "border border-[var(--admin-border)] text-neutral-500"
-                }`}
-              >
-                <span
-                  className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
-                  style={{
-                    background:
-                      step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
-                    border: step >= s.id ? "none" : "1px solid currentColor",
-                  }}
-                >
-                  {s.id}
-                </span>
-                <span className="whitespace-nowrap">{s.title}</span>
-              </button>
-            ))}
-          </div>
+          <ol className="-mx-1 flex [scrollbar-width:none] items-center gap-2 overflow-x-auto px-1 [&::-webkit-scrollbar]:hidden">
+            {steps.map((s) => {
+              const flagged = flaggedSteps.has(s.id);
+              const current = step === s.id;
+              return (
+                <li key={s.id} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setStep(s.id)}
+                    aria-current={current ? "step" : undefined}
+                    aria-label={`${s.id}. ${s.title}${flagged ? ": düzeltilecek alan var" : ""}`}
+                    className={`flex min-h-[44px] items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
+                      current
+                        ? "bg-[var(--admin-primary)] text-white"
+                        : flagged
+                          ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
+                          : step > s.id
+                            ? "bg-neutral-100 text-neutral-700"
+                            : "border border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="inline-grid h-5 w-5 place-items-center rounded-full text-[10px]"
+                      style={{
+                        background:
+                          step >= s.id ? "rgba(255,255,255,0.15)" : "transparent",
+                        border: step >= s.id ? "none" : "1px solid currentColor",
+                      }}
+                    >
+                      {flagged ? "!" : s.id}
+                    </span>
+                    <span className="whitespace-nowrap">{s.title}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </Card>
       )}
 
       {steps.map((s) => {
         const visible = mode === "tabs" || step === s.id;
         return (
-          <Card
-            key={s.id}
-            style={
-              visible ? undefined : ({ display: "none" } as React.CSSProperties)
-            }
-          >
-            {mode === "tabs" && (
-              <h2
-                className="mb-5 text-xl"
-                style={{
-                  fontFamily: "var(--serif), 'Playfair Display', serif",
-                  fontStyle: "italic",
-                  fontWeight: 500,
-                }}
-              >
-                {s.id}. {s.title}
-              </h2>
-            )}
-            {s.body}
-          </Card>
+          <div key={s.id} data-step={s.id} hidden={!visible}>
+            <Card>
+              {mode === "tabs" && (
+                <h2
+                  className="mb-5 text-xl"
+                  style={{
+                    fontFamily: "var(--serif), 'Playfair Display', serif",
+                    fontStyle: "italic",
+                    fontWeight: 500,
+                  }}
+                >
+                  {s.id}. {s.title}
+                  {flaggedSteps.has(s.id) ? (
+                    <span className="ml-3 align-middle text-sm text-[var(--admin-danger-ink)] not-italic">
+                      Düzeltilecek alan var
+                    </span>
+                  ) : null}
+                </h2>
+              )}
+              {s.body}
+            </Card>
+          </div>
         );
       })}
+
+      {state.error ? (
+        <div
+          role="alert"
+          className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+        >
+          {state.error}
+        </div>
+      ) : null}
 
       <Card className="flex flex-wrap items-center justify-between gap-4">
         {mode === "wizard" ? (
@@ -981,17 +1735,14 @@ export function ProductWizard({
                 ← Geri
               </GhostButton>
               {step < totalSteps && (
-                <PrimaryButton
-                  type="button"
-                  onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
-                >
+                <PrimaryButton type="button" onClick={goNext}>
                   Sonraki adım →
                 </PrimaryButton>
               )}
             </div>
             <div className="flex gap-2">
-              <Link href="/admin/urunler">
-                <GhostButton type="button">Vazgeç</GhostButton>
+              <Link href="/admin/urunler" className={BUTTON.ghost}>
+                Vazgeç
               </Link>
               {step === totalSteps && (
                 <PrimaryButton type="submit" disabled={pending}>
@@ -1002,17 +1753,12 @@ export function ProductWizard({
           </>
         ) : (
           <>
-            <div
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              {state.error
-                ? state.error
-                : "Tüm sekmeler tek formda kaydedilir."}
-            </div>
+            <p className="text-xs text-[var(--admin-text-mute)]">
+              Bütün bölümler birlikte kaydedilir.
+            </p>
             <div className="flex gap-2">
-              <Link href="/admin/urunler">
-                <GhostButton type="button">Vazgeç</GhostButton>
+              <Link href="/admin/urunler" className={BUTTON.ghost}>
+                Vazgeç
               </Link>
               <PrimaryButton type="submit" disabled={pending}>
                 {pending ? "Kaydediliyor…" : submitLabel}
@@ -1039,13 +1785,13 @@ function SummaryRow({
   return (
     <div className="grid gap-1 border-b border-[var(--admin-border)] py-2 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
       <div
-        className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
+        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
         style={{ fontFamily: "var(--mono), monospace" }}
       >
         {k}
       </div>
       <div
-        className={`text-sm ${muted ? "text-neutral-500" : "text-neutral-900"}`}
+        className={`text-sm ${muted ? "text-[var(--admin-text-soft)]" : "text-neutral-900"}`}
         style={mono ? { fontFamily: "var(--mono), monospace" } : undefined}
       >
         {v}

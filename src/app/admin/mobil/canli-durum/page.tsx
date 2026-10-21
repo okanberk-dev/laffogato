@@ -1,6 +1,8 @@
 import { Card, formatDateTime, PageHeader } from "@/components/admin/forms";
+import { Badge } from "@/components/admin/ui";
 import { getSettings } from "@/lib/admin/store";
 import { requireRole } from "@/lib/admin/auth";
+import { canAccess } from "@/lib/admin/roles";
 import { getVenueStatus, isCafeOpenNow } from "@/lib/mobile/venue";
 
 import { VenueStatusForm } from "./venue-status-form";
@@ -12,9 +14,13 @@ export const dynamic = "force-dynamic";
  * Live venue panel. Feeds GET /api/mobile/v1/live-status from the single
  * `venue_status` row; the open/closed decision combines the override chosen
  * here with Ayarlar → Saatler.
+ *
+ * Open to the köşk shift (`venue`, admin UI v2 decision D3); the table
+ * count is read-only without `mobileApp`, and the action ignores it.
  */
 export default async function AdminVenueStatusPage() {
-  await requireRole("mobileApp");
+  const session = await requireRole("venue");
+  const canEditTotal = canAccess("mobileApp", session.role);
   const [status, settings] = await Promise.all([
     getVenueStatus(),
     getSettings(),
@@ -32,21 +38,10 @@ export default async function AdminVenueStatusPage() {
       <div className="grid gap-4">
         <Card>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 font-medium ${
-                openNow
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-neutral-100 text-neutral-600"
-              }`}
-            >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  openNow ? "bg-emerald-500" : "bg-neutral-400"
-                }`}
-              />
+            <Badge tone={openNow ? "success" : "neutral"} dot>
               {openNow ? "Şu an açık görünüyor" : "Şu an kapalı görünüyor"}
-            </span>
-            <span className="text-neutral-500">
+            </Badge>
+            <span className="text-[var(--admin-text-soft)]">
               {status.updatedAt
                 ? `Son güncelleme: ${formatDateTime(status.updatedAt)}`
                 : "Henüz hiç güncellenmedi - varsayılanlar gösteriliyor."}
@@ -55,6 +50,7 @@ export default async function AdminVenueStatusPage() {
         </Card>
 
         <VenueStatusForm
+          canEditTotal={canEditTotal}
           defaults={{
             manualOverride: status.manualOverride,
             freeTables: status.freeTables,

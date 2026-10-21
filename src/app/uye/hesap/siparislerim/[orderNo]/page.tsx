@@ -5,6 +5,8 @@ import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
+import { orderDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
 import {
   STATUS_LABEL,
@@ -22,6 +24,21 @@ const ORDER_DOCS = [
   { slug: "teslimat-ve-kargo", label: "Teslimat ve Kargo Koşulları" },
   { slug: "garanti-ve-ayipli-mal", label: "Garanti ve Ayıplı Mal" },
 ];
+
+/**
+ * Over the download of the confirmed text (ASK-DURABLE, sen). It promises
+ * no attachment: the mail goes without the file when the file cannot be
+ * built in time (src/lib/legal/durable-copy-time.ts).
+ */
+const COPY_NOTE =
+  "Siparişini verirken onayladığın belgelerin o günkü metni. Sipariş onayı e-postanın ekinde de gönderilir; ekte yoksa buradan indirebilirsin.";
+
+/**
+ * In place of the download when the file cannot be built: an order from
+ * before 21 Ekim 2026 (no text recorded), or a text that is not stored. The
+ * same route as İşlem Rehberi §8 (src/lib/legal/content.ts).
+ */
+const COPY_REQUEST = `Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla ${LEGAL_ENTITY.email} adresine yaz, sana e-postayla gönderelim.`;
 
 export const metadata = { title: "Sipariş detayı · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -51,6 +68,22 @@ export default async function OrderDetailPage({
   const consent =
     raw && "acceptedAt" in raw && raw.acceptedAt
       ? (raw as OrderLegalConsent)
+      : null;
+  // The confirmed text itself, as a file (ASK-DURABLE): linked only when
+  // the route can build it - every confirmed document's hash recorded and
+  // its text stored (or still the one shown). A link to a 404 was what the
+  // member got for an order whose text was not there. The route checks the
+  // owner again (./sozlesme/route.ts); a failing read shows the request
+  // sentence, not an error page.
+  const copyHref =
+    consent &&
+    (await orderDurableCopyAvailable(order).catch((err: unknown) => {
+      console.warn(
+        `[durable-copy] order ${order.orderNo}: availability unknown (${err instanceof Error ? err.message.slice(0, 120) : "error"})`,
+      );
+      return false;
+    }))
+      ? `/uye/hesap/siparislerim/${order.orderNo}/sozlesme`
       : null;
 
   return (
@@ -208,6 +241,35 @@ export default async function OrderDetailPage({
             <DetailRow k="Belge sürümü" v={consent.version} />
           </div>
         ) : null}
+        {copyHref ? (
+          <div style={{ margin: "16px 0 0" }}>
+            <p
+              style={{
+                margin: "0 0 10px",
+                color: "var(--ink-soft)",
+                fontSize: 14,
+                lineHeight: 1.6,
+              }}
+            >
+              {COPY_NOTE}
+            </p>
+            {/* A file, not a page: a plain link, never prefetched. */}
+            <a href={copyHref} download className="btn btn-outline btn-sm">
+              Belgeleri indir
+            </a>
+          </div>
+        ) : consent ? (
+          <p
+            style={{
+              margin: "16px 0 0",
+              color: "var(--ink-soft)",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            {COPY_REQUEST}
+          </p>
+        ) : null}
         <p
           style={{
             margin: consent ? "16px 0 12px" : "0 0 12px",
@@ -217,7 +279,7 @@ export default async function OrderDetailPage({
           }}
         >
           {consent
-            ? "Siparişini verirken onayladığın belgeler - kalıcı veri saklayıcısı olarak buradan istediğin zaman okuyabilir, yazdırabilirsin."
+            ? "Siparişini verirken onayladığın belgeler. Bağlantılar belgelerin güncel metnini açar."
             : "Siparişlerine uygulanan sözleşme ve politikalar:"}
         </p>
         <ul

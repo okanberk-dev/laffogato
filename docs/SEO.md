@@ -74,6 +74,80 @@ her zaman **gerçek route'u** işaret eder.
 | 0.6-0.7 | `/hikayemiz`, `/ziyaret`      |
 | 0.4-0.5 | `/hukuk` ve belgeler          |
 
+**Paylaşım kartları (Open Graph / X)**
+
+Bağlantı WhatsApp'ta, Instagram'da ya da X'te paylaşılınca görünen 1200 x 630
+görsel. Kök kart (`src/app/opengraph-image.tsx`: yeşil zemin, L'Af, "Drink it.
+Eat the cup.") ana sayfanın ve kendi kartı olmayan her sayfanın (`/hukuk`,
+`/uye` …) kartıdır. Sayfaların kendi kartı, 17 Eki 2026'dan beri:
+
+| Sayfa                                    | Sağ taraf                          | Biçim |
+| ---------------------------------------- | ---------------------------------- | ----- |
+| `/karaoke`                               | karaoke odası çizimi               | JPEG  |
+| `/menu`                                  | yenilebilir kupa fotoğrafı         | JPEG  |
+| `/menu/[kategori]`, `/magaza/[kategori]` | büyük L'Af                         | PNG   |
+| `/magaza`                                | kahve paketi çizimi                | PNG   |
+| `/magaza/urun/[slug]`                    | ürünün ilk fotoğrafı (yoksa paket) | JPEG  |
+| `/ziyaret`                               | köşkün gece fotoğrafı              | JPEG  |
+| `/hikayemiz`                             | köşkün gündüz fotoğrafı            | JPEG  |
+| `/kampanyalar`                           | iki bilet çizimi                   | PNG   |
+| `/rehber`, `/rehber/[slug]`              | büyük L'Af                         | PNG   |
+
+- **Nerede:** her sayfanın yanında `opengraph-image.tsx` + aynı kartı veren
+  `twitter-image.tsx`. Ortak sistem `src/lib/seo/og-card.tsx` (palet, logo,
+  sayfa kartı düzeni, fotoğraf okuma), kartların metni `og-pages.tsx`, çizimler
+  `og-drawings.tsx`, ürün kartı `og-product.tsx`.
+- **Sayfa kendi `images`'ını vermez.** Next, segmentin `opengraph-image`
+  dosyasını yalnız sayfanın `openGraph`'ında `images` anahtarı **hiç yokken**
+  kullanır. Kartı olan sayfa `openGraphBase()` yayar (site adı + dil);
+  `openGraphDefaults()` genel kartı adıyla yazdığı için sayfanın kartını
+  gizler. `tests/og-images.test.ts` bunu tutar.
+- **Veritabanı (neredeyse) yok:** sayfa kartları build sırasında sitenin
+  kendi metni ve `public/` dosyalarıyla çizilir. İki istisna:
+  - **Ürün kartı** ilk istekte, sayfanın okuduğu sorguyla (yedeksiz hâli,
+    `getShopProductBySlugLive`) çizilir ve bir saat saklanır (ISR); fiyat,
+    sayfanın ilk açtığı varyantın KDV dahil fiyatıdır, sayfadaki gibi
+    kuruşuyla. Üstü çizili eski fiyat kartta yoktur: indirim reklamı
+    başlangıç ve bitiş gününü yazar (Ticari Reklam Yön. m.14/1), kartta yer
+    yok ve kart bitişten sonra da saklanır. Aktif ürün yoksa kart
+    da sayfa gibi **404**'tür ve bu cevap da bir saat saklanır. 404
+    `notFound()` ile fırlatılmaz, döndürülür: Next fırlatılan 404'ü
+    `revalidate`'siz saklıyor, sonradan aktifleşen ürünün kartı bir sonraki
+    deploy'a kadar 404 kalıyordu. Veritabanı cevap vermezse kart **hata verir**:
+    saatlik yenilemede son iyi kart sunulmaya devam eder (ilk istekte 500);
+    yerine çizilen bir kart bir saat saklanmaz. Fotoğraf okunamazsa paket
+    çizimi çıkar.
+  - **`/ziyaret` kartı** saatleri panelden (Ayarlar, sayfanın gösterdiği
+    saatler) saatlik okur: yedi gün aynı ve açıksa "Her gün 09:00 - 02:00",
+    farklıysa ya da bir gün kapalıysa saat satırı yok. Build veritabanına
+    bağlanmaz; orada çizilen kart ilk yenilemeye kadar köşkün sabit saatini
+    (`LEGAL_ENTITY.cafeHours`) taşır.
+- **Dış fotoğraf çekilmez.** Panelde "URL yapıştır" ile girilmiş
+  (`https://`) bir ürün fotoğrafı karta gelmez, ürün paket çizimiyle
+  paylaşılır (istek başkasının sunucusunu beklemez; panelin fotoğraf okuyucusu
+  da aynı kuralla çalışır). Kartlardan önce böyle bir ürün o bağlantıyı
+  doğrudan og:image olarak verirdi. 17 Eki 2026'da canlıda fotoğraflı ürün
+  yok; böyle bir ürünün önizlemesinde fotoğraf istenirse fotoğraf panelden
+  **yüklenir**.
+- **`public/` dosyası sabit yolla okunur** (`og-pages.tsx` `PICTURES`):
+  bundler bir fonksiyonun okuyabileceği her dosyayı fonksiyona kopyalar;
+  değişkenle kurulan bir yol bütün `public/`'i (7,7 MB) kök karta, yani her
+  sayfanın fonksiyonuna taşıyordu.
+- **Fotoğraflı kart JPEG'dir** (q88, 50-90 KB): PNG hâlinde 0,3-0,6 MB
+  tutuyor, bazı mesajlaşma uygulamaları bu boyutta önizleme göstermeyebiliyor.
+- **Yazı:** next/og'un kendi Geist'i, kerning tablosu bellekte gizlenmiş
+  (`withoutKerning`): next/og kelimeyi harf harf ölçüp kernli çizdiği için
+  "mikrofon", "Atatürk" gibi kelimelerden sonra boşluk büyüyordu. Geist'te ₺
+  yok; olmayan bir harf next/og'u Google'dan font, emoji ise Twemoji
+  indirmeye götürür (emoji indirmesi düşerse kart 500 verir). Fiyat "TL"
+  yazılır; `ogText()` veritabanından gelen metinde yalnız Geist'in çizdiği
+  harfleri bırakır (Latin, Türkçe, tırnak, üç nokta …): emoji, bayrak, ✓,
+  CJK düşer. Liste testte Geist'in karakter haritasına karşı tutulur.
+- **Yeni kart:** sayfanın klasörüne iki dosya, `og-pages.tsx`'e bir fonksiyon,
+  testteki `ROUTES` listesine bir satır. Başlıkta nokta yok, uzun tire yok.
+  Önizlemeyi görmek için:
+  `OG_PREVIEW_DIR=/tmp/og npx vitest run tests/og-images.test.ts`.
+
 ---
 
 ## 3. İçerik SEO - `/rehber`
@@ -161,6 +235,16 @@ yanı" - insanlar tarifi böyle veriyor).
 
 Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 
+> **GTM 19 Ekim 2026'dan beri kapalı.** Google'la KVKK standart sözleşmesi
+> yok, bu yüzden GTM'nin her sayfada yaptığı yurt dışına aktarımın KVKK m.9
+> güvencesi de yok; hukuki metinler sitede analitik veya reklam etiketi
+> kullanılmadığını söyler. `src/lib/legal/meta.ts`
+> `GOOGLE_TAGS_IN_LEGAL_TEXTS` false olduğu sürece `NEXT_PUBLIC_GTM_ID` dolu
+> olsa da GTM yüklenmez ve çerez bandı yalnız zorunlu ve tercih çerezlerini
+> sorar (`tests/site-tags-off.test.ts`). Kodda varsayılan container yok.
+> Açmak: Google standart sözleşmesi imzalanıp Kurum'a bildirildikten sonra,
+> metinleri geri getiren PR'da (docs/LEGAL-REDLINES-2026-09.md §15.6).
+
 > **Çerez rızası uygulanmıştır.** Analitik ve pazarlama çerezleri KVKK
 > kapsamında açık rıza ister. Consent Mode v2 varsayılanları GTM
 > konteynerinden **önce** `<head>` içinde basılır ve rızaya bağlı her sinyal
@@ -176,7 +260,9 @@ Boş bırakılan doğrulama token'ı için Next.js meta etiketini hiç basmaz.
 - [ ] `generateMetadata` ya da `metadata`: `title`, `description`,
       `alternates.canonical`
 - [ ] OG + Twitter kartı (layout'tan miras alınanları yeniden bildir -
-      `openGraph` segmentler arası **sığ** birleşir)
+      `openGraph` segmentler arası **sığ** birleşir). Sayfanın kendi kartı
+      varsa `openGraphBase()`, yoksa `openGraphDefaults()` (§2 "Paylaşım
+      kartları")
 - [ ] Sayfaya uygun JSON-LD + `BreadcrumbList`
 - [ ] `sitemap.ts` içine giriş (dinamikse otomatik)
 - [ ] Gizli kalması gerekiyorsa `robots.ts` disallow listesi

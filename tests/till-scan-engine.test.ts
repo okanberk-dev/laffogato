@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -6,6 +8,8 @@ import {
   createDecoder,
   DECODE_SIZE,
   nativeDetector,
+  RETICLE_MAX_SHARE,
+  reticleSize,
   SCAN_COOLDOWN_MS,
   ScanGate,
   scanRegion,
@@ -30,6 +34,98 @@ afterEach(() => {
   delete g.window;
   delete g.navigator;
   vi.unstubAllGlobals();
+});
+
+describe("reticleSize (admin audit ORD-14)", () => {
+  // The preview box is the card's width and at most 340 px tall, the
+  // picture drawn object-fit: cover into it.
+  it("marks the decoded square on a landscape camera, inside the box", () => {
+    // An iPad in landscape or a laptop: a 670 px card, a 1280x720 stream.
+    const side = reticleSize(
+      { width: 670, height: 340 },
+      { width: 1280, height: 720 },
+    );
+    // Scale max(670/1280, 340/720) = 0.523; 562 decoded px -> 294 on screen.
+    expect(side).toBe(294);
+    // The old frame was 78% of the WIDTH: 523 px, taller than the box.
+    expect(side).toBeLessThan(340);
+    expect(side).toBeLessThan(Math.round(670 * 0.78));
+  });
+
+  it("matches the old frame on a portrait phone, where it was right", () => {
+    // 390 px phone, a 358 px card, a 720x1280 stream cropped to 340 tall.
+    const side = reticleSize(
+      { width: 358, height: 340 },
+      { width: 720, height: 1280 },
+    );
+    expect(side).toBe(279);
+    expect(Math.abs(side - 358 * 0.78)).toBeLessThan(1);
+  });
+
+  it("never draws more than is decoded, and always shows all four sides", () => {
+    const cases: Array<
+      [{ width: number; height: number }, { width: number; height: number }]
+    > = [
+      [
+        { width: 670, height: 340 },
+        { width: 720, height: 1280 },
+      ],
+      [
+        { width: 1100, height: 340 },
+        { width: 1920, height: 1080 },
+      ],
+      [
+        { width: 300, height: 300 },
+        { width: 640, height: 480 },
+      ],
+      [
+        { width: 900, height: 340 },
+        { width: 480, height: 480 },
+      ],
+    ];
+    for (const [box, source] of cases) {
+      const side = reticleSize(box, source);
+      const scale = Math.max(
+        box.width / source.width,
+        box.height / source.height,
+      );
+      const decoded = scanRegion(source.width, source.height).size * scale;
+      expect(side, JSON.stringify([box, source])).toBeLessThanOrEqual(decoded);
+      expect(side).toBeLessThanOrEqual(
+        RETICLE_MAX_SHARE * Math.min(box.width, box.height),
+      );
+      expect(side).toBeGreaterThan(0);
+    }
+  });
+
+  it("is 0 while the video or the box has no size yet (the CSS guess stays)", () => {
+    expect(
+      reticleSize({ width: 0, height: 0 }, { width: 1280, height: 720 }),
+    ).toBe(0);
+    expect(
+      reticleSize({ width: 670, height: 340 }, { width: 0, height: 0 }),
+    ).toBe(0);
+  });
+
+  it("the scanner draws it from the video's own rect and picture size", () => {
+    const src = readFileSync("src/app/admin/kasa/camera-scanner.tsx", "utf8");
+    expect(src).toMatch(
+      /reticleSize\(\s*\{ width: rect\.width, height: rect\.height \},\s*\{ width: video\.videoWidth, height: video\.videoHeight \}/,
+    );
+    expect(src).toContain('video.addEventListener("resize", measure)');
+    expect(src).toContain("{ width: reticle, height: reticle }");
+  });
+});
+
+describe("the scanner after a camera fault", () => {
+  it("keeps the video and canvas mounted, so Yeniden dene has a camera to restart", () => {
+    const src = readFileSync("src/app/admin/kasa/camera-scanner.tsx", "utf8");
+    // The old early return dropped both elements; the retry effect then
+    // found no video and the till stayed on the fault.
+    expect(src).not.toMatch(/if \(status === "fault"\) \{\s*return/);
+    expect(src).toContain('className={faulted ? "hidden" : "grid gap-3"}');
+    expect(src).toContain('<canvas ref={canvasRef} className="hidden" />');
+  });
 });
 
 describe("scanRegion", () => {
@@ -156,7 +252,11 @@ describe("decoder selection", () => {
 
   it("prefers the browser's detector when it exists", async () => {
     const detect = vi.fn().mockResolvedValue([{ rawValue: "  JETON  " }]);
-    g.window = { BarcodeDetector: class { detect = detect } };
+    g.window = {
+      BarcodeDetector: class {
+        detect = detect;
+      },
+    };
     const decoder = await createDecoder();
     expect(decoder.kind).toBe("native");
     const value = await decoder.decode(
@@ -179,17 +279,21 @@ describe("decoder selection", () => {
       width: 8,
       height: 8,
     } as ImageData;
-    await expect(
-      decoder.decode(blank, {} as HTMLCanvasElement),
-    ).resolves.toBe("");
+    await expect(decoder.decode(blank, {} as HTMLCanvasElement)).resolves.toBe(
+      "",
+    );
   });
 
   it("reports an empty read when the detector saw nothing", async () => {
-    g.window = { BarcodeDetector: class { detect = async () => [] } };
+    g.window = {
+      BarcodeDetector: class {
+        detect = async () => [];
+      },
+    };
     const decoder = await createDecoder();
-    expect(
-      await decoder.decode({} as ImageData, {} as HTMLCanvasElement),
-    ).toBe("");
+    expect(await decoder.decode({} as ImageData, {} as HTMLCanvasElement)).toBe(
+      "",
+    );
   });
 });
 

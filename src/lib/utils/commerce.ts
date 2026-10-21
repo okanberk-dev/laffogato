@@ -1,9 +1,12 @@
 /**
- * Client-safe ticaret hesaplamaları - kargo, KDV, para biçimleme.
+ * Client-safe ticaret hesaplamaları - kargo, para biçimleme.
  *
  * Hem server action'lar (`placeOrder`, checkout actions) hem de client
- * bileşenleri (CartDrawer, tek sayfa checkout) buradan okur ki kargo eşiği ve
- * KDV oranı tek bir yerden gelsin. "server-only" YOK - saf fonksiyonlar.
+ * bileşenleri (CartDrawer, tek sayfa checkout) buradan okur ki kargo eşiği
+ * tek bir yerden gelsin. "server-only" YOK - saf fonksiyonlar.
+ *
+ * KDV burada yok: fiyatlar KDV dahil, oran da ürüne göre değişir. Oranların
+ * dökümü `./kdv.ts`'te (sipariş satırının kendi oranından).
  */
 
 export interface CheckoutConfig {
@@ -11,8 +14,6 @@ export interface CheckoutConfig {
   shippingFlatMinor: number;
   /** Bu net tutarın (indirim sonrası ara toplam) üstünde kargo ücretsiz. 0 = kapalı. */
   shippingFreeThresholdMinor: number;
-  /** KDV yüzdesi - fiyatlar KDV DAHİL olduğundan yalnızca bilgi amaçlı ayrıştırma için. */
-  taxRatePct: number;
 }
 
 /**
@@ -33,23 +34,10 @@ function computeShippingMinor(
   return Math.max(0, cfg.shippingFlatMinor);
 }
 
-/**
- * KDV-dahil bir toplamın içindeki KDV payını çıkarır.
- * Türkiye perakendesinde fiyatlar KDV dahil gösterilir; bu yalnızca
- * "bu fiyatın içinde ₺X KDV var" bilgisini üretmek içindir.
- */
-function extractTaxMinor(grossMinor: number, taxRatePct: number): number {
-  if (taxRatePct <= 0 || grossMinor <= 0) return 0;
-  const rate = taxRatePct / 100;
-  return Math.round(grossMinor - grossMinor / (1 + rate));
-}
-
 export interface OrderTotals {
   subtotalMinor: number;
   discountMinor: number;
   shippingMinor: number;
-  /** KDV-dahil toplamın içindeki KDV payı (bilgi amaçlı). */
-  taxMinor: number;
   totalMinor: number;
   /** Ücretsiz kargoya kalan tutar (kuruş); 0 ise eşik aşıldı veya kapalı. */
   freeShippingRemainingMinor: number;
@@ -72,7 +60,6 @@ export function computeOrderTotals(
   const netMinor = safeSubtotal - safeDiscount;
   const shippingMinor = computeShippingMinor(netMinor, cfg);
   const totalMinor = netMinor + shippingMinor;
-  const taxMinor = extractTaxMinor(totalMinor, cfg.taxRatePct);
   const freeShippingRemainingMinor =
     cfg.shippingFreeThresholdMinor > 0 &&
     netMinor < cfg.shippingFreeThresholdMinor
@@ -82,7 +69,6 @@ export function computeOrderTotals(
     subtotalMinor: safeSubtotal,
     discountMinor: safeDiscount,
     shippingMinor,
-    taxMinor,
     totalMinor,
     freeShippingRemainingMinor,
   };

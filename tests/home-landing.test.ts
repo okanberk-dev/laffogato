@@ -89,7 +89,9 @@ describe("home hero", () => {
     expect(SLIDER).not.toContain("home.hero.lede");
     expect(SLIDER).not.toContain("home.hero.eyebrow");
     expect(SLIDER).toContain("{slide.kicker}");
-    expect(SLIDER).toContain("splitLead(slide.text)");
+    // The karaoke slide's text takes the room's size and closing hour from
+    // the panel (data.ts `slideText`); the words are still the slide's own.
+    expect(SLIDER).toContain("splitLead(slideText(slide.text, karaoke))");
   });
 
   it("puts the panel's hero copy in the statement band under the hero", () => {
@@ -112,7 +114,8 @@ describe("home hero", () => {
     expect(SLIDER).toMatch(
       /useClientValue\(\s*\(\) =>\s*window\.matchMedia\?\.\("\(prefers-reduced-motion: reduce\)"\)\.matches \?\? false,\s*true,\s*\)/,
     );
-    expect(SLIDER).toMatch(/const autoplay = !reduced && !stopped;/);
+    // `many`: a lone slide (the panel may publish one) has no clock at all.
+    expect(SLIDER).toMatch(/const autoplay = many && !reduced && !stopped;/);
   });
 
   it("shows only the first sentence on a phone", () => {

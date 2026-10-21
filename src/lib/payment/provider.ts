@@ -141,6 +141,13 @@ export interface RefundHint {
 
 export interface PaymentProvider {
   readonly name: string;
+  /**
+   * Whether the provider keeps members' cards for later payments
+   * (PayNkolay's card storage, docs/PAYNKOLAY.md §16). Absent means no.
+   * The member's card key (`cardUserKey`) is minted and sent only while
+   * this is true; a key nobody uses is personal data nobody was told about.
+   */
+  readonly cardStorageEnabled?: boolean;
   createCheckoutSession(input: CheckoutInput): Promise<CheckoutSession>;
   verifyWebhook(req: Request): Promise<WebhookEvent>;
   refund(

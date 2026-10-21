@@ -11,6 +11,13 @@
 -- bookings made in the app. Empty falls back to `email`, so clearing the field
 -- in the panel is safe.
 --
+-- 19 Ekim 2026: the update below runs once. The app replays the whole
+-- bundle whenever a deploy adds a migration (src/lib/db/bootstrap.ts), and
+-- unguarded it wrote this price and this address back over the panel's
+-- values each time. The address itself is cleared by
+-- 20261019160000_karaoke_notify_company_mailbox.sql (a personal Gmail inbox
+-- abroad, KVKK m.9).
+--
 -- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
 -- that itself, inside the same transaction.
 
@@ -19,4 +26,9 @@ alter table public.settings alter column "karaokeHourlyMinor" set default 100000
 
 update public.settings
    set "karaokeHourlyMinor" = 100000,
-       "karaokeNotifyEmail" = 'bizimfutbol9@gmail.com';
+       "karaokeNotifyEmail" = 'bizimfutbol9@gmail.com'
+ where not exists (
+     select 1
+       from public._migrations as applied
+      where applied.name = '20260926090000_karaoke_price_and_notify.sql'
+   );

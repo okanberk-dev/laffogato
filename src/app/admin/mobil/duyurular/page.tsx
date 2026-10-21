@@ -1,79 +1,152 @@
 import Link from "next/link";
 
-import { Card, DangerButton, PageHeader } from "@/components/admin/forms";
+import { PageHeader } from "@/components/admin/forms";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
+  ConfirmButton,
+  BUTTON,
+  DataTable,
+  EmptyState,
+  PageShell,
+  StatusTabs,
+} from "@/components/admin/ui";
+import { appPublishStatus } from "@/lib/admin/app-content-schema";
 import { requireRole } from "@/lib/admin/auth";
 import {
   APP_ANNOUNCEMENT_KIND_LABELS,
   listAppAnnouncements,
+  type AdminAppAnnouncement,
 } from "@/lib/admin/store";
 
+import {
+  DELETE_TEXT,
+  parsePublishFilter,
+  PublishCell,
+  PUBLISH_STATUS_PARAM,
+  publishTabs,
+} from "../app-content-list";
 import { deleteAnnouncementAction } from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Duyuruları" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminAppAnnouncementsPage() {
+const PANEL = "/admin/mobil/duyurular";
+
+export default async function AdminAppAnnouncementsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireRole("mobileApp");
-  const rows = await listAppAnnouncements();
+  const [all, sp] = await Promise.all([
+    listAppAnnouncements(),
+    searchParams ?? Promise.resolve({}),
+  ]);
+  // One reading of the clock for the whole list, tabs and badges alike.
+  const now = new Date().getTime();
+  const filter = parsePublishFilter(
+    (sp as Record<string, unknown>)[PUBLISH_STATUS_PARAM],
+  );
+  const rows = filter
+    ? all.filter((a) => appPublishStatus(a, now) === filter)
+    : all;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Mobil uygulama · Ana sayfa"
         title="Duyurular"
-        description="Ana sayfadaki kısa duyuru kartları. Kısa ömürlüdür; tarih aralığı verirsen kendiliğinden düşer."
-        action={
-          <Link
-            href="/admin/mobil/duyurular/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni duyuru
-          </Link>
+        description="Uygulamanın ana sayfasındaki kısa duyuru kartları."
+        help={
+          <p>
+            Duyurular kısa ömürlüdür; tarih aralığı verirsen kendiliğinden
+            düşer.
+          </p>
         }
+        primary={{ href: `${PANEL}/yeni`, label: "Yeni duyuru" }}
       />
 
-      {rows.length === 0 ? (
-        <Card>
-          <p className="text-sm text-neutral-500">Henüz duyuru yok.</p>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {rows.map((a) => (
-            <Card key={a.id}>
-              <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                <div className="min-w-0">
-                  <p className="text-[11px] tracking-widest text-neutral-500 uppercase">
-                    {APP_ANNOUNCEMENT_KIND_LABELS[a.kind]}
-                  </p>
-                  <p className="truncate font-medium">{a.title}</p>
-                  <p className="line-clamp-2 text-sm text-neutral-500">
-                    {a.body}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-400">
-                    Sıra {a.sortOrder}
-                    {a.isActive ? "" : " · YAYINDA DEĞİL"}
-                    {a.startsAt || a.endsAt
-                      ? ` · ${a.startsAt || "…"} → ${a.endsAt || "…"}`
-                      : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/admin/mobil/duyurular/${a.id}`}
-                    className="inline-flex min-h-[40px] items-center rounded-lg border border-[var(--admin-border)] px-4 text-sm"
-                  >
-                    Düzenle
-                  </Link>
-                  <form action={deleteAnnouncementAction}>
-                    <input type="hidden" name="id" value={a.id} />
-                    <DangerButton type="submit">Sil</DangerButton>
-                  </form>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </main>
+      {all.length > 0 ? (
+        <StatusTabs
+          tabs={publishTabs(all, now, filter)}
+          current={filter}
+          searchParams={sp}
+          pathname={PANEL}
+          param={PUBLISH_STATUS_PARAM}
+          label="Yayın durumu"
+        />
+      ) : null}
+
+      <DataTable<AdminAppAnnouncement>
+        caption="Uygulama duyuruları"
+        rows={rows}
+        rowKey={(a) => a.id}
+        rowHref={(a) => `${PANEL}/${encodeURIComponent(a.id)}`}
+        empty={
+          all.length === 0 ? (
+            <EmptyState
+              title="Henüz duyuru yok."
+              action={
+                <Link href={`${PANEL}/yeni`} className={BUTTON.ghost}>
+                  Yeni duyuru
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="Bu durumda duyuru yok."
+              action={
+                <Link href={PANEL} className={BUTTON.ghost}>
+                  Filtreyi temizle
+                </Link>
+              }
+            />
+          )
+        }
+        columns={[
+          {
+            key: "announcement",
+            header: "Duyuru",
+            cell: (a) => (
+              <span className="block min-w-0 md:max-w-[18rem] xl:max-w-[28rem]">
+                <span className="block truncate text-xs text-[var(--admin-text-soft)]">
+                  {APP_ANNOUNCEMENT_KIND_LABELS[a.kind]}
+                </span>
+                <span className="block truncate font-medium">{a.title}</span>
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            header: "Durum",
+            cell: (a) => <PublishCell row={a} now={now} />,
+          },
+          {
+            key: "order",
+            header: "Sıra",
+            align: "right",
+            cell: (a) => a.sortOrder,
+          },
+        ]}
+        rowActions={(a) => (
+          <ActionMenu label={`${a.title} işlemleri`}>
+            <ActionMenuLink href={`${PANEL}/${encodeURIComponent(a.id)}`}>
+              Düzenle
+            </ActionMenuLink>
+            <ActionMenuSeparator />
+            <ConfirmButton
+              action={deleteAnnouncementAction}
+              hidden={{ id: a.id }}
+              label="Sil"
+              variant="menuDanger"
+              ariaLabel={`Sil: ${a.title}`}
+              title={`"${a.title}" silinsin mi?`}
+              description={DELETE_TEXT.announcement}
+            />
+          </ActionMenu>
+        )}
+      />
+    </PageShell>
   );
 }

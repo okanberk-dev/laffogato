@@ -80,7 +80,9 @@ describe("updateSupabasePassword says why it skipped", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     const line = String(warn.mock.calls[0]?.[0]);
     expect(line).toContain("[supabase] password sync skipped");
-    expect(line).toContain("SUPABASE_SERVICE_ROLE_KEY is not set");
+    expect(line).toContain(
+      "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set",
+    );
     // PII rule: neither the id nor the password reaches the log.
     expect(line).not.toContain("u-1");
     expect(line).not.toContain("yeni-sifre-123");
@@ -128,6 +130,7 @@ describe("settings page: Supabase servis anahtarı", () => {
   it("says tanımlı değil, and what that costs, when it is missing", () => {
     const html = render(false);
     expect(html).toContain("Supabase servis anahtarı: tanımlı değil");
+    expect(html).toContain("SUPABASE_SECRET_KEY");
     expect(html).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(html).toContain("eski");
   });

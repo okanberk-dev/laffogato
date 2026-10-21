@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { isHandedOver, isStaleShipmentEvent } from "@/lib/mobile/geliver";
 
 import type { DbError } from "@/lib/db";
+import type { AnyOfCondition } from "@/lib/db/sql";
 
 import {
   APP_ANNOUNCEMENT_KINDS,
@@ -18,11 +19,14 @@ import {
 
 import { getDb, TABLES } from "@/lib/db";
 import {
+  DbQueryError,
   memoizeUntilRejected,
   publicRead,
   raiseDbError,
 } from "@/lib/db/health";
 import { nextSeq } from "@/lib/db/counters";
+import { deriveSku } from "@/lib/admin/sku";
+import { variantStockTotal } from "@/lib/admin/stock-delta";
 import {
   applyCustomerCoupon,
   couponAllowedForKind,
@@ -35,6 +39,7 @@ import {
   notifyOrderPaid,
   notifyOrderRefunded,
   notifyOrderShipped,
+  type OrderNoticeOutcome,
 } from "@/lib/email/order-notices";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import {
@@ -54,10 +59,31 @@ import {
 import type { CheckoutConfig } from "@/lib/utils/commerce";
 import { priceLabel } from "@/lib/utils/format";
 import {
+  LEGAL_TAX_RATES,
+  menuItemTaxRate,
+  normalizeTaxRates,
+  productTaxRate,
+  shippingTaxRate,
+  type TaxRates,
+} from "@/lib/utils/kdv";
+import {
   WALLET_PROVIDER,
   walletProviderRef,
   walletSpendFor,
 } from "@/lib/mobile/wallet";
+import {
+  discountInstants,
+  discountRefusal,
+  liveDiscount,
+  withoutEndedDiscount,
+  type DiscountFields,
+  type PricePoint,
+} from "@/lib/shop/discount";
+import {
+  EMPTY_FOOD_LABEL,
+  foodLabelOf,
+  type FoodLabelText,
+} from "@/lib/shop/food-label";
 import { imageVersion } from "./image-bytes";
 import {
   heroImagePath,
@@ -82,20 +108,49 @@ import type { WeeklyHours } from "./days";
 import type { AdminRole } from "./roles";
 import {
   orderChannel,
+  orderKind,
   type OrderChannel,
   type OrderFulfillment,
   type OrderKind,
 } from "./order-channel";
+import {
+  ITEM_EDITABLE_ORDER_STATUSES,
+  MANUAL_PROVIDER_PREFIX,
+  isManualProvider,
+  refundCapMinor,
+  refundDestinationFor,
+  type ManualPaymentMethod,
+  type OrderAttention,
+  type RefundDestination,
+} from "./order-actions";
+import {
+  manualShippingMode,
+  type ManualFulfillment,
+} from "./manual-order-schema";
+import {
+  OPEN_ORDER_STATUSES,
+  istanbulDayStartIso,
+  type OrderListQuery,
+} from "./order-filters";
+import type { OrderAlertRow } from "./order-alerts-core";
+import { ORDER_STATUS_LABELS } from "./order-ui";
+import { ORDER_DETAILS_MESSAGES, emailMovesLedger } from "./order-details";
+import { earnsStamp } from "@/lib/mobile/loyalty-core";
+import {
+  normalizeMenuAllergens,
+  type MenuAllergen,
+} from "@/lib/menu/allergens";
 
 /**
  * Veri katmanı - yönetilen bir Postgres üzerinden çalışır (bugün Neon).
  * Sağlayıcıya özel bağımlılık yok; bkz. src/lib/db/index.ts.
  *
  * Public API'lerin tamamı async ve mevcut admin sayfalarıyla uyumlu kalır.
- * Tablo boşsa SEED verisi otomatik yüklenir (idempotent - yalnızca
- * count === 0 ise tetiklenir; insert'ler upsert/ignoreDuplicates ile
- * yarış-güvenli). İç-içe alanlar (variants, items, refunds, ...) JSONB
- * kolonlarda tutulur; tarih alanları ISO-8601 metni olarak saklanır.
+ * SEED verisi bir veritabanına bir kez yüklenir (`seedOnce`: tablo boş ve
+ * `seed:<tablo>` işareti yoksa; insert'ler upsert/ignoreDuplicates ile
+ * yarış-güvenli). Katalog (ürün, kategori, menü) üretimde hiç tohumlanmaz.
+ * İç-içe alanlar (variants, items, refunds, ...) JSONB kolonlarda tutulur;
+ * tarih alanları ISO-8601 metni olarak saklanır.
  */
 
 /**
@@ -155,7 +210,18 @@ export const NO_BACKDROP: Readonly<BackdropColumns> = {
   vessel: null,
 };
 
-export interface AdminProduct extends BackdropColumns {
+/**
+ * The label of a packaged food (src/lib/shop/food-label.ts,
+ * 20261019170200_product_food_label.sql). Optional: a row read before the
+ * migration ran has none of the keys, and every surface reads them through
+ * `foodLabelOf` / `normalizeMenuAllergens`.
+ */
+export interface ProductFoodLabel extends Partial<FoodLabelText> {
+  /** Ek-1 groups: null not entered, [] none of the fourteen. */
+  allergens?: MenuAllergen[] | null;
+}
+
+export interface AdminProduct extends BackdropColumns, ProductFoodLabel {
   id: string;
   name: string;
   slug: string;
@@ -163,8 +229,16 @@ export interface AdminProduct extends BackdropColumns {
   tag: string;
   /** Minor units (kuruş) - e.g. 32000 = 320,00 ₺ */
   priceMinor: number;
-  /** Optional "was" price for striked-out display. 0 = none. */
+  /**
+   * The price before a discount, struck out beside the sale price. 0 = none.
+   * Shown only between `discountStartsAt` and `discountEndsAt` and only
+   * above the sale price (`liveDiscount`, src/lib/shop/discount.ts); the
+   * save takes it only as the lowest price of the ten days before the start.
+   */
   compareAtPriceMinor: number;
+  /** The discount's first and last instant (UTC ISO), or null: no discount. */
+  discountStartsAt?: string | null;
+  discountEndsAt?: string | null;
   /** Internal cost (margin calc); not shown to customers. */
   costMinor: number;
   desc: string;
@@ -195,6 +269,12 @@ export interface AdminProduct extends BackdropColumns {
   lowStockThreshold: number;
   /** Approximate shipping weight in grams. */
   weightGrams: number;
+  /**
+   * The product's own KDV rate (whole %), or null: its category's default
+   * from `settings.taxRates`. Read through `productTaxRate()`. Optional
+   * because a row written before the column existed has no key.
+   */
+  taxRatePct?: number | null;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
@@ -242,6 +322,20 @@ export interface AdminOrderItem {
   size?: OrderItemSize;
   options?: Record<string, unknown>;
   detail?: string;
+  /**
+   * Units of this line already given back to stock (a refund's "stoğa geri
+   * al", or the release when the order was cancelled). Written by the SQL
+   * functions `release_order_inventory` / `restock_order_lines` only, so a
+   * line is never credited twice. Absent = none.
+   */
+  restockedQty?: number;
+  /**
+   * The KDV rate (whole %) this line was sold at, copied from the product or
+   * menu item when the order was placed, so a rate changed in the panel later
+   * never rewrites an old receipt. Absent on orders placed before
+   * 20261017150000_kdv_rates.sql: those show no KDV split.
+   */
+  taxRatePct?: number;
 }
 
 export type {
@@ -264,6 +358,17 @@ export interface AdminRefund {
   amountMinor: number;
   reason: string;
   createdAt: string;
+  /**
+   * Where the money went, as the server decided it (`orderMoney`): the card
+   * through the POS, the member's wallet, or nowhere (a record only, the
+   * cash was handed back at the counter). Absent on entries written before.
+   */
+  destination?: RefundDestination;
+  /**
+   * The refund modal's one-time token. `reserve_order_refund_once` refuses a
+   * second entry with the same token, so a double submit cannot refund twice.
+   */
+  token?: string;
 }
 
 /**
@@ -281,9 +386,37 @@ export interface OrderLegalConsent {
   documents: string[];
   /** Revision label of those documents (their "son güncelleme" date). */
   version: string;
+  /**
+   * The SHA-256 of each document's text exactly as shown, by slug (decision
+   * D-VERSIONS-TABLE, 21 Ekim 2026). The label names a day, the hash the
+   * text; the text itself is kept in `legal_doc_versions` under it and is
+   * what the confirmation mail attaches and the order page downloads
+   * (src/lib/legal/version-core.ts). Absent on orders placed before.
+   */
+  textHashes?: Record<string, string>;
+  /**
+   * The buyer's name and delivery address as the order was placed with
+   * them (`withBuyerSnapshot`), printed by the confirmed contract's copy.
+   * Absent on orders placed before 21 Ekim 2026.
+   */
+  buyer?: { name: string; address: string };
   /** Origin of the confirmation - evidence only. */
   ip?: string;
   userAgent?: string;
+}
+
+/**
+ * The name and address an order is placed with, kept in its consent
+ * (`legalConsent.buyer`, 21 Ekim 2026): the confirmed contract's copy
+ * prints these, so a staff correction of the order's row afterwards does
+ * not rewrite what the customer confirmed and was sent (ASK-OTH-2: the
+ * filled table is stored with the order). No consent, nothing to add.
+ */
+export function withBuyerSnapshot(
+  consent: OrderLegalConsent | undefined,
+  buyer: { name: string; address: string },
+): OrderLegalConsent | undefined {
+  return consent ? { ...consent, buyer } : consent;
 }
 
 export interface AdminOrder {
@@ -302,6 +435,13 @@ export interface AdminOrder {
   /** Promo code applied at checkout; empty when none. */
   promoCode: string;
   shippingMinor: number;
+  /**
+   * The shipping or courier fee's KDV rate when the order was written
+   * (`settings.taxRates.shipping`), its own line on the invoice. Null or
+   * absent on an order from before 18 Oct 2026, which reads as the legal
+   * 20% (`orderShippingTaxRate`, src/lib/utils/kdv.ts).
+   */
+  shippingTaxRatePct?: number | null;
   totalMinor: number;
   refunds: AdminRefund[];
   createdAt: string;
@@ -375,6 +515,14 @@ export interface AdminOrder {
    */
   tableCode?: string;
   tableName?: string;
+  /**
+   * What needs a human on this order (`OrderAttention`), '' when nothing:
+   * a payment the machine could not apply, or money still owed back after
+   * a cancel. Drives the list's "Dikkat" filter and the order page's banner.
+   */
+  attention?: string;
+  /** "manual" for an order typed into the panel, '' for every other. */
+  source?: string;
 }
 
 export {
@@ -404,8 +552,22 @@ export interface AdminSettings {
   /** Per-day open/close used by Visit page + footer table. */
   weeklyHours: WeeklyHours;
 
-  /** Tax (VAT) percentage applied to subtotals at checkout. */
-  taxRatePct: number;
+  /**
+   * KDV defaults per kind of sale (`settings."taxRates"`, jsonb), always
+   * normalised: a key the row lacks reads as the legal default. A product or
+   * menu item with its own rate overrides its default. Prices are
+   * KDV-included; these only split the KDV out (src/lib/utils/kdv.ts). The
+   * old single `"taxRatePct"` column is no longer read.
+   */
+  taxRates: TaxRates;
+
+  /**
+   * The day the cafe menu's prices started to apply, as the Istanbul
+   * calendar day "YYYY-MM-DD"; '' = not entered (src/lib/menu/price-list.ts).
+   * /menu and /masa/<kod> print it under the menu (Fiyat Etiketi Yön.
+   * m.5/2-d). Presentation only: no price is read from it.
+   */
+  menuPricesEffectiveDate: string;
 
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
@@ -452,6 +614,11 @@ export interface AdminSettings {
    * room takes. All in minor units except the capacity.
    */
   courierFeeMinor: number;
+  /**
+   * How long a pickup ("Gel-al") order takes to get ready, in minutes: the
+   * home page's order card says "Gel-al · N dk". Presentation only.
+   */
+  pickupReadyMinutes: number;
   karaokeHourlyMinor: number;
   karaokeCapacity: number;
   /**
@@ -466,6 +633,17 @@ export interface AdminSettings {
    * only: from the web, and from app builds that opt in (`prepay: true`).
    */
   karaokePrepay: boolean;
+  /**
+   * The karaoke cancellation policy (operator, 17 Eki 2026; Ayarlar >
+   * Karaoke): the free window in hours (0..72) and the share of the payment
+   * a cancel inside it refunds (0..100). A booking keeps the policy it was
+   * made under; a new one gets `effectiveKaraokeCancelPolicy`, which is the
+   * default (2 / 0) until the app can print any other (karaoke-time.ts).
+   * `karaokeCancelPolicyAt`: when the two last moved (ISO, '' = never).
+   */
+  karaokeFreeCancelHours: number;
+  karaokeLateRefundPercent: number;
+  karaokeCancelPolicyAt: string;
 
   /**
    * Everything else the app is configured with (/admin/mobil/ayarlar,
@@ -512,11 +690,71 @@ async function countRows(table: string): Promise<number> {
   return count ?? 0;
 }
 
+/**
+ * Sets a counter to at least `seq`, never lower (`raise_counter`, admin
+ * audit CAT-04). It used to write `seq` as is, so a seed run on an emptied
+ * table put the counter back to the seed's size and the next new row got the
+ * id of a deleted one, which old orders and stock moves still name.
+ */
 async function setCounter(id: string, seq: number): Promise<void> {
   const sb = getDb();
+  const { error, status } = await sb.rpc("raise_counter", {
+    counter_key: id,
+    floor_seq: seq,
+  });
+  if (error) raiseDbError(`setCounter(${id})`, error, status);
+}
+
+/** The `counters` row that says a table's seed has been decided. */
+function seedMarkerId(table: string): string {
+  return `seed:${table}`;
+}
+
+/**
+ * Whether the bundled catalogue (demo products, categories, the printed
+ * menu) may be written: never in a production build, Vercel previews
+ * included (decision D17). A live shop starts from what the operator enters;
+ * the demo products were sellable, at bundled prices, with stock 25.
+ */
+function catalogSeedAllowed(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
+/**
+ * Seeds `table` once per database (admin audit CAT-04, CON-01, D17). It used
+ * to seed whenever the table was empty, once per server instance, so deleting
+ * the last row brought the bundled rows back on the next cold start. Now the
+ * first decision is written as a marker (`seed:<table>` in `counters`, and
+ * 20261017200100_seed_markers.sql wrote them for every database already in
+ * use): with it, an empty table stays empty. `allowed: false` writes the
+ * marker without seeding.
+ */
+async function seedOnce(
+  table: string,
+  write: () => Promise<void>,
+  { allowed = true }: { allowed?: boolean } = {},
+): Promise<void> {
+  if ((await countRows(table)) > 0) return;
+  const sb = getDb();
+  const marker = seedMarkerId(table);
+  const decided = one<{ id: string }>(
+    await sb
+      .from(TABLES.counters)
+      .select("id")
+      .eq("id", marker)
+      .maybeSingle(),
+    `seedOnce.marker(${table})`,
+  );
+  if (decided) return;
+  if (allowed) await write();
   check(
-    await sb.from(TABLES.counters).upsert({ id, seq }, { onConflict: "id" }),
-    `setCounter(${id})`,
+    await sb
+      .from(TABLES.counters)
+      .upsert(
+        { id: marker, seq: 1 },
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+    `seedOnce.mark(${table})`,
   );
 }
 
@@ -562,16 +800,7 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-function deriveSku(name: string, n: number): string {
-  const prefix = name
-    .replace(/[^A-Za-z0-9]+/g, "")
-    .slice(0, 4)
-    .toUpperCase()
-    .padEnd(4, "X");
-  return `${prefix}-${String(n).padStart(5, "0")}`;
-}
-
-// ─── Seed (idempotent - yalnızca tablo boşsa çalışır) ─────────────────────
+// ─── Seed (bir veritabanına bir kez - seedOnce) ────────────────────────────
 
 function defaultWeeklyHours(): WeeklyHours {
   // Every day 09:00-02:00. The close time is EARLIER than the open time
@@ -603,7 +832,10 @@ function defaultSettings(): AdminSettings {
     isShopOpen: true,
     heroImageUrl: "",
     weeklyHours: defaultWeeklyHours(),
-    taxRatePct: 20,
+    taxRates: { ...LEGAL_TAX_RATES },
+    // 20261018210200_menu_prices_effective_date.sql gives the column the
+    // same default: not entered until the operator says the day.
+    menuPricesEffectiveDate: "",
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
@@ -619,13 +851,24 @@ function defaultSettings(): AdminSettings {
     emailFromAddress: "",
     emailReplyTo: "",
     courierFeeMinor: 5500,
+    // 20261017173100_pickup_ready_minutes.sql gives the column the same
+    // default: the 15 the home page's card always said.
+    pickupReadyMinutes: 15,
     // ₺1.000 an hour (operator, 26 Eyl 2026); the live row is set by
     // 20260926090000_karaoke_price_and_notify.sql.
     karaokeHourlyMinor: 100000,
     karaokeCapacity: 8,
-    karaokeNotifyEmail: "bizimfutbol9@gmail.com",
+    // Empty: alerts go to the contact address, the company's own mailbox in
+    // Türkiye. Never a personal inbox abroad (KVKK m.9; the Gmail address the
+    // 26 Eyl migration wrote is cleared by 20261019160000).
+    karaokeNotifyEmail: "",
     // 20261016063311_karaoke_prepay.sql gives the column the same default.
     karaokePrepay: true,
+    // 20261018130000_karaoke_cancel_policy.sql gives the columns the same
+    // defaults: the rule before the panel had one.
+    karaokeFreeCancelHours: 2,
+    karaokeLateRefundPercent: 0,
+    karaokeCancelPolicyAt: "",
     // A fresh copy: the constant is frozen and callers may edit sections.
     mobileApp: normalizeMobileAppConfig(DEFAULT_MOBILE_APP_CONFIG),
   };
@@ -636,7 +879,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
     const sb = getDb();
     const now = new Date().toISOString();
 
-    if ((await countRows(TABLES.products)) === 0) {
+    const catalog = { allowed: catalogSeedAllowed() };
+
+    await seedOnce(TABLES.products, async () => {
       const seeded: AdminProduct[] = SEED_PRODUCTS.map((p, i) => ({
         id: slugifyId("prd", i + 1),
         name: p.name,
@@ -653,9 +898,18 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         // The seed marks the one product that carries an allergen (the
         // pistachio biscotti); `/admin/urunler` marks the rest.
         tags: p.tags ? [...p.tags] : [],
+        // Null: the category's default. The seed sets it only where that
+        // default is wrong (the edible cup box is food under "gift").
+        taxRatePct: typeof p.taxRatePct === "number" ? p.taxRatePct : null,
         // Filled per product in /admin/urunler; empty draws nothing new.
         brand: "",
         notes: [],
+        // The label is copied from the pack in /admin/urunler; nothing is
+        // guessed, so a food page asks the customer to write until then.
+        allergens: null,
+        ...EMPTY_FOOD_LABEL,
+        discountStartsAt: null,
+        discountEndsAt: null,
         // No photo yet, so no scene pick and no cutout.
         ...NO_BACKDROP,
         stock: 25,
@@ -678,9 +932,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("prd", seeded.length);
       }
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.categories)) === 0) {
+    await seedOnce(TABLES.categories, async () => {
       const seededCats: AdminCategory[] = [
         {
           id: slugifyId("cat", 1),
@@ -725,9 +979,9 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         "seed.categories",
       );
       await setCounter("cat", seededCats.length);
-    }
+    }, catalog);
 
-    if ((await countRows(TABLES.menuItems)) === 0) {
+    await seedOnce(TABLES.menuItems, async () => {
       let counter = 0;
       const seededMenu: AdminMenuItem[] = MENU_CATEGORY_KEYS.flatMap((key) =>
         SEED_MENU[key].items.map((it, idx) => {
@@ -760,8 +1014,10 @@ const ensureSeed = memoizeUntilRejected(async (): Promise<void> => {
         );
         await setCounter("mnu", counter);
       }
-    }
+    }, catalog);
 
+    // The one settings row is not a seed that can be emptied: every page
+    // needs it, so it is written whenever it is missing.
     if ((await countRows(TABLES.settings)) === 0) {
       check(
         await sb
@@ -907,18 +1163,95 @@ export async function getProduct(id: string): Promise<AdminProduct | null> {
 }
 
 /**
+ * The columns the panel's product lists read (Ürünler, Kategoriler, Stok):
+ * no photos, no description, no cost, no SEO. A stored upload is a data URL
+ * of up to 2 MB, eight per product, and the lists handed every one of them
+ * to a client component, so a phone loaded megabytes per visit, and the Stok
+ * page gave Personel the cost of every product (admin audit CAT-07, CAT-08).
+ */
+export type ProductPanelView = Pick<
+  AdminProduct,
+  | "id"
+  | "name"
+  | "slug"
+  | "sku"
+  | "tag"
+  | "cat"
+  | "priceMinor"
+  | "compareAtPriceMinor"
+  | "discountStartsAt"
+  | "discountEndsAt"
+  | "stock"
+  | "lowStockThreshold"
+  | "featured"
+  | "isNew"
+  | "isActive"
+  | "variants"
+  | "updatedAt"
+>;
+
+export async function listProductsForPanel(): Promise<ProductPanelView[]> {
+  await ensureSeed();
+  const sb = getDb();
+  return rows<ProductPanelView>(
+    await sb
+      .from(TABLES.products)
+      .select(
+        "id, name, slug, sku, tag, cat, priceMinor, compareAtPriceMinor, discountStartsAt, discountEndsAt, stock, lowStockThreshold, featured, isNew, isActive, variants, updatedAt",
+      )
+      .order("updatedAt", { ascending: false }),
+    "listProductsForPanel",
+  );
+}
+
+/**
+ * Each listed product's first photo as a served URL (`/gorsel/urun/<id>/0`
+ * with its content stamp, or the pasted https:// address), keyed by id; a
+ * product without a photo is left out. For one page of a list, so only
+ * those rows' photos are read.
+ */
+export async function listProductThumbs(
+  ids: readonly string[],
+): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  const sb = getDb();
+  const found = rows<{ id: string; images: string[] | null }>(
+    await sb.from(TABLES.products).select("id, images").in("id", ids),
+    "listProductThumbs",
+  );
+  const out: Record<string, string> = {};
+  for (const p of found) {
+    const first = Array.isArray(p.images) ? p.images[0] : undefined;
+    if (first) {
+      out[p.id] = servedImage(
+        first,
+        productImagePath(p.id, 0, imageVersion(first)),
+      );
+    }
+  }
+  return out;
+}
+
+/**
  * What the product wizard saves. The scene columns are part of it: the save
  * action computes them from the first photo and the form's "Sahne" and "Kap
  * biçimi" fields (`src/lib/backdrop/scene.ts`), and `updateProduct` writes
  * them over the stored ones like every other field.
  */
-export interface ProductInput extends BackdropColumns {
+export interface ProductInput extends BackdropColumns, ProductFoodLabel {
   name: string;
   slug: string;
   sku: string;
   tag: string;
   priceMinor: number;
   compareAtPriceMinor: number;
+  /**
+   * The discount's Istanbul days ("YYYY-MM-DD") as the form posts them, or
+   * null. The store turns them into `discountStartsAt` / `discountEndsAt`
+   * once the price history has allowed the compare-at price.
+   */
+  discountStartsOn?: string | null;
+  discountEndsOn?: string | null;
   costMinor: number;
   desc: string;
   cat: ShopCategoryId;
@@ -930,12 +1263,83 @@ export interface ProductInput extends BackdropColumns {
   stock: number;
   lowStockThreshold: number;
   weightGrams: number;
+  /** Own KDV rate, or null for the category default. Absent keeps the stored one. */
+  taxRatePct?: number | null;
   featured: boolean;
   isNew: boolean;
   isActive: boolean;
   seoTitle: string;
   seoDescription: string;
-  variants: AdminProductVariant[];
+  variants: ProductVariantInput[];
+  /**
+   * The product's stock when the form was opened (admin audit CAT-03). An
+   * edit moves the stock by `stock - stockAtOpen`, never to `stock`: an
+   * order taken while the form was open keeps its decrement. Absent or null
+   * (a new product, a form from before this field) leaves the stock alone.
+   * Read only for a product without variants; with variants the total
+   * follows them.
+   */
+  stockAtOpen?: number | null;
+  /**
+   * The opened form's own token (admin audit CAT-03). The same form saved
+   * again, after an answer that never arrived, does not move the stock
+   * twice: the save takes off what this token already applied
+   * (`product_form_saves`). Absent or null: every save is a change of its
+   * own, as for a form from before this field.
+   */
+  saveToken?: string | null;
+  /**
+   * Sets the total of a product with variants to the stock of its active
+   * variants (admin audit CAT-14). The total moves by deltas, so a unit sold
+   * without a variant and then corrected on a variant on Stok takes it down
+   * twice; the operator who counted the shelf ticks this in the form, the
+   * only way to set it.
+   */
+  stockFromVariants?: boolean;
+}
+
+/** A variant as the product form posts it: the stored shape plus its snapshot. */
+export interface ProductVariantInput extends AdminProductVariant {
+  /** This variant's stock when the form was opened; null for a new row. */
+  stockAtOpen?: number | null;
+}
+
+/**
+ * Why a product save was refused after its other fields were written: a
+ * stock change typed in the form would take a count below zero (orders were
+ * taken while it was open), or a variant would sell under 1 kuruş. Price,
+ * variants and stock are then unchanged. `stockNow` is what is stored now,
+ * less what this form's earlier saves moved, so the form can measure the
+ * next change from it.
+ */
+export interface ProductStockRefusal {
+  refusal: {
+    field: "stock" | "variants";
+    message: string;
+    stockNow: { stock: number; variants: Record<string, number> };
+  };
+}
+
+/** The stock of each variant in a stored list, by id. */
+function variantStockMap(list: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!Array.isArray(list)) return out;
+  for (const v of list as Array<Partial<AdminProductVariant>>) {
+    if (typeof v?.id === "string") out[v.id] = Number(v.stock) || 0;
+  }
+  return out;
+}
+
+/** The stored variant shape, without the form's snapshot. */
+function storedVariant(v: ProductVariantInput): AdminProductVariant {
+  return {
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    stock: v.stock,
+    sku: v.sku,
+    isActive: v.isActive,
+  };
 }
 
 async function uniqueSlug(
@@ -969,42 +1373,417 @@ export async function createProduct(
     input.slug || slugify(input.name) || `urun-${seq}`,
   );
   const sku = input.sku || deriveSku(input.name, seq);
+  const {
+    stockAtOpen: _snapshot,
+    saveToken: _token,
+    stockFromVariants: _reset,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
+    ...fields
+  } = input;
+  const variants = fields.variants.map(storedVariant);
   const product: AdminProduct = {
     ...NO_BACKDROP,
-    ...input,
+    ...fields,
+    ...foodLabelOf(fields),
+    allergens:
+      fields.allergens === undefined
+        ? null
+        : normalizeMenuAllergens(fields.allergens),
+    // A new product has no price history, so no price before a discount
+    // can be shown for it (Ticari Reklam Yön. m.14/3): the action refuses
+    // a compare-at price first, and the row never carries one.
+    compareAtPriceMinor: 0,
+    discountStartsAt: null,
+    discountEndsAt: null,
     id,
     slug,
     sku,
+    variants,
+    // With variants the total is theirs (admin audit CAT-14): a total left
+    // at 0 beside stocked variants read "Stoksuz" and failed at the claim.
+    stock: variants.length > 0 ? variantStockTotal(variants) : fields.stock,
     updatedAt: new Date().toISOString(),
   };
   check(await sb.from(TABLES.products).insert(product), "createProduct");
   return product;
 }
 
+/** What this form's earlier saves moved, as save_product_variants keeps it. */
+interface FormSaveApplied {
+  stock?: number;
+  variants?: Record<string, number>;
+}
+
+/** What save_product_variants answers (see its migration). */
+type SaveVariantsAnswer =
+  | { error: "product" }
+  | {
+      error: "floor";
+      variant: string;
+      stock?: number;
+      variants?: unknown;
+      applied?: FormSaveApplied;
+    }
+  | {
+      error: "negative";
+      variant?: string;
+      variantId?: string;
+      stock: number;
+      variants: unknown;
+      applied?: FormSaveApplied;
+    }
+  | {
+      error?: undefined;
+      stockBefore: number;
+      stockAfter: number;
+      variants: AdminProductVariant[];
+      moves: number;
+    };
+
+/** The note on the stock moves a product form save writes. */
+export const PRODUCT_FORM_STOCK_NOTE = "Ürün formu";
+
+/**
+ * The counts a refused form measures its next change from: the stored ones
+ * less what the same form's earlier saves already moved. A form whose
+ * answer was lost moved the stock once; measured from the stored count, its
+ * next save would move it again.
+ */
+function formStockBasis(
+  stored: { stock: number; variants: unknown },
+  applied: FormSaveApplied | undefined,
+): { stock: number; variants: Record<string, number> } {
+  const moved = applied?.variants ?? {};
+  const variants = variantStockMap(stored.variants);
+  let stock = (Number(stored.stock) || 0) - (Number(applied?.stock) || 0);
+  if (Array.isArray(stored.variants)) {
+    for (const v of stored.variants as Array<Partial<AdminProductVariant>>) {
+      if (typeof v?.id !== "string") continue;
+      const by = Number(moved[v.id]) || 0;
+      variants[v.id] -= by;
+      // The total moved with an active variant.
+      if (v.isActive === true) stock -= by;
+    }
+  }
+  return { stock, variants };
+}
+
+/**
+ * Why a product save was refused before anything was written: the
+ * compare-at price or its days (src/lib/shop/discount.ts). Answered under
+ * `field`.
+ */
+export interface ProductDiscountRefusal {
+  discountRefusal: { field: string; message: string };
+}
+
+/** The product's online price history, oldest first (Ticari Reklam Yön. m.14/3, m.14/5). */
+export async function listProductPriceHistory(
+  productId: string,
+): Promise<PricePoint[]> {
+  const sb = getDb();
+  return rows<PricePoint>(
+    await sb
+      .from(TABLES.productPriceHistory)
+      .select("priceMinor, startedAt")
+      .eq("productId", productId)
+      .order("startedAt", { ascending: true }),
+    "listProductPriceHistory",
+  );
+}
+
 export async function updateProduct(
   id: string,
   input: ProductInput,
-): Promise<AdminProduct | null> {
+  { actor = "system" }: { actor?: string } = {},
+): Promise<
+  AdminProduct | ProductStockRefusal | ProductDiscountRefusal | null
+> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getProduct(id);
   if (!existing) return null;
+  // The compare-at price is checked before anything is written: it must be
+  // the lowest online price of the ten days before its start, so the
+  // history decides, and a refusal leaves the whole row as stored. An
+  // ended discount the form sends back unchanged is cleared, not refused.
+  const now = new Date();
+  const posted = withoutEndedDiscount(
+    {
+      compareAtPriceMinor: input.compareAtPriceMinor,
+      startDay: input.discountStartsOn ?? null,
+      endDay: input.discountEndsOn ?? null,
+    },
+    existing,
+    now,
+  );
+  const discount = discountRefusal({
+    priceMinor: input.priceMinor,
+    ...posted,
+    hasPricedVariants: input.variants.some(
+      (v) => v.isActive && v.priceDeltaMinor !== 0,
+    ),
+    history:
+      posted.compareAtPriceMinor > 0 ? await listProductPriceHistory(id) : [],
+    stored: existing,
+    now,
+  });
+  if (discount) return { discountRefusal: discount };
+  // The discount was checked against this save's price, so it is written
+  // with the price, after it: a save whose price and stock are refused
+  // below (orders came in) keeps the stored discount, never a compare-at
+  // price and a start day beside a price they were not checked against.
+  // Ending one is written at once: dropping a badge misleads no one.
+  const discountColumns = {
+    compareAtPriceMinor: posted.compareAtPriceMinor,
+    ...discountInstants(
+      posted.compareAtPriceMinor,
+      posted.startDay,
+      posted.endDay,
+    ),
+  };
+  const discountLater = posted.compareAtPriceMinor > 0;
   const slug = await uniqueSlug(
     input.slug || slugify(input.name) || existing.slug,
     id,
   );
-  const next: AdminProduct = {
-    ...existing,
-    ...input,
+  const {
+    stock: _stock,
+    variants: _variants,
+    priceMinor: _price,
+    stockAtOpen,
+    saveToken,
+    stockFromVariants,
+    discountStartsOn: _start,
+    discountEndsOn: _end,
+    compareAtPriceMinor: _compare,
+    ...rest
+  } = input;
+  const fields = {
+    ...rest,
+    ...(discountLater ? {} : discountColumns),
+    // Only the label fields the form sent: an absent one keeps the stored
+    // text, like `taxRatePct` below.
+    ...Object.fromEntries(
+      Object.entries(foodLabelOf(input)).filter(
+        ([key]) => (input as unknown as Record<string, unknown>)[key] !== undefined,
+      ),
+    ),
+    ...(input.allergens === undefined
+      ? {}
+      : { allergens: normalizeMenuAllergens(input.allergens) }),
     slug,
-    sku: input.sku || existing.sku,
+    // An empty field keeps the stored code; a product that never had one
+    // gets the one its name and id imply (the wizard no longer prefills it).
+    sku:
+      input.sku ||
+      existing.sku ||
+      deriveSku(input.name, Number(id.replace(/\D/g, "")) || 0),
     updatedAt: new Date().toISOString(),
   };
-  check(
-    await sb.from(TABLES.products).update(next).eq("id", id),
+  // Everything but price, variants and stock first. Those three are written
+  // together below, under the row lock, and only as changes since the form
+  // was opened (admin audit CAT-03): the form used to write the stock it had
+  // read when it opened over every order taken since. A save of the same
+  // form sent again (its answer lost after the write) moves the stock once:
+  // the form's token tells the SQL what it already applied. An absent key
+  // (taxRatePct) keeps the stored value.
+  const patch = Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined),
+  );
+  const written = rows<{ id: string }>(
+    await sb.from(TABLES.products).update(patch).eq("id", id).select("id"),
     "updateProduct",
   );
-  return next;
+  if (written.length === 0) return null;
+
+  const variants = input.variants.map((v) => ({
+    id: v.id,
+    name: v.name,
+    priceDeltaMinor: v.priceDeltaMinor,
+    sku: v.sku,
+    isActive: v.isActive,
+    // A stored variant moves by what was typed since the form opened; one
+    // without a snapshot (a new row, an old form) keeps the stored count.
+    stockDelta:
+      typeof v.stockAtOpen === "number" ? v.stock - v.stockAtOpen : 0,
+    initialStock: v.stock,
+  }));
+  const stockDelta =
+    variants.length === 0 && typeof stockAtOpen === "number"
+      ? input.stock - stockAtOpen
+      : 0;
+  const res = await sb.rpc("save_product_variants", {
+    p_product_id: id,
+    p_price_minor: input.priceMinor,
+    p_variants: variants,
+    p_stock_delta: stockDelta,
+    p_note: PRODUCT_FORM_STOCK_NOTE,
+    p_actor: actor,
+    p_now: fields.updatedAt,
+    p_save_token: saveToken ?? null,
+    p_total_from_variants: stockFromVariants === true,
+  });
+  if (res.error) raiseDbError("updateProduct.stock", res.error, res.status);
+  const answer = res.data as SaveVariantsAnswer;
+  if (answer.error === "product") return null;
+  if (answer.error === "floor") {
+    // productFormSchema refuses this first (variantFloorError); the SQL
+    // check holds the floor for any other caller.
+    return {
+      refusal: {
+        field: "variants",
+        message: `"${answer.variant}" varyantının fiyatı (satış fiyatı + fark) en az 0,01 TL olmalı.`,
+        stockNow: formStockBasis(
+          answer.stock === undefined
+            ? existing
+            : { stock: answer.stock, variants: answer.variants },
+          answer.applied,
+        ),
+      },
+    };
+  }
+  if (answer.error === "negative") {
+    // The message names the count as it stands; the form gets the basis.
+    const stored = {
+      stock: Number(answer.stock) || 0,
+      variants: variantStockMap(answer.variants),
+    };
+    const stockNow = formStockBasis(answer, answer.applied);
+    const name = answer.variant;
+    const now =
+      name && answer.variantId !== undefined
+        ? (stored.variants[answer.variantId] ?? 0)
+        : stored.stock;
+    return {
+      refusal: {
+        field: name ? "variants" : "stock",
+        message: name
+          ? `"${name}" stoğu bu arada değişti, şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`
+          : `Bu arada satış oldu, stok şu an ${now} adet. Adedi kontrol edip yeniden kaydet.`,
+        stockNow,
+      },
+    };
+  }
+  if (discountLater) {
+    const kept = rows<{ id: string }>(
+      await sb
+        .from(TABLES.products)
+        .update(discountColumns)
+        .eq("id", id)
+        .select("id"),
+      "updateProduct.discount",
+    );
+    if (kept.length === 0) return null;
+  }
+  return {
+    ...existing,
+    ...(patch as Partial<AdminProduct>),
+    ...discountColumns,
+    priceMinor: input.priceMinor,
+    stock: answer.stockAfter,
+    variants: answer.variants,
+  };
+}
+
+/** Id, name and SKU of the given products: what an audit row names. */
+export async function listProductLabels(
+  ids: readonly string[],
+): Promise<Array<{ id: string; name: string; sku: string }>> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  const sb = getDb();
+  return rows<{ id: string; name: string; sku: string }>(
+    await sb.from(TABLES.products).select("id, name, sku").in("id", ids),
+    "listProductLabels",
+  );
+}
+
+/**
+ * The columns the CSV import reads and may change, for every product: no
+ * photos (a stored upload is a data URL of up to 2 MB), no SEO, no cost.
+ * Variants come along because a new price must keep every variant at 1
+ * kuruş or more.
+ */
+export type ProductImportView = Pick<
+  AdminProduct,
+  | "id"
+  | "name"
+  | "slug"
+  | "sku"
+  | "tag"
+  | "desc"
+  | "cat"
+  | "img"
+  | "priceMinor"
+  | "compareAtPriceMinor"
+  | "stock"
+  | "taxRatePct"
+  | "isActive"
+  | "brand"
+  | "weightGrams"
+  | "variants"
+>;
+
+export async function listProductsForImport(): Promise<ProductImportView[]> {
+  await ensureSeed();
+  const sb = getDb();
+  return rows<ProductImportView>(
+    await sb
+      .from(TABLES.products)
+      .select(
+        "id, name, slug, sku, tag, desc, cat, img, priceMinor, compareAtPriceMinor, stock, taxRatePct, isActive, brand, weightGrams, variants",
+      )
+      .order("id", { ascending: true }),
+    "listProductsForImport",
+  );
+}
+
+/** The fields the CSV import writes on an existing product. Never `stock`. */
+export type ProductImportPatch = Partial<
+  Pick<
+    AdminProduct,
+    | "name"
+    | "tag"
+    | "desc"
+    | "cat"
+    | "priceMinor"
+    | "compareAtPriceMinor"
+    | "taxRatePct"
+    | "isActive"
+    | "brand"
+    | "weightGrams"
+    | "discountStartsAt"
+    | "discountEndsAt"
+  >
+> &
+  Partial<BackdropColumns>;
+
+/**
+ * Writes only the given columns of one product, or answers null when the
+ * row is gone. Stock is not among them on purpose: the import moves stock
+ * by a delta through `adjustStock`, which records a stock move, so an order
+ * taken in the meantime is not overwritten.
+ */
+export async function patchProductFromImport(
+  id: string,
+  patch: ProductImportPatch,
+): Promise<{ id: string } | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const { stock: _ignored, ...safe } = patch as ProductImportPatch & {
+    stock?: unknown;
+  };
+  const updated = rows<{ id: string }>(
+    await sb
+      .from(TABLES.products)
+      .update({ ...safe, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("id"),
+    "patchProductFromImport",
+  );
+  return updated[0] ?? null;
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
@@ -1123,22 +1902,63 @@ async function recordStockMove(
   return move;
 }
 
-export async function listStockMoves(filter?: {
+/**
+ * Which stock moves a ledger view holds. `fromIso` / `beforeIso` are UTC
+ * instants (an Istanbul day's start, `istanbulDayStartIso`): `createdAt` is
+ * stored as UTC ISO text, so comparing strings is chronological.
+ */
+export interface StockMoveFilter {
   productId?: string;
   reason?: StockMoveReason;
-  limit?: number;
-}): Promise<AdminStockMove[]> {
+  fromIso?: string;
+  beforeIso?: string;
+}
+
+function filterStockMoves<
+  Q extends {
+    eq(column: string, value: unknown): Q;
+    gte(column: string, value: unknown): Q;
+    lt(column: string, value: unknown): Q;
+  },
+>(q: Q, filter: StockMoveFilter | undefined): Q {
+  let out = q;
+  if (filter?.productId) out = out.eq("productId", filter.productId);
+  if (filter?.reason) out = out.eq("reason", filter.reason);
+  if (filter?.fromIso) out = out.gte("createdAt", filter.fromIso);
+  if (filter?.beforeIso) out = out.lt("createdAt", filter.beforeIso);
+  return out;
+}
+
+/**
+ * Newest first. `limit` (default 500) and `offset` page through the whole
+ * ledger: the Stok page used to stop at the newest 500 moves without saying
+ * so (admin audit CAT-16).
+ */
+export async function listStockMoves(
+  filter?: StockMoveFilter & { limit?: number; offset?: number },
+): Promise<AdminStockMove[]> {
   await ensureSeed();
   const sb = getDb();
-  let q = sb.from(TABLES.stockMoves).select("*");
-  if (filter?.productId) q = q.eq("productId", filter.productId);
-  if (filter?.reason) q = q.eq("reason", filter.reason);
-  return rows<AdminStockMove>(
-    await q
-      .order("createdAt", { ascending: false })
-      .limit(filter?.limit ?? 500),
-    "listStockMoves",
+  let q = filterStockMoves(sb.from(TABLES.stockMoves).select("*"), filter)
+    .order("createdAt", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(filter?.limit ?? 500);
+  if (filter?.offset) q = q.offset(filter.offset);
+  return rows<AdminStockMove>(await q, "listStockMoves");
+}
+
+/** How many moves the same filter holds, for the ledger's count and pages. */
+export async function countStockMoves(
+  filter?: StockMoveFilter,
+): Promise<number> {
+  await ensureSeed();
+  const sb = getDb();
+  const { count, error, status } = await filterStockMoves(
+    sb.from(TABLES.stockMoves).select("*", { count: "exact", head: true }),
+    filter,
   );
+  if (error) raiseDbError("countStockMoves", error, status);
+  return count ?? 0;
 }
 
 export interface AdjustStockInput {
@@ -1176,6 +1996,8 @@ export async function adjustStock(
   if (error) return { ok: false, error: error.message };
   const next = typeof data === "number" ? data : Number(data);
   if (next === -1) return { ok: false, error: "Ürün bulunamadı." };
+  // A product with variants: its total follows them (admin audit CAT-14).
+  if (next === -3) return { ok: false, error: VARIANT_PRODUCT_STOCK_ERROR };
   if (next === -2) {
     // Re-read so the message names the stock as it actually stands now.
     const fresh = await getProduct(input.productId);
@@ -1198,6 +2020,76 @@ export async function adjustStock(
     ok: true,
     move,
     product: { ...product, stock: next, updatedAt },
+  };
+}
+
+/** Why a product with variants is not adjusted as a whole. */
+export const VARIANT_PRODUCT_STOCK_ERROR =
+  "Bu ürünün varyantları var: listeden varyantı seç.";
+
+export interface AdjustVariantStockInput extends AdjustStockInput {
+  variantId: string;
+}
+
+export type AdjustVariantStockResult =
+  | {
+      ok: true;
+      /** "Ürün · Varyant", as the stock move and the order line name it. */
+      label: string;
+      /** The variant's stock after the change. */
+      variantStock: number;
+      /** The product's total after the change. */
+      stock: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * The Stok screen's correction of one variant (admin audit CAT-14, D16).
+ * `adjust_variant_stock` moves the variant and, when it is active, the
+ * product's total by the same delta, and writes the stock move, all under
+ * the row lock the order claim takes.
+ */
+export async function adjustVariantStock(
+  input: AdjustVariantStockInput,
+): Promise<AdjustVariantStockResult> {
+  await ensureSeed();
+  if (!Number.isInteger(input.delta) || input.delta === 0) {
+    return { ok: false, error: "Geçerli bir değer gir (0 olamaz)." };
+  }
+  const sb = getDb();
+  const { data, error, status } = await sb.rpc("adjust_variant_stock", {
+    p_product_id: input.productId,
+    p_variant_id: input.variantId,
+    p_delta: input.delta,
+    p_note: input.note.trim().slice(0, 500),
+    p_actor: input.actor,
+    p_now: new Date().toISOString(),
+  });
+  if (error) raiseDbError("adjustVariantStock", error, status);
+  const answer = (data ?? {}) as {
+    error?: "product" | "variant" | "negative";
+    variantStock?: number;
+    stock?: number;
+    productName?: string;
+    variantName?: string;
+  };
+  if (answer.error === "product") {
+    return { ok: false, error: "Ürün bulunamadı." };
+  }
+  if (answer.error === "variant") {
+    return { ok: false, error: "Varyant bulunamadı; sayfayı yenile." };
+  }
+  if (answer.error === "negative") {
+    return {
+      ok: false,
+      error: `Stok eksiye düşemez (mevcut: ${Number(answer.variantStock) || 0}).`,
+    };
+  }
+  return {
+    ok: true,
+    label: `${answer.productName ?? ""} · ${answer.variantName ?? ""}`,
+    variantStock: Number(answer.variantStock) || 0,
+    stock: Number(answer.stock) || 0,
   };
 }
 
@@ -1268,17 +2160,30 @@ export async function deleteCategory(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/**
+ * Puts a just-deleted category back, id and all. For the panel's delete when
+ * its after-check finds products left without a category (a twin deleted in
+ * the same moment, or products moved in after the first check).
+ */
+export async function restoreCategory(category: AdminCategory): Promise<void> {
+  const sb = getDb();
+  check(
+    await sb.from(TABLES.categories).insert({
+      id: category.id,
+      slug: category.slug,
+      label: category.label,
+      icon: category.icon,
+      sortOrder: category.sortOrder,
+    }),
+    "restoreCategory",
+  );
+}
+
 // ─── Orders ───────────────────────────────────────────────────────────────
 
-/** The statuses a shift still owes work on. Same set the dashboard counts. */
-const OPEN_ORDER_STATUSES: AdminOrderStatus[] = [
-  "pending_payment",
-  "paid",
-  "preparing",
-];
-
 /**
- * How many orders are still waiting on the counter.
+ * How many orders are still open: the sidebar badge, the same number the
+ * "Açık" tab shows (`OPEN_ORDER_STATUSES`, lib/admin/order-filters.ts).
  *
  * A `head: true` count, not `listOrders().filter(...)`: the sidebar asks for
  * this every minute on every admin page, and paging every order row through
@@ -1290,7 +2195,7 @@ export async function countOpenOrders(): Promise<number> {
   const { count, error, status } = await sb
     .from(TABLES.orders)
     .select("*", { count: "exact", head: true })
-    .in("status", OPEN_ORDER_STATUSES);
+    .in("status", [...OPEN_ORDER_STATUSES]);
   if (error) raiseDbError("countOpenOrders", error, status);
   return count ?? 0;
 }
@@ -1304,24 +2209,66 @@ export async function countOpenOrders(): Promise<number> {
  * for a non-finite argument rather than a count of everything: a broken
  * client must not make the panel shout.
  */
-export async function countOrdersAfter(orderNo: number): Promise<number> {
+export async function countOrdersAfter(
+  orderNo: number,
+  /** Only these statuses (the "Açık" tab's poll); every order when omitted. */
+  statuses?: readonly AdminOrderStatus[],
+  /**
+   * Only this kind. The list asks for shop orders alone when the panel-wide
+   * new-order alert is mounted: that alert already rings for cafe orders.
+   */
+  kind?: OrderKind,
+): Promise<number> {
   if (!Number.isFinite(orderNo)) return 0;
   const sb = getDb();
-  const { count, error, status } = await sb
+  let q = sb
     .from(TABLES.orders)
     // `gte(n + 1)`, not `gt(n)`: the builder has no `gt`, and the sequence is
     // an integer so the two are the same predicate.
     .select("*", { count: "exact", head: true })
     .gte("orderNo", Math.trunc(orderNo) + 1);
+  if (statuses) q = q.in("status", [...statuses]);
+  if (kind) q = q.eq("kind", kind);
+  const { count, error, status } = await q;
   if (error) raiseDbError("countOrdersAfter", error, status);
   return count ?? 0;
+}
+
+/**
+ * The cafe orders the panel's new-order alert may ring for
+ * (order-alerts-core.ts `ringsForOrder`, which the route applies again):
+ * paid and not moved on, not typed into the panel, paid since `paidSince`
+ * (ISO text, so the comparison is chronological). Every open panel asks
+ * this every ten seconds, so it reads only the columns the counter card
+ * shows - no name, e-mail, phone or address leaves the database - and lets
+ * the `status` index find the handful of paid rows.
+ */
+export async function listOrderAlertRows(
+  paidSince: string,
+  limit: number,
+): Promise<OrderAlertRow[]> {
+  const sb = getDb();
+  return rows<OrderAlertRow>(
+    await sb
+      .from(TABLES.orders)
+      .select(
+        "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, paidAt, totalMinor, items",
+      )
+      .eq("status", "paid")
+      .eq("kind", "cafe")
+      .neq("source", "manual")
+      .gte("paidAt", paidSince)
+      .order("paidAt", { ascending: false })
+      .limit(Math.max(1, Math.min(100, Math.trunc(limit)))),
+    "listOrderAlertRows",
+  );
 }
 
 // There is deliberately no "every order, every column" reader any more (WP1).
 // `listOrders()` had five callers and each one wanted a page, five rows or a
 // few columns; reading the whole table with its jsonb was 596 ms and 27 MB
 // per call at 20k orders. Read what the screen needs: `listRecentOrders`,
-// `listOrdersPage`, or a projection like `reportOrders` below.
+// `listOrdersFiltered`, or a projection like `reportOrders` below.
 
 /**
  * The newest `limit` orders, whole rows.
@@ -1344,59 +2291,139 @@ export async function listRecentOrders(limit: number): Promise<AdminOrder[]> {
   );
 }
 
-/** How many orders `/admin/siparisler` shows per page. */
-export const ORDERS_PAGE_SIZE = 100;
+/** What the order list filters on (lib/admin/order-filters.ts). */
+export type { OrderListQuery };
 
-export interface OrdersPage {
-  orders: AdminOrder[];
-  /** Every order in the table, for the "N sipariş" line. */
-  total: number;
-  /**
-   * The `orderNo` to pass as `before` for the next (older) page, or null when
-   * this page reached the oldest order.
-   */
-  nextBefore: number | null;
+/** The filter methods the order list's queries use, for `withOrderQuery`. */
+interface OrderFilterable<Q> {
+  eq(column: string, value: unknown): Q;
+  neq(column: string, value: unknown): Q;
+  gte(column: string, value: unknown): Q;
+  lt(column: string, value: unknown): Q;
+  in(column: string, values: readonly unknown[]): Q;
+  anyOf(conditions: readonly AnyOfCondition[]): Q;
 }
 
 /**
- * One page of the order list, newest first, keyed on `orderNo`.
- *
- * WP1: the page used to render the whole table into a
- * client component, so every order's jsonb went over the wire to the
- * operator's browser and was hydrated there (27 MB of JSON for 20k orders).
- *
- * Keyset rather than offset (the query builder has no offset, and a keyset
- * page does not shift when a new order arrives while the operator is paging):
- * `before` is the last `orderNo` of the previous page. One row more than the
- * page is read to learn whether an older page exists.
+ * The order list's filters as SQL, shared by the page query and the tab
+ * counts so a tab's number is exactly what the tab then shows. Every value
+ * was validated by parseOrderListParams; the search pattern is escaped
+ * there (`%`, `_`).
  */
-export async function listOrdersPage(input: {
-  before?: number | null;
-  pageSize?: number;
-}): Promise<OrdersPage> {
+function withOrderQuery<Q extends OrderFilterable<Q>>(
+  q: Q,
+  query: OrderListQuery,
+): Q {
+  let out = q;
+  if (query.search) {
+    const conditions: AnyOfCondition[] = [
+      { column: "customerName", op: "ilike", value: query.search.pattern },
+      { column: "customerEmail", op: "ilike", value: query.search.pattern },
+    ];
+    if (query.search.orderNo !== null) {
+      conditions.unshift({
+        column: "orderNo",
+        op: "eq",
+        value: query.search.orderNo,
+      });
+    }
+    out = out.anyOf(conditions);
+  }
+  if (query.statuses) out = out.in("status", query.statuses);
+  if (query.channel === "manual") out = out.eq("source", "manual");
+  else if (query.channel) {
+    out = out.eq("channel", query.channel).neq("source", "manual");
+  }
+  if (query.kind) out = out.eq("kind", query.kind);
+  if (query.fulfillment) out = out.eq("fulfillment", query.fulfillment);
+  if (query.payment === "paid") out = out.neq("paidAt", "");
+  else if (query.payment === "unpaid") out = out.eq("paidAt", "");
+  else if (query.payment === "refunded") out = out.neq("refunds", []);
+  if (query.attention) out = out.neq("attention", "");
+  if (query.fromIso) out = out.gte("createdAt", query.fromIso);
+  if (query.beforeIso) out = out.lt("createdAt", query.beforeIso);
+  return out;
+}
+
+export interface OrderListPage {
+  orders: AdminOrder[];
+  /** Rows matching the filters, across every page. */
+  total: number;
+}
+
+/**
+ * One numbered page of the order list, filtered and sorted.
+ *
+ * WP1 still holds: a page of rows, never the table. The sort column is one
+ * of four the page allows (ORDER_SORT_COLUMNS); `orderNo` breaks ties so a
+ * page boundary never splits or repeats an order.
+ */
+export async function listOrdersFiltered(input: {
+  query: OrderListQuery;
+  sort: {
+    column: "orderNo" | "createdAt" | "totalMinor" | "customerName";
+    ascending: boolean;
+  };
+  page: number;
+  pageSize: number;
+}): Promise<OrderListPage> {
   await ensureSeed();
   const sb = getDb();
-  const size = Math.max(1, Math.trunc(input.pageSize ?? ORDERS_PAGE_SIZE));
-  let q = sb
-    .from(TABLES.orders)
-    .select("*")
-    .order("orderNo", { ascending: false })
-    .limit(size + 1);
-  const before = input.before;
-  if (typeof before === "number" && Number.isFinite(before)) {
-    q = q.lt("orderNo", Math.trunc(before));
+  const size = Math.max(1, Math.trunc(input.pageSize));
+  const page = Math.max(1, Math.trunc(input.page));
+  let q = withOrderQuery(sb.from(TABLES.orders).select("*"), input.query).order(
+    input.sort.column,
+    { ascending: input.sort.ascending },
+  );
+  if (input.sort.column !== "orderNo") {
+    q = q.order("orderNo", { ascending: false });
   }
-  const [page, total] = await Promise.all([
-    q.then((r) => rows<AdminOrder>(r, "listOrdersPage")),
-    countRows(TABLES.orders),
+  q = q.limit(size).offset((page - 1) * size);
+  const countQ = withOrderQuery(
+    sb.from(TABLES.orders).select("*", { count: "exact", head: true }),
+    input.query,
+  );
+  const [orders, counted] = await Promise.all([
+    q.then((r) => rows<AdminOrder>(r, "listOrdersFiltered")),
+    countQ,
   ]);
-  const orders = page.slice(0, size);
-  return {
-    orders,
-    total,
-    nextBefore:
-      page.length > size ? (orders[orders.length - 1]?.orderNo ?? null) : null,
-  };
+  if (counted.error) {
+    raiseDbError("listOrdersFiltered.count", counted.error, counted.status);
+  }
+  return { orders, total: counted.count ?? 0 };
+}
+
+/**
+ * How many orders each status holds under the list's other filters (the
+ * tab counts). One `head: true` count per status on `orders_status_idx`.
+ */
+export async function countOrdersByStatus(
+  query: OrderListQuery,
+): Promise<Record<AdminOrderStatus, number>> {
+  const sb = getDb();
+  const statuses: AdminOrderStatus[] = [
+    "pending_payment",
+    "paid",
+    "preparing",
+    "shipped",
+    "completed",
+    "cancelled",
+    "refunded",
+  ];
+  const counts = await Promise.all(
+    statuses.map(async (status) => {
+      const res = await withOrderQuery(
+        sb.from(TABLES.orders).select("*", { count: "exact", head: true }),
+        { ...query, statuses: null },
+      ).eq("status", status);
+      if (res.error) raiseDbError("countOrdersByStatus", res.error, res.status);
+      return res.count ?? 0;
+    }),
+  );
+  return Object.fromEntries(statuses.map((s, i) => [s, counts[i]])) as Record<
+    AdminOrderStatus,
+    number
+  >;
 }
 
 export interface CustomerSummary {
@@ -1411,50 +2438,71 @@ export interface CustomerSummary {
 }
 
 /** The order columns the customer roll-up reads. */
-type CustomerSummaryOrder = Pick<
+export type CustomerSummaryOrder = Pick<
   AdminOrder,
   | "customerEmail"
   | "customerName"
   | "customerPhone"
+  | "status"
   | "totalMinor"
   | "refunds"
   | "createdAt"
 >;
 
-export async function listCustomers(): Promise<CustomerSummary[]> {
-  // Six columns, not `select *`: the roll-up needs every order (it counts a
-  // lifetime) but none of the items, addresses or consent evidence. WP1,
-  // measured on 20k orders: 596 ms / 27 MB -> 67 ms / 3.4 MB.
-  await ensureSeed();
-  const orders = rows<CustomerSummaryOrder>(
-    await getDb()
-      .from(TABLES.orders)
-      .select(
-        "customerEmail, customerName, customerPhone, totalMinor, refunds, createdAt",
-      )
-      .order("orderNo", { ascending: false }),
-    "listCustomers",
-  );
+/**
+ * The placeholder a closed account's rows point at (`anonymizedEmail` in
+ * lib/mobile/me.ts: `deleted-<id>@anon.local`). Its orders keep the invoice
+ * name and phone for fiscal retention, so a roll-up keyed on it listed the
+ * closed member under their real name, found by a name search. Müşteriler
+ * leaves these out (decision D13; in SQL, admin_customer_rows).
+ */
+export function isClosedAccountEmail(email: string): boolean {
+  return email.trim().toLowerCase().endsWith("@anon.local");
+}
+
+/**
+ * The customer roll-up rule, pure. Müşteriler runs it in SQL
+ * (`admin_customer_rows`, db/migrations/20261019130000_admin_customer_list.sql,
+ * lib/admin/customer-list.ts); this is the same rule in TypeScript, which the
+ * database test holds the SQL to (tests/db-integration-customer-list.test.ts).
+ *
+ * Order count, lifetime value and refunds follow the reports' rule
+ * ({@link isReportableOrder}): an abandoned checkout (`pending_payment`) and
+ * a cancelled order are not money the customer spent. They used to count in
+ * full, so after the one-page checkout every customer who opened the card
+ * step and walked away carried that basket as lifetime value, and Müşteriler
+ * disagreed with Raporlar. The profile itself still comes from every order:
+ * someone who only ever abandoned a checkout is still a contact, shown with
+ * 0 orders, and the last attempt still dates their activity.
+ */
+export function summarizeCustomers(
+  orders: readonly CustomerSummaryOrder[],
+): CustomerSummary[] {
   const byEmail = new Map<string, CustomerSummary>();
   for (const o of orders) {
     const email = o.customerEmail?.trim().toLowerCase();
     if (!email || email === "guest@laffogato.local") continue;
+    if (isClosedAccountEmail(email)) continue;
+    const counts = isReportableOrder(o);
+    const valueHere = counts ? o.totalMinor : 0;
+    const refundedHere = counts
+      ? o.refunds.reduce((s, r) => s + r.amountMinor, 0)
+      : 0;
     const existing = byEmail.get(email);
-    const refundedHere = o.refunds.reduce((s, r) => s + r.amountMinor, 0);
     if (!existing) {
       byEmail.set(email, {
         email,
         name: o.customerName,
         phone: o.customerPhone,
-        orderCount: 1,
-        lifetimeValueMinor: o.totalMinor,
+        orderCount: counts ? 1 : 0,
+        lifetimeValueMinor: valueHere,
         refundedMinor: refundedHere,
         lastOrderAt: o.createdAt,
         firstOrderAt: o.createdAt,
       });
     } else {
-      existing.orderCount += 1;
-      existing.lifetimeValueMinor += o.totalMinor;
+      if (counts) existing.orderCount += 1;
+      existing.lifetimeValueMinor += valueHere;
       existing.refundedMinor += refundedHere;
       if (o.createdAt > existing.lastOrderAt) {
         existing.lastOrderAt = o.createdAt;
@@ -1469,6 +2517,25 @@ export async function listCustomers(): Promise<CustomerSummary[]> {
   return Array.from(byEmail.values()).sort((a, b) =>
     b.lastOrderAt.localeCompare(a.lastOrderAt),
   );
+}
+
+/**
+ * A customer's lifetime figures from their own orders, by the same rule as
+ * {@link summarizeCustomers} and the reports. For the customer detail page.
+ */
+export function customerLifetime(
+  orders: ReadonlyArray<Pick<AdminOrder, "status" | "totalMinor" | "refunds">>,
+): { orderCount: number; lifetimeValueMinor: number; refundedMinor: number } {
+  let orderCount = 0;
+  let lifetimeValueMinor = 0;
+  let refundedMinor = 0;
+  for (const o of orders) {
+    if (!isReportableOrder(o)) continue;
+    orderCount += 1;
+    lifetimeValueMinor += o.totalMinor;
+    refundedMinor += o.refunds.reduce((s, r) => s + r.amountMinor, 0);
+  }
+  return { orderCount, lifetimeValueMinor, refundedMinor };
 }
 
 /** The columns the loyalty view and the badge rules actually read. */
@@ -1513,6 +2580,26 @@ export async function customerLoyaltyOrders(
   return readCustomerOrders<LoyaltyOrderRow>(email, "status, createdAt, items");
 }
 
+/** The columns {@link customerLifetime} reads. */
+export type LifetimeOrderRow = Pick<
+  AdminOrder,
+  "status" | "totalMinor" | "refunds"
+>;
+
+/**
+ * Every order of a customer, three columns: the member page's lifetime
+ * figures count them all, while its history lists only the newest few
+ * (admin audit ORD-30).
+ */
+export async function customerLifetimeOrders(
+  email: string,
+): Promise<LifetimeOrderRow[]> {
+  return readCustomerOrders<LifetimeOrderRow>(
+    email,
+    "status, totalMinor, refunds",
+  );
+}
+
 async function readCustomerOrders<T>(
   email: string,
   columns: string,
@@ -1540,14 +2627,19 @@ export async function getOrder(id: string): Promise<AdminOrder | null> {
   );
 }
 
-export type BulkOrderOp = { kind: "set_status"; status: AdminOrderStatus };
-
-export interface BulkOrderResult extends BulkResult {
-  /**
-   * Ids the state machine refused: already in that status, not allowed to
-   * reach it from where they are, or a target the bulk tool must not set.
-   */
-  skipped: number;
+/**
+ * Several orders by id, in no particular order; unknown ids are absent. For
+ * the bulk tool, which decides per order (lib/admin/order-ops.ts).
+ */
+export async function getOrdersByIds(
+  ids: readonly string[],
+): Promise<AdminOrder[]> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  return rows<AdminOrder>(
+    await getDb().from(TABLES.orders).select("*").in("id", ids.slice(0, 500)),
+    "getOrdersByIds",
+  );
 }
 
 /**
@@ -1558,6 +2650,11 @@ export interface BulkOrderResult extends BulkResult {
  * writes the status column writes neither - a bulk "ödendi" produced paid
  * orders nobody had paid for, with no `paidAt` and no stamp. Those two are
  * done one order at a time, from the order page.
+ *
+ * The bulk tool itself (`runBulkOrderAction`, lib/admin/order-ops.ts) sends
+ * every id through the same `transitionOrder` / `cancelOrder` the order page
+ * uses: a raw `update({ status }).in("id", ids)` once left a bulk cancel's
+ * stock claimed, its coupon burned and its stamp standing.
  */
 export const BULK_ORDER_TRANSITIONS: Partial<
   Record<AdminOrderStatus, OrderTransition>
@@ -1567,44 +2664,6 @@ export const BULK_ORDER_TRANSITIONS: Partial<
   completed: "complete",
   cancelled: "cancel",
 };
-
-/**
- * Bulk status change - every id through the same machine the order page uses.
- *
- * This used to be a raw `update({ status }).in("id", ids)`: it wrote the
- * column and nothing else, so a bulk cancel left the stock claimed, the
- * customer's single-use coupon burned and the loyalty stamp standing, and it
- * accepted every status including `paid` and `refunded`. Ids the machine
- * refuses are counted in `skipped` rather than silently forced.
- */
-export async function bulkUpdateOrders(
-  ids: string[],
-  op: BulkOrderOp,
-): Promise<BulkOrderResult> {
-  if (ids.length === 0) return { updated: 0, skipped: 0 };
-  const transition = BULK_ORDER_TRANSITIONS[op.status];
-  if (!transition) return { updated: 0, skipped: ids.length };
-  await ensureSeed();
-  let updated = 0;
-  let skipped = 0;
-  for (const id of ids) {
-    // "Hazırlanıyor" from pending_payment SETTLES the order (paidAt, stamp,
-    // revenue) - the very thing dropping bulk "paid" was meant to stop. One
-    // order at a time it is a deliberate call (paid at the counter); in bulk
-    // it is a stray tick. Unpaid orders are skipped here.
-    if (transition === "start_preparing") {
-      const current = await getOrder(id);
-      if (current?.status === "pending_payment") {
-        skipped += 1;
-        continue;
-      }
-    }
-    const res = await transitionOrder(id, transition);
-    if (res.ok) updated += 1;
-    else skipped += 1;
-  }
-  return { updated, skipped };
-}
 
 export interface PlaceOrderItemInput {
   /** Stable product id - preferred match key. */
@@ -1643,7 +2702,18 @@ export type PlaceOrderResult =
       available: number;
     }
   | { ok: false; reason: "empty" }
-  | { ok: false; reason: "not_found"; productName: string }
+  | {
+      ok: false;
+      reason: "not_found";
+      productName: string;
+      /**
+       * The product is there, but it is sold by its variants and the line
+       * named none (`resolveOrderLines`). Still `not_found`, so a caller that
+       * does not read this refuses the line as before; the web checkout, the
+       * panel and the app's `invalid_line` say to pick a variant.
+       */
+      variantRequired?: true;
+    }
   | { ok: false; reason: "qty_too_high"; productName: string; max: number }
   | { ok: false; reason: "shop_closed" };
 
@@ -1750,6 +2820,28 @@ async function resolveOrderLines(
         result: { ok: false, reason: "not_found", productName: product.name },
       };
     }
+    // A product with an active variant is sold by its variants. A line that
+    // named none was charged the base price and took its unit from the
+    // product's total alone, which no variant gives back (the shop card's
+    // quick add sent such lines). Refused before any stock is claimed.
+    // Inactive variants are offered nowhere (the web, `/shop` and the panel
+    // list the active ones), so a product whose variants are all inactive
+    // is sold like one without variants.
+    if (
+      !variant &&
+      Array.isArray(product.variants) &&
+      product.variants.some((v) => v.isActive)
+    ) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "not_found",
+          productName: product.name,
+          variantRequired: true,
+        },
+      };
+    }
     // Server-authoritative price: base + variant delta.
     const unitPriceMinor = Math.max(
       0,
@@ -1758,8 +2850,13 @@ async function resolveOrderLines(
     if (it.priceMinor !== undefined && it.priceMinor !== unitPriceMinor) {
       priceAdjusted = true;
     }
-    // Stock check (variant stock when a variant is chosen, else product stock).
-    const available = variant ? variant.stock : product.stock;
+    // Stock check, as claim_order_stock makes it: a variant line needs both
+    // the variant's stock and the product's total (admin audit CAT-14). The
+    // check read the variant alone, so a line could pass here and fail at
+    // the claim.
+    const available = variant
+      ? Math.min(variant.stock, product.stock)
+      : product.stock;
     if (available < it.qty) {
       return {
         ok: false,
@@ -1896,9 +2993,10 @@ interface FinalizeOrderInput {
   promoCode?: string;
   legalConsent?: OrderLegalConsent;
   /**
-   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web and
-   * admin paths leave them out and the row takes the database defaults, so
-   * an order written by those paths is byte-for-byte what it was before.
+   * Mobile app columns (docs/API-MOBILE.md §3). All optional: the web path
+   * leaves them out and the row takes the database defaults, so a web order
+   * is byte-for-byte what it was before. The panel's manual order sets
+   * `fulfillment` (Gel-al, Kurye, Kargo).
    */
   channel?: OrderChannel;
   kind?: OrderKind;
@@ -1908,6 +3006,8 @@ interface FinalizeOrderInput {
   /** Table orders only: the table snapshot (see `AdminOrder.tableCode`). */
   tableCode?: string;
   tableName?: string;
+  /** "manual" for the panel's manual order (`AdminOrder.source`). */
+  source?: "manual";
   /** How shipping is charged; the shop's settings when omitted. */
   shipping?: ShippingMode;
   /**
@@ -1948,8 +3048,15 @@ export class WalletDeclinedError extends Error {
   }
 }
 
-/** Order lines as they are written, from lines resolved against `products`. */
-function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
+/**
+ * Order lines as they are written, from lines resolved against `products`.
+ * Each carries the KDV rate it is sold at (the product's own, else its
+ * category's default) - read at sale time and never again.
+ */
+function shopLineItems(
+  resolved: ResolvedLine[],
+  rates: TaxRates,
+): AdminOrderItem[] {
   return resolved.map((line) => ({
     productName: line.label,
     qty: line.qty,
@@ -1957,6 +3064,7 @@ function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
     status: "pending",
     productId: line.product.id,
     ...(line.variant ? { variantId: line.variant.id } : {}),
+    taxRatePct: productTaxRate(line.product, rates),
   }));
 }
 
@@ -1967,9 +3075,10 @@ function shopLineItems(resolved: ResolvedLine[]): AdminOrderItem[] {
  */
 async function finalizeOrder(
   resolved: ResolvedLine[],
+  rates: TaxRates,
   f: FinalizeOrderInput,
 ): Promise<{ order: AdminOrder; promoDropped: boolean }> {
-  return insertOrderRow(shopLineItems(resolved), f);
+  return insertOrderRow(shopLineItems(resolved, rates), f);
 }
 
 /**
@@ -2046,7 +3155,6 @@ async function insertOrderRow(
   const cfg: CheckoutConfig = {
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
-    taxRatePct: settings.taxRatePct,
   };
   const totals = computeTotalsWithShipping(
     subtotalMinor,
@@ -2070,6 +3178,10 @@ async function insertOrderRow(
     discountMinor: totals.discountMinor,
     promoCode,
     shippingMinor: totals.shippingMinor,
+    // The fee's own rate, read at sale time like each line's (web, app,
+    // wallet and manual orders all land here). Stamped on a free-shipping
+    // order too: it says what the rate was, not that a fee was charged.
+    shippingTaxRatePct: shippingTaxRate(settings.taxRates),
     totalMinor: totals.totalMinor,
     refunds: [],
     createdAt,
@@ -2090,6 +3202,7 @@ async function insertOrderRow(
     ...(f.tableCode
       ? { tableCode: f.tableCode, tableName: f.tableName ?? "" }
       : {}),
+    ...(f.source ? { source: f.source } : {}),
   };
   // The discount was claimed before the row existed - deliberately, so it
   // cannot be double-spent while the customer is on the POS page. If the row
@@ -2383,6 +3496,10 @@ export async function expireStalePendingOrders(): Promise<number> {
       .from(TABLES.orders)
       .select("*")
       .eq("status", "pending_payment")
+      // A manual "Ödeme bekleniyor" order (a phone order paid on delivery)
+      // has no POS payment to wait for: the sweep used to cancel it after 45
+      // minutes and hand its stock back without telling anyone.
+      .neq("source", "manual")
       .lt("createdAt", cutoff)
       .order("createdAt", { ascending: true })
       .limit(20),
@@ -2440,7 +3557,11 @@ export async function supersedeUnpaidWebOrders(
       .order("createdAt", { ascending: true })
       .limit(10),
     "supersedeUnpaidWebOrders",
-  ).filter((order) => orderChannel(order) === "web");
+    // A manual order carries the customer's address too, and is not theirs
+    // to supersede: it was typed into the panel and has no checkout behind it.
+  ).filter(
+    (order) => orderChannel(order) === "web" && order.source !== "manual",
+  );
   if (open.length === 0) return 0;
   const provider = await lookupProvider();
   const outcomes = await Promise.allSettled(
@@ -2540,17 +3661,22 @@ export async function placeOrder(
       input.customerEmail ?? "customer",
     );
 
-    placed = await finalizeOrder(resolved, {
+    const customerName = input.customerName?.trim() || "Misafir";
+    const shippingAddress = input.shippingAddress?.trim() ?? "";
+    placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: "pending_payment",
-      customerName: input.customerName?.trim() || "Misafir",
+      customerName,
       customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
       customerPhone: input.customerPhone?.trim() ?? "",
-      shippingAddress: input.shippingAddress?.trim() ?? "",
+      shippingAddress,
       internalNote: "",
       promoCode: input.promoCode,
-      legalConsent: input.legalConsent,
+      legalConsent: withBuyerSnapshot(input.legalConsent, {
+        name: customerName,
+        address: shippingAddress,
+      }),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
@@ -2572,8 +3698,64 @@ export interface CreateManualOrderInput {
   internalNote?: string;
   promoCode?: string;
   status: ManualOrderStatus;
+  /**
+   * How the order reaches the customer (admin audit ORD-01, karar D4);
+   * Gel-al when omitted. It decides the delivery fee: nothing for Gel-al,
+   * the courier fee for Kurye, the shop's shipping rule for Kargo.
+   */
+  fulfillment?: ManualFulfillment;
+  /**
+   * How the money was taken, for a paid or preparing start (karar D5):
+   * written as the same `manual:<method>` payment row "Ödendi olarak
+   * işaretle" writes. Never for an unpaid start.
+   */
+  paymentMethod?: ManualPaymentMethod | null;
   /** Admin email recorded as the stock-move actor. */
   actor: string;
+  /**
+   * The form's id for this attempt, one per page load. The same id again is
+   * the same order: it is returned, not made a second time.
+   */
+  clientOrderId?: string;
+}
+
+export type ManualOrderResult =
+  | (Extract<PlaceOrderResult, { ok: true }> & {
+      /**
+       * The payment row of a paid start: written, failed (the order stands,
+       * the caller says so), or none owed.
+       */
+      payment: "recorded" | "failed" | "none";
+      /** The attempt had already made this order; nothing was written now. */
+      replay?: boolean;
+    })
+  | PlaceOrderFailure;
+
+/** The manual order an attempt id already made, if any. */
+async function findManualOrderByClientId(
+  clientOrderId: string,
+): Promise<AdminOrder | null> {
+  const found = rows<AdminOrder>(
+    await getDb()
+      .from(TABLES.orders)
+      .select("*")
+      .eq("clientOrderId", clientOrderId)
+      .eq("source", "manual")
+      .limit(1),
+    "findManualOrderByClientId",
+  );
+  return found[0] ?? null;
+}
+
+function manualReplay(order: AdminOrder): ManualOrderResult {
+  return {
+    ok: true,
+    order,
+    priceAdjusted: false,
+    promoDropped: false,
+    payment: "none",
+    replay: true,
+  };
 }
 
 /**
@@ -2583,8 +3765,25 @@ export interface CreateManualOrderInput {
  */
 export async function createManualOrder(
   input: CreateManualOrderInput,
-): Promise<PlaceOrderResult> {
+): Promise<ManualOrderResult> {
   await ensureSeed();
+  // A manual order bypasses the shop's open switch (see placeOrder). The
+  // settings give the KDV defaults and the courier fee; the shop's shipping
+  // rule is applied by insertOrderRow.
+  const settings = await getSettings();
+  const fulfillment: ManualFulfillment = input.fulfillment ?? "pickup";
+
+  // An answer lost on the way back (a dropped connection, a timeout after
+  // the insert) left the operator a filled form and an enabled button, and
+  // the second press made a second paid order: the stock claimed twice, a
+  // second payment row. The same attempt id returns the order it made; two
+  // posts in flight at once meet the unique index
+  // (`orders_client_order_id_key`) and the second gets the first.
+  const clientOrderId = input.clientOrderId?.trim() ?? "";
+  if (clientOrderId) {
+    const earlier = await findManualOrderByClientId(clientOrderId);
+    if (earlier) return manualReplay(earlier);
+  }
 
   const resolveRes = await resolveOrderLines(
     input.items.map((it) => ({
@@ -2618,7 +3817,7 @@ export async function createManualOrder(
       input.actor || "admin",
     );
 
-    placed = await finalizeOrder(resolved, {
+    placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: input.status,
@@ -2628,13 +3827,56 @@ export async function createManualOrder(
       shippingAddress: input.shippingAddress?.trim() ?? "",
       internalNote: input.internalNote?.trim().slice(0, 2000) ?? "",
       promoCode: input.promoCode,
+      // Every manual order used to be a parcel: a counter sale could only
+      // be closed with an invented tracking number, and under the
+      // free-shipping threshold it paid the flat shipping fee.
+      fulfillment,
+      shipping: manualShippingMode(fulfillment, settings),
+      // No POS behind it: the stale-checkout sweep must leave it alone.
+      source: "manual",
+      ...(clientOrderId ? { clientOrderId } : {}),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
+    if (clientOrderId && err instanceof DbQueryError && err.code === "23505") {
+      const raced = await findManualOrderByClientId(clientOrderId);
+      if (raced) return manualReplay(raced);
+    }
     throw err;
   }
   const { order, promoDropped } = placed;
-  return { ok: true, order, priceAdjusted: false, promoDropped };
+
+  // A paid start records how it was paid, like "Ödendi olarak işaretle":
+  // the order page said "Bu siparişte ödeme kaydı yok." and cash, the
+  // counter's card terminal and a transfer could not be told apart. After
+  // the insert, and never fatal: the sale happened and its row is written.
+  let payment: "recorded" | "failed" | "none" = "none";
+  if (
+    input.paymentMethod &&
+    (order.status === "paid" || order.status === "preparing")
+  ) {
+    try {
+      const row = await insertManualPaymentRow(
+        order,
+        input.paymentMethod,
+        input.actor,
+      );
+      payment = row.error ? "failed" : "recorded";
+      if (row.error) {
+        console.error(
+          `[orders] manual order ${order.id}: payment row not written`,
+          row.error,
+        );
+      }
+    } catch (err) {
+      payment = "failed";
+      console.error(
+        `[orders] manual order ${order.id}: payment row not written`,
+        err,
+      );
+    }
+  }
+  return { ok: true, order, priceAdjusted: false, promoDropped, payment };
 }
 
 // ── App orders (docs/API-MOBILE.md §3) ────────────────────────────────────
@@ -2721,6 +3963,7 @@ type CafeLinesResult =
  */
 async function resolveCafeLines(
   lines: AppCafeLineInput[],
+  rates: TaxRates,
 ): Promise<CafeLinesResult> {
   const clean = lines.filter((l) => l.qty > 0);
   if (clean.length === 0) {
@@ -2779,6 +4022,9 @@ async function resolveCafeLines(
       size: priced.size,
       options: { ...priced.options },
       detail: priced.detail,
+      // The item's own rate, else the menu default: 10% for a yeme-içme
+      // sale whether it is served, collected or couriered.
+      taxRatePct: menuItemTaxRate(item, rates),
     });
   }
   return { ok: true, items };
@@ -2838,6 +4084,7 @@ export type AppOrderLinesResult =
  */
 export async function previewAppOrderLines(
   lines: AppOrderLineInput[],
+  rates: TaxRates,
 ): Promise<AppOrderLinesResult> {
   await ensureSeed();
   const { cafe, shop } = splitAppLines(lines);
@@ -2848,7 +4095,7 @@ export async function previewAppOrderLines(
     };
   }
   if (cafe.length > 0) {
-    const res = await resolveCafeLines(cafe);
+    const res = await resolveCafeLines(cafe, rates);
     return res.ok
       ? { ok: true, items: res.items, kind: "cafe" }
       : { ok: false, result: res.result };
@@ -2857,7 +4104,7 @@ export async function previewAppOrderLines(
   if (!res.ok) return { ok: false, result: res.result };
   return {
     ok: true,
-    items: withShopNotes(shopLineItems(res.resolved), shop),
+    items: withShopNotes(shopLineItems(res.resolved, rates), shop),
     kind: "shop",
   };
 }
@@ -2941,17 +4188,22 @@ export async function placeAppOrder(
     }
   }
 
+  const customerName = input.customerName.trim() || "Üye";
+  // A table order goes across the room: no address is ever written for it.
+  const shippingAddress =
+    input.fulfillment === "table" ? "" : input.shippingAddress.trim();
   const common = {
     status: "pending_payment" as const,
-    customerName: input.customerName.trim() || "Üye",
+    customerName,
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerPhone: input.customerPhone.trim(),
-    // A table order goes across the room: no address is ever written for it.
-    shippingAddress:
-      input.fulfillment === "table" ? "" : input.shippingAddress.trim(),
+    shippingAddress,
     internalNote: "",
     promoCode: input.promoCode,
-    legalConsent: input.legalConsent,
+    legalConsent: withBuyerSnapshot(input.legalConsent, {
+      name: customerName,
+      address: shippingAddress,
+    }),
     channel: "app" as const,
     kind,
     fulfillment: input.fulfillment,
@@ -2967,7 +4219,7 @@ export async function placeAppOrder(
   };
 
   if (kind === "cafe") {
-    const cafeRes = await resolveCafeLines(cafe);
+    const cafeRes = await resolveCafeLines(cafe, settings.taxRates);
     if (!cafeRes.ok) return cafeRes.result;
 
     const orderSeq = await nextSeq("ord");
@@ -3025,7 +4277,7 @@ export async function placeAppOrder(
     const orderId = slugifyId("ord", orderSeq);
     if (!walletPay) await recordMoves(orderId, orderNo);
     placed = await insertOrderRow(
-      withShopNotes(shopLineItems(resolved), shop),
+      withShopNotes(shopLineItems(resolved, settings.taxRates), shop),
       {
         orderId,
         orderNo,
@@ -3093,6 +4345,10 @@ async function noteUnreconciledPayment(
       `reason=${reason} status=${order.status} expected=${order.totalMinor} ` +
       `collected=${input.amountMinor} provider=${input.provider} ref=${input.providerRef}`,
   );
+  // The flag the order list's "Dikkat" filter and the order page's red
+  // banner read. The audit row below says what exactly happened; this only
+  // makes sure somebody opens it.
+  await setOrderAttention(order.id, reason);
   try {
     // Lazily imported: the audit module reads the admin session, and a
     // bookkeeping failure must never turn a settled payment into an error.
@@ -3118,6 +4374,31 @@ async function noteUnreconciledPayment(
       `[payment] audit row for the unreconciled payment failed order=${order.id}`,
       err,
     );
+  }
+}
+
+/**
+ * Sets (or with "" clears) what needs a human on this order. Never throws:
+ * every caller has just written something that matters more - a payment, a
+ * cancel - and a flag that did not land must not undo it.
+ */
+export async function setOrderAttention(
+  orderId: string,
+  attention: OrderAttention | "",
+): Promise<boolean> {
+  try {
+    const { error } = await getDb()
+      .from(TABLES.orders)
+      .update({ attention })
+      .eq("id", orderId);
+    if (error) throw new Error(error.message);
+    return true;
+  } catch (err) {
+    console.error(
+      `[orders] attention flag not written order=${orderId} attention=${attention}`,
+      err,
+    );
+    return false;
   }
 }
 
@@ -3474,9 +4755,14 @@ function isoDay(value: string | undefined): string {
 }
 
 /**
- * Latest succeeded payment for an order (for refunds): the provider
- * reference, what was collected, and the provider's day for it ('' on rows
- * written before the column existed) so the refund need not look it up.
+ * The payment a refund goes back through: the latest succeeded payment row
+ * of the order - its provider reference, what was collected, and the
+ * provider's day for it ('' on rows written before the column existed) so
+ * the refund need not look it up.
+ *
+ * Manual rows (`manual:<method>`, "Ödendi olarak işaretle") are skipped: the
+ * cash was taken at the counter, there is no card to send it back to, and
+ * asking the POS to refund `manual-<id>` would be refused at best.
  */
 export async function getOrderPaymentRef(orderId: string): Promise<{
   provider: string;
@@ -3491,16 +4777,16 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
     .eq("orderId", orderId)
     .eq("status", "succeeded")
     .order("createdAt", { ascending: false })
-    .limit(1);
+    .limit(20);
   if (res.error) throw new Error(`getOrderPaymentRef: ${res.error.message}`);
-  const row = res.data?.[0] as
-    | {
-        provider: string;
-        providerRef: string;
-        amountMinor?: number | null;
-        trxDate?: string | null;
-      }
-    | undefined;
+  const row = (
+    (res.data ?? []) as Array<{
+      provider: string;
+      providerRef: string;
+      amountMinor?: number | null;
+      trxDate?: string | null;
+    }>
+  ).find((r) => !isManualProvider(r.provider));
   return row
     ? {
         provider: row.provider,
@@ -3511,12 +4797,154 @@ export async function getOrderPaymentRef(orderId: string): Promise<{
     : null;
 }
 
+/** One row of an order's payment ledger, as the order page lists it. */
+export interface OrderPaymentRow {
+  provider: string;
+  providerRef: string;
+  status: string;
+  amountMinor: number;
+  currency: string;
+  trxDate: string;
+  createdAt: string;
+}
+
+/**
+ * Every payment row of an order, newest first: the card charge, a wallet
+ * spend, a manual "ödendi", a provider refund. `raw` stays in the database:
+ * it is the provider's own answer and has no business in a page payload.
+ */
+export async function listPaymentTransactions(
+  orderId: string,
+): Promise<OrderPaymentRow[]> {
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select(
+      "provider, providerRef, status, amountMinor, currency, trxDate, createdAt",
+    )
+    .eq("orderId", orderId)
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  return rows<OrderPaymentRow>(res, "listPaymentTransactions").map((r) => ({
+    ...r,
+    amountMinor: Number(r.amountMinor ?? 0),
+    trxDate: isoDay(r.trxDate ?? ""),
+  }));
+}
+
+/** One customer mail of an order (`order_notice_emails`), as the page lists it. */
+export interface OrderNoticeRow {
+  kind: string;
+  status: string;
+  error: string;
+  createdAt: string;
+  sentAt: string;
+}
+
+/** An order's mails, newest first: what went out, what is still sending. */
+export async function listOrderNotices(
+  orderId: string,
+): Promise<OrderNoticeRow[]> {
+  const res = await getDb()
+    .from(TABLES.orderNoticeEmails)
+    .select("kind, status, error, createdAt, sentAt")
+    .eq("orderId", orderId)
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  return rows<OrderNoticeRow>(res, "listOrderNotices");
+}
+
+/** What the money side of an order comes to, for the rules and the page. */
+export interface OrderMoney {
+  /** Money was ever taken: `paidAt`, or a succeeded payment row. */
+  collected: boolean;
+  /**
+   * What the succeeded payment rows add up to; null when there are none (a
+   * counter sale entered as paid). Caps every refund (`refundCapMinor`).
+   */
+  collectedMinor: number | null;
+  /** Where a refund would go now (`refundDestinationFor`). */
+  destination: RefundDestination;
+}
+
+function moneyFrom(
+  order: Pick<AdminOrder, "paidAt">,
+  succeeded: ReadonlyArray<{ provider: string; amountMinor: number }>,
+): OrderMoney {
+  const refundVia = succeeded.find((r) => !isManualProvider(r.provider));
+  return {
+    collected: Boolean(order.paidAt) || succeeded.length > 0,
+    collectedMinor:
+      succeeded.length > 0
+        ? succeeded.reduce((sum, r) => sum + Number(r.amountMinor ?? 0), 0)
+        : null,
+    destination: refundDestinationFor(refundVia?.provider ?? null),
+  };
+}
+
+/** The order's money facts, from its payment rows (newest first). */
+export function orderMoneyFromRows(
+  order: Pick<AdminOrder, "paidAt">,
+  transactions: ReadonlyArray<OrderPaymentRow>,
+): OrderMoney {
+  return moneyFrom(
+    order,
+    transactions.filter((t) => t.status === "succeeded"),
+  );
+}
+
+/** The order's money facts, read now. */
+export async function orderMoney(order: AdminOrder): Promise<OrderMoney> {
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select("provider, amountMinor, createdAt")
+    .eq("orderId", order.id)
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false })
+    .limit(50);
+  if (res.error) throw new Error(`orderMoney: ${res.error.message}`);
+  return moneyFrom(
+    order,
+    (res.data ?? []) as Array<{ provider: string; amountMinor: number }>,
+  );
+}
+
+/**
+ * The money facts of a page of orders in one query, for the list's row
+ * menus (which cancel needs the refund role, which can be refunded).
+ */
+export async function listOrderMoney(
+  orders: readonly AdminOrder[],
+): Promise<Map<string, OrderMoney>> {
+  const out = new Map<string, OrderMoney>();
+  if (orders.length === 0) return out;
+  const res = await getDb()
+    .from(TABLES.paymentTransactions)
+    .select("orderId, provider, amountMinor, createdAt")
+    .in(
+      "orderId",
+      orders.map((o) => o.id),
+    )
+    .eq("status", "succeeded")
+    .order("createdAt", { ascending: false });
+  const byOrder = new Map<
+    string,
+    Array<{ provider: string; amountMinor: number }>
+  >();
+  for (const r of rows<{
+    orderId: string;
+    provider: string;
+    amountMinor: number;
+  }>(res, "listOrderMoney")) {
+    const list = byOrder.get(r.orderId) ?? [];
+    list.push(r);
+    byOrder.set(r.orderId, list);
+  }
+  for (const o of orders) out.set(o.id, moneyFrom(o, byOrder.get(o.id) ?? []));
+  return out;
+}
+
 export type OrderTransition =
-  | "start_preparing"
-  | "mark_shipped"
-  | "complete"
-  | "cancel"
-  | "mark_paid";
+  "start_preparing" | "mark_shipped" | "complete" | "cancel" | "mark_paid";
 
 const TRANSITION_MAP: Record<
   OrderTransition,
@@ -3564,6 +4992,76 @@ export interface TransitionResult {
   ok: boolean;
   order?: AdminOrder;
   error?: string;
+  /** The customer mail this move triggered: paid, shipped or cancelled. */
+  mail?: OrderNoticeOutcome;
+  /** A cancel's stock and coupon release (absent when it did not run). */
+  release?: InventoryRelease;
+  /** Something that did not go through after the status moved. */
+  warnings?: string[];
+}
+
+/** What giving an order's inventory back came to. */
+export interface InventoryRelease {
+  /** This call released; false when an earlier call already had. */
+  released: boolean;
+  /** Units credited back to stock. */
+  units: number;
+  /** The lines credited, for the stock movement log. */
+  lines: ReleasedLine[];
+}
+
+/** One line `release_order_inventory` / `restock_order_lines` credited. */
+export interface ReleasedLine {
+  index: number;
+  productId: string;
+  productName: string;
+  qty: number;
+  stockAfter: number;
+}
+
+/**
+ * One stock movement per credited line. Best-effort: the stock itself was
+ * credited in the same SQL transaction as the claim, and a log row that did
+ * not land must not turn that into an error.
+ */
+async function recordReleasedMoves(
+  order: Pick<AdminOrder, "id" | "orderNo">,
+  lines: readonly ReleasedLine[],
+  reason: StockMoveReason,
+  note: string,
+  actor: string,
+): Promise<void> {
+  for (const line of lines) {
+    try {
+      await recordStockMove({
+        productId: line.productId,
+        productName: line.productName,
+        delta: line.qty,
+        stockAfter: line.stockAfter,
+        reason,
+        note,
+        orderId: order.id,
+        actor,
+      });
+    } catch (err) {
+      console.error(
+        `[orders] stock move not logged order=${order.id} product=${line.productId}`,
+        err,
+      );
+    }
+  }
+}
+
+function releasedLines(data: unknown): ReleasedLine[] {
+  const lines = (data as { lines?: unknown } | null)?.lines;
+  if (!Array.isArray(lines)) return [];
+  return lines.map((l: Record<string, unknown>) => ({
+    index: Number(l.index ?? -1),
+    productId: String(l.productId ?? ""),
+    productName: String(l.productName ?? ""),
+    qty: Number(l.qty ?? 0),
+    stockAfter: Number(l.stockAfter ?? 0),
+  }));
 }
 
 /**
@@ -3576,66 +5074,40 @@ export interface TransitionResult {
  * as sold out while the shelf was full), and the customer's coupon was gone
  * for an order they never paid for.
  *
- * Guarded on `stockReleasedAt`, and the guard is part of the UPDATE, so two
- * concurrent cancels cannot both credit the stock.
+ * The claim (`stockReleasedAt`) and the stock credit are ONE SQL function
+ * (`release_order_inventory`). They used to be two statements: when the
+ * credit failed, the marker was already set, the order already cancelled,
+ * and the stock was never given back by anything. Now a failure leaves the
+ * marker empty, and "Stoğu geri al" on the order page runs this again.
+ *
+ * Every line is credited what it has not given back yet - a line marked
+ * "İptal" on its own changes no stock, so skipping cancelled lines lost
+ * them. `restock: false` (a parcel already with the carrier) claims the
+ * marker and gives the coupon back, but no units.
  */
-async function releaseOrderInventory(order: AdminOrder): Promise<void> {
-  const sb = getDb();
+async function releaseOrderInventory(
+  order: AdminOrder,
+  {
+    restock = true,
+    actor = "system",
+  }: { restock?: boolean; actor?: string } = {},
+): Promise<InventoryRelease> {
   const now = new Date().toISOString();
-
-  // Claim the right to release. Only the writer that flips the empty marker
-  // proceeds.
-  const claimed = rows<{ id: string }>(
-    await sb
-      .from(TABLES.orders)
-      .update({ stockReleasedAt: now })
-      .eq("id", order.id)
-      .eq("stockReleasedAt", "")
-      .select("id"),
-    "releaseOrderInventory.claim",
+  const { data, error, status } = await getDb().rpc<unknown>(
+    "release_order_inventory",
+    { p_order_id: order.id, p_restock: restock, p_now: now },
   );
-  if (claimed.length === 0) return;
-
-  // Lines from before productId was recorded, and manual admin lines that
-  // reference no catalogue product, are skipped: restoring by name would
-  // credit the wrong SKU the moment a product had been renamed.
-  const lines = order.items
-    .filter((it) => it.productId && it.status !== "cancelled" && it.qty > 0)
-    .map((it) => ({
-      productId: it.productId as string,
-      variantId: it.variantId ?? null,
-      qty: it.qty,
-      productName: it.productName,
-    }));
-
-  if (lines.length > 0) {
-    const released = await sb.rpc("release_order_stock", {
-      p_lines: lines.map(({ productId, variantId, qty }) => ({
-        productId,
-        variantId,
-        qty,
-      })),
-      p_now: now,
-    });
-    if (released.error) {
-      throw new Error(`releaseOrderInventory: ${released.error.message}`);
-    }
-    const stockAfters = (released.data ?? []) as number[];
-    for (let i = 0; i < lines.length; i += 1) {
-      // -1 means the product row is gone; there is no stock level to log.
-      if (stockAfters[i] === -1 || stockAfters[i] === undefined) continue;
-      await recordStockMove({
-        productId: lines[i].productId,
-        productName: lines[i].productName,
-        delta: lines[i].qty,
-        stockAfter: stockAfters[i],
-        reason: "order_cancelled",
-        note: `Sipariş #${order.orderNo} iptal edildi`,
-        orderId: order.id,
-        actor: "system",
-      });
-    }
-  }
+  if (error) raiseDbError("releaseOrderInventory", error, status);
+  // NULL: another call already released this order.
+  if (!data) return { released: false, units: 0, lines: [] };
+  const lines = releasedLines(data);
+  await recordReleasedMoves(
+    order,
+    lines,
+    "order_cancelled",
+    `Sipariş #${order.orderNo} iptal edildi`,
+    actor,
+  );
 
   if (order.promoCode) {
     // A personal coupon is returned to its owner; a shared promo gets its use
@@ -3650,6 +5122,61 @@ async function releaseOrderInventory(order: AdminOrder): Promise<void> {
     if (!returned) await releasePromoUsage(order.promoCode);
     else await settleLoyaltyAfterRelease(order.customerEmail, order.orderNo);
   }
+  return {
+    released: true,
+    units: lines.reduce((sum, l) => sum + l.qty, 0),
+    lines,
+  };
+}
+
+/**
+ * "Stoğu geri al": the release of a cancelled order whose first attempt did
+ * not go through (the marker is still empty). A no-op for any other order.
+ */
+export async function retryOrderRelease(
+  id: string,
+  actor: string,
+): Promise<
+  { ok: true; release: InventoryRelease } | { ok: false; error: string }
+> {
+  await ensureSeed();
+  const order = await getOrder(id);
+  if (!order) return { ok: false, error: "Sipariş bulunamadı." };
+  if (order.status !== "cancelled" || order.stockReleasedAt) {
+    return { ok: false, error: "Bu siparişin stoğu zaten geri alınmış." };
+  }
+  return { ok: true, release: await releaseOrderInventory(order, { actor }) };
+}
+
+/**
+ * Gives chosen lines back to stock (the refund modal's "stoğa geri al"):
+ * `[{index, qty}]`, each capped by the SQL at what that line has not given
+ * back yet, so two refunds of one line cannot both credit it.
+ */
+export async function restockOrderLines(
+  order: Pick<AdminOrder, "id" | "orderNo">,
+  lines: ReadonlyArray<{ index: number; qty: number }>,
+  actor: string,
+): Promise<ReleasedLine[]> {
+  if (lines.length === 0) return [];
+  const { data, error, status } = await getDb().rpc<unknown>(
+    "restock_order_lines",
+    {
+      p_order_id: order.id,
+      p_lines: lines.map((l) => ({ index: l.index, qty: l.qty })),
+      p_now: new Date().toISOString(),
+    },
+  );
+  if (error) raiseDbError("restockOrderLines", error, status);
+  const credited = releasedLines(data);
+  await recordReleasedMoves(
+    order,
+    credited,
+    "refund_restock",
+    `Sipariş #${order.orderNo} iadesi`,
+    actor,
+  );
+  return credited;
 }
 
 /**
@@ -3678,9 +5205,36 @@ async function settleLoyaltyAfterRelease(
   }
 }
 
+/**
+ * Moves an order one step through the machine, and does what the step owes:
+ * a cancel gives the inventory back, takes the stamps back and tells the
+ * buyer; settling by hand stamps and mails "ödemen alındı"; shipping mails
+ * the tracking number. The result says which mail went out (`mail`) and
+ * what the release came to, so the panel can tell the operator.
+ *
+ * `restock: false` cancels without crediting stock (a parcel that already
+ * left). Everything after the status write is best-effort and reported in
+ * `warnings`: the status HAS moved, and an error there used to drop the
+ * operator on the error page with the stamps and the mail never handled.
+ *
+ * `paymentReceived`: "Hazırlamaya başla" on an UNPAID order settles it
+ * (paidAt, the stamp, "ödemen alındı"). The button never said so, so the
+ * move is refused unless the caller says the money was taken.
+ *
+ * `expectStatus`: the status the caller decided from (lib/admin/order-ops.ts
+ * reads the order, its money and the role first). Without it a payment that
+ * landed in between was cancelled from `paid` by a decision made for an
+ * unpaid order: no refund role asked, no "iade bekliyor" flag.
+ */
 export async function transitionOrder(
   id: string,
   transition: OrderTransition,
+  opts: {
+    restock?: boolean;
+    actor?: string;
+    paymentReceived?: boolean;
+    expectStatus?: AdminOrderStatus;
+  } = {},
 ): Promise<TransitionResult> {
   await ensureSeed();
   const sb = getDb();
@@ -3688,10 +5242,27 @@ export async function transitionOrder(
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
   const map = TRANSITION_MAP[transition];
   if (!map) return { ok: false, error: "Geçersiz işlem." };
+  if (opts.expectStatus && existing.status !== opts.expectStatus) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
   if (!map.from.includes(existing.status)) {
     return {
       ok: false,
-      error: `Bu işlem '${existing.status}' durumunda yapılamaz.`,
+      error: `Bu işlem "${ORDER_STATUS_LABELS[existing.status] ?? existing.status}" durumundaki siparişte yapılamaz.`,
+    };
+  }
+  if (
+    transition === "start_preparing" &&
+    existing.status === "pending_payment" &&
+    opts.paymentReceived !== true
+  ) {
+    return {
+      ok: false,
+      error:
+        'Ödemesi alınmamış sipariş hazırlanamaz. Önce "Ödendi olarak işaretle".',
     };
   }
   // Settling by hand is still settling. "Ödendi olarak işaretle" - the cash
@@ -3728,13 +5299,28 @@ export async function transitionOrder(
   if (moved.length === 0) {
     return {
       ok: false,
-      error: "Sipariş bu arada değişti. Sayfayı yenileyip tekrar dene.",
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
     };
   }
+  const warnings: string[] = [];
+  let mail: OrderNoticeOutcome | undefined;
+  let release: InventoryRelease | undefined;
   if (map.to === "cancelled") {
-    await releaseOrderInventory(existing);
+    try {
+      release = await releaseOrderInventory(existing, {
+        restock: opts.restock !== false,
+        actor: opts.actor,
+      });
+    } catch (err) {
+      // The SQL function rolled back whole: the marker is still empty and
+      // "Stoğu geri al" on the order page tries again.
+      console.error(`[orders] release after cancel failed order=${id}`, err);
+      warnings.push(
+        "stok ve kupon geri alınamadı, 'Stoğu geri al' ile tekrar dene",
+      );
+    }
     await reverseLoyalty(existing, "cancelled", { full: true });
-    await noticeCancelled(
+    mail = await noticeCancelled(
       { ...existing, status: "cancelled" },
       {
         unpaidAttempt:
@@ -3747,14 +5333,20 @@ export async function transitionOrder(
     await awardLoyalty({ ...existing, status: map.to, paidAt }, "transition");
     // Settled by hand is paid all the same: the customer's one order mail
     // goes out now, once (a later POS confirmation finds it claimed).
-    await notifyOrderPaid({ ...existing, status: map.to, paidAt });
+    mail = await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
   // and this is the moment the buyer is owed the number. Sent once per
   // number, so the tracking form having sent it already is a no-op here.
-  if (map.to === "shipped") await notifyOrderShipped(nextOrder);
-  return { ok: true, order: nextOrder };
+  if (map.to === "shipped") mail = await notifyOrderShipped(nextOrder);
+  return {
+    ok: true,
+    order: nextOrder,
+    ...(mail ? { mail } : {}),
+    ...(release ? { release } : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }
 
 /**
@@ -3766,8 +5358,8 @@ export async function transitionOrder(
 async function noticeCancelled(
   order: AdminOrder,
   { unpaidAttempt = false }: { unpaidAttempt?: boolean } = {},
-): Promise<void> {
-  if (!cancelNoticeDue(order)) return;
+): Promise<OrderNoticeOutcome> {
+  if (!cancelNoticeDue(order)) return "not_due";
   let collected: boolean | null = Boolean(order.paidAt) || null;
   if (collected === null) {
     try {
@@ -3784,8 +5376,8 @@ async function noticeCancelled(
   // `notifyOrderPaid`) and it is not in their profile. Cancelling it says
   // nothing - unless the POS shows money was taken after all, which the
   // customer must hear about.
-  if (unpaidAttempt && collected !== true) return;
-  await notifyOrderCancelled(order, { collected });
+  if (unpaidAttempt && collected !== true) return "not_due";
+  return notifyOrderCancelled(order, { collected });
 }
 
 /**
@@ -3852,31 +5444,130 @@ export async function setOrderInternalNote(
   return { ...existing, internalNote: trimmed };
 }
 
+/** The statuses whose parcel has left: the tracking form corrects these only. */
+export const TRACKING_EDITABLE_STATUSES: readonly AdminOrderStatus[] = [
+  "shipped",
+  "completed",
+];
+
+export type TrackingWrite =
+  | { ok: true; order: AdminOrder; mail: OrderNoticeOutcome }
+  | { ok: false; error: string };
+
+/**
+ * Corrects the carrier or the tracking number of a parcel that has already
+ * left. A new number is a new "kargoya verildi" mail (one per number); the
+ * same number saved again is not. `mail` says which.
+ *
+ * Refused on any other status: the form used to be open on unpaid,
+ * cancelled and refunded orders, a number typed there stamped `shippedAt`
+ * and the app showed "Kargoda" for an order that will never ship. Before
+ * the parcel leaves, "Kargoya ver" takes the number and moves the status in
+ * one step (`shipParcel`). The write is conditional on the status it read.
+ */
 export async function setOrderTracking(
   id: string,
   trackingNumber: string,
   carrier: string,
-): Promise<AdminOrder | null> {
+): Promise<TrackingWrite> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getOrder(id);
-  if (!existing) return null;
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (!TRACKING_EDITABLE_STATUSES.includes(existing.status)) {
+    return {
+      ok: false,
+      error:
+        'Kargo bilgisi yalnız yola çıkmış siparişte düzeltilir. Önce "Kargoya ver".',
+    };
+  }
   const tn = trackingNumber.trim().slice(0, 120);
   const ca = carrier.trim().slice(0, 80);
-  const shippedAt = existing.shippedAt || (tn ? new Date().toISOString() : "");
-  check(
+  if (!tn) return { ok: false, error: "Takip numarasını yaz." };
+  const shippedAt = existing.shippedAt || new Date().toISOString();
+  const written = rows<{ id: string }>(
     await sb
       .from(TABLES.orders)
       .update({ trackingNumber: tn, carrier: ca, shippedAt })
-      .eq("id", id),
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
     "setOrderTracking",
   );
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
   const updated = { ...existing, trackingNumber: tn, carrier: ca, shippedAt };
-  // The form IS the hand-over as far as the site knows: it stamps shippedAt,
-  // and the app's band reads "Yola çıktı" from it. So the buyer is owed the
-  // number now; a corrected number is a new notice, a re-save is not.
-  if (tn) await notifyOrderShipped(updated);
-  return updated;
+  // A corrected number is a new notice for the buyer; a re-save of the same
+  // number is not (one mail per number, `shipmentNoticeKind`).
+  const mail = await notifyOrderShipped(updated);
+  return { ok: true, order: updated, mail };
+}
+
+/**
+ * "Kargoya ver" for a parcel: the carrier and the tracking number, then
+ * the move to `shipped`, in one step - the number is what the buyer's
+ * "kargoya verildi" mail carries, and shipping without it sent no mail and
+ * showed "Kargoda" in the app with nothing to track.
+ *
+ * The number is written first, guarded on the status the decision was made
+ * from; `transitionOrder` then stamps `shippedAt` and sends the one mail.
+ * If the move is refused (the order changed meanwhile), the old values are
+ * put back so a preparing order does not carry a number.
+ */
+export async function shipParcel(
+  id: string,
+  input: { carrier: string; trackingNumber: string; actor?: string },
+): Promise<TransitionResult> {
+  await ensureSeed();
+  const existing = await getOrder(id);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (!TRANSITION_MAP.mark_shipped.from.includes(existing.status)) {
+    return {
+      ok: false,
+      error: `Bu işlem "${ORDER_STATUS_LABELS[existing.status] ?? existing.status}" durumundaki siparişte yapılamaz.`,
+    };
+  }
+  const tn = input.trackingNumber.trim().slice(0, 120);
+  const ca = input.carrier.trim().slice(0, 80);
+  if (!tn) return { ok: false, error: "Takip numarasını yaz." };
+  const written = rows<{ id: string }>(
+    await getDb()
+      .from(TABLES.orders)
+      .update({ trackingNumber: tn, carrier: ca })
+      .eq("id", id)
+      .eq("status", existing.status)
+      .select("id"),
+    "shipParcel",
+  );
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  const res = await transitionOrder(id, "mark_shipped", { actor: input.actor });
+  if (!res.ok) {
+    try {
+      check(
+        await getDb()
+          .from(TABLES.orders)
+          .update({
+            trackingNumber: existing.trackingNumber ?? "",
+            carrier: existing.carrier ?? "",
+          })
+          .eq("id", id)
+          .eq("status", existing.status),
+        "shipParcel.revert",
+      );
+    } catch (err) {
+      console.error(`[orders] tracking not reverted order=${id}`, err);
+    }
+  }
+  return res;
 }
 
 /** What the Geliver webhook's write came to - the route answers each differently. */
@@ -3960,61 +5651,289 @@ export async function setOrderShipmentStatus(
 
 export interface OrderDetailsInput {
   customerName: string;
-  customerEmail: string;
+  /** Left out: the stored e-mail stays (the form did not offer the field). */
+  customerEmail?: string;
   customerPhone: string;
   shippingAddress: string;
 }
 
-/** Admin edit of an order's customer + delivery fields (no totals change). */
+export type OrderDetailsResult =
+  | { ok: true; before: AdminOrder; order: AdminOrder }
+  | { ok: false; error: string };
+
+/**
+ * Whether loyalty stamps or a member coupon are filed under this order's
+ * e-mail. A cancel or refund finds them by the order's e-mail as it is
+ * then (`onOrderReversed`, `releaseCustomerCoupon`), so an order moved to
+ * another address left them with the old one and took back nothing: the
+ * member kept the stamps of a refunded order, and a spent coupon was never
+ * given back (admin audit ORD-16).
+ *
+ * A paid app cafe order that earns a stamp counts before its row is there:
+ * the stamp is written just after the payment, under the e-mail the order
+ * had then. A coupon is claimed when the order is placed, unpaid ones too.
+ */
+export async function orderEmailLedgerHeld(
+  order: AdminOrder,
+): Promise<boolean> {
+  const paid = Boolean(order.paidAt) || order.status !== "pending_payment";
+  if (
+    paid &&
+    orderChannel(order) === "app" &&
+    orderKind(order) === "cafe" &&
+    earnsStamp(order)
+  ) {
+    return true;
+  }
+  const sb = getDb();
+  const stamps = rows<{ id: string }>(
+    await sb
+      .from(TABLES.loyaltyStamps)
+      .select("id")
+      .eq("orderId", order.id)
+      .limit(1),
+    "orderEmailLedgerHeld.stamps",
+  );
+  if (stamps.length > 0) return true;
+  if (!order.promoCode || !(order.orderNo > 0)) return false;
+  const coupons = rows<{ id: string }>(
+    await sb
+      .from(TABLES.customerCoupons)
+      .select("id")
+      .eq("redeemedOrderNo", order.orderNo)
+      .limit(1),
+    "orderEmailLedgerHeld.coupon",
+  );
+  return coupons.length > 0;
+}
+
+/**
+ * Admin edit of an order's customer + delivery fields (no totals change).
+ *
+ * `refuse` is asked about the order as stored and stops the save with its
+ * answer (who may change the e-mail, a closed order: lib/admin/
+ * order-details.ts). An e-mail that would leave stamps or a member coupon
+ * under the old address is refused here whoever asks
+ * (`orderEmailLedgerHeld`). The write is conditional on the status and
+ * e-mail those answers were given for, so an order completed, paid or moved
+ * in between is "changed", never overwritten. `before` is the order as it
+ * was: the caller's audit row keeps the old values.
+ */
 export async function updateOrderDetails(
   id: string,
   input: OrderDetailsInput,
-): Promise<AdminOrder | null> {
+  refuse?: (existing: AdminOrder) => string | null,
+): Promise<OrderDetailsResult> {
   await ensureSeed();
   const sb = getDb();
   const existing = await getOrder(id);
-  if (!existing) return null;
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  const refusal = refuse?.(existing) ?? null;
+  if (refusal) return { ok: false, error: refusal };
+  if (
+    emailMovesLedger(existing.customerEmail, input.customerEmail) &&
+    (await orderEmailLedgerHeld(existing))
+  ) {
+    return { ok: false, error: ORDER_DETAILS_MESSAGES.emailLedger };
+  }
   const update = {
     customerName: input.customerName.trim().slice(0, 120),
-    customerEmail: input.customerEmail.trim().slice(0, 160),
+    ...(input.customerEmail !== undefined
+      ? { customerEmail: input.customerEmail.trim().slice(0, 160) }
+      : {}),
     customerPhone: input.customerPhone.trim().slice(0, 40),
     shippingAddress: input.shippingAddress.trim().slice(0, 600),
   };
-  check(
-    await sb.from(TABLES.orders).update(update).eq("id", id),
+  const written = rows<{ id: string }>(
+    await sb
+      .from(TABLES.orders)
+      .update(update)
+      .eq("id", id)
+      .eq("status", existing.status)
+      .eq("customerEmail", existing.customerEmail ?? "")
+      .select("id"),
     "updateOrderDetails",
   );
-  return { ...existing, ...update };
+  if (written.length === 0) {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  return { ok: true, before: existing, order: { ...existing, ...update } };
 }
 
+/**
+ * One line's status ("Bekliyor", "Hazır", "İptal"), written in place by
+ * `set_order_item_status`, and only while the order is live (paid,
+ * preparing, shipped, completed). Null when refused: an unknown order or
+ * line, or an order that is unpaid, cancelled or refunded.
+ *
+ * The line's stock is not touched: an "İptal" line is given back when the
+ * order is cancelled (`release_order_inventory` credits every line), or
+ * from the refund modal.
+ */
 export async function setOrderItemStatus(
   orderId: string,
   itemIndex: number,
   status: AdminOrderItemStatus,
 ): Promise<AdminOrder | null> {
   await ensureSeed();
-  const sb = getDb();
+  if (!Number.isInteger(itemIndex) || itemIndex < 0) return null;
   const existing = await getOrder(orderId);
   if (!existing) return null;
-  if (itemIndex < 0 || itemIndex >= existing.items.length) return null;
-  const nextItems = existing.items.map((it, i) =>
-    i === itemIndex ? { ...it, status } : it,
+  const {
+    data,
+    error,
+    status: httpStatus,
+  } = await getDb().rpc<AdminOrderItem[] | null>("set_order_item_status", {
+    p_order_id: orderId,
+    p_index: itemIndex,
+    p_status: status,
+    p_allowed: [...ITEM_EDITABLE_ORDER_STATUSES],
+  });
+  if (error) raiseDbError("setOrderItemStatus", error, httpStatus);
+  if (!data) return null;
+  return { ...existing, items: data };
+}
+
+/**
+ * "Ödendi olarak işaretle": the money was taken outside the POS (cash at the
+ * counter, the counter's card terminal, a bank transfer).
+ *
+ * A `manual:<method>` payment row is written FIRST, so a card payment that
+ * lands afterwards for the same order (the customer was still on the bank's
+ * 3-D Secure page) meets an order another succeeded payment already paid,
+ * and is flagged as a duplicate charge instead of passing as a harmless
+ * repeat. Refunds skip manual rows (`getOrderPaymentRef`): that money goes
+ * back by hand. If the move to `paid` is then refused, the row is taken
+ * back. The POS check for a card order is the caller's (order-ops.ts).
+ */
+/**
+ * The `manual:<method>` payment row of money taken outside the POS, for the
+ * order's whole total. `error` is null once the row is there (a 23505 is an
+ * earlier attempt's row, which stands for this one). Shared by "Ödendi
+ * olarak işaretle" and a manual order that starts paid.
+ */
+async function insertManualPaymentRow(
+  order: Pick<AdminOrder, "id" | "totalMinor">,
+  method: ManualPaymentMethod,
+  actor?: string,
+): Promise<{ provider: string; providerRef: string; error: string | null }> {
+  const provider = `${MANUAL_PROVIDER_PREFIX}${method}`;
+  const providerRef = `manual-${order.id}`;
+  const ins = await getDb()
+    .from(TABLES.paymentTransactions)
+    .insert({
+      orderId: order.id,
+      provider,
+      providerRef,
+      status: "succeeded",
+      amountMinor: order.totalMinor,
+      currency: "TRY",
+      raw: { source: "admin", method, actor: actor ?? "" },
+      trxDate: "",
+      createdAt: new Date().toISOString(),
+    });
+  const error =
+    ins.error && ins.error.code !== "23505" ? ins.error.message : null;
+  return { provider, providerRef, error };
+}
+
+export async function markOrderPaidManually(
+  id: string,
+  method: ManualPaymentMethod,
+  actor?: string,
+): Promise<TransitionResult> {
+  await ensureSeed();
+  const existing = await getOrder(id);
+  if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  if (existing.status !== "pending_payment") {
+    return {
+      ok: false,
+      error: "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.",
+    };
+  }
+  const { provider, providerRef, error } = await insertManualPaymentRow(
+    existing,
+    method,
+    actor,
   );
-  check(
-    await sb.from(TABLES.orders).update({ items: nextItems }).eq("id", orderId),
-    "setOrderItemStatus",
-  );
-  return { ...existing, items: nextItems };
+  if (error) {
+    return { ok: false, error: `Ödeme kaydı yazılamadı: ${error}` };
+  }
+  const res = await transitionOrder(id, "mark_paid", { actor });
+  if (!res.ok) {
+    try {
+      check(
+        await getDb()
+          .from(TABLES.paymentTransactions)
+          .delete()
+          .eq("orderId", id)
+          .eq("provider", provider)
+          .eq("providerRef", providerRef),
+        "markOrderPaidManually.undo",
+      );
+    } catch (err) {
+      console.error(
+        `[orders] manual payment row left behind order=${id}; the order was not marked paid`,
+        err,
+      );
+    }
+  }
+  return res;
+}
+
+/** What asking the POS about a pending order came to. */
+export type PosCheckVerdict =
+  | PendingVerdict
+  /** The order is not waiting for a payment (any more). */
+  | "not_pending"
+  /** A manual order: there is no POS payment to ask about. */
+  | "manual";
+
+/**
+ * Asks the POS whether this pending order was paid after all, and books the
+ * payment when it was ("POS'tan kontrol et", and before an admin cancel or
+ * a manual "ödendi" - CLAUDE.md rule 29: an unreachable POS is never "not
+ * paid").
+ *
+ * `purpose: "cancel"` reads a payment of the WRONG amount as unpaid, the way
+ * the sweep does: the order cannot go ahead, it is cancelled, and the money
+ * shows as collected so it can be refunded. For "pay", the same case is
+ * "unknown": a manual "ödendi" on top of a wrong card charge is wrong.
+ */
+export async function checkOrderWithPos(
+  order: AdminOrder,
+  purpose: "check" | "pay" | "cancel" = "check",
+): Promise<PosCheckVerdict> {
+  if (order.status !== "pending_payment") return "not_pending";
+  if (order.source === "manual") return "manual";
+  const provider = await lookupProvider();
+  // No provider could be built: nobody was asked, so nothing is known.
+  if (!provider) return "unknown";
+  return purpose === "cancel"
+    ? settlePendingFromProvider(order, provider)
+    : checkPendingOrderPaid(order, provider);
 }
 
 export interface RefundInput {
   amountMinor: number;
   reason: string;
+  /** The refund modal's one-time token (`AdminRefund.token`). */
+  token?: string;
+  /** Where the money goes, as the server decided (`orderMoney`). */
+  destination?: RefundDestination;
+  /**
+   * What was collected (`OrderMoney.collectedMinor`): the refund cap when
+   * the POS took less than the order total. Omitted or null: the total.
+   */
+  collectedMinor?: number | null;
 }
 
 export type RefundResult =
   | { ok: true; order: AdminOrder; refund: AdminRefund }
-  | { ok: false; error: string };
+  | { ok: false; error: string; duplicate?: boolean };
 
 /**
  * Why a refund of `amountMinor` cannot be issued against `order`, or `null`
@@ -4027,11 +5946,16 @@ export type RefundResult =
  * payment transaction). A cancelled order that WAS paid is refundable: the
  * cancel dialog promises "iade ayrıca başlatılır", and refusing it left the
  * customer's money with the shop with no way to give it back.
+ *
+ * `collectedMinor` caps the refund at what was actually collected: the
+ * order total used to be the cap, and a POS that took ₺1 for a ₺500 order
+ * (an amount mismatch) could be asked to send back ₺500.
  */
 export function refundRefusal(
   order: Pick<AdminOrder, "status" | "totalMinor" | "refunds">,
   amountMinor: number,
   collected: boolean,
+  collectedMinor: number | null = null,
 ): string | null {
   if (order.status === "cancelled" && !collected) {
     return "İptal edilen, ödemesi alınmamış siparişe iade yapılamaz.";
@@ -4046,27 +5970,37 @@ export function refundRefusal(
     return "İade tutarı pozitif olmalı.";
   }
   const already = order.refunds.reduce((s, r) => s + r.amountMinor, 0);
-  const remaining = order.totalMinor - already;
+  const cap = collected
+    ? refundCapMinor(order, collected, collectedMinor)
+    : order.totalMinor;
+  const remaining = Math.max(0, cap - already);
   if (amountMinor > remaining) {
-    return `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`;
+    return cap < order.totalMinor
+      ? `İade tutarı tahsil edilen tutarı aşıyor (iade edilebilir: ${priceLabel(remaining)}).`
+      : `İade tutarı kalan bakiyeyi aşıyor (kalan: ${priceLabel(remaining)}).`;
   }
   return null;
 }
 
-/** Was money ever collected on this order? */
+/**
+ * Was money ever collected on this order? `paidAt`, or any succeeded payment
+ * row - a manual "ödendi" too: the cash was taken, it just cannot go back to
+ * a card.
+ */
 export async function orderWasCollected(order: AdminOrder): Promise<boolean> {
   if (order.paidAt) return true;
-  return (await getOrderPaymentRef(order.id)) !== null;
+  return (await orderMoney(order)).collected;
 }
 
 /**
  * Step 1 of a refund: write the ledger entry, if it still fits.
  *
- * `reserve_order_refund` appends the entry in ONE UPDATE whose WHERE checks
- * the remaining balance, so two refunds submitted together cannot both fit
- * where only one does - the read-modify-write this replaced let both through,
- * and each had already moved money. Called BEFORE the POS: if the POS then
- * refuses, {@link releaseRefund} takes the entry back; if it accepts,
+ * `reserve_order_refund_once` appends the entry in ONE UPDATE whose WHERE
+ * checks the remaining balance against what was collected and the modal's
+ * one-time token, so two refunds submitted together cannot both fit where
+ * only one does, and the same modal submitted twice records once. Called
+ * BEFORE the POS: if the POS then refuses, {@link releaseRefund} takes the
+ * entry back (token included, so a retry may run); if it accepts,
  * {@link finalizeRefund} settles the status and the stamp.
  */
 export async function reserveRefund(
@@ -4076,10 +6010,20 @@ export async function reserveRefund(
   await ensureSeed();
   const existing = await getOrder(orderId);
   if (!existing) return { ok: false, error: "Sipariş bulunamadı." };
+  const token = (input.token ?? "").trim().slice(0, 64);
+  if (token && existing.refunds.some((r) => r.token === token)) {
+    return {
+      ok: false,
+      duplicate: true,
+      error: "Bu iade zaten kaydedildi. Sayfa yenilendi, iadeler bölümüne bak.",
+    };
+  }
+  const collected = await orderWasCollected(existing);
   const refusal = refundRefusal(
     existing,
     input.amountMinor,
-    await orderWasCollected(existing),
+    collected,
+    input.collectedMinor ?? null,
   );
   if (refusal) return { ok: false, error: refusal };
   const refund: AdminRefund = {
@@ -4087,14 +6031,34 @@ export async function reserveRefund(
     amountMinor: input.amountMinor,
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
+    ...(input.destination ? { destination: input.destination } : {}),
+    ...(token ? { token } : {}),
   };
   const { data, error, status } = await getDb().rpc<AdminRefund[] | null>(
-    "reserve_order_refund",
-    { p_order_id: orderId, p_refund: refund },
+    "reserve_order_refund_once",
+    {
+      p_order_id: orderId,
+      p_refund: refund,
+      // The same cap refundRefusal just applied; a row with no collected
+      // signal at all (status says paid, nothing else does) keeps the total.
+      p_cap: collected
+        ? refundCapMinor(existing, collected, input.collectedMinor ?? null)
+        : existing.totalMinor,
+    },
   );
   if (error) raiseDbError("reserveRefund", error, status);
   if (!data) {
-    // Another refund landed between the check above and this write.
+    // Another refund landed between the check above and this write - or the
+    // same modal was submitted twice and the first one is in.
+    const fresh = token ? await getOrder(orderId) : null;
+    if (fresh?.refunds.some((r) => r.token === token)) {
+      return {
+        ok: false,
+        duplicate: true,
+        error:
+          "Bu iade zaten kaydedildi. Sayfa yenilendi, iadeler bölümüne bak.",
+      };
+    }
     return {
       ok: false,
       error:
@@ -4123,6 +6087,13 @@ export interface RefundNotice {
   viaCard: boolean;
 }
 
+/** A settled refund: the order as it now stands, and the buyer's mail. */
+export interface FinalizedRefund {
+  order: AdminOrder;
+  /** null when no notice was asked for. */
+  mail: OrderNoticeOutcome | null;
+}
+
 /**
  * Step 2: the money moved. A fully refunded order becomes `refunded` - unless
  * it was cancelled, which already did that and must stay out of the reports.
@@ -4136,9 +6107,10 @@ export interface RefundNotice {
 export async function finalizeRefund(
   order: AdminOrder,
   notice?: RefundNotice,
-): Promise<AdminOrder> {
+): Promise<FinalizedRefund> {
+  let mail: OrderNoticeOutcome | null = null;
   if (notice) {
-    await notifyOrderRefunded(order, notice.refund, {
+    mail = await notifyOrderRefunded(order, notice.refund, {
       viaCard: notice.viaCard,
     });
   }
@@ -4150,7 +6122,7 @@ export async function finalizeRefund(
     // cancelled order keeps none (its cancel already took them back).
     const why = wasCancelled ? "cancelled-refund" : "partial-refund";
     await reverseLoyalty(order, why, { full: wasCancelled });
-    return order;
+    return { order, mail };
   }
   check(
     await getDb()
@@ -4163,7 +6135,7 @@ export async function finalizeRefund(
   await reverseLoyalty({ ...order, status: "refunded" }, "refunded", {
     full: true,
   });
-  return { ...order, status: "refunded" };
+  return { order: { ...order, status: "refunded" }, mail };
 }
 
 /**
@@ -4176,7 +6148,7 @@ export async function refundOrder(
 ): Promise<RefundResult> {
   const reserved = await reserveRefund(orderId, input);
   if (!reserved.ok) return reserved;
-  const order = await finalizeRefund(reserved.order, {
+  const { order } = await finalizeRefund(reserved.order, {
     refund: reserved.refund,
     viaCard: false,
   });
@@ -4201,12 +6173,19 @@ export async function refundOrder(
  */
 export const getPublicSettings = cache(
   async (): Promise<AdminSettings> =>
-    publicRead(
-      "getPublicSettings",
-      { ...defaultSettings(), isShopOpen: false },
-      () => getSettings(),
+    publicRead("getPublicSettings", publicSettingsFallback(), () =>
+      getSettings(),
     ),
 );
+
+/**
+ * What a presentation read of the settings shows when the database cannot
+ * be reached: the defaults, with the shop closed. Shared with the cached
+ * reader (src/lib/seo/site-data.ts) so both fall back to the same thing.
+ */
+export function publicSettingsFallback(): AdminSettings {
+  return { ...defaultSettings(), isShopOpen: false };
+}
 
 export async function getSettings(): Promise<AdminSettings> {
   await ensureSeed();
@@ -4228,10 +6207,16 @@ export async function getSettings(): Promise<AdminSettings> {
     ...defaultSettings(),
     ...rest,
     mobileApp: normalizeMobileAppConfig(rest.mobileApp),
+    // jsonb as well: every key filled, a bad value reads as the legal rate.
+    taxRates: normalizeTaxRates(rest.taxRates),
     // jsonb from the row: only known roles reach the recipient list.
     orderNotifyRoles: normalizeNotifyRoles(
       rest.orderNotifyRoles ?? defaultSettings().orderNotifyRoles,
     ),
+    // Online prepayment cannot be switched off (OP-KARAOKE-PREPAY): a row
+    // saved before the lock may still say false, and the request mode it
+    // would run is gone from the legal texts.
+    karaokePrepay: true,
   } as AdminSettings;
 }
 
@@ -4251,107 +6236,181 @@ export async function updateSettings(
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────
 
+/** A product at or under its low-stock line, for the dashboard. */
+export interface LowStockRow {
+  id: string;
+  name: string;
+  stock: number;
+  lowStockThreshold: number;
+}
+
+/**
+ * What the dashboard's tiles and lists count. Every figure is the count of
+ * a list a tile opens, read by the same rule, so the number on the tile is
+ * the number of rows behind it. No money: the revenue tile reads the
+ * report's buckets (`revenueBuckets`) and only for the roles that may see
+ * reports (admin audit SHE-14).
+ */
 export interface DashboardStats {
-  productCount: number;
-  activeProductCount: number;
+  /** `OPEN_ORDER_STATUSES`: the "Açık" tab's and the sidebar badge's set. */
+  openOrderCount: number;
+  /** The open orders per status, in `OPEN_ORDER_STATUSES` order. */
+  openByStatus: Array<{ status: AdminOrderStatus; count: number }>;
+  /** Orders flagged for a person (`attention`): the list's Dikkat filter. */
+  attentionOrderCount: number;
+  /** Stock 0, active or not: the product list's "Stokta yok". */
   outOfStockCount: number;
-  categoryCount: number;
-  orderCount: number;
-  pendingOrderCount: number;
-  revenueMinor: number;
+  /** Active products at or under their line, the emptiest first. */
+  lowStock: LowStockRow[];
+  /** How many active products are at or under their line. */
+  lowStockCount: number;
+}
+
+/** The product columns the dashboard's stock figures read. */
+export type DashboardProduct = LowStockRow & { isActive: boolean };
+
+/**
+ * The pure half of the dashboard's stock figures, exported for tests. A
+ * product counts as low at or under its own line (`stock <=
+ * lowStockThreshold`), sold out included: the shelf the shift has to fill
+ * first comes first.
+ */
+export function dashboardStockFrom(
+  products: readonly DashboardProduct[],
+  limit = 5,
+): Pick<DashboardStats, "outOfStockCount" | "lowStock" | "lowStockCount"> {
+  const low = products
+    .filter((p) => p.isActive && p.stock <= p.lowStockThreshold)
+    .sort((a, b) => a.stock - b.stock || a.name.localeCompare(b.name, "tr"));
+  return {
+    outOfStockCount: products.filter((p) => p.stock === 0).length,
+    lowStock: low.slice(0, limit).map((p) => ({
+      id: p.id,
+      name: p.name,
+      stock: p.stock,
+      lowStockThreshold: p.lowStockThreshold,
+    })),
+    lowStockCount: low.length,
+  };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
   const sb = getDb();
+  const ctx = "getDashboardStats";
 
-  const [
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueRows,
-  ] = await Promise.all([
-    countRows(TABLES.products),
+  // The tiles for products and categories went (a shift has nothing to do
+  // with how many there are), and with them two counts and the read of
+  // every paid order's total that the revenue tile used to make for staff
+  // as well.
+  const [open, attentionOrderCount, products] = await Promise.all([
     sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("isActive", true)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.active: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    sb
-      .from(TABLES.products)
-      .select("*", { count: "exact", head: true })
-      .eq("stock", 0)
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.oos: ${r.error.message}`);
-        return r.count ?? 0;
-      }),
-    countRows(TABLES.categories),
-    countRows(TABLES.orders),
+      .from(TABLES.orders)
+      .select("status")
+      .in("status", [...OPEN_ORDER_STATUSES])
+      .then((r) => rows<{ status: AdminOrderStatus }>(r, `${ctx}.open`)),
     sb
       .from(TABLES.orders)
       .select("*", { count: "exact", head: true })
-      .in("status", ["pending_payment", "paid", "preparing"])
+      .neq("attention", "")
       .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.pending: ${r.error.message}`);
+        if (r.error) raiseDbError(`${ctx}.attention`, r.error, r.status);
         return r.count ?? 0;
       }),
     sb
-      .from(TABLES.orders)
-      .select("totalMinor, refunds")
-      .in("status", ["paid", "preparing", "shipped", "completed"])
-      .then((r) => {
-        if (r.error)
-          throw new Error(`getDashboardStats.revenue: ${r.error.message}`);
-        return (r.data ?? []) as Array<{
-          totalMinor: number;
-          refunds: AdminRefund[] | null;
-        }>;
-      }),
+      .from(TABLES.products)
+      .select("id, name, stock, lowStockThreshold, isActive")
+      .then((r) => rows<DashboardProduct>(r, `${ctx}.stock`)),
   ]);
 
-  // Net of refunds. The dashboard summed order totals and ignored the refund
-  // ledger entirely, so money handed back still counted as revenue - and a
-  // partially refunded order counted in full.
-  const revenueMinor = revenueRows.reduce((sum, o) => {
-    const refunded = (o.refunds ?? []).reduce(
-      (r, entry) => r + (entry?.amountMinor ?? 0),
-      0,
-    );
-    return sum + Math.max(0, (o.totalMinor ?? 0) - refunded);
-  }, 0);
-
   return {
-    productCount,
-    activeProductCount,
-    outOfStockCount,
-    categoryCount,
-    orderCount,
-    pendingOrderCount,
-    revenueMinor,
+    openOrderCount: open.length,
+    openByStatus: OPEN_ORDER_STATUSES.map((status) => ({
+      status,
+      count: open.filter((o) => o.status === status).length,
+    })),
+    attentionOrderCount,
+    ...dashboardStockFrom(products),
   };
 }
 
 // ─── Public read for customer site ────────────────────────────────────────
 
-function toDesignProduct(p: AdminProduct): DesignProduct {
+/**
+ * The label fields a product page shows: only those entered (an empty one
+ * is left out, so nothing reads as "none"). Allergens keep the menu's
+ * three states: absent not entered, [] none of the fourteen.
+ */
+function designFoodLabel(p: AdminProduct): Partial<DesignProduct> {
+  const label = foodLabelOf(p);
+  const out: Partial<DesignProduct> = Object.fromEntries(
+    Object.entries(label).filter(([, value]) => value !== ""),
+  );
+  const allergens = normalizeMenuAllergens(p.allergens);
+  if (allergens !== null) out.allergens = allergens;
+  return out;
+}
+
+export function toDesignProduct(
+  p: AdminProduct,
+  now: Date = new Date(),
+): DesignProduct {
+  return shopProductAt(toShopListing(p), now);
+}
+
+/**
+ * A product as the site lists it, minus what depends on the hour: the
+ * mapped product without its "was" price, and the discount's fields to
+ * work that out from (`shopProductAt`). What the cached shop list
+ * (src/lib/seo/site-data.ts) stores, so a discount starts and ends on the
+ * minute however long the entry is kept.
+ */
+export interface ShopListing {
+  product: DesignProduct;
+  discount: DiscountFields;
+}
+
+/**
+ * The product at `now`: a "was" price only while its discount runs and only
+ * above the sale price; without dates, or out of them, it is shown nowhere
+ * (Ticari Reklam Yön. m.14/1, m.14/3; src/lib/shop/discount.ts).
+ */
+export function shopProductAt(
+  listing: ShopListing,
+  now: Date = new Date(),
+): DesignProduct {
+  const discount = liveDiscount(listing.discount, now);
+  return {
+    ...listing.product,
+    compareAtPrice: discount
+      ? priceLabel(discount.compareAtPriceMinor)
+      : undefined,
+    ...(discount
+      ? { discountStartsAt: discount.startsAt, discountEndsAt: discount.endsAt }
+      : {}),
+    compareAtPriceMinor: discount?.compareAtPriceMinor,
+  };
+}
+
+/** `toDesignProduct` before the clock is read (see `ShopListing`). */
+export function toShopListing(p: AdminProduct): ShopListing {
+  return {
+    product: designProductBase(p),
+    discount: {
+      priceMinor: p.priceMinor,
+      compareAtPriceMinor: p.compareAtPriceMinor,
+      discountStartsAt: p.discountStartsAt ?? null,
+      discountEndsAt: p.discountEndsAt ?? null,
+    },
+  };
+}
+
+function designProductBase(p: AdminProduct): DesignProduct {
   return {
     id: p.id,
     name: p.name,
     tag: p.tag,
     price: priceLabel(p.priceMinor),
-    compareAtPrice:
-      p.compareAtPriceMinor > p.priceMinor
-        ? priceLabel(p.compareAtPriceMinor)
-        : undefined,
     desc: p.desc,
     cat: p.cat,
     img: p.img,
@@ -4377,8 +6436,17 @@ function toDesignProduct(p: AdminProduct): DesignProduct {
     lowStockThreshold: p.lowStockThreshold,
     weightGrams: p.weightGrams,
     priceMinor: p.priceMinor,
-    compareAtPriceMinor:
-      p.compareAtPriceMinor > p.priceMinor ? p.compareAtPriceMinor : undefined,
+    // The maker and the tasting notes the product page's details read
+    // (product-facts.ts); empty sends nothing.
+    brand: typeof p.brand === "string" && p.brand.trim() ? p.brand.trim() : undefined,
+    notes:
+      Array.isArray(p.notes) && p.notes.some((n) => typeof n === "string" && n.trim())
+        ? p.notes
+            .filter((n): n is string => typeof n === "string")
+            .map((n) => n.trim())
+            .filter(Boolean)
+        : undefined,
+    ...designFoodLabel(p),
     seoTitle: p.seoTitle || undefined,
     seoDescription: p.seoDescription || undefined,
     variants: p.variants
@@ -4398,9 +6466,20 @@ export async function listShopProducts(): Promise<DesignProduct[]> {
   // a stock count from the seed would be fiction, and the shop must not sell
   // against fiction. An empty shop plus the outage banner is honest.
   return publicRead("listShopProducts", [] as DesignProduct[], async () => {
-    const all = await listProducts();
-    return all.filter((p) => p.isActive).map(toDesignProduct);
+    const now = new Date();
+    return (await listShopListingsLive()).map((l) => shopProductAt(l, now));
   });
+}
+
+/**
+ * The active products as `ShopListing`s, without the outage fallback:
+ * uploaded photos as served paths (never base64), no "was" price yet.
+ * Throws when the database cannot be reached. The cached shop list
+ * (src/lib/seo/site-data.ts) stores this.
+ */
+export async function listShopListingsLive(): Promise<ShopListing[]> {
+  const all = await listProducts();
+  return all.filter((p) => p.isActive).map((p) => toShopListing(p));
 }
 
 /**
@@ -4417,7 +6496,13 @@ export const getShopProductBySlug = cache(
     ),
 );
 
-async function getShopProductBySlugLive(
+/**
+ * `getShopProductBySlug` without the outage fallback: an unreachable database
+ * throws instead of reading as "no such product". For a caller that keeps
+ * what it gets - the product's link-preview card, cached an hour - where a
+ * fallback stored during a blip would outlive the blip.
+ */
+export async function getShopProductBySlugLive(
   slug: string,
 ): Promise<DesignProduct | null> {
   await ensureSeed();
@@ -4463,7 +6548,7 @@ async function listRelatedShopProductsLive(
       .limit(limit),
     "listRelatedShopProducts",
   );
-  return docs.map(toDesignProduct);
+  return docs.map((p) => toDesignProduct(p));
 }
 
 // ─── Cafe menu items ──────────────────────────────────────────────────────
@@ -4510,8 +6595,25 @@ export interface AdminMenuItem extends BackdropColumns {
   hue: string;
   /** Site-relative product photo, e.g. "/menu/matcha-latte.webp". Empty = drawn fallback. */
   image: string;
-  /** Free-form tags: "signature", "new", "iced", "nuts", "IGP", … */
+  /**
+   * The app's tags only: signature, new, iced, nuts (`menuTagsFromForm`).
+   * A row saved while the field was free text may still hold another word
+   * the app never showed; the edit form names it and the next save drops it.
+   */
   tags: string[];
+  /**
+   * The item's own KDV rate (whole %), or null: the menu default from
+   * `settings.taxRates`. Read through `menuItemTaxRate()`. Optional because a
+   * row written before the column existed has no key.
+   */
+  taxRatePct?: number | null;
+  /**
+   * The TGK Ek-1 allergen groups the item contains (src/lib/menu/allergens.ts):
+   * null = not entered yet, [] = none of the fourteen. Optional because a row
+   * read before the column existed has no key; read it through
+   * `normalizeMenuAllergens()`.
+   */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
   updatedAt: string;
@@ -4542,6 +6644,24 @@ export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
 }
 
 /**
+ * The names of the given menu items, without their photos. For the bulk
+ * tool's audit row, read before the write: after a bulk delete the names
+ * are gone and the row is the only record of what was removed (admin audit
+ * CAT-20).
+ */
+export async function listMenuItemLabels(
+  ids: readonly string[],
+): Promise<Array<{ id: string; name: string }>> {
+  if (ids.length === 0) return [];
+  await ensureSeed();
+  const sb = getDb();
+  return rows<{ id: string; name: string }>(
+    await sb.from(TABLES.menuItems).select("id, name").in("id", ids),
+    "listMenuItemLabels",
+  );
+}
+
+/**
  * What the menu item form saves, scene columns included (computed by the
  * save action from the photo and the form, `src/lib/backdrop/scene.ts`).
  */
@@ -4554,6 +6674,10 @@ export interface MenuItemInput extends BackdropColumns {
   hue: string;
   image: string;
   tags: string[];
+  /** Own KDV rate, or null for the menu default. Absent keeps the stored one. */
+  taxRatePct?: number | null;
+  /** Allergens, null = not entered. Absent keeps the stored ones. */
+  allergens?: MenuAllergen[] | null;
   isActive: boolean;
   sortOrder: number;
 }
@@ -4673,7 +6797,7 @@ export async function bulkUpdateMenuItems(
  * showing a wrong price to someone standing at the counter is worse than
  * showing none.
  */
-function menuWithoutPrices(): Record<string, DesignMenuCategory> {
+export function menuWithoutPrices(): Record<string, DesignMenuCategory> {
   const out: Record<string, DesignMenuCategory> = {};
   for (const key of MENU_CATEGORY_KEYS) {
     const meta = SEED_MENU[key];
@@ -4698,7 +6822,8 @@ export async function listMenuForCustomer(): Promise<
   );
 }
 
-async function listMenuForCustomerLive(): Promise<
+/** `listMenuForCustomer` without the outage fallback (throws instead). */
+export async function listMenuForCustomerLive(): Promise<
   Record<string, DesignMenuCategory>
 > {
   const all = await listMenuItems();
@@ -4714,6 +6839,9 @@ async function listMenuForCustomerLive(): Promise<
         price: priceLabel(it.priceMinor),
         ...(it.priceMinorL > 0 ? { priceL: priceLabel(it.priceMinorL) } : {}),
         ...(it.tags.length > 0 ? { tags: [...it.tags] } : {}),
+        // Left out until the operator has entered them (null): the page
+        // then shows nothing next to the item rather than "yok".
+        ...allergensField(it.allergens),
         hue: it.hue,
         ...(it.image
           ? {
@@ -4733,6 +6861,11 @@ async function listMenuForCustomerLive(): Promise<
     };
   }
   return out;
+}
+
+function allergensField(raw: unknown): { allergens?: MenuAllergen[] } {
+  const allergens = normalizeMenuAllergens(raw);
+  return allergens === null ? {} : { allergens };
 }
 
 export const MENU_CATEGORY_LABELS: Record<MenuCategoryKey, string> = {
@@ -4858,22 +6991,48 @@ export async function updatePromo(
     "updatePromo.conflict",
   );
   if (conflict) return { ok: false, error: "Başka bir kod aynı koda sahip." };
-  const next: AdminPromo = {
-    ...existing,
-    code,
-    kind: input.kind,
-    value: input.value,
-    minSubtotalMinor: input.minSubtotalMinor,
-    usageLimit: input.usageLimit,
-    expiresAt: input.expiresAt,
-    isActive: input.isActive,
-    updatedAt: new Date().toISOString(),
-  };
-  check(
-    await sb.from(TABLES.promos).update(next).eq("id", id),
+  // The form's fields only. The whole row read above used to go back,
+  // `usageCount` included: a redemption (redeem_promo) or a cancellation
+  // (release_promo_usage) that landed between that read and this write was
+  // overwritten, and a limited code could be used past its limit.
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({
+        code,
+        kind: input.kind,
+        value: input.value,
+        minSubtotalMinor: input.minSubtotalMinor,
+        usageLimit: input.usageLimit,
+        expiresAt: input.expiresAt,
+        isActive: input.isActive,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select("*"),
     "updatePromo.update",
   );
-  return { ok: true, promo: next };
+  const promo = updated[0];
+  if (!promo) return { ok: false, error: "Kod bulunamadı." };
+  return { ok: true, promo };
+}
+
+/** The list's Aktif / Pasif switch; null when the code is gone. */
+export async function setPromoActive(
+  id: string,
+  isActive: boolean,
+): Promise<AdminPromo | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const updated = rows<AdminPromo>(
+    await sb
+      .from(TABLES.promos)
+      .update({ isActive, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("*"),
+    "setPromoActive",
+  );
+  return updated[0] ?? null;
 }
 
 export async function deletePromo(id: string): Promise<boolean> {
@@ -4966,6 +7125,23 @@ async function releasePromoUsage(code: string): Promise<void> {
 // ─── Analytics aggregations ───────────────────────────────────────────────
 
 export type BucketGranularity = "day" | "week" | "month";
+
+const BUCKET_GRANULARITIES: readonly BucketGranularity[] = [
+  "day",
+  "week",
+  "month",
+];
+
+/**
+ * The report's `?g=` as a granularity; anything else is the default "day".
+ * An unknown value used to draw the daily chart with no tab marked.
+ */
+export function parseGranularity(raw: unknown): BucketGranularity {
+  return typeof raw === "string" &&
+    (BUCKET_GRANULARITIES as readonly string[]).includes(raw)
+    ? (raw as BucketGranularity)
+    : "day";
+}
 
 /**
  * Whether an order is revenue.
@@ -5074,15 +7250,67 @@ const MONTH_SHORT = [
 async function reportOrders<K extends keyof AdminOrder>(
   columns: readonly K[],
   ctx: string,
+  /** Only orders placed at or after this instant (`reportPeriodSince`). */
+  since?: string,
 ): Promise<Pick<AdminOrder, K>[]> {
   await ensureSeed();
+  let q = getDb().from(TABLES.orders).select(columns.join(", "));
+  if (since) q = q.gte("createdAt", since);
   return rows<Pick<AdminOrder, K>>(
-    await getDb()
-      .from(TABLES.orders)
-      .select(columns.join(", "))
-      .order("orderNo", { ascending: false }),
+    await q.order("orderNo", { ascending: false }),
     ctx,
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Where a report period starts in the database: the köşk's midnight of the
+ * period's first bucket, as a UTC instant, one day early. The day is a
+ * margin, not part of the period: which bucket an order falls in is still
+ * decided by {@link reportPeriodFilter}, so a `createdAt` written with an
+ * offset cannot slip out of the read. Exported for tests.
+ */
+export function reportPeriodSince(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): string {
+  const start = istanbulWall(now);
+  start.setUTCHours(0, 0, 0, 0);
+  const steps = Math.max(0, count - 1);
+  if (granularity === "day") {
+    start.setUTCDate(start.getUTCDate() - steps);
+  } else if (granularity === "week") {
+    const monday = startOfWeek(start);
+    start.setTime(monday.getTime());
+    start.setUTCDate(start.getUTCDate() - 7 * steps);
+  } else {
+    start.setUTCDate(1);
+    start.setUTCMonth(start.getUTCMonth() - steps);
+  }
+  return new Date(start.getTime() - REPORT_TZ_OFFSET_MS - DAY_MS).toISOString();
+}
+
+/**
+ * Whether an instant falls in the report's period: the same buckets the
+ * chart draws ({@link bucketRevenue}), cut at the köşk's midnight. The
+ * headline tiles and the top list used to read every order ever placed
+ * beside a "30 gün" switch (admin audit SYS-16).
+ */
+export function reportPeriodFilter(
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): (createdAt: string) => boolean {
+  const keys = new Set(
+    bucketRevenue([], granularity, count, now).map((b) => b.bucket),
+  );
+  return (createdAt) => {
+    const at = new Date(createdAt);
+    if (Number.isNaN(at.getTime())) return false;
+    return keys.has(bucketKey(istanbulWall(at), granularity));
+  };
 }
 
 /** What {@link bucketRevenue} reads from an order. */
@@ -5095,11 +7323,13 @@ export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
 ): Promise<RevenueBucket[]> {
+  const now = new Date();
   const orders = await reportOrders(
     ["status", "createdAt", "totalMinor", "refunds"],
     "revenueBuckets",
+    reportPeriodSince(granularity, count, now),
   );
-  return bucketRevenue(orders, granularity, count, new Date());
+  return bucketRevenue(orders, granularity, count, now);
 }
 
 /**
@@ -5153,63 +7383,415 @@ export function bucketRevenue(
 
 export interface TopProductRow {
   productName: string;
+  /** Units sold in the period; a fully refunded order's lines not counted. */
   qty: number;
+  /**
+   * Line value at list price (unit price x quantity, the promo discount not
+   * taken off), less each order's refunds in proportion: an order refunded
+   * by a quarter keeps three quarters of every line. The page says
+   * "liste fiyatıyla".
+   */
   revenueMinor: number;
 }
 
-export async function topProducts(limit = 5): Promise<TopProductRow[]> {
-  const orders = await reportOrders(["status", "items"], "topProducts");
+/** What {@link topProductsFrom} reads from an order. */
+export type TopProductOrder = Pick<
+  AdminOrder,
+  "status" | "createdAt" | "totalMinor" | "refunds" | "items"
+>;
+
+export async function topProducts(
+  granularity: BucketGranularity,
+  count: number,
+  limit = 5,
+): Promise<TopProductRow[]> {
+  const now = new Date();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds", "items"],
+    "topProducts",
+    reportPeriodSince(granularity, count, now),
+  );
+  return topProductsFrom(orders, granularity, count, now, limit);
+}
+
+/**
+ * The pure half of {@link topProducts}, exported for tests.
+ *
+ * The list summed every order ever placed, fully refunded ones included,
+ * while the tiles beside it took refunds off (admin audit SYS-16). Now it
+ * reads the period the page shows and nets refunds the way the tiles do,
+ * per order. An order's refunds are not tied to its lines: they come off
+ * the lines marked "İptal" first (those are not counted, and their money
+ * is what a refund usually hands back), and only what was refunded beyond
+ * them comes off the standing lines, in proportion. Sorted by that
+ * revenue, the page's bars are drawn by it too.
+ */
+export function topProductsFrom(
+  orders: readonly TopProductOrder[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+  limit = 5,
+): TopProductRow[] {
+  const inPeriod = reportPeriodFilter(granularity, count, now);
   const tally = new Map<string, TopProductRow>();
   for (const o of orders) {
-    if (!isReportableOrder(o)) continue;
-    for (const it of o.items) {
+    if (!isReportableOrder(o) || !inPeriod(o.createdAt)) continue;
+    const lines = o.items ?? [];
+    const refunded = (o.refunds ?? []).reduce((r, x) => r + x.amountMinor, 0);
+    const cancelledMinor = lines.reduce(
+      (s, it) =>
+        it.status === "cancelled" ? s + it.unitPriceMinor * it.qty : s,
+      0,
+    );
+    // What the standing lines were charged, and what of it the order kept.
+    const standingMinor = o.totalMinor - Math.min(refunded, cancelledMinor);
+    const kept =
+      refunded <= 0
+        ? 1
+        : standingMinor > 0
+          ? Math.max(0, o.totalMinor - refunded) / standingMinor
+          : 0;
+    if (kept === 0) continue;
+    for (const it of lines) {
       if (it.status === "cancelled") continue;
+      const value = it.unitPriceMinor * it.qty * kept;
       const row = tally.get(it.productName);
       if (row) {
         row.qty += it.qty;
-        row.revenueMinor += it.unitPriceMinor * it.qty;
+        row.revenueMinor += value;
       } else {
         tally.set(it.productName, {
           productName: it.productName,
           qty: it.qty,
-          revenueMinor: it.unitPriceMinor * it.qty,
+          revenueMinor: value,
         });
       }
     }
   }
   return Array.from(tally.values())
-    .sort((a, b) => b.revenueMinor - a.revenueMinor)
+    .map((row) => ({ ...row, revenueMinor: Math.round(row.revenueMinor) }))
+    .sort(
+      (a, b) =>
+        b.revenueMinor - a.revenueMinor ||
+        b.qty - a.qty ||
+        a.productName.localeCompare(b.productName, "tr"),
+    )
     .slice(0, limit);
 }
 
 export interface AnalyticsHeadline {
-  totalRevenueMinor: number;
+  /** What the counted orders were placed for, refunds not taken off. */
+  grossRevenueMinor: number;
+  /** Gross minus refunds, clamped per order like the chart's buckets. */
+  netRevenueMinor: number;
   totalOrders: number;
+  /** Gross per counted order. */
   averageOrderMinor: number;
+  /** Refunds on the counted orders: the difference between gross and net. */
   refundedMinor: number;
-  conversionRatePct: number | null;
 }
 
-export async function analyticsHeadline(): Promise<AnalyticsHeadline> {
+/**
+ * The report's tiles for the period the page shows (the chart's buckets).
+ * They used to sum every order ever placed beside a "30 gün" switch, so
+ * this month's chart sat under the café's whole history (admin audit
+ * SYS-16).
+ */
+export async function analyticsHeadline(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<AnalyticsHeadline> {
+  const now = new Date();
   const orders = await reportOrders(
-    ["status", "totalMinor", "refunds"],
+    ["status", "createdAt", "totalMinor", "refunds"],
     "analyticsHeadline",
+    reportPeriodSince(granularity, count, now),
   );
-  const valid = orders.filter(isReportableOrder);
-  const totalRevenueMinor = valid.reduce((s, o) => s + o.totalMinor, 0);
-  const totalOrders = valid.length;
-  const refundedMinor = orders.reduce(
-    (s, o) => s + o.refunds.reduce((r, x) => r + x.amountMinor, 0),
-    0,
-  );
+  const inPeriod = reportPeriodFilter(granularity, count, now);
+  return headlineFrom(orders.filter((o) => inPeriod(o.createdAt)));
+}
+
+/**
+ * The pure half of {@link analyticsHeadline}, exported for tests.
+ *
+ * The page said "Net ciro" over a figure that was gross (refunded orders in
+ * at their full total), with a refund line beside it that also summed the
+ * refunds of cancelled orders the gross never counted. Both figures now read
+ * the same orders ({@link isReportableOrder}), and net is gross minus those
+ * refunds, per order as {@link bucketRevenue} books it, so the headline and
+ * the chart agree.
+ */
+export function headlineFrom(
+  orders: ReadonlyArray<Pick<AdminOrder, "status" | "totalMinor" | "refunds">>,
+): AnalyticsHeadline {
+  let grossRevenueMinor = 0;
+  let netRevenueMinor = 0;
+  let refundedMinor = 0;
+  let totalOrders = 0;
+  for (const o of orders) {
+    if (!isReportableOrder(o)) continue;
+    const refunded = o.refunds.reduce((r, x) => r + x.amountMinor, 0);
+    totalOrders += 1;
+    grossRevenueMinor += o.totalMinor;
+    refundedMinor += refunded;
+    netRevenueMinor += Math.max(0, o.totalMinor - refunded);
+  }
   return {
-    totalRevenueMinor,
+    grossRevenueMinor,
+    netRevenueMinor,
     totalOrders,
     averageOrderMinor:
-      totalOrders > 0 ? Math.round(totalRevenueMinor / totalOrders) : 0,
+      totalOrders > 0 ? Math.round(grossRevenueMinor / totalOrders) : 0,
     refundedMinor,
-    conversionRatePct: null,
   };
+}
+
+/** The karaoke columns the revenue report reads. */
+export interface KaraokeRevenueRow {
+  paymentStatus?: string | null;
+  paidMinor?: number | null;
+  /** A late cancel's share owed / refunded; null = the whole payment. */
+  refundMinor?: number | null;
+  /**
+   * The part of `refundMinor` that had already gone back when an hour sold
+   * again made the booking owe money again (karaoke-make-good-core.ts).
+   */
+  refundSettledMinor?: number | null;
+  paidAt?: string | null;
+  createdAt: string;
+}
+
+export interface KaraokeRevenue {
+  /** Everything the POS collected for bookings, refunds not taken off. */
+  collectedMinor: number;
+  /** Paid back in full (`refunded`). */
+  refundedMinor: number;
+  /** Collected minus refunded: what the köşk keeps. */
+  netMinor: number;
+  /** Bookings whose money is still with the köşk (paid or refund pending). */
+  paidCount: number;
+  /** Part of net whose refund was started and is not settled yet. */
+  refundPendingMinor: number;
+  /** Net in the chart's period (same buckets as the order revenue). */
+  periodNetMinor: number;
+  periodCount: number;
+}
+
+/** The payment states that mean money reached the POS. */
+const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
+
+/**
+ * Prepaid karaoke (16 Eki 2026) in the reports. The reports read only
+ * `orders`, so the money collected for bookings was in no figure.
+ *
+ * Read from `karaoke_reservations`: `paidMinor` of every booking the POS
+ * collected, minus what was refunded: the whole payment (a `refunded` row
+ * nets to 0), or a late cancel's share (`refundMinor`, P2a), whose kept part
+ * is the köşk's revenue. A `refunding` row still counts in full, but for
+ * what had already gone back by hand before an hour sold again made it owe
+ * more (`refundSettledMinor`): the money owed has not gone back (CLAUDE.md
+ * rule 29) and is shown apart as "iadesi bekleyen". The period figure books
+ * a payment in the bucket of its `paidAt`, and its refund against that same
+ * bucket, as the order chart does.
+ */
+export async function karaokeRevenue(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<KaraokeRevenue> {
+  const data = rows<KaraokeRevenueRow>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select(
+        "paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt",
+      )
+      .in("paymentStatus", [...KARAOKE_COLLECTED]),
+    "karaokeRevenue",
+  );
+  return karaokeRevenueFrom(data, granularity, count, new Date());
+}
+
+/** The pure half of {@link karaokeRevenue}, exported for tests. */
+export function karaokeRevenueFrom(
+  bookings: readonly KaraokeRevenueRow[],
+  granularity: BucketGranularity,
+  count: number,
+  now: Date,
+): KaraokeRevenue {
+  const period = new Set(
+    bucketRevenue([], granularity, count, now).map((b) => b.bucket),
+  );
+  const out: KaraokeRevenue = {
+    collectedMinor: 0,
+    refundedMinor: 0,
+    netMinor: 0,
+    paidCount: 0,
+    refundPendingMinor: 0,
+    periodNetMinor: 0,
+    periodCount: 0,
+  };
+  for (const r of bookings) {
+    const status = r.paymentStatus ?? "";
+    if (!(KARAOKE_COLLECTED as readonly string[]).includes(status)) continue;
+    const paid = Math.max(0, Math.round(Number(r.paidMinor) || 0));
+    if (paid === 0) continue;
+    // What goes (or went) back: a late cancel's share, else everything.
+    const share =
+      typeof r.refundMinor === "number" && r.refundMinor >= 0
+        ? Math.min(paid, Math.round(r.refundMinor))
+        : paid;
+    // Of a share still owed, what had already gone back (a late share
+    // refunded before its hour was sold again).
+    const settled =
+      typeof r.refundMinor === "number" &&
+      typeof r.refundSettledMinor === "number" &&
+      r.refundSettledMinor > 0
+        ? Math.min(share, Math.round(r.refundSettledMinor))
+        : 0;
+    const kept =
+      status === "refunded"
+        ? paid - share
+        : status === "refunding"
+          ? paid - settled
+          : paid;
+    out.collectedMinor += paid;
+    out.refundedMinor += paid - kept;
+    out.netMinor += kept;
+    if (kept > 0) out.paidCount += 1;
+    if (status === "refunding") out.refundPendingMinor += share - settled;
+    const at = new Date(r.paidAt || r.createdAt);
+    if (Number.isNaN(at.getTime())) continue;
+    if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {
+      out.periodNetMinor += kept;
+      out.periodCount += 1;
+    }
+  }
+  return out;
+}
+
+// ─── Gün sonu (admin UI v2, UI-18) ────────────────────────────────────────
+
+/** An order as the Gün sonu sheet counts it. */
+export type DayCloseOrder = RevenueOrder &
+  Pick<AdminOrder, "id" | "orderNo" | "channel" | "kind" | "source">;
+
+/** An order that carries a refund: the day's refunds are read off its ledger. */
+export type DayCloseRefundedOrder = Pick<
+  AdminOrder,
+  "id" | "orderNo" | "refunds"
+>;
+
+/** A booking on the day's calendar, as far as the evening's tally goes. */
+export interface DayCloseBooking {
+  id: string;
+  date: string;
+  startHour: number;
+  hours: number;
+  status: string;
+  paymentStatus?: string | null;
+  updatedAt: string;
+}
+
+/** A booking whose money reached the POS: `karaokeRevenue`'s rows, with the refund's day. */
+export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
+  id: string;
+  refundedAt?: string | null;
+  /** The refunds recorded by hand, each with its amount and instant. */
+  refundSteps?: Array<{ minor: number; at: string }> | null;
+};
+
+/** A loyalty ledger row, without the member (the sheet names nobody). */
+export interface DayCloseStamp {
+  kind: string;
+  delta: number;
+  source: string;
+  orderId: string;
+  createdAt: string;
+}
+
+export type DayCloseStockMove = Pick<
+  AdminStockMove,
+  "productId" | "productName" | "delta" | "stockAfter" | "reason" | "createdAt"
+>;
+
+/** Everything the Gün sonu sheet reads, for one Istanbul day. */
+export interface DayCloseRows {
+  /**
+   * Orders placed in the day, read with a day's margin on each side, as the
+   * reports read theirs (`reportPeriodSince`): which day an order belongs
+   * to is decided by `reportPeriodFilter`, not by the SQL bound.
+   */
+  orders: DayCloseOrder[];
+  /** Every order with a refund; the day's refunds are those dated in it. */
+  refunded: DayCloseRefundedOrder[];
+  /** The karaoke bookings on the day's calendar. */
+  bookings: DayCloseBooking[];
+  /** The bookings whose money reached the POS (`karaokeRevenue`'s read). */
+  karaokeMoney: DayCloseKaraokeMoney[];
+  /** The loyalty ledger rows written in the day. */
+  stamps: DayCloseStamp[];
+  /** The stock moves of the day, oldest first. */
+  stockMoves: DayCloseStockMove[];
+}
+
+/**
+ * The one read of the Gün sonu sheet (`/admin/raporlar/gun-sonu`): the rows
+ * of one Istanbul day (`day` = "YYYY-MM-DD"), for owner and manager only
+ * (the page's `requireRole("reports")`). Money is counted by the report
+ * functions above (`headlineFrom`, `reportPeriodFilter`,
+ * `karaokeRevenueFrom`) in `lib/admin/day-close.ts`, so the sheet and
+ * Raporlar never disagree about the same day. No customer column is read:
+ * not the name, the e-mail or the phone of an order, a booking or a stamp.
+ */
+export async function dayCloseRows(day: string): Promise<DayCloseRows> {
+  await ensureSeed();
+  const sb = getDb();
+  const ctx = "dayCloseRows";
+  const start = istanbulDayStartIso(day);
+  const end = istanbulDayStartIso(day, 1);
+  const [orders, refunded, bookings, karaokeMoney, stamps, stockMoves] =
+    await Promise.all([
+      sb
+        .from(TABLES.orders)
+        .select(
+          "id, orderNo, status, createdAt, totalMinor, refunds, channel, kind, source",
+        )
+        .gte("createdAt", istanbulDayStartIso(day, -1))
+        .lt("createdAt", istanbulDayStartIso(day, 2))
+        .order("orderNo", { ascending: true })
+        .then((r) => rows<DayCloseOrder>(r, `${ctx}.orders`)),
+      sb
+        .from(TABLES.orders)
+        .select("id, orderNo, refunds")
+        .neq("refunds", [])
+        .then((r) => rows<DayCloseRefundedOrder>(r, `${ctx}.refunds`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select("id, date, startHour, hours, status, paymentStatus, updatedAt")
+        .eq("date", day)
+        .then((r) => rows<DayCloseBooking>(r, `${ctx}.bookings`)),
+      sb
+        .from(TABLES.karaokeReservations)
+        .select(
+          "id, paymentStatus, paidMinor, refundMinor, refundSettledMinor, refundSteps, paidAt, createdAt, refundedAt",
+        )
+        .in("paymentStatus", [...KARAOKE_COLLECTED])
+        .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),
+      sb
+        .from(TABLES.loyaltyStamps)
+        .select("kind, delta, source, orderId, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .then((r) => rows<DayCloseStamp>(r, `${ctx}.stamps`)),
+      sb
+        .from(TABLES.stockMoves)
+        .select("productId, productName, delta, stockAfter, reason, createdAt")
+        .gte("createdAt", start)
+        .lt("createdAt", end)
+        .order("createdAt", { ascending: true })
+        .then((r) => rows<DayCloseStockMove>(r, `${ctx}.stock`)),
+    ]);
+  return { orders, refunded, bookings, karaokeMoney, stamps, stockMoves };
 }
 
 // ─── Shop hero slides ─────────────────────────────────────────────────────
@@ -5265,18 +7847,16 @@ const SEED_SHOP_HERO_SLIDES: AdminShopHeroSlide[] = [
 ];
 
 const ensureShopHeroSeed = memoizeUntilRejected(async (): Promise<void> => {
-  {
+  await seedOnce(TABLES.shopHeroSlides, async () => {
     const sb = getDb();
-    if ((await countRows(TABLES.shopHeroSlides)) === 0) {
-      check(
-        await sb.from(TABLES.shopHeroSlides).upsert(
-          SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
-          { onConflict: "id", ignoreDuplicates: true },
-        ),
-        "seed.shopHeroSlides",
-      );
-    }
-  }
+    check(
+      await sb.from(TABLES.shopHeroSlides).upsert(
+        SEED_SHOP_HERO_SLIDES.map((s) => ({ ...s })),
+        { onConflict: "id", ignoreDuplicates: true },
+      ),
+      "seed.shopHeroSlides",
+    );
+  });
 });
 
 export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
@@ -5295,18 +7875,27 @@ export async function listShopHeroSlides(): Promise<AdminShopHeroSlide[]> {
 export async function listActiveShopHeroSlides(): Promise<
   AdminShopHeroSlide[]
 > {
-  return publicRead("listActiveShopHeroSlides", [], async () => {
-    const all = await listShopHeroSlides();
-    return all
-      .filter((s) => s.isActive)
-      .map((s) => ({
-        ...s,
-        imageUrl: servedImage(
-          s.imageUrl,
-          heroImagePath(s.id, imageVersion(s.imageUrl)),
-        ),
-      }));
-  });
+  return publicRead(
+    "listActiveShopHeroSlides",
+    [],
+    listActiveShopHeroSlidesLive,
+  );
+}
+
+/** `listActiveShopHeroSlides` without the outage fallback (throws instead). */
+export async function listActiveShopHeroSlidesLive(): Promise<
+  AdminShopHeroSlide[]
+> {
+  const all = await listShopHeroSlides();
+  return all
+    .filter((s) => s.isActive)
+    .map((s) => ({
+      ...s,
+      imageUrl: servedImage(
+        s.imageUrl,
+        heroImagePath(s.id, imageVersion(s.imageUrl)),
+      ),
+    }));
 }
 
 export async function getShopHeroSlide(
@@ -5386,13 +7975,15 @@ export async function updateShopHeroSlide(
   return getShopHeroSlide(id);
 }
 
-export async function deleteShopHeroSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteShopHeroSlide(id: string): Promise<boolean> {
   await ensureShopHeroSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.shopHeroSlides).delete().eq("id", id).select("id"),
     "deleteShopHeroSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Editorial content (reels / press / story) ─────────────────
@@ -5416,21 +8007,19 @@ function contentResource<Row extends ContentRowBase>(
   idPrefix: string,
 ) {
   const ensure = memoizeUntilRejected(async (): Promise<void> => {
-    {
+    await seedOnce(table, async () => {
       const sb = getDb();
-      if ((await countRows(table)) === 0) {
-        check(
-          await sb.from(table).upsert(
-            seed.map((s) => ({ ...s })),
-            {
-              onConflict: "id",
-              ignoreDuplicates: true,
-            },
-          ),
-          `seed.${table}`,
-        );
-      }
-    }
+      check(
+        await sb.from(table).upsert(
+          seed.map((s) => ({ ...s })),
+          {
+            onConflict: "id",
+            ignoreDuplicates: true,
+          },
+        ),
+        `seed.${table}`,
+      );
+    });
   });
 
   type Input = Omit<Row, "id" | "createdAt" | "updatedAt">;
@@ -5487,10 +8076,15 @@ function contentResource<Row extends ContentRowBase>(
     return get(id);
   };
 
-  const remove = async (id: string): Promise<void> => {
+  /** True when a row was removed (false: it was already gone). */
+  const remove = async (id: string): Promise<boolean> => {
     await ensure();
     const sb = getDb();
-    check(await sb.from(table).delete().eq("id", id), `delete.${table}`);
+    const deleted = rows<{ id: string }>(
+      await sb.from(table).delete().eq("id", id).select("id"),
+      `delete.${table}`,
+    );
+    return deleted.length > 0;
   };
 
   return { list, listActive, get, create, update, remove };
@@ -5523,11 +8117,13 @@ const pressResource = contentResource<AdminPress>(
 );
 export const listPress = pressResource.list;
 export const listActivePress = (): Promise<AdminPress[]> =>
-  publicRead(
-    "listActivePress",
-    SEED_PRESS_ROWS.filter((r) => r.isActive),
-    () => pressResource.listActive(),
-  );
+  publicRead("listActivePress", pressFallback(), listActivePressLive);
+/** `listActivePress` without the outage fallback (throws instead). */
+export const listActivePressLive = (): Promise<AdminPress[]> =>
+  pressResource.listActive();
+/** The bundled press quotes an outage shows. */
+export const pressFallback = (): AdminPress[] =>
+  SEED_PRESS_ROWS.filter((r) => r.isActive);
 export const createPress = (i: PressInput) => pressResource.create(i);
 export const updatePress = (id: string, i: PressInput) =>
   pressResource.update(id, i);
@@ -5563,11 +8159,13 @@ const storyResource = contentResource<AdminStoryEvent>(
 );
 export const listStoryEvents = storyResource.list;
 export const listActiveStoryEvents = (): Promise<AdminStoryEvent[]> =>
-  publicRead(
-    "listActiveStoryEvents",
-    SEED_STORY_ROWS.filter((r) => r.isActive),
-    () => storyResource.listActive(),
-  );
+  publicRead("listActiveStoryEvents", storyFallback(), listActiveStoryLive);
+/** `listActiveStoryEvents` without the outage fallback (throws instead). */
+export const listActiveStoryLive = (): Promise<AdminStoryEvent[]> =>
+  storyResource.listActive();
+/** The bundled timeline an outage shows. */
+export const storyFallback = (): AdminStoryEvent[] =>
+  SEED_STORY_ROWS.filter((r) => r.isActive);
 export const createStoryEvent = (i: StoryEventInput) => storyResource.create(i);
 export const updateStoryEvent = (id: string, i: StoryEventInput) =>
   storyResource.update(id, i);
@@ -5742,7 +8340,7 @@ const SEED_APP_ANNOUNCEMENTS: AdminAppAnnouncement[] = [
 
 const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
   const sb = getDb();
-  if ((await countRows(TABLES.appHeroSlides)) === 0) {
+  await seedOnce(TABLES.appHeroSlides, async () => {
     check(
       await sb.from(TABLES.appHeroSlides).upsert(
         SEED_APP_SLIDES.map((s) => ({ ...s })),
@@ -5750,8 +8348,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appHeroSlides",
     );
-  }
-  if ((await countRows(TABLES.appAnnouncements)) === 0) {
+  });
+  await seedOnce(TABLES.appAnnouncements, async () => {
     check(
       await sb.from(TABLES.appAnnouncements).upsert(
         SEED_APP_ANNOUNCEMENTS.map((a) => ({ ...a })),
@@ -5759,8 +8357,8 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appAnnouncements",
     );
-  }
-  if ((await countRows(TABLES.appPosts)) === 0) {
+  });
+  await seedOnce(TABLES.appPosts, async () => {
     check(
       await sb.from(TABLES.appPosts).upsert(
         SEED_APP_POSTS.map((p) => ({ ...p })),
@@ -5768,7 +8366,7 @@ const ensureAppContentSeed = memoizeUntilRejected(async (): Promise<void> => {
       ),
       "seed.appPosts",
     );
-  }
+  });
 });
 
 // Publish windows live in ./publish-window, which carries no "server-only":
@@ -5888,13 +8486,15 @@ export async function updateAppSlide(
   return getAppSlide(id);
 }
 
-export async function deleteAppSlide(id: string): Promise<void> {
+/** True when a slide was removed (false: it was already gone). */
+export async function deleteAppSlide(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appHeroSlides).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appHeroSlides).delete().eq("id", id).select("id"),
     "deleteAppSlide",
   );
+  return deleted.length > 0;
 }
 
 // ─── Mobile app posts: campaigns, collaborations, events ──────────────────
@@ -6103,10 +8703,15 @@ export async function setAppPostEmailCampaign(
   return rows<{ id: string }>(res, "setAppPostEmailCampaign").length > 0;
 }
 
-export async function deleteAppPost(id: string): Promise<void> {
+/** True when a post was removed (false: it was already gone). */
+export async function deleteAppPost(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(await sb.from(TABLES.appPosts).delete().eq("id", id), "deleteAppPost");
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appPosts).delete().eq("id", id).select("id"),
+    "deleteAppPost",
+  );
+  return deleted.length > 0;
 }
 
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
@@ -6210,11 +8815,13 @@ export async function updateAppAnnouncement(
   return getAppAnnouncement(id);
 }
 
-export async function deleteAppAnnouncement(id: string): Promise<void> {
+/** True when an announcement was removed (false: it was already gone). */
+export async function deleteAppAnnouncement(id: string): Promise<boolean> {
   await ensureAppContentSeed();
   const sb = getDb();
-  check(
-    await sb.from(TABLES.appAnnouncements).delete().eq("id", id),
+  const deleted = rows<{ id: string }>(
+    await sb.from(TABLES.appAnnouncements).delete().eq("id", id).select("id"),
     "deleteAppAnnouncement",
   );
+  return deleted.length > 0;
 }

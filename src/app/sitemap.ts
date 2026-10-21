@@ -1,14 +1,15 @@
 import type { MetadataRoute } from "next";
 
-import { getPublicSettings, listProducts } from "@/lib/admin/store";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
 import { GUIDES } from "@/lib/seo/guides";
 import { allSeoRoutes } from "@/lib/seo/pages";
 import { IS_PRODUCTION_DEPLOY, SITE } from "@/lib/seo/site";
+import { getSiteSettings, listSitemapProducts } from "@/lib/seo/site-data";
 
-// Dynamic: the product list is read from the database at request time. The build
-// does not connect to the DB, so the fetch is guarded - an empty result simply
-// omits product URLs rather than failing the build.
+// Dynamic: the product list is read at request time, through the site's
+// cache (src/lib/seo/site-data.ts). The build does not connect to the DB, so
+// the read is guarded - an empty result simply omits product URLs rather than
+// failing the build.
 export const dynamic = "force-dynamic";
 
 // Stable content-revision stamp for static/section routes - bump on major
@@ -22,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // "open to search engines" setting, and the preview-deployment guard that
   // keeps a Vercel preview from competing with the live domain.
   if (!IS_PRODUCTION_DEPLOY) return [];
-  const settings = await getPublicSettings();
+  const settings = await getSiteSettings();
   if (!settings.seoIndexable) return [];
 
   const now = CONTENT_REVISION;
@@ -37,24 +38,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Active product detail pages (/magaza/urun/<slug>).
   let products: MetadataRoute.Sitemap = [];
   try {
-    const all = await listProducts();
-    products = all
-      .filter((p) => p.isActive)
-      .map((p) => {
-        // Site-relative uploads and public/ photos count too - made absolute,
-        // as the image sitemap requires; they used to be dropped.
-        const imgs = (p.images ?? [])
-          .map((u) => u.trim())
-          .filter((u) => /^https?:\/\//i.test(u) || u.startsWith("/"))
-          .map((u) => (u.startsWith("/") ? `${SITE.url}${u}` : u));
-        return {
-          url: `${SITE.url}/magaza/urun/${p.slug}`,
-          lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
-          changeFrequency: "weekly" as const,
-          priority: 0.8,
-          ...(imgs.length ? { images: imgs } : {}),
-        };
-      });
+    const all = await listSitemapProducts();
+    products = all.map((p) => {
+      // Site-relative uploads and public/ photos count too - made absolute,
+      // as the image sitemap requires; they used to be dropped. Only those
+      // two kinds reach here (listSitemapProducts).
+      const imgs = p.images.map((u) =>
+        u.startsWith("/") ? `${SITE.url}${u}` : u,
+      );
+      return {
+        url: `${SITE.url}/magaza/urun/${p.slug}`,
+        lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+        ...(imgs.length ? { images: imgs } : {}),
+      };
+    });
   } catch {
     // No DB at build / connection issue - ship the sitemap without products.
   }

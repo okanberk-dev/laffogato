@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { activeNavHref } from "@/lib/admin/nav-match";
+import { parseOrderTab } from "@/lib/admin/order-filters";
 import {
   ADMIN_ROLES,
   canAccess,
+  deniedPathFor,
   landingPathFor,
   sectionsFor,
+  type AdminRole,
+  type AdminSection,
 } from "@/lib/admin/roles";
 
 /**
@@ -52,14 +57,76 @@ describe("adminUsers", () => {
   });
 });
 
+/**
+ * Changed on purpose (admin UI v2, decision D2): Personel no longer lands on
+ * the dashboard but on the orders still open. Owner and manager keep the
+ * dashboard, the cashier the till.
+ */
 describe("landing paths", () => {
-  it("keep the dashboard for every role that can open it", () => {
+  const LANDING: Record<AdminRole, [string, AdminSection]> = {
+    owner: ["/admin", "dashboard"],
+    manager: ["/admin", "dashboard"],
+    staff: ["/admin/siparisler?durum=acik", "orders"],
+    cashier: ["/admin/kasa", "till"],
+  };
+
+  it("send each role where its work starts", () => {
     for (const role of ADMIN_ROLES) {
-      const path = landingPathFor(role);
-      expect(path).toBe(
-        canAccess("dashboard", role) ? "/admin" : "/admin/kasa",
-      );
+      expect(landingPathFor(role), role).toBe(LANDING[role][0]);
     }
+  });
+
+  it("are pages the role can open, or a denial there would bounce forever", () => {
+    for (const role of ADMIN_ROLES) {
+      expect(canAccess(LANDING[role][1], role), role).toBe(true);
+    }
+  });
+
+  it("open Personel on the list's Açık tab, with Siparişler lit in the nav", () => {
+    const url = new URL(landingPathFor("staff"), "https://panel.invalid");
+    expect(parseOrderTab(url.searchParams)).toBe("acik");
+    // The sidebar matches the address bar's path, never its query.
+    expect(
+      activeNavHref(url.pathname, [
+        "/admin",
+        "/admin/siparisler",
+        "/admin/kasa",
+      ]),
+    ).toBe("/admin/siparisler");
+  });
+});
+
+describe("denied paths", () => {
+  it("join `denied=1` to the landing page's own query: one `?`, one flag", () => {
+    for (const role of ADMIN_ROLES) {
+      const path = deniedPathFor(role);
+      expect(path.split("?"), role).toHaveLength(2);
+      const url = new URL(path, "https://panel.invalid");
+      expect(url.searchParams.getAll("denied"), role).toEqual(["1"]);
+      url.searchParams.delete("denied");
+      expect(url.pathname + url.search, role).toBe(landingPathFor(role));
+    }
+  });
+
+  it("keep owner, manager and cashier where they were", () => {
+    expect(deniedPathFor("owner")).toBe("/admin?denied=1");
+    expect(deniedPathFor("manager")).toBe("/admin?denied=1");
+    expect(deniedPathFor("cashier")).toBe("/admin/kasa?denied=1");
+  });
+
+  it("land a refused Personel on the open orders, with the notice", () => {
+    const path = deniedPathFor("staff");
+    expect(path).toBe("/admin/siparisler?durum=acik&denied=1");
+    const sp = new URL(path, "https://panel.invalid").searchParams;
+    expect(parseOrderTab(sp)).toBe("acik");
+    // What `${landing}?denied=1` built: an unknown tab (every order) and no
+    // flag for the shell to say.
+    const glued = new URL(
+      `${landingPathFor("staff")}?denied=1`,
+      "https://panel.invalid",
+    ).searchParams;
+    expect(parseOrderTab(glued)).toBeNull();
+    expect(glued.get("denied")).toBeNull();
   });
 });
 
@@ -69,5 +136,39 @@ describe("tables", () => {
     expect(canAccess("tables", "manager")).toBe(true);
     expect(canAccess("tables", "staff")).toBe(false);
     expect(canAccess("tables", "cashier")).toBe(false);
+  });
+});
+
+/**
+ * Admin UI v2, decision D3: the köşk shift updates Canlı durum (open,
+ * busy, closed, free tables, Wi-Fi, noise, power, note) through its own
+ * section. `mobileApp` (the app's slides, posts and settings, and the
+ * table count) stays with owner and manager, and the cashier gets neither.
+ */
+describe("venue", () => {
+  it("is open to owner, manager and Personel, not to the cashier", () => {
+    expect(canAccess("venue", "owner")).toBe(true);
+    expect(canAccess("venue", "manager")).toBe(true);
+    expect(canAccess("venue", "staff")).toBe(true);
+    expect(canAccess("venue", "cashier")).toBe(false);
+  });
+
+  it("leaves mobileApp with owner and manager", () => {
+    expect(canAccess("mobileApp", "owner")).toBe(true);
+    expect(canAccess("mobileApp", "manager")).toBe(true);
+    expect(canAccess("mobileApp", "staff")).toBe(false);
+    expect(canAccess("mobileApp", "cashier")).toBe(false);
+  });
+
+  it("adds exactly one section to Personel, and none to the cashier", () => {
+    expect(sectionsFor("staff")).toEqual([
+      "dashboard",
+      "till",
+      "orders",
+      "venue",
+      "karaoke",
+      "stock",
+    ]);
+    expect(sectionsFor("cashier")).toEqual(["till"]);
   });
 });

@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi iki gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi dört gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -26,7 +26,10 @@ kilitlediğine bak.
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |
+| karaoke-iptal-istegi.html | işlemsel          | Karaoke iptal isteğini aldık                |
 | sadakat-ikram.html        | işlemsel          | Kartınız doldu - bir içecek bizden          |
+| hesap-silme-talebi.html   | işlemsel          | L'Affogato - hesap silme talebin alındı     |
+| hesap-silindi.html        | işlemsel          | L'Affogato - hesabın silindi / kapatıldı    |
 | bulten-kampanya.html      | **ticari (6563)** | [KAMPANYA_BASLIK] - 3 ürün seçkisi + kod    |
 | mobil-uygulama.html       | **ticari (6563)** | L'Affogato uygulaması yayında               |
 | dogum-gunu.html           | **ticari (6563)** | Doğum gününüz kutlu olsun - kahve bizden    |
@@ -51,7 +54,7 @@ bağlı not (`<!--IF:NOT-->`) ve tek düğme. Kod tarafı `send.ts`
 gönderilmez.
 
 Ticari onlu `data-commercial="1"` taşır. `renderEmail` bu onu çıkış
-bağlantısı olmadan **derlemez**, işlemsel on ikiye çıkış bağlantısı
+bağlantısı olmadan **derlemez**, işlemsel on dörde çıkış bağlantısı
 **koydurmaz** - ikisi de `tests/email-templates.test.ts`'te kilitli.
 
 ### Sipariş bildirimleri
@@ -144,6 +147,7 @@ kampanya başlığını koyar.
 | `[DOGRULAMA_URL]` `[SIFIRLAMA_URL]`                                                                              | `src/app/uye/actions.ts`                                                                                  |
 | `[SIPARIS_NO]` kalemler `[ARA_TOPLAM]` `[KARGO]` `[TOPLAM]`                                                      | `OrderEmailData` · `formatTRYMinor`                                                                       |
 | `[SIPARIS_URL]` `[HESAP_URL]` `[MENU_URL]`                                                                       | `SITE.url` + route (`render.ts` → `commonVars`)                                                           |
+| `[KOSK_SAAT]` `[TELEFON]` `[TELEFON_TEL]` `[KOSK_ADRES]`                                                         | Ayarlar → Saatler / Genel (`venue.ts`); okunamazsa paketteki değer                                        |
 | `[DAMGA_HEDEFI]`                                                                                                 | `settings.mobileApp.loyalty.stampTarget`                                                                  |
 | `[ODUL_BASLIGI]`                                                                                                 | `currentFreeDrinkReward().title`                                                                          |
 | `[KUPON_KODU]` `[SON_KULLANIM]`                                                                                  | sadakat / doğum günü: `CustomerCoupon`; kampanyada formdan (genel kod)                                    |
@@ -156,6 +160,7 @@ kampanya başlığını koyar.
 | `[APP_STORE_URL]` `[PLAY_STORE_URL]`                                                                             | `src/lib/mobile/app-store.ts` (env)                                                                       |
 | `[TAKIP_NO]` `[KARGO_FIRMASI]` `[TAKIP_URL]`                                                                     | siparişin `trackingNumber` · `carrier` (panelin kargo formu) · `trackingUrl` (Geliver, yalnız https)      |
 | `[IADE_TUTARI]` `[TOPLAM_IADE]`                                                                                  | bu iade ve siparişteki iadelerin toplamı (`order.refunds`) · `formatTRYMinor`                             |
+| `[BELGE_OBF_URL]` `[BELGE_MSS_URL]` `[BELGE_SURUMLERI]` `[KARAOKE_SURUM_URL]`                                    | onaylanan sürümün sayfası (`/hukuk/<slug>?surum=`), yalnız sözleşme ekiyle (`BELGE_EKI`, `KARAOKE_BELGE_EKI`) |
 
 ## Görseller
 
@@ -257,4 +262,7 @@ silip bölümün nasıl düştüğünü oradan görebilirsin.
 Müşterinin kargoya kadar aldığı tek sipariş maili `odeme-onaylandi`'dir:
 ödeme siparişi `paid`'e taşıyınca (`notifyOrderPaid`, `order_notice_emails`
 türü `paid`) bir kez gider; satırlar, Ara toplam, Kargo (masa siparişinde yok),
-İndirim ve toplam ile ÖBF/MSS/cayma bağlantılarını taşır.
+İndirim ve toplam ile onaylanan ÖBF ve MSS'nin sipariş bilgileriyle
+doldurulmuş metnini ek olarak ve sürüm bağlantılarını taşır (`BELGE_EKI`, 21
+Ekim 2026); ek kurulamazsa eski satır, ÖBF/MSS/cayma bağlantıları
+(`BELGE_GUNCEL`). Ayrıntı `docs/EMAIL-RESEND.md` "Ek: onaylanan sözleşme".

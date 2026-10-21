@@ -8,6 +8,7 @@ import { clearLoginLimit, reserveLoginAttempt } from "@/lib/admin/rate-limit";
 import { getSettings } from "@/lib/admin/store";
 import { ensureCardUserKey } from "@/lib/customer/store";
 import { getDb, TABLES } from "@/lib/db";
+import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
 import {
   sendKaraokeMoneyAlertEmail,
@@ -17,6 +18,7 @@ import { getPaymentProvider } from "@/lib/payment";
 import { isPaymentRefused } from "@/lib/payment/provider";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
+import { karaokeTaxRate } from "@/lib/utils/kdv";
 
 import {
   createReservation,
@@ -25,22 +27,49 @@ import {
   getReservation,
   karaokeHoldKey,
   listMine,
+  listReservationsForDate,
+  notifyLateCancelRequest,
   notifyReservationStatus,
   setReservationStatus,
   type CreateReservationResult,
 } from "./karaoke";
 import {
+  closureJudgedAt,
+  effectiveKaraokeCancelPolicy,
+  isCalendarDate,
+  isPartialRefund,
+  karaokeCancellationRules,
+  karaokeCancelPolicyOf,
+  karaokeDeadlineFor,
+  karaokeLateRefundMinor,
+  karaokeSelfCancelTerms,
+  karaokeStartInstant,
   mayReopenPayment,
   paymentDueFrom,
   paymentStatusOf,
+  rangeConflicts,
+  refundAmountOf,
+  startedSinceRequest,
   sweepCutoff,
-  withinFreeCancel,
-  KARAOKE_TOO_LATE_MESSAGE,
+  validateReservationRequest,
   type KaraokeLegalConsent,
   type KaraokeReservation,
   type ReservationContact,
 } from "./karaoke-core";
+import type {
+  KaraokeCancelCause,
+  KaraokeRequestChannel,
+} from "./karaoke-cancel-cause";
 import { verifyKaraokeLink } from "./karaoke-link";
+import {
+  istanbulDayOf,
+  karaokeMakeGoodFor,
+  looksLikeBankAccount,
+  makeGoodHourOpen,
+  makeGoodStateOf,
+  type KaraokeMakeGood,
+} from "./karaoke-make-good-core";
+import { karaokeEndInstant } from "./karaoke-time";
 import { notifyOperatorOfReservation } from "./karaoke-notify";
 import { recordPendingCheckout } from "./checkout-ref";
 import { istanbulClock } from "./venue";
@@ -64,10 +93,15 @@ import { istanbulClock } from "./venue";
  * 3. A hold nobody paid lapses: `expireUnpaidReservations` asks the POS first
  *    and only an answer of "no payment" (or a day of not being able to ask)
  *    releases the hour (CLAUDE.md rule 29).
- * 4. Cancelling (`cancelKaraokeReservation`): the member, up to two hours
- *    before the start; the staff, any time (a business cancellation, MSY
- *    m.16/4); an account that closes. A paid booking's money goes back
- *    through the POS before the booking is cancelled.
+ * 4. Cancelling (`cancelKaraokeReservation`): the member, before the
+ *    deadline of the booking's own policy (its snapshot; 2 hours on older
+ *    rows), and inside it while the policy gives a late share; the staff,
+ *    any time and always in full (a business cancellation, MSY m.16/4); an
+ *    account that closes. A paid booking's money goes back through the POS
+ *    before the booking is cancelled - except a late cancel's share, which
+ *    PayNkolay cannot send (whole payments only): the booking is cancelled,
+ *    the share is owed (`refunding` + `refundMinor`), and a person refunds it
+ *    in PayNkolay's panel and records it (`settleKaraokeRefundByHand`).
  *
  * ## Money that does not fit a booking
  *
@@ -176,13 +210,19 @@ async function paymentRecord(
     : null;
 }
 
-/** Writes `patch` only while the row is still in `from`; true when it moved. */
+/**
+ * Writes `patch` only while the row is still in `from`; true when it moved.
+ * `refundMinor` (when given, null included) also pins what goes back: a
+ * resale charge that landed after the read (`karaoke_charge_resold_hours`)
+ * makes the write lose rather than record the larger amount as refunded.
+ */
 async function moveRow(
   id: string,
   patch: Partial<KaraokeReservation>,
   from: {
     paymentStatus: string | readonly string[];
     status?: string;
+    refundMinor?: number | null;
   },
   ctx: string,
 ): Promise<boolean> {
@@ -192,6 +232,7 @@ async function moveRow(
       ? q.eq("paymentStatus", from.paymentStatus)
       : q.in("paymentStatus", from.paymentStatus);
   if (from.status) q = q.eq("status", from.status);
+  if (from.refundMinor !== undefined) q = q.eq("refundMinor", from.refundMinor);
   return rows<{ id: string }>(await q.select("id"), ctx).length > 0;
 }
 
@@ -233,28 +274,35 @@ async function alertMoney(
     providerRef: string;
     extra?: Record<string, unknown>;
   },
+  /** `audit: false`: the caller writes the row itself, under its actor. */
+  { audit = true }: { audit?: boolean } = {},
 ): Promise<void> {
   console.error(
     `[karaoke] ${alert.event} reservation=${r.id} ref=${alert.providerRef} amount=${alert.amountMinor}`,
   );
-  try {
-    const { logAudit } = await import("@/lib/admin/audit");
-    await logAudit({
-      actor: "system",
-      action: "update",
-      entity: "karaoke_reservation",
-      entityId: r.id,
-      payload: {
-        event: alert.event,
-        status: r.status,
-        paymentStatus: paymentStatusOf(r),
-        amountMinor: alert.amountMinor,
-        providerRef: alert.providerRef,
-        ...alert.extra,
-      },
-    });
-  } catch (err) {
-    console.error(`[karaoke] audit row for ${alert.event} failed ${r.id}`, err);
+  if (audit) {
+    try {
+      const { logAudit } = await import("@/lib/admin/audit");
+      await logAudit({
+        actor: "system",
+        action: "update",
+        entity: "karaoke_reservation",
+        entityId: r.id,
+        payload: {
+          event: alert.event,
+          status: r.status,
+          paymentStatus: paymentStatusOf(r),
+          amountMinor: alert.amountMinor,
+          providerRef: alert.providerRef,
+          ...alert.extra,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[karaoke] audit row for ${alert.event} failed ${r.id}`,
+        err,
+      );
+    }
   }
   try {
     const slot = readableSlot(r);
@@ -284,7 +332,7 @@ async function alertMoney(
 async function auditStaff(
   r: KaraokeReservation,
   actor: string | undefined,
-  action: "transition" | "refund",
+  action: "transition" | "refund" | "create" | "update",
   payload: Record<string, unknown>,
 ): Promise<void> {
   try {
@@ -402,10 +450,12 @@ export async function startKaraokePayment(
   // The member's saved cards at PayNkolay (docs/PAYNKOLAY.md §16) are the
   // same for a booking as for an order. Best-effort: a new card still works.
   // A guest has no account to keep cards under: no key, no list, no "kaydet".
+  // Nor does anyone while card storage is off: no key is minted then.
   const member = customer && !reservation.guest ? customer : null;
-  const cardUserKey = member
-    ? await ensureCardUserKey(member.email).catch(() => "")
-    : "";
+  const cardUserKey =
+    member && provider.cardStorageEnabled
+      ? await ensureCardUserKey(member.email).catch(() => "")
+      : "";
   const buyer = {
     id: member?.id ?? `guest-${reservation.id}`,
     email:
@@ -1125,9 +1175,15 @@ async function runRefund(args: {
       "karaoke.runRefund.release",
     );
     if (args.mode !== "detached") {
+      // A cancel that did not happen leaves the booking as it stood, so
+      // nothing of it is made good: the make-good its first step wrote goes
+      // in this same write, never in a later one that a second cancel (or a
+      // dropped line) could get ahead of.
       await moveRow(
         r.id,
-        { paymentStatus: "paid" },
+        args.mode === "cancel"
+          ? { paymentStatus: "paid", ...NO_MAKE_GOOD }
+          : { paymentStatus: "paid" },
         { paymentStatus: "refunding" },
         "karaoke.runRefund.rollback",
       );
@@ -1142,10 +1198,19 @@ async function settleRefunded(
   r: KaraokeReservation,
   mode: RefundMode,
   now: Date,
-): Promise<void> {
-  if (mode === "detached") return;
+  /**
+   * `pinRefund`: a refund by hand of an amount the row names
+   * (`refundMinor`), settled only while it still names that amount
+   * (`moveRow`). `patch`: written with it (the refund step it records).
+   */
+  {
+    pinRefund = false,
+    patch = {},
+  }: { pinRefund?: boolean; patch?: Partial<KaraokeReservation> } = {},
+): Promise<boolean> {
+  if (mode === "detached") return false;
   const iso = now.toISOString();
-  await moveRow(
+  return moveRow(
     r.id,
     mode === "cancel"
       ? {
@@ -1153,11 +1218,15 @@ async function settleRefunded(
           refundedAt: iso,
           status: "cancelled",
           updatedAt: iso,
+          ...patch,
         }
       : // Already cancelled: no status change, so `updatedAt` stays the
         // instant of the cancellation (the inbox reads it).
-        { paymentStatus: "refunded", refundedAt: iso },
-    { paymentStatus: "refunding" },
+        { paymentStatus: "refunded", refundedAt: iso, ...patch },
+    {
+      paymentStatus: "refunding",
+      ...(pinRefund ? { refundMinor: r.refundMinor ?? null } : {}),
+    },
     "karaoke.settleRefunded",
   );
 }
@@ -1300,19 +1369,46 @@ export async function expireUnpaidReservations(
 /** Who is cancelling, which decides what they may do. */
 export type KaraokeCanceller =
   /**
-   * The member, from the web or the app: only while more than two hours
-   * remain. `emailVerified` as the account says it now.
+   * The member, from the web or the app: under the booking's own policy
+   * (`karaokeSelfCancelTerms`): in full before its deadline, for its late
+   * share inside the window while the start has not come, else refused.
+   * `emailVerified` as the account says it now.
    */
   | { kind: "member"; email: string; emailVerified: boolean }
   /** Whoever holds the booking's signed link (a guest): the same window. */
   | { kind: "link"; token: string }
   /**
    * The köşk (a business cancellation, MSY m.16/4): any time. Sending money
-   * back needs the panel's `refunds` permission.
+   * back needs the panel's `refunds` permission. `reason` is what the staff
+   * member wrote in the panel; it goes into the audit row, never the mail.
+   *
+   * `cause` (a paid booking, karaoke-cancel-cause.ts) says why, and the
+   * guest's mail opens with it. `misafir` is the guest's own request taken
+   * by phone or e-mail: the booking's rule is judged at `requestedAt`, the
+   * moment of the call or the e-mail (karaoke terms §7), and refunds what
+   * it gives then - inside the free window all of it, past it the late
+   * share, and a late share of 0 leaves the booking standing (the request is
+   * recorded, the guest told; ASK-Y3-4 (c)). `fullRefund`: a person with the
+   * refund right refunds everything anyway ("Yine de tamamını iade et").
+   * Every other cause refunds everything.
    */
-  | { kind: "staff"; actor: string; canRefund: boolean }
-  /** An account that is closing: every future booking, refunded in full. */
-  | { kind: "account"; email: string };
+  | {
+      kind: "staff";
+      actor: string;
+      canRefund: boolean;
+      reason?: string;
+      cause?: KaraokeCancelCause;
+      channel?: KaraokeRequestChannel;
+      requestedAt?: Date;
+      fullRefund?: boolean;
+    }
+  /**
+   * An account that is closing: every future booking, refunded in full.
+   * `windowAt`: when the member asked us to close it (the Site's deletion
+   * request); the booking's own rule is judged at that instant, the money
+   * moves now (ASK-Y3-4 (d)).
+   */
+  | { kind: "account"; email: string; windowAt?: Date };
 
 export type CancelKaraokeFailure =
   | "not_found"
@@ -1326,6 +1422,12 @@ export type CancelKaraokeFailure =
   | "refund_unknown"
   /** A paid booking, and this panel user may not send money back. */
   | "refund_forbidden"
+  /**
+   * A free hour the köşk gave, inside the window where its guest may no
+   * longer cancel it: letting it go would open a used make-good again, so
+   * only someone with the refund right may (review A2).
+   */
+  | "free_hour_forbidden"
   | "raced";
 
 export type CancelKaraokeResult =
@@ -1336,6 +1438,28 @@ export type CancelKaraokeResult =
       refunded: boolean;
       /** Did the member's mail leave (true when none was due). */
       notified: boolean;
+      /**
+       * No mail was due: the köşk cancelled a pay-at-the-venue evening that
+       * is already over (a no-show written down, karar D7), or recorded a
+       * guest's request once the evening was over (with `kept`).
+       */
+      silent?: true;
+      /**
+       * A late cancel's share, kuruş, owed back and not sent yet: a person
+       * refunds it in PayNkolay's panel (`refunded` is false).
+       */
+      refundOwedMinor?: number;
+      /**
+       * NOT cancelled: a guest's late request the booking's rule refunds
+       * nothing for (`cause: "misafir"`). It was recorded and the guest
+       * told that the booking stands in their name.
+       */
+      kept?: true;
+      /**
+       * The köşk cancelled late for its own reason: the make-good the
+       * guest was offered (karaoke-make-good-core.ts).
+       */
+      makeGood?: KaraokeMakeGood;
     }
   | {
       ok: false;
@@ -1346,6 +1470,13 @@ export type CancelKaraokeResult =
 
 /**
  * Cancels a karaoke booking, sending its money back first when it was paid.
+ *
+ * A member's (or a link holder's) cancel follows the booking's snapshot:
+ * refused inside the window when its late share is 0 (and from the start on,
+ * always), and inside the window with a share below 100 % a confirmed
+ * booking is cancelled with the share owed (`cancelWithShareOwed`); a paid
+ * one the köşk never confirmed goes back in full. The köşk's cancel always
+ * refunds everything.
  *
  * - Paid at the venue (`none`): cancelled, as the panel always did.
  * - Unpaid hold (`pending`): the POS is asked first (rule 29). Paid after
@@ -1386,20 +1517,60 @@ export async function cancelKaraokeReservation(
   if (r.status === "cancelled") {
     return { ok: false, reason: "not_cancellable", reservation: r };
   }
-  // The two-hour rule binds every self-service cancellation - for money,
-  // account closure too: closing an account must not become a way to refund
-  // an evening already sung (or no-showed). Only the köşk overrides it.
+  // A guest's request the staff took by phone or e-mail (ASK-Y3-4 (c)):
+  // the booking's own rule applies, judged at the request. Only on a paid
+  // booking (nothing to refund otherwise) the köşk confirmed (one it never
+  // confirmed was never promised: it goes back in full, as below), and not
+  // when a person refunds everything anyway.
+  const guestRequest =
+    by.kind === "staff" &&
+    by.cause === "misafir" &&
+    !by.fullRefund &&
+    paymentStatusOf(r) === "paid" &&
+    r.status === "confirmed";
+  // The booking's own rule (its snapshot) binds every self-service
+  // cancellation - for money, account closure too: closing an account must
+  // not become a way to refund an evening already sung (or no-showed). The
+  // köşk's own cancel overrides it, and the köşk always refunds in full
+  // (MSY m.16/4, TBK m.136/2): the late share is never applied to a staff
+  // cancel, except one that only passes on the guest's request.
+  // A free hour the köşk gave counts like money for an account closure: let
+  // go, it opens its make-good again, so the closure is held to the hour's
+  // own rule as the member would be (review A4).
   const lateMatters =
     by.kind === "member" ||
     by.kind === "link" ||
-    (by.kind === "account" && paymentStatusOf(r) === "paid");
-  if (lateMatters && !withinFreeCancel(r, now)) {
-    return {
-      ok: false,
-      reason: "too_late",
-      reservation: r,
-      message: KARAOKE_TOO_LATE_MESSAGE,
-    };
+    guestRequest ||
+    (by.kind === "account" &&
+      (paymentStatusOf(r) === "paid" || Boolean(r.makeGoodFor)));
+  // A closure the member asked us for is judged at the request (a booking
+  // made after it, at the closure: the request did not cover it): the
+  // team's delay does not shorten their window (ASK-Y3-4 (d), TKHK m.4/2).
+  // A guest's request taken by the staff, at the call or the e-mail. Only
+  // the decision moves back; the refund and every stamp are now.
+  const judgedAt =
+    by.kind === "account"
+      ? closureJudgedAt(r, by.windowAt, now)
+      : guestRequest && by.requestedAt
+        ? by.requestedAt
+        : now;
+  // The share of the payment this cancel refunds: null = all of it.
+  let lateShare: number | null = null;
+  if (lateMatters) {
+    const terms = karaokeSelfCancelTerms(r, judgedAt);
+    if (terms.kind === "refused" && guestRequest) {
+      return keepLateGuestRequest(r, by, judgedAt, now);
+    }
+    if (terms.kind === "refused") {
+      return {
+        ok: false,
+        reason: "too_late",
+        reservation: r,
+        message: karaokeCancellationRules(karaokeCancelPolicyOf(r))
+          .tooLateMessage,
+      };
+    }
+    if (terms.kind === "late" && terms.percent < 100) lateShare = terms.percent;
   }
   // Every cancellation leaves an audit row, whoever made it; a member or a
   // link holder is named by kind (no address in the log).
@@ -1411,6 +1582,9 @@ export async function cancelKaraokeReservation(
         : by.kind === "link"
           ? "guest-link"
           : "account-closure";
+  const why = by.kind === "staff" ? staffWhy(by) : {};
+  // The guest's mail names why the köşk cancelled (never the typed note).
+  const cause = by.kind === "staff" ? by.cause : undefined;
 
   if (paymentStatusOf(r) === "pending") {
     const verdict = await askPosAboutHold(r, now, lookupProvider());
@@ -1435,6 +1609,7 @@ export async function cancelKaraokeReservation(
         status: "cancelled",
         paymentStatus: "expired",
         by: by.kind,
+        ...why,
       });
       return { ok: true, reservation: released, refunded: false, notified };
     }
@@ -1447,7 +1622,28 @@ export async function cancelKaraokeReservation(
 
   const money = paymentStatusOf(r);
   if (money === "none") {
-    const res = await setReservationStatus(id, "cancelled", now);
+    // An evening already over that the köşk writes off (the guest did not
+    // come): a cancellation mail after the fact helps nobody (karar D7).
+    const silent =
+      by.kind === "staff" && karaokeEndInstant(r).getTime() <= now.getTime();
+    // A free hour the köşk gave: let go together with its make-good.
+    if (r.makeGoodFor) {
+      // Inside the window where the guest may no longer cancel it, letting
+      // it go would open a used make-good that a manager could then pay out:
+      // the refund right's call, as every make-good is (review A2).
+      if (
+        by.kind === "staff" &&
+        !by.canRefund &&
+        now.getTime() < karaokeStartInstant(r.date, r.startHour).getTime() &&
+        karaokeSelfCancelTerms(r, now).kind === "refused"
+      ) {
+        return { ok: false, reason: "free_hour_forbidden", reservation: r };
+      }
+      return releaseMakeGoodHour(r, { by: by.kind, actor, why, silent, now });
+    }
+    const res = await setReservationStatus(id, "cancelled", now, {
+      notify: !silent,
+    });
     if (!res.ok) {
       return {
         ok: false,
@@ -1463,12 +1659,15 @@ export async function cancelKaraokeReservation(
     await auditStaff(res.reservation, actor, "transition", {
       status: "cancelled",
       by: by.kind,
+      ...(silent ? { ended: true } : {}),
+      ...why,
     });
     return {
       ok: true,
       reservation: res.reservation,
       refunded: false,
       notified: res.notified,
+      ...(silent ? { silent: true as const } : {}),
     };
   }
   if (money !== "paid") {
@@ -1478,21 +1677,59 @@ export async function cancelKaraokeReservation(
     return { ok: false, reason: "refund_forbidden", reservation: r };
   }
 
+  const paid = r.paidMinor ?? 0;
+  // The late share is what letting go of a promised hour costs. A paid
+  // booking the köşk never confirmed (its hour lost to another booking, or
+  // its confirmation unfinished) was never promised: the panel cancels it in
+  // full, and so does the member's own cancel (MSY m.16/4, TBK m.136).
+  const share = r.status === "confirmed" ? lateShare : null;
+  const owed = share === null ? paid : karaokeLateRefundMinor(paid, share);
+  // A share below the whole payment cannot go through the POS (PayNkolay
+  // refunds whole payments only, docs/PAYNKOLAY.md §3.2; operator decision
+  // D9): the booking is cancelled now, its hour freed, and the share is owed.
+  // A share that rounds to nothing, or to all of it, refunds in full.
+  if (owed > 0 && owed < paid) {
+    return cancelWithShareOwed(r, owed, share ?? 0, {
+      actor,
+      by: by.kind,
+      now,
+      cause,
+      why,
+    });
+  }
+
+  // The köşk lets go of the hour after the guest's own free moment, for its
+  // own reason: on top of the full refund it makes good what a late cancel
+  // by the guest would have kept (karaoke terms §8, OP-KARAOKE-GOODWILL).
+  // Written with the refund's first step, so a refund whose answer comes
+  // later still carries it; taken back with a declined refund.
+  const goodwill =
+    by.kind === "staff" ? karaokeMakeGoodFor(r, by.cause, now) : null;
+  // Always written: a paid booking carries no make-good of its own, so this
+  // cancel's first step sets exactly what it decides (none for a member's,
+  // a link's or an account's cancel, for mücbir, misafir and yeniden).
+  const makeGood: Partial<KaraokeReservation> = goodwill
+    ? { makeGoodUntil: goodwill.until, makeGoodMinor: goodwill.minor }
+    : NO_MAKE_GOOD;
   const reserved = await moveRow(
     id,
-    { paymentStatus: "refunding" },
+    { paymentStatus: "refunding", ...makeGood },
     { paymentStatus: "paid", status: r.status },
     "karaoke.cancelKaraokeReservation",
   );
   if (!reserved) return { ok: false, reason: "raced", reservation: r };
-  const refunding: KaraokeReservation = { ...r, paymentStatus: "refunding" };
+  const refunding: KaraokeReservation = {
+    ...r,
+    paymentStatus: "refunding",
+    ...makeGood,
+  };
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
   if (!payment) {
     // A paid booking without its payment record has nothing to refund
     // against; put it back and tell a person rather than guess.
     await moveRow(
       id,
-      { paymentStatus: "paid" },
+      { paymentStatus: "paid", ...NO_MAKE_GOOD },
       { paymentStatus: "refunding" },
       "karaoke.cancelKaraokeReservation.rollback",
     );
@@ -1530,15 +1767,28 @@ export async function cancelKaraokeReservation(
       refundedAt: iso,
       updatedAt: iso,
     };
-    const notified = await notifyReservationStatus(cancelled);
+    const notified = await notifyReservationStatus(cancelled, { cause });
     await auditStaff(cancelled, actor, "refund", {
       status: "cancelled",
       paymentStatus: "refunded",
       amountMinor: payment.amountMinor,
       providerRef: payment.providerRef,
       by: by.kind,
+      ...why,
+      ...(goodwill
+        ? {
+            makeGoodMinor: goodwill.minor,
+            makeGoodUntil: goodwill.until,
+          }
+        : {}),
     });
-    return { ok: true, reservation: cancelled, refunded: true, notified };
+    return {
+      ok: true,
+      reservation: cancelled,
+      refunded: true,
+      notified,
+      ...(goodwill ? { makeGood: goodwill } : {}),
+    };
   }
   const slot = readableSlot(r);
   await alertMoney(refunding, {
@@ -1555,9 +1805,11 @@ export async function cancelKaraokeReservation(
         : "İade isteği gönderildi ama POS'tan yanıt alınamadı; rezervasyon 'iade sonucu bekleniyor' durumunda. PayNkolay panelinden bak, sonucu panelden işaretle.",
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,
-    extra: { by: by.kind, message: outcome.message },
+    extra: { by: by.kind, message: outcome.message, ...why },
   });
   if (outcome.kind === "refused") {
+    // Nothing moved and the booking stands: no cancel, nothing to make good
+    // (runRefund took the make-good back with the rollback itself).
     return {
       ok: false,
       reason: "refund_refused",
@@ -1573,15 +1825,199 @@ export async function cancelKaraokeReservation(
   };
 }
 
+/** A make-good taken back (a cancel that did not happen). */
+const NO_MAKE_GOOD: Partial<KaraokeReservation> = {
+  makeGoodUntil: null,
+  makeGoodMinor: null,
+};
+
+/**
+ * A member's late cancel under a policy whose late share is below 100 %
+ * (operator decision D9, 17 Eki 2026). PayNkolay cannot refund part of a
+ * payment (docs/PAYNKOLAY.md §3.2), so nothing is sent to the POS: one
+ * guarded write cancels the booking, frees its hour and records the share
+ * owed (`refunding` + `refundMinor`); the member is told how much goes back,
+ * and the köşk is mailed to refund it in PayNkolay's panel and press "Elle
+ * iade edildi" (`settleKaraokeRefundByHand`). No money moves here, so there
+ * is nothing to roll back (rules 25 and 29 hold trivially).
+ */
+async function cancelWithShareOwed(
+  r: KaraokeReservation,
+  owedMinor: number,
+  percent: number,
+  ctx: {
+    actor: string;
+    by: KaraokeCanceller["kind"];
+    now: Date;
+    cause?: KaraokeCancelCause;
+    why?: Record<string, unknown>;
+  },
+): Promise<CancelKaraokeResult> {
+  const iso = ctx.now.toISOString();
+  const moved = await moveRow(
+    r.id,
+    {
+      status: "cancelled",
+      paymentStatus: "refunding",
+      refundMinor: owedMinor,
+      updatedAt: iso,
+      // The guest's own late cancel makes nothing good.
+      ...NO_MAKE_GOOD,
+    },
+    { paymentStatus: "paid", status: r.status },
+    "karaoke.cancelWithShareOwed",
+  );
+  if (!moved) return { ok: false, reason: "raced", reservation: r };
+  const cancelled: KaraokeReservation = {
+    ...r,
+    status: "cancelled",
+    paymentStatus: "refunding",
+    refundMinor: owedMinor,
+    updatedAt: iso,
+  };
+  const notified = await notifyReservationStatus(cancelled, {
+    cause: ctx.cause,
+  });
+  const slot = readableSlot(r);
+  await alertMoney(
+    cancelled,
+    {
+      event: "late_cancel_share_owed",
+      key: `late-share-${r.paymentRef || r.id}`,
+      title: "Geç iptal: kısmi iade bekliyor",
+      summary: `${slot.date} ${slot.time} rezervasyonu geç iptal edildi ve saat boşaldı. Kurala göre ${formatTRYMinor(owedMinor)} (%${percent}) karta iade edilecek.`,
+      footnote:
+        'Kısmi iade POS\'a otomatik gönderilemiyor. PayNkolay panelinden bu tutarı karta iade et, sonra panelde "Elle iade edildi" ile kaydet; üyeye iade e-postası o zaman gider.',
+      amountMinor: owedMinor,
+      providerRef: r.paymentRef ?? "",
+      extra: {
+        by: ctx.by,
+        lateRefundPercent: percent,
+        paidMinor: r.paidMinor ?? 0,
+      },
+    },
+    { audit: false },
+  );
+  // One audit row, under who cancelled (the mail above is the alert).
+  await auditStaff(cancelled, ctx.actor, "refund", {
+    event: "late_cancel_share_owed",
+    status: "cancelled",
+    paymentStatus: "refunding",
+    amountMinor: owedMinor,
+    paidMinor: r.paidMinor ?? 0,
+    lateRefundPercent: percent,
+    providerRef: r.paymentRef ?? "",
+    by: ctx.by,
+    ...(ctx.why ?? {}),
+  });
+  return {
+    ok: true,
+    reservation: cancelled,
+    refunded: false,
+    notified,
+    refundOwedMinor: owedMinor,
+  };
+}
+
+/**
+ * What a staff cancel writes into its audit rows: the typed note, the
+ * code, and for a guest's request the channel and the instant it came in
+ * (MSY m.20/1: the record of each step is kept; ASK-Y3-4 (c)).
+ */
+function staffWhy(
+  by: Extract<KaraokeCanceller, { kind: "staff" }>,
+): Record<string, unknown> {
+  return {
+    ...(by.reason ? { reason: by.reason } : {}),
+    ...(by.cause ? { cause: by.cause } : {}),
+    ...(by.cause === "misafir" && by.channel ? { channel: by.channel } : {}),
+    ...(by.cause === "misafir" && by.requestedAt
+      ? { requestedAt: by.requestedAt.toISOString() }
+      : {}),
+    ...(by.fullRefund ? { fullRefund: true } : {}),
+  };
+}
+
+/**
+ * A guest asked to cancel after their free moment, by phone or e-mail, and
+ * the booking's rule refunds nothing then (a late share of 0, or the start
+ * had come): nothing changes on the booking - it stands in their name and
+ * they may hand the code on (karaoke terms §7). The request is recorded
+ * (`late_guest_request`, with the channel and the instant) and the guest is
+ * told. No money moves; a person with the refund right can still refund
+ * everything ("Yine de tamamını iade et", `fullRefund`).
+ *
+ * Recorded once the evening is over (the guest calls the next morning), it
+ * is written down without a mail: "your booking stands, hand the code on"
+ * after the fact helps nobody (karar D7, as `silent` above).
+ */
+async function keepLateGuestRequest(
+  r: KaraokeReservation,
+  by: Extract<KaraokeCanceller, { kind: "staff" }>,
+  judgedAt: Date,
+  now: Date,
+): Promise<CancelKaraokeResult> {
+  const ended = karaokeEndInstant(r).getTime() <= now.getTime();
+  const notified = ended ? true : await notifyLateCancelRequest(r, judgedAt);
+  await auditStaff(r, by.actor, "transition", {
+    event: "late_guest_request",
+    by: "staff",
+    ...staffWhy(by),
+    requestedAt: judgedAt.toISOString(),
+    ...(ended ? { ended: true } : {}),
+  });
+  return {
+    ok: true,
+    reservation: r,
+    refunded: false,
+    notified,
+    kept: true,
+    ...(ended ? { silent: true as const } : {}),
+  };
+}
+
 // ─── A person settles what did not settle itself ───────────────────────────
 
 export type ResolveRefundResult =
-  | { ok: true; reservation: KaraokeReservation; refunded: boolean }
+  | {
+      ok: true;
+      reservation: KaraokeReservation;
+      refunded: boolean;
+      /** Did the member's refund mail leave (`notifyReservationStatus`). */
+      notified: boolean;
+    }
   | {
       ok: false;
-      reason: "not_found" | "not_refundable" | "refused" | "unknown";
+      /**
+       * `by_hand`: a late cancel's share, which only a person refunds (in
+       * PayNkolay's panel) and records (`settleKaraokeRefundByHand`).
+       */
+      reason:
+        | "not_found"
+        | "not_refundable"
+        | "refused"
+        | "unknown"
+        | "raced"
+        | "by_hand";
       message?: string;
     };
+
+/** What a person typed when they moved the money by hand (audit only). */
+export interface ResolveRefundOptions {
+  reason?: string;
+  /**
+   * "Elle iade edildi": the `refundMinor` the page showed (kuruş; null for
+   * a whole-payment refund). A share is recorded only while the booking
+   * still names exactly that: an hour sold again after the page opened
+   * raises what goes back, and the person refunded what the page showed.
+   * Required for a share; a press without it records nothing.
+   */
+  shownRefundMinor?: number | null;
+}
+
+/** A share refund by hand whose amount moved after the page showed it. */
+export const KARAOKE_SETTLE_STALE =
+  "İade edilecek tutar sayfa açıldıktan sonra değişti (geç iptal edilen bir saat yeniden satılmış olabilir); hiçbir şey kaydedilmedi. Sayfayı yenile, yeni tutara bak ve PayNkolay panelinden ona göre iade edip öyle kaydet.";
 
 /**
  * "İadeyi yeniden dene" / "İade et" in the panel (refund permission): a
@@ -1595,9 +2031,13 @@ export async function retryKaraokeRefund(
   id: string,
   actor: string,
   now: Date = new Date(),
+  opts: ResolveRefundOptions = {},
 ): Promise<ResolveRefundResult> {
   const r = await getReservation(id);
   if (!r) return { ok: false, reason: "not_found" };
+  // A late cancel's share is never sent to the POS: it would refund the
+  // whole payment (whole payments only), or be refused. A person refunds it.
+  if (isPartialRefund(r)) return { ok: false, reason: "by_hand" };
   const money = paymentStatusOf(r);
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
   if (!payment) return { ok: false, reason: "not_refundable" };
@@ -1634,78 +2074,635 @@ export async function retryKaraokeRefund(
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,
     ...(outcome.kind === "refunded" ? {} : { message: outcome.message }),
+    ...(opts.reason ? { reason: opts.reason } : {}),
   });
   if (outcome.kind !== "refunded") {
     return { ok: false, reason: outcome.kind, message: outcome.message };
   }
   const settled = (await getReservation(id)) ?? carrier;
-  await notifyReservationStatus(settled);
-  return { ok: true, reservation: settled, refunded: true };
+  // The panel says whether the member was told, so it must be the real answer.
+  const notified = await notifyReservationStatus(settled);
+  return { ok: true, reservation: settled, refunded: true, notified };
+}
+
+/**
+ * The refund's claim row, as refunded, for a refund a person recorded:
+ * `amountMinor` is what went back (a late cancel's share, or the whole
+ * payment).
+ */
+async function recordRefundByHand(
+  reservationId: string,
+  payment: PaymentRecord,
+  amountMinor: number,
+  actor: string,
+  now: Date,
+): Promise<void> {
+  const refundRef = refundRefOf(payment.providerRef);
+  const db = getDb();
+  const ins = await db.from(TABLES.paymentTransactions).insert({
+    orderId: reservationId,
+    provider: payment.provider,
+    providerRef: refundRef,
+    status: "refunded",
+    amountMinor,
+    currency: "TRY",
+    raw: { source: "karaoke_refund", mode: "manual", actor },
+    trxDate: "",
+    createdAt: now.toISOString(),
+  });
+  if (!ins.error) return;
+  if (ins.error.code !== "23505") {
+    raiseDbError("karaoke.settleKaraokeRefundByHand", ins.error, ins.status);
+  }
+  // The claim already there: an unanswered refund now seen at the POS, or a
+  // late share refunded before its hour was sold again. It says what went
+  // back in all, so a second refund by hand raises it to the new total.
+  check(
+    await db
+      .from(TABLES.paymentTransactions)
+      .update({ status: "refunded", amountMinor })
+      .eq("orderId", reservationId)
+      .eq("providerRef", refundRef),
+    "karaoke.settleKaraokeRefundByHand.claim",
+  );
 }
 
 /**
  * "İade POS'ta görüldü": a person looked at PayNkolay's panel and the refund
- * whose answer never came is there. Records it as refunded - claim row and
- * booking - and tells the member. Only for `refunding`.
+ * is there. Records it as refunded - booking, then claim row - and tells the
+ * member. Two rows qualify:
+ *
+ * - `refunding`: a refund whose answer never came;
+ * - `paid` + `cancelled`: money the köşk still holds for a booking that is
+ *   gone (a declined refund of a late payment, an account closure the POS did
+ *   not answer), which someone refunded straight from PayNkolay's panel.
+ *
+ * The panel offered the second one before and this refused it ("iadesi
+ * beklenmiyor"), so a refund done at PayNkolay could never be recorded.
  */
 export async function settleKaraokeRefundByHand(
   id: string,
   actor: string,
   now: Date = new Date(),
+  opts: ResolveRefundOptions = {},
 ): Promise<ResolveRefundResult> {
   const r = await getReservation(id);
   if (!r) return { ok: false, reason: "not_found" };
-  if (paymentStatusOf(r) !== "refunding") {
+  const money = paymentStatusOf(r);
+  const heldAfterCancel = money === "paid" && r.status === "cancelled";
+  if (money !== "refunding" && !heldAfterCancel) {
     return { ok: false, reason: "not_refundable" };
   }
   const payment = await paymentRecord(r.id, r.paymentRef ?? "");
-  if (payment) {
-    const refundRef = refundRefOf(payment.providerRef);
-    const db = getDb();
-    const ins = await db.from(TABLES.paymentTransactions).insert({
-      orderId: r.id,
-      provider: payment.provider,
-      providerRef: refundRef,
-      status: "refunded",
-      amountMinor: payment.amountMinor,
-      currency: "TRY",
-      raw: { source: "karaoke_refund", mode: "manual", actor },
-      trxDate: "",
-      createdAt: now.toISOString(),
-    });
-    if (ins.error) {
-      if (ins.error.code !== "23505") {
-        raiseDbError(
-          "karaoke.settleKaraokeRefundByHand",
-          ins.error,
-          ins.status,
-        );
-      }
-      check(
-        await db
-          .from(TABLES.paymentTransactions)
-          .update({ status: "refunded" })
-          .eq("orderId", r.id)
-          .eq("providerRef", refundRef),
-        "karaoke.settleKaraokeRefundByHand.claim",
+  // What went back before, by hand (a late share refunded before its hour
+  // was sold again, `refundSettledMinor`): this refund is the rest, and its
+  // mail says so. The column keeps that earlier part, so the step this
+  // records stays readable afterwards (the Gün sonu sheet).
+  const partial = isPartialRefund(r);
+  const before = partial ? (r.refundSettledMinor ?? 0) : 0;
+  const total = partial
+    ? refundAmountOf(r)
+    : (payment?.amountMinor ?? r.paidMinor ?? 0);
+  const nowMinor = Math.max(0, total - before);
+  const topUp = before > 0 && (r.resaleRefundMinor ?? 0) > 0;
+  // A share is recorded only at the amount the page showed: if an hour was
+  // sold again since, the person refunded less than the row now names.
+  if (
+    partial &&
+    (opts.shownRefundMinor === undefined ||
+      opts.shownRefundMinor !== (r.refundMinor ?? null))
+  ) {
+    return { ok: false, reason: "raced", message: KARAOKE_SETTLE_STALE };
+  }
+  // Each refund by hand is a step of its own, with its amount and instant
+  // (the Gün sonu sheet lists each on its day).
+  const at = now.toISOString();
+  const steps: Partial<KaraokeReservation> = {
+    refundSteps: [...(r.refundSteps ?? []), { minor: nowMinor, at }],
+  };
+  // The booking first, guarded on the state that was read; the claim row only
+  // once this call has won it. The other way round, a settle that lost to a
+  // colleague's "İadeyi başlat" left a `refunded` claim behind, and the next
+  // refund took that claim for a refund already made: "İade yapıldı" and the
+  // member's mail, with nothing sent to the POS. A share is also pinned to
+  // the amount read (and shown): an hour sold again in between raised what
+  // goes back, and the person refunded only what the page showed.
+  const moved = heldAfterCancel
+    ? await moveRow(
+        r.id,
+        { paymentStatus: "refunded", refundedAt: at, ...steps },
+        { paymentStatus: "paid", status: "cancelled" },
+        "karaoke.settleKaraokeRefundByHand.paid",
+      )
+    : await settleRefunded(
+        r,
+        r.status === "cancelled" ? "stray" : "cancel",
+        now,
+        { pinRefund: partial, patch: steps },
       );
+  // Someone else moved it in between (a refund under way, a second person
+  // settling it): this call recorded nothing and tells nobody.
+  if (!moved) return { ok: false, reason: "raced" };
+  if (payment) {
+    // The booking already says refunded: a failed claim write must not cost
+    // the audit row and the member's mail below.
+    try {
+      await recordRefundByHand(r.id, payment, refundAmountOf(r), actor, now);
+    } catch (err) {
+      console.error(`[karaoke] manual refund claim not written ${r.id}`, err);
     }
   }
-  await settleRefunded(r, r.status === "cancelled" ? "stray" : "cancel", now);
   await auditStaff(r, actor, "refund", {
     event: "refund_settled_by_hand",
-    amountMinor: payment?.amountMinor ?? r.paidMinor ?? 0,
+    from: money,
+    amountMinor: nowMinor,
+    ...(before > 0 ? { totalRefundedMinor: total } : {}),
+    ...(isPartialRefund(r)
+      ? {
+          share: true,
+          lateRefundPercent: karaokeCancelPolicyOf(r).lateRefundPercent,
+        }
+      : {}),
+    ...((r.resaleRefundMinor ?? 0) > 0
+      ? { resaleRefundMinor: r.resaleRefundMinor }
+      : {}),
     providerRef: r.paymentRef ?? "",
+    ...(opts.reason ? { reason: opts.reason } : {}),
   });
   const settled = (await getReservation(id)) ?? r;
-  await notifyReservationStatus(settled);
-  return { ok: true, reservation: settled, refunded: true };
+  const notified = await notifyReservationStatus(
+    settled,
+    before > 0 ? { refundedNowMinor: nowMinor, resaleTopUp: topUp } : {},
+  );
+  return { ok: true, reservation: settled, refunded: true, notified };
+}
+
+// ─── An hour cancelled late and sold again (ASK-OTH-3-CFG) ────────────────
+
+/**
+ * The resale refund of an hour just sold (`setReservationStatus` confirmed
+ * `sold`, paid or to be paid at the köşk): each late-cancelled booking of
+ * `allocation` (karaoke-make-good-core.ts, `resaleAllocation`) is charged
+ * for its hours in SQL, under its row lock (`karaoke_charge_resold_hours`,
+ * rule 20), and the share it kept for them is owed back: the booking is
+ * `refunding` again with the larger `refundMinor`, and the köşk is mailed
+ * to refund it in PayNkolay's panel (partial refunds are not sent to the
+ * POS, docs/PAYNKOLAY.md §3.2) and press "Elle iade edildi". No money moves
+ * here. A charge that could not be written is put in front of a person
+ * rather than lost. Returns the kuruş newly owed, for tests.
+ */
+export async function chargeResoldHours(
+  sold: KaraokeReservation,
+  allocation: ReadonlyArray<{ id: string; hours: readonly number[] }>,
+  sameDay: readonly KaraokeReservation[],
+): Promise<number> {
+  let owed = 0;
+  for (const { id, hours } of allocation) {
+    const before = sameDay.find((r) => r.id === id);
+    if (!before || hours.length === 0) continue;
+    const slot = readableSlot(before);
+    const hoursLabel = formatReservationTime(hours[0]!, hours.length);
+    let added = 0;
+    try {
+      const res = await getDb().rpc("karaoke_charge_resold_hours", {
+        p_id: id,
+        p_hours: [...hours],
+      });
+      if (res.error) {
+        raiseDbError("karaoke.chargeResoldHours", res.error, res.status);
+      }
+      added = Math.max(0, Math.round(Number(res.data ?? 0)) || 0);
+    } catch (err) {
+      console.error(`[karaoke] resale refund not written ${id}`, err);
+      await alertMoney(before, {
+        event: "resale_refund_unrecorded",
+        key: `resale-unrecorded-${sold.id}-${id}`,
+        title: "Yeniden satılan saatin iadesi kaydedilemedi",
+        summary: `${slot.date} ${slot.time} rezervasyonunun geç iptal edilen ${hoursLabel} saati ${sold.id.toUpperCase()} ile yeniden satıldı; kalan payın iadesi kayda geçmedi.`,
+        footnote:
+          "Rezervasyonun sayfasına bak: o saat için sende kalan tutar karta iade edilmeli. PayNkolay panelinden iade et ve bu rezervasyonun iadesini kaydet.",
+        amountMinor: 0,
+        providerRef: before.paymentRef ?? "",
+        extra: { soldBy: sold.id, hours: [...hours] },
+      });
+      continue;
+    }
+    if (added <= 0) continue;
+    owed += added;
+    const after = (await getReservation(id)) ?? before;
+    await alertMoney(after, {
+      event: "resale_refund_owed",
+      key: `resale-${sold.id}-${id}`,
+      title: "Geç iptal edilen saat yeniden satıldı",
+      summary: `${slot.date} ${slot.time} rezervasyonunun geç iptal edilen ${hoursLabel} saati ${sold.id.toUpperCase()} ile yeniden satıldı. O saat için misafirde kalan tutardan ${formatTRYMinor(added)} karta iade edilecek; bu rezervasyonda iade edilen ve edilecek toplam ${formatTRYMinor(refundAmountOf(after))}.`,
+      footnote:
+        'Kısmi iade POS\'a otomatik gönderilemiyor. PayNkolay panelinden bu tutarı karta iade et, sonra panelde "Elle iade edildi" ile kaydet; misafire iade e-postası o zaman gider.',
+      amountMinor: added,
+      providerRef: after.paymentRef ?? "",
+      extra: {
+        soldBy: sold.id,
+        hours: [...hours],
+        resaleRefundMinor: after.resaleRefundMinor ?? null,
+        refundMinor: after.refundMinor ?? null,
+      },
+    });
+  }
+  return owed;
+}
+
+// ─── The köşk's late cancel made good (OP-KARAOKE-GOODWILL) ───────────────
+
+/**
+ * - `not_found`; `not_open`: the booking has no make-good, or one of the
+ *   two options was used already (the other then closes);
+ * - `expired`: the free hour is past its last day (the money still may be
+ *   paid: the terms give it no deadline);
+ * - `invalid` (with `message` and the form's `field`): a day or an hour the
+ *   room does not take, an amount or a transfer day that does not fit, a
+ *   note that carries an IBAN;
+ * - `slot_taken`: another booking holds that hour;
+ * - `raced`: someone else used it at the same moment.
+ */
+export type KaraokeMakeGoodFailure =
+  "not_found" | "not_open" | "expired" | "invalid" | "slot_taken" | "raced";
+
+/** The form box an `invalid` answer points at (the panel's dialogs). */
+export type KaraokeMakeGoodField =
+  "tarih" | "saat" | "havaleTarihi" | "tutar" | "reason";
+
+export type KaraokeMakeGoodResult =
+  | { ok: true; reservation: KaraokeReservation; notified: boolean }
+  | {
+      ok: false;
+      reason: KaraokeMakeGoodFailure;
+      message?: string;
+      field?: KaraokeMakeGoodField;
+    };
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * "Telafi saati ver": a free hour of the same length for the guest of a
+ * booking the köşk cancelled late (karaoke terms §8). A new booking on the
+ * day and hour the staff chose, for the same guest: confirmed, nothing to
+ * pay (`paymentStatus: "none"`, total 0), `channel: "staff"`, "Telafi:
+ * <code>" in its note and `makeGoodFor` pointing back. The overlap
+ * constraint holds as for any booking; the open-bookings cap does not (it
+ * is not the guest's own booking). The guest is mailed its confirmation
+ * ("Bu saat için senden ödeme alınmaz.").
+ *
+ * The make-good is used and the hour written in ONE statement
+ * (`karaoke_give_make_good_hour`, under the booking's row lock): two people
+ * cannot give two hours, nor an hour and the money, and an hour that cannot
+ * be written (taken in between: 23P01) leaves the make-good open. The day
+ * and the hour are checked against the room here first, for the panel's
+ * words; the database has the last say.
+ */
+export async function giveKaraokeMakeGoodHour(
+  id: string,
+  slot: { date: string; startHour: number },
+  actor: string,
+  now: Date = new Date(),
+): Promise<KaraokeMakeGoodResult> {
+  const r = await getReservation(id);
+  if (!r) return { ok: false, reason: "not_found" };
+  if (makeGoodStateOf(r) !== "open") return { ok: false, reason: "not_open" };
+  const clock = istanbulClock(now);
+  if (!makeGoodHourOpen(r, clock.date)) {
+    return { ok: false, reason: "expired" };
+  }
+  const settings = await getSettings();
+  const valid = validateReservationRequest(
+    {
+      date: slot.date,
+      startHour: slot.startHour,
+      hours: r.hours,
+      // The room's capacity may have changed since; the guest's group stays.
+      guests: Math.max(1, Math.min(r.guests, settings.karaokeCapacity)),
+      note: "",
+    },
+    {
+      today: clock.date,
+      capacity: settings.karaokeCapacity,
+      nowMinutes: clock.minutes,
+      rules: settings.mobileApp.karaoke,
+    },
+  );
+  if (!valid.ok) {
+    return {
+      ok: false,
+      reason: "invalid",
+      message: valid.message,
+      // A day the room does not take, else the hour (its start, its end).
+      field: /tarih|gün/i.test(valid.message) ? "tarih" : "saat",
+    };
+  }
+  const req = valid.value;
+  const sameDay = await listReservationsForDate(req.date);
+  if (rangeConflicts(req.startHour, req.hours, sameDay)) {
+    return { ok: false, reason: "slot_taken" };
+  }
+
+  const policy = effectiveKaraokeCancelPolicy(settings);
+  const seq = await nextSeq("krk");
+  const hourId = `krk-${String(seq).padStart(5, "0")}`;
+  const iso = now.toISOString();
+  const taxRatePct = karaokeTaxRate(settings.taxRates);
+  const cancelDeadline = karaokeDeadlineFor(policy, req).toISOString();
+  const cancellationRules = [...karaokeCancellationRules(policy).rules];
+  const res = await getDb().rpc("karaoke_give_make_good_hour", {
+    p_for: r.id,
+    p_id: hourId,
+    p_date: req.date,
+    p_start_hour: req.startHour,
+    p_guests: req.guests,
+    p_today: clock.date,
+    p_now: iso,
+    // The rate the köşk declares the hour's market value at (KDV K. m.27/1).
+    p_tax_rate_pct: taxRatePct,
+    p_free_cancel_hours: policy.freeCancelHours,
+    p_late_refund_percent: policy.lateRefundPercent,
+    p_cancel_deadline: cancelDeadline,
+    p_cancellation_rules: cancellationRules,
+  });
+  if (res.error) {
+    // 23P01: a booking took the hour between the read and the write;
+    // 23505: another free hour for the same booking won. Either way the
+    // statement wrote nothing: the make-good is still open.
+    if (res.error.code === "23P01") return { ok: false, reason: "slot_taken" };
+    if (res.error.code === "23505") return { ok: false, reason: "raced" };
+    raiseDbError("karaoke.giveKaraokeMakeGoodHour", res.error, res.status);
+  }
+  const outcome = String(res.data ?? "");
+  if (outcome === "expired") return { ok: false, reason: "expired" };
+  // Read open a moment ago: someone used it in between.
+  if (outcome !== "given") return { ok: false, reason: "raced" };
+
+  const hour: KaraokeReservation = (await getReservation(hourId)) ?? {
+    id: hourId,
+    customerEmail: r.customerEmail,
+    customerName: r.customerName,
+    ...(r.contactEmail ? { contactEmail: r.contactEmail } : {}),
+    ...(r.contactPhone ? { contactPhone: r.contactPhone } : {}),
+    ...(r.contactConsentAt ? { contactConsentAt: r.contactConsentAt } : {}),
+    date: req.date,
+    startHour: req.startHour,
+    hours: r.hours,
+    guests: req.guests,
+    status: "confirmed",
+    priceMinor: 0,
+    discountMinor: 0,
+    totalMinor: 0,
+    note: `Telafi: ${r.id.toUpperCase()}`,
+    createdAt: iso,
+    updatedAt: iso,
+    paymentStatus: "none",
+    paymentDueAt: "",
+    paidAt: "",
+    refundedAt: "",
+    paidMinor: 0,
+    paymentRef: "",
+    channel: "staff",
+    legalConsent: null,
+    guest: r.guest === true,
+    taxRatePct,
+    freeCancelHours: policy.freeCancelHours,
+    lateRefundPercent: policy.lateRefundPercent,
+    cancelDeadline,
+    cancellationRules,
+    refundMinor: null,
+    makeGoodFor: r.id,
+  };
+  await auditStaff(r, actor, "update", {
+    event: "make_good_hour_given",
+    makeGoodMinor: r.makeGoodMinor ?? 0,
+    hourId: hour.id,
+    hourDate: hour.date,
+    hourStart: hour.startHour,
+  });
+  await auditStaff(hour, actor, "create", {
+    event: "make_good_hour",
+    makeGoodFor: r.id,
+    hours: hour.hours,
+    guests: hour.guests,
+  });
+  const notified = await notifyReservationStatus(hour);
+  return { ok: true, reservation: hour, notified };
+}
+
+/**
+ * "Telafi ödendi": the make-good paid to the guest's own bank account. The
+ * day of the transfer and the amount are recorded; the IBAN never is (the
+ * guest writes it in an e-mail, the receipt stays with the accounts), so a
+ * note that carries one is refused rather than written into the audit log.
+ * Exactly the make-good; not a day ahead, nor before the cancel. One
+ * guarded write uses the make-good, so the free hour closes with it.
+ */
+export async function recordKaraokeMakeGoodPaid(
+  id: string,
+  paid: { paidOn: string; amountMinor: number },
+  actor: string,
+  now: Date = new Date(),
+  opts: ResolveRefundOptions = {},
+): Promise<KaraokeMakeGoodResult> {
+  if (opts.reason && looksLikeBankAccount(opts.reason)) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: "reason",
+      message:
+        "Nota IBAN ya da hesap numarası yazma: banka hesap bilgisi kayda geçmez, dekont muhasebede durur.",
+    };
+  }
+  const r = await getReservation(id);
+  if (!r) return { ok: false, reason: "not_found" };
+  if (makeGoodStateOf(r) !== "open") return { ok: false, reason: "not_open" };
+  const today = istanbulClock(now).date;
+  const cancelledOn = Number.isFinite(Date.parse(r.updatedAt))
+    ? istanbulDayOf(new Date(r.updatedAt))
+    : "";
+  if (!DAY_RE.test(paid.paidOn) || !isCalendarDate(paid.paidOn)) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: "havaleTarihi",
+      message: "Havale tarihini gün olarak gir.",
+    };
+  }
+  if (paid.paidOn > today) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: "havaleTarihi",
+      message: "Havale tarihi ileri bir gün olamaz.",
+    };
+  }
+  if (cancelledOn && paid.paidOn < cancelledOn) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: "havaleTarihi",
+      message: "Havale tarihi iptalden önce olamaz.",
+    };
+  }
+  // Exactly the make-good (karaoke terms §8: "bu tutarın ... ödenmesi"): a
+  // slipped key ("20000" for 2 000) or an amount no column holds is a field
+  // error, never a record of money that did not move.
+  const minor = r.makeGoodMinor ?? 0;
+  if (!Number.isSafeInteger(paid.amountMinor) || paid.amountMinor !== minor) {
+    return {
+      ok: false,
+      reason: "invalid",
+      field: "tutar",
+      message: `Telafi ${formatTRYMinor(minor)}; havale tutarı tam bu tutar olmalı.`,
+    };
+  }
+  const usedAt = now.toISOString();
+  const moved =
+    rows<{ id: string }>(
+      await getDb()
+        .from(TABLES.karaokeReservations)
+        .update({
+          makeGoodUsedAt: usedAt,
+          makeGoodPaidMinor: paid.amountMinor,
+          makeGoodPaidOn: paid.paidOn,
+        })
+        .eq("id", r.id)
+        .eq("status", "cancelled")
+        .eq("makeGoodUsedAt", null)
+        .select("id"),
+      "karaoke.recordKaraokeMakeGoodPaid",
+    ).length > 0;
+  if (!moved) return { ok: false, reason: "raced" };
+  await auditStaff(r, actor, "refund", {
+    event: "make_good_paid",
+    amountMinor: paid.amountMinor,
+    paidOn: paid.paidOn,
+    ...(opts.reason ? { reason: opts.reason } : {}),
+  });
+  const updated: KaraokeReservation = {
+    ...r,
+    makeGoodUsedAt: usedAt,
+    makeGoodPaidMinor: paid.amountMinor,
+    makeGoodPaidOn: paid.paidOn,
+  };
+  return { ok: true, reservation: updated, notified: true };
+}
+
+/**
+ * A free hour the köşk gave, let go (the guest on its page, through the app
+ * or its link, or the köşk in the panel): no money moves. Before it began,
+ * the make-good it used is open again, so the guest can choose another
+ * hour or the money, as its confirmation said ("telafin o zaman geri
+ * gelir"); once it has begun it was the guest's. The cancel and the reopen
+ * are one statement (`karaoke_release_make_good_hour`): the make-good is
+ * never lost to a cancel whose second write did not happen.
+ */
+async function releaseMakeGoodHour(
+  hour: KaraokeReservation,
+  ctx: {
+    by: KaraokeCanceller["kind"];
+    actor: string;
+    why: Record<string, unknown>;
+    silent: boolean;
+    now: Date;
+  },
+): Promise<CancelKaraokeResult> {
+  const iso = ctx.now.toISOString();
+  const reopen =
+    ctx.now.getTime() <
+    karaokeStartInstant(hour.date, hour.startHour).getTime();
+  const res = await getDb().rpc("karaoke_release_make_good_hour", {
+    p_id: hour.id,
+    p_now: iso,
+    p_reopen: reopen,
+  });
+  if (res.error) {
+    raiseDbError("karaoke.releaseMakeGoodHour", res.error, res.status);
+  }
+  const outcome = String(res.data ?? "");
+  if (outcome !== "cancelled" && outcome !== "reopened") {
+    return { ok: false, reason: "raced", reservation: hour };
+  }
+  const cancelled: KaraokeReservation = {
+    ...hour,
+    status: "cancelled",
+    updatedAt: iso,
+  };
+  // The make-good this let go of is open again: the cancellation mail says
+  // how much and until when, as the free hour's confirmation promised
+  // ("telafin o zaman geri gelir"; review R4).
+  const original =
+    outcome === "reopened" && hour.makeGoodFor
+      ? await getReservation(hour.makeGoodFor)
+      : null;
+  const notified = ctx.silent
+    ? true
+    : await notifyReservationStatus(
+        cancelled,
+        original && makeGoodStateOf(original) === "open"
+          ? {
+              makeGoodReopened: {
+                minor: original.makeGoodMinor ?? 0,
+                until: original.makeGoodUntil ?? "",
+              },
+            }
+          : {},
+      );
+  await auditStaff(cancelled, ctx.actor, "transition", {
+    status: "cancelled",
+    by: ctx.by,
+    ...(ctx.silent ? { ended: true } : {}),
+    ...ctx.why,
+  });
+  if (outcome === "reopened" && hour.makeGoodFor) {
+    if (original) {
+      await auditStaff(original, ctx.actor, "update", {
+        event: "make_good_reopened",
+        hourId: hour.id,
+      });
+    }
+  }
+  return {
+    ok: true,
+    reservation: cancelled,
+    refunded: false,
+    notified,
+    ...(ctx.silent ? { silent: true as const } : {}),
+  };
 }
 
 // ─── Account closure ───────────────────────────────────────────────────────
 
 /** Each POS call an account closure waits for (DELETE /me has 15 s). */
 const ACCOUNT_CLOSURE_POS_DEADLINE_MS = 5_000;
+
+/** What a closure the member asked us for brings to the karaoke book. */
+export interface AccountClosureKaraokeOptions {
+  /**
+   * When the member asked us to close the account (the Site's deletion
+   * request, read before the closure blanks it). Each booking's own rule is
+   * judged at that instant (ASK-Y3-4 (d)); refunds still happen now.
+   */
+  windowAt?: Date;
+  /**
+   * Bookings whose start came after the request and whose room the person
+   * closing the account recorded as used: those keep the payment.
+   */
+  roomUsed?: readonly string[];
+  /**
+   * Nobody was asked whether those rooms were used: the member closed the
+   * account in the app (DELETE /me) while a web request was open. Such a
+   * booking is then neither refunded nor cancelled, and a person decides:
+   * refunding it unasked would pay back an evening that may have been sung.
+   */
+  roomUseUnknown?: boolean;
+}
+
+const PASSED_SINCE_REQUEST_TITLE =
+  "Silme talebi sırasında süresinde olan ödenmiş rezervasyonun saati geçti";
+const PASSED_SINCE_REQUEST_LEAD =
+  "Hesap kapandı. Üye silmeyi istediğinde rezervasyon iade süresindeydi, saati kapanıştan önce geçti.";
 
 /**
  * `DELETE /me` and the web's account deletion: every future booking is
@@ -1718,39 +2715,146 @@ const ACCOUNT_CLOSURE_POS_DEADLINE_MS = 5_000;
  * closing either way - and put in front of a person: a refund the POS
  * declined or did not answer (the booking keeps `paid` / `refunding` for the
  * panel), or an unpaid hold the POS could not be asked about.
+ *
+ * A closure that answers the member's web request (`windowAt`) is judged at
+ * the request. A paid booking whose own rule still refunded it then and
+ * whose start has come since is not dropped as "past": it is refunded as the
+ * request would have been (in full inside the free window) unless the person
+ * closing the account recorded that the room was used (`roomUsed`), and
+ * either way it is put in front of a person. When nobody was asked
+ * (`roomUseUnknown`, the app's own deletion) it is left as it is for that
+ * person to decide.
  */
 export async function cancelKaraokeForClosedAccount(
   email: string,
   now: Date = new Date(),
+  opts: AccountClosureKaraokeOptions = {},
 ): Promise<void> {
   const today = istanbulClock(now).date;
+  const windowAt =
+    opts.windowAt &&
+    Number.isFinite(opts.windowAt.getTime()) &&
+    opts.windowAt.getTime() < now.getTime()
+      ? opts.windowAt
+      : null;
+  const roomUsed = new Set(opts.roomUsed ?? []);
+  const passedSinceRequest = (r: KaraokeReservation): boolean =>
+    windowAt !== null &&
+    paymentStatusOf(r) === "paid" &&
+    startedSinceRequest(r, windowAt, now);
   // The account's own bookings; guest rows with the same address are left
   // alone (they are reached by their signed link, and nothing proves the
   // person closing this account made them).
   const future = (await listMine(email)).filter(
-    (r) => r.date >= today && r.status !== "cancelled",
+    (r) =>
+      r.status !== "cancelled" && (r.date >= today || passedSinceRequest(r)),
   );
+  const by: KaraokeCanceller = windowAt
+    ? { kind: "account", email, windowAt }
+    : { kind: "account", email };
   const outcomes = await Promise.allSettled(
     future.map(async (r) => {
-      const res = await cancelKaraokeReservation(
-        r.id,
-        { kind: "account", email },
-        { now, refundDeadlineMs: ACCOUNT_CLOSURE_POS_DEADLINE_MS },
-      );
+      const passed = passedSinceRequest(r);
+      if (passed && roomUsed.has(r.id)) {
+        // The person closing the account says the evening was sung: the
+        // booking and its payment stay as they are, and the money team sees
+        // why.
+        await alertMoney(r, {
+          event: "account_closed_room_used",
+          key: "account-room-used",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: `${PASSED_SINCE_REQUEST_LEAD} Hesabı kapatan kişi odanın kullanıldığını işaretledi: iade yapılmadı, rezervasyon olduğu gibi duruyor.`,
+          footnote:
+            "Oda kullanılmadıysa panelden iptal et ve iade et (iade yetkisi gerekir).",
+          amountMinor: r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), roomUsed: true },
+        });
+        return;
+      }
+      if (passed && opts.roomUseUnknown) {
+        // The member closed the account in the app: nobody could say
+        // whether the evening was sung, so nothing moves without a person.
+        await alertMoney(r, {
+          event: "account_closed_room_use_unknown",
+          key: "account-room-unknown",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: `${PASSED_SINCE_REQUEST_LEAD} Üye hesabı uygulamadan kapattı, odanın kullanılıp kullanılmadığını kimse işaretlemedi: iade yapılmadı, rezervasyon olduğu gibi duruyor.`,
+          footnote:
+            "Oda kullanılmadıysa panelden iptal et ve iade et (iade yetkisi gerekir).",
+          amountMinor: r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), roomUseUnknown: true },
+        });
+        return;
+      }
+      const res = await cancelKaraokeReservation(r.id, by, {
+        now,
+        refundDeadlineMs: ACCOUNT_CLOSURE_POS_DEADLINE_MS,
+      });
+      if (passed) {
+        const refunded = res.ok && res.refunded;
+        // A late share the POS cannot send is owed by hand; its own alert
+        // ("Geç iptal: kısmi iade bekliyor") carries the amount.
+        const owedMinor = res.ok ? res.refundOwedMinor : undefined;
+        await alertMoney(res.reservation ?? r, {
+          event: "account_closed_passed_since_request",
+          key: "account-passed",
+          title: PASSED_SINCE_REQUEST_TITLE,
+          summary: refunded
+            ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için tutarın tamamı karta iade edildi.`
+            : owedMinor !== undefined
+              ? `${PASSED_SINCE_REQUEST_LEAD} Odanın kullanıldığı işaretlenmediği için talep anındaki kurala göre ${formatTRYMinor(owedMinor)} karta iade edilecek.`
+              : `${PASSED_SINCE_REQUEST_LEAD} Talep anındaki kurala göre iade edilmeli ama iade hemen tamamlanmadı.`,
+          footnote: refunded
+            ? "Hesabı rezervasyon saatinden önce kapatmak bu durumu önler."
+            : owedMinor !== undefined
+              ? 'Kısmi iadeyi PayNkolay panelinden yap, sonra panelde "Elle iade edildi" ile kaydet.'
+              : "İade uyarısına bak ve iadeyi panelden tamamla (iade yetkisi gerekir).",
+          amountMinor: owedMinor ?? r.paidMinor ?? r.totalMinor,
+          providerRef: r.paymentRef ?? "",
+          extra: { requestedAt: windowAt?.toISOString(), refunded },
+        });
+      }
       if (res.ok) return;
       const current = (await getReservation(r.id)) ?? r;
       if (current.status === "cancelled") return;
       const money = paymentStatusOf(current);
+      if (res.reason === "too_late" && current.makeGoodFor) {
+        // A free hour the köşk gave, inside the window where the member may
+        // no longer let it go: it stands, and the make-good it used stays
+        // used (review A4). A person decides whether it is let go.
+        const original = await getReservation(current.makeGoodFor);
+        const { freeCancelHours: h } = karaokeCancelPolicyOf(current);
+        await alertMoney(current, {
+          event: "account_closed_late_make_good_hour",
+          key: "account-late-free-hour",
+          title:
+            h > 0
+              ? `Kapanan hesabın ${h} saatten az kalan telafi saati`
+              : "Kapanan hesabın ücretsiz iptal süresi olmayan telafi saati",
+          summary: `Hesap kapandı; bu ücretsiz telafi saati (${current.makeGoodFor.toUpperCase()} için) iptal kuralı gereği misafir tarafından artık iptal edilemiyordu: saat olduğu gibi duruyor, telafi yeniden açılmadı.`,
+          footnote:
+            "Saat kullanılmayacaksa panelden iptal et (iade yetkisi gerekir); başlamadan yapılan iptal telafiyi yeniden açar.",
+          amountMinor: original?.makeGoodMinor ?? 0,
+          providerRef: "",
+        });
+        return;
+      }
       if (res.reason === "too_late") {
-        // Paid, and inside the last two hours (or already under way): no
-        // refund under the rule, and the evening stays booked. A person
-        // decides whether the köşk refunds it anyway.
+        // Paid, and inside the booking's window with no late share (or
+        // already under way): no refund under its rule, and the evening
+        // stays booked. A person decides whether the köşk refunds it anyway.
+        const { freeCancelHours: h } = karaokeCancelPolicyOf(current);
         await alertMoney(current, {
           event: "account_closed_late_paid_booking",
           key: "account-late",
-          title: "Kapanan hesabın 2 saatten az kalan ödenmiş rezervasyonu",
+          title:
+            h > 0
+              ? `Kapanan hesabın ${h} saatten az kalan ödenmiş rezervasyonu`
+              : "Kapanan hesabın ücretsiz iptal süresi olmayan ödenmiş rezervasyonu",
           summary:
-            "Hesap kapandı; rezervasyon saatine 2 saatten az kaldığı için iade yapılmadı ve rezervasyon olduğu gibi duruyor.",
+            "Hesap kapandı; rezervasyonun iptal kuralı gereği iade yapılmadı ve rezervasyon olduğu gibi duruyor.",
           footnote:
             "İptal ve iade kuralı gereği iade yok. Köşk yine de iade etmek isterse panelden iptal et (iade yetkisi gerekir).",
           amountMinor: current.paidMinor ?? current.totalMinor,

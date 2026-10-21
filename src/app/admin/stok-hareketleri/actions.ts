@@ -2,62 +2,103 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
-import { adjustStock } from "@/lib/admin/store";
+import { parseStockDelta, splitStockTarget } from "@/lib/admin/stock-delta";
+import { adjustStock, adjustVariantStock } from "@/lib/admin/store";
 
-export interface AdjustStockState {
-  error?: string;
-  ok?: { productName: string; delta: number; stockAfter: number };
-}
-
+/**
+ * The manual adjustment. Each field answers under itself (ActionForm), the
+ * success comes back as a toast with the new stock. The amount is read by
+ * parseStockDelta: "+12", "-3" and "−3" all work, "1.5" is refused rather
+ * than cut to 1. A variant comes as "productId#variantId" and moves through
+ * adjust_variant_stock (admin audit CAT-14).
+ */
 export async function adjustStockAction(
-  _prev: AdjustStockState,
+  _prev: ActionResult | null,
   formData: FormData,
-): Promise<AdjustStockState> {
+): Promise<ActionResult> {
   const session = await requireRole("stock");
   const actor = session.email;
 
-  const productId = String(formData.get("productId") ?? "").trim();
-  const deltaRaw = String(formData.get("delta") ?? "")
-    .replace(",", ".")
-    .trim();
+  const { productId, variantId } = splitStockTarget(
+    String(formData.get("productId") ?? ""),
+  );
   const note = String(formData.get("note") ?? "").trim();
+  const delta = parseStockDelta(String(formData.get("delta") ?? ""));
 
-  if (!productId) return { error: "Ürün seçilmedi." };
-  if (!deltaRaw) return { error: "Değişiklik miktarı gir (+/−)." };
-  const delta = parseInt(deltaRaw, 10);
-  if (!Number.isFinite(delta) || delta === 0) {
-    return { error: "Geçerli bir tam sayı gir (0 olamaz)." };
-  }
+  const fieldErrors: Record<string, string> = {};
+  if (!productId) fieldErrors.productId = "Ürün seç.";
+  if (!delta.ok) fieldErrors.delta = delta.error;
   if (note.length < 3) {
-    return { error: "Not en az 3 karakter olmalı (denetim için)." };
+    fieldErrors.note = "Not en az 3 karakter olmalı (denetim için).";
+  }
+  if (!delta.ok || Object.keys(fieldErrors).length > 0) {
+    return actionError("Formdaki uyarıları gider.", fieldErrors);
   }
 
-  const result = await adjustStock({ productId, delta, note, actor });
-  if (!result.ok) return { error: result.error };
+  const signed = delta.delta > 0 ? `+${delta.delta}` : String(delta.delta);
+
+  if (variantId) {
+    const moved = await adjustVariantStock({
+      productId,
+      variantId,
+      delta: delta.delta,
+      note,
+      actor,
+    });
+    if (!moved.ok) return actionError(moved.error);
+    await logAudit({
+      action: "update",
+      entity: "stock",
+      entityId: productId,
+      payload: {
+        variantId,
+        delta: delta.delta,
+        stockAfter: moved.variantStock,
+        totalAfter: moved.stock,
+        note,
+      },
+    });
+    revalidateStock();
+    return actionOk(
+      `${moved.label}: ${signed} adet. Yeni stok: ${moved.variantStock}.`,
+    );
+  }
+
+  const result = await adjustStock({
+    productId,
+    delta: delta.delta,
+    note,
+    actor,
+  });
+  if (!result.ok) return actionError(result.error);
 
   await logAudit({
     action: "update",
     entity: "stock",
     entityId: productId,
     payload: {
-      delta,
+      delta: delta.delta,
       stockAfter: result.product.stock,
       note,
     },
   });
 
+  revalidateStock();
+  return actionOk(
+    `${result.product.name}: ${signed} adet. Yeni stok: ${result.product.stock}.`,
+  );
+}
+
+function revalidateStock() {
   revalidatePath("/admin/stok-hareketleri");
   revalidatePath("/admin/urunler");
   revalidatePath("/admin");
   revalidatePath("/");
-
-  return {
-    ok: {
-      productName: result.product.name,
-      delta,
-      stockAfter: result.product.stock,
-    },
-  };
 }

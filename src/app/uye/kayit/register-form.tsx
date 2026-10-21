@@ -92,18 +92,28 @@ export function RegisterForm() {
           <span>
             <a href="/hukuk/kullanim-sartlari" target="_blank" rel="noreferrer">
               Kullanım Şartları
-            </a>{" "}
-            ve{" "}
-            <a
-              href="/hukuk/gizlilik-politikasi"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Gizlilik Politikası
             </a>
-            &apos;nı (KVKK aydınlatma metni dahil) okudum, kabul ediyorum.
+            &apos;nı okudum, kabul ediyorum.
           </span>
         </label>
+        {/* Information, not a term to accept: the KVKK notice is read, never
+            "accepted" (Kurul İlke Kararı 2026/347; KVKK m.10), so it has no
+            box and is not part of the sentence above. */}
+        <p className="auth-consent-note">
+          Kişisel verilerinin nasıl işlendiğini{" "}
+          <a href="/hukuk/gizlilik-politikasi" target="_blank" rel="noreferrer">
+            Gizlilik Politikası
+          </a>{" "}
+          ve{" "}
+          <a
+            href="/hukuk/kvkk-aydinlatma-metni"
+            target="_blank"
+            rel="noreferrer"
+          >
+            KVKK Aydınlatma Metni
+          </a>
+          &apos;nde okuyabilirsin.
+        </p>
         <label className="auth-consent">
           <input
             type="checkbox"

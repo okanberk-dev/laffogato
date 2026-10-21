@@ -3,19 +3,21 @@ import { notFound } from "next/navigation";
 
 import { LaffogatoApp } from "@/components/laffogato/app";
 import { SeoContent } from "@/components/laffogato/seo-content";
-import {
-  getPublicSettings,
-  listActiveShopHeroSlides,
-  listMenuForCustomer,
-  listShopProducts,
-} from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { FAQ } from "@/lib/seo/faq";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { breadcrumbLd, productListLd } from "@/lib/seo/structured-data";
 import { isDegradedRequest } from "@/lib/db/health";
 import { JsonLd } from "@/lib/seo/json-ld";
-import { openGraphDefaults } from "@/lib/seo/site";
+import { openGraphBase } from "@/lib/seo/site";
+import { footerSettings, venueContact } from "@/lib/seo/contact";
+import {
+  getSiteSettings,
+  listSiteMenu,
+  listSiteShopHeroSlides,
+  listSiteShopProducts,
+  shopForRequest,
+} from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,7 @@ export async function generateMetadata({
     keywords: cat.keywords,
     alternates: { canonical: path },
     openGraph: {
-      ...openGraphDefaults(),
+      ...openGraphBase(),
       title: cat.title,
       description: cat.description,
       url: path,
@@ -59,15 +61,16 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
   const cat = SHOP_CATEGORY_ROUTES.find((c) => c.slug === kategori);
   if (!cat) notFound();
 
-  const [allProducts, settings, menu, customer, heroSlides] = await Promise.all(
-    [
-      listShopProducts(),
-      getPublicSettings(),
-      listMenuForCustomer(),
-      getActiveCustomer(),
-      listActiveShopHeroSlides(),
-    ],
-  );
+  const [listed, settings, menu, customer, heroSlides] = await Promise.all([
+    listSiteShopProducts(),
+    getSiteSettings(),
+    listSiteMenu(),
+    getActiveCustomer(),
+    listSiteShopHeroSlides(),
+  ]);
+  // Empty when this request saw the database down (the member's account is
+  // read live), cached list or not.
+  const allProducts = shopForRequest(listed);
 
   // Pre-filter shop products to the selected category for a focused landing
   // page. PageShop still renders its category sidebar so users can switch.
@@ -104,13 +107,9 @@ export default async function MagazaCategoryPage({ params }: RouteParams) {
         degraded={isDegradedRequest()}
         initialRoute="shop"
         products={products}
-        settings={{
-          phone: settings.phone,
-          email: settings.email,
-          address: settings.address,
-        }}
+        settings={footerSettings(settings)}
         menu={menu}
-        seoSlot={<SeoContent faq={FAQ} />}
+        seoSlot={<SeoContent faq={FAQ} contact={venueContact(settings)} />}
         wishlist={customer?.wishlist}
         isAuthenticated={!!customer}
         freeShippingThreshold={Math.round(

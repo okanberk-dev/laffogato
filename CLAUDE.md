@@ -15,7 +15,7 @@ yapılır.
 - **Stack:** Next.js 16 (App Router + Turbopack) · React 19 · Tailwind v4 ·
   TypeScript · Zod
 - **Deploy hedefi:** Vercel
-- **Veri:** **Postgres**, `pg` sürücüsüyle. Hedef barındırma Supabase (docs/SUPABASE-GECIS.md; cutover'a kadar eski sağlayıcıda) ama koda
+- **Veri:** **Postgres**, `pg` sürücüsüyle. Veri **Neon'da** kalır, Supabase yalnız kimliktir (19 Eki 2026 incelemesi, docs/DATABASE.md; taşıma yordamı docs/SUPABASE-GECIS.md hazır ama uygulanmadı) ve koda
   özgü bir bağımlılık yok — bağlantı dizesi değişince başka bir Postgres'e
   taşınır. **Taşımadan önce `docs/DATABASE.md`'deki sağlayıcı geçmişi uyarısını
   oku:** proje bir kez Supabase'den taşındı ve sebebi bir aylık kesintiydi.
@@ -34,7 +34,9 @@ yapılır.
   iyzico 15 Eki 2026'da koddan kaldırıldı; hukuki metinler 16 Eki 2026'da
   PayNkolay'a çevrildi (`docs/LEGAL-REDLINES-2026-09.md` başındaki durum
   tablosu; `tests/legal-docs.test.ts` metinde iyzico, uzun tire, "kart
-  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Metinler
+  sunucumuza uğramaz" ve cüzdan / hediye çeki sözü kalmadığını tutar). Masa ve
+  grup rezervasyonu yok (17 Eki 2026): rezervasyon yalnız karaoke odası için,
+  metinler masa rezervasyonu vaat etmez (aynı test; LEGAL-REDLINES §17). Metinler
   avukat okumasını bekler
 - **Dil:** Arayüz **Türkçe**. Kod, dosya adı, identifier, commit mesajı
   **İngilizce**
@@ -147,9 +149,15 @@ yeterlidir. `tests/contrast.test.ts` her iki kuralı da tutar.
   5. Dışarıdan çağrılan yollar yeniden adlandırılmaz: e-posta linkleri,
      `/odeme/donus`, `/gorsel/**`, `/hukuk/[slug]`, `/bulten/cikis`,
      `/bulten/onay`, `/masa/[code]` (masalardaki basılı QR), `/api/**`.
-  6. Veri `loadAppProps()` / `getPublicSettings()` / `list*` ile okunur;
-     bileşende `@/lib/db` yok; istemci bileşeni `server-only` modül import
-     edemez (saf mantık için `*-core.ts` / `*-utils.ts`).
+  6. Genel sayfa veriyi `loadAppProps()` ya da `src/lib/seo/site-data.ts`'in
+     önbellekli okuyucularıyla (`getSiteSettings`, `listSite*`,
+     `getSiteProductBySlug`, ...) okur: sayfa görüntülemesi veritabanını
+     uyandırmaz. `getPublicSettings()` ve `store.ts`'in `list*` / `get*`
+     okuyucuları her seferinde veritabanına gider; ödeme, karaoke, uygulama
+     API'si ve üyenin kendi sayfaları içindir
+     (`tests/public-pages-cached-reads.test.ts`). Bileşende `@/lib/db` yok;
+     istemci bileşeni `server-only` modül import edemez (saf mantık için
+     `*-core.ts` / `*-utils.ts`).
 - **Ön yüz PR'ı bitmeden:** `git diff --stat origin/main -- src/lib src/app/api
   db scripts src/proxy.ts 'src/app/**/actions.ts' 'src/app/**/route.ts'`
   **boş** dönmeli.
@@ -172,7 +180,8 @@ src/
     uye/                     → Müşteri hesabı (giriş, kayıt, sipariş geçmişi,
                                adresler, favoriler, promosyonlar, bildirimler)
     admin/                   → Admin panel (proxy korumalı)
-      urunler/ kategoriler/  → Shop ürünleri (wizard) + kategoriler
+      urunler/ kategoriler/  → Shop ürünleri (wizard, ice-aktar: CSV) +
+                               kategoriler
       menu/                  → Kafe menüsü
       siparisler/            → Sipariş listesi + detay + manuel sipariş
       masalar/               → Masalar · QR (sahip + yönetici): ad, QR, yazdır,
@@ -191,6 +200,8 @@ src/
     rehber/                  → SEO rehber hub'ı + /rehber/[slug] (Article +
                                FAQPage + Recipe yapısal verisi)
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
+    api/panel/karaoke/       → Köşkün panelinin imzalı karaoke okuması
+                               (HMAC, docs/PANEL-KARAOKE.md)
     api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
@@ -238,6 +249,8 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
+    panel/                   → Köşkün paneliyle karaoke bağlantısı: imza,
+                               pencere, beyaz liste (karaoke-sync-core) · ping
     payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
                                paynkolay-card (kart doğrulama) · paynkolay-page
                                (ödeme sayfaları + kendi CSP'leri)
@@ -251,10 +264,13 @@ src/
     seo/                     → site.ts (NAP + sabitler) · structured-data ·
                                section-page · pages.ts (route SEO) · faq.ts ·
                                guides.ts + guide-content.ts (rehber içeriği) ·
-                               guide-structured-data.ts · guide-nav.ts
+                               guide-structured-data.ts · guide-nav.ts ·
+                               og-card · og-pages · og-drawings · og-product
+                               (paylaşım kartları, docs/SEO.md §2)
     consent/                 → cookie.ts (rıza durumu) · script.ts (Consent Mode v2)
     newsletter/              → store.ts (6563 onay kaydı + tek tıkla çıkış)
-    utils/                   → commerce.ts (vergi/kargo) · format.ts (priceLabel,
+    utils/                   → commerce.ts (kargo) · kdv.ts (ürüne göre KDV
+                               oranı ve oran oran döküm) · format.ts (priceLabel,
                                parseMoneyInput — admin tutar girişi)
     http/                    → etag.ts · same-site-path.ts (yönlendirme hedefi)
 db/
@@ -298,6 +314,50 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
   adresi. İçerik müşterinin **yalnız adını** taşır; telefon, e-posta, adres,
   soyad ve kurye notu (kapı kodu) yazılmaz. Ödemeyi bekletmez, bozamaz.
 
+## Köşkün paneli: karaoke bağlantısı (21 Eki 2026)
+
+Köşkün iç paneli (ladmin.laffogato.net, `RiosenBeq/lafmaliyet`) bardaki hep
+açık ekranda karaoke odasını sayar ve yeni rezervasyonda çalar. `live:karaoke`
+etiketini düşüren her yazım, yazım kancasından (`src/lib/db/index.ts`
+`onWrite`) yanıttan sonra panele içeriksiz, imzalı bir ping atar
+(`src/lib/panel/karaoke-ping.ts`); panel pencerenin rezervasyonlarını imzalı
+`GET /api/panel/karaoke`'tan çeker. Paylaşılan anahtar `KARAOKE_SYNC_SECRET`
+(iki projede aynı); yoksa ikisi de kapalıdır. Panele yalnız ad, saat, kişi
+sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
+(`toPanelReservation` beyaz listesi). İmza kuralları
+`src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
+testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
+`docs/PANEL-KARAOKE.md`.
+
+## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
+
+- **Fiyatlar KDV dahil; oran tutarı değiştirmez.** Oran yalnız fiyatın ne
+  kadarının KDV olduğunu söyler (fiş, panel, CSV, uygulama). Hiçbir toplam
+  orandan hesaplanmaz (`computeOrderTotals`'ta KDV yok).
+- **Oran ürüne göre** (`src/lib/utils/kdv.ts`): ürünün / menü kaleminin kendi
+  `"taxRatePct"`'i, yoksa Ayarlar → Vergi varsayılanı (`settings."taxRates"`:
+  menü %10, karaoke %20, `beans`/`pantry` %10, `gift`/`gear`/`merch` %20,
+  `shipping` %20). Köşk kafeterya işletmesi: sattığı bütün gıda %10, kargoyla
+  gönderilen paket kahve dahil (KDV GUT III/B-2.4.1); %1 hiçbir üründe
+  kullanılmaz. Oran malın cinsine bağlıdır, rafına değil: yenilebilir kup
+  kutusu (`prd-0003`, `gift`) ve pamuk önlük (`prd-0009`, `merch`) kendi
+  oranıyla %10; gıda ile gıda dışını tek fiyatla birleştiren set %20. Tam
+  sayı 0-100; kesir reddedilir. Ürün ürün karar ve dayanak:
+  `docs/LEGAL-REDLINES-2026-09.md` §16.3-§16.4.
+- **Satış anındaki oran saklanır.** Sipariş satırı `items[].taxRatePct`,
+  siparişin kargo / kurye oranı `"shippingTaxRatePct"` (yoksa %20), karaoke
+  rezervasyonu `"taxRatePct"`; panelde sonradan değişen oran eski fişi
+  değiştirmez. Oranı olmayan eski sipariş döküm göstermez (tahmin yok).
+- **Kargo / kurye ücreti faturada ayrı kalem, kendi oranıyla** (taşıma
+  hizmeti, %20; KDV K. m.24/a, GİB özelge 32391, 28945): `kdvBreakdown`
+  ücreti satırlara paylaştırmaz. İndirim satırlara orantılı dağıtılır.
+- **Ödül kuponu iskonto değildir** (damga, kilometre taşı, davet; ya da
+  ürünlerin tamamını karşılayan kupon): panel sipariş sayfası ve CSV fatura
+  dökümünü (`invoiceKdvBreakdown`, ürünler tam fiyatla) gösterir; fiş ve
+  uygulamanın `taxBreakdown`'ı ödenen tutarın içindeki KDV'dir.
+- Hukuk metinleri oran saymaz, kuralı yazar (`src/lib/legal/content.ts`);
+  ödeme belgelerinde değişiklik `LEGAL_UPDATED`'ı taşır.
+
 ## Geliştirme Komutları
 
 ```bash
@@ -311,8 +371,14 @@ npm run db:migrate   # Migration'ları uygula (DATABASE_URL gerekir)
 npm run db:bundle    # db/schema.sql'i yeniden üret
 ```
 
-CI her PR'da ve `main`'e her push'ta `npm run typecheck` + `npm test` +
-`npm run build` koşar. Bu ortamda `NODE_ENV=development` tanımlıysa build
+CI her PR'da ve `main`'e doğrudan yapılan her push'ta `npm run typecheck` +
+`npm test` + `npm run build` koşar; başlığında "(#N)" olan squash merge
+push'unda koşmaz (o ağaç PR'da `main` güncelken zaten test edildi; Actions
+ücretsiz kotası 19 Eki 2026'da bu yüzden doldu). GitHub Actions çalışmıyorsa
+(kota, ödeme) aynı adımlar yerelde koşturulur: typecheck, lint
+`--max-warnings=0`, `TEST_DATABASE_URL` ile gerçek Postgres 16'ya karşı tam
+`vitest run`, `npm run build` (Turbopack symlink'li `node_modules`'ta
+çöker: APFS kopyası `cp -cR` kullan). Bu ortamda `NODE_ENV=development` tanımlıysa build
 `/_global-error` prerender'ında düşer; yerelde
 `NODE_ENV=production npm run build` kullan (CI değişkeni hiç set etmez).
 
@@ -376,7 +442,10 @@ durum bozulmaya uygundur.
 - `publicRead()` **yalnızca** salt-okunur sunum verisi içindir.
 - Fiyat, stok, yetki ya da siparişin verilebilirliği **asla** yedek veriden
   karar bağlanmaz — `getSettings()` (throw eden) ticari yollarda kalır,
-  `getPublicSettings()` yalnız sunum içindir.
+  `getPublicSettings()` yalnız sunum içindir. Genel sayfaların sunumu
+  önbellekten gelir (`getSiteSettings` ve `site-data.ts`'in diğer
+  okuyucuları, `docs/DATABASE.md` "Uyanmalar ve önbellek"); ticari yollar
+  önbellekten hiçbir şey okumaz (`tests/site-data-cache.test.ts`).
 - Mağaza bozulmada **boş** kalır, paketteki kurgusal ürünlere düşmez.
 
 ## Tasarım Sistemi
@@ -409,6 +478,30 @@ durum bozulmaya uygundur.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
+- **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
+  `src/components/admin/**` ve `src/app/admin/**` içinde:
+  `lucide-react` (ikonlar), `react-aria-components` ve
+  `@internationalized/date` (palet, tarih alanı, combobox gibi yalnız
+  etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`,
+  `react-aria-components`, `@internationalized/date`. Tarih paketi tarih
+  alanlarıyla geldi (UI-14): React Aria onu kilit dosyasına zaten dolaylı
+  getiriyordu, artık doğrudan bağımlılık. Takvim ve saat pencereleri
+  `ui/overlay.ts`'in kapsayıcısına çizilir (açık diyalog ya da panelin portal
+  düğümü); `UNSTABLE_portalContainer` ve `UNSAFE_PortalProvider` yalnız orada
+  geçer, oradaki anahtar bozulursa yerel tarih kutuları kalır. Her biri
+  `package.json`'da tam sürüme sabit (`^` yok), kilit dosyasında tek kopya;
+  yükseltme ayrı bir PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
+  import eder: her ikon orada bir kez adlandırılır, `AdminIcon` 18 px, 1.75
+  çizgi, `aria-hidden` çizer; sayfa onu `@/components/admin/ui/icons`'tan
+  alır, kit'in `ui/index.ts`'inden değil (oradan her sayfaya lucide girer).
+  React Aria ve tarih paketi yalnız `"use client"` dosyalarda, React Aria alt
+  yoldan (`react-aria-components/ListBox`). Sunucuda çizilen kit dosyaları
+  (`data-table`, `status-tabs`, `pagination`, `badge`, `detail`, `styles`,
+  `forms.tsx`) bunlara uzanmaz; `/admin/kasa`'ya kütüphane kodu girmez, her
+  admin rotasına en fazla 8 KB gz eklenir (ölçüm PR gövdesinde). Radix, cmdk
+  ve shadcn yok: `components.json` silindi, `shadcn add` `globals.css`'teki
+  marka token'larının üstüne yazardı. Bekçiler: ESLint
+  `no-restricted-imports` ve `tests/admin-ui-deps.test.ts`.
 
 ## Güvenlik Kuralları
 
@@ -513,7 +606,11 @@ durum bozulmaya uygundur.
 - **Admin form akışı:** Yeni ürün → `ProductWizard mode="wizard"`; düzenleme →
   aynı bileşen `mode="tabs"`. Yeni alan eklerken **5 yer** güncellenir:
   `AdminProduct` (store), seed, `ProductInput`, `product-schema.ts`,
-  `product-wizard.tsx`. Skill: `add-admin-resource`
+  `product-wizard.tsx` (alan `FIELD_STEP`'e de girer, yoksa reddi özet
+  adımında açılır; `admin-product-wizard` testi tutar). Alan CSV ile de
+  gelecekse `product-import-core.ts` (sütun) ve `product-import.ts` (plan).
+  Sihirbaz elle gönderir (`useNoResetSubmit`, `noValidate` + kendi adım
+  denetimi); `<form action>`'a geri dönme. Skill: `add-admin-resource`
 - **Server action pattern:** Zod parse → store call → revalidatePath →
   redirect. Skill: `server-action-pattern`
 - **Migration:** `db/migrations/YYYYMMDDHHMMSS_aciklama.sql`, ardından

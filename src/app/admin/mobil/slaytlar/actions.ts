@@ -3,8 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  actionError,
+  actionOk,
+  type ActionResult,
+} from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
+import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createAppSlide,
   deleteAppSlide,
@@ -12,6 +19,10 @@ import {
   type AppSlideInput,
   type AppSlideTone,
 } from "@/lib/admin/store";
+
+const PANEL = "/admin/mobil/slaytlar";
+const REFUSED = "Formdaki uyarıları gider.";
+const GONE = "Bu slayt silinmiş; listeye dön.";
 
 /**
  * Her action kendi rol kapısını açar.
@@ -40,10 +51,23 @@ function parseInput(formData: FormData): AppSlideInput {
   };
 }
 
-export async function createSlideAction(formData: FormData) {
+/**
+ * Answers with an ActionResult for ActionForm (field errors under their
+ * fields); a save that went through redirects with its toast. It used to
+ * return nothing on a blank title, so "Kaydet" looked dead, and the form's
+ * reset then emptied what had been typed.
+ */
+export async function createSlideAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const input = parseInput(formData);
-  if (!input.title.trim()) return;
+  // The HTML `required` attribute is not a guard on a Server Action, and the
+  // store only trims the title - a titleless row renders as an empty card on
+  // every phone.
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const created = await createAppSlide(input);
   await logAudit({
     action: "create",
@@ -51,36 +75,58 @@ export async function createSlideAction(formData: FormData) {
     entityId: created.id,
     payload: { title: created.title, tone: created.tone },
   });
-  revalidatePath("/admin/mobil/slaytlar");
-  redirect("/admin/mobil/slaytlar");
+  revalidatePath(PANEL);
+  await setAdminFlash(`"${created.title}" slaytı eklendi.`);
+  redirect(PANEL);
 }
 
-export async function updateSlideAction(id: string, formData: FormData) {
+export async function updateSlideAction(
+  id: string,
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const input = parseInput(formData);
-  // Same guard as the create action: the HTML `required` attribute is not a
-  // guard on a Server Action, and the store only trims the title - a titleless
-  // row renders as an empty card on every phone.
-  if (!input.title.trim()) return;
+  const fieldErrors = appContentFieldErrors(input);
+  if (Object.keys(fieldErrors).length) return actionError(REFUSED, fieldErrors);
   const updated = await updateAppSlide(id, input);
   // The row was deleted while this form was open; without the check the audit
   // log claims an update that never happened.
-  if (!updated) return;
+  if (!updated) return actionError(GONE);
   await logAudit({
     action: "update",
     entity: "app_hero_slide",
     entityId: id,
     payload: { title: input.title, isActive: input.isActive },
   });
-  revalidatePath("/admin/mobil/slaytlar");
-  redirect("/admin/mobil/slaytlar");
+  revalidatePath(PANEL);
+  await setAdminFlash(`"${updated.title}" kaydedildi.`);
+  redirect(PANEL);
 }
 
-export async function deleteSlideAction(formData: FormData) {
+/**
+ * "Sil", behind a confirm. It used to delete on the first click, silently.
+ * The answer does not say "kalktı": phones read the home content through a
+ * shared cache (`/api/mobile/v1/app-content`, s-maxage=60 plus
+ * stale-while-revalidate), so it takes a few minutes to leave every phone.
+ */
+export async function deleteSlideAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
   await requireRole("mobileApp");
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  await deleteAppSlide(id);
+  if (!id) return actionError("Slayt seçilmedi.");
+  const removed = await deleteAppSlide(id);
+  revalidatePath(PANEL);
+  if (!removed) return actionError("Slayt zaten silinmiş.");
   await logAudit({ action: "delete", entity: "app_hero_slide", entityId: id });
-  revalidatePath("/admin/mobil/slaytlar");
+  const done = "Slayt silindi; uygulamadan birkaç dakika içinde kalkar.";
+  // From the edit page's header: that page has nothing left to show, so the
+  // answer is the list, with the toast.
+  if (formData.get("then") === "list") {
+    await setAdminFlash(done);
+    redirect(PANEL);
+  }
+  return actionOk(done);
 }

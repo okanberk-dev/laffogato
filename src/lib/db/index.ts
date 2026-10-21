@@ -8,7 +8,11 @@ import {
   isSchemaGap,
   schemaIsFresh,
 } from "./bootstrap";
+import { expireTags, TAG_KARAOKE, tagsForWrite } from "@/lib/cache/tags";
+import { pingPanelKaraoke } from "@/lib/panel/karaoke-ping";
+
 import { createDb, type Db, type Executor } from "./client";
+import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
 import type { CompiledQuery } from "./sql";
 
 export { type Db, type DbError, type DbResult } from "./client";
@@ -32,24 +36,34 @@ declare global {
   var __laffogatoPool: Pool | undefined;
 }
 
+/** Whether this instance has already said that DATABASE_URL is missing. */
+let missingUrlLogged = false;
+
+/**
+ * DATABASE_URL, and nothing else (`./database-url.mjs`, shared with the two
+ * scripts that open the same database). There used to be a chain to
+ * POSTGRES_URL and SUPABASE_DB_URL; Supabase's Vercel integration writes the
+ * first into Production, so a lost DATABASE_URL would have connected the site
+ * to an empty database and bootstrapped it there.
+ *
+ * Without it every query fails with `DatabaseUrlMissingError` before any
+ * connection is made, and degrades exactly like an unreachable database
+ * (`toDbError`, `raiseDbError`): bundled content on the public pages, 503 on
+ * the app's API. It stays nameable: the message names the variable, and
+ * `/api/health` says `unconfigured` instead of `down`. Called on the first
+ * query, never at import, so `next build` (which has no database and reads
+ * none) is unaffected. Logged once per instance; the value never is.
+ */
 function resolveConnectionString(): string {
-  // Order matters: the explicit variable wins, then the one Vercel's Postgres
-  // integrations (Supabase included) set automatically, then Supabase's own.
-  // There is deliberately NO legacy provider variable here: the operator asked
-  // for the old host to be gone entirely, production sets DATABASE_URL
-  // explicitly, and a dead fallback name is one more place for a stale
-  // connection string to hide.
-  const url =
-    process.env.DATABASE_URL ??
-    process.env.POSTGRES_URL ??
-    process.env.SUPABASE_DB_URL ??
-    "";
-  if (!url) {
-    throw new Error(
-      "Veritabanı bağlantı dizesi yok - DATABASE_URL (veya POSTGRES_URL) set edilmeli.",
-    );
+  try {
+    return databaseUrlFrom(process.env);
+  } catch (err) {
+    if (isDatabaseUrlMissing(err) && !missingUrlLogged) {
+      missingUrlLogged = true;
+      console.error(`[db] ${(err as Error).message}`);
+    }
+    throw err;
   }
-  return url;
 }
 
 /**
@@ -178,7 +192,11 @@ function createExecutor(): Executor {
 }
 
 export type DbHealth = {
-  db: "up" | "down";
+  /**
+   * `unconfigured`: this deployment has no DATABASE_URL. Not an outage, and
+   * not reported as one: the fix is a deploy setting, not waiting.
+   */
+  db: "up" | "down" | "unconfigured";
   schema: "fresh" | "stale" | "unknown";
 };
 
@@ -191,21 +209,37 @@ export type DbHealth = {
  * one thing that was invisible before, because the apply path swallows its
  * own failures by design.
  *
- * Never throws: an unreachable database is an answer (`down`), not an error.
+ * Never throws: an unreachable database is an answer (`down`), not an error,
+ * and so is a deployment without DATABASE_URL (`unconfigured`).
  */
 export async function dbHealth(): Promise<DbHealth> {
   try {
     const pool = getPool();
     await ensureSchemaFresh(pool);
     return { db: "up", schema: (await schemaIsFresh(pool)) ? "fresh" : "stale" };
-  } catch {
-    return { db: "down", schema: "unknown" };
+  } catch (err) {
+    return {
+      db: isDatabaseUrlMissing(err) ? "unconfigured" : "down",
+      schema: "unknown",
+    };
   }
 }
 
 export function getDb(): Db {
   if (!global.__laffogatoDb) {
-    global.__laffogatoDb = createDb(createExecutor());
+    global.__laffogatoDb = createDb(createExecutor(), {
+      // Every write expires the cached reads it made stale
+      // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
+      // after the commit. After the statement, never before: each one
+      // commits on its own, and the multi-step writes are SQL functions.
+      // A karaoke write also pings the köşk's panel, after the response
+      // (src/lib/panel/karaoke-ping.ts, docs/PANEL-KARAOKE.md).
+      onWrite: (target) => {
+        const tags = tagsForWrite(target);
+        expireTags(tags);
+        if (tags.includes(TAG_KARAOKE)) pingPanelKaraoke();
+      },
+    });
   }
   return global.__laffogatoDb;
 }
@@ -231,6 +265,7 @@ export const TABLES = {
   falReports: "fal_reports",
   counters: "counters",
   shopHeroSlides: "shop_hero_slides",
+  homeHeroSlides: "home_hero_slides",
   paymentTransactions: "payment_transactions",
   walletTransactions: "wallet_transactions",
   press: "press",
@@ -238,6 +273,8 @@ export const TABLES = {
   siteContent: "site_content",
   newsletterSubscribers: "newsletter_subscribers",
   legalDocs: "legal_docs",
+  legalOverrideHistory: "legal_override_history",
+  legalDocVersions: "legal_doc_versions",
   admin2fa: "admin_2fa",
   authAttempts: "auth_attempts",
   appHeroSlides: "app_hero_slides",
@@ -256,4 +293,6 @@ export const TABLES = {
   customerConsents: "customer_consents",
   orderNoticeEmails: "order_notice_emails",
   cafeTables: "cafe_tables",
+  productPriceHistory: "product_price_history",
+  supabaseKeepalive: "supabase_keepalive",
 } as const;

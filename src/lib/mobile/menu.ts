@@ -36,10 +36,17 @@ export interface MobileMenu {
 }
 
 export async function listMenuForMobile(): Promise<MobileMenu> {
-  const items = await listMenuItems();
+  // Settings for the KDV defaults: an item with no rate of its own shows the
+  // menu's, and changing it in the panel changes the body (and the ETag).
+  const [items, settings] = await Promise.all([listMenuItems(), getSettings()]);
   const active = items.filter((it) => it.isActive);
   return {
-    categories: buildMobileMenuCategories(active, MENU_CATEGORY_KEYS, SITE.url),
+    categories: buildMobileMenuCategories(
+      active,
+      MENU_CATEGORY_KEYS,
+      SITE.url,
+      settings.taxRates,
+    ),
     customization: CUSTOMIZATION,
     updatedAt: latestUpdatedAt(active, new Date().toISOString()),
   };
@@ -59,7 +66,7 @@ export async function listShopForMobile(): Promise<MobileShop> {
   return {
     products: products
       .filter((p) => p.isActive)
-      .map((p) => toMobileShopProduct(p, SITE.url)),
+      .map((p) => toMobileShopProduct(p, SITE.url, settings.taxRates)),
     shippingFlatMinor: settings.shippingFlatMinor,
     shippingFreeThresholdMinor: settings.shippingFreeThresholdMinor,
   };

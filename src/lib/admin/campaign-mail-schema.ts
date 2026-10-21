@@ -36,7 +36,8 @@ export const CAMPAIGN_MAIL_TEMPLATE_LABELS: Record<
 > = {
   "kampanya-duyuru": "Duyuru",
   "kampanya-bonus-damga": "Bonus damga",
-  "kampanya-happy-hour": "Happy hour",
+  // The app's own settings call it "Mutlu saatler" (PEO-21).
+  "kampanya-happy-hour": "Mutlu saat",
   "kampanya-ikram": "İkram (3 adım)",
   "kampanya-etkinlik": "Etkinlik",
   "kampanya-yeni-urun": "Yeni ürün / ön erişim",
@@ -57,8 +58,11 @@ export const CAMPAIGN_MAIL_NEEDS_APP_LINKS: readonly CampaignTemplateName[] = [
   "mobil-uygulama",
 ];
 
+// Plain words for the operator (PEO-21): the variable names meant nothing to
+// them and nothing in the panel can set them. They are Vercel environment
+// variables (src/lib/mobile/app-store.ts), set when the listings go live.
 export const CAMPAIGN_MAIL_APP_LINKS_MISSING =
-  "Uygulama duyurusu, iki mağaza bağlantısı da tanımlanana kadar seçilemez ve gönderilemez (NEXT_PUBLIC_APP_STORE_URL, NEXT_PUBLIC_PLAY_STORE_URL).";
+  "Uygulama duyurusu, uygulama App Store'da ve Google Play'de yayınlanıp iki mağaza bağlantısı da hazır olunca seçilebilir ve gönderilebilir.";
 
 /**
  * May this template be picked (panel) or sent (server) right now? The caller

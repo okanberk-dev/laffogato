@@ -6,19 +6,29 @@ import {
   MENU_CATEGORY_LABELS,
 } from "@/lib/admin/store";
 
+import { Card, Checkbox, Field, Select, TextInput, Textarea } from "./forms";
 import {
-  Card,
-  Checkbox,
-  Field,
-  GhostButton,
-  PrimaryButton,
-  Select,
-  TextInput,
-  Textarea,
-} from "./forms";
+  ActionForm,
+  FormFieldError,
+  FormMessage,
+  SubmitButton,
+} from "./action-form";
+import { BUTTON, type ModalAction } from "./ui";
 import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
+import {
+  MENU_TAG_OPTIONS,
+  unknownMenuTags,
+} from "@/lib/admin/menu-item-schema";
 import { photoKind } from "@/lib/backdrop/scene-core";
+import {
+  MENU_ALLERGENS,
+  MENU_ALLERGENS_FIELD,
+  MENU_ALLERGENS_NONE,
+  MENU_ALLERGENS_SHOWN_FIELD,
+  normalizeMenuAllergens,
+} from "@/lib/menu/allergens";
+import { KDV_RATE_CHOICES, LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 const HUE_OPTIONS = [
   ["cream", "Krem"],
@@ -28,9 +38,9 @@ const HUE_OPTIONS = [
   ["espresso", "Espresso"],
   ["dark", "Koyu"],
   ["matcha", "Matcha"],
-  ["pistachio", "Pistachio"],
+  ["pistachio", "Antep fıstığı"],
   ["strawberry", "Çilek"],
-  ["rose", "Rose"],
+  ["rose", "Gül"],
   ["bougainvillea", "Begonvil"],
   ["dawn", "Şafak"],
   ["gold", "Altın"],
@@ -38,11 +48,14 @@ const HUE_OPTIONS = [
 ] as const;
 
 export interface MenuItemFormProps {
-  action: (formData: FormData) => void | Promise<void>;
+  /** Answers a refusal with field errors; a save redirects with a toast. */
+  action: ModalAction;
   item?: AdminMenuItem;
   defaultCategoryKey?: string;
   submitLabel: string;
   cancelHref: string;
+  /** The menu's KDV default (Ayarlar > Vergi), named in the select. */
+  menuTaxRate?: number;
 }
 
 export function MenuItemForm({
@@ -51,42 +64,70 @@ export function MenuItemForm({
   defaultCategoryKey,
   submitLabel,
   cancelHref,
+  menuTaxRate = LEGAL_TAX_RATES.menu,
 }: MenuItemFormProps) {
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
   const priceLValue =
     item && item.priceMinorL > 0 ? (item.priceMinorL / 100).toFixed(2) : "";
-  const tagsValue = item ? item.tags.join(", ") : "";
+  const tags = item?.tags ?? [];
+  // Words the old free-text field let in. The app never showed them, and
+  // the boxes below cannot hold them: say so before the save drops them.
+  const droppedTags = unknownMenuTags(tags);
+  // null: not entered yet, no box ticked; []: "Hiçbirini içermez".
+  const allergens = normalizeMenuAllergens(item?.allergens);
+  const ownTaxRate =
+    typeof item?.taxRatePct === "number" ? item.taxRatePct : null;
+  // A stored rate the standard list does not have stays selectable.
+  const taxRateChoices =
+    ownTaxRate === null || KDV_RATE_CHOICES.includes(ownTaxRate)
+      ? KDV_RATE_CHOICES
+      : [...KDV_RATE_CHOICES, ownTaxRate].sort((a, b) => a - b);
 
   return (
-    <form action={action} className="grid gap-6 lg:grid-cols-3">
+    <ActionForm action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
         <Field label="Ürün adı" hint="Örn: Çilekli Matcha">
-          <TextInput name="name" defaultValue={item?.name} required />
+          <TextInput
+            name="name"
+            defaultValue={item?.name}
+            required
+            maxLength={120}
+          />
         </Field>
+        <FormFieldError name="name" />
 
         <Field label="Açıklama">
           <Textarea name="desc" defaultValue={item?.desc} required />
         </Field>
 
         <div className="grid gap-5 md:grid-cols-3">
-          <Field label="Fiyat M (₺)" hint="Tek boy ise buraya yaz. Örn: 245,00">
-            <TextInput
-              name="price"
-              type="text"
-              inputMode="decimal"
-              defaultValue={priceValue}
-              required
-            />
-          </Field>
-          <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
-            <TextInput
-              name="priceL"
-              type="text"
-              inputMode="decimal"
-              defaultValue={priceLValue}
-              placeholder="-"
-            />
-          </Field>
+          <div className="grid content-start gap-1.5">
+            <Field
+              label="Fiyat M (₺)"
+              hint="Tek boy ise buraya yaz. Örn: 245 ya da 1.250,00"
+            >
+              <TextInput
+                name="price"
+                type="text"
+                inputMode="decimal"
+                defaultValue={priceValue}
+                required
+              />
+            </Field>
+            <FormFieldError name="price" />
+          </div>
+          <div className="grid content-start gap-1.5">
+            <Field label="Fiyat L (₺)" hint="İkinci boy yoksa boş bırak.">
+              <TextInput
+                name="priceL"
+                type="text"
+                inputMode="decimal"
+                defaultValue={priceLValue}
+                placeholder="-"
+              />
+            </Field>
+            <FormFieldError name="priceL" />
+          </div>
           <Field label="Sıralama" hint="Kategori içinde küçükten büyüğe">
             <TextInput
               name="sortOrder"
@@ -97,7 +138,11 @@ export function MenuItemForm({
           </Field>
         </div>
 
+        {/* A fieldset, not a label: inside the label every click on the
+            caption, the hint or the "URL ile ekle" line opened the file
+            picker, and the drop area opened it twice (admin audit CAT-15). */}
         <Field
+          as="fieldset"
           label="Fotoğraf"
           hint="Uzun kenarı 1600 px'e küçültülür; en iyi sonuç için en az 1600 px'lik bir fotoğraf seç (kaynak dosya en çok 12 MB, saklanan hâli 2 MB, sığmazsa küçültülür). Arka planı saydam (dekupe) bir PNG ya da WebP saydamlığını korur; uygulama onu doğrudan sahnenin üstüne çizer. Kaydettikten sonra sitede hemen, uygulamada en geç 5 dakika içinde görünür. Boş bırakırsan kategorisine uygun çizim kullanılır."
         >
@@ -129,15 +174,68 @@ export function MenuItemForm({
         />
 
         <Field
+          as="fieldset"
           label="Etiketler"
-          hint="Virgülle ayır. Örn: signature, new, iced, nuts, IGP"
+          hint="Menüde ve uygulamada rozet olarak görünür. Sert kabuklu yemiş uygulamanın alerjen uyarısıdır: aşağıda Alerjenler'de “Sert kabuklu meyveler”i işaretlersen kendiliğinden eklenir."
         >
-          <TextInput
-            name="tags"
-            defaultValue={tagsValue}
-            placeholder="signature, new"
-          />
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            {MENU_TAG_OPTIONS.map(([value, label]) => (
+              <Checkbox
+                key={value}
+                name="tags"
+                value={value}
+                label={label}
+                defaultChecked={tags.includes(value)}
+              />
+            ))}
+          </div>
+          {droppedTags.length > 0 ? (
+            <p
+              role="note"
+              className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+            >
+              Bu kalemde uygulamanın tanımadığı{" "}
+              {droppedTags.length === 1 ? "bir etiket" : "etiketler"} var:{" "}
+              <strong>{droppedTags.join(", ")}</strong>. Uygulama{" "}
+              {droppedTags.length === 1 ? "bunu" : "bunları"} hiç göstermiyordu;
+              kaydedince silinir. Alerjen uyarısıysa aşağıdaki Alerjenler
+              bölümünde grubunu işaretle.
+            </p>
+          ) : null}
         </Field>
+
+        {/* TGK Etiketleme Yön. m.15/5: every item says which of the
+            fourteen Ek-1 groups it contains, on the menu and in the app.
+            A fieldset, not a label, so a tap on the hint toggles nothing. */}
+        <div className="grid content-start gap-1.5">
+          <Field
+            as="fieldset"
+            label="Alerjenler"
+            hint="Türk Gıda Kodeksi'nin 14 alerjen grubu. Kalemin içerdiklerini işaretle: şurup, sos, süt ve süsleme dahil, tedarikçi etiketine bakarak; köşkteki alerjen tablosuyla aynı olmalı. Hiçbirini içermiyorsa yalnız “Hiçbirini içermez”i işaretle. Hiçbir kutu işaretli değilse bilgi girilmemiş sayılır ve menüde yazmaz. Sert kabuklu meyveler seçersen “Sert kabuklu yemiş” etiketi kendiliğinden eklenir. Tarif ya da tedarikçi değişince aynı gün güncelle."
+          >
+            <input type="hidden" name={MENU_ALLERGENS_SHOWN_FIELD} value="1" />
+            <div className="grid gap-x-4 sm:grid-cols-2">
+              {MENU_ALLERGENS.map((a) => (
+                <Checkbox
+                  key={a.key}
+                  name={MENU_ALLERGENS_FIELD}
+                  value={a.key}
+                  label={a.panel}
+                  defaultChecked={allergens?.includes(a.key) ?? false}
+                />
+              ))}
+            </div>
+            <div className="border-t border-[var(--admin-border)]">
+              <Checkbox
+                name={MENU_ALLERGENS_FIELD}
+                value={MENU_ALLERGENS_NONE}
+                label="Hiçbirini içermez"
+                defaultChecked={allergens?.length === 0}
+              />
+            </div>
+          </Field>
+          <FormFieldError name={MENU_ALLERGENS_FIELD} />
+        </div>
       </Card>
 
       <Card className="grid gap-5 self-start">
@@ -153,6 +251,26 @@ export function MenuItemForm({
             ))}
           </Select>
         </Field>
+
+        <div className="grid content-start gap-1.5">
+          <Field
+            label="KDV oranı"
+            hint="Fiyat KDV dahil; oran fiyatı değiştirmez. Kafede satılan yiyecek ve içecek %10 (masada, gel-al, kurye)."
+          >
+            <Select
+              name="taxRatePct"
+              defaultValue={ownTaxRate === null ? "" : String(ownTaxRate)}
+            >
+              <option value="">Menünün oranı (%{menuTaxRate})</option>
+              {taxRateChoices.map((r) => (
+                <option key={r} value={String(r)}>
+                  %{r}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <FormFieldError name="taxRatePct" />
+        </div>
 
         <Field
           label="Görsel ton"
@@ -176,14 +294,13 @@ export function MenuItemForm({
         </div>
 
         <div className="mt-2 flex flex-col gap-2">
-          <PrimaryButton type="submit">{submitLabel}</PrimaryButton>
-          <Link href={cancelHref}>
-            <GhostButton type="button" className="w-full">
-              Vazgeç
-            </GhostButton>
+          <FormMessage />
+          <SubmitButton>{submitLabel}</SubmitButton>
+          <Link href={cancelHref} className={`${BUTTON.ghost} w-full`}>
+            Vazgeç
           </Link>
         </div>
       </Card>
-    </form>
+    </ActionForm>
   );
 }

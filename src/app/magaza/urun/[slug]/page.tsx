@@ -7,17 +7,18 @@ import { isDegradedRequest } from "@/lib/db/health";
 import type { Product } from "@/components/laffogato/data";
 import { ProductDetail } from "@/components/laffogato/product-detail";
 import { SiteChrome } from "@/components/laffogato/site-chrome";
-import {
-  getPublicSettings,
-  getShopProductBySlug,
-  listRelatedShopProducts,
-  type ShopCategoryId,
-} from "@/lib/admin/store";
+import type { ShopCategoryId } from "@/lib/admin/store";
 import { breadcrumbLd, singleProductLd } from "@/lib/seo/structured-data";
 import { JsonLd } from "@/lib/seo/json-ld";
 import { SHOP_CATEGORY_ROUTES } from "@/lib/seo/pages";
-import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
+import { metaDescription, openGraphBase } from "@/lib/seo/site";
 import { shortProductName } from "@/lib/utils/format";
+import { footerSettings } from "@/lib/seo/contact";
+import {
+  getSiteProductBySlug,
+  getSiteSettings,
+  listSiteRelatedProducts,
+} from "@/lib/seo/site-data";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export async function generateMetadata({
   params,
 }: RouteParams): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getShopProductBySlug(slug);
+  const product = await getSiteProductBySlug(slug);
   if (!product) return { title: { absolute: "Ürün bulunamadı · L'Affogato" } };
   // " · ", not " - ": product names carry their own hyphen now
   // ("Sirena - Espresso Harmanı"), and the dot is the site's title separator.
@@ -71,10 +72,6 @@ export async function generateMetadata({
     );
   }
   const path = PATH(slug);
-  // Uploaded images are site-relative (`/gorsel/urun/...`); Next resolves them
-  // against `metadataBase`. Only absolute-vs-relative matters here, so an
-  // uploaded photo is no longer skipped in favour of the generic card.
-  const ogImage = product.images?.[0]?.trim() || undefined;
   return {
     // `absolute`: the title is already built to 60 characters WITH the brand
     // suffix above, and the root layout's "%s · L'Affogato" template would
@@ -83,13 +80,13 @@ export async function generateMetadata({
     description,
     alternates: { canonical: path },
     openGraph: {
-      // The defaults first: without them a product with no photo shared
-      // with no image at all.
-      ...openGraphDefaults(),
+      // No `images`: the product's card (opengraph-image.tsx beside this
+      // file) carries its photo, name and price, and an `images` key here
+      // would hide it. It used to be the bare photo, or the generic card.
+      ...openGraphBase(),
       title,
       description,
       url: path,
-      ...(ogImage ? { images: [{ url: ogImage, alt: product.name }] } : {}),
     },
     // The og:type / product:* tags are NOT emitted through `other`: Next
     // renders that map as <meta name="…">, and every Open Graph consumer reads
@@ -171,7 +168,7 @@ function ProductUnavailable() {
 
 export default async function ProductDetailPage({ params }: RouteParams) {
   const { slug } = await params;
-  const product = await getShopProductBySlug(slug);
+  const product = await getSiteProductBySlug(slug);
   if (!product) {
     // A missing product is a genuine 404 - but during a database outage every
     // product reads as missing, and 404-ing real product URLs would get them
@@ -180,17 +177,11 @@ export default async function ProductDetailPage({ params }: RouteParams) {
       // Wrapped in the site's own chrome: the fallback used to render bare,
       // so a visitor who hit a database blip got a page with no header and no
       // footer - no way out of it - on the one screen whose entire message is
-      // "come back in a minute". `getPublicSettings()` degrades to defaults
+      // "come back in a minute". `getSiteSettings()` degrades to defaults
       // rather than throwing, so this is safe in exactly this state.
-      const fallbackSettings = await getPublicSettings();
+      const fallbackSettings = await getSiteSettings();
       return (
-        <SiteChrome
-          settings={{
-            phone: fallbackSettings.phone,
-            email: fallbackSettings.email,
-            address: fallbackSettings.address,
-          }}
-        >
+        <SiteChrome settings={footerSettings(fallbackSettings)}>
           <ProductUnavailable />
         </SiteChrome>
       );
@@ -199,12 +190,12 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   }
 
   const [related, settings] = await Promise.all([
-    listRelatedShopProducts(
+    listSiteRelatedProducts(
       (product.cat as ShopCategoryId) ?? "beans",
       product.id ?? "",
       4,
     ),
-    getPublicSettings(),
+    getSiteSettings(),
   ]);
 
   const breadcrumb = breadcrumbLd([
@@ -215,17 +206,16 @@ export default async function ProductDetailPage({ params }: RouteParams) {
   const productJsonLd = singleProductLd(product, PATH(slug), settings);
 
   return (
-    <SiteChrome
-      settings={{
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
-      }}
-    >
+    <SiteChrome settings={footerSettings(settings)}>
       <JsonLd data={breadcrumb} />
       <JsonLd data={productJsonLd} />
       <ProductOpenGraph product={product} />
-      <ProductDetail product={product} related={related} />
+      <ProductDetail
+        product={product}
+        related={related}
+        freeShippingThresholdMinor={settings.shippingFreeThresholdMinor}
+        contact={{ phone: settings.phone, email: settings.email }}
+      />
     </SiteChrome>
   );
 }

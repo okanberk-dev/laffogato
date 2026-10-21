@@ -23,6 +23,7 @@ import {
   toMobileShopProduct,
   weeklyHoursRows,
 } from "@/lib/mobile/menu-mapper";
+import { LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 const SITE_URL = "https://laffogato.net";
 
@@ -159,6 +160,8 @@ describe("toMobileMenuItem (contract §1)", () => {
         "backdrop",
         "photoCutout",
         "vessel",
+        // 17 Eki 2026, additive: the KDV rate inside the price.
+        "taxRatePct",
       ].sort(),
     );
     expect(out).not.toHaveProperty("updatedAt");
@@ -344,6 +347,7 @@ describe("buildMobileMenuCategories", () => {
       ],
       keys,
       SITE_URL,
+      LEGAL_TAX_RATES,
     );
     expect(cats.map((c) => c.key)).toEqual(["matcha", "espresso"]);
     expect(cats[0]).toMatchObject({
@@ -363,15 +367,19 @@ describe("buildMobileMenuCategories", () => {
       [menuItem({ categoryKey: "matcha", isActive: false })],
       keys,
       SITE_URL,
+      LEGAL_TAX_RATES,
     );
     expect(cats.map((c) => c.items.length)).toEqual([0, 0]);
   });
 
   it("skips a key the seed does not know", () => {
     expect(
-      buildMobileMenuCategories([], ["nope", "espresso"], SITE_URL).map(
-        (c) => c.key,
-      ),
+      buildMobileMenuCategories(
+        [],
+        ["nope", "espresso"],
+        SITE_URL,
+        LEGAL_TAX_RATES,
+      ).map((c) => c.key),
     ).toEqual(["espresso"]);
   });
 });
@@ -418,6 +426,11 @@ describe("toMobileShopProduct (contract §2)", () => {
         "inStock",
         "variants",
         "grinds",
+        // 17 Eki 2026, additive: the KDV rate inside every price.
+        "taxRatePct",
+        // 19 Eki 2026, additive: the running discount's days (null without).
+        "discountStartsAt",
+        "discountEndsAt",
       ].sort(),
     );
     for (const leak of [
@@ -469,13 +482,27 @@ describe("toMobileShopProduct (contract §2)", () => {
     expect(toMobileShopProduct(product({ stock: 0 }), SITE_URL).inStock).toBe(
       false,
     );
+    // Only between the discount's days (Ticari Reklam Yön. m.14/1).
+    const dated = {
+      discountStartsAt: "2026-10-18T21:00:00.000Z",
+      discountEndsAt: "2026-10-31T20:59:59.999Z",
+    };
+    const during = new Date("2026-10-20T09:00:00.000Z");
     expect(
-      toMobileShopProduct(product({ compareAtPriceMinor: 39000 }), SITE_URL)
-        .compareAtPriceMinor,
+      toMobileShopProduct(
+        product({ compareAtPriceMinor: 39000, ...dated }),
+        SITE_URL,
+        undefined,
+        during,
+      ).compareAtPriceMinor,
     ).toBe(39000);
     expect(
-      toMobileShopProduct(product({ compareAtPriceMinor: 30000 }), SITE_URL)
-        .compareAtPriceMinor,
+      toMobileShopProduct(
+        product({ compareAtPriceMinor: 30000, ...dated }),
+        SITE_URL,
+        undefined,
+        during,
+      ).compareAtPriceMinor,
     ).toBe(0);
   });
 

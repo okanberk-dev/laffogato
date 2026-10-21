@@ -9,6 +9,11 @@ import { productPath } from "./route-paths";
 import { useDialog } from "./use-dialog";
 
 import type { Product } from "./data";
+import {
+  productDiscount,
+  productFacts,
+  type ProductFact,
+} from "./product-facts";
 import { ProductSurface } from "./visuals";
 import { parsePriceLabel, shortProductName } from "@/lib/utils/format";
 import { cx } from "./cx";
@@ -44,26 +49,83 @@ export function cartItemKey(it: {
   return `${it.productId ?? it.name}::${it.variantId ?? ""}`;
 }
 
-/** Build a CartItem from a Product (+ optional variant) with all metadata. */
+/** The variants a product is sold in: the shop offers only active ones. */
+export function activeVariants(p: Product) {
+  return (p.variants ?? []).filter((v) => v.isActive !== false);
+}
+
+/**
+ * Build a CartItem from a Product (+ the chosen variant) with all metadata.
+ *
+ * Null for a product sold in variants when no variant of its own is given:
+ * such a line has no variant to price or to take stock from. The card's
+ * quick "+" used to add exactly that line, at the base price and against
+ * the product total only, so every caller now has to have a variant chosen
+ * first (the card opens the product instead, see ProductCard).
+ */
 export function toCartItem(
   p: Product,
   variant?: { id: string; name: string; priceDelta: number; stock?: number },
-): CartItem {
+): CartItem | null {
+  const variants = activeVariants(p);
+  if (variants.length > 0 && !variants.some((v) => v.id === variant?.id)) {
+    return null;
+  }
+  const chosen = variants.length > 0 ? variant : undefined;
   const base =
     p.priceMinor !== undefined ? p.priceMinor / 100 : parsePriceLabel(p.price);
-  const price = base + (variant?.priceDelta ?? 0);
+  const price = base + (chosen?.priceDelta ?? 0);
   return {
     productId: p.id,
-    variantId: variant?.id,
-    variantName: variant?.name,
+    variantId: chosen?.id,
+    variantName: chosen?.name,
     name: p.name,
     price,
     tag: p.tag,
     slug: p.slug,
     img: p.img,
     cat: p.cat,
-    maxStock: variant?.stock ?? p.stock,
+    maxStock: chosen?.stock ?? p.stock,
   };
+}
+
+/** The shop's contact for questions before an order (Ayarlar). */
+export interface ShopContact {
+  phone?: string;
+  email?: string;
+}
+
+/**
+ * A detail row's value. An `ask` row (product-facts.ts) names where the
+ * answer is: the shop's e-mail and phone, as links.
+ */
+export function ProductFactValue({
+  fact,
+  contact,
+}: {
+  fact: ProductFact;
+  contact?: ShopContact;
+}) {
+  if (!fact.ask) return <>{fact.v}</>;
+  const email = contact?.email?.trim();
+  const phone = contact?.phone?.trim();
+  if (!email && !phone) return <>{fact.v}.</>;
+  return (
+    <>
+      {fact.v}:{" "}
+      {email && (
+        <a className="fact-contact" href={`mailto:${email}`}>
+          {email}
+        </a>
+      )}
+      {email && phone ? " ya da " : null}
+      {phone && (
+        <a className="fact-contact" href={`tel:${phone.replace(/\s+/g, "")}`}>
+          {phone}
+        </a>
+      )}
+    </>
+  );
 }
 
 export interface ProductCardProps {
@@ -99,11 +161,17 @@ export function ProductCard({
   const name = shortProductName(p.name);
   const label = name.split(" ")[0];
   const href = p.slug ? productPath(p.slug) : undefined;
+  // A product sold in variants cannot go in from the card: the "+" opens it
+  // so the variant is chosen first (toCartItem refuses a line without one).
+  const needsChoice = activeVariants(p).length > 0;
+  const discount = productDiscount(p);
 
   const onAdd = () => {
     if (outOfStock || !addToCart) return;
-    addToCart(toCartItem(p));
+    const item = toCartItem(p);
+    if (item) addToCart(item);
   };
+
   // The card opens the quick look where the page has one (the shop); where
   // it does not (the related row on a product page) it is a plain link to
   // the product - it used to be a dead surface there, with two dead buttons.
@@ -168,11 +236,40 @@ export function ProductCard({
         </div>
       )}
       <div className="product-card-foot">
-        <div className="product-card-price">
-          <span>{p.price}</span>
-          {p.compareAtPrice && <span className="was">{p.compareAtPrice}</span>}
+        <div className="product-card-pricing">
+          <div className="product-card-price">
+            <span>{p.price}</span>
+            {discount && <span className="was">{discount.was}</span>}
+          </div>
+          {/* The discount's days, wherever the struck price is (m.14/1). */}
+          {discount && (
+            <span className="product-card-discount">{discount.short}</span>
+          )}
         </div>
-        {addToCart && (
+        {addToCart && !outOfStock && needsChoice ? (
+          onOpen ? (
+            <button
+              type="button"
+              className="product-card-add"
+              data-kind="options"
+              onClick={() => onOpen(p)}
+              aria-label={`${name} - seçenekleri gör`}
+              title="Seçenekleri gör"
+            >
+              <OptionsGlyph />
+            </button>
+          ) : href ? (
+            <a
+              className="product-card-add"
+              data-kind="options"
+              href={href}
+              aria-label={`${name} - seçenekleri gör`}
+              title="Seçenekleri gör"
+            >
+              <OptionsGlyph />
+            </a>
+          ) : null
+        ) : addToCart ? (
           <button
             type="button"
             className="product-card-add"
@@ -191,9 +288,24 @@ export function ProductCard({
               />
             </svg>
           </button>
-        )}
+        ) : null}
       </div>
     </article>
+  );
+}
+
+/** The card's "choose an option" disc: a chevron, not the "+" that adds. */
+function OptionsGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M6 3.5 10.5 8 6 12.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -275,7 +387,7 @@ export function Stat({
   );
 }
 
-export function DetailRow({ k, v }: { k: string; v: string }) {
+export function DetailRow({ k, v }: { k: string; v: ReactNode }) {
   return (
     <div
       style={{
@@ -284,12 +396,22 @@ export function DetailRow({ k, v }: { k: string; v: string }) {
         gap: 18,
         padding: "10px 0",
         borderTop: "1px solid var(--ink-line)",
+        // A label row runs to several lines (ingredients, nutrition): the
+        // name sits on its first line, not in the middle of the block.
+        alignItems: "baseline",
       }}
     >
-      <div className="eyebrow" style={{ alignSelf: "center" }}>
-        {k}
+      <div className="eyebrow">{k}</div>
+      <div
+        style={{
+          fontSize: 14,
+          color: "var(--ink-soft)",
+          whiteSpace: "pre-line",
+          overflowWrap: "anywhere",
+        }}
+      >
+        {v}
       </div>
-      <div style={{ fontSize: 14, color: "var(--ink-soft)" }}>{v}</div>
     </div>
   );
 }
@@ -388,10 +510,6 @@ export function CartDrawer({
                 </svg>
               </div>
               <p className="cart-empty-title">Sepetin boş</p>
-              <p className="cart-empty-text">
-                Bir çekirdek paketi, bir affogato seti, bir moka pot - eve ya da
-                hediyeye hazır.
-              </p>
               <Link
                 href="/magaza"
                 className="btn btn-primary"
@@ -526,9 +644,6 @@ function CartFooter({ total }: { total: number }) {
         Ödemeye geç
         <span className="arrow">→</span>
       </a>
-      <p className="cart-foot-hint">
-        Adres ve indirim kodu bir sonraki adımda eklenir.
-      </p>
     </footer>
   );
 }
@@ -543,12 +658,15 @@ export function ProductModal({
   addToCart,
   wishlist,
   isAuthenticated,
+  contact,
 }: {
   product: Product | null;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
   wishlist?: string[];
   isAuthenticated?: boolean;
+  /** Where a food page sends questions before the order (Ayarlar). */
+  contact?: ShopContact;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
   useDialog(Boolean(product), onClose, panelRef);
@@ -585,7 +703,9 @@ export function ProductModal({
           boxShadow: "var(--shadow-lg)",
           overflow: "hidden",
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          // minmax(0, 1fr): with a bare 1fr the photo's 4/5 box widened
+          // with the row, so a longer detail list squeezed the text column.
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
           position: "relative",
         }}
         className="product-modal"
@@ -616,12 +736,15 @@ export function ProductModal({
             />
           </svg>
         </button>
+        {/* Keyed: the chosen variant belongs to this product only. */}
         <ProductModalBody
+          key={product.id ?? product.name}
           product={product}
           onClose={onClose}
           addToCart={addToCart}
           wishlist={wishlist}
           isAuthenticated={isAuthenticated}
+          contact={contact}
         />
       </div>
     </div>
@@ -634,16 +757,20 @@ function ProductModalBody({
   addToCart,
   wishlist,
   isAuthenticated,
+  contact,
 }: {
   product: Product;
   onClose: () => void;
   addToCart: (item: CartItem) => void;
   wishlist?: string[];
   isAuthenticated?: boolean;
+  contact?: ShopContact;
 }) {
   const label = shortProductName(p.name).split(" ")[0];
   const isFavorite = !!(p.id && wishlist?.includes(p.id));
-  const variants = (p.variants ?? []).filter((v) => v.isActive !== false);
+  const variants = activeVariants(p);
+  const facts = productFacts(p);
+  const discount = productDiscount(p);
   const [variantId, setVariantId] = useState<string | undefined>(
     variants.find((v) => (v.stock ?? 1) > 0)?.id ?? variants[0]?.id,
   );
@@ -659,7 +786,17 @@ function ProductModalBody({
 
   return (
     <>
-      <div style={{ aspectRatio: "4/5", position: "relative" }}>
+      {/* At least the row's height: a long detail list makes the row
+          taller than the 4/5 photo, which left a bare strip under it. The
+          width stays the column's, or the ratio would widen it again. */}
+      <div
+        style={{
+          aspectRatio: "4/5",
+          width: "100%",
+          minHeight: "100%",
+          position: "relative",
+        }}
+      >
         <ProductSurface
           cat={p.cat}
           tone={p.img}
@@ -680,6 +817,9 @@ function ProductModalBody({
       <div
         style={{
           padding: "clamp(28px, 4vw, 50px)",
+          // The panel's own height, so the column scrolls instead of the
+          // "Sepete ekle" row being cut off at the panel's edge.
+          maxHeight: "92vh",
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
@@ -706,7 +846,7 @@ function ProductModalBody({
           >
             {Math.round(unitPrice)}₺
           </span>
-          {p.compareAtPrice && (
+          {discount && (
             <span
               style={{
                 textDecoration: "line-through",
@@ -714,10 +854,11 @@ function ProductModalBody({
                 fontSize: 18,
               }}
             >
-              {p.compareAtPrice}
+              {discount.was}
             </span>
           )}
         </div>
+        {discount && <p className="pdp-discount-note">{discount.notice}</p>}
         <p
           style={{ marginTop: 22, lineHeight: 1.65, color: "var(--ink-soft)" }}
         >
@@ -755,28 +896,19 @@ function ProductModalBody({
           </div>
         )}
 
-        <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
-          {p.cat === "beans" && (
-            <>
-              <DetailRow k="Köken" v="Brezilya doğal + Etiyopya yıkanmış" />
-              <DetailRow k="Tat notları" v="Kakao · kuru incir · esmer şeker" />
-              <DetailRow k="Demleme" v="Espresso, moka, AeroPress" />
-            </>
-          )}
-          {p.cat === "gift" && (
-            <>
-              <DetailRow k="İçerik" v="Edible cup · sleeve" />
-              <DetailRow k="Saklama" v="Kuru, serin · 90 gün" />
-              <DetailRow k="Alerjenler" v="Gluten · süt · soya izi" />
-            </>
-          )}
-          {p.cat === "gear" && (
-            <>
-              <DetailRow k="Marka" v="Bialetti × L'Affogato" />
-              <DetailRow k="Garanti" v="2 yıl" />
-            </>
-          )}
-        </div>
+        {/* The product's own details (product-facts.ts): the fixed rows
+            per shelf this replaced gave the chasen a Bialetti warranty. */}
+        {facts.length > 0 && (
+          <div style={{ marginTop: 24, display: "grid", gap: 14 }}>
+            {facts.map((f) => (
+              <DetailRow
+                key={f.k}
+                k={f.k}
+                v={<ProductFactValue fact={f} contact={contact} />}
+              />
+            ))}
+          </div>
+        )}
 
         {stock !== undefined && (
           <div style={{ marginTop: 18, fontSize: 13 }}>
@@ -826,6 +958,7 @@ function ProductModalBody({
             onClick={() => {
               if (outOfStock) return;
               const item = toCartItem(p, selectedVariant);
+              if (!item) return;
               for (let i = 0; i < qty; i += 1) addToCart(item);
               onClose();
             }}
@@ -865,8 +998,9 @@ function ProductModalBody({
           <div
             style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6 }}
           >
-            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün açılmamış
-            ürünlerde iade.
+            İstanbul içi aynı gün · Yurt içi 2-3 iş günü · 14 gün iade hakkı
+            (çabuk bozulan gıda, açılmış hijyen ürünü ve sana özel hazırlanan
+            ürün hariç).
           </div>
         </div>
       </div>

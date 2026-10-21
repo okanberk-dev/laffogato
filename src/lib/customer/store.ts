@@ -16,6 +16,10 @@ import { getSupabaseAnonClient } from "@/lib/supabase/anon";
 
 import { appendConsentChanges, type ConsentSource } from "./consent-ledger";
 import { grantWelcomeCoupon } from "./coupons";
+import {
+  deletionRequestOf,
+  type DeletionRequest,
+} from "./deletion-request-core";
 
 export interface CustomerAddress {
   id: string;
@@ -115,6 +119,14 @@ export interface Customer {
   termsAcceptedAt: string;
   /** ISO timestamp of explicit marketing opt-in (empty when not consented). */
   marketingConsentAt: string;
+  /**
+   * ISO instant of the member's open web deletion request (/uye/hesap/sil);
+   * null when there is none. Read through `deletionRequestOf`. Not part of
+   * `PublicCustomer`: the app neither sends nor reads it.
+   */
+  deletionRequestedAt?: string | null;
+  /** The member's optional reason for that request; "" when none. */
+  deletionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1192,6 +1204,11 @@ export interface AdminCustomer {
   isActive: boolean;
   termsAcceptedAt: string;
   marketingConsentAt: string;
+  /**
+   * The open web deletion request, or null: the panel badges the member and
+   * offers "Hesabı sil" first (operator, 18 Eki 2026).
+   */
+  deletionRequest: DeletionRequest | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1212,20 +1229,10 @@ function toAdminCustomer(c: Customer): AdminCustomer {
     isActive: full.isActive,
     termsAcceptedAt: full.termsAcceptedAt,
     marketingConsentAt: full.marketingConsentAt,
+    deletionRequest: deletionRequestOf(full),
     createdAt: full.createdAt,
     updatedAt: full.updatedAt,
   };
-}
-
-/** All member accounts, newest first. */
-export async function listAllCustomers(): Promise<AdminCustomer[]> {
-  const sb = getDb();
-  const { data, error } = await sb
-    .from(TABLES.customers)
-    .select("*")
-    .order("createdAt", { ascending: false });
-  checkErr(error, "listAllCustomers");
-  return ((data as Customer[] | null) ?? []).map(toAdminCustomer);
 }
 
 /** A single member account for the admin detail view, or null. */
@@ -1238,30 +1245,78 @@ export async function getAdminCustomerByEmail(
   return doc ? toAdminCustomer(doc) : null;
 }
 
+/** The commercial purposes only the member can switch on. */
+export type CommercialPurpose = "marketing" | "newsletter";
+
 export interface AdminCustomerUpdateInput {
   name: string;
   phone: string;
   birthday: string;
   notificationPrefs: NotificationPrefs;
+  /**
+   * How the form drew each commercial switch. One drawn off is disabled
+   * and never posted, so its absence says nothing about the operator.
+   */
+  shownPrefs?: Partial<Record<CommercialPurpose, boolean>>;
 }
 
-/** Admin edit of a member's profile (e-mail + password are NOT editable here). */
+export type AdminCustomerUpdateResult =
+  | { ok: true; customer: AdminCustomer }
+  | { ok: false; error: "not_found" }
+  | { ok: false; error: "consent_grant"; purposes: CommercialPurpose[] };
+
+/**
+ * Admin edit of a member's profile (e-mail + password are NOT editable here).
+ *
+ * Commercial consent (6563) goes one way from the panel: off. Switching
+ * `marketing` or `newsletter` on is refused (`consent_grant`), here and not
+ * only in the form, because the action is a POST anyone in the panel can
+ * send. It used to write the switch as asked and keep `marketingConsentAt`
+ * through an opt-out, so panel OFF then ON put a member who had withdrawn
+ * back into the campaign and birthday audiences under the old date, and
+ * the ledger recorded an admin "grant" stamped with the consent text.
+ * Turning marketing off clears the date, as the member's own opt-out does
+ * (`updateNotificationPrefs`); a refusal also catches a stale form open
+ * while the member opted out. The other stale form, drawn with a switch
+ * off while the member opted in, keeps the member's switch: posted as off,
+ * it used to wipe the date and log a panel withdrawal nobody made.
+ */
 export async function adminUpdateCustomer(
   email: string,
   input: AdminCustomerUpdateInput,
-): Promise<AdminCustomer | null> {
+): Promise<AdminCustomerUpdateResult> {
   const needle = normalizeEmail(email);
   const sb = getDb();
   const before = await fetchCustomer(needle);
+  if (!before) return { ok: false, error: "not_found" };
+  const was = withDefaults(before).notificationPrefs;
+  const asked: NotificationPrefs = {
+    orderUpdates: !!input.notificationPrefs.orderUpdates,
+    marketing: !!input.notificationPrefs.marketing,
+    newsletter: !!input.notificationPrefs.newsletter,
+  };
+  const granted = (["marketing", "newsletter"] as const).filter(
+    (purpose) => asked[purpose] && !was[purpose],
+  );
+  if (granted.length > 0) {
+    return { ok: false, error: "consent_grant", purposes: granted };
+  }
+  // A switch the form drew off was not the operator's to untick: it keeps
+  // what the row has now.
+  const kept = (purpose: CommercialPurpose) =>
+    input.shownPrefs?.[purpose] === false ? was[purpose] : asked[purpose];
+  const prefs: NotificationPrefs = {
+    orderUpdates: asked.orderUpdates,
+    marketing: kept("marketing"),
+    newsletter: kept("newsletter"),
+  };
   const update = {
     name: input.name.trim().slice(0, 100),
     phone: input.phone.trim().slice(0, 30),
     birthday: input.birthday.trim().slice(0, 10),
-    notificationPrefs: {
-      orderUpdates: !!input.notificationPrefs.orderUpdates,
-      marketing: !!input.notificationPrefs.marketing,
-      newsletter: !!input.notificationPrefs.newsletter,
-    },
+    notificationPrefs: prefs,
+    // Only ever cleared from here; a consent that stays on keeps its date.
+    ...(prefs.marketing ? {} : { marketingConsentAt: "" }),
     updatedAt: new Date().toISOString(),
   };
   const { error } = await sb
@@ -1269,17 +1324,12 @@ export async function adminUpdateCustomer(
     .update(update)
     .eq("email", needle);
   checkErr(error, "adminUpdateCustomer");
-  if (before) {
-    // Recorded as the panel's act, not the member's: no IP, source "admin".
-    // The admin's identity is in the audit log the action writes.
-    await appendConsentChanges(
-      needle,
-      before.notificationPrefs,
-      update.notificationPrefs,
-      { source: "admin", ip: "" },
-    );
-  }
-  return getAdminCustomerByEmail(needle);
+  // Recorded as the panel's act, not the member's: no IP, source "admin".
+  // The admin's identity is in the audit log the action writes. Only
+  // withdrawals can reach here.
+  await appendConsentChanges(needle, was, prefs, { source: "admin", ip: "" });
+  const customer = await getAdminCustomerByEmail(needle);
+  return customer ? { ok: true, customer } : { ok: false, error: "not_found" };
 }
 
 /** Toggle a member account active/inactive. */
@@ -1297,16 +1347,8 @@ export async function setCustomerActive(
   return getAdminCustomerByEmail(needle);
 }
 
-/** Permanently delete a member account. Returns true when a row was removed. */
-export async function adminDeleteCustomer(email: string): Promise<boolean> {
-  const needle = normalizeEmail(email);
-  if (!needle) return false;
-  const sb = getDb();
-  const { data, error } = await sb
-    .from(TABLES.customers)
-    .delete()
-    .eq("email", needle)
-    .select("id");
-  checkErr(error, "adminDeleteCustomer");
-  return ((data as { id: string }[] | null) ?? []).length > 0;
-}
+// There is deliberately no "delete the customers row" helper. The panel's
+// "Hesabı sil" used one, and it left the member's future karaoke held, the
+// barista grant alive and every other record on the live address; an account
+// is closed through `deleteMe` (lib/mobile/me.ts), from the app, the site
+// and the panel alike.

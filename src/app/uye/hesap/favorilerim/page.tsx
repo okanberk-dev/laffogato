@@ -26,6 +26,7 @@ export default async function FavorilerimPage() {
       <AccountCard title="Favorilerim" hint={`${favs.length} ürün`}>
         {favs.length === 0 ? (
           <EmptyState
+            art="spot-favori"
             title="Henüz favori eklemedin"
             hint="Mağazadaki ürünlerin köşesindeki kalp ikonuna dokun, sonra burada bir araya getirelim."
             cta={

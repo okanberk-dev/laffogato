@@ -73,9 +73,13 @@ function renderWith(
   });
 }
 
-describe("the twenty-two templates render", () => {
-  it("ships exactly the twenty-two designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
-    expect(NAMES).toHaveLength(22);
+describe("the twenty-five templates render", () => {
+  it("ships exactly the twenty-five designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
+    expect(NAMES).toHaveLength(25);
+    // The web account deletion is a request to the team (18 Eki 2026): its
+    // receipt and the "hesabın silindi" answer.
+    expect(NAMES).toContain("hesap-silme-talebi");
+    expect(NAMES).toContain("hesap-silindi");
     // Mail to the team, in the same design as the customers' mail.
     expect(NAMES).toContain("operasyon-bildirim");
     // The order notices the legal texts promise: the tracking number at
@@ -92,6 +96,10 @@ describe("the twenty-two templates render", () => {
     // The cancellation half of the karaoke pair. Staff could cancel an
     // evening and the member only found out at the door.
     expect(NAMES).toContain("karaoke-iptal");
+    // A guest's late request taken by phone or e-mail that the booking's
+    // rule refunds nothing for: the booking stands (ASK-Y3-4 (c), 19 Eki
+    // 2026).
+    expect(NAMES).toContain("karaoke-iptal-istegi");
   });
 
   it.each(NAMES)("%s leaves no [FIELD] behind", (name) => {
@@ -154,27 +162,29 @@ describe("the twenty-two templates render", () => {
    * voice mid-message: "Saatiniz ayrıldı" above "iptal edersen". The shared
    * app block is left out: it is every mail's, in the family's own voice.
    */
-  it.each(["karaoke-rezervasyon", "karaoke-iptal"] as const)(
-    "%s speaks sen, not siz, in both halves",
-    (name) => {
-      const t = EMAIL_TEMPLATES[name];
-      const body = t.html
-        .replace(/<head>[\s\S]*?<\/head>/, "")
-        .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
-        .replace(/<[^>]+>/g, " ");
-      for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
-        const siz = part
-          .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
-          .filter(
-            (w) =>
-              /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
-              /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
-              /[aeıioöuü]y[ıiuü]n$/.test(w),
-          );
-        expect(siz, name).toEqual([]);
-      }
-    },
-  );
+  it.each([
+    "karaoke-rezervasyon",
+    "karaoke-iptal",
+    "hesap-silme-talebi",
+    "hesap-silindi",
+  ] as const)("%s speaks sen, not siz, in both halves", (name) => {
+    const t = EMAIL_TEMPLATES[name];
+    const body = t.html
+      .replace(/<head>[\s\S]*?<\/head>/, "")
+      .replace(/<!--IF:APP_LINKS-->[\s\S]*?<!--\/IF:APP_LINKS-->/g, "")
+      .replace(/<[^>]+>/g, " ");
+    for (const part of [t.subject, t.preheader, body, EMAIL_TEXT[name]]) {
+      const siz = part
+        .split(/[^a-zA-ZçğıöşüÇĞİÖŞÜ]+/)
+        .filter(
+          (w) =>
+            /^(siz|sizden|size|sizin|sizi)$/i.test(w) ||
+            /n[ıiuü]z([ıiuü]|d[ae]n?|[ae])?$/.test(w) ||
+            /[aeıioöuü]y[ıiuü]n$/.test(w),
+        );
+      expect(siz, name).toEqual([]);
+    }
+  });
 
   /**
    * Confirmation and cancellation are one pair: whatever the staff do to a
@@ -183,9 +193,29 @@ describe("the twenty-two templates render", () => {
    * name which evening it cancelled.
    */
   it("karaoke's two messages ask for the same reservation fields", () => {
+    // The cancellation rule is the confirmation's alone (the booking's own
+    // two sentences, and until when a venue-paid booking may be cancelled,
+    // 18 Eki 2026, and the last free moment, 19 Eki 2026): a cancelled
+    // booking has nothing left to cancel. Why the köşk cancelled is the
+    // cancellation's alone (ASK-OTH-3 (c)). The make-good of a late köşk
+    // cancel (its amount, last day) is the cancellation's, the booking a
+    // free hour makes good the confirmation's (21 Eki 2026).
+    // The confirmed terms' version page is the confirmation's alone too: the
+    // copy rides with the booking's confirmation (ASK-DURABLE, 21 Eki 2026).
+    const RULE_ONLY = new Set([
+      "KARAOKE_IADE_KURALI",
+      "KARAOKE_GEC_KURALI",
+      "KARAOKE_MEKAN_SURE",
+      "KARAOKE_SON_IPTAL",
+      "KARAOKE_NEDEN",
+      "KARAOKE_TELAFI_TUTAR",
+      "KARAOKE_TELAFI_SON",
+      "KARAOKE_TELAFI_KOD",
+      "KARAOKE_SURUM_URL",
+    ]);
     const of = (name: EmailTemplateName) =>
       fieldsOf(name)
-        .filter((f) => f.startsWith("KARAOKE_"))
+        .filter((f) => f.startsWith("KARAOKE_") && !RULE_ONLY.has(f))
         .sort();
     expect(of("karaoke-iptal")).toEqual(of("karaoke-rezervasyon"));
     expect(of("karaoke-iptal")).toEqual([

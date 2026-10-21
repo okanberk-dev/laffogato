@@ -8,15 +8,33 @@ import {
   type TwoFAState,
 } from "@/app/admin/iki-asama/actions";
 
+import { withPanelCatch } from "./action-form";
 import { GhostButton, PrimaryButton, TextInput } from "./forms";
+import { NUMERIC_STYLE } from "./ui/styles";
 
 const initial: TwoFAState = {};
 
+// A throw is an answer under the field, not the error screen; the redirect
+// after a good code still runs.
+const submitCode = withPanelCatch<TwoFAState>(verify2FAAction, () => ({
+  error: "Kod şu an doğrulanamadı. Biraz sonra yeni kodla tekrar dene.",
+}));
+
+/** The six digits as one readable, evenly spaced code (the enroll form too). */
+export const CODE_INPUT_STYLE = {
+  ...NUMERIC_STYLE,
+  letterSpacing: "0.4em",
+  textAlign: "center",
+  fontSize: 22,
+} as const;
+
 export function TwoFAVerifyForm({ next }: { next: string }) {
-  const [state, formAction, pending] = useActionState(verify2FAAction, initial);
+  const [state, formAction, pending] = useActionState(submitCode, initial);
 
   return (
     <>
+      {/* A plain action form on purpose: after a wrong code the field
+          should be empty for the next one. */}
       <form action={formAction} className="grid gap-3">
         <input type="hidden" name="next" value={next} />
         <TextInput
@@ -25,18 +43,17 @@ export function TwoFAVerifyForm({ next }: { next: string }) {
           pattern="\d{6}"
           placeholder="123456"
           autoComplete="one-time-code"
+          aria-label="6 haneli doğrulama kodu"
           autoFocus
           required
           maxLength={6}
-          style={{
-            fontFamily: "var(--mono), monospace",
-            letterSpacing: "0.4em",
-            textAlign: "center",
-            fontSize: 22,
-          }}
+          style={CODE_INPUT_STYLE}
         />
         {state.error && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div
+            role="alert"
+            className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+          >
             {state.error}
           </div>
         )}

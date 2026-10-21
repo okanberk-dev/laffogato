@@ -1,16 +1,21 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { useId, useRef, useState, type ReactNode } from "react";
 
 import {
-  Card,
   Checkbox,
   Field,
-  PrimaryButton,
   Select,
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
+import {
+  Badge,
+  NUMERIC_STYLE,
+  Section,
+  TONE_SOFT,
+} from "@/components/admin/ui";
+import { cx } from "@/components/laffogato/cx";
 import {
   APP_CONFIG_LIMITS as L,
   type MobileAppConfig,
@@ -27,54 +32,118 @@ import {
   saveStoreAction,
   saveVenueAction,
   saveVersionAction,
-  type AppConfigState,
 } from "./actions";
+import {
+  APP_CONFIG_TABS,
+  appConfigTabHref,
+  tabAfterKey,
+  type AppConfigTabId,
+} from "./app-config-core";
+import {
+  ConfigField,
+  ConfigForm,
+  SaveBar,
+  useAppConfigForm,
+} from "./app-config-ui";
 
 /**
- * Eight independent forms, one per section of `settings."mobileApp"`, laid
+ * Nine independent forms, one per section of `settings."mobileApp"`, laid
  * out like Ayarlar: each saves only its own section (the action merges it
  * onto the live document), so an operator can tune the courier ETA without
  * re-submitting the reminders. `@/lib/mobile/app-config` is safe to import
  * here - it has no "server-only" and no database.
+ *
+ * The tabs are real tabs (tablist / tab / tabpanel, arrow keys) and the
+ * open one is in the address (`?bolum=`), so a reload, the back button and
+ * a link from elsewhere land on the same section. Below `sm` they are a
+ * select: nine labels in a sideways scroll with a hidden scrollbar showed
+ * two of them on a phone and said nothing about the other seven.
  */
+export function AppConfigForm({
+  config,
+  initialTab = "version",
+}: {
+  config: MobileAppConfig;
+  initialTab?: AppConfigTabId;
+}) {
+  const [tab, setTab] = useState<AppConfigTabId>(initialTab);
+  const baseId = useId();
+  const tabRefs = useRef<Partial<Record<AppConfigTabId, HTMLButtonElement>>>(
+    {},
+  );
+  const tabId = (t: AppConfigTabId) => `${baseId}-tab-${t}`;
+  const panelId = (t: AppConfigTabId) => `${baseId}-panel-${t}`;
 
-const initial: AppConfigState = {};
+  const open = (next: AppConfigTabId, focus = false) => {
+    setTab(next);
+    // Next keeps useSearchParams in step with the native history API.
+    window.history.replaceState(null, "", appConfigTabHref(next));
+    if (focus) tabRefs.current[next]?.focus();
+  };
 
-const TABS = [
-  { id: "version", label: "Sürüm ve bakım" },
-  { id: "ordering", label: "Sipariş" },
-  { id: "loyalty", label: "Sadakat" },
-  { id: "karaoke", label: "Karaoke kuralları" },
-  { id: "reminders", label: "Hatırlatmalar" },
-  { id: "cards", label: "Kampanya kartları" },
-  { id: "happy", label: "Mutlu saatler" },
-  { id: "venue", label: "Köşk bilgileri" },
-  { id: "store", label: "Mağaza ve bağlantılar" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
-
-export function AppConfigForm({ config }: { config: MobileAppConfig }) {
-  const [tab, setTab] = useState<TabId>("version");
+  const live = config.maintenance.enabled;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-      <nav className="-mx-1 flex [scrollbar-width:none] flex-row gap-1 overflow-x-auto px-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={`min-h-[44px] shrink-0 rounded-md px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:shrink ${
-              tab === t.id
-                ? "bg-[var(--admin-primary)] text-white"
-                : "border border-[var(--admin-border)] text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+    <div className="grid gap-4 lg:grid-cols-[248px_minmax(0,1fr)]">
+      <label className="grid gap-2 sm:hidden">
+        <span className="text-sm font-medium text-[var(--admin-text)]">
+          Bölüm
+        </span>
+        <Select
+          value={tab}
+          onChange={(e) => open(e.target.value as AppConfigTabId)}
+        >
+          {APP_CONFIG_TABS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.id === "version" && live ? `${t.label} (bakımda)` : t.label}
+            </option>
+          ))}
+        </Select>
+      </label>
+
+      <div
+        role="tablist"
+        aria-label="Uygulama ayarları bölümleri"
+        className="hidden flex-row flex-wrap gap-1 sm:flex lg:flex-col"
+        onKeyDown={(e) => {
+          const next = tabAfterKey(tab, e.key);
+          if (!next) return;
+          e.preventDefault();
+          open(next, true);
+        }}
+      >
+        {APP_CONFIG_TABS.map((t) => {
+          const selected = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              ref={(el) => {
+                if (el) tabRefs.current[t.id] = el;
+              }}
+              id={tabId(t.id)}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls={panelId(t.id)}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => open(t.id)}
+              className={cx(
+                "inline-flex min-h-[44px] min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:whitespace-normal",
+                selected
+                  ? "bg-[var(--admin-primary)] font-medium text-white"
+                  : "border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]",
+              )}
+            >
+              <span>{t.label}</span>
+              {t.id === "version" && live ? (
+                <Badge tone="danger" dot>
+                  Bakımda
+                </Badge>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Hidden, not unmounted.
           Every field in these nine forms is uncontrolled (`defaultValue` off
@@ -84,39 +153,34 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
           courier fee, with no warning and no undo. `hidden` keeps the nodes
           and their values alive; the forms stay independent, so each Kaydet
           still submits only its own section. */}
-      <div>
-        <Pane show={tab === "version"}>
-          <VersionTab config={config} />
-        </Pane>
-        <Pane show={tab === "ordering"}>
-          <OrderingTab config={config} />
-        </Pane>
-        <Pane show={tab === "loyalty"}>
-          <LoyaltyTab config={config} />
-        </Pane>
-        <Pane show={tab === "karaoke"}>
-          <KaraokeTab config={config} />
-        </Pane>
-        <Pane show={tab === "reminders"}>
-          <RemindersTab config={config} />
-        </Pane>
-        <Pane show={tab === "cards"}>
-          <CampaignCardsTab config={config} />
-        </Pane>
-        <Pane show={tab === "happy"}>
-          <HappyHourTab config={config} />
-        </Pane>
-        <Pane show={tab === "venue"}>
-          <VenueTab config={config} />
-        </Pane>
-        <Pane show={tab === "store"}>
-          <StoreTab config={config} />
-        </Pane>
+      <div className="min-w-0">
+        {APP_CONFIG_TABS.map((t) => (
+          <Pane
+            key={t.id}
+            id={panelId(t.id)}
+            labelledBy={tabId(t.id)}
+            show={tab === t.id}
+          >
+            {TAB_BODY[t.id](config)}
+          </Pane>
+        ))}
       </div>
     </div>
   );
 }
 
+const TAB_BODY: Record<AppConfigTabId, (config: MobileAppConfig) => ReactNode> =
+  {
+    version: (config) => <VersionTab config={config} />,
+    ordering: (config) => <OrderingTab config={config} />,
+    loyalty: (config) => <LoyaltyTab config={config} />,
+    karaoke: (config) => <KaraokeTab config={config} />,
+    reminders: (config) => <RemindersTab config={config} />,
+    cards: (config) => <CampaignCardsTab config={config} />,
+    happy: (config) => <HappyHourTab config={config} />,
+    venue: (config) => <VenueTab config={config} />,
+    store: (config) => <StoreTab config={config} />,
+  };
 
 /**
  * One tab's panel. `hidden` rather than a conditional render - see the note
@@ -124,101 +188,69 @@ export function AppConfigForm({ config }: { config: MobileAppConfig }) {
  * accessibility tree and out of tab order, so a screen reader and the Tab key
  * see exactly the section on screen.
  */
-function Pane({ show, children }: { show: boolean; children: ReactNode }) {
-  return <div hidden={!show}>{children}</div>;
-}
-
-function SaveBar({
-  state,
-  pending,
-}: {
-  state: AppConfigState;
-  pending: boolean;
-}) {
-  return (
-    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
-      <span className="text-xs">
-        {state.error ? (
-          <span className="text-red-600">{state.error}</span>
-        ) : state.message ? (
-          <span className="text-emerald-700">{state.message}</span>
-        ) : (
-          <span className="text-neutral-400">
-            Yalnız bu bölüm kaydedilir. Uygulama açılışta okur; en geç 5
-            dakikada yayılır.
-          </span>
-        )}
-      </span>
-      <PrimaryButton type="submit" disabled={pending}>
-        {pending ? "Kaydediliyor…" : "Kaydet"}
-      </PrimaryButton>
-    </div>
-  );
-}
-
-function Section({
-  title,
-  intro,
+function Pane({
+  id,
+  labelledBy,
+  show,
   children,
 }: {
-  title: string;
-  intro?: string;
+  id: string;
+  labelledBy: string;
+  show: boolean;
   children: ReactNode;
 }) {
   return (
-    <Card>
-      <h2
-        className="mb-1 text-xl"
-        style={{
-          fontFamily: "var(--serif), 'Playfair Display', serif",
-          fontStyle: "italic",
-          fontWeight: 500,
-        }}
-      >
-        {title}
-      </h2>
-      {intro && (
-        <p className="mb-4 text-sm text-[var(--admin-text-soft)]">{intro}</p>
-      )}
-      {!intro && <div className="mb-3" />}
+    <div id={id} role="tabpanel" aria-labelledby={labelledBy} hidden={!show}>
       {children}
-    </Card>
+    </div>
   );
 }
 
 // ─── 1. Sürüm ve bakım ────────────────────────────────────────────────────
 
 function VersionTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveVersionAction, initial);
+  const form = useAppConfigForm(saveVersionAction);
   const m = config.maintenance;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Sürüm ve bakım"
-        intro="Uygulama açılışta bu iki kapıyı kontrol eder: sürümü küçükse zorunlu güncelleme ekranı, bakım açıksa tam ekran bakım kartı gösterir."
+        description="Uygulama açılışta bu iki kapıyı kontrol eder: sürümü küçükse zorunlu güncelleme ekranı, bakım açıksa tam ekran bakım kartı gösterir. Bakımı açmak ve sürümü yükseltmek kaydetmeden önce onay ister."
       >
         <div className="grid gap-5">
-          <Field
+          <ConfigField
+            name="minSupportedAppVersion"
             label="En düşük desteklenen sürüm"
-            hint="x.y.z biçiminde. Bu sürümden eski uygulamalar mağazaya yönlendirilir; boş bırakılamaz."
+            hint={`x.y.z biçiminde (şu an ${config.minSupportedAppVersion}). Bu sürümden eski uygulamalar mağazaya yönlendirilir; boş bırakılamaz.`}
           >
             <TextInput
               name="minSupportedAppVersion"
               defaultValue={config.minSupportedAppVersion}
               placeholder="1.0.0"
-              inputMode="decimal"
+              // A decimal pad shows the region's separator (",") on a
+              // Turkish iPhone, which cannot type "1.2.0".
+              inputMode="text"
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              style={NUMERIC_STYLE}
               required
             />
-          </Field>
-          <Field label="Bakım modu">
+          </ConfigField>
+          <Field
+            as="fieldset"
+            label="Bakım modu"
+            hint="İşaretleyip kaydedince uygulamanın bütün ekranları kapanır; kaydetmeden önce bir kez daha sorulur."
+          >
             <Checkbox
               name="maintenanceEnabled"
-              label="Uygulamayı bakıma al (tüm ekranlar kapanır)"
+              label="Uygulamayı bakıma al"
               defaultChecked={m.enabled}
             />
           </Field>
           <div className="grid gap-5 sm:grid-cols-[1fr_2fr]">
-            <Field
+            <ConfigField
+              name="maintenanceTitle"
               label="Bakım başlığı"
               hint={`En fazla ${L.maintenanceTitleMax} karakter.`}
             >
@@ -228,8 +260,9 @@ function VersionTab({ config }: { config: MobileAppConfig }) {
                 maxLength={L.maintenanceTitleMax}
                 required
               />
-            </Field>
-            <Field
+            </ConfigField>
+            <ConfigField
+              name="maintenanceMessage"
               label="Bakım mesajı"
               hint={`En fazla ${L.maintenanceMessageMax} karakter. Bakım kapalıyken de saklanır.`}
             >
@@ -240,50 +273,53 @@ function VersionTab({ config }: { config: MobileAppConfig }) {
                 rows={3}
                 required
               />
-            </Field>
+            </ConfigField>
           </div>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 2. Sipariş ───────────────────────────────────────────────────────────
 
 function OrderingTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveOrderingAction, initial);
+  const form = useAppConfigForm(saveOrderingAction);
   const o = config.ordering;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Sipariş"
-        intro="Kafe siparişi kapalıyken uygulamada “Sepete ekle” pasifleşir, sunucu da siparişi reddeder. Kanallar tek tek kapatılabilir."
+        description="Kafe siparişi kapalıyken uygulamada “Sepete ekle” pasifleşir, sunucu da siparişi reddeder. Kanallar tek tek kapatılabilir."
       >
-        <div className="grid gap-2">
-          <Checkbox
-            name="cafeEnabled"
-            label="Uygulamadan kafe siparişi açık"
-            defaultChecked={o.cafeEnabled}
-          />
-          <Checkbox
-            name="deliveryEnabled"
-            label="Kurye ile teslimat açık"
-            defaultChecked={o.deliveryEnabled}
-          />
-          <Checkbox
-            name="pickupEnabled"
-            label="Gel-al açık"
-            defaultChecked={o.pickupEnabled}
-          />
-          <Checkbox
-            name="tableEnabled"
-            label="Masaya sipariş açık (masadaki QR ile)"
-            defaultChecked={o.tableEnabled}
-          />
-        </div>
+        <Field as="fieldset" label="Kanallar">
+          <div className="grid gap-1">
+            <Checkbox
+              name="cafeEnabled"
+              label="Uygulamadan kafe siparişi açık"
+              defaultChecked={o.cafeEnabled}
+            />
+            <Checkbox
+              name="deliveryEnabled"
+              label="Kurye ile teslimat açık"
+              defaultChecked={o.deliveryEnabled}
+            />
+            <Checkbox
+              name="pickupEnabled"
+              label="Gel-al açık"
+              defaultChecked={o.pickupEnabled}
+            />
+            <Checkbox
+              name="tableEnabled"
+              label="Masaya sipariş açık (masadaki QR ile)"
+              defaultChecked={o.tableEnabled}
+            />
+          </div>
+        </Field>
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <Field
+          <ConfigField
+            name="etaMin"
             label="Kurye süresi - alt sınır (dk)"
             hint={`${L.courierEtaMin}-${L.courierEtaMax} dakika.`}
           >
@@ -296,8 +332,9 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(o.courierEtaMinutes[0])}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="etaMax"
             label="Kurye süresi - üst sınır (dk)"
             hint="Uygulama “25-35 dk” biçiminde gösterir."
           >
@@ -310,10 +347,11 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(o.courierEtaMinutes[1])}
               required
             />
-          </Field>
+          </ConfigField>
         </div>
         <div className="mt-5">
-          <Field
+          <ConfigField
+            name="closedMessage"
             label="Sipariş kapalı mesajı"
             hint={`Kafe siparişi kapalıyken sepette görünür. En fazla ${L.closedMessageMax} karakter.`}
           >
@@ -324,27 +362,28 @@ function OrderingTab({ config }: { config: MobileAppConfig }) {
               rows={2}
               required
             />
-          </Field>
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 3. Sadakat ───────────────────────────────────────────────────────────
 
 function LoyaltyTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveLoyaltyAction, initial);
+  const form = useAppConfigForm(saveLoyaltyAction);
   const l = config.loyalty;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Sadakat"
-        intro="Damga kartı: hedefe ulaşan üyeye ödül kuponu yazılır. Kupon değeri ve süresi kasanın işi; uygulama yalnız ödülün adını gösterir."
+        description="Damga kartı: hedefe ulaşan üyeye ödül kuponu yazılır. Kupon değeri ve süresi kasanın işi; uygulama yalnız ödülün adını gösterir."
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
+          <ConfigField
+            name="stampTarget"
             label="Damga hedefi"
             hint={`${L.stampTargetMin}-${L.stampTargetMax}. Ödeme yapılmış uygulama kafe siparişi 140 TL'den itibaren başlayan her 320 TL için +1 damga (kurye ücreti sayılmaz).`}
           >
@@ -357,8 +396,9 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(l.stampTarget)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="rewardTitle"
             label="Ödül adı"
             hint={`En fazla ${L.rewardTitleMax} karakter.`}
           >
@@ -368,8 +408,9 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.rewardTitleMax}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="rewardValue"
             label="Ödül değeri (₺)"
             hint={`Kuponun düşeceği tutar. En fazla ${L.rewardValueMinorMax / 100} ₺.`}
           >
@@ -379,8 +420,9 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
               defaultValue={(l.rewardValueMinor / 100).toFixed(2)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="rewardTtlDays"
             label="Kupon geçerlilik süresi (gün)"
             hint={`${L.rewardTtlDaysMin}-${L.rewardTtlDaysMax} gün.`}
           >
@@ -393,30 +435,30 @@ function LoyaltyTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(l.rewardTtlDays)}
               required
             />
-          </Field>
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 4. Karaoke kuralları ─────────────────────────────────────────────────
 
 function KaraokeTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(
-    saveKaraokeRulesAction,
-    initial,
-  );
+  const form = useAppConfigForm(saveKaraokeRulesAction);
   const k = config.karaoke;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Karaoke kuralları"
-        intro="Saatlik ücret ve kapasite Ayarlar → Karaoke'de; burası rezervasyon saat aralığı, süre sınırı ve RUBY indirimi."
+        // Ayarlar is the owner's page (roles.ts `settings`); a manager
+        // sent there by name was sent to a door that does not open.
+        description="Burası rezervasyon saat aralığı, süre sınırı ve RUBY indirimi. Saatlik ücret ve oda kapasitesini sahip, Ayarlar → Karaoke'den belirler."
       >
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field
+          <ConfigField
+            name="firstHour"
             label="İlk saat"
             hint="0-23. Rezervasyon başlayabilecek en erken saat."
           >
@@ -429,8 +471,9 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(k.firstHour)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="closeHour"
             label="Kapanış saati"
             hint="1-24; ilk saatten sonra olmalı. 24 = gece yarısı."
           >
@@ -443,8 +486,9 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(k.closeHour)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="maxHours"
             label="En fazla saat"
             hint={`Bir rezervasyonda 1-${L.karaokeMaxHoursMax} saat.`}
           >
@@ -457,8 +501,9 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(k.maxHours)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="bookingWindowDays"
             label="Rezervasyon penceresi (gün)"
             hint={`Bugünden itibaren kaç gün ileriye rezervasyon alınır (1-${L.bookingWindowDaysMax}).`}
           >
@@ -471,8 +516,9 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(k.bookingWindowDays)}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="oroDiscountPct"
             label="RUBY indirimi (%)"
             hint="RUBY üyelere saatlik ücret üzerinden; sunucuda uygulanır."
           >
@@ -485,11 +531,11 @@ function KaraokeTab({ config }: { config: MobileAppConfig }) {
               defaultValue={String(k.oroDiscountPct)}
               required
             />
-          </Field>
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
@@ -504,18 +550,18 @@ const EMPTY_REMINDER: MobileAppReminder = {
 };
 
 function RemindersTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveRemindersAction, initial);
+  const form = useAppConfigForm(saveRemindersAction);
   const r = config.reminders;
-  // Four fixed rows; a blank id means the row is unused.
+  // Four fixed rows; a row with nothing written in it is unused.
   const rows = Array.from(
     { length: L.reminderItemsMax },
     (_, i) => r.items[i] ?? EMPTY_REMINDER,
   );
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Hatırlatmalar"
-        intro="Uygulamanın yerel bildirimleri (sunucu göndermez; telefon kendi planlar). Bir hatırlatma bir davettir, reklam değil: fiyat, indirim ve aciliyet dili (₺, %, indirim, son, kaçırma, hemen) kabul edilmez."
+        description="Uygulamanın yerel hatırlatma bildirimleri (sunucu göndermez; telefon kendi planlar). Bir hatırlatma bir davettir, reklam değil: fiyat, indirim ve aciliyet dili (₺, %, indirim, son, kaçırma, hemen) kabul edilmez."
       >
         <Checkbox
           name="remindersEnabled"
@@ -524,32 +570,36 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
         />
         <div className="mt-4 grid gap-4">
           {rows.map((item, i) => (
-            <div
+            <fieldset
               key={i}
-              className="grid gap-3 rounded-xl border border-[var(--admin-border)] p-3 sm:p-4"
+              className="grid min-w-0 gap-3 rounded-xl border border-[var(--admin-border)] p-3 sm:p-4"
             >
-              <div
-                className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-                style={{ fontFamily: "var(--mono), monospace" }}
-              >
+              <legend className="px-1 text-sm font-semibold text-[var(--admin-text)]">
                 Hatırlatma {i + 1}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-[1fr_90px_90px]">
-                <Field
+              </legend>
+              <div className="grid gap-3 sm:grid-cols-[1fr_96px_96px]">
+                <ConfigField
+                  name={`reminder-${i}-id`}
                   label="Kimlik"
-                  hint="Küçük harf, rakam, tire. Boş bırakılırsa satır kullanılmaz."
+                  hint="Telefonun bu hatırlatmayı tanıdığı kısa ad: küçük harf, rakam, tire. Kimlik, başlık ve metin boşsa satır kullanılmaz."
                 >
                   <TextInput
                     name={`reminder-${i}-id`}
                     defaultValue={item.id}
                     maxLength={24}
-                    pattern="[a-z0-9-]{1,24}"
-                    placeholder="morning"
+                    // Escaped hyphen: browsers compile `pattern` with the v
+                    // flag, where a bare "-" at the end of a class is a
+                    // syntax error and the whole attribute was ignored.
+                    pattern="[a-z0-9\-]{1,24}"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    placeholder="sabah"
                   />
-                </Field>
-                <Field
+                </ConfigField>
+                <ConfigField
+                  name={`reminder-${i}-hour`}
                   label="Saat"
-                  hint={`${L.reminderHourMin}-${L.reminderHourMax} arası; uygulama gece bildirimi göndermez.`}
+                  hint={`${L.reminderHourMin}-${L.reminderHourMax}; gece hatırlatması yok.`}
                 >
                   <TextInput
                     name={`reminder-${i}-hour`}
@@ -559,8 +609,8 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                     inputMode="numeric"
                     defaultValue={String(item.hour)}
                   />
-                </Field>
-                <Field label="Dakika">
+                </ConfigField>
+                <ConfigField name={`reminder-${i}-minute`} label="Dakika">
                   <TextInput
                     name={`reminder-${i}-minute`}
                     type="number"
@@ -569,9 +619,10 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                     inputMode="numeric"
                     defaultValue={String(item.minute)}
                   />
-                </Field>
+                </ConfigField>
               </div>
-              <Field
+              <ConfigField
+                name={`reminder-${i}-title`}
                 label="Başlık"
                 hint={`En fazla ${L.reminderTitleMax} karakter.`}
               >
@@ -580,8 +631,9 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                   defaultValue={item.title}
                   maxLength={L.reminderTitleMax}
                 />
-              </Field>
-              <Field
+              </ConfigField>
+              <ConfigField
+                name={`reminder-${i}-body`}
                 label="Metin"
                 hint={`En fazla ${L.reminderBodyMax} karakter.`}
               >
@@ -591,31 +643,28 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
                   maxLength={L.reminderBodyMax}
                   rows={2}
                 />
-              </Field>
-            </div>
+              </ConfigField>
+            </fieldset>
           ))}
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 6. Kampanya kartları ─────────────────────────────────────────────────
 
 function CampaignCardsTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(
-    saveCampaignCardsAction,
-    initial,
-  );
+  const form = useAppConfigForm(saveCampaignCardsAction);
   const c = config.campaignCards;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Kampanya kartları"
-        intro="Uygulamanın Kampanyalar ekranındaki sabit kartlar. Kapatılan kart ekranda görünmez; içerik değişmez."
+        description="Uygulamanın Kampanyalar ekranındaki sabit kartlar. Kapatılan kart ekranda görünmez; içerik değişmez."
       >
-        <div className="grid gap-2">
+        <div className="grid gap-1">
           <Checkbox
             name="cardLoyalty"
             label="SADAKAT kartı (damga kartı anlatımı)"
@@ -627,22 +676,21 @@ function CampaignCardsTab({ config }: { config: MobileAppConfig }) {
             defaultChecked={c.invite}
           />
           {/*
-            Kept, and labelled for what it is. Karar 20 removed the card the
-            app drew for this flag, so the switch changes nothing on any
-            screen; the field still travels in `bootstrap.app.campaignCards`
-            for back-compat, and an older build in someone's pocket still
-            reads it. Silently offering an operator a switch that does
-            nothing is the part that had to stop.
+            Kept, and labelled for what it is. The current app builds no
+            longer draw the card this flag switched, so the switch changes
+            nothing on their screens; the field still travels in
+            `bootstrap.app.campaignCards` for back-compat, and an older build
+            in someone's pocket still reads it.
           */}
           <Checkbox
             name="cardSubscription"
-            label="ABONELİK kartı - şu an hiçbir ekranda çizilmiyor (karar 20)"
+            label="ABONELİK kartı (yalnız eski uygulama sürümleri gösterir)"
             defaultChecked={c.subscription}
           />
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
@@ -663,29 +711,29 @@ const HAPPY_DAY_LABELS: Record<string, string> = {
  * While it is off, the bootstrap publishes nothing and no card is drawn.
  */
 function HappyHourTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveHappyHourAction, initial);
+  const form = useAppConfigForm(saveHappyHourAction);
   const h = config.happyHour;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Mutlu saatler"
-        intro="Uygulamanın Ana Sayfa ve Kampanyalar ekranlarındaki mutlu saat kartı. İndirim tüm içeceklerde geçerlidir - kahve/tatlı ayrımı yoktur."
+        description="Uygulamanın Ana Sayfa ve Kampanyalar ekranlarındaki mutlu saat kartı. İndirim tüm içeceklerde geçerlidir - kahve/tatlı ayrımı yoktur."
       >
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <p className={cx("rounded-xl p-3 text-sm", TONE_SOFT.warning)}>
           İndirim sipariş fiyatlamasına <strong>yansımaz</strong>; kasada elle
           uygulanır. Bu yüzden kart yalnız aşağıdaki kutu işaretliyken
           gösterilir - işaretlemek, kasanın bu indirimi uygulayacağı anlamına
           gelir.
         </p>
-        <div className="grid gap-2">
+        <div className="mt-3">
           <Checkbox
             name="happyEnabled"
             label="Mutlu saat kartını uygulamada göster"
             defaultChecked={h.enabled}
           />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Günler">
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <ConfigField name="happyDays" label="Günler">
             <Select name="happyDays" defaultValue={h.days}>
               {L.happyHourDays.map((d) => (
                 <option key={d} value={d}>
@@ -693,8 +741,9 @@ function HappyHourTab({ config }: { config: MobileAppConfig }) {
                 </option>
               ))}
             </Select>
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="happyPct"
             label="İndirim oranı (%)"
             hint={`${L.happyHourPctMin}-${L.happyHourPctMax} arası`}
           >
@@ -703,35 +752,49 @@ function HappyHourTab({ config }: { config: MobileAppConfig }) {
               type="number"
               min={L.happyHourPctMin}
               max={L.happyHourPctMax}
+              inputMode="numeric"
               defaultValue={h.pct}
             />
-          </Field>
-          <Field label="Başlangıç (SS:DD)">
-            <TextInput name="happyFrom" defaultValue={h.from} />
-          </Field>
-          <Field label="Bitiş (SS:DD)">
-            <TextInput name="happyTo" defaultValue={h.to} />
-          </Field>
+          </ConfigField>
+          <ConfigField name="happyFrom" label="Başlangıç (SS:DD)">
+            <TextInput
+              name="happyFrom"
+              defaultValue={h.from}
+              inputMode="numeric"
+              placeholder="14:00"
+              style={NUMERIC_STYLE}
+            />
+          </ConfigField>
+          <ConfigField name="happyTo" label="Bitiş (SS:DD)">
+            <TextInput
+              name="happyTo"
+              defaultValue={h.to}
+              inputMode="numeric"
+              placeholder="17:00"
+              style={NUMERIC_STYLE}
+            />
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 7. Köşk bilgileri ────────────────────────────────────────────────────
 
 function VenueTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveVenueAction, initial);
+  const form = useAppConfigForm(saveVenueAction);
   const v = config.venue;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Köşk bilgileri"
-        intro="Adres, telefon ve çalışma saatleri Ayarlar'dan gelir; burası uygulamanın Ziyaret ekranındaki kısa ad, yer tarifi ve harita sorgusu."
+        description="Burası uygulamanın Ziyaret ekranındaki kısa ad, yer tarifi ve harita sorgusu. Adres, telefon ve çalışma saatleri Ayarlar'dan gelir; onları sahip değiştirir."
       >
         <div className="grid gap-5">
-          <Field
+          <ConfigField
+            name="shortName"
             label="Kısa ad"
             hint={`Uygulama başlıklarında. En fazla ${L.venueShortNameMax} karakter.`}
           >
@@ -741,8 +804,9 @@ function VenueTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.venueShortNameMax}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="landmark"
             label="Yer tarifi"
             hint={`Adresin altında. En fazla ${L.venueLandmarkMax} karakter.`}
           >
@@ -752,8 +816,9 @@ function VenueTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.venueLandmarkMax}
               required
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="mapsQuery"
             label="Harita sorgusu"
             hint={`“Yol tarifi al” bu metni harita uygulamasına gönderir. En fazla ${L.venueMapsQueryMax} karakter.`}
           >
@@ -763,27 +828,28 @@ function VenueTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.venueMapsQueryMax}
               required
             />
-          </Field>
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }
 
 // ─── 8. Mağaza ve bağlantılar ─────────────────────────────────────────────
 
 function StoreTab({ config }: { config: MobileAppConfig }) {
-  const [state, action, pending] = useActionState(saveStoreAction, initial);
+  const form = useAppConfigForm(saveStoreAction);
   const st = config.store;
   return (
-    <form action={action}>
+    <ConfigForm form={form}>
       <Section
         title="Mağaza ve derin bağlantılar"
-        intro="Uygulamanın iki mağazadaki adresi ve laffogato.net bağlantılarının tarayıcı yerine uygulamada açılması için gereken kimlikler. Hepsi buradan değişir - uygulamaya yeni sürüm çıkmasına gerek yok."
+        description="Uygulamanın iki mağazadaki adresi ve laffogato.net bağlantılarının tarayıcı yerine uygulamada açılması için gereken kimlikler. Hepsi buradan değişir - uygulamaya yeni sürüm çıkmasına gerek yok."
       >
         <div className="grid gap-5">
-          <Field
+          <ConfigField
+            name="appStoreUrl"
             label="App Store adresi"
             hint="Zorunlu güncelleme ekranındaki düğme buraya gider. Liste yayına girene kadar boş bırak: boşken düğme hiç gösterilmez, hiçbir yere gitmeyen bir düğme gösterilmez."
           >
@@ -794,8 +860,9 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.storeUrlMax}
               placeholder="https://apps.apple.com/tr/app/…"
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="playStoreUrl"
             label="Google Play adresi"
             hint="Android'de aynı düğme buraya gider."
           >
@@ -806,18 +873,22 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               maxLength={L.storeUrlMax}
               placeholder="https://play.google.com/store/apps/details?id=…"
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="bundleId"
             label="Paket adı"
             hint="iOS bundle identifier ve Android application id - ikisi de aynı. App Store Connect ve Play Console'da yazan değer."
           >
             <TextInput
               name="bundleId"
               defaultValue={st.bundleId}
+              autoCapitalize="off"
+              spellCheck={false}
               placeholder="com.laffogato.app"
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="appleTeamId"
             label="Apple Team ID"
             hint="Apple Developer hesabının 10 karakterlik kimliği (Membership sayfasında). Bunu ve paket adını girdiğinde site /.well-known/apple-app-site-association belgesini yayımlar ve laffogato.net bağlantıları iPhone'da uygulamada açılır."
           >
@@ -825,11 +896,16 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               name="appleTeamId"
               defaultValue={st.appleTeamId}
               maxLength={10}
+              autoCapitalize="characters"
+              spellCheck={false}
               placeholder="ABCDE12345"
-              style={{ fontFamily: "var(--mono), monospace" }}
+              // A real monospace face (--mono is Poppins), so an ID and the
+              // fingerprints below can be checked character by character.
+              style={NUMERIC_STYLE}
             />
-          </Field>
-          <Field
+          </ConfigField>
+          <ConfigField
+            name="androidSha256"
             label="Android imza parmak izleri (SHA-256)"
             hint="Her satıra bir tane. İKİSİ de gerekir: yüklediğin imza anahtarı ve Play'in kendi imzaladığı anahtar (Play Console → Test ve yayın → Uygulama bütünlüğü). Yalnız biri girilirse kurulumların yarısında bağlantılar tarayıcıda açılır."
           >
@@ -837,13 +913,14 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               name="androidSha256"
               rows={4}
               defaultValue={st.androidSha256.join("\n")}
+              spellCheck={false}
               placeholder="AA:BB:CC:…:99"
-              style={{ fontFamily: "var(--mono), monospace" }}
+              style={NUMERIC_STYLE}
             />
-          </Field>
+          </ConfigField>
         </div>
-        <SaveBar state={state} pending={pending} />
+        <SaveBar form={form} />
       </Section>
-    </form>
+    </ConfigForm>
   );
 }

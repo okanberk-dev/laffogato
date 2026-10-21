@@ -1,242 +1,289 @@
 import Link from "next/link";
 
 import {
-  Card,
-  DangerButton,
   PageHeader,
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import {
+  Badge,
+  BUTTON,
+  DataTable,
+  EmptyListActionLink,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  PageShell,
+  Pagination,
+  StatusTabs,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { parsePublishInstant } from "@/lib/admin/publish-window";
-import { listPromos } from "@/lib/admin/store";
+import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
+import { listSearchView } from "@/lib/admin/list-search";
+import {
+  PROMO_DEFAULT_SORT,
+  PROMO_FILTER_FIELDS,
+  PROMO_PAGE_SIZE,
+  PROMO_SORT_KEYS,
+  PROMO_STATE_LABELS,
+  PROMO_STATE_TONES,
+  PROMO_TAB_PARAM,
+  PROMO_TABS,
+  PROMOS_PATH,
+  parsePromoTab,
+  promoHref,
+  promoList,
+  promoState,
+} from "@/lib/admin/promo-list";
+import { listPromos, type AdminPromo } from "@/lib/admin/store";
 
-import { deletePromoAction } from "./actions";
+import { PromoActiveToggle, PromoRowMenu } from "./promo-actions-ui";
 
 export const metadata = { title: "Admin · Promosyon Kodları" };
 export const dynamic = "force-dynamic";
 
-/** Same reading as applyPromoCode: offsetless = Istanbul; unreadable = over. */
-function isPromoExpired(expiresAt: string): boolean {
-  if (!expiresAt) return false;
-  const at = parsePublishInstant(expiresAt);
-  return at === null || at < Date.now();
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 function discountLabel(p: { kind: "pct" | "fixed"; value: number }): string {
   return p.kind === "pct" ? `%${p.value}` : `−${formatTRY(p.value)}`;
 }
 
-export default async function PromoCodesPage() {
+function StateBadge({ promo, now }: { promo: AdminPromo; now: number }) {
+  const state = promoState(promo, now);
+  return (
+    <Badge tone={PROMO_STATE_TONES[state]} dot>
+      {PROMO_STATE_LABELS[state]}
+    </Badge>
+  );
+}
+
+function Usage({ promo }: { promo: AdminPromo }) {
+  return (
+    <span style={NUMERIC_STYLE}>
+      {promo.usageCount}
+      {promo.usageLimit > 0 ? `/${promo.usageLimit}` : ""}
+    </span>
+  );
+}
+
+/**
+ * Promo codes, Filament style (admin audit PEO-24): tabs by where a code
+ * stands at the cart (Aktif, Pasif, Süresi dolmuş, Limit doldu) with
+ * counts, a search on the code, sortable columns, numbered pages and a
+ * view page per code with the orders it went into. The list used to be
+ * every code in one unsorted table.
+ */
+export default async function PromoCodesPage({ searchParams }: PageProps) {
   await requireRole("promos");
+  // `sp` is the address (every link below), `view` adds the remembered
+  // search text (what the list shows): lib/admin/list-search-core.ts.
+  const { url: sp, view } = await listSearchView(
+    PROMOS_PATH,
+    (await searchParams) ?? {},
+  );
   const promos = await listPromos();
+  const now = new Date().getTime();
+  const filters = parseFilters(view, PROMO_FILTER_FIELDS);
+  const tab = parsePromoTab(view);
+  const sort = parseSort(view, PROMO_SORT_KEYS, PROMO_DEFAULT_SORT);
+  const list = promoList(promos, {
+    tab,
+    filters,
+    sort,
+    page: parsePage(view),
+    now,
+  });
+  const tabValue = PROMO_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Pazarlama"
-        title="Promosyon Kodları"
-        description="Sepette uygulanan indirim kodları. Yüzde veya sabit tutar, minimum sepet, kullanım limiti ve son geçerlilik desteklenir."
-        action={
-          <Link
-            href="/admin/promosyon/yeni"
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni kod
-          </Link>
+        title="Promosyonlar"
+        description="Sepette uygulanan indirim kodları."
+        help={
+          <p>
+            Yüzde veya sabit tutar, minimum sepet, kullanım limiti ve son
+            geçerlilik desteklenir.
+          </p>
         }
+        primary={{ href: `${PROMOS_PATH}/yeni`, label: "Yeni kod" }}
       />
 
-      <Card>
-        {promos.length === 0 ? (
-          <p className="text-sm text-neutral-500">
-            Henüz promosyon kodu yok. &quot;+ Yeni kod&quot; ile ekle.
-          </p>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <ul className="flex flex-col gap-3 md:hidden">
-              {promos.map((p) => {
-                const expired = isPromoExpired(p.expiresAt);
-                const exhausted =
-                  p.usageLimit > 0 && p.usageCount >= p.usageLimit;
-                return (
-                  <li
-                    key={p.id}
-                    className="rounded-lg border border-[var(--admin-border)] p-3"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div
-                          className="font-medium text-neutral-900"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.code}
-                        </div>
-                        <div
-                          className="mt-1 text-sm text-neutral-700"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {discountLabel(p)}
-                          {p.minSubtotalMinor > 0 && (
-                            <span className="text-neutral-500">
-                              {" "}
-                              · min {formatTRY(p.minSubtotalMinor)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {!p.isActive ? (
-                        <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                          Pasif
-                        </span>
-                      ) : expired ? (
-                        <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-red-700 uppercase">
-                          Süresi dolmuş
-                        </span>
-                      ) : exhausted ? (
-                        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
-                          Limit doldu
-                        </span>
-                      ) : (
-                        <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
-                          Aktif
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className="mt-2 text-[10px] text-neutral-500"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
-                      {p.usageCount}
-                      {p.usageLimit > 0 ? `/${p.usageLimit}` : ""} kullanım ·{" "}
-                      {p.expiresAt ? formatDateTime(p.expiresAt) : "süresiz"}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <Link
-                        href={`/admin/promosyon/${p.id}/duzenle`}
-                        className="inline-flex min-h-[40px] flex-1 items-center justify-center rounded-full border border-[var(--admin-border)] px-3 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                      >
-                        Düzenle
-                      </Link>
-                      <form action={deletePromoAction}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <DangerButton type="submit" className="text-xs">
-                          Sil
-                        </DangerButton>
-                      </form>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+      {promos.length === 0 ? (
+        <EmptyState
+          title="Henüz promosyon kodu yok."
+          description="İlk kodu ekle; müşteri onu sepette yazar."
+          action={
+            <Link href={`${PROMOS_PATH}/yeni`} className={BUTTON.ghost}>
+              Yeni kod
+            </Link>
+          }
+        />
+      ) : (
+        <>
+          <StatusTabs
+            tabs={PROMO_TABS.map((t) => ({
+              value: t.value,
+              label: t.label,
+              count: list.counts[t.tab],
+            }))}
+            current={tabValue}
+            searchParams={sp}
+            pathname={PROMOS_PATH}
+            param={PROMO_TAB_PARAM}
+            label="Kod sekmeleri"
+          />
 
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    <th className="py-3 pr-3">Kod</th>
-                    <th className="pr-3">İndirim</th>
-                    <th className="pr-3 text-right">Min. sepet</th>
-                    <th className="pr-3 text-right">Kullanım</th>
-                    <th className="pr-3">Geçerlilik</th>
-                    <th className="pr-3">Durum</th>
-                    <th className="text-right">İşlem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {promos.map((p) => {
-                    const expired = isPromoExpired(p.expiresAt);
-                    const exhausted =
-                      p.usageLimit > 0 && p.usageCount >= p.usageLimit;
-                    return (
-                      <tr
-                        key={p.id}
-                        className="border-b border-neutral-100 last:border-b-0"
-                      >
-                        <td
-                          className="py-3 pr-3 font-medium text-neutral-900"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.code}
-                        </td>
-                        <td
-                          className="pr-3"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {discountLabel(p)}
-                        </td>
-                        <td
-                          className="pr-3 text-right text-neutral-700"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.minSubtotalMinor > 0
-                            ? formatTRY(p.minSubtotalMinor)
-                            : "-"}
-                        </td>
-                        <td
-                          className="pr-3 text-right text-neutral-700"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.usageCount}
-                          {p.usageLimit > 0 ? `/${p.usageLimit}` : ""}
-                        </td>
-                        <td
-                          className="pr-3 text-xs text-neutral-600"
-                          style={{ fontFamily: "var(--mono), monospace" }}
-                        >
-                          {p.expiresAt
-                            ? formatDateTime(p.expiresAt)
-                            : "Süresiz"}
-                        </td>
-                        <td className="pr-3">
-                          {!p.isActive ? (
-                            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-neutral-500 uppercase">
-                              Pasif
-                            </span>
-                          ) : expired ? (
-                            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-red-700 uppercase">
-                              Süresi dolmuş
-                            </span>
-                          ) : exhausted ? (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
-                              Limit doldu
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] tracking-[0.18em] text-green-700 uppercase">
-                              Aktif
-                            </span>
-                          )}
-                        </td>
-                        <td className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Link
-                              href={`/admin/promosyon/${p.id}/duzenle`}
-                              className="inline-flex items-center justify-center rounded-full border border-[var(--admin-border)] px-3 py-1.5 text-xs text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                            >
-                              Düzenle
-                            </Link>
-                            <form action={deletePromoAction}>
-                              <input type="hidden" name="id" value={p.id} />
-                              <DangerButton type="submit" className="text-xs">
-                                Sil
-                              </DangerButton>
-                            </form>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </Card>
-    </main>
+          <FilterBar
+            fields={PROMO_FILTER_FIELDS}
+            searchParams={sp}
+            pathname={PROMOS_PATH}
+            values={filters}
+          />
+
+          <DataTable<AdminPromo>
+            caption="Promosyon kodları"
+            rows={list.rows}
+            rowKey={(p) => p.id}
+            rowHref={(p) => promoHref(p.id)}
+            rowClassName={(p) => !p.isActive && "opacity-70"}
+            sort={sort}
+            searchParams={sp}
+            pathname={PROMOS_PATH}
+            empty={
+              <EmptyState
+                title="Bu görünümde kod yok."
+                action={
+                  Object.keys(filters).length > 0 ? (
+                    // The search too: it is not in the address.
+                    <EmptyListActionLink
+                      action={{
+                        href: tabValue
+                          ? `${PROMOS_PATH}?${PROMO_TAB_PARAM}=${tabValue}`
+                          : PROMOS_PATH,
+                        label: "Filtreyi temizle",
+                        clearsSearch: true,
+                      }}
+                      className={BUTTON.ghost}
+                    />
+                  ) : undefined
+                }
+              />
+            }
+            columns={[
+              {
+                key: "kod",
+                header: "Kod",
+                sortable: true,
+                // Below xl the state rides under the code: beside the
+                // sidebar (1024 px) the table had no room for its own
+                // Durum column, and the badge hid behind the pinned actions.
+                // A long code wraps instead of pushing the row past its card.
+                className: "max-w-[13rem]",
+                cell: (p) => (
+                  <span className="inline-flex flex-col items-start gap-1">
+                    <span className="break-all" style={NUMERIC_STYLE}>
+                      {p.code}
+                    </span>
+                    <span className="xl:hidden">
+                      <StateBadge promo={p} now={now} />
+                    </span>
+                  </span>
+                ),
+              },
+              {
+                key: "indirim",
+                header: "İndirim",
+                cell: (p) => (
+                  <span className="whitespace-nowrap" style={NUMERIC_STYLE}>
+                    {discountLabel(p)}
+                  </span>
+                ),
+              },
+              {
+                key: "min",
+                header: "Min. sepet",
+                align: "right",
+                // On the code's page; the table beside the sidebar has no
+                // room for it until 2xl.
+                className: "hidden 2xl:table-cell",
+                cell: (p) => (
+                  <span style={NUMERIC_STYLE}>
+                    {p.minSubtotalMinor > 0
+                      ? formatTRY(p.minSubtotalMinor)
+                      : "-"}
+                  </span>
+                ),
+              },
+              {
+                key: "kullanim",
+                header: "Kullanım",
+                align: "right",
+                sortable: true,
+                firstDir: "desc",
+                cell: (p) => <Usage promo={p} />,
+              },
+              {
+                key: "gecerlilik",
+                header: "Geçerlilik",
+                sortable: true,
+                cell: (p) => (
+                  <span className="text-xs whitespace-nowrap">
+                    {p.expiresAt ? formatDateTime(p.expiresAt) : "Süresiz"}
+                  </span>
+                ),
+              },
+              {
+                key: "durum",
+                header: "Durum",
+                hideBelow: "xl",
+                cell: (p) => <StateBadge promo={p} now={now} />,
+              },
+            ]}
+            rowActions={(p) => (
+              <div className="flex items-center justify-end gap-2">
+                <PromoActiveToggle promo={p} />
+                <PromoRowMenu promo={p} />
+              </div>
+            )}
+            mobileCard={(p) => (
+              <div className="flex flex-col gap-1.5">
+                <Link
+                  href={promoHref(p.id)}
+                  className="font-medium break-all text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                  style={NUMERIC_STYLE}
+                >
+                  {p.code}
+                </Link>
+                <span className="flex flex-wrap items-center gap-2 text-sm text-[var(--admin-text-soft)]">
+                  <StateBadge promo={p} now={now} />
+                  <span style={NUMERIC_STYLE}>{discountLabel(p)}</span>
+                  <span>
+                    Kullanım <Usage promo={p} />
+                  </span>
+                </span>
+                <span className="text-xs text-[var(--admin-text-soft)]">
+                  {p.expiresAt
+                    ? `Son geçerlilik ${formatDateTime(p.expiresAt)}`
+                    : "Süresiz"}
+                </span>
+              </div>
+            )}
+          />
+
+          {list.total > PROMO_PAGE_SIZE ? (
+            <Pagination
+              page={list.page}
+              pageSize={PROMO_PAGE_SIZE}
+              total={list.total}
+              searchParams={sp}
+              pathname={PROMOS_PATH}
+            />
+          ) : null}
+        </>
+      )}
+    </PageShell>
   );
 }

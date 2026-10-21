@@ -45,7 +45,37 @@ const CATEGORIES: Array<{
   },
 ];
 
-export function CookieConsent() {
+/** Categories that exist only through Google Tag Manager. */
+const TAG_CATEGORIES: ReadonlySet<string> = new Set(["analytics", "marketing"]);
+
+/** The switches the panel shows: without the tags, preferences alone. */
+export function consentCategories(tagManager: boolean): typeof CATEGORIES {
+  return tagManager
+    ? CATEGORIES
+    : CATEGORIES.filter((c) => !TAG_CATEGORIES.has(c.key));
+}
+
+/**
+ * The choice as it is recorded. Without the tags only the preference switch
+ * is shown, so a yes is never written for analytics or marketing - not by
+ * "Tümünü kabul et", not from an older cookie the panel was filled from. If
+ * the tags come back, they ask: the consent version moves with them
+ * (`consentVersionFor`), so no stored choice survives the switch.
+ */
+export function recordedChoice(choice: Choice, tagManager: boolean): Choice {
+  return tagManager
+    ? choice
+    : { ...choice, analytics: false, marketing: false };
+}
+
+/**
+ * `tagManager`: whether Google Tag Manager runs on the site. Off (no Google
+ * standard contract, 19 Ekim 2026) there are no analytics or ad tags, so the
+ * banner and the panel speak of the necessary and preference cookies only
+ * and "Tümünü kabul et" grants preferences alone (Çerez Politikası §7).
+ */
+export function CookieConsent({ tagManager }: { tagManager: boolean }) {
+  const categories = consentCategories(tagManager);
   // `null` = henüz okumadık; sunucu ile istemci HTML'i aynı kalsın diye ilk
   // render'da hiçbir şey basmıyoruz. The cookie is read once hydration is
   // done (useClientValue), not in a mount effect.
@@ -104,12 +134,16 @@ export function CookieConsent() {
     }
   }, [panelOpen]);
 
-  const commit = useCallback((choice: Choice) => {
-    writeConsent(choice);
-    pushConsentUpdate(choice);
-    setCommitted(true);
-    setPanelOpen(false);
-  }, []);
+  const commit = useCallback(
+    (choice: Choice) => {
+      const shown = recordedChoice(choice, tagManager);
+      writeConsent(shown);
+      pushConsentUpdate(shown);
+      setCommitted(true);
+      setPanelOpen(false);
+    },
+    [tagManager],
+  );
 
   // Before hydration (`decided === null`) the banner is rendered, not
   // withheld: it is server HTML, painted with the page. Rendered only after
@@ -132,8 +166,9 @@ export function CookieConsent() {
           <div className="cookie-banner-body">
             <p className="cookie-banner-title">Çerezler</p>
             <p className="cookie-banner-text">
-              Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Analitik ve
-              pazarlama çerezleri ise yalnızca siz izin verirseniz çalışır.
+              {tagManager
+                ? "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Analitik ve pazarlama çerezleri ise yalnızca siz izin verirseniz çalışır."
+                : "Sitenin çalışması için zorunlu çerezleri kullanıyoruz. Sitede analitik veya reklam çerezi yok; tercih çerezleri yalnızca siz izin verirseniz çalışır."}{" "}
               Ayrıntı için{" "}
               <Link href="/hukuk/cerez-politikasi">Çerez Politikası</Link> ve{" "}
               <Link href="/hukuk/kvkk-aydinlatma-metni">
@@ -209,7 +244,7 @@ export function CookieConsent() {
               </p>
             </div>
 
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <div className="cookie-cat" key={c.key}>
                 <div className="cookie-cat-head">
                   <label className="cookie-switch">

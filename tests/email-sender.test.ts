@@ -141,9 +141,11 @@ describe("sendTestEmail", () => {
       emailReplyTo: "",
     });
     process.env.RESEND_API_KEY = "re_test";
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: "1" }), { status: 200 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "1" }), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const { sendTestEmail } = await load();
@@ -157,7 +159,8 @@ describe("sendTestEmail", () => {
     expect(body.headers).toBeUndefined();
   });
 
-  it("hands back what Resend actually said, which is the only place it exists", async () => {
+  it("says what Resend refused, in Turkish, naming the domain", async () => {
+    // The test button showed Resend's English sentence, or "403: {json}".
     process.env.RESEND_API_KEY = "re_test";
     vi.stubGlobal(
       "fetch",
@@ -173,9 +176,11 @@ describe("sendTestEmail", () => {
     const { sendTestEmail } = await load();
     const result = await sendTestEmail("okan@example.com");
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toBe(
-      "The laffogato.net domain is not verified.",
-    );
+    if (!result.ok) {
+      expect(result.error).toContain("laffogato.net alan adı");
+      expect(result.error).toContain("doğrulanmamış");
+      expect(result.error).not.toContain("is not verified");
+    }
   });
 
   it("reports a network failure instead of throwing into the action", async () => {
@@ -187,12 +192,52 @@ describe("sendTestEmail", () => {
   });
 });
 
+describe("resendErrorText", () => {
+  const body = (message: string) => JSON.stringify({ message });
+
+  it.each([
+    [
+      403,
+      body(
+        "You can only send testing emails to your own email address (a@b.com).",
+      ),
+      "deneme modunda",
+    ],
+    [401, body("API key is invalid"), "anahtarı geçersiz"],
+    [
+      422,
+      body(
+        "Invalid `from` field. The email address needs to follow the `email@example.com` format.",
+      ),
+      "Gönderen adresi",
+    ],
+    [422, body("Invalid `to` field."), "Alıcı adresi"],
+    [429, body("You have reached your daily email sending quota."), "kotası"],
+    [429, body("Too many requests."), "çok fazla istek"],
+    [503, "<html>Bad gateway</html>", "yanıt vermiyor"],
+  ])("HTTP %i reads as Turkish (%s)", async (status, raw, expected) => {
+    const { resendErrorText } = await load();
+    expect(resendErrorText(status, raw)).toContain(expected);
+  });
+
+  it("keeps an unknown refusal's own words after a Turkish lead", async () => {
+    const { resendErrorText } = await load();
+    const text = resendErrorText(400, body("Something new happened."));
+    expect(text).toMatch(
+      /^E-posta sağlayıcısı iletiyi kabul etmedi \(HTTP 400\)/,
+    );
+    expect(text).toContain("Something new happened.");
+  });
+});
+
 describe("order notices", () => {
   function stubResend() {
     process.env.RESEND_API_KEY = "re_test";
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: "1" }), { status: 200 }),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ id: "1" }), { status: 200 }),
+      );
     vi.stubGlobal("fetch", fetchMock);
     return fetchMock;
   }
@@ -216,7 +261,9 @@ describe("order notices", () => {
     const [, init] = fetchMock.mock.calls[0];
     expect(init.headers["Idempotency-Key"]).toBe("order-ord-1-shipped:abc");
     const body = JSON.parse(init.body as string);
-    expect(body.subject).toBe("L'Affogato - Siparişiniz kargoya verildi (#1042)");
+    expect(body.subject).toBe(
+      "L'Affogato - Siparişiniz kargoya verildi (#1042)",
+    );
     expect(body.html).toContain("YK123456789TR");
     expect(body.html).not.toContain("kargo.example");
     expect(body.text).toContain("/uye/hesap/siparislerim/1042");
@@ -244,6 +291,7 @@ describe("order notices", () => {
       totalMinor: 45_000,
       viaCard: true,
     });
-    expect(result).toEqual({ ok: false, error: "rate limited" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("çok fazla istek");
   });
 });

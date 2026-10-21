@@ -7,11 +7,26 @@ import { cache } from "react";
 
 import bcrypt from "bcryptjs";
 
+import { getDb, TABLES } from "@/lib/db";
+
+import { forgetListSearches } from "./list-search-core";
 import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
+import {
+  ADMIN_COOKIE_PATH,
+  ADMIN_PENDING_COOKIE,
+  ADMIN_PENDING_MAX_AGE_SECONDS,
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_MAX_AGE_SECONDS,
+  LEGACY_ADMIN_COOKIE_PATH,
+  LEGACY_ADMIN_PENDING_COOKIE,
+  LEGACY_ADMIN_SESSION_COOKIE,
+  adminCookieOptions,
+} from "./session-cookie";
 import {
   ADMIN_ROLES,
   canAccess,
-  landingPathFor,
+  deniedPathFor,
+  isAdminRole,
   type AdminRole,
   type AdminSection,
 } from "./roles";
@@ -22,10 +37,34 @@ import {
   verifyAdminPassword,
 } from "./users";
 
-const COOKIE_NAME = "laffogato_admin_session";
-const PENDING_COOKIE_NAME = "laffogato_admin_pending_2fa";
-const COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-const PENDING_MAX_AGE_SECONDS = 5 * 60;
+// Path `/admin`, not the whole origin: session-cookie.ts.
+const COOKIE_NAME = ADMIN_SESSION_COOKIE;
+const PENDING_COOKIE_NAME = ADMIN_PENDING_COOKIE;
+const COOKIE_MAX_AGE_SECONDS = ADMIN_SESSION_MAX_AGE_SECONDS;
+const PENDING_MAX_AGE_SECONDS = ADMIN_PENDING_MAX_AGE_SECONDS;
+
+const secureCookies = () => process.env.NODE_ENV === "production";
+
+type CookieJar = Awaited<ReturnType<typeof cookies>>;
+
+/** Expires a panel cookie: same name and path, or the browser keeps it. */
+function expireAdminCookie(jar: CookieJar, name: string): void {
+  jar.delete({ name, path: ADMIN_COOKIE_PATH });
+}
+
+/**
+ * Expires the whole-origin cookies of before 21 Eki 2026. The proxy does
+ * this on a page view; sign-in and sign-out do it too, because they answer a
+ * POST, where the proxy leaves the cookies to the action.
+ */
+function expireLegacyAdminCookies(jar: CookieJar): void {
+  for (const name of [
+    LEGACY_ADMIN_SESSION_COOKIE,
+    LEGACY_ADMIN_PENDING_COOKIE,
+  ]) {
+    jar.delete({ name, path: LEGACY_ADMIN_COOKIE_PATH });
+  }
+}
 
 const VALID_ROLES: AdminRole[] = ADMIN_ROLES;
 
@@ -178,10 +217,98 @@ function verifyToken(token: string): SignedSession | null {
   return { email, role, expiresAt, fingerprint };
 }
 
+/** The code `AdminSessionUnavailableError` carries (`err.code`). */
+export const ADMIN_SESSION_UNAVAILABLE = "ADMIN_SESSION_UNAVAILABLE";
+
+/**
+ * The panel could not check the account behind a validly signed session:
+ * the database did not answer. That is NOT "signed out". Treating it as
+ * signed out (the lookup used to swallow the error and answer null) sent
+ * the operator to /admin/giris in the middle of a save, the form and
+ * everything typed in it gone, on every one-second database stumble.
+ *
+ * Thrown by `getAdminSession`, `requireRole` and `sessionFromToken`, for
+ * panel (database) accounts only: an env break-glass account's open session
+ * still stands with the database down. (A new sign-in needs the database
+ * all the same: the 2FA read throws rather than skip the second factor.)
+ * Nothing is granted while it stands.
+ *
+ * Where it lands:
+ * - a page (requireRole): app/admin/error.tsx, the panel's "Tekrar dene".
+ * - a panel Server Action: the form's withPanelCatch answer, form intact.
+ * - app/admin/layout.tsx reads the session too, and admin/error.tsx does
+ *   not catch its own segment's layout: the layout catches this error
+ *   (`isAdminSessionUnavailable`) and renders the shell with a notice.
+ *
+ * Test with `isAdminSessionUnavailable`, not `instanceof`: Next may load a
+ * module once per bundle layer (the same reason as `isDbUnreachable`).
+ */
+export class AdminSessionUnavailableError extends Error {
+  readonly code = ADMIN_SESSION_UNAVAILABLE;
+
+  constructor(cause: unknown) {
+    super("Admin session: the panel account could not be looked up", {
+      cause,
+    });
+    this.name = "AdminSessionUnavailableError";
+    Object.defineProperty(this, "__adminSessionUnavailable", {
+      value: true,
+      enumerable: false,
+    });
+  }
+}
+
+export function isAdminSessionUnavailable(
+  err: unknown,
+): err is AdminSessionUnavailableError {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    ((err as { __adminSessionUnavailable?: boolean })
+      .__adminSessionUnavailable === true ||
+      (err as { code?: unknown }).code === ADMIN_SESSION_UNAVAILABLE)
+  );
+}
+
+/**
+ * The active panel row for an address, or null when there is none (or it
+ * is inactive). THROWS when the database does not answer, unlike
+ * `resolveAdminUser` (users.ts), which the login keeps for the break-glass
+ * path: a session check that cannot see the row must not read as "no row".
+ */
+async function lookupPanelAccount(
+  needle: string,
+): Promise<{ email: string; role: AdminRole; passwordHash: string } | null> {
+  const { data, error } = await getDb()
+    .from(TABLES.adminUsers)
+    .select("*")
+    .eq("email", needle)
+    .maybeSingle();
+  if (error) throw new Error(`admin-auth.lookup: ${error.message}`);
+  const row = data as Record<string, unknown> | null;
+  if (!row || row.isActive === false) return null;
+  const role = String(row.role ?? "");
+  return {
+    email: String(row.email ?? needle),
+    // Same reading as users.ts: an unknown role is the least privileged one.
+    role: isAdminRole(role) ? role : "cashier",
+    passwordHash: String(row.passwordHash ?? ""),
+  };
+}
+
+/** Which credential an account stands on: its panel row or the env record. */
+type CredentialSource = "db" | "env";
+
 interface CurrentAccount {
   email: string;
   role: AdminRole;
   fingerprint: string;
+  source: CredentialSource;
+  /**
+   * The panel row could not be read and this is the env record standing in
+   * for it: a session issued for the panel row cannot be judged here.
+   */
+  outage?: true;
 }
 
 /**
@@ -192,33 +319,39 @@ interface CurrentAccount {
  * This is what makes a session revocable. The cookie used to be trusted on
  * its own for seven days: deactivating a user, demoting a manager to cashier
  * or resetting a password changed nothing until it expired.
+ *
+ * With the database unreachable an env address still resolves (the env owner
+ * must reach the panel during an outage); any other address throws
+ * AdminSessionUnavailableError instead of reading as "no account".
  */
 async function currentAccount(email: string): Promise<CurrentAccount | null> {
   const needle = email.trim().toLowerCase();
-  let dbUser: Awaited<ReturnType<typeof resolveAdminUser>> = null;
+  const env = loadEnvAdminUsers().find((u) => u.email === needle);
+  const envAccount = env
+    ? {
+        email: env.email,
+        role: env.role,
+        fingerprint: credentialFingerprint("env", env.password),
+        source: "env" as const,
+      }
+    : null;
+  let dbUser: Awaited<ReturnType<typeof lookupPanelAccount>>;
   try {
-    dbUser = await resolveAdminUser(needle);
+    dbUser = await lookupPanelAccount(needle);
   } catch (err) {
-    // The env owner must still reach the panel while the database is down;
-    // a panel account cannot be vouched for, so it falls through to null.
+    if (!envAccount) throw new AdminSessionUnavailableError(err);
     console.error("[admin-auth] account lookup failed", err);
+    return { ...envAccount, outage: true };
   }
   if (dbUser) {
     return {
       email: dbUser.email,
       role: dbUser.role,
       fingerprint: credentialFingerprint("db", dbUser.passwordHash),
+      source: "db",
     };
   }
-  const env = loadEnvAdminUsers().find((u) => u.email === needle);
-  if (env) {
-    return {
-      email: env.email,
-      role: env.role,
-      fingerprint: credentialFingerprint("env", env.password),
-    };
-  }
-  return null;
+  return envAccount;
 }
 
 /**
@@ -246,7 +379,17 @@ export interface SignInResult {
    * caller hammering a locked key could otherwise fill `audit_logs`.
    */
   throttled?: boolean;
+  /**
+   * The credentials were right but the account could not be read back to
+   * issue the session (the database stumbled in between). Not a failed
+   * login: no `login_fail` row either.
+   */
+  unavailable?: boolean;
 }
+
+/** The answer when the session cannot be issued for an unreadable account. */
+const SIGN_IN_UNAVAILABLE =
+  "Giriş şu an tamamlanamadı. Biraz sonra tekrar dene.";
 
 export async function signInAdmin(
   email: string,
@@ -280,10 +423,14 @@ export async function signInAdmin(
   // active does NOT shadow the env record - env is the break-glass path, and
   // an owner locked out of the panel has to be able to get back in.
   const dbUser = await resolveAdminUser(needle);
-  let matched: { email: string; role: AdminRole } | null = null;
+  let matched: {
+    email: string;
+    role: AdminRole;
+    source: CredentialSource;
+  } | null = null;
   if (dbUser) {
     if (await verifyAdminPassword(dbUser, password)) {
-      matched = { email: dbUser.email, role: dbUser.role };
+      matched = { email: dbUser.email, role: dbUser.role, source: "db" };
     }
   } else {
     // Same cost as the bcrypt branch above, so the database's answer about
@@ -294,7 +441,9 @@ export async function signInAdmin(
     for (const u of envUsers) {
       const emailOk = constantTimeEqual(needle, u.email);
       const passOk = constantTimeEqual(password, u.password);
-      if (emailOk && passOk) matched = { email: u.email, role: u.role };
+      if (emailOk && passOk) {
+        matched = { email: u.email, role: u.role, source: "env" };
+      }
     }
   }
 
@@ -333,17 +482,30 @@ export async function signInAdmin(
   // the 6-digit code.
   if (await has2FA(matched.email)) {
     const pending = signPendingToken(matched);
-    cookieStore.set(PENDING_COOKIE_NAME, pending, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: PENDING_MAX_AGE_SECONDS,
-    });
+    cookieStore.set(
+      PENDING_COOKIE_NAME,
+      pending,
+      adminCookieOptions(PENDING_MAX_AGE_SECONDS, secureCookies()),
+    );
     return { ok: true, needs2FA: true, role: matched.role };
   }
 
-  const account = await currentAccount(matched.email);
+  let account: CurrentAccount | null;
+  try {
+    account = await currentAccount(matched.email);
+  } catch (err) {
+    if (!isAdminSessionUnavailable(err)) throw err;
+    return { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE };
+  }
+  // The session stands on the credential that was checked. The panel
+  // password matched, then the row went unreadable: the env record standing
+  // in for it is another credential (and maybe another role), so no session
+  // is issued on it.
+  if (account && account.source !== matched.source) {
+    return account.outage
+      ? { ok: false, unavailable: true, error: SIGN_IN_UNAVAILABLE }
+      : { ok: false, error: "Giriş başarısız." };
+  }
   if (!account) {
     return { ok: false, error: "Giriş başarısız." };
   }
@@ -354,22 +516,33 @@ export async function signInAdmin(
 interface PendingAuthSession {
   email: string;
   role: AdminRole;
+  /** The credential the password step checked; the 2FA step issues on it. */
+  source: CredentialSource;
   expiresAt: number;
 }
 
-function signPendingToken(user: { email: string; role: AdminRole }): string {
+function signPendingToken(user: {
+  email: string;
+  role: AdminRole;
+  source: CredentialSource;
+}): string {
   const expiresAt = Date.now() + PENDING_MAX_AGE_SECONDS * 1000;
-  const payload = `pending|${user.email}|${user.role}|${expiresAt}`;
+  const payload = `pending|${user.email}|${user.role}|${user.source}|${expiresAt}`;
   const sig = createHmac("sha256", getSecret()).update(payload).digest("hex");
   return `${payload}|${sig}`;
 }
 
 function verifyPendingToken(token: string): PendingAuthSession | null {
   const parts = token.split("|");
-  if (parts.length !== 5 || parts[0] !== "pending") return null;
-  const [, email, roleRaw, expiresAtStr, sig] = parts;
+  // Six segments: the source joined the token, so a pending cookie from
+  // before it (five segments, at most five minutes old) means signing in
+  // again.
+  if (parts.length !== 6 || parts[0] !== "pending") return null;
+  const [, email, roleRaw, sourceRaw, expiresAtStr, sig] = parts;
   const role = roleRaw as AdminRole;
   const expiresAt = Number(expiresAtStr);
+  if (sourceRaw !== "db" && sourceRaw !== "env") return null;
+  const source: CredentialSource = sourceRaw;
   if (
     !email ||
     !VALID_ROLES.includes(role) ||
@@ -379,19 +552,19 @@ function verifyPendingToken(token: string): PendingAuthSession | null {
     return null;
   }
   const expected = createHmac("sha256", getSecret())
-    .update(`pending|${email}|${role}|${expiresAt}`)
+    .update(`pending|${email}|${role}|${source}|${expiresAt}`)
     .digest("hex");
   const sigBuf = Buffer.from(sig, "hex");
   const expBuf = Buffer.from(expected, "hex");
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
-  return { email, role, expiresAt };
+  return { email, role, source, expiresAt };
 }
 
 async function setActiveSession(
   account: CurrentAccount,
-  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  cookieStore: CookieJar,
 ): Promise<void> {
   const session: SignedSession = {
     email: account.email,
@@ -399,14 +572,13 @@ async function setActiveSession(
     expiresAt: Date.now() + COOKIE_MAX_AGE_SECONDS * 1000,
     fingerprint: account.fingerprint,
   };
-  cookieStore.set(COOKIE_NAME, signToken(session), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: COOKIE_MAX_AGE_SECONDS,
-  });
-  cookieStore.delete(PENDING_COOKIE_NAME);
+  cookieStore.set(
+    COOKIE_NAME,
+    signToken(session),
+    adminCookieOptions(COOKIE_MAX_AGE_SECONDS, secureCookies()),
+  );
+  expireAdminCookie(cookieStore, PENDING_COOKIE_NAME);
+  expireLegacyAdminCookies(cookieStore);
 }
 
 export async function getPendingSession(): Promise<PendingAuthSession | null> {
@@ -423,6 +595,8 @@ export async function getPendingSession(): Promise<PendingAuthSession | null> {
 export interface TwoFAResult {
   ok: boolean;
   error?: string;
+  /** Role of the signed-in account - the 2FA step redirects on it. */
+  role?: AdminRole;
 }
 
 export async function complete2FA(token: string): Promise<TwoFAResult> {
@@ -464,27 +638,52 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
   }
 
   // The account may have been deactivated or re-keyed in the five minutes
-  // since the password step; the session is issued for it as it is now.
-  const account = await currentAccount(pending.email);
-  if (!account) {
+  // since the password step; the session is issued for it as it is now, and
+  // only on the credential that step checked. A panel password whose row is
+  // unreadable now (or was deactivated meanwhile) does not get the env
+  // record of the same address: that is another credential, and its cookie
+  // would outlive the panel row's revocation.
+  let account: CurrentAccount | null;
+  try {
+    account = await currentAccount(pending.email);
+    if (account?.outage && account.source !== pending.source) {
+      throw new AdminSessionUnavailableError(
+        new Error("panel row unreadable; the env record cannot stand in"),
+      );
+    }
+  } catch (err) {
+    if (!isAdminSessionUnavailable(err)) throw err;
+    // The code is spent; the next one works once the database answers.
+    return {
+      ok: false,
+      error: "Giriş şu an tamamlanamadı. Biraz sonra yeni kodla tekrar dene.",
+    };
+  }
+  if (!account || account.source !== pending.source) {
     return { ok: false, error: "Oturum süresi doldu. Yeniden giriş yap." };
   }
   await clearLoginLimit("admin-2fa", ip, pending.email);
   await clearLoginLimit("admin-2fa-account", "*", pending.email);
   const cookieStore = await cookies();
   await setActiveSession(account, cookieStore);
-  return { ok: true };
+  return { ok: true, role: account.role };
 }
 
 export async function cancelPending2FA(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(PENDING_COOKIE_NAME);
+  expireAdminCookie(cookieStore, PENDING_COOKIE_NAME);
+  cookieStore.delete({
+    name: LEGACY_ADMIN_PENDING_COOKIE,
+    path: LEGACY_ADMIN_COOKIE_PATH,
+  });
 }
 
 /**
  * Server gate for admin sections. Call at the top of a page (or
  * server action) to enforce that the current session has access; on
- * deny it redirects to /admin (dashboard is the lowest-privilege page).
+ * deny it redirects to the role's landing page with `?denied=1`.
+ * Throws AdminSessionUnavailableError when the account cannot be read:
+ * the operator is not signed out by a database stumble.
  */
 export async function requireRole(
   section: AdminSection,
@@ -495,15 +694,23 @@ export async function requireRole(
   }
   if (!canAccess(section, session.role)) {
     // A role without dashboard access cannot be sent to /admin on denial: that
-    // page would deny it too and the two redirects would bounce forever.
-    redirect(`${landingPathFor(session.role)}?denied=1`);
+    // page would deny it too and the two redirects would bounce forever. The
+    // role's own landing page is, with the flag joined to its query.
+    redirect(deniedPathFor(session.role));
   }
   return session;
 }
 
 export async function signOutAdmin(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  expireAdminCookie(cookieStore, COOKIE_NAME);
+  // A session from before the panel path still rides with this POST (the
+  // proxy moves it on page views only): it goes too, or the next page view
+  // would move it back and sign the person in again.
+  expireLegacyAdminCookies(cookieStore);
+  // The lists' remembered search texts go with the session: the next person
+  // on a shared device does not find them under the box.
+  forgetListSearches(cookieStore);
 }
 
 /**
@@ -515,6 +722,11 @@ export async function signOutAdmin(): Promise<void> {
  *
  * Memoised per request (`cache`): the layout, the page and the audit logger
  * all ask, and each ask is a database read.
+ *
+ * Null means signed out. An account the database could not be asked about
+ * is not that: AdminSessionUnavailableError propagates (see its comment for
+ * where it lands). Anything else (no request scope, no session secret)
+ * still reads as signed out.
  */
 export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
   try {
@@ -522,7 +734,8 @@ export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
     const token = cookieStore.get(COOKIE_NAME)?.value;
     if (!token) return null;
     return await sessionFromToken(token);
-  } catch {
+  } catch (err) {
+    if (isAdminSessionUnavailable(err)) throw err;
     return null;
   }
 });
@@ -534,7 +747,16 @@ export async function sessionFromToken(
   const signed = verifyToken(token);
   if (!signed) return null;
   const account = await currentAccount(signed.email);
-  if (!account || !constantTimeEqual(account.fingerprint, signed.fingerprint)) {
+  if (!account) return null;
+  if (!constantTimeEqual(account.fingerprint, signed.fingerprint)) {
+    // Issued for the panel row of an address that is also an env account,
+    // read while that row could not be: the env record cannot vouch for it,
+    // and nothing says it was revoked either.
+    if (account.outage) {
+      throw new AdminSessionUnavailableError(
+        new Error("panel row unreadable; env record cannot vouch"),
+      );
+    }
     return null;
   }
   return {
@@ -546,8 +768,11 @@ export async function sessionFromToken(
 
 /**
  * Signature-only read for `proxy.ts`, which decides nothing but whether to
- * redirect a page view to the login screen. Authorisation - every page and
- * every server action - goes through getAdminSession / requireRole.
+ * redirect a page view to the login screen, and for the panel's background
+ * polls (`/admin/siparisler/uyari`, the nav badges, the köşk chip), which
+ * use it only to answer "nothing changed" with no data in it.
+ * Authorisation - every page, every server action and every answer that
+ * carries data - goes through getAdminSession / requireRole.
  */
 export function readSessionFromCookieValue(
   value: string | undefined,

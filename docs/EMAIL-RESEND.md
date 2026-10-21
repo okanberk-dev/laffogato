@@ -50,8 +50,11 @@ Yayılma birkaç dakika ile birkaç saat arası sürer.
 `delivered` döndü.
 
 > Doğrulama bitene kadar gönderilen her mesaj `403 … domain is not verified`
-> ile döner. `/admin/ayarlar → E-posta → Test gönder` bu cümleyi olduğu gibi
-> gösterir; tahmin etmeye gerek yok.
+> ile döner. `/admin/ayarlar?sekme=email → Test gönder` bunu Türkçe söyler
+> ("laffogato.net alan adı Resend'de doğrulanmamış…"; `resendErrorText`,
+> `src/lib/email/send.ts`); tanınmayan bir red Türkçe bir giriş cümlesiyle ve
+> sağlayıcının kendi sözüyle gelir. Ham yanıt sunucu günlüğündedir (adresler
+> maskeli).
 
 ### Doğrulama takılırsa: iki tuzak, ikisi de bu alan adında yaşandı
 
@@ -120,7 +123,12 @@ için bir sürüm çıkmak zorunda kalmamak, panelin var oluş sebebidir
 Aynı sekmedeki **Test gönder**, zinciri tek tıkla kanıtlar: anahtar var mı,
 alan adı doğrulanmış mı, adres kabul ediliyor mu. Diğer bütün yollar bir
 gönderim hatasını bilerek yutar, dolayısıyla sağlayıcının söylediği tek yer
-burasıdır.
+burasıdır. Test **kayıtlı** gönderenle gider; yukarıdaki form kaydedilmemiş
+değişiklik taşırken düğme kapalıdır. Sonuç ne olursa olsun üstteki durum
+bandı yeniden okunur. Resend'in doğrulanmamış dediği bir alan adındaki yeni
+gönderen adresi kaydedilmeden önce onay ister (`senderDomainStatus`,
+`src/lib/email/health.ts`, 3 sn sınırlı); Resend'e ulaşılamazsa sormadan
+kaydedilir.
 
 ---
 
@@ -205,9 +213,10 @@ Supabase'deki kimlik. Artık ikisi de değiştirilebiliyor, dolayısıyla:
 
 Servis rolü anahtarı **yoksa** ilk madde çalışmaz, o yüzden ikinci madde de
 devre dışı kalır: anahtar olmadan sitenin kendi kopyası tek yetkili sayılır
-ve uyuşmazlık reddedilir (`hasSupabaseAdmin`). Yani `SUPABASE_SERVICE_ROLE_KEY`
-tanımlıysa iki yön de kapalı; değilse uygulamada sıfırlama sitenin girişini
-çözmez.
+ve uyuşmazlık reddedilir (`hasSupabaseAdmin`). Yani servis anahtarı
+(`SUPABASE_SECRET_KEY`, ya da yoksa eski `SUPABASE_SERVICE_ROLE_KEY`;
+`docs/AUTH-BRIDGE.md` §1) tanımlıysa iki yön de kapalı; değilse uygulamada
+sıfırlama sitenin girişini çözmez.
 
 > Masaüstünde açılan bir uygulama sıfırlama postası hâlâ tamamlanamaz:
 > bağlantı `laffogato://` şemasını taşır, tarayıcı bunu açamaz. Masaüstündeki
@@ -222,7 +231,7 @@ Site URL'nin `https://laffogato.net` olması gerekir; site oraya
 
 ## 5. Mesajın kendisi - şablonlar
 
-Sitenin gönderdiği yirmi iki mesajın markup'ı `src/lib/email/templates/*.html`
+Sitenin gönderdiği yirmi beş mesajın markup'ı `src/lib/email/templates/*.html`
 içinde durur; `send.ts` yalnızca alanları doldurur. Şablon dili, alan
 listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 `README.md`'sinde.
@@ -236,20 +245,23 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-Yirmi iki şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi beş şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
 | `eposta-dogrulama`                     | işlemsel          | sitede kayıt / adres değişikliği (`uye/actions.ts`, `admin/musteriler`)         |
 | `sifre-sifirlama`                      | işlemsel          | sitede "şifremi unuttum"                                                        |
-| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve ÖBF/MSS/cayma bağlantıları (kalıcı veri saklayıcısı) |
+| `odeme-onaylandi` | işlemsel | müşterinin kargoya kadar aldığı TEK sipariş maili: ödeme siparişi `paid`'e taşıdığında (`applyPaymentSucceeded`, elle "Ödendi"; ₺0 sipariş de) · `order_notice_emails` (sipariş, `paid`). Kalemler, toplam ve onaylanan ÖBF + MSS'nin doldurulmuş metni **ek olarak** (sürüm bağlantılarıyla); ek yoksa güncel metin bağlantıları - aşağıda "Ek: onaylanan sözleşme" |
 | `siparis-kargoda`                      | işlemsel          | panelin kargo formu, "Kargoya ver", Geliver'ın teslim olayı · `order_notice_emails` (sipariş, `shipped:<numara özeti>`) |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
-| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı |
-| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı |
+| `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı + onaylanan karaoke sözleşmesinin doldurulmuş metni ek olarak |
+| `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
+| `karaoke-iptal-istegi`                 | işlemsel          | misafirin telefonla ya da e-postayla geç iptal isteği, kural iade vermiyor: rezervasyon iptal edilmez (`notifyLateCancelRequest`) · kilit yok, her panel kaydı bir istek |
 | `sadakat-ikram`                        | işlemsel          | `sendLoyaltyRewardEmail` hazır, **çağıran yok**                                 |
+| `hesap-silme-talebi`                   | işlemsel          | üye `/uye/hesap/sil`'den silme talebi gönderdi (`requestAccountDeletionAction`) · yalnız talep **açıldığında**, `account-deletion-<üye>-<talep anı>-member` |
+| `hesap-silindi`                        | işlemsel          | ekip panelden "Hesabı sil" ile hesabı kapattı (`closeCustomerAccountAction`), kapanmadan önceki adrese · `account-deletion-<üye>-<talep anı>-closed`; giriş kimliği kaldıysa "kapatıldı" der |
 | `bulten-kampanya`                      | **ticari (6563)** | `sendCampaignMail` · 3 ürün seçkisi + kod · `cmp-<kampanya>-b<parti>`           |
 | `mobil-uygulama`                       | **ticari (6563)** | `/admin/bulten/kampanya` "Uygulama duyurusu" · `cmp-<kampanya>-b<parti>` · mağaza linkleri olmadan seçilemez |
 | `dogum-gunu`                           | **ticari (6563)** | günlük cron (`/api/cron/birthday`) · idempotency = kuponun kendisi              |
@@ -276,9 +288,19 @@ numarası ve ödenmiş, geri alınmamış bir sipariş ister. Her bildirim önce
 `order_notice_emails`'te (sipariş, tür) satırını **talep eder**; ikinci talep
 23505 alır ve göndermez, yani tekrar eden Geliver olayı, iki kez kaydedilen
 form ya da sağlayıcının yeniden bildirdiği iade ikinci bir e-posta
-doğurmaz. Başarısız gönderim talebi bırakır (bir sonraki tetik yeniden
-dener); Resend'e `order-<sipariş>-<tür>` idempotency anahtarı da gider.
-Fatura/e-arşiv e-postası bu işin dışında: avukat ve e-arşiv kararı bekliyor.
+doğurmaz. Başarısız gönderim satırı `failed` olarak, sağlayıcının hatasıyla
+bırakır (adresler maskelenir); bir sonraki tetik onu boş bir satır gibi
+devralır ve yeniden dener. Resend'e `order-<sipariş>-<tür>` idempotency
+anahtarı da gider. Sipariş sayfasının "E-postalar" bölümü bu satırları
+listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
+`<tür>#resend-<n>` türüyle bir kez daha yollar (`resendOrderNotice`).
+Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
+e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
+ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
+Fatura e-postası bu kodun dışında: şirket e-Arşiv faturayı Paraşüt'te
+düzenler ve müşterinin siparişteki e-posta adresine gönderir (operatör, 19
+Eki 2026); sözleşme metinleri bunu yazar (`docs/LEGAL-REDLINES-2026-09.md`
+§24).
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` - ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için
@@ -336,9 +358,16 @@ pazarlama izni olan üyelere e-posta gönder" kutusu) aynı yoldan kendiliğinde
 bir `kampanya-duyuru` kampanyası açar ve gönderiyi `emailCampaignId` ile
 işaretler; sonraki kayıtlar bir daha mail çıkarmaz. Kutu yalnız **yeni** bir
 kampanya gönderisinde işaretli başlar; düzenlemede her zaman kapalıdır (eski
-bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için) ve
-işaretlenirse kayıt düğmesi "tüm üyelere bir kez gidecek" diye bir kez daha
-sorar (`src/lib/admin/post-mail-default.ts`).
+bir kampanyayı sıra düzeltirken bütün üye tabanına yollamamak için;
+`src/lib/admin/post-mail-default.ts`). İşaretliyken kayıt önce bir pencerede
+sorar: pazarlama izni olan kaç üyeye gideceğini (kuyruğun okuduğu sayım)
+yazar ve sayı geri yazılınca kaydeder, kampanya sayfasındaki "Gönder" gibi
+(karar D15); sayılamazsa bunu söyler ve GÖNDER yazdırır
+(`src/app/admin/mobil/gonderiler/post-mail-confirm.ts`). Kampanya sayfası gibi `newsletter`
+yetkisi de ister (karar D27; yoksa kutu kapalıdır, action da göndermez). Ne
+olduğunu kaydın toast'ı söyler (kuyruğa alındı, kimseye gitmedi, kuyruğa
+alınamadı, gönderi yayında olmadığı için gitmedi); gönderi listesindeki
+"E-posta" sütunu kampanyanın kendi durumunu gösterir.
 
 Motor `src/lib/email/campaigns.ts`; veri `campaign_emails` +
 `campaign_email_sends`; şema ve beş plpgsql fonksiyonu (kitle, sayım, kuyruk,
@@ -433,7 +462,7 @@ Bağlantı hem altbilgide hem `List-Unsubscribe` /
 1. **Taslak** - şablon + alanlar + kitle. Alanlar `campaignFieldsSchema`'dan
    geçer (bilinmeyen anahtar düşer, uzunluk sınırı, `https` zorunlu);
    tarayıcı tarafında `required` yoktur - yarım taslak kaydedilir, eksik
-   alanı "Gönder" adıyla reddeder. "Bana test gönder" tek gerçek gönderimdir:
+   alanı "Gönder" adıyla reddeder. "Test gönder" tek gerçek gönderimdir:
    AD = Test, çıkış bağlantısı sahte ama üyelerinkiyle aynı yolda
    (`/api/bulten/cikis?token=onizleme` - başlıklar da aynı, uç ona 200
    "Bağlantı geçersiz" der), gönderim defterine yazılmaz. Alıcı yalnız
@@ -560,7 +589,7 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 
 | Yol | Program | Ne yapar |
 |---|---|---|
-| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | kampanyalar → doğum günü → imha, sırayla |
+| `/api/cron/daily` | 06:00 UTC (09:00 İstanbul) | Supabase yoklaması → kampanyalar → doğum günü → karaoke tutmaları → imha, sırayla |
 | `/api/cron/campaign-emails` | 12:00 UTC (15:00 İstanbul) | zamanlanmış kampanyalar için ikinci geçiş |
 
 > ⚠️ **Kanonik ad APEX: `https://laffogato.net`** (22 Eyl 2026 kararı).
@@ -576,8 +605,9 @@ sözleşmenin §18/§19'u, panel sinyalleri) depoda bekledi.
 > Geliver kurulumu ve doğrulama planı: **`docs/GELIVER.md`**.
 
 Aradaki boşluğu `.github/workflows/campaign-hourly.yml` **ücretsiz daraltır**:
-programı `0 * * * *` olarak `/api/cron/campaign-emails`e vurur. Ama bu
-**saatlik değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
+programı `0 */3 * * *` (19 Ekim 2026'dan beri 3 saatte bir; her tur bir
+Actions dakikası sayılıyor ve Neon'u uyandırıyor) olarak `/api/cron/campaign-emails`e vurur. Ama bu
+**dakikası dakikasına değildir**: GitHub zamanlanmış işleri garanti etmez, yoğunlukta
 erteler ve atlar. Ölçüm (22-23 Eyl 2026, `gh run list`): turlar arası 2 ile
 5,5 saat. Üstüne konan bir katman, tek bayrak direği değil; iş hiç çalışmasa
 da Vercel'in 06:00 ve 12:00 UTC geçişleri alır. Hiçbir kampanya kaybolmaz,
@@ -614,7 +644,7 @@ Vercel başlığı kendisi ekler; yapılacak tek şey ortam değişkenini tanım
 
 | Görev                       | Kim, ne sıklıkla                                                  | Ne yapar                                                                                                                             |
 | --------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | aşağıdaki kampanya işi, sonra doğum günü, en son imha                                                                                |
+| `/api/cron/daily`           | Vercel, `0 6 * * *` (UTC)                                         | önce Supabase yoklaması (`docs/SUPABASE-GECIS.md` §0), sonra aşağıdaki kampanya işi, doğum günü, karaoke tutmaları, en son imha      |
 | `/api/cron/campaign-emails` | Vercel `0 12 * * *` (UTC) + GitHub Actions (2-5,5 saatte bir)     | (1) `scheduledAt`'i gelmiş taslakları kuyruğa alır, (2) `queued`/`sending` her kampanyayı kaldığı yerden sürdürür; ortak süre 240 s |
 | `/api/cron/birthday`        | programda değil (işi `/api/cron/daily` yapar)                     | o günün doğum günleri: kupon herkese, kutlama yalnız izin verene                                                                     |
 
@@ -685,6 +715,10 @@ aranmaz, çıkış bağlantısı konmaz.
   okunur - `krk-00042`, mailde `KRK-00042`.
 - **Tetikleyicinin tek çağıranı** panelin Onayla / İptal düğmeleridir; üye
   kendine mail attıramaz.
+- **Geçmiş akşam:** saati geçmiş, köşkte ödenecek bir rezervasyonu panelden
+  iptal etmek (müşteri gelmedi) mail göndermez (`setReservationStatus`
+  `notify: false`, karar D7); saati geçmiş bir rezervasyon panelden
+  onaylanmaz, onay maili de gitmez.
 - **IDEMPOTENCY** `UPDATE`'in durum kilididir: satır bir kez geçer, ikinci
   basış yarışı kaybeder ve maile hiç ulaşmaz.
 - Sağlayıcı hatası rezervasyonu **düşürmez** (sipariş mailindeki kalıp), ama
@@ -713,13 +747,53 @@ kesinleşti, `Idempotency-Key: karaoke-<id>-paid`; ödenmemiş rezervasyon için
 yanıt vermediği iade, ikinci tahsilat, süresi dolmuş rezervasyona gelen ödeme,
 tutar uyuşmazlığı; `karaoke-<id>-<olay>`).
 
+**Rezervasyonun kendi kuralı (18 Eki 2026, P2a).** İptal kuralı panelden
+ayarlanır (Ayarlar → Karaoke) ve her rezervasyon kendi kuralını saklar; mail
+şablonu iki cümleyi artık sabit yazmaz, rezervasyonun kaydından alır:
+`[KARAOKE_IADE_KURALI]` ve `[KARAOKE_GEC_KURALI]` (varsayılan 2 saat / %0
+kuralında yukarıdaki iki cümlenin aynısı). Köşkte ödenecek rezervasyonda
+`[KARAOKE_MEKAN_SURE]` sayfadan ne zamana kadar iptal edilebileceğini söyler;
+hiçbir üye iptalinin kabul edilmediği kuralda bunun yerine `KARAOKE_MEKAN_ARA`
+("bizi ara") gider. İptal maili iade edilen gerçek tutarı yazar: tamamı
+(`KARAOKE_IADE`), geç iptal payı iade edildi (`KARAOKE_KISMI_IADE_EDILDI`) ya
+da pay borçlu ve ekip elle iade edecek (`KARAOKE_KISMI_IADE`: tutar, "kartına
+iade edilir", tarih sözü yok; ekip "Elle iade edildi" deyince ikinci mail
+gider). Payı borçlu iptalde ekibe `sendKaraokeMoneyAlertEmail` ile "Geç iptal:
+kısmi iade bekliyor" gider (`late-share-<ref>`).
+
+**Personel iptalinin nedeni (19 Eki 2026, ASK-OTH-3 (c), ASK-Y3-4 (c)).**
+Ödenmiş rezervasyonu panelden iptal eden kişi nedeni sabit listeden seçer
+(`src/lib/mobile/karaoke-cancel-cause.ts`); yazdığı not yalnız denetim
+kaydında kalır, maile hiçbir alan taşımaz. `karaoke-iptal` açılışı nedene
+göre değişir: işletme nedeni (`ariza`, `kapanis`, `mucbir`, `diger`)
+`KARAOKE_ISLETME` ("Rezervasyonunu biz iptal etmek zorunda kaldık:
+[KARAOKE_NEDEN]. Özür dileriz.") ve `KARAOKE_TAM_IADE` ("... tutarın tamamını
+kartına iade ettik"); bu mail MSY m.16/4'ün yazılı bildirimidir ve iptal
+anında çıkar. Misafirin telefonla ya da e-postayla ilettiği istek
+(`misafir`) `KARAOKE_ISTEK` ("İsteğin üzerine ..."); saatin başka misafire
+verilmesi (`yeniden`) `KARAOKE_YENIDEN`. Üyenin kendi iptali bugünkü
+sözleriyle kalır (`KARAOKE_IPTAL_GENEL`). Bir açılış ve en çok bir para
+satırı (`karaokeCancellationFlags`). Misafirin geç isteğine kural iade
+vermiyorsa rezervasyon iptal edilmez ve `karaoke-iptal-istegi` gider:
+rezervasyon onun adına durur, kodunu devredebilir, saat başkasına verilirse
+tamamı iade edilir. Akşam bittikten sonra kaydedilen istek yalnız denetim
+kaydına girer, mail gitmez (karar D7). Onay maili son ücretsiz iptal anını yazar
+(`[KARAOKE_SON_IPTAL]`, karaoke koşulları §7).
+
 ### Karaoke - yeni talep bildirimi (operatöre)
 
 Bir karaoke saati istendiği anda - uygulamadan (`POST /karaoke/reservations`)
 ya da web `/karaoke` formundan (`bookKaraokeAction`) - köşke düz metin bir
 **iç** e-posta gider (`sendKaraokeOperatorEmail`). Alıcı Ayarlar → Karaoke →
-**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`, 26 Eyl 2026'dan
-beri `bizimfutbol9@gmail.com`); boşsa genel iletişim adresi (`settings.email`).
+**Talep bildirimi e-postası** (`settings.karaokeNotifyEmail`); boşsa genel
+iletişim adresi (`settings.email`). 19 Ekim 2026'dan beri boş: bildirim
+şirketin Türkiye'de barındırılan kurumsal kutusuna gider. 26 Eyl 2026'da buraya
+yazılan kişisel Gmail adresi misafirin adını, e-postasını, telefonunu ve notunu
+Google'ın yurt dışındaki sunucularında tutuyordu (KVKK m.9; standart sözleşme
+yok); `20261019160000_karaoke_notify_company_mailbox.sql` onu temizledi.
+Buraya ya da Ayarlar → Bildirimler'e Gmail gibi yurt dışındaki kişisel bir
+kutu yazılmaz; kurumsal kutu da Gmail'e yönlendirilmez ya da Gmail'den
+okunmaz (aktarım geri gelir).
 
 - Müşteri maillerinin tasarımıyla gider (`operasyon-bildirim.html`, bkz.
   `src/lib/email/templates/README.md` "Ekibe giden mailler"); konu satırı
@@ -746,15 +820,22 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
   başına 100), `Idempotency-Key: order-<id>-staff-new-<alıcı listesinin özeti>-b<n>`
   (adres anahtara yazılmaz). 429, 5xx ya da bağlantı hatası aynı anahtarla iki
   kez daha denenir (1 sn, 2,5 sn; `Retry-After` en çok 3 sn beklenir).
-  Hiçbir alıcıya ulaşılamazsa satır bırakılır ve **aynı ödemenin** sonraki
+  Hiçbir alıcıya ulaşılamazsa satır `failed` olarak bırakılır ve **aynı ödemenin** sonraki
   onayı (bankanın dönüşü, tekrar gelen webhook) maili yeniden dener - yalnız
   `paidAt`'ten sonraki **30 dakika** içinde. Daha uzun bir sağlayıcı kesintisinde
   sipariş panelden görülür; geç gelen "yeni sipariş" maili mutfağı yanıltır.
 - **Alıcılar** (Ayarlar → Bildirimler, yalnız sahip): işaretli rollerdeki aktif
   panel kullanıcıları ve env yöneticileri, ek adresler (en çok 20) ve operasyon
-  adresi; küçük harfe çevrilir, her adres bir kez. Kasiyerin düğmesi kasaya,
+  adresi; küçük harfe çevrilir, her adres bir kez. Gmail, Hotmail, iCloud gibi
+  kişisel bir kutuya hiçbir kaynaktan gitmez (`isConsumerMailbox`; sipariş
+  bilgisi yurt dışındaki bir sunucuda kalırdı, KVKK m.9, LEGAL-REDLINES §15.6):
+  panel böyle bir ek adresi ya da operasyon adresini kaydetmez, env veya panel
+  hesabı böyleyse o hesap atlanır. Hesap silme talebi bildirimi de aynı
+  kuralla gider. Kasiyerin düğmesi kasaya,
   diğerlerininki siparişe gider. Olay kaydı adresleri metin olarak yazmaz:
-  sayı, eklenen/çıkarılan adet ve alan adları.
+  sayı, eklenen/çıkarılan adet ve alan adları. E-postayı kapatmak ve açık
+  bırakıp kimseye gitmeyecek bir alıcı listesi kaydetmek (aynı
+  `resolveStaffRecipients` kuralıyla sayılır) onay ister.
 - **İçerik (KVKK m.4 ölçülülük):** sipariş no, kanal, tür, teslimat ya da masa,
   planlı saat, ürünler, toplam, ödeme yolu ve müşterinin **yalnız adı** (e-posta
   ya da telefona benzeyen "ad" düşer). Soyad, telefon, e-posta, adres yazılmaz;
@@ -762,6 +843,36 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
 - Üyenin ya da panelin yazdığı metin şablon alanı sayılmaz: notta "[OK]",
   üründe "Kahve [250G]" olduğu gibi gider (`fill.ts` tek geçişte doldurur,
   eksik alan şablonun kendisinden aranır).
+
+### Hesap silme talebi (ekibe ve üyeye, 18 Eki 2026)
+
+Sitede hesap artık üyenin tıklamasıyla silinmez (operatör: "hesabı silme
+sadece bize ulaşarak olsun"): `/uye/hesap/sil` ekibe talep gönderir, ekip
+panelden kapatır. Uygulamadaki "Hesabımı sil" (`DELETE /api/mobile/v1/me`)
+eskisi gibi anında siler.
+
+- **Ekibe** (`src/lib/email/account-deletion-notice.ts`, `operasyon-bildirim`):
+  talep açıldığında ve geri alındığında. Alıcılar `customers` yetkisi olan
+  roller (sahip, yönetici; aktif panel kullanıcısı ve env yöneticileri, sipariş
+  bildirimindeki kuralla) ve operasyon adresi, o boşsa sitenin genel adresi.
+  Sipariş bildiriminin aç/kapa düğmesi ve rol listesi bunu etkilemez: KVKK
+  başvurusu her durumda birine ulaşmalı. Tek toplu istek, anahtar
+  `account-deletion-<üye>-<talep anı>-staff-opened|staff-withdrawn`.
+  İçerik (KVKK m.4/2-ç): üye no, yalnız ad, maskeli adres, talep tarihi, son
+  gün (talepten 30 gün) ve gerekçe **yazılıp yazılmadığı** - gerekçenin kendisi
+  panelde.
+- **Üyeye:** `hesap-silme-talebi` (talep alındı, son gün, geri alma yolu) ve
+  ekip kapatınca `hesap-silindi`. İkisi de işlemsel: çıkış bağlantısı yok
+  (kural 19).
+- Gönderim talebi ya da kapanışı hiçbir zaman bozmaz; başarısızlık log'a
+  maskeli adresle düşer, kapanışta panel bildirimine bir cümle ekler.
+- **Talep açıkken ticari posta yok** (migration `20261018090100`): 6563
+  m.8/3 rette üç iş günü verir, sitenin İleti onayı metni üyeliğin sona
+  ermesini ret sayar; talep geldiği anda ret gibi işlenir.
+  `campaign_email_audience` o adresi (üye satırı da bülten abonesi satırı
+  da) kitleye almaz, sayım, kuyruk ve parti alma onu okur;
+  `birthday_greeting_audience` mail bayrağını kapatır (kupon yine verilir).
+  Onay kaydı değişmez: üye talebi geri alınca kitleye kendiliğinden döner.
 
 ### Emniyet kilitleri
 
@@ -771,6 +882,67 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
 - `VERCEL_ENV` tanımlı ve `production` değilse gerçek gönderim reddedilir
   (`skipped` + `failed`): her bağlantı önizleme adresine işaret ederdi.
 - `CAMPAIGN_EMAIL_DRY_RUN=1` - derle, `skipped` işaretle, HTTP yok.
+
+### Ek: onaylanan sözleşme (21 Eki 2026)
+
+Karar ASK-DURABLE: ödeme onayı (`odeme-onaylandi`) ve ödenmiş karaoke
+rezervasyonunun onayı (`karaoke-rezervasyon`), müşterinin onayladığı
+belgelerin **o sürümünü** sipariş ya da rezervasyon bilgileriyle doldurulmuş
+tek bir HTML dosyası olarak taşır (`src/lib/legal/durable-copy.ts`):
+`siparis-<NO>-on-bilgilendirme-ve-sozlesme.html`,
+`karaoke-sozlesme-<KOD>.html`. Dosya onay kaydındaki hash'lerden
+(`legalConsent.textHashes`) `legal_doc_versions` tablosundan okunur, bugünkü
+metinden değil; satır içi CSS, 16 px, yazdırmaya uygun, görsel, font, betik
+ya da bağlantı yok; içindeki her değer kaçışlanır.
+
+- **Yalnız tekil gönderim.** `deliver()` Resend'in `/emails` ucuna
+  `attachments: [{ filename, content: <base64> }]` ekler. Toplu uç
+  (`deliverBatch`, `/emails/batch`, kampanyalar) mesajı alan alan kurar ve hiç
+  ek taşımaz.
+- **E-postayı geciktirmez, düşürmez.** İki onay ödeme dönüşünün içinde
+  beklenir; ek dahil tek bir süreye sığar (`src/lib/email/budget.ts`
+  `MAIL_BUDGET`): ödeme onayı her zamanki **9,5 sn** (4 sn, 1,5 sn ara, 4 sn),
+  karaoke onayı **5,5 sn** (eskisi gibi tek 4 sn deneme ve ekin payı). Ekin
+  payı **1,5 sn**'dir ve yükleyicinin modül yüklemesi de bu süreye dahildir
+  (`durableCopyWithin`). Hiçbir deneme 1 sn'den az kala başlamaz, her deneme
+  kalan süreyle kesilir, sığmayan ikinci deneme yapılmaz. Ek bu sürede
+  kurulamazsa, onay kaydında hash yoksa (21 Ekim 2026'dan önceki ve manuel
+  siparişler) ya da sürüm bulunamazsa e-posta eksiz ve eski cümleyle
+  ("bağlantılar belgelerin güncel metnini açar") gider; log yalnız sipariş ya
+  da rezervasyon kimliğini yazar (adres yok, kural 9). İşlem Rehberi §8 bu
+  durumda metni e-postayla isteme yolunu söyler.
+- **Bir ileti, bir anahtar.** Resend eki içeren iletiyi 4xx ile (429 ve 409
+  hariç) reddederse aynı ileti eksiz, `<anahtar>-ek-yok` idempotency
+  anahtarıyla, kalan süreye sığarsa bir kez daha gönderilir. **409 hiçbir
+  zaman ret sayılmaz** (inceleme M1, 21 Eki 2026): `concurrent_idempotent_requests`
+  aynı anahtarlı ilk isteğin hâlâ işlendiğini, `invalid_idempotent_request`
+  ise o anahtarla gövdesi farklı bir isteğin (bir tetikte eksiz, sonrakinde
+  ekli) 24 saat içinde **alındığını** söyler. İlki başarısız sayılır ve
+  `-ek-yok` gönderilmez; ikincisi gönderilmiş sayılır (ileti çıktı, ikinci
+  kopya gitmez). 5xx ve zaman aşımında da `-ek-yok` gönderilmez (ilk istek
+  ulaşmış olabilir), sipariş bildirimi kendi yeniden deneme yolunu izler.
+- **Cümle yalnız ek varken.** "...tam metni bu e-postanın ekindedir" bloğu
+  (`BELGE_EKI`, karaokede `KARAOKE_BELGE_EKI`) yalnız gönderen ekin iletiye
+  girdiğini söylediğinde VE sürüm bağlantıları doluysa açılır (`render.ts`);
+  aksi hâlde eski satır (`BELGE_GUNCEL` / `KARAOKE_BELGE_GUNCEL`).
+- **Aynı dosya** üye sipariş sayfasından
+  (`/uye/hesap/siparislerim/<NO>/sozlesme`, yalnız oturumdaki sahibi) ve
+  karaoke rezervasyonunun kişiye özel imzalı bağlantısından
+  (`/rezervasyon/sozlesme?t=`) indirilir; başka herkese aynı 404. Okuma
+  başarısız olursa sahibine `503` + `Retry-After: 30` (çıplak 500 değil).
+  Sipariş sayfası "Belgeleri indir"i yalnız dosya kurulabiliyorsa gösterir;
+  kurulamıyorsa e-postayla isteme cümlesini. İki yolun kendi CSP'si
+  (`sandbox`) ve `Referrer-Policy: no-referrer` başlıkları `next.config.ts`
+  ve `vercel.json`'da aynı değerle tekrarlanır: sitenin genel kuralları
+  aynı başlığı önce koyduğu için route'un değeri tek başına tele çıkmaz
+  (`tests/security-headers.test.ts`).
+- **Ek, siparişin kendi anlık görüntüsünü basar.** Alıcı adı ve teslimat
+  adresi sipariş verilirken onay kaydına yazılır (`legalConsent.buyer`);
+  panelden sonradan düzeltilen satır e-postayla giden dosyayı ve indirileni
+  değiştirmez. Karaoke dosyası rezervasyonun kendi son ücretsiz iptal anını
+  basar; rezervasyon o andan sonra yapıldıysa yanına "rezervasyon
+  yapıldığında geçmişti; her iptal geç iptal sayılır" yazar (onay
+  e-postasının söylediği gibi).
 
 ### Resend sınırları
 

@@ -80,7 +80,7 @@ describe("transitionOrder writes only from the status it decided on", () => {
     expect(body).toMatch(/\.eq\("status", existing\.status\)/);
     // Stock and loyalty follow only a write that actually happened.
     expect(body.indexOf("moved.length === 0")).toBeLessThan(
-      body.indexOf("releaseOrderInventory(existing)"),
+      body.indexOf("releaseOrderInventory(existing,"),
     );
   });
 });

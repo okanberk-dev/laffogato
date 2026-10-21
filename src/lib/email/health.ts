@@ -54,6 +54,8 @@ interface ResendDomain {
  * green while they are watching.
  */
 const TTL_MS = 120_000;
+/** How long the dashboard's check waits for Resend's domain list. */
+const HEALTH_LOOKUP_TIMEOUT_MS = 3_000;
 let cached: { at: number; value: EmailHealth } | null = null;
 
 function domainOf(from: string): string {
@@ -71,12 +73,12 @@ function describe(status: DomainStatus, domain: string): string {
     case "verified":
       return "";
     case "absent":
-      return `${domain} Resend hesabında kayıtlı değil. Resend → Domains'ten ekleyip DNS kayıtlarını gir.`;
+      return `${domain} Resend hesabında kayıtlı değil. Resend panelinde Domains bölümünden ekleyip DNS kayıtlarını gir.`;
     case "not_started":
     case "pending":
       return `${domain} henüz doğrulanmadı - DNS kayıtları bekleniyor. Doğrulanana kadar hiçbir e-posta gönderilmez.`;
     case "failed":
-      return `${domain} doğrulaması başarısız. DKIM veya SPF kaydı eksik ya da hatalı; Resend → Domains ekranı hangisinin tutmadığını gösterir.`;
+      return `${domain} doğrulaması başarısız. DKIM veya SPF kaydı eksik ya da hatalı; Resend panelindeki Domains bölümü hangisinin tutmadığını gösterir.`;
     case "temporary_failure":
       return `${domain} doğrulaması geçici olarak tutmadı. Resend yeniden deneyecek; sürerse DNS kayıtlarını kontrol et.`;
     default:
@@ -84,18 +86,25 @@ function describe(status: DomainStatus, domain: string): string {
   }
 }
 
-async function lookup(domain: string, key: string): Promise<DomainStatus> {
+async function lookup(
+  domain: string,
+  key: string,
+  signal?: AbortSignal,
+): Promise<DomainStatus> {
   try {
     const res = await fetch("https://api.resend.com/domains", {
       headers: { Authorization: `Bearer ${key}` },
       // Never cached by the fetch layer; the cache above is the one we want.
       cache: "no-store",
+      ...(signal ? { signal } : {}),
     });
     if (!res.ok) return "unknown";
     const body: unknown = await res.json();
     const list =
-      body && typeof body === "object" && Array.isArray((body as { data?: unknown }).data)
-        ? ((body as { data: ResendDomain[] }).data)
+      body &&
+      typeof body === "object" &&
+      Array.isArray((body as { data?: unknown }).data)
+        ? (body as { data: ResendDomain[] }).data
         : [];
     const match = list.find(
       (d) => typeof d.name === "string" && d.name.toLowerCase() === domain,
@@ -131,10 +140,19 @@ export async function emailHealth(): Promise<EmailHealth> {
       status: "unknown",
       ok: false,
       message:
-        "RESEND_API_KEY tanımlı değil - e-postalar gönderilmiyor, yalnızca sunucu günlüğüne yazılıyor.",
+        "E-posta sağlayıcısı bağlı değil: e-postalar gönderilmiyor. Geliştiriciye ilet: sunucuda RESEND_API_KEY tanımlı değil.",
     };
   } else {
-    const status = await lookup(domain, key);
+    // A Resend that does not answer must not hold the dashboard: every panel
+    // landing waited on this fetch with no limit (admin audit SHE-29). After
+    // 3 s the abort lands in lookup's catch as "unknown", which raises no
+    // alarm, and is kept like any answer: a slow Resend costs one render
+    // 3 s every two minutes, not every render.
+    const status = await lookup(
+      domain,
+      key,
+      AbortSignal.timeout(HEALTH_LOOKUP_TIMEOUT_MS),
+    );
     value = {
       hasProvider: true,
       from: identity.from,
@@ -148,6 +166,25 @@ export async function emailHealth(): Promise<EmailHealth> {
   }
   cached = { at: now, value };
   return value;
+}
+
+/** How long a settings save waits for Resend's domain list. */
+const SENDER_LOOKUP_TIMEOUT_MS = 3_000;
+
+/**
+ * Resend's verdict on the domain of a sender the operator typed and has not
+ * saved yet. Ayarlar → E-posta asks before saving one Resend would refuse,
+ * since that stops every mail the site sends, verification links included.
+ * "unknown" without a key, for an address with no domain, or when Resend
+ * does not answer within 3 s; the save then goes ahead without asking.
+ */
+export async function senderDomainStatus(
+  address: string,
+): Promise<DomainStatus> {
+  const key = process.env.RESEND_API_KEY;
+  const domain = domainOf(address);
+  if (!key || !domain) return "unknown";
+  return lookup(domain, key, AbortSignal.timeout(SENDER_LOOKUP_TIMEOUT_MS));
 }
 
 /** Drops the cache so a save or a test send is reflected at once. */

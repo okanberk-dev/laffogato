@@ -54,7 +54,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -77,7 +77,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "1. Formun Amacı, Konusu ve Hukuki Niteliği",
         paragraphs: [
           "Bu Ön Bilgilendirme Formu, {{LEGAL_NAME}} ({{BRAND}} markası ile faaliyet gösterir; bundan sonra SATICI olarak anılacaktır) tarafından {{SITE_URL}} adresinde işletilen internet sitesi ile iOS ve Android için yayımlanan {{BRAND}} mobil uygulaması ve bunlar üzerinden erişilen online mağaza (bottega) ile mobil uygulamadaki kafe siparişi bölümü üzerinden mesafeli olarak satışa sunulan mal ve hizmetlere ilişkin olarak, siparişi veren tüketicinin (bundan sonra ALICI olarak anılacaktır) sipariş vermeden ve herhangi bir ödeme yükümlülüğü altına girmeden önce bilgilendirilmesi amacıyla, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri uyarınca düzenlenmiştir.",
-          "Form, Mesafeli Sözleşmeler Yönetmeliği'nin ön bilgilendirmeye ilişkin hükmünde sayılan tüm bilgi kalemlerini kapsamakta olup, ALICI'nın okuyup anladığını elektronik ortamda ayrı bir onay kutucuğu ile teyit etmesi, Mesafeli Satış Sözleşmesi'nin kurulmasının ön şartıdır. ALICI bu formu onaylamadığı sürece sipariş süreci tamamlanamaz ve ödeme adımına geçilemez.",
+          "Form, Mesafeli Sözleşmeler Yönetmeliği'nin ön bilgilendirmeye ilişkin hükmünde sayılan tüm bilgi kalemlerini kapsamakta olup, ALICI'nın okuyup anladığını elektronik ortamda ayrı bir onay kutucuğu ile teyit etmesi, Mesafeli Satış Sözleşmesi'nin kurulmasının ön şartıdır. ALICI bu formu onaylamadıkça sipariş verilemez ve ödeme alınmaz.",
           "Bu form tek başına bir satış sözleşmesi değildir; sözleşme öncesi bilgilendirme belgesidir. Taraflar arasındaki hak ve yükümlülükler, ALICI tarafından ayrıca onaylanacak Mesafeli Satış Sözleşmesi ile kurulur. Formda yer alan bilgiler ile Mesafeli Satış Sözleşmesi arasında tüketici aleyhine bir çelişki bulunması hâlinde, tüketici lehine olan hüküm uygulanır.",
           "Bu formda yer alan hiçbir hüküm, tüketicinin 6502 sayılı Kanun ve ilgili mevzuattan doğan emredici haklarını sınırlandıracak, ortadan kaldıracak veya tüketiciyi bu haklarından feragat ettirecek şekilde yorumlanamaz.",
         ],
@@ -143,7 +143,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "3. Satıcı (Hizmet Sağlayıcı) Bilgileri",
         paragraphs: [
-          "Mesafeli Sözleşmeler Yönetmeliği ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca satıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. ALICI, sözleşme ilişkisinin her aşamasında bu bilgilere {{SITE_URL}} adresinden, mobil uygulamanın bilgilendirme bölümünden ve aşağıdaki iletişim kanallarından ulaşabilir.",
+          "Mesafeli Sözleşmeler Yönetmeliği ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca satıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. ALICI, sözleşme ilişkisinin her aşamasında bu bilgilere {{SITE_URL}} adresinden, mobil uygulamanın bilgilendirme bölümünden ve aşağıdaki iletişim kanallarından ulaşabilir.",
           "SATICI, tabi olduğu ölçüde 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin hükümleri ile 5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve elektronik ticaret mevzuatından doğan tanıtıcı bilgi ve içerik sorumluluğu yükümlülüklerini yerine getirir. Yukarıdaki tabloda yer alan bilgilerde değişiklik olması hâlinde güncel bilgiler gecikmeksizin {{SITE_URL}} adresinde ve mobil uygulamada yayımlanır.",
         ],
         table: [
@@ -265,7 +265,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Toplam Bedel, Vergiler ve Ek Masraf Kalemleri",
         paragraphs: [
-          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı yürürlükteki vergi mevzuatına uygun şekilde belirlenir; fiziksel ürünlerde güncel oran %20'dir. Vergi oranlarında mevzuat değişikliği olması hâlinde, sipariş tarihinde yürürlükte olan oran uygulanır.",
+          "{{SITE}} ve {{BRAND}} mobil uygulamasında gösterilen tüm fiyatlar Türk Lirası (TRY) cinsinden ve Katma Değer Vergisi dâhil olarak belirtilir. Uygulanan KDV oranı, yürürlükteki vergi mevzuatına göre her ürünün ve hizmetin tabi olduğu orandır. Kargo veya kurye bedeli faturada ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir. Her kalemin KDV oranı ve tutarı faturada gösterilir. Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez.",
           "ALICI'nın ödeyeceği toplam bedel; ürünlerin vergiler dâhil satış bedelleri toplamından varsa promosyon kodu veya kupon indirimi düşülerek, üzerine varsa kargo veya kurye ücreti eklenmek suretiyle hesaplanır. Hesaplamanın her bir kalemi sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı ayrı gösterilir. Sipariş özetinde gösterilen tutar dışında ALICI'dan herhangi bir ad altında ilave ücret talep edilmez.",
           "Ücretsiz içecek kuponu gibi bir kupon kullanılmışsa, kuponun karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilerek vergiler dâhil toplam bedelden düşülür ve yalnızca kalan tutar tahsil edilir. Sadakat (damga) programındaki damgaların kendi başına parasal bir karşılığı yoktur; sipariş bedeli damga ile ödenemez. Sipariş toplamı kupon veya promosyonla sıfıra iniyorsa sipariş, kart ile ödeme alınmadan tamamlanır; kurye ile teslim edilen kafe siparişlerinde ise kurye ücreti kupon veya promosyonla karşılanmaz ve ayrıca ödenir.",
           "Fiyatlar, ALICI tarafından siparişin onaylandığı an itibarıyla bağlayıcıdır. Sipariş onayından sonra yapılan fiyat değişiklikleri, tamamlanmış siparişe uygulanmaz. Bariz yazım/sistem hatasından kaynaklanan ve tüketicinin de kolayca fark edebileceği açık fiyat hatalarında SATICI durumu derhâl ALICI'ya bildirir; ALICI dilerse siparişi doğru bedel üzerinden sürdürebilir, dilerse siparişi bedelsiz olarak iptal edebilir ve tahsil edilmiş tutar iade edilir.",
@@ -280,8 +280,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Tüm vergiler dâhil",
           },
           {
-            key: "KDV oranı (fiziksel ürün)",
-            value: "%20",
+            key: "KDV oranı",
+            value:
+              "Ürünün tabi olduğu yasal oran (fiyatlara dâhil, faturada kalem kalem gösterilir)",
           },
           {
             key: "Kupon ile indirim",
@@ -312,14 +313,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, SATICI sunucusunun PayNkolay işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır ve kesinleşir. Aynı işlem referansı ikinci kez kaydedilemez; bu nedenle aynı ödeme iki siparişi kapatamaz. Ödeme sayfasından siteye veya uygulamaya dönülmeden tarayıcı kapanırsa SATICI, ödemesi tamamlanmamış görünen siparişi yaklaşık 45 dakika sonra iptal etmeden önce ödemenin durumunu PayNkolay'a sorar; ödeme alınmışsa sipariş ödenmiş olarak işlenir. Aynı sipariş için birden fazla tahsilat oluştuğu tespit edilirse fazla tahsil edilen tutar ödemenin yapıldığı karta iade edilir ve ALICI'ya bilgi verilir.",
           "Ödemeler tek çekim olarak alınır; taksit seçeneği sunulmamaktadır. Kartı veren bankanın kendi uygulamasıyla sonradan yaptığı taksitlendirme, erteleme veya puan kampanyaları banka ile kart hamili arasındaki ilişkiye tabidir ve SATICI bu kampanyaların uygulanmasından sorumlu değildir.",
           "Tutar, ALICI ödemeyi kartı veren bankanın 3D Secure ekranında onayladığı anda tahsil edilir; ön provizyon (tutarı önce bloke edip sonra tahsil etme) yöntemi kullanılmaz. Sipariş sonradan iptal edilirse tahsil edilen tutar, bu formun 13. maddesindeki usulle ödemenin yapıldığı karta iade edilir.",
-          "Kart saklama özelliği açıldığında, üye olan ALICI ödeme sayfasındaki \"Bu kartı sonraki ödemeler için kaydet\" kutucuğunu işaretleyerek kartını kaydedebilir; kutucuk işaretsiz başlar, kart kaydetmek isteğe bağlıdır ve işaretlenmedikçe hiçbir kart kaydedilmez. Bu özellik açılana kadar hiçbir kart kaydedilmez. Kayıtlı kart SATICI tarafından değil, PayNkolay'ın kart saklama hizmeti tarafından saklanır; SATICI yalnızca PayNkolay'ın kayıtlı kartları üyeyle eşleştirmek için kullandığı 11 karakterlik rastgele bir üye anahtarını tutar. Bu anahtar T.C. kimlik numarası veya telefon numarası değildir ve içinde kişisel bir bilgi barındırmaz; kartla ilgili başka hiçbir bilgi SATICI'nın veri tabanına eklenmez. Ödeme sayfasında kayıtlı kart, son dört hanesi, kart markası veya kartı veren banka ve karta verilen ad ile listelenir. Kayıtlı kartla yapılan ödemelerde de 3D Secure doğrulaması uygulanır. Üye, kayıtlı kartını ödeme sayfasından her zaman silebilir; üyelik hesabı silinirken SATICI önce üyeye ait kayıtlı kartların silinmesini PayNkolay'dan ister.",
+          "Kart bilgileri sonraki ödemeler için kaydedilmez: SATICI kart bilgisi saklamaz, PayNkolay'dan da kartın saklanmasını istemez; her ödemede kart bilgileri yeniden girilir.",
           "Mobil uygulama üzerinden verilen siparişlerde de ödeme aynı şekilde PayNkolay üzerinden alınır; ödeme sayfası cihazın tarayıcı penceresinde açılır. uygulama mağazası (App Store, Google Play) üzerinden satın alma yapılmaz ve uygulama mağazaları satış ilişkisinin tarafı değildir.",
           "Online siparişlerde ödeme yalnızca kart ile alınır; kredi kartları ile internetten alışverişe açık banka kartları kabul edilir. Havale/EFT, kapıda ödeme, dijital cüzdan (Apple Pay, Google Pay vb.) ile ödeme ve işletmede nakit tahsilat online siparişler bakımından sunulmamaktadır. Ödemesi tamamlanmayan siparişlerin iptali ALICI aleyhine herhangi bir bedel doğurmaz.",
         ],
         bullets: [
           "İnternetten alışverişe açık kredi kartı ve banka kartı ({{SITE}} üzerindeki güvenli ödeme sayfasında, PayNkolay altyapısıyla ve 3D Secure ile)",
           "Tek çekim ödeme; taksit, ön provizyon ve dijital cüzdan (Apple Pay, Google Pay vb.) ile ödeme sunulmaz",
-          "Üyeler için isteğe bağlı kayıtlı kart (kart saklama özelliği açıldığında; kart PayNkolay'ın kart saklama hizmetinde saklanır, kayıtlı kartla ödemede de 3D Secure uygulanır)",
           "Kupon veya promosyonun sipariş toplamını sıfıra indirdiği hâllerde kart ile ödeme alınmaz",
           "Yabancı para cinsinden kartlarla yapılan ödemelerde kur ve işlem masrafı, kartı düzenleyen bankanın tarifesine tabidir",
         ],
@@ -373,7 +373,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Varsa promosyon kodunun girilmesi veya hesaba tanımlı bir kuponun (ücretsiz içecek kuponu gibi) kullanılması ve indirimin sepete yansıtılması; bir siparişte yalnızca bir kod veya kupon kullanılabilir.",
           "Sipariş özetinin gösterilmesi: ürünler, birim ve toplam bedeller, vergiler, kargo veya kurye ücreti, indirimler ve genel toplam.",
           "Bu Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'nin okunması ve her biri için ayrı onay kutucuğunun işaretlenmesi.",
-          "Kart bilgilerinin {{SITE}} üzerindeki güvenli ödeme sayfasında girilmesi (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır; kart saklama özelliği açıldığında üye, kayıtlı kartını da seçebilir) ve ödemenin kartı veren bankanın 3D Secure ekranında onaylanması; sipariş toplamı kupon veya promosyonla sıfıra iniyorsa bu adım uygulanmaz.",
+          "Kart bilgilerinin {{SITE}} üzerindeki güvenli ödeme sayfasında girilmesi (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır) ve ödemenin kartı veren bankanın 3D Secure ekranında onaylanması; sipariş toplamı kupon veya promosyonla sıfıra iniyorsa bu adım uygulanmaz.",
           "SATICI sunucusunun ödeme sonucunu PayNkolay işlem doğrulama servisine sorarak teyit etmesi; ödemenin başarılı ve tahsil edilen tutarın sipariş tutarıyla aynı olması hâlinde siparişin ödenmiş olarak kesinleşmesi ve sipariş numarasının ekranda gösterilmesi.",
           "Ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada, onaylanan bu form ile Mesafeli Satış Sözleşmesi'nin ve iade ve cayma belgesinin kalıcı bağlantılarının ALICI'nın e-posta adresine iletilmesi.",
         ],
@@ -413,9 +413,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cayma hakkının bulunmadığı hâller bu maddede sayılmıştır; mobil uygulamada sipariş verilirken ödeme ekranında kafe siparişlerinde cayma hakkı bulunmadığı ayrıca gösterilir. Mobil uygulamadan verilen kafe siparişi, hazırlanmaya başlanmadan önce iptal edilebilir; iptal talebi {{PHONE}} numarasından veya {{EMAIL}} adresinden SATICI'ya iletilir. Cayma hakkının kullanılamayacağı hâller, ürünün ayıplı çıkması durumunda ALICI'nın ayıplı maldan doğan haklarını ortadan kaldırmaz.",
         ],
         bullets: [
-          "Çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünleri: yenilebilir waffle kupa, gelato kiti, soğuk zincir gerektiren ürünler ve benzeri.",
+          "Çabuk bozulabilen veya son kullanma tarihi cayma ve iade süreleri içinde geçebilecek gıda ürünleri: gelato ve soğuk zincir gerektiren diğer ürünler (Affogato Seti'ndeki gelato dahil).",
           "Doğrudan tüketime yönelik olarak hazırlanan ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yiyecek ve içecekler: kafe menüsünden hazırlanarak gel-al ya da kurye ile teslim edilen kahve, gelato ve tatlılar.",
-          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan ve iadesi sağlık/hijyen açısından uygun olmayan ürünler: açılmış kahve paketleri, açılmış pistacchio kreması ve şuruplar, ağızla temas eden ekipman parçaları.",
+          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan ve iadesi sağlık/hijyen açısından uygun olmayan ürünler: açılmış kahve paketleri, açılmış yenilebilir kup kutusu, açılmış pistacchio kreması ve şuruplar, ağızla temas eden ekipman parçaları.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan kişiye özel ürünler: isim/mesaj baskılı fincan, önlük veya tote çanta; talebe göre özel öğütülen veya özel harmanlanan kahve.",
           "Tesliminden sonra başka ürünlerle karışan ve doğası gereği ayrıştırılması mümkün olmayan ürünler.",
           "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler: belirli gün ve saate ayrılan rezervasyonlu hizmetler ve benzeri tarihli hizmetler. Karaoke odası rezervasyonu da bu kapsamdadır: ödemesi çevrim içi alınır, ödemeden önce kendi Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi (Karaoke Odası Koşulları) ayrıca onaylanır ve bu form ona uygulanmaz.",
@@ -426,8 +426,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "13. Cayma Sonrası İade Usulü, İade Kargo Masrafı ve Geri Ödeme",
         paragraphs: [
-          "ALICI, cayma bildirimini yaptığı tarihten itibaren 10 (on) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Malın, faturası, kutusu, standart aksesuarları ve varsa hediye ürünleriyle birlikte, ticari değerini yitirmeden ve yeniden satılabilirliğini engellemeyecek şekilde iade edilmesi gerekir. Ürünün ALICI'nın malın niteliğine ve işleyişine uygun olmayan kullanımından kaynaklanan değer kaybından ALICI sorumludur; olağan muayene ve deneme kapsamındaki kullanım bu nitelikte sayılmaz.",
-          "İade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağı, cayma bildirimi SATICI'ya ulaştığında ALICI'ya e-posta ile bildirilir. ALICI iadeyi bildirilen kargo firması ile ve verilen iade kodu ile gönderdiğinde iade kargo bedeli SATICI tarafından karşılanır. ALICI'nın bildirilen kargo firması yerine başka bir firmayı tercih etmesi hâlinde, aradaki fark ALICI'ya ait olur. Ürünün ayıplı olması, yanlış ürün gönderilmesi veya kargoda hasar görmesi hâllerinde iade kargo bedeli her hâlükârda SATICI'ya aittir.",
+          "ALICI, cayma bildirimini yaptığı tarihten itibaren 14 (on dört) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. ALICI malı, standart aksesuarları ve varsa kampanya kapsamında verilen hediye ürünleriyle birlikte geri gönderir; faturanın geri gönderilmesi gerekmez. ALICI, cayma süresi içinde malı işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun şekilde kullanması sonucu oluşan değişiklik ve bozulmalardan sorumlu değildir; yalnız bunun dışındaki kullanımdan doğan değer kaybından sorumludur.",
+          "İade kodu, cayma bildirimi SATICI'ya ulaştığında ALICI'ya e-posta ile bildirilir. Bu formda iade için bir taşıyıcı adlandırılmadığından iade kargo bedeli ALICI'dan talep edilmez: iade koduyla yapılan gönderinin bedelini SATICI öder; ALICI iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli SATICI tarafından ALICI'ya geri ödenir ve karşı ödemeli gönderilen iadeler de teslim alınır. Ürünün ayıplı olması, yanlış ürün gönderilmesi veya kargoda hasar görmesi hâllerinde de iade kargo bedeli SATICI'ya aittir. ALICI'nın belgelediği gönderim bedeli, ürün bedelinin iadesinden ayrı olarak ve belgenin SATICI'ya ulaşmasından itibaren 14 (on dört) gün içinde, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına havale veya EFT ile ödenir; karta yapılan iade karttan tahsil edilen tutarı aşamadığından bu bedel karta iade edilmez.",
           "SATICI, cayma bildiriminin kendisine ulaştığı tarihten itibaren 14 (on dört) gün içinde, ALICI'nın ödediği toplam bedeli ve varsa ALICI'yı borç altına sokan kıymetli evrakı iade eder; teslimat masrafları da bu iadeye dâhildir. Geri ödeme, ALICI'ya hiçbir masraf yüklenmeksizin tek seferde ve PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta yapılır; ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade işlemi olarak bankaya iletilir. Siparişin bir kısmının iadesinde de iade tutarı ödemenin yapıldığı karta yapılır; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir. Tutarın kart hesabına yansıma süresi kartı veren bankanın süreçlerine bağlıdır. Bu süreler SATICI'nın kontrolü dışında olup, SATICI iade talimatını yasal süre içinde vermekle yükümlüdür.",
           "Siparişte bir kupon kullanılmışsa, kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; ALICI'nın fiilen ödediği tutar yukarıdaki usulle iade edilir. Sipariş iptal edilirse siparişte kullanılan kupon hesaba geri tanımlanır. Siparişin iptali veya bedelinin tamamen iade edilmesi hâlinde o siparişten kazanılmış damga geri alınır.",
         ],
@@ -438,7 +438,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "Malı geri gönderme süresi",
-            value: "Cayma bildiriminden itibaren 10 gün",
+            value: "Cayma bildiriminden itibaren 14 gün",
           },
           {
             key: "SATICI'nın geri ödeme süresi",
@@ -447,7 +447,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İade taşıyıcısı",
             value:
-              "Kargo firması ve iade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kodu ile gönderimde iade kargo bedeli SATICI'ya aittir",
+              "İade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez",
+          },
+          {
+            key: "Başka bir kargo firmasıyla gönderilen iadenin bedeli",
+            value:
+              "Belgelenen bedel, belge ulaştıktan sonra 14 gün içinde ALICI'nın kendi adına kayıtlı banka hesabına ödenir",
           },
           {
             key: "İade adresi",
@@ -490,7 +495,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "16. Fatura, Belge Düzeni ve Promosyon Kodları",
         paragraphs: [
-          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak düzenlenir ve ALICI'ya iletilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
+          "Siparişe ilişkin fatura, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuata uygun olarak, ALICI'nın sipariş sırasında bildirdiği bilgiler esas alınarak e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Sipariş sırasında bildirilen bilgilerin doğruluğundan ALICI sorumludur.",
           "Promosyon kodları, kampanya sayfasında veya kodun tanıtıldığı iletide belirtilen geçerlilik süresi, asgari sepet tutarı, ürün/kategori kapsamı ve kullanım adedi sınırlarına tabidir. Kodun sağladığı indirim, sepet ekranında ve sipariş özetinde ayrı bir kalem olarak gösterilir. Aksi belirtilmedikçe promosyon kodları birleştirilemez ve nakde çevrilemez.",
           "Cayma hakkının kullanılması hâlinde geri ödeme, ALICI'nın fiilen ödediği tutar üzerinden yapılır. Kuponla karşılanan kısım için nakit ödeme yapılmaz. Kısmi iadelerde, kampanya koşulu (örneğin asgari sepet tutarı) kalan üründe artık sağlanmıyorsa indirim orantılı olarak düşülerek hesaplanır; hesaplama yöntemi iade bildiriminde ALICI'ya kalem kalem açıklanır.",
         ],
@@ -558,7 +563,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "20. Kişisel Verilerin Korunması ve Ticari Elektronik İletiler",
         paragraphs: [
-          "Sipariş sürecinde işlenen kimlik, iletişim, teslimat adresi, sipariş, ödeme işlem kaydı (maskelenmiş kart numarası ve kartı veren banka dâhil; kartın tam numarası, son kullanma tarihi ve güvenlik kodu hariç) ve işlem güvenliği verileri ile, kart saklama özelliği açıldığında kayıtlı kart kullanan üyelerde PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı rastgele üye anahtarı ve kısmi iadenin karta yapılamadığı istisnai hâllerde iade için bildirilen banka hesap bilgisi; 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında veri sorumlusu sıfatıyla {{LEGAL_NAME}} tarafından, sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak, Kanun'un genel ilkelerine uygun biçimde ve amaçla bağlantılı, sınırlı ve ölçülü olarak işlenir. Ayrıntılı bilgi için Aydınlatma Metni ve Gizlilik Politikası'na {{SITE_URL}} adresinden ve mobil uygulamadan ulaşabilirsiniz.",
+          "Sipariş sürecinde işlenen kimlik, iletişim, teslimat adresi, sipariş, ödeme işlem kaydı (maskelenmiş kart numarası ve kartı veren banka dâhil; kartın tam numarası, son kullanma tarihi ve güvenlik kodu hariç) ve işlem güvenliği verileri ile kısmi iadenin karta yapılamadığı istisnai hâllerde iade için veya iadeyi başka bir kargo firmasıyla gönderen ALICI'ya belgelediği gönderim bedelinin ödenmesi için bildirilen banka hesap bilgisi; 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında veri sorumlusu sıfatıyla {{LEGAL_NAME}} tarafından, sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak, Kanun'un genel ilkelerine uygun biçimde ve amaçla bağlantılı, sınırlı ve ölçülü olarak işlenir. Ayrıntılı bilgi için Aydınlatma Metni ve Gizlilik Politikası'na {{SITE_URL}} adresinden ve mobil uygulamadan ulaşabilirsiniz.",
           "Veriler; online mağaza siparişlerinin teslimi amacıyla kargo gönderi platformu Geliver ve gönderiyi taşıyan kargo firmasıyla (alıcı adı, teslimat adresi ve telefon numarası), kurye ile teslim edilen kafe siparişlerinde teslimatı gerçekleştiren kuryeyle, ödemenin alınması, iadesi ve itiraz süreçlerinin yürütülmesi amacıyla ödeme hizmeti sağlayıcısı PayNkolay ve ilgili bankalarla, üyelik girişinin sağlanması amacıyla kimlik doğrulama hizmeti sağlayıcısı {{AUTH_PROVIDER}} ile, işlemsel e-postaların gönderimi amacıyla e-posta altyapı sağlayıcısı Resend ile, barındırma hizmeti kapsamında Vercel ile, veri tabanı hizmeti kapsamında {{DB_PROVIDER}} (PostgreSQL) ile ve mevzuattan doğan yükümlülükler kapsamında yetkili kamu kurum ve kuruluşlarıyla paylaşılabilir. Barındırma, veri tabanı ve kimlik doğrulama hizmetleri nedeniyle yurt dışına aktarım söz konusu olduğunda, Kanun'un yurt dışına aktarıma ilişkin hükmünde öngörülen şartlara uyulur.",
           "Mobil uygulamanın kullanılması hâlinde sunucuya yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user agent) ve isteğin zamanı işlenir. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme izni istemez; anlık bildirim (push) tokeni oluşturmaz ve sunucuya göndermez; çökme veya ekran ve tıklama kaydı toplamaz; konum izni istemez. fA'L özelliğinde çekilen veya seçilen fotoğraf cihazda işlenir ve SATICI'ya gönderilmez; yapay zekâ ile yorumlama için ayrıca ve açıkça onay verilmedikçe hiçbir aktarım yapılmaz (ayrıntı Açık Rıza Metni'ndedir). Sadakat (damga) programı kapsamında üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada işlemi yapan personelin kimliği ve hesaba tanımlanan kuponlar işlenir; kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri kaydedilir. Program konum verisi, reklam tanımlayıcısı veya ALICI'nın cihaz kamerasını kullanmaz; harcama geçmişine dayalı profilleme programın parçası değildir.",
           "ALICI, Kanun'un ilgili kişinin haklarını düzenleyen hükmü kapsamındaki taleplerini, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun olarak {{EMAIL}} adresine veya {{ADDRESS}} adresine yazılı olarak iletebilir. Başvurular, niteliğine göre en kısa sürede ve en geç 30 (otuz) gün içinde ücretsiz olarak sonuçlandırılır; işlemin ayrıca bir maliyet gerektirmesi hâlinde Kurulca belirlenen tarifedeki ücret alınabilir. Başvurunun reddedilmesi, verilen yanıtın yetersiz bulunması veya süresinde yanıt verilmemesi hâlinde ALICI, yanıtı öğrendiği tarihten itibaren otuz ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilir.",
@@ -569,7 +574,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "21. Şikâyet, İtiraz ve Uyuşmazlıkların Çözümü",
         paragraphs: [
           "ALICI, sipariş, teslimat, iade, sadakat (damga) programı veya ürünle ilgili her türlü talep, öneri ve şikâyetini {{EMAIL}} adresine, {{PHONE}} numarasına veya {{ADDRESS}} adresine iletebilir. SATICI, kendisine ulaşan başvuruları kayda alır, en geç 3 (üç) iş günü içinde geri dönüş yapar ve çözüm sürecinin her aşamasında ALICI'yı bilgilendirir. Sosyal medya hesapları ({{HANDLE}}) üzerinden gelen mesajlar da kayda alınmakla birlikte, resmî başvuru kanalı e-posta ve yazılı bildirimdir.",
-          "SATICI ile çözülemeyen uyuşmazlıklarda ALICI, 6502 sayılı Tüketicinin Korunması Hakkında Kanun uyarınca, her yıl Ticaret Bakanlığınca yeniden değerleme oranında güncellenen parasal sınırlar çerçevesinde; kendi yerleşim yerindeki veya tüketici işleminin yapıldığı yerdeki İlçe/İl Tüketici Hakem Heyetine ya da Tüketici Mahkemesine başvurabilir. Parasal sınırlar ve başvuru usulüne ilişkin güncel bilgilere Ticaret Bakanlığının resmî kaynaklarından ulaşılabilir.",
+          "SATICI ile çözülemeyen uyuşmazlıklarda ALICI, her yıl Ticaret Bakanlığınca ilan edilen parasal sınırlar içinde yerleşim yerindeki veya tüketici işleminin yapıldığı yerdeki tüketici hakem heyetine; bu sınırların üzerindeki uyuşmazlıklarda ise 6502 sayılı Kanun'un 73/A maddesi uyarınca dava açmadan önce arabulucuya başvurmak şartıyla tüketici mahkemesine başvurabilir. Parasal sınırlar ve başvuru usulüne ilişkin güncel bilgilere Ticaret Bakanlığının resmî kaynaklarından ulaşılabilir.",
           "ALICI ayrıca Ticaret Bakanlığının e-Devlet üzerinden erişilen Tüketici Bilgi Sistemi aracılığıyla elektronik ortamda başvuru yapabilir. Bu formda yer alan hiçbir hüküm, ALICI'nın tüketici hakem heyetine veya tüketici mahkemesine başvurma hakkını sınırlandıramaz.",
           "Bu formdan ve mesafeli satış ilişkisinden doğan uyuşmazlıklarda Türk hukuku uygulanır.",
         ],
@@ -661,7 +666,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6102 sayılı Türk Ticaret Kanunu",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İYS - İleti Yönetim Sistemi)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -879,7 +884,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Sözleşme Konusu Mal, Fiyat ve Ödeme Bilgileri",
         paragraphs: [
           "Sözleşme konusu mal veya malların cinsi, türü, miktarı, marka ve modeli, rengi, varyantı, birim fiyatı, adedi, tüm vergiler dâhil toplam satış bedeli, kargo veya kurye ücreti, varsa uygulanan promosyon kodu veya kupon indirimi ve genel toplam; sipariş sırasında ALICI'ya gösterilen sipariş özetinde yer alır, sipariş kalemleri ve ödenen toplam tutar ayrıca ödemenin onaylanmasından sonra gönderilen, ödemenin onaylandığını bildiren e-postada yer alır. ALICI tarafından onaylanan Ön Bilgilendirme Formu da işbu Sözleşme'nin ayrılmaz eki ve tamamlayıcı parçasıdır.",
-          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup, aksi açıkça belirtilmedikçe %20 oranındaki Katma Değer Vergisi dâhildir. Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Vergi oranlarında mevzuat değişikliği olması hâlinde güncel oran uygulanır ve bu durum Site üzerinde gösterilir.",
+          "Site'de belirtilen tüm fiyatlar Türk Lirası (TRY) cinsinden olup her ürünün yürürlükteki mevzuata göre tabi olduğu oranda Katma Değer Vergisi dâhildir; her kalemin KDV oranı ve tutarı faturada gösterilir. Fiyatlar teknik altyapıda kuruş (minor unit) olarak saklanır ve arayüzde Türk Lirası biçiminde gösterilir. Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez.",
           "SATICI, Site üzerindeki listeleme fiyatlarını, kampanyaları ve promosyon kodlarını dilediği zaman güncelleme hakkını saklı tutar. Ancak ALICI'nın siparişini onayladığı ve ödemesini tamamladığı an itibarıyla geçerli olan fiyat, o sipariş bakımından bağlayıcıdır; sipariş sonrasında yapılan fiyat değişiklikleri kurulmuş sözleşmeyi etkilemez.",
           "Sistemsel, teknik veya dizgi kaynaklı bariz fiyat hatası (örneğin ürünün maliyetiyle açıkça bağdaşmayan, ortalama bir tüketicinin dahi hata olduğunu anlayabileceği bir tutar) bulunması hâlinde SATICI, durumu tespit ettiği anda ALICI'yı derhâl bilgilendirir ve siparişi iptal ederek tahsil edilen bedelin tamamını herhangi bir kesinti yapılmaksızın en geç 14 (on dört) gün içinde iade eder. Bu durum, ALICI'nın Kanun'dan doğan diğer haklarını ortadan kaldırmaz.",
         ],
@@ -900,7 +905,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV Oranı",
-            value: "%20 (fiyatlara dâhildir)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)",
           },
           {
             key: "Kargo Bedeli",
@@ -964,7 +969,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Web sitesi veya mobil uygulama üzerinden verilen siparişlerin bedeli, SATICI'nın anlaşmalı olduğu ödeme hizmeti sağlayıcısı PayNkolay'ın sanal POS altyapısı üzerinden, kredi kartı veya internetten alışverişe açık banka kartı ile çevrimiçi olarak tahsil edilir. PayNkolay hizmeti, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından sunulmaktadır. Ödeme adımında ALICI, kart bilgilerini {{SITE}} üzerindeki güvenli ödeme sayfasına girer; mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır.",
           "Kart numarası, son kullanma tarihi, CVV/CVC güvenlik kodu ve kart sahibinin adı, şifreli (TLS) bağlantı üzerinden SATICI'nın sunucusuna ulaşır ve aynı istek içinde yalnızca PayNkolay'a iletilir. SATICI bu bilgileri veri tabanına, kayıt (log) sistemlerine veya herhangi bir dosyaya yazmaz, kart numarası SATICI'da tutulmaz ve saklanmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir internet sitesinin içine gömülemez; kart bilgileri yalnızca şifreli bağlantılar üzerinden iletilir. Ödeme sayfasında yapılabilecek kart denemelerinin sayısı sipariş başına ve bağlantı başına sınırlıdır. SATICI'nın ödeme kaydında yalnızca PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay işlem doğrulama servisinin döndürdüğü kayıt tutulur; bu kayıt maskelenmiş kart numarasını, kartı veren bankayı, taksit sayısını (her ödemede tek çekim), 3D Secure bilgisini ve banka onay kodunu içerir. Kart sahibinin adı ödeme kaydında tutulmaz; kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada tutulmaz.",
-          "Kart saklama özelliği açıldığında, üyelik hesabı bulunan ALICI, ödeme sayfasında varsayılan olarak işaretsiz gelen “Bu kartı sonraki ödemeler için kaydet” kutucuğunu işaretleyerek kartını kaydedebilir; kutucuk işaretlenmedikçe hiçbir kart kaydedilmez ve bu özellik sipariş verilmesinin koşulu değildir. Özellik açılana kadar kart kaydedilmez. Kaydedilen kart SATICI tarafından değil, PayNkolay'ın kart saklama hizmeti tarafından saklanır; SATICI yalnızca PayNkolay'ın kayıtlı kartları üyeyle eşleştirmek için kullandığı 11 karakterlik rastgele bir üye anahtarını tutar. Bu anahtar T.C. kimlik numarası veya telefon numarası değildir ve kişisel veri içermez. Ödeme sayfasında kayıtlı kart; son dört hanesi, kart markası veya kartı veren banka ve kartın takma adıyla listelenir. Kayıtlı kartla yapılan ödemelerde de 3D Secure doğrulaması zorunludur. ALICI kayıtlı kartını ödeme sayfasından dilediği zaman silebilir; üyelik hesabı silinirken SATICI, önce o üyeye ait kayıtlı kartların silinmesini PayNkolay'dan ister. Kartla ilgili olarak SATICI'nın veri tabanına üye anahtarı dışında hiçbir bilgi eklenmez.",
+          "Kart bilgileri sonraki ödemeler için kaydedilmez: SATICI kart bilgisi saklamaz, PayNkolay'dan da kartın saklanmasını istemez; her ödemede kart bilgileri yeniden girilir.",
           "Her kartlı ödemede 3D Secure doğrulaması zorunludur. ALICI, ödeme sayfasından doğrudan kartını veren bankanın 3D Secure ekranına geçer ve ödemeyi bu ekranda onaylar; doğrulama bankanın kendi sistemi üzerinden gerçekleştirilir. Doğrulamanın başarısız olması hâlinde işlem tamamlanmaz, tahsilat yapılmaz ve sipariş ödenmiş sayılmaz.",
           "Ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, SATICI sunucusunun PayNkolay işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır. Aynı işlem referansı ikinci kez kaydedilemez; bu nedenle aynı ödeme iki siparişi kapatamaz. Ödeme sayfasından siteye veya uygulamaya dönülmeden tarayıcı kapanırsa SATICI, ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar; ödeme alınmışsa sipariş ödenmiş olarak işlenir, alınmamışsa sipariş yaklaşık 45 dakika sonra iptal edilir.",
           "Tutar, ALICI'nın ödemeyi kartını veren bankanın 3D Secure ekranında onayladığı anda tahsil edilir; ön provizyon (tutarın önce bloke edilip sonra tahsil edilmesi) yöntemi kullanılmaz. Sipariş sonradan iptal edilirse tahsil edilen tutar işbu maddedeki iade esaslarına göre iade edilir.",
@@ -989,7 +994,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "9. Fatura ve Belgelendirme",
         paragraphs: [
           "SATICI, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca her sipariş için fatura düzenler. Sipariş tutarından düşülen indirimler vergi mevzuatına uygun biçimde faturaya yansıtılır. Fatura, sipariş sırasında ALICI'nın beyan ettiği ad-soyad ve adres bilgileri esas alınarak düzenlenir.",
-          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Faturanın elektronik ortamda düzenlenmesi hâlinde ALICI, faturanın kayıtlı e-posta adresine elektronik ortamda iletilmesine muvafakat eder; talep etmesi hâlinde faturanın kâğıt çıktısı da gönderilir.",
+          "Fatura, vergi mevzuatında öngörülen usul ve süreler içinde ALICI'ya iletilir. Fatura e-Arşiv fatura olarak düzenlenir ve ALICI'nın sipariş sırasında bildirdiği e-posta adresine elektronik ortamda iletilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir.",
           "Kurumsal (tüzel kişi) fatura talebinde ALICI; ticaret unvanı, vergi dairesi ve vergi kimlik numarası bilgilerini fatura düzenlenmeden önce {{EMAIL}} adresine eksiksiz bildirmekle yükümlüdür. Fatura kesildikten sonra vergi mükellefiyet bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve ancak fatura iptali/yeniden düzenleme prosedürü çerçevesinde karşılanabilir.",
           "Cayma hakkının kullanılması veya iade hâlinde, kurumsal faturalı satışlarda ALICI'nın mevzuat gereği iade faturası düzenlemesi gerekir. Bireysel (nihai tüketici) satışlarda SATICI, iade işlemini kendi sistemlerinde belgelendirir ve ALICI'dan cayma bildirimi ile malın geri gönderilmesi dışında ek bir belge talep etmez.",
           "Faturanın ALICI'ya ulaşmaması veya kaybolması hâlinde ALICI, {{EMAIL}} adresine yapacağı talep ile faturanın yeniden gönderilmesini isteyebilir. SATICI, mevzuatta öngörülen saklama süreleri boyunca fatura kayıtlarını muhafaza eder.",
@@ -999,13 +1004,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "10. Teslimat, Kargo ve Teslim Şartları",
         paragraphs: [
           "Sözleşme konusu mal, ALICI'nın sipariş sırasında bildirdiği teslimat adresine, SATICI'nın anlaşmalı kargo firmaları aracılığıyla teslim edilir. Teslimat, siparişin kurulmasından itibaren yasal 30 (otuz) günlük azami süreyi aşmamak kaydıyla, ürün sayfasında ve sipariş özetinde belirtilen tahmini süre içinde gerçekleştirilir.",
-          "Mobil uygulama üzerinden verilen kafe siparişleri, ALICI'nın seçimine göre kafeden gel-al olarak teslim alınır veya ALICI'nın uygulamada seçtiği teslimat adresine kurye ile teslim edilir; ileri bir saate planlanan kafe siparişlerinde ALICI'nın seçtiği saat esas alınır. Kafe siparişlerine işbu maddenin kargo firmasına, kargo takip numarasına, kargo ücretine ve yurt dışı teslimata ilişkin hükümleri uygulanmaz; kurye ücreti sipariş özetinde ayrıca gösterilir.",
+          "Mobil uygulama üzerinden verilen kafe siparişleri, ALICI'nın seçimine göre kafeden gel-al olarak teslim alınır veya ALICI'nın uygulamada seçtiği teslimat adresine kurye ile teslim edilir; ileri bir saate planlanan kafe siparişlerinde ALICI'nın seçtiği saat esas alınır. Kafe siparişlerine işbu maddenin kargo firmasına, kargo takip numarasına ve kargo ücretine ilişkin hükümleri uygulanmaz; kurye ücreti sipariş özetinde ayrıca gösterilir.",
           "Sipariş, ödemenin onaylandığı iş günü içinde hazırlanmaya başlanır. Hafta sonu, resmî tatil ve dinî bayram günlerinde kargo firmalarının çalışma takvimine bağlı olarak teslimat süreleri uzayabilir; bu günler tahmini teslim süresi hesabında dikkate alınmaz.",
           "Gıda niteliğindeki ürünler (kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, pistacchio kreması, şuruplar ve benzeri kiler ürünleri) tazelik ve gıda güvenliği gözetilerek, uygun ambalaj ve gerektiğinde yalıtımlı taşıma çözümleriyle sevk edilir. Sıcaklığa duyarlı ürünlerde SATICI, mevsim ve destinasyon koşullarına göre sevkiyat gününü ALICI'yı bilgilendirerek belirleyebilir.",
           "ALICI'ya, gönderinin kargo firmasına tesliminde kargo takip numarası e-posta ile bildirilir; mobil uygulama kullanıcıları gönderinin durumunu ayrıca uygulamadaki sipariş ekranından izleyebilir. ALICI, bu numara ile gönderisinin durumunu ilgili kargo firmasının sisteminden takip edebilir.",
           "Kargo firmasının adreste bulunamama nedeniyle bıraktığı bildirime rağmen ALICI'nın malı ilgili şubeden mevzuatta ve kargo firmasının kurallarında öngörülen bekleme süresi içinde teslim almaması ve gönderinin SATICI'ya iade dönmesi hâlinde, ALICI ile iletişime geçilir. Yeniden gönderim talep edilmesi durumunda ikinci gönderim bedeli ALICI'ya aittir. ALICI'nın yeniden gönderim istememesi hâlinde sipariş iptal edilerek mal bedeli iade edilir.",
           "SATICI, aynı siparişte yer alan ürünleri tedarik ve stok durumuna göre birden fazla parça hâlinde ayrı ayrı sevk edebilir. Kısmi sevkiyat hâlinde ALICI'dan ek kargo bedeli talep edilmez ve her parti için ayrı kargo takip numarası bildirilir.",
-          "Teslimat adresinin Türkiye Cumhuriyeti sınırları dışında olması hâlinde, varış ülkesinde doğabilecek gümrük vergileri, harçlar, ithalat kısıtlamaları ve benzeri yükümlülükler ALICI'nın sorumluluğundadır. Gıda ürünlerinin bazı ülkelere girişinin yasak veya izne tabi olması nedeniyle gümrükte imha veya iade edilmesi hâlinde SATICI sorumlu tutulamaz.",
         ],
         table: [
           {
@@ -1041,11 +1045,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sürenin başlangıcı bakımından; tek sipariş konusu olup ayrı ayrı teslim edilen mallarda son malın, birden fazla parçadan oluşan mallarda son parçanın, belirli bir süre boyunca düzenli teslimatı yapılan mallarda ise ilk malın teslim alındığı gün esas alınır. Cayma süresinin son gününün resmî tatile denk gelmesi hâlinde süre, takip eden ilk iş günü mesai bitiminde sona erer.",
           "SATICI, ALICI'nın cayma hakkını kullandığına ilişkin bildirimin kendisine ulaştığı tarihten itibaren 14 (on dört) gün içinde, teslimat masrafları da dâhil olmak üzere tahsil ettiği tüm ödemeleri, ALICI'nın satın alırken kullandığı ödeme aracına uygun bir şekilde ve ALICI'ya herhangi bir masraf veya yükümlülük getirmeksizin tek seferde iade eder.",
           "Siparişte bir kupon veya promosyon kodu kullanılmışsa iade şu esaslara göre yapılır: kupon veya kodla karşılanan kısım için nakit ödeme yapılmaz; ALICI'nın fiilen ödediği tutar, işbu Sözleşme'nin 7. maddesindeki esaslara göre ödemenin yapıldığı karta iade edilir. Bu işlemler, cayma bildiriminin SATICI'ya ulaşmasından itibaren 14 (on dört) günlük yasal süre içinde tamamlanır.",
-          "ALICI, cayma hakkını kullandığına ilişkin bildirimi yönelttiği tarihten itibaren 10 (on) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Bu süre, Mesafeli Sözleşmeler Yönetmeliği'nin iade ve tüketicinin yükümlülüklerini düzenleyen hükmünden kaynaklanmakta olup, ALICI'nın cayma bildirimini malın tesliminden itibaren 14 (on dört) günlük süre içinde yöneltmiş olması kaydıyla işler. SATICI'nın malı kendisinin geri alacağını Ön Bilgilendirme Formu'nda taahhüt ettiği hâllerde ALICI'nın malı geri gönderme yükümlülüğü doğmaz.",
-          "Cayma hakkının kullanılması hâlinde iade gönderimi, Ön Bilgilendirme Formu'nda belirtilen anlaşmalı kargo firması ile yapıldığında iade kargo bedeli SATICI tarafından karşılanır ve ALICI'dan hiçbir masraf talep edilmez. Ön Bilgilendirme Formu'nda iade için herhangi bir taşıyıcı belirtilmemiş olması ya da belirtilen taşıyıcının ALICI'nın bulunduğu yerde şubesi bulunmaması hâlinde de iade masrafı ALICI'dan talep edilemez. Yalnızca, iade için anlaşmalı taşıyıcı usulüne uygun şekilde bildirilmiş ve erişilebilir olduğu hâlde ALICI'nın kendi tercihiyle başka bir taşıyıcıyı kullanması durumunda, aradaki masraf farkı ALICI'ya ait olur.",
-          "ALICI, cayma süresi içinde malı, işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun bir şekilde kullanmakla yükümlüdür. Bu çerçevede yapılan olağan muayene ve deneme sınırlarının aşılması sonucu malın değerinde meydana gelen değişiklikten ALICI sorumludur. Malın olağan kullanımı sonucu oluşan değer kaybı ise ALICI'ya yüklenemez.",
-          "İade edilen mal; kutusu, ambalajı, varsa standart aksesuarları ve hediye ürünleri ile birlikte, eksiksiz ve hasarsız olarak gönderilmelidir. Promosyon veya kampanya kapsamında verilen hediye ürünün iade edilmemesi hâlinde, hediyenin güncel liste bedeli iade tutarından mahsup edilebilir.",
-          "Kampanya eşiğine (örneğin ücretsiz kargo limitine) bağlı olarak yapılan alışverişlerde kısmi iade sonucu sepet tutarının eşiğin altına düşmesi hâlinde, kampanya kapsamında karşılanmış olan kargo bedeli iade tutarından mahsup edilebilir. Bu husus sipariş öncesinde Ön Bilgilendirme Formu'nda ALICI'ya bildirilir.",
+          "ALICI, cayma hakkını kullandığına ilişkin bildirimi yönelttiği tarihten itibaren 14 (on dört) gün içinde malı SATICI'ya veya SATICI'nın yetkilendirdiği kişiye geri göndermekle yükümlüdür. Bu süre, Mesafeli Sözleşmeler Yönetmeliği'nin iade ve tüketicinin yükümlülüklerini düzenleyen hükmünden kaynaklanmakta olup, ALICI'nın cayma bildirimini malın tesliminden itibaren 14 (on dört) günlük süre içinde yöneltmiş olması kaydıyla işler. SATICI'nın malı kendisinin geri alacağını Ön Bilgilendirme Formu'nda taahhüt ettiği hâllerde ALICI'nın malı geri gönderme yükümlülüğü doğmaz.",
+          "Cayma hakkının kullanılması hâlinde iade kargo bedeli ALICI'dan talep edilmez. Ön Bilgilendirme Formu'nda iade için bir taşıyıcı adlandırılmamıştır; SATICI cayma bildirimi üzerine ALICI'ya e-posta ile bir iade kodu gönderir ve bu kodla yapılan gönderinin bedelini öder. ALICI iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli SATICI tarafından geri ödenir; karşı ödemeli gönderilen iadeler de teslim alınır. ALICI'nın belgelediği gönderim bedeli, ürün bedelinin iadesinden ayrı olarak ve belgenin SATICI'ya ulaşmasından itibaren 14 (on dört) gün içinde, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına havale veya EFT ile ödenir; karta yapılan iade karttan tahsil edilen tutarı aşamadığından bu bedel karta iade edilmez.",
+          "ALICI, cayma süresi içinde malı işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun şekilde kullanması sonucu meydana gelen değişiklik ve bozulmalardan sorumlu değildir; yalnız bu çerçevenin dışındaki kullanımdan doğan değer kaybından sorumludur.",
+          "İade edilen mal, varsa standart aksesuarları ve kampanya kapsamında verilen hediye ürünleriyle birlikte gönderilir. Promosyon veya kampanya kapsamında verilen hediye ürünün iade edilmemesi hâlinde, hediyenin sipariş tarihindeki satış fiyatı iade tutarından mahsup edilebilir.",
+          "Kampanya eşiğine (örneğin ücretsiz kargo limitine) bağlı olarak yapılan alışverişlerde kısmi iade sonucu sepet tutarı eşiğin altına düşse de iade tutarından kargo bedeli mahsup edilmez ve ALICI'dan sonradan kargo bedeli istenmez.",
         ],
         bullets: [
           "Cayma bildirimi, cayma süresi dolmadan önce açık ve anlaşılır bir şekilde SATICI'ya yöneltilmelidir.",
@@ -1066,7 +1070,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Fiyatı finansal piyasalardaki dalgalanmalara bağlı olarak değişen ve SATICI'nın kontrolünde olmayan mal veya hizmetlere ilişkin sözleşmeler.",
           "ALICI'nın istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan mallar; örneğin ALICI'nın talebiyle özel öğütüm derecesinde hazırlanan kahve, isim/mesaj baskılı fincan, önlük veya tote çanta gibi kişiselleştirilmiş ürünler.",
-          "Çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar; örneğin gelato kiti bileşenleri, taze kavrulmuş kahve ve soğuk zincir gerektiren ürünler.",
+          "Çabuk bozulabilen veya son kullanma tarihi cayma ve iade süreleri içinde geçebilecek mallar; örneğin gelato ve soğuk zincir gerektiren diğer ürünler.",
           "Tesliminden sonra ambalaj, bant, mühür veya paket gibi koruyucu unsurları açılmış olan mallardan, iadesi sağlık ve hijyen açısından uygun olmayanlar; örneğin ağzı açılmış kahve paketleri, açılmış pistacchio kreması ve şurup şişeleri, ambalajı açılmış yenilebilir waffle kupa.",
           "Tesliminden sonra başka ürünlerle karışan ve doğası gereği ayrıştırılması mümkün olmayan mallar.",
           "Malın tesliminden sonra ambalajın açılmış olması hâlinde maddi ortamda sunulan dijital içerikler ile ses veya görüntü kayıtları, kitaplar ve yazılım programları.",
@@ -1118,7 +1122,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "16. Kişisel Verilerin İşlenmesi ve Ticari Elektronik İleti",
         paragraphs: [
           "SATICI, işbu Sözleşme'nin kurulması ve ifası kapsamında elde ettiği kişisel verileri, 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun genel ilkelere ilişkin hükmü (m.4) ve işleme şartlarına ilişkin hükümleri (m.5 ve m.6) çerçevesinde, hukuka ve dürüstlük kurallarına uygun, doğru ve gerektiğinde güncel, belirli, açık ve meşru amaçlar için, işlendikleri amaçla bağlantılı, sınırlı ve ölçülü olarak işler. Bu kapsamda SATICI veri sorumlusu sıfatını haizdir.",
-          "Sipariş sürecinde işlenen kişisel veriler; kimlik (ad-soyad), iletişim (e-posta, telefon, teslimat ve fatura adresi), müşteri işlem (sipariş içeriği, tutar, sipariş geçmişi, harcama geçmişi, sadakat programı damga hareketleri ve kuponlar, iade ve talep kayıtları), finans (maskelenmiş kart numarası, kartı veren banka, işlem referansı, tahsilat kaydı; kart saklama özelliği açıldığında kartını kaydetmeyi seçen üyeler için PayNkolay'ın kayıtlı kartları eşleştirmede kullandığı rastgele üye anahtarı; kısmi iadenin karta yapılamadığı istisnai hâllerde iade için bildirilen banka hesap bilgisi) ve işlem güvenliği (IP adresi, tarayıcı bilgisi, oturum kayıtları, onay kayıtları) kategorilerindedir. Bu verilerin işlenmesi, sözleşmenin kurulması ve ifası ile SATICI'nın hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır.",
+          "Sipariş sürecinde işlenen kişisel veriler; kimlik (ad-soyad), iletişim (e-posta, telefon, teslimat ve fatura adresi), müşteri işlem (sipariş içeriği, tutar, sipariş geçmişi, harcama geçmişi, sadakat programı damga hareketleri ve kuponlar, iade ve talep kayıtları), finans (maskelenmiş kart numarası, kartı veren banka, işlem referansı, tahsilat kaydı; kısmi iadenin karta yapılamadığı istisnai hâllerde iade için veya iadeyi başka bir kargo firmasıyla gönderen ALICI'ya belgelediği gönderim bedelinin ödenmesi için bildirilen banka hesap bilgisi) ve işlem güvenliği (IP adresi, tarayıcı bilgisi, oturum kayıtları, onay kayıtları) kategorilerindedir. Bu verilerin işlenmesi, sözleşmenin kurulması ve ifası ile SATICI'nın hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır.",
           "Kişisel veriler; kargo gönderi platformu Geliver'e ve gönderiyi taşıyan kargo firmasına (teslimat amacıyla), ödeme hizmeti sağlayıcısı N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.'ye (PayNkolay) ve bankalara (tahsilat, iade ve itiraz süreçleri amacıyla), üyelik girişinin sağlanması amacıyla kimlik doğrulama hizmeti sağlayıcısına, fatura ve muhasebe hizmet sağlayıcılarına (yasal yükümlülük amacıyla), işlemsel e-posta altyapı sağlayıcısına (sipariş bildirimleri amacıyla) ile yetkili kamu kurum ve kuruluşlarına, mevzuatta öngörülen sınırlar dâhilinde aktarılabilir.",
           "Barındırma (Vercel), PostgreSQL veri tabanı ({{DB_PROVIDER}}) ve e-posta gönderim (Resend) altyapılarının sunucularının yurt dışında bulunması nedeniyle kişisel veriler yurt dışına aktarılabilir. Bu aktarımlar, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmü (m.9) uyarınca öngörülen şartlar sağlanarak gerçekleştirilir.",
           "Siparişin mobil uygulama üzerinden verilmesi hâlinde ayrıca, SATICI sunucusuna yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı işlenir. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme izni istemez; anlık bildirim (push) tokeni oluşturmaz ve sunucuya göndermez, çökme kaydı toplamaz. Uygulama konum izni istemez; tek şube bulunduğundan konuma bağlı bir işlev yoktur ve teslimat adresi üyenin kendi adres defterinden seçilir. Üyenin kafede damga kazanması için kamera gerekmez: kasada, uygulamanın gösterdiği kasa kodunu personel okutur. Bildirim izni yalnızca üyenin uygulamada kendisi açtığı hatırlatmaların cihazda gösterilmesi için, kamera ve fotoğraf izni ise yalnızca fA'L özelliğinde, üye fotoğraf çekmeyi veya galeriden seçmeyi kendisi başlattığında istenir; fotoğraf cihazda işlenir ve yapay zekâ yorumu için ayrıca açık onay verilmedikçe SATICI'ya gönderilmez. Personel yetkisi tanımlanmış hesaplarda kamera ayrıca kasadaki okutucu için kullanılır. Bu izinler cihaz ayarlarından her zaman geri alınabilir; izin geri alındığında ilgili işlev kullanılamaz, ancak sipariş verme imkânı ortadan kalkmaz.",
@@ -1167,7 +1171,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Anılan parasal sınırların üzerindeki uyuşmazlıklarda ALICI, Tüketici Mahkemelerine; tüketici mahkemesi bulunmayan yerlerde ise Asliye Hukuk Mahkemelerine (tüketici mahkemesi sıfatıyla) başvurabilir. ALICI'nın kendi yerleşim yeri mahkemesinde dava açma hakkı saklıdır.",
           "Güncel parasal sınırlara ve başvuru usullerine ilişkin bilgilere Ticaret Bakanlığının resmî internet sitesi ile Tüketici Bilgi Sistemi (TÜBİS) üzerinden ulaşılabilir. Tüketici Hakem Heyetine başvurular e-Devlet üzerinden de yapılabilmektedir.",
           "SATICI, tüketici hakem heyeti ve mahkeme süreçlerinde ALICI'ya ait sipariş, ödeme, teslimat ve onay kayıtlarını talep hâlinde ilgili mercie sunar.",
-          "Uyuşmazlığın taraflarca sulh yoluyla veya arabuluculuk kurumu aracılığıyla çözümlenmesi hususunda Tarafların anlaşma hakkı saklı olup, bu yollara başvurulması ALICI'nın tüketici hakem heyetine veya tüketici mahkemesine başvurma hakkını ortadan kaldırmaz.",
+          "Tüketici mahkemesinde dava açmadan önce arabulucuya başvurmak 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur; tüketici hakem heyetinin görevine giren uyuşmazlıklarda bu şart aranmaz.",
         ],
       },
       {
@@ -1193,7 +1197,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşbu Sözleşme, yukarıda yer alan 21 (yirmi bir) maddeden ibaret olup, ALICI tarafından ödeme adımında elektronik ortamda ayrı bir onay kutucuğu işaretlenmek suretiyle okunup kabul edildikten ve ödemenin başarıyla tamamlanmasının (kupon veya promosyon kodu indiriminin sipariş tutarının tamamını karşıladığı siparişlerde siparişin SATICI sistemine kaydedilmesinin) ardından yürürlüğe girmiştir.",
           "Sözleşme metninin, Ön Bilgilendirme Formu'nun ve iade ile cayma koşullarının bağlantıları ALICI'nın kayıtlı e-posta adresine, ödemenin onaylanmasından sonra gönderilen ve ödemenin onaylandığını bildiren e-postada yer alır. ALICI, dilediği zaman web sitesindeki üyelik hesabının sipariş detay sayfasından, bu belgelerin bağlantılarına, onay tarihine ve onayladığı belge sürümüne ulaşabilir.",
           "SATICI, mevzuat değişiklikleri veya ticari uygulamalarındaki güncellemeler nedeniyle işbu Sözleşme metninde değişiklik yapma hakkını saklı tutar. Ancak yapılan değişiklikler geriye etkili değildir; her sipariş bakımından, siparişin verildiği anda yürürlükte olan ve ALICI tarafından onaylanan sürüm bağlayıcıdır. Bu nedenle her sipariş kaydında onaylanan belge sürümü ayrıca saklanır.",
-          "Sözleşme metninin güncel hâli her zaman {{SITE_URL}} adresinde kamuya açık ve ücretsiz olarak erişilebilir durumda tutulur. SATICI, 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin düzenlemeleri ile 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamında bilgi verme yükümlülüklerini Site üzerinden yerine getirir.",
+          "Sözleşme metninin güncel hâli her zaman {{SITE_URL}} adresinde kamuya açık ve ücretsiz olarak erişilebilir durumda tutulur. SATICI, 6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin düzenlemeleri ile 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamında bilgi verme yükümlülüklerini Site üzerinden yerine getirir.",
           "İşbu Sözleşme Türkçe olarak düzenlenmiştir. Farklı bir dilde çeviri sunulması hâlinde, çeviri ile Türkçe metin arasında çelişki bulunursa Türkçe metin esas alınır.",
           "İşbu Sözleşme'nin uygulanmasında Türk hukuku uygulanır. ALICI ve SATICI, Sözleşme'nin tüm hükümlerini okuduklarını, anladıklarını ve serbest iradeleriyle kabul ettiklerini beyan ederler.",
         ],
@@ -1242,9 +1246,159 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     ],
   },
   {
+    // Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet
+    // Sağlayıcılar Hakkında Yönetmelik m.7/1 (20 Ekim 2026): the ordering
+    // steps, the input-correction tools, whether and how long the contract
+    // text is kept and reachable, and the dispute routes, under an "işlem
+    // rehberi" heading reached from the home page (footer, `nav.ts`).
+    // LEGAL-REDLINES §24. 21 Ekim 2026: §8 says the durable copy that
+    // shipped (decision D-ISLEM-DURABLE: the confirmed text attached to the
+    // confirmation mail, downloadable from the order page, the same version
+    // readable from the mail's link and kept at least 11 years), and the
+    // karaoke sentence says the same of the booking. LEGAL-REDLINES §25. The
+    // checkout documents did not change, so `LEGAL_UPDATED` stays; this
+    // document carries its own day.
+    slug: "islem-rehberi",
+    title: "İşlem Rehberi",
+    shortTitle: "İşlem Rehberi",
+    updatedAt: "21 Ekim 2026",
+    category: "Sipariş",
+    summary:
+      "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden sipariş vermenin ve karaoke odası ayırtmanın adımlarını, girdiğiniz bilgileri sipariş vermeden önce nasıl görüp düzelteceğinizi, sözleşme metninin nasıl saklandığını ve ona nasıl ulaşacağınızı, faturanın size nasıl geldiğini ve uyuşmazlıkta başvuru yollarını anlatır.",
+    references: [
+      "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG: 29.12.2022, 32058) - m.7 işlem rehberi",
+      "6502 sayılı Tüketicinin Korunması Hakkında Kanun - m.73/A arabuluculuk",
+      "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188) - m.5 ön bilgilendirme, m.20 kayıtların saklanması",
+      "213 sayılı Vergi Usul Kanunu",
+    ],
+    sections: [
+      {
+        heading: "1. Bu Rehber Ne Anlatır",
+        paragraphs: [
+          "Bu rehber, {{LEGAL_NAME}} ({{BRAND}}) tarafından işletilen {{SITE_URL}} internet sitesi ve {{BRAND}} mobil uygulaması üzerinden mağaza ve kafe siparişi vermenin ve karaoke odası rezervasyonu yapmanın adımlarını anlatır. Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7 uyarınca hazırlanmıştır; ana sayfanın alt bölümündeki İşlem rehberi bağlantısından her zaman ulaşabilirsiniz.",
+          "Rehber bilgilendirme amaçlıdır. Siparişinize uygulanan hak ve yükümlülükler ödeme adımında onayladığınız Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'nde, karaoke odası rezervasyonunda ise Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır. Bu rehber o belgelerin yerine geçmez ve onlardaki haklarınızı sınırlamaz.",
+        ],
+      },
+      {
+        heading: "2. Sipariş Vermeden Önce",
+        paragraphs: [
+          "Mağaza siparişi ve mobil uygulamadan kafe siparişi vermek için e-posta adresi doğrulanmış bir üyelik hesabınız olmalıdır. İnternet sitesinde ve mobil uygulamada aynı hesap geçerlidir; sipariş geçmişiniz iki kanalda da görünür. Karaoke odası rezervasyonu üyelik açmadan da yapılabilir.",
+          "Mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine kargoyla gönderilir. Ödeme kartla, PayNkolay sanal POS altyapısı üzerinden, bankanızın 3D Secure doğrulamasıyla ve tek çekim olarak alınır.",
+        ],
+      },
+      {
+        heading: "3. İnternet Sitesinde Sipariş Adımları",
+        paragraphs: [
+          "İnternet sitesinde mağaza siparişi aşağıdaki adımlarla verilir. Ödeme düğmesine basana kadar her adımda geri dönüp değişiklik yapabilir ya da siparişten vazgeçebilirsiniz.",
+        ],
+        ordered: [
+          "Ürünü seçin: ürün sayfasında varsa varyantı (ağırlık, öğütüm gibi) ve adedi seçip Sepete ekle düğmesine basın.",
+          "Sepeti kontrol edin: açılan sepette ürünleri, adetleri ve ara toplamı görürsünüz; kargo ücreti ödeme adımında hesaplanır. Hazırsanız Ödemeye geç düğmesine basın.",
+          "Giriş yapın: oturumunuz açık değilse üye girişine ya da yeni hesap açmaya yönlendirilirsiniz; e-posta adresiniz doğrulanmadan ödeme adımına geçilmez.",
+          "Teslimat (1. adım): kayıtlı adreslerinizden birini seçin ya da Yeni adres ekle ile ad soyad, telefon, adres, ilçe, şehir ve posta kodunu girin. Varsa indirim kodunuzu sipariş özetindeki alana yazıp Uygula düğmesine basın. Ardından Ödemeye geç düğmesine basın.",
+          "Ödeme (2. adım): teslimat adresinizin özeti, siparişinizin satırları, kargo ücreti, varsa indirim, KDV dâhil toplam ve cayma hakkınızın özeti gösterilir. Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'ni bu siparişin bilgileriyle açıp okuyabilirsiniz.",
+          "Kart bilgilerinizi aynı sayfadaki kart alanlarına girin. Sipariş toplamı indirimle sıfıra iniyorsa kart bilgisi istenmez.",
+          "Ön Bilgilendirme Formu'nu okuduğunuzu ve Mesafeli Satış Sözleşmesi'ni kabul ettiğinizi iki ayrı onay kutusuyla işaretleyin. Kutular işaretsiz gelir; ikisi de işaretlenmeden sipariş verilemez.",
+          "Siparişi onayla ve öde düğmesine basın (sipariş toplamı sıfırsa düğmenin adı Siparişi onayla'dır). Bu düğmeye bastığınızda ödeme yükümlülüğü altına girersiniz. Ardından bankanızın 3D Secure ekranında ödemeyi onaylayın.",
+          "Ödemenin sonucu PayNkolay'a sorularak teyit edilir. Ödeme alındığında sipariş numaranız ekranda gösterilir ve ödemenin onaylandığını bildiren e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "4. Mobil Uygulamada Sipariş",
+        paragraphs: [
+          "Mobil uygulamada mağaza ürünlerinin yanında kafe menüsünden de sipariş verebilirsiniz. Kafe siparişini kafeden gel-al olarak teslim alabilir ya da kurye ile adresinize getirtebilirsiniz; uygulamanın sunduğu teslim seçenekleri sipariş ekranında gösterilir. İnternet sitesindeki menü yalnızca bilgilendirme içindir; sitede kafe siparişi alınmaz.",
+          "Adımlar internet sitesindekiyle aynı sırayı izler: ürünleri sepete ekleyin, sepette adetleri ve seçimleri kontrol edin, teslim şeklini ve gerekiyorsa adresi seçin, varsa promosyon kodunu ekleyin, sipariş özetini kontrol edin ve Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi için ayrı onay kutularını işaretleyin. Kart bilgileri, uygulamanın cihazınızın tarayıcı penceresinde açtığı {{SITE}} ödeme sayfasında girilir ve ödeme bankanızın 3D Secure ekranında onaylanır.",
+        ],
+      },
+      {
+        heading: "5. Karaoke Odası Rezervasyonu",
+        paragraphs: [
+          "Karaoke odası internet sitesindeki karaoke sayfasından ya da mobil uygulamadan aşağıdaki adımlarla ayrılır.",
+        ],
+        ordered: [
+          "Tarih ve saat: günü ve başlangıç saatini seçin; dolu saatler seçilemez.",
+          "Süre ve kişi: kaç saat kalacağınızı ve kaç kişi olacağınızı seçin.",
+          "Bilgileriniz: üye olmadan rezervasyon yapıyorsanız adınızı, soyadınızı, cep telefonunuzu ve e-posta adresinizi girin.",
+          "Özet ve onay: gün, saat, süre, toplam tutar ve son ücretsiz iptal anı gösterilir. Karaoke Odası Ön Bilgilendirme Formu'nu onayladığınızı, Mesafeli Hizmet Sözleşmesi'ni kabul ettiğinizi ve KVKK Aydınlatma Metni'ni okuduğunuzu üç ayrı kutuyla işaretleyin.",
+          "Ödeme: Rezervasyonu onayla ve öde düğmesine bastıktan sonra kart bilgilerinizi açılan ödeme sayfasında girin ve bankanızın 3D Secure ekranında onaylayın. Ödeme sayfası 30 dakika geçerlidir; seçtiğiniz saatler bu süre boyunca sizin adınıza tutulur.",
+          "Ödemeniz onaylandığında rezervasyonunuz kesinleşir; rezervasyon bilgileri ve rezervasyonunuzu görüp iptal edebileceğiniz kişiye özel bağlantı e-posta adresinize gönderilir.",
+        ],
+      },
+      {
+        heading: "6. Girdiğiniz Bilgileri Görme ve Düzeltme",
+        paragraphs: [
+          "Siparişi vermeden önce girdiğiniz bilgileri görebilir ve hataları düzeltebilirsiniz:",
+        ],
+        bullets: [
+          "Sepette her ürünün adedini eksi (-) ve artı (+) düğmeleriyle değiştirebilir, ürünü Sil düğmesiyle sepetten çıkarabilirsiniz. Mobil uygulamada bir satırın seçimlerini düzenleyebilir ya da satırı sepetten çıkarabilirsiniz.",
+          "Ödeme adımında teslimat adresinin yanındaki Değiştir bağlantısıyla ya da tarayıcınızın geri tuşuyla Teslimat adımına dönüp adınızı, telefonunuzu ve adresinizi düzeltebilirsiniz.",
+          "İndirim kodunun uygulanıp uygulanmadığı ve indirimin tutarı sipariş özetinde gösterilir.",
+          "Ödeme düğmesinin hemen üstünde siparişinizin satırları, kargo ücreti, indirim ve KDV dâhil toplam bir arada gösterilir. Sepetiniz fiyatlanırken farklı bir toplam çıkarsa ödeme başlatılmaz, yeni tutar size gösterilir ve yeniden onayınız istenir.",
+          "Karaoke rezervasyonunda Geri düğmesiyle ya da özetteki Değiştir bağlantılarıyla önceki adımlara dönebilirsiniz.",
+          "Ödeme düğmesine basmadan sayfadan çıkarak siparişten vazgeçebilirsiniz. Bankanızın 3D Secure ekranında onay vermezseniz ödeme alınmaz; ödemesi tamamlanmayan bir sipariş size herhangi bir bedel doğurmaz.",
+        ],
+      },
+      {
+        heading: "7. Sözleşmenin Kurulması",
+        paragraphs: [
+          "Mağaza ve kafe siparişlerinde sözleşme, ödemenizin PayNkolay'a sorularak teyit edilmesi ve siparişin ödenmiş olarak kaydedilmesiyle kurulur; tutarın tamamı indirimle karşılanan siparişlerde sipariş kaydedildiği anda kurulur. Ödeme tamamlanmadan bırakılan bir siparişte sözleşme kurulmaz.",
+          "Karaoke odası rezervasyonunda sözleşme, ödemenizin onaylanmasıyla kurulur ve rezervasyonunuz o anda kesinleşir.",
+        ],
+      },
+      {
+        heading: "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
+        paragraphs: [
+          "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+          "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+          "Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.",
+          "Belgelerin güncel metni her zaman {{SITE_URL}}/hukuk adresinde yayımlanır; belgeleri kendi cihazınıza kaydedebilir ya da çıktısını alabilirsiniz.",
+        ],
+      },
+      {
+        heading: "9. Fatura",
+        paragraphs: [
+          "Ödenen her sipariş için fatura e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Karaoke odası rezervasyonunun faturası rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir.",
+          "Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletin; ödeme adımında bu bilgiler için ayrı bir alan yoktur. Ayrıntılar Şirket ve İletişim Bilgileri sayfasının 14. bölümündedir.",
+        ],
+      },
+      {
+        heading: "10. Siparişten Sonra: İptal, Cayma ve İade",
+        paragraphs: [
+          "Mağaza siparişlerinde ürünü teslim aldığınız günden itibaren 14 gün içinde gerekçe göstermeden cayabilirsiniz; cayma bildiriminizi {{EMAIL}} adresine iletmeniz yeterlidir. Cayma hakkının kullanılamayacağı hâller, iade usulü ve geri ödeme Ön Bilgilendirme Formu'nda ve İptal, İade ve Cayma Hakkı belgesinde yazılıdır.",
+          "Mobil uygulamadan verilen kafe siparişlerinde cayma hakkı, Ön Bilgilendirme Formu'nun 12. maddesindeki istisna nedeniyle kullanılamaz; ürün ayıplı veya eksik gelirse yasal haklarınız saklıdır.",
+          "Karaoke odası rezervasyonunda 14 günlük cayma hakkı yoktur; iptal ve iade kuralları Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde yer alır ve son ücretsiz iptal anı rezervasyon özetinizde gösterilir.",
+        ],
+      },
+      {
+        heading: "11. Şikâyet ve Uyuşmazlık Çözümü",
+        paragraphs: [
+          "Şikâyet ve taleplerinizi {{EMAIL}} adresine ya da {{PHONE}} numarasına iletebilirsiniz; başvurunuz kayda alınır ve en geç 3 iş günü içinde size dönülür.",
+          "Bizimle çözülemeyen uyuşmazlıklarda, her yıl Ticaret Bakanlığınca ilan edilen parasal sınırlar içinde yerleşim yerinizdeki veya tüketici işleminin yapıldığı yerdeki tüketici hakem heyetine başvurabilirsiniz. Bu sınırların üzerindeki uyuşmazlıklarda tüketici mahkemesinde dava açmadan önce arabulucuya başvurmanız 6502 sayılı Kanun'un 73/A maddesi uyarınca zorunludur. Hakem heyeti başvurusunu e-Devlet üzerinden Tüketici Bilgi Sistemi (TÜBİS) ile elektronik ortamda da yapabilirsiniz.",
+          "Başvuru yollarının ayrıntısı Şikâyet ve Uyuşmazlık Çözümü sayfasındadır.",
+        ],
+      },
+      {
+        heading: "12. İletişim",
+        table: [
+          { key: "Satıcı", value: "{{LEGAL_NAME}}" },
+          { key: "Marka", value: "{{BRAND}}" },
+          { key: "Adres", value: "{{ADDRESS}}" },
+          { key: "Telefon", value: "{{PHONE}}" },
+          { key: "E-posta", value: "{{EMAIL}}" },
+          { key: "MERSİS numarası", value: "{{MERSIS}}" },
+          { key: "KEP adresi", value: "{{KEP}}" },
+          { key: "Hukuki belgeler", value: "{{SITE_URL}}/hukuk" },
+        ],
+      },
+    ],
+  },
+  {
     slug: "iade-ve-cayma",
     title: "İptal, İade ve Cayma Hakkı",
     shortTitle: "İade ve Cayma",
+    // 19 Ekim 2026: §21 points at the karaoke terms instead of repeating
+    // them, and holds the single event-cancellation rule. LEGAL-REDLINES §17.
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden verilen siparişlerin iptali, 14 günlük cayma hakkı, ürün iadesi, mobil uygulamadan verilen kafe siparişlerinin durumu, PayNkolay üzerinden geri ödeme ve kuponlu siparişlerde iade esaslarının adım adım açıklandığı uygulama belgesidir.",
@@ -1253,7 +1407,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -1415,13 +1569,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ordered: [
           "Cayma iradenizi 14 günlük süre içinde Satıcı'ya iletin. Bunun için {{EMAIL}} adresine e-posta gönderebilirsiniz; üye panelinde ve {{BRAND}} mobil uygulamasında ayrı bir iade talebi ekranı bulunmaz. Dilerseniz {{PHONE}} numarasını arayarak yönlendirme alabilirsiniz; ancak telefonla yapılan görüşme tek başına yazılı bildirim yerine geçmediğinden görüşme sonunda bildiriminizi e-posta ile teyit etmenizi öneririz.",
           "Bildiriminizde bu belgenin 6. maddesinde sayılan bilgileri eksiksiz iletin. Eksik bilgi hâlinde Satıcı sizinle iletişime geçer; bilgi eksikliği cayma hakkının kullanıldığı tarihi geriye almaz, bildiriminizin Satıcı'ya ulaştığı tarih esas alınır.",
-          "Satıcı'nın bildiriminize e-posta ile vereceği yanıtı bekleyin. Bu yanıt, İade Onay Kodu'nu, iade adresini ve iade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağını içerir. Yanıt en geç bir iş günü içinde iletilir; ulaşmaması hâlinde e-postanızın istenmeyen klasörünü kontrol edip {{EMAIL}} adresine yazın veya {{PHONE}} numarasını arayın.",
-          "Ürünü iade için hazırlayın. Ürünü, aksesuarlarını, hediye olarak gönderilen tamamlayıcı kalemlerini, kullanım kılavuzunu, garanti belgesini ve varsa orijinal kutusunu eksiksiz biçimde toplayın. Orijinal kutu ambalajın kendisi ürünün bir parçası olduğundan üzerine kargo bandı yapıştırmayın, üzerine yazı yazmayın.",
+          "Satıcı'nın bildiriminize e-posta ile vereceği yanıtı bekleyin. Bu yanıt, İade Onay Kodu'nu, iade adresini ve iade gönderisi için iade kodunu içerir. Yanıt en geç bir iş günü içinde iletilir; ulaşmaması hâlinde e-postanızın istenmeyen klasörünü kontrol edip {{EMAIL}} adresine yazın veya {{PHONE}} numarasını arayın.",
+          "Ürünü iade için hazırlayın. Ürünü, standart aksesuarlarını ve varsa kampanya kapsamında gönderilen hediye ürünleri bir araya getirin; kutusunun, kullanım kılavuzunun, garanti belgesinin veya faturanın gönderilmesi gerekmez. Ürünü orijinal kutusuyla gönderecekseniz kutunun üzerine kargo bandı yapıştırmamanızı ve yazı yazmamanızı öneririz.",
           "Paketleme yapın. Ürünü, taşıma sırasında zarar görmeyecek biçimde dış koli içine yerleştirin; cam fincan, cezve ve seramik kalemler için dolgu malzemesi kullanın. Elinizde varsa faturayı veya fatura çıktısını ve sipariş numaranızı yazdığınız İade Formu'nu (ya da aynı bilgileri içeren bir notu) paketin içine koyun ve İade Onay Kodu'nu kolinin dışına okunaklı biçimde yazın.",
-          "Kargoya verin. İade gönderisinin hangi kargo firmasıyla ve hangi kodla yapılacağı Satıcı'nın yanıtında bildirilir; cayma hâlinde bu usulle yapılan iade gönderisinin bedeli Satıcı'ya aittir. İade masrafının kime ait olduğu bu belgenin 9. maddesinde düzenlenmiştir.",
-          "Ürünü, cayma bildirimini gönderdiğiniz tarihten itibaren on (10) gün içinde kargoya verin; bu süre Mesafeli Sözleşmeler Yönetmeliği'nin tüketicinin malı geri gönderme yükümlülüğünü düzenleyen hükmünden gelir. Sürenin aşılması usulüne uygun kullanılmış cayma hakkınızı ortadan kaldırmaz; yalnızca geri ödeme, ürün tarafımıza ulaşana veya ürünü gönderdiğinizi gösteren belgeyi bize iletene kadar ertelenebilir. Gecikme kaçınılmaz ise durumu {{EMAIL}} adresine bildirin.",
+          "Kargoya verin. İade kodu Satıcı'nın yanıtında bildirilir; iade kargo bedeli sizden talep edilmez. Ayrıntı bu belgenin 9. maddesindedir.",
+          "Ürünü, cayma bildirimini gönderdiğiniz tarihten itibaren on dört (14) gün içinde kargoya verin; bu süre Mesafeli Sözleşmeler Yönetmeliği'nin tüketicinin malı geri gönderme yükümlülüğünü düzenleyen hükmünden gelir. Sürenin aşılması usulüne uygun kullanılmış cayma hakkınızı ortadan kaldırmaz; yalnızca geri ödeme, ürün tarafımıza ulaşana veya ürünü gönderdiğinizi gösteren belgeyi bize iletene kadar ertelenebilir. Gecikme kaçınılmaz ise durumu {{EMAIL}} adresine bildirin.",
           "Gönderi takip numaranızı saklayın ve dilerseniz {{EMAIL}} adresine iletin. Kargonun Satıcı'ya ulaşmasına kadar geçen sürede taşıyıcıdan kaynaklanan sorunlarda takip numarası ile hızlıca çözüm üretilir.",
-          "Ürün tarafımıza ulaştıktan sonra en geç iki iş günü içinde inceleme yapılır ve sonucu e-posta ile bildirilir. Kabul edilen iadelerde geri ödeme, bu belgenin 10. maddesindeki usule göre başlatılır; siparişte kupon veya promosyon kodu kullanıldıysa bunun iadeye etkisi 10., 11. ve 12. maddelerde düzenlenmiştir.",
+          "Ürün tarafımıza ulaştıktan sonra en geç iki iş günü içinde inceleme yapılır ve sonucu e-posta ile bildirilir. Geri ödeme, bu belgenin 10. maddesindeki usule göre başlatılır; siparişte kupon veya promosyon kodu kullanıldıysa bunun iadeye etkisi 10., 11. ve 12. maddelerde düzenlenmiştir.",
           "Geri ödemenin kartınıza veya hesabınıza yansımasını takip edin; öngörülen sürede yansımaması hâlinde işlem tarihi ve sipariş numaranızla {{EMAIL}} adresine yazın.",
         ],
       },
@@ -1441,7 +1595,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Talebin türü: bedel iadesi mi, aynı ürünle değişim mi, farklı varyantla değişim mi istendiği.",
           "Ürünün teslim alındığı tarih (kargo teslim tarihi).",
           "Ayıp, hasar veya yanlış ürün iddiası varsa durumu gösteren fotoğraflar ve varsa kargo hasar tespit tutanağının bir örneği.",
-          "Karta iadenin teknik olarak mümkün olmadığı ve size bildirildiği istisnai kısmi iade hâllerinde, iade tutarının ödeneceği ve sizin adınıza kayıtlı banka hesabının IBAN'ı ile hesap sahibinin adı soyadı; hesap sahibinin sipariş sahibiyle aynı kişi olması zorunludur.",
+          "Karta iadenin teknik olarak mümkün olmadığı ve size bildirildiği istisnai kısmi iade hâllerinde ya da iadeyi başka bir kargo firmasıyla gönderip belgelediğiniz gönderim bedelinin ödenmesini istediğinizde, tutarın ödeneceği ve sizin adınıza kayıtlı banka hesabının IBAN'ı ile hesap sahibinin adı soyadı; hesap sahibinin sipariş sahibiyle aynı kişi olması zorunludur.",
           "Kartla yapılan ödemelerde kural olarak banka hesabı bilgisi istenmez; iade ödemenin yapıldığı karta yapılır.",
           "Siparişte kupon veya promosyon kodu kullandıysanız bunu ayrıca belirtmenize gerek yoktur; kullanım sipariş kaydından tespit edilir.",
         ],
@@ -1456,48 +1610,44 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünleri. Örnek: taze üretim gelato ve gelato kitinin soğuk zincirle gönderilen bileşenleri, kısa raf ömürlü taze pistacchio kreması partileri, günlük üretim pasticceria kalemleri.",
-          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan, sağlık ve hijyen açısından iadesi uygun olmayan ürünler. Örnek: mührü açılmış pistacchio kreması kavanozu, kapağı açılmış şurup şişesi, koruyucu bandı sökülmüş kahve çekirdeği paketi.",
-          "Doğrudan tüketime yönelik olarak üretilen ve tekrar satışa sunulması gıda güvenliği bakımından mümkün olmayan yenilebilir ürünler. Örnek: yenilebilir waffle kupa (edible cup) setleri; ambalajı açılmamış olsa dahi taşıma koşulları doğrulanamadığından ambalaj bütünlüğü bozulmuş gönderiler.",
+          "Tesliminden sonra ambalajı, bandı, mührü veya koruyucu folyosu açılmış olan, sağlık ve hijyen açısından iadesi uygun olmayan ürünler. Örnek: mührü açılmış pistacchio kreması kavanozu, kapağı açılmış şurup şişesi, koruyucu bandı sökülmüş kahve çekirdeği paketi, kutusu açılmış yenilebilir waffle kupa seti.",
           "Tüketicinin istekleri veya kişisel ihtiyaçları doğrultusunda hazırlanan, kişiye özel üretilen ürünler. Örnek: üzerine isim veya tarih işlenmiş fincan ve önlük, özel harman talebiyle kavrulan ve talep edilen inceliğe göre öğütülen kahve, hediye paketine özel mesaj baskısı yapılan setler.",
-          "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler. Örnek: köşkte belirli gün ve saate ayrılan masa rezervasyonu veya karaoke odası rezervasyonu, tarihli barista atölyesi veya tadım etkinliği katılım biletleri.",
+          "Belirli bir tarihte veya dönemde yapılması gereken, konaklama, yiyecek-içecek tedariki ve eğlence amaçlı hizmetler. Örnek: köşkte belirli gün ve saate ayrılan karaoke odası rezervasyonu, tarihli barista atölyesi veya tadım etkinliği katılım biletleri.",
           "Fiyatı finansal piyasalardaki dalgalanmalara bağlı olarak değişen ve Satıcı'nın kontrolünde olmayan mal veya hizmetler.",
           "Elektronik ortamda anında ifa edilen ve tüketiciye anında teslim edilen gayrimaddi ürünler. Örnek: satın alma sonrası indirme bağlantısı açılan dijital içerikler.",
           "Cayma hakkı süresi içinde ifasına tüketicinin onayı ile başlanan hizmetler. Örnek: talebiniz üzerine kişiselleştirilerek kavrum programına alınmış özel sipariş partisi.",
         ],
       },
       {
-        heading: "8. İade Edilen Ürünün Durumu ve Satılabilirlik Ölçütü",
+        heading: "8. İade Edilen Ürünün Durumu",
         paragraphs: [
           "Tüketici, cayma süresi içinde malı, işleyişine, teknik özelliklerine ve kullanım talimatlarına uygun bir şekilde kullandığı takdirde meydana gelen değişiklik ve bozulmalardan sorumlu değildir. Bir ürünün niteliğini, özelliklerini ve çalışma biçimini anlamak amacıyla makul ölçüde denenmesi kullanım sayılmaz; mağazada yapılabilecek türden bir inceleme her zaman serbesttir.",
-          "Buna karşılık, ürünün makul deneme sınırını aşacak biçimde kullanılması sonucunda değerinde bir azalma meydana gelmişse Satıcı, bu değer azalmasını geri ödemeden mahsup etme hakkını saklı tutar. Mahsup yapılan hâllerde mahsubun gerekçesi, dayandığı tespit ve tutarın hesaplanma yöntemi Alıcı'ya yazılı olarak bildirilir; Alıcı bu bildirime itiraz edebilir.",
-          "Satılabilirlik ölçütü şu şekilde uygulanır: ürün, kalite kontrolden geçtikten sonra yeni ürün olarak yeniden satışa sunulabilecek durumda ise iade koşulsuz kabul edilir. Yeniden satışa uygun olmayan hâllerde durum fotoğraflarla belgelenerek Alıcı'ya bildirilir.",
+          "Buna karşılık, ürünün işleyişine, teknik özelliklerine veya kullanım talimatlarına aykırı kullanılması sonucunda değerinde bir azalma meydana gelmişse Satıcı, bu değer azalmasını geri ödemeden mahsup edebilir. Mahsup yapılan hâllerde mahsubun gerekçesi, dayandığı tespit ve tutarın hesaplanma yöntemi Alıcı'ya yazılı olarak bildirilir; Alıcı bu bildirime itiraz edebilir.",
         ],
         bullets: [
-          "Kabul edilir: kutusu dikkatlice açılmış, denenmiş ancak kullanılmamış ekipman (moka pot, tamper, el değirmeni); ambalajı açılmamış kahve çekirdeği; etiketleri sökülmemiş tekstil ürünleri (önlük, tote çanta).",
-          "Kabul edilir: ürünün doğru olup olmadığını anlamak için kısa süre denenen ve üzerinde iz bırakmayan seramik veya cam kalemler.",
-          "Kabul edilmez: demleme yapılmış, içinde kahve tortusu, su izi veya kireç kalıntısı bulunan ekipman.",
-          "Kabul edilmez: öğütülmüş, ambalajı açılmış veya bir kısmı tüketilmiş kahve çekirdeği paketi.",
-          "Kabul edilmez: yıkanmış, ütülenmiş, kullanılmış veya üzerinde koku, leke ya da evcil hayvan tüyü bulunan tekstil ürünleri.",
-          "Kabul edilmez: kırık, çizik, ezik veya eksik parçalı olarak gönderilen ürünler; ancak hasarın taşıma sırasında oluştuğu kargo tutanağı ile belgelenirse bu madde uygulanmaz ve 16. madde devreye girer.",
-          "Kısmi kabul: setin bir kalemi kullanılmış, diğerleri kullanılmamışsa kullanılmayan kalemlerin bedeli iade edilir; set indirimi uygulanmışsa iade tutarı, kalan kalemlerin liste fiyatı esas alınarak yeniden hesaplanır ve hesaplama Alıcı'ya gösterilir.",
+          "İade edilir: kutusu açılmış, incelenmiş, denenmiş ya da cayma süresi içinde işleyişine ve kullanım talimatlarına uygun kullanılmış ekipman, seramik, cam ve tekstil ürünleri; bu kullanımdan doğan değişiklikler için kesinti yapılmaz.",
+          "Kesinti yapılabilir: ürünün kullanım talimatlarına aykırı kullanımından doğan değer kaybı (örneğin bulaşık makinesinde yıkanmaması gereken bir ürünün makinede yıkanması); kesinti yukarıdaki usulle bildirilir.",
+          "Cayma hakkı yoktur: ambalajı açılmış kahve paketleri ve iadesi sağlık ve hijyen açısından uygun olmayan diğer ürünler, çabuk bozulabilen gıdalar ve kişiye özel hazırlanan ürünler (bkz. 7. madde).",
+          "Taşıma hasarı: ürün kırık, çizik, ezik veya eksik parçalı ulaştıysa ve hasar taşıma sırasında oluştuysa 16. madde uygulanır.",
+          "Setler: setin bir kısmı iade edilirse iade tutarı, iade edilen kalemlerin set fiyatı içindeki payına göre hesaplanır ve hesaplama Alıcı'ya gösterilir.",
         ],
       },
       {
         heading: "9. İade Kargo Masrafının Kime Ait Olduğu",
         paragraphs: [
-          "Cayma hakkının kullanılmasında iade masrafının kime ait olacağı, Ön Bilgilendirme Formu'nda açıkça belirtilmiştir. Bu belgede anlaşmalı taşıyıcı, Satıcı'nın iade talebinize verdiği yanıtta bildirdiği kargo firmasıdır. {{BRAND}}, iadelerin anlaşmalı taşıyıcı üzerinden yapılması hâlinde masrafı doğrudan üstlenir; Alıcı'nın kargo şubesinde peşin ödeme yapmasına gerek yoktur.",
-          "Alıcı'nın anlaşmalı taşıyıcı dışında bir firmayı tercih etmesi hâlinde gönderim bedeli Alıcı tarafından karşılanır ve bu tutar, anlaşmalı taşıyıcı tarifesini aşan kısmı bakımından Satıcı'dan talep edilemez. Ayıplı, yanlış veya eksik ürün gönderimlerinde ise hangi taşıyıcı kullanılırsa kullanılsın masrafın tamamı Satıcı'ya aittir ve belgelenmesi hâlinde Alıcı'ya geri ödenir.",
-          "Karşı ödemeli (gönderi bedeli alıcıya ait) olarak gönderilen ve önceden mutabık kalınmayan iadeler teslim alınmayabilir; bu hâlde Alıcı ile iletişime geçilerek çözüm üretilir ve bu durum tek başına iade talebinin reddi anlamına gelmez.",
+          "Ön Bilgilendirme Formu'nda iade için bir taşıyıcı adlandırılmamıştır; bu nedenle Mesafeli Sözleşmeler Yönetmeliği'nin 12. maddesinin beşinci fıkrası uyarınca iade masrafına ilişkin hiçbir bedel Alıcı'dan talep edilmez. {{BRAND}}, cayma bildiriminize verdiği yanıtta bir iade kodu gönderir; bu kodla yapılan gönderinin bedelini doğrudan üstlenir, kargo şubesinde ödeme yapmanız gerekmez.",
+          "Alıcı iadeyi başka bir kargo firmasıyla gönderirse belgelediği gönderim bedeli Satıcı tarafından geri ödenir. Ayıplı, yanlış veya eksik ürün gönderimlerinde de masrafın tamamı Satıcı'ya aittir ve belgelenmesi hâlinde Alıcı'ya geri ödenir. Belgelenen gönderim bedeli, ürün bedelinin iadesinden ayrı olarak ve belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, Alıcı'nın kendi adına kayıtlı olarak bildireceği banka hesabına havale veya EFT ile ödenir; karta yapılan iade karttan tahsil edilen tutarı aşamadığından bu bedel karta iade edilmez.",
+          "Karşı ödemeli (gönderi bedeli alıcıya ait) olarak gönderilen iadeler de teslim alınır; gönderi bedelini Satıcı öder.",
         ],
         table: [
           {
-            key: "Cayma hakkı - anlaşmalı taşıyıcı ile iade",
-            value:
-              "Masraf Satıcı'ya aittir; gönderi kodu ile ücretsiz gönderilir.",
+            key: "Cayma hakkı - iade koduyla iade",
+            value: "Masraf Satıcı'ya aittir; iade koduyla ücretsiz gönderilir.",
           },
           {
-            key: "Cayma hakkı - anlaşmalı olmayan taşıyıcı ile iade",
-            value: "Masraf Alıcı'ya aittir.",
+            key: "Cayma hakkı - başka bir kargo firmasıyla iade",
+            value:
+              "Belgelediğiniz gönderim bedeli, belge ulaştıktan sonra 14 gün içinde kendi adınıza kayıtlı banka hesabına ödenir.",
           },
           {
             key: "Ayıplı, bozuk veya kusurlu ürün",
@@ -1522,7 +1672,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Değişim talebi - Alıcı kaynaklı (beden, varyant, fikir değişikliği)",
             value:
-              "İlk gönderi masrafı Satıcı'ya, iade gönderisi anlaşmalı taşıyıcı ile ücretsizdir; yeni ürünün sevkiyatı ücretsiz yapılır.",
+              "İlk gönderi masrafı Satıcı'ya, iade gönderisi ücretsizdir; yeni ürünün sevkiyatı ücretsiz yapılır.",
           },
         ],
       },
@@ -1560,6 +1710,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value:
               "İade edilen kalemlerin fiilen ödenen bedeli ödemenin yapıldığı karta iade edilir; hesaplama 11. maddeye göre yapılır ve Alıcı'ya yazılı olarak gösterilir. Karta iadenin teknik olarak mümkün olmadığı istisnai hâllerde tutar, Alıcı'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı süre içinde havale veya EFT ile ödenir.",
           },
+          {
+            key: "Başka bir kargo firmasıyla gönderilen iadenin gönderim bedeli",
+            value:
+              "Ürün bedelinin iadesinden ayrı olarak, belge Satıcı'ya ulaştıktan sonra 14 gün içinde Alıcı'nın kendi adına kayıtlı banka hesabına havale veya EFT ile ödenir; karta yapılan iade karttan tahsil edilen tutarı aşamadığından karta iade edilmez.",
+          },
         ],
       },
       {
@@ -1567,16 +1722,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "11. Kısmi İade, Ücretsiz Kargo Eşiği ve Promosyon Kodlarının Etkisi",
         paragraphs: [
           "Bir siparişin yalnızca bir kısmını iade etmeniz mümkündür. Kısmi iadede geri ödenecek tutar, iade edilen kalemlerin sipariş anında fiilen ödenen bedelleri esas alınarak hesaplanır. Sepet geneline uygulanan bir indirim varsa, indirim kalemlerin ödenen bedelleri oranında dağıtılarak iade tutarı belirlenir; böylece hiçbir kalem indirimsiz fiyatı üzerinden iade edilmiş sayılmaz.",
-          "Sipariş tutarı ücretsiz kargo eşiğine ulaştığı için kargo ücretsiz uygulanmış, kısmi iade sonrasında kalan sipariş tutarı bu eşiğin altına düşmüşse, sipariş anında geçerli olan standart kargo bedeli geri ödemeden mahsup edilebilir. Bu mahsup yalnızca Alıcı'nın kendi tercihiyle yaptığı cayma veya değişim taleplerinde uygulanır; ayıplı, yanlış, eksik veya hasarlı ürün nedeniyle yapılan iadelerde hiçbir şekilde uygulanmaz.",
+          "Sipariş tutarı ücretsiz kargo eşiğine ulaştığı için kargo ücretsiz uygulanmışsa, kısmi iade sonrasında kalan sipariş tutarı bu eşiğin altına düşse de geri ödemeden kargo bedeli mahsup edilmez ve sizden sonradan kargo bedeli istenmez. Bu kural, iade nedeni ne olursa olsun uygulanır.",
           "Siparişin tamamının iade edilmesi hâlinde teslimat masrafı da dâhil tahsil edilen tutarın tamamı iade edilir ve kargo mahsubu yapılmaz. Tüm fiyatlar ve iade hesaplamaları KDV dâhil tutarlar üzerinden yapılır ve iade edilen tutar KDV'yi de kapsar.",
         ],
         bullets: [
-          "Örnek (rakamlar yalnızca açıklama içindir): ücretsiz kargo eşiğinin 500 TL, standart kargo bedelinin 50 TL olduğu varsayımıyla, kargo bedeli alınmamış 620 TL tutarındaki bir siparişte 260 TL'lik bir kalem iade edilirse kalan tutar 360 TL olur ve eşik bozulur; bu hâlde 50 TL kargo bedeli iade tutarından mahsup edilerek 210 TL geri ödenir.",
-          "Örnek: Aynı siparişte iade nedeni ürünün ayıplı çıkması ise mahsup yapılmaz ve 260 TL'nin tamamı iade edilir.",
+          "Örnek (rakamlar yalnızca açıklama içindir): ücretsiz kargo eşiğinin 500 TL, standart kargo bedelinin 50 TL olduğu varsayımıyla, kargo bedeli alınmamış 620 TL tutarındaki bir siparişte 260 TL'lik bir kalem iade edilirse kalan tutar 360 TL olur ve eşiğin altına düşer; bu hâlde de kargo bedeli mahsup edilmez ve 260 TL'nin tamamı geri ödenir.",
           "Sepete uygulanan yüzdesel promosyon kodlarında indirim, iade edilen kalemin payına düşen oranda geri ödemeden düşülür; kod hesabınızda kalan sipariş için geçerliliğini korur.",
           "Belirli bir sepet tutarına bağlı promosyon kodu, kısmi iade sonrası kalan tutar kod koşulunu artık sağlamıyorsa, koddan doğan indirim farkı geri ödemeden mahsup edilir ve hesaplama size gösterilir.",
           "Kupon kullanılan siparişlerin kısmi iadesinde kuponla karşılanan kısım için nakit ödeme yapılmaz; iade tutarı, iade edilen kalemin fiilen ödenen bedeli üzerinden hesaplanır.",
-          "Hediye olarak eklenen tamamlayıcı ürünler, iade nedeniyle kampanya koşulu ortadan kalkıyorsa iade paketine dâhil edilmelidir; gönderilmemesi hâlinde ürünün liste bedeli geri ödemeden mahsup edilebilir.",
+          "Hediye olarak eklenen tamamlayıcı ürünler, iade nedeniyle kampanya koşulu ortadan kalkıyorsa iade paketine dâhil edilmelidir; gönderilmemesi hâlinde ürünün sipariş tarihindeki satış fiyatı geri ödemeden mahsup edilebilir.",
           "Mahsup edilen her kalem geri ödeme bildiriminde ayrı satır olarak gösterilir; hesaplamaya itiraz etmek için {{EMAIL}} adresine yazabilirsiniz.",
         ],
       },
@@ -1637,7 +1791,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Değişim (Ürün Takası) Süreci",
         paragraphs: [
           "Değişim, mevzuattan doğan bir zorunluluk değil, {{BRAND}}'nun tüketiciye sunduğu ek bir kolaylıktır. Cayma hakkınızı kullanmak yerine, ürünü aynı ürünün farklı bir varyantıyla veya bedel farkını tamamlayarak başka bir ürünle değiştirmeyi tercih edebilirsiniz. Değişim talebinde bulunmanız, cayma hakkınızdan feragat ettiğiniz anlamına gelmez; süreç içinde her zaman bedel iadesine dönebilirsiniz.",
-          "Değişim talepleri, cayma hakkı süresi olan 14 gün içinde iletilmelidir ve değişime konu ürünün bu belgenin 8. maddesindeki satılabilirlik ölçütünü karşılaması gerekir. Cayma hakkının kullanılamayacağı ürünlerde değişim de yalnızca ürünün ayıplı olması hâlinde mümkündür.",
+          "Değişim talepleri, cayma hakkı süresi olan 14 gün içinde iletilmelidir; değişime konu ürünün durumu bu belgenin 8. maddesine göre değerlendirilir. Cayma hakkının kullanılamayacağı ürünlerde değişim de yalnızca ürünün ayıplı olması hâlinde mümkündür.",
         ],
         ordered: [
           "{{EMAIL}} adresine e-posta ile değişim talebi iletin; talep açıklamasında mevcut ürünü ve almak istediğiniz yeni ürün ile varyantını belirtin.",
@@ -1673,7 +1827,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "17. Soğuk Zincir, Kısa Raf Ömürlü ve Gıda Ürünlerinde Özel Kurallar",
         paragraphs: [
           "Gelato, gelato kiti bileşenleri, yenilebilir waffle kupa ve benzeri sıcaklığa duyarlı ürünler, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile Türk Gıda Kodeksi mevzuatı çerçevesinde, yalıtımlı ambalaj ve soğutucu jel paketleriyle soğuk zincir korunarak sevk edilir. Bu ürünlerde teslimat, ürünün niteliği gereği belirli gün ve saat aralıklarında planlanabilir. Bu maddedeki soğuk zincir kuralları, yalnızca soğuk zincir gerektiren bir ürün satışa sunulduğunda uygulanır; mağazada satışa sunulan ürünler mağaza sayfasında gösterilir.",
-          "Soğuk zincir ürünlerinde gıda güvenliği nedeniyle, teslim edilen ürün Satıcı'ya geri alınarak yeniden satışa sunulamaz. Bu nedenle bu ürünler bakımından cayma hakkı, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü uyarınca kullanılamaz. Ancak ürünün bozuk, erimiş, soğuk zinciri kırılmış veya son tüketim tarihi geçmiş olarak teslim edilmesi hâlinde bu bir ayıp hâlidir ve bedelin tamamı iade edilir ya da ürün yenisiyle değiştirilir.",
+          "Soğuk zincir ürünlerinde gıda güvenliği nedeniyle, teslim edilen ürün Satıcı'ya geri alınarak yeniden satışa sunulamaz. Bu nedenle bu ürünler bakımından cayma hakkı, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü uyarınca kullanılamaz. Kutusu açılmamış yenilebilir waffle kupa setleri bu istisnaya girmez; kutusu açılmış setler sağlık ve hijyen istisnasına girer (7. madde). Ancak ürünün bozuk, erimiş, soğuk zinciri kırılmış veya son tüketim tarihi geçmiş olarak teslim edilmesi hâlinde bu bir ayıp hâlidir ve bedelin tamamı iade edilir ya da ürün yenisiyle değiştirilir.",
           "Alerjen bilgileri, bileşen listesi, saklama koşulları ve tüketim önerileri ürün sayfasında ve ambalaj etiketinde Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği'ne uygun biçimde sunulur. Bilinen bir gıda alerjiniz varsa sipariş öncesinde bileşen listesini incelemenizi ve tereddüt hâlinde {{PHONE}} numarasından bize danışmanızı öneririz.",
         ],
         bullets: [
@@ -1692,13 +1846,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İadeler yalnızca aşağıdaki adrese kabul edilir. Bu adres dışındaki bir noktaya gönderilen iadeler tarafımıza ulaşmayabilir ve bu durumdan doğan gecikme ve kayıplardan Satıcı sorumlu tutulamaz. Gönderi öncesinde İade Onay Kodu almış olmanız, paketin doğru sipariş kaydıyla eşleştirilmesini sağlar.",
         ],
         bullets: [
-          "Ürünü orijinal kutusuyla birlikte, kutunun kendisini dış ambalaj olarak kullanmadan gönderin; orijinal kutu ürünün parçası sayılır.",
+          "Ürünün orijinal kutusunu göndermeniz gerekmez; kutuyla gönderecekseniz kutunun kendisini dış ambalaj olarak kullanmayın.",
           "Cam, seramik ve porselen kalemleri (fincan, cezve, sürahi) balonlu naylon veya kâğıt dolgu ile sarın.",
           "Elektrikli veya mekanik ekipmanı (değirmen, tamper) aksesuarları, vidaları ve kılavuzuyla birlikte eksiksiz gönderin.",
           "Tekstil ürünlerini (önlük, tote) etiketleri sökülmemiş ve yıkanmamış olarak, ambalajında gönderin.",
           "Birden fazla siparişe ait ürünleri tek pakette göndermeyin; her sipariş için ayrı İade Onay Kodu ve ayrı paket kullanın.",
           "Kargo fişini veya takip numarasını, iade süreci tamamlanana kadar saklayın.",
-          "Ürün Satıcı'ya ulaşana kadar taşıma riski, anlaşmalı taşıyıcı ile yapılan gönderilerde Satıcı üzerindedir; anlaşmalı olmayan taşıyıcı tercih edilmişse gönderi kaybı riskinin taşıyıcıya karşı takibi gönderici sıfatıyla Alıcı'ya aittir, bu hâlde Satıcı süreçte destek olur.",
+          "Ürün Satıcı'ya ulaşana kadar taşıma riski Satıcı üzerindedir. Alıcı iadeyi başka bir kargo firmasıyla gönderdiyse ve gönderi kaybolur ya da hasar görürse, Alıcı gönderi belgesini ilettiğinde geri ödeme yapılır; taşıyıcıya karşı takibi Satıcı üstlenir, Alıcı bunun için gereken belgeyi verir.",
         ],
         table: [
           {
@@ -1710,7 +1864,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "İade Onay Kodu ve sipariş numarası",
           },
           {
-            key: "İade kargo firması ve gönderi kodu",
+            key: "İade kodu",
             value: "İade talebinize verilen yanıtta bildirilir",
           },
           {
@@ -1743,7 +1897,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kargo Bekleniyor",
             value:
-              "Ürünü anlaşmalı taşıyıcıya teslim etmeniz bekleniyor (bildirimden itibaren 10 gün).",
+              "Ürünü iade koduyla kargoya vermeniz bekleniyor (bildirimden itibaren 14 gün).",
           },
           {
             key: "Yolda",
@@ -1752,8 +1906,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "İncelemede",
-            value:
-              "Ürün depoya ulaştı; kalite kontrol ve satılabilirlik incelemesi yapılıyor (en geç 2 iş günü).",
+            value: "Ürün depoya ulaştı; inceleme yapılıyor (en geç 2 iş günü).",
           },
           {
             key: "Onaylandı",
@@ -1780,7 +1933,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "20. Ödeme Altyapısı ve Kredi Kartı İtirazı (Chargeback)",
         paragraphs: [
-          "Site ve mobil uygulama üzerindeki kartlı ödemeler, ödeme hizmeti sağlayıcısı PayNkolay'ın sanal POS altyapısı üzerinden alınır; PayNkolay, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren bir elektronik para kuruluşudur. Kart numarası, son kullanma tarihi, güvenlik kodu (CVV) ve kart sahibinin adı, {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla Satıcı'nın sunucusuna ulaşır ve aynı işlemde yalnızca PayNkolay'a iletilir; Satıcı bunları kaydetmez, saklamaz ve kayıt sistemlerine yazmaz. Her kartlı ödemede 3D Secure doğrulaması zorunludur: ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçilir ve ödeme orada onaylanır. Kredi kartları ile internetten alışverişe açık banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit, havale/EFT ve dijital cüzdan (Apple Pay, Google Pay vb.) ile ödeme alınmaz. Kart saklama özelliği açıldığında, üyeler ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusunu kendileri işaretleyerek (kutu işaretsiz gelir) kartlarını kaydedebilir; kayıtlı kart PayNkolay'ın kart saklama hizmetinde tutulur, Satıcı yalnızca rastgele üretilmiş 11 karakterlik bir üye anahtarı saklar ve kayıtlı kartla ödemede de 3D Secure zorunludur. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
+          "Site ve mobil uygulama üzerindeki kartlı ödemeler, ödeme hizmeti sağlayıcısı PayNkolay'ın sanal POS altyapısı üzerinden alınır; PayNkolay, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren bir elektronik para kuruluşudur. Kart numarası, son kullanma tarihi, güvenlik kodu (CVV) ve kart sahibinin adı, {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla Satıcı'nın sunucusuna ulaşır ve aynı işlemde yalnızca PayNkolay'a iletilir; Satıcı bunları kaydetmez, saklamaz ve kayıt sistemlerine yazmaz. Her kartlı ödemede 3D Secure doğrulaması zorunludur: ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçilir ve ödeme orada onaylanır. Kredi kartları ile internetten alışverişe açık banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit, havale/EFT ve dijital cüzdan (Apple Pay, Google Pay vb.) ile ödeme alınmaz. Kart, sonraki ödemeler için PayNkolay nezdinde de kaydedilmez.",
           "Ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, Satıcı sunucusunun PayNkolay işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir; PayNkolay ödeme sonucunu sunucudan sunucuya bildirim (webhook) ile göndermez. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır; aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye veya uygulamaya dönülmeden tarayıcı kapanırsa Satıcı, ödenmemiş görünen siparişi yaklaşık 45 dakika sonra iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. İade ve iptal işlemleri PayNkolay'ın iptal ve iade hizmeti üzerinden yapılır.",
           "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu kapsamında kart hamilinin bankasına yaptığı itiraz (chargeback) süreçleri banka ile kart hamili arasında yürür. Satıcı, bankadan veya PayNkolay'dan gelen bilgi taleplerini sipariş kaydı, teslimat belgesi, sözleşme onay kaydı ve iletişim geçmişi ile eksiksiz yanıtlar.",
           "Bir iade talebini önce bizimle çözmeye çalışmanızı öneririz; bize iletilen talep bu belgenin 10. maddesindeki usul ve sürelere göre işleme alınır. Aynı işlem için hem tarafımıza iade başvurusu yapıp hem banka nezdinde itiraz süreci başlatılması, mükerrer iade riskini önlemek amacıyla süreçlerin birleştirilmesini gerektirir; bu durumu {{EMAIL}} adresine bildirmenizi rica ederiz.",
@@ -1796,18 +1949,19 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "21. Rezervasyon, Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu",
+        heading:
+          "21. Atölye ve Etkinlik Katılımlarının İptali; Karaoke Odası Rezervasyonu",
         paragraphs: [
-          "{{BRAND}}, Tuzla'daki tarihi köşkte masa rezervasyonu, karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi belirli tarih ve saate bağlı hizmetler sunabilmektedir. Belirli bir tarihte veya dönemde yapılması gereken yiyecek-içecek tedariki ile eğlence ve boş zaman değerlendirme amaçlı hizmetler, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü kapsamında olup bu hizmetlerde cayma hakkı kullanılamaz. Karaoke odası dışındaki bu hizmetler için {{SITE}} veya mobil uygulama üzerinden çevrim içi ödeme ya da ön ödeme alınmaz. Bir bedel veya ön ödeme istenmesi hâlinde bu tutar işletmede nakit veya kart ile tahsil edilir ve hizmet bedeline mahsup edilir.",
-          "Karaoke odası rezervasyonu bundan ayrıdır: ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır ve rezervasyon ödemenin onaylanmasıyla kesinleşir. Bu hizmette de cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g); bunun yerine sözleşmeyle şu koşul tanınır. Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri her zaman ödenen tutarın tamamıdır, kısmi iade yapılmaz ve ödemenin yapıldığı karta yapılır. Rezervasyonu işletme karşılayamazsa ödediğiniz tutarın tamamı iade edilir. Bu belgenin aşağıdaki 48 ve 24 saatlik iptal ve devir kolaylıkları karaoke odası rezervasyonuna uygulanmaz; ayrıntılar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'ndedir.",
+          "{{BRAND}}, Tuzla'daki tarihi köşkte karaoke odası rezervasyonu, barista atölyesi ve tadım etkinliği gibi belirli tarih ve saate bağlı hizmetler sunabilmektedir. Belirli bir tarihte veya dönemde yapılması gereken yiyecek-içecek tedariki ile eğlence ve boş zaman değerlendirme amaçlı hizmetler, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü kapsamında olup bu hizmetlerde cayma hakkı kullanılamaz. Karaoke odası dışındaki bu hizmetler için {{SITE}} veya mobil uygulama üzerinden çevrim içi ödeme ya da ön ödeme alınmaz. Bir bedel veya ön ödeme istenmesi hâlinde bu tutar işletmede nakit veya kart ile tahsil edilir ve hizmet bedeline mahsup edilir.",
+          "Karaoke odası rezervasyonu bundan ayrıdır: ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır, rezervasyon ödemenin onaylanmasıyla kesinleşir ve bu hizmette de cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir; bu belgenin aşağıdaki 48 ve 24 saatlik iptal ve devir kolaylıkları karaoke odası rezervasyonuna uygulanmaz.",
           "Cayma hakkı bulunmamakla birlikte, {{BRAND}} karaoke odası dışındaki hizmetlerde operasyonel esneklik sağlamak amacıyla aşağıdaki iptal ve devir kolaylıklarını sunar. Bu kolaylıklar sözleşmeden doğan ek haklardır ve hizmetin hiç sunulmaması, gereği gibi sunulmaması veya Satıcı'dan kaynaklanan iptal hâllerinde tüketicinin yasal haklarını sınırlamaz.",
         ],
         bullets: [
-          "Etkinlik tarihinden en az 48 saat önce iletilen iptal taleplerinde ödenen bedelin tamamı iade edilir.",
-          "Etkinlik tarihine 24-48 saat kala iletilen iptallerde, tercihinize göre ödenen bedelin tamamı iade edilir veya katılım hakkınız kontenjan bulunan başka bir tarihe aktarılır.",
-          "Etkinlik tarihine 24 saatten az kalan iptallerde ve katılım sağlanmayan rezervasyonlarda, hazırlık ve tahsis edilen kontenjan nedeniyle bedel iadesi yapılamaz; ancak katılım hakkınızı bir başkasına devredebilirsiniz.",
+          "Etkinliğin başlangıç saatinden en az 48 saat önce iletilen iptal taleplerinde ödenen bedelin tamamı iade edilir.",
+          "Etkinliğin başlangıç saatine 48 saatten az, en az 24 saat kala (tam 24 saat dâhil) iletilen iptallerde, tercihinize göre ödenen bedelin tamamı iade edilir veya katılım hakkınız kontenjan bulunan başka bir tarihe aktarılır.",
+          "Etkinliğin başlangıç saatine 24 saatten az kala yapılan iptallerde ve katılım sağlanmayan etkinlik kayıtlarında, Satıcı'nın o kayıt için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ödenen bedelden düşülür ve kalan tutar iade edilir; düşülen tutar talep hâlinde kalem kalem yazılı olarak açıklanır, böyle bir gider yoksa veya belgelenemiyorsa bedelin tamamı iade edilir. Dilerseniz katılım hakkınızı ücretsiz olarak bir başkasına devredebilirsiniz.",
           "Katılımcı devri, etkinlik başlangıcından önce {{EMAIL}} adresine yeni katılımcının adı ve iletişim bilgisi yazılarak ücretsiz yapılır.",
-          "Etkinliğin Satıcı tarafından iptal edilmesi veya tarihinin değiştirilmesi hâlinde bedelin tamamı iade edilir veya tercihiniz doğrultusunda yeni tarihe aktarılır; bu tercih size aittir.",
+          "Etkinliğin Satıcı tarafından iptal edilmesi veya tarihinin değiştirilmesi hâlinde, tercihinize göre katılım hakkınız yeni tarihe aktarılır, eşdeğer bir etkinliğe katılımınız sağlanır ya da ödediğiniz bedelin tamamı en geç 14 gün içinde iade edilir; bu tercih size aittir.",
           "Mücbir sebeplerle (doğal afet, resmî makam kararı, altyapı kesintisi) yapılan iptallerde bedel, kesintisiz olarak iade edilir.",
         ],
       },
@@ -1832,7 +1986,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "23. Kayıt, Delil, Kişisel Veriler ve Belgenin Güncellenmesi",
         paragraphs: [
-          "İade ve cayma süreçlerinde işlenen kişisel verileriniz (ad, soyad, iletişim bilgileri, sipariş ve teslimat bilgileri, ödeme işlemine ilişkin kayıtlar ve karta iadenin mümkün olmadığı istisnai hâllerde iade için bildirilen banka hesap bilgisi), 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun 4. maddesindeki genel ilkelere uygun olarak, sözleşmenin kurulması ve ifası ile hukuki yükümlülüklerin yerine getirilmesi hukuki sebeplerine dayanılarak işlenir. Ödeme kaydında PayNkolay işlem referansı, durum, tahsil edilen tutar ve para birimi, işlem tarihi ile PayNkolay'ın doğrulama servisinin döndürdüğü maskelenmiş kart numarası, kartı veren banka ve 3D Secure ile yetkilendirme bilgileri tutulur; kartın tam numarası, son kullanma tarihi, güvenlik kodu ve kart sahibinin adı tutulmaz. Ayrıntılı bilgi için Aydınlatma Metni'ni inceleyebilirsiniz.",
+          "İade ve cayma süreçlerinde işlenen kişisel verileriniz (ad, soyad, iletişim bilgileri, sipariş ve teslimat bilgileri, ödeme işlemine ilişkin kayıtlar ve karta iadenin mümkün olmadığı istisnai hâllerde iade için veya başka bir kargo firmasıyla gönderilen iadenin belgelenen gönderim bedelinin ödenmesi için bildirilen banka hesap bilgisi), 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun 4. maddesindeki genel ilkelere uygun olarak, sözleşmenin kurulması ve ifası ile hukuki yükümlülüklerin yerine getirilmesi hukuki sebeplerine dayanılarak işlenir. Ödeme kaydında PayNkolay işlem referansı, durum, tahsil edilen tutar ve para birimi, işlem tarihi ile PayNkolay'ın doğrulama servisinin döndürdüğü maskelenmiş kart numarası, kartı veren banka ve 3D Secure ile yetkilendirme bilgileri tutulur; kartın tam numarası, son kullanma tarihi, güvenlik kodu ve kart sahibinin adı tutulmaz. Ayrıntılı bilgi için Aydınlatma Metni'ni inceleyebilirsiniz.",
           "6698 sayılı Kanun'un 11. maddesinde sayılan haklarınıza ilişkin taleplerinizi, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ'e uygun şekilde {{EMAIL}} adresine iletebilirsiniz; başvurularınız en geç otuz (30) gün içinde sonuçlandırılır. Ticari ve hukuki zorunluluklar sona erdiğinde veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca silinir, yok edilir veya anonim hâle getirilir.",
           "Taraflar, iade ve cayma süreçlerine ilişkin sistem kayıtlarının, işlemsel e-postaların, üye paneli kayıtlarının, olay kaydının (audit log) ve PayNkolay işlem kayıtlarının 6100 sayılı Hukuk Muhakemeleri Kanunu'nun 193. maddesi anlamında delil niteliğinde olduğunu kabul eder. Bu delil sözleşmesi, tüketicinin kendi delillerini sunma ve karşı delil gösterme hakkını ortadan kaldırmaz.",
           "Bu belge, mevzuat değişiklikleri ve operasyonel gereklilikler doğrultusunda güncellenebilir. Her güncelleme, sürüm numarası ve yürürlük tarihiyle birlikte {{SITE_URL}} adresinde yayımlanır. Siparişinize, sipariş anında yürürlükte olan ve onayladığınız sürüm uygulanır; sonraki değişiklikler geçmiş siparişleriniz aleyhine sonuç doğurmaz.",
@@ -1863,7 +2017,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, Sayı: 29188) - m.5 ön bilgilendirme yükümlülüğü, m.9 cayma hakkı, m.15 cayma hakkının istisnaları",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6102 sayılı Türk Ticaret Kanunu - m.1524 internet sitesi yükümlülüğü ile taşıma işlerine ilişkin hükümler",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
@@ -1902,7 +2056,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "2. Satıcı ve Gönderici Bilgileri",
         paragraphs: [
-          "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca gönderilerin göndericisi ve satış sözleşmesinin tarafı olan tüzel kişiye ilişkin tanıtıcı bilgiler aşağıdadır. Tüm gönderiler aşağıdaki unvan ve adres üzerinden düzenlenir; kargo etiketinde ve sevk belgelerinde gönderici olarak bu bilgiler yer alır.",
+          "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca gönderilerin göndericisi ve satış sözleşmesinin tarafı olan tüzel kişiye ilişkin tanıtıcı bilgiler aşağıdadır. Tüm gönderiler aşağıdaki unvan ve adres üzerinden düzenlenir; kargo etiketinde ve sevk belgelerinde gönderici olarak bu bilgiler yer alır.",
         ],
         table: [
           {
@@ -2087,14 +2241,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "3-7 iş günü",
           },
           {
-            key: "Kuzey Kıbrıs Türk Cumhuriyeti (KKTC)",
-            value: "5-10 iş günü (gümrük işlem süresi hariç)",
-          },
-          {
-            key: "Yurt dışı",
-            value: "7-21 iş günü (gümrük işlem süresi hariç)",
-          },
-          {
             key: "Yasal azami ifa süresi",
             value: "Her hâlükârda siparişin kurulduğu tarihten itibaren 30 gün",
           },
@@ -2122,10 +2268,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Kargo ve Teslimat Ücretleri",
         paragraphs: [
-          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Kargo ve teslimat hizmet bedeline uygulanan katma değer vergisi oranı %20'dir; ürünlere uygulanan KDV oranı ise ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
+          "Kargo ve teslimat ücretleri, sepet ekranında ve ödeme öncesindeki sipariş özetinde ayrı bir kalem olarak, vergiler dâhil şekilde gösterilir. ALICI'dan, sipariş özetinde gösterilen tutar dışında herhangi bir ad altında ilave teslimat bedeli talep edilmez. Ürünlere uygulanan KDV oranı ürün grubuna göre ilgili vergi mevzuatında öngörülen oran üzerinden hesaplanır. Kargo ve teslimat bedeli faturada ürünlerden ayrı bir kalem olarak gösterilir ve taşıma hizmetinin tabi olduğu oranda KDV içerir. Sipariş özetinde gösterilen tutarlara KDV dâhildir.",
           "Bottega siparişlerinde, teslimat adresinin bulunduğu yerden ve gönderinin ağırlığından bağımsız olarak tek tip sabit bir kargo ücreti uygulanır; ücretsiz kargo eşiğine ulaşan siparişlerden kargo ücreti alınmaz. Güncel kargo ücreti ile, uygulanıyorsa ücretsiz kargo eşiği ve eşiğe kalan tutar, sepet ve ödeme ekranında gösterilir. Ücretsiz kargo eşiğinin hesabında, promosyon kodu ve indirimler düşüldükten sonra kalan ürün bedeli toplamı esas alınır; kargo bedelinin kendisi bu hesaba dâhil edilmez. Ücretsiz kargo eşiğini aşan bir siparişin sonradan kısmen iade edilmesi ve kalan tutarın eşiğin altına düşmesi hâlinde, ALICI'dan geriye dönük kargo bedeli talep edilmez.",
           "Soğuk zincir gerektiren gönderilerde kullanılan yalıtımlı kutu, jel akü ve kuru buz malzemeleri için ALICI'dan ayrıca bir bedel alınmaz; bu maliyet ilgili kargo bedeline dâhildir.",
-          "KKTC ve yurt dışı teslimat adresleri için ayrı bir taşıma tarifesi uygulanmaz; bu gönderilerde de taşıma bedeli olarak, ödeme öncesinde sipariş özetinde gösterilen kargo ücreti esas alınır. Bu bedel yalnızca taşıma hizmetini kapsar; gümrük vergi, resim ve harçları 16. maddede düzenlendiği şekilde ALICI'nın sorumluluğundadır.",
           "Ücret tarifesinde yapılacak değişiklikler yalnızca ileriye etkili olarak uygulanır; değişiklik tarihinden önce kurulmuş siparişlere, sipariş anında geçerli olan tarife uygulanır.",
         ],
         table: [
@@ -2140,11 +2285,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "İndirimler düşüldükten sonraki ürün toplamı ücretsiz kargo eşiğine ulaşan siparişlerde (eşik uygulanıyorsa; eşik tutarı ve eşiğe kalan tutar sepet ve ödeme ekranında gösterilir)",
           },
           {
-            key: "KKTC ve yurt dışı gönderileri",
-            value:
-              "Ayrı tarife uygulanmaz; ödeme ekranında gösterilen kargo ücreti esas alınır (gümrük vergi, resim ve harçları hariç)",
-          },
-          {
             key: "Soğuk zincir paketleme bedeli",
             value: "Ücretsiz - kargo bedeline dâhildir",
           },
@@ -2155,14 +2295,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Para birimi ve vergi",
             value:
-              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo hizmet bedelinde KDV %20)",
+              "Türk Lirası (TRY); tüm tutarlar vergiler dâhil gösterilir (kargo bedeli faturada ayrı kalem olarak gösterilir)",
           },
         ],
       },
       {
         heading: "8. Anlaşmalı Kargo Firmaları ve Taşıyıcının Belirlenmesi",
         paragraphs: [
-          "SATICI, gönderilerini Geliver kargo gönderi platformu üzerinden, gönderi anında SATICI tarafından seçilen anlaşmalı kargo firmasıyla sevk eder. Gönderiyi taşıyan kargo firmasının adı ve takip numarası, kargoya veriliş bildiriminde ve sipariş detay sayfasında gösterilir. Cayma hakkının kullanılması hâlinde iade gönderisinin hangi kargo firmasıyla ve hangi iade koduyla yapılacağı, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir.",
+          "SATICI, gönderilerini Geliver kargo gönderi platformu üzerinden, gönderi anında SATICI tarafından seçilen anlaşmalı kargo firmasıyla sevk eder. Gönderiyi taşıyan kargo firmasının adı ve takip numarası, kargoya veriliş bildiriminde ve sipariş detay sayfasında gösterilir. Cayma hakkının kullanılması hâlinde iade gönderisinin iade kodu, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez (19. madde).",
           "ALICI, sipariş sırasında anlaşmalı taşıyıcılar dışında bir taşıyıcı ile gönderim talep edemez. Ancak ALICI'nın kendi tercih ettiği bir taşıyıcı ile gönderim konusunda SATICI ile ayrıca yazılı olarak anlaşması hâlinde, gönderiye ilişkin risk ve masraflar bakımından 18. madde hükümleri uygulanır.",
           "Anlaşmalı taşıyıcının ilgili bölgede hizmet verememesi, hizmetini durdurması veya gönderinin niteliği gereği farklı bir taşıyıcı kullanılmasının zorunlu olması hâlinde SATICI, ALICI aleyhine sonuç doğurmamak ve ilave bedel talep etmemek kaydıyla eşdeğer hizmet veren başka bir taşıyıcı belirleyebilir. Bu durumda ALICI'ya kargo takip bilgisi ile birlikte taşıyıcı değişikliği bildirilir.",
           "Taşıma sırasında meydana gelen gecikme, hasar ve kayıplar bakımından SATICI'nın ALICI'ya karşı sorumluluğu 18. maddede düzenlenmiştir; SATICI'nın taşıyıcıya rücu hakkı saklıdır.",
@@ -2196,8 +2336,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Gelato kiti, yenilebilir waffle kupa ve benzeri ısıya duyarlı gıda ürünleri, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile ilgili gıda mevzuatı çerçevesinde soğuk zincir koşullarında hazırlanır ve sevk edilir. Bu ürünler yalıtımlı strafor veya karton kutu içinde, jel akü ya da kuru buz ile birlikte gönderilir.",
           "Soğuk zincir gönderileri, gönderinin hafta sonu boyunca kargo hattında beklememesi amacıyla yalnızca Pazartesi, Salı ve Çarşamba günleri sevk edilir. Perşembe günü kesim saatinden sonra verilen soğuk zincir siparişleri, takip eden haftanın ilk sevk gününde gönderilir. Bu kısıt, ürünün gıda güvenliği açısından uygun koşullarda teslim edilmesini sağlamak amacını taşır ve ALICI'ya sipariş öncesinde ürün sayfasında bildirilir.",
           "Kuru buz kullanılan gönderilerde, kuru buz tehlikeli madde sınıfında yer aldığından bazı taşıyıcı firmalar ve bazı varış noktaları bakımından taşıma kısıtı uygulanabilir. SATICI, bu kısıt nedeniyle sevk edilemeyen siparişleri ALICI'ya bildirir ve ALICI'nın talebi doğrultusunda siparişi iptal ederek bedelin tamamını iade eder.",
-          "Soğuk zincir gönderileri niteliği gereği KKTC ve yurt dışına sevk edilemez. Bu ürünler yalnızca Türkiye içi teslimat adreslerine gönderilebilir. Soğuk zincir ürünü içeren bir sipariş KKTC veya yurt dışındaki bir teslimat adresiyle verilirse SATICI, ALICI'yı bilgilendirir; ALICI'nın tercihine göre sipariş soğuk zincir ürünü çıkarılarak gönderilir ve bu ürünün bedeli iade edilir ya da sipariş iptal edilerek tahsil edilen tutarın tamamı iade edilir.",
-          "Soğuk zincir gönderileri, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri kapsamında, çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan mallar arasında değerlendirilebilir. Bu husus ürün sayfasında ve Ön Bilgilendirme Formu'nda ayrıca belirtilir.",
+          "Soğuk zincir gönderileri, Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri kapsamında, çabuk bozulabilen veya son kullanma tarihi geçebilecek mallar ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan mallar arasında değerlendirilebilir. Kutusu açılmamış yenilebilir waffle kupa setleri ve kapalı paketteki kavrulmuş kahve bu kapsamda sayılmaz. Bu husus ürün sayfasında ve Ön Bilgilendirme Formu'nda ayrıca belirtilir.",
         ],
         bullets: [
           "Isıya duyarlı ürünler yalıtımlı kutu içinde, jel akü veya kuru buz eşliğinde sevk edilir.",
@@ -2327,24 +2466,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading:
-          "16. KKTC ve Yurt Dışı Gönderileri; Gümrük Vergi, Resim ve Harçları",
+        heading: "16. Teslimat Bölgesi",
         paragraphs: [
-          "KKTC ve yurt dışı gönderilerinde ayrı bir taşıma tarifesi uygulanmaz; taşıma bedeli olarak, ödeme öncesinde sipariş özetinde vergiler dâhil gösterilen kargo ücreti esas alınır.",
-          "Yurt dışına yapılan gönderiler varış ülkesinin gümrük mevzuatına tabidir. Varış ülkesinde tahakkuk edebilecek ithalat vergileri, gümrük vergisi, katma değer vergisi, özel tüketim vergisi, gümrük müşavirliği ücreti, antrepo ve benzeri her türlü resim, harç ve masraf ALICI'nın sorumluluğundadır ve bu tutarlar sipariş bedeline dâhil değildir. SATICI bu tutarları önceden hesaplayamaz veya taahhüt edemez.",
-          "Gümrük işlemleri sırasında ALICI'dan kimlik, vergi numarası veya ithalat beyanı gibi ek belge talep edilebilir. Bu belgelerin zamanında sunulmaması nedeniyle gönderinin gümrükte beklemesi, iade edilmesi veya imha edilmesi hâlinde doğan masraflar ALICI'ya aittir.",
-          "Bazı ürünlerin belirli ülkelere ihracı veya ithali yasal olarak kısıtlanmış olabilir. Gıda ürünlerinin ithalinde varış ülkesinin gıda güvenliği mevzuatı uygulanır. ALICI, sipariş vermeden önce kendi ülkesinin ithalat kurallarını kontrol etmekle yükümlüdür.",
-          "Gönderinin gümrük mevzuatına aykırılık nedeniyle varış ülkesince kabul edilmemesi ve SATICI'ya iade edilmesi hâlinde ürün bedeli ALICI'ya iade edilir; ancak gidiş ve dönüş taşıma bedelleri ile gümrükte doğan masraflar iade tutarından mahsup edilebilir. Bu mahsup, yalnızca gümrük engelinin ALICI'nın bilgi verme yükümlülüğünü yerine getirmemesinden kaynaklandığı hâllerde uygulanır.",
-          "Soğuk zincir gerektiren ürünler, gümrük bekleme süreleri nedeniyle KKTC ve yurt dışına gönderilmez.",
-        ],
-        bullets: [
-          "Taşıma bedeli sipariş anında hesaplanır ve ödeme öncesinde net tutar olarak gösterilir.",
-          "Gümrük vergi, resim ve harçları ile müşavirlik ücretleri ALICI'ya aittir.",
-          "Gönderiler DAP (Delivered at Place) esasına göre sevk edilir; gümrükleme yükümlülüğü ALICI'dadır.",
-          "Gümrük işlem süreleri, tabloda gösterilen tahminî teslim sürelerine dâhil değildir.",
-          "Varış ülkesinin ithalat kısıtlamalarını kontrol etmek ALICI'nın sorumluluğundadır.",
-          "Yurt dışı gönderilerinde gümrük işlemleri için gereken belgeler ilgili mevzuata uygun şekilde düzenlenir.",
-          "Soğuk zincir ürünleri KKTC ve yurt dışına sevk edilmez.",
+          "Online mağaza siparişleri yalnızca Türkiye içindeki teslimat adreslerine gönderilir; KKTC'ye ve yurt dışına gönderim yapılmaz.",
         ],
       },
       {
@@ -2382,20 +2506,20 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "19. Cayma Hakkı Kapsamında İade Gönderilerinde Kargo Düzeni",
         paragraphs: [
           "ALICI, Mesafeli Sözleşmeler Yönetmeliği uyarınca, ürünü teslim aldığı tarihten itibaren on dört gün içinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir. Cayma bildirimi, süre dolmadan önce {{EMAIL}} adresine yapılabilir.",
-          "Cayma hakkı kapsamındaki iade gönderisinin hangi kargo firmasıyla ve hangi iade koduyla yapılacağı, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir. İadenin SATICI'nın bildirdiği kargo firması ile ve bildirilen iade kodu kullanılarak gönderilmesi hâlinde iade kargo bedeli SATICI tarafından karşılanır; ALICI'dan herhangi bir taşıma bedeli tahsil edilmez.",
-          "ALICI'nın SATICI'nın bildirdiği kargo firması dışında bir taşıyıcı ile iade göndermeyi tercih etmesi hâlinde, SATICI yalnızca bildirilen kargo firmasının tarifesine denk gelen tutarı karşılamakla yükümlüdür; aradaki fark ALICI'ya ait olabilir.",
-          "Cayma hakkının kullanılması hâlinde SATICI, cayma bildiriminin kendisine ulaşmasından itibaren en geç on dört gün içinde, ürün bedeli ile birlikte ALICI'nın ödediği teslim masraflarını da iade eder. İade edilecek teslim masrafı, standart gönderim seçeneğine karşılık gelen ve ALICI'dan tahsil edilen tutardır; ALICI'nın standart gönderim dışında ilave maliyetli bir teslimat seçeneğini tercih etmiş olması hâlinde aradaki fark iade kapsamı dışında kalabilir. İade, ödemenin yapıldığı karta yapılır. Siparişin bir kısmının iadesinde iade tutarı da ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı süre içinde havale veya EFT ile ödenir.",
-          "ALICI, cayma bildiriminden itibaren on gün içinde ürünü SATICI'nın {{ADDRESS}} adresine iade etmekle yükümlüdür. Ürünün, kutusu, ambalajı ve varsa standart aksesuarları ile birlikte eksiksiz gönderilmesi gerekir; fatura nüshasının da ürünle birlikte gönderilmesi önerilir.",
+          "Cayma hakkı kapsamındaki iade gönderisinin iade kodu, cayma bildiriminin SATICI'ya ulaşmasından sonra ALICI'ya e-posta ile bildirilir. İade koduyla yapılan gönderinin bedeli SATICI tarafından karşılanır; ALICI'dan herhangi bir taşıma bedeli tahsil edilmez.",
+          "ALICI iadeyi başka bir taşıyıcı ile gönderirse de iade masrafı ALICI'dan talep edilmez; ALICI'nın belgelediği gönderim bedeli SATICI tarafından geri ödenir. Belgelenen gönderim bedeli, ürün bedelinin iadesinden ayrı olarak ve belgenin SATICI'ya ulaşmasından itibaren 14 (on dört) gün içinde, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına havale veya EFT ile ödenir; karta yapılan iade karttan tahsil edilen tutarı aşamadığından bu bedel karta iade edilmez.",
+          "Cayma hakkının kullanılması hâlinde SATICI, cayma bildiriminin kendisine ulaşmasından itibaren en geç on dört gün içinde, ürün bedeli ile birlikte ALICI'nın ödediği teslim masraflarını da iade eder. İade, ödemenin yapıldığı karta yapılır. Siparişin bir kısmının iadesinde iade tutarı da ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı istisnai hâllerde ALICI'ya bilgi verilir ve iade tutarı, ALICI'nın kendi adına kayıtlı olarak bildireceği banka hesabına aynı süre içinde havale veya EFT ile ödenir.",
+          "ALICI, cayma bildiriminden itibaren on dört gün içinde ürünü SATICI'nın {{ADDRESS}} adresine iade etmekle yükümlüdür. Ürün, varsa standart aksesuarlarıyla birlikte gönderilir; kutusunun veya faturasının gönderilmesi gerekmez.",
           "Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükümleri saklıdır. Çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünler ile tesliminden sonra ambalajı açıldığında sağlık ve hijyen bakımından iadesi uygun olmayan ürünlerde cayma hakkı kullanılamaz; bu istisna ilgili ürünlerin sayfasında ve Ön Bilgilendirme Formu'nda açıkça belirtilir.",
         ],
         bullets: [
           "Cayma süresi: ürünün teslim alındığı tarihten itibaren 14 gün.",
           "Cayma bildirimi: {{EMAIL}} adresine e-posta ile.",
-          "İade gönderisi: kargo firması ve iade kodu cayma bildiriminden sonra e-posta ile bildirilir; bildirilen firma ve kodla gönderimde kargo bedeli SATICI'ya aittir.",
+          "İade gönderisi: iade kodu cayma bildiriminden sonra e-posta ile bildirilir; iade kargo bedeli ALICI'dan talep edilmez.",
           "İade adresi: {{ADDRESS}}",
-          "Ürünün SATICI'ya gönderilme süresi: cayma bildiriminden itibaren 10 gün.",
+          "Ürünün SATICI'ya gönderilme süresi: cayma bildiriminden itibaren 14 gün.",
           "İade süresi: cayma bildiriminin ulaşmasından itibaren en geç 14 gün; ödeme aracına uygun şekilde.",
-          "İade kapsamı: ürün bedeli ve standart teslim masrafı.",
+          "İade kapsamı: ürün bedeli ve tahsil edilen teslim masrafı.",
           "İstisnalar: çabuk bozulabilen gıda ürünleri ile hijyen gereği iadesi uygun olmayan ürünler.",
         ],
       },
@@ -2411,7 +2535,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Geliver kargo gönderi platformuna ve gönderiyi taşıyan kargo firmasına aktarılan veriler: ad-soyad, teslimat adresi, cep telefonu numarası, sipariş numarası ve gerektiğinde gönderi içeriği tanımı.",
           "Aktarım amacı: yalnızca gönderinin oluşturulması, taşınması, takibi ve teslim edilmesi ile teslimat sürecine ilişkin bilgilendirme.",
           "Hukuki sebep: sözleşmenin kurulması ve ifası ile hukuki yükümlülüğün yerine getirilmesi.",
-          "Yurt dışı gönderilerinde veriler, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümlerine uygun olarak varış ülkesindeki taşıyıcı ve gümrük makamlarına aktarılabilir.",
           "Barındırma, veri tabanı ve işlemsel e-posta altyapısı (Vercel, {{DB_PROVIDER}} (PostgreSQL), Resend) kullanımından doğan aktarımlar Aydınlatma Metni'nde ayrıca açıklanmıştır.",
           "Teslimat verilerine erişim, yetkilendirilmiş yönetici hesaplarıyla sınırlıdır; yönetici erişimi TOTP tabanlı iki aşamalı doğrulama ile korunur ve yönetici işlemleri olay kaydına yazılır.",
         ],
@@ -2506,7 +2629,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6098 sayılı Türk Borçlar Kanunu - m.117 temerrüt",
       "6100 sayılı Hukuk Muhakemeleri Kanunu - m.193 delil sözleşmesi",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.4 genel ilkeler, m.5-6 işleme şartları, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliği",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -3100,7 +3223,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "24. Kayıtlar, Kişisel Veriler, Yürürlük ve Güncelleme",
         paragraphs: [
-          "Ayıp bildirimi ve garanti süreçlerinde işlenen kişisel verileriniz (ad-soyad, iletişim bilgileri, sipariş ve teslimat kaydı, ödeme ve iade işlem kaydı, kısmi iadenin karta yapılamadığı istisnai hâlde iade için bildirilen banka hesap bilgisi, gönderdiğiniz fotoğraf ve belgeler, yazışma içerikleri) 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun genel ilkeleri ve işleme şartları çerçevesinde; sözleşmenin kurulması ve ifası, hukuki yükümlülüğün yerine getirilmesi ve hukuki taleplerin tesisi hukuki sebeplerine dayanılarak işlenir. Ayrıntılı bilgi için {{SITE_URL}} adresinde yayımlanan Aydınlatma Metni ve Veri Saklama ve İmha Politikası'nı inceleyebilirsiniz.",
+          "Ayıp bildirimi ve garanti süreçlerinde işlenen kişisel verileriniz (ad-soyad, iletişim bilgileri, sipariş ve teslimat kaydı, ödeme ve iade işlem kaydı, kısmi iadenin karta yapılamadığı istisnai hâlde iade için veya belgelenen iade gönderim bedelinin ödenmesi için bildirilen banka hesap bilgisi, gönderdiğiniz fotoğraf ve belgeler, yazışma içerikleri) 6698 sayılı Kişisel Verilerin Korunması Kanunu'nun genel ilkeleri ve işleme şartları çerçevesinde; sözleşmenin kurulması ve ifası, hukuki yükümlülüğün yerine getirilmesi ve hukuki taleplerin tesisi hukuki sebeplerine dayanılarak işlenir. Ayrıntılı bilgi için {{SITE_URL}} adresinde yayımlanan Aydınlatma Metni ve Veri Saklama ve İmha Politikası'nı inceleyebilirsiniz.",
           "6698 sayılı Kanun'un ilgili kişinin haklarını düzenleyen hükümleri uyarınca haklarınızı {{EMAIL}} adresi üzerinden kullanabilirsiniz; başvurularınız Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç 30 gün içinde sonuçlandırılır. Verileriniz, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik ile 213 sayılı Vergi Usul Kanunu'nun öngördüğü saklama süreleri sona erdiğinde imha edilir.",
           "6100 sayılı Hukuk Muhakemeleri Kanunu'nun delil sözleşmesine ilişkin hükümleri uyarınca taraflar, Satıcı'nın sistem kayıtlarının, elektronik yazışmaların, talep kaydı ve olay kaydı (audit log) verilerinin, sipariş ve kargo kayıtlarının uyuşmazlıklarda delil teşkil edeceğini kabul eder. Bu kabul, tüketicinin başkaca delil sunma ve karşı delil ileri sürme hakkını hiçbir şekilde ortadan kaldırmaz.",
           "Bu belge {{SITE_URL}} adresinde sürekli erişilebilir biçimde yayımlanır; her sipariş anında yürürlükte olan sürüm, sürüm numarası ve onay tarihiyle birlikte sipariş kaydına iliştirilir. Mevzuat değişikliği veya süreç güncellemesi hâlinde belge güncellenir ve yeni sürüm yayım tarihinden itibaren geçerli olur; güncelleme, güncelleme öncesinde verilmiş siparişlere ilişkin kazanılmış haklarınızı etkilemez.",
@@ -3130,7 +3253,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu",
       "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği",
       "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun",
@@ -3180,7 +3303,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "3. Satıcı Künyesi",
         paragraphs: [
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. Satış işleminin muhatabı, faturanın düzenleyicisi ve bu politikanın uygulayıcısı aşağıdaki tüzel kişidir.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcıya ilişkin tanıtıcı bilgiler aşağıda yer almaktadır. Satış işleminin muhatabı, faturanın düzenleyicisi ve bu politikanın uygulayıcısı aşağıdaki tüzel kişidir.",
         ],
         table: [
           {
@@ -3356,7 +3479,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Online ödeme, bottega bölümünde listelenen fiziksel ürünler ile mobil uygulamadan verilen kafe siparişleri için alınır. Kafede yerinde yapılan satışlar işletmede yüz yüze gerçekleştirilir ve bu politikanın online satışa ilişkin hükümlerine değil, doğrudan işletme içi satış kurallarına tabidir.",
           "Bu ayrım, ödeme hizmeti sağlayıcısı nezdinde üye iş yerinin işlem hacminin kaynağının açık olması bakımından önem taşır: PayNkolay sanal POS üzerinden alınan işlemler, bottega siparişleri ile mobil uygulamadan verilen kafe siparişlerinden oluşur.",
           "Kafede kasada yapılan alışverişte, uygulamanın gösterdiği kasa kodu personel tarafından okutularak damga eklenmesi bir online satış işlemi değildir; bu işlem yalnızca damgayı kaydeder, kafe içi ödeme işletmede yüz yüze tahsil edilir.",
-          "Sitede kafe siparişi, paket servis veya masa rezervasyonu hizmeti sunulmamaktadır. Mobil uygulamadan verilen kafe siparişleri bu politikaya, Ön Bilgilendirme Formuna ve Mesafeli Satış Sözleşmesine tabidir; kafede yerinde sunulan hizmetlerin koşulları Kafe Hizmet ve Rezervasyon Koşulları'nda düzenlenir; karaoke odası rezervasyonu ise kendi belgesine tabidir.",
+          "Sitede kafe siparişi veya paket servis hizmeti sunulmamaktadır. Mobil uygulamadan verilen kafe siparişleri bu politikaya, Ön Bilgilendirme Formuna ve Mesafeli Satış Sözleşmesine tabidir; kafede yerinde sunulan hizmetlerin koşulları Kafe Hizmet Koşulları'nda düzenlenir; karaoke odası rezervasyonu ise kendi belgesine tabidir.",
         ],
       },
       {
@@ -3414,12 +3537,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Fiyatlandırma, Vergi ve Fiyat Gösterimi",
         paragraphs: [
-          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "Tüm fiyatlar Türk Lirası (TRY) cinsinden ve ürünün tabi olduğu oranda katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde görünen tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında tam sayı biçiminde saklanır ve yalnızca ekranda gösterim amacıyla biçimlendirilir. Bu yöntem ondalık yuvarlama farklarını ortadan kaldırır; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
           "Sipariş tutarı, ödeme adımında sunucu tarafında yeniden hesaplanır. Sepetten gelen fiyat bilgisi doğrulama amacıyla kullanılır; tahsil edilecek tutar her hâlükârda PostgreSQL veri tabanındaki güncel ürün fiyatı, geçerli promosyon kodu veya kupon ile kargo ya da kurye ücreti kuralı esas alınarak belirlenir. İstemciden gelen tutar hiçbir koşulda doğrudan PayNkolay'a veya bankaya iletilmez.",
           "Bottega siparişlerinde kargo ücreti, indirimler düşüldükten sonraki ürün toplamına göre otomatik hesaplanır: ücretsiz kargo eşiğinin altındaki siparişlere sabit bir kargo ücreti uygulanır, eşiğe ulaşan siparişlerde kargo ücretsizdir. Mobil uygulamadan verilen kafe siparişlerinde gel-al için teslimat ücreti alınmaz; kurye ile teslimde sipariş tutarından bağımsız, tek tip bir kurye ücreti uygulanır. Uygulanacak kargo veya kurye ücreti ödeme özetinde açıkça gösterilir ve onayınıza sunulur.",
           "Promosyon kodu veya kupon (ücretsiz içecek kuponu dâhil) kullanılan siparişlerde ödeme özetinde ürün toplamı, uygulanan indirim ve kargo veya kurye ücreti ayrı ayrı gösterilir; kart ile tahsil edilecek nihai tutar onayınıza sunulur. Kupon veya promosyonun tutarın tamamını karşıladığı ve ödenecek tutarın sıfır olduğu siparişler kart ödemesi alınmadan tamamlanır.",
-          "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
+          "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
         ],
         table: [
           {
@@ -3442,7 +3565,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "%20 (fiyatlara dâhil)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dâhil)",
           },
           {
             key: "Para birimi",
@@ -3598,13 +3721,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "25. Teslimat Bölgesi, KKTC ve Yurt Dışı Satış Kısıtları",
+        heading: "25. Teslimat Bölgesi",
         paragraphs: [
-          "Bottega gönderileri, Geliver kargo platformu üzerinden gönderi anında seçilen anlaşmalı kargo firmasıyla taşınır; gönderiyi taşıyan firmanın adı ve takip numarası kargo bildiriminde ve sipariş ekranında gösterilir. Mobil uygulamadan verilen kafe siparişleri kafeden gel-al veya kurye ile teslim edilir. Sipariş formunda ülke seçimi bulunmaz ve teslimat adresi adres satırı, ilçe, il ve posta kodu bilgileriyle alınır; bu nedenle sipariş, Türkiye'deki adreslere verilir. Kuzey Kıbrıs Türk Cumhuriyeti veya yurt dışı teslimat talebiniz varsa siparişten önce {{EMAIL}} adresine yazmanız gerekir; teslimatın yapılıp yapılamayacağı ve koşulları size ayrıca bildirilir.",
-          "Ayrıca kabul edilen yurt dışı ve KKTC gönderilerinde varış ülkesinin gümrük mevzuatı geçerlidir. Gümrük vergisi, harç, işlem ücreti ve varsa yerel vergiler alıcıya aittir ve sipariş tutarına dâhil değildir. Bu bedeller kargo firması veya gümrük idaresi tarafından doğrudan alıcıdan tahsil edilir.",
-          "Bazı ülkeler gıda ürünlerinin ithalatına sınırlama getirmektedir. Kahve, yenilebilir kupa, gelato kiti ve kiler ürünlerinin varış ülkesine girişinin mümkün olup olmadığını sipariş öncesinde kontrol etmek alıcının sorumluluğundadır. Ürünün gümrükte alıkonulması veya imha edilmesi hâlinde, bu durum Satıcının kusurundan kaynaklanmadıkça ürün bedelinin iadesi talep edilemez; varış ülkesinde doğan gümrük gideri ve iade taşıma masrafı alıcıya aittir. Bu hüküm, cayma hakkının usulüne uygun kullanıldığı hâllerde standart teslimat bedelinin iadesine ilişkin emredici mevzuat hükümlerini etkilemez.",
-          "Yurt dışı gönderilerde cayma hakkınız saklıdır; ancak iade gönderim masrafı ve gümrük giderleri, cayma hakkının kullanıldığı hâllerde Mesafeli Sözleşmeler Yönetmeliğindeki esaslara göre belirlenir ve ilgili masrafların kime ait olacağı Ön Bilgilendirme Formunda açıkça gösterilir.",
-          "Ambargo, yaptırım veya ihracat kısıtlaması bulunan ülkelere gönderim yapılmaz. Böyle bir adres girilmesi hâlinde sipariş onaylanmaz ve tahsil edilen bedel iade edilir.",
+          "Bottega gönderileri, Geliver kargo platformu üzerinden gönderi anında seçilen anlaşmalı kargo firmasıyla taşınır; gönderiyi taşıyan firmanın adı ve takip numarası kargo bildiriminde ve sipariş ekranında gösterilir. Mobil uygulamadan verilen kafe siparişleri kafeden gel-al veya kurye ile teslim edilir. Sipariş formunda ülke seçimi bulunmaz ve teslimat adresi adres satırı, ilçe, il ve posta kodu bilgileriyle alınır; bu nedenle sipariş, Türkiye'deki adreslere verilir.",
+          "Bottega yalnızca Türkiye içindeki teslimat adreslerine gönderim yapar; KKTC'ye ve yurt dışına gönderim yapılmaz.",
           "Yurt dışı kart ile yapılan ödemelerde tahsilat Türk Lirası üzerinden PayNkolay aracılığıyla yapılır; banka tarafından uygulanan döviz dönüşüm kuru ve komisyonlar {{SHORT_NAME}} tarafından belirlenmez ve tahsil edilmez.",
         ],
       },
@@ -3712,6 +3832,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odeme-kosullari",
     title: "Ödeme Koşulları ve Sanal POS",
     shortTitle: "Ödeme Koşulları",
+    // 21 Ekim 2026: §14 banka hesabına transferin üçüncü hâli, karaoke
+    // telafisinin ödenmesi (LEGAL-REDLINES §26).
+    updatedAt: "21 Ekim 2026",
     category: "Ödeme & Güvenlik",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulamasındaki ödemelerin ödeme hizmeti sağlayıcısı PayNkolay ile nasıl alındığını; ödeme sayfası, 3D Secure, tek çekim, iade, mükerrer çekim ve kart itirazı süreçlerini düzenler.",
@@ -3723,7 +3846,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Banka Kartları ve Kredi Kartları Hakkında Yönetmelik",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -3742,7 +3865,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Metinde geçen SATICI ifadesi {{LEGAL_NAME}} tüzel kişiliğini, {{BRAND}} ifadesi bu tüzel kişiliğe ait ticari markayı, ALICI veya kullanıcı ifadesi ise {{SITE}} yahut mobil uygulama üzerinden sipariş veren gerçek veya tüzel kişiyi ifade eder.",
           "Kart ile yapılan ödemeler, 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulan ödeme hizmeti üzerinden alınır. Bu metinde ödeme hizmeti sağlayıcısı denildiğinde PayNkolay anlaşılır; başka bir ödeme hizmeti sağlayıcısı veya sanal POS sağlayıcısı kullanılmamaktadır.",
           "Bu metin, {{SITE}} ve mobil uygulamada yayımlanan Mesafeli Satış Sözleşmesi ile Ön Bilgilendirme Formu'nun ayrılmaz bir eki niteliğindedir. Ödeme adımına ilerleyen kullanıcı, bu metni okuduğunu ve içeriğini kabul ettiğini beyan eder. Bu metin, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği'nin tüketici lehine emredici hükümlerini sınırlandıracak biçimde yorumlanamaz.",
-          "Metin, kafe içinde nakit veya fiziki POS cihazı ile yapılan yüz yüze satışları değil, yalnızca {{SITE}} ve mobil uygulama üzerinden yapılan uzaktan (mesafeli) satışları kapsar. Çevrim içi ödeme ürün siparişleri ve karaoke odası rezervasyonları için alınır; masa rezervasyonu, grup rezervasyonu, atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz.",
+          "Metin, kafe içinde nakit veya fiziki POS cihazı ile yapılan yüz yüze satışları değil, yalnızca {{SITE}} ve mobil uygulama üzerinden yapılan uzaktan (mesafeli) satışları kapsar. Çevrim içi ödeme ürün siparişleri ve karaoke odası rezervasyonları için alınır; atölye ve etkinlikler için çevrim içi kapora veya ön ödeme alınmaz.",
         ],
       },
       {
@@ -3758,7 +3881,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Idempotency (tekillik): Aynı ödeme sonucunun ağ tekrarları veya birden fazla teyit nedeniyle birden çok kez işlenmeye çalışılması hâlinde dahi siparişin yalnızca bir kez işlenmesini sağlayan teknik güvence.",
           "Minor unit (kuruş tabanı): Tüm fiyatların ondalık yuvarlama hatası doğurmaması için tam sayı kuruş cinsinden tutulması yöntemi.",
           "Damga: Sadakat kartında bir hâne dolduran, kendi başına parasal karşılığı bulunmayan sayısal kayıt; ayrıntı Ödül Programı Kuralları'nda.",
-          "Kayıtlı kart: Kart saklama özelliği açıldığında üyenin ödeme sayfasında isteğiyle kaydettiği ve PayNkolay'ın kart saklama hizmetinde saklanan kart; Satıcı bu kartın numarasını, son kullanma tarihini veya güvenlik kodunu saklamaz.",
         ],
       },
       {
@@ -3832,9 +3954,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Fiyatlandırma, Para Birimi ve Vergiler",
         paragraphs: [
-          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve %20 oranındaki katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
+          "{{SITE}} ve mobil uygulama üzerinde yayımlanan tüm fiyatlar Türk Lirası (TRY) cinsindendir ve ürünün tabi olduğu oranda katma değer vergisi dâhil olarak gösterilir. Ürün sayfasında, sepette ve ödeme özetinde gördüğünüz tutarlar nihai tüketici fiyatlarıdır; kargo veya kurye ücreti dışında ayrıca bir bedel eklenmez.",
           "Fiyatlar teknik olarak kuruş tabanında (minor unit) tam sayı biçiminde tutulur ve ekranda yalnızca gösterim amacıyla biçimlendirilir. Bu yöntem, ondalık yuvarlama farklarından doğan tutar uyuşmazlıklarını önler; PayNkolay'a iletilen tutar ile ekranda gördüğünüz tutar birebir aynıdır.",
-          "Vergi oranlarında mevzuat değişikliği olması hâlinde yeni oran, yürürlüğe girdiği tarihten sonra oluşturulan siparişlere uygulanır; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
+          "Sipariş özetinde gösterilen KDV dâhil toplam bedel, sonradan vergi oranı değişse de değişmez; daha önce ödemesi tamamlanmış siparişlerin tutarı geriye dönük olarak değiştirilmez.",
           "Fiyat, kampanya ve stok bilgilerinde açık bir maddi hata (örneğin fiyatın virgül kayması nedeniyle olağan değerinin çok altında görünmesi) bulunması hâlinde Satıcı, siparişi onaylamadan önce durumu size bildirir ve dilerseniz siparişi ücretsiz iptal etme hakkını tanır. Bu durumda tahsil edilmiş bir tutar varsa iade edilir; bu hüküm, doğru fiyatla kurulmuş sözleşmelerden dönme hakkı vermez.",
         ],
       },
@@ -3847,7 +3969,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kredi kartı: İnternetten alışverişe açık kredi kartları.",
           "Banka kartı (debit): Bakiye yeterliliği ve kartın internetten alışverişe açık olması koşuluyla.",
           "3D Secure: Her kartlı ödemede 3D Secure doğrulaması uygulanır; ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçer ve ödemeyi orada onaylarsınız.",
-          "Kayıtlı kart (kart saklama özelliği açıldığında; isteğe bağlı, yalnızca üyeler için): 10. maddede açıklandığı üzere PayNkolay'ın kart saklama hizmetinde kaydettiğiniz kartla ödeme; bu ödemede de 3D Secure doğrulaması yapılır.",
           "Tek çekim: Ödemeler tek çekim olarak alınır; taksitli ödeme seçeneği sunulmamaktadır.",
           "Ödenecek toplam tutarı sıfır olan sipariş: Kupon veya promosyon, ödenecek toplam tutarın tamamını karşılıyorsa kart ödemesi alınmaz ve sipariş, ödeme sayfası açılmadan ödenmiş sayılır.",
           "Havale / EFT / FAST: Ödeme yöntemi olarak sunulmamaktadır.",
@@ -3899,7 +4020,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kargo ücreti, ödeme özetinde ayrı bir satır olarak gösterilir ve tahsil edilen toplam tutara dâhildir. Ücretin hesabında sepetin indirim sonrası ara toplamı esas alınır; ücretsiz kargo eşiğinin aşılıp aşılmadığı da bu tutar üzerinden değerlendirilir.",
           "Kargo ücreti, tıpkı ürün bedelleri gibi sunucu tarafında hesaplanır ve istemciden gelen hiçbir kargo tutarına itibar edilmez. Kargo ücreti ödeme özetinde gösterilir; onay verdiğiniz tutar dışında sonradan ek bir taşıma bedeli talep edilmez. İndirimler düşüldükten sonra ara toplamı sıfır olan mağaza siparişinden kargo ücreti alınmaz.",
           "Mobil uygulamadan kurye ile teslim edilmek üzere verilen kafe siparişlerinde, ödeme özetinde ayrı bir satır olarak gösterilen tek tip kurye ücreti alınır. Bu ücrete ücretsiz kargo eşiği uygulanmaz ve kupon veya promosyon ürün bedelinin tamamını karşılasa da kurye ücreti tahsil edilir. Kafeden gel-al siparişlerinde kurye ücreti alınmaz.",
-          "Ödeme adımında gösterilen kargo ücreti, teslimatın Satıcı tarafından üstlenilen kısmını kapsar. KKTC ve yurt dışı gönderilerde varış ülkesinde doğabilecek gümrük vergisi, ithalat harcı ve benzeri kamusal yükler tarife dışıdır ve mevzuat gereği alıcıya aittir; bu bedeller Satıcı tarafından tahsil edilmez.",
+          "Ödeme adımında gösterilen kargo ücreti teslimatın tamamını kapsar; teslimat için ayrıca bir bedel istenmez.",
           "Cayma hakkının kullanıldığı hâllerde, mevzuat uyarınca teslimat masrafları da dâhil olmak üzere tahsil edilen tutarın tamamı iade edilir. Kargo ve kurye ücretinin tutarı ile ücretsiz kargo eşiği Satıcı tarafından belirlenir ve değişebilir; her siparişte geçerli olan tutar, o siparişin ödeme özetinde gösterilir ve sipariş kaydında saklanır.",
         ],
         table: [
@@ -3932,7 +4053,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Girdiğiniz kart bilgileri şifreli bağlantı (TLS) ile Satıcının sunucusuna ulaşır ve aynı işlem içinde yalnızca PayNkolay'a iletilir. Satıcı bu bilgileri veri tabanına, kayıt (log) sistemlerine veya dosyalara yazmaz, kaydetmez ve saklamaz; ödemenin PayNkolay'a iletilmesi dışında hiçbir amaçla kullanmaz. 3D Secure şifresini veya bankanızın istediği onayı Satıcının sayfasında değil, doğrudan kartınızı veren bankanın doğrulama ekranında verirsiniz.",
           "Ödeme sayfasında üçüncü taraf betik çalıştırılmaz ve sayfa başka bir internet sitesine gömülemez. Sayfaya taşınan sipariş ve tutar bilgisi şifreli ve imzalıdır; tarayıcıda değiştirilemez. Kartla ödeme denemelerinin sayısı sipariş başına, reddedilen denemelerin sayısı ise bağlantı başına sınırlandırılır.",
           "Satıcının sistemlerinde ödeme işlemine ilişkin olarak PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay işlem doğrulama servisinin döndürdüğü kayıt tutulur. Bu kayıt maskelenmiş kart numarasını, kartı veren bankanın adını, taksit sayısını (her ödemede 1), 3D Secure bilgisini ve bankanın işlem onay kodunu içerir; kart sahibinin adı ödeme kaydında tutulmaz. Kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada tutulmaz. Bu kayıtlar mutabakat, iade ve itiraz süreçleri için gereklidir ve {{DB_PROVIDER}} (PostgreSQL) veri tabanında saklanır.",
-          "Kart saklama özelliği açıldığında, üyeler ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusunu işaretleyerek kartlarını kaydedebilir; kutu işaretsiz gelir, kartınızı kaydetmeniz zorunlu değildir ve siz işaretlemedikçe hiçbir kart kaydedilmez. Bu özellik açılana kadar hiçbir kart kaydedilmez ve her ödemede kart bilgileri yeniden girilir. Kayıtlı kart Satıcı tarafından değil, PayNkolay'ın kart saklama hizmetinde saklanır. Satıcı yalnızca PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı, rastgele üretilmiş 11 karakterlik bir üye anahtarı tutar; bu anahtar T.C. kimlik numaranız veya telefon numaranız değildir ve kişisel bilgi içermez. Ödeme sayfasında kayıtlı kart; son dört hanesi, kart markası veya kartı veren banka ve verdiğiniz ad ile listelenir. Kayıtlı kartla ödemede de 3D Secure doğrulaması yapılır. Kayıtlı kartınızı ödeme sayfasından dilediğiniz zaman silebilirsiniz; üyelik hesabınız silindiğinde Satıcı, önce PayNkolay'dan hesabınıza ait kayıtlı kartların silinmesini ister.",
+          "Kart bilgileriniz sonraki ödemeler için kaydedilmez: Satıcı kart bilgisi saklamaz, PayNkolay'dan da kartınızın saklanmasını istemez; her ödemede kart bilgilerinizi yeniden girersiniz.",
         ],
       },
       {
@@ -3943,8 +4064,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ordered: [
           "Sepetinizi onaylar, teslimat bilgilerinizi doldurur, Ön Bilgilendirme Formu ile Mesafeli Satış Sözleşmesi'ni ayrı onay kutucuğuyla onaylarsınız.",
           "Sunucu, siparişi 'ödeme bekliyor' durumunda oluşturur, nihai tutarı 6. maddedeki yöntemle yeniden hesaplar ve ödeme tamamlanana kadar stok takibi yapılan ürünlerin stoğunu ve kullandığınız kupon veya promosyon kodu hakkını sizin için ayırır. İleri bir saate planladığınız kafe siparişlerinde de ödeme, siparişi verdiğiniz anda alınır. Nihai tutar sıfırsa ödeme sayfası açılmaz ve sipariş hemen ödenmiş sayılır.",
-          "{{SITE}} üzerindeki güvenli ödeme sayfası açılır (mobil uygulamada cihazınızın tarayıcı penceresinde) ve ödenecek tutar gösterilir. Kart numarası, son kullanma tarihi, güvenlik kodu ve kart üzerindeki adı bu sayfaya girersiniz. Kart saklama özelliği açıldığında, üyeyseniz kayıtlı kartlarınızdan birini seçebilir veya işaretsiz gelen 'Bu kartı sonraki ödemeler için kaydet' kutusunu işaretleyerek kartınızı kaydedebilirsiniz.",
-          "Kart bilgileri şifreli bağlantıyla Satıcının sunucusuna ulaşır ve aynı işlem içinde yalnızca PayNkolay'a iletilir; Satıcı bu bilgileri kaydetmez. Ödeme sayfasından doğrudan kartı veren bankanın 3D Secure doğrulama ekranına geçersiniz; kayıtlı kartla ödemede de bu adım uygulanır.",
+          "{{SITE}} üzerindeki güvenli ödeme sayfası açılır (mobil uygulamada cihazınızın tarayıcı penceresinde) ve ödenecek tutar gösterilir. Kart numarası, son kullanma tarihi, güvenlik kodu ve kart üzerindeki adı bu sayfaya girersiniz.",
+          "Kart bilgileri şifreli bağlantıyla Satıcının sunucusuna ulaşır ve aynı işlem içinde yalnızca PayNkolay'a iletilir; Satıcı bu bilgileri kaydetmez. Ödeme sayfasından doğrudan kartı veren bankanın 3D Secure doğrulama ekranına geçersiniz.",
           "Bankanız, cep telefonunuza gönderilen tek kullanımlık şifre, mobil bankacılık onayı veya biyometrik doğrulama ile kimliğinizi teyit eder.",
           "Doğrulama başarılıysa işlem bankanızca onaylanır ve tutar bu anda tahsil edilir; ardından PayNkolay sizi siteye veya mobil uygulamaya geri yönlendirir.",
           "Tarayıcınızın veya uygulamanın geri getirdiği sonuç tek başına esas alınmaz. PayNkolay sunucudan sunucuya bildirim (webhook) göndermediği için sunucumuz ödemenin sonucunu PayNkolay işlem doğrulama servisine doğrudan sorar.",
@@ -3971,7 +4092,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
         paragraphs: [
           "Havale, EFT ve FAST ile ödeme kabul edilmemektedir; sipariş bedeli yalnızca 5. maddede sayılan yöntemlerle ödenir.",
-          "Banka hesabına transfer yalnızca 22. maddede açıklanan istisnai hâlde, iade tutarının sizin adınıza kayıtlı banka hesabına ödenmesi için Satıcı tarafından kullanılır. Bu durumda iade için bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu iadenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara iade yapılmaz.",
+          "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz.",
         ],
       },
       {
@@ -4036,7 +4157,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Mesafeli Sözleşmeler Yönetmeliği uyarınca, kural olarak malı teslim aldığınız tarihten itibaren on dört gün içinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahipsiniz (Yönetmelik m.9). Cayma bildiriminizi {{EMAIL}} adresine veya sitede yayımlanan cayma formu üzerinden iletebilirsiniz; bildirimin yazılı olarak ya da kalıcı veri saklayıcısı ile yöneltilmesi yeterlidir ve ayrıca bir gerekçe açıklamanız istenmez.",
           "Cayma bildiriminin Satıcıya ulaşmasından itibaren on dört gün içinde, teslimat masrafları da dâhil olmak üzere tahsil edilen tutarın tamamı, ödemeyi yaptığınız araca ve aynı kanala iade edilir; kısmi iadelerde 22. maddede açıklanan istisnai hâl saklıdır. İade işlemi için tarafınızdan herhangi bir masraf talep edilmez.",
           "Kart ile yapılan ödemelerin iadesi, PayNkolay'ın iptal ve iade hizmeti üzerinden, ilgili işlem referansına bağlanarak ödemenin yapıldığı karta yapılır. Ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade işlemi olarak bankaya iletilir. Kısmi iadeler 22. maddeye tabidir. Siparişte ücretsiz içecek kuponu veya promosyon kodu kullanılmışsa, kuponla karşılanan kısım için nakit ödeme yapılmaz; iade, fiilen ödediğiniz tutar üzerinden yapılır.",
-          "Cayma hakkını kullandığınızı bildirdikten sonra malı, Mesafeli Sözleşmeler Yönetmeliği'nde öngörülen süre içinde Satıcıya geri göndermeniz gerekir. Cayma hâlinde iade için kullanılacak kargo şirketi iade talebiniz kabul edildiğinde bildirilir; bildirilen anlaşmalı taşıyıcı ile yapılan iadelerde taşıma bedeli sizden talep edilmez.",
+          "Cayma hakkını kullandığınızı bildirdikten sonra malı, Mesafeli Sözleşmeler Yönetmeliği'nde öngörülen süre içinde Satıcıya geri göndermeniz gerekir. Cayma hâlinde iade kodu iade talebiniz alındığında e-postayla bildirilir; iade için taşıma bedeli hiçbir hâlde sizden talep edilmez.",
           "İade işlemi Satıcı tarafından başlatıldığında iade talimatı PayNkolay'a hemen iletilir. Tutarın kart hesabınıza yansıması ise kartı çıkaran bankanın süreçlerine bağlıdır; kredi kartlarında iade, ekstre dönemine göre bir sonraki hesap özetinizde görünebilir. Bu süre bankadan kaynaklandığı için Satıcının denetiminde değildir; ancak iade talimatının iletildiğine dair kaydı talebiniz üzerine sizinle paylaşırız.",
           "Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g). Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Karaoke iadeleri ödenen tutarın tamamı olarak, PayNkolay üzerinden ödemenin yapıldığı karta yapılır; kısmi iade yapılmaz ve 22. madde bu iadelere uygulanmaz. Rezervasyonu işletme karşılayamazsa ödenen tutarın tamamı iade edilir.",
           "Mesafeli Sözleşmeler Yönetmeliği'nin cayma hakkının istisnalarını düzenleyen hükmü (m.15) gereği; çabuk bozulabilen veya son kullanma tarihi geçebilecek gıda ürünlerinde, tesliminden sonra ambalajı açılmış olup iadesi sağlık ve hijyen açısından uygun olmayan ürünlerde ve tüketicinin istekleri doğrultusunda kişiselleştirilerek hazırlanan ürünlerde cayma hakkı kullanılamaz. Bu istisna, ayıplı mal hükümlerinden doğan haklarınızı ortadan kaldırmaz.",
@@ -4047,7 +4168,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Bir siparişin yalnızca bazı kalemlerini iade etmeniz mümkündür. Bu durumda iade tutarı, iade edilen kalemlerin KDV dâhil bedeli esas alınarak belirlenir ve sipariş kaydına tutarı, nedeni ve tarihiyle işlenir; hangi iadenin ne zaman ve hangi tutarla yapıldığı kayıt altına alınır.",
           "Kısmi iadelerde, indirim veya promosyon kodu kullanılmışsa, indirim tutarı iade edilen kalemlere düşen oran kadar mahsup edilir. Ücretsiz içecek kuponu gibi hesabınıza tanımlı kuponlar da bu bakımdan indirim sayılır; kuponla karşılanan kısım için nakit ödeme yapılmaz. Böylece kalan siparişin indirimli tutarı korunur ve indirimden mükerrer yararlanma önlenir.",
-          "Kargo ücreti, siparişin tamamının iadesi hâlinde iade edilir. Kısmi iadede, kalan kalemler ücretsiz kargo eşiğinin altına düşerse, kampanya koşulları gereği kargo bedeli iade tutarından mahsup edilebilir; bu mahsup iade özetinde açıkça gösterilir. Ayıplı, eksik veya hatalı gönderilen kalemlerin iadesinde ise böyle bir mahsup yapılmaz ve kargo bedeli Satıcı tarafından karşılanır.",
+          "Kargo ücreti, siparişin tamamının iadesi hâlinde iade edilir. Kısmi iadede, kalan kalemler ücretsiz kargo eşiğinin altına düşse de iade tutarından kargo bedeli mahsup edilmez. Ayıplı, eksik veya hatalı gönderilen kalemlerin iadesinde kargo bedeli Satıcı tarafından karşılanır.",
           "Kısmi iadeler de ödemenin yapıldığı karta yapılır. Bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir; bu amaçla bildirdiğiniz banka hesap bilgisi yalnızca bu iade için işlenir. Toplam iade tutarı, hiçbir hâlde tahsil edilen tutarı aşamaz; bu kontrol sunucu tarafında zorunlu kural olarak uygulanır.",
         ],
       },
@@ -4101,7 +4222,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "26. Ödeme Verilerinin İşlenmesi ve Saklanması",
         paragraphs: [
-          "Ödeme işlemine ilişkin üstveriler, 6698 sayılı Kanun'un genel ilkeleri (m.4) ve işleme şartları (m.5) çerçevesinde; sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak işlenir. Sadakat (damga) programı kapsamındaki damga hareketleri ve kuponlar da sözleşmenin ifası amacıyla bu kapsamda işlenir; harcama geçmişine dayalı profilleme programın parçası değildir. Kısmi iadenin karta yapılamadığı istisnai hâlde, iade için bildirilen banka hesap bilgisi (hesap sahibinin adı ve IBAN) yalnızca bu iadenin yapılması amacıyla işlenir. Kart saklama özelliği açıldığında kartını kaydetmeyi seçen üyeler için Satıcı yalnızca PayNkolay'ın kayıtlı kartları üyeyle eşleştirmek için kullandığı rastgele üye anahtarını tutar. Ayrıntılı bilgi, sitede ve mobil uygulamada yayımlanan Aydınlatma Metni ile Gizlilik Politikası'nda yer alır.",
+          "Ödeme işlemine ilişkin üstveriler, 6698 sayılı Kanun'un genel ilkeleri (m.4) ve işleme şartları (m.5) çerçevesinde; sözleşmenin kurulması ve ifası, hukuki yükümlülüklerin yerine getirilmesi ve meşru menfaat hukuki sebeplerine dayanılarak işlenir. Sadakat (damga) programı kapsamındaki damga hareketleri ve kuponlar da sözleşmenin ifası amacıyla bu kapsamda işlenir; harcama geçmişine dayalı profilleme programın parçası değildir. Kısmi iadenin karta yapılamadığı istisnai hâlde ve başka bir kargo firmasıyla gönderilen iadenin belgelenen gönderim bedeli ödenirken, bunun için bildirilen banka hesap bilgisi (hesap sahibinin adı ve IBAN) yalnızca bu ödemenin yapılması amacıyla işlenir. Ayrıntılı bilgi, sitede ve mobil uygulamada yayımlanan Aydınlatma Metni ile Gizlilik Politikası'nda yer alır.",
           "Ödeme kayıtları, 213 sayılı Vergi Usul Kanunu ile 6102 sayılı Türk Ticaret Kanunu'nun defter ve belge saklama süreleri boyunca muhafaza edilir. Sürenin dolması hâlinde kayıtlar, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca silinir, yok edilir veya anonim hâle getirilir.",
           "PayNkolay ile paylaşılan veriler, işlemin gerçekleştirilmesi için zorunlu olan asgari veriyle sınırlıdır. Barındırma hizmeti Vercel, veri tabanı hizmeti {{DB_PROVIDER}} (PostgreSQL) ve işlemsel e-posta hizmeti Resend üzerinden alınmaktadır; bu hizmetlerin sunucularının yurt dışında bulunması hâlinde aktarım, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükmüne (m.9) uygun biçimde yapılır.",
           "Mobil uygulama kullanımında sunucumuza yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı işlenir; bu veriler ödemenin güvenliği ve hizmetin sürekliliği amacıyla kullanılır. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez, anlık bildirim (push) tokeni oluşturmaz, çökme veya kullanım kaydı toplamaz ve konum izni istemez.",
@@ -4196,7 +4317,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Uygulama mağazalarının (App Store, Google Play) geliştirici ve yayın kuralları ile platform gizlilik bildirimi gereklilikleri",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
@@ -4418,14 +4539,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "10. Ödeme Güvenliği: PayNkolay Altyapısı ve Kart Verisinin Saklanmaması",
         paragraphs: [
           "Bu Politikanın en önemli maddesi şudur: {{SHORT_NAME}}, ödeme kartınızın numarasını, son kullanma tarihini ve güvenlik kodunu (CVV/CVC) hiçbir veri tabanına, günlüğe veya dosyaya kaydetmez ve saklamaz; kart parolanızı ve bankanızın gönderdiği tek kullanımlık doğrulama kodunu ise hiç görmez. Sanal POS hizmeti PayNkolay'dan alınır. Kart numarası, son kullanma tarihi ve güvenlik kodu {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla sunucumuza ulaşır ve aynı işlem içinde yalnızca PayNkolay'a iletilir; ödeme talimatının iletilmesi dışında hiçbir amaçla kullanılmaz.",
-          "Ödeme hizmeti, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulmaktadır. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir sitenin içine gömülemez; kart bilgileri yalnızca şifreli bağlantılar üzerinden gönderilir. Sistemlerimizde kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir hâlde tutulmaz; kart saklama özelliği açıldığında ve kartınızı kendi tercihinizle kaydetmeniz hâlinde kart, Şirket tarafından değil PayNkolay'ın kart saklama hizmeti tarafından saklanır (bkz. aşağıdaki kayıtlı kart açıklaması).",
+          "Ödeme hizmeti, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulmaktadır. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir sitenin içine gömülemez; kart bilgileri yalnızca şifreli bağlantılar üzerinden gönderilir. Sistemlerimizde kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir hâlde tutulmaz; kartınız sonraki ödemeler için PayNkolay nezdinde de kaydedilmez.",
           "Her kartlı ödemede 3D Secure doğrulaması uygulanır: ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçilir ve işlem orada onaylanır. Ödemenin sonucu, sunucumuzun PayNkolay işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir; sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır (bkz. 12. madde). Mobil uygulama üzerinden verilen siparişlerde de ödeme aynı PayNkolay akışıyla alınır; uygulama mağazası içi satın alma yöntemi kullanılmaz.",
         ],
         bullets: [
           "Kart ile yapılan her ödemede 3D Secure ek doğrulama adımı uygulanır; işlem, kartı veren bankanın ekranında, banka tarafından telefonunuza iletilen tek kullanımlık kod veya bankacılık uygulaması onayı ile tamamlanır.",
           "Sistemimizde ödeme işlemine ilişkin olarak PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay işlem doğrulama servisinin döndürdüğü kayıt tutulur. Bu kayıt maskelenmiş kart numarasını, kartı veren bankayı, taksit sayısını (ödemeler tek çekim olduğundan her zaman 1), 3D Secure doğrulama bilgisini ve bankanın verdiği onay kodunu içerir; kart sahibinin adı ödeme kaydında tutulmaz. Kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada tutulmaz.",
-          "Kayıtlı kart (kart saklama özelliği açıldığında; isteğe bağlı, yalnızca üyeler için): Ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu varsayılan olarak işaretsizdir; kutuyu işaretlemedikçe hiçbir kart kaydedilmez ve bu özellik açılana kadar da kart kaydedilmez. Kutuyu işaretlerseniz kartınız Şirket tarafından değil, PayNkolay'ın kart saklama hizmeti tarafından saklanır. Şirket yalnızca, PayNkolay'ın kayıtlı kartlarınızı üyelik hesabınızla eşleştirmek için kullandığı, rastgele üretilmiş 11 karakterlik bir üye anahtarını tutar; bu anahtar T.C. kimlik numaranız veya telefon numaranız değildir ve kişisel bilgi içermez. Ödeme sayfasında kayıtlı kart; son dört hanesi, kart markası veya kartı veren banka ve verdiğiniz ad ile listelenir. Kayıtlı kartla yapılan ödemelerde de 3D Secure doğrulaması uygulanır. Kayıtlı kartınızı ödeme sayfasından dilediğiniz zaman silebilirsiniz; üyelik hesabınız silindiğinde Şirket, önce PayNkolay'dan hesabınıza ait kayıtlı kartların silinmesini ister.",
-          "Ödeme tutarı hiçbir zaman tarayıcıdan veya uygulamadan gelen değere göre belirlenmez. Sepetteki her kalemin fiyatı, sunucu tarafında ürün kaydından yeniden hesaplanır; varsa kargo veya kurye bedeli ve yüzde 20 KDV dahil nihai tutar sunucuda oluşturulur ve PayNkolay'a bu tutar iletilir.",
+          "Ödeme tutarı hiçbir zaman tarayıcıdan veya uygulamadan gelen değere göre belirlenmez. Sepetteki her kalemin fiyatı, sunucu tarafında ürün kaydından yeniden hesaplanır; varsa kargo veya kurye bedeli eklenerek KDV dahil nihai tutar sunucuda oluşturulur ve PayNkolay'a bu tutar iletilir.",
           "Promosyon kodları ve kuponların (ücretsiz içecek kuponu dahil) kullanımı sunucu tarafında doğrulanır; geçerlilik tarihi, kullanım limiti, asgari sepet tutarı ve kuponun hesabınıza tanımlı olup olmadığı istemciden bağımsız olarak kontrol edilir.",
           "Kupon veya promosyon kodu kullanılmışsa karşıladığı tutar sipariş özetinde ayrı bir indirim kalemi olarak gösterilir ve PayNkolay'a yalnızca kalan tutar için ödeme talimatı verilir; indirimin tutarın tamamını karşıladığı, toplamı sıfır olan siparişler kartla ödeme alınmadan tamamlanır. Damga ve kuponlar para değildir, nakde çevrilemez ve üçüncü kişilere devredilemez.",
           "Siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damga geri alınır; sipariş iptal edilirse siparişte kullanılan kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödenen tutar ödemenin yapıldığı karta iade edilir.",
@@ -4543,7 +4663,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Üye hesabı verileri, hesap açık olduğu sürece ve kapatma talebinizden sonra yasal zamanaşımı süreleri gözetilerek saklanır.",
           "Damga hareketleri (kazanım, geri alma, ödül), bağlı oldukları sipariş kaydının saklama süresine tabidir; kasada eklenen damgalar ve düzeltmeleri de aynı süreyle saklanır. Kasa kodu kayıtları, kullanıldıktan veya süresi dolduktan bir gün sonra, bir sonraki kasa işleminde silinir. Hesap kapatıldığında damga hareketleri hesaptan koparılır.",
-          "Kart saklama özelliği açıldığında ve kayıtlı kart özelliğini kullandıysanız, PayNkolay'ın kayıtlı kartlarınızı eşleştirmek için kullandığı müşteri anahtarı hesabınız açık olduğu sürece tutulur; hesabınız silindiğinde bu anahtar silinir ve PayNkolay'dan kayıtlı kartlarınızın silinmesi talep edilir.",
           "Mobil uygulama sunucuya anlık bildirim (push) belirteci göndermez; hatırlatmalar cihazınızda planlanır, bu nedenle sunucuda bildirim belirteci saklanmaz.",
           "Pazarlama izinleri geri alındığında ilgili kayıt, iznin geri alındığının ispatı bakımından gerekli asgari veriyle sınırlı olarak tutulur.",
           "İmha işlemleri, geri döndürülemez yöntemlerle ve kayıt altına alınarak gerçekleştirilir.",
@@ -4647,7 +4766,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Ödeme hizmeti sağlayıcısı",
             value:
-              "PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.); kartlı ödemenin işlenmesi, 3D Secure doğrulaması için kartı veren bankaya yönlendirme, ödeme sonucunun doğrulanması, iptal ve iade işlemleri ile kart saklama özelliği açıldığında üyenin kendi tercihiyle kaydettiği kartların saklanması. Kart numarası, son kullanma tarihi ve güvenlik kodu ödeme sayfamızdan şifreli bağlantıyla yalnızca PayNkolay'a iletilir; Şirketimiz bu bilgileri kaydetmez ve saklamaz.",
+              "PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.); kartlı ödemenin işlenmesi, 3D Secure doğrulaması için kartı veren bankaya yönlendirme, ödeme sonucunun doğrulanması, iptal ve iade işlemleri. Kart numarası, son kullanma tarihi ve güvenlik kodu ödeme sayfamızdan şifreli bağlantıyla yalnızca PayNkolay'a iletilir; Şirketimiz bu bilgileri kaydetmez ve saklamaz.",
           },
           {
             key: "İşlemsel e-posta",
@@ -4766,6 +4885,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gizlilik-politikasi",
     title: "Gizlilik Politikası",
     shortTitle: "Gizlilik",
+    // 21 Ekim 2026: §3 karaoke satırı köşkün geç iptalindeki telafiyi ve
+    // telafi ödemesinin banka hesap bilgisini, §5 telafiyi amaç olarak
+    // adlandırır (LEGAL-REDLINES §26).
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
+    // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
+    // 18 Ekim 2026: Site'de hesap silme ekibe talep olarak gider.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{LEGAL_NAME}} tarafından işletilen {{BRAND}} web sitesi, mobil uygulaması ve kafesinde kişisel verilerinizin hangi amaçlarla işlendiğini, kimlere aktarıldığını, ne kadar süreyle saklandığını ve KVKK ile GDPR kapsamındaki haklarınızı açıklar.",
@@ -4779,7 +4908,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -4898,7 +5027,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Hesap verisi (müşteri işlem)",
             value:
-              "Üyelik kaydı, kullanıcı adı/e-posta, parolanızın özeti (hash; sitede bcrypt algoritmasıyla, kimlik doğrulama hizmeti sağlayıcısında o sağlayıcının kendi yöntemiyle), e-posta doğrulama durumu ve doğrulama zaman damgası, parola sıfırlama talepleri, kayıtlı adres defteri, favori/istek listesi, isteğe bağlı olarak eklediğiniz doğum tarihi, kaydettiğiniz 'her zamanki' içecek tercihi, hesap tercihleri, ödeme sayfasındaki kayıtlı kart özelliği için üyeliğinize atanan rastgele 11 karakterlik müşteri anahtarı (T.C. kimlik numaranızı, telefon numaranızı veya başka bir kişisel bilginizi içermez; kayıtlı kartın kendisi Şirkette tutulmaz) ile davet kodunuz ve sizi davet eden üyenin kaydı.",
+              "Üyelik kaydı, kullanıcı adı/e-posta, parolanızın özeti (hash; sitede bcrypt algoritmasıyla, kimlik doğrulama hizmeti sağlayıcısında o sağlayıcının kendi yöntemiyle), e-posta doğrulama durumu ve doğrulama zaman damgası, parola sıfırlama talepleri, kayıtlı adres defteri, favori/istek listesi, isteğe bağlı olarak eklediğiniz doğum tarihi, kaydettiğiniz 'her zamanki' içecek tercihi, hesap tercihleri ile davet kodunuz ve sizi davet eden üyenin kaydı.",
           },
           {
             key: "Sipariş ve ödeme verisi",
@@ -4913,7 +5042,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kullanım ve teknik veri",
             value:
-              "IP adresi, tarayıcı türü ve sürümü (user-agent), işletim sistemi ve sürümü, cihaz türü, dil ve saat dilimi, oturum kimliği, ziyaret edilen sayfalar, yönlendiren adres (referrer), sunucu erişim, hata ve performans kayıtları; web sitesinde analitik çerezlere izin vermeniz hâlinde sayfa görüntüleme ve gezinme yolu gibi kullanım istatistikleri. Mobil uygulamada ekran görüntüleme, tıklama ve çökme kaydı toplanmaz; uygulamanın sunucuya yaptığı isteklerde yalnızca IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı görülür.",
+              "IP adresi, tarayıcı türü ve sürümü (user-agent), işletim sistemi ve sürümü, cihaz türü, dil ve saat dilimi, oturum kimliği, ziyaret edilen sayfalar, yönlendiren adres (referrer), sunucu erişim, hata ve performans kayıtları; internet sitemizde bugün analitik etiket kullanılmadığından sayfa görüntüleme ve gezinme yolu gibi kullanım istatistikleri toplanmaz. Mobil uygulamada ekran görüntüleme, tıklama ve çökme kaydı toplanmaz; uygulamanın sunucuya yaptığı isteklerde yalnızca IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı görülür.",
           },
           {
             key: "Pazarlama verisi",
@@ -4923,7 +5052,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Çerez ve benzeri teknoloji verisi",
             value:
-              "Zorunlu oturum ve sepet çerezleri, tercih çerezleri, izne bağlı analitik ve pazarlama çerezleri; yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
+              "Zorunlu oturum ve sepet çerezleri ile izne bağlı tercih çerezleri (internet sitemizde bugün analitik veya pazarlama çerezi kullanılmaz); yerel depolama (localStorage) üzerinde tutulan sepet ve arayüz tercihleri; mobil uygulamada cihazda tutulan oturum anahtarı ile sepet, menü ve tercih önbelleği (uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz); çerez ve izin rıza kaydı (tercih, tarih, sürüm).",
           },
           {
             key: "Güvenlik kamerası verisi",
@@ -4948,22 +5077,22 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kamera ve fotoğraf erişimi (izne bağlı)",
             value:
-              "Mobil uygulama kamera ve fotoğraf arşivi iznini yalnızca iki durumda ister. Birincisi, fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi sizin başlatmanızdır: fotoğraf, yapay zekâ yorumuna ayrıca ve açıkça onay vermediğiniz sürece cihazınızdan çıkmaz; onay verirseniz Açık Rıza Metni'nin R12 bölümü uyarınca küçültülmüş ve meta verilerinden arındırılmış hâliyle, yorumun üretilmesi için Şirket sunucusu üzerinden yapay zekâ hizmet sağlayıcısına iletilir ve saklanmaz. fA'L Story görselini cihazınıza kaydetmeyi seçerseniz ayrıca fotoğraflara ekleme izni istenir. İkincisi, Şirketin panelden kasa yetkisi verdiği personel hesaplarında kasa ekranının üyenin kasa kodunu okutmasıdır: kamera yalnızca bu ekranda kullanılır, görüntü kaydedilmez, sunucuya yalnızca okunan kodun değeri iletilir. Hesabınızda kasa yetkisi yoksa uygulama kameranızı bu amaçla hiç açmaz; kafede damga kazanmak için kendi kameranızı kullanmanız gerekmez.",
+              "Mobil uygulama kamera ve fotoğraf arşivi iznini yalnızca iki durumda ister. Birincisi, fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi sizin başlatmanızdır: fotoğraf, yapay zekâ yorumuna ayrıca ve açıkça onay vermediğiniz sürece cihazınızdan çıkmaz; onay verirseniz Açık Rıza Metni'nin R12 bölümü uyarınca küçültülmüş ve meta verilerinden arındırılmış hâliyle, yorumun üretilmesi için Şirket sunucusu üzerinden yapay zekâ hizmet sağlayıcısına iletilir ve şirketimizce saklanmaz. fA'L Story görselini cihazınıza kaydetmeyi seçerseniz ayrıca fotoğraflara ekleme izni istenir. İkincisi, Şirketin panelden kasa yetkisi verdiği personel hesaplarında kasa ekranının üyenin kasa kodunu okutmasıdır: kamera yalnızca bu ekranda kullanılır, görüntü kaydedilmez, sunucuya yalnızca okunan kodun değeri iletilir. Hesabınızda kasa yetkisi yoksa uygulama kameranızı bu amaçla hiç açmaz; kafede damga kazanmak için kendi kameranızı kullanmanız gerekmez.",
           },
           {
             key: "Sadakat (damga) programı verisi",
             value:
-              "Üyelik kimliğiniz (e-posta adresi), damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı (personelin kendi üyelik e-posta adresi), hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademe ile kasada damga eklenirken uygulamanın gösterdiği kasa kodunun özet (hash) değeri, geçerlilik süresi ve kullanıldığı an. Davet programı kapsamında davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı kaydedilir. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir.",
+              "Üyelik kimliğiniz (e-posta adresi), damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı (personelin kendi üyelik e-posta adresi), hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademe ile kasada damga eklenirken uygulamanın gösterdiği kasa kodunun özet (hash) değeri, geçerlilik süresi ve kullanıldığı an. Davet programı kapsamında davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı kaydedilir. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir.",
           },
           {
             key: "Karaoke rezervasyon verisi",
             value:
-              "Karaoke odası rezervasyonunda seçtiğiniz tarih, saat, süre ve kişi sayısı, notunuz, rezervasyonun durumu (ödeme bekliyor, kesinleşti, iptal edildi, iade edildi), ödenen ve iade edilen tutar, ödemenin PayNkolay referansı ve zamanı, uygulanıyorsa üyelik kademenize göre indirim; üyelik kaydınızdaki adınız ve e-posta adresiniz. Rezervasyonu web sitesinden yaparsanız ayrıca iletişim için verdiğiniz e-posta adresi ve telefon numarası ile Aydınlatma Metni'ni okuduğunuzu belirttiğiniz an saklanır. Üye olmadan rezervasyon yaparsanız adınız, soyadınız, cep telefonunuz ve e-posta adresiniz yalnızca bu rezervasyon kaydında tutulur; sizin adınıza üyelik hesabı açılmaz. Ödemeden önce verdiğiniz onaylar (Ön Bilgilendirme Formu, Mesafeli Hizmet Sözleşmesi ve Aydınlatma Metni'nin okunduğuna ilişkin teyit) onay anı, belge sürümü, IP adresiniz ve tarayıcı veya uygulama bilginizle birlikte rezervasyon kaydına yazılır. Kart numaranız, son kullanma tarihiniz ve güvenlik kodunuz kaydedilmez. Personelin rezervasyona ilişkin işlemleri (onay, iptal, iade) yönetici olay kaydına yazılır.",
+              "Karaoke odası rezervasyonunda seçtiğiniz tarih, saat, süre ve kişi sayısı, notunuz, rezervasyonun durumu (ödeme bekliyor, kesinleşti, iptal edildi, iade edildi), ödenen ve iade edilen tutar, ödemenin PayNkolay referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafinin tutarı ve nasıl kullanıldığı (telafinin banka hesabınıza ödenmesini seçerseniz bildirdiğiniz banka hesap bilgisi yalnızca bu ödeme için kullanılır ve rezervasyon kaydına yazılmaz), uygulanıyorsa üyelik kademenize göre indirim; üyelik kaydınızdaki adınız ve e-posta adresiniz. Rezervasyonu web sitesinden yaparsanız ayrıca iletişim için verdiğiniz e-posta adresi ve telefon numarası ile Aydınlatma Metni'ni okuduğunuzu belirttiğiniz an saklanır. Üye olmadan rezervasyon yaparsanız adınız, soyadınız, cep telefonunuz ve e-posta adresiniz yalnızca bu rezervasyon kaydında tutulur; sizin adınıza üyelik hesabı açılmaz. Ödemeden önce verdiğiniz onaylar (Ön Bilgilendirme Formu, Mesafeli Hizmet Sözleşmesi ve Aydınlatma Metni'nin okunduğuna ilişkin teyit) onay anı, belge sürümü, IP adresiniz ve tarayıcı veya uygulama bilginizle birlikte rezervasyon kaydına yazılır. Kart numaranız, son kullanma tarihiniz ve güvenlik kodunuz kaydedilmez. Personelin rezervasyona ilişkin işlemleri (onay, iptal, iade) yönetici olay kaydına yazılır.",
           },
           {
             key: "Talep, şikâyet ve iade verisi",
             value:
-              "E-posta veya telefon yoluyla iletilen soru, talep, cayma bildirimi, ayıp ihbarı, iade ve değişim kayıtları, kısmi iadenin karta yapılamadığı istisnai hâllerde iade için bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi, bunlara ilişkin yazışma içerikleri ve varsa gönderilen görseller.",
+              "E-posta veya telefon yoluyla iletilen soru, talep, cayma bildirimi, ayıp ihbarı, iade ve değişim kayıtları, kısmi iadenin karta yapılamadığı istisnai hâllerde iade için veya başka bir kargo firmasıyla gönderdiğiniz iadenin gönderim bedelinin ödenmesi için bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi, bunlara ilişkin yazışma içerikleri ve varsa gönderilen görseller.",
           },
           {
             key: "Kurumsal ilişki verisi",
@@ -4980,10 +5109,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: Web sitesi ve mobil uygulamadaki üyelik kaydı, e-posta doğrulama, giriş, parola sıfırlama, adres ekleme, sepet ve ödeme adımı formları.",
           "Sipariş ve ödeme akışı: Ödeme adımında verdiğiniz bilgiler ile Şirket sunucusunun PayNkolay işlem doğrulama servisine sorarak aldığı işlem sonucu, referans kodu, tahsil edilen tutar ve maskelenmiş kart bilgisi. {{SITE}} üzerindeki ödeme sayfasına girdiğiniz kart numarası, son kullanma tarihi ve güvenlik kodu yalnızca PayNkolay'a iletilir; Şirket bunları kaydetmez ve saklamaz.",
-          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler ile açık rızanıza bağlı analitik ve pazarlama çerezleri, piksel ve yerel depolama teknolojileri; mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
+          "Çerezler ve benzeri teknolojiler: Web sitesinde zorunlu çerezler, açık rızanıza bağlı tercih çerezleri ve yerel depolama (internet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri ile piksel yerleştirilmez); mobil uygulamada ise cihazda tutulan oturum anahtarı ve önbellek; uygulamada reklam tanımlayıcısı ve ölçümleme kiti kullanılmaz.",
           "Sunucu ve uygulama logları: Barındırma altyapısı, veri tabanı ve uygulama katmanında otomatik olarak üretilen erişim, hata, çökme, güvenlik ve performans kayıtları.",
           "Mobil uygulama: Uygulamayı kullanmanız hâlinde uygulamada kendi girdiğiniz bilgiler ile uygulamanın sunucuya yaptığı isteklerde görülen IP adresi, istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama çökme kaydı, reklam tanımlayıcısı, anlık bildirim (push) tokeni veya konum verisi toplamaz; fA'L fotoğrafı yalnızca yapay zekâ yorumuna açıkça onay vermeniz hâlinde iletilir.",
-          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma ve rezervasyon işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
+          "Kafe ziyareti: {{ADDRESS}} adresindeki işletmede yapılan satın alma işlemleri, masa/paket sipariş kayıtları, kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri.",
           "İletişim kanalları: {{EMAIL}} adresine gönderdiğiniz e-postalar ve {{PHONE}} numarası üzerinden yürütülen görüşmeler kapsamında ilettiğiniz bilgiler.",
           "Sosyal medya: {{HANDLE}} kullanıcı adıyla yürütülen {{IG}}, {{TIKTOK}} ve {{YOUTUBE}} hesapları üzerinden gönderdiğiniz mesaj, yorum ve etiketlemeler; bu platformlarda paylaştığınız içeriklere ilişkin olarak platformların kendileri de bağımsız veri sorumlusudur.",
           "Üçüncü taraflar: Kargo gönderi platformu Geliver üzerinden gelen gönderi durum bildirimleri, PayNkolay işlem doğrulama servisinden alınan işlem sonucu, itirazlarda (chargeback) bankanın ve PayNkolay'ın ilettiği bilgiler, e-posta gönderim sağlayıcısının bildirebildiği kalıcı olarak teslim edilemeyen adres ve istenmeyen posta şikâyeti bildirimleri, üyelik girişinde kimlik doğrulama hizmeti sağlayıcısından alınan kimlik doğrulama sonucu ve yetkili kamu kurumlarından gelen bildirimler.",
@@ -5022,7 +5151,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Hukuki yükümlülük (KVKK m.5/2-ç); 6502 sayılı Kanun ve Mesafeli Sözleşmeler Yönetmeliği",
           },
           {
-            key: "Kartlı ödemenin ödeme hizmeti sağlayıcısı PayNkolay üzerinden 3D Secure doğrulamasıyla tahsil edilmesi, ödeme sonucunun PayNkolay'a sorularak teyit edilmesi, iade ve itiraz (chargeback) süreçlerinin yürütülmesi; kayıtlı kart özelliği açıldığında, bu özelliği seçen üyeler için kayıtlı kart hizmetinin sunulması",
+            key: "Kartlı ödemenin ödeme hizmeti sağlayıcısı PayNkolay üzerinden 3D Secure doğrulamasıyla tahsil edilmesi, ödeme sonucunun PayNkolay'a sorularak teyit edilmesi, iade ve itiraz (chargeback) süreçlerinin yürütülmesi",
             value:
               "Sözleşmenin ifası (KVKK m.5/2-c); hukuki yükümlülük (m.5/2-ç); 5464 ve 6493 sayılı Kanunlar",
           },
@@ -5070,7 +5199,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Açık rıza (KVKK m.5/1); 6563 sayılı Kanun kapsamında onay",
           },
           {
-            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi ile rezervasyonla ilgili sizinle iletişim kurulması",
+            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi ile rezervasyonla ilgili sizinle iletişim kurulması",
             value: "Sözleşmenin kurulması veya ifası (KVKK m.5/2-c)",
           },
           {
@@ -5083,7 +5212,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Sözleşmenin kurulması veya ifası (KVKK m.5/2-c); meşru menfaat (m.5/2-f)",
           },
           {
-            key: "Kafede kasa kodu okutularak veya üyelik e-posta adresi girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi",
+            key: "Kafede kasa kodu okutularak ya da girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi",
             value: "Sözleşmenin ifası (KVKK m.5/2-c); meşru menfaat (m.5/2-f)",
           },
           {
@@ -5136,7 +5265,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Ticari elektronik ileti (e-bülten, kampanya, indirim, doğum günü ve yeni ürün duyuruları) gönderimi.",
-          "Web sitesinde analitik ve pazarlama amaçlı çerezler ile benzer izleme teknolojilerinin kullanılması; mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
+          "Web sitesinde tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez. Mobil uygulamada ölçümleme kiti ve reklam tanımlayıcısı kullanılmaz.",
           "fA'L özelliğinde fotoğrafın ve kimliksiz özetin yapay zekâ ile yorumlanması için aktarılması (Açık Rıza Metni, R12).",
           "Sipariş notu alanında kendi iradenizle paylaştığınız alerjen veya özel beslenme bilgilerinin talebinizin karşılanması amacıyla işlenmesi.",
           "Yarışma, çekiliş ve etkinliklerde paylaştığınız görsel ve içeriklerin tanıtım amacıyla kullanılması.",
@@ -5161,7 +5290,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Ödeme hizmeti sağlayıcısı PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) ve kartı veren banka",
             value:
-              "Kartlı ödemenin 3D Secure doğrulamasıyla ve tek çekim olarak tahsili, ödeme sonucunun teyidi ile iade ve itiraz süreçlerinin yürütülmesi. Ödeme hizmeti, 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulur. Kartınızı {{SITE}} üzerindeki güvenli ödeme sayfasında girersiniz (mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır). Kart sahibinin adı, kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) şifreli (TLS) bağlantıyla Şirket sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; Şirket bunları veri tabanına, kayıt dosyalarına veya başka bir yere kaydetmez ve saklamaz. PayNkolay'a ayrıca ödemeyi yapanın IP adresi, sipariş referansı, tutar ve para birimi iletilir; e-posta adresiniz, telefon numaranız ve adresiniz PayNkolay'a aktarılmaz. Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır. PayNkolay'dan Şirkete işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi, işlem tarihi ve işlem doğrulama servisinin döndürdüğü kayıt (maskelenmiş kart numarası, kartı veren banka, taksit sayısı, 3D Secure bilgisi ve onay kodu) döner; kart sahibinin adı kayıtlarda tutulmaz. Kayıtlı kart özelliği açıldığında: özellik isteğe bağlıdır ve yalnızca üyelere sunulur; ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu işaretsiz gelir ve siz işaretlemedikçe hiçbir kart kaydedilmez. Kayıtlı kartı Şirket değil PayNkolay'ın kart saklama hizmeti saklar; Şirket yalnızca PayNkolay'ın kartları üyeliğinizle eşleştirmek için kullandığı rastgele 11 karakterlik müşteri anahtarını tutar ve kartı kaydetmeyi veya kayıtlı kartla ödemeyi seçtiğinizde bu anahtarı PayNkolay'a iletir; kartla ilgili başka hiçbir bilgi Şirketin veri tabanına eklenmez. Kayıtlı kartlarınız ödeme sayfasında son dört haneleri, kart markası veya kartı veren banka ve karta verdiğiniz adla listelenir; kayıtlı kartla yapılan ödemede de 3D Secure doğrulaması uygulanır. Kayıtlı kartı ödeme sayfasından dilediğiniz zaman silebilirsiniz; hesabınız kapatılırken Şirket önce PayNkolay'dan size ait kayıtlı kartların silinmesini ister.",
+              "Kartlı ödemenin 3D Secure doğrulamasıyla ve tek çekim olarak tahsili, ödeme sonucunun teyidi ile iade ve itiraz süreçlerinin yürütülmesi. Ödeme hizmeti, 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulur. Kartınızı {{SITE}} üzerindeki güvenli ödeme sayfasında girersiniz (mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır). Kart sahibinin adı, kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) şifreli (TLS) bağlantıyla Şirket sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; Şirket bunları veri tabanına, kayıt dosyalarına veya başka bir yere kaydetmez ve saklamaz. PayNkolay'a ayrıca ödemeyi yapanın IP adresi, sipariş referansı, tutar ve para birimi iletilir; e-posta adresiniz, telefon numaranız ve adresiniz PayNkolay'a aktarılmaz. Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır. PayNkolay'dan Şirkete işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi, işlem tarihi ve işlem doğrulama servisinin döndürdüğü kayıt (maskelenmiş kart numarası, kartı veren banka, taksit sayısı, 3D Secure bilgisi ve onay kodu) döner; kart sahibinin adı kayıtlarda tutulmaz. Kart bilgileriniz sonraki ödemeler için PayNkolay nezdinde de kaydedilmez.",
           },
           {
             key: "Kargo gönderi platformu, kargo firmaları ve kurye",
@@ -5186,7 +5315,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Yapay zekâ hizmet sağlayıcısı (yalnızca açık rızanızla)",
             value:
-              "fA'L özelliğinde falın yapay zekâ ile yorumlanmasını açık rızanızla istemeniz hâlinde, içecek fotoğrafının (küçültülmüş ve meta verileri arındırılmış) ve kimliksiz bir özetin (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) yorumun üretilmesi amacıyla OpenAI, L.L.C.'ye (ABD) aktarılması; fotoğraf saklanmaz, üretilen yorum ise yalnızca onu 'Bu yorumu bildir' ile bize bildirmeniz hâlinde, incelenmek üzere doksan gün saklanır ve hizmet sağlayıcıya gönderilmez. Ayrıntılar Açık Rıza Metni'nin R12 bölümündedir.",
+              "fA'L özelliğinde falın yapay zekâ ile yorumlanmasını açık rızanızla istemeniz hâlinde, içecek fotoğrafının (küçültülmüş ve meta verileri arındırılmış) ve kimliksiz bir özetin (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) yorumun üretilmesi amacıyla Anthropic, PBC'ye (ABD) aktarılması; fotoğraf şirketimizce saklanmaz, üretilen yorum ise yalnızca onu 'Bu yorumu bildir' ile bize bildirmeniz hâlinde, incelenmek üzere doksan gün saklanır ve hizmet sağlayıcıya gönderilmez. Ayrıntılar Açık Rıza Metni'nin R12 bölümündedir.",
           },
           {
             key: "Uygulama dağıtım platformları",
@@ -5196,12 +5325,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Analitik ve ölçümleme sağlayıcıları",
             value:
-              "Açık rızanıza bağlı olarak web sitesi kullanımının istatistiksel ölçümü; mümkün olan hâllerde IP kısaltma ve takma adlaştırma uygulanır. Web sitesi etiketlerini Google Etiket Yöneticisi (GTM) ile yönetir; GTM betiği sayfa yüklenirken çalışır ve bu sırada IP adresiniz ve tarayıcı bilgileriniz Google'a ulaşır. Onay modu gereği, çerez izin panelinde bir seçim yapana kadar analitik ve pazarlama amaçlı tüm sinyaller 'reddedildi' olarak ayarlanır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
+              "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM), Google Analytics ve reklam etiketleri yüklenmez ve bu amaçla hiçbir sağlayıcıya veri aktarılmaz. Bu hizmetler ileride kullanılmak istenirse önce bu Politika ve Çerez Politikası güncellenir; analitik ve pazarlama çerezleri yalnızca çerez panelinde vereceğiniz açık rızayla çalışır. Mobil uygulamada analitik veya çökme raporlama hizmeti kullanılmaz.",
           },
           {
-            key: "Muhasebe, mali müşavirlik ve bağımsız denetim hizmeti sağlayıcıları",
+            key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe, mali müşavirlik ve bağımsız denetim hizmeti sağlayıcıları",
             value:
-              "Fatura, defter ve mali kayıtların düzenlenmesi ile yasal beyanların hazırlanması.",
+              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, defter ve mali kayıtların düzenlenmesi ile yasal beyanların hazırlanması. Paraşüt bu verileri veri işleyen sıfatıyla işler; ayrıntı KVKK Aydınlatma Metni'nin 14. ve 15. bölümlerindedir.",
           },
           {
             key: "Hukuk ve danışmanlık hizmeti sağlayıcıları",
@@ -5238,8 +5367,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Yurt Dışına Aktarım",
         paragraphs: [
-          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi), e-posta gönderim ve analitik hizmetlerinin bir kısmı yurt dışında yerleşik sağlayıcılar tarafından sunulmakta olup, bu kapsamda kişisel verileriniz yurt dışında bulunan sunuculara aktarılabilmekte veya buralardan erişilebilmektedir.",
-          "Yurt dışına aktarım, KVKK'nın kişisel verilerin yurt dışına aktarılmasını düzenleyen 9. maddesi çerçevesinde gerçekleştirilir. Aktarım, öncelikle Kurul tarafından yeterli korumaya sahip olduğu ilan edilen ülkelere; bunun bulunmadığı hâllerde ise mevzuatta öngörülen uygun güvencelerden birine (standart sözleşme, bağlayıcı şirket kuralları, taahhütname veya uluslararası sözleşme) dayanılarak yapılır. Bu güvencelerin sağlanamadığı istisnai durumlarda aktarım, mevzuatta öngörülen arızi hâllere veya ayrıca alınan açık rızanıza dayanır.",
+          "Şirketin kullandığı bulut barındırma, veri tabanı, kimlik doğrulama (üyelik girişi) ve e-posta gönderim hizmetleri yurt dışında yerleşik sağlayıcılar tarafından sunulmaktadır; bu nedenle kişisel verileriniz yurt dışında bulunan sunuculara aktarılmakta ve buralardan erişilebilmektedir. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz. Her sağlayıcının adı, ülkesi ve standart sözleşmenin durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı yoktur; bu nedenle aktarımlar KVKK'nın 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri sağlayıcılarla imzalama sürecimiz devam etmektedir; hangi sağlayıcıyla imzalandığı ve Kurum'a bildirildiği KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Bu aktarımlar süreklilik taşıdığından açık rızanıza dayandırılmaz; tek seferlik bir aktarım gerekirse, yalnızca arızi nitelikte olması kaydıyla ve olası riskler size ayrıca anlatılarak, o aktarımdan önce ayrı bir onay istenir.",
           "Şirket, yurt dışına aktarımlarda veri minimizasyonunu gözetir; aktarılan veriyi hizmetin gerektirdiği asgari kapsamla sınırlar, aktarım kanallarını TLS ile şifreler ve sağlayıcılarla yazılı veri işleme sözleşmeleri akdeder.",
           "Yurt dışına aktarımın kapsamı, aktarılan veri kategorileri ve dayanılan güvence hakkında ayrıntılı bilgi almak için {{EMAIL}} adresine başvurabilirsiniz.",
         ],
@@ -5265,11 +5394,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             key: "Ödeme işlem kayıtları ve maskelenmiş kart bilgisi",
             value:
               "İşlemin tamamlanmasından itibaren mali mevzuat ve itiraz (chargeback) süreçlerinin gerektirdiği süre boyunca; sonrasında imha edilir.",
-          },
-          {
-            key: "Kayıtlı kart müşteri anahtarı (kayıtlı kart özelliği açıldığında)",
-            value:
-              "Üyelik devam ettiği sürece. Kayıtlı bir kartı ödeme sayfasından dilediğiniz zaman silebilirsiniz; hesabınız kapatıldığında anahtar silinir ve Şirket, PayNkolay'dan size ait kayıtlı kartların silinmesini ister.",
           },
           {
             key: "Kartla ödeme denemesi sayaçları",
@@ -5363,7 +5487,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "13. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih, analitik ve pazarlama çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; diğer çerez kategorileri için onay modu (Google Consent Mode v2) kullanılır: web sitesi etiketlerini Google Etiket Yöneticisi (GTM) ile yönetir, GTM betiği sayfa yüklenirken çalışır ve tercih, analitik ve pazarlama amaçlı depolama izinleri siz çerez izin panelinden onay verene kadar 'reddedildi' olarak başlar; bu kategoriler yalnızca onay vermeniz hâlinde etkinleşir.",
+          "Platformda; oturumun sürdürülmesi, sepetin korunması, güvenlik ve temel işlevlerin sağlanması için zorunlu çerezler ile açık rızanıza bağlı olarak tercih çerezleri kullanılır. Zorunlu çerezler, hizmetin sunulabilmesi için teknik olarak gerekli olduğundan rızaya tabi değildir; tercih çerezleri yalnızca çerez panelinden onay vermeniz hâlinde etkinleşir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi (GTM) yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategorileri sormaz.",
           "Sepet içeriği ve arayüz tercihleri gibi bazı bilgiler, tarayıcınızın yerel depolama (localStorage) alanında cihazınızda tutulabilir. Bu veriler cihazınızdan silinerek her zaman kaldırılabilir.",
           "Mobil uygulamada tarayıcı çerezleri kullanılmaz; oturum anahtarı ile sepet, menü ve tercih önbelleği uygulama içi yerel depolamada tutulur. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez, izleme (App Tracking Transparency) izni istemez ve uygulamada reklam veya ölçümleme kiti bulunmaz. Uygulamanın istediği bildirim, kamera ve fotoğraf izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman değiştirilebilir veya kapatılabilir.",
           "Çerez tercihlerinizi, çerez tercih panelinden dilediğiniz zaman değiştirebilir; tarayıcı ayarlarından çerezleri engelleyebilir veya silebilirsiniz. Zorunlu çerezlerin engellenmesi hâlinde üyelik girişi, sepet ve ödeme adımı gibi işlevler çalışmayabilir.",
@@ -5376,12 +5500,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "{{BRAND}} mobil uygulaması iOS ve Android için yayımlanmakta olup, uygulama üzerinden menünün görüntülenmesi, kafe ve mağaza siparişi verilmesi, üyelik işlemleri, sadakat kartının (damga) takibi ve kafede kasa koduyla damga eklenmesi, karaoke odası rezervasyonu, fA'L ve cihazda planlanan hatırlatmalar mümkündür. Uygulama üzerinden yapılan işlemlerde de bu Politikanın tamamı uygulanır; aşağıdaki açıklamalar yalnızca uygulamaya özgü ek bilgilendirmedir.",
           "Uygulama üzerinden verilen siparişlerin ödemesi, uygulama mağazası içi satın alma yöntemiyle değil, web sitesindekiyle aynı şekilde ödeme hizmeti sağlayıcısı PayNkolay üzerinden alınır. Kart bilgileriniz {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; bu sayfa cihazınızın tarayıcı penceresinde açılır. Kart bilgileri şifreli bağlantıyla Şirket sunucusu üzerinden aynı işlemde yalnızca PayNkolay'a iletilir; Şirket bunları kaydetmez ve saklamaz. Ödeme sayfasından doğrudan kartı veren bankanın 3D Secure ekranına geçilir ve ödeme orada onaylanır.",
           "Uygulamanın indirilmesi, güncellenmesi ve kaldırılması App Store ve Google Play üzerinden yapılır. Bu mağazaların kendi kullanım koşulları ve gizlilik politikaları geçerlidir; mağaza hesabınıza, indirme ve değerlendirme kayıtlarınıza ilişkin veriler bakımından ilgili mağaza bağımsız veri sorumlusudur. Şirket, güvenlik ve uyumluluk gerekçesiyle asgari bir uygulama sürümü belirleyebilir; eski sürümlerde bazı işlevler çalışmayabilir.",
-          "Uygulamayı cihazınızdan kaldırdığınızda cihazda tutulan yerel veriler ve cihazda planlanmış hatırlatmalar silinir. Uygulamanın kaldırılması tek başına üyeliğinizin sona ermesi anlamına gelmez; hesabınızı uygulamadaki veya sitedeki hesap silme seçeneğiyle ya da {{EMAIL}} adresine başvurarak kapatabilirsiniz. Hesabın kapatılmasıyla biriken damgalar ve kullanılmamış kuponlar sona erer; kayıtlı kart özelliği açıksa Şirket ayrıca PayNkolay'dan size ait kayıtlı kartların silinmesini ister (ayrıntı: {{SITE_URL}}/hukuk/hesap-silme).",
+          "Uygulamayı cihazınızdan kaldırdığınızda cihazda tutulan yerel veriler ve cihazda planlanmış hatırlatmalar silinir. Uygulamanın kaldırılması tek başına üyeliğinizin sona ermesi anlamına gelmez; hesabınızı uygulamadaki hesap silme seçeneğiyle hemen kapatabilir ya da sitedeki hesap silme sayfasından veya {{EMAIL}} adresine başvurarak silinmesini isteyebilirsiniz. Hesabın kapatılmasıyla biriken damgalar ve kullanılmamış kuponlar sona erer (ayrıntı: {{SITE_URL}}/hukuk/hesap-silme).",
         ],
         bullets: [
           "Bildirim izni: İsteğe bağlıdır ve yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için kullanılır. Hatırlatmalar cihazda planlanır; sunucudan anlık bildirim (push) gönderilmez ve anlık bildirim tokeni oluşturulmaz. İzni cihaz ayarlarından kapatabilirsiniz.",
           "Konum, mikrofon ve rehber: Uygulama bu izinleri istemez; tek şube bulunduğundan konuma bağlı bir işlev yoktur ve teslimat adresi adres defterinizden seçilir.",
-          "Kamera ve fotoğraf izni: fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda istenir; fotoğraf yapay zekâ yorumuna ayrıca ve açıkça onay vermediğiniz sürece cihazınızdan çıkmaz, onay verirseniz küçültülmüş ve meta verilerinden arındırılmış hâliyle Açık Rıza Metni'nin R12 bölümü uyarınca aktarılır ve saklanmaz. fA'L Story görselini cihazınıza kaydetmeyi seçerseniz ayrıca fotoğraflara ekleme izni istenir. Kafede damga kazanmak için uygulama sizin kameranızı kullanmaz: kasada uygulamanın gösterdiği kasa kodunu personel okutur. Kasa yetkisi verilmiş personel hesaplarında kamera yalnızca kasa ekranında kasa kodunu okumak için kullanılır; görüntü kaydedilmez ve sunucuya yalnızca okunan kodun değeri iletilir.",
+          "Kamera ve fotoğraf izni: fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda istenir; fotoğraf yapay zekâ yorumuna ayrıca ve açıkça onay vermediğiniz sürece cihazınızdan çıkmaz, onay verirseniz küçültülmüş ve meta verilerinden arındırılmış hâliyle Açık Rıza Metni'nin R12 bölümü uyarınca aktarılır ve şirketimizce saklanmaz. fA'L Story görselini cihazınıza kaydetmeyi seçerseniz ayrıca fotoğraflara ekleme izni istenir. Kafede damga kazanmak için uygulama sizin kameranızı kullanmaz: kasada uygulamanın gösterdiği kasa kodunu personel okutur. Kasa yetkisi verilmiş personel hesaplarında kamera yalnızca kasa ekranında kasa kodunu okumak için kullanılır; görüntü kaydedilmez ve sunucuya yalnızca okunan kodun değeri iletilir.",
           "Reklam tanımlayıcısı: Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme (App Tracking Transparency) izni istemez; uygulamada reklam veya ölçümleme kiti bulunmaz.",
           "Çökme ve kullanım kayıtları: Uygulama çökme (crash), ekran görüntüleme veya tıklama kaydı toplamaz; sunucu, uygulamanın yaptığı isteklerde yalnızca IP adresini, cihazın eklediği istemci bilgisini (user-agent) ve isteğin zamanını görür.",
           "Uygulama içi depolama: Sepet içeriği, oturum bilgisi ve arayüz tercihleri cihazınızda tutulabilir; uygulamanın kaldırılmasıyla silinir.",
@@ -5391,7 +5515,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "15. Sadakat (Damga) Programı Kapsamında Veri İşleme",
         paragraphs: [
           "{{BRAND}} sadakat programı damga esaslıdır. Damga, mobil uygulama üzerinden verilen, ödemesi tamamlanan ve Sadakat (Damga) Programı Kuralları'nda belirtilen koşulları sağlayan kafe siparişlerinden ve kafede kasada personel tarafından eklenen damgalardan kazanılır; online mağaza (kargo) siparişleri ve internet sitesinden verilen siparişler damga kazandırmaz. Programda puan yoktur; sipariş bedeli damga ile ödenemez ve damganın kendi başına parasal bir karşılığı yoktur. Programın bütün kuralları {{SITE_URL}}/hukuk/odul-programi adresindeki Sadakat (Damga) Programı Kuralları'ndadır.",
-          "Sadakat programı kapsamında üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz işlenir. Bir siparişin damga kazandırıp kazandırmadığı, sipariş kaydındaki ödeme durumu ve tutar üzerinden belirlenir. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir. Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Davet programına katılırsanız davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı da kaydedilir.",
+          "Sadakat programı kapsamında üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga ekleyen personelin hesabı, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz işlenir. Bir siparişin damga kazandırıp kazandırmadığı, sipariş kaydındaki ödeme durumu ve tutar üzerinden belirlenir. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir. Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Davet programına katılırsanız davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu ve tarihleri ile davetin kupon kazandırıp kazandırmadığı da kaydedilir.",
           "Bu işleme, programın işletilmesi bakımından sözleşmenin kurulması ve ifasına (KVKK m.5/2-c), damga ve kuponların kötüye kullanımının önlenmesi bakımından meşru menfaate (KVKK m.5/2-f) dayanır. Program konum verisi, reklam tanımlayıcısı veya sizin cihaz kameranızı kullanmaz; harcama geçmişine dayalı profilleme programın parçası değildir.",
           "Siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damga geri alınır; sipariş iptal edilirse siparişte kullanılan kupon hesabınıza geri tanımlanır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; fiilen ödediğiniz tutar PayNkolay üzerinden ödemenin yapıldığı karta iade edilir. Kısmi iadenin karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde bilgilendirilirsiniz ve iade tutarı, aynı yasal süre içinde kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına havale veya EFT ile ödenir.",
           "Damga hareketleri, bağlı olduğu sipariş kaydının saklama süresine tabidir; kasada eklenen damgalar ve düzeltmeleri de aynı süreyle saklanır. Kasa kodu kayıtları, kullanıldıktan veya süresi dolduktan bir gün sonra silinir. Hesabınızı kapattığınızda biriken damgalar ve kullanılmamış kuponlar sona erer ve damga hareketleri hesabınızdan koparılır.",
@@ -5594,6 +5718,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-aydinlatma-metni",
     title: "KVKK Aydınlatma Metni",
     shortTitle: "Aydınlatma Metni",
+    // 21 Ekim 2026: §6 karaoke verisi köşkün geç iptalindeki telafiyi ve
+    // telafi ödemesinin banka hesap bilgisini, §7 ve §8 telafiyi amaç
+    // olarak adlandırır (LEGAL-REDLINES §26).
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
+    // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -5602,12 +5735,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "Veri Sorumluları Sicili Hakkında Yönetmelik",
-      "Yurt Dışına Kişisel Veri Aktarımı Hakkında Yönetmelik",
+      "Kişisel Verilerin Yurt Dışına Aktarılmasına İlişkin Usul ve Esaslar Hakkında Yönetmelik (RG: 10.07.2024, 32598)",
       "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5070 sayılı Elektronik İmza Kanunu",
       "213 sayılı Vergi Usul Kanunu",
@@ -5750,7 +5883,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ödül programı katılımcısı: Sadakat (damga) programına katılan; mobil uygulamadan verdiği ve ödemesi tamamlanan kafe siparişleriyle veya kafede kasada eklenen damgalarla kartını dolduran ve dolan kartı ücretsiz içecek kuponuna çeviren üye.",
           "Ziyaretçi: Üye olmadan {{SITE_URL}} adresini görüntüleyen, menüyü inceleyen, sepet oluşturan ancak sipariş tamamlamayan kullanıcı.",
           "Bülten abonesi: Kampanya, yeni ürün ve etkinlik duyurularını almak üzere e-posta adresini paylaşan ve ticari elektronik ileti onayı veren kişi.",
-          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, masa/rezervasyon talebi ileten, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
+          "Kafe ziyaretçisi: {{ADDRESS}} adresindeki fiziki işletmeye gelen, internet sitesi veya mobil uygulama üzerinden, üye olarak ya da üye olmadan karaoke odası rezervasyonu yapan, kafe içi ödeme yapan veya güvenlik kamerası görüş alanına giren kişi.",
           "Tedarikçi, iş ortağı ve bunların yetkilileri: Kahve çekirdeği, gelato ve gıda malzemesi, ambalaj, ekipman, lojistik ve hizmet tedarikçilerinin gerçek kişi temsilcileri ve irtibat kişileri.",
           "Çalışan adayı: {{EMAIL}} adresine veya kariyer kanallarına özgeçmiş ve başvuru ileten kişi.",
           "İletişime geçen üçüncü kişiler: Basın mensupları, iş birliği teklifiyle başvuranlar, sosyal medya hesaplarımız üzerinden mesaj gönderenler ve yasal bildirim yapanlar.",
@@ -5765,19 +5898,19 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Üye ve müşteri - Kimlik verisi: ad, soyad; fatura kurumsal ise şirket unvanı ve yetkili adı. Sipariş bazında talep edilmesi hâlinde T.C. kimlik numarası yalnızca vergi mevzuatının zorunlu kıldığı belge düzeni için işlenir.",
           "Üye ve müşteri - İletişim verisi: e-posta adresi, cep telefonu numarası, teslimat adresi, fatura adresi, il/ilçe bilgisi.",
           "Üye ve müşteri - Müşteri işlem verisi: sipariş numarası, sipariş tarihi, sepet içeriği (kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, moka pot/değirmen/tamper gibi ekipman, fincan/önlük/tote gibi marka ürünleri, pistacchio kreması ve şuruplar gibi kiler ürünleri), kafe siparişlerinde seçilen boy ve içecek seçenekleri, varyant ve öğütüm tercihi, adet, birim fiyat, indirim/promosyon kodu, siparişte kullanılan kupon, KDV tutarı, teslimat yöntemi (kargo, kafeden gel-al veya kurye) ve ücreti, ileri bir saate planlanan kafe siparişlerinde seçilen saat, sipariş durumu, iade ve cayma talepleri, değişim kayıtları, sipariş notu.",
-          "Üye ve müşteri - Finansal veri: ödeme yöntemi (kredi kartı veya internetten alışverişe açık banka kartı, tek çekim); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi; PayNkolay işlem doğrulama servisinin döndürdüğü kayıtta yer alan maskelenmiş kart numarası, kartı veren banka, taksit sayısı (her zaman 1), 3D Secure bilgisi ve banka onay kodu; iptal, iade, kısmi iade ve ters ibraz (chargeback) kayıtları; kısmi iadenin karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde iade için bildirdiğiniz banka hesap bilgisi. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV/CVC) ile kart üzerindeki ad, {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli (TLS) bağlantıyla sunucumuza ve aynı istekte yalnızca PayNkolay'a iletilir; bu veriler tarafımızca veri tabanına, log kayıtlarına veya dosyalara yazılmaz, kaydedilmez ve saklanmaz. Kart sahibinin adı ödeme kaydında da tutulmaz. Kart saklama özelliği açıldığında, kartını kaydetmeyi seçen üyelerin kartı PayNkolay'ın kart saklama hizmetinde saklanır; tarafımızca yalnızca PayNkolay'ın kayıtlı kartları üyeyle eşleştirmek için kullandığı, kişisel bilgi taşımayan rastgele 11 karakterlik bir üye anahtarı tutulur.",
+          "Üye ve müşteri - Finansal veri: ödeme yöntemi (kredi kartı veya internetten alışverişe açık banka kartı, tek çekim); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi; PayNkolay işlem doğrulama servisinin döndürdüğü kayıtta yer alan maskelenmiş kart numarası, kartı veren banka, taksit sayısı (her zaman 1), 3D Secure bilgisi ve banka onay kodu; iptal, iade, kısmi iade ve ters ibraz (chargeback) kayıtları; kısmi iadenin karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde iade için veya başka bir kargo firmasıyla gönderdiğiniz iadenin gönderim bedelinin ödenmesi için bildirdiğiniz banka hesap bilgisi. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV/CVC) ile kart üzerindeki ad, {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli (TLS) bağlantıyla sunucumuza ve aynı istekte yalnızca PayNkolay'a iletilir; bu veriler tarafımızca veri tabanına, log kayıtlarına veya dosyalara yazılmaz, kaydedilmez ve saklanmaz. Kart sahibinin adı ödeme kaydında da tutulmaz. Kart, sonraki ödemeler için PayNkolay nezdinde de kaydedilmez.",
           "Üye ve müşteri - Hesap ve güvenlik verisi: üyelik kimliği, isteğe bağlı olarak bildirdiğiniz doğum tarihi ve kayıtlı 'her zamanki' içecek seçiminiz, e-posta doğrulama durumu ve doğrulama zamanı, bcrypt algoritmasıyla özetlenmiş parola (parolanın açık hâli hiçbir aşamada saklanmaz), oturum ve giriş kayıtları, parola sıfırlama talepleri, başarısız giriş denemeleri ve hız sınırlama kayıtları. İnternet sitesi ve mobil uygulamadaki ortak üyelik girişi bir kimlik doğrulama hizmeti üzerinden sağlanır; bu hizmette e-posta adresiniz, parolanızın özeti, ad-soyadınız, uygulamadan kayıt olduysanız telefon numaranız ile koşulların ve ticari elektronik ileti onayının kabul anı ve oturum belirteçleri tutulur.",
           "Üye ve müşteri - Hukuki işlem ve onay verisi: Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni onayladığınız ayrı onay kutusuna ilişkin kayıt; onay tarihi ve saati, IP adresi, tarayıcı ve cihaz bilgisi (user-agent) ile onaylanan belge sürümü. Bu kayıt, 6102 ve 6098 sayılı Kanunlar ile 6100 sayılı Hukuk Muhakemeleri Kanunu kapsamında ispat amacıyla tutulur.",
           "Ziyaretçi - İşlem güvenliği ve kullanım verisi: IP adresi, cihaz ve tarayıcı bilgisi, işletim sistemi, dil tercihi, ziyaret edilen sayfalar ve tıklama akışı, oturum süresi, yönlendiren adres (referrer), zorunlu ve tercihe bağlı çerez kayıtları, sepet ve tercih bilgisi (yerel depolamada tutulan sepet dahil), hata ve performans kayıtları.",
           "Bülten abonesi - Pazarlama verisi: e-posta adresi, ad, aboneliğin geldiği kaynak, ticari elektronik ileti onayının alındığı tarih, IP adresi ve onaylanan metin, e-posta adresinin size ait olduğunu doğrulayan onay bağlantısının kullanıldığı kayıt, gönderim ve abonelikten çıkma kayıtları. Üyeler için ticari elektronik ileti onayının ve geri alınmasının geçmişi (tarih, kaynak, IP adresi, tarayıcı veya uygulama bilgisi) ayrıca kayıt altında tutulur.",
-          "Kafe ziyaretçisi - Fiziksel mekân güvenliği ve işlem verisi: kapalı devre kamera görüntüsü (girişte bildirim levhası bulunan alanlarda), rezervasyon/masa talebi kapsamında ad ve telefon numarası, kafe içi satış fişine bağlı işlem kayıtları, etkinlik katılım listeleri.",
+          "Kafe ziyaretçisi - Fiziksel mekân güvenliği ve işlem verisi: kapalı devre kamera görüntüsü (girişte bildirim levhası bulunan alanlarda), kafe içi satış fişine bağlı işlem kayıtları, etkinlik katılım listeleri.",
           "Tedarikçi yetkilisi - Kimlik, iletişim ve ticari veri: ad, soyad, görev/unvan, kurumsal e-posta ve telefon, imza sirküleri ve yetki belgelerinde yer alan bilgiler, sözleşme, sipariş, irsaliye ve fatura kayıtları, banka hesap bilgisi (yalnızca ödemenin gerçekleştirilmesi amacıyla).",
           "Çalışan adayı - Özlük öncesi veri: ad, soyad, iletişim bilgileri, özgeçmişte yer alan eğitim ve iş deneyimi bilgileri, referans bilgileri, mülakat notları, başvurulan pozisyon. Özgeçmişinizde kendi inisiyatifinizle paylaştığınız ve pozisyon için gerekli olmayan veriler (fotoğraf, medeni hâl, sağlık bilgisi gibi) tarafımızca değerlendirmede kullanılmaz.",
           "İletişime geçen üçüncü kişiler - İletişim ve talep verisi: ad, e-posta/telefon, mesaj içeriği ve ekleri, sosyal medya kullanıcı adı ve mesaj geçmişi, talebin sonuçlandırılmasına ilişkin kayıtlar.",
           "Üye ve müşteri - Sadakat (damga) programı verisi: üyelik kimliğiniz (e-posta adresi), damga hareketleriniz (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), kasada damga eklendiğinde işlemi yapan personelin kimliği, hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kodunuz ve davetlerinizin durumu ile son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz. Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Hukuki sebep: KVKK m.5/2-c sözleşmenin kurulması ve ifası. Harcama geçmişine dayalı profilleme programın parçası değildir.",
           "Mobil uygulama kullanıcısı - Bağlantı verisi: sunucumuza yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı. Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme (App Tracking Transparency) izni istemez; uygulamada reklam veya ölçümleme kiti bulunmaz, uygulama anlık bildirim tokeni, çökme kaydı veya ekran ve tıklama kaydı toplamaz. Hukuki sebep: uygulamanın çalıştırılması ve güvenliği bakımından KVKK m.5/2-c ve m.5/2-f.",
-          "Mobil uygulama kullanıcısı - İzne bağlı cihaz erişimi: bildirim izni (yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için; hatırlatmalar cihazda planlanır ve sunucudan anlık bildirim gönderilmez); kamera ve fotoğraf arşivi erişimi (yalnızca fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda; fotoğraf cihazınızda işlenir ve şirketimize gönderilmez); fotoğraflara kaydetme izni (yalnızca fA'L Story görselini cihazınıza kaydetmeyi seçtiğinizde). Uygulama konum, mikrofon ve rehber izni istemez. Kasa yetkisi tanımlanmış personel hesaplarında kamera ayrıca üyenin kasa kodunu okutmak için kullanılır; bu sırada görüntü kaydedilmez ve gönderilmez, yalnızca okunan kodun içeriği sunucuya iletilir. Hukuki sebep: izinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; fotoğraf cihazınızda kaldığı sürece tarafımızca işlenmez, fA'L yapay zekâ yorumu için aktarım yalnızca açık rızanıza (KVKK m.5/1, Açık Rıza Metni R12) dayanır.",
-          "Üye ve üyeliksiz rezervasyon yapan kişi - Karaoke rezervasyon verisi: rezervasyon numarası, tarih, başlangıç saati ve süre, kişi sayısı, rezervasyon durumu (ödeme bekliyor, kesinleşti, iptal edildi, iade edildi), ücret, uygulanan indirim, toplam tutar, ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyon notunuz, adınız ve e-posta adresiniz; internet sitesinden yapılan rezervasyonlarda ayrıca iletişim için kullanılan e-posta adresi ve cep telefonu numarası ile Aydınlatma Metni'ni okuduğunuzu belirttiğiniz zaman. Ödemeden önce verdiğiniz onaylar (Ön Bilgilendirme Formu'nun onayı, Mesafeli Hizmet Sözleşmesi'nin kabulü ve Aydınlatma Metni'nin okunduğuna ilişkin teyit) onay anı, belge sürümü, IP adresiniz ve tarayıcı veya uygulama bilginizle birlikte rezervasyon kaydına yazılır. Karaoke odası rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; kart numarası, son kullanma tarihi ve güvenlik kodunuz kaydedilmez. Üye olmadan rezervasyon yapan kişinin adı, soyadı, cep telefonu ve e-posta adresi yalnızca rezervasyon kaydında tutulur, onun adına üyelik hesabı açılmaz. Hukuki sebep: KVKK m.5/2-c sözleşmenin kurulması ve ifası; onay kaydı için m.5/2-a ve m.5/2-ç.",
+          "Mobil uygulama kullanıcısı - İzne bağlı cihaz erişimi: bildirim izni (yalnızca uygulamada kendi açtığınız hatırlatmaların cihazınızda gösterilmesi için; hatırlatmalar cihazda planlanır ve sunucudan anlık bildirim gönderilmez); kamera ve fotoğraf arşivi erişimi (yalnızca fA'L özelliğinde fotoğraf çekmeyi veya galeriden seçmeyi siz başlattığınızda; fotoğraf cihazınızda işlenir ve şirketimize gönderilmez); fotoğraflara kaydetme izni (yalnızca fA'L Story görselini cihazınıza kaydetmeyi seçtiğinizde). Uygulama konum, mikrofon ve rehber izni istemez. Kasa yetkisi tanımlanmış personel hesaplarında kamera ayrıca üyenin kasa kodunu okutmak için kullanılır; bu sırada görüntü kaydedilmez ve gönderilmez, yalnızca okunan kodun içeriği sunucuya iletilir. Hukuki sebep: izinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; fotoğraf cihazınızda kaldığı sürece tarafımızca işlenmez; fA'L yapay zekâ yorumu için fotoğrafın işlenmesi ve aktarılması açık rızanıza (KVKK m.5/1, Açık Rıza Metni R12) dayanır; yurt dışına aktarımda ayrıca Kurul tarafından ilan edilen standart sözleşme uygulanır.",
+          "Üye ve üyeliksiz rezervasyon yapan kişi - Karaoke rezervasyon verisi: rezervasyon numarası, tarih, başlangıç saati ve süre, kişi sayısı, rezervasyon durumu (ödeme bekliyor, kesinleşti, iptal edildi, iade edildi), ücret, uygulanan indirim, toplam tutar, ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafi (tutarı, ücretsiz saatin son günü, ücretsiz saat olarak mı yoksa ödeme olarak mı kullanıldığı ve ödeme tarihi), rezervasyon notunuz, adınız ve e-posta adresiniz; internet sitesinden yapılan rezervasyonlarda ayrıca iletişim için kullanılan e-posta adresi ve cep telefonu numarası ile Aydınlatma Metni'ni okuduğunuzu belirttiğiniz zaman. Ödemeden önce verdiğiniz onaylar (Ön Bilgilendirme Formu'nun onayı, Mesafeli Hizmet Sözleşmesi'nin kabulü ve Aydınlatma Metni'nin okunduğuna ilişkin teyit) onay anı, belge sürümü, IP adresiniz ve tarayıcı veya uygulama bilginizle birlikte rezervasyon kaydına yazılır. Karaoke odası rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; kart numarası, son kullanma tarihi ve güvenlik kodunuz kaydedilmez. Üye olmadan rezervasyon yapan kişinin adı, soyadı, cep telefonu ve e-posta adresi yalnızca rezervasyon kaydında tutulur, onun adına üyelik hesabı açılmaz. Telafinin banka hesabınıza ödenmesini seçerseniz e-postayla bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi yalnızca bu ödeme için kullanılır; rezervasyon kaydına yazılmaz, ödemenin belgesiyle muhasebe kayıtlarında saklanır. Hukuki sebep: KVKK m.5/2-c sözleşmenin kurulması ve ifası; onay kaydı için m.5/2-a ve m.5/2-ç.",
           "Üye - Davet verisi: davet kodunuz, davet eden ve davet edilen üyenin e-posta adresleri, davetin durumu (bekliyor, katıldı, ödüllendirildi), tarihler ve davet nedeniyle tanımlanan kupon. Sizi davet eden üye, adınızı ve soyadınızın yalnızca baş harfini, davetin durumunu ve tarihini görür. Hukuki sebep: KVKK m.5/2-c sözleşmenin ifası (davet programı).",
         ],
       },
@@ -5789,11 +5922,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Üyelik ve hesap yönetimi: Üyelik kaydının oluşturulması, e-posta adresinin doğrulanması, internet sitesi ve mobil uygulama üzerinden oturum açma, parola sıfırlama, hesap güvenliğinin sağlanması, üyelik sözleşmesinden doğan yükümlülüklerin yerine getirilmesi ve hesabın kapatılması taleplerinin karşılanması.",
           "Sipariş ve sözleşme süreçlerinin yürütülmesi: Sepetin oluşturulması, stok ve fiyat doğrulaması, Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin sunulması ve onayın kayda alınması, siparişin oluşturulması, sipariş onayının kalıcı veri saklayıcısıyla iletilmesi ve sipariş durumunun güncellenmesi.",
-          "Ödeme işlemlerinin gerçekleştirilmesi ve güvenliği: Ödemenin ödeme hizmeti sağlayıcısı PayNkolay aracılığıyla tek çekim olarak tahsili (taksit ve ön provizyon uygulanmaz; tutar, ödemeyi onayladığınız anda tahsil edilir); kart bilgilerinin {{SITE}} üzerindeki güvenli ödeme sayfasında alınması ve kaydedilmeden, şifreli bağlantıyla yalnızca PayNkolay'a iletilmesi; kartı veren bankanın ekranında 3D Secure doğrulaması; kart saklama özelliği açıldığında, kartını kaydetmeyi seçen üyelerde kayıtlı kartların PayNkolay'ın kart saklama hizmeti üzerinden gösterilmesi, kullanılması ve silinmesi; ödeme sonucunun sunucumuzdan PayNkolay işlem doğrulama servisine sorularak teyit edilmesi ve sipariş kaydına işlenmesi; tutarın tamamı kupon veya promosyonla karşılanan siparişlerin kart ödemesi olmaksızın kapatılması; mükerrer işlemin önlenmesi, kart denemelerinin sınırlanması ve dolandırıcılık riskinin önlenmesi; iptal, iade, kısmi iade ve ters ibraz (chargeback) süreçlerinin yönetilmesi.",
+          "Ödeme işlemlerinin gerçekleştirilmesi ve güvenliği: Ödemenin ödeme hizmeti sağlayıcısı PayNkolay aracılığıyla tek çekim olarak tahsili (taksit ve ön provizyon uygulanmaz; tutar, ödemeyi onayladığınız anda tahsil edilir); kart bilgilerinin {{SITE}} üzerindeki güvenli ödeme sayfasında alınması ve kaydedilmeden, şifreli bağlantıyla yalnızca PayNkolay'a iletilmesi; kartı veren bankanın ekranında 3D Secure doğrulaması; ödeme sonucunun sunucumuzdan PayNkolay işlem doğrulama servisine sorularak teyit edilmesi ve sipariş kaydına işlenmesi; tutarın tamamı kupon veya promosyonla karşılanan siparişlerin kart ödemesi olmaksızın kapatılması; mükerrer işlemin önlenmesi, kart denemelerinin sınırlanması ve dolandırıcılık riskinin önlenmesi; iptal, iade, kısmi iade ve ters ibraz (chargeback) süreçlerinin yönetilmesi.",
           "Teslimat ve lojistik: Online mağaza siparişlerinin paketlenmesi, Geliver kargo gönderi platformu üzerinden gönderi anında seçilen anlaşmalı kargo firmasına teslim edilmesi, gönderi takip numarasının oluşturulması ve tarafınıza iletilmesi; mobil uygulamadan verilen kafe siparişlerinin kafeden gel-al için hazırlanması veya kurye ile teslim edilmesi; teslimat sorunlarının çözülmesi.",
           "Faturalandırma ve mali yükümlülükler: 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca fatura/fiş düzenlenmesi, KDV'nin hesaplanması ve beyanı, muhasebe kayıtlarının tutulması, ticari defter ve belge saklama yükümlülüklerinin yerine getirilmesi.",
           "Müşteri hizmetleri ve talep yönetimi: {{EMAIL}} ve {{PHONE}} üzerinden gelen soru, şikâyet, ayıplı ürün ihbarı, cayma hakkı ve iade taleplerinin alınması, incelenmesi, sonuçlandırılması ve tarafınıza geri bildirim yapılması.",
-          "Cayma hakkı ve iade süreçleri: Mesafeli Sözleşmeler Yönetmeliği kapsamındaki on dört günlük cayma hakkının kullanılması hâlinde bildirimin kayda alınması, ürünün geri alınması, bedelin ve teslimat masraflarının iadesi, cayma hakkı istisnası kapsamındaki ürünlerde durumun değerlendirilmesi ve tarafınıza gerekçeli bilgi verilmesi.",
+          "Cayma hakkı ve iade süreçleri: Mesafeli Sözleşmeler Yönetmeliği kapsamındaki on dört günlük cayma hakkının kullanılması hâlinde bildirimin kayda alınması, ürünün geri alınması, bedelin ve teslimat masraflarının iadesi, iadeyi başka bir kargo firmasıyla gönderdiyseniz belgelediğiniz gönderim bedelinin ödenmesi, cayma hakkı istisnası kapsamındaki ürünlerde durumun değerlendirilmesi ve tarafınıza gerekçeli bilgi verilmesi.",
           "Gıda güvenliği ve tüketici bilgilendirmesi: 5996 sayılı Kanun ve Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği kapsamında ürün içeriği, alerjen bilgisi, son tüketim tarihi ve saklama koşullarına ilişkin bilgilendirmelerin yapılması, gerektiğinde parti bazlı geri çağırma ve tüketici uyarısının ilgili müşterilere iletilmesi.",
           "Stok, ürün ve içerik yönetimi: Sipariş kaynaklı stok düşümü ve stok hareketlerinin kaydı, ürün ve menü içeriklerinin güncellenmesi, tükenen ürünlerin işaretlenmesi.",
           "Ticari iletişim ve pazarlama: Açık rızanıza dayalı olarak bülten, kampanya, doğum günü, yeni ürün ve etkinlik e-postalarının gönderilmesi; onayınızın tarih, kaynak ve IP adresiyle kaydedilmesi; iletişim tercihlerinizin yönetilmesi ve ret hakkının kolayca kullandırılması.",
@@ -5805,7 +5938,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İşe alım süreçleri: Başvuruların değerlendirilmesi, mülakat planlanması, adaya geri bildirim yapılması ve adayın açık rızası hâlinde başvurunun ileride açılacak pozisyonlar için havuzda tutulması.",
           "Mobil uygulamanın sunulması ve yönetilmesi: Uygulamanın cihazınıza uygun sürümde çalıştırılması, oturumun sürdürülmesi, uygulama içi menü, kafe ve mağaza siparişi, sadakat kartı (damga), karaoke rezervasyonu ve fA'L işlevlerinin sunulması, kafede kasa koduyla damga eklenmesi, sürüm güncellemelerinin uygulanması, sunucu tarafındaki hataların giderilmesi ve izin verdiğiniz ölçüde hatırlatmaların cihazınızda gösterilmesi.",
           "Sadakat (damga) programının yürütülmesi: Mobil uygulamadan verilip ödemesi tamamlanan ve Ödül Programı Kuralları'ndaki koşulları sağlayan kafe siparişleri ile kafede kasada eklenen damgaların kaydedilmesi, damga kartının ve kademenin gösterilmesi, dolan kartın ücretsiz içecek kuponuna çevrilmesi, kilometre taşı ve davet kuponlarının tanımlanması ve davet programının yürütülmesi, siparişin iptali, iadesi veya cayma hakkının kullanılması hâlinde o siparişten kazanılan damganın geri alınması ve iptal edilen siparişte kullanılan kuponun hesaba geri tanımlanması, damga ve kuponların kötüye kullanılmasının denetlenmesi.",
-          "Karaoke odası rezervasyonu: Rezervasyonun alınması, uygunluğun ve ücretin hesaplanması, saatin ödeme sayfasının açık kaldığı 30 dakika boyunca sizin için tutulması, ödemenin PayNkolay üzerinden tahsili ve rezervasyonun ödemenin onaylanmasıyla kesinleşmesi, rezervasyonun iptali ve iadenin yapılması, rezervasyon bağlantısının e-postayla gönderilmesi, rezervasyonun ekibimize bildirilmesi ve bu konularda tarafınıza e-posta veya telefonla bilgi verilmesi; çevrim içi ödemenin kapalı olduğu hâllerde talebin ekibimizce onaylanması.",
+          "Karaoke odası rezervasyonu: Rezervasyonun alınması, uygunluğun ve ücretin hesaplanması, saatin ödeme sayfasının açık kaldığı 30 dakika boyunca sizin için tutulması, ödemenin PayNkolay üzerinden tahsili ve rezervasyonun ödemenin onaylanmasıyla kesinleşmesi, rezervasyonun iptali ve iadenin yapılması, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının bildireceğiniz, kendi adınıza kayıtlı banka hesabına ödenmesi, rezervasyon bağlantısının e-postayla gönderilmesi, rezervasyonun ekibimize bildirilmesi ve bu konularda tarafınıza e-posta veya telefonla bilgi verilmesi; çevrim içi ödemenin kapalı olduğu hâllerde talebin ekibimizce onaylanması.",
           "Doğum günü kuponu ve doğum günü e-postası: Doğum tarihinizi isteğe bağlı olarak bildirdiyseniz, doğum gününüzde e-postası doğrulanmış üyelik hesabınıza yılda bir kez, yedi gün geçerli bir doğum günü kuponu tanımlanması; ticari elektronik ileti onayınız varsa aynı gün kutlama ve kampanya içeren bir e-posta gönderilmesi.",
         ],
       },
@@ -5826,7 +5959,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "KVKK m.5/2-c: Mesafeli satış sözleşmesinin kurulması ve ifası için gerekli olması",
           },
           {
-            key: "Ödemenin ödeme hizmeti sağlayıcısı PayNkolay aracılığıyla tahsili, 3D Secure doğrulaması, kart saklama özelliği açıldığında üyenin talebiyle kayıtlı kart hizmeti, iptal, iade ve ters ibraz (chargeback) yönetimi",
+            key: "Ödemenin ödeme hizmeti sağlayıcısı PayNkolay aracılığıyla tahsili, 3D Secure doğrulaması, iptal, iade ve ters ibraz (chargeback) yönetimi",
             value:
               "KVKK m.5/2-c sözleşmenin ifası; ayrıca 5464 ve 6493 sayılı Kanunlar ile ödeme mevzuatı bakımından KVKK m.5/2-ç: Veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi için zorunlu olması",
           },
@@ -5866,9 +5999,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "KVKK m.5/2-c ve m.5/2-f: Hizmetin talep edilen şekilde sunulabilmesi ve altyapının güvenli çalışması",
           },
           {
-            key: "İsteğe bağlı analitik ve performans çerezleri",
+            key: "İsteğe bağlı tercih çerezleri",
             value:
-              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir)",
+              "KVKK m.5/1: İlgili kişinin açık rızası (çerez tercih paneli üzerinden alınır ve her zaman geri alınabilir). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           },
           {
             key: "Ticari elektronik ileti (bülten, kampanya duyurusu) gönderimi",
@@ -5908,10 +6041,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Cihaz izinleri: bildirim ile fA'L için kamera ve fotoğraf arşivi erişimi",
             value:
-              "İzinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; izin verilmemesi yalnızca ilgili özelliğin çalışmamasına yol açar ve uygulamanın kullanımı bu izinlere bağlanmaz. fA'L fotoğrafı cihazınızda kaldığı sürece tarafımızca işlenmez; yapay zekâ yorumu için aktarım KVKK m.5/1 ve m.9 kapsamındaki açık rızanıza (Açık Rıza Metni R12) dayanır. Uygulama konum izni istemez.",
+              "İzinler işletim sistemi aracılığıyla onayınızla verilir ve cihaz ayarlarından geri alınabilir; izin verilmemesi yalnızca ilgili özelliğin çalışmamasına yol açar ve uygulamanın kullanımı bu izinlere bağlanmaz. fA'L fotoğrafı cihazınızda kaldığı sürece tarafımızca işlenmez; yapay zekâ yorumu için fotoğrafın işlenmesi ve yurt dışına aktarılması KVKK m.5/1 uyarınca açık rızanıza (Açık Rıza Metni R12) dayanır; yurt dışına aktarım ayrıca Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Uygulama konum izni istemez.",
           },
           {
-            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi",
+            key: "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi",
             value:
               "KVKK m.5/2-c: Rezervasyona ilişkin sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması",
           },
@@ -5942,8 +6075,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Ticari elektronik ileti (e-posta bülteni, kampanya ve doğum günü e-postaları) gönderimi; onayınız tarih, kaynak ve IP adresiyle kayda alınır ve her iletideki bağlantıdan veya hesap tercihlerinizden geri alınabilir.",
           "Mobil uygulamada kampanya, indirim, yeni ürün ve etkinlik duyurusu içeren anlık bildirim gönderilmesi; uygulama şu anda sunucudan anlık bildirim almaz, böyle bir gönderim başlatılırsa yalnızca ayrıca vereceğiniz onayla yapılır. Sipariş, ödeme, teslimat ve damga hareketlerine ilişkin işlemsel bilgilendirmeler bu kapsamda değildir.",
-          "fA'L özelliğinde fotoğrafınızın yapay zekâ ile yorumlanması için şirketimizin sunucusu üzerinden OpenAI, L.L.C.'ye (ABD) kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte aktarılması (Açık Rıza Metni R12). Kamera, fotoğraf arşivi ve bildirim erişimi ayrıca cihaz izni olarak alınır ve cihaz ayarlarından her zaman geri alınabilir.",
-          "Zorunlu olmayan analitik, performans ve tercih çerezleri ile benzeri teknolojilerin kullanılması.",
+          "fA'L özelliğinde fotoğrafınızın yapay zekâ ile yorumlanması için şirketimizin sunucusu üzerinden Anthropic, PBC'ye (ABD) kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte aktarılması (Açık Rıza Metni R12). Kamera, fotoğraf arşivi ve bildirim erişimi ayrıca cihaz izni olarak alınır ve cihaz ayarlarından her zaman geri alınabilir.",
+          "Zorunlu olmayan tercih çerezlerinin kullanılması. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analitik, performans ve pazarlama çerezleri için bugün veri işlenmediğinden rıza istenmez.",
           "Değerlendirme sonuçlanmış olsa dahi çalışan adayı başvurusunun ileride açılacak pozisyonlar için aday havuzunda saklanması.",
           "Tarafınızca gönderilen ve kimliğinizi tanınabilir kılan görsel/işitsel içeriğin (örneğin ürün fotoğrafı veya video) sosyal medya hesaplarımızda paylaşılması.",
         ],
@@ -5956,29 +6089,29 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Elektronik formlar: {{SITE_URL}} ve mobil uygulama üzerindeki üyelik, giriş, parola sıfırlama, profil, adres, sepet, ödeme, karaoke rezervasyonu ve bülten abonelik formları; iade ve cayma talepleri e-posta veya telefonla iletilir.",
           "Otomatik altyapı kayıtları: Sunucu ve uygulama log kayıtları, güvenlik ve hata kayıtları, oturum bilgileri, yönetici işlemlerine ilişkin olay kaydı.",
-          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler, yerel depolama (sepetin cihazınızda tutulması dahil) ve piksel/etiket teknolojileri.",
+          "Çerezler ve benzeri teknolojiler: Tarayıcınıza yerleştirilen çerezler ve yerel depolama (sepetin cihazınızda tutulması dahil). İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; piksel veya ölçümleme etiketi yüklenmez.",
           "Mobil uygulama: Uygulama üzerinden doldurduğunuz formlar ve gerçekleştirdiğiniz işlemler; sunucumuza yapılan isteklerde oluşan IP adresi, istemci bilgisi (user-agent) ve zaman kayıtları; kafede damga eklenirken kasada okutulan veya girilen kasa kodu. Uygulama konum, reklam tanımlayıcısı, anlık bildirim tokeni veya çökme kaydı toplamaz.",
-          "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları.",
-          "Ödeme altyapısı: {{SITE}} üzerindeki güvenli ödeme sayfasında girdiğiniz kart bilgileri (kaydedilmeden yalnızca PayNkolay'a iletilir); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisine sunucumuzdan yapılan sorgu ile alınan işlem sonucu, referans kodu ve maskelenmiş kart bilgisi; kart saklama özelliği açıldığında, kartını kaydetmeyi seçen üyeler için ödeme sayfasında gösterilmek üzere PayNkolay'ın kart saklama hizmetinden alınan kartın son dört hanesi, kartı veren banka veya kart markası ve kart takma adı; itirazlarda bankanın ve PayNkolay'ın ilettiği bilgiler.",
+          "Sadakat programı kanalları: Mobil uygulamadan verilip ödemesi tamamlanan kafe siparişlerinden otomatik olarak oluşan damga kayıtları ile kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları.",
+          "Ödeme altyapısı: {{SITE}} üzerindeki güvenli ödeme sayfasında girdiğiniz kart bilgileri (kaydedilmeden yalnızca PayNkolay'a iletilir); ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisine sunucumuzdan yapılan sorgu ile alınan işlem sonucu, referans kodu ve maskelenmiş kart bilgisi; itirazlarda bankanın ve PayNkolay'ın ilettiği bilgiler.",
           "Kargo ve teslimat kanalları: Geliver kargo gönderi platformunun sitemize bildirdiği gönderi durumu ve takip bilgileri ile kafe siparişlerinde kurye teslimatına ilişkin kayıtlar.",
           "Yazılı ve sözlü iletişim: {{EMAIL}} adresine gönderilen e-postalar, {{PHONE}} numarası üzerinden yapılan görüşmeler, {{ADDRESS}} adresine yapılan yazılı başvurular.",
           "Sosyal medya kanalları: {{IG}}, {{TIKTOK}} ve {{YOUTUBE}} hesapları üzerinden gönderdiğiniz mesaj ve yorumlar. Bu platformların kendi veri işleme faaliyetleri, ilgili platformun kendi politikalarına tabidir.",
-          "Fiziki kanallar: Kafede doldurulan rezervasyon/etkinlik formları, kafe içi satış belgeleri, giriş noktalarında bildirim levhası bulunan alanlardaki kapalı devre kamera sistemi.",
+          "Fiziki kanallar: Kafede doldurulan etkinlik formları, kafe içi satış belgeleri, giriş noktalarında bildirim levhası bulunan alanlardaki kapalı devre kamera sistemi.",
           "Üçüncü kişilerden dolaylı toplama: Hediye/başkasına gönderim siparişlerinde alıcının ad, adres ve telefon bilgisi sipariş veren tarafından iletilir. Bu hâlde sipariş veren, alıcıyı bu metin hakkında bilgilendirmekle yükümlüdür; tarafımız, teslimatın gerektirdiği asgari veriyi işler.",
         ],
       },
       {
         heading: "11. Çerezler ve Benzeri Teknolojiler",
         paragraphs: [
-          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır.",
+          "İnternet sitemizde, hizmetin sunulabilmesi ve deneyimin iyileştirilmesi amacıyla çerezler ve benzeri teknolojiler kullanılır. Çerezler işlevlerine göre ayrıştırılır ve zorunlu olmayan çerezler yalnızca açık rızanızla çalıştırılır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle aşağıdaki analitik/performans ve pazarlama çerezleri yerleştirilmez ve çerez tercih paneli bu kategorileri sormaz.",
           "Çerez tercihlerinizi, siteye ilk girişte sunulan tercih paneli üzerinden veya daha sonra dilediğiniz zaman aynı panelden değiştirebilirsiniz. Tarayıcı ayarlarınızdan çerezleri silmeniz veya engellemeniz de mümkündür; ancak zorunlu çerezlerin engellenmesi hâlinde oturum açma, sepet ve ödeme gibi temel işlevler çalışmayabilir.",
           "Mobil uygulamada çerez kullanılmaz; oturum bilgisi cihazın güvenli alanında, tercihler uygulama içi yerel depolamada tutulur. Uygulamada reklam, analitik veya ölçümleme amaçlı yazılım geliştirme kiti (SDK) bulunmaz ve cihazın reklam tanımlayıcısına erişilmez. Bildirim, kamera ve fotoğraf izinlerine ilişkin tercihlerinizi cihazınızın işletim sistemi ayarlarından her zaman değiştirebilirsiniz.",
         ],
         bullets: [
           "Zorunlu (teknik) çerezler: Oturum kimliği, güvenlik doğrulaması, yük dengeleme ve sepetin korunması için gereklidir. Hukuki sebebi sözleşmenin ifası ve meşru menfaattir; açık rıza aranmaz.",
           "Tercih çerezleri: Dil, görünüm ve daha önce yapılmış seçimlerin hatırlanmasını sağlar. Açık rızaya tabidir.",
-          "Analitik/performans çerezleri: Sayfa görüntüleme, gezinme akışı ve hata oranlarının ölçülmesini sağlar; mümkün olduğunca toplulaştırılmış biçimde kullanılır. Açık rızaya tabidir.",
-          "Pazarlama çerezleri: Kampanya etkinliğinin ölçülmesi ve ilgi alanına göre içerik sunulması amacıyla kullanılabilir. Yalnızca açık rızanızla çalıştırılır; rıza verilmediğinde yerleştirilmez.",
+          "Analitik/performans çerezleri: Sayfa görüntüleme, gezinme akışı ve hata oranlarının ölçülmesini sağlar; mümkün olduğunca toplulaştırılmış biçimde kullanılır. Açık rızaya tabidir. Bugün kullanılmaz.",
+          "Pazarlama çerezleri: Kampanya etkinliğinin ölçülmesi ve ilgi alanına göre içerik sunulması amacıyla kullanılabilir. Yalnızca açık rızanızla çalıştırılır; rıza verilmediğinde yerleştirilmez. Bugün kullanılmaz.",
           "Yerel depolama: Sepet içeriği tarayıcınızın yerel depolama alanında tutulabilir. Bu veri cihazınızda kalır; siparişi tamamlamadığınız sürece sunucularımıza taşınmaz.",
         ],
       },
@@ -5990,7 +6123,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Cihaz izinleri (bildirim; fA'L için kamera ve fotoğraf arşivi) uygulamanın kurulumunda değil, ilgili özelliğin ilk kez kullanıldığı anda istenir. Uygulama konum izni istemez; tek şube bulunduğundan konuma bağlı bir işlev yoktur ve teslimat adresi üyenin kendi adres defterinden seçilir. İzin vermemeniz hâlinde yalnızca o özellik çalışmaz; uygulamanın geri kalanını kullanmaya devam edebilirsiniz. Verdiğiniz izinleri cihazınızın işletim sistemi ayarlarından dilediğiniz zaman geri alabilirsiniz.",
           "Uygulamayı cihazınızdan kaldırmanız, üyelik hesabınızın ve bu hesaba bağlı verilerin silinmesi anlamına gelmez; hesabınızın kapatılmasını ve verilerinizin imhasını istiyorsanız bu metnin ilgili kişinin hakları ve başvuru maddelerinde gösterilen yolları kullanabilirsiniz. Uygulama sunucuya anlık bildirim tokeni veya cihaz kaydı göndermediğinden, uygulamanın kaldırılması üzerine sunucumuzda silinmesi gereken bir cihaz verisi oluşmaz.",
           "Uygulama sürümlerinin güncel tutulması güvenlik açısından önemlidir; desteklenen en düşük sürümün altındaki sürümlerde bazı işlevler çalışmayabilir. Güncellemeler, uygulama mağazasının kuralları çerçevesinde sunulur.",
-          "fA'L özelliğinde seçtiğiniz içecek fotoğrafı, açık rızanız olmadıkça yalnızca cihazınızda işlenir ve şirketimize gönderilmez. Falın yapay zekâ ile yorumlanmasını açık rızanızla (Açık Rıza Metni, R12) istemeniz hâlinde fotoğraf küçültülmüş ve meta verileri arındırılmış olarak, kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte, şirketimizin sunucusu üzerinden OpenAI, L.L.C.'ye (ABD) aktarılır ve şirketimizce saklanmaz; ayrıntılar Açık Rıza Metni'nde yer alır. Bir yapay zekâ yorumunu 'Bu yorumu bildir' ile bize iletmeniz isteğe bağlıdır; iletirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi amacıyla hesabınızla ilişkili olarak kaydedilir ve doksan gün sonra silinir. Fotoğraf bu kayda girmez.",
+          "fA'L özelliğinde seçtiğiniz içecek fotoğrafı, açık rızanız olmadıkça yalnızca cihazınızda işlenir ve şirketimize gönderilmez. Falın yapay zekâ ile yorumlanmasını açık rızanızla (Açık Rıza Metni, R12) istemeniz hâlinde fotoğraf küçültülmüş ve meta verileri arındırılmış olarak, kimliksiz bir özetle (üyelik seviyesi, ziyaret sıklığı, varsa her zamanki içecek) birlikte, şirketimizin sunucusu üzerinden Anthropic, PBC'ye (ABD) aktarılır ve şirketimizce saklanmaz; ayrıntılar Açık Rıza Metni'nde yer alır. Bir yapay zekâ yorumunu 'Bu yorumu bildir' ile bize iletmeniz isteğe bağlıdır; iletirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi amacıyla hesabınızla ilişkili olarak kaydedilir ve doksan gün sonra silinir. Fotoğraf bu kayda girmez.",
         ],
         bullets: [
           "Bağlantı verisi: sunucumuza yapılan isteklerde IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi (user-agent) ve isteğin zamanı. Hukuki sebep: KVKK m.5/2-c hizmetin sunulması ve m.5/2-f meşru menfaat (güvenlik ve hata giderme). Uygulama cihazın reklam tanımlayıcısına (iOS'ta IDFA, Android'de AAID) erişmez ve izleme (App Tracking Transparency) izni istemez; uygulamada reklam veya ölçümleme kiti bulunmaz.",
@@ -6010,7 +6143,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Damga ve kupon verisi: damga hareketleri (kazanım, geri alma, ödül), hareketin kaynağı (uygulama siparişi veya kasa), damgayı kazandıran sipariş ve hareketin tarihi; hesabınıza tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları ile bunların kullanım durumu. Hukuki sebep: KVKK m.5/2-c.",
           "Kademe verisi: son 365 gündeki ödenmiş sipariş sayınızdan hesaplanan kademeniz; kademe uygulamada gösterilir ve kademeye bağlı avantajların (örneğin karaoke rezervasyonunda kademe indirimi) uygulanmasında kullanılır. Hukuki sebep: KVKK m.5/2-c. Bu veriler segmentasyon veya profilleme amacıyla analiz edilmez.",
-          "Kasada damga: Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; damga hareketine işlemi yapan personelin kimliği yazılır ve kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Kod okunamazsa damga, üyelik e-posta adresiniz girilerek de eklenebilir. Hukuki sebep: KVKK m.5/2-c. Uygulama damga için sizin kameranızı kullanmaz; kodu personel kendi cihazıyla okutur.",
+          "Kasada damga: Kasada damga eklenirken uygulamanın gösterdiği kasa kodunun yalnızca özet (hash) değeri, geçerlilik süresi ve kullanıldığı an kaydedilir; damga hareketine işlemi yapan personelin kimliği yazılır ve kasada işlem yapan personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. Hukuki sebep: KVKK m.5/2-c. Uygulama damga için sizin kameranızı kullanmaz; kodu personel kendi cihazıyla okutur.",
           "Davet programı: davet kodunuz, davet eden ve edilen üye kaydı, davetin durumu ve tarihleri ile davet nedeniyle tanımlanan kupon işlenir; davet eden üye, davet ettiği kişinin adını ve soyadının yalnızca baş harfini görür. Hukuki sebep: KVKK m.5/2-c.",
           "Damga durumu, dolan kart ve tanımlanan kuponlara ilişkin işlemsel bilgiler sözleşmenin ifası kapsamında uygulama içinde ve kupon tanımlandığında e-posta ile iletilir; kampanya ve indirim duyuruları ise ticari elektronik ileti niteliğindedir ve yalnızca onayınızla gönderilir.",
           "Suistimalin önlenmesi: Aynı siparişten mükerrer damga kazanımı, kasa kodunun başkasıyla paylaşılması veya çoğaltılması ve program kurallarının kötüye kullanılması hâllerinin tespiti için damga ve kupon hareketleri incelenebilir. Hukuki sebep: KVKK m.5/2-f meşru menfaat.",
@@ -6027,7 +6160,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Ödeme hizmeti sağlayıcısı PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) ve kartı veren banka",
             value:
-              "Ödemenin tek çekim olarak tahsili, kartı veren bankanın ekranında 3D Secure doğrulaması, ödeme sonucunun PayNkolay işlem doğrulama servisinden sorgulanması, iptal, iade ve ters ibraz (chargeback) süreçlerinin yürütülmesi ve kart saklama özelliği açıldığında kartını kaydetmeyi seçen üyeler için kart saklama hizmeti. PayNkolay, 6493 sayılı Kanun kapsamında faaliyet gösteren bir elektronik para kuruluşudur. Hukuki sebep: KVKK m.5/2-c sözleşmenin ifası ve m.5/2-ç hukuki yükümlülük. Aktarılan veri: kart üzerindeki ad, kart numarası, son kullanma tarihi ve güvenlik kodu (tarafımızca kaydedilmeden, yalnızca ödeme işlemi için), ödeme isteğinin gönderildiği IP adresi, sipariş numarası, tutar ve para birimi; kart saklama özelliği açıldığında kartını kaydetmeyi seçen üyeler için üye anahtarı ve kart takma adı. İade ve sorgu işlemlerinde işlem referansı, tarih ve tutar. E-posta adresiniz, telefon numaranız ve teslimat adresiniz PayNkolay'a iletilmez. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca PayNkolay'a iletilir; tarafımızca kaydedilmez, saklanmaz ve kayıt sistemlerine yazılmaz.",
+              "Ödemenin tek çekim olarak tahsili, kartı veren bankanın ekranında 3D Secure doğrulaması, ödeme sonucunun PayNkolay işlem doğrulama servisinden sorgulanması, iptal, iade ve ters ibraz (chargeback) süreçlerinin yürütülmesi. PayNkolay, 6493 sayılı Kanun kapsamında faaliyet gösteren bir elektronik para kuruluşudur. Hukuki sebep: KVKK m.5/2-c sözleşmenin ifası ve m.5/2-ç hukuki yükümlülük. Aktarılan veri: kart üzerindeki ad, kart numarası, son kullanma tarihi ve güvenlik kodu (tarafımızca kaydedilmeden, yalnızca ödeme işlemi için), ödeme isteğinin gönderildiği IP adresi, sipariş numarası, tutar ve para birimi. İade ve sorgu işlemlerinde işlem referansı, tarih ve tutar. E-posta adresiniz, telefon numaranız ve teslimat adresiniz PayNkolay'a iletilmez. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca PayNkolay'a iletilir; tarafımızca kaydedilmez, saklanmaz ve kayıt sistemlerine yazılmaz.",
           },
           {
             key: "Kargo gönderi platformu Geliver, gönderiyi taşıyan kargo firması ve kafe siparişlerinde teslimatı yapan kurye",
@@ -6050,9 +6183,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "Uygulamanın dağıtımı ve güncellenmesi. Uygulama sunucudan anlık bildirim almadığından bildirim içeriği veya bildirim tokeni bu kanalla aktarılmaz. Uygulama mağazası hesabınıza ilişkin veriler mağaza işletmecisinin kendi politikalarına tabidir ve tarafımızca erişilmez.",
           },
           {
-            key: "Muhasebe ve mali müşavirlik hizmeti sağlayıcıları ile kullanılması hâlinde elektronik fatura hizmet sağlayıcıları",
+            key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe ve mali müşavirlik hizmeti sağlayıcıları",
             value:
-              "Fatura ve fiş düzenlenmesi, defter ve beyan süreçleri. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
+              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, fiş düzenlenmesi, defter ve beyan süreçleri. Paraşüt bu verileri veri işleyen sıfatıyla, yalnızca faturanın düzenlenmesi ve saklanması için işler. Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi, kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, satın alınan ürün veya hizmet, tutar ve KDV. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
           },
           {
             key: "Hukuk, denetim ve danışmanlık hizmeti alınan kişi ve kuruluşlar",
@@ -6070,19 +6203,19 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "6563 sayılı Kanun'un ve ilgili Yönetmelik'in gerektirdiği ölçüde, ticari elektronik ileti onaylarının kaydı, sorgulanması ve ret bildirimlerinin işlenmesi. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç.",
           },
           {
-            key: "Üyelik kimlik doğrulama hizmeti sağlayıcısı",
+            key: "Üyelik kimlik doğrulama hizmeti sağlayıcısı ({{AUTH_PROVIDER}})",
             value:
               "İnternet sitesi ve mobil uygulamada ortak üyelik girişinin sağlanması. Aktarılan veri: e-posta adresi, parolanın özeti, ad-soyad, uygulamadan kayıt olduysanız telefon numarası, koşulların ve ticari elektronik ileti onayının kabul anı, oturum belirteçleri ve giriş kayıtları (IP adresi dâhil). Sipariş, ödeme, damga ve adres bilgisi bu sağlayıcıya gönderilmez. Hukuki sebep: KVKK m.5/2-c.",
           },
           {
-            key: "Karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusunun e-posta hizmeti sağlayıcısı",
+            key: "Yapay zekâ hizmet sağlayıcısı Anthropic, PBC (ABD, yalnızca açık rızanızla)",
             value:
-              "Ödemesi alınıp kesinleşen karaoke rezervasyonunun (çevrim içi ödemenin kapalı olduğu hâllerde yeni rezervasyon talebinin) ekibimize bildirilmesi, ödeme veya iade sorunlarına ilişkin uyarıların iletilmesi ve ekibin size e-posta ile yanıt verebilmesi. Aktarılan veri: rezervasyon numarası, tarih, saat, kişi sayısı, ödenen tutar, adınız, e-posta adresiniz, varsa telefon numaranız ve rezervasyon notunuz. Bu bildirimler şu anda Google'ın e-posta hizmetinde (Gmail) tutulan bir e-posta kutusuna iletilmektedir. Hukuki sebep: KVKK m.5/2-c.",
+              "fA'L özelliğinde falın yapay zekâ ile yorumlanması. Aktarılan veri: küçültülmüş ve meta verileri arındırılmış içecek fotoğrafı ile üyelik seviyesi, yaklaşık ziyaret sıklığı ve varsa her zamanki içecek; ad, e-posta, telefon ve üye numarası aktarılmaz. Hukuki sebep: KVKK m.5/1 açık rıza (Açık Rıza Metni R12). Yurt dışına aktarım: Kurul tarafından ilan edilen standart sözleşme (KVKK m.9/4-c); sözleşme imzalanıp Kurum'a bildirilmeden fotoğraf gönderilmez.",
           },
           {
-            key: "Google (etiket yönetimi, analitik ölçüm ve harita hizmetleri)",
+            key: "Karaoke rezervasyon bildirimlerinin ulaştığı kurumsal e-posta kutusunun barındırma hizmeti sağlayıcısı (Türkiye)",
             value:
-              "İnternet sitesinin etiket yönetimi altyapısı (Google Tag Manager) her sayfa görüntülemesinde yüklenir ve bu sırada IP adresiniz ile tarayıcı bilginiz Google'a ulaşır. Analitik ölçüm etiketleri yalnızca çerez tercih panelinde analitik çerezlere izin vermeniz hâlinde, harita (Google Haritalar) yalnızca ziyaret sayfasında 'Haritayı göster' seçeneğini kullandığınızda çalışır. Hukuki sebep: etiket yönetimi bakımından KVKK m.5/2-f meşru menfaat; analitik ölçüm bakımından KVKK m.5/1 açık rıza; haritanın gösterilmesi bakımından talebiniz üzerine hizmetin sunulması (KVKK m.5/2-c).",
+              "Ödemesi alınıp kesinleşen karaoke rezervasyonunun (çevrim içi ödemenin kapalı olduğu hâllerde yeni rezervasyon talebinin) ekibimize bildirilmesi, ödeme veya iade sorunlarına ilişkin uyarıların iletilmesi ve ekibin size e-posta ile yanıt verebilmesi. Aktarılan veri: rezervasyon numarası, tarih, saat, kişi sayısı, ödenen tutar, adınız, e-posta adresiniz, varsa telefon numaranız ve rezervasyon notunuz. Bildirim e-postası Resend üzerinden gönderilir ve şirketimizin Türkiye'de barındırılan kurumsal e-posta kutusunda tutulur. Hukuki sebep: KVKK m.5/2-c.",
           },
           {
             key: "Sizi davet eden üye",
@@ -6104,17 +6237,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "15. Kişisel Verilerin Yurt Dışına Aktarılması",
         paragraphs: [
-          "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının OpenAI, L.L.C.'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır.",
-          "Hizmet altyapımızın bir kısmı (uygulama barındırma, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, e-posta gönderimi ve karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusu, mobil uygulama mağaza dağıtımı, internet sitesinin etiket yönetimi, izninize bağlı analitik ölçüm ve talebinize bağlı harita gösterimi ile içerik dağıtım ağı) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır. Bu nedenle kişisel verileriniz, teknik olarak yurt dışındaki sunucularda işlenebilir veya yurt dışına aktarılabilir.",
-          "Yurt dışına aktarım, Kanun'un 9. maddesinde ve Yurt Dışına Kişisel Veri Aktarımı Hakkında Yönetmelik'te öngörülen sıralı mekanizmalara uygun olarak yapılır. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığı değerlendirilir. Yeterlilik kararının bulunmadığı hâllerde, aktarım Kanun'da sayılan uygun güvencelerden birinin sağlanması koşuluyla gerçekleştirilir.",
-          "Uygun güvenceler kapsamında, Kurul tarafından ilan edilen standart sözleşme metni imzalanır ve söz konusu sözleşme, mevzuatta öngörülen süre içinde Kuruma bildirilir; şirketler topluluğu bakımından bağlayıcı şirket kuralları veya yazılı taahhütname yolları da mevzuatın izin verdiği ölçüde kullanılabilir. Yeterlilik kararı ve uygun güvencelerin bulunmadığı hâllerde aktarım, yalnızca Kanun'un 9. maddesinde sayılan arızi hâllerin varlığı hâlinde ve bu hâllerle sınırlı olarak yapılır; bu kapsamda açık rızaya dayalı aktarım, ilgili kişinin aktarımın olası risklerine ilişkin ayrıca bilgilendirilmesi üzerine alınan açık rızaya dayanır.",
+          "fA'L yapay zekâ yorumu kapsamında içecek fotoğrafının Anthropic, PBC'ye (ABD) aktarılması yalnızca açık rızanızla istenen bir işlemdir ve Açık Rıza Metni'nin R12 bölümünde açıklanmıştır. Açık rızanız bu işlemenin şartıdır; aktarım ise her yorum isteğinde tekrarlandığından arızi nitelikte değildir, bu nedenle yalnızca açık rızaya dayanmaz ve Kanun'un 9. maddesindeki uygun güvencelerden Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Bu sözleşme Anthropic, PBC ile imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez.",
+          "Hizmet altyapımızın bir kısmı (uygulama barındırma ve içerik dağıtım ağı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması ve e-posta gönderimi) yurt dışında yerleşik hizmet sağlayıcılar tarafından sunulmaktadır. Uygulama barındırma hizmetinin sunucu işlevleri Almanya'da (Frankfurt), e-posta gönderim hizmeti İrlanda'daki bölgede çalışır; veri tabanının ve üyelik girişinin sunucu bölgeleri aşağıdaki alıcılar satırında yazılıdır. Bu nedenle kişisel verileriniz yurt dışındaki sunucularda işlenir ve yurt dışına aktarılır. Uygulama mağazaları (App Store ve Google Play) uygulamayı mağaza hesabınız kapsamında kendi adlarına dağıtır; bu kanalla tarafımızca kişisel veri aktarılmaz (14. bölüm). Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; sayfamıza harita gömülmez ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz.",
+          "Kanun'un 9. maddesi ve Kişisel Verilerin Yurt Dışına Aktarılmasına İlişkin Usul ve Esaslar Hakkında Yönetmelik yurt dışına aktarımı sıralı mekanizmalara bağlar. Öncelikle aktarımın yapılacağı ülke, sektör veya uluslararası kuruluş hakkında Kurul tarafından verilmiş bir yeterlilik kararı bulunup bulunmadığına bakılır. Yeterlilik kararının bulunmadığı hâllerde aktarım, Kanun'da sayılan uygun güvencelerden birinin sağlanmasını gerektirir.",
+          "Aktarım yapılan ülkelerin hiçbiri hakkında Kurul'un verdiği bir yeterlilik kararı bulunmadığından, bu aktarımlar Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Kurul tarafından ilan edilen standart sözleşmeye (veri sorumlusundan veri işleyene) dayandırılacaktır. Bu sözleşmeleri aşağıda sayılan sağlayıcılarla imzalama sürecimiz devam etmektedir; her sözleşme imzaların tamamlanmasından itibaren beş iş günü içinde Kurum'a bildirilir ve hangi sağlayıcıyla hangi tarihte imzalandığı bu bölümde yazılır. Bu aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlandığından arızi değildir ve açık rızanıza dayandırılmaz. Tek seferlik, arızi bir aktarım gerekirse yalnızca Kanun'un 9. maddesinin altıncı fıkrasındaki hâllerde ve açık rızaya dayanacaksa olası riskler size ayrıca anlatılarak yapılır.",
           "Yurt dışına aktarım her hâlde asgari veri ilkesiyle yürütülür: barındırma, veri tabanı, kimlik doğrulama ve e-posta altyapısı için ilgili sağlayıcıya yalnızca hizmetin sunulması için gereken veriler iletilir. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir ve şifreli bağlantıyla yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; bu sırada yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur, hiçbir veri tabanına, log kaydına veya dosyaya yazılmaz.",
         ],
         bullets: [
-          "Aktarım gerekçeleri: Uygulama barındırma ve dağıtımı, PostgreSQL veri tabanı hizmeti ve yedekleme, üyelik kimlik doğrulaması, e-posta gönderimi ile kesinleşen karaoke rezervasyonlarının ve ödeme uyarılarının ekibimize bildirilmesi, mobil uygulama mağaza dağıtımı, internet sitesinde etiket yönetimi, izninize bağlı analitik ölçüm ve talebinize bağlı harita gösterimi, sunucu tarafında hata ve performans izleme.",
-          "Alıcılar ve bilinen konumlar: uygulama barındırma Vercel (sunucu işlevleri Almanya, Frankfurt); e-posta gönderimi Resend (gönderim bölgesi İrlanda); etiket yönetimi, izninize bağlı analitik ölçüm, talebinize bağlı harita gösterimi ve karaoke rezervasyon bildirimlerinin ulaştığı ekip e-posta kutusu Google; PostgreSQL veri tabanı {{DB_PROVIDER}}; üyelik kimlik doğrulaması için kimlik doğrulama hizmeti sağlayıcısı; fA'L yapay zekâ yorumu için yalnızca açık rızanızla OpenAI, L.L.C. (ABD).",
-          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi, tarayıcı bilgisi ve izninize bağlı olarak kullanım verisi. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
-          "Güvence yöntemleri: Kurul yeterlilik kararı; yoksa standart sözleşme, bağlayıcı şirket kuralları veya taahhütname; bunların da bulunmadığı hâllerde Kanun'da sayılan arızi hâller.",
+          "Aktarım gerekçeleri: Uygulama barındırma ve dağıtımı (içerik dağıtım ağı ile sunucu tarafındaki hata ve performans kayıtları dâhil), PostgreSQL veri tabanı hizmeti ve yedekleme, üyelik kimlik doğrulaması, e-posta gönderimi ile kesinleşen karaoke rezervasyonlarının ve ödeme uyarılarının ekibimize bildirilmesi.",
+          "Alıcılar ve bilinen konumlar (standart sözleşmenin durumu her alıcının yanında yazılıdır): uygulama barındırma, içerik dağıtım ağı ve sunucu hata ve performans kayıtları Vercel Inc. (ABD; sunucu işlevleri Almanya, Frankfurt; imza sürecinde); e-posta gönderimi Resend (Plus Five Five, Inc.; ABD; gönderim bölgesi İrlanda; imza sürecinde); PostgreSQL veri tabanı {{DB_PROVIDER}} ({{DB_RECIPIENT}}; imza sürecinde); üyelik kimlik doğrulaması {{AUTH_PROVIDER}} ({{AUTH_RECIPIENT}}; imza sürecinde); fatura düzenlenmesi Paraşüt Yazılım Teknolojileri A.Ş. (Türkiye; veriler ona yurt içinde aktarılır; Paraşüt kendi altyapı tedarikçilerinin yurt içinde veya yurt dışında bulunabileceğini bildirdiğinden, fatura verisinin hangi ülkede barındırıldığı Paraşüt'ün yazılı beyanıyla bu satıra yazılacaktır); fA'L yapay zekâ yorumu için yalnızca açık rızanızla ve standart sözleşme imzalanıp Kurum'a bildirildikten sonra Anthropic, PBC (ABD).",
+          "Aktarılan veri kategorileri: Kimlik, iletişim, müşteri işlem, sadakat (damga) programı, karaoke rezervasyon, hesap-güvenlik ve işlem güvenliği verileri; internet sitesi ziyaretlerinde IP adresi ve tarayıcı bilgisi. Kart bilgileri PayNkolay'a iletilirken yalnızca işlem süresince barındırma hizmetinin sunucu belleğinde bulunur ve hiçbir yere kaydedilmez.",
+          "Güvence yöntemi: Kurul tarafından ilan edilen standart sözleşme (veri sorumlusundan veri işleyene); her sağlayıcı için imza ve bildirim durumu yukarıdaki alıcılar satırında yazılıdır. Bu aktarımlar için bağlayıcı şirket kuralları, taahhütname veya açık rıza kullanılmaz.",
           "Ek teknik tedbirler: Aktarımda ve saklamada şifreleme, erişim yetkilerinin asgari yetki ilkesine göre sınırlanması, sağlayıcılarla veri işleme sözleşmesi akdedilmesi.",
           "Bilgi talebi hakkı: Hangi verinizin hangi ülkeye ve hangi güvenceyle aktarıldığını {{EMAIL}} adresine başvurarak öğrenebilirsiniz.",
         ],
@@ -6150,7 +6283,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Ödeme işlem kayıtları (maskeli kart bilgisi, işlem referansı, iade/chargeback)",
             value:
-              "Mali mevzuattaki saklama süresi ve ters ibraz itiraz süreleri dikkate alınarak; ödeme hizmeti sağlayıcısı PayNkolay nezdindeki kayıtlar ilgili kuruluşun kendi mevzuatına tabidir. Kart saklama özelliği açıldığında ve kartını kaydetmeyi seçen üyelerde üye anahtarı üyelik süresince tutulur; kayıtlı kartlarınızı ödeme sayfasında dilediğiniz zaman silebilirsiniz ve hesabınız kapatıldığında önce kayıtlı kartlarınızın silinmesi PayNkolay'dan istenir.",
+              "Mali mevzuattaki saklama süresi ve ters ibraz itiraz süreleri dikkate alınarak; ödeme hizmeti sağlayıcısı PayNkolay nezdindeki kayıtlar ilgili kuruluşun kendi mevzuatına tabidir.",
           },
           {
             key: "Ticari elektronik ileti onay ve ret kayıtları",
@@ -6349,6 +6482,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "acik-riza-metni",
     title: "Açık Rıza Metni",
     shortTitle: "Açık Rıza",
+    // 19 Ekim 2026: R5 ve R6 kalemleri kalktı (numaraları korunur), R12'ye Anthropic'in saklama süresi ve sözleşme koşulu; rıza sürümü ilerledi.
+    // R12'nin alıcısı Anthropic oldu; rıza sürümü de değişti (fal-core.ts
+    // FAL_CONSENT_VERSION), üyeler yeniden sorulur.
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun uyarınca {{SHORT_NAME}}'nin web sitesi ve mobil uygulamada hangi işlemler için açık rızanıza başvurduğunu, rızanın nasıl verilip geri çekileceğini, vermemeniz hâlinde hizmetin ve sadakat (damga) programından yararlanmanızın etkilenmediğini açıklar.",
@@ -6360,7 +6496,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
@@ -6530,7 +6666,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kanun'un 3. maddesi açık rızayı üç unsurun birlikte gerçekleşmesine bağlamıştır. {{SHORT_NAME}} olarak rıza alma süreçlerimizi bu üç unsurun her birini karşılayacak şekilde kurguladık.",
         ],
         ordered: [
-          "Belirli bir konuya ilişkin olma: Rızanız, tek ve genel bir onay olarak değil; ticari elektronik ileti (kampanya e-postaları ve bülten), internet sitesinde pazarlama çerezleri, yurt dışına aktarım, görsel içerikte yer alma ve fA'L yapay zekâ yorumu gibi her bir amaç için ayrı ayrı alınır. Kapsamı belirsiz, sınırları çizilmemiş, bütün amaçları tek kalemde toplayan genel nitelikli bir onay talep edilmez.",
+          "Belirli bir konuya ilişkin olma: Rızanız, tek ve genel bir onay olarak değil; ticari elektronik ileti (kampanya e-postaları ve bülten), görsel içerikte yer alma ve fA'L yapay zekâ yorumu gibi her bir amaç için ayrı ayrı alınır. Kapsamı belirsiz, sınırları çizilmemiş, bütün amaçları tek kalemde toplayan genel nitelikli bir onay talep edilmez.",
           "Bilgilendirmeye dayanma: Rızanızı vermeden önce hangi verinizin işleneceği, işlemenin amacı, verinin kimlere aktarılacağı, saklama süresi ve rızayı geri çekme yönteminiz bu metin ve onay ekranındaki kısa açıklama ile size bildirilir. Bilgilendirme, aydınlatma yükümlülüğünden ayrı ve ondan önce gerçekleştirilir.",
           "Özgür iradeyle açıklanma: Rıza vermemeniz hâlinde sizi bir hizmetten mahrum bırakan, ek ücret uygulayan, siparişinizi geciktiren, damga kazanmanızı engelleyen veya üyeliğinizi kısıtlayan hiçbir sonuç doğmaz. Rıza, sözleşmenin kurulmasının veya ifasının şartı hâline getirilmez; onay kutucukları önceden işaretli gelmez ve onay vermeden ilerlemenizi engelleyen bir tasarım kullanılmaz.",
         ],
@@ -6553,23 +6689,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "6. Açık Rızanıza Başvurduğumuz İşlemlerin Özeti",
         paragraphs: [
-          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, çerez panelindeki seçenek, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 için bugün ayrı bir onay kutucuğu bulunmaz (bkz. 11. bölüm).",
+          "Aşağıdaki tablo, yalnızca açık rızanıza dayanılarak yürütülen işleme faaliyetlerinin özetini gösterir. Her satır ayrı bir onaya karşılık gelir: kayıt formundaki veya hesap ayarlarındaki kutucuk, fA'L ekranındaki onay ya da kafede alınan yazılı beyan. Birini onaylamanız diğerlerini onayladığınız anlamına gelmez. Her bir faaliyetin ayrıntısı takip eden bölümlerde açıklanmıştır. Bu metnin önceki sürümlerinde yer alan R1, R3, R4, R5, R8, R9, R10 ve R11 kalemleri için bugün veri işlenmediğinden rıza istenmez; ilgili bölümlerde bu durum açıklanmıştır ve başka belgelerdeki atıflar bozulmasın diye bölüm ve kalem numaraları korunmuştur. R6 kalemi kaldırılmıştır: yurt dışına aktarım için açık rıza istenmez (bkz. 11. bölüm).",
         ],
         table: [
           {
             key: "R2 - Ticari elektronik ileti (e-posta)",
             value:
               "Ad, e-posta adresi, bildirdiyseniz doğum tarihi ve onay kaydı; amaç: yeni ürün, indirim, sezonluk menü, doğum günü teklifi ve etkinlik duyurularının ve bültenin e-posta ile iletilmesi. Kısa mesaj veya telefon yoluyla ileti gönderilmez.",
-          },
-          {
-            key: "R5 - Çerez tabanlı reklam ve yeniden hedefleme (yalnızca internet sitesi)",
-            value:
-              "Çerez kimliği, tarayıcı bilgisi, ziyaret edilen sayfalar; amaç: çerez panelinde Pazarlama çerezlerini kabul etmeniz hâlinde, internet sitesinde üçüncü taraf reklam platformlarında ilgi alanına dayalı reklam ve yeniden hedefleme ile reklam ölçümlemesi.",
-          },
-          {
-            key: "R6 - Gerektiğinde yurt dışına aktarım",
-            value:
-              "Yukarıdaki amaçlarla sınırlı veriler; amaç: uygun güvencelerin sağlanamadığı istisnai hâllerde yurt dışındaki hizmet sağlayıcılara aktarım.",
           },
           {
             key: "R7 - Fotoğraf ve videoda yer alma",
@@ -6579,7 +6705,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "R12 - fA'L yapay zekâ yorumu",
             value:
-              "fA'L ekranında seçtiğiniz içecek fotoğrafı ile üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa her zamanki içeceğinizin adı (adınız ve iletişim bilgileriniz olmadan); amaç: fotoğrafın yapay zekâ ile yorumlanarak eğlence amaçlı kişisel bir fal metni yazılması. OpenAI (ABD) altyapısına aktarılır; fotoğraf saklanmaz.",
+              "fA'L ekranında seçtiğiniz içecek fotoğrafı ile üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa her zamanki içeceğinizin adı (adınız ve iletişim bilgileriniz olmadan); amaç: fotoğrafın yapay zekâ ile yorumlanarak eğlence amaçlı kişisel bir fal metni yazılması. Anthropic, PBC (ABD) altyapısına aktarılır; fotoğraf şirketimizce saklanmaz.",
           },
         ],
       },
@@ -6597,7 +6723,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Bu onayı vermeniz hâlinde, yeni ürünler, sezonluk menü değişiklikleri, indirim ve promosyon kodları, kafede düzenlenen etkinlikler ve bülten hakkında e-posta yoluyla ticari elektronik ileti göndeririz. Onay, kayıt formundaki ve hesabınızın Bildirim tercihleri sayfasındaki (mobil uygulamada Bildirimler ekranındaki) Kampanya ve yeni ürün tercihiyle, bülten için ise bülten tercihiyle veya sitedeki bülten formuyla verilir. Bülten formundan abone olduğunuzda e-posta adresinize bir doğrulama bağlantısı gönderilir ve abonelik bu bağlantıyı onayladığınızda başlar. Doğum tarihinizi bildirdiyseniz ve kampanya iletileri onayı verdiyseniz, doğum gününüzde indirim teklifi içeren bir e-posta da gönderilebilir.",
           "Bu onay yalnızca e-posta kanalını kapsar. Kısa mesaj (SMS) ve telefon yoluyla ticari elektronik ileti gönderilmez; böyle bir kanal ileride kullanılmak istenirse sizden ayrıca açık rıza alınır. Mobil uygulama üzerinden pazarlama içerikli anlık (push) bildirim de gönderilmemektedir (bkz. 13. bölüm).",
-          "Ticari elektronik ileti onayı ile bu metindeki diğer onaylar birbirinden bağımsızdır. Yalnızca ileti almayı onaylayıp pazarlama çerezi, fA'L yapay zekâ yorumu veya görsel içerik onaylarını vermemeniz mümkündür.",
+          "Ticari elektronik ileti onayı ile bu metindeki diğer onaylar birbirinden bağımsızdır. Yalnızca ileti almayı onaylayıp fA'L yapay zekâ yorumu veya görsel içerik onaylarını vermemeniz mümkündür.",
           "Gönderdiğimiz her ticari elektronik iletide veri sorumlusunun kimliği, iletişim bilgisi ve ret hakkını kolayca kullanabileceğiniz bağlantı yer alır. Ret bildiriminiz alındığı andan itibaren en geç üç iş günü içinde iletiler durdurulur ve ret kaydı tutulur.",
         ],
         bullets: [
@@ -6613,40 +6739,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "9. R3 ve R4 - Alışveriş Alışkanlığı Analizi ve Kişiselleştirilmiş Ürün Önerisi: Yürütülmemektedir",
         paragraphs: [
           "Bu metnin önceki sürümlerinde alışveriş alışkanlığı analizi (R3) ve kişiselleştirilmiş ürün önerisi (R4) için açık rıza öngörülmüştü. {{BRAND}} bugün sipariş, sepet, arama veya gezinme verilerinizi bu amaçlarla kimliğinize bağlı olarak analiz etmez ve size kişiselleştirilmiş ürün önerisi göstermez; bu nedenle bu iki kalem için rıza istenmez.",
-          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitesindeki analiz çerezleri yalnızca çerez panelinde verdiğiniz onayla çalışır (bkz. 10. bölüm).",
+          "Hesabınızda sizin kaydettiğiniz favori ürünler ve kayıtlı her zamanki siparişiniz, yeniden sipariş vermenizi kolaylaştırmak için size gösterilir. Bunlar üyelik hizmetinin sunulmasına dayanır, açık rızaya bağlı değildir ve dilediğiniz zaman değiştirebilir veya kaldırabilirsiniz. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; analiz çerezleri yerleştirilmez (bkz. 10. bölüm).",
           "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
-        heading: "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme",
+        heading:
+          "10. R5 - Çerez Tabanlı Reklam ve Yeniden Hedefleme: Yürütülmemektedir",
         paragraphs: [
-          "Bu onayı vermeniz hâlinde, {{SITE}} üzerinde pazarlama ve reklam amaçlı çerezler ile benzeri izleme teknolojileri çalıştırılır. Bu teknolojiler, ziyaretiniz sırasında görüntülediğiniz ürünlere göre üçüncü taraf reklam ve sosyal medya platformlarında {{BRAND}} reklamlarının size gösterilmesini (yeniden hedefleme) ve reklam performansının ölçülmesini sağlar.",
-          "Zorunlu çerezler bu onayın kapsamı dışındadır. Oturumun sürdürülmesi, sepetin korunması, güvenlik ve yük dengeleme için kullanılan zorunlu çerezler, hizmetin çalışması için gerekli olduklarından ayrı onaya tabi değildir ve reddedilemez. Tercih ve istatistik çerezleri için ise çerez bandındaki ayrı seçenekler geçerlidir.",
-          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez. Bu onay yalnızca internet sitesindeki çerez ve benzeri teknolojileri kapsar.",
-          "Çerez tercihlerinizi sitedeki çerez yönetim panelinden dilediğiniz zaman değiştirebilir, tüm pazarlama çerezlerini tek hamlede kapatabilirsiniz. Ayrıca tarayıcınızın ayarlarından çerezleri silebilir veya engelleyebilirsiniz. Ayrıntılı liste ve süreler için Çerez Politikası'na bakınız.",
-        ],
-        bullets: [
-          "İşlenen veriler: Reklam ve ölçüm çerezlerinde tutulan çerez kimlikleri, IP adresi, tarayıcı ve işletim sistemi bilgisi, cihaz türü, ziyaret edilen sayfalar ve tıklama verisi, siteye yönlendiren kaynak.",
-          "Alıcılar: Reklam ve ölçümleme hizmeti aldığımız üçüncü taraf platformlar; bu platformların bir kısmı verileri yurt dışındaki sunucularda işleyebilir (bkz. 11. bölüm).",
-          "Süre: Pazarlama çerezleri, çerez panelinde belirtilen sürelerle sınırlı olarak tarayıcınızda saklanır; onayınızı geri çektiğinizde yeni çerez yerleştirilmez.",
-          "Rıza vermezseniz: Site tüm işlevleriyle çalışmaya devam eder; yalnızca reklamlar ilgi alanınıza göre kişiselleştirilmez ve genel içerikli reklamlar görürsünüz.",
+          "Bu metnin önceki sürümlerinde internet sitesinde pazarlama ve reklam amaçlı çerezler ile yeniden hedefleme (R5) için açık rıza öngörülmüştü. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi ve reklam etiketleri yüklenmez, pazarlama çerezleri yerleştirilmez ve çerez paneli bu kategoriyi sormaz; bu nedenle bu kalem için rıza istenmez.",
+          "Mobil uygulamada çerez kullanılmaz; uygulamada reklam veya ölçümleme kiti bulunmaz ve uygulama cihazınızın reklam tanımlayıcısına erişmez.",
+          "Zorunlu çerezler ve tercih çerezleri bu kalemin konusu değildir; çerezlerin ayrıntılı listesi ve süreleri için Çerez Politikası'na bakınız.",
+          "Böyle bir faaliyet ileride yürütülmek istenirse, 22. bölüm uyarınca sizden ayrıca açık rıza alınır.",
         ],
       },
       {
-        heading: "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması",
+        heading:
+          "11. R6 - Kişisel Verilerin Yurt Dışına Aktarılması (rıza istenmez)",
         paragraphs: [
-          "Şirketimiz, altyapı hizmetlerini yurt dışında yerleşik sağlayıcılardan alabilmektedir. İnternet sitesi ve mobil uygulama sunucularının barındırılması ve dağıtımı, PostgreSQL veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta gönderimi ile internet sitesindeki reklam ve ölçümleme hizmetleri bu kapsamdadır. Kanun'un 9. maddesi, yurt dışına aktarımı kural olarak yeterlilik kararına, bunun yokluğunda ise standart sözleşme, bağlayıcı şirket kuralları, taahhütname gibi uygun güvencelerden birine bağlamıştır.",
-          "Uygulamamız şudur: Aktarımı öncelikle bu uygun güvencelere dayandırırız; hizmet sağlayıcılarımızla veri işleme sözleşmeleri akdeder, aktarılan veri kategorilerini hizmetin gerektirdiği asgari ölçüyle sınırlarız. Dolayısıyla olağan durumda yurt dışına aktarım için açık rızanıza ihtiyaç duyulmaz.",
-          "Bu onayı (R6), yalnızca yeterlilik kararının bulunmadığı ve uygun güvencelerin de sağlanamadığı istisnai ve arızi hâllerde, Kanun'da öngörülen açık rızaya dayalı aktarım imkânından yararlanabilmek için talep ederiz. Bu onayı vermemeniz, siteyi veya mobil uygulamayı kullanmanıza, sipariş vermenize, damga kazanmanıza veya siparişinizin teslim edilmesine engel değildir; böyle bir durumda ilgili veri yurt dışına aktarılmaz ve hizmet yurt içi imkânlarla yürütülür. Bugün bu onay için ayrı bir onay kutucuğu bulunmaz; böyle bir hâl doğarsa onay, ilgili aktarımdan önce ayrıca istenir.",
-          "Yurt dışına aktarımın risklerini şeffaf biçimde bildiririz: Aktarımın yapıldığı ülkede veri koruma mevzuatı Türkiye'dekiyle aynı düzeyde olmayabilir, yetkili makamların erişim yetkileri farklı olabilir ve haklarınızı kullanmanız pratik olarak zorlaşabilir. Bu riskleri bilerek onay verip vermemek tamamen sizin takdirinizdedir.",
-        ],
-        bullets: [
-          "Aktarım amacı: İnternet sitesinin, online mağazanın ve mobil uygulamanın sunulması, veri tabanının barındırılması, üyelik girişinin sağlanması, işlemsel e-postaların iletilmesi, onay verdiyseniz internet sitesinde reklam ölçümlemesi.",
-          "Kullanılan başlıca altyapılar: Barındırma ve dağıtım için Vercel, veri tabanı için {{DB_PROVIDER}} (PostgreSQL), üyelik kimlik doğrulaması için {{AUTH_PROVIDER}}, işlemsel ve toplu e-posta gönderimi için Resend ve yalnızca fA'L yapay zekâ yorumu onayınız hâlinde OpenAI.",
-          "Aktarılan veri kategorileri: Kimlik ve iletişim bilgileri, üyelik, damga ve sipariş kayıtları, işlem güvenliği kayıtları, çerez ve cihaz bilgileri.",
-          "Alıcı grupları: Barındırma ve dağıtım sağlayıcıları, PostgreSQL veri tabanı sağlayıcısı, üyelik kimlik doğrulaması hizmeti sağlayıcısı, e-posta gönderim sağlayıcıları, onaya bağlı olarak reklam ve analiz platformları ve fA'L yapay zekâ yorumu için yapay zekâ hizmet sağlayıcısı (bkz. 15/A. bölüm).",
-          "Kart bilgileri: Kart numarası, son kullanma tarihi ve güvenlik kodu {{SITE}} üzerindeki güvenli ödeme sayfasında girilir, şifreli bağlantıyla sunucumuza ulaşır ve aynı işlemde yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir. Şirketimiz bu bilgileri kaydetmez, saklamaz ve kayıtlara yazmaz; bu bilgiler reklam, analiz veya ölçümleme amacıyla hiçbir alıcıya aktarılmaz.",
-          "Rıza vermezseniz: Hizmet, uygun güvencelere dayanan aktarımlar ve yurt içi kaynaklarla sunulmaya devam eder; üyeliğiniz, siparişiniz veya damga kartınız etkilenmez.",
+          "Bu metnin önceki sürümlerinde yer alan R6 onayı kaldırılmıştır; yurt dışına aktarım için açık rızanızı istemiyoruz.",
+          "İnternet sitesinin ve mobil uygulamanın barındırılması, veri tabanı, üyelik girişi ve e-posta gönderimi için yurt dışındaki sağlayıcılara yapılan aktarımlar her sayfa açılışında, girişte, siparişte ve e-postada tekrarlanır; arızi olmadıkları için Kanun'un 9. maddesi uyarınca açık rızaya dayandırılamazlar. Bu aktarımların dayanağı ve her sağlayıcının ülkesi KVKK Aydınlatma Metni'nin 15. bölümünde yazılıdır.",
+          "Tek seferlik, arızi bir aktarım ihtiyacı doğarsa olası riskler size ayrıca anlatılarak o aktarımdan önce ayrı bir onay istenir. fA'L yapay zekâ yorumu için verilen onay R12 bölümünde ayrıca düzenlenmiştir.",
         ],
       },
       {
@@ -6697,17 +6810,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "15/A. R12 - fA'L Yapay Zekâ Yorumu İçin Fotoğrafın İşlenmesi ve Yurt Dışına Aktarılması",
         paragraphs: [
           "{{BRAND}} mobil uygulamasındaki fA'L özelliği, içeceğinizin fotoğrafına bakarak eğlence amaçlı bir kahve falı yazar. Bu onayı vermediğiniz sürece fal tamamen cihazınızda, hazır metinlerden seçilerek oluşturulur ve fotoğrafınız cihazınızdan çıkmaz. Bu onay (R12), falın yapay zekâ tarafından yorumlanmasını istemeniz hâlinde fotoğrafınızın bu amaçla işlenmesini ve yurt dışına aktarılmasını kapsar. Yapay zekâ yorumu yalnızca e-posta adresi doğrulanmış üyelere ve yalnızca özellik şirketimizce açık tutulduğu dönemlerde sunulur; özellik kapalıyken veya e-posta adresiniz doğrulanmamışken fotoğraf yapay zekâ hizmetine gönderilmez ve fal cihazınızda okunur.",
-          "Onay vermeniz hâlinde seçtiğiniz fotoğraf cihazınızda küçültülür, konum ve cihaz bilgisi gibi meta verilerden arındırılır ve şirketimizin sunucusu üzerinden OpenAI, L.L.C. (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir. Fotoğrafla birlikte yalnızca üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa kayıtlı her zamanki içeceğinizin adı gönderilir; adınız, e-posta adresiniz, telefon numaranız ve üye numaranız gönderilmez.",
-          "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir ve hizmet sağlayıcıya yanıtı saklamaması talimatıyla iletilir. Hizmet sağlayıcının kötüye kullanımın önlenmesi amacıyla kendi politikaları uyarınca sınırlı süreli kayıt tutabileceğini bildiririz. Şirketimiz yalnızca yorumun istendiği gün ve saati, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
+          "Onay vermeniz hâlinde seçtiğiniz fotoğraf cihazınızda küçültülür, konum ve cihaz bilgisi gibi meta verilerden arındırılır ve şirketimizin sunucusu üzerinden Anthropic, PBC (Amerika Birleşik Devletleri) tarafından sağlanan yapay zekâ hizmetine gönderilir. Fotoğrafla birlikte yalnızca üyelik seviyeniz, yaklaşık ziyaret sıklığınız ve varsa kayıtlı her zamanki içeceğinizin adı gönderilir; adınız, e-posta adresiniz, telefon numaranız ve üye numaranız gönderilmez.",
+          "Fotoğraf şirketimizce saklanmaz; yalnızca yorumun üretildiği istek süresince işlenir. Hizmet sağlayıcı Anthropic, PBC, yayımladığı ticari veri saklama politikasına göre ilettiğimiz fotoğrafı ve ürettiği yanıtı en geç 30 gün içinde siler; içerik, kullanım politikasına aykırılık şüphesiyle otomatik olarak işaretlenirse 2 yıla kadar, bu işaretlemeye ilişkin güvenlik puanları 7 yıla kadar ve kanunen gerekli hâllerde daha uzun süre saklanabilir. Anthropic, PBC sözleşme gereği bu içeriği yapay zekâ modellerini eğitmek için kullanamaz. Şirketimiz yalnızca yorumun istendiği gün ve saati, fincanın görülüp görülmediğini ve kullanılan modelin adını, günlük kullanım sınırının uygulanabilmesi için hesabınızla ilişkili olarak kaydeder; fotoğraf ve üretilen metin bu kayda girmez.",
           "Bir yapay zekâ yorumunu kırıcı, uygunsuz ya da yanıltıcı bulursanız fA'L ekranındaki 'Bu yorumu bildir' bağlantısıyla bize iletebilirsiniz; bildirim isteğe bağlıdır. Bildirirseniz yorumun metni, seçtiğiniz sebep ve modelin adı, yapay zekâ yorumlarının denetlenmesi ve talimatların iyileştirilmesi amacıyla hesabınızla ilişkili olarak kaydedilir. Fotoğraf bildirime girmez ve bildirim yapay zekâ hizmet sağlayıcısına gönderilmez.",
           "Fotoğrafta kişiler, yüzler veya belgeler bulunmamasına özen göstermenizi rica ederiz. Yapay zekâya fotoğraftaki kişileri tanımlamaması, sağlık, ilişki ve para konularında öngöride bulunmaması ve herhangi bir indirim, hediye veya ayrıcalık vaat etmemesi talimatı verilir; bu kurallara uymayan bir yanıt gösterilmez ve fal cihazınızda okunur. Yapay zekâ yorumu da cihazdaki fal gibi eğlence amaçlıdır, gerçeği yansıtmaz ve hakkınızda hukuki sonuç doğuran bir karar içermez.",
-          "Yurt dışına aktarım, Kanun'un 9. maddesi uyarınca hizmet sağlayıcıyla akdedilen standart sözleşme gibi uygun güvencelere dayandırılır. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
+          "Bu aktarım her yorum isteğinde tekrarlandığından arızi nitelikte değildir; bu nedenle yurt dışına aktarım yalnızca bu onaya dayanmaz: onayınız aktarımın işleme şartıdır, aktarım ayrıca Kanun'un 9. maddesinin dördüncü fıkrası uyarınca Anthropic, PBC ile imzalanacak ve Kurul tarafından ilan edilen standart sözleşmeye dayandırılır. Bu sözleşme imzalanıp Kurum'a bildirilmeden fotoğrafınız yapay zekâ hizmetine gönderilmez. Aktarımın yapıldığı ülkede veri koruma düzeyinin Türkiye'dekiyle aynı olmayabileceğini, yetkili makamların erişim yetkilerinin farklı olabileceğini hatırlatırız.",
           "Onayınızı fA'L ekranından dilediğiniz an geri çekebilirsiniz; geri çektiğiniz andan itibaren fal yeniden yalnızca cihazınızda okunur. Hesabınızı kapattığınızda onayınız da geri alınmış sayılır. Onay vermemeniz veya geri çekmeniz fA'L'ı kullanmanıza, üyeliğinize, siparişlerinize ve damgalarınıza hiçbir etki etmez.",
         ],
         bullets: [
           "İşlenen veriler: İçecek fotoğrafı (küçültülmüş ve meta verileri arındırılmış), üyelik seviyesi, yaklaşık ziyaret sıklığı, varsa her zamanki içeceğin adı; kullanım kaydı olarak yorumun istendiği gün ve saat, fincanın görülüp görülmediği ve modelin adı; bir yorumu bildirmeniz hâlinde yorumun metni, bildirim sebebi ve modelin adı.",
-          "Alıcı: OpenAI, L.L.C. (Amerika Birleşik Devletleri), veri işleyen sıfatıyla.",
-          "Saklama: Fotoğraf şirketimizce saklanmaz, üretilen yorum da ancak siz bildirirseniz saklanır; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir. Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir.",
+          "Alıcı: Anthropic, PBC (Amerika Birleşik Devletleri), veri işleyen sıfatıyla.",
+          "Saklama: Fotoğraf şirketimizce saklanmaz, üretilen yorum da ancak siz bildirirseniz saklanır; kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir. Bildirdiğiniz bir yorumun kaydı incelenmek üzere doksan gün saklanır ve ardından silinir. Hizmet sağlayıcı fotoğrafı ve yanıtı kendi politikasına göre en geç 30 gün içinde siler; işaretlenen içerik 2 yıla kadar saklanabilir.",
           "Günlük sınır: Üye başına günde beş yapay zekâ yorumu.",
           "Rıza vermezseniz: fA'L cihazınızda, hazır metinlerle çalışmaya devam eder.",
         ],
@@ -6773,7 +6886,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Yalnızca etkilenen alan",
             value:
-              "Pazarlama iletileri (kampanya ve bülten e-postaları), internet sitesinde ilgi alanına dayalı reklamlar, onaya bağlı görsel içerikler ve fA'L'ın yapay zekâ yorumu.",
+              "Pazarlama iletileri (kampanya ve bülten e-postaları), onaya bağlı görsel içerikler ve fA'L'ın yapay zekâ yorumu.",
           },
         ],
       },
@@ -6807,7 +6920,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Telefon ile: {{PHONE}} numarasını arayarak talebinizi iletebilirsiniz; talep kayda alınır ve tarafınıza yazılı teyit gönderilir.",
           "Posta ile: {{ADDRESS}} adresine ıslak imzalı yazılı bildirim gönderebilirsiniz.",
           "Ticari elektronik iletiler için: Her iletinin altındaki abonelikten çık bağlantısını kullanabilir veya yukarıdaki kanallardan ret bildiriminde bulunabilirsiniz. Ret hakkının kullanımı bedelsizdir.",
-          "Çerez tabanlı reklam için: Sitedeki çerez yönetim panelinden pazarlama çerezlerini kapatabilir, ayrıca tarayıcınızın ayarlarından mevcut çerezleri silebilirsiniz.",
+          "Çerezler için: Sitedeki çerez yönetim panelinden tercih çerezlerine verdiğiniz onayı kapatabilir, ayrıca tarayıcınızın ayarlarından mevcut çerezleri silebilirsiniz.",
           "Görsel içerikler için: {{EMAIL}} adresine, mümkünse içeriğin bağlantısını veya çekim tarihini belirterek bildirimde bulunun; içerik kendi kanallarımızdan kaldırılır.",
         ],
       },
@@ -6829,7 +6942,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Bildirimin ulaşmasından itibaren en geç üç iş günü içinde.",
           },
           {
-            key: "Pazarlama çerezlerinin kapatılması",
+            key: "Çerez onayının kapatılması",
             value:
               "Panelde kaydettiğiniz anda; mevcut çerezler tarayıcı ayarlarından silinebilir.",
           },
@@ -6854,7 +6967,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Kaydedilen bilgiler: Onayın konusu ve kapsamı, onay veya ret beyanının tarihi ve saati ile onaylanan metnin sürümü; ticari elektronik ileti ve bülten onaylarında ayrıca beyanın verildiği kanal (web sitesi, mobil uygulama, abonelikten çıkma bağlantısı, yönetim paneli gibi), IP adresi ve tarayıcı veya uygulama bilgisi.",
-          "fA'L yapay zekâ yorumu onayı (R12): Kayıt yalnızca üyelik hesabınızı, onaylanan metnin sürümünü ve onayın verildiği ile varsa geri çekildiği tarih ve saati içerir; IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz. Onay mobil uygulamadaki fA'L ekranından verilir. Onayınızı geri çektiğinizde kayıt silinmez, geri çekme anı kayda işlenir; kayıt, onayın varlığının ispatı için geri çekme tarihinden itibaren üç yıl saklanır.",
+          "fA'L yapay zekâ yorumu onayı (R12): Kayıt yalnızca üyelik hesabınızı, onaylanan metnin sürümünü ve onayın verildiği ile varsa geri çekildiği tarih ve saati içerir; IP adresi, kanal veya uygulama sürümü bu kayda yazılmaz. Onay mobil uygulamadaki fA'L ekranından verilir. Onayınızı geri çektiğinizde kayıt silinmez, geri çekme anı kayda işlenir; kayıt, onayın varlığının ispatı için geri çekme tarihinden itibaren üç yıl saklanır. Onay, fA'L ekranında fotoğraf gönderilmeden önce açılan ayrı bir pencereden verilir; pencere fotoğrafın nereye gönderildiğini özetler ve bu metnin tamamına bağlantı verir. Onay vermemek de aynı kolaylıktadır; bu durumda falınız cihazınızda yorumlanır.",
           "Sürümleme: Bu metnin her sürümü ayrı bir kimlikle saklanır; hangi sürüme onay verdiğiniz kayda geçirilir. Böylece sonradan değişen bir metne dayanılarak rıza kapsamı genişletilemez.",
           "Erişim: Rıza kayıtlarına yalnızca yetkilendirilmiş personel erişebilir; yönetici erişimi iki aşamalı kimlik doğrulama ile korunur ve yönetim panelinden yapılan her değişiklik kayıt altına alınır.",
           "Güvenlik: Kayıtlar, erişim yetkisi sınırlandırılmış ve doğrudan dış erişime kapalı bir PostgreSQL veri tabanında, aktarım sırasında şifreli bağlantı üzerinden tutulur.",
@@ -6995,6 +7108,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kvkk-basvuru-formu",
     title: "Veri Sahibi Başvuru Formu",
     shortTitle: "Başvuru Formu",
+    // 18 Ekim 2026: Site'deki hesap silme talebi bu formla yapılan
+    // başvuru gibi işlenir.
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 11. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca ilgili kişilerin {{SHORT_NAME}}'ye nasıl başvuracağını, başvuruda yer alması zorunlu bilgileri, yanıt süresini ve şikâyet yolunu açıklayan rehber ve formdur.",
@@ -7006,7 +7121,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5070 sayılı Elektronik İmza Kanunu",
       "213 sayılı Vergi Usul Kanunu",
@@ -7155,7 +7270,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Mobil uygulama",
             value:
-              "{{BRAND}} mobil uygulaması üzerinden ayrıca başvuru gönderilmez; başvurunuzu bu tablodaki kanallardan biriyle, örneğin üyeliğinizde kayıtlı e-posta adresinizden {{EMAIL}} adresine iletebilirsiniz. Üyeliğinizin kapatılmasını ise ayrıca başvuru yapmadan, uygulamanın hesap ekranındaki hesap silme seçeneğinden veya {{SITE_URL}}/uye/hesap/sil sayfasından başlatabilirsiniz.",
+              "{{BRAND}} mobil uygulaması üzerinden ayrıca başvuru gönderilmez; başvurunuzu bu tablodaki kanallardan biriyle, örneğin üyeliğinizde kayıtlı e-posta adresinizden {{EMAIL}} adresine iletebilirsiniz. Üyeliğinizi ise ayrıca başvuru yapmadan, uygulamanın hesap ekranındaki hesap silme seçeneğiyle hemen kapatabilirsiniz. Site'de {{SITE_URL}}/uye/hesap/sil sayfasından gönderdiğiniz hesap silme talebi de bu formla yapılan başvuru gibi işlenir ve en geç otuz gün içinde sonuçlandırılır.",
           },
           {
             key: "Kayıtlı elektronik posta (KEP) ile",
@@ -7298,7 +7413,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Sadakat (damga) programıyla ilgili talepler için: üyelik e-posta adresi ve ilgili damga, kupon veya kafe siparişinin yaklaşık tarihi.",
           "Kargo ve teslimat verileriyle ilgili talepler için: teslimat adresi bilgisi ve varsa kargo takip numarası.",
           "Ödeme süreçlerine ilişkin talepler için: işlem tarihi, tutarı ve sipariş numarası. Kart numarasının tamamını, son kullanma tarihini ve güvenlik kodunu hiçbir kanalda paylaşmayınız; gerekirse yalnızca kartınızın son dört hanesini belirtiniz. Ödeme hizmeti, 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. tarafından PayNkolay markasıyla sunulur. Kart bilgileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir, şifreli bağlantıyla sunucumuza ulaşır ve aynı işlemde yalnızca PayNkolay'a iletilir; şirketimiz kart numarasını, son kullanma tarihini ve güvenlik kodunu kaydetmez ve saklamaz. Ödeme kaydında PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay işlem doğrulama servisinin döndürdüğü maskelenmiş kart numarası, kartı veren banka, taksit sayısı (ödemeler tek çekimdir), 3D Secure bilgisi ve banka onay kodu tutulur; kartın tam numarası, son kullanma tarihi, güvenlik kodu ve kart sahibinin adı bu kayıtta yer almaz.",
-          "Kayıtlı kartlara ilişkin talepler için (kart saklama özelliği açıldığında): Kart saklama üyeler için isteğe bağlıdır ve kart, yalnızca ödeme sayfasındaki kartı kaydetme kutusunu siz işaretlerseniz kaydedilir; kutu işaretsiz gelir. Kayıtlı kartlar şirketimizde değil, PayNkolay'ın kart saklama hizmetinde tutulur; şirketimiz yalnızca kartlarınızı üyeliğinizle eşleştirmeye yarayan, T.C. kimlik veya telefon numaranızı ve başka kişisel veri içermeyen, rastgele üretilmiş bir üye anahtarını saklar. Kayıtlı bir kartı ödeme sayfasından istediğiniz zaman silebilirsiniz; üyeliğinizin silinmesi hâlinde şirketimiz önce kayıtlı kartlarınızın silinmesini PayNkolay'dan ister. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
           "Ticari elektronik iletilerle ilgili talepler için: iletinin geldiği e-posta adresi veya telefon numarası ve iletinin yaklaşık tarihi.",
           "Sosyal medya üzerinden yürütülen iletişime ilişkin talepler için: hesap kullanıcı adınız ve mesajlaşma tarihi.",
           "Fiziki işletme ziyaretine ilişkin talepler için: ziyaret tarihi ve yaklaşık saat aralığı.",
@@ -7546,6 +7660,19 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "veri-saklama-ve-imha-politikasi",
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
+    // 21 Ekim 2026: the karaoke rows give the guest's data and every
+    // booking's contact details three years and the booking eleven, run by
+    // src/lib/retention.ts; a new row for event and workshop records; the
+    // correspondence row splits into commercial mail (TTK m.82, ten years)
+    // and the rest (three). LEGAL-REDLINES §27. (19 Ekim 2026: yurt dışına
+    // aktarım bugünkü durumuyla, §15.6; the karaoke row points at the karaoke
+    // terms §10 for the refund on account closure, §17.)
+    // 21 Ekim 2026: §8 banka hesap satırı karaoke telafisi için bildirilen
+    // banka hesap bilgisini de kapsar (LEGAL-REDLINES §26).
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
+    // the karaoke row points at the karaoke terms §10 for the refund on
+    // account closure (LEGAL-REDLINES §17).
+    updatedAt: "21 Ekim 2026",
     category: "Veri & Gizlilik",
     summary:
       "{{SHORT_NAME}} tarafından {{BRAND}} markası altında işlenen kişisel verilerin hangi ortamlarda, hangi sebeple ve ne kadar süreyle saklandığını; süre sonunda hangi yöntemle silineceğini, yok edileceğini veya anonim hâle getirileceğini gösterir.",
@@ -7562,7 +7689,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -7591,7 +7718,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ ile Veri Sorumluları Sicili Hakkında Yönetmelik.",
           "213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanununun defter, kayıt ve belge saklamaya ilişkin hükümleri.",
           "6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği.",
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun, Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun, Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik.",
           "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ikincil düzenlemeleri.",
           "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun.",
           "6098 sayılı Türk Borçlar Kanunu ve 6100 sayılı Hukuk Muhakemeleri Kanunu.",
@@ -7776,7 +7903,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kurumsal e-posta kutuları: {{EMAIL}} adresine ulaşan talep, şikâyet, cayma bildirimi ve ilgili kişi başvurularının bulunduğu posta kutuları.",
           "Mobil uygulama yerel deposu (cihaz üzerinde): {{BRAND}} mobil uygulamasının kullanıcının kendi cihazında tuttuğu oturum bilgisi, sepet içeriği, görüntülenen menü önbelleği ve uygulama tercihleri. Bu ortam kullanıcının denetimindedir; uygulamanın kaldırılmasıyla birlikte silinir.",
           "Yedekleme ortamları: Veri tabanının şifreli anlık görüntüleri (snapshot) ve düzenli yedekleri ile bunların saklandığı bulut depolama alanları.",
-          "Ödeme ve muhasebe kayıtları: Ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisinden alınan işlem referansları, işlem sonuçları, 3D Secure bilgisi ve provizyon (onay) kodları ile iade kayıtları ve mali müşavir nezdinde tutulan muhasebe kayıtları. Kart numarası, son kullanma tarihi, güvenlik kodu ve kart sahibinin adı {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli bağlantıyla Şirket sunucusuna ulaşır ve aynı işlemde yalnızca PayNkolay'a iletilir, Şirket tarafından kaydedilmez, saklanmaz ve kayıtlara (log) yazılmaz. Kart saklama özelliği açıldığında üyenin isteğe bağlı olarak kaydettiği kartlar Şirket nezdinde değil, PayNkolay'ın kart saklama hizmetinde tutulur; Şirket yalnızca bu kartları üyeyle eşleştirmeye yarayan rastgele bir müşteri anahtarını tutar.",
+          "Ödeme ve muhasebe kayıtları: Ödeme hizmeti sağlayıcısı PayNkolay'ın işlem doğrulama servisinden alınan işlem referansları, işlem sonuçları, 3D Secure bilgisi ve provizyon (onay) kodları ile iade kayıtları ve mali müşavir nezdinde tutulan muhasebe kayıtları. Kart numarası, son kullanma tarihi, güvenlik kodu ve kart sahibinin adı {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli bağlantıyla Şirket sunucusuna ulaşır ve aynı işlemde yalnızca PayNkolay'a iletilir, Şirket tarafından kaydedilmez, saklanmaz ve kayıtlara (log) yazılmaz.",
           "Kâğıt ortam: Kafe işletmesinde düzenlenen fatura ve sevk belgeleri, sözleşme nüshaları, tedarikçi evrakı, çalışan ve çalışan adayı dosyaları ile kilitli dolaplarda muhafaza edilen diğer basılı belgeler.",
           "Kafe kamera kayıt cihazı: İşletme içinde ve girişinde güvenlik amacıyla konumlandırılan kameraların görüntülerinin kaydedildiği, fiziki erişimi kilitli alanla sınırlandırılmış kayıt cihazı ve diskleri.",
           "Taşınabilir ortamlar ve çalışan cihazları: Disk şifrelemesi etkin dizüstü bilgisayarlar ile istisnai hâllerde kullanılan taşınabilir bellekler. Kişisel verilerin bu ortamlarda kalıcı olarak tutulması yasaktır.",
@@ -7795,7 +7922,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "6098 sayılı Türk Borçlar Kanunu kapsamındaki genel zamanaşımı süreleri boyunca sözleşmenin kurulduğunun, içeriğinin ve ifa edildiğinin ispatlanabilmesi gerekliliği.",
           "6100 sayılı Hukuk Muhakemeleri Kanunu uyarınca elektronik kayıtların delil olarak sunulabilmesi ve dava zamanaşımı süresince muhafaza edilmesi ihtiyacı.",
           "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca ticari elektronik ileti onaylarının ve gönderim kayıtlarının, İleti Yönetim Sistemi (İYS) kayıtları dâhil olmak üzere saklanması yükümlülüğü.",
-          "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca sipariş ve sözleşmeye ilişkin kayıtların ve şikâyet süreçlerinin belgelenmesi yükümlülüğü.",
+          "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca sipariş ve sözleşmeye ilişkin kayıtların ve şikâyet süreçlerinin belgelenmesi yükümlülüğü.",
           "5651 sayılı Kanun ve ikincil düzenlemeleri kapsamında yer sağlayıcı sıfatıyla trafik bilgisinin belirlenen asgari süre boyunca muhafaza edilmesi ve bütünlüğünün korunması yükümlülüğü.",
           "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Kanun kapsamında ödeme işlemlerinin izlenebilirliği, itiraz ve ters ibraz (chargeback) süreçlerinin yürütülmesi ve ödeme hizmeti sağlayıcısı ile mutabakat sağlanması ihtiyacı.",
           "5996 sayılı Kanun ve Türk Gıda Kodeksi mevzuatı kapsamında gıda ürünlerinde izlenebilirliğin sağlanması, alerjen bildirimi ve ürün geri çağırma süreçlerinin yürütülebilmesi gerekliliği.",
@@ -7840,12 +7967,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Karaoke rezervasyon kayıtları (rezervasyon sahibinin adı ve e-posta adresi, varsa formda iletişim için yazılan e-posta adresi ve telefon numarası, üyeliksiz rezervasyon yapan kişinin adı, soyadı, e-posta adresi ve telefon numarası, tarih, saat, süre, kişi sayısı, not, tutar, ödeme ve iade durumu)",
             value:
-              "Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; saatine 2 saatten fazla olan ödenmiş rezervasyonların tutarı karta iade edilir, 2 saatten az kalanlarda ise iade yapılmaz ve rezervasyon olduğu gibi kalır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu kayıtlar için kendiliğinden silme veya anonimleştirme süresi henüz belirlenmemiştir ve bu bilgiler ilgili kişinin talebi üzerine, ödeme ve onay kaydına ilişkin yasal saklama yükümlülükleri saklı kalmak kaydıyla 16. bölüm uyarınca değerlendirilir.",
+              "Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca, en geç ise bu satırda belirtilen sürenin sonunda silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu bilgiler ile tüm rezervasyonlarda iletişim için yazılan e-posta adresi, telefon numarası ve not, rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir. Rezervasyonun kodu, tarihi, saati, süresi, kişi sayısı, tutarı ile ödeme ve iade kayıtları ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir. Hakkında uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
           },
           {
             key: "Karaoke odası onay kaydı (Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi onayı, Aydınlatma Metni'nin okunduğuna ilişkin teyit, onay tarihi ve saati, IP adresi, tarayıcı veya uygulama istemci bilgisi (user-agent), belge sürümü)",
             value:
-              "Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır; bu kayıt için kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır.",
+              "Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır.",
+          },
+          {
+            key: "Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması)",
+            value:
+              "Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir.",
           },
           {
             key: "Kasa (barista) yetki kayıtları (yetki verilen üyenin e-posta adresi, yetkiyi veren yönetici, yetkinin verildiği tarih ve durumu)",
@@ -7872,11 +8004,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
               "10 yıl; üyelik hesabı kapatılırsa bu kaydın içeriği hesapla birlikte silinir ve yalnızca bir önceki satırdaki işlem bilgileri kalır. Ödemeler tek çekim olarak alındığından taksit sayısı her zaman birdir.",
           },
           {
-            key: "Kayıtlı kart müşteri anahtarı (üyenin ödeme işlemi sırasında rastgele üretilen; T.C. kimlik numarası, telefon numarası veya başka bir kişisel bilgi içermeyen 11 karakterlik anahtar)",
-            value:
-              "Üyelik ilişkisi süresince saklanır. Anahtar, Kart saklama özelliği açıldığında kayıtlı kartları üyeyle eşleştirmek için PayNkolay'a iletilir; özellik açılmadan önce hiçbir kart kaydedilmez. Kayıtlı kartların kendisi Şirket nezdinde değil, PayNkolay'ın kart saklama hizmetinde tutulur; ödeme sayfasında gösterilen kartın son dört hanesi, kartı veren banka veya kart markası ve kart takma adı da PayNkolay'dan alınır ve Şirket tarafından saklanmaz. Kart ancak üyenin ödeme sayfasındaki \"Bu kartı sonraki ödemeler için kaydet\" kutusunu işaretlemesiyle kaydedilir; kayıtlı kartla ödemede de 3D Secure doğrulaması yapılır. Üye kayıtlı bir kartı ödeme sayfasından dilediği zaman silebilir. Üyelik hesabı kapatıldığında önce PayNkolay'dan üyeye ait kayıtlı kartların silinmesi istenir, ardından anahtar silinir.",
-          },
-          {
             key: "Mesafeli satış onay kaydı (Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi onayı, onay tarihi ve saati, IP adresi, tarayıcı veya uygulama istemci bilgisi (user-agent), belge sürümü)",
             value:
               "Sözleşmenin ifasından itibaren 10 yıl; uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar.",
@@ -7886,9 +8013,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Talebin sonuçlandırılmasından itibaren 10 yıl.",
           },
           {
-            key: "İade için bildirilen banka hesap bilgisi (kısmi iadenin ödemenin yapıldığı karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde alıcının kendi adına kayıtlı hesap bilgisi)",
+            key: "İade için bildirilen banka hesap bilgisi (kısmi iadenin ödemenin yapıldığı karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde veya başka bir kargo firmasıyla gönderilen iadenin gönderim bedelinin ödenmesinde alıcının kendi adına kayıtlı hesap bilgisi); karaoke telafisi için bildirilen banka hesap bilgisi",
             value:
-              "Yalnızca iadenin yapılması ve ispatı amacıyla kullanılır; bağlı olduğu iade kaydıyla birlikte, cayma hakkı, iade ve ayıplı mal taleplerine ilişkin kayıtların saklama süresine tabidir.",
+              "Yalnızca bu ödemenin yapılması ve ispatı amacıyla kullanılır; bağlı olduğu iade kaydıyla birlikte, cayma hakkı, iade ve ayıplı mal taleplerine ilişkin kayıtların saklama süresine tabidir.",
           },
           {
             key: "Kargo ve teslimat verisi (teslimat adresi, alıcı adı, telefon, takip numarası, teslim kaydı)",
@@ -7898,7 +8025,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları)",
             value:
-              "Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir.",
+              "Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
           },
           {
             key: "Ticari elektronik ileti (e-posta bülteni ve kampanya e-postaları) onay kaydı",
@@ -8003,7 +8130,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "İmha (silme, yok etme, anonimleştirme) kayıtları",
             value:
-              "İmha tarihinden itibaren en az 3 yıl; ilgili mevzuat daha uzun süre öngörürse bu süre uygulanır. Kayıt, yetkili personelin yürüttüğü imhalar için tutulur; sistem tarafından otomatik yürütülen imhalar için ayrı bir kayıt oluşturulmaz.",
+              "İmha tarihinden itibaren en az 3 yıl; ilgili mevzuat daha uzun süre öngörürse bu süre uygulanır. Yetkili personelin yürüttüğü imhalar için imha kaydı tutulur. Sistem tarafından otomatik yürütülen her periyodik imha çalışması da, kişisel veri içermeyen bir kayıt olarak değiştirilemez olay kaydına yazılır ve 10 yıl saklanır; bu kayıt çalışmanın tarih ve saatini, her kural için veri kategorisini, saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını gösterir.",
           },
           {
             key: "Tedarikçi ve iş ortağı yetkilisi iletişim verisi",
@@ -8101,9 +8228,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Veri İşleyenler ve Yurt Dışına Aktarım Hâlinde İmha",
         paragraphs: [
-          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde barındırılan PostgreSQL), üyelik kimlik doğrulaması, işlemsel e-posta gönderimi (Resend), ödeme hizmeti (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş., PayNkolay), mobil uygulama dağıtımı, kargo gönderi platformu (Geliver) ve kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
+          "Şirket, faaliyetlerini yürütmek için barındırma (Vercel), veri tabanı ({{DB_PROVIDER}} üzerinde barındırılan PostgreSQL), üyelik kimlik doğrulaması ({{AUTH_PROVIDER}}), işlemsel e-posta gönderimi (Resend), yalnızca fA'L yapay zekâ yorumuna açık rıza verilmesi hâlinde yapay zekâ hizmeti (Anthropic, PBC), ödeme hizmeti (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş., PayNkolay), mobil uygulama dağıtımı, kargo gönderi platformu (Geliver) ve kargo, muhasebe ve müşteri iletişimi alanlarında hizmet sağlayıcılarla çalışır. Bu taraflar Şirketin talimatları doğrultusunda ve yalnızca sözleşmede belirlenen amaçlarla kişisel veri işleyebilir.",
           "Veri işleyenlerle akdedilen sözleşmelerde; verinin yalnızca talimat doğrultusunda işlenmesi, Kanunun veri güvenliğine ilişkin hükmü uyarınca uygun teknik ve idari tedbirlerin alınması, alt işleyen kullanımının önceden bildirime tabi olması, hizmetin sona ermesi hâlinde verilerin Şirkete iadesi veya imhası ve imhanın yazılı olarak teyit edilmesi yükümlülükleri yer alır.",
-          "Barındırma, veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta ve mobil uygulama dağıtımı hizmetlerinin sunucuları yurt dışında bulunabilir. Bu hâllerde aktarım, Kanunun kişisel verilerin yurt dışına aktarılmasına ilişkin hükmü çerçevesinde ve mevzuatın öngördüğü aktarım mekanizmalarına uygun olarak gerçekleştirilir. Aktarılan verilerin imhası, bu Politikadaki sürelere ve veri işleyenle akdedilen sözleşmeye göre yürütülür.",
+          "Barındırma, veri tabanı, üyelik kimlik doğrulaması, işlemsel e-posta ve mobil uygulama dağıtımı hizmetlerinin sunucuları yurt dışındadır. Bu aktarımlar Kanunun 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılacaktır; sağlayıcılarla imzalama süreci devam etmektedir ve her sözleşmenin imza ve bildirim durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Aktarılan verilerin imhası, bu Politikadaki sürelere ve veri işleyenle akdedilen sözleşmeye göre yürütülür.",
           "Şirket, veri işleyenler nezdindeki saklama sürelerini yılda en az bir kez gözden geçirir; hizmet sözleşmesinin sona ermesi hâlinde en geç 30 gün içinde verilerin iadesini veya imhasını talep eder ve imha teyidini dosyalar.",
           "Kargo firmaları ile mali müşavir gibi kendi hukuki yükümlülükleri kapsamında veri işleyen taraflar, kendi süreçleri bakımından veri sorumlusu sıfatını taşıyabilir. Bu tarafların kendi saklama süreleri Şirketin bu Politikadaki sürelerinden bağımsızdır ve ilgili kişi, bu taraflara doğrudan başvurabilir.",
         ],
@@ -8141,17 +8268,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Yalnızca açık rızaya dayanan işleme faaliyetlerinde rızanın geri alınması hâlinde işleme derhâl durdurulur; geri alma, o tarihe kadar hukuka uygun biçimde gerçekleştirilmiş işlemeleri geçersiz kılmaz.",
           "Başvurusunun reddedilmesi, verilen yanıtı yetersiz bulması veya süresinde yanıt verilmemesi hâlinde ilgili kişi, yanıtı öğrendiği tarihten itibaren otuz ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kuruluna şikâyette bulunabilir.",
           "Ticari elektronik ileti almak istemeyen ilgili kişiler, iletilerdeki ret bağlantısını, İleti Yönetim Sistemini veya {{EMAIL}} adresini kullanarak onaylarını geri alabilir; ret kaydı, tekrar ileti gönderilmemesini sağlamak amacıyla mevzuatta öngörülen süre boyunca saklanır.",
-          "Üyelik hesabının kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer, karşılığında bedel ödenmez; buna karşılık gerçekleşmiş damga hareketleri hesaptan koparılarak bağlı olduğu sipariş kayıtlarının saklama süresince muhafaza edilir. Hesap kapatıldığında PayNkolay'dan üyeye ait kayıtlı kartların silinmesi istenir ve kartları üyeyle eşleştiren müşteri anahtarı silinir.",
+          "Üyelik hesabının kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer, karşılığında bedel ödenmez; buna karşılık gerçekleşmiş damga hareketleri hesaptan koparılarak bağlı olduğu sipariş kayıtlarının saklama süresince muhafaza edilir.",
         ],
       },
       {
         heading: "17. İmha Kayıtlarının Tutulması, Loglanması ve Denetimi",
         paragraphs: [
-          "Şirket, yetkili personel eliyle sildiği, yok ettiği veya anonim hâle getirdiği kişisel verilere ilişkin işlemleri kayıt altına alır ve bu kayıtları, başka hukuki yükümlülükler saklı kalmak kaydıyla en az üç yıl süreyle muhafaza eder. Saklama süresi dolan kayıtların otomatik görevle silinmesi ve üyenin kendi hesabını kapatması gibi sistem tarafından yürütülen işlemler için ayrı bir imha kaydı oluşturulmaz; bu işlemlerin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. İmha kayıtları da kişisel veri içerdiği ölçüde bu Politikadaki ilkelere tabidir ve asgari düzeyde bilgi barındıracak şekilde oluşturulur.",
+          "Şirket, yetkili personel eliyle sildiği, yok ettiği veya anonim hâle getirdiği kişisel verilere ilişkin işlemleri kayıt altına alır ve bu kayıtları, başka hukuki yükümlülükler saklı kalmak kaydıyla en az üç yıl süreyle muhafaza eder. Saklama süresi dolan kayıtların otomatik görevle silinmesi veya alanlarının boşaltılması da kayıt altına alınır: uygulanan her periyodik imha çalışması için sistem, çalışmanın tarih ve saatini, her kuralın veri kategorisini ve saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını içeren, kişisel veri taşımayan bir kaydı değiştirilemez olay kaydına yazar; bu kayıt on yıl saklanır. Üyenin kendi hesabını kapatması için ayrı bir imha kaydı oluşturulmaz; bu işlemin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. İmha kayıtları da kişisel veri içerdiği ölçüde bu Politikadaki ilkelere tabidir ve asgari düzeyde bilgi barındıracak şekilde oluşturulur.",
           "Yönetim paneli üzerinden gerçekleştirilen tüm veri değişiklikleri değiştirilemez (append-only) olay kaydına yazılır. Olay kaydına yalnızca sahip (owner) yetkisine sahip hesaplar erişebilir; kayıtların silinmesi veya değiştirilmesi sistemsel olarak engellenmiştir.",
         ],
         bullets: [
-          "İmha kaydında yer alan asgari bilgiler: işlem tarihi ve saati, veri kategorisi, kayıt sayısı, imha gerekçesi, uygulanan yöntem, işlemi gerçekleştiren kişi ve onaylayan kişi.",
+          "İmha kaydında yer alan asgari bilgiler: işlem tarihi ve saati, veri kategorisi, kayıt sayısı, imha gerekçesi, uygulanan yöntem, işlemi gerçekleştiren kişi ve onaylayan kişi. Otomatik imhalarda işlemi gerçekleştiren sistemdir; imha gerekçesi (saklama süresinin dolması) ve yöntem (silme veya alanların boşaltılması) ilgili kuralın bu Politikadaki tanımından anlaşılır, onay ise dönem raporunun onaylanmasıyla verilir.",
           "Kâğıt ortamdaki imhalar için ayrıca iki personelin imzasını taşıyan imha tutanağı düzenlenir ve fiziki dosyada saklanır.",
           "Periyodik imha dönemleri sonunda dönem raporu hazırlanır; rapor, Politikanın uygulanmasından sorumlu kişi tarafından incelenerek onaylanır.",
           "İlgili kişi talebi üzerine yapılan imhalarda, başvuru, verilen yanıt ve imha kaydı aynı dosyada ilişkilendirilerek tutulur.",
@@ -8173,7 +8300,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Teknik: Yönetici giriş denemelerinde hız sınırlama ve geçici kilitleme uygulanması, başarısız denemelerin kaydedilmesi.",
           "Teknik: Rol tabanlı yetkilendirme (sahip, yönetici, personel) ile en az yetki ilkesinin uygulanması ve yetkilerin görev değişikliğinde derhâl güncellenmesi.",
           "Teknik: Yedeklerin şifreli tutulması, yedek geri yükleme testlerinin dönemsel olarak yapılması ve yedek erişiminin sınırlandırılması.",
-          "Teknik: Kart numarası, son kullanma tarihi ve güvenlik kodunun {{SITE}} üzerindeki güvenli ödeme sayfasında girilmesi ve şifreli bağlantıyla Şirket sunucusu üzerinden aynı işlemde yalnızca PayNkolay'a iletilmesi; bu bilgilerin Şirket sistemlerinde hiçbir aşamada kaydedilmemesi, saklanmaması ve kayıtlara (log) yazılmaması; ödeme sayfasında üçüncü taraf betik çalıştırılmaması ve sayfanın başka bir sitenin içine yerleştirilememesi; kart denemelerinin sipariş başına ve bağlantı başına sınırlandırılması; kayıtlı kartla yapılanlar dâhil her kartlı ödemede kartı veren bankanın 3D Secure ekranında doğrulama yapılması.",
+          "Teknik: Kart numarası, son kullanma tarihi ve güvenlik kodunun {{SITE}} üzerindeki güvenli ödeme sayfasında girilmesi ve şifreli bağlantıyla Şirket sunucusu üzerinden aynı işlemde yalnızca PayNkolay'a iletilmesi; bu bilgilerin Şirket sistemlerinde hiçbir aşamada kaydedilmemesi, saklanmaması ve kayıtlara (log) yazılmaması; ödeme sayfasında üçüncü taraf betik çalıştırılmaması ve sayfanın başka bir sitenin içine yerleştirilememesi; kart denemelerinin sipariş başına ve bağlantı başına sınırlandırılması; her kartlı ödemede kartı veren bankanın 3D Secure ekranında doğrulama yapılması.",
           "Teknik: Ödeme sonucunun, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, Şirket sunucusunun PayNkolay işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilmesi; siparişin yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılması; aynı işlem referansının ikinci kez kaydedilememesi ve ödeme sayfasından dönülmeden kapanan oturumlarda ödenmemiş görünen siparişin iptalinden önce ödemenin durumunun PayNkolay'a sorulması.",
           "Teknik: Kayıt ve günlüklerde kişisel verilerin maskelenmesi, hata izleme çıktılarında e-posta ve telefon bilgilerinin kısaltılması.",
           "Teknik: Yazılım bağımlılıklarının güncel tutulması, güvenlik yamalarının gecikmeksizin uygulanması ve kod değişikliklerinin otomatik denetimden geçirilmesi.",
@@ -8256,6 +8383,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "cerez-politikasi",
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
+    // 21 Ekim 2026: yönetici çerezlerinin adı ve yolu (/admin) değişti (docs/AUDIT.md §13).
+    updatedAt: "21 Ekim 2026",
+    // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
     category: "Veri & Gizlilik",
     summary:
       "{{SITE_URL}} sitesinde kullanılan çerezleri ve benzeri teknolojileri, {{BRAND}} mobil uygulamasının cihazda tuttuğu verileri ve istediği izinleri; her teknolojinin amacını, süresini ve rıza gerektirip gerektirmediğini, rıza yönetimini ve silme yollarını açıklayan politikadır.",
@@ -8268,7 +8398,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ilgili yönetmelikleri (trafik bilgisi saklama yükümlülüğü)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -8378,7 +8508,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "sessionStorage: Yalnızca açık sekme yaşadığı sürece veri tutan geçici depolama alanıdır. Sitede şu anda sessionStorage kullanılmaz.",
           "IndexedDB ve önbellek (Cache Storage): Tarayıcının daha büyük hacimli verileri ve statik dosyaları saklamasını sağlayan alanlardır. Sitenin kendi kodu IndexedDB kullanmaz; tarayıcı, sayfaları hızlı açmak için kendi standart önbelleğini kullanabilir.",
           "Piksel / web işaretçisi (web beacon): Sayfaya veya e-postaya gömülen, görünmez ve çok küçük bir görsel isteğidir. Bir sayfanın görüntülendiğini veya bir e-postanın açıldığını ölçmek için kullanılır. Ölçümleme ve pazarlama amaçlı pikseller, açık rızanız olmadan cihazınıza çerez yerleştirmez.",
-          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. Sitede etiketler Google Etiket Yöneticisi (Google Tag Manager) üzerinden yönetilir. Etiket yöneticisinin kendisi her sayfada yüklenir; rızaya tabi etiketlere ise siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir ve Google'ın ölçümleme ve reklam etiketleri bu durumda cihazınıza analitik veya pazarlama çerezi yazmaz. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
+          "Yazılım geliştirme kiti (SDK) ve etiket (tag): Üçüncü taraf hizmet sağlayıcıların ölçümleme veya reklam işlevlerini siteye ekleyen JavaScript kod parçalarıdır. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Etiket Yöneticisi (Google Tag Manager) yüklenmez. Etiket yöneticisi ileride kullanılırsa rızaya tabi etiketlere, siz ilgili kategoriye onay verene kadar Google İzin Modu (Consent Mode) üzerinden 'reddedildi' sinyali iletilir. Mobil uygulamada reklam veya ölçümleme kiti bulunmaz; uygulamanın cihazda tuttuğu veriler 15. maddede açıklanmıştır.",
           "Sunucu tarafı kayıtlar (log): Talebinizi karşılayan sunucunun tuttuğu erişim kayıtlarıdır. Bunlar teknik olarak çerez değildir; ancak IP adresi gibi verileri içerdiğinden bu Politikada şeffaflık amacıyla belirtilmektedir.",
           "Cihaz parmak izi (fingerprinting): Cihaz ve tarayıcı özelliklerinin birleştirilmesiyle kullanıcı tanımaya dayanan tekniklerdir. {{SHORT_NAME}}, pazarlama veya profilleme amacıyla cihaz parmak izi tekniği kullanmaz.",
         ],
@@ -8386,7 +8516,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "4. Çerezleri Hangi Amaçlarla Kullanıyoruz",
         paragraphs: [
-          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir.",
+          "{{SHORT_NAME}}, çerezleri yalnızca aşağıda sayılan belirli, açık ve meşru amaçlarla kullanır. Bu amaçlar, 6698 sayılı Kanun'un 4. maddesinde yer alan amaçla bağlantılı, sınırlı ve ölçülü olma ilkesi gözetilerek belirlenmiştir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; istatistiksel ölçümleme, pazarlama ve yeniden hedefleme amaçlarıyla çerez kullanılmaz.",
         ],
         ordered: [
           "Sitenin temel işlevlerinin çalıştırılması: sayfa yönlendirmeleri, dil ve görüntüleme tercihleri, form gönderimlerinin doğru sayfaya iletilmesi.",
@@ -8397,8 +8527,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Güvenliğin sağlanması: oturum çalınmasının önlenmesi, giriş denemelerinin sınırlanması ve yönetici paneline yetkisiz erişimin engellenmesi.",
           "Yönetici paneli erişiminin ve iki aşamalı doğrulama (TOTP 2FA) akışının yürütülmesi.",
           "Çerez tercihlerinizin hatırlanması: her ziyarette çerez bandını yeniden görmemeniz ve verdiğiniz onayın ispatlanabilmesi.",
-          "İstatistiksel ölçümleme: hangi sayfaların ne kadar görüntülendiği, hangi adımlarda ayrılma yaşandığı, site hızının ve hataların izlenmesi gibi toplu analizlerle site deneyiminin iyileştirilmesi.",
-          "Pazarlama ve yeniden hedefleme: ilgi alanlarınıza uygun {{BRAND}} tanıtımlarının üçüncü taraf platformlarda gösterilmesi ve reklam performansının ölçülmesi.",
           "Hukuki yükümlülüklerin yerine getirilmesi ve uyuşmazlıklarda ispat: 5651 sayılı Kanun kapsamındaki kayıt yükümlülükleri ile mesafeli satış sözleşmesinin onay kaydına ilişkin delillerin oluşturulması.",
         ],
       },
@@ -8425,17 +8553,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Birinci taraf zorunlu çerezler: Yönetici ve üye oturum çerezleri, üyelik girişinde kullanılan kimlik doğrulama çerezleri, iki aşamalı doğrulama bekleme çerezi, şifre sıfırlama çerezi, üyeliksiz karaoke rezervasyonu bağlantı çerezi ve çerez tercih çerezi. Bunlar {{SITE}} alan adına aittir.",
           "Birinci taraf tercih kayıtları: Sitede bugün tercih kategorisine bağlı bir birinci taraf çerez kullanılmaz; arama penceresindeki son aramalarınız yalnızca tarayıcınızın yerel depolama alanında tutulur (bkz. 9. madde).",
-          "Üçüncü taraf ölçümleme çerezleri: Google Analytics 4 tarafından yerleştirilen çerezlerdir. Yalnızca 'Analitik' kategorisine onay verdiğinizde yerleştirilir.",
-          "Üçüncü taraf pazarlama çerezleri: Google reklam hizmetlerinin (Google Ads) kullanılması hâlinde bu hizmetin yerleştirdiği çerezlerdir. Yalnızca 'Pazarlama' kategorisine onay verdiğinizde yerleştirilir. Meta (Facebook/Instagram) ve TikTok reklam etiketleri sitede yüklenmez.",
-          "Gömülü içerik çerezleri: Sitede gömülü video veya sosyal medya içeriği bulunmaz. Ziyaret sayfasındaki Google Haritalar haritası, siz 'Haritayı göster' düğmesine basmadan yüklenmez; düğmeye bastığınızda tarayıcınız Google'a bağlanır ve Google kendi çerezlerini yerleştirebilir.",
+          "Üçüncü taraf ölçümleme ve pazarlama çerezleri: İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; Google Analytics, Google Ads, Meta (Facebook/Instagram) ve TikTok etiketleri yüklenmez ve bu çerezler yerleştirilmez.",
+          "Gömülü içerik çerezleri: Sitede gömülü video, sosyal medya içeriği veya harita bulunmaz. Ziyaret sayfasındaki 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar; orada Google'ın kendi gizlilik ve çerez politikası geçerlidir, sitemiz Google çerezi yerleştirmez.",
           "Ödeme adımı çerezleri: Ödeme adımında kart bilgileri {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir; bu sayfada üçüncü taraf betik, ölçüm veya pazarlama çerezi çalışmaz. Ardından kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz; banka ve ödeme hizmeti sağlayıcısı PayNkolay, doğrulama ve sonuç yönlendirmesi sırasında kendi zorunlu çerezlerini kullanabilir. Bu çerezler işlemin güvenliği için zorunludur ve rızaya tabi değildir.",
         ],
       },
       {
         heading: "7. Amaç Bazında Çerez Kategorileri ve Rıza Kuralı",
         paragraphs: [
-          "Sitede kullanılan çerezler dört amaç kategorisine ayrılmıştır. Kategori ayrımı, çerez bandındaki ve tercih merkezindeki seçeneklerle birebir aynıdır; bir kategoriye verdiğiniz onay yalnızca o kategorideki çerezleri kapsar.",
-          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. Etiketleri yöneten Google Etiket Yöneticisi ise her sayfada yüklenir; siz onay verene kadar ölçümleme ve reklam etiketlerine Google İzin Modu üzerinden 'reddedildi' sinyali iletilir (bkz. 17. madde).",
+          "Çerezler dört amaç kategorisine ayrılır; bir kategoriye verdiğiniz onay yalnızca o kategorideki çerezleri kapsar. Çerez bandı ve tercih merkezi yalnızca sitede kullanılan kategorileri sorar.",
+          "Zorunlu çerezler dışındaki tüm kategoriler açık rızanıza tabidir ve siz onay vermeden hiçbir analitik veya pazarlama çerezi cihazınıza yerleştirilmez; bu, Kişisel Verileri Koruma Kurumu'nun Çerez Uygulamaları Hakkında Rehberi'nde benimsenen yaklaşımın gereğidir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz: Google Etiket Yöneticisi yüklenmez, analitik ve pazarlama çerezleri yerleştirilmez ve çerez bandı ile tercih merkezi yalnızca zorunlu ve tercih çerezlerini gösterir. Aşağıdaki tabloda bu iki kategori, ileride kullanılırlarsa uygulanacak kuralla birlikte gösterilmiştir; o durumda bu Politika güncellenir ve onayınız ayrıca istenir (bkz. 17. madde).",
         ],
         table: [
           {
@@ -8451,12 +8578,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Analitik (performans) çerezleri",
             value:
-              "Amaç: ziyaret istatistikleri, sayfa performansı ve hata ölçümü yoluyla site deneyiminin iyileştirilmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1).",
+              "Amaç: ziyaret istatistikleri, sayfa performansı ve hata ölçümü yoluyla site deneyiminin iyileştirilmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün kullanılmaz; çerez paneli bu kategoriyi sormaz.",
           },
           {
             key: "Pazarlama (hedefleme) çerezleri",
             value:
-              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1).",
+              "Amaç: ilgi alanına dayalı reklam gösterimi, yeniden hedefleme ve reklam dönüşümlerinin ölçülmesi. Rıza: gerekir. Kapatılabilir. Hukuki sebep: açık rıza (6698 sayılı Kanun m.5/1). Bugün kullanılmaz; çerez paneli bu kategoriyi sormaz.",
           },
         ],
       },
@@ -8467,14 +8594,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         table: [
           {
-            key: "laffogato_admin_session",
+            key: "laffogato_panel_session",
             value:
-              "Amaç: yönetici panelinde oturumun sürdürülmesi ve yetkilendirme (rol bazlı erişim). Taraf: birinci taraf. Tür: kalıcı, HMAC ile imzalı ve httpOnly. Süre: 7 gün (çıkış yapıldığında derhal silinir). Rıza: gerekmez, zorunlu.",
+              "Amaç: yönetici panelinde oturumun sürdürülmesi ve yetkilendirme (rol bazlı erişim). Taraf: birinci taraf. Tür: kalıcı, HMAC ile imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. Süre: 7 gün (çıkış yapıldığında derhal silinir). Rıza: gerekmez, zorunlu.",
           },
           {
-            key: "laffogato_admin_pending_2fa",
+            key: "laffogato_panel_2fa",
             value:
-              "Amaç: yönetici girişinde iki aşamalı doğrulama (TOTP) kodu beklenirken geçici kimlik taşınması. Taraf: birinci taraf. Tür: kısa ömürlü, imzalı ve httpOnly. Süre: 5 dakika (kod doğrulanınca silinir). Rıza: gerekmez, zorunlu.",
+              "Amaç: yönetici girişinde iki aşamalı doğrulama (TOTP) kodu beklenirken geçici kimlik taşınması. Taraf: birinci taraf. Tür: kısa ömürlü, imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. Süre: 5 dakika (kod doğrulanınca silinir). Rıza: gerekmez, zorunlu.",
           },
           {
             key: "laffogato_customer_session",
@@ -8521,7 +8648,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Tercih (İşlevsellik) Çerezleri Envanteri",
         paragraphs: [
-          "Tercih çerezleri sitenin çalışması için zorunlu değildir; yalnızca deneyiminizi kişiselleştirir. Bu kategoriye onay vermezseniz site tüm işlevleriyle çalışmaya devam eder. Sitede bugün tercih kategorisine bağlı bir birinci taraf çerez kullanılmamaktadır; bu kategoriye ilişkin seçiminiz, Google İzin Modu'nda işlevsellik ve kişiselleştirme amaçlı depolama sinyalleri olarak etiketlere iletilir. Aşağıdaki kayıt ise çerez değildir; yalnızca tarayıcınızın yerel depolama alanında tutulur ve sunucuya gönderilmez.",
+          "Tercih çerezleri sitenin çalışması için zorunlu değildir; yalnızca deneyiminizi kişiselleştirir. Bu kategoriye onay vermezseniz site tüm işlevleriyle çalışmaya devam eder. Sitede bugün tercih kategorisine bağlı bir çerez kullanılmamaktadır ve sitede etiket de yüklenmediğinden bu kategoriye verdiğiniz onay bugün yalnızca laffogato_cookie_consent çerezine kaydedilir; ileride bu kategoride bir çerez kullanılırsa önce bu envanter güncellenir. Aşağıdaki kayıt ise çerez değildir; yalnızca tarayıcınızın yerel depolama alanında tutulur ve sunucuya gönderilmez.",
         ],
         table: [
           {
@@ -8534,8 +8661,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "10. Analitik (Performans) Çerezleri Envanteri",
         paragraphs: [
-          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamamızı sağlar. Aşağıdaki envanter, sitede kullanılan ve kullanılması hâlinde devreye girecek analitik çerezleri gösterir; ilgili ölçümleme hizmeti devreye alınmadığı sürece bu çerezlerin hiçbiri cihazınıza yerleştirilmez. Bu kategoriye onay vermediğiniz sürece Google İzin Modu'nda analitik depolama izni 'reddedildi' olarak kalır ve aşağıdaki çerezler cihazınıza yerleştirilmez.",
-          "Analitik ölçümlemede, pazarlama kategorisine onay vermediğiniz sürece reklam kişiselleştirme sinyalleri 'reddedildi' olarak iletilir ve ölçümleme verisi tek başına kimliğinizi belirlemek amacıyla kullanılmaz. Bu hizmet yurt dışında yerleşik bir sağlayıcı tarafından sunulduğundan, verinin yurt dışına aktarılması söz konusudur; ayrıntı için bu Politikanın 18. maddesine bakınız.",
+          "Analitik çerezler, sitenin nasıl kullanıldığını toplu ve istatistiksel düzeyde anlamaya yarar. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerezlerin hiçbiri bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, ölçümleme hizmeti ileride devreye alınırsa kullanılacak çerezleri gösterir; o durumda bu Politika güncellenir ve çerezler yalnızca açık rızanızla yerleştirilir.",
+          "Analitik ölçümlemede, pazarlama kategorisine onay vermediğiniz sürece reklam kişiselleştirme sinyalleri 'reddedildi' olarak iletilir ve ölçümleme verisi tek başına kimliğinizi belirlemek amacıyla kullanılmaz. Bu hizmet yurt dışında yerleşik bir sağlayıcı tarafından sunulduğundan, ancak bu aktarım için Kanun'un 9. maddesindeki güvence sağlandıktan sonra devreye alınabilir (bkz. 18. madde).",
         ],
         table: [
           {
@@ -8553,7 +8680,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "11. Pazarlama (Hedefleme) Çerezleri Envanteri",
         paragraphs: [
-          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılır. Aşağıdaki envanter, kullanılan ve kullanılması hâlinde devreye girecek pazarlama çerezlerini gösterir; ilgili reklam hizmeti devreye alınmadığı sürece bu çerezler yerleştirilmez. Bu kategoriye onay vermediğiniz sürece Google İzin Modu'nda reklam depolama, reklam amaçlı kullanıcı verisi ve reklam kişiselleştirme izinleri 'reddedildi' olarak kalır ve aşağıdaki çerezler cihazınıza yerleştirilmez. Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları bu hizmetlerin yüklenmesine izin vermez. Pazarlama onayı vermemiş olsanız da siteye bir Google reklamına tıklayarak geldiyseniz, reklam tıklama kimliği cihazınıza çerez olarak yazılmaz, ancak site içi bağlantıların adreslerinde taşınabilir.",
+          "Pazarlama çerezleri, {{BRAND}} tanıtımlarının ilgi alanlarınıza uygun biçimde üçüncü taraf platformlarda gösterilmesi ve bu tanıtımların sonuç verip vermediğinin ölçülmesi amacıyla kullanılabilir. İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; aşağıdaki çerez bugün yerleştirilmez ve çerez paneli bu kategoriyi sormaz. Envanter, reklam hizmeti ileride devreye alınırsa kullanılacak çerezi gösterir; o durumda bu Politika güncellenir ve çerez yalnızca açık rızanızla yerleştirilir. Meta (Facebook/Instagram) ve TikTok reklam etiketleri ile gömülü YouTube videoları sitede kullanılmaz; sitenin güvenlik ayarları bu hizmetlerin yüklenmesine izin vermez.",
           "Pazarlama kategorisine verdiğiniz onay, ticari elektronik ileti (e-posta) almaya rıza göstermeniz anlamına gelmez. Ticari elektronik iletiler 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca ayrıca alınan onaya dayanır; bu onayın kaydı {{SHORT_NAME}} tarafından tutulur. İki onay birbirinden bağımsızdır ve ayrı ayrı geri alınabilir.",
           "Mobil uygulamada sunucudan anlık bildirim (push) gönderilmez; uygulama yalnızca sizin açtığınız hatırlatmaları cihazınızda planlanmış bildirim olarak gösterir. Pazarlama kategorisine verdiğiniz onay bu hatırlatmalarla ilgili değildir; hatırlatmaları cihazınızın ayarlarından her zaman kapatabilirsiniz.",
         ],
@@ -8569,7 +8696,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "12. Rıza Yönetimi: Çerez Bandı ve Tercih Merkezi",
         paragraphs: [
           "Siteyi ilk kez ziyaret ettiğinizde, sayfanın kullanımını engellemeyen bir çerez bandı gösterilir. Bant, zorunlu olmayan çerezleri kabul etmeniz, tümünü reddetmeniz veya kategori bazında seçim yapmanız için eşit görünürlükte seçenekler sunar. Bantta 'Tümünü kabul et' ile 'Yalnızca zorunlu', tercih merkezinde ise 'Tümünü kabul et' ile 'Tümünü reddet' seçenekleri aynı düzeyde, aynı tıklama sayısıyla ve birbirine denk vurguyla sunulur.",
-          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez. Etiketleri yöneten Google Etiket Yöneticisi bu sırada da yüklenir; ancak Google İzin Modu sinyalleri, güvenlik amaçlı depolama dışında 'reddedildi' olarak başlar. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
+          "Siz bir seçim yapana kadar zorunlu çerezler dışında hiçbir çerez yerleştirilmez; internet sitemizde bugün Google Etiket Yöneticisi ve başka bir ölçümleme veya reklam etiketi yüklenmez. Tercih merkezini seçim yapmadan kapatmanız hâlinde zorunlu olmayan kategoriler kapalı kalır ve bant yeniden gösterilir.",
           "Hiçbir kategori kutucuğu önceden işaretli gelmez. Sessiz kalma, bandı görmezden gelme veya sitede gezinmeye devam etme rıza sayılmaz. Rıza yalnızca ilgili kategoriyi bilinçli olarak açmanızla verilmiş olur.",
           "Verdiğiniz onayın kapsamı (kategori seçimleriniz), tarihi ve tercih kaydının sürüm numarası cihazınızdaki laffogato_cookie_consent çerezine yazılır; bu kayıt yalnızca seçiminizin uygulanması ve rızanın varlığının ispatı amacıyla tutulur ve pazarlama amacıyla kullanılmaz.",
         ],
@@ -8577,7 +8704,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İlk girişte bant görüntülenir ve zorunlu olmayan çerezler beklemeye alınır.",
           "Kategori bazında seçim yapar veya toplu kabul ya da toplu ret seçeneklerinden birini işaretlersiniz.",
           "Seçiminiz laffogato_cookie_consent çerezine yazılır ve 180 gün boyunca hatırlanır.",
-          "Seçiminiz Google İzin Modu sinyalleriyle etiketlere hemen iletilir; onay verdiğiniz kategorilerin çerezleri ancak bu andan itibaren yerleştirilir, onay vermediğiniz kategorilerin çerezleri hiç yerleştirilmez.",
+          "Onay verdiğiniz kategorilerin çerezleri ancak bu andan itibaren yerleştirilir, onay vermediğiniz kategorilerin çerezleri hiç yerleştirilmez; etiket yöneticisi ileride kullanılırsa seçiminiz Google İzin Modu sinyalleriyle etiketlere de iletilir.",
           "Tercihinizi dilediğiniz zaman sitenin alt bilgi bölümündeki 'Çerez tercihleri' bağlantısından açacağınız tercih merkezinden değiştirebilir, verdiğiniz onayı aynı kolaylıkla geri alabilirsiniz.",
           "Onayı geri aldığınızda ilgili kategorideki çerezler bir sonraki sayfa yüklemesinde çalıştırılmaz; daha önce cihazınıza yerleştirilmiş üçüncü taraf çerezleri ise tarayıcı ayarlarınızdan silinebilir.",
           "180 günlük sürenin sonunda veya çerez envanterinde esaslı bir değişiklik olduğunda rızanız yeniden sorulur.",
@@ -8642,7 +8769,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "16. Do Not Track (DNT) ve Global Privacy Control (GPC) Sinyalleri",
         paragraphs: [
           "Do Not Track (DNT), tarayıcının site sunucusuna izlenmek istemediğinize dair bir başlık göndermesini sağlayan eski bir mekanizmadır. DNT için sektörde ortak ve bağlayıcı bir standart oluşmadığından, birçok site bu sinyali yok saymaktadır.",
-          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; Google Etiket Yöneticisi'nin her sayfada yüklenmesine ilişkin 17. maddedeki açıklama saklıdır.",
+          "{{SHORT_NAME}}, zorunlu olmayan tüm çerezleri zaten açık rızaya bağladığından, DNT sinyali gönderip göndermediğinizden bağımsız olarak siz onay vermeden hiçbir analitik veya pazarlama çerezi çalıştırılmaz. Bu nedenle DNT açık olsun ya da olmasın, analitik ve pazarlama çerezleri yalnızca sizin açık seçiminizle devreye girer; internet sitemizde bugün analitik veya reklam etiketi zaten kullanılmaz.",
           "Global Privacy Control (GPC), kişisel verinin satılmaması veya paylaşılmaması yönündeki tercihi makine tarafından okunabilir biçimde ileten daha yeni bir sinyaldir. Site GPC sinyalini ayrıca okumaz; ancak analitik ve pazarlama kategorileri herkes için varsayılan olarak kapalı olduğundan, tarayıcınız veya eklentiniz GPC sinyali gönderiyorsa da bu kategoriler siz tercih merkezinden açıkça açmadıkça kapalı kalır ve tercih merkezinde kapalı görüntülenir.",
           "GPC sinyaline rağmen tercih merkezinden bilinçli olarak bir kategoriyi açmanız hâlinde, sonradan yapılan bu açık seçim esas alınır. Dilediğiniz an aynı yerden tekrar kapatabilirsiniz.",
         ],
@@ -8657,22 +8784,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Google Etiket Yöneticisi (Google Tag Manager; Google Ireland/LLC)",
             value:
-              "Kategori: etiket yönetimi; rızanızdan bağımsız olarak her sayfada yüklenir. Sitedeki ölçümleme ve reklam etiketlerini yönetir ve verdiğiniz veya vermediğiniz onayı Google İzin Modu (Consent Mode v2) sinyalleriyle bu etiketlere iletir; siz bir seçim yapana kadar güvenlik amaçlı depolama dışındaki tüm sinyaller 'reddedildi' olarak ayarlanır. Yükleme sırasında tarayıcınız Google'ın sunucusuna bağlandığından Google, IP adresinizi, tarayıcı bilginizi ve isteğin {{SITE}} üzerinden geldiğini görebilir. Kart bilgilerinin girildiği ödeme sayfasında yüklenmez.",
+              "Kategori: etiket yönetimi. İnternet sitemizde bugün kullanılmaz ve yüklenmez: Google ile Kurul tarafından ilan edilen standart sözleşme bulunmadığından, ancak böyle bir sözleşme imzalanıp Kurum'a bildirildikten sonra devreye alınabilir. Kullanılırsa her sayfada yüklenir, Google IP adresinizi ve tarayıcı bilginizi görebilir ve verdiğiniz veya vermediğiniz onay Google İzin Modu (Consent Mode v2) sinyalleriyle etiketlere iletilir. Kart bilgilerinin girildiği ödeme sayfasında hiçbir hâlde yüklenmez.",
           },
           {
             key: "Google Analytics 4 (Google Ireland/LLC)",
             value:
-              "Kategori: analitik. Kullanılan çerezler: _ga, _ga_*. Pazarlama onayınız yoksa reklam kişiselleştirme sinyali 'reddedildi' olarak iletilir. Google Etiket Yöneticisi üzerinden yönetilir; çerezler yalnızca açık rızanızla yerleştirilir.",
+              "Kategori: analitik. Bugün kullanılmaz. Kullanılırsa çerezler: _ga, _ga_*; Google Etiket Yöneticisi üzerinden yönetilir ve çerezler yalnızca açık rızanızla yerleştirilir.",
           },
           {
             key: "Google Ads (Google Ireland/LLC)",
             value:
-              "Kategori: pazarlama. Kullanılması hâlinde çerez: _gcl_au. Dönüşüm ölçümü ve yeniden hedefleme. Çerezler yalnızca açık rızanızla yerleştirilir; onay vermediyseniz bir Google reklamından gelişinize ilişkin tıklama kimliği çerez yerine site içi bağlantıların adreslerinde taşınabilir.",
-          },
-          {
-            key: "Google Haritalar (Google Ireland/LLC)",
-            value:
-              "Kategori: gömülü içerik. Ziyaret sayfasındaki harita, siz 'Haritayı göster' düğmesine basmadan yüklenmez. Düğmeye bastığınızda tarayıcınız Google'a bağlanır; Google, IP adresinizi ve tarayıcı bilginizi görebilir ve kendi çerezlerini yerleştirebilir. Bu işleme Google'ın kendi politikasına tabidir.",
+              "Kategori: pazarlama. Bugün kullanılmaz. Kullanılırsa çerez: _gcl_au; dönüşüm ölçümü ve yeniden hedefleme için ve yalnızca açık rızanızla yerleştirilir.",
           },
           {
             key: "Vercel (barındırma)",
@@ -8713,7 +8835,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Çerezler yoluyla, kimliğinizi doğrudan açık etmeyen ancak kişisel veri niteliği taşıyabilecek bilgiler işlenir. Bu veriler, tek başına veya diğer verilerle birleştirildiğinde sizi belirlenebilir kılabileceğinden 6698 sayılı Kanun kapsamında değerlendirilir.",
           "Zorunlu çerezler bakımından hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin ikinci fıkrasında yer alan bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olma, veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi ve ilgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaati şartlarıdır. Bu şartların varlığı hâlinde ayrıca açık rıza aranmaz.",
           "Tercih, analitik ve pazarlama çerezleri bakımından tek hukuki sebep, 6698 sayılı Kanun'un 5. maddesinin birinci fıkrası uyarınca alınan açık rızanızdır. Rızanızı vermemeniz veya sonradan geri almanız hiçbir olumsuz sonuç doğurmaz.",
-          "Çerezler yoluyla elde edilen veriler, yurt dışında yerleşik ölçümleme ve reklam sağlayıcılarının sunucularına aktarılabilir. Bu aktarım, 6698 sayılı Kanun'un 9. maddesi çerçevesinde; ilgili ülke, sektör veya uluslararası kuruluş bakımından Kişisel Verileri Koruma Kurulunca verilmiş bir yeterlilik kararı bulunması hâlinde bu karara, bulunmaması hâlinde ise Kanun'da sayılan uygun güvencelerden birine (standart sözleşme, taahhütname veya bağlayıcı şirket kuralları gibi) dayanılarak gerçekleştirilir. Bu yolların hiçbirinin bulunmadığı hâllerde aktarım, yalnızca Kanun'un aradığı arızi nitelikteki istisnalar kapsamında ve aktarımın risklerine ilişkin bilgilendirme üzerine vereceğiniz açık rızaya dayanabilir. Analitik ve pazarlama kategorilerine onay vermediğinizde bu kategorilerin çerezleri yerleştirilmez; ancak Google Etiket Yöneticisi her sayfada yüklendiğinden, bu yükleme sırasında IP adresiniz ve tarayıcı bilginiz onay durumunuzdan bağımsız olarak yurt dışında yerleşik Google'ın sunucularına ulaşır.",
+          "İnternet sitemizde bugün analitik veya reklam etiketi kullanılmaz; bu nedenle çerezler yoluyla yurt dışındaki ölçümleme veya reklam sağlayıcılarına veri aktarılmaz. Bu hizmetler ileride kullanılırsa, ilgili sağlayıcıyla 6698 sayılı Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşme imzalanıp Kurum'a bildirilmeden devreye alınmaz; bu aktarımlar her sayfa açılışında tekrarlanacağından arızi değildir ve açık rızaya dayandırılmaz. Ziyaret sayfasında harita gömülü değildir; 'Haritayı göster' bağlantısı Google Haritalar'ı yeni sekmede açar ve bu bağlantıyla tarafımızca Google'a kişisel veri aktarılmaz.",
           "Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) gibi ödeme bilgileri çerezlerle işlenmez. Bu bilgiler {{SITE}} üzerindeki kendi güvenli ödeme sayfamızda girilir ve şifreli bağlantıyla {{SHORT_NAME}} sunucusu üzerinden aynı işlemde yalnızca ödeme hizmeti sağlayıcısı PayNkolay'a iletilir; {{SHORT_NAME}} bu bilgileri kaydetmez, saklamaz ve kayıt sistemlerine yazmaz. Ödeme, kartı veren bankanın 3D Secure ekranında onaylanır. İadeler, PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta yapılır; siparişin bir kısmının iadesinde bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı olarak bildireceğiniz banka hesabına aynı yasal süre içinde havale veya EFT ile ödenir.",
         ],
         bullets: [
@@ -8912,13 +9034,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "ticari-elektronik-ileti",
     title: "Ticari Elektronik İleti ve İYS Aydınlatması",
     shortTitle: "Ticari İleti",
+    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
     category: "Veri & Gizlilik",
     summary:
       "6563 sayılı Kanun uyarınca {{SHORT_NAME}}'nin ticari elektronik ileti onayını nasıl aldığını ve kayıt altına aldığını, İleti Yönetim Sistemi'ni (İYS), e-posta iletileri ile mobil uygulama bildirimlerine ilişkin kuralları ve ücretsiz ret hakkınızı açıklar.",
     references: [
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (RG: 15.07.2015, 29417)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticaret Bakanlığı'nın İleti Yönetim Sistemi'ne (İYS) ilişkin düzenleme, tebliğ ve duyuruları",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu (özellikle m.4 genel ilkeler, m.5-6 işleme şartları, m.9 yurt dışına aktarım, m.10 aydınlatma yükümlülüğü, m.11 ilgili kişinin hakları, m.12 veri güvenliğine ilişkin yükümlülükler)",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -9503,7 +9626,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "19. Gönderim Altyapısı, Aktarım ve Veri Güvenliği",
         paragraphs: [
           "Ticari elektronik ileti gönderimi ve ilgili kayıtların tutulması için bulut tabanlı hizmet sağlayıcılardan yararlanılmaktadır. Bu sağlayıcılar, yalnızca hizmetin ifası için gerekli asgari veriye erişir ve tarafımızla akdedilen sözleşmeler kapsamında veri işleyen sıfatıyla hareket eder.",
-          "Yurt dışında sunucu bulunduran sağlayıcılara aktarım söz konusu olduğunda, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümleri ile Kurul düzenlemeleri esas alınır; aktarım, öngörülen hukuki mekanizmalara ve gerekli hâllerde açık rızanıza dayanılarak gerçekleştirilir.",
+          "Yurt dışında sunucu bulunduran sağlayıcılara aktarım söz konusu olduğunda, 6698 sayılı Kanun'un yurt dışına aktarıma ilişkin hükümleri ile Kurul düzenlemeleri esas alınır; aktarım, Kanun'un 9. maddesi uyarınca Kurul tarafından ilan edilen standart sözleşmeye dayandırılacaktır; sözleşmelerin imza ve bildirim durumu KVKK Aydınlatma Metni'nin 15. bölümünde yazılır. Açık rızanıza yalnızca arızi bir aktarımda ve olası riskler size ayrıca anlatıldıktan sonra başvurulur.",
           "Gönderim altyapısı ve alınan güvenlik tedbirleri aşağıdaki tabloda gösterilmiştir.",
         ],
         table: [
@@ -9666,7 +9789,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "kullanim-sartlari",
     title: "Kullanım Şartları",
     shortTitle: "Kullanım Şartları",
+    // 19 Ekim 2026: the karaoke definition no longer describes the request
+    // mode (online prepayment cannot be switched off). LEGAL-REDLINES §17.
     category: "Site & Üyelik",
+    // 18 Ekim 2026: §7 says how membership ends on each channel (the app at
+    // once, the Site's request page and e-mail within thirty days).
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulaması ile bunlar üzerinden sunulan menü vitrini, online bottega, mobil uygulamadan kafe siparişi, karaoke rezervasyonu, üyelik ve sadakat (damga) programı hizmetlerinin kullanımına ilişkin hak, yükümlülük, yasak ve sorumluluk esaslarını düzenleyen sözleşmesel metindir.",
     references: [
@@ -9674,7 +9801,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İYS - İleti Yönetim Sistemi)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
@@ -9752,7 +9879,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Bottega (Online Mağaza): Kavrulmuş kahve çekirdeği, yenilebilir waffle kupa, gelato kiti, kahve ekipmanı (moka pot, değirmen, tamper), marka ürünleri (fincan, önlük, tote çanta) ve kiler ürünlerinin (pistacchio kreması, şuruplar) mesafeli sözleşme kurulmak suretiyle satışı.",
           "Mobil Uygulama: iOS ve Android cihazlar için yayımlanan {{BRAND}} uygulaması üzerinden menü görüntüleme, kafe ve mağaza siparişi verme, üyelik yönetimi, sadakat kartının (damga) takibi, kafede kasa koduyla damga ekletme, karaoke odası rezervasyonu (ödemesi çevrim içi alınır), fA'L ve cihazda planlanan hatırlatmaları açma. Mobil Uygulamaya özgü ayrıntılı koşullar Mobil Uygulama Kullanım Koşulları (/hukuk/mobil-uygulama-kosullari) metninde düzenlenmiştir.",
           "Sadakat (Damga) Programı: Mobil Uygulamadan verilen kafe siparişleri ve kafede eklenen damgalarla kartı doldurma ve dolan kart karşılığında ücretsiz içecek kuponu kazanma imkânı. Damga kazanım koşulları, kart hedefi, kuponun geçerlilik süresi ve kullanım sınırları Sadakat (Damga) Programı Kuralları (/hukuk/odul-programi) metninde düzenlenmiştir.",
-          "Karaoke Rezervasyonu: Köşkün karaoke odasının, e-postası doğrulanmış üyelerce internet sitesi veya Mobil Uygulama üzerinden, üye olmadan ise internet sitesi üzerinden belirli gün ve saat için ayrılması; masa rezervasyonları ise yalnızca telefonla alınır. Karaoke rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; ödemesi alınmayan rezervasyon kesinleşmez, ödemenin onaylanmasıyla kendiliğinden kesinleşir. İptal, iade ve cayma hakkının bulunmaması dahil koşullar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir. Çevrim içi ödeme geçici olarak kapalıysa veya Mobil Uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir ve Şirket onaylamadıkça kesinleşmez; onay e-posta ve Mobil Uygulamadaki bildirim listesi ile iletilir.",
+          "Karaoke Rezervasyonu: Köşkün karaoke odasının, e-postası doğrulanmış üyelerce internet sitesi veya Mobil Uygulama üzerinden, üye olmadan ise internet sitesi üzerinden belirli gün ve saat için ayrılması. Karaoke rezervasyonunun ödemesi rezervasyon sırasında çevrim içi alınır; ödemesi alınmayan rezervasyon kesinleşmez, ödemenin onaylanmasıyla kendiliğinden kesinleşir. İptal, iade ve cayma hakkının bulunmaması dahil koşullar Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir. Mobil Uygulamanın ödeme alamayan eski bir sürümünden rezervasyon yapılamaz; bu durumda uygulamanın güncellenmesi istenir.",
           "Üyelik: E-posta doğrulamalı hesap oluşturma, adres defteri yönetimi, sipariş geçmişi görüntüleme, favori ürün listesi oluşturma, damga kartı görüntüleme ve sipariş durumu takibi.",
           "İşlemsel ve Ticari İletişim: Sipariş onayı, kargo bildirimi, iade süreci gibi işlemsel e-posta ve bildirimler ile onayı bulunan Kullanıcılara yönelik kampanya ve bülten e-postaları ile Mobil Uygulamadaki kampanya duyuruları ve hatırlatmalar.",
           "Marka İçeriği: Marka hikâyesi, kavurma notları, tarif ve demleme rehberleri, basında yer alan haberler ile görsel ve video içerikler.",
@@ -9815,7 +9942,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Bir gerçek kişi adına yalnızca bir üyelik hesabı açılabilir. Kampanya, promosyon kodu, kupon veya damgalardan haksız yarar sağlamak amacıyla mükerrer hesap açılması yasaktır.",
           "Hesabın üçüncü kişilere devredilmesi, kiralanması, satılması veya ortak kullanıma açılması yasaktır.",
-          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin hesap ayarları üzerinden ya da {{EMAIL}} adresine ileteceği talep ile sonlandırabilir. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
+          "Kullanıcı, üyeliğini dilediği zaman ve gerekçe göstermeksizin sonlandırabilir: Mobil Uygulama'daki hesap silme seçeneği, devam eden bir sipariş yoksa hesabı hemen kapatır; Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine iletilen talep en geç otuz gün içinde sonuçlandırılır. Üyeliğin sonlandırılması, devam eden siparişlerden doğan hak ve yükümlülükleri ortadan kaldırmaz; hesaptaki damgalar ve kullanılmamış kuponlar ise sona erer.",
           "213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu ve tüketici mevzuatı uyarınca saklanması zorunlu olan fatura, sipariş ve işlem kayıtları; üyelik sonlandırılsa dahi kanuni saklama süreleri boyunca muhafaza edilir.",
           "Şirket; işbu Şartların ihlali, sahtecilik şüphesi, ödeme sistemlerinin kötüye kullanılması veya yargı mercilerince verilmiş bir karar bulunması hâlinde hesabı geçici olarak askıya alabilir ya da kalıcı olarak kapatabilir. Askıya alma veya kapatma kararı, mümkün olan hâllerde gerekçesiyle birlikte Kullanıcıya bildirilir.",
         ],
@@ -9958,7 +10085,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kullanıcılar tarafından Platforma yüklenen yorum, değerlendirme ve benzeri Kullanıcı İçeriği bakımından Şirket, anılan Kanun anlamında yer sağlayıcı konumundadır. Şirketin, barındırdığı Kullanıcı İçeriğini kontrol etme veya hukuka aykırı bir faaliyetin söz konusu olup olmadığını araştırma yönünde genel bir yükümlülüğü bulunmamaktadır. Bununla birlikte Şirket, hukuka aykırılıktan haberdar edilmesi hâlinde ilgili içeriği yayından kaldırmakla yükümlüdür.",
           "Platform altyapısı Vercel bulut barındırma hizmeti üzerinde çalışmakta; veri tabanı olarak {{DB_PROVIDER}} üzerinde barındırılan PostgreSQL kullanılmakta ve veri tabanına yalnızca sunucu tarafındaki yetkili servis üzerinden erişilmektedir. E-posta gönderimi Resend altyapısı, ödeme işlemleri ise PayNkolay altyapısı üzerinden gerçekleştirilir. Barındırma ve altyapı sağlayıcılarına ilişkin güncel bilgiye {{EMAIL}} adresine yapılacak başvuru ile ulaşılabilir.",
           "Mobil Uygulama, App Store ve Google Play uygulama mağazaları üzerinden dağıtılır. Mağaza işletmecileri yalnızca dağıtım kanalı konumundadır; Platform içeriğinin sağlayıcısı Şirkettir.",
-          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca Şirket; kendi mal ve hizmetlerini kendi elektronik ticaret ortamında satan hizmet sağlayıcı sıfatıyla faaliyet göstermektedir. Şirket, üçüncü kişilere ait mal veya hizmetlerin satışına aracılık etmemektedir.",
+          "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca Şirket; kendi mal ve hizmetlerini kendi elektronik ticaret ortamında satan hizmet sağlayıcı sıfatıyla faaliyet göstermektedir. Şirket, üçüncü kişilere ait mal veya hizmetlerin satışına aracılık etmemektedir.",
           "6102 sayılı Türk Ticaret Kanunu'nun internet sitesine ilişkin hükümleri ile elektronik ticaret mevzuatı uyarınca yayımlanması gereken tanıtıcı bilgiler, işbu Şartların 22. maddesindeki iletişim tablosunda ve Platformun ilgili bölümlerinde erişime açık tutulur.",
         ],
       },
@@ -9994,7 +10121,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         bullets: [
           "Sistem kesintisi nedeniyle tamamlanamayan siparişlerde tahsilat gerçekleşmişse, bedel aynı ödeme yöntemi üzerinden iade edilir; kullanılan kupon hesaba geri tanımlanır.",
-          "Kesinti sırasında iletilen rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz.",
+          "Kesinti sırasında iletilen karaoke odası rezervasyon talepleri, teyit edilmedikçe geçerli sayılmaz.",
           "Şirket, kötüye kullanım veya güvenlik tehdidi tespiti hâlinde belirli IP adresleri ya da bölgelerden erişimi geçici olarak kısıtlayabilir.",
           "Mobil Uygulamanın eski sürümlerine verilen destek, güvenlik ve uyumluluk gerekçeleriyle sona erdirilebilir; bu durumda Kullanıcıdan güncelleme yapması istenir.",
           "Uygulama mağazalarının politika değişiklikleri ya da teknik kısıtlamaları nedeniyle Mobil Uygulamanın belirli işlevleri değişebilir veya kullanımdan kaldırılabilir.",
@@ -10188,6 +10315,24 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "uyelik-sozlesmesi",
     title: "Üyelik Sözleşmesi",
     shortTitle: "Üyelik",
+    // 18 Ekim 2026: §14, Site'de hesap ekibe talep olarak silinir. Üye
+    // aleyhine esaslı bir değişiklik değil, §22'nin on beş günlük bildirimi
+    // gerekmez (TBK m.24 aleyhe tek yanlı değişikliği zaten yazılmamış
+    // sayar): §14'teki hak ve eşdeğer kolaylık sözü aynen duruyor ve tek
+    // adımı adıyla söylüyor, uygulamadaki anında silme kalıyor; eklenenler
+    // talebi geri alma ve sonucun bildirilmesi, otuz gün de KVKK m.13/2'nin
+    // zaten koyduğu üst sınır.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    // The typed-address path is removed. Not a substantive change against
+    // the member (§22): every stamp stays obtainable with the member's own
+    // code (a code the camera cannot read is typed), a missed stamp is
+    // corrected at the member's own e-mail request, and stamp values,
+    // rewards and thresholds do not change; it is also a change for
+    // compliance (KVKK m.12/1). Announced on the publish day (in the app and
+    // by e-mail), LEGAL-REDLINES §28.4.
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} internet sitesi ve mobil uygulamasına üye olan kullanıcı ile {{LEGAL_NAME}} arasındaki üyelik ilişkisini, hesap güvenliğini, sadakat programını, tarafların yükümlülüklerini, askıya alma ve fesih hâllerini düzenleyen sözleşmedir.",
@@ -10198,7 +10343,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, sayı 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -10462,7 +10607,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "İade işlemleri, PayNkolay'ın iptal ve iade hizmeti üzerinden ödemenin yapıldığı karta gerçekleştirilir. Ödemeyle aynı gün yapılan işlemler iptal, sonraki günlerde yapılanlar iade olarak bankaya iletilir; tutarın kart hesabına yansıma süresi kartı veren bankaya bağlıdır. Siparişin bir kısmının iadesinde iade tutarı ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı hâllerde Üye'ye bilgi verilir ve iade tutarı, mevzuatta öngörülen süre içinde, Üye'nin kendi adına kayıtlı olarak bildireceği banka hesabına havale veya EFT ile ödenir. İtiraz (chargeback) süreçleri, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile kartı veren bankanın ve PayNkolay'ın kuralları çerçevesinde işletilir.",
           "Ödemenin sonucu, tarayıcının veya Mobil Uygulama'nın döndürdüğü bilgiyle değil, Şirket sunucusunun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır; aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa, Şirket ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. Şirket'in ödeme kaydında PayNkolay işlem referans kodu, işlem durumu, tahsil edilen tutar, para birimi ve işlem tarihi ile PayNkolay'ın işlem doğrulama servisinin döndürdüğü bilgiler (maskelenmiş kart numarası, kartı veren banka, taksit sayısı, 3D Secure bilgisi ve onay kodu) tutulur; kart hamilinin adı kayda yazılmaz; kartın tam numarası, son kullanma tarihi ve güvenlik kodu hiçbir aşamada tutulmaz.",
           "Ödeme tutarı hiçbir koşulda yalnızca tarayıcıdan veya Mobil Uygulama'dan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında ürün kayıtlarındaki güncel fiyat, vergi, kullanılan kupon ve kargo bilgileri üzerinden yeniden hesaplanır. Ödeme bildirimlerinde tekrarlı işlem oluşmasını önlemek için sağlayıcı referansı üzerinde tekillik kısıtı uygulanır.",
-          "Kart saklama özelliği açıldığında, Üye ödeme sayfasında kartını sonraki ödemeler için kaydetmeyi seçebilir. Bu özellik isteğe bağlıdır ve yalnızca üyelere sunulur; 'Bu kartı sonraki ödemeler için kaydet' kutusu işaretsiz gelir ve Üye işaretlemedikçe hiçbir kart kaydedilmez. Kayıtlı kart Şirket tarafından değil, PayNkolay'ın kart saklama hizmeti tarafından saklanır; Şirket'in veri tabanında kart bilgisi tutulmaz, yalnızca PayNkolay'ın kartları Üye ile eşleştirmek için kullandığı, rastgele üretilmiş 11 karakterlik bir üye anahtarı bulunur. Bu anahtar kimlik numarası veya telefon numarası değildir ve Üye'ye ilişkin başka bir bilgi içermez. Ödeme sayfasında kayıtlı kart son dört hanesi, kart markası veya kartı veren banka ve takma adıyla listelenir; kayıtlı kartla yapılan ödemelerde de 3D Secure uygulanır. Üye kayıtlı kartını ödeme sayfasından dilediği zaman silebilir. Hesap kapatılırken Şirket önce PayNkolay'dan Üye'nin kayıtlı kartlarının silinmesini ister. Kart saklama özelliği açılana kadar hiçbir kart kaydedilmez.",
+          "Kart bilgileri sonraki ödemeler için kaydedilmez: Şirket kart bilgisi saklamaz, PayNkolay'dan da Üye'nin kartının saklanmasını istemez; her ödemede kart bilgileri yeniden girilir.",
         ],
       },
       {
@@ -10487,7 +10632,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "10. Sadakat (Damga) Programı",
         paragraphs: [
           "Şirket, üyelerine yönelik bir sadakat programı yürütür. Üye, Mobil Uygulama üzerinden verdiği ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra kalan tutar; kurye ücreti hariç) en az 140,00 ₺ olan kafe siparişlerinden, ürün tutarının başlanan her 320,00 ₺'si için bir damga kazanır (140,00 ₺ ile 320,00 ₺ arası 1, 320,01 ₺ ile 640,00 ₺ arası 2 damga ve böyle devam eder); 140,00 ₺'nin altında kalan siparişler damga kazandırmaz. Programa katılım üyeliğe bağlıdır ve ayrıca bir bedel gerektirmez.",
-          "Kafede damga, kasada personel tarafından eklenir: Üye, Mobil Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Mobil Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; kendi koduna damga veremez. Mobil Uygulama, damga kazanmak amacıyla Üye'nin kamerasını kullanmaz.",
+          "Kafede damga, kasada personel tarafından eklenir: Üye, Mobil Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Mobil Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; kendi koduna damga veremez. Mobil Uygulama, damga kazanmak amacıyla Üye'nin kamerasını kullanmaz.",
           "Damga bir para birimi ya da elektronik para değildir; tek başına parasal bir karşılığı yoktur. Nakde çevrilemez, başka bir üyeye devredilemez, satılamaz, miras yoluyla intikal etmez ve üyelik hesabı dışında kullanılamaz.",
           "Kartın dolması için gereken damga sayısı (varsayılan altı; Şirket tarafından 3 ile 20 arasında belirlenebilir), ödülün tutarı ve kuponun geçerlilik süresi Platform'da yayımlanan Sadakat Programı Kuralları'nda ve Mobil Uygulama'nın ödüller ekranında gösterilir. Şirket bu kuralları yalnızca ileriye etkili olarak ve önceden duyurmak suretiyle değiştirebilir; değişiklik, o tarihte kazanılmış damgaların toplam sayısını azaltmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder. Ayrıntı Sadakat Programı Kuralları'ndadır.",
           "Şirket, Programı tümüyle sonlandırmaya karar verirse üyeleri en az otuz gün önceden bilgilendirir ve bu süre boyunca dolmuş kartların ödüle çevrilmesine imkân tanır.",
@@ -10562,10 +10707,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Üyeliğin Üye Tarafından Sona Erdirilmesi",
         paragraphs: [
-          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur.",
-          "Hesap kapatma talebi; Site'de {{SITE_URL}}/uye/hesap/sil sayfasından, Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
+          "Üye, üyeliğini dilediği zaman, gerekçe göstermeksizin ve herhangi bir bedel ödemeksizin sona erdirebilir. Bu hak, üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilecek şekilde sunulur: Üye'nin yapacağı tek adım, Mobil Uygulama'daki hesap silme seçeneğini onaylamak ya da Site'deki talebi göndermektir; talebin sonuçlandırılması için Üye'den başka bir işlem veya gerekçe istenmez.",
+          "Hesap kapatma talebi; Mobil Uygulama içindeki hesap ayarları bölümündeki hesap silme seçeneğinden, Site'de {{SITE_URL}}/uye/hesap/sil sayfasından veya {{EMAIL}} adresine gönderilecek bir talep ile iletilebilir. Mobil Uygulama'daki seçenek hesabı hemen kapatır; Site'den veya e-postayla iletilen talep Şirket tarafından en geç otuz gün içinde sonuçlandırılır ve sonuç Üye'ye e-postayla bildirilir. Üye, Site'den verdiği talebi hesap kapatılana kadar aynı sayfadan geri alabilir. Adım adım prosedür ve silinen, anonimleştirilen ve saklanan verilerin listesi {{SITE_URL}}/hukuk/hesap-silme adresinde yayımlanır. Talebin Üye'nin kayıtlı e-posta adresinden gelmesi, kimlik teyidi bakımından esas alınır.",
           "Hesap kapatma talebi alındığında; devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, Şirket bu süreçlerin tamamlanmasını takiben kapatma işlemini uygular ve durumu Üye'ye bildirir.",
-          "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır. Kart saklama özelliği açıldığında, hesap kapatılırken Şirket önce PayNkolay'dan Üye'nin kayıtlı kartlarının silinmesini ister.",
+          "Hesabın kapatılmasıyla birlikte biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir bedel ödenmez. Üye, hesabı kapatmadan önce bu sonucu açık şekilde bilgilendirilir ve dolmuş kartını ödüle çevirme imkânı tanınır.",
           "Üyeliğin sona ermesi, sona erme tarihinden önce kurulmuş satış sözleşmelerinden doğan hakları etkilemez. Üye, teslim aldığı ürünlere ilişkin cayma hakkını, ayıplı mal hükümlerinden doğan seçimlik haklarını ve garanti haklarını üyeliği kapansa dahi mevzuatta öngörülen süreler içinde kullanabilir.",
         ],
       },
@@ -10808,12 +10953,18 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Hesap Silme ve Üyelik Sonlandırma Prosedürü",
     shortTitle: "Hesap Silme",
     category: "Site & Üyelik",
+    // 18 Ekim 2026: Site'de hesabı, üyenin talebi üzerine ekip siler
+    // (/uye/hesap/sil); uygulama kendi anında silmesini korur. §1-§4, §8.
+    // Same day: §4 the deferred deletion is answered in thirty days, §8 the
+    // karaoke window of a Site request, §11 the Kurul's complaint periods
+    // (LEGAL-REDLINES §20). The set's revision (LEGAL_UPDATED) is that day,
+    // so no own date.
     summary:
       "{{BRAND}} üyeliğinizi ve mobil uygulama hesabınızı nasıl sildireceğinizi; talebin nereden iletileceğini, kimlik teyidini, süreleri ve silme sonrasında hangi verilerin silindiğini, hangilerinin anonim hâle getirildiğini, hangilerinin mevzuat gereği saklandığını adım adım açıklar.",
     references: [
-      "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.7 silme, yok etme ve anonim hâle getirme, m.11 ilgili kişinin hakları",
-      "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
-      "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
+      "6698 sayılı Kişisel Verilerin Korunması Kanunu - m.5/2-ç hukuki yükümlülük, m.7 silme, yok etme ve anonim hâle getirme, m.11 ilgili kişinin hakları, m.13 veri sorumlusuna başvuru",
+      "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik - m.12 ilgili kişinin talebi üzerine silme",
+      "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ - m.5 başvuru usulü, m.6 başvuruya cevap",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "213 sayılı Vergi Usul Kanunu - fatura ve defter kayıtlarının saklanması",
       "6102 sayılı Türk Ticaret Kanunu - ticari defterlerin saklanması",
@@ -10825,28 +10976,28 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "1. Bu Belgenin Amacı",
         paragraphs: [
           "Bu belge, {{BRAND}} üyeliğinizin ve mobil uygulama hesabınızın sonlandırılması talebini nasıl ileteceğinizi, talebin nasıl işlendiğini ve sonucunda verilerinize ne olduğunu açıklar.",
-          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir.",
+          "Üyeliği sona erdirmek ücretsizdir, gerekçe göstermeyi gerektirmez ve üyeliğin kurulmasındaki kolaylıkla eşdeğer kolaylıkta kullanılabilir. Mobil Uygulama'da hesabınızı uygulama içindeki seçenekle hemen silebilirsiniz; Site'de ise silme talebinizi tek adımda iletirsiniz ve hesabınız, sizden başka bir işlem beklenmeden {{BRAND}} ekibince silinir.",
           "Bu belge Üyelik Sözleşmesi'nin hesap kapatmaya ilişkin maddesini tamamlar; çelişki hâlinde Üyelik Sözleşmesi ve mevzuat esas alınır.",
         ],
       },
       {
         heading: "2. Talebi Nereden İletebilirsiniz",
         paragraphs: [
-          "Aşağıdaki kanalların tamamı geçerlidir; hangisini seçtiğinizin sonuç üzerinde etkisi yoktur.",
+          "Aşağıdaki kanalların tamamı geçerlidir. Mobil Uygulama'dan verilen talep anında uygulanır; Site'den, e-postayla veya postayla iletilen talep ekibimizce 4. maddedeki süre içinde sonuçlandırılır. Hangi kanalı seçtiğinizin, silme sonrasında verilerinize ne olduğu üzerinde etkisi yoktur.",
         ],
         bullets: [
-          "Site: Hesabım > Hesabı sil sayfası ({{SITE_URL}}/uye/hesap/sil). Talep, e-posta adresinizi ve şifrenizi doğruladığınızda anında işleme alınır.",
-          "Mobil uygulama: Profil bölümündeki hesap ayarlarından hesabımı sil seçeneği. Talep uygulama içinden onaylandığında işleme alınır.",
+          'Site: Hesabım > Bilgilerim sayfasının altındaki bağlantıdan açılan hesap silme sayfası ({{SITE_URL}}/uye/hesap/sil). Üyeliğinizle giriş yaptıktan sonra isteğe bağlı bir gerekçe yazar ve "Hesabımın silinmesini istiyorum" kutusunu işaretleyerek talebinizi gönderirsiniz. Talebin alındığı size e-postayla bildirilir; hesabınız Site\'den kendiliğinden silinmez, ekibimizce silinir.',
+          'Mobil uygulama: Profil bölümündeki "Hesabımı sil" seçeneği. Uygulama içinden onaylanan talep anında uygulanır.',
           "E-posta: Üyelik kaydınızdaki adresten {{EMAIL}} adresine, konu satırında hesap silme talebi yazan bir ileti.",
           "Posta: {{ADDRESS}} adresine ıslak imzalı yazılı başvuru.",
-          "Uygulama mağazalarının hesap silme yönlendirmeleri de bu sayfaya çıkar; bu sayfadaki e-posta kanalı, uygulamayı kurmadan da talep iletebilmeniz içindir.",
+          "Uygulama mağazalarının hesap silme yönlendirmeleri de bu sayfaya çıkar; Site'deki talep sayfası ve e-posta kanalı, uygulamayı kurmadan ya da uygulamaya erişemeden de talep iletebilmeniz içindir.",
         ],
       },
       {
         heading: "3. Kimlik Teyidi",
         paragraphs: [
           "Talebin hesabın gerçek sahibinden geldiğinden emin olmamız gerekir; aksi hâlde bir başkasının hesabını sildirmesi mümkün olurdu.",
-          "Uygulama içinden yapılan talepte kimlik, oturum açmış üyelik ile teyit edilmiş sayılır. E-posta ile yapılan talepte, iletinin üyelik kaydındaki e-posta adresinden gelmesi esas alınır.",
+          "Site'deki talep sayfasından veya uygulama içinden yapılan talepte kimlik, oturum açmış üyelik ile teyit edilmiş sayılır. E-posta ile yapılan talepte, iletinin üyelik kaydındaki e-posta adresinden gelmesi esas alınır.",
           "Farklı bir adresten gelen başvurularda, Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ çerçevesinde ek bilgi talep edilebilir. İstenen bilgi, yalnızca kimliğin teyidi için gerekli olanla sınırlıdır.",
         ],
       },
@@ -10854,8 +11005,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "4. Süreler",
         paragraphs: [
           "Uygulama içinden verilen silme talebi anında uygulanır: hesap aynı işlemde kapatılır ve kişisel alanlar silinir.",
-          "E-posta veya posta ile iletilen talepler, 6698 sayılı Kanun ve ilgili Tebliğ uyarınca en geç otuz gün içinde sonuçlandırılır. Talebin alındığı, aynı kanaldan teyit edilir.",
-          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan ya da siteden verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz.',
+          "Site'den, e-posta veya posta ile iletilen talepler, 6698 sayılı Kanun'un 13. maddesi ve Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ uyarınca en geç otuz gün içinde ücretsiz olarak sonuçlandırılır; hedefimiz üç iş günüdür. Site'den gelen talebin alındığı size hemen e-postayla, diğer kanallardan gelen talebin alındığı aynı kanaldan teyit edilir. Hesabınız silindiğinde bu da size e-postayla bildirilir. Site'den verdiğiniz talep açık kaldığı sürece size kampanya, bülten veya doğum günü e-postası gibi ticari elektronik ileti gönderilmez.",
+          'Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık varsa, silme işlemi bu süreçlerin tamamlanmasının ardından uygulanır ve durum size bildirilir. Uygulamadan verdiğiniz silme talebi devam eden bir sipariş varsa hemen uygulanmaz; ekranda "devam eden siparişin var" uyarısı gösterilir ve sipariş tamamlandıktan sonra talebi yineleyebilirsiniz. Site\'den verdiğiniz talep ise açık kalır ve sipariş tamamlanınca uygulanır. Bu durumda da talebiniz otuz gün içinde yanıtlanır; silmenin hangi süreç nedeniyle ertelendiği ve ne zaman uygulanacağı size bildirilir.',
+          'Talebi geri alma: Site\'den verdiğiniz talebi, hesabınız silinene kadar aynı sayfadaki "Talebi geri al" düğmesiyle geri alabilirsiniz; e-posta veya posta ile verdiğiniz talebi aynı kanaldan geri alabilirsiniz. Geri alınan talep işleme konmaz ve hesabınız olduğu gibi kalır. Silinmiş bir hesap geri getirilemez; aynı adresle yeniden üye olabilirsiniz (bkz. 9. madde).',
         ],
       },
       {
@@ -10869,7 +11021,6 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Giriş kimliğiniz: site ve uygulama için ortak olan üyelik kimliği, kimlik doğrulama hizmeti sağlayıcısı nezdinde silinir; aynı e-posta ve parola ile bir daha bu hesaba girilemez. Teknik bir engel nedeniyle veya kimliğin silinmesine olanak vermeyen bir yapılandırma hâlinde kimlik silinemezse kimlik kalıcı olarak kapatılır ve o kimlikle yeniden üyelik açılamaz. Bu durumda kimliğe bağlı e-posta adresi, ad ve soyad, telefon numarası ile koşulların ve ticari elektronik ileti onayının kabul anları kimlik doğrulama hizmeti sağlayıcısında kalır; ekranda hesabınızın silindiği değil, kapatıldığı bildirilir ve bu verilerin silinmesini {{EMAIL}} adresinden isteyebilirsiniz.",
           "Bülten aboneliği kaydınız: adres, ad ve abonelik bilgileriyle birlikte tamamen silinir. Üyelik hesabınız üzerinden verdiğiniz bülten ve ticari elektronik ileti onaylarının ve bunların geri alınmasının kaydı ise 7. maddede belirtilen süre boyunca saklanır.",
           "Başarısız giriş denemesi sayaçlarınız: e-posta adresinizle birlikte tutulan deneme ve kilit kayıtları silinir.",
-          "Kayıtlı kartlarınız: kart saklama özelliği açık olduğu dönemde ödeme sayfasında kartınızı kaydetmeyi seçtiyseniz, kartınız bizde değil, ödeme hizmeti sağlayıcısı PayNkolay'ın kart saklama hizmetinde tutulur. Hesap kapatılırken Satıcı önce PayNkolay'dan üyeliğinize ait kayıtlı kartların silinmesini ister; ardından kartları üyeliğinizle eşleştirmek için tuttuğumuz rastgele müşteri anahtarını siler. Bu anahtar T.C. kimlik numaranızı, telefon numaranızı veya başka bir kişisel veriyi içermez. PayNkolay'a o anda ulaşılamasa da hesap kapatılır; kayıtlı kartlarınızın silinip silinmediğini {{EMAIL}} adresinden sorabilirsiniz.",
           "Davet kodunuz serbest bırakılır ve başka bir üyeye verilebilir hâle gelir.",
           "Kasa (barista) yetkisi: hesabınıza personel olarak kasa yetkisi tanımlanmışsa yetki kaydı silinir; yetkinin tanımlanmasına ve kaldırılmasına ilişkin kayıtlar yönetim paneli olay kaydında kalır (bkz. 7. madde).",
         ],
@@ -10939,8 +11090,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Biriken sadakat damgaları ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında bedel ödenmez.",
           "Kullanılmamış kuponlar geçersiz hâle gelir.",
-          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır.",
-          "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında uyarı gösterilir.",
+          "Gelecek tarihli karaoke rezervasyonlarınız iptal edilir ve salon başkasına açılır; saatine 2 saatten fazla olan ödenmiş rezervasyonlarınızın tutarı kartınıza iade edilir. Saatine 2 saatten az kalan ödenmiş rezervasyonlarda iade yapılmaz ve rezervasyon olduğu gibi kalır. Site'deki hesap silme sayfasından verdiğiniz talepte bu süre talebinizin kaydedildiği ana, talepten sonra yaptığınız bir rezervasyonda ise hesabınızın silindiği ana göre hesaplanır; talebiniz sırasında iade alacak olan bir rezervasyonun saati hesabınız silinmeden geçerse, oda kullanılmadıysa iade yine yapılır.",
+          "Silmeden önce kalan haklarınızı kullanmanız için uygulama içindeki onay ekranında ve Site'deki hesap silme sayfasında uyarı gösterilir.",
         ],
       },
       {
@@ -10962,7 +11113,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "11. Başvuru ve İtiraz",
         paragraphs: [
           "Silme talebinizin sonucundan memnun kalmazsanız, 6698 sayılı Kanun'un ilgili kişinin haklarını düzenleyen hükmü uyarınca veri sorumlusuna başvurabilirsiniz. Başvuru formu ve usulü {{SITE_URL}}/hukuk/kvkk-basvuru-formu adresindedir.",
-          "Başvurunuzun otuz gün içinde sonuçlandırılmaması veya cevabın yetersiz bulunması hâlinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunma hakkınız saklıdır.",
+          "Başvurunuzun reddedilmesi, verilen cevabın yetersiz bulunması veya otuz gün içinde cevap verilmemesi hâllerinde, cevabı öğrendiğiniz tarihten itibaren otuz gün ve her hâlde başvuru tarihinden itibaren altmış gün içinde Kişisel Verileri Koruma Kurulu'na şikâyette bulunabilirsiniz.",
         ],
         table: [
           { key: "Veri sorumlusu", value: "{{LEGAL_NAME}}" },
@@ -10977,6 +11128,15 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "odul-programi",
     title: "Sadakat (Damga) Programı Kuralları",
     shortTitle: "Ödül Programı",
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    // §12 and §23 ask that a change against the participant be announced
+    // first: removing the typed-address path is not one (no stamp, value,
+    // reward or threshold changes; a missed stamp is corrected on request),
+    // and it is announced in the app and by e-mail on the publish day
+    // (LEGAL-REDLINES §28.4, §28.5).
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
     summary:
       "{{BRAND}} sadakat programının kuralları: damga nasıl kazanılır, kart kaç damgada dolar, ücretsiz içecek kuponu nasıl alınır ve nerede kullanılır, iade hâlinde damgaya ne olur, kademeler ve davet ödülü nasıl işler.",
@@ -10989,7 +11149,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -11075,7 +11235,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Kasa Damgası",
             value:
-              "Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak veya üyelik e-posta adresi girilerek hesaba eklenen damga",
+              "Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak ya da elle girilerek hesaba eklenen damga",
           },
           {
             key: "Damga Defteri",
@@ -11168,7 +11328,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Kafede Kasada Damga Eklenmesi",
         paragraphs: [
-          "Kasa Damgası, personel tarafından Şirket'in yönetim panelinden eklenir. Katılımcı, Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık bir karekod ile sekiz karakterlik bir kod) personele gösterir; personel kodu okur veya elle girer. Kod okunamazsa damga, Katılımcı'nın üyelik e-posta adresi girilerek de eklenebilir. İşlem kasada, personelin kendi yetkili hesabı üzerinden yapılır. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; personel kendi koduna damga veremez. Her işlemde en fazla beş damga eklenebilir.",
+          "Kasa Damgası, personel tarafından Şirket'in yönetim panelinden eklenir. Katılımcı, Uygulama'daki kasa kodunu (iki dakika geçerli, tek kullanımlık bir karekod ile sekiz karakterlik bir kod) personele gösterir; personel kodu okur veya elle girer. Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez. İşlem kasada, personelin kendi yetkili hesabı üzerinden yapılır. Şirket'in panelden yetkilendirdiği bir personel, kendi üyelik hesabıyla açtığı Uygulama'daki kasa ekranından da kodu okuyarak veya yazarak damga ekleyebilir; personel kendi koduna damga veremez. Her işlemde en fazla beş damga eklenebilir.",
           "Katılımcı'dan bu işlem için karekod okutması istenmez: kodu personel kendi cihazıyla okutur. Uygulama, damga kazanmak amacıyla Katılımcı'nın kamerasına erişmez. Uygulama'daki kasa okuyucusu yalnızca Şirket'in kasa yetkisi verdiği personel hesaplarında açılır; okuyucuda görüntü kaydedilmez, yalnızca okunan kod sunucuya iletilir.",
           "Kasada eklenen her damga, işlemi yapan personelin kimliği ve işlem anı ile birlikte Damga Defteri'ne yazılır. Yanlışlıkla eklenen bir damga, aynı panelden bir düzeltme kaydı yazılarak geri alınabilir (bkz. 14. madde).",
           "Kasada eklenen damga, Uygulama'nın ödüller ekranındaki kart sayısına yansır.",
@@ -11245,6 +11405,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Kasada yanlışlıkla eklenen bir damga, personel tarafından aynı panelden geri alınabilir. Geri alma, kazanım kaydını silmez; Damga Defteri'ne bir düzeltme satırı yazılır ve düzeltmeyi yapan personel ile işlem anı kayda geçer.",
           "Düzeltme, Katılımcı'nın kullanılabilir damgası bulunmuyorsa yapılamaz; böylece tekrarlanan bir düzeltme, bakiyeyi eksiye düşürüp Katılımcı'nın sonradan hak ettiği bir kartı yutamaz.",
+          "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'ne yazılır.",
           "Katılımcı, hesabına işlenen veya hesabından düşülen damgalara ilişkin kayıtların dökümünü {{EMAIL}} adresine yapacağı talep üzerine alabilir ve itiraz edebilir (bkz. 21. madde).",
         ],
       },
@@ -11306,7 +11467,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "20. Kişisel Verilerin İşlenmesi",
         paragraphs: [
-          "Program kapsamında; üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, düzeltme, ödül), hareketin kaynağı (uygulama siparişi veya kasa) ve kasada işlem yapan personelin kimliği işlenir. Ayrıca hesaba tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kayıtları (davet eden, davet edilen, durum ve tarih) ile son 365 gündeki ödenmiş sipariş sayısından hesaplanan kademe işlenir. Kasada damga eklenirken personele Katılımcı'nın adı, maskelenmiş e-posta adresi ve kart durumu gösterilir (e-posta ile ekleme yolunda personel adresi kendisi yazar); damgayı ekleyen personelin hesabı kayda geçer. Kasa kodunun yalnızca özet değeri, geçerlilik süresi ve kullanıldığı an kaydedilir.",
+          "Program kapsamında; üyelik kimliği (e-posta adresi), damga hareketleri (kazanım, düzeltme, ödül), hareketin kaynağı (uygulama siparişi veya kasa) ve kasada işlem yapan personelin kimliği işlenir. Ayrıca hesaba tanımlanan ücretsiz içecek, kilometre taşı ve davet kuponları, davet kayıtları (davet eden, davet edilen, durum ve tarih) ile son 365 gündeki ödenmiş sipariş sayısından hesaplanan kademe işlenir. Kasada damga eklenirken personele Katılımcı'nın adı, maskelenmiş e-posta adresi ve kart durumu gösterilir; damgayı ekleyen personelin hesabı kayda geçer. Kasa kodunun yalnızca özet değeri, geçerlilik süresi ve kullanıldığı an kaydedilir.",
           "Bu verilerin işlenmesi, Programa katılımla kurulan sözleşmenin ifası ve Şirket'in hukuki yükümlülüklerini yerine getirmesi hukuki sebeplerine dayanır. Ayrıntı: {{SITE_URL}}/hukuk/kvkk-aydinlatma-metni.",
           "Program, Katılımcı'nın konum verisini veya reklam kimliğini kullanmaz; damga kazanımı için hiçbir cihaz izni istenmez ve Katılımcı'nın kamerası kullanılmaz. Uygulama'daki kasa okuyucusu (kamera) yalnızca Şirket'in kasa yetkisi verdiği personel hesaplarında açılır.",
           "Harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması Programın bir parçası değildir; böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır ve rıza her zaman geri alınabilir.",
@@ -11353,7 +11514,13 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "mobil-uygulama-kosullari",
     title: "Mobil Uygulama Kullanım Koşulları",
     shortTitle: "Mobil Uygulama",
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    updatedAt: "21 Ekim 2026",
     category: "Site & Üyelik",
+    // 18 Ekim 2026: §17 names the Site's request page beside e-mail, both
+    // answered within thirty days.
     summary:
       "{{BRAND}} iOS ve Android mobil uygulamasının indirilmesi ve kullanılmasına ilişkin son kullanıcı lisans ve kullanım koşulları; lisansın kapsamı, yasak kullanımlar, cihaz izinleri, cihazda planlanan hatırlatmalar, sadakat damgası ve sorumluluk sınırları düzenlenir.",
     references: [
@@ -11363,7 +11530,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Mesafeli Sözleşmeler Yönetmeliği (Resmî Gazete: 27.11.2014, sayı 29188)",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "6698 sayılı Kişisel Verilerin Korunması Kanunu",
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
@@ -11709,7 +11876,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Sadakat damgası, üyelik hesabına bağlı olarak kazanılan ve tek başına parasal karşılığı bulunmayan bir kayıttır. Damga bir ödeme aracı, elektronik para veya menkul kıymet değildir; nakde çevrilemez, üçüncü kişilere devredilemez, satılamaz ve başka bir hesaba aktarılamaz.",
           "Damga iki yoldan kazanılır: Uygulama üzerinden verilen ve ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişinin ödemesinin tamamlanması (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabına eklediği damga; kasada eklenen damga için tutar şartı aranmaz. Kart, Uygulama'da gösterilen hedef sayıda damga ile dolar (varsayılan altı) ve dolan kart, Kullanıcı'nın talebiyle bir ücretsiz içecek kuponuna çevrilir.",
-          "Kasada damga eklenirken Uygulama'nın gösterdiği kasa kodu (iki dakika geçerli ve tek kullanımlık karekod ile sekiz karakterlik kod) personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. Üye'nin cihazındaki Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
+          "Kasada damga eklenirken Uygulama'nın gösterdiği kasa kodu (iki dakika geçerli ve tek kullanımlık karekod ile sekiz karakterlik kod) personele gösterilir; personel kodu okutur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Üye'nin cihazındaki Uygulama bu amaçla kamera kullanmaz. Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir ve yanlışlıkla eklenen bir damga aynı yolla geri alınabilir.",
           "Şirket, panelden belirlediği üye hesaplarına (personel hesapları) Uygulama'da kasa ekranını açabilir. Bu ekran yalnızca yetki verilen hesapta görünür; yetki Şirket tarafından her zaman kaldırılabilir ve sunucu her okutmada yetkiyi yeniden denetler. Kasa ekranında kamera, üyenin kasa kodunu okumak için kullanılır; görüntü kaydedilmez, yalnızca okunan kodun metni sunucuya iletilir ve personele üyenin adı ile maskelenmiş e-posta adresi gösterilir. Her damga, işlemi yapan personel hesabıyla kaydedilir; personel kendi koduna damga veremez ve hatalı okutmalar sınırlandırılır. Bu ekranın kötüye kullanılması, Yasak Kullanımlar kapsamında yetkinin kaldırılmasına yol açabilir.",
           "Ücretsiz içecek kuponu yalnızca kafe siparişlerinde geçerlidir, tek kullanımlıktır ve tanımlandığı tarihten itibaren Uygulama'da gösterilen süre boyunca (varsayılan doksan gün) kullanılabilir. Kuponun karşıladığı tutar sipariş özetinde ve faturada indirim olarak gösterilir.",
           "Programın ayrıntılı kuralları {{SITE_URL}}/hukuk/odul-programi adresinde yayımlanır; çelişki hâlinde o metin esas alınır.",
@@ -11734,7 +11901,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "Ödeme tutarı hiçbir koşulda yalnızca cihazdan gelen veriye göre belirlenmez; sipariş tutarı sunucu tarafında güncel ürün fiyatı, vergi, kargo ve kupon indirimi üzerinden yeniden hesaplanır.",
           "Uygulama, Mağaza'ların uygulama içi satın alma sistemini kullanmaz; ödeme her hâlde PayNkolay üzerinden alınır.",
-          "Kart saklama özelliği açıldığında, üyeler ödeme sayfasında isteğe bağlı olarak 'Bu kartı sonraki ödemeler için kaydet' kutusunu işaretleyebilir; kutu işaretsiz gelir ve işaretlenmediği sürece kart kaydedilmez. Kayıtlı kart Şirket tarafından değil, PayNkolay'ın kart saklama hizmetinde tutulur; Şirket yalnızca PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı, rastgele üretilmiş ve kimlik veya telefon numarası içermeyen bir üye anahtarını saklar. Ödeme sayfasında kayıtlı kart son dört hanesi, kart markası veya bankası ve takma adıyla listelenir; kayıtlı kartla ödemede de 3D Secure zorunludur, üye kayıtlı kartını ödeme sayfasında dilediği zaman silebilir ve hesabını sildiğinde Şirket önce PayNkolay'dan kayıtlı kartlarının silinmesini ister. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
+          "Kart bilgileri sonraki ödemeler için kaydedilmez: Şirket kart bilgisi saklamaz, PayNkolay'dan da üyenin kartının saklanmasını istemez; her ödemede kart bilgileri yeniden girilir.",
           "Ödeme sayfası ve bankanın 3D Secure ekranı, Uygulama'dan açılan cihazın tarayıcı penceresinde tamamlanır; işlem bitince Uygulama'ya dönülür.",
           "Cayma hakkı, ayıplı mal, teslimat ve iade süreçleri bakımından {{SITE_URL}} adresinde yayımlanan İade ve Cayma ile Teslimat ve Kargo politikaları uygulanır.",
           "Ödeme ve iade süreçlerinde 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile ödeme hizmeti sağlayıcısının kuralları saklıdır.",
@@ -11786,9 +11953,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "17. Uygulamanın Kaldırılması ve Hesabın Silinmesi",
         paragraphs: [
           "Kullanıcı, Uygulama'yı dilediği zaman cihazından kaldırabilir. Uygulama'nın kaldırılması, cihazda saklanan geçici verileri siler; ancak üyelik hesabını ve sunucuda tutulan kayıtları tek başına sona erdirmez.",
-          "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca {{EMAIL}} adresine gönderilecek bir talep ile de hesap kapatılabilir.",
+          "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır.",
           "Hesap silme talebi alındığında Kullanıcı'ya işlemin sonuçları özetlenir ve teyit istenir. Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık bulunması hâlinde silme işlemi, bu süreçlerin tamamlanmasının ardından uygulanır ve durum Kullanıcı'ya bildirilir.",
-          "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; kart saklama özelliği açıksa Şirket üyenin kayıtlı kartlarının silinmesini önce PayNkolay'dan ister; adres defteri ve tercihler erişime kapatılır, ticari elektronik ileti onayı bulunuyorsa ret kaydı İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
+          "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; adres defteri ve tercihler erişime kapatılır, ticari elektronik ileti onayı bulunuyorsa ret kaydı İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
           "Saklama süresi dolan veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca ilk periyodik imha döneminde silinir, yok edilir veya anonim hâle getirilir.",
         ],
       },
@@ -11831,7 +11998,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "21. Kişisel Verilerin Korunması ve Gizlilik",
         paragraphs: [
           "{{LEGAL_NAME}}, Uygulama üzerinden işlenen kişisel veriler bakımından 6698 sayılı Kişisel Verilerin Korunması Kanunu anlamında veri sorumlusudur.",
-          "Uygulama kapsamında; kimlik ve iletişim bilgileri, üyelik ve sipariş bilgileri, teslimat ve fatura adresleri, ödeme işlem referansları, sadakat damgası ve kupon hareketleri (kasada eklenen damgalarda işlemi yapan personelin kimliği dâhil), istisnai iade durumunda iade için bildirilen banka hesap bilgisi ile isteklerin sunucuya ulaşmasıyla oluşan işlem güvenliği kayıtları (IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi, istek zamanı) işlenir.",
+          "Uygulama kapsamında; kimlik ve iletişim bilgileri, üyelik ve sipariş bilgileri, teslimat ve fatura adresleri, ödeme işlem referansları, sadakat damgası ve kupon hareketleri (kasada eklenen damgalarda işlemi yapan personelin kimliği dâhil), istisnai iade durumunda iade için veya başka bir kargo firmasıyla gönderilen iadenin gönderim bedelinin ödenmesi için bildirilen banka hesap bilgisi ile isteklerin sunucuya ulaşmasıyla oluşan işlem güvenliği kayıtları (IP adresi, cihazın işletim sisteminin eklediği istemci bilgisi, istek zamanı) işlenir.",
           "Uygulama; reklam tanımlayıcısı (IDFA/AAID), anlık bildirim (push) tokeni, konum, mikrofon, rehber ve çökme (crash) kaydı işlemez. Kamera ve fotoğraf arşivi yalnızca 9. maddede açıklanan fA'L ve personel kasa ekranı işlevlerinde kullanılır; kamera görüntüsü kaydedilmez. Hatırlatmalar cihazda planlanır ve sunucuya bildirilmez; oturum anahtarları ile menü, sepet ve tercih önbelleği cihazda kalır.",
           "Bu veriler; üyelik hesabının yönetilmesi, sipariş ve teslimat süreçlerinin yürütülmesi, ödeme işlemlerinin gerçekleştirilmesi, sadakat programının işletilmesi, hata giderme ve bilgi güvenliğinin sağlanması ile hukuki yükümlülüklerin yerine getirilmesi amaçlarıyla, Kanun'un veri işleme şartlarını düzenleyen hükümlerine dayanılarak işlenir.",
           "Harcama geçmişine dayalı profilleme ve kişiselleştirilmiş kampanya sunulması Uygulama'nın bir işlevi değildir. Böyle bir işleme yapılacak olması hâlinde ayrıca açık rıza alınır; rıza verilmemesi veya geri alınması, Uygulama'nın ve sadakat programının kullanılmasına engel değildir.",
@@ -11962,7 +12129,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "6769 sayılı Sınai Mülkiyet Kanunu",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik",
       "6102 sayılı Türk Ticaret Kanunu (haksız rekabete ilişkin hükümler)",
       "6098 sayılı Türk Borçlar Kanunu",
@@ -12538,7 +12705,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "{{SITE_URL}} adresini, {{BRAND}} mobil uygulamasını ve markayı işleten hizmet sağlayıcının unvan, adres, vergi, iletişim ve altyapı bilgilerini; müşteri hizmetleri kanallarını, resmî sosyal medya hesaplarını ve başvuru mercilerini sunar.",
     references: [
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
       "6102 sayılı Türk Ticaret Kanunu (m.1524 internet sitesi yükümlülüğü ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümler)",
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
@@ -12562,7 +12729,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "1. Amaç, Kapsam ve Yasal Dayanak",
         paragraphs: [
-          "Bu sayfa, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcının tanıtıcı bilgilerini; 6102 sayılı Türk Ticaret Kanunu'nun internet sitesi ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümleri uyarınca şirkete ait sicil ve iletişim verilerini; 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği kapsamında satıcının kimlik ve iletişim bilgilerini kamuya açık, doğrudan ve kesintisiz erişilebilir biçimde sunmak amacıyla hazırlanmıştır.",
+          "Bu sayfa, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ile Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik uyarınca hizmet sağlayıcının tanıtıcı bilgilerini; 6102 sayılı Türk Ticaret Kanunu'nun internet sitesi ve ticari belgelerde tanıtıcı bilgilere ilişkin hükümleri uyarınca şirkete ait sicil ve iletişim verilerini; 6502 sayılı Tüketicinin Korunması Hakkında Kanun ile Mesafeli Sözleşmeler Yönetmeliği kapsamında satıcının kimlik ve iletişim bilgilerini kamuya açık, doğrudan ve kesintisiz erişilebilir biçimde sunmak amacıyla hazırlanmıştır.",
           "Sayfa; {{SITE_URL}} adresinde yayımlanan internet sitesini ve iOS ile Android için yayımlanan {{BRAND}} mobil uygulamasını, bunlar üzerinden erişilen kafe menüsünü ve online mağaza (bottega) üzerinden yapılan fiziksel ürün satışlarını, üyelik, sadakat (damga) programı, sipariş süreçlerini, ödeme ve teslimat işleyişini ve bunlarla bağlantılı iletişim kanallarını kapsar.",
           "Burada yer alan bilgiler, sitede yayımlanan diğer hukuki metinlerin ayrılmaz bir parçası olup Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, Üyelik Sözleşmesi, Kullanım Şartları, Mobil Uygulama Kullanım Koşulları, Sadakat (Damga) Programı Kuralları, Ödeme Koşulları ve Sanal POS, İptal, İade ve Cayma Hakkı, Teslimat ve Kargo Koşulları, Garanti ve Ayıplı Mal, Çerez Politikası, Gizlilik Politikası, KVKK Aydınlatma Metni ile Kişisel Veri Saklama ve İmha Politikası belgeleriyle birlikte bir bütün oluşturur. Bir belgede satıcının, hizmet sağlayıcının veya veri sorumlusunun kimlik ve iletişim bilgilerine atıf yapıldığında bu sayfadaki bilgiler esas alınır. Belgelerin tam listesi ve adresleri 9. bölümde gösterilmiştir.",
           "Bu sayfada yer alan bilgiler tanıtıcı ve bilgilendirici niteliktedir; kendi başına bir satış sözleşmesi veya taahhütname teşkil etmez. Sözleşmesel hak ve yükümlülükler, siparişin verildiği anda yürürlükte olan Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi hükümlerine tabidir.",
@@ -12627,6 +12794,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "{{KEP}}",
           },
           {
+            key: "Kayıtlı olunan meslek odası",
+            value: "{{CHAMBER}}",
+          },
+          {
+            key: "Meslek odasının davranış kuralları",
+            value: "{{CHAMBER_RULES_URL}}",
+          },
+          {
             key: "Vergi dairesi",
             value: "{{TAX_OFFICE}}",
           },
@@ -12663,7 +12838,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kafe içinde 4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun uyarınca kapalı alanlarda tütün ürünü kullanımı yasaktır.",
           "Menüde yer alan ürünlerin alerjen bilgileri, Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği kapsamında menü kartlarında ve talep hâlinde personel tarafından bildirilir.",
           "İşletme, 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu kapsamında gıda işletmesi olarak faaliyet gösterir ve ilgili idari denetimlere tabidir.",
-          "Kafe içi hizmet, rezervasyon, grup ziyareti ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet ve Rezervasyon Koşulları belgesinde düzenlenmiştir; kafe içinde kişisel veri işlenmesini gerektiren bir uygulama bulunması hâlinde aydınlatma, işlemenin yapıldığı alanda ayrıca yapılır.",
+          "Kafe içi hizmet ve işletme kuralları /hukuk/kafe-hizmet-kosullari adresindeki Kafe Hizmet Koşulları belgesinde, karaoke odası rezervasyonu /hukuk/karaoke-odasi-rezervasyon adresindeki Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir; kafe içinde kişisel veri işlenmesini gerektiren bir uygulama bulunması hâlinde aydınlatma, işlemenin yapıldığı alanda ayrıca yapılır.",
           "Kafede yerinde yapılan satışlar mesafeli sözleşme değildir. Kafe menüsündeki ürünler mobil uygulama üzerinden sipariş edildiğinde mesafeli satış hükümleri uygulanır; cayma hakkına ilişkin kurallar /hukuk/iade-ve-cayma adresindeki İptal, İade ve Cayma Hakkı belgesinde düzenlenmiştir. İnternet sitesindeki kafe menüsü sayfaları yalnızca bilgilendirme amaçlıdır.",
         ],
         table: [
@@ -12695,7 +12870,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "Hafta içi 09:00 - 18:00",
           },
           {
-            key: "Rezervasyon ve etkinlik iletişimi",
+            key: "Karaoke rezervasyonu ve etkinlik iletişimi",
             value: "{{PHONE}} - {{EMAIL}}",
           },
         ],
@@ -12731,7 +12906,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Hedef kitle",
             value:
-              "Türkiye'de yerleşik tüketiciler ile sitede belirtilen kapsamda yurt dışı alıcılar",
+              "Türkiye'de yerleşik tüketiciler; online mağaza yalnızca Türkiye içindeki adreslere gönderim yapar",
           },
           {
             key: "Para birimi",
@@ -12740,7 +12915,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Fiyat gösterimi",
             value:
-              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı yüzde 20'dir",
+              "Tüm fiyatlar KDV dahil olarak gösterilir; uygulanan KDV oranı ürünün tabi olduğu yasal orandır",
           },
           {
             key: "Sipariş koşulu",
@@ -12859,7 +13034,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "7. Ödeme Altyapısı ve Ödeme Bilgileri",
         paragraphs: [
-          "Ödemeler, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. (PayNkolay) tarafından sağlanan sanal POS altyapısı üzerinden alınır. Kart numarası, son kullanma tarihi ve CVV gibi kart verileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli (TLS) bağlantıyla Şirketin sunucusuna ulaşır ve aynı istekte yalnızca PayNkolay'a iletilir. Şirket kart numarasını, son kullanma tarihini ve CVV'yi kaydetmez, saklamaz ve günlük kayıtlarına yazmaz; bu nedenle bu bilgiler Şirket personeli tarafından görüntülenemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz ve ödemeyi orada onaylarsınız. Kart saklama özelliği açıldığında ve yalnızca üyenin açık tercihiyle kaydedilen kart, Şirkette değil PayNkolay'ın kart saklama hizmetinde tutulur; Şirket kartı değil, yalnızca üyeyi PayNkolay nezdindeki kartlarla eşleştiren rastgele bir anahtarı saklar. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
+          "Ödemeler, 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. (PayNkolay) tarafından sağlanan sanal POS altyapısı üzerinden alınır. Kart numarası, son kullanma tarihi ve CVV gibi kart verileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli (TLS) bağlantıyla Şirketin sunucusuna ulaşır ve aynı istekte yalnızca PayNkolay'a iletilir. Şirket kart numarasını, son kullanma tarihini ve CVV'yi kaydetmez, saklamaz ve günlük kayıtlarına yazmaz; bu nedenle bu bilgiler Şirket personeli tarafından görüntülenemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilirsiniz ve ödemeyi orada onaylarsınız. Kart, sonraki ödemeler için PayNkolay nezdinde de kaydedilmez.",
           "Her kartlı ödemede 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ve ilgili düzenlemeler çerçevesinde 3D Secure doğrulaması uygulanır; doğrulama, kartı veren bankanın ekranında yapılır. Doğrulama tamamlanmazsa veya başarısız olursa ödeme alınmaz ve sipariş ödenmiş sayılmaz. Ödemeler tek çekim olarak alınır; taksit seçeneği sunulmamaktadır. Ön provizyon (tutarı önce bloke edip sonra tahsil etme) uygulanmaz; tutar, işlemi bankanın ekranında onayladığınız anda tahsil edilir. Kartınızdan yalnızca sipariş özetinde onayladığınız tutar tahsil edilir; sipariş tutarı hiçbir zaman istemci tarafından gönderilen veriye göre değil, sunucudaki güncel ürün fiyatlarına göre hesaplanır.",
           "Ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiye göre değil, Şirketin sunucusunun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir; sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödemesi alınmış sayılır. Aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa, Şirket ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. İade işlemleri PayNkolay'ın iptal ve iade hizmeti üzerinden, ödemenin yapıldığı karta yapılır; ödemeyle aynı gün yapılan iadeler işlemin iptali, sonraki günlerde yapılanlar iade olarak bankaya iletilir. Siparişin bir kısmının iadesinde de tutar ödemenin yapıldığı karta iade edilir; bunun teknik olarak mümkün olmadığı istisnai hâllerde size bilgi verilir ve iade tutarı, kendi adınıza kayıtlı bir banka hesabına yasal süre içinde havale veya EFT ile ödenir.",
           "Sadakat (damga) programında puanla ödeme yoktur; sipariş bedeli damga ile ödenemez. Siparişte ücretsiz içecek kuponu veya promosyon kodu kullanılmışsa karşıladığı tutar sipariş bedelinden düşülür ve karttan yalnızca kalan tutar tahsil edilir. Sipariş iptal edilirse siparişte kullanılan kupon hesaba yeniden tanımlanır; siparişin iptalinde veya tam iadesinde o siparişten kazanılan damga geri alınır. Kuponla karşılanan kısım için hiçbir hâlde nakit ödeme yapılmaz; karttan tahsil edilen tutar ise ödemenin yapıldığı karta iade edilir.",
@@ -12908,7 +13083,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "KDV oranı",
-            value: "Yüzde 20 (fiyatlara dahil)",
+            value: "Ürünün tabi olduğu yasal oran (fiyatlara dahil)",
           },
           {
             key: "İade süresi",
@@ -13002,6 +13177,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "/hukuk/mesafeli-satis-sozlesmesi",
           },
           {
+            key: "İşlem Rehberi",
+            value: "/hukuk/islem-rehberi",
+          },
+          {
             key: "İptal, İade ve Cayma Hakkı",
             value: "/hukuk/iade-ve-cayma",
           },
@@ -13046,7 +13225,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
             value: "/hukuk/fikri-mulkiyet",
           },
           {
-            key: "Kafe Hizmet ve Rezervasyon Koşulları",
+            key: "Kafe Hizmet Koşulları",
             value: "/hukuk/kafe-hizmet-kosullari",
           },
           {
@@ -13280,8 +13459,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Faturalama ve Vergisel Bilgiler",
         paragraphs: [
-          "Tüm satışlar için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca fatura düzenlenir. Fatura türü, Şirketin mükellefiyet durumuna ve mevzuata göre belirlenir. Fatura talepleriniz ve fatura örneği isteğiniz için {{EMAIL}} adresine başvurabilirsiniz.",
-          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura talep ediyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş öncesinde eksiksiz girmeniz gerekir; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
+          "İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz.",
+          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
           "İade ve cayma hâllerinde, faturanın iade bölümünün doldurulup imzalanarak Şirkete ulaştırılması veya mükellef alıcılar bakımından iade faturası düzenlenmesi gerekebilir. Bu, muhasebe kaydının kapatılabilmesi için gerekli usuli bir adımdır; belge eksikliği cayma hakkınızın kullanımını ve iade süresini etkilemez.",
         ],
         table: [
@@ -13304,15 +13483,21 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Fatura türü",
             value:
-              "Mevzuata uygun fatura (türü Şirketin mükellefiyet durumuna göre belirlenir)",
+              "e-Arşiv fatura; e-Fatura kullanıcısı olan alıcılara e-Fatura",
           },
           {
             key: "Fatura iletim yöntemi",
-            value: "Fatura örneği talebi üzerine {{EMAIL}} adresi üzerinden",
+            value:
+              "e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir (kargoyla gönderilen siparişlerde ürün kargoya verildiği anda, diğer siparişlerde ve karaoke odası rezervasyonlarında teslimden ya da hizmetin verildiği günden itibaren en geç 7 gün içinde); e-Fatura, e-Fatura sistemi üzerinden iletilir",
+          },
+          {
+            key: "Koliyle gönderilen belge",
+            value:
+              "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
           },
           {
             key: "KDV oranı",
-            value: "Yüzde 20",
+            value: "Ürünün ve hizmetin tabi olduğu yasal oran",
           },
           {
             key: "Fatura ile ilgili talepler",
@@ -13477,7 +13662,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun",
       "5464 sayılı Banka Kartları ve Kredi Kartları Kanunu",
       "6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun",
@@ -13839,7 +14024,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "11. Ödeme, Kart ve Ücret İtirazına İlişkin Şikâyetler",
         paragraphs: [
           "Ödeme işlemleri, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Ödeme ve Menkul Kıymet Mutabakat Sistemleri, Ödeme Hizmetleri ve Elektronik Para Kuruluşları Hakkında Kanun kapsamında faaliyet gösteren elektronik para kuruluşu N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş. (PayNkolay) aracılığıyla gerçekleştirilir. Kart numarası, son kullanma tarihi ve CVV/CVC gibi kart verileri {{SITE}} üzerindeki güvenli ödeme sayfasında girilir (mobil uygulamada bu sayfa cihazın tarayıcı penceresinde açılır); bu bilgiler şifreli bağlantıyla {{LEGAL_NAME}} sunucusuna ulaşır ve aynı istekte yalnızca PayNkolay'a iletilir. Bu bilgiler tarafımızca kaydedilmez, saklanmaz ve günlük kayıtlarına yazılmaz. Her kartlı ödemede 3D Secure doğrulaması uygulanır ve doğrulamayı kartı veren bankanın ekranında onaylarsınız. Ödemeler tek çekim olarak alınır; taksit seçeneği sunulmamaktadır.",
-          "Ödeme tutarı hiçbir zaman tarayıcınızdan veya mobil uygulamanızdan gelen veriye göre belirlenmez. Sipariş toplamı, sunucu tarafında ürün kaydındaki güncel fiyat, geçerli promosyon kodu veya kupon, KDV oranı (%20) ve siparişte uygulanan kargo veya kurye bedeli esas alınarak yeniden hesaplanır ve tahsil edilecek tutar PayNkolay'a bu hesap üzerinden bildirilir. Ekranda gördüğünüz tutar ile ekstrenize yansıyan tutar arasında fark olduğunu düşünüyorsanız, bu farkın kaynağı tarafımızca sipariş ve ödeme işlem kaydı üzerinden incelenir ve size yazılı olarak açıklanır.",
+          "Ödeme tutarı hiçbir zaman tarayıcınızdan veya mobil uygulamanızdan gelen veriye göre belirlenmez. Sipariş toplamı, sunucu tarafında ürün kaydındaki KDV dahil güncel fiyat, geçerli promosyon kodu veya kupon ve siparişte uygulanan kargo veya kurye bedeli esas alınarak yeniden hesaplanır ve tahsil edilecek tutar PayNkolay'a bu hesap üzerinden bildirilir. Ekranda gördüğünüz tutar ile ekstrenize yansıyan tutar arasında fark olduğunu düşünüyorsanız, bu farkın kaynağı tarafımızca sipariş ve ödeme işlem kaydı üzerinden incelenir ve size yazılı olarak açıklanır.",
           "Ödeme uyuşmazlıklarında muhatap ayrımı önem taşır. Sipariş, ürün, teslimat, cayma ve iade kararının muhatabı satıcı olarak {{LEGAL_NAME}}'dir; ödeme işleminin teknik olarak gerçekleştirilmesi, işlem kaydının tutulması ve tarafımızca verilen iade talimatının bankaya iletilmesi ödeme hizmeti sağlayıcısı PayNkolay'ın sorumluluğundadır; kartın limiti, 3D Secure doğrulaması, iadenin ekstreye yansıma süresi ve kart hamili itirazı (chargeback) süreci ise kartı veren bankanın işleyişine tabidir. Hangi aşamada olursa olsun, sizi kurumlar arasında dolaştırmayız: başvurunuzu bize ilettiğinizde PayNkolay ve kartı veren banka nezdindeki takibi biz yürütür, sonucu size yazılı olarak bildiririz.",
           "Ödeme sonucu, tarayıcıdan veya uygulamadan dönen bilgiyle değil, sunucumuzun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir; sipariş yalnızca sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır. Aynı işlem referansı ikinci kez kaydedilemediği için mükerrer kayıt oluşmaz. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa, ödenmemiş görünen sipariş iptal edilmeden önce ödemenin durumu PayNkolay'a sorulur. Bu nedenle 'ödeme yaptım ama siparişim görünmüyor' bildirimlerinde işlem referansı üzerinden eşleştirme yapılır ve tahsil edilmiş bir tutar karşılıksız kalmaz.",
           "Tutar, ödeme sayfasında işlemi bankanızın ekranında onayladığınız anda tahsil edilir; ön provizyon (tutarı önce bloke edip sonra tahsil etme) yöntemi kullanılmaz. Ödeme tamamlanmadığı hâlde kartınızda geçici bir tutar görünüyorsa bu, bankanızın kendi işleyişinden kaynaklanır ve çözülmesi kartı veren bankaya bağlıdır; ilgili işlem kaydını talebiniz hâlinde sizinle paylaşırız.",
@@ -13964,7 +14149,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Ticaret Bakanlığı Tüketicinin Korunması ve Piyasa Gözetimi Genel Müdürlüğü: 6502 sayılı Kanun ve ikincil mevzuata aykırılık iddialarınızı e-Devlet üzerinden veya ilgili il ticaret müdürlüğüne iletebilirsiniz.",
           "ALO 175 Tüketici Danışma Hattı: Haklarınız ve başvuru usulleri hakkında ücretsiz bilgi almak için kullanabileceğiniz Ticaret Bakanlığı danışma hattıdır.",
           "Reklam Kurulu: Yanıltıcı, aldatıcı veya haksız ticari uygulama niteliğindeki reklam ve tanıtımlara ilişkin şikâyetler için.",
-          "Ticaret Bakanlığı - elektronik ticaret ve ticari elektronik ileti şikâyetleri: 6563 sayılı Kanun ve Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamındaki yükümlülüklere aykırılık iddiaları için.",
+          "Ticaret Bakanlığı - elektronik ticaret ve ticari elektronik ileti şikâyetleri: 6563 sayılı Kanun ve Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik kapsamındaki yükümlülüklere aykırılık iddiaları için.",
           "Kişisel Verileri Koruma Kurumu: Kişisel verilerin korunmasına ilişkin şikâyetler için; Kurul'a şikâyet öncesinde veri sorumlusuna başvuru şartı aranır.",
           "Tarım ve Orman Bakanlığı ALO 174 Gıda Hattı: Gıda güvenliği, etiketleme ve hijyene ilişkin bildirimler için.",
           "Bankacılık Düzenleme ve Denetleme Kurumu ile Türkiye Bankalar Birliği: Banka ve kart kuruluşu kaynaklı uyuşmazlıklarda, önce bankaya başvurulması koşuluyla.",
@@ -14096,11 +14281,18 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
   },
   {
     slug: "kafe-hizmet-kosullari",
-    title: "Kafe Hizmet ve Rezervasyon Koşulları",
+    title: "Kafe Hizmet Koşulları",
     shortTitle: "Kafe Koşulları",
+    // 19 Ekim 2026: the karaoke rules live in the karaoke terms only (§1,
+    // §4, §5), events follow İade ve Cayma §21 (§6), and the access notice
+    // holds a table for 15 minutes (§20). LEGAL-REDLINES §17.
+    // 21 Ekim 2026: at the till a stamp goes only to the member's own
+    // code; no stamp by typed e-mail, a missed one is corrected by a
+    // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
+    updatedAt: "21 Ekim 2026",
     category: "Kurumsal",
     summary:
-      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
+      "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
     references: [
       "6502 sayılı Tüketicinin Korunması Hakkında Kanun",
       "Mesafeli Sözleşmeler Yönetmeliği (RG: 27.11.2014, 29188)",
@@ -14129,10 +14321,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "1. Taraflar, Belgenin Konusu ve Kapsamı",
         paragraphs: [
-          'İşbu Kafe Hizmet ve Rezervasyon Koşulları (bundan sonra "Koşullar" olarak anılacaktır), {{BRAND}} markası altında işletilen fiziki kafe işletmesinde yerinde sunulan yiyecek-içecek hizmetine, masa rezervasyonuna, karaoke odası rezervasyonuna, mobil uygulamadan verilen kafe siparişlerine, özel etkinlik ve tasting masası organizasyonlarına ve işletme içinde uyulması gereken kurallara ilişkin usul ve esasları düzenlemek amacıyla hazırlanmıştır.',
+          'İşbu Kafe Hizmet Koşulları (bundan sonra "Koşullar" olarak anılacaktır), {{BRAND}} markası altında işletilen fiziki kafe işletmesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, mobil uygulamadan verilen kafe siparişlerine, özel etkinlik ve tasting masası organizasyonlarına ve işletme içinde uyulması gereken kurallara ilişkin usul ve esasları düzenlemek amacıyla hazırlanmıştır.',
           'İşletmenin sahibi ve işleticisi; {{ADDRESS}} adresinde mukim, {{TAX_OFFICE}} nezdinde {{TAX_NO}} vergi kimlik numarası ile kayıtlı {{LEGAL_NAME}} unvanlı limited şirkettir (bundan sonra "Şirket", "{{SHORT_NAME}}" veya "İşletme" olarak anılacaktır). {{BRAND}}, Şirket tarafından işletilen kahve ve gelato bar işletmesinin ticari markasıdır. Şirketin işe başlama tarihi {{STARTED_AT}} olarak vergi dairesi kayıtlarında yer almaktadır.',
-          'İşletmeyi ziyaret eden, işletmede yiyecek-içecek hizmeti alan, masa rezervasyonu talebinde bulunan, işletmede düzenlenen özel etkinlik, atölye ya da tasting programlarına katılan veya {{BRAND}} mobil uygulaması üzerinden karaoke odası rezervasyonu, kafe siparişi, üyelik ve sadakat programı işlemi yapan her gerçek veya tüzel kişi (bundan sonra "Misafir" veya "Siz") işbu Koşulların muhatabı sayılır ve burada düzenlenen kurallarla bağlı olur. Rezervasyon talebinde bulunulması, rezervasyon onayının kabul edilmesi, mobil uygulamadan kafe siparişi verilmesi veya işletmede hizmet alınması işbu Koşulların okunduğu ve kabul edildiği anlamına gelir.',
-          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, masa rezervasyonuna, karaoke odası rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına, mobil uygulamadan verilen kafe siparişlerine ve sadakat programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. Karaoke odası rezervasyonu mesafeli hizmet sözleşmesi niteliğindedir; iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde ve bu Koşulların 5, 8 ve 9. maddelerindeki karaoke hükümlerinde düzenlenir. Mobil uygulamadan verilen kafe siparişleri de mesafeli sözleşme niteliğindedir; bu siparişlere Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve İptal, İade ve Cayma Hakkı metni ile birlikte işbu Koşulların 11, 12 ve 14. maddeleri uygulanır; kafe siparişleri bakımından cayma hakkı ve iptal esasları İptal, İade ve Cayma Hakkı metninde ayrıca düzenlenmiştir. İnternet sitesindeki menü sayfası yalnızca bilgilendirme amacı taşır; internet sitesi üzerinden kafe siparişi alınmaz. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
+          'İşletmeyi ziyaret eden, işletmede yiyecek-içecek hizmeti alan, işletmede düzenlenen özel etkinlik, atölye ya da tasting programlarına katılan veya {{BRAND}} mobil uygulaması üzerinden karaoke odası rezervasyonu, kafe siparişi, üyelik ve sadakat programı işlemi yapan her gerçek veya tüzel kişi (bundan sonra "Misafir" veya "Siz") işbu Koşulların muhatabı sayılır ve burada düzenlenen kurallarla bağlı olur. Bu Koşulları işletme girişinde ve {{SITE_URL}}/hukuk/kafe-hizmet-kosullari adresinde inceleyebilirsiniz.',
+          "İşbu Koşullar; işletme içinde yerinde sunulan hizmete, karaoke odası rezervasyonuna, {{BRAND}} mobil uygulamasının kafe hizmetine ilişkin kullanımına, mobil uygulamadan verilen kafe siparişlerine ve sadakat programına ilişkindir. {{SITE_URL}} adresindeki web sitesi ve {{BRAND}} mobil uygulaması üzerindeki online mağaza (bottega) aracılığıyla yapılan fiziksel ürün satışlarına Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi, İptal ve İade Koşulları ile Teslimat ve Kargo Koşulları uygulanır. Karaoke odası rezervasyonu mesafeli hizmet sözleşmesi niteliğindedir; iptal, iade ve gelmeme kuralları yalnızca Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenir. Mobil uygulamadan verilen kafe siparişleri de mesafeli sözleşme niteliğindedir; bu siparişlere Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi ve İptal, İade ve Cayma Hakkı metni ile birlikte işbu Koşulların 7, 8 ve 10. maddeleri uygulanır; kafe siparişleri bakımından cayma hakkı ve iptal esasları İptal, İade ve Cayma Hakkı metninde ayrıca düzenlenmiştir. İnternet sitesindeki menü sayfası yalnızca bilgilendirme amacı taşır; internet sitesi üzerinden kafe siparişi alınmaz. İşletmede yerinde satın alınan paket ürünler bakımından ise mesafeli sözleşme hükümleri değil, yüz yüze kurulan satış sözleşmesine ilişkin genel hükümler geçerlidir.",
           "İşbu Koşullar; Gizlilik ve Kişisel Verilerin Korunması Politikası, Aydınlatma Metni, Çerez Politikası, Kullanım Şartları ve sitede yayımlanan diğer politika metinleriyle bir bütün oluşturur. Her hâlükârda 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili mevzuatın tüketici lehine emredici hükümleri saklıdır; işbu Koşulların hiçbir hükmü, tüketicinin kanundan doğan haklarını sınırlandıracak, ortadan kaldıracak veya kullanılmasını güçleştirecek biçimde yorumlanamaz. Böyle bir sonuç doğuran hüküm bulunması hâlinde, o hüküm yazılmamış sayılır ve Koşulların geri kalanı geçerliliğini korur.",
         ],
       },
@@ -14144,14 +14336,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         bullets: [
           "İşletme: {{LEGAL_NAME}} tarafından {{BRAND}} markası altında {{ADDRESS}} adresinde işletilen kahve ve gelato bar.",
           "Misafir: İşletmeyi ziyaret eden, hizmet alan veya rezervasyon talebinde bulunan gerçek ya da tüzel kişi.",
-          "Rezervasyon: Belirli bir tarih ve saat aralığı için, belirli sayıda kişi adına masa tahsis edilmesine yönelik talep ve bu talebin İşletme tarafından onaylanması.",
-          "Rezervasyon Onayı: İşletmenin, talebi kabul ettiğini tarih, saat, kişi sayısı ve varsa özel koşulları belirterek elektronik posta, telefon veya (karaoke odası talepleri için) mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit.",
-          "Masa Tutma Toleransı: Rezervasyon saatinden itibaren masanın Misafir adına bekletildiği azami süre.",
-          "No-Show: Rezervasyonu bulunan Misafirin, önceden iptal bildiriminde bulunmaksızın rezervasyon saatinde ve tolerans süresi içinde işletmeye gelmemesi.",
-          "Grup Rezervasyonu: Sekiz (8) veya daha fazla kişi için oluşturulan rezervasyon.",
+          "Rezervasyon: Karaoke odasının belirli bir gün ve saat aralığı için ayrılması.",
+          "Rezervasyon Onayı: Talep olarak iletilen karaoke odası rezervasyonunu İşletmenin kabul ettiğini tarih, saat ve kişi sayısını belirterek elektronik posta ve mobil uygulamadaki bildirim kutusu yoluyla bildirdiği teyit. Çevrim içi ödenen rezervasyon ise ödemenin onaylanmasıyla kendiliğinden kesinleşir.",
           "Özel Etkinlik: Tasting masası, kahve veya gelato atölyesi, özel menü akşamı, kutlama ya da kurumsal organizasyon gibi belirli bir tarihte ve saatte ifa edilmek üzere planlanan programlar.",
-          "Ön Ödeme (Kapora): Grup rezervasyonu veya özel etkinlik için, rezervasyonun kesinleşmesi amacıyla önceden tahsil edilen ve hizmet bedeline mahsup edilen tutar.",
-          "Minimum Harcama: Grup rezervasyonlarında masa başına veya kişi başına taahhüt edilen asgari tüketim tutarı.",
+          "Ön Ödeme (Kapora): Özel etkinlik için, katılımın kesinleşmesi amacıyla önceden tahsil edilen ve hizmet bedeline mahsup edilen tutar.",
           "Menü: İşletmede sunulan yiyecek ve içeceklerin adı, içeriği ve fiyatının yer aldığı basılı veya dijital liste.",
           "Alerjen: Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde sayılan, alerjiye veya intoleransa neden olabilen madde ve ürünler.",
           "Kapalı Alan: 4207 sayılı Kanun anlamında tavanı ve yanları kapalı olan, tütün ürünü tüketiminin yasak olduğu iç mekân.",
@@ -14167,7 +14355,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading: "3. İşletme Bilgileri, Konum ve Yapının Niteliği",
         paragraphs: [
           "{{BRAND}}, İstanbul Tuzla'da yer alan yaklaşık iki yüz yıllık, restore edilmiş tarihi bir köşk yapısında faaliyet göstermektedir. İşletmenin marka hikâyesi Bologna kökenli bir affogato geleneğine dayanmakta olup, bu hikâye markanın kimliğine ilişkin anlatısal bir unsurdur ve hukuki bir taahhüt oluşturmaz.",
-          "Yapının tarihi niteliği nedeniyle iç mekân düzeni, masa yerleşimi, tavan yüksekliği, merdiven ve geçiş genişlikleri gibi fiziki unsurlar sınırlıdır ve serbestçe değiştirilememektedir. Bu durum, oturma düzeni tercihleri, tekerlekli sandalye erişimi ve büyük grupların yerleştirilmesi bakımından pratik kısıtlar doğurabilir. İşletme, bu kısıtları rezervasyon aşamasında şeffaf biçimde bildirmeyi ve mümkün olan en uygun çözümü sunmayı taahhüt eder.",
+          "Yapının tarihi niteliği nedeniyle iç mekân düzeni, masa yerleşimi, tavan yüksekliği, merdiven ve geçiş genişlikleri gibi fiziki unsurlar sınırlıdır ve serbestçe değiştirilememektedir. Bu durum, oturma düzeni tercihleri, tekerlekli sandalye erişimi ve büyük grupların yerleştirilmesi bakımından pratik kısıtlar doğurabilir. İşletme, bu kısıtları talep hâlinde şeffaf biçimde bildirmeyi ve mümkün olan en uygun çözümü sunmayı taahhüt eder.",
           "İşletmenin güncel adresi, telefon numarası, elektronik posta adresi ve iletişim kanalları işbu Koşulların son maddesinde, {{SITE_URL}} adresinde ve {{BRAND}} mobil uygulamasında yayımlanır. Adres değişikliği hâlinde güncel bilgi aynı kanallardan ilan edilir.",
         ],
         table: [
@@ -14230,138 +14418,40 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "İşletmenin güncel açılış ve kapanış saatleri {{SITE_URL}} adresindeki ziyaret sayfasında, {{BRAND}} mobil uygulamasında, işletme girişinde ve {{HANDLE}} kullanıcı adlı sosyal medya hesaplarında ilan edilir. İlan edilen saatler haftanın günlerine göre farklılık gösterebilir; sipariş kabulü, mutfak servisi ve son sipariş saati kapanış saatinden önce sona erebilir.",
           "Resmî ve dinî bayramlar, yılbaşı, özel gün programları, bakım-onarım çalışmaları, envanter günleri, özel kapalı etkinlikler ve personel eğitim günlerinde çalışma saatleri değiştirilebilir veya işletme geçici olarak hizmete kapatılabilir. Bu tür değişiklikler, öngörülebilir olduğu ölçüde en az kırk sekiz (48) saat önceden internet sitesinde, mobil uygulamada ve sosyal medya hesaplarında duyurulur.",
-          "Olağanüstü hava koşulları, elektrik veya su kesintisi, doğal gaz arızası, altyapı sorunu, resmî makam kararı, güvenlik tedbiri veya benzeri öngörülemeyen sebeplerle işletme önceden duyuru yapılamaksızın geçici olarak kapatılabilir. Böyle bir durumda ilgili tarihe ait onaylı rezervasyonlar için Misafirlere mümkün olan en kısa sürede bilgi verilir; alınmış ön ödeme varsa 8. maddede düzenlenen esaslara göre iade edilir veya Misafirin tercihine göre yeni bir tarihe aktarılır.",
+          "Olağanüstü hava koşulları, elektrik veya su kesintisi, doğal gaz arızası, altyapı sorunu, resmî makam kararı, güvenlik tedbiri veya benzeri öngörülemeyen sebeplerle işletme önceden duyuru yapılamaksızın geçici olarak kapatılabilir. Böyle bir durumda ilgili tarihe ait karaoke odası rezervasyonları ve etkinlik kayıtları için Misafirlere mümkün olan en kısa sürede bilgi verilir; alınmış ödeme varsa Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi ile 6. maddede düzenlenen esaslara göre iade edilir veya Misafirin tercihine göre yeni bir tarihe aktarılır.",
           "Belirli bir menü kaleminin veya hizmetin (örneğin günlük demleme kahve seçkisi, mevsimlik gelato çeşidi, kahvaltı servisi) sunulduğu saat aralıkları menüde ayrıca belirtilir. Stok tükenmesi hâlinde ilgili kalem, gün içinde servis dışı bırakılabilir.",
         ],
         bullets: [
           "Güncel çalışma saatleri için birincil kaynak {{SITE_URL}} adresindeki ziyaret sayfası ve mobil uygulamadır.",
           "Bayram ve özel gün programlarında özel menü uygulanabilir; bu durum önceden ilan edilir.",
           "Son sipariş saati, kapanış saatinden önce olacak şekilde işletme içinde duyurulur.",
-          "Geçici kapanışlarda onaylı rezervasyon sahiplerine {{PHONE}} numarasından veya {{EMAIL}} adresinden bilgi verilir.",
+          "Geçici kapanışlarda karaoke odası rezervasyonu veya etkinlik kaydı bulunan Misafirlere {{PHONE}} numarasından veya {{EMAIL}} adresinden bilgi verilir.",
         ],
       },
       {
-        heading: "5. Rezervasyon Talebi, Onayı ve Doğrulanması",
+        heading: "5. Karaoke Odası Rezervasyonu",
         paragraphs: [
-          "Masa rezervasyonu; {{PHONE}} numaralı telefon veya {{EMAIL}} adresine gönderilecek elektronik posta yoluyla talep edilebilir. Masa rezervasyonu için {{BRAND}} mobil uygulamasında veya internet sitesinde çevrim içi bir rezervasyon formu bulunmamaktadır. Sosyal medya hesapları üzerinden iletilen mesajlar bilgilendirme amaçlıdır ve tek başına geçerli bir rezervasyon talebi oluşturmaz.",
-          "Rezervasyon, talebin İşletme tarafından açıkça onaylanmasıyla kurulur. Talebin iletilmiş olması tek başına masa tahsisi hakkı doğurmaz. Onay; tarih, saat, kişi sayısı, tahsis edilen süre ve varsa minimum harcama, ön ödeme, özel menü gibi ek koşulları içerecek şekilde elektronik posta veya telefon ile bildirilir; karaoke odası taleplerinde onay ayrıca mobil uygulamadaki bildirim kutusunda gösterilir. Çevrim içi ödenen karaoke odası rezervasyonu bu kuralın dışındadır: ödemenin onaylanmasıyla kendiliğinden kurulur (5. madde).",
-          "Karaoke odası, masa rezervasyonundan ayrı olarak, {{BRAND}} mobil uygulaması veya {{SITE_URL}} adresindeki karaoke sayfası üzerinden ayrılır; bu rezervasyonun ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır. Kart bilgileri internet sitemizin kendi ödeme sayfasında girilir, bankanın 3D Secure ekranında onaylanır ve İşletme tarafından saklanmaz. Rezervasyon, ödeme onaylanana kadar yalnızca ödeme sayfasının açık kaldığı süre boyunca (30 dakika) sizin için tutulan bir ön kayıttır; ödemenizin onaylanmasıyla kendiliğinden kesinleşir. Ödemesi alınmamış rezervasyonu personel de onaylayamaz ve süresi dolan ön kayıt düşer. Üyeler e-posta adresi doğrulanmış hesaplarıyla; üye olmak istemeyenler internet sitesinde adını, soyadını, cep telefonunu ve e-posta adresini yazarak rezervasyon yapabilir. Üyeliksiz rezervasyon sahibine e-posta ile kişiye özel bir bağlantı gönderilir; rezervasyon bu bağlantıdan görüntülenir ve iptal edilir. Üyelerin rezervasyonları hesaplarındaki Karaoke rezervasyonlarım bölümünde görünür. Gün, saat, süre, kişi sayısı ve aynı anda açık tutulabilecek rezervasyon sayısına ilişkin sınırlar rezervasyon ekranında gösterilir ve zaman zaman değiştirilebilir. Çevrim içi ödeme geçici olarak kapalıysa veya rezervasyon mobil uygulamanın eski bir sürümünden verilirse rezervasyon yalnızca talep olarak iletilir; bu hâlde üyelik girişi ve doğrulanmış bir e-posta adresi gerekir, talep İşletme personeli onaylayana kadar yalnızca bir taleptir, onay veya iptal kararı e-posta ve uygulamadaki bildirim kutusu ile bildirilir ve bedel işletmede ödenir. Karaoke odası rezervasyonunun iptal, iade ve gelmeme kuralları 8. maddede ve Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde düzenlenmiştir. Bu Koşulların grup rezervasyonu, minimum harcama ve ön ödeme hükümleri (7. madde) masa rezervasyonlarına ilişkindir ve karaoke odası rezervasyonları bakımından uygulanmaz.",
-          "Rezervasyon talebi sırasında ad-soyad, iletişim telefonu ve elektronik posta adresi istenir. Bu veriler yalnızca rezervasyonun oluşturulması, teyidi, hatırlatılması ve gerektiğinde iptal bildiriminin yapılması amacıyla işlenir; işlemenin hukuki dayanağı ve saklama süreleri Aydınlatma Metni ile Veri Saklama ve İmha Politikasında açıklanmıştır. Üye olmadan karaoke rezervasyonu yapan kişinin bu bilgileri yalnızca rezervasyon kaydında tutulur; onun adına üyelik hesabı açılmaz.",
-          "İşletme, doluluk, masa kapasitesi, personel durumu, özel etkinlik programı veya benzeri işletmesel gerekçelerle rezervasyon talebini kabul etmeme hakkını saklı tutar. Talebin reddi, hiçbir şekilde dil, din, ırk, etnik köken, cinsiyet, cinsel yönelim, engellilik, yaş veya benzeri kişisel özelliklere dayandırılamaz.",
-          "Rezervasyonlar, onayda belirtilen kişi adına ve belirtilen kişi sayısı için geçerlidir. Kişi sayısındaki artış talepleri, masa kapasitesi elverdiği ölçüde ve önceden bildirilmesi kaydıyla karşılanabilir; bildirilmeden gelen ilave misafirler için masa tahsisi garanti edilmez.",
-        ],
-        ordered: [
-          "Tercih ettiğiniz tarih, saat ve kişi sayısını telefon veya elektronik posta yoluyla iletin.",
-          "Varsa özel taleplerinizi (alerji bilgisi, bebek sandalyesi, doğum günü kutlaması, tekerlekli sandalye erişimi, evcil hayvan) aynı aşamada bildirin.",
-          "İşletmeden gelen rezervasyon onayını bekleyin; onay ulaşmadan rezervasyon kesinleşmez.",
-          "Grup rezervasyonu veya özel etkinlik söz konusuysa, bildirilen ön ödeme tutarını onayda belirtilen süre içinde ödeyin.",
-          "Rezervasyon gününden önce İşletmenin hatırlatma veya teyit için sizinle iletişime geçmesi hâlinde teyit verin; değişiklik talebinizi dilediğiniz zaman iletin.",
-          "Rezervasyon saatinde işletmede hazır bulunun ve girişte rezervasyon adınızı bildirin.",
+          "İşletmede masa ve grup rezervasyonu alınmaz. Bu kural, 20. maddede düzenlenen erişim ihtiyacına yönelik ön bildirimi kapsamaz. Rezervasyon yalnızca karaoke odası için yapılır; karaoke odası rezervasyonuna Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi uygulanır, bu madde yalnızca rezervasyon kanallarını açıklar.",
+          "Karaoke odası, {{BRAND}} mobil uygulaması veya {{SITE_URL}} adresindeki karaoke sayfası üzerinden ayrılır; bu rezervasyonun ödemesi rezervasyon sırasında PayNkolay üzerinden çevrim içi alınır. Kart bilgileri internet sitemizin kendi ödeme sayfasında girilir, bankanın 3D Secure ekranında onaylanır ve İşletme tarafından saklanmaz. Rezervasyon, ödeme onaylanana kadar yalnızca ödeme sayfasının açık kaldığı süre boyunca (30 dakika) sizin için tutulan bir ön kayıttır; ödemenizin onaylanmasıyla kendiliğinden kesinleşir. Ödemesi alınmamış rezervasyonu personel de onaylayamaz ve süresi dolan ön kayıt düşer. Üyeler e-posta adresi doğrulanmış hesaplarıyla; üye olmak istemeyenler internet sitesinde adını, soyadını, cep telefonunu ve e-posta adresini yazarak rezervasyon yapabilir. Üyeliksiz rezervasyon sahibine e-posta ile kişiye özel bir bağlantı gönderilir; rezervasyon bu bağlantıdan görüntülenir ve iptal edilir. Üyelerin rezervasyonları hesaplarındaki Karaoke rezervasyonlarım bölümünde görünür. Gün, saat, süre, kişi sayısı ve aynı anda açık tutulabilecek rezervasyon sayısına ilişkin sınırlar rezervasyon ekranında gösterilir ve zaman zaman değiştirilebilir. Mobil uygulamanın ödeme alamayan eski bir sürümünden rezervasyon yapılamaz; bu durumda uygulamanızı güncellemeniz istenir. Karaoke odası rezervasyonunun bedeli, ödemesi, kesinleşmesi, cayma hakkının bulunmaması, iptal, iade ve gelmeme kuralları ile İşletmenin rezervasyonu karşılayamaması hâlinde yapılacak iade yalnızca, rezervasyon sırasında onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nde (/hukuk/karaoke-odasi-rezervasyon) düzenlenir.",
+          "Rezervasyon sırasında ad-soyad ve elektronik posta adresi, internet sitesinden yapılan rezervasyonlarda ayrıca cep telefonu istenir. Bu veriler yalnızca rezervasyonun oluşturulması, teyidi, hatırlatılması ve gerektiğinde iptal bildiriminin yapılması amacıyla işlenir; işlemenin hukuki dayanağı ve saklama süreleri Aydınlatma Metni ile Veri Saklama ve İmha Politikasında açıklanmıştır. Üye olmadan karaoke rezervasyonu yapan kişinin bu bilgileri yalnızca rezervasyon kaydında tutulur; onun adına üyelik hesabı açılmaz.",
+          "İşletme, doluluk, personel durumu, özel etkinlik programı veya benzeri işletmesel gerekçelerle rezervasyon talebini kabul etmeme hakkını saklı tutar. Talebin reddi, hiçbir şekilde dil, din, ırk, etnik köken, cinsiyet, cinsel yönelim, engellilik, yaş veya benzeri kişisel özelliklere dayandırılamaz.",
         ],
       },
       {
-        heading: "6. Rezervasyon Süresi, Masa Tutma Toleransı ve Oturma Düzeni",
+        heading: "6. Özel Etkinlik, Tasting Masası ve Atölye Koşulları",
         paragraphs: [
-          'Rezervasyonu bulunan masa, rezervasyon saatinden itibaren on beş (15) dakika süreyle Misafir adına bekletilir. Bu süre "masa tutma toleransı" olarak adlandırılır. Tolerans süresi içinde işletmeye gelinmemesi ve gecikmenin telefonla bildirilmemesi hâlinde masa serbest bırakılabilir ve bekleyen diğer misafirlere tahsis edilebilir.',
-          "Gecikeceğinizi {{PHONE}} numaralı telefondan bildirmeniz hâlinde İşletme, doluluk durumu elverdiği ölçüde masayı daha uzun süre bekletmeye çalışır; ancak bu bir taahhüt niteliğinde değildir. Tolerans süresinin aşılması nedeniyle masanın serbest bırakılması hâlinde, işletmede boş masa bulunması durumunda alternatif bir masa önerilir.",
-          "Yoğun saatlerde ve hafta sonlarında masa kullanım süresi, adil paylaşım amacıyla sınırlandırılabilir. Uygulanan süre sınırı rezervasyon onayında açıkça belirtilir. Süre sınırının uygulanmadığı durumlarda İşletme, masayı makul olmayan biçimde boşaltmanızı talep edemez.",
-          "Belirli bir masa, bölüm, kat veya bahçe alanı tercihiniz rezervasyon talebinde belirtilebilir ve mümkün olduğu ölçüde karşılanmaya çalışılır; ancak yapının fiziki koşulları, hava durumu ve doluluk nedeniyle belirli bir masa garantisi verilmez. Bu husus rezervasyonun geçersizliği sonucunu doğurmaz.",
-          "Açık alan ve bahçe masaları hava koşullarına bağlıdır. Olumsuz hava koşulları nedeniyle açık alanın kullanılamaması hâlinde, kapasite elverdiği ölçüde iç mekânda alternatif masa tahsis edilir; bu mümkün değilse rezervasyon ücretsiz olarak iptal edilir ve varsa alınan ön ödeme iade edilir.",
-        ],
-      },
-      {
-        heading: "7. Grup Rezervasyonları, Minimum Harcama ve Ön Ödeme",
-        paragraphs: [
-          "Sekiz (8) ve daha fazla kişilik rezervasyonlar grup rezervasyonu olarak değerlendirilir ve ayrı bir onay sürecine tabidir. Grup rezervasyonlarında İşletme, mutfak ve servis planlaması yapabilmek amacıyla önceden menü seçimi, kişi sayısının kesinleştirilmesi ve gerektiğinde ön ödeme talep edebilir.",
-          "Grup rezervasyonlarında masa başına veya kişi başına minimum harcama tutarı uygulanabilir. Minimum harcama tutarı, uygulanacağı hâllerde rezervasyon onayında açık ve anlaşılır biçimde, rakamsal olarak ve vergiler dâhil şekilde bildirilir. Önceden yazılı olarak bildirilmemiş bir minimum harcama tutarı Misafirden talep edilemez.",
-          "Minimum harcama, bir ceza bedeli değil, asgari tüketim taahhüdüdür. Fiili tüketiminizin taahhüt edilen tutarın altında kalması hâlinde yalnızca aradaki fark tahsil edilir; taahhüdün üzerine çıkılması hâlinde fiili tüketim tutarı esas alınır. Tahsil edilen fark için de yasal belge düzenlenir.",
-          "Ön ödeme talep edilmesi hâlinde tutar, ödeme yöntemi ve son ödeme tarihi rezervasyon onayında belirtilir. Ön ödeme, işletmede nakit veya kart ile tahsil edilir ve her hâlükârda hizmet bedeline mahsup edilir; bu ön ödemeler için web sitesi veya mobil uygulama üzerinden çevrim içi ön ödeme alınmaz (karaoke odası rezervasyonunun çevrim içi ödemesi bundan ayrıdır, bkz. 5. madde). Ön ödemenin belirtilen süre içinde yapılmaması hâlinde rezervasyon kesinleşmez ve masa serbest bırakılabilir.",
-          "Grup rezervasyonlarında kişi sayısındaki azalmanın rezervasyon tarihinden en az yirmi dört (24) saat önce bildirilmesi gerekir. Bu süre içinde bildirilen azalmalar için ilave bir bedel talep edilmez. Süresinde bildirilmeyen azalmalar bakımından, önceden hazırlığı yapılmış ve başka şekilde değerlendirilmesi mümkün olmayan menü kalemlerinin bedeli talep edilebilir; bu talep gerçek ve belgelenebilir maliyetle sınırlıdır.",
-        ],
-        bullets: [
-          "Grup eşiği: sekiz (8) kişi ve üzeri.",
-          "Minimum harcama yalnızca rezervasyon onayında önceden ve rakamla bildirilmişse uygulanır.",
-          "Ön ödeme hizmet bedeline mahsup edilir; ayrı bir gelir kalemi olarak alıkonulmaz.",
-          "Kişi sayısı azalması en geç 24 saat önce bildirilmelidir.",
-          "Kurumsal organizasyonlarda fatura bilgileri rezervasyon aşamasında iletilmelidir.",
-        ],
-      },
-      {
-        heading: "8. Rezervasyonun İptali ve Değişikliği",
-        paragraphs: [
-          "Standart masa rezervasyonlarını, rezervasyon saatinden en az iki (2) saat öncesine kadar {{PHONE}} numaralı telefondan veya {{EMAIL}} adresinden herhangi bir bedel ödemeksizin iptal edebilir ya da tarih-saat değişikliği talep edebilirsiniz. Değişiklik talepleri, talep edilen yeni tarih ve saatteki doluluğa bağlı olarak karşılanır.",
-          "Karaoke odası rezervasyonunda iptal ve iade kuralı bunlardan ayrıdır ve şudur: Rezervasyon saatine 2 saatten fazla varken iptal ederseniz ödediğiniz tutarın tamamı kartınıza iade edilir. Rezervasyon saatine 2 saatten az kala yapılan iptallerde ve rezervasyona gelinmediğinde ücret iadesi yapılmaz. Rezervasyonunuzu hesabınızdaki Karaoke rezervasyonlarım bölümünden, üyeliksiz yaptıysanız e-postanızdaki kişiye özel bağlantıdan, mobil uygulamadan ya da {{PHONE}} numarasından iptal edebilirsiniz. İade, ödenen tutarın tamamı olarak PayNkolay üzerinden ödemenin yapıldığı karta yapılır. Karaoke odasında 2 saatten az kala yapılan iptallerde ve gelinmediğinde iade yapılmaması, hizmet bedelinin iade edilmediği götürü bir koşuldur; bu koşul ödemeden önce rezervasyon özetinde ve onayladığınız belgede açıkça gösterilir. Karaoke odası rezervasyonunda cayma hakkı yoktur (Mesafeli Sözleşmeler Yönetmeliği m.15/1-g).",
-          "Grup rezervasyonlarının iptali veya tarih değişikliği talebinin, rezervasyon tarihinden en az kırk sekiz (48) saat önce iletilmesi gerekir. Bu süre içinde iletilen iptallerde alınan ön ödeme kesintisiz olarak iade edilir.",
-          "Özel etkinlik, tasting masası ve atölye programlarının iptal koşulları 10. maddede ayrıca düzenlenmiştir; bu programlar için daha uzun bildirim süreleri uygulanabilir ve söz konusu süreler katılım onayında açıkça belirtilir.",
-          "Süresinde yapılmayan iptallerde, önceden yapılmış ve başka şekilde değerlendirilmesi mümkün olmayan hazırlıkların gerçek maliyeti ön ödemeden mahsup edilebilir. Mahsup edilen tutar, her hâlükârda İşletmenin fiilen uğradığı zararla sınırlıdır ve talep hâlinde Misafire kalem bazında yazılı olarak açıklanır. Karaoke odası rezervasyonundaki yukarıdaki iade kuralı saklı kalmak üzere, götürü nitelikte, zarara bağlı olmayan cezai şart uygulanmaz.",
-          "İptal ve değişiklik talepleriniz, İşletme tarafından teyit edildiği anda hüküm ifade eder. Teyit almadığınız bir iptal bildiriminin ulaştığını varsaymayınız; teyit ulaşmazsa {{PHONE}} numarasından telefonla teyit isteyiniz.",
-          "İşletme kaynaklı sebeplerle (kapasite hatası, teknik arıza, personel yetersizliği, geçici kapanış) rezervasyonun karşılanamaması hâlinde, alınmış tüm ön ödemeler kesintisiz ve en geç on dört (14) gün içinde, ödemenin yapıldığı yöntemle iade edilir. Ayrıca Misafire alternatif tarih veya işletmenin uygun göreceği bir telafi seçeneği önerilir; bu öneriyi kabul zorunluluğunuz bulunmamaktadır.",
-          "Karaoke odası rezervasyonunu işletme karşılayamazsa ödediğiniz tutarın tamamı iade edilir. Durumu öğrendiğimiz tarihten itibaren en geç 3 gün içinde size e-postayla bildirir, iadeyi en geç 14 gün içinde ödemenin yapıldığı karta yaparız; rezervasyon iptal edildiğinde iade aynı anda PayNkolay'dan talep edilir.",
-        ],
-        table: [
-          {
-            key: "Standart masa rezervasyonu - ücretsiz iptal",
-            value: "Rezervasyon saatinden en az 2 saat önce",
-          },
-          {
-            key: "Grup rezervasyonu - ücretsiz iptal",
-            value: "Rezervasyon tarihinden en az 48 saat önce",
-          },
-          {
-            key: "Özel etkinlik / tasting - iptal",
-            value: "Katılım onayında belirtilen süre içinde",
-          },
-          {
-            key: "Karaoke odası - iptal ve iade",
-            value:
-              "Rezervasyon saatine 2 saatten fazla varken iptalde ödenen tutarın tamamı iade edilir; 2 saatten az kala iptalde ve gelinmediğinde ücret iadesi yapılmaz",
-          },
-          {
-            key: "İptal kanalları",
-            value: "{{PHONE}} · {{EMAIL}}",
-          },
-          {
-            key: "İşletme kaynaklı iptalde iade süresi",
-            value: "En geç 14 gün, ödeme yöntemiyle aynı kanaldan",
-          },
-        ],
-      },
-      {
-        heading: "9. Gelmeme (No-Show) Politikası",
-        paragraphs: [
-          "Rezervasyonunu iptal etmeksizin rezervasyon saatinde ve on beş (15) dakikalık tolerans süresi içinde işletmeye gelmeyen Misafir hakkında no-show kaydı oluşturulur. Karaoke odası rezervasyonlarında gelmeme bu maddeye değil 8. maddedeki karaoke kuralına tabidir: rezervasyona gelinmediğinde ücret iadesi yapılmaz. No-show kaydı, işletmenin kapasite planlamasını ve bekleyen misafirlere hizmet verilmesini olumsuz etkilediği için önem taşımaktadır.",
-          "Ön ödeme alınmamış standart masa rezervasyonlarında no-show hâlinde Misafirden herhangi bir bedel talep edilmez. Ancak İşletme, tekrarlanan no-show durumlarında (aynı iletişim bilgileriyle üç veya daha fazla kez) sonraki rezervasyon taleplerini ön ödeme şartına bağlama veya kabul etmeme hakkını saklı tutar.",
-          "Ön ödeme alınmış grup rezervasyonları ile özel etkinliklerde no-show hâlinde, İşletmenin o rezervasyon için fiilen yaptığı ve başka şekilde değerlendiremediği hazırlık giderleri ön ödemeden mahsup edilebilir. Mahsup, gerçek zararla sınırlıdır; kalan tutar iade edilir. Zararın gerçekleşmediği veya belgelenemediği hâllerde ön ödemenin tamamı iade edilir.",
-          "Trafik, hastalık, acil durum veya benzeri makul mazeretlerin rezervasyon saatinden önce {{PHONE}} numarasına bildirilmesi hâlinde no-show kaydı oluşturulmaz. İşletme, iyi niyetli bildirimlerde esnek davranmayı ilke edinmiştir.",
-          "No-show kayıtları, yalnızca rezervasyon yönetimi ve kapasite planlaması amacıyla, Veri Saklama ve İmha Politikasında belirlenen süre boyunca saklanır ve bu süre sonunda silinir. Bu kayıtlar üçüncü kişilerle paylaşılmaz, ticari amaçla kullanılmaz ve herhangi bir kara liste sisteminde işlenmez.",
-        ],
-      },
-      {
-        heading: "10. Özel Etkinlik, Tasting Masası ve Atölye Koşulları",
-        paragraphs: [
-          "İşletmede zaman zaman tasting masası, kahve demleme atölyesi, gelato atölyesi, özel menü akşamı ve benzeri programlar düzenlenir. Bu programlar sınırlı kontenjanlı olup, katılım önceden kayıt ve ön ödeme ile kesinleşir; ön ödeme web sitesi veya mobil uygulama üzerinden çevrim içi alınmaz ve işletmede nakit veya kart ile tahsil edilir. Program içeriği, süresi, kontenjanı, kişi başı bedeli ve iptal koşulları duyuru metninde ve katılım onayında ayrı ayrı belirtilir.",
+          "İşletmede zaman zaman tasting masası, kahve demleme atölyesi, gelato atölyesi, özel menü akşamı ve benzeri programlar düzenlenir. Bu programlar sınırlı kontenjanlı olup, katılım önceden kayıt ve ön ödeme ile kesinleşir; ön ödeme web sitesi veya mobil uygulama üzerinden çevrim içi alınmaz ve işletmede nakit veya kart ile tahsil edilir. Program içeriği, süresi, kontenjanı ve kişi başı bedeli duyuru metninde ve katılım onayında belirtilir; iptal ve iade esasları İptal, İade ve Cayma Hakkı metninin 21. maddesindedir.",
           "Özel etkinlikler ve tasting masaları, belirli bir tarihte veya dönemde ifa edilmesi gereken, yiyecek-içecek tedariki ile boş zamanın değerlendirilmesine yönelik hizmetler niteliğindedir. Bu nedenle Mesafeli Sözleşmeler Yönetmeliğinin cayma hakkının istisnalarını düzenleyen hükmü uyarınca, söz konusu programlar bakımından on dört (14) günlük cayma hakkı kullanılamaz. Bu husus, kayıt sırasında ayrıca ve açıkça bilginize sunulur ve onayınız yazılı olarak (elektronik posta dâhil) kayıt altına alınır.",
-          "Cayma hakkının kullanılamaması, iptal hakkınızın bulunmadığı anlamına gelmez. İşbu maddede ve katılım onayında belirlenen süreler içinde yapılan iptallerde ödediğiniz bedel, aşağıdaki esaslara göre iade edilir. İşletme, cayma hakkı istisnasını, Misafirin yasal haklarını genel olarak bertaraf etmek amacıyla kullanmaz.",
+          "Cayma hakkının kullanılamaması, iptal hakkınızın bulunmadığı anlamına gelmez. İptallerde ödediğiniz bedel, İptal, İade ve Cayma Hakkı metninin 21. maddesindeki süre ve esaslara göre iade edilir. İşletme, cayma hakkı istisnasını, Misafirin yasal haklarını genel olarak bertaraf etmek amacıyla kullanmaz.",
           "Etkinlik kontenjanının dolmaması, hammadde tedarikinde yaşanan aksaklık, eğitmen veya konuk şefin katılamaması ya da mücbir sebep hâllerinde İşletme etkinliği erteleyebilir veya iptal edebilir. Bu durumda Misafire seçimlik olarak (i) yeni tarihe aktarım, (ii) eşdeğer bir etkinliğe katılım veya (iii) ödenen bedelin tamamının en geç on dört (14) gün içinde iadesi hakkı tanınır. Tercih Misafire aittir.",
-          "Etkinlik kaydı, kayıt yaptıran kişi adına düzenlenir. Katılımcı değişikliği, etkinlik tarihinden en az yirmi dört (24) saat önce yazılı olarak bildirilmesi kaydıyla ücretsiz yapılabilir. Alerjen ve diyet bilgilerinin, menü hazırlığından önce, kayıt sırasında bildirilmesi gerekir.",
+          "Etkinlik kaydı, kayıt yaptıran kişi adına düzenlenir. Katılımcı değişikliği, etkinlik başlangıcından önce yazılı olarak (elektronik posta dâhil) bildirilmesi kaydıyla ücretsiz yapılabilir. Alerjen ve diyet bilgilerinin, menü hazırlığından önce, kayıt sırasında bildirilmesi gerekir.",
           "Kurumsal organizasyonlar, özel kutlamalar ve mekânın tamamının ya da bir bölümünün kapalı olarak tahsis edildiği etkinlikler için ayrı bir yazılı sözleşme düzenlenir. Bu hâlde ayrı sözleşme hükümleri işbu Koşullara göre öncelikli olarak uygulanır; ancak tüketici lehine emredici hükümler her hâlükârda saklıdır.",
         ],
         table: [
           {
-            key: "Etkinlik iptali - 7 gün ve daha önce bildirim",
-            value: "Ödenen bedelin tamamı iade edilir",
-          },
-          {
-            key: "Etkinlik iptali - 72 saat ile 7 gün arası bildirim",
-            value: "Yapılmış hazırlık giderleri mahsup edilerek iade edilir",
-          },
-          {
-            key: "Etkinlik iptali - 72 saatten kısa süre kala bildirim",
-            value: "Gerçek zarar mahsup edilir; kalan tutar iade edilir",
-          },
-          {
-            key: "Katılımcı değişikliği",
-            value: "En az 24 saat önce bildirilmek kaydıyla ücretsiz",
+            key: "Etkinlik iptali ve katılımcı devri",
+            value:
+              "Süreler ve iade esasları İptal, İade ve Cayma Hakkı metninin 21. maddesindedir; katılım onayında lehinize farklı bir koşul yazıyorsa o uygulanır.",
           },
           {
             key: "İşletme kaynaklı iptal",
@@ -14376,7 +14466,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "11. Menü, Fiyatlar, Vergiler ve Servis Ücreti",
+        heading: "7. Menü, Fiyatlar, Vergiler ve Servis Ücreti",
         paragraphs: [
           "İşletmede sunulan tüm yiyecek ve içeceklerin fiyatları menüde Türk lirası (TRY) cinsinden ve ilgili vergiler dâhil olarak ilan edilir. Menüde ilan edilen fiyatın üzerine, önceden ilan edilmemiş hiçbir ek bedel eklenmez. Mobil uygulamadan verilen kafe siparişlerinde boy ve ekstra seçenek (örneğin bitkisel süt, şurup, ek shot) ücretleri ile kurye ile teslimde kurye ücreti, ödeme öncesinde sipariş özetinde ayrı ayrı gösterilir; gel-al siparişlerinde kurye ücreti alınmaz. Uygulamadan verilen siparişte, sipariş anında uygulamada ve sipariş özetinde gösterilen fiyat esas alınır. Uygulanan katma değer vergisi oranı yürürlükteki vergi mevzuatına göre belirlenir; oran değişikliklerinin fiyatlara yansıtılması hâlinde menü güncellenir.",
           "Mobil uygulamadan kafe siparişi vermek için üyelik hesabı ve doğrulanmış bir e-posta adresi gerekir. Sipariş, kafeden gel-al veya kurye ile teslim için, en kısa sürede ya da ileri bir saate planlanarak verilebilir; masa QR kodu okutularak verilen masa siparişi ise kafe içinde masaya servis edilir ve ileri bir saate planlanamaz; kafenin kapalı olduğu veya kafe siparişi alımının durdurulduğu zamanlarda sipariş alınmayabilir. Sipariş, uygulamada açılan ödeme sayfasında kartla ödenir; ödemesi tamamlanan sipariş İşletme personeline bildirilir, ödemesi tamamlanmayan sipariş belirli bir süre sonra iptal edilir. Hazırlanarak sunulan yiyecek ve içeceklerde, Mesafeli Sözleşmeler Yönetmeliğinin cayma hakkının istisnalarına ilişkin hükmü uyarınca cayma hakkı kullanılamaz; siparişin hazırlanmaya başlanmadan önce iptali ve iade esasları İptal, İade ve Cayma Hakkı metninde düzenlenmiştir.",
@@ -14394,11 +14484,11 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "12. Ödeme Yöntemleri, Fiş ve Fatura",
+        heading: "8. Ödeme Yöntemleri, Fiş ve Fatura",
         paragraphs: [
           "İşletmede kabul edilen ödeme yöntemleri kasada ve menüde ilan edilir. Nakit ödeme Türk lirası olarak kabul edilir. Banka ve kredi kartı ile temassız ödeme kabulü, işletmede kullanılan ödeme kaydedici cihaz ve banka altyapısının imkânları çerçevesinde sağlanır. Yemek kartı, dijital cüzdan veya QR tabanlı ödeme yöntemlerinin kabul edilip edilmediği kasada ilan edilir.",
           "Kart ile yapılan ödemeler, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Kanun kapsamında yetkilendirilmiş kuruluşların altyapısı üzerinden gerçekleştirilir. İşletme, kart numarası, son kullanma tarihi veya güvenlik kodu gibi kart verilerini kaydetmez, saklamaz ve fotoğraflamaz. Kart verileri yalnızca ödeme terminali üzerinden ilgili kuruluşa iletilir.",
-          "Web sitesi ve mobil uygulama üzerinden yapılan ödemeler (online mağaza siparişleri, mobil uygulamadan verilen kafe siparişleri ve karaoke odası rezervasyonları), 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) altyapısı üzerinden tahsil edilir. Grup rezervasyonu ve özel etkinlik ön ödemeleri ile masa rezervasyonları için çevrim içi ödeme alınmaz. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla İşletmenin sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; İşletme bunları kaydetmez, saklamaz ve kayıt (log) sistemlerine yazmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir siteye gömülemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilir ve işlemi orada onaylarsınız; her kartlı ödemede 3D Secure doğrulaması zorunludur. Çevrim içi ödemelerde online alışverişe açık kredi ve banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit seçeneği ve ön provizyon uygulanmaz, tutar onay anında tahsil edilir; dijital cüzdan (Apple Pay, Google Pay vb.) ile banka havalesi veya EFT çevrim içi ödeme yöntemi olarak kabul edilmez. Sipariş toplamının sıfır olduğu durumlarda (örneğin kuponun ürün tutarının tamamını karşıladığı ve kurye ücretinin bulunmadığı siparişlerde) kart ödemesi alınmaz. Kart saklama özelliği açıldığında, yalnızca üyeler için ve isteğe bağlı olarak sunulur: ödeme sayfasındaki 'Bu kartı sonraki ödemeler için kaydet' kutusu başlangıçta işaretsizdir ve işaretlenmedikçe hiçbir kart kaydedilmez. Kayıtlı kart İşletme tarafından değil, PayNkolay'ın kart saklama hizmetinde saklanır; İşletme yalnızca PayNkolay'ın kartları üyeyle eşleştirmek için kullandığı rastgele bir üye anahtarını tutar. Ödeme sayfasında kayıtlı kart son dört hanesi, kart markası veya kartı veren banka ve takma adıyla gösterilir; kayıtlı kartla ödemede de 3D Secure zorunludur, kayıtlı kartı ödeme sayfasından dilediğiniz zaman silebilirsiniz ve hesabınız silindiğinde İşletme önce PayNkolay'dan kayıtlı kartlarınızın silinmesini ister. Bu özellik açılana kadar hiçbir kart kaydedilmez.",
+          "Web sitesi ve mobil uygulama üzerinden yapılan ödemeler (online mağaza siparişleri, mobil uygulamadan verilen kafe siparişleri ve karaoke odası rezervasyonları), 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) altyapısı üzerinden tahsil edilir. Özel etkinlik ön ödemeleri için çevrim içi ödeme alınmaz. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla İşletmenin sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; İşletme bunları kaydetmez, saklamaz ve kayıt (log) sistemlerine yazmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir siteye gömülemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilir ve işlemi orada onaylarsınız; her kartlı ödemede 3D Secure doğrulaması zorunludur. Çevrim içi ödemelerde online alışverişe açık kredi ve banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit seçeneği ve ön provizyon uygulanmaz, tutar onay anında tahsil edilir; dijital cüzdan (Apple Pay, Google Pay vb.) ile banka havalesi veya EFT çevrim içi ödeme yöntemi olarak kabul edilmez. Sipariş toplamının sıfır olduğu durumlarda (örneğin kuponun ürün tutarının tamamını karşıladığı ve kurye ücretinin bulunmadığı siparişlerde) kart ödemesi alınmaz. Kart bilgileriniz sonraki ödemeler için kaydedilmez: İşletme kart bilgisi saklamaz, PayNkolay'dan da kartınızın saklanmasını istemez.",
           "Çevrim içi ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, İşletme sunucusunun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır; aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa İşletme, ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. İade işlemleri PayNkolay'ın iptal ve iade hizmeti üzerinden, ödemenin yapıldığı karta gerçekleştirilir; ödemeyle aynı gün yapılan iade işlemin iptali, sonraki günlerde yapılan iade olarak bankaya iletilir ve tutarın kart hesabına yansıma süresi bankaya bağlıdır. Siparişin yalnızca bir bölümünün iadesinde tutar aynı karta iade edilir; bunun teknik olarak mümkün olmadığı hâllerde size bilgi verilir ve tutar, mevzuatta öngörülen süre içinde kendi adınıza kayıtlı bir banka hesabına havale veya EFT ile ödenir.",
           "Ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Fatura talebiniz hâlinde, fatura bilgilerinizi (gerçek kişi için ad-soyad ve varsa vergi kimlik bilgisi; tüzel kişi için ticaret unvanı, vergi dairesi ve vergi kimlik numarası) ödeme anında veya vergi mevzuatında öngörülen süre içinde {{EMAIL}} adresine bildirmeniz gerekir.",
           "Elektronik fatura veya elektronik arşiv fatura düzenlenmesi hâlinde belge, vergi mevzuatında öngörülen usule göre düzenlenir ve size iletilir. Bildirilen bilgilerin eksik veya hatalı olması nedeniyle düzenlenemeyen ya da yanlış düzenlenen belgelerden Misafir sorumludur; düzeltme talepleri mevzuatın izin verdiği ölçüde karşılanır.",
@@ -14443,7 +14533,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "13. Mobil Uygulama, Uygulama Mağazası Koşulları ve Cihaz İzinleri",
+          "9. Mobil Uygulama, Uygulama Mağazası Koşulları ve Cihaz İzinleri",
         paragraphs: [
           "{{BRAND}}, iOS ve Android işletim sistemleri için bir mobil uygulama yayımlar. Uygulama üzerinden menünün görüntülenmesi, karaoke odası rezervasyonu, kafe ve online mağaza siparişi verilmesi, üyelik işlemleri, sadakat kartının takibi, fA'L özelliği ve cihazda planlanan hatırlatmaların alınması mümkündür. İşbu Koşulların kafe hizmetine ilişkin hükümleri, uygulama üzerinden yapılan karaoke odası rezervasyon talebi, kafe siparişi ve damga işlemleri bakımından da uygulanır.",
           "Uygulamanın indirilmesi, kurulması ve güncellenmesi App Store ve Google Play mağazalarının kendi kullanım koşullarına tabidir. Bu koşullar, İşletme ile Misafir arasındaki ilişkiden bağımsızdır; İşletme, mağaza kaynaklı erişim, yayın veya cihaz uyumluluğu kısıtlarından sorumlu tutulamaz. Uygulama içinde uygulama mağazası üzerinden satın alma yapılmaz; uygulamadan verilen siparişlerin ödemesi PayNkolay altyapısı üzerinden gerçekleştirilir.",
@@ -14466,16 +14556,16 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "14. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
+        heading: "10. Sadakat Programı: Damga ve Ücretsiz İçecek Kuponu",
         paragraphs: [
           "İşletme, üyelerine yönelik bir sadakat programı yürütür. Programa katılım, {{SITE_URL}} adresindeki web sitesi veya {{BRAND}} mobil uygulaması üzerinden üyelik hesabı oluşturulmasıyla mümkündür ve tamamen isteğe bağlıdır. Programa katılmamanız, işletmede hizmet almanızı veya rezervasyon yaptırmanızı hiçbir şekilde etkilemez.",
           "Damga iki yoldan kazanılır: {{BRAND}} mobil uygulaması üzerinden verilen ve ödemesi tamamlanan, ürün tutarı (indirimler düşüldükten sonra, kurye ücreti hariç) en az 140,00 TL olan bir kafe siparişi (ürün tutarının başlanan her 320,00 TL'si için bir damga: 140,00 TL ile 320,00 TL arası 1, 320,01 TL ile 640,00 TL arası 2 damga ve böyle devam eder) ve kafede kasada personelin üyelik hesabınıza eklediği damga. Kartın dolması için gereken damga sayısı uygulamada gösterilir (varsayılan altı). İşletme bu sayıyı yalnızca ileriye etkili olmak ve önceden duyurmak kaydıyla değiştirebilir; değişiklik, o tarihe kadar kazanılmış damgaları ortadan kaldırmaz; daha önce ödüle çevrilmiş kartlar ödüle çevrildikleri andaki sayıyla hesaplanmaya devam eder.",
           "Damga bir ödeme aracı, elektronik para veya kıymetli evrak değildir; tek başına parasal bir karşılığı yoktur. Damga nakde çevrilemez, banka hesabına aktarılamaz, üçüncü kişilere devredilemez, satılamaz ve başka bir üyelik hesabıyla birleştirilemez.",
           "Damgalar üyelik hesabına bağlıdır. Üyeliğin Misafir tarafından kapatılması hâlinde biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; karşılığında herhangi bir ödeme talep edilemez.",
-          "Kafede damga kazanmak için uygulama kameranıza erişmez: kasada uygulamanın gösterdiği kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. Kasa kodunu başkasıyla paylaşmayınız.",
+          "Kafede damga kazanmak için uygulama kameranıza erişmez: kasada uygulamanın gösterdiği kasa kodunu (iki dakika geçerli, tek kullanımlık karekod ve sekiz karakterlik kod) personel kendi cihazıyla okur ya da kod okunamazsa kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. Kasa kodunu başkasıyla paylaşmayınız.",
         ],
         ordered: [
-          "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır.",
+          "Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır.",
           "Kasada eklenen her damga, işlemi yapan personel ve işlem anı ile birlikte kaydedilir; kartınızdaki güncel damga sayısı uygulamanın ödüller ekranında gösterilir ve damga hareketlerinizin tarihli dökümünü {{EMAIL}} adresine yapacağınız talep üzerine isteyebilirsiniz.",
           "Yanlışlıkla eklenen bir damga, personel tarafından aynı panelden bir düzeltme kaydı yazılarak geri alınabilir; kullanılabilir damganız yoksa düzeltme yapılamaz.",
           "İptal edilen veya tamamen iade edilen bir siparişten kazanılmış damgaların tamamı geri alınır; kısmi iadede siparişin damga sayısı kalan ürün tutarına göre yeniden hesaplanır. Kartınızdaki damga sayısı buna göre güncellenir.",
@@ -14521,7 +14611,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "15. Alerjenler, Gıda Güvenliği ve Menü İçeriği Bilgilendirmesi",
+          "11. Alerjenler, Gıda Güvenliği ve Menü İçeriği Bilgilendirmesi",
         paragraphs: [
           "İşletme, faaliyetini 5996 sayılı Veteriner Hizmetleri, Bitki Sağlığı, Gıda ve Yem Kanunu ile Türk Gıda Kodeksi mevzuatı çerçevesinde yürütür. Gıda güvenliği, hijyen ve izlenebilirlik uygulamaları ilgili mevzuatın öngördüğü esaslara göre yerine getirilir ve yetkili idari makamların denetimine tabidir.",
           "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği kapsamında sayılan alerjenlere ilişkin bilgi, menüde ve talep hâlinde servis personeli aracılığıyla sözlü olarak sağlanır. Gıda alerjiniz, gıda intoleransınız veya tıbbi diyet gerekliliğiniz varsa, siparişinizi vermeden önce mutlaka servis personeline bildiriniz. Mobil uygulamadan sipariş veriyorsanız, alerji bilginizi sipariş notuna yazmanın yanı sıra, ciddi bir alerjiniz varsa siparişten önce {{PHONE}} numarasından da bildirmeniz önerilir.",
@@ -14532,27 +14622,27 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "16. Evcil Hayvan Politikası ve Rehber Hayvanlar",
+        heading: "12. Evcil Hayvan Politikası ve Rehber Hayvanlar",
         paragraphs: [
           "Gıda güvenliği mevzuatı gereği, gıda hazırlama ve servis yapılan kapalı alanlara evcil hayvan kabul edilmemektedir. Bu kısıtlama, mutfak, bar ve iç mekân servis alanlarını kapsar.",
-          "Evcil hayvanlar, hava koşulları elverdiği ölçüde ve işletmenin açık alan/bahçe bölümünde, tasmalı olmak, sahibinin kontrolünde bulunmak ve diğer misafirleri rahatsız etmemek koşuluyla kabul edilir. Açık alanda evcil hayvanla oturmak istiyorsanız bu talebinizi rezervasyon aşamasında bildirmeniz, uygun masanın ayrılabilmesi için gereklidir.",
+          "Evcil hayvanlar, hava koşulları elverdiği ölçüde ve işletmenin açık alan/bahçe bölümünde, tasmalı olmak, sahibinin kontrolünde bulunmak ve diğer misafirleri rahatsız etmemek koşuluyla kabul edilir. Açık alanda evcil hayvanla oturmak istiyorsanız bu talebinizi geldiğinizde personele bildirmeniz, uygun masanın ayrılabilmesi için gereklidir.",
           "Evcil hayvan sahibi Misafir, hayvanının davranışlarından, üçüncü kişilere veya işletme demirbaşlarına verebileceği zarardan ve temizlik gerekliliklerinden sorumludur. İşletme, diğer misafirlerin güvenliğini veya huzurunu tehdit eden durumlarda hayvanın açık alandan çıkarılmasını talep edebilir.",
           "Görme, işitme veya fiziksel engelli misafirlere refakat eden rehber ve yardımcı hayvanlar bu maddedeki kısıtlamaların dışındadır. Rehber ve yardımcı hayvanlar, işletmenin kapalı alanları dâhil tüm misafir alanlarına kabul edilir. Bu hakkın kullanılması için ayrıca izin alınması gerekmez; İşletme personeli bu konuda bilgilendirilmiştir.",
           "Evcil hayvanlar için su kabı gibi imkânların sunulup sunulmadığı işletme içinde ilan edilir; bu bir taahhüt niteliğinde değildir.",
         ],
       },
       {
-        heading: "17. Çocuk Misafirler ve Yaş Sınırlamaları",
+        heading: "13. Çocuk Misafirler ve Yaş Sınırlamaları",
         paragraphs: [
           "İşletme, aileler ve çocuk misafirler için açıktır. Ancak yapının tarihi niteliği, merdivenler, sıcak içecek ve ekipman kullanımı nedeniyle çocukların işletme içinde ebeveyn veya yasal temsilcilerinin gözetiminde bulunmaları zorunludur. İşletme, gözetimsiz bırakılan çocuklar bakımından gözetim yükümlülüğü üstlenmez; ancak kendi kusurundan doğan sorumluluğu saklıdır.",
           "Servis alanlarında koşmak, bar ve mutfak bölümlerine girmek, sıcak içecek taşınan geçiş güzergâhlarında oyun oynamak güvenlik nedeniyle uygun değildir. Personel, güvenlik amacıyla ebeveynleri kibarca uyarabilir.",
-          "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz rezervasyon aşamasında bildirilmesi hâlinde, mevcut imkânlar ölçüsünde karşılanmaya çalışılır. Bu imkânların her zaman bulunacağı taahhüt edilmez.",
+          "Mama sandalyesi, bebek bezi değiştirme imkânı gibi talepleriniz, mevcut imkânlar ölçüsünde karşılanmaya çalışılır. Bu imkânların her zaman bulunacağı taahhüt edilmez.",
           "Menüde alkollü içecek bulunması hâlinde, ilgili mevzuat uyarınca on sekiz (18) yaşından küçüklere alkollü içecek satılmaz ve servis edilmez. Personel, yaş konusunda tereddüt hâlinde kimlik belgesi talep edebilir; kimlik ibraz edilmemesi hâlinde servis yapılmaz. Bu uygulama yasal bir zorunluluktur ve Misafirin kişisel değerlendirmesine bırakılamaz.",
           "Çocuk misafirlere yönelik özel menü kalemleri bulunması hâlinde bunlar menüde ayrıca gösterilir. Alerjen bildirimlerinin çocuk misafirler bakımından da sipariş öncesinde yapılması özellikle önemlidir.",
         ],
       },
       {
-        heading: "18. Tütün Ürünleri ve Kapalı Alanda Kullanım Yasağı",
+        heading: "14. Tütün Ürünleri ve Kapalı Alanda Kullanım Yasağı",
         paragraphs: [
           "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun uyarınca, işletmenin kapalı alanlarında tütün ürünü tüketilmesi kesinlikle yasaktır. Bu yasak; sigara, puro, pipo, nargile ve benzeri tüm tütün ürünlerini kapsar.",
           "Elektronik sigara, ısıtılmış tütün ürünü ve buhar üreten benzeri cihazların kapalı alanda kullanımı da aynı şekilde yasaktır ve İşletme tarafından kapalı alanda kullanımına izin verilmez.",
@@ -14562,7 +14652,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "19. Kayıp ve Unutulan Eşya",
+        heading: "15. Kayıp ve Unutulan Eşya",
         paragraphs: [
           "İşletmede unutulan veya bulunan eşyalar, bulundukları tarih, yer ve niteliği belirtilerek kayıt altına alınır ve güvenli bir bölümde muhafaza edilir. Bulunan eşyalar en az otuz (30) gün süreyle saklanır; bu süre içinde sahibi tarafından talep edilmeyen eşyalar hakkında 4721 sayılı Türk Medeni Kanununun bulunmuş eşyaya ilişkin hükümleri ve ilgili mevzuat çerçevesinde işlem yapılır. Bozulabilir nitelikteki eşyalar bu sürenin dışındadır.",
           "Kayıp eşya başvurularınızı {{PHONE}} numaralı telefondan veya {{EMAIL}} adresinden yapabilirsiniz. Eşyanın teslim edilebilmesi için tanımlayıcı bilgilerin (marka, model, renk, içerik, kaybedildiği yaklaşık saat ve masa) doğru şekilde bildirilmesi gerekir. Gerekli görülen hâllerde kimlik ibrazı istenebilir.",
@@ -14573,7 +14663,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "20. İşletme İçinde Fotoğraf ve Video Çekimi, Ticari Çekim İzni",
+          "16. İşletme İçinde Fotoğraf ve Video Çekimi, Ticari Çekim İzni",
         paragraphs: [
           "Misafirler, kişisel ve ticari olmayan amaçlarla, diğer misafirleri rahatsız etmemek, servis akışını engellememek ve üçüncü kişileri rızaları dışında görüntülememek koşuluyla işletme içinde fotoğraf ve video çekebilir. Diğer misafirlerin görüntülerinin izinsiz kaydedilmesi ve paylaşılması, kişilik haklarının ihlali sonucunu doğurabilir ve hukuki sorumluluk gerektirebilir.",
           "Profesyonel ekipmanla yapılan çekimler, ticari amaçlı fotoğraf ve video çekimleri, reklam, dizi, film, klip, marka içeriği, tanıtım filmi ve benzeri prodüksiyonlar ile stüdyo aydınlatması, tripod, gimbal, dron ve ses ekipmanı kullanılan çekimler İşletmenin önceden yazılı iznine tabidir. İzin talepleri {{EMAIL}} adresine iletilmelidir.",
@@ -14584,7 +14674,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "21. Güvenlik Kamerası Sistemi ve Kişisel Verilerin Korunması",
+        heading: "17. Güvenlik Kamerası Sistemi ve Kişisel Verilerin Korunması",
         paragraphs: [
           "İşletmenin giriş, kasa ve ortak kullanım alanlarında güvenlik amaçlı kamera sistemi bulunmaktadır. Kamera kaydı yapılan alanlar, girişte ve ilgili bölümlerde yer alan bilgilendirme levhalarıyla duyurulur. Tuvalet, soyunma alanı gibi özel hayatın gizliliğinin ihlali sonucunu doğuracak alanlarda kamera bulunmaz.",
           "Görüntü kayıtları, 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında kişisel veri niteliğindedir. Bu veriler; işyeri ve misafir güvenliğinin sağlanması, hırsızlık ve zarar verme olaylarının önlenmesi ve olası uyuşmazlıklarda delil temini amacıyla, Kanunun kişisel veri işleme şartlarını düzenleyen hükümleri çerçevesinde, veri sorumlusunun meşru menfaati hukuki sebebine dayanılarak işlenir. Kamera sistemi ses kaydı yapmaz.",
@@ -14597,7 +14687,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "22. Kablosuz İnternet (Wi-Fi) Kullanım Kuralları ve Kayıt Yükümlülüğü",
+          "18. Kablosuz İnternet (Wi-Fi) Kullanım Kuralları ve Kayıt Yükümlülüğü",
         paragraphs: [
           "İşletme, misafirlerine ücretsiz kablosuz internet erişimi sunabilir. Bu hizmet bir yan imkân niteliğindedir; kesintisiz erişim, belirli bir hız veya belirli bir hizmet kalitesi taahhüt edilmez. Bağlantı, bakım, kapasite veya altyapı nedenleriyle geçici olarak kullanılamayabilir.",
           "5651 sayılı İnternet Ortamında Yapılan Yayınların Düzenlenmesi ve Bu Yayınlar Yoluyla İşlenen Suçlarla Mücadele Edilmesi Hakkında Kanun ve ilgili ikincil mevzuat uyarınca, ticari amaçla toplu kullanım sağlayıcı sıfatıyla, iç IP dağıtım kayıtlarının elektronik ortamda tutulması ve bu kayıtların doğruluğunun, bütünlüğünün ve gizliliğinin sağlanması zorunludur. İşletme bu yükümlülüğünü mevzuatta öngörülen usul ve sürelere uygun olarak yerine getirir.",
@@ -14615,7 +14705,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "23. Misafir Davranış Kuralları ve İşletmenin Hizmet Vermeme Hakkı",
+          "19. Misafir Davranış Kuralları ve İşletmenin Hizmet Vermeme Hakkı",
         paragraphs: [
           "{{BRAND}}, tüm misafirlerin huzurlu ve güvenli bir ortamda hizmet almasını esas alır. Bu amaçla misafirlerden, diğer misafirlerin ve personelin haklarına saygı gösterilmesi, işletme düzenine uyulması ve personelin güvenlik uyarılarına riayet edilmesi beklenir.",
           "İşletme, personeline veya misafirlerine yönelik her türlü ayrımcılığı, tacizi, hakareti ve şiddeti kesinlikle kabul etmez. Personel, bu tür davranışlara maruz kaldığında durumu yönetime bildirmekle yetkilidir ve İşletme gerekli tüm hukuki yollara başvurma hakkını saklı tutar.",
@@ -14640,17 +14730,17 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       },
       {
         heading:
-          "24. Engelli ve Kısıtlı Hareket Kabiliyetine Sahip Misafirlerin Erişimi",
+          "20. Engelli ve Kısıtlı Hareket Kabiliyetine Sahip Misafirlerin Erişimi",
         paragraphs: [
           "İşletme, 5378 sayılı Engelliler Hakkında Kanunun eşit erişim ve ayrımcılık yasağına ilişkin ilkeleri doğrultusunda, tüm misafirlerin hizmete eşit biçimde erişebilmesini esas alır. Bununla birlikte işletmenin faaliyet gösterdiği yapı, yaklaşık iki yüz yıllık restore bir köşk olduğundan, giriş eşiği, merdiven, kapı genişliği ve kat geçişleri bakımından fiziki kısıtlar bulunabilir. İşletme, bu durumu açık biçimde beyan etmeyi şeffaflık gereği olarak görür.",
-          "Tekerlekli sandalye kullanımı, refakatçi ihtiyacı, işitme veya görme engeline ilişkin özel bir düzenleme gereksinimi bulunması hâlinde bu hususu rezervasyon aşamasında {{PHONE}} numarasından bildirmeniz rica olunur. Böylece erişimi en kolay masa tahsis edilebilir ve personel önceden hazırlık yapabilir.",
+          "Tekerlekli sandalye kullanımı, refakatçi ihtiyacı, işitme veya görme engeline ilişkin özel bir düzenleme gereksiniminiz varsa bunu ziyaretinizden önce {{PHONE}} numarasından bildirmenizi rica ederiz. Bu bildirim bir masa rezervasyonu değildir; erişim ihtiyacınıza yönelik makul düzenleme olarak erişimi en kolay masayı bildirdiğiniz geliş saatinden itibaren 15 dakika boyunca sizin için boş tutar, masa o sırada doluysa ilk boşalan uygun masayı size ayırır ve personelimizi önceden hazırlarız. Bildiriminiz için yalnızca adınızı ve geliş saatinizi not alırız; notta bildiriminizin nedenini ve sağlık durumunuza ilişkin hiçbir ayrıntıyı yazmayız ve bu notu ziyaretinizin ertesi günü imha ederiz. Önceden bildirmeden gelirseniz de erişimi en kolay boş masayı size gösterir, gereken desteği sağlarız.",
           "İşletme personeli, giriş ve yerleşim sırasında talep hâlinde destek sağlamakla görevlidir. Menü içeriğinin sesli olarak okunması, sipariş alımında ek süre tanınması ve benzeri kolaylıklar talep edilmeksizin de sunulmaya çalışılır.",
-          "Rehber ve yardımcı hayvanlar, 16. maddede belirtildiği üzere işletmenin tüm misafir alanlarına kabul edilir.",
+          "Rehber ve yardımcı hayvanlar, 12. maddede belirtildiği üzere işletmenin tüm misafir alanlarına kabul edilir.",
           "Erişilebilirliğe ilişkin görüş, öneri ve şikâyetlerinizi {{EMAIL}} adresine iletebilirsiniz. İşletme, bildirilen erişim engellerini teknik ve hukuki imkânlar (tarihi yapı koruma mevzuatı dâhil) çerçevesinde gidermek için makul çabayı gösterir.",
         ],
       },
       {
-        heading: "25. Sorumluluk, Mücbir Sebep ve Aksaklıkların Giderilmesi",
+        heading: "21. Sorumluluk, Mücbir Sebep ve Aksaklıkların Giderilmesi",
         paragraphs: [
           "İşletme, sunduğu yiyecek-içecek hizmetini gıda güvenliği mevzuatına ve mesleki özen yükümlülüğüne uygun olarak yerine getirmekle yükümlüdür. Ayıplı hizmet sunulması hâlinde 6502 sayılı Tüketicinin Korunması Hakkında Kanunun ayıplı hizmete ilişkin hükümleri uygulanır ve tüketicinin seçimlik hakları saklıdır.",
           "Servis edilen bir ürünün beklentinizi karşılamaması, siparişten farklı olması veya sunumunda bir sorun bulunması hâlinde durumu derhâl servis personeline bildiriniz. İşletme, ürünü ücretsiz olarak yeniler veya hesaptan düşer. Bu uygulama, tüketicinin kanundan doğan diğer haklarını sınırlamaz.",
@@ -14660,7 +14750,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "26. Şikâyet, Öneri ve Uyuşmazlıkların Çözümü",
+        heading: "22. Şikâyet, Öneri ve Uyuşmazlıkların Çözümü",
         paragraphs: [
           "Hizmete, rezervasyona, ürünlere veya personele ilişkin her türlü şikâyet, öneri ve talebinizi {{PHONE}} numaralı telefondan, {{EMAIL}} adresinden veya doğrudan işletme yönetimine iletebilirsiniz. Başvurularınız kayıt altına alınır ve mümkün olan en kısa sürede, her hâlükârda en geç on beş (15) gün içinde yanıtlanır.",
           "İşletme, şikâyetlerin çözümünde öncelikle dostane ve hızlı bir çözüm sunmayı hedefler. Şikâyetinizin çözüme kavuşmaması hâlinde yasal başvuru yollarına başvurma hakkınız her zaman saklıdır ve bu hak hiçbir şekilde kısıtlanamaz.",
@@ -14693,7 +14783,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
       },
       {
-        heading: "27. Yürürlük, Değişiklik, Sürüm ve İletişim",
+        heading: "23. Yürürlük, Değişiklik, Sürüm ve İletişim",
         paragraphs: [
           "İşbu Koşullar, {{SITE_URL}} adresinde ve {{BRAND}} mobil uygulamasında yayımlandığı tarihte yürürlüğe girer ve yeni bir sürüm yayımlanıncaya kadar geçerliliğini korur. Koşullar; mevzuat değişiklikleri, işletme uygulamalarındaki güncellemeler veya hizmet kapsamındaki değişiklikler nedeniyle İşletme tarafından güncellenebilir.",
           "Güncellenen metin, yayımlandığı tarihten itibaren geçerli olur. Önceden onaylanmış ve yürürlükteki rezervasyonlara, rezervasyonun onaylandığı tarihte yürürlükte olan sürüm uygulanır; sonradan yapılan değişiklikler, Misafir aleyhine sonuç doğuracak biçimde geriye yürütülmez.",
@@ -14782,6 +14872,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "gida-guvenligi-ve-alerjen",
     title: "Gıda Güvenliği ve Alerjen Bilgilendirmesi",
     shortTitle: "Gıda Güvenliği",
+    // 19 Ekim 2026: §7 says where each menu item's allergens are written
+    // (TGK Etiketleme Yön. m.15/5). LEGAL-REDLINES §21.
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafe servisinde ve {{SITE}} üzerinden satılan gıda ürünlerinde uygulanan gıda güvenliği yönetimi, zorunlu alerjen bildirimi, çapraz bulaşma uyarısı, saklama koşulları ve ürün geri çağırma prosedürü hakkında tüketici bilgilendirmesidir.",
@@ -14802,7 +14894,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       "Veri Sorumlusuna Başvuru Usul ve Esasları Hakkında Tebliğ",
       "6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun",
       "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik (İleti Yönetim Sistemi - İYS)",
-      "Elektronik Ticarette Hizmet Sağlayıcı ve Aracı Hizmet Sağlayıcılar Hakkında Yönetmelik",
+      "Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik",
       "4207 sayılı Tütün Ürünlerinin Zararlarının Önlenmesi ve Kontrolü Hakkında Kanun",
       "6098 sayılı Türk Borçlar Kanunu",
       "6102 sayılı Türk Ticaret Kanunu",
@@ -15027,8 +15119,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "7. Zorunlu Bildirilen Alerjen Listesi ve Ürünlerimizdeki Karşılığı",
         paragraphs: [
-          "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde, alerjiye veya intoleransa yol açtığı bilinen maddeler ve ürünler sayılmıştır. Bu maddeler, bileşen listesinde diğer bileşenlerden ayırt edilebilir biçimde vurgulanarak bildirilir. Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi; menüde, ürün kartında, {{SITE_URL}} adresindeki ürün sayfasında, {{BRAND}} mobil uygulamasının ürün detay ekranında veya personel aracılığıyla tüketiciye aktarılır.",
-          "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını göstermektedir. Tablo yol gösterici niteliktedir; her ürün için bağlayıcı olan bilgi, o ürünün etiketinde, menü kartında ya da mobil uygulamanın ürün detay ekranında yer alan güncel bileşen listesidir.",
+          "Türk Gıda Kodeksi Gıda Etiketleme ve Tüketicileri Bilgilendirme Yönetmeliği ekinde, alerjiye veya intoleransa yol açtığı bilinen maddeler ve ürünler sayılmıştır. Bu maddeler, bileşen listesinde diğer bileşenlerden ayırt edilebilir biçimde vurgulanarak bildirilir. Ambalajsız olarak toplu tüketime sunulan gıdalarda ise bilgi, menüde ve köşkte asılı alerjen tablosunda her kalem için yazılı olarak verilir; personel aynı bilgiyi siparişten önce ayrıca sözlü olarak da aktarır.",
+          "Aşağıdaki tablo, mevzuatta sayılan alerjen gruplarının {{BRAND}} ürün ve menü yelpazesindeki olası karşılığını gösterir ve yol gösterici niteliktedir. Kafe menüsündeki her kalemin içerdiği alerjen grupları, {{SITE_URL}}/menu adresindeki menüde kalemin yanında ve köşkte asılı alerjen tablosunda yazılıdır; bu bilginin henüz yazılmadığı bir kalemin alerjenlerini personel siparişten önce bildirir. Ön ambalajlı ürünlerde bağlayıcı bilgi, ürünün etiketindeki güncel bileşen listesidir.",
         ],
         table: [
           {

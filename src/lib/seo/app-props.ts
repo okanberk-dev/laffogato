@@ -1,21 +1,23 @@
 import "server-only";
 
-import {
-  DAYS_OF_WEEK,
-  DAY_LABELS,
-  getPublicSettings,
-  listActivePress,
-  listActiveShopHeroSlides,
-  listActiveStoryEvents,
-  listMenuForCustomer,
-  listShopProducts,
-} from "@/lib/admin/store";
+import { DAYS_OF_WEEK, DAY_LABELS } from "@/lib/admin/store";
 import { LOCATION } from "@/components/laffogato/data";
 import { addressLines } from "@/lib/utils/format";
-import { getSiteContent } from "@/lib/admin/site-content";
 import { getActiveCustomer } from "@/lib/customer/auth";
 import { isDegradedRequest } from "@/lib/db/health";
 import { istanbulDay } from "@/lib/mobile/menu-mapper";
+import { footerSettings, venueContact } from "@/lib/seo/contact";
+import {
+  getSiteContentForSite,
+  getSiteSettings,
+  listSiteHomeSlides,
+  listSiteMenu,
+  listSitePress,
+  listSiteShopHeroSlides,
+  listSiteShopProducts,
+  listSiteStory,
+  shopForRequest,
+} from "@/lib/seo/site-data";
 
 /**
  * Everything the customer shell renders from, loaded once.
@@ -27,15 +29,22 @@ import { istanbulDay } from "@/lib/mobile/menu-mapper";
  * closing time in Ayarlar saw the home page and the footer update while the
  * contact page kept the old number - and /hikayemiz ignored the press quotes
  * and the timeline the admin panel exists to edit.
+ *
+ * Read through the Data Cache (src/lib/seo/site-data.ts): a page view by a
+ * visitor who is not signed in reads nothing from the database. The member
+ * (wishlist, signed-in state) is read live, from the cookie.
  */
 export async function loadAppProps({
   // Only the shop page renders the hero carousel. Fetching its slides for
   // /menu, /ziyaret and /hikayemiz was a query and a client payload for
   // something those pages never show.
   withShopHero = true,
-}: { withShopHero?: boolean } = {}) {
+  // The same for the home page's hero (/admin/anasayfa-hero): only `/`
+  // draws it.
+  withHomeHero = false,
+}: { withShopHero?: boolean; withHomeHero?: boolean } = {}) {
   const [
-    products,
+    cachedProducts,
     settings,
     menu,
     customer,
@@ -43,16 +52,23 @@ export async function loadAppProps({
     press,
     story,
     content,
+    homeHero,
   ] = await Promise.all([
-    listShopProducts(),
-    getPublicSettings(),
-    listMenuForCustomer(),
+    listSiteShopProducts(),
+    getSiteSettings(),
+    listSiteMenu(),
     getActiveCustomer(),
-    withShopHero ? listActiveShopHeroSlides() : Promise.resolve([]),
-    listActivePress(),
-    listActiveStoryEvents(),
-    getSiteContent(),
+    withShopHero ? listSiteShopHeroSlides() : Promise.resolve([]),
+    listSitePress(),
+    listSiteStory(),
+    getSiteContentForSite(),
+    withHomeHero ? listSiteHomeSlides() : Promise.resolve(null),
   ]);
+
+  // After every read: the signed-in member's account is read live, so a
+  // member's request knows when the database is down and shows the empty
+  // shop, cached list or not.
+  const products = shopForRequest(cachedProducts);
 
   // Computed on the server so it is stable across hydration - and at the
   // venue's clock, not the server's. `getDay()` on Vercel is UTC, so from
@@ -60,9 +76,11 @@ export async function loadAppProps({
   // while the app (bootstrap `opensAt`/`closesAt`) already showed today's.
   const todayKey = istanbulDay(new Date());
   const todayH = settings.weeklyHours[todayKey];
+  const contact = venueContact(settings);
 
   return {
     settings,
+    contact,
     menu,
     products,
     customer,
@@ -70,10 +88,13 @@ export async function loadAppProps({
       degraded: isDegradedRequest(),
       products,
       settings: {
-        phone: settings.phone,
-        email: settings.email,
-        address: settings.address,
+        ...footerSettings(settings),
         courierFeeMinor: settings.courierFeeMinor,
+        // The home page's order and rewards shortcuts (presentation only).
+        pickupReadyMinutes: settings.pickupReadyMinutes,
+        stampTarget: settings.mobileApp.loyalty.stampTarget,
+        // The day under the menu (Fiyat Etiketi Yön. m.5/2-d).
+        menuPricesEffectiveDate: settings.menuPricesEffectiveDate,
       },
       menu,
       wishlist: customer?.wishlist,
@@ -97,11 +118,21 @@ export async function loadAppProps({
         d: e.body,
       })),
       content,
-      heroImageUrl: settings.heroImageUrl || undefined,
+      // The panel's live slides. Undefined while the bundled HOME_SLIDES
+      // stand in (home-hero.ts): the client already ships those, so they
+      // are not sent twice. Only `/` asks.
+      homeSlides: homeHero?.fromPanel ? homeHero.slides : undefined,
+      // "Hero görsel URL" replaces the first BUNDLED slide's photo; a slide
+      // from the panel carries its own picture.
+      heroImageUrl: homeHero?.fromPanel
+        ? undefined
+        : settings.heroImageUrl || undefined,
       visit: {
         addressLines: addressLines(settings.address, LOCATION.address),
-        phone: settings.phone,
-        email: settings.email,
+        // A field cleared in the panel falls back to the bundled one, as
+        // the footer does: "" printed nothing and dialled nothing.
+        phone: contact.phone,
+        email: contact.email,
         todayHours: todayH.closed
           ? "Bugün kapalı"
           : `${todayH.open} - ${todayH.close}`,

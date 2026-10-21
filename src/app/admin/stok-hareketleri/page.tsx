@@ -1,262 +1,280 @@
 import Link from "next/link";
 
-import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import { StockAdjustForm } from "@/components/admin/stock-adjust-form";
+import {
+  Badge,
+  BUTTON,
+  DataTable,
+  EmptyState,
+  FilterBar,
+  NUMERIC_STYLE,
+  PageShell,
+  Pagination,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import {
-  listProducts,
+  firstParam,
+  pageCount,
+  parseFilters,
+  parsePage,
+} from "@/lib/admin/list-params";
+import {
+  STOCK_MOVES_PAGE_SIZE,
+  STOCK_MOVES_PATH,
+  STOCK_REASON_LABEL,
+  STOCK_REASON_TONE,
+  stockFilterFields,
+  stockMoveQuery,
+  stockProductOptions,
+  toStockAdjustOption,
+} from "@/lib/admin/stock-moves-panel";
+import {
+  countStockMoves,
+  listProductsForPanel,
   listStockMoves,
-  type StockMoveReason,
+  type AdminStockMove,
 } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Stok Hareketleri" };
 export const dynamic = "force-dynamic";
 
-const REASON_LABEL: Record<StockMoveReason, string> = {
-  order_placed: "Sipariş",
-  order_cancelled: "İptal · stoğa geri",
-  manual_adjust: "Manuel düzeltme",
-  refund_restock: "İade · stoğa geri",
-  seed: "Açılış",
-};
-
-const REASON_TONE: Record<StockMoveReason, string> = {
-  order_placed: "bg-blue-50 text-blue-700",
-  order_cancelled: "bg-emerald-50 text-emerald-700",
-  manual_adjust: "bg-amber-50 text-amber-700",
-  refund_restock: "bg-emerald-50 text-emerald-700",
-  seed: "bg-neutral-100 text-neutral-600",
-};
-
 interface PageProps {
-  searchParams: Promise<{ productId?: string; reason?: StockMoveReason }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+function Delta({ m }: { m: AdminStockMove }) {
+  return (
+    <span
+      className={
+        m.delta < 0
+          ? "text-[var(--admin-danger-ink)]"
+          : "text-[var(--admin-success)]"
+      }
+      style={NUMERIC_STYLE}
+    >
+      {m.delta > 0 ? "+" : ""}
+      {m.delta}
+    </span>
+  );
+}
+
+/** "Siparişe git": a 44 px link (it was 10 px text, 16 px tall). */
+function OrderLink({ m }: { m: AdminStockMove }) {
+  if (!m.orderId) return null;
+  return (
+    <Link
+      href={`/admin/siparisler/${encodeURIComponent(m.orderId)}`}
+      className={`${BUTTON.link} text-xs whitespace-nowrap`}
+    >
+      Siparişe git
+    </Link>
+  );
+}
+
+/**
+ * The stock ledger: the manual correction, then every move, newest first,
+ * 100 per page with the total count, filtered by product, reason and day
+ * (the köşk's calendar). It used to stop at the newest 500 moves without
+ * saying so, with no way to an older one but the product filter (admin
+ * audit CAT-16). Every product the page reads is cut to its name and stock
+ * before it reaches a client component (CAT-07).
+ */
 export default async function StockMovesPage({ searchParams }: PageProps) {
   await requireRole("stock");
-  const sp = await searchParams;
-  const productId = sp.productId?.trim();
-  const reason = sp.reason;
-
-  const [products, moves] = await Promise.all([
-    listProducts(),
-    listStockMoves({ productId, reason, limit: 500 }),
-  ]);
+  const sp = (await searchParams) ?? {};
+  const products = await listProductsForPanel();
+  const fields = stockFilterFields(
+    stockProductOptions(products, firstParam(sp, "productId")),
+  );
+  const filters = parseFilters(sp, fields);
+  const query = stockMoveQuery(filters);
+  const total = await countStockMoves(query);
+  const page = Math.min(parsePage(sp), pageCount(total, STOCK_MOVES_PAGE_SIZE));
+  const moves = await listStockMoves({
+    ...query,
+    limit: STOCK_MOVES_PAGE_SIZE,
+    offset: (page - 1) * STOCK_MOVES_PAGE_SIZE,
+  });
+  const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Operasyon"
-        title="Stok Hareketleri"
-        description="Her satış, iade veya manuel düzeltme bir hareket olarak kaydedilir. Burada denetim izini görürsün."
+        title="Stok"
+        description="Her satış, iade ve düzeltme bir hareket olarak kaydedilir."
+        help={<p>Burada stoğun denetim izini görürsün.</p>}
       />
 
-      <div className="mb-4">
-        <StockAdjustForm products={products} />
+      <div className="mb-6">
+        <StockAdjustForm products={products.map(toStockAdjustOption)} />
       </div>
 
-      <Card className="mb-4">
-        <form className="grid gap-3 sm:grid-cols-2 sm:items-end md:grid-cols-[1fr_1fr_auto_auto]">
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Ürün
-            </span>
-            <select
-              name="productId"
-              defaultValue={productId ?? ""}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              <option value="">Tüm ürünler</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            <span
-              className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Sebep
-            </span>
-            <select
-              name="reason"
-              defaultValue={reason ?? ""}
-              className="w-full rounded-md border border-[var(--admin-border)] bg-neutral-50 px-3 py-2.5 text-base focus:border-[var(--admin-primary)] focus:bg-white focus:outline-none sm:text-sm"
-            >
-              <option value="">Tümü</option>
-              {(Object.keys(REASON_LABEL) as StockMoveReason[]).map((r) => (
-                <option key={r} value={r}>
-                  {REASON_LABEL[r]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
-          >
-            Uygula
-          </button>
-          <Link
-            href="/admin/stok-hareketleri"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border)] px-4 text-sm text-neutral-700 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-          >
-            Sıfırla
-          </Link>
-        </form>
-      </Card>
+      <FilterBar
+        fields={fields}
+        searchParams={sp}
+        pathname={STOCK_MOVES_PATH}
+        values={filters}
+        label="Stok hareketi süzgeci"
+      />
 
-      <Card>
-        {moves.length === 0 ? (
-          <p className="text-sm text-neutral-500">
-            Bu filtreyle hareket bulunamadı. Yeni siparişler ve manuel
-            düzeltmeler burada belirir.
-          </p>
-        ) : (
-          <>
-            {/* Mobile cards */}
-            <ul className="flex flex-col gap-3 md:hidden">
-              {moves.map((m) => (
-                <li
-                  key={m.id}
-                  className="rounded-lg border border-[var(--admin-border)] p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-medium text-neutral-900">
-                        {m.productName}
-                      </div>
-                      <div
-                        className="mt-0.5 text-[10px] text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatDateTime(m.createdAt)} · {m.actor}
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div
-                        className={`text-base ${m.delta < 0 ? "text-red-600" : "text-emerald-700"}`}
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {m.delta > 0 ? "+" : ""}
-                        {m.delta}
-                      </div>
-                      <div
-                        className="text-[10px] text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        → {m.stockAfter}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${REASON_TONE[m.reason]}`}
-                    >
-                      {REASON_LABEL[m.reason]}
-                    </span>
-                    {m.orderId && (
-                      <Link
-                        href={`/admin/siparisler/${m.orderId}`}
-                        className="text-[10px] text-neutral-600 underline-offset-2 hover:text-[var(--admin-primary)] hover:underline"
-                      >
-                        siparişe git →
-                      </Link>
-                    )}
-                  </div>
-                  {m.note && (
-                    <p className="mt-2 text-xs text-neutral-600">{m.note}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
+      <p
+        className="mb-3 text-sm text-[var(--admin-text-soft)]"
+        aria-live="polite"
+      >
+        {filtered
+          ? `Bu süzgece uyan ${total} hareket.`
+          : `Toplam ${total} hareket.`}
+      </p>
 
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr
-                    className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
-                    <th className="py-3 pr-3">Zaman</th>
-                    <th className="pr-3">Ürün</th>
-                    <th className="pr-3 text-right">Δ</th>
-                    <th className="pr-3 text-right">Yeni stok</th>
-                    <th className="pr-3">Sebep</th>
-                    <th className="pr-3">Not</th>
-                    <th className="pr-3">Aktör</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {moves.map((m) => (
-                    <tr
-                      key={m.id}
-                      className="border-b border-neutral-100 last:border-b-0"
-                    >
-                      <td
-                        className="py-3 pr-3 text-xs text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {formatDateTime(m.createdAt)}
-                      </td>
-                      <td className="pr-3 text-neutral-900">{m.productName}</td>
-                      <td
-                        className={`pr-3 text-right ${
-                          m.delta < 0 ? "text-red-600" : "text-emerald-700"
-                        }`}
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {m.delta > 0 ? "+" : ""}
-                        {m.delta}
-                      </td>
-                      <td
-                        className="pr-3 text-right text-neutral-700"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {m.stockAfter}
-                      </td>
-                      <td className="pr-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] tracking-[0.18em] uppercase ${REASON_TONE[m.reason]}`}
-                        >
-                          {REASON_LABEL[m.reason]}
-                        </span>
-                      </td>
-                      <td className="max-w-md pr-3 text-xs text-neutral-600">
-                        {m.note || "-"}
-                        {m.orderId && (
-                          <>
-                            {" "}
-                            <Link
-                              href={`/admin/siparisler/${m.orderId}`}
-                              className="text-neutral-500 underline-offset-2 hover:text-[var(--admin-primary)] hover:underline"
-                            >
-                              siparişe git →
-                            </Link>
-                          </>
-                        )}
-                      </td>
-                      <td
-                        className="pr-3 text-xs text-neutral-500"
-                        style={{ fontFamily: "var(--mono), monospace" }}
-                      >
-                        {m.actor}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <DataTable
+        caption="Stok hareketleri"
+        rows={moves}
+        rowKey={(m) => m.id}
+        empty={
+          <EmptyState
+            title={
+              filtered
+                ? "Bu süzgece uyan hareket yok."
+                : "Henüz stok hareketi yok."
+            }
+            description="Yeni siparişler ve manuel düzeltmeler burada belirir."
+            action={
+              filtered ? (
+                <Link href={STOCK_MOVES_PATH} className={BUTTON.ghost}>
+                  Filtreyi temizle
+                </Link>
+              ) : undefined
+            }
+          />
+        }
+        // The table fits its card beside the sidebar: at 1024 px the card
+        // is about 720 px wide, so "Yeni stok", "Not" and "Kim" are columns
+        // from xl and ride under the change, the reason and the time below
+        // that.
+        columns={[
+          {
+            key: "zaman",
+            header: "Zaman",
+            cell: (m) => (
+              <span className="flex flex-col text-xs text-[var(--admin-text-soft)]">
+                <span className="whitespace-nowrap">
+                  {formatDateTime(m.createdAt)}
+                </span>
+                <span className="max-w-[10rem] break-all xl:hidden">
+                  {m.actor}
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "urun",
+            header: "Ürün",
+            className: "min-w-[11rem]",
+            cell: (m) => m.productName || m.productId,
+          },
+          {
+            key: "degisim",
+            header: "Değişim",
+            align: "right",
+            className: "whitespace-nowrap",
+            cell: (m) => (
+              <span className="flex flex-col items-end">
+                <Delta m={m} />
+                <span className="text-xs text-[var(--admin-text-soft)] xl:hidden">
+                  Yeni stok <span style={NUMERIC_STYLE}>{m.stockAfter}</span>
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "yeni",
+            header: "Yeni stok",
+            align: "right",
+            hideBelow: "xl",
+            className: "whitespace-nowrap",
+            cell: (m) => <span style={NUMERIC_STYLE}>{m.stockAfter}</span>,
+          },
+          {
+            key: "sebep",
+            header: "Sebep",
+            cell: (m) => (
+              <span className="flex max-w-xs flex-col items-start gap-1">
+                <Badge tone={STOCK_REASON_TONE[m.reason] ?? "neutral"}>
+                  {STOCK_REASON_LABEL[m.reason] ?? m.reason}
+                </Badge>
+                <span className="flex flex-col items-start text-xs text-[var(--admin-text-soft)] xl:hidden">
+                  {m.note ? <span>{m.note}</span> : null}
+                  <OrderLink m={m} />
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "not",
+            header: "Not",
+            hideBelow: "xl",
+            className: "min-w-[9rem]",
+            cell: (m) => (
+              <span className="flex max-w-md flex-col items-start text-xs text-[var(--admin-text-soft)]">
+                {m.note || !m.orderId ? <span>{m.note || "-"}</span> : null}
+                <OrderLink m={m} />
+              </span>
+            ),
+          },
+          {
+            key: "kim",
+            header: "Kim",
+            hideBelow: "xl",
+            cell: (m) => (
+              <span className="text-xs break-all text-[var(--admin-text-soft)]">
+                {m.actor}
+              </span>
+            ),
+          },
+        ]}
+        mobileCard={(m) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium text-[var(--admin-text)]">
+                  {m.productName || m.productId}
+                </div>
+                <div className="mt-0.5 text-xs break-all text-[var(--admin-text-soft)]">
+                  {formatDateTime(m.createdAt)} · {m.actor}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="text-base">
+                  <Delta m={m} />
+                </div>
+                <div className="text-xs text-[var(--admin-text-soft)]">
+                  Yeni stok <span style={NUMERIC_STYLE}>{m.stockAfter}</span>
+                </div>
+              </div>
             </div>
-          </>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={STOCK_REASON_TONE[m.reason] ?? "neutral"}>
+                {STOCK_REASON_LABEL[m.reason] ?? m.reason}
+              </Badge>
+              <OrderLink m={m} />
+            </div>
+            {m.note ? (
+              <p className="text-xs text-[var(--admin-text-soft)]">{m.note}</p>
+            ) : null}
+          </div>
         )}
-      </Card>
-    </main>
+      />
+
+      {total > STOCK_MOVES_PAGE_SIZE ? (
+        <Pagination
+          page={page}
+          pageSize={STOCK_MOVES_PAGE_SIZE}
+          total={total}
+          searchParams={sp}
+          pathname={STOCK_MOVES_PATH}
+        />
+      ) : null}
+    </PageShell>
   );
 }

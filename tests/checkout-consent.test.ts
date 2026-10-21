@@ -128,6 +128,13 @@ describe("checkout consent: two boxes, both required", () => {
     expect(checkout).toContain('export const ORDER_FORM_ID = "order-form";');
     expect(checkout).toMatch(/form=\{ORDER_FORM_ID\}/);
     expect(checkout).toMatch(/<form\s+id=\{ORDER_FORM_ID\}/);
+    // The order form is only read (onPay), never submitted. A bare form
+    // would post itself as a GET with the name, phone and address in the
+    // URL; a function action makes React draw its guard, and onSubmit
+    // stops any submit (tests/form-native-submit.test.ts).
+    expect(checkout).toMatch(
+      /<form\s+id=\{ORDER_FORM_ID\}\s+ref=\{orderFormRef\}\s+action=\{orderFormNeverPosts\}\s+onSubmit=\{\(e\) => e\.preventDefault\(\)\}/,
+    );
   });
 
   it("the payment step starts unticked and gates its button on both boxes", () => {
@@ -151,5 +158,21 @@ describe("checkout consent: two boxes, both required", () => {
     expect(wizard).toMatch(/<CheckoutConsent[\s\S]*?form=\{ORDER_FORM_ID\}/);
     // The single-box checkout must not come back beside the new one.
     expect(wizard).not.toContain('name="legalConsent"');
+  });
+
+  it("points to the KVKK notice as information, not as a third box, in sen", () => {
+    const html = render(NO_CHECKOUT_CONSENT);
+    const note = html.slice(html.indexOf('class="checkout-consent-note"'));
+    expect(note).toContain('href="/hukuk/kvkk-aydinlatma-metni"');
+    // An acknowledgement only: no box, no field for it.
+    expect(checkboxes(html)).toHaveLength(2);
+    expect(html).not.toMatch(/name="[^"]*kvkk/i);
+    // What is recorded with the ticks is still said, in the site's "sen".
+    expect(note).toContain("IP adresi");
+    expect(note).toContain("belge sürümü");
+    // In the words the contracts use for the same record.
+    expect(note).toContain("tarayıcı bilgisi");
+    expect(note).toMatch(/Kişisel verilerinin nasıl işlendiğini\s*<a /);
+    expect(note).not.toMatch(/Onaylarınız|siparişinize|verilerinizin/);
   });
 });

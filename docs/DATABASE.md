@@ -25,7 +25,16 @@ değil, bir kesintiydi:
 
 Neon'un ücretsiz planı **proje başına** kota verir ve limitlere takılmak veriyi
 silmez (Neon'un kendi ifadesiyle: _"None of these limits delete your data."_),
-yani aynı arıza Neon'da tekrarlanamaz.
+yani aynı veri kaybı Neon'da tekrarlanamaz. **Ama erişim kesilebilir:** Free
+planda proje başına ayda 100 CU-saat hesaplama var; dolunca compute bir sonraki
+fatura dönemine kadar askıya alınır (https://neon.com/docs/introduction/plans).
+19 Eki 2026 ölçümü: 1-19 Ekim arası 70,2 CU-saat, yani ay sonu tahmini ~117;
+açık bir admin sekmesi (yeni sipariş zili) Neon'u açılış saatlerinde uyanık
+tutuyor ve Neon 5 dakikalık boşta kalmadan önce uyumadığı için yoklama aralığını
+uzatmak bunu çözmüyor. Eylül'de veritabanı 29 Eyl 22:21 UTC'den 1 Eki 00:00
+UTC'ye kadar kapalı kaldı (büyük ihtimalle aynı kota). Kalıcı çözüm Neon'un
+kullanım başına ücretli planı (Launch, aylık asgari ücret yok; azami ölçek
+0,25 CU ile ayda ~15-20 $).
 
 **Supabase'e geri dönmek isteniyorsa** - ki mobil uygulamayla ortak kimlik için
 iyi bir sebep var - geçişten önce şunun yazılı olarak doğrulanması gerekir:
@@ -36,6 +45,184 @@ iyi bir sebep var - geçişten önce şunun yazılı olarak doğrulanması gerek
 
 Bu doğrulanmadan taşıma, siteyi bir kez daha aynı şekilde kapatır. Karar
 operatöründür; bu belge yalnızca bedelin ne olduğunu kayda geçirir.
+
+## Önizleme deployment'ları kapalı (19 Eki 2026)
+
+Vercel'deki Neon entegrasyonu her önizleme deployment'ı için `preview/<dal>`
+adında bir Neon dalı açıyor ve deployment'ı o dalın bağlantısıyla bir kez daha
+tetikliyordu. Ücretsiz planlarda bu iki sınırı birden dolduruyordu: Neon'da
+proje başına 10 dal, Vercel Hobby'de günde 100 deployment (19 Eki 2026'da
+doldu; kota dolunca `main`'in production deployment'ı da bekler). Bu yüzden
+`vercel.json` `git.deploymentEnabled` iş dallarını (`feat/**`, `fix/**`,
+`docs/**`, `chore/**`, `test/**`, `refactor/**`, `claude/**`) deploy etmez;
+yalnız `main` production'a gider. Bir dalın önizlemesi gerekirse
+`vercel deploy` ile elle açılır ve işi bitince `preview/*` Neon dalı silinir
+(`production` ve `vercel-dev` dalına dokunulmaz).
+
+## Uyanmalar ve önbellek (19 Eki 2026)
+
+**Ölçülen sebep.** Neon Free planda compute 5 dakika boşta kalınca uyur ve
+her istek onu yeniden uyandırır; uyanık geçen her dakika CU-saat yazar.
+1-19 Ekim: 70,2 CU-saat (19 Eki 15:05 UTC), günde ~92 uyanma, compute
+zamanın ~%57-59'unda açık (12-19 Ekim ortalaması günde ~14,7 saat) ve
+dağılım 24 saate neredeyse düz yayılmış: Tuzla saatiyle 02:00-08:00 arası
+günde ~2,4 saat açık, bu uyanmaların %67-77'si tek istekli (biri gelir,
+compute 5 dakika açık kalır, kimse gelmez). Gece müşteri yok; uyandıran
+tarayıcılar ve botlar. Her genel sayfa `force-dynamic` ve her görüntüleme
+ayarları, menüyü, ürünleri veritabanından okuyordu. Gündüz ayrıca açık bir
+panel sekmesi (yeni sipariş zili 10 sn'de bir, kenar çubuğu rozetleri
+60 sn'de bir, sipariş listesi 30 sn'de bir) Neon'u açık tutuyor; 5 dakikanın
+altındaki her aralık aynı sonucu verir. Production endpoint'i
+(`ep-plain-cake-ay3dvcuq`) 19 Eki'de 0,25 CU'ya sabitlendi (min = max).
+İstek dökümü doğrulanamadı: Vercel Hobby istek logu tutmaz.
+
+**Ne değişti.**
+
+1. **Yazma, etkilediği önbelleği hemen düşürür** (`src/lib/cache/tags.ts`).
+   Veri katmanı (`getDb()`) gönderdiği her insert, upsert, update, delete
+   ve rpc'den sonra ilgili etiketi `revalidateTag(tag, { expire: 0 })` ile
+   düşürür: bir sonraki okuma taze veriyi bekler, bayat veri hiç sunulmaz.
+   Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
+   önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
+   düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
+   Altı etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
+   site haritası), `pub:menu` (menü kalemleri; mağazanın stok hareketi
+   menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
+   site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
+   içerikleri, hukuk override'ları, canlı durum), `live:orders`,
+   `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
+   okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
+   Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
+   sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
+   `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc
+   bütün etiketleri birden düşürür. Bir fonksiyonun etiketleri gövdesinin
+   yazdığı tabloların ve çağırdığı fonksiyonların etiketleridir; aynı test
+   `db/schema.sql`'i okur, eksik (bayat veri) ya da fazla (boşuna uyanma)
+   etiketi reddeder: iade, satır durumu ve cüzdan siparişi yalnız
+   `live:orders`, stok hareketi kaydı (`record_stock_move`) hiçbirini
+   düşürmez. Her yazma etiketi bir kez daha, yanıt çıktıktan
+   sonra `after()` ile ayrı bir istekle düşürür (`SECOND_EXPIRY`): Next
+   düşürmeleri sıraya alır ve sırayı route handler ancak bir Response
+   döndürünce ya da yönlendirince gönderir. Yazdıktan sonra hata fırlatan
+   bir handler'da (ödeme dönüşü, uygulama ucu, cron) ilk istek hiç gitmez,
+   `after()` yine çalışır (`tests/cache-expire-retry.test.ts` bunu Next'in
+   kendi koduyla dener). Render sırasında (Next E7) yalnız ikincisi vardır.
+2. **Genel sayfaların sunum okumaları Data Cache'ten gelir**
+   (`src/lib/cache/presentation.ts`, `src/lib/seo/site-data.ts`;
+   `unstable_cache`, Vercel'de bölgesel Runtime Cache). Anahtar deployment'ı
+   ve son migration'ı içerir: her deploy boş önbellekle başlar. Kayıt yazma
+   gelene kadar geçerlidir; 24 saatlik `revalidate` yalnız görülmemiş bir
+   yazmaya karşı emniyet ağıdır. Kapsam: `/`, `/menu`, `/magaza`,
+   `/hikayemiz`, `/ziyaret` (`loadAppProps`), `/menu/<kategori>`,
+   `/magaza/<kategori>`, `/magaza/urun/<slug>` ve kartı, `/ziyaret` kartı,
+   `/kampanyalar`, `/hukuk` ve `/hukuk/<slug>` gösterimi, `/rehber` ve
+   `/uye` çerçevesi, 404, `robots.txt`, `sitemap.xml`, iki `.well-known`
+   belgesi, `/masa/<kod>`'un menü kısmı. Saate bağlı her şey (bugünün
+   saatleri, yayın aralıkları, ana sayfa slaytı, mağazadaki indirimin "eski
+   fiyatı": önbellekte indirimin günleri durur, gösterilip gösterilmeyeceği
+   her istekte `liveDiscount` ile karar bağlanır) istek başına hesaplanır.
+   Ayarlar önbelleğe personel bildirim alıcıları boşaltılarak yazılır.
+
+   **Etiket düşürmeyen yazmalar.** Bu kancayı taşımayan bir koddan gelen her
+   yazma: (a) Neon konsolunda elle SQL ve `scripts/*.mjs`; (b) production
+   `DATABASE_URL`'iyle çalışan `npm run dev` ya da `vercel dev` (yerel
+   sunucu yalnız kendi önbelleğini düşürür); (c) Instant Rollback: geri
+   dönülen deployment'ta yapılan kayıtlar "Undo Rollback" ile dönen
+   deployment'ın kayıtlarını düşürmeyebilir, bu değişiklikten önceki bir
+   deployment hiç düşürmez; (d) bu değişikliğin ilk deploy'unda, promote
+   anında eski deployment'ta süren istekler (en uzunu 300 sn: kampanya
+   gönderimi, CSV içe aktarma; ödeme dönüşü, stok iadesi). Panelden yapılan
+   bir kayıt yalnız kendi etiketini düşürür. Bunlardan sonra (her rollback
+   ve undo rollback sonrası, ilk deploy'dan 5 dakika sonra bir kez de)
+   bütün etiketleri elle düşür:
+
+   ```bash
+   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:orders,live:karaoke,live:access --yes
+   ```
+
+   `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da
+   yeter (yeni deployment boş önbellekle başlar); `LAF_DATA_CACHE=off` da
+   ancak yeni bir deploy'la devreye girer. Aksi halde eski fiyat ve stok
+   24 saat, ardından bir istek daha görünür; veritabanı kapalıysa
+   yenilenemeyen kayıt kapalı kaldığı sürece görünür.
+
+3. **Yeni sipariş zili değişiklik yokken veritabanına gitmez**
+   (`/admin/siparisler/uyari`, `src/lib/admin/change-marker.ts`): her
+   `orders` yazması Data Cache'teki bir değişiklik işaretini yeniler; işaret
+   aynıyken cevap `{ unchanged: true }`, veri ve veritabanı yok. Köşk açıkken
+   en az saatte bir tam cevap. İşaret `admin_users` yazmalarında da
+   yenilenir (`live:access`) ve imleç onu alan oturum çerezine bağlıdır:
+   pasifleşen, rolü düşen ya da parolası sıfırlanan oturum bir sonraki
+   soruda hesabı yeniden okutur ve reddedilir (kural 30). Ayrıntı
+   `docs/ADMIN.md` "Yeni sipariş uyarısı".
+4. **Panel rozetleri ve sipariş listesinin sayacı da** aynı işaretlerle
+   (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
+   (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
+   Neon'u bütün gece uyanık tutmaz. Üst çubuğun **köşk çipi** (UI-13, 20 Eki
+   2026) de öyle: kendi işareti `pub:site` ve `live:access` altında
+   (`venue_status`, ayarlar ve panel hesapları yazılınca yenilenir), imleci
+   saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli
+   (`src/lib/admin/venue-signal.ts`); arada cevap `{ unchanged: true }`.
+
+**Önbelleğe girmeyenler (bilerek).** Fiyat, stok, yetki ve siparişin
+verilebilirliği hiçbir zaman önbellekten karar bağlanmaz: `/odeme` (layout,
+sayfa, action'lar), `/karaoke`, `/rezervasyon`, `placeOrder` /
+`placeAppOrder`, `/api/mobile/v1/**` (başlıklar ve okuyucular aynı,
+`docs/API-MOBILE.md` değişmedi), e-postalar, onay sürümleri
+(`checkoutConsentVersion`, `karaokeConsentVersion`), ödeme belgeleri, admin
+sayfaları ve admin oturumu canlı okur. Onay alınan üç belgenin `/hukuk`
+sayfası da canlıdır (Ön Bilgilendirme Formu, Mesafeli Satış Sözleşmesi,
+karaoke odası şartları): siparişin ya da rezervasyonun kaydettiği onay
+sürümü hangi satırdan çıkıyorsa yeni sekmede açılan metin de o satırdır;
+kaybolmuş bir etiket düşürmesi müşteriye kaydedilenden eski bir metni
+gösteremez. `tests/site-data-cache.test.ts` bu yolların önbellek
+okuyucularını içe aktarmadığını tutar. `/masa/<kod>`'un
+masa araması ve `/api/health` da canlıdır.
+
+**Kesinti davranışına etkisi.** Önbellekte kaydı olan bir sayfa veritabanı
+kapalıyken son bilinen gerçek içeriği gösterir ve kesinti bandı çıkmaz;
+kaydı olmayan sayfa eskisi gibi paketteki içeriğe düşer (o yedek hiçbir
+zaman önbelleğe yazılmaz, `publicRead` dış çağrıdır). Mağaza "bozulmada
+boş kalır": isteğin kendisi veritabanını kapalı gördüyse (giriş yapmış
+üyenin hesabı her sayfada canlı okunur, ya da önbellekte kaydı olmayan bir
+okuma düştü) liste önbellekten gelse de mağaza boş ve bant görünür
+(`shopForRequest`; `loadAppProps` ve iki kategori sayfası;
+`tests/site-data-outage-shop.test.ts`). Satın alabilecek tek ziyaretçi
+üyedir, yani satın almaya çalışan herkes kesintiyi görür. Hiçbir şeyi canlı
+okumayan anonim bir istek kesintiyi bilemez: son bilinen gerçek ürünleri
+bantsız gösterir. Bu, kuralın harfinden kalan tek ayrışmadır ve
+veritabanını uyandırmadan kapatılamaz; ödeme sayfası ayarları canlı okur ve
+"Şu an sipariş alamıyoruz" der, ödeme fiyatı veritabanından yeniden okur ve
+stoğu SQL'de ayırır, yani kimse bu listeden satın alamaz; ödeme, karaoke ve
+uygulama siparişleri yine sesli başarısız olur. Bu kalan ayrışma operatörün
+onayına sunulmuştur (CLAUDE.md değiştirilmedi).
+
+**Kapatma anahtarı.** `LAF_DATA_CACHE=off` (Vercel env) her sunum okumasını
+eskisi gibi veritabanına gönderir. Önbellek hata verirse ya da kaydı
+düşürürse okuma veritabanına gider: daha çok compute, asla yanlış veri.
+
+**Yeniden ölçmek** (salt okunur; `NEON_API_KEY` operatörde):
+
+```bash
+# Dönemin toplamları: compute_time_seconds / 3600 = CU-saat,
+# active_time_seconds / 3600 = açık saat
+npx neonctl projects get misty-cell-35394291 -o json
+
+# Production endpoint'inin uyanmaları, Tuzla saatine göre (son 1000 işlem;
+# daha eskisi için yanıttaki pagination.cursor ile ?cursor= ver)
+curl -s -H "Authorization: Bearer $NEON_API_KEY" \
+  "https://console.neon.tech/api/v2/projects/misty-cell-35394291/operations?limit=1000" |
+  jq -r '.operations[]
+    | select(.action == "start_compute" and .endpoint_id == "ep-plain-cake-ay3dvcuq")
+    | .created_at | sub("\\.[0-9]+"; "") | fromdateiso8601 + 10800 | strftime("%d %H")' |
+  sort | uniq -c
+```
+
+Hedef (deploy'dan sonraki 48 saat): 02:00-08:00 arası saatte en çok bir
+uyanma; günde 9 saatin altında açık kalma (kalan bütçe 29,8 CU-saat / 12
+gün, 0,25 CU'da günde ~9,6 saat). Bir panel kaydı bir sonraki sayfa
+yüklemesinde görünmelidir. Ölçüm 9 saatin üstünde kalırsa çözüm Neon Launch
+planıdır (ayda ~12-15 $).
 
 ## Supabase'e geçiş yordamı
 
@@ -81,8 +268,10 @@ Bunun iki somut faydası var:
 > Uygulama "tablo yok" hatasını (SQLSTATE `42P01`) _gerçek_ bir hata sayar ve
 > haklı olarak 500 döndürür - bu bilinçli bir tercih, çünkü şema hatasını
 > yedek veriyle gizlemek işi daha da kötüleştirir. Boş bir veritabanına
-> bağlanmak siteyi bozar; hiç bağlanmamak bozmaz (pakete düşer). Yani şema
-> hazır olmadan env değişkenini eklemeyin.
+> bağlanmak siteyi bozar. Yani şema hazır olmadan env değişkenini eklemeyin.
+> `DATABASE_URL`'i silmek de bir geri dönüş yolu değildir: değişken yoksa
+> site hiçbir veritabanına bağlanmaz ve kesintideki gibi pakete düşer
+> (aşağıda "Bağlantı dizesi yalnız `DATABASE_URL`").
 
 1. **Plan/slot doğrula** - hedef Supabase organizasyonu için
    [SUPABASE-GECIS.md §0](SUPABASE-GECIS.md) ön koşulunu geç. Bu adım
@@ -141,7 +330,48 @@ Bunun iki somut faydası var:
 
 Veri erişimi tamamen **server-only**. Bağlantı `src/lib/db/index.ts` içinde
 tembel (lazy) bir singleton olarak kurulur - `next build` canlı kimlik bilgisi
-olmadan da çalışır.
+olmadan da çalışır (derleme veritabanı okumaz; bağlantı dizesi ilk sorguda
+okunur, modül yüklenirken değil).
+
+### Bağlantı dizesi yalnız `DATABASE_URL` (20 Eki 2026)
+
+Uygulama ve veritabanını açan iki betik (`npm run db:migrate`,
+`scripts/backfill-backdrops.mjs`) bağlantı dizesini **tek bir dosyadan**
+okur: `src/lib/db/database-url.mjs` (düz JavaScript, çünkü betikler
+TypeScript içe aktaramaz). Kural tektir: `DATABASE_URL`, başka hiçbir şey.
+
+Eskiden zincir `DATABASE_URL` → `POSTGRES_URL` → `SUPABASE_DB_URL` idi (betikler
+`DATABASE_URL` → `POSTGRES_URL`). Supabase'in Vercel entegrasyonu
+`POSTGRES_URL`'i Production'a yazar ve o dize kimlik projesinin kendi, bizim
+verimizi taşımayan Postgres'ini gösterir. `DATABASE_URL` bir gün kaybolsaydı
+site oraya sessizce bağlanır, boş bir şema kurar (`bootstrap.ts`) ve
+siparişleri oraya yazardı. `SUPABASE_DB_URL` da taşıma yordamının bir adımı
+değildir: [SUPABASE-GECIS.md](SUPABASE-GECIS.md) veriyi `DATABASE_URL`'i
+değiştirerek taşır. İkisi de artık okunmaz.
+
+`DATABASE_URL` yoksa (tanımsız, boş ya da yalnız boşluk) **hiçbir
+veritabanına bağlanılmaz** ve site, veritabanı ulaşılamıyormuş gibi davranır
+(aşağıda "Veritabanı ulaşılamazsa ne oluyor"); farkı adını söylemesidir:
+
+- Her sorgu bağlantı kurulmadan `DATABASE_URL_MISSING` koduyla döner;
+  `raiseDbError` onu kesintideki aynı `DbUnreachableError`'a çevirir. Genel
+  sayfalar, `robots.txt`, `sitemap.xml` ve önbellekli okuyucular paketteki
+  içeriğe düşer, `/api/mobile/v1` 503 `unavailable` döner (sözleşme
+  değişmedi). Hata mesajı eksik değişkeni ve tanımlı olup okunmayan adları
+  (`POSTGRES_URL`, `SUPABASE_DB_URL`) söyler, değerlerini asla. Sunucu
+  günlüğüne örnek başına bir kez `[db] DATABASE_URL tanımlı değil` yazılır;
+  her düşüş ayrıca `[db-degraded]` satırında bu mesajla görünür.
+- `/api/health` `db: "unconfigured"` (503) döner, `down` değil: düzeltme
+  beklemek değil, bir dağıtım ayarıdır.
+- İki betik hiçbir yere bağlanmadan aynı mesajla çıkar (çıkış kodu 1).
+
+Testler: `tests/db-connection-url.test.ts` aynı on durumu ortak kurala, veri
+katmanına ve iki betiğe (gerçekten çalıştırarak; hangi adrese bağlanmaya
+çalıştıklarını sayan geçici dinleyicilerle) uygular;
+`tests/db-url-missing-degrades.test.ts` aynı dağıtımın genel okuyucularını
+ve uygulama uçlarını `DATABASE_URL`'siz ve ulaşılamayan veritabanıyla yan
+yana koşturur, cevapların aynı olduğunu ve `POSTGRES_URL`'e hiç
+bağlanılmadığını tutar.
 
 Kod, Supabase'in PostgREST sorgu kurucusuna göre yazılmıştı (~122 çağrı noktası,
 sipariş/stok/ödeme yolları dahil). Bunları elle SQL'e çevirmek yerine aynı
@@ -166,6 +396,23 @@ Korunan davranışlar (çağrı noktaları bunlara bağlı):
 Bu katmanın tamamı veritabanı olmadan test edilir: `tests/db-sql.test.ts` ve
 `tests/db-client.test.ts` (45 test) üretilen SQL'i ve sonuç semantiğini doğrular.
 
+### Tohum (seed) bir veritabanına bir kez yazılır
+
+Store bir tabloyu ancak tablo boşken **ve** `counters` içinde
+`seed:<tablo>` işareti yokken tohumlar (`seedOnce`, `src/lib/admin/store.ts`);
+ilk karar işareti yazar. Böylece operatörün boşalttığı tablo (son ürün, son
+vitrin slaytı, son duyuru) bir sonraki soğuk başlangıçta geri dolmaz (admin
+denetimi CAT-04, CON-01, karar D17). Katalog (ürün, kategori, menü) üretim
+derlemesinde (Vercel önizlemeleri dahil) hiç tohumlanmaz; ayarlar satırı
+eksikse her zaman yazılır. Kullanımdaki her veritabanına işaretleri
+`20261017200100_seed_markers.sql` bir kez yazdı. Sayaçlar `raise_counter` ile
+yalnız yükselir (`setCounter`), silinmiş bir satırın kimliği yeniden
+verilmez.
+
+Bir geliştirme veritabanını yeniden tohumlamak için:
+`delete from public.counters where id like 'seed:%';` (ve boşaltılacak
+tablolar).
+
 ## Yeni migration
 
 `db/migrations/YYYYMMDDHHMMSS_aciklama.sql` oluştur, sonra `npm run db:migrate`.
@@ -188,13 +435,25 @@ minimizasyonu ihlaliydi (KVKK m.4/2-d).
 | `customer_consents`    | (fonksiyon) | **3 yıl**  | "onayın geçerliliğinin sona erdiği tarihten itibaren 3 yıl; ... ret kaydı ... bu süre boyunca" - aşağıya bak               |
 | `email_suppressions`   | `updatedAt` | **3 yıl**  | Ticari ileti gönderim kaydı ("kayıt tarihinden itibaren 3 yıl"); son bounce/şikâyetten sayılır                            |
 | `audit_logs`           | `createdAt` | **10 yıl** | "İşlemin gerçekleştiği tarihten itibaren 10 yıl… (append-only)" - **asgari**                                               |
+| `legal_override_history` | `archivedAt` | **11 yıl** | "Sözleşmenin ifasından itibaren 10 yıl…" (Mesafeli satış onay kaydı); ifa arşivden sonra gelir, fazladan yıl onu karşılar |
+| `legal_doc_versions`   | (fonksiyon) | **11 yıl** | Aynı dayanak; metne atıf yapan en yeni onaydan sayılır, belgenin en yeni metni hiç silinmez - aşağıya bak                  |
 | `counter_tokens`       | `expiresAt` | **1 gün**  | Jeton süresinin dolmasına bağlı otomatik imha; kalıcı kayıt `loyalty_stamps`'tir                                           |
+| `karaoke_reservations` | `date` (fonksiyon) | **3 yıl** | "rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir" - satır kalır, kişi bilgisi temizlenir (aşağıya bak) |
+| `karaoke_reservations` | `date` (fonksiyon) | **11 yıl** | "ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir" - TTK m.82/6: süre yıl sonundan başlar, 11 × 366 gün hiçbir kaydı erken silmez |
 
 Süreler **politikadan okunur, uydurulmaz**: `src/lib/retention.ts` içindeki
 her kural, geldiği cümleyi `basis` alanında taşır ve
 `tests/mobile-retention.test.ts` o cümle `src/lib/legal/content.ts`'ten
 kaybolduğunda kırılır. Asgari (zorunlu) sürelerde yıl **366 gün** sayılır -
 10 yıllık bir kayıt artık yıllar yüzünden bir gün erken imha edilemez.
+
+`audit_logs` veritabanında da append-only'dir
+(`20261019170000_audit_logs_append_only.sql`): UPDATE ve TRUNCATE P0001 ile
+reddedilir, DELETE yalnız `createdAt`'i yazılı ve on yıldan eski satırda
+geçer. İmha 10 × 366 gün bekler, yani her zaman tetikleyicinin sınırından
+sonra keser. Olay kaydından elle satır silmek ya da düzeltmek artık hata
+verir; tetikleyici uygulamayı ve kazaları durdurur, tablo sahibini değil
+(`alter table ... disable trigger` sahibin elindedir).
 
 ### Çalıştırma - varsayılan **rapor modu**
 
@@ -219,7 +478,72 @@ Bu tam değer aranır - `1`, `true`, `yes` açmaz. **Önce birkaç gün kuru
 çalıştırma yapın**, `totalMatched` sayılarını okuyun, sonra açın.
 
 Yanıt gövdesi yalnızca **sayı** taşır; hiçbir anahtar, adres ya da IP ne
-loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir).
+loglanır ne döndürülür (`auth_attempts.key` üçünü birden içerir). İki rota da
+aynı tek satırı loglar (`retentionLogLine`): `[cron/retention] destroy
+matched=<n> destroyed=<n>` ya da `report ...`.
+
+### İmha kaydı (Silme Yönetmeliği m.7/3)
+
+Her **uygulanan** çalıştırma (`RETENTION_APPLY=destroy`) tek bir kalıcı kayıt
+bırakır ve kayıt **`audit_logs`** tablosundadır: `actor` `system`, `action`
+`bulk_delete`, `entity` `retention`, `entityId` çalıştırmanın ISO anı (UTC),
+`payload` `{ at, results: [{ id, table, method, cutoff, matched, destroyed }] }`
+(`method`: `delete` satır silindi, `clear` alanlar boşaltıldı).
+Yalnız sayı: satır, anahtar, adres ya da hata metni yazılmaz; çalışamayan
+kuralın satırında `failed: true` durur. Kaydı `runRetention` yazar
+(`src/lib/retention.ts`, `safeAudit` ile: yazılamazsa imha geri alınmaz,
+hata `[audit] row not written retention:<an> bulk_delete` diye loglanır ve
+yanıttaki `recorded` `false` olur), bu yüzden `/api/cron/daily` de
+`/api/cron/retention` da kayıt bırakır. **Rapor modu hiçbir şey yazmaz**:
+ne veri ne kayıt.
+
+Yönetmelik m.7/3 imha işlemlerinin kaydının en az üç yıl saklanmasını ister;
+`audit_logs` on yıl tutulur (`audit-logs` kuralı) ve append-only'dir.
+Panelde: **Olay kaydı** (`/admin/olay-kaydi`, yalnız sahip) → Kayıt türü
+"Periyodik imha"; her kural Türkçe adıyla, eşleşen ve imha edilen sayısı ve
+sınır anıyla görünür, CSV dışa aktarma da aynı satırları taşır.
+
+### Karaoke rezervasyonları (ASK-RETENTION)
+
+İki SQL fonksiyonu (`20261021090000_karaoke_guest_retention.sql`), ikisi de
+`(p_cutoff text, p_apply boolean) returns integer`, `rpc()` ile çağrılır
+(kural 23):
+
+- `karaoke_guest_retention` (3 × 366 gün): misafir rezervasyonunda
+  `"customerName"` boşalır, `"customerEmail"` `anon-<id>@anon.local` olur
+  (hesap kapatmanın `deleted-<müşteri id>@anon.local` yer tutucusuyla
+  çakışmaz); **her** rezervasyonda `"contactEmail"`, `"contactPhone"` ve
+  `note` boşalır, `"legalConsent"`'ten yalnız `ip` ve `userAgent` çıkar (NULL
+  NULL kalır; onayın anı, belgeleri ve sürümü kalır, MSY m.20). Üyenin kendi
+  adı ve adresi kalır: onları üyelik tutar, hesap kapatma siler. Satır
+  silinmez. Temizlenecek bir şeyi kalmamış satırı saymaz, ikinci çalıştırma 0
+  döner.
+- `karaoke_reservation_retention` (11 × 366 gün): satırı siler.
+
+İkisi de aynı süzgeci kullanır: `date < left(p_cutoff, 10)` (metin
+karşılaştırması; silmede rezervasyon günü, `"paidAt"` ve `"refundedAt"`'in en
+geç olanı, TTK m.82/6), `"paymentStatus" not in ('pending', 'refunding')`
+(POS'un sonuçlandırmadığı para; kural 29), panelin hâlâ borçlu saydığı
+rezervasyon değil (`paid` ve `cancelled` ya da `requested`:
+`listKaraokeRefundsOwed`, `listKaraokeAttention`), `payment_transactions`'ta
+cevabı gelmemiş `refunding` talebi yok ve `"retentionHold" = ''`. `date` köşkün
+takvim günüdür; `retention.ts` bu iki kuralın sınırını İstanbul saatiyle
+(`…+03:00`) yazar, böylece ilk on karakter köşkün günüdür (kural 22: UTC
+00:00-03:00 arası dünü verir). Biçimi `YYYY-MM-DD` olmayan bir gün hiç
+kapsama girmez; gün olmayan ya da bir yıldan yakın bir sınır hata verir
+(22007), hiçbir şey yazılmaz.
+
+**Hukuki saklama (`"retentionHold"`).** Boşsa imhayı hiçbir şey durdurmaz.
+Uyuşmazlık, şikâyet ya da resmî talep olan rezervasyonda nedeniyle doldurulur
+ve iş bitince boşaltılır; uygulama bu sütunu yazmaz, hiçbir yanıtta yoktur:
+
+```sql
+update public.karaoke_reservations set "retentionHold" = 'Hakem heyeti 2027/123' where id = 'krk-00042';
+update public.karaoke_reservations set "retentionHold" = '' where id = 'krk-00042';
+```
+
+`payment_transactions`'taki `krk-` ödeme satırları bu kurallara girmez; onların
+kendi kuralı henüz yok (on yıllık asgari süre, en erken 2036'da gerekir).
 
 ### Rıza defteri (`customer_consents`)
 
@@ -253,12 +577,97 @@ ne kadar eski olursa olsun kapsam dışıdır; üyeye giden postanın dayanağı
 odur. Testler: `tests/consent-ledger.test.ts`,
 `tests/db-integration-consent-ledger.test.ts`.
 
+### Yasal metin arşivi (`legal_override_history`)
+
+Panelin hukuk geçersiz kılmalarının (`legal_docs`, belge başına bir satır)
+önceki metinleri. Bir kayıt değişen bir satırın üzerine yazmadan
+(`legal_doc_save`, neden `replaced`) ve "Varsayılana döndür" silmeden
+(`legal_doc_reset`, neden `reset`) önce eski satır aynı işlemde buraya
+kopyalanır; ikisi de belge başına advisory lock alır. Hiçbir şeyi
+değiştirmeyen kayıt hiçbir şey yazmaz: `updatedAt` metnin yayına girdiği an
+kalır, böylece her metnin gösterildiği aralık `updatedAt` → `archivedAt`
+olarak tam bilinir. Panel arşivi listeler,
+önizler ve geri yükler (geri yükleme bir `legal_doc_save`'dir, değiştirdiği
+metni de arşive alır). Sipariş onayı 21 Ekim 2026'ya kadar yalnız sürüm
+etiketini kaydediyordu (`legalConsent.version`); o etiketin arkasındaki panel
+metni buradadır. O günden beri onay her metnin hash'ini de tutar ve metnin
+kendisi `legal_doc_versions`'tadır (aşağıda). Satır
+güncellenemez (`legal_override_history_no_update`); yalnız periyodik imha
+siler: `archivedAt`'ten 11 yıl sonra (`legal-override-history` kuralı).
+Dayanak, siparişin sürüm etiketinin bağlı olduğu "Mesafeli satış onay kaydı"
+satırıdır ("Sözleşmenin ifasından itibaren 10 yıl"): metin `archivedAt`'e
+kadar onaylandı, sözleşme ondan sonra ifa edilir, fazladan yıl ifayı karşılar.
+Satırdaki tek kişisel veri `archivedBy`, panel kullanıcısının adresidir.
+Testler: `tests/db-integration-legal-history.test.ts`,
+`tests/admin-legal-actions.test.ts`, `tests/mobile-retention.test.ts`.
+
+### Gösterilen hukuk metinleri (`legal_doc_versions`, 21 Eki 2026)
+
+`/hukuk/<slug>`'in gösterdiği **her** metin (kodlu metin ya da panelin
+yayımladığı metin), kanonik biçimiyle (`src/lib/legal/version-core.ts`:
+sabit anahtar sıralı JSON; başlık, özet, "Son güncelleme" tarihi, token'ları
+doldurulmuş bölümler ya da panelin Markdown'ı) ve o biçimin SHA-256'sı
+anahtarıyla burada durur (karar D-VERSIONS-TABLE). Sipariş ve karaoke onay
+kaydı sürüm etiketinin yanında her belgenin hash'ini yazar
+(`legalConsent.textHashes`); onay e-postasının eki, üyenin indirdiği dosya ve
+`/hukuk/<slug>?surum=<ilk 16 hane>` sayfası metni bu tablodan, hash ile
+okur. `legal_override_history` panelin düzenleme kaydı olarak kalır; iki
+tablo yan yana durur.
+
+- **Bütünlük:** `hash = encode(sha256(convert_to(body, 'UTF8')), 'hex')`
+  CHECK'i: hash'i metnini tutmayan satır yazılamaz. Okuyan kod da hash'i
+  yeniden hesaplar ve kanonik biçimden sapan metni yok sayar.
+- **Yazanlar** (hepsi `INSERT ... ON CONFLICT (hash) DO NOTHING`, tek ifade):
+  web ve uygulama ödeme onayı ile karaoke rezervasyonu (gösterdikleri
+  metinler, ilk onayda; yazılamazsa sipariş etkilenmez, loglanır), panelin
+  kaydet, varsayılana döndür ve geri yükle işlemleri (önceki metin
+  değişiklikten ÖNCE, yazılamazsa değişiklik reddedilir; yeni metin ancak
+  değişiklik yazıldıktan SONRA, yazılamazsa loglanır ve ilk onay ya da cron
+  yazar), günlük cron (`/api/cron/daily`, "legal-versions": bütün belgelerin
+  o günkü metni) ve onay e-postası ile iki indirme yolu (onayda yazılmamış ama
+  bugün gösterilen metinle hash'i aynı olan metni; yani bu iki GET de
+  yazabilir). Hiçbir genel sayfa görüntülemesi yazmaz; yalnız `?surum=` dalı
+  okur.
+- **Onayın okumadığı metinler** (KVKK, İşlem Rehberi, alt bilgideki
+  politikalar) deploy'dan sonraki ilk okumada değil, **en geç bir gün içinde**
+  günlük cron'la ya da o belgeye dokunan panel işlemiyle yazılır. Arada geçen
+  sürede o metnin `?surum=` adresi yoktur; hiçbir onay ona bağlı olmadığı için
+  hiçbir onay kaydı eksik kalmaz.
+- **`createdAt`** veritabanının saatiyle varsayılan olarak dolar; uygulama onu
+  hiç yazmaz (doğrudan bir INSERT yazabilirdi, uygulamada öyle bir yol yok).
+- **Yalnız eklenir:** UPDATE ve TRUNCATE P0001; DELETE yalnız `createdAt`'i
+  on bir yıldan eski satırda geçer (`legal_doc_versions_append_only`).
+- **İmha** (`legal-doc-versions`, 11 × 366 gün, `legal_doc_versions_retention`):
+  `createdAt` metnin ilk saklandığı andır, son gösterildiği an değil; bu
+  yüzden bir satır yalnız (a) kesimden önce saklanmış, (b) belgenin daha yeni
+  bir metni de kesimden önce saklanmış, (c) bugün gösterilen metinlerden biri
+  değil (`p_keep`: cron'un o gün yazdığı hash'ler; eski bir metin varsayılana
+  dönüşle yeniden gösterilebilir ve ilk `createdAt`'ini korur) ve (d)
+  kesimden sonra kabul edilmiş hiçbir sipariş ya da karaoke onayı onun
+  hash'ini taşımıyorsa gider. Bugün gösterilenler bilinmiyorsa (cron'un
+  "legal-versions" adımı düştüyse) kural hiçbir şey saymaz ve silmez.
+  Kişisel veri yoktur (metinler kamuya açık).
+- **`?surum=` önbelleksizdir** (bilerek, inceleme R7): sürüm sayfası her
+  istekte tabloyu okur. Yalnız e-postadaki ve indirilen dosyadaki bağlantı
+  oraya gider, arama motoru indekslemez (`noindex`); sürümsüz `/hukuk/<slug>`
+  önbellekten okumaya devam eder. Trafik artarsa hash'e göre önbelleğe almak
+  güvenlidir (metin hash'iyle değişmez).
+
+Testler: `tests/db-integration-legal-versions.test.ts`,
+`tests/legal-version-core.test.ts`, `tests/mobile-retention.test.ts`,
+`tests/api-cron-daily.test.ts`.
+
 ### Kapsam dışı - bilerek
 
 `newsletter_subscribers` ret (opt-out) kayıtları **süpürülmez**: onları silmek
 aynı adrese yeniden ticari ileti gönderilmesine yol açar, ki Yönetmelik ret
 kaydını tam da bunun için 3 yıl tutturur. Sipariş, fatura ve ödeme kayıtları
 da kapsam dışıdır (VUK/TTK saklama süreleri).
+
+`supabase_keepalive` (20 Eki 2026) bir günlük değil, tek satırdır: günlük
+Supabase yoklamasının son denemesi ve son başarısı, her yoklamada üzerine
+yazılır. Kişisel veri taşımaz (bir sonuç kelimesi ve iki ISO zamanı; tablo
+kısıtları başka bir şeyi kabul etmez), büyümez, imha kuralı gerekmez.
 
 ## Yedek
 
@@ -267,6 +676,27 @@ da kapsam dışıdır (VUK/TTK saklama süreleri).
 ```bash
 pg_dump "$DATABASE_URL" > backup-$(date +%F).sql
 ```
+
+## Panel: 2FA'lı telefon kaybolursa
+
+İki adımlı doğrulamayı panelden kapatmak o telefondaki kodu ister. Telefonu
+kaybeden kullanıcının 2FA'sını sahip Kullanıcılar'da o hesabın sayfasından
+sıfırlar ("2FA'yı sıfırla"); kendi hesabını ve ortam değişkeni (acil durum) hesabını
+oradan sıfırlayamaz. Tek sahip telefonunu kaybederse ya da ortam değişkeni
+hesabı 2FA kurmuşsa yol veritabanıdır:
+
+```sql
+-- Önce oku: doğru adres, tek satır.
+select email, enabled, "enrolledAt" from public.admin_2fa where email = 'sahip@ornek.com';
+-- Sonra yalnız o satırı sil.
+delete from public.admin_2fa where email = 'sahip@ornek.com';
+```
+
+Adres küçük harfle ve boşluksuz yazılır (tablonun anahtarı böyle tutulur).
+Satır silinince sonraki giriş yalnız şifre ister; girer girmez
+`/admin/2fa-kurulum`'dan yeni telefonla yeniden kur. Bu silme olay kaydına
+düşmez: kimin, ne zaman ve neden yaptığını ayrıca not al. İkinci bir sahip
+hesabı bu yolu gereksiz kılar.
 
 ## Veritabanı ulaşılamazsa ne oluyor
 
@@ -291,14 +721,23 @@ uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek ha
 | Ödeme                                 | "Şu an sipariş alamıyoruz" kapısı                                    |
 | Üye oturumu                           | Çıkış yapmış sayılır (fail-closed)                                   |
 | Admin panel, tüm mutasyonlar, webhook | **Hata verir** - bozulma yok                                         |
+| Admin oturumu                         | Çıkış sayılmaz: hata ekranı, çerez kalır; env oturumu sürer          |
 
 Ziyaretçiye durumu açıklayan bir bant gösterilir; ayrıca her düşüş
 `[db-degraded]` etiketiyle sunucu loglarına yazılır, böylece arıza görünmez
-kalmaz.
+kalmaz. Tablodaki genel sayfa satırları önbellekte kaydı olmayan sayfa
+içindir: kaydı olan sayfa, kesintiyi hiçbir canlı okumada görmeyen istekte
+son bilinen gerçek içeriği bantsız gösterir; giriş yapmış üyenin isteği
+bandı ve boş mağazayı görür (yukarıda "Uyanmalar ve önbellek").
 
 **Bu davranışı genişletirken kural:** `publicRead()` yalnızca salt-okunur,
 sunumsal veriler için kullanılır. Bir fiyat, stok, yetki ya da siparişin
 verilebilir olup olmadığı **asla** yedek veriden karar bağlanmaz.
+
+**`DATABASE_URL` hiç yoksa da bu tablo geçerlidir:** hiçbir veritabanına
+bağlanılmaz ve her alan ulaşılamazken nasıl davranıyorsa öyle davranır;
+yalnız `/api/health` `unconfigured` der (yukarıda "Bağlantı dizesi yalnız
+`DATABASE_URL`").
 
 Seed yardımcıları artık reddedilen promise'i önbelleğe almıyor
 (`memoizeUntilRejected`): eskiden tek bir hata o sunucu örneğini kalıcı olarak
@@ -323,10 +762,11 @@ Eksik olan tek şey bağlantı dizesi ve verinin kendisi.
 6. **Aynı anda:** `dbProvider` alanını `"Supabase"` yap **ve** Vercel'deki
    `DATABASE_URL`'i değiştir, sonra deploy et.
 
-Kodda eski sağlayıcıya özel bir değişken yoktur: `src/lib/db/index.ts`
-`DATABASE_URL` → `POSTGRES_URL` → `SUPABASE_DB_URL`, `scripts/db-migrate.mjs`
-`DATABASE_URL` → `POSTGRES_URL` okur. Cutover'da kaldırılacak bir yedek dize
-kalmadı.
+Kodda sağlayıcıya özel bir değişken yoktur: uygulama da betikler de yalnız
+`DATABASE_URL`'i okur (`src/lib/db/database-url.mjs`, yukarıda "Bağlantı
+dizesi yalnız `DATABASE_URL`"). Vercel'deki `POSTGRES_URL` (Supabase
+entegrasyonu) cutover'da da okunmaz; taşıma `DATABASE_URL`'i değiştirmektir.
+Cutover'da kaldırılacak bir yedek dize yok.
 
 Neon projesini **hemen silme.** Birkaç gün elde tut; geri dönmek gerekirse tek
 yapılacak şey bağlantı dizesini geri almak olsun.

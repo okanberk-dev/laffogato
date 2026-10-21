@@ -7,10 +7,17 @@ import {
   EmptyState,
 } from "@/components/uye/account-shell";
 import { VerifyNotice } from "@/components/customer/verify-notice";
+import { DeletionRequestNotice } from "@/components/uye/deletion-request-notice";
 import { AppStoreLinks } from "@/components/laffogato/app-links";
 import { listPromos } from "@/lib/admin/store";
 import { memberOrders } from "@/lib/customer/member-orders";
 import { requireCustomer } from "@/lib/customer/auth";
+import { getDeletionRequest } from "@/lib/customer/deletion-request";
+import {
+  deletionDayLabel,
+  deletionDeadline,
+  type DeletionRequest,
+} from "@/lib/customer/deletion-request-core";
 import { isDbUnreachable } from "@/lib/db/health";
 import { getLoyalty } from "@/lib/mobile/loyalty";
 import type { LoyaltyView } from "@/lib/mobile/loyalty-core";
@@ -46,6 +53,18 @@ export default async function HesapPage() {
     }
   }
 
+  // An open web deletion request (/uye/hesap/sil), so the member sees it
+  // here too and can take it back. Like the stamp card, an unreadable one
+  // does not take the dashboard down.
+  let deletion: DeletionRequest | null = null;
+  try {
+    deletion = await getDeletionRequest(customer.email);
+  } catch (err) {
+    if (!isDbUnreachable(err)) {
+      console.error("[uye/hesap] getDeletionRequest", err);
+    }
+  }
+
   const totalSpent = orders
     .filter((o) =>
       ["paid", "preparing", "shipped", "completed"].includes(o.status),
@@ -72,6 +91,15 @@ export default async function HesapPage() {
 
   return (
     <AccountShell customer={customer} active="dashboard">
+      {deletion && (
+        <div style={{ marginBottom: 24 }}>
+          <DeletionRequestNotice
+            requestedOn={deletionDayLabel(deletion.requestedAt)}
+            deadline={deletionDayLabel(deletionDeadline(deletion.requestedAt))}
+            showLink
+          />
+        </div>
+      )}
       {!customer.emailVerified && (
         <div style={{ marginBottom: 24 }}>
           <VerifyNotice email={customer.email} />
@@ -230,6 +258,7 @@ export default async function HesapPage() {
       >
         {recentOrders.length === 0 ? (
           <EmptyState
+            art="spot-siparis"
             title="Henüz siparişin yok"
             hint="Mağazadan bir affogato seç, ilk sipariş senin olsun."
             cta={

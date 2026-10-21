@@ -1,11 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, type RefObject } from "react";
 
+import {
+  PANEL_ACTION_FAILED,
+  useHandPost,
+  withPanelCatch,
+} from "@/components/admin/action-form";
+import { FormError, FormSuccess } from "@/components/admin/form-feedback";
 import {
   Card,
   Checkbox,
-  DangerButton,
   Field,
   GhostButton,
   PrimaryButton,
@@ -13,12 +18,14 @@ import {
   TextInput,
   formatDateTime,
 } from "@/components/admin/forms";
+import { Badge, ConfirmButton } from "@/components/admin/ui";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 
 import {
   createAdminUserAction,
   deleteAdminUserAction,
   grantBaristaAction,
+  reset2FAAction,
   resetAdminPasswordAction,
   revokeBaristaAction,
   saveAdminUserAction,
@@ -39,24 +46,42 @@ interface PasswordPolicy {
 }
 
 function Notice({ state }: { state: AdminUserState }) {
-  if (state.error) {
-    return (
-      <p
-        role="alert"
-        className="rounded-lg border border-[var(--admin-danger)]/35 bg-[var(--admin-danger)]/8 px-3 py-2 text-xs text-[var(--admin-danger)]"
-      >
-        {state.error}
-      </p>
-    );
-  }
-  if (state.message) {
-    return (
-      <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-        {state.message}
-      </p>
-    );
-  }
-  return null;
+  if (state.error) return <FormError message={state.error} />;
+  return <FormSuccess message={state.message} />;
+}
+
+type UserAction = (
+  prev: AdminUserState,
+  formData: FormData,
+) => Promise<AdminUserState>;
+
+/**
+ * `useActionState` + onSubmit for these forms, posted by hand
+ * (useHandPost). A refused save used to reset the form: "Bu e-posta
+ * zaten kayıtlı" or a short password cleared the address, the name and the
+ * password and put Rol back on Kasiyer, so the retry could create the wrong
+ * role. `resetOnSuccess` empties a form whose success stays on the page and
+ * leaves nothing worth keeping (a new account, a password, a grant). A
+ * throw becomes an answer, not the error screen. `post.action` goes on the
+ * form as well: without an action an Enter before hydration was the
+ * browser's own GET, the new password in the address (ui/submit.ts).
+ */
+function useUserForm(
+  action: UserAction,
+  formRef: RefObject<HTMLFormElement | null>,
+  resetOnSuccess: boolean,
+) {
+  const [state, formAction, pending] = useActionState(
+    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
+    initialState,
+  );
+  const post = useHandPost(formAction, pending);
+  useEffect(() => {
+    if (resetOnSuccess && state.message && !state.error) {
+      formRef.current?.reset();
+    }
+  }, [state, formRef, resetOnSuccess]);
+  return { state, pending, post };
 }
 
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
@@ -72,14 +97,21 @@ function RoleSelect({ defaultValue }: { defaultValue: string }) {
 }
 
 export function CreateAdminUserForm({ minPasswordLength }: PasswordPolicy) {
-  const [state, formAction, pending] = useActionState(
+  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, post } = useUserForm(
     createAdminUserAction,
-    initialState,
+    formRef,
+    true,
   );
 
   return (
     <Card>
-      <form action={formAction} className="grid gap-4">
+      <form
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
+        className="grid gap-4"
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="E-posta">
             <TextInput
@@ -129,35 +161,38 @@ export interface AdminUserRowProps {
   role: string;
   isActive: boolean;
   updatedAt: string;
+  /** Whether the account has an authenticator enrolled. */
+  has2FA?: boolean;
+  /** The signed-in owner's own account (2FA is managed on its own page). */
+  isSelf?: boolean;
 }
 
 export function AdminUserRow({
   user,
   minPasswordLength,
 }: { user: AdminUserRowProps } & PasswordPolicy) {
-  const [saveState, saveAction, saving] = useActionState(
-    saveAdminUserAction,
-    initialState,
-  );
-  const [passwordState, passwordAction, resetting] = useActionState(
-    resetAdminPasswordAction,
-    initialState,
-  );
-  const [deleteState, deleteAction, deleting] = useActionState(
-    deleteAdminUserAction,
-    initialState,
-  );
+  const saveRef = useRef<HTMLFormElement>(null);
+  const passwordRef = useRef<HTMLFormElement>(null);
+  const save = useUserForm(saveAdminUserAction, saveRef, false);
+  const password = useUserForm(resetAdminPasswordAction, passwordRef, true);
 
   return (
     <Card>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p
-            className="text-sm font-medium break-all"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            {user.email}
-          </p>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <p
+              className="text-sm font-medium break-all"
+              style={{ fontFamily: "var(--mono), monospace" }}
+            >
+              {user.email}
+            </p>
+            {user.has2FA === undefined ? null : (
+              <Badge tone={user.has2FA ? "success" : "neutral"}>
+                {user.has2FA ? "2FA açık" : "2FA kapalı"}
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-[var(--admin-text-mute)]">
             {user.updatedAt
               ? `Son güncelleme: ${formatDateTime(user.updatedAt)}`
@@ -165,7 +200,12 @@ export function AdminUserRow({
           </p>
         </div>
 
-        <form action={saveAction} className="grid gap-3 sm:grid-cols-3">
+        <form
+          ref={saveRef}
+          action={save.post.action}
+          onSubmit={save.post.onSubmit}
+          className="grid gap-3 sm:grid-cols-3"
+        >
           <input type="hidden" name="email" value={user.email} />
           <Field label="Ad">
             <TextInput name="name" defaultValue={user.name} minLength={2} />
@@ -179,17 +219,22 @@ export function AdminUserRow({
               label="Aktif"
               defaultChecked={user.isActive}
             />
-            <PrimaryButton type="submit" disabled={saving}>
-              {saving ? "Kaydediliyor…" : "Kaydet"}
+            <PrimaryButton type="submit" disabled={save.pending}>
+              {save.pending ? "Kaydediliyor…" : "Kaydet"}
             </PrimaryButton>
           </div>
           <div className="sm:col-span-3">
-            <Notice state={saveState} />
+            <Notice state={save.state} />
           </div>
         </form>
 
         <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4 sm:grid-cols-2">
-          <form action={passwordAction} className="grid gap-3">
+          <form
+            ref={passwordRef}
+            action={password.post.action}
+            onSubmit={password.post.onSubmit}
+            className="grid gap-3"
+          >
             <input type="hidden" name="email" value={user.email} />
             <Field label="Yeni parola">
               <TextInput
@@ -201,22 +246,48 @@ export function AdminUserRow({
               />
             </Field>
             <div>
-              <GhostButton type="submit" disabled={resetting}>
-                {resetting ? "Değiştiriliyor…" : "Parolayı sıfırla"}
+              <GhostButton type="submit" disabled={password.pending}>
+                {password.pending ? "Değiştiriliyor…" : "Parolayı sıfırla"}
               </GhostButton>
             </div>
-            <Notice state={passwordState} />
+            <Notice state={password.state} />
           </form>
 
-          <form action={deleteAction} className="grid content-end gap-3">
-            <input type="hidden" name="email" value={user.email} />
+          {/* Asks first: the account and its sign-in go at once. The last
+              owner is refused on the server (lib/admin/users.ts). */}
+          <div className="grid content-end gap-3">
+            {user.has2FA ? (
+              <div>
+                {/* A lost or replaced phone: without this, only a SQL
+                    console let the user back in. */}
+                <ConfirmButton
+                  action={reset2FAAction}
+                  hidden={{ email: user.email }}
+                  label="2FA'yı sıfırla"
+                  variant="ghost"
+                  title={`${user.email} için 2FA sıfırlansın mı?`}
+                  description="Telefonunu kaybeden ya da değiştiren kullanıcı için. Hesaba bir sonraki girişte yalnız parolayla girilir; kullanıcı 2FA'yı yeniden kurmalı."
+                  confirmPhrase={user.email}
+                  confirmLabel="Sıfırla"
+                  disabledReason={
+                    user.isSelf
+                      ? "Kendi 2FA'nı 2FA kurulumu sayfasından kapatırsın."
+                      : undefined
+                  }
+                />
+              </div>
+            ) : null}
             <div>
-              <DangerButton type="submit" disabled={deleting}>
-                {deleting ? "Siliniyor…" : "Kullanıcıyı sil"}
-              </DangerButton>
+              <ConfirmButton
+                action={deleteAdminUserAction}
+                hidden={{ email: user.email }}
+                label="Kullanıcıyı sil"
+                title={`${user.email} silinsin mi?`}
+                description="Panel hesabı ve 2FA kaydı kalıcı olarak silinir, oturumu hemen kapanır. Yalnız erişimi durdurmak istiyorsan Aktif kutusunu kaldırıp kaydet."
+                confirmLabel="Sil"
+              />
             </div>
-            <Notice state={deleteState} />
-          </form>
+          </div>
         </div>
       </div>
     </Card>
@@ -240,13 +311,20 @@ export interface BaristaRowProps {
  * for whoever signs up with it first.
  */
 export function GrantBaristaForm() {
-  const [state, formAction, pending] = useActionState(
+  const formRef = useRef<HTMLFormElement>(null);
+  const { state, pending, post } = useUserForm(
     grantBaristaAction,
-    initialState,
+    formRef,
+    true,
   );
 
   return (
-    <form action={formAction} className="grid gap-3">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-3"
+    >
       <Field
         label="Üye e-postası"
         hint="Baristanın uygulamaya giriş yaptığı adres. Hesap önceden açılmış olmalı."
@@ -270,11 +348,6 @@ export function GrantBaristaForm() {
 }
 
 export function BaristaRow({ barista }: { barista: BaristaRowProps }) {
-  const [state, formAction, pending] = useActionState(
-    revokeBaristaAction,
-    initialState,
-  );
-
   return (
     <div className="grid gap-2 border-t border-[var(--admin-border)] pt-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -300,15 +373,16 @@ export function BaristaRow({ barista }: { barista: BaristaRowProps }) {
         </p>
       </div>
       {barista.isActive ? (
-        <form action={formAction} className="grid gap-2">
-          <input type="hidden" name="email" value={barista.email} />
-          <div>
-            <DangerButton type="submit" disabled={pending}>
-              {pending ? "Kaldırılıyor…" : "Yetkiyi kaldır"}
-            </DangerButton>
-          </div>
-          <Notice state={state} />
-        </form>
+        <div>
+          <ConfirmButton
+            action={revokeBaristaAction}
+            hidden={{ email: barista.email }}
+            label="Yetkiyi kaldır"
+            title="Kasa yetkisi kaldırılsın mı?"
+            description={`${barista.email} uygulamadan damga veremez. Yetkiyi sonra yeniden verebilirsin.`}
+            confirmLabel="Kaldır"
+          />
+        </div>
       ) : null}
     </div>
   );

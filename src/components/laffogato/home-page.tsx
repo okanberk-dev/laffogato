@@ -5,38 +5,49 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, Fragment } from "react";
 import Image from "next/image";
 
+import { STAMP_TARGET } from "@/lib/mobile/loyalty-core";
 import { MENU_CATEGORY_ROUTES } from "@/lib/seo/pages";
 import { priceLabel } from "@/lib/utils/format";
 
 import { AppStoreLinks } from "./app-links";
 import { HomeHeroSlider } from "./home-hero-slider";
+import { HomeKaraoke } from "./home-karaoke";
+import { Illustration } from "./illustration";
+import { karaokeDoorLine } from "./karaoke-today";
 import { PourModule } from "./pour-module";
 import { MENU, LOCATION, type HomeSlideAction } from "./data";
+import { MenuPhotoNote } from "./menu-photo-note";
 import { ROUTE_PATHS, type Route } from "./route-paths";
 import { MenuPlate } from "./visuals";
 import { MENU_TAG_LABELS, type PageProps } from "./page-shared";
 import { splitLead } from "./split-lead";
+import { useKaraokeToday } from "./use-karaoke-today";
 import { useOpenStatus } from "./use-open-status";
 
+/** Minutes a pickup takes when the page has no settings (the column default). */
+const DEFAULT_PICKUP_MINUTES = 15;
+
 /** What the app does that the site does not - the reasons to install it. */
-const APP_FEATURES = [
-  {
-    title: "Siparişini ver",
-    body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
-  },
-  {
-    title: "Damga kartın",
-    body: "140 TL'den itibaren başlayan her 320 TL bir damga, altıncı içecek bizden.",
-  },
-  {
-    title: "Kasa kodu",
-    body: "kasada tek okutmayla damga ve ödül.",
-  },
-  {
-    title: "Karaoke ve kampanyalar",
-    body: "odanı ayırt, köşkte olanları ilk sen gör.",
-  },
-];
+function appFeatures(stampTarget: number) {
+  return [
+    {
+      title: "Siparişini ver",
+      body: "gel-al ya da Tuzla içi kurye, kafe menüsünün tamamı.",
+    },
+    {
+      title: "Damga kartın",
+      body: `140 TL'den itibaren başlayan her 320 TL bir damga, ${stampTarget} damgada bir içecek bizden.`,
+    },
+    {
+      title: "Kasa kodu",
+      body: "kasada tek okutmayla damga ve ödül.",
+    },
+    {
+      title: "Karaoke ve kampanyalar",
+      body: "odanı ayırt, köşkte olanları ilk sen gör.",
+    },
+  ];
+}
 
 /** The four figures under the signature block. */
 const SIGNATURE_STATS = [
@@ -53,11 +64,18 @@ export function PageHome({
   visit,
   settings,
   heroImageUrl,
+  homeSlides,
+  karaoke,
 }: PageProps) {
   const router = useRouter();
   // Operator-editable at /admin/ayarlar; the phone already reads it from
   // bootstrap, so the web quoting a constant was the odd one out.
   const courierFee = priceLabel(settings?.courierFeeMinor ?? 5500);
+  // The order and rewards shortcuts say what the panel says: Ayarlar →
+  // "Gel-al hazırlık süresi" and the loyalty card's stamp count.
+  const pickupMinutes = settings?.pickupReadyMinutes ?? DEFAULT_PICKUP_MINUTES;
+  // Without settings, the loyalty rule's own default (loyalty-core.ts).
+  const stampTarget = settings?.stampTarget ?? STAMP_TARGET;
   const c = (k: string, fallback: string) => content?.[k] ?? fallback;
   const liveMenu = menu ?? MENU;
   const railRef = useRef<HTMLDivElement>(null);
@@ -156,6 +174,11 @@ export function PageHome({
     navigate(r);
   };
 
+  // Today's karaoke calendar, read once after hydration and only where the
+  // page has the room's facts: the band's chips and the karaoke door's
+  // "Bugün N boş saat" share this one request.
+  const karaokeToday = useKaraokeToday(!!karaoke);
+
   const doors: Array<{
     tone: "green" | "cream" | "brass" | "velvet";
     href: string;
@@ -169,7 +192,7 @@ export function PageHome({
       tone: "green",
       href: "#uygulama",
       kicker: "Sipariş",
-      title: "Gel-al · 15 dk",
+      title: `Gel-al · ${pickupMinutes} dk`,
       sub: `Uygulamadan; Tuzla içi kurye ${courierFee}`,
       icon: (
         <>
@@ -196,7 +219,7 @@ export function PageHome({
       tone: "brass",
       href: "/uye/hesap",
       kicker: "Ödüller",
-      title: "6 damgada 1 içecek",
+      title: `${stampTarget} damgada 1 içecek`,
       sub: "Uygulama ve web’de tek hesap",
       icon: (
         <>
@@ -210,7 +233,7 @@ export function PageHome({
       href: "/karaoke",
       kicker: "Karaoke",
       title: "Üst kat özel oda",
-      sub: "8 kişiye kadar · 24:00’e",
+      sub: karaokeDoorLine(karaokeToday, karaoke),
       icon: (
         <>
           <rect x="9" y="3.75" width="6" height="10.5" rx="3" />
@@ -250,9 +273,11 @@ export function PageHome({
       </h1>
 
       <HomeHeroSlider
+        slides={homeSlides}
         onAction={onSlideAction}
         heroImageUrl={heroImageUrl}
         hours={hours}
+        karaoke={karaoke}
       />
 
       {/* The statement - who we are, in one paragraph, set large: the first
@@ -275,12 +300,19 @@ export function PageHome({
         </section>
       )}
 
+      {/* The karaoke room, highlighted (operator, 17 Eki 2026): right after
+          the hero and the statement, before "Köşkte bu ay". */}
+      {karaoke && <HomeKaraoke facts={karaoke} today={karaokeToday} />}
+
       {/* The reference's banner board, pointing at /kampanyalar - the offers
           themselves are operator-managed and live there, so this is a door,
           not a second place to keep the same copy. */}
       <section className="home-section">
         <div className="wrap">
-          <a className="promo-banner reveal" href="/kampanyalar">
+          <a
+            className="promo-banner promo-banner--art reveal"
+            href="/kampanyalar"
+          >
             <svg
               className="promo-banner-wave"
               viewBox="0 0 1200 220"
@@ -299,6 +331,9 @@ export function PageHome({
                 sayfada.
               </span>
             </span>
+            {/* A ticket, a strawberry and a matcha whisk: the month's
+                offers, drawn. Hidden on a phone (globals.css). */}
+            <Illustration name="kosk-ticket" className="promo-banner-art" />
             <span className="promo-banner-cta">Hepsini gör</span>
           </a>
         </div>
@@ -430,6 +465,7 @@ export function PageHome({
                 );
               })}
             </div>
+            <MenuPhotoNote show={railItems.some((it) => it.image)} />
           </div>
         </section>
       )}
@@ -595,7 +631,7 @@ export function PageHome({
               <div className="eyebrow">L’Affogato uygulaması</div>
               <h2 className="h2">Köşk, cebinde</h2>
               <ul className="app-block-list">
-                {APP_FEATURES.map((f) => (
+                {appFeatures(stampTarget).map((f) => (
                   <li key={f.title}>
                     <span className="app-block-tick" aria-hidden="true">
                       <svg viewBox="0 0 12 12" fill="none">

@@ -1,0 +1,238 @@
+[
+ {
+  "id": "UI-1",
+  "slug": "foundation",
+  "branch": "feat/admin-ui-foundation",
+  "review": "standard",
+  "dependsOn": [
+   "shell-nav"
+  ],
+  "extra": "Scope: add lucide-react 1.51.0 (exact pin, no caret). ORCHESTRATOR first runs in SITE: npm install --no-save --ignore-scripts --before=<PR date minus 14 days> lucide-react@1.51.0, and after the builder edits package.json runs npm install --package-lock-only --ignore-scripts --before=<same> in the worktree; builder never runs npm install. Files: package.json, package-lock.json; new src/components/admin/ui/icons.tsx (a typed map of the lucide icons the panel uses with defaults size 18, strokeWidth 1.75, aria-hidden; verify every icon name exists in 1.51.0: LayoutGrid, ShoppingBag, MicVocal, Stamp, Radio, Coffee, Package, Boxes, Users, TicketPercent, Mail, GalleryHorizontalEnd, FileText, Smartphone, Flag, ChartColumn, QrCode, Settings, UserCog, Scale, ScrollText, Search, Plus, Menu, Ellipsis, CalendarRange, X); ui/index.ts export; eslint.config.mjs no-restricted-imports of lucide-react, react-aria-components, @internationalized/date (and their sub-paths) for every file outside src/components/admin/** and src/app/admin/**; delete components.json; one Turkish paragraph in CLAUDE.md (Tasarım Sistemi) 'Admin arayüz kütüphaneleri' naming the allowed packages and rules. Do NOT touch admin-sidebar.tsx (UI-5 swaps the ICONS map). Tests: new tests/admin-ui-deps.test.ts: allow-listed UI packages are exact pins in package.json; package-lock has exactly one version of each; no file outside the two admin trees imports them; files importing react-aria-components or @internationalized/date start with \"use client\" and import RAC only via sub-paths (react-aria-components/<Name>); server-safe kit files (ui/data-table, status-tabs, pagination, badge, detail, styles, forms.tsx) import neither; components.json does not exist. The RAC/date assertions pass vacuously until UI-6/UI-14. PR body: baseline bundle (gzip of .next/static/chunks for /admin/siparisler and /admin/kasa from NODE_ENV=production $HEAVY npx next build --webpack, then rm -rf .next). ~250 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-2",
+  "slug": "search-route",
+  "branch": "feat/admin-ui-search-route",
+  "review": "security",
+  "dependsOn": [
+   "shell-nav"
+  ],
+  "extra": "Scope: POST /admin/ara/sonuc for the palette (design section 4.3). New src/app/admin/ara/sonuc/route.ts exporting POST only; reuse shell-nav's src/lib/admin/search.ts (parseSearch, searchAdmin, searchSectionsFor) unchanged; follow src/app/admin/siparisler/csv/route.ts. Gate order: same-origin (Sec-Fetch-Site same-origin when present, else Origin host equals Host header) -> 403; getAdminSession null -> 401 JSON; searchSectionsFor(role) empty -> 403; Content-Type application/json and body <= 1 KB {q:string} else 400; parseSearch null -> 200 {groups:[]}. Response {groups} with listHref set to null when piiLike(q). Cache-Control: no-store on every response. DB unreachable (isDbUnreachable) -> 503 {error:'unavailable'}. NEVER log the query or body (no console.* with it; errors log a code only). New client-safe src/lib/admin/pii-like.ts: piiLike(s) true when s contains '@' or 7+ digits after stripping spaces, dots, dashes, parentheses and plus. Do not change search.ts, ara/page.tsx or the proxy. Note in the PR body that the proxy answers an expired-session POST with a redirect to /admin/giris (the client handles it in UI-6). Tests: new tests/admin-search-route.test.ts mocking session and searchAdmin like the CSV route tests: 401; 403 cashier; 403 cross-origin; 400 non-JSON and oversize; 200 staff shape (no customers group); no-store header; console spies prove q never logged; listHref null for 'a@b.co' and '0532 123 45 67', kept for 'latte'; piiLike unit cases. ~300 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-3",
+  "slug": "landing",
+  "branch": "feat/admin-ui-landing",
+  "review": "security",
+  "dependsOn": [
+   "shell-nav",
+   "shell-access"
+  ],
+  "extra": "Scope: staff land on open orders (decision D2) and the denied redirect stops producing a double '?'. src/lib/admin/roles.ts: LANDING_SECTION.staff = 'orders', SECTION_PATH.orders = '/admin/siparisler?durum=acik' (the acik tab exists in order-filters.ts), new exported deniedPathFor(role) that appends denied=1 with '?' or '&'. Use it in src/lib/admin/auth.ts requireRole (rebased on shell-access's rewrite) and src/app/admin/ara/page.tsx (from shell-nav). Check giris/page.tsx, giris/actions.ts, 2fa-kurulum/actions.ts and the layout's PanelHomeProvider still behave with a query in the landing path. Owner and manager stay on /admin, the cashier on /admin/kasa. Do not change any SECTION_ROLES entry. Tests: rewrite tests/admin-roles-matrix.test.ts 'landing paths' deliberately (staff -> orders path; others unchanged); new cases: deniedPathFor never yields two '?'; shell-nav withoutDenied() keeps durum=acik; a staff denial on a menu page redirects to /admin/siparisler?durum=acik&denied=1; activeNavHref still lights Siparişler. ~150 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-4",
+  "slug": "page-pattern",
+  "branch": "feat/admin-ui-page-pattern",
+  "review": "standard",
+  "dependsOn": [
+   "shell-nav"
+  ],
+  "extra": "Scope: the page pattern kit only (design section 3.4), NO page adoption. src/components/admin/forms.tsx PageHeader gains optional help (ReactNode in a closed <details> 'Nasıl çalışır?'), meta, primary and secondary ({href,label} or ReactNode; BUTTON.primary / BUTTON.ghost; primary carries data-admin-new), menu (ActionMenu children for a ⋯ overflow). eyebrow/title/description/action render exactly as before, except the eyebrow style becomes 12px sentence-case muted text. New ui/page-shell.tsx: PageShell with width 'list' (max-w-7xl), 'detail' (max-w-6xl), 'form' (max-w-3xl), padding px-4 py-6 sm:px-6 sm:py-8, header gap mb-5, main id='admin-main'. ui/detail.tsx: EmptyState optional action; KeyValueGrid labels 12px weight 500 sentence case. ui/badge.tsx: 12px sentence case, same tone pairs. ui/styles.ts: BUTTON.icon (44px square) and the EYEBROW style. ui/index.ts exports. Do not touch any page. Tests: tests/admin-ui-kit.test.ts additions (old props render unchanged; each new prop; data-admin-new; PageShell widths; EmptyState action; contrast pairs unchanged). After merge, the orchestrator adds a paragraph to (local orchestrator folder, not in the repo) brief.md so wave-4 builders adopt it in pages they own. ~450 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-5",
+  "slug": "nav",
+  "branch": "feat/admin-ui-nav",
+  "review": "standard",
+  "dependsOn": [
+   "shell-nav",
+   "karaoke-panel",
+   "foundation"
+  ],
+  "extra": "Scope: the IA (design sections 3.1-3.3), exact table in 3.2: groups Bugün, Katalog, Pazarlama, İçerik, Yönetim; owner 21 items, manager 18, staff 5 flat, cashier no chrome. src/app/admin/layout.tsx NAV_GROUPS gets optional tabs [{href,label,section}], keywords (old labels and synonyms, section 4.2 list) and icon keys. Keep the karaoke literal on one line exactly: { href: \"/admin/mobil/karaoke\", label: \"Karaoke\", section: \"karaoke\" }. Ayarlar item = first permitted tab (owner /admin/ayarlar, manager /admin/mobil/ayarlar). src/components/admin/admin-sidebar.tsx: the ICONS map uses ui/icons.tsx (lucide); flat list without group headers at 6 items or fewer; cashier: no sidebar, hamburger or drawer, the top bar keeps logo, page title and user menu; tab strip slot under the breadcrumbs; 'İçeriğe geç' skip link first (targets #admin-main; add the id to the panel's main wrapper in the layout if pages do not have one); one-time dismissable note (localStorage in try/catch). New ui/section-tabs.tsx: links with aria-current and LinkPending, 44px, horizontal scroll on phones, drawn only on tab-root paths. src/lib/admin/nav-match.ts: activeNavHref over item+tab hrefs mapped to items; breadcrumbTrail adds the tab crumb when it is not the item's first tab. ui/breadcrumbs.tsx as needed. Do not change roles.ts, any page, or the badge polling. Tests: new tests/admin-nav-ia.test.ts: per-role counts; per-role union of item+tab hrefs equals today's main set (owner 29, manager 25, staff 5, cashier 1, hard-coded); every nav/tab href has a page.tsx; every admin page.tsx is reached by an item, tab or descendant (except giris, iki-asama, 2fa-kurulum, ara, [...rest], masalar/yazdir); tabs filtered by canAccess; tab paths light their item; breadcrumbs through tabs; the strip only on tab roots; no empty group. Update tests/admin-shell-nav.test.ts and tests/admin-panel-shell.test.ts group expectations; update tests/admin-karaoke-panel.test.ts:726 so each of till, tables, mobileApp, adminUsers, karaoke still has its own distinct icon in the new map form. Browser pass: owner, manager, staff, cashier at 390/1024/1280. ~1,000 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-6",
+  "slug": "palette",
+  "branch": "feat/admin-ui-palette",
+  "review": "standard",
+  "dependsOn": [
+   "nav",
+   "search-route"
+  ],
+  "extra": "Scope: the ⌘K palette (design section 4 in full). Adds react-aria-components 1.21.1 (exact; the orchestrator installs it as in UI-1). New src/lib/admin/palette-core.ts (pure, client-safe): entries from the role's nav items and tabs with keywords; Oluştur list gated by section (section 4.2 list, existing pages only); matching = foldTr plus a loose ASCII fold (ç c, ş s, ğ g, ö o, ü u, â a, î i, û u) on both sides; ranking label prefix > word prefix > keyword prefix > substring, ties by Intl.Collator('tr'); server hits pass through unfiltered; recents allow-list (orders, karaoke, product, menu, category, slide, promo, campaign, table, post records; never /admin/musteriler/**, /admin/kullanicilar/**, never a piiLike label), max 8, re-filtered by canAccess. New src/components/admin/palette/trigger.tsx (always loaded, small): SSR <a href='/admin/ara'> styled as the search box with aria-haspopup='dialog' and aria-keyshortcuts='Meta+K Control+K'; the ⌘K/Ctrl+K listener (metaKey or ctrlKey, !altKey, event.key lowered with toLocaleLowerCase('tr-TR') equals 'k', preventDefault, works in inputs, ignored while another dialog[open] exists); the label ⌘K vs Ctrl K decided after mount; owns a native <dialog> via adminPortalRoot() with showModal(); opens at once with 'Yükleniyor…'; lazy-loads palette.tsx with next/dynamic on open, pointerenter, focus or touchstart; explicit focus return to the trigger. New palette.tsx: RAC Autocomplete + SearchField + ListBox with sections and headers via sub-path imports inside <I18nProvider locale='tr-TR'>; NO Modal, Dialog, Popover, Menu or RouterProvider; onAction -> router.push; no prefetch on virtual focus; first Esc clears, Esc on an empty field closes. Server search: from 2 chars, 200 ms debounce, AbortController, fetch POST /admin/ara/sonuc with redirect 'manual'; 401 or opaqueredirect -> 'Oturumun kapandı.' plus a link to /admin/giris?next=<path>; 503 -> 'Arama şu an çalışmıyor.'; 'Aranıyor…' and a live result count; listHref null -> 'Listede ara' to the list without q; no 'Tüm sonuçlar' row. New recents.ts: sessionStorage key laf_admin_recent_v1:<accountKey> in try/catch; a recorder effect in the shell on pathname change (label = first h1 text, max 60 chars). The layout computes accountKey on the server as an HMAC-SHA256 of the e-mail with ADMIN_SESSION_SECRET, first 16 hex; never pass the e-mail. The logout form's onSubmit clears the key. admin-sidebar.tsx: the trigger replaces TopBarSearch (keep AdminSearchField and /admin/ara). No trigger for the cashier. The palette is read-only: no server action imported. Tests: new tests/admin-palette-core.test.ts (fold: siparis -> Siparişler, musteri -> Müşteriler, İade/iade, findik/Fındık, IRMAK/ırmak; old names mağaza hero, kupon, damga, qr; ranking; role gating: staff Oluştur = only Yeni sipariş, cashier empty; recents refuse customer, user and PII-like labels; account isolation; canAccess re-filter); markup of the trigger SSR; a source grep that the palette files import no 'use server' module; extend tests/admin-ui-deps.test.ts. Budget: trigger <= 3 KB gz on every page, palette chunk <= 45 KB gz, numbers in the PR body. If RAC misbehaves in the native dialog, fall back to a hand-built ARIA 1.2 combobox on the same core (risk 2) and say so. ~1,100 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-7",
+  "slug": "phone-bar",
+  "branch": "feat/admin-ui-phone-bar",
+  "review": "standard",
+  "dependsOn": [
+   "nav",
+   "palette",
+   "order-alerts"
+  ],
+  "extra": "Scope: the phone bottom bar (design section 5, phone bar details). New src/components/admin/ui/bottom-bar.tsx shown below lg for owner, manager and staff: max 5 slots, 44px, lucide icon plus label, badges from the sidebar's existing nav counts (do not add a second poll). Staff: Siparişler, Karaoke, Kasa, Stok, Genel bakış; owner/manager: Genel bakış, Siparişler, Karaoke, Kasa, Tümü (opens the existing drawer). Slot logic in a pure helper so UI-13 can add Canlı durum for staff (then: Siparişler, Karaoke, Kasa, Canlı durum, Tümü). Cashier: none. Hidden while [data-admin-bulk-bar] is present, while any dialog[open] exists, and while a text field has focus on a coarse pointer; safe-area via env(safe-area-inset-bottom). One shared --admin-bottom-inset on the admin root through a Tailwind has-[[data-admin-tabbar]]: arbitrary variant in the layout's shell class; ui/toast.tsx and bulk.tsx read it additively; the order-alert phone sheet (from order-alerts) reads it and sits above the bar. Avoid new rules in globals.css; if one is unavoidable, keep it inside the admin block and say why. Tests: new tests/admin-bottom-bar.test.ts (slots per role, cashier none, data-admin-tabbar markup, 44px classes, hide variants, inset consumed by toast and bulk bar). Browser pass at 390 with the keyboard open, the bulk bar, a toast and an order alert. ~450 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-8",
+  "slug": "shortcuts",
+  "branch": "feat/admin-ui-shortcuts",
+  "review": "standard",
+  "dependsOn": [
+   "palette"
+  ],
+  "extra": "Scope: single-key shortcuts (design 4.4 and decision D7). New src/lib/admin/shortcut-core.ts (pure matcher): '/' focuses [data-admin-search] else opens the palette; 'n' clicks [data-admin-new] else opens the palette on Oluştur; '?' opens the sheet; g sequences within 1.5 s: b Genel bakış, s Siparişler, k Karaoke, d Kasa, m Kafe menüsü, u or ü Ürünler, r Raporlar (role-gated; second key accepts ü/u, ç/c, ş/s, ö/o, ğ/g); never i or ı; keys via event.key with toLocaleLowerCase('tr-TR'). Skip in input, textarea, select and contenteditable, while isComposing, while any dialog[open], with any modifier (incl. Ctrl+Alt AltGr), for the cashier, on /admin/kasa, and when switched off. New src/components/admin/shortcuts.tsx (one listener, mounted in the shell), ui/shortcut-sheet.tsx (native <dialog>, Turkish list); admin-sidebar.tsx: user-menu switch 'Tek tuş kısayolları' (localStorage, default on, try/catch); ui/filter-bar.tsx: data-admin-search on the lead search box (attribute only); aria-keyshortcuts on the trigger and on the PageHeader primary. Palette 'Komutlar' gains 'Klavye kısayolları'. Tests: new tests/admin-shortcuts.test.ts covering every skip rule, timing, aliases, role gating and the off switch. ~450 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-9",
+  "slug": "rail-density",
+  "branch": "feat/admin-ui-rail-density",
+  "review": "standard",
+  "dependsOn": [
+   "nav",
+   "page-pattern",
+   "shortcuts"
+  ],
+  "extra": "Scope: laptop rail and compact density (design 3.6). admin-sidebar.tsx: at lg a collapse control turns the sidebar into a 64px icon rail; each link keeps aria-label; a CSS tooltip shows on hover and focus-visible and Esc hides it (a few lines of JS); no library. State key laf_admin_rail_v1 in localStorage (try/catch). Density: user-menu toggle 'Sıkı görünüm' sets data-admin-density='compact' on the admin root; kit classes get pointer-fine: plus [[data-admin-density=compact]_&]: variants: ui/data-table.tsx cells py-3 -> py-2, ui/detail.tsx Section and forms.tsx Card p-6 -> p-4, controls min 36px only under pointer-fine. Default classes unchanged so the 44px tests hold; touch ignores the toggle and the menu says so. No globals.css rule. Palette 'Komutlar' gains 'Sıkı görünüm'. Tests: markup (default unchanged, compact variants only with pointer-fine, rail aria-labels), the rail state parser (pure). Screenshots 1024 and 1280 with the rail collapsed. ~450 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-10",
+  "slug": "row-steps",
+  "branch": "feat/admin-ui-row-steps",
+  "review": "standard",
+  "dependsOn": [
+   "orders-ui"
+  ],
+  "extra": "Scope: an inline forward-only order step (design 5 #4). src/components/admin/orders-list.tsx only: each row and phone card shows ONE inline button, the first enabled action among start_preparing, mark_shipped and complete, as decided server-side by orderActions(order, role, collected) (src/lib/admin/order-actions.ts), run through the existing ActionButton and transition action. Never inline: mark_paid, check_pos, ship (needs carrier details), cancel, refund, release_stock, clear_attention, edit_tracking, item_status, resend_mail; they stay in ⋯ and their modals. Keep 44px, the disabled reason, and the order list's live polling and sound. Do not touch order-actions.ts or any action. Tests: markup per role (owner and staff see the step; a role without the action sees none); money action ids never render inline; the disabled reason is kept. Browser pass at 390 and 1280. ~350 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-11",
+  "slug": "saved-views",
+  "branch": "feat/admin-ui-saved-views",
+  "review": "standard",
+  "dependsOn": [
+   "orders-ui",
+   "palette"
+  ],
+  "extra": "Scope: saved views (design 5 #11). New src/lib/admin/saved-views.ts (pure): sanitize a URL's params, dropping q, the page param, and any value containing '@' or 7+ digits (reuse piiLike); name max 30 chars; max 8 per list; storage key laf_admin_views_v1:<accountKey>:<listKey> in localStorage (try/catch). ui/filter-bar.tsx: optional views?: { key: string } prop; when present, after mount, a 'Görünümler' ActionMenu (details/summary) to apply, save the current view, make one the default and delete. accountKey comes from the layout prop added in UI-6. Adopt on the orders list only (one prop); other lists adopt in UI-19/UI-20. Tests: sanitizer cases; FilterBar SSR markup without views is byte-identical to before; with views it renders nothing pre-mount. ~400 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-12",
+  "slug": "palette-settings",
+  "branch": "feat/admin-ui-palette-settings",
+  "review": "standard",
+  "dependsOn": [
+   "palette",
+   "system-settings"
+  ],
+  "extra": "Scope: the palette's 'Ayarlar içinde' section (design 4.2 item 4). The layout builds entries on the server from 7a's SETTINGS_TABS and SETTINGS_TAB_PARAM (src/app/admin/ayarlar/settings-core.ts): /admin/ayarlar?sekme=<id> for general, hours, tax, shipping, karaoke, seo, notifications and email, owner only, with Turkish labels and keywords (Kargo ücreti, KDV, Çalışma saatleri, Karaoke ücreti ve ön ödeme, Sipariş bildirimi e-postası, E-posta gönderen; Bakım modu only if it lives in general). Owner and manager: 'Uygulama ayarları' /admin/mobil/ayarlar, plus its tab ids if content-app exported a client-safe tab list; otherwise the page root only. palette-core.ts takes them as plain props. Tests: every id exists in SETTINGS_TABS (import it); role gating (manager never sees /admin/ayarlar); fold matching ('kargo', 'kdv'). ~250 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-13",
+  "slug": "venue-quick",
+  "branch": "feat/admin-ui-venue-quick",
+  "review": "security",
+  "dependsOn": [
+   "content-app",
+   "nav"
+  ],
+  "extra": "Scope: Personel on Canlı durum plus the köşk quick chip (decision D3, design 5). src/lib/admin/roles.ts: new section venue: ['owner','manager','staff']; mobileApp unchanged. src/lib/admin/role-summary.ts label 'Canlı durum'. src/app/admin/mobil/canli-durum/page.tsx and actions.ts: requireRole('venue'). For a role without mobileApp, totalTables renders read-only, and saveVenueStatusAction ignores the posted totalTables and keeps the stored one. New saveVenueQuickAction (same file, its own requireRole('venue') and Zod parse): updates only manualOverride and freeTables through a new patchVenueStatus in src/lib/mobile/venue.ts, a single SQL UPDATE through the db client (no read-modify-write in JS) with freeTables <= totalTables enforced in SQL; it writes an audit row like the full action, then revalidatePath. Nav: the Canlı durum item's section becomes venue; the bottom-bar helper adds it for staff. New src/components/admin/venue-quick.tsx in the top-bar actions slot for roles with venue: a chip 'Köşk: <status>' whose status comes from a polled server action (the useNavCount pattern, 60 s while visible; NO DB read in the layout); a popover (details or native dialog) with Otomatik / Açık / Yoğun / Kapalı radios and boş masa −/+, 44px, a toast on result. The /api/mobile/v1 live-status shape is unchanged (say so). Tests: roles matrix (venue for staff; mobileApp staff false; cashier false); page and actions gates; staff cannot change totalTables; the quick action keeps wifi, noise, power and note; an audit row is written; tests/admin-role-summary.test.ts; the tests/admin-nav-ia.test.ts staff set gains /admin/mobil/canli-durum. ~650 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files. admin-sidebar.tsx and layout.tsx are shared by UI-5/6/7/8/9/13: start from the latest merged one, never in parallel with another of them."
+ },
+ {
+  "id": "UI-14",
+  "slug": "date-fields",
+  "branch": "feat/admin-ui-date-fields",
+  "review": "standard",
+  "dependsOn": [
+   "palette",
+   "orders-ui",
+   "karaoke-panel",
+   "system-audit-log"
+  ],
+  "extra": "Scope: tr-TR dates (design 5 #6, decision D12). Adds @internationalized/date 3.12.4 (exact; the orchestrator installs it as in UI-1). New src/lib/admin/date-presets.ts (pure): Bugün, Dün, Son 7 gün, Son 30 gün, Bu ay, Geçen ay as {from,to} ISO dates on the Istanbul clock (istanbulDay; never getLocalTimeZone or getDay). ui/filter-bar.tsx date-range fields: preset chips as plain links built with the existing withParams (SSR, no JS); the native <input type=date> boxes stay the SSR default, the no-JS path and the touch path. New ui/date-range-field.tsx ('use client'): RAC DateRangePicker + RangeCalendar + Popover (sub-paths), I18nProvider tr-TR, Monday first, startName/endName = field.from/field.to, ISO values; loaded with next/dynamic only when matchMedia('(pointer: fine)') and on pointerenter or focusin of the field (never just after hydration); swaps in place of the native boxes, keeping focus. New ui/date-time-field.tsx: RAC DatePicker granularity minute, hourCycle 24, posting the original name with a YYYY-MM-DDTHH:mm value (round-trips through parsePublishInstant); native datetime-local on touch; no adoption yet. New ui/overlay.ts: overlayContainer() = the nearest open dialog, else adminPortalRoot(); the ONLY file using UNSTABLE_portalContainer / UNSAFE_PortalProvider; a switch to render native controls if it breaks. Tests: presets at 21:30Z and 00:30 Istanbul edges (rule 22); FilterBar SSR keeps the bas/bit inputs and values unchanged; preset hrefs; date-time round-trip; extend the deps test. Budget: widget chunk <= 45 KB gz, 0 KB on lists without a date field. Browser pass: Chrome with en-US locale at 1280 shows gg.aa.yyyy; 390 shows native pickers. ~900 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-15",
+  "slug": "datetime-adopt",
+  "branch": "feat/admin-ui-datetime-adopt",
+  "review": "standard",
+  "dependsOn": [
+   "date-fields",
+   "people-lists",
+   "content-app"
+  ],
+  "extra": "Scope: use DateTimeField for the 10 datetime-local boxes in 6 forms: src/components/admin/promo-form.tsx (1), src/app/admin/bulten/kampanya/campaign-mail-form.tsx (1), src/app/admin/anasayfa-hero/slide-form.tsx (2), src/app/admin/mobil/slaytlar/slide-form.tsx (2), src/app/admin/mobil/duyurular/announcement-form.tsx (2), src/app/admin/mobil/gonderiler/post-form.tsx (2). Keep every name, defaultValue, min/max and required, and the Istanbul wall-time conversion each form already does. SSR and touch still render native datetime-local. Do not touch the actions or schemas. Tests: tests/frontend-form-contract.test.ts and each form's existing tests pass unchanged; a markup test that each form still server-renders a datetime-local input with the same name. ~350 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-16",
+  "slug": "combobox",
+  "branch": "feat/admin-ui-combobox",
+  "review": "standard",
+  "dependsOn": [
+   "palette",
+   "catalog-lists",
+   "orders-ui"
+  ],
+  "extra": "Scope: searchable pickers (design 5 #8). New ui/combobox-field.tsx: SSR renders the native <select> with the same name and options (no-JS and pre-hydration path); after mount it lazy-loads RAC ComboBox (sub-path, I18nProvider tr-TR) on all pointers, writes the chosen value into a hidden input with the original name, and filters with a pure foldTr helper (new src/lib/admin/option-filter.ts); Popover via overlayContainer(). Adopt in src/components/admin/stock-adjust-form.tsx (product and variant select, name productId and any variant field) and src/components/admin/manual-order-form.tsx (product/variant pickers). No customer lookup. Do not touch actions or schemas. Tests: form contract names unchanged; SSR fallback markup equals the old select's; filter helper fold cases (sire matches Şire, findik matches Fındık). Budget: chunk <= 35 KB gz. Browser pass at 390 (typing on a phone keyboard) and 1280. ~650 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-17",
+  "slug": "unsaved-guard",
+  "branch": "feat/admin-ui-unsaved-guard",
+  "review": "standard",
+  "dependsOn": [
+   "system-settings",
+   "content-app",
+   "content-legal",
+   "people-lists",
+   "palette"
+  ],
+  "extra": "Scope: an unsaved-changes guard for long forms (design 5 #13). New src/components/admin/ui/unsaved-guard.ts: useUnsavedGuard(formRef) snapshots FormData on mount and marks the form dirty when it differs; beforeunload while dirty; a capture-phase document click listener on same-origin <a> without modifiers or target that asks window.confirm('Kaydedilmemiş değişiklikler var. Sayfadan çıkılsın mı?'); an exported isPanelDirty() that the palette and shortcuts check before router.push; reset after a successful submit (the form's success state). Adopt in src/app/admin/ayarlar/settings-form.tsx, src/app/admin/mobil/ayarlar/app-config-form.tsx, src/components/admin/legal-doc-form.tsx and src/app/admin/bulten/kampanya/campaign-mail-form.tsx (one hook call each). The product wizard keeps its own beforeunload. Tests: pure helpers (dirty compare ignores order and file inputs; the link filter skips external links, modifiers, target and downloads). ~350 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-18",
+  "slug": "day-close",
+  "branch": "feat/admin-ui-day-close",
+  "review": "security",
+  "dependsOn": [
+   "system-insights",
+   "page-pattern"
+  ],
+  "extra": "Scope: a printable Gün sonu sheet (design 5 #14). New src/app/admin/raporlar/gun-sonu/page.tsx with requireRole('reports') (owner and manager only), using the existing [data-print-receipt] print scope: today on the Istanbul clock (rule 22): orders by channel and status, refunds, karaoke done and no-show, stamps given at the till, items that went out of stock today. Reuse system-insights' report functions; add at most one read function in src/lib/admin/store.ts beside them (rule 11, no raw SQL at the call site). A secondary 'Gün sonu' link in the Raporlar header and a palette Git entry gated by reports. Read-only, no mutation. Tests: gate (staff and cashier denied); Istanbul-day bounds at 21:30Z; figures equal 7b's functions for the same day; print markup. ~550 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-19",
+  "slug": "copy-ops",
+  "branch": "feat/admin-ui-copy-ops",
+  "review": "standard",
+  "dependsOn": [
+   "orders-ui",
+   "people-customers",
+   "people-lists",
+   "catalog-forms",
+   "catalog-lists",
+   "karaoke-refund-policy",
+   "system-site-settings",
+   "page-pattern",
+   "nav"
+  ],
+  "extra": "Scope: copy and page-pattern sweep (design 3.4 and 3.5) on the Bugün, Katalog and Pazarlama pages: siparisler (list, [id], yeni), mobil/karaoke (list, [id]), kasa, menu, urunler, kategoriler, stok-hareketleri, musteriler, promosyon, bulten, bulten/kampanya. h1 = nav or tab label in sentence case; description one line of at most 12 words; policy text moved (never deleted) into PageHeader help; no eyebrow that repeats the nav; meta on record pages; one primary plus a ⋯ menu; no '+' glyph; PageShell widths; EmptyState with one action ('Filtreyi temizle' when filtered); empty detail sections collapsed to one line; record headers for orders and karaoke on the kit PageHeader; the views prop on the karaoke list. Money caveats stay next to their controls. Copy only plus markup moves: no logic, action or schema change. Tests: update copy assertions in existing tests deliberately; a new test that list pages' h1 equals their nav or tab label. ~1,100 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ },
+ {
+  "id": "UI-20",
+  "slug": "copy-content",
+  "branch": "feat/admin-ui-copy-content",
+  "review": "standard",
+  "dependsOn": [
+   "copy-ops",
+   "content-legal",
+   "content-app",
+   "system-audit-log",
+   "system-insights",
+   "system-settings"
+  ],
+  "extra": "Scope: the same sweep on the İçerik and Yönetim pages: anasayfa-hero, magaza-hero, mobil/slaytlar, icerik, hikaye, basin, mobil/duyurular, mobil/gonderiler, mobil/fal-bildirimleri, raporlar, masalar, ayarlar, mobil/ayarlar, kullanicilar, hukuk, olay-kaydi, and the dashboard header. Basın and Hikaye inline create forms move into a 'Yeni' ActionModal (same action and form names). Yasal belgeler: the row title opens Düzenle; 'Yayındakini aç' becomes an icon link with aria-label; one text action per row. The karaoke bookings page shows one 'Karaoke ayarları' link per role (owner /admin/ayarlar?sekme=karaoke, manager /admin/mobil/ayarlar). 'Bildirim' always qualified (copy rule 4). Copy and markup only. Tests: copy assertions updated; the form contract holds for Basın and Hikaye; one text action per legal row. ~1,100 lines. Read docs/handoff/admin-ui-final-design.md sections 1.3 (budget, install), 2 (decisions) and 6 (PR rules) first. Kit public props never change (additions optional). Do not touch src/lib/db, /api/mobile/v1, docs/API-MOBILE.md, next.config.ts, customer files, card files. Tests: vitest node env only (no jsdom/happy-dom): pure modules + renderToStaticMarkup; interaction in a scripted browser pass, checklist in the PR body. Screenshots 390/1024/1280 for anything visible. No long dashes. Run $HEAVY vitest on touched tests, tsc, eslint --max-warnings=0 on changed files."
+ }
+]

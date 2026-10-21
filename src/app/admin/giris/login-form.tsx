@@ -1,74 +1,101 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+
+import { useHandPost, withPanelCatch } from "@/components/admin/action-form";
+import { Field, PrimaryButton, TextInput } from "@/components/admin/forms";
 
 import { loginAction, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
 
+// A throw (the database stumbling under the rate limiter or the 2FA check)
+// is an answer next to the button, not the error screen; redirect() still
+// runs. A fresh object each time, so the effect below sees every refusal.
+const submitLogin = withPanelCatch<LoginState>(loginAction, () => ({
+  error: "Giriş şu an yapılamadı. Biraz sonra tekrar dene.",
+}));
+
+/**
+ * Posted by hand (useHandPost), not through `<form action>`: React 19
+ * empties an action form's uncontrolled fields once the action finishes,
+ * whatever it answers, so every mistyped password used to take the e-mail
+ * with it. Now a refusal keeps the address; only the password is cleared,
+ * and focused, for the retry.
+ *
+ * `action` stays on the form all the same. Before the page's JavaScript has
+ * run there is no onSubmit, and a form with neither action nor method posts
+ * the browser's own way: a GET to this page with the password in the
+ * address (history, server logs). With it React draws its guard
+ * (`action="javascript:..."`), so an early Enter sends nothing; after
+ * hydration onSubmit prevents that post and React skips the action. The
+ * press React kept and replays once the page is live is one attempt, not
+ * one per impatient Enter (ui/submit.ts replayByHand).
+ */
 export function LoginForm({ next }: { next?: string }) {
   const [state, formAction, pending] = useActionState(
-    loginAction,
+    submitLogin,
     initialState,
   );
+  const post = useHandPost(formAction, pending);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const field = formRef.current?.elements.namedItem("password");
+    if (!state.error || !(field instanceof HTMLInputElement)) return;
+    field.value = "";
+    field.focus();
+  }, [state]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="flex flex-col gap-4"
+    >
       {/* Empty, not "/admin": with no explicit destination the action picks
           the one the role can actually open. */}
       <input type="hidden" name="next" value={next ?? ""} />
 
-      <label className="flex flex-col gap-2">
-        <span
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          E-posta
-        </span>
-        <input
+      <Field label="E-posta">
+        <TextInput
           type="email"
           name="email"
           required
+          maxLength={254}
           autoComplete="email"
           placeholder="merhaba@example.com"
-          className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-4 py-3 text-sm transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-2">
-        <span
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Şifre
-        </span>
-        <input
+      <Field label="Şifre">
+        <TextInput
           type="password"
           name="password"
           required
           autoComplete="current-password"
           placeholder="••••••••"
-          className="rounded-md border border-[var(--admin-border)] bg-neutral-50 px-4 py-3 text-sm transition-colors outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
-      </label>
+      </Field>
 
       {state.error && (
         <div
           role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+          className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
         >
           {state.error}
         </div>
       )}
 
-      <button
+      <PrimaryButton
         type="submit"
         disabled={pending}
-        className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] disabled:opacity-50"
+        aria-busy={pending || undefined}
+        className="mt-2 w-full"
       >
         {pending ? "Giriş yapılıyor…" : "Giriş yap"}
-        <span aria-hidden>→</span>
-      </button>
+      </PrimaryButton>
     </form>
   );
 }
