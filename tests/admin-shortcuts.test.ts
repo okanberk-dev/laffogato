@@ -701,7 +701,7 @@ describe("the user menu's switch", () => {
         )?.[0];
       expect(sw).toBeDefined();
       expect(sw).toContain("Tek tuş kısayolları");
-      expect(sw).toMatch(/\bmin-h-10\b/);
+      expect(sw).toMatch(/\bmin-h-11\b/);
       expect(account.indexOf("Güvenlik / 2FA")).toBeLessThan(
         account.indexOf("Tek tuş kısayolları"),
       );

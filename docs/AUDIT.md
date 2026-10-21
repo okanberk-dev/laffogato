@@ -1520,3 +1520,15 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Seçici parçası yaklaşık 64 KB gz; tasarımın bütçesi 35 KB | React Aria ve bütün dillerin metinleri; yalnız seçiciye gelince ve bir kez iner, diğer sayfalar ve Kasa hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~30 KB ham kazandırır, `next.config.ts` istediği için ayrı PR |
+
+### Kabuk: lafmaliyet (AkmanOS) görünümü (21 Eki 2026)
+
+Operatör kararı (21 Eki 2026): panel, kafenin arka ofis paneli lafmaliyet'in
+AkmanOS açık temasıyla yeniden giydirildi; davranış, rotalar, form adları ve
+eylemler değişmedi. Beyaz zemin, zinc-100 kartlar, siyah birincil, Geist;
+kenar çubuğu 17.5rem, beyaz liste kutusu, ikon karoları, geniş ⌘K kutusu,
+siyah etkin satır. Etiket tonu `#6b6b73` (AkmanOS'un `#71717a`'sı zinc-100
+kartta AA'yı geçmiyordu). Testler: `tests/admin-ui-kit.test.ts` (tema, AA
+zeminlerine zinc-100 eklendi), `tests/admin-root-css.test.ts`,
+`tests/admin-rail-density.test.ts`, `tests/admin-shell-nav.test.ts`.
+Ayrıntı: `docs/BRAND.md` "Admin paneli görünümü".

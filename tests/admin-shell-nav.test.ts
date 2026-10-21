@@ -88,7 +88,8 @@ vi.mock("next/dynamic", async () => {
   return { default: () => NavIcon };
 });
 vi.mock("next/font/google", () => ({
-  Poppins: () => ({ variable: "font-poppins", className: "" }),
+  Geist: () => ({ variable: "font-geist-sans", className: "" }),
+  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderSignalAction: vi.fn(async () => ({ count: 3, cursor: "" })),
@@ -473,10 +474,10 @@ describe("the sidebar and the top bar", () => {
     expect(tag(html, /<aside[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<header[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<dialog[^>]*>/)).toContain("print:hidden");
-    // The page's left edge is the sidebar's width (`--admin-side`, 16rem or
+    // The page's left edge is the sidebar's width (`--admin-side`, 17.5rem or
     // the rail's 4rem, UI-9); none of it on paper.
     expect(read("src/app/admin/layout.tsx")).toMatch(
-      /className=\{\s*chrome\s*\?\s*"lg:pl-\[var\(--admin-side,16rem\)\] print:pl-0"\s*:\s*"print:pl-0"\s*\}/,
+      /className=\{\s*chrome\s*\?\s*"lg:pl-\[var\(--admin-side,17\.5rem\)\] print:pl-0"\s*:\s*"print:pl-0"\s*\}/,
     );
   });
 
@@ -520,8 +521,8 @@ describe("the sidebar and the top bar", () => {
   it("shows the search only to a role it covers; without JavaScript it is a link to the results page", () => {
     // Admin UI v2, UI-6: the top bar's box became the ⌘K palette's trigger.
     // Its server markup is one link to /admin/ara (whose own box posts, so
-    // the text is in no address), at every width: a 44 px square on a
-    // phone, the box's look from lg.
+    // the text is in no address), at every width: a 44 px square (since
+    // the AkmanOS look, 21 Eki 2026, the wide box is the sidebar's).
     const html = renderSidebar();
     const header = html.slice(
       html.indexOf("<header"),
@@ -537,9 +538,8 @@ describe("the sidebar and the top bar", () => {
     expect(header).not.toContain("<form");
     expect(header).not.toContain('name="q"');
     const classes = /class="([^"]*)"/.exec(trigger)![1].split(" ");
-    expect(classes).toEqual(
-      expect.arrayContaining(["h-11", "w-11", "lg:w-72"]),
-    );
+    expect(classes).toEqual(expect.arrayContaining(["h-11", "w-11"]));
+    expect(classes).not.toContain("lg:w-72");
     const none = renderSidebar({ canSearch: false });
     expect(none).not.toContain("/admin/ara");
     expect(none).not.toContain("data-admin-palette-trigger");
@@ -597,8 +597,9 @@ describe("the sidebar and the top bar", () => {
       html,
       /<a href="\/admin\/siparisler"[^>]*aria-current="page"[^>]*>/,
     );
-    expect(active).toContain("bg-[var(--admin-primary-soft)]");
-    expect(active).toContain("text-[var(--admin-primary)]");
+    // The AkmanOS look (21 Eki 2026): the current page is the black row.
+    expect(active).toContain("bg-[var(--admin-primary)]");
+    expect(active).toContain("text-white");
   });
 });
 

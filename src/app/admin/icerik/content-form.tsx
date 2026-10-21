@@ -91,7 +91,7 @@ export function ContentForm({ content }: { content: Record<string, string> }) {
 
       {/* Above the phone's bottom bar (--admin-bottom-inset, layout.tsx),
           not under it. */}
-      <div className="sticky bottom-[calc(1rem+var(--admin-bottom-inset,0px))] z-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(44,29,17,0.14)]">
+      <div className="sticky bottom-[calc(1rem+var(--admin-bottom-inset,0px))] z-10 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
         <SubmitButton>Tümünü kaydet</SubmitButton>
         <p className="min-w-0 flex-1 text-xs text-[var(--admin-text-soft)]">
           Hazır metinle aynı bıraktığın alan hazır metni izler.

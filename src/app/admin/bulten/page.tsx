@@ -272,7 +272,7 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
           ) : null}
 
           {activeEmails.length > 0 ? (
-            <details className="mt-6 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
+            <details className="mt-6 rounded-3xl bg-[var(--admin-panel)] p-4">
               <summary
                 className={`${EYEBROW} flex min-h-[44px] cursor-pointer items-center`}
                 style={MONO_STYLE}
@@ -284,7 +284,7 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
                 aria-label="Aktif abonelerin e-postaları"
                 defaultValue={activeEmails.join(", ")}
                 rows={4}
-                className="mt-2 w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs text-[var(--admin-text)]"
+                className="mt-2 w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-xs text-[var(--admin-text)]"
                 style={MONO_STYLE}
               />
             </details>

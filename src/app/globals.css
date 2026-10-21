@@ -6587,6 +6587,23 @@ select {
   font: revert-layer;
 }
 
+/* The panel speaks Geist (app/admin/layout.tsx repoints the type tokens
+   on its root, the AkmanOS look of 21 Eki 2026); a site preview inside it
+   (the shop hero editor's "Önizleme") speaks the storefront's voices
+   again, so the slide is judged in the faces customers see. */
+[data-admin-root] [data-site-preview] {
+  --display:
+    var(--font-display), "Poppins", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Helvetica Neue", sans-serif;
+  --headline: var(--font-headline), "Gabarito", var(--display);
+  --sans: var(--display);
+  --serif: var(--display);
+  --serif-modern: var(--display);
+  --serif-display: var(--display);
+  --mono: var(--sans);
+  font-family: var(--display);
+}
+
 /* A disabled control looks it: `button { cursor: pointer }` beat
    disabled:cursor-not-allowed, so a disabled "Kaydet" and a menu row that
    only shows its reason (aria-disabled) still looked clickable. */

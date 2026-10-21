@@ -8,7 +8,7 @@ import { COMPACT } from "./compact";
 // shell draws on every page, takes them without this file's buttons).
 export { COMPACT };
 
-const BUTTON_BASE = `inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${COMPACT.minH9}`;
+const BUTTON_BASE = `inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2 text-sm transition-[color,background-color,border-color,transform] active:scale-[0.98] motion-reduce:transition-colors motion-reduce:active:scale-100 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${COMPACT.minH9}`;
 
 export const BUTTON = {
   primary: `${BUTTON_BASE} bg-[var(--admin-primary)] px-5 font-medium text-white hover:bg-[var(--admin-primary-hover)]`,
@@ -33,13 +33,12 @@ export const BUTTON = {
 export type ButtonVariant = keyof typeof BUTTON;
 
 /**
- * The mono, spaced, uppercase label of table column heads and filter
- * fields. Page headers, badges and KeyValueGrid labels no longer use it:
- * 10px capitals with wide tracking were the hardest text on the panel to
- * read, so those are 12px sentence case (HEADER_EYEBROW, LABEL).
+ * The label of filter fields and of a phone card's values. 13px sentence
+ * case (AkmanOS's labels, 21 Eki 2026): it was 10px spaced capitals, the
+ * hardest text on the panel to read. Capitals stay only for the sidebar's
+ * small group labels.
  */
-export const EYEBROW =
-  "text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase";
+export const EYEBROW = "text-[13px] font-medium text-[var(--admin-text-soft)]";
 
 /**
  * The line above a page title (PageHeader `eyebrow` and `meta`): 12px
@@ -55,12 +54,13 @@ export const MONO_STYLE = { fontFamily: "var(--mono), monospace" } as const;
 /**
  * Amounts, booking codes and POS references: a monospace face with tabular
  * figures, so a right-aligned Tutar column and a list of codes line up
- * digit by digit (admin audit KAR-18). MONO_STYLE is the panel's label
- * voice and stays as it is: --mono resolves to Poppins, which has no
- * tabular figures, and labels and headers use it too.
+ * digit by digit (admin audit KAR-18). Geist Mono first (the panel's
+ * mono, AkmanOS), the system's monospace behind it. MONO_STYLE is the
+ * panel's label voice and stays as it is: --mono resolves to Geist Sans
+ * in the panel (app/admin/layout.tsx), and labels and headers use it too.
  */
 export const NUMERIC_STYLE = {
   fontFamily:
-    'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+    'var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
   fontVariantNumeric: "tabular-nums",
 } as const;

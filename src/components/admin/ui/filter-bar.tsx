@@ -482,7 +482,7 @@ export function FilterBar({
         aria-busy={pending || undefined}
         action={listSearchAction}
         onSubmit={onSubmit}
-        className="flex flex-wrap items-end gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4"
+        className="flex flex-wrap items-end gap-3 rounded-3xl bg-[var(--admin-panel)] p-4"
       >
         {listField}
         {kept.map(([key, value], i) => (

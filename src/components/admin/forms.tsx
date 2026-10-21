@@ -7,8 +7,8 @@ import { parsePublishInstant } from "@/lib/admin/publish-window";
 import { ActionMenu } from "./ui/action-menu";
 import { BUTTON, COMPACT, HEADER_EYEBROW } from "./ui/styles";
 
-const FIELD_LABEL =
-  "text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase";
+// AkmanOS's field label: 13px, sentence case (it was 10px spaced capitals).
+const FIELD_LABEL = "text-[13px] font-medium text-[var(--admin-text-soft)]";
 const FIELD_LABEL_STYLE = { fontFamily: "var(--mono), monospace" } as const;
 const FIELD_HINT = "text-xs text-[var(--admin-text-mute)]";
 
@@ -68,7 +68,7 @@ export function Field({
 // The panel's field: the outline is --admin-border-field (3:1 against the
 // white card and the field's own fill, so an empty field can be found) and
 // the placeholder is the full label ink, not a faded one (it was 2.41:1).
-export const FIELD_INPUT = `w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm ${COMPACT.fieldPy}`;
+export const FIELD_INPUT = `w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm ${COMPACT.fieldPy}`;
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -123,7 +123,7 @@ export function PrimaryButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-[color,background-color,border-color,transform] hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -137,7 +137,7 @@ export function GhostButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -151,7 +151,7 @@ export function DangerButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger)] transition-colors hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger-ink)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -169,7 +169,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)] sm:p-6 ${COMPACT.p4} ${className ?? ""}`}
+      className={`rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white ${COMPACT.p4} ${className ?? ""}`}
       style={style}
     >
       {children}
@@ -271,11 +271,11 @@ export function PageHeader({
 }: PageHeaderProps) {
   const heading = (
     <h1
-      className="text-2xl text-[var(--admin-text)] sm:text-3xl"
+      className="text-2xl leading-8 text-[var(--admin-text)] sm:text-[28px] sm:leading-9"
       style={{
-        fontFamily: "var(--font-poppins), var(--sans)",
+        fontFamily: "var(--font-geist-sans), var(--sans)",
         fontWeight: 600,
-        letterSpacing: "-0.02em",
+        letterSpacing: "-0.025em",
       }}
     >
       {title}
@@ -361,7 +361,7 @@ export function PageHeader({
             />
             Nasıl çalışır?
           </summary>
-          <div className="mt-1 max-w-2xl rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
+          <div className="mt-1 max-w-2xl rounded-2xl bg-[var(--admin-panel)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
             {help}
           </div>
         </details>
