@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/order-channel";
 import type { AdminOrder, AdminRefund } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
+import { durableCopyWithin } from "@/lib/legal/durable-copy-time";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
 import { consentTextHashes } from "@/lib/legal/version-core";
 import { stampsForOrder } from "@/lib/mobile/loyalty-core";
@@ -29,6 +30,7 @@ import {
   type MailDurableCopy,
   type SendResult,
 } from "./send";
+import { MAIL_BUDGET } from "./budget";
 
 /**
  * The order mails, each sent once.
@@ -399,28 +401,27 @@ export { claim as claimOrderNotice, settle as settleOrderNotice };
  * with the order, for the paid mail (ASK-DURABLE): built from the versions
  * the consent recorded (src/lib/legal/durable-copy-load.ts), or null. An
  * order whose consent recorded no text hashes (placed before 21 Ekim 2026,
- * a manual order) has none and asks nothing. The copy is bounded in time
- * and never throws: the mail goes without it rather than late or not at all.
- * The loader is imported on demand: the store imports this module, and the
- * loader reads the store.
+ * a manual order) has none and asks nothing. The loader's import and its
+ * read both run inside the copy's share of the mail's budget
+ * (`MAIL_BUDGET.copy`), and nothing here throws: the mail goes without the
+ * file rather than late or not at all. Imported on demand: the store
+ * imports this module, and the loader reads the store.
  */
-async function paidMailCopy(order: AdminOrder): Promise<MailDurableCopy | null> {
+async function paidMailCopy(
+  order: AdminOrder,
+  deadline: number,
+): Promise<MailDurableCopy | null> {
   if (!consentTextHashes(order.legalConsent, CHECKOUT_CONSENT_DOCS)) {
     return null;
   }
-  try {
-    const { durableCopyForMail, orderDurableCopy } = await import(
-      "@/lib/legal/durable-copy-load"
-    );
-    return await durableCopyForMail(`order=${order.id}`, () =>
-      orderDurableCopy(order),
-    );
-  } catch (err) {
-    console.warn(
-      `[durable-copy] order=${order.id}: no attachment (${(err instanceof Error ? err.message : String(err)).slice(0, 120)})`,
-    );
-    return null;
-  }
+  return durableCopyWithin(
+    `order=${order.id}`,
+    async () => {
+      const { orderDurableCopy } = await import("@/lib/legal/durable-copy-load");
+      return orderDurableCopy(order);
+    },
+    Math.min(MAIL_BUDGET.copy, deadline - Date.now()),
+  );
 }
 
 /**
@@ -436,11 +437,14 @@ export async function notifyOrderPaid(
   opts: { kind?: string } = {},
 ): Promise<OrderNoticeOutcome> {
   if (orderNoticeRecipient(order) === null) return "not_due";
-  return once(order, opts.kind ?? PAID_NOTICE_KIND, async (key) =>
-    sendOrderPaidEmail(
+  return once(order, opts.kind ?? PAID_NOTICE_KIND, async (key) => {
+    // The payment return waits for this mail: the copy and the sends share
+    // one budget, the 9.5 s the mail always had (./budget.ts `MAIL_BUDGET`).
+    const deadline = Date.now() + MAIL_BUDGET.paid;
+    return sendOrderPaidEmail(
       {
         // Built after the claim, so a duplicate trigger builds nothing.
-        durableCopy: await paidMailCopy(order),
+        durableCopy: await paidMailCopy(order, deadline),
         to: orderNoticeRecipient(order) as string,
         customerName: order.customerName ?? "",
         orderNo: order.orderNo,
@@ -465,8 +469,9 @@ export async function notifyOrderPaid(
             : 0,
       },
       key,
-    ),
-  );
+      { deadline },
+    );
+  });
 }
 
 

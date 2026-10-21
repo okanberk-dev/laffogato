@@ -174,4 +174,20 @@ describe("public pages read the cached presentation readers", () => {
     expect(liveReadsIn(page)).toEqual([]);
     expect(page).toContain('import { LegalVersionView } from "./legal-version";');
   });
+
+  /**
+   * Review R8 (21 Eki 2026): the allowance names the file that runs the
+   * read, and the check above looks only at imports of the live modules, so
+   * any other public page could import `LegalVersionView` (which runs the
+   * query on every view) without failing it. Only the hukuk page, behind
+   * its `?surum=` branch, may.
+   */
+  it("lets only the hukuk page import the view that runs the read", () => {
+    const importers = publicFiles().filter((f) =>
+      /\bfrom\s+["'][^"']*legal-version["']|\bimport\(\s*["'][^"']*legal-version["']\s*\)/.test(
+        readFileSync(f, "utf8"),
+      ),
+    );
+    expect(importers).toEqual(["src/app/hukuk/[slug]/page.tsx"]);
+  });
 });

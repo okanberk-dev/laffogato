@@ -34,10 +34,7 @@ import {
   CAFE_ONLY_COUPON_MESSAGE,
 } from "@/lib/customer/coupons";
 import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
-import {
-  checkoutConsentTextHashes,
-  checkoutConsentVersion,
-} from "@/lib/legal/store";
+import { checkoutConsentShown } from "@/lib/legal/store";
 import { DbQueryError } from "@/lib/db/health";
 import { getPaymentProvider } from "@/lib/payment";
 import { SITE } from "@/lib/seo/site";
@@ -173,8 +170,9 @@ async function buildLegalConsent(): Promise<OrderLegalConsent> {
   return {
     acceptedAt: new Date().toISOString(),
     documents: [...CHECKOUT_CONSENT_DOCS],
-    version: await checkoutConsentVersion(),
-    textHashes: await checkoutConsentTextHashes(),
+    // The label and the hash of each text shown, from one read of the
+    // overrides (src/lib/legal/store.ts `checkoutConsentShown`).
+    ...(await checkoutConsentShown()),
     ip: await clientIp(),
     userAgent: (h.get("user-agent") ?? "").slice(0, 300),
   };

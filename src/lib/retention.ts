@@ -58,6 +58,12 @@ export interface RetentionRule {
    * cutoff; `column` then only names the stamp the function reads.
    */
   rpc?: string;
+  /**
+   * The function also takes `p_keep jsonb`: ids that must stay whatever
+   * their age, given by the caller (`runRetention({ keep: { [id]: [...] } })`).
+   * Without that list the rule counts and removes nothing.
+   */
+  keep?: true;
 }
 
 export const RETENTION_RULES: readonly RetentionRule[] = [
@@ -162,6 +168,10 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     idColumn: "hash",
     days: 11 * YEAR_DAYS,
     rpc: "legal_doc_versions_retention",
+    // The texts shown today (`recordShownLegalVersions`): a text replaced
+    // long ago can be shown again (a reset to the coded text) and keeps its
+    // first "createdAt" (review R1, 21 Eki 2026).
+    keep: true,
     basis:
       "Sözleşmenin ifasından itibaren 10 yıl; uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar.",
     note:
@@ -274,18 +284,32 @@ export function destructionEnabled(
   return (value ?? "").trim().toLowerCase() === "destroy";
 }
 
+/** Ids a rule must keep whatever their age, by rule id (`RetentionRule.keep`). */
+export type RetentionKeep = Readonly<Record<string, readonly string[]>>;
+
 async function runRule(
   rule: RetentionRule,
   now: Date,
   apply: boolean,
+  keep: RetentionKeep,
 ): Promise<RetentionOutcome> {
   const cutoff = cutoffFor(rule, now);
   const base = { id: rule.id, table: rule.table, cutoff };
+
+  if (rule.keep && !keep[rule.id]) {
+    return {
+      ...base,
+      matched: 0,
+      destroyed: 0,
+      error: "keep list not given: nothing counted or removed",
+    };
+  }
 
   if (rule.rpc) {
     const { data, error } = await getDb().rpc<number>(rule.rpc, {
       p_cutoff: cutoff,
       p_apply: apply,
+      ...(rule.keep ? { p_keep: [...keep[rule.id]] } : {}),
     });
     if (error) {
       return { ...base, matched: 0, destroyed: 0, error: error.message };
@@ -334,13 +358,13 @@ async function runRule(
  * `apply: false` (the default) counts and reports without removing anything.
  */
 export async function runRetention(
-  options: { now?: Date; apply?: boolean } = {},
+  options: { now?: Date; apply?: boolean; keep?: RetentionKeep } = {},
 ): Promise<RetentionReport> {
   const now = options.now ?? new Date();
   const apply = options.apply === true;
   const results: RetentionOutcome[] = [];
   for (const rule of RETENTION_RULES) {
-    results.push(await runRule(rule, now, apply));
+    results.push(await runRule(rule, now, apply, options.keep ?? {}));
   }
   return {
     at: now.toISOString(),

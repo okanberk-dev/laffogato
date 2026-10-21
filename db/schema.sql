@@ -7478,14 +7478,19 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
 --               src/lib/legal/version-core.ts (title, summary, date, then the
 --               coded sections with their tokens filled, or the panel's
 --               Markdown). The database never parses it.
---   "createdAt" when the text was first stored (ISO-8601 UTC, written by the
---               database's own clock).
+--   "createdAt" when the text was first stored (ISO-8601 UTC). It defaults to
+--               the database clock and the app never writes it, so a row's
+--               age is the database's word (a direct INSERT could still set
+--               it; the app has no such path).
 --
 -- Writers (INSERT ... ON CONFLICT (hash) DO NOTHING in one statement, never a
 -- read-modify-write): the checkout and karaoke consents (the texts they
--- record), the panel's save, reset and restore (the text shown before and
--- after, written before the change), the daily cron (every document as shown
--- that day). No public page view writes here.
+-- record), the panel's save, reset and restore (the text shown before the
+-- change, written before it, and the one shown after, once the change is
+-- written), the daily cron (every document as shown that day: a text no
+-- consent names is here within a day of the deploy that changed it), and the
+-- confirmation mails and the two contract downloads, which store a confirmed
+-- text that is still shown but missing. No public page view writes here.
 --
 -- Readers: /hukuk/<slug>?surum=<prefix> (only with that parameter), the
 -- confirmation e-mails' attachment and the member's download.
@@ -7494,8 +7499,8 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
 -- for a row whose "createdAt" is a written instant older than eleven years:
 -- the periodic destruction (src/lib/retention.ts, rule "legal-doc-versions")
 -- cuts at 11 x 366 days through legal_doc_versions_retention below, which
--- also keeps every text a consent of the last eleven years names and every
--- text that was not replaced before the cutoff.
+-- also keeps every text a consent of the last eleven years names, every text
+-- that was not replaced before the cutoff and every text shown today.
 --
 -- Idempotent: create if not exists, create or replace, drop trigger if
 -- exists. No `insert into public._migrations`: scripts/db-migrate.mjs records
@@ -7503,7 +7508,7 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
 --
 -- Rollback (loses every stored text; only before the first consent records a
 -- hash):
---   drop function if exists public.legal_doc_versions_retention(text, boolean);
+--   drop function if exists public.legal_doc_versions_retention(text, boolean, jsonb);
 --   drop table if exists public.legal_doc_versions;
 --   drop function if exists public.legal_doc_versions_append_only();
 
@@ -7572,15 +7577,25 @@ create trigger legal_doc_versions_no_truncate
 --   - a later text of the same document was first stored, also before
 --     p_cutoff (the text stopped being the newest more than eleven years ago:
 --     the newest text of a document is never in scope, however old);
+--   - it is not a text shown today (p_keep, a JSON array of hashes the
+--     caller works out from the live documents: a text replaced long ago can
+--     be shown again, a coded text after a reset, and its row keeps its
+--     first "createdAt");
 --   - no order and no karaoke booking whose consent was accepted at or after
 --     p_cutoff names it in `legalConsent.textHashes`.
 -- A text first stored twelve years ago and confirmed by an order last year
 -- stays; the contract it proves is still inside its ten years.
 --
+-- Without p_keep (null, or not an array) nothing is in scope: the caller
+-- that cannot say what is shown today removes nothing.
+--
 -- p_apply false counts only; true deletes and returns how many went.
+drop function if exists public.legal_doc_versions_retention(text, boolean);
+
 create or replace function public.legal_doc_versions_retention(
   p_cutoff text,
-  p_apply  boolean
+  p_apply  boolean,
+  p_keep   jsonb
 )
 returns integer
 language plpgsql
@@ -7589,10 +7604,14 @@ as $$
 declare
   affected integer := 0;
 begin
+  if p_keep is null or jsonb_typeof(p_keep) <> 'array' then
+    return 0;
+  end if;
   if p_apply then
     delete from public.legal_doc_versions v
      where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
        and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
        and exists (
          select 1
            from public.legal_doc_versions w
@@ -7618,6 +7637,7 @@ begin
       from public.legal_doc_versions v
      where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
        and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
        and exists (
          select 1
            from public.legal_doc_versions w

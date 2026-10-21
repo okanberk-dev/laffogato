@@ -151,7 +151,9 @@ maybe("legal_doc_versions in a real Postgres", () => {
     expect(rows[0].slug).toBe(v.slug);
     expect(rows[0].body).toBe(v.text);
     // The database's clock, in the app's ISO shape.
-    expect(rows[0].createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    expect(rows[0].createdAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    );
   });
 
   it("refuses a row whose hash is not its text's", async () => {
@@ -170,8 +172,14 @@ maybe("legal_doc_versions in a real Postgres", () => {
     versions.forgetKnownLegalVersions();
     await versions.recordLegalVersions([v]);
     for (const [sql, params] of [
-      ["update public.legal_doc_versions set slug = 'baska' where hash = $1", [v.hash]],
-      ["update public.legal_doc_versions set body = body where hash = $1", [v.hash]],
+      [
+        "update public.legal_doc_versions set slug = 'baska' where hash = $1",
+        [v.hash],
+      ],
+      [
+        "update public.legal_doc_versions set body = body where hash = $1",
+        [v.hash],
+      ],
       ["delete from public.legal_doc_versions where hash = $1", [v.hash]],
       ["truncate public.legal_doc_versions", []],
     ] as const) {
@@ -180,7 +188,11 @@ maybe("legal_doc_versions in a real Postgres", () => {
     }
     expect(await count(v.hash)).toBe(1);
     // A row first stored twelve years ago may go.
-    const old = await storeAt(slugOf("old"), "Eski.", "2014-01-01T00:00:00.000Z");
+    const old = await storeAt(
+      slugOf("old"),
+      "Eski.",
+      "2014-01-01T00:00:00.000Z",
+    );
     const r = await pool!.query(
       "delete from public.legal_doc_versions where hash = $1",
       [old.hash],
@@ -192,15 +204,27 @@ maybe("legal_doc_versions in a real Postgres", () => {
     const v = legalVersionOf(textDoc(slugOf("find"), "## Bul\n\nBeni."));
     versions.forgetKnownLegalVersions();
     await versions.recordLegalVersions([v]);
-    const found = await versions.findLegalVersionByPrefix(v.slug, v.hash.slice(0, 16));
+    const found = await versions.findLegalVersionByPrefix(
+      v.slug,
+      v.hash.slice(0, 16),
+    );
     expect(found?.version.hash).toBe(v.hash);
     expect(found?.version.doc).toEqual(v.doc);
-    expect((await versions.findLegalVersionByPrefix(v.slug, v.hash))?.version.hash).toBe(v.hash);
+    expect(
+      (await versions.findLegalVersionByPrefix(v.slug, v.hash))?.version.hash,
+    ).toBe(v.hash);
     // Another document's address, a prefix of nothing, a short prefix.
-    expect(await versions.findLegalVersionByPrefix(slugOf("baska"), v.hash.slice(0, 16))).toBeNull();
+    expect(
+      await versions.findLegalVersionByPrefix(
+        slugOf("baska"),
+        v.hash.slice(0, 16),
+      ),
+    ).toBeNull();
     const flipped = (v.hash[0] === "0" ? "1" : "0") + v.hash.slice(1, 16);
     expect(await versions.findLegalVersionByPrefix(v.slug, flipped)).toBeNull();
-    expect(await versions.findLegalVersionByPrefix(v.slug, v.hash.slice(0, 15))).toBeNull();
+    expect(
+      await versions.findLegalVersionByPrefix(v.slug, v.hash.slice(0, 15)),
+    ).toBeNull();
     const loaded = await versions.loadLegalVersions([v.hash, "f".repeat(64)]);
     expect([...loaded.keys()]).toEqual([v.hash]);
   });
@@ -222,11 +246,18 @@ maybe("legal_doc_versions in a real Postgres", () => {
       [
         `ord-dbtest-${RUN}`,
         900_000_000 + Math.floor(Math.random() * 90_000_000),
-        JSON.stringify({ acceptedAt: "2010-01-01T00:00:00.000Z", textHashes: { [s2]: ordered.hash } }),
+        JSON.stringify({
+          acceptedAt: "2010-01-01T00:00:00.000Z",
+          textHashes: { [s2]: ordered.hash },
+        }),
       ],
     );
     // s3: replaced only in 2012, after the cutoff -> kept.
-    const lateReplaced = await storeAt(s3, "1. metin", "2001-01-01T00:00:00.000Z");
+    const lateReplaced = await storeAt(
+      s3,
+      "1. metin",
+      "2001-01-01T00:00:00.000Z",
+    );
     await storeAt(s3, "2. metin", "2012-01-01T00:00:00.000Z");
     // s4: replaced in 2002, a karaoke booking accepted in 2010 names it -> kept.
     const booked = await storeAt(s4, "1. metin", "2001-01-01T00:00:00.000Z");
@@ -236,23 +267,49 @@ maybe("legal_doc_versions in a real Postgres", () => {
        values ($1, 'dbtest@example.com', '2010-01-02', 20, 'cancelled', $2::jsonb, '2010-01-01T00:00:00.000Z')`,
       [
         `krk-dbtest-${RUN}`,
-        JSON.stringify({ acceptedAt: "2010-01-01T00:00:00.000Z", textHashes: { [s4]: booked.hash } }),
+        JSON.stringify({
+          acceptedAt: "2010-01-01T00:00:00.000Z",
+          textHashes: { [s4]: booked.hash },
+        }),
       ],
     );
 
+    // s5: replaced in 2002 and shown again today (a reset to the coded
+    // text keeps the row's first "createdAt") -> kept (review R1).
+    const s5 = slugOf("e");
+    const shownAgain = await storeAt(
+      s5,
+      "1. metin",
+      "2001-01-01T00:00:00.000Z",
+    );
+    await storeAt(s5, "2. metin", "2002-06-01T00:00:00.000Z");
+    const keep = { "legal-doc-versions": [shownAgain.hash] };
+
     const { runRetention } = await import("@/lib/retention");
-    const dry = await runRetention({ now: sweepAt });
+    // A caller that cannot say what is shown today removes nothing.
+    const blind = await runRetention({ now: sweepAt, apply: true });
+    expect(
+      blind.results.find((x) => x.id === "legal-doc-versions"),
+    ).toMatchObject({ matched: 0, destroyed: 0 });
+    expect(await count(gone.hash)).toBe(1);
+    const { rows: nullKeep } = await pool!.query(
+      "select public.legal_doc_versions_retention($1, true, null) as n",
+      [sweepAt.toISOString()],
+    );
+    expect(nullKeep[0].n).toBe(0);
+
+    const dry = await runRetention({ now: sweepAt, keep });
     const dryRule = dry.results.find((x) => x.id === "legal-doc-versions")!;
     expect(dryRule.error).toBeUndefined();
     expect(dryRule.matched).toBe(1);
     expect(await count(gone.hash)).toBe(1);
 
-    const report = await runRetention({ now: sweepAt, apply: true });
+    const report = await runRetention({ now: sweepAt, apply: true, keep });
     const rule = report.results.find((x) => x.id === "legal-doc-versions")!;
     expect(rule.error).toBeUndefined();
     expect(rule.destroyed).toBe(1);
     expect(await count(gone.hash)).toBe(0);
-    for (const kept of [s1Newest, ordered, lateReplaced, booked]) {
+    for (const kept of [s1Newest, ordered, lateReplaced, booked, shownAgain]) {
       expect(await count(kept.hash)).toBe(1);
     }
   });

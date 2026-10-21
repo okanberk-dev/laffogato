@@ -22,8 +22,6 @@ vi.mock("@/lib/email/send", () => ({
 }));
 vi.mock("@/lib/legal/durable-copy-load", () => ({
   karaokeDurableCopy: h.karaokeDurableCopy,
-  durableCopyForMail: async (_label: string, build: () => Promise<unknown>) =>
-    build(),
 }));
 
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
@@ -97,7 +95,8 @@ describe("the confirmation of a paid booking", () => {
       }),
     );
     expect(h.karaokeDurableCopy).not.toHaveBeenCalled();
-    for (const call of h.sendKaraokeConfirmationEmail.mock.calls as unknown[][]) {
+    for (const call of h.sendKaraokeConfirmationEmail.mock
+      .calls as unknown[][]) {
       expect(call[0]).toMatchObject({ durableCopy: null });
     }
   });

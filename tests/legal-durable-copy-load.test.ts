@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AdminOrder } from "@/lib/admin/store";
+import type { AdminOrder, OrderLegalConsent } from "@/lib/admin/store";
 import { findLegalDoc, type LegalDoc } from "@/lib/legal/documents";
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import {
@@ -45,6 +45,7 @@ vi.mock("@/lib/admin/store", () => ({
   }),
 }));
 
+const { durableCopyWithin } = await import("@/lib/legal/durable-copy-time");
 const load = await import("@/lib/legal/durable-copy-load");
 
 const [OBF, MSS] = CHECKOUT_CONSENT_DOCS;
@@ -75,7 +76,12 @@ function order(textHashes?: Record<string, string>): AdminOrder {
     internalNote: "",
     status: "paid",
     items: [
-      { productName: "Sirena", qty: 2, unitPriceMinor: 32_000, status: "pending" },
+      {
+        productName: "Sirena",
+        qty: 2,
+        unitPriceMinor: 32_000,
+        status: "pending",
+      },
     ],
     subtotalMinor: 64_000,
     discountMinor: 0,
@@ -117,7 +123,9 @@ describe("orderDurableCopy", () => {
       order({ [OBF]: obf.hash, [MSS]: mss.hash }),
     );
     expect(copy).not.toBeNull();
-    expect(copy!.filename).toBe("siparis-10042-on-bilgilendirme-ve-sozlesme.html");
+    expect(copy!.filename).toBe(
+      "siparis-10042-on-bilgilendirme-ve-sozlesme.html",
+    );
     expect(copy!.html).toContain(`${findLegalDoc(OBF)!.title} (eski sürüm)`);
     expect(copy!.html).toContain("Bu metin 18 Ekim 2026 tarihli sürümdür.");
     expect(copy!.html).toContain(obf.hash);
@@ -155,7 +163,9 @@ describe("orderDurableCopy", () => {
     expect(copy).not.toBeNull();
     expect(h.recordLegalVersions).toHaveBeenCalledTimes(1);
     expect(
-      (h.recordLegalVersions.mock.calls[0][0] as LegalVersion[]).map((v) => v.hash),
+      (h.recordLegalVersions.mock.calls[0][0] as LegalVersion[]).map(
+        (v) => v.hash,
+      ),
     ).toEqual([obf.hash, mss.hash]);
   });
 
@@ -180,6 +190,64 @@ describe("orderDurableCopy", () => {
     expect(h.recordLegalVersions).toHaveBeenCalledWith([live]);
   });
 
+  /**
+   * Review R6 (21 Eki 2026): the copy was rebuilt from the order's row, so a
+   * staff correction of the name or the address afterwards made the
+   * member's download differ from the file the paid mail attached. The
+   * order now keeps both in its consent as placed (`withBuyerSnapshot`),
+   * and the copy prints those.
+   */
+  it("prints the buyer as the order was placed, not a later edit of the row", async () => {
+    const obf = today(OBF);
+    const mss = today(MSS);
+    h.stored.set(obf.hash, obf);
+    h.stored.set(mss.hash, mss);
+    const placed = order({ [OBF]: obf.hash, [MSS]: mss.hash });
+    // As placeOrder writes it (`withBuyerSnapshot`,
+    // tests/order-variant-lines.test.ts).
+    const consent: OrderLegalConsent = {
+      ...(placed.legalConsent as OrderLegalConsent),
+      buyer: { name: placed.customerName, address: placed.shippingAddress },
+    };
+    const edited = {
+      ...placed,
+      customerName: "Düzeltilmiş Ad",
+      shippingAddress: "Yeni Adres 9, Pendik",
+      legalConsent: consent,
+    };
+    const copy = await load.orderDurableCopy(edited);
+    expect(copy!.html).toContain("Eda Yılmaz");
+    expect(copy!.html).toContain("Bağdat Cad. 1, Kadıköy");
+    expect(copy!.html).not.toContain("Düzeltilmiş Ad");
+    expect(copy!.html).not.toContain("Yeni Adres 9");
+    // An order from before the snapshot prints its row, as before.
+    const old = await load.orderDurableCopy({
+      ...placed,
+      customerName: "Eski Kayıt",
+    });
+    expect(old!.html).toContain("Eski Kayıt");
+  });
+
+  it("is said to be available exactly when the download can build it, storing nothing", async () => {
+    const obf = today(OBF);
+    const mss = today(MSS);
+    // Stored, or still shown today: available; no write either way.
+    h.stored.set(obf.hash, obf);
+    expect(
+      await load.orderDurableCopyAvailable(
+        order({ [OBF]: obf.hash, [MSS]: mss.hash }),
+      ),
+    ).toBe(true);
+    expect(h.recordLegalVersions).not.toHaveBeenCalled();
+    // Neither stored nor shown today, or no hashes at all: not available.
+    expect(
+      await load.orderDurableCopyAvailable(
+        order({ [OBF]: older(OBF).hash, [MSS]: mss.hash }),
+      ),
+    ).toBe(false);
+    expect(await load.orderDurableCopyAvailable(order())).toBe(false);
+  });
+
   it("is no copy when a recorded text is neither stored nor shown today", async () => {
     const gone = older(OBF);
     h.stored.set(today(MSS).hash, today(MSS));
@@ -202,7 +270,9 @@ describe("orderDurableCopy", () => {
 });
 
 describe("karaokeDurableCopy", () => {
-  function reservation(textHashes?: Record<string, string>): KaraokeReservation {
+  function reservation(
+    textHashes?: Record<string, string>,
+  ): KaraokeReservation {
     return {
       id: "krk-00042",
       customerEmail: "eda@example.com",
@@ -235,7 +305,9 @@ describe("karaokeDurableCopy", () => {
   it("is built from the stored terms with the booking's own facts", async () => {
     const v = today(KARAOKE);
     h.stored.set(v.hash, v);
-    const copy = await load.karaokeDurableCopy(reservation({ [KARAOKE]: v.hash }));
+    const copy = await load.karaokeDurableCopy(
+      reservation({ [KARAOKE]: v.hash }),
+    );
     expect(copy!.filename).toBe("karaoke-sozlesme-KRK-00042.html");
     expect(copy!.html).toContain("<td>30 Ekim 2026, 18:00</td>");
     expect(copy!.html).toContain("<td>iade yapılmaz</td>");
@@ -250,11 +322,11 @@ describe("karaokeDurableCopy", () => {
   });
 });
 
-describe("durableCopyForMail", () => {
+describe("durableCopyWithin (the mail's bound on the copy)", () => {
   it("gives up in time, and the warning names the record, never an address", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const started = Date.now();
-    const copy = await load.durableCopyForMail(
+    const copy = await durableCopyWithin(
       "order=ord-1",
       () => new Promise(() => {}),
       20,
@@ -269,16 +341,33 @@ describe("durableCopyForMail", () => {
 
   it("turns a failure into no copy, never a throw", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    h.recordLegalVersions.mockRejectedValue(new Error("relation does not exist"));
-    const copy = await load.durableCopyForMail("order=ord-1", () =>
-      load.orderDurableCopy(
-        order({ [OBF]: today(OBF).hash, [MSS]: today(MSS).hash }),
-      ),
+    h.recordLegalVersions.mockRejectedValue(
+      new Error("relation does not exist"),
+    );
+    const copy = await durableCopyWithin(
+      "order=ord-1",
+      () =>
+        load.orderDurableCopy(
+          order({ [OBF]: today(OBF).hash, [MSS]: today(MSS).hash }),
+        ),
+      1_500,
     );
     expect(copy).toBeNull();
     for (const call of warn.mock.calls) {
       expect(String(call[0])).not.toMatch(/@/);
     }
+    warn.mockRestore();
+  });
+
+  it("catches a build that throws before its first await, and starts none with no time left", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const build = vi.fn(() => {
+      throw new Error("chunk failed to load");
+    });
+    expect(await durableCopyWithin("order=ord-1", build, 1_500)).toBeNull();
+    build.mockClear();
+    expect(await durableCopyWithin("order=ord-1", build, 0)).toBeNull();
+    expect(build).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 });

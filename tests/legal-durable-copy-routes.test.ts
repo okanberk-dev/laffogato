@@ -21,23 +21,48 @@ const h = vi.hoisted(() => ({
   getActiveCustomer: vi.fn(),
   customerOrdersByEmail: vi.fn(),
   getReservation: vi.fn(),
+  orderDurableCopyAvailable: vi.fn(),
 }));
 
 vi.mock("@/lib/customer/auth", () => ({
   getActiveCustomer: h.getActiveCustomer,
+  requireCustomer: async () => h.customer,
 }));
+// The member's order page, rendered for its "Sözleşmeler" card only.
+vi.mock("@/components/uye/account-shell", async () => {
+  const { createElement } = await import("react");
+  return {
+    AccountShell: ({ children }: { children: unknown }) =>
+      createElement("main", null, children as never),
+    AccountCard: ({ title, children }: { title: string; children: unknown }) =>
+      createElement(
+        "section",
+        null,
+        createElement("h2", null, title),
+        children as never,
+      ),
+  };
+});
+vi.mock("next/link", async () => {
+  const { createElement } = await import("react");
+  return {
+    default: ({ href, children, ...rest }: Record<string, unknown>) =>
+      createElement("a", { href, ...rest }, children as never),
+  };
+});
 // The real member rule (memberOrders + memberMaySeeOrder) over these rows.
 vi.mock("@/lib/admin/store", () => ({
   customerOrdersByEmail: h.customerOrdersByEmail,
 }));
 vi.mock("@/lib/legal/durable-copy-load", () => ({
   orderDurableCopy: h.orderDurableCopy,
+  orderDurableCopyAvailable: h.orderDurableCopyAvailable,
   karaokeDurableCopy: h.karaokeDurableCopy,
 }));
 vi.mock("@/lib/mobile/karaoke", async () => {
-  const core = await vi.importActual<typeof import("@/lib/mobile/karaoke-core")>(
-    "@/lib/mobile/karaoke-core",
-  );
+  const core = await vi.importActual<
+    typeof import("@/lib/mobile/karaoke-core")
+  >("@/lib/mobile/karaoke-core");
   return {
     getReservation: h.getReservation,
     paymentStatusOf: core.paymentStatusOf,
@@ -45,10 +70,12 @@ vi.mock("@/lib/mobile/karaoke", async () => {
 });
 process.env.KARAOKE_LINK_SECRET = "k".repeat(40);
 
-const orderRoute = await import(
-  "@/app/uye/hesap/siparislerim/[orderNo]/sozlesme/route"
-);
+const orderRoute =
+  await import("@/app/uye/hesap/siparislerim/[orderNo]/sozlesme/route");
 const karaokeRoute = await import("@/app/rezervasyon/sozlesme/route");
+const { default: OrderDetailPage } =
+  await import("@/app/uye/hesap/siparislerim/[orderNo]/page");
+const { renderToStaticMarkup } = await import("react-dom/server");
 const { signKaraokeLink } = await import("@/lib/mobile/karaoke-link");
 const { ownsReservation } = await import("@/lib/mobile/karaoke-payment");
 
@@ -72,9 +99,14 @@ function paidOrder(patch: Record<string, unknown> = {}) {
 }
 
 const getOrder = (orderNo: string) =>
-  orderRoute.GET(new Request(`https://laffogato.net/uye/hesap/siparislerim/${orderNo}/sozlesme`), {
-    params: Promise.resolve({ orderNo }),
-  });
+  orderRoute.GET(
+    new Request(
+      `https://laffogato.net/uye/hesap/siparislerim/${orderNo}/sozlesme`,
+    ),
+    {
+      params: Promise.resolve({ orderNo }),
+    },
+  );
 
 async function snapshot(res: Response) {
   return {
@@ -108,6 +140,7 @@ beforeEach(() => {
     filename: "karaoke-sozlesme-KRK-00042.html",
   });
   h.getReservation.mockImplementation(async () => h.reservation);
+  h.orderDurableCopyAvailable.mockResolvedValue(true);
   h.customer = { email: OWNER, emailVerified: true };
   h.orders = [paidOrder()];
 });
@@ -123,7 +156,9 @@ describe("GET /uye/hesap/siparislerim/{orderNo}/sozlesme", () => {
     );
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
-    expect(res.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(res.headers.get("content-security-policy")).toContain(
+      "default-src 'none'",
+    );
     expect(res.headers.get("content-security-policy")).toContain("sandbox");
     expect(h.orderDurableCopy).toHaveBeenCalledWith(
       expect.objectContaining({ id: "ord-1", orderNo: 10042 }),
@@ -157,7 +192,15 @@ describe("GET /uye/hesap/siparislerim/{orderNo}/sozlesme", () => {
   });
 
   it("answers a malformed number before it reads the session", async () => {
-    for (const no of ["0", "010042", "10042abc", "-1", "1e5", "..%2Fx", "123456789012345"]) {
+    for (const no of [
+      "0",
+      "010042",
+      "10042abc",
+      "-1",
+      "1e5",
+      "..%2Fx",
+      "123456789012345",
+    ]) {
       expect(await snapshot(await getOrder(no)), no).toEqual(NOT_FOUND);
     }
     expect(h.getActiveCustomer).not.toHaveBeenCalled();
@@ -166,6 +209,112 @@ describe("GET /uye/hesap/siparislerim/{orderNo}/sozlesme", () => {
   it("answers an order with no stored copy (placed before, or manual) with the same 404", async () => {
     h.orderDurableCopy.mockResolvedValue(null);
     expect(await snapshot(await getOrder("10042"))).toEqual(NOT_FOUND);
+  });
+
+  /**
+   * Review A2 (21 Eki 2026): a failing read of the stored text (a statement
+   * timeout, SQLSTATE 57014) or of the member's orders escaped the route,
+   * and Next answered a bare 500. The owner now gets a private 503 the
+   * browser may retry; the failure is logged without an address.
+   */
+  it.each([
+    ["the stored text", () => h.orderDurableCopy],
+    ["the member's orders", () => h.customerOrdersByEmail],
+  ] as const)(
+    "answers a failing read of %s with a private 503, never a throw",
+    async (_what, fn) => {
+      const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+      fn().mockRejectedValue(
+        Object.assign(
+          new Error("canceling statement due to statement timeout"),
+          {
+            code: "57014",
+          },
+        ),
+      );
+      const res = await getOrder("10042");
+      expect(res.status).toBe(503);
+      expect(await res.text()).toBe(
+        "Şu an hazırlanamadı. Birazdan yeniden dene.",
+      );
+      expect(res.headers.get("cache-control")).toBe("private, no-store");
+      expect(res.headers.get("retry-after")).toBe("30");
+      expect(res.headers.get("content-disposition")).toBeNull();
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(OWNER);
+      warn.mockRestore();
+    },
+  );
+});
+
+describe("the member's order page links the file only when it can be built", () => {
+  const consent = {
+    acceptedAt: "2026-10-21T09:59:00.000Z",
+    documents: ["on-bilgilendirme-formu", "mesafeli-satis-sozlesmesi"],
+    version: "20 Ekim 2026",
+    textHashes: {
+      "on-bilgilendirme-formu": "a".repeat(64),
+      "mesafeli-satis-sozlesmesi": "b".repeat(64),
+    },
+  };
+  const render = async () =>
+    renderToStaticMarkup(
+      (await OrderDetailPage({
+        params: Promise.resolve({ orderNo: "10042" }),
+      })) as never,
+    );
+  beforeEach(() => {
+    h.orders = [
+      paidOrder({
+        items: [],
+        subtotalMinor: 25_000,
+        shippingMinor: 0,
+        discountMinor: 0,
+        totalMinor: 25_000,
+        createdAt: "2026-10-21T09:59:00.000Z",
+        customerName: "Eda Yılmaz",
+        shippingAddress: "Postane Mah. No: 28, Tuzla",
+        legalConsent: consent,
+      }),
+    ];
+  });
+
+  it("offers the download when the route can build the file", async () => {
+    const html = await render();
+    expect(html).toContain('href="/uye/hesap/siparislerim/10042/sozlesme"');
+    expect(html).toContain("Belgeleri indir");
+    expect(html).toContain("ekte yoksa buradan indirebilirsin");
+  });
+
+  /**
+   * Review B (21 Eki 2026): the page linked "Belgeleri indir" whenever the
+   * consent carried every hash, and the route answered 404 when a text was
+   * not stored. The member now gets the e-mail request instead.
+   */
+  it("asks for an e-mail request instead of linking a 404", async () => {
+    h.orderDurableCopyAvailable.mockResolvedValue(false);
+    const html = await render();
+    expect(html).not.toContain("Belgeleri indir");
+    expect(html).not.toContain("/sozlesme");
+    expect(html).toContain(
+      "Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla info@nextgenlab.com.tr adresine yaz, sana e-postayla gönderelim.",
+    );
+  });
+
+  it("shows the request, not an error page, when the check itself fails", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    h.orderDurableCopyAvailable.mockRejectedValue(new Error("timeout"));
+    const html = await render();
+    expect(html).not.toContain("Belgeleri indir");
+    expect(html).toContain("sipariş numaranla");
+    warn.mockRestore();
+  });
+
+  it("says nothing of a copy for an order placed before the consent record", async () => {
+    h.orders = [{ ...h.orders[0], legalConsent: null }];
+    const html = await render();
+    expect(html).not.toContain("Belgeleri indir");
+    expect(html).not.toContain("sipariş numaranla");
+    expect(h.orderDurableCopyAvailable).not.toHaveBeenCalled();
   });
 });
 
@@ -202,7 +351,9 @@ describe("GET /rezervasyon/sozlesme?t=<signed link>", () => {
     h.reservation = booking();
     const token = signKaraokeLink(booking() as never);
     // The very check the booking's page makes.
-    expect(ownsReservation({ kind: "link", token }, booking() as never)).toBe(true);
+    expect(ownsReservation({ kind: "link", token }, booking() as never)).toBe(
+      true,
+    );
     const res = await getKaraoke(token);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-disposition")).toBe(
@@ -228,14 +379,18 @@ describe("GET /rezervasyon/sozlesme?t=<signed link>", () => {
     ];
     const answers = [
       await snapshot(await getKaraoke(null)),
-      ...(await Promise.all(forged.map(async (t) => snapshot(await getKaraoke(t))))),
+      ...(await Promise.all(
+        forged.map(async (t) => snapshot(await getKaraoke(t))),
+      )),
     ];
     for (const a of answers) expect(a).toEqual(NOT_FOUND);
     expect(h.karaokeDurableCopy).not.toHaveBeenCalled();
   });
 
   it("answers a link signed for another address (the booking moved on) with the 404", async () => {
-    const token = signKaraokeLink(booking({ contactEmail: "eski@example.com" }) as never);
+    const token = signKaraokeLink(
+      booking({ contactEmail: "eski@example.com" }) as never,
+    );
     h.reservation = booking({ contactEmail: "yeni@example.com" });
     expect(await snapshot(await getKaraoke(token))).toEqual(NOT_FOUND);
   });
@@ -263,5 +418,22 @@ describe("GET /rezervasyon/sozlesme?t=<signed link>", () => {
     h.karaokeDurableCopy.mockResolvedValue(null);
     const token = signKaraokeLink(booking() as never);
     expect(await snapshot(await getKaraoke(token))).toEqual(NOT_FOUND);
+  });
+
+  // Review A2 (21 Eki 2026): the same failure as the member route's.
+  it("answers a failing read of the stored text with a private 503, never a throw", async () => {
+    const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+    h.reservation = booking();
+    h.karaokeDurableCopy.mockRejectedValue(
+      Object.assign(new Error("canceling statement due to statement timeout"), {
+        code: "57014",
+      }),
+    );
+    const res = await getKaraoke(signKaraokeLink(booking() as never));
+    expect(res.status).toBe(503);
+    expect(res.headers.get("cache-control")).toBe("private, no-store");
+    expect(res.headers.get("retry-after")).toBe("30");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain(OWNER);
+    warn.mockRestore();
   });
 });

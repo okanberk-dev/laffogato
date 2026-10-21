@@ -64,7 +64,10 @@ beforeEach(() => {
   expireUnpaidReservations.mockResolvedValue(0);
   destructionEnabled.mockReturnValue(false);
   runRetention.mockResolvedValue(RETENTION);
-  recordShownLegalVersions.mockResolvedValue({ documents: 27 });
+  recordShownLegalVersions.mockResolvedValue({
+    documents: 27,
+    hashes: ["a".repeat(64), "b".repeat(64)],
+  });
   logged = [];
   const capture = (...args: unknown[]) => {
     logged.push(args.map(String).join(" "));
@@ -108,6 +111,13 @@ describe("/api/cron/daily", () => {
     // deletes (D-VERSIONS-TABLE).
     expect(recordShownLegalVersions.mock.invocationCallOrder[0]).toBeLessThan(
       runRetention.mock.invocationCallOrder[0],
+    );
+    // And retention keeps those texts whatever their age (review R1); the
+    // response counts them, never lists them.
+    expect(runRetention).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keep: { "legal-doc-versions": ["a".repeat(64), "b".repeat(64)] },
+      }),
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain(
@@ -159,6 +169,10 @@ describe("/api/cron/daily", () => {
     const body = await res.json();
     expect(body.legalVersions).toEqual({ ok: false, error: "internal" });
     expect(body.retention).toEqual({ ok: true, ...RETENTION });
+    // Without the texts shown today that rule removes nothing.
+    expect(runRetention).toHaveBeenCalledWith(
+      expect.objectContaining({ keep: {} }),
+    );
     expectOtherJobsRan();
   });
 

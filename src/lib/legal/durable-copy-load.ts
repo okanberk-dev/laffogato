@@ -63,24 +63,27 @@ async function shownNowIfSame(
 async function versionsFor(
   hashes: ConsentTextHashes,
   slugs: readonly string[],
+  { heal = true }: { heal?: boolean } = {},
 ): Promise<LegalVersion[] | null> {
   const stored = await loadLegalVersions(slugs.map((s) => hashes[s]));
   const out: LegalVersion[] = [];
-  const heal: LegalVersion[] = [];
+  const toStore: LegalVersion[] = [];
   for (const slug of slugs) {
     const hash = hashes[slug];
     let version = stored.get(hash) ?? null;
     if (!version) {
       version = await shownNowIfSame(slug, hash);
       if (!version) return null;
-      heal.push(version);
+      toStore.push(version);
     }
     if (version.slug !== slug) return null;
     out.push(version);
   }
   // The version page the mail links must open: a healed text is stored
-  // before the copy is offered (a failure here is the caller's null).
-  if (heal.length > 0) await recordLegalVersions(heal);
+  // before the copy is offered (a failure here is the caller's null). This
+  // is why a download (a GET) can write: one INSERT ... ON CONFLICT DO
+  // NOTHING of a text that is shown today and was recorded by a consent.
+  if (heal && toStore.length > 0) await recordLegalVersions(toStore);
   return out;
 }
 
@@ -104,7 +107,46 @@ function documents(versions: LegalVersion[]): DurableCopyDocument[] {
 }
 
 function linksOf(docs: DurableCopyDocument[]): DurableCopy["links"] {
-  return docs.map((d) => ({ slug: d.doc.slug, title: d.doc.title, url: d.url }));
+  return docs.map((d) => ({
+    slug: d.doc.slug,
+    title: d.doc.title,
+    url: d.url,
+  }));
+}
+
+/**
+ * The name and address the order was placed with: the snapshot the store
+ * wrote into its consent (`legalConsent.buyer`), so a staff correction of
+ * the row later does not rewrite the confirmed copy; the row's own values
+ * for an order from before the snapshot.
+ */
+function buyerOf(order: AdminOrder): { name: string; address: string } {
+  const raw = (order.legalConsent as { buyer?: unknown } | undefined)?.buyer;
+  if (raw && typeof raw === "object") {
+    const b = raw as { name?: unknown; address?: unknown };
+    if (typeof b.name === "string" && typeof b.address === "string") {
+      return { name: b.name, address: b.address };
+    }
+  }
+  return {
+    name: order.customerName ?? "",
+    address: order.shippingAddress ?? "",
+  };
+}
+
+/**
+ * Whether the copy can be built for this order, without storing anything:
+ * the member's order page offers the download only then.
+ */
+export async function orderDurableCopyAvailable(
+  order: AdminOrder,
+): Promise<boolean> {
+  const consent = consentOf(order.legalConsent);
+  const hashes = consentTextHashes(order.legalConsent, CHECKOUT_CONSENT_DOCS);
+  if (!consent || !hashes) return false;
+  return (
+    (await versionsFor(hashes, CHECKOUT_CONSENT_DOCS, { heal: false })) !== null
+  );
 }
 
 /** The order's Ön Bilgilendirme Formu and Mesafeli Satış Sözleşmesi, filled. */
@@ -117,13 +159,14 @@ export async function orderDurableCopy(
   const versions = await versionsFor(hashes, CHECKOUT_CONSENT_DOCS);
   if (!versions) return null;
   const docs = documents(versions);
+  const buyer = buyerOf(order);
   return {
     filename: orderDurableCopyFilename(order.orderNo),
     html: orderDurableCopyHtml({
       order: {
         orderNo: order.orderNo,
-        customerName: order.customerName ?? "",
-        shippingAddress: order.shippingAddress ?? "",
+        customerName: buyer.name,
+        shippingAddress: buyer.address,
         items: order.items ?? [],
         subtotalMinor: order.subtotalMinor,
         discountMinor: order.discountMinor,
@@ -142,6 +185,18 @@ export async function orderDurableCopy(
 }
 
 /** The karaoke booking's terms, filled with the booking's own snapshot. */
+/** The same for a karaoke booking: its page offers the download only then. */
+export async function karaokeDurableCopyAvailable(
+  r: KaraokeReservation,
+): Promise<boolean> {
+  const consent = consentOf(r.legalConsent);
+  const hashes = consentTextHashes(r.legalConsent, KARAOKE_CONSENT_DOCS);
+  if (!consent || !hashes) return false;
+  return (
+    (await versionsFor(hashes, KARAOKE_CONSENT_DOCS, { heal: false })) !== null
+  );
+}
+
 export async function karaokeDurableCopy(
   r: KaraokeReservation,
 ): Promise<DurableCopy | null> {
@@ -156,37 +211,4 @@ export async function karaokeDurableCopy(
     html: karaokeDurableCopyHtml({ reservation: r, consent, docs }),
     links: linksOf(docs),
   };
-}
-
-/**
- * The copy for a mail, or null within `ms`: the payment return waits for
- * its mail, and the copy must not make it wait longer or fail it. A slow
- * read, a missing version or any error is logged with the record's id only
- * (no address, rule 9) and the mail goes without it.
- */
-export async function durableCopyForMail(
-  label: string,
-  build: () => Promise<DurableCopy | null>,
-  ms = 2_500,
-): Promise<DurableCopy | null> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<"timeout">((resolve) => {
-    timer = setTimeout(() => resolve("timeout"), ms);
-  });
-  try {
-    const result = await Promise.race([build(), timeout]);
-    if (result === "timeout") {
-      console.warn(`[durable-copy] ${label}: no attachment (timed out)`);
-      return null;
-    }
-    if (!result) console.warn(`[durable-copy] ${label}: no attachment (no stored version)`);
-    return result;
-  } catch (err) {
-    console.warn(
-      `[durable-copy] ${label}: no attachment (${(err instanceof Error ? err.message : String(err)).slice(0, 120)})`,
-    );
-    return null;
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
 }

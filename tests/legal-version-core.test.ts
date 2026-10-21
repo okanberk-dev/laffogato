@@ -62,7 +62,10 @@ describe("the canonical text and its hash", () => {
     const doc = findLegalDoc(MSS)!;
     const a = legalVersionText(codedVersionDoc(doc));
     const b = legalVersionText(
-      codedVersionDoc({ ...doc, sections: doc.sections.map((s) => ({ ...s })) }),
+      codedVersionDoc({
+        ...doc,
+        sections: doc.sections.map((s) => ({ ...s })),
+      }),
     );
     expect(a).toBe(b);
     expect(Object.keys(JSON.parse(a))).toEqual([
@@ -90,7 +93,8 @@ describe("the canonical text and its hash", () => {
     const doc = findLegalDoc(OBF)!;
     const base = legalVersionOf(codedVersionDoc(doc)).hash;
     expect(
-      legalVersionOf(codedVersionDoc({ ...doc, updatedAt: "22 Ekim 2026" })).hash,
+      legalVersionOf(codedVersionDoc({ ...doc, updatedAt: "22 Ekim 2026" }))
+        .hash,
     ).not.toBe(base);
     const s0 = doc.sections[0];
     expect(
@@ -146,7 +150,10 @@ describe("what /hukuk/<slug> shows", () => {
 describe("a stored text read back", () => {
   it("round-trips both kinds exactly", () => {
     const doc = findLegalDoc(OBF)!;
-    for (const v of [codedVersionDoc(doc), overrideVersionDoc(doc, override())]) {
+    for (const v of [
+      codedVersionDoc(doc),
+      overrideVersionDoc(doc, override()),
+    ]) {
       const text = legalVersionText(v);
       expect(parseLegalVersionText(text)).toEqual(v);
     }

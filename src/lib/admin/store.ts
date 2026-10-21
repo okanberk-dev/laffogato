@@ -394,9 +394,29 @@ export interface OrderLegalConsent {
    * (src/lib/legal/version-core.ts). Absent on orders placed before.
    */
   textHashes?: Record<string, string>;
+  /**
+   * The buyer's name and delivery address as the order was placed with
+   * them (`withBuyerSnapshot`), printed by the confirmed contract's copy.
+   * Absent on orders placed before 21 Ekim 2026.
+   */
+  buyer?: { name: string; address: string };
   /** Origin of the confirmation - evidence only. */
   ip?: string;
   userAgent?: string;
+}
+
+/**
+ * The name and address an order is placed with, kept in its consent
+ * (`legalConsent.buyer`, 21 Ekim 2026): the confirmed contract's copy
+ * prints these, so a staff correction of the order's row afterwards does
+ * not rewrite what the customer confirmed and was sent (ASK-OTH-2: the
+ * filled table is stored with the order). No consent, nothing to add.
+ */
+export function withBuyerSnapshot(
+  consent: OrderLegalConsent | undefined,
+  buyer: { name: string; address: string },
+): OrderLegalConsent | undefined {
+  return consent ? { ...consent, buyer } : consent;
 }
 
 export interface AdminOrder {
@@ -3641,17 +3661,22 @@ export async function placeOrder(
       input.customerEmail ?? "customer",
     );
 
+    const customerName = input.customerName?.trim() || "Misafir";
+    const shippingAddress = input.shippingAddress?.trim() ?? "";
     placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: "pending_payment",
-      customerName: input.customerName?.trim() || "Misafir",
+      customerName,
       customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
       customerPhone: input.customerPhone?.trim() ?? "",
-      shippingAddress: input.shippingAddress?.trim() ?? "",
+      shippingAddress,
       internalNote: "",
       promoCode: input.promoCode,
-      legalConsent: input.legalConsent,
+      legalConsent: withBuyerSnapshot(input.legalConsent, {
+        name: customerName,
+        address: shippingAddress,
+      }),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
@@ -4163,17 +4188,22 @@ export async function placeAppOrder(
     }
   }
 
+  const customerName = input.customerName.trim() || "Üye";
+  // A table order goes across the room: no address is ever written for it.
+  const shippingAddress =
+    input.fulfillment === "table" ? "" : input.shippingAddress.trim();
   const common = {
     status: "pending_payment" as const,
-    customerName: input.customerName.trim() || "Üye",
+    customerName,
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerPhone: input.customerPhone.trim(),
-    // A table order goes across the room: no address is ever written for it.
-    shippingAddress:
-      input.fulfillment === "table" ? "" : input.shippingAddress.trim(),
+    shippingAddress,
     internalNote: "",
     promoCode: input.promoCode,
-    legalConsent: input.legalConsent,
+    legalConsent: withBuyerSnapshot(input.legalConsent, {
+      name: customerName,
+      address: shippingAddress,
+    }),
     channel: "app" as const,
     kind,
     fulfillment: input.fulfillment,

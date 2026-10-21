@@ -1,6 +1,7 @@
 import {
   durableCopyNotFound,
   durableCopyResponse,
+  durableCopyUnavailable,
 } from "@/lib/legal/durable-copy-http";
 import { karaokeDurableCopy } from "@/lib/legal/durable-copy-load";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
@@ -25,7 +26,10 @@ const CONTRACTED = new Set(["paid", "refunding", "refunded"]);
  * block, compared in constant time). The route checks it itself on every
  * request (CLAUDE.md rule 27). No token, a token for another booking, an
  * expired or forged one, a booking never paid, one with no stored copy:
- * one and the same 404.
+ * one and the same 404. A database that fails while the copy is read for
+ * the link's holder is a 503 (`Retry-After`), never a bare 500. Like the
+ * order's download, this GET can store a text shown today that the
+ * consent named but whose own store did not land (durable-copy-load.ts).
  */
 export async function GET(request: Request) {
   const token = new URL(request.url).searchParams.get("t");
@@ -36,7 +40,15 @@ export async function GET(request: Request) {
     return durableCopyNotFound();
   }
   if (!CONTRACTED.has(paymentStatusOf(r))) return durableCopyNotFound();
-  const copy = await karaokeDurableCopy(r);
-  if (!copy) return durableCopyNotFound();
-  return durableCopyResponse(copy);
+  try {
+    const copy = await karaokeDurableCopy(r);
+    if (!copy) return durableCopyNotFound();
+    return durableCopyResponse(copy);
+  } catch (err) {
+    console.error(
+      `[durable-copy] karaoke=${r.id}: download failed`,
+      err instanceof Error ? err.message.slice(0, 160) : "unknown",
+    );
+    return durableCopyUnavailable();
+  }
 }

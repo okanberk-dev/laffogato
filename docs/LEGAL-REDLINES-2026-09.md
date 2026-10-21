@@ -3012,6 +3012,11 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 - Aynı sürüm `/hukuk/<slug>?surum=<16 hane>` adresinde değişmeden okunur
   (indekslenmez). Üye sipariş sayfasından ve karaoke rezervasyonunun kişiye
   özel bağlantısından aynı dosya indirilir.
+- Hiçbir onayın okumadığı kodlu metinler (KVKK, İşlem Rehberi, alt bilgideki
+  politikalar) deploy'dan sonraki ilk okumada değil, en geç bir gün içinde
+  günlük cron'la ya da o belgeye dokunan panel işlemiyle saklanır
+  (`docs/DATABASE.md`, "Gösterilen hukuk metinleri"). Onaylanan metinler
+  onayın kendisiyle saklanır.
 
 ### 25.3 Değişen cümleler
 
@@ -3019,10 +3024,18 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 |---|---|---|
 | İşlem Rehberi §8, 1. paragraf | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar. | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
 | İşlem Rehberi §8, 2. paragraf, son cümle | Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz. | Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
-| `odeme-onaylandi` e-postası (siz), belgeler satırı | Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel metnini açar): Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı | Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz: Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi (iki sürüm bağlantısı). Ek oluşturulamazsa eski satır aynen kalır. |
+| İşlem Rehberi §8, 3. paragraf (inceleme R5) | (yoktu) | Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir. |
+| `odeme-onaylandi` e-postası (siz), belgeler satırı | Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel metnini açar): Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı | Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz: Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi (iki sürüm bağlantısı) · İptal, İade ve Cayma Hakkı (güncel metin; inceleme R9 ile geri geldi). Ek oluşturulamazsa eski satır aynen kalır. |
 | `karaoke-rezervasyon` e-postası (sen), ödenmiş rezervasyon | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Tüm koşullar. | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın ekinde. Aynı sürümü buradan da okuyabilirsin: (sürüm bağlantısı). Ek oluşturulamazsa "Tüm koşullar" bağlantısı kalır. |
-| Üye sipariş sayfası (sen), "Sözleşmeler ve onay kaydı" | (yoktu) | Siparişini verirken onayladığın belgelerin o günkü metni. Aynı metin sipariş onayı e-postanın ekinde de var. [Belgeleri indir] |
+| Üye sipariş sayfası (sen), "Sözleşmeler ve onay kaydı" | (yoktu) | Siparişini verirken onayladığın belgelerin o günkü metni. Sipariş onayı e-postanın ekinde de gönderilir; ekte yoksa buradan indirebilirsin. [Belgeleri indir] (yalnız dosya oluşturulabiliyorsa; inceleme B ve R5) |
+| Üye sipariş sayfası (sen), dosya oluşturulamıyorsa (21 Ekim 2026'dan önceki sipariş ya da saklanmamış metin) | (yoktu) | Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla {{EMAIL}} adresine yaz, sana e-postayla gönderelim. |
 | Karaoke rezervasyon sayfası (imzalı bağlantı, sen) | (yoktu) | [Onayladığın sözleşmenin metnini indir] |
+
+§8'in 3. paragrafı inceleme R5'le (21 Ekim 2026) eklendi: ek, oluşturulamadığında
+e-postayı bekletmemek için düşer (`docs/EMAIL-RESEND.md`, "Ek: onaylanan
+sözleşme") ve bu PR'dan önceki onaylarda saklanmış metin yoktur; iki durumda
+da e-postayla isteme yolu açık kalır. 1. paragraf (D-ISLEM-DURABLE) kelimesi
+kelimesine aynen kaldı.
 
 §8'in 2. paragrafındaki karaoke cümlesi kararın metninde yoktu; 1. paragraf
 değişince "aynı yolla" (e-postayla isteme) karşılıksız kaldığı için, karaoke

@@ -439,7 +439,8 @@ describe("the shown texts are stored before the change", () => {
         }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT /admin/hukuk");
-    expect(order).toEqual(["record", "save"]);
+    // The text shown now before the save, the new one only once it is live.
+    expect(order).toEqual(["record", "save", "record"]);
     const coded = findLegalDoc(KVKK)!;
     const before = legalVersionOf(codedVersionDoc(coded));
     // What the page will print: the title as the save trims it.
@@ -453,10 +454,11 @@ describe("the shown texts are stored before the change", () => {
         updatedAt: "",
       }),
     );
-    const stored = recordLegalVersions.mock.calls[0][0];
-    expect(stored.map((v) => v.hash)).toEqual([before.hash, after.hash]);
-    expect(stored[1].text).toContain('"source":"override"');
-    expect(stored[1].text).toContain('"title":"KVKK Aydınlatma Metni"');
+    const [[first], [second]] = recordLegalVersions.mock.calls;
+    expect(first.map((v) => v.hash)).toEqual([before.hash]);
+    expect(second.map((v) => v.hash)).toEqual([after.hash]);
+    expect(second[0].text).toContain('"source":"override"');
+    expect(second[0].text).toContain('"title":"KVKK Aydınlatma Metni"');
     expect(safeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "update",
@@ -468,6 +470,60 @@ describe("the shown texts are stored before the change", () => {
         }),
       }),
     );
+  });
+
+  /**
+   * Review A1 (21 Eki 2026): the text a save would publish was stored before
+   * the save, so a save that then failed left a text that never went live
+   * behind a version address (/hukuk/<slug>?surum=). It is stored only once
+   * the save is written.
+   */
+  it("a save that fails stores only the text shown now, never the one it would have published", async () => {
+    upsertLegalDoc.mockReset();
+    upsertLegalDoc.mockRejectedValueOnce(new Error("db down"));
+    await expect(
+      actions.updateLegalDocAction(
+        KVKK,
+        null,
+        form({
+          title: "KVKK",
+          effectiveDate: LATER,
+          bodyMarkdown: BODY,
+          isPublished: "on",
+        }),
+      ),
+    ).rejects.toThrow("db down");
+    const coded = legalVersionOf(codedVersionDoc(findLegalDoc(KVKK)!)).hash;
+    expect(recordLegalVersions.mock.calls.map(([v]) => v.map((x) => x.hash))).toEqual([
+      [coded],
+    ]);
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("a save stands when its new text cannot be stored yet (logged; the next consent stores it)", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    recordLegalVersions
+      .mockImplementationOnce(async () => {
+        order.push("record");
+      })
+      .mockRejectedValueOnce(new Error("db down"));
+    await expect(
+      actions.updateLegalDocAction(
+        KVKK,
+        null,
+        form({
+          title: "KVKK",
+          effectiveDate: LATER,
+          bodyMarkdown: BODY,
+          isPublished: "on",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT /admin/hukuk");
+    expect(safeAudit).toHaveBeenCalled();
+    expect(error.mock.calls.map((c) => c.join(" ")).join("\n")).toContain(
+      "new shown text not stored yet",
+    );
+    error.mockRestore();
   });
 
   it("a draft leaves the coded text shown: before and after are the same text", async () => {
@@ -542,7 +598,7 @@ describe("the shown texts are stored before the change", () => {
     db.archive.push(row);
     const r = await actions.restoreLegalDocAction(null, form({ id: "1" }));
     expect(r.ok).toBe(true);
-    expect(order).toEqual(["record", "save"]);
+    expect(order).toEqual(["record", "save", "record"]);
     const back = legalVersionOf(shownVersionDoc(findLegalDoc(KVKK)!, row));
     expect(safeAudit).toHaveBeenCalledWith(
       expect.objectContaining({

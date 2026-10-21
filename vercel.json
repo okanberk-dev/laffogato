@@ -59,6 +59,26 @@
           "value": "max-age=63072000; includeSubDomains; preload"
         }
       ]
+    },
+    {
+      "source": "/uye/hesap/siparislerim/:orderNo/sozlesme",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; sandbox"
+        },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    },
+    {
+      "source": "/rezervasyon/sozlesme",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; sandbox"
+        },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
     }
   ]
 }

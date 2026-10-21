@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { findLegalDoc } from "@/lib/legal/documents";
 import {
+  KARAOKE_DEADLINE_PASSED_NOTE,
   karaokeDurableCopyFilename,
   karaokeDurableCopyHtml,
   lateRefundLabel,
@@ -132,7 +133,9 @@ describe("the file is self-contained and safe to open", () => {
     expect(html).toContain(
       "Bağdat Cad. 1&lt;/td&gt;&lt;/tr&gt;&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;",
     );
-    expect(html).toContain("Sirena &quot;Espresso&quot; &lt;b&gt;250 g&lt;/b&gt;");
+    expect(html).toContain(
+      "Sirena &quot;Espresso&quot; &lt;b&gt;250 g&lt;/b&gt;",
+    );
     expect(html).toContain("(&lt;KOD&gt;)");
   });
 
@@ -144,7 +147,7 @@ describe("the file is self-contained and safe to open", () => {
         summary: "",
         effectiveDate: "2 Kasım 2026",
         bodyMarkdown:
-          "## 1. <script>alert(1)</script>\n\n**Kalın** ve <img src=x onerror=1>\n\n- madde <a href=\"https://kötü\">x</a>",
+          '## 1. <script>alert(1)</script>\n\n**Kalın** ve <img src=x onerror=1>\n\n- madde <a href="https://kötü">x</a>',
         isPublished: true,
         updatedAt: "",
       }),
@@ -156,7 +159,9 @@ describe("the file is self-contained and safe to open", () => {
     });
     expect(html).not.toMatch(/<(script|img|a)\b/);
     expect(html).toContain("<h2>1. &lt;script&gt;alert(1)&lt;/script&gt;</h2>");
-    expect(html).toContain("<strong>Kalın</strong> ve &lt;img src=x onerror=1&gt;");
+    expect(html).toContain(
+      "<strong>Kalın</strong> ve &lt;img src=x onerror=1&gt;",
+    );
     expect(html).toContain("<h1>MSS &lt;i&gt;yeni&lt;/i&gt;</h1>");
   });
 });
@@ -170,7 +175,26 @@ describe("the order's facts come from the stored order", () => {
     expect(html).toContain("<td>#10042</td>");
     // 11:05 UTC is 14:05 on the köşk's clock (rule 22).
     expect(html).toContain("21 Ekim 2026, 14:05 (Türkiye saati)");
-    expect(html).toContain("<td>20 Ekim 2026</td>");
+  });
+
+  /**
+   * Review R4 (21 Eki 2026): the copy printed the consent's label as
+   * "Belge sürümü" above texts that carry their own date. A live panel text
+   * dated before LEGAL_UPDATED never moves the label back, so one text was
+   * printed under two dates. Each text now says its own date, once.
+   */
+  it("prints each text's own date, never the consent's label beside it", () => {
+    const html = orderDurableCopyHtml({
+      order: ORDER,
+      consent: { ...CONSENT, version: "20 Ekim 2026" },
+      docs: docs(CHECKOUT_CONSENT_DOCS).map((d) => ({
+        ...d,
+        doc: { ...d.doc, updatedAt: "1 Ekim 2026" },
+      })),
+    });
+    expect(html).not.toContain("Belge sürümü");
+    expect(html).not.toContain("<td>20 Ekim 2026</td>");
+    expect(html).toContain("Bu metin 1 Ekim 2026 tarihli sürümdür.");
   });
 
   it("prints each line, the totals and the address from the order, KDV dahil, in kuruş", () => {
@@ -181,10 +205,16 @@ describe("the order's facts come from the stored order", () => {
     );
     expect(html).toContain("Latte (Yulaf sütü) × 1: 140,50₺ (KDV dahil)");
     expect(html).toContain('<th scope="row">Ürün 1</th>');
-    expect(html).toContain('<th scope="row">Ara toplam (KDV dahil)</th><td>1.140,49₺</td>');
+    expect(html).toContain(
+      '<th scope="row">Ara toplam (KDV dahil)</th><td>1.140,49₺</td>',
+    );
     expect(html).toContain('<th scope="row">Kargo</th><td>49₺</td>');
-    expect(html).toContain('<th scope="row">İndirim</th><td>-100₺ (&lt;KOD&gt;)</td>');
-    expect(html).toContain('<th scope="row">Toplam (KDV dahil)</th><td>1.089,49₺</td>');
+    expect(html).toContain(
+      '<th scope="row">İndirim</th><td>-100₺ (&lt;KOD&gt;)</td>',
+    );
+    expect(html).toContain(
+      '<th scope="row">Toplam (KDV dahil)</th><td>1.089,49₺</td>',
+    );
     expect(html).toContain('<th scope="row">Teslimat</th><td>Kargo</td>');
     expect(html).toContain(
       '<th scope="row">Teslimat adresi</th><td class="multiline">Bağdat Cad. 1',
@@ -197,7 +227,9 @@ describe("the order's facts come from the stored order", () => {
       consent: CONSENT,
       docs: docs(CHECKOUT_CONSENT_DOCS),
     });
-    expect(html).toContain('<th scope="row">Toplam (KDV dahil)</th><td>0,01₺</td>');
+    expect(html).toContain(
+      '<th scope="row">Toplam (KDV dahil)</th><td>0,01₺</td>',
+    );
   });
 
   it("says a table order is served at its table, with no cargo and no address", () => {
@@ -213,7 +245,9 @@ describe("the order's facts come from the stored order", () => {
       consent: CONSENT,
       docs: docs(CHECKOUT_CONSENT_DOCS),
     });
-    expect(html).toContain('<th scope="row">Teslimat</th><td>Masaya servis</td>');
+    expect(html).toContain(
+      '<th scope="row">Teslimat</th><td>Masaya servis</td>',
+    );
     expect(html).toContain('<th scope="row">Masa</th><td>Bahçe 3</td>');
     expect(html).not.toContain('<th scope="row">Kargo</th>');
     expect(html).not.toContain('<th scope="row">Teslimat adresi</th>');
@@ -269,22 +303,57 @@ describe("the karaoke booking's facts are its own snapshot", () => {
 
   it("prints the code, the evening, the total and the booking's own deadline", () => {
     const out = html(booking());
-    expect(out).toContain('<th scope="row">Rezervasyon kodu</th><td>KRK-00042</td>');
+    expect(out).toContain(
+      '<th scope="row">Rezervasyon kodu</th><td>KRK-00042</td>',
+    );
     expect(out).toContain("<td>30 Ekim 2026</td>");
     expect(out).toContain("<td>20:00 - 22:00</td>");
     expect(out).toContain("<td>2 saat</td>");
     expect(out).toContain("<td>4 kişi</td>");
-    expect(out).toContain('<th scope="row">Toplam (KDV dahil)</th><td>900₺</td>');
+    expect(out).toContain(
+      '<th scope="row">Toplam (KDV dahil)</th><td>900₺</td>',
+    );
     expect(out).toContain(
       '<th scope="row">Son ücretsiz iptal</th><td>30 Ekim 2026, 18:00</td>',
     );
     expect(out).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
+  /**
+   * Review M3 (21 Eki 2026): a booking made after its own last free moment
+   * (19:00 for 20:00 under 2 hours) printed that moment as a window it never
+   * had. The copy now says what the confirmation mail says.
+   */
+  it("says the deadline had passed for a booking made after it", () => {
+    const passed = html(booking({ createdAt: "2026-10-30T16:00:00.000Z" }));
+    expect(passed).toContain(
+      '<th scope="row">Son ücretsiz iptal</th><td>30 Ekim 2026, 18:00 (rezervasyon yapıldığında geçmişti; her iptal geç iptal sayılır)</td>',
+    );
+    // From the first moment after the minute it names (withinFreeCancel).
+    expect(html(booking({ createdAt: "2026-10-30T15:01:00.000Z" }))).toContain(
+      KARAOKE_DEADLINE_PASSED_NOTE,
+    );
+    for (const createdAt of [
+      "2026-10-30T15:00:59.999Z",
+      "2026-10-29T09:00:00.000Z",
+      undefined,
+      "",
+    ]) {
+      const out = html(booking({ createdAt }));
+      expect(out, String(createdAt)).toContain("<td>30 Ekim 2026, 18:00</td>");
+      expect(out, String(createdAt)).not.toContain(
+        KARAOKE_DEADLINE_PASSED_NOTE,
+      );
+    }
+  });
+
   it("reads the stored deadline, not the policy in force today", () => {
     // A booking stored with 24 hours: 29 Ekim, 20:00.
     const out = html(
-      booking({ freeCancelHours: 24, cancelDeadline: "2026-10-29T17:00:00.000Z" }),
+      booking({
+        freeCancelHours: 24,
+        cancelDeadline: "2026-10-29T17:00:00.000Z",
+      }),
     );
     expect(out).toContain("<td>29 Ekim 2026, 20:00</td>");
   });
@@ -306,7 +375,9 @@ describe("the karaoke booking's facts are its own snapshot", () => {
     );
     // A row from before the snapshot reads as the default rule (2 h / %0).
     expect(
-      lateRefundLabel(booking({ lateRefundPercent: null, freeCancelHours: null })),
+      lateRefundLabel(
+        booking({ lateRefundPercent: null, freeCancelHours: null }),
+      ),
     ).toBe("iade yapılmaz");
   });
 });

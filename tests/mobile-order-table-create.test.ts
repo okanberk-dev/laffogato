@@ -108,8 +108,7 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/legal/store", async () => {
   const { LEGAL_UPDATED } = await import("@/lib/legal/meta");
   return {
-    checkoutConsentVersion: async () => LEGAL_UPDATED,
-    checkoutConsentTextHashes: async () => ({}),
+    checkoutConsentShown: async () => ({ version: LEGAL_UPDATED, textHashes: {} }),
   };
 });
 

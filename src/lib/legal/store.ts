@@ -11,6 +11,7 @@ import {
   CHECKOUT_CONSENT_DOCS,
   KARAOKE_CONSENT_DOCS,
   KARAOKE_LEGAL_UPDATED,
+  LEGAL_UPDATED,
 } from "./meta";
 import type { ConsentTextHashes } from "./version-core";
 
@@ -114,14 +115,23 @@ export async function karaokeConsentVersion(): Promise<string> {
   );
 }
 
+/** A consent's label and the hash of each text it names, from one read. */
+export interface ConsentShown {
+  version: string;
+  textHashes: ConsentTextHashes;
+}
+
 /**
- * What a checkout consent records next to its version
- * (`legalConsent.textHashes`, decision D-VERSIONS-TABLE): the SHA-256 of
- * each checkout document exactly as /hukuk/<slug> and the payment step show
- * it now - the published override when one is live, else the coded text
- * (./version-core.ts). Both checkout paths, the web action and the app's
- * `POST /orders`, call this next to `checkoutConsentVersion`, through the
- * same live reader, so the label and the hashes name the same texts.
+ * What a checkout consent records (`legalConsent.version` and
+ * `legalConsent.textHashes`, decision D-VERSIONS-TABLE): the label by
+ * `checkoutConsentVersion`'s rule, and the SHA-256 of each checkout document
+ * exactly as /hukuk/<slug> and the payment step show it now - the published
+ * override when one is live, else the coded text (./version-core.ts). Both
+ * checkout paths, the web action and the app's `POST /orders`, call this.
+ *
+ * One read of the overrides gives both (review R4, 21 Eki 2026): with a read
+ * for the label and another for the hashes, a publish in between recorded
+ * one text's label next to another text's hash.
  *
  * The label names a day; the hash names the text. A label is shared by every
  * text published that day (the reason D-SAME-DAY existed), a hash is not, and
@@ -132,22 +142,56 @@ export async function karaokeConsentVersion(): Promise<string> {
  * The registry of contract texts is loaded only here, on demand: a public
  * page that imports this module for an override does not load 1.5 MB of it.
  */
-export async function checkoutConsentTextHashes(): Promise<ConsentTextHashes> {
-  return textHashesOrNone("checkout", async () => {
-    const rows = await Promise.all(
-      CHECKOUT_CONSENT_DOCS.map((slug) => getPublishedLegalOverride(slug)),
-    );
-    const { consentTexts } = await import("./consent-texts");
-    return consentTexts(CHECKOUT_CONSENT_DOCS, rows);
+export async function checkoutConsentShown(): Promise<ConsentShown> {
+  return consentShown("checkout", CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED);
+}
+
+/**
+ * The karaoke booking's label and hashes, by the same rule: the karaoke
+ * terms as the booking is shown them - a published override, else the coded
+ * text dated by the cancellation policy in `settings`, the same settings read
+ * that decides the booking's policy and moves its version (karaoke.ts
+ * `createReservation`, the one place both surfaces book through).
+ */
+export async function karaokeConsentShown(
+  settings: KaraokeDocSettings,
+): Promise<ConsentShown> {
+  return consentShown(
+    "karaoke",
+    KARAOKE_CONSENT_DOCS,
+    KARAOKE_LEGAL_UPDATED,
+    settings,
+  );
+}
+
+async function consentShown(
+  label: string,
+  slugs: readonly string[],
+  base: string,
+  settings?: KaraokeDocSettings,
+): Promise<ConsentShown> {
+  const rows = await Promise.all(
+    slugs.map((slug) => getPublishedLegalOverride(slug)),
+  );
+  const bySlug: Record<string, LegalDocOverride | null> = {};
+  slugs.forEach((slug, i) => {
+    bySlug[slug] = rows[i];
   });
+  return {
+    version: consentVersionFrom(bySlug, slugs, base),
+    textHashes: await textHashesOrNone(label, async () => {
+      const { consentTexts } = await import("./consent-texts");
+      return consentTexts(slugs, rows, settings);
+    }),
+  };
 }
 
 /**
  * The hashes, or `{}` when they could not be worked out (the registry's
- * chunk did not load, an override read failed for a reason other than an
- * outage): the consent still records its version as before, the order is
- * never refused over its copy, and a record without every hash simply has
- * no attached copy (`consentTextHashes` in ./version-core.ts). Logged.
+ * chunk did not load, the texts could not be hashed): the consent still
+ * records its version as before, the order is never refused over its copy,
+ * and a record without every hash simply has no attached copy
+ * (`consentTextHashes` in ./version-core.ts). Logged.
  */
 async function textHashesOrNone(
   label: string,
@@ -164,25 +208,6 @@ async function textHashesOrNone(
 }
 
 /**
- * The karaoke booking's `legalConsent.textHashes`: the karaoke terms as the
- * booking is shown them - a published override, else the coded text dated
- * by the cancellation policy in `settings`, the same settings read that
- * decides the booking's policy and moves its version (karaoke.ts
- * `createReservation`, the one place both surfaces book through).
- */
-export async function karaokeConsentTextHashes(
-  settings: KaraokeDocSettings,
-): Promise<ConsentTextHashes> {
-  return textHashesOrNone("karaoke", async () => {
-    const rows = await Promise.all(
-      KARAOKE_CONSENT_DOCS.map((slug) => getPublishedLegalOverride(slug)),
-    );
-    const { consentTexts } = await import("./consent-texts");
-    return consentTexts(KARAOKE_CONSENT_DOCS, rows, settings);
-  });
-}
-
-/**
  * Every document as it is shown today, stored once per hash (the daily
  * cron): a coded text no consent reads (KVKK, the İşlem Rehberi, a footer
  * policy) is in `legal_doc_versions` within a day of the deploy that changed
@@ -191,13 +216,15 @@ export async function karaokeConsentTextHashes(
  */
 export async function recordShownLegalVersions(): Promise<{
   documents: number;
+  /** The hash of every text shown today: retention keeps these. */
+  hashes: string[];
 }> {
   const overrides = await listLegalDocOverrides();
   const { allShownVersions } = await import("./consent-texts");
   const { recordLegalVersions } = await import("./versions");
   const versions = await allShownVersions(overrides);
   await recordLegalVersions(versions);
-  return { documents: versions.length };
+  return { documents: versions.length, hashes: versions.map((v) => v.hash) };
 }
 
 /** Any override (published or draft) for the admin editor, or null. */

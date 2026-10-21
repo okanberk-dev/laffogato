@@ -163,7 +163,9 @@ describe("the paid mail carries the confirmed contract", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].url).toBe("https://api.resend.com/emails");
     const [file] = attachmentsOf(sent[0]);
-    expect(file.filename).toBe("siparis-10001-on-bilgilendirme-ve-sozlesme.html");
+    expect(file.filename).toBe(
+      "siparis-10001-on-bilgilendirme-ve-sozlesme.html",
+    );
     const html = Buffer.from(file.content, "base64").toString("utf8");
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).toContain("Ayşe &lt;b&gt;Yılmaz&lt;/b&gt;");
@@ -178,11 +180,22 @@ describe("the paid mail carries the confirmed contract", () => {
       expect(String(sent[0].body.html)).toContain(`href="${url}"`);
       expect(String(sent[0].body.text)).toContain(url);
     }
+    // Review R9 (21 Eki 2026): the withdrawal page the old line linked stays
+    // linked (its current text: it is not one of the confirmed two).
+    const iade = "https://laffogato.net/hukuk/iade-ve-cayma";
+    expect(String(sent[0].body.html)).toContain(`href="${iade}"`);
+    expect(String(sent[0].body.html)).toContain(
+      `Cayma hakkınız ve iade usulü: <a class="em-tg" href="${iade}" style="color:#765923">İptal, İade ve Cayma Hakkı</a>`,
+    );
+    expect(String(sent[0].body.text)).toContain(iade);
     expect(sent[0].key).toBe("order-ord-0001-paid");
   });
 
   it("sends the old sentence and no file for an order whose consent has no hashes", async () => {
-    orderConsent = { acceptedAt: "2026-10-01T10:00:00.000Z", version: "1 Ekim 2026" };
+    orderConsent = {
+      acceptedAt: "2026-10-01T10:00:00.000Z",
+      version: "1 Ekim 2026",
+    };
     await applyPaymentSucceeded({
       orderId: "ord-0001",
       provider: "paynkolay",
@@ -199,7 +212,10 @@ describe("the paid mail carries the confirmed contract", () => {
   it("still sends the mail, without the file, when no version can be found", async () => {
     stored = false;
     // A recorded text that is neither stored nor today's: no copy.
-    orderConsent = { ...orderConsent, textHashes: { [OBF]: "a".repeat(64), [MSS]: "b".repeat(64) } };
+    orderConsent = {
+      ...orderConsent,
+      textHashes: { [OBF]: "a".repeat(64), [MSS]: "b".repeat(64) },
+    };
     await applyPaymentSucceeded({
       orderId: "ord-0001",
       provider: "paynkolay",
@@ -218,8 +234,16 @@ describe("sendOrderPaidEmail and the attachment", () => {
     filename: "siparis-10001-on-bilgilendirme-ve-sozlesme.html",
     html: "<!DOCTYPE html><p>Ön Bilgilendirme Formu</p>",
     links: [
-      { slug: OBF, title: "ÖBF", url: `https://laffogato.net/hukuk/${OBF}?surum=${"a".repeat(16)}` },
-      { slug: MSS, title: "MSS", url: `https://laffogato.net/hukuk/${MSS}?surum=${"b".repeat(16)}` },
+      {
+        slug: OBF,
+        title: "ÖBF",
+        url: `https://laffogato.net/hukuk/${OBF}?surum=${"a".repeat(16)}`,
+      },
+      {
+        slug: MSS,
+        title: "MSS",
+        url: `https://laffogato.net/hukuk/${MSS}?surum=${"b".repeat(16)}`,
+      },
     ],
   };
   const data = {
@@ -231,14 +255,19 @@ describe("sendOrderPaidEmail and the attachment", () => {
   };
 
   it("puts the file in the message as base64, UTF-8 intact", async () => {
-    const r = await send.sendOrderPaidEmail({ ...data, durableCopy: copy }, "order-x-paid");
+    const r = await send.sendOrderPaidEmail(
+      { ...data, durableCopy: copy },
+      "order-x-paid",
+    );
     expect(r.ok).toBe(true);
     const [file] = attachmentsOf(sent[0]);
     expect(file).toEqual({
       filename: copy.filename,
       content: Buffer.from(copy.html, "utf8").toString("base64"),
     });
-    expect(Buffer.from(file.content, "base64").toString("utf8")).toBe(copy.html);
+    expect(Buffer.from(file.content, "base64").toString("utf8")).toBe(
+      copy.html,
+    );
   });
 
   it("offers no file when a version link is missing", async () => {
@@ -252,7 +281,10 @@ describe("sendOrderPaidEmail and the attachment", () => {
 
   it("sends it again without the file when the provider refuses the message outright", async () => {
     answers = [422, 200];
-    const r = await send.sendOrderPaidEmail({ ...data, durableCopy: copy }, "order-x-paid");
+    const r = await send.sendOrderPaidEmail(
+      { ...data, durableCopy: copy },
+      "order-x-paid",
+    );
     expect(r.ok).toBe(true);
     expect(sent).toHaveLength(2);
     expect(attachmentsOf(sent[0])).toHaveLength(1);
@@ -263,7 +295,9 @@ describe("sendOrderPaidEmail and the attachment", () => {
     expect(sent[0].key).toBe("order-x-paid");
     expect(sent[1].key).toBe("order-x-paid-ek-yok");
     // The warning names the order, never the address (rule 9).
-    const warned = (console.warn as unknown as { mock: { calls: unknown[][] } }).mock.calls
+    const warned = (
+      console.warn as unknown as { mock: { calls: unknown[][] } }
+    ).mock.calls
       .map((c) => c.join(" "))
       .join("\n");
     expect(warned).toContain("odeme-onaylandi #10001");
@@ -272,7 +306,10 @@ describe("sendOrderPaidEmail and the attachment", () => {
 
   it("does not send a second copy after a 5xx: the first may have been delivered", async () => {
     answers = [503, 503];
-    const r = await send.sendOrderPaidEmail({ ...data, durableCopy: copy }, "order-x-paid");
+    const r = await send.sendOrderPaidEmail(
+      { ...data, durableCopy: copy },
+      "order-x-paid",
+    );
     expect(r.ok).toBe(false);
     // The one same-key retry the order mail always had, with the file both times.
     expect(sent).toHaveLength(2);

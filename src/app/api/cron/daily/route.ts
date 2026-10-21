@@ -78,11 +78,21 @@ export async function GET(request: Request) {
   // D-VERSIONS-TABLE): a coded text no consent reads (KVKK, the İşlem
   // Rehberi) is kept within a day of the deploy that changed it. Before
   // retention, the one step that deletes.
-  const legalVersions = await step("legal-versions", () =>
-    recordShownLegalVersions(),
-  );
+  //
+  // Retention keeps every text shown today whatever its age (review R1); a
+  // step that could not say which those are leaves the rule removing
+  // nothing. The response carries the count, not the hashes.
+  const shown: { hashes?: string[] } = {};
+  const legalVersions = await step("legal-versions", async () => {
+    const { documents, hashes } = await recordShownLegalVersions();
+    shown.hashes = hashes;
+    return { documents };
+  });
   const retention = await step("retention", () =>
-    runRetention({ apply: destructionEnabled() }),
+    runRetention({
+      apply: destructionEnabled(),
+      keep: shown.hashes ? { "legal-doc-versions": shown.hashes } : {},
+    }),
   );
 
   return NextResponse.json(

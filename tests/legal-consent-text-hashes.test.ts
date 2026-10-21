@@ -27,6 +27,10 @@ const h = vi.hoisted(() => ({
   failWrites: false,
   writes: [] as { rows: Row[]; onConflict?: string; ignore?: boolean }[],
   selects: 0,
+  /** Each read of a legal_docs row, by slug, in order. */
+  reads: [] as string[],
+  /** When set, what the nth read of a slug sees (a publish in between). */
+  seen: null as null | ((slug: string, nth: number) => Row | null),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -45,14 +49,20 @@ vi.mock("@/lib/db", () => ({
           inList = values;
           return api;
         },
-        maybeSingle: async () => ({
-          data:
-            h.legalDocs.find((r) =>
-              Object.entries(filters).every(([k, v]) => r[k] === v),
-            ) ?? null,
-          error: null,
-          status: 200,
-        }),
+        maybeSingle: async () => {
+          const slug = String(filters.slug);
+          h.reads.push(slug);
+          const nth = h.reads.filter((x) => x === slug).length;
+          return {
+            data: h.seen
+              ? h.seen(slug, nth)
+              : (h.legalDocs.find((r) =>
+                  Object.entries(filters).every(([k, v]) => r[k] === v),
+                ) ?? null),
+            error: null,
+            status: 200,
+          };
+        },
         upsert: async (
           rows: Row[],
           opts: { onConflict?: string; ignoreDuplicates?: boolean },
@@ -70,7 +80,8 @@ vi.mock("@/lib/db", () => ({
             };
           }
           for (const r of rows) {
-            if (!h.versions.has(String(r.hash))) h.versions.set(String(r.hash), r);
+            if (!h.versions.has(String(r.hash)))
+              h.versions.set(String(r.hash), r);
           }
           return { data: null, error: null, status: 201 };
         },
@@ -116,13 +127,15 @@ beforeEach(() => {
   h.failWrites = false;
   h.writes = [];
   h.selects = 0;
+  h.reads = [];
+  h.seen = null;
   versions.forgetKnownLegalVersions();
   vi.restoreAllMocks();
 });
 
-describe("checkoutConsentTextHashes", () => {
+describe("checkoutConsentShown", () => {
   it("records the coded texts' hashes and stores each text under its own hash", async () => {
-    const hashes = await store.checkoutConsentTextHashes();
+    const hashes = (await store.checkoutConsentShown()).textHashes;
     expect(hashes).toEqual({ [OBF]: coded(OBF).hash, [MSS]: coded(MSS).hash });
     // One statement, ON CONFLICT (hash) DO NOTHING.
     expect(h.writes).toHaveLength(1);
@@ -136,25 +149,54 @@ describe("checkoutConsentTextHashes", () => {
 
   it("records the panel text when one is live, the coded one under a draft", async () => {
     h.legalDocs = [published(MSS), published(OBF, { isPublished: false })];
-    const hashes = await store.checkoutConsentTextHashes();
+    const hashes = (await store.checkoutConsentShown()).textHashes;
     const live = legalVersionOf(
       overrideVersionDoc(findLegalDoc(MSS)!, published(MSS) as never),
     );
     expect(hashes[MSS]).toBe(live.hash);
     expect(hashes[OBF]).toBe(coded(OBF).hash);
-    // The label the same record carries reads the same row.
-    expect(await store.checkoutConsentVersion()).toBe("2 Kasım 2026");
+    // The label the same record carries comes from the same row.
+    expect((await store.checkoutConsentShown()).version).toBe("2 Kasım 2026");
+  });
+
+  /**
+   * Review R4 (21 Eki 2026): the label came from one read of the overrides
+   * and the hashes from another, so a publish between the two recorded one
+   * text's label next to another text's hash. One read now gives both.
+   */
+  it("reads each checkout override once for the label and the hashes together", async () => {
+    await store.checkoutConsentShown();
+    expect([...h.reads].sort()).toEqual([...CHECKOUT_CONSENT_DOCS].sort());
+  });
+
+  it("never pairs one text's label with another text's hash across a publish", async () => {
+    const A = published(MSS, {
+      effectiveDate: "1 Kasım 2026",
+      bodyMarkdown: "## Metin A",
+    });
+    const B = published(MSS, {
+      effectiveDate: "2 Kasım 2026",
+      bodyMarkdown: "## Metin B",
+      updatedAt: "2026-11-02T09:00:00.000Z",
+    });
+    // The first read of the contract sees A; any later read sees B.
+    h.seen = (slug, nth) => (slug === MSS ? (nth === 1 ? A : B) : null);
+    const shown = await store.checkoutConsentShown();
+    const hashOf = (o: Row) =>
+      legalVersionOf(overrideVersionDoc(findLegalDoc(MSS)!, o as never)).hash;
+    expect(shown.version).toBe("1 Kasım 2026");
+    expect(shown.textHashes[MSS]).toBe(hashOf(A));
   });
 
   it("sends a text the table already has only once", async () => {
-    await store.checkoutConsentTextHashes();
+    await store.checkoutConsentShown();
     versions.forgetKnownLegalVersions();
-    await store.checkoutConsentTextHashes();
+    await store.checkoutConsentShown();
     // The second consent found both stored: no second insert.
     expect(h.writes).toHaveLength(1);
     // And a warm instance does not even ask.
     const asked = h.selects;
-    await store.checkoutConsentTextHashes();
+    await store.checkoutConsentShown();
     expect(h.selects).toBe(asked);
     expect(h.writes).toHaveLength(1);
   });
@@ -162,7 +204,7 @@ describe("checkoutConsentTextHashes", () => {
   it("still records the hashes when the texts cannot be stored, and logs no text", async () => {
     h.failWrites = true;
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const hashes = await store.checkoutConsentTextHashes();
+    const hashes = (await store.checkoutConsentShown()).textHashes;
     expect(hashes).toEqual({ [OBF]: coded(OBF).hash, [MSS]: coded(MSS).hash });
     const logged = error.mock.calls.map((c) => c.join(" ")).join("\n");
     expect(logged).toContain("consent texts not stored");
@@ -170,7 +212,7 @@ describe("checkoutConsentTextHashes", () => {
   });
 });
 
-describe("karaokeConsentTextHashes", () => {
+describe("karaokeConsentShown", () => {
   const KARAOKE = KARAOKE_CONSENT_DOCS[0];
 
   it("hashes the terms dated by the booking's own settings read", async () => {
@@ -180,7 +222,7 @@ describe("karaokeConsentTextHashes", () => {
       karaokeCancelPolicyAt: "",
       mobileApp: { minSupportedAppVersion: "0.0.0" },
     };
-    const hashes = await store.karaokeConsentTextHashes(settings);
+    const hashes = (await store.karaokeConsentShown(settings)).textHashes;
     expect(hashes).toEqual({
       [KARAOKE]: legalVersionOf(codedVersionDoc(karaokeLegalDocFor(settings)))
         .hash,

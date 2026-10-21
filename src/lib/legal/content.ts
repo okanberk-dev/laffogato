@@ -1351,6 +1351,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
           "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+          "Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.",
           "Belgelerin güncel metni her zaman {{SITE_URL}}/hukuk adresinde yayımlanır; belgeleri kendi cihazınıza kaydedebilir ya da çıktısını alabilirsiniz.",
         ],
       },

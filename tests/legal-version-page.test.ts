@@ -76,25 +76,28 @@ describe("/hukuk/<slug> without ?surum= reads what it always read", () => {
     ["no query at all", undefined],
     ["an empty query", {}],
     ["other parameters", { utm_source: "mail", q: "x" }],
-  ])("%s: the cached override and the coded text, never the version table", async (_, q) => {
-    const el = (await page.default({
-      params: params(MSS),
-      searchParams: q === undefined ? undefined : query(q),
-    })) as ReactElement;
-    const html = renderToStaticMarkup(el);
-    expect(h.liveLegalDoc).toHaveBeenCalledWith(MSS);
-    expect(h.getSiteLegalOverride).toHaveBeenCalledWith(MSS);
-    expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
-    expect(html).toContain(findLegalDoc(MSS)!.title);
-    expect(html).not.toContain("tarihli sürümdür");
+  ])(
+    "%s: the cached override and the coded text, never the version table",
+    async (_, q) => {
+      const el = (await page.default({
+        params: params(MSS),
+        searchParams: q === undefined ? undefined : query(q),
+      })) as ReactElement;
+      const html = renderToStaticMarkup(el);
+      expect(h.liveLegalDoc).toHaveBeenCalledWith(MSS);
+      expect(h.getSiteLegalOverride).toHaveBeenCalledWith(MSS);
+      expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
+      expect(html).toContain(findLegalDoc(MSS)!.title);
+      expect(html).not.toContain("tarihli sürümdür");
 
-    const meta = await page.generateMetadata({
-      params: params(MSS),
-      searchParams: q === undefined ? undefined : query(q),
-    });
-    expect(meta.robots).toEqual({ index: true, follow: true });
-    expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
-  });
+      const meta = await page.generateMetadata({
+        params: params(MSS),
+        searchParams: q === undefined ? undefined : query(q),
+      });
+      expect(meta.robots).toEqual({ index: true, follow: true });
+      expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("/hukuk/<slug>?surum=<prefix>", () => {
@@ -113,9 +116,7 @@ describe("/hukuk/<slug>?surum=<prefix>", () => {
     expect(h.findLegalVersionByPrefix).toHaveBeenCalledWith(MSS, PREFIX);
     expect(h.getSiteLegalOverride).not.toHaveBeenCalled();
     expect(h.liveLegalDoc).not.toHaveBeenCalled();
-    expect(html).toContain(
-      `Bu metin ${coded.doc.updatedAt} tarihli sürümdür.`,
-    );
+    expect(html).toContain(`Bu metin ${coded.doc.updatedAt} tarihli sürümdür.`);
     expect(html).toContain(coded.doc.title);
     expect(html).toContain(`Sürüm kimliği (SHA-256): ${coded.hash}`);
     // The current text is one link away, and nothing can be submitted.
@@ -166,15 +167,18 @@ describe("/hukuk/<slug>?surum=<prefix>", () => {
     ["markup", '"><script>alert(1)</script>'],
     ["empty", ""],
     ["longer than a hash", "a".repeat(65)],
-  ])("a prefix that is %s is the not-found page, read nothing, echo nothing", async (_, surum) => {
-    const el = (await page.default({
-      params: params(MSS),
-      searchParams: query({ surum }),
-    })) as ReactElement;
-    await expect(render(el)).rejects.toThrow("NEXT_NOT_FOUND");
-    expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
-    expect(h.getSiteLegalOverride).not.toHaveBeenCalled();
-  });
+  ])(
+    "a prefix that is %s is the not-found page, read nothing, echo nothing",
+    async (_, surum) => {
+      const el = (await page.default({
+        params: params(MSS),
+        searchParams: query({ surum }),
+      })) as ReactElement;
+      await expect(render(el)).rejects.toThrow("NEXT_NOT_FOUND");
+      expect(h.findLegalVersionByPrefix).not.toHaveBeenCalled();
+      expect(h.getSiteLegalOverride).not.toHaveBeenCalled();
+    },
+  );
 
   it("a repeated parameter is not a prefix", async () => {
     const el = (await page.default({

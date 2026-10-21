@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordShownLegalVersions } from "@/lib/legal/store";
 import { destructionEnabled, runRetention } from "@/lib/retention";
 
 import { cronGate, NO_STORE } from "../_auth";
@@ -26,7 +27,19 @@ export async function GET(request: Request) {
   if (denied) return denied;
 
   try {
-    const report = await runRetention({ apply: destructionEnabled() });
+    // The texts shown today stay whatever their age (review R1); without
+    // them that rule removes nothing.
+    const shown = await recordShownLegalVersions().catch((err: unknown) => {
+      console.error(
+        "[cron/retention] legal versions",
+        err instanceof Error ? err.message.slice(0, 160) : "unknown",
+      );
+      return null;
+    });
+    const report = await runRetention({
+      apply: destructionEnabled(),
+      keep: shown ? { "legal-doc-versions": shown.hashes } : {},
+    });
     // The report counts rows; it never names one. Nothing here may log a key,
     // an address or an IP - `auth_attempts.key` is all three at once.
     console.info(

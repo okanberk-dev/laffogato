@@ -5,8 +5,8 @@ import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
-import { CHECKOUT_CONSENT_DOCS } from "@/lib/legal/meta";
-import { consentTextHashes } from "@/lib/legal/version-core";
+import { orderDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
+import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
 import {
   STATUS_LABEL,
@@ -25,9 +25,20 @@ const ORDER_DOCS = [
   { slug: "garanti-ve-ayipli-mal", label: "Garanti ve Ayıplı Mal" },
 ];
 
-/** Over the download of the confirmed text (ASK-DURABLE, sen). */
+/**
+ * Over the download of the confirmed text (ASK-DURABLE, sen). It promises
+ * no attachment: the mail goes without the file when the file cannot be
+ * built in time (src/lib/legal/durable-copy-time.ts).
+ */
 const COPY_NOTE =
-  "Siparişini verirken onayladığın belgelerin o günkü metni. Aynı metin sipariş onayı e-postanın ekinde de var.";
+  "Siparişini verirken onayladığın belgelerin o günkü metni. Sipariş onayı e-postanın ekinde de gönderilir; ekte yoksa buradan indirebilirsin.";
+
+/**
+ * In place of the download when the file cannot be built: an order from
+ * before 21 Ekim 2026 (no text recorded), or a text that is not stored. The
+ * same route as İşlem Rehberi §8 (src/lib/legal/content.ts).
+ */
+const COPY_REQUEST = `Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla ${LEGAL_ENTITY.email} adresine yaz, sana e-postayla gönderelim.`;
 
 export const metadata = { title: "Sipariş detayı · L'Affogato" };
 export const dynamic = "force-dynamic";
@@ -58,11 +69,20 @@ export default async function OrderDetailPage({
     raw && "acceptedAt" in raw && raw.acceptedAt
       ? (raw as OrderLegalConsent)
       : null;
-  // The confirmed text itself, as a file (ASK-DURABLE): only for an order
-  // whose consent recorded the hash of every confirmed document; the route
-  // checks the owner again (./sozlesme/route.ts).
+  // The confirmed text itself, as a file (ASK-DURABLE): linked only when
+  // the route can build it - every confirmed document's hash recorded and
+  // its text stored (or still the one shown). A link to a 404 was what the
+  // member got for an order whose text was not there. The route checks the
+  // owner again (./sozlesme/route.ts); a failing read shows the request
+  // sentence, not an error page.
   const copyHref =
-    consent && consentTextHashes(consent, CHECKOUT_CONSENT_DOCS)
+    consent &&
+    (await orderDurableCopyAvailable(order).catch((err: unknown) => {
+      console.warn(
+        `[durable-copy] order ${order.orderNo}: availability unknown (${err instanceof Error ? err.message.slice(0, 120) : "error"})`,
+      );
+      return false;
+    }))
       ? `/uye/hesap/siparislerim/${order.orderNo}/sozlesme`
       : null;
 
@@ -238,6 +258,17 @@ export default async function OrderDetailPage({
               Belgeleri indir
             </a>
           </div>
+        ) : consent ? (
+          <p
+            style={{
+              margin: "16px 0 0",
+              color: "var(--ink-soft)",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            {COPY_REQUEST}
+          </p>
         ) : null}
         <p
           style={{

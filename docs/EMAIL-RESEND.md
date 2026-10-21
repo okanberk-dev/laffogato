@@ -898,13 +898,27 @@ ya da bağlantı yok; içindeki her değer kaçışlanır.
   `attachments: [{ filename, content: <base64> }]` ekler. Toplu uç
   (`deliverBatch`, `/emails/batch`, kampanyalar) mesajı alan alan kurar ve hiç
   ek taşımaz.
-- **E-postayı geciktirmez, düşürmez.** Ek 2,5 saniyede kurulamazsa, onay
-  kaydında hash yoksa (21 Ekim 2026'dan önceki ve manuel siparişler) ya da
-  sürüm bulunamazsa e-posta eksiz ve eski cümleyle ("bağlantılar belgelerin
-  güncel metnini açar") gider; log yalnız sipariş ya da rezervasyon kimliğini
-  yazar (adres yok, kural 9). Resend eki içeren iletiyi 4xx ile (429 hariç)
-  reddederse aynı ileti eksiz, `<anahtar>-ek-yok` idempotency anahtarıyla bir
-  kez daha gönderilir; 5xx ve zaman aşımında yeniden gönderilmez (ilk istek
+- **E-postayı geciktirmez, düşürmez.** İki onay ödeme dönüşünün içinde
+  beklenir; ek dahil tek bir süreye sığar (`src/lib/email/budget.ts`
+  `MAIL_BUDGET`): ödeme onayı her zamanki **9,5 sn** (4 sn, 1,5 sn ara, 4 sn),
+  karaoke onayı **5,5 sn** (eskisi gibi tek 4 sn deneme ve ekin payı). Ekin
+  payı **1,5 sn**'dir ve yükleyicinin modül yüklemesi de bu süreye dahildir
+  (`durableCopyWithin`). Hiçbir deneme 1 sn'den az kala başlamaz, her deneme
+  kalan süreyle kesilir, sığmayan ikinci deneme yapılmaz. Ek bu sürede
+  kurulamazsa, onay kaydında hash yoksa (21 Ekim 2026'dan önceki ve manuel
+  siparişler) ya da sürüm bulunamazsa e-posta eksiz ve eski cümleyle
+  ("bağlantılar belgelerin güncel metnini açar") gider; log yalnız sipariş ya
+  da rezervasyon kimliğini yazar (adres yok, kural 9). İşlem Rehberi §8 bu
+  durumda metni e-postayla isteme yolunu söyler.
+- **Bir ileti, bir anahtar.** Resend eki içeren iletiyi 4xx ile (429 ve 409
+  hariç) reddederse aynı ileti eksiz, `<anahtar>-ek-yok` idempotency
+  anahtarıyla, kalan süreye sığarsa bir kez daha gönderilir. **409 hiçbir
+  zaman ret sayılmaz** (inceleme M1, 21 Eki 2026): `concurrent_idempotent_requests`
+  aynı anahtarlı ilk isteğin hâlâ işlendiğini, `invalid_idempotent_request`
+  ise o anahtarla gövdesi farklı bir isteğin (bir tetikte eksiz, sonrakinde
+  ekli) 24 saat içinde **alındığını** söyler. İlki başarısız sayılır ve
+  `-ek-yok` gönderilmez; ikincisi gönderilmiş sayılır (ileti çıktı, ikinci
+  kopya gitmez). 5xx ve zaman aşımında da `-ek-yok` gönderilmez (ilk istek
   ulaşmış olabilir), sipariş bildirimi kendi yeniden deneme yolunu izler.
 - **Cümle yalnız ek varken.** "...tam metni bu e-postanın ekindedir" bloğu
   (`BELGE_EKI`, karaokede `KARAOKE_BELGE_EKI`) yalnız gönderen ekin iletiye
@@ -913,7 +927,21 @@ ya da bağlantı yok; içindeki her değer kaçışlanır.
 - **Aynı dosya** üye sipariş sayfasından
   (`/uye/hesap/siparislerim/<NO>/sozlesme`, yalnız oturumdaki sahibi) ve
   karaoke rezervasyonunun kişiye özel imzalı bağlantısından
-  (`/rezervasyon/sozlesme?t=`) indirilir; başka herkese aynı 404.
+  (`/rezervasyon/sozlesme?t=`) indirilir; başka herkese aynı 404. Okuma
+  başarısız olursa sahibine `503` + `Retry-After: 30` (çıplak 500 değil).
+  Sipariş sayfası "Belgeleri indir"i yalnız dosya kurulabiliyorsa gösterir;
+  kurulamıyorsa e-postayla isteme cümlesini. İki yolun kendi CSP'si
+  (`sandbox`) ve `Referrer-Policy: no-referrer` başlıkları `next.config.ts`
+  ve `vercel.json`'da aynı değerle tekrarlanır: sitenin genel kuralları
+  aynı başlığı önce koyduğu için route'un değeri tek başına tele çıkmaz
+  (`tests/security-headers.test.ts`).
+- **Ek, siparişin kendi anlık görüntüsünü basar.** Alıcı adı ve teslimat
+  adresi sipariş verilirken onay kaydına yazılır (`legalConsent.buyer`);
+  panelden sonradan düzeltilen satır e-postayla giden dosyayı ve indirileni
+  değiştirmez. Karaoke dosyası rezervasyonun kendi son ücretsiz iptal anını
+  basar; rezervasyon o andan sonra yapıldıysa yanına "rezervasyon
+  yapıldığında geçmişti; her iptal geç iptal sayılır" yazar (onay
+  e-postasının söylediği gibi).
 
 ### Resend sınırları
 

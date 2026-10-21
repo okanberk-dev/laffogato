@@ -165,6 +165,15 @@ interface SendArgs {
    * one. Today only the confirmed contract (ASK-DURABLE).
    */
   attachments?: readonly MailAttachment[];
+  /**
+   * The caller's time budget, as an instant (epoch ms): no attempt starts
+   * with less than `MIN_ATTEMPT_MS` left, each one is cut at what is left,
+   * and the retry is skipped when it would not fit. The order and karaoke
+   * confirmations are awaited inside a payment return and pass one
+   * (./budget.ts `MAIL_BUDGET`); everything else keeps the per-request bound
+   * only.
+   */
+  deadline?: number;
 }
 
 /** One attached file: its name and its bytes as base64. */
@@ -178,11 +187,42 @@ export function htmlAttachment(filename: string, html: string): MailAttachment {
   return { filename, content: Buffer.from(html, "utf8").toString("base64") };
 }
 
-/** The longest pause before the one retry; `Retry-After` is honoured up to it. */
 /** Upper bound for one Resend request (ms). */
 const MAIL_REQUEST_TIMEOUT_MS = 4_000;
 
+/** The longest pause before the one retry; `Retry-After` is honoured up to it. */
 const RETRY_WAIT_MS = 1_500;
+
+/** No attempt starts with less than this left before the caller's deadline. */
+const MIN_ATTEMPT_MS = 1_000;
+
+function msLeft(deadline: number | undefined): number {
+  return deadline === undefined ? Number.POSITIVE_INFINITY : deadline - Date.now();
+}
+
+/**
+ * `fetch`, aborted after `ms` by a plain timer (the caller's budget can be
+ * shorter than the 4 s bound, and a test's clock can drive it).
+ */
+async function postWithin(
+  url: string,
+  init: RequestInit,
+  ms: number,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(
+    () =>
+      ctrl.abort(
+        new DOMException("The operation was aborted due to timeout", "TimeoutError"),
+      ),
+    ms,
+  );
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export type SendResult =
   | { ok: true }
@@ -215,6 +255,7 @@ async function deliver({
   replyTo: replyToOverride,
   retryOnce,
   attachments,
+  deadline,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   const identity = await emailIdentity();
@@ -263,31 +304,56 @@ async function deliver({
   });
   for (let attempt = 0; ; attempt++) {
     const again = retryOnce === true && attempt === 0;
+    const left = msLeft(deadline);
+    if (left < MIN_ATTEMPT_MS) {
+      return { ok: false, error: "E-posta zamanında gönderilemedi." };
+    }
     try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      const res = await postWithin(
+        "https://api.resend.com/emails",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+          },
+          body: payload,
         },
-        body: payload,
-        // The mail is awaited inside the payment return; a hung provider must
-        // not hold the customer on the bank's redirect (worst case with the
-        // one retry stays under 10 s).
-        signal: AbortSignal.timeout(MAIL_REQUEST_TIMEOUT_MS),
-      });
+        // The mail is awaited inside the payment return; a hung provider
+        // must not hold the customer on the bank's redirect: 4 s at most,
+        // less when the caller's budget has less left.
+        Math.min(MAIL_REQUEST_TIMEOUT_MS, left),
+      );
       if (res.ok) return { ok: true };
       const body = await res.text();
       console.error(
         `[email] Resend failed (${res.status}): ${maskAddressesIn(body)}`,
       );
+      // The key was used, within its 24 hours, for a request of this same
+      // mail whose body differed (the confirmed contract attached one time
+      // and not the other): Resend took that request, and the message is
+      // out. Sending it again under another key would be a second copy.
+      if (
+        res.status === 409 &&
+        idempotencyKey &&
+        body.includes("invalid_idempotent_request")
+      ) {
+        console.info(
+          `[email] ${idempotencyKey}: already sent under this key, not sent again`,
+        );
+        return { ok: true };
+      }
       if (again && (res.status === 429 || res.status >= 500)) {
         const asked = Number(res.headers.get("retry-after")) * 1000;
-        await pause(
+        const wait = Math.min(
           Number.isFinite(asked) && asked > 0 ? asked : RETRY_WAIT_MS,
+          RETRY_WAIT_MS,
         );
-        continue;
+        if (msLeft(deadline) - wait >= MIN_ATTEMPT_MS) {
+          await pause(wait);
+          continue;
+        }
       }
       return {
         ok: false,
@@ -296,7 +362,7 @@ async function deliver({
       };
     } catch (err) {
       console.error("[email] send error", err);
-      if (again) {
+      if (again && msLeft(deadline) - RETRY_WAIT_MS >= MIN_ATTEMPT_MS) {
         await pause(RETRY_WAIT_MS);
         continue;
       }
@@ -494,7 +560,12 @@ async function sendTemplateResult(
   {
     retryOnce,
     attachments,
-  }: { retryOnce?: boolean; attachments?: readonly MailAttachment[] } = {},
+    deadline,
+  }: {
+    retryOnce?: boolean;
+    attachments?: readonly MailAttachment[];
+    deadline?: number;
+  } = {},
 ): Promise<SendResult> {
   if (!to) return { ok: false, error: "Alıcı adresi boş." };
   // Ayarlar's phone, address and hours for the footer; the caller's own
@@ -520,6 +591,7 @@ async function sendTemplateResult(
     ...(idempotencyKey ? { idempotencyKey } : {}),
     ...(retryOnce ? { retryOnce } : {}),
     ...(attachments && attachments.length > 0 ? { attachments } : {}),
+    ...(deadline !== undefined ? { deadline } : {}),
   });
 }
 
@@ -534,14 +606,21 @@ export interface MailDurableCopy {
   links: readonly { slug: string; title: string; url: string }[];
 }
 
-/** A refusal that proves nothing was sent: a 4xx other than 429. */
+/**
+ * A refusal that proves nothing was sent: a 4xx other than 429 and 409. A
+ * 409 is about the idempotency key, not the message: another request under
+ * it is still being processed, or one with another body was taken. Either
+ * way a message under that key exists, and a second one under another key
+ * would be a second copy in the inbox.
+ */
 function refusedOutright(result: SendResult): boolean {
   return (
     !result.ok &&
     typeof result.status === "number" &&
     result.status >= 400 &&
     result.status < 500 &&
-    result.status !== 429
+    result.status !== 429 &&
+    result.status !== 409
   );
 }
 
@@ -561,9 +640,11 @@ async function sendWithCopy(
     attachments: readonly MailAttachment[] | null,
     keySuffix: string,
   ) => Promise<SendResult>,
+  deadline?: number,
 ): Promise<SendResult> {
   const first = await send([htmlAttachment(copy.filename, copy.html)], "");
   if (first.ok || !refusedOutright(first)) return first;
+  if (msLeft(deadline) < MIN_ATTEMPT_MS) return first;
   console.warn(
     `[email] ${label}: refused with the contract attached (HTTP ${first.ok ? "" : first.status}); sent without it`,
   );
@@ -803,6 +884,7 @@ export async function sendOrderPaidEmail(
     durableCopy?: MailDurableCopy | null;
   },
   idempotencyKey?: string,
+  { deadline }: { deadline?: number } = {},
 ): Promise<SendResult> {
   const stamps = Math.max(0, Math.round(Number(o.stampsEarned ?? 0)) || 0);
   const vars = {
@@ -825,11 +907,21 @@ export async function sendOrderPaidEmail(
         ? { vars: { ...vars, ...copyVars }, loops, flags: { BELGE_EKI: true } }
         : { vars, loops },
       idempotencyKey ? `${idempotencyKey}${keySuffix}` : undefined,
-      // The one mail the customer gets before the parcel: worth one more try.
-      { retryOnce: true, ...(attachments ? { attachments } : {}) },
+      // The one mail the customer gets before the parcel: worth one more
+      // try, inside the caller's budget (`MAIL_BUDGET.paid`).
+      {
+        retryOnce: true,
+        ...(attachments ? { attachments } : {}),
+        ...(deadline !== undefined ? { deadline } : {}),
+      },
     );
   if (!o.durableCopy || !copyVars) return send(null, "");
-  return sendWithCopy(`odeme-onaylandi #${o.orderNo}`, o.durableCopy, send);
+  return sendWithCopy(
+    `odeme-onaylandi #${o.orderNo}`,
+    o.durableCopy,
+    send,
+    deadline,
+  );
 }
 
 /**
@@ -1054,6 +1146,11 @@ export interface KaraokeEmailData {
    * the terms' page is linked, as before.
    */
   durableCopy?: MailDurableCopy | null;
+  /**
+   * The confirmation's time budget (epoch ms, `MAIL_BUDGET.karaoke` from
+   * when the copy was asked for): it is awaited inside the payment return.
+   */
+  deadline?: number;
 }
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
@@ -1134,12 +1231,18 @@ export async function sendKaraokeConfirmationEmail(
           }
         : { vars, flags },
       undefined,
-      attachments ? { attachments } : {},
+      {
+        ...(attachments ? { attachments } : {}),
+        ...(k.deadline !== undefined ? { deadline: k.deadline } : {}),
+      },
     );
   if (!copy || !versionUrl) return (await send(null)).ok;
   return (
-    await sendWithCopy(`karaoke-rezervasyon ${k.code}`, copy, (attachments) =>
-      send(attachments),
+    await sendWithCopy(
+      `karaoke-rezervasyon ${k.code}`,
+      copy,
+      (attachments) => send(attachments),
+      k.deadline,
     )
   ).ok;
 }

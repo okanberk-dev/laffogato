@@ -187,6 +187,8 @@ Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satı
 Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın
 ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz:
 [BELGE_SURUMLERI]
+Cayma hakkınız ve iade usulü (İptal, İade ve Cayma Hakkı):
+https://laffogato.net/hukuk/iade-ve-cayma
 <!--/IF:BELGE_EKI--><!--IF:BELGE_GUNCEL-->
 Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel
 metnini açar):

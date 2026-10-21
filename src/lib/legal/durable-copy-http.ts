@@ -56,3 +56,19 @@ export function durableCopyNotFound(): Response {
     headers: { ...PRIVATE, "Content-Type": "text/plain; charset=utf-8" },
   });
 }
+
+/**
+ * The file could not be read or stored right now (the database failed on
+ * the way): a plain 503 the browser may retry, never a bare 500 with a
+ * stack behind it.
+ */
+export function durableCopyUnavailable(): Response {
+  return new Response("Şu an hazırlanamadı. Birazdan yeniden dene.", {
+    status: 503,
+    headers: {
+      ...PRIVATE,
+      "Content-Type": "text/plain; charset=utf-8",
+      "Retry-After": "30",
+    },
+  });
+}

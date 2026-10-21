@@ -13,6 +13,7 @@ import {
   istanbulTimeLabel,
   karaokeCancelDeadline,
   karaokeCancelPolicyOf,
+  karaokeFreeCancelEnd,
   karaokeLateRefundMinor,
 } from "@/lib/mobile/karaoke-time";
 import { priceLabel } from "@/lib/utils/format";
@@ -78,9 +79,16 @@ export interface DurableCopyBooking {
   freeCancelHours?: number | null;
   lateRefundPercent?: number | null;
   cancelDeadline?: string | null;
+  /** When the booking was made: a deadline already behind it is said so. */
+  createdAt?: string;
 }
 
-/** The consent fields the copy prints (`legalConsent`). */
+/**
+ * The consent fields the copy reads (`legalConsent`). Its version label is
+ * not printed: the label names a day under the consent-version rule, which
+ * an older panel text does not move back (consent-version.ts), while each
+ * document below prints its own date and hash - one text, one date.
+ */
 export interface DurableCopyConsent {
   acceptedAt: string;
   version: string;
@@ -179,7 +187,10 @@ function factsTable(title: string, rows: readonly Row[]): string {
 function sellerRows(): Row[] {
   return [
     ["Satıcı", LEGAL_ENTITY.legalName],
-    ["Vergi dairesi / VKN", `${LEGAL_ENTITY.taxOffice} / ${LEGAL_ENTITY.taxNo}`],
+    [
+      "Vergi dairesi / VKN",
+      `${LEGAL_ENTITY.taxOffice} / ${LEGAL_ENTITY.taxNo}`,
+    ],
     ["Adres", LEGAL_ADDRESS_LINE],
   ];
 }
@@ -199,7 +210,8 @@ function sectionHtml(s: LegalSection): string {
     out.push(
       `<table><tbody>${s.table
         .map(
-          (r) => `<tr><th scope="row">${e(r.key)}</th><td>${e(r.value)}</td></tr>`,
+          (r) =>
+            `<tr><th scope="row">${e(r.key)}</th><td>${e(r.value)}</td></tr>`,
         )
         .join("")}</tbody></table>`,
     );
@@ -279,7 +291,9 @@ function documentHtml(d: DurableCopyDocument): string {
 function lineRows(items: DurableCopyOrder["items"]): Row[] {
   const numbered = items.length > 1;
   return items.map((it, i) => {
-    const name = it.detail ? `${it.productName} (${it.detail})` : it.productName;
+    const name = it.detail
+      ? `${it.productName} (${it.detail})`
+      : it.productName;
     // Integer kuruş, the order's own unit price: never today's price.
     const line = Math.round(it.unitPriceMinor) * Math.round(it.qty);
     return [
@@ -313,7 +327,6 @@ export function orderDurableCopyHtml(input: {
     ...sellerRows(),
     ["Sipariş numarası", `#${order.orderNo}`],
     ["Onay anı", `${istanbulInstantLabel(consent.acceptedAt)} (Türkiye saati)`],
-    ["Belge sürümü", consent.version],
     ["Alıcı", order.customerName],
     ...lineRows(order.items),
     ["Ara toplam (KDV dahil)", priceLabel(order.subtotalMinor)],
@@ -321,7 +334,9 @@ export function orderDurableCopyHtml(input: {
       ? ([
           [
             "Kargo",
-            order.shippingMinor > 0 ? priceLabel(order.shippingMinor) : "Ücretsiz",
+            order.shippingMinor > 0
+              ? priceLabel(order.shippingMinor)
+              : "Ücretsiz",
           ],
         ] as Row[])
       : []),
@@ -349,12 +364,24 @@ export function orderDurableCopyHtml(input: {
 
 // ── The karaoke booking ─────────────────────────────────────────────────
 
-/** "30 Ekim 2026, 18:00": the booking's own last free moment. */
+/**
+ * "30 Ekim 2026, 18:00": the booking's own last free moment. A booking made
+ * after it (19:00 for 20:00 under 2 hours) never had that window, and the
+ * same confirmation mail says so (karaoke.ts `KARAOKE_FREE_PASSED_AT_BOOKING`):
+ * the copy prints the moment with the same fact, never as a window.
+ */
+export const KARAOKE_DEADLINE_PASSED_NOTE =
+  "rezervasyon yapıldığında geçmişti; her iptal geç iptal sayılır";
+
 function deadlineLabel(r: DurableCopyBooking): string {
   const at = karaokeCancelDeadline(r);
-  return Number.isFinite(at.getTime())
-    ? istanbulInstantLabel(at.toISOString())
-    : "";
+  if (!Number.isFinite(at.getTime())) return "";
+  const label = istanbulInstantLabel(at.toISOString());
+  // `withinFreeCancel` counts the whole minute the deadline names.
+  const made = Date.parse(r.createdAt ?? "");
+  return Number.isFinite(made) && made >= karaokeFreeCancelEnd(at)
+    ? `${label} (${KARAOKE_DEADLINE_PASSED_NOTE})`
+    : label;
 }
 
 /** What a late cancel refunds under the booking's own snapshot. */
@@ -382,7 +409,6 @@ export function karaokeDurableCopyHtml(input: {
     ...sellerRows(),
     ["Rezervasyon kodu", code],
     ["Onay anı", `${istanbulInstantLabel(consent.acceptedAt)} (Türkiye saati)`],
-    ["Belge sürümü", consent.version],
     ["Ad", r.customerName],
     ["Tarih", formatReservationDate(r.date)],
     ["Saat", formatReservationTime(r.startHour, r.hours)],
@@ -407,7 +433,8 @@ export function karaokeDurableCopyHtml(input: {
 
 /** `siparis-10042-on-bilgilendirme-ve-sozlesme.html`; digits only. */
 export function orderDurableCopyFilename(orderNo: number): string {
-  const no = Number.isSafeInteger(orderNo) && orderNo > 0 ? String(orderNo) : "";
+  const no =
+    Number.isSafeInteger(orderNo) && orderNo > 0 ? String(orderNo) : "";
   return no
     ? `siparis-${no}-on-bilgilendirme-ve-sozlesme.html`
     : "siparis-on-bilgilendirme-ve-sozlesme.html";

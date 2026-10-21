@@ -37,6 +37,7 @@ import {
 import {
   legalVersionOf,
   shownVersionDoc,
+  type LegalVersion,
   type ShownOverride,
 } from "@/lib/legal/version-core";
 import { recordLegalVersions } from "@/lib/legal/versions";
@@ -87,36 +88,62 @@ async function consentRefusal(
 }
 
 const VERSION_NOT_STORED =
-  "Metin şu an kaydedilemedi: gösterilen sürüm arşive yazılamadı. Birazdan yeniden dene.";
+  "Metin şu an kaydedilemedi: yayındaki sürüm arşive yazılamadı. Birazdan yeniden dene.";
+
+/** The texts a change shows before and after it, as versions. */
+interface ShownTexts {
+  before: LegalVersion;
+  after: LegalVersion;
+}
 
 /**
  * The text /hukuk/<slug> shows now and the one it will show once `after`
- * is written (null: the coded text), both stored in `legal_doc_versions`
- * BEFORE the change (decision D-VERSIONS-TABLE): no text goes live, and none
- * goes away, without its copy. Their hashes go into the audit row. Null when
- * the copy could not be stored; the change is then refused.
+ * is written (null: the coded text). The text shown NOW is stored in
+ * `legal_doc_versions` before the change (decision D-VERSIONS-TABLE): no
+ * text goes away without its copy, and a change whose current text cannot
+ * be stored is refused (null). The text it will show is stored only once
+ * the change is written (`storeShownAfter`): a save that fails must not
+ * leave a text that never went live behind a version address.
  *
  * Not exported: every export of a "use server" file is a public endpoint
  * (CLAUDE.md rule 27).
  */
-async function storeShownTexts(
+async function storeShownBefore(
   slug: string,
   after: ShownOverride | null,
-): Promise<{ before: string; after: string } | null> {
+): Promise<ShownTexts | null> {
   try {
     const doc = await liveLegalDoc(slug);
     if (!doc) return null;
     const current = await getLegalDocOverride(slug);
-    const before = legalVersionOf(shownVersionDoc(doc, current));
-    const next = legalVersionOf(shownVersionDoc(doc, after));
-    await recordLegalVersions([before, next]);
-    return { before: before.hash, after: next.hash };
+    const texts = {
+      before: legalVersionOf(shownVersionDoc(doc, current)),
+      after: legalVersionOf(shownVersionDoc(doc, after)),
+    };
+    await recordLegalVersions([texts.before]);
+    return texts;
   } catch (err) {
     console.error(
-      `[admin/hukuk] ${slug}: shown texts not stored`,
+      `[admin/hukuk] ${slug}: shown text not stored`,
       err instanceof Error ? err.message.slice(0, 160) : "unknown",
     );
     return null;
+  }
+}
+
+/**
+ * The text a written change now shows, stored. A failure is logged and
+ * the change stands: it is already live, and the next consent that shows
+ * it, the confirmation mail and the daily cron store it as well.
+ */
+async function storeShownAfter(slug: string, texts: ShownTexts): Promise<void> {
+  try {
+    await recordLegalVersions([texts.after]);
+  } catch (err) {
+    console.error(
+      `[admin/hukuk] ${slug}: new shown text not stored yet`,
+      err instanceof Error ? err.message.slice(0, 160) : "unknown",
+    );
   }
 }
 
@@ -151,9 +178,10 @@ export async function updateLegalDocAction(
       effectiveDate: refusal,
     });
   }
-  const texts = await storeShownTexts(slug, legalDocRow(slug, next, at));
+  const texts = await storeShownBefore(slug, legalDocRow(slug, next, at));
   if (!texts) return actionError(VERSION_NOT_STORED);
   const saved = await upsertLegalDoc(slug, next, { by: session.email });
+  await storeShownAfter(slug, texts);
   await safeAudit({
     action: "update",
     entity: "legal_doc",
@@ -162,8 +190,8 @@ export async function updateLegalDocAction(
       published: next.isPublished,
       effectiveDate: next.effectiveDate,
       archivedId: saved.archivedId,
-      textHashBefore: texts.before,
-      textHashAfter: texts.after,
+      textHashBefore: texts.before.hash,
+      textHashAfter: texts.after.hash,
     },
   });
   revalidateLegal(slug);
@@ -188,14 +216,16 @@ export async function resetLegalDocAction(
   const slug = String(formData.get("slug") ?? "");
   const doc = findLegalDoc(slug);
   if (!doc) return actionError("Belge bulunamadı.");
-  // The coded text comes back: stored with the one it replaces, first.
-  const texts = await storeShownTexts(slug, null);
+  // The text it removes is stored first; the coded text that comes back,
+  // once the reset is written.
+  const texts = await storeShownBefore(slug, null);
   if (!texts) return actionError(VERSION_NOT_STORED);
   const archivedId = await resetLegalDoc(slug, { by: session.email });
   revalidateLegal(slug);
   if (!archivedId) {
     return actionError("Bu belgenin özel metni zaten yok; sayfa yenilendi.");
   }
+  await storeShownAfter(slug, texts);
   await safeAudit({
     action: "delete",
     entity: "legal_doc",
@@ -203,8 +233,8 @@ export async function resetLegalDocAction(
     payload: {
       reset: true,
       archivedId,
-      textHashBefore: texts.before,
-      textHashAfter: texts.after,
+      textHashBefore: texts.before.hash,
+      textHashAfter: texts.after.hash,
     },
   });
   return actionOk(
@@ -257,9 +287,10 @@ export async function restoreLegalDocAction(
     next = { ...next, isPublished: false };
   }
 
-  const texts = await storeShownTexts(slug, legalDocRow(slug, next, at));
+  const texts = await storeShownBefore(slug, legalDocRow(slug, next, at));
   if (!texts) return actionError(VERSION_NOT_STORED);
   const saved = await upsertLegalDoc(slug, next, { by: session.email });
+  await storeShownAfter(slug, texts);
   await safeAudit({
     action: "update",
     entity: "legal_doc",
@@ -268,8 +299,8 @@ export async function restoreLegalDocAction(
       restoredFrom: archived.id,
       published: next.isPublished,
       archivedId: saved.archivedId,
-      textHashBefore: texts.before,
-      textHashAfter: texts.after,
+      textHashBefore: texts.before.hash,
+      textHashAfter: texts.after.hash,
     },
   });
   revalidateLegal(slug);

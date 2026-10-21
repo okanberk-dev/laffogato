@@ -719,6 +719,12 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     expect(s8.paragraphs?.[1]).toContain(
       "Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
     );
+    // Review R5 (21 Eki 2026): the mail goes without the file when it
+    // cannot be built in time, and older orders have no stored text; the
+    // request route stays for both, in its own paragraph.
+    expect(s8.paragraphs?.[2]).toBe(
+      `Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla ${LEGAL_ENTITY.email} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.`,
+    );
     const s8text = text("8. Sözleşme Metninin Saklanması ve Size Ulaşması");
     expect(s8text).toContain("en az 3 yıl");
     expect(s8text).not.toContain("aynı yolla");
