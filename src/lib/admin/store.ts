@@ -572,6 +572,14 @@ export interface AdminSettings {
    */
   menuPricesEffectiveDate: string;
 
+  /**
+   * The instant a cafe menu price last changed, here or from the köşk's
+   * panel (ISO; '' = none recorded): the menu page says when the day above
+   * is older (docs/PANEL-MENU.md). Never printed, never moves the day by
+   * itself (OP-PRICE-LISTS: the day is the operator's).
+   */
+  menuPricesChangedAt: string;
+
   /** Flat shipping fee in minor units; suppressed above threshold. */
   shippingFlatMinor: number;
   shippingFreeThresholdMinor: number;
@@ -921,6 +929,8 @@ function defaultSettings(): AdminSettings {
     // 20261018210200_menu_prices_effective_date.sql gives the column the
     // same default: not entered until the operator says the day.
     menuPricesEffectiveDate: "",
+    // 20261022120000_menu_prices_changed_at.sql: none recorded yet.
+    menuPricesChangedAt: "",
     shippingFlatMinor: 4900,
     shippingFreeThresholdMinor: 50000,
     // Empty = the home page's keyword title (app/page.tsx HOME_TITLE). A
@@ -6843,6 +6853,49 @@ export async function updateMenuItem(
     "updateMenuItem",
   );
   return next;
+}
+
+/** The sale fields of a menu item: what the köşk's panel may change. */
+export type MenuItemSaleFields = Partial<
+  Pick<AdminMenuItem, "priceMinor" | "priceMinorL" | "isActive">
+>;
+
+/**
+ * Writes only an item's sale fields - its prices and whether it is on the
+ * menu - in one UPDATE of those columns. The köşk's panel changes them
+ * (src/app/api/panel/menu/route.ts) while someone here may be saving the
+ * same item's name or photo; reading the whole row and writing it back
+ * would put back what the other wrote. Null when the item is gone.
+ */
+export async function setMenuItemSaleFields(
+  id: string,
+  fields: MenuItemSaleFields,
+): Promise<AdminMenuItem | null> {
+  await ensureSeed();
+  const sb = getDb();
+  const updated = rows<AdminMenuItem>(
+    await sb
+      .from(TABLES.menuItems)
+      .update({ ...fields, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("*"),
+    "setMenuItemSaleFields",
+  );
+  return updated[0] ?? null;
+}
+
+/**
+ * Records that a menu price changed at `at` (settings."menuPricesChangedAt"),
+ * from this panel or the köşk's: the menu page then says when the price
+ * list's day is older. Never throws: it runs after the price was written,
+ * and a lost mark costs a reminder, not a price.
+ */
+export async function markMenuPricesChanged(at: Date): Promise<void> {
+  try {
+    await updateSettings({ menuPricesChangedAt: at.toISOString() });
+  } catch (err) {
+    console.error("[menu] the price change could not be marked", err);
+  }
 }
 
 export async function deleteMenuItem(id: string): Promise<boolean> {

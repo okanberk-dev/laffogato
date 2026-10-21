@@ -27,6 +27,7 @@ const h = vi.hoisted(() => ({
     deleteMenuItem: vi.fn(),
     deleteProduct: vi.fn(),
     getMenuItem: vi.fn(),
+    markMenuPricesChanged: vi.fn(),
     listMenuItemLabels: vi.fn(),
     moveMenuItem: vi.fn(),
     getProduct: vi.fn(),

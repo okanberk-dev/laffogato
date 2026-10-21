@@ -8,8 +8,14 @@ import {
   isSchemaGap,
   schemaIsFresh,
 } from "./bootstrap";
-import { expireTags, TAG_KARAOKE, tagsForWrite } from "@/lib/cache/tags";
+import {
+  expireTags,
+  TAG_KARAOKE,
+  TAG_MENU,
+  tagsForWrite,
+} from "@/lib/cache/tags";
 import { pingPanelKaraoke } from "@/lib/panel/karaoke-ping";
+import { pingPanelMenu } from "@/lib/panel/menu-ping";
 
 import { createDb, type Db, type Executor } from "./client";
 import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
@@ -232,12 +238,14 @@ export function getDb(): Db {
       // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
       // after the commit. After the statement, never before: each one
       // commits on its own, and the multi-step writes are SQL functions.
-      // A karaoke write also pings the köşk's panel, after the response
-      // (src/lib/panel/karaoke-ping.ts, docs/PANEL-KARAOKE.md).
+      // A karaoke or menu write also pings the köşk's panel, after the
+      // response (src/lib/panel/karaoke-ping.ts, menu-ping.ts;
+      // docs/PANEL-KARAOKE.md, docs/PANEL-MENU.md).
       onWrite: (target) => {
         const tags = tagsForWrite(target);
         expireTags(tags);
         if (tags.includes(TAG_KARAOKE)) pingPanelKaraoke();
+        if (tags.includes(TAG_MENU)) pingPanelMenu();
       },
     });
   }

@@ -2,7 +2,10 @@ import Link from "next/link";
 
 import { TONE_RULE, TONE_SOFT } from "@/components/admin/ui/tone";
 import { normalizeMenuAllergens } from "@/lib/menu/allergens";
-import { menuPricesDateLabel } from "@/lib/menu/price-list";
+import {
+  menuPricesDateLabel,
+  menuPricesDateStale,
+} from "@/lib/menu/price-list";
 
 /**
  * What the menu still owes a guest before they order (18 Oct 2026): every
@@ -14,16 +17,21 @@ import { menuPricesDateLabel } from "@/lib/menu/price-list";
 export function MenuFoodInfoStatus({
   items,
   priceDate,
+  pricesChangedAt = "",
 }: {
   items: ReadonlyArray<{ allergens?: unknown }>;
   /** `settings.menuPricesEffectiveDate`, "" when not entered. */
   priceDate: string;
+  /** `settings.menuPricesChangedAt`: the last price change, here or from the köşk's panel. */
+  pricesChangedAt?: string;
 }) {
   const missing = items.filter(
     (it) => normalizeMenuAllergens(it.allergens) === null,
   ).length;
   const dateLabel = menuPricesDateLabel(priceDate);
-  const tone = missing > 0 || !dateLabel ? "warning" : "success";
+  const staleDay = menuPricesDateStale(priceDate, pricesChangedAt);
+  const tone =
+    missing > 0 || !dateLabel || staleDay ? "warning" : "success";
   return (
     <div
       data-testid="menu-food-info-status"
@@ -46,7 +54,19 @@ export function MenuFoodInfoStatus({
         )}
       </p>
       <p>
-        {dateLabel ? (
+        {dateLabel && staleDay ? (
+          <>
+            <strong>
+              Fiyatlar {menuPricesDateLabel(staleDay)} günü değişti; fiyat
+              listesinin tarihi hâlâ {dateLabel}.
+            </strong>{" "}
+            Tarihi{" "}
+            <Link href="/admin/ayarlar?sekme=tax" className="underline">
+              Ayarlar &gt; Vergi
+            </Link>
+            &apos;den o güne çek ve köşkteki basılı listeleri yenile.
+          </>
+        ) : dateLabel ? (
           <>
             <strong>Fiyat listesinin tarihi: {dateLabel}.</strong> Bir fiyatı
             değiştirdiğin gün bu tarihi de{" "}

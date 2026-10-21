@@ -34,6 +34,7 @@ vi.mock("@/lib/admin/store", () => ({
   deleteMenuItem: vi.fn(),
   deleteProduct: vi.fn(),
   getMenuItem,
+  markMenuPricesChanged: vi.fn(),
   getProduct,
   MENU_CATEGORY_KEYS: [
     "matcha",

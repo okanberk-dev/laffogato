@@ -77,6 +77,7 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
       <MenuFoodInfoStatus
         items={all}
         priceDate={settings.menuPricesEffectiveDate}
+        pricesChangedAt={settings.menuPricesChangedAt}
       />
 
       <StatusTabs

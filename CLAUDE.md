@@ -202,6 +202,8 @@ src/
     api/webhooks/payment/    → Sunucudan sunucuya ödeme bildirimi (HMAC)
     api/panel/karaoke/       → Köşkün panelinin imzalı karaoke okuması
                                (HMAC, docs/PANEL-KARAOKE.md)
+    api/panel/menu/          → Köşkün panelinin imzalı menü okuması ve
+                               fiyat / satış durumu yazımı (docs/PANEL-MENU.md)
     api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
@@ -250,7 +252,8 @@ src/
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
     panel/                   → Köşkün paneliyle karaoke bağlantısı: imza,
-                               pencere, beyaz liste (karaoke-sync-core) · ping
+                               pencere, beyaz liste (karaoke-sync-core) · ping;
+                               menü bağlantısı (menu-link-core) · menu-ping
     payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
                                paynkolay-card (kart doğrulama) · paynkolay-page
                                (ödeme sayfaları + kendi CSP'leri)
@@ -328,6 +331,28 @@ sayısı, durumlar ve not gider; e-posta, telefon, soyad, ödeme referansı asla
 `src/lib/panel/karaoke-sync-core.ts`'te ve panelde bayt bayt aynı; iki tarafın
 testleri aynı vektörleri sabitler. Ping yazımı asla bozmaz. Ayrıntı:
 `docs/PANEL-KARAOKE.md`.
+
+## Köşkün paneli: menü bağlantısı (22 Eki 2026)
+
+Operatör: _"bir yerden pasif yapınca veya fiyat değişince diğer yerlerden de
+değişsin"_. Kalemin **satış fiyatı** ve **menüde olup olmadığı**nın tek
+kaynağı sitedir (`menu_items`). Panel, ürün satırını sitedeki kaleme
+bağlar (`products.siteMenuId` + `siteMenuSlot` M/L, panelde) ve:
+
+- **okur:** imzalı `GET /api/panel/menu`;
+- **değiştirir:** imzalı `POST /api/panel/menu`, menü formunun kurallarıyla.
+  Site yalnız o sütunları yazar (`setMenuItemSaleFields`), olay kaydına
+  "Yönetim paneli · <ad>" düşer, panel ancak 2xx'ten sonra kendi kopyasını
+  yazar;
+- **haber alır:** `pub:menu`'yu düşüren her yazım panele `menu.changed`
+  pingi atar (`menu-ping.ts`).
+
+Anahtar karaoke'ninki (`KARAOKE_SYNC_SECRET`). Ad, açıklama, kategori, görsel
+ve alerjen eşitlenmez. Kasanın (ModPOS) fiyatı elle değişir.
+
+Fiyat listesi tarihini bağlantı değiştirmez (OP-PRICE-LISTS). Her fiyat
+değişikliği `settings."menuPricesChangedAt"`'i yazar; Kafe menüsü, girilen
+gün daha eskiyse uyarır. Ayrıntı: `docs/PANEL-MENU.md`.
 
 ## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 

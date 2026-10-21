@@ -41,6 +41,7 @@ vi.mock("@/lib/admin/store", () => ({
   deleteMenuItem,
   deleteProduct: vi.fn(),
   getMenuItem,
+  markMenuPricesChanged: vi.fn(),
   getProduct,
   MENU_CATEGORY_KEYS: ["frozen", "ice-coffee"],
   slugify: (s: string) =>

@@ -1013,7 +1013,12 @@ const ACTOR_LABELS: Record<string, string> = {
   anonymous: "Bilinmiyor",
 };
 
+/** A change the köşk's panel made, as its audit row names it: "panel:Selin". */
+const PANEL_ACTOR = /^panel:(.+)$/;
+
 export function auditActorLabel(actor: string): string {
+  const panel = PANEL_ACTOR.exec(actor);
+  if (panel) return `Yönetim paneli · ${panel[1]}`;
   return ACTOR_LABELS[actor] ?? actor;
 }
 

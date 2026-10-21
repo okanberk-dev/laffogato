@@ -605,3 +605,17 @@ bir önceki sürümde eklenen satır kaldırıldı; pano o hesap için 2FA durum
 okumaz bile). 2FA isteğe bağlıdır (operatör kararı, `docs/AUDIT.md` §11).
 Durumu görmek ve açmak için: hesap menüsünde **Güvenlik / 2FA**
 (`/admin/2fa-kurulum`); sahip bütün hesaplarınkini Kullanıcılar'da görür.
+
+## Kafe menüsü: köşkün paneliyle bağlantı (22 Eki 2026)
+
+Kalemin satış fiyatı ve "Satışta / Tükendi" durumu köşkün iç panelinden
+(ladmin.laffogato.net) de değişebilir: panel, kendi ürününü sitedeki kaleme
+bağlamışsa değişikliği önce siteye yazar (`docs/PANEL-MENU.md`). Böyle bir
+değişiklik Olay kaydı'nda "Yönetim paneli · <ad>" diye görünür. Buradan
+yapılan değişiklik de panele bildirilir; panel kopyasını hemen günceller.
+
+Bir fiyat, hangi panelden olursa olsun, değiştiğinde Kafe menüsü sayfasının
+üstündeki satır, fiyat listesinin girilen günü daha eskiyse uyarır:
+"Fiyatlar <gün> günü değişti; fiyat listesinin tarihi hâlâ <gün>." Tarih
+kendiliğinden değişmez (köşkteki basılı listeler aynı günü taşır); Ayarlar
+> Vergi'den çekilir.
