@@ -6,8 +6,10 @@ import {
   useContext,
   useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   type ReactNode,
+  type Ref,
 } from "react";
 
 import { cx } from "@/components/laffogato/cx";
@@ -230,6 +232,7 @@ export function ActionForm({
   className,
   resetOnSuccess = false,
   beforeSubmit,
+  formRef: outerRef,
 }: {
   action: ModalAction;
   children: ReactNode;
@@ -237,12 +240,19 @@ export function ActionForm({
   /** Empty the form after a success that stays on the page. */
   resetOnSuccess?: boolean;
   /**
+   * The form's element, for what the page itself does with it (the
+   * unsaved-changes guard, ui/unsaved-guard.ts).
+   */
+  formRef?: Ref<HTMLFormElement>;
+  /**
    * Runs before the post; return `false` to stop it (nothing is sent, the
    * form stays as typed). For a check only the browser can make.
    */
   beforeSubmit?: BeforeSubmit;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  // Handed out by a layout effect, so the page's own effects find it set.
+  useImperativeHandle(outerRef, () => formRef.current as HTMLFormElement);
   const baseId = useId();
   const [state, formAction, pending] = useToastAction(action, {
     // A refusal is shown in the form itself, next to what has to change.

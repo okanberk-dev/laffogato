@@ -22,6 +22,10 @@ import {
 } from "@/components/admin/action-form";
 import { Field, PrimaryButton } from "@/components/admin/forms";
 import { announceAdminChange, useToast } from "@/components/admin/ui";
+import {
+  savedAnswer,
+  useUnsavedGuard,
+} from "@/components/admin/ui/unsaved-guard";
 
 import { ConfirmDialog } from "../confirm-dialog";
 import {
@@ -135,6 +139,12 @@ export function ConfigForm({
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const { state, errorId } = form;
+
+  // Leaving with this tab's edits unsaved asks (a link, the palette, a
+  // reload); a save that wrote makes what was posted the saved state. One
+  // call guards all nine tabs: each is its own form, and the guard asks
+  // once however many are dirty.
+  useUnsavedGuard(ref, { saved: savedAnswer(state) });
 
   // After each answer: mark the refused fields for assistive tech and move
   // focus to the first one (the same as ActionForm).
