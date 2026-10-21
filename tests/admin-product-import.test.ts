@@ -869,6 +869,11 @@ describe("the food label columns (TGK Etiketleme m.9/1, m.17/2-a)", () => {
     expect(new Set(spellings).size).toBe(spellings.length);
   });
 
+  it("leaves the template's allergen example empty, so a copied row declares nothing", async () => {
+    const { PRODUCT_IMPORT_COLUMNS } = await import("@/lib/admin/product-import-core");
+    expect(PRODUCT_IMPORT_COLUMNS.find((c) => c.key === "allergens")?.example).toBe("");
+  });
+
   it("reads groups by label or key in Ek-1 order, 'yok' as none, and refuses a guess", async () => {
     const { parseAllergenCell } = await import("@/lib/admin/product-import-core");
     expect(parseAllergenCell("")).toEqual({ ok: true, value: null });

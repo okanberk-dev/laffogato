@@ -207,7 +207,9 @@ export const PRODUCT_IMPORT_COLUMNS: readonly ImportColumnSpec[] = [
   {
     key: "allergens",
     need: "optional",
-    example: "yok",
+    // Empty, never "yok": a copied example row would otherwise declare a
+    // real product allergen-free (PR #206 review).
+    example: "",
     note: "Ek-1'deki 14 gruptan içerdiklerini virgülle yaz (ör. Gluten, Süt, Sert kabuklu meyveler); hiçbirini içermiyorsa yok. Sert kabuklu meyveler kuruyemiş uyarısını da ekler. Boşsa değişmez; listeyi silmek için ürün formunu kullan.",
     aliases: ["alerjen", "alerjenler"],
   },
