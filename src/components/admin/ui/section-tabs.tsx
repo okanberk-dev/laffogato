@@ -31,10 +31,7 @@ export function SectionTabs({
     <nav
       aria-label={label}
       data-admin-section-tabs=""
-      className={cx(
-        "bg-[var(--admin-surface)] px-4 pt-3 sm:px-6",
-        className,
-      )}
+      className={cx("bg-[var(--admin-surface)] px-4 pt-3 sm:px-6", className)}
     >
       <ul className="inline-flex max-w-full [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl bg-[var(--admin-panel)] p-1">
         {tabs.map((tab) => {

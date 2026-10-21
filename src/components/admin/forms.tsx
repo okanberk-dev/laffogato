@@ -123,7 +123,7 @@ export function PrimaryButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-[color,background-color,border-color,transform] active:scale-[0.98] motion-reduce:transition-colors motion-reduce:active:scale-100 hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-[color,background-color,border-color,transform] hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -137,7 +137,7 @@ export function GhostButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-[color,background-color,border-color,transform] active:scale-[0.98] motion-reduce:transition-colors motion-reduce:active:scale-100 hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -151,7 +151,7 @@ export function DangerButton({
   return (
     <button
       {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger-ink)] transition-[color,background-color,border-color,transform] active:scale-[0.98] motion-reduce:transition-colors motion-reduce:active:scale-100 hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white disabled:opacity-50 ${COMPACT.minH9} ${rest.className ?? ""}`}
+      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger-ink)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
     >
       {children}
     </button>

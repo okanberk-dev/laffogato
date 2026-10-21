@@ -39,14 +39,11 @@ export function Section({
     <section
       id={id}
       aria-labelledby={headingId}
-      className={cx(
-        "rounded-3xl bg-[var(--admin-panel)]",
-        className,
-      )}
+      className={cx("rounded-3xl bg-[var(--admin-panel)]", className)}
     >
       <header
         className={cx(
-          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-1 sm:px-6 sm:pt-5",
+          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-6 sm:pt-5",
           COMPACT.px4,
           COMPACT.py2,
         )}

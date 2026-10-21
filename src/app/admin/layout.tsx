@@ -45,7 +45,8 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const ADMIN_SANS = "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif";
+const ADMIN_SANS =
+  "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif";
 
 // The AkmanOS light theme: a white canvas, zinc-100 cards, white controls,
 // #171717 ink, black primary actions, lime only as a fill under dark ink.

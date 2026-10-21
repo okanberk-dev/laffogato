@@ -394,8 +394,8 @@ describe("member page layout and words (package 4b)", () => {
     expect(html).not.toContain("grid-cols-[90px_1fr]");
     // The side cards' own grids shrink too: the stamp history line kept
     // the Sadakat card wider than its column at 390 and at 1280 px.
-    expect(html).toMatch(/class="rounded-2xl[^"]* grid grid-cols-1 gap-4"/);
-    expect(html).not.toMatch(/class="rounded-2xl[^"]* grid gap-[34]"/);
+    expect(html).toMatch(/class="rounded-3xl[^"]* grid grid-cols-1 gap-4"/);
+    expect(html).not.toMatch(/class="rounded-[23]xl[^"]* grid gap-[34]"/);
     // ...and the address itself may break anywhere, the badge drops under it.
     expect(html).toMatch(
       /<span class="flex flex-wrap items-center gap-x-2 gap-y-1"><span class="\[overflow-wrap:anywhere\]">ayse\.yilmaz\.1990\.uzun\.adres@hotmail\.com<\/span>/,

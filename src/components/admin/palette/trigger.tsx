@@ -57,6 +57,16 @@ const takePalette = (m: typeof import("./palette")) => {
 
 const loadPalette = () => import("./palette").then(takePalette);
 
+/**
+ * Starts loading the list's chunk, for another control that opens the
+ * palette (the sidebar's ⌘K box): the trigger's own preload, shared.
+ */
+export function preloadPalette(): void {
+  void loadPalette().catch(() => {
+    // The open loads it again; PaletteBoundary says so if that fails.
+  });
+}
+
 const LazyPalette = dynamic(() => import("./palette").then(takePalette), {
   ssr: false,
   loading: () => <PaletteLoading />,
@@ -260,20 +270,10 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
         aria-haspopup="dialog"
         aria-keyshortcuts="Meta+K Control+K"
         data-admin-palette-trigger=""
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:flex lg:w-72 lg:items-center lg:justify-start lg:gap-2.5 lg:rounded-xl lg:border-[var(--admin-border-field)] lg:bg-[var(--admin-surface)] lg:px-3 xl:w-80"
+        title={label ? `Ara (${label})` : "Ara"}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-200 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]"
       >
         <SearchIcon />
-        <span className="hidden flex-1 text-left text-sm text-[var(--admin-text-mute)] lg:inline">
-          Ara
-        </span>
-        {label ? (
-          <kbd
-            className="hidden rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-1.5 py-0.5 text-[11px] leading-4 text-[var(--admin-text-soft)] lg:inline"
-            style={{ fontFamily: "inherit" }}
-          >
-            {label}
-          </kbd>
-        ) : null}
       </a>
       {open
         ? createPortal(

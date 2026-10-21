@@ -133,12 +133,7 @@ export function BottomBar({
                   aria-controls={drawerId}
                   className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
                 >
-                  <span
-                    className={cx(
-                      PILL,
-                      lit && PILL_ACTIVE,
-                    )}
-                  >
+                  <span className={cx(PILL, lit && PILL_ACTIVE)}>
                     <NavIcon name="drawer" />
                   </span>
                   <span className="max-w-full truncate">
@@ -160,9 +155,7 @@ export function BottomBar({
                 className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
               >
                 <SlotPending />
-                <span
-                  className={cx(PILL, lit && PILL_ACTIVE)}
-                >
+                <span className={cx(PILL, lit && PILL_ACTIVE)}>
                   <NavIcon name={item.icon ?? item.section} />
                   {badge !== null ? <Badge n={badge} /> : null}
                 </span>
