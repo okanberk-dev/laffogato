@@ -42,10 +42,10 @@ describe("PII that never reaches a stored view", () => {
       "0090 532 123 45 67",
       "532 123 4567",
       "0 5 3 2 1 2 3 4 5 6 7",
-      "0532 123 45 67",
-      "0532 123 45 67",
-      "０５３２１２３４５６７",
-      "0532–123—45−67",
+      "0532\u00a0123\u00a045\u00a067",
+      "0532\u2009123\u202f45\u202f67",
+      "\uff10\uff15\uff13\uff12\uff11\uff12\uff13\uff14\uff15\uff16\uff17",
+      "0532\u2013123\u201445\u221267",
     ]) {
       expect(kept(`durum=acik&kanal=${encodeURIComponent(phone)}`), phone).toBe(
         "durum=acik",
@@ -173,22 +173,30 @@ describe("the name rule", () => {
   });
 
   it("whitespace-only and invisible-only names are refused", () => {
-    for (const raw of ["", "   ", "\t\n", "　", "​‍⁠", "‮", "﻿"]) {
+    for (const raw of [
+      "",
+      "   ",
+      "\t\n",
+      "\u3000",
+      "\u200b\u200d\u2060",
+      "\u202e",
+      "\ufeff",
+    ]) {
       expect(cleanViewName(raw).ok, JSON.stringify(raw)).toBe(false);
     }
   });
 
   it("combining marks: composed by NFKC, a long run is too long", () => {
-    const name = "Sipariş́";
+    const name = "Sipariş\u0301";
     expect(cleanViewName(name)).toEqual({
       ok: true,
       name: name.normalize("NFKC"),
     });
-    expect(cleanViewName(`a${"́".repeat(40)}`).ok).toBe(false);
+    expect(cleanViewName(`a${"\u0301".repeat(40)}`).ok).toBe(false);
   });
 
   it("a ZWJ emoji sequence loses its joiners (U+200D is Cf)", () => {
-    const family = "\u{1F468}‍\u{1F469}‍\u{1F467}";
+    const family = "\u{1F468}\u200d\u{1F469}\u200d\u{1F467}";
     expect(cleanViewName(family)).toEqual({
       ok: true,
       name: "\u{1F468}\u{1F469}\u{1F467}",
@@ -196,8 +204,8 @@ describe("the name rule", () => {
   });
 
   it("names that render blank but are not whitespace pass (U+2800, U+3164)", () => {
-    expect(cleanViewName("⠀").ok).toBe(true);
-    expect(cleanViewName("ㅤ").ok).toBe(true);
+    expect(cleanViewName("\u2800").ok).toBe(true);
+    expect(cleanViewName("\u3164").ok).toBe(true);
   });
 
   it("an e-mail or phone in the name is refused, spelled any way piiLike reads", () => {
@@ -205,7 +213,7 @@ describe("the name rule", () => {
       "ali@x.com",
       "Ayşe 0532 123 45 67",
       "+90 (532) 123-45-67",
-      "ali＠x.com",
+      "ali\uff20x.com",
     ]) {
       expect(cleanViewName(raw).ok, raw).toBe(false);
     }
