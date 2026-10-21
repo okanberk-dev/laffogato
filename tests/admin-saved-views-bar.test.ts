@@ -246,13 +246,19 @@ describe("what the bar loads statically", () => {
       [
         "@/app/admin/liste-arama/actions",
         "@/components/laffogato/cx",
+        // The date presets' links (UI-14): pure, no imports of their own.
+        "@/lib/admin/date-presets",
         "@/lib/admin/list-params",
         "@/lib/admin/list-search-core",
         "../forms",
+        "./link-pending",
         "./list-search-button",
         "./saved-views-key",
         "./styles",
         "./submit",
+        // The hand-over rules of the date widget (UI-14): pure; the widget's
+        // chunk itself is reached by import() alone.
+        "./widget-loader",
         "next/dynamic",
         "next/link",
         "react",
