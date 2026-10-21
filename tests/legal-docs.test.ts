@@ -570,8 +570,14 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     for (const [where, text] of docTexts()) {
       if (!bankData.test(text)) continue;
       // A supplier's account, and the sentence that only adds "bu amaçla"
-      // to the partial refund just before it, are not this processing.
-      if (/Tedarikçi/.test(text) || /[Bb]u amaçla bildirdiğiniz/.test(text)) {
+      // to the partial refund just before it, are not this processing; nor
+      // is the karaoke make-good's own account (karaoke terms §8), which
+      // tests/karaoke-make-good.test.ts holds to its own words.
+      if (
+        /Tedarikçi/.test(text) ||
+        /[Bb]u amaçla bildirdiğiniz/.test(text) ||
+        (/telafi/.test(text) && !/gönderim bedel/.test(text))
+      ) {
         continue;
       }
       seen++;
@@ -585,14 +591,20 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     expect(purpose).toMatch(/gönderim bedelinin ödenmesi/);
   });
 
-  it("keeps the payment terms' bank transfer list to the two cases", () => {
+  it("keeps the payment terms' bank transfer list to its three cases", () => {
+    // The third since 21 Ekim 2026: the karaoke make-good paid to the
+    // guest's own account (karaoke terms §8; LEGAL-REDLINES §26).
     const transfer = sectionOf(
       "odeme-kosullari",
       "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
     ).paragraphs?.[1];
-    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca iki hâlde/);
+    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca üç hâlde/);
     expect(transfer).toMatch(/22\. maddede açıklanan istisnai hâlde/);
     expect(transfer).toMatch(/gönderim bedelinin ödenmesi/);
+    expect(transfer).toMatch(/telafi/);
+    expect(transfer).toMatch(
+      /Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 \(on dört\) gün içinde ödenir\./,
+    );
     expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
   });
 });

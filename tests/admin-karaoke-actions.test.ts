@@ -275,6 +275,46 @@ describe("money moves only behind a reason", () => {
     expect(!settled.ok && settled.error).not.toMatch(/kaydedildi\./);
   });
 
+  it("'Elle iade edildi' posts the amount its dialog showed, and a moved amount says so", async () => {
+    h.settle.mockResolvedValue({
+      ok: false,
+      reason: "raced",
+      message: "İade edilecek tutar sayfa açıldıktan sonra değişti.",
+    });
+    const res = await admin.settleKaraokeRefundAction(
+      null,
+      form({
+        id: ID,
+        reason: "PayNkolay'da 1.000 TL",
+        gosterilenIade: "100000",
+      }),
+    );
+    expect(h.settle).toHaveBeenCalledWith(ID, "kosk@laffogato", undefined, {
+      reason: "PayNkolay'da 1.000 TL",
+      shownRefundMinor: 100_000,
+    });
+    expect(!res.ok && res.error).toBe(
+      "İade edilecek tutar sayfa açıldıktan sonra değişti.",
+    );
+    // A whole-payment dialog posts no amount: null, nothing to pin.
+    await admin.settleKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "Panelde görüldü", gosterilenIade: "" }),
+    );
+    expect(h.settle).toHaveBeenLastCalledWith(ID, "kosk@laffogato", undefined, {
+      reason: "Panelde görüldü",
+      shownRefundMinor: null,
+    });
+    // Anything else is no amount at all: a share is then refused.
+    await admin.settleKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "Panelde görüldü", gosterilenIade: "1.000,00" }),
+    );
+    expect(h.settle).toHaveBeenLastCalledWith(ID, "kosk@laffogato", undefined, {
+      reason: "Panelde görüldü",
+    });
+  });
+
   it("the refund cancel needs a reason; an unpaid one does not", async () => {
     const res = await admin.cancelReservationAction(
       null,
