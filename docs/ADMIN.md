@@ -451,3 +451,28 @@ hemen uygulanır (tercihle yenileyince menü bir an geniş görünüp daralır).
   düğme, ne kök öğeye yazım.
 - Kurallar tek yerde: `src/lib/admin/view-prefs-core.ts`; tercihlerin deposu
   ve kök öğeye yazan bileşen `src/components/admin/view-prefs.tsx`.
+
+## Supabase uyanık tutma satırı (Genel bakış, yalnız sahip)
+
+Ücretsiz plandaki Supabase projesi 7 gün veritabanı etkinliği görmezse
+duraklar ve uygulamada da sitede de her girişi reddeder; günlük cron bu yüzden
+her sabah projeyi yoklar (`docs/SUPABASE-GECIS.md` §0). Cron elle
+çağrılamadığı için sonucu görünmüyordu; artık her yoklama Neon'daki
+`supabase_keepalive` satırına yazılır ve Genel bakış'ta, posta uyarısının
+altında bir satır durur:
+
+- **"Supabase uyanık tutma: son başarılı ping 20 Eki 2026 09:00."** Tarih
+  panelin geri kalanı gibi İstanbul saatiyle yazılır.
+- **Uyarı renginde**: son başarı İstanbul takvimiyle 3 günden eskiyse (gece
+  yarısı Tuzla'da yeni gün sayılır), ya da son deneme başarısızsa. Son deneme
+  atlandıysa (servis anahtarı yok) satır bunu da söyler.
+- **"henüz kayıt yok"**: cron bu sürümden sonra henüz çalışmadı. Tablo
+  kurulalı (migration'ın `_migrations` kaydı) en çok 2 İstanbul günü
+  geçtiyse uyarı değil; daha uzun süredir kayıt yoksa uyarı renginde "günlük
+  görev çalışmıyor olabilir" der (`CRON_SECRET` tanımsız ya da program
+  bozuk: başka hiçbir yer bunu söylemez, proje 7 günde duraklar).
+
+Yalnız sahip görür (Ayarlar'daki servis anahtarı satırını görenler):
+yönetici, personel ve kasiyer için kayıt sunucuda hiç okunmaz
+(`readKeepaliveFor`), satır sayfaya da girmez. Kayıt okunamazsa sayfa yine
+açılır, satır "kayıt okunamadı" der.

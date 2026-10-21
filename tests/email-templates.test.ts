@@ -197,7 +197,9 @@ describe("the twenty-five templates render", () => {
     // two sentences, and until when a venue-paid booking may be cancelled,
     // 18 Eki 2026, and the last free moment, 19 Eki 2026): a cancelled
     // booking has nothing left to cancel. Why the köşk cancelled is the
-    // cancellation's alone (ASK-OTH-3 (c)).
+    // cancellation's alone (ASK-OTH-3 (c)). The make-good of a late köşk
+    // cancel (its amount, last day) is the cancellation's, the booking a
+    // free hour makes good the confirmation's (21 Eki 2026).
     // The confirmed terms' version page is the confirmation's alone too: the
     // copy rides with the booking's confirmation (ASK-DURABLE, 21 Eki 2026).
     const RULE_ONLY = new Set([
@@ -206,6 +208,9 @@ describe("the twenty-five templates render", () => {
       "KARAOKE_MEKAN_SURE",
       "KARAOKE_SON_IPTAL",
       "KARAOKE_NEDEN",
+      "KARAOKE_TELAFI_TUTAR",
+      "KARAOKE_TELAFI_SON",
+      "KARAOKE_TELAFI_KOD",
       "KARAOKE_SURUM_URL",
     ]);
     const of = (name: EmailTemplateName) =>

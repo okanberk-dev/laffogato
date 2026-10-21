@@ -27,6 +27,7 @@ import { karaokeTaxRate } from "@/lib/utils/kdv";
 
 import type { KaraokeCancelCause } from "./karaoke-cancel-cause";
 import { formatReservationDate, formatReservationTime } from "./karaoke-format";
+import { makeGoodStateOf, resaleAllocation } from "./karaoke-make-good-core";
 import { karaokeLinkUrl } from "./karaoke-link";
 import { istanbulClock } from "./venue";
 import {
@@ -385,8 +386,10 @@ export async function createReservation(
   // guest the same, counted per address and per phone number among GUEST
   // bookings only - a typed address must not use up a member's own cap (the
   // trigger counts the two apart as well).
+  // A free hour the köşk gave (`makeGoodFor`) is not one of their own
+  // bookings: it neither counts nor is capped (karaoke_open_cap agrees).
   const isOpen = (r: KaraokeReservation) =>
-    r.status !== "cancelled" && r.date >= clock.date;
+    r.status !== "cancelled" && r.date >= clock.date && !r.makeGoodFor;
   const mine = guest
     ? (await listByAddress(customer.email)).filter((r) => r.guest)
     : await listMine(customer.email);
@@ -713,6 +716,16 @@ const ADMIN_LIST_COLUMNS = [
   "cancelDeadline",
   "cancellationRules",
   "refundMinor",
+  "makeGoodUntil",
+  "makeGoodMinor",
+  "makeGoodUsedAt",
+  "makeGoodPaidMinor",
+  "makeGoodPaidOn",
+  "makeGoodFor",
+  "resoldHours",
+  "resaleRefundMinor",
+  "refundSettledMinor",
+  "refundSteps",
 ].join(", ");
 
 /** Rows one panel read returns at most; the page says so when it is hit. */
@@ -842,6 +855,25 @@ export async function listKaraokeAttention(
   return [...found, ...confirmed];
 }
 
+/**
+ * The free hour given to make good booking `id` (`makeGoodFor`), the live
+ * one first; null when none was given. For the booking's page.
+ */
+export async function getMakeGoodHourFor(
+  id: string,
+): Promise<KaraokeReservation | null> {
+  const found = rows<KaraokeReservation>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select(ADMIN_LIST_COLUMNS)
+      .eq("makeGoodFor", id)
+      .order("createdAt", { ascending: false })
+      .limit(5),
+    "karaoke.getMakeGoodHourFor",
+  );
+  return found.find((r) => r.status !== "cancelled") ?? found[0] ?? null;
+}
+
 export async function getReservation(
   id: string,
 ): Promise<KaraokeReservation | null> {
@@ -950,8 +982,9 @@ export async function setReservationStatus(
   if (!moneyAllows) return { ok: false, reason: "payment_open" };
 
   // Confirming takes the hour: refuse if another confirmed booking has it.
+  let sameDay: KaraokeReservation[] = [];
   if (status === "confirmed") {
-    const sameDay = await listByDate(existing.date);
+    sameDay = await listByDate(existing.date);
     const clash = rangeConflicts(
       existing.startHour,
       existing.hours,
@@ -981,9 +1014,36 @@ export async function setReservationStatus(
     status,
     updatedAt: now.toISOString(),
   };
+  // The hour is sold (paid and confirmed, or confirmed to be paid at the
+  // köşk): a booking that cancelled it late gets back the share it kept for
+  // it (ASK-OTH-3-CFG). Right after the write that sold it, before the mail
+  // (a slow mail must not stand between the sale and what it owes); never
+  // fails the confirmation.
+  if (status === "confirmed") await chargeResale(reservation, sameDay);
   const notified =
     opts.notify === false ? true : await notifyReservationStatus(reservation);
   return { ok: true, reservation, notified };
+}
+
+/**
+ * The resale refund of an hour just sold, best effort: what each
+ * late-cancelled booking of the day is owed is worked out here
+ * (`resaleAllocation`, pure), and only when one is owed something does the
+ * money side load (karaoke-payment.ts imports this module, hence the
+ * dynamic import, as for the sweep above).
+ */
+async function chargeResale(
+  sold: KaraokeReservation,
+  sameDay: readonly KaraokeReservation[],
+): Promise<void> {
+  try {
+    const allocation = resaleAllocation(sold, sameDay);
+    if (allocation.length === 0) return;
+    const { chargeResoldHours } = await import("./karaoke-payment");
+    await chargeResoldHours(sold, allocation, sameDay);
+  } catch (err) {
+    console.error(`[karaoke] resale refund not worked out ${sold.id}`, err);
+  }
 }
 
 // ─── Notifying the member ──────────────────────────────────────────────────
@@ -1051,10 +1111,27 @@ function freeUntilLabel(r: KaraokeReservation): string {
   return `${formatReservationDate(day)}, ${istanbulTimeLabel(at.toISOString())}`;
 }
 
+/**
+ * What a refund mail says beyond the row: `refundedNowMinor` is what this
+ * refund sent back when it is not everything the row says went back (an
+ * hour sold again, refunded after the late share was), and `resaleTopUp`
+ * says that is what it is.
+ */
+export interface KaraokeRefundNote {
+  refundedNowMinor?: number;
+  resaleTopUp?: boolean;
+  /**
+   * A free hour let go before it began: the make-good it opened again
+   * (`until`: YYYY-MM-DD), which its cancellation mail names.
+   */
+  makeGoodReopened?: { minor: number; until: string };
+}
+
 /** What a booking's mails say about it; null when it has no address. */
 function karaokeMailPayload(
   r: KaraokeReservation,
   cancelCause?: KaraokeCancelCause,
+  note: KaraokeRefundNote = {},
 ): KaraokeEmailData | null {
   // The address the member gave on the form for exactly this, else the
   // account's.
@@ -1084,14 +1161,43 @@ function karaokeMailPayload(
     },
     // Why the köşk cancelled (the panel's code), never the note it typed.
     ...(cancelCause ? { cancelCause } : {}),
-    // What actually went back: the whole payment, or a late cancel's share.
+    // What actually went back: the whole payment, or a late cancel's share
+    // (with what an hour sold again gave back). A refund that only adds the
+    // resale part says that part.
     ...(r.status === "cancelled" && money === "refunded"
-      ? { refundedMinor: refundAmountOf(r), refundIsShare: isPartialRefund(r) }
+      ? {
+          refundedMinor: note.refundedNowMinor ?? refundAmountOf(r),
+          refundIsShare: isPartialRefund(r),
+          ...(note.resaleTopUp
+            ? { refundIsResaleTopUp: true }
+            : (r.resaleRefundMinor ?? 0) > 0
+              ? { refundIncludesResale: true }
+              : {}),
+        }
       : {}),
     // A late cancel's share the köşk still owes (refunded by hand).
     ...(r.status === "cancelled" && money === "refunding" && isPartialRefund(r)
       ? { refundOwedMinor: refundAmountOf(r), refundIsShare: true }
       : {}),
+    // The köşk's late cancel made good, while neither option was used
+    // (karaoke terms §8).
+    ...(makeGoodStateOf(r) === "open"
+      ? {
+          makeGood: {
+            minor: r.makeGoodMinor ?? 0,
+            until: formatReservationDate(r.makeGoodUntil ?? ""),
+          },
+        }
+      : note.makeGoodReopened
+        ? {
+            makeGood: {
+              minor: note.makeGoodReopened.minor,
+              until: formatReservationDate(note.makeGoodReopened.until),
+            },
+          }
+        : {}),
+    // A free hour the köşk gave: no payment, and which booking it makes good.
+    ...(r.makeGoodFor ? { makeGoodHourFor: r.makeGoodFor } : {}),
   };
   return payload;
 }
@@ -1141,12 +1247,13 @@ function logMailFailure(r: KaraokeReservation, err: unknown): void {
  */
 export async function notifyReservationStatus(
   r: KaraokeReservation,
-  opts: { cause?: KaraokeCancelCause } = {},
+  opts: { cause?: KaraokeCancelCause } & KaraokeRefundNote = {},
 ): Promise<boolean> {
   if (r.status !== "confirmed" && r.status !== "cancelled") return true;
   const payload = karaokeMailPayload(
     r,
     r.status === "cancelled" ? opts.cause : undefined,
+    opts,
   );
   if (!payload) return false;
   try {

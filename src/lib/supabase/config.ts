@@ -13,8 +13,9 @@
  * missing - a preview deploy without the env var must still be able to sign
  * members in against the same project the app uses.
  *
- * The service-role key is a different animal - it bypasses every policy - and
- * it is deliberately NOT read here. Exactly one module reads it,
+ * The service key is a different animal - it bypasses every policy - and it
+ * is deliberately NOT read here, under either name (`SUPABASE_SECRET_KEY`,
+ * or the legacy `SUPABASE_SERVICE_ROLE_KEY`). Exactly one module reads it,
  * `./admin.ts`, for the jobs its header justifies: deleting the sign-in
  * identity of a member who closed their account, writing a password reset
  * here through to Supabase, and the daily ping that keeps a free-plan project

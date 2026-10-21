@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
@@ -33,6 +34,17 @@ import { runBirthdayGreetings } from "../_birthday";
  * **The Supabase ping has no route of its own.** A free-plan Supabase project
  * pauses after 7 days without database activity, and a paused project is
  * nobody signing in to the app. On Supabase Pro, drop the step.
+ *
+ * **The ping's outcome is recorded** in our own Postgres
+ * (`supabase_keepalive`, `recordSupabaseKeepalive`) for the owner's
+ * dashboard: nobody can call this route by hand (CRON_SECRET is "sensitive"
+ * on Vercel), so its response body was the only place the result lived. The
+ * record is written after every job, not beside the ping: it is
+ * bookkeeping, and a write waiting on a database that does not answer holds
+ * the pool's one connection, which would hold up every job behind it. It is
+ * bounded, never throws, and its failure leaves the run and the ping's
+ * reported outcome as they were (`keepalive.recorded` says whether it
+ * landed).
  *
  * **Order matters.** The ping first: it is over in well under a second (5 s at
  * worst), and its whole point is that it runs at all. Campaigns next, because
@@ -104,10 +116,17 @@ export async function GET(request: Request) {
     return report;
   });
 
+  // The ping's outcome, for the owner's dashboard. A step that threw (the
+  // ping itself never does) got nowhere as far as anyone can tell: failed.
+  // The record never throws either; the catch only keeps that promise here.
+  const recorded = await recordSupabaseKeepalive(
+    keepalive.ok ? keepalive.ping : "failed",
+  ).catch(() => false);
+
   return NextResponse.json(
     {
       ok: true,
-      keepalive,
+      keepalive: { ...keepalive, recorded },
       campaigns,
       birthday,
       karaoke,

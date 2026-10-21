@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
 import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
+import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-status";
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
 import { DashboardNotice } from "@/components/admin/dashboard/notice";
 import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
@@ -22,6 +23,11 @@ import {
 } from "@/lib/admin/dashboard-core";
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
 import { canAccess } from "@/lib/admin/roles";
+import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
+import {
+  keepaliveView,
+  readKeepaliveFor,
+} from "@/lib/admin/supabase-keepalive-core";
 import {
   getDashboardStats,
   getSettings,
@@ -93,18 +99,22 @@ export default async function AdminDashboardPage() {
         }),
       )
     : null;
-  const [stats, recent, settings, mail, revenue, karaoke] = await Promise.all([
-    getDashboardStats(),
-    // Five rows, read as five rows: this used to be every order in the
-    // table, sliced here (WP1). Their payment rows too, so the payment
-    // badge says what the order list says.
-    showOrders ? listRecentOrders(5).then(withMoney) : [],
-    settingsRead,
-    readMailHealth(),
-    // Revenue is read only for the roles that may see it (D1).
-    showRevenue ? revenueBuckets("day", 14) : null,
-    karaokeRead,
-  ]);
+  const [stats, recent, settings, mail, revenue, karaoke, keepalive] =
+    await Promise.all([
+      getDashboardStats(),
+      // Five rows, read as five rows: this used to be every order in the
+      // table, sliced here (WP1). Their payment rows too, so the payment
+      // badge says what the order list says.
+      showOrders ? listRecentOrders(5).then(withMoney) : [],
+      settingsRead,
+      readMailHealth(),
+      // Revenue is read only for the roles that may see it (D1).
+      showRevenue ? revenueBuckets("day", 14) : null,
+      karaokeRead,
+      // The daily Supabase ping's record, for the owner alone: for any
+      // other role the read is never made (null), not merely not shown.
+      readKeepaliveFor(role, loadSupabaseKeepalive),
+    ]);
 
   const tiles = dashboardTiles(
     {
@@ -177,6 +187,15 @@ export default async function AdminDashboardPage() {
           )}
         </DashboardNotice>
       )}
+
+      {/*
+        Whether the daily ping that keeps the free-plan Supabase project
+        awake still gets through. Nobody can call the cron by hand, so this
+        line is the only place its result shows (owner only, see above).
+      */}
+      {keepalive !== null ? (
+        <KeepaliveStatusLine view={keepaliveView(keepalive, now)} />
+      ) : null}
 
       <div
         className={`grid gap-3 sm:gap-4 ${TILE_GRID[tiles.length] ?? "grid-cols-2"}`}

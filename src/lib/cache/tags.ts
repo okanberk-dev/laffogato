@@ -66,6 +66,7 @@ const CATALOG: readonly CacheTag[] = [TAG_CATALOG];
 const MENU: readonly CacheTag[] = [TAG_MENU];
 const SITE: readonly CacheTag[] = [TAG_SITE];
 const ORDERS: readonly CacheTag[] = [TAG_ORDERS];
+const KARAOKE: readonly CacheTag[] = [TAG_KARAOKE];
 /** Stock moves with an order: the shop's stock and the order both change. */
 const STOCK_AND_ORDERS: readonly CacheTag[] = [TAG_CATALOG, TAG_ORDERS];
 
@@ -88,7 +89,7 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   venue_status: SITE,
 
   orders: ORDERS,
-  karaoke_reservations: [TAG_KARAOKE],
+  karaoke_reservations: KARAOKE,
   // Who may still read the panel: the change markers (change-marker.ts).
   admin_users: [TAG_ACCESS],
 
@@ -126,6 +127,9 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // Written by a trigger on every price change; read live by the panel's
   // discount check, never cached.
   product_price_history: NONE,
+  // The daily Supabase ping's last result; read live by the owner's
+  // dashboard, never cached.
+  supabase_keepalive: NONE,
 };
 
 /**
@@ -153,6 +157,13 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   wallet_place_order: ORDERS,
   // The stock_moves ledger: read live by the panel, never cached.
   record_stock_move: NONE,
+
+  // Karaoke bookings only: an hour sold again charged to the booking that
+  // cancelled it late, and the köşk's late cancel made good (the free hour
+  // given, or let go). 20261020203619_karaoke_make_good.sql.
+  karaoke_charge_resold_hours: KARAOKE,
+  karaoke_give_make_good_hour: KARAOKE,
+  karaoke_release_make_good_hour: KARAOKE,
 
   // Legal overrides the /hukuk pages print.
   legal_doc_save: SITE,

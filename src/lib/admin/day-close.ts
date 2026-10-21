@@ -227,16 +227,45 @@ export function dayCloseSummary(
     });
   }
   for (const b of rows.karaokeMoney) {
+    // Refunds recorded by hand are steps of their own: each on its day,
+    // whatever the booking became since (an hour sold again after a late
+    // share went back makes it owe more; what went back stays that day's).
+    const steps = Array.isArray(b.refundSteps) ? b.refundSteps : [];
+    if (steps.length > 0) {
+      steps.forEach((step, i) => {
+        const minor = Math.max(0, Math.round(Number(step?.minor) || 0));
+        if (minor <= 0 || !inIstanbulDay(step?.at, day)) return;
+        refunds.push({
+          key: `${b.id}:step:${i}`,
+          kind: "karaoke",
+          label: b.id.toUpperCase(),
+          href: karaokeDetailHref(b.id),
+          at: step.at,
+          time: istanbulTimeLabel(step.at),
+          amountMinor: minor,
+          destination: REFUND_DESTINATION_LABELS.card,
+        });
+      });
+      continue;
+    }
     if (b.paymentStatus !== "refunded" || !inIstanbulDay(b.refundedAt, day)) {
       continue;
     }
-    // What went back, as karaokeRevenueFrom takes it off: a late cancel's
-    // share, else the whole payment.
+    // What went back that day, as karaokeRevenueFrom takes it off: a late
+    // cancel's share, else the whole payment. When an hour sold again made
+    // a refunded share owe more, `refundedAt` is the day of that last step
+    // and only the step is that day's: what had gone back before stays
+    // apart in `refundSettledMinor` (karaoke-make-good-core.ts).
     const paid = Math.max(0, Math.round(Number(b.paidMinor) || 0));
-    const share =
-      typeof b.refundMinor === "number" && b.refundMinor >= 0
-        ? Math.min(paid, Math.round(b.refundMinor))
-        : paid;
+    const isShare = typeof b.refundMinor === "number" && b.refundMinor >= 0;
+    const total = isShare
+      ? Math.min(paid, Math.round(b.refundMinor as number))
+      : paid;
+    const before =
+      isShare && typeof b.refundSettledMinor === "number"
+        ? Math.min(total, Math.max(0, Math.round(b.refundSettledMinor)))
+        : 0;
+    const share = total - before;
     if (share <= 0) continue;
     refunds.push({
       key: b.id,

@@ -37,8 +37,9 @@ export function IdentityKeyStatus({ hasKey }: { hasKey: boolean }) {
           - sitede sıfırlanan şifre uygulamada eski hâliyle çalışmaya devam eder
           ve hesabını kapatan üyenin giriş kaydı (e-posta ve kayıt bilgileri)
           Supabase&apos;de kalır. Geliştiriciye ilet: Vercel&apos;de{" "}
-          <code>SUPABASE_SERVICE_ROLE_KEY</code> tanımlanıp site yeniden yayına
-          alınmalı.
+          <code>SUPABASE_SECRET_KEY</code> (Supabase&apos;in yeni gizli
+          anahtarı; eski <code>SUPABASE_SERVICE_ROLE_KEY</code> da okunur ama
+          2026 sonunda kalkıyor) tanımlanıp site yeniden yayına alınmalı.
         </>
       )}
     </p>

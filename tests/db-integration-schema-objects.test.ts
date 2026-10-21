@@ -6,6 +6,7 @@ import {
   holdSharedDatabase,
   SUITE_LOCK_WAIT_MS,
 } from "./_support/db-suite-lock";
+import { schemaTableSecurity } from "./_support/schema-tables";
 
 /**
  * What the bundled schema leaves behind in a real Postgres, after the whole
@@ -44,6 +45,28 @@ maybe("bundled schema objects in a real Postgres", () => {
     );
     return r.rows.map((row) => row.args);
   }
+
+  it("keeps row level security on for every table in schema public", async () => {
+    // pg_class is the answer the static check in tests/db-rls.test.ts can
+    // only predict: RLS with no policy is what closes a table to Supabase's
+    // client roles (docs/SUPABASE-GECIS.md §1).
+    const r = await pool.query<{ relname: string; relrowsecurity: boolean }>(
+      `select c.relname, c.relrowsecurity
+         from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind in ('r', 'p')`,
+    );
+    // db-integration.test.ts builds and drops a scratch table of its own;
+    // it is not the schema's, and the suite lock keeps it out of this run.
+    const tables = r.rows.filter((row) => row.relname !== "shim_probe");
+    expect(
+      tables.filter((row) => !row.relrowsecurity).map((row) => row.relname),
+    ).toEqual([]);
+    // Every table the bundle creates is there, so the check covered them.
+    expect(tables.map((row) => row.relname)).toEqual(
+      expect.arrayContaining([...schemaTableSecurity().keys()]),
+    );
+  });
 
   it("keeps only the current campaign claim and mark signatures", async () => {
     expect(await signatures("campaign_email_claim")).toEqual([

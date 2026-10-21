@@ -256,11 +256,11 @@ vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
     await importOriginal<typeof import("@/lib/mobile/karaoke-time")>();
   return {
     ...real,
-    // A share of 1..99 % stays closed in the code until the resale refund
-    // ships; these tests keep exercising its path (karar D9).
+    // The app lock opened by the test (a share of 1..99 % is open since
+    // the resale refund, karaoke-make-good-and-resale).
     effectiveKaraokeCancelPolicy: (
       s: Parameters<typeof real.effectiveKaraokeCancelPolicy>[0],
-    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion, true),
+    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion),
   };
 });
 
@@ -648,11 +648,15 @@ describe("a member cancels", () => {
     expect(retry).toEqual({ ok: false, reason: "by_hand" });
     expect(h.refunds).toEqual([]);
 
+    // The dialog posts the share it named (karaoke-panel.tsx, settleFields).
     const settled = await payment.settleKaraokeRefundByHand(
       "krk-00042",
       "yonetici@kosk",
       at(9),
-      { reason: "PayNkolay panelinden kısmi iade yapıldı" },
+      {
+        reason: "PayNkolay panelinden kısmi iade yapıldı",
+        shownRefundMinor: 100_000,
+      },
     );
     expect(settled).toMatchObject({ ok: true, refunded: true });
     expect(row()).toMatchObject({
