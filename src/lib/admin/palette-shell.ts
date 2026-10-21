@@ -7,9 +7,14 @@
 // matching, the search answer) is in palette-core.ts, which only the lazy
 // palette loads and which re-exports this file.
 
+import { validAccountKey } from "./account-key";
 import { piiLike } from "./pii-like";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import { singleKeysForRole } from "./shortcut-roles";
+
+// The account key's shape lives in account-key.ts (the saved views check it
+// without this file); the palette's callers keep importing it from here.
+export { validAccountKey };
 
 /**
  * The no-JavaScript answer of the trigger: the results page. The same path
@@ -115,11 +120,6 @@ export function isApplePlatform(nav: {
 export const RECENT_KEY_PREFIX = "laf_admin_recent_v1:";
 export const RECENT_MAX = 8;
 export const RECENT_LABEL_MAX = 60;
-
-/** The account key the layout computes: 16 hex of an HMAC, never an e-mail. */
-export function validAccountKey(key: unknown): key is string {
-  return typeof key === "string" && /^[0-9a-f]{16}$/.test(key);
-}
 
 export function recentStorageKey(accountKey: string): string | null {
   return validAccountKey(accountKey)
