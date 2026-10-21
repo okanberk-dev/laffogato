@@ -137,7 +137,8 @@ describe("savedAnswer: the answer of a save that wrote", () => {
 
 // ── The edit gate and the saved state ──────────────────────────────────────
 
-function fields(initial: Array<[string, string]>) {
+/** A form's fields: [name, value] entries, read as the guard reads them. */
+function page(initial: Array<[string, string]>) {
   const entries = initial.map((e): [string, string] => [...e]);
   return {
     read: () => snap(entries),
@@ -151,7 +152,7 @@ function fields(initial: Array<[string, string]>) {
 
 describe("createFormGuard: dirty, refused, saved", () => {
   it("a form nobody touched is clean, whatever the page did to it by itself", () => {
-    const f = fields([["name", "Sirena"]]);
+    const f = page([["name", "Sirena"]]);
     const g = guard.createFormGuard(f.read);
     expect(g.dirty()).toBe(false);
     // A revalidation, a restored value, a late effect: not the operator's.
@@ -160,10 +161,10 @@ describe("createFormGuard: dirty, refused, saved", () => {
     expect(g.dirty()).toBe(false);
   });
 
-  it("is dirty once the operator edited and the fields differ, clean when typed back", () => {
-    const f = fields([["name", "Sirena"]]);
+  it("is dirty once the operator edited and the field differs, clean when typed back", () => {
+    const f = page([["name", "Sirena"]]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("name");
     expect(g.dirty()).toBe(false);
     f.set("name", "Sirena!");
     expect(g.dirty()).toBe(true);
@@ -171,30 +172,78 @@ describe("createFormGuard: dirty, refused, saved", () => {
     expect(g.dirty()).toBe(false);
   });
 
-  it("a refused save keeps the form dirty, and so does fixing it halfway", () => {
-    const f = fields([["email", "ali@ornek"]]);
+  it("compares only the fields the operator edited: what the page moves by itself never counts", () => {
+    const f = page([
+      ["title", "Eski"],
+      ["version", "1"],
+    ]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("title");
+    f.set("title", "Eski!");
+    f.set("title", "Eski"); // typed back
+    // A colleague's save re-rendered the page: an untouched field moved.
+    f.set("version", "2");
+    expect(g.dirty()).toBe(false);
+    // An edit elsewhere does not make it count either.
+    g.edit("title");
+    f.set("title", "Yeni");
+    expect(g.dirty()).toBe(true);
+    f.set("title", "Eski");
+    expect(g.dirty()).toBe(false);
+    // A field the operator edits counts from its own saved value.
+    g.edit("version");
+    expect(g.dirty()).toBe(true);
+    f.set("version", "1");
+    expect(g.dirty()).toBe(false);
+  });
+
+  it("stays quiet after a save, once an edit is typed back", () => {
+    // The independent review's case (F1): it failed at 47e2f892.
+    const f = page([
+      ["title", "Eski"],
+      ["version", "1"],
+    ]);
+    const g = guard.createFormGuard(f.read);
+    g.edit("title");
+    f.set("title", "Yeni");
+    g.submit();
+    g.saved();
+    f.set("version", "2"); // the revalidated page re-renders the hidden field
+    expect(g.dirty()).toBe(false);
+    g.edit("title");
+    f.set("title", "Yeni!");
+    f.set("title", "Yeni"); // typed back to what was saved
+    expect(g.dirty()).toBe(false);
+  });
+
+  it("a refused save keeps the form dirty, and so does fixing it halfway", () => {
+    const f = page([
+      ["email", "ali@ornek"],
+      ["version", "1"],
+    ]);
+    const g = guard.createFormGuard(f.read);
+    g.edit("email");
     f.set("email", "ali@ornek.com");
     g.submit(); // posted, and the server answered with an error: no saved()
     expect(g.dirty()).toBe(true);
-    // A second try that is also refused.
+    // A second try that is also refused, with the page moving another field.
     f.set("email", "ali@ornek.co");
-    g.edit();
+    g.edit("email");
     g.submit();
+    f.set("version", "2");
     expect(g.dirty()).toBe(true);
   });
 
   it("a save that wrote clears it, and the next edit starts from what was saved", () => {
-    const f = fields([["email", "ali@ornek"]]);
+    const f = page([["email", "ali@ornek"]]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("email");
     f.set("email", "ali@ornek.com");
     g.submit();
     g.saved();
     expect(g.dirty()).toBe(false);
     f.set("email", "veli@ornek.com");
-    g.edit();
+    g.edit("email");
     expect(g.dirty()).toBe(true);
     // Back to what the save wrote: clean again, not to the page's old value.
     f.set("email", "ali@ornek.com");
@@ -202,21 +251,28 @@ describe("createFormGuard: dirty, refused, saved", () => {
   });
 
   it("what is typed while the save is in flight is still unsaved", () => {
-    const f = fields([["note", ""]]);
+    const f = page([
+      ["note", ""],
+      ["version", "1"],
+    ]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("note");
     f.set("note", "ilk");
     g.submit();
-    g.edit();
+    g.edit("note");
     f.set("note", "ilk ve devamı"); // after the post left, before the answer
     g.saved();
+    f.set("version", "2");
     expect(g.dirty()).toBe(true);
+    // Typed back to what went: the page's own change still does not count.
+    f.set("note", "ilk");
+    expect(g.dirty()).toBe(false);
   });
 
   it("a page that moves a field after a save does not ask about it", () => {
-    const f = fields([["note", ""]]);
+    const f = page([["note", ""]]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("note");
     f.set("note", "yazıldı");
     g.submit();
     g.saved();
@@ -226,18 +282,18 @@ describe("createFormGuard: dirty, refused, saved", () => {
   });
 
   it("a saved answer that arrives with no post seen (a replayed Enter) takes the form as it is", () => {
-    const f = fields([["a", "1"]]);
+    const f = page([["a", "1"]]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("a");
     f.set("a", "2");
     g.saved();
     expect(g.dirty()).toBe(false);
   });
 
   it("a reset form is clean, and the defaults it went back to are the new baseline", () => {
-    const f = fields([["a", "1"]]);
+    const f = page([["a", "1"]]);
     const g = guard.createFormGuard(f.read);
-    g.edit();
+    g.edit("a");
     f.set("a", "2");
     expect(g.dirty()).toBe(true);
     // The page re-rendered with other defaults (a save elsewhere), and the
@@ -245,7 +301,7 @@ describe("createFormGuard: dirty, refused, saved", () => {
     f.set("a", "3");
     g.reset();
     expect(g.dirty()).toBe(false);
-    g.edit();
+    g.edit("a");
     f.set("a", "1"); // the old value is a change from what it is now
     expect(g.dirty()).toBe(true);
     f.set("a", "3");
@@ -253,13 +309,13 @@ describe("createFormGuard: dirty, refused, saved", () => {
   });
 
   it("only reads the form when an edit made it worth it", () => {
-    const read = vi.fn(() => "x");
+    const read = vi.fn(() => snap(E("a=1")));
     const g = guard.createFormGuard(read);
     expect(read).toHaveBeenCalledTimes(1); // the baseline
     g.dirty();
     g.dirty();
     expect(read).toHaveBeenCalledTimes(1);
-    g.edit();
+    g.edit("a");
     g.dirty();
     expect(read).toHaveBeenCalledTimes(2);
   });
@@ -687,6 +743,37 @@ describe("the controller, the registry and the forms", () => {
     // What the form hears is detached too: a later edit changes nothing.
     form.type("a", "3");
     expect(registry.hasUnsavedForm()).toBe(false);
+  });
+
+  it("two operators: a field typed back stays quiet when a colleague's save moves the others", () => {
+    // Uygulama ayarları: A types into one field and back; B saves the same
+    // tab; A's save of another tab revalidates the page, and A's untouched
+    // inputs follow the new defaults without an event.
+    const form = new FakeForm([
+      ["etaMin", "25"],
+      ["closedMessage", "Kapalıyız."],
+    ]);
+    mount(form);
+    form.type("etaMin", "30");
+    form.type("etaMin", "25");
+    form.set("closedMessage", "Bugün kapalıyız.");
+    expect(registry.hasUnsavedForm()).toBe(false);
+    expect(clickOn(link("/admin/menu")).defaultPrevented).toBe(false);
+    expect(win.confirm).not.toHaveBeenCalled();
+    expect(unload().defaultPrevented).toBe(false);
+    // A real edit still asks.
+    form.type("etaMin", "40");
+    expect(registry.hasUnsavedForm()).toBe(true);
+  });
+
+  it("typing in a control with no name (the confirm dialog's phrase box) edits nothing", () => {
+    const form = new FakeForm([["version", "1.0.0"]]);
+    mount(form);
+    form.input(null);
+    form.set("version", "1.2.0"); // moved by the page, not by the operator
+    expect(registry.hasUnsavedForm()).toBe(false);
+    form.input("version");
+    expect(registry.hasUnsavedForm()).toBe(true);
   });
 
   it("one form unmounting leaves the others guarded", () => {

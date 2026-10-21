@@ -312,8 +312,13 @@ menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
   taslağı) kaydedilen hâli esas alır; yanıt gelene kadar yazdıkların
   kaydedilmemiş sayılır. Kaydedince listeye dönen formlar (yasal belge, yeni
   kampanya) sayfayı bıraktığı için sormaz.
-- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Bir formu
-  korumak için `useUnsavedGuard(formRef, { saved: savedAnswer(state) })` yeter
-  (kayıttan sonra sayfada kalan formlar `saved`'i verir, yönlendirenler
-  vermez); kendi "kaydedilmemiş" bilgisini tutan bir sayfa
+- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Bir form
+  `useUnsavedGuard(formRef, { saved })` ile korunur: `formRef` `<form>`'un
+  kendisi (`ActionForm`'da `formRef` prop'u), `saved` her başarılı kayıtta
+  yeni gelen cevap (`savedAnswer(state)`); kayıttan sonra yönlenen form
+  `saved` vermez. Koruma yalnız operatörün değiştirdiği alanları karşılaştırır:
+  alan, adıyla (`name`) bir `input` ya da `change` olayından tanınır. Sayfanın
+  kendisinin değiştirdiği alan sayılmaz; operatör adına bir alanı kodla
+  değiştiren bir denetim olayı o alanda göndermeli, adı olmayan denetim hiç
+  sayılmaz. Kendi "kaydedilmemiş" bilgisini tutan bir sayfa
   `useUnsavedFlag(dirty)` çağırır.

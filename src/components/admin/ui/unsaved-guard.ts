@@ -11,9 +11,9 @@ import { hasUnsavedForm, trackUnsavedGuard } from "../unsaved-guard";
  * client navigations it never sees. Four pieces, the rules pure and tested
  * in node (tests/admin-unsaved-guard.test.ts), the DOM glue thin:
  *
- * - useUnsavedGuard(formRef): a form's fields are read when it mounts and
- *   compared with what they are now. useUnsavedFlag(dirty): for a form that
- *   already knows (the Ayarlar tabs).
+ * - useUnsavedGuard(formRef): a form's fields are read when it mounts; the
+ *   fields the operator edits are compared with that. useUnsavedFlag(dirty):
+ *   for a form that already knows (the Ayarlar tabs).
  * - One shared controller while any guarded form is mounted: a click
  *   listener on `document` in the capture phase (it runs before Next's
  *   <Link>), `beforeunload`, and the palette's "may this page be left?"
@@ -67,8 +67,8 @@ export function snapshotOf(entries: Iterable<[string, unknown]>): string {
 
 /** One guarded form's memory, apart from the DOM. */
 export interface FormGuard {
-  /** The operator typed or picked something (an `input` or `change`). */
-  edit(): void;
+  /** The operator typed or picked something in the field named `name`. */
+  edit(name: string): void;
   /** The form is being posted: remembers what goes. */
   submit(): void;
   /** The server saved it: what went is the saved state now. */
@@ -78,46 +78,63 @@ export interface FormGuard {
   dirty(): boolean;
 }
 
+/** A snapshotOf() read back: each field's values by name. */
+function fieldsOf(snapshot: string): Map<string, string[]> {
+  return new Map(JSON.parse(snapshot) as Array<[string, string[]]>);
+}
+
+function sameValues(a?: string[], b?: string[]): boolean {
+  if (!a || !b) return a === b;
+  return a.length === b.length && a.every((value, i) => value === b[i]);
+}
+
 /**
- * Dirty means: the operator edited the form AND its fields differ from the
- * saved state. The edit gate keeps what the page does by itself (a field a
- * revalidation moved, a value the browser restored) from asking about a
- * form nobody touched; a change typed back is no change.
+ * Dirty means: a field the operator edited differs from the saved state.
+ * Only those fields, by name: what the page does by itself to the others
+ * (an untouched input a revalidation moved to a colleague's value, a
+ * hidden version field, a value the browser restored) never asks, before
+ * or after an edit; a change typed back is no change.
  *
  * `read` is the form's snapshotOf(), taken when it mounts: the fields as
  * React rendered them, a controlled input's value and a select's default
  * included. A refused save leaves the form dirty (`saved()` is the server's
  * "yes", nothing else moves the baseline). A save takes what was POSTED
- * as the new baseline, not what the fields hold when the answer arrives:
- * typing during the round trip is still unsaved.
+ * as the new baseline, not what the fields hold when the answer arrives,
+ * and keeps the fields edited during the round trip: they are still
+ * unsaved.
  */
 export function createFormGuard(read: () => string): FormGuard {
-  let baseline = read();
-  let touched = false;
+  let baseline = fieldsOf(read());
+  let edited = new Set<string>();
   let posted: string | null = null;
-  let typedSince = false;
+  let editedSince = new Set<string>();
   return {
-    edit() {
-      touched = true;
-      typedSince = true;
+    edit(name) {
+      edited.add(name);
+      editedSince.add(name);
     },
     submit() {
       posted = read();
-      typedSince = false;
+      editedSince = new Set();
     },
     saved() {
-      baseline = posted ?? read();
+      baseline = fieldsOf(posted ?? read());
       posted = null;
-      touched = typedSince;
+      edited = new Set(editedSince);
     },
     reset() {
-      baseline = read();
-      touched = false;
+      baseline = fieldsOf(read());
+      edited = new Set();
       posted = null;
-      typedSince = false;
+      editedSince = new Set();
     },
     dirty() {
-      return touched && read() !== baseline;
+      if (edited.size === 0) return false;
+      const now = fieldsOf(read());
+      for (const name of edited) {
+        if (!sameValues(now.get(name), baseline.get(name))) return true;
+      }
+      return false;
     },
   };
 }
@@ -338,7 +355,12 @@ export function attachFormGuard(
 ): { saved(): void; detach(): void } {
   const guard = createFormGuard(read);
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const onEdit = () => guard.edit();
+  // The field's own name. A control with none posts nothing (the confirm
+  // dialog's phrase box), so typing there edits nothing.
+  const onEdit = (event: Event) => {
+    const name = (event.target as { name?: unknown } | null)?.name;
+    if (typeof name === "string" && name !== "") guard.edit(name);
+  };
   const onSubmit = () => guard.submit();
   // `reset` fires before the fields change: look once they have.
   const onReset = () => {
@@ -374,10 +396,11 @@ export function attachFormGuard(
  * of a save that wrote (savedAnswer(state)): each new one makes what was
  * posted the saved state, so leaving after a save that stays on the page
  * asks nothing. A refusal (`saved` stays null) keeps the form guarded. A
- * save that redirects needs no `saved`: the page is gone. Fields that
- * change a value without an `input` or `change` event must dispatch one,
- * and the `<form>` must stay the same element for as long as the component
- * lives (a ref that moves to another element is not followed).
+ * save that redirects needs no `saved`: the page is gone. Only fields the
+ * operator edited count (an `input` or `change` from a control with that
+ * `name`): code that changes a field for them must dispatch the event on
+ * that field. The `<form>` must stay the same element for as long as the
+ * component lives (a ref that moves to another element is not followed).
  */
 export function useUnsavedGuard(
   formRef: RefObject<HTMLFormElement | null>,

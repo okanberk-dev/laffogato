@@ -82,10 +82,16 @@ export class FakeForm extends EventTarget {
     if (hit) hit[1] = value;
     else this.entries.push([name, value]);
   }
-  /** The operator types: the field changes and an `input` event follows. */
+  /** The operator types: the field changes and its `input` event follows. */
   type(name: string, value: string) {
     this.set(name, value);
-    this.dispatchEvent(new Event("input", { bubbles: true }));
+    this.input(name);
+  }
+  /** An `input` event from a control with this name (null: a nameless one). */
+  input(name: string | null) {
+    const event = new Event("input", { bubbles: true });
+    Object.defineProperty(event, "target", { value: { name: name ?? "" } });
+    this.dispatchEvent(event);
   }
   submit() {
     const event = new Event("submit", { bubbles: true, cancelable: true });
