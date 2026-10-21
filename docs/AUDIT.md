@@ -1462,6 +1462,25 @@ Açık:
 | 🟢 | Sisteme rezervasyon olarak girmeden köşkte nakit satılan saat yeniden satış sayılmaz | Panelde rezervasyon açma yok (backlog, D8); sistemdeki her onaylı satış sayılır. Böyle bir satış, karar metnindeki kalan risk gibi, personelin elle izlemesine kalır |
 | 🟢 | Satışın yazımı ile yeniden satış hesabı arasında süreç düşerse (Vercel zaman aşımı) o satışın borcu yazılmaz | İkisi ayrı ifadeler; hesap satıştan hemen sonra ve e-postadan önce yapılıyor, pencere birkaç milisaniye. Kalıcı çözüm satışı ve hesabı tek SQL ifadesine almak (onay yolu bütünüyle SQL'e taşınır) |
 
+### Kabuk: tarih alanları (admin UI v2, UI-14)
+
+Karar D12: telefonda ve dokunmatik ekranda yerel tarih kutuları kalır;
+fareli cihazda ve yalnız tarih alanına gelindiğinde React Aria takvimi
+yüklenir. Liste süzgecinde altı hazır aralık (Bugün, Dün, Son 7 gün, Son 30
+gün, Bu ay, Geçen ay) köşkün saatiyle, sunucuda çizilen düz bağlantılardır.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | İnceleme F1: kapatma anahtarı (`DATE_WIDGETS_ENABLED`) parçanın içinde okunuyordu; kapalıyken de parça indirilirdi | Anahtar hafif `widget-loader.ts`'te, `import()`'tan önce okunur | `admin-widget-loader` |
+| 🟢 | İnceleme F2: hazır aralığa tıklamak için alana gelmek de takvimin parçasını indiriyordu | Yükleme yalnız tarih kutularına gelince ya da odak onlara düşünce | `admin-widget-loader` |
+| 🟢 | İnceleme F3: takvim açıkken tek tuş kısayolları çalışıyordu | React Aria açılır penceresi (`[data-admin-portal] [role=dialog]`) de açık pencere sayılır | `admin-shortcuts` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Takvim parçası yaklaşık 84 KB gz; tasarımın bütçesi 45 KB | React Aria'nın tarih bileşenleri tek başına ~50 KB. Parça yalnız fareli cihazda, tarih kutusuna gelince ve bir kez iner; telefon, dokunmatik, Kasa ve tarih alanı olmayan listeler hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~13 KB kazandırır, `next.config.ts` istediği için ayrı PR |
+
 ### Hukuk: karaoke verisinin süresi, imha kaydı, ticari yazışma (21 Eki 2026)
 
 Kararlar ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE (operatör,

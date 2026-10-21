@@ -464,9 +464,12 @@ durum bozulmaya uygundur.
   `lucide-react` (ikonlar), `react-aria-components` ve
   `@internationalized/date` (palet, tarih alanı, combobox gibi yalnız
   etkileşimde yüklenen yaprak bileşenler). Kurulu olanlar: `lucide-react`,
-  `react-aria-components`. Tarih paketi onu ilk kullanan PR'la gelir ve bu
-  listeye eklenir (React Aria onu kilit dosyasına dolaylı olarak getirir; o
-  PR'a kadar kod onu doğrudan import etmez). Her biri
+  `react-aria-components`, `@internationalized/date`. Tarih paketi tarih
+  alanlarıyla geldi (UI-14): React Aria onu kilit dosyasına zaten dolaylı
+  getiriyordu, artık doğrudan bağımlılık. Takvim ve saat pencereleri
+  `ui/overlay.ts`'in kapsayıcısına çizilir (açık diyalog ya da panelin portal
+  düğümü); `UNSTABLE_portalContainer` ve `UNSAFE_PortalProvider` yalnız orada
+  geçer, oradaki anahtar bozulursa yerel tarih kutuları kalır. Her biri
   `package.json`'da tam sürüme sabit (`^` yok), kilit dosyasında tek kopya;
   yükseltme ayrı bir PR'dır ve sürüm en az 14 günlük olur. İkonları yalnız `ui/icons.tsx`
   import eder: her ikon orada bir kez adlandırılır, `AdminIcon` 18 px, 1.75
