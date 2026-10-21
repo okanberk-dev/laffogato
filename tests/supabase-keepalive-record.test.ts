@@ -8,7 +8,7 @@ import type { AdminRole } from "@/lib/admin/roles";
 
 /**
  * The record of the daily Supabase keep-alive ping and the owner's line
- * about it (db/migrations/20261020175100_supabase_keepalive.sql,
+ * about it (db/migrations/20261021050600_supabase_keepalive.sql,
  * src/lib/admin/supabase-keepalive{,-core}.ts,
  * src/components/admin/dashboard/keepalive-status.tsx).
  *

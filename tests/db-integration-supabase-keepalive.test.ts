@@ -19,7 +19,7 @@ import {
 
 /**
  * The Supabase keep-alive record in a real Postgres
- * (20261020175100_supabase_keepalive.sql): the cron's one-statement upsert
+ * (20261021050600_supabase_keepalive.sql): the cron's one-statement upsert
  * keeps the last success through failures and skips, concurrent writes
  * leave one row, and the table's checks refuse anything but an outcome word
  * and two ISO instants. Skipped without TEST_DATABASE_URL, like the other

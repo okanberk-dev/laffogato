@@ -72,7 +72,7 @@ bir Postgres'e kurulup `pg_class.relrowsecurity` ile sayıldı) "RLS açık,
 policy yok" durumundadır ve `postgres` kullanıcısıyla bağlanan uygulama için
 davranış Neon'dakiyle BİREBİR aynıdır: RLS baypas edilir, hiçbir sorgu boş
 dönmez. Tek istisna `customer_milestone_rewards`'tı (RLS'siz yaratılmıştı,
-`20261020175000_customer_milestone_rewards_rls.sql` kapattı). Yeni bir tablo
+`20261021050500_customer_milestone_rewards_rls.sql` kapattı). Yeni bir tablo
 RLS'siz kalırsa `tests/db-rls.test.ts` (şemadan) ve
 `tests/db-integration-schema-objects.test.ts` (gerçek Postgres'te) kırılır.
 

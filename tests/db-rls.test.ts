@@ -11,7 +11,7 @@ import { schemaPolicies, schemaTableSecurity } from "./_support/schema-tables";
  * is served through PostgREST to the anon and authenticated roles; RLS with
  * no policy is what keeps them out (docs/SUPABASE-GECIS.md §1).
  * customer_milestone_rewards was created without it (20260923200000) and
- * stayed the one open table until 20261020175000. A new table that forgets
+ * stayed the one open table until 20261021050500. A new table that forgets
  * it fails here; tests/db-integration-schema-objects.test.ts asks a real
  * Postgres the same question through pg_class.relrowsecurity.
  */

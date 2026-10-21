@@ -15,7 +15,7 @@ export type KeepaliveStatus = "ok" | "failed" | "skipped";
 
 const STATUSES: readonly KeepaliveStatus[] = ["ok", "failed", "skipped"];
 
-/** The table's one row (db/migrations/20261020175100_supabase_keepalive.sql). */
+/** The table's one row (db/migrations/20261021050600_supabase_keepalive.sql). */
 export const KEEPALIVE_ROW_ID = "supabase";
 
 /**

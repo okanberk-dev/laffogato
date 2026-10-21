@@ -7455,7 +7455,7 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
   on conflict (name) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────
--- 20261020175000_customer_milestone_rewards_rls.sql
+-- 20261021050500_customer_milestone_rewards_rls.sql
 -- ─────────────────────────────────────────────────────────────────────
 -- Row level security on customer_milestone_rewards (20 Oct 2026).
 --
@@ -7478,11 +7478,11 @@ insert into public._migrations (name) values ('20261019170300_product_price_hist
 
 alter table public.customer_milestone_rewards enable row level security;
 
-insert into public._migrations (name) values ('20261020175000_customer_milestone_rewards_rls.sql')
+insert into public._migrations (name) values ('20261021050500_customer_milestone_rewards_rls.sql')
   on conflict (name) do nothing;
 
 -- ─────────────────────────────────────────────────────────────────────
--- 20261020175100_supabase_keepalive.sql
+-- 20261021050600_supabase_keepalive.sql
 -- ─────────────────────────────────────────────────────────────────────
 -- The daily Supabase keep-alive, made visible (20 Oct 2026).
 --
@@ -7529,5 +7529,5 @@ create table if not exists public.supabase_keepalive (
 
 alter table public.supabase_keepalive enable row level security;
 
-insert into public._migrations (name) values ('20261020175100_supabase_keepalive.sql')
+insert into public._migrations (name) values ('20261021050600_supabase_keepalive.sql')
   on conflict (name) do nothing;
