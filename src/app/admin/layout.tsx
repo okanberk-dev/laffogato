@@ -24,6 +24,7 @@ import { canAccess, landingPathFor, ROLE_LABELS } from "@/lib/admin/roles";
 import { searchSectionsFor } from "@/lib/admin/search";
 
 import { logoutAction } from "./actions";
+import { settingsPaletteEntries } from "./palette-settings";
 
 /**
  * Admin panel uses Poppins - a clean, geometric UI sans. The admin is internal
@@ -492,7 +493,17 @@ export default async function AdminLayout({
             landingPath={landingPath}
             logout={logoutAction}
             canSearch={canSearch}
-            palette={canSearch ? { role: session.role, accountKey } : undefined}
+            palette={
+              canSearch
+                ? {
+                    role: session.role,
+                    accountKey,
+                    // "Ayarlar içinde": plain data, built here (the list's
+                    // chunk has no code for it).
+                    settings: settingsPaletteEntries(session.role),
+                  }
+                : undefined
+            }
             actions={
               venueChip || orderAlerts ? (
                 <>

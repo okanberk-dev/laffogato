@@ -71,6 +71,8 @@ type Target = { href: string } | { command: PaletteCommand };
 
 export interface PaletteProps {
   groups: PaletteNavGroup[];
+  /** "Ayarlar içinde": the layout's settings deep links, drawn as they come. */
+  settings?: PaletteEntry[];
   role: AdminRole;
   accountKey: string;
   pathname: string;
@@ -177,6 +179,7 @@ const money = (minor: number) =>
 
 export function Palette({
   groups,
+  settings = [],
   role,
   accountKey,
   pathname,
@@ -202,9 +205,6 @@ export function Palette({
   );
 
   const query = text.trim();
-  const goShown = rankEntries(go, query);
-  const createShown = rankEntries(create, query);
-  const commandsShown = rankEntries(commands, query);
   const hitGroups =
     search.status === "ok" ? search.groups.filter((g) => g.hits.length) : [];
 
@@ -229,8 +229,10 @@ export function Palette({
       </ListBoxItem>
     );
   };
+  // The panel's own entries, ranked for what is typed (all of them while the
+  // box is empty), as list items.
   const entryItems = (entries: PaletteEntry[]) =>
-    entries.flatMap((e) => {
+    rankEntries(entries, query).flatMap((e) => {
       const target = entryTarget(e);
       if (!target) return [];
       return [
@@ -270,8 +272,9 @@ export function Palette({
       ),
     );
   }
-  if (all) section("go", "Git", entryItems(goShown));
-  section("create", "Oluştur", entryItems(createShown));
+  if (all) section("go", "Git", entryItems(go));
+  section("create", "Oluştur", entryItems(create));
+  if (all) section("settings", "Ayarlar içinde", entryItems(settings));
   for (const g of hitGroups) {
     const rows = g.hits.map((hit) => {
       const facts = [
@@ -307,7 +310,7 @@ export function Palette({
     }
     section(`records:${g.section}`, `Kayıtlar · ${g.label}`, rows);
   }
-  if (all) section("commands", "Komutlar", entryItems(commandsShown));
+  if (all) section("commands", "Komutlar", entryItems(commands));
 
   // This render's entries: onAction below is this render's too.
   const run = (key: string) => {

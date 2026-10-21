@@ -26,6 +26,7 @@ import {
   PALETTE_OPEN_EVENT,
   paletteShortcutLabel,
   paletteViewOf,
+  type PaletteEntry,
   type PaletteView,
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
@@ -146,13 +147,12 @@ export interface PaletteTriggerProps {
   role: AdminRole;
   /** The layout's opaque per-account key ("" turns the recents off). */
   accountKey: string;
+  /** "Ayarlar içinde": the layout's settings deep links for the role. */
+  settings?: PaletteEntry[];
 }
 
-export function PaletteTrigger({
-  groups,
-  role,
-  accountKey,
-}: PaletteTriggerProps) {
+export function PaletteTrigger(props: PaletteTriggerProps) {
+  const { accountKey } = props;
   const pathname = usePathname();
   const router = useRouter();
   const label = useShortcutLabel();
@@ -281,9 +281,7 @@ export function PaletteTrigger({
               key={session}
               dialogRef={dialogRef}
               onClosed={onClosed}
-              groups={groups}
-              role={role}
-              accountKey={accountKey}
+              {...props}
               pathname={pathname}
               view={view}
               navigate={navigate}
@@ -298,12 +296,8 @@ export function PaletteTrigger({
 function PaletteDialog({
   dialogRef,
   onClosed,
-  groups,
-  role,
-  accountKey,
-  pathname,
-  view,
   navigate,
+  ...palette
 }: PaletteTriggerProps & {
   dialogRef: RefObject<HTMLDialogElement | null>;
   onClosed: () => void;
@@ -349,15 +343,7 @@ function PaletteDialog({
       style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
     >
       <PaletteBoundary>
-        <Body
-          groups={groups}
-          role={role}
-          accountKey={accountKey}
-          pathname={pathname}
-          view={view}
-          close={close}
-          navigate={navigate}
-        />
+        <Body {...palette} close={close} navigate={navigate} />
       </PaletteBoundary>
     </dialog>
   );

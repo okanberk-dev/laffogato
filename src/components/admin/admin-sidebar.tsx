@@ -56,6 +56,7 @@ import {
 import {
   isApplePlatform,
   paletteShortcutLabel,
+  type PaletteEntry,
 } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
@@ -109,8 +110,14 @@ interface SidebarProps {
    * list and to ask each recent page again, and the account's opaque key
    * (an HMAC the layout computes; never the e-mail). Without it, or
    * without `canSearch`, the top bar has no search at all (the cashier).
+   * `settings` (UI-12): the role's "Ayarlar içinde" entries, built by the
+   * layout and drawn by the list as they come.
    */
-  palette?: { role: AdminRole; accountKey: string };
+  palette?: {
+    role: AdminRole;
+    accountKey: string;
+    settings?: PaletteEntry[];
+  };
   /**
    * Controls at the right end of the top bar, after the search, at every
    * width. Rendered once, so a panel-wide control mounted here (the new
@@ -1287,6 +1294,7 @@ export function AdminSidebar(props: SidebarProps) {
           groups={props.groups}
           role={palette.role}
           accountKey={palette.accountKey}
+          settings={palette.settings}
         />
       )}
       <div data-admin-topbar-actions="" className="flex items-center gap-2">
