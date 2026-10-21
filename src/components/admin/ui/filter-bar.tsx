@@ -37,6 +37,7 @@ import { useNoResetSubmit } from "./submit";
 import {
   armWidget,
   createWidgetLoader,
+  DATE_WIDGETS_ENABLED,
   rangeFromValues,
   snapshotRange,
   type RangeSnapshot,
@@ -87,9 +88,9 @@ const SavedViews = dynamic(
 type DateRangeWidget = (typeof import("./date-range-field"))["DateRangeField"];
 
 const dateRangeLoader = createWidgetLoader<DateRangeWidget>(() =>
-  import("./date-range-field").then((m) =>
-    m.DATE_WIDGETS_ENABLED ? m.DateRangeField : null,
-  ),
+  DATE_WIDGETS_ENABLED
+    ? import("./date-range-field").then((m) => m.DateRangeField)
+    : Promise.resolve(null),
 );
 
 /** One preset link: its label, where it goes, whether it is the range now. */
@@ -156,11 +157,7 @@ function DateRangeFieldset({
 
   const Widget = swapped?.Widget;
   return (
-    <fieldset
-      className="flex min-w-[16rem] flex-[2_1_18rem] flex-col gap-2"
-      onPointerEnter={arm}
-      onFocus={arm}
-    >
+    <fieldset className="flex min-w-[16rem] flex-[2_1_18rem] flex-col gap-2">
       <legend className={cx(EYEBROW, "mb-2")} style={MONO_STYLE}>
         {field.label}
       </legend>
@@ -197,7 +194,13 @@ function DateRangeFieldset({
           focus={swapped.focus}
         />
       ) : (
-        <div className="flex items-center gap-2">
+        // Armed by the date boxes only: a preset link is a plain link and
+        // never asks for the widget's chunk.
+        <div
+          className="flex items-center gap-2"
+          onPointerEnter={arm}
+          onFocus={arm}
+        >
           <label htmlFor={fromId} className="sr-only">
             {field.label}: başlangıç
           </label>

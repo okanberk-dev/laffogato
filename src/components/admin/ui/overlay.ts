@@ -13,14 +13,9 @@ import { adminPortalRoot } from "./toast";
  * switch below draws the native controls everywhere with one line.
  */
 
-/**
- * Set to false and every React Aria date control stays native: the date
- * boxes of the list filters are never swapped, and DateTimeField keeps its
- * `<input type="datetime-local">`. The widgets' chunks are still reachable
- * but nothing swaps them in. The design's fallback for a React Aria
- * upgrade that breaks the pop-overs.
- */
-export const DATE_WIDGETS_ENABLED = true;
+// The switch lives in widget-loader.ts, the light module the forms load, so
+// that switching it off also keeps the chunks from being downloaded.
+export { DATE_WIDGETS_ENABLED } from "./widget-loader";
 
 /**
  * The node a pop-over under `anchor` is mounted in: the nearest open dialog

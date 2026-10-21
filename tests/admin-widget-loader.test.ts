@@ -212,7 +212,25 @@ describe("overlay.ts: where a pop-over is drawn, and the one switch", () => {
     const { DATE_WIDGETS_ENABLED } =
       await import("@/components/admin/ui/overlay");
     expect(DATE_WIDGETS_ENABLED).toBe(true);
-    const src = readFileSync("src/components/admin/ui/overlay.ts", "utf8");
+    // The switch lives in the light loader module and is read BEFORE
+    // import(), so switched off no chunk is downloaded (review of #197, F1).
+    const src = readFileSync(
+      "src/components/admin/ui/widget-loader.ts",
+      "utf8",
+    );
     expect(src).toMatch(/export const DATE_WIDGETS_ENABLED = (true|false);/);
+    for (const file of ["filter-bar.tsx", "date-time-field.tsx"]) {
+      const caller = readFileSync(`src/components/admin/ui/${file}`, "utf8");
+      expect(caller).toMatch(/DATE_WIDGETS_ENABLED\s*\?\s*import\(/);
+      expect(caller).not.toMatch(/m\.DATE_WIDGETS_ENABLED/);
+    }
+  });
+
+  it("a preset link never asks for the widget's chunk: only the date boxes arm it (review of #197, F2)", () => {
+    const src = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
+    const fieldset = src.slice(src.indexOf("<fieldset"), src.indexOf("<legend"));
+    expect(fieldset).not.toContain("onPointerEnter");
+    expect(fieldset).not.toContain("onFocus");
+    expect(src).toMatch(/flex items-center gap-2"\s*onPointerEnter=\{arm\}\s*onFocus=\{arm\}/);
   });
 });

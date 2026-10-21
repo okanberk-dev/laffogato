@@ -829,7 +829,9 @@ describe("the layer itself", () => {
     expect(src.match(/addEventListener\("keydown"/g)).toHaveLength(1);
     expect(src).toContain('window.addEventListener("keydown", onKey);');
     expect(src).toContain("readShortcut(");
-    expect(src).toContain('document.querySelector("dialog[open]")');
+    // A native dialog or a React Aria pop-over in the panel's portal node
+    // (the calendar) both silence single keys (review of #197, F3).
+    expect(src).toContain("dialog[open], [data-admin-portal] [role='dialog']");
     expect(src).toContain('getModifierState?.("AltGraph")');
     // A single key never presses a button: `n` follows a link only.
     expect(src).toContain(

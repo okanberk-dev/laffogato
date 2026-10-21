@@ -15,6 +15,15 @@ import { isIsoDate } from "@/lib/admin/list-params";
  * place, with its value and its focus.
  */
 
+/**
+ * Set to false and every React Aria date control stays native: the date
+ * boxes of the list filters are never swapped, and DateTimeField keeps its
+ * `<input type="datetime-local">`. Checked before the chunk is asked for,
+ * so switched off nothing is downloaded either. The design's fallback for a React Aria
+ * upgrade that breaks the pop-overs.
+ */
+export const DATE_WIDGETS_ENABLED = true;
+
 /** The widget's chunk, asked for once and kept. */
 export interface WidgetLoader<W> {
   /** The widget once its chunk has come; null before, and when switched off. */

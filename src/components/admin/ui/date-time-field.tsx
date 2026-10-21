@@ -8,7 +8,11 @@ import {
 } from "react";
 
 import { FIELD_INPUT } from "../forms";
-import { armWidget, createWidgetLoader } from "./widget-loader";
+import {
+  armWidget,
+  createWidgetLoader,
+  DATE_WIDGETS_ENABLED,
+} from "./widget-loader";
 
 /*
  * A date and a time for a form (admin UI v2, UI-14, design §5 #7 and D12),
@@ -32,9 +36,9 @@ import { armWidget, createWidgetLoader } from "./widget-loader";
 type DateTimeWidget = (typeof import("./date-time-picker"))["DateTimePicker"];
 
 const loader = createWidgetLoader<DateTimeWidget>(() =>
-  import("./date-time-picker").then((m) =>
-    m.DATE_WIDGETS_ENABLED ? m.DateTimePicker : null,
-  ),
+  DATE_WIDGETS_ENABLED
+    ? import("./date-time-picker").then((m) => m.DateTimePicker)
+    : Promise.resolve(null),
 );
 
 export interface DateTimeFieldProps extends Pick<
