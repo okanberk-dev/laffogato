@@ -35,7 +35,7 @@ vi.mock("@/lib/admin/change-marker", () => ({
   readChangeMarker: vi.fn(async () => h.marker),
 }));
 vi.mock("@/lib/admin/auth", () => ({
-  ADMIN_COOKIE_NAME: "laffogato_admin_session",
+  ADMIN_COOKIE_NAME: "laffogato_panel_session",
   readSessionFromCookieValue: () =>
     h.signed ? { email: "kosk@laffogato", role: h.role, expiresAt: 0 } : null,
   requireRole: vi.fn(async (section: string) => {

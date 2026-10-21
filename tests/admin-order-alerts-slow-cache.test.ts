@@ -79,7 +79,7 @@ vi.mock("next/server", () => ({ after: (task: () => void) => task() }));
 
 const STAFF = { email: "barista@laffogato.net", role: "staff" };
 vi.mock("@/lib/admin/auth", () => ({
-  ADMIN_COOKIE_NAME: "laffogato_admin_session",
+  ADMIN_COOKIE_NAME: "laffogato_panel_session",
   getAdminSession: vi.fn(async () => STAFF),
   isAdminSessionUnavailable: () => false,
   readSessionFromCookieValue: (v: string | undefined) => (v ? STAFF : null),
@@ -87,7 +87,7 @@ vi.mock("@/lib/admin/auth", () => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "laffogato_admin_session"
+      name === "laffogato_panel_session"
         ? { value: "signed-token" }
         : undefined,
   }),

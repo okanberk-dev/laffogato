@@ -92,6 +92,9 @@ describe("legal document dates", () => {
       "odul-programi": "21 Ekim 2026",
       "mobil-uygulama-kosullari": "21 Ekim 2026",
       "kafe-hizmet-kosullari": "21 Ekim 2026",
+      // 21 Ekim 2026: the admin cookies' names and path (/admin) in the
+      // necessary-cookie inventory (docs/AUDIT.md §13).
+      "cerez-politikasi": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);
