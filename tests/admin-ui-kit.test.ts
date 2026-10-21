@@ -1365,7 +1365,7 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
         withKids(ui.PageShell, { width }, createElement("p", null, "x")),
       );
       expect(out).toBe(
-        `<main id="admin-main" class="mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&amp;&gt;header]:mb-5 ${ui.PAGE_WIDTHS[width]}"><p>x</p></main>`,
+        `<main class="mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&amp;&gt;header]:mb-5 ${ui.PAGE_WIDTHS[width]}"><p>x</p></main>`,
       );
     }
     // A list by default; extra classes go after.
