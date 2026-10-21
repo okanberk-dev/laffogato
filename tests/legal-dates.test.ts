@@ -84,13 +84,10 @@ describe("legal document dates", () => {
       // text attached, downloadable, kept by hash; LEGAL-REDLINES §25). No
       // checkout document changed, so LEGAL_UPDATED did not move.
       "islem-rehberi": "21 Ekim 2026",
-      // 21 Ekim 2026: the karaoke periods, the event row and the commercial
-      // correspondence row (LEGAL-REDLINES §27).
-      "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
-      // 21 Ekim 2026: the till stamps only the member's own code
-      // (ASK-LOYALTY, LEGAL-REDLINES §28).
-      "gizlilik-politikasi": "21 Ekim 2026",
-      "kvkk-aydinlatma-metni": "21 Ekim 2026",
+      // 21 Ekim 2026 as well, the same day: the karaoke periods, the event
+      // row and the commercial correspondence row (Veri Saklama, above;
+      // LEGAL-REDLINES §27); the till stamps only the member's own code
+      // (Gizlilik and KVKK above, and these; ASK-LOYALTY, §28).
       "uyelik-sozlesmesi": "21 Ekim 2026",
       "odul-programi": "21 Ekim 2026",
       "mobil-uygulama-kosullari": "21 Ekim 2026",
