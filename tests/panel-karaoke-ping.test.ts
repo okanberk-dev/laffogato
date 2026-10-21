@@ -210,8 +210,9 @@ describe("which writes ping", () => {
   it("is wired once, in getDb's write hook, behind the karaoke tag", () => {
     const src = readFileSync("src/lib/db/index.ts", "utf8");
     expect(src).toMatch(
-      // The menu's ping rides beside it (src/lib/panel/menu-ping.ts).
-      /onWrite: \(target\) => \{\s*const tags = tagsForWrite\(target\);\s*expireTags\(tags\);\s*if \(tags\.includes\(TAG_KARAOKE\)\) pingPanelKaraoke\(\);\s*if \(tags\.includes\(TAG_MENU\)\) pingPanelMenu\(\);\s*\}/,
+      // The menu's and the orders' pings ride beside it (menu-ping.ts,
+      // orders-ping.ts).
+      /onWrite: \(target\) => \{\s*const tags = tagsForWrite\(target\);\s*expireTags\(tags\);\s*if \(tags\.includes\(TAG_KARAOKE\)\) pingPanelKaraoke\(\);\s*if \(tags\.includes\(TAG_MENU\)\) pingPanelMenu\(\);\s*if \(tags\.includes\(TAG_ORDERS\)\) pingPanelOrders\(\);\s*\}/,
     );
     expect(src.match(/pingPanelKaraoke\(/g)).toHaveLength(1);
   });

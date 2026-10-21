@@ -8,9 +8,11 @@ import {
   readKeepaliveFor,
 } from "@/lib/admin/supabase-keepalive-core";
 import { emailHealth } from "@/lib/email/health";
+import { panelLinkUrl } from "@/lib/panel/link-status";
 import { hasServiceRole } from "@/lib/supabase/admin";
 
 import { IdentityKeyStatus } from "./identity-status";
+import { PanelLinkStatus } from "./panel-link-status";
 import { parseSettingsTab, SETTINGS_TAB_PARAM } from "./settings-core";
 import { SettingsForm } from "./settings-form";
 import { KeepaliveStatusRow, SystemStatus } from "./system-status";
@@ -34,6 +36,8 @@ export default async function AdminSettingsPage({
   ]);
   const hasKey = hasServiceRole();
   const ping = keepalive ? keepaliveView(keepalive, new Date()) : null;
+  // The köşk panel's address when the link is on; never the secret.
+  const panelUrl = panelLinkUrl();
 
   return (
     <PageShell width="list">
@@ -48,8 +52,11 @@ export default async function AdminSettingsPage({
           </p>
         }
       />
-      <SystemStatus attention={!hasKey || ping?.tone === "warning"}>
+      <SystemStatus
+        attention={!hasKey || !panelUrl || ping?.tone === "warning"}
+      >
         <IdentityKeyStatus hasKey={hasKey} />
+        <PanelLinkStatus panelUrl={panelUrl} />
         {ping ? <KeepaliveStatusRow view={ping} /> : null}
       </SystemStatus>
       {/* ?sekme=email opens that tab: the dashboard's mail banner, the

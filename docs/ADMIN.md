@@ -619,3 +619,21 @@ Bir fiyat, hangi panelden olursa olsun, değiştiğinde Kafe menüsü sayfasın�
 "Fiyatlar <gün> günü değişti; fiyat listesinin tarihi hâlâ <gün>." Tarih
 kendiliğinden değişmez (köşkteki basılı listeler aynı günü taşır); Ayarlar
 > Vergi'den çekilir.
+
+## Köşkün paneli: bar ekranı, online satış ve Sistem durumu (22 Eki 2026)
+
+Uygulamadan ya da web'den gelen, ödenmiş kafe siparişi köşkün iç panelindeki
+bar ekranına da düşer ve orada çalar (`docs/PANEL-ORDERS.md`). Ekran
+siparişi ilerletmez: "Hazırlanıyor", "Teslime hazır", "Tamamlandı" burada
+basılır, ekrandaki her siparişin bağlantısı bu panelde onun sayfasını açar.
+Sipariş burada ilerleyince ekrandan kendiliğinden kalkar.
+
+Köşkün paneli kâr-zararına ve kasa raporuna sitenin aldığı parayı da
+(kafe, mağaza, karaoke; KDV'siyle) imzalı bir özetten okur
+(`docs/PANEL-SALES.md`). Rakamlar Raporlar'ın ve Gün sonu'nunkiyle aynıdır;
+panelden elle girilen sipariş kasada çalındığı için ayrı sayılır.
+
+Ayarlar'daki **Sistem durumu** kartı bağlantının açık olup olmadığını söyler
+ve açıksa köşkün paneline bağlantı verir. Kapalıysa (iki projede ortak
+`KARAOKE_SYNC_SECRET` yok) kart kendiliğinden açılır: karaoke, menü
+fiyatları, bar ekranı ve online satış birlikte durmuştur.

@@ -51,9 +51,11 @@ birkaç saniyede bir sormadan.
 Üretmek için: `openssl rand -base64 48`. Değeri Vercel'de iki projeye de
 "Sensitive" olarak ekleyin, sonra iki projeyi de yeniden yayımlayın.
 
-Aynı anahtar menü bağlantısını da imzalar (`docs/PANEL-MENU.md`): adı
-tarihsel, sitenin panelle bütün bağlantısının anahtarıdır. Değiştirirken iki
-bağlantı birlikte kapanır ve birlikte açılır.
+Aynı anahtar menü bağlantısını (`docs/PANEL-MENU.md`), bar ekranının sipariş
+akışını (`docs/PANEL-ORDERS.md`) ve online satış özetini
+(`docs/PANEL-SALES.md`) da imzalar: adı tarihsel, sitenin panelle bütün
+bağlantısının anahtarıdır. Değiştirirken hepsi birlikte kapanır ve birlikte
+açılır.
 
 ## Güvenlik
 

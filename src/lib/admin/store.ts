@@ -28,6 +28,17 @@ import { nextSeq } from "@/lib/db/counters";
 import { deriveSku } from "@/lib/admin/sku";
 import { variantStockTotal } from "@/lib/admin/stock-delta";
 import {
+  KARAOKE_COLLECTED,
+  karaokeMoneyOf,
+  type KaraokeRevenueRow,
+} from "@/lib/admin/karaoke-money";
+import type { PanelOrderSourceRow } from "@/lib/panel/orders-feed-core";
+import {
+  PANEL_SALES_STATUSES,
+  type PanelSalesBookingRow,
+  type PanelSalesOrderRow,
+} from "@/lib/panel/sales-export-core";
+import {
   applyCustomerCoupon,
   couponAllowedForKind,
   redeemCustomerCoupon,
@@ -2362,6 +2373,97 @@ export async function listOrderAlertRows(
       .order("paidAt", { ascending: false })
       .limit(Math.max(1, Math.min(100, Math.trunc(limit)))),
     "listOrderAlertRows",
+  );
+}
+
+/**
+ * The open café orders the köşk panel's bar screen shows
+ * (src/lib/panel/orders-feed-core.ts `toPanelOrder`, which the route
+ * applies to each): paid, being prepared, or a pickup order ready at the
+ * counter, not typed into this panel, paid since `paidSince`. Two reads
+ * rather than one with an OR: a table or courier order that left the
+ * counter (`shipped`) is done for the bar and must not use up the limit.
+ * Only the columns the screen shows, the customer's name for its first
+ * word; no e-mail, phone, address or courier note leaves the database.
+ */
+export async function listPanelOpenOrderRows(
+  paidSince: string,
+  limit: number,
+): Promise<PanelOrderSourceRow[]> {
+  const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
+  const columns =
+    "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, customerName, scheduledFor, paidAt, shippedAt, totalMinor, items";
+  const sb = getDb();
+  const [open, ready] = await Promise.all([
+    sb
+      .from(TABLES.orders)
+      .select(columns)
+      .in("status", ["paid", "preparing"])
+      .eq("kind", "cafe")
+      .neq("source", "manual")
+      .gte("paidAt", paidSince)
+      .order("paidAt", { ascending: true })
+      .limit(cap),
+    sb
+      .from(TABLES.orders)
+      .select(columns)
+      .eq("status", "shipped")
+      .eq("kind", "cafe")
+      .eq("fulfillment", "pickup")
+      .neq("source", "manual")
+      .gte("paidAt", paidSince)
+      .order("paidAt", { ascending: true })
+      .limit(cap),
+  ]);
+  return [
+    ...rows<PanelOrderSourceRow>(open, "listPanelOpenOrderRows"),
+    ...rows<PanelOrderSourceRow>(ready, "listPanelOpenOrderRows"),
+  ];
+}
+
+/**
+ * The orders a period of the köşk panel's sales export reads
+ * (src/lib/panel/sales-export-core.ts `buildPanelSales`): the counted
+ * statuses, placed between `since` and `until` (the period with a day of
+ * margin either side), newest first. Money and lines only, and the promo
+ * code the reward check needs; no customer column.
+ */
+export async function listPanelSalesOrderRows(
+  since: string,
+  until: string,
+  limit: number,
+): Promise<PanelSalesOrderRow[]> {
+  return rows<PanelSalesOrderRow>(
+    await getDb()
+      .from(TABLES.orders)
+      .select(
+        "orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
+      )
+      .in("status", [...PANEL_SALES_STATUSES])
+      .gte("createdAt", since)
+      .lt("createdAt", until)
+      .order("orderNo", { ascending: false })
+      .limit(Math.max(1, Math.trunc(limit))),
+    "listPanelSalesOrderRows",
+  );
+}
+
+/**
+ * Every karaoke booking whose money reached the POS, as the sales export
+ * reads it (`karaokeRevenue`'s rows, with the rate it was sold at). The
+ * room is one, booked by the hour: a few hundred rows a year.
+ */
+export async function listPanelSalesBookingRows(): Promise<
+  PanelSalesBookingRow[]
+> {
+  return rows<PanelSalesBookingRow>(
+    await getDb()
+      .from(TABLES.karaokeReservations)
+      .select(
+        "paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt, taxRatePct",
+      )
+      .in("paymentStatus", [...KARAOKE_COLLECTED]),
+    "listPanelSalesBookingRows",
   );
 }
 
@@ -7727,20 +7829,7 @@ export function headlineFrom(
   };
 }
 
-/** The karaoke columns the revenue report reads. */
-export interface KaraokeRevenueRow {
-  paymentStatus?: string | null;
-  paidMinor?: number | null;
-  /** A late cancel's share owed / refunded; null = the whole payment. */
-  refundMinor?: number | null;
-  /**
-   * The part of `refundMinor` that had already gone back when an hour sold
-   * again made the booking owe money again (karaoke-make-good-core.ts).
-   */
-  refundSettledMinor?: number | null;
-  paidAt?: string | null;
-  createdAt: string;
-}
+export type { KaraokeRevenueRow } from "./karaoke-money";
 
 export interface KaraokeRevenue {
   /** Everything the POS collected for bookings, refunds not taken off. */
@@ -7757,9 +7846,6 @@ export interface KaraokeRevenue {
   periodNetMinor: number;
   periodCount: number;
 }
-
-/** The payment states that mean money reached the POS. */
-const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
 
 /**
  * Prepaid karaoke (16 Eki 2026) in the reports. The reports read only
@@ -7811,34 +7897,14 @@ export function karaokeRevenueFrom(
     periodCount: 0,
   };
   for (const r of bookings) {
-    const status = r.paymentStatus ?? "";
-    if (!(KARAOKE_COLLECTED as readonly string[]).includes(status)) continue;
-    const paid = Math.max(0, Math.round(Number(r.paidMinor) || 0));
-    if (paid === 0) continue;
-    // What goes (or went) back: a late cancel's share, else everything.
-    const share =
-      typeof r.refundMinor === "number" && r.refundMinor >= 0
-        ? Math.min(paid, Math.round(r.refundMinor))
-        : paid;
-    // Of a share still owed, what had already gone back (a late share
-    // refunded before its hour was sold again).
-    const settled =
-      typeof r.refundMinor === "number" &&
-      typeof r.refundSettledMinor === "number" &&
-      r.refundSettledMinor > 0
-        ? Math.min(share, Math.round(r.refundSettledMinor))
-        : 0;
-    const kept =
-      status === "refunded"
-        ? paid - share
-        : status === "refunding"
-          ? paid - settled
-          : paid;
+    const money = karaokeMoneyOf(r);
+    if (!money) continue;
+    const { paidMinor: paid, keptMinor: kept } = money;
     out.collectedMinor += paid;
     out.refundedMinor += paid - kept;
     out.netMinor += kept;
     if (kept > 0) out.paidCount += 1;
-    if (status === "refunding") out.refundPendingMinor += share - settled;
+    out.refundPendingMinor += money.refundPendingMinor;
     const at = new Date(r.paidAt || r.createdAt);
     if (Number.isNaN(at.getTime())) continue;
     if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {

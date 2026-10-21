@@ -104,30 +104,33 @@ async function loadModules() {
           }));
           b.onLoad({ filter: /^cache-tags$/, namespace: "stub" }, () => ({
             contents:
-              'export const tagsForWrite = () => [];\nexport const expireTags = () => {};\nexport const TAG_KARAOKE = "live:karaoke";\nexport const TAG_MENU = "pub:menu";',
+              'export const tagsForWrite = () => [];\nexport const expireTags = () => {};\nexport const TAG_KARAOKE = "live:karaoke";\nexport const TAG_MENU = "pub:menu";\nexport const TAG_ORDERS = "live:orders";',
           }));
         },
       },
       {
-        // The same write hook pings the köşk's panel after a karaoke or menu
-        // write (src/lib/panel/karaoke-ping.ts, menu-ping.ts, `next/server`'s
-        // `after()`). This script writes no booking and no menu item, and a
-        // bundled `next/server` does not even load as an ES module (it reads
+        // The same write hook pings the köşk's panel after a karaoke, menu
+        // or order write (src/lib/panel/ping.ts, `next/server`'s `after()`).
+        // This script writes no booking, menu item or order, and a bundled
+        // `next/server` does not even load as an ES module (it reads
         // `__dirname`).
         name: "panel-ping-stub",
         setup(b) {
           b.onResolve(
-            { filter: /^@\/lib\/panel\/(karaoke|menu)-ping$/ },
+            { filter: /^@\/lib\/panel\/(karaoke|menu|orders)-ping$/ },
             (args) => ({
-              path: args.path.endsWith("menu-ping") ? "menu-ping" : "panel-ping",
+              path: args.path.slice("@/lib/panel/".length),
               namespace: "stub",
             }),
           );
-          b.onLoad({ filter: /^panel-ping$/, namespace: "stub" }, () => ({
+          b.onLoad({ filter: /^karaoke-ping$/, namespace: "stub" }, () => ({
             contents: "export const pingPanelKaraoke = () => {};",
           }));
           b.onLoad({ filter: /^menu-ping$/, namespace: "stub" }, () => ({
             contents: "export const pingPanelMenu = () => {};",
+          }));
+          b.onLoad({ filter: /^orders-ping$/, namespace: "stub" }, () => ({
+            contents: "export const pingPanelOrders = () => {};",
           }));
         },
       },
