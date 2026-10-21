@@ -182,7 +182,7 @@ describe("a signed-in session follows the account", () => {
     await createAdminUser(CASHIER);
     const res = await signInAdmin(CASHIER.email, CASHIER.password);
     expect(res.ok).toBe(true);
-    const cookie = jar.get("laffogato_admin_session");
+    const cookie = jar.get("laffogato_panel_session");
     expect(cookie).toBeTruthy();
     return cookie!;
   }
@@ -223,7 +223,7 @@ describe("a signed-in session follows the account", () => {
   it("ends for an env account when its env password changes", async () => {
     const res = await signInAdmin(ENV_OWNER.email, ENV_OWNER.password);
     expect(res.ok).toBe(true);
-    const cookie = jar.get("laffogato_admin_session")!;
+    const cookie = jar.get("laffogato_panel_session")!;
     expect(await sessionFromToken(cookie)).toMatchObject({ role: "owner" });
     process.env.ADMIN_USERS = JSON.stringify([
       { email: ENV_OWNER.email, password: "degisti", role: "owner" },

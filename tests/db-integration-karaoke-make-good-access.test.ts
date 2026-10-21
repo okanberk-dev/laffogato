@@ -151,7 +151,7 @@ vi.mock("@/lib/admin/auth", () => {
     expiresAt: 0,
   });
   return {
-    ADMIN_COOKIE_NAME: "laffogato_admin_session",
+    ADMIN_COOKIE_NAME: "laffogato_panel_session",
     readSessionFromCookieValue: me,
     requireRole: vi.fn(async () => me()),
     getAdminSession: vi.fn(async () => me()),

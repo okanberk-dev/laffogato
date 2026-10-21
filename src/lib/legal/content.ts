@@ -8383,6 +8383,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "cerez-politikasi",
     title: "Çerez Politikası",
     shortTitle: "Çerez Politikası",
+    // 21 Ekim 2026: yönetici çerezlerinin adı ve yolu (/admin) değişti (docs/AUDIT.md §13).
+    updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: Google etiketleri kapalı; analitik ve pazarlama çerezleri kullanılmaz (LEGAL-REDLINES §15.6).
     category: "Veri & Gizlilik",
     summary:
@@ -8592,14 +8594,14 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         table: [
           {
-            key: "laffogato_admin_session",
+            key: "laffogato_panel_session",
             value:
-              "Amaç: yönetici panelinde oturumun sürdürülmesi ve yetkilendirme (rol bazlı erişim). Taraf: birinci taraf. Tür: kalıcı, HMAC ile imzalı ve httpOnly. Süre: 7 gün (çıkış yapıldığında derhal silinir). Rıza: gerekmez, zorunlu.",
+              "Amaç: yönetici panelinde oturumun sürdürülmesi ve yetkilendirme (rol bazlı erişim). Taraf: birinci taraf. Tür: kalıcı, HMAC ile imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. Süre: 7 gün (çıkış yapıldığında derhal silinir). Rıza: gerekmez, zorunlu.",
           },
           {
-            key: "laffogato_admin_pending_2fa",
+            key: "laffogato_panel_2fa",
             value:
-              "Amaç: yönetici girişinde iki aşamalı doğrulama (TOTP) kodu beklenirken geçici kimlik taşınması. Taraf: birinci taraf. Tür: kısa ömürlü, imzalı ve httpOnly. Süre: 5 dakika (kod doğrulanınca silinir). Rıza: gerekmez, zorunlu.",
+              "Amaç: yönetici girişinde iki aşamalı doğrulama (TOTP) kodu beklenirken geçici kimlik taşınması. Taraf: birinci taraf. Tür: kısa ömürlü, imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. Süre: 5 dakika (kod doğrulanınca silinir). Rıza: gerekmez, zorunlu.",
           },
           {
             key: "laffogato_customer_session",
