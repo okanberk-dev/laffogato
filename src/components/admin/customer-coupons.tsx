@@ -25,6 +25,7 @@ import {
   formatTRY,
 } from "./forms";
 import { Badge, ConfirmButton } from "./ui";
+import { CARD_SUBTITLE, CARD_TITLE } from "./ui/styles";
 
 const initial: CouponGrantState = {};
 
@@ -63,12 +64,7 @@ export function CustomerCoupons({
 
   return (
     <Card className="grid grid-cols-1 gap-4">
-      <h2
-        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        Kuponlar ({coupons.length})
-      </h2>
+      <h2 className={CARD_TITLE}>Kuponlar ({coupons.length})</h2>
 
       {coupons.length === 0 ? (
         <p className="text-sm text-[var(--admin-text-soft)]">
@@ -133,12 +129,7 @@ export function CustomerCoupons({
         onSubmit={post.onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
-        <h3
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Yeni kupon tanımla
-        </h3>
+        <h3 className={CARD_SUBTITLE}>Yeni kupon tanımla</h3>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tür">
             <Select name="kind" defaultValue="pct">
@@ -167,7 +158,7 @@ export function CustomerCoupons({
             <TextInput name="expiresAt" type="date" />
           </Field>
         </div>
-        <Field label="Başlık (opsiyonel)">
+        <Field label="Başlık (isteğe bağlı)">
           <TextInput name="title" placeholder="Hediye kuponu" maxLength={80} />
         </Field>
         <FormError message={state.error} />

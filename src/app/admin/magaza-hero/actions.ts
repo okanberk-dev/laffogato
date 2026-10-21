@@ -10,17 +10,26 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { setAdminFlash } from "@/lib/admin/flash";
+import {
+  moveAnswer,
+  readActiveForm,
+  readMoveForm,
+} from "@/lib/admin/list-order";
 import { parseShopHeroForm } from "@/lib/admin/shop-hero-schema";
 import {
   createShopHeroSlide,
   deleteShopHeroSlide,
   getShopHeroSlide,
+  moveShopHeroSlide,
+  setShopHeroSlideActive,
   updateShopHeroSlide,
 } from "@/lib/admin/store";
 
 const PANEL = "/admin/magaza-hero";
 const REFUSED = "Formdaki uyarıları gider.";
+const GONE = "Bu slayt silinmiş; listeye dön.";
 
 function revalidate() {
   revalidatePath(PANEL);
@@ -67,7 +76,7 @@ export async function updateSlideAction(
   const updated = await updateShopHeroSlide(id, form.input);
   // Deleted in another tab while the form was open: say so, and do not
   // write an audit row for an edit that saved nothing (admin audit CAT-28).
-  if (!updated) return actionError("Bu slayt silinmiş; listeye dön.");
+  if (!updated) return actionError(GONE);
   await logAudit({
     action: "update",
     entity: "shop_hero_slide",
@@ -101,5 +110,53 @@ export async function deleteSlideAction(
     entityId: id,
     payload: slide ? { title: slide.title } : {},
   });
-  return actionOk("Slayt silindi, mağazadan kalktı.");
+  return deletedAnswer(formData, "Slayt silindi, mağazadan kalktı.", PANEL);
+}
+
+/**
+ * "Yayına al" / "Yayından kaldır" from the list: one click, reversible. The
+ * delete dialog used to send the operator into the form for this.
+ */
+export async function setSlideActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("shopHero");
+  const form = readActiveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const found = await setShopHeroSlideActive(form.id, form.isActive);
+  revalidate();
+  if (!found) return actionError(GONE);
+  await logAudit({
+    action: "update",
+    entity: "shop_hero_slide",
+    entityId: form.id,
+    payload: { isActive: form.isActive },
+  });
+  return actionOk(
+    form.isActive
+      ? "Slayt yayına alındı; mağazada dönüyor."
+      : "Slayt yayından kaldırıldı; mağazada görünmüyor.",
+  );
+}
+
+/** The ↑ / ↓ beside each row. */
+export async function moveSlideAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("shopHero");
+  const form = readMoveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const outcome = await moveShopHeroSlide(form.id, form.direction);
+  if (outcome === "moved") {
+    await logAudit({
+      action: "update",
+      entity: "shop_hero_slide",
+      entityId: form.id,
+      payload: { move: form.direction },
+    });
+    revalidate();
+  }
+  return moveAnswer(outcome, form.direction, "Slayt", GONE);
 }

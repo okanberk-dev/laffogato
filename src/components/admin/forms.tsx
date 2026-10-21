@@ -336,6 +336,9 @@ export function PageHeader({
               <Link
                 href={primary.href}
                 data-admin-new=""
+                // The shortcut layer writes aria-keyshortcuts="n" here once
+                // the shell has hydrated, which can be before this page has.
+                suppressHydrationWarning
                 className={cx(BUTTON.primary, "flex-1 sm:flex-none")}
               >
                 {primary.label}
@@ -346,7 +349,11 @@ export function PageHeader({
               </div>
             )
           ) : null}
-          {menu ? <ActionMenu label={menuLabel}>{menu}</ActionMenu> : null}
+          {menu ? (
+            <ActionMenu label={menuLabel} framed>
+              {menu}
+            </ActionMenu>
+          ) : null}
         </div>
       ) : (
         action && <div className="w-full sm:w-auto">{action}</div>

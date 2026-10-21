@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
   buildPromoFormSchema,
@@ -152,5 +153,9 @@ export async function deletePromoAction(
     entityId: id,
     payload: promo ? { code: promo.code } : {},
   });
-  return actionOk(`${promo?.code ?? "Kod"} silindi.`);
+  return deletedAnswer(
+    formData,
+    `${promo?.code ?? "Kod"} silindi.`,
+    "/admin/promosyon",
+  );
 }

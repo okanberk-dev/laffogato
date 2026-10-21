@@ -10,6 +10,10 @@ import {
 } from "@/components/admin/action-form";
 import { Card, Field, TextInput } from "@/components/admin/forms";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
+import {
+  SAVE_AND_NEW_FIELD,
+  SAVE_AND_NEW_VALUE,
+} from "@/lib/admin/save-and-new";
 
 /**
  * Name (and, when editing, sort order) of a table. The code is never a field:
@@ -25,11 +29,17 @@ export function CafeTableForm({
   table,
   submitLabel,
   back,
+  saveAndNew = false,
 }: {
   action: ModalAction;
   table?: { id: string; name: string; sortOrder: number };
   submitLabel: string;
   back: string;
+  /**
+   * A new table's second button, "Kaydet ve yenisini ekle": setting up a
+   * room of tables without a round trip through each table's page.
+   */
+  saveAndNew?: boolean;
 }) {
   return (
     <Card>
@@ -69,6 +79,15 @@ export function CafeTableForm({
         <FormMessage />
         <div className="flex flex-wrap items-center gap-2">
           <SubmitButton>{submitLabel}</SubmitButton>
+          {saveAndNew ? (
+            <SubmitButton
+              variant="ghost"
+              name={SAVE_AND_NEW_FIELD}
+              value={SAVE_AND_NEW_VALUE}
+            >
+              Kaydet ve yenisini ekle
+            </SubmitButton>
+          ) : null}
           <Link href={back} className={BUTTON.ghost}>
             Vazgeç
           </Link>

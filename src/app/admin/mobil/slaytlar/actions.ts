@@ -10,11 +10,19 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
+  moveAnswer,
+  readActiveForm,
+  readMoveForm,
+} from "@/lib/admin/list-order";
+import {
   createAppSlide,
   deleteAppSlide,
+  moveAppSlide,
+  setAppSlideActive,
   updateAppSlide,
   type AppSlideInput,
   type AppSlideTone,
@@ -121,12 +129,58 @@ export async function deleteSlideAction(
   revalidatePath(PANEL);
   if (!removed) return actionError("Slayt zaten silinmiş.");
   await logAudit({ action: "delete", entity: "app_hero_slide", entityId: id });
-  const done = "Slayt silindi; uygulamadan birkaç dakika içinde kalkar.";
-  // From the edit page's header: that page has nothing left to show, so the
-  // answer is the list, with the toast.
-  if (formData.get("then") === "list") {
-    await setAdminFlash(done);
-    redirect(PANEL);
+  return deletedAnswer(
+    formData,
+    "Slayt silindi; uygulamadan birkaç dakika içinde kalkar.",
+    PANEL,
+  );
+}
+
+/**
+ * "Yayına al" / "Yayından kaldır" from the list: one click, reversible. The
+ * delete dialog used to send the operator into the form for this. Not
+ * "hemen": phones read the home content through a shared cache.
+ */
+export async function setSlideActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readActiveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const found = await setAppSlideActive(form.id, form.isActive);
+  revalidatePath(PANEL);
+  if (!found) return actionError(GONE);
+  await logAudit({
+    action: "update",
+    entity: "app_hero_slide",
+    entityId: form.id,
+    payload: { isActive: form.isActive },
+  });
+  return actionOk(
+    form.isActive
+      ? "Slayt yayına alındı; yayın tarihleri içindeyse telefonlara birkaç dakika içinde ulaşır."
+      : "Slayt yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
+  );
+}
+
+/** The ↑ / ↓ beside each row (the list unfiltered). */
+export async function moveSlideAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readMoveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const outcome = await moveAppSlide(form.id, form.direction);
+  if (outcome === "moved") {
+    await logAudit({
+      action: "update",
+      entity: "app_hero_slide",
+      entityId: form.id,
+      payload: { move: form.direction },
+    });
+    revalidatePath(PANEL);
   }
-  return actionOk(done);
+  return moveAnswer(outcome, form.direction, "Slayt", GONE);
 }

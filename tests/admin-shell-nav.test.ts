@@ -597,9 +597,24 @@ describe("the sidebar and the top bar", () => {
       html,
       /<a href="\/admin\/siparisler"[^>]*aria-current="page"[^>]*>/,
     );
-    // The AkmanOS look (21 Eki 2026): the current page is the black row.
-    expect(active).toContain("bg-[var(--admin-primary)]");
-    expect(active).toContain("text-white");
+    // The AkmanOS look, softened (21 Eki 2026, evening): the current page
+    // is no longer the one black row. A group without a colour (this
+    // fixture's "Satış") takes the plain soft ground...
+    expect(active).toContain("font-medium");
+    expect(active).not.toContain("bg-[var(--admin-primary)]");
+    expect(active).not.toContain("text-white");
+    expect(active).toContain("bg-[var(--admin-primary-soft)]");
+    // ...and a group with one, its colour (ui/hues.ts): Katalog is amber,
+    // on the current row and in every row's icon tile.
+    pathname = "/admin/urunler";
+    const catalog = renderSidebar();
+    expect(
+      tag(catalog, /<a href="\/admin\/urunler"[^>]*aria-current="page"[^>]*>/),
+    ).toContain("bg-[var(--admin-hue-amber-soft)]");
+    expect(catalog).toContain(
+      "bg-[var(--admin-hue-amber-soft)] text-[var(--admin-hue-amber)]",
+    );
+    pathname = "/admin/siparisler";
   });
 });
 
@@ -672,8 +687,11 @@ describe("the layout", () => {
     pathname = "/admin";
     const html = await render();
     const side = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
+    // Each title after its colour's dot (ui/hues.ts).
     const titles = [
-      ...side.matchAll(/id="side-nav-\d+-title"[^>]*>(?:<span>)?([^<]+)</g),
+      ...side.matchAll(
+        /id="side-nav-\d+-title"[^>]*>(?:<span[^>]*>)?<span aria-hidden="true" class="size-1\.5 [^"]*"><\/span>([^<]+)</g,
+      ),
     ].map((m) => m[1]);
     expect(titles).toEqual([
       "Bugün",

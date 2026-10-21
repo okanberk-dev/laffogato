@@ -234,9 +234,11 @@ export const CREATE_ENTRIES: ReadonlyArray<{
   },
   {
     href: "/admin/menu/yeni",
-    label: "Yeni menü ürünü",
+    // The menu's own word (its pages and buttons say "menü kalemi"); the
+    // palette's old one still finds it.
+    label: "Yeni menü kalemi",
     section: "menu",
-    keywords: ["kafe menüsü", "içecek"],
+    keywords: ["kafe menüsü", "içecek", "menü ürünü"],
   },
   {
     href: "/admin/kategoriler/yeni",

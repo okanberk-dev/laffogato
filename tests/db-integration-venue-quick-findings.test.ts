@@ -11,6 +11,7 @@ import {
   vi,
 } from "vitest";
 
+import { adminSessionKey } from "@/lib/admin/session-key";
 import { createDb, type Executor } from "@/lib/db/client";
 
 import { applyBundledSchema } from "./_support/apply-schema";
@@ -137,7 +138,9 @@ function tokenFor(email: string, role: string, passwordHash: string): string {
     .digest("hex")
     .slice(0, 24);
   const payload = `${email}|${role}|${EXPIRES}|${fp}`;
-  const sig = createHmac("sha256", secret).update(payload).digest("hex");
+  const sig = createHmac("sha256", adminSessionKey(secret))
+    .update(payload)
+    .digest("hex");
   return `${payload}|${sig}`;
 }
 const STAFF = {

@@ -29,7 +29,8 @@ export default async function EditAppAnnouncementPage({
         eyebrow="Mobil uygulama · Ana sayfa"
         title="Duyuruyu düzenle"
         description={row.title}
-        action={
+        menuLabel="Duyuru işlemleri"
+        menu={
           // `then: list`: after the delete this page has nothing to show,
           // so the action answers with the list and its toast.
           <ConfirmButton
@@ -39,7 +40,7 @@ export default async function EditAppAnnouncementPage({
             ariaLabel={`Sil: ${row.title}`}
             title={`"${row.title}" silinsin mi?`}
             description={DELETE_TEXT.announcement}
-            className="w-full sm:w-auto"
+            variant="menuDanger"
           />
         }
       />

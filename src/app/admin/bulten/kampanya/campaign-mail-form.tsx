@@ -223,7 +223,7 @@ export function CampaignMailForm({
 
       {!campaignMailHasFields(template) && (
         <Card>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--admin-text)]">
             Sabit metin
           </h3>
           <p className="text-xs text-[var(--admin-text-mute)]">
@@ -236,7 +236,7 @@ export function CampaignMailForm({
 
       {CAMPAIGN_MAIL_GROUPS[template].map((group) => (
         <Card key={`${template}:${group.title}`}>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--admin-text)]">
             {group.title}
           </h3>
           {group.hint && (
@@ -271,7 +271,7 @@ export function CampaignMailForm({
           bottom bar (--admin-bottom-inset, layout.tsx), not under it. */}
       <div
         data-sticky-save-bar
-        className="sticky bottom-[calc(1rem+var(--admin-bottom-inset,0px))] z-10 flex flex-col gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.14)] sm:flex-row sm:items-center"
+        className="sticky bottom-[calc(1rem+var(--admin-bottom-inset,0px))] z-10 flex flex-col gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 shadow-[0_8px_24px_rgba(28,25,23,0.14)] sm:flex-row sm:items-center"
       >
         <div className="shrink-0">
           <PrimaryButton type="submit" disabled={pending}>

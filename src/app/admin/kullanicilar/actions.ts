@@ -22,6 +22,10 @@ import {
   type AdminUserResult,
   type PublicAdminUser,
 } from "@/lib/admin/users";
+import {
+  SELF_CHANGE_REFUSED,
+  SELF_DELETE_REFUSED,
+} from "@/lib/admin/users-self";
 
 /**
  * Every action opens its own role gate.
@@ -111,13 +115,30 @@ export async function saveAdminUserAction(
   _prev: AdminUserState,
   formData: FormData,
 ): Promise<AdminUserState> {
-  await requireRole("adminUsers");
+  const session = await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
-  const result = await updateAdminUser(email, {
-    name: String(formData.get("name") ?? ""),
-    role: String(formData.get("role") ?? ""),
-    isActive: formData.get("isActive") === "on",
-  });
+  const name = String(formData.get("name") ?? "");
+  // Your own row saves its name only: the role and the access stay as
+  // stored. The session re-reads the account on every request, so a lower
+  // role takes this page away at once and switching yourself off signs you
+  // out, with nobody's say; the last-owner rule only guards the last one.
+  // The row sends neither field; a request that does is refused. Stored,
+  // not the session's: an env sign-in beside an inactive row of the same
+  // address must not switch that row on (and so sign itself out).
+  const self = email === normalizeAdminEmail(session.email);
+  if (self && (formData.has("role") || formData.has("isActive"))) {
+    return { error: SELF_CHANGE_REFUSED };
+  }
+  const result = await updateAdminUser(
+    email,
+    self
+      ? { name }
+      : {
+          name,
+          role: String(formData.get("role") ?? ""),
+          isActive: formData.get("isActive") === "on",
+        },
+  );
   if (!result.ok) return failed(result);
 
   await logAudit({
@@ -162,8 +183,11 @@ export async function deleteAdminUserAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  await requireRole("adminUsers");
+  const session = await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
+  if (email === normalizeAdminEmail(session.email)) {
+    return actionError(SELF_DELETE_REFUSED);
+  }
   const result = await deleteAdminUser(email);
   if (!result.ok) return actionError(result.message);
   // The authenticator goes with the account: admin_2fa is keyed by the

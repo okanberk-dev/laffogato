@@ -2,8 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
-import { ProductActiveToggle } from "@/components/admin/products-list";
 import {
+  DeleteProduct,
+  ProductActiveToggle,
+} from "@/components/admin/products-list";
+import {
+  ActionMenu,
   Badge,
   BUTTON,
   KeyValueGrid,
@@ -112,6 +116,14 @@ export default async function ProductPage({ params }: PageProps) {
           >
             Stok hareketleri
           </Link>
+          {/* The rare and destructive one, as on the list's row. */}
+          <ActionMenu label={`${product.name} işlemleri`} framed>
+            <DeleteProduct
+              p={{ id: product.id, name: product.name }}
+              variant="menuDanger"
+              thenList
+            />
+          </ActionMenu>
         </div>
       </header>
 

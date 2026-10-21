@@ -717,15 +717,17 @@ describe("tone colours clear AA", () => {
     danger: ["--admin-danger-ink", "--admin-danger-soft"],
   };
 
-  it("is the AkmanOS light theme of the venue's back office (lafmaliyet, 21 Eki 2026)", () => {
-    // White canvas and controls, zinc-100 cards, #171717 ink, a black
-    // primary; zinc-200 lines. The customer site keeps its own palette.
+  it("is the AkmanOS light theme of the venue's back office, softened (lafmaliyet, 21 Eki 2026)", () => {
+    // White canvas and controls; the cards, the sidebar and the lines a
+    // warm stone instead of cold zinc, the ink and the primary a warm
+    // near-black (operator, the same evening: "yumuşat ... biraz
+    // renklendir"). The customer site keeps its own palette.
     expect(token("--admin-bg")).toBe("#FFFFFF");
     expect(token("--admin-surface")).toBe("#FFFFFF");
-    expect(token("--admin-panel")).toBe("#F4F4F5");
-    expect(token("--admin-border")).toBe("#E4E4E7");
-    expect(token("--admin-text")).toBe("#171717");
-    expect(token("--admin-primary")).toBe("#171717");
+    expect(token("--admin-panel")).toBe("#F6F4F0");
+    expect(token("--admin-border")).toBe("#E9E5DE");
+    expect(token("--admin-text")).toBe("#1C1917");
+    expect(token("--admin-primary")).toBe("#1C1917");
     // Lime is a fill only, always under its dark ink; no panel text is lime.
     expect(token("--admin-accent")).toBe("#C0F21E");
     expect(token("--admin-accent-ink")).toBe("#1F3A08");
@@ -738,6 +740,71 @@ describe("tone colours clear AA", () => {
         expect(read(`${dir}/${file}`), file).not.toMatch(
           /text-\[var\(--admin-accent\)\]/,
         );
+      }
+    }
+  });
+
+  it("the nav groups' five colours: each ink on its ground and on white, the page's inks on the grounds", async () => {
+    const { ADMIN_HUES, GROUP_HUE } =
+      await import("@/components/admin/ui/hues");
+    expect(Object.values(GROUP_HUE).sort()).toEqual([...ADMIN_HUES].sort());
+    for (const hue of ADMIN_HUES) {
+      const ink = token(`--admin-hue-${hue}`);
+      const soft = token(`--admin-hue-${hue}-soft`);
+      expect(
+        contrast(ink, soft),
+        `${hue} on its ground`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(ink, "#FFFFFF"),
+        `${hue} on white`,
+      ).toBeGreaterThanOrEqual(4.5);
+      for (const text of [
+        "--admin-text",
+        "--admin-text-soft",
+        "--admin-text-mute",
+      ]) {
+        expect(
+          contrast(token(text), soft),
+          `${text} on ${hue}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+    // A dashboard tile's figure takes its tone's ink on the tile's colour
+    // (admin/page.tsx TILE_HUES, dashboard-core's tones).
+    for (const [ink, hue] of [
+      ["--admin-danger-ink", "rose"],
+      ["--admin-warning", "amber"],
+    ] as const) {
+      expect(
+        contrast(token(ink), token(`--admin-hue-${hue}-soft`)),
+        `${ink} on ${hue}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("a section's colour is its nav group's (admin/layout.tsx NAV_GROUPS)", async () => {
+    const { GROUP_HUE, SECTION_HUE } =
+      await import("@/components/admin/ui/hues");
+    const layout = read("src/app/admin/layout.tsx");
+    const nav = layout.slice(
+      layout.indexOf("const NAV_GROUPS"),
+      layout.indexOf("\n];", layout.indexOf("const NAV_GROUPS")),
+    );
+    const blocks = nav.split(/\n {4}title: "/).slice(1);
+    expect(blocks.map((b) => b.slice(0, b.indexOf('"')))).toEqual(
+      Object.keys(GROUP_HUE),
+    );
+    for (const block of blocks) {
+      const title = block.slice(0, block.indexOf('"'));
+      for (const [, section] of block.matchAll(/section: "(\w+)"/g)) {
+        // Ayarlar's "Uygulama ayarları" tab is the app's (İçerik) section
+        // under Yönetim: the sidebar colours a row by its group.
+        if (title === "Yönetim" && section === "mobileApp") continue;
+        expect(
+          SECTION_HUE[section as keyof typeof SECTION_HUE],
+          `${section} in ${title}`,
+        ).toBe(GROUP_HUE[title]);
       }
     }
   });

@@ -28,6 +28,7 @@ const session = vi.hoisted(() => ({
 const flashes = vi.hoisted(() => [] as Array<[string, string | undefined]>);
 const verifyToken = vi.hoisted(() => vi.fn());
 const verifyAndEnable = vi.hoisted(() => vi.fn());
+const has2FA = vi.hoisted(() => vi.fn());
 const disable2FA = vi.hoisted(() => vi.fn());
 const cancelEnrollment = vi.hoisted(() => vi.fn());
 const reserveLoginAttempt = vi.hoisted(() => vi.fn());
@@ -61,6 +62,7 @@ vi.mock("@/lib/admin/rate-limit", () => ({
 vi.mock("@/lib/admin/twofa", () => ({
   cancelEnrollment,
   disable2FA,
+  has2FA,
   verifyAndEnable,
   verifyToken,
 }));
@@ -96,9 +98,11 @@ beforeEach(() => {
     cancelEnrollment,
     reserveLoginAttempt,
     safeAudit,
+    has2FA,
   ]) {
     m.mockReset();
   }
+  has2FA.mockResolvedValue(false);
   reserveLoginAttempt.mockResolvedValue({
     blocked: false,
     remaining: 4,
@@ -189,6 +193,40 @@ describe("setting 2FA up", () => {
     const res = await actions.verifyEnrollAction({}, code("123456"));
     expect(res.error).toMatch(/QR kodu yeniden tarat/);
     expect(res.error).not.toMatch(/Saatin senkron/);
+  });
+
+  it("counts every code against the sign-in step's two budgets", async () => {
+    verifyAndEnable.mockResolvedValue(false);
+    await actions.verifyEnrollAction({}, code("123456"));
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "admin-2fa",
+      "1.2.3.4",
+      "kasa@laffogato.net",
+    );
+    expect(reserveLoginAttempt).toHaveBeenCalledWith(
+      "admin-2fa-account",
+      "*",
+      "kasa@laffogato.net",
+    );
+  });
+
+  it("stops guessing once a budget is spent, before any code is checked", async () => {
+    reserveLoginAttempt.mockResolvedValue({
+      blocked: true,
+      remaining: 0,
+      retryAfterSeconds: 60,
+    });
+    const res = await actions.verifyEnrollAction({}, code("123456"));
+    expect(res.error).toMatch(/Çok fazla hatalı kod/);
+    expect(verifyAndEnable).not.toHaveBeenCalled();
+  });
+
+  it("checks no code against a secret that is already on", async () => {
+    has2FA.mockResolvedValue(true);
+    const res = await actions.verifyEnrollAction({}, code("123456"));
+    expect(res.error).toMatch(/zaten açık/);
+    expect(verifyAndEnable).not.toHaveBeenCalled();
+    expect(reserveLoginAttempt).not.toHaveBeenCalled();
   });
 });
 

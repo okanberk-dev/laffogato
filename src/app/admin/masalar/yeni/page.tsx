@@ -27,6 +27,7 @@ export default async function NewCafeTablePage() {
         action={createCafeTableAction}
         submitLabel="Masayı ekle"
         back={CAFE_TABLES_PATH}
+        saveAndNew
       />
     </main>
   );

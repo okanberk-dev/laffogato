@@ -3,11 +3,13 @@ import Link from "next/link";
 import { cx } from "@/components/laffogato/cx";
 import type { AdminTone } from "@/lib/admin/tone";
 
+import { HUE_INK, HUE_SOFT, type AdminHue } from "../ui/hues";
+import { AdminIcon, type AdminIconName } from "../ui/icons";
 import { TONE_INK } from "../ui/tone";
 import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "../ui/styles";
 
 const CARD =
-  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--admin-panel)] p-4 print:border print:border-[var(--admin-border-strong)] print:bg-white";
+  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl p-4 print:border print:border-[var(--admin-border-strong)] print:bg-white";
 
 /**
  * A figure on a tile: the dashboard's and the report's. Server-safe.
@@ -19,7 +21,11 @@ const CARD =
  * its size follows the tile's width (`cqi`), so "₺1.272.103,89" stays on
  * one line in a phone's half-width tile, and only a still longer amount
  * wraps. The hint wraps too; it can carry an amount. With `href` the
- * whole tile is a link to the list it counts (admin audit SHE-31).
+ * whole tile is a link to the list it counts (admin audit SHE-31). With
+ * `icon` a small icon beside the label names the figure at a glance; it
+ * takes the value's tone, so a figure that asks for a person shows it
+ * twice. With `hue` the tile is that soft colour (ui/hues.ts) and its icon
+ * the colour's ink; a link then lifts a little under the pointer.
  */
 export function StatCard({
   label,
@@ -28,6 +34,8 @@ export function StatCard({
   href,
   tone,
   money = false,
+  icon,
+  hue,
 }: {
   label: string;
   value: string;
@@ -37,11 +45,31 @@ export function StatCard({
   tone?: AdminTone;
   /** Tabular digits, and no truncation. */
   money?: boolean;
+  /** Decorative: the label names the figure. */
+  icon?: AdminIconName;
+  /** The tile's soft colour; the stone card without. */
+  hue?: AdminHue;
 }) {
   const body = (
     <>
-      <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
-        {label}
+      <span className="flex min-w-0 items-start justify-between gap-2">
+        <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
+          {label}
+        </span>
+        {icon ? (
+          <AdminIcon
+            name={icon}
+            size={16}
+            className={cx(
+              "mt-0.5 print:hidden",
+              tone
+                ? TONE_INK[tone]
+                : hue
+                  ? HUE_INK[hue]
+                  : "text-[var(--admin-text-mute)]",
+            )}
+          />
+        ) : null}
       </span>
       <span
         title={value}
@@ -63,13 +91,18 @@ export function StatCard({
       ) : null}
     </>
   );
-  if (!href) return <div className={CARD}>{body}</div>;
+  const ground = hue ? HUE_SOFT[hue] : "bg-[var(--admin-panel)]";
+  if (!href) return <div className={cx(CARD, ground)}>{body}</div>;
   return (
     <Link
       href={href}
       className={cx(
         CARD,
-        "transition-colors hover:bg-[var(--admin-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+        ground,
+        hue
+          ? "transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_6px_18px_rgba(28,25,23,0.08)] motion-reduce:hover:translate-y-0"
+          : "transition-colors hover:bg-[var(--admin-primary-soft)]",
+        "focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
       )}
     >
       {body}

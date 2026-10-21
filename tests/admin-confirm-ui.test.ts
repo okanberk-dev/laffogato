@@ -218,15 +218,23 @@ vi.mock("@/lib/admin/cafe-table-qr", () => ({
 const stub = () => vi.fn(async () => ({ ok: true as const, message: "" }));
 vi.mock("@/app/admin/mobil/duyurular/actions", () => ({
   deleteAnnouncementAction: stub(),
+  moveAnnouncementAction: stub(),
+  setAnnouncementActiveAction: stub(),
 }));
 vi.mock("@/app/admin/mobil/slaytlar/actions", () => ({
   deleteSlideAction: stub(),
+  moveSlideAction: stub(),
+  setSlideActiveAction: stub(),
 }));
 vi.mock("@/app/admin/mobil/gonderiler/actions", () => ({
   deletePostAction: stub(),
+  movePostAction: stub(),
+  setPostActiveAction: stub(),
 }));
 vi.mock("@/app/admin/magaza-hero/actions", () => ({
   deleteSlideAction: stub(),
+  moveSlideAction: stub(),
+  setSlideActiveAction: stub(),
 }));
 vi.mock("@/app/admin/anasayfa-hero/actions", () => ({
   deleteHomeSlideAction: stub(),
@@ -277,6 +285,7 @@ vi.mock("@/app/admin/musteriler/actions", () => ({
 vi.mock("@/app/admin/menu/actions", () => ({
   bulkMenuAction: vi.fn(async () => ({})),
   deleteMenuItemAction: stub(),
+  moveMenuItemAction: stub(),
   setMenuItemActiveAction: stub(),
 }));
 vi.mock("@/app/admin/urunler/actions", () => ({

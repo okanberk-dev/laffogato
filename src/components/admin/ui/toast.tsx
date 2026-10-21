@@ -200,7 +200,7 @@ function ToastCard({
       onFocus={() => setPaused(true)}
       onBlur={onBlur}
       className={cx(
-        "pointer-events-auto flex items-start gap-3 rounded-xl border border-l-4 border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(0,0,0,0.14)]",
+        "pointer-events-auto flex items-start gap-3 rounded-xl border border-l-4 border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(28,25,23,0.14)]",
         TONE_RULE[tone],
       )}
     >

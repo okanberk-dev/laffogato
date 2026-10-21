@@ -106,6 +106,8 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
       <MenuList
         key={JSON.stringify(view)}
         groups={list.groups}
+        // A category filter still shows that category whole.
+        reorderable={tab === "tumu" && !filters.q}
         categoryKeys={[...MENU_CATEGORY_KEYS]}
         categoryLabels={MENU_CATEGORY_LABELS}
         emptyTitle={

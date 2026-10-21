@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getHomeHeroSlide } from "@/lib/admin/home-hero";
 
-import { updateHomeSlideAction } from "../actions";
+import { deleteHomeSlideAction, updateHomeSlideAction } from "../actions";
 import { HomeSlideForm } from "../slide-form";
 
 export const metadata = { title: "Admin · Anasayfa slaytı düzenle" };
@@ -22,16 +23,27 @@ export default async function EditHomeSlidePage({
 
   const { id: _id, createdAt: _c, updatedAt: _u, ...defaults } = slide;
   const bound = updateHomeSlideAction.bind(null, slide.id);
+  const name =
+    [slide.titleLine1, slide.titleLine2].filter(Boolean).join(" ") || "";
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader
         eyebrow="İçerik · Anasayfa slaytları"
-        title={
-          [slide.titleLine1, slide.titleLine2].filter(Boolean).join(" ") ||
-          "Slayt düzenle"
-        }
+        title={name || "Slayt düzenle"}
         description="Kaydettiğin değişiklik anasayfaya hemen yansır."
+        menuLabel="Slayt işlemleri"
+        menu={
+          <ConfirmButton
+            action={deleteHomeSlideAction}
+            hidden={{ id: slide.id, then: "list" }}
+            label="Sil"
+            ariaLabel={`Sil: ${name || slide.id}`}
+            variant="menuDanger"
+            title={`"${name || "Bu slayt"}" silinsin mi?`}
+            description="Slayt anasayfadan hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan."
+          />
+        }
       />
       <HomeSlideForm
         action={bound}

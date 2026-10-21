@@ -275,7 +275,7 @@ describe("Git, Oluştur and Komutlar per role", () => {
       "Yeni sipariş",
       "Yeni ürün",
       "Ürünleri CSV ile içe aktar",
-      "Yeni menü ürünü",
+      "Yeni menü kalemi",
       "Yeni kategori",
       "Yeni promosyon",
       "Yeni kampanya",

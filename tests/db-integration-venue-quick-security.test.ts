@@ -12,6 +12,7 @@ import {
   vi,
 } from "vitest";
 
+import { adminSessionKey } from "@/lib/admin/session-key";
 import { createDb, type Executor } from "@/lib/db/client";
 
 import { applyBundledSchema } from "./_support/apply-schema";
@@ -197,7 +198,9 @@ function tokenFor(
     .digest("hex")
     .slice(0, 24);
   const payload = `${email}|${role}|${expiresAt}|${fp}`;
-  const sig = createHmac("sha256", secret).update(payload).digest("hex");
+  const sig = createHmac("sha256", adminSessionKey(secret))
+    .update(payload)
+    .digest("hex");
   return `${payload}|${sig}`;
 }
 /** One cookie per role for the whole file (a fresh expiry is a new cookie). */

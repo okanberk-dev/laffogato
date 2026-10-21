@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+import { ActionButton } from "@/components/admin/action-form";
 import { formatDateTime } from "@/components/admin/forms";
-import { Badge, type StatusTab } from "@/components/admin/ui";
+import { MoveButtons } from "@/components/admin/move-buttons";
+import { Badge, type ModalAction, type StatusTab } from "@/components/admin/ui";
 import {
   APP_PUBLISH_STATUS_LABELS,
   APP_PUBLISH_STATUS_TONES,
@@ -24,11 +26,71 @@ type Windowed = { isActive: boolean; startsAt: string; endsAt: string };
  */
 export const DELETE_TEXT = {
   slide:
-    "Slayt kalıcı olarak silinir; uygulamanın ana sayfasından birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için Düzenle'den yayından al.",
+    "Slayt kalıcı olarak silinir; uygulamanın ana sayfasından birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan.",
   announcement:
-    "Duyuru kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için Düzenle'den yayından al.",
+    "Duyuru kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan.",
   post: "Gönderi kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Gönderilmiş e-posta geri alınmaz.",
 } as const;
+
+/**
+ * The row's "Yayından kaldır" / "Yayına al" in its ⋯ menu: one click that
+ * posts the state asked for (`active`), answered with a toast.
+ */
+export function PublishToggle({
+  action,
+  id,
+  isActive,
+  label,
+}: {
+  action: ModalAction;
+  id: string;
+  isActive: boolean;
+  /** The row's title, for the screen reader's name. */
+  label: string;
+}) {
+  const text = isActive ? "Yayından kaldır" : "Yayına al";
+  return (
+    <ActionButton
+      action={action}
+      hidden={{ id, active: isActive ? "0" : "1" }}
+      variant="menu"
+      ariaLabel={`${text}: ${label}`}
+    >
+      {text}
+    </ActionButton>
+  );
+}
+
+/**
+ * The "Sıra" cell: ↑ / ↓ on the unfiltered list, the stored number on a
+ * filtered one. A move swaps the row with its neighbour in the app's order,
+ * and a filtered list may not show that neighbour.
+ */
+export function OrderCell<T extends { id: string; sortOrder: number }>({
+  action,
+  row,
+  all,
+  filtered,
+  label,
+}: {
+  action: ModalAction;
+  row: T;
+  /** Every row, in the app's order. */
+  all: readonly T[];
+  filtered: boolean;
+  label: string;
+}) {
+  if (filtered) return <span>{row.sortOrder}</span>;
+  return (
+    <MoveButtons
+      action={action}
+      id={row.id}
+      index={all.indexOf(row)}
+      count={all.length}
+      label={label}
+    />
+  );
+}
 
 /** `?durum=` on the three lists: one publish state, or every row. */
 export const PUBLISH_STATUS_PARAM = "durum";

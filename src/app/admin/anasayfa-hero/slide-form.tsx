@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
-  ActionForm,
   FormFieldError,
   FormMessage,
   SubmitButton,
 } from "@/components/admin/action-form";
+import { GuardedActionForm } from "@/components/admin/guarded-action-form";
 import {
   Card,
   Checkbox,
@@ -146,7 +146,7 @@ export function HomeSlideForm({
   const light = SCENES[isHomeHeroScene(scene) ? scene : "latte"];
 
   return (
-    <ActionForm action={action} className="grid max-w-4xl gap-4">
+    <GuardedActionForm action={action} className="grid max-w-4xl gap-4">
       <Card className="grid gap-5">
         <Row name="kicker">
           <Field
@@ -371,6 +371,6 @@ export function HomeSlideForm({
           Vazgeç
         </Link>
       </div>
-    </ActionForm>
+    </GuardedActionForm>
   );
 }

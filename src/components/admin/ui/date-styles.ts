@@ -29,7 +29,7 @@ export const DATE_BUTTON =
   "ml-auto grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-border)]/40 hover:text-[var(--admin-primary)] data-[pressed]:bg-[var(--admin-border)]/60";
 
 export const DATE_POPOVER =
-  "rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-[var(--admin-text)] shadow-[0_16px_48px_rgba(0,0,0,0.18)] outline-none";
+  "rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-[var(--admin-text)] shadow-[0_16px_48px_rgba(28,25,23,0.18)] outline-none";
 
 /** Previous and next month. */
 export const CALENDAR_NAV =

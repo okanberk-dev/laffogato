@@ -7,6 +7,7 @@ import {
   reverseCounterStampAction,
   type CounterStampState,
 } from "@/app/admin/musteriler/[email]/actions";
+import { cx } from "@/components/laffogato/cx";
 import {
   STAMP_CORRECTION_MAX,
   STAMP_CORRECTION_MIN,
@@ -28,6 +29,7 @@ import {
   formatDateTime,
 } from "./forms";
 import { ConfirmButton } from "./ui";
+import { CARD_SUBTITLE, CARD_TITLE, LABEL } from "./ui/styles";
 
 const initial: CounterStampState = {};
 
@@ -72,12 +74,7 @@ export function CustomerStamps({
 
   return (
     <Card className="grid grid-cols-1 gap-4">
-      <h2
-        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        Sadakat · {loyalty.tierLabel}
-      </h2>
+      <h2 className={CARD_TITLE}>Sadakat · {loyalty.tierLabel}</h2>
 
       <div className="grid grid-cols-3 gap-2 text-center">
         <Stat label="Kart" value={`${loyalty.stamps}/${loyalty.stampTarget}`} />
@@ -91,12 +88,7 @@ export function CustomerStamps({
         onSubmit={post.onSubmit}
         className="grid gap-3 border-t border-[var(--admin-border)] pt-4"
       >
-        <h3
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
-          Damga ekle (düzeltme)
-        </h3>
+        <h3 className={CARD_SUBTITLE}>Damga ekle (düzeltme)</h3>
         {/* The till stamps only a member who shows their own code
             (ASK-LOYALTY); a stamp it missed is put right here, at the
             member's request and with the reason. The action refuses a
@@ -125,12 +117,7 @@ export function CustomerStamps({
 
       {canReverse && (
         <div className="grid gap-3 border-t border-[var(--admin-border)] pt-4">
-          <h3
-            className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Damga geri al (düzeltme)
-          </h3>
+          <h3 className={CARD_SUBTITLE}>Damga geri al (düzeltme)</h3>
           {/* Takes a stamp away from the member: asks first, and the reason
               goes into the stamp history as its note. */}
           <ConfirmButton
@@ -151,10 +138,7 @@ export function CustomerStamps({
       )}
 
       <div className="border-t border-[var(--admin-border)] pt-4">
-        <h3
-          className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
+        <h3 className={cx("mb-2", CARD_SUBTITLE)}>
           Damga geçmişi ({history.length})
         </h3>
         {history.length === 0 ? (
@@ -201,12 +185,7 @@ export function CustomerStamps({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--admin-border)] p-2">
-      <div
-        className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {label}
-      </div>
+      <div className={LABEL}>{label}</div>
       <div
         className="mt-0.5 text-base text-[var(--admin-text)]"
         style={{ fontFamily: "var(--mono), monospace" }}

@@ -213,7 +213,8 @@ describe("Yasal belgeler: one text action per row", () => {
     expect(page).toMatch(
       /href=\{`\/admin\/hukuk\/\$\{doc\.slug\}`\}\s+className="font-medium/,
     );
-    expect(page).toContain("BUTTON.icon");
+    // The row's quiet icon (ROW_CONTROL, 21 Oct 2026).
+    expect(page).toContain("ROW_CONTROL.icon");
     expect(page).toContain("Yayındakini aç: ${doc.title} (yeni sekme)");
     expect(page).not.toContain("Yayındakini aç ↗");
   });
@@ -223,10 +224,12 @@ describe("Yasal belgeler: one text action per row", () => {
     expect(row).toContain("Taslağı önizle");
     expect(row).toContain("Varsayılana döndür");
     expect(row).toContain('variant="menuDanger"');
-    // Outside the menu, only Düzenle is a text button.
+    // Outside the menu, only Düzenle is a text button (the row's size).
     const outside = page.slice(0, page.indexOf("<ActionMenu "));
     expect(
-      outside.match(/className=\{BUTTON\.(ghost|primary)\}/g),
-    ).toHaveLength(1);
+      outside.match(
+        /className=\{(BUTTON\.(ghost|primary)|ROW_CONTROL\.text(Strong)?)\}/g,
+      ),
+    ).toEqual(["className={ROW_CONTROL.text}"]);
   });
 });

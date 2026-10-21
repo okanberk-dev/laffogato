@@ -294,10 +294,7 @@ function Receipt({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2">
-      <div
-        className="text-[9px] tracking-[0.18em] text-[var(--admin-text-mute)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
+      <div className="text-[11px] font-medium text-[var(--admin-text-mute)]">
         {label}
       </div>
       <div

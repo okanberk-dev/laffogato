@@ -21,7 +21,7 @@ import {
   NUMERIC_STYLE,
   OrderStatusBadge,
 } from "@/components/admin/ui";
-import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { CARD_TITLE, EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { cx } from "@/components/laffogato/cx";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
@@ -538,7 +538,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       <section aria-labelledby="siparis-gecmisi" className="mt-6">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
-            <h2 id="siparis-gecmisi" className={EYEBROW} style={MONO_STYLE}>
+            <h2 id="siparis-gecmisi" className={CARD_TITLE}>
               Sipariş geçmişi
             </h2>
             {/* Every attempt and how many of them were paid: the tile
@@ -633,11 +633,7 @@ function SectionTitle({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <h2 className={`${EYEBROW} ${className}`} style={MONO_STYLE}>
-      {children}
-    </h2>
-  );
+  return <h2 className={cx(CARD_TITLE, className)}>{children}</h2>;
 }
 
 function Stat({

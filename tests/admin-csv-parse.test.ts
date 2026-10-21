@@ -114,12 +114,29 @@ describe("the template", () => {
     if (!r.ok) return;
     expect(r.delimiter).toBe(";");
     expect(r.records).toHaveLength(2);
-    expect(r.records[0].cells).toEqual(PRODUCT_IMPORT_COLUMNS.map((c) => c.key));
+    expect(r.records[0].cells).toEqual(
+      PRODUCT_IMPORT_COLUMNS.map((c) => c.key),
+    );
     const example = Object.fromEntries(
       r.records[0].cells.map((k, i) => [k, r.records[1].cells[i]]),
     );
     expect(example.category).toBe("Kahve çekirdeği");
     expect(example.price).toBe("129,90");
+  });
+
+  it("writes a category label that looks like a formula as text", () => {
+    // A manager may name a category; the owner opens the template in Excel.
+    const text = productImportTemplate('=HYPERLINK("https://x.test","Aç")');
+    const r = parseCsv(text);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const at = r.records[0].cells.indexOf("category");
+    expect(r.records[1].cells[at]).toBe(`'=HYPERLINK("https://x.test","Aç")`);
+    for (const lead of ["+", "-", "@"]) {
+      const row = parseCsv(productImportTemplate(`${lead}1`));
+      if (!row.ok) throw new Error("parse");
+      expect(row.records[1].cells[at]).toBe(`'${lead}1`);
+    }
   });
 });
 

@@ -149,6 +149,19 @@ describe("masalar actions", () => {
     );
   });
 
+  it("Kaydet ve yenisini ekle opens the next table's form", async () => {
+    await expect(
+      actions.createCafeTableAction(
+        null,
+        form({ name: "Bahçe 4", sonra: "yeni" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/admin/masalar/yeni");
+    expect(setAdminFlash).toHaveBeenCalledWith(
+      expect.stringContaining("Sıradaki masayı gir"),
+    );
+  });
+
   it("refuses an empty or too long name without touching the store", async () => {
     const empty = await actions.createCafeTableAction(
       null,

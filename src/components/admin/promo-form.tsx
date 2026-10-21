@@ -22,6 +22,7 @@ import {
   TextInput,
 } from "./forms";
 import { BUTTON } from "./ui";
+import { useUnsavedGuard } from "./ui/unsaved-guard";
 import { DateTimeField } from "./ui/date-time-field";
 
 const initial: PromoActionState = {};
@@ -55,6 +56,8 @@ export function PromoForm({
   );
   const post = useHandPost(formAction, pending);
   const formRef = useRef<HTMLFormElement>(null);
+  // A save redirects to the list; a refusal stays and stays guarded.
+  useUnsavedGuard(formRef);
   const errorId = useFieldErrors(formRef, state);
   const [kind, setKind] = useState<"pct" | "fixed">(promo?.kind ?? "pct");
 
@@ -163,7 +166,7 @@ export function PromoForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Field
-              label="Son geçerlilik (opsiyonel)"
+              label="Son geçerlilik (isteğe bağlı)"
               hint={
                 // An expired code keeps its date through an edit; a blank
                 // would bring it back with no end, so say so here.

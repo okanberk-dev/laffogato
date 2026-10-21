@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
   createHomeHeroSlide,
@@ -106,7 +107,7 @@ export async function deleteHomeSlideAction(
     // The row is gone: without its title the log names nothing.
     payload: { title: removed.title },
   });
-  return actionOk("Slayt silindi, anasayfadan kalktı.");
+  return deletedAnswer(formData, "Slayt silindi, anasayfadan kalktı.", PANEL);
 }
 
 /** "Yayına al" / "Yayından kaldır": one click, reversible. */

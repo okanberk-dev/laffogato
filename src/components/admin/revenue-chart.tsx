@@ -147,11 +147,13 @@ export function RevenueChart({
                 vectorEffect="non-scaling-stroke"
               />
             ))}
-            <path d={area} fill="var(--admin-primary)" fillOpacity={0.08} />
+            {/* The money's green (ui/hues.ts), as on the dashboard's ciro
+                tile. */}
+            <path d={area} fill="var(--admin-hue-green)" fillOpacity={0.1} />
             <polyline
               points={points.join(" ")}
               fill="none"
-              stroke="var(--admin-primary)"
+              stroke="var(--admin-hue-green)"
               strokeWidth={2}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -162,7 +164,7 @@ export function RevenueChart({
             <span
               key={d.bucket}
               title={`${d.label}: ${formatTRY(d.revenueMinor)} (${d.orderCount} sipariş)`}
-              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--admin-primary)] ring-2 ring-[var(--admin-surface)]"
+              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--admin-hue-green)] ring-2 ring-[var(--admin-surface)]"
               style={{ left: `${xAt(i)}%`, top: `${yAt(d.revenueMinor)}%` }}
             />
           ))}

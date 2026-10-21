@@ -4,7 +4,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { AdminTone } from "@/lib/admin/tone";
 
 import { formatDateTime } from "../forms";
-import { COMPACT, LABEL, MONO_STYLE } from "./styles";
+import { CARD_TITLE, COMPACT, LABEL, MONO_STYLE } from "./styles";
 import { TONE_DOT } from "./tone";
 
 // Detail-page building blocks (Filament's "infolist"). Server- and
@@ -53,10 +53,7 @@ export function Section({
         )}
       >
         <div className="min-w-0">
-          <h2
-            id={headingId}
-            className="text-base font-semibold tracking-tight text-[var(--admin-text)]"
-          >
+          <h2 id={headingId} className={CARD_TITLE}>
             {title}
           </h2>
           {description ? (

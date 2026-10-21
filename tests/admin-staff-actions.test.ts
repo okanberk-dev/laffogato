@@ -17,6 +17,7 @@ const revalidatePath = vi.fn();
 const grantBarista = vi.fn();
 const revokeBarista = vi.fn();
 const deleteAdminUser = vi.fn();
+const updateAdminUser = vi.fn();
 const createAdminUser = vi.fn();
 const listAdminUsers = vi.fn();
 const disable2FA = vi.fn();
@@ -36,7 +37,7 @@ vi.mock("@/lib/admin/users", () => ({
   listAdminUsers,
   normalizeAdminEmail: (e: string) => e.trim().toLowerCase(),
   setAdminPassword: vi.fn(),
-  updateAdminUser: vi.fn(),
+  updateAdminUser,
 }));
 
 const {
@@ -45,7 +46,10 @@ const {
   grantBaristaAction,
   reset2FAAction,
   revokeBaristaAction,
+  saveAdminUserAction,
 } = await import("@/app/admin/kullanicilar/actions");
+const { SELF_CHANGE_REFUSED, SELF_DELETE_REFUSED } =
+  await import("@/lib/admin/users-self");
 
 function form(email: string, extra: Record<string, string> = {}): FormData {
   const fd = new FormData();
@@ -229,9 +233,79 @@ describe("deleteAdminUserAction", () => {
       error: "last_owner",
       message: "Son sahip hesabı silinemez.",
     });
-    const res = await deleteAdminUserAction(null, form("patron@laffogato.net"));
+    const res = await deleteAdminUserAction(null, form("ortak@laffogato.net"));
     expect(res).toEqual({ ok: false, error: "Son sahip hesabı silinemez." });
     expect(logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe("the signed-in owner's own row", () => {
+  // The session's account is re-read on every request: a lower role took
+  // the page away at once and switching yourself off signed you out, with
+  // nobody's say. The row now saves the name alone.
+  beforeEach(() => {
+    requireRole.mockResolvedValue({
+      email: "patron@laffogato.net",
+      role: "owner",
+    });
+    updateAdminUser.mockReset();
+    updateAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "patron@laffogato.net", role: "owner", isActive: true },
+    });
+  });
+
+  it("cannot delete itself; the store is never asked", async () => {
+    const res = await deleteAdminUserAction(
+      null,
+      form(" Patron@Laffogato.net "),
+    );
+    expect(res).toEqual({ ok: false, error: SELF_DELETE_REFUSED });
+    expect(deleteAdminUser).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("cannot change its own role or switch its own access off", async () => {
+    // The row sends neither field; a request that does is refused, even
+    // with the stored values (it cannot be told from a change here).
+    const changes: Record<string, string>[] = [
+      { name: "Patron", role: "manager", isActive: "on" },
+      { name: "Patron", role: "owner" },
+      { name: "Patron", isActive: "on" },
+    ];
+    for (const extra of changes) {
+      const state = await saveAdminUserAction(
+        {},
+        form("patron@laffogato.net", extra),
+      );
+      expect(state).toEqual({ error: SELF_CHANGE_REFUSED });
+    }
+    expect(updateAdminUser).not.toHaveBeenCalled();
+  });
+
+  it("can still save its own name, and only the name", async () => {
+    // Role and access stay as stored: an env sign-in beside an inactive
+    // row of the same address must not switch that row on.
+    const state = await saveAdminUserAction(
+      {},
+      form("patron@laffogato.net", { name: "Patron" }),
+    );
+    expect(state).toEqual({ message: "Kaydedildi." });
+    expect(updateAdminUser).toHaveBeenCalledWith("patron@laffogato.net", {
+      name: "Patron",
+    });
+  });
+
+  it("leaves another owner's row to the usual rules", async () => {
+    updateAdminUser.mockResolvedValue({
+      ok: true,
+      value: { email: "ortak@laffogato.net", role: "manager", isActive: false },
+    });
+    const state = await saveAdminUserAction(
+      {},
+      form("ortak@laffogato.net", { name: "Ortak", role: "manager" }),
+    );
+    expect(state).toEqual({ message: "Kaydedildi." });
   });
 });
 

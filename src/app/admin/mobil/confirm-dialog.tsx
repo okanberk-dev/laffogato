@@ -71,7 +71,7 @@ export function ConfirmDialog({
         else onCancel();
       }}
       // The kit dialog's frame (ActionModal), so both read the same.
-      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop:bg-[rgba(23,23,23,0.32)] sm:max-w-lg"
+      className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.14)] backdrop:bg-[rgba(28,25,23,0.32)] sm:max-w-lg"
       style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
     >
       <div className="grid gap-4 p-5 sm:p-6">

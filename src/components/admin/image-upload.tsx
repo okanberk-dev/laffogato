@@ -303,10 +303,7 @@ export function ImageUpload({
               : "border-[var(--admin-border)] bg-neutral-100 opacity-60"
         }`}
       >
-        <div
-          className="text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-          style={{ fontFamily: "var(--mono), monospace" }}
-        >
+        <div className="text-[13px] font-medium text-[var(--admin-text-soft)]">
           {remainingSlots > 0
             ? "Sürükle bırak veya tıkla"
             : `Sınır doldu: ${MAX_IMAGES} görsel`}
@@ -390,26 +387,17 @@ export function ImageUpload({
                     className="h-full w-full object-cover"
                   />
                   {isPrimary && (
-                    <span
-                      className="absolute top-2 left-2 rounded-full bg-[var(--admin-primary)] px-2 py-0.5 text-[9px] tracking-[0.18em] text-white uppercase"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
+                    <span className="absolute top-2 left-2 rounded-full bg-[var(--admin-primary)] px-2 py-0.5 text-[11px] font-medium text-white">
                       Birincil
                     </span>
                   )}
-                  <span
-                    className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
+                  <span className="absolute top-2 right-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-neutral-700 backdrop-blur">
                     {isData ? `${approxKB(src)} KB` : "URL"}
                   </span>
                   {isData && (
                     // The stored format: WEBP or PNG is a photo that kept
                     // its transparency (a cutout), JPEG an opaque one.
-                    <span
-                      className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] tracking-[0.18em] text-neutral-600 uppercase backdrop-blur"
-                      style={{ fontFamily: "var(--mono), monospace" }}
-                    >
+                    <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-neutral-700 backdrop-blur">
                       {formatLabel(src)}
                     </span>
                   )}
@@ -456,8 +444,7 @@ export function ImageUpload({
                       type="button"
                       onClick={() => makePrimary(i)}
                       aria-label={`Birincil yap: görsel ${i + 1}`}
-                      className="min-h-[44px] basis-full rounded-md px-2 text-[10px] tracking-[0.16em] text-[var(--admin-text-soft)] uppercase hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
-                      style={{ fontFamily: "var(--mono), monospace" }}
+                      className="min-h-[44px] basis-full rounded-md px-2 text-xs font-medium text-[var(--admin-text-soft)] hover:bg-neutral-100 hover:text-[var(--admin-primary)]"
                     >
                       Birincil yap
                     </button>
@@ -471,8 +458,7 @@ export function ImageUpload({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
         <span
-          className="basis-full text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase sm:basis-auto"
-          style={{ fontFamily: "var(--mono), monospace" }}
+          className="basis-full text-[13px] font-medium text-[var(--admin-text-soft)] sm:basis-auto"
           aria-hidden="true"
         >
           Bağlantıyla ekle

@@ -958,6 +958,36 @@ describe("adoption: one call in each of the four forms, the wizard untouched", (
   });
 });
 
+describe("adoption: the long forms that leave on save (21 Eki 2026)", () => {
+  it("the menu item, the slides, the app's announcements and posts: GuardedActionForm", () => {
+    for (const f of [
+      "src/components/admin/menu-item-form.tsx",
+      "src/app/admin/magaza-hero/slide-form.tsx",
+      "src/app/admin/anasayfa-hero/slide-form.tsx",
+      "src/app/admin/mobil/slaytlar/slide-form.tsx",
+      "src/app/admin/mobil/duyurular/announcement-form.tsx",
+      "src/app/admin/mobil/gonderiler/post-form.tsx",
+    ]) {
+      const src = read(f);
+      expect(src, f).toContain("<GuardedActionForm");
+      expect(src, f).not.toMatch(/<ActionForm\b/);
+    }
+    // The guard rides in its own file: ActionForm stays without it.
+    const guarded = read("src/components/admin/guarded-action-form.tsx");
+    expect(guarded).toContain("useUnsavedGuard(formRef);");
+    expect(guarded).toContain("<ActionForm {...props} formRef={formRef} />");
+    expect(read("src/components/admin/action-form.tsx")).not.toMatch(
+      IMPORTS_GUARD,
+    );
+  });
+
+  it("the promo form, posted by hand on its own <form>", () => {
+    const src = read("src/components/admin/promo-form.tsx");
+    expect(src).toContain("useUnsavedGuard(formRef);");
+    expect(src).toMatch(/<form\s+ref=\{formRef\}/);
+  });
+});
+
 describe("the palette asks by event: its chunk takes nothing", () => {
   it("the trigger asks before it opens a page, the list does not own the router", () => {
     const trigger = read("src/components/admin/palette/trigger.tsx");

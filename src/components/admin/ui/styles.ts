@@ -32,6 +32,48 @@ export const BUTTON = {
 
 export type ButtonVariant = keyof typeof BUTTON;
 
+/** The quiet icon control a row's "⋯" and icon links share (ROW_CONTROL). */
+const ROW_ICON =
+  "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-[var(--admin-text-mute)] transition-colors hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none pointer-fine:min-h-8 pointer-fine:min-w-8";
+
+/**
+ * A row's small controls (operator, 21 Oct 2026: smaller, minimal): the
+ * ↑ / ↓ stepper (MoveButtons), the "⋯" on its own (ActionMenu), an icon
+ * link and a row's text action. Muted ink and at most a hairline until
+ * the pointer is on them. A touch screen keeps the panel's 44 px target;
+ * where the pointer can aim they are 28 px (a step) and 32 px (the rest),
+ * above WCAG 2.2's 24 px minimum and below "Sıkı görünüm"'s 36 px, so they
+ * take none of its classes. The hover ground is --admin-primary-soft, a
+ * step darker than a hovered row's --admin-surface-2, so it shows on
+ * either.
+ */
+export const ROW_CONTROL = {
+  /** The stepper's frame: a hairline around its two halves. */
+  stepper:
+    "inline-flex shrink-0 items-center rounded-lg border border-[var(--admin-border)] p-0.5",
+  /** One half of the stepper: a chevron. */
+  step: "inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--admin-text-mute)] transition-colors hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pointer-fine:h-7 pointer-fine:w-7",
+  /** The half with nowhere to go: the first row's ↑, the last row's ↓. */
+  stepIdle:
+    "inline-flex h-11 w-11 items-center justify-center text-[var(--admin-text-mute)] opacity-40 pointer-fine:h-7 pointer-fine:w-7",
+  /**
+   * A text action on a row (the menu's "Tükendi", an order's next step, a
+   * legal text's "Düzenle"): a hairline button.
+   */
+  text: "inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-[13px] font-medium whitespace-nowrap text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pointer-fine:min-h-8",
+  /** The same, filled: the row's one call to act (the menu's "Satışa aç"). */
+  textStrong:
+    "inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[var(--admin-primary)] px-3 text-[13px] font-medium whitespace-nowrap text-white transition-colors hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pointer-fine:min-h-8",
+  /** An icon alone, a link or a button; it takes an `aria-label`. */
+  icon: ROW_ICON,
+  /**
+   * The "⋯" with no label (ActionMenu's summary): a row's, a card's. It
+   * keeps the hover ground while its menu is open (`[open]>&`, the
+   * details' own state, so it holds before hydration too).
+   */
+  more: `${ROW_ICON} cursor-pointer list-none select-none [[open]>&]:bg-[var(--admin-primary-soft)] [[open]>&]:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden`,
+} as const;
+
 /**
  * The label of filter fields and of a phone card's values. 13px sentence
  * case (AkmanOS's labels, 21 Eki 2026): it was 10px spaced capitals, the
@@ -46,6 +88,18 @@ export const EYEBROW = "text-[13px] font-medium text-[var(--admin-text-soft)]";
  * ground (tests/admin-ui-kit.test.ts).
  */
 export const HEADER_EYEBROW = "text-xs text-[var(--admin-text-mute)]";
+
+/**
+ * A card's own heading, the size of Section's title (detail.tsx): 16px
+ * semibold ink. The cards that build their own heading (the customer's
+ * coupons, stamps and actions, the manual order's parts) opened with a
+ * 10px spaced-capital line; like EYEBROW, sentence case now (21 Oct 2026).
+ */
+export const CARD_TITLE =
+  "text-base font-semibold tracking-tight text-[var(--admin-text)]";
+
+/** A heading inside a card ("Yeni kupon tanımla"): 14px semibold ink. */
+export const CARD_SUBTITLE = "text-sm font-semibold text-[var(--admin-text)]";
 
 /** A label over its value (KeyValueGrid): 12px, weight 500, sentence case. */
 export const LABEL = "text-xs font-medium text-[var(--admin-text-soft)]";

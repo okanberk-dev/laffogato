@@ -13,6 +13,7 @@ import {
 import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
+import { cx } from "@/components/laffogato/cx";
 import { skuPrefix } from "@/lib/admin/sku";
 import {
   readPostedStock,
@@ -75,7 +76,7 @@ import {
 } from "./forms";
 import { BackdropField } from "./backdrop-field";
 import { ImageUpload } from "./image-upload";
-import { BUTTON } from "./ui/styles";
+import { BUTTON, CARD_SUBTITLE, EYEBROW, LABEL } from "./ui/styles";
 import { useUnsavedGuard } from "./unsaved-guard";
 
 const HUE_OPTIONS = [
@@ -1295,8 +1296,10 @@ export function ProductWizard({
                 <table className="w-full text-sm">
                   <thead>
                     <tr
-                      className="border-b border-[var(--admin-border)] text-left text-[10px] tracking-[0.22em] text-neutral-500 uppercase"
-                      style={{ fontFamily: "var(--mono), monospace" }}
+                      className={cx(
+                        "border-b border-[var(--admin-border)] text-left",
+                        LABEL,
+                      )}
                     >
                       <th className="py-2 pr-3">Ad</th>
                       <th className="pr-3">Fiyat farkı (₺)</th>
@@ -1423,12 +1426,7 @@ export function ProductWizard({
           </Field>
 
           <div className="flex flex-col gap-2">
-            <div
-              className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              Görseller
-            </div>
+            <div className={EYEBROW}>Görseller</div>
             <ImageUpload name="images" initial={initialImages} />
             <span className="text-xs text-[var(--admin-text-mute)]">
               Sürükle bırak, tıkla ya da bağlantı yapıştır. İlk görsel kartta
@@ -1448,12 +1446,7 @@ export function ProductWizard({
           </div>
 
           <div className="border-t border-[var(--admin-border)] pt-5">
-            <div
-              className="mb-3 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-              style={{ fontFamily: "var(--mono), monospace" }}
-            >
-              SEO
-            </div>
+            <h3 className={cx("mb-3", CARD_SUBTITLE)}>SEO</h3>
             <div className="grid gap-5">
               <div className="grid gap-1.5">
                 <Field
@@ -1530,7 +1523,7 @@ export function ProductWizard({
                       </span>
                     )}
                     {discountPct !== null && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] tracking-[0.18em] text-amber-700 uppercase">
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
                         −%{discountPct}
                       </span>
                     )}
@@ -1692,17 +1685,10 @@ export function ProductWizard({
           <div key={s.id} data-step={s.id} hidden={!visible}>
             <Card>
               {mode === "tabs" && (
-                <h2
-                  className="mb-5 text-xl"
-                  style={{
-                    fontFamily: "var(--serif), 'Playfair Display', serif",
-                    fontStyle: "italic",
-                    fontWeight: 500,
-                  }}
-                >
+                <h2 className="mb-5 text-lg font-semibold tracking-tight text-[var(--admin-text)]">
                   {s.id}. {s.title}
                   {flaggedSteps.has(s.id) ? (
-                    <span className="ml-3 align-middle text-sm text-[var(--admin-danger-ink)] not-italic">
+                    <span className="ml-3 align-middle text-sm font-normal text-[var(--admin-danger-ink)]">
                       Düzeltilecek alan var
                     </span>
                   ) : null}
@@ -1784,12 +1770,7 @@ function SummaryRow({
 }) {
   return (
     <div className="grid gap-1 border-b border-[var(--admin-border)] py-2 last:border-b-0 sm:grid-cols-[150px_1fr] sm:gap-3">
-      <div
-        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        {k}
-      </div>
+      <div className={LABEL}>{k}</div>
       <div
         className={`text-sm ${muted ? "text-[var(--admin-text-soft)]" : "text-neutral-900"}`}
         style={mono ? { fontFamily: "var(--mono), monospace" } : undefined}

@@ -24,12 +24,18 @@ import {
 
 import {
   DELETE_TEXT,
+  OrderCell,
   parsePublishFilter,
   PublishCell,
+  PublishToggle,
   PUBLISH_STATUS_PARAM,
   publishTabs,
 } from "../app-content-list";
-import { deleteSlideAction } from "./actions";
+import {
+  deleteSlideAction,
+  moveSlideAction,
+  setSlideActiveAction,
+} from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Slaytları" };
 export const dynamic = "force-dynamic";
@@ -193,7 +199,15 @@ export default async function AdminAppSlidesPage({
             key: "order",
             header: "Sıra",
             align: "right",
-            cell: (s) => s.sortOrder,
+            cell: (s) => (
+              <OrderCell
+                action={moveSlideAction}
+                row={s}
+                all={slides}
+                filtered={filter !== null}
+                label={s.title}
+              />
+            ),
           },
         ]}
         rowActions={(s) => (
@@ -201,6 +215,12 @@ export default async function AdminAppSlidesPage({
             <ActionMenuLink href={`${PANEL}/${encodeURIComponent(s.id)}`}>
               Düzenle
             </ActionMenuLink>
+            <PublishToggle
+              action={setSlideActiveAction}
+              id={s.id}
+              isActive={s.isActive}
+              label={s.title}
+            />
             <ActionMenuSeparator />
             <ConfirmButton
               action={deleteSlideAction}

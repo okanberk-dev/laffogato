@@ -19,7 +19,11 @@ import {
   formatDateTime,
 } from "@/components/admin/forms";
 import { Badge, ConfirmButton } from "@/components/admin/ui";
-import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
+import { ADMIN_ROLES, ROLE_LABELS, type AdminRole } from "@/lib/admin/roles";
+import {
+  SELF_CHANGE_REFUSED,
+  SELF_DELETE_REFUSED,
+} from "@/lib/admin/users-self";
 
 import {
   createAdminUserAction,
@@ -210,15 +214,33 @@ export function AdminUserRow({
           <Field label="Ad">
             <TextInput name="name" defaultValue={user.name} minLength={2} />
           </Field>
-          <Field label="Rol">
-            <RoleSelect defaultValue={user.role} />
-          </Field>
+          {user.isSelf ? (
+            // Your own role and access stay as stored (the action saves the
+            // name only and refuses a request that sends either).
+            <>
+              <Field label="Rol" hint={SELF_CHANGE_REFUSED}>
+                <TextInput
+                  value={ROLE_LABELS[user.role as AdminRole] ?? user.role}
+                  readOnly
+                  aria-readonly="true"
+                />
+              </Field>
+            </>
+          ) : (
+            <Field label="Rol">
+              <RoleSelect defaultValue={user.role} />
+            </Field>
+          )}
           <div className="flex items-end justify-between gap-3">
-            <Checkbox
-              name="isActive"
-              label="Aktif"
-              defaultChecked={user.isActive}
-            />
+            {user.isSelf ? (
+              <span />
+            ) : (
+              <Checkbox
+                name="isActive"
+                label="Aktif"
+                defaultChecked={user.isActive}
+              />
+            )}
             <PrimaryButton type="submit" disabled={save.pending}>
               {save.pending ? "Kaydediliyor…" : "Kaydet"}
             </PrimaryButton>
@@ -285,6 +307,7 @@ export function AdminUserRow({
                 title={`${user.email} silinsin mi?`}
                 description="Panel hesabı ve 2FA kaydı kalıcı olarak silinir, oturumu hemen kapanır. Yalnız erişimi durdurmak istiyorsan Aktif kutusunu kaldırıp kaydet."
                 confirmLabel="Sil"
+                disabledReason={user.isSelf ? SELF_DELETE_REFUSED : undefined}
               />
             </div>
           </div>
