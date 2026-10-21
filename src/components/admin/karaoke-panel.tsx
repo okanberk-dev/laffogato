@@ -128,6 +128,23 @@ const MONEY_REASON = {
 } as const;
 
 /**
+ * What "Elle iade edildi" posts: the booking, and the `refundMinor` (kuruş)
+ * its dialog names, empty for a whole-payment refund. A share is recorded
+ * only at that amount (`settleKaraokeRefundByHand`): if an hour was sold
+ * again after the page opened, the press is refused instead of recording
+ * more than the person refunded.
+ */
+export function settleFields(
+  r: Pick<KaraokeRowView["r"], "id" | "refundMinor">,
+): Record<string, string> {
+  return {
+    id: r.id,
+    gosterilenIade:
+      typeof r.refundMinor === "number" ? String(r.refundMinor) : "",
+  };
+}
+
+/**
  * What the dialog's refund sends: everything still to go back, never what a
  * person already refunded by hand (a late share refunded before its hour
  * was sold again).
@@ -271,7 +288,7 @@ export function KaraokeActions({
       <ConfirmButton
         key="settle"
         action={settleKaraokeRefundAction}
-        hidden={{ id: r.id }}
+        hidden={settleFields(r)}
         label={label}
         title={label}
         description={

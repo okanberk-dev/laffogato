@@ -650,7 +650,13 @@ describe("the resale rules (ASK-OTH-3-CFG)", () => {
       hours: 1,
       updatedAt: "2026-10-30T12:00:00.000Z",
     });
-    const sold = { id: "krk-c", date: "2026-10-30", startHour: 20, hours: 3 };
+    const sold = {
+      id: "krk-c",
+      date: "2026-10-30",
+      startHour: 20,
+      hours: 3,
+      totalMinor: 300_000,
+    };
     expect(core.resaleAllocation(sold, [a, b])).toEqual([
       { id: "krk-b", hours: [20] },
       { id: "krk-a", hours: [21] },
@@ -667,9 +673,15 @@ describe("the resale rules (ASK-OTH-3-CFG)", () => {
     ]);
   });
 
-  it("a booking that went back in full, and a free hour, are no part of it", () => {
+  it("a booking that went back in full, a free hour and an hour booked for nothing are no part of it", () => {
     const full = late({ paymentStatus: "refunded", refundMinor: null });
-    const sold = { id: "krk-c", date: "2026-10-30", startHour: 20, hours: 2 };
+    const sold = {
+      id: "krk-c",
+      date: "2026-10-30",
+      startHour: 20,
+      hours: 2,
+      totalMinor: 200_000,
+    };
     expect(core.resaleAllocation(sold, [full])).toEqual([]);
     expect(
       core.resaleAllocation({ ...sold, makeGoodFor: "krk-a" }, [late({})]),
@@ -678,6 +690,15 @@ describe("the resale rules (ASK-OTH-3-CFG)", () => {
     expect(
       core.resaleAllocation({ ...sold, date: "2026-10-31" }, [late({})]),
     ).toEqual([]);
+    // 0 TL (a 100 % ORO discount): the köşk earned nothing from the hour,
+    // so there is nothing to set off (TBK m.325/2 kıyasen).
+    expect(
+      core.resaleAllocation({ ...sold, totalMinor: 0 }, [late({})]),
+    ).toEqual([]);
+    // Paid at the köşk (a total above 0): a sale like any other.
+    expect(core.resaleAllocation(sold, [late({})])).toEqual([
+      { id: "krk-a", hours: [20, 21] },
+    ]);
   });
 
   it("the parts add up to exactly what was kept", () => {
@@ -1253,6 +1274,7 @@ describe("an hour cancelled late and sold again", () => {
       "krk-00042",
       "yonetici@kosk",
       at(9),
+      { shownRefundMinor: 100_000 },
     );
     expect(rowOf("krk-00042")).toMatchObject({ paymentStatus: "refunded" });
     // The first step leaves nothing "before" it.
@@ -1279,6 +1301,7 @@ describe("an hour cancelled late and sold again", () => {
       "krk-00042",
       "yonetici@kosk",
       at(3),
+      { shownRefundMinor: 200_000 },
     );
     expect(settled.ok).toBe(true);
     expect(h.cancellations.at(-1)).toMatchObject({
@@ -1313,6 +1336,7 @@ describe("an hour cancelled late and sold again", () => {
       "krk-00042",
       "yonetici@kosk",
       at(4),
+      { shownRefundMinor: 150_000 },
     );
     expect(lost).toMatchObject({ ok: false, reason: "raced" });
     expect(rowOf("krk-00042")).toMatchObject({
@@ -1325,6 +1349,7 @@ describe("an hour cancelled late and sold again", () => {
       "krk-00042",
       "yonetici@kosk",
       at(3),
+      { shownRefundMinor: 200_000 },
     );
     expect(settled.ok).toBe(true);
     expect(h.cancellations.at(-1)).toMatchObject({
@@ -1437,5 +1462,216 @@ describe("the late share and its sentence (D-KAR-1-99)", () => {
     expect(lateRule).toContain(
       "Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir.",
     );
+  });
+});
+
+// ─── The money review of PR #191 (21 Ekim 2026) ────────────────────────────
+
+describe("review: the money fixes", () => {
+  const HALF = { freeCancelHours: 24, lateRefundPercent: 50 };
+  async function lateCancelled(): Promise<void> {
+    h.appVersion = "1.1.0";
+    h.settings = settingsWith({ hours: 24, percent: 50 });
+    seed(booking({ ...HALF }));
+    const res = await payment.cancelKaraokeReservation("krk-00042", MEMBER, {
+      now: at(10),
+    });
+    expect(res).toMatchObject({ ok: true, refundOwedMinor: 100_000 });
+  }
+
+  it("M1: a share is recorded only at the amount the page showed", async () => {
+    await lateCancelled();
+    // No amount (an old page), or another amount than the row names: refused.
+    for (const opts of [{}, { shownRefundMinor: 50_000 }]) {
+      const res = await payment.settleKaraokeRefundByHand(
+        "krk-00042",
+        "yonetici@kosk",
+        at(9),
+        opts,
+      );
+      expect(res).toMatchObject({
+        ok: false,
+        reason: "raced",
+        message: payment.KARAOKE_SETTLE_STALE,
+      });
+    }
+    expect(rowOf("krk-00042")).toMatchObject({ paymentStatus: "refunding" });
+    expect(claimOf("PNK-1")).toBeUndefined();
+    // No refund mail (the cancel's own "will be refunded" mail aside).
+    expect(
+      h.cancellations.filter((m) => m.refundedMinor !== undefined),
+    ).toEqual([]);
+    const ok = await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(9),
+      { shownRefundMinor: 100_000 },
+    );
+    expect(ok.ok).toBe(true);
+    expect(rowOf("krk-00042")).toMatchObject({
+      paymentStatus: "refunded",
+      refundSteps: [{ minor: 100_000, at: at(9).toISOString() }],
+    });
+  });
+
+  it("M3: each refund by hand stays a step of its own, with its amount and instant", async () => {
+    await lateCancelled();
+    await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(9),
+      {
+        shownRefundMinor: 100_000,
+      },
+    );
+    chargeResoldHoursSql("krk-00042", [20]);
+    await payment.settleKaraokeRefundByHand(
+      "krk-00042",
+      "yonetici@kosk",
+      at(3),
+      {
+        shownRefundMinor: 150_000,
+      },
+    );
+    const r = rowOf("krk-00042");
+    expect(r.refundSteps).toEqual([
+      { minor: 100_000, at: at(9).toISOString() },
+      { minor: 50_000, at: at(3).toISOString() },
+    ]);
+    // The booking's history shows both, not one total at the last instant.
+    const items = panel
+      .karaokeHistory(r as never, [])
+      .filter((i) => i.id.startsWith("row-refund"));
+    expect(items.map((i) => [i.at, i.description])).toEqual([
+      [at(9).toISOString(), "₺1.000,00"],
+      [at(3).toISOString(), "₺500,00"],
+    ]);
+  });
+
+  it("M2: the IBAN and card filter sees through the usual separators", () => {
+    const nbsp = String.fromCharCode(0xa0);
+    const enDash = String.fromCharCode(0x2013);
+    const zwsp = String.fromCharCode(0x200b);
+    const groups = ["TR33", "0006", "1005", "1978", "6457", "8413", "26"];
+    for (const note of [
+      groups.join(" "),
+      groups.join(""),
+      groups.join(nbsp),
+      groups.join("."),
+      groups.join("/"),
+      groups.join("_"),
+      groups.join("  "),
+      groups.join(enDash),
+      groups.join(zwsp),
+      groups.join("\n"),
+      groups.join("\t"),
+      "TR33 0006 1005 / 1978 6457 8413 26",
+      "33 0006 1005 1978 6457 8413 26",
+      "4111.1111.1111.1111",
+      "4111 - 1111 - 1111 - 1111",
+      "4111 1111 1111 1111",
+      "Şube 1234 hesap 12345678",
+      "hesap no: 1234567",
+    ]) {
+      expect(core.looksLikeBankAccount(note), JSON.stringify(note)).toBe(true);
+    }
+    for (const note of [
+      "Havale yapıldı, dekont muhasebede",
+      "18.10.2026 14:05 havale 2.000,00 TL",
+      "Dekont no 123456789012345",
+      "Tel 0532 123 45 67 ile teyit edildi",
+      "18.10.2026 tarihinde 2.000,00 TL gönderildi, ref 20261018-1405",
+      "Misafirin hesabına gönderildi",
+    ]) {
+      expect(core.looksLikeBankAccount(note), note).toBe(false);
+    }
+  });
+
+  it("A1: a transfer's note shows only to whoever may move money", () => {
+    const r = booking({ status: "cancelled", paymentStatus: "refunded" });
+    const audit = [
+      {
+        id: "a1",
+        createdAt: "2026-10-30T10:00:00.000Z",
+        actor: "sahip@kosk",
+        action: "refund",
+        payload: {
+          event: "make_good_paid",
+          amountMinor: 200_000,
+          paidOn: "2026-10-30",
+          reason: "Dekont muhasebede",
+        },
+      },
+    ];
+    const note = (canRefund: boolean) =>
+      panel
+        .karaokeHistory(r as never, audit as never, { canRefund })
+        .find((i) => i.id === "a1")?.description ?? "";
+    expect(note(true)).toContain("Neden: Dekont muhasebede");
+    expect(note(false)).not.toContain("Dekont muhasebede");
+    expect(note(false)).toContain("₺2.000,00");
+    // Without the option the page's default is the closed one.
+    expect(
+      panel.karaokeHistory(r as never, audit as never)[1]?.description,
+    ).not.toContain("Dekont");
+  });
+
+  it("M6: 'Telafi ödendi' takes exactly the make-good", async () => {
+    seed(
+      booking({
+        status: "cancelled",
+        paymentStatus: "refunded",
+        makeGoodUntil: "2027-04-30",
+        makeGoodMinor: 200_000,
+        updatedAt: at(1).toISOString(),
+      }),
+    );
+    for (const amountMinor of [2_000_000, 200_001, 2_500_000_000, 1.5]) {
+      expect(
+        await payment.recordKaraokeMakeGoodPaid(
+          "krk-00042",
+          { paidOn: "2026-10-30", amountMinor },
+          "yonetici@kosk",
+          at(0),
+        ),
+      ).toMatchObject({ ok: false, reason: "invalid", field: "tutar" });
+    }
+    expect(core.makeGoodStateOf(rowOf("krk-00042") as never)).toBe("open");
+    expect(
+      await payment.recordKaraokeMakeGoodPaid(
+        "krk-00042",
+        { paidOn: "2026-10-30", amountMinor: 200_000 },
+        "yonetici@kosk",
+        at(0),
+      ),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("M5: a refused refund takes the make-good back in the rollback's own write", async () => {
+    seed(booking());
+    h.pos = "refused";
+    // Whatever writes after the rollback (another person's cancel, a lost
+    // line) finds no make-good left on the standing booking.
+    let atRollback: Row | null = null;
+    h.beforeUpdate = () => {
+      // The first write marks it refunding (with the make-good)...
+      h.beforeUpdate = () => {
+        // ...the next is the rollback: read the row right after it.
+        queueMicrotask(() => {
+          atRollback = structuredClone(rowOf("krk-00042"));
+        });
+      };
+    };
+    const res = await payment.cancelKaraokeReservation(
+      "krk-00042",
+      staff("ariza"),
+      { now: at(1) },
+    );
+    expect(res).toMatchObject({ ok: false, reason: "refund_refused" });
+    expect(atRollback).toMatchObject({
+      paymentStatus: "paid",
+      makeGoodUntil: null,
+      makeGoodMinor: null,
+    });
   });
 });

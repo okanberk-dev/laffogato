@@ -169,24 +169,51 @@ export function makeGoodHourOpen(r: MakeGoodRow, today: string): boolean {
   return makeGoodStateOf(r) === "open" && today <= (r.makeGoodUntil ?? "");
 }
 
+/**
+ * What people put between the groups of a number: spaces of every kind
+ * (NBSP, thin, figure: `\s` and `\p{Z}`), dots, slashes, underscores and
+ * dashes (`\p{Pd}`, the en dash too), up to three in a row (" / ", " - ").
+ * Not ":" or ",": a time or an amount ("14:05", "2.000,00") must not glue
+ * the digits around it into one long number.
+ */
+const SEP = String.raw`[\s\p{Z}._/\\\p{Pd}]{0,3}`;
 /** An IBAN as people write it: country, check digits, then groups. */
-const IBAN_RE = /\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]){11,30}\b/gi;
-/** Sixteen or more digits in a row (a card number, an IBAN without "TR"). */
-const LONG_NUMBER_RE = /\d(?:[ -]?\d){15,}/;
+const IBAN_RE = new RegExp(
+  String.raw`\b[A-Z]{2}\d{2}(?:${SEP}[A-Z0-9]){11,30}\b`,
+  "giu",
+);
+/** Sixteen or more digits (a card number, an IBAN without its "TR"). */
+const LONG_NUMBER_RE = new RegExp(String.raw`\d(?:${SEP}\d){15,}`, "u");
+/** "hesap 12345678", "hesap no: 1234567", "hesabı 123456": an account. */
+const ACCOUNT_RE =
+  /hesa[pb][a-zçğıöşü]*\s*(?:no|numaras[ıi])?\s*[:.]?\s*\d{6,}/iu;
+
+/**
+ * The note as it is matched: compatibility forms folded (full-width
+ * digits, ligatures: NFKC) and invisible format characters dropped (zero
+ * width space, joiner, soft hyphen: `\p{Cf}`), so they cannot hide a
+ * number.
+ */
+function normalisedNote(text: string): string {
+  return text.normalize("NFKC").replace(/\p{Cf}/gu, "");
+}
 
 /**
  * Does a note typed with "Telafi ödendi" carry a bank account (an IBAN,
- * with or without its "TR") or a card number? The make-good's bank details
+ * with or without its "TR", however its groups are separated, an account
+ * number after "hesap") or a card number? The make-good's bank details
  * are used for the transfer and never written into our records (karaoke
  * terms §8, Veri Saklama §8, KVKK m.4/2-ç): the note goes into the audit
- * log, so such a note is refused. A date, a time, an amount, a phone
- * number or a receipt number of up to 15 digits passes.
+ * log, which is kept unchanged for ten years, so such a note is refused. A
+ * date, a time, an amount, a phone number or a receipt number of up to 15
+ * digits passes.
  */
 export function looksLikeBankAccount(text: string): boolean {
-  for (const m of text.matchAll(IBAN_RE)) {
+  const note = normalisedNote(text);
+  for (const m of note.matchAll(IBAN_RE)) {
     if (m[0].replace(/\D/g, "").length >= 12) return true;
   }
-  return LONG_NUMBER_RE.test(text);
+  return LONG_NUMBER_RE.test(note) || ACCOUNT_RE.test(note);
 }
 
 // ─── Resale ────────────────────────────────────────────────────────────────
@@ -242,8 +269,14 @@ export function resaleRefundTotal(
  * Which late-cancelled booking each hour of a booking just sold counts to:
  * for every hour, the booking that last cancelled it late (latest
  * `updatedAt`), and only if that booking was not already refunded for it.
- * A free hour the köşk gave (`makeGoodFor`) is not a sale. Returns the
- * hours per booking, in order.
+ * Returns the hours per booking, in order.
+ *
+ * No sale, no refund: a free hour the köşk gave (`makeGoodFor`), and an
+ * hour booked for nothing (a total of 0, a 100 % ORO discount), brought the
+ * köşk no money for the hour, so there is no gain to set off against what
+ * the late canceller kept (TBK m.325/2 kıyasen; orchestrator decision under
+ * the operator's delegation, 21 Ekim 2026). A booking paid at the köşk has
+ * a total above 0 and counts.
  */
 export function resaleAllocation(
   sold: {
@@ -251,11 +284,13 @@ export function resaleAllocation(
     date: string;
     startHour: number;
     hours: number;
+    totalMinor: number;
     makeGoodFor?: string | null;
   },
   sameDay: readonly ResaleCandidate[],
 ): Array<{ id: string; hours: number[] }> {
   if (sold.makeGoodFor) return [];
+  if (!(sold.totalMinor > 0)) return [];
   const late = sameDay.filter(
     (c) =>
       c.id !== sold.id &&

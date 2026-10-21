@@ -7658,6 +7658,8 @@ export interface DayCloseBooking {
 export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
   id: string;
   refundedAt?: string | null;
+  /** The refunds recorded by hand, each with its amount and instant. */
+  refundSteps?: Array<{ minor: number; at: string }> | null;
 };
 
 /** A loyalty ledger row, without the member (the sheet names nobody). */
@@ -7733,7 +7735,7 @@ export async function dayCloseRows(day: string): Promise<DayCloseRows> {
       sb
         .from(TABLES.karaokeReservations)
         .select(
-          "id, paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt, refundedAt",
+          "id, paymentStatus, paidMinor, refundMinor, refundSettledMinor, refundSteps, paidAt, createdAt, refundedAt",
         )
         .in("paymentStatus", [...KARAOKE_COLLECTED])
         .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),

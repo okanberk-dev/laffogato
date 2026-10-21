@@ -227,6 +227,27 @@ export function dayCloseSummary(
     });
   }
   for (const b of rows.karaokeMoney) {
+    // Refunds recorded by hand are steps of their own: each on its day,
+    // whatever the booking became since (an hour sold again after a late
+    // share went back makes it owe more; what went back stays that day's).
+    const steps = Array.isArray(b.refundSteps) ? b.refundSteps : [];
+    if (steps.length > 0) {
+      steps.forEach((step, i) => {
+        const minor = Math.max(0, Math.round(Number(step?.minor) || 0));
+        if (minor <= 0 || !inIstanbulDay(step?.at, day)) return;
+        refunds.push({
+          key: `${b.id}:step:${i}`,
+          kind: "karaoke",
+          label: b.id.toUpperCase(),
+          href: karaokeDetailHref(b.id),
+          at: step.at,
+          time: istanbulTimeLabel(step.at),
+          amountMinor: minor,
+          destination: REFUND_DESTINATION_LABELS.card,
+        });
+      });
+      continue;
+    }
     if (b.paymentStatus !== "refunded" || !inIstanbulDay(b.refundedAt, day)) {
       continue;
     }

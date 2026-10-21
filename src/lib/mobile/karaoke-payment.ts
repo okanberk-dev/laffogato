@@ -1175,9 +1175,15 @@ async function runRefund(args: {
       "karaoke.runRefund.release",
     );
     if (args.mode !== "detached") {
+      // A cancel that did not happen leaves the booking as it stood, so
+      // nothing of it is made good: the make-good its first step wrote goes
+      // in this same write, never in a later one that a second cancel (or a
+      // dropped line) could get ahead of.
       await moveRow(
         r.id,
-        { paymentStatus: "paid" },
+        args.mode === "cancel"
+          ? { paymentStatus: "paid", ...NO_MAKE_GOOD }
+          : { paymentStatus: "paid" },
         { paymentStatus: "refunding" },
         "karaoke.runRefund.rollback",
       );
@@ -1193,10 +1199,14 @@ async function settleRefunded(
   mode: RefundMode,
   now: Date,
   /**
-   * A refund by hand of an amount the row names (`refundMinor`): settled
-   * only while it still names that amount (`moveRow`).
+   * `pinRefund`: a refund by hand of an amount the row names
+   * (`refundMinor`), settled only while it still names that amount
+   * (`moveRow`). `patch`: written with it (the refund step it records).
    */
-  { pinRefund = false }: { pinRefund?: boolean } = {},
+  {
+    pinRefund = false,
+    patch = {},
+  }: { pinRefund?: boolean; patch?: Partial<KaraokeReservation> } = {},
 ): Promise<boolean> {
   if (mode === "detached") return false;
   const iso = now.toISOString();
@@ -1208,10 +1218,11 @@ async function settleRefunded(
           refundedAt: iso,
           status: "cancelled",
           updatedAt: iso,
+          ...patch,
         }
       : // Already cancelled: no status change, so `updatedAt` stays the
         // instant of the cancellation (the inbox reads it).
-        { paymentStatus: "refunded", refundedAt: iso },
+        { paymentStatus: "refunded", refundedAt: iso, ...patch },
     {
       paymentStatus: "refunding",
       ...(pinRefund ? { refundMinor: r.refundMinor ?? null } : {}),
@@ -1673,9 +1684,12 @@ export async function cancelKaraokeReservation(
   // later still carries it; taken back with a declined refund.
   const goodwill =
     by.kind === "staff" ? karaokeMakeGoodFor(r, by.cause, now) : null;
+  // Always written: a paid booking carries no make-good of its own, so this
+  // cancel's first step sets exactly what it decides (none for a member's,
+  // a link's or an account's cancel, for mücbir, misafir and yeniden).
   const makeGood: Partial<KaraokeReservation> = goodwill
     ? { makeGoodUntil: goodwill.until, makeGoodMinor: goodwill.minor }
-    : {};
+    : NO_MAKE_GOOD;
   const reserved = await moveRow(
     id,
     { paymentStatus: "refunding", ...makeGood },
@@ -1694,7 +1708,7 @@ export async function cancelKaraokeReservation(
     // against; put it back and tell a person rather than guess.
     await moveRow(
       id,
-      { paymentStatus: "paid", ...(goodwill ? NO_MAKE_GOOD : {}) },
+      { paymentStatus: "paid", ...NO_MAKE_GOOD },
       { paymentStatus: "refunding" },
       "karaoke.cancelKaraokeReservation.rollback",
     );
@@ -1773,15 +1787,8 @@ export async function cancelKaraokeReservation(
     extra: { by: by.kind, message: outcome.message, ...why },
   });
   if (outcome.kind === "refused") {
-    // Nothing moved and the booking stands: no cancel, nothing to make good.
-    if (goodwill) {
-      await moveRow(
-        id,
-        NO_MAKE_GOOD,
-        { paymentStatus: "paid", status: r.status },
-        "karaoke.cancelKaraokeReservation.makeGoodBack",
-      );
-    }
+    // Nothing moved and the booking stands: no cancel, nothing to make good
+    // (runRefund took the make-good back with the rollback itself).
     return {
       ok: false,
       reason: "refund_refused",
@@ -1833,6 +1840,8 @@ async function cancelWithShareOwed(
       paymentStatus: "refunding",
       refundMinor: owedMinor,
       updatedAt: iso,
+      // The guest's own late cancel makes nothing good.
+      ...NO_MAKE_GOOD,
     },
     { paymentStatus: "paid", status: r.status },
     "karaoke.cancelWithShareOwed",
@@ -1975,7 +1984,19 @@ export type ResolveRefundResult =
 /** What a person typed when they moved the money by hand (audit only). */
 export interface ResolveRefundOptions {
   reason?: string;
+  /**
+   * "Elle iade edildi": the `refundMinor` the page showed (kuruş; null for
+   * a whole-payment refund). A share is recorded only while the booking
+   * still names exactly that: an hour sold again after the page opened
+   * raises what goes back, and the person refunded what the page showed.
+   * Required for a share; a press without it records nothing.
+   */
+  shownRefundMinor?: number | null;
 }
+
+/** A share refund by hand whose amount moved after the page showed it. */
+export const KARAOKE_SETTLE_STALE =
+  "İade edilecek tutar sayfa açıldıktan sonra değişti (geç iptal edilen bir saat yeniden satılmış olabilir); hiçbir şey kaydedilmedi. Sayfayı yenile, yeni tutara bak ve PayNkolay panelinden ona göre iade edip öyle kaydet.";
 
 /**
  * "İadeyi yeniden dene" / "İade et" in the panel (refund permission): a
@@ -2123,17 +2144,32 @@ export async function settleKaraokeRefundByHand(
     : (payment?.amountMinor ?? r.paidMinor ?? 0);
   const nowMinor = Math.max(0, total - before);
   const topUp = before > 0 && (r.resaleRefundMinor ?? 0) > 0;
+  // A share is recorded only at the amount the page showed: if an hour was
+  // sold again since, the person refunded less than the row now names.
+  if (
+    partial &&
+    (opts.shownRefundMinor === undefined ||
+      opts.shownRefundMinor !== (r.refundMinor ?? null))
+  ) {
+    return { ok: false, reason: "raced", message: KARAOKE_SETTLE_STALE };
+  }
+  // Each refund by hand is a step of its own, with its amount and instant
+  // (the Gün sonu sheet lists each on its day).
+  const at = now.toISOString();
+  const steps: Partial<KaraokeReservation> = {
+    refundSteps: [...(r.refundSteps ?? []), { minor: nowMinor, at }],
+  };
   // The booking first, guarded on the state that was read; the claim row only
   // once this call has won it. The other way round, a settle that lost to a
   // colleague's "İadeyi başlat" left a `refunded` claim behind, and the next
   // refund took that claim for a refund already made: "İade yapıldı" and the
   // member's mail, with nothing sent to the POS. A share is also pinned to
-  // the amount read: an hour sold again in between raised what goes back,
-  // and the person refunded only what the page showed.
+  // the amount read (and shown): an hour sold again in between raised what
+  // goes back, and the person refunded only what the page showed.
   const moved = heldAfterCancel
     ? await moveRow(
         r.id,
-        { paymentStatus: "refunded", refundedAt: now.toISOString() },
+        { paymentStatus: "refunded", refundedAt: at, ...steps },
         { paymentStatus: "paid", status: "cancelled" },
         "karaoke.settleKaraokeRefundByHand.paid",
       )
@@ -2141,7 +2177,7 @@ export async function settleKaraokeRefundByHand(
         r,
         r.status === "cancelled" ? "stray" : "cancel",
         now,
-        { pinRefund: partial },
+        { pinRefund: partial, patch: steps },
       );
   // Someone else moved it in between (a refund under way, a second person
   // settling it): this call recorded nothing and tells nobody.
@@ -2438,7 +2474,7 @@ export async function giveKaraokeMakeGoodHour(
  * day of the transfer and the amount are recorded; the IBAN never is (the
  * guest writes it in an e-mail, the receipt stays with the accounts), so a
  * note that carries one is refused rather than written into the audit log.
- * Not less than the make-good; not a day ahead, nor before the cancel. One
+ * Exactly the make-good; not a day ahead, nor before the cancel. One
  * guarded write uses the make-good, so the free hour closes with it.
  */
 export async function recordKaraokeMakeGoodPaid(
@@ -2488,13 +2524,16 @@ export async function recordKaraokeMakeGoodPaid(
       message: "Havale tarihi iptalden önce olamaz.",
     };
   }
+  // Exactly the make-good (karaoke terms §8: "bu tutarın ... ödenmesi"): a
+  // slipped key ("20000" for 2 000) or an amount no column holds is a field
+  // error, never a record of money that did not move.
   const minor = r.makeGoodMinor ?? 0;
-  if (!Number.isInteger(paid.amountMinor) || paid.amountMinor < minor) {
+  if (!Number.isSafeInteger(paid.amountMinor) || paid.amountMinor !== minor) {
     return {
       ok: false,
       reason: "invalid",
       field: "tutar",
-      message: `Telafi ${formatTRYMinor(minor)}; daha az bir havale telafiyi kapatmaz.`,
+      message: `Telafi ${formatTRYMinor(minor)}; havale tutarı tam bu tutar olmalı.`,
     };
   }
   const usedAt = now.toISOString();

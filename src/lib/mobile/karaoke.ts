@@ -709,6 +709,7 @@ const ADMIN_LIST_COLUMNS = [
   "resoldHours",
   "resaleRefundMinor",
   "refundSettledMinor",
+  "refundSteps",
 ].join(", ");
 
 /** Rows one panel read returns at most; the page says so when it is hit. */

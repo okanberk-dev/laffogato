@@ -1049,10 +1049,15 @@ function formatDateTimeTr(iso: string): string {
   return `${formatReservationDate(day)} ${istanbulTimeLabel(iso)}`;
 }
 
-function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
+function auditEntry(
+  row: KaraokeAuditRow,
+  canRefund: boolean,
+): KaraokeHistoryItem {
   const p = row.payload ?? {};
   const event = str(p.event);
-  const reason = str(p.reason);
+  // A make-good paid by transfer: its note is the money record's, shown
+  // only to whoever may move money (as the consent's IP on the same page).
+  const reason = event === "make_good_paid" && !canRefund ? "" : str(p.reason);
   const amount =
     typeof p.amountMinor === "number" && p.amountMinor > 0
       ? formatTRYMinor(p.amountMinor)
@@ -1142,6 +1147,8 @@ function auditEntry(row: KaraokeAuditRow): KaraokeHistoryItem {
 export function karaokeHistory(
   r: KaraokeReservation,
   audit: readonly KaraokeAuditRow[],
+  /** The viewer's refund right: without it a transfer's note is not shown. */
+  { canRefund = false }: { canRefund?: boolean } = {},
 ): KaraokeHistoryItem[] {
   const items: KaraokeHistoryItem[] = [
     {
@@ -1160,7 +1167,21 @@ export function karaokeHistory(
       tone: "success",
     });
   }
-  if (r.refundedAt) {
+  const steps = Array.isArray(r.refundSteps) ? r.refundSteps : [];
+  if (steps.length > 0) {
+    // Refunds recorded by hand, each with its amount and instant.
+    steps.forEach((step, i) => {
+      items.push({
+        id: `row-refund-step-${i}`,
+        at: step.at,
+        title: isPartialRefund(r)
+          ? "Ödemenin bir kısmı iade edildi"
+          : "Ödeme iade edildi",
+        description: formatTRYMinor(step.minor),
+        tone: "info",
+      });
+    });
+  } else if (r.refundedAt) {
     items.push({
       id: "row-refunded",
       at: r.refundedAt,
@@ -1171,6 +1192,6 @@ export function karaokeHistory(
       tone: "info",
     });
   }
-  for (const row of audit) items.push(auditEntry(row));
+  for (const row of audit) items.push(auditEntry(row, canRefund));
   return items;
 }

@@ -477,6 +477,8 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
       const lost = await pay.settleKaraokeRefundByHand(
         "krk-90001",
         "yonetici@kosk",
+        undefined,
+        { shownRefundMinor: 100_000 },
       );
       expect(lost).toMatchObject({ ok: false, reason: "raced" });
       expect(await row("krk-90001")).toMatchObject({
@@ -486,6 +488,8 @@ maybe("karaoke make-good and resale (real Postgres)", () => {
       const settled = await pay.settleKaraokeRefundByHand(
         "krk-90001",
         "yonetici@kosk",
+        undefined,
+        { shownRefundMinor: 200_000 },
       );
       expect(settled.ok).toBe(true);
       expect(await row("krk-90001")).toMatchObject({

@@ -659,7 +659,7 @@ export default async function KaraokeReservationPage({
               var. Sayfayı birazdan yenile.
             </p>
           )}
-          <Timeline items={karaokeHistory(r, audit)} />
+          <Timeline items={karaokeHistory(r, audit, { canRefund })} />
         </Section>
       </div>
     </main>

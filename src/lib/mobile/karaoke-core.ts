@@ -240,6 +240,19 @@ export interface KaraokeReservation {
    * was `refundMinor` minus this.
    */
   refundSettledMinor?: number | null;
+  /**
+   * Every refund a person recorded by hand ("Elle iade edildi"), with its
+   * own amount (kuruş) and instant: a late share one day and, after its
+   * hour was sold again, the rest another day are two refunds on two days.
+   */
+  refundSteps?: KaraokeRefundStep[] | null;
+}
+
+/** One refund recorded by hand (`KaraokeReservation.refundSteps`). */
+export interface KaraokeRefundStep {
+  minor: number;
+  /** ISO instant the person recorded it. */
+  at: string;
 }
 
 /** What the web form collects about who to reach for a booking. */

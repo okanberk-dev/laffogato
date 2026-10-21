@@ -472,16 +472,27 @@ export async function settleKaraokeRefundAction(
   if (!id) return actionError("Rezervasyon numarası eksik.");
   const reason = readReason(formData, true);
   if (!reason.ok) return reason.result;
+  // What the dialog said goes back (its `refundMinor`, kuruş; empty for the
+  // whole payment): a share is recorded only at that amount.
+  const shownRaw = String(formData.get("gosterilenIade") ?? "").trim();
+  const shownRefundMinor = /^\d{1,12}$/.test(shownRaw)
+    ? Number(shownRaw)
+    : shownRaw === ""
+      ? null
+      : undefined;
   const result = await settleKaraokeRefundByHand(id, session.email, undefined, {
     reason: reason.reason,
+    ...(shownRefundMinor !== undefined ? { shownRefundMinor } : {}),
   });
   revalidate(id);
   if (!result.ok) {
     return actionError(
       // `raced`: the row moved under this call (a refund under way, another
-      // person's settle) and nothing was recorded; it does not say which.
+      // person's settle, or the amount the page showed changed) and nothing
+      // was recorded; the stale amount says so itself.
       result.reason === "raced"
-        ? "Bu rezervasyonu az önce başka biri değiştirdi, iade kaydedilmedi. Sayfayı yenileyip durumuna bak."
+        ? (result.message ??
+            "Bu rezervasyonu az önce başka biri değiştirdi, iade kaydedilmedi. Sayfayı yenileyip durumuna bak.")
         : "Bu rezervasyonun iadesi beklenmiyor. Sayfayı yenile.",
     );
   }
@@ -578,7 +589,7 @@ export async function recordKaraokeMakeGoodPaidAction(
     return actionError(message, { havaleTarihi: message });
   }
   const minor = parseMoneyInput(String(formData.get("tutar") ?? ""));
-  if (minor === null || minor <= 0) {
+  if (minor === null || minor <= 0 || !Number.isSafeInteger(minor)) {
     const message = "Havale tutarını yaz (ör. 2.000,00).";
     return actionError(message, { tutar: message });
   }

@@ -638,11 +638,15 @@ describe("a member cancels", () => {
     expect(retry).toEqual({ ok: false, reason: "by_hand" });
     expect(h.refunds).toEqual([]);
 
+    // The dialog posts the share it named (karaoke-panel.tsx, settleFields).
     const settled = await payment.settleKaraokeRefundByHand(
       "krk-00042",
       "yonetici@kosk",
       at(9),
-      { reason: "PayNkolay panelinden kısmi iade yapıldı" },
+      {
+        reason: "PayNkolay panelinden kısmi iade yapıldı",
+        shownRefundMinor: 100_000,
+      },
     );
     expect(settled).toMatchObject({ ok: true, refunded: true });
     expect(row()).toMatchObject({

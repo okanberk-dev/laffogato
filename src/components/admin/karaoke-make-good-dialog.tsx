@@ -115,7 +115,7 @@ function PaidFields(p: KaraokeMakeGoodProps) {
         <div className="flex flex-col gap-1.5">
           <Field
             label="Tutar (₺)"
-            hint={`Telafi ${p.amount}; daha azı kaydedilmez.`}
+            hint={`Telafi ${p.amount}; havale tam bu tutar olmalı.`}
           >
             <TextInput
               name="tutar"
