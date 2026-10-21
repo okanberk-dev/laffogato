@@ -92,10 +92,17 @@ describe("legal index", () => {
     expect(row.title).toBe("Yeni Başlık");
     expect(row.summary).toBe("Yeni özet.");
     expect(row.updatedAt).toBe("5 Eylül 2026");
-    // The revision label of the set is unchanged; the rest of the list too.
+    // The revision label of the set is unchanged; the rest of the list too:
+    // each keeps its own coded day (the stamp programme carries its own since
+    // 21 Ekim 2026, the cookie policy the set's).
     expect(index.updatedAt).toBe(LEGAL_UPDATED);
-    const other = index.docs.find((d) => d.slug === "odul-programi")!;
-    expect(other.updatedAt).toBe(LEGAL_UPDATED);
+    const coded = (slug: string) =>
+      LEGAL_DOCS.find((d) => d.slug === slug)!.updatedAt;
+    for (const slug of ["odul-programi", "cerez-politikasi"]) {
+      const other = index.docs.find((d) => d.slug === slug)!;
+      expect(other.updatedAt, slug).toBe(coded(slug));
+    }
+    expect(coded("cerez-politikasi")).toBe(LEGAL_UPDATED);
   });
 
   it("moves the set's label with a later override of a checkout document", () => {

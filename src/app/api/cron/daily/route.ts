@@ -4,7 +4,11 @@ import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
-import { destructionEnabled, runRetention } from "@/lib/retention";
+import {
+  destructionEnabled,
+  retentionLogLine,
+  runRetention,
+} from "@/lib/retention";
 import { keepSupabaseAwake } from "@/lib/supabase/admin";
 
 import { cronGate, NO_STORE } from "../_auth";
@@ -100,12 +104,17 @@ export async function GET(request: Request) {
     shown.hashes = hashes;
     return { documents };
   });
-  const retention = await step("retention", () =>
-    runRetention({
+  // An applied run leaves its own destruction record in audit_logs
+  // (runRetention); the line below is the same one /api/cron/retention logs,
+  // counts only.
+  const retention = await step("retention", async () => {
+    const report = await runRetention({
       apply: destructionEnabled(),
       keep: shown.hashes ? { "legal-doc-versions": shown.hashes } : {},
-    }),
-  );
+    });
+    console.info(retentionLogLine(report));
+    return report;
+  });
 
   // The ping's outcome, for the owner's dashboard. A step that threw (the
   // ping itself never does) got nowhere as far as anyone can tell: failed.

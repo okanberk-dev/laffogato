@@ -38,6 +38,8 @@ vi.mock("@/lib/db", async (importOriginal) => {
 
 const TAG = `aud-ao-${Date.now()}`;
 const DAY = 86_400_000;
+/** The day the destruction test runs its sweep on. */
+const SWEEP_AT = Date.parse("2014-06-01T06:00:00.000Z");
 
 function iso(msAgo: number, from = Date.now()): string {
   return new Date(from - msAgo).toISOString();
@@ -92,6 +94,13 @@ maybe("audit_logs is append-only in a real Postgres", () => {
         await client.query(
           `delete from public.audit_logs where "entityId" = $1`,
           [TAG],
+        );
+        // The applied sweep below files its own destruction record under
+        // the sweep's instant (src/lib/retention.ts): young, so it goes here.
+        await client.query(
+          `delete from public.audit_logs
+            where entity = 'retention' and "entityId" = $1`,
+          [new Date(SWEEP_AT).toISOString()],
         );
         await client.query(
           "alter table public.audit_logs enable trigger audit_logs_retention_delete",
@@ -168,7 +177,7 @@ maybe("audit_logs is append-only in a real Postgres", () => {
     // A sweep run on an earlier day, so that every other rule's cutoff lies
     // before any row this database holds and only these rows are in scope:
     // two from before the sweep's decade (gone), one inside it (kept).
-    const sweepAt = Date.parse("2014-06-01T06:00:00.000Z");
+    const sweepAt = SWEEP_AT;
     await insert(`${TAG}-r1`, iso(3_661 * DAY, sweepAt));
     await insert(`${TAG}-r2`, iso(4_000 * DAY, sweepAt));
     await insert(`${TAG}-r3`, iso(3_000 * DAY, sweepAt));

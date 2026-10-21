@@ -3260,6 +3260,246 @@ yayında değil; canlı kural 2 saat / %0.
   aç (Ödeme Koşulları ve Hesap Silme cümleleri aynı PR'da). O güne kadar
   %1-99 kaydedilemez.
 
+## 27. Y13 - Karaoke verisinin saklama süresi, imha kaydı, ticari yazışma (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-retention-and-till`. Operatör
+> kararı (18 Ekim 2026): avukat ve mali müşavir turu yok, karar birincil
+> kaynaklarla verildi (ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE).
+> `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi; yalnız Veri Saklama ve
+> İmha Politikası kendi tarihini taşır (§27.4).
+
+### 27.1 Neden
+
+- Veri Saklama §8'in karaoke satırı üye olmadan yapılan rezervasyonun ad,
+  soyad, e-posta ve telefonu için "kendiliğinden silme veya anonimleştirme
+  süresi henüz belirlenmemiştir" diyordu; onay kaydı satırı "kendiliğinden
+  işleyen bir silme düzeni henüz tanımlı değildir" diyordu. Veri yalnız
+  amacın gerektirdiği süre tutulur ve sebep bitince silinir (X-KAR-RETENTION).
+- Periyodik imha yalnız rapor üretiyordu ve bir imha çalıştırması iz
+  bırakmıyordu (X-RETENTION-APPLY).
+- İletişim satırı her yazışmaya üç yıl veriyordu; sipariş, iade, rezervasyon,
+  fatura ve ödeme yazışması ticari mektuptur ve on yıl saklanır
+  (D-CORRESPONDENCE). Etkinlik ve atölye kaydı için satır yoktu
+  (X-EVENT-PROOF).
+
+### 27.2 Değişen cümleler (Veri Saklama ve İmha Politikası §8, tablo)
+
+| Satır | Mevcut | Yeni |
+|---|---|---|
+| Karaoke rezervasyon kayıtları (değer) | Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu kayıtlar için kendiliğinden silme veya anonimleştirme süresi henüz belirlenmemiştir ve bu bilgiler ilgili kişinin talebi üzerine, ödeme ve onay kaydına ilişkin yasal saklama yükümlülükleri saklı kalmak kaydıyla 16. bölüm uyarınca değerlendirilir. | Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca, en geç ise bu satırda belirtilen sürenin sonunda silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu bilgiler ile tüm rezervasyonlarda iletişim için yazılan e-posta adresi, telefon numarası ve not, rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir. Rezervasyonun kodu, tarihi, saati, süresi, kişi sayısı, tutarı ile ödeme ve iade kayıtları ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir. Hakkında uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak sonuçlanana kadar saklanır. |
+| Karaoke odası onay kaydı (değer) | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır; bu kayıt için kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. | Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır. |
+| Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması) (yeni satır, karaoke onay kaydı satırının ardından) | (yoktu) | Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir. |
+| İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları) (değer) | Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir. | Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır. |
+| İmha (silme, yok etme, anonimleştirme) kayıtları (değer, son cümle; inceleme R1) | Kayıt, yetkili personelin yürüttüğü imhalar için tutulur; sistem tarafından otomatik yürütülen imhalar için ayrı bir kayıt oluşturulmaz. | Yetkili personelin yürüttüğü imhalar için imha kaydı tutulur. Sistem tarafından otomatik yürütülen her periyodik imha çalışması da, kişisel veri içermeyen bir kayıt olarak değiştirilemez olay kaydına yazılır ve 10 yıl saklanır; bu kayıt çalışmanın tarih ve saatini, her kural için veri kategorisini, saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını gösterir. |
+| §17, 1. paragraf, 2. cümle (inceleme R1) | Saklama süresi dolan kayıtların otomatik görevle silinmesi ve üyenin kendi hesabını kapatması gibi sistem tarafından yürütülen işlemler için ayrı bir imha kaydı oluşturulmaz; bu işlemlerin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. | Saklama süresi dolan kayıtların otomatik görevle silinmesi veya alanlarının boşaltılması da kayıt altına alınır: uygulanan her periyodik imha çalışması için sistem, çalışmanın tarih ve saatini, her kuralın veri kategorisini ve saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını içeren, kişisel veri taşımayan bir kaydı değiştirilemez olay kaydına yazar; bu kayıt on yıl saklanır. Üyenin kendi hesabını kapatması için ayrı bir imha kaydı oluşturulmaz; bu işlemin kapsamı ve süreleri bu Politikada ve Hesap Silme belgesinde yazılıdır. |
+| §17, ilk madde (sonuna eklendi; inceleme R1) | İmha kaydında yer alan asgari bilgiler: işlem tarihi ve saati, veri kategorisi, kayıt sayısı, imha gerekçesi, uygulanan yöntem, işlemi gerçekleştiren kişi ve onaylayan kişi. | (aynı cümle, ardından) Otomatik imhalarda işlemi gerçekleştiren sistemdir; imha gerekçesi (saklama süresinin dolması) ve yöntem (silme veya alanların boşaltılması) ilgili kuralın bu Politikadaki tanımından anlaşılır, onay ise dönem raporunun onaylanmasıyla verilir. |
+
+### 27.3 Kod
+
+- `db/migrations/20261021090000_karaoke_guest_retention.sql`:
+  `karaoke_reservations."retentionHold"` (boşsa imha engellenmez) ve iki
+  fonksiyon. `karaoke_guest_retention` misafirin adını ve adresini
+  (`anon-<id>@anon.local`), her rezervasyonun iletişim adresini, telefonunu,
+  notunu ve onaydaki `ip` ile `userAgent`'ı temizler; satırı silmez.
+  `karaoke_reservation_retention` satırı siler. Süzgeç: `date <
+  left(p_cutoff, 10)` (silmede rezervasyon günü, `paidAt` ve `refundedAt`'in
+  en geç olanı; inceleme M2), `"paymentStatus"` `pending` ya da `refunding`
+  değil, panelin hâlâ borçlu saydığı rezervasyon değil (ödenmiş ve iptal
+  edilmiş ya da onaylanmamış; M1), `payment_transactions`'ta cevabı gelmemiş
+  `refunding` iade talebi yok (M3), `"retentionHold" = ''`. Gün olmayan ya da
+  bir yıldan yakın bir sınır hata verir (R5). Temizlenmiş satır ikinci kez
+  sayılmaz.
+- `src/lib/retention.ts`: `karaoke-guest-data` (3 × 366 gün) ve
+  `karaoke-reservations` (11 × 366 gün) kuralları; `basis` cümleleri yukarıdaki
+  yeni karaoke satırından birebir (`tests/mobile-retention.test.ts`). Sınır
+  köşkün saatiyle yazılır (CLAUDE.md kural 22).
+- İmha kaydı: uygulanan her çalıştırma `audit_logs`'a tek satır yazar (actor
+  `system`, action `bulk_delete`, entity `retention`, kayıt no çalıştırmanın
+  anı, kural başına yöntem (`delete` silindi, `clear` alanlar boşaltıldı) ve
+  sayılar); rapor modu hiçbir şey yazmaz. Olay kaydında "Periyodik
+  imha" olarak görünür. Ayrıntı `docs/DATABASE.md` "Periyodik imha".
+
+### 27.4 Sürüm
+
+- Veri Saklama ve İmha Politikası kendi tarihini taşır: **21 Ekim 2026**
+  (`updatedAt`, `src/lib/legal/content.ts`). 20 Ekim 2026 setin günü olarak
+  #180 ile kullanıldı; bu PR 21 Ekim'de ya da sonra birleşir, daha geç
+  birleşirse tarih o güne çekilir.
+- `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmez: ödeme ve karaoke
+  onayında gösterilen belgeler değişmedi.
+
+### 27.5 Operatöre
+
+- **İmhayı açmak (OP-18).** Önce rapor: `curl -s -H "Authorization: Bearer
+  $CRON_SECRET" https://laffogato.net/api/cron/retention`. Sayıları oku
+  (`karaoke-guest-data` ve `karaoke-reservations` bugün 0 olmalı: ilk
+  rezervasyonlar 2026'da). Sonra Production'da `RETENTION_APPLY=destroy`,
+  redeploy, bir kez daha çağır; yanıt `"applied": true` ve `"recorded": true`
+  demeli, Olay kaydında "Periyodik imha" satırı görünmeli. İlk imha
+  raporunun JSON'u KVKK klasörüne.
+- **Hukuki saklama.** Uyuşmazlık, şikâyet ya da resmî talep olan karaoke
+  rezervasyonunda `"retentionHold"` nedeniyle doldurulur, iş bitince
+  boşaltılır (SQL `docs/DATABASE.md`'de).
+- **Etkinlik ve atölye.** Kayıt ve onay e-postaları kurumsal kutuda on yıl
+  kalır; alerjen ve diyet bilgisi yazılı istenmez, girişte ad yazmadan sırayla
+  not alınır ve not etkinlik bitince yok edilir.
+- **Yazışma.** Sipariş, iade, rezervasyon, fatura ve ödeme yazışmaları kutuda
+  yazıldığı yılın sonundan itibaren on yıl kalır; işlemle ilgisiz mesajlar ve
+  telefon notları üç yıl. Şüphede on yıl.
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile (ayrı PR).
+
+### 27.6 Bilerek değişmeyenler
+
+- Gizlilik Politikası ("Talep, şikâyet ve iade yazışmaları"), KVKK Aydınlatma
+  ("Müşteri hizmetleri yazışmaları ve şikâyet kayıtları") ve Hesap Silme
+  ("Tüketici başvuru ve uyuşmazlık yazışmaları") özet satırları "zamanaşımı
+  süresi boyunca" diyor; Veri Saklama tablosu bunu artık açar, çelişki yok.
+- Hesap Silme'nin karaoke maddesi iletişim bilgisinin ve notun hesap
+  kapatmada "kayıtta kaldığını" söyler; Veri Saklama artık en geç üç yılda
+  silindiğini söyler. İkisi birlikte doğrudur.
+- `payment_transactions`'taki karaoke ödeme satırları için ayrı bir imha
+  kuralı yok (on yıllık asgari süre; en erken 2036'da gerekir).
+
+### 27.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Süre ve imha | 6698 s. KVKK m.4/2-d (amaç için gerekli süre kadar muhafaza), m.7/1 (sebep kalkınca resen silme) | Misafirin kimliği, her rezervasyonun iletişim bilgisi ve onayın IP ile tarayıcı bilgisi rezervasyon tarihinden 3 yıl sonra; rezervasyon kaydı 11 yıl sonra. |
+| Periyodik imha | Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik (RG 28.10.2017-30224) m.11/1-2 (ilk periyodik imhada, aralık altı ayı geçemez) | Süre dolduktan sonraki ilk periyodik imhada; iş her gün koşar. |
+| İmha kaydı | Aynı yönetmelik m.7/3 (tüm işlemler kayıt altına alınır, kayıtlar en az üç yıl saklanır) | Her uygulanan çalıştırma `audit_logs`'a veri içermeyen tek satır; olay kaydı on yıl, append-only. |
+| Onay kaydı | Mesafeli Sözleşmeler Yönetmeliği (RG 27.11.2014-29188) m.20/1 (bilgi ve belgeler üç yıl saklanır) | Onay kaydının kendisi (an, belgeler, sürüm) rezervasyonla kalır; IP ve tarayıcı bilgisi üç yıl sonra çıkar. |
+| Ödeme kaydı ve ticari yazışma | 6102 s. TTK m.82/1-b,c (alınan ve gönderilen ticari mektuplar), m.82/5 (on yıl), m.82/6 (süre takvim yılının bitişiyle başlar) | Rezervasyon kaydı 11 × 366 günde silinir: yıl sonundan başlayan on yılı her durumda kapsar. İşlemle ilgili yazışma on yıl, ilgisiz mesaj üç yıl. |
+| Hukuki saklama | KVKK m.5/2-e (bir hakkın tesisi, kullanılması veya korunması için zorunlu olması) | Uyuşmazlık, şikâyet ya da resmî talep olan kayıt `"retentionHold"` ile imhadan çıkar. |
+
+## 28. Y14 - Kasada damga yalnız üyenin kendi kasa koduyla (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-retention-and-till`. Operatör
+> kararı (18 Ekim 2026): avukat turu yok (ASK-LOYALTY). `LEGAL_UPDATED`
+> değişmedi; değişen altı belge kendi tarihini taşır (§28.4).
+
+### 28.1 Neden
+
+- Kasada damga, üyenin uygulamasındaki kasa kodu (QR ya da 8 karakter)
+  okunamazsa kasiyerin elle yazdığı üyelik e-posta adresiyle de veriliyordu;
+  üyenin müşteri sayfasında da yönetici gerekçesiz "+1 damga" verebiliyordu.
+  Elle yazılan e-posta, üyenin kendisini göstermediği bir tanımlamadır
+  (X-LOYALTY). Karar: kasada damga yalnız üyenin kendi koduyla; e-posta yolu
+  kalkar; müşteri sayfasında yalnız gerekçeli yönetici düzeltmesi kalır.
+- Metinler e-posta yolunu yedi yerde anlatıyordu. Spec Gizlilik ve KVKK
+  metinlerindeki beş yeri satır numarasıyla verdi (eski numaralar 4959, 4989,
+  5397, 5966, 6018); aynı yolu anlatan Gizlilik §5 amaç satırı, Üyelik
+  Sözleşmesi §10, Sadakat Programı Kuralları §2, §7 ve §20, Mobil Uygulama
+  Koşulları §11 ve Kafe Hizmet Koşulları §10 da aynı karara göre düzeltildi:
+  aksi hâlde sözleşmeler kasanın artık reddettiği bir yolu vaat ederdi.
+
+### 28.2 Değişen cümleler
+
+Spec cümleleri birebir uygulandı; spec'te olmayan yerlerde aynı cümleler
+belgenin kendi diliyle (Üye, Katılımcı) kullanıldı.
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Gizlilik §3, tablo "Sadakat (damga) programı verisi" (son cümle; spec 4959) | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir. | Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir. |
+| Gizlilik §4, "Kafe ziyareti" (spec 4989) | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek veya üyelik e-posta adresinizi girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. | ... kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları ve güvenlik kamerası görüntüleri. |
+| Gizlilik §5, amaç tablosu anahtarı (spec'te yok) | Kafede kasa kodu okutularak veya üyelik e-posta adresi girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi | Kafede kasa kodu okutularak ya da girilerek damga eklenmesi ile damga ve kuponların kötüye kullanımının önlenmesi |
+| Gizlilik §15, 1. paragraf (spec 5397) | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer; kod okunamazsa damga kasada üyelik e-posta adresiniz girilerek de eklenebilir. Bu sırada yetkili personele adınız, maskelenmiş e-posta adresiniz (adres personel tarafından elle yazılmışsa tam adres) ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... | ... Kasa kodunu personel kasadaki cihazla veya kasa yetkisi verilmiş kendi uygulamasıyla okutur ya da kodu elle girer. Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır. Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir; damgayı ekleyen personelin hesabı kayda geçer. ... |
+| KVKK Aydınlatma §10, "Sadakat programı kanalları" (spec 5966) | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek veya üyelik e-posta adresi girilerek eklenen damga kayıtları. | ... kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları. |
+| KVKK Aydınlatma §13, "Kasada damga" (spec 6018) | Kod okunamazsa damga, üyelik e-posta adresiniz girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. |
+| Üyelik Sözleşmesi §10, 2. paragraf (spec'te yok) | ... personele gösterir, personel kodu okur veya elle girer; kod okunamazsa damga Üye'nin üyelik e-posta adresi girilerek de eklenebilir. ... | ... personele gösterir, personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. Kasada eksik işlenen bir damga, Üye'nin üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır. ... |
+| Sadakat Programı Kuralları §2, tanım "Kasa Damgası" (spec'te yok) | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak veya üyelik e-posta adresi girilerek hesaba eklenen damga | Kafede personel tarafından, Katılımcı'nın kasa kodu okunarak ya da elle girilerek hesaba eklenen damga |
+| Sadakat Programı Kuralları §7, 1. paragraf (spec'te yok) | Kod okunamazsa damga, Katılımcı'nın üyelik e-posta adresi girilerek de eklenebilir. | Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez. |
+| Sadakat Programı Kuralları §14, yeni 3. paragraf, geri almanın iki paragrafından sonra (spec'te yok) | (yoktu) | Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'ne yazılır. |
+| Sadakat Programı Kuralları §20, 1. paragraf (spec'te yok) | ... maskelenmiş e-posta adresi ve kart durumu gösterilir (e-posta ile ekleme yolunda personel adresi kendisi yazar); damgayı ekleyen personelin hesabı kayda geçer. | ... maskelenmiş e-posta adresi ve kart durumu gösterilir; damgayı ekleyen personelin hesabı kayda geçer. |
+| Mobil Uygulama Koşulları §11 (spec'te yok) | ... personele gösterilir; personel kodu okutur veya elle girer, kod okunamazsa Üye'nin e-posta adresini seçerek de damga ekleyebilir. | ... personele gösterilir; personel kodu okutur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez. |
+| Kafe Hizmet Koşulları §10 (spec'te yok) | ... personel kendi cihazıyla okur veya girer; kod okunamazsa damga üyelik e-posta adresiniz seçilerek de eklenebilir. ... | ... personel kendi cihazıyla okur ya da kod okunamazsa kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez. ... |
+| Kafe Hizmet Koşulları §10 (spec'te yok) | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama, uygulamada gösterdiğiniz kasa kodu veya üyelik e-posta adresiniz üzerinden yapılır. | Kasada damga eklenebilmesi için üyeliğinizin doğrulanması gerekir; doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır. |
+
+Gizlilik §15'te spec cümlesi bir cümle başladığı için önündeki "; " ". "
+oldu; aradaki düzeltme cümlesinden sonra "Bu sırada" belirsiz kalacağından
+"Kasada damga eklenirken" yazıldı (aynı belgenin §3'teki ifadesi).
+
+İnceleme R3: spec'in "düzeltme damga hareketlerinizde görünür" ifadesi üyeye
+açık bir damga hareketi ekranı vaat ediyordu; böyle bir ekran yok, üye tarihli
+dökümü talep üzerine alır (Sadakat Programı §14, §21). Bu yüzden Gizlilik ve
+Kafe Hizmet'te "düzeltme damga hareketlerinize kayıt olarak işlenir ve
+talebiniz üzerine iletilen tarihli dökümde yer alır.", Üyelik'te aynı anlam
+üçüncü kişiyle, Sadakat §14'te "düzeltme Damga Defteri'ne yazılır." yazıldı.
+
+### 28.3 Kod
+
+- Kasa (`/admin/kasa`): "E-posta ile" sekmesi kalktı; kod sekmesinin altında
+  "QR okunmuyorsa üyeden kodun altındaki 8 karakteri söylemesini iste.";
+  sayfanın açıklaması "E-postayla damga verilmez." der. Eylem (`KINDS =
+  ['token', 'code']`) `kind: "email"`'i "E-postayla damga verilmiyor. Üyeden
+  uygulamadaki kasa kodunu (QR ya da 8 karakterlik kod) göstermesini iste."
+  ile reddeder; üye araması ve tekrar penceresi kalktı.
+- `redeemCounterToken` `email`'i `email_refused` ile, hiçbir şey okumadan ya da
+  yazmadan reddeder; tür değeri ve `Kasa · e-posta` not öneki eski satırlar
+  için kalır. `not_found`: "Kod bulunamadı. Kodu kontrol et ya da üyeden yeni
+  QR göstermesini iste." Uygulamanın `POST /staff/stamp`'ı zaten yalnız
+  `token` ve `code` alıyordu, sözleşme değişmedi.
+- Müşteri sayfası: düğme "Damga düzelt (+1)", rol `customers` (sahip,
+  yönetici); en az 10 karakterlik sebep zorunlu ("Düzeltme sebebini yaz:
+  üyenin kendi talebi ve nasıl doğrulandığı (ör. QR okunmadı, üye kayıtlı
+  e-postasından yazdı)."), defter notu `Düzeltme · ` ile başlar.
+
+### 28.4 Sürüm
+
+- Kendi tarihini taşıyan belgeler, **21 Ekim 2026**: Gizlilik Politikası, KVKK
+  Aydınlatma Metni, Üyelik Sözleşmesi, Sadakat (Damga) Programı Kuralları,
+  Mobil Uygulama Koşulları, Kafe Hizmet Koşulları (`updatedAt`,
+  `src/lib/legal/content.ts`). `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+  değişmez.
+- Bildirim (inceleme R4, orkestratörün operatör yetkisiyle verdiği karar):
+  kasada elle yazılan e-postayla damga yolu kaldırıldı. Bu, Üyelik Sözleşmesi
+  §22 anlamında üye aleyhine esaslı bir değişiklik ve Sadakat Programı §12 ile
+  §23 anlamında Katılımcı aleyhine sonuç doğuran bir değişiklik sayılmadı: her
+  damga üyenin kendi koduyla alınabilir (kamera okumazsa kod elle girilir),
+  kasada kaçan damga üyenin kendi kayıtlı e-postasından ilettiği talep üzerine
+  düzeltilir, damga değeri, ödül ve eşikler değişmez. Değişiklik ayrıca
+  mevzuata uyum içindir (KVKK m.12/1), Üyelik §22 bunu on beş günlük süreden
+  ayırır. On beş günlük bekleme uygulanmadı; değişiklik yayın günü
+  uygulamada duyurulur ve üyelere kısa bir bilgilendirme e-postası gider
+  (§28.5).
+
+### 28.5 Operatöre
+
+- **Kasa ekibi.** Bu PR yayına girdiği gün: e-postayla damga yok. QR
+  okunmuyorsa üye kodun altındaki 8 karakteri söyler, kasiyer "Kodu yaz"
+  sekmesine girer. Telefonu çalışmayan üyeye "uygulamadan ya da kayıtlı
+  e-postanızdan bize yazın, yönetici ekler" denir.
+- **Yönetici.** Eksik damga: üyenin müşteri sayfası, "Damga düzelt (+1)", sebep
+  (kimin istediği ve nasıl doğrulandığı). Talep üyenin kayıtlı adresinden
+  gelmeli.
+- **Duyuru ve e-posta (yayın günü).** Uygulama duyurusu: "Kasada damga
+  artık yalnızca uygulamandaki kasa koduyla (QR ya da 8 karakter) eklenir."
+  Üyelere kısa bilgilendirme e-postası (işlemsel bilgilendirme, ticari ileti
+  değildir): "Kasada damga artık yalnızca uygulamandaki kasa koduyla (QR ya
+  da altındaki 8 karakter) eklenir; e-posta adresinle damga eklenmez. Kasada
+  bir damgan eksik kaldıysa kayıtlı e-posta adresinden bize yaz, yönetici
+  düzeltsin. Damga sayın, ödüllerin ve eşikler değişmedi."
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile; ayrıca
+  `docs/API-MOBILE.md` §17 "Kasa tarafı" ve §21 `kind` satırı değişti
+  (lafmobil kopyası ve `RECONCILED`).
+
+### 28.6 Bilerek değişmeyenler
+
+- Uygulamanın `POST /staff/stamp` uçu ve iletileri (`not_found` için
+  uygulamanın kendi cümlesi "Kod bulunamadı. Üyeden kartını yeniden açmasını
+  iste.") aynen kalır.
+- Sadakat Programı §21'deki "eksik damga elle tanımlanır" cümlesi zaten
+  düzeltmeyi anlatır.
+- Eski olay kaydı satırlarındaki `kind: "email"` ve eski defter satırlarının
+  `Kasa · e-posta` notu silinmez; o günün kaydıdır.
+
+### 28.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Kasada üyenin tanımlanması | KVKK Kurul İlke Kararı 2026/266 (RG 28.02.2026; uyum 28.02.2027'ye uzadı, 2026/1491) - program kararı ASK-LOYALTY'nin dayanağı; bu PR'da kararın kendi metni doğrulanamadı (RG PDF'i taranmış görüntü) | Kasada damga yalnız üyenin uygulamasının ürettiği tek kullanımlık kodla; elle yazılan e-posta reddedilir. |
+| Doğruluk ve güvenlik | 6698 s. KVKK m.4/2-b (doğru ve gerektiğinde güncel olma), m.12/1 (hukuka aykırı işlemeyi önleme, uygun güvenlik düzeyi için teknik ve idari tedbir) | Yanlış adrese yazılan damga ve üyenin bilgisi olmadan adının kullanılması önlenir; düzeltme yalnız yetkili yöneticide, gerekçesi kayıtta. |
+| Sözleşme ve veri işleme şartı | KVKK m.5/2-c | Damga işlemi sözleşmenin ifası olarak sürer; değişen yalnız tanımlamanın yolu. |
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

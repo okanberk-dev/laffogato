@@ -169,6 +169,12 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   legal_doc_save: SITE,
   legal_doc_reset: SITE,
 
+  // The periodic destruction of karaoke bookings (src/lib/retention.ts):
+  // they clear or delete karaoke_reservations rows. Called daily, also to
+  // count only; one extra read of the nav badge's marker at most.
+  karaoke_guest_retention: [TAG_KARAOKE],
+  karaoke_reservation_retention: [TAG_KARAOKE],
+
   // Counters, sign-in limits, promos, campaigns, wishlists, fal: nothing
   // cached reads them.
   next_seq: NONE,

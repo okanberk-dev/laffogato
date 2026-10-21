@@ -387,3 +387,74 @@ describe("campaign Gönder", () => {
     expect(html).not.toContain("<form");
   });
 });
+
+describe("the member page's stamp is a correction (ASK-LOYALTY)", () => {
+  // The till stamps only a member who shows their own code since 21 Ekim
+  // 2026; the member page adds a stamp the till missed, at the member's
+  // request, with the reason (musteriler/[email]/actions.ts refuses one under
+  // ten characters).
+  async function render(history: unknown[] = []): Promise<string> {
+    const { CustomerStamps } =
+      await import("@/components/admin/customer-stamps");
+    return renderToStaticMarkup(
+      createElement(CustomerStamps, {
+        email: "uye@ornek.com",
+        canReverse: true,
+        loyalty: {
+          tierLabel: "Bronz",
+          stamps: 3,
+          stampTarget: 6,
+          rewardsReady: 0,
+          lifetimeStamps: 3,
+        },
+        history,
+      } as never),
+    );
+  }
+
+  it("asks for the reason and says what the button does", async () => {
+    const html = await render();
+    expect(html).toContain("Damga düzelt (+1)");
+    expect(html).not.toContain("+1 damga");
+    expect(html).toContain("Düzeltme sebebi");
+    expect(html).not.toContain("opsiyonel");
+    const input = html.match(/<input[^>]*name="note"[^>]*>/)?.[0] ?? "";
+    expect(input).toContain('required=""');
+    expect(input).toContain('minLength="10"');
+    // 120 the ledger keeps, minus "Düzeltme · ".
+    expect(input).toContain('maxLength="109"');
+    // The form's names are the action's (frontend-form-contract): note, force.
+    expect(html).toContain('name="force"');
+  });
+
+  it("still prints a stamp the till gave by e-mail before the change", async () => {
+    const html = await render([
+      {
+        id: "stamp-000041",
+        customerEmail: "uye@ornek.com",
+        kind: "earn",
+        delta: 1,
+        source: "counter",
+        orderId: "",
+        note: "Kasa · e-posta",
+        actor: "kasa@laffogato.net",
+        createdAt: "2026-10-10T09:00:00.000Z",
+      },
+      {
+        id: "stamp-000042",
+        customerEmail: "uye@ornek.com",
+        kind: "earn",
+        delta: 1,
+        source: "counter",
+        orderId: "",
+        note: "Düzeltme · QR okunmadı, üye kayıtlı e-postasından yazdı",
+        actor: "yonetici@laffogato.net",
+        createdAt: "2026-10-22T09:00:00.000Z",
+      },
+    ]);
+    expect(html).toContain("Kasa · Kasa · e-posta · kasa@laffogato.net");
+    expect(html).toContain(
+      "Kasa · Düzeltme · QR okunmadı, üye kayıtlı e-postasından yazdı · yonetici@laffogato.net",
+    );
+  });
+});

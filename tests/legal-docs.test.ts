@@ -797,3 +797,195 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     }
   });
 });
+
+describe("legal content - karaoke retention, event records, correspondence (21 Ekim 2026)", () => {
+  // Decisions ASK-RETENTION and D-CORRESPONDENCE (operator, 18 Ekim 2026: no
+  // lawyer round); src/lib/retention.ts runs the karaoke periods
+  // (tests/mobile-retention.test.ts finds its two basis sentences here).
+  // LEGAL-REDLINES §27.
+  const table = () =>
+    sectionOf(
+      "veri-saklama-ve-imha-politikasi",
+      "8. Veri Kategorileri Bazında Saklama ve İmha Süreleri",
+    ).table!;
+  const row = (start: string) => {
+    const found = table().find((r) => r.key.startsWith(start));
+    expect(found, start).toBeDefined();
+    return found!;
+  };
+
+  it("gives the karaoke booking its periods, word for word", () => {
+    expect(row("Karaoke rezervasyon kayıtları").value).toBe(
+      "Üyelik ilişkisi süresince saklanır. Üyelik hesabı kapatıldığında ileri tarihli rezervasyonlar iptal edilir; ödenmiş rezervasyonların iadesi Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 10. maddesine göre yapılır; kayıtlarda ad silinir ve üyelik e-posta adresi kimliği belirlenemeyen benzersiz bir yer tutucuyla değiştirilir. Rezervasyon formunda ayrıca iletişim için yazılmış e-posta adresi ve telefon numarası hesap kapatma işlemiyle kendiliğinden silinmez; bu bilgiler ilgili kişinin talebi üzerine 16. bölüm uyarınca, en geç ise bu satırda belirtilen sürenin sonunda silinir. Üye olmadan yapılan rezervasyonlarda ad, soyad, e-posta adresi ve telefon numarası yalnızca rezervasyon kaydında tutulur; bu bilgiler ile tüm rezervasyonlarda iletişim için yazılan e-posta adresi, telefon numarası ve not, rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir. Rezervasyonun kodu, tarihi, saati, süresi, kişi sayısı, tutarı ile ödeme ve iade kayıtları ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir. Hakkında uyuşmazlık bulunan kayıt, uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
+    );
+  });
+
+  it("drops the IP and user agent of the karaoke consent after three years", () => {
+    expect(row("Karaoke odası onay kaydı").value).toBe(
+      "Rezervasyon kaydında tutulur ve Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. Onay kaydındaki IP adresi ve tarayıcı veya uygulama bilgisi rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir; onayın tarihi, onaylanan belgeler ve sürümleri rezervasyon kaydıyla birlikte kalır. Uyuşmazlık hâlinde uyuşmazlığın kesin olarak sonuçlanmasına kadar saklanır.",
+    );
+  });
+
+  it("adds the event and workshop records, after the karaoke rows", () => {
+    const keys = table().map((r) => r.key);
+    const events = keys.findIndex((k) =>
+      k.startsWith("Etkinlik ve atölye kayıtları"),
+    );
+    expect(events).toBe(
+      keys.findIndex((k) => k.startsWith("Karaoke odası onay kaydı")) + 1,
+    );
+    expect(table()[events]).toEqual({
+      key: "Etkinlik ve atölye kayıtları (kayıt yaptıranın adı ve iletişim bilgisi, katılımcı sayısı, ödeme bilgisi, ön bilgilendirme ve onay yazışması)",
+      value:
+        "Kayıt ve onay yazışmaları ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Alerjen ve diyet bilgisi yazılı olarak istenmez; telefonla veya girişte bildirildiğinde ad yazılmadan katılımcı sırasıyla not alınır ve not etkinlik bitince imha edilir.",
+    });
+  });
+
+  it("keeps transaction mail as commercial correspondence (TTK m.82)", () => {
+    expect(
+      row(
+        "İletişim, talep ve şikâyet kayıtları (e-posta yazışmaları, telefon notları, sosyal medya mesajları)",
+      ).value,
+    ).toBe(
+      "Bir sipariş, iade, rezervasyon, fatura veya ödemeyle ilgili e-posta ve yazılı mesajlar ticari yazışma olarak, yazışmanın yapıldığı takvim yılının bitiminden itibaren 10 yıl saklanır (6102 sayılı Türk Ticaret Kanunu m.82) ve takip eden ilk periyodik imha döneminde silinir. Bir işlemle ilgisi olmayan genel soru ve mesajlar ile telefon notları talebin sonuçlandırılmasından itibaren 3 yıl saklanır; talep bir uyuşmazlığa konu olursa uyuşmazlık kesin olarak sonuçlanana kadar saklanır.",
+    );
+  });
+
+  it("drops the sentences that said no period was set", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "kendiliğinden silme veya anonimleştirme süresi henüz belirlenmemiştir",
+      "kendiliğinden işleyen bir silme düzeni henüz tanımlı değildir",
+      "Talebin sonuçlandırılmasından itibaren 3 yıl; talebin bir sipariş uyuşmazlığına konu olması hâlinde ilgili sipariş kaydının saklama süresine tabidir.",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+  });
+});
+
+describe("legal content - the till stamps only the member's own code (21 Ekim 2026)", () => {
+  // Decision ASK-LOYALTY (operator, 18 Ekim 2026): no stamp by a typed
+  // e-mail address; a stamp the till missed is corrected by a manager at the
+  // member's request (src/app/admin/kasa/actions.ts,
+  // src/app/admin/musteriler/[email]/actions.ts). LEGAL-REDLINES §28.
+  const text = (slug: string) => JSON.stringify(findLegalDoc(slug));
+
+  it("says so in the privacy notice, in the decided words", () => {
+    const privacy = text("gizlilik-politikasi");
+    expect(privacy).toContain(
+      "Kasada damga yalnızca uygulamanızın gösterdiği kasa koduyla eklenir; kod okunamazsa personel kodun 8 karakterini elle girer, e-posta adresinizle damga eklenmez. Kasada eksik işlenen bir damga, üyelik e-posta adresinizden ilettiğiniz talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır.",
+    );
+    expect(privacy).toContain(
+      "Kasada damga eklenirken yetkili personele adınız, maskelenmiş e-posta adresiniz ve kart durumunuz gösterilir.",
+    );
+    expect(privacy).toContain(
+      "kasada personelin uygulamanızdaki kasa kodunu okutarak ya da elle girerek eklediği damga kayıtları",
+    );
+  });
+
+  it("says so in the KVKK notice, in the decided words", () => {
+    const kvkk = text("kvkk-aydinlatma-metni");
+    expect(kvkk).toContain(
+      "Kod okunamazsa personel kodun 8 karakterini elle girer; e-posta adresinizle damga eklenmez.",
+    );
+    expect(kvkk).toContain(
+      "kafede kasada, uygulamanın gösterdiği kasa kodu okutularak ya da girilerek eklenen damga kayıtları.",
+    );
+  });
+
+  it("says so in the contracts that described the till", () => {
+    expect(text("uyelik-sozlesmesi")).toContain(
+      "personel kodu okur ya da kod okunamazsa kodun 8 karakterini elle girer; Üye'nin e-posta adresiyle damga eklenmez.",
+    );
+    const program = text("odul-programi");
+    expect(program).toContain(
+      "Kod okunamazsa personel kodun 8 karakterini elle girer; Katılımcı'nın e-posta adresiyle damga eklenmez.",
+    );
+    expect(program).toContain(
+      "Kasada eksik işlenen bir damga, Katılımcı'nın üyelik e-posta adresinden ilettiği talep üzerine yetkili yönetici tarafından düzeltilebilir; düzeltme Damga Defteri'ne yazılır.",
+    );
+    expect(text("mobil-uygulama-kosullari")).toContain(
+      "Üye'nin e-posta adresiyle damga eklenmez.",
+    );
+    expect(text("kafe-hizmet-kosullari")).toContain(
+      "doğrulama yalnızca uygulamada gösterdiğiniz kasa koduyla yapılır.",
+    );
+  });
+
+  it("no document offers a stamp by e-mail address any more", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "e-posta adresi girilerek",
+      "e-posta adresinizi girerek",
+      "e-posta adresiniz girilerek",
+      "elle yazılmışsa tam adres",
+      "e-posta ile ekleme yolunda",
+      "e-posta adresini seçerek",
+      "e-posta adresiniz seçilerek",
+      "kasa kodu veya üyelik e-posta adresiniz üzerinden",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+  });
+});
+
+describe("legal content - review of PR #196 (21 Ekim 2026)", () => {
+  // R1: the policy said automatic destruction left no record; every applied
+  // run now writes one (src/lib/retention.ts). R2, R3: the correction
+  // paragraph's place and its words. LEGAL-REDLINES §27.2, §28.2.
+  const doc = (slug: string) => findLegalDoc(slug)!;
+  const text = (slug: string) => JSON.stringify(doc(slug));
+
+  it("says the automatic destruction leaves a record (R1)", () => {
+    const policy = text("veri-saklama-ve-imha-politikasi");
+    for (const stale of [
+      "sistem tarafından otomatik yürütülen imhalar için ayrı bir kayıt oluşturulmaz",
+      "otomatik görevle silinmesi ve üyenin kendi hesabını kapatması gibi sistem tarafından yürütülen işlemler için ayrı bir imha kaydı oluşturulmaz",
+    ]) {
+      expect(policy, stale).not.toContain(stale);
+    }
+    expect(policy).not.toContain("ayrı bir kayıt oluşturulmaz");
+    expect(policy).toContain(
+      "Sistem tarafından otomatik yürütülen her periyodik imha çalışması da, kişisel veri içermeyen bir kayıt olarak değiştirilemez olay kaydına yazılır ve 10 yıl saklanır; bu kayıt çalışmanın tarih ve saatini, her kural için veri kategorisini, saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını gösterir.",
+    );
+    const s17 = sectionOf(
+      "veri-saklama-ve-imha-politikasi",
+      "17. İmha Kayıtlarının Tutulması, Loglanması ve Denetimi",
+    );
+    expect(s17.paragraphs?.[0]).toContain(
+      "Saklama süresi dolan kayıtların otomatik görevle silinmesi veya alanlarının boşaltılması da kayıt altına alınır: uygulanan her periyodik imha çalışması için sistem, çalışmanın tarih ve saatini, her kuralın veri kategorisini ve saklama süresi sınırını, eşleşen ve imha edilen kayıt sayısını içeren, kişisel veri taşımayan bir kaydı değiştirilemez olay kaydına yazar; bu kayıt on yıl saklanır. Üyenin kendi hesabını kapatması için ayrı bir imha kaydı oluşturulmaz;",
+    );
+    expect(s17.bullets?.[0]).toMatch(
+      /Otomatik imhalarda işlemi gerçekleştiren sistemdir; imha gerekçesi \(saklama süresinin dolması\) ve yöntem \(silme veya alanların boşaltılması\) ilgili kuralın bu Politikadaki tanımından anlaşılır, onay ise dönem raporunun onaylanmasıyla verilir\.$/,
+    );
+  });
+
+  it("puts the member's correction after the reversal's two paragraphs (R2)", () => {
+    const s14 = doc("odul-programi").sections.find((s) =>
+      s.heading.startsWith("14. "),
+    )!;
+    const at = (start: string) =>
+      s14.paragraphs!.findIndex((p) => p.startsWith(start));
+    expect(at("Kasada yanlışlıkla eklenen bir damga")).toBe(0);
+    expect(at("Düzeltme, Katılımcı'nın kullanılabilir damgası")).toBe(1);
+    expect(at("Kasada eksik işlenen bir damga")).toBe(2);
+  });
+
+  it("does not promise a member-facing ledger (R3)", () => {
+    const all = JSON.stringify(LEGAL_DOCS);
+    for (const stale of [
+      "düzeltme damga hareketlerinizde görünür",
+      "düzeltme damga hareketlerinde görünür",
+      "düzeltme Damga Defteri'nde görünür",
+    ]) {
+      expect(all, stale).not.toContain(stale);
+    }
+    const yours =
+      "düzeltme damga hareketlerinize kayıt olarak işlenir ve talebiniz üzerine iletilen tarihli dökümde yer alır.";
+    expect(text("gizlilik-politikasi")).toContain(yours);
+    expect(text("kafe-hizmet-kosullari")).toContain(yours);
+    expect(text("uyelik-sozlesmesi")).toContain(
+      "düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır.",
+    );
+  });
+});

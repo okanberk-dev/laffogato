@@ -46,7 +46,12 @@ import {
 
 const AT_MAIN = "admin-main";
 
-const anyDialogOpen = () => document.querySelector("dialog[open]") !== null;
+// A native <dialog>, or a React Aria pop-over (the date widgets' calendar is
+// a role="dialog" drawn in the panel's portal node): no single key then.
+const anyDialogOpen = () =>
+  document.querySelector(
+    "dialog[open], [data-admin-portal] [role='dialog']",
+  ) !== null;
 
 function shown(el: Element | null): el is HTMLElement {
   return el instanceof HTMLElement && el.getClientRects().length > 0;

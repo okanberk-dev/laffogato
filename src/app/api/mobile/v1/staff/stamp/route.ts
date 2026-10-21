@@ -26,20 +26,21 @@ const MSG = {
   notStaff: "Bu hesabın kasa yetkisi yok. Yetkiyi panelden yönetici verir.",
   rateLimited: (s: number) =>
     `Çok fazla bulunamayan kod okuttun. ${s} saniye sonra tekrar dene.`,
-  // The till's wording says "ya da e-posta ile ara"; the app has no e-mail
-  // path, so it points the barista at the one thing they can do.
+  // The app's own wording since §21 shipped (the till's sentence differs);
+  // unchanged, so the barista's screen reads as it always has.
   notFound: "Kod bulunamadı. Üyeden kartını yeniden açmasını iste.",
 } as const;
 
 /**
  * The till's refusals, as HTTP. The codes are the ones §17 already lists for
  * the panel till; `self_stamp` is the one new code (with `not_staff`).
- * `invalid_email` cannot occur - the body has no e-mail path - but the map is
- * total so a new refusal in `redeemCounterToken` is a type error here.
+ * `email_refused` cannot occur - the body schema takes only `token` and
+ * `code`, so an e-mail is a 400 `invalid_request` before this runs - but the
+ * map is total so a new refusal in `redeemCounterToken` is a type error here.
  */
 const STATUS: Record<CounterRedeemError, number> = {
   invalid_stamps: 400,
-  invalid_email: 400,
+  email_refused: 400,
   not_found: 404,
   expired: 409,
   already_used: 409,
