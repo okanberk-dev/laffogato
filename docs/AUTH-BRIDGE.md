@@ -70,6 +70,14 @@ yanlışsa öbürüne geçmez: tanımlı olan anahtar kullanılır, reddedilirse
 (`skipped`, günlükte iki adı da söyleyen neden). Eski anahtar Supabase
 panelinden kapatıldıktan sonra Vercel'den silinebilir.
 
+Bir anahtar yalnız boşluksuz yazdırılabilir ASCII olabilir (JWT ve `sb_…`
+anahtarları öyledir). İki satıra bölünmüş ya da içinde denetim karakteri
+olan bir değer tanımsız sayılır (günlüğe yalnız değişkenin adı bir kez
+yazılır): Node'un `fetch`'i böyle bir başlığı, değerin tamamını tekrarlayan
+bir hata mesajıyla reddeder. `admin.ts`'in günlükleri bu yüzden hiçbir
+hatanın mesajını yazmaz, yalnız sınıfını ve HTTP durumunu
+(`tests/supabase-secret-key-log.test.ts`).
+
 Ne doğrulandı ve nereden:
 
 - **Gizli anahtar JWT değildir, yalnız `apikey` başlığında gider.** Supabase

@@ -113,7 +113,7 @@ describe("keepSupabaseAwake", () => {
   it("reports a network error as failed without throwing", async () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
     await expect(keepSupabaseAwake()).resolves.toBe("failed");
-    expect(logged).toEqual(["[supabase] keep-alive threw: fetch failed"]);
+    expect(logged).toEqual(["[supabase] keep-alive threw: TypeError"]);
   });
 
   it("skips without a request when the service-role key is not configured, and says why", async () => {

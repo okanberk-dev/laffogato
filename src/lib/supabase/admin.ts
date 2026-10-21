@@ -68,14 +68,60 @@ export const NO_SECRET_KEY =
   "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set";
 
 /**
+ * What a key may hold: printable ASCII without spaces, as every Supabase key
+ * (a JWT, an `sb_...` key) does. A value pasted across two lines, or with a
+ * control character inside, cannot travel in a header: undici refuses it with
+ * an error that repeats the whole value, and supabase-js hands that message
+ * back as `error.message`.
+ */
+const KEY_SHAPE = /^[\x21-\x7E]+$/;
+
+/** Variables already reported as unusable, so each is said once. */
+const unusableReported = new Set<string>();
+
+/** One variable's key, trimmed; "" when unset, blank or unusable. */
+function keyFrom(
+  name: "SUPABASE_SECRET_KEY" | "SUPABASE_SERVICE_ROLE_KEY",
+): string {
+  const value = (process.env[name] ?? "").trim();
+  if (!value || KEY_SHAPE.test(value)) return value;
+  if (!unusableReported.has(name)) {
+    unusableReported.add(name);
+    // The name and the reason, never the value.
+    console.warn(
+      `[supabase] ${name} ignored: it holds a line break, a space or a control character no key can have`,
+    );
+  }
+  return "";
+}
+
+/**
  * The service key this deployment holds, or "" for none: the new secret key
- * first, the legacy service-role JWT when the new one is absent. The value
+ * first, the legacy service-role JWT when the new one is absent (or
+ * unusable, which counts as absent: it could never authenticate). The value
  * never leaves this module.
  */
 function serviceKey(): string {
-  const secret = (process.env.SUPABASE_SECRET_KEY ?? "").trim();
-  if (secret) return secret;
-  return (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+  return keyFrom("SUPABASE_SECRET_KEY") || keyFrom("SUPABASE_SERVICE_ROLE_KEY");
+}
+
+/**
+ * What a failure may say in a log: its class and, for an API answer, the
+ * HTTP status. Never its message: a fetch or SDK error can carry the request
+ * headers' values, the key among them.
+ */
+function failureTag(err: unknown): string {
+  if (!err || typeof err !== "object") return "error";
+  const e = err as { name?: unknown; status?: unknown };
+  const name =
+    typeof e.name === "string" && /^[A-Za-z]{1,40}$/.test(e.name)
+      ? e.name
+      : "Error";
+  const status =
+    typeof e.status === "number" && Number.isInteger(e.status)
+      ? ` HTTP ${e.status}`
+      : "";
+  return `${name}${status}`;
 }
 
 /**
@@ -179,25 +225,28 @@ export async function deleteSupabaseIdentity(
   if (!admin) return "skipped";
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const { error } = await Promise.race([
+    const answer = await Promise.race([
       admin.auth.admin.deleteUser(userId),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new Error("identity delete timed out")),
-          IDENTITY_DELETE_TIMEOUT_MS,
-        );
+      new Promise<"timeout">((resolve) => {
+        timer = setTimeout(() => resolve("timeout"), IDENTITY_DELETE_TIMEOUT_MS);
       }),
     ]).finally(() => clearTimeout(timer));
-    if (error) {
-      // PII rule: the id, never the address.
-      console.error(`[supabase] identity delete failed: ${error.message}`);
+    if (answer === "timeout") {
+      console.error(
+        `[supabase] identity delete timed out after ${IDENTITY_DELETE_TIMEOUT_MS} ms`,
+      );
+      return "failed";
+    }
+    if (answer.error) {
+      // PII rule: neither the id nor the address; key rule: not the message.
+      console.error(
+        `[supabase] identity delete failed: ${failureTag(answer.error)}`,
+      );
       return "failed";
     }
     return "deleted";
   } catch (err) {
-    console.error(
-      `[supabase] identity delete threw: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    console.error(`[supabase] identity delete threw: ${failureTag(err)}`);
     return "failed";
   }
 }
@@ -235,15 +284,14 @@ export async function updateSupabasePassword(
       password,
     });
     if (error) {
-      // PII rule: the id, never the address or the password.
-      console.error(`[supabase] password sync failed: ${error.message}`);
+      // PII rule: neither the id, the address nor the password; key rule:
+      // not the message.
+      console.error(`[supabase] password sync failed: ${failureTag(error)}`);
       return "failed";
     }
     return "updated";
   } catch (err) {
-    console.error(
-      `[supabase] password sync threw: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    console.error(`[supabase] password sync threw: ${failureTag(err)}`);
     return "failed";
   }
 }
@@ -351,9 +399,7 @@ export async function findSupabaseIdentityByEmail(
       }
     }
   } catch (err) {
-    console.error(
-      `[supabase] identity lookup threw: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    console.error(`[supabase] identity lookup threw: ${failureTag(err)}`);
     return { status: "failed" };
   }
 
@@ -403,8 +449,9 @@ export const KEEPALIVE_TIMEOUT_MS = 5_000;
  * a key Supabase stops accepting turns the owner's dashboard line amber.
  *
  * Never throws: it runs inside the daily cron beside jobs it must not take
- * down. Logs the HTTP status or the error message only, never the key, the
- * response body or anything about a member.
+ * down. Logs the HTTP status or the error's class only, never its message
+ * (it can repeat the key), the key, the response body or anything about a
+ * member.
  */
 export async function keepSupabaseAwake(): Promise<SupabaseKeepalive> {
   const key = serviceKey();
@@ -431,9 +478,7 @@ export async function keepSupabaseAwake(): Promise<SupabaseKeepalive> {
     }
     return "ok";
   } catch (err) {
-    console.error(
-      `[supabase] keep-alive threw: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    console.error(`[supabase] keep-alive threw: ${failureTag(err)}`);
     return "failed";
   }
 }
