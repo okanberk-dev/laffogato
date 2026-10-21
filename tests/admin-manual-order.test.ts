@@ -490,7 +490,9 @@ describe("ORD-M03: stock in the options", () => {
   it("caps the quantity at the stock of the chosen product or variant", () => {
     expect(formSource).toContain("max={cap}");
     expect(formSource).toContain("Math.min(cap, Number(e.target.value) || 1)");
-    expect(formSource).toContain("disabled={v.stock <= 0}");
+    // UI-16: the options are data for the combobox; an out-of-stock variant
+    // is still offered disabled.
+    expect(formSource).toContain("disabled: v.stock <= 0");
   });
 });
 
