@@ -24,7 +24,20 @@ const KARAOKE_ROOM_SLUG = "karaoke-odasi-rezervasyon";
  * override replaces this text as it replaces every coded document.
  */
 export async function karaokeLegalDocNow(): Promise<LegalDoc> {
-  const settings = await getPublicSettings();
+  return karaokeLegalDocFor(await getPublicSettings());
+}
+
+/** The settings the karaoke terms' date is worked out from. */
+export type KaraokeDocSettings = Parameters<
+  typeof effectiveKaraokeCancelPolicy
+>[0] & { karaokeCancelPolicyAt?: string };
+
+/**
+ * `karaokeLegalDocNow` for settings already read: a booking hashes the text
+ * it records (`legalConsent.textHashes`) from the same read that decides its
+ * policy and version (karaoke.ts `createReservation`).
+ */
+export function karaokeLegalDocFor(settings: KaraokeDocSettings): LegalDoc {
   const policy = effectiveKaraokeCancelPolicy(settings);
   const updatedAt = karaokePolicyVersion(
     KARAOKE_LEGAL_UPDATED,

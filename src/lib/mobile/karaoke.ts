@@ -8,15 +8,20 @@ import { getSettings } from "@/lib/admin/store";
 import { getDb, TABLES } from "@/lib/db";
 import { nextSeq } from "@/lib/db/counters";
 import { raiseDbError } from "@/lib/db/health";
+import { MAIL_BUDGET } from "@/lib/email/budget";
 import {
   sendKaraokeCancellationEmail,
   sendKaraokeConfirmationEmail,
   sendKaraokeLateRequestEmail,
   type KaraokeEmailData,
+  type MailDurableCopy,
 } from "@/lib/email/send";
 
 import { karaokePolicyVersion } from "@/lib/legal/consent-version";
+import { durableCopyWithin } from "@/lib/legal/durable-copy-time";
 import { KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
+import { karaokeConsentShown } from "@/lib/legal/store";
+import { consentTextHashes } from "@/lib/legal/version-core";
 import { SITE } from "@/lib/seo/site";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
 
@@ -455,6 +460,16 @@ export async function createReservation(
   );
   const seq = await nextSeq("krk");
   const iso = now.toISOString();
+  // The label and the text the customer confirmed, by hash, from one read
+  // of the overrides and the same settings read that decides the policy
+  // and moves the version below: one rule for the web form and the app
+  // (legalConsent.version and .textHashes, 21 Ekim 2026; review R4). Never
+  // the caller's: whatever `options.legalConsent` carries for either is
+  // replaced.
+  const shown =
+    prepay && options.legalConsent
+      ? await karaokeConsentShown(settings)
+      : null;
   // The rule this booking is made under (`policy` above) is kept with it
   // (TKHK m.4/2, MSY m.5/2): the panel changing it later changes nothing
   // here.
@@ -488,17 +503,18 @@ export async function createReservation(
     paymentRef: "",
     channel: options.channel ?? "",
     legalConsent:
-      prepay && options.legalConsent
+      options.legalConsent && shown
         ? {
             ...options.legalConsent,
             // The karaoke document is dated by the policy it is shown
             // under, so the version the customer saw moves with it
             // (karaoke-doc.ts).
             version: karaokePolicyVersion(
-              options.legalConsent.version,
+              shown.version,
               policy,
               settings.karaokeCancelPolicyAt,
             ),
+            textHashes: shown.textHashes,
           }
         : null,
     guest,
@@ -1080,6 +1096,35 @@ function karaokeMailPayload(
   return payload;
 }
 
+/**
+ * The confirmed karaoke terms, filled with the booking, for its confirmation
+ * (ASK-DURABLE): only a booking paid online confirmed them, and only one
+ * whose consent recorded the text's hash has a copy to give
+ * (src/lib/legal/durable-copy-load.ts). The loader's import and read run
+ * inside the copy's share of the budget (`MAIL_BUDGET.copy`); never a
+ * throw: the mail goes without it rather than late or not at all.
+ */
+async function confirmationCopy(
+  r: KaraokeReservation,
+  deadline: number,
+): Promise<MailDurableCopy | null> {
+  const money = paymentStatusOf(r);
+  if (money !== "paid" && money !== "refunding" && money !== "refunded") {
+    return null;
+  }
+  if (!consentTextHashes(r.legalConsent, KARAOKE_CONSENT_DOCS)) return null;
+  return durableCopyWithin(
+    `karaoke=${r.id}`,
+    async () => {
+      const { karaokeDurableCopy } = await import(
+        "@/lib/legal/durable-copy-load"
+      );
+      return karaokeDurableCopy(r);
+    },
+    Math.min(MAIL_BUDGET.copy, deadline - Date.now()),
+  );
+}
+
 /** A failed mail, logged with the address masked (KVKK). */
 function logMailFailure(r: KaraokeReservation, err: unknown): void {
   const at = r.customerEmail.indexOf("@");
@@ -1105,9 +1150,17 @@ export async function notifyReservationStatus(
   );
   if (!payload) return false;
   try {
-    return r.status === "confirmed"
-      ? await sendKaraokeConfirmationEmail(payload)
-      : await sendKaraokeCancellationEmail(payload);
+    if (r.status !== "confirmed") {
+      return await sendKaraokeCancellationEmail(payload);
+    }
+    // Awaited inside the payment return: the copy and the send share one
+    // budget (src/lib/email/budget.ts `MAIL_BUDGET.karaoke`).
+    const deadline = Date.now() + MAIL_BUDGET.karaoke;
+    return await sendKaraokeConfirmationEmail({
+      ...payload,
+      durableCopy: await confirmationCopy(r, deadline),
+      deadline,
+    });
   } catch (err) {
     logMailFailure(r, err);
     return false;

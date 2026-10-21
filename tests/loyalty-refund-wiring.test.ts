@@ -215,6 +215,8 @@ describe("the paid-order mail states the stamps the order earns", () => {
     expect(sendOrderPaidEmail).toHaveBeenCalledWith(
       expect.objectContaining({ stampsEarned: 4 }),
       "order-ord-0001-paid",
+      // The mail's time budget (src/lib/email/budget.ts).
+      { deadline: expect.any(Number) },
     );
   });
 
@@ -229,6 +231,8 @@ describe("the paid-order mail states the stamps the order earns", () => {
     expect(sendOrderPaidEmail).toHaveBeenCalledWith(
       expect.objectContaining({ stampsEarned: 0 }),
       "order-ord-0001-paid",
+      // The mail's time budget (src/lib/email/budget.ts).
+      { deadline: expect.any(Number) },
     );
   });
 

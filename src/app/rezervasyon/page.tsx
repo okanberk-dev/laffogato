@@ -11,6 +11,7 @@ import {
 } from "@/components/uye/karaoke-reservation-view";
 import { getPublicSettings } from "@/lib/admin/store";
 import { getActiveCustomer } from "@/lib/customer/auth";
+import { karaokeDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
 import { getReservation, paymentStatusOf } from "@/lib/mobile/karaoke";
 import { KARAOKE_LINK_COOKIE, karaokeLinkId } from "@/lib/mobile/karaoke-link";
 import {
@@ -85,9 +86,23 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
           : undefined) ||
         undefined;
       const self = `/rezervasyon?t=${encodeURIComponent(token)}`;
+      // The confirmed terms as a file, for a booking whose payment made them
+      // a contract and whose recorded text the route can build (ASK-DURABLE;
+      // never a link to a 404, review B); the download checks the same link
+      // again (./sozlesme/route.ts). A failing check hides the link.
+      const paymentStatus = paymentStatusOf(r);
+      const contracted =
+        paymentStatus === "paid" ||
+        paymentStatus === "refunding" ||
+        paymentStatus === "refunded";
+      const contractHref =
+        contracted &&
+        (await karaokeDurableCopyAvailable(r).catch(() => false))
+          ? `/rezervasyon/sozlesme?t=${encodeURIComponent(token)}`
+          : undefined;
       body = (
         <KaraokeReservationView
-          r={{ ...r, paymentStatus: paymentStatusOf(r) }}
+          r={{ ...r, paymentStatus }}
           now={now}
           hidden={{ t: token }}
           cancelAction={cancelKaraokeByLinkAction}
@@ -96,6 +111,7 @@ export default async function KaraokeLinkPage({ searchParams }: PageProps) {
           backHref={self}
           confirming={q.iptal === "1"}
           notice={notice}
+          contractHref={contractHref}
         />
       );
     }

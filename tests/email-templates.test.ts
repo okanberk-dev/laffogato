@@ -198,12 +198,15 @@ describe("the twenty-five templates render", () => {
     // 18 Eki 2026, and the last free moment, 19 Eki 2026): a cancelled
     // booking has nothing left to cancel. Why the köşk cancelled is the
     // cancellation's alone (ASK-OTH-3 (c)).
+    // The confirmed terms' version page is the confirmation's alone too: the
+    // copy rides with the booking's confirmation (ASK-DURABLE, 21 Eki 2026).
     const RULE_ONLY = new Set([
       "KARAOKE_IADE_KURALI",
       "KARAOKE_GEC_KURALI",
       "KARAOKE_MEKAN_SURE",
       "KARAOKE_SON_IPTAL",
       "KARAOKE_NEDEN",
+      "KARAOKE_SURUM_URL",
     ]);
     const of = (name: EmailTemplateName) =>
       fieldsOf(name)

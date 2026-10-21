@@ -6,11 +6,14 @@ import { getDb, TABLES } from "@/lib/db";
 import { publicRead, raiseDbError } from "@/lib/db/health";
 
 import { consentVersionFrom } from "./consent-version";
+import type { KaraokeDocSettings } from "./karaoke-doc";
 import {
   CHECKOUT_CONSENT_DOCS,
   KARAOKE_CONSENT_DOCS,
   KARAOKE_LEGAL_UPDATED,
+  LEGAL_UPDATED,
 } from "./meta";
+import type { ConsentTextHashes } from "./version-core";
 
 /**
  * Admin overrides for the coded legal documents. A published override with a
@@ -112,6 +115,118 @@ export async function karaokeConsentVersion(): Promise<string> {
   );
 }
 
+/** A consent's label and the hash of each text it names, from one read. */
+export interface ConsentShown {
+  version: string;
+  textHashes: ConsentTextHashes;
+}
+
+/**
+ * What a checkout consent records (`legalConsent.version` and
+ * `legalConsent.textHashes`, decision D-VERSIONS-TABLE): the label by
+ * `checkoutConsentVersion`'s rule, and the SHA-256 of each checkout document
+ * exactly as /hukuk/<slug> and the payment step show it now - the published
+ * override when one is live, else the coded text (./version-core.ts). Both
+ * checkout paths, the web action and the app's `POST /orders`, call this.
+ *
+ * One read of the overrides gives both (review R4, 21 Eki 2026): with a read
+ * for the label and another for the hashes, a publish in between recorded
+ * one text's label next to another text's hash.
+ *
+ * The label names a day; the hash names the text. A label is shared by every
+ * text published that day (the reason D-SAME-DAY existed), a hash is not, and
+ * the text behind it is stored in `legal_doc_versions` on the way (the first
+ * consent that shows a text stores it). A failure to store is logged and
+ * costs the order nothing (./consent-texts.ts `consentTexts`).
+ *
+ * The registry of contract texts is loaded only here, on demand: a public
+ * page that imports this module for an override does not load 1.5 MB of it.
+ */
+export async function checkoutConsentShown(): Promise<ConsentShown> {
+  return consentShown("checkout", CHECKOUT_CONSENT_DOCS, LEGAL_UPDATED);
+}
+
+/**
+ * The karaoke booking's label and hashes, by the same rule: the karaoke
+ * terms as the booking is shown them - a published override, else the coded
+ * text dated by the cancellation policy in `settings`, the same settings read
+ * that decides the booking's policy and moves its version (karaoke.ts
+ * `createReservation`, the one place both surfaces book through).
+ */
+export async function karaokeConsentShown(
+  settings: KaraokeDocSettings,
+): Promise<ConsentShown> {
+  return consentShown(
+    "karaoke",
+    KARAOKE_CONSENT_DOCS,
+    KARAOKE_LEGAL_UPDATED,
+    settings,
+  );
+}
+
+async function consentShown(
+  label: string,
+  slugs: readonly string[],
+  base: string,
+  settings?: KaraokeDocSettings,
+): Promise<ConsentShown> {
+  const rows = await Promise.all(
+    slugs.map((slug) => getPublishedLegalOverride(slug)),
+  );
+  const bySlug: Record<string, LegalDocOverride | null> = {};
+  slugs.forEach((slug, i) => {
+    bySlug[slug] = rows[i];
+  });
+  return {
+    version: consentVersionFrom(bySlug, slugs, base),
+    textHashes: await textHashesOrNone(label, async () => {
+      const { consentTexts } = await import("./consent-texts");
+      return consentTexts(slugs, rows, settings);
+    }),
+  };
+}
+
+/**
+ * The hashes, or `{}` when they could not be worked out (the registry's
+ * chunk did not load, the texts could not be hashed): the consent still
+ * records its version as before, the order is never refused over its copy,
+ * and a record without every hash simply has no attached copy
+ * (`consentTextHashes` in ./version-core.ts). Logged.
+ */
+async function textHashesOrNone(
+  label: string,
+  run: () => Promise<ConsentTextHashes>,
+): Promise<ConsentTextHashes> {
+  try {
+    return await run();
+  } catch (err) {
+    console.error(
+      `[legal-versions] ${label} text hashes not recorded: ${(err instanceof Error ? err.message : String(err)).slice(0, 160)}`,
+    );
+    return {};
+  }
+}
+
+/**
+ * Every document as it is shown today, stored once per hash (the daily
+ * cron): a coded text no consent reads (KVKK, the İşlem Rehberi, a footer
+ * policy) is in `legal_doc_versions` within a day of the deploy that changed
+ * it. Reads the overrides live; throws when they cannot be read or the
+ * texts cannot be stored, which the cron reports as that step's failure.
+ */
+export async function recordShownLegalVersions(): Promise<{
+  documents: number;
+  /** The hash of every text shown today: retention keeps these. */
+  hashes: string[];
+}> {
+  const overrides = await listLegalDocOverrides();
+  const { allShownVersions } = await import("./consent-texts");
+  const { recordLegalVersions } = await import("./versions");
+  const versions = await allShownVersions(overrides);
+  await recordLegalVersions(versions);
+  return { documents: versions.length, hashes: versions.map((v) => v.hash) };
+}
+
 /** Any override (published or draft) for the admin editor, or null. */
 export async function getLegalDocOverride(
   slug: string,
@@ -140,6 +255,27 @@ export async function listLegalDocOverrides(): Promise<
   return out;
 }
 
+/**
+ * The row a save writes, trimmed and capped as `upsertLegalDoc` writes it:
+ * the panel works out the text a save will show (and stores it) from this
+ * before the save, so the stored text is the one that goes live.
+ */
+export function legalDocRow(
+  slug: string,
+  input: LegalDocInput,
+  at: string,
+): LegalDocOverride {
+  return {
+    slug,
+    title: input.title.trim().slice(0, 200),
+    summary: input.summary.trim().slice(0, 600),
+    effectiveDate: input.effectiveDate.trim().slice(0, 60),
+    bodyMarkdown: input.bodyMarkdown.slice(0, 60_000),
+    isPublished: !!input.isPublished,
+    updatedAt: at,
+  };
+}
+
 /** What a save did: the row as written, and the archive row it left. */
 export interface LegalSaveResult {
   override: LegalDocOverride;
@@ -160,15 +296,7 @@ export async function upsertLegalDoc(
   input: LegalDocInput,
   { by = "" }: { by?: string } = {},
 ): Promise<LegalSaveResult> {
-  const row: LegalDocOverride = {
-    slug,
-    title: input.title.trim().slice(0, 200),
-    summary: input.summary.trim().slice(0, 600),
-    effectiveDate: input.effectiveDate.trim().slice(0, 60),
-    bodyMarkdown: input.bodyMarkdown.slice(0, 60_000),
-    isPublished: !!input.isPublished,
-    updatedAt: new Date().toISOString(),
-  };
+  const row = legalDocRow(slug, input, new Date().toISOString());
   const { data, error, status } = await getDb().rpc<string | number | null>(
     "legal_doc_save",
     {

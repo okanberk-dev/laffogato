@@ -96,6 +96,34 @@ const SECURITY_HEADERS = [
   },
 ];
 
+/**
+ * The two downloads of a confirmed contract (ASK-DURABLE): the member's
+ * order (/uye/hesap/siparislerim/<no>/sozlesme) and the karaoke booking's
+ * signed link (/rezervasyon/sozlesme). The file must never run or fetch
+ * anything even if a browser renders it, and the signed link must not leave
+ * in a Referer.
+ *
+ * The route sends these itself (src/lib/legal/durable-copy-http.ts), but a
+ * route handler's header reaches the wire only when no rule here has set the
+ * same key, and the two rules above set both. So a later rule repeats the
+ * route's values (a later rule wins a key), and vercel.json repeats this
+ * rule after its catch-all. `tests/security-headers.test.ts` keeps the three
+ * copies equal.
+ */
+const DURABLE_COPY_SOURCES = [
+  "/uye/hesap/siparislerim/:orderNo/sozlesme",
+  "/rezervasyon/sozlesme",
+];
+
+const DURABLE_COPY_HEADERS = [
+  {
+    key: "Content-Security-Policy",
+    value:
+      "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; sandbox",
+  },
+  { key: "Referrer-Policy", value: "no-referrer" },
+];
+
 const nextConfig: NextConfig = {
   // Every response said `X-Powered-By: Next.js`: a free fingerprint for
   // whoever is matching the site against a framework advisory.
@@ -132,6 +160,11 @@ const nextConfig: NextConfig = {
         source: CSP_SOURCE,
         headers: [{ key: "Content-Security-Policy", value: CSP }],
       },
+      // After the two rules above: these values replace theirs.
+      ...DURABLE_COPY_SOURCES.map((source) => ({
+        source,
+        headers: DURABLE_COPY_HEADERS,
+      })),
       {
         // Brand art and venue photos are not content-hashed, so a day in the
         // browser with a week of stale-while-revalidate - they used to be

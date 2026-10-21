@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 
+import { durableCopyResponse } from "@/lib/legal/durable-copy-http";
+
 import nextConfig from "../next.config";
 
 /**
@@ -27,6 +29,15 @@ async function headerMap() {
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
+/** The contract downloads (ASK-DURABLE): each rule's source and a path it serves. */
+const DURABLE_COPY_PATHS = [
+  [
+    "/uye/hesap/siparislerim/:orderNo/sozlesme",
+    "/uye/hesap/siparislerim/10042/sozlesme",
+  ],
+  ["/rezervasyon/sozlesme", "/rezervasyon/sozlesme"],
+] as const;
+
 /** Next's own matcher for a `source` - what decides which paths get a rule. */
 function matches(source: string, path: string): boolean {
   return !!getPathMatch(source, { strict: true, removeUnnamedParams: true })(
@@ -43,7 +54,12 @@ describe("security headers", () => {
     const csp = rules.filter((r) =>
       r.headers.some((x) => x.key === "Content-Security-Policy"),
     );
-    expect(csp.map((r) => r.source)).toEqual([CSP_SOURCE]);
+    // The site policy, then the two contract downloads replacing it with
+    // their own, narrower one (the last describe below).
+    expect(csp.map((r) => r.source)).toEqual([
+      CSP_SOURCE,
+      ...DURABLE_COPY_PATHS.map(([source]) => source),
+    ]);
     // Exactly two paths are outside it, each sending its own, narrower
     // policy: /odeme/paynkolay on every response
     // (tests/paynkolay-card-page.test.ts) and /odeme from the proxy
@@ -234,5 +250,64 @@ describe("security headers", () => {
         }
       }
     }
+  });
+
+  /**
+   * A route handler's header reaches the wire only when no rule in
+   * next.config.ts has set the same key (Next's send-response copies it
+   * "if it is not present in the outbound response"). The site rules set
+   * Content-Security-Policy and Referrer-Policy on every path, so before
+   * 21 Eki 2026 the downloads went out with the site policy (scripts
+   * allowed, no sandbox) and the signed karaoke link in a Referer. A later
+   * rule for the two paths carries the route's own values; vercel.json,
+   * which decides on Vercel, repeats it after its catch-all.
+   */
+  describe("the contract downloads keep their own headers", () => {
+    type Rule = {
+      source: string;
+      headers: Array<{ key: string; value: string }>;
+    };
+    /** Every matching rule in order, a later one winning a key. */
+    function onTheWire(rules: Rule[], path: string, match: typeof matches) {
+      const out: Record<string, string> = {};
+      for (const rule of rules) {
+        if (!match(rule.source, path)) continue;
+        for (const h of rule.headers) out[h.key.toLowerCase()] = h.value;
+      }
+      return out;
+    }
+    const route = durableCopyResponse({ filename: "x.html", html: "<p>x</p>" });
+
+    it.each(DURABLE_COPY_PATHS)(
+      "%s: next.config.ts shadows none of the route's headers",
+      async (_source, path) => {
+        const config = onTheWire(await nextConfig.headers!(), path, matches);
+        const shadowed = [...route.headers.entries()].filter(
+          ([name, value]) => name in config && config[name] !== value,
+        );
+        expect(shadowed).toEqual([]);
+        expect(config["content-security-policy"]).toContain("sandbox");
+        expect(config["referrer-policy"]).toBe("no-referrer");
+      },
+    );
+
+    it.each(DURABLE_COPY_PATHS)(
+      "%s: vercel.json says the same after its catch-all",
+      async (_source, path) => {
+        const vercel = JSON.parse(readFileSync("vercel.json", "utf8")) as {
+          headers: Rule[];
+        };
+        // vercel.json's sources are path-to-regexp too; "/(.*)" included.
+        const edge = onTheWire(vercel.headers, path, matches);
+        const shadowed = [...route.headers.entries()].filter(
+          ([name, value]) => name in edge && edge[name] !== value,
+        );
+        expect(shadowed).toEqual([]);
+        expect(edge["referrer-policy"]).toBe("no-referrer");
+        expect(edge["content-security-policy"]).toBe(
+          route.headers.get("content-security-policy"),
+        );
+      },
+    );
   });
 });
