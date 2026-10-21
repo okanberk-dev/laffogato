@@ -41,7 +41,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/admin/audit", () => ({ logAudit: vi.fn() }));
 vi.mock("@/lib/payment", () => ({ getPaymentProvider: vi.fn() }));
 vi.mock("@/lib/admin/auth", () => ({
-  ADMIN_COOKIE_NAME: "laffogato_admin_session",
+  ADMIN_COOKIE_NAME: "laffogato_panel_session",
   getAdminSession,
   readSessionFromCookieValue: (v: string | undefined) =>
     v ? signed.value : null,

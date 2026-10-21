@@ -3500,6 +3500,36 @@ talebiniz üzerine iletilen tarihli dökümde yer alır.", Üyelik'te aynı anla
 | Doğruluk ve güvenlik | 6698 s. KVKK m.4/2-b (doğru ve gerektiğinde güncel olma), m.12/1 (hukuka aykırı işlemeyi önleme, uygun güvenlik düzeyi için teknik ve idari tedbir) | Yanlış adrese yazılan damga ve üyenin bilgisi olmadan adının kullanılması önlenir; düzeltme yalnız yetkili yöneticide, gerekçesi kayıtta. |
 | Sözleşme ve veri işleme şartı | KVKK m.5/2-c | Damga işlemi sözleşmenin ifası olarak sürer; değişen yalnız tanımlamanın yolu. |
 
+## 29. Yönetici çerezleri yalnız /admin yolunda (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `fix/admin-gtm-isolation` (docs/AUDIT.md
+> §13). Teknik bir envanter düzeltmesi; avukat turu yok. `LEGAL_UPDATED`
+> değişmedi; Çerez Politikası kendi tarihini taşır (**21 Ekim 2026**).
+
+### 29.1 Neden
+
+Yönetici oturum ve iki aşamalı doğrulama çerezleri bütün siteye
+(`path=/`) yazılıyordu. Artık yalnız yönetici paneli adreslerine (`/admin`)
+gönderilirler; tarayıcının iki kopyayı ayırabilmesi için adları da değişti
+(`src/lib/admin/session-cookie.ts`). Çerez Politikası §8 envanteri çerezin
+gerçek adını taşımalı.
+
+### 29.2 Değişen satırlar
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Çerez Politikası §8, tablo anahtarı | `laffogato_admin_session` | `laffogato_panel_session` |
+| Aynı satır, "Tür" | kalıcı, HMAC ile imzalı ve httpOnly. | kalıcı, HMAC ile imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. |
+| Çerez Politikası §8, tablo anahtarı | `laffogato_admin_pending_2fa` | `laffogato_panel_2fa` |
+| Aynı satır, "Tür" | kısa ömürlü, imzalı ve httpOnly. | kısa ömürlü, imzalı ve httpOnly; yalnızca yönetici paneli adreslerine (/admin) gönderilir. |
+
+### 29.3 Operatöre
+
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile güncellenir
+  (yalnız Çerez Politikası değişti).
+- Eski adlı çerezler, yöneticinin panele ilk girişinde silinir ve oturum yeni
+  ada taşınır; kimse yeniden giriş yapmak zorunda kalmaz.
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

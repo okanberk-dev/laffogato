@@ -12,6 +12,17 @@ import { getDb, TABLES } from "@/lib/db";
 import { forgetListSearches } from "./list-search-core";
 import { clearLoginLimit, clientIp, reserveLoginAttempt } from "./rate-limit";
 import {
+  ADMIN_COOKIE_PATH,
+  ADMIN_PENDING_COOKIE,
+  ADMIN_PENDING_MAX_AGE_SECONDS,
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_MAX_AGE_SECONDS,
+  LEGACY_ADMIN_COOKIE_PATH,
+  LEGACY_ADMIN_PENDING_COOKIE,
+  LEGACY_ADMIN_SESSION_COOKIE,
+  adminCookieOptions,
+} from "./session-cookie";
+import {
   ADMIN_ROLES,
   canAccess,
   deniedPathFor,
@@ -26,10 +37,34 @@ import {
   verifyAdminPassword,
 } from "./users";
 
-const COOKIE_NAME = "laffogato_admin_session";
-const PENDING_COOKIE_NAME = "laffogato_admin_pending_2fa";
-const COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-const PENDING_MAX_AGE_SECONDS = 5 * 60;
+// Path `/admin`, not the whole origin: session-cookie.ts.
+const COOKIE_NAME = ADMIN_SESSION_COOKIE;
+const PENDING_COOKIE_NAME = ADMIN_PENDING_COOKIE;
+const COOKIE_MAX_AGE_SECONDS = ADMIN_SESSION_MAX_AGE_SECONDS;
+const PENDING_MAX_AGE_SECONDS = ADMIN_PENDING_MAX_AGE_SECONDS;
+
+const secureCookies = () => process.env.NODE_ENV === "production";
+
+type CookieJar = Awaited<ReturnType<typeof cookies>>;
+
+/** Expires a panel cookie: same name and path, or the browser keeps it. */
+function expireAdminCookie(jar: CookieJar, name: string): void {
+  jar.delete({ name, path: ADMIN_COOKIE_PATH });
+}
+
+/**
+ * Expires the whole-origin cookies of before 21 Eki 2026. The proxy does
+ * this on a page view; sign-in and sign-out do it too, because they answer a
+ * POST, where the proxy leaves the cookies to the action.
+ */
+function expireLegacyAdminCookies(jar: CookieJar): void {
+  for (const name of [
+    LEGACY_ADMIN_SESSION_COOKIE,
+    LEGACY_ADMIN_PENDING_COOKIE,
+  ]) {
+    jar.delete({ name, path: LEGACY_ADMIN_COOKIE_PATH });
+  }
+}
 
 const VALID_ROLES: AdminRole[] = ADMIN_ROLES;
 
@@ -447,13 +482,11 @@ export async function signInAdmin(
   // the 6-digit code.
   if (await has2FA(matched.email)) {
     const pending = signPendingToken(matched);
-    cookieStore.set(PENDING_COOKIE_NAME, pending, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: PENDING_MAX_AGE_SECONDS,
-    });
+    cookieStore.set(
+      PENDING_COOKIE_NAME,
+      pending,
+      adminCookieOptions(PENDING_MAX_AGE_SECONDS, secureCookies()),
+    );
     return { ok: true, needs2FA: true, role: matched.role };
   }
 
@@ -531,7 +564,7 @@ function verifyPendingToken(token: string): PendingAuthSession | null {
 
 async function setActiveSession(
   account: CurrentAccount,
-  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  cookieStore: CookieJar,
 ): Promise<void> {
   const session: SignedSession = {
     email: account.email,
@@ -539,14 +572,13 @@ async function setActiveSession(
     expiresAt: Date.now() + COOKIE_MAX_AGE_SECONDS * 1000,
     fingerprint: account.fingerprint,
   };
-  cookieStore.set(COOKIE_NAME, signToken(session), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: COOKIE_MAX_AGE_SECONDS,
-  });
-  cookieStore.delete(PENDING_COOKIE_NAME);
+  cookieStore.set(
+    COOKIE_NAME,
+    signToken(session),
+    adminCookieOptions(COOKIE_MAX_AGE_SECONDS, secureCookies()),
+  );
+  expireAdminCookie(cookieStore, PENDING_COOKIE_NAME);
+  expireLegacyAdminCookies(cookieStore);
 }
 
 export async function getPendingSession(): Promise<PendingAuthSession | null> {
@@ -639,7 +671,11 @@ export async function complete2FA(token: string): Promise<TwoFAResult> {
 
 export async function cancelPending2FA(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(PENDING_COOKIE_NAME);
+  expireAdminCookie(cookieStore, PENDING_COOKIE_NAME);
+  cookieStore.delete({
+    name: LEGACY_ADMIN_PENDING_COOKIE,
+    path: LEGACY_ADMIN_COOKIE_PATH,
+  });
 }
 
 /**
@@ -667,7 +703,11 @@ export async function requireRole(
 
 export async function signOutAdmin(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  expireAdminCookie(cookieStore, COOKIE_NAME);
+  // A session from before the panel path still rides with this POST (the
+  // proxy moves it on page views only): it goes too, or the next page view
+  // would move it back and sign the person in again.
+  expireLegacyAdminCookies(cookieStore);
   // The lists' remembered search texts go with the session: the next person
   // on a shared device does not find them under the box.
   forgetListSearches(cookieStore);

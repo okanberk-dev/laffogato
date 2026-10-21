@@ -55,7 +55,7 @@ const h = vi.hoisted(() => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "laffogato_admin_session" && h.cookie !== undefined
+      name === "laffogato_panel_session" && h.cookie !== undefined
         ? { name, value: h.cookie }
         : undefined,
     getAll: () => [],

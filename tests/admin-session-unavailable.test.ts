@@ -278,7 +278,7 @@ describe("the env account's 2FA step while the panel rows are unreadable", () =>
     const sig = createHmac("sha256", "test-secret")
       .update(payload)
       .digest("hex");
-    jar.set("laffogato_admin_pending_2fa", `${payload}|${sig}`);
+    jar.set("laffogato_panel_2fa", `${payload}|${sig}`);
     expect(await auth.getPendingSession()).toBeNull();
     const res = await auth.complete2FA("123456");
     expect(res).toMatchObject({ ok: false });

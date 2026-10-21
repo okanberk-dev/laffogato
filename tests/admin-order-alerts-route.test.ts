@@ -23,7 +23,7 @@ const getAdminSession = vi.hoisted(() =>
   }),
 );
 vi.mock("@/lib/admin/auth", () => ({
-  ADMIN_COOKIE_NAME: "laffogato_admin_session",
+  ADMIN_COOKIE_NAME: "laffogato_panel_session",
   getAdminSession,
   isAdminSessionUnavailable: (err: unknown) =>
     (err as { code?: string } | null)?.code === "ADMIN_SESSION_UNAVAILABLE",
@@ -39,7 +39,7 @@ const cookie = vi.hoisted(() => ({ value: "signed-token" }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      name === "laffogato_admin_session" ? { value: cookie.value } : undefined,
+      name === "laffogato_panel_session" ? { value: cookie.value } : undefined,
   }),
 }));
 const listOrderAlertRows = vi.hoisted(() => vi.fn());

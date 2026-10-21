@@ -446,7 +446,7 @@ describe("the cookie", () => {
     expect(gone.map((c) => c.name)).not.toContain("adm_q_campaign");
     const auth = readFileSync("src/lib/admin/auth.ts", "utf8");
     expect(auth).toMatch(
-      /cookieStore\.delete\(COOKIE_NAME\);[\s\S]{0,200}forgetListSearches\(cookieStore\)/,
+      /expireAdminCookie\(cookieStore, COOKIE_NAME\);[\s\S]{0,400}forgetListSearches\(cookieStore\)/,
     );
   });
 });
