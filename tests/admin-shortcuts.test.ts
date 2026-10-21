@@ -916,14 +916,10 @@ describe("the palette's side", () => {
     expect(list).toContain('const all = view !== "create";');
     expect(list).toContain('const search = useRecordSearch(all ? text : "");');
     expect(list).toContain("if (!query && all) {");
+    expect(list).toContain('if (all) section("go", "Git", entryItems(go));');
+    expect(list).toContain('section("create", "Oluştur", entryItems(create));');
     expect(list).toContain(
-      'if (all) section("go", "Git", entryItems(goShown));',
-    );
-    expect(list).toContain(
-      'section("create", "Oluştur", entryItems(createShown));',
-    );
-    expect(list).toContain(
-      'if (all) section("commands", "Komutlar", entryItems(commandsShown));',
+      'if (all) section("commands", "Komutlar", entryItems(commands));',
     );
     // The commands the shell answers (the sheet, since UI-9 the density
     // too) close the palette first (one dialog at a time), then go out as

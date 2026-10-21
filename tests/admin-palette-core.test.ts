@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AdminNavGroup } from "@/components/admin/admin-sidebar";
+import type { PaletteEntry } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 
 /**
@@ -84,11 +85,20 @@ const { paletteAccountKey } = await import("@/lib/admin/palette-account");
 const { SEARCH_MIN_LENGTH, ADMIN_SEARCH_PATH, searchSectionsFor } =
   await import("@/lib/admin/search-core");
 const { canAccess } = await import("@/lib/admin/roles");
+const { settingsPaletteEntries } = await import("@/app/admin/palette-settings");
+const { SETTINGS_TABS, SETTINGS_TAB_PARAM, parseSettingsTab } =
+  await import("@/app/admin/ayarlar/settings-core");
+const { APP_CONFIG_TABS, APP_CONFIG_TAB_PARAM, parseAppConfigTab } =
+  await import("@/app/admin/mobil/ayarlar/app-config-core");
 
 type Props = {
   groups: AdminNavGroup[];
   canSearch?: boolean;
-  palette?: { role: AdminRole; accountKey: string };
+  palette?: {
+    role: AdminRole;
+    accountKey: string;
+    settings?: PaletteEntry[];
+  };
 };
 
 async function shellFor(role: AdminRole, email = "x@laffogato.net") {
@@ -664,6 +674,8 @@ describe("the account key", () => {
       expect(props.palette, role).toEqual({
         role,
         accountKey: paletteAccountKey("ayse@laffogato.net"),
+        // "Ayarlar içinde" (UI-12): the role's own entries, as plain data.
+        settings: settingsPaletteEntries(role),
       });
       expect(JSON.stringify(props.palette)).not.toContain("ayse");
     }
@@ -1070,5 +1082,215 @@ describe("the trigger's server markup", () => {
       "utf8",
     );
     expect(src).toMatch(/<PaletteBoundary>\s*<Body\b[^]*?<\/PaletteBoundary>/);
+  });
+});
+
+describe("Ayarlar içinde: the settings tabs, built by the layout", () => {
+  const owner = settingsPaletteEntries("owner");
+  const hrefs = (entries: readonly PaletteEntry[]) =>
+    entries.map((e) => e.href);
+  const site = (entries: readonly PaletteEntry[]) =>
+    entries.filter((e) => e.href?.startsWith("/admin/ayarlar"));
+  const app = (entries: readonly PaletteEntry[]) =>
+    entries.filter((e) => e.href?.startsWith("/admin/mobil/ayarlar"));
+  const top = (entries: readonly PaletteEntry[], q: string) =>
+    core.rankEntries(entries, q)[0]?.label;
+
+  it("every site entry opens a tab SETTINGS_TABS has, and every tab has one", () => {
+    const opened = site(owner).map((e) => {
+      const url = new URL(e.href!, "https://laffogato.net");
+      expect(url.pathname).toBe("/admin/ayarlar");
+      return url.searchParams.get(SETTINGS_TAB_PARAM);
+    });
+    expect(opened).toEqual(SETTINGS_TABS.map((t) => t.id));
+    for (const id of opened) expect(parseSettingsTab(id)).toBe(id);
+    expect(SETTINGS_TAB_PARAM).toBe("sekme");
+    expect(owner.map((e) => e.label).slice(0, SETTINGS_TABS.length)).toEqual([
+      "Genel bilgiler",
+      "Çalışma saatleri",
+      "KDV",
+      "Kargo ücreti",
+      "Karaoke ücreti ve ön ödeme",
+      "SEO",
+      "Sipariş bildirimi e-postası",
+      "E-posta gönderen",
+    ]);
+    // The hint says which tab of the page it opens, in the page's own word.
+    expect(site(owner).map((e) => e.hint)).toEqual(
+      SETTINGS_TABS.map((t) => `Ayarlar · ${t.label}`),
+    );
+  });
+
+  it("the app's page is the first entry of its own, its other tabs follow with their ids", () => {
+    const entries = app(owner);
+    expect(entries[0]).toMatchObject({
+      label: "Uygulama ayarları",
+      href: "/admin/mobil/ayarlar",
+    });
+    const opened = entries.slice(1).map((e) => {
+      const url = new URL(e.href!, "https://laffogato.net");
+      expect(url.pathname).toBe("/admin/mobil/ayarlar");
+      return url.searchParams.get(APP_CONFIG_TAB_PARAM);
+    });
+    expect(opened).toEqual(
+      APP_CONFIG_TABS.filter((t) => t.id !== "version").map((t) => t.id),
+    );
+    for (const id of opened) expect(parseAppConfigTab(id)).toBe(id);
+    expect(entries.slice(1).map((e) => e.label)).toEqual(
+      APP_CONFIG_TABS.filter((t) => t.id !== "version").map((t) => t.label),
+    );
+    // "Bakım modu" is the app's switch, in the first tab: not the site's.
+    expect(top(owner, "bakım modu")).toBe("Uygulama ayarları");
+    expect(top(owner, "bakim")).toBe("Uygulama ayarları");
+  });
+
+  it("ids and addresses are unique, and none is a command", () => {
+    expect(new Set(owner.map((e) => e.id)).size).toBe(owner.length);
+    expect(new Set(hrefs(owner)).size).toBe(owner.length);
+    for (const e of owner) {
+      expect(e.command, e.id).toBeUndefined();
+      expect(e.id, e.id).toMatch(/^set:\/admin\//);
+    }
+    expect(owner).toHaveLength(SETTINGS_TABS.length + APP_CONFIG_TABS.length);
+  });
+
+  it("Sahip gets the site and the app, Yönetici the app only, Personel and Kasiyer nothing", () => {
+    expect(hrefs(settingsPaletteEntries("manager"))).toEqual(hrefs(app(owner)));
+    expect(site(settingsPaletteEntries("manager"))).toEqual([]);
+    expect(settingsPaletteEntries("staff")).toEqual([]);
+    expect(settingsPaletteEntries("cashier")).toEqual([]);
+    expect(settingsPaletteEntries(null)).toEqual([]);
+    expect(settingsPaletteEntries(undefined)).toEqual([]);
+  });
+
+  it("the layout hands each role its own list, and the cashier no palette at all", async () => {
+    const owned = (await shellFor("owner")).palette?.settings;
+    expect(owned).toEqual(settingsPaletteEntries("owner"));
+    expect(hrefs(owned ?? [])).toContain("/admin/ayarlar?sekme=shipping");
+
+    const manager = (await shellFor("manager")).palette?.settings ?? [];
+    expect(manager.length).toBeGreaterThan(0);
+    expect(hrefs(manager).some((h) => h?.startsWith("/admin/ayarlar"))).toBe(
+      false,
+    );
+    expect(hrefs(manager)).toContain("/admin/mobil/ayarlar");
+
+    expect((await shellFor("staff")).palette?.settings).toEqual([]);
+    const cashier = await shellFor("cashier");
+    expect(cashier.palette).toBeUndefined();
+    expect(JSON.stringify(cashier)).not.toContain("Kargo ücreti");
+  });
+
+  it("each page asks for the section its entries are gated by", () => {
+    for (const [file, section] of [
+      ["src/app/admin/ayarlar/page.tsx", "settings"],
+      ["src/app/admin/mobil/ayarlar/page.tsx", "mobileApp"],
+    ] as const) {
+      expect(readFileSync(file, "utf8"), file).toContain(
+        `requireRole("${section}")`,
+      );
+    }
+    for (const role of ROLES) {
+      const entries = settingsPaletteEntries(role);
+      expect(site(entries).length > 0, role).toBe(canAccess("settings", role));
+      expect(app(entries).length > 0, role).toBe(canAccess("mobileApp", role));
+    }
+  });
+
+  it("finds the settings by what the operator types, marks or not", () => {
+    expect(top(owner, "kargo")).toBe("Kargo ücreti");
+    expect(top(owner, "KARGO ÜCRETİ")).toBe("Kargo ücreti");
+    expect(top(owner, "kdv")).toBe("KDV");
+    expect(top(owner, "KDV")).toBe("KDV");
+    expect(top(owner, "calisma saatleri")).toBe("Çalışma saatleri");
+    expect(top(owner, "çalışma saatleri")).toBe("Çalışma saatleri");
+    expect(top(owner, "karaoke ucreti")).toBe("Karaoke ücreti ve ön ödeme");
+    expect(top(owner, "on odeme")).toBe("Karaoke ücreti ve ön ödeme");
+    expect(top(owner, "siparis bildirimi")).toBe("Sipariş bildirimi e-postası");
+    expect(top(owner, "e-posta gonderen")).toBe("E-posta gönderen");
+    expect(top(owner, "gonderen")).toBe("E-posta gönderen");
+    expect(top(owner, "seo")).toBe("SEO");
+    expect(top(owner, "vergi")).toBe("KDV");
+    expect(top(owner, "mağaza durumu")).toBe("Genel bilgiler");
+    expect(top(owner, "damga hedefi")).toBe("Sadakat");
+    expect(top(owner, "app store")).toBe("Mağaza ve bağlantılar");
+    expect(core.rankEntries(owner, "zzzz-yok")).toEqual([]);
+    // The manager is offered the app's settings and no site setting.
+    const manager = settingsPaletteEntries("manager");
+    expect(top(manager, "kargo")).toBeUndefined();
+    expect(top(manager, "kdv")).toBeUndefined();
+    expect(top(manager, "bakım modu")).toBe("Uygulama ayarları");
+    expect(top(manager, "mutlu saat")).toBe("Mutlu saatler");
+  });
+
+  it("the list draws them as they come: after Oluştur, before Kayıtlar, no code of their own", async () => {
+    const src = readFileSync(
+      "src/components/admin/palette/palette.tsx",
+      "utf8",
+    );
+    expect(src).toContain(
+      'if (all) section("settings", "Ayarlar içinde", entryItems(settings));',
+    );
+    expect(src.indexOf('section("create"')).toBeLessThan(
+      src.indexOf('section("settings"'),
+    );
+    expect(src.indexOf('section("settings"')).toBeLessThan(
+      src.indexOf("for (const g of hitGroups)"),
+    );
+    // The list's chunk is at its 45 KB: the builder, the tab lists and the
+    // settings forms stay on the server, only their result arrives.
+    for (const file of PALETTE_FILES) {
+      const reached = reach(file);
+      expect(reached, file).not.toContain("src/app/admin/palette-settings.ts");
+      expect(reached, file).not.toContain(
+        "src/app/admin/ayarlar/settings-core.ts",
+      );
+      expect(reached, file).not.toContain(
+        "src/app/admin/mobil/ayarlar/app-config-core.ts",
+      );
+    }
+    // The layout is the one that builds it.
+    expect(readFileSync("src/app/admin/layout.tsx", "utf8")).toContain(
+      "settings: settingsPaletteEntries(session.role)",
+    );
+
+    // Drawn for real: the headings come in the design's order, the settings
+    // rows are links of the list like any other, and an empty query keeps
+    // the whole list.
+    const { Palette } = await import("@/components/admin/palette/palette");
+    const html = (view: "all" | "create") =>
+      renderToStaticMarkup(
+        createElement(Palette, {
+          groups: NAV.owner,
+          settings: owner,
+          role: "owner",
+          accountKey: A,
+          pathname: "/admin",
+          view,
+          close: () => {},
+          navigate: () => {},
+        }),
+      );
+    const all = html("all");
+    const heads = [...all.matchAll(/>(Git|Oluştur|Ayarlar içinde|Komutlar)</g)];
+    expect(heads.map((m) => m[1])).toEqual([
+      "Git",
+      "Oluştur",
+      "Ayarlar içinde",
+      "Komutlar",
+    ]);
+    expect(all).toContain("Kargo ücreti");
+    expect(all).toContain("Ayarlar · Kargo");
+    // `n` opens Oluştur alone: no settings there.
+    const create = html("create");
+    expect(create).not.toContain("Ayarlar içinde");
+    expect(create).not.toContain("Kargo ücreti");
+  });
+});
+
+describe("foldLoose and decomposed input (review of #198)", () => {
+  it("a decomposed İ folds like a composed one", () => {
+    expect(core.foldLoose("I\u0307ade")).toBe(core.foldLoose("İade"));
+    expect(core.foldLoose("I\u0307ade")).toBe("iade");
   });
 });
