@@ -2977,21 +2977,136 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 | İşlem rehberi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG 29.12.2022-32058) m.7/1; Mesafeli Sözleşmeler Yönetmeliği m.5/6, m.20/1 | Ana sayfadan (site altı) ulaşılan /hukuk/islem-rehberi: sözleşmenin kurulması için teknik adımlar, giriş hatalarını görme ve düzeltme araçları, sözleşme metninin saklanıp saklanmadığı ve ne kadar erişilebildiği (sürüm ve onay anı siparişle en az 3 yıl, metin e-postayla istenir), uyuşmazlık yolları (hakem heyeti, zorunlu arabuluculuk, TÜBİS). |
 | Meslek odası | Aynı yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a | Oda ve davranış kuralları satırı Şirket Bilgileri'nde, değer belgeden gelene kadar basılmaz (kural 13: yasal kimlik uydurulmaz). |
 
-## 25. Y11 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (21 Ekim 2026)
+## 25. Y11 - Onaylanan metnin kalıcı kopyası: her gösterilen sürüm saklanır, onay e-postası doldurulmuş metni ek olarak taşır (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-durable-copy`. Operatör kararı
+> (18 Ekim 2026): avukat turu yok, karar birincil kaynaklarla verildi
+> (ASK-DURABLE, ASK-OTH-2, D-VERSIONS-TABLE, D-ISLEM-DURABLE). Yalnız İşlem
+> Rehberi'nin metni değişti; tarihi **21 Ekim 2026** (§25.4). ÖBF, MSS ve
+> karaoke sözleşmesi değişmedi: `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+> 20 Ekim 2026'da kalır.
+
+### 25.1 Neden
+
+- Onay kaydı yalnız bir sürüm ETİKETİ tutuyordu ("20 Ekim 2026"). Aynı gün
+  yayımlanan iki metin (kodlu metin ve panel metni, ya da aynı gün birleşen
+  iki PR) aynı etiketi taşıyabiliyordu; hangisinin onaylandığı ispat
+  edilemezdi (D-SAME-DAY bu yüzden vardı).
+- Onay e-postası ve sipariş sayfası yalnız güncel /hukuk sayfalarına
+  bağlanıyordu ("bağlantılar belgelerin güncel metnini açar"). Onaylanan
+  metin, değiştirilmeden saklanabilecek biçimde tüketiciye verilmiyordu
+  (kalıcı veri saklayıcısı).
+
+### 25.2 Ne değişti (kod)
+
+- Gösterilen her metin (kodlu ve panel) kanonik biçimiyle SHA-256 anahtarıyla
+  `legal_doc_versions` tablosunda saklanır; tablo yalnız eklenir, satırın
+  hash'i metninkiyle tutmazsa veritabanı satırı reddeder. Onay kaydı sürüm
+  etiketinin yanına her belgenin hash'ini yazar (`legalConsent.textHashes`):
+  web ve uygulama ödemesi, karaoke rezervasyonu.
+- `odeme-onaylandi` ve `karaoke-rezervasyon` e-postaları, onaylanan
+  belgelerin o sürümünü sipariş ya da rezervasyon bilgileriyle doldurulmuş
+  tek bir HTML dosyası olarak ekler (`siparis-<NO>-on-bilgilendirme-ve-sozlesme.html`,
+  `karaoke-sozlesme-<KOD>.html`); dosya 16 px, satır içi CSS, harici kaynak ve
+  betik yok, yazdırmaya uygun.
+- Aynı sürüm `/hukuk/<slug>?surum=<16 hane>` adresinde değişmeden okunur
+  (indekslenmez). Üye sipariş sayfasından ve karaoke rezervasyonunun kişiye
+  özel bağlantısından aynı dosya indirilir.
+- Hiçbir onayın okumadığı kodlu metinler (KVKK, İşlem Rehberi, alt bilgideki
+  politikalar) deploy'dan sonraki ilk okumada değil, en geç bir gün içinde
+  günlük cron'la ya da o belgeye dokunan panel işlemiyle saklanır
+  (`docs/DATABASE.md`, "Gösterilen hukuk metinleri"). Onaylanan metinler
+  onayın kendisiyle saklanır.
+
+### 25.3 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| İşlem Rehberi §8, 1. paragraf | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar. | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| İşlem Rehberi §8, 2. paragraf, son cümle | Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz. | Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| İşlem Rehberi §8, 3. paragraf (inceleme R5) | (yoktu) | Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir. |
+| `odeme-onaylandi` e-postası (siz), belgeler satırı | Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel metnini açar): Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı | Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz: Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi (iki sürüm bağlantısı) · İptal, İade ve Cayma Hakkı (güncel metin; inceleme R9 ile geri geldi). Ek oluşturulamazsa eski satır aynen kalır. |
+| `karaoke-rezervasyon` e-postası (sen), ödenmiş rezervasyon | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Tüm koşullar. | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın ekinde. Aynı sürümü buradan da okuyabilirsin: (sürüm bağlantısı). Ek oluşturulamazsa "Tüm koşullar" bağlantısı kalır. |
+| Üye sipariş sayfası (sen), "Sözleşmeler ve onay kaydı" | (yoktu) | Siparişini verirken onayladığın belgelerin o günkü metni. Sipariş onayı e-postanın ekinde de gönderilir; ekte yoksa buradan indirebilirsin. [Belgeleri indir] (yalnız dosya oluşturulabiliyorsa; inceleme B ve R5) |
+| Üye sipariş sayfası (sen), dosya oluşturulamıyorsa (21 Ekim 2026'dan önceki sipariş ya da saklanmamış metin) | (yoktu) | Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla {{EMAIL}} adresine yaz, sana e-postayla gönderelim. |
+| Karaoke rezervasyon sayfası (imzalı bağlantı, sen) | (yoktu) | [Onayladığın sözleşmenin metnini indir] |
+
+§8'in 3. paragrafı inceleme R5'le (21 Ekim 2026) eklendi: ek, oluşturulamadığında
+e-postayı bekletmemek için düşer (`docs/EMAIL-RESEND.md`, "Ek: onaylanan
+sözleşme") ve bu PR'dan önceki onaylarda saklanmış metin yoktur; iki durumda
+da e-postayla isteme yolu açık kalır. 1. paragraf (D-ISLEM-DURABLE) kelimesi
+kelimesine aynen kaldı.
+
+§8'in 2. paragrafındaki karaoke cümlesi kararın metninde yoktu; 1. paragraf
+değişince "aynı yolla" (e-postayla isteme) karşılıksız kaldığı için, karaoke
+rezervasyonunun da aldığı eki söyleyen aynı kalıpta yazıldı. Bu PR'dan önceki
+siparişlerin onay kaydında hash yoktur: onlara ek gitmez, eski cümle (ve
+e-postayla isteme yolu) onlar için geçerli kalır.
+
+### 25.4 Sürüm
+
+- İşlem Rehberi kendi `updatedAt`'ini alır: **21 Ekim 2026**
+  (`src/lib/legal/content.ts`; `tests/legal-dates.test.ts`). #180 setin
+  tarihini 20 Ekim 2026 yaptığı için bu PR bir sonraki gün olan 21 Ekim 2026'yı
+  taşır; daha geç bir gün birleşirse tarih o güne çekilir.
+- `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi: onaylanan belgelerin
+  metni aynı.
+- **D-SAME-DAY bu PR'la bitti.** Kural (ÖBF/MSS'yi ya da karaoke sözleşmesini
+  değiştiren en fazla bir PR aynı İstanbul gününde birleşir) bir etiketin iki
+  metni taşımasını önlemek içindi. Artık her onay, gösterilen metnin hash'ini
+  etiketin yanında tutuyor ve metin saklanıyor; aynı günün etiketini taşıyan
+  iki metin hash'leriyle ayrılır. Etiket yayın gününü göstermeye devam eder.
+  Kuralın geçmişi §16.4, §17.6, §18, §24.4'te olduğu gibi kalır.
+
+### 25.5 Operatöre
+
+- Yayından sonraki ilk gerçek siparişte ödeme onayı e-postasının ekini aç
+  (Gmail ve bir kurumsal posta kutusu): dosya açılmalı, sipariş bilgileri ve
+  iki belgenin tam metni görünmeli, e-postadaki iki sürüm bağlantısı aynı
+  metni açmalı. Bazı kurumsal e-posta geçitleri HTML eki ayıklar; o durumda
+  sürüm bağlantısı ve üye sayfasındaki indirme ispat olarak kalır.
+- Bir onay itirazında (chargeback, tüketici şikâyeti) siparişin onay
+  kaydındaki `textHashes` değeri ve `/hukuk/<slug>?surum=<ilk 16 hane>`
+  sayfası, siparişte onaylanan metnin kendisidir.
+- Uygulamanın çevrimdışı hukuk kopyası (lafmobil `legal.seed.json`) İşlem
+  Rehberi'nin yeni metnini bir sonraki `npm run legal:export` ile alır.
+
+### 25.6 Bilerek değişmeyenler
+
+- ÖBF §22 ("kalıcı bağlantıları ... e-postada ALICI'ya gönderilir") ve MSS
+  §21 ("bağlantıları ... e-postada yer alır"): doğru kalıyor (e-postada
+  bağlantılar var, artık sürüm bağlantısı); ek eklendiği için yanlış olmuyor.
+  Değiştirmek onay sürümünü taşırdı.
+- Karaoke sözleşmesi §7 ("son ücretsiz iptal anı ve geç iptalde iade edilecek
+  tutar rezervasyon onay e-postanızda da yazılıdır") doğru; "ve ekindeki
+  belgede" eki yazılmadı, sözleşmenin sürümünü taşımamak için.
+- Ek kampanya (toplu) e-postalarına hiç eklenmez; yalnız tekil gönderimde.
+
+### 25.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Onaylanan metnin kalıcı veri saklayıcısıyla verilmesi | 6502 s. TKHK m.4/1 (sözleşme ve ön bilgilendirme kalıcı veri saklayıcısıyla), m.48/4; Mesafeli Sözleşmeler Yönetmeliği m.4/1-c (kalıcı veri saklayıcısı: bilgiyi değiştirilmeden saklamaya ve erişmeye imkân veren araç), m.6/1, m.5/6 (ön bilgilendirmenin ispat yükü satıcıda) | Bağlantı tek başına yetmez: doldurulmuş metin e-postanın ekinde gider, sipariş sayfasından indirilir, değişmez sürüm bağlantısı kalır (ASK-DURABLE). |
+| Kayıtların saklanması | MSY m.20/1 (3 yıl); Veri Saklama ve İmha Politikası "Mesafeli satış onay kaydı: sözleşmenin ifasından itibaren 10 yıl" | Metin, ona atıf yapan en yeni onaydan itibaren en az 11 × 366 gün saklanır (`legal-doc-versions` kuralı, `legal_doc_versions_retention`). |
+| Sözleşme metninin saklanıp saklanmadığı ve erişimi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7/1, m.8/1-d | İşlem Rehberi §8 bunu söyler (D-ISLEM-DURABLE). |
+| Kişisel veri | 6698 s. KVKK m.4/2-d | Saklanan metinler kamuya açık hukuk metinleridir, kişisel veri yoktur; ekteki sipariş bilgileri yalnız alıcının kendi e-postasına ve oturumdaki sahibine gider. |
+
+## 26. Y12 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (21 Ekim 2026)
 
 > **Durum: metin ve kod değişti.** Dal `feat/legal-karaoke-make-good-and-resale`.
 > Operatör kararı (18 Eki 2026): avukat turu yok; OP-KARAOKE-GOODWILL,
 > ASK-OTH-3-CFG, D-KAR-1-99 ve OP-KARAOKE-CFG-DECISION aşağıdaki
 > dayanaklarla uygulandı.
 
-### 25.1 Sürüm
+### 26.1 Sürüm
 
 Karaoke belgesi değişti (§8, §9): `KARAOKE_LEGAL_UPDATED` (`meta.ts`; belgenin
 `updatedAt`'i bu sabittir) yayın günü olarak **21 Ekim 2026**. 20 Ekim'i
-§24 (#180) aldı; bu PR 21 Ekim'de ya da sonra, kalıcı kopya PR'ından
-(`feat/legal-durable-copy`) hemen sonra birleşir. Birleşme günü 21 Ekim
-değilse altı yer o güne taşınır: `KARAOKE_LEGAL_UPDATED`, aşağıdaki dört
-belgenin `updatedAt`'i (`content.ts`) ve `tests/legal-dates.test.ts`.
+§24 (#180) aldı; bu PR kalıcı kopya PR'ından (#193, §25) sonra, 21 Ekim'de
+birleşir. Kalıcı kopya onaylanan metnin özetini de kaydettiği için
+D-SAME-DAY kalktı. Birleşme günü 21 Ekim değilse altı yer o güne taşınır:
+`KARAOKE_LEGAL_UPDATED`, aşağıdaki dört belgenin `updatedAt`'i
+(`content.ts`) ve `tests/legal-dates.test.ts`.
 
 Kişisel Veri Saklama ve İmha Politikası, KVKK Aydınlatma Metni, Gizlilik
 Politikası ve Ödeme Koşulları'nın metni değiştiği için kendi tarihleri de
@@ -3002,7 +3117,7 @@ PR). `KARAOKE_POLICY_APP_VERSION` null kaldı (OP-KARAOKE-CFG-DECISION):
 kuralı her karaoke ekranında sunucudan okuyan uygulama sürümü iki mağazada
 yayında değil; canlı kural 2 saat / %0.
 
-### 25.2 Değişen cümleler
+### 26.2 Değişen cümleler
 
 | Belge | Yer | Mevcut | Yeni |
 |---|---|---|---|
@@ -3023,7 +3138,7 @@ yayında değil; canlı kural 2 saat / %0.
 | E-posta, başlamadan iptal edilen telafi saati (sen) | para satırından sonra | (yok) | İşletme iptalindeki telafi cümlesi, yeniden açılan telafinin tutarı ve son günüyle: "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar ...), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (...)." |
 | E-posta, pay ve yeniden satış iadesi birlikte (sen) | para satırı | (yok; "Rezervasyonundaki geç iptal kuralına göre [tutar] kartına iade edildi" toplamı yalnız kurala bağlıyordu) | "Rezervasyonundaki geç iptal kuralına göre ve geç iptal ettiğin saat başka bir misafire satıldığı için [tutar] kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
 
-### 25.3 Kararlar ve kod
+### 26.3 Kararlar ve kod
 
 - **Telafi kimde doğar.** Personelin ödenmiş rezervasyonu iptalinde neden
   `ariza`, `kapanis` ya da `diger` ise, iptal anı rezervasyonun kendi son
@@ -3109,30 +3224,30 @@ yayında değil; canlı kural 2 saat / %0.
   kalır. Canlıda kural hâlâ 2 saat / %0: uygulama kilidi
   (`KARAOKE_POLICY_APP_VERSION` null) açılmadıkça başka kural kaydedilmez.
 
-### 25.4 Bilerek değişmeyenler
+### 26.4 Bilerek değişmeyenler
 
 - Ödeme Koşulları ve Hesap Silme'deki karaoke "2 saat" ve "kısmi iade
   yapılmaz" cümleleri: her rezervasyon 2 saat / %0 ile yapıldığı sürece
   doğru; uygulama kilidi açılmadan önce yeniden yazılır
   (`tests/karaoke-cancel-policy-doc.test.ts`). Ödeme Koşulları'nda bu PR
-  yalnız §14'ün banka hesabına transfer paragrafını değiştirdi (25.2).
+  yalnız §14'ün banka hesabına transfer paragrafını değiştirdi (26.2).
 - Karaoke §7: yeniden satış iadesini zaten vaat ediyordu ("iptal ettiğiniz
   saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade
   edilir"); kod şimdi bunu yapıyor.
 
-### 25.5 Hukuki dayanak
+### 26.5 Hukuki dayanak
 
 | Konu | Dayanak | Karar |
 |---|---|---|
 | Geç işletme iptalinde telafi | Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1, EK-1 (ç) (RG 17.06.2014, 29033); 6502 s. TKHK m.6/2 | Misafirin geç vazgeçmesi saatin bedeline mal oluyorsa, köşkün aynı geç vazgeçmesi de misafire benzer bir tazminat verir; yalnız aynî karşılık (saat) kullanamayan misafire boş kalacağı için para seçeneği de var. |
 | Mücbir sebep dışarıda | 6098 s. TBK m.136/1-2 | Borçlunun sorumlu tutulamayacağı imkânsızlıkta borç sona erer ve yalnız alınan edim geri verilir; doğal afet, resmî makam kararı, bölgesel elektrik ya da su kesintisinde tam iade var, telafi yok. |
 | 6 ay | 6098 s. TBK m.92/3 | Ay olarak belirlenen süre son ayın karşılık gelen gününde, o gün yoksa ayın son gününde dolar; telafi saatinin son günü böyle hesaplanır. |
-| Telafi saatinin KDV'si | 3065 s. KDV Kanunu m.5, m.27/1 | Vergiye tabi bir hizmetten karşılıksız yararlandırma hizmet sayılır, matrah emsal bedeldir: panel saatlik ücret x saati gösterir, köşk beyan eder. Para olarak ödenen telafi bir teslimin ya da hizmetin bedeli değil, sözleşmeden doğan bir tazminattır; KDV'nin konusuna girmez (KDV K. m.1/1). İkisi de mali müşavirle teyit edilir (25.6). |
+| Telafi saatinin KDV'si | 3065 s. KDV Kanunu m.5, m.27/1 | Vergiye tabi bir hizmetten karşılıksız yararlandırma hizmet sayılır, matrah emsal bedeldir: panel saatlik ücret x saati gösterir, köşk beyan eder. Para olarak ödenen telafi bir teslimin ya da hizmetin bedeli değil, sözleşmeden doğan bir tazminattır; KDV'nin konusuna girmez (KDV K. m.1/1). İkisi de mali müşavirle teyit edilir (26.6). |
 | Yeniden satılan saatin payı | 6098 s. TBK m.325/2 (kıyasen); Haksız Şartlar Yön. EK-1 (d) | Başka biçimde kullanmakla elde edilen yarar bedelden indirilir: geç iptal edilip yeniden satılan saat için tutulan pay iade edilir; her saat bir kez. |
 | Kısmi iade 14 gün | Mesafeli Sözleşmeler Yönetmeliği m.16/4 (kıyasen), TKHK m.4/2 | Tam iade iptalle POS'tan başlar; elle yapılan kısmi iade en geç 14 günde karta; ön bilgi cümlesi bunu yazar. |
 | Banka hesap bilgisi | 6698 s. KVKK m.4/2-ç, m.5/2-c, m.10; Aydınlatma Yükümlülüğü Tebliği m.4 | Telafi ödemesi için bildirilen hesap bilgisi aydınlatma metninde ve gizlilik politikasında adıyla geçer, yalnız bu ödeme için kullanılır, rezervasyon kaydına ve olay kaydına yazılmaz; saklama süresi iade için bildirilen hesap bilgisiyle aynı satırda. |
 
-### 25.6 Operatöre
+### 26.6 Operatöre
 
 - Telafi saati verdiğin ay o saati emsal bedeli üzerinden %20 KDV ile
   beyannameye al (KDV K. m.5, m.27/1); para olarak ödenen telafiyi KDV'siz

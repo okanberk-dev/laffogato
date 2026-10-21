@@ -1250,12 +1250,18 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // Sağlayıcılar Hakkında Yönetmelik m.7/1 (20 Ekim 2026): the ordering
     // steps, the input-correction tools, whether and how long the contract
     // text is kept and reachable, and the dispute routes, under an "işlem
-    // rehberi" heading reached from the home page (footer, `nav.ts`). §8 is
-    // the D-ISLEM-DURABLE paragraph word for word until the durable copy of
-    // the confirmed text ships. LEGAL-REDLINES §24.
+    // rehberi" heading reached from the home page (footer, `nav.ts`).
+    // LEGAL-REDLINES §24. 21 Ekim 2026: §8 says the durable copy that
+    // shipped (decision D-ISLEM-DURABLE: the confirmed text attached to the
+    // confirmation mail, downloadable from the order page, the same version
+    // readable from the mail's link and kept at least 11 years), and the
+    // karaoke sentence says the same of the booking. LEGAL-REDLINES §25. The
+    // checkout documents did not change, so `LEGAL_UPDATED` stays; this
+    // document carries its own day.
     slug: "islem-rehberi",
     title: "İşlem Rehberi",
     shortTitle: "İşlem Rehberi",
+    updatedAt: "21 Ekim 2026",
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden sipariş vermenin ve karaoke odası ayırtmanın adımlarını, girdiğiniz bilgileri sipariş vermeden önce nasıl görüp düzelteceğinizi, sözleşme metninin nasıl saklandığını ve ona nasıl ulaşacağınızı, faturanın size nasıl geldiğini ve uyuşmazlıkta başvuru yollarını anlatır.",
@@ -1343,8 +1349,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
         paragraphs: [
-          "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.",
-          "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz.",
+          "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+          "Bu onay kaydı Mesafeli Sözleşmeler Yönetmeliği m.20 uyarınca en az 3 yıl saklanır. İnternet sitesindeki hesabınızda, Siparişlerim bölümündeki sipariş ayrıntısında onay tarihini ve belge sürümünü görebilirsiniz. Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+          "Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.",
           "Belgelerin güncel metni her zaman {{SITE_URL}}/hukuk adresinde yayımlanır; belgeleri kendi cihazınıza kaydedebilir ya da çıktısını alabilirsiniz.",
         ],
       },
@@ -3826,7 +3833,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Ödeme Koşulları ve Sanal POS",
     shortTitle: "Ödeme Koşulları",
     // 21 Ekim 2026: §14 banka hesabına transferin üçüncü hâli, karaoke
-    // telafisinin ödenmesi (LEGAL-REDLINES §25).
+    // telafisinin ödenmesi (LEGAL-REDLINES §26).
     updatedAt: "21 Ekim 2026",
     category: "Ödeme & Güvenlik",
     summary:
@@ -4880,7 +4887,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Gizlilik",
     // 21 Ekim 2026: §3 karaoke satırı köşkün geç iptalindeki telafiyi ve
     // telafi ödemesinin banka hesap bilgisini, §5 telafiyi amaç olarak
-    // adlandırır (LEGAL-REDLINES §25).
+    // adlandırır (LEGAL-REDLINES §26).
     updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). Google etiketleri kapalı.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
@@ -5710,7 +5717,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     shortTitle: "Aydınlatma Metni",
     // 21 Ekim 2026: §6 karaoke verisi köşkün geç iptalindeki telafiyi ve
     // telafi ödemesinin banka hesap bilgisini, §7 ve §8 telafiyi amaç
-    // olarak adlandırır (LEGAL-REDLINES §25).
+    // olarak adlandırır (LEGAL-REDLINES §26).
     updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6). R12 aktarımı, Gmail kutusu ve Google etiketleri.
     // fA'L yapay zekâ yorumunun alıcısı Anthropic, PBC oldu (karar 177).
@@ -7648,7 +7655,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Kişisel Veri Saklama ve İmha Politikası",
     shortTitle: "Saklama ve İmha",
     // 21 Ekim 2026: §8 banka hesap satırı karaoke telafisi için bildirilen
-    // banka hesap bilgisini de kapsar (LEGAL-REDLINES §25).
+    // banka hesap bilgisini de kapsar (LEGAL-REDLINES §26).
     updatedAt: "21 Ekim 2026",
     // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6);
     // the karaoke row points at the karaoke terms §10 for the refund on

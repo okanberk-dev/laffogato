@@ -137,6 +137,7 @@ export function KaraokeReservationView({
   backHref,
   confirming,
   notice,
+  contractHref,
 }: {
   r: KaraokeViewReservation;
   now: Date;
@@ -150,6 +151,11 @@ export function KaraokeReservationView({
   backHref: string;
   confirming: boolean;
   notice?: KaraokeViewNotice;
+  /**
+   * The confirmed terms as a file (ASK-DURABLE), for a paid booking whose
+   * consent recorded its text: the signed-link download. Absent: no link.
+   */
+  contractHref?: string;
 }) {
   const state = karaokeStatusLine(r);
   const live = r.status !== "cancelled";
@@ -277,6 +283,15 @@ export function KaraokeReservationView({
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {contractHref ? (
+        <p className="karaoke-mine-sub">
+          {/* A file, not a page: a plain link, never prefetched. */}
+          <a href={contractHref} download>
+            Onayladığın sözleşmenin metnini indir
+          </a>
+        </p>
       ) : null}
 
       {cancellable && confirming ? (
