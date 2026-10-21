@@ -647,7 +647,13 @@ describe("the folded rail", () => {
     ]) {
       expect(menu, text).toContain(text);
     }
-    expect(bodyOf()).not.toContain("<details");
+    // The wide sidebar has the same block behind its profile row (opening
+    // upward, lafmaliyet's profile menu), not beside the rail.
+    const wide = /<details data-admin-account-menu=""[^]*?<\/details>/.exec(
+      bodyOf(),
+    )![0];
+    expect(classOf(/<section[^>]*>/.exec(wide)![0])).toContain("bottom-full");
+    expect(classOf(/<section[^>]*>/.exec(wide)![0])).not.toContain("left-full");
   });
 
   it("is one flat list for Personel too; the drawer's body (no fold control) is never the rail but has the switch", () => {

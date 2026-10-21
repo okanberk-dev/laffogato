@@ -751,10 +751,13 @@ function AccountLinks({
   icons,
   shortcuts = false,
   density = false,
+  who = true,
 }: Pick<SidebarProps, "email" | "roleLabel" | "logout"> & {
   pathname: string;
   onNavigate?: () => void;
   icons: boolean;
+  /** The e-mail and role on top; off where the opening row shows them. */
+  who?: boolean;
   /** The single-key switch, for the roles with single keys. */
   shortcuts?: boolean;
   /** The "Sıkı görünüm" switch, for the roles with the full nav. */
@@ -763,14 +766,16 @@ function AccountLinks({
   const securityActive = pathname === "/admin/2fa-kurulum";
   return (
     <>
-      <div className="mb-1.5 min-w-0 px-3">
-        <div className="truncate text-[13px] font-medium text-[var(--admin-text)]">
-          {email}
+      {who ? (
+        <div className="mb-1.5 min-w-0 px-3">
+          <div className="truncate text-[13px] font-medium text-[var(--admin-text)]">
+            {email}
+          </div>
+          <div className="text-[11px] text-[var(--admin-text-mute)]">
+            {roleLabel}
+          </div>
         </div>
-        <div className="text-[11px] text-[var(--admin-text-mute)]">
-          {roleLabel}
-        </div>
-      </div>
+      ) : null}
       <Link
         href="/admin/2fa-kurulum"
         onClick={onNavigate}
@@ -1078,35 +1083,42 @@ export function AdminSidebarBody({
       ) : (
         <>
           {!flat && <NavNote />}
-          <section
-            aria-label="Hesap"
-            className={`mx-3 mt-1 mb-3 ${LIST_BOX} p-1.5 pt-2.5`}
-          >
-            <AccountLinks
+          {/* One row, lafmaliyet's profile menu (TASARIM.md §3): the
+              block took about 300 px and left the nav a third of a laptop
+              screen. The row opens the same controls upward. */}
+          <div className="px-3 pt-1 pb-3">
+            <AccountMenu
               email={email}
               roleLabel={roleLabel}
               logout={logout}
               pathname={pathname}
+              side
               onNavigate={onNavigate}
-              icons
               shortcuts={shortcuts}
               density={density}
             />
-          </section>
+          </div>
         </>
       )}
     </div>
   );
 }
 
+/** The account's initial on a black tile (the rail's and the profile row's). */
+const AVATAR =
+  "grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--admin-primary)] text-xs font-semibold text-white";
+
 /**
  * The account menu: the cashier's in the top bar (no sidebar to hold it),
- * and the folded rail's, opened from the account's initial. A native
+ * the folded rail's, opened from the account's initial, and the wide
+ * sidebar's profile row at its foot, which opens upward. A native
  * disclosure, so it opens before hydration too. Esc, a click outside it and
  * a click on its link close it.
  */
 function AccountMenu({
   rail = false,
+  side = false,
+  onNavigate,
   shortcuts = false,
   density = false,
   ...props
@@ -1114,11 +1126,16 @@ function AccountMenu({
   pathname: string;
   /** In the folded rail: an initial that opens the block beside it. */
   rail?: boolean;
+  /** At the foot of the wide sidebar: a profile row that opens upward. */
+  side?: boolean;
+  /** Also run on a link's click (the phone's drawer closes). */
+  onNavigate?: () => void;
   shortcuts?: boolean;
   density?: boolean;
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const [open, setOpen] = useState(false);
+  const initial = props.email.trim().charAt(0).toUpperCase() || "?";
   const close = (focusSummary: boolean) => {
     const details = ref.current;
     if (!details?.open) return;
@@ -1128,9 +1145,14 @@ function AccountMenu({
 
   useEffect(() => {
     if (!open) return;
+    // A click outside closes it; focus that was inside goes back to the
+    // row (the click then moves it on to whatever it landed on).
     const onPointerDown = (e: PointerEvent) => {
       const details = ref.current;
-      if (details && !details.contains(e.target as Node)) details.open = false;
+      if (!details || details.contains(e.target as Node)) return;
+      const inside = details.contains(document.activeElement);
+      details.open = false;
+      if (inside) details.querySelector("summary")?.focus();
     };
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -1140,7 +1162,7 @@ function AccountMenu({
     <details
       ref={ref}
       data-admin-account-menu=""
-      className="relative"
+      className="group/acct relative"
       onToggle={(e) => setOpen(e.currentTarget.open)}
       onKeyDown={(e) => {
         if (e.key === "Escape") close(true);
@@ -1151,13 +1173,41 @@ function AccountMenu({
           {...railControl("Hesap")}
           className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-xl select-none hover:bg-[var(--admin-surface)] [&::-webkit-details-marker]:hidden"
         >
-          <span
-            aria-hidden="true"
-            className="grid size-7 place-items-center rounded-full bg-[var(--admin-primary)] text-xs font-semibold text-white"
-          >
-            {props.email.trim().charAt(0).toUpperCase() || "?"}
+          <span aria-hidden="true" className={AVATAR}>
+            {initial}
           </span>
           {open ? null : <RailTip>Hesap</RailTip>}
+        </summary>
+      ) : side ? (
+        <summary
+          aria-label={`Hesap: ${props.email}, ${props.roleLabel}`}
+          className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 rounded-2xl bg-[var(--admin-surface)] py-1.5 pr-2 pl-1.5 transition-colors duration-200 select-none hover:bg-[color-mix(in_srgb,var(--admin-surface)_60%,var(--admin-panel))] [&::-webkit-details-marker]:hidden"
+        >
+          <span aria-hidden="true" className={AVATAR}>
+            {initial}
+          </span>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block truncate text-[13px] font-medium text-[var(--admin-text)]">
+              {props.email}
+            </span>
+            <span className="block truncate text-[11px] text-[var(--admin-text-mute)]">
+              {props.roleLabel}
+            </span>
+          </span>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="shrink-0 text-[var(--admin-text-mute)] transition-transform duration-200 group-open/acct:rotate-180 motion-reduce:transition-none"
+          >
+            <path d="m18 15-6-6-6 6" />
+          </svg>
         </summary>
       ) : (
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden">
@@ -1181,16 +1231,22 @@ function AccountMenu({
       <section
         aria-label="Hesap"
         className={cx(
-          "absolute z-40 w-64 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.14)]",
+          "absolute z-40 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-[0_12px_40px_rgba(0,0,0,0.14)]",
           rail
-            ? "bottom-0 left-full ml-3 max-w-[calc(100vw-5rem)]"
-            : "top-full right-0 mt-2 max-w-[calc(100vw-2rem)]",
+            ? "bottom-0 left-full ml-3 w-64 max-w-[calc(100vw-5rem)]"
+            : side
+              ? "right-0 bottom-full left-0 mb-2"
+              : "top-full right-0 mt-2 w-64 max-w-[calc(100vw-2rem)]",
         )}
       >
         <AccountLinks
           {...props}
-          onNavigate={() => close(false)}
-          icons={rail}
+          onNavigate={() => {
+            close(false);
+            onNavigate?.();
+          }}
+          icons={rail || side}
+          who={!side}
           shortcuts={shortcuts}
           density={density}
         />
