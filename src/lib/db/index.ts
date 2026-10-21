@@ -8,7 +8,8 @@ import {
   isSchemaGap,
   schemaIsFresh,
 } from "./bootstrap";
-import { expireTags, tagsForWrite } from "@/lib/cache/tags";
+import { expireTags, TAG_KARAOKE, tagsForWrite } from "@/lib/cache/tags";
+import { pingPanelKaraoke } from "@/lib/panel/karaoke-ping";
 
 import { createDb, type Db, type Executor } from "./client";
 import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
@@ -231,7 +232,13 @@ export function getDb(): Db {
       // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
       // after the commit. After the statement, never before: each one
       // commits on its own, and the multi-step writes are SQL functions.
-      onWrite: (target) => expireTags(tagsForWrite(target)),
+      // A karaoke write also pings the köşk's panel, after the response
+      // (src/lib/panel/karaoke-ping.ts, docs/PANEL-KARAOKE.md).
+      onWrite: (target) => {
+        const tags = tagsForWrite(target);
+        expireTags(tags);
+        if (tags.includes(TAG_KARAOKE)) pingPanelKaraoke();
+      },
     });
   }
   return global.__laffogatoDb;

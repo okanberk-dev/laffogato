@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
@@ -8,6 +7,7 @@ import { OrdersList, type OrderListRow } from "@/components/admin/orders-list";
 import {
   BUTTON,
   FilterBar,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -131,38 +131,36 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         href: parsed.tab
           ? withParams({ durum: parsed.tab }, {}, ORDER_LIST_PATH)
           : ORDER_LIST_PATH,
-        label: "Filtreleri temizle",
+        label: "Filtreyi temizle",
         clearsSearch: true,
       }
     : parsed.narrowed
       ? { href: ORDER_LIST_PATH, label: "Tüm siparişler" }
-      : { href: "/admin/siparisler/yeni", label: "+ Yeni sipariş" };
+      : { href: "/admin/siparisler/yeni", label: "Yeni sipariş" };
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Satış"
         title="Siparişler"
-        description="Ara, süz, sırala. Bir siparişin işlemleri satırın ⋯ menüsünde; birden fazlasını seçip toplu işlem yapabilirsin."
-        action={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {/* A plain link: a prefetching <Link> would download the file. */}
-            {mayExportOrders(session.role) ? (
-              <a
-                href={withParams(sp, { sayfa: null }, `${ORDER_LIST_PATH}/csv`)}
-                download
-                className={BUTTON.ghost}
-              >
-                CSV indir
-              </a>
-            ) : null}
-            <Link
-              href="/admin/siparisler/yeni"
-              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
+        description="Ara, süz, sırala; işlem satırda ya da ⋯ menüsünde."
+        help={
+          <p>
+            Bir siparişin işlemleri satırın ⋯ menüsünde; birden fazlasını seçip
+            toplu işlem yapabilirsin.
+          </p>
+        }
+        primary={{ href: "/admin/siparisler/yeni", label: "Yeni sipariş" }}
+        menu={
+          mayExportOrders(session.role) ? (
+            // A plain link: a prefetching <Link> would download the file.
+            <a
+              href={withParams(sp, { sayfa: null }, `${ORDER_LIST_PATH}/csv`)}
+              download
+              className={BUTTON.menu}
             >
-              + Yeni sipariş
-            </Link>
-          </div>
+              CSV indir
+            </a>
+          ) : undefined
         }
       />
 
@@ -214,6 +212,6 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           label="Sipariş sayfaları"
         />
       </div>
-    </main>
+    </PageShell>
   );
 }

@@ -378,7 +378,7 @@ describe("getDb wires the hook", () => {
   it("index.ts hands every write to tagsForWrite and expireTags", () => {
     const src = readFileSync("src/lib/db/index.ts", "utf8");
     expect(src).toMatch(
-      /createDb\(createExecutor\(\), \{[\s\S]*onWrite: \(target\) => expireTags\(tagsForWrite\(target\)\)/,
+      /createDb\(createExecutor\(\), \{[\s\S]*onWrite: \(target\) => \{\s*const tags = tagsForWrite\(target\);\s*expireTags\(tags\);/,
     );
   });
 });

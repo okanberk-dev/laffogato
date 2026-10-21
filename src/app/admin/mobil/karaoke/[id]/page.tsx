@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { formatDateTime, formatTRY } from "@/components/admin/forms";
+import {
+  PageHeader,
+  formatDateTime,
+  formatTRY,
+} from "@/components/admin/forms";
 import {
   KaraokeMakeGoodHour,
   KaraokeMakeGoodPaid,
@@ -13,6 +17,7 @@ import {
 } from "@/components/admin/karaoke-panel";
 import {
   KeyValueGrid,
+  PageShell,
   Section,
   Timeline,
   type KeyValueItem,
@@ -539,7 +544,7 @@ export default async function KaraokeReservationPage({
     : [];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="detail">
       <Link
         href={back}
         className="mb-4 inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
@@ -547,24 +552,13 @@ export default async function KaraokeReservationPage({
         ← Karaoke rezervasyonları
       </Link>
 
-      <header className="mb-6 flex flex-col gap-3">
-        <div
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-          style={MONO_STYLE}
-        >
-          Karaoke · {r.id}
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-3xl">
-          {view.day}, {view.time}
-        </h1>
-        <p className="text-sm text-[var(--admin-text-soft)]">
-          {r.customerName || "İsimsiz"} · {r.guests} kişi
-        </p>
-        <KaraokeBadges view={view} />
-        <div className="flex flex-wrap items-start gap-2">
-          <KaraokeActions view={view} layout="page" />
-        </div>
-      </header>
+      <PageHeader
+        meta={<span style={MONO_STYLE}>{r.id}</span>}
+        title={`${view.day}, ${view.time}`}
+        description={`${r.customerName || "İsimsiz"} · ${r.guests} kişi`}
+        badges={<KaraokeBadges view={view} />}
+        action={<KaraokeActions view={view} layout="page" />}
+      />
 
       <div className="flex flex-col gap-6">
         <KaraokeAttentionNotices view={view} />
@@ -635,19 +629,20 @@ export default async function KaraokeReservationPage({
           <KeyValueGrid items={cancelRule} columns={3} />
         </Section>
 
-        <Section
-          title="Onaylar"
-          description="Ödemeden önce işaretlenen kutular: ön bilgilendirme, sözleşme ve aydınlatma metni."
-        >
-          {consent ? (
+        {consent ? (
+          <Section
+            title="Onaylar"
+            description="Ödemeden önce işaretlenen kutular: ön bilgilendirme, sözleşme ve aydınlatma metni."
+          >
             <KeyValueGrid items={consents} />
-          ) : (
-            <p className="text-sm text-[var(--admin-text-soft)]">
-              Onay kaydı yok: ön ödeme öncesi alınmış ya da köşkte ödenecek bir
-              rezervasyon.
-            </p>
-          )}
-        </Section>
+          </Section>
+        ) : (
+          // Nothing to list: one line, not a card of its own.
+          <p className="px-1 text-sm text-[var(--admin-text-soft)]">
+            Onay kaydı yok: ön ödeme öncesi alınmış ya da köşkte ödenecek bir
+            rezervasyon.
+          </p>
+        )}
 
         <Section title="Geçmiş" description="Yeniden eskiye, köşk saatiyle.">
           {auditRead ? null : (
@@ -662,6 +657,6 @@ export default async function KaraokeReservationPage({
           <Timeline items={karaokeHistory(r, audit, { canRefund })} />
         </Section>
       </div>
-    </main>
+    </PageShell>
   );
 }

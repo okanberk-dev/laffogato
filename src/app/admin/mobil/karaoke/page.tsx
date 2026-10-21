@@ -3,8 +3,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/admin/forms";
 import { KaraokeTable } from "@/components/admin/karaoke-panel";
 import {
+  BUTTON,
+  EmptyListActionLink,
   EmptyState,
   FilterBar,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -147,28 +150,54 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const truncated =
     rows.length >= KARAOKE_ADMIN_LIST_LIMIT && !(tab === "dikkat" && attention);
   const tabValue = KARAOKE_TABS.find((t) => t.tab === tab)?.value ?? null;
+  // The way out of an empty tab: a filtered list clears its filters and
+  // the typed search (the tab stays); an empty tab leads back to today.
+  const emptyAction =
+    Object.keys(filters).length > 0
+      ? {
+          href: tabValue
+            ? withParams(
+                { [KARAOKE_TAB_PARAM]: tabValue },
+                {},
+                KARAOKE_PANEL_PATH,
+              )
+            : KARAOKE_PANEL_PATH,
+          label: "Filtreyi temizle",
+          clearsSearch: true,
+        }
+      : tabValue
+        ? { href: KARAOKE_PANEL_PATH, label: "Bugünkü rezervasyonlar" }
+        : null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Satış · Karaoke"
         title="Karaoke"
         description={
-          // Short enough that a phone sees the first booking without
-          // scrolling (admin audit KAR-10).
+          // One line (admin audit KAR-10): a phone sees the first booking
+          // without scrolling. The rules are behind "Nasıl çalışır?"; the
+          // refund warning is also on the cancel control itself.
           settings.karaokePrepay
-            ? "Ön ödeme açık: ödenen rezervasyon kendiliğinden onaylanır. Ödenmişi iptal etmek tutarın tamamını iade eder."
+            ? "Ön ödeme açık: ödenen rezervasyon kendiliğinden onaylanır."
             : "Ön ödeme kapalı: talepler köşkte ödenir, onayla ya da iptal et."
         }
-        action={
-          canAccess("settings", session.role) ? (
-            <Link
-              href={KARAOKE_SETTINGS_HREF}
-              className="inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline underline-offset-4 hover:text-[var(--admin-primary)]"
-            >
-              Fiyat ve ön ödeme: Ayarlar → Karaoke
-            </Link>
-          ) : undefined
+        help={
+          settings.karaokePrepay ? (
+            <p>
+              Ön ödeme açıkken rezervasyon, ödemesi onaylanana kadar ödenmemiş
+              bir tutmadır; ödenmemiş olanı elle onaylayan olmaz. Ödenmişi iptal
+              etmek tutarın tamamını iade eder.
+            </p>
+          ) : (
+            <p>
+              Ön ödeme kapalıyken talepler köşkte ödenir: onayla ya da iptal et.
+            </p>
+          )
+        }
+        secondary={
+          canAccess("settings", session.role)
+            ? { href: KARAOKE_SETTINGS_HREF, label: "Karaoke ayarları" }
+            : undefined
         }
       />
 
@@ -210,6 +239,7 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
           searchParams={sp}
           pathname={KARAOKE_PANEL_PATH}
           values={filters}
+          views={{ key: "karaoke" }}
         />
       </div>
 
@@ -221,10 +251,13 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
         empty={
           <EmptyState
             title="Bu sekmede rezervasyon yok."
-            description={
-              Object.keys(filters).length > 0
-                ? "Filtreleri değiştir ya da sıfırla."
-                : undefined
+            action={
+              emptyAction ? (
+                <EmptyListActionLink
+                  action={emptyAction}
+                  className={BUTTON.ghost}
+                />
+              ) : undefined
             }
           />
         }
@@ -264,6 +297,6 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
           </p>
         ) : null}
       </div>
-    </main>
+    </PageShell>
   );
 }

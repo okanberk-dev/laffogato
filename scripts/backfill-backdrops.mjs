@@ -104,7 +104,23 @@ async function loadModules() {
           }));
           b.onLoad({ filter: /^cache-tags$/, namespace: "stub" }, () => ({
             contents:
-              "export const tagsForWrite = () => [];\nexport const expireTags = () => {};",
+              'export const tagsForWrite = () => [];\nexport const expireTags = () => {};\nexport const TAG_KARAOKE = "live:karaoke";',
+          }));
+        },
+      },
+      {
+        // The same write hook pings the köşk's panel after a karaoke write
+        // (src/lib/panel/karaoke-ping.ts, `next/server`'s `after()`). This
+        // script writes no booking, and a bundled `next/server` does not
+        // even load as an ES module (it reads `__dirname`).
+        name: "panel-ping-stub",
+        setup(b) {
+          b.onResolve({ filter: /^@\/lib\/panel\/karaoke-ping$/ }, () => ({
+            path: "panel-ping",
+            namespace: "stub",
+          }));
+          b.onLoad({ filter: /^panel-ping$/, namespace: "stub" }, () => ({
+            contents: "export const pingPanelKaraoke = () => {};",
           }));
         },
       },

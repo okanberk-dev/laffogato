@@ -1,9 +1,7 @@
-import Link from "next/link";
-
 import { PageHeader } from "@/components/admin/forms";
 import { MenuFoodInfoStatus } from "@/components/admin/menu-food-info-status";
 import { MenuList } from "@/components/admin/menu-list";
-import { BUTTON, FilterBar, StatusTabs } from "@/components/admin/ui";
+import { FilterBar, PageShell, StatusTabs } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { parseFilters } from "@/lib/admin/list-params";
 import { listSearchView } from "@/lib/admin/list-search";
@@ -62,19 +60,18 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
   const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Katalog · Kafe menüsü"
-        title="Kafe Menüsü"
-        description="Basılı menünün tamamı - matcha bar, espresso, buzlu kahveler, soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin."
-        action={
-          <Link
-            href={`${MENU_PATH}/yeni`}
-            className={`${BUTTON.primary} w-full sm:w-auto`}
-          >
-            + Yeni menü kalemi
-          </Link>
+        title="Kafe menüsü"
+        description="Kafede satılan içecek ve yiyecekler, fiyatları ve görünürlükleri."
+        help={
+          <p>
+            Basılı menünün tamamı - matcha bar, espresso, buzlu kahveler,
+            soğuk/sıcak içecekler, frappe, smoothie, frozen, ice tea, tatlılar
+            ve atıştırmalıklar. Birden fazla seçerek toplu işlem yapabilirsin.
+          </p>
         }
+        primary={{ href: `${MENU_PATH}/yeni`, label: "Yeni menü kalemi" }}
       />
 
       <MenuFoodInfoStatus
@@ -120,18 +117,18 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
         }
         emptyAction={
           items.length === 0
-            ? { href: `${MENU_PATH}/yeni`, label: "+ Yeni menü kalemi" }
+            ? { href: `${MENU_PATH}/yeni`, label: "Yeni menü kalemi" }
             : filtered
               ? {
                   href: tabValue
                     ? `${MENU_PATH}?${MENU_TAB_PARAM}=${tabValue}`
                     : MENU_PATH,
-                  label: "Filtreleri temizle",
+                  label: "Filtreyi temizle",
                   clearsSearch: true,
                 }
               : null
         }
       />
-    </main>
+    </PageShell>
   );
 }

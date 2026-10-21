@@ -361,7 +361,10 @@ describe("the list", () => {
     // Table cell and phone card both carry it (it showed from 1280 px only).
     expect(page.match(/>krk-00077</g)?.length ?? 0).toBeGreaterThanOrEqual(2);
     expect(page).toContain('href="/admin/ayarlar?sekme=karaoke"');
-    expect(page).toContain("Satış · Karaoke");
+    // The nav group is not repeated as an eyebrow (copy rule 3); the link to
+    // Ayarlar reads as a button.
+    expect(page).not.toContain("Satış · Karaoke");
+    expect(page).toContain("Karaoke ayarları");
     expect(page).toContain("Köşkte ödeme");
   });
 

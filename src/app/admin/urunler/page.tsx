@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
 import { ProductsList } from "@/components/admin/products-list";
 import {
-  BUTTON,
+  ActionMenuLink,
   FilterBar,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -78,26 +78,21 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Katalog · Mağaza ürünleri"
         title="Ürünler"
-        description="Online mağazada satılan ürünler. Yenisini 5 adımlı sihirbazla ekle, çok ürünü CSV ile içe aktar. Birden fazlasını seçince toplu işlem yaparsın."
-        action={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              href={`${PRODUCTS_PATH}/ice-aktar`}
-              className={`${BUTTON.ghost} w-full sm:w-auto`}
-            >
-              CSV ile içe aktar
-            </Link>
-            <Link
-              href={`${PRODUCTS_PATH}/yeni`}
-              className={`${BUTTON.primary} w-full sm:w-auto`}
-            >
-              + Yeni ürün
-            </Link>
-          </div>
+        description="Online mağazada satılan ürünler."
+        help={
+          <p>
+            Yenisini 5 adımlı sihirbazla ekle, çok ürünü CSV ile içe aktar.
+            Birden fazlasını seçince toplu işlem yaparsın.
+          </p>
+        }
+        primary={{ href: `${PRODUCTS_PATH}/yeni`, label: "Yeni ürün" }}
+        menu={
+          <ActionMenuLink href={`${PRODUCTS_PATH}/ice-aktar`}>
+            CSV ile içe aktar
+          </ActionMenuLink>
         }
       />
 
@@ -141,13 +136,13 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         }
         emptyAction={
           products.length === 0
-            ? { href: `${PRODUCTS_PATH}/yeni`, label: "+ Yeni ürün" }
+            ? { href: `${PRODUCTS_PATH}/yeni`, label: "Yeni ürün" }
             : filtered
               ? {
                   href: tabValue
                     ? `${PRODUCTS_PATH}?${PRODUCT_TAB_PARAM}=${tabValue}`
                     : PRODUCTS_PATH,
-                  label: "Filtreleri temizle",
+                  label: "Filtreyi temizle",
                   clearsSearch: true,
                 }
               : null
@@ -163,6 +158,6 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           pathname={PRODUCTS_PATH}
         />
       ) : null}
-    </main>
+    </PageShell>
   );
 }

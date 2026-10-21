@@ -3,11 +3,15 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { formatDateTime, formatTRY } from "@/components/admin/forms";
+import {
+  PageHeader,
+  formatDateTime,
+  formatTRY,
+} from "@/components/admin/forms";
 import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderHeaderActions } from "@/components/admin/order-actions-ui";
 import { OrderDetail } from "@/components/admin/order-detail";
-import { Badge, OrderStatusBadge } from "@/components/admin/ui";
+import { Badge, OrderStatusBadge, PageShell } from "@/components/admin/ui";
 import { listOrderAuditLogs } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -117,7 +121,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     }));
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="detail">
       <div className="mb-4 print:hidden">
         <Link
           href="/admin/siparisler"
@@ -127,35 +131,28 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         </Link>
       </div>
 
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4 print:hidden">
-        <div className="min-w-0">
-          <div
-            className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-            style={{ fontFamily: "var(--mono), monospace" }}
-          >
-            Sipariş · {formatDateTime(order.createdAt)}
-          </div>
-          <h1 className="text-2xl font-semibold text-[var(--admin-text)] sm:text-3xl">
-            #{order.orderNo}{" "}
-            <span className="text-base font-normal text-[var(--admin-text-soft)]">
-              {order.customerName}
-            </span>
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+      <PageHeader
+        className="print:hidden"
+        meta={<span>Sipariş · {formatDateTime(order.createdAt)}</span>}
+        title={`#${order.orderNo} ${order.customerName}`}
+        badges={
+          <>
             <OrderStatusBadge order={order} className="px-3 py-1" />
             <Badge tone={payment.tone}>{payment.label}</Badge>
             <OrderChannelBadges order={order} />
             {order.source === "manual" ? <Badge>Panelden</Badge> : null}
-          </div>
-        </div>
-        <OrderHeaderActions
-          order={orderForClient(order)}
-          money={money}
-          actions={actions}
-          refundToken={randomUUID()}
-          mayRefund={canAccess("refunds", session.role)}
-        />
-      </header>
+          </>
+        }
+        action={
+          <OrderHeaderActions
+            order={orderForClient(order)}
+            money={money}
+            actions={actions}
+            refundToken={randomUUID()}
+            mayRefund={canAccess("refunds", session.role)}
+          />
+        }
+      />
 
       {attention ? (
         <div
@@ -192,6 +189,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         couponSource={couponRead.rows[0] ?? null}
         couponUnread={couponRead.failed}
       />
-    </main>
+    </PageShell>
   );
 }

@@ -9,9 +9,11 @@ import {
   Badge,
   BUTTON,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   FilterBar,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -66,15 +68,6 @@ function Usage({ promo }: { promo: AdminPromo }) {
   );
 }
 
-const NEW_CODE = (
-  <Link
-    href={`${PROMOS_PATH}/yeni`}
-    className={`${BUTTON.primary} w-full sm:w-auto`}
-  >
-    + Yeni kod
-  </Link>
-);
-
 /**
  * Promo codes, Filament style (admin audit PEO-24): tabs by where a code
  * stands at the cart (Aktif, Pasif, Süresi dolmuş, Limit doldu) with
@@ -105,19 +98,28 @@ export default async function PromoCodesPage({ searchParams }: PageProps) {
   const tabValue = PROMO_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Pazarlama"
-        title="Promosyon Kodları"
-        description="Sepette uygulanan indirim kodları. Yüzde veya sabit tutar, minimum sepet, kullanım limiti ve son geçerlilik desteklenir."
-        action={NEW_CODE}
+        title="Promosyonlar"
+        description="Sepette uygulanan indirim kodları."
+        help={
+          <p>
+            Yüzde veya sabit tutar, minimum sepet, kullanım limiti ve son
+            geçerlilik desteklenir.
+          </p>
+        }
+        primary={{ href: `${PROMOS_PATH}/yeni`, label: "Yeni kod" }}
       />
 
       {promos.length === 0 ? (
         <EmptyState
           title="Henüz promosyon kodu yok."
           description="İlk kodu ekle; müşteri onu sepette yazar."
-          action={NEW_CODE}
+          action={
+            <Link href={`${PROMOS_PATH}/yeni`} className={BUTTON.ghost}>
+              Yeni kod
+            </Link>
+          }
         />
       ) : (
         <>
@@ -153,8 +155,20 @@ export default async function PromoCodesPage({ searchParams }: PageProps) {
             empty={
               <EmptyState
                 title="Bu görünümde kod yok."
-                description={
-                  filters.q ? "Aramayı değiştir ya da sıfırla." : undefined
+                action={
+                  Object.keys(filters).length > 0 ? (
+                    // The search too: it is not in the address.
+                    <EmptyListActionLink
+                      action={{
+                        href: tabValue
+                          ? `${PROMOS_PATH}?${PROMO_TAB_PARAM}=${tabValue}`
+                          : PROMOS_PATH,
+                        label: "Filtreyi temizle",
+                        clearsSearch: true,
+                      }}
+                      className={BUTTON.ghost}
+                    />
+                  ) : undefined
                 }
               />
             }
@@ -270,6 +284,6 @@ export default async function PromoCodesPage({ searchParams }: PageProps) {
           ) : null}
         </>
       )}
-    </main>
+    </PageShell>
   );
 }

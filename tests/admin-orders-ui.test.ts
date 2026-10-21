@@ -312,13 +312,13 @@ describe("orders copy (ORD-26, ORD-22)", () => {
     expect(till).not.toMatch(/emerald-\d/);
   });
 
-  it("the order screens sit under the nav group's name", () => {
+  it("the order screens draw no eyebrow that repeats the nav group", () => {
     for (const path of [
       "src/app/admin/siparisler/page.tsx",
       "src/app/admin/siparisler/yeni/page.tsx",
     ]) {
       const src = read(path);
-      expect(src, path).toContain('eyebrow="Satış"');
+      expect(src, path).not.toMatch(/\beyebrow=/);
       expect(src, path).not.toContain("E-ticaret");
     }
   });
