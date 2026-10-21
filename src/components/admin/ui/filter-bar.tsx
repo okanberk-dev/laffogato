@@ -2,16 +2,19 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useActionState, useId } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 
 import { listSearchAction } from "@/app/admin/liste-arama/actions";
 import { cx } from "@/components/laffogato/cx";
+import { activeDatePreset, datePresets } from "@/lib/admin/date-presets";
 import {
   DEFAULT_PAGE_PARAM,
   filterChips,
   filterParamNames,
   parseFilters,
   toSearchParams,
+  withParams,
+  type DateRangeFilterField,
   type FilterField,
   type FilterValues,
 } from "@/lib/admin/list-params";
@@ -22,6 +25,7 @@ import {
 } from "@/lib/admin/list-search-core";
 
 import { FIELD_INPUT } from "../forms";
+import { LinkPending } from "./link-pending";
 import { ListSearchButton } from "./list-search-button";
 import {
   SavedViewsBoundary,
@@ -30,6 +34,13 @@ import {
 } from "./saved-views-key";
 import { BUTTON, EYEBROW, MONO_STYLE } from "./styles";
 import { useNoResetSubmit } from "./submit";
+import {
+  armWidget,
+  createWidgetLoader,
+  rangeFromValues,
+  snapshotRange,
+  type RangeSnapshot,
+} from "./widget-loader";
 
 export interface FilterBarProps {
   fields: readonly FilterField[];
@@ -67,6 +78,156 @@ const SavedViews = dynamic(
   () => import("./saved-views").then((m) => m.SavedViews),
   { ssr: false },
 );
+
+// The date range widget (UI-14): React Aria's calendar and segmented dates,
+// a chunk of its own that nothing asks for until a fine pointer reaches a
+// date field or focus lands in it (widget-loader.ts). Plain import(), not
+// next/dynamic: a loaded chunk must swap in at once, without the Suspense
+// hold that would let the native boxes lose their focus first.
+type DateRangeWidget = (typeof import("./date-range-field"))["DateRangeField"];
+
+const dateRangeLoader = createWidgetLoader<DateRangeWidget>(() =>
+  import("./date-range-field").then((m) =>
+    m.DATE_WIDGETS_ENABLED ? m.DateRangeField : null,
+  ),
+);
+
+/** One preset link: its label, where it goes, whether it is the range now. */
+interface PresetLink {
+  id: string;
+  label: string;
+  href: string;
+  active: boolean;
+}
+
+const PRESET_LINK =
+  "relative inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none pointer-coarse:min-h-11";
+const PRESET_IDLE =
+  "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]";
+const PRESET_ACTIVE =
+  "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]";
+
+type RangeSwap = RangeSnapshot & { Widget: DateRangeWidget };
+
+/**
+ * A date range: the preset links, then the two native `<input type="date">`
+ * boxes (what the server draws, what works without JavaScript and what a
+ * phone keeps). On a fine pointer the boxes give way to the React Aria
+ * widget once the pointer or focus reaches the field and its chunk is in,
+ * with the dates they hold and the focus they had.
+ */
+function DateRangeFieldset({
+  field,
+  baseId,
+  values,
+  presets,
+}: {
+  field: DateRangeFilterField;
+  baseId: string;
+  values: FilterValues;
+  presets: readonly PresetLink[];
+}) {
+  const fromId = `${baseId}-${field.from}`;
+  const toId = `${baseId}-${field.to}`;
+  const fromBox = useRef<HTMLInputElement>(null);
+  const toBox = useRef<HTMLInputElement>(null);
+  // A chunk an earlier visit to a list already asked for draws at once (this
+  // form was rebuilt after a filter was applied); the server's draw and a
+  // freshly loaded page's first one never find one.
+  const [swapped, setSwapped] = useState<RangeSwap | null>(() => {
+    const Widget = dateRangeLoader.peek();
+    const held = Widget
+      ? rangeFromValues(values[field.from], values[field.to])
+      : null;
+    return Widget && held ? { Widget, ...held } : null;
+  });
+
+  const arm = () => {
+    if (swapped) return;
+    armWidget(dateRangeLoader, (Widget) => {
+      const held = snapshotRange(
+        fromBox.current,
+        toBox.current,
+        document.activeElement,
+      );
+      if (held) setSwapped((cur) => cur ?? { Widget, ...held });
+    });
+  };
+
+  const Widget = swapped?.Widget;
+  return (
+    <fieldset
+      className="flex min-w-[16rem] flex-[2_1_18rem] flex-col gap-2"
+      onPointerEnter={arm}
+      onFocus={arm}
+    >
+      <legend className={cx(EYEBROW, "mb-2")} style={MONO_STYLE}>
+        {field.label}
+      </legend>
+      <ul
+        aria-label={`${field.label}: hazır aralıklar`}
+        className="flex flex-wrap gap-1.5"
+      >
+        {presets.map((p) => (
+          <li key={p.id}>
+            {/* The clock decides the links; the server's reading stands. */}
+            <Link
+              href={p.href}
+              prefetch={false}
+              aria-current={p.active ? "true" : undefined}
+              suppressHydrationWarning
+              className={cx(
+                PRESET_LINK,
+                p.active ? PRESET_ACTIVE : PRESET_IDLE,
+              )}
+            >
+              {p.label}
+              <LinkPending className="bottom-0.5" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {swapped && Widget ? (
+        <Widget
+          label={field.label}
+          fromName={field.from}
+          toName={field.to}
+          defaultFrom={swapped.from}
+          defaultTo={swapped.to}
+          focus={swapped.focus}
+        />
+      ) : (
+        <div className="flex items-center gap-2">
+          <label htmlFor={fromId} className="sr-only">
+            {field.label}: başlangıç
+          </label>
+          <input
+            ref={fromBox}
+            id={fromId}
+            type="date"
+            name={field.from}
+            defaultValue={values[field.from] ?? ""}
+            className={cx(FIELD_INPUT, "min-w-0")}
+          />
+          <span aria-hidden="true" className="text-[var(--admin-text-soft)]">
+            -
+          </span>
+          <label htmlFor={toId} className="sr-only">
+            {field.label}: bitiş
+          </label>
+          <input
+            ref={toBox}
+            id={toId}
+            type="date"
+            name={field.to}
+            defaultValue={values[field.to] ?? ""}
+            className={cx(FIELD_INPUT, "min-w-0")}
+          />
+        </div>
+      )}
+    </fieldset>
+  );
+}
 
 /** A chip's × (a link, or a button for a search text). */
 const CHIP_REMOVE =
@@ -183,6 +344,10 @@ export function FilterBar({
   const kept = [...toSearchParams(address)].filter(([k]) => !owned.has(k));
   const chips = filterChips(fields, values, address, pathname, pageParam);
   const boxes = new Set(list.params.map((p) => p.name));
+  // Only a bar with a date range needs the clock.
+  const presets = fields.some((f) => f.type === "date-range")
+    ? datePresets()
+    : [];
   const { lead, folded, foldedActive } = splitFilterFields(
     fields,
     chips.map((c) => c.key),
@@ -243,42 +408,25 @@ export function FilterBar({
         </div>
       );
     }
-    const fromId = `${baseId}-${field.from}`;
-    const toId = `${baseId}-${field.to}`;
     return (
-      <fieldset
+      <DateRangeFieldset
         key={fieldKey(field)}
-        className="flex min-w-[16rem] flex-[2_1_18rem] flex-col gap-2"
-      >
-        <legend className={cx(EYEBROW, "mb-2")} style={MONO_STYLE}>
-          {field.label}
-        </legend>
-        <div className="flex items-center gap-2">
-          <label htmlFor={fromId} className="sr-only">
-            {field.label}: başlangıç
-          </label>
-          <input
-            id={fromId}
-            type="date"
-            name={field.from}
-            defaultValue={values[field.from] ?? ""}
-            className={cx(FIELD_INPUT, "min-w-0")}
-          />
-          <span aria-hidden="true" className="text-[var(--admin-text-soft)]">
-            -
-          </span>
-          <label htmlFor={toId} className="sr-only">
-            {field.label}: bitiş
-          </label>
-          <input
-            id={toId}
-            type="date"
-            name={field.to}
-            defaultValue={values[field.to] ?? ""}
-            className={cx(FIELD_INPUT, "min-w-0")}
-          />
-        </div>
-      </fieldset>
+        field={field}
+        baseId={baseId}
+        values={values}
+        presets={presets.map((p) => ({
+          id: p.id,
+          label: p.label,
+          href: withParams(
+            address,
+            { [field.from]: p.from, [field.to]: p.to, [pageParam]: null },
+            pathname,
+          ),
+          active:
+            activeDatePreset(presets, values[field.from], values[field.to]) ===
+            p.id,
+        }))}
+      />
     );
   };
 
