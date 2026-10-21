@@ -20,8 +20,16 @@ import { createDb, type Executor } from "@/lib/db/client";
 const seen: { text: string; params: readonly unknown[] }[] = [];
 let openRows: Record<string, unknown>[] = [];
 let productRows: Record<string, unknown>[] = [];
+let keepaliveRows: Record<string, unknown>[] = [];
+let migrationRows: Record<string, unknown>[] = [];
 const exec: Executor = async ({ text, params }) => {
   seen.push({ text, params });
+  if (/FROM "supabase_keepalive"/.test(text)) {
+    return { rows: keepaliveRows, rowCount: keepaliveRows.length };
+  }
+  if (/FROM "_migrations"/.test(text)) {
+    return { rows: migrationRows, rowCount: migrationRows.length };
+  }
   if (/count\(\*\)/i.test(text)) return { rows: [{ count: 2 }], rowCount: 1 };
   if (/FROM "orders"/.test(text)) {
     return { rows: openRows, rowCount: openRows.length };
@@ -44,6 +52,8 @@ beforeEach(() => {
   seen.length = 0;
   openRows = [];
   productRows = [];
+  keepaliveRows = [];
+  migrationRows = [];
 });
 
 afterEach(() => {
@@ -434,5 +444,86 @@ describe("the dashboard page", () => {
       expect.objectContaining({ prepay: true, canRefund: false }),
     );
     expect(text).toContain("Bugün karaoke");
+  });
+
+  describe("the Supabase keep-alive line (owner only)", () => {
+    const keepaliveReads = () =>
+      seen.filter((s) => /"supabase_keepalive"/.test(s.text));
+    /** The line's own class attribute (other cards use the tones too). */
+    const lineClass = (html: string) =>
+      /<p data-testid="supabase-keepalive-status"[^>]*class="([^"]*)"/.exec(
+        html,
+      )?.[1] ?? "";
+
+    it("reads the record for the owner and names the last successful ping", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-20T10:00:00.000Z"));
+      keepaliveRows = [
+        {
+          lastStatus: "ok",
+          lastAttemptAt: "2026-10-20T06:00:01.234Z",
+          lastSuccessAt: "2026-10-20T06:00:01.234Z",
+        },
+      ];
+      const { html, text } = await render("owner");
+      expect(keepaliveReads()).toHaveLength(1);
+      expect(text).toContain(
+        "Supabase uyanık tutma: son başarılı ping 20 Eki 2026 09:00.",
+      );
+      expect(html).toContain('data-state="fresh"');
+      expect(lineClass(html)).toContain("bg-[var(--admin-neutral-soft)]");
+      expect(lineClass(html)).not.toContain("bg-[var(--admin-warning-soft)]");
+    });
+
+    it("never reads it for a manager or staff, and shows them nothing", async () => {
+      keepaliveRows = [
+        {
+          lastStatus: "failed",
+          lastAttemptAt: "2026-10-20T06:00:01.234Z",
+          lastSuccessAt: "",
+        },
+      ];
+      for (const role of ["manager", "staff"] as const) {
+        seen.length = 0;
+        const { html, text } = await render(role);
+        expect(keepaliveReads()).toEqual([]);
+        expect(seen.filter((s) => /"_migrations"/.test(s.text))).toEqual([]);
+        expect(text).not.toContain("Supabase");
+        expect(html).not.toContain("supabase-keepalive-status");
+      }
+    });
+
+    it("turns amber when nothing was recorded days after the table was created", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-25T10:00:00.000Z"));
+      migrationRows = [{ applied_at: new Date("2026-10-21T05:30:00.000Z") }];
+      const { html, text } = await render("owner");
+      expect(html).toContain('data-state="silent"');
+      expect(lineClass(html)).toContain("bg-[var(--admin-warning-soft)]");
+      expect(text).toContain("günlük görev çalışmıyor olabilir");
+    });
+
+    it("says plainly that nothing is recorded yet", async () => {
+      const { html, text } = await render("owner");
+      expect(keepaliveReads()).toHaveLength(1);
+      expect(text).toContain("Supabase uyanık tutma: henüz kayıt yok");
+      expect(html).toContain('data-state="none"');
+    });
+
+    it("is amber after a failed attempt", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-20T10:00:00.000Z"));
+      keepaliveRows = [
+        {
+          lastStatus: "failed",
+          lastAttemptAt: "2026-10-20T06:00:01.234Z",
+          lastSuccessAt: "2026-10-19T06:00:00.000Z",
+        },
+      ];
+      const { html, text } = await render("owner");
+      expect(html).toContain('data-state="failed"');
+      expect(lineClass(html)).toContain("bg-[var(--admin-warning-soft)]");
+      expect(text).toContain("son deneme başarısız");
+    });
   });
 });

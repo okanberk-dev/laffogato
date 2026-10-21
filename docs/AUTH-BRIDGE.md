@@ -43,11 +43,12 @@ src/lib/mobile/
   respond.ts   → apiError() · apiJson()
 ```
 
-**Service role anahtarı yalnız `src/lib/supabase/admin.ts` tarafından ve iki
-iş için okunur** - kapatılan hesabın Supabase kimliğini silmek, ve burada
-sıfırlanan parolayı Supabase'e yazmak. `.env.example`'da adı geçer, değeri
-boştur; `NEXT_PUBLIC_` öneki yoktur, yani tarayıcıya ya da uygulama paketine
-hiç girmez. Anahtar tanımlı değilse iki iş de atlanır ve kod eski, temkinli
+**Servis anahtarı yalnız `src/lib/supabase/admin.ts` tarafından okunur** -
+kapatılan hesabın Supabase kimliğini silmek, burada sıfırlanan parolayı
+Supabase'e yazmak (ve bağlanmamış satırın kimliğini bulmak) ve günlük cron'un
+Supabase yoklaması için. `.env.example`'da adı geçer, değeri boştur;
+`NEXT_PUBLIC_` öneki yoktur, yani tarayıcıya ya da uygulama paketine hiç
+girmez. Anahtar tanımlı değilse işler atlanır ve kod eski, temkinli
 davranışına döner (§5). Atlama artık sessiz değil: sunucu günlüğüne
 `[supabase] password sync skipped` / `[deleteMe] identity skipped` nedeniyle
 yazılır ve `/admin/ayarlar` sayfasının başında "Supabase servis anahtarı:
@@ -56,6 +57,62 @@ değer asla gösterilmez). Publishable anahtar ve proje URL'si herkese açıktı
 uygulamaya verilmek için tasarlanmıştır) ve `.env.example`'da değerleriyle
 durur; env boşsa `config.ts` aynı değerlere düşer, böylece env'siz bir preview
 deploy da aynı projeye giriş yapabilir.
+
+### Hangi anahtar: `SUPABASE_SECRET_KEY` önce (20 Eki 2026)
+
+Supabase eski JWT anahtarlarını (`anon`, `service_role`) 2026 sonunda
+kaldırıyor ve yerlerine `sb_publishable_…` / `sb_secret_…` anahtarlarını
+koyuyor. İkisi de aynı servis rolünü verir. `admin.ts` önce
+**`SUPABASE_SECRET_KEY`**'i okur (Vercel'de tanımlı); yalnız o tanımsız, boş
+ya da yalnız boşluksa eski **`SUPABASE_SERVICE_ROLE_KEY`**'e düşer. Biri
+yanlışsa öbürüne geçmez: tanımlı olan anahtar kullanılır, reddedilirse iş
+`failed` olur ve günlüğe yazılır. İkisi de yoksa davranış bugünkünün aynısıdır
+(`skipped`, günlükte iki adı da söyleyen neden). Eski anahtar Supabase
+panelinden kapatıldıktan sonra Vercel'den silinebilir.
+
+Bir anahtar yalnız boşluksuz yazdırılabilir ASCII olabilir (JWT ve `sb_…`
+anahtarları öyledir). İki satıra bölünmüş ya da içinde denetim karakteri
+olan bir değer tanımsız sayılır (günlüğe yalnız değişkenin adı bir kez
+yazılır): Node'un `fetch`'i böyle bir başlığı, değerin tamamını tekrarlayan
+bir hata mesajıyla reddeder. `admin.ts`'in günlükleri bu yüzden hiçbir
+hatanın mesajını yazmaz, yalnız sınıfını ve HTTP durumunu
+(`tests/supabase-secret-key-log.test.ts`).
+
+Ne doğrulandı ve nereden:
+
+- **Gizli anahtar JWT değildir, yalnız `apikey` başlığında gider.** Supabase
+  belgeleri: "Publishable and secret keys are short strings, not JWTs" ve
+  "Send publishable and secret keys on the `apikey` header, not on
+  `Authorization: Bearer`" (https://supabase.com/docs/guides/api/api-keys).
+  Duyuru (https://github.com/orgs/supabase/discussions/29260): Authorization
+  başlığına ya kullanıcının JWT'si konur ya da boş bırakılır; geriye uyum
+  için yalnız değeri `apikey` ile birebir aynıysa kabul edilir. Bu yüzden
+  `admin.ts`'in doğrudan çağrıları (`findSupabaseIdentityByEmail`,
+  `keepSupabaseAwake`) yeni anahtarı **yalnız `apikey`** ile gönderir; eski
+  JWT anahtarla bugünkü `apikey` + `Authorization: Bearer` çifti sürer
+  (GoTrue rolü o JWT'den okur). Yalnız `apikey` taşıyan istek barındırılan
+  platformda da çalışır: Supabase'in REST hızlı başlangıcı yeni anahtarı
+  Authorization'sız gönderir (https://supabase.com/docs/guides/api/quickstart),
+  ağ geçidi isteği anahtarın rolüne çevirir (secret → `service_role`).
+- **supabase-js 2.117.1 iki biçimi de kabul eder.** `node_modules` içinde
+  okundu: `createClient` `sb_secret_` anahtarını tanır (`isNewApiKey`,
+  `src/lib/fetch.ts`; uyarı yok). Auth istemcisi her anahtarla `apikey` ve
+  `Authorization: Bearer <anahtar>` gönderir (`_initSupabaseAuthClient`,
+  `src/SupabaseClient.ts` 649-652; `dist/index.mjs` 841-845) ve
+  `auth.admin.*` aynı başlıkları kullanır (`auth-js` `GoTrueClient.ts`
+  440-445, `GoTrueAdminApi.ts` `deleteUser`): yeni anahtarla iki değer
+  birebir aynı olduğu için yukarıdaki geriye uyum kuralına girer. Edge
+  Functions için SDK bunu da yapmaz (`omitApiKeyAsBearer`). Supabase'in
+  sunucu tarafı yönetici örneği istemciyi `autoRefreshToken: false`,
+  `persistSession: false` ile kurar
+  (https://supabase.com/docs/reference/javascript/admin-api); `admin.ts`
+  bunlara `detectSessionInUrl: false`'u ekler, oturum tutmaz, yenilemez.
+  İstemci anahtara bağlı önbelleklenir: anahtar değişirse yenisi kurulur.
+- **Doğrulanamayan:** üretimde yeni anahtarla gerçek bir çağrı. Günlük cron
+  (`CRON_SECRET` Vercel'de "sensitive", elle çağrılamaz) ilk sabah
+  yoklamayı yeni anahtarla yapar. Testler: `tests/supabase-secret-key.test.ts`
+  (yalnız yeni, yalnız eski, ikisi, hiçbiri; anahtar hiçbir günlükte ve
+  sonuçta yok).
 
 ## 2. Uygulama → API: bearer token
 

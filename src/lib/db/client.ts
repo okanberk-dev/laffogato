@@ -25,6 +25,10 @@
  */
 
 import {
+  DATABASE_URL_MISSING,
+  isDatabaseUrlMissing,
+} from "./database-url.mjs";
+import {
   compile,
   type AnyOfCondition,
   type CompiledQuery,
@@ -114,6 +118,21 @@ function writingExecutor(
  * `status: 0` + empty `code` rather than being flattened into a string.
  */
 export function toDbError(err: unknown): { error: DbError; status: number } {
+  // No DATABASE_URL: like a transport failure, the request never reached a
+  // Postgres (status 0), but under a code of its own so it stays nameable:
+  // `raiseDbError` degrades it exactly like an unreachable database, and the
+  // message says which variable is missing (./database-url.mjs).
+  if (isDatabaseUrlMissing(err)) {
+    return {
+      error: {
+        message: (err as Error).message,
+        code: DATABASE_URL_MISSING,
+        details: "",
+        hint: "",
+      },
+      status: 0,
+    };
+  }
   const e = err as {
     message?: string;
     code?: string;
