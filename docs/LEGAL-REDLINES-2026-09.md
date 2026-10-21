@@ -2990,14 +2990,14 @@ Karaoke belgesi değişti (§8, §9): `KARAOKE_LEGAL_UPDATED` (`meta.ts`; belgen
 `updatedAt`'i bu sabittir) yayın günü olarak **21 Ekim 2026**. 20 Ekim'i
 §24 (#180) aldı; bu PR 21 Ekim'de ya da sonra, kalıcı kopya PR'ından
 (`feat/legal-durable-copy`) hemen sonra birleşir. Birleşme günü 21 Ekim
-değilse dört yer o güne taşınır: `KARAOKE_LEGAL_UPDATED`, aşağıdaki üç
+değilse altı yer o güne taşınır: `KARAOKE_LEGAL_UPDATED`, aşağıdaki dört
 belgenin `updatedAt`'i (`content.ts`) ve `tests/legal-dates.test.ts`.
 
-Kişisel Veri Saklama ve İmha Politikası, KVKK Aydınlatma Metni ve Gizlilik
-Politikası'nın metni değiştiği için kendi tarihleri de 21 Ekim 2026
-(`updatedAt`): /hukuk ve uygulamadaki "son güncelleme" satırı doğru kalır.
-Ödeme onayındaki iki belge (ÖBF, MSS) değişmedi, `LEGAL_UPDATED` 20 Ekim
-2026'da kaldı. Uygulamanın çevrimdışı kopyası lafmobil'de yenilenir (ayrı
+Kişisel Veri Saklama ve İmha Politikası, KVKK Aydınlatma Metni, Gizlilik
+Politikası ve Ödeme Koşulları'nın metni değiştiği için kendi tarihleri de
+21 Ekim 2026 (`updatedAt`): /hukuk ve uygulamadaki "son güncelleme" satırı
+doğru kalır. Ödeme onayındaki iki belge (ÖBF, MSS) değişmedi,
+`LEGAL_UPDATED` 20 Ekim 2026'da kaldı. Uygulamanın çevrimdışı kopyası lafmobil'de yenilenir (ayrı
 PR). `KARAOKE_POLICY_APP_VERSION` null kaldı (OP-KARAOKE-CFG-DECISION):
 kuralı her karaoke ekranında sunucudan okuyan uygulama sürümü iki mağazada
 yayında değil; canlı kural 2 saat / %0.
@@ -3013,9 +3013,14 @@ yayında değil; canlı kural 2 saat / %0.
 | KVKK Aydınlatma, §6 | aynı madde, hukuki sebepten önce | (yok) | "Telafinin banka hesabınıza ödenmesini seçerseniz e-postayla bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi yalnızca bu ödeme için kullanılır; rezervasyon kaydına yazılmaz, ödemenin belgesiyle muhasebe kayıtlarında saklanır." |
 | Gizlilik Politikası, §3 | "Karaoke rezervasyon verisi" satırı | "... ödemenin PayNkolay referansı ve zamanı, uygulanıyorsa üyelik kademenize göre indirim; ..." | "... ödemenin PayNkolay referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafinin tutarı ve nasıl kullanıldığı (telafinin banka hesabınıza ödenmesini seçerseniz bildirdiğiniz banka hesap bilgisi yalnızca bu ödeme için kullanılır ve rezervasyon kaydına yazılmaz), uygulanıyorsa üyelik kademenize göre indirim; ..." |
 | Rezervasyon kuralı (ödeme öncesi cümle, `karaokeCancellationRules`, yalnız %1-99) | geç iptal cümlesi | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz." | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir." (bu kuralla yapılmış rezervasyon yok: panel %1-99'u bu PR'a kadar kabul etmiyordu, canlıda uygulama kilidi hâlâ kapalı) |
+| Ödeme Koşulları, §14 | 2. paragraf | "Banka hesabına transfer yalnızca iki hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi ve iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz." | "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz." |
+| KVKK Aydınlatma, §7 | "Karaoke odası rezervasyonu:" maddesi | "... rezervasyonun iptali ve iadenin yapılması, rezervasyon bağlantısının e-postayla gönderilmesi, ..." | "... rezervasyonun iptali ve iadenin yapılması, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının bildireceğiniz, kendi adınıza kayıtlı banka hesabına ödenmesi, rezervasyon bağlantısının e-postayla gönderilmesi, ..." |
+| KVKK Aydınlatma, §8 tablosu | karaoke satırının anahtarı | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi" | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi" (değer aynı: KVKK m.5/2-c) |
+| Gizlilik Politikası, §5 tablosu | karaoke satırının anahtarı | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi ile rezervasyonla ilgili sizinle iletişim kurulması" | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi ile rezervasyonla ilgili sizinle iletişim kurulması" (değer aynı: KVKK m.5/2-c) |
 | E-posta, işletme iptali (sen) | para satırından sonra | (yok) | "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar bizi arayarak ya da bu e-postayı yanıtlayarak boş bir saat için ayırtabilirsin), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (bu e-postayı yanıtlayıp IBAN'ını yaz, 14 gün içinde öderiz)." |
 | E-posta, telafi saatinin onayı (sen) | ödeme satırı | "Ödemeyi köşkte yaparsın. ..." | "Bu saat, [kod] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz. Planın değişirse [süre] rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir." (kural kimseye iptal izni vermiyorsa: "... Planın değişirse bizi ara: [telefon].") |
 | E-posta, yeniden satış iadesi (sen) | para satırı, pay daha önce iade edildiyse | (yok) | "Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan [tutar] daha kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
+| E-posta, başlamadan iptal edilen telafi saati (sen) | para satırından sonra | (yok) | İşletme iptalindeki telafi cümlesi, yeniden açılan telafinin tutarı ve son günüyle: "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar ...), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (...)." |
 | E-posta, pay ve yeniden satış iadesi birlikte (sen) | para satırı | (yok; "Rezervasyonundaki geç iptal kuralına göre [tutar] kartına iade edildi" toplamı yalnız kurala bağlıyordu) | "Rezervasyonundaki geç iptal kuralına göre ve geç iptal ettiğin saat başka bir misafire satıldığı için [tutar] kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
 
 ### 25.3 Kararlar ve kod
@@ -3028,8 +3033,12 @@ yayında değil; canlı kural 2 saat / %0.
   kuralında ödenen tutarın tamamı; %P'de ödenenin kalan kısmı; %100'de
   yok), son gün = iptal günü (İstanbul) + 6 takvim ayı (TBK m.92/3).
   `mucbir`, `misafir` ("Yine de tamamını iade et" dâhil) ve `yeniden`
-  telafi doğurmaz; köşkün hiç onaylamadığı ödenmiş rezervasyon söz
-  verilmemiş sayıldığı için doğurmaz. Telafi iadenin ilk adımıyla birlikte
+  telafi doğurmaz. Geç iptal kuralı kime bağlıysa geç telafi de onadır
+  (Haksız Şartlar Yön. EK-1 (ç); inceleme R3, orkestratör kararı A, 21 Ekim
+  2026): köşkün henüz onaylamadığı ödenmiş rezervasyonun misafiri de süre
+  geçince kendi iptalini yapamadığı için (2 saat / %0) telafi doğar; geç
+  iptal payı olan kuralda böyle bir rezervasyon misafir geç iptal etse de
+  tamamen iade edildiğinden telafi doğmaz. Telafi iadenin ilk adımıyla birlikte
   yazılır, POS iadeyi reddederse geri alınır; yanıtsız iade sonradan
   kaydedilince telafi e-postası o zaman gider (`karaoke-make-good-core.ts`).
 - **İki eylem, biri diğerini kapatır.** İade yetkisi olan kişi iptal
@@ -3055,7 +3064,14 @@ yayında değil; canlı kural 2 saat / %0.
   saat son günden sonra verilmez; para seçeneğinin son günü yoktur. Telafi
   saati başlamadan iptal edilirse telafi yeniden açılır (saatin iptali ve
   telafinin açılması da tek ifade, `karaoke_release_make_good_hour`); saat
-  başladıktan sonra iptal edilirse açılmaz. Her adım denetim
+  başladıktan sonra iptal edilirse açılmaz. Telafi saatini misafirin kendi
+  iptalinin artık kabul edilmediği süre içinde yalnız iade yetkisi olan
+  kişi iptal edebilir (inceleme A2: Personel'in iptali kullanılmış telafiyi
+  yeniden açardı; panel bu iptali gerekçesiyle kapalı çizer); hesap
+  kapanışı da saatin kendi kuralına bağlıdır (inceleme A4), o süre içinde
+  saat durur ve köşke telafi saati olarak bildirilir. Başlamadan iptal
+  edilen telafi saatinin iptal e-postası yeniden açılan telafinin tutarını
+  ve son gününü yazar (inceleme R4). Her adım denetim
   kaydında (`make_good_hour_given`, `make_good_hour`, `make_good_paid`,
   `make_good_reopened`).
 - **KDV.** Telafi saatinin sayfası "Emsal bedel ₺X (saatlik ücret ₺Y x N
@@ -3098,8 +3114,8 @@ yayında değil; canlı kural 2 saat / %0.
 - Ödeme Koşulları ve Hesap Silme'deki karaoke "2 saat" ve "kısmi iade
   yapılmaz" cümleleri: her rezervasyon 2 saat / %0 ile yapıldığı sürece
   doğru; uygulama kilidi açılmadan önce yeniden yazılır
-  (`tests/karaoke-cancel-policy-doc.test.ts`). Bu belgeler `LEGAL_UPDATED`
-  taşıdığı için aynı gün başka bir PR'la çakışmamak da gerekir.
+  (`tests/karaoke-cancel-policy-doc.test.ts`). Ödeme Koşulları'nda bu PR
+  yalnız §14'ün banka hesabına transfer paragrafını değiştirdi (25.2).
 - Karaoke §7: yeniden satış iadesini zaten vaat ediyordu ("iptal ettiğiniz
   saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade
   edilir"); kod şimdi bunu yapıyor.
