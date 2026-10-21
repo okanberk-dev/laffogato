@@ -168,33 +168,55 @@ describe("saveKaraokeAction: the cancellation policy", () => {
     });
   });
 
-  it("refuses a late share of 1..99 % until the resale refund ships", async () => {
+  it("accepts a late share of 1..99 % now the resale refund is built (D-KAR-1-99)", async () => {
     h.appVersion = "1.1.0";
     h.settings = baseSettings("1.1.0");
-    for (const percent of ["1", "40", "50", "99"]) {
-      const state = await saveKaraokeAction(
-        {},
-        form({
-          ...BASE,
-          karaokeFreeCancelHours: "30",
-          karaokeLateRefundPercent: percent,
-        }),
-      );
-      expect(state.fieldErrors?.karaokeLateRefundPercent).toBe(
-        "Kısmi geç iptal iadesi, yeniden satılan saatin iadesi hazır olana kadar seçilemez; %0 ya da %100 seç.",
-      );
-    }
-    expect(h.updates).toEqual([]);
-    const all = await saveKaraokeAction(
+    // The fairness limit stays: above 24 hours at least half goes back.
+    const below = await saveKaraokeAction(
       {},
       form({
         ...BASE,
         karaokeFreeCancelHours: "30",
-        karaokeLateRefundPercent: "100",
+        karaokeLateRefundPercent: "40",
       }),
     );
-    expect(all.error).toBeUndefined();
-    expect(h.updates).toHaveLength(1);
+    expect(below.fieldErrors?.karaokeLateRefundPercent).toMatch(/en az %50/);
+    expect(h.updates).toEqual([]);
+    for (const [hours, percent] of [
+      ["30", "50"],
+      ["24", "1"],
+      ["2", "99"],
+    ] as const) {
+      const state = await saveKaraokeAction(
+        {},
+        form({
+          ...BASE,
+          karaokeFreeCancelHours: hours,
+          karaokeLateRefundPercent: percent,
+        }),
+      );
+      expect(state.error).toBeUndefined();
+      expect(h.updates.at(-1)).toMatchObject({
+        karaokeFreeCancelHours: Number(hours),
+        karaokeLateRefundPercent: Number(percent),
+      });
+      h.settings = { ...h.settings, ...h.updates.at(-1) };
+    }
+    // The old refusal is gone from the code.
+    expect(JSON.stringify(h.updates)).not.toContain("%0 ya da %100");
+  });
+
+  it("while the app lock is shut, a share of 1..99 % is refused by the lock", async () => {
+    const state = await saveKaraokeAction(
+      {},
+      form({
+        ...BASE,
+        karaokeFreeCancelHours: "24",
+        karaokeLateRefundPercent: "50",
+      }),
+    );
+    expect(state.error).toMatch(/yalnız 2 saat ve %0/);
+    expect(h.updates).toEqual([]);
   });
 
   it("while the app lock is shut, only 2 h / 0 % can be saved", async () => {
@@ -449,14 +471,22 @@ describe("the Karaoke tab", () => {
     expect(html).not.toContain("yalnız 2 saat ve %0");
   });
 
-  it("a share of 1..99 % previews as the refusal, not as a rule", () => {
+  it("a share of 1..99 % previews as its sentence, with the by-hand note", () => {
     h.appVersion = "1.1.0";
     const html = renderToStaticMarkup(
       createElement(KaraokeTab, { settings: settingsFor("1.1.0", 24, 50) }),
     );
-    expect(html).toContain("%0 ya da %100 seç");
-    expect(html).not.toContain("%50&#x27;si kartına iade edilir");
-    expect(html).not.toContain("Elle iade edildi");
+    expect(html).not.toContain("%0 ya da %100 seç");
+    expect(html).toContain(
+      "%50&#x27;si en geç 14 gün içinde kartına iade edilir",
+    );
+    expect(html).toContain(
+      "o saat için sende kalan tutar da kartına iade edilir",
+    );
+    expect(html).toContain("Elle iade edildi");
+    expect(html).toContain(
+      "Geç iptal edilen saat başka bir misafire satılırsa",
+    );
   });
 });
 

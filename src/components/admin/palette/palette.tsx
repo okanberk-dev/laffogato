@@ -23,13 +23,13 @@ import {
   createEntries,
   goEntries,
   listRow,
-  openShortcutSheet,
   PALETTE_SEARCH_DEBOUNCE_MS,
   PALETTE_SEARCH_MIN,
   PALETTE_SEARCH_ROUTE,
   parseSearchAnswer,
   rankEntries,
   resultCountText,
+  runPaletteCommand,
   searchOutcome,
   signInHref,
   visibleRecents,
@@ -54,7 +54,8 @@ import { SearchIcon } from "./trigger";
  * it asks a form with unsaved changes first, then opens the page; never
  * prefetched while the arrow keys pass over it: every panel page is
  * dynamic, so each would be a server render and its database reads),
- * flips this browser's own order sound or opens the shortcut sheet. No
+ * flips this browser's own order sound, or asks the shell for one of its own
+ * commands (the shortcut sheet, a view preference) with an event. No
  * Server Action is imported here. Opened by `n` on a page with no "Yeni"
  * link, it lists Oluştur alone (view "create").
  */
@@ -316,20 +317,21 @@ export function Palette({
       navigate(target.href);
       return;
     }
-    if (target.command === "shortcutSheet") {
+    // The commands the shell answers (the shortcut sheet and the view
+    // preferences) go out as an event, after the dialog closes (one dialog
+    // at a time).
+    if (target.command !== "toggleSound") {
       close();
-      openShortcutSheet();
+      runPaletteCommand(target.command);
       return;
     }
-    if (target.command === "toggleSound") {
-      const next = !readSoundPref();
-      writeSoundPref(next);
-      toast.show({
-        tone: "info",
-        message: next ? "Sipariş sesi açık." : "Sipariş sesi kapalı.",
-      });
-      close();
-    }
+    const next = !readSoundPref();
+    writeSoundPref(next);
+    toast.show({
+      tone: "info",
+      message: next ? "Sipariş sesi açık." : "Sipariş sesi kapalı.",
+    });
+    close();
   };
 
   const loading = search.status === "loading";

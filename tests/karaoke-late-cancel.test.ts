@@ -256,11 +256,11 @@ vi.mock("@/lib/mobile/karaoke-time", async (importOriginal) => {
     await importOriginal<typeof import("@/lib/mobile/karaoke-time")>();
   return {
     ...real,
-    // A share of 1..99 % stays closed in the code until the resale refund
-    // ships; these tests keep exercising its path (karar D9).
+    // The app lock opened by the test (a share of 1..99 % is open since
+    // the resale refund, karaoke-make-good-and-resale).
     effectiveKaraokeCancelPolicy: (
       s: Parameters<typeof real.effectiveKaraokeCancelPolicy>[0],
-    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion, true),
+    ) => real.effectiveKaraokeCancelPolicy(s, h.appVersion),
   };
 });
 
@@ -269,6 +269,7 @@ const karaoke = await import("@/lib/mobile/karaoke");
 const payment = await import("@/lib/mobile/karaoke-payment");
 const time = await import("@/lib/mobile/karaoke-time");
 const rateLimit = await import("@/lib/admin/rate-limit");
+const { KARAOKE_LEGAL_UPDATED } = await import("@/lib/legal/meta");
 
 // 30 Ekim 2026, 20:00 in Tuzla.
 const START = Date.parse("2026-10-30T17:00:00.000Z");
@@ -381,7 +382,12 @@ describe("the snapshot at booking", () => {
 
   it("keeps the panel's policy, its deadline, its sentences and the version shown", async () => {
     h.appVersion = "1.1.0";
-    h.settings = settingsWith({ hours: 24, percent: 50 });
+    // A policy saved after the karaoke document's own revision moves the
+    // version to its day.
+    h.settings = {
+      ...settingsWith({ hours: 24, percent: 50 }),
+      karaokeCancelPolicyAt: "2026-11-02T09:00:00.000Z",
+    };
     const now = new Date("2026-10-20T09:00:00.000Z");
     const res = await karaoke.createReservation(
       { email: "eda@example.com", name: "Eda Yılmaz" },
@@ -399,9 +405,12 @@ describe("the snapshot at booking", () => {
       cancellationRules: [...time.karaokeCancellationRules(HALF).rules],
       refundMinor: null,
     });
-    // The document was rendered with the policy saved on 18 Ekim.
+    // The document was rendered with the policy saved on 2 Kasım. The
+    // label is the booking's own, from the one read that also hashes the
+    // text (review R4, 21 Eki 2026): the caller's "17 Ekim 2026" is
+    // replaced.
     expect((stored.legalConsent as { version: string }).version).toBe(
-      "18 Ekim 2026",
+      "2 Kasım 2026",
     );
   });
 
@@ -423,8 +432,9 @@ describe("the snapshot at booking", () => {
         time.KARAOKE_NO_REFUND_RULE,
       ],
     });
+    // The coded revision, not the caller's label.
     expect((row().legalConsent as { version: string }).version).toBe(
-      "17 Ekim 2026",
+      KARAOKE_LEGAL_UPDATED,
     );
   });
 
@@ -638,11 +648,15 @@ describe("a member cancels", () => {
     expect(retry).toEqual({ ok: false, reason: "by_hand" });
     expect(h.refunds).toEqual([]);
 
+    // The dialog posts the share it named (karaoke-panel.tsx, settleFields).
     const settled = await payment.settleKaraokeRefundByHand(
       "krk-00042",
       "yonetici@kosk",
       at(9),
-      { reason: "PayNkolay panelinden kısmi iade yapıldı" },
+      {
+        reason: "PayNkolay panelinden kısmi iade yapıldı",
+        shownRefundMinor: 100_000,
+      },
     );
     expect(settled).toMatchObject({ ok: true, refunded: true });
     expect(row()).toMatchObject({

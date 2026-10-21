@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import {
+  KaraokeMakeGoodHour,
+  KaraokeMakeGoodPaid,
+} from "@/components/admin/karaoke-make-good-dialog";
+import {
   KaraokeActions,
   KaraokeAttentionNotices,
   KaraokeBadges,
@@ -21,11 +25,14 @@ import {
   KARAOKE_BACK_PARAM,
   karaokeBackHref,
   karaokeBillableMinor,
+  karaokeDetailHref,
   karaokeHistory,
   karaokeRowView,
+  makeGoodHourMarketValue,
   maskPaymentRef,
   moneyOf,
   refundAmountMinor,
+  refundOwedNowMinor,
   staffReleasedIds,
   unverifiedReleaseIds,
   type KaraokeAuditRow,
@@ -35,7 +42,13 @@ import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
 import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
-import { getReservation, listReservationsForDate } from "@/lib/mobile/karaoke";
+import {
+  getMakeGoodHourFor,
+  getReservation,
+  listReservationsForDate,
+} from "@/lib/mobile/karaoke";
+import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
+import { formatReservationDate } from "@/lib/mobile/karaoke-format";
 import {
   isPartialRefund,
   karaokeCancelDeadline,
@@ -110,6 +123,14 @@ async function readAudit(id: string): Promise<KaraokeAuditRow[] | null> {
   }
 }
 
+/** `day` (YYYY-MM-DD) plus `days` calendar days. */
+function addIstanbulDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map((n) => parseInt(n, 10));
+  return new Date(Date.UTC(y, m - 1, d + Math.max(0, days)))
+    .toISOString()
+    .slice(0, 10);
+}
+
 export default async function KaraokeReservationPage({
   params,
   searchParams,
@@ -125,11 +146,16 @@ export default async function KaraokeReservationPage({
 
   const now = new Date();
   const canRefund = canAccess("refunds", session.role);
-  const [sameDay, settings, auditRead] = await Promise.all([
-    listReservationsForDate(r.date),
-    getSettings(),
-    readAudit(r.id),
-  ]);
+  const [sameDay, settings, auditRead, makeGoodHour, madeGood] =
+    await Promise.all([
+      listReservationsForDate(r.date),
+      getSettings(),
+      readAudit(r.id),
+      // The free hour given for this booking, and the booking a free hour
+      // makes good (karaoke terms §8).
+      r.makeGoodUntil ? getMakeGoodHourFor(r.id) : Promise.resolve(null),
+      r.makeGoodFor ? getReservation(r.makeGoodFor) : Promise.resolve(null),
+    ]);
   const audit = auditRead ?? [];
   // A released hold whose history is unreadable may have been let go
   // without the POS's answer: it is never called unpaid (rule 29).
@@ -235,6 +261,7 @@ export default async function KaraokeReservationPage({
     typeof r.freeCancelHours !== "number" ||
     typeof r.lateRefundPercent !== "number";
   const shareOwed = view.money === "refunding" && isPartialRefund(r);
+  const resaleOwed = shareOwed && (r.resaleRefundMinor ?? 0) > 0;
   const rules = karaokeRulesOf(r);
   const cancelRule: KeyValueItem[] = [
     {
@@ -306,11 +333,32 @@ export default async function KaraokeReservationPage({
     },
     { label: "Ödeme zamanı", value: when(r.paidAt) },
     shareOwed && {
-      label: "İade edilecek (geç iptal)",
+      label: resaleOwed
+        ? "İade edilecek (yeniden satılan saat)"
+        : "İade edilecek (geç iptal)",
       value: (
-        <span style={NUMERIC_STYLE}>{formatTRY(refundAmountMinor(r))}</span>
+        <span style={NUMERIC_STYLE}>{formatTRY(refundOwedNowMinor(r))}</span>
       ),
-      hint: `Kurala göre %${policy.lateRefundPercent}. PayNkolay panelinden iade et, sonra "Elle iade edildi".`,
+      hint: resaleOwed
+        ? `Geç iptal edilen saat başka bir misafire satıldı; o saat için misafirde kalan tutar. PayNkolay panelinden iade et, sonra "Elle iade edildi".`
+        : `Kurala göre %${policy.lateRefundPercent}. PayNkolay panelinden iade et, sonra "Elle iade edildi".`,
+    },
+    shareOwed &&
+      (r.refundSettledMinor ?? 0) > 0 && {
+        label: "Daha önce iade edilen",
+        value: (
+          <span style={NUMERIC_STYLE}>
+            {formatTRY(r.refundSettledMinor ?? 0)}
+          </span>
+        ),
+        hint: "Elle kaydedilmişti; yeniden iade etme.",
+      },
+    (r.resoldHours ?? []).length > 0 && {
+      label: "Yeniden satılan saatler",
+      value: (r.resoldHours ?? [])
+        .map((h) => `${String(h).padStart(2, "0")}:00`)
+        .join(", "),
+      hint: `Bunlar için misafirde kalan tutardan ${formatTRY(r.resaleRefundMinor ?? 0)} iade edildi ya da edilecek.`,
     },
     view.money === "refunded" && {
       label: "İade edilen",
@@ -347,6 +395,99 @@ export default async function KaraokeReservationPage({
         : undefined,
     },
   ];
+
+  // The köşk's late cancel made good (karaoke terms §8): its amount, last
+  // day and how it was used; on the free hour, the booking it makes good
+  // and the value the köşk declares KDV on (KDV K. m.5, m.27/1).
+  const today = istanbulClock(now).date;
+  const roomRules = settings.mobileApp?.karaoke ?? DEFAULT_KARAOKE_RULES;
+  const makeGood: Array<KeyValueItem | false> =
+    view.makeGood === "none"
+      ? []
+      : [
+          {
+            label: "Telafi",
+            value: (
+              <span style={NUMERIC_STYLE}>
+                {formatTRY(r.makeGoodMinor ?? 0)}
+              </span>
+            ),
+            hint: "Geç iptalde misafirde kalacak tutar kadar.",
+          },
+          {
+            label: "Ücretsiz saat için son gün",
+            value: formatReservationDate(r.makeGoodUntil ?? ""),
+            hint: "Ödeme seçeneğinin son günü yok.",
+          },
+          {
+            label: "Durum",
+            value:
+              view.makeGood === "open" ? (
+                "Açık: misafir henüz seçmedi"
+              ) : view.makeGood === "paid" ? (
+                <span style={NUMERIC_STYLE}>
+                  Banka hesabına ödendi: {formatTRY(r.makeGoodPaidMinor ?? 0)},{" "}
+                  {formatReservationDate(r.makeGoodPaidOn ?? "")}
+                </span>
+              ) : makeGoodHour ? (
+                <Link
+                  href={karaokeDetailHref(makeGoodHour.id)}
+                  className="underline underline-offset-4 hover:text-[var(--admin-primary)]"
+                >
+                  Telafi saati verildi: {makeGoodHour.id.toUpperCase()}
+                </Link>
+              ) : (
+                "Telafi saati verildi"
+              ),
+          },
+        ];
+  const makeGoodProps = {
+    id: r.id,
+    amount: formatTRY(r.makeGoodMinor ?? 0),
+    // "2000,00": what parseMoneyInput reads back (the order refund form's).
+    amountInput: ((r.makeGoodMinor ?? 0) / 100).toFixed(2).replace(".", ","),
+    hours: r.hours,
+    until: formatReservationDate(r.makeGoodUntil ?? ""),
+    today,
+    // The guest asks by the last day (karaoke terms §8: "6 ay içinde ...
+    // ayırtabilirsiniz"); the hour itself is any day the room's calendar
+    // is open, as for every booking (the server checks the same window).
+    lastDay: addIstanbulDays(today, roomRules.bookingWindowDays),
+    firstHour: roomRules.firstHour,
+    closeHour: roomRules.closeHour,
+  };
+  // The free hour's market value, on which the köşk declares KDV.
+  const marketValue = makeGoodHourMarketValue(
+    settings.karaokeHourlyMinor,
+    r.hours,
+    billRate,
+  );
+  const madeGoodItems: KeyValueItem[] = r.makeGoodFor
+    ? [
+        {
+          label: "Telafi edilen rezervasyon",
+          value: madeGood ? (
+            <Link
+              href={karaokeDetailHref(madeGood.id)}
+              className="underline underline-offset-4 hover:text-[var(--admin-primary)]"
+            >
+              {madeGood.id.toUpperCase()}
+            </Link>
+          ) : (
+            r.makeGoodFor.toUpperCase()
+          ),
+        },
+        {
+          label: "Emsal bedel",
+          value: (
+            <span style={NUMERIC_STYLE}>
+              {formatTRY(marketValue.amountMinor)}
+            </span>
+          ),
+          hint: marketValue.note,
+        },
+      ]
+    : [];
 
   const consents: Array<KeyValueItem | false> = consent
     ? [
@@ -447,6 +588,42 @@ export default async function KaraokeReservationPage({
           <KeyValueGrid items={payment} columns={3} />
         </Section>
 
+        {view.makeGood !== "none" ? (
+          <Section
+            title="Telafi"
+            description="Köşk, misafirin ücretsiz iptal süresi geçtikten sonra kendi sebebiyle iptal etti: tam iadeye ek olarak misafir ya aynı uzunlukta ücretsiz bir saat ya da bu tutarın kendi banka hesabına ödenmesini seçer. Biri kullanılınca diğeri kapanır."
+          >
+            <KeyValueGrid items={makeGood} columns={3} />
+            {view.plan.makeGoodHour || view.plan.makeGoodPaid ? (
+              <div className="mt-4 flex flex-wrap items-start gap-2">
+                {view.plan.makeGoodHour ? (
+                  <KaraokeMakeGoodHour
+                    {...makeGoodProps}
+                    variant="primary"
+                    hourDisabledReason={view.plan.makeGoodHour.disabledReason}
+                  />
+                ) : null}
+                {view.plan.makeGoodPaid ? (
+                  <KaraokeMakeGoodPaid
+                    {...makeGoodProps}
+                    variant="ghost"
+                    paidDisabledReason={view.plan.makeGoodPaid.disabledReason}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </Section>
+        ) : null}
+
+        {r.makeGoodFor ? (
+          <Section
+            title="Telafi saati"
+            description="Köşkün geç iptal ettiği bir rezervasyon için verilen ücretsiz saat."
+          >
+            <KeyValueGrid items={madeGoodItems} columns={3} />
+          </Section>
+        ) : null}
+
         <Section
           title="İptal kuralı"
           description={
@@ -482,7 +659,7 @@ export default async function KaraokeReservationPage({
               var. Sayfayı birazdan yenile.
             </p>
           )}
-          <Timeline items={karaokeHistory(r, audit)} />
+          <Timeline items={karaokeHistory(r, audit, { canRefund })} />
         </Section>
       </div>
     </main>

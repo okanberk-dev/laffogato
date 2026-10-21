@@ -61,7 +61,9 @@ describe("the confirmation prints the booking's own rule", () => {
     const m = h.sent[0]!;
     expect(m.text).toContain(rules[0]);
     expect(m.text).toContain(rules[1]);
-    expect(m.html).toContain("ödediğin tutarın %50&#39;si kartına iade edilir");
+    expect(m.html).toContain(
+      "ödediğin tutarın %50&#39;si en geç 14 gün içinde kartına iade edilir",
+    );
     for (const part of [m.html, m.text]) {
       expect(part).not.toContain(time.KARAOKE_NO_REFUND_RULE);
       expect(part).not.toMatch(/\[KARAOKE_/);

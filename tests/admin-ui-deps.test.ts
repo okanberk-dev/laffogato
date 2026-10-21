@@ -427,6 +427,7 @@ describe("ui/icons.tsx", () => {
       close: "X",
       security: "ShieldCheck",
       shortcuts: "Keyboard",
+      density: "Rows3",
       logout: "LogOut",
     });
     const icons = Object.values(ADMIN_ICONS);

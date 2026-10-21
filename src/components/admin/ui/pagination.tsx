@@ -11,12 +11,11 @@ import {
 } from "@/lib/admin/list-params";
 
 import { LinkPending } from "./link-pending";
-import { MONO_STYLE } from "./styles";
+import { COMPACT, MONO_STYLE } from "./styles";
 
 // 44px, the panel's touch target (it was 40px; SHE-32). `relative` holds a
 // link's LinkPending mark.
-const CELL =
-  "relative inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none";
+const CELL = `relative inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none ${COMPACT.h9} ${COMPACT.minW9}`;
 
 /**
  * "1-100 / 250" and numbered page links that keep every other URL param.

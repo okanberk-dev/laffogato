@@ -61,6 +61,8 @@ export interface KaraokeViewReservation {
   cancellationRules?: string[] | null;
   /** A late cancel's share, owed or refunded; null: the whole payment. */
   refundMinor?: number | null;
+  /** A free hour the köşk gave to make good its late cancel of this code. */
+  makeGoodFor?: string | null;
 }
 
 export type KaraokeViewNotice = { tone: "ok" | "warn" | "error"; text: string };
@@ -135,6 +137,7 @@ export function KaraokeReservationView({
   backHref,
   confirming,
   notice,
+  contractHref,
 }: {
   r: KaraokeViewReservation;
   now: Date;
@@ -148,6 +151,11 @@ export function KaraokeReservationView({
   backHref: string;
   confirming: boolean;
   notice?: KaraokeViewNotice;
+  /**
+   * The confirmed terms as a file (ASK-DURABLE), for a paid booking whose
+   * consent recorded its text: the signed-link download. Absent: no link.
+   */
+  contractHref?: string;
 }) {
   const state = karaokeStatusLine(r);
   const live = r.status !== "cancelled";
@@ -232,7 +240,11 @@ export function KaraokeReservationView({
         </div>
         <div>
           <dt>Ödeme</dt>
-          <dd>{PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus}</dd>
+          <dd>
+            {r.makeGoodFor && r.paymentStatus === "none"
+              ? "Telafi saati, senden ödeme alınmaz"
+              : (PAYMENT_LABEL[r.paymentStatus] ?? r.paymentStatus)}
+          </dd>
         </div>
         {r.status === "cancelled" && isPartialRefund(r) ? (
           <div>
@@ -271,6 +283,15 @@ export function KaraokeReservationView({
             </p>
           ) : null}
         </div>
+      ) : null}
+
+      {contractHref ? (
+        <p className="karaoke-mine-sub">
+          {/* A file, not a page: a plain link, never prefetched. */}
+          <a href={contractHref} download>
+            Onayladığın sözleşmenin metnini indir
+          </a>
+        </p>
       ) : null}
 
       {cancellable && confirming ? (

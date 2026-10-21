@@ -118,6 +118,14 @@ export interface KaraokeLegalConsent {
   documents: string[];
   version: string;
   /**
+   * The SHA-256 of the karaoke terms exactly as shown, by slug, as an
+   * order's `legalConsent.textHashes` (21 Ekim 2026). Written by
+   * `createReservation` for both surfaces, never taken from a caller; the
+   * text is kept in `legal_doc_versions` and is what the confirmation mail
+   * attaches. Absent on bookings made before.
+   */
+  textHashes?: Record<string, string>;
+  /**
    * The separate boxes that were ticked, each its own act (operator, 16 Eki
    * 2026): `on-bilgilendirme` (MSY m.7 teyit), `hizmet-sozlesmesi` (the
    * contract accepted) and `kvkk-aydinlatma` - an ACKNOWLEDGEMENT that the
@@ -175,8 +183,11 @@ export interface KaraokeReservation {
   paidMinor?: number;
   /** Provider reference of the payment that paid the row; "" until paid. */
   paymentRef?: string;
-  /** Where it was booked; decides where a payment return lands. */
-  channel?: "web" | "app" | "";
+  /**
+   * Where it was booked; decides where a payment return lands. `staff`: a
+   * free hour the köşk gave to make good its own late cancel (`makeGoodFor`).
+   */
+  channel?: "web" | "app" | "staff" | "";
   legalConsent?: KaraokeLegalConsent | null;
   /**
    * Booked on the web without an account (16 Eki 2026). Never listed for a
@@ -205,9 +216,51 @@ export interface KaraokeReservation {
   cancellationRules?: string[] | null;
   /**
    * Kuruş owed back, or refunded, when it is not the whole payment: a late
-   * cancel's share (`round(paid × P / 100)`). NULL: the whole payment.
+   * cancel's share (`round(paid × P / 100)`), plus what an hour cancelled
+   * late and sold again gives back (`resaleRefundMinor`). NULL: the whole
+   * payment.
    */
   refundMinor?: number | null;
+  /**
+   * The köşk's late cancel made good (20261020203619_karaoke_make_good.sql,
+   * karaoke-make-good-core.ts): the amount, the last day (Istanbul,
+   * YYYY-MM-DD) the free hour can be booked, when one of the two options
+   * was used, and the bank transfer when the money was chosen. NULL on
+   * every booking without one.
+   */
+  makeGoodUntil?: string | null;
+  makeGoodMinor?: number | null;
+  makeGoodUsedAt?: string | null;
+  makeGoodPaidMinor?: number | null;
+  makeGoodPaidOn?: string | null;
+  /** On the free hour itself: the booking it makes good. */
+  makeGoodFor?: string | null;
+  /**
+   * Hours (start hours) of a late-cancelled booking already refunded
+   * because they were sold again, and the part of `refundMinor` for them.
+   */
+  resoldHours?: number[] | null;
+  resaleRefundMinor?: number | null;
+  /**
+   * The part of `refundMinor` that had already gone back (recorded by hand)
+   * when an hour sold again made the booking owe money again: the step
+   * under way asks only for the rest, and on a `refunded` row the last step
+   * was `refundMinor` minus this.
+   */
+  refundSettledMinor?: number | null;
+  /**
+   * Every refund a person recorded by hand ("Elle iade edildi"), with its
+   * own amount (kuruş) and instant: a late share one day and, after its
+   * hour was sold again, the rest another day are two refunds on two days.
+   */
+  refundSteps?: KaraokeRefundStep[] | null;
+}
+
+/** One refund recorded by hand (`KaraokeReservation.refundSteps`). */
+export interface KaraokeRefundStep {
+  minor: number;
+  /** ISO instant the person recorded it. */
+  at: string;
 }
 
 /** What the web form collects about who to reach for a booking. */

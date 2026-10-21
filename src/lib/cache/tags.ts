@@ -66,6 +66,7 @@ const CATALOG: readonly CacheTag[] = [TAG_CATALOG];
 const MENU: readonly CacheTag[] = [TAG_MENU];
 const SITE: readonly CacheTag[] = [TAG_SITE];
 const ORDERS: readonly CacheTag[] = [TAG_ORDERS];
+const KARAOKE: readonly CacheTag[] = [TAG_KARAOKE];
 /** Stock moves with an order: the shop's stock and the order both change. */
 const STOCK_AND_ORDERS: readonly CacheTag[] = [TAG_CATALOG, TAG_ORDERS];
 
@@ -88,7 +89,7 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   venue_status: SITE,
 
   orders: ORDERS,
-  karaoke_reservations: [TAG_KARAOKE],
+  karaoke_reservations: KARAOKE,
   // Who may still read the panel: the change markers (change-marker.ts).
   admin_users: [TAG_ACCESS],
 
@@ -107,6 +108,10 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   wallet_transactions: NONE,
   newsletter_subscribers: NONE,
   legal_override_history: NONE,
+  // Every legal text shown, by hash (20261020180000): read live by the
+  // ?surum= page and the durable copy, never cached; a text that changes
+  // writes a new row, and the pages it is shown on expire with legal_docs.
+  legal_doc_versions: NONE,
   admin_2fa: NONE,
   auth_attempts: NONE,
   loyalty_stamps: NONE,
@@ -150,6 +155,13 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   // The stock_moves ledger: read live by the panel, never cached.
   record_stock_move: NONE,
 
+  // Karaoke bookings only: an hour sold again charged to the booking that
+  // cancelled it late, and the köşk's late cancel made good (the free hour
+  // given, or let go). 20261020203619_karaoke_make_good.sql.
+  karaoke_charge_resold_hours: KARAOKE,
+  karaoke_give_make_good_hour: KARAOKE,
+  karaoke_release_make_good_hour: KARAOKE,
+
   // Legal overrides the /hukuk pages print.
   legal_doc_save: SITE,
   legal_doc_reset: SITE,
@@ -173,6 +185,8 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   email_suppression_record: NONE,
   reserve_fal_reading: NONE,
   customer_consents_retention: NONE,
+  // Deletes only legal_doc_versions rows past their eleven years.
+  legal_doc_versions_retention: NONE,
 
   // Read-only helpers.
   admin_customer_counts: NONE,
@@ -190,6 +204,7 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   counter_token_issue_cap: NONE,
   customer_consents_append_only: NONE,
   legal_override_history_append_only: NONE,
+  legal_doc_versions_append_only: NONE,
   // Writes product_price_history inside the products write that fired it.
   record_product_price: NONE,
 };

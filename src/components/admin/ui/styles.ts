@@ -2,8 +2,13 @@
 // (PrimaryButton, GhostButton, DangerButton) so a kit button and a form
 // button look the same; written out in full for Tailwind's scanner.
 
-const BUTTON_BASE =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
+import { COMPACT } from "./compact";
+
+// The compact density's classes live in compact.ts (the tab strip, which the
+// shell draws on every page, takes them without this file's buttons).
+export { COMPACT };
+
+const BUTTON_BASE = `inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${COMPACT.minH9}`;
 
 export const BUTTON = {
   primary: `${BUTTON_BASE} bg-[var(--admin-primary)] px-5 font-medium text-white hover:bg-[var(--admin-primary-hover)]`,
@@ -12,18 +17,17 @@ export const BUTTON = {
   /** The submit of a dangerous modal: solid, unmistakable. */
   dangerSolid: `${BUTTON_BASE} bg-[var(--admin-danger)] px-5 font-medium text-white hover:bg-[var(--admin-danger-ink)]`,
   /** Text-only, for a quiet secondary action inside a row. */
-  link: "inline-flex min-h-[44px] items-center gap-1 rounded-md px-1 text-sm text-[var(--admin-primary)] underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+  link: `inline-flex min-h-[44px] items-center gap-1 rounded-md px-1 text-sm text-[var(--admin-primary)] underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${COMPACT.minH9}`,
   /** A row in an ActionMenu. */
-  menu: "flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--admin-text)] hover:bg-[var(--admin-surface-2)] focus-visible:bg-[var(--admin-surface-2)] focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent",
+  menu: `flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--admin-text)] hover:bg-[var(--admin-surface-2)] focus-visible:bg-[var(--admin-surface-2)] focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent ${COMPACT.minH9}`,
   /** A destructive row in an ActionMenu. */
-  menuDanger:
-    "flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)] focus-visible:bg-[var(--admin-danger-soft)] focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent",
+  menuDanger: `flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)] focus-visible:bg-[var(--admin-danger-soft)] focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-transparent ${COMPACT.minH9}`,
   /**
    * An icon-only control: a 44px square in the ghost button's outline. It
    * has no text, so it always takes an `aria-label` (the icon is
    * `aria-hidden`).
    */
-  icon: `${BUTTON_BASE} h-11 w-11 shrink-0 border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]`,
+  icon: `${BUTTON_BASE} h-11 w-11 shrink-0 border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] ${COMPACT.h9} ${COMPACT.w9}`,
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON;

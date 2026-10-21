@@ -70,7 +70,7 @@ describe("the sentences of a policy", () => {
     });
     expect(text.rules).toEqual([
       "Rezervasyon saatine 24 saatten fazla varken iptal edersen ödediğin tutarın tamamı kartına iade edilir.",
-      "Rezervasyon saatine 24 saatten az kala yapılan iptallerde ödediğin tutarın %50'si kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.",
+      "Rezervasyon saatine 24 saatten az kala yapılan iptallerde ödediğin tutarın %50'si en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir.",
     ]);
     // A late cancel is accepted until the start: the refusal is the no-show.
     expect(text.tooLateMessage).toBe(
@@ -324,12 +324,6 @@ describe("the panel's limits (Haksız Şartlar Yön. m.5/1, EK (ç), (d); TBK m.
       lateRefundPercent: p,
     });
 
-  const open = (h: number, p: number) =>
-    time.karaokeCancelPolicyRefusal(
-      { freeCancelHours: h, lateRefundPercent: p },
-      { partialLateRefund: true },
-    );
-
   it("accepts the default, 0 hours, and a long window with everything back", () => {
     expect(refuse(2, 0)).toBeNull();
     // 0 hours is free until the start: nothing is kept but a no-show's.
@@ -340,34 +334,29 @@ describe("the panel's limits (Haksız Şartlar Yön. m.5/1, EK (ç), (d); TBK m.
     expect(refuse(72, 100)).toBeNull();
   });
 
-  it("a share of 1..99 % waits for the resale refund (ASK-OTH-3-CFG)", () => {
-    for (const [h, p] of [
-      [2, 1],
-      [24, 50],
-      [30, 40],
-      [0, 50],
-      [72, 99],
-    ]) {
-      expect(refuse(h!, p!)).toEqual({
-        field: "karaokeLateRefundPercent",
-        message:
-          "Kısmi geç iptal iadesi, yeniden satılan saatin iadesi hazır olana kadar seçilemez; %0 ya da %100 seç.",
-      });
-    }
-    expect(time.KARAOKE_PARTIAL_LATE_REFUND_OPEN).toBe(false);
-    // Once it opens, the fairness limits are what is left.
-    expect(open(24, 50)).toBeNull();
-    expect(open(30, 50)).toBeNull();
-    expect(open(0, 10)).toBeNull();
+  it("a share of 1..99 % is open now the resale refund is built (D-KAR-1-99)", () => {
+    // The panel offered only 0 or 100 until an hour cancelled late and sold
+    // again refunded what was kept for it (karaoke-make-good-core.ts).
+    expect(refuse(2, 1)).toBeNull();
+    expect(refuse(24, 50)).toBeNull();
+    expect(refuse(30, 50)).toBeNull();
+    expect(refuse(0, 10)).toBeNull();
+    expect(refuse(72, 99)).toBeNull();
+    expect(time).not.toHaveProperty("KARAOKE_PARTIAL_LATE_REFUND_OPEN");
+    expect(time).not.toHaveProperty("KARAOKE_PARTIAL_LATE_REFUND_CLOSED");
+    // What is left are the fairness limits.
+    expect(refuse(30, 40)).toMatchObject({
+      field: "karaokeLateRefundPercent",
+    });
   });
 
   it("at 0 % the window is at most 24 hours", () => {
     expect(refuse(25, 0)).toMatchObject({ field: "karaokeFreeCancelHours" });
-    expect(open(25, 0)).toMatchObject({ field: "karaokeFreeCancelHours" });
   });
 
   it("above 24 hours at least half goes back", () => {
-    expect(open(30, 40)).toMatchObject({ field: "karaokeLateRefundPercent" });
+    expect(refuse(30, 40)).toMatchObject({ field: "karaokeLateRefundPercent" });
+    expect(refuse(25, 49)).toMatchObject({ field: "karaokeLateRefundPercent" });
   });
 
   it("refuses what is out of range", () => {
@@ -400,13 +389,9 @@ describe("the app lock: no other rule while app builds print their own", () => {
       freeCancelHours: 2,
       lateRefundPercent: 0,
     });
-    // A stored share of 1..99 % never takes effect while it is closed...
+    // A stored share of 1..99 % takes effect once the app lock opens: the
+    // resale refund is built.
     expect(time.effectiveKaraokeCancelPolicy(settings, "1.1.0")).toEqual({
-      freeCancelHours: 2,
-      lateRefundPercent: 0,
-    });
-    // ...and does once the resale refund opens it.
-    expect(time.effectiveKaraokeCancelPolicy(settings, "1.1.0", true)).toEqual({
       freeCancelHours: 24,
       lateRefundPercent: 50,
     });
@@ -558,6 +543,8 @@ describe("the karaoke document: one text for every policy (ASK-OTH-3-CFG)", () =
     );
     expect(section(KARAOKE_ROOM_DOC, "8").paragraphs).toEqual([
       "Rezervasyonunuzu yalnızca haklı bir sebeple (oda veya ekipman arızası, köşkün geçici olarak kapanması, mücbir sebep veya benzeri haklı bir sebep) iptal ederiz. Bu durumda size durumu öğrenir öğrenmez ve en geç 3 gün içinde e-postayla bildiririz; durumu rezervasyon saatinden önce öğrenmişsek bildirimi rezervasyon saatinden önce yapar, rezervasyonunuza 24 saatten az kalmışsa ve telefon numaranız kayıtlıysa ayrıca sizi ararız. Ödediğiniz tutarın tamamını bildirimden itibaren en geç 14 gün içinde ödemeyi yaptığınız karta iade ederiz; iade, iptalle birlikte PayNkolay üzerinden hemen başlatılır. Bu süreler Mesafeli Sözleşmeler Yönetmeliği m.16/4'teki en uzun sürelerdir ve iptalin her nedeninde uygulanır. Kanundan doğan tazminat haklarınız saklıdır.",
+      // OP-KARAOKE-GOODWILL (19 Eki 2026): the late köşk cancel made good.
+      "İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep (mücbir sebep) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde {{PHONE}} numarasını arayarak veya {{EMAIL}} adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi {{EMAIL}} adresine yazmanızdan itibaren en geç 14 gün içinde yaparız.",
     ]);
   });
 

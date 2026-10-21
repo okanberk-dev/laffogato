@@ -17,6 +17,7 @@ import {
   Plus,
   QrCode,
   Radio,
+  Rows3,
   Scale,
   ScrollText,
   Search,
@@ -77,9 +78,11 @@ export const ADMIN_ICONS = {
   more: Ellipsis,
   dateRange: CalendarRange,
   close: X,
-  // The account block: Güvenlik / 2FA, the single-key switch, Çıkış.
+  // The account block: Güvenlik / 2FA, the single-key switch, Sıkı görünüm,
+  // Çıkış.
   security: ShieldCheck,
   shortcuts: Keyboard,
+  density: Rows3,
   logout: LogOut,
 } as const satisfies Record<string, LucideIcon>;
 

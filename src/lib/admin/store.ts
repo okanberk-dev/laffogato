@@ -386,9 +386,37 @@ export interface OrderLegalConsent {
   documents: string[];
   /** Revision label of those documents (their "son güncelleme" date). */
   version: string;
+  /**
+   * The SHA-256 of each document's text exactly as shown, by slug (decision
+   * D-VERSIONS-TABLE, 21 Ekim 2026). The label names a day, the hash the
+   * text; the text itself is kept in `legal_doc_versions` under it and is
+   * what the confirmation mail attaches and the order page downloads
+   * (src/lib/legal/version-core.ts). Absent on orders placed before.
+   */
+  textHashes?: Record<string, string>;
+  /**
+   * The buyer's name and delivery address as the order was placed with
+   * them (`withBuyerSnapshot`), printed by the confirmed contract's copy.
+   * Absent on orders placed before 21 Ekim 2026.
+   */
+  buyer?: { name: string; address: string };
   /** Origin of the confirmation - evidence only. */
   ip?: string;
   userAgent?: string;
+}
+
+/**
+ * The name and address an order is placed with, kept in its consent
+ * (`legalConsent.buyer`, 21 Ekim 2026): the confirmed contract's copy
+ * prints these, so a staff correction of the order's row afterwards does
+ * not rewrite what the customer confirmed and was sent (ASK-OTH-2: the
+ * filled table is stored with the order). No consent, nothing to add.
+ */
+export function withBuyerSnapshot(
+  consent: OrderLegalConsent | undefined,
+  buyer: { name: string; address: string },
+): OrderLegalConsent | undefined {
+  return consent ? { ...consent, buyer } : consent;
 }
 
 export interface AdminOrder {
@@ -3633,17 +3661,22 @@ export async function placeOrder(
       input.customerEmail ?? "customer",
     );
 
+    const customerName = input.customerName?.trim() || "Misafir";
+    const shippingAddress = input.shippingAddress?.trim() ?? "";
     placed = await finalizeOrder(resolved, settings.taxRates, {
       orderId,
       orderNo,
       status: "pending_payment",
-      customerName: input.customerName?.trim() || "Misafir",
+      customerName,
       customerEmail: input.customerEmail?.trim() || "guest@laffogato.local",
       customerPhone: input.customerPhone?.trim() ?? "",
-      shippingAddress: input.shippingAddress?.trim() ?? "",
+      shippingAddress,
       internalNote: "",
       promoCode: input.promoCode,
-      legalConsent: input.legalConsent,
+      legalConsent: withBuyerSnapshot(input.legalConsent, {
+        name: customerName,
+        address: shippingAddress,
+      }),
     });
   } catch (err) {
     await releaseClaimedStock(resolved);
@@ -4155,17 +4188,22 @@ export async function placeAppOrder(
     }
   }
 
+  const customerName = input.customerName.trim() || "Üye";
+  // A table order goes across the room: no address is ever written for it.
+  const shippingAddress =
+    input.fulfillment === "table" ? "" : input.shippingAddress.trim();
   const common = {
     status: "pending_payment" as const,
-    customerName: input.customerName.trim() || "Üye",
+    customerName,
     customerEmail: input.customerEmail.trim().toLowerCase(),
     customerPhone: input.customerPhone.trim(),
-    // A table order goes across the room: no address is ever written for it.
-    shippingAddress:
-      input.fulfillment === "table" ? "" : input.shippingAddress.trim(),
+    shippingAddress,
     internalNote: "",
     promoCode: input.promoCode,
-    legalConsent: input.legalConsent,
+    legalConsent: withBuyerSnapshot(input.legalConsent, {
+      name: customerName,
+      address: shippingAddress,
+    }),
     channel: "app" as const,
     kind,
     fulfillment: input.fulfillment,
@@ -7515,6 +7553,11 @@ export interface KaraokeRevenueRow {
   paidMinor?: number | null;
   /** A late cancel's share owed / refunded; null = the whole payment. */
   refundMinor?: number | null;
+  /**
+   * The part of `refundMinor` that had already gone back when an hour sold
+   * again made the booking owe money again (karaoke-make-good-core.ts).
+   */
+  refundSettledMinor?: number | null;
   paidAt?: string | null;
   createdAt: string;
 }
@@ -7545,10 +7588,12 @@ const KARAOKE_COLLECTED = ["paid", "refunding", "refunded"] as const;
  * Read from `karaoke_reservations`: `paidMinor` of every booking the POS
  * collected, minus what was refunded: the whole payment (a `refunded` row
  * nets to 0), or a late cancel's share (`refundMinor`, P2a), whose kept part
- * is the köşk's revenue. A `refunding` row still counts in full: the money
- * has not gone back (CLAUDE.md rule 29); what is owed is shown apart as
- * "iadesi bekleyen". The period figure books a payment in the bucket of its
- * `paidAt`, and its refund against that same bucket, as the order chart does.
+ * is the köşk's revenue. A `refunding` row still counts in full, but for
+ * what had already gone back by hand before an hour sold again made it owe
+ * more (`refundSettledMinor`): the money owed has not gone back (CLAUDE.md
+ * rule 29) and is shown apart as "iadesi bekleyen". The period figure books
+ * a payment in the bucket of its `paidAt`, and its refund against that same
+ * bucket, as the order chart does.
  */
 export async function karaokeRevenue(
   granularity: BucketGranularity,
@@ -7557,7 +7602,9 @@ export async function karaokeRevenue(
   const data = rows<KaraokeRevenueRow>(
     await getDb()
       .from(TABLES.karaokeReservations)
-      .select("paymentStatus, paidMinor, refundMinor, paidAt, createdAt")
+      .select(
+        "paymentStatus, paidMinor, refundMinor, refundSettledMinor, paidAt, createdAt",
+      )
       .in("paymentStatus", [...KARAOKE_COLLECTED]),
     "karaokeRevenue",
   );
@@ -7593,12 +7640,25 @@ export function karaokeRevenueFrom(
       typeof r.refundMinor === "number" && r.refundMinor >= 0
         ? Math.min(paid, Math.round(r.refundMinor))
         : paid;
-    const kept = status === "refunded" ? paid - share : paid;
+    // Of a share still owed, what had already gone back (a late share
+    // refunded before its hour was sold again).
+    const settled =
+      typeof r.refundMinor === "number" &&
+      typeof r.refundSettledMinor === "number" &&
+      r.refundSettledMinor > 0
+        ? Math.min(share, Math.round(r.refundSettledMinor))
+        : 0;
+    const kept =
+      status === "refunded"
+        ? paid - share
+        : status === "refunding"
+          ? paid - settled
+          : paid;
     out.collectedMinor += paid;
     out.refundedMinor += paid - kept;
     out.netMinor += kept;
     if (kept > 0) out.paidCount += 1;
-    if (status === "refunding") out.refundPendingMinor += share;
+    if (status === "refunding") out.refundPendingMinor += share - settled;
     const at = new Date(r.paidAt || r.createdAt);
     if (Number.isNaN(at.getTime())) continue;
     if (period.has(bucketKey(istanbulWall(at), granularity)) && kept > 0) {
@@ -7636,6 +7696,8 @@ export interface DayCloseBooking {
 export type DayCloseKaraokeMoney = KaraokeRevenueRow & {
   id: string;
   refundedAt?: string | null;
+  /** The refunds recorded by hand, each with its amount and instant. */
+  refundSteps?: Array<{ minor: number; at: string }> | null;
 };
 
 /** A loyalty ledger row, without the member (the sheet names nobody). */
@@ -7711,7 +7773,7 @@ export async function dayCloseRows(day: string): Promise<DayCloseRows> {
       sb
         .from(TABLES.karaokeReservations)
         .select(
-          "id, paymentStatus, paidMinor, refundMinor, paidAt, createdAt, refundedAt",
+          "id, paymentStatus, paidMinor, refundMinor, refundSettledMinor, refundSteps, paidAt, createdAt, refundedAt",
         )
         .in("paymentStatus", [...KARAOKE_COLLECTED])
         .then((r) => rows<DayCloseKaraokeMoney>(r, `${ctx}.karaokeMoney`)),

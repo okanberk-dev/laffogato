@@ -7453,3 +7453,599 @@ update public.products
 
 insert into public._migrations (name) values ('20261019170300_product_price_history.sql')
   on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261020180000_legal_doc_versions.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Every legal text the site has shown, kept by the SHA-256 of the text itself
+-- (decisions D-VERSIONS-TABLE and ASK-DURABLE, 20 Oct 2026; LEGAL-REDLINES
+-- §25).
+--
+-- A consent recorded only a version label (`legalConsent.version`, "20 Ekim
+-- 2026"), and two different texts could carry the same label: a panel
+-- override and the coded text, or two changes merged on one Istanbul day
+-- (the D-SAME-DAY rule existed for that). Now every consent also records the
+-- hash of each text it confirmed (`legalConsent.textHashes`, { slug: sha256 })
+-- and the text behind each hash lives here:
+--
+--   hash        sha256 (lowercase hex) of `body`, its UTF-8 bytes exactly.
+--               The CHECK below makes the database refuse a row whose hash
+--               is not the hash of its text: a row is its own proof.
+--               Collation "C" so a hex prefix is a plain byte range.
+--   slug        the document (`/hukuk/<slug>`).
+--   body        the document as /hukuk/<slug> showed it, in the one form its
+--               hash is taken of: canonical JSON written by
+--               src/lib/legal/version-core.ts (title, summary, date, then the
+--               coded sections with their tokens filled, or the panel's
+--               Markdown). The database never parses it.
+--   "createdAt" when the text was first stored (ISO-8601 UTC). It defaults to
+--               the database clock and the app never writes it, so a row's
+--               age is the database's word (a direct INSERT could still set
+--               it; the app has no such path).
+--
+-- Writers (INSERT ... ON CONFLICT (hash) DO NOTHING in one statement, never a
+-- read-modify-write): the checkout and karaoke consents (the texts they
+-- record), the panel's save, reset and restore (the text shown before the
+-- change, written before it, and the one shown after, once the change is
+-- written), the daily cron (every document as shown that day: a text no
+-- consent names is here within a day of the deploy that changed it), and the
+-- confirmation mails and the two contract downloads, which store a confirmed
+-- text that is still shown but missing. No public page view writes here.
+--
+-- Readers: /hukuk/<slug>?surum=<prefix> (only with that parameter), the
+-- confirmation e-mails' attachment and the member's download.
+--
+-- Append-only: UPDATE and TRUNCATE are refused (P0001). DELETE passes only
+-- for a row whose "createdAt" is a written instant older than eleven years:
+-- the periodic destruction (src/lib/retention.ts, rule "legal-doc-versions")
+-- cuts at 11 x 366 days through legal_doc_versions_retention below, which
+-- also keeps every text a consent of the last eleven years names, every text
+-- that was not replaced before the cutoff and every text shown today.
+--
+-- Idempotent: create if not exists, create or replace, drop trigger if
+-- exists. No `insert into public._migrations`: scripts/db-migrate.mjs records
+-- the file itself.
+--
+-- Rollback (loses every stored text; only before the first consent records a
+-- hash):
+--   drop function if exists public.legal_doc_versions_retention(text, boolean, jsonb);
+--   drop table if exists public.legal_doc_versions;
+--   drop function if exists public.legal_doc_versions_append_only();
+
+create table if not exists public.legal_doc_versions (
+  hash        text collate "C" primary key,
+  slug        text not null,
+  body        text not null,
+  "createdAt" text not null
+              default to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+  constraint legal_doc_versions_hash_shape
+    check (hash ~ '^[0-9a-f]{64}$'),
+  constraint legal_doc_versions_hash_of_body
+    check (hash = encode(sha256(convert_to(body, 'UTF8')), 'hex')),
+  constraint legal_doc_versions_slug_shape
+    check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$')
+);
+
+create index if not exists legal_doc_versions_slug_idx
+  on public.legal_doc_versions (slug, "createdAt");
+
+alter table public.legal_doc_versions enable row level security;
+
+-- ── append-only ─────────────────────────────────────────────────────────
+create or replace function public.legal_doc_versions_append_only()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  cutoff text;
+begin
+  if tg_op = 'DELETE' then
+    cutoff := to_char(
+      (now() at time zone 'UTC') - interval '11 years',
+      'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+    );
+    if old."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}'
+       and old."createdAt" < cutoff then
+      return old;
+    end if;
+    raise exception 'legal_doc_versions rows are kept for eleven years (%)', old.hash
+      using errcode = 'P0001';
+  end if;
+  raise exception 'legal_doc_versions is append-only' using errcode = 'P0001';
+end;
+$$;
+
+drop trigger if exists legal_doc_versions_no_update on public.legal_doc_versions;
+create trigger legal_doc_versions_no_update
+  before update on public.legal_doc_versions
+  for each row execute function public.legal_doc_versions_append_only();
+
+drop trigger if exists legal_doc_versions_retention_delete on public.legal_doc_versions;
+create trigger legal_doc_versions_retention_delete
+  before delete on public.legal_doc_versions
+  for each row execute function public.legal_doc_versions_append_only();
+
+drop trigger if exists legal_doc_versions_no_truncate on public.legal_doc_versions;
+create trigger legal_doc_versions_no_truncate
+  before truncate on public.legal_doc_versions
+  for each statement execute function public.legal_doc_versions_append_only();
+
+-- ── legal_doc_versions_retention ────────────────────────────────────────
+-- The period as a query. A row is in scope only when ALL of these hold:
+--   - it was first stored before p_cutoff;
+--   - a later text of the same document was first stored, also before
+--     p_cutoff (the text stopped being the newest more than eleven years ago:
+--     the newest text of a document is never in scope, however old);
+--   - it is not a text shown today (p_keep, a JSON array of hashes the
+--     caller works out from the live documents: a text replaced long ago can
+--     be shown again, a coded text after a reset, and its row keeps its
+--     first "createdAt");
+--   - no order and no karaoke booking whose consent was accepted at or after
+--     p_cutoff names it in `legalConsent.textHashes`.
+-- A text first stored twelve years ago and confirmed by an order last year
+-- stays; the contract it proves is still inside its ten years.
+--
+-- Without p_keep (null, or not an array) nothing is in scope: the caller
+-- that cannot say what is shown today removes nothing.
+--
+-- p_apply false counts only; true deletes and returns how many went.
+drop function if exists public.legal_doc_versions_retention(text, boolean);
+
+create or replace function public.legal_doc_versions_retention(
+  p_cutoff text,
+  p_apply  boolean,
+  p_keep   jsonb
+)
+returns integer
+language plpgsql
+set search_path = ''
+as $$
+declare
+  affected integer := 0;
+begin
+  if p_keep is null or jsonb_typeof(p_keep) <> 'array' then
+    return 0;
+  end if;
+  if p_apply then
+    delete from public.legal_doc_versions v
+     where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+       and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
+       and exists (
+         select 1
+           from public.legal_doc_versions w
+          where w.slug = v.slug
+            and w."createdAt" > v."createdAt"
+            and w."createdAt" < p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.orders o
+          where o."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(o."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.karaoke_reservations k
+          where k."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(k."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       );
+    get diagnostics affected = row_count;
+  else
+    select count(*) into affected
+      from public.legal_doc_versions v
+     where v."createdAt" ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+       and v."createdAt" < p_cutoff
+       and not (p_keep ? v.hash)
+       and exists (
+         select 1
+           from public.legal_doc_versions w
+          where w.slug = v.slug
+            and w."createdAt" > v."createdAt"
+            and w."createdAt" < p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.orders o
+          where o."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(o."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       )
+       and not exists (
+         select 1
+           from public.karaoke_reservations k
+          where k."legalConsent" -> 'textHashes' ->> v.slug = v.hash
+            and coalesce(k."legalConsent" ->> 'acceptedAt', '') >= p_cutoff
+       );
+  end if;
+  return affected;
+end;
+$$;
+
+insert into public._migrations (name) values ('20261020180000_legal_doc_versions.sql')
+  on conflict (name) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────
+-- 20261020203619_karaoke_make_good.sql
+-- ─────────────────────────────────────────────────────────────────────
+-- Karaoke: the köşk's late cancel is made good, and an hour cancelled late
+-- and sold again refunds the share kept for it.
+--
+-- OP-KARAOKE-GOODWILL (18 Eki 2026; Haksız Şartlar Yön. EK-1 (ç)): when the
+-- köşk has to cancel after the guest's own free moment, for a reason that is
+-- not force majeure, and the booking keeps a share on a late cancel, the
+-- guest gets that share again as a make-good on top of the full refund: an
+-- hour of the same length for free (booked within 6 months) or the amount
+-- paid to their own bank account. One of the two; the other then closes.
+--
+-- ASK-OTH-3-CFG (18 Eki 2026; TBK m.325/2 kıyasen): an hour a guest
+-- cancelled late (a late share of 1..99 %) that is sold again refunds the
+-- share kept for it. Each hour once, to the booking that last cancelled it
+-- late; the hours already counted are kept on that booking.
+--
+-- karaoke_reservations, on the cancelled booking:
+--   "makeGoodUntil"      the last day (YYYY-MM-DD, Istanbul) the free hour
+--                        can be booked: the cancel day plus 6 months
+--   "makeGoodMinor"      the make-good, kuruş (the share a late cancel keeps)
+--   "makeGoodUsedAt"     when it was used (ISO): an hour given or the money
+--                        paid; NULL while open
+--   "makeGoodPaidMinor"  paid by bank transfer: the amount, kuruş
+--   "makeGoodPaidOn"     and the day of the transfer (YYYY-MM-DD). The IBAN
+--                        is never written here; the receipt stays with the
+--                        accounts.
+--   "resoldHours"        hours (start hours, jsonb array) already refunded
+--                        because they were sold again
+--   "resaleRefundMinor"  the part of "refundMinor" owed or refunded for them
+--   "refundSettledMinor" the part of "refundMinor" that had already gone back
+--                        (recorded by hand) when the booking was owed money
+--                        again because one of its hours was sold again: the
+--                        step under way asks for "refundMinor" minus this
+--   "refundSteps"        every refund recorded by hand ("Elle iade edildi"),
+--                        each with its own amount and instant (jsonb array of
+--                        {"minor", "at"}): a late share refunded one day and
+--                        the rest of it, after a resale, another day stay two
+--                        refunds on two days (the Gün sonu sheet)
+-- on the free hour itself:
+--   "makeGoodFor"        the booking it makes good. Total 0, paid nothing
+--                        (paymentStatus 'none'), made by the staff
+--                        (channel 'staff'); at most one live per booking.
+--
+-- karaoke_open_cap: a free hour the staff give is not one of the guest's own
+-- open bookings, so it neither hits nor uses up the cap.
+--
+-- karaoke_charge_resold_hours: counts sold-again hours on a late-cancelled
+-- booking under its row lock (rule 20: two payments for different hours of
+-- the same evening must not lose each other's count, and the same hour
+-- reported twice is counted once).
+--
+-- karaoke_give_make_good_hour: "Telafi saati ver" in one statement: the
+-- make-good is claimed and the free hour written together, under the made
+-- good booking's row lock, so a free hour that cannot be written (its hour
+-- taken, 23P01) leaves the make-good open, and the claim never survives
+-- without its hour.
+--
+-- karaoke_release_make_good_hour: the free hour cancelled, and (before it
+-- began) its make-good open again, in one statement: the guest never loses
+-- the make-good to a cancel whose second write did not happen.
+--
+-- Safe on a live table: nullable columns, checks every existing row
+-- satisfies (all NULL), a partial unique index over no rows yet.
+--
+-- NOTE: no `insert into public._migrations` here. scripts/db-migrate.mjs does
+-- that itself, inside the same transaction.
+
+alter table public.karaoke_reservations add column if not exists "makeGoodUntil"     text;
+alter table public.karaoke_reservations add column if not exists "makeGoodMinor"     integer;
+alter table public.karaoke_reservations add column if not exists "makeGoodUsedAt"    text;
+alter table public.karaoke_reservations add column if not exists "makeGoodPaidMinor" integer;
+alter table public.karaoke_reservations add column if not exists "makeGoodPaidOn"    text;
+alter table public.karaoke_reservations add column if not exists "makeGoodFor"       text;
+alter table public.karaoke_reservations add column if not exists "resoldHours"       jsonb;
+alter table public.karaoke_reservations add column if not exists "resaleRefundMinor" integer;
+alter table public.karaoke_reservations add column if not exists "refundSettledMinor" integer;
+alter table public.karaoke_reservations add column if not exists "refundSteps"       jsonb;
+
+do $$
+begin
+  -- A make-good has an amount and a last day together, is used at most once,
+  -- and a transfer has both its amount and its day.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_make_good_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_make_good_check
+      check (
+        ("makeGoodUntil" is null) = ("makeGoodMinor" is null)
+        and ("makeGoodMinor" is null or "makeGoodMinor" > 0)
+        and ("makeGoodUsedAt" is null or "makeGoodUntil" is not null)
+        and ("makeGoodPaidMinor" is null) = ("makeGoodPaidOn" is null)
+        and ("makeGoodPaidMinor" is null
+             or ("makeGoodPaidMinor" > 0 and "makeGoodUsedAt" is not null))
+      );
+  end if;
+  -- The resale part is a part of what goes back: never more, never negative.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_resale_refund_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_resale_refund_check
+      check ("resaleRefundMinor" is null
+             or ("resaleRefundMinor" >= 0
+                 and "refundMinor" is not null
+                 and "resaleRefundMinor" <= "refundMinor"));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_settled_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_settled_check
+      check ("refundSettledMinor" is null
+             or ("refundSettledMinor" >= 0
+                 and "refundMinor" is not null
+                 and "refundSettledMinor" <= "refundMinor"));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_steps_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_steps_check
+      check ("refundSteps" is null or jsonb_typeof("refundSteps") = 'array');
+  end if;
+end $$;
+
+-- One live free hour per booking made good: two staff members pressing
+-- "Telafi saati ver" at once cannot give two.
+create unique index if not exists karaoke_reservations_make_good_once
+  on public.karaoke_reservations ("makeGoodFor")
+  where "makeGoodFor" is not null and status <> 'cancelled';
+
+-- Same as 20261016063311_karaoke_prepay.sql, plus: a free hour the staff
+-- give ("makeGoodFor" set) is neither capped nor counted.
+create or replace function public.karaoke_open_cap()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  today      text;
+  open_count int;
+begin
+  if new.status = 'cancelled' or new."makeGoodFor" is not null then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(
+    hashtext('karaoke-open-cap:' || case when new.guest then 'guest:' else '' end
+             || lower(new."customerEmail")));
+  today := to_char((now() at time zone 'Europe/Istanbul')::date, 'YYYY-MM-DD');
+  select count(*) into open_count
+    from public.karaoke_reservations
+   where lower("customerEmail") = lower(new."customerEmail")
+     and guest = new.guest
+     and status <> 'cancelled'
+     and "makeGoodFor" is null
+     and date >= today;
+  if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+    raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+  end if;
+  if new.guest and new."contactPhone" <> '' then
+    perform pg_advisory_xact_lock(
+      hashtext('karaoke-open-cap-phone:' || new."contactPhone"));
+    select count(*) into open_count
+      from public.karaoke_reservations
+     where guest
+       and "contactPhone" = new."contactPhone"
+       and status <> 'cancelled'
+       and "makeGoodFor" is null
+       and date >= today;
+    if open_count >= 2 then  -- KARAOKE_OPEN_CAP
+      raise exception 'TOO_MANY_OPEN_RESERVATIONS' using errcode = 'P0001';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Hours of a late-cancelled booking that were sold again (`p_hours`, a jsonb
+-- array of start hours; those outside the booking and those already counted
+-- are ignored). Returns the kuruş this call added to what goes back, 0 when
+-- nothing new. The share a late cancel kept is "paidMinor" minus the late
+-- refund ("refundMinor" without its resale part); the resale part is
+-- round(kept x counted hours / hours) of it, counted as a whole each time
+-- (half a kuruş rounds up, numeric round), so the parts add up to exactly
+-- what was kept and never more. Money owed again puts the booking back in
+-- 'refunding': a person refunds it in PayNkolay's panel (partial refunds are
+-- not sent to the POS, docs/PAYNKOLAY.md §3.2). A booking that was
+-- 'refunded' keeps what had already gone back in "refundSettledMinor", so
+-- the panel asks only for the rest. "updatedAt" is not touched: on a
+-- cancelled row it is the cancel instant, which decides the booking that
+-- cancelled an hour last.
+create or replace function public.karaoke_charge_resold_hours(
+  p_id    text,
+  p_hours jsonb
+)
+returns int
+language plpgsql
+set search_path = ''
+as $$
+declare
+  r       public.karaoke_reservations%rowtype;
+  counted jsonb;
+  fresh   jsonb;
+  before  int;
+  share   int;
+  kept    int;
+  after   int;
+begin
+  select * into r
+    from public.karaoke_reservations
+   where id = p_id
+     for update;
+  if not found
+     or r.status <> 'cancelled'
+     or r."refundMinor" is null
+     or r."paymentStatus" not in ('refunding', 'refunded')
+     or r."makeGoodFor" is not null
+     or r.hours <= 0 then
+    return 0;
+  end if;
+  counted := coalesce(r."resoldHours", '[]'::jsonb);
+  select coalesce(jsonb_agg(h order by h), '[]'::jsonb) into fresh
+    from (
+      select distinct (value)::int as h
+        from jsonb_array_elements_text(coalesce(p_hours, '[]'::jsonb))
+    ) asked
+   where h >= r."startHour"
+     and h < r."startHour" + r.hours
+     and not counted @> to_jsonb(h);
+  if jsonb_array_length(fresh) = 0 then
+    return 0;
+  end if;
+  before := coalesce(r."resaleRefundMinor", 0);
+  share := r."refundMinor" - before;
+  kept := r."paidMinor" - share;
+  if kept <= 0 then
+    return 0;
+  end if;
+  after := round(
+    kept::numeric * (jsonb_array_length(counted) + jsonb_array_length(fresh))
+      / r.hours
+  )::int;
+  update public.karaoke_reservations
+     set "resoldHours" = counted || fresh,
+         "resaleRefundMinor" = after,
+         "refundMinor" = share + after,
+         "paymentStatus" = case
+           when after > before then 'refunding'
+           else "paymentStatus"
+         end,
+         "refundSettledMinor" = case
+           when after > before and r."paymentStatus" = 'refunded'
+             then r."refundMinor"
+           else r."refundSettledMinor"
+         end
+   where id = p_id;
+  return after - before;
+end;
+$$;
+
+-- "Telafi saati ver": the free hour of the same length for the guest of a
+-- booking the köşk cancelled late, and the make-good used by it, in one
+-- statement. 'given'; 'not_open' when the booking has no open make-good
+-- (never had one, or its hour or its money was used: the other then
+-- closes); 'expired' past the free hour's last day (`p_today`, Istanbul).
+-- The hour copies the guest (address, name, contact, guest flag) and the
+-- length from the booking; the day, the start, the group and the policy
+-- snapshot come from the caller, which checked them against the room
+-- (karaoke-payment.ts). The overlap constraint (23P01) and the one live hour
+-- per booking (23505) still hold: either error undoes the claim too.
+create or replace function public.karaoke_give_make_good_hour(
+  p_for                 text,
+  p_id                  text,
+  p_date                text,
+  p_start_hour          integer,
+  p_guests              integer,
+  p_today               text,
+  p_now                 text,
+  p_tax_rate_pct        integer,
+  p_free_cancel_hours   integer,
+  p_late_refund_percent integer,
+  p_cancel_deadline     text,
+  p_cancellation_rules  jsonb
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  r public.karaoke_reservations%rowtype;
+begin
+  select * into r
+    from public.karaoke_reservations
+   where id = p_for
+     for update;
+  if not found
+     or r.status <> 'cancelled'
+     or r."makeGoodMinor" is null
+     or r."makeGoodUntil" is null
+     or r."makeGoodUsedAt" is not null then
+    return 'not_open';
+  end if;
+  if p_today > r."makeGoodUntil" then
+    return 'expired';
+  end if;
+  update public.karaoke_reservations
+     set "makeGoodUsedAt" = p_now
+   where id = p_for;
+  insert into public.karaoke_reservations (
+    id, "customerEmail", "customerName", "contactEmail", "contactPhone",
+    "contactConsentAt", date, "startHour", hours, guests, status,
+    "priceMinor", "discountMinor", "totalMinor", note, "createdAt",
+    "updatedAt", "paymentStatus", "paymentDueAt", "paidAt", "refundedAt",
+    "paidMinor", "paymentRef", channel, "legalConsent", guest, "taxRatePct",
+    "freeCancelHours", "lateRefundPercent", "cancelDeadline",
+    "cancellationRules", "refundMinor", "makeGoodFor"
+  ) values (
+    p_id, r."customerEmail", r."customerName", r."contactEmail",
+    r."contactPhone", r."contactConsentAt", p_date, p_start_hour, r.hours,
+    p_guests, 'confirmed', 0, 0, 0, 'Telafi: ' || upper(r.id), p_now, p_now,
+    'none', '', '', '', 0, '', 'staff', null, r.guest, p_tax_rate_pct,
+    p_free_cancel_hours, p_late_refund_percent, p_cancel_deadline,
+    p_cancellation_rules, null, r.id
+  );
+  return 'given';
+end;
+$$;
+
+-- A free hour let go (the guest on its page or through the app, the köşk in
+-- the panel): cancelled while it is still the confirmed free hour it was
+-- read as; with `p_reopen` (the caller's clock says the hour has not begun)
+-- the make-good it used is open again, unless the money was recorded.
+-- 'reopened', 'cancelled', or 'raced' when the hour had moved on (nothing
+-- written). "updatedAt" is the cancel instant, as on every cancelled row.
+create or replace function public.karaoke_release_make_good_hour(
+  p_id     text,
+  p_now    text,
+  p_reopen boolean
+)
+returns text
+language plpgsql
+set search_path = ''
+as $$
+declare
+  hour_for text;
+begin
+  update public.karaoke_reservations
+     set status = 'cancelled',
+         "updatedAt" = p_now
+   where id = p_id
+     and status = 'confirmed'
+     and "paymentStatus" = 'none'
+     and "makeGoodFor" is not null
+  returning "makeGoodFor" into hour_for;
+  if not found then
+    return 'raced';
+  end if;
+  if p_reopen then
+    update public.karaoke_reservations
+       set "makeGoodUsedAt" = null
+     where id = hour_for
+       and "makeGoodPaidMinor" is null
+       and "makeGoodUsedAt" is not null;
+    if found then
+      return 'reopened';
+    end if;
+  end if;
+  return 'cancelled';
+end;
+$$;
+
+insert into public._migrations (name) values ('20261020203619_karaoke_make_good.sql')
+  on conflict (name) do nothing;

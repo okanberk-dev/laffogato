@@ -14,6 +14,7 @@ import {
   KARAOKE_NO_REFUND_RULE,
   KARAOKE_REFUND_RULE,
 } from "@/lib/mobile/karaoke-time";
+import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
@@ -157,15 +158,84 @@ interface SendArgs {
    * customer's one order mail asks for it; everything else keeps trying once.
    */
   retryOnce?: boolean;
+  /**
+   * Files sent with this one message (Resend: `attachments`, base64
+   * `content`). Single sends only: the campaign batch (`deliverBatch`,
+   * `/emails/batch`) builds its messages field by field and never carries
+   * one. Today only the confirmed contract (ASK-DURABLE).
+   */
+  attachments?: readonly MailAttachment[];
+  /**
+   * The caller's time budget, as an instant (epoch ms): no attempt starts
+   * with less than `MIN_ATTEMPT_MS` left, each one is cut at what is left,
+   * and the retry is skipped when it would not fit. The order and karaoke
+   * confirmations are awaited inside a payment return and pass one
+   * (./budget.ts `MAIL_BUDGET`); everything else keeps the per-request bound
+   * only.
+   */
+  deadline?: number;
 }
 
-/** The longest pause before the one retry; `Retry-After` is honoured up to it. */
+/** One attached file: its name and its bytes as base64. */
+export interface MailAttachment {
+  filename: string;
+  content: string;
+}
+
+/** An HTML document as an attachment (UTF-8, base64). */
+export function htmlAttachment(filename: string, html: string): MailAttachment {
+  return { filename, content: Buffer.from(html, "utf8").toString("base64") };
+}
+
 /** Upper bound for one Resend request (ms). */
 const MAIL_REQUEST_TIMEOUT_MS = 4_000;
 
+/** The longest pause before the one retry; `Retry-After` is honoured up to it. */
 const RETRY_WAIT_MS = 1_500;
 
-export type SendResult = { ok: true } | { ok: false; error: string };
+/** No attempt starts with less than this left before the caller's deadline. */
+const MIN_ATTEMPT_MS = 1_000;
+
+function msLeft(deadline: number | undefined): number {
+  return deadline === undefined ? Number.POSITIVE_INFINITY : deadline - Date.now();
+}
+
+/**
+ * `fetch`, aborted after `ms` by a plain timer (the caller's budget can be
+ * shorter than the 4 s bound, and a test's clock can drive it).
+ */
+async function postWithin(
+  url: string,
+  init: RequestInit,
+  ms: number,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(
+    () =>
+      ctrl.abort(
+        new DOMException("The operation was aborted due to timeout", "TimeoutError"),
+      ),
+    ms,
+  );
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export type SendResult =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /**
+       * The provider's HTTP status when it answered with a refusal; absent
+       * when no request was answered (no key, unreachable, a template that
+       * did not render). A 4xx other than 429 means nothing was sent.
+       */
+      status?: number;
+    };
 
 /**
  * One delivery attempt, with the provider's own words on failure.
@@ -184,6 +254,8 @@ async function deliver({
   idempotencyKey,
   replyTo: replyToOverride,
   retryOnce,
+  attachments,
+  deadline,
 }: SendArgs): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY;
   const identity = await emailIdentity();
@@ -221,39 +293,76 @@ async function deliver({
           },
         }
       : {}),
+    ...(attachments && attachments.length > 0
+      ? {
+          attachments: attachments.map((a) => ({
+            filename: a.filename,
+            content: a.content,
+          })),
+        }
+      : {}),
   });
   for (let attempt = 0; ; attempt++) {
     const again = retryOnce === true && attempt === 0;
+    const left = msLeft(deadline);
+    if (left < MIN_ATTEMPT_MS) {
+      return { ok: false, error: "E-posta zamanında gönderilemedi." };
+    }
     try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+      const res = await postWithin(
+        "https://api.resend.com/emails",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+          },
+          body: payload,
         },
-        body: payload,
-        // The mail is awaited inside the payment return; a hung provider must
-        // not hold the customer on the bank's redirect (worst case with the
-        // one retry stays under 10 s).
-        signal: AbortSignal.timeout(MAIL_REQUEST_TIMEOUT_MS),
-      });
+        // The mail is awaited inside the payment return; a hung provider
+        // must not hold the customer on the bank's redirect: 4 s at most,
+        // less when the caller's budget has less left.
+        Math.min(MAIL_REQUEST_TIMEOUT_MS, left),
+      );
       if (res.ok) return { ok: true };
       const body = await res.text();
       console.error(
         `[email] Resend failed (${res.status}): ${maskAddressesIn(body)}`,
       );
+      // The key was used, within its 24 hours, for a request of this same
+      // mail whose body differed (the confirmed contract attached one time
+      // and not the other): Resend took that request, and the message is
+      // out. Sending it again under another key would be a second copy.
+      if (
+        res.status === 409 &&
+        idempotencyKey &&
+        body.includes("invalid_idempotent_request")
+      ) {
+        console.info(
+          `[email] ${idempotencyKey}: already sent under this key, not sent again`,
+        );
+        return { ok: true };
+      }
       if (again && (res.status === 429 || res.status >= 500)) {
         const asked = Number(res.headers.get("retry-after")) * 1000;
-        await pause(
+        const wait = Math.min(
           Number.isFinite(asked) && asked > 0 ? asked : RETRY_WAIT_MS,
+          RETRY_WAIT_MS,
         );
-        continue;
+        if (msLeft(deadline) - wait >= MIN_ATTEMPT_MS) {
+          await pause(wait);
+          continue;
+        }
       }
-      return { ok: false, error: resendErrorText(res.status, body) };
+      return {
+        ok: false,
+        error: resendErrorText(res.status, body),
+        status: res.status,
+      };
     } catch (err) {
       console.error("[email] send error", err);
-      if (again) {
+      if (again && msLeft(deadline) - RETRY_WAIT_MS >= MIN_ATTEMPT_MS) {
         await pause(RETRY_WAIT_MS);
         continue;
       }
@@ -448,7 +557,15 @@ async function sendTemplateResult(
   to: string,
   input: Omit<RenderInput, "text">,
   idempotencyKey?: string,
-  { retryOnce }: { retryOnce?: boolean } = {},
+  {
+    retryOnce,
+    attachments,
+    deadline,
+  }: {
+    retryOnce?: boolean;
+    attachments?: readonly MailAttachment[];
+    deadline?: number;
+  } = {},
 ): Promise<SendResult> {
   if (!to) return { ok: false, error: "Alıcı adresi boş." };
   // Ayarlar's phone, address and hours for the footer; the caller's own
@@ -473,7 +590,65 @@ async function sendTemplateResult(
     ...(r.unsubscribeUrl ? { unsubscribeUrl: r.unsubscribeUrl } : {}),
     ...(idempotencyKey ? { idempotencyKey } : {}),
     ...(retryOnce ? { retryOnce } : {}),
+    ...(attachments && attachments.length > 0 ? { attachments } : {}),
+    ...(deadline !== undefined ? { deadline } : {}),
   });
+}
+
+/**
+ * The confirmed contract that rides with a confirmation mail
+ * (src/lib/legal/durable-copy-load.ts `DurableCopy`): the file, and each
+ * document's version page for the sentence under it.
+ */
+export interface MailDurableCopy {
+  filename: string;
+  html: string;
+  links: readonly { slug: string; title: string; url: string }[];
+}
+
+/**
+ * A refusal that proves nothing was sent: a 4xx other than 429 and 409. A
+ * 409 is about the idempotency key, not the message: another request under
+ * it is still being processed, or one with another body was taken. Either
+ * way a message under that key exists, and a second one under another key
+ * would be a second copy in the inbox.
+ */
+function refusedOutright(result: SendResult): boolean {
+  return (
+    !result.ok &&
+    typeof result.status === "number" &&
+    result.status >= 400 &&
+    result.status < 500 &&
+    result.status !== 429 &&
+    result.status !== 409
+  );
+}
+
+/**
+ * Sends a confirmation with its contract attached, and, when the provider
+ * refuses that message outright (a 4xx: the attachment's size or type, say),
+ * the same confirmation without it, saying the old sentence (`plain`). The
+ * copy must never cost the customer the mail itself (ASK-DURABLE). Nothing
+ * is resent after a timeout or a 5xx: that request may have been delivered,
+ * and the caller's own retry (with the same key) settles it. The second
+ * message gets a key of its own: the first one's was refused, not used.
+ */
+async function sendWithCopy(
+  label: string,
+  copy: MailDurableCopy,
+  send: (
+    attachments: readonly MailAttachment[] | null,
+    keySuffix: string,
+  ) => Promise<SendResult>,
+  deadline?: number,
+): Promise<SendResult> {
+  const first = await send([htmlAttachment(copy.filename, copy.html)], "");
+  if (first.ok || !refusedOutright(first)) return first;
+  if (msLeft(deadline) < MIN_ATTEMPT_MS) return first;
+  console.warn(
+    `[email] ${label}: refused with the contract attached (HTTP ${first.ok ? "" : first.status}); sent without it`,
+  );
+  return send(null, "-ek-yok");
 }
 
 export async function sendVerificationEmail(
@@ -698,25 +873,75 @@ export async function stampTarget(): Promise<string> {
  * left out when it is 0 or absent, so a shop order is never promised a stamp.
  */
 export async function sendOrderPaidEmail(
-  o: OrderEmailData & { stampsEarned?: number },
+  o: OrderEmailData & {
+    stampsEarned?: number;
+    /**
+     * The confirmed Ön Bilgilendirme Formu and Mesafeli Satış Sözleşmesi,
+     * filled with the order (ASK-DURABLE): attached, with each document's
+     * version page under the sentence that says so. Absent or null: the
+     * mail says what the links are (`BELGE_GUNCEL`), as before.
+     */
+    durableCopy?: MailDurableCopy | null;
+  },
   idempotencyKey?: string,
+  { deadline }: { deadline?: number } = {},
 ): Promise<SendResult> {
   const stamps = Math.max(0, Math.round(Number(o.stampsEarned ?? 0)) || 0);
-  return sendTemplateResult(
-    "odeme-onaylandi",
-    o.to,
-    {
-      vars: {
-        ...orderVars(o),
-        DAMGA_HEDEFI: await stampTarget(),
-        DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+  const vars = {
+    ...orderVars(o),
+    DAMGA_HEDEFI: await stampTarget(),
+    DAMGA_SAYISI: stamps > 0 ? String(stamps) : "",
+  };
+  const loops = { ITEMS: itemRows(o.items) };
+  const copyVars = o.durableCopy ? orderCopyVars(o.durableCopy) : null;
+  const send = (
+    attachments: readonly MailAttachment[] | null,
+    keySuffix: string,
+  ) =>
+    sendTemplateResult(
+      "odeme-onaylandi",
+      o.to,
+      // render.ts opens the copy's sentence only with this flag and both
+      // links, and the old line otherwise.
+      attachments && copyVars
+        ? { vars: { ...vars, ...copyVars }, loops, flags: { BELGE_EKI: true } }
+        : { vars, loops },
+      idempotencyKey ? `${idempotencyKey}${keySuffix}` : undefined,
+      // The one mail the customer gets before the parcel: worth one more
+      // try, inside the caller's budget (`MAIL_BUDGET.paid`).
+      {
+        retryOnce: true,
+        ...(attachments ? { attachments } : {}),
+        ...(deadline !== undefined ? { deadline } : {}),
       },
-      loops: { ITEMS: itemRows(o.items) },
-    },
-    idempotencyKey,
-    // The one mail the customer gets before the parcel: worth one more try.
-    { retryOnce: true },
+    );
+  if (!o.durableCopy || !copyVars) return send(null, "");
+  return sendWithCopy(
+    `odeme-onaylandi #${o.orderNo}`,
+    o.durableCopy,
+    send,
+    deadline,
   );
+}
+
+/**
+ * The version links under the paid mail's sentence: one per confirmed
+ * document, both or none (a copy without either link is not offered).
+ */
+function orderCopyVars(copy: MailDurableCopy): Record<string, string> | null {
+  const url = (slug: string) =>
+    copy.links.find((l) => l.slug === slug)?.url ?? "";
+  const obf = url(CHECKOUT_CONSENT_DOCS[0]);
+  const mss = url(CHECKOUT_CONSENT_DOCS[1]);
+  if (!obf || !mss) return null;
+  return {
+    BELGE_OBF_URL: obf,
+    BELGE_MSS_URL: mss,
+    BELGE_SURUMLERI: [
+      `- Ön Bilgilendirme Formu: ${obf}`,
+      `- Mesafeli Satış Sözleşmesi: ${mss}`,
+    ].join("\n"),
+  };
 }
 
 // ── Order notices ──────────────────────────────────────────────────────────
@@ -886,6 +1111,30 @@ export interface KaraokeEmailData {
    */
   refundIsShare?: boolean;
   /**
+   * Cancellation only: this refund is what an hour cancelled late and sold
+   * again gave back, on top of a late share already refunded
+   * (`refundedMinor` is then that part alone, karaoke-make-good-core.ts).
+   */
+  refundIsResaleTopUp?: boolean;
+  /**
+   * Cancellation only: what went back in this one refund holds both the
+   * late share and the part an hour cancelled late and sold again gave
+   * back (`refundedMinor` is their sum).
+   */
+  refundIncludesResale?: boolean;
+  /**
+   * Cancellation only: the köşk cancelled late for its own reason and makes
+   * it good (karaoke terms §8): `minor` kuruş, as a free hour of the same
+   * length booked by `until` ("19 Nisan 2027") or paid to the guest's own
+   * bank account.
+   */
+  makeGood?: { minor: number; until: string };
+  /**
+   * Confirmation only: a free hour the köşk gave to make good the booking
+   * with this code. Nothing is paid for it.
+   */
+  makeGoodHourFor?: string;
+  /**
    * The booking's own cancellation rule (its snapshot, 18 Eki 2026): the two
    * sentences a paid booking's confirmation prints, and until when a booking
    * paid at the venue may still be cancelled on its page (null: it may not,
@@ -914,6 +1163,18 @@ export interface KaraokeEmailData {
    * and cancel it. Falls back to the karaoke page when no link can be made.
    */
   manageUrl?: string;
+  /**
+   * Confirmation of a booking paid online: the confirmed Karaoke Odası Ön
+   * Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi, filled with the
+   * booking (ASK-DURABLE), attached, with its version page. Absent or null:
+   * the terms' page is linked, as before.
+   */
+  durableCopy?: MailDurableCopy | null;
+  /**
+   * The confirmation's time budget (epoch ms, `MAIL_BUDGET.karaoke` from
+   * when the copy was asked for): it is awaited inside the payment return.
+   */
+  deadline?: number;
 }
 
 /** The default rule's pay-at-the-venue window, worded for the sentence. */
@@ -954,6 +1215,11 @@ function karaokeVars(k: KaraokeEmailData) {
     KARAOKE_NEDEN: isBusinessCause(k.cancelCause)
       ? KARAOKE_CAUSE_MAIL[k.cancelCause]
       : "",
+    // The make-good of a late köşk cancel, and the booking a free hour
+    // makes good.
+    KARAOKE_TELAFI_TUTAR: formatTRYMinor(k.makeGood?.minor ?? 0),
+    KARAOKE_TELAFI_SON: k.makeGood?.until ?? "",
+    KARAOKE_TELAFI_KOD: (k.makeGoodHourFor ?? "").toUpperCase(),
   };
 }
 
@@ -969,17 +1235,60 @@ export async function sendKaraokeConfirmationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
   const online = k.payment?.kind === "online";
+  const flags = karaokeConfirmationFlags(k);
+  const vars = karaokeVars(k);
+  // Only a booking paid online confirmed the terms (its consent is the
+  // record the copy is made from); a free hour the köşk gave confirmed none.
+  const copy = online ? (k.durableCopy ?? null) : null;
+  const versionUrl =
+    copy?.links.find((l) => l.slug === KARAOKE_CONSENT_DOCS[0])?.url ?? "";
+  const send = (attachments: readonly MailAttachment[] | null) =>
+    sendTemplateResult(
+      "karaoke-rezervasyon",
+      k.to,
+      attachments && versionUrl
+        ? {
+            vars: { ...vars, KARAOKE_SURUM_URL: versionUrl },
+            flags: { ...flags, KARAOKE_BELGE_EKI: true },
+          }
+        : { vars, flags },
+      undefined,
+      {
+        ...(attachments ? { attachments } : {}),
+        ...(k.deadline !== undefined ? { deadline: k.deadline } : {}),
+      },
+    );
+  if (!copy || !versionUrl) return (await send(null)).ok;
+  return (
+    await sendWithCopy(
+      `karaoke-rezervasyon ${k.code}`,
+      copy,
+      (attachments) => send(attachments),
+      k.deadline,
+    )
+  ).ok;
+}
+
+/**
+ * Which payment block a confirmation prints: exactly one. Exported for
+ * tests.
+ */
+export function karaokeConfirmationFlags(
+  k: Pick<KaraokeEmailData, "payment" | "cancellation" | "makeGoodHourFor">,
+): Record<string, boolean> {
+  const online = k.payment?.kind === "online";
+  // A free hour the köşk gave is not paid at the köşk either.
+  const makeGood = !online && Boolean(k.makeGoodHourFor);
   // A booking paid at the venue says until when its page cancels it, or -
   // under a rule with no window and no late cancel - to call instead.
   const selfCancel = k.cancellation ? k.cancellation.venueUntil !== null : true;
-  return sendTemplate("karaoke-rezervasyon", k.to, {
-    vars: karaokeVars(k),
-    flags: {
-      KARAOKE_ODENDI: online,
-      KARAOKE_ODEME_MEKANDA: !online && selfCancel,
-      KARAOKE_MEKAN_ARA: !online && !selfCancel,
-    },
-  });
+  return {
+    KARAOKE_ODENDI: online,
+    KARAOKE_TELAFI_SAATI: makeGood && selfCancel,
+    KARAOKE_TELAFI_SAATI_ARA: makeGood && !selfCancel,
+    KARAOKE_ODEME_MEKANDA: !online && !makeGood && selfCancel,
+    KARAOKE_MEKAN_ARA: !online && !makeGood && !selfCancel,
+  };
 }
 
 /**
@@ -1009,13 +1318,21 @@ export function karaokeCancellationFlags(
     | "refundedMinor"
     | "refundOwedMinor"
     | "refundIsShare"
+    | "refundIsResaleTopUp"
+    | "refundIncludesResale"
     | "payment"
     | "cancelCause"
+    | "makeGood"
   >,
 ): Record<string, boolean> {
   const refunded = k.refundedMinor !== undefined;
   const owed = !refunded && k.refundOwedMinor !== undefined;
   const share = k.refundIsShare === true;
+  // Only the resale part went back now: the late share already had its mail.
+  const resale = refunded && share && k.refundIsResaleTopUp === true;
+  // The share and the resale part went back in one refund.
+  const shareAndResale =
+    refunded && share && !resale && k.refundIncludesResale === true;
   const business = isBusinessCause(k.cancelCause);
   const request = k.cancelCause === "misafir";
   // The hour went to another guest: the line says so, and the whole payment
@@ -1029,9 +1346,14 @@ export function karaokeCancellationFlags(
     // The member's own cancel keeps its words; ours say "iade ettik".
     KARAOKE_IADE: refunded && !share && !business && !request && !resold,
     KARAOKE_TAM_IADE: refunded && !share && (business || request),
-    KARAOKE_KISMI_IADE_EDILDI: refunded && share,
+    KARAOKE_KISMI_IADE_EDILDI: refunded && share && !resale && !shareAndResale,
+    KARAOKE_KISMI_SATIS_IADE_EDILDI: shareAndResale,
+    KARAOKE_SATIS_IADE: resale,
     KARAOKE_KISMI_IADE: owed,
     KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",
+    // The make-good of a late köşk cancel (karaoke terms §8), beside the
+    // money line, never instead of it.
+    KARAOKE_TELAFI: (k.makeGood?.minor ?? 0) > 0 && Boolean(k.makeGood?.until),
   };
 }
 

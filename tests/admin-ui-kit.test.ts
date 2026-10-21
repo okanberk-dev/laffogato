@@ -1289,11 +1289,14 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
       secondary: { href: "/admin/kategoriler", label: "Kategoriler" },
       primary: { href: "/admin/urunler/yeni", label: "Yeni ürün" },
     });
+    // The kit's compact classes carry a "&" (`[[data-admin-density=compact]_&]`,
+    // UI-9), which markup writes as &amp;.
+    const attr = (classes: string) => classes.replaceAll("&", "&amp;");
     expect(out).toContain(
-      `<a href="/admin/urunler/yeni" data-admin-new="" class="${ui.BUTTON.primary} flex-1 sm:flex-none">Yeni ürün</a>`,
+      `<a href="/admin/urunler/yeni" data-admin-new="" class="${attr(ui.BUTTON.primary)} flex-1 sm:flex-none">Yeni ürün</a>`,
     );
     expect(out).toContain(
-      `<a href="/admin/kategoriler" class="${ui.BUTTON.ghost} flex-1 sm:flex-none">Kategoriler</a>`,
+      `<a href="/admin/kategoriler" class="${attr(ui.BUTTON.ghost)} flex-1 sm:flex-none">Kategoriler</a>`,
     );
     expect(out.match(/data-admin-new/g)).toHaveLength(1);
     // [secondary] [Primary], in reading order.

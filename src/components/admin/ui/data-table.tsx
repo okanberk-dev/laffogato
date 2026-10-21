@@ -16,7 +16,7 @@ import {
 import { RowCheckbox, SelectAllCheckbox, type Selection } from "../bulk";
 import { EmptyState } from "./detail";
 import { LinkPending } from "./link-pending";
-import { EYEBROW, MONO_STYLE } from "./styles";
+import { COMPACT, EYEBROW, MONO_STYLE } from "./styles";
 
 export interface DataTableColumn<T> {
   /** Stable id; also the `sirala` value when the column is sortable. */
@@ -304,7 +304,10 @@ export function DataTable<T>({
           <thead>
             <tr className={EYEBROW} style={MONO_STYLE}>
               {selection ? (
-                <th scope="col" className="w-10 px-4 py-3 text-left">
+                <th
+                  scope="col"
+                  className={cx("w-10 px-4 py-3 text-left", COMPACT.py2)}
+                >
                   <SelectAllCheckbox
                     ids={ids}
                     selection={selection}
@@ -325,6 +328,7 @@ export function DataTable<T>({
                   }
                   className={cx(
                     "px-4 py-3 font-normal whitespace-nowrap",
+                    COMPACT.py2,
                     ALIGN[col.align ?? "left"],
                     col.hideBelow && HIDE_BELOW[col.hideBelow],
                     col.className,
@@ -362,7 +366,7 @@ export function DataTable<T>({
                   )}
                 >
                   {selection ? (
-                    <td className="px-4 py-3">
+                    <td className={cx("px-4 py-3", COMPACT.py2)}>
                       <RowCheckbox
                         id={id}
                         selection={selection}
@@ -375,6 +379,7 @@ export function DataTable<T>({
                       key={col.key}
                       className={cx(
                         "px-4 py-3 text-[var(--admin-text)]",
+                        COMPACT.py2,
                         ALIGN[col.align ?? "left"],
                         col.hideBelow && HIDE_BELOW[col.hideBelow],
                         col.className,
