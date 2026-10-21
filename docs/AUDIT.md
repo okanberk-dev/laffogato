@@ -417,9 +417,6 @@ PR #196'nın incelemesinde bulunan, önceden var olan ve orada düzeltilmeyenler
 - 🟢 `audit-logs` imha kuralı 10 × 366 günü `createdAt`'ten sayıyor, takvim
   yılının bitişinden değil (TTK m.82/6). Bugün hiçbir satıra değmiyor (en eski
   satır 2026); kural ilk kez 2036'da işler.
-- 🟢 `payment_transactions.raw.params` `withoutHolderName`'den geçmeden
-  yazılıyor (sertleştirme; belgelenen dönüş gövdesi kart sahibinin adını
-  taşımıyor).
 - 🟢 Mobil Uygulama Koşulları ve Kullanım Şartları damga hareketlerinin
   bildirimler ekranında göründüğünü söylüyor; ekran yalnız ödül hazır ve
   kilometre taşı öğelerini gösteriyor.
@@ -520,7 +517,7 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | 🟢 | Admin çıkışı yalnız bu tarayıcının çerezini siler; daha önce kopyalanmış bir çerez 7 gün geçerli kalır (parola değişince düşer) | Sunucu tarafı iptal bir migration (oturum kimliği ya da hesap başına dönem) ister; ayrı PR |
 | 🟢 | `/bulten/onay?token=` ve `/bulten/cikis?token=` da GTM yükleyen sayfalarda belirteci adreste taşıyor (sızan belirteçle başkası aboneliği onaylayabilir ya da bitirebilir) | Etkisi sıfırlama belirtecinden küçük; aynı `proxy.ts` deseni uygulanabilir, ayrı PR |
 | 🟢 | `script-src` hâlâ `'unsafe-inline'` taşıyor | Kayıtlı karar (`next.config.ts`): nonce kök layout'u ve statik sayfaları dinamik yapar |
-| 🟢 | `CUSTOMER_SESSION_SECRET` tanımsızsa müşteri çerezi admin anahtarıyla imzalanır. Bugün çapraz kullanım parmak izi ve biçim farkıyla reddediliyor, ama tek savunma bu | Operatör: Vercel'de ayrı, en az 32 karakterlik `CUSTOMER_SESSION_SECRET` tanımlamak (müşteriler bir kez yeniden giriş yapar) |
+| 🟢 | `CUSTOMER_SESSION_SECRET` tanımsızsa müşteri çerezi `ADMIN_SESSION_SECRET` ile imzalanır. Çapraz kullanım 21 Eki 2026'da kapandı (panel çerezi artık kendi türetilmiş anahtarıyla imzalanıyor, aşağıda "Panel: güvenlik ve CRUD turu"); iki sırrın ayrılması yine de önerilir | Operatör: Vercel'de ayrı, en az 32 karakterlik `CUSTOMER_SESSION_SECRET` tanımlamak (müşteriler bir kez yeniden giriş yapar) |
 | 🟢 | `npm audit`: `source-map-js` (yüksek, yalnız derleme anında, saldırgan girdisi görmüyor) | Ulaşılamaz; `next`'in kendi bağımlılığıyla güncellenir |
 | 🟡 | Kart sayfasının satış öncesi bakışı POS'a sormaz, yalnız kaydı okur: ilk ödemenin dönüşü kaybolmuşsa sipariş hâlâ `pending_payment` görünür ve ikinci sekmedeki eski form yine satış başlatabilir. `hosted` modda (geri dönüş yolu) son bakış hiç yok | Her kart gönderiminde bir `PaymentList` çağrısı (5 sn'ye kadar gecikme, bütçe) ister; yeni sayfa dağıtan yeniden açma kapıları ve web ödemesinin yeniden kullanımı POS'a soruyor. Ayrı karar (`docs/PAYNKOLAY.md` §14.7) |
 
@@ -757,7 +754,6 @@ Açık:
 | 🟢 | Sihirbazın sekmeli düzenleme başlıkları hâlâ sahte italik (CAT-26, sihirbaz kısmı) | `product-wizard.tsx` 5a'nın; bu PR ona yalnız kayıt korumasını ekledi |
 | 🟢 | Panelin kendi bağlantısına ve ⌘K'ya basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Genel koruma geldi (UI-17, `ui/unsaved-guard.ts`) ama sihirbaza bağlanmadı: kancası (`unsaved-guard.ts`) kayıt defterine yazıyor, denetleyiciyi (bağlantı ve palet sorusu) tutmuyor. Tek tuşlar zaten çıkmıyor. Bağlamak kancanın `trackUnsavedGuard`'ının denetleyiciyi de tutması: sihirbazın `beforeunload`'una dokunmaz, ayrı iş |
 | 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
-| 🟢 | Menüde sırayı değiştirmek hâlâ "Sıralama" alanına sayı yazmak (CAT-30, sıra kısmı) | Sürükle bırak yeni bir etkileşim; sıra formda kalır |
 
 ### Kişiler: promosyon, üye, kupon, damga, kullanıcılar, kampanya (paket 4a)
 
@@ -929,7 +925,7 @@ Açık:
 | --- | --- | --- |
 | 🟢 | Raporlarda tarih aralığı, önceki döneme göre karşılaştırma, dışa aktarma ve kırılımlar (kanal, ödeme, kategori, saat) yok (SYS-17, özellik kısmı) | Ayrı bir özellik işi; gösterilen hiçbir rakam yanlış değil |
 
-| 🟢 | Slayt, duyuru ve gönderide sıra elle yazılan bir sayı; süresi dolan içerik için toplu aç/kapa yok (CON-24) | Sürükle bırak sıra ve toplu işlem bu turun dışında |
+| 🟢 | Slayt, duyuru ve gönderide süresi dolan içerik için toplu aç/kapa yok (CON-24; sıra 21 Eki 2026'da ↑ / ↓ ile geldi, "Panel: güvenlik ve CRUD turu") | Toplu işlem bu turun dışında |
 
 ### Karaoke ve masalar (paket 3a)
 
@@ -1537,3 +1533,37 @@ kartta AA'yı geçmiyordu). Testler: `tests/admin-ui-kit.test.ts` (tema, AA
 zeminlerine zinc-100 eklendi), `tests/admin-root-css.test.ts`,
 `tests/admin-rail-density.test.ts`, `tests/admin-shell-nav.test.ts`.
 Ayrıntı: `docs/BRAND.md` "Admin paneli görünümü".
+
+### Panel: güvenlik ve CRUD turu (21 Eki 2026)
+
+Operatör: _"admin panel tasarımını geliştir ... kullanıcı kolay ekleyip
+çıkarabileceği CRUD işlemleri düzgün olan bir şeyler yap ... güvenlik açığı
+da varsa çözüp maine pushla"_. Bütün `"use server"` dışa aktarımları (132),
+altı route handler, oturum, 2FA, roller, yüklemeler, XSS ve SQL yeniden
+okundu: kritik, yüksek ya da orta bulgu yok. Doğrulanan düşük bulgular ve
+CRUD boşlukları:
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | `CUSTOMER_SESSION_SECRET` tanımsızken müşteri çerezi `ADMIN_SESSION_SECRET` ile imzalanıyor ve üye adresi "\|" taşıyabiliyordu: `owner@laffogato.net\|owner` adresiyle açılan üyenin kendi çerezi (`email\|exp\|fp\|sig`) panelin `email\|role\|exp\|fp\|sig` imza denetimini geçiyordu (proxy ve yoklamaların "değişmedi" yanıtı); yalnız parmak izinde düşüyordu. §11'deki "biçim farkı" savunması bu yüzden yoktu | Panel oturum ve 2FA bekleme çerezleri `ADMIN_SESSION_SECRET`'tan bu amaç için türetilen anahtarla imzalanır (`src/lib/admin/session-key.ts`); bütün operatörler bir kez yeniden giriş yapar. Üye kaydı "\|" ve kontrol karakteri taşıyan adresi reddeder | `admin-session-key` (düzeltmesiz kırılır), `customer-email-shape` |
+| 🟢 | 2FA kurulumundaki kod adımında deneme sınırı yoktu ve 2FA zaten açıkken canlı sırra karşı kod deniyordu | Girişin iki bütçesi (`admin-2fa`, `admin-2fa-account`) sayılır; 2FA açıksa hiçbir kod denenmez | `admin-2fa-screens` |
+| 🟢 | Veritabanı kesintisinde giriş sınırlayıcısı açık kalıyor, break-glass env parolaları bütçesiz karşılaştırılıyordu | Deneme sayılamazsa (`uncounted`) hiçbir parola karşılaştırılmaz, yanıt "şu an tamamlanamadı"; zaten veritabanısız giriş tamamlanamıyordu | `admin-env-signin-outage` |
+| 🟢 | Ürün içe aktarma şablonu ilk kategorinin adını CSV'ye olduğu gibi yazıyordu: yöneticinin `=HYPERLINK(…)` adlı kategorisi sahibin Excel'inde formül olarak çalışırdı | `csvField` = + - @ (ve sekme / CR) ile başlayan hücrenin başına ' koyar (sipariş CSV'sinin kuralı) | `admin-csv-parse` |
+| 🟢 | `payment_transactions.raw.params` `withoutHolderName`'den geçmeden yazılıyordu (§8'den taşındı; belgelenen dönüş gövdesi adı taşımıyor) | Reddedilen dönüşün kaydı adı çıkarılmış parametreleri yazar | `payment-paynkolay` |
+| 🟢 | Sahip kendi hesabını silebiliyor, pasifleştirebiliyor ya da rolünü düşürebiliyordu: oturum her istekte hesaptan okunduğu için kimsenin onayı olmadan kendini panelden atıyordu | Eylemler reddeder, satır nedeniyle kapalı çizilir; ad değişebilir | `admin-staff-actions` |
+| 🟢 | Panel sayfalarında React hydration uyarısı: kısayol katmanı sayfanın birincil bağlantısına ve arama kutusuna `aria-keyshortcuts`'u sayfa hydrate olmadan yazıyordu | İki öğe `suppressHydrationWarning` taşır | tarayıcı geçişi (konsol temiz) |
+| 🟢 | Kenar menüsü 1280 × 800-900'de yalnız ilk üç grubu gösteriyordu; İçerik ve Yönetim sayfalarında açık sayfanın satırı görünmüyordu | Menü (sayfa değil) açık satırı görünür alana kaydırır | tarayıcı geçişi |
+| 🟢 | Mağaza slaytları, uygulama slaytları, duyurular ve gönderiler listeden yayından kaldırılamıyordu (silme penceresi "Düzenle'den yayından al" diyordu); onların ve kafe menüsünün sırası kayıt kayıt elle yazılan sayıydı (§13 CAT-30'un sıra kısmı, CON-24'ün sıra kısmı) | Satırın ⋯ menüsünde "Yayına al / Yayından kaldır" (yalnız `isActive`, gönderide e-posta yok), satırın yanında ↑ / ↓ (10, 20, 30… yeniden numaralanır; menüde kategori içinde, liste süzülmüşken sayı); mağaza slaytları DataTable'a geçti | `admin-list-order`, `db-integration-list-order`, `admin-catalog-actions`, `admin-shop-hero` |
+| 🟢 | Ürün, menü kalemi, promosyon, kategori ve iki slayt türünün kendi sayfasında Sil yoktu; uygulama içeriğinin Sil'i başlıkta ayrı duruyordu | Başlığın ⋯ menüsünde Sil (`then=list`: listeye döner, bildirim orada; liste adresi formdan alınmaz) | `admin-catalog-actions`, `admin-shop-hero`, `admin-confirm-ui` |
+| 🟢 | Menü kalemini çoğaltmanın ve art arda kalem ya da masa girmenin yolu yoktu | Menü kaleminde "Kopyala" (`/admin/menu/yeni?kopya=`; kopya menüde görünmeden başlar), yeni menü kalemi ve masa formunda "Kaydet ve yenisini ekle"; Genel bakış'ta rolün "Yeni …" sayfaları (Hızlı ekle) | `admin-list-order`, `admin-catalog-actions`, `admin-cafe-tables-actions`, `admin-quick-create` |
+| 🟢 | Uzun formlardan (menü kalemi, slaytlar, uygulama içeriği, promosyon) bir bağlantı yazılanı sormadan bırakıyordu | `GuardedActionForm` ve promosyon formunda `useUnsavedGuard` | `admin-unsaved-guard` |
+| 🟢 | `db-integration-product-food-label` paylaşılan test veritabanında başka bir paketin sabit kimlikli ürünlerine (`prd-0001`…) denk gelip kırılıyordu | Test sayacı mevcut kimliklerin üstüne kaldırır (uygulamanın tohumu gibi, `raise_counter`) | kendisi |
+
+Açık (bu turda değişmedi):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟠 | Panel sitenin kökeninde: sitedeki bir betik `fetch('/admin/…')` ile oturumlu operatör adına istek atabilir (§13, `src/lib/admin/session-cookie.ts`) | Ayrı alan adı (alt alan, yalnız-ana-makine çerezi) altyapı işi: DNS ve Vercel |
+| 🟡 | 2FA isteğe bağlı | Operatör kararı (§11); Genel bakış artık 2FA'sı kapalı hesaba uyarı gösterir |
+| 🟢 | Çıkış kopyalanmış bir çerezi iptal etmez (7 gün) | Sunucu tarafı oturum sürümü bir migration ister (§11) |
+

@@ -339,9 +339,11 @@ yerinde kalırsın.
 
 Bu formlarda var: **Ayarlar** (sekmelerden biri kaydedilmemişse; sekmedeki
 nokta zaten bunu gösterir), **Uygulama ayarları** (dokuz bölümün hepsi),
-**yasal belge düzenleyici** ve **kampanya e-postası** (yeni ve taslak). Ürün
-sihirbazı kendi uyarısını kullanır: yenilemede ve sekme kapanışında sorar,
-menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
+**yasal belge düzenleyici**, **kampanya e-postası** (yeni ve taslak) ve 21
+Ekim 2026'dan beri **kafe menüsü kalemi**, **anasayfa ve mağaza slaytı**,
+**uygulama slaytı, duyurusu ve gönderisi** ile **promosyon kodu** (yeni ve
+düzenleme). Ürün sihirbazı kendi uyarısını kullanır: yenilemede ve sekme
+kapanışında sorar, menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
 
 - **Sorduğu yerler**: başka bir sayfaya giden bağlantı (menü, üst çubuk,
   "Vazgeç", bildirimdeki bağlantı) ve ⌘K paletinde bir sayfa seçmek (Vazgeç
@@ -360,8 +362,11 @@ menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
   taslağı) kaydedilen hâli esas alır; yanıt gelene kadar yazdıkların
   kaydedilmemiş sayılır. Kaydedince listeye dönen formlar (yasal belge, yeni
   kampanya) sayfayı bıraktığı için sormaz.
-- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Bir form
-  `useUnsavedGuard(formRef, { saved })` ile korunur: `formRef` `<form>`'un
+- Kodda: kurallar `src/components/admin/ui/unsaved-guard.ts`'te. Kaydedince
+  sayfadan çıkan uzun bir form `GuardedActionForm`'u
+  (`src/components/admin/guarded-action-form.tsx`) `ActionForm` yerine
+  kullanır; `ActionForm` korumayı kendisi yüklemez (her panel sayfasında
+  var). Başka bir form `useUnsavedGuard(formRef, { saved })` ile korunur: `formRef` `<form>`'un
   kendisi (`ActionForm`'da `formRef` prop'u), `saved` her başarılı kayıtta
   yeni gelen cevap (`savedAnswer(state)`); kayıttan sonra yönlenen form
   `saved` vermez. Koruma yalnız operatörün değiştirdiği alanları karşılaştırır:
@@ -370,6 +375,76 @@ menü bağlantısına ya da ⌘K'ya basınca henüz sormaz.
   değiştiren bir denetim olayı o alanda göndermeli, adı olmayan denetim hiç
   sayılmaz. Kendi "kaydedilmemiş" bilgisini tutan bir sayfa
   `useUnsavedFlag(dirty)` çağırır.
+
+## Listelerde ekleme, sıralama, yayından kaldırma ve silme (21 Eki 2026)
+
+Kayıt eklemek ve çıkarmak için forma girmek gerekmeyen yerler:
+
+- **Genel bakış'ta Hızlı ekle**: rolünün açabildiği her "Yeni …" sayfası
+  (sipariş, menü ürünü, ürün, kategori, promosyon, kampanya, slaytlar,
+  duyuru, gönderi, masa) karoların hemen altında tek dokunuşla. Liste
+  paletin Oluştur listesiyle aynıdır (`CREATE_ENTRIES`,
+  `src/lib/admin/palette-core.ts`); Personel'de yalnız Yeni sipariş,
+  kasiyerde hiçbiri.
+- **Yayına al / Yayından kaldır**: mağaza slaytları, uygulama slaytları,
+  duyurular ve gönderilerde satırın ⋯ menüsünde (anasayfa slaytlarında
+  zaten vardı). Tek tık, geri alınabilir; yalnız `isActive` yazılır, başka
+  sekmede açık bir formun alanları ezilmez. Gönderiyi listeden yayına almak
+  üyelere e-posta **göndermez**; e-posta yalnız gönderinin formundaki
+  kutuyla gider. Uygulama içeriği telefonlara birkaç dakika içinde ulaşır.
+- **↑ / ↓ (sıra)**: aynı listelerde ve kafe menüsünde (kategori içinde)
+  Sıra sütununda, telefonda kartın üstünde. Tek bir küçük adımlayıcıdır
+  (`MoveButtons`): iki ok ince bir çerçevede; ilk satırın ↑'ı ve son
+  satırın ↓'ı soluk çizilir ve basılmaz, böylece her satırın adımlayıcısı
+  aynı biçimde durur; tek satırlık listede hiç yoktur. Satır komşusuyla yer
+  değiştirir, liste 10, 20, 30… diye yeniden numaralanır (elle girilmiş eşit
+  sıralar bir sonraki taşımayı boşa çıkarmasın). Liste süzülmüşken
+  (uygulamada durum sekmesi, menüde Satışta / Tükendi sekmesi ya da arama)
+  oklar yerine sayı görünür: süzülmüş listede komşu görünmeyebilir. Kural
+  `src/lib/admin/store.ts` (`moveRowInList`, `moveMenuItem`).
+- **Kayıt sayfasında Sil**: ürün, menü kalemi, promosyon, kategori
+  (içinde ürün varken kapalı, nedeniyle), mağaza ve anasayfa slaytı ile
+  uygulama slaytı, duyurusu ve gönderisi sayfasının başlığındaki ⋯
+  menüsünde. Onay sorar; silince listeye döner ve bildirimi orada gösterir.
+- **Kopyala**: kafe menüsü kaleminin ⋯ menüsünde ve sayfasında. Yeni kalem
+  formu o kalemin bütün alanlarıyla açılır, adı "(kopya)" ile biter ve
+  "Menüde göster" işaretsizdir: işaretlemeden kaydedilen kopya menüde
+  görünmez. Asıl kaleme dokunulmaz.
+- **Kaydet ve yenisini ekle**: yeni menü kalemi ve yeni masa formunda. Kayıt
+  sonrası boş form yeniden açılır (menüde aynı kategoride); bir odanın
+  masalarını ya da bir kategorinin kalemlerini art arda girmek için.
+
+### Satır kontrolleri (21 Eki 2026)
+
+Operatör: _"ok çubuklarını daha ufak minimalist yap ve panel tasarımını da
+aynı şekilde geliştir ve responsive uyumlu da yapmayı unutma"_. Bir listenin
+her satırında tekrar eden küçük kontroller (`ROW_CONTROL`,
+`src/components/admin/ui/styles.ts`) sakin çizilir: ↑ / ↓ adımlayıcısı,
+tek başına ⋯, ikon bağlantısı ve satırın metin eylemi ("Tükendi" /
+"Satışa aç", siparişin sıradaki adımı, yasal metnin "Düzenle"si). Soluk
+mürekkep, en çok ince bir çizgi; çerçeve ve zemin imleç üstündeyken gelir,
+⋯ menüsü açıkken zemini kalır.
+
+- **Boyut**: dokunmatik ekranda hepsi 44 px kalır; fareyle adım 28 px, geri
+  kalanı 32 px (WCAG 2.2'nin 24 px alt sınırının üstünde). "Sıkı görünüm"ün
+  36 px'inden zaten küçük oldukları için onun sınıflarını almazlar.
+- **Çerçeveli ⋯**: başlıkta düğmelerin yanında duran ⋯ (PageHeader, ürün,
+  menü kalemi, promosyon ve sipariş sayfası) `framed` ile düğme boyunda ve
+  çerçeveli kalır; etiketli ⋯ ("Toplu işlem") da öyle.
+- **Duyarlı**: kafe menüsünde ve gönderilerde Sıra sütunu md'den itibaren
+  tabloda, telefonda kartta görünür (eskiden yalnız xl'de). 768 ve 1024
+  px'te, fare ve dokunmatikte tablo yana kaymaz; menüde ad sütunu xl'e
+  kadar biraz daha dar başlar.
+- **Etiketler**: paneldeki son 10 px aralıklı büyük harf başlıklar (müşteri
+  kartları, manuel sipariş, ürün sihirbazı, görsel yükleme, kayıt
+  sayfalarının üst satırı) kitin cümle düzenine geçti: kart başlığı
+  `CARD_TITLE`, kart içi başlık `CARD_SUBTITLE`, alan etiketi `EYEBROW` /
+  `LABEL`. Büyük harf yalnız kenar çubuğunun grup etiketlerinde, giriş
+  ekranının logosunun altında ve basılı fişte kalır. Ürün sihirbazının
+  adım başlıkları da eğik serif yerine kartın başlık yazısıyla.
+
+`tests/admin-row-controls.test.ts` ve `tests/admin-compact-density.test.ts`
+tutar.
 
 ## Kayıtlı görünümler
 
@@ -476,3 +551,21 @@ Yalnız sahip görür (Ayarlar'daki servis anahtarı satırını görenler):
 yönetici, personel ve kasiyer için kayıt sunucuda hiç okunmaz
 (`readKeepaliveFor`), satır sayfaya da girmez. Kayıt okunamazsa sayfa yine
 açılır, satır "kayıt okunamadı" der.
+
+## Kullanıcılar: kendi hesabın (21 Eki 2026)
+
+Sahip, Kullanıcılar sayfasında **kendi** hesabını silemez, pasifleştiremez ve
+rolünü değiştiremez: oturum her istekte hesaptan yeniden okunduğu için bu,
+kimsenin onayı olmadan kendini panelden atmak demekti (son sahip kuralı
+yalnız son sahibi korur). Satırda rol salt okunur görünür ve "Kullanıcıyı
+sil" nedeniyle kapalıdır; sunucu da reddeder. Adını değiştirebilir. Bu
+değişiklikleri başka bir sahip yapar.
+
+## Genel bakış: iki adımlı doğrulama uyarısı (21 Eki 2026)
+
+İki adımlı doğrulaması kapalı bir hesapla girilince Genel bakış'ın üstünde
+uyarı renginde bir satır durur: "İki adımlı doğrulama kapalı. Bu hesap yalnız
+parolayla korunuyor. Şimdi aç" (`/admin/2fa-kurulum`). Panel para ve üye
+verisi taşıdığı için; 2FA zorunlu değildir (operatör kararı, `docs/AUDIT.md`
+§11). 2FA durumu okunamazsa satır çıkmaz, sayfa yine açılır.
+

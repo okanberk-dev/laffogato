@@ -481,6 +481,11 @@ temasını** izler; kaynak orada `docs/TASARIM.md`:
 - Kart `rounded-3xl`, istatistik `rounded-2xl`, pencere `rounded-3xl` ve
   gölge `0 12px 40px rgba(0,0,0,.14)`, rozet 11px hap, kenar çubuğu 17.5rem
   (`--admin-side`; dar menü 4rem). Logo L'Af kalır.
+- Satırda tekrar eden küçük kontroller (↑ / ↓, tek başına ⋯, satırın metin
+  eylemi) sakin: soluk mürekkep, en çok ince çizgi; dokunmatikte 44 px,
+  fareyle 28-32 px (`ROW_CONTROL`; `docs/ADMIN.md` "Satır kontrolleri").
+  Etiketler cümle düzeninde; büyük harf yalnız kenar çubuğunun grup
+  etiketlerinde.
 
 Değerler `src/app/admin/layout.tsx` (`adminFontStyle`, `--admin-*`) içinde;
 `tests/admin-ui-kit.test.ts` temayı ve her tonun AA oranını tutar. Sitenin
