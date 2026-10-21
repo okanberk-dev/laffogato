@@ -192,7 +192,9 @@ export function markFieldErrors(
 ): MarkableControl | null {
   let first: MarkableControl | null = null;
   for (const el of controls) {
-    const name = el.getAttribute("name");
+    // A searchable picker (ui/combobox-field.tsx) posts its value from a
+    // hidden input and names its visible box in data-field-name instead.
+    const name = el.getAttribute("name") ?? el.getAttribute("data-field-name");
     if (!name || el.getAttribute("type") === "hidden") continue;
     const id = errorId(name);
     const described = (el.getAttribute("aria-describedby") ?? "")

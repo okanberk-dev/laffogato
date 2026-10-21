@@ -1,6 +1,7 @@
 "use client";
 
 import { adjustStockAction } from "@/app/admin/stok-hareketleri/actions";
+import type { ComboboxOption } from "@/lib/admin/option-filter";
 import type { StockAdjustOption } from "@/lib/admin/stock-moves-panel";
 
 import {
@@ -9,8 +10,29 @@ import {
   FormMessage,
   SubmitButton,
 } from "./action-form";
-import { Card, Field, Select, TextInput, Textarea } from "./forms";
+import { Card, Field, TextInput, Textarea } from "./forms";
+import { ComboboxField } from "./ui/combobox-field";
 import { EYEBROW, MONO_STYLE } from "./ui/styles";
+
+/**
+ * The picker's options: a product with variants is a group of them (its
+ * name and total as the heading), each posting "productId#variantId". The
+ * product's name is in each variant's text too: a closed picker shows the
+ * option alone, and "250 g" is on more than one bag.
+ */
+export function stockOptions(
+  products: readonly StockAdjustOption[],
+): ComboboxOption[] {
+  return products.flatMap((p) =>
+    p.variants.length > 0
+      ? p.variants.map((v) => ({
+          value: `${p.id}#${v.id}`,
+          label: `${p.name} · ${v.name} · stok ${v.stock}${v.isActive ? "" : " · pasif"}`,
+          group: `${p.name} · toplam ${p.stock}`,
+        }))
+      : [{ value: p.id, label: `${p.name} · stok ${p.stock}` }],
+  );
+}
 
 /**
  * The manual stock correction. The amount is a plain text field: a numeric
@@ -45,29 +67,15 @@ export function StockAdjustForm({
       >
         <div className="grid content-start gap-1.5">
           <Field label="Ürün">
-            <Select name="productId" defaultValue="" required>
-              <option value="" disabled>
-                Ürün seç…
-              </option>
-              {products.map((p) =>
-                p.variants.length > 0 ? (
-                  <optgroup key={p.id} label={`${p.name} · toplam ${p.stock}`}>
-                    {p.variants.map((v) => (
-                      // The product's name too: a closed select shows the
-                      // option alone, and "250 g" is on more than one bag.
-                      <option key={v.id} value={`${p.id}#${v.id}`}>
-                        {p.name} · {v.name} · stok {v.stock}
-                        {v.isActive ? "" : " · pasif"}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : (
-                  <option key={p.id} value={p.id}>
-                    {p.name} · stok {p.stock}
-                  </option>
-                ),
-              )}
-            </Select>
+            <ComboboxField
+              name="productId"
+              label="Ürün"
+              defaultValue=""
+              required
+              placeholder="Ürün seç…"
+              placeholderDisabled
+              options={stockOptions(products)}
+            />
           </Field>
           <FormFieldError name="productId" />
         </div>

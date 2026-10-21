@@ -24,6 +24,7 @@ import {
   MANUAL_PAYMENT_METHODS,
 } from "@/lib/admin/order-actions";
 import { ORDER_FULFILLMENT_LABELS } from "@/lib/admin/order-channel";
+import type { ComboboxOption } from "@/lib/admin/option-filter";
 import { computeTotalsWithShipping } from "@/lib/mobile/order-pricing";
 
 import {
@@ -43,6 +44,7 @@ import {
   formatTRY,
 } from "./forms";
 import { BUTTON } from "./ui";
+import { ComboboxField } from "./ui/combobox-field";
 import { NUMERIC_STYLE } from "./ui/styles";
 
 export interface ManualProductVariant {
@@ -134,6 +136,34 @@ function stockNote(stock: number): string {
   return stock > 0 ? `(stok: ${stock})` : "(tükendi)";
 }
 
+/** A product as the picker lists it: price, then its stock or "(tükendi)". */
+export function manualProductOption(p: ManualProduct): ComboboxOption {
+  return {
+    value: p.id,
+    label: `${p.name} · ${formatTRY(p.priceMinor)}${
+      p.variants.length === 0
+        ? ` ${stockNote(p.stock)}`
+        : manualProductSellable(p)
+          ? ""
+          : " (tükendi)"
+    }`,
+    disabled: !manualProductSellable(p),
+  };
+}
+
+/** A variant as the picker lists it: its price change, then its stock. */
+export function variantOption(v: ManualProductVariant): ComboboxOption {
+  return {
+    value: v.id,
+    label: `${v.name}${
+      v.priceDeltaMinor !== 0
+        ? ` (${v.priceDeltaMinor > 0 ? "+" : ""}${formatTRY(v.priceDeltaMinor)})`
+        : ""
+    } ${stockNote(v.stock)}`,
+    disabled: v.stock <= 0,
+  };
+}
+
 /** The highest quantity a line may ask for: the stock, at most 99. */
 function lineCap(available: number | null): number {
   if (available === null) return LINE_MAX;
@@ -179,6 +209,10 @@ export function ManualOrderForm({
 
   const byId = useMemo(
     () => new Map(products.map((p) => [p.id, p])),
+    [products],
+  );
+  const productOptions = useMemo(
+    () => products.map(manualProductOption),
     [products],
   );
 
@@ -324,48 +358,27 @@ export function ManualOrderForm({
               >
                 <label className="grid min-w-0 gap-1">
                   <span className={LINE_LABEL}>Ürün</span>
-                  <Select
+                  <ComboboxField
+                    label="Ürün"
+                    placeholder="Seç…"
                     value={line.productId}
-                    onChange={(e) => pickProduct(line.key, e.target.value)}
-                  >
-                    <option value="">Seç…</option>
-                    {products.map((p) => (
-                      <option
-                        key={p.id}
-                        value={p.id}
-                        disabled={!manualProductSellable(p)}
-                      >
-                        {p.name} · {formatTRY(p.priceMinor)}
-                        {p.variants.length === 0
-                          ? ` ${stockNote(p.stock)}`
-                          : manualProductSellable(p)
-                            ? ""
-                            : " (tükendi)"}
-                      </option>
-                    ))}
-                  </Select>
+                    onChange={(next) => pickProduct(line.key, next)}
+                    options={productOptions}
+                  />
                 </label>
 
                 <label className="grid min-w-0 gap-1">
                   <span className={LINE_LABEL}>Varyant</span>
-                  <Select
+                  <ComboboxField
+                    label="Varyant"
+                    placeholder={variants.length === 0 ? "-" : undefined}
                     value={line.variantId}
                     disabled={variants.length === 0}
-                    onChange={(e) =>
-                      patchLine(line.key, { variantId: e.target.value })
+                    onChange={(next) =>
+                      patchLine(line.key, { variantId: next })
                     }
-                  >
-                    {variants.length === 0 && <option value="">-</option>}
-                    {variants.map((v) => (
-                      <option key={v.id} value={v.id} disabled={v.stock <= 0}>
-                        {v.name}
-                        {v.priceDeltaMinor !== 0
-                          ? ` (${v.priceDeltaMinor > 0 ? "+" : ""}${formatTRY(v.priceDeltaMinor)})`
-                          : ""}{" "}
-                        {stockNote(v.stock)}
-                      </option>
-                    ))}
-                  </Select>
+                    options={variants.map(variantOption)}
+                  />
                 </label>
 
                 <label className="grid gap-1">

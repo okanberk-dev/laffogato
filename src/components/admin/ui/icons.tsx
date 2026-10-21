@@ -2,6 +2,7 @@ import {
   Boxes,
   CalendarRange,
   ChartColumn,
+  ChevronDown,
   Coffee,
   Ellipsis,
   FileText,
@@ -78,6 +79,7 @@ export const ADMIN_ICONS = {
   more: Ellipsis,
   dateRange: CalendarRange,
   close: X,
+  chevron: ChevronDown,
   // The account block: Güvenlik / 2FA, the single-key switch, Sıkı görünüm,
   // Çıkış.
   security: ShieldCheck,
