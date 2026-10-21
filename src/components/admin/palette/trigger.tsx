@@ -296,6 +296,7 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
 function PaletteDialog({
   dialogRef,
   onClosed,
+  view,
   navigate,
   ...palette
 }: PaletteTriggerProps & {
@@ -343,7 +344,7 @@ function PaletteDialog({
       style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
     >
       <PaletteBoundary>
-        <Body {...palette} close={close} navigate={navigate} />
+        <Body {...palette} view={view} close={close} navigate={navigate} />
       </PaletteBoundary>
     </dialog>
   );
