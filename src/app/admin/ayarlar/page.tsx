@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/admin/forms";
+import { PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings } from "@/lib/admin/store";
 import { emailHealth } from "@/lib/email/health";
@@ -24,11 +25,17 @@ export default async function AdminSettingsPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Kafe yapılandırması"
         title="Ayarlar"
-        description="Kafenin iletişim bilgileri, çalışma saatleri, KDV, kargo, karaoke, SEO ve e-posta ayarları. Her sekme kendi Kaydet düğmesiyle kaydedilir."
+        description="Kafenin bilgileri, saatleri, KDV, kargo, karaoke ve e-posta ayarları."
+        help={
+          <p>
+            Kafenin iletişim bilgileri, çalışma saatleri, KDV, kargo, karaoke,
+            SEO ve e-posta ayarları. Her sekme kendi Kaydet düğmesiyle
+            kaydedilir.
+          </p>
+        }
       />
       <IdentityKeyStatus hasKey={hasServiceRole()} />
       {/* ?sekme=email opens that tab: the dashboard's mail banner, the
@@ -38,6 +45,6 @@ export default async function AdminSettingsPage({
         mail={mail}
         initialTab={parseSettingsTab(params[SETTINGS_TAB_PARAM])}
       />
-    </main>
+    </PageShell>
   );
 }

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/admin/forms";
+import { PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getSettings } from "@/lib/admin/store";
 
@@ -29,13 +30,19 @@ export default async function AdminAppConfigPage({
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Mobil uygulama · Yapılandırma"
-        title="Uygulama ayarları"
-        description="Sürüm ve bakım, sipariş kanalları, sadakat, karaoke kuralları, hatırlatmalar, kampanya kartları, mutlu saatler, köşk bilgileri ve mağaza bağlantıları. Uygulama bunları açılışta okur."
+        title="Ayarlar"
+        description="Mobil uygulamanın sürüm, sipariş, sadakat ve karaoke ayarları."
+        help={
+          <p>
+            Sürüm ve bakım, sipariş kanalları, sadakat, karaoke kuralları,
+            hatırlatmalar, kampanya kartları, mutlu saatler, köşk bilgileri ve
+            mağaza bağlantıları. Uygulama bunları açılışta okur.
+          </p>
+        }
       />
       <AppConfigForm config={mobileApp} initialTab={initialTab} />
-    </main>
+    </PageShell>
   );
 }

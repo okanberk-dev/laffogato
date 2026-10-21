@@ -9,6 +9,7 @@ import {
   FilterBar,
   ListSearchButton,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
 } from "@/components/admin/ui";
 import {
@@ -167,18 +168,23 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
   const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Sistem"
         title="Olay kaydı"
-        description="Paneldeki değişikliklerin ve sistem olaylarının kaydı: kim, neyi, ne zaman. Kayıtlar değiştirilemez ve on yıl saklanır."
-        action={
+        description="Kim, neyi, ne zaman değiştirdi: panelin ve sistemin kaydı."
+        help={
+          <p>
+            Paneldeki değişikliklerin ve sistem olaylarının kaydı: kim, neyi,
+            ne zaman. Kayıtlar değiştirilemez ve on yıl saklanır.
+          </p>
+        }
+        menu={
           total > 0 ? (
             // A plain link: a prefetching <Link> would download the file.
             <a
               href={withParams(sp, { sayfa: null }, `${AUDIT_LOG_PATH}/csv`)}
               download
-              className={BUTTON.ghost}
+              className={BUTTON.menu}
             >
               CSV indir
             </a>
@@ -219,8 +225,19 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               title={filtered ? "Bu filtreyle olay yok." : "Henüz olay yok."}
               description={
                 filtered
-                  ? "Filtreleri gevşet ya da Sıfırla'ya bas."
+                  ? undefined
                   : "Bir ürün oluştur ya da bir sipariş durumu güncelle, burada görünür."
+              }
+              action={
+                filtered ? (
+                  <ListSearchButton
+                    href={AUDIT_LOG_PATH}
+                    intent="reset"
+                    className={BUTTON.ghost}
+                  >
+                    Filtreyi temizle
+                  </ListSearchButton>
+                ) : undefined
               }
             />
           )
@@ -307,6 +324,6 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           label="Olay kaydı sayfaları"
         />
       ) : null}
-    </main>
+    </PageShell>
   );
 }

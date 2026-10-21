@@ -423,6 +423,7 @@ describe("ui/icons.tsx", () => {
       create: "Plus",
       drawer: "Menu",
       more: "Ellipsis",
+      external: "ExternalLink",
       dateRange: "CalendarRange",
       close: "X",
       chevron: "ChevronDown",
