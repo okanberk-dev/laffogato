@@ -15,6 +15,7 @@ import {
   FilterBar,
   ListSearchButton,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -314,7 +315,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
             intent="reset"
             className={BUTTON.ghost}
           >
-            Süzgeçleri temizle
+            Filtreyi temizle
           </ListSearchButton>
         }
       />
@@ -323,11 +324,16 @@ export default async function CustomersPage({ searchParams }: PageProps) {
     );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Pazarlama · CRM"
         title="Müşteriler"
-        description="Üye hesapları ve misafir siparişlerinden çıkan müşteriler bir arada. Sipariş sayısı ve toplam harcama Raporlar'la aynı kuralla sayılır: ödemesi beklenen ve iptal edilen siparişler girmez."
+        description="Üye hesapları ve misafir siparişlerinden çıkan müşteriler."
+        help={
+          <p>
+            Sipariş sayısı ve toplam harcama Raporlar&apos;la aynı kuralla
+            sayılır: ödemesi beklenen ve iptal edilen siparişler girmez.
+          </p>
+        }
       />
 
       {openRequests.customers > 0 && !deletionTab ? (
@@ -462,6 +468,6 @@ export default async function CustomersPage({ searchParams }: PageProps) {
           label="Müşteri sayfaları"
         />
       </div>
-    </main>
+    </PageShell>
   );
 }
