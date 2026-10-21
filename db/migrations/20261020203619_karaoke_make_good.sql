@@ -29,9 +29,12 @@
 --   "refundSettledMinor" the part of "refundMinor" that had already gone back
 --                        (recorded by hand) when the booking was owed money
 --                        again because one of its hours was sold again: the
---                        step under way asks for "refundMinor" minus this,
---                        and on a 'refunded' row the last step was that much
---                        (the Gün sonu sheet dates it by "refundedAt")
+--                        step under way asks for "refundMinor" minus this
+--   "refundSteps"        every refund recorded by hand ("Elle iade edildi"),
+--                        each with its own amount and instant (jsonb array of
+--                        {"minor", "at"}): a late share refunded one day and
+--                        the rest of it, after a resale, another day stay two
+--                        refunds on two days (the Gün sonu sheet)
 -- on the free hour itself:
 --   "makeGoodFor"        the booking it makes good. Total 0, paid nothing
 --                        (paymentStatus 'none'), made by the staff
@@ -70,6 +73,7 @@ alter table public.karaoke_reservations add column if not exists "makeGoodFor"  
 alter table public.karaoke_reservations add column if not exists "resoldHours"       jsonb;
 alter table public.karaoke_reservations add column if not exists "resaleRefundMinor" integer;
 alter table public.karaoke_reservations add column if not exists "refundSettledMinor" integer;
+alter table public.karaoke_reservations add column if not exists "refundSteps"       jsonb;
 
 do $$
 begin
@@ -115,6 +119,15 @@ begin
              or ("refundSettledMinor" >= 0
                  and "refundMinor" is not null
                  and "refundSettledMinor" <= "refundMinor"));
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'karaoke_reservations_refund_steps_check'
+       and conrelid = 'public.karaoke_reservations'::regclass
+  ) then
+    alter table public.karaoke_reservations
+      add constraint karaoke_reservations_refund_steps_check
+      check ("refundSteps" is null or jsonb_typeof("refundSteps") = 'array');
   end if;
 end $$;
 
