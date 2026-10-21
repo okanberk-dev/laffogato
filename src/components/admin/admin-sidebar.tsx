@@ -370,7 +370,7 @@ const ROW_RAIL =
 const BADGE_RAIL =
   "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white";
 const TIP =
-  "fixed top-[var(--tip-y,0px)] left-[3.25rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
+  "fixed top-[var(--tip-y,0px)] left-[3.15rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
 const TIP_PILL =
   "block rounded-md bg-[var(--admin-primary)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
 
@@ -415,7 +415,13 @@ function RailToggle({
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={(e) => {
+        // A keyboard toggle keeps the focus on this button, so no focus
+        // event places the rail tooltip: place it once the layout moved.
+        const el = e.currentTarget;
+        onToggle();
+        requestAnimationFrame(() => placeRailTip(el));
+      }}
       aria-expanded={!rail}
       aria-controls={SIDE_ID}
       {...(rail ? railControl(label) : { "aria-label": label, title: label })}

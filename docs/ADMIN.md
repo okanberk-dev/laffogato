@@ -437,7 +437,7 @@ hemen uygulanır (tercihle yenileyince menü bir an geniş görünüp daralır).
   anahtarı ya da paletin Komutlar'ında; `laf_admin_density_v1`): tablo
   hücreleri `py-3` yerine `py-2`, kart ve bölümler `p-6` yerine `p-4`;
   düğmeler, alanlar, "⋯" menüsü, sayfa numaraları ve sekmeler 44 px yerine
-  36 px.
+  36 px (alanlar 34 px).
   - **Yalnız fare ya da izleme dörtgeni olan cihazda** (`pointer: fine`)
     uygulanır. Telefonda ve dokunmatik ekranda hiçbir şey değişmez, 44 px
     hedefler kalır; anahtarın altındaki not dokunmatikte bunu söyler

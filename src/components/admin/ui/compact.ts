@@ -7,7 +7,7 @@
  * stay as they were: 44 px targets, 24 px cards. When the admin root carries
  * `data-admin-density="compact"` (view-prefs.tsx writes it) AND the pointer
  * can aim (a mouse or a trackpad), these classes tighten them: table cells
- * `py-3` to `py-2`, cards and sections `p-6` to `p-4`, controls to 36 px
+ * `py-3` to `py-2`, cards and sections `p-6` to `p-4`, controls to 36 px (fields 34 px)
  * (above WCAG 2.2's 24 px minimum). A touch screen matches none of them, so
  * the switch does nothing there and its menu row says so. Each class says
  * `pointer-fine:` first (tests/admin-rail-density.test.ts scans for a
