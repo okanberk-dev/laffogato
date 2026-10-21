@@ -1,5 +1,47 @@
 # Handoff: L'Affogato admin audit, legal program and admin UI v2 (19 Oct 2026)
 
+## Status: completed (21 Oct 2026)
+
+The queue in `queue.json` is empty: every item below was built, independently reviewed (three lenses plus verifiers for money, refund, consent and legal work; one review otherwise), passed the local CI gate at its exact head (typecheck, `lint --max-warnings=0`, full vitest against Postgres 16, `next build`; GitHub Actions is off until 1 Nov), squash-merged, and production was confirmed from `main` (Vercel production deployment of the merge commit, 8 paths 200). The rest of this file is the history of the handoff and is kept for reference.
+
+Merged 20-21 Oct 2026, site `RiosenBeq/laffogato`:
+
+| PR | What |
+| --- | --- |
+| #189 | Staff updates Live status; table count for owner and manager; venue quick switch (UI-10) |
+| #190 | Saved list views, orders first (UI-11) |
+| #191 | Karaoke: late cancel by the venue gives a make-good hour or money; a late-cancelled hour can be resold |
+| #192 | Unsaved-change guard on settings, app settings, legal and campaign forms |
+| #193 | Legal: every shown version stored; order and karaoke confirmation e-mail carries the accepted texts (durable copy) |
+| #194 | Database and key safety: connection only from DATABASE_URL, milestone reward and key fixes |
+| #195 | Laptop rail menu (64 px) and compact density |
+| #196 | KVKK: guest karaoke data erased after 3 years, every erasure run logged; till path changes |
+| #197 | Date filter presets on lists (UI-14, `@internationalized/date@3.12.4`) |
+| #198 | Palette: Settings sections searchable |
+| #199 | Turkish date and time field on publish windows |
+| #200 | Type-to-search product / variant picker on stock adjust and manual order (UI-16) |
+| #201 | Page header pattern and copy sweep on Today, Catalog and Marketing (UI-19) |
+| #202 | Page header pattern and copy sweep on Content and Admin pages; Press and Story create dialogs (UI-20) |
+| 44c5cb78 | Karaoke link to the venue panel: signed ping on karaoke writes, signed `GET /api/panel/karaoke` (`docs/PANEL-KARAOKE.md`; pushed straight to `main` at the operator's request) |
+
+App `RiosenBeq/lafmobil`: #20 (last free-cancel minute refunds in full, same rule as the site), #21 (site texts of 21 Oct: payment, karaoke code handover, shop label and dated discount), #22 (contract and legal export synced from site `main` of 21 Oct, new `RECONCILED` hash).
+
+Final checks on 21 Oct: a visual pass of 58 admin screens at 390, 1024 and 1280 px (production build, seeded throwaway database) found no horizontal overflow; merged work branches were deleted (never `claude/*`).
+
+### Still open
+
+- Admin widget chunk budgets: the date widgets (#197, about 84 KB gz) and the combobox (#200, about 64 KB gz) are over the 8 KB per-route target; accepted and listed as open in `docs/AUDIT.md`.
+- App version 1.1.0 and `KARAOKE_POLICY_APP_VERSION`: only after the operator says the app build with the server-side karaoke rules is live in the stores.
+- Raise `minSupportedAppVersion` before the app shows "Eski fiyat" (dated discount) to older builds.
+
+### Operator to-dos
+
+- Re-enable the four GitHub Actions workflows on 1 Nov (disabled 19 Oct for the free-minutes quota).
+- Decide `RETENTION_APPLY` (the erasure job runs as a dry run until it is set).
+- Announce the till change in the app and send the informational e-mail (#196, decision R4).
+- `KARAOKE_SYNC_SECRET` answers 401 to unsigned requests in production, so it is set; keep the same value in the panel project and set `PANEL_URL` only if the panel moves from `https://ladmin.laffogato.net`.
+- Neon: about 1.96 CU-h a day after #185 (75.03 on 20 Oct 20:35, 76.24 on 21 Oct 12:20); look again if it passes 2.2 a day.
+
 This folder is everything a cloud session needs to continue the work that the local orchestration session ran on 17-19 Oct 2026. Rules: `brief-cloud.md`. Remaining work, in order: `queue.json` (each item has `handoffStatus`, `prio`, `after` dependencies, `review` type and a notes file in `items/`).
 
 ## What is done (merged to main, production verified from main)
