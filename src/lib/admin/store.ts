@@ -81,6 +81,7 @@ import {
 } from "@/lib/shop/discount";
 import {
   EMPTY_FOOD_LABEL,
+  FOOD_LABEL_KEYS,
   foodLabelOf,
   type FoodLabelText,
 } from "@/lib/shop/food-label";
@@ -1704,27 +1705,31 @@ export async function listProductLabels(
  * The columns the CSV import reads and may change, for every product: no
  * photos (a stored upload is a data URL of up to 2 MB), no SEO, no cost.
  * Variants come along because a new price must keep every variant at 1
- * kuruş or more.
+ * kuruş or more; tags because an allergen cell keeps the `nuts` tag (the
+ * app's nut warning) in step with tree nuts; the food label because a cell
+ * is compared with it.
  */
-export type ProductImportView = Pick<
-  AdminProduct,
-  | "id"
-  | "name"
-  | "slug"
-  | "sku"
-  | "tag"
-  | "desc"
-  | "cat"
-  | "img"
-  | "priceMinor"
-  | "compareAtPriceMinor"
-  | "stock"
-  | "taxRatePct"
-  | "isActive"
-  | "brand"
-  | "weightGrams"
-  | "variants"
->;
+export type ProductImportView = ProductFoodLabel &
+  Partial<Pick<AdminProduct, "tags">> &
+  Pick<
+    AdminProduct,
+    | "id"
+    | "name"
+    | "slug"
+    | "sku"
+    | "tag"
+    | "desc"
+    | "cat"
+    | "img"
+    | "priceMinor"
+    | "compareAtPriceMinor"
+    | "stock"
+    | "taxRatePct"
+    | "isActive"
+    | "brand"
+    | "weightGrams"
+    | "variants"
+  >;
 
 export async function listProductsForImport(): Promise<ProductImportView[]> {
   await ensureSeed();
@@ -1733,7 +1738,7 @@ export async function listProductsForImport(): Promise<ProductImportView[]> {
     await sb
       .from(TABLES.products)
       .select(
-        "id, name, slug, sku, tag, desc, cat, img, priceMinor, compareAtPriceMinor, stock, taxRatePct, isActive, brand, weightGrams, variants",
+        `id, name, slug, sku, tag, desc, cat, img, priceMinor, compareAtPriceMinor, stock, taxRatePct, isActive, brand, weightGrams, variants, tags, allergens, ${FOOD_LABEL_KEYS.join(", ")}`,
       )
       .order("id", { ascending: true }),
     "listProductsForImport",
@@ -1756,8 +1761,10 @@ export type ProductImportPatch = Partial<
     | "weightGrams"
     | "discountStartsAt"
     | "discountEndsAt"
+    | "tags"
   >
 > &
+  ProductFoodLabel &
   Partial<BackdropColumns>;
 
 /**

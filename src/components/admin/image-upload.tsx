@@ -491,7 +491,7 @@ export function ImageUpload({
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="min-w-0 flex-[1_1_10rem] rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+          className="min-w-0 flex-[1_1_10rem] rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
         />
         <button
           type="button"

@@ -22,7 +22,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10 sm:px-6 sm:py-16">
-      <div className="w-full rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-6 shadow-[0_1px_3px_rgba(68,48,28,0.06)] sm:p-10">
+      <div className="w-full rounded-3xl bg-[var(--admin-panel)] p-6 sm:p-10">
         {/* The page's name for a screen reader; the mark says it to the eye. */}
         <h1 className="sr-only">Panele giriş</h1>
         <div className="mb-8 text-center">

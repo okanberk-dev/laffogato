@@ -58,7 +58,7 @@ export function StatusTabs({
       aria-label={label}
       className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
-      <ul className="inline-flex min-w-max gap-1 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1">
+      <ul className="inline-flex min-w-max gap-1 rounded-xl bg-[var(--admin-panel)] p-1">
         {tabs.map((tab) => {
           const active = (tab.value ?? null) === (current ?? null);
           return (
@@ -71,11 +71,11 @@ export function StatusTabs({
                 )}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+                  "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
                   COMPACT.minH9,
                   active
-                    ? "bg-[var(--admin-primary)] font-medium text-white"
-                    : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]",
+                    ? "bg-[var(--admin-surface)] font-medium text-[var(--admin-text)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
+                    : "text-[var(--admin-text-soft)] hover:text-[var(--admin-text)]",
                 )}
               >
                 {tab.label}
@@ -84,8 +84,8 @@ export function StatusTabs({
                     className={cx(
                       "rounded-full px-1.5 py-0.5 text-[11px] leading-none",
                       active
-                        ? "bg-white/20 text-white"
-                        : "bg-[var(--admin-neutral-soft)] text-[var(--admin-text-soft)]",
+                        ? "bg-[var(--admin-primary)] text-white"
+                        : "bg-[var(--admin-surface)] text-[var(--admin-text-soft)]",
                     )}
                     style={MONO_STYLE}
                   >

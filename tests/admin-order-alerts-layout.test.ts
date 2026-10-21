@@ -30,7 +30,8 @@ vi.mock("next/link", () => ({
   useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/font/google", () => ({
-  Poppins: () => ({ variable: "font-poppins", className: "" }),
+  Geist: () => ({ variable: "font-geist-sans", className: "" }),
+  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderSignalAction: vi.fn(async () => ({ count: 0, cursor: "" })),

@@ -3,14 +3,22 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { sceneColumns } from "@/lib/backdrop/scene";
+import { menuAllergenWords, normalizeMenuAllergens } from "@/lib/menu/allergens";
+import {
+  FOOD_LABEL_FIELDS,
+  foodLabelOf,
+  type FoodLabelKey,
+} from "@/lib/shop/food-label";
 import { parseMoneyInput, priceLabel } from "@/lib/utils/format";
 import { KDV_RATE_CHOICES } from "@/lib/utils/kdv";
 
 import { parseCsv, type CsvRecord } from "./csv";
+import { tagsWithAllergens } from "./menu-allergens-schema";
 import {
   countRows,
   importColumnFor,
   parseActiveCell,
+  parseAllergenCell,
   parseCountCell,
   PRODUCT_IMPORT_CELL_MAX,
   PRODUCT_IMPORT_EXAMPLE_SKU,
@@ -127,7 +135,31 @@ const COLUMN_LABEL: Record<ImportColumn, string> = {
   brand: "Marka",
   weight: "Ağırlık",
   tag: "Etiket",
+  allergens: "Alerjenler",
+  ...(Object.fromEntries(FOOD_LABEL_FIELDS.map((f) => [f.key, f.panel])) as Record<
+    FoodLabelKey,
+    string
+  >),
 };
+
+/** The longest cell each column takes (the label fields keep the form's caps). */
+function cellMax(key: ImportColumn): number {
+  if (key === "description") return PRODUCT_DESC_MAX_LENGTH;
+  return (
+    FOOD_LABEL_FIELDS.find((f) => f.key === key)?.max ?? PRODUCT_IMPORT_CELL_MAX
+  );
+}
+
+/** Why a row's allergens would drop the stored `nuts` tag (the app's nut warning). */
+export const IMPORT_NUTS_TAG_ERROR =
+  "Alerjenler: bu üründe kuruyemiş uyarısı var ama hücrede Sert kabuklu meyveler yok. İçeriyorsa ekle; içermiyorsa uyarıyı ürün formunda kaldır.";
+
+/** A stored or planned allergen list as the preview names it. */
+function allergenText(raw: unknown): string {
+  const words = menuAllergenWords(raw);
+  if (words === null) return "girilmedi";
+  return words.length > 0 ? words.join(", ") : "yok";
+}
 
 /** The schema's field names, as the operator reads them in a row's reason. */
 const FIELD_LABEL: Record<string, string> = {
@@ -348,8 +380,7 @@ function planRow(
 
   const tooLong: string[] = [];
   for (const [key, idx] of columns) {
-    const cap =
-      key === "description" ? PRODUCT_DESC_MAX_LENGTH : PRODUCT_IMPORT_CELL_MAX;
+    const cap = cellMax(key);
     if ((rec.cells[idx] ?? "").trim().length > cap) {
       tooLong.push(`${COLUMN_LABEL[key]} çok uzun (en fazla ${cap} karakter).`);
     }
@@ -409,6 +440,15 @@ function planRow(
   const activeCell = get("isActive");
   const active = activeCell === undefined ? null : parseActiveCell(activeCell);
   if (active === "invalid") errors.push("Aktif: evet ya da hayır yaz.");
+  // Ek-1 allergens: an empty cell (null) keeps the stored list.
+  const allergenCell = get("allergens");
+  const allergenRead =
+    allergenCell === undefined ? null : parseAllergenCell(allergenCell);
+  if (allergenRead && !allergenRead.ok) errors.push(allergenRead.error);
+  const allergens = allergenRead?.ok ? allergenRead.value : null;
+  const storedTags = existing?.tags ?? [];
+  const nutsTags = allergens === null ? null : tagsWithAllergens(storedTags, allergens);
+  if (nutsTags && !nutsTags.ok) errors.push(IMPORT_NUTS_TAG_ERROR);
 
   const priceCell = get("price");
   const descCell = get("description");
@@ -470,6 +510,10 @@ function planRow(
   if (brandCell !== undefined) record.brand = brandCell;
   if (weightCell !== undefined) record.weightGrams = String(weightValue ?? 0);
   if (stockValue !== null) record.stock = String(stockValue);
+  // Label text the file holds (an empty cell keeps the stored text); the
+  // schema tidies and caps it as the form does.
+  const labelCells = FOOD_LABEL_FIELDS.filter((f) => get(f.key));
+  for (const f of labelCells) record[f.key] = get(f.key)!;
   if (active === true) record.isActive = "on";
   if (active === false) delete record.isActive;
 
@@ -526,7 +570,9 @@ function planRow(
       cat: d.cat,
       img: d.img,
       images: [],
-      tags: [],
+      tags: nutsTags?.ok ? nutsTags.tags : [],
+      ...(allergens === null ? {} : { allergens }),
+      ...Object.fromEntries(labelCells.map((f) => [f.key, d[f.key] ?? ""])),
       brand: d.brand,
       notes: [],
       stock: d.stock,
@@ -653,6 +699,29 @@ function planRow(
     } else {
       changes.push(`Ağırlık: ${grams(storedWeight)} → ${grams(d.weightGrams)}`);
     }
+  }
+  if (allergens !== null) {
+    const stored = normalizeMenuAllergens(existing.allergens);
+    if (JSON.stringify(stored) !== JSON.stringify(allergens)) {
+      patch.allergens = allergens;
+      changes.push(`Alerjenler: ${allergenText(stored)} → ${allergenText(allergens)}`);
+    }
+    const tags = (nutsTags as { ok: true; tags: string[] }).tags;
+    if (tags.length !== storedTags.length) {
+      patch.tags = tags;
+      changes.push("Kuruyemiş uyarısı eklenecek.");
+    }
+  }
+  const storedLabel = foodLabelOf(existing);
+  for (const f of labelCells) {
+    const next = d[f.key] ?? "";
+    if (next === storedLabel[f.key]) continue;
+    patch[f.key] = next;
+    changes.push(
+      f.multiline
+        ? `${f.panel} değişiyor.`
+        : `${f.panel}: ${short(storedLabel[f.key]) || "yok"} → ${short(next)}`,
+    );
   }
   const stockDelta = stockValue === null ? 0 : d.stock - existing.stock;
   if (stockDelta !== 0) {

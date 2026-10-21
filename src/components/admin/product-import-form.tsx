@@ -174,6 +174,12 @@ export function ProductImportForm() {
             fiyat güncelleyeceksen öteki sütunları dosyadan çıkar.
           </li>
           <li>
+            Gıda etiketi sütunları (alerjenler, net miktar, içindekiler, saklama
+            koşulu ve ötekiler) boşsa olduğu gibi kalır; silmek için ürün
+            formunu kullan. Alerjenleri 14 grubun adıyla virgülle yaz,
+            hiçbirini içermiyorsa yok; tanımadığım bir ad satırı reddeder.
+          </li>
+          <li>
             Stok farkı Stok hareketlerinde &quot;CSV içe aktarma&quot; notuyla
             görünür. Varyantlı ürünün stoğu buradan değişmez.
           </li>

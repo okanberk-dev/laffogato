@@ -478,6 +478,12 @@ durum bozulmaya uygundur.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
+- **Admin paneli görünümü** (21 Eki 2026, operatör): `/admin`, kafenin arka
+  ofis paneli lafmaliyet'in AkmanOS açık temasını izler (beyaz zemin,
+  zinc-100 kart, siyah birincil, limon yalnız dolgu, Geist Sans + Geist
+  Mono yalnız admin layout'ta). Değerler `src/app/admin/layout.tsx`
+  `--admin-*`; yukarıdaki site kuralları panele uygulanmaz, panel de siteyi
+  değiştirmez (`docs/BRAND.md` "Admin paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve

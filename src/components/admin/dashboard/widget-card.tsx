@@ -22,7 +22,7 @@ export function WidgetCard({
   return (
     <Card className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 className="text-lg font-semibold text-[var(--admin-text)]">
+        <h2 className="text-base font-semibold tracking-tight text-[var(--admin-text)]">
           {title}
         </h2>
         {href ? (

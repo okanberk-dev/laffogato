@@ -1144,12 +1144,12 @@ Açık:
 | 🟢 | Hızlı bakışın ızgarası `1fr 1fr` idi: fotoğrafın 4/5 kutusu satırla büyüyor, uzun ayrıntı listesi 1280 px'te metin sütununu daraltıyordu; "Sepete ekle" panelin kesilen kenarının altında kalıyordu (bu turda görüldü) | Sütunlar `minmax(0, 1fr)`, fotoğraf sütun genişliğinde ve en az satır yüksekliğinde; metin sütunu panelin 92vh'sıyla sınırlı ve kayar, telefonda sayfa tek parça kayar | `storefront-product-facts` |
 | 🟢 | Mağaza vitrininin fotoğrafı tırnaksız `url()` içindeydi: boşluk ya da parantez görseli düşürüyor, `");...;("` ile biten adres vitrine kendi CSS bildirimlerini ekliyordu (CAT-27'nin mağaza kısmı); panel önizlemesi canlı slaytı çizemiyordu (CAT-25'in mağaza kısmı) | `cssUrl()` (`css-url.ts`) adresi tırnaklar, tırnağı, ters bölüyü ve kontrol karakterlerini CSS kaçışıyla yazar; `Slide` dışa açıldı | `storefront-hero-slide` |
 | 🟡 | Ürünün markası ve tat notları mağazaya ulaşmıyordu: `toDesignProduct` (`src/lib/admin/store.ts`) `brand` ve `notes`'u göndermiyordu; sayfa ikisini de hazır okuyordu (bu paketin açık listesindeydi) | #182'de kapandı (21 Eki 2026'da doğrulandı): `designProductBase` boş olmayan markayı kırpılmış, tat notlarını boşları atılmış olarak gönderir; mağaza listesi, ürün sayfası ve benzer ürünler aynı eşlemeyi önbellekli `ShopListing` (`toShopListing`, `site-data.ts`) üzerinden okur, ürün sayfası ve hızlı bakış "Marka" ve "Tat notları" satırlarını `product-facts.ts`'ten çizer. Uygulamanın `GET /shop` eşlemesi (`menu-mapper.ts`) iki alanı zaten gönderiyordu, sözleşme değişmedi | `shop-label-store`, `storefront-product-facts` |
+| 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yoktu; sayfa yalnız sipariş öncesi iletişimi gösteriyordu (TGK Etiketleme m.9/1, m.17/2-a). Alanlar geldikten sonra ürün CSV'si onları okumuyordu: etiket yalnız ürün formundan, ürün ürün girilebiliyordu | Alanlar #182'de geldi (21 Eki 2026'da doğrulandı): migration `20261019170200_product_food_label.sql` (`allergens` jsonb, menünün 14 Ek-1 grubu ve üç durumu; `ingredients`, `"netQuantity"`, `"storageConditions"`, `"usageInstructions"`, `producer`, `"businessRegNo"`, `origin`, `nutrition`), panelde 14 kutu ve "Gıda etiketi" (Temel bilgi adımı, `FIELD_STEP`), ürün sayfası ve hızlı bakış yalnız girileni çizer, `GET /shop` isteğe bağlı alanlarla. CSV içe aktarma artık `allergens` ve sekiz etiket sütununu okur (Türkçe başlıklar da): alerjen hücresi grupları adıyla ya da anahtarıyla alır, "yok" hiçbiri, tanımadığı ad satırı reddeder (tahmin yok); sert kabuklu meyveler `nuts` etiketini ekler, kayıtlı `nuts` uyarısını düşürecek liste reddedilir; boş etiket hücresi kayıtlı değeri korur (şablondan yapılmış bir stok dosyası etiketleri silmesin diye; silmek ürün formunun işi); uzun alanlar formun kendi sınırını kullanır (içindekiler 2000) | `admin-product-import` ("the food label columns"), `db-integration-product-food-label`, `shop-label-store`, `shop-label-actions`, `storefront-label-discount`, `admin-product-wizard` |
 
 Açık (paket 5b'nin dışında kalan kısımlar):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟡 | Paketli gıdada içindekiler, Ek-1 alerjenleri, net miktar ve saklama koşulu ürünün kendi alanı olarak yok; sayfa şimdilik sipariş öncesi iletişimi gösteriyor (TGK Etiketleme m.17/2-a) | Ürün şemasına alan eklemek arka yüz (migration, panel, uygulama) işidir |
 | 🟢 | Panelde vitrin adresinin ve CTA'nın doğrulanması, panel önizlemesinin `Slide` + `cssUrl` kullanması (CAT-25, CAT-27'nin panel kısmı) | Paket 5c (catalog-forms) |
 
 ### Hukuk: menüde alerjen, fiyat listesinin tarihi, içeriği tutmayan fotoğraflar (18 Eki 2026)
@@ -1520,3 +1520,15 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Seçici parçası yaklaşık 64 KB gz; tasarımın bütçesi 35 KB | React Aria ve bütün dillerin metinleri; yalnız seçiciye gelince ve bir kez iner, diğer sayfalar ve Kasa hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~30 KB ham kazandırır, `next.config.ts` istediği için ayrı PR |
+
+### Kabuk: lafmaliyet (AkmanOS) görünümü (21 Eki 2026)
+
+Operatör kararı (21 Eki 2026): panel, kafenin arka ofis paneli lafmaliyet'in
+AkmanOS açık temasıyla yeniden giydirildi; davranış, rotalar, form adları ve
+eylemler değişmedi. Beyaz zemin, zinc-100 kartlar, siyah birincil, Geist;
+kenar çubuğu 17.5rem, beyaz liste kutusu, ikon karoları, geniş ⌘K kutusu,
+siyah etkin satır. Etiket tonu `#6b6b73` (AkmanOS'un `#71717a`'sı zinc-100
+kartta AA'yı geçmiyordu). Testler: `tests/admin-ui-kit.test.ts` (tema, AA
+zeminlerine zinc-100 eklendi), `tests/admin-root-css.test.ts`,
+`tests/admin-rail-density.test.ts`, `tests/admin-shell-nav.test.ts`.
+Ayrıntı: `docs/BRAND.md` "Admin paneli görünümü".

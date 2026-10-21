@@ -46,7 +46,8 @@ vi.mock("next/dynamic", async () => {
   return { default: () => NavIcon };
 });
 vi.mock("next/font/google", () => ({
-  Poppins: () => ({ variable: "font-poppins", className: "" }),
+  Geist: () => ({ variable: "font-geist-sans", className: "" }),
+  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
 }));
 // The badge polls' actions, under both of their names: main renamed them
 // (#185, the cursor polls: openOrderSignalAction, karaokeTodaySignalAction)
@@ -324,7 +325,7 @@ describe("the bar's markup", () => {
     const lit = bar.match(/<a [^>]*aria-current="page"[^>]*>/g) ?? [];
     expect(lit).toHaveLength(1);
     expect(lit[0]).toContain('href="/admin/siparisler?durum=acik"');
-    expect(lit[0]).toContain("text-[var(--admin-primary)]");
+    expect(lit[0]).toContain("font-semibold text-[var(--admin-text)]");
   });
 
   it("Tümü opens the shell's drawer, and focus comes back to it", () => {
