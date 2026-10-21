@@ -10,7 +10,8 @@ import { getAdminSession } from "./auth";
  * `audit_logs` table, where a trigger refuses UPDATE, TRUNCATE and any
  * DELETE of a row younger than the ten-year retention
  * (db/migrations/20261019170000_audit_logs_append_only.sql); the periodic
- * destruction (src/lib/retention.ts) is the only thing that removes rows.
+ * destruction (src/lib/retention.ts) is the only thing that removes rows,
+ * and each of its applied runs leaves a row here too (entity `retention`).
  */
 
 export type AuditEntity =
@@ -46,7 +47,10 @@ export type AuditEntity =
   | "campaign_email"
   | "cafe_table"
   // The log itself, for its own CSV export.
-  | "audit_log";
+  | "audit_log"
+  // One periodic destruction run (src/lib/retention.ts), written by the
+  // system: entityId is the run's instant, the payload its counts.
+  | "retention";
 
 export type AuditAction =
   | "create"

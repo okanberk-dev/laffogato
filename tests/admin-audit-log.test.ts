@@ -406,6 +406,80 @@ describe("Turkish labels (SYS-10)", () => {
     expect(view.AUDIT_ACTION_TONES.export).toBe("accent");
   });
 
+  it("reads a periodic destruction run in Turkish, rule by rule", () => {
+    // src/lib/retention.ts `destructionRecord`: counts only, one row per
+    // applied run, filed under the run's instant (OP-RETENTION-APPLY).
+    expect(view.AUDIT_ENTITY_LABELS.retention).toBe("Periyodik imha");
+    const kinds = view.AUDIT_FILTER_FIELDS.find(
+      (f) => f.type === "select" && f.name === "entity",
+    );
+    expect(kinds?.type === "select" ? kinds.options : []).toContainEqual({
+      value: "retention",
+      label: "Periyodik imha",
+    });
+    const ctx = {
+      entity: "retention",
+      action: "bulk_delete",
+      entityId: "2026-10-21T06:00:00.000Z",
+    };
+    const list = view.auditPayloadEntries(
+      {
+        at: "2026-10-21T06:00:00.000Z",
+        results: [
+          {
+            id: "karaoke-guest-data",
+            table: "karaoke_reservations",
+            method: "clear",
+            cutoff: "2023-10-19T09:00:00.000+03:00",
+            matched: 3,
+            destroyed: 3,
+          },
+          {
+            id: "auth-attempts",
+            table: "auth_attempts",
+            method: "delete",
+            cutoff: "2026-10-14T06:00:00.000Z",
+            matched: 0,
+            destroyed: 0,
+            failed: true,
+          },
+        ],
+      },
+      ctx,
+    );
+    expect(list).toEqual([
+      {
+        key: "at",
+        label: "Çalışma anı",
+        value: expect.stringMatching(/21 Eki 2026 09:00/),
+      },
+      {
+        key: "results.karaoke-guest-data",
+        label: "Kural · Karaoke misafir ve iletişim bilgisi",
+        value: expect.stringMatching(
+          /^Alanlar boşaltıldı · Eşleşen 3 · İmha edilen 3 · Sınır 19 Eki 2023 09:00$/,
+        ),
+      },
+      {
+        key: "results.auth-attempts",
+        label: "Kural · Giriş denemeleri",
+        value: expect.stringMatching(
+          /^Silindi · Eşleşen 0 · İmha edilen 0 · Sınır 14 Eki 2026 09:00 · Çalışmadı$/,
+        ),
+      },
+    ]);
+    // No raw JSON and no English key is left on the row.
+    expect(JSON.stringify(list)).not.toMatch(/"matched"|destroyed|cutoff/);
+    // The record column reads the run's instant on the köşk's clock, and
+    // there is no page to link to.
+    expect(
+      view.auditRecordText("retention", "2026-10-21T06:00:00.000Z"),
+    ).toMatch(/21 Eki 2026 09:00:00/);
+    expect(
+      view.auditRecordHref("retention", "2026-10-21T06:00:00.000Z"),
+    ).toBeNull();
+  });
+
   it("names the system and members, and keeps an address as it is", () => {
     expect(view.auditActorText("system")).toBe("Sistem");
     expect(view.auditActorText("customer")).toBe("Üye");

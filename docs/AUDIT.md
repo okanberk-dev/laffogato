@@ -411,6 +411,19 @@ formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu (17 
 2026'da canlıda doğrulandı, `docs/PAYNKOLAY.md` §2) ve dönüş hash'inin
 `CURRENCY_CODE` alanı.
 
+PR #196'nın incelemesinde bulunan, önceden var olan ve orada düzeltilmeyenler
+(21 Eki 2026):
+
+- 🟢 `audit-logs` imha kuralı 10 × 366 günü `createdAt`'ten sayıyor, takvim
+  yılının bitişinden değil (TTK m.82/6). Bugün hiçbir satıra değmiyor (en eski
+  satır 2026); kural ilk kez 2036'da işler.
+- 🟢 `payment_transactions.raw.params` `withoutHolderName`'den geçmeden
+  yazılıyor (sertleştirme; belgelenen dönüş gövdesi kart sahibinin adını
+  taşımıyor).
+- 🟢 Mobil Uygulama Koşulları ve Kullanım Şartları damga hareketlerinin
+  bildirimler ekranında göründüğünü söylüyor; ekran yalnız ödül hazır ve
+  kilometre taşı öğelerini gösteriyor.
+
 PR #189 (UI-13, köşk çipi) güvenlik incelemesinin main'de bulduğu, o PR'ın
 değiştirmediği iki madde (21 Eki 2026):
 
@@ -1467,3 +1480,30 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Takvim parçası yaklaşık 84 KB gz; tasarımın bütçesi 45 KB | React Aria'nın tarih bileşenleri tek başına ~50 KB. Parça yalnız fareli cihazda, tarih kutusuna gelince ve bir kez iner; telefon, dokunmatik, Kasa ve tarih alanı olmayan listeler hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~13 KB kazandırır, `next.config.ts` istediği için ayrı PR |
+
+### Hukuk: karaoke verisinin süresi, imha kaydı, ticari yazışma (21 Eki 2026)
+
+Kararlar ASK-RETENTION, OP-RETENTION-APPLY, D-CORRESPONDENCE (operatör,
+18 Eki 2026: avukat turu yok). Cümle cümle eski ve yeni metin
+`docs/LEGAL-REDLINES-2026-09.md` §27'de, imhanın işleyişi ve kaydın yeri
+`docs/DATABASE.md` "Periyodik imha"da.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Üye olmadan karaoke rezervasyonu yapanın adı, e-postası ve telefonu ile her rezervasyonun iletişim adresi, telefonu ve notu için saklama süresi yoktu; Veri Saklama "henüz belirlenmemiştir" diyordu (X-KAR-RETENTION) | Rezervasyon gününden 3 yıl sonra misafirin adı silinir, adresi `anon-<id>@anon.local` olur, her rezervasyonun iletişim bilgisi, notu ve onaydaki IP ile tarayıcı bilgisi silinir; 11 yıl sonra satır silinir (`karaoke_guest_retention`, `karaoke_reservation_retention`). Açık ödeme (`pending`, `refunding`), panelin hâlâ borçlu saydığı rezervasyon (ödenmiş ve iptal ya da onaylanmamış), `payment_transactions`'ta cevapsız `refunding` talebi ve `"retentionHold"` atlanır; silme rezervasyon günü, ödeme ve iadenin en geç olanından sayılır; temizlenmiş satır ikinci kez sayılmaz, gün köşkün saatiyle kesilir, gün olmayan ya da bir yıldan yakın sınır hata verir (inceleme M1-M3, R5) | `db-integration-karaoke-retention`, `mobile-retention` |
+| 🟡 | Periyodik imha çalıştırması hiçbir iz bırakmıyordu ve politika "ayrı bir kayıt oluşturulmaz" diyordu (Silme Yön. m.7/3) (X-RETENTION-APPLY, inceleme R1) | Uygulanan her çalıştırma `audit_logs`'a tek satır yazar (`system`, `bulk_delete`, `retention`, kural başına yöntem ve sayılar, `safeAudit`); politika §8 ve §17 bunu söyler; rapor modu hiçbir şey yazmaz; iki cron rotası da kaydı bırakır ve aynı satırı loglar; Olay kaydında "Periyodik imha", kural kural Türkçe | `api-cron-retention-record`, `mobile-retention`, `admin-audit-log`, `db-integration-karaoke-retention` |
+| 🟢 | İletişim satırı sipariş ve ödeme yazışmasına da üç yıl veriyordu; etkinlik ve atölye kaydının satırı yoktu (D-CORRESPONDENCE, X-EVENT-PROOF) | İşlemle ilgili yazışma ticari yazışma olarak yıl sonundan itibaren 10 yıl (TTK m.82), ilgisiz mesaj ve telefon notu 3 yıl; "Etkinlik ve atölye kayıtları" satırı | `legal-docs`, `legal-dates` |
+
+Açık (operatörde): Production'da `RETENTION_APPLY=destroy` (OP-18), önce bir
+rapor çalıştırması okunduktan sonra (LEGAL-REDLINES §27.5).
+
+### Hukuk ve kasa: damga yalnız üyenin kendi koduyla (21 Eki 2026)
+
+Karar ASK-LOYALTY (operatör, 18 Eki 2026: avukat turu yok). Cümle cümle eski
+ve yeni metin `docs/LEGAL-REDLINES-2026-09.md` §28'de.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | Kasada QR okunmazsa kasiyerin elle yazdığı üyelik e-postasıyla damga veriliyordu: üye kendini göstermeden adıyla işlem yapılıyordu (X-LOYALTY) | "E-posta ile" sekmesi kalktı, kod sekmesinde "QR okunmuyorsa..." ipucu; eylem `kind: "email"`'i kararlaştırılan cümleyle reddeder (üye araması ve tekrar penceresi kalktı); `redeemCounterToken` `email_refused` ile hiçbir şey okumadan ya da yazmadan reddeder; `not_found` yeni QR ister. `POST /staff/stamp` zaten yalnız `token` ve `code` alıyordu | `admin-kasa`, `mobile-counter`, `mobile-staff-stamp-route` |
+| 🟡 | Müşteri sayfasındaki "+1 damga" gerekçesizdi | "Damga düzelt (+1)": rol `customers` (sahip, yönetici), en az 10 karakterlik sebep zorunlu, defter notu `Düzeltme · ` ile başlar | `admin-customer-actions`, `admin-people-forms` |
+| 🟢 | Yedi hukuk metni kasada e-postayla damgayı anlatıyordu | Gizlilik, KVKK, Üyelik, Sadakat Programı, Mobil Uygulama ve Kafe Hizmet metinleri yalnız kasa kodunu ve yönetici düzeltmesini anlatır | `legal-docs`, `legal-dates` |

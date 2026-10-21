@@ -1,12 +1,23 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
+// An applied run writes its destruction record through safeAudit; the spy
+// stands in for the audit log here (the real row is written in
+// tests/db-integration-karaoke-retention.test.ts).
+const safeAudit = vi.hoisted(() => vi.fn(async (_input: unknown) => true));
+vi.mock("@/lib/admin/audit", () => ({ safeAudit }));
+
+import { RETENTION_RULE_LABELS } from "@/lib/admin/audit-view";
 import { LEGAL_CONTENT } from "@/lib/legal/content";
-import { destructionEnabled, RETENTION_RULES } from "@/lib/retention";
+import {
+  destructionEnabled,
+  RETENTION_RULES,
+  retentionLogLine,
+} from "@/lib/retention";
 
 /**
  * Periodic destruction - the published policy against the job that runs it.
@@ -35,6 +46,102 @@ const vercel = JSON.parse(
   readFileSync(join(process.cwd(), "vercel.json"), "utf8"),
 ) as { crons: { path: string; schedule: string }[] };
 
+/** The texts shown today: none, so the legal-versions rule runs too. */
+const KEEP = { "legal-doc-versions": [] as string[] };
+
+beforeEach(() => {
+  safeAudit.mockReset();
+  safeAudit.mockImplementation(async () => true);
+});
+
+interface FakeDb {
+  db: unknown;
+  /** `select:<table>`, `delete:<table>`, `count:<fn>`, `delete:<fn>`. */
+  seen: string[];
+  /** Tables something was destroyed in. */
+  deleted: string[];
+  /** The p_cutoff each SQL function was handed. */
+  rpcCutoffs: Record<string, string>;
+}
+
+/**
+ * A database where every rule matches `count` rows: a column rule's count
+ * query answers `count`, its delete hands back that many rows, and a SQL
+ * function answers `count` (or the error given for it).
+ */
+function fakeDb(opts: {
+  count: number;
+  rpcError?: Record<string, string>;
+}): FakeDb {
+  const seen: string[] = [];
+  const deleted: string[] = [];
+  const rpcCutoffs: Record<string, string> = {};
+  const db = {
+    from(table: string) {
+      let deleting = false;
+      return {
+        select() {
+          return this;
+        },
+        delete() {
+          deleting = true;
+          seen.push(`delete:${table}`);
+          deleted.push(table);
+          return this;
+        },
+        lt() {
+          return this;
+        },
+        neq() {
+          return this;
+        },
+        then(resolve: (r: unknown) => void) {
+          if (!deleting) seen.push(`select:${table}`);
+          resolve({
+            data: deleting
+              ? Array.from({ length: opts.count }, (_, i) => ({ id: i }))
+              : null,
+            error: null,
+            status: 200,
+            count: opts.count,
+          });
+        },
+      };
+    },
+    rpc(fn: string, args: { p_apply: boolean; p_cutoff: string }) {
+      seen.push(args.p_apply ? `delete:${fn}` : `count:${fn}`);
+      rpcCutoffs[fn] = args.p_cutoff;
+      const message = opts.rpcError?.[fn];
+      if (message) {
+        return Promise.resolve({
+          data: null,
+          error: { message, code: "23505", details: "", hint: "" },
+        });
+      }
+      if (args.p_apply && opts.count > 0) {
+        deleted.push(RETENTION_RULES.find((r) => r.rpc === fn)!.table);
+      }
+      return Promise.resolve({ data: opts.count, error: null });
+    },
+  };
+  return { db, seen, deleted, rpcCutoffs };
+}
+
+/** `@/lib/retention`, loaded again over `fake`. */
+async function withDb(fake: FakeDb) {
+  vi.doMock("@/lib/db", async () => ({
+    ...(await vi.importActual<typeof import("@/lib/db")>("@/lib/db")),
+    getDb: () => fake.db,
+  }));
+  vi.resetModules();
+  return import("@/lib/retention");
+}
+
+async function dropDb(): Promise<void> {
+  vi.doUnmock("@/lib/db");
+  vi.resetModules();
+}
+
 describe("every retention period is quoted from the published policy", () => {
   it("covers the four tables the audit found unswept, and fA'L's usage record", () => {
     expect(RETENTION_RULES.map((r) => r.table).sort()).toEqual([
@@ -54,6 +161,11 @@ describe("every retention period is quoted from the published policy", () => {
       // "Bu yorumu bildir": the reported words, ninety days.
       "fal_reports",
       "feature_consents",
+      // Karaoke (ASK-RETENTION): the guest's identity, every booking's
+      // contact details and the consent's IP and user agent go after three
+      // years; the booking itself after eleven.
+      "karaoke_reservations",
+      "karaoke_reservations",
       // Every legal text shown, by hash: what a consent's textHashes points
       // at, as long as that consent record lives (D-VERSIONS-TABLE).
       "legal_doc_versions",
@@ -61,6 +173,56 @@ describe("every retention period is quoted from the published policy", () => {
       // points at, as long as that consent record lives.
       "legal_override_history",
     ]);
+  });
+
+  it("finds both karaoke periods in the Veri Saklama row, word for word", () => {
+    const by = (id: string) => RETENTION_RULES.find((r) => r.id === id)!;
+    const doc = LEGAL_CONTENT.find(
+      (d) => d.slug === "veri-saklama-ve-imha-politikasi",
+    )!;
+    const karaoke = doc.sections
+      .flatMap((s) => s.table ?? [])
+      .find((r) => r.key.startsWith("Karaoke rezervasyon kayıtları"))!;
+    expect(karaoke.value).toContain(by("karaoke-guest-data").basis);
+    expect(karaoke.value).toContain(by("karaoke-reservations").basis);
+    expect(by("karaoke-guest-data").basis).toBe(
+      "rezervasyon tarihinden itibaren 3 yıl sonra, takip eden ilk periyodik imha döneminde silinir",
+    );
+    expect(by("karaoke-reservations").basis).toBe(
+      "ödeme işlem kayıtlarının saklama süresince (10 yıl) tutulur ve bu sürenin sonunda rezervasyon kaydı tümüyle silinir",
+    );
+  });
+
+  it("names every rule in Turkish on the Olay kaydı page", () => {
+    for (const rule of RETENTION_RULES) {
+      expect(RETENTION_RULE_LABELS[rule.id], rule.id).toBeTruthy();
+    }
+  });
+
+  it("calls only SQL functions that answer one integer, through rpc()", () => {
+    // rpc() reads one cell; a function returning a table would hand back a
+    // record string and the count would silently be NaN (CLAUDE.md rule 23).
+    const schema = readFileSync(join(process.cwd(), "db/schema.sql"), "utf8");
+    const withRpc = RETENTION_RULES.filter((r) => r.rpc);
+    expect(withRpc.map((r) => r.rpc)).toEqual([
+      "customer_consents_retention",
+      "legal_doc_versions_retention",
+      "karaoke_guest_retention",
+      "karaoke_reservation_retention",
+    ]);
+    for (const rule of withRpc) {
+      const heads = [
+        ...schema.matchAll(
+          new RegExp(
+            String.raw`create\s+or\s+replace\s+function\s+public\.${rule.rpc}\s*\(\s*p_cutoff\s+text,\s*p_apply\s+boolean(?:,\s*p_keep\s+jsonb)?\s*\)\s*returns\s+(\w+)`,
+            "gi",
+          ),
+        ),
+      ];
+      expect(heads.length, rule.id).toBeGreaterThan(0);
+      expect(heads.at(-1)![1].toLowerCase(), rule.id).toBe("integer");
+    }
+    expect(retention).toContain("getDb().rpc<number>(rule.rpc");
   });
 
   for (const rule of RETENTION_RULES) {
@@ -80,6 +242,13 @@ describe("every retention period is quoted from the published policy", () => {
     // text was archived: never less than a decade and a year from then.
     expect(by("legal-override-history").days).toBeGreaterThanOrEqual(
       11 * 365 + 2,
+    );
+    // Karaoke: three years from the booking day (MSY m.20 keeps the consent
+    // record that long), and payment records ten years from the END of their
+    // calendar year (TTK m.82/6), which eleven 366-day years always cover.
+    expect(by("karaoke-guest-data").days).toBeGreaterThanOrEqual(3 * 365 + 1);
+    expect(by("karaoke-reservations").days).toBeGreaterThanOrEqual(
+      11 * 365 + 3,
     );
     // The stored texts the consents name: as long, for the same reason, and
     // only through the function that keeps what a recent consent names.
@@ -112,55 +281,9 @@ describe("report mode is the default", () => {
     expect(destructionEnabled(" DESTROY ")).toBe(true);
   });
 
-  it("issues no delete when it is only counting", async () => {
-    const seen: string[] = [];
-    const db = {
-      from(table: string) {
-        return {
-          select() {
-            return this;
-          },
-          delete() {
-            seen.push(`delete:${table}`);
-            return this;
-          },
-          lt() {
-            return this;
-          },
-          neq() {
-            return this;
-          },
-          then(resolve: (r: unknown) => void) {
-            seen.push(`select:${table}`);
-            resolve({ data: null, error: null, status: 200, count: 4 });
-          },
-        };
-      },
-      // Rules whose period needs SQL (customer_consents) count through a
-      // function; counting must be asked for with p_apply false.
-      rpc(fn: string, args: { p_apply: boolean }) {
-        seen.push(args.p_apply ? `delete:${fn}` : `count:${fn}`);
-        return Promise.resolve({ data: 4, error: null });
-      },
-    };
-    vi.doMock("@/lib/db", () => ({
-      getDb: () => db,
-      TABLES: {
-        authAttempts: "auth_attempts",
-        campaignEmailSends: "campaign_email_sends",
-        auditLogs: "audit_logs",
-        counterTokens: "counter_tokens",
-        customerConsents: "customer_consents",
-        emailSuppressions: "email_suppressions",
-        featureConsents: "feature_consents",
-        falReadings: "fal_readings",
-        falReports: "fal_reports",
-        legalOverrideHistory: "legal_override_history",
-        legalDocVersions: "legal_doc_versions",
-      },
-    }));
-    vi.resetModules();
-    const mod = await import("@/lib/retention");
+  it("issues no delete when it is only counting, and records nothing", async () => {
+    const fake = fakeDb({ count: 4 });
+    const mod = await withDb(fake);
     const report = await mod.runRetention({
       now: new Date("2026-09-16T04:00:00.000Z"),
       keep: { "legal-doc-versions": [] },
@@ -168,63 +291,23 @@ describe("report mode is the default", () => {
     expect(report.applied).toBe(false);
     expect(report.totalDestroyed).toBe(0);
     expect(report.totalMatched).toBe(4 * mod.RETENTION_RULES.length);
-    expect(seen.some((s) => s.startsWith("delete:"))).toBe(false);
-    vi.doUnmock("@/lib/db");
-    vi.resetModules();
+    expect(fake.seen.some((s) => s.startsWith("delete:"))).toBe(false);
+    // Every SQL-function rule was asked to count, not to apply.
+    expect(fake.seen.filter((s) => s.startsWith("count:")).sort()).toEqual([
+      "count:customer_consents_retention",
+      "count:karaoke_guest_retention",
+      "count:karaoke_reservation_retention",
+      "count:legal_doc_versions_retention",
+    ]);
+    // Report mode writes nothing at all: no destruction record either.
+    expect(safeAudit).not.toHaveBeenCalled();
+    expect(report.recorded).toBe(false);
+    await dropDb();
   });
 
   it("measures each rule from its own period, and destroys on request", async () => {
-    const deleted: string[] = [];
-    const db = {
-      from(table: string) {
-        return {
-          select() {
-            return this;
-          },
-          delete() {
-            deleted.push(table);
-            return this;
-          },
-          lt() {
-            return this;
-          },
-          neq() {
-            return this;
-          },
-          then(resolve: (r: unknown) => void) {
-            resolve({
-              data: deleted.includes(table) ? [{ id: "a" }, { id: "b" }] : null,
-              error: null,
-              status: 200,
-              count: 2,
-            });
-          },
-        };
-      },
-      rpc(fn: string, args: { p_apply: boolean; p_cutoff: string }) {
-        const rule = RETENTION_RULES.find((r) => r.rpc === fn)!;
-        if (args.p_apply) deleted.push(rule.table);
-        return Promise.resolve({ data: 2, error: null });
-      },
-    };
-    vi.doMock("@/lib/db", () => ({
-      getDb: () => db,
-      TABLES: {
-        authAttempts: "auth_attempts",
-        campaignEmailSends: "campaign_email_sends",
-        auditLogs: "audit_logs",
-        counterTokens: "counter_tokens",
-        customerConsents: "customer_consents",
-        emailSuppressions: "email_suppressions",
-        featureConsents: "feature_consents",
-        falReadings: "fal_readings",
-        falReports: "fal_reports",
-        legalOverrideHistory: "legal_override_history",
-        legalDocVersions: "legal_doc_versions",
-      },
-    }));
-    vi.resetModules();
-    const mod = await import("@/lib/retention");
+    const fake = fakeDb({ count: 2 });
+    const mod = await withDb(fake);
     const now = new Date("2026-09-16T04:00:00.000Z");
     const report = await mod.runRetention({
       now,
@@ -232,18 +315,132 @@ describe("report mode is the default", () => {
       keep: { "legal-doc-versions": [] },
     });
     expect(report.applied).toBe(true);
-    expect(deleted.sort()).toEqual(
+    expect(fake.deleted.sort()).toEqual(
       mod.RETENTION_RULES.map((r) => r.table).sort(),
     );
     for (const result of report.results) {
       const rule = mod.RETENTION_RULES.find((r) => r.id === result.id)!;
+      const at = now.getTime() - rule.days * 86_400_000;
+      // A day column is cut on the köşk's clock (+03:00, CLAUDE.md rule 22);
+      // an instant column in UTC, as before.
       expect(result.cutoff).toBe(
-        new Date(now.getTime() - rule.days * 86_400_000).toISOString(),
+        rule.istanbulDay
+          ? new Date(at + 3 * 3_600_000).toISOString().replace("Z", "+03:00")
+          : new Date(at).toISOString(),
       );
       expect(result.destroyed).toBe(2);
     }
-    vi.doUnmock("@/lib/db");
-    vi.resetModules();
+    await dropDb();
+  });
+
+  it("writes exactly one destruction record for an applied run, counts only", async () => {
+    const fake = fakeDb({ count: 2 });
+    const mod = await withDb(fake);
+    const now = new Date("2026-10-21T06:00:00.000Z");
+    const report = await mod.runRetention({ now, apply: true, keep: KEEP });
+    expect(safeAudit).toHaveBeenCalledTimes(1);
+    expect(safeAudit).toHaveBeenCalledWith({
+      actor: "system",
+      action: "bulk_delete",
+      entity: "retention",
+      entityId: "2026-10-21T06:00:00.000Z",
+      payload: {
+        at: "2026-10-21T06:00:00.000Z",
+        results: report.results.map((r) => ({
+          id: r.id,
+          table: r.table,
+          // Fields emptied or rows deleted (R1).
+          method: r.id === "karaoke-guest-data" ? "clear" : "delete",
+          cutoff: r.cutoff,
+          matched: r.matched,
+          destroyed: r.destroyed,
+        })),
+      },
+    });
+    const [input] = safeAudit.mock.calls[0] as [
+      { payload: { results: Record<string, unknown>[] } },
+    ];
+    // Nothing but the six fields per rule: no row, no key, no address.
+    for (const row of input.payload.results) {
+      expect(Object.keys(row).sort()).toEqual(
+        ["cutoff", "destroyed", "id", "matched", "method", "table"].sort(),
+      );
+    }
+    expect(input.payload.results).toHaveLength(mod.RETENTION_RULES.length);
+    expect(report.recorded).toBe(true);
+    await dropDb();
+  });
+
+  it("keeps the destruction when the record cannot be written, and says so", async () => {
+    safeAudit.mockResolvedValueOnce(false);
+    const fake = fakeDb({ count: 2 });
+    const mod = await withDb(fake);
+    const report = await mod.runRetention({
+      now: new Date("2026-10-21T06:00:00.000Z"),
+      apply: true,
+      keep: KEEP,
+    });
+    expect(report.totalDestroyed).toBeGreaterThan(0);
+    expect(report.recorded).toBe(false);
+    await dropDb();
+  });
+
+  it("marks a rule that failed in the record, without its error text", async () => {
+    // A database error can quote the very value it refused.
+    const fake = fakeDb({
+      count: 2,
+      rpcError: {
+        karaoke_guest_retention:
+          "duplicate key value violates unique constraint (email)=(misafir@ornek.com)",
+      },
+    });
+    const mod = await withDb(fake);
+    const report = await mod.runRetention({
+      now: new Date("2026-10-21T06:00:00.000Z"),
+      apply: true,
+      keep: KEEP,
+    });
+    const failed = report.results.find((r) => r.id === "karaoke-guest-data")!;
+    expect(failed.error).toMatch(/misafir@ornek\.com/);
+    const [input] = safeAudit.mock.calls[0] as [
+      { payload: { results: Record<string, unknown>[] } },
+    ];
+    const row = input.payload.results.find(
+      (r) => r.id === "karaoke-guest-data",
+    );
+    expect(row).toMatchObject({ matched: 0, destroyed: 0, failed: true });
+    expect(JSON.stringify(input.payload)).not.toContain("misafir@ornek.com");
+    expect(JSON.stringify(input.payload)).not.toContain("duplicate key");
+    // The rules that worked are recorded as usual.
+    expect(input.payload.results.filter((r) => r.failed === true)).toHaveLength(
+      1,
+    );
+    await dropDb();
+  });
+
+  it("cuts a karaoke day on the köşk's clock, not on UTC's", async () => {
+    // 00:30 on 21 Ekim 2026 in Tuzla is still 20 Ekim in UTC. Three 366-day
+    // years before that instant is 19 Ekim 2023 on the köşk's clock and 18
+    // Ekim in UTC: `toISOString().slice(0, 10)` would name the wrong day.
+    const fake = fakeDb({ count: 0 });
+    const mod = await withDb(fake);
+    const now = new Date("2026-10-20T21:30:00.000Z");
+    const report = await mod.runRetention({ now, keep: KEEP });
+    const guest = report.results.find((r) => r.id === "karaoke-guest-data")!;
+    expect(guest.cutoff).toBe("2023-10-19T00:30:00.000+03:00");
+    expect(fake.rpcCutoffs.karaoke_guest_retention.slice(0, 10)).toBe(
+      "2023-10-19",
+    );
+    expect(Date.parse(guest.cutoff)).toBe(now.getTime() - 1098 * 86_400_000);
+    const booking = report.results.find(
+      (r) => r.id === "karaoke-reservations",
+    )!;
+    // Eleven 366-day years: 13 Ekim 2015 on the köşk's clock (12 in UTC).
+    expect(booking.cutoff).toBe("2015-10-13T00:30:00.000+03:00");
+    // Instant columns are untouched: still UTC.
+    const audit = report.results.find((r) => r.id === "audit-logs")!;
+    expect(audit.cutoff.endsWith("Z")).toBe(true);
+    await dropDb();
   });
 });
 
@@ -366,10 +563,24 @@ describe("the sweep is wired up and cannot destroy a blank timestamp", () => {
   });
 
   it("logs counts, never a key, an address or an IP", () => {
-    // `auth_attempts.key` is all three at once.
-    expect(cron).not.toMatch(
-      /console\.(info|log|error)\([^)]*\b(email|key|ip)\b/,
+    // `auth_attempts.key` is all three at once. Both routes log the one line
+    // `retentionLogLine` writes, and it carries nothing but the mode and
+    // two counts.
+    const daily = readFileSync(
+      join(process.cwd(), "src/app/api/cron/daily/route.ts"),
+      "utf8",
     );
-    expect(cron).toContain("matched=");
+    for (const src of [cron, daily]) {
+      expect(src).not.toMatch(
+        /console\.(info|log|error)\([^)]*\b(email|key|ip)\b/,
+      );
+      expect(src).toContain("console.info(retentionLogLine(report));");
+    }
+    expect(
+      retentionLogLine({ applied: true, totalMatched: 7, totalDestroyed: 5 }),
+    ).toBe("[cron/retention] destroy matched=7 destroyed=5");
+    expect(
+      retentionLogLine({ applied: false, totalMatched: 7, totalDestroyed: 0 }),
+    ).toBe("[cron/retention] report matched=7 destroyed=0");
   });
 });

@@ -4,9 +4,9 @@ import { z } from "zod";
  * `POST /staff/stamp` body (docs/API-MOBILE.md §21).
  *
  * Only the two paths that carry a member with them: the scanned QR and the
- * typed 8-character code. The till's third path, a typed e-mail address, is
- * deliberately absent - it names a member without the member being present,
- * which is a panel decision, not one a phone behind the bar should make.
+ * typed 8-character code. A typed e-mail address was never accepted here -
+ * it names a member without the member being present - and since 21 Ekim
+ * 2026 the panel till refuses it too (ASK-LOYALTY, `redeemCounterToken`).
  *
  * `stamps` is optional (default 1). Its range is NOT enforced here: the
  * shared `redeemCounterToken` is the single point that refuses it, with the

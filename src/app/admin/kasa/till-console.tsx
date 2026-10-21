@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 import {
   Card,
-  Checkbox,
   Field,
   GhostButton,
   PrimaryButton,
@@ -16,13 +15,22 @@ import { CameraScanner } from "./camera-scanner";
 import { beep } from "./scan-engine";
 import { redeemCounterTokenAction, type TillState } from "./actions";
 
-type Tab = "camera" | "code" | "email";
+type Tab = "camera" | "code";
 
+/**
+ * Two ways in, both the member's own single-use code. The address tab went
+ * on 21 Ekim 2026 (decision ASK-LOYALTY): a typed address named a member
+ * who showed nothing. A member whose QR will not scan reads out the eight
+ * characters under it.
+ */
 const TABS: { id: Tab; label: string }[] = [
   { id: "camera", label: "Kamera ile okut" },
   { id: "code", label: "Kodu yaz" },
-  { id: "email", label: "E-posta ile" },
 ];
+
+/** Under the code tab: what to do when the camera cannot read the QR. */
+const CODE_HINT =
+  "QR okunmuyorsa üyeden kodun altındaki 8 karakteri söylemesini iste.";
 
 const STAMP_CHOICES = [1, 2, 3, 4, 5];
 
@@ -35,19 +43,17 @@ const STAMP_CHOICES = [1, 2, 3, 4, 5];
 const MAYBE_STAMPED = "Damga verilmiş olabilir, üyenin kartını kontrol et.";
 
 /**
- * The till desk: one action, three ways in (spec §5).
+ * The till desk: one action, two ways in (spec §5).
  *
- * The camera, the eight-character code and the member's address all end in the
- * same server action, so a shift that falls back to typing gives exactly the
- * same stamps, the same ledger note and the same receipt on screen.
+ * The camera and the eight-character code end in the same server action, so
+ * a shift that falls back to typing gives exactly the same stamps, the same
+ * ledger note and the same receipt on screen.
  */
 export function TillConsole() {
   const [tab, setTab] = useState<Tab>("camera");
   const [stamps, setStamps] = useState(1);
   const [note, setNote] = useState("");
   const [code, setCode] = useState("");
-  const [email, setEmail] = useState("");
-  const [repeat, setRepeat] = useState(false);
   const [state, setState] = useState<TillState>({});
   const [pending, startTransition] = useTransition();
   // A receipt, or an answer that says something may have been given: the
@@ -106,19 +112,17 @@ export function TillConsole() {
   // Set at the click, before `pending` renders: a double Enter is one post.
   const busy = useRef(false);
 
-  function submit(kind: "code" | "email", value: string) {
+  function submit(value: string) {
     if (busy.current || pending || settled) return;
     busy.current = true;
-    const again = kind === "email" && repeat;
     startTransition(async () => {
       let next: TillState;
       try {
         next = await redeemCounterTokenAction({
-          kind,
+          kind: "code",
           value,
           stamps,
           note,
-          repeat: again,
         });
       } catch {
         next = { error: MAYBE_STAMPED, partial: true };
@@ -126,21 +130,15 @@ export function TillConsole() {
         busy.current = false;
       }
       setState(next);
-      // The box covers one submit; the next stamp is asked about again.
-      setRepeat(false);
       // Given, or maybe given: the field empties so Enter cannot send it
       // again. A plain refusal keeps it for the correction.
-      if (next.result || next.partial) {
-        if (kind === "email") setEmail("");
-        else setCode("");
-      }
+      if (next.result || next.partial) setCode("");
     });
   }
 
   const clearResult = useCallback(() => {
     setState({});
     setOutcome(null);
-    setRepeat(false);
     scannedRef.current = "";
   }, []);
 
@@ -211,10 +209,10 @@ export function TillConsole() {
           <form
             className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
             // React's guard against the browser's own GET; onSubmit posts.
-            action={() => submit("code", code)}
+            action={() => submit(code)}
             onSubmit={(e) => {
               e.preventDefault();
-              submit("code", code);
+              submit(code);
             }}
           >
             <Field label="Kod" hint="Üyenin kartında yazan 8 karakter.">
@@ -231,44 +229,9 @@ export function TillConsole() {
               {pending ? "Veriliyor…" : "Damga ver"}
             </PrimaryButton>
           </form>
-        </Card>
-      )}
-
-      {tab === "email" && (
-        <Card>
-          <form
-            className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
-            action={() => submit("email", email)}
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit("email", email);
-            }}
-          >
-            <Field
-              label="Üye e-postası"
-              hint="Üye QR'ını açamıyorsa bu yol kalır. Adres bir üye hesabına ait olmalı; değilse damga yazılmaz."
-            >
-              <TextInput
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-                placeholder="uye@ornek.com"
-              />
-            </Field>
-            <PrimaryButton type="submit" disabled={pending || settled}>
-              {pending ? "Veriliyor…" : "Damga ver"}
-            </PrimaryButton>
-            {state.repeat ? (
-              <div className="sm:col-span-2">
-                <Checkbox
-                  label="Tekrar ver: bu üyeye yeni bir damga daha gerekiyor"
-                  checked={repeat}
-                  onChange={(e) => setRepeat(e.target.checked)}
-                />
-              </div>
-            ) : null}
-          </form>
+          <p className="mt-3 text-xs text-[var(--admin-text-mute)]">
+            {CODE_HINT}
+          </p>
         </Card>
       )}
 

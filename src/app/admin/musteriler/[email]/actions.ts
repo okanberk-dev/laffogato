@@ -9,6 +9,11 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import {
+  STAMP_CORRECTION_REASON_ERROR,
+  stampCorrectionNote,
+  stampCorrectionReason,
+} from "@/lib/admin/stamp-correction";
 import { getCustomerByEmail } from "@/lib/customer/store";
 import {
   addCounterStamp,
@@ -25,13 +30,20 @@ export interface CounterStampState {
 }
 
 /**
- * "Damga ekle (kasa)" on the member page: the member paid at the counter and
- * the staff presses this instead of the app earning the stamp itself.
+ * "Damga düzelt (+1)" on the member page: a stamp the till missed, put right
+ * by an owner or a manager at the member's own request.
  *
- * Gated on `customers`, the gate of the only page that offers it. It was
- * `orders`, so shift staff could post it with any address the client bound,
- * for an account that did not exist or was closed, and get ledger rows under
- * it. The till (/admin/kasa) is the shift's way to stamp, with its own gate.
+ * Since 21 Ekim 2026 (decision ASK-LOYALTY) the till stamps only a member
+ * who shows their own code; this is the one place a stamp is still given by
+ * address, so it asks why. The reason (at least ten characters: who asked
+ * and how it was checked) is required, and the ledger note starts with
+ * "Düzeltme · " so the member's history says what it was.
+ *
+ * Gated on `customers` (owner, manager), the gate of the only page that
+ * offers it. It was `orders`, so shift staff could post it with any address
+ * the client bound, for an account that did not exist or was closed, and get
+ * ledger rows under it. The till (/admin/kasa) is the shift's way to stamp,
+ * with its own gate.
  */
 export async function addCounterStampAction(
   email: string,
@@ -41,11 +53,13 @@ export async function addCounterStampAction(
   const session = await requireRole("customers");
   const owner = email.trim().toLowerCase();
   if (!owner) return { error: "E-posta eksik." };
-  const note = String(formData.get("note") ?? "")
-    .trim()
-    .slice(0, 120);
+  // Before any read or write: no reason, no stamp.
+  const reason = stampCorrectionReason(formData.get("note"));
+  if (!reason) return { error: STAMP_CORRECTION_REASON_ERROR };
+  const note = stampCorrectionNote(reason);
 
-  // The same check the till makes for a typed address (kasa/actions.ts).
+  // The account has to exist and be open: a stamp there is one nobody can
+  // spend.
   const member = await getCustomerByEmail(owner);
   if (!member) return { error: "Bu adrese ait üye hesabı yok." };
   if (!member.isActive) {

@@ -283,13 +283,97 @@ describe("grantCustomerCouponAction", () => {
   });
 });
 
+/**
+ * "Damga düzelt (+1)" (decision ASK-LOYALTY, 21 Ekim 2026). The till stamps
+ * only a member who shows their own code; this is the one place a stamp is
+ * still given by address, by an owner or a manager, at the member's request.
+ * The reason is required (who asked and how it was checked) and the ledger
+ * note says it was a correction.
+ */
 describe("addCounterStampAction", () => {
-  it("opens the customers gate, the gate of the page that offers it", async () => {
+  const REASON = "QR okunmadı, üye kayıtlı e-postasından yazdı";
+  const REASON_ERROR =
+    "Düzeltme sebebini yaz: üyenin kendi talebi ve nasıl doğrulandığı (ör. QR okunmadı, üye kayıtlı e-postasından yazdı).";
+  const withReason = (fields: Record<string, string> = {}) =>
+    form({ note: REASON, ...fields });
+
+  it("opens the customers gate (owner, manager), the gate of the page that offers it", async () => {
     vi.mocked(requireRole).mockClear();
-    await addCounterStampAction("uye@ornek.com", {}, form({}));
+    await addCounterStampAction("uye@ornek.com", {}, withReason());
     // It was `orders`: shift staff could post any address the client bound.
     expect(vi.mocked(requireRole)).toHaveBeenCalledWith("customers");
     expect(vi.mocked(requireRole)).not.toHaveBeenCalledWith("orders");
+    expect(vi.mocked(requireRole)).not.toHaveBeenCalledWith("till");
+  });
+
+  it.each([
+    ["no reason", {}],
+    ["an empty reason", { note: "" }],
+    ["nine characters", { note: "QR okunmd" }],
+    ["ten spaces", { note: "          " }],
+    ["padding around a short word", { note: "   tamam            " }],
+    ["a run of white space between two letters", { note: "a          b" }],
+    ["five emoji, ten code units", { note: "🙂🙂🙂🙂🙂" }],
+  ])("refuses %s before anything is read or written", async (_, fields) => {
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      form({ force: "on", ...fields }),
+    );
+    expect(state).toEqual({ error: REASON_ERROR });
+    expect(getCustomerByEmail).not.toHaveBeenCalled();
+    expect(listStamps).not.toHaveBeenCalled();
+    expect(addCounterStamp).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it("takes a reason of exactly ten characters", async () => {
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      form({ note: "QR okunmad" }),
+    );
+    expect(state).toEqual({ message: "Damga eklendi." });
+    expect(addCounterStamp).toHaveBeenCalledWith(
+      "uye@ornek.com",
+      "kasa@laffogato.net",
+      "Düzeltme · QR okunmad",
+    );
+  });
+
+  it("writes the ledger note as a correction, and files the same note", async () => {
+    const state = await addCounterStampAction(
+      "Uye@Ornek.com ",
+      {},
+      withReason(),
+    );
+    expect(state).toEqual({ message: "Damga eklendi." });
+    expect(addCounterStamp).toHaveBeenCalledTimes(1);
+    expect(addCounterStamp).toHaveBeenCalledWith(
+      "uye@ornek.com",
+      "kasa@laffogato.net",
+      `Düzeltme · ${REASON}`,
+    );
+    expect(logAudit).toHaveBeenCalledWith({
+      action: "update",
+      entity: "customer",
+      entityId: "uye@ornek.com",
+      payload: {
+        stamp: "stamp-000001",
+        source: "counter",
+        note: `Düzeltme · ${REASON}`,
+      },
+    });
+  });
+
+  it("keeps a long reason whole inside the ledger's 120 characters", async () => {
+    const long = "Üye kayıtlı adresinden yazdı; ".repeat(10);
+    await addCounterStampAction("uye@ornek.com", {}, form({ note: long }));
+    const note = addCounterStamp.mock.calls[0][2] as string;
+    expect(note.startsWith("Düzeltme · ")).toBe(true);
+    // addCounterStamp keeps 120: the prefix never pushes the reason out.
+    expect(note.length).toBeLessThanOrEqual(120);
+    expect(note).toBe(`Düzeltme · ${long.slice(0, 109).trimEnd()}`);
   });
 
   it("refuses an address with no member account, writing nothing", async () => {
@@ -297,7 +381,7 @@ describe("addCounterStampAction", () => {
     const state = await addCounterStampAction(
       "uye@gmial.com",
       {},
-      form({ force: "on" }),
+      withReason({ force: "on" }),
     );
     expect(state.error).toBe("Bu adrese ait üye hesabı yok.");
     expect(addCounterStamp).not.toHaveBeenCalled();
@@ -306,7 +390,11 @@ describe("addCounterStampAction", () => {
 
   it("refuses a closed account", async () => {
     getCustomerByEmail.mockResolvedValue({ ...MEMBER, isActive: false });
-    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      withReason(),
+    );
     expect(state.error).toBe("Bu üye hesabı kapalı; damga işlenmez.");
     expect(addCounterStamp).not.toHaveBeenCalled();
   });
@@ -314,7 +402,11 @@ describe("addCounterStampAction", () => {
   it("keeps the stamp's answer when the audit row fails after it", async () => {
     logAudit.mockRejectedValueOnce(new Error("logAudit: db down"));
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      withReason(),
+    );
     // The stamp is in; the error page would have made the staff press again.
     expect(state).toEqual({ message: "Damga eklendi." });
     expect(errors).toHaveBeenCalled();
@@ -332,12 +424,16 @@ describe("addCounterStampAction", () => {
         createdAt: new Date(Date.now() - 30_000).toISOString(),
       },
     ]);
-    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      withReason(),
+    );
     expect(state.error).toBeTruthy();
     expect(addCounterStamp).not.toHaveBeenCalled();
   });
 
-  it("lets the operator override the guard on purpose", async () => {
+  it("lets the operator override the guard on purpose, still with a reason", async () => {
     listStamps.mockResolvedValue([
       {
         id: "stamp-000009",
@@ -349,10 +445,17 @@ describe("addCounterStampAction", () => {
     const state = await addCounterStampAction(
       "uye@ornek.com",
       {},
-      form({ force: "on" }),
+      withReason({ force: "on" }),
     );
     expect(state.message).toBeTruthy();
     expect(addCounterStamp).toHaveBeenCalled();
+    // "tekrar" opens the window, never the reason.
+    const bare = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      form({ force: "on" }),
+    );
+    expect(bare).toEqual({ error: REASON_ERROR });
   });
 
   it("does not block a stamp when the last one is old", async () => {
@@ -364,12 +467,16 @@ describe("addCounterStampAction", () => {
         createdAt: new Date(Date.now() - 60 * 60_000).toISOString(),
       },
     ]);
-    const state = await addCounterStampAction("uye@ornek.com", {}, form({}));
+    const state = await addCounterStampAction(
+      "uye@ornek.com",
+      {},
+      withReason(),
+    );
     expect(state.message).toBeTruthy();
     expect(addCounterStamp).toHaveBeenCalledWith(
       "uye@ornek.com",
       "kasa@laffogato.net",
-      "",
+      `Düzeltme · ${REASON}`,
     );
   });
 });

@@ -41,7 +41,14 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/email/campaigns", () => ({ resumePendingCampaigns }));
 vi.mock("@/app/api/cron/_birthday", () => ({ runBirthdayGreetings }));
 vi.mock("@/lib/mobile/karaoke-payment", () => ({ expireUnpaidReservations }));
-vi.mock("@/lib/retention", () => ({ destructionEnabled, runRetention }));
+// The log line is the real one (tests/api-cron-retention-record.test.ts
+// pins it against /api/cron/retention's).
+vi.mock("@/lib/retention", async (importOriginal) => ({
+  destructionEnabled,
+  runRetention,
+  retentionLogLine: (await importOriginal<typeof import("@/lib/retention")>())
+    .retentionLogLine,
+}));
 vi.mock("@/lib/legal/store", () => ({ recordShownLegalVersions }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
@@ -63,7 +70,14 @@ const BIRTHDAY = {
   mailed: 0,
   skippedNoConsent: 0,
 };
-const RETENTION = { apply: false, results: [] };
+const RETENTION = {
+  at: "2026-10-21T06:00:00.000Z",
+  applied: false,
+  results: [],
+  totalMatched: 0,
+  totalDestroyed: 0,
+  recorded: false,
+};
 
 const fetchMock = vi.fn();
 let logged: string[];
