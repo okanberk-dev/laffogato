@@ -729,10 +729,10 @@ export async function sessionFromToken(
 /**
  * Signature-only read for `proxy.ts`, which decides nothing but whether to
  * redirect a page view to the login screen, and for the panel's background
- * polls (`/admin/siparisler/uyari`, the nav badges), which use it only to
- * answer "nothing changed" with no data in it. Authorisation - every page,
- * every server action and every answer that carries data - goes through
- * getAdminSession / requireRole.
+ * polls (`/admin/siparisler/uyari`, the nav badges, the köşk chip), which
+ * use it only to answer "nothing changed" with no data in it.
+ * Authorisation - every page, every server action and every answer that
+ * carries data - goes through getAdminSession / requireRole.
  */
 export function readSessionFromCookieValue(
   value: string | undefined,
