@@ -21,6 +21,9 @@ function sentence(view: KeepaliveView): string {
   if (view.state === "none") {
     return "henüz kayıt yok; ilk kayıt günlük görevin bir sonraki sabah çalışmasıyla düşer.";
   }
+  if (view.state === "silent") {
+    return `henüz kayıt yok, oysa ${formatDateTime(view.since ?? "")} tarihinden beri kayıt bekleniyor: günlük görev çalışmıyor olabilir.`;
+  }
   if (view.state === "unreadable") return "kayıt okunamadı.";
   const success = view.lastSuccessAt
     ? `son başarılı ping ${formatDateTime(view.lastSuccessAt)}`

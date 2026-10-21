@@ -425,7 +425,11 @@ altında bir satır durur:
 - **Uyarı renginde**: son başarı İstanbul takvimiyle 3 günden eskiyse (gece
   yarısı Tuzla'da yeni gün sayılır), ya da son deneme başarısızsa. Son deneme
   atlandıysa (servis anahtarı yok) satır bunu da söyler.
-- **"henüz kayıt yok"**: cron bu sürümden sonra henüz çalışmadı. Uyarı değil.
+- **"henüz kayıt yok"**: cron bu sürümden sonra henüz çalışmadı. Tablo
+  kurulalı (migration'ın `_migrations` kaydı) en çok 2 İstanbul günü
+  geçtiyse uyarı değil; daha uzun süredir kayıt yoksa uyarı renginde "günlük
+  görev çalışmıyor olabilir" der (`CRON_SECRET` tanımsız ya da program
+  bozuk: başka hiçbir yer bunu söylemez, proje 7 günde duraklar).
 
 Yalnız sahip görür (Ayarlar'daki servis anahtarı satırını görenler):
 yönetici, personel ve kasiyer için kayıt sunucuda hiç okunmaz

@@ -50,8 +50,9 @@ cron'un işlerinden sonra, 5 sn sınırıyla yazılır; yazılamazsa günlüğe 
 düşer (SQLSTATE, ulaşılamıyor, süre), cron ve yoklamanın sonucu etkilenmez
 (yanıtta `keepalive.recorded`). Sahibin Genel bakış sayfasında
 "Supabase uyanık tutma: son başarılı ping <tarih>" satırı durur; son başarı
-İstanbul takvimiyle 3 günden eskiyse ya da son deneme başarısızsa uyarı
-renginde (`docs/ADMIN.md`).
+İstanbul takvimiyle 3 günden eskiyse, son deneme başarısızsa ya da tablo
+kurulalı 2 günden fazla olduğu hâlde hiç kayıt yoksa (cron hiç çalışmıyor)
+uyarı renginde (`docs/ADMIN.md`).
 
 ## 1. Neden bu geçiş küçük bir iş: veri katmanı sağlayıcı tanımıyor
 
@@ -67,9 +68,9 @@ Supabase'de rol bayrakları (canlı sorgu, pg_roles):
   anon          rolbypassrls = false
 ```
 
-Şemadaki 47 tablonun hepsi (`_migrations` dahil; 20 Eki 2026'da şema boş
-bir Postgres'e kurulup `pg_class.relrowsecurity` ile sayıldı) "RLS açık,
-policy yok" durumundadır ve `postgres` kullanıcısıyla bağlanan uygulama için
+Şemadaki her tablo (`_migrations` dahil) "RLS açık, policy yok"
+durumundadır (sayı yazılmıyor, her yeni tabloyla eskir; tutan testler
+aşağıda) ve `postgres` kullanıcısıyla bağlanan uygulama için
 davranış Neon'dakiyle BİREBİR aynıdır: RLS baypas edilir, hiçbir sorgu boş
 dönmez. Tek istisna `customer_milestone_rewards`'tı (RLS'siz yaratılmıştı,
 `20261021050500_customer_milestone_rewards_rls.sql` kapattı). Yeni bir tablo
@@ -192,8 +193,9 @@ Sıfır kesinti hedefiyle, adım adım:
    `DATABASE_URL`'den okur (`src/lib/db/database-url.mjs`). Supabase'in
    Vercel entegrasyonunun yazdığı `POSTGRES_URL` ve eski `SUPABASE_DB_URL`
    adı bilerek okunmaz; `DATABASE_URL` yoksa site başka bir veritabanına
-   düşmez, yapılandırma hatası verir ([DATABASE.md](DATABASE.md) "Bağlantı
-   dizesi yalnız `DATABASE_URL`").
+   bağlanmaz, kesintideki gibi pakete düşer ve `/api/health`
+   `unconfigured` der ([DATABASE.md](DATABASE.md) "Bağlantı dizesi yalnız
+   `DATABASE_URL`").
 
 ## 5. Cutover'dan sonra: veri aynı projede, kimlik hâlâ iki sistem
 

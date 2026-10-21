@@ -4,6 +4,7 @@ import { getDb, TABLES } from "@/lib/db";
 import { DATABASE_URL_MISSING } from "@/lib/db/database-url.mjs";
 
 import {
+  KEEPALIVE_MIGRATION,
   KEEPALIVE_ROW_ID,
   keepaliveRow,
   parseKeepaliveRecord,
@@ -87,6 +88,29 @@ export async function recordSupabaseKeepalive(
 }
 
 /**
+ * When recording became possible: the table's migration in `_migrations`
+ * (ISO), or "" when that cannot be read. Asked only while the table is
+ * still empty, so a working cron costs the dashboard nothing extra.
+ */
+async function recordableSince(): Promise<string> {
+  try {
+    const res = await getDb()
+      .from("_migrations")
+      .select("applied_at")
+      .eq("name", KEEPALIVE_MIGRATION)
+      .maybeSingle();
+    const at = (res.data as { applied_at?: unknown } | null)?.applied_at;
+    if (at instanceof Date) return at.toISOString();
+    if (typeof at === "string" && Number.isFinite(Date.parse(at))) {
+      return new Date(at).toISOString();
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+/**
  * The record for the owner's dashboard, read live (never cached). Never
  * throws: one status line must not take the landing page down
  * (`readMailHealth` beside it does the same); a failed read is "unreadable"
@@ -106,7 +130,7 @@ export async function loadSupabaseKeepalive(): Promise<KeepaliveRead> {
       );
       return { kind: "unreadable" };
     }
-    if (!res.data) return { kind: "none" };
+    if (!res.data) return { kind: "none", since: await recordableSince() };
     const record = parseKeepaliveRecord(res.data);
     return record ? { kind: "record", record } : { kind: "unreadable" };
   } catch (err) {

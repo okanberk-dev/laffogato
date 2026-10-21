@@ -21,10 +21,14 @@ const seen: { text: string; params: readonly unknown[] }[] = [];
 let openRows: Record<string, unknown>[] = [];
 let productRows: Record<string, unknown>[] = [];
 let keepaliveRows: Record<string, unknown>[] = [];
+let migrationRows: Record<string, unknown>[] = [];
 const exec: Executor = async ({ text, params }) => {
   seen.push({ text, params });
   if (/FROM "supabase_keepalive"/.test(text)) {
     return { rows: keepaliveRows, rowCount: keepaliveRows.length };
+  }
+  if (/FROM "_migrations"/.test(text)) {
+    return { rows: migrationRows, rowCount: migrationRows.length };
   }
   if (/count\(\*\)/i.test(text)) return { rows: [{ count: 2 }], rowCount: 1 };
   if (/FROM "orders"/.test(text)) {
@@ -49,6 +53,7 @@ beforeEach(() => {
   openRows = [];
   productRows = [];
   keepaliveRows = [];
+  migrationRows = [];
 });
 
 afterEach(() => {
@@ -482,9 +487,20 @@ describe("the dashboard page", () => {
         seen.length = 0;
         const { html, text } = await render(role);
         expect(keepaliveReads()).toEqual([]);
+        expect(seen.filter((s) => /"_migrations"/.test(s.text))).toEqual([]);
         expect(text).not.toContain("Supabase");
         expect(html).not.toContain("supabase-keepalive-status");
       }
+    });
+
+    it("turns amber when nothing was recorded days after the table was created", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-25T10:00:00.000Z"));
+      migrationRows = [{ applied_at: new Date("2026-10-21T05:30:00.000Z") }];
+      const { html, text } = await render("owner");
+      expect(html).toContain('data-state="silent"');
+      expect(lineClass(html)).toContain("bg-[var(--admin-warning-soft)]");
+      expect(text).toContain("günlük görev çalışmıyor olabilir");
     });
 
     it("says plainly that nothing is recorded yet", async () => {

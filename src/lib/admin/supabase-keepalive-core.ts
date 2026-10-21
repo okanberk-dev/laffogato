@@ -19,6 +19,20 @@ const STATUSES: readonly KeepaliveStatus[] = ["ok", "failed", "skipped"];
 export const KEEPALIVE_ROW_ID = "supabase";
 
 /**
+ * The migration that created the table. Its `_migrations.applied_at` is when
+ * recording became possible: a table still empty more than
+ * {@link KEEPALIVE_SILENT_DAYS} days later means the cron is not running.
+ */
+export const KEEPALIVE_MIGRATION = "20261021050600_supabase_keepalive.sql";
+
+/**
+ * How many Istanbul days "no record yet" may last before it is a warning:
+ * the cron runs every morning, so two quiet days are two missed runs, while
+ * the free-plan project would pause after seven.
+ */
+export const KEEPALIVE_SILENT_DAYS = 2;
+
+/**
  * A free-plan project pauses after 7 quiet days; a last success older than
  * this many Istanbul calendar days turns the dashboard line amber, early
  * enough to fix the key or the cron before the pause.
@@ -67,7 +81,8 @@ export function keepaliveRow(
  */
 export type KeepaliveRead =
   | { kind: "record"; record: KeepaliveRecord }
-  | { kind: "none" }
+  /** `since`: when the table's migration was applied (ISO), "" if unknown. */
+  | { kind: "none"; since: string }
   | { kind: "unreadable" };
 
 /** A stored row as the dashboard reads it; null for anything else. */
@@ -124,6 +139,9 @@ export function istanbulDaysSince(iso: string, now: Date): number | null {
  *
  * - `none`: no ping recorded yet. Plain, not a warning: the first record
  *   lands with the next morning's cron.
+ * - `silent`: still no record more than {@link KEEPALIVE_SILENT_DAYS}
+ *   Istanbul days after the table was created: the cron is not running
+ *   (CRON_SECRET unset, a broken schedule), and nothing else would say so.
  * - `fresh`: the last success is at most {@link KEEPALIVE_STALE_DAYS}
  *   Istanbul days old and the latest attempt did not fail.
  * - `failed`: the latest attempt failed, however recent the last success.
@@ -133,13 +151,21 @@ export function istanbulDaysSince(iso: string, now: Date): number | null {
  *
  * Every state but `none` and `fresh` is a warning.
  */
-export type KeepaliveState = "none" | "fresh" | "failed" | "stale" | "unreadable";
+export type KeepaliveState =
+  | "none"
+  | "silent"
+  | "fresh"
+  | "failed"
+  | "stale"
+  | "unreadable";
 
 export interface KeepaliveView {
   state: KeepaliveState;
   tone: AdminTone;
   /** The last success, or "" when there has been none. */
   lastSuccessAt: string;
+  /** For `none` and `silent`: since when a record has been possible. */
+  since?: string;
   /** The latest attempt; absent for `none` and `unreadable`. */
   lastAttempt?: { status: KeepaliveStatus; at: string };
 }
@@ -149,7 +175,10 @@ export function keepaliveView(read: KeepaliveRead, now: Date): KeepaliveView {
     return { state: "unreadable", tone: "warning", lastSuccessAt: "" };
   }
   if (read.kind === "none") {
-    return { state: "none", tone: "neutral", lastSuccessAt: "" };
+    const days = read.since ? istanbulDaysSince(read.since, now) : null;
+    return days !== null && days > KEEPALIVE_SILENT_DAYS
+      ? { state: "silent", tone: "warning", lastSuccessAt: "", since: read.since }
+      : { state: "none", tone: "neutral", lastSuccessAt: "" };
   }
   const { record } = read;
   const lastAttempt = { status: record.lastStatus, at: record.lastAttemptAt };

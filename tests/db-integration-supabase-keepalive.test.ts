@@ -78,9 +78,16 @@ maybe("supabase_keepalive in a real Postgres", () => {
   }
 
   it("keeps the last success through a failure and a skip", async () => {
-    await expect(store.loadSupabaseKeepalive()).resolves.toEqual({
-      kind: "none",
-    });
+    // Empty table: when recording became possible, from _migrations.
+    const empty = await store.loadSupabaseKeepalive();
+    expect(empty.kind).toBe("none");
+    const since = (empty as { since: string }).since;
+    expect(since).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    const applied = await pool!.query(
+      "select applied_at from public._migrations where name = $1",
+      ["20261021050600_supabase_keepalive.sql"],
+    );
+    expect(since).toBe((applied.rows[0].applied_at as Date).toISOString());
     expect(await store.recordSupabaseKeepalive("skipped", T1)).toBe(true);
     expect(await row()).toEqual([
       {

@@ -204,9 +204,33 @@ describe("loadSupabaseKeepalive", () => {
     expect(db.sent[0].params).toEqual(["supabase"]);
   });
 
-  it("says none when nothing was recorded yet, and unreadable on a failure or a strange row", async () => {
+  it("says none when nothing was recorded yet, with when recording became possible", async () => {
+    const applied = new Date("2026-10-21T05:30:00.000Z");
+    db.answer = async (text) =>
+      text.includes('"_migrations"')
+        ? { rows: [{ applied_at: applied }] }
+        : { rows: [] };
     await expect(store.loadSupabaseKeepalive()).resolves.toEqual({
       kind: "none",
+      since: applied.toISOString(),
+    });
+    // Asked only while the table is empty, by the migration's name.
+    expect(db.sent).toHaveLength(2);
+    expect(db.sent[1].text).toMatch(
+      /^SELECT "applied_at" FROM "_migrations" WHERE "name" = \$1/,
+    );
+    expect(db.sent[1].params).toEqual([core.KEEPALIVE_MIGRATION]);
+  });
+
+  it("names a migration the bundle really applies", async () => {
+    const { MIGRATION_NAMES } = await import("@/lib/db/schema-sql");
+    expect(MIGRATION_NAMES).toContain(core.KEEPALIVE_MIGRATION);
+  });
+
+  it("says none without a date when the migration row cannot be read, unreadable on a failure or a strange row", async () => {
+    await expect(store.loadSupabaseKeepalive()).resolves.toEqual({
+      kind: "none",
+      since: "",
     });
     db.answer = async () => ({ rows: [{ lastStatus: "maybe" }] });
     await expect(store.loadSupabaseKeepalive()).resolves.toEqual({
@@ -234,10 +258,10 @@ describe("who sees it: the owner, and nobody else's request reads it", () => {
 
   it("runs the read for the owner and never for the others", async () => {
     for (const role of ROLES) {
-      const read = vi.fn(async () => ({ kind: "none" as const }));
+      const read = vi.fn(async () => ({ kind: "none" as const, since: "" }));
       const result = core.readKeepaliveFor(role, read);
       if (role === "owner") {
-        await expect(result).resolves.toEqual({ kind: "none" });
+        await expect(result).resolves.toEqual({ kind: "none", since: "" });
         expect(read).toHaveBeenCalledTimes(1);
       } else {
         expect(result).toBeNull();
@@ -308,7 +332,7 @@ describe("three days on the Istanbul calendar (rule 22)", () => {
         NOW,
       ),
     ).toMatchObject({ state: "stale", tone: "warning" });
-    expect(core.keepaliveView({ kind: "none" }, NOW)).toEqual({
+    expect(core.keepaliveView({ kind: "none", since: "" }, NOW)).toEqual({
       state: "none",
       tone: "neutral",
       lastSuccessAt: "",
@@ -317,6 +341,31 @@ describe("three days on the Istanbul calendar (rule 22)", () => {
       state: "unreadable",
       tone: "warning",
     });
+  });
+
+  it("turns a missing record amber two Istanbul days after the table was created", () => {
+    // Created Wed 21 Oct 08:30 in Tuzla.
+    const none = { kind: "none" as const, since: "2026-10-21T05:30:00.000Z" };
+    // Fri 23 Oct 23:59 in Tuzla: two days, the cron may simply not have run.
+    expect(
+      core.keepaliveView(none, new Date("2026-10-23T20:59:00.000Z")),
+    ).toMatchObject({ state: "none", tone: "neutral" });
+    // Sat 24 Oct 00:00 in Tuzla (still Fri on UTC): three days, amber.
+    expect(
+      core.keepaliveView(none, new Date("2026-10-23T21:00:00.000Z")),
+    ).toMatchObject({
+      state: "silent",
+      tone: "warning",
+      since: "2026-10-21T05:30:00.000Z",
+    });
+    // Unknown creation time: plain, as before.
+    expect(
+      core.keepaliveView(
+        { kind: "none", since: "" },
+        new Date("2026-12-01T00:00:00.000Z"),
+      ).state,
+    ).toBe("none");
+    expect(core.KEEPALIVE_SILENT_DAYS).toBe(2);
   });
 
   it("stays plain after a skip while the last success is recent", () => {
@@ -388,10 +437,23 @@ describe("the dashboard line", () => {
   });
 
   it("says plainly that there is no record yet", () => {
-    const { text, className } = line({ kind: "none" });
+    const { text, className } = line({ kind: "none", since: "" });
     expect(text).toContain("Supabase uyanık tutma: henüz kayıt yok");
     for (const c of neutral) expect(className).toContain(c);
     expect(text).not.toContain("Geliştiriciye ilet");
+  });
+
+  it("says in the warning tone when no record came long after recording became possible", () => {
+    const since = "2026-10-21T05:30:00.000Z";
+    const { text, className } = line(
+      { kind: "none", since },
+      new Date("2026-10-25T09:00:00.000Z"),
+    );
+    for (const c of warning) expect(className).toContain(c);
+    expect(text).toContain(
+      `henüz kayıt yok, oysa ${formatDateTime(since)} tarihinden beri kayıt bekleniyor`,
+    );
+    expect(text).toContain("Geliştiriciye ilet.");
   });
 
   it("names a skip for what it is: no key", () => {
