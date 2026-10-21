@@ -7,7 +7,7 @@ import {
   ManualOrderForm,
   type ManualProduct,
 } from "@/components/admin/manual-order-form";
-import { BUTTON, EmptyState } from "@/components/admin/ui";
+import { BUTTON, EmptyState, PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings, listProducts } from "@/lib/admin/store";
@@ -39,11 +39,16 @@ export default async function NewOrderPage() {
     }));
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="detail">
       <PageHeader
-        eyebrow="Satış"
         title="Yeni sipariş"
-        description="Telefon ya da köşkteki satışı elle gir: gel-al, kurye ya da kargo. Fiyatlar üründen sunucuda çözülür, stok düşülür."
+        description="Telefon ya da köşkteki satışı elle gir."
+        help={
+          <p>
+            Gel-al, kurye ya da kargo olabilir. Fiyatlar üründen sunucuda
+            çözülür, stok düşülür.
+          </p>
+        }
         action={
           // A text link, as on the order page: the old pill read as a
           // second button next to the form's own (admin audit ORD-22).
@@ -86,6 +91,6 @@ export default async function NewOrderPage() {
           clientOrderId={randomUUID()}
         />
       )}
-    </main>
+    </PageShell>
   );
 }
