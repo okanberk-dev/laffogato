@@ -155,7 +155,7 @@ export async function setAnnouncementActiveAction(
   });
   return actionOk(
     form.isActive
-      ? "Duyuru yayına alındı; telefonlara birkaç dakika içinde ulaşır."
+      ? "Duyuru yayına alındı; yayın tarihleri içindeyse telefonlara birkaç dakika içinde ulaşır."
       : "Duyuru yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
   );
 }

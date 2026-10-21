@@ -398,10 +398,13 @@ Kayıt eklemek ve çıkarmak için forma girmek gerekmeyen yerler:
   satırın ↓'ı soluk çizilir ve basılmaz, böylece her satırın adımlayıcısı
   aynı biçimde durur; tek satırlık listede hiç yoktur. Satır komşusuyla yer
   değiştirir, liste 10, 20, 30… diye yeniden numaralanır (elle girilmiş eşit
-  sıralar bir sonraki taşımayı boşa çıkarmasın). Liste süzülmüşken
-  (uygulamada durum sekmesi, menüde Satışta / Tükendi sekmesi ya da arama)
-  oklar yerine sayı görünür: süzülmüş listede komşu görünmeyebilir. Kural
-  `src/lib/admin/store.ts` (`moveRowInList`, `moveMenuItem`).
+  sıralar bir sonraki taşımayı boşa çıkarmasın; 99 satırı aşan liste birer
+  birer numaralanır). Liste süzülmüşken (uygulamada durum sekmesi, menüde
+  Satışta / Tükendi sekmesi ya da arama) oklar görünmez: süzülmüş listede
+  komşu görünmeyebilir. Uygulama listeleri yerine sıra sayısını yazar;
+  menüde sayı yalnız geniş ekranda (xl) görünür. Klavyeyle basınca odak
+  taşınan satırın oklarında kalır. Kural `src/lib/admin/store.ts`
+  (`moveRowInList`, `moveMenuItem`).
 - **Kayıt sayfasında Sil**: ürün, menü kalemi, promosyon, kategori
   (içinde ürün varken kapalı, nedeniyle), mağaza ve anasayfa slaytı ile
   uygulama slaytı, duyurusu ve gönderisi sayfasının başlığındaki ⋯
@@ -555,11 +558,13 @@ açılır, satır "kayıt okunamadı" der.
 ## Kullanıcılar: kendi hesabın (21 Eki 2026)
 
 Sahip, Kullanıcılar sayfasında **kendi** hesabını silemez, pasifleştiremez ve
-rolünü değiştiremez: oturum her istekte hesaptan yeniden okunduğu için bu,
-kimsenin onayı olmadan kendini panelden atmak demekti (son sahip kuralı
-yalnız son sahibi korur). Satırda rol salt okunur görünür ve "Kullanıcıyı
-sil" nedeniyle kapalıdır; sunucu da reddeder. Adını değiştirebilir. Bu
-değişiklikleri başka bir sahip yapar.
+rolünü değiştiremez: hesap her istekte yeniden okunduğu için daha düşük rol
+bu sayfayı hemen kapatır, pasifleştirmek ya da silmek kimsenin onayı
+olmadan oturumu kapatır (son sahip kuralı yalnız son sahibi korur). Satırda
+rol salt okunur görünür ve "Kullanıcıyı sil" nedeniyle kapalıdır; sunucu da
+reddeder. Kendi satırı yalnız adı kaydeder: rol ve erişim kayıttaki gibi
+kalır, böylece env ile girilmiş bir sahibin aynı adresli pasif satırı
+kaydetmekle açılmaz. Bu değişiklikleri başka bir sahip yapar.
 
 ## Genel bakış: iki adımlı doğrulama uyarısı (21 Eki 2026)
 

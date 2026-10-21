@@ -304,7 +304,7 @@ export async function setPostActiveAction(
   });
   return actionOk(
     form.isActive
-      ? "Gönderi yayına alındı; telefonlara birkaç dakika içinde ulaşır."
+      ? "Gönderi yayına alındı; yayın tarihleri içindeyse telefonlara birkaç dakika içinde ulaşır."
       : "Gönderi yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
   );
 }

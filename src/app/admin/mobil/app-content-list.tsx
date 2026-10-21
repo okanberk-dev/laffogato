@@ -26,9 +26,9 @@ type Windowed = { isActive: boolean; startsAt: string; endsAt: string };
  */
 export const DELETE_TEXT = {
   slide:
-    "Slayt kalıcı olarak silinir; uygulamanın ana sayfasından birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için “Yayından kaldır”ı kullan.",
+    "Slayt kalıcı olarak silinir; uygulamanın ana sayfasından birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan.",
   announcement:
-    "Duyuru kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için “Yayından kaldır”ı kullan.",
+    "Duyuru kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan.",
   post: "Gönderi kalıcı olarak silinir; uygulamadan birkaç dakika içinde kalkar. Gönderilmiş e-posta geri alınmaz.",
 } as const;
 

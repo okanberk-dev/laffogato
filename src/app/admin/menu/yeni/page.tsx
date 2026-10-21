@@ -41,7 +41,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
         title={source ? "Menü kalemini kopyala" : "Yeni menü kalemi"}
         description={
           source
-            ? `“${source.name}” yeni bir kalem olarak kopyalandı. Adını ve fiyatını kontrol et; kopya, “Menüde göster”i işaretleyene kadar menüde görünmez.`
+            ? `Form “${source.name}” kaleminin bilgileriyle açıldı; kaydedince yeni bir kalem olur, asıl kalem değişmez. Adını ve fiyatını kontrol et; kopya, “Menüde göster”i işaretleyene kadar menüde görünmez.`
             : "Menüye yeni bir içecek, tatlı veya atıştırmalık ekle."
         }
       />

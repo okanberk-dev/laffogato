@@ -215,11 +215,9 @@ export function AdminUserRow({
             <TextInput name="name" defaultValue={user.name} minLength={2} />
           </Field>
           {user.isSelf ? (
-            // Your own role and access stay as they are (the action refuses
-            // a change); the name can still be saved.
+            // Your own role and access stay as stored (the action saves the
+            // name only and refuses a request that sends either).
             <>
-              <input type="hidden" name="role" value={user.role} />
-              <input type="hidden" name="isActive" value="on" />
               <Field label="Rol" hint={SELF_CHANGE_REFUSED}>
                 <TextInput
                   value={ROLE_LABELS[user.role as AdminRole] ?? user.role}

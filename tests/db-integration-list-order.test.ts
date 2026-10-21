@@ -182,4 +182,28 @@ maybe("ordered lists in a real Postgres", () => {
     expect(frozen.sortOrder).toBe(0);
     expect(await store.moveMenuItem("mnu-t-x", "up")).toBe("not_found");
   });
+
+  it("numbers a list too long for 10, 20, 30 in ones, every row its own", async () => {
+    // The forms take a Sıra of 0-999: a 101-row category at a step of 10
+    // left every row from the hundredth on at 999, and a move among them
+    // changed nothing.
+    for (let i = 1; i <= 101; i++) {
+      await q(
+        `insert into public.menu_items (id, "categoryKey", name, "sortOrder")
+         values ($1, 'long', $2, $3)`,
+        [`mnu-l-${String(i).padStart(3, "0")}`, `Kalem ${i}`, i],
+      );
+    }
+    expect(await store.moveMenuItem("mnu-l-101", "up")).toBe("moved");
+    const long = (
+      await q(
+        `select id, "sortOrder" from public.menu_items
+           where "categoryKey" = 'long' order by "sortOrder"`,
+      )
+    ).rows as Array<{ id: string; sortOrder: number }>;
+    expect(long.map((r) => r.sortOrder)).toEqual(
+      Array.from({ length: 101 }, (_, i) => i + 1),
+    );
+    expect(long.slice(-2).map((r) => r.id)).toEqual(["mnu-l-101", "mnu-l-100"]);
+  });
 });

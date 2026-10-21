@@ -86,6 +86,7 @@ import {
   type FoodLabelText,
 } from "@/lib/shop/food-label";
 import { imageVersion } from "./image-bytes";
+import type { MoveOutcome } from "./list-order";
 import { compareMenuRows } from "./menu-panel";
 import {
   heroImagePath,
@@ -716,9 +717,6 @@ async function setRowActive(
   return updated.length > 0;
 }
 
-/** What the ↑ / ↓ buttons answer: moved, already first or last, or gone. */
-export type ListMoveResult = "moved" | "edge" | "not_found";
-
 /** The renumbering's step, and the forms' ceiling for "Sıra" (0-999). */
 const LIST_SORT_STEP = 10;
 const LIST_SORT_MAX = 999;
@@ -727,8 +725,10 @@ const LIST_SORT_MAX = 999;
  * The ↑ / ↓ buttons beside a list's rows: swaps a row with its neighbour in
  * the list's own order (`order`, as the panel draws it), then renumbers the
  * list 10, 20, 30… so equal or typed-in numbers cannot make a later move a
- * no-op. Only the rows whose number changes are written. The home page's
- * slides (moveHomeHeroSlide, home-hero.ts) follow the same rule.
+ * no-op; a list too long for that under the forms' 999 counts in ones, so
+ * every row still has a number of its own. Only the rows whose number
+ * changes are written. The home page's slides (moveHomeHeroSlide,
+ * home-hero.ts) follow the same rule.
  */
 async function moveRowInList(
   table: string,
@@ -736,20 +736,43 @@ async function moveRowInList(
   id: string,
   direction: "up" | "down",
   ctx: string,
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
   const list = [...order];
   const from = list.findIndex((r) => r.id === id);
   if (from === -1) return "not_found";
   const to = direction === "up" ? from - 1 : from + 1;
   if (to < 0 || to >= list.length) return "edge";
   [list[from], list[to]] = [list[to], list[from]];
+  const step =
+    list.length * LIST_SORT_STEP <= LIST_SORT_MAX ? LIST_SORT_STEP : 1;
   const sb = getDb();
   for (const [i, row] of list.entries()) {
-    const sortOrder = Math.min(LIST_SORT_MAX, (i + 1) * LIST_SORT_STEP);
+    const sortOrder = Math.min(LIST_SORT_MAX, (i + 1) * step);
     if (row.sortOrder === sortOrder) continue;
     check(await sb.from(table).update({ sortOrder }).eq("id", row.id), ctx);
   }
   return "moved";
+}
+
+/**
+ * A list's order for the ↑ / ↓ alone: ids and numbers, as the panel draws
+ * the list (sortOrder, then createdAt), without the rows themselves (a
+ * slide's uploaded image is a data URL of up to megabytes, admin audit
+ * CAT-08).
+ */
+async function listOrder(
+  table: string,
+  ctx: string,
+): Promise<Array<{ id: string; sortOrder: number }>> {
+  const sb = getDb();
+  return rows<{ id: string; sortOrder: number }>(
+    await sb
+      .from(table)
+      .select("id, sortOrder")
+      .order("sortOrder", { ascending: true })
+      .order("createdAt", { ascending: true }),
+    ctx,
+  );
 }
 
 /**
@@ -6710,7 +6733,7 @@ export async function listMenuItems(): Promise<AdminMenuItem[]> {
 export async function moveMenuItem(
   id: string,
   direction: "up" | "down",
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
   await ensureSeed();
   const sb = getDb();
   const target = one<{ categoryKey: string }>(
@@ -8108,10 +8131,11 @@ export async function setShopHeroSlideActive(
 export async function moveShopHeroSlide(
   id: string,
   direction: "up" | "down",
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
+  await ensureShopHeroSeed();
   return moveRowInList(
     TABLES.shopHeroSlides,
-    await listShopHeroSlides(),
+    await listOrder(TABLES.shopHeroSlides, "moveShopHeroSlide"),
     id,
     direction,
     "moveShopHeroSlide",
@@ -8642,10 +8666,11 @@ export async function setAppSlideActive(
 export async function moveAppSlide(
   id: string,
   direction: "up" | "down",
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
+  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appHeroSlides,
-    await listAppSlides(),
+    await listOrder(TABLES.appHeroSlides, "moveAppSlide"),
     id,
     direction,
     "moveAppSlide",
@@ -8886,10 +8911,11 @@ export async function setAppPostActive(
 export async function moveAppPost(
   id: string,
   direction: "up" | "down",
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
+  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appPosts,
-    await listAppPosts(),
+    await listOrder(TABLES.appPosts, "moveAppPost"),
     id,
     direction,
     "moveAppPost",
@@ -9026,10 +9052,11 @@ export async function setAppAnnouncementActive(
 export async function moveAppAnnouncement(
   id: string,
   direction: "up" | "down",
-): Promise<ListMoveResult> {
+): Promise<MoveOutcome> {
+  await ensureAppContentSeed();
   return moveRowInList(
     TABLES.appAnnouncements,
-    await listAppAnnouncements(),
+    await listOrder(TABLES.appAnnouncements, "moveAppAnnouncement"),
     id,
     direction,
     "moveAppAnnouncement",

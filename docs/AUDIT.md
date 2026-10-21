@@ -751,7 +751,6 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Sihirbazın sekmeli düzenleme başlıkları hâlâ sahte italik (CAT-26, sihirbaz kısmı) | `product-wizard.tsx` 5a'nın; bu PR ona yalnız kayıt korumasını ekledi |
 | 🟢 | Panelin kendi bağlantısına ve ⌘K'ya basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Genel koruma geldi (UI-17, `ui/unsaved-guard.ts`) ama sihirbaza bağlanmadı: kancası (`unsaved-guard.ts`) kayıt defterine yazıyor, denetleyiciyi (bağlantı ve palet sorusu) tutmuyor. Tek tuşlar zaten çıkmıyor. Bağlamak kancanın `trackUnsavedGuard`'ının denetleyiciyi de tutması: sihirbazın `beforeunload`'una dokunmaz, ayrı iş |
 | 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
 
@@ -1540,8 +1539,8 @@ Operatör: _"admin panel tasarımını geliştir ... kullanıcı kolay ekleyip
 çıkarabileceği CRUD işlemleri düzgün olan bir şeyler yap ... güvenlik açığı
 da varsa çözüp maine pushla"_. Bütün `"use server"` dışa aktarımları (132),
 altı route handler, oturum, 2FA, roller, yüklemeler, XSS ve SQL yeniden
-okundu: kritik, yüksek ya da orta bulgu yok. Doğrulanan düşük bulgular ve
-CRUD boşlukları:
+okundu: kritik ya da yüksek bulgu yok. Doğrulanan bir orta ve düşük
+bulgular, CRUD boşlukları:
 
 | Derece | Bulgu | Düzeltme | Test |
 | --- | --- | --- | --- |
@@ -1549,8 +1548,8 @@ CRUD boşlukları:
 | 🟢 | 2FA kurulumundaki kod adımında deneme sınırı yoktu ve 2FA zaten açıkken canlı sırra karşı kod deniyordu | Girişin iki bütçesi (`admin-2fa`, `admin-2fa-account`) sayılır; 2FA açıksa hiçbir kod denenmez | `admin-2fa-screens` |
 | 🟢 | Veritabanı kesintisinde giriş sınırlayıcısı açık kalıyor, break-glass env parolaları bütçesiz karşılaştırılıyordu | Deneme sayılamazsa (`uncounted`) hiçbir parola karşılaştırılmaz, yanıt "şu an tamamlanamadı"; zaten veritabanısız giriş tamamlanamıyordu | `admin-env-signin-outage` |
 | 🟢 | Ürün içe aktarma şablonu ilk kategorinin adını CSV'ye olduğu gibi yazıyordu: yöneticinin `=HYPERLINK(…)` adlı kategorisi sahibin Excel'inde formül olarak çalışırdı | `csvField` = + - @ (ve sekme / CR) ile başlayan hücrenin başına ' koyar (sipariş CSV'sinin kuralı) | `admin-csv-parse` |
-| 🟢 | `payment_transactions.raw.params` `withoutHolderName`'den geçmeden yazılıyordu (§8'den taşındı; belgelenen dönüş gövdesi adı taşımıyor) | Reddedilen dönüşün kaydı adı çıkarılmış parametreleri yazar | `payment-paynkolay` |
-| 🟢 | Sahip kendi hesabını silebiliyor, pasifleştirebiliyor ya da rolünü düşürebiliyordu: oturum her istekte hesaptan okunduğu için kimsenin onayı olmadan kendini panelden atıyordu | Eylemler reddeder, satır nedeniyle kapalı çizilir; ad değişebilir | `admin-staff-actions` |
+| 🟢 | `payment_transactions.raw.params` `withoutHolderName`'den geçmeden yazılıyordu (§8'den taşındı; belgelenen dönüş gövdesi adı taşımıyor) | Dönüşün kaydı, başarılı da reddedilen de, adı çıkarılmış parametreleri yazar (kaydedilen başarılı dönüştür) | `payment-paynkolay` (düzeltmesiz kırılır) |
+| 🟢 | Sahip kendi hesabını silebiliyor, pasifleştirebiliyor ya da rolünü düşürebiliyordu: rol her istekte hesaptan okunduğu için daha düşük rol sayfayı hemen kapatıyor, pasifleştirmek ya da silmek kimsenin onayı olmadan oturumu kapatıyordu | Eylemler reddeder, satır nedeniyle kapalı çizilir; kendi satırı yalnız adı kaydeder, rol ve erişim kayıttaki gibi kalır (env ile girilmiş sahibin aynı adresli pasif satırı açılmaz) | `admin-staff-actions`, `admin-people-forms` |
 | 🟢 | Panel sayfalarında React hydration uyarısı: kısayol katmanı sayfanın birincil bağlantısına ve arama kutusuna `aria-keyshortcuts`'u sayfa hydrate olmadan yazıyordu | İki öğe `suppressHydrationWarning` taşır | tarayıcı geçişi (konsol temiz) |
 | 🟢 | Kenar menüsü 1280 × 800-900'de yalnız ilk üç grubu gösteriyordu; İçerik ve Yönetim sayfalarında açık sayfanın satırı görünmüyordu | Menü (sayfa değil) açık satırı görünür alana kaydırır | tarayıcı geçişi |
 | 🟢 | Mağaza slaytları, uygulama slaytları, duyurular ve gönderiler listeden yayından kaldırılamıyordu (silme penceresi "Düzenle'den yayından al" diyordu); onların ve kafe menüsünün sırası kayıt kayıt elle yazılan sayıydı (§13 CAT-30'un sıra kısmı, CON-24'ün sıra kısmı) | Satırın ⋯ menüsünde "Yayına al / Yayından kaldır" (yalnız `isActive`, gönderide e-posta yok), satırın yanında ↑ / ↓ (10, 20, 30… yeniden numaralanır; menüde kategori içinde, liste süzülmüşken sayı); mağaza slaytları DataTable'a geçti | `admin-list-order`, `db-integration-list-order`, `admin-catalog-actions`, `admin-shop-hero` |
@@ -1558,6 +1557,7 @@ CRUD boşlukları:
 | 🟢 | Menü kalemini çoğaltmanın ve art arda kalem ya da masa girmenin yolu yoktu | Menü kaleminde "Kopyala" (`/admin/menu/yeni?kopya=`; kopya menüde görünmeden başlar), yeni menü kalemi ve masa formunda "Kaydet ve yenisini ekle"; Genel bakış'ta rolün "Yeni …" sayfaları (Hızlı ekle) | `admin-list-order`, `admin-catalog-actions`, `admin-cafe-tables-actions`, `admin-quick-create` |
 | 🟢 | Uzun formlardan (menü kalemi, slaytlar, uygulama içeriği, promosyon) bir bağlantı yazılanı sormadan bırakıyordu | `GuardedActionForm` ve promosyon formunda `useUnsavedGuard` | `admin-unsaved-guard` |
 | 🟢 | `db-integration-product-food-label` paylaşılan test veritabanında başka bir paketin sabit kimlikli ürünlerine (`prd-0001`…) denk gelip kırılıyordu | Test sayacı mevcut kimliklerin üstüne kaldırır (uygulamanın tohumu gibi, `raise_counter`) | kendisi |
+| 🟢 | Sihirbazın sekmeli düzenleme başlıkları sahte italik serifti (CAT-26, sihirbaz kısmı); müşteri kartlarında, manuel siparişte, görsel yüklemede ve kayıt sayfalarında 10 px aralıklı büyük harf etiketler kalmıştı | Kitin başlık ve etiket yazısı (`CARD_TITLE`, `CARD_SUBTITLE`, `EYEBROW`, `LABEL`) | tarayıcı geçişi |
 
 Açık (bu turda değişmedi):
 

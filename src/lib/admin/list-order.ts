@@ -7,7 +7,7 @@ import { actionError, actionOk, type ActionResult } from "./action-result";
 
 export type MoveDirection = "up" | "down";
 
-/** What a move came to (store.ts's ListMoveResult). */
+/** What a move came to: moved, already first or last, or gone (store.ts). */
 export type MoveOutcome = "moved" | "edge" | "not_found";
 
 /** The ↑ / ↓ form: the row and the way, or why it cannot run. */

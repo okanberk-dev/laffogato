@@ -240,8 +240,9 @@ describe("deleteAdminUserAction", () => {
 });
 
 describe("the signed-in owner's own row", () => {
-  // The session's account is re-read on every request: taking your own
-  // role or access away signed you out at once, with nobody's say.
+  // The session's account is re-read on every request: a lower role took
+  // the page away at once and switching yourself off signed you out, with
+  // nobody's say. The row now saves the name alone.
   beforeEach(() => {
     requireRole.mockResolvedValue({
       email: "patron@laffogato.net",
@@ -265,9 +266,12 @@ describe("the signed-in owner's own row", () => {
   });
 
   it("cannot change its own role or switch its own access off", async () => {
+    // The row sends neither field; a request that does is refused, even
+    // with the stored values (it cannot be told from a change here).
     const changes: Record<string, string>[] = [
       { name: "Patron", role: "manager", isActive: "on" },
       { name: "Patron", role: "owner" },
+      { name: "Patron", isActive: "on" },
     ];
     for (const extra of changes) {
       const state = await saveAdminUserAction(
@@ -279,20 +283,16 @@ describe("the signed-in owner's own row", () => {
     expect(updateAdminUser).not.toHaveBeenCalled();
   });
 
-  it("can still save its own name", async () => {
+  it("can still save its own name, and only the name", async () => {
+    // Role and access stay as stored: an env sign-in beside an inactive
+    // row of the same address must not switch that row on.
     const state = await saveAdminUserAction(
       {},
-      form("patron@laffogato.net", {
-        name: "Patron",
-        role: "owner",
-        isActive: "on",
-      }),
+      form("patron@laffogato.net", { name: "Patron" }),
     );
     expect(state).toEqual({ message: "Kaydedildi." });
     expect(updateAdminUser).toHaveBeenCalledWith("patron@laffogato.net", {
       name: "Patron",
-      role: "owner",
-      isActive: true,
     });
   });
 

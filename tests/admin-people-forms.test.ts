@@ -367,6 +367,27 @@ describe("2FA on the users page", () => {
     );
     expect(html).toContain("2FA kurulumu sayfasından");
   });
+
+  it("saves the owner's own name only: no role and no access field on the row", async () => {
+    // The action keeps the stored role and access for your own row and
+    // refuses a request that sends either (kullanicilar/actions.ts).
+    const { AdminUserRow } =
+      await import("@/app/admin/kullanicilar/user-forms");
+    const own = renderToStaticMarkup(
+      createElement(AdminUserRow, {
+        user: { ...user, isSelf: true },
+        minPasswordLength: 10,
+      }),
+    );
+    expect(own).toContain('name="name"');
+    expect(own).not.toContain('name="role"');
+    expect(own).not.toContain('name="isActive"');
+    const other = renderToStaticMarkup(
+      createElement(AdminUserRow, { user, minPasswordLength: 10 }),
+    );
+    expect(other).toContain('name="role"');
+    expect(other).toContain('name="isActive"');
+  });
 });
 
 describe("campaign Gönder", () => {

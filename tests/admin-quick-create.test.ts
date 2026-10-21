@@ -46,9 +46,11 @@ describe("Hızlı ekle", () => {
     const html = renderToStaticMarkup(
       createElement(QuickCreate, { entries: quickCreateEntries("owner") }),
     );
-    expect(html).toContain('aria-label="Yeni sipariş"');
-    expect(html).toContain(">Sipariş<");
-    expect(html).toContain(">Menü ürünü<");
+    // "Yeni Sipariş" to a screen reader, with the visible word in it (WCAG
+    // 2.5.3): no aria-label that would hide the word a voice command says.
+    expect(html).toContain('<span class="sr-only">Yeni </span>Sipariş</span>');
+    expect(html).not.toContain("aria-label=");
+    expect(html).toContain(">Menü kalemi<");
     expect(html).toContain(">Uygulama slaytı<");
     expect(html).toContain('href="/admin/masalar/yeni"');
   });

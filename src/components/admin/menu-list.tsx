@@ -371,7 +371,7 @@ export function MenuList({
                 <Link
                   href={`/admin/menu/yeni?cat=${key}`}
                   className={BUTTON.link}
-                  aria-label={`${categoryLabels[key]} kategorisine yeni kalem ekle`}
+                  aria-label={`Bu kategoriye ekle: ${categoryLabels[key]}`}
                 >
                   Bu kategoriye ekle
                 </Link>

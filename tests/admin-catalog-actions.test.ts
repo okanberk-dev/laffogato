@@ -150,6 +150,17 @@ describe("menu item create / update", () => {
     );
   });
 
+  it("says a hidden item is saved, not on the menu", async () => {
+    // A copy starts hidden ("Menüde göster" off).
+    const { isActive: _shown, ...hidden } = MENU_FORM;
+    await expect(menu.createMenuItemAction(null, form(hidden))).rejects.toThrow(
+      "NEXT_REDIRECT",
+    );
+    expect(h.setAdminFlash).toHaveBeenCalledWith(
+      '"Çilekli Matcha" kaydedildi; “Menüde göster” işaretlenene kadar menüde görünmez.',
+    );
+  });
+
   it("Kaydet ve yenisini ekle opens the next form in the same category", async () => {
     await expect(
       menu.createMenuItemAction(

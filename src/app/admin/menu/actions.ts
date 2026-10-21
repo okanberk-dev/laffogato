@@ -249,12 +249,16 @@ export async function createMenuItemAction(
     },
   });
   revalidateMenu();
+  // A hidden item (a copy starts so) is saved, not on the menu yet.
+  const saved = created.isActive
+    ? `"${created.name}" menüye eklendi.`
+    : `"${created.name}" kaydedildi; “Menüde göster” işaretlenene kadar menüde görünmez.`;
   // "Kaydet ve yenisini ekle": the next item's form, in the same category.
   if (wantsAnother(formData)) {
-    await setAdminFlash(`"${created.name}" menüye eklendi. Sıradakini gir.`);
+    await setAdminFlash(`${saved} Sıradakini gir.`);
     redirect(`/admin/menu/yeni?cat=${encodeURIComponent(created.categoryKey)}`);
   }
-  await setAdminFlash(`"${created.name}" menüye eklendi.`);
+  await setAdminFlash(saved);
   redirect("/admin/menu");
 }
 

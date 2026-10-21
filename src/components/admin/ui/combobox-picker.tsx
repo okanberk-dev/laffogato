@@ -64,7 +64,7 @@ const LIST = "max-h-72 overflow-auto p-1 outline-none";
 const ITEM =
   "flex min-h-11 cursor-pointer items-center rounded-lg px-3 py-2 text-base outline-none data-[focused]:bg-[var(--admin-primary-soft)] data-[focused]:text-[var(--admin-primary)] data-[selected]:font-semibold data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 sm:text-sm";
 const HEADING =
-  "px-3 pt-2 pb-1 text-[10px] tracking-[0.18em] text-[var(--admin-text-mute)] uppercase";
+  "px-3 pt-2 pb-1 text-xs font-medium text-[var(--admin-text-mute)]";
 const EMPTY = "px-3 py-3 text-sm text-[var(--admin-text-mute)]";
 
 export function ComboboxPicker({

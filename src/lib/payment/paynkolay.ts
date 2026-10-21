@@ -1136,8 +1136,6 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       providerRef: returnedRef || orderId,
       amountMinor: 0,
       currency: "TRY",
-      // Adı çıkarılmış: belgelenen dönüş gövdesi onu taşımıyor, ama
-      // taşırsa da `payment_transactions.raw`'a yazılmasın (withoutHolderName).
       raw: {
         source: "paynkolay_return",
         reason,
@@ -1206,10 +1204,12 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
         readField(row, "REFERENCE_CODE", "referenceCode") || returnedRef,
       amountMinor: settledMinor,
       currency: "TRY",
+      // Dönüş gövdesi de adsız: belgelenen gövde onu taşımıyor, ama
+      // taşırsa da `payment_transactions.raw`'a yazılmasın (kural 28).
       raw: {
         source: "paynkolay_return",
         hashOk,
-        params,
+        params: withoutHolderName(params),
         transaction: withoutHolderName(row),
       },
       ...transactionDay(row),

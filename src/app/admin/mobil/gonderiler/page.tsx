@@ -223,9 +223,6 @@ export default async function AdminAppPostsPage({
             key: "order",
             header: "Sıra",
             align: "right",
-            // In the table from md and on a phone's card: the ↑ / ↓ are
-            // small (hideBelow would leave them off the card).
-            className: "hidden md:table-cell",
             cell: (p) => (
               <OrderCell
                 action={movePostAction}

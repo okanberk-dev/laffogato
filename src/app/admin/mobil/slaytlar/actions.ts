@@ -159,7 +159,7 @@ export async function setSlideActiveAction(
   });
   return actionOk(
     form.isActive
-      ? "Slayt yayına alındı; telefonlara birkaç dakika içinde ulaşır."
+      ? "Slayt yayına alındı; yayın tarihleri içindeyse telefonlara birkaç dakika içinde ulaşır."
       : "Slayt yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
   );
 }

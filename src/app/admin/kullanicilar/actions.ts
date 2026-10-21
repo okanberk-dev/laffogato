@@ -117,22 +117,28 @@ export async function saveAdminUserAction(
 ): Promise<AdminUserState> {
   const session = await requireRole("adminUsers");
   const email = normalizeAdminEmail(String(formData.get("email") ?? ""));
-  // An owner taking their own role or access away is signed out of this
-  // page at once (the session's account is re-read on every request), with
-  // nobody's confirmation; the last-owner rule only covers the last one.
-  // Another owner makes that change.
-  if (
-    email === normalizeAdminEmail(session.email) &&
-    (String(formData.get("role") ?? "") !== session.role ||
-      formData.get("isActive") !== "on")
-  ) {
+  const name = String(formData.get("name") ?? "");
+  // Your own row saves its name only: the role and the access stay as
+  // stored. The session re-reads the account on every request, so a lower
+  // role takes this page away at once and switching yourself off signs you
+  // out, with nobody's say; the last-owner rule only guards the last one.
+  // The row sends neither field; a request that does is refused. Stored,
+  // not the session's: an env sign-in beside an inactive row of the same
+  // address must not switch that row on (and so sign itself out).
+  const self = email === normalizeAdminEmail(session.email);
+  if (self && (formData.has("role") || formData.has("isActive"))) {
     return { error: SELF_CHANGE_REFUSED };
   }
-  const result = await updateAdminUser(email, {
-    name: String(formData.get("name") ?? ""),
-    role: String(formData.get("role") ?? ""),
-    isActive: formData.get("isActive") === "on",
-  });
+  const result = await updateAdminUser(
+    email,
+    self
+      ? { name }
+      : {
+          name,
+          role: String(formData.get("role") ?? ""),
+          isActive: formData.get("isActive") === "on",
+        },
+  );
   if (!result.ok) return failed(result);
 
   await logAudit({

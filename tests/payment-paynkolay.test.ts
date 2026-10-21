@@ -423,19 +423,23 @@ describe("confirmReturn", () => {
     expect(result.status).toBe("failed");
   });
 
-  it("reddedilen dönüşün kaydına kart sahibinin adını yazmaz", async () => {
+  it("dönüşün kaydına kart sahibinin adını yazmaz: başarılı ya da reddedilen", async () => {
     // Belgelenen gövde adı taşımıyor; taşırsa da `payment_transactions.raw`'a
-    // girmesin (kural 28, withoutHolderName).
+    // girmesin (kural 28, withoutHolderName). Kaydedilen, başarılı dönüştür
+    // (odeme/donus); reddedilenin `raw`'ı da adsız.
+    const withName = { ...RETURN_PARAMS, CARD_HOLDER_NAME: "AYSE YILMAZ" };
+    stubFetch({ Data: [transactionRow({ CARD_HOLDER_NAME: "AYSE YILMAZ" })] });
+    const paid = await makeProvider().confirmReturn(withName);
+    expect(paid.status).toBe("succeeded");
     stubFetch({ Data: [] });
-    const result = await makeProvider().confirmReturn({
-      ...RETURN_PARAMS,
-      CARD_HOLDER_NAME: "AYSE YILMAZ",
-    });
-    expect(result.status).toBe("failed");
-    const raw = result.raw as { params: Record<string, string> };
-    expect(raw.params).not.toHaveProperty("CARD_HOLDER_NAME");
-    expect(raw.params.CLIENT_REFERENCE_CODE).toBe("ord-0284");
-    expect(JSON.stringify(result.raw)).not.toContain("AYSE");
+    const refused = await makeProvider().confirmReturn(withName);
+    expect(refused.status).toBe("failed");
+    for (const result of [paid, refused]) {
+      const raw = result.raw as { params: Record<string, string> };
+      expect(raw.params).not.toHaveProperty("CARD_HOLDER_NAME");
+      expect(raw.params.CLIENT_REFERENCE_CODE).toBe("ord-0284");
+      expect(JSON.stringify(result.raw)).not.toContain("AYSE");
+    }
   });
 
   it("tutar uyuşmazlığında başarısız sayar", async () => {
