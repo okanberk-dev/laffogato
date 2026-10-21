@@ -178,9 +178,18 @@ describe("admin UI libraries: pins and the lockfile", () => {
     expect(pkg.dependencies[RAC]).toBe("1.21.1");
     expect(lockVersions("react-aria")).toEqual(["3.52.1"]);
     expect(lockVersions("react-stately")).toEqual(["3.50.0"]);
-    // The date package rides in as React Aria's dependency, one copy at the
-    // version design §1.3 pins for UI-14, before any file imports it.
+  });
+
+  it("@internationalized/date is a direct dependency at 3.12.4 (UI-14), one copy in the lockfile", () => {
+    // Design §1.3: exact pin, published 1 Sep 2026, the version React Aria
+    // 1.21.1 asks for (^3.12.4). It was in the lockfile before as React
+    // Aria's dependency; the date widgets import it themselves now.
+    expect(pkg.dependencies[DATE]).toBe("3.12.4");
     expect(lockVersions(DATE)).toEqual(["3.12.4"]);
+    expect(
+      (lock.packages[""] as { dependencies?: Record<string, string> })
+        .dependencies?.[DATE],
+    ).toBe("3.12.4");
   });
 
   it("the lockfile holds one copy of each, at the pinned version", () => {
@@ -256,6 +265,42 @@ describe("admin UI libraries: who may import them", () => {
       if (specs.includes(RAC)) bad.push(`${f}: imports the ${RAC} barrel`);
     }
     expect(bad).toEqual([]);
+  });
+
+  it("the date package is imported by the two date widgets alone, and the pop-over mount point by overlay.ts alone", () => {
+    // date-range-field and date-time-picker are lazy chunks (the FilterBar
+    // and DateTimeField reach them by import(), after a fine pointer has
+    // reached the field); no other file needs the date objects.
+    const users = sources.filter((f) => usesAny(read(f), [DATE]).length > 0);
+    expect(users.sort()).toEqual([
+      "src/components/admin/ui/date-range-field.tsx",
+      "src/components/admin/ui/date-time-picker.tsx",
+    ]);
+    // The one prop and the one provider that move a Popover's mount point
+    // live in ui/overlay.ts, where a React Aria upgrade changes them (and
+    // its switch turns the date widgets off).
+    const portalUsers = sources
+      .filter((f) => f.startsWith("src/"))
+      .filter((f) =>
+        /UNSTABLE_portalContainer|UNSAFE_PortalProvider/.test(read(f)),
+      );
+    expect(portalUsers).toEqual(["src/components/admin/ui/overlay.ts"]);
+  });
+
+  it("the date widgets' chunks are reached by import() alone, never by a static import", () => {
+    const widgets = [
+      "src/components/admin/ui/date-range-field",
+      "src/components/admin/ui/date-time-picker",
+    ];
+    for (const f of sources.filter((f) => inAdminTree(f))) {
+      const statics = valueImportsOf(read(f));
+      for (const widget of widgets) {
+        const name = widget.split("/").pop()!;
+        const hit = statics.filter((spec) => spec.endsWith(`/${name}`));
+        // Only tests may import them by value; the kit never does.
+        expect(hit, `${f} imports ${name} statically`).toEqual([]);
+      }
+    }
   });
 
   it("every page's shell reaches React Aria only through the palette's lazy import()", () => {
