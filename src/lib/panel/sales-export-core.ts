@@ -1,0 +1,450 @@
+import { shiftDay } from "@/lib/admin/day-close-core";
+import {
+  karaokeMoneyOf,
+  type KaraokeRevenueRow,
+} from "@/lib/admin/karaoke-money";
+import { orderKind } from "@/lib/admin/order-channel";
+import { istanbulDayStartIso } from "@/lib/admin/order-filters";
+import {
+  invoiceKdvBreakdown,
+  invoiceRewardMinor,
+  isTaxRate,
+  kdvOfGross,
+  orderKdvBreakdown,
+} from "@/lib/utils/kdv";
+
+/**
+ * The online sales of a period for the köşk panel's P&L and till report
+ * (ladmin.laffogato.net, the `lafmaliyet` project; docs/PANEL-SALES.md).
+ *
+ * The panel's revenue is the till's (ModPOS, pasted in monthly), so the
+ * money this site takes - app and web café orders, shop parcels, prepaid
+ * karaoke - was in no figure there, and the drinks an app order used up
+ * were missing from its consumption check. `GET /api/panel/sales` hands it
+ * the period's totals and the café lines by menu item and size, which the
+ * panel maps to its own products through the menu link (`siteMenuId` +
+ * `siteMenuSlot`, docs/PANEL-MENU.md).
+ *
+ * The figures are Raporlar's and Gün sonu's, counted the same way:
+ *
+ * - an order counts when `isReportableOrder` would (paid and onwards) and
+ *   was placed (`createdAt`) on one of the period's Istanbul days; its
+ *   refunds come off its own net, clamped per order (`headlineFrom`);
+ * - a booking counts on the day it was paid, with what `karaokeMoneyOf`
+ *   says it keeps (`karaokeRevenueFrom`).
+ *
+ * Orders typed into this panel (`source: "manual"`) are rung on the till,
+ * so they are in the panel's revenue already: they are only counted apart
+ * (`manual`), never in `cafe` or `shop`.
+ *
+ * The KDV is the invoice's (`invoiceKdvBreakdown`: a reward coupon pays for
+ * the goods, the base stays the full price), shared over what the order
+ * kept after its refunds. An order without a stored split (placed before
+ * lines carried their rate) adds its net to `unknownKdvNetMinor` instead of
+ * a guess (CLAUDE.md "Satış anındaki oran saklanır").
+ *
+ * No customer data at all: no name, no order number, no e-mail.
+ *
+ * Deliberately pure (no `server-only`, no database): the route and the
+ * tests share it.
+ */
+
+export const PANEL_SALES_VERSION = 1;
+
+/** A wider period is refused: the panel asks a month or a day at a time. */
+export const PANEL_SALES_MAX_DAYS = 31;
+
+/** More orders than this in one period is refused (422), never cut short. */
+export const PANEL_SALES_MAX_ORDERS = 20_000;
+
+/** The order statuses that count (`isReportableOrder`). */
+export const PANEL_SALES_STATUSES = [
+  "paid",
+  "preparing",
+  "shipped",
+  "completed",
+  "refunded",
+] as const;
+
+export interface PanelSalesRange {
+  /** First Istanbul day, inclusive. */
+  from: string;
+  /** Last Istanbul day, inclusive. */
+  to: string;
+}
+
+const DAY_RE = /^(\d{4})-\d{2}-\d{2}$/;
+const MONTH_RE = /^(\d{4})-(\d{2})$/;
+
+/** Years a period may fall in: the site's, with room to spare. */
+const MIN_YEAR = 2020;
+const MAX_YEAR = 2100;
+
+function plausibleYear(year: string): boolean {
+  const y = Number(year);
+  return y >= MIN_YEAR && y <= MAX_YEAR;
+}
+
+/** A real calendar day written `YYYY-MM-DD` (2026-02-30 is not one). */
+function calendarDay(value: string | null): string | null {
+  const m = value === null ? null : DAY_RE.exec(value);
+  if (!m || !plausibleYear(m[1])) return null;
+  return shiftDay(value as string, 0) === value ? value : null;
+}
+
+/**
+ * The period asked for: `month=YYYY-MM` (that month), or `from` and `to`
+ * (Istanbul days, both inclusive, `to` not before `from`, 31 days at most).
+ * Null - a 400 - for anything else, both forms at once included.
+ */
+export function parsePanelSalesRange(
+  params: URLSearchParams,
+): PanelSalesRange | null {
+  const month = params.get("month");
+  const rawFrom = params.get("from");
+  const rawTo = params.get("to");
+  if (month !== null) {
+    if (rawFrom !== null || rawTo !== null) return null;
+    const m = MONTH_RE.exec(month);
+    if (!m || !plausibleYear(m[1])) return null;
+    const mm = Number(m[2]);
+    if (mm < 1 || mm > 12) return null;
+    const from = `${m[1]}-${m[2]}-01`;
+    const next =
+      mm === 12
+        ? `${Number(m[1]) + 1}-01-01`
+        : `${m[1]}-${String(mm + 1).padStart(2, "0")}-01`;
+    return { from, to: shiftDay(next, -1) };
+  }
+  const from = calendarDay(rawFrom);
+  const to = calendarDay(rawTo);
+  if (!from || !to || to < from) return null;
+  if (shiftDay(from, PANEL_SALES_MAX_DAYS - 1) < to) return null;
+  return { from, to };
+}
+
+/**
+ * The instants the route reads orders between: a day of margin either side
+ * of the period, so a `createdAt` written with an offset is still read;
+ * which day an order belongs to is decided by {@link inPanelSalesRange}.
+ */
+export function panelSalesReadBounds(range: PanelSalesRange): {
+  since: string;
+  until: string;
+} {
+  return {
+    since: istanbulDayStartIso(range.from, -1),
+    until: istanbulDayStartIso(range.to, 2),
+  };
+}
+
+/** Whether an instant falls on one of the period's Istanbul days. */
+export function inPanelSalesRange(
+  iso: string | null | undefined,
+  range: PanelSalesRange,
+): boolean {
+  const at = Date.parse(iso ?? "");
+  if (!Number.isFinite(at)) return false;
+  return (
+    at >= Date.parse(istanbulDayStartIso(range.from)) &&
+    at < Date.parse(istanbulDayStartIso(range.to, 1))
+  );
+}
+
+/** The period is over in Tuzla: its figures move only by later refunds. */
+export function panelSalesClosed(range: PanelSalesRange, now: Date): boolean {
+  return now.getTime() >= Date.parse(istanbulDayStartIso(range.to, 1));
+}
+
+// ─── Inputs ────────────────────────────────────────────────────────────────
+
+/** The order columns the export reads. */
+export interface PanelSalesOrderRow {
+  orderNo: number;
+  status: string;
+  kind?: string;
+  source?: string;
+  createdAt: string;
+  totalMinor: number;
+  subtotalMinor: number;
+  discountMinor: number;
+  shippingMinor: number;
+  shippingTaxRatePct?: number | null;
+  promoCode?: string;
+  refunds?: ReadonlyArray<{ amountMinor: number }> | null;
+  items?: ReadonlyArray<{
+    productName?: string;
+    qty: number;
+    unitPriceMinor: number;
+    status?: string;
+    menuItemId?: string;
+    size?: string;
+    taxRatePct?: number | null;
+  }> | null;
+}
+
+/** The booking columns the export reads. */
+export type PanelSalesBookingRow = KaraokeRevenueRow & {
+  taxRatePct?: number | null;
+};
+
+// ─── Output ────────────────────────────────────────────────────────────────
+
+export interface PanelSalesTotals {
+  /** Orders counted. */
+  orders: number;
+  /** What they were placed for (KDV included), refunds not taken off. */
+  grossMinor: number;
+  /** Promo and coupon discounts inside `grossMinor` (already taken off). */
+  discountMinor: number;
+  /** Courier or shipping fees inside `grossMinor`. */
+  deliveryMinor: number;
+  /** Refunds on them, each order's clamped to its total. */
+  refundedMinor: number;
+  /** gross − refunded: what the köşk keeps, KDV included. */
+  netMinor: number;
+  /** The KDV owed on `netMinor`, from the orders with a stored split. */
+  kdvMinor: number;
+  /** Net of the orders without a stored split: their KDV is not known. */
+  unknownKdvNetMinor: number;
+}
+
+export interface PanelSalesLine {
+  /** The menu item (`mnu-0011`); "" for a line sold without one. */
+  menuItemId: string;
+  /** "L" maps to the item's large price; "M" and "single" to its first. */
+  size: "M" | "L" | "single";
+  /** The name it was last sold under in the period. */
+  name: string;
+  /** Units made: lines not cancelled, of orders not wholly refunded. */
+  qty: number;
+  /** Their unit price (options included) × qty: no discount, no refund. */
+  listMinor: number;
+}
+
+export interface PanelSalesKaraoke {
+  /** Bookings whose money the köşk keeps some of. */
+  bookings: number;
+  /** What the POS collected, refunds not taken off. */
+  collectedMinor: number;
+  refundedMinor: number;
+  /** collected − refunded, KDV included. */
+  netMinor: number;
+  /** Owed back and not gone yet; inside `netMinor`. */
+  refundPendingMinor: number;
+  kdvMinor: number;
+  unknownKdvNetMinor: number;
+}
+
+export interface PanelSales {
+  version: typeof PANEL_SALES_VERSION;
+  from: string;
+  to: string;
+  /** The period is over (later refunds can still lower its net). */
+  closed: boolean;
+  cafe: PanelSalesTotals & { lines: PanelSalesLine[] };
+  shop: PanelSalesTotals;
+  karaoke: PanelSalesKaraoke;
+  /** Orders typed into this panel: on the till already, never in cafe/shop. */
+  manual: { orders: number; grossMinor: number; netMinor: number };
+}
+
+function emptyTotals(): PanelSalesTotals {
+  return {
+    orders: 0,
+    grossMinor: 0,
+    discountMinor: 0,
+    deliveryMinor: 0,
+    refundedMinor: 0,
+    netMinor: 0,
+    kdvMinor: 0,
+    unknownKdvNetMinor: 0,
+  };
+}
+
+function minor(value: unknown): number {
+  return Math.max(0, Math.round(Number(value) || 0));
+}
+
+function refundedOf(order: PanelSalesOrderRow, total: number): number {
+  const sum = (order.refunds ?? []).reduce(
+    (s, r) => s + minor(r.amountMinor),
+    0,
+  );
+  return Math.min(total, sum);
+}
+
+/**
+ * The KDV owed on what one order kept: the invoice's split (a reward
+ * coupon's goods at full price), shared over the kept part of the total.
+ * Null when the order has no stored split.
+ */
+export function orderKeptKdv(
+  order: PanelSalesOrderRow,
+  netMinor: number,
+  couponSource: string | null,
+): number | null {
+  const kdvOrder = {
+    items: (order.items ?? []).map((it) => ({
+      qty: it.qty,
+      unitPriceMinor: it.unitPriceMinor,
+      taxRatePct: it.taxRatePct,
+    })),
+    subtotalMinor: order.subtotalMinor,
+    discountMinor: order.discountMinor,
+    shippingMinor: order.shippingMinor,
+    totalMinor: order.totalMinor,
+    shippingTaxRatePct: order.shippingTaxRatePct,
+  };
+  const reward = invoiceRewardMinor(kdvOrder, couponSource);
+  const split =
+    reward > 0
+      ? invoiceKdvBreakdown(kdvOrder, reward)
+      : orderKdvBreakdown(kdvOrder);
+  if (!split) return null;
+  const total = minor(order.totalMinor);
+  // Paid wholly by a reward: nothing to refund, the invoice's KDV stands.
+  if (total === 0) return split.taxMinor;
+  return Math.round((split.taxMinor * netMinor) / total);
+}
+
+/**
+ * Whether an order's lines were made: not when it was wholly refunded, or
+ * refunded beyond the lines marked "İptal" up to nothing kept (the rule
+ * `topProductsFrom` counts units by).
+ */
+function linesStand(order: PanelSalesOrderRow, refunded: number): boolean {
+  if (refunded <= 0) return true;
+  const total = minor(order.totalMinor);
+  const cancelled = (order.items ?? []).reduce(
+    (s, it) =>
+      it.status === "cancelled"
+        ? s + minor(it.unitPriceMinor) * minor(it.qty)
+        : s,
+    0,
+  );
+  const standing = total - Math.min(refunded, cancelled);
+  return standing > 0 && total - refunded > 0;
+}
+
+function lineSize(size: string | undefined): PanelSalesLine["size"] {
+  return size === "M" || size === "L" ? size : "single";
+}
+
+/**
+ * The period's figures. `orders` are read with a margin and in any order
+ * (newest first is what the route sends: a line's name is then the latest
+ * one); `couponSourceOf` names the member coupon an order redeemed
+ * (`couponSourcesForOrders`), null for none or a shared code.
+ */
+export function buildPanelSales(input: {
+  range: PanelSalesRange;
+  now: Date;
+  orders: readonly PanelSalesOrderRow[];
+  bookings: readonly PanelSalesBookingRow[];
+  couponSourceOf: (orderNo: number) => string | null;
+}): PanelSales {
+  const { range } = input;
+  const cafe = emptyTotals();
+  const shop = emptyTotals();
+  const manual = { orders: 0, grossMinor: 0, netMinor: 0 };
+  const lines = new Map<string, PanelSalesLine>();
+
+  for (const order of input.orders) {
+    if (!(PANEL_SALES_STATUSES as readonly string[]).includes(order.status)) {
+      continue;
+    }
+    if (!inPanelSalesRange(order.createdAt, range)) continue;
+    const total = minor(order.totalMinor);
+    const refunded = refundedOf(order, total);
+    const net = total - refunded;
+    if (order.source === "manual") {
+      manual.orders += 1;
+      manual.grossMinor += total;
+      manual.netMinor += net;
+      continue;
+    }
+    const isCafe = orderKind(order) === "cafe";
+    const block = isCafe ? cafe : shop;
+    block.orders += 1;
+    block.grossMinor += total;
+    block.discountMinor += minor(order.discountMinor);
+    block.deliveryMinor += minor(order.shippingMinor);
+    block.refundedMinor += refunded;
+    block.netMinor += net;
+    const kdv = orderKeptKdv(order, net, input.couponSourceOf(order.orderNo));
+    if (kdv === null) block.unknownKdvNetMinor += net;
+    else block.kdvMinor += kdv;
+
+    if (!isCafe || !linesStand(order, refunded)) continue;
+    for (const it of order.items ?? []) {
+      if (it.status === "cancelled") continue;
+      const qty = minor(it.qty);
+      if (qty === 0) continue;
+      const menuItemId = String(it.menuItemId ?? "");
+      const size = lineSize(it.size);
+      const name = String(it.productName ?? "").trim() || "Ürün";
+      // A line sold without an item is kept apart by its name.
+      const key = `${menuItemId}|${size}|${menuItemId ? "" : name}`;
+      const row = lines.get(key);
+      if (row) {
+        row.qty += qty;
+        row.listMinor += minor(it.unitPriceMinor) * qty;
+      } else {
+        lines.set(key, {
+          menuItemId,
+          size,
+          name,
+          qty,
+          listMinor: minor(it.unitPriceMinor) * qty,
+        });
+      }
+    }
+  }
+
+  const karaoke: PanelSalesKaraoke = {
+    bookings: 0,
+    collectedMinor: 0,
+    refundedMinor: 0,
+    netMinor: 0,
+    refundPendingMinor: 0,
+    kdvMinor: 0,
+    unknownKdvNetMinor: 0,
+  };
+  for (const booking of input.bookings) {
+    const money = karaokeMoneyOf(booking);
+    if (!money) continue;
+    if (!inPanelSalesRange(booking.paidAt || booking.createdAt, range)) {
+      continue;
+    }
+    karaoke.collectedMinor += money.paidMinor;
+    karaoke.refundedMinor += money.paidMinor - money.keptMinor;
+    karaoke.netMinor += money.keptMinor;
+    karaoke.refundPendingMinor += money.refundPendingMinor;
+    if (money.keptMinor > 0) karaoke.bookings += 1;
+    if (isTaxRate(booking.taxRatePct)) {
+      karaoke.kdvMinor += kdvOfGross(money.keptMinor, booking.taxRatePct);
+    } else {
+      karaoke.unknownKdvNetMinor += money.keptMinor;
+    }
+  }
+
+  return {
+    version: PANEL_SALES_VERSION,
+    from: range.from,
+    to: range.to,
+    closed: panelSalesClosed(range, input.now),
+    cafe: {
+      ...cafe,
+      lines: [...lines.values()].sort(
+        (a, b) =>
+          b.qty - a.qty ||
+          a.name.localeCompare(b.name, "tr") ||
+          a.size.localeCompare(b.size),
+      ),
+    },
+    shop,
+    karaoke,
+    manual,
+  };
+}

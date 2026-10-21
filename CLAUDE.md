@@ -204,6 +204,10 @@ src/
                                (HMAC, docs/PANEL-KARAOKE.md)
     api/panel/menu/          → Köşkün panelinin imzalı menü okuması ve
                                fiyat / satış durumu yazımı (docs/PANEL-MENU.md)
+    api/panel/orders/        → Köşkün bar ekranına açık kafe siparişleri
+                               (imzalı, salt okuma; docs/PANEL-ORDERS.md)
+    api/panel/sales/         → Köşkün kâr-zararına ve kasa raporuna dönemin
+                               online satışı (imzalı; docs/PANEL-SALES.md)
     api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
                                menu · shop · bootstrap · live-status ·
                                karaoke/* (herkese açık) · me/* · orders/* ·
@@ -251,9 +255,11 @@ src/
                                orders · order-{schema,pricing,mapper,address} ·
                                me(-mapper/-schema) · loyalty(-core) · invite(-code) ·
                                venue · karaoke · notifications · deep-link
-    panel/                   → Köşkün paneliyle karaoke bağlantısı: imza,
-                               pencere, beyaz liste (karaoke-sync-core) · ping;
-                               menü bağlantısı (menu-link-core) · menu-ping
+    panel/                   → Köşkün paneliyle bağlantı: imza, pencere,
+                               beyaz liste (karaoke-sync-core) · ortak ping
+                               (ping.ts; karaoke-, menu-, orders-ping) · menü
+                               (menu-link-core) · bar ekranı (orders-feed-core)
+                               · online satış (sales-export-core)
     payment/                 → PaymentProvider arayüzü + Mock/PayNkolay sağlayıcıları ·
                                paynkolay-card (kart doğrulama) · paynkolay-page
                                (ödeme sayfaları + kendi CSP'leri)
@@ -353,6 +359,29 @@ ve alerjen eşitlenmez. Kasanın (ModPOS) fiyatı elle değişir.
 Fiyat listesi tarihini bağlantı değiştirmez (OP-PRICE-LISTS). Her fiyat
 değişikliği `settings."menuPricesChangedAt"`'i yazar; Kafe menüsü, girilen
 gün daha eskiyse uyarır. Ayrıntı: `docs/PANEL-MENU.md`.
+
+## Köşkün paneli: bar ekranı ve online satış (22 Eki 2026)
+
+Operatör: _"laffogato admin ile lafmaliyette paralel çalışabilecek neler
+varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
+(`src/lib/panel/ping.ts`; `live:orders`'ı düşüren her yazım panele
+`orders.changed` atar):
+
+- **Bar ekranı, salt okuma:** imzalı `GET /api/panel/orders` ödenmiş,
+  hazırlanan ve gel-al'da teslim bekleyen **kafe** siparişlerini verir
+  (`toPanelOrder` beyaz listesi: satırlar ve seçenekleri, "Masa 4" / "Gel-al"
+  / "Kurye", planlı saat, **yalnız ad**, sitedeki sayfasının yolu). Panelden
+  elle girilen sipariş, mağaza kolisi, masaya / kuryeye gitmiş sipariş ve
+  24 saattir ilerlemeyen gelmez. Panel siparişi ilerletmez; barista
+  bağlantıdan bu panele gelir. Ayrıntı: `docs/PANEL-ORDERS.md`.
+- **Online satış:** imzalı `GET /api/panel/sales?month=YYYY-MM` (ya da
+  `from`/`to`, en çok 31 gün) kafe, mağaza ve karaoke parasını, faturanın
+  KDV'sini (ödül kuponu tam fiyatla) ve kafe satırlarını menü kalemi × boy
+  olarak verir. Rakamlar Raporlar'ın ve Gün sonu'nunkiyle aynı kuralla
+  sayılır (sipariş `createdAt` gününe, karaoke ödeme gününe;
+  `karaokeMoneyOf` üçünün ortak fonksiyonu); elle girilen sipariş kasada
+  çalındığı için yalnız `manual` altında. Müşteri ve sipariş numarası gitmez.
+  Ayrıntı: `docs/PANEL-SALES.md`.
 
 ## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 

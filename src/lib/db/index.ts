@@ -12,10 +12,12 @@ import {
   expireTags,
   TAG_KARAOKE,
   TAG_MENU,
+  TAG_ORDERS,
   tagsForWrite,
 } from "@/lib/cache/tags";
 import { pingPanelKaraoke } from "@/lib/panel/karaoke-ping";
 import { pingPanelMenu } from "@/lib/panel/menu-ping";
+import { pingPanelOrders } from "@/lib/panel/orders-ping";
 
 import { createDb, type Db, type Executor } from "./client";
 import { databaseUrlFrom, isDatabaseUrlMissing } from "./database-url.mjs";
@@ -238,14 +240,15 @@ export function getDb(): Db {
       // (src/lib/cache/tags.ts), a failed one too: its reply can be lost
       // after the commit. After the statement, never before: each one
       // commits on its own, and the multi-step writes are SQL functions.
-      // A karaoke or menu write also pings the köşk's panel, after the
-      // response (src/lib/panel/karaoke-ping.ts, menu-ping.ts;
-      // docs/PANEL-KARAOKE.md, docs/PANEL-MENU.md).
+      // A karaoke, menu or order write also pings the köşk's panel, after
+      // the response (src/lib/panel/ping.ts; docs/PANEL-KARAOKE.md,
+      // docs/PANEL-MENU.md, docs/PANEL-ORDERS.md).
       onWrite: (target) => {
         const tags = tagsForWrite(target);
         expireTags(tags);
         if (tags.includes(TAG_KARAOKE)) pingPanelKaraoke();
         if (tags.includes(TAG_MENU)) pingPanelMenu();
+        if (tags.includes(TAG_ORDERS)) pingPanelOrders();
       },
     });
   }

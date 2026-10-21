@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { IdentityKeyStatus } from "@/app/admin/ayarlar/identity-status";
+import { PanelLinkStatus } from "@/app/admin/ayarlar/panel-link-status";
 import {
   KeepaliveStatusRow,
   SystemStatus,
@@ -31,15 +32,20 @@ const read = (record: {
   lastSuccessAt: string;
 }): KeepaliveRead => ({ kind: "record", record }) as KeepaliveRead;
 
-function card(hasKey: boolean, keepalive: KeepaliveRead | null) {
+function card(
+  hasKey: boolean,
+  keepalive: KeepaliveRead | null,
+  panelUrl: string | null = "https://ladmin.laffogato.net",
+) {
   const ping = keepalive ? keepaliveView(keepalive, NOW) : null;
   return renderToStaticMarkup(
     createElement(
       // Children go positionally (react/no-children-prop); the cast lets
       // TypeScript take them that way.
       SystemStatus as never,
-      { attention: !hasKey || ping?.tone === "warning" },
+      { attention: !hasKey || !panelUrl || ping?.tone === "warning" },
       createElement(IdentityKeyStatus, { hasKey }),
+      createElement(PanelLinkStatus, { panelUrl }),
       ping ? createElement(KeepaliveStatusRow, { view: ping }) : null,
     ),
   );
@@ -97,6 +103,31 @@ describe("Sistem durumu", () => {
     expect(html).toContain('data-tone="danger"');
   });
 
+  it("links to the köşk's panel while the link is on", () => {
+    const html = card(true, null);
+    expect(html).not.toContain('open=""');
+    expect(text(html)).toContain(
+      "Köşk paneli bağlantısı: açık - karaoke, menü fiyatları, bar ekranındaki siparişler ve online satış ladmin.laffogato.net ile eşitleniyor.",
+    );
+    expect(html).toContain(
+      '<a href="https://ladmin.laffogato.net" target="_blank" rel="noopener noreferrer"',
+    );
+    expect(html).toMatch(
+      /data-testid="panel-link-status" data-state="on" data-tone="success"/,
+    );
+  });
+
+  it("opens by itself when the link to the köşk's panel is off", () => {
+    const html = card(true, null, null);
+    expect(html).toContain('open=""');
+    expect(text(html)).toContain("Köşk paneli bağlantısı: kapalı");
+    expect(text(html)).toContain("KARAOKE_SYNC_SECRET");
+    expect(html).toMatch(
+      /data-testid="panel-link-status" data-state="off" data-tone="warning"/,
+    );
+    expect(html).not.toContain("<a ");
+  });
+
   it("says plainly that nothing is recorded yet, in grey", () => {
     const html = card(true, { kind: "none", since: "" } as KeepaliveRead);
     expect(text(html)).toContain("Supabase uyanık tutma: henüz kayıt yok");
@@ -112,6 +143,8 @@ describe("Sistem durumu", () => {
     expect(page).toContain("<SystemStatus");
     expect(page).toContain("<KeepaliveStatusRow");
     expect(page).toContain("<IdentityKeyStatus");
+    expect(page).toContain("const panelUrl = panelLinkUrl();");
+    expect(page).toContain("<PanelLinkStatus panelUrl={panelUrl} />");
   });
 
   it("leaves the dashboard without the 2FA nag", () => {
