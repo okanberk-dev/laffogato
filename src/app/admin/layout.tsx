@@ -100,8 +100,15 @@ const adminFontStyle = {
 // the bulk bar, the order alert sheet and the sticky save bars add it to
 // their own distance from the bottom. Unset (0) everywhere else: from
 // `lg`, for the cashier and on the sign-in screens.
+//
+// The laptop sidebar's width (UI-9) is one variable too, `--admin-side`:
+// 16rem, or 4rem once the shell wrote `data-admin-rail="on"` on this root
+// (view-prefs.tsx; the choice is the browser's, so the server always draws
+// the 16rem default and the stored rail applies right after hydration).
+// The sidebar, the top bar, the tab strip, the page's left edge and the bulk
+// bar read it from `lg`; the cashier's shell has no sidebar and never sets it.
 const shellClass = (fontVariable: string) =>
-  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
+  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] [--admin-side:16rem] data-[admin-rail=on]:[--admin-side:4rem] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
 
 /*
  * The panel's nav (admin UI v2, UI-5): five groups, and items that own
@@ -508,7 +515,11 @@ export default async function AdminLayout({
           <div
             id="admin-main"
             tabIndex={-1}
-            className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}
+            className={
+              chrome
+                ? "lg:pl-[var(--admin-side,16rem)] print:pl-0"
+                : "print:pl-0"
+            }
             style={{ outline: "none" }}
           >
             {children}
