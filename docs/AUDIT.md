@@ -1507,3 +1507,15 @@ ve yeni metin `docs/LEGAL-REDLINES-2026-09.md` §28'de.
 | 🟠 | Kasada QR okunmazsa kasiyerin elle yazdığı üyelik e-postasıyla damga veriliyordu: üye kendini göstermeden adıyla işlem yapılıyordu (X-LOYALTY) | "E-posta ile" sekmesi kalktı, kod sekmesinde "QR okunmuyorsa..." ipucu; eylem `kind: "email"`'i kararlaştırılan cümleyle reddeder (üye araması ve tekrar penceresi kalktı); `redeemCounterToken` `email_refused` ile hiçbir şey okumadan ya da yazmadan reddeder; `not_found` yeni QR ister. `POST /staff/stamp` zaten yalnız `token` ve `code` alıyordu | `admin-kasa`, `mobile-counter`, `mobile-staff-stamp-route` |
 | 🟡 | Müşteri sayfasındaki "+1 damga" gerekçesizdi | "Damga düzelt (+1)": rol `customers` (sahip, yönetici), en az 10 karakterlik sebep zorunlu, defter notu `Düzeltme · ` ile başlar | `admin-customer-actions`, `admin-people-forms` |
 | 🟢 | Yedi hukuk metni kasada e-postayla damgayı anlatıyordu | Gizlilik, KVKK, Üyelik, Sadakat Programı, Mobil Uygulama ve Kafe Hizmet metinleri yalnız kasa kodunu ve yönetici düzeltmesini anlatır | `legal-docs`, `legal-dates` |
+
+### Kabuk: aranabilir seçiciler (admin UI v2, UI-16)
+
+Stok düzeltme ve elle sipariş formlarında ürün ve varyant seçicileri yazarak
+aranır ("sire" Şire'yi, "findik" Fındık'ı bulur); sunucu ve JavaScript'siz
+yol yerel `<select>` olarak kalır, adlar değişmedi.
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Seçici parçası yaklaşık 64 KB gz; tasarımın bütçesi 35 KB | React Aria ve bütün dillerin metinleri; yalnız seçiciye gelince ve bir kez iner, diğer sayfalar ve Kasa hiçbir şey indirmez. Orkestratör kararı (21 Eki 2026): kabul. `@react-aria/optimize-locales-plugin` ~30 KB ham kazandırır, `next.config.ts` istediği için ayrı PR |

@@ -331,6 +331,14 @@ async function timed<T>(p: Promise<T>): Promise<{ value: T; ms: number }> {
     value = v;
   });
   while (!done) {
+    // Real work the fake clock cannot see (hashing on the thread pool, a
+    // module load) gets a few real milliseconds per 50 ms fake step, or a
+    // loaded machine lets the copy's budget run out first (flaky on CI).
+    const t = performance.now();
+    while (!done && performance.now() - t < 5) {
+      await new Promise((r) => setImmediate(r));
+    }
+    if (done) break;
     await vi.advanceTimersByTimeAsync(50);
     if (Date.now() - start > 60_000) throw new Error("never settled");
   }
