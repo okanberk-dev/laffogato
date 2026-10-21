@@ -3,10 +3,13 @@ import Link from "next/link";
 import { PageHeader, formatDateTime } from "@/components/admin/forms";
 import {
   Badge,
+  BUTTON,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   FilterBar,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -116,11 +119,16 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
     .map((s) => s.email);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Pazarlama"
-        title="Bülten Aboneleri"
-        description="Site altı formu, kayıt ve hesap tercihlerinden gelen aboneler. Bülteni yalnız Aktif aboneler alır; onay bekleyen, e-postasındaki bağlantıya basınca Aktif olur."
+        title="Aboneler"
+        description="Site formu, kayıt ve hesap tercihlerinden gelen aboneler."
+        help={
+          <p>
+            Bülteni yalnız Aktif aboneler alır; onay bekleyen, e-postasındaki
+            bağlantıya basınca Aktif olur.
+          </p>
+        }
       />
 
       {subscribers.length === 0 ? (
@@ -155,7 +163,26 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
             sort={sort}
             searchParams={sp}
             pathname={NEWSLETTER_PATH}
-            empty={<EmptyState title="Bu görünümde abone yok." />}
+            empty={
+              <EmptyState
+                title="Bu görünümde abone yok."
+                action={
+                  Object.keys(filters).length > 0 ? (
+                    // The search too: it is not in the address.
+                    <EmptyListActionLink
+                      action={{
+                        href: tabValue
+                          ? `${NEWSLETTER_PATH}?${SUBSCRIBER_TAB_PARAM}=${tabValue}`
+                          : NEWSLETTER_PATH,
+                        label: "Filtreyi temizle",
+                        clearsSearch: true,
+                      }}
+                      className={BUTTON.ghost}
+                    />
+                  ) : undefined
+                }
+              />
+            }
             columns={[
               {
                 key: "eposta",
@@ -264,6 +291,6 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
           ) : null}
         </>
       )}
-    </main>
+    </PageShell>
   );
 }

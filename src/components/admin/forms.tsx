@@ -234,6 +234,8 @@ export interface PageHeaderProps {
   menu?: ReactNode;
   /** The overflow's accessible name; default "Diğer işlemler". */
   menuLabel?: string;
+  /** Extra classes on the `<header>` (a record page hides it in print). */
+  className?: string;
 }
 
 /**
@@ -265,6 +267,7 @@ export function PageHeader({
   secondary,
   menu,
   menuLabel = "Diğer işlemler",
+  className,
 }: PageHeaderProps) {
   const heading = (
     <h1
@@ -280,7 +283,12 @@ export function PageHeader({
   );
   const buttons = Boolean(primary || secondary || menu);
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">
+    <header
+      className={cx(
+        "mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4",
+        className,
+      )}
+    >
       <div className="min-w-0">
         {meta ? (
           <div

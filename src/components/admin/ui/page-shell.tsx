@@ -31,8 +31,9 @@ export interface PageShellProps {
 /**
  * A panel page's `<main>`: one of three widths, the panel's padding and a
  * 20px gap under the PageHeader (from `sm` up the pages had 40px above the
- * title and 32px under the header). The id is the target of the shell's
- * "İçeriğe geç" link, so a page has exactly one PageShell. Server- and
+ * title and 32px under the header). The shell's "İçeriğe geç" link lands on
+ * the layout's focusable wrapper (`#admin-main`), so this element carries no
+ * id: two would repeat it. A page has exactly one PageShell. Server- and
  * client-safe (no hooks).
  *
  * @example
@@ -48,7 +49,6 @@ export function PageShell({
 }: PageShellProps) {
   return (
     <main
-      id="admin-main"
       className={cx(
         "mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&>header]:mb-5",
         PAGE_WIDTHS[width],

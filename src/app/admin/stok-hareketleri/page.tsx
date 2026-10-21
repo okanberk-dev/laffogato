@@ -9,6 +9,7 @@ import {
   EmptyState,
   FilterBar,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
@@ -98,11 +99,11 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
   const filtered = Object.keys(filters).length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Satış · Stok"
-        title="Stok Hareketleri"
-        description="Her satış, iade veya manuel düzeltme bir hareket olarak kaydedilir. Burada denetim izini görürsün."
+        title="Stok"
+        description="Her satış, iade ve düzeltme bir hareket olarak kaydedilir."
+        help={<p>Burada stoğun denetim izini görürsün.</p>}
       />
 
       <div className="mb-6">
@@ -138,6 +139,13 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
                 : "Henüz stok hareketi yok."
             }
             description="Yeni siparişler ve manuel düzeltmeler burada belirir."
+            action={
+              filtered ? (
+                <Link href={STOCK_MOVES_PATH} className={BUTTON.ghost}>
+                  Filtreyi temizle
+                </Link>
+              ) : undefined
+            }
           />
         }
         // The table fits its card beside the sidebar: at 1024 px the card
@@ -267,6 +275,6 @@ export default async function StockMovesPage({ searchParams }: PageProps) {
           pathname={STOCK_MOVES_PATH}
         />
       ) : null}
-    </main>
+    </PageShell>
   );
 }

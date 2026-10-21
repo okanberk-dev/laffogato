@@ -426,7 +426,7 @@ describe("Müşteriler page", () => {
     // The way out forgets the search too: a post, not a link that would
     // land on the same empty list.
     expect(narrowed.html).toMatch(
-      /<input type="hidden" name="_path" value="\/admin\/musteriler"\/><input type="hidden" name="_do" value="reset"\/><button type="submit" class="[^"]*">Süzgeçleri temizle<\/button>/,
+      /<input type="hidden" name="_path" value="\/admin\/musteriler"\/><input type="hidden" name="_do" value="reset"\/><button type="submit" class="[^"]*">Filtreyi temizle<\/button>/,
     );
     h.jar = {};
     // Past the last page of a tab that has rows.
