@@ -13,6 +13,7 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 import type { ModalAction } from "@/components/admin/ui";
+import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import {
   APP_POST_KIND_LABELS,
   APP_POST_KINDS,
@@ -230,9 +231,9 @@ export function AppPostForm({
               label="Başlangıç"
               hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
             >
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="startsAt"
+                aria-label="Başlangıç tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
               />
             </Field>
@@ -243,9 +244,9 @@ export function AppPostForm({
               label="Bitiş"
               hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
             >
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="endsAt"
+                aria-label="Bitiş tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
               />
             </Field>
