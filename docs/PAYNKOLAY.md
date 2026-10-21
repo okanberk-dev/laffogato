@@ -319,8 +319,10 @@ borçlanır: `refundMinor` büyür, rezervasyon yeniden `refunding` olur, ekibe
 "Geç iptal edilen saat yeniden satıldı" e-postası gider; daha önce elle
 iade edilen kısım `refundSettledMinor`'da durur ve panel yalnız kalanı
 ister, talep satırının tutarı toplam iadeye yükseltilir. "Elle iade
-edildi" okunan tutara bağlıdır: arada bir saat daha satılıp tutar
-büyüdüyse kayıt reddedilir, sayfa yenilenip kalan tutar iade edilir.
+edildi" penceresinin gösterdiği tutarı gönderir ve kayıt yalnız o tutarla
+yapılır: sayfa açıldıktan sonra bir saat daha satılıp tutar büyüdüyse
+kayıt reddedilir, sayfa yenilenip kalan tutar iade edilir. Her elle iade
+kendi tutarı ve anıyla ayrı bir adımdır (`refundSteps`, Gün sonu).
 Yeniden satış iadesi, hepsi toplanınca ödenen tutara eşit olsa bile POS'a
 gönderilmez (önceki kısmı elle iade edilmiş olabilir, POS tamamını yeniden
 gönderirdi). İşletmenin geç iptalinde verilen para telafisi (karaoke

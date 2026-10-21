@@ -3038,14 +3038,20 @@ yayında değil; canlı kural 2 saat / %0.
   onaylı, `channel: "staff"`, not "Telafi: KRK-…", `makeGoodFor` eski kod;
   çakışma kısıtı geçerli, açık rezervasyon tavanına sayılmaz; misafire
   "Bu saat için senden ödeme alınmaz." onayı) ya da "Telafi ödendi" (havale
-  günü, tutar ve not; telafiden az tutar ve ileri tarih reddedilir) seçer.
+  günü, tutar ve not; tutar tam telafi kadar olmalı, koşullar "bu tutarın
+  ... ödenmesi" der; ileri tarih reddedilir) seçer.
   Telafi saati tek SQL ifadesinde yazılır (`karaoke_give_make_good_hour`,
   telafi edilen rezervasyonun satır kilidi altında): telafi kullanılmış
   sayılır ve saat yazılır ya da hiçbiri olmaz; araya giren bir rezervasyon
   (23P01) telafiyi açık bırakır. "Telafi ödendi" tek koşullu yazımdır. İkisi
   aynı anda basılırsa yalnız biri kazanır (gerçek Postgres testi). IBAN
-  veritabanına yazılmaz; IBAN ya da kart numarası taşıyan bir not
-  reddedilir (not olay kaydına girer), dekont muhasebede durur. Ücretsiz
+  veritabanına yazılmaz; IBAN ya da kart numarası taşıyan bir not (gruplar
+  boşluk, NBSP, nokta, eğik çizgi, alt çizgi ya da tireyle ayrılmış da
+  olsa, "hesap 12345678" gibi bir hesap numarası da) reddedilir, çünkü not
+  10 yıl değişmeden saklanan olay kaydına girer; dekont muhasebede durur.
+  Havale notu rezervasyon sayfasının geçmişinde yalnız iade yetkisi olana
+  görünür (onay kaydının IP'si gibi). POS iadeyi reddederse telafi geri
+  alınma yazımının kendisinde silinir (ayrı bir yazım yok). Ücretsiz
   saat son günden sonra verilmez; para seçeneğinin son günü yoktur. Telafi
   saati başlamadan iptal edilirse telafi yeniden açılır (saatin iptali ve
   telafinin açılması da tek ifade, `karaoke_release_make_good_hour`); saat
@@ -3056,7 +3062,10 @@ yayında değil; canlı kural 2 saat / %0.
   saat, KDV %20 dahil), KDV köşkçe beyan edilir. Misafirden para alınmaz."
   der; faturalanacak tutar satırı bu saatte çıkmaz.
 - **Yeniden satış iadesi.** Rezervasyon onaylandığında (ödemesiyle ya da
-  köşkte ödenecekse personelin onayıyla; telafi saati satış sayılmaz) aynı
+  köşkte ödenecekse personelin onayıyla; telafi saati satış sayılmaz, 0 TL'ye
+  ayrılan saat de: %100 ORO indirimiyle köşk o saatten para almadı, mahsup
+  edilecek bir yarar yok, TBK m.325/2 kıyasen; orkestratör kararı, operatörün
+  yetki devriyle, 21 Ekim 2026) aynı
   gündeki, saatleri çakışan, iptal edilmiş ve geç iptalde pay tutulmuş
   rezervasyonlar için her saat, o saati en son geç iptal etmiş
   rezervasyona bir kez sayılır (`resoldHours`). Hesap satırın kilidi
@@ -3070,11 +3079,15 @@ yayında değil; canlı kural 2 saat / %0.
   iptal edilen saat yeniden satıldı" e-postası gider, personel tutarı
   PayNkolay panelinden iade edip "Elle iade edildi" ile kaydeder. Daha önce
   elle iade edilen kısım `refundSettledMinor`'da durur ve yeniden
-  istenmez; elle iade kaydı okunan tutara bağlıdır, arada bir satış tutarı
-  büyüttüyse kayıt reddedilir ve büyüyen tutar borç olarak kalır. POS'a
-  otomatik kısmi iade gönderilmez (docs/PAYNKOLAY.md §3.2). Raporlar ve
-  Gün sonu daha önce iade edileni iadesi bekleyen saymaz; Gün sonu o günün
-  iadesi olarak yalnız son adımı yazar.
+  istenmez. "Elle iade edildi" penceresinin gösterdiği tutarı gönderir ve
+  kayıt yalnız o tutarla yapılır: sayfa açıldıktan sonra bir saat daha
+  satıldıysa kayıt reddedilir ("tutar değişti, sayfayı yenile") ve büyüyen
+  tutar borç olarak kalır; tutarı göndermeyen basış da kaydedilmez. Her
+  elle iade kendi tutarı ve anıyla ayrı bir adım olarak tutulur
+  (`refundSteps`): Gün sonu her adımı kendi gününde yazar, sonraki bir
+  satış önceki günün iadesini silmez. POS'a otomatik kısmi iade gönderilmez
+  (docs/PAYNKOLAY.md §3.2). Raporlar daha önce iade edileni iadesi bekleyen
+  saymaz.
 - **%1-99 açıldı (D-KAR-1-99).** Panel 0-100 arası tam sayıyı kabul eder;
   24 saatten uzun pencerede en az %50 sınırı ve %0'da en çok 24 saat sınırı
   kalır. Canlıda kural hâlâ 2 saat / %0: uygulama kilidi
