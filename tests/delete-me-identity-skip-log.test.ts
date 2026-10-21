@@ -98,7 +98,9 @@ describe("deleteMe logs a skipped identity deletion", () => {
     expect(deleteSupabaseIdentity).toHaveBeenCalledWith("u-linked-1");
     const lines = skipLines();
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("SUPABASE_SERVICE_ROLE_KEY is not set");
+    expect(lines[0]).toContain(
+      "neither SUPABASE_SECRET_KEY nor SUPABASE_SERVICE_ROLE_KEY is set",
+    );
     expect(lines[0]).not.toContain("u-linked-1");
     expect(lines[0]).not.toContain("eda@example.com");
   });

@@ -127,6 +127,9 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // Written by a trigger on every price change; read live by the panel's
   // discount check, never cached.
   product_price_history: NONE,
+  // The daily Supabase ping's last result; read live by the owner's
+  // dashboard, never cached.
+  supabase_keepalive: NONE,
 };
 
 /**
