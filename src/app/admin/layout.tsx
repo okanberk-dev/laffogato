@@ -7,6 +7,7 @@ import {
 import { OrderAlerts } from "@/components/admin/order-alerts";
 import { PanelHomeProvider } from "@/components/admin/panel-home";
 import { ToastProvider } from "@/components/admin/ui/toast";
+import { VenueQuick } from "@/components/admin/venue-quick";
 import { getAdminSession, type AdminSession } from "@/lib/admin/auth";
 import { readAdminFlash } from "@/lib/admin/flash";
 import {
@@ -142,10 +143,13 @@ const NAV_GROUPS: NavGroupDef[] = [
         icon: "till",
         keywords: ["Kasa · damga", "damga", "sadakat", "kart"],
       },
+      // `venue`, not `mobileApp`: the köşk shift (Personel) says whether
+      // the house is open and how many tables are free (decision D3); the
+      // app's slides, posts and settings stay with owner and manager.
       {
         href: "/admin/mobil/canli-durum",
         label: "Canlı durum",
-        section: "mobileApp",
+        section: "venue",
         icon: "appLive",
         keywords: ["köşk", "açık kapalı", "boş masa", "Wi-Fi"],
       },
@@ -455,6 +459,10 @@ export default async function AdminLayout({
   // recents and the lists' saved views (ui/saved-views.tsx, read from the
   // root's data-admin-account) are kept under it in the browser.
   const accountKey = canSearch ? paletteAccountKey(session.email) : "";
+  // The top bar's controls. The köşk chip polls its own status (a Server
+  // Action, once a minute): the layout reads nothing for it.
+  const venueChip = canAccess("venue", session.role);
+  const orderAlerts = orderAlertsFor(session.role);
 
   return (
     <div
@@ -466,9 +474,10 @@ export default async function AdminLayout({
       <ToastProvider flash={flash}>
         <PanelHomeProvider href={landingPath}>
           {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
-              the search, at every width, mounted once). The new-order
-              alert lives there for the roles with Siparişler, on every
-              panel page (the till included). */}
+              the search, at every width, mounted once): the köşk chip for
+              the roles with Canlı durum, then the new-order alert for the
+              roles with Siparişler, on every panel page (the till
+              included). */}
           <AdminSidebar
             groups={groups}
             email={session.email}
@@ -478,10 +487,15 @@ export default async function AdminLayout({
             canSearch={canSearch}
             palette={canSearch ? { role: session.role, accountKey } : undefined}
             actions={
-              orderAlertsFor(session.role) ? (
-                <OrderAlerts
-                  mayStartPreparing={alertMayStartPreparing(session.role)}
-                />
+              venueChip || orderAlerts ? (
+                <>
+                  {venueChip ? <VenueQuick /> : null}
+                  {orderAlerts ? (
+                    <OrderAlerts
+                      mayStartPreparing={alertMayStartPreparing(session.role)}
+                    />
+                  ) : null}
+                </>
               ) : undefined
             }
           />
