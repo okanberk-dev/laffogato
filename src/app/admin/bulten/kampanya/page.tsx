@@ -2,10 +2,14 @@ import Link from "next/link";
 
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
 import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
   Badge,
   BUTTON,
   ConfirmButton,
   EmptyState,
+  PageShell,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -30,15 +34,6 @@ export const maxDuration = 300;
 
 const LIST_PATH = "/admin/bulten/kampanya";
 
-const NEW_CAMPAIGN = (
-  <Link
-    href={`${LIST_PATH}/yeni`}
-    className={`${BUTTON.primary} w-full sm:w-auto`}
-  >
-    + Yeni kampanya
-  </Link>
-);
-
 export default async function CampaignMailListPage() {
   await requireRole("newsletter");
   const rows = await listCampaignEmails();
@@ -52,19 +47,28 @@ export default async function CampaignMailListPage() {
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Pazarlama"
-        title="Kampanya e-postası"
-        description="Rıza vermiş üyelere ve bülten abonelerine giden ticari iletiler. Taslak → test → gönder; gönderim arka planda parti parti çıkar, eksik kalan partileri günlük görev tamamlar."
-        action={NEW_CAMPAIGN}
+        title="Kampanyalar"
+        description="Rıza vermiş üyelere ve abonelere giden ticari e-postalar."
+        help={
+          <p>
+            Taslak → test → gönder; gönderim arka planda parti parti çıkar,
+            eksik kalan partileri günlük görev tamamlar.
+          </p>
+        }
+        primary={{ href: `${LIST_PATH}/yeni`, label: "Yeni kampanya" }}
       />
 
       {rows.length === 0 ? (
         <EmptyState
           title="Henüz kampanya yok."
           description="Yayına giren bir mobil gönderi de burada bir kampanya olarak görünür."
-          action={NEW_CAMPAIGN}
+          action={
+            <Link href={`${LIST_PATH}/yeni`} className={BUTTON.ghost}>
+              Yeni kampanya
+            </Link>
+          }
         />
       ) : (
         <div className="grid gap-3">
@@ -86,7 +90,12 @@ export default async function CampaignMailListPage() {
                       <CampaignStatusPill status={c.status} />
                     </div>
                     <p className="truncate font-medium text-[var(--admin-text)]">
-                      {c.subject || "(başlıksız)"}
+                      <Link
+                        href={`${LIST_PATH}/${c.id}`}
+                        className="underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+                      >
+                        {c.subject || "(başlıksız)"}
+                      </Link>
                     </p>
                     <p className="text-sm text-[var(--admin-text-soft)]">
                       {audienceLabel}
@@ -135,12 +144,6 @@ export default async function CampaignMailListPage() {
                     )}
                   </div>
                   <div className="flex flex-wrap items-start gap-2">
-                    <Link
-                      href={`${LIST_PATH}/${c.id}`}
-                      className={BUTTON.ghost}
-                    >
-                      {c.status === "draft" ? "Düzenle" : "Ayrıntı"}
-                    </Link>
                     {sendable && (
                       <CampaignSendForm
                         action={sendCampaignMailAction.bind(null, c.id)}
@@ -151,16 +154,27 @@ export default async function CampaignMailListPage() {
                         }
                       />
                     )}
-                    {c.status === "draft" && (
-                      <ConfirmButton
-                        action={deleteCampaignMailAction}
-                        hidden={{ id: c.id }}
-                        label="Sil"
-                        ariaLabel={`Sil: ${c.subject || "başlıksız taslak"}`}
-                        title="Taslak silinsin mi?"
-                        description="Taslak kalıcı olarak silinir. Kuyruğa alınmış ya da gönderilmiş bir kampanya silinmez."
-                      />
-                    )}
+                    <ActionMenu
+                      label={`${c.subject || "Başlıksız kampanya"} işlemleri`}
+                    >
+                      <ActionMenuLink href={`${LIST_PATH}/${c.id}`}>
+                        {c.status === "draft" ? "Düzenle" : "Ayrıntı"}
+                      </ActionMenuLink>
+                      {c.status === "draft" && (
+                        <>
+                          <ActionMenuSeparator />
+                          <ConfirmButton
+                            action={deleteCampaignMailAction}
+                            hidden={{ id: c.id }}
+                            label="Sil"
+                            ariaLabel={`Sil: ${c.subject || "başlıksız taslak"}`}
+                            variant="menuDanger"
+                            title="Taslak silinsin mi?"
+                            description="Taslak kalıcı olarak silinir. Kuyruğa alınmış ya da gönderilmiş bir kampanya silinmez."
+                          />
+                        </>
+                      )}
+                    </ActionMenu>
                   </div>
                 </div>
               </Card>
@@ -168,6 +182,6 @@ export default async function CampaignMailListPage() {
           })}
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }

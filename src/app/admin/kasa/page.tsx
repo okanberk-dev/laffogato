@@ -25,8 +25,8 @@ export default async function AdminTillPage() {
         description="Üye QR'ını gösterince çerçeveye tut, damga düşsün."
         help={
           <p>
-            Üye ödedi ve uygulamadaki QR&apos;ını gösterdi: çerçeveye tut,
-            damga düşsün. Kamera açılmıyorsa kartındaki 8 karakterlik kodu yaz.
+            Üye ödedi ve uygulamadaki QR&apos;ını gösterdi: çerçeveye tut, damga
+            düşsün. Kamera açılmıyorsa kartındaki 8 karakterlik kodu yaz.
             E-postayla damga verilmez.
           </p>
         }
