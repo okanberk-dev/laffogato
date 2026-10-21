@@ -30,6 +30,7 @@ import {
   createMenuItem,
   deleteMenuItem,
   getMenuItem,
+  markMenuPricesChanged,
   listMenuItemLabels,
   MENU_CATEGORY_KEYS,
   moveMenuItem,
@@ -238,6 +239,8 @@ export async function createMenuItemAction(
   const { input } = form;
   const scene = await menuScene(input, formData, null);
   const created = await createMenuItem({ ...input, ...scene });
+  // A price on the menu that was not there before: the list changed.
+  if (created.isActive) await markMenuPricesChanged(new Date());
   await logAudit({
     action: "create",
     entity: "menu_item",
@@ -275,6 +278,10 @@ export async function updateMenuItemAction(
   if (!previous) return actionError("Bu kalem silinmiş; listeye dön.");
   const scene = await menuScene(input, formData, previous);
   await updateMenuItem(id, { ...input, ...scene });
+  const priced =
+    previous.priceMinor !== input.priceMinor ||
+    (previous.priceMinorL || 0) !== (input.priceMinorL || 0);
+  if (priced) await markMenuPricesChanged(new Date());
   await logAudit({
     action: "update",
     entity: "menu_item",
@@ -283,6 +290,11 @@ export async function updateMenuItemAction(
       name: input.name,
       categoryKey: input.categoryKey,
       taxRatePct: input.taxRatePct,
+      // A price move is the change the köşk's panel and the price list
+      // care about: in the trail with its new amounts.
+      ...(priced
+        ? { priceMinor: input.priceMinor, priceMinorL: input.priceMinorL }
+        : {}),
       // What the menu says an item contains is worth a trail.
       ...(input.allergens === undefined ? {} : { allergens: input.allergens }),
     },

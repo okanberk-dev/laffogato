@@ -56,6 +56,7 @@ vi.mock("@/lib/admin/store", () => ({
   createMenuItem: h.createMenuItem,
   getMenuItem: h.getMenuItem,
   updateMenuItem: h.updateMenuItem,
+  markMenuPricesChanged: vi.fn(),
   bulkUpdateMenuItems: vi.fn(),
   deleteMenuItem: vi.fn(),
   MENU_CATEGORY_KEYS: ["matcha", "dessert"],
@@ -459,6 +460,25 @@ describe("the menu page's allergen count", () => {
       }),
     );
     expect(done).toContain("Alerjenler bütün kalemlerde girildi (1 / 1).");
+  });
+
+  it("says when a price moved after the price list's day (docs/PANEL-MENU.md)", () => {
+    const text = (pricesChangedAt: string) =>
+      renderToStaticMarkup(
+        createElement(MenuFoodInfoStatus, {
+          items: [{ allergens: [] }],
+          priceDate: "2026-10-18",
+          pricesChangedAt,
+        }),
+      ).replace(/<[^>]+>/g, "");
+    expect(text("2026-10-22T09:00:00.000Z")).toContain(
+      "Fiyatlar 22 Ekim 2026 günü değişti; fiyat listesinin tarihi hâlâ 18 Ekim 2026.",
+    );
+    // The same day, or nothing recorded: the plain line.
+    expect(text("2026-10-18T15:00:00.000Z")).toContain(
+      "Fiyat listesinin tarihi: 18 Ekim 2026.",
+    );
+    expect(text("")).not.toContain("değişti;");
   });
 });
 

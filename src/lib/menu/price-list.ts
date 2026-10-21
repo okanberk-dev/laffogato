@@ -83,6 +83,26 @@ export function parseMenuPricesDate(
   return { ok: true, value: text };
 }
 
+/**
+ * The Istanbul day of the last price change when it is after the price
+ * list's day, else null: a price moved, here or from the köşk's panel
+ * (settings."menuPricesChangedAt", docs/PANEL-MENU.md), and the day under
+ * the menu still says an earlier one. No day entered is not "stale" (the
+ * menu page already asks for one); no change recorded is not either.
+ */
+export function menuPricesDateStale(
+  effectiveDay: unknown,
+  changedAt: unknown,
+): string | null {
+  if (typeof effectiveDay !== "string" || !calendarDay(effectiveDay.trim())) {
+    return null;
+  }
+  const at = typeof changedAt === "string" ? Date.parse(changedAt) : NaN;
+  if (!Number.isFinite(at)) return null;
+  const changedDay = istanbulToday(new Date(at));
+  return changedDay > effectiveDay.trim() ? changedDay : null;
+}
+
 /** "2026-10-18" as "18 Ekim 2026"; null when it is not a stored day. */
 export function menuPricesDateLabel(day: unknown): string | null {
   const parts = typeof day === "string" ? calendarDay(day.trim()) : null;
