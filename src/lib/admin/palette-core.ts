@@ -23,29 +23,18 @@ export const PALETTE_SEARCH_ROUTE = "/admin/ara/sonuc";
 
 // ── Matching ──────────────────────────────────────────────────────────────
 
-/** After foldTr: the letters an operator often types without their marks. */
-const LOOSE: Record<string, string> = {
-  ç: "c",
-  ş: "s",
-  ğ: "g",
-  ö: "o",
-  ü: "u",
-  â: "a",
-  î: "i",
-  û: "u",
-};
-
 /**
  * The palette's fold, on both sides: foldTr (Turkish lower case, İ I ı i
- * meet) and then the loose ASCII letters, so "siparis" finds "Siparişler"
- * and "musteri" finds "Müşteriler". Apostrophes go too ("fal" finds
+ * meet) and then the marks off the letters, so "siparis" finds "Siparişler"
+ * and "musteri" finds "Müşteriler" (ç ş ğ ö ü â î û are a letter and a
+ * combining mark once decomposed). Apostrophes go too ("fal" finds
  * "fA'L bildirimleri"). Only for the panel's own names: the record search
  * keeps the marks (search.ts folds in SQL).
  */
 export function foldLoose(value: string): string {
-  return foldTr(value.normalize("NFC"))
-    .replace(/[çşğöüâîû]/g, (c) => LOOSE[c] ?? c)
-    .replace(/['’`]/g, "")
+  return foldTr(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f'’`]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
