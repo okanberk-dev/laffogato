@@ -213,8 +213,9 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
   kayıtları, rolüne göre ve bölüm başına 5. Metin isteğin gövdesinde gider,
   adrese ve kayda düşmez. 5'ten fazlası varsa "Listede ara": liste aramasız
   açılır (metin adrese yazılmaz), metni listenin kutusuna sen yazarsın.
-- **Komutlar**: Güvenlik / 2FA, Klavye kısayolları ve sipariş sesini aç /
-  kapat (bu tarayıcıda).
+- **Komutlar**: Güvenlik / 2FA, Klavye kısayolları, Sıkı görünüm (açar ya da
+  kapatır, aşağıda "Dar menü ve Sıkı görünüm") ve sipariş sesini aç / kapat
+  (bu tarayıcıda).
 - Palet hiçbir şeyi değiştirmez: sipariş adımı, çıkış ya da ayar yoktur.
 - Esc ilk basışta kutuyu boşaltır, ikinci basışta paleti kapatır; telefonda
   × düğmesi kapatır.
@@ -410,3 +411,43 @@ siparişleri", "Kargoya verilecek"). Diğer listeler sırayla gelecek.
   Yüklenemezse (ağ koptu, yeni sürüm çıktı) Görünümler çizilmez, liste
   olduğu gibi çalışır; sayfayı yenilemek menüyü geri getirir.
 - Kasiyerde menü yok. Kurallar tek yerde: `src/lib/admin/saved-views.ts`.
+
+## Dar menü ve Sıkı görünüm
+
+İki görünüm tercihi. İkisi de **bu tarayıcıda** durur (`localStorage`), sahip,
+yönetici ve personelde var, kasiyerde yok. Sunucunun ve sayfanın ilk çizimi
+hep geniş menü ve rahat görünümdür; kayıtlı tercih sayfa tarayıcıya gelince
+hemen uygulanır (tercihle yenileyince menü bir an geniş görünüp daralır).
+
+- **Dar menü** (1024 px ve üstü): menünün üstündeki « düğmesi kenar çubuğunu
+  64 px'lik bir simge sütununa katlar, sayfaya yaklaşık 190 px yer kalır.
+  Aynı düğme » olarak durur ve genişletir (`laf_admin_rail_v1`).
+  - Her simgenin adı vardır (`aria-label`; Siparişler ve Karaoke'de rozetin
+    saydığı sayı da). Fareyle üstüne gelince ya da klavyeyle odaklanınca ad
+    bir ipucu olarak çıkar; **Esc** ipucunu gizler, fare ya da odak başka
+    simgeye geçince geri gelir. Tıklamayla gelen odak ipucu göstermez.
+  - Grup başlıklarının yerini ince bir çizgi alır; katlanmış gruplar dar
+    menüde açık sayılır (açacak başlık yok). Hesap bölümü baş harfin
+    arkasındadır: tıklayınca e-posta, Güvenlik / 2FA, iki anahtar ve Çıkış
+    menünün yanında açılır. "Menü sadeleşti" notu dar menüde çizilmez.
+  - Siparişler'in rozeti dar menüde ayrı bağlantı değil, simgenin üstünde
+    küçük bir sayıdır; rozetten Açık sekmesine gitmek geniş menüde.
+  - Telefonun çekmecesi hep geniştir; tercih yalnız 1024 px üstünü etkiler.
+- **Sıkı görünüm** (menünün altındaki Hesap bölümünde "Sıkı görünüm"
+  anahtarı ya da paletin Komutlar'ında; `laf_admin_density_v1`): tablo
+  hücreleri `py-3` yerine `py-2`, kart ve bölümler `p-6` yerine `p-4`;
+  düğmeler, alanlar, "⋯" menüsü, sayfa numaraları ve sekmeler 44 px yerine
+  36 px.
+  - **Yalnız fare ya da izleme dörtgeni olan cihazda** (`pointer: fine`)
+    uygulanır. Telefonda ve dokunmatik ekranda hiçbir şey değişmez, 44 px
+    hedefler kalır; anahtarın altındaki not dokunmatikte bunu söyler
+    ("Dokunmatik ekranda uygulanmaz.") ve palet komutu da bildirir.
+  - Kitin sınıfları `pointer-fine:[[data-admin-density=compact]_&]:` ile
+    yazılır (`ui/compact.ts`); varsayılan sınıflar değişmedi. Tercih açıkken
+    admin kökü (`data-admin-root`) `data-admin-density="compact"`, dar menüde
+    `data-admin-rail="on"` taşır; `globals.css`'e kural eklenmedi. Kitten
+    gelmeyen, sayfanın kendi elle yazdığı düğmeler sıkılaşmaz.
+- Kasiyerin tek sayfalık kabuğu bunun hiçbirini çalıştırmaz: ne anahtar, ne
+  düğme, ne kök öğeye yazım.
+- Kurallar tek yerde: `src/lib/admin/view-prefs-core.ts`; tercihlerin deposu
+  ve kök öğeye yazan bileşen `src/components/admin/view-prefs.tsx`.
