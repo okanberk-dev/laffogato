@@ -22,12 +22,18 @@ import {
 
 import {
   DELETE_TEXT,
+  OrderCell,
   parsePublishFilter,
   PublishCell,
+  PublishToggle,
   PUBLISH_STATUS_PARAM,
   publishTabs,
 } from "../app-content-list";
-import { deleteAnnouncementAction } from "./actions";
+import {
+  deleteAnnouncementAction,
+  moveAnnouncementAction,
+  setAnnouncementActiveAction,
+} from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Duyuruları" };
 export const dynamic = "force-dynamic";
@@ -126,7 +132,15 @@ export default async function AdminAppAnnouncementsPage({
             key: "order",
             header: "Sıra",
             align: "right",
-            cell: (a) => a.sortOrder,
+            cell: (a) => (
+              <OrderCell
+                action={moveAnnouncementAction}
+                row={a}
+                all={all}
+                filtered={filter !== null}
+                label={a.title}
+              />
+            ),
           },
         ]}
         rowActions={(a) => (
@@ -134,6 +148,12 @@ export default async function AdminAppAnnouncementsPage({
             <ActionMenuLink href={`${PANEL}/${encodeURIComponent(a.id)}`}>
               Düzenle
             </ActionMenuLink>
+            <PublishToggle
+              action={setAnnouncementActiveAction}
+              id={a.id}
+              isActive={a.isActive}
+              label={a.title}
+            />
             <ActionMenuSeparator />
             <ConfirmButton
               action={deleteAnnouncementAction}

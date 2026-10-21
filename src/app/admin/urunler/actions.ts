@@ -10,6 +10,7 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit, safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { bulkProductSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
@@ -328,7 +329,11 @@ export async function deleteProductAction(
     entityId: id,
     payload: product ? { name: product.name, sku: product.sku } : {},
   });
-  return actionOk(`"${product?.name ?? id}" silindi.`);
+  return deletedAnswer(
+    formData,
+    `"${product?.name ?? id}" silindi.`,
+    "/admin/urunler",
+  );
 }
 
 /**

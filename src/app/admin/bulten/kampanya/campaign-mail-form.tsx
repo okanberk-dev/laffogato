@@ -223,7 +223,7 @@ export function CampaignMailForm({
 
       {!campaignMailHasFields(template) && (
         <Card>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--admin-text)]">
             Sabit metin
           </h3>
           <p className="text-xs text-[var(--admin-text-mute)]">
@@ -236,7 +236,7 @@ export function CampaignMailForm({
 
       {CAMPAIGN_MAIL_GROUPS[template].map((group) => (
         <Card key={`${template}:${group.title}`}>
-          <h3 className="mb-1 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
+          <h3 className="mb-1 text-sm font-semibold text-[var(--admin-text)]">
             {group.title}
           </h3>
           {group.hint && (

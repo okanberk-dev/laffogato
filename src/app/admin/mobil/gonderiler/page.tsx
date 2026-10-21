@@ -30,12 +30,18 @@ import {
 
 import {
   DELETE_TEXT,
+  OrderCell,
   parsePublishFilter,
   PublishCell,
+  PublishToggle,
   PUBLISH_STATUS_PARAM,
   publishTabs,
 } from "../app-content-list";
-import { deletePostAction } from "./actions";
+import {
+  deletePostAction,
+  movePostAction,
+  setPostActiveAction,
+} from "./actions";
 
 export const metadata = { title: "Admin · Uygulama Gönderileri" };
 export const dynamic = "force-dynamic";
@@ -217,8 +223,18 @@ export default async function AdminAppPostsPage({
             key: "order",
             header: "Sıra",
             align: "right",
-            hideBelow: "xl",
-            cell: (p) => p.sortOrder,
+            // In the table from md and on a phone's card: the ↑ / ↓ are
+            // small (hideBelow would leave them off the card).
+            className: "hidden md:table-cell",
+            cell: (p) => (
+              <OrderCell
+                action={movePostAction}
+                row={p}
+                all={all}
+                filtered={filter !== null}
+                label={p.title}
+              />
+            ),
           },
         ]}
         rowActions={(p) => (
@@ -226,6 +242,12 @@ export default async function AdminAppPostsPage({
             <ActionMenuLink href={`${PANEL}/${encodeURIComponent(p.id)}`}>
               Düzenle
             </ActionMenuLink>
+            <PublishToggle
+              action={setPostActiveAction}
+              id={p.id}
+              isActive={p.isActive}
+              label={p.title}
+            />
             <ActionMenuSeparator />
             <ConfirmButton
               action={deletePostAction}

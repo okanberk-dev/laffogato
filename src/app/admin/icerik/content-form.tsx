@@ -56,7 +56,7 @@ export function ContentForm({ content }: { content: Record<string, string> }) {
     <ActionForm action={saveContentAction} className="grid gap-6">
       {CONTENT_GROUPS.map((group) => (
         <Card key={group}>
-          <h2 className="mb-4 text-sm font-medium tracking-widest text-[var(--admin-text-soft)] uppercase">
+          <h2 className="mb-4 text-base font-semibold tracking-tight text-[var(--admin-text)]">
             {group}
           </h2>
           <div className="grid gap-5">

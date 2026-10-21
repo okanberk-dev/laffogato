@@ -380,6 +380,9 @@ export function FilterBar({
             enterKeyHint="search"
             // The `/` shortcut's box (shortcuts.tsx): the bar's lead search only.
             data-admin-search={field === lead ? "" : undefined}
+            // shortcuts.tsx writes aria-keyshortcuts="/" on it once the shell
+            // has hydrated, which can be before this page has.
+            suppressHydrationWarning
             className={FIELD_INPUT}
           />
         </div>

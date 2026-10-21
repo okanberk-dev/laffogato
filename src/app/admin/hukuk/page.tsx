@@ -5,11 +5,11 @@ import {
   ActionMenu,
   ActionMenuLink,
   Badge,
-  BUTTON,
   ConfirmButton,
   PageShell,
 } from "@/components/admin/ui";
 import { AdminIcon } from "@/components/admin/ui/icons";
+import { ROW_CONTROL } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import type { AdminTone } from "@/lib/admin/tone";
 import { LEGAL_DOCS } from "@/lib/legal/documents";
@@ -77,10 +77,7 @@ export default async function LegalDocsPage() {
                     </Link>
                     <Badge tone={status.tone}>{status.label}</Badge>
                   </div>
-                  <div
-                    className="mt-1 text-[10px] tracking-[0.18em] break-all text-[var(--admin-text-soft)] uppercase"
-                    style={{ fontFamily: "var(--mono), monospace" }}
-                  >
+                  <div className="mt-1 text-xs break-all text-[var(--admin-text-soft)]">
                     {doc.category} · /hukuk/{doc.slug}
                   </div>
                 </div>
@@ -91,7 +88,7 @@ export default async function LegalDocsPage() {
                     href={`/hukuk/${doc.slug}`}
                     target="_blank"
                     rel="noopener"
-                    className={BUTTON.icon}
+                    className={ROW_CONTROL.icon}
                     aria-label={`Yayındakini aç: ${doc.title} (yeni sekme)`}
                     title="Yayındakini aç"
                   >
@@ -99,7 +96,7 @@ export default async function LegalDocsPage() {
                   </a>
                   <Link
                     href={`/admin/hukuk/${doc.slug}`}
-                    className={BUTTON.ghost}
+                    className={ROW_CONTROL.text}
                     aria-label={`Düzenle: ${doc.title}`}
                   >
                     Düzenle

@@ -7,13 +7,17 @@ import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-stat
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
 import { DashboardNotice } from "@/components/admin/dashboard/notice";
 import { OpenOrdersWidget } from "@/components/admin/dashboard/open-orders-widget";
-import { QuickLinks } from "@/components/admin/dashboard/quick-links";
+import {
+  QuickCreate,
+  quickCreateEntries,
+} from "@/components/admin/dashboard/quick-create";
 import {
   RecentOrders,
   type RecentOrderRow,
 } from "@/components/admin/dashboard/recent-orders";
 import { RevenueWidget } from "@/components/admin/dashboard/revenue-widget";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
+import type { AdminIconName } from "@/components/admin/ui/icons";
 import { settingsTabHref } from "@/app/admin/ayarlar/settings-core";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -25,6 +29,7 @@ import {
 import { loadKaraokeTodayCard } from "@/lib/admin/karaoke-today";
 import { canAccess } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
+import { has2FA } from "@/lib/admin/twofa";
 import {
   keepaliveView,
   readKeepaliveFor,
@@ -66,6 +71,27 @@ async function withMoney(orders: AdminOrder[]): Promise<RecentOrderRow[]> {
   }));
 }
 
+/**
+ * Whether the signed-in account has 2FA on, or null when it could not be
+ * read: a failed read draws no notice rather than taking the page down.
+ */
+async function readTwoFactor(email: string): Promise<boolean | null> {
+  try {
+    return await has2FA(email);
+  } catch (err) {
+    console.error("[admin] 2FA durumu okunamadı", err);
+    return null;
+  }
+}
+
+/** Each tile's icon, by its key (dashboard-core's dashboardTiles). */
+const TILE_ICONS: Record<string, AdminIconName> = {
+  open: "orders",
+  attention: "attention",
+  soldOut: "soldOut",
+  revenue: "revenue",
+};
+
 /** Tile columns by how many tiles the role gets. */
 const TILE_GRID: Record<number, string> = {
   4: "grid-cols-2 xl:grid-cols-4",
@@ -102,7 +128,7 @@ export default async function AdminDashboardPage() {
     : null;
   // The settings read is awaited for its failure only: the header no longer
   // prints the café's name.
-  const [stats, recent, , mail, revenue, karaoke, keepalive] =
+  const [stats, recent, , mail, revenue, karaoke, keepalive, twoFactor] =
     await Promise.all([
       getDashboardStats(),
       // Five rows, read as five rows: this used to be every order in the
@@ -117,6 +143,7 @@ export default async function AdminDashboardPage() {
       // The daily Supabase ping's record, for the owner alone: for any
       // other role the read is never made (null), not merely not shown.
       readKeepaliveFor(role, loadSupabaseKeepalive),
+      readTwoFactor(session.email),
     ]);
 
   const tiles = dashboardTiles(
@@ -135,29 +162,7 @@ export default async function AdminDashboardPage() {
   );
   const stock = stockLinks(role);
 
-  const quickLinks = [
-    {
-      href: "/admin/urunler/yeni",
-      label: "Yeni ürün ekle",
-      show: canAccess("products", role),
-    },
-    {
-      href: "/admin/kategoriler/yeni",
-      label: "Yeni kategori",
-      show: canAccess("categories", role),
-    },
-    {
-      href: "/admin/promosyon/yeni",
-      label: "Yeni promosyon kodu",
-      show: canAccess("promos", role),
-    },
-    {
-      href: "/admin/ayarlar",
-      label: "Kafe ayarları",
-      show: canAccess("settings", role),
-    },
-    { href: "/admin/2fa-kurulum", label: "İki adımlı doğrulama", show: true },
-  ].filter((q) => q.show);
+  const quickCreate = quickCreateEntries(role);
 
   return (
     <PageShell width="list">
@@ -199,6 +204,21 @@ export default async function AdminDashboardPage() {
         <KeepaliveStatusLine view={keepaliveView(keepalive, now)} />
       ) : null}
 
+      {/* The panel moves money and members' data: an account on a password
+          alone is told so where it lands, not only in the account menu. */}
+      {twoFactor === false ? (
+        <DashboardNotice tone="warning">
+          <strong>İki adımlı doğrulama kapalı.</strong> Bu hesap yalnız
+          parolayla korunuyor.{" "}
+          <Link
+            href="/admin/2fa-kurulum"
+            className="font-medium underline underline-offset-4"
+          >
+            Şimdi aç
+          </Link>
+        </DashboardNotice>
+      ) : null}
+
       <div
         className={`grid gap-3 sm:gap-4 ${TILE_GRID[tiles.length] ?? "grid-cols-2"}`}
       >
@@ -211,9 +231,12 @@ export default async function AdminDashboardPage() {
             href={t.href}
             tone={t.tone}
             money={t.money}
+            icon={TILE_ICONS[t.key]}
           />
         ))}
       </div>
+
+      <QuickCreate entries={quickCreate} />
 
       {/* Two columns from xl only: beside the sidebar at 1024 px the side
           column was 224 px and cut every product name short. Below xl the
@@ -241,7 +264,6 @@ export default async function AdminDashboardPage() {
               allHref={stock.all}
             />
           ) : null}
-          <QuickLinks links={quickLinks} />
         </div>
       </div>
 

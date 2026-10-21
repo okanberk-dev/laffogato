@@ -78,7 +78,7 @@ export function CustomerForm({ customer, action }: Props) {
             </Field>
             <FieldErrorText id={errorId("phone")} message={fe("phone")} />
           </div>
-          <Field label="Doğum tarihi (opsiyonel)">
+          <Field label="Doğum tarihi (isteğe bağlı)">
             <TextInput
               name="birthday"
               type="date"

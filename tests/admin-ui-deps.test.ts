@@ -476,10 +476,17 @@ describe("ui/icons.tsx", () => {
       dateRange: "CalendarRange",
       close: "X",
       chevron: "ChevronDown",
+      chevronUp: "ChevronUp",
       security: "ShieldCheck",
       shortcuts: "Keyboard",
       density: "Rows3",
       logout: "LogOut",
+      attention: "TriangleAlert",
+      soldOut: "PackageX",
+      revenue: "TrendingUp",
+      categories: "Tags",
+      announcement: "Megaphone",
+      post: "Newspaper",
     });
     const icons = Object.values(ADMIN_ICONS);
     for (const [key, icon] of Object.entries(ADMIN_ICONS)) {

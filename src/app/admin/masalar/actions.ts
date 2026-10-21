@@ -27,8 +27,10 @@ import {
 import {
   CAFE_TABLES_PATH,
   cafeTableHref,
+  cafeTableNewHref,
   cafeTablePrintHref,
 } from "@/lib/admin/cafe-tables-panel";
+import { wantsAnother } from "@/lib/admin/save-and-new";
 
 // Every export here is a public POST endpoint (CLAUDE.md rule 27): each one
 // checks the session and the role itself. Nothing deletes - a table leaves
@@ -89,6 +91,12 @@ export async function createCafeTableAction(
     payload: { name: res.value.name },
   });
   revalidateTables(res.value.id);
+  // "Kaydet ve yenisini ekle": the next table's form; the cards of all of
+  // them print together from Masalar's "Masa kartlarını yazdır".
+  if (wantsAnother(formData)) {
+    await setAdminFlash(`${res.value.name} eklendi. Sıradaki masayı gir.`);
+    redirect(cafeTableNewHref());
+  }
   await setAdminFlash(
     `${res.value.name} eklendi. Kartını yazdırıp masaya koy.`,
   );

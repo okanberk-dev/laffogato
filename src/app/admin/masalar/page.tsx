@@ -25,6 +25,7 @@ import {
   CAFE_TABLE_TABS,
   CAFE_TABLES_PATH,
   cafeTableHref,
+  cafeTableNewHref,
   cafeTablePrintHref,
   cafeTablesList,
   parseCafeTableTab,
@@ -113,7 +114,7 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
             uygulamada alınır.
           </p>
         }
-        primary={{ href: `${CAFE_TABLES_PATH}/yeni`, label: "Yeni masa" }}
+        primary={{ href: cafeTableNewHref(), label: "Yeni masa" }}
         menu={
           <ActionMenuLink href={cafeTablePrintHref()}>
             Kartları yazdır ({active})
@@ -126,7 +127,7 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
           title="Henüz masa yok."
           description="İlk masayı ekle, kartını yazdır ve masaya koy."
           action={
-            <Link className={BUTTON.primary} href={`${CAFE_TABLES_PATH}/yeni`}>
+            <Link className={BUTTON.primary} href={cafeTableNewHref()}>
               Yeni masa
             </Link>
           }

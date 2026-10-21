@@ -46,7 +46,7 @@ import {
   useSoundPref,
   writeSoundPref,
 } from "./sound-pref";
-import { BUTTON, MONO_STYLE } from "./ui/styles";
+import { BUTTON, MONO_STYLE, ROW_CONTROL } from "./ui/styles";
 
 /** One row of the order list, decided on the server. */
 export interface OrderListRow {
@@ -185,7 +185,8 @@ function RowStepButton({
         hidden={{ id: order.id, transition: id }}
         pendingLabel="İşleniyor…"
         ariaLabel={`${label}: sipariş ${order.orderNo}`}
-        className="whitespace-nowrap"
+        variant="bare"
+        className={ROW_CONTROL.text}
       >
         {label}
       </ActionButton>

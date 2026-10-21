@@ -115,10 +115,7 @@ export default async function TwoFAEnrollPage() {
           )}
           {draft?.secret && (
             <div className="mt-3 text-center">
-              <div
-                className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-                style={{ fontFamily: "var(--mono), monospace" }}
-              >
+              <div className="text-xs font-medium text-[var(--admin-text-soft)]">
                 Manuel anahtar
               </div>
               <div

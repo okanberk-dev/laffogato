@@ -22,6 +22,7 @@ import {
 import { FormError, FormSuccess } from "./form-feedback";
 import { Card, Checkbox, Field, GhostButton } from "./forms";
 import { ActionModal, ConfirmButton } from "./ui";
+import { CARD_TITLE, LABEL } from "./ui/styles";
 
 const resendInitial: ResendVerificationState = {};
 
@@ -52,12 +53,7 @@ export function CustomerActions({
 
   return (
     <Card className="grid grid-cols-1 gap-3">
-      <h2
-        className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-        style={{ fontFamily: "var(--mono), monospace" }}
-      >
-        Yönetim
-      </h2>
+      <h2 className={CARD_TITLE}>Yönetim</h2>
 
       {/* Activate / deactivate. Taking the account away asks first;
           giving it back does not. */}
@@ -98,9 +94,7 @@ export function CustomerActions({
           <FormSuccess message={resend.error ? undefined : resend.message} />
           {resend.url && (
             <div className="grid gap-1">
-              <span className="text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase">
-                Doğrulama bağlantısı
-              </span>
+              <span className={LABEL}>Doğrulama bağlantısı</span>
               <input
                 readOnly
                 value={resend.url}

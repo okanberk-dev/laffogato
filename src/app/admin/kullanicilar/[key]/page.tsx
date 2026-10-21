@@ -7,7 +7,7 @@ import {
   Section,
   type KeyValueItem,
 } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import {
   ADMIN_USERS_PATH,
   findAdminUserByKey,
@@ -98,10 +98,7 @@ export default async function AdminUserPage({ params }: PageProps) {
       <BackLink href={ADMIN_USERS_PATH}>Kullanıcılar</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
-        <div
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-          style={MONO_STYLE}
-        >
+        <div className={EYEBROW} style={MONO_STYLE}>
           Sistem · Kullanıcılar
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-all text-[var(--admin-text)] sm:text-3xl">

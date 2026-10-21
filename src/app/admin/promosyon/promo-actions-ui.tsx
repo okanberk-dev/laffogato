@@ -41,24 +41,39 @@ export function PromoActiveToggle({
   );
 }
 
-/**
- * The row's ⋯ menu. "Sil" lives here only: on the view page a deleted code
- * would leave the operator on a page that no longer exists.
- */
+/** The row's ⋯ menu. */
 export function PromoRowMenu({ promo }: { promo: AdminPromo }) {
   return (
     <ActionMenu label={`${promo.code} işlemleri`}>
       <ActionMenuLink href={promoHref(promo.id)}>Ayrıntı</ActionMenuLink>
       <ActionMenuLink href={promoEditHref(promo.id)}>Düzenle</ActionMenuLink>
       <ActionMenuSeparator />
-      <ConfirmButton
-        action={deletePromoAction}
-        hidden={{ id: promo.id }}
-        label="Sil"
-        variant="menuDanger"
-        title={`${promo.code} silinsin mi?`}
-        description="Kod kalıcı olarak silinir; daha önce kullanıldığı siparişlerdeki kayıt kalır. Yalnız durdurmak istiyorsan pasife al."
-      />
+      <DeletePromo promo={promo} />
     </ActionMenu>
+  );
+}
+
+/**
+ * "Sil" in a ⋯ menu: a confirm dialog, then a toast. On the code's own page
+ * (`thenList`) the page has nothing left to show, so the answer is the
+ * list, with the toast.
+ */
+export function DeletePromo({
+  promo,
+  thenList = false,
+}: {
+  promo: Pick<AdminPromo, "id" | "code">;
+  thenList?: boolean;
+}) {
+  return (
+    <ConfirmButton
+      action={deletePromoAction}
+      hidden={thenList ? { id: promo.id, then: "list" } : { id: promo.id }}
+      label="Sil"
+      ariaLabel={`Sil: ${promo.code}`}
+      variant="menuDanger"
+      title={`${promo.code} silinsin mi?`}
+      description="Kod kalıcı olarak silinir; daha önce kullanıldığı siparişlerdeki kayıt kalır. Yalnız durdurmak istiyorsan pasife al."
+    />
   );
 }

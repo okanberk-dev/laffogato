@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
+import { ConfirmButton } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { getShopHeroSlide } from "@/lib/admin/store";
 
-import { updateSlideAction } from "../actions";
+import { deleteSlideAction, updateSlideAction } from "../actions";
 import { SlideForm } from "../slide-form";
 
 export const metadata = { title: "Admin · Vitrin slaytı düzenle" };
@@ -28,6 +29,18 @@ export default async function EditSlidePage({
         eyebrow="Katalog · Mağaza vitrini"
         title={slide.title || "Slayt düzenle"}
         description="Kaydettiğin değişiklik mağaza sayfasına hemen yansır."
+        menuLabel="Slayt işlemleri"
+        menu={
+          <ConfirmButton
+            action={deleteSlideAction}
+            hidden={{ id: slide.id, then: "list" }}
+            label="Sil"
+            ariaLabel={`Sil: ${slide.title || slide.id}`}
+            variant="menuDanger"
+            title={`"${slide.title || "Bu slayt"}" silinsin mi?`}
+            description="Slayt mağaza sayfasının karuselinden hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için listedeki “Yayından kaldır”ı kullan."
+          />
+        }
       />
       <SlideForm
         defaults={{

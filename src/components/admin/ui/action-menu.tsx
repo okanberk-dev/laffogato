@@ -13,13 +13,19 @@ import {
 
 import { cx } from "@/components/laffogato/cx";
 
-import { BUTTON, COMPACT } from "./styles";
+import { BUTTON, COMPACT, ROW_CONTROL } from "./styles";
 
 export interface ActionMenuProps {
   /** Accessible name of the "⋯" button; default "İşlemler". */
   label?: string;
   /** Show `label` next to the dots instead of only to screen readers. */
   showLabel?: boolean;
+  /**
+   * Draw the dots in a 44 px outlined button, the size of the buttons
+   * beside it (PageHeader). Without it, and without `showLabel`, the dots
+   * have no outline of their own (ROW_CONTROL.more), as on a list's rows.
+   */
+  framed?: boolean;
   /** Which edge of the button the panel lines up with; default `end`. */
   align?: "start" | "end";
   /** ActionMenuLink, ActionMenuButton, ActionModal (`triggerVariant="menu"`), ConfirmButton. */
@@ -46,6 +52,7 @@ const ITEMS = "a[href], button";
 export function ActionMenu({
   label = "İşlemler",
   showLabel = false,
+  framed = false,
   align = "end",
   children,
   className,
@@ -54,6 +61,7 @@ export function ActionMenu({
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const panelId = useId();
+  const outlined = framed || showLabel;
 
   const close = (focusSummary = false) => {
     const details = detailsRef.current;
@@ -156,12 +164,17 @@ export function ActionMenu({
       <summary
         aria-label={showLabel ? undefined : label}
         aria-controls={panelId}
-        className={cx(
-          "inline-flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] select-none hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
-          COMPACT.minH9,
-          COMPACT.minW9,
-          open && "border-[var(--admin-primary)] text-[var(--admin-primary)]",
-        )}
+        className={
+          outlined
+            ? cx(
+                "inline-flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] select-none hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
+                COMPACT.minH9,
+                COMPACT.minW9,
+                open &&
+                  "border-[var(--admin-primary)] text-[var(--admin-primary)]",
+              )
+            : ROW_CONTROL.more
+        }
       >
         {showLabel ? <span>{label}</span> : null}
         <span aria-hidden="true" className="text-lg leading-none">

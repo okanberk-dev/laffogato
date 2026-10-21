@@ -628,6 +628,7 @@ export function OrderActionMenu({
   openLink = false,
   skip = null,
   children,
+  framed = false,
 }: OrderControlsProps & {
   mayRefund: boolean;
   /** Start with "Siparişi aç" (the list's row menu). */
@@ -636,6 +637,8 @@ export function OrderActionMenu({
   skip?: OrderActionId | null;
   /** Extra rows at the end ("Fiş yazdır"). */
   children?: ReactNode;
+  /** The page's menu, beside its primary button (ActionMenu `framed`). */
+  framed?: boolean;
 }) {
   const a = actions;
   const show = (id: OrderActionId) => id !== skip && a[id] !== undefined;
@@ -643,7 +646,7 @@ export function OrderActionMenu({
     ["start_preparing", "mark_shipped", "complete"] as const
   ).filter(show);
   return (
-    <ActionMenu label={`Sipariş ${order.orderNo} işlemleri`}>
+    <ActionMenu label={`Sipariş ${order.orderNo} işlemleri`} framed={framed}>
       {openLink ? (
         <ActionMenuLink href={`/admin/siparisler/${order.id}`}>
           Siparişi aç
@@ -742,7 +745,7 @@ export function OrderHeaderActions(
   return (
     <div className="flex flex-wrap items-start gap-2 print:hidden">
       {primary ? <PrimaryAction {...props} id={primary} /> : null}
-      <OrderActionMenu {...props} skip={primary}>
+      <OrderActionMenu {...props} skip={primary} framed>
         <ActionMenuButton onClick={() => window.print()}>
           Fiş yazdır
         </ActionMenuButton>

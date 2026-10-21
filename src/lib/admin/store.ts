@@ -86,6 +86,7 @@ import {
   type FoodLabelText,
 } from "@/lib/shop/food-label";
 import { imageVersion } from "./image-bytes";
+import { compareMenuRows } from "./menu-panel";
 import {
   heroImagePath,
   menuImagePath,
@@ -689,6 +690,66 @@ async function countRows(table: string): Promise<number> {
     .select("*", { count: "exact", head: true });
   if (error) raiseDbError(`count(${table})`, error, status);
   return count ?? 0;
+}
+
+/**
+ * One row's `isActive` alone (and its `updatedAt`): a list's one-click
+ * "Yayına al" / "Yayından kaldır". A narrow UPDATE, so a form left open in
+ * another tab keeps every other field it is about to save. True when the
+ * row was there.
+ */
+async function setRowActive(
+  table: string,
+  id: string,
+  isActive: boolean,
+  ctx: string,
+): Promise<boolean> {
+  const sb = getDb();
+  const updated = rows<{ id: string }>(
+    await sb
+      .from(table)
+      .update({ isActive, updatedAt: new Date().toISOString() })
+      .eq("id", id)
+      .select("id"),
+    ctx,
+  );
+  return updated.length > 0;
+}
+
+/** What the ↑ / ↓ buttons answer: moved, already first or last, or gone. */
+export type ListMoveResult = "moved" | "edge" | "not_found";
+
+/** The renumbering's step, and the forms' ceiling for "Sıra" (0-999). */
+const LIST_SORT_STEP = 10;
+const LIST_SORT_MAX = 999;
+
+/**
+ * The ↑ / ↓ buttons beside a list's rows: swaps a row with its neighbour in
+ * the list's own order (`order`, as the panel draws it), then renumbers the
+ * list 10, 20, 30… so equal or typed-in numbers cannot make a later move a
+ * no-op. Only the rows whose number changes are written. The home page's
+ * slides (moveHomeHeroSlide, home-hero.ts) follow the same rule.
+ */
+async function moveRowInList(
+  table: string,
+  order: ReadonlyArray<{ id: string; sortOrder: number }>,
+  id: string,
+  direction: "up" | "down",
+  ctx: string,
+): Promise<ListMoveResult> {
+  const list = [...order];
+  const from = list.findIndex((r) => r.id === id);
+  if (from === -1) return "not_found";
+  const to = direction === "up" ? from - 1 : from + 1;
+  if (to < 0 || to >= list.length) return "edge";
+  [list[from], list[to]] = [list[to], list[from]];
+  const sb = getDb();
+  for (const [i, row] of list.entries()) {
+    const sortOrder = Math.min(LIST_SORT_MAX, (i + 1) * LIST_SORT_STEP);
+    if (row.sortOrder === sortOrder) continue;
+    check(await sb.from(table).update({ sortOrder }).eq("id", row.id), ctx);
+  }
+  return "moved";
 }
 
 /**
@@ -6641,6 +6702,42 @@ export async function listMenuItems(): Promise<AdminMenuItem[]> {
   });
 }
 
+/**
+ * The menu list's ↑ / ↓: within the item's own category, in the order the
+ * list draws it (menu-panel.ts compareMenuRows). Reads the three columns it
+ * needs, not the photos (data URLs of up to 2 MB, admin audit CAT-08).
+ */
+export async function moveMenuItem(
+  id: string,
+  direction: "up" | "down",
+): Promise<ListMoveResult> {
+  await ensureSeed();
+  const sb = getDb();
+  const target = one<{ categoryKey: string }>(
+    await sb
+      .from(TABLES.menuItems)
+      .select("categoryKey")
+      .eq("id", id)
+      .maybeSingle(),
+    "moveMenuItem.read",
+  );
+  if (!target) return "not_found";
+  const siblings = rows<{ id: string; name: string; sortOrder: number }>(
+    await sb
+      .from(TABLES.menuItems)
+      .select("id, name, sortOrder")
+      .eq("categoryKey", target.categoryKey),
+    "moveMenuItem.list",
+  ).sort(compareMenuRows);
+  return moveRowInList(
+    TABLES.menuItems,
+    siblings,
+    id,
+    direction,
+    "moveMenuItem",
+  );
+}
+
 export async function getMenuItem(id: string): Promise<AdminMenuItem | null> {
   await ensureSeed();
   const sb = getDb();
@@ -7993,6 +8090,34 @@ export async function deleteShopHeroSlide(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/** The list's "Yayına al" / "Yayından kaldır": true when the slide was there. */
+export async function setShopHeroSlideActive(
+  id: string,
+  isActive: boolean,
+): Promise<boolean> {
+  await ensureShopHeroSeed();
+  return setRowActive(
+    TABLES.shopHeroSlides,
+    id,
+    isActive,
+    "setShopHeroSlideActive",
+  );
+}
+
+/** The list's ↑ / ↓, in the shop's order. */
+export async function moveShopHeroSlide(
+  id: string,
+  direction: "up" | "down",
+): Promise<ListMoveResult> {
+  return moveRowInList(
+    TABLES.shopHeroSlides,
+    await listShopHeroSlides(),
+    id,
+    direction,
+    "moveShopHeroSlide",
+  );
+}
+
 // ─── Editorial content (reels / press / story) ─────────────────
 //
 // All five are simple sortable + toggleable lists. A single generic factory
@@ -8504,6 +8629,29 @@ export async function deleteAppSlide(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/** The list's "Yayına al" / "Yayından kaldır": true when the slide was there. */
+export async function setAppSlideActive(
+  id: string,
+  isActive: boolean,
+): Promise<boolean> {
+  await ensureAppContentSeed();
+  return setRowActive(TABLES.appHeroSlides, id, isActive, "setAppSlideActive");
+}
+
+/** The list's ↑ / ↓, in the app's order. */
+export async function moveAppSlide(
+  id: string,
+  direction: "up" | "down",
+): Promise<ListMoveResult> {
+  return moveRowInList(
+    TABLES.appHeroSlides,
+    await listAppSlides(),
+    id,
+    direction,
+    "moveAppSlide",
+  );
+}
+
 // ─── Mobile app posts: campaigns, collaborations, events ──────────────────
 //
 // Image-first cards in a horizontally scrollable strip below the hero. Unlike a
@@ -8721,6 +8869,33 @@ export async function deleteAppPost(id: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
+/**
+ * The list's "Yayına al" / "Yayından kaldır": true when the post was there.
+ * It writes `isActive` alone and never mails: a post's e-mail goes out only
+ * from its form (updatePostAction's hook).
+ */
+export async function setAppPostActive(
+  id: string,
+  isActive: boolean,
+): Promise<boolean> {
+  await ensureAppContentSeed();
+  return setRowActive(TABLES.appPosts, id, isActive, "setAppPostActive");
+}
+
+/** The list's ↑ / ↓, in the app's order. */
+export async function moveAppPost(
+  id: string,
+  direction: "up" | "down",
+): Promise<ListMoveResult> {
+  return moveRowInList(
+    TABLES.appPosts,
+    await listAppPosts(),
+    id,
+    direction,
+    "moveAppPost",
+  );
+}
+
 export async function listAppAnnouncements(): Promise<AdminAppAnnouncement[]> {
   await ensureAppContentSeed();
   const sb = getDb();
@@ -8831,4 +9006,32 @@ export async function deleteAppAnnouncement(id: string): Promise<boolean> {
     "deleteAppAnnouncement",
   );
   return deleted.length > 0;
+}
+
+/** The list's "Yayına al" / "Yayından kaldır": true when it was there. */
+export async function setAppAnnouncementActive(
+  id: string,
+  isActive: boolean,
+): Promise<boolean> {
+  await ensureAppContentSeed();
+  return setRowActive(
+    TABLES.appAnnouncements,
+    id,
+    isActive,
+    "setAppAnnouncementActive",
+  );
+}
+
+/** The list's ↑ / ↓, in the app's order. */
+export async function moveAppAnnouncement(
+  id: string,
+  direction: "up" | "down",
+): Promise<ListMoveResult> {
+  return moveRowInList(
+    TABLES.appAnnouncements,
+    await listAppAnnouncements(),
+    id,
+    direction,
+    "moveAppAnnouncement",
+  );
 }

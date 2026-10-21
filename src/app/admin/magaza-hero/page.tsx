@@ -1,16 +1,34 @@
 import Link from "next/link";
 
-import { Card, PageHeader } from "@/components/admin/forms";
-import { BUTTON, ConfirmButton, EmptyState, PageShell } from "@/components/admin/ui";
+import { ActionButton } from "@/components/admin/action-form";
+import { PageHeader } from "@/components/admin/forms";
+import { MoveButtons } from "@/components/admin/move-buttons";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
+  Badge,
+  BUTTON,
+  ConfirmButton,
+  DataTable,
+  EmptyState,
+  PageShell,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { heroImagePath, servedImage } from "@/lib/admin/image-url";
 import { listShopHeroSlides, type AdminShopHeroSlide } from "@/lib/admin/store";
 
-import { deleteSlideAction } from "./actions";
+import {
+  deleteSlideAction,
+  moveSlideAction,
+  setSlideActiveAction,
+} from "./actions";
 
 export const metadata = { title: "Admin · Mağaza vitrini" };
 export const dynamic = "force-dynamic";
+
+const PANEL = "/admin/magaza-hero";
 
 /**
  * The thumbnail's address. An upload is stored as a data URL of up to 4 MB:
@@ -22,9 +40,21 @@ function thumb(s: AdminShopHeroSlide): string {
   return servedImage(s.imageUrl, heroImagePath(s.id, imageVersion(s.imageUrl)));
 }
 
+function title(s: AdminShopHeroSlide): string {
+  return s.title || "(başlıksız)";
+}
+
+/**
+ * The shop's carousel, as the home page's slides are listed: the table, a
+ * badge for the state, ↑ / ↓ for the order, and the row's ⋯ with
+ * Düzenle, Yayına al / Yayından kaldır and Sil. It used to be hand-built
+ * cards with Düzenle and Sil on every row, and the only way to take a
+ * slide off for a while was the form's checkbox.
+ */
 export default async function AdminShopHeroPage() {
   await requireRole("shopHero");
   const slides = await listShopHeroSlides();
+  const live = slides.filter((s) => s.isActive).length;
 
   return (
     <PageShell width="list">
@@ -34,28 +64,48 @@ export default async function AdminShopHeroPage() {
         help={
           <p>
             Her slaytın başlığı, alt yazısı, görseli ve düğmesi burada durur.
-            Kaydettiğin değişiklik mağazaya hemen yansır.
+            Kaydettiğin değişiklik mağazaya hemen yansır. Sırayı ↑ / ↓ ile,
+            görünürlüğü satırın ⋯ menüsündeki &quot;Yayından kaldır&quot; ile
+            değiştirirsin.
           </p>
         }
-        primary={{ href: "/admin/magaza-hero/yeni", label: "Yeni slayt" }}
+        primary={{ href: `${PANEL}/yeni`, label: "Yeni slayt" }}
       />
 
-      {slides.length === 0 ? (
-        <EmptyState
-          title="Henüz slayt yok."
-          description="Mağaza sayfası vitrinsiz açılır."
-          action={
-            <Link href="/admin/magaza-hero/yeni" className={BUTTON.ghost}>
-              Yeni slayt
-            </Link>
-          }
-        />
-      ) : (
-        <div className="grid gap-3">
-          {slides.map((s) => (
-            <Card key={s.id}>
-              <div className="grid gap-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
-                <div className="relative h-24 w-full overflow-hidden rounded-lg border border-[var(--admin-border)] bg-gradient-to-br from-amber-100 to-amber-300 sm:h-20">
+      {slides.length > 0 ? (
+        <p className="mb-4 text-sm text-[var(--admin-text-soft)]" role="status">
+          {live === 0
+            ? "Yayında slayt yok: mağaza sayfası vitrinsiz açılıyor."
+            : `Mağazada ${live} slayt dönüyor.`}
+        </p>
+      ) : null}
+
+      <DataTable
+        caption="Mağaza slaytları"
+        rows={slides}
+        rowKey={(s) => s.id}
+        rowHref={(s) => `${PANEL}/${encodeURIComponent(s.id)}`}
+        empty={
+          <EmptyState
+            title="Henüz slayt yok."
+            description="Mağaza sayfası vitrinsiz açılır."
+            action={
+              <Link href={`${PANEL}/yeni`} className={BUTTON.ghost}>
+                Yeni slayt
+              </Link>
+            }
+          />
+        }
+        columns={[
+          {
+            key: "slide",
+            header: "Slayt",
+            cell: (s) => (
+              <span className="flex items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="relative grid h-12 w-20 shrink-0 place-items-center overflow-hidden rounded-lg border border-[var(--admin-border)] bg-gradient-to-br from-amber-100 to-amber-300"
+                >
                   {s.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -66,65 +116,94 @@ export default async function AdminShopHeroPage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="absolute inset-0 grid place-items-center text-xs tracking-widest text-amber-900 uppercase">
-                      görsel yok
+                    <span className="text-[11px] text-amber-900">
+                      Görsel yok
                     </span>
                   )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs tracking-widest text-[var(--admin-text-mute)] uppercase">
-                      Sıra {s.sortOrder}
-                    </span>
-                    {s.isActive ? (
-                      <span className="rounded-full bg-[var(--admin-success-soft)] px-2 py-0.5 font-mono text-[10px] tracking-widest text-[var(--admin-success)] uppercase">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-[var(--admin-neutral-soft)] px-2 py-0.5 font-mono text-[10px] tracking-widest text-[var(--admin-text-mute)] uppercase">
-                        Pasif
-                      </span>
-                    )}
-                    <span className="rounded-full bg-[var(--admin-neutral-soft)] px-2 py-0.5 font-mono text-[10px] tracking-widest text-[var(--admin-text-soft)] uppercase">
-                      {s.textTheme === "light" ? "Açık yazı" : "Koyu yazı"}
-                    </span>
-                  </div>
-                  <h3 className="mt-1.5 text-lg leading-tight font-medium break-words">
-                    {s.title || "(başlıksız)"}
-                  </h3>
-                  {s.subtitle && (
-                    <p className="mt-1 line-clamp-2 text-sm text-[var(--admin-text-soft)]">
+                </span>
+                {/* Capped like the app's slides: the order buttons and the
+                    ⋯ menu keep their room beside the sidebar. */}
+                <span className="min-w-0 md:max-w-[14rem] xl:max-w-[20rem] 2xl:max-w-[28rem]">
+                  <span className="block truncate font-medium">{title(s)}</span>
+                  {s.subtitle ? (
+                    <span className="block truncate text-xs text-[var(--admin-text-mute)]">
                       {s.subtitle}
-                    </p>
-                  )}
-                  {s.ctaLabel && (
-                    <p className="mt-1 text-xs break-all text-[var(--admin-text-mute)]">
-                      Düğme: {s.ctaLabel} → {s.ctaHref}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href={`/admin/magaza-hero/${encodeURIComponent(s.id)}`}
-                    className={BUTTON.ghost}
-                    aria-label={`Düzenle: ${s.title || s.id}`}
-                  >
-                    Düzenle
-                  </Link>
-                  <ConfirmButton
-                    action={deleteSlideAction}
-                    hidden={{ id: s.id }}
-                    label="Sil"
-                    ariaLabel={`Sil: ${s.title || s.id}`}
-                    title={`"${s.title}" silinsin mi?`}
-                    description="Slayt mağaza sayfasının karuselinden hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için Düzenle'den pasif yap."
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+                    </span>
+                  ) : null}
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "cta",
+            header: "Düğme",
+            hideBelow: "xl",
+            cell: (s) =>
+              s.ctaLabel ? (
+                <span className="block max-w-[200px] truncate text-xs text-[var(--admin-text-soft)]">
+                  {s.ctaLabel} → {s.ctaHref}
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--admin-text-mute)]">
+                  Düğmesiz
+                </span>
+              ),
+          },
+          {
+            key: "status",
+            header: "Durum",
+            cell: (s) => (
+              <span className="grid justify-items-start gap-1">
+                <Badge tone={s.isActive ? "success" : "neutral"} dot>
+                  {s.isActive ? "Mağazada" : "Yayında değil"}
+                </Badge>
+                <span className="text-xs text-[var(--admin-text-mute)]">
+                  {s.textTheme === "light" ? "Açık yazı" : "Koyu yazı"}
+                </span>
+              </span>
+            ),
+          },
+          {
+            key: "order",
+            header: "Sıra",
+            align: "right",
+            cell: (s) => (
+              <MoveButtons
+                action={moveSlideAction}
+                id={s.id}
+                index={slides.indexOf(s)}
+                count={slides.length}
+                label={title(s)}
+              />
+            ),
+          },
+        ]}
+        rowActions={(s) => (
+          <ActionMenu label={`${title(s)} işlemleri`}>
+            <ActionMenuLink href={`${PANEL}/${encodeURIComponent(s.id)}`}>
+              Düzenle
+            </ActionMenuLink>
+            <ActionButton
+              action={setSlideActiveAction}
+              hidden={{ id: s.id, active: s.isActive ? "0" : "1" }}
+              variant="menu"
+              ariaLabel={`${s.isActive ? "Yayından kaldır" : "Yayına al"}: ${title(s)}`}
+            >
+              {s.isActive ? "Yayından kaldır" : "Yayına al"}
+            </ActionButton>
+            <ActionMenuSeparator />
+            <ConfirmButton
+              action={deleteSlideAction}
+              hidden={{ id: s.id }}
+              label="Sil"
+              ariaLabel={`Sil: ${title(s)}`}
+              variant="menuDanger"
+              title={`"${title(s)}" silinsin mi?`}
+              description="Slayt mağaza sayfasının karuselinden hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için “Yayından kaldır”ı kullan."
+            />
+          </ActionMenu>
+        )}
+      />
     </PageShell>
   );
 }

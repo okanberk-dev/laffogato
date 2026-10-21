@@ -29,7 +29,8 @@ export default async function EditAppSlidePage({
         eyebrow="Mobil uygulama · Ana sayfa"
         title="Slaytı düzenle"
         description={slide.title}
-        action={
+        menuLabel="Slayt işlemleri"
+        menu={
           // `then: list`: after the delete this page has nothing to show,
           // so the action answers with the list and its toast.
           <ConfirmButton
@@ -39,7 +40,7 @@ export default async function EditAppSlidePage({
             ariaLabel={`Sil: ${slide.title}`}
             title={`"${slide.title}" silinsin mi?`}
             description={DELETE_TEXT.slide}
-            className="w-full sm:w-auto"
+            variant="menuDanger"
           />
         }
       />

@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionForm } from "@/components/admin/action-form";
+import { GuardedActionForm } from "@/components/admin/guarded-action-form";
 import {
   Card,
   Checkbox,
@@ -64,7 +64,7 @@ export function AppSlideForm({
   submitLabel: string;
 }) {
   return (
-    <ActionForm action={action} className="grid gap-4">
+    <GuardedActionForm action={action} className="grid gap-4">
       <Card>
         <div className="grid gap-4">
           <Field
@@ -207,6 +207,6 @@ export function AppSlideForm({
       </Card>
 
       <FormActions submitLabel={submitLabel} backHref="/admin/mobil/slaytlar" />
-    </ActionForm>
+    </GuardedActionForm>
   );
 }

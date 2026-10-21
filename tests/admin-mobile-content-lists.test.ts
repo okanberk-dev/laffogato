@@ -172,16 +172,22 @@ vi.mock("@/app/admin/mobil/slaytlar/actions", () => ({
   createSlideAction: stub(),
   updateSlideAction: stub(),
   deleteSlideAction: stub(),
+  setSlideActiveAction: stub(),
+  moveSlideAction: stub(),
 }));
 vi.mock("@/app/admin/mobil/duyurular/actions", () => ({
   createAnnouncementAction: stub(),
   updateAnnouncementAction: stub(),
   deleteAnnouncementAction: stub(),
+  setAnnouncementActiveAction: stub(),
+  moveAnnouncementAction: stub(),
 }));
 vi.mock("@/app/admin/mobil/gonderiler/actions", () => ({
   createPostAction: stub(),
   updatePostAction: stub(),
   deletePostAction: stub(),
+  setPostActiveAction: stub(),
+  movePostAction: stub(),
 }));
 
 const schema = await import("@/lib/admin/app-content-schema");
@@ -322,7 +328,8 @@ describe("list pages", () => {
  */
 function expectHandPosted(html: string, file: string): void {
   const src = readFileSync(file, "utf8");
-  expect(src, file).toMatch(/<ActionForm\b/);
+  // GuardedActionForm is ActionForm with the unsaved-changes guard.
+  expect(src, file).toMatch(/<(?:Guarded)?ActionForm\b/);
   expect(src, file).not.toMatch(/<form\b/);
   expect(html.match(/<form\b/g), file).toHaveLength(1);
   expect(html, file).not.toContain("$ACTION");

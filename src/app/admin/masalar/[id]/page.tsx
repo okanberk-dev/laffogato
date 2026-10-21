@@ -9,7 +9,7 @@ import {
   Section,
   type KeyValueItem,
 } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { tableQrSvg } from "@/lib/admin/cafe-table-qr";
 import { cafeTableIdSchema } from "@/lib/admin/cafe-table-schema";
@@ -88,10 +88,7 @@ export default async function CafeTablePage({ params }: PageProps) {
       </Link>
 
       <header className="mb-6 flex flex-col gap-3">
-        <div
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-          style={MONO_STYLE}
-        >
+        <div className={EYEBROW} style={MONO_STYLE}>
           Satış · Masalar
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-words text-[var(--admin-text)] sm:text-3xl">

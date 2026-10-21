@@ -257,18 +257,23 @@ export function ProductActiveToggle({
   );
 }
 
-/** A row's "Sil": a confirm dialog, then a toast. */
+/**
+ * "Sil": a confirm dialog, then a toast. On the product's own page
+ * (`thenList`) the answer is the list, with the toast.
+ */
 export function DeleteProduct({
   p,
   variant,
+  thenList = false,
 }: {
   p: Pick<ProductListRow, "id" | "name">;
   variant?: "danger" | "menuDanger";
+  thenList?: boolean;
 }) {
   return (
     <ConfirmButton
       action={deleteProductAction}
-      hidden={{ id: p.id }}
+      hidden={thenList ? { id: p.id, then: "list" } : { id: p.id }}
       label="Sil"
       ariaLabel={`Sil: ${p.name}`}
       variant={variant}

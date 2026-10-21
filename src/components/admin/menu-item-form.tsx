@@ -7,12 +7,8 @@ import {
 } from "@/lib/admin/store";
 
 import { Card, Checkbox, Field, Select, TextInput, Textarea } from "./forms";
-import {
-  ActionForm,
-  FormFieldError,
-  FormMessage,
-  SubmitButton,
-} from "./action-form";
+import { FormFieldError, FormMessage, SubmitButton } from "./action-form";
+import { GuardedActionForm } from "./guarded-action-form";
 import { BUTTON, type ModalAction } from "./ui";
 import { BackdropField } from "@/components/admin/backdrop-field";
 import { ImageUpload } from "@/components/admin/image-upload";
@@ -20,6 +16,10 @@ import {
   MENU_TAG_OPTIONS,
   unknownMenuTags,
 } from "@/lib/admin/menu-item-schema";
+import {
+  SAVE_AND_NEW_FIELD,
+  SAVE_AND_NEW_VALUE,
+} from "@/lib/admin/save-and-new";
 import { photoKind } from "@/lib/backdrop/scene-core";
 import {
   MENU_ALLERGENS,
@@ -56,6 +56,11 @@ export interface MenuItemFormProps {
   cancelHref: string;
   /** The menu's KDV default (Ayarlar > Vergi), named in the select. */
   menuTaxRate?: number;
+  /**
+   * A new item's second button, "Kaydet ve yenisini ekle": the action opens
+   * the next form in the same category instead of the list.
+   */
+  saveAndNew?: boolean;
 }
 
 export function MenuItemForm({
@@ -65,6 +70,7 @@ export function MenuItemForm({
   submitLabel,
   cancelHref,
   menuTaxRate = LEGAL_TAX_RATES.menu,
+  saveAndNew = false,
 }: MenuItemFormProps) {
   const priceValue = item ? (item.priceMinor / 100).toFixed(2) : "";
   const priceLValue =
@@ -84,7 +90,7 @@ export function MenuItemForm({
       : [...KDV_RATE_CHOICES, ownTaxRate].sort((a, b) => a - b);
 
   return (
-    <ActionForm action={action} className="grid gap-6 lg:grid-cols-3">
+    <GuardedActionForm action={action} className="grid gap-6 lg:grid-cols-3">
       <Card className="grid gap-5 lg:col-span-2">
         <Field label="Ürün adı" hint="Örn: Çilekli Matcha">
           <TextInput
@@ -296,11 +302,20 @@ export function MenuItemForm({
         <div className="mt-2 flex flex-col gap-2">
           <FormMessage />
           <SubmitButton>{submitLabel}</SubmitButton>
+          {saveAndNew ? (
+            <SubmitButton
+              variant="ghost"
+              name={SAVE_AND_NEW_FIELD}
+              value={SAVE_AND_NEW_VALUE}
+            >
+              Kaydet ve yenisini ekle
+            </SubmitButton>
+          ) : null}
           <Link href={cancelHref} className={`${BUTTON.ghost} w-full`}>
             Vazgeç
           </Link>
         </div>
       </Card>
-    </ActionForm>
+    </GuardedActionForm>
   );
 }

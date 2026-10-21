@@ -15,6 +15,11 @@ import { foldTr } from "./text-fold";
 
 export const CAFE_TABLES_PATH = "/admin/masalar";
 
+/** The new table's form. */
+export function cafeTableNewHref(): string {
+  return `${CAFE_TABLES_PATH}/yeni`;
+}
+
 /** A table's view page. */
 export function cafeTableHref(id: string): string {
   return `${CAFE_TABLES_PATH}/${encodeURIComponent(id)}`;

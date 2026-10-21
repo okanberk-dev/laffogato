@@ -178,10 +178,14 @@ export default function RootLayout({
 }>) {
   return (
     // suppressHydrationWarning: CONSENT_SEEN sets data-consent on <html>
-    // before React hydrates it.
+    // before React hydrates it. data-scroll-behavior: globals.css scrolls
+    // <html> smoothly for in-page links; Next 16 no longer turns that off
+    // for a route change unless asked, so every new page glided up to its
+    // top (and the dev console warned on every page).
     <html
       lang={SITE.language}
       className={fontVariables}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>

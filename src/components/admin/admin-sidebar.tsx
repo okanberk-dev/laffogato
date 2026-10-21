@@ -801,6 +801,19 @@ function AccountLinks({
 }
 
 /**
+ * Scrolls the nav itself (never the page) so its current row is in view,
+ * centred when it was out of sight; a row already in view stays put.
+ */
+function keepActiveRowInView(nav: HTMLElement | null): void {
+  const row = nav?.querySelector<HTMLElement>('a[aria-current="page"]');
+  if (!nav || !row) return;
+  const box = nav.getBoundingClientRect();
+  const at = row.getBoundingClientRect();
+  if (at.top >= box.top && at.bottom <= box.bottom) return;
+  nav.scrollTop += at.top - box.top - (box.height - at.height) / 2;
+}
+
+/**
  * The sidebar's contents: the logo, the nav and the account block. Drawn
  * twice (the desktop column and the phone's drawer), so ids take a prefix.
  * Six items or fewer (Personel) are one list without group headers. With
@@ -852,6 +865,17 @@ export function AdminSidebarBody({
     groups.find((g) => g.items.some((i) => i.href === activeHref))?.title ??
     null;
   const flat = navIsFlat(groups);
+  const navRef = useRef<HTMLElement>(null);
+  // The open page's row stays in sight. The owner's five groups are taller
+  // than a laptop's column (1280 x 800-900), so a page under İçerik or
+  // Yönetim opened with its row below the fold and nothing showing where it
+  // was. A frame later: the drawer's <dialog> opens in the parent's effect.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() =>
+      keepActiveRowInView(navRef.current),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [activeHref, rail]);
 
   const row = (item: AdminNavItem) => {
     const active = item.href === activeHref;
@@ -978,6 +1002,7 @@ export function AdminSidebarBody({
       {/* Nav. Folded, its scrollbar goes (it would take a quarter of the
           rail); the wheel and the keys still scroll it. */}
       <nav
+        ref={navRef}
         aria-label="Panel"
         className={cx(
           "flex-1 overflow-y-auto pb-4",

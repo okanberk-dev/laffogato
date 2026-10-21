@@ -22,6 +22,7 @@ import {
 } from "@/lib/backdrop/scene-core";
 
 import { Select } from "./forms";
+import { EYEBROW, NUMERIC_STYLE } from "./ui/styles";
 
 /**
  * The panel's "Sahne" and "Kap biçimi" fields (glass round G5; lafmobil
@@ -138,10 +139,6 @@ const TONE_CLASS: Record<Tone, string> = {
   info: "border-[var(--admin-border)] bg-[var(--admin-surface-2)] text-[var(--admin-text-soft)]",
 };
 
-const LABEL_CLASS =
-  "text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase";
-const LABEL_STYLE = { fontFamily: "var(--mono), monospace" };
-
 function Swatch({ color, title }: { color: string; title: string }) {
   return (
     <span
@@ -185,7 +182,7 @@ export function BackdropField(props: BackdropFieldProps) {
   return (
     <div className="grid gap-5 md:grid-cols-2">
       <div className="flex flex-col gap-2">
-        <label htmlFor={sceneId} className={LABEL_CLASS} style={LABEL_STYLE}>
+        <label htmlFor={sceneId} className={EYEBROW}>
           Sahne
         </label>
         <Select
@@ -224,7 +221,7 @@ export function BackdropField(props: BackdropFieldProps) {
                 color={status.measured}
                 title="Fotoğraftan okunan gövde rengi"
               />
-              <span style={LABEL_STYLE}>{status.measured}</span>
+              <span style={NUMERIC_STYLE}>{status.measured}</span>
             </span>
           )}
         </div>
@@ -238,7 +235,7 @@ export function BackdropField(props: BackdropFieldProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor={vesselId} className={LABEL_CLASS} style={LABEL_STYLE}>
+        <label htmlFor={vesselId} className={EYEBROW}>
           Kap biçimi
         </label>
         <Select

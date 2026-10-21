@@ -115,7 +115,8 @@ export function ActionButton({
   children: ReactNode;
   /** Button text while the action runs; default the label itself. */
   pendingLabel?: ReactNode;
-  variant?: ButtonVariant;
+  /** "bare": none of the kit's looks, `className` is all of it (MoveButtons). */
+  variant?: ButtonVariant | "bare";
   className?: string;
   title?: string;
   /**
@@ -142,7 +143,7 @@ export function ActionButton({
         aria-busy={pending || undefined}
         aria-label={ariaLabel}
         title={title}
-        className={cx(BUTTON[variant], className)}
+        className={cx(variant === "bare" ? null : BUTTON[variant], className)}
       >
         {pending ? (pendingLabel ?? children) : children}
       </button>
@@ -339,16 +340,26 @@ export function SubmitButton({
   pendingLabel = "Kaydediliyor…",
   variant = "primary",
   className,
+  name,
+  value,
 }: {
   children: ReactNode;
   pendingLabel?: ReactNode;
   variant?: ButtonVariant;
   className?: string;
+  /**
+   * Posted with the form when this button sends it (a form with two submit
+   * buttons tells them apart: "Kaydet ve yenisini ekle").
+   */
+  name?: string;
+  value?: string;
 }) {
   const { pending } = useActionFormState();
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={pending}
       className={cx(BUTTON[variant], className)}
     >

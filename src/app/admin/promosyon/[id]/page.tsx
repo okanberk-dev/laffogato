@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/admin/back-link";
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import {
+  ActionMenu,
   Badge,
   BUTTON,
   DataTable,
@@ -14,7 +15,7 @@ import {
   Section,
   type KeyValueItem,
 } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import {
   PROMO_STATE_LABELS,
@@ -32,7 +33,7 @@ import {
 import { canAccess } from "@/lib/admin/roles";
 import { getPromo, type AdminPromo } from "@/lib/admin/store";
 
-import { PromoActiveToggle } from "../promo-actions-ui";
+import { DeletePromo, PromoActiveToggle } from "../promo-actions-ui";
 
 export const metadata = { title: "Admin · Promosyon kodu" };
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ async function readOrders(
 /**
  * One promo code (Filament's view page): where it stands at the cart and
  * why, its numbers, and the orders it went into (admin audit PEO-24, D37).
- * "Sil" stays in the list's ⋯ menu.
+ * "Sil" is in the ⋯ menu, as on the list's row; it answers with the list.
  */
 export default async function PromoViewPage({ params }: PageProps) {
   const session = await requireRole("promos");
@@ -113,10 +114,7 @@ export default async function PromoViewPage({ params }: PageProps) {
       <BackLink href={PROMOS_PATH}>Promosyon kodları</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
-        <div
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase"
-          style={MONO_STYLE}
-        >
+        <div className={EYEBROW} style={MONO_STYLE}>
           Pazarlama · Promosyon
         </div>
         <h1
@@ -136,6 +134,9 @@ export default async function PromoViewPage({ params }: PageProps) {
             Düzenle
           </Link>
           <PromoActiveToggle promo={promo} />
+          <ActionMenu label={`${promo.code} işlemleri`} framed>
+            <DeletePromo promo={promo} thenList />
+          </ActionMenu>
         </div>
       </header>
 

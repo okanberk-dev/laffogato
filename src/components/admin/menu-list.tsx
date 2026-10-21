@@ -6,11 +6,13 @@ import { useActionState, useState } from "react";
 import {
   bulkMenuAction,
   deleteMenuItemAction,
+  moveMenuItemAction,
   setMenuItemActiveAction,
   type BulkMenuActionState,
 } from "@/app/admin/menu/actions";
 import { actionError, actionOk } from "@/lib/admin/action-result";
 import {
+  menuItemCopyHref,
   menuItemEditHref,
   menuItemHref,
   menuTagChip,
@@ -23,6 +25,7 @@ import { ActionButton, useHandPost } from "./action-form";
 import { BulkActionBar, SelectAllCheckbox, useSelection } from "./bulk";
 import { bulkAnswer } from "./bulk-answer";
 import { formatTRY } from "./forms";
+import { MoveButtons } from "./move-buttons";
 import {
   ActionMenu,
   ActionMenuLink,
@@ -39,7 +42,7 @@ import {
   type DataTableColumn,
   type EmptyListAction,
 } from "./ui";
-import { EYEBROW, MONO_STYLE } from "./ui/styles";
+import { EYEBROW, MONO_STYLE, ROW_CONTROL } from "./ui/styles";
 
 interface Props {
   groups: MenuGroup[];
@@ -48,6 +51,12 @@ interface Props {
   /** Shown instead of the groups when nothing matches. */
   emptyTitle?: string;
   emptyAction?: EmptyListAction | null;
+  /**
+   * ↑ / ↓ in the Sıra column: only while each category shows all its items
+   * (no tab but Tümü, no search), since a move swaps with the neighbour the
+   * menu has, which a filtered list may not show.
+   */
+  reorderable?: boolean;
 }
 
 const initialBulkState: BulkMenuActionState = {};
@@ -133,15 +142,24 @@ function StatusBadge({ it }: { it: Pick<MenuListRow, "isActive"> }) {
  */
 export function SoldOutToggle({
   item,
+  row = false,
 }: {
   item: Pick<MenuListRow, "id" | "name" | "isActive">;
+  /** The list row's small size (ROW_CONTROL); the item's page has buttons. */
+  row?: boolean;
 }) {
   return (
     <ActionButton
       action={setMenuItemActiveAction}
       hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
-      variant={item.isActive ? "ghost" : "primary"}
-      className="whitespace-nowrap"
+      variant={row ? "bare" : item.isActive ? "ghost" : "primary"}
+      className={
+        row
+          ? item.isActive
+            ? ROW_CONTROL.text
+            : ROW_CONTROL.textStrong
+          : "whitespace-nowrap"
+      }
       ariaLabel={`${item.isActive ? "Tükendi" : "Satışa aç"}: ${item.name}`}
       title={
         item.isActive
@@ -158,33 +176,52 @@ export function SoldOutToggle({
 function RowActions({ it }: { it: MenuListRow }) {
   return (
     <span className="flex items-center justify-end gap-2">
-      <SoldOutToggle item={it} />
+      <SoldOutToggle item={it} row />
       <ActionMenu label={`${it.name} işlemleri`}>
         <ActionMenuLink href={menuItemHref(it.id)}>Görüntüle</ActionMenuLink>
         <ActionMenuLink href={menuItemEditHref(it.id)}>Düzenle</ActionMenuLink>
+        <ActionMenuLink href={menuItemCopyHref(it.id)}>Kopyala</ActionMenuLink>
         <ActionMenuSeparator />
-        <ConfirmButton
-          action={deleteMenuItemAction}
-          hidden={{ id: it.id }}
-          label="Sil"
-          ariaLabel={`Sil: ${it.name}`}
-          variant="menuDanger"
-          title={`"${it.name}" silinsin mi?`}
-          description="Kalem menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Tükendi'ye bas."
-        />
+        <DeleteMenuItem item={it} />
       </ActionMenu>
     </span>
   );
 }
 
+/**
+ * "Sil" in a ⋯ menu: a confirm dialog, then a toast. On the item's own page
+ * (`thenList`) the answer is the menu list, with the toast.
+ */
+export function DeleteMenuItem({
+  item,
+  thenList = false,
+}: {
+  item: Pick<MenuListRow, "id" | "name">;
+  thenList?: boolean;
+}) {
+  return (
+    <ConfirmButton
+      action={deleteMenuItemAction}
+      hidden={thenList ? { id: item.id, then: "list" } : { id: item.id }}
+      label="Sil"
+      ariaLabel={`Sil: ${item.name}`}
+      variant="menuDanger"
+      title={`"${item.name}" silinsin mi?`}
+      description="Kalem menüden ve panelden kalıcı olarak silinir. Bir süreliğine kaldırmak istiyorsan Tükendi'ye bas."
+    />
+  );
+}
+
 // The table fits its card beside the sidebar: at 1024 px the card is about
-// 720 px wide, so Sıra and Etiket join it from xl (the tags ride under the
-// name below that) and the item's name keeps its width.
-const COLUMNS: DataTableColumn<MenuListRow>[] = [
+// 700 px wide, so Etiket and the Sıra number join it from xl (the tags ride
+// under the name below that). The ↑ / ↓ are small enough to join from md
+// (columnsFor), with the name's column a little narrower until xl: no
+// sideways scroll at 768 or 1024, with a mouse or a finger.
+const COLUMNS: readonly DataTableColumn<MenuListRow>[] = [
   {
     key: "ad",
     header: "Kalem",
-    className: "min-w-[12rem]",
+    className: "min-w-[9rem] xl:min-w-[12rem]",
     cell: (it) => (
       <span className="block min-w-0">
         <span className="block">{it.name}</span>
@@ -232,12 +269,42 @@ const COLUMNS: DataTableColumn<MenuListRow>[] = [
   },
 ];
 
+/**
+ * A category's columns: with `reorderable` its Sıra cell is the ↑ / ↓ in
+ * the category's own order (the rows as drawn), otherwise the number. The
+ * ↑ / ↓ are in the table from md; the phone card draws its own.
+ */
+function columnsFor(
+  rows: readonly MenuListRow[],
+  reorderable: boolean,
+): readonly DataTableColumn<MenuListRow>[] {
+  if (!reorderable) return COLUMNS;
+  return COLUMNS.map((c) =>
+    c.key === "sira"
+      ? {
+          ...c,
+          hideBelow: "md" as const,
+          cell: (it: MenuListRow) => (
+            <MoveButtons
+              action={moveMenuItemAction}
+              id={it.id}
+              index={rows.indexOf(it)}
+              count={rows.length}
+              label={it.name}
+            />
+          ),
+        }
+      : c,
+  );
+}
+
 export function MenuList({
   groups,
   categoryKeys,
   categoryLabels,
   emptyTitle = "Bu süzgece uyan kalem yok.",
   emptyAction = null,
+  reorderable = false,
 }: Props) {
   const toast = useToast();
   // The last bulk answer that succeeded: each new one clears the selection
@@ -304,13 +371,14 @@ export function MenuList({
                 <Link
                   href={`/admin/menu/yeni?cat=${key}`}
                   className={BUTTON.link}
+                  aria-label={`${categoryLabels[key]} kategorisine yeni kalem ekle`}
                 >
-                  + Bu kategoriye ekle
+                  Bu kategoriye ekle
                 </Link>
               </div>
               <DataTable
                 caption={categoryLabels[key]}
-                columns={COLUMNS}
+                columns={columnsFor(rows, reorderable)}
                 rows={rows}
                 rowKey={(it) => it.id}
                 rowHref={(it) => menuItemHref(it.id)}
@@ -320,7 +388,7 @@ export function MenuList({
                 rowActions={(it) => <RowActions it={it} />}
                 // A phone card: the name gets the width (the price beside
                 // it squeezed "Çilekli Matcha Latte" to a word per line),
-                // then the status and tags, then the price.
+                // then the status and tags, then the price and the ↑ / ↓.
                 mobileCard={(it) => (
                   <div className="flex flex-col gap-2">
                     <div className="min-w-0">
@@ -340,8 +408,17 @@ export function MenuList({
                       <StatusBadge it={it} />
                       {it.tags.length > 0 ? <MenuTags tags={it.tags} /> : null}
                     </span>
-                    <span className="text-sm">
+                    <span className="flex items-center justify-between gap-3 text-sm">
                       <Price it={it} row />
+                      {reorderable ? (
+                        <MoveButtons
+                          action={moveMenuItemAction}
+                          id={it.id}
+                          index={rows.indexOf(it)}
+                          count={rows.length}
+                          label={it.name}
+                        />
+                      ) : null}
                     </span>
                   </div>
                 )}

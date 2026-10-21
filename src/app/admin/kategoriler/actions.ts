@@ -5,12 +5,12 @@ import { redirect } from "next/navigation";
 
 import {
   actionError,
-  actionOk,
   fieldErrorsFromIssues,
   type ActionResult,
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import {
   categoryDeleteBlocker,
   categoryFormSchema,
@@ -163,5 +163,9 @@ export async function deleteCategoryAction(
     entityId: id,
     payload: { slug: category.slug, label: category.label },
   });
-  return actionOk(`"${category.label}" silindi.`);
+  return deletedAnswer(
+    formData,
+    `"${category.label}" silindi.`,
+    "/admin/kategoriler",
+  );
 }

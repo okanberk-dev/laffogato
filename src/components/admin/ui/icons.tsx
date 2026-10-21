@@ -3,6 +3,7 @@ import {
   CalendarRange,
   ChartColumn,
   ChevronDown,
+  ChevronUp,
   Coffee,
   Ellipsis,
   ExternalLink,
@@ -13,9 +14,12 @@ import {
   LayoutGrid,
   LogOut,
   Mail,
+  Megaphone,
   Menu,
   MicVocal,
+  Newspaper,
   Package,
+  PackageX,
   Plus,
   QrCode,
   Radio,
@@ -28,7 +32,10 @@ import {
   ShoppingBag,
   Smartphone,
   Stamp,
+  Tags,
   TicketPercent,
+  TrendingUp,
+  TriangleAlert,
   UserCog,
   Users,
   X,
@@ -82,12 +89,22 @@ export const ADMIN_ICONS = {
   dateRange: CalendarRange,
   close: X,
   chevron: ChevronDown,
+  // A row's ↑ / ↓ (MoveButtons): this one and `chevron`.
+  chevronUp: ChevronUp,
   // The account block: Güvenlik / 2FA, the single-key switch, Sıkı görünüm,
   // Çıkış.
   security: ShieldCheck,
   shortcuts: Keyboard,
   density: Rows3,
   logout: LogOut,
+  // The dashboard: its tiles (open orders draw `orders`) and the "Hızlı
+  // ekle" records that have no nav item of their own.
+  attention: TriangleAlert,
+  soldOut: PackageX,
+  revenue: TrendingUp,
+  categories: Tags,
+  announcement: Megaphone,
+  post: Newspaper,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;

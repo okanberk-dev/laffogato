@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cx } from "@/components/laffogato/cx";
 import type { AdminTone } from "@/lib/admin/tone";
 
+import { AdminIcon, type AdminIconName } from "../ui/icons";
 import { TONE_INK } from "../ui/tone";
 import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "../ui/styles";
 
@@ -19,7 +20,10 @@ const CARD =
  * its size follows the tile's width (`cqi`), so "₺1.272.103,89" stays on
  * one line in a phone's half-width tile, and only a still longer amount
  * wraps. The hint wraps too; it can carry an amount. With `href` the
- * whole tile is a link to the list it counts (admin audit SHE-31).
+ * whole tile is a link to the list it counts (admin audit SHE-31). With
+ * `icon` a small muted icon beside the label names the figure at a glance;
+ * it takes the value's tone, so a figure that asks for a person shows it
+ * twice.
  */
 export function StatCard({
   label,
@@ -28,6 +32,7 @@ export function StatCard({
   href,
   tone,
   money = false,
+  icon,
 }: {
   label: string;
   value: string;
@@ -37,11 +42,25 @@ export function StatCard({
   tone?: AdminTone;
   /** Tabular digits, and no truncation. */
   money?: boolean;
+  /** Decorative: the label names the figure. */
+  icon?: AdminIconName;
 }) {
   const body = (
     <>
-      <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
-        {label}
+      <span className="flex min-w-0 items-start justify-between gap-2">
+        <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
+          {label}
+        </span>
+        {icon ? (
+          <AdminIcon
+            name={icon}
+            size={16}
+            className={cx(
+              "mt-0.5 print:hidden",
+              tone ? TONE_INK[tone] : "text-[var(--admin-text-mute)]",
+            )}
+          />
+        ) : null}
       </span>
       <span
         title={value}

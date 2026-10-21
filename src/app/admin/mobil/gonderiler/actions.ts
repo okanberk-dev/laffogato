@@ -11,14 +11,22 @@ import {
 import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole, type AdminSession } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { startCampaignSend } from "@/lib/admin/campaign-mail";
 import { setAdminFlash } from "@/lib/admin/flash";
 import type { AdminFlashTone } from "@/lib/admin/flash-core";
 import { isPublishWindowOpen } from "@/lib/admin/publish-window";
 import { canAccess } from "@/lib/admin/roles";
 import {
+  moveAnswer,
+  readActiveForm,
+  readMoveForm,
+} from "@/lib/admin/list-order";
+import {
   createAppPost,
   deleteAppPost,
+  moveAppPost,
+  setAppPostActive,
   setAppPostEmailCampaign,
   updateAppPost,
   type AdminAppPost,
@@ -266,12 +274,58 @@ export async function deletePostAction(
   revalidatePath(LIST_PATH);
   if (!removed) return actionError("Gönderi zaten silinmiş.");
   await logAudit({ action: "delete", entity: "app_post", entityId: id });
-  const done = "Gönderi silindi; uygulamadan birkaç dakika içinde kalkar.";
-  // From the edit page's header: that page has nothing left to show, so the
-  // answer is the list, with the toast.
-  if (formData.get("then") === "list") {
-    await setAdminFlash(done);
-    redirect(LIST_PATH);
+  return deletedAnswer(
+    formData,
+    "Gönderi silindi; uygulamadan birkaç dakika içinde kalkar.",
+    LIST_PATH,
+  );
+}
+
+/**
+ * "Yayına al" / "Yayından kaldır" from the list: one click, reversible. It
+ * never mails the members: a post's e-mail is the form's step
+ * (emailMembersForPost, with its checkbox), never a side effect of the list.
+ */
+export async function setPostActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readActiveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const found = await setAppPostActive(form.id, form.isActive);
+  revalidatePath(LIST_PATH);
+  if (!found) return actionError(GONE);
+  await logAudit({
+    action: "update",
+    entity: "app_post",
+    entityId: form.id,
+    payload: { isActive: form.isActive },
+  });
+  return actionOk(
+    form.isActive
+      ? "Gönderi yayına alındı; telefonlara birkaç dakika içinde ulaşır."
+      : "Gönderi yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
+  );
+}
+
+/** The ↑ / ↓ beside each row (the list unfiltered). */
+export async function movePostAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readMoveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const outcome = await moveAppPost(form.id, form.direction);
+  if (outcome === "moved") {
+    await logAudit({
+      action: "update",
+      entity: "app_post",
+      entityId: form.id,
+      payload: { move: form.direction },
+    });
+    revalidatePath(LIST_PATH);
   }
-  return actionOk(done);
+  return moveAnswer(outcome, form.direction, "Gönderi", GONE);
 }

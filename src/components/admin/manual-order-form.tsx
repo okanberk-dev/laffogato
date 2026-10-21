@@ -45,7 +45,7 @@ import {
 } from "./forms";
 import { BUTTON } from "./ui";
 import { ComboboxField } from "./ui/combobox-field";
-import { NUMERIC_STYLE } from "./ui/styles";
+import { CARD_TITLE, LABEL, NUMERIC_STYLE } from "./ui/styles";
 
 export interface ManualProductVariant {
   id: string;
@@ -95,12 +95,6 @@ interface Props {
    */
   clientOrderId: string;
 }
-
-const SECTION_TITLE =
-  "text-[10px] tracking-[0.22em] text-[var(--admin-text-soft)] uppercase";
-const SECTION_TITLE_STYLE = { fontFamily: "var(--mono), monospace" } as const;
-const LINE_LABEL =
-  "text-[10px] tracking-[0.18em] text-[var(--admin-text-soft)] uppercase";
 
 /** Units the line's product or variant has; null before a product is picked. */
 function availableFor(product: ManualProduct | undefined, variantId: string) {
@@ -341,9 +335,7 @@ export function ManualOrderForm({
       <input type="hidden" name="clientOrderId" value={attemptId} readOnly />
 
       <Card className="grid gap-4">
-        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
-          Ürünler
-        </h2>
+        <h2 className={CARD_TITLE}>Ürünler</h2>
 
         <div className="grid gap-3">
           {lines.map((line, index) => {
@@ -357,7 +349,7 @@ export function ManualOrderForm({
                 className="grid gap-2 rounded-lg border border-[var(--admin-border)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] sm:items-end"
               >
                 <label className="grid min-w-0 gap-1">
-                  <span className={LINE_LABEL}>Ürün</span>
+                  <span className={LABEL}>Ürün</span>
                   <ComboboxField
                     label="Ürün"
                     placeholder="Seç…"
@@ -368,7 +360,7 @@ export function ManualOrderForm({
                 </label>
 
                 <label className="grid min-w-0 gap-1">
-                  <span className={LINE_LABEL}>Varyant</span>
+                  <span className={LABEL}>Varyant</span>
                   <ComboboxField
                     label="Varyant"
                     placeholder={variants.length === 0 ? "-" : undefined}
@@ -382,7 +374,7 @@ export function ManualOrderForm({
                 </label>
 
                 <label className="grid gap-1">
-                  <span className={LINE_LABEL}>Adet</span>
+                  <span className={LABEL}>Adet</span>
                   <TextInput
                     type="number"
                     min={1}
@@ -401,7 +393,7 @@ export function ManualOrderForm({
                 </label>
 
                 <div className="grid gap-1">
-                  <span className={LINE_LABEL}>Tutar</span>
+                  <span className={LABEL}>Tutar</span>
                   <span
                     className="py-2.5 text-sm text-[var(--admin-text)]"
                     style={NUMERIC_STYLE}
@@ -463,9 +455,7 @@ export function ManualOrderForm({
       </Card>
 
       <Card className="grid gap-5">
-        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
-          Müşteri ve teslimat
-        </h2>
+        <h2 className={CARD_TITLE}>Müşteri ve teslimat</h2>
         <div className="grid gap-1.5">
           <Field label="Teslimat" hint={fulfillmentHint}>
             <Select
@@ -541,9 +531,7 @@ export function ManualOrderForm({
       </Card>
 
       <Card className="grid gap-5">
-        <h2 className={SECTION_TITLE} style={SECTION_TITLE_STYLE}>
-          Sipariş ayarları
-        </h2>
+        <h2 className={CARD_TITLE}>Sipariş ayarları</h2>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="grid content-start gap-1.5">
             <Field label="Başlangıç durumu">

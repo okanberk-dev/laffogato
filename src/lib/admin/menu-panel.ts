@@ -22,6 +22,29 @@ export function menuItemEditHref(id: string): string {
   return `${menuItemHref(id)}/duzenle`;
 }
 
+/** "Kopyala": the new item's form, filled from this one. */
+const MENU_COPY_PARAM = "kopya";
+
+export function menuItemCopyHref(id: string): string {
+  return `${MENU_PATH}/yeni?${MENU_COPY_PARAM}=${encodeURIComponent(id)}`;
+}
+
+/** The longest name the form takes (menu-item-schema's limit). */
+const MENU_NAME_MAX = 120;
+
+/**
+ * A copy's starting fields: everything the item has, under a name that says
+ * it is a copy, and off the menu until the operator ticks "Menüde göster"
+ * (a saved-as-is copy must not show "Latte (kopya)" to customers).
+ */
+export function menuItemCopy(item: AdminMenuItem): AdminMenuItem {
+  return {
+    ...item,
+    name: `${item.name} (kopya)`.slice(0, MENU_NAME_MAX),
+    isActive: false,
+  };
+}
+
 /**
  * The tags the app knows (`PRODUCT_TAG_VALUES`, docs/API-MOBILE.md §1), in
  * the panel's Turkish. The list showed the raw keys, upper-cased under
@@ -139,7 +162,7 @@ export interface MenuGroup {
 export interface MenuListResult {
   /**
    * The categories in menu order. With nothing filtered every category is
-   * there, empty ones too (their "+ Bu kategoriye ekle"); behind a tab, a
+   * there, empty ones too (their "Bu kategoriye ekle"); behind a tab, a
    * search or a category only those with a match.
    */
   groups: MenuGroup[];
@@ -147,6 +170,22 @@ export interface MenuListResult {
   total: number;
   /** Every tab's count, with the search and the category applied. */
   counts: Record<MenuTab, number>;
+}
+
+/**
+ * The order of a category's items as the list draws them: Sıra, then the
+ * name, then the id. The ↑ / ↓ buttons move in this order (store.ts
+ * moveMenuItem), so a tie of typed-in numbers cannot make a move a no-op.
+ */
+export function compareMenuRows(
+  a: Pick<MenuListRow, "sortOrder" | "name" | "id">,
+  b: Pick<MenuListRow, "sortOrder" | "name" | "id">,
+): number {
+  return (
+    a.sortOrder - b.sortOrder ||
+    a.name.localeCompare(b.name, "tr") ||
+    a.id.localeCompare(b.id)
+  );
 }
 
 /** The Kafe menüsü list: items by category in their Sıra, and the tab counts. */
@@ -175,12 +214,7 @@ export function menuList(
   const groups: MenuGroup[] = [];
   let total = 0;
   for (const key of opts.categoryKeys) {
-    const rows = (byKey.get(key) ?? []).sort(
-      (a, b) =>
-        a.sortOrder - b.sortOrder ||
-        a.name.localeCompare(b.name, "tr") ||
-        a.id.localeCompare(b.id),
-    );
+    const rows = (byKey.get(key) ?? []).sort(compareMenuRows);
     total += rows.length;
     if (rows.length > 0 || !filtered) groups.push({ key, rows });
   }

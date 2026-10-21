@@ -57,6 +57,16 @@ maybe("the product food label through the CSV import in a real Postgres", () => 
     pool = new pg.Pool({ connectionString: URL_, max: 4 });
     holder.pool = pool;
     await applyBundledSchema(pool);
+    // The shared database holds products other suites wrote with fixed ids
+    // (schema-objects' prd-0001, -0006, -0011) without moving the counter,
+    // so the import's new product could draw a taken id and fail on the
+    // primary key. Lift the counter past them, as the app's own seed does
+    // (store.ts setCounter, `raise_counter`).
+    await pool.query(
+      `select public.raise_counter('prd', coalesce(
+         (select max(substring(id from '^prd-([0-9]+)$')::bigint) from public.products),
+         0))`,
+    );
     await pool.query(
       `insert into public.products
          (id, name, slug, sku, tag, img, "priceMinor", "desc", cat, stock, "isActive", tags)

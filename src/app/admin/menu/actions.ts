@@ -11,6 +11,9 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
+import { wantsAnother } from "@/lib/admin/save-and-new";
+import { moveAnswer, readMoveForm } from "@/lib/admin/list-order";
 import { bulkMenuSchema } from "@/lib/admin/bulk-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import { MAX_STORED_IMAGE_LENGTH } from "@/lib/admin/image-encode";
@@ -29,6 +32,7 @@ import {
   getMenuItem,
   listMenuItemLabels,
   MENU_CATEGORY_KEYS,
+  moveMenuItem,
   updateMenuItem,
   type AdminMenuItem,
   type BulkMenuOp,
@@ -245,6 +249,11 @@ export async function createMenuItemAction(
     },
   });
   revalidateMenu();
+  // "Kaydet ve yenisini ekle": the next item's form, in the same category.
+  if (wantsAnother(formData)) {
+    await setAdminFlash(`"${created.name}" menüye eklendi. Sıradakini gir.`);
+    redirect(`/admin/menu/yeni?cat=${encodeURIComponent(created.categoryKey)}`);
+  }
   await setAdminFlash(`"${created.name}" menüye eklendi.`);
   redirect("/admin/menu");
 }
@@ -298,7 +307,11 @@ export async function deleteMenuItemAction(
     entityId: id,
     payload: item ? { name: item.name } : {},
   });
-  return actionOk(`"${item?.name ?? id}" silindi.`);
+  return deletedAnswer(
+    formData,
+    `"${item?.name ?? id}" silindi.`,
+    "/admin/menu",
+  );
 }
 
 /**
@@ -385,4 +398,34 @@ export async function bulkMenuAction(
   });
   revalidateMenu();
   return { ok: { op, updated } };
+}
+
+/**
+ * The menu list's ↑ / ↓, within the item's category (the list unfiltered).
+ * It used to be the "Sıralama" number on each item's form (admin audit
+ * CAT-30, the order half).
+ */
+export async function moveMenuItemAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("menu");
+  const form = readMoveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const outcome = await moveMenuItem(form.id, form.direction);
+  if (outcome === "moved") {
+    await logAudit({
+      action: "update",
+      entity: "menu_item",
+      entityId: form.id,
+      payload: { move: form.direction },
+    });
+    revalidateMenu();
+  }
+  return moveAnswer(
+    outcome,
+    form.direction,
+    "Kalem",
+    "Bu kalem silinmiş; listeyi yenile.",
+  );
 }

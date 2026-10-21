@@ -30,6 +30,8 @@ const h = vi.hoisted(() => ({
     deleteShopHeroSlide: vi.fn(),
     getShopHeroSlide: vi.fn(),
     listShopHeroSlides: vi.fn(),
+    setShopHeroSlideActive: vi.fn(),
+    moveShopHeroSlide: vi.fn(),
   },
 }));
 
@@ -284,6 +286,89 @@ describe("deleting a slide", () => {
     const del = h.store.deleteShopHeroSlide.mock.invocationCallOrder[0];
     expect(read).toBeLessThan(del);
   });
+
+  it("from the slide's own page, answers with the list and its toast", async () => {
+    h.store.getShopHeroSlide.mockResolvedValue(STORED);
+    h.store.deleteShopHeroSlide.mockResolvedValue(true);
+    const thrown = await actions
+      .deleteSlideAction(null, form({ id: "shero-9", then: "list" }))
+      .catch((err: { to?: string }) => err);
+    expect((thrown as { to?: string }).to).toBe("/admin/magaza-hero");
+    expect(h.setAdminFlash).toHaveBeenCalledWith(
+      "Slayt silindi, mağazadan kalktı.",
+    );
+  });
+});
+
+describe("the list's one-click controls", () => {
+  it("Yayından kaldır writes the state asked for, audits it and says where it shows", async () => {
+    h.store.setShopHeroSlideActive.mockResolvedValue(true);
+    const res = await actions.setSlideActiveAction(
+      null,
+      form({ id: "shero-9", active: "0" }),
+    );
+    expect(h.store.setShopHeroSlideActive).toHaveBeenCalledWith(
+      "shero-9",
+      false,
+    );
+    expect(res).toMatchObject({ ok: true });
+    expect(h.logAudit).toHaveBeenCalledWith({
+      action: "update",
+      entity: "shop_hero_slide",
+      entityId: "shero-9",
+      payload: { isActive: false },
+    });
+  });
+
+  it("refuses a state that is not 0 or 1, and a slide that is gone", async () => {
+    const bad = await actions.setSlideActiveAction(
+      null,
+      form({ id: "shero-9", active: "toggle" }),
+    );
+    expect(bad).toMatchObject({ ok: false });
+    expect(h.store.setShopHeroSlideActive).not.toHaveBeenCalled();
+    h.store.setShopHeroSlideActive.mockResolvedValue(false);
+    const gone = await actions.setSlideActiveAction(
+      null,
+      form({ id: "shero-9", active: "1" }),
+    );
+    expect(gone).toEqual({
+      ok: false,
+      error: "Bu slayt silinmiş; listeye dön.",
+    });
+    expect(h.logAudit).not.toHaveBeenCalled();
+  });
+
+  it("↑ / ↓ moves a place, and says so at either end", async () => {
+    h.store.moveShopHeroSlide.mockResolvedValue("moved");
+    expect(
+      await actions.moveSlideAction(
+        null,
+        form({ id: "shero-9", direction: "up" }),
+      ),
+    ).toEqual({ ok: true, message: "Slayt bir öne alındı.", tone: "success" });
+    h.store.moveShopHeroSlide.mockResolvedValue("edge");
+    expect(
+      await actions.moveSlideAction(
+        null,
+        form({ id: "shero-9", direction: "down" }),
+      ),
+    ).toEqual({ ok: false, error: "Slayt zaten en sonda." });
+    expect(h.logAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("checks the role before anything", async () => {
+    h.requireRole.mockRejectedValue(new Error("NEXT_REDIRECT"));
+    await expect(
+      actions.setSlideActiveAction(null, form({ id: "shero-9", active: "1" })),
+    ).rejects.toThrow();
+    await expect(
+      actions.moveSlideAction(null, form({ id: "shero-9", direction: "up" })),
+    ).rejects.toThrow();
+    expect(h.requireRole).toHaveBeenCalledWith("shopHero");
+    expect(h.store.setShopHeroSlideActive).not.toHaveBeenCalled();
+    expect(h.store.moveShopHeroSlide).not.toHaveBeenCalled();
+  });
 });
 
 describe("the form", () => {
@@ -305,7 +390,8 @@ describe("the form", () => {
       "src/app/admin/magaza-hero/slide-form.tsx",
       "utf8",
     );
-    expect(src).toContain("<ActionForm");
+    // GuardedActionForm is ActionForm with the unsaved-changes guard.
+    expect(src).toMatch(/<(?:Guarded)?ActionForm\b/);
     expect(src).toContain("<SubmitButton>");
     expect(src).not.toContain("history.back");
   });
@@ -445,10 +531,13 @@ describe("the list", () => {
     expect(html).toMatch(/<img src="\/gorsel\/hero\/shero-1\?v=[0-9a-f]+"/);
     expect(html).toContain('<img src="https://cdn.example.com/b.jpg"');
     expect(html).not.toContain("background-image");
-    expect(html).toContain("görsel yok");
-    // Both row actions in the kit's button shape, named for the slide.
-    expect(html).toContain(`aria-label="Düzenle: ${SLIDE.title}"`);
+    expect(html).toContain("Görsel yok");
+    // The row opens the slide; its ⋯ holds the one-click state and Sil,
+    // each named for the slide.
+    expect(html).toContain('href="/admin/magaza-hero/shero-1"');
+    expect(html).toContain(`aria-label="Yayından kaldır: ${SLIDE.title}"`);
     expect(html).toContain(`aria-label="Sil: ${SLIDE.title}"`);
+    expect(html).toContain("Mağazada 3 slayt dönüyor.");
     expect(html).not.toContain("Shop · Hero slider");
   });
 });

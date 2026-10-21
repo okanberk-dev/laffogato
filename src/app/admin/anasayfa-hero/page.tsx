@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ActionButton } from "@/components/admin/action-form";
 import { Card, PageHeader, formatDateTime } from "@/components/admin/forms";
+import { MoveButtons } from "@/components/admin/move-buttons";
 import {
   ActionMenu,
   ActionMenuLink,
@@ -95,8 +96,8 @@ export default async function AdminHomeHeroPage() {
         description="Ana sayfanın en üstünde dönen kampanya ve ürün slaytları."
         help={
           <p>
-            Kaydettiğin değişiklik siteye hemen yansır. Varsayılan slaytları
-            içe aktarmak, sitenin yerleşik slaytlarını bu listeye alıp buradan
+            Kaydettiğin değişiklik siteye hemen yansır. Varsayılan slaytları içe
+            aktarmak, sitenin yerleşik slaytlarını bu listeye alıp buradan
             düzenlemeni sağlar.
           </p>
         }
@@ -233,47 +234,15 @@ export default async function AdminHomeHeroPage() {
             key: "order",
             header: "Sıra",
             align: "right",
-            cell: (s) => {
-              const i = slides.indexOf(s);
-              // The first row has no "up" and the last no "down"; a blank of
-              // the same width keeps the arrows in their columns.
-              const spacer = (
-                <span aria-hidden="true" className="inline-block w-[44px]" />
-              );
-              return (
-                <span className="inline-flex items-center gap-1">
-                  {i > 0 ? (
-                    <ActionButton
-                      action={moveHomeSlideAction}
-                      hidden={{ id: s.id, direction: "up" }}
-                      ariaLabel={`Öne al: ${title(s)}`}
-                      title="Bir öne al"
-                      className="min-w-[44px]"
-                    >
-                      <span aria-hidden="true">↑</span>
-                    </ActionButton>
-                  ) : (
-                    spacer
-                  )}
-                  {i < slides.length - 1 ? (
-                    <ActionButton
-                      action={moveHomeSlideAction}
-                      hidden={{ id: s.id, direction: "down" }}
-                      ariaLabel={`Geriye al: ${title(s)}`}
-                      title="Bir geriye al"
-                      className="min-w-[44px]"
-                    >
-                      <span aria-hidden="true">↓</span>
-                    </ActionButton>
-                  ) : (
-                    spacer
-                  )}
-                  <span className="sr-only">
-                    {i + 1}. sırada, toplam {slides.length}
-                  </span>
-                </span>
-              );
-            },
+            cell: (s) => (
+              <MoveButtons
+                action={moveHomeSlideAction}
+                id={s.id}
+                index={slides.indexOf(s)}
+                count={slides.length}
+                label={title(s)}
+              />
+            ),
           },
         ]}
         rowActions={(s) => (
@@ -285,6 +254,7 @@ export default async function AdminHomeHeroPage() {
               action={toggleHomeSlideAction}
               hidden={{ id: s.id, active: s.isActive ? "0" : "1" }}
               variant="menu"
+              ariaLabel={`${s.isActive ? "Yayından kaldır" : "Yayına al"}: ${title(s)}`}
             >
               {s.isActive ? "Yayından kaldır" : "Yayına al"}
             </ActionButton>
@@ -293,6 +263,7 @@ export default async function AdminHomeHeroPage() {
               action={deleteHomeSlideAction}
               hidden={{ id: s.id }}
               label="Sil"
+              ariaLabel={`Sil: ${title(s)}`}
               variant="menuDanger"
               title={`"${title(s)}" silinsin mi?`}
               description="Slayt anasayfadan hemen kalkar ve kalıcı olarak silinir. Bir süreliğine kaldırmak için “Yayından kaldır”ı kullan."

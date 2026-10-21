@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { ActionForm } from "@/components/admin/action-form";
+import { GuardedActionForm } from "@/components/admin/guarded-action-form";
 import {
   Card,
   Checkbox,
@@ -112,7 +112,7 @@ export function AppPostForm({
   const [asking, setAsking] = useState(false);
 
   return (
-    <ActionForm
+    <GuardedActionForm
       action={action}
       beforeSubmit={() => {
         if (gate.allows(emailMembers)) return true;
@@ -313,6 +313,6 @@ export function AppPostForm({
           }}
         />
       ) : null}
-    </ActionForm>
+    </GuardedActionForm>
   );
 }

@@ -9,7 +9,7 @@ import {
   Section,
   type KeyValueItem,
 } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
+import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { getAuditLog } from "@/lib/admin/audit";
 import {
   AUDIT_ACTION_LABELS,
@@ -125,10 +125,7 @@ export default async function AuditEventPage({ params }: PageProps) {
       </Link>
 
       <header className="mb-6 flex flex-col gap-2">
-        <div
-          className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-          style={MONO_STYLE}
-        >
+        <div className={EYEBROW} style={MONO_STYLE}>
           Sistem · Olay kaydı
         </div>
         <h1 className="text-2xl font-semibold tracking-tight break-words text-[var(--admin-text)] sm:text-3xl">

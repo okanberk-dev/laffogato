@@ -10,11 +10,19 @@ import {
 } from "@/lib/admin/action-result";
 import { logAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { deletedAnswer } from "@/lib/admin/delete-answer";
 import { appContentFieldErrors } from "@/lib/admin/app-content-schema";
 import { setAdminFlash } from "@/lib/admin/flash";
 import {
+  moveAnswer,
+  readActiveForm,
+  readMoveForm,
+} from "@/lib/admin/list-order";
+import {
   createAppAnnouncement,
   deleteAppAnnouncement,
+  moveAppAnnouncement,
+  setAppAnnouncementActive,
   updateAppAnnouncement,
   type AppAnnouncementInput,
   type AppAnnouncementKind,
@@ -118,12 +126,57 @@ export async function deleteAnnouncementAction(
     entity: "app_announcement",
     entityId: id,
   });
-  const done = "Duyuru silindi; uygulamadan birkaç dakika içinde kalkar.";
-  // From the edit page's header: that page has nothing left to show, so the
-  // answer is the list, with the toast.
-  if (formData.get("then") === "list") {
-    await setAdminFlash(done);
-    redirect(PANEL);
+  return deletedAnswer(
+    formData,
+    "Duyuru silindi; uygulamadan birkaç dakika içinde kalkar.",
+    PANEL,
+  );
+}
+
+/**
+ * "Yayına al" / "Yayından kaldır" from the list: one click, reversible. Not
+ * "hemen": phones read the home content through a shared cache.
+ */
+export async function setAnnouncementActiveAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readActiveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const found = await setAppAnnouncementActive(form.id, form.isActive);
+  revalidatePath(PANEL);
+  if (!found) return actionError(GONE);
+  await logAudit({
+    action: "update",
+    entity: "app_announcement",
+    entityId: form.id,
+    payload: { isActive: form.isActive },
+  });
+  return actionOk(
+    form.isActive
+      ? "Duyuru yayına alındı; telefonlara birkaç dakika içinde ulaşır."
+      : "Duyuru yayından kaldırıldı; uygulamadan birkaç dakika içinde kalkar.",
+  );
+}
+
+/** The ↑ / ↓ beside each row (the list unfiltered). */
+export async function moveAnnouncementAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requireRole("mobileApp");
+  const form = readMoveForm(formData);
+  if (!form.ok) return actionError(form.error);
+  const outcome = await moveAppAnnouncement(form.id, form.direction);
+  if (outcome === "moved") {
+    await logAudit({
+      action: "update",
+      entity: "app_announcement",
+      entityId: form.id,
+      payload: { move: form.direction },
+    });
+    revalidatePath(PANEL);
   }
-  return actionOk(done);
+  return moveAnswer(outcome, form.direction, "Duyuru", GONE);
 }

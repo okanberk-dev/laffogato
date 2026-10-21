@@ -41,7 +41,8 @@ export default async function EditAppPostPage({
         eyebrow="Mobil uygulama · Ana sayfa"
         title="Gönderiyi düzenle"
         description={row.title}
-        action={
+        menuLabel="Gönderi işlemleri"
+        menu={
           // `then: list`: after the delete this page has nothing to show,
           // so the action answers with the list and its toast.
           <ConfirmButton
@@ -51,7 +52,7 @@ export default async function EditAppPostPage({
             ariaLabel={`Sil: ${row.title}`}
             title={`"${row.title}" silinsin mi?`}
             description={DELETE_TEXT.post}
-            className="w-full sm:w-auto"
+            variant="menuDanger"
           />
         }
       />

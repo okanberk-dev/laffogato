@@ -2,8 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
-import { MenuTags, SoldOutToggle } from "@/components/admin/menu-list";
 import {
+  DeleteMenuItem,
+  MenuTags,
+  SoldOutToggle,
+} from "@/components/admin/menu-list";
+import {
+  ActionMenu,
+  ActionMenuLink,
+  ActionMenuSeparator,
   Badge,
   BUTTON,
   KeyValueGrid,
@@ -14,7 +21,11 @@ import { EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { menuImagePath, servedImage } from "@/lib/admin/image-url";
-import { MENU_PATH, menuItemEditHref } from "@/lib/admin/menu-panel";
+import {
+  MENU_PATH,
+  menuItemCopyHref,
+  menuItemEditHref,
+} from "@/lib/admin/menu-panel";
 import {
   getMenuItem,
   getSettings,
@@ -75,6 +86,13 @@ export default async function MenuItemPage({ params }: PageProps) {
           <SoldOutToggle
             item={{ id: item.id, name: item.name, isActive: item.isActive }}
           />
+          <ActionMenu label={`${item.name} işlemleri`} framed>
+            <ActionMenuLink href={menuItemCopyHref(item.id)}>
+              Kopyala
+            </ActionMenuLink>
+            <ActionMenuSeparator />
+            <DeleteMenuItem item={{ id: item.id, name: item.name }} thenList />
+          </ActionMenu>
         </div>
       </header>
 

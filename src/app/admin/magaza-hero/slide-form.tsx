@@ -10,11 +10,11 @@ import {
 } from "react";
 
 import {
-  ActionForm,
   FormFieldError,
   FormMessage,
   SubmitButton,
 } from "@/components/admin/action-form";
+import { GuardedActionForm } from "@/components/admin/guarded-action-form";
 import {
   Card,
   Checkbox,
@@ -24,7 +24,6 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
-import { MONO_STYLE } from "@/components/admin/ui/styles";
 import { Slide } from "@/components/laffogato/shop-hero-slider";
 import { SHOP_HERO_LIMITS as L } from "@/lib/admin/shop-hero-schema";
 
@@ -159,7 +158,7 @@ export function SlideForm({
   const isDataUrl = imageUrl.startsWith("data:");
 
   return (
-    <ActionForm action={action} className="grid gap-4">
+    <GuardedActionForm action={action} className="grid gap-4">
       <Card className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-[1fr_160px]">
           <Row name="title">
@@ -207,10 +206,7 @@ export function SlideForm({
             Field label: inside a label every click on the caption or the
             hint opened the file picker. */}
         <fieldset className="grid min-w-0 gap-2">
-          <legend
-            className="mb-2 text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-            style={MONO_STYLE}
-          >
+          <legend className="mb-2 text-[13px] font-medium text-[var(--admin-text-soft)]">
             Görsel
           </legend>
 
@@ -225,10 +221,7 @@ export function SlideForm({
                 className="block aspect-[21/9] w-full object-cover"
               />
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--admin-border)] bg-white px-3 py-2">
-                <span
-                  className="text-[10px] tracking-[0.18em] text-[var(--admin-text-mute)] uppercase"
-                  style={MONO_STYLE}
-                >
+                <span className="text-xs text-[var(--admin-text-mute)]">
                   {isDataUrl
                     ? `Yüklenen dosya · ${approxKB(imageUrl)} KB`
                     : "Bağlantı"}
@@ -272,10 +265,7 @@ export function SlideForm({
                   : "border-neutral-300 bg-neutral-50/50 hover:border-neutral-500"
               }`}
             >
-              <div
-                className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-                style={MONO_STYLE}
-              >
+              <div className="text-[13px] font-medium text-[var(--admin-text-soft)]">
                 {processing ? "İşleniyor…" : "Sürükle bırak veya tıkla"}
               </div>
               <div className="mt-2 text-sm text-[var(--admin-text-soft)]">
@@ -307,8 +297,7 @@ export function SlideForm({
 
           <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
             <span
-              className="text-[10px] tracking-[0.22em] text-[var(--admin-text-mute)] uppercase"
-              style={MONO_STYLE}
+              className="text-[13px] font-medium text-[var(--admin-text-soft)]"
               aria-hidden="true"
             >
               ya da bağlantı
@@ -393,12 +382,9 @@ export function SlideForm({
       </Card>
 
       <Card className="min-w-0">
-        <div
-          className="mb-3 text-xs tracking-widest text-[var(--admin-text-mute)] uppercase"
-          style={MONO_STYLE}
-        >
+        <h2 className="mb-3 text-sm font-semibold text-[var(--admin-text)]">
           Önizleme
-        </div>
+        </h2>
         <SlidePreview
           title={title}
           subtitle={subtitle}
@@ -419,7 +405,7 @@ export function SlideForm({
           Vazgeç
         </Link>
       </div>
-    </ActionForm>
+    </GuardedActionForm>
   );
 }
 

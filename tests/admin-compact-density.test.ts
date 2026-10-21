@@ -194,7 +194,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     expect(compact(card)).toEqual([COMPACT.p4]);
   });
 
-  it("controls stay 44 px and drop to 36 px under compact: buttons, icon buttons, menu rows, the ⋯, fields, boxes, pages, tabs", () => {
+  it("controls stay 44 px and drop to 36 px under compact: buttons, icon buttons, menu rows, the framed ⋯, fields, boxes, pages, tabs", () => {
     for (const key of Object.keys(BUTTON) as Array<keyof typeof BUTTON>) {
       expect(BUTTON[key], key).toContain("min-h-[44px]");
       expect(compact(BUTTON[key]), key).toContain(COMPACT.minH9);
@@ -228,12 +228,32 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     );
     expect(field).toContain("py-2.5");
     expect(compact(field)).toEqual([COMPACT.fieldPy]);
+    // Framed (a page's, beside its buttons) or labelled, the ⋯ is a
+    // button and follows the buttons.
+    const looks: Array<{ framed?: boolean; showLabel?: boolean }> = [
+      { framed: true },
+      { showLabel: true },
+    ];
+    for (const props of looks) {
+      const framed = control(
+        createElement(ui.ActionMenu as never, props, "x"),
+        /<summary[^>]*>/,
+      );
+      expect(framed).toContain("min-h-[44px] min-w-[44px]");
+      expect(framed).toContain("border-[var(--admin-border)]");
+      expect(compact(framed)).toEqual([COMPACT.minH9, COMPACT.minW9]);
+    }
+    // On its own (a row's) it is a row control (ROW_CONTROL.more, 21 Oct
+    // 2026): 44 px on a touch screen, 32 px where the pointer can aim, so
+    // below compact's 36 px and none of its classes.
     const menu = control(
       createElement(ui.ActionMenu, null, "x"),
       /<summary[^>]*>/,
     );
     expect(menu).toContain("min-h-[44px] min-w-[44px]");
-    expect(compact(menu)).toEqual([COMPACT.minH9, COMPACT.minW9]);
+    expect(menu).toContain("pointer-fine:min-h-8 pointer-fine:min-w-8");
+    expect(menu).not.toContain("border");
+    expect(compact(menu)).toEqual([]);
     const page = control(
       createElement(ui.Pagination, {
         page: 2,
