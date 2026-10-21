@@ -8,7 +8,7 @@ import {
 } from "@/lib/admin/list-params";
 
 import { LinkPending } from "./link-pending";
-import { MONO_STYLE } from "./styles";
+import { COMPACT, MONO_STYLE } from "./styles";
 
 export interface StatusTab {
   /** The param value; `null` for the "Tümü" tab (param removed). */
@@ -72,6 +72,7 @@ export function StatusTabs({
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "relative inline-flex min-h-[40px] items-center gap-2 rounded-lg px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+                  COMPACT.minH9,
                   active
                     ? "bg-[var(--admin-primary)] font-medium text-white"
                     : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]",

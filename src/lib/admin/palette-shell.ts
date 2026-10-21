@@ -2,14 +2,20 @@
 // palette (admin UI v2, UI-6, design §4). The shell's trigger runs these on
 // every page: the ⌘K / Ctrl+K key, its label, the events the single keys
 // open it and the shortcut sheet with (UI-8), the rules for what the
-// "Son açılanlar" list may keep, and the few Komutlar entries (kept here
-// for the list's 45 KB budget). Everything else (the entries, the Turkish
-// matching, the search answer) is in palette-core.ts, which only the lazy
-// palette loads and which re-exports this file.
+// "Son açılanlar" list may keep, and the few Komutlar entries and what runs
+// them (kept here for the list's 45 KB budget). Everything else (the
+// entries, the Turkish matching, the search answer) is in palette-core.ts,
+// which only the lazy palette loads and which re-exports this file.
 
+import { validAccountKey } from "./account-key";
 import { piiLike } from "./pii-like";
 import { canAccess, type AdminRole, type AdminSection } from "./roles";
 import { singleKeysForRole } from "./shortcut-roles";
+import { DENSITY_TOGGLE_EVENT, viewPrefsForRole } from "./view-prefs-core";
+
+// The account key's shape lives in account-key.ts (the saved views check it
+// without this file); the palette's callers keep importing it from here.
+export { validAccountKey };
 
 /**
  * The no-JavaScript answer of the trigger: the results page. The same path
@@ -73,6 +79,41 @@ export function openShortcutSheet(): void {
   window.dispatchEvent(new Event(SHORTCUT_SHEET_EVENT));
 }
 
+/**
+ * The Komutlar the shell's own layers answer, as an event on `window` each
+ * (the sheet's, the density's): the list closes its dialog and calls this,
+ * and the shell does the rest. A new one of these costs the list's chunk
+ * nothing, which is at its 45 KB budget; the order sound is the one
+ * command the list still runs itself.
+ */
+const COMMAND_EVENTS = {
+  shortcutSheet: SHORTCUT_SHEET_EVENT,
+  toggleDensity: DENSITY_TOGGLE_EVENT,
+} as const;
+
+export function runPaletteCommand(
+  command: Exclude<PaletteCommand, "toggleSound">,
+): void {
+  window.dispatchEvent(new Event(COMMAND_EVENTS[command]));
+}
+
+/**
+ * "May this page be left?": the palette asks before it opens a page, with a
+ * cancelable event on `window`. The unsaved-changes guard
+ * (components/admin/ui/unsaved-guard.ts) listens only while a guarded form
+ * is mounted, asks the operator and cancels on a no. A page with no guarded
+ * form has no listener: the answer is yes, and none of the guard's code was
+ * loaded for it (the palette's chunk has no room for it either).
+ */
+export const PANEL_LEAVE_EVENT = "admin:leave";
+
+/** Whether the page lets `href` be opened (false: the guard's answer was no). */
+export function mayOpenPage(href: string): boolean {
+  return window.dispatchEvent(
+    new CustomEvent(PANEL_LEAVE_EVENT, { cancelable: true, detail: href }),
+  );
+}
+
 /** The key as the trigger prints it: Apple keyboards say ⌘. */
 export function paletteShortcutLabel(apple: boolean): string {
   return apple ? "⌘K" : "Ctrl K";
@@ -98,11 +139,6 @@ export function isApplePlatform(nav: {
 export const RECENT_KEY_PREFIX = "laf_admin_recent_v1:";
 export const RECENT_MAX = 8;
 export const RECENT_LABEL_MAX = 60;
-
-/** The account key the layout computes: 16 hex of an HMAC, never an e-mail. */
-export function validAccountKey(key: unknown): key is string {
-  return typeof key === "string" && /^[0-9a-f]{16}$/.test(key);
-}
 
 export function recentStorageKey(accountKey: string): string | null {
   return validAccountKey(accountKey)
@@ -288,14 +324,15 @@ export interface PaletteEntry {
   keywords: readonly string[];
 }
 
-export type PaletteCommand = "toggleSound" | "shortcutSheet";
+export type PaletteCommand = "toggleSound" | "shortcutSheet" | "toggleDensity";
 
 /**
  * "Komutlar": navigation and this browser's own preferences, never a
  * change to the shop (no Çıkış, no order step: the palette is read-only).
  * "Klavye kısayolları" opens the shortcut sheet (UI-8) for the roles with
- * single keys. The order sound is the panel's one sound switch
- * (sound-pref.ts), for the roles that hear it.
+ * single keys; "Sıkı görünüm" flips the compact density (UI-9) for the
+ * roles with a sidebar and its user menu. The order sound is the panel's
+ * one sound switch (sound-pref.ts), for the roles that hear it.
  */
 export function commandEntries(
   role: AdminRole | null | undefined,
@@ -316,6 +353,14 @@ export function commandEntries(
       label: "Klavye kısayolları",
       command: "shortcutSheet",
       keywords: ["kısayol", "tuş"],
+    });
+  }
+  if (viewPrefsForRole(role)) {
+    out.push({
+      id: "cmd:density",
+      label: "Sıkı görünüm",
+      command: "toggleDensity",
+      keywords: ["yoğun", "sıkışık", "kompakt", "compact", "satır", "tablo"],
     });
   }
   if (canAccess("orders", role)) {

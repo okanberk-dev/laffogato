@@ -180,6 +180,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         searchParams={sp}
         pathname={ORDER_LIST_PATH}
         label="Sipariş filtreleri"
+        views={{ key: "orders" }}
       />
 
       {/* Keyed by the URL and the search: a tab, filter, sort, page link

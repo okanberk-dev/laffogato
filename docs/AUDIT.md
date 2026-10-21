@@ -411,6 +411,14 @@ formunun POS'a gidişi (CSP artık izin veriyor), `PaymentList` üretim ucu (17 
 2026'da canlıda doğrulandı, `docs/PAYNKOLAY.md` §2) ve dönüş hash'inin
 `CURRENCY_CODE` alanı.
 
+PR #189 (UI-13, köşk çipi) güvenlik incelemesinin main'de bulduğu, o PR'ın
+değiştirmediği iki madde (21 Eki 2026):
+
+| Derece | Bulgu | Önerilen düzeltme |
+| --- | --- | --- |
+| 🟡 | P1: Canlı durum elle **Açık**'ken `placeAppOrder` planlı kafe siparişini `SCHEDULE_MAX_DAYS` (7) gün içindeki her saat için kabul ediyor: `isCafeOpenNow(hours, manualOverride, at)` elle Açık'ta `at`'a bakmaz (`src/lib/admin/store.ts`, `const at = scheduled.value ...`). Karar D3'le Personel de Açık seçebiliyor; maç gecesi için açılan köşk, ertesi gün 04:00'e ödenmiş bir sipariş alabilir | Elle Açık / Kapalı yalnız "hemen" siparişe uygulansın; planlı sipariş saatlere göre denetlensin |
+| 🟢 | P2: her `venue_status` yazması `pub:site`'ı düşürüyor. Etiket ayarları, site metinlerini, slaytları ve hukuk metinlerini de taşıdığı için çipin her kaydı genel sayfaların bütün önbelleğini boşaltıyor (sonraki görüntülemeler veritabanını okur). Güvenlik değil, maliyet | Canlı duruma ayrı bir etiket (`TABLE_TAGS.venue_status`); onu okuyan iki önbellek (zilin `panel-busy-inputs`'u, çipin `venue` işareti) o etiketi de dinler, genel sayfalar dinlemez |
+
 ## 9. Mobil denetim turu - 14 Eki 2026
 
 lafmobil'in uygulama denetimi (`lafmobil/docs/AUDIT-APP-2026-10-14.md`,
@@ -733,7 +741,7 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Sihirbazın sekmeli düzenleme başlıkları hâlâ sahte italik (CAT-26, sihirbaz kısmı) | `product-wizard.tsx` 5a'nın; bu PR ona yalnız kayıt korumasını ekledi |
-| 🟢 | Panelin kendi bağlantısına basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Tarayıcı yalnız yenilemede, kapanışta ve elle yazılan adreste sorar; panel bağlantıları için genel koruma ayrı bir iş (UI-17) |
+| 🟢 | Panelin kendi bağlantısına ve ⌘K'ya basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Genel koruma geldi (UI-17, `ui/unsaved-guard.ts`) ama sihirbaza bağlanmadı: kancası (`unsaved-guard.ts`) kayıt defterine yazıyor, denetleyiciyi (bağlantı ve palet sorusu) tutmuyor. Tek tuşlar zaten çıkmıyor. Bağlamak kancanın `trackUnsavedGuard`'ının denetleyiciyi de tutması: sihirbazın `beforeunload`'una dokunmaz, ayrı iş |
 | 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
 | 🟢 | Menüde sırayı değiştirmek hâlâ "Sıralama" alanına sayı yazmak (CAT-30, sıra kısmı) | Sürükle bırak yeni bir etkileşim; sıra formda kalır |
 
@@ -837,6 +845,7 @@ Açık:
 | 🟢 | Ayar formları yöntemsizdi: sayfa yüklenmeden basılan "Kaydet" alanları GET ile adrese yazıyordu (`?notificationEmail=…&orderNotifyEmails=…`: adres çubuğu, geçmiş, istek kaydı; kural 9) ve `?sekme=` düşüyordu (doğrulayıcı SS-F1) | Her sekmenin formu `method="post"`: alanlar gövdede gider, Next eylem kimliği taşımayan POST'u sayfayı yeniden çizerek karşılar, açık sekme kalır. O basışta kayıt yine yapılmaz; kaydeden, sayfa yüklendikten sonraki basıştır | `admin-settings-form` |
 | 🟢 | Genel'in yeni denetimi kayıtlı eski bir değeri de reddediyordu: http:// bir görsel ya da 40 karakteri aşan bir telefon yüzünden "Online mağaza açık" kapatılamıyordu (doğrulayıcı SS-F2) | Kayıtlı hâliyle geri gelen alan denetlenmez ve yazılmaz; yalnız değişen alanlar zod'dan geçer, düzenlenen eski değer yine reddedilir | `admin-settings-actions` |
 | 🟢 | Değişiklik olmadan basılan E-posta "Kaydet" durum bandını artık yenilemiyordu: Resend'de alan adını doğrulayıp dönen operatör 2 dakikalık önbellek yüzünden kırmızı bandı görmeye devam ediyordu (doğrulayıcı SS-F3) | "Değişiklik yok" cevabı da bandı yeniden okur (`forgetEmailHealth`, `revalidatePath`); kayıt ve olay satırı yine yok | `admin-settings-actions` |
+| 🟢 | Panel içi bağlantıyla (kenar çubuğu) ya da ⌘K ile sayfadan çıkış kaydedilmemiş değişikliği sormuyordu; uyarı yalnız sekme kapatma ve yenilemedeydi | `useUnsavedFlag` (UI-17): sekmelerin zaten tuttuğu "kaydedilmemiş" bilgisi korumaya verilir; başka bir sayfaya giden bağlantı ya da palet girişi sorar, aynı sayfadaki sekme bağlantıları (`?sekme=`) sormaz. Sayfanın kendi `beforeunload` dinleyicisi gitti, aynı soruyu koruma sorar. Test e-postası formu ayar değil: kirli sayılmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks`, `admin-settings-form` |
 
 Karaoke sekmesi ve kaydı ayrı dosyalarda (`karaoke-tab.tsx`, `karaoke-actions.ts`;
 karaoke iade kuralı işi onların üstüne kurulur).
@@ -845,7 +854,6 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
 
 ### Sistem: pano ve raporlar (paket 7b)
@@ -1323,6 +1331,90 @@ Canlı durum, Tümü olur.
 | 🟢 | Telefonda her sayfa değişimi menü düğmesi, çekmece, öğe demekti | `ui/bottom-bar.tsx`: 44 px yuvalar, lucide simge (menünün tembel `nav-icon.tsx` parçasından) ve ad, menünün rozet sayıları (ikinci bir sorgu yok). Siparişler rozetin saydığı Açık sekmesini açar; açık sayfanın yuvası `aria-current`, çubukta olmayan sayfada Tümü yanar. Tümü çekmeceyi açar, kapanınca odak ona döner. Kasiyerde çubuk yok, kabuğu çubuk kodunu çalıştırmaz | `admin-bottom-bar`, `admin-landing` |
 | 🟢 | Alt kenarda üst üste binme (çubuk, toplu işlem çubuğu, bildirimler, yeni sipariş kartları, kaydet çubukları, klavye) | Tek değişken: admin kökü `has-[[data-admin-tabbar]]` ile `--admin-bottom-inset`'i (3,5rem + `env(safe-area-inset-bottom)`) toplu işlem çubuğu yokken kurar; sayfa o kadar yukarıda biter. Bildirimler ve toplu işlem çubuğu onu kenar boşluğu olarak ekler, Site metinleri ve kampanya formunun kaydet çubukları 1rem üstünde durur, yeni sipariş kartları çubuğun üstüne oturur ve ev göstergesi payını ikinci kez eklemez. Çubuk toplu işlem çubuğu açıkken, bir `dialog` açıkken ve dokunmatik ekranda yazı alanı odaktayken çekilir (yalnız Tailwind sınıfları, dinleyici yok). `globals.css`'e kural eklenmedi | `admin-bottom-bar`, `admin-order-alerts-client` |
 | 🟢 | Paket bütçesi | Her admin rotasına +1,0 KB gz (`/admin/siparisler` +0,96, `/admin/kasa` +0,99); lucide parçası değişmedi, `/admin/kasa`'nın rota parçalarında lucide yok | `admin-bottom-bar` |
+
+### Kabuk: köşk çipi, Personel'e Canlı durum (admin UI v2, UI-13)
+
+Karar D3: köşkteki vardiya odayı görür; açık, yoğun, kapalı ve boş masayı
+Personel de söyler. Toplam masa Sahip ve Yönetici'de kalır, uygulamanın
+slaytları, gönderileri ve ayarları (`mobileApp`) değişmedi. Güvenlik
+incelemeli PR.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Personel Canlı durum'u açamıyordu; akşam boyunca en sık değişen bilgi (açık mı, boş masa) yalnız Sahip ve Yönetici'deydi | Yeni bölüm `venue` (sahip, yönetici, personel; kasiyer yok): sayfa ve iki action `requireRole("venue")`, menü öğesi `venue`. Personel'in menüsü altı öğe, alt çubuğu Siparişler, Karaoke, Kasa, Canlı durum, Tümü; paletin Git'i ve rol özeti (`Canlı durum`) aynı | `admin-roles-matrix`, `admin-venue-status`, `admin-nav-ia`, `admin-bottom-bar`, `admin-palette-core`, `admin-role-summary` |
+| 🟢 | Toplam masa Personel'e açılmamalı | Sayfada salt okunur (adı yok, gönderilmez); action Personel'in gönderdiği `totalTables`'ı yok sayar, kayıt `patchVenueStatus` ile toplamı hiç yazmaz; boş masa kayıtlı toplamı geçemez, denetim aynı `UPDATE`'in `WHERE`'inde (`"totalTables" >= $n`), arada toplamı düşüren kayıt da sayılır | `admin-venue-status`, `venue-status-patch`, `db-integration-venue-status` |
+| 🟢 | Hızlı bir değişiklik başkasının Wi-Fi, gürültü, priz ya da notunu ezebilirdi (tüm satırı yazan upsert) | Üst çubuktaki çip (`saveVenueQuickAction`: kendi kapısı, Zod, olay kaydı satırı, `revalidatePath`) yalnız açık/kapalı seçimini ve boş masayı tek `UPDATE` ile yazar; satır yoksa varsayılanlarla `ON CONFLICT DO NOTHING`. Yoğun yalnız boş masayı 0 yapar | `admin-venue-status`, `venue-status-patch`, `db-integration-venue-status`, `admin-venue-quick`, `db-integration-venue-quick-security` |
+| 🟡 | İnceleme F1: çipin Yoğun'u Otomatik ve boş masa 0 yazıyordu; elle Açık bir gecede saat dışında köşkü uygulamada kapatıyor (`placeAppOrder` `cafe_closed`), saat içinde elle Kapalı'yı kaldırıyordu | Yoğun yalnız `freeTables = 0` yazar (`quickPatchFor`), açık/kapalı aynı kalır, yine tek `UPDATE`; kutu, çip "Yoğun" dediğinde Yoğun'da açılır (`quickChoiceOf`, `venueChipState` ile aynı); + ile çıkış köşkün kayıtlı ayarına döner (`choiceAfterStep`), Otomatik'e değil; olay kaydı yalnız yazılanı söyler | `db-integration-venue-quick-findings`, `db-integration-venue-quick-security`, `admin-venue-quick`, `admin-venue-status` |
+| 🟢 | İnceleme F2: sorgunun ucuz kapısı çerezdeki role bakıyordu; Personel'e yükseltilen bir kasiyer, sayfa ve hızlı kayıt ona açıkken, yeniden girene kadar (7 güne kadar) durumu göremiyordu | Rolü Canlı durum'u açmayan çerez imleç denetimine girmez ve imleç almaz, karar hesabındır (`panelSignal` ve zilin yolu gibi); kasiyer hesap okumasından sonra yine durum alamaz, durum ve ayar okunmaz | `db-integration-venue-quick-findings`, `db-integration-venue-quick-security`, `admin-venue-signal` |
+| 🟢 | Çipin durumu dakikada bir veritabanından okunsaydı açık bir panel sekmesi Neon'u yine bütün gün uyanık tutardı (#185'in kapattığı) | Düzende okuma yok; çip rozetlerin yoluyla sorar (`venueSignal`): `venue` işareti `pub:site` ve `live:access` altında, imleç oturuma bağlı ve saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli (`nextOpenChangeAt`); arada cevap `{ unchanged: true }`, hesap ve durum okunmaz. Durum taşıyan cevap hesabı yeniden okur; cevapta yalnız beş alan (seçim, boş ve toplam masa, açık mı, kaydedildi mi), kişi bilgisi yok. Her `venue_status` yazması `pub:site`'ı düşürür | `admin-venue-signal`, `admin-change-marker`, `venue-status-patch` |
+| 🟢 | Uygulamanın canlı durum cevabı | `GET /api/mobile/v1/live-status` ve `toLiveStatus` değişmedi; kısmi kayıttan sonra aynı on iki alan (§6), yalnız yazılan alanlar ve zaman değişir; 216 durumluk bir matriste cevap main'inkiyle bayt bayt aynı | `venue-status-patch`, `db-integration-venue-status`, `mobile-hours`, `venue-live-status-parity` |
+
+### Kabuk: kaydedilmemiş değişiklik uyarısı (admin UI v2, UI-17)
+
+Tarayıcı yalnız yenilemede, sekme kapanışında ve elle yazılan adreste sorar;
+panelin kendi bağlantısı ve ⌘K istemci gezinmesidir, ona dokunmaz.
+`ui/unsaved-guard.ts` dört formu korur: Ayarlar, Uygulama ayarları, yasal
+belge düzenleyici ve kampanya e-postası (ürün sihirbazı kendi koruması ve
+kayıt defteriyle kalır).
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟡 | Ayarlar, Uygulama ayarları, yasal belge ve kampanya formunda yazılan şey, bir kenar çubuğu bağlantısına ya da ⌘K'ya basınca sorulmadan gidiyordu | Form açılınca alanları `FormData` ile okunur (React'ın çizdiği hâl: kontrollü girdinin değeri, seçimin varsayılanı); operatörün değiştirdiği alanlardan biri (adıyla, `input` / `change` olayından) bundan farklıysa kaydedilmemiş sayılır. Sıra, dosya girdileri sayılmaz; aynı adın değerlerinin sırası sayılır; işaretsiz kutu "yok" olarak, boş yazıdan ayrılır. Yazılıp geri alınan değişiklik sayılmaz; sayfanın kendi kendine kıpırdattığı alan (yeniden doğrulamanın dokunulmamış girdiye getirdiği başkasının değeri, gizli bir sürüm alanı) düzenlemeden önce de sonra da sayılmaz (bağımsız inceleme F1). Kirliyken başka bir sayfaya giden bağlantıya basınca (`document`'te yakalama aşamasında, Next'in `<Link>`'inden önce), palette bir sayfa seçince ve tarayıcı yenilemede ya da kapanışta sorar: "Kaydedilmemiş değişiklikler var. Sayfadan çıkılsın mı?" | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Sorulmaması gerekenler | ⌘, Ctrl, Shift, Alt ve orta tuş, `_self` dışında `target`, `download`, başka kaynak, `mailto:` / `tel:`, aynı sayfa (başka `?sekme=`, `#` atlaması, "İçeriğe geç"), paletin tetikleyicisi (bağlantı görünümlü düğme). Tarayıcı kendi sorusunu "evet"ten sonra bir saniye sormaz: düz bir bağlantı sayfayı gerçekten yüklerken iki kez sorulmaz | `admin-unsaved-guard` |
+| 🟢 | Kaydın sonucu korumaya nasıl yansır | Reddedilen kayıtta form kirli kalır. Yazılan bir cevap (`message`, hata ve onay sorusu yok) gelince yollanan hâl kaydedilmiş sayılır; gönderilmiş ile yanıt gelene kadar yazılan ayrı tutulur (yanıtı beklerken yazılan kaydedilmemiştir). Yönlendiren kayıtlar (yasal belge, yeni kampanya) sayfayı bıraktığı için ne tıklama ne `beforeunload` olur, soru çıkmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Bir sayfada birden çok form var (Ayarlar'da sekme başına, Uygulama ayarları'nda dokuz): tek bağlantıya basınca tek soru | Tek bir dinleyici seti (tıklama, `beforeunload`, palet sorusu), sayfadaki her koruma için sayılır: tek soru, herhangi biri kirliyse. Son form çıkınca dinleyiciler kalkar; formu kalkmış sayfada kimse tutulmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Palet sayfa açarken sormuyordu | Tetikleyici bir sayfayı açmadan önce `window`'a iptal edilebilir `admin:leave` olayı gönderir (`mayOpenPage`); formu olan sayfada denetleyici dinler, sorar, "hayır"da iptal eder (palet açık kalır). Dinleyen yoksa cevap evet. Palet parçası 45 KB bütçesinde olduğu için koruma modülünü içe aktaramaz; palet artık yönlendiriciyi tutmaz, sayfayı tetikleyici açar | `admin-unsaved-guard`, `admin-palette-core` |
+| 🟢 | Tek tuşlar (`g` ve harf) yalnız ürün sihirbazında sayfadan çıkmıyordu; dört form da kayıt defterinde | Dört form sihirbazın kayıt defterine (`trackUnsavedGuard`) yazar: UI-8'in `g` ve harf kuralı onlar için de geçerli, kısayol dosyası değişmedi | `admin-unsaved-guard`, `admin-shortcuts` |
+| 🟢 | Paket bütçesi | Korumalı dört sayfaya ~1,6 KB gz; her rotaya tetikleyicide +77 B, palet parçasında -34 B (`esbuild` ile, `next build` ile ölçülmedi: orkestratörün kapısı) | `admin-unsaved-guard` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Tarayıcının Geri ve İleri düğmeleri ve Çıkış düğmesi kaydedilmemiş formu sormuyor | App Router sayfa yüklemeden gezinir (Geri'de tarayıcıda kanca yok); Çıkış bir form gönderimi, bağlantı değil: ikisini kesmek ayrı bir iş |
+| 🟢 | Ürün sihirbazı kenar çubuğu bağlantısında ve palette sormuyor | Bkz. 5d'nin "Açık" tablosu |
+
+### Kabuk: kayıtlı görünümler (admin UI v2, UI-11)
+
+Siparişler listesinin süzgeç çubuğunda **Görünümler** menüsü. Görünüm
+listenin adresinin bir parçasıdır (sekme, açılır listeler, sıralama) ve bu
+tarayıcıda hesap ve liste başına durur; sunucuya, veritabanına ya da adrese
+yeni bir şey yazılmaz.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | Sık açılan bir liste ("Masa siparişleri", "Kargoya verilecek") her seferinde sekme ve açılır listelerle yeniden kuruluyordu | FilterBar'a isteğe bağlı `views={{ key }}`: sayfa tarayıcıya gelince süzgeç çiplerinin satırının sonunda "Görünümler" (ActionMenu, details/summary). Kaydet bir pencereyle (ActionModal) ad sorar; kayıtlı görünüm, Sıfırla gibi aramayı da silen bir gönderiyle açılır; "Varsayılan yap" listeyi süzgeçsiz açılışta ziyaret başına bir kez o görünüme götürür (`router.replace`), listenin kendi "Tümü", "Sıfırla" ve çiplerine karışmaz, hatırlanan bir aramanın üstüne gelmez; sekiz görünüm menünün içinde kayar. Menünün parçası yüklenemezse (yeni sürüm parçayı değiştirdi, ağ koptu) `SavedViewsBoundary` onu çizmez; liste "Bu ekran yüklenemedi" ekranına düşmez. Önce yalnız Siparişler; diğer listeler UI-19 ve UI-20'de | `admin-saved-views`, `admin-saved-views-bar` |
+| 🟢 | Paylaşılan köşk cihazında kayıtlı bir görünüm müşteri bilgisi saklayabilirdi | `q`, listenin arama kutuları, sayfa, `denied` ve `piiLike`'ın e-posta ya da telefon saydığı her ad ve değer (tarih de) atılır; okurken de aynı kurallardan geçer. Ad en çok 30 karakter, e-posta ya da telefon içeremez; liste başına 8 görünüm. Anahtar `laf_admin_views_v1:<HMAC>:<liste>`: paletin hesap anahtarı, layout'ta kök öğenin `data-admin-account`'ı (kasiyerde yok, e-posta sayfaya gitmez). Erişilemeyen depolama menüyü boş bırakır, kaydetme nedenini söyler | `admin-saved-views` |
+| 🟢 | Çubuğun JavaScript'siz işaretlemesi değişmemeli | `views` olmadan ve hidrasyondan önce çubuğun sunucu işaretlemesi bayt bayt aynı (origin/main'deki dosyayla on dört durumda karşılaştırıldı). Test çiplerin işaretlemesini origin/main'den alınmış metinle, `views`'lı ve `views`'sız işaretlemeyi birbiriyle eşitler | `admin-saved-views`, `admin-saved-views-bar`, `admin-filter-bar` |
+| 🟡 | İnceleme (F1): varsayılan görünüm gidiş-dönüşte geri geliyordu: "Tümü", bir sipariş, Geri. Next 16'nın geri önbelleği tek sayfa tuttuğu için Geri listeyi yeniden kurar, menü varsayılanı yeniden açıp operatörün süzgeçsiz geçmiş kaydının üstüne yazıyordu | Sekme açtığı varsayılanı `sessionStorage`'da not eder (`laf_admin_views_tab_v1:<hesap>:<liste>`, try/catch); aynı varsayılan o sekmede bir daha açılmaz, yeni seçilen bir varsayılan bir kez açılır. Not yazılamazsa varsayılan hiç açılmaz (her Geri'de yeniden açılmasın). Kalan uç: bir sekmede varsayılanın **ilk** açılışı bir Geri'ye denk gelebilir (sekme başına en çok bir kez) | `admin-saved-views` |
+| 🟡 | İnceleme (F2): varsayılanın `router.replace`'i, menünün parçası gelmeden tıklanan bir sekmeyi ya da gönderilen "Uygula"yı iptal edebiliyordu (Next yarım kalan gezinmeyi düşürür) | Her zaman yüklenen yarıda (`ui/saved-views-key.ts`) `useTouchedSince`: çubuk tarayıcıda kurulduktan sonra sayfada ilk `pointerdown`, `keydown` ya da `submit` (yakalama evresi) not edilir; olduysa varsayılan o kurulumda açılmaz | `admin-saved-views`, `admin-saved-views-bar` |
+| 🟢 | İnceleme (F3): yalnız bu tarayıcıyı değiştiren kaydet ve sil, ActionModal'ın başarısında `announceAdminChange()` ile kenar çubuğunun sayaçlarını ve panel sinyalini sunucudan yeniden okutuyordu (#185'in boşuna uyandırmama hedefine karşı iki veritabanı okuması) | ActionModal'a isteğe bağlı `announce` (varsayılan `true`, öbür bütün pencereler aynen duyurur); görünümlerin iki penceresi `announce={false}` verir | `admin-saved-views`, `admin-saved-views-bar`, `admin-ui-kit` |
+| 🟢 | İnceleme (sertleştirme): süzgeç bir kara listeydi; listenin okumadığı bir ad (`musteri=Ayse+Yilmaz`), `/`, `_` ya da `,` ile bölünmüş bir telefon ve iki kez kodlanmış bir e-posta (`%2540`) saklanabiliyordu | Menü yalnız listenin kendi adlarını tutar (`viewRulesFor`: FilterBar'ın süzgeçleri, `durum` sekmesi, `sirala` ve `yon`); değer yalnız harf, rakam, `_` ve `-` taşır, art arda yedi rakam taşımaz. Okurken de aynı | `admin-saved-views-pii`, `admin-saved-views` |
+| 🟢 | Paket bütçesi | Menü kendi parçasında (`next/dynamic`), yalnız `views` veren listede ve sayfa tarayıcıya gelince yüklenir: kendi kodu 3,1 KB gz (`next build --webpack`, incelemeden önce; esbuild tahmini incelemeden sonra 3,6 KB). FilterBar'ın kendi statik kodu yaklaşık 0,7 KB gz büyür (esbuild tahmini, ilk dokunuşun dinleyicisi dahil; yalnız kendi modülleri, react ve next dışarıda). FilterBar'ın statik içe aktarmaları bir listeyle sabit: menü, kuralları, depolaması, diyaloğu ve hiçbir arayüz kütüphanesi ona statik olarak girmez. Statik grafiğine yalnız anahtar yarısı (üç küçük modül: `ui/saved-views-key.ts`, `lib/admin/saved-views-key.ts`, `lib/admin/account-key.ts`) eklenir; hesap anahtarının biçimi kendi dosyasında durur (`palette-shell` oradan yeniden dışa aktarır), böylece paletin kabuk dosyası, roller ve gezinti eşleştirmesi çubuğun grafiğine girmez | `admin-saved-views`, `admin-saved-views-bar` |
+
+### Kabuk: dar menü ve sıkı görünüm (admin UI v2, UI-9)
+
+Tasarım §3.6, karar D10: rahat (44 px) görünüm her yerde varsayılan; sıkı
+görünüm yalnız fare olan cihazda ve isteğe bağlı. Dizüstünde kenar çubuğu 64
+px'lik bir simge sütununa katlanabilir. İkisi de bu tarayıcıda durur
+(`localStorage`) ve sunucunun ilk çizimini değiştirmez.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | 1024 ve 1280 px'te 256 px'lik kenar çubuğu tablolardan yer alıyordu | Menünün üstünde « düğmesi (`aria-expanded`, `aria-controls`; katlanınca aynı düğme » olur, odak onda kalır) kenar çubuğunu 64 px'lik simge sütununa katlar: her bağlantının `aria-label`'ı (rozetin sayısı dahil), grup başlıkları yerine çizgi (katlanmış gruplar açık), hesap bölümü baş harfin arkasında. Genişlik tek değişken: layout'un kökünde `--admin-side` (16rem; kök `data-admin-rail="on"` taşıyınca 4rem); kenar çubuğu, üst çubuk, sekme şeridi, sayfanın sol kenarı ve toplu işlem çubuğu ondan okur. Tercih `laf_admin_rail_v1` ("collapsed" ya da başka bir şey), her erişim try/catch içinde, saf bir ayrıştırıcıdan geçer; depolama reddederse bu sekmede tutulur | `admin-rail-density`, `admin-shell-nav` |
+| 🟢 | Simge sütununda adlar görünmez | Fareyle gelince ve klavye odağında (`focus-visible`; tıklamanın odağında değil) çıkan CSS ipucu: `fixed` (menünün kendi kaydırması kırpamaz), dikey yeri simgenin ortası (`--tip-y`, fare ya da odak gelince yazılır), sol dolgusu denetimin parçası (imleç ona geçebilir, WCAG 1.4.13). **Esc** o an fare altındaki ya da odaktaki denetimin ipucunu gizler (`data-tip-off`), fare ya da odak ayrılınca geri gelir. Kitaplık yok, birkaç satır betik | `admin-rail-density` |
+| 🟢 | Satırlar ve kartlar bol; dizüstünde az kayıt sığıyor | Menüdeki "Sıkı görünüm" anahtarı (ya da paletin Komutlar'ı) kök öğeye `data-admin-density="compact"` yazar. Kitin sınıfları `pointer-fine:[[data-admin-density=compact]_&]:` ile yazılır (`ui/compact.ts`): tablo hücreleri `py-3` yerine `py-2`, `Card` ve `Section` `p-6` yerine `p-4` (bölüm başlığı gövdesine uyar), düğmeler, alanlar, onay kutusu, "⋯", sayfa hücreleri ve sekmeler 36 px (alanlar 34 px). Varsayılan sınıflar yerinde: 44 px testleri geçer. `globals.css`'e kural eklenmedi | `admin-rail-density`, `admin-ui-kit` |
+| 🟢 | Dokunmatik ekranda sıkı görünüm hedefleri küçültmemeli (SHE-32) | Her sıkı sınıf `pointer-fine:` ile başlar; derlenince `@media (pointer: fine)` içinde, `[data-admin-density=compact]` torununda bir kural olur, dokunmatikte hiçbiri eşleşmez (testte derlenmiş CSS ve kaynak taraması). Anahtarın altında "Dokunmatik ekranda uygulanmaz." notu dokunmatikte çıkar | `admin-rail-density` |
+| 🟢 | Hidrasyon uyuşmazlığı ve ilk çizimde sıçrama | Tercihler istemci tarafında (`useSyncExternalStore`, sunucu görüntüsü hep "geniş, rahat"); kök öğeye yazan `ViewPrefs` bir layout etkisi: kök öğe sunucuda bu öznitelikleri çizmez, React onlara sahip değil. Tercih kayıtlıysa yenilemede kenar çubuğu bir an geniş çizilir, hidrasyonda tek işlemde daralır (kenar çubuğunun içeriği, genişliği ve sayfanın sol kenarı aynı anda; hiçbir geçiş animasyonu yok); uygulama içi gezinmede kabuk kalıcıdır, sıçrama olmaz. Çıkışta öznitelikler kaldırılır | `admin-rail-density` |
+| 🟢 | Palet 45 KB bütçesinde; yeni komut ona kod ekleyemez | "Sıkı görünüm" girdisi her sayfanın yüklediği `palette-shell.ts`'te; liste yalnız komutu bir `window` olayı olarak yollar (`runPaletteCommand`, "Klavye kısayolları" ile aynı yol), kabuğun `ViewPrefs`'i dinler, çevirir ve toast ile söyler. Listedeki iki dal tek dala indi: `palette.tsx` küçüldü | `admin-rail-density`, `admin-palette-core`, `admin-shortcuts` |
+| 🟢 | Kasiyerin kabuğu | Kenar çubuğu, anahtar, düğme ve `ViewPrefs` yalnız tam menüde çizilir; kasiyerin tek sayfalık kabuğu tercihleri okumaz, kök öğeye yazmaz | `admin-rail-density` |
+| 🟢 | Paket bütçesi | Her admin rotasına ~+1,9 KB gz (kabuğun statik grafiği, `esbuild` ile 13,7 → 15,6 KB gz: kenar çubuğu ~+4,0 KB ham, `view-prefs` ~+2,2 KB ham), listelerin kit kodu ~+0,1 KB gz; paletin tembel parçası ~-7 B gz. `next build` ile ölçülmedi (orkestratörün kapısı); kütüphane kodu eklenmedi, ikon yalnız tembel `nav-icon` parçasına (`Rows3`) | `admin-rail-density`, `admin-ui-deps` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Sıkı görünüm yalnız kitin sınıflarında; sayfaların kendi elle yazdığı 44 px düğmeler (onlarca yer) sıkılaşmaz | Sayfalar başka PR'ların; kite alınınca kendiliğinden sıkılaşır |
 
 ### Hukuk: karaoke verisinin süresi, imha kaydı, ticari yazışma (21 Eki 2026)
 

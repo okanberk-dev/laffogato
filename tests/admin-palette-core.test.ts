@@ -232,6 +232,8 @@ describe("Git, Oluştur and Komutlar per role", () => {
       "/admin/siparisler",
       "/admin/mobil/karaoke",
       "/admin/kasa",
+      // UI-13 (decision D3): Canlı durum through the `venue` section.
+      "/admin/mobil/canli-durum",
       "/admin/stok-hareketleri",
     ]);
     expect(hrefs("cashier")).toEqual(["/admin/kasa"]);
@@ -293,15 +295,17 @@ describe("Git, Oluştur and Komutlar per role", () => {
     }
   });
 
-  it("Komutlar: the 2FA page for everyone, the shortcut sheet for the roles with single keys, the order sound for the roles that hear it", () => {
+  it("Komutlar: the 2FA page for everyone, the shortcut sheet and Sıkı görünüm for the roles with the full shell, the order sound for the roles that hear it", () => {
     expect(labels(core.commandEntries("staff", { soundOn: true }))).toEqual([
       "Güvenlik / 2FA",
       "Klavye kısayolları",
+      "Sıkı görünüm",
       "Sipariş sesini kapat",
     ]);
     expect(labels(core.commandEntries("owner", { soundOn: false }))).toEqual([
       "Güvenlik / 2FA",
       "Klavye kısayolları",
+      "Sıkı görünüm",
       "Sipariş sesini aç",
     ]);
     expect(labels(core.commandEntries("cashier", { soundOn: true }))).toEqual([
@@ -310,7 +314,10 @@ describe("Git, Oluştur and Komutlar per role", () => {
     const sheet = core.commandEntries("staff", { soundOn: true })[1];
     expect(sheet).toMatchObject({ command: "shortcutSheet" });
     expect(sheet.href).toBeUndefined();
-    const sound = core.commandEntries("staff", { soundOn: true })[2];
+    const density = core.commandEntries("staff", { soundOn: true })[2];
+    expect(density).toMatchObject({ command: "toggleDensity" });
+    expect(density.href).toBeUndefined();
+    const sound = core.commandEntries("staff", { soundOn: true })[3];
     expect(sound).toMatchObject({ command: "toggleSound" });
     expect(sound.href).toBeUndefined();
   });
@@ -934,7 +941,10 @@ describe("the palette is read-only and keeps to one modal system", () => {
     // Items navigate through onAction, not as links React Aria would open
     // (or prefetch) itself.
     expect(src).toContain("onAction={(key) => run(String(key))}");
-    expect(src).toContain("router.push(target.href)");
+    // The trigger opens the page (router.push) after asking a form with
+    // unsaved changes; the list hands it the address.
+    expect(src).toContain("navigate(target.href);");
+    expect(src).not.toContain("router.push");
     expect(src).not.toMatch(/<ListBoxItem[^>]*\bhref=/);
     expect(src).not.toMatch(/\bprefetch\s*[=:(]|router\.prefetch/);
     // Typed text goes to the route in a POST body, never an address.

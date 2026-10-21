@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Autocomplete } from "react-aria-components/Autocomplete";
 import { Header } from "react-aria-components/Header";
@@ -24,13 +23,13 @@ import {
   createEntries,
   goEntries,
   listRow,
-  openShortcutSheet,
   PALETTE_SEARCH_DEBOUNCE_MS,
   PALETTE_SEARCH_MIN,
   PALETTE_SEARCH_ROUTE,
   parseSearchAnswer,
   rankEntries,
   resultCountText,
+  runPaletteCommand,
   searchOutcome,
   signInHref,
   visibleRecents,
@@ -51,10 +50,12 @@ import { SearchIcon } from "./trigger";
  * <dialog> (one modal system: no React Aria Modal, Dialog, Popover or
  * Menu). React Aria does not filter: palette-core ranks the panel's own
  * entries as the text changes, and the server's record hits are drawn as
- * they came. Read-only: an entry opens a page (router.push, never
+ * they came. Read-only: an entry opens a page (`navigate`, the trigger's:
+ * it asks a form with unsaved changes first, then opens the page; never
  * prefetched while the arrow keys pass over it: every panel page is
  * dynamic, so each would be a server render and its database reads),
- * flips this browser's own order sound or opens the shortcut sheet. No
+ * flips this browser's own order sound, or asks the shell for one of its own
+ * commands (the shortcut sheet, a view preference) with an event. No
  * Server Action is imported here. Opened by `n` on a page with no "Yeni"
  * link, it lists Oluştur alone (view "create").
  */
@@ -77,6 +78,8 @@ export interface PaletteProps {
   view?: PaletteView;
   /** Closes the dialog; the trigger takes focus back. */
   close: () => void;
+  /** Opens a page and closes the dialog, unless unsaved changes say no. */
+  navigate: (href: string) => void;
 }
 
 /**
@@ -179,8 +182,8 @@ export function Palette({
   pathname,
   view,
   close,
+  navigate,
 }: PaletteProps) {
-  const router = useRouter();
   const toast = useToast();
   const soundOn = useSoundPref();
   const [text, setText] = useState("");
@@ -311,24 +314,24 @@ export function Palette({
     const target = map.get(key);
     if (!target) return;
     if ("href" in target) {
-      close();
-      router.push(target.href);
+      navigate(target.href);
       return;
     }
-    if (target.command === "shortcutSheet") {
+    // The commands the shell answers (the shortcut sheet and the view
+    // preferences) go out as an event, after the dialog closes (one dialog
+    // at a time).
+    if (target.command !== "toggleSound") {
       close();
-      openShortcutSheet();
+      runPaletteCommand(target.command);
       return;
     }
-    if (target.command === "toggleSound") {
-      const next = !readSoundPref();
-      writeSoundPref(next);
-      toast.show({
-        tone: "info",
-        message: next ? "Sipariş sesi açık." : "Sipariş sesi kapalı.",
-      });
-      close();
-    }
+    const next = !readSoundPref();
+    writeSoundPref(next);
+    toast.show({
+      tone: "info",
+      message: next ? "Sipariş sesi açık." : "Sipariş sesi kapalı.",
+    });
+    close();
   };
 
   const loading = search.status === "loading";

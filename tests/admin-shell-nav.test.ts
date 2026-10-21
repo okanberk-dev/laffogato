@@ -473,8 +473,10 @@ describe("the sidebar and the top bar", () => {
     expect(tag(html, /<aside[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<header[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<dialog[^>]*>/)).toContain("print:hidden");
-    expect(read("src/app/admin/layout.tsx")).toContain(
-      'className={chrome ? "lg:pl-64 print:pl-0" : "print:pl-0"}',
+    // The page's left edge is the sidebar's width (`--admin-side`, 16rem or
+    // the rail's 4rem, UI-9); none of it on paper.
+    expect(read("src/app/admin/layout.tsx")).toMatch(
+      /className=\{\s*chrome\s*\?\s*"lg:pl-\[var\(--admin-side,16rem\)\] print:pl-0"\s*:\s*"print:pl-0"\s*\}/,
     );
   });
 

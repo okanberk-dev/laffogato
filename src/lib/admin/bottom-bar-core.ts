@@ -46,8 +46,10 @@ function pathOf(href: string): string {
  * the first four and "Tümü", which opens the drawer with the full nav.
  *
  *   owner, manager  Genel bakış · Siparişler · Karaoke · Kasa · Tümü
- *   staff           Siparişler · Karaoke · Kasa · Stok · Genel bakış
- *   staff + venue   Siparişler · Karaoke · Kasa · Canlı durum · Tümü
+ *   staff           Siparişler · Karaoke · Kasa · Canlı durum · Tümü
+ *                   (Canlı durum through `venue`, UI-13; before it, the
+ *                   five pages fitted: Siparişler · Karaoke · Kasa · Stok ·
+ *                   Genel bakış)
  *
  * `hrefs` sends a slot somewhere else than its item: the sidebar's badge
  * links (the orders badge counts the Açık tab, so the slot that carries it
