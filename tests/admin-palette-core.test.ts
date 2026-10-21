@@ -936,7 +936,10 @@ describe("the palette is read-only and keeps to one modal system", () => {
     // Items navigate through onAction, not as links React Aria would open
     // (or prefetch) itself.
     expect(src).toContain("onAction={(key) => run(String(key))}");
-    expect(src).toContain("router.push(target.href)");
+    // The trigger opens the page (router.push) after asking a form with
+    // unsaved changes; the list hands it the address.
+    expect(src).toContain("navigate(target.href);");
+    expect(src).not.toContain("router.push");
     expect(src).not.toMatch(/<ListBoxItem[^>]*\bhref=/);
     expect(src).not.toMatch(/\bprefetch\s*[=:(]|router\.prefetch/);
     // Typed text goes to the route in a POST body, never an address.

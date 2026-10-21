@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 
 import type { ActionResult } from "@/lib/admin/action-result";
 import { LEGAL_LIMITS } from "@/lib/admin/legal-schema";
@@ -13,6 +14,7 @@ import {
 } from "./action-form";
 import { Card, Checkbox, Field, Textarea, TextInput } from "./forms";
 import { BUTTON, NUMERIC_STYLE } from "./ui";
+import { useUnsavedGuard } from "./ui/unsaved-guard";
 
 export interface LegalDocInitial {
   slug: string;
@@ -40,10 +42,16 @@ const MARKDOWN_STYLE = { fontFamily: NUMERIC_STYLE.fontFamily } as const;
  * The legal editor. Posts through ActionForm (by hand, no form reset): a
  * refused save used to come back with the whole edited Markdown body
  * replaced by the stored one. Each refusal sits under its own field.
+ *
+ * Leaving with edits not saved asks (a link such as Vazgeç, the palette, a
+ * reload). A save redirects to the list, so there is no in-place "saved"
+ * to tell the guard: the page, and the guard with it, are gone.
  */
 export function LegalDocForm({ initial, action }: Props) {
+  const formRef = useRef<HTMLFormElement>(null);
+  useUnsavedGuard(formRef);
   return (
-    <ActionForm action={action} className="grid gap-5">
+    <ActionForm action={action} formRef={formRef} className="grid gap-5">
       <Card className="grid gap-5">
         <div className="grid content-start gap-1.5">
           <Field label="Başlık">

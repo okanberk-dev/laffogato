@@ -741,7 +741,7 @@ Açık:
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Sihirbazın sekmeli düzenleme başlıkları hâlâ sahte italik (CAT-26, sihirbaz kısmı) | `product-wizard.tsx` 5a'nın; bu PR ona yalnız kayıt korumasını ekledi |
-| 🟢 | Panelin kendi bağlantısına basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Tarayıcı yalnız yenilemede, kapanışta ve elle yazılan adreste sorar; panel bağlantıları için genel koruma ayrı bir iş (UI-17) |
+| 🟢 | Panelin kendi bağlantısına ve ⌘K'ya basınca sihirbaz sormuyor (CAT-30, istemci gezinmesi) | Genel koruma geldi (UI-17, `ui/unsaved-guard.ts`) ama sihirbaza bağlanmadı: kancası (`unsaved-guard.ts`) kayıt defterine yazıyor, denetleyiciyi (bağlantı ve palet sorusu) tutmuyor. Tek tuşlar zaten çıkmıyor. Bağlamak kancanın `trackUnsavedGuard`'ının denetleyiciyi de tutması: sihirbazın `beforeunload`'una dokunmaz, ayrı iş |
 | 🟢 | Ürün listesi her istekte ürünlerin liste sütunlarını okuyup sekme sayılarını, aramayı ve sayfayı bellekte hesaplıyor | Mağazada birkaç yüz ürün; sorguyu SQL'e taşımak beş sekmenin sayısını ayrı sorgular ister. Fotoğraf yalnız açık sayfa için okunur |
 | 🟢 | Menüde sırayı değiştirmek hâlâ "Sıralama" alanına sayı yazmak (CAT-30, sıra kısmı) | Sürükle bırak yeni bir etkileşim; sıra formda kalır |
 
@@ -845,6 +845,7 @@ Açık:
 | 🟢 | Ayar formları yöntemsizdi: sayfa yüklenmeden basılan "Kaydet" alanları GET ile adrese yazıyordu (`?notificationEmail=…&orderNotifyEmails=…`: adres çubuğu, geçmiş, istek kaydı; kural 9) ve `?sekme=` düşüyordu (doğrulayıcı SS-F1) | Her sekmenin formu `method="post"`: alanlar gövdede gider, Next eylem kimliği taşımayan POST'u sayfayı yeniden çizerek karşılar, açık sekme kalır. O basışta kayıt yine yapılmaz; kaydeden, sayfa yüklendikten sonraki basıştır | `admin-settings-form` |
 | 🟢 | Genel'in yeni denetimi kayıtlı eski bir değeri de reddediyordu: http:// bir görsel ya da 40 karakteri aşan bir telefon yüzünden "Online mağaza açık" kapatılamıyordu (doğrulayıcı SS-F2) | Kayıtlı hâliyle geri gelen alan denetlenmez ve yazılmaz; yalnız değişen alanlar zod'dan geçer, düzenlenen eski değer yine reddedilir | `admin-settings-actions` |
 | 🟢 | Değişiklik olmadan basılan E-posta "Kaydet" durum bandını artık yenilemiyordu: Resend'de alan adını doğrulayıp dönen operatör 2 dakikalık önbellek yüzünden kırmızı bandı görmeye devam ediyordu (doğrulayıcı SS-F3) | "Değişiklik yok" cevabı da bandı yeniden okur (`forgetEmailHealth`, `revalidatePath`); kayıt ve olay satırı yine yok | `admin-settings-actions` |
+| 🟢 | Panel içi bağlantıyla (kenar çubuğu) ya da ⌘K ile sayfadan çıkış kaydedilmemiş değişikliği sormuyordu; uyarı yalnız sekme kapatma ve yenilemedeydi | `useUnsavedFlag` (UI-17): sekmelerin zaten tuttuğu "kaydedilmemiş" bilgisi korumaya verilir; başka bir sayfaya giden bağlantı ya da palet girişi sorar, aynı sayfadaki sekme bağlantıları (`?sekme=`) sormaz. Sayfanın kendi `beforeunload` dinleyicisi gitti, aynı soruyu koruma sorar. Test e-postası formu ayar değil: kirli sayılmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks`, `admin-settings-form` |
 
 Karaoke sekmesi ve kaydı ayrı dosyalarda (`karaoke-tab.tsx`, `karaoke-actions.ts`;
 karaoke iade kuralı işi onların üstüne kurulur).
@@ -853,7 +854,6 @@ Açık:
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
-| 🟢 | Panel içi bağlantıyla (kenar çubuğu) sayfadan çıkış kaydedilmemiş değişikliği sormuyor; uyarı yalnız sekme kapatma ve yenilemede | İstemci gezinmesini kesmek kabuk gezinme işi |
 | 🟢 | Kitin `ActionForm`'u da yöntemsiz `<form>`: sayfa yüklenmeden basılırsa alanları adrese yazar (SS-F1'in kit kısmı) | Kit dosyası (`action-form.tsx`) bütün panel formlarını etkiler; bu paketin dışında |
 
 ### Sistem: pano ve raporlar (paket 7b)
@@ -1348,3 +1348,28 @@ incelemeli PR.
 | 🟢 | İnceleme F2: sorgunun ucuz kapısı çerezdeki role bakıyordu; Personel'e yükseltilen bir kasiyer, sayfa ve hızlı kayıt ona açıkken, yeniden girene kadar (7 güne kadar) durumu göremiyordu | Rolü Canlı durum'u açmayan çerez imleç denetimine girmez ve imleç almaz, karar hesabındır (`panelSignal` ve zilin yolu gibi); kasiyer hesap okumasından sonra yine durum alamaz, durum ve ayar okunmaz | `db-integration-venue-quick-findings`, `db-integration-venue-quick-security`, `admin-venue-signal` |
 | 🟢 | Çipin durumu dakikada bir veritabanından okunsaydı açık bir panel sekmesi Neon'u yine bütün gün uyanık tutardı (#185'in kapattığı) | Düzende okuma yok; çip rozetlerin yoluyla sorar (`venueSignal`): `venue` işareti `pub:site` ve `live:access` altında, imleç oturuma bağlı ve saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli (`nextOpenChangeAt`); arada cevap `{ unchanged: true }`, hesap ve durum okunmaz. Durum taşıyan cevap hesabı yeniden okur; cevapta yalnız beş alan (seçim, boş ve toplam masa, açık mı, kaydedildi mi), kişi bilgisi yok. Her `venue_status` yazması `pub:site`'ı düşürür | `admin-venue-signal`, `admin-change-marker`, `venue-status-patch` |
 | 🟢 | Uygulamanın canlı durum cevabı | `GET /api/mobile/v1/live-status` ve `toLiveStatus` değişmedi; kısmi kayıttan sonra aynı on iki alan (§6), yalnız yazılan alanlar ve zaman değişir; 216 durumluk bir matriste cevap main'inkiyle bayt bayt aynı | `venue-status-patch`, `db-integration-venue-status`, `mobile-hours`, `venue-live-status-parity` |
+
+### Kabuk: kaydedilmemiş değişiklik uyarısı (admin UI v2, UI-17)
+
+Tarayıcı yalnız yenilemede, sekme kapanışında ve elle yazılan adreste sorar;
+panelin kendi bağlantısı ve ⌘K istemci gezinmesidir, ona dokunmaz.
+`ui/unsaved-guard.ts` dört formu korur: Ayarlar, Uygulama ayarları, yasal
+belge düzenleyici ve kampanya e-postası (ürün sihirbazı kendi koruması ve
+kayıt defteriyle kalır).
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟡 | Ayarlar, Uygulama ayarları, yasal belge ve kampanya formunda yazılan şey, bir kenar çubuğu bağlantısına ya da ⌘K'ya basınca sorulmadan gidiyordu | Form açılınca alanları `FormData` ile okunur (React'ın çizdiği hâl: kontrollü girdinin değeri, seçimin varsayılanı); operatörün değiştirdiği alanlardan biri (adıyla, `input` / `change` olayından) bundan farklıysa kaydedilmemiş sayılır. Sıra, dosya girdileri sayılmaz; aynı adın değerlerinin sırası sayılır; işaretsiz kutu "yok" olarak, boş yazıdan ayrılır. Yazılıp geri alınan değişiklik sayılmaz; sayfanın kendi kendine kıpırdattığı alan (yeniden doğrulamanın dokunulmamış girdiye getirdiği başkasının değeri, gizli bir sürüm alanı) düzenlemeden önce de sonra da sayılmaz (bağımsız inceleme F1). Kirliyken başka bir sayfaya giden bağlantıya basınca (`document`'te yakalama aşamasında, Next'in `<Link>`'inden önce), palette bir sayfa seçince ve tarayıcı yenilemede ya da kapanışta sorar: "Kaydedilmemiş değişiklikler var. Sayfadan çıkılsın mı?" | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Sorulmaması gerekenler | ⌘, Ctrl, Shift, Alt ve orta tuş, `_self` dışında `target`, `download`, başka kaynak, `mailto:` / `tel:`, aynı sayfa (başka `?sekme=`, `#` atlaması, "İçeriğe geç"), paletin tetikleyicisi (bağlantı görünümlü düğme). Tarayıcı kendi sorusunu "evet"ten sonra bir saniye sormaz: düz bir bağlantı sayfayı gerçekten yüklerken iki kez sorulmaz | `admin-unsaved-guard` |
+| 🟢 | Kaydın sonucu korumaya nasıl yansır | Reddedilen kayıtta form kirli kalır. Yazılan bir cevap (`message`, hata ve onay sorusu yok) gelince yollanan hâl kaydedilmiş sayılır; gönderilmiş ile yanıt gelene kadar yazılan ayrı tutulur (yanıtı beklerken yazılan kaydedilmemiştir). Yönlendiren kayıtlar (yasal belge, yeni kampanya) sayfayı bıraktığı için ne tıklama ne `beforeunload` olur, soru çıkmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Bir sayfada birden çok form var (Ayarlar'da sekme başına, Uygulama ayarları'nda dokuz): tek bağlantıya basınca tek soru | Tek bir dinleyici seti (tıklama, `beforeunload`, palet sorusu), sayfadaki her koruma için sayılır: tek soru, herhangi biri kirliyse. Son form çıkınca dinleyiciler kalkar; formu kalkmış sayfada kimse tutulmaz | `admin-unsaved-guard`, `admin-unsaved-guard-hooks` |
+| 🟢 | Palet sayfa açarken sormuyordu | Tetikleyici bir sayfayı açmadan önce `window`'a iptal edilebilir `admin:leave` olayı gönderir (`mayOpenPage`); formu olan sayfada denetleyici dinler, sorar, "hayır"da iptal eder (palet açık kalır). Dinleyen yoksa cevap evet. Palet parçası 45 KB bütçesinde olduğu için koruma modülünü içe aktaramaz; palet artık yönlendiriciyi tutmaz, sayfayı tetikleyici açar | `admin-unsaved-guard`, `admin-palette-core` |
+| 🟢 | Tek tuşlar (`g` ve harf) yalnız ürün sihirbazında sayfadan çıkmıyordu; dört form da kayıt defterinde | Dört form sihirbazın kayıt defterine (`trackUnsavedGuard`) yazar: UI-8'in `g` ve harf kuralı onlar için de geçerli, kısayol dosyası değişmedi | `admin-unsaved-guard`, `admin-shortcuts` |
+| 🟢 | Paket bütçesi | Korumalı dört sayfaya ~1,6 KB gz; her rotaya tetikleyicide +77 B, palet parçasında -34 B (`esbuild` ile, `next build` ile ölçülmedi: orkestratörün kapısı) | `admin-unsaved-guard` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Tarayıcının Geri ve İleri düğmeleri ve Çıkış düğmesi kaydedilmemiş formu sormuyor | App Router sayfa yüklemeden gezinir (Geri'de tarayıcıda kanca yok); Çıkış bir form gönderimi, bağlantı değil: ikisini kesmek ayrı bir iş |
+| 🟢 | Ürün sihirbazı kenar çubuğu bağlantısında ve palette sormuyor | Bkz. 5d'nin "Açık" tablosu |

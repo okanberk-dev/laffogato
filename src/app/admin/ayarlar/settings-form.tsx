@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useEffect,
   useId,
   useState,
   type KeyboardEvent,
@@ -18,6 +17,7 @@ import {
 } from "@/components/admin/forms";
 import { Section, TONE_SOFT } from "@/components/admin/ui";
 import { TONE_RULE } from "@/components/admin/ui/tone";
+import { useUnsavedFlag } from "@/components/admin/ui/unsaved-guard";
 import { DAYS_OF_WEEK, DAY_LABELS, type DayOfWeek } from "@/lib/admin/days";
 import { ADMIN_ROLES, ROLE_LABELS } from "@/lib/admin/roles";
 import type { AdminSettings } from "@/lib/admin/store";
@@ -103,17 +103,10 @@ export function SettingsForm({
     });
   }, []);
 
-  const anyDirty = dirtyTabs.size > 0;
-  useEffect(() => {
-    if (!anyDirty) return;
-    const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      // Older browsers still want returnValue set to show their prompt.
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [anyDirty]);
+  // Leaving the page (a link, the palette, a reload, a closed tab) asks while
+  // any tab has unsaved changes. The tabs keep the books (`dirtyTabs`, the
+  // test mail form is not a setting), the guard asks.
+  useUnsavedFlag(dirtyTabs.size > 0);
 
   const select = (next: SettingsTabId) => {
     setTab(next);

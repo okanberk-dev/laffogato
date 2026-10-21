@@ -73,6 +73,23 @@ export function openShortcutSheet(): void {
   window.dispatchEvent(new Event(SHORTCUT_SHEET_EVENT));
 }
 
+/**
+ * "May this page be left?": the palette asks before it opens a page, with a
+ * cancelable event on `window`. The unsaved-changes guard
+ * (components/admin/ui/unsaved-guard.ts) listens only while a guarded form
+ * is mounted, asks the operator and cancels on a no. A page with no guarded
+ * form has no listener: the answer is yes, and none of the guard's code was
+ * loaded for it (the palette's chunk has no room for it either).
+ */
+export const PANEL_LEAVE_EVENT = "admin:leave";
+
+/** Whether the page lets `href` be opened (false: the guard's answer was no). */
+export function mayOpenPage(href: string): boolean {
+  return window.dispatchEvent(
+    new CustomEvent(PANEL_LEAVE_EVENT, { cancelable: true, detail: href }),
+  );
+}
+
 /** The key as the trigger prints it: Apple keyboards say ⌘. */
 export function paletteShortcutLabel(apple: boolean): string {
   return apple ? "⌘K" : "Ctrl K";

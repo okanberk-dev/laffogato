@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Component,
   useCallback,
@@ -21,6 +21,7 @@ import type { PaletteNavGroup } from "@/lib/admin/palette-core";
 import {
   isApplePlatform,
   isPaletteShortcut,
+  mayOpenPage,
   PALETTE_FALLBACK_HREF,
   PALETTE_OPEN_EVENT,
   paletteShortcutLabel,
@@ -153,6 +154,7 @@ export function PaletteTrigger({
   accountKey,
 }: PaletteTriggerProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const label = useShortcutLabel();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(0);
@@ -236,6 +238,15 @@ export function PaletteTrigger({
     triggerRef.current?.focus();
   };
 
+  // An entry opens its page from here, not from the list: a form with
+  // unsaved changes asks first (mayOpenPage, answered by
+  // components/admin/ui/unsaved-guard.ts); on a no the dialog stays open.
+  const navigate = (href: string) => {
+    if (!mayOpenPage(href)) return;
+    dialogRef.current?.close();
+    router.push(href);
+  };
+
   return (
     <>
       <a
@@ -275,6 +286,7 @@ export function PaletteTrigger({
               accountKey={accountKey}
               pathname={pathname}
               view={view}
+              navigate={navigate}
             />,
             adminPortalRoot(),
           )
@@ -291,11 +303,13 @@ function PaletteDialog({
   accountKey,
   pathname,
   view,
+  navigate,
 }: PaletteTriggerProps & {
   dialogRef: RefObject<HTMLDialogElement | null>;
   onClosed: () => void;
   pathname: string;
   view: PaletteView;
+  navigate: (href: string) => void;
 }) {
   const downOnBackdrop = useRef(false);
 
@@ -342,6 +356,7 @@ function PaletteDialog({
           pathname={pathname}
           view={view}
           close={close}
+          navigate={navigate}
         />
       </PaletteBoundary>
     </dialog>
