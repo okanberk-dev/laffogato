@@ -109,13 +109,17 @@ export const KARAOKE_CONSENT_DOCS = ["karaoke-odasi-rezervasyon"] as const;
  * aynı gün olmak zorunda (tests/legal-dates.test.ts). Panelden yayımlanan bir
  * geçersiz kılma, kaydedilen sürümü bunun ötesine taşır (`consentVersionFrom`).
  */
-// 20 Ekim 2026: §12 says the payment is an advance until the service day,
-// invoiced as an e-Arşiv invoice within 7 days of it for the amount the köşk
-// keeps (ASK-KAR-KDV). LEGAL-REDLINES §24. (19 Ekim 2026: §7 and §10 name the
-// booking's own summary instead of fixed hours, §7 says when a cancel by
-// phone or e-mail counts, §8 says when and why the köşk cancels, §17. 17
-// Ekim 2026: §1 no longer points table bookings to the café terms.) Until
-// 21 Ekim 2026 one PR that moved this label merged per Istanbul day
-// (D-SAME-DAY); a booking's consent now records the hash of the text it
-// confirmed as well (LEGAL-REDLINES §25), and the rule ended.
-export const KARAOKE_LEGAL_UPDATED = "20 Ekim 2026";
+// 21 Ekim 2026: §8 makes good the köşk's late cancel (a free hour of the
+// same length, or the amount paid to the guest's own bank account), §9 says
+// a share goes back within 14 days, now that a late share of 1..99 % can be
+// chosen (karaoke-make-good-and-resale, LEGAL-REDLINES §26). (20 Ekim 2026:
+// §12 says the payment is an advance until the service day, invoiced as an
+// e-Arşiv invoice within 7 days of it for the amount the köşk keeps
+// (ASK-KAR-KDV), §24. 19 Ekim 2026: §7 and §10 name the booking's own
+// summary instead of fixed hours, §7 says when a cancel by phone or e-mail
+// counts, §8 says when and why the köşk cancels, §17. 17 Ekim 2026: §1 no
+// longer points table bookings to the café terms.) Until 21 Ekim 2026 one
+// PR that moved this label merged per Istanbul day (D-SAME-DAY); a
+// booking's consent now records the hash of the text it confirmed as well
+// (LEGAL-REDLINES §25), and the rule ended.
+export const KARAOKE_LEGAL_UPDATED = "21 Ekim 2026";

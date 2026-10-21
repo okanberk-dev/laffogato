@@ -1111,6 +1111,30 @@ export interface KaraokeEmailData {
    */
   refundIsShare?: boolean;
   /**
+   * Cancellation only: this refund is what an hour cancelled late and sold
+   * again gave back, on top of a late share already refunded
+   * (`refundedMinor` is then that part alone, karaoke-make-good-core.ts).
+   */
+  refundIsResaleTopUp?: boolean;
+  /**
+   * Cancellation only: what went back in this one refund holds both the
+   * late share and the part an hour cancelled late and sold again gave
+   * back (`refundedMinor` is their sum).
+   */
+  refundIncludesResale?: boolean;
+  /**
+   * Cancellation only: the köşk cancelled late for its own reason and makes
+   * it good (karaoke terms §8): `minor` kuruş, as a free hour of the same
+   * length booked by `until` ("19 Nisan 2027") or paid to the guest's own
+   * bank account.
+   */
+  makeGood?: { minor: number; until: string };
+  /**
+   * Confirmation only: a free hour the köşk gave to make good the booking
+   * with this code. Nothing is paid for it.
+   */
+  makeGoodHourFor?: string;
+  /**
    * The booking's own cancellation rule (its snapshot, 18 Eki 2026): the two
    * sentences a paid booking's confirmation prints, and until when a booking
    * paid at the venue may still be cancelled on its page (null: it may not,
@@ -1191,6 +1215,11 @@ function karaokeVars(k: KaraokeEmailData) {
     KARAOKE_NEDEN: isBusinessCause(k.cancelCause)
       ? KARAOKE_CAUSE_MAIL[k.cancelCause]
       : "",
+    // The make-good of a late köşk cancel, and the booking a free hour
+    // makes good.
+    KARAOKE_TELAFI_TUTAR: formatTRYMinor(k.makeGood?.minor ?? 0),
+    KARAOKE_TELAFI_SON: k.makeGood?.until ?? "",
+    KARAOKE_TELAFI_KOD: (k.makeGoodHourFor ?? "").toUpperCase(),
   };
 }
 
@@ -1206,17 +1235,10 @@ export async function sendKaraokeConfirmationEmail(
   k: KaraokeEmailData,
 ): Promise<boolean> {
   const online = k.payment?.kind === "online";
-  // A booking paid at the venue says until when its page cancels it, or -
-  // under a rule with no window and no late cancel - to call instead.
-  const selfCancel = k.cancellation ? k.cancellation.venueUntil !== null : true;
-  const flags = {
-    KARAOKE_ODENDI: online,
-    KARAOKE_ODEME_MEKANDA: !online && selfCancel,
-    KARAOKE_MEKAN_ARA: !online && !selfCancel,
-  };
+  const flags = karaokeConfirmationFlags(k);
   const vars = karaokeVars(k);
   // Only a booking paid online confirmed the terms (its consent is the
-  // record the copy is made from).
+  // record the copy is made from); a free hour the köşk gave confirmed none.
   const copy = online ? (k.durableCopy ?? null) : null;
   const versionUrl =
     copy?.links.find((l) => l.slug === KARAOKE_CONSENT_DOCS[0])?.url ?? "";
@@ -1248,6 +1270,28 @@ export async function sendKaraokeConfirmationEmail(
 }
 
 /**
+ * Which payment block a confirmation prints: exactly one. Exported for
+ * tests.
+ */
+export function karaokeConfirmationFlags(
+  k: Pick<KaraokeEmailData, "payment" | "cancellation" | "makeGoodHourFor">,
+): Record<string, boolean> {
+  const online = k.payment?.kind === "online";
+  // A free hour the köşk gave is not paid at the köşk either.
+  const makeGood = !online && Boolean(k.makeGoodHourFor);
+  // A booking paid at the venue says until when its page cancels it, or -
+  // under a rule with no window and no late cancel - to call instead.
+  const selfCancel = k.cancellation ? k.cancellation.venueUntil !== null : true;
+  return {
+    KARAOKE_ODENDI: online,
+    KARAOKE_TELAFI_SAATI: makeGood && selfCancel,
+    KARAOKE_TELAFI_SAATI_ARA: makeGood && !selfCancel,
+    KARAOKE_ODEME_MEKANDA: !online && !makeGood && selfCancel,
+    KARAOKE_MEKAN_ARA: !online && !makeGood && !selfCancel,
+  };
+}
+
+/**
  * Sent when a karaoke block is cancelled - by the staff, by the member, or
  * when an account closes. Transactional for the same reason as the
  * confirmation, and more urgently: without it the member finds out at the
@@ -1274,13 +1318,21 @@ export function karaokeCancellationFlags(
     | "refundedMinor"
     | "refundOwedMinor"
     | "refundIsShare"
+    | "refundIsResaleTopUp"
+    | "refundIncludesResale"
     | "payment"
     | "cancelCause"
+    | "makeGood"
   >,
 ): Record<string, boolean> {
   const refunded = k.refundedMinor !== undefined;
   const owed = !refunded && k.refundOwedMinor !== undefined;
   const share = k.refundIsShare === true;
+  // Only the resale part went back now: the late share already had its mail.
+  const resale = refunded && share && k.refundIsResaleTopUp === true;
+  // The share and the resale part went back in one refund.
+  const shareAndResale =
+    refunded && share && !resale && k.refundIncludesResale === true;
   const business = isBusinessCause(k.cancelCause);
   const request = k.cancelCause === "misafir";
   // The hour went to another guest: the line says so, and the whole payment
@@ -1294,9 +1346,14 @@ export function karaokeCancellationFlags(
     // The member's own cancel keeps its words; ours say "iade ettik".
     KARAOKE_IADE: refunded && !share && !business && !request && !resold,
     KARAOKE_TAM_IADE: refunded && !share && (business || request),
-    KARAOKE_KISMI_IADE_EDILDI: refunded && share,
+    KARAOKE_KISMI_IADE_EDILDI: refunded && share && !resale && !shareAndResale,
+    KARAOKE_KISMI_SATIS_IADE_EDILDI: shareAndResale,
+    KARAOKE_SATIS_IADE: resale,
     KARAOKE_KISMI_IADE: owed,
     KARAOKE_ODEMESIZ: !refunded && !owed && k.payment?.kind !== "online",
+    // The make-good of a late köşk cancel (karaoke terms §8), beside the
+    // money line, never instead of it.
+    KARAOKE_TELAFI: (k.makeGood?.minor ?? 0) > 0 && Boolean(k.makeGood?.until),
   };
 }
 

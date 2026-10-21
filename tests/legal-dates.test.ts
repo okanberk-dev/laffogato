@@ -53,9 +53,11 @@ describe("legal document dates", () => {
     // documents, the set with it. (19 Ekim 2026: the KDV rule, §16.4; 18
     // Ekim 2026: the distance-sales rules of 2026.)
     expect(LEGAL_UPDATED).toBe("20 Ekim 2026");
-    // The karaoke terms' own label moved the same day: §12 says how the
-    // advance is invoiced (ASK-KAR-KDV).
-    expect(KARAOKE_LEGAL_UPDATED).toBe("20 Ekim 2026");
+    // The karaoke terms carry their own label: 21 Ekim 2026, §8 makes good
+    // a late köşk cancel and §9 refunds a share within 14 days
+    // (LEGAL-REDLINES §26). (20 Ekim 2026: §12 says how the advance is
+    // invoiced, ASK-KAR-KDV.)
+    expect(KARAOKE_LEGAL_UPDATED).toBe("21 Ekim 2026");
   });
 
   it("a document that changes after the revision carries its own day", () => {
@@ -71,6 +73,13 @@ describe("legal document dates", () => {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
+      // 21 Ekim 2026: the karaoke make-good named in the privacy texts and
+      // its bank details in the retention table (LEGAL-REDLINES §26).
+      "gizlilik-politikasi": "21 Ekim 2026",
+      "kvkk-aydinlatma-metni": "21 Ekim 2026",
+      "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
+      // The make-good's transfer is the third bank-transfer case (§14).
+      "odeme-kosullari": "21 Ekim 2026",
       // 21 Ekim 2026: §8 says the durable copy that shipped (the confirmed
       // text attached, downloadable, kept by hash; LEGAL-REDLINES §25). No
       // checkout document changed, so LEGAL_UPDATED did not move.

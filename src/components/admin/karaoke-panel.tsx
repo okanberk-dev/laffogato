@@ -13,7 +13,7 @@ import {
   KARAOKE_ATTENTION,
   karaokeDetailHref,
   maskPaymentRef,
-  refundAmountMinor,
+  refundOwedNowMinor,
   type KaraokeRowView,
 } from "@/lib/admin/karaoke-panel";
 import {
@@ -78,6 +78,11 @@ export function KaraokeBadges({
       {view.attention.includes("share_owed") ? (
         <Badge tone="danger">Kısmi iade borcu</Badge>
       ) : null}
+      {view.attention.includes("resale_owed") ? (
+        <Badge tone="danger">Yeniden satış iadesi</Badge>
+      ) : null}
+      {view.makeGood === "open" ? <Badge tone="info">Telafi açık</Badge> : null}
+      {view.r.makeGoodFor ? <Badge tone="info">Telafi saati</Badge> : null}
       {view.r.guest ? <Badge tone="accent">Üyeliksiz</Badge> : null}
     </span>
   );
@@ -122,8 +127,30 @@ const MONEY_REASON = {
   maxLength: 500,
 } as const;
 
+/**
+ * What "Elle iade edildi" posts: the booking, and the `refundMinor` (kuruş)
+ * its dialog names, empty for a whole-payment refund. A share is recorded
+ * only at that amount (`settleKaraokeRefundByHand`): if an hour was sold
+ * again after the page opened, the press is refused instead of recording
+ * more than the person refunded.
+ */
+export function settleFields(
+  r: Pick<KaraokeRowView["r"], "id" | "refundMinor">,
+): Record<string, string> {
+  return {
+    id: r.id,
+    gosterilenIade:
+      typeof r.refundMinor === "number" ? String(r.refundMinor) : "",
+  };
+}
+
+/**
+ * What the dialog's refund sends: everything still to go back, never what a
+ * person already refunded by hand (a late share refunded before its hour
+ * was sold again).
+ */
 function amount(view: KaraokeRowView): string {
-  return formatTRY(refundAmountMinor(view.r));
+  return formatTRY(refundOwedNowMinor(view.r));
 }
 
 /**
@@ -261,15 +288,17 @@ export function KaraokeActions({
       <ConfirmButton
         key="settle"
         action={settleKaraokeRefundAction}
-        hidden={{ id: r.id }}
+        hidden={settleFields(r)}
         label={label}
         title={label}
         description={
-          kind === "share"
-            ? `Geç iptalin iadesi: ödemenin tamamı değil, rezervasyonun kuralına göre ${amount(view)}. Bu tutarı PayNkolay panelinden karta iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
-            : kind === "after_cancel"
-              ? `${amount(view)} tutarını PayNkolay panelinden iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
-              : `PayNkolay panelinde bu iadeyi (${amount(view)}) gördüysen iade yapılmış olarak kaydedilir ve müşteriye iade e-postası gider. POS'a bir şey gönderilmez.`
+          kind === "share" && (r.resaleRefundMinor ?? 0) > 0
+            ? `Geç iptal edilen saat yeniden satıldı: misafirde kalan tutardan ${amount(view)} iade edilecek. Bu tutarı PayNkolay panelinden karta iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
+            : kind === "share"
+              ? `Geç iptalin iadesi: ödemenin tamamı değil, rezervasyonun kuralına göre ${amount(view)}. Bu tutarı PayNkolay panelinden karta iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
+              : kind === "after_cancel"
+                ? `${amount(view)} tutarını PayNkolay panelinden iade ettiysen kaydet: rezervasyon iade edildi olarak işaretlenir ve müşteriye e-posta gider. POS'a bir şey gönderilmez.`
+                : `PayNkolay panelinde bu iadeyi (${amount(view)}) gördüysen iade yapılmış olarak kaydedilir ve müşteriye iade e-postası gider. POS'a bir şey gönderilmez.`
         }
         confirmLabel="Kaydet"
         tone="default"

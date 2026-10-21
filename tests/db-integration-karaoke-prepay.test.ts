@@ -1612,7 +1612,10 @@ maybe("karaoke prepayment (real Postgres)", () => {
         reason: "by_hand",
       });
       expect(
-        await pay.settleKaraokeRefundByHand(id, "owner@kosk"),
+        // The dialog posts the share it named (settleFields).
+        await pay.settleKaraokeRefundByHand(id, "owner@kosk", undefined, {
+          shownRefundMinor: 100_000,
+        }),
       ).toMatchObject({ ok: true, refunded: true });
       expect(await row(id)).toMatchObject({
         paymentStatus: "refunded",

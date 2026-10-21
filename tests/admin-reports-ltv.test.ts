@@ -215,6 +215,37 @@ describe("prepaid karaoke revenue", () => {
     expect(k.paidCount).toBe(3);
   });
 
+  it("an hour sold again after the share went back: only the rest is pending (resale)", () => {
+    const paid = row("paid", 200_000, "2026-10-16T19:00:00.000Z");
+    const k = store.karaokeRevenueFrom(
+      [
+        // 50 % went back by hand; then its two hours were sold again and the
+        // rest (100.000) is owed: 100.000 already off, 100.000 pending.
+        {
+          ...paid,
+          paymentStatus: "refunding",
+          refundMinor: 200_000,
+          refundSettledMinor: 100_000,
+        },
+        // The same, settled: all of it back.
+        {
+          ...paid,
+          paymentStatus: "refunded",
+          refundMinor: 200_000,
+          refundSettledMinor: 100_000,
+        },
+      ],
+      "day",
+      30,
+      NOW,
+    );
+    expect(k.collectedMinor).toBe(400_000);
+    expect(k.refundedMinor).toBe(300_000);
+    expect(k.netMinor).toBe(100_000);
+    expect(k.refundPendingMinor).toBe(100_000);
+    expect(k.paidCount).toBe(1);
+  });
+
   it("books a payment at the köşk's date, not the server's", () => {
     // 01:30 in Tuzla on 1 Sep is 22:30 UTC on 31 Aug: inside a monthly view
     // that starts in September only if read in Istanbul time.
