@@ -19,6 +19,7 @@ import {
 } from "@/components/admin/forms";
 import { ImageUpload } from "@/components/admin/image-upload";
 import { BUTTON, type ModalAction } from "@/components/admin/ui";
+import { DateTimeField } from "@/components/admin/ui/date-time-field";
 import { SCENES } from "@/components/laffogato/scenes";
 import {
   HOME_HERO_BUNDLED_IMAGES,
@@ -339,18 +340,18 @@ export function HomeSlideForm({
         <div className="grid gap-5 sm:grid-cols-2">
           <Row name="startsAt">
             <Field label="Başlangıç" hint="Boşsa hemen. Saat İstanbul saati.">
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="startsAt"
+                aria-label="Başlangıç tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults.startsAt)}
               />
             </Field>
           </Row>
           <Row name="endsAt">
             <Field label="Bitiş" hint="Boşsa süresiz.">
-              <TextInput
-                type="datetime-local"
+              <DateTimeField
                 name="endsAt"
+                aria-label="Bitiş tarihi ve saati"
                 defaultValue={toDateTimeLocalInput(defaults.endsAt)}
               />
             </Field>
