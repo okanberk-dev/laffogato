@@ -11,14 +11,42 @@ import { metaDescription, openGraphDefaults } from "@/lib/seo/site";
 import { breadcrumbLd } from "@/lib/seo/structured-data";
 import { getSiteLegalOverride } from "@/lib/seo/site-data";
 
+import { LegalVersionView } from "./legal-version";
+
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+/**
+ * `?surum=` turns the page into a stored version (./legal-version.tsx); its
+ * mere presence does, so a malformed value is the not-found page rather
+ * than today's text under an address that promised another one.
+ */
+async function versionParam(
+  searchParams: SearchParams | undefined,
+): Promise<{ prefix: string | string[] | undefined } | null> {
+  const query = (await searchParams) ?? {};
+  return Object.prototype.hasOwnProperty.call(query, "surum")
+    ? { prefix: query.surum }
+    : null;
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: SearchParams;
 }): Promise<Metadata> {
   const { slug } = await params;
   const doc = findLegalDoc(slug);
   if (!doc) return {};
+  if (await versionParam(searchParams)) {
+    // A stored version: never indexed, and nothing read for its head (the
+    // body reads the version once).
+    return {
+      title: doc.title,
+      robots: { index: false, follow: false },
+    };
+  }
   const override = await getSiteLegalOverride(slug);
   const title = override?.title || doc.title;
   const description = metaDescription(override?.summary || doc.summary);
@@ -42,10 +70,17 @@ export async function generateMetadata({
 
 export default async function LegalDocPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: SearchParams;
 }) {
   const { slug } = await params;
+  const version = await versionParam(searchParams);
+  if (version) {
+    if (!findLegalDoc(slug)) notFound();
+    return <LegalVersionView slug={slug} prefix={version.prefix} />;
+  }
   // The karaoke terms are written for the panel's cancellation policy.
   const doc = await liveLegalDoc(slug);
   if (!doc) notFound();

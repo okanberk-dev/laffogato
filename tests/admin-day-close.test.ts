@@ -518,6 +518,73 @@ describe("the figures", () => {
     expect(sheet.refunds[0].href).toBe("/admin/mobil/karaoke/krk-00011");
   });
 
+  it("count a resale top-up as that day's refund, not the share before it", () => {
+    const rows = sheetRows();
+    rows.karaokeMoney = [
+      // A 50 % share refunded on 18 Oct; its hours sold again, the rest
+      // refunded by hand on the day: only that step is the day's.
+      {
+        id: "krk-00020",
+        paymentStatus: "refunded",
+        paidMinor: 60_000,
+        refundMinor: 60_000,
+        refundSettledMinor: 30_000,
+        paidAt: "2026-10-17T10:00:00.000Z",
+        createdAt: "2026-10-17T09:55:00.000Z",
+        refundedAt: "2026-10-19T12:00:00.000Z",
+      },
+    ];
+    const sheet = dayClose.dayCloseSummary(rows, DAY, AT_2230);
+    const mine = sheet.refunds.filter((r) => r.label === "KRK-00020");
+    expect(mine.map((r) => [r.time, r.amountMinor])).toEqual([
+      ["15:00", 30_000],
+    ]);
+  });
+
+  it("list each refund recorded by hand on its own day, whatever the booking became", () => {
+    const rows = sheetRows();
+    rows.karaokeMoney = [
+      // 300 refunded by hand on the 18th, its hour sold again since: 300
+      // more owed now (refunding). Neither day loses its own step.
+      {
+        id: "krk-00030",
+        paymentStatus: "refunding",
+        paidMinor: 60_000,
+        refundMinor: 60_000,
+        refundSettledMinor: 30_000,
+        refundSteps: [{ minor: 30_000, at: "2026-10-18T09:00:00.000Z" }],
+        paidAt: "2026-10-17T10:00:00.000Z",
+        createdAt: "2026-10-17T09:55:00.000Z",
+        refundedAt: "2026-10-18T09:00:00.000Z",
+      },
+      // Two steps, the second on the day.
+      {
+        id: "krk-00031",
+        paymentStatus: "refunded",
+        paidMinor: 60_000,
+        refundMinor: 60_000,
+        refundSettledMinor: 30_000,
+        refundSteps: [
+          { minor: 30_000, at: "2026-10-18T09:00:00.000Z" },
+          { minor: 30_000, at: "2026-10-19T13:00:00.000Z" },
+        ],
+        paidAt: "2026-10-17T10:00:00.000Z",
+        createdAt: "2026-10-17T09:55:00.000Z",
+        refundedAt: "2026-10-19T13:00:00.000Z",
+      },
+    ];
+    const mine = (day: string) =>
+      dayClose
+        .dayCloseSummary(rows, day, AT_2230)
+        .refunds.filter((r) => r.kind === "karaoke")
+        .map((r) => [r.label, r.time, r.amountMinor]);
+    expect(mine(DAY)).toEqual([["KRK-00031", "16:00", 30_000]]);
+    expect(mine("2026-10-18")).toEqual([
+      ["KRK-00030", "12:00", 30_000],
+      ["KRK-00031", "12:00", 30_000],
+    ]);
+  });
+
   it("tell the evening's karaoke: done, to come, did not come (D7)", () => {
     const sheet = dayClose.dayCloseSummary(sheetRows(), DAY, AT_2230);
     expect(sheet.karaoke).toMatchObject({

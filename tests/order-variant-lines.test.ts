@@ -464,3 +464,39 @@ describe("docs/AUDIT.md holds in either merge order", () => {
     expect(doc).not.toMatch(/gelene kadar kart/);
   });
 });
+
+/**
+ * Review R6 (21 Eki 2026): the confirmed contract's copy printed the
+ * order's row, which the panel can correct after the mail went out. The
+ * order now keeps the name and the address it was placed with in its
+ * consent (`legalConsent.buyer`), on the web and in the app.
+ */
+describe("an order keeps its buyer as placed, in its consent", () => {
+  it("on the web checkout and in the app", async () => {
+    const web = await webOrder([
+      { productId: "prd-0001", name: "Moka Pot", qty: 1 },
+    ]);
+    const app = await appOrder([{ productId: "prd-0001", qty: 1 }]);
+    for (const res of [web, app]) {
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+      expect(res.order.legalConsent).toMatchObject({
+        ...CONSENT,
+        buyer: {
+          name: "Eda Mancuso",
+          address: "Postane Mah. 28, Tuzla, İstanbul",
+        },
+      });
+    }
+    // Written with the row, not added later.
+    const inserts = db.statements.filter((s) =>
+      /^INSERT INTO "orders"/.test(s.text),
+    );
+    expect(inserts).toHaveLength(2);
+    for (const s of inserts) {
+      expect(JSON.stringify(s.params)).toContain(
+        '\\"buyer\\":{\\"name\\":\\"Eda Mancuso\\"',
+      );
+    }
+  });
+});

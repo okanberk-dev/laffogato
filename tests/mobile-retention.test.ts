@@ -54,6 +54,9 @@ describe("every retention period is quoted from the published policy", () => {
       // "Bu yorumu bildir": the reported words, ninety days.
       "fal_reports",
       "feature_consents",
+      // Every legal text shown, by hash: what a consent's textHashes points
+      // at, as long as that consent record lives (D-VERSIONS-TABLE).
+      "legal_doc_versions",
       // The panel's earlier legal texts: what an order's consent version
       // points at, as long as that consent record lives.
       "legal_override_history",
@@ -78,6 +81,10 @@ describe("every retention period is quoted from the published policy", () => {
     expect(by("legal-override-history").days).toBeGreaterThanOrEqual(
       11 * 365 + 2,
     );
+    // The stored texts the consents name: as long, for the same reason, and
+    // only through the function that keeps what a recent consent names.
+    expect(by("legal-doc-versions").days).toBeGreaterThanOrEqual(11 * 365 + 2);
+    expect(by("legal-doc-versions").rpc).toBe("legal_doc_versions_retention");
   });
 
   it("keeps the security counter far inside its one-year ceiling", () => {
@@ -148,12 +155,15 @@ describe("report mode is the default", () => {
         featureConsents: "feature_consents",
         falReadings: "fal_readings",
         falReports: "fal_reports",
+        legalOverrideHistory: "legal_override_history",
+        legalDocVersions: "legal_doc_versions",
       },
     }));
     vi.resetModules();
     const mod = await import("@/lib/retention");
     const report = await mod.runRetention({
       now: new Date("2026-09-16T04:00:00.000Z"),
+      keep: { "legal-doc-versions": [] },
     });
     expect(report.applied).toBe(false);
     expect(report.totalDestroyed).toBe(0);
@@ -209,12 +219,18 @@ describe("report mode is the default", () => {
         featureConsents: "feature_consents",
         falReadings: "fal_readings",
         falReports: "fal_reports",
+        legalOverrideHistory: "legal_override_history",
+        legalDocVersions: "legal_doc_versions",
       },
     }));
     vi.resetModules();
     const mod = await import("@/lib/retention");
     const now = new Date("2026-09-16T04:00:00.000Z");
-    const report = await mod.runRetention({ now, apply: true });
+    const report = await mod.runRetention({
+      now,
+      apply: true,
+      keep: { "legal-doc-versions": [] },
+    });
     expect(report.applied).toBe(true);
     expect(deleted.sort()).toEqual(
       mod.RETENTION_RULES.map((r) => r.table).sort(),
@@ -228,6 +244,79 @@ describe("report mode is the default", () => {
     }
     vi.doUnmock("@/lib/db");
     vi.resetModules();
+  });
+});
+
+/**
+ * Review R1 (21 Eki 2026): legal_doc_versions_retention could remove a text
+ * shown today - one replaced long ago and shown again (a reset to the coded
+ * text) keeps its first "createdAt". The texts shown today now go to the
+ * function as `p_keep`; a caller that cannot say which those are removes
+ * nothing under that rule.
+ */
+describe("the legal texts shown today are kept whatever their age", () => {
+  async function run(keep?: Record<string, string[]>) {
+    const calls: { fn: string; args: Record<string, unknown> }[] = [];
+    const db = {
+      from() {
+        const api = {
+          select: () => api,
+          delete: () => api,
+          lt: () => api,
+          neq: () => api,
+          then: (resolve: (r: unknown) => void) =>
+            resolve({ data: null, error: null, status: 200, count: 0 }),
+        };
+        return api;
+      },
+      rpc(fn: string, args: Record<string, unknown>) {
+        calls.push({ fn, args });
+        return Promise.resolve({ data: 0, error: null });
+      },
+    };
+    vi.doMock("@/lib/db", () => ({
+      getDb: () => db,
+      TABLES: new Proxy({}, { get: (_t, k) => String(k) }),
+    }));
+    vi.resetModules();
+    const mod = await import("@/lib/retention");
+    const report = await mod.runRetention({ apply: true, keep });
+    vi.doUnmock("@/lib/db");
+    vi.resetModules();
+    return {
+      report,
+      legal: calls.filter((c) => c.fn === "legal_doc_versions_retention"),
+      others: calls.filter((c) => c.fn !== "legal_doc_versions_retention"),
+    };
+  }
+
+  it("hands the function the hashes shown today", async () => {
+    const live = ["a".repeat(64), "b".repeat(64)];
+    const { legal, others } = await run({ "legal-doc-versions": live });
+    expect(legal).toHaveLength(1);
+    expect(legal[0].args).toMatchObject({ p_apply: true, p_keep: live });
+    // The other functions keep their two arguments.
+    for (const c of others) expect(c.args).not.toHaveProperty("p_keep");
+  });
+
+  it("removes nothing under that rule without the list, and says so", async () => {
+    const { report, legal } = await run();
+    expect(legal).toEqual([]);
+    const r = report.results.find((x) => x.id === "legal-doc-versions")!;
+    expect(r).toMatchObject({ matched: 0, destroyed: 0 });
+    expect(r.error).toMatch(/keep list/);
+  });
+
+  it("the function itself keeps them, and refuses to act without a list", () => {
+    const sql = readFileSync(
+      join(process.cwd(), "db/migrations/20261020180000_legal_doc_versions.sql"),
+      "utf8",
+    );
+    expect(sql).toContain("p_keep   jsonb");
+    expect(sql.match(/and not \(p_keep \? v\.hash\)/g)).toHaveLength(2);
+    expect(sql).toContain(
+      "if p_keep is null or jsonb_typeof(p_keep) <> 'array' then\n    return 0;",
+    );
   });
 });
 

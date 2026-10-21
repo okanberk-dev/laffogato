@@ -2977,6 +2977,289 @@ mahkeme, TÜBİS); başka bir çözüm kuruluşu adlandırılmaz.
 | İşlem rehberi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik (RG 29.12.2022-32058) m.7/1; Mesafeli Sözleşmeler Yönetmeliği m.5/6, m.20/1 | Ana sayfadan (site altı) ulaşılan /hukuk/islem-rehberi: sözleşmenin kurulması için teknik adımlar, giriş hatalarını görme ve düzeltme araçları, sözleşme metninin saklanıp saklanmadığı ve ne kadar erişilebildiği (sürüm ve onay anı siparişle en az 3 yıl, metin e-postayla istenir), uyuşmazlık yolları (hakem heyeti, zorunlu arabuluculuk, TÜBİS). |
 | Meslek odası | Aynı yönetmelik m.5/1-c; 6563 s. Kanun m.3/1-a | Oda ve davranış kuralları satırı Şirket Bilgileri'nde, değer belgeden gelene kadar basılmaz (kural 13: yasal kimlik uydurulmaz). |
 
+## 25. Y11 - Onaylanan metnin kalıcı kopyası: her gösterilen sürüm saklanır, onay e-postası doldurulmuş metni ek olarak taşır (21 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `feat/legal-durable-copy`. Operatör kararı
+> (18 Ekim 2026): avukat turu yok, karar birincil kaynaklarla verildi
+> (ASK-DURABLE, ASK-OTH-2, D-VERSIONS-TABLE, D-ISLEM-DURABLE). Yalnız İşlem
+> Rehberi'nin metni değişti; tarihi **21 Ekim 2026** (§25.4). ÖBF, MSS ve
+> karaoke sözleşmesi değişmedi: `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED`
+> 20 Ekim 2026'da kalır.
+
+### 25.1 Neden
+
+- Onay kaydı yalnız bir sürüm ETİKETİ tutuyordu ("20 Ekim 2026"). Aynı gün
+  yayımlanan iki metin (kodlu metin ve panel metni, ya da aynı gün birleşen
+  iki PR) aynı etiketi taşıyabiliyordu; hangisinin onaylandığı ispat
+  edilemezdi (D-SAME-DAY bu yüzden vardı).
+- Onay e-postası ve sipariş sayfası yalnız güncel /hukuk sayfalarına
+  bağlanıyordu ("bağlantılar belgelerin güncel metnini açar"). Onaylanan
+  metin, değiştirilmeden saklanabilecek biçimde tüketiciye verilmiyordu
+  (kalıcı veri saklayıcısı).
+
+### 25.2 Ne değişti (kod)
+
+- Gösterilen her metin (kodlu ve panel) kanonik biçimiyle SHA-256 anahtarıyla
+  `legal_doc_versions` tablosunda saklanır; tablo yalnız eklenir, satırın
+  hash'i metninkiyle tutmazsa veritabanı satırı reddeder. Onay kaydı sürüm
+  etiketinin yanına her belgenin hash'ini yazar (`legalConsent.textHashes`):
+  web ve uygulama ödemesi, karaoke rezervasyonu.
+- `odeme-onaylandi` ve `karaoke-rezervasyon` e-postaları, onaylanan
+  belgelerin o sürümünü sipariş ya da rezervasyon bilgileriyle doldurulmuş
+  tek bir HTML dosyası olarak ekler (`siparis-<NO>-on-bilgilendirme-ve-sozlesme.html`,
+  `karaoke-sozlesme-<KOD>.html`); dosya 16 px, satır içi CSS, harici kaynak ve
+  betik yok, yazdırmaya uygun.
+- Aynı sürüm `/hukuk/<slug>?surum=<16 hane>` adresinde değişmeden okunur
+  (indekslenmez). Üye sipariş sayfasından ve karaoke rezervasyonunun kişiye
+  özel bağlantısından aynı dosya indirilir.
+- Hiçbir onayın okumadığı kodlu metinler (KVKK, İşlem Rehberi, alt bilgideki
+  politikalar) deploy'dan sonraki ilk okumada değil, en geç bir gün içinde
+  günlük cron'la ya da o belgeye dokunan panel işlemiyle saklanır
+  (`docs/DATABASE.md`, "Gösterilen hukuk metinleri"). Onaylanan metinler
+  onayın kendisiyle saklanır.
+
+### 25.3 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| İşlem Rehberi §8, 1. paragraf | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini {{EMAIL}} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar. | Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| İşlem Rehberi §8, 2. paragraf, son cümle | Karaoke odası rezervasyonunda onayladığınız belgelerin sürümü ve onay anı rezervasyon kaydınızda saklanır; o sürümün metnini aynı yolla rezervasyon kodunuzla isteyebilirsiniz. | Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır. |
+| İşlem Rehberi §8, 3. paragraf (inceleme R5) | (yoktu) | Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla {{EMAIL}} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir. |
+| `odeme-onaylandi` e-postası (siz), belgeler satırı | Sipariş sırasında onayladığınız belgeler (bağlantılar belgelerin güncel metnini açar): Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi · İptal, İade ve Cayma Hakkı | Sipariş sırasında onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin, sipariş bilgilerinizle doldurulmuş tam metni bu e-postanın ekindedir. Aynı sürüme şu bağlantıdan da ulaşabilirsiniz: Ön Bilgilendirme Formu · Mesafeli Satış Sözleşmesi (iki sürüm bağlantısı) · İptal, İade ve Cayma Hakkı (güncel metin; inceleme R9 ile geri geldi). Ek oluşturulamazsa eski satır aynen kalır. |
+| `karaoke-rezervasyon` e-postası (sen), ödenmiş rezervasyon | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Tüm koşullar. | ... Rezervasyon sayfandan görebilir ve iptal edebilirsin. Onayladığın Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin, rezervasyon bilgilerinle doldurulmuş tam metni bu e-postanın ekinde. Aynı sürümü buradan da okuyabilirsin: (sürüm bağlantısı). Ek oluşturulamazsa "Tüm koşullar" bağlantısı kalır. |
+| Üye sipariş sayfası (sen), "Sözleşmeler ve onay kaydı" | (yoktu) | Siparişini verirken onayladığın belgelerin o günkü metni. Sipariş onayı e-postanın ekinde de gönderilir; ekte yoksa buradan indirebilirsin. [Belgeleri indir] (yalnız dosya oluşturulabiliyorsa; inceleme B ve R5) |
+| Üye sipariş sayfası (sen), dosya oluşturulamıyorsa (21 Ekim 2026'dan önceki sipariş ya da saklanmamış metin) | (yoktu) | Onayladığın belgelerin sipariş günündeki metnini istersen sipariş numaranla {{EMAIL}} adresine yaz, sana e-postayla gönderelim. |
+| Karaoke rezervasyon sayfası (imzalı bağlantı, sen) | (yoktu) | [Onayladığın sözleşmenin metnini indir] |
+
+§8'in 3. paragrafı inceleme R5'le (21 Ekim 2026) eklendi: ek, oluşturulamadığında
+e-postayı bekletmemek için düşer (`docs/EMAIL-RESEND.md`, "Ek: onaylanan
+sözleşme") ve bu PR'dan önceki onaylarda saklanmış metin yoktur; iki durumda
+da e-postayla isteme yolu açık kalır. 1. paragraf (D-ISLEM-DURABLE) kelimesi
+kelimesine aynen kaldı.
+
+§8'in 2. paragrafındaki karaoke cümlesi kararın metninde yoktu; 1. paragraf
+değişince "aynı yolla" (e-postayla isteme) karşılıksız kaldığı için, karaoke
+rezervasyonunun da aldığı eki söyleyen aynı kalıpta yazıldı. Bu PR'dan önceki
+siparişlerin onay kaydında hash yoktur: onlara ek gitmez, eski cümle (ve
+e-postayla isteme yolu) onlar için geçerli kalır.
+
+### 25.4 Sürüm
+
+- İşlem Rehberi kendi `updatedAt`'ini alır: **21 Ekim 2026**
+  (`src/lib/legal/content.ts`; `tests/legal-dates.test.ts`). #180 setin
+  tarihini 20 Ekim 2026 yaptığı için bu PR bir sonraki gün olan 21 Ekim 2026'yı
+  taşır; daha geç bir gün birleşirse tarih o güne çekilir.
+- `LEGAL_UPDATED` ve `KARAOKE_LEGAL_UPDATED` değişmedi: onaylanan belgelerin
+  metni aynı.
+- **D-SAME-DAY bu PR'la bitti.** Kural (ÖBF/MSS'yi ya da karaoke sözleşmesini
+  değiştiren en fazla bir PR aynı İstanbul gününde birleşir) bir etiketin iki
+  metni taşımasını önlemek içindi. Artık her onay, gösterilen metnin hash'ini
+  etiketin yanında tutuyor ve metin saklanıyor; aynı günün etiketini taşıyan
+  iki metin hash'leriyle ayrılır. Etiket yayın gününü göstermeye devam eder.
+  Kuralın geçmişi §16.4, §17.6, §18, §24.4'te olduğu gibi kalır.
+
+### 25.5 Operatöre
+
+- Yayından sonraki ilk gerçek siparişte ödeme onayı e-postasının ekini aç
+  (Gmail ve bir kurumsal posta kutusu): dosya açılmalı, sipariş bilgileri ve
+  iki belgenin tam metni görünmeli, e-postadaki iki sürüm bağlantısı aynı
+  metni açmalı. Bazı kurumsal e-posta geçitleri HTML eki ayıklar; o durumda
+  sürüm bağlantısı ve üye sayfasındaki indirme ispat olarak kalır.
+- Bir onay itirazında (chargeback, tüketici şikâyeti) siparişin onay
+  kaydındaki `textHashes` değeri ve `/hukuk/<slug>?surum=<ilk 16 hane>`
+  sayfası, siparişte onaylanan metnin kendisidir.
+- Uygulamanın çevrimdışı hukuk kopyası (lafmobil `legal.seed.json`) İşlem
+  Rehberi'nin yeni metnini bir sonraki `npm run legal:export` ile alır.
+
+### 25.6 Bilerek değişmeyenler
+
+- ÖBF §22 ("kalıcı bağlantıları ... e-postada ALICI'ya gönderilir") ve MSS
+  §21 ("bağlantıları ... e-postada yer alır"): doğru kalıyor (e-postada
+  bağlantılar var, artık sürüm bağlantısı); ek eklendiği için yanlış olmuyor.
+  Değiştirmek onay sürümünü taşırdı.
+- Karaoke sözleşmesi §7 ("son ücretsiz iptal anı ve geç iptalde iade edilecek
+  tutar rezervasyon onay e-postanızda da yazılıdır") doğru; "ve ekindeki
+  belgede" eki yazılmadı, sözleşmenin sürümünü taşımamak için.
+- Ek kampanya (toplu) e-postalarına hiç eklenmez; yalnız tekil gönderimde.
+
+### 25.7 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Onaylanan metnin kalıcı veri saklayıcısıyla verilmesi | 6502 s. TKHK m.4/1 (sözleşme ve ön bilgilendirme kalıcı veri saklayıcısıyla), m.48/4; Mesafeli Sözleşmeler Yönetmeliği m.4/1-c (kalıcı veri saklayıcısı: bilgiyi değiştirilmeden saklamaya ve erişmeye imkân veren araç), m.6/1, m.5/6 (ön bilgilendirmenin ispat yükü satıcıda) | Bağlantı tek başına yetmez: doldurulmuş metin e-postanın ekinde gider, sipariş sayfasından indirilir, değişmez sürüm bağlantısı kalır (ASK-DURABLE). |
+| Kayıtların saklanması | MSY m.20/1 (3 yıl); Veri Saklama ve İmha Politikası "Mesafeli satış onay kaydı: sözleşmenin ifasından itibaren 10 yıl" | Metin, ona atıf yapan en yeni onaydan itibaren en az 11 × 366 gün saklanır (`legal-doc-versions` kuralı, `legal_doc_versions_retention`). |
+| Sözleşme metninin saklanıp saklanmadığı ve erişimi | Elektronik Ticaret Aracı Hizmet Sağlayıcı ve Elektronik Ticaret Hizmet Sağlayıcılar Hakkında Yönetmelik m.7/1, m.8/1-d | İşlem Rehberi §8 bunu söyler (D-ISLEM-DURABLE). |
+| Kişisel veri | 6698 s. KVKK m.4/2-d | Saklanan metinler kamuya açık hukuk metinleridir, kişisel veri yoktur; ekteki sipariş bilgileri yalnız alıcının kendi e-postasına ve oturumdaki sahibine gider. |
+
+## 26. Y12 - Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 açıldı (21 Ekim 2026)
+
+> **Durum: metin ve kod değişti.** Dal `feat/legal-karaoke-make-good-and-resale`.
+> Operatör kararı (18 Eki 2026): avukat turu yok; OP-KARAOKE-GOODWILL,
+> ASK-OTH-3-CFG, D-KAR-1-99 ve OP-KARAOKE-CFG-DECISION aşağıdaki
+> dayanaklarla uygulandı.
+
+### 26.1 Sürüm
+
+Karaoke belgesi değişti (§8, §9): `KARAOKE_LEGAL_UPDATED` (`meta.ts`; belgenin
+`updatedAt`'i bu sabittir) yayın günü olarak **21 Ekim 2026**. 20 Ekim'i
+§24 (#180) aldı; bu PR kalıcı kopya PR'ından (#193, §25) sonra, 21 Ekim'de
+birleşir. Kalıcı kopya onaylanan metnin özetini de kaydettiği için
+D-SAME-DAY kalktı. Birleşme günü 21 Ekim değilse altı yer o güne taşınır:
+`KARAOKE_LEGAL_UPDATED`, aşağıdaki dört belgenin `updatedAt`'i
+(`content.ts`) ve `tests/legal-dates.test.ts`.
+
+Kişisel Veri Saklama ve İmha Politikası, KVKK Aydınlatma Metni, Gizlilik
+Politikası ve Ödeme Koşulları'nın metni değiştiği için kendi tarihleri de
+21 Ekim 2026 (`updatedAt`): /hukuk ve uygulamadaki "son güncelleme" satırı
+doğru kalır. Ödeme onayındaki iki belge (ÖBF, MSS) değişmedi,
+`LEGAL_UPDATED` 20 Ekim 2026'da kaldı. Uygulamanın çevrimdışı kopyası lafmobil'de yenilenir (ayrı
+PR). `KARAOKE_POLICY_APP_VERSION` null kaldı (OP-KARAOKE-CFG-DECISION):
+kuralı her karaoke ekranında sunucudan okuyan uygulama sürümü iki mağazada
+yayında değil; canlı kural 2 saat / %0.
+
+### 26.2 Değişen cümleler
+
+| Belge | Yer | Mevcut | Yeni |
+|---|---|---|---|
+| Karaoke, §8 | 2. paragraf | (yok) | "İptali, sizin için ücretsiz iptal süresinin bittiği andan sonra yapmak zorunda kalırsak, nedeni doğal afet, resmî makam kararı veya bölgesel elektrik ya da su kesintisi gibi elimizde olmayan bir sebep (mücbir sebep) değilse ve rezervasyonunuzda geç iptalde iade edilmeyen bir tutar varsa, iadeye ek olarak bu tutar kadar bir telafi veririz: dilerseniz aynı uzunlukta ücretsiz bir karaoke saati, dilerseniz bu tutarın kendi adınıza kayıtlı banka hesabınıza ödenmesi. Ücretsiz saati iptal tarihinden itibaren 6 ay içinde {{PHONE}} numarasını arayarak veya {{EMAIL}} adresine yazarak boş bir saat için ayırtabilirsiniz; ödemeyi seçerseniz banka hesap bilginizi {{EMAIL}} adresine yazmanızdan itibaren en geç 14 gün içinde yaparız." |
+| Karaoke, §9 | 1. paragraf | "Her iade PayNkolay üzerinden, ödemenin yapıldığı karta ve ödenen tutarın tamamı olarak yapılır; kısmi iade yapılmaz. İadenin hesabınıza yansıma süresi bankanıza bağlıdır." | "Her iade PayNkolay üzerinden ödemenin yapıldığı karta yapılır. Tutarın tamamının iadesi iptalle birlikte başlatılır; ödediğiniz tutarın bir kısmı iade ediliyorsa bu tutar en geç 14 gün içinde kartınıza iade edilir. İadenin hesabınıza yansıma süresi bankanıza bağlıdır." |
+| Veri Saklama, §8 tablosu | banka hesap satırının anahtarı | "İade için bildirilen banka hesap bilgisi (kısmi iadenin ödemenin yapıldığı karta yapılmasının teknik olarak mümkün olmadığı istisnai hâllerde veya başka bir kargo firmasıyla gönderilen iadenin gönderim bedelinin ödenmesinde alıcının kendi adına kayıtlı hesap bilgisi)" | aynı anahtar + "; karaoke telafisi için bildirilen banka hesap bilgisi" (değer aynı) |
+| KVKK Aydınlatma, §6 | karaoke rezervasyon verisi | "... ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyon notunuz, ..." | "... ödenen ve iade edilen tutar, ödemenin PayNkolay işlem referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafi (tutarı, ücretsiz saatin son günü, ücretsiz saat olarak mı yoksa ödeme olarak mı kullanıldığı ve ödeme tarihi), rezervasyon notunuz, ..." |
+| KVKK Aydınlatma, §6 | aynı madde, hukuki sebepten önce | (yok) | "Telafinin banka hesabınıza ödenmesini seçerseniz e-postayla bildirdiğiniz kendi adınıza kayıtlı banka hesap bilgisi yalnızca bu ödeme için kullanılır; rezervasyon kaydına yazılmaz, ödemenin belgesiyle muhasebe kayıtlarında saklanır." |
+| Gizlilik Politikası, §3 | "Karaoke rezervasyon verisi" satırı | "... ödemenin PayNkolay referansı ve zamanı, uygulanıyorsa üyelik kademenize göre indirim; ..." | "... ödemenin PayNkolay referansı ve zamanı, rezervasyonunuzu geç iptal etmek zorunda kalırsak verdiğimiz telafinin tutarı ve nasıl kullanıldığı (telafinin banka hesabınıza ödenmesini seçerseniz bildirdiğiniz banka hesap bilgisi yalnızca bu ödeme için kullanılır ve rezervasyon kaydına yazılmaz), uygulanıyorsa üyelik kademenize göre indirim; ..." |
+| Rezervasyon kuralı (ödeme öncesi cümle, `karaokeCancellationRules`, yalnız %1-99) | geç iptal cümlesi | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz." | "Rezervasyon saatine H saatten az kala yapılan iptallerde ödediğin tutarın %P'si en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir." (bu kuralla yapılmış rezervasyon yok: panel %1-99'u bu PR'a kadar kabul etmiyordu, canlıda uygulama kilidi hâlâ kapalı) |
+| Ödeme Koşulları, §14 | 2. paragraf | "Banka hesabına transfer yalnızca iki hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi ve iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz." | "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz." |
+| KVKK Aydınlatma, §7 | "Karaoke odası rezervasyonu:" maddesi | "... rezervasyonun iptali ve iadenin yapılması, rezervasyon bağlantısının e-postayla gönderilmesi, ..." | "... rezervasyonun iptali ve iadenin yapılması, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının bildireceğiniz, kendi adınıza kayıtlı banka hesabına ödenmesi, rezervasyon bağlantısının e-postayla gönderilmesi, ..." |
+| KVKK Aydınlatma, §8 tablosu | karaoke satırının anahtarı | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi" | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, ekibe bildirilmesi, onay, iptal ve iade bildirimi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi" (değer aynı: KVKK m.5/2-c) |
+| Gizlilik Politikası, §5 tablosu | karaoke satırının anahtarı | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi ile rezervasyonla ilgili sizinle iletişim kurulması" | "Karaoke odası rezervasyonunun alınması, ödemesinin tahsili, iptali ve iadesi, rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak telafi olarak ücretsiz bir saatin ayrılması ya da telafi tutarının kendi adınıza kayıtlı banka hesabına ödenmesi ile rezervasyonla ilgili sizinle iletişim kurulması" (değer aynı: KVKK m.5/2-c) |
+| E-posta, işletme iptali (sen) | para satırından sonra | (yok) | "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar bizi arayarak ya da bu e-postayı yanıtlayarak boş bir saat için ayırtabilirsin), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (bu e-postayı yanıtlayıp IBAN'ını yaz, 14 gün içinde öderiz)." |
+| E-posta, telafi saatinin onayı (sen) | ödeme satırı | "Ödemeyi köşkte yaparsın. ..." | "Bu saat, [kod] rezervasyonun için verdiğimiz telafidir. Bu saat için senden ödeme alınmaz. Planın değişirse [süre] rezervasyon sayfandan iptal edebilirsin; telafin o zaman geri gelir." (kural kimseye iptal izni vermiyorsa: "... Planın değişirse bizi ara: [telefon].") |
+| E-posta, yeniden satış iadesi (sen) | para satırı, pay daha önce iade edildiyse | (yok) | "Geç iptal ettiğin saat başka bir misafire satıldığı için sende kalan tutardan [tutar] daha kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
+| E-posta, başlamadan iptal edilen telafi saati (sen) | para satırından sonra | (yok) | İşletme iptalindeki telafi cümlesi, yeniden açılan telafinin tutarı ve son günüyle: "Ayrıca sana [tutar] tutarında bir telafi veriyoruz: istersen aynı uzunlukta ücretsiz bir karaoke saati ([son gün] tarihine kadar ...), istersen bu tutarın kendi adına kayıtlı banka hesabına ödenmesi (...)." |
+| E-posta, pay ve yeniden satış iadesi birlikte (sen) | para satırı | (yok; "Rezervasyonundaki geç iptal kuralına göre [tutar] kartına iade edildi" toplamı yalnız kurala bağlıyordu) | "Rezervasyonundaki geç iptal kuralına göre ve geç iptal ettiğin saat başka bir misafire satıldığı için [tutar] kartına iade edildi; yansıması bankana göre birkaç iş günü sürebilir." |
+
+### 26.3 Kararlar ve kod
+
+- **Telafi kimde doğar.** Personelin ödenmiş rezervasyonu iptalinde neden
+  `ariza`, `kapanis` ya da `diger` ise, iptal anı rezervasyonun kendi son
+  ücretsiz iptal anından (#166: o dakikanın sonu dâhil; eski satırda
+  başlangıç eksi 2 saat) sonraysa ve misafirin o anda geç iptalde
+  kaybedeceği tutar sıfırdan büyükse: telafi = o tutar (2 saat / %0
+  kuralında ödenen tutarın tamamı; %P'de ödenenin kalan kısmı; %100'de
+  yok), son gün = iptal günü (İstanbul) + 6 takvim ayı (TBK m.92/3).
+  `mucbir`, `misafir` ("Yine de tamamını iade et" dâhil) ve `yeniden`
+  telafi doğurmaz. Geç iptal kuralı kime bağlıysa geç telafi de onadır
+  (Haksız Şartlar Yön. EK-1 (ç); inceleme R3, orkestratör kararı A, 21 Ekim
+  2026): köşkün henüz onaylamadığı ödenmiş rezervasyonun misafiri de süre
+  geçince kendi iptalini yapamadığı için (2 saat / %0) telafi doğar; geç
+  iptal payı olan kuralda böyle bir rezervasyon misafir geç iptal etse de
+  tamamen iade edildiğinden telafi doğmaz. Telafi iadenin ilk adımıyla birlikte
+  yazılır, POS iadeyi reddederse geri alınır; yanıtsız iade sonradan
+  kaydedilince telafi e-postası o zaman gider (`karaoke-make-good-core.ts`).
+- **İki eylem, biri diğerini kapatır.** İade yetkisi olan kişi iptal
+  edilmiş rezervasyonun sayfasında "Telafi saati ver" (boş bir gün ve
+  saat; aynı süre, aynı misafir; toplam 0, `paymentStatus: "none"`,
+  onaylı, `channel: "staff"`, not "Telafi: KRK-…", `makeGoodFor` eski kod;
+  çakışma kısıtı geçerli, açık rezervasyon tavanına sayılmaz; misafire
+  "Bu saat için senden ödeme alınmaz." onayı) ya da "Telafi ödendi" (havale
+  günü, tutar ve not; tutar tam telafi kadar olmalı, koşullar "bu tutarın
+  ... ödenmesi" der; ileri tarih reddedilir) seçer.
+  Telafi saati tek SQL ifadesinde yazılır (`karaoke_give_make_good_hour`,
+  telafi edilen rezervasyonun satır kilidi altında): telafi kullanılmış
+  sayılır ve saat yazılır ya da hiçbiri olmaz; araya giren bir rezervasyon
+  (23P01) telafiyi açık bırakır. "Telafi ödendi" tek koşullu yazımdır. İkisi
+  aynı anda basılırsa yalnız biri kazanır (gerçek Postgres testi). IBAN
+  veritabanına yazılmaz; IBAN ya da kart numarası taşıyan bir not (gruplar
+  boşluk, NBSP, nokta, eğik çizgi, alt çizgi ya da tireyle ayrılmış da
+  olsa, "hesap 12345678" gibi bir hesap numarası da) reddedilir, çünkü not
+  10 yıl değişmeden saklanan olay kaydına girer; dekont muhasebede durur.
+  Havale notu rezervasyon sayfasının geçmişinde yalnız iade yetkisi olana
+  görünür (onay kaydının IP'si gibi). POS iadeyi reddederse telafi geri
+  alınma yazımının kendisinde silinir (ayrı bir yazım yok). Ücretsiz
+  saat son günden sonra verilmez; para seçeneğinin son günü yoktur. Telafi
+  saati başlamadan iptal edilirse telafi yeniden açılır (saatin iptali ve
+  telafinin açılması da tek ifade, `karaoke_release_make_good_hour`); saat
+  başladıktan sonra iptal edilirse açılmaz. Telafi saatini misafirin kendi
+  iptalinin artık kabul edilmediği süre içinde yalnız iade yetkisi olan
+  kişi iptal edebilir (inceleme A2: Personel'in iptali kullanılmış telafiyi
+  yeniden açardı; panel bu iptali gerekçesiyle kapalı çizer); hesap
+  kapanışı da saatin kendi kuralına bağlıdır (inceleme A4), o süre içinde
+  saat durur ve köşke telafi saati olarak bildirilir. Başlamadan iptal
+  edilen telafi saatinin iptal e-postası yeniden açılan telafinin tutarını
+  ve son gününü yazar (inceleme R4). Her adım denetim
+  kaydında (`make_good_hour_given`, `make_good_hour`, `make_good_paid`,
+  `make_good_reopened`).
+- **KDV.** Telafi saatinin sayfası "Emsal bedel ₺X (saatlik ücret ₺Y x N
+  saat, KDV %20 dahil), KDV köşkçe beyan edilir. Misafirden para alınmaz."
+  der; faturalanacak tutar satırı bu saatte çıkmaz.
+- **Yeniden satış iadesi.** Rezervasyon onaylandığında (ödemesiyle ya da
+  köşkte ödenecekse personelin onayıyla; telafi saati satış sayılmaz, 0 TL'ye
+  ayrılan saat de: %100 ORO indirimiyle köşk o saatten para almadı, mahsup
+  edilecek bir yarar yok, TBK m.325/2 kıyasen; orkestratör kararı, operatörün
+  yetki devriyle, 21 Ekim 2026) aynı
+  gündeki, saatleri çakışan, iptal edilmiş ve geç iptalde pay tutulmuş
+  rezervasyonlar için her saat, o saati en son geç iptal etmiş
+  rezervasyona bir kez sayılır (`resoldHours`). Hesap satırın kilidi
+  altında SQL'de (`karaoke_charge_resold_hours`, kural 20): aynı saat iki
+  kez bildirilse ya da iki ödeme aynı anda gelse de bir kez sayılır.
+  Yuvarlama: iade = round(tutulan pay x sayılan saat / saat), her seferinde
+  toplam olarak hesaplanır ve yarım kuruş yukarı yuvarlanır; böylece
+  parçaların toplamı tutulan paya tam eşittir ve onu hiç aşmaz (ör. 3
+  saatte 1.001 kuruş: 334, 333, 334). Satıştan hemen sonra, misafirin onay
+  e-postasından önce hesaplanır. Rezervasyon `refunding` olur, ekibe "Geç
+  iptal edilen saat yeniden satıldı" e-postası gider, personel tutarı
+  PayNkolay panelinden iade edip "Elle iade edildi" ile kaydeder. Daha önce
+  elle iade edilen kısım `refundSettledMinor`'da durur ve yeniden
+  istenmez. "Elle iade edildi" penceresinin gösterdiği tutarı gönderir ve
+  kayıt yalnız o tutarla yapılır: sayfa açıldıktan sonra bir saat daha
+  satıldıysa kayıt reddedilir ("tutar değişti, sayfayı yenile") ve büyüyen
+  tutar borç olarak kalır; tutarı göndermeyen basış da kaydedilmez. Her
+  elle iade kendi tutarı ve anıyla ayrı bir adım olarak tutulur
+  (`refundSteps`): Gün sonu her adımı kendi gününde yazar, sonraki bir
+  satış önceki günün iadesini silmez. POS'a otomatik kısmi iade gönderilmez
+  (docs/PAYNKOLAY.md §3.2). Raporlar daha önce iade edileni iadesi bekleyen
+  saymaz.
+- **%1-99 açıldı (D-KAR-1-99).** Panel 0-100 arası tam sayıyı kabul eder;
+  24 saatten uzun pencerede en az %50 sınırı ve %0'da en çok 24 saat sınırı
+  kalır. Canlıda kural hâlâ 2 saat / %0: uygulama kilidi
+  (`KARAOKE_POLICY_APP_VERSION` null) açılmadıkça başka kural kaydedilmez.
+
+### 26.4 Bilerek değişmeyenler
+
+- Ödeme Koşulları ve Hesap Silme'deki karaoke "2 saat" ve "kısmi iade
+  yapılmaz" cümleleri: her rezervasyon 2 saat / %0 ile yapıldığı sürece
+  doğru; uygulama kilidi açılmadan önce yeniden yazılır
+  (`tests/karaoke-cancel-policy-doc.test.ts`). Ödeme Koşulları'nda bu PR
+  yalnız §14'ün banka hesabına transfer paragrafını değiştirdi (26.2).
+- Karaoke §7: yeniden satış iadesini zaten vaat ediyordu ("iptal ettiğiniz
+  saat başka bir misafire satılırsa o saat için sizde kalan tutar da iade
+  edilir"); kod şimdi bunu yapıyor.
+
+### 26.5 Hukuki dayanak
+
+| Konu | Dayanak | Karar |
+|---|---|---|
+| Geç işletme iptalinde telafi | Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1, EK-1 (ç) (RG 17.06.2014, 29033); 6502 s. TKHK m.6/2 | Misafirin geç vazgeçmesi saatin bedeline mal oluyorsa, köşkün aynı geç vazgeçmesi de misafire benzer bir tazminat verir; yalnız aynî karşılık (saat) kullanamayan misafire boş kalacağı için para seçeneği de var. |
+| Mücbir sebep dışarıda | 6098 s. TBK m.136/1-2 | Borçlunun sorumlu tutulamayacağı imkânsızlıkta borç sona erer ve yalnız alınan edim geri verilir; doğal afet, resmî makam kararı, bölgesel elektrik ya da su kesintisinde tam iade var, telafi yok. |
+| 6 ay | 6098 s. TBK m.92/3 | Ay olarak belirlenen süre son ayın karşılık gelen gününde, o gün yoksa ayın son gününde dolar; telafi saatinin son günü böyle hesaplanır. |
+| Telafi saatinin KDV'si | 3065 s. KDV Kanunu m.5, m.27/1 | Vergiye tabi bir hizmetten karşılıksız yararlandırma hizmet sayılır, matrah emsal bedeldir: panel saatlik ücret x saati gösterir, köşk beyan eder. Para olarak ödenen telafi bir teslimin ya da hizmetin bedeli değil, sözleşmeden doğan bir tazminattır; KDV'nin konusuna girmez (KDV K. m.1/1). İkisi de mali müşavirle teyit edilir (26.6). |
+| Yeniden satılan saatin payı | 6098 s. TBK m.325/2 (kıyasen); Haksız Şartlar Yön. EK-1 (d) | Başka biçimde kullanmakla elde edilen yarar bedelden indirilir: geç iptal edilip yeniden satılan saat için tutulan pay iade edilir; her saat bir kez. |
+| Kısmi iade 14 gün | Mesafeli Sözleşmeler Yönetmeliği m.16/4 (kıyasen), TKHK m.4/2 | Tam iade iptalle POS'tan başlar; elle yapılan kısmi iade en geç 14 günde karta; ön bilgi cümlesi bunu yazar. |
+| Banka hesap bilgisi | 6698 s. KVKK m.4/2-ç, m.5/2-c, m.10; Aydınlatma Yükümlülüğü Tebliği m.4 | Telafi ödemesi için bildirilen hesap bilgisi aydınlatma metninde ve gizlilik politikasında adıyla geçer, yalnız bu ödeme için kullanılır, rezervasyon kaydına ve olay kaydına yazılmaz; saklama süresi iade için bildirilen hesap bilgisiyle aynı satırda. |
+
+### 26.6 Operatöre
+
+- Telafi saati verdiğin ay o saati emsal bedeli üzerinden %20 KDV ile
+  beyannameye al (KDV K. m.5, m.27/1); para olarak ödenen telafiyi KDV'siz
+  tazminat olarak havale dekontuyla kaydet. İkisini mali müşavirle teyit et.
+- Telafi ödemesinde misafirin IBAN'ı yalnız e-postada ve dekontta kalır;
+  panele, nota ya da başka bir dosyaya yazma.
+- Kuralı sunucudan okuyan uygulama sürümü (lafmobil 1.1.0) iki mağazada
+  yayınlanınca: önce Ayarlar > Mobil uygulama'da en düşük desteklenen
+  sürümü yükselt, sonra `KARAOKE_POLICY_APP_VERSION`'ı o sürüme yazan PR'ı
+  aç (Ödeme Koşulları ve Hesap Silme cümleleri aynı PR'da). O güne kadar
+  %1-99 kaydedilemez.
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

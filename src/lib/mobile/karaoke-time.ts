@@ -252,18 +252,37 @@ export function refundAmountOf(r: {
 }
 
 /**
- * A late cancel's share is owed or was refunded (less than the payment).
- * Such a refund is never sent to the POS by the code: PayNkolay refunds
- * whole payments only (docs/PAYNKOLAY.md §3.2), so a person refunds the
- * share in PayNkolay's panel and records it (`settleKaraokeRefundByHand`).
+ * What is still to go back by hand: what goes back (`refundAmountOf`) minus
+ * what had already gone back before this step (`refundSettledMinor`, a late
+ * share refunded before its hour was sold again). On a `refunded` row: what
+ * the last step sent.
+ */
+export function refundOwedNowOf(r: {
+  paidMinor?: number;
+  totalMinor: number;
+  refundMinor?: number | null;
+  refundSettledMinor?: number | null;
+}): number {
+  return Math.max(0, refundAmountOf(r) - (r.refundSettledMinor ?? 0));
+}
+
+/**
+ * A late cancel's share is owed or was refunded (less than the payment), or
+ * part of what goes back is for an hour cancelled late and sold again
+ * (`resaleRefundMinor`, karaoke-make-good-core.ts). Such a refund is never
+ * sent to the POS by the code: PayNkolay refunds whole payments only
+ * (docs/PAYNKOLAY.md §3.2), so a person refunds it in PayNkolay's panel and
+ * records it (`settleKaraokeRefundByHand`). A resale part stays by hand even
+ * when the parts add up to the whole payment: some of it may have gone back
+ * already, and the POS would send the whole payment again.
  */
 export function isPartialRefund(r: {
   paidMinor?: number;
   refundMinor?: number | null;
+  resaleRefundMinor?: number | null;
 }): boolean {
-  return (
-    typeof r.refundMinor === "number" && r.refundMinor < (r.paidMinor ?? 0)
-  );
+  if (typeof r.refundMinor !== "number") return false;
+  return r.refundMinor < (r.paidMinor ?? 0) || (r.resaleRefundMinor ?? 0) > 0;
 }
 
 /** The late share of a payment, in kuruş: round(paid × P / 100). */
@@ -329,7 +348,10 @@ export function karaokeCancellationRules(
         ? `${late} ve rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
         : p === 100
           ? `${late} de ödediğin tutarın tamamı kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`
-          : `${late} ödediğin tutarın ${percentPossessive(p)} kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz.`;
+          : // A share is refunded by hand (PayNkolay refunds whole payments
+            // only), within the 14 days of the terms §9, and the hour sold
+            // again refunds what was kept for it (§7, ASK-OTH-3-CFG).
+            `${late} ödediğin tutarın ${percentPossessive(p)} en geç 14 gün içinde kartına iade edilir; rezervasyona gelinmediğinde ücret iadesi yapılmaz. Geç iptal ettiğin saat başka bir misafire satılırsa o saat için sende kalan tutar da kartına iade edilir.`;
   const tooLateMessage =
     p === 0 && h > 0
       ? `Artık buradan iptal edemezsin. ${lateRule}`
@@ -382,33 +404,19 @@ export function karaokeRulesOf(r: {
 }
 
 /**
- * May a late share of 1..99 % be chosen? Not yet (ASK-OTH-3-CFG, 18 Eki
- * 2026): the terms promise that an hour cancelled late and sold again
- * refunds the share kept for it, and that refund is not built
- * (karaoke-make-good-and-resale). Until it is, the panel offers 0 or 100 and
- * a stored share in between never takes effect. The share's own path (D9:
- * cancelled, owed, refunded by hand) stays in the code and its tests, for
- * the bookings that would carry one.
+ * Why the panel refuses a policy, or null. The ranges, then the fairness
+ * limits (Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik
+ * m.5/1 and EK (ç), (d); TBK m.182/3): a long window may not keep the whole
+ * payment, so with no late refund the window is at most 24 hours, and above
+ * 24 hours at least half goes back. 0 hours needs nothing more: it is free
+ * until the start.
+ *
+ * A share of 1..99 % is open since the hour cancelled late and sold again
+ * refunds the share kept for it (karaoke-make-good-core.ts, 21 Eki 2026):
+ * the terms §7 promise that refund, and until it was built the panel
+ * offered only 0 or 100 (ASK-OTH-3-CFG, D-KAR-1-99).
  */
-export const KARAOKE_PARTIAL_LATE_REFUND_OPEN = false;
-
-/** The refusal of a share between 0 and 100 while it is closed. */
-export const KARAOKE_PARTIAL_LATE_REFUND_CLOSED =
-  "Kısmi geç iptal iadesi, yeniden satılan saatin iadesi hazır olana kadar seçilemez; %0 ya da %100 seç.";
-
-/**
- * Why the panel refuses a policy, or null. The ranges, the closed partial
- * share (`KARAOKE_PARTIAL_LATE_REFUND_OPEN`), then the fairness limits
- * (Tüketici Sözleşmelerindeki Haksız Şartlar Hakkında Yönetmelik m.5/1 and
- * EK (ç), (d); TBK m.182/3): a long window may not keep the whole payment,
- * so with no late refund the window is at most 24 hours, and above 24 hours
- * at least half goes back. 0 hours needs nothing more: it is free until the
- * start.
- */
-export function karaokeCancelPolicyRefusal(
-  policy: KaraokeCancelPolicy,
-  { partialLateRefund = KARAOKE_PARTIAL_LATE_REFUND_OPEN } = {},
-): {
+export function karaokeCancelPolicyRefusal(policy: KaraokeCancelPolicy): {
   field: "karaokeFreeCancelHours" | "karaokeLateRefundPercent";
   message: string;
 } | null {
@@ -423,12 +431,6 @@ export function karaokeCancelPolicyRefusal(
     return {
       field: "karaokeLateRefundPercent",
       message: "Geç iptalde iade oranı 0 ile 100 arasında tam sayı olmalı.",
-    };
-  }
-  if (!partialLateRefund && p > 0 && p < 100) {
-    return {
-      field: "karaokeLateRefundPercent",
-      message: KARAOKE_PARTIAL_LATE_REFUND_CLOSED,
     };
   }
   if (p === 0 && h > 24) {
@@ -507,7 +509,6 @@ export function effectiveKaraokeCancelPolicy(
     mobileApp?: { minSupportedAppVersion?: string } | null;
   },
   appVersion: string | null = KARAOKE_POLICY_APP_VERSION,
-  partialLateRefund: boolean = KARAOKE_PARTIAL_LATE_REFUND_OPEN,
 ): KaraokeCancelPolicy {
   if (
     karaokePolicyLockReason(
@@ -522,7 +523,7 @@ export function effectiveKaraokeCancelPolicy(
     lateRefundPercent: s.karaokeLateRefundPercent,
   });
   // A stored pair the panel would refuse today never takes effect.
-  return karaokeCancelPolicyRefusal(policy, { partialLateRefund }) === null
+  return karaokeCancelPolicyRefusal(policy) === null
     ? policy
     : { ...DEFAULT_KARAOKE_CANCEL_POLICY };
 }

@@ -570,8 +570,14 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     for (const [where, text] of docTexts()) {
       if (!bankData.test(text)) continue;
       // A supplier's account, and the sentence that only adds "bu amaçla"
-      // to the partial refund just before it, are not this processing.
-      if (/Tedarikçi/.test(text) || /[Bb]u amaçla bildirdiğiniz/.test(text)) {
+      // to the partial refund just before it, are not this processing; nor
+      // is the karaoke make-good's own account (karaoke terms §8), which
+      // tests/karaoke-make-good.test.ts holds to its own words.
+      if (
+        /Tedarikçi/.test(text) ||
+        /[Bb]u amaçla bildirdiğiniz/.test(text) ||
+        (/telafi/.test(text) && !/gönderim bedel/.test(text))
+      ) {
         continue;
       }
       seen++;
@@ -585,14 +591,20 @@ describe("legal content - a documented return shipping cost is paid back", () =>
     expect(purpose).toMatch(/gönderim bedelinin ödenmesi/);
   });
 
-  it("keeps the payment terms' bank transfer list to the two cases", () => {
+  it("keeps the payment terms' bank transfer list to its three cases", () => {
+    // The third since 21 Ekim 2026: the karaoke make-good paid to the
+    // guest's own account (karaoke terms §8; LEGAL-REDLINES §26).
     const transfer = sectionOf(
       "odeme-kosullari",
       "14. Havale, EFT ve FAST; Banka Hesabına Yapılan İadeler",
     ).paragraphs?.[1];
-    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca iki hâlde/);
+    expect(transfer).toMatch(/^Banka hesabına transfer yalnızca üç hâlde/);
     expect(transfer).toMatch(/22\. maddede açıklanan istisnai hâlde/);
     expect(transfer).toMatch(/gönderim bedelinin ödenmesi/);
+    expect(transfer).toMatch(/telafi/);
+    expect(transfer).toMatch(
+      /Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 \(on dört\) gün içinde ödenir\./,
+    );
     expect(transfer).toMatch(/üçüncü kişilere ait hesaplara ödeme yapılmaz/);
   });
 });
@@ -704,18 +716,31 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
     ).toBeGreaterThanOrEqual(5);
     expect(text("4. Mobil Uygulamada Sipariş")).toContain("3D Secure");
     // (b) Whether and how long the contract text is kept and reachable: the
-    // D-ISLEM-DURABLE paragraph word for word, until the durable copy.
-    expect(
-      sectionOf(
-        "islem-rehberi",
-        "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
-      ).paragraphs?.[0],
-    ).toBe(
-      `Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin hangi sürümü olduğu, onay tarihi ve saatiyle birlikte siparişinizin kaydında saklanır. O sürümün metnini ${email} adresine sipariş numaranızla yazarak isteyebilirsiniz; sipariş onayı e-postanızdaki bağlantılar belgelerin güncel metnini açar.`,
+    // D-ISLEM-DURABLE paragraph word for word, now that the durable copy
+    // ships (21 Ekim 2026: attached to the confirmation, downloadable, the
+    // same version behind the mail's link, kept at least 11 years).
+    const s8 = sectionOf(
+      "islem-rehberi",
+      "8. Sözleşme Metninin Saklanması ve Size Ulaşması",
     );
-    expect(text("8. Sözleşme Metninin Saklanması ve Size Ulaşması")).toContain(
-      "en az 3 yıl",
+    expect(s8.paragraphs?.[0]).toBe(
+      "Siparişte onayladığınız Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'nin o günkü metni siparişinizin bilgileriyle doldurulmuş olarak sipariş onayı e-postanızın ekinde size gönderilir ve üye hesabınızdaki sipariş sayfasından da indirilebilir. Aynı sürüm, e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
     );
+    // The karaoke sentence says the same of the booking's copy; it used to
+    // point at "the same way" of the paragraph above, which is gone.
+    expect(s8.paragraphs?.[1]).toContain(
+      "Karaoke odası rezervasyonunda onayladığınız Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin o günkü metni rezervasyonunuzun bilgileriyle doldurulmuş olarak rezervasyon onayı e-postanızın ekinde size gönderilir; aynı sürüm e-postadaki bağlantıdan değişmeden okunabilir ve en az 11 yıl saklanır.",
+    );
+    // Review R5 (21 Eki 2026): the mail goes without the file when it
+    // cannot be built in time, and older orders have no stored text; the
+    // request route stays for both, in its own paragraph.
+    expect(s8.paragraphs?.[2]).toBe(
+      `Ek oluşturulamadığı için onay e-postanızda bu metin yer almazsa ya da siparişiniz veya rezervasyonunuz 21 Ekim 2026'dan önce verildiyse, onayladığınız sürümün metnini sipariş numaranızla ya da rezervasyon kodunuzla ${LEGAL_ENTITY.email} adresine yazarak isteyebilirsiniz; size e-postayla gönderilir.`,
+    );
+    const s8text = text("8. Sözleşme Metninin Saklanması ve Size Ulaşması");
+    expect(s8text).toContain("en az 3 yıl");
+    expect(s8text).not.toContain("aynı yolla");
+    expect(s8text).not.toContain("güncel metnini açar");
     // (c) The tools to see and correct the input before the order.
     const fix = text("6. Girdiğiniz Bilgileri Görme ve Düzeltme");
     for (const tool of ["Sil", "Değiştir", "Geri", "sipariş özetinde"]) {

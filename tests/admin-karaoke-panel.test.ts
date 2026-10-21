@@ -41,7 +41,7 @@ const panel = await import("@/lib/admin/karaoke-panel");
 const { paymentStatusOf, KARAOKE_PAYMENT_STATUSES } =
   await import("@/lib/mobile/karaoke-core");
 const { formatReservationTime } = await import("@/lib/mobile/karaoke-format");
-const { KaraokeActions, KaraokeBadges, unpaidCancelText } =
+const { KaraokeActions, KaraokeBadges, settleFields, unpaidCancelText } =
   await import("@/components/admin/karaoke-panel");
 const { KaraokeTodayCard } =
   await import("@/components/admin/karaoke-today-card");
@@ -265,6 +265,28 @@ describe("bug 2: a cancelled + paid row is refunded first, or recorded", () => {
     expect(markup).toContain("İadeyi başlat");
     expect(markup).toContain("PayNkolay&#x27;da iade edildi");
     expect(markup).not.toContain("İadeyi yeniden dene");
+  });
+
+  it("'Elle iade edildi' posts the amount its dialog names", () => {
+    const owed = view({
+      status: "cancelled",
+      paymentStatus: "refunding",
+      refundMinor: 150_000,
+    });
+    expect(owed.plan.settle).toEqual({ kind: "share" });
+    expect(settleFields(owed.r)).toEqual({
+      id: owed.r.id,
+      gosterilenIade: "150000",
+    });
+    // A whole-payment refund names no share.
+    expect(settleFields(view({ paymentStatus: "refunding" }).r)).toEqual({
+      id: owed.r.id,
+      gosterilenIade: "",
+    });
+    // The dialog posts exactly these (the component uses the helper).
+    expect(read("src/components/admin/karaoke-panel.tsx")).toContain(
+      "hidden={settleFields(r)}",
+    );
   });
 
   it("an unanswered refund offers the retry and 'İade POS'ta görüldü'", () => {
