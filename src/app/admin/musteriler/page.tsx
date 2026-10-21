@@ -231,7 +231,7 @@ function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]">
+    <div className="min-w-0 rounded-3xl bg-[var(--admin-panel)] p-4">
       <div className={EYEBROW} style={MONO_STYLE}>
         {label}
       </div>

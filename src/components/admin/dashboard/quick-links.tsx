@@ -16,7 +16,7 @@ export function QuickLinks({
           <li key={q.href}>
             <Link
               href={q.href}
-              className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] px-3 py-2 text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 py-2 text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             >
               <span className="min-w-0 truncate">{q.label}</span>
               <span aria-hidden="true">→</span>

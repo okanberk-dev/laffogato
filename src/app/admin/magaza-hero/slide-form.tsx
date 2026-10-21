@@ -326,7 +326,7 @@ export function SlideForm({
               value={isDataUrl ? "" : imageUrl}
               placeholder="https://images.example.com/hero.jpg"
               onChange={(e) => setImageUrl(e.target.value)}
-              className="min-w-0 flex-1 rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
+              className="min-w-0 flex-1 rounded-md border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-xs outline-none focus:border-[var(--admin-primary)] focus:bg-white"
             />
           </div>
           <FormFieldError name="imageUrl" />

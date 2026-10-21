@@ -102,8 +102,8 @@ export function ShortcutSheet({
         }
         downOnBackdrop.current = false;
       }}
-      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_24px_64px_rgba(44,29,17,0.28)] backdrop:bg-[rgba(44,29,17,0.45)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
-      style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
+      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop:bg-[rgba(23,23,23,0.32)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
+      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--admin-border)] py-2 pr-2 pl-5">
         <h2

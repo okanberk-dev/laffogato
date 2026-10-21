@@ -1214,7 +1214,7 @@ function DesktopAside({ body }: { body: BodyProps }) {
   return (
     <aside
       id={SIDE_ID}
-      className="fixed inset-y-0 left-0 z-30 hidden w-[var(--admin-side,16rem)] border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden"
+      className="fixed inset-y-0 left-0 z-30 hidden w-[var(--admin-side,17.5rem)] border-r border-[var(--admin-border)] bg-[var(--admin-surface)] lg:block print:hidden"
     >
       <AdminSidebarBody
         {...body}
@@ -1391,7 +1391,7 @@ export function AdminSidebar(props: SidebarProps) {
       {/* Top bar: on a phone the menu button and the logo; on a wide screen
           the breadcrumbs. Then the search and the bar's own controls. */}
       <header
-        className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-[var(--admin-side,16rem)] lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
+        className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-[var(--admin-side,17.5rem)] lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
           // On a wide screen the bar is breadcrumbs, search and controls; a
           // role with neither search nor controls has nothing to put there.
           palette || props.actions ? "" : "lg:hidden"
@@ -1432,7 +1432,7 @@ export function AdminSidebar(props: SidebarProps) {
           label={`${strip.item.label} bölümleri`}
           tabs={strip.tabs}
           activeHref={strip.activeHref}
-          className="mt-3 lg:mt-0 lg:ml-[var(--admin-side,16rem)] print:hidden"
+          className="mt-3 lg:mt-0 lg:ml-[var(--admin-side,17.5rem)] print:hidden"
         />
       )}
 
@@ -1448,8 +1448,8 @@ export function AdminSidebar(props: SidebarProps) {
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
-        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-xl backdrop:bg-[rgba(44,29,17,0.45)] lg:hidden print:hidden"
-        style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
+        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-xl backdrop:bg-[rgba(23,23,23,0.32)] lg:hidden print:hidden"
+        style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
       >
         {open && (
           <>

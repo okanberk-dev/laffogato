@@ -434,10 +434,10 @@ function ModalDialog({
       onMouseDown={onBackdropDown}
       onClick={onBackdropClick}
       className={cx(
-        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_24px_64px_rgba(44,29,17,0.28)] backdrop:bg-[rgba(44,29,17,0.45)]",
+        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(0,0,0,0.14)] backdrop:bg-[rgba(23,23,23,0.32)]",
         SIZE[size],
       )}
-      style={{ fontFamily: "var(--font-poppins), var(--sans)" }}
+      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
     >
       <ModalStateContext.Provider value={ctx}>
         <form

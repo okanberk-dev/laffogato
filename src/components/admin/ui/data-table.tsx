@@ -96,6 +96,12 @@ const ALIGN: Record<NonNullable<DataTableColumn<unknown>["align"]>, string> = {
 // selected row, the selection tint as it shows over white (the row's
 // tint is see-through, which a pinned cell must not be). A hairline on its
 // left edge says the row goes on underneath.
+/**
+ * The column heads (AkmanOS list table): bold 14px ink, sentence case, the
+ * rows under them parted by thin zinc-200 lines.
+ */
+const TABLE_HEAD = "text-left text-sm font-semibold text-[var(--admin-text)]";
+
 const PINNED = "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)]";
 const PINNED_GROUND = "bg-[var(--admin-surface)]";
 const PINNED_SELECTED =
@@ -241,7 +247,7 @@ export function DataTable<T>({
             <li
               key={id}
               className={cx(
-                "rounded-xl border bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]",
+                "rounded-2xl border bg-[var(--admin-surface)] p-4",
                 selection?.has(id)
                   ? "border-[var(--admin-primary)]"
                   : "border-[var(--admin-border)]",
@@ -298,11 +304,11 @@ export function DataTable<T>({
           block of the sr-only header texts (absolutely positioned): without
           it they hung past the viewport and the whole page scrolled
           sideways (ORD-M01). */}
-      <div className="relative hidden overflow-x-auto rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[0_1px_3px_rgba(68,48,28,0.06)] md:block">
+      <div className="relative hidden overflow-x-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
         <table className="w-full border-collapse text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
-            <tr className={EYEBROW} style={MONO_STYLE}>
+            <tr className={TABLE_HEAD}>
               {selection ? (
                 <th
                   scope="col"
@@ -327,7 +333,7 @@ export function DataTable<T>({
                       : undefined
                   }
                   className={cx(
-                    "px-4 py-3 font-normal whitespace-nowrap",
+                    "px-4 py-3 whitespace-nowrap",
                     COMPACT.py2,
                     ALIGN[col.align ?? "left"],
                     col.hideBelow && HIDE_BELOW[col.hideBelow],

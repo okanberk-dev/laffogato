@@ -40,13 +40,13 @@ export function Section({
       id={id}
       aria-labelledby={headingId}
       className={cx(
-        "rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] shadow-[0_1px_3px_rgba(68,48,28,0.06)]",
+        "rounded-3xl bg-[var(--admin-panel)]",
         className,
       )}
     >
       <header
         className={cx(
-          "flex flex-wrap items-start justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-3 sm:px-6",
+          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-1 sm:px-6 sm:pt-5",
           COMPACT.px4,
           COMPACT.py2,
         )}
@@ -54,7 +54,7 @@ export function Section({
         <div className="min-w-0">
           <h2
             id={headingId}
-            className="text-base font-semibold text-[var(--admin-text)]"
+            className="text-base font-semibold tracking-tight text-[var(--admin-text)]"
           >
             {title}
           </h2>
@@ -191,7 +191,7 @@ export function Timeline({
           <span
             aria-hidden="true"
             className={cx(
-              "absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full ring-4 ring-[var(--admin-surface)]",
+              "absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full ring-4 ring-[var(--admin-panel)]",
               TONE_DOT[item.tone ?? "neutral"],
             )}
           />
@@ -242,7 +242,7 @@ export function EmptyState({
   return (
     <div
       className={cx(
-        "flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[var(--admin-border-strong)] bg-[var(--admin-surface-2)] px-6 py-10 text-center",
+        "flex flex-col items-center gap-2 rounded-3xl border border-dashed border-[var(--admin-border-strong)] bg-[var(--admin-panel)] px-6 py-10 text-center",
         className,
       )}
     >

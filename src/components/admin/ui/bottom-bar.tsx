@@ -26,9 +26,14 @@ const SLOT =
   "relative flex min-h-11 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-[11px] leading-4 transition-colors max-[359px]:text-[10px]";
 const SLOT_IDLE =
   "text-[var(--admin-text-soft)] hover:text-[var(--admin-primary)]";
-const SLOT_ACTIVE = "font-semibold text-[var(--admin-primary)]";
-/** The pill behind the icon; filled on the current page's slot. */
-const PILL = "relative grid h-7 w-12 place-items-center rounded-full";
+const SLOT_ACTIVE = "font-semibold text-[var(--admin-text)]";
+/**
+ * The pill behind the icon; on the current page's slot it is black under
+ * a white icon (AkmanOS's active state).
+ */
+const PILL =
+  "relative grid h-7 w-12 place-items-center rounded-full transition-colors duration-200";
+const PILL_ACTIVE = "bg-[var(--admin-primary)] text-white";
 
 /** A tapped slot's answer while its page loads (the sidebar's NavPending). */
 function SlotPending() {
@@ -107,7 +112,7 @@ export function BottomBar({
       className={cx(
         // The top line is a shadow, not a border: the bar is exactly its
         // row and the safe area, the height the root's inset reserves.
-        "fixed inset-x-0 bottom-0 z-30 bg-white/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_var(--admin-border)] backdrop-blur",
+        "fixed inset-x-0 bottom-0 z-30 bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_var(--admin-border)] backdrop-blur-md",
         ...BOTTOM_BAR_HIDE,
       )}
     >
@@ -131,7 +136,7 @@ export function BottomBar({
                   <span
                     className={cx(
                       PILL,
-                      lit && "bg-[var(--admin-primary-soft)]",
+                      lit && PILL_ACTIVE,
                     )}
                   >
                     <NavIcon name="drawer" />
@@ -156,7 +161,7 @@ export function BottomBar({
               >
                 <SlotPending />
                 <span
-                  className={cx(PILL, lit && "bg-[var(--admin-primary-soft)]")}
+                  className={cx(PILL, lit && PILL_ACTIVE)}
                 >
                   <NavIcon name={item.icon ?? item.section} />
                   {badge !== null ? <Badge n={badge} /> : null}

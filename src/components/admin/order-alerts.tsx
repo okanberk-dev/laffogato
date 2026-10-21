@@ -674,7 +674,7 @@ export function OrderAlertMenu({
       role="group"
       aria-label="Sipariş uyarısı"
       style={style}
-      className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(44,29,17,0.14)] print:hidden"
+      className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(0,0,0,0.14)] print:hidden"
     >
       <p className="font-semibold">Yeni sipariş uyarısı</p>
       <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
@@ -780,7 +780,7 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
           props.onRelease?.();
         }
       }}
-      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(44,29,17,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(44,29,17,0.2)] print:hidden"
+      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(0,0,0,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(0,0,0,0.2)] print:hidden"
     >
       <div className="flex min-h-11 items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">

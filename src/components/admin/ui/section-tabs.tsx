@@ -10,8 +10,9 @@ import { LinkPending } from "./link-pending";
  * The strip of a nav item that owns tabs ("Ürünler · Kategoriler"): each
  * tab is another existing page, so these are links, not ARIA tabs. The
  * shell draws it under the breadcrumbs, only on a tab's own page
- * (sectionTabsFor). 44 px targets; on a phone the row scrolls sideways
- * instead of wrapping. A clicked tab marks itself while its page loads.
+ * (sectionTabsFor), as AkmanOS's segmented control: the white part on a
+ * zinc-100 track. 40 px targets, 44 on a touch screen; on a phone the row
+ * scrolls sideways instead of wrapping. A clicked tab marks itself while its page loads.
  */
 export function SectionTabs({
   label,
@@ -31,11 +32,11 @@ export function SectionTabs({
       aria-label={label}
       data-admin-section-tabs=""
       className={cx(
-        "border-b border-[var(--admin-border)] bg-[var(--admin-surface)]",
+        "bg-[var(--admin-surface)] px-4 pt-3 sm:px-6",
         className,
       )}
     >
-      <ul className="flex [scrollbar-width:none] gap-1 overflow-x-auto px-4 sm:px-6">
+      <ul className="inline-flex max-w-full [scrollbar-width:none] gap-1 overflow-x-auto rounded-xl bg-[var(--admin-panel)] p-1">
         {tabs.map((tab) => {
           const active = tab.href === activeHref;
           return (
@@ -44,11 +45,11 @@ export function SectionTabs({
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-11 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors",
+                  "relative inline-flex min-h-10 items-center rounded-lg px-3 text-sm whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 pointer-coarse:min-h-11",
                   COMPACT.minH9,
                   active
-                    ? "border-[var(--admin-primary)] font-medium text-[var(--admin-primary)]"
-                    : "border-transparent text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]",
+                    ? "bg-[var(--admin-surface)] font-medium text-[var(--admin-text)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.04)]"
+                    : "text-[var(--admin-text-soft)] hover:text-[var(--admin-text)]",
                 )}
               >
                 {tab.label}

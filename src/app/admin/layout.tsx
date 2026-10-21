@@ -1,4 +1,4 @@
-import { Poppins } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import {
   AdminSidebar,
@@ -27,66 +27,84 @@ import { logoutAction } from "./actions";
 import { settingsPaletteEntries } from "./palette-settings";
 
 /**
- * Admin panel uses Poppins - a clean, geometric UI sans. The admin is internal
- * (customers never see it), so it deliberately diverges from the customer
- * site's editorial Playfair/Inter type system for better dashboard legibility.
+ * The panel wears the venue back-office's look (lafmaliyet, ladmin.laffogato.net:
+ * the AkmanOS light theme, docs/TASARIM.md there), by the operator's decision
+ * of 21 Eki 2026. Geist Sans for every word, Geist Mono for codes and the
+ * keyboard. The admin is internal (customers never see it); the customer site
+ * keeps Gabarito and Poppins and its own palette (docs/BRAND.md).
  */
-const poppins = Poppins({
+const geistSans = Geist({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-poppins",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-geist-sans",
   display: "swap",
 });
 
-// The admin shell uses Poppins + a brand-aligned palette (cream surfaces,
-// espresso primary, gold accent) so it feels of-a-piece with the customer
-// site. Tokens are explicit hex (not the global :root vars) so a dark-mode
-// scheme can never flip the admin to dark, and we locally override the brand
-// serif tokens so any var(--serif) element renders Poppins too - all scoped
-// to this wrapper, leaving the customer site's type system untouched.
+const geistMono = Geist_Mono({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-geist-mono",
+  display: "swap",
+});
+
+const ADMIN_SANS = "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif";
+
+// The AkmanOS light theme: a white canvas, zinc-100 cards, white controls,
+// #171717 ink, black primary actions, lime only as a fill under dark ink.
+// Tokens are explicit hex (not the global :root vars) so a dark-mode scheme
+// can never flip the admin to dark, and the site's type tokens are
+// repointed to Geist inside this wrapper only (the site's h1-h3 rule reads
+// --headline, its labels --mono), leaving the customer site untouched.
 const adminFontStyle = {
-  fontFamily: "var(--font-poppins), var(--sans)",
-  "--serif": "var(--font-poppins), var(--sans)",
-  "--serif-modern": "var(--font-poppins), var(--sans)",
-  // Surfaces
-  "--admin-bg": "#F7F1E5",
+  fontFamily: ADMIN_SANS,
+  "--sans": ADMIN_SANS,
+  "--display": ADMIN_SANS,
+  "--headline": ADMIN_SANS,
+  "--serif": ADMIN_SANS,
+  "--serif-modern": ADMIN_SANS,
+  "--serif-display": ADMIN_SANS,
+  // MONO_STYLE's labels (role, counts, column heads) are sans in AkmanOS;
+  // real monospace (codes, amounts) is NUMERIC_STYLE's Geist Mono.
+  "--mono": ADMIN_SANS,
+  // Surfaces: the page and every control, menu and dialog are white; cards
+  // and the sidebar are zinc-100 (--admin-panel), hovers and wells too.
+  "--admin-bg": "#FFFFFF",
   "--admin-surface": "#FFFFFF",
-  "--admin-surface-2": "#FBF6EC",
-  "--admin-border": "#E7DAC2",
-  "--admin-border-strong": "#D7C7A9",
-  // A field's outline: 3.31:1 on a white card and 3.07:1 on the field's
-  // own fill, so an empty field can be found (non-text contrast is 3:1).
-  // --admin-border is 1.38:1 on white and stays for cards and dividers.
-  "--admin-border-field": "#9C8B70",
-  // Text (espresso ink)
-  "--admin-text": "#2C1D11",
-  "--admin-text-soft": "#5A4636",
-  // Labels, hints, eyebrows and placeholders. #8A7A64 was 4.16:1 on white
-  // and 3.70:1 on the page; this clears 4.5:1 on white, the page,
-  // surface-2 and neutral-soft (tests/admin-ui-kit.test.ts).
-  "--admin-text-mute": "#74644F",
-  // Brand actions
-  "--admin-primary": "#44301C",
-  "--admin-primary-hover": "#2C1D11",
-  "--admin-accent": "#B88A4A",
-  "--admin-danger": "#C5435A",
+  "--admin-surface-2": "#F4F4F5",
+  "--admin-panel": "#F4F4F5",
+  "--admin-border": "#E4E4E7",
+  "--admin-border-strong": "#D4D4D8",
+  // A field's outline: 3.33:1 on zinc-100 and 3.6:1 on white, so an empty
+  // field can be found (non-text contrast is 3:1). --admin-border
+  // (zinc-200) stays for cards and dividers.
+  "--admin-border-field": "#85858D",
+  // Text (AkmanOS ink)
+  "--admin-text": "#171717",
+  "--admin-text-soft": "#3F3F46",
+  // Labels, hints, eyebrows and placeholders. AkmanOS's zinc-500 #71717A
+  // is 4.40:1 on its own zinc-100 cards; this clears 4.5:1 on white and
+  // on zinc-100 (tests/admin-ui-kit.test.ts).
+  "--admin-text-mute": "#6B6B73",
+  // Actions: black primary, lime accent (a fill only, under dark ink)
+  "--admin-primary": "#171717",
+  "--admin-primary-hover": "#27272A",
+  "--admin-accent": "#C0F21E",
+  "--admin-danger": "#DC2626",
   // Tones (components/admin/ui/tone.ts): an ink for text and a soft ground
   // for badges, toasts and notices. Every ink clears AA (4.5:1) on its soft
   // ground and on white - tests/admin-ui-kit.test.ts holds them to it.
-  // --admin-danger itself stays for buttons and borders; on its soft pink
-  // it is 4.05:1, so danger TEXT uses --admin-danger-ink.
-  "--admin-neutral-soft": "#F1ECE4",
-  "--admin-primary-soft": "#F1E8DA",
-  "--admin-accent-ink": "#765923",
-  "--admin-accent-soft": "#F6ECD6",
-  "--admin-info": "#1F5C99",
-  "--admin-info-soft": "#E4EEF8",
-  "--admin-success": "#1D6D56",
-  "--admin-success-soft": "#E3F1EA",
-  "--admin-warning": "#8A5300",
-  "--admin-warning-soft": "#FBEFD9",
-  "--admin-danger-ink": "#A8344B",
-  "--admin-danger-soft": "#F9E6EA",
+  // --admin-danger (red-600) stays for buttons and borders; on its soft
+  // red-50 it is 4.41:1, so danger TEXT uses --admin-danger-ink (red-700).
+  "--admin-neutral-soft": "#F4F4F5",
+  "--admin-primary-soft": "#E4E4E7",
+  "--admin-accent-ink": "#1F3A08",
+  "--admin-accent-soft": "#EFFCC7",
+  "--admin-info": "#2563EB",
+  "--admin-info-soft": "#EFF6FF",
+  "--admin-success": "#3F6212",
+  "--admin-success-soft": "#ECFCCB",
+  "--admin-warning": "#C2410C",
+  "--admin-warning-soft": "#FFF7ED",
+  "--admin-danger-ink": "#B91C1C",
+  "--admin-danger-soft": "#FEF2F2",
 } as React.CSSProperties;
 
 // The same ground for the signed-in panel and the login / 2FA screens. The
@@ -103,13 +121,15 @@ const adminFontStyle = {
 // `lg`, for the cashier and on the sign-in screens.
 //
 // The laptop sidebar's width (UI-9) is one variable too, `--admin-side`:
-// 16rem, or 4rem once the shell wrote `data-admin-rail="on"` on this root
+// 17.5rem (AkmanOS's sidebar), or 4rem once the shell wrote `data-admin-rail="on"` on this root
 // (view-prefs.tsx; the choice is the browser's, so the server always draws
-// the 16rem default and the stored rail applies right after hydration).
+// the 17.5rem default and the stored rail applies right after hydration).
 // The sidebar, the top bar, the tab strip, the page's left edge and the bulk
 // bar read it from `lg`; the cashier's shell has no sidebar and never sets it.
+const FONT_VARIABLES = `${geistSans.variable} ${geistMono.variable}`;
+
 const shellClass = (fontVariable: string) =>
-  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] [--admin-side:16rem] data-[admin-rail=on]:[--admin-side:4rem] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
+  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] [--admin-side:17.5rem] data-[admin-rail=on]:[--admin-side:4rem] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
 
 /*
  * The panel's nav (admin UI v2, UI-5): five groups, and items that own
@@ -418,7 +438,7 @@ export default async function AdminLayout({
     return (
       <div
         data-admin-root=""
-        className={shellClass(poppins.variable)}
+        className={shellClass(FONT_VARIABLES)}
         style={adminFontStyle}
       >
         <ToastProvider flash={flash}>
@@ -446,7 +466,7 @@ export default async function AdminLayout({
     return (
       <div
         data-admin-root=""
-        className={shellClass(poppins.variable)}
+        className={shellClass(FONT_VARIABLES)}
         style={adminFontStyle}
       >
         <ToastProvider flash={flash}>{children}</ToastProvider>
@@ -476,7 +496,7 @@ export default async function AdminLayout({
     <div
       data-admin-root=""
       data-admin-account={accountKey || undefined}
-      className={shellClass(poppins.variable)}
+      className={shellClass(FONT_VARIABLES)}
       style={adminFontStyle}
     >
       <ToastProvider flash={flash}>
@@ -528,7 +548,7 @@ export default async function AdminLayout({
             tabIndex={-1}
             className={
               chrome
-                ? "lg:pl-[var(--admin-side,16rem)] print:pl-0"
+                ? "lg:pl-[var(--admin-side,17.5rem)] print:pl-0"
                 : "print:pl-0"
             }
             style={{ outline: "none" }}
