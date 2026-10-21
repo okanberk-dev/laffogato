@@ -671,7 +671,7 @@ function NotificationsTab({ settings }: { settings: AdminSettings }) {
   const roles = new Set(settings.orderNotifyRoles ?? []);
   return (
     <SettingsTabForm form={form}>
-      <Section title="Bildirimler">
+      <Section title="Sipariş bildirimi e-postası">
         <div className="grid gap-5">
           <SettingsField
             name="notificationEmail"

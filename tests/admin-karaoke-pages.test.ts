@@ -368,6 +368,23 @@ describe("the list", () => {
     expect(page).toContain("Köşkte ödeme");
   });
 
+  it("offers one Karaoke ayarları link per role: the owner's site tab, the manager's app rules, none for staff", async () => {
+    h.list = [booking({ id: "krk-00079", date: "2099-06-21" })];
+    const count = (html: string) => html.match(/Karaoke ayarları/g)?.length;
+    h.role = "owner";
+    const owner = await list({ sekme: "yaklasan" });
+    expect(owner).toContain('href="/admin/ayarlar?sekme=karaoke"');
+    expect(owner).not.toContain("/admin/mobil/ayarlar");
+    expect(count(owner)).toBe(1);
+    h.role = "manager";
+    const manager = await list({ sekme: "yaklasan" });
+    expect(manager).toContain('href="/admin/mobil/ayarlar?bolum=karaoke"');
+    expect(manager).not.toContain("/admin/ayarlar?sekme=karaoke");
+    expect(count(manager)).toBe(1);
+    h.role = "staff";
+    expect(await list({ sekme: "yaklasan" })).not.toContain("Karaoke ayarları");
+  });
+
   it("keeps the table inside its card below 1280 px (KAR-03)", async () => {
     h.list = [
       booking({

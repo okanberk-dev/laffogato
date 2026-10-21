@@ -338,8 +338,9 @@ describe("the reports page", () => {
     expect(html).not.toContain("Dönüşüm");
     expect(html).not.toContain("Plausible");
     expect(html).toContain("Bu dönemde satış yok.");
-    // The eyebrow names the sidebar's group (SYS-22).
-    expect(html).toMatch(/>Satış<\/div>/);
+    // No eyebrow naming the sidebar's group (UI-20); the h1 is the nav's.
+    expect(html).not.toMatch(/>Satış<\/div>/);
+    expect(html).toContain(">Raporlar</h1>");
     expect(html).not.toContain("İçgörüler");
   });
 });

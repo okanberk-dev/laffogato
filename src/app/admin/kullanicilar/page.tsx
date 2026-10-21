@@ -6,6 +6,7 @@ import {
   BUTTON,
   DataTable,
   EmptyState,
+  PageShell,
   StatusTabs,
 } from "@/components/admin/ui";
 import {
@@ -86,19 +87,17 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const tabValue = ADMIN_USER_TABS.find((t) => t.tab === tab)?.value ?? null;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="detail">
       <PageHeader
-        eyebrow="Sistem"
         title="Kullanıcılar"
-        description="Panele kimin gireceği ve neyi göreceği. Kasiyer rolü yalnız Kasa · damga sayfasını açar."
-        action={
-          <a
-            href="#yeni-kullanici"
-            className={`${BUTTON.primary} w-full sm:w-auto`}
-          >
-            + Yeni kullanıcı
-          </a>
+        description="Panele kimin gireceği ve neyi göreceği."
+        help={
+          <p>
+            Kasiyer rolü yalnız Kasa sayfasını açar. Roller neyi açar listesi
+            aşağıda.
+          </p>
         }
+        primary={{ href: "#yeni-kullanici", label: "Yeni kullanıcı" }}
       />
 
       <div className="grid gap-4">
@@ -106,6 +105,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           <EmptyState
             title="Henüz panelden eklenmiş kullanıcı yok."
             description="Şu an yalnız ortam değişkenindeki hesaplar girebiliyor."
+            action={
+              <Link href="#yeni-kullanici" className={BUTTON.ghost}>
+                Yeni kullanıcı
+              </Link>
+            }
           />
         ) : (
           // min-w-0: the grid's track otherwise grows to the table's width
@@ -277,6 +281,6 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
           </div>
         </Card>
       </div>
-    </main>
+    </PageShell>
   );
 }

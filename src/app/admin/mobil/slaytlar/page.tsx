@@ -5,9 +5,11 @@ import {
   ActionMenu,
   ActionMenuLink,
   ActionMenuSeparator,
+  BUTTON,
   ConfirmButton,
   DataTable,
   EmptyState,
+  PageShell,
   StatusTabs,
 } from "@/components/admin/ui";
 import { appPublishStatus } from "@/lib/admin/app-content-schema";
@@ -83,19 +85,17 @@ export default async function AdminAppSlidesPage({
     : slides;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Mobil uygulama · Ana sayfa"
         title="Slaytlar"
-        description="Uygulamanın ana sayfasındaki kayan kartlar. Buradaki değişiklik mağaza güncellemesi beklemeden, birkaç dakika içinde telefonlara ulaşır."
-        action={
-          <Link
-            href={`${PANEL}/yeni`}
-            className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-          >
-            + Yeni slayt
-          </Link>
+        description="Uygulamanın ana sayfasındaki kayan kartlar."
+        help={
+          <p>
+            Buradaki değişiklik mağaza güncellemesi beklemeden, birkaç dakika
+            içinde telefonlara ulaşır.
+          </p>
         }
+        primary={{ href: `${PANEL}/yeni`, label: "Yeni slayt" }}
       />
 
       {slides.length > 0 ? (
@@ -118,10 +118,21 @@ export default async function AdminAppSlidesPage({
           slides.length === 0 ? (
             <EmptyState
               title="Henüz slayt yok."
-              description="Yeni bir slayt ekleyerek başla."
+              action={
+                <Link href={`${PANEL}/yeni`} className={BUTTON.ghost}>
+                  Yeni slayt
+                </Link>
+              }
             />
           ) : (
-            <EmptyState title="Bu durumda slayt yok." />
+            <EmptyState
+              title="Bu durumda slayt yok."
+              action={
+                <Link href={PANEL} className={BUTTON.ghost}>
+                  Filtreyi temizle
+                </Link>
+              }
+            />
           )
         }
         columns={[
@@ -203,6 +214,6 @@ export default async function AdminAppSlidesPage({
           </ActionMenu>
         )}
       />
-    </main>
+    </PageShell>
   );
 }

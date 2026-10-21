@@ -51,6 +51,8 @@ export const metadata = { title: "Admin · Karaoke" };
 
 /** Ayarlar opens on its Karaoke tab (`?sekme=`, admin audit KAR-12). */
 const KARAOKE_SETTINGS_HREF = "/admin/ayarlar?sekme=karaoke";
+/** The manager has no site settings: the app's karaoke rules are hers. */
+const KARAOKE_APP_SETTINGS_HREF = "/admin/mobil/ayarlar?bolum=karaoke";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -194,10 +196,14 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
             </p>
           )
         }
+        // One link per role: the owner's is the site's Karaoke tab (price,
+        // prepay), the manager's the app's karaoke rules; staff get none.
         secondary={
           canAccess("settings", session.role)
             ? { href: KARAOKE_SETTINGS_HREF, label: "Karaoke ayarları" }
-            : undefined
+            : canAccess("mobileApp", session.role)
+              ? { href: KARAOKE_APP_SETTINGS_HREF, label: "Karaoke ayarları" }
+              : undefined
         }
       />
 

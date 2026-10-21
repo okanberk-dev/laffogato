@@ -37,7 +37,7 @@ export const SETTINGS_TABS = [
   { id: "shipping", label: "Kargo" },
   { id: "karaoke", label: "Karaoke" },
   { id: "seo", label: "SEO" },
-  { id: "notifications", label: "Bildirim" },
+  { id: "notifications", label: "Sipariş bildirimi" },
   { id: "email", label: "E-posta" },
 ] as const;
 

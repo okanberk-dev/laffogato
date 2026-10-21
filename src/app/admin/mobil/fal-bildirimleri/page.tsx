@@ -1,5 +1,5 @@
 import { Card, formatDateTime, PageHeader } from "@/components/admin/forms";
-import { Badge, EmptyState } from "@/components/admin/ui";
+import { Badge, EmptyState, PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listFalReports } from "@/lib/mobile/fal";
 import {
@@ -32,11 +32,16 @@ export default async function AdminFalReportsPage() {
   const reports = capped ? read.slice(0, SHOWN) : read;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Mobil uygulama · fA'L"
         title="fA'L bildirimleri"
-        description="Üyelerin 'Bu yorumu bildir' ile ilettiği yapay zekâ yorumları. Fotoğraf saklanmaz; burada yalnızca yorumun metni, sebep ve model görünür. Kayıtlar 90 gün sonra silinir."
+        description="Üyelerin Bildir ile ilettiği yapay zekâ yorumları."
+        help={
+          <p>
+            Fotoğraf saklanmaz; burada yalnızca yorumun metni, sebep ve model
+            görünür. Kayıtlar 90 gün sonra silinir.
+          </p>
+        }
       />
 
       {reports.length === 0 ? (
@@ -66,6 +71,6 @@ export default async function AdminFalReportsPage() {
           ))}
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }

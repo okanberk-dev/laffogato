@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -196,9 +198,12 @@ describe("the pages", () => {
     expect(html).toContain("Hikaye sayfasındaki");
     expect(html).not.toContain("Story sayfası");
     expect(html).toContain('aria-label="Sil: 1897 · Bologna"');
-    expect(html.match(/maxLength="12"/g)).toHaveLength(2);
-    expect(html.match(/maxLength="120"/g)).toHaveLength(2);
-    expect(html.match(/maxLength="500"/g)).toHaveLength(2);
+    // The row's form only: the create form lives in the "Yeni dönem"
+    // dialog, which is not drawn until it opens (UI-20).
+    expect(html.match(/maxLength="12"/g)).toHaveLength(1);
+    expect(html.match(/maxLength="120"/g)).toHaveLength(1);
+    expect(html.match(/maxLength="500"/g)).toHaveLength(1);
+    expect(html).toContain("Yeni dönem");
     expect(html).not.toContain("Henüz dönem yok");
   });
 
@@ -209,11 +214,15 @@ describe("the pages", () => {
     expect(html).not.toContain("Cereal");
     expect(html).not.toContain("The most considered");
     expect(html).not.toContain("Ana sayfa");
-    expect(html).toContain("yalnız gerçekten yayımlanmış olanlar");
-    expect(html).toContain('placeholder="Yayının adı"');
+    expect(html).toContain("Yalnız gerçekten yayımlanmış alıntılar girilir");
+    // The neutral placeholders belong to the "Yeni alıntı" dialog's fields.
+    expect(readFileSync("src/app/admin/basin/page.tsx", "utf8")).toContain(
+      'placeholder={item ? undefined : "Yayının adı"}',
+    );
     expect(html).toContain('aria-label="Sil: Gazete"');
-    expect(html.match(/maxLength="80"/g)).toHaveLength(2);
-    expect(html.match(/maxLength="300"/g)).toHaveLength(2);
+    expect(html.match(/maxLength="80"/g)).toHaveLength(1);
+    expect(html.match(/maxLength="300"/g)).toHaveLength(1);
+    expect(html).toContain("Yeni alıntı");
     expect(html).not.toContain("<h3");
   });
 });

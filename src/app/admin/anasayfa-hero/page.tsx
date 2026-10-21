@@ -8,9 +8,11 @@ import {
   ActionMenuSeparator,
   ActionModal,
   Badge,
+  BUTTON,
   ConfirmButton,
   DataTable,
   EmptyState,
+  PageShell,
 } from "@/components/admin/ui";
 import { SCENES } from "@/components/laffogato/scenes";
 import { requireRole } from "@/lib/admin/auth";
@@ -81,28 +83,25 @@ export default async function AdminHomeHeroPage() {
       title="Varsayılan slaytlar içe aktarılsın mı?"
       description="Sitenin yerleşik dört slaytı (karaoke dahil) bu listeye eklenir ve buradan düzenlenir. Listede zaten olan bir varsayılana dokunulmaz; sildiğin bir varsayılan geri gelir."
       trigger="Varsayılanları içe aktar"
+      triggerVariant="menu"
       submitLabel="İçe aktar"
-      triggerClassName="w-full sm:w-auto"
     />
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="İçerik · Anasayfa"
-        title="Anasayfa slaytları"
-        description="Anasayfanın en üstündeki kayan alan: kampanya ve ürün slaytları. Kaydettiğin değişiklik siteye hemen yansır."
-        action={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            {importButton}
-            <Link
-              href={`${PANEL}/yeni`}
-              className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] sm:w-auto"
-            >
-              + Yeni slayt
-            </Link>
-          </div>
+        title="Slaytlar"
+        description="Ana sayfanın en üstünde dönen kampanya ve ürün slaytları."
+        help={
+          <p>
+            Kaydettiğin değişiklik siteye hemen yansır. Varsayılan slaytları
+            içe aktarmak, sitenin yerleşik slaytlarını bu listeye alıp buradan
+            düzenlemeni sağlar.
+          </p>
         }
+        primary={{ href: `${PANEL}/yeni`, label: "Yeni slayt" }}
+        menu={importButton}
       />
 
       <Card className="mb-4">
@@ -113,7 +112,7 @@ export default async function AdminHomeHeroPage() {
                 Şu an yayında slayt yok:
               </strong>{" "}
               sitede yerleşik dört varsayılan slayt dönüyor. Onları düzenlemek
-              için &quot;Varsayılanları içe aktar&quot;a bas.
+              için ⋯ menüsünden &quot;Varsayılanları içe aktar&quot;a bas.
             </>
           ) : (
             <>
@@ -137,7 +136,12 @@ export default async function AdminHomeHeroPage() {
         empty={
           <EmptyState
             title="Henüz panelden eklenmiş slayt yok."
-            description="Sitede yerleşik slaytlar dönüyor. Onları buraya almak için “Varsayılanları içe aktar”, yeni bir kampanya için “+ Yeni slayt”."
+            description="Sitede yerleşik slaytlar dönüyor. Onları düzenlemek için sağ üstteki ⋯ menüsünden Varsayılanları içe aktar."
+            action={
+              <Link href={`${PANEL}/yeni`} className={BUTTON.ghost}>
+                Yeni slayt
+              </Link>
+            }
           />
         }
         columns={[
@@ -296,6 +300,6 @@ export default async function AdminHomeHeroPage() {
           </ActionMenu>
         )}
       />
-    </main>
+    </PageShell>
   );
 }

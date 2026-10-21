@@ -1,7 +1,7 @@
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
 import { StatCard } from "@/components/admin/dashboard/stat-card";
 import { RevenueChart } from "@/components/admin/revenue-chart";
-import { EmptyState, StatusTabs } from "@/components/admin/ui";
+import { EmptyState, PageShell, StatusTabs } from "@/components/admin/ui";
 import {
   EYEBROW,
   MONO_STYLE,
@@ -67,11 +67,17 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   const period = opt.label.toLocaleLowerCase("tr-TR");
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Satış"
         title="Raporlar"
-        description="Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen ve iptal edilenler sayılmaz. İade, siparişin verildiği dönemden düşülür. Karaoke ön ödemeleri ayrı."
+        description="Seçtiğin dönemin ciro, sipariş ve en çok satan ürün özeti."
+        help={
+          <p>
+            Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen
+            ve iptal edilenler sayılmaz. İade, siparişin verildiği dönemden
+            düşülür. Karaoke ön ödemeleri ayrı.
+          </p>
+        }
         secondary={{ href: DAY_CLOSE_PATH, label: "Gün sonu" }}
       />
 
@@ -225,6 +231,6 @@ export default async function ReportsPage({ searchParams }: PageProps) {
           </p>
         ) : null}
       </Card>
-    </main>
+    </PageShell>
   );
 }

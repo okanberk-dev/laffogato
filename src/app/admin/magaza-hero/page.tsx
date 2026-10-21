@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Card, PageHeader } from "@/components/admin/forms";
-import { BUTTON, ConfirmButton } from "@/components/admin/ui";
+import { BUTTON, ConfirmButton, EmptyState, PageShell } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { imageVersion } from "@/lib/admin/image-bytes";
 import { heroImagePath, servedImage } from "@/lib/admin/image-url";
@@ -27,28 +27,29 @@ export default async function AdminShopHeroPage() {
   const slides = await listShopHeroSlides();
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Katalog · Mağaza vitrini"
-        title="Mağaza vitrini"
-        description="Mağaza sayfasının en üstündeki kayan alan: her slaytın başlığı, alt yazısı, görseli ve düğmesi. Kaydettiğin değişiklik mağazaya hemen yansır."
-        action={
-          <Link
-            href="/admin/magaza-hero/yeni"
-            className={`${BUTTON.primary} w-full sm:w-auto`}
-          >
-            + Yeni slayt
-          </Link>
+        title="Slaytlar"
+        description="Mağaza sayfasının en üstünde dönen slaytlar."
+        help={
+          <p>
+            Her slaytın başlığı, alt yazısı, görseli ve düğmesi burada durur.
+            Kaydettiğin değişiklik mağazaya hemen yansır.
+          </p>
         }
+        primary={{ href: "/admin/magaza-hero/yeni", label: "Yeni slayt" }}
       />
 
       {slides.length === 0 ? (
-        <Card>
-          <p className="text-sm text-[var(--admin-text-soft)]">
-            Henüz slayt yok; mağaza sayfası vitrinsiz açılır. “+ Yeni slayt” ile
-            ekle.
-          </p>
-        </Card>
+        <EmptyState
+          title="Henüz slayt yok."
+          description="Mağaza sayfası vitrinsiz açılır."
+          action={
+            <Link href="/admin/magaza-hero/yeni" className={BUTTON.ghost}>
+              Yeni slayt
+            </Link>
+          }
+        />
       ) : (
         <div className="grid gap-3">
           {slides.map((s) => (
@@ -124,6 +125,6 @@ export default async function AdminShopHeroPage() {
           ))}
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }

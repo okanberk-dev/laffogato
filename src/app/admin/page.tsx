@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
+import { PageShell } from "@/components/admin/ui";
 import { KaraokeTodayCard } from "@/components/admin/karaoke-today-card";
 import { KeepaliveStatusLine } from "@/components/admin/dashboard/keepalive-status";
 import { LowStockWidget } from "@/components/admin/dashboard/low-stock-widget";
@@ -99,7 +100,9 @@ export default async function AdminDashboardPage() {
         }),
       )
     : null;
-  const [stats, recent, settings, mail, revenue, karaoke, keepalive] =
+  // The settings read is awaited for its failure only: the header no longer
+  // prints the café's name.
+  const [stats, recent, , mail, revenue, karaoke, keepalive] =
     await Promise.all([
       getDashboardStats(),
       // Five rows, read as five rows: this used to be every order in the
@@ -157,11 +160,10 @@ export default async function AdminDashboardPage() {
   ].filter((q) => q.show);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow={`${settings.name} · ${dashboardDateLabel(now)}`}
-        title={`${dashboardGreeting(now)}.`}
-        description="Bugünün özeti; kartlar saydıkları listeyi açar."
+        title="Genel bakış"
+        description={`${dashboardGreeting(now)}. ${dashboardDateLabel(now)}: kartlar saydıkları listeyi açar.`}
       />
 
       {/* `?denied=1` is answered by the shell, on every landing page
@@ -248,6 +250,6 @@ export default async function AdminDashboardPage() {
           <RecentOrders rows={recent} />
         </div>
       ) : null}
-    </main>
+    </PageShell>
   );
 }

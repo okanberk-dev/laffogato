@@ -146,6 +146,38 @@ describe("/admin/hukuk", () => {
     expect(html).toContain("Yayındakini aç");
   });
 
+  it("draws one text action per row: the title opens Düzenle, the published page is an icon link", async () => {
+    overrides.value = {
+      [KVKK]: text(KVKK, { isPublished: true }),
+      [IADE]: text(IADE),
+    };
+    const { LEGAL_DOCS } = await import("@/lib/legal/documents");
+    const html = await render("@/app/admin/hukuk/page");
+    const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/'/g, "&#x27;");
+    const rows = html.split("<li").slice(1);
+    for (const doc of LEGAL_DOCS) {
+      const row = (
+        rows.find((r) => r.includes(`href="/admin/hukuk/${doc.slug}"`)) ?? ""
+      ).split("</li>")[0];
+      expect(row, doc.slug).not.toBe("");
+      // The title is the link to Düzenle.
+      expect(row).toContain(`>${esc(doc.title)}</a>`);
+      // Visible text buttons outside the ⋯ menu: Düzenle alone.
+      const outside = row.split("<details")[0];
+      const texts = [...outside.matchAll(/<a\b[^>]*>([^<]+)<\/a>/g)]
+        .map((m) => m[1])
+        .filter((t) => t !== esc(doc.title));
+      expect(texts, doc.slug).toEqual(["Düzenle"]);
+      // The published page: an icon-only link, named by its aria-label.
+      expect(row).toContain(
+        `aria-label="Yayındakini aç: ${esc(doc.title)} (yeni sekme)"`,
+      );
+    }
+    expect(html).not.toContain("Yayındakini aç ↗");
+    // The draft preview moved into the draft's ⋯ menu, next to the reset.
+    expect(html).toContain(`href="/admin/hukuk/${IADE}/onizle"`);
+  });
+
   it("lists the archive with a preview and a confirmed Geri yükle", async () => {
     const html = await render("@/app/admin/hukuk/page");
     expect(html).toContain("Varsayılana döndürüldü");

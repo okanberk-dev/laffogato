@@ -4,10 +4,13 @@ import { formatDateTime, PageHeader } from "@/components/admin/forms";
 import {
   Badge,
   BUTTON,
+  ActionMenuLink,
   DataTable,
+  EmptyListActionLink,
   EmptyState,
   FilterBar,
   NUMERIC_STYLE,
+  PageShell,
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
@@ -83,22 +86,38 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
   });
   const active = tables.filter((t) => t.isActive).length;
   const tabValue = CAFE_TABLE_TABS.find((t) => t.tab === tab)?.value ?? null;
+  // The way out of an empty tab: a filtered list clears its search (the tab
+  // stays); an empty Aktif or Pasif tab leads back to all of them.
+  const emptyAction =
+    Object.keys(filters).length > 0
+      ? {
+          href: tabValue
+            ? `${CAFE_TABLES_PATH}?${CAFE_TABLE_TAB_PARAM}=${tabValue}`
+            : CAFE_TABLES_PATH,
+          label: "Filtreyi temizle",
+          clearsSearch: true,
+        }
+      : tabValue
+        ? { href: CAFE_TABLES_PATH, label: "Tüm masalar" }
+        : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <PageShell width="list">
       <PageHeader
-        eyebrow="Satış · Masalar"
-        title="Masalar · QR"
-        description="Her masanın QR'ı menüyü açar; uygulaması olan misafir siparişini o masaya verir. Ödeme her zaman sipariş verilirken uygulamada alınır."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Link className={BUTTON.ghost} href={cafeTablePrintHref()}>
-              Kartları yazdır ({active})
-            </Link>
-            <Link className={BUTTON.primary} href={`${CAFE_TABLES_PATH}/yeni`}>
-              + Yeni masa
-            </Link>
-          </div>
+        title="Masalar"
+        description="Her masanın QR kartı ve kodu."
+        help={
+          <p>
+            Her masanın QR&apos;ı menüyü açar; uygulaması olan misafir
+            siparişini o masaya verir. Ödeme her zaman sipariş verilirken
+            uygulamada alınır.
+          </p>
+        }
+        primary={{ href: `${CAFE_TABLES_PATH}/yeni`, label: "Yeni masa" }}
+        menu={
+          <ActionMenuLink href={cafeTablePrintHref()}>
+            Kartları yazdır ({active})
+          </ActionMenuLink>
         }
       />
 
@@ -108,7 +127,7 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
           description="İlk masayı ekle, kartını yazdır ve masaya koy."
           action={
             <Link className={BUTTON.primary} href={`${CAFE_TABLES_PATH}/yeni`}>
-              + Yeni masa
+              Yeni masa
             </Link>
           }
         />
@@ -144,7 +163,19 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
             sort={sort}
             searchParams={sp}
             pathname={CAFE_TABLES_PATH}
-            empty={<EmptyState title="Bu sekmede masa yok." />}
+            empty={
+              <EmptyState
+                title="Bu sekmede masa yok."
+                action={
+                  emptyAction ? (
+                    <EmptyListActionLink
+                      action={emptyAction}
+                      className={BUTTON.ghost}
+                    />
+                  ) : undefined
+                }
+              />
+            }
             columns={[
               {
                 key: "ad",
@@ -214,6 +245,6 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
           ) : null}
         </>
       )}
-    </main>
+    </PageShell>
   );
 }

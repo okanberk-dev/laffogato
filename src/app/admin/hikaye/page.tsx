@@ -12,7 +12,13 @@ import {
   Textarea,
   TextInput,
 } from "@/components/admin/forms";
-import { ConfirmButton, EmptyState } from "@/components/admin/ui";
+import {
+  ActionModal,
+  ConfirmButton,
+  EmptyState,
+  FieldError,
+  PageShell,
+} from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
 import { listStoryEvents, type AdminStoryEvent } from "@/lib/admin/store";
 import { STORY_LIMITS } from "@/lib/admin/story-press-form";
@@ -26,8 +32,19 @@ import {
 export const metadata = { title: "Admin · Hikaye" };
 export const dynamic = "force-dynamic";
 
-/** Yıl, Başlık and Açıklama with their refusals under them. */
-function StoryFields({ item }: { item?: AdminStoryEvent }) {
+/**
+ * Yıl, Başlık and Açıklama with their refusals under them. In the "Yeni"
+ * modal the refusals come from the modal's own state, in a row's form from
+ * the page form's.
+ */
+function StoryFields({
+  item,
+  modal = false,
+}: {
+  item?: AdminStoryEvent;
+  modal?: boolean;
+}) {
+  const Refusal = modal ? FieldError : FormFieldError;
   return (
     <>
       <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
@@ -40,7 +57,7 @@ function StoryFields({ item }: { item?: AdminStoryEvent }) {
               maxLength={STORY_LIMITS.year}
             />
           </Field>
-          <FormFieldError name="year" />
+          <Refusal name="year" />
         </div>
         <div className="grid content-start gap-1.5">
           <Field label="Başlık">
@@ -51,7 +68,7 @@ function StoryFields({ item }: { item?: AdminStoryEvent }) {
               maxLength={STORY_LIMITS.title}
             />
           </Field>
-          <FormFieldError name="title" />
+          <Refusal name="title" />
         </div>
       </div>
       <div className="grid content-start gap-1.5">
@@ -65,7 +82,7 @@ function StoryFields({ item }: { item?: AdminStoryEvent }) {
             maxLength={STORY_LIMITS.body}
           />
         </Field>
-        <FormFieldError name="body" />
+        <Refusal name="body" />
       </div>
     </>
   );
@@ -119,44 +136,55 @@ export default async function AdminStoryPage() {
   await requireRole("story");
   const items = await listStoryEvents();
 
-  return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-      <PageHeader
-        eyebrow="İçerik · Hikaye"
-        title="Hikaye zaman çizelgesi"
-        description="Hikaye sayfasındaki 1897 → 2026 miras adımları. Sıraya göre dikey çizelgede görünür; uygulamanın Hikâye ekranı da aynı listeyi gösterir."
-      />
-
-      <Card className="mb-6">
-        <h2 className="mb-3 text-sm font-medium">+ Yeni dönem</h2>
-        <ActionForm
-          action={createStoryAction}
-          resetOnSuccess
-          className="grid gap-3"
-        >
-          <StoryFields />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Sıra">
-              <TextInput
-                name="sortOrder"
-                type="number"
-                defaultValue={items.length}
-              />
-            </Field>
-            <div className="flex items-end justify-between gap-3">
-              <Checkbox name="isActive" label="Aktif" defaultChecked />
-              <SubmitButton pendingLabel="Ekleniyor…">Ekle</SubmitButton>
-            </div>
+  // Name and values of the form are the old inline form's; only its home
+  // moved, from a card above the list into a dialog.
+  const newEvent = (variant: "primary" | "ghost") => (
+    <ActionModal
+      action={createStoryAction}
+      title="Yeni dönem"
+      trigger="Yeni dönem"
+      triggerVariant={variant}
+      submitLabel="Ekle"
+      pendingLabel="Ekleniyor…"
+    >
+      <div className="grid gap-3">
+        <StoryFields modal />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Sıra">
+            <TextInput
+              name="sortOrder"
+              type="number"
+              defaultValue={items.length}
+            />
+          </Field>
+          <div className="flex items-end">
+            <Checkbox name="isActive" label="Aktif" defaultChecked />
           </div>
-          <FormMessage />
-        </ActionForm>
-      </Card>
+        </div>
+      </div>
+    </ActionModal>
+  );
+
+  return (
+    <PageShell width="detail">
+      <PageHeader
+        title="Hikaye"
+        description="Hikaye sayfasındaki 1897 → 2026 miras adımları."
+        help={
+          <p>
+            Adımlar sıraya göre dikey çizelgede görünür; uygulamanın Hikâye
+            ekranı da aynı listeyi gösterir.
+          </p>
+        }
+        primary={newEvent("primary")}
+      />
 
       <h2 className="mb-3 text-sm font-medium">Dönemler ({items.length})</h2>
       {items.length === 0 ? (
         <EmptyState
-          title="Henüz dönem yok"
-          description="Hikaye sayfasındaki zaman çizelgesi boş görünür. İlk dönemi yukarıdan ekle."
+          title="Henüz dönem yok."
+          description="Hikaye sayfasındaki zaman çizelgesi boş görünür."
+          action={newEvent("ghost")}
         />
       ) : (
         <div className="grid gap-3">
@@ -165,6 +193,6 @@ export default async function AdminStoryPage() {
           ))}
         </div>
       )}
-    </main>
+    </PageShell>
   );
 }
