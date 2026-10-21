@@ -10,8 +10,10 @@ import type { WeeklyHours } from "@/lib/admin/days";
  * pattern (panel-signal.ts, #185) for a status instead of a count.
  *
  * What it must hold:
- * - a session of a role with Canlı durum, or nothing: signed out, a bad
- *   signature and the cashier get no state, without the database;
+ * - a session of a role with Canlı durum, or nothing: signed out and a bad
+ *   signature get no state without the database; a cookie whose role has
+ *   no Canlı durum is decided by the account (the cashier gets nothing, a
+ *   cashier promoted to Personel gets the status);
  * - a status only after the account was read again (rule 30), and the
  *   status is the venue's five public fields, nothing about anyone;
  * - while nothing was written and the hours have not turned, the answer is
@@ -287,7 +289,7 @@ describe("venueSignal: who gets nothing", () => {
     expect(getVenueStatus).not.toHaveBeenCalled();
   });
 
-  it("the cashier: no state, even with a current cursor, without the database", async () => {
+  it("the cashier: no state, even with a current cursor; the account decides, the status is never read", async () => {
     signed.value = { email: "kasa@laffogato.net", role: "cashier" };
     getAdminSession.mockResolvedValue({
       email: "kasa@laffogato.net",
@@ -297,9 +299,40 @@ describe("venueSignal: who gets nothing", () => {
     expect(
       await venueSignal(cursorFor(core.venueSignalKey(CLOSES)), NOON),
     ).toEqual({ status: null, cursor: "" });
+    // A cookie without the section never reads the marker (it could not
+    // use a cursor) and never answers from one.
     expect(marker.read).not.toHaveBeenCalled();
-    expect(getAdminSession).not.toHaveBeenCalled();
+    expect(getAdminSession).toHaveBeenCalledTimes(1);
     expect(getVenueStatus).not.toHaveBeenCalled();
+    expect(getSettings).not.toHaveBeenCalled();
+  });
+
+  it("a cashier promoted to Personel gets the status on the next poll, without a sign-in (PR #189 review, F2)", async () => {
+    // The cookie still names the old role: its fingerprint covers the
+    // password, not the role, so the session stands.
+    signed.value = { email: "kasa@laffogato.net", role: "cashier" };
+    getAdminSession.mockResolvedValue({
+      email: "kasa@laffogato.net",
+      role: "staff",
+      expiresAt: 0,
+    });
+    const answer = await venueSignal(
+      cursorFor(core.venueSignalKey(CLOSES)),
+      NOON,
+    );
+    expect(answer).toEqual({
+      status: {
+        manualOverride: "auto",
+        freeTables: 4,
+        totalTables: 12,
+        isOpen: true,
+        saved: true,
+      },
+      // No cursor: the cookie's role could never use one. Every poll of
+      // this session is a full one until the next sign-in.
+      cursor: "",
+    });
+    expect(marker.read).not.toHaveBeenCalled();
   });
 
   it("an account demoted or switched off since sign-in: the account decides", async () => {

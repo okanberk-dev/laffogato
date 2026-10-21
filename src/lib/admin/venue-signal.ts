@@ -53,11 +53,15 @@ const NO_STATUS: VenueSignalAnswer = { status: null, cursor: "" };
  * Everything else re-reads the account (`getAdminSession`), checks the
  * section and reads the status and the hours live, never from a cache;
  * the marker is read BEFORE them, so a write in between moves it. A
- * signature that is missing, bad, or of a role without Canlı durum (the
- * cashier) answers "no state" without the database. `getAdminSession`'s
- * "account unreadable" error propagates, as panelSignal's does (the chip's
- * poll catches it and keeps what it shows); a status read that fails is
- * logged and answers "no state".
+ * signature that is missing or bad answers "no state" without the
+ * database. One whose role has no Canlı durum gets no cursor check and no
+ * cursor, and the account decides, as in panelSignal and the bell's route:
+ * a cashier promoted to Personel keeps the session (its fingerprint covers
+ * the password, not the role) and gets the status at once, the cashier
+ * gets "no state" after one account read (PR #189 review, F2).
+ * `getAdminSession`'s "account unreadable" error propagates, as
+ * panelSignal's does (the chip's poll catches it and keeps what it shows);
+ * a status read that fails is logged and answers "no state".
  */
 export async function venueSignal(
   cursor: unknown,
@@ -73,18 +77,22 @@ export async function venueSignal(
   } catch {
     signed = null;
   }
-  if (!signed || !canAccess("venue", signed.role)) return NO_STATUS;
+  if (!signed) return NO_STATUS;
 
   // Before the account and the status: a write to either after this read
-  // moves the marker, so the next poll reads again and sees it.
-  const marker = await readChangeMarker("venue");
-  const sent = parseSignalCursor(cursor);
-  if (
-    sent &&
-    venueKeyHolds(sent.key, nowMs) &&
-    signalUnchanged(sent, marker, sent.key, bound)
-  ) {
-    return { unchanged: true };
+  // moves the marker, so the next poll reads again and sees it. A token
+  // without the section could never use a cursor: it gets none.
+  let marker: string | null = null;
+  if (canAccess("venue", signed.role)) {
+    marker = await readChangeMarker("venue");
+    const sent = parseSignalCursor(cursor);
+    if (
+      sent &&
+      venueKeyHolds(sent.key, nowMs) &&
+      signalUnchanged(sent, marker, sent.key, bound)
+    ) {
+      return { unchanged: true };
+    }
   }
 
   const session = await getAdminSession();
