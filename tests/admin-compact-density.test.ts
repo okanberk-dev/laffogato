@@ -147,9 +147,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     const out = table({ rowActions: () => "⋯" });
     const th = classOf(out, /<th scope="col"[^>]*>/);
     const td = classOf(out, /<td class="[^"]*px-4 py-3[^"]*">/);
-    expect(defaults(th)).toBe(
-      "px-4 py-3 font-normal whitespace-nowrap text-left",
-    );
+    expect(defaults(th)).toBe("px-4 py-3 whitespace-nowrap text-left");
     expect(defaults(td)).toBe("px-4 py-3 text-[var(--admin-text)] text-left");
     expect(compact(th)).toEqual([COMPACT.py2]);
     expect(compact(td)).toEqual([COMPACT.py2]);
@@ -176,7 +174,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     const section = html(withKids(ui.Section, { title: "Kalemler" }, "x"));
     const header = classOf(section, /<header class="[^"]*"/);
     expect(defaults(header)).toBe(
-      "flex flex-wrap items-start justify-between gap-3 border-b border-[var(--admin-border)] px-4 py-3 sm:px-6",
+      "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-6 sm:pt-5",
     );
     expect(compact(header)).toEqual([COMPACT.px4, COMPACT.py2]);
     const body = classOf(section, /<div class="p-4 sm:p-6[^"]*"/);
@@ -191,7 +189,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       /<div class="[^"]*"/,
     );
     expect(defaults(card)).toBe(
-      "rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)] sm:p-6",
+      "rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white",
     );
     expect(compact(card)).toEqual([COMPACT.p4]);
   });

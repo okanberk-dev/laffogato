@@ -7,7 +7,7 @@ import { TONE_INK } from "../ui/tone";
 import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "../ui/styles";
 
 const CARD =
-  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 shadow-[0_1px_3px_rgba(68,48,28,0.06)]";
+  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl bg-[var(--admin-panel)] p-4 print:border print:border-[var(--admin-border-strong)] print:bg-white";
 
 /**
  * A figure on a tile: the dashboard's and the report's. Server-safe.
@@ -46,7 +46,7 @@ export function StatCard({
       <span
         title={value}
         className={cx(
-          "leading-tight font-semibold",
+          "leading-tight font-semibold tracking-tight",
           money
             ? "text-[clamp(1rem,11cqi,1.5rem)] [overflow-wrap:anywhere]"
             : "truncate text-xl sm:text-2xl",
@@ -69,7 +69,7 @@ export function StatCard({
       href={href}
       className={cx(
         CARD,
-        "transition-colors hover:border-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+        "transition-colors hover:bg-[var(--admin-primary-soft)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
       )}
     >
       {body}

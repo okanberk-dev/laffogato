@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 import { createElement, type FunctionComponent, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -665,12 +665,26 @@ describe("after a successful action the panel says so (admin:changed)", () => {
 describe("codes and amounts line up", () => {
   it("NUMERIC_STYLE is a monospace face with tabular figures; labels keep MONO_STYLE", async () => {
     const { MONO_STYLE } = await import("@/components/admin/ui/styles");
-    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/^ui-monospace, /);
+    // Geist Mono first (the AkmanOS look, 21 Eki 2026), the system's
+    // monospace behind it.
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(
+      /^var\(--font-geist-mono\), ui-monospace, /,
+    );
     expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/monospace$/);
     expect(ui.NUMERIC_STYLE.fontVariantNumeric).toBe("tabular-nums");
-    // --mono (Poppins) is the panel's label voice; it is not repointed.
+    // --mono is the panel's label voice: the site's resolves to Poppins,
+    // so the panel repoints it (and the other type tokens) to Geist Sans.
     expect(MONO_STYLE).toEqual({ fontFamily: "var(--mono), monospace" });
-    expect(read("src/app/admin/layout.tsx")).not.toContain('"--mono"');
+    const layout = read("src/app/admin/layout.tsx");
+    expect(layout).toContain('"--mono": ADMIN_SANS,');
+    expect(layout).toContain('"--headline": ADMIN_SANS,');
+    expect(layout).toMatch(
+      /const ADMIN_SANS =\s*"var\(--font-geist-sans\), ui-sans-serif, system-ui, sans-serif";/,
+    );
+    expect(layout).toContain(
+      'import { Geist, Geist_Mono } from "next/font/google";',
+    );
+    expect(layout).not.toMatch(/\bPoppins\(/);
   });
 });
 
@@ -703,6 +717,31 @@ describe("tone colours clear AA", () => {
     danger: ["--admin-danger-ink", "--admin-danger-soft"],
   };
 
+  it("is the AkmanOS light theme of the venue's back office (lafmaliyet, 21 Eki 2026)", () => {
+    // White canvas and controls, zinc-100 cards, #171717 ink, a black
+    // primary; zinc-200 lines. The customer site keeps its own palette.
+    expect(token("--admin-bg")).toBe("#FFFFFF");
+    expect(token("--admin-surface")).toBe("#FFFFFF");
+    expect(token("--admin-panel")).toBe("#F4F4F5");
+    expect(token("--admin-border")).toBe("#E4E4E7");
+    expect(token("--admin-text")).toBe("#171717");
+    expect(token("--admin-primary")).toBe("#171717");
+    // Lime is a fill only, always under its dark ink; no panel text is lime.
+    expect(token("--admin-accent")).toBe("#C0F21E");
+    expect(token("--admin-accent-ink")).toBe("#1F3A08");
+    expect(
+      contrast(token("--admin-accent-ink"), token("--admin-accent")),
+    ).toBeGreaterThanOrEqual(4.5);
+    for (const dir of ["src/components/admin", "src/app/admin"]) {
+      for (const file of readdirSync(dir, { recursive: true }) as string[]) {
+        if (!/\.tsx?$/.test(file)) continue;
+        expect(read(`${dir}/${file}`), file).not.toMatch(
+          /text-\[var\(--admin-accent\)\]/,
+        );
+      }
+    }
+  });
+
   it("every tone's ink on its soft ground and on white", () => {
     for (const tone of ADMIN_TONES) {
       const [ink, soft] = PAIRS[tone];
@@ -728,11 +767,13 @@ describe("tone colours clear AA", () => {
 
   it("labels, hints, eyebrows and placeholders clear AA on every panel ground", () => {
     // --admin-text-mute was #8A7A64: 4.16:1 on white, 3.70:1 on the page.
+    // AkmanOS's own zinc-500 (#71717A) is 4.40:1 on its zinc-100 cards.
     for (const ground of [
       "#FFFFFF",
       token("--admin-bg"),
       token("--admin-surface-2"),
       token("--admin-neutral-soft"),
+      token("--admin-panel"),
     ]) {
       expect(
         contrast(token("--admin-text-mute"), ground),
@@ -758,6 +799,7 @@ describe("tone colours clear AA", () => {
         token("--admin-bg"),
         token("--admin-surface-2"),
         token("--admin-neutral-soft"),
+        token("--admin-panel"),
       ]) {
         expect(
           contrast(token(ink), ground),
@@ -767,8 +809,12 @@ describe("tone colours clear AA", () => {
     }
   });
 
-  it("a field's outline clears 3:1 on a white card and on its own fill", () => {
-    for (const ground of ["#FFFFFF", token("--admin-surface-2")]) {
+  it("a field's outline clears 3:1 on a white card, on its own fill and on a zinc-100 card", () => {
+    for (const ground of [
+      "#FFFFFF",
+      token("--admin-surface-2"),
+      token("--admin-panel"),
+    ]) {
       expect(
         contrast(token("--admin-border-field"), ground),
         `field border on ${ground}`,
@@ -1057,12 +1103,13 @@ describe("server-rendered markup", () => {
     expect(out).toContain("bg-[var(--admin-primary-soft)]");
   });
 
-  it("Badge text is 12px sentence case, no longer 10px capitals", () => {
+  it("Badge text is AkmanOS's 11px sentence-case pill, no longer 10px capitals", () => {
     const out = html(
       withKids(ui.Badge, { tone: "success", dot: true }, "Ödendi"),
     );
     const cls = /<span[^>]*class="([^"]+)"/.exec(out)?.[1] ?? "";
-    expect(cls).toContain("text-xs font-medium");
+    expect(cls).toContain("text-[11px] leading-4 font-medium");
+    expect(cls).toContain("rounded-full");
     expect(cls).not.toContain("uppercase");
     expect(cls).not.toMatch(/tracking-|text-\[10px\]/);
     // Same tone pair as before.
@@ -1205,7 +1252,7 @@ describe("server-rendered markup", () => {
 
 describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
   const H1 =
-    '<h1 class="text-2xl text-[var(--admin-text)] sm:text-3xl" style="font-family:var(--font-poppins), var(--sans);font-weight:600;letter-spacing:-0.02em">';
+    '<h1 class="text-2xl leading-8 text-[var(--admin-text)] sm:text-[28px] sm:leading-9" style="font-family:var(--font-geist-sans), var(--sans);font-weight:600;letter-spacing:-0.025em">';
   const header = (props: Record<string, unknown>) =>
     html(createElement(forms.PageHeader, props as never));
   const link = (href: string, text: string) =>

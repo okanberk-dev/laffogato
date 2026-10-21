@@ -120,15 +120,16 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("lists without a date range", () => {
-  // SHA-256 of the bar's markup on origin/main f47831d3 (before UI-14; see `bar`
-  // for what is normalised). A
-  // changed kit class changes it on purpose: refresh it with the change.
+  // SHA-256 of the bar's markup on origin/main f47831d3 (before UI-14; see
+  // `bar` for what is normalised), refreshed for the AkmanOS look (21 Eki
+  // 2026: the box's own classes). A changed kit class changes it on
+  // purpose: refresh it with the change.
   it("draw the markup they drew before, byte for byte", () => {
     expect(sha(bar(PLAIN, {}))).toBe(
-      "561caef9f342a7d2cc57868c64b907c843a03383601fa065524e5a5da3408bbe",
+      "1d85f96068527475b93dcabc6377e5cd35740089e4c5efe1668d307fdcb301ab",
     );
     expect(sha(bar(PLAIN, { durum: "acik", kanal: "app" }, "ayşe"))).toBe(
-      "499d5638dc37df843168497ef9e0309e1e0e9ae5c29f8ee90bd0ef13b0a0b385",
+      "964ddeee1922fada068a4425a54d171ce880eb4cf63e35026d71257614e78e03",
     );
     expect(bar(PLAIN, {})).not.toContain("hazır aralıklar");
   });
@@ -171,12 +172,12 @@ describe("lists with a date range keep their native boxes", () => {
           ),
         ),
       ),
-    ).toBe("98dec12a34ac66445dd4d7a413f41467cea1b7adba7bef643a51a4777c0ece34");
+    ).toBe("d84b39f8a306aaadff98ec1fc20c5769cd27e433d95a146876e67b2a6b6c823b");
     expect(sha(without(bar(DATED, {})))).toBe(
-      "4c7e7be4d1dd2b11832e4eb02903a03bcdb7c5fda0c2100443c55bcf5485694e",
+      "cd41cdf4046d6fb9edee5047ea936a061b767a9382e6090a43d816c7417fa472",
     );
     expect(sha(without(bar(DATED, { bas: "2026-10-01" })))).toBe(
-      "a7c168c51a65eef8255e4cf757100aa73412fd3dd3706276d295db56f586f418",
+      "043b52b76e45df66946e318afbfb33150611efabfe17c340a7f66821ee68994e",
     );
   });
 

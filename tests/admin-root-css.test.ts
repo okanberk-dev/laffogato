@@ -168,6 +168,7 @@ describe("the panel draws one focus ring", () => {
       token("--admin-bg"),
       token("--admin-surface-2"),
       token("--admin-neutral-soft"),
+      token("--admin-panel"),
     ]) {
       expect(contrast(ring, ground), ground).toBeGreaterThanOrEqual(3);
     }

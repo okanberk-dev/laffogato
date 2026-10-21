@@ -173,7 +173,7 @@ export function ActionMenu({
         id={panelId}
         onClick={onPanelClick}
         className={cx(
-          "absolute top-full z-40 mt-1 flex w-60 max-w-[calc(100vw-1rem)] flex-col gap-0.5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1.5 shadow-[0_12px_32px_rgba(44,29,17,0.16)]",
+          "absolute top-full z-40 mt-1 flex w-60 max-w-[calc(100vw-1rem)] flex-col gap-0.5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.16)]",
           align === "end" ? "right-0" : "left-0",
         )}
       >

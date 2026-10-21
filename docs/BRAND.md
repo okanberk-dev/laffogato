@@ -459,6 +459,35 @@ ve her çizimin yerini tutar.
 
 ---
 
+## Admin paneli görünümü (21 Eki 2026)
+
+Bu belgedeki palet ve yazı yalnız **müşteri sitesi** içindir. Yönetim paneli
+(`/admin`) operatör kararıyla (21 Eki 2026: _"son kez lafmaliyet reposundaki
+panel tasarımı gibi bizim laffogato'nun admin panelini tasarla"_) kafenin arka
+ofis panelinin (`RiosenBeq/lafmaliyet`, ladmin.laffogato.net) **AkmanOS açık
+temasını** izler; kaynak orada `docs/TASARIM.md`:
+
+- Beyaz zemin ve kontroller, zinc-100 (`#f4f4f5`) kart ve kenar çubuğu,
+  zinc-200 çizgi, mürekkep `#171717`, ikincil `#3f3f46`, etiket `#6b6b73`
+  (AkmanOS'un `#71717a`'sı kendi zinc-100 kartında 4.40:1; bu 4.81:1).
+- Birincil düğme ve etkin satır **siyah**; limon `#c0f21e` yalnız dolgu,
+  üstünde koyu `#1f3a08`. Durum: kırmızı `#dc2626` / `#b91c1c` metin, turuncu
+  `#c2410c`, mavi `#2563eb`, yeşil `#3f6212`.
+- Yazı **Geist Sans**, kod ve kısayol **Geist Mono** (`next/font/google`,
+  yalnız `src/app/admin/layout.tsx`); panel kökünde sitenin yazı token'ları
+  (`--headline`, `--display`, `--mono` ...) Geist'e yönlenir. Panel içindeki
+  site önizlemesi (`data-site-preview`) ve basılı masa kartları sitenin
+  sesinde (Poppins / Gabarito) kalır.
+- Kart `rounded-3xl`, istatistik `rounded-2xl`, pencere `rounded-3xl` ve
+  gölge `0 12px 40px rgba(0,0,0,.14)`, rozet 11px hap, kenar çubuğu 17.5rem
+  (`--admin-side`; dar menü 4rem). Logo L'Af kalır.
+
+Değerler `src/app/admin/layout.tsx` (`adminFontStyle`, `--admin-*`) içinde;
+`tests/admin-ui-kit.test.ts` temayı ve her tonun AA oranını tutar. Sitenin
+paleti, yazısı ve bu belgedeki kurallar değişmedi.
+
+---
+
 ## 9. Geçmiş
 
 | Tarih       | Karar                                                                                                                                                                                                                                  |
@@ -472,6 +501,7 @@ ve her çizimin yerini tutar.
 | 11 Eki 2026 | **Tek ses Poppins** (operatör): Inter kalktı, gövde de Poppins; 300-800 altı kesim, gösterim anlarında 800. Anasayfa: slayt başına kendi metni, manifesto bandı, canlı açık/kapalı, çizilen oklar. Dök oyunu Cormorant yerine Poppins. |
 | 14 Eki 2026 | **Başlıklar Gabarito** (operatör: "sitede yapay zeka gibi duruyor, yazı tipleri poppins ve biennale vs kullan"): Biennale lisanssız olduğu için en yakın serbest akrabası Gabarito başlıkları ve gösterim rakamlarını yazar (`--headline`); gövde, kontrol, ürün adı ve liste fiyatı Poppins'te kalır. |
 | 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                    |
+| 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

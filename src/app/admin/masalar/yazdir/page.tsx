@@ -28,12 +28,14 @@ export const dynamic = "force-dynamic";
  * `[data-print-receipt]` and pins that element to the page's top-left corner.
  * The sheet carries the attribute, so the sidebar and the header disappear on
  * paper; the scoped rules below let it run across several pages and keep a
- * card from being split between two.
+ * card from being split between two. The cards keep the site's voice
+ * (Poppins, --font-display) while the panel speaks Geist: they sit on the
+ * tables, in front of customers.
  */
 const PRINT_CSS = `
 @page { size: A4; margin: 12mm; }
 .qr-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.qr-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #d9d2c7; border-radius: 16px; padding: 18px; text-align: center; background: #fff; color: #201c17; }
+.qr-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #d9d2c7; border-radius: 16px; padding: 18px; text-align: center; background: #fff; color: #201c17; font-family: var(--font-display), "Poppins", sans-serif; }
 .qr-card-code { width: 100%; max-width: 220px; margin: 0 auto; }
 .qr-card-code svg { width: 100%; height: auto; display: block; }
 .qr-card-name { margin-top: 10px; font-size: 22px; font-weight: 700; }
