@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cx } from "@/components/laffogato/cx";
 import type { NavTab } from "@/lib/admin/nav-match";
 
+import { COMPACT } from "./compact";
 import { LinkPending } from "./link-pending";
 
 /**
@@ -44,6 +45,7 @@ export function SectionTabs({
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "relative inline-flex min-h-11 items-center border-b-2 px-3 text-sm whitespace-nowrap transition-colors",
+                  COMPACT.minH9,
                   active
                     ? "border-[var(--admin-primary)] font-medium text-[var(--admin-primary)]"
                     : "border-transparent text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]",

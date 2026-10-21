@@ -1392,6 +1392,30 @@ yeni bir şey yazılmaz.
 | 🟢 | İnceleme (sertleştirme): süzgeç bir kara listeydi; listenin okumadığı bir ad (`musteri=Ayse+Yilmaz`), `/`, `_` ya da `,` ile bölünmüş bir telefon ve iki kez kodlanmış bir e-posta (`%2540`) saklanabiliyordu | Menü yalnız listenin kendi adlarını tutar (`viewRulesFor`: FilterBar'ın süzgeçleri, `durum` sekmesi, `sirala` ve `yon`); değer yalnız harf, rakam, `_` ve `-` taşır, art arda yedi rakam taşımaz. Okurken de aynı | `admin-saved-views-pii`, `admin-saved-views` |
 | 🟢 | Paket bütçesi | Menü kendi parçasında (`next/dynamic`), yalnız `views` veren listede ve sayfa tarayıcıya gelince yüklenir: kendi kodu 3,1 KB gz (`next build --webpack`, incelemeden önce; esbuild tahmini incelemeden sonra 3,6 KB). FilterBar'ın kendi statik kodu yaklaşık 0,7 KB gz büyür (esbuild tahmini, ilk dokunuşun dinleyicisi dahil; yalnız kendi modülleri, react ve next dışarıda). FilterBar'ın statik içe aktarmaları bir listeyle sabit: menü, kuralları, depolaması, diyaloğu ve hiçbir arayüz kütüphanesi ona statik olarak girmez. Statik grafiğine yalnız anahtar yarısı (üç küçük modül: `ui/saved-views-key.ts`, `lib/admin/saved-views-key.ts`, `lib/admin/account-key.ts`) eklenir; hesap anahtarının biçimi kendi dosyasında durur (`palette-shell` oradan yeniden dışa aktarır), böylece paletin kabuk dosyası, roller ve gezinti eşleştirmesi çubuğun grafiğine girmez | `admin-saved-views`, `admin-saved-views-bar` |
 
+### Kabuk: dar menü ve sıkı görünüm (admin UI v2, UI-9)
+
+Tasarım §3.6, karar D10: rahat (44 px) görünüm her yerde varsayılan; sıkı
+görünüm yalnız fare olan cihazda ve isteğe bağlı. Dizüstünde kenar çubuğu 64
+px'lik bir simge sütununa katlanabilir. İkisi de bu tarayıcıda durur
+(`localStorage`) ve sunucunun ilk çizimini değiştirmez.
+
+| Derece | Değişiklik | Nasıl | Test |
+| --- | --- | --- | --- |
+| 🟢 | 1024 ve 1280 px'te 256 px'lik kenar çubuğu tablolardan yer alıyordu | Menünün üstünde « düğmesi (`aria-expanded`, `aria-controls`; katlanınca aynı düğme » olur, odak onda kalır) kenar çubuğunu 64 px'lik simge sütununa katlar: her bağlantının `aria-label`'ı (rozetin sayısı dahil), grup başlıkları yerine çizgi (katlanmış gruplar açık), hesap bölümü baş harfin arkasında. Genişlik tek değişken: layout'un kökünde `--admin-side` (16rem; kök `data-admin-rail="on"` taşıyınca 4rem); kenar çubuğu, üst çubuk, sekme şeridi, sayfanın sol kenarı ve toplu işlem çubuğu ondan okur. Tercih `laf_admin_rail_v1` ("collapsed" ya da başka bir şey), her erişim try/catch içinde, saf bir ayrıştırıcıdan geçer; depolama reddederse bu sekmede tutulur | `admin-rail-density`, `admin-shell-nav` |
+| 🟢 | Simge sütununda adlar görünmez | Fareyle gelince ve klavye odağında (`focus-visible`; tıklamanın odağında değil) çıkan CSS ipucu: `fixed` (menünün kendi kaydırması kırpamaz), dikey yeri simgenin ortası (`--tip-y`, fare ya da odak gelince yazılır), sol dolgusu denetimin parçası (imleç ona geçebilir, WCAG 1.4.13). **Esc** o an fare altındaki ya da odaktaki denetimin ipucunu gizler (`data-tip-off`), fare ya da odak ayrılınca geri gelir. Kitaplık yok, birkaç satır betik | `admin-rail-density` |
+| 🟢 | Satırlar ve kartlar bol; dizüstünde az kayıt sığıyor | Menüdeki "Sıkı görünüm" anahtarı (ya da paletin Komutlar'ı) kök öğeye `data-admin-density="compact"` yazar. Kitin sınıfları `pointer-fine:[[data-admin-density=compact]_&]:` ile yazılır (`ui/compact.ts`): tablo hücreleri `py-3` yerine `py-2`, `Card` ve `Section` `p-6` yerine `p-4` (bölüm başlığı gövdesine uyar), düğmeler, alanlar, onay kutusu, "⋯", sayfa hücreleri ve sekmeler 36 px (alanlar 34 px). Varsayılan sınıflar yerinde: 44 px testleri geçer. `globals.css`'e kural eklenmedi | `admin-rail-density`, `admin-ui-kit` |
+| 🟢 | Dokunmatik ekranda sıkı görünüm hedefleri küçültmemeli (SHE-32) | Her sıkı sınıf `pointer-fine:` ile başlar; derlenince `@media (pointer: fine)` içinde, `[data-admin-density=compact]` torununda bir kural olur, dokunmatikte hiçbiri eşleşmez (testte derlenmiş CSS ve kaynak taraması). Anahtarın altında "Dokunmatik ekranda uygulanmaz." notu dokunmatikte çıkar | `admin-rail-density` |
+| 🟢 | Hidrasyon uyuşmazlığı ve ilk çizimde sıçrama | Tercihler istemci tarafında (`useSyncExternalStore`, sunucu görüntüsü hep "geniş, rahat"); kök öğeye yazan `ViewPrefs` bir layout etkisi: kök öğe sunucuda bu öznitelikleri çizmez, React onlara sahip değil. Tercih kayıtlıysa yenilemede kenar çubuğu bir an geniş çizilir, hidrasyonda tek işlemde daralır (kenar çubuğunun içeriği, genişliği ve sayfanın sol kenarı aynı anda; hiçbir geçiş animasyonu yok); uygulama içi gezinmede kabuk kalıcıdır, sıçrama olmaz. Çıkışta öznitelikler kaldırılır | `admin-rail-density` |
+| 🟢 | Palet 45 KB bütçesinde; yeni komut ona kod ekleyemez | "Sıkı görünüm" girdisi her sayfanın yüklediği `palette-shell.ts`'te; liste yalnız komutu bir `window` olayı olarak yollar (`runPaletteCommand`, "Klavye kısayolları" ile aynı yol), kabuğun `ViewPrefs`'i dinler, çevirir ve toast ile söyler. Listedeki iki dal tek dala indi: `palette.tsx` küçüldü | `admin-rail-density`, `admin-palette-core`, `admin-shortcuts` |
+| 🟢 | Kasiyerin kabuğu | Kenar çubuğu, anahtar, düğme ve `ViewPrefs` yalnız tam menüde çizilir; kasiyerin tek sayfalık kabuğu tercihleri okumaz, kök öğeye yazmaz | `admin-rail-density` |
+| 🟢 | Paket bütçesi | Her admin rotasına ~+1,9 KB gz (kabuğun statik grafiği, `esbuild` ile 13,7 → 15,6 KB gz: kenar çubuğu ~+4,0 KB ham, `view-prefs` ~+2,2 KB ham), listelerin kit kodu ~+0,1 KB gz; paletin tembel parçası ~-7 B gz. `next build` ile ölçülmedi (orkestratörün kapısı); kütüphane kodu eklenmedi, ikon yalnız tembel `nav-icon` parçasına (`Rows3`) | `admin-rail-density`, `admin-ui-deps` |
+
+Açık:
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Sıkı görünüm yalnız kitin sınıflarında; sayfaların kendi elle yazdığı 44 px düğmeler (onlarca yer) sıkılaşmaz | Sayfalar başka PR'ların; kite alınınca kendiliğinden sıkılaşır |
+
 ### Karaoke: işletmenin geç iptalinde telafi, yeniden satılan saatin iadesi, %1-99 (21 Eki 2026)
 
 Hukuk programı OP-KARAOKE-GOODWILL, ASK-OTH-3-CFG, D-KAR-1-99,
