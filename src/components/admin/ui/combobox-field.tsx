@@ -9,7 +9,7 @@ import {
 
 import { optionRuns, type ComboboxOption } from "@/lib/admin/option-filter";
 
-import { Select } from "../forms";
+import { FIELD_INPUT } from "../forms";
 import {
   armWidget,
   createWidgetLoader,
@@ -93,6 +93,7 @@ export function ComboboxField({
   defaultValue,
   value,
   onChange,
+  className,
   "aria-invalid": ariaInvalid,
   ...native
 }: ComboboxFieldProps) {
@@ -134,7 +135,7 @@ export function ComboboxField({
         disabled={native.disabled}
         invalid={ariaInvalid === true || ariaInvalid === "true"}
         id={native.id}
-        className={native.className}
+        className={className}
         aria-label={native["aria-label"] ?? label}
         aria-labelledby={native["aria-labelledby"]}
         aria-describedby={native["aria-describedby"]}
@@ -144,9 +145,11 @@ export function ComboboxField({
   }
 
   return (
-    <Select
+    <select
       ref={box}
       name={name}
+      // As the kit's Select writes it, so the markup is the old select's.
+      className={`${FIELD_INPUT} ${className ?? ""}`}
       aria-invalid={ariaInvalid}
       {...native}
       {...(value !== undefined
@@ -181,6 +184,6 @@ export function ComboboxField({
           </optgroup>
         ),
       )}
-    </Select>
+    </select>
   );
 }
