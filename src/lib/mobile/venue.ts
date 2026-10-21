@@ -198,6 +198,63 @@ export function isCafeOpenNow(
   return isOpenByHours(hours, now);
 }
 
+const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+/** Turkey has kept UTC+03:00 all year since 2016 (CLAUDE.md rule 22). */
+const ISTANBUL_OFFSET_MS = 3 * 60 * MINUTE_MS;
+
+/**
+ * The first instant after `now`, and no later than `now + horizonMs`, at
+ * which isCafeOpenNow answers otherwise than it does at `now`; null when the
+ * answer does not change in that time (an Açık or Kapalı override never
+ * does). Pure.
+ *
+ * The answer can only turn on a posted minute: an open or close time of
+ * some day, or midnight, where the day changes and with it the entry that
+ * applies (an overnight tail included). Only those instants on the köşk's
+ * clock are tried. The top bar's köşk chip (src/lib/admin/venue-signal.ts)
+ * uses it to know how long "nothing changed" holds without a write.
+ */
+export function nextOpenChangeAt(
+  hours: WeeklyHours,
+  manualOverride: VenueManualOverride,
+  now: Date,
+  horizonMs: number = DAY_MS,
+): Date | null {
+  if (manualOverride !== "auto") return null;
+  const start = now.getTime();
+  const end = start + Math.max(0, horizonMs);
+
+  const minutes = new Set<number>([0]);
+  for (const day of Object.values(hours ?? {})) {
+    for (const value of [day?.open, day?.close]) {
+      const m = typeof value === "string" ? parseClock(value) : null;
+      // "24:00" is the next midnight, already tried as 0.
+      if (m !== null) minutes.add(m % (24 * 60));
+    }
+  }
+
+  // Midnight of the köşk's day that `now` falls in, as an instant.
+  const dayStart =
+    Math.floor((start + ISTANBUL_OFFSET_MS) / DAY_MS) * DAY_MS -
+    ISTANBUL_OFFSET_MS;
+  const candidates: number[] = [];
+  for (let d = 0; dayStart + d * DAY_MS <= end; d++) {
+    for (const m of minutes) {
+      const t = dayStart + d * DAY_MS + m * MINUTE_MS;
+      if (t > start && t <= end) candidates.push(t);
+    }
+  }
+  candidates.sort((a, b) => a - b);
+
+  const openNow = isOpenByHours(hours, now);
+  for (const t of candidates) {
+    const at = new Date(t);
+    if (isOpenByHours(hours, at) !== openNow) return at;
+  }
+  return null;
+}
+
 /** Monday-Friday and Saturday-Sunday, in `DAYS_OF_WEEK` order. */
 const WEEKDAYS: DayOfWeek[] = ["mon", "tue", "wed", "thu", "fri"];
 const WEEKEND_DAYS: DayOfWeek[] = ["sat", "sun"];
@@ -322,6 +379,100 @@ export async function updateVenueStatus(
     "updateVenueStatus",
   );
   return next;
+}
+
+/**
+ * The fields a partial save may write. `totalTables` is not one of them:
+ * the table count is the owner's and the manager's (`mobileApp`), and
+ * Personel's saves, the köşk chip's included, go through here.
+ */
+export type VenueStatusPatch = Partial<Omit<VenueStatusInput, "totalTables">>;
+
+/**
+ * A patch as the columns it sets, each value normalised the way a stored
+ * row is (normalizeVenueStatus). Keys that are not given stay out, so the
+ * statement never touches them. Pure.
+ */
+export function venuePatchColumns(
+  patch: VenueStatusPatch,
+): Partial<Omit<VenueStatusInput, "totalTables">> {
+  const d = defaultVenueStatus();
+  const set: Partial<Omit<VenueStatusInput, "totalTables">> = {};
+  if (patch.manualOverride !== undefined) {
+    set.manualOverride = pick(
+      patch.manualOverride,
+      VENUE_OVERRIDES,
+      d.manualOverride,
+    );
+  }
+  if (patch.freeTables !== undefined) {
+    set.freeTables = clampInt(patch.freeTables, 0, 999, d.freeTables);
+  }
+  if (patch.wifi !== undefined) {
+    set.wifi = pick(patch.wifi, VENUE_WIFI_LEVELS, d.wifi);
+  }
+  if (patch.noise !== undefined) {
+    set.noise = pick(patch.noise, VENUE_NOISE_LEVELS, d.noise);
+  }
+  if (patch.power !== undefined) set.power = patch.power === true;
+  if (patch.note !== undefined) {
+    set.note = String(patch.note).trim().slice(0, 200);
+  }
+  return set;
+}
+
+/**
+ * Writes only the fields in `patch`, in one statement:
+ *
+ *   UPDATE venue_status SET <given fields>, "updatedAt" = $now
+ *   WHERE id = 'main' AND "totalTables" >= $freeTables RETURNING *
+ *
+ * No read first: a quick "Yoğun" from the top bar must not put back the
+ * Wi-Fi or the note a colleague changed a second earlier, which a
+ * read-modify-write of the whole row (updateVenueStatus' upsert) would.
+ * The free tables are held to the STORED total in the same statement, so
+ * a total lowered in between still refuses them.
+ *
+ * Returns the saved row, or null when the free tables exceed the total
+ * (nothing written). A status nobody has saved yet has no row: it is then
+ * inserted with the defaults plus the patch, `ON CONFLICT DO NOTHING`, so
+ * a row that appeared meanwhile is never overwritten (the UPDATE runs
+ * again on it instead).
+ */
+export async function patchVenueStatus(
+  patch: VenueStatusPatch,
+  now: Date = new Date(),
+): Promise<VenueStatus | null> {
+  const set = { ...venuePatchColumns(patch), updatedAt: now.toISOString() };
+  const sb = getDb();
+  const update = async () => {
+    let q = sb.from(TABLES.venueStatus).update(set).eq("id", "main");
+    if (set.freeTables !== undefined) q = q.gte("totalTables", set.freeTables);
+    return one<Record<string, unknown>>(
+      await q.select("*").maybeSingle(),
+      "patchVenueStatus",
+    );
+  };
+
+  const updated = await update();
+  if (updated) return normalizeVenueStatus(updated);
+
+  const seed = { ...defaultVenueStatus(), ...set };
+  if (seed.freeTables > seed.totalTables) return null;
+  const inserted = one<Record<string, unknown>>(
+    await sb
+      .from(TABLES.venueStatus)
+      .upsert(seed, { onConflict: "id", ignoreDuplicates: true })
+      .select("*")
+      .maybeSingle(),
+    "patchVenueStatus",
+  );
+  if (inserted) return normalizeVenueStatus(inserted);
+
+  // The row was there all along (its total is below the free tables) or
+  // arrived between the two statements: one more UPDATE decides.
+  const again = await update();
+  return again ? normalizeVenueStatus(again) : null;
 }
 
 /** Everything GET /live-status needs, in one call. */

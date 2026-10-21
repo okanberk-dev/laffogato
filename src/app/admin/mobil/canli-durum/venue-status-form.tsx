@@ -71,11 +71,18 @@ function Row({ name, children }: { name: string; children: ReactNode }) {
  * free tables than tables) leaves every field as typed, a second press
  * before the answer is dropped, and the answer is a toast or a line by the
  * button that a screen reader hears.
+ *
+ * Personel (`venue` without `mobileApp`) sees the table count but cannot
+ * change it: the field has no name, so nothing is posted, and the action
+ * ignores a posted one anyway.
  */
 export function VenueStatusForm({
   defaults,
+  canEditTotal = true,
 }: {
   defaults: VenueStatusDefaults;
+  /** False for Personel: the table count is read-only. */
+  canEditTotal?: boolean;
 }) {
   return (
     <ActionForm action={saveVenueStatusAction} className="grid gap-4">
@@ -104,26 +111,43 @@ export function VenueStatusForm({
                   name="freeTables"
                   type="number"
                   min={0}
-                  max={999}
+                  max={canEditTotal ? 999 : defaults.totalTables}
                   inputMode="numeric"
                   defaultValue={String(defaults.freeTables)}
                   required
                 />
               </Field>
             </Row>
-            <Row name="totalTables">
-              <Field label="Toplam masa">
-                <TextInput
-                  name="totalTables"
-                  type="number"
-                  min={0}
-                  max={999}
-                  inputMode="numeric"
-                  defaultValue={String(defaults.totalTables)}
-                  required
-                />
-              </Field>
-            </Row>
+            {canEditTotal ? (
+              <Row name="totalTables">
+                <Field label="Toplam masa">
+                  <TextInput
+                    name="totalTables"
+                    type="number"
+                    min={0}
+                    max={999}
+                    inputMode="numeric"
+                    defaultValue={String(defaults.totalTables)}
+                    required
+                  />
+                </Field>
+              </Row>
+            ) : (
+              <Row name="totalTables">
+                <Field
+                  label="Toplam masa"
+                  hint="Sahip ya da yönetici değiştirir."
+                >
+                  <TextInput
+                    type="text"
+                    value={String(defaults.totalTables)}
+                    readOnly
+                    aria-readonly="true"
+                    data-venue-total-readonly=""
+                  />
+                </Field>
+              </Row>
+            )}
           </div>
         </div>
       </Card>
