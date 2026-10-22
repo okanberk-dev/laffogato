@@ -24,10 +24,15 @@ export function NotificationsForm({
   );
   return (
     <form action={action} style={{ display: "grid", gap: 18, maxWidth: 560 }}>
+      {/* What the switch really governs (docs/API-MOBILE.md §23): the
+          app's order-stage phone notifications and the gel-al "hazır"
+          fallback e-mail. The order, payment and shipping e-mails are
+          transactional and go whatever it says; the old caption promised
+          it would stop them. Named as the app and the legal texts name it. */}
       <Toggle
         name="orderUpdates"
-        label="Sipariş güncellemeleri"
-        hint="Sipariş alındı, kargoya verildi, teslim edildi e-postaları."
+        label="Sipariş durumu"
+        hint="Açıkken, uygulamada bildirime izin verdiğin telefonlara hazırlanıyor, hazır, yolda ve iptal bildirimleri gelir; gel-al siparişin hazır olduğunda telefonuna ulaşamazsak e-postayla haber veririz. Sipariş, ödeme ve kargo e-postaları bu ayardan bağımsız, her zaman gelir."
         defaultChecked={defaults.orderUpdates}
       />
       <Toggle
