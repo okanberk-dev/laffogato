@@ -101,6 +101,7 @@ export const RETENTION_RULE_LABELS: Record<string, string> = {
   "campaign-email-sends": "Kampanya e-postası gönderimleri",
   "email-suppressions": "E-posta gönderim engelleri",
   "customer-consents": "Ticari ileti onay geçmişi",
+  "iys-outbox": "İYS aktarım kayıtları",
   "audit-logs": "Olay kaydı",
   "legal-override-history": "Hukuk metni arşivi",
   "legal-doc-versions": "Gösterilen hukuk metni sürümleri",

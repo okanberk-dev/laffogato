@@ -152,6 +152,9 @@ describe("every retention period is quoted from the published policy", () => {
       // The member's consent history: three years after the consent stopped
       // being valid (a withdrawal record, for as long).
       "customer_consents",
+      // The İYS outbox: the same consent and refusal record per address,
+      // for as long as the ledger keeps it.
+      "iys_recipients",
       // Resend bounces and complaints: part of the commercial send record,
       // three years from the latest event.
       "email_suppressions",
@@ -209,6 +212,7 @@ describe("every retention period is quoted from the published policy", () => {
     const withRpc = RETENTION_RULES.filter((r) => r.rpc);
     expect(withRpc.map((r) => r.rpc)).toEqual([
       "customer_consents_retention",
+      "iys_retention",
       "legal_doc_versions_retention",
       "karaoke_guest_retention",
       "karaoke_reservation_retention",
@@ -298,6 +302,7 @@ describe("report mode is the default", () => {
     // Every SQL-function rule was asked to count, not to apply.
     expect(fake.seen.filter((s) => s.startsWith("count:")).sort()).toEqual([
       "count:customer_consents_retention",
+      "count:iys_retention",
       "count:karaoke_guest_retention",
       "count:karaoke_reservation_retention",
       "count:legal_doc_versions_retention",

@@ -6,6 +6,7 @@ import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
 import { getInvoiceForSource } from "@/lib/invoice/store";
+import { invoicePdfAvailable } from "@/lib/invoice/pdf";
 import { orderDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
@@ -99,7 +100,10 @@ export default async function OrderDetailPage({
     },
   );
   const invoiceHref =
-    invoice && invoice.status === "issued" && invoice.eDocumentId
+    invoice &&
+    invoice.status === "issued" &&
+    invoice.eDocumentId &&
+    invoicePdfAvailable()
       ? `/uye/hesap/siparislerim/${order.orderNo}/fatura`
       : null;
 

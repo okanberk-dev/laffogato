@@ -367,6 +367,17 @@ maybe("e-Arşiv invoices in a real Postgres", () => {
         .ok,
     ).toBe(false);
     expect((await mod.retryInvoice(issued!.id)).ok).toBe(false);
+    // Nor one whose e-Arşiv job is already posted: Paraşüt will still make
+    // it official, and "elle kestim" would leave it unrecorded and unsent.
+    await seed(row("ord-11", { status: "formalizing", jobId: "77" }));
+    const posted = await mod.getInvoiceForSource("order", "ord-11");
+    expect(
+      (await mod.markInvoiceManualDone(posted!.id, "GIB2026000000100", "a")).ok,
+    ).toBe(false);
+    expect(await mod.getInvoice(posted!.id)).toMatchObject({
+      status: "formalizing",
+      jobId: "77",
+    });
     expect(
       (
         await mod.setInvoiceBilling(

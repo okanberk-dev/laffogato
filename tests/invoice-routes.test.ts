@@ -26,6 +26,7 @@ const h = vi.hoisted(() => ({
   session: null as null | { email: string; role: string; expiresAt: number },
   fetchInvoicePdf: vi.fn(),
   reserveLoginAttempt: vi.fn(),
+  pdfAvailable: true,
 }));
 
 vi.mock("@/lib/customer/auth", () => ({
@@ -51,6 +52,7 @@ vi.mock("@/lib/invoice/store", () => ({
 vi.mock("@/lib/invoice/pdf", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/invoice/pdf")>()),
   fetchInvoicePdf: h.fetchInvoicePdf,
+  invoicePdfAvailable: () => h.pdfAvailable,
 }));
 
 const member =
@@ -89,6 +91,7 @@ const getAdmin = (id: string) =>
   });
 
 beforeEach(() => {
+  h.pdfAvailable = true;
   vi.clearAllMocks();
   h.customer = { id: "cus-1", email: OWNER, emailVerified: true };
   h.orders = [
@@ -184,6 +187,17 @@ describe("the member's invoice", () => {
       expect(res.status).toBe(404);
       expect(await res.text()).toBe("Bulunamadı.");
     }
+    expect(h.fetchInvoicePdf).not.toHaveBeenCalled();
+  });
+
+  // Without Paraşüt's credentials nothing can be read back: a 404, before a
+  // download is counted, never a 503 that "birazdan yeniden dene" cannot cure
+  // (post-merge review, 22 Ekim 2026).
+  it("answers 404 without spending the limit when Paraşüt cannot be read", async () => {
+    h.pdfAvailable = false;
+    const res = await getMember("10042");
+    expect(res.status).toBe(404);
+    expect(h.reserveLoginAttempt).not.toHaveBeenCalled();
     expect(h.fetchInvoicePdf).not.toHaveBeenCalled();
   });
 

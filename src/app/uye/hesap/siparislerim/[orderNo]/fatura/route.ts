@@ -4,6 +4,7 @@ import { memberOrders } from "@/lib/customer/member-orders";
 import { maskText } from "@/lib/invoice/invoice-core";
 import {
   fetchInvoicePdf,
+  invoicePdfAvailable,
   invoicePdfNotFound,
   invoicePdfResponse,
   invoicePdfUnavailable,
@@ -40,7 +41,12 @@ export async function GET(
     );
     if (!order) return invoicePdfNotFound();
     const row = await getInvoiceForSource("order", order.id);
-    if (!row || row.status !== "issued" || !row.eDocumentId) {
+    if (
+      !row ||
+      row.status !== "issued" ||
+      !row.eDocumentId ||
+      !invoicePdfAvailable()
+    ) {
       return invoicePdfNotFound();
     }
     const limit = await reserveLoginAttempt(

@@ -36,7 +36,11 @@ import {
 /** A 'sending' claim older than this belongs to a request that died. */
 const STALE_CLAIM_MS = 15 * 60_000;
 
-async function claim(orderId: string, kind: string, now: Date): Promise<boolean> {
+async function claim(
+  orderId: string,
+  kind: string,
+  now: Date,
+): Promise<boolean> {
   const db = getDb();
   // ON CONFLICT DO NOTHING rather than catching 23505: the row coming back
   // is the claim, no row means somebody holds it already.
@@ -93,11 +97,7 @@ async function settle(
 }
 
 export type OrderPushOutcome =
-  | "not_due"
-  | "duplicate"
-  | "sent"
-  | "none"
-  | "failed";
+  "not_due" | "duplicate" | "sent" | "none" | "failed";
 
 /**
  * The move `from` → `to` just happened to `orderId`. Reads the order again
@@ -175,7 +175,10 @@ export async function notifyOrderStage(
  * them for 24 hours and they are ready after about 15 minutes) and forgets
  * every token Apple or Google say reaches no device. Then drops the tokens
  * from the notice rows: past this point nothing needs them. Run by the daily
- * cron; rows older than a day are only cleared.
+ * cron; rows older than a day are only cleared. A failed read clears every
+ * row all the same: by the next daily run Expo no longer keeps their
+ * receipts. So a token leaves a notice row at the first daily run at least
+ * 15 minutes after the push, well inside the 48 hours the texts promise.
  */
 export async function checkPushReceipts(
   now: Date = new Date(),
@@ -203,14 +206,16 @@ export async function checkPushReceipts(
   let read = 0;
   if (ids.length > 0) {
     const receipts = await getExpoReceipts(ids);
-    // A failed read is tried again tomorrow while the rows are young enough.
-    if (receipts === null) return { read: 0, forgotten: 0, cleared: 0 };
+    // Not tried again: by tomorrow's run the receipts are gone. The tokens
+    // still go; a dead one is forgotten at the next DeviceNotRegistered or
+    // after 180 days without a refresh.
+    if (receipts === null) {
+      return { read: 0, forgotten: 0, cleared: await clear(rows) };
+    }
     read = Object.keys(receipts).length;
     const gone = live.flatMap((r) =>
       (r.tickets ?? [])
-        .filter(
-          (t) => receipts[t.id]?.details?.error === "DeviceNotRegistered",
-        )
+        .filter((t) => receipts[t.id]?.details?.error === "DeviceNotRegistered")
         .map((t) => t.token),
     );
     if (gone.length > 0) {
@@ -218,14 +223,18 @@ export async function checkPushReceipts(
       forgotten = gone.length;
     }
   }
-  let cleared = 0;
-  for (const r of rows) {
-    const { error: updErr } = await db
-      .from(TABLES.orderPushNotices)
-      .update({ tickets: [], receiptsCheckedAt: now.toISOString() })
-      .eq("orderId", r.orderId)
-      .eq("kind", r.kind);
-    if (!updErr) cleared++;
+  return { read, forgotten, cleared: await clear(rows) };
+
+  async function clear(list: typeof rows): Promise<number> {
+    let cleared = 0;
+    for (const r of list) {
+      const { error: updErr } = await db
+        .from(TABLES.orderPushNotices)
+        .update({ tickets: [], receiptsCheckedAt: now.toISOString() })
+        .eq("orderId", r.orderId)
+        .eq("kind", r.kind);
+      if (!updErr) cleared++;
+    }
+    return cleared;
   }
-  return { read, forgotten, cleared };
 }

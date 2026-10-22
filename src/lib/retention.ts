@@ -156,6 +156,23 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "mail rests on. Counted in 366-day years.",
   },
   {
+    id: "iys-outbox",
+    table: TABLES.iysRecipients,
+    column: "desiredAt",
+    idColumn: "email",
+    days: 3 * YEAR_DAYS,
+    rpc: "iys_retention",
+    basis:
+      "Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca onayın geçerliliğinin sona erdiği tarihten itibaren 3 yıl; onayın geri alınması hâlinde ret kaydı, aynı alıcıya tekrar ileti gönderilmemesini sağlamak amacıyla bu süre boyunca tutulur.",
+    note:
+      "The İYS outbox (src/lib/iys) keeps the same consent and refusal " +
+      "record per address, so it goes with the ledger's period: an address " +
+      "whose consent ended (desired NONE) three years ago, with no open " +
+      "event and nothing written or settled since, loses its row and its " +
+      "events. An address İYS still holds as ONAY stays until its refusal " +
+      "is reported. Counted in 366-day years.",
+  },
+  {
     id: "audit-logs",
     table: TABLES.auditLogs,
     column: "createdAt",
@@ -221,7 +238,8 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     column: "createdAt",
     idColumn: "id",
     days: 90,
-    basis: "kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
+    basis:
+      "kullanım kaydı günlük sınırın uygulanması için doksan gün saklanır ve ardından silinir.",
     note:
       "Karar 177. The row holds the day, whether a cup was seen and the " +
       "model - never the photo or the words - and the daily limit only needs " +
@@ -233,7 +251,8 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     column: "createdAt",
     idColumn: "id",
     days: 90,
-    basis: "Bildirim tarihinden itibaren 90 gün saklanır ve ardından silinir; fotoğraf bildirime girmez.",
+    basis:
+      "Bildirim tarihinden itibaren 90 gün saklanır ve ardından silinir; fotoğraf bildirime girmez.",
     note:
       "'Bu yorumu bildir' (Google Play's AI-generated content policy). The " +
       "row holds the reported reading's words, the reason and the model - " +
@@ -277,9 +296,10 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
     idColumn: "token",
     days: 180,
     basis:
-      "Mobil uygulamanın bildirim jetonu: oturum kapatıldığında, üyelik hesabı kapatıldığında veya silindiğinde ya da Apple veya Google jetonun artık bir cihaza ulaşmadığını bildirdiğinde hemen; uygulama jetonu 180 gün boyunca yenilemezse periyodik imhada silinir.",
+      "Mobil uygulamanın bildirim jetonu: üyelik hesabı kapatıldığında veya silindiğinde ya da Apple veya Google jetonun artık bir cihaza ulaşmadığını bildirdiğinde hemen; oturum kapatıldığında uygulamanın silme isteği sunucuya ulaştığında hemen; uygulama jetonu 180 gün boyunca yenilemezse periyodik imhada silinir.",
     note:
-      "A ceiling, not a minimum: the token goes at once on sign-out, " +
+      "A ceiling, not a minimum: the token goes at once when the app's " +
+      "sign-out DELETE reaches us, " +
       "account closure and Expo's DeviceNotRegistered " +
       "(src/lib/push/*). This rule catches a phone that stopped opening " +
       "the app (uninstalled without signing out): the app refreshes its " +

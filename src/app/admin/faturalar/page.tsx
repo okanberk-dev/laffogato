@@ -41,7 +41,12 @@ import {
   parseInvoiceTab,
 } from "@/lib/invoice/panel-core";
 import type { RunSummary } from "@/lib/invoice/run";
-import { listInvoices, readCarriers, readLastRun } from "@/lib/invoice/store";
+import {
+  listAttentionInvoices,
+  listInvoices,
+  readCarriers,
+  readLastRun,
+} from "@/lib/invoice/store";
 
 import { runInvoicesNowAction, saveInvoiceCarriersAction } from "./actions";
 
@@ -129,11 +134,20 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
   await requireRole("invoices");
   const sp = (await searchParams) ?? {};
   const now = new Date();
-  const [rows, carriers, lastRun] = await Promise.all([
+  const [recent, attention, carriers, lastRun] = await Promise.all([
     listInvoices(500),
+    // Older rows that still need a person (open, or refunded after the
+    // invoice) are listed too: the dashboard links here for them, and the
+    // newest 500 alone would drop them once the list grows.
+    listAttentionInvoices(),
     readCarriers(),
     readLastRun<RunSummary>(),
   ]);
+  const seen = new Set(recent.map((r) => r.id));
+  const rows = [
+    ...recent,
+    ...attention.filter((r) => !seen.has(r.id) && seen.add(r.id)),
+  ];
   const tab = parseInvoiceTab(sp[INVOICE_TAB_PARAM]);
   const counts = new Map<string | null, number>([[null, rows.length]]);
   for (const r of rows) {

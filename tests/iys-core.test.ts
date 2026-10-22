@@ -218,16 +218,41 @@ describe("the file for İYS Web", () => {
     expect(lines[2]).toContain(",RET,");
   });
 
-  it("never lets a spreadsheet run an address as a formula", () => {
+  // The file is for İYS, which reads the recipient cell literally: a ' put
+  // in front of = + - @ (the shared spreadsheet guard) made İYS refuse the
+  // row or register a different address, so a consent was lost and a
+  // refusal never reached İYS (post-merge review, 22 Ekim 2026).
+  it("writes the recipient exactly as it is, quoted only when it must be", () => {
     const csv = iysExportCsv([
       {
-        email: "=cmd@ornek.com",
+        email: "+promo@ornek.com",
         status: "ONAY",
         source: "HS_WEB",
         consentDate: "2026-10-20T07:00:00.000Z",
       },
+      {
+        email: "=cmd@ornek.com",
+        status: "RET",
+        source: "HS_WEB",
+        consentDate: "2026-10-21T07:00:00.000Z",
+      },
     ]);
-    expect(csv).toContain(",'=cmd@ornek.com,");
+    expect(csv).toContain(",+promo@ornek.com,");
+    expect(csv).toContain(",=cmd@ornek.com,");
+    expect(csv).not.toContain("'");
+    expect(csv.endsWith("\r\n")).toBe(true);
+  });
+
+  it("reads back an address with an apostrophe from İYS's list", () => {
+    const parsed = parseIysConsentList(
+      "recipient,status\r\no'brien@ornek.com,RET\r\n'eda@ornek.com,ONAY\r\n",
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.rows.map((r) => [r.email, r.status])).toEqual([
+      ["o'brien@ornek.com", "RET"],
+      ["eda@ornek.com", "ONAY"],
+    ]);
   });
 
   it("formats İYS's consentDate as YYYY-MM-DD HH:mm:ss GMT+3", () => {

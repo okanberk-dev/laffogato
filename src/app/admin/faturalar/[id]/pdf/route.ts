@@ -3,6 +3,7 @@ import { canAccess } from "@/lib/admin/roles";
 import { maskText } from "@/lib/invoice/invoice-core";
 import {
   fetchInvoicePdf,
+  invoicePdfAvailable,
   invoicePdfNotFound,
   invoicePdfResponse,
   invoicePdfUnavailable,
@@ -50,7 +51,7 @@ export async function GET(
         headers: { "Cache-Control": "no-store" },
       });
     }
-    if (!row.eDocumentId) return invoicePdfNotFound();
+    if (!row.eDocumentId || !invoicePdfAvailable()) return invoicePdfNotFound();
     const pdf = await fetchInvoicePdf(row);
     if (!pdf) return invoicePdfUnavailable();
     return invoicePdfResponse(row, pdf);

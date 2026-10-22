@@ -1,4 +1,4 @@
-import { parseCsv, toCsv } from "@/lib/admin/csv";
+import { parseCsv } from "@/lib/admin/csv";
 
 /**
  * İYS (İleti Yönetim Sistemi) rules that need no database: pure, shared by
@@ -275,7 +275,10 @@ export function iysDueLabel(dueAt: string, now: Date): string {
 
 // ── Addresses ──────────────────────────────────────────────────────────────
 
-const EMAIL_RE = /^[^\s@,;"'<>]+@[^\s@,;"'<>]+\.[^\s@,;"'<>]+$/;
+// An apostrophe is valid inside an address (o'brien@example.com) and both
+// the member and the bulletin validators accept it; only a leading one (a
+// spreadsheet's text marker) is stripped before this test.
+const EMAIL_RE = /^[^\s@,;"<>]+@[^\s@,;"<>]+\.[^\s@,;"<>]+$/;
 
 /** Never registered: the placeholders of closed and test accounts. */
 export function iysExcludedAddress(email: string): boolean {
@@ -332,11 +335,22 @@ export function toIysConsentRequest(event: IysExportEvent): {
 }
 
 /**
+ * One cell of the İYS file, quoted when it holds a comma, a quote or a line
+ * break. Never prefixed: the shared csvField puts a ' before a cell that
+ * starts with = + - @ (a spreadsheet guard), and İYS would read
+ * `'+promo@example.com` as the recipient, refusing the row or registering
+ * a different address. Every other column is a fixed code or a date.
+ */
+function iysCell(value: string): string {
+  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+/**
  * The file: a header row, then one row per event, comma separated, CRLF,
  * no byte order mark, the consent date on the köşk's clock. Events are
- * written oldest consent first, so an address's ONAY comes before a later
- * RET for it. A cell starting with = + - @ gets a leading ' (csvField), so
- * a spreadsheet never runs an address as a formula.
+ * written oldest consent first; a download holds at most one event per
+ * address (iys_export_events), because İYS refuses a list with the same
+ * address twice (H194). The recipient is written as it is (iysCell).
  */
 export function iysExportCsv(events: readonly IysExportEvent[]): string {
   const sorted = [...events].sort(
@@ -355,7 +369,9 @@ export function iysExportCsv(events: readonly IysExportEvent[]): string {
       r.recipientType,
     ];
   });
-  return toCsv([[...IYS_EXPORT_COLUMNS], ...rows], ",");
+  return `${[[...IYS_EXPORT_COLUMNS], ...rows]
+    .map((row) => row.map(iysCell).join(","))
+    .join("\r\n")}\r\n`;
 }
 
 /** `iys-20261022-1405-ab12.csv`: the batch id, on the köşk's clock. */
