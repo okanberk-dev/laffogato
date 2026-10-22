@@ -91,6 +91,7 @@ vi.mock("@/lib/mobile/venue", async (importOriginal) => {
     ...real,
     getVenueStatus: async () => ({ manualOverride: "open" }),
     isCafeOpenNow: () => true,
+    isCafeOpenForOrder: () => true,
   };
 });
 vi.mock("@/lib/payment", () => ({

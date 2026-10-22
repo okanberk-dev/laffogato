@@ -132,7 +132,10 @@ export function readSummary(form: HTMLFormElement): SummaryEntry[] {
     } else if (el instanceof HTMLTextAreaElement) {
       value = el.value.trim();
     } else if (
-      ["hidden", "submit", "button", "file", "password"].includes(el.type)
+      ["hidden", "submit", "button", "file", "password"].includes(el.type) &&
+      // The date picker posts its value from a hidden input
+      // (date-time-picker.tsx): it asks to be read.
+      !el.hasAttribute("data-summary-value")
     ) {
       continue;
     } else if (el.type === "checkbox") {
@@ -313,6 +316,9 @@ export function useWizard({
 
   const onKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
     if (!enabled || e.key !== "Enter" || e.nativeEvent.isComposing) return;
+    // A field that answers Enter itself (the image box's "add this URL")
+    // keeps the step: its answer, or its refusal, is shown there.
+    if (e.defaultPrevented || e.nativeEvent.defaultPrevented) return;
     const t = e.target as HTMLElement;
     if (!(t instanceof HTMLInputElement)) return;
     if (["checkbox", "radio", "submit", "button", "file"].includes(t.type))
@@ -522,16 +528,20 @@ export function WizardFrame({
           <Link href={cancelHref} className={BUTTON.ghost}>
             Vazgeç
           </Link>
-          {!wizard.enabled || last ? extraActions : null}
+          {/* First in the tree, last on screen: Enter in a field submits
+              through the form's first submit button, which must be this
+              one, not "Kaydet ve yenisini ekle". */}
           {!wizard.enabled || last ? (
             <PrimaryButton
               type="submit"
               disabled={pending}
               aria-busy={pending || undefined}
+              className="order-last"
             >
               {pending ? pendingLabel : submitLabel}
             </PrimaryButton>
           ) : null}
+          {!wizard.enabled || last ? extraActions : null}
         </div>
       </div>
     </WizardContext.Provider>

@@ -118,7 +118,11 @@ describe("change markers", () => {
   it("the köşk chip's marker (UI-13) moves with the venue's status, the hours and the accounts, not with an order", async () => {
     let venue = await marker.readChangeMarker("venue");
     expect(h.made.at(-1)?.keyParts[0]).toBe("laf-marker-venue");
-    expect(h.made.at(-1)?.tags).toEqual(["pub:site", "live:access"]);
+    expect(h.made.at(-1)?.tags).toEqual([
+      "pub:site",
+      "live:venue",
+      "live:access",
+    ]);
     expireTags(tagsForWrite({ table: "orders" }));
     expireTags(tagsForWrite({ table: "karaoke_reservations" }));
     expect(await marker.readChangeMarker("venue")).toBe(venue);

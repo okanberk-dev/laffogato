@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { unsubscribeNewsletterAction } from "@/app/newsletter/actions";
 import { LafMark } from "@/components/laffogato/brand-mark";
 import { Illustration } from "@/components/laffogato/illustration";
+import { NEWSLETTER_LINK_COOKIES } from "@/lib/newsletter/link-token";
 
 export const metadata = {
   // `absolute`: the root template would append the brand a second time.
@@ -26,7 +28,14 @@ interface PageProps {
  * click was "geçersiz".
  */
 export default async function BultenCikisPage({ searchParams }: PageProps) {
-  const { token, sonuc, adres } = await searchParams;
+  const { token: linkToken, sonuc, adres } = await searchParams;
+  // The proxy moves the link's token into this page's cookie and reloads
+  // without it, so the address the site's tags see has none
+  // (lib/newsletter/link-token.ts).
+  const token =
+    linkToken ||
+    (await cookies()).get(NEWSLETTER_LINK_COOKIES["/bulten/cikis"])?.value ||
+    "";
 
   const state: "ask" | "done" | "failed" | "invalid" =
     sonuc === "tamam"

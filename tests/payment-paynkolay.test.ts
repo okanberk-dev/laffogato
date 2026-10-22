@@ -660,6 +660,61 @@ describe("lookupRefunds", () => {
     ).rejects.toThrow(/tutarı okunamadı/);
   });
 
+  it("iki tutar alanı farklıysa tahmin etmez; yalnız biri doluysa onu okur (22 Eki 2026 incelemesi)", async () => {
+    // Kısmi iadede AUTHORIZATION_AMOUNT satışın tutarı olabilir: tamamı
+    // iade sayılmasın, elle kaydedilsin.
+    stubFetch({
+      Data: [
+        transactionRow({
+          TRANSACTION_TYPE: "refundp",
+          REFERENCE_CODE: "R9",
+          AUTHORIZATION_AMOUNT: "1280.10",
+          TRANSACTION_AMOUNT: "300.00",
+        }),
+      ],
+    });
+    await expect(
+      makeProvider().lookupRefunds("ord-0284", new Date()),
+    ).rejects.toThrow(/iki farklı tutar/);
+    vi.unstubAllGlobals();
+    // "0.00" yetkilendirme, dolu işlem tutarı: işlem tutarı sayılır.
+    stubFetch({
+      Data: [
+        transactionRow({
+          TRANSACTION_TYPE: "refundp",
+          REFERENCE_CODE: "R9",
+          AUTHORIZATION_AMOUNT: "0.00",
+          TRANSACTION_AMOUNT: "300.00",
+        }),
+      ],
+    });
+    const found = await makeProvider().lookupRefunds("ord-0284", new Date());
+    expect(found.refundedMinor).toBe(30_000);
+  });
+
+  it("aynı gün aynı tutarda iki kısmi iade ikisi de sayılır; yalnız birebir aynı satır bir kez", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:00:00Z") });
+    const twin = {
+      TRANSACTION_TYPE: "refundp",
+      REFERENCE_CODE: "IKSIRPF102168",
+      AUTHORIZATION_AMOUNT: "50.00",
+      TRX_DATE: "2026-10-20",
+    };
+    stubFetch({
+      Data: [
+        transactionRow({ ...twin, AUTH_CODE: "A1" }),
+        transactionRow({ ...twin, AUTH_CODE: "A2" }),
+        transactionRow({ ...twin, AUTH_CODE: "A2" }),
+      ],
+    });
+    const found = await makeProvider().lookupRefunds(
+      "ord-0284",
+      new Date("2026-10-19T09:00:00Z"),
+    );
+    expect(found.refundedMinor).toBe(10_000);
+    expect(found.rows).toHaveLength(2);
+  });
+
   it("yanlış anahtarı 'iade yok' saymaz", async () => {
     stubFetch({
       result: { RESPONSE_DATA: "API : hashData error", LIST: null },

@@ -4390,14 +4390,15 @@ export async function placeAppOrder(
   }
 
   if (kind === "cafe") {
-    // The house must be open - at the requested time for a scheduled order,
-    // right now otherwise - with the staff override honoured either way.
+    // The house must be open: right now, with the staff override, or by
+    // its posted hours at the requested time for a scheduled order (an
+    // Açık override does not reach a later hour; venue.ts).
     // Imported lazily: the venue module reads settings from this store.
-    const { getVenueStatus, isCafeOpenNow } =
+    const { getVenueStatus, isCafeOpenForOrder } =
       await import("@/lib/mobile/venue");
     const venue = await getVenueStatus();
-    const at = scheduled.value ? new Date(scheduled.value) : new Date();
-    if (!isCafeOpenNow(settings.weeklyHours, venue.manualOverride, at)) {
+    const at = scheduled.value ? new Date(scheduled.value) : null;
+    if (!isCafeOpenForOrder(settings.weeklyHours, venue.manualOverride, at)) {
       return { ok: false, reason: "cafe_closed" };
     }
   }

@@ -135,7 +135,10 @@ export function PromoForm({
               <Select
                 name="kind"
                 value={kind}
-                onChange={(e) => setKind(e.target.value as "pct" | "fixed")}
+                onChange={(e) => {
+                  setKind(e.target.value as "pct" | "fixed");
+                  wizard.clearError("valuePct");
+                }}
               >
                 <option value="pct">% Yüzde</option>
                 <option value="fixed">Sabit tutar (₺)</option>
@@ -147,6 +150,7 @@ export function PromoForm({
                   <TextInput
                     name="valuePct"
                     inputMode="numeric"
+                    onChange={() => wizard.clearError("valuePct")}
                     defaultValue={
                       promo && promo.kind === "pct" ? String(promo.value) : "10"
                     }
@@ -263,7 +267,12 @@ export function PromoForm({
             rows={[
               {
                 label: "Kod",
-                value: formText(values, "code").toLocaleUpperCase("tr-TR"),
+                // As the store saves it (normalizeCode): "indirim 10" is
+                // INDIRIM10, the code a customer types.
+                value: formText(values, "code")
+                  .trim()
+                  .toUpperCase()
+                  .replace(/\s+/g, ""),
                 step: 1,
               },
               { label: "İndirim", value: discount(values), step: 1 },

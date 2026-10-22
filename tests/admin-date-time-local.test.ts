@@ -172,7 +172,7 @@ describe("DateTimePicker (the widget) on the server", () => {
   it("posts the original name with the YYYY-MM-DDTHH:mm value, in 24-hour Turkish segments", async () => {
     const html = await render({ defaultValue: "2026-10-21T09:05" });
     expect(html).toContain(
-      '<input type="hidden" name="startsAt" value="2026-10-21T09:05"/>',
+      '<input type="hidden" data-summary-value="" name="startsAt" value="2026-10-21T09:05"/>',
     );
     const segments = [...html.matchAll(/data-type="(\w+)"[^>]*>([^<]*)</g)]
       .filter((m) => m[1] !== "literal")

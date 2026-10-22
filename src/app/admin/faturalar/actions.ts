@@ -166,9 +166,19 @@ function rowAnswer(
       "success",
     );
   }
-  if (after.status === "formalizing" || r.step === "pending") {
+  if (after.status === "formalizing") {
     return actionOk(
-      "Paraşüt resmileştiriyor; numarası birkaç dakika içinde gelir.",
+      'Paraşüt resmileştiriyor; fatura numarası bir sonraki çalıştırmada (yeni bir sipariş, günlük iş ya da "Şimdi çalıştır") kayda geçer.',
+      "warning",
+    );
+  }
+  if (r.step === "pending") {
+    // The deadline came first: the row went back to the queue, nothing is
+    // being formalised now.
+    return actionOk(
+      r.mode === "draft"
+        ? 'Paraşüt zamanında yanıt vermedi; kayıt sıraya döndü ve bir sonraki çalıştırmada (ya da "Şimdi çalıştır" ile) kaldığı yerden devam eder. Taslak olarak dönerse kontrol edip yeniden kesinleştir.'
+        : 'Paraşüt zamanında yanıt vermedi; kayıt sıraya döndü ve bir sonraki çalıştırmada (ya da "Şimdi çalıştır" ile) kaldığı yerden devam eder.',
       "warning",
     );
   }
@@ -198,6 +208,18 @@ async function rowButton(
   const before = await getInvoice(parsed.data);
   if (!before) return actionError("Fatura kaydı bulunamadı.");
   if (before.status !== from) return actionError(refused);
+  // The approval is for the draft the card showed: one made again since
+  // ("Taslağı yenile", the order's invoice wizard, another tab) is a new
+  // Paraşüt id, and nobody has read it yet.
+  if (
+    action === "formalize" &&
+    String(formData.get("draft") ?? "") !== before.salesInvoiceId
+  ) {
+    revalidateFor(before);
+    return actionError(
+      "Taslak bu arada yeniden hazırlandı. Sayfayı yenile, yeni taslağı kontrol et, sonra kesinleştir.",
+    );
+  }
   const r = await runInvoiceRow({ id: before.id, action, budgetMs: 50_000 });
   if (r.mode === "off") return actionError(OFF);
   if (!r.taken) {
@@ -547,7 +569,7 @@ export async function createOrderInvoiceAction(
   });
   const r = await runInvoiceRow({
     id: res.row.id,
-    action: res.row.status === "draft" ? "rebuild" : "cut",
+    action: "request",
     budgetMs: 50_000,
   });
   const after = await getInvoice(res.row.id);

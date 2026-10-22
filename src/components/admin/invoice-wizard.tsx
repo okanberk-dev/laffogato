@@ -168,11 +168,12 @@ export function InvoiceWizard(props: InvoiceWizardProps) {
   const describedBy = (key: string) =>
     errors[key] ? `${baseId}-err-${key}` : undefined;
 
-  const submitLabel = rebuild
-    ? "Taslağı yeniden oluştur"
-    : mode === "live"
+  const submitLabel =
+    mode === "live"
       ? "Faturayı kes"
-      : "Taslağı oluştur";
+      : rebuild
+        ? "Taslağı yeniden oluştur"
+        : "Taslağı oluştur";
   const docLabel = company
     ? "e-Fatura (şirket GİB'de e-Fatura kullanıcısıysa) ya da e-Arşiv"
     : "e-Arşiv fatura";

@@ -662,8 +662,13 @@ geri verildiyse onu kullanmak **ikinci bir iade** isteği gönderirdi. Kartla
 (iptal edilmemiş bir siparişte tutarın tamamı iade edilince durum da "İade
 edildi"; iptal edilmiş sipariş "İptal edildi" kalır), damga geri alınır, müşteriye iade e-postası gider, "İptal edildi, iade
 bekliyor" işareti kalkar, olay kaydına yazılır. Kaydedilebilecek en çok
-tutar, tahsil edilenden önceki iadeler düşüldükten sonra kalandır; aynı
-iadeyi iki kez kaydetmek defterce reddedilir. Faturası kesilmiş bir
+tutar, tahsil edilenden önceki iadeler düşüldükten sonra kalandır. Aynı
+düğmeye iki kez basmak defterce reddedilir; ama bir iadeyi önce "bul" ile
+sonra elle (ya da tersi) kaydetmek, aynı tutarda ikinci bir kısmi iadeden
+ayırt edilemez: kaydetmeden önce kartın iade satırlarına bak. Siparişte
+birden çok PayNkolay tahsilatı varsa (mükerrer çekim) "bul" çalışmaz:
+listedeki iptalin hangi çekime ait olduğu bilinemez, kayıt elle yapılır.
+Faturası kesilmiş bir
 siparişte iade, e-Arşiv'deki gibi "Faturalı siparişte iade" uyarısını
 doğurur.
 

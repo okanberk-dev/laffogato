@@ -51,7 +51,7 @@ const {
   updateVenueStatus,
   venuePatchColumns,
 } = await import("@/lib/mobile/venue");
-const { TAG_SITE, tagsForWrite } = await import("@/lib/cache/tags");
+const { TAG_VENUE, tagsForWrite } = await import("@/lib/cache/tags");
 
 const NOW = new Date("2026-10-19T18:30:00.000Z");
 const STORED = {
@@ -74,31 +74,32 @@ beforeEach(() => {
 });
 
 describe("every venue write expires what reads the venue (#185 cache)", () => {
-  // `pub:site` is the tag of the two cached reads that follow the venue:
+  // `live:venue` is the tag of the two cached reads that follow the venue:
   // the bell's busy-hours inputs and the köşk chip's change marker
   // (src/lib/admin/change-marker.ts). GET /api/mobile/v1/live-status reads
   // live (30 s at the CDN), so nothing cached stands between a save and
-  // the app.
-  it("venue_status is a pub:site table", () => {
-    expect(tagsForWrite({ table: "venue_status" })).toEqual([TAG_SITE]);
+  // the app. Not `pub:site`: a chip tap does not empty the public pages'
+  // cache (docs/AUDIT.md §8, P2).
+  it("venue_status is a live:venue table", () => {
+    expect(tagsForWrite({ table: "venue_status" })).toEqual([TAG_VENUE]);
   });
 
-  it("a quick save expires pub:site", async () => {
+  it("a quick save expires live:venue, not pub:site", async () => {
     answers = [[STORED]];
     await patchVenueStatus({ manualOverride: "open", freeTables: 2 }, NOW);
-    expect(expired.tags).toEqual([TAG_SITE]);
+    expect(expired.tags).toEqual([TAG_VENUE]);
   });
 
   it("so does a refused one (no row matched): a lost reply looks the same", async () => {
     answers = [[], [], []];
     expect(await patchVenueStatus({ freeTables: 13 }, NOW)).toBeNull();
-    expect(new Set(expired.tags)).toEqual(new Set([TAG_SITE]));
+    expect(new Set(expired.tags)).toEqual(new Set([TAG_VENUE]));
   });
 
   it("so does a failed statement: Postgres may have committed it", async () => {
     fail = { message: "connection reset", code: "08006" };
     await expect(patchVenueStatus({ freeTables: 1 }, NOW)).rejects.toThrow();
-    expect(expired.tags).toEqual([TAG_SITE]);
+    expect(expired.tags).toEqual([TAG_VENUE]);
   });
 
   it("and the full form's save (owner and manager)", async () => {
@@ -114,7 +115,7 @@ describe("every venue write expires what reads the venue (#185 cache)", () => {
       },
       NOW,
     );
-    expect(expired.tags).toEqual([TAG_SITE]);
+    expect(expired.tags).toEqual([TAG_VENUE]);
   });
 });
 

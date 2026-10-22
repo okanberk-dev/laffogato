@@ -4081,6 +4081,43 @@ iadede gider pusulası ya da iade faturası.
   ek bir önlem (ör. jetonun belirli bir süre kullanılmamasında
   kendiliğinden düşürülmesi) mi beklenir?
 
+## 34. Y19 - Uygulamanın bildirim kutusu damga hareketlerini listelemez (22 Ekim 2026)
+
+> **Durum: kodda değişti, avukat okuması bekliyor.** Dal
+> `claude/brave-cannon-ctlv3a`. `docs/AUDIT.md` §8'de açık kalan bulgu
+> (PR #196 incelemesi, 21 Ekim 2026). Belgelerin tarihi zaten **22 Ekim
+> 2026**; `LEGAL_UPDATED` ve `COMMERCIAL_CONSENT_UPDATED` taşınmadı.
+
+### 34.1 Neden
+
+Uygulamanın Bildirimler ekranı (`GET /api/mobile/v1/notifications`,
+`src/lib/mobile/notifications.ts`) son 30 günün sipariş aşamalarını,
+yayındaki duyuruları, ödül hazırsa bir kaydı, karaoke kararlarını ve
+kilometre taşı hediyelerini listeler. Tek tek damgalar orada değil, damga
+kartında görünür. KVKK Aydınlatma Metni iki yerde, Açık Rıza Metni bir
+yerde damga hareketlerinin bildirim kutusunda gösterildiğini söylüyordu.
+Mobil Uygulama Koşulları'nın örnek listesi (sipariş durumu, ödülün hazır
+olması, kilometre taşı hediyesi, duyurular) zaten doğruydu.
+
+### 34.2 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| KVKK §12, "Mobil Uygulamaya İlişkin Ek Aydınlatma", bildirimler paragrafı | ... sipariş durumu ve damga hareketleri uygulama içindeki bildirimler ekranında gösterilmeye devam eder. | ... sipariş durumu uygulama içindeki bildirimler ekranında, damgalarınız uygulamadaki damga kartınızda gösterilmeye devam eder. |
+| KVKK §20, "Ticari Elektronik İletiler ve İYS" | ... damga kazanımı ve tanımlanan kuponlar gibi işlemsel bilgiler uygulama içindeki bildirimler ekranında ve gerektiğinde e-posta ile iletilir; | ... damga kazanımı ve tanımlanan kuponlar gibi işlemsel bilgiler uygulamanın ilgili ekranlarında (sipariş durumu, ödülünüzün hazır olması ve kilometre taşı hediyeleri ayrıca bildirimler ekranında; damgalar damga kartınızda) ve gerektiğinde e-posta ile iletilir; |
+| Açık Rıza Metni §13, "R8 - Push Bildirim Yoluyla Pazarlama" tablosu | Etkilenmez. Sipariş, ödeme, kargo, damga ve güvenlik bildirimleri e-posta ile ve uygulama içindeki bildirim kutusunda, ... | Etkilenmez. Sipariş, ödeme, kargo, damga ve güvenlik bilgilendirmeleri e-posta ile ve uygulamada (sipariş durumu ve ödülünüzün hazır olması bildirim kutusunda, damgalarınız damga kartınızda), ... |
+
+`tests/legal-docs.test.ts` "what the app's inbox shows" tutar.
+
+### 34.3 Bilerek değişmeyenler
+
+- Mesafeli Satış Sözleşmesi'nin "uygulama içi bildirim kutusunda gösterilen
+  sipariş durumu ve sadakat programı (damga ve kupon) bilgileri işlemsel
+  niteliktedir" cümlesi bir nitelendirmedir (ödülün hazır olması kaydı
+  damga ve kupon bilgisidir); ödeme onay belgesi olduğu için dokunulmadı.
+- Açık Rıza Metni'nin kapsam dışı sayımı ("damganızın kartınıza işlendiği
+  ... uygulama içi bildirimler") bir vaat değil, onayın kapsamını çizer.
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

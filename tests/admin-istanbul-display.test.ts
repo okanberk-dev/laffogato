@@ -15,6 +15,14 @@ describe("admin dates are shown on the venue's clock", () => {
   it("reads an offsetless value as Istanbul wall clock, like the store", () => {
     expect(formatDateTime("2026-09-30T23:59")).toContain("23:59");
   });
+
+  it("prints a dash for a row with no stamp instead of throwing", () => {
+    // A product or menu row written outside the store has updatedAt "":
+    // Intl threw "Invalid time value" and the products list and the menu
+    // item's page answered with the panel's error screen.
+    expect(formatDateTime("")).toBe("-");
+    expect(formatDateTime("not a date")).toBe("-");
+  });
 });
 
 describe("the refund button follows the server's rule", () => {
@@ -29,7 +37,11 @@ describe("the refund button follows the server's rule", () => {
   });
 
   it("offers a refund on a cancelled order only when money was taken", () => {
-    const cancelled = { status: "cancelled" as const, totalMinor: 5000, refunds: [] };
+    const cancelled = {
+      status: "cancelled" as const,
+      totalMinor: 5000,
+      refunds: [],
+    };
     expect(orderActions(cancelled, "owner", true).refund?.enabled).toBe(true);
     expect(orderActions(cancelled, "owner", false).refund).toBeUndefined();
   });

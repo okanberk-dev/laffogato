@@ -25,6 +25,12 @@ import {
   RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
   RESET_TOKEN_MAX_LENGTH,
 } from "@/lib/customer/reset-link";
+import {
+  NEWSLETTER_LINK_COOKIES,
+  NEWSLETTER_LINK_COOKIE_MAX_AGE_SECONDS,
+  NEWSLETTER_LINK_TOKEN_MAX_LENGTH,
+  newsletterLinkPath,
+} from "@/lib/newsletter/link-token";
 import { adminCsp, isAdminDocumentPath } from "@/lib/security/admin-document";
 import { checkoutCsp, newCspNonce } from "@/lib/security/checkout-csp";
 import { isCheckoutPath } from "@/lib/security/checkout-document";
@@ -65,10 +71,12 @@ import { updateSession } from "@/lib/supabase/proxy";
  *    verified in full by the admin layout; this only checks for its presence,
  *    which is all that is needed before the render.
  *
- * Before them, two moves of a value out of the address into a cookie scoped
- * to its page, then a reload without it: the password reset token, and a
- * panel list's typed search from an old link (`?q=<e-mail>`,
- * lib/admin/list-search-core.ts), which the list now reads from its cookie.
+ * Before them, three moves of a value out of the address into a cookie
+ * scoped to its page, then a reload without it: the password reset token,
+ * the newsletter's confirm and unsubscribe tokens
+ * (lib/newsletter/link-token.ts), and a panel list's typed search from an
+ * old link (`?q=<e-mail>`, lib/admin/list-search-core.ts), which the list
+ * now reads from its cookie.
  */
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -95,6 +103,38 @@ export async function proxy(request: NextRequest) {
         path: RESET_PATH,
         maxAge: RESET_TOKEN_COOKIE_MAX_AGE_SECONDS,
       });
+    }
+    return moved;
+  }
+
+  // The newsletter's confirm and unsubscribe links carry their token the
+  // same way, on pages that load the site's tags. Page views only: the
+  // button on either page posts a Server Action to the bare path.
+  const newsletterPath = newsletterLinkPath(path);
+  if (
+    newsletterPath &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    request.nextUrl.searchParams.has("token")
+  ) {
+    const token = (request.nextUrl.searchParams.get("token") ?? "").trim();
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("token");
+    const moved = NextResponse.redirect(url, 303);
+    const name = NEWSLETTER_LINK_COOKIES[newsletterPath];
+    if (token && token.length <= NEWSLETTER_LINK_TOKEN_MAX_LENGTH) {
+      moved.cookies.set({
+        name,
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: newsletterPath,
+        maxAge: NEWSLETTER_LINK_COOKIE_MAX_AGE_SECONDS,
+      });
+    } else {
+      // An empty or impossible token: the page says "geçersiz", not the
+      // previous link's question.
+      moved.cookies.delete({ name, path: newsletterPath });
     }
     return moved;
   }

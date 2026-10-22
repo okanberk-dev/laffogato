@@ -186,7 +186,8 @@ describe("tagsForWrite", () => {
     ["menu_items", ["pub:menu"]],
     ["settings", ["pub:site"]],
     ["legal_docs", ["pub:site"]],
-    ["venue_status", ["pub:site"]],
+    // Its own tag: a chip tap does not empty the public pages' cache.
+    ["venue_status", ["live:venue"]],
     ["home_hero_slides", ["pub:site"]],
     ["orders", ["live:orders"]],
     ["karaoke_reservations", ["live:karaoke"]],

@@ -138,8 +138,10 @@ describe("the order's invoice wizard", () => {
       { buyer: { kind: "consumer" }, email: "", billing },
       "patron@laffogato.net",
     );
+    // "request": cut now, and a Paraşüt invoice the row already holds is
+    // made again from what was typed (run.ts ROW_ACTION_FROM).
     expect(h.runInvoiceRow).toHaveBeenCalledWith(
-      expect.objectContaining({ id: ROW.id, action: "cut" }),
+      expect.objectContaining({ id: ROW.id, action: "request" }),
     );
     expect(h.flash).toHaveBeenCalledWith(
       expect.stringContaining("Taslak hazır"),
@@ -226,12 +228,18 @@ describe("the order's invoice wizard", () => {
     expect(h.redirect).not.toHaveBeenCalled();
   });
 
-  it("a draft already in Paraşüt is rebuilt for the new buyer, not cut again", async () => {
-    h.request.mockResolvedValue({ ok: true, row: { ...ROW, status: "draft" } });
-    await createOrderInvoiceAction(null, form());
-    expect(h.runInvoiceRow).toHaveBeenCalledWith(
-      expect.objectContaining({ action: "rebuild" }),
-    );
+  it("a draft, or a failed row's invoice, already in Paraşüt is made again for what was typed, not kept", async () => {
+    for (const status of ["draft", "due"]) {
+      h.runInvoiceRow.mockClear();
+      h.request.mockResolvedValue({
+        ok: true,
+        row: { ...ROW, status, salesInvoiceId: "1042" },
+      });
+      await createOrderInvoiceAction(null, form());
+      expect(h.runInvoiceRow).toHaveBeenCalledWith(
+        expect.objectContaining({ action: "request" }),
+      );
+    }
   });
 
   it("says an e-Fatura went to the buyer's GİB inbox", async () => {
@@ -252,5 +260,23 @@ describe("the order's invoice wizard", () => {
       expect.stringContaining("GİB kutusuna"),
       "success",
     );
+  });
+});
+
+describe("the wizard page", () => {
+  it("offers the order's address as the PDF's recipient only when mail can go there", async () => {
+    // A closed account's orders keep `deleted-<id>@anon.local`, which the
+    // run never mails (invoiceRecipient); the summary then says to hand the
+    // PDF over from the panel instead of naming that address.
+    const { readFileSync } = await import("node:fs");
+    const page = readFileSync(
+      "src/app/admin/siparisler/[id]/fatura/page.tsx",
+      "utf8",
+    );
+    expect(page).toContain(
+      'orderEmail={invoiceRecipient(order.customerEmail) ?? ""}',
+    );
+    const { invoiceRecipient } = await import("@/lib/invoice/invoice-core");
+    expect(invoiceRecipient("deleted-cus-1@anon.local")).toBeNull();
   });
 });

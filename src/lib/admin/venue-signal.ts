@@ -44,8 +44,8 @@ const NO_STATUS: VenueSignalAnswer = { status: null, cursor: "" };
  * to this same cookie (poll-binding.ts) for the same marker, before the
  * minute its key names, gets `{ unchanged: true }`, which carries no data.
  * The marker moves on every write to `venue_status`, to the settings (the
- * hours) and to the panel accounts (`pub:site`, `live:access`), and the
- * key's minute is when the hours next turn the köşk open or closed
+ * hours) and to the panel accounts (`live:venue`, `pub:site`,
+ * `live:access`), and the key's minute is when the hours next turn the köşk open or closed
  * (nextOpenChangeAt), at most a day ahead. So "unchanged" lasts only while
  * the status, the hours and this session's account (rule 30) are what the
  * last full answer read.

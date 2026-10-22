@@ -55,6 +55,7 @@ import {
   getOrderPaymentRef,
   getOrdersByIds,
   listOrderMoney,
+  listPaymentTransactions,
   markOrderPaidManually,
   orderMoney,
   refundRefusal,
@@ -195,6 +196,23 @@ async function gate(
 }
 
 // ── Refund ──────────────────────────────────────────────────────────────
+
+/**
+ * How many charges the POS took for the order: a duplicate payment makes
+ * two under one clientRefCode. With more than one, a cancel PayNkolay
+ * lists, or refuses as done already, may be the other charge's: the
+ * operator refunds the duplicate in PayNkolay's panel, as its banner says.
+ */
+async function cardChargeCount(orderId: string): Promise<number> {
+  const rows = await listPaymentTransactions(orderId);
+  return rows.filter(
+    (r) =>
+      r.status === "succeeded" && refundDestinationFor(r.provider) === "card",
+  ).length;
+}
+
+const TWO_CHARGES =
+  "Bu siparişte birden çok PayNkolay tahsilatı var (mükerrer çekim).";
 
 export interface RefundRequest {
   amountMinor: number;
@@ -347,11 +365,18 @@ export async function issueRefund(
         const already = /daha önce (iptal|iade)/i.test(
           err instanceof Error ? err.message : "",
         );
+        // Two charges: the refund went to the newest one, most likely the
+        // duplicate the operator already cancelled; the order's own charge
+        // is still with the customer's card.
+        const twice =
+          already && (await cardChargeCount(order.id).catch(() => 1)) > 1;
         return {
           ok: false,
-          error: already
-            ? "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor; para ikinci kez gönderilmedi. Panelde işaretlemek için \"PayNkolay'dan iadeyi bul\" ya da \"PayNkolay'da iade ettim\"."
-            : "Ödeme sağlayıcısı iadeyi reddetti, para geri gönderilmedi. PayNkolay panelinden bak: iade orada yapıldıysa \"PayNkolay'dan iadeyi bul\" ile işaretle, değilse tekrar dene.",
+          error: twice
+            ? `${TWO_CHARGES} İade son çekime gönderildi ve PayNkolay onun daha önce iptal ya da iade edildiğini söylüyor (büyük ihtimalle mükerrer çekim); para ikinci kez gönderilmedi. Siparişin asıl ödemesini PayNkolay panelinden iade et, sonra "PayNkolay'da iade ettim" ile kaydet.`
+            : already
+              ? "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor; para ikinci kez gönderilmedi. Panelde işaretlemek için \"PayNkolay'dan iadeyi bul\" ya da \"PayNkolay'da iade ettim\"."
+              : "Ödeme sağlayıcısı iadeyi reddetti, para geri gönderilmedi. PayNkolay panelinden bak: iade orada yapıldıysa \"PayNkolay'dan iadeyi bul\" ile işaretle, değilse tekrar dene.",
         };
       }
       // A timeout, a dropped line, an answer without a code: the refund may
@@ -550,6 +575,13 @@ export async function findPosRefund(
   if (refundDestinationFor(ref?.provider ?? null) !== "card") {
     return refused(
       "Bu siparişin ödemesi PayNkolay'dan alınmamış: orada aranacak bir iade yok.",
+    );
+  }
+  // PayNkolay lists every cancel under the order's clientRefCode: with two
+  // charges, the duplicate's cancel would be booked as this order's refund.
+  if ((await cardChargeCount(g.order.id)) > 1) {
+    return refused(
+      `${TWO_CHARGES} PayNkolay'da görünen iadenin hangisine ait olduğu buradan bilinemez. PayNkolay panelinde bak; siparişin kendi ödemesini iade ettiysen "PayNkolay'da iade ettim" ile kaydet.`,
     );
   }
   let provider: PaymentProvider;

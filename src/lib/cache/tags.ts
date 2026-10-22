@@ -18,13 +18,17 @@ import type { WriteTarget } from "@/lib/db/client";
  * reply was lost looks like a failure), and `expireTags` expires the answer
  * (src/lib/db/index.ts).
  *
- * Six tags:
+ * Seven tags:
  * - `pub:catalog`: products and categories (the shop, its link cards and
  *   the sitemap).
  * - `pub:menu`: menu items (the cafe menu, also the table's QR menu). Apart
  *   from the shop so a shop stock move does not drop the menu.
  * - `pub:site`: settings and every panel-edited text, slide and legal
- *   override the public pages print, and the venue's live status.
+ *   override the public pages print.
+ * - `live:venue`: the venue's live status (Canlı durum, the top bar's köşk
+ *   chip). Only the panel caches it: the chip's marker and the bell's busy
+ *   window. Apart from `pub:site` so a chip tap does not empty every public
+ *   page's cache (docs/AUDIT.md §8, P2).
  * - `live:orders`: orders (the new-order bell and the panel's counts).
  * - `live:karaoke`: karaoke bookings (the nav badge).
  * - `live:access`: panel accounts. Nothing cached reads them; both change
@@ -44,6 +48,7 @@ import type { WriteTarget } from "@/lib/db/client";
 export const TAG_CATALOG = "pub:catalog";
 export const TAG_MENU = "pub:menu";
 export const TAG_SITE = "pub:site";
+export const TAG_VENUE = "live:venue";
 export const TAG_ORDERS = "live:orders";
 export const TAG_KARAOKE = "live:karaoke";
 export const TAG_ACCESS = "live:access";
@@ -52,6 +57,7 @@ export const ALL_CACHE_TAGS = [
   TAG_CATALOG,
   TAG_MENU,
   TAG_SITE,
+  TAG_VENUE,
   TAG_ORDERS,
   TAG_KARAOKE,
   TAG_ACCESS,
@@ -86,7 +92,7 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   app_hero_slides: SITE,
   app_announcements: SITE,
   legal_docs: SITE,
-  venue_status: SITE,
+  venue_status: [TAG_VENUE],
 
   orders: ORDERS,
   karaoke_reservations: KARAOKE,

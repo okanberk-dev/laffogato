@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { clientIp, reserveLoginAttempt } from "@/lib/admin/rate-limit";
@@ -10,6 +11,10 @@ import {
   subscribeNewsletter,
   unsubscribeByToken,
 } from "@/lib/newsletter/store";
+import {
+  NEWSLETTER_LINK_COOKIES,
+  type NewsletterLinkPath,
+} from "@/lib/newsletter/link-token";
 import { SITE } from "@/lib/seo/site";
 
 export interface NewsletterFormState {
@@ -86,6 +91,7 @@ export async function subscribeNewsletterAction(
  */
 export async function confirmNewsletterAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
+  await forgetLinkToken("/bulten/onay");
   let email: string | null = null;
   try {
     email = await confirmNewsletterByToken(token, await clientIp());
@@ -94,6 +100,20 @@ export async function confirmNewsletterAction(formData: FormData) {
     redirect("/bulten/onay?sonuc=hata");
   }
   redirect(email ? "/bulten/onay?sonuc=tamam" : "/bulten/onay?sonuc=gecersiz");
+}
+
+/**
+ * The page's parked link token (lib/newsletter/link-token.ts) is spent or
+ * refused once its button is pressed: drop it, whatever the answer, so the
+ * page does not ask again. Not exported: every export here is a public
+ * endpoint (CLAUDE.md rule 27).
+ */
+async function forgetLinkToken(path: NewsletterLinkPath): Promise<void> {
+  try {
+    (await cookies()).delete({ name: NEWSLETTER_LINK_COOKIES[path], path });
+  } catch {
+    // Outside a request (a test calling the action directly): nothing parked.
+  }
 }
 
 /** "ayse@example.com" → "a***@example.com": enough to recognise, not to log. */
@@ -115,6 +135,7 @@ function maskedAddress(email: string): string {
  */
 export async function unsubscribeNewsletterAction(formData: FormData) {
   const token = String(formData.get("token") ?? "").trim();
+  await forgetLinkToken("/bulten/cikis");
   let email: string | null = null;
   try {
     // A token belongs to the subscriber list or to a member row; either way

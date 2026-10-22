@@ -1340,28 +1340,43 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
         if (kind !== "cancel" && kind !== "refund" && kind !== "refundp") {
           continue;
         }
-        const amountMinor = paynkolayAmountToMinor(
-          readField(
-            row,
-            "AUTHORIZATION_AMOUNT",
-            "authorizationAmount",
-            "TRANSACTION_AMOUNT",
-            "transactionAmount",
-          ),
+        // İade satırının hangi alanda hangi tutarı taşıdığı canlıda
+        // doğrulanmadı (docs/PAYNKOLAY.md §2): iki alan farklıysa (ör.
+        // kısmi iadede biri satışın tutarı) tahmin edilmez, okunamadı
+        // sayılır ve operatör elle kaydeder.
+        const authorized = paynkolayAmountToMinor(
+          readField(row, "AUTHORIZATION_AMOUNT", "authorizationAmount"),
         );
+        const transacted = paynkolayAmountToMinor(
+          readField(row, "TRANSACTION_AMOUNT", "transactionAmount"),
+        );
+        if (
+          authorized !== null &&
+          transacted !== null &&
+          authorized > 0 &&
+          transacted > 0 &&
+          authorized !== transacted
+        ) {
+          throw new Error(
+            `paynkolay: ${id} için ${kind} satırında iki farklı tutar var`,
+          );
+        }
+        const amountMinor =
+          transacted !== null && transacted > 0 ? transacted : authorized;
         if (amountMinor === null || amountMinor <= 0) {
           throw new Error(
             `paynkolay: ${id} için ${kind} satırı var ama tutarı okunamadı`,
           );
         }
         const day = transactionDay(row).trxDate ?? "";
-        // Aynı satır iki sorguda görünmesin (gün sınırı).
-        const key = [
-          readField(row, "REFERENCE_CODE", "referenceCode"),
-          kind,
-          amountMinor,
-          readField(row, "TRX_DATE", "trxDate"),
-        ].join("|");
+        // Yalnız birebir aynı satır bir kez sayılır. Aynı gün aynı tutarda
+        // iki kısmi iade iki ayrı işlemdir: bir alanları (saat, kimlik)
+        // ayrılır, ikisi de sayılır.
+        const key = JSON.stringify(
+          Object.keys(row)
+            .sort()
+            .map((k) => [k, row[k]]),
+        );
         if (seen.has(key)) continue;
         seen.add(key);
         rows.push({ kind, amountMinor, day });

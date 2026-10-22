@@ -7,7 +7,11 @@ import { InvoiceWizard } from "@/components/admin/invoice-wizard";
 import { PageShell } from "@/components/admin/ui";
 import { BUTTON } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
-import { expectedTotalMinor, linesKdvRows } from "@/lib/invoice/invoice-core";
+import {
+  expectedTotalMinor,
+  invoiceRecipient,
+  linesKdvRows,
+} from "@/lib/invoice/invoice-core";
 import { loadOrderInvoiceRequest } from "@/lib/invoice/order-request";
 import { invoiceSourceHref } from "@/lib/invoice/panel-core";
 
@@ -53,9 +57,7 @@ export default async function OrderInvoiceWizardPage({ params }: PageProps) {
           mode={mode}
           rebuild={row?.status === "draft"}
           consumerName={order.customerName}
-          orderEmail={
-            order.customerEmail.includes("@") ? order.customerEmail : ""
-          }
+          orderEmail={invoiceRecipient(order.customerEmail) ?? ""}
           initial={{
             buyerKind: row?.buyerKind === "company" ? "company" : "consumer",
             buyerTitle: row?.buyerTitle ?? "",

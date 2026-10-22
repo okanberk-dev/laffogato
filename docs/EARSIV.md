@@ -315,11 +315,22 @@ yönetici). Otomatik fatura kapalıyken (`EARSIV_MODE=off`) görünmez.
    kalem), KDV dökümü ve genel toplam. Burada değişmez.
 4. **Özet:** alıcı, vergi bilgisi, adres, e-posta, belge türü, tutar ve ne
    olacağı. Düğme taslak modunda **"Taslağı oluştur"** (taslak zaten varsa
-   "Taslağı yeniden oluştur": eskisi silinir, yeni alıcıyla bugünün
-   tarihiyle hazırlanır), canlı modda "Faturayı kes".
+   "Taslağı yeniden oluştur"), canlı modda "Faturayı kes". Paraşüt'te bu
+   sipariş için kesinleşmemiş bir satış faturası zaten varsa (taslak ya da
+   hata veren bir çalıştırmanın bıraktığı) her durumda silinir ve sihirbazda
+   yazılan alıcı ve adresle bugünün tarihiyle yeniden hazırlanır (satır
+   işlemi `request`, 22 Ekim 2026): eskisi kalsaydı ilk hazırlandığı adres
+   ve vergi dairesiyle kesinleşirdi. Yanıtı kaybolmuş bir oluşturma da önce
+   hazırlandığı müşteri kaydının altında aranır; alıcı değiştiyse silinir,
+   Paraşüt'te bir sipariş için iki satış kalmaz.
 
 Sonra sipariş sayfasına dönülür; taslak kartta satır satır görünür ve her
-taslak gibi **"Faturayı kesinleştir"** ile kesilir (§1 adım 5).
+taslak gibi **"Faturayı kesinleştir"** ile kesilir (§1 adım 5). Onay
+kartın gösterdiği taslağa bağlıdır: arada başka bir sekmeden ya da
+"Taslağı yenile" ile yeniden hazırlanmış (yeni Paraşüt kimliği) taslak
+okunmadan kesinleşmez, sayfayı yenilemen istenir. Paraşüt süre içinde
+yanıt vermezse panel "resmileştiriyor" demez: kayıt sıraya döner ve bir
+sonraki çalıştırmada kaldığı yerden devam eder.
 
 **Ne zaman kullanılabilir** (`invoiceWizardRefusal`): sipariş online ve
 ödenmiş; iptal ya da iade edilmemiş; ödeme PayNkolay; ödül kuponu, cüzdan,
