@@ -730,6 +730,10 @@ durum bozulmaya uygundur.
   (`docs/PAYNKOLAY.md` §4); ödeme kararı `PaymentList` sorgusundan verilir
 - **Mail** Resend üzerinden çıkar (`docs/EMAIL-RESEND.md`); gönderen adresi
   panelden değişir, anahtar hiçbir dosyada durmaz. **SMS** hâlâ MVP dışı
+- **Ticari e-postayı İYS kapısının dışından gönderme** (22 Eki 2026):
+  kampanya ve doğum günü e-postası yalnız İYS'de ONAY görünen adrese ve son
+  İYS ret kontrolü 3 iş gününden yeniyken gider (`src/lib/iys`, aktarım elle:
+  `/admin/iys`); ayrıntı ve operatör kılavuzu `docs/IYS.md`
 - **Multi-language** MVP dışı (sadece TR)
 - Auth sağlayıcısını değiştirme işine kullanıcıdan onay almadan başlama
 - **`/api/mobile/v1` uçlarının sözleşmesini kırma** — alan silme/yeniden

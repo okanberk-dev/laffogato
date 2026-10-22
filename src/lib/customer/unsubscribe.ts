@@ -144,3 +144,68 @@ export async function unsubscribeCustomerByToken(
   }
   return email;
 }
+
+/**
+ * A refusal the person made on İYS itself, read from İYS's consent list on
+ * /admin/iys (src/lib/iys/store.ts). The law has the sender honour it like
+ * any other refusal, so it is applied the way the unsubscribe link applies
+ * one: the member's `marketing` and `newsletter` off, the consent stamp
+ * cleared, a ledger row per purpose that changed (source `iys`), and the
+ * address's bulletin row off.
+ *
+ * The ledger row carries no IP and no browser: the refusal was not made
+ * from this request, which is the operator's import. Returns which stores
+ * changed; both false when the address had nothing switched on here.
+ */
+export async function applyIysRefusal(
+  rawEmail: string,
+): Promise<{ member: boolean; subscriber: boolean }> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!email) return { member: false, subscriber: false };
+  const db = getDb();
+  const { data, error } = await db
+    .from(TABLES.customers)
+    .select("id, notificationPrefs, marketingConsentAt")
+    .eq("email", email)
+    .maybeSingle();
+  checkErr(error, "applyIysRefusal.select");
+  let member = false;
+  if (data) {
+    const row = data as {
+      id: string;
+      notificationPrefs?: PrefsRow;
+      marketingConsentAt?: string;
+    };
+    const prefs = row.notificationPrefs;
+    const wasOn =
+      prefs?.marketing === true ||
+      prefs?.newsletter === true ||
+      Boolean(row.marketingConsentAt);
+    if (wasOn) {
+      const off = commercialOff(prefs);
+      const { error: updErr } = await db
+        .from(TABLES.customers)
+        .update({
+          notificationPrefs: off,
+          marketingConsentAt: "",
+          updatedAt: new Date().toISOString(),
+        })
+        .eq("id", row.id);
+      checkErr(updErr, "applyIysRefusal.update");
+      await appendConsentChanges(email, prefs, off, {
+        source: "iys",
+        ip: "",
+      });
+      member = true;
+    }
+  }
+  const { data: rows, error: subErr } = await db
+    .from(TABLES.newsletterSubscribers)
+    .update({ isActive: false, unsubscribedAt: new Date().toISOString() })
+    .eq("email", email)
+    .eq("isActive", true)
+    .select("id");
+  checkErr(subErr, "applyIysRefusal.newsletter");
+  const subscriber = ((rows as unknown[] | null) ?? []).length > 0;
+  return { member, subscriber };
+}

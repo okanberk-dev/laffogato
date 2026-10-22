@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
+import { reconcileIys } from "@/lib/iys/store";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import { checkPushReceipts } from "@/lib/push/order-push";
@@ -85,6 +86,12 @@ export async function GET(request: Request) {
     campaigns: await resumePendingCampaigns({ deadlineMs: 180_000 }),
   }));
   const birthday = await step("birthday", () => runBirthdayGreetings());
+  // İYS: which consents and refusals the operator still has to register in
+  // İYS, and by when (src/lib/iys, /admin/iys). Sends nothing; the counts
+  // only, never an address.
+  const iys = await step("iys", async () => ({
+    reconcile: await reconcileIys(),
+  }));
   // Karaoke holds nobody paid: each asked about at the POS first, and only a
   // "no payment" (or a day of not being able to ask) frees the hour
   // (CLAUDE.md rule 29). Bookings run it too; this catches a quiet day.
@@ -134,6 +141,7 @@ export async function GET(request: Request) {
       keepalive: { ...keepalive, recorded },
       campaigns,
       birthday,
+      iys,
       karaoke,
       pushReceipts,
       legalVersions,

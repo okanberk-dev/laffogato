@@ -6,6 +6,7 @@ import { LEGAL_CONTENT } from "@/lib/legal/content";
 import { LEGAL_DOCS, findLegalDoc } from "@/lib/legal/documents";
 import {
   CHECKOUT_CONSENT_DOCS,
+  COMMERCIAL_CONSENT_UPDATED,
   KARAOKE_CONSENT_DOCS,
   KARAOKE_LEGAL_UPDATED,
   LEGAL_UPDATED,
@@ -75,6 +76,11 @@ describe("legal document dates", () => {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
+      // Dated by its own constant: its day is the version every commercial
+      // consent records (COMMERCIAL_CONSENT_UPDATED, consent-ledger.ts).
+      // 22 Ekim 2026, the set's day too: the İYS sync, §9 and §10 say how
+      // consents and refusals reach İYS (LEGAL-REDLINES §31).
+      "ticari-elektronik-ileti": COMMERCIAL_CONSENT_UPDATED,
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

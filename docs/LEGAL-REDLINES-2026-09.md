@@ -3812,6 +3812,120 @@ değişen cümlelerde kalktı.
 | Ticari ileti ayrımı | 6563 s. Kanun m.6; Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik m.7 (onay aranmayan hâller) | Push ve "Siparişin hazır" e-postası işlemsel; pazarlama push'u yok, R8 rızası istenmez. |
 | Saklama ve imha | KVKK m.7; Silme, Yok Etme veya Anonim Hale Getirme Yönetmeliği | Jeton olay anında silinir; 180 gün tavanı periyodik imhada; teslim sonuçları 24 saat. |
 
+## 31. Y16 - İYS: onaylar 3 iş günü içinde İYS'ye, gönderim yalnız İYS'de kayıtlı onaya (22 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `work/iys`. Metinler İYS'yi anlatıyordu ama
+> hiçbir kod İYS'ye kayıt yapmıyor, ret bildirmiyor ya da İYS'yi kontrol
+> etmiyordu (docs/AUDIT.md, "Kampanya e-postası İYS'ye bağlı değil"). Artık
+> yapıyor (docs/IYS.md); metinler bunun gerçek hâline, özellikle sürelere
+> göre düzeltildi. Yalnız gerçeğe uymayan ya da süresi belirsiz kalan
+> cümleler değişti. Ödeme belgelerinin (ÖBF, MSS) İYS cümlesi ("bu onayı
+> İYS'ye kaydeder") artık doğru, onlar değişmedi. Değişen dört belge aynı
+> gün §30'un taşıdığı **22 Ekim 2026** tarihini okur; İYS Aydınlatması bu
+> tarihi kendi sabitiyle taşır (§31.4). Avukat okuması bekler.
+
+### 31.1 Neden
+
+- Yönetmelik (Ticari İletişim ve Ticari Elektronik İletiler Hakkında
+  Yönetmelik, 2020 değişikliği): İYS dışında alınan onay 3 iş günü içinde
+  İYS'ye kaydedilir, kaydedilmeyen onaya dayanılamaz; hizmet sağlayıcıya
+  ulaşan ret 3 iş günü içinde gönderimi durdurur ve 3 iş günü içinde İYS'ye
+  bildirilir; alıcı reddi İYS üzerinden de yapabilir.
+- 250.000'den az adresi olan hizmet sağlayıcı İYS API'sini kendisi
+  çağıramaz (entegratör ya da İYS Web'den elle yükleme). Operatörün
+  entegratörü yok: aktarım bugün **elle**. Panel (`/admin/iys`) neyin, ne
+  zamana kadar yükleneceğini söyler ve İYS'nin sütun sırasıyla dosyayı verir.
+- Kod bunu kendisi zorlar: İYS'de kayıtlı olmayan adrese kampanya ve doğum
+  günü e-postası gitmez (`campaign_email_audience`,
+  `birthday_greeting_audience`); son İYS ret kontrolü 3 iş gününden eskiyse
+  hiç ticari e-posta gitmez. Bize ulaşan ret sitede anında uygulanır,
+  İYS'ye bildirimi elle yüklemeyle en geç 3 iş günü içinde yapılır. Bu
+  yüzden "alındığı anda ... İYS kaydına işlenir" gibi cümleler süresiyle
+  yazıldı.
+
+### 31.2 Değişen cümleler
+
+| Yer | Mevcut | Yeni | Neden |
+|---|---|---|---|
+| Satış Politikası §28, 5. paragraf | Her ticari iletide reddetme hakkınızı kolayca kullanabileceğiniz bir bağlantı bulunur; ret talebiniz gecikmeksizin işleme alınır ve İYS üzerinden de kaydedilir. | Her ticari iletide reddetme hakkınızı kolayca kullanabileceğiniz bir bağlantı bulunur; ret talebiniz gecikmeksizin işleme alınır ve en geç üç iş günü içinde İYS'ye de bildirilir. | "Gecikmeksizin" İYS kaydını da kapsıyor okunabiliyordu; İYS'ye bildirim elle ve 3 iş günü içinde. |
+| Şikâyet ve Uyuşmazlık §14, 3. paragraf (son cümle) | Ret talebiniz alındığı anda uygulanır ve İYS kaydına işlenir. | Ret talebiniz alındığı anda uygulanır ve en geç üç iş günü içinde İYS kaydına işlenir. | İYS kaydı anında değil; aynı belgenin §6 tablosu zaten "hedef en geç 3 iş günü" diyor. |
+| Mobil Uygulama Koşulları §17, 4. paragraf | ... adres defteri ve tercihler erişime kapatılır, ticari elektronik ileti onayı bulunuyorsa ret kaydı İYS üzerine işlenir. ... | ... adres defteri ve tercihler erişime kapatılır, İYS'ye kaydedilmiş bir ticari elektronik ileti onayı bulunuyorsa ret kaydı en geç üç iş günü içinde İYS üzerine işlenir. ... | İYS'ye henüz yüklenmemiş bir onayın reddi İYS'ye gönderilmez (yüklenecek onay iptal edilir); süre eklendi. (Bu cümle §19'da da alıntılanıyor; orası o günün kaydıdır.) |
+| Ticari Elektronik İleti ve İYS Aydınlatması §9, 1. paragraf | ... onayın veya retin kaynağı, IP adresi, tarayıcı veya uygulama bilgisi, onay metni sürümü ve zamanıyla birlikte kayıt altına alınır. ... | ... onayın veya retin kaynağı, varsa IP adresi ile tarayıcı veya uygulama bilgisi, onay metni sürümü ve zamanıyla birlikte kayıt altına alınır. ... | İYS'den okunan bir retin (ve yönetici düzeltmesinin) kişiye ait IP'si ve tarayıcısı yoktur; kayıt bunları boş tutar. |
+| Ticari Elektronik İleti ve İYS Aydınlatması §9, yeni 3. paragraf | (yoktu) | Sitemiz veya mobil uygulamamız üzerinden verdiğiniz onay, verildiği tarihten itibaren en geç üç iş günü içinde İYS'ye kaydedilir; İYS'ye kaydedilmemiş bir onaya dayanılarak ticari elektronik ileti gönderilmez. İletideki bağlantıdan veya hesabınızdaki iletişim tercihlerinden yaptığınız ret sistemimizde anında uygulanır; bize ulaşan her ret bildirimi, ulaştığı tarihten itibaren en geç üç iş günü içinde İYS'ye bildirilir. | Belgenin özeti onayın nasıl kayda alındığını anlatacağını söylüyor; İYS'ye kayıt ve bildirim süresi hiçbir yerde yazmıyordu. |
+| Ticari Elektronik İleti ve İYS Aydınlatması §10, yeni 2. madde | (yoktu) | Gönderim listesine yalnızca onayı İYS'ye kaydedilmiş adresler alınır. Ticari elektronik ileti, İYS'deki kayıtlar son üç iş günü içinde kontrol edilmişse gönderilir; bu kontrolde İYS üzerinden yapıldığı görülen ret bildirimleri sistemimizde de ret olarak işlenir ve o adreslere ileti gönderilmez. | "Gönderim Öncesi Kontrol" bölümü İYS kontrolünü anlatmıyordu; kod artık bunu zorluyor. |
+
+### 31.3 Bilerek değişmeyenler
+
+Ek A'daki İYS cümlelerinin geri kalanı koda göre doğru oldu ve
+değişmedi. Özellikle:
+
+- MSS §16 ("onayını alır ve bu onayı İYS'ye kaydeder"), Teslimat §15 ("İYS
+  kaydı zorunludur"), Satış Politikası §28 1. paragraf ("İYS'ye kaydedilerek
+  yapılır"), Şirket Bilgileri §11 ve Şikâyet §14 1. paragraf (aynı), Kafe
+  Hizmet §18: gönderim artık yalnız İYS'de kayıtlı onaya yapılıyor.
+- Gizlilik §8 tablo ve §19, KVKK §14 tablo ve §20, Mobil §10 ve §24, Veri
+  Saklama §6: İYS'ye işleme ve sorgulama yapılıyor ("mevzuatın gerektirdiği
+  hâllerde" kalıbı korundu).
+- KVKK Başvuru Formu §15 ("üç iş günü içinde gönderim durdurulur ve ret
+  bildirimi İYS'ye iletilir"), Şikâyet §6 tablo ("hedef en geç 3 iş günü"),
+  Açık Rıza §8: süreleriyle doğru.
+- İYS Aydınlatması §8 ("Hizmet sağlayıcılar ... kaydetmek ve ... kontrol
+  etmekle yükümlüdür"): mevzuatın tarifi; §9 2. paragraf ("İYS dâhil
+  herhangi bir kanaldan ret ... öğrendiğimizde ... kendi kaydımız ret
+  yönünde düzeltilir"): İYS listesinin yüklenmesiyle yapılıyor.
+- İşlemsel iletiye ilişkin cümleler (İade ve Cayma §19, Teslimat §15):
+  işlemsel e-posta İYS kapısından geçmez.
+
+### 31.4 Sürüm
+
+- Değişen belgeler: Ticari Elektronik İleti ve İYS Aydınlatması, Satış
+  Politikası, Şikâyet ve Uyuşmazlık Çözümü, Mobil Uygulama Koşulları. Aynı
+  gün §30 setin tarihini (`LEGAL_UPDATED`) **22 Ekim 2026**'ya taşıdığı için
+  dördü de bu tarihi okur; bu bölüm `LEGAL_UPDATED`'ı ve
+  `KARAOKE_LEGAL_UPDATED`'ı değiştirmez. Aynı günün iki metni karıştırılmaz:
+  gösterilen her metin özetiyle saklanır (§25).
+- İYS Aydınlatması tarihini kendi sabitiyle taşır ve bu tarih, her ticari
+  ileti onayıyla kaydedilen metin sürümüdür (`COMMERCIAL_CONSENT_UPDATED`,
+  `src/lib/legal/meta.ts`; `COMMERCIAL_CONSENT_TEXT_VERSION` =
+  `ticari-elektronik-ileti@22 Ekim 2026`). Önceden sürüm `LEGAL_UPDATED`'ı
+  izliyordu: belge yalnız kendisi değiştiğinde de sürüm artık değişir.
+  Bilinen sınır: 22 Ekim 2026'da §30'un yayını ile bu bölümün yayını
+  arasında verilen onaylar da aynı etiketi taşır (metin farkı yalnız İYS
+  sürecini anlatan paragraflardadır, onayın kapsamı değişmedi); hangi
+  metnin gösterildiği o günün saklanan metin özetinden okunur.
+- `tests/legal-iys.test.ts` yeni cümleleri tutar ve eskilerin geri
+  gelmesini engeller.
+
+### 31.5 Operatöre
+
+- **İYS kaydı.** Markanın İYS'ye kaydı (hs.iys.org.tr) ve günlük iş
+  `docs/IYS.md`'de. Yayından sonra İYS'ye kaydedilmemiş hiçbir onaya ticari
+  e-posta gitmez: mevcut onaylar "eski onay" olarak listelenir ve İYS onları
+  3 iş günü sınırı yüzünden reddedebilir (H467).
+- **E-postayla ya da telefonla gelen ret.** Aynı gün panelde işlenmeli
+  (üyede Müşteriler → tercihler, abonede Aboneler → Pasifleştir): İYS
+  bildiriminin 3 iş günlük süresi panelde işlendiği andan sayılır, yasal
+  süre ise retin ulaştığı andan.
+- **Uygulama.** lafmobil'in çevrimdışı kopyası `legal:export` ile
+  güncellenir (Mobil Uygulama Koşulları ve İYS Aydınlatması değişti).
+
+### 31.6 Avukata sorular
+
+1. Üyenin onay tarihi olarak, onay kutusunun işaretlendiği an ile e-posta
+   doğrulamasının daha geç olanı İYS'ye yükleniyor (bülten aboneliği zaten
+   doğrulama anında tarihleniyor). Uygun mu?
+2. Bu özellikten önce alınan ve İYS'ye hiç yüklenmemiş onaylar: İYS'nin
+   reddettiği adresler yeniden onay verene kadar kampanya almaz. Yeniden
+   onay istemenin izinli yolu (site ve uygulama içi çağrı; ilk iletinin
+   onay istemek için gönderilmesi) nasıl olmalı?
+3. Retin İYS'deki `source` değeri: bağlantıdan HS_EPOSTA, siteden HS_WEB,
+   uygulamadan HS_MOBIL, yönetici kararıyla HS_KARAR seçildi. İYS'nin
+   "kaynak sonradan değiştirilemez" kuralıyla çelişip çelişmediği İYS'ye
+   sorulmalı.
+4. İYS kontrolü (izin listesinin yüklenmesi ya da "yeni ret yok" beyanı) 3
+   iş günü geçerli sayılıyor; tatiller sayılmıyor (süremiz hep yasal
+   süreden kısa). Yeterli mi?
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

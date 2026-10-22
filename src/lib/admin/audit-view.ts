@@ -85,6 +85,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   staff_member: "Barista (uygulamadan kasa)",
   campaign_email: "Kampanya e-postası",
   cafe_table: "Masa · QR",
+  iys: "İYS",
   audit_log: "Olay kaydı",
   retention: "Periyodik imha",
 };
@@ -254,6 +255,8 @@ export function auditRecordHref(
       return "/admin/kullanicilar";
     case "newsletter":
       return "/admin/bulten";
+    case "iys":
+      return "/admin/iys";
     case "settings":
       // The section's own tab (`?sekme=`); "email-test" opens E-posta.
       return settingsTabHref(parseSettingsTab(id));

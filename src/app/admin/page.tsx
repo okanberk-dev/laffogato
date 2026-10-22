@@ -43,6 +43,7 @@ import {
   type AdminOrder,
 } from "@/lib/admin/store";
 import { emailHealth, type EmailHealth } from "@/lib/email/health";
+import { loadIysAttention, type IysAttention } from "@/lib/iys/store";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Genel Bakış" };
@@ -58,6 +59,23 @@ async function readMailHealth(): Promise<EmailHealth | null> {
     return await emailHealth();
   } catch (err) {
     console.error("[admin] e-posta durumu okunamadı", err);
+    return null;
+  }
+}
+
+/**
+ * What İYS asks of a person (registration deadlines, a stale refusal check
+ * while a campaign waits), for the roles that run the bulletin; null when
+ * nothing does or it could not be read. Reads only.
+ */
+async function readIysAttention(now: Date): Promise<IysAttention | null> {
+  try {
+    return await loadIysAttention(now);
+  } catch (err) {
+    console.error(
+      "[admin] İYS durumu okunamadı",
+      err instanceof Error ? err.message.replace(/\S+@\S+/g, "***") : "",
+    );
     return null;
   }
 }
@@ -128,7 +146,7 @@ export default async function AdminDashboardPage() {
     : null;
   // The settings read is awaited for its failure only: the header no longer
   // prints the café's name.
-  const [stats, recent, , mail, revenue, karaoke, keepalive] =
+  const [stats, recent, , mail, revenue, karaoke, keepalive, iys] =
     await Promise.all([
       getDashboardStats(),
       // Five rows, read as five rows: this used to be every order in the
@@ -143,6 +161,8 @@ export default async function AdminDashboardPage() {
       // The daily Supabase ping's record, for the owner alone: for any
       // other role the read is never made (null), not merely not shown.
       readKeepaliveFor(role, loadSupabaseKeepalive),
+      // İYS deadlines, for the roles that run the bulletin (owner, manager).
+      canAccess("newsletter", role) ? readIysAttention(now) : null,
     ]);
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
 
@@ -204,6 +224,43 @@ export default async function AdminDashboardPage() {
       */}
       {keepaliveAlarm?.tone === "warning" ? (
         <KeepaliveStatusLine view={keepaliveAlarm} />
+      ) : null}
+
+      {/*
+        İYS (docs/IYS.md): a consent not registered within three business
+        days cannot be relied on, a refusal must reach İYS within three, and
+        no commercial mail leaves while the refusal check is stale. Each of
+        those waits for a person on /admin/iys.
+      */}
+      {iys && (iys.overdue > 0 || iys.dueSoon > 0) ? (
+        <DashboardNotice tone={iys.overdue > 0 ? "danger" : "warning"}>
+          <strong>
+            {iys.overdue > 0
+              ? `İYS: ${iys.overdue} kaydın 3 iş günlük süresi geçti.`
+              : `İYS: ${iys.dueSoon} kaydın süresi 1 iş günü içinde doluyor.`}
+          </strong>{" "}
+          {iys.overdue > 0 && iys.dueSoon > 0
+            ? `${iys.dueSoon} kaydın süresi de 1 iş günü içinde doluyor. `
+            : ""}
+          <Link
+            href="/admin/iys"
+            className="font-medium underline underline-offset-4"
+          >
+            Bülten → İYS
+          </Link>
+        </DashboardNotice>
+      ) : null}
+      {iys?.staleWithPendingCampaign ? (
+        <DashboardNotice tone="warning">
+          <strong>Bekleyen kampanya gönderilemiyor:</strong> İYS&apos;deki
+          retler son 3 iş günü içinde kontrol edilmedi.{" "}
+          <Link
+            href="/admin/iys"
+            className="font-medium underline underline-offset-4"
+          >
+            Bülten → İYS
+          </Link>
+        </DashboardNotice>
       ) : null}
 
       <div

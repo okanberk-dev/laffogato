@@ -25,6 +25,7 @@ const LIST_PAGES: ReadonlyArray<readonly [string, string]> = [
   ["promosyon", "Promosyonlar"],
   ["bulten", "Aboneler"],
   ["bulten/kampanya", "Kampanyalar"],
+  ["iys", "İYS"],
 ];
 
 const source = (route: string) =>
@@ -80,6 +81,7 @@ describe("policy text moved into the help disclosure, not deleted", () => {
     ["promosyon", "minimum sepet, kullanım limiti"],
     ["bulten", "bağlantıya basınca Aktif olur"],
     ["bulten/kampanya", "eksik kalan partileri günlük görev tamamlar"],
+    ["iys", "kaydedilmeyen onaya dayanılarak ileti gönderilmez"],
   ];
   for (const [route, text] of MOVED) {
     it(`/admin/${route} keeps "${text}" inside help={...}`, () => {

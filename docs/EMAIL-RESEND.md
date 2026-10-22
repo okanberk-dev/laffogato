@@ -401,6 +401,37 @@ aynı fonksiyonu okur; üçü birbirinden ayrı düşemez.
 `<tercih>`: `bulten-kampanya` şablonu `newsletter`, yedi `kampanya-*` şablonu
 `marketing` tercihini okur (`prefForTemplate`).
 
+### İYS kapısı (22 Eki 2026)
+
+Yönetmelik: İYS dışında alınan onay 3 iş günü içinde İYS'ye kaydedilir,
+kaydedilmeyen onaya dayanılamaz; ret 3 iş günü içinde İYS'ye bildirilir;
+alıcı İYS'den de ret verebilir. Kapı iki yarıdır (`docs/IYS.md`):
+
+- **Veritabanı.** Yukarıdaki tablonun her satırına bir şart daha eklenir:
+  adres için `iys_recipients."iysStatus" = 'ONAY'` (operatör yüklemeyi
+  onayladığında ya da İYS'nin izin listesi yüklendiğinde yazılır) ve adres
+  için indirilmiş ama onaylanmamış bir RET (`iys_events`, `state =
+  'exported'`) yok. `20261022180100_iys_send_gate.sql` kitle fonksiyonunu ve
+  doğum günü e-postasının bayrağını yeniden tanımladı; sayım, kuyruk ve her
+  partiden önceki yeniden okuma aynı fonksiyonu okuduğu için kuyruktaki bir
+  adresin İYS durumu değişirse o adres partisinde `skipped` olur. İYS'de
+  kayıtlı olmayan hiçbir adrese kampanya ya da doğum günü e-postası gitmez.
+- **Uygulama.** Son İYS ret kontrolü (İYS izin listesinin yüklenmesi ya da
+  operatörün "İYS'yi kontrol ettim, yeni ret yok" beyanı, `iys_state`) 3 iş
+  gününden eskiyse hiç ticari e-posta gitmez (`src/lib/iys/gate.ts`):
+  `queueCampaignEmail` kuyruğa almayı Türkçe bir gerekçeyle reddeder (önce
+  İYS giden kutusunu eşitler); `runCampaignEmail` parti almaz, kampanya
+  durumunu korur ve gerekçeyi `lastError`'a yazar, kontrol tazelenince cron
+  ya da "Gönder" kaldığı yerden sürer; her partiden önce yeniden bakar.
+  Zamanlanmış taslak zamanını korur, kontrolden sonraki ilk çalışmada
+  kuyruğa girer. Doğum günü kuponu yine verilir, e-postası gitmez
+  (`skippedIysCheck`).
+- **İşlemsel e-posta** (sipariş, kargo, parola, doğrulama) kapıdan geçmez.
+
+Kapı açıldığı gün mevcut onayların hiçbiri İYS'de kayıtlı görünmez: hepsi
+`/admin/iys`'te "eski onay" olarak yüklenmeyi bekler ve İYS onları 3 iş günü
+sınırı yüzünden reddedebilir (H467). O güne kadar kampanya kitlesi boştur.
+
 **Bültende üyenin bayrağı tek başına yetmez.** `customers` tablosunda
 `newsletter` tercihi için bir onay damgası yok (yalnız `marketingConsentAt`
 var, o da `marketing` içindir); bültenin onay defteri `newsletter_subscribers`

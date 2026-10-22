@@ -155,6 +155,8 @@ describe("every writer of a member's commercial preferences appends", () => {
     "src/lib/customer/unsubscribe.ts": [
       "unsubscribe-link",
       "newsletter-unsubscribe",
+      // A refusal read from İYS's consent list (/admin/iys, applyIysRefusal).
+      "iys",
     ],
     "src/lib/customer/supabase-bridge.ts": ["app-signup"],
     "src/lib/mobile/me.ts": ["app-account", "account-deletion"],

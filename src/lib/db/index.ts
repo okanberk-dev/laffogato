@@ -308,4 +308,7 @@ export const TABLES = {
   supabaseKeepalive: "supabase_keepalive",
   customerDevices: "customer_devices",
   orderPushNotices: "order_push_notices",
+  iysRecipients: "iys_recipients",
+  iysEvents: "iys_events",
+  iysState: "iys_state",
 } as const;
