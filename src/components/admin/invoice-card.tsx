@@ -187,6 +187,8 @@ function DraftPreview({
   const address = [row.billingAddress, row.billingDistrict, row.billingCity]
     .filter(Boolean)
     .join(", ");
+  // The discount column only when a line has one: four columns fit a phone.
+  const discounted = (lines ?? []).some((l) => l.discountMinor > 0);
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3">
       <p className="font-medium">
@@ -208,8 +210,10 @@ function DraftPreview({
       />
       {lines && lines.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] text-sm">
-            <caption className="sr-only">Taslağın satırları</caption>
+          <table className="w-full text-sm">
+            <caption className="sr-only">
+              Taslağın satırları, tutarlar KDV dahil
+            </caption>
             <thead className="text-xs text-[var(--admin-text-soft)]">
               <tr>
                 <th scope="col" className={CELL}>
@@ -221,11 +225,13 @@ function DraftPreview({
                 <th scope="col" className={NUM}>
                   KDV
                 </th>
+                {discounted ? (
+                  <th scope="col" className={NUM}>
+                    İndirim
+                  </th>
+                ) : null}
                 <th scope="col" className={NUM}>
-                  İndirim
-                </th>
-                <th scope="col" className={NUM}>
-                  Tutar (KDV dahil)
+                  Tutar
                 </th>
               </tr>
             </thead>
@@ -238,9 +244,11 @@ function DraftPreview({
                   <td className={CELL}>{l.description}</td>
                   <td className={NUM}>{l.quantity}</td>
                   <td className={NUM}>%{l.vatRate}</td>
-                  <td className={NUM}>
-                    {l.discountMinor ? formatTRY(l.discountMinor) : "-"}
-                  </td>
+                  {discounted ? (
+                    <td className={NUM}>
+                      {l.discountMinor ? formatTRY(l.discountMinor) : "-"}
+                    </td>
+                  ) : null}
                   <td className={NUM}>{formatTRY(l.totalMinor)}</td>
                 </tr>
               ))}
@@ -259,7 +267,8 @@ function DraftPreview({
         </ul>
       ) : null}
       <p className="font-medium">
-        Genel toplam: {row.amountMinor ? formatTRY(row.amountMinor) : "-"}
+        Genel toplam (KDV dahil):{" "}
+        {row.amountMinor ? formatTRY(row.amountMinor) : "-"}
       </p>
     </div>
   );
