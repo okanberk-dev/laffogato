@@ -12,6 +12,7 @@
  */
 
 import { KARAOKE_ROOM_DOC } from "./content-karaoke";
+import { COMMERCIAL_CONSENT_UPDATED } from "./meta";
 
 export interface LegalDocSource {
   slug: string;
@@ -3245,6 +3246,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "satis-politikasi",
     title: "Satış Politikası ve Kısıtlı Ürünler",
     shortTitle: "Satış Politikası",
+    // 22 Ekim 2026 (the set's day): §28 says when a refusal reaches İYS
+    // (three business days, uploaded on İYS Web; LEGAL-REDLINES §31).
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden hangi ürünlerin satıldığını, hangilerinin satışa sunulmadığını; sipariş miktarı sınırlarını, fiyat ve stok kurallarını, PayNkolay ile ödeme, promosyon ve sadakat (damga) programı koşullarını düzenler.",
@@ -3755,7 +3758,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Karşılaştırmalı reklam, rakip marka aleyhine ifade ve doğrulanamayan üstünlük iddiaları kullanılmaz. Sınırlı süreli kampanyalarda indirim öncesi fiyat, ürünün kampanya öncesindeki gerçek satış fiyatıdır.",
           "Ticari elektronik ileti gönderimi 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik çerçevesinde, önceden onayınız alınarak ve İleti Yönetim Sistemine (İYS) kaydedilerek yapılır. Sipariş onayı, kargo bildirimi ve iade bilgilendirmesi gibi işlemsel e-postalar ile mobil uygulamanın bildirim kutusunda gösterilen sipariş durumu bildirimleri ticari ileti niteliğinde olmadığından onaya tabi değildir.",
           "Mobil uygulama, kampanya, indirim veya yeni ürün duyurusu içeren anlık bildirim (push) göndermez; ticari elektronik ileti yalnızca önceden onayınız alınarak gönderilir. Uygulamadaki hatırlatmaları, uygulama içindeki tercihlerden veya cihazınızın işletim sistemi ayarlarından dilediğiniz zaman kapatabilirsiniz; bu işlem diğer kanallardan verdiğiniz onayları etkilemez.",
-          "Her ticari iletide reddetme hakkınızı kolayca kullanabileceğiniz bir bağlantı bulunur; ret talebiniz gecikmeksizin işleme alınır ve İYS üzerinden de kaydedilir.",
+          "Her ticari iletide reddetme hakkınızı kolayca kullanabileceğiniz bir bağlantı bulunur; ret talebiniz gecikmeksizin işleme alınır ve en geç üç iş günü içinde İYS'ye de bildirilir.",
           "{{HANDLE}} kullanıcı adıyla yürütülen sosyal medya hesaplarında ({{IG}}, {{TIKTOK}}, {{YOUTUBE}}) yayımlanan içerikler tanıtım amaçlıdır ve satış bağlayıcılığı taşımaz; bağlayıcı bilgi, {{SITE_URL}} üzerindeki ürün sayfalarıdır.",
         ],
       },
@@ -9083,7 +9086,12 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "ticari-elektronik-ileti",
     title: "Ticari Elektronik İleti ve İYS Aydınlatması",
     shortTitle: "Ticari İleti",
-    // 19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla (LEGAL-REDLINES §15.6).
+    // 22 Ekim 2026: §9 and §10 say how the consents and refusals reach İYS
+    // and that İYS is checked before every send (LEGAL-REDLINES §31). The
+    // day is the version a commercial consent records
+    // (COMMERCIAL_CONSENT_TEXT_VERSION), so it lives in meta.ts.
+    // (19 Ekim 2026: yurt dışına aktarım bugünkü durumuyla, §15.6.)
+    updatedAt: COMMERCIAL_CONSENT_UPDATED,
     category: "Veri & Gizlilik",
     summary:
       "6563 sayılı Kanun uyarınca {{SHORT_NAME}}'nin ticari elektronik ileti onayını nasıl aldığını ve kayıt altına aldığını, İleti Yönetim Sistemi'ni (İYS), e-posta iletileri ile mobil uygulama bildirimlerine ilişkin kuralları ve ücretsiz ret hakkınızı açıklar.",
@@ -9369,8 +9377,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         heading:
           "9. Onay ve Ret Kayıtlarımız ile Alıcının İYS Üzerindeki Hakları",
         paragraphs: [
-          "Sizden aldığımız her ticari elektronik ileti onayı ve ret bildiriminiz kendi sistemimizde; onayın veya retin kaynağı, IP adresi, tarayıcı veya uygulama bilgisi, onay metni sürümü ve zamanıyla birlikte kayıt altına alınır. Gönderim listeleri bu kayıtlardan oluşturulur.",
+          "Sizden aldığımız her ticari elektronik ileti onayı ve ret bildiriminiz kendi sistemimizde; onayın veya retin kaynağı, varsa IP adresi ile tarayıcı veya uygulama bilgisi, onay metni sürümü ve zamanıyla birlikte kayıt altına alınır. Gönderim listeleri bu kayıtlardan oluşturulur.",
           "Sistemimizde geçerli bir onay kaydı bulunmayan alıcıya ticari elektronik ileti gönderilmez. İYS dâhil herhangi bir kanaldan ret bildiriminde bulunduğunuzu öğrendiğimizde, elimizdeki kayıt onaylı görünse dahi size ticari elektronik ileti gönderilmez ve kendi kaydımız ret yönünde düzeltilir.",
+          "Sitemiz veya mobil uygulamamız üzerinden verdiğiniz onay, verildiği tarihten itibaren en geç üç iş günü içinde İYS'ye kaydedilir; İYS'ye kaydedilmemiş bir onaya dayanılarak ticari elektronik ileti gönderilmez. İletideki bağlantıdan veya hesabınızdaki iletişim tercihlerinden yaptığınız ret sistemimizde anında uygulanır; bize ulaşan her ret bildirimi, ulaştığı tarihten itibaren en geç üç iş günü içinde İYS'ye bildirilir.",
           "İYS üzerindeki haklarınız ve bu haklara ilişkin işleyiş aşağıda sıralanmıştır.",
         ],
         ordered: [
@@ -9391,6 +9400,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         ],
         ordered: [
           "Gönderim listesi, e-posta adresini doğrulamış üyelerin hesaplarındaki iletişim tercihlerinden ve onay kaydı bulunan, adresini doğrulamış bülten abonelerinin kayıtlarından oluşturulur; onayını geri almış veya ret bildiriminde bulunmuş alıcı ile teslim edilemediği ya da şikâyet edildiği bildirilen adresler listeye eklenmez.",
+          "Gönderim listesine yalnızca onayı İYS'ye kaydedilmiş adresler alınır. Ticari elektronik ileti, İYS'deki kayıtlar son üç iş günü içinde kontrol edilmişse gönderilir; bu kontrolde İYS üzerinden yapıldığı görülen ret bildirimleri sistemimizde de ret olarak işlenir ve o adreslere ileti gönderilmez.",
           "Ticari elektronik iletiler yalnızca e-posta ile gönderilir; kısa mesaj veya arama listesi oluşturulmaz.",
           "Ret bildirimleri, gönderim kuyruğu oluşturulduktan sonra dahi kuyruğa yeniden uygulanır; ret bildirimi sonrası gönderim başlamamış iletiler kuyruktan düşürülür.",
           "Ticari e-posta şablonları çıkış bağlantısı olmadan oluşturulamaz; ret bağlantısı eksik olan ileti sistem tarafından gönderime çıkarılmaz ve gönderim öncesinde ileti içeriği yönetim panelinde önizlenebilir, test gönderimi yapılabilir.",
@@ -11568,7 +11578,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // 21 Ekim 2026: at the till a stamp goes only to the member's own
     // code; no stamp by typed e-mail, a missed one is corrected by a
     // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
-    // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30.
+    // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30; the
+    // same day §17 says the refusal of a closed account reaches İYS within
+    // three business days, when İYS holds a consent (LEGAL-REDLINES §31).
     category: "Site & Üyelik",
     // 18 Ekim 2026: §17 names the Site's request page beside e-mail, both
     // answered within thirty days.
@@ -12008,7 +12020,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kullanıcı, Uygulama'yı dilediği zaman cihazından kaldırabilir. Uygulama'nın kaldırılması, cihazda saklanan geçici verileri siler; ancak üyelik hesabını ve sunucuda tutulan kayıtları tek başına sona erdirmez.",
           "Kullanıcı, üyelik hesabını Uygulama içindeki hesap ayarları bölümünde yer alan hesap silme seçeneğiyle doğrudan sona erdirebilir. Bu seçenek, uygulama mağazası kuralları gereği Uygulama içinden erişilebilir durumda tutulur; ayrıca Site'deki hesap silme sayfasından ({{SITE_URL}}/uye/hesap/sil) veya {{EMAIL}} adresine gönderilecek bir talep ile de hesabın silinmesi istenebilir; bu talepler en geç otuz gün içinde sonuçlandırılır.",
           "Hesap silme talebi alındığında Kullanıcı'ya işlemin sonuçları özetlenir ve teyit istenir. Devam eden bir sipariş, tamamlanmamış bir iade veya çözülmemiş bir uyuşmazlık bulunması hâlinde silme işlemi, bu süreçlerin tamamlanmasının ardından uygulanır ve durum Kullanıcı'ya bildirilir.",
-          "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; adres defteri ve tercihler erişime kapatılır, ticari elektronik ileti onayı bulunuyorsa ret kaydı İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
+          "Hesabın silinmesiyle birlikte biriken damgalar ve kullanılmamış ücretsiz içecek hakkı sona erer; adres defteri ve tercihler erişime kapatılır, İYS'ye kaydedilmiş bir ticari elektronik ileti onayı bulunuyorsa ret kaydı en geç üç iş günü içinde İYS üzerine işlenir. Mevzuattan doğan saklama yükümlülüğü bulunan kayıtlar, özellikle 213 sayılı Vergi Usul Kanunu ve 6102 sayılı Türk Ticaret Kanunu uyarınca fatura ve ticari defter kayıtları ile 6563 sayılı Kanun kapsamındaki sipariş ve onay kayıtları, ilgili süreler boyunca sınırlı erişimle muhafaza edilir.",
           "Saklama süresi dolan veriler, Kişisel Verilerin Silinmesi, Yok Edilmesi veya Anonim Hale Getirilmesi Hakkında Yönetmelik uyarınca ilk periyodik imha döneminde silinir, yok edilir veya anonim hâle getirilir.",
         ],
       },
@@ -13703,6 +13715,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     slug: "sikayet-ve-uyusmazlik",
     title: "Şikâyet ve Uyuşmazlık Çözümü",
     shortTitle: "Şikâyet ve Uyuşmazlık",
+    // 22 Ekim 2026 (the set's day): §14, a refusal is applied at once and
+    // reaches İYS within three business days, not "at once"
+    // (LEGAL-REDLINES §31).
     category: "Kurumsal",
     summary:
       "{{BRAND}} müşterilerinin şikâyetlerini web sitesi, mobil uygulama, telefon ve yazılı kanallardan nasıl iletebileceğini, yanıt süresi taahhütlerimizi, süreç adımlarını, çözüm seçeneklerini ve tüketici hakem heyeti ile mahkeme başvuru yollarını açıklar.",
@@ -14146,7 +14161,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
         paragraphs: [
           "Kampanya, tanıtım ve bilgilendirme içerikli ticari elektronik iletiler, 6563 sayılı Elektronik Ticaretin Düzenlenmesi Hakkında Kanun ve Ticari İletişim ve Ticari Elektronik İletiler Hakkında Yönetmelik uyarınca, yalnızca önceden alınmış onayınıza dayanılarak ve İleti Yönetim Sistemi'ne (İYS) kaydedilmek suretiyle gönderilir. Sipariş onayı, kargo bilgilendirmesi, iade bildirimi, şifre sıfırlama gibi işlemsel iletiler ticari elektronik ileti sayılmaz ve onaya bağlı değildir.",
           "Mobil uygulamaya sunucudan tanıtım içerikli anlık bildirim (push) gönderilmez; yalnızca izin vermeniz hâlinde siparişinizin durumuna ilişkin işlemsel anlık bildirimler gönderilir ve uygulamadaki hatırlatmalar cihazınızda planlanır. Tanıtım, kampanya veya pazarlama amacı taşıyan ticari elektronik iletiler ise mevzuatın öngördüğü onay ile ret usullerine tabidir. Hatırlatmaları ve sipariş durumu bildirimlerini cihazınızın bildirim ayarlarından veya uygulama içi bildirim tercihlerinizden kapatabilirsiniz; bildirimleri kapatmanız işlemsel e-postaların gönderimini etkilemez.",
-          "Ticari elektronik ileti almak istemiyorsanız, her iletide yer alan ret bağlantısını kullanabilir, {{EMAIL}} adresine bildirim yapabilir, üye panelinizdeki bildirim tercihlerinden onayınızı geri çekebilir veya doğrudan İYS üzerinden ret hakkınızı kullanabilirsiniz. Ret talebiniz alındığı anda uygulanır ve İYS kaydına işlenir.",
+          "Ticari elektronik ileti almak istemiyorsanız, her iletide yer alan ret bağlantısını kullanabilir, {{EMAIL}} adresine bildirim yapabilir, üye panelinizdeki bildirim tercihlerinden onayınızı geri çekebilir veya doğrudan İYS üzerinden ret hakkınızı kullanabilirsiniz. Ret talebiniz alındığı anda uygulanır ve en geç üç iş günü içinde İYS kaydına işlenir.",
         ],
         ordered: [
           "Ret talebinize rağmen ileti almaya devam ediyorsanız, aldığınız iletinin ekran görüntüsü, tarih-saat bilgisi ve gönderici bilgisiyle birlikte {{EMAIL}} adresine bildiriniz; kaydı en yüksek öncelikle inceleriz.",

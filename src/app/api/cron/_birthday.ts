@@ -7,6 +7,7 @@ import {
 import { getDb } from "@/lib/db";
 import { ensureCustomerUnsubToken } from "@/lib/email/campaigns";
 import { sendBirthdayEmail } from "@/lib/email/send";
+import { iysSendGate } from "@/lib/iys/gate";
 
 /**
  * "Üyelere doğum gününde mail gidiyor mu?" - the operator's own question.
@@ -35,7 +36,11 @@ import { sendBirthdayEmail } from "@/lib/email/send";
  *         `List-Unsubscribe` - `dogum-gunu.html` is marked
  *         `data-commercial="1"`, so `renderEmail` refuses to build it without
  *         the way out. A member without consent still gets the coupon, in
- *         silence.
+ *         silence. Since 22 Oct 2026 the consent must also be registered in
+ *         İYS (the audience's mail flag requires it), and no greeting goes
+ *         out at all while the last İYS refusal check is older than three
+ *         business days (src/lib/iys/gate.ts): the coupons are still
+ *         granted, the mail is skipped and counted.
  *
  *   • IDEMPOTENCY - the coupon row itself. `grantBirthdayCouponToday`
  *     returns the coupon only when it wrote one (at most one per member per
@@ -65,8 +70,10 @@ export interface BirthdayRunResult {
   granted: number;
   /** Messages handed to the provider. */
   mailed: number;
-  /** Granted a coupon but not mailed: no marketing consent. */
+  /** Granted a coupon but not mailed: no marketing consent (or not in İYS). */
   skippedNoConsent: number;
+  /** Granted a coupon but not mailed: the İYS refusal check is stale. */
+  skippedIysCheck: number;
 }
 
 /** Wall-clock date in Tuzla, as `{ year, month, day }`. */
@@ -142,6 +149,14 @@ export async function runBirthdayGreetings(
   const days = birthdayDaysFor(now);
   const { year } = istanbulDate(now);
   const audience = await birthdayAudience(days);
+  // Fails closed: a gate that cannot be read sends no greeting, and the
+  // coupons are granted all the same.
+  let mayMail = false;
+  try {
+    mayMail = (await iysSendGate(now)).fresh;
+  } catch (err) {
+    console.error("[cron/birthday] İYS kontrolü okunamadı", err);
+  }
 
   const result: BirthdayRunResult = {
     days,
@@ -149,6 +164,7 @@ export async function runBirthdayGreetings(
     granted: 0,
     mailed: 0,
     skippedNoConsent: 0,
+    skippedIysCheck: 0,
   };
 
   for (const member of audience) {
@@ -163,6 +179,12 @@ export async function runBirthdayGreetings(
         // The gift is on the account; the celebration is a commercial
         // message and this member did not ask for those.
         result.skippedNoConsent += 1;
+        continue;
+      }
+      if (!mayMail) {
+        // The gift is on the account; the greeting is a commercial message
+        // and İYS has not been checked for refusals recently enough.
+        result.skippedIysCheck += 1;
         continue;
       }
 

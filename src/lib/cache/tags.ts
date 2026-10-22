@@ -134,6 +134,11 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // (20261022170000): read live by the sender, never cached.
   customer_devices: NONE,
   order_push_notices: NONE,
+  // The İYS outbox and its state (20261022180000_iys_consent_sync.sql):
+  // read live by /admin/iys, the dashboard and the send gate, never cached.
+  iys_recipients: NONE,
+  iys_events: NONE,
+  iys_state: NONE,
 };
 
 /**
@@ -202,6 +207,11 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   register_customer_device: NONE,
   // Deletes only legal_doc_versions rows past their eleven years.
   legal_doc_versions_retention: NONE,
+  // The İYS outbox: they write iys_* only, which nothing caches.
+  iys_reconcile: NONE,
+  iys_record_check: NONE,
+  iys_settle_export: NONE,
+  iys_apply_list: NONE,
 
   // Read-only helpers.
   admin_customer_counts: NONE,
@@ -209,6 +219,7 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   admin_customer_rows: NONE,
   admin_fold_tr: NONE,
   admin_sort_tr: NONE,
+  iys_add_business_days: NONE,
   variant_stock_total: NONE,
   product_variant_list: NONE,
 

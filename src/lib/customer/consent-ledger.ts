@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getDb, TABLES } from "@/lib/db";
-import { LEGAL_UPDATED } from "@/lib/legal/meta";
+import { COMMERCIAL_CONSENT_UPDATED } from "@/lib/legal/meta";
 
 /**
  * The append-only consent ledger (`customer_consents`) behind a member's
@@ -21,8 +21,8 @@ import { LEGAL_UPDATED } from "@/lib/legal/meta";
  * write succeeded (`tests/consent-ledger.test.ts` finds them by source):
  * site sign-up, the app's first sign-in (Supabase bridge), the site's account
  * page, PATCH /me, the member unsubscribe link, the bulletin unsubscribe link
- * that also switches the member off, the admin customer form, and account
- * closure.
+ * that also switches the member off, the admin customer form, account
+ * closure, and a refusal read from İYS's consent list.
  *
  * Best-effort by design: the preference change has already happened when
  * this runs, and a withdrawal must never fail because its history could not
@@ -40,14 +40,18 @@ export type ConsentSource =
   | "unsubscribe-link"
   | "newsletter-unsubscribe"
   | "admin"
-  | "account-deletion";
+  | "account-deletion"
+  // A refusal the person made on İYS itself, read from İYS's consent list
+  // on /admin/iys (src/lib/iys/store.ts → applyIysRefusal).
+  | "iys";
 
 /**
  * What a grant refers to: the Ticari Elektronik İleti ve İYS Aydınlatması,
- * which carries no revision date of its own and so is issued under the
- * contract set's (`LEGAL_UPDATED`). Withdrawals record ''.
+ * at its own revision (`COMMERCIAL_CONSENT_UPDATED`, which content.ts also
+ * prints as the document's date; until 22 Ekim 2026 it had none and this
+ * borrowed `LEGAL_UPDATED`). Withdrawals record ''.
  */
-export const COMMERCIAL_CONSENT_TEXT_VERSION = `ticari-elektronik-ileti@${LEGAL_UPDATED}`;
+export const COMMERCIAL_CONSENT_TEXT_VERSION = `ticari-elektronik-ileti@${COMMERCIAL_CONSENT_UPDATED}`;
 
 type Flags = Partial<Record<ConsentPurpose, unknown>> | null | undefined;
 

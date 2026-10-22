@@ -115,8 +115,9 @@ const hrefsOf = (role: AdminRole) =>
 
 /**
  * What each role's nav reached on main before the regroup (29 entries in
- * six groups for the owner): the regroup moves entries into tabs, never
- * out of reach and never into a role's reach.
+ * six groups for the owner), plus what was added on purpose since: the
+ * regroup moves entries into tabs, never out of reach and never into a
+ * role's reach.
  */
 const OWNER_BEFORE = [
   "/admin",
@@ -141,6 +142,8 @@ const OWNER_BEFORE = [
   "/admin/musteriler",
   "/admin/bulten",
   "/admin/bulten/kampanya",
+  // Added on purpose (22 Oct 2026): Bülten's third tab, the İYS outbox.
+  "/admin/iys",
   "/admin/promosyon",
   "/admin/stok-hareketleri",
   "/admin/raporlar",
@@ -199,8 +202,8 @@ describe("what each role sees", () => {
   });
 
   it("every role reaches exactly the pages it reached before (items and tabs)", () => {
-    expect(BEFORE.owner).toHaveLength(29);
-    expect(BEFORE.manager).toHaveLength(25);
+    expect(BEFORE.owner).toHaveLength(30);
+    expect(BEFORE.manager).toHaveLength(26);
     for (const role of ROLES) {
       expect([...hrefsOf(role)].sort(), role).toEqual([...BEFORE[role]].sort());
     }

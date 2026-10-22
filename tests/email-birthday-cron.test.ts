@@ -26,6 +26,7 @@ const rpc = vi.fn();
 const grantBirthdayCouponToday = vi.fn();
 const ensureCustomerUnsubToken = vi.fn();
 const sendBirthdayEmail = vi.fn();
+const iysSendGate = vi.fn();
 
 // `rpcRows`: the audience function RETURNS TABLE. It used to be called via
 // `rpc`, whose one-cell read turned the rows into a record string - and this
@@ -34,6 +35,7 @@ vi.mock("@/lib/db", () => ({ getDb: () => ({ rpcRows: rpc }) }));
 vi.mock("@/lib/customer/coupons", () => ({ grantBirthdayCouponToday }));
 vi.mock("@/lib/email/campaigns", () => ({ ensureCustomerUnsubToken }));
 vi.mock("@/lib/email/send", () => ({ sendBirthdayEmail }));
+vi.mock("@/lib/iys/gate", () => ({ iysSendGate }));
 
 const { birthdayDaysFor, runBirthdayGreetings } =
   await import("@/app/api/cron/_birthday");
@@ -58,6 +60,7 @@ beforeEach(() => {
   grantBirthdayCouponToday.mockResolvedValue(coupon("DG-ABC123"));
   ensureCustomerUnsubToken.mockResolvedValue("tok-1");
   sendBirthdayEmail.mockResolvedValue(true);
+  iysSendGate.mockResolvedValue({ fresh: true, message: "" });
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -157,6 +160,43 @@ describe("the gift and the message are not the same thing", () => {
       mailed: 0,
       skippedNoConsent: 1,
     });
+  });
+});
+
+describe("the İYS refusal check (src/lib/iys/gate.ts)", () => {
+  // The audience's mail flag already requires the consent to be registered
+  // in İYS (SQL, tests/db-integration-iys.test.ts). Here: no greeting at
+  // all while the last check of İYS's refusals is older than three
+  // business days, and the coupon all the same.
+  it("grants the coupon and skips the mail while the check is stale", async () => {
+    audience([{ email: "ayse@ornek.com", name: "Ayşe", marketing: true }]);
+    iysSendGate.mockResolvedValue({ fresh: false, message: "stale" });
+
+    const result = await runBirthdayGreetings(
+      new Date("2026-09-16T06:00:00.000Z"),
+    );
+
+    expect(grantBirthdayCouponToday).toHaveBeenCalledTimes(1);
+    expect(sendBirthdayEmail).not.toHaveBeenCalled();
+    expect(ensureCustomerUnsubToken).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      granted: 1,
+      mailed: 0,
+      skippedNoConsent: 0,
+      skippedIysCheck: 1,
+    });
+  });
+
+  it("fails closed when the check cannot be read: coupons, no mail", async () => {
+    audience([{ email: "ayse@ornek.com", name: "Ayşe", marketing: true }]);
+    iysSendGate.mockRejectedValue(new Error("db down"));
+
+    const result = await runBirthdayGreetings(
+      new Date("2026-09-16T06:00:00.000Z"),
+    );
+
+    expect(sendBirthdayEmail).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ granted: 1, mailed: 0, skippedIysCheck: 1 });
   });
 });
 

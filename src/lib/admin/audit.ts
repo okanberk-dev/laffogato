@@ -46,6 +46,10 @@ export type AuditEntity =
   | "staff_member"
   | "campaign_email"
   | "cafe_table"
+  // The İYS outbox (/admin/iys): a file downloaded or confirmed, an event
+  // İYS refused, an import of İYS's list, the operator's check. Counts
+  // only, never an address.
+  | "iys"
   // The log itself, for its own CSV export.
   | "audit_log"
   // One periodic destruction run (src/lib/retention.ts), written by the

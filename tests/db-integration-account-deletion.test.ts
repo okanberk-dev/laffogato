@@ -214,6 +214,16 @@ maybe("deletion request against a real Postgres", () => {
        values ($1, $2, 'Üye', true, '2026-09-01T10:00:00.000Z', 'tok-silme-abone')`,
       [`nws-${email}`, email],
     );
+    // Registered in İYS (20261022180100_iys_send_gate.sql): without it the
+    // address is in no commercial audience at all.
+    await pool!.query(
+      `insert into public.iys_recipients
+         (email, "desiredStatus", "iysStatus", "createdAt", "updatedAt")
+       values ($1, 'ONAY', 'ONAY', '2026-09-02T10:00:00.000Z',
+               '2026-09-02T10:00:00.000Z')
+       on conflict (email) do update set "iysStatus" = 'ONAY'`,
+      [email],
+    );
     const named = async () => {
       const out: string[] = [];
       for (const [audience, pref] of [

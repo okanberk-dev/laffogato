@@ -97,6 +97,9 @@ maybe("bundled schema objects in a real Postgres", () => {
         `delete from public.customers where email like 'bastirma-%'`,
       );
       await pool.query(
+        `delete from public.iys_recipients where email like 'bastirma-%'`,
+      );
+      await pool.query(
         `delete from public.newsletter_subscribers where email like 'bastirma-%'`,
       );
       await pool.query(
@@ -114,6 +117,17 @@ maybe("bundled schema objects in a real Postgres", () => {
          values ('nws-bastirma', $1, 'Abone', true,
                  '2026-09-01T10:00:00.000Z', 'tok-abone')`,
         [SUBSCRIBER],
+      );
+      // Both registered in İYS (20261022180100_iys_send_gate.sql): this
+      // suite is about suppressions, not about İYS.
+      await pool.query(
+        `insert into public.iys_recipients
+           (email, "desiredStatus", "iysStatus", "createdAt", "updatedAt")
+         select x, 'ONAY', 'ONAY', '2026-09-02T10:00:00.000Z',
+                '2026-09-02T10:00:00.000Z'
+           from unnest($1::text[]) x
+         on conflict (email) do update set "iysStatus" = 'ONAY'`,
+        [[MEMBER, SUBSCRIBER]],
       );
     });
 

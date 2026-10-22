@@ -19,6 +19,7 @@ const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
 const recordShownLegalVersions = vi.fn();
 const checkPushReceipts = vi.fn();
+const reconcileIys = vi.fn();
 
 /** What the route sent to the database, and in what order the jobs ran. */
 const db = vi.hoisted(() => ({
@@ -52,6 +53,7 @@ vi.mock("@/lib/retention", async (importOriginal) => ({
 }));
 vi.mock("@/lib/legal/store", () => ({ recordShownLegalVersions }));
 vi.mock("@/lib/push/order-push", () => ({ checkPushReceipts }));
+vi.mock("@/lib/iys/store", () => ({ reconcileIys }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
 const { KEEPALIVE_RECORD_TIMEOUT_MS } = await import(
@@ -71,6 +73,7 @@ const BIRTHDAY = {
   granted: 0,
   mailed: 0,
   skippedNoConsent: 0,
+  skippedIysCheck: 0,
 };
 const RETENTION = {
   at: "2026-10-21T06:00:00.000Z",
@@ -96,6 +99,7 @@ function expectOtherJobsRan(): void {
   expect(expireUnpaidReservations).toHaveBeenCalledTimes(1);
   expect(recordShownLegalVersions).toHaveBeenCalledTimes(1);
   expect(runRetention).toHaveBeenCalledTimes(1);
+  expect(reconcileIys).toHaveBeenCalledTimes(1);
 }
 
 beforeEach(() => {
@@ -110,6 +114,7 @@ beforeEach(() => {
   runBirthdayGreetings.mockResolvedValue(BIRTHDAY);
   expireUnpaidReservations.mockResolvedValue(0);
   checkPushReceipts.mockResolvedValue({ read: 0, forgotten: 0, cleared: 0 });
+  reconcileIys.mockResolvedValue({ onay: 0, ret: 0, superseded: 0 });
   destructionEnabled.mockReturnValue(false);
   runRetention.mockImplementation(async () => {
     db.order.push("retention");
@@ -157,6 +162,7 @@ describe("/api/cron/daily", () => {
       keepalive: { ok: true, ping: "ok", recorded: true },
       campaigns: { ok: true, campaigns: [] },
       birthday: { ok: true, ...BIRTHDAY },
+      iys: { ok: true, reconcile: { onay: 0, ret: 0, superseded: 0 } },
       karaoke: { ok: true, expired: 0 },
       pushReceipts: { ok: true, read: 0, forgotten: 0, cleared: 0 },
       legalVersions: { ok: true, documents: 27 },

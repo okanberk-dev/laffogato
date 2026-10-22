@@ -11,6 +11,7 @@ import {
   seedRows,
   type FakeRow,
 } from "./_stubs/campaign-emails-db";
+import { iysGate, iysGateMock, resetIysGate } from "./_stubs/iys-gate";
 
 /**
  * Campaign e-mail, end to end over an in-memory database: who gets queued,
@@ -23,6 +24,8 @@ import {
  */
 
 vi.mock("@/lib/db", () => fakeCampaignDb());
+// The İYS send gate (src/lib/iys/gate.ts): open unless a test closes it.
+vi.mock("@/lib/iys/gate", (importOriginal) => iysGateMock(importOriginal));
 
 const deliverBatch = vi.fn();
 const sendCampaignMail = vi.fn();
@@ -205,6 +208,7 @@ function memberToken(email: string): string {
 
 beforeEach(() => {
   resetFakeDb();
+  resetIysGate();
   deliverBatch.mockReset();
   deliverBatch.mockImplementation(async (messages: Message[], key: string) => ({
     ok: true,
@@ -218,6 +222,7 @@ beforeEach(() => {
   vi.stubEnv("CAMPAIGN_EMAIL_DRY_RUN", "");
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "info").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -1074,6 +1079,90 @@ describe("a consent-skipped row that comes back", () => {
       `cmp-${c.id}-b5`,
     ]);
     expect((await getCampaignEmail(c.id))?.sentCount).toBe(230);
+  });
+});
+
+describe("the İYS send gate (src/lib/iys/gate.ts)", () => {
+  /**
+   * A commercial send needs an İYS refusal check (an import of İYS's
+   * consent list, or the operator's attestation) within the last three
+   * business days: a refusal made on İYS itself reaches us only that way.
+   * The audience's own İYS clause is SQL, held by
+   * tests/db-integration-iys.test.ts.
+   */
+
+  it("refuses to queue while the check is stale, after reconciling the outbox", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(2));
+    const c = await draft();
+    iysGate.fresh = false;
+    await expect(queueCampaignEmail(c.id)).rejects.toThrow(/İYS ret kontrolü/);
+    expect(iysGate.reconciled).toBe(1);
+    expect(sends()).toHaveLength(0);
+    expect((await getCampaignEmail(c.id))?.status).toBe("draft");
+  });
+
+  it("claims no batch of a queued campaign while stale, and sends once fresh", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(2));
+    const c = await draft();
+    await queueCampaignEmail(c.id);
+    iysGate.fresh = false;
+
+    const held = await runCampaignEmail(c.id, { batchDelayMs: 0 });
+    expect(held).toEqual({ sent: 0, failed: 0, remaining: 2 });
+    expect(calls()).toHaveLength(0);
+    const waiting = await getCampaignEmail(c.id);
+    // Not failed: it waits for the check, nobody is marked.
+    expect(waiting?.status).toBe("queued");
+    expect(waiting?.lastError).toMatch(/İYS ret kontrolü/);
+    expect(sends().every((r) => r.status === "queued")).toBe(true);
+
+    iysGate.fresh = true;
+    const sent = await runCampaignEmail(c.id, { batchDelayMs: 0 });
+    expect(sent).toEqual({ sent: 2, failed: 0, remaining: 0 });
+    expect((await getCampaignEmail(c.id))?.status).toBe("sent");
+  });
+
+  it("stops before the next batch when the check runs out mid-send", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(150));
+    const c = await draft();
+    await queueCampaignEmail(c.id);
+    deliverBatch.mockImplementation(async (messages: Message[], key: string) => {
+      iysGate.fresh = false;
+      return { ok: true, ids: messages.map((_, i) => `${key}-${i}`) };
+    });
+
+    const result = await runCampaignEmail(c.id, { batchDelayMs: 0 });
+    expect(result).toEqual({ sent: 100, failed: 0, remaining: 50 });
+    expect(calls()).toHaveLength(1);
+    const fresh = await getCampaignEmail(c.id);
+    expect(fresh?.status).toBe("sending");
+    expect(fresh?.lastError).toMatch(/İYS ret kontrolü/);
+  });
+
+  it("keeps a scheduled draft's schedule while stale, and queues it on the first run after the check", async () => {
+    seedRows(FAKE_TABLES.customers, manyMembers(1));
+    const c = await draft({ scheduledAt: "2026-09-16T09:00" });
+    iysGate.fresh = false;
+    const now = new Date("2026-09-16T06:30:00.000Z");
+
+    expect(await resumePendingCampaigns({ deadlineMs: 60_000, now })).toEqual(
+      [],
+    );
+    const waiting = await getCampaignEmail(c.id);
+    expect(waiting?.status).toBe("draft");
+    expect(waiting?.scheduledAt).toBe("2026-09-16T06:00:00.000Z");
+    expect(waiting?.lastError).toMatch(/İYS ret kontrolü/);
+
+    iysGate.fresh = true;
+    await resumePendingCampaigns({ deadlineMs: 60_000, now });
+    expect((await getCampaignEmail(c.id))?.status).toBe("sent");
+  });
+
+  it("does not touch a test send to the operator's own inbox", async () => {
+    iysGate.fresh = false;
+    const c = await draft();
+    const r = await sendCampaignTest(c, "sahip@laffogato.net");
+    expect(r).toEqual({ ok: true });
   });
 });
 

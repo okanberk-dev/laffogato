@@ -16,6 +16,12 @@ import {
 import type { AdminAppPost } from "@/lib/admin/store";
 import { getDb, TABLES, type DbError } from "@/lib/db";
 import { raiseDbError } from "@/lib/db/health";
+import {
+  assertIysSendable,
+  isIysGateError,
+  iysSendGate,
+  reconcileIysQuietly,
+} from "@/lib/iys/gate";
 import { hasAppLinks } from "@/lib/mobile/app-store";
 import { SITE } from "@/lib/seo/site";
 
@@ -707,6 +713,11 @@ export async function countCampaignAudience(
  * Allowed from draft, queued, sending and failed - the enqueue is idempotent
  * (existing recipients are skipped, skipped rows go back in the queue,
  * newcomers get fresh batch numbers), so pressing "Gönder" twice is safe.
+ *
+ * İYS: the outbox is reconciled first (so /admin/iys is current), and a
+ * campaign is refused with `IysGateError` while the last İYS refusal check
+ * is older than three business days (src/lib/iys/gate.ts). The audience
+ * itself names only addresses İYS holds ONAY for.
  */
 export async function queueCampaignEmail(
   id: string,
@@ -726,6 +737,9 @@ export async function queueCampaignEmail(
     },
     await campaignServerVars(c.template),
   );
+
+  await reconcileIysQuietly();
+  await assertIysSendable();
 
   const { error } = await getDb().rpc<number>("campaign_email_enqueue", {
     p_campaign: id,
@@ -880,6 +894,13 @@ export interface RunResult {
  * and fails the campaign (re-queue once the key exists); a non-production
  * Vercel deployment refuses a real send - every link in the message would
  * point at the preview host.
+ *
+ * İYS: no batch is claimed while the last İYS refusal check is older than
+ * three business days (src/lib/iys/gate.ts). The campaign keeps its status
+ * (queued or sending) with the reason in `lastError`, nobody is marked
+ * failed, and the cron or the next "Gönder" carries on once the check is
+ * fresh. Checked before every claim, so a run that outlives the check
+ * stops at the next batch.
  */
 export async function runCampaignEmail(
   id: string,
@@ -909,13 +930,27 @@ export async function runCampaignEmail(
       });
       return { sent, failed, remaining: await remainingCount(id) };
     }
+    const gate = await iysSendGate();
+    if (!gate.fresh) {
+      console.warn(`[campaign] ${id}: İYS kontrolü güncel değil, bekliyor`);
+      await patchCampaign(id, { lastError: gate.message });
+      return { sent, failed, remaining: await remainingCount(id) };
+    }
     const serverVars = await campaignServerVars(campaign.template);
     await patchCampaign(id, { status: "sending", lastError: "" });
     const dryRun = process.env.CAMPAIGN_EMAIL_DRY_RUN === "1";
     const vercelEnv = process.env.VERCEL_ENV ?? "";
     const previewHost = vercelEnv !== "" && vercelEnv !== "production";
 
-    for (;;) {
+    for (let first = true; ; first = false) {
+      if (!first) {
+        const again = await iysSendGate();
+        if (!again.fresh) {
+          console.warn(`[campaign] ${id}: İYS kontrolü süresi doldu, durdu`);
+          await patchCampaign(id, { lastError: again.message });
+          return { sent, failed, remaining: await remainingCount(id) };
+        }
+      }
       const rows = await claimBatch(id);
       if (rows.length === 0) break;
       const batchNo = num(rows[0]?.batchNo);
@@ -1063,7 +1098,9 @@ export async function runCampaignEmail(
  * A campaign that cannot be queued - a hole in the template, a status that
  * moved on - is logged and its schedule cleared so the next hour does not
  * retry it forever; the draft stays a draft for a person to fix. Every other
- * campaign in the sweep still goes.
+ * campaign in the sweep still goes. The one exception is a stale İYS check
+ * (`IysGateError`): the schedule stays, the draft says why, and the first
+ * run after the operator's check queues it.
  */
 async function queueDueCampaigns(nowIso: string): Promise<string[]> {
   const { data, error } = await getDb()
@@ -1083,6 +1120,22 @@ async function queueDueCampaigns(nowIso: string): Promise<string[]> {
       queued.push(c.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      if (isIysGateError(err)) {
+        // Not a hole in the campaign: the İYS check is stale. The schedule
+        // stays, so the next run after the check queues it; the draft says
+        // why it has not gone yet.
+        console.warn(`[campaign] ${c.id}: İYS kontrolü güncel değil, bekliyor`);
+        try {
+          await getDb()
+            .from(TABLES.campaignEmails)
+            .update({ lastError: message.slice(0, 500) })
+            .eq("id", c.id)
+            .eq("status", "draft");
+        } catch {
+          // The next run tries again.
+        }
+        continue;
+      }
       console.error(
         `[campaign] ${c.id}: zamanlanmış gönderim başlatılamadı`,
         err,

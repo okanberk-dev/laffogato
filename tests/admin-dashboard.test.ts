@@ -40,9 +40,12 @@ const exec: Executor = async ({ text, params }) => {
   return { rows: [], rowCount: 0 };
 };
 
+/** The executor the stub db sends to; a test may swap it for one run. */
+let current: Executor = exec;
+
 vi.mock("@/lib/db", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/db")>();
-  const db = createDb(exec);
+  const db = createDb((q) => current(q));
   return { ...real, getDb: () => db };
 });
 
@@ -456,6 +459,47 @@ describe("the dashboard page", () => {
       expect.objectContaining({ prepay: true, canRefund: false }),
     );
     expect(text).toContain("Bugün karaoke");
+  });
+
+  it("warns owner and manager when İYS's refusal check is stale while campaigns wait, and never reads İYS for staff", async () => {
+    // The stub answers every count with 2 (queued and scheduled campaigns)
+    // and every other read with nothing: no İYS check was ever recorded.
+    const iysReads = () =>
+      seen.filter((s) => /"iys_(events|state|recipients)"/.test(s.text));
+    for (const role of ["owner", "manager"] as const) {
+      seen.length = 0;
+      const { html, text } = await render(role);
+      expect(iysReads().length).toBeGreaterThan(0);
+      expect(text).toContain("Bekleyen kampanya gönderilemiyor:");
+      expect(html).toContain('href="/admin/iys"');
+    }
+    seen.length = 0;
+    const staff = await render("staff");
+    expect(iysReads()).toEqual([]);
+    expect(staff.text).not.toContain("İYS");
+  });
+
+  it("says how many İYS records are past their three business days", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T10:00:00.000Z"));
+    const due = exec;
+    const rows = [
+      { dueAt: "2026-10-20T10:00:00.000Z" },
+      { dueAt: "2026-10-22T09:00:00.000Z" },
+      { dueAt: "2026-10-22T20:00:00.000Z" },
+    ];
+    const withEvents: Executor = async (q) =>
+      /FROM "iys_events"/.test(q.text) && !/count\(\*\)/i.test(q.text)
+        ? { rows, rowCount: rows.length }
+        : due(q);
+    current = withEvents;
+    try {
+      const { text } = await render("owner");
+      expect(text).toContain("İYS: 2 kaydın 3 iş günlük süresi geçti.");
+      expect(text).toContain("1 kaydın süresi de 1 iş günü içinde doluyor.");
+    } finally {
+      current = exec;
+    }
   });
 
   describe("the Supabase keep-alive line (owner only, warnings only)", () => {

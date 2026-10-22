@@ -216,12 +216,9 @@ indirilemedi - kartlar bu yüzden markaya özgü SVG çizimlerle render ediliyor
 ~~**SPA'nın beş sayfası tek client chunk'ta.**~~ 24 Eyl 2026'da kapandı - §6'ya
 bak.
 
-**Kampanya e-postası İYS'ye bağlı değil (8 Eyl 2026).** Yasal metinler onayın
-İYS'ye kaydedileceğini ve gönderim öncesi İYS'den kontrol edileceğini söylüyor
-(`legal/content.ts`); kodda İYS istemcisi yok. Kitle kuralı, üye çıkış jetonu,
-tek tıkla çıkış (POST) ve gönderim defteri hazır (`docs/EMAIL-RESEND.md` §7);
-İYS kaydı ve Resend ücretsiz planının günlük 100 e-posta sınırı (100'den
-kalabalık kitleye göndermeden plan yükseltilmeli) açık. Bounce/şikâyet
+~~**Kampanya e-postası İYS'ye bağlı değil (8 Eyl 2026).**~~ 22 Eki 2026'da
+kapandı - §6'ya bak. Açık kalan: Resend ücretsiz planının günlük 100 e-posta
+sınırı (100'den kalabalık kitleye göndermeden plan yükseltilmeli). Bounce/şikâyet
 bastırma listesi 23 Eyl 2026'da yazıldı (`email_suppressions`,
 `/api/webhooks/resend`); `RESEND_WEBHOOK_SECRET` tanımlanıp uç Resend'e
 kaydedilene kadar kapalıdır (`docs/EMAIL-RESEND.md` §7).
@@ -288,6 +285,22 @@ hydration hatası yok, sepet, menü filtreleri ve ziyaret seçicileri çalışı
 Bir sayfayı statik olarak geri import etmek bölmeyi sessizce geri alır;
 `tests/spa-page-chunks.test.ts` bunu tutar.
 
+**Kampanya e-postası İYS'ye bağlandı (22 Eki 2026).** Yasal metinler onayın
+İYS'ye kaydedileceğini, retlerin İYS'ye bildirileceğini ve gönderim öncesi
+İYS'nin kontrol edileceğini söylüyordu; kodda hiçbiri yoktu. 250.000'den az
+adresi olan hizmet sağlayıcı İYS API'sini entegratörsüz çağıramadığı için
+aktarım bugün elle (İYS Web), ama kural kodda: `iys_recipients` ve
+`iys_events` (giden kutusu) her onayı ve reti İYS'nin alanlarıyla, son
+günüyle (3 iş günü, tatiller sayılmadan) tutar; `/admin/iys` neyin ne zamana
+kadar yükleneceğini söyler, İYS'nin sütun sırasıyla dosyayı verir, yüklemeyi
+ve İYS'nin reddini işler, İYS'nin izin listesini okuyup oradaki yeni retleri
+sitede uygular (defter kaynağı `iys`). Kampanya kitlesi (sayım, kuyruk,
+her partiden önceki yeniden okuma) ve doğum günü e-postası yalnız İYS'de
+ONAY görünen adrese gider; son İYS ret kontrolü 3 iş gününden eskiyse hiç
+ticari e-posta gitmez (`src/lib/iys/gate.ts`). Metinler sürelerine göre
+düzeltildi (`docs/LEGAL-REDLINES-2026-09.md` §31). Operatörün işi:
+`docs/IYS.md`.
+
 ### Migration'lar kendiliğinden uygulanır
 
 Bunu belgelemeye değer, çünkü aksini varsaymak kolay: **deploy'da elle
@@ -335,6 +348,12 @@ Yalnızca `DATABASE_URL`'in yeni bağlantı dizesiyle güncellenmesi yeterli.
 | `tests/contrast.test.ts`         | Küçük metin koyu accent'i kullanır                                          |
 | `tests/legal-docs.test.ts`       | Checkout sabitleri 1,5 MB'lık kayıttan ayrı durur                           |
 | `tests/spa-page-chunks.test.ts`  | Beş SPA sayfası `next/dynamic` ile ayrı chunk; hiçbiri statik import edilmez |
+| `tests/db-integration-iys.test.ts` | İYS: eşitleme ONAY/RET üretir, ONAY üstüne ONAY ve RET üstüne RET yok; kitle, sayım, kuyruk, parti yeniden okuması ve doğum günü bayrağı yalnız İYS'de kayıtlı adres; İYS listesindeki yeni ret sitede uygulanır |
+| `tests/campaign-emails.test.ts`  | İYS kontrolü eskiyken kampanya kuyruğa alınmaz, parti alınmaz, zamanlanmış taslak bekler |
+| `tests/email-birthday-cron.test.ts` | İYS kontrolü eskiyken doğum günü kuponu verilir, e-postası gitmez |
+| `tests/iys-core.test.ts`         | 3 iş günü (İstanbul saati, hafta sonu), İYS dosya biçimi, İYS listesinin okunması |
+| `tests/admin-iys.test.ts`        | `/admin/iys` eylemleri ve dosya ucu rolü kendisi denetler; olay kaydında adres yok |
+| `tests/legal-iys.test.ts`        | Metinler İYS'ye bildirimi "anında" değil 3 iş günü içinde der |
 
 ---
 

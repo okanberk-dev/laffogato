@@ -258,7 +258,15 @@ const NAV_GROUPS: NavGroupDef[] = [
         label: "Bülten",
         section: "newsletter",
         icon: "newsletter",
-        keywords: ["Kampanya e-postası", "abone", "e-posta", "newsletter"],
+        keywords: [
+          "Kampanya e-postası",
+          "abone",
+          "e-posta",
+          "newsletter",
+          "İleti Yönetim Sistemi",
+          "izin",
+          "ret",
+        ],
         tabs: [
           {
             href: "/admin/bulten/kampanya",
@@ -266,6 +274,9 @@ const NAV_GROUPS: NavGroupDef[] = [
             section: "newsletter",
           },
           { href: "/admin/bulten", label: "Aboneler", section: "newsletter" },
+          // Registering the consents above in İYS, and İYS's refusals here
+          // (docs/IYS.md): the same trust as the list itself.
+          { href: "/admin/iys", label: "İYS", section: "newsletter" },
         ],
       },
     ],

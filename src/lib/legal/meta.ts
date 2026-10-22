@@ -40,6 +40,20 @@
 export const LEGAL_UPDATED = "22 Ekim 2026";
 
 /**
+ * The Ticari Elektronik İleti ve İYS Aydınlatması's own revision, printed
+ * as its "son güncelleme" and recorded with every commercial consent
+ * (`COMMERCIAL_CONSENT_TEXT_VERSION`, src/lib/customer/consent-ledger.ts):
+ * a grant names the text it refers to. Until 22 Ekim 2026 the document had
+ * no date of its own and the version borrowed `LEGAL_UPDATED`. 22 Ekim 2026:
+ * §9 and §10 say how consents and refusals reach İYS and that İYS is checked
+ * before every send (LEGAL-REDLINES §31). Move it when that document's words
+ * change; it is never earlier than `LEGAL_UPDATED` (a printed date never
+ * is, tests/legal-dates.test.ts), so a later revision of the set moves it
+ * too, as the version always did.
+ */
+export const COMMERCIAL_CONSENT_UPDATED = "22 Ekim 2026";
+
+/**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,
  * docs/PAYNKOLAY.md §16). They do not since 18 Ekim 2026: the passages that
  * said "kart saklama özelliği açıldığında ..." are kept in
