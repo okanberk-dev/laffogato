@@ -1238,9 +1238,10 @@ describe("the order's invoice wizard", () => {
       status: row.status === "draft" ? "draft" : "due",
       dueAt: row.dueAt || new Date(clock).toISOString(),
     } as InvoiceRow);
+    // createOrderInvoiceAction: one action for every state it takes.
     return runInvoiceRowWith(deps(env), {
       id: row.id,
-      action: row.status === "draft" ? "rebuild" : "cut",
+      action: "request",
       budgetMs: 50_000,
     });
   }
@@ -1396,5 +1397,113 @@ describe("the order's invoice wizard", () => {
       .filter((p) => p.path === "sales_invoices")
       .at(-1)!.body as { data: { attributes: Record<string, unknown> } };
     expect(latest.data.attributes).toMatchObject({ tax_number: VKN });
+  });
+
+  it("a failed row that still holds a Paraşüt invoice is made again with the typed address, not formalised as it was", async () => {
+    // A courier order's e-Arşiv job fails on the address; the row keeps the
+    // sales invoice it made. The person types the address in the wizard.
+    store.orders.set(
+      "ord-1",
+      anOrder({
+        fulfillment: "delivery",
+        shippingAddress: "Cami Sk. 3, Pendik / İstanbul",
+      }),
+    );
+    parasut.jobScript = ["error"];
+    parasut.jobErrors = ["Alıcı il/ilçe adresi doldurulmalı"];
+    await run();
+    const failed = store.row();
+    expect(failed).toMatchObject({ status: "failed", jobId: "" });
+    const stale = failed.salesInvoiceId;
+    expect(stale).not.toBe("");
+    parasut.jobScript = ["done"];
+    parasut.jobErrors = [];
+    clock += 60_000;
+    const r = await ask(
+      {
+        billingCity: "Kocaeli",
+        billingDistrict: "Gebze",
+        billingAddress: "Yeni adres 5",
+        billingEditedBy: "owner@laffogato.net",
+        requestedBy: "owner@laffogato.net",
+        attempts: 0,
+        lastError: "",
+        nextAttemptAt: "",
+      },
+      LIVE_ENV,
+    );
+    expect(r.taken).toBe(true);
+    // On 64a6bd0 the wizard ran "cut", the invoice made with Pendik was
+    // kept, and that one became the legal e-Arşiv.
+    expect(parasut.deletes).toEqual([`sales_invoices/${stale}`]);
+    const row = store.row();
+    expect(row.salesInvoiceId).not.toBe(stale);
+    expect(parasut.invoices.get(row.salesInvoiceId)!.attrs).toMatchObject({
+      city: "Kocaeli",
+      district: "Gebze",
+    });
+  });
+
+  it("a company's corrected tax office reaches the invoice after a failed run", async () => {
+    parasut.jobScript = ["error"];
+    parasut.jobErrors = ["Vergi dairesi hatalı"];
+    await ask(company({ buyerTaxOffice: "Tuzla" }), LIVE_ENV);
+    const failed = store.row();
+    expect(failed.status).toBe("failed");
+    const stale = failed.salesInvoiceId;
+    parasut.jobScript = ["done"];
+    parasut.jobErrors = [];
+    clock += 60_000;
+    await ask(
+      company({
+        buyerTaxOffice: "Kartal",
+        attempts: 0,
+        lastError: "",
+        nextAttemptAt: "",
+      }),
+      LIVE_ENV,
+    );
+    const row = store.row();
+    expect(parasut.deletes).toContain(`sales_invoices/${stale}`);
+    expect(parasut.invoices.get(row.salesInvoiceId)!.attrs).toMatchObject({
+      tax_office: "Kartal",
+    });
+  });
+
+  it("a create whose answer was lost, then a new buyer: the lost draft is found under its own contact and goes; one sale stays in Paraşüt", async () => {
+    parasut.loseAnswerOf = "sales_invoices";
+    await run(DRAFT);
+    const lost = store.row();
+    expect(lost.createStartedAt).not.toBe("");
+    expect(lost.salesInvoiceId).toBe("");
+    expect(parasut.invoices.size).toBe(1);
+    const [orphan] = [...parasut.invoices.keys()];
+    const r = await ask(company());
+    expect(r).toMatchObject({ taken: true, step: "draft" });
+    // On 64a6bd0 the lookup ran under the company's contact, missed the
+    // consumer's draft and made a second sale with the same marker.
+    expect(parasut.deletes).toEqual([`sales_invoices/${orphan}`]);
+    expect(parasut.invoices.size).toBe(1);
+    const row = store.row();
+    expect(parasut.invoices.get(row.salesInvoiceId)!.contactId).toBe(
+      row.contactId,
+    );
+    expect(row.createStartedAt).toBe("");
+  });
+
+  it("a lost create the queue finds again, buyer unchanged, is kept, not made twice", async () => {
+    parasut.loseAnswerOf = "sales_invoices";
+    await run(DRAFT);
+    const [made] = [...parasut.invoices.keys()];
+    clock += 10 * 60_000;
+    const row = store.row();
+    store.rows.set(row.id, { ...row, nextAttemptAt: "" } as InvoiceRow);
+    await run(DRAFT);
+    expect(parasut.deletes).toEqual([]);
+    expect(parasut.invoices.size).toBe(1);
+    expect(store.row()).toMatchObject({
+      status: "draft",
+      salesInvoiceId: made,
+    });
   });
 });

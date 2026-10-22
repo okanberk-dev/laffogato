@@ -198,6 +198,24 @@ export function isCafeOpenNow(
   return isOpenByHours(hours, now);
 }
 
+/**
+ * Whether a café order may be taken for `scheduledAt`, or for now when it
+ * is null. The staff override speaks about NOW: Açık keeps the köşk open
+ * past its hours tonight, it does not open it at 04:00 on any of the next
+ * seven days (docs/AUDIT.md §8, P1). A scheduled order is checked against
+ * the posted hours at its time; Kapalı still refuses it, as it always did.
+ */
+export function isCafeOpenForOrder(
+  hours: WeeklyHours,
+  manualOverride: VenueManualOverride,
+  scheduledAt: Date | null,
+  now: Date = new Date(),
+): boolean {
+  if (scheduledAt === null) return isCafeOpenNow(hours, manualOverride, now);
+  if (manualOverride === "closed") return false;
+  return isOpenByHours(hours, scheduledAt);
+}
+
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 /** Turkey has kept UTC+03:00 all year since 2016 (CLAUDE.md rule 22). */

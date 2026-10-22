@@ -862,7 +862,7 @@ maybe("Canlı durum and the köşk chip (real auth, real Postgres)", () => {
         form({ status: "busy", freeTables: "7" }),
       );
       expect(res.ok).toBe(true);
-      expect(h.expired).toContain("pub:site");
+      expect(h.expired).toContain("live:venue");
       const a = await actions.venueQuickSignalAction(cursor);
       expect("status" in a && a.status).toMatchObject({
         manualOverride: "auto",
@@ -874,7 +874,7 @@ maybe("Canlı durum and the köşk chip (real auth, real Postgres)", () => {
         null,
         form({ status: "auto", freeTables: "99" }),
       );
-      expect(h.expired).toContain("pub:site");
+      expect(h.expired).toContain("live:venue");
       // The owner's full save.
       h.expired = [];
       h.cookie = token("owner");
@@ -889,7 +889,7 @@ maybe("Canlı durum and the köşk chip (real auth, real Postgres)", () => {
           note: "",
         }),
       );
-      expect(h.expired).toContain("pub:site");
+      expect(h.expired).toContain("live:venue");
       // A settings write (the hours).
       h.expired = [];
       await getDb()

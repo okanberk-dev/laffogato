@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const refund = vi.fn();
 const lookupRefunds = vi.fn();
 const getOrderPaymentRef = vi.fn();
+const listPaymentTransactions = vi.fn();
 const reserveRefund = vi.fn();
 const finalizeRefund = vi.fn();
 const safeAudit = vi.fn(async () => true);
@@ -48,6 +49,7 @@ vi.mock("@/lib/admin/store", () => ({
   restockOrderLines: vi.fn(async () => []),
   setOrderAttention: vi.fn(async () => true),
   getOrderPaymentRef,
+  listPaymentTransactions,
 }));
 
 const { recordOutsideRefundAction, findPosRefundAction } =
@@ -80,6 +82,10 @@ beforeEach(() => {
     amountMinor: 128_010,
     trxDate: "2026-10-16",
   });
+  listPaymentTransactions.mockReset();
+  listPaymentTransactions.mockResolvedValue([
+    { provider: "paynkolay", status: "succeeded", amountMinor: 128_010 },
+  ]);
   reserveRefund.mockReset();
   reserveRefund.mockImplementation(
     async (_id: string, input: { amountMinor: number }) => ({
@@ -235,5 +241,64 @@ describe("PayNkolay'dan iadeyi bul", () => {
       error: expect.stringContaining("PayNkolay'a sorulamadı"),
     });
     expect(reserveRefund).not.toHaveBeenCalled();
+  });
+});
+
+describe("an order PayNkolay charged twice (duplicate_payment)", () => {
+  beforeEach(() => {
+    order = { ...order, status: "completed", attention: "duplicate_payment" };
+    listPaymentTransactions.mockResolvedValue([
+      { provider: "paynkolay", status: "succeeded", amountMinor: 128_010 },
+      { provider: "paynkolay", status: "succeeded", amountMinor: 128_010 },
+    ]);
+  });
+
+  it("does not book the duplicate's cancel as this order's refund", async () => {
+    // The operator cancelled the extra charge in PayNkolay, as its banner
+    // says; PaymentList shows that cancel under the order's clientRefCode.
+    lookupRefunds.mockResolvedValue({
+      refundedMinor: 128_010,
+      rows: [{ kind: "cancel", amountMinor: 128_010, day: "2026-10-16" }],
+      from: "2026-10-15",
+      to: "2026-10-22",
+    });
+    const state = await findPosRefundAction(null, form({ id: "ord-1" }));
+    expect(state).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("birden çok PayNkolay tahsilatı"),
+    });
+    expect(lookupRefunds).not.toHaveBeenCalled();
+    expect(reserveRefund).not.toHaveBeenCalled();
+    expect(finalizeRefund).not.toHaveBeenCalled();
+  });
+
+  it("a refund PayNkolay refuses as done already sends the operator to the order's own charge", async () => {
+    const { PaymentRefusedError } = await import("@/lib/payment/provider");
+    refund.mockRejectedValue(
+      new PaymentRefusedError(
+        "paynkolay refund reddedildi: responseCode=0 Bu kayıt daha önce iptal edilmiştir..!",
+      ),
+    );
+    const { refundOrderAction } =
+      await import("@/app/admin/siparisler/actions");
+    const state = await refundOrderAction(
+      null,
+      form({
+        id: "ord-1",
+        amount: "1.280,10",
+        reason: "İptal",
+        token: "tok-2",
+        destination: "card",
+        confirm: "10023",
+      }),
+    );
+    expect(state).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(
+        /birden çok PayNkolay tahsilatı.*asıl ödemesini PayNkolay panelinden iade et/,
+      ),
+    });
+    expect(state.ok === false && state.error).not.toContain("iadeyi bul");
+    expect(finalizeRefund).not.toHaveBeenCalled();
   });
 });

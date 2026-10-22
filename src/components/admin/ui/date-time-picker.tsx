@@ -198,7 +198,7 @@ export function DateTimePicker({
           </Dialog>
         </Popover>
       </DatePicker>
-      <input type="hidden" name={name} value={text} />
+      <input type="hidden" name={name} value={text} data-summary-value="" />
     </I18nProvider>
   );
 }

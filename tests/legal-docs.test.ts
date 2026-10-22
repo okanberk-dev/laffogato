@@ -1001,7 +1001,10 @@ describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (2
   it("says when corporate details must arrive: before the invoice, whatever the order", () => {
     const rehber = sectionOf("islem-rehberi", "9. Fatura");
     expect(rehber.paragraphs?.[1]).toContain(corporate);
-    const s14 = sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler");
+    const s14 = sectionOf(
+      "sirket-bilgileri",
+      "14. Faturalama ve Vergisel Bilgiler",
+    );
     expect(s14.paragraphs?.[1]).toContain(corporate);
     expect(JSON.stringify(LEGAL_DOCS)).not.toContain(
       "siparişten sonra ve ürün kargoya verilmeden önce",
@@ -1017,12 +1020,18 @@ describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (2
       "Üye olarak verdiğiniz bir siparişin faturası hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz.",
     );
     expect(
-      sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler").paragraphs?.[0],
-    ).toContain("hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz");
+      sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler")
+        .paragraphs?.[0],
+    ).toContain(
+      "hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz",
+    );
   });
 
   it("keeps the till receipt for the till and the e-Arşiv for an order paid online (Kafe §8)", () => {
-    const s8 = sectionOf("kafe-hizmet-kosullari", "8. Ödeme Yöntemleri, Fiş ve Fatura");
+    const s8 = sectionOf(
+      "kafe-hizmet-kosullari",
+      "8. Ödeme Yöntemleri, Fiş ve Fatura",
+    );
     const text = (s8.paragraphs ?? []).join(" ");
     expect(text).toContain("Kasada yapılan ödeme karşılığında");
     expect(text).toContain(
@@ -1037,6 +1046,42 @@ describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (2
     const all = JSON.stringify(findLegalDoc("kvkk-aydinlatma-metni"));
     expect(all).toContain(
       "Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi (il, ilçe ve siparişteki adres metni), kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, sipariş veya rezervasyon numarası ve tarihi, satın alınan ürün veya hizmet, tutar, KDV ve ödeme tarihi. Nihai tüketiciye düzenlenen faturada telefon numarası ve T.C. kimlik numarası aktarılmaz.",
+    );
+  });
+});
+
+describe("legal content - what the app's inbox shows (22 Ekim 2026)", () => {
+  // GET /api/mobile/v1/notifications (src/lib/mobile/notifications.ts)
+  // derives order stages, announcements, a ready reward, karaoke decisions
+  // and milestone gifts. Single stamps are on the stamp card, not in the
+  // inbox (docs/AUDIT.md §8; LEGAL-REDLINES §34).
+  it("no document says stamp moves are listed in the inbox", () => {
+    const inbox = /bildirim(ler)? (ekranında|kutusunda)/;
+    const offending = docTexts()
+      .flatMap(([at, t]) =>
+        t.split(/(?<=\.)\s/).map((sentence) => [at, sentence] as const),
+      )
+      .filter(
+        ([, sentence]) =>
+          /damga (hareketleri|kazanımı)|damga ve güvenlik bildirimleri/.test(
+            sentence,
+          ) &&
+          inbox.test(sentence) &&
+          !sentence.includes("damga kartınızda"),
+      );
+    expect(offending).toEqual([]);
+  });
+
+  it("says where the stamps are shown instead", () => {
+    const kvkk = JSON.stringify(findLegalDoc("kvkk-aydinlatma-metni"));
+    expect(kvkk).toContain(
+      "sipariş durumu uygulama içindeki bildirimler ekranında, damgalarınız uygulamadaki damga kartınızda gösterilmeye devam eder.",
+    );
+    expect(kvkk).toContain(
+      "(sipariş durumu, ödülünüzün hazır olması ve kilometre taşı hediyeleri ayrıca bildirimler ekranında; damgalar damga kartınızda)",
+    );
+    expect(JSON.stringify(findLegalDoc("acik-riza-metni"))).toContain(
+      "(sipariş durumu ve ödülünüzün hazır olması bildirim kutusunda, damgalarınız damga kartınızda)",
     );
   });
 });

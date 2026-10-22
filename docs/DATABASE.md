@@ -85,11 +85,14 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
    önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
    düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
-   Altı etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
+   Yedi etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
    site haritası), `pub:menu` (menü kalemleri; mağazanın stok hareketi
    menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
-   içerikleri, hukuk override'ları, canlı durum), `live:orders`,
+   içerikleri, hukuk override'ları), `live:venue` (canlı durum,
+   `venue_status`: yalnız panelin köşk çipi ve zilin yoğunluk penceresi
+   okur; 22 Eki 2026'ya kadar `pub:site` altındaydı ve çipe her dokunuş
+   genel sayfaların bütün önbelleğini boşaltıyordu), `live:orders`,
    `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
    okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
    Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
@@ -137,7 +140,7 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    bütün etiketleri elle düşür:
 
    ```bash
-   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:orders,live:karaoke,live:access --yes
+   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:venue,live:orders,live:karaoke,live:access --yes
    ```
 
    `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da
@@ -159,7 +162,7 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    (`orders`, `karaoke_reservations`) değişiklik yokken veritabanına gitmez
    (`src/lib/admin/panel-signal.ts`); görünür bırakılan bir kasa ekranı artık
    Neon'u bütün gece uyanık tutmaz. Üst çubuğun **köşk çipi** (UI-13, 20 Eki
-   2026) de öyle: kendi işareti `pub:site` ve `live:access` altında
+   2026) de öyle: kendi işareti `live:venue`, `pub:site` ve `live:access` altında
    (`venue_status`, ayarlar ve panel hesapları yazılınca yenilenir), imleci
    saatlerin köşkü bir sonraki açtığı ya da kapattığı dakikaya kadar geçerli
    (`src/lib/admin/venue-signal.ts`); arada cevap `{ unchanged: true }`.

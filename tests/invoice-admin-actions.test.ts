@@ -55,6 +55,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   invoiceNo: "",
   lastError: "",
   manualReason: "",
+  salesInvoiceId: "",
   ...over,
 });
 const ran = (over: Record<string, unknown> = {}) => ({
@@ -64,11 +65,15 @@ const ran = (over: Record<string, unknown> = {}) => ({
   error: null,
   ...over,
 });
-const form = (id = ID) => {
+const form = (id = ID, draft?: string) => {
   const f = new FormData();
   f.set("id", id);
+  if (draft !== undefined) f.set("draft", draft);
   return f;
 };
+/** The draft the card showed, and the form its "Kesinleştir" posts. */
+const SHOWN = "1042";
+const approve = () => form(ID, SHOWN);
 
 beforeEach(() => {
   h.getInvoice.mockReset();
@@ -153,7 +158,7 @@ describe("Faturayı kes", () => {
 describe("Faturayı kesinleştir / Taslağı yenile", () => {
   it("formalises only a draft, and says the PDF went to the buyer", async () => {
     h.getInvoice
-      .mockResolvedValueOnce(row({ status: "draft" }))
+      .mockResolvedValueOnce(row({ status: "draft", salesInvoiceId: SHOWN }))
       .mockResolvedValueOnce(
         row({
           status: "issued",
@@ -162,7 +167,7 @@ describe("Faturayı kesinleştir / Taslağı yenile", () => {
         }),
       );
     h.runInvoiceRow.mockResolvedValue(ran({ step: "issued" }));
-    const r = await formalizeInvoiceAction(null, form());
+    const r = await formalizeInvoiceAction(null, approve());
     expect(h.runInvoiceRow).toHaveBeenCalledWith(
       expect.objectContaining({ id: ID, action: "formalize" }),
     );
@@ -181,7 +186,7 @@ describe("Faturayı kesinleştir / Taslağı yenile", () => {
 
   it("passes on why a draft stayed a draft", async () => {
     h.getInvoice
-      .mockResolvedValueOnce(row({ status: "draft" }))
+      .mockResolvedValueOnce(row({ status: "draft", salesInvoiceId: SHOWN }))
       .mockResolvedValueOnce(
         row({
           status: "draft",
@@ -190,11 +195,46 @@ describe("Faturayı kesinleştir / Taslağı yenile", () => {
         }),
       );
     h.runInvoiceRow.mockResolvedValue(ran());
-    const r = await formalizeInvoiceAction(null, form());
+    const r = await formalizeInvoiceAction(null, approve());
     expect(r).toMatchObject({
       ok: false,
       error: expect.stringContaining("bugünün tarihiyle"),
     });
+  });
+
+  it("formalises only the draft the card showed: one made again since is refused unread", async () => {
+    // "Taslağı yenile" or the order's invoice wizard in another tab made a
+    // new Paraşüt draft after this card was drawn.
+    for (const posted of [form(ID, SHOWN), form()]) {
+      h.getInvoice.mockResolvedValueOnce(
+        row({ status: "draft", salesInvoiceId: "1077" }),
+      );
+      const r = await formalizeInvoiceAction(null, posted);
+      expect(r).toMatchObject({
+        ok: false,
+        error: expect.stringContaining("yeniden hazırlandı"),
+      });
+    }
+    expect(h.runInvoiceRow).not.toHaveBeenCalled();
+    // The card posts the draft it shows.
+    const { readFileSync } = await import("node:fs");
+    expect(
+      readFileSync("src/components/admin/invoice-actions.tsx", "utf8"),
+    ).toContain("hidden={{ id: row.id, draft: row.salesInvoiceId }}");
+  });
+
+  it("does not say Paraşüt is formalising when the deadline sent the row back to the queue", async () => {
+    h.getInvoice
+      .mockResolvedValueOnce(row({ status: "draft", salesInvoiceId: SHOWN }))
+      .mockResolvedValueOnce(row({ status: "due", salesInvoiceId: SHOWN }));
+    h.runInvoiceRow.mockResolvedValue(ran({ step: "pending" }));
+    const r = await formalizeInvoiceAction(null, approve());
+    expect(r).toMatchObject({
+      ok: true,
+      tone: "warning",
+      message: expect.stringContaining("zamanında yanıt vermedi"),
+    });
+    expect(r.ok && r.message).not.toContain("resmileştiriyor");
   });
 
   it("rebuilds a draft", async () => {

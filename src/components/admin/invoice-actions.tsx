@@ -131,7 +131,7 @@ export function InvoiceActions({
         triggerVariant={menu ? v : "primary"}
         ariaLabel={`Faturayı kesinleştir: ${row.sourceLabel}`}
         submitLabel="Kesinleştir"
-        hidden={{ id: row.id }}
+        hidden={{ id: row.id, draft: row.salesInvoiceId }}
       />,
       <ActionModal
         key="rebuild"

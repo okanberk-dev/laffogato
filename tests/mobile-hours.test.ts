@@ -4,6 +4,7 @@ import type { WeeklyHours } from "@/lib/admin/days";
 
 import {
   defaultVenueStatus,
+  isCafeOpenForOrder,
   isCafeOpenNow,
   isOpenByHours,
   istanbulClock,
@@ -154,6 +155,54 @@ describe("isCafeOpenNow - manual override", () => {
     expect(isCafeOpenNow(hours, "auto", istanbul("2026-09-01T12:00:00"))).toBe(
       true,
     );
+  });
+});
+
+describe("isCafeOpenForOrder - a scheduled order and the staff override", () => {
+  // Every day 09:00 - 01:00; Tuesday 1 Sep 2026 on the köşk's clock.
+  const hours = lateHours();
+  const now = istanbul("2026-09-01T02:30:00");
+
+  it("Açık opens the köşk for an order now, past its hours", () => {
+    expect(isCafeOpenForOrder(hours, "open", null, now)).toBe(true);
+  });
+
+  it("Açık does not reach a scheduled hour the posted week keeps shut (AUDIT §8 P1)", () => {
+    // Was accepted: a paid order for 04:00 the next morning.
+    expect(
+      isCafeOpenForOrder(hours, "open", istanbul("2026-09-02T04:00:00"), now),
+    ).toBe(false);
+    // An hour the köşk is open by its week is still taken.
+    expect(
+      isCafeOpenForOrder(hours, "open", istanbul("2026-09-01T10:00:00"), now),
+    ).toBe(true);
+  });
+
+  it("Kapalı still refuses a scheduled order, even inside the posted hours", () => {
+    expect(
+      isCafeOpenForOrder(hours, "closed", istanbul("2026-09-01T10:00:00"), now),
+    ).toBe(false);
+    expect(isCafeOpenForOrder(hours, "closed", null, now)).toBe(false);
+  });
+
+  it("Otomatik follows the week, now and at the scheduled time", () => {
+    expect(isCafeOpenForOrder(hours, "auto", null, now)).toBe(false);
+    expect(
+      isCafeOpenForOrder(hours, "auto", istanbul("2026-09-01T10:00:00"), now),
+    ).toBe(true);
+    // The overnight tail: 00:30 belongs to the day before, which runs to 01:00.
+    expect(
+      isCafeOpenForOrder(hours, "auto", istanbul("2026-09-02T00:30:00"), now),
+    ).toBe(true);
+  });
+
+  it("the app order's gate is this one (store.ts placeAppOrder)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const store = readFileSync("src/lib/admin/store.ts", "utf8");
+    expect(store).toContain(
+      "isCafeOpenForOrder(settings.weeklyHours, venue.manualOverride, at)",
+    );
+    expect(store).not.toMatch(/isCafeOpenNow\(settings\.weeklyHours/);
   });
 });
 

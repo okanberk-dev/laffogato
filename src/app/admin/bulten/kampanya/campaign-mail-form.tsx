@@ -421,8 +421,12 @@ export function CampaignMailForm({
  * No browser `required`: the star in the label says what "Gönder" will
  * insist on, but a half-written draft must still save (the footnote and
  * `parseDraft` promise so). The render at "Gönder" is the gate, and it
- * names the field.
+ * names the field. The one exception is the title, which even a draft
+ * needs (campaigns.ts `fieldsShape`): the wizard stops on its step instead
+ * of sending a draft the server refuses.
  */
+const DRAFT_REQUIRED: ReadonlySet<string> = new Set(["KAMPANYA_BASLIK"]);
+
 function FieldInput({
   field,
   value,
@@ -438,6 +442,7 @@ function FieldInput({
       <Field label={label} hint={field.hint}>
         <Textarea
           name={field.key}
+          required={DRAFT_REQUIRED.has(field.key)}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={field.max}
@@ -452,6 +457,7 @@ function FieldInput({
       <TextInput
         name={field.key}
         type={field.kind === "url" ? "url" : "text"}
+        required={DRAFT_REQUIRED.has(field.key)}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         maxLength={field.max}

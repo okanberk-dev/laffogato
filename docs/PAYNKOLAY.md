@@ -226,7 +226,14 @@ sayılır. İşyeri panelinden yapılan iadenin bu listede siparişin
 `clientRefCode`'uyla göründüğü canlıda doğrulanmadı: görünmezse panel "iade
 görünmüyor" der ve elle kayıt ("PayNkolay'da iade ettim") kullanılır.
 Tutarı okunamayan bir satır ya da anahtar reddi "iade yok" sayılmaz, hata
-olarak döner.
+olarak döner. İade satırının tutarı `TRANSACTION_AMOUNT`'tan okunur
+(yoksa `AUTHORIZATION_AMOUNT`); ikisi dolu ve farklıysa (kısmi iadede
+biri satışın tutarı olabilir) tahmin edilmez, okunamadı sayılır ve
+operatör elle kaydeder. Yalnız birebir aynı satır bir kez sayılır: aynı
+gün aynı tutarda iki kısmi iade ikisi de sayılır. Siparişte birden çok
+başarılı tahsilat varsa (mükerrer çekim, `duplicate_payment`) arama hiç
+yapılmaz: aynı `clientRefCode` altındaki iptal mükerrer çekime ait
+olabilir (22 Eki 2026 incelemesi).
 
 Kısıt: **bir sorguda en fazla bir aylık veri** çekilebiliyor. Bizim
 kullanımımızda sorgu tek bir güne (sipariş tarihi) daraltılacağı için bu bir

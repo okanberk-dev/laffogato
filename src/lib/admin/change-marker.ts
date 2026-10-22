@@ -16,6 +16,7 @@ import {
   TAG_KARAOKE,
   TAG_ORDERS,
   TAG_SITE,
+  TAG_VENUE,
 } from "@/lib/cache/tags";
 import {
   getVenueStatus,
@@ -61,9 +62,9 @@ export type ChangeMarkerKind = "orders" | "karaoke" | "venue";
 const MARKER_TAGS: Record<ChangeMarkerKind, readonly string[]> = {
   orders: [TAG_ORDERS, TAG_ACCESS],
   karaoke: [TAG_KARAOKE, TAG_ACCESS],
-  // The köşk chip (venue-signal.ts): `venue_status` and the settings (the
-  // posted hours) are both `pub:site`.
-  venue: [TAG_SITE, TAG_ACCESS],
+  // The köşk chip (venue-signal.ts): `venue_status` (`live:venue`) and the
+  // settings (the posted hours, `pub:site`).
+  venue: [TAG_SITE, TAG_VENUE, TAG_ACCESS],
 };
 
 /** "<now base36>-<64 random bits base36>" (order-alerts-core `isChangeMarker`). */
@@ -119,7 +120,7 @@ const cachedBusyInputs = presentationCache(
       manualOverride: venue.manualOverride,
     };
   },
-  [TAG_SITE],
+  [TAG_SITE, TAG_VENUE],
 );
 
 /**

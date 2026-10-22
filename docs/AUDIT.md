@@ -436,17 +436,20 @@ PR #196'nın incelemesinde bulunan, önceden var olan ve orada düzeltilmeyenler
 - 🟢 `audit-logs` imha kuralı 10 × 366 günü `createdAt`'ten sayıyor, takvim
   yılının bitişinden değil (TTK m.82/6). Bugün hiçbir satıra değmiyor (en eski
   satır 2026); kural ilk kez 2036'da işler.
-- 🟢 Mobil Uygulama Koşulları ve Kullanım Şartları damga hareketlerinin
-  bildirimler ekranında göründüğünü söylüyor; ekran yalnız ödül hazır ve
-  kilometre taşı öğelerini gösteriyor.
+- ~~🟢 Hukuk metinleri damga hareketlerinin bildirimler ekranında göründüğünü
+  söylüyor~~ **Düzeltildi (22 Eki 2026):** KVKK §12, §20 ve Açık Rıza §13
+  ekranın gösterdiğini söylüyor (sipariş durumu, ödülün hazır olması,
+  kilometre taşı hediyeleri); damgalar damga kartında. Mobil Uygulama
+  Koşulları'nın örnek listesi zaten doğruydu. LEGAL-REDLINES §34;
+  `legal-docs` "what the app's inbox shows".
 
 PR #189 (UI-13, köşk çipi) güvenlik incelemesinin main'de bulduğu, o PR'ın
-değiştirmediği iki madde (21 Eki 2026):
+değiştirmediği iki madde (21 Eki 2026), 22 Eki 2026'da düzeltildi:
 
-| Derece | Bulgu | Önerilen düzeltme |
-| --- | --- | --- |
-| 🟡 | P1: Canlı durum elle **Açık**'ken `placeAppOrder` planlı kafe siparişini `SCHEDULE_MAX_DAYS` (7) gün içindeki her saat için kabul ediyor: `isCafeOpenNow(hours, manualOverride, at)` elle Açık'ta `at`'a bakmaz (`src/lib/admin/store.ts`, `const at = scheduled.value ...`). Karar D3'le Personel de Açık seçebiliyor; maç gecesi için açılan köşk, ertesi gün 04:00'e ödenmiş bir sipariş alabilir | Elle Açık / Kapalı yalnız "hemen" siparişe uygulansın; planlı sipariş saatlere göre denetlensin |
-| 🟢 | P2: her `venue_status` yazması `pub:site`'ı düşürüyor. Etiket ayarları, site metinlerini, slaytları ve hukuk metinlerini de taşıdığı için çipin her kaydı genel sayfaların bütün önbelleğini boşaltıyor (sonraki görüntülemeler veritabanını okur). Güvenlik değil, maliyet | Canlı duruma ayrı bir etiket (`TABLE_TAGS.venue_status`); onu okuyan iki önbellek (zilin `panel-busy-inputs`'u, çipin `venue` işareti) o etiketi de dinler, genel sayfalar dinlemez |
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | P1: Canlı durum elle **Açık**'ken `placeAppOrder` planlı kafe siparişini `SCHEDULE_MAX_DAYS` (7) gün içindeki her saat için kabul ediyordu (`isCafeOpenNow` elle Açık'ta `at`'a bakmaz); maç gecesi için açılan köşk ertesi gün 04:00'e ödenmiş sipariş alabilirdi | `isCafeOpenForOrder` (`src/lib/mobile/venue.ts`): hemen sipariş elle durumla, planlı sipariş o saatte köşkün saatleriyle denetlenir; elle Kapalı planlıyı da durdurur (eskisi gibi). Hata kodu aynı (`cafe_closed`); uygulamanın saat ızgarası zaten saatlerden kurulur. `docs/API-MOBILE.md` §3 | `mobile-hours` |
+| 🟢 | P2: her `venue_status` yazması `pub:site`'ı düşürüyordu; çipin her kaydı genel sayfaların bütün önbelleğini boşaltıyordu | Canlı duruma ayrı etiket `live:venue` (`src/lib/cache/tags.ts`); onu okuyan iki önbellek (zilin `panel-busy-inputs`'u, çipin `venue` işareti) onu da dinler, genel sayfalar dinlemez. `docs/DATABASE.md` temizleme komutu yedi etiket | `cache-write-tags`, `venue-status-patch`, `admin-change-marker`, `db-integration-venue-quick-security` |
 
 ## 9. Mobil denetim turu - 14 Eki 2026
 
@@ -527,6 +530,7 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | 🟡 | Admin ve üye girişinin bütçesi yalnız adres + hesap başınaydı: tek bir adres sızdırılmış bir e-posta/parola listesini hesap hesap deneyebiliyor (credential stuffing) ya da tek parolayı bütün panel hesaplarına püskürtebiliyordu, hiç sınıra takılmadan; her reddedilen admin denemesi de bir `login_fail` denetim satırı yazıyordu | Önce adres başına, bütün hesaplar boyunca bütçe (`admin-login-ip` 20, `customer-login-ip` 30 / 5 dk, sonra 15 dk); başarı da sayılır (kendi hesabına girerek sayacı sıfırlamak olmasın) | `login-address-budget`, `rate-limit-keys` |
 | 🟢 | 610 KB'lık `public/laffogato-pour.js` `max-age=0` ile servis ediliyor, her ana sayfa ziyaretinde yeniden doğrulanıyordu | Bir saat + bir gün arka planda yenileme. Günlük görsel kuralı değil: dosya aynı adla yerinde yeniden derleniyor (be2e506), uzun önbellek ziyaretçiyi eski derlemeye bağlardı. Yalnız `next.config.ts`'te; `vercel.json` ayrı bir değer basmaz | `security-headers` |
 | 🟠 | Kart sayfası (`/odeme/paynkolay` POST) imzalı formun ikinci gönderiminde (iki sekme, bankanın sayfasından geri tuşu) ödenmiş siparişe ya da karaoke rezervasyonuna ikinci satış başlatıyordu; PayNkolay ikinciyi de kabul ediyor (17 Eki 2026) | Satıştan hemen önce kayıt imzalı referansla okunur (`src/lib/payment/bridge-gate.ts`, yalnız referans alır): ödeme beklemiyorsa ya da okunamıyorsa satış başlamaz, not sayfası siparişe ya da rezervasyona bağlanır. `docs/PAYNKOLAY.md` §14.7 | `paynkolay-card-page`, `saved-cards` |
+| 🟢 | `/bulten/onay?token=` ve `/bulten/cikis?token=` (ikincisine `/api/bulten/cikis` da yönlendirir) GTM yükleyen sayfalarda belirteci adreste taşıyordu (sızan belirteçle başkası aboneliği onaylayabilir ya da bitirebilirdi) | Sıfırlama belirtecinin deseni (22 Eki 2026): `proxy.ts` belirteci yalnız o sayfaya, httpOnly ve bir saatlik bir çereze taşır, sayfayı belirteçsiz yeniden açar (303, yalnız GET/HEAD); sayfa çerezi okur, düğme çerezi siler (`src/lib/newsletter/link-token.ts`). E-postadaki bağlantılar ve posta istemcisinin tek tık POST'u (`/api/bulten/cikis`) değişmedi | `newsletter-link-token` |
 
 ### Açık
 
@@ -534,7 +538,6 @@ müşteri hesabı, e-posta gönderen açık formlar, sırlar ve bağımlılıkla
 | --- | --- | --- |
 | 🟡 | Admin girişinde hesap başına (adresten bağımsız) tavan yok: çok sayıda adresi olan biri (botnet, konut proxy'si) bir hesaba adres başına 5 / dk deneme yapabilir | Operatör kararı: hesap tavanı, adını bilen herkese o hesabı (kasiyer dahil) kilitletir. Önerilen: sahip ve yönetici hesaplarında 2FA'yı açmak (`/admin/2fa-kurulum`); 2FA adımının hesap tavanı zaten var |
 | 🟢 | Admin çıkışı yalnız bu tarayıcının çerezini siler; daha önce kopyalanmış bir çerez 7 gün geçerli kalır (parola değişince düşer) | Sunucu tarafı iptal bir migration (oturum kimliği ya da hesap başına dönem) ister; ayrı PR |
-| 🟢 | `/bulten/onay?token=` ve `/bulten/cikis?token=` da GTM yükleyen sayfalarda belirteci adreste taşıyor (sızan belirteçle başkası aboneliği onaylayabilir ya da bitirebilir) | Etkisi sıfırlama belirtecinden küçük; aynı `proxy.ts` deseni uygulanabilir, ayrı PR |
 | 🟢 | `script-src` hâlâ `'unsafe-inline'` taşıyor | Kayıtlı karar (`next.config.ts`): nonce kök layout'u ve statik sayfaları dinamik yapar |
 | 🟢 | `CUSTOMER_SESSION_SECRET` tanımsızsa müşteri çerezi `ADMIN_SESSION_SECRET` ile imzalanır. Çapraz kullanım 21 Eki 2026'da kapandı (panel çerezi artık kendi türetilmiş anahtarıyla imzalanıyor, aşağıda "Panel: güvenlik ve CRUD turu"); iki sırrın ayrılması yine de önerilir | Operatör: Vercel'de ayrı, en az 32 karakterlik `CUSTOMER_SESSION_SECRET` tanımlamak (müşteriler bir kez yeniden giriş yapar) |
 | 🟢 | `npm audit`: `source-map-js` (yüksek, yalnız derleme anında, saldırgan girdisi görmüyor) | Ulaşılamaz; `next`'in kendi bağımlılığıyla güncellenir |

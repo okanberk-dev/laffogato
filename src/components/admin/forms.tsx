@@ -412,6 +412,11 @@ export function formatTRY(amountMinor: number): string {
  */
 export function formatDateTime(value: string): string {
   const at = parsePublishInstant(value);
+  const instant = at === null ? new Date(value) : new Date(at);
+  // A row with no stamp (written outside the store) prints a dash: an
+  // invalid date throws in Intl, and on a list page one such row took the
+  // whole page down with it.
+  if (Number.isNaN(instant.getTime())) return "-";
   return new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
     day: "2-digit",
@@ -419,5 +424,5 @@ export function formatDateTime(value: string): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(at === null ? new Date(value) : new Date(at));
+  }).format(instant);
 }

@@ -657,7 +657,13 @@ async function processRow(
     buyer: source.buyer,
   };
   const contactId = await ensureContact(ctx, client, contact);
-  if (contactId !== row.contactId && !row.salesInvoiceId)
+  // While a create's answer is lost the row keeps the contact it was made
+  // for: that is where step 3 looks for it.
+  if (
+    contactId !== row.contactId &&
+    !row.salesInvoiceId &&
+    !row.createStartedAt
+  )
     await save({ contactId });
 
   // 2. Products.
@@ -733,10 +739,12 @@ async function processRow(
     }
   }
   if (!row.salesInvoiceId && row.createStartedAt) {
-    // The last create's answer was lost: look before creating again.
+    // The last create's answer was lost: look before creating again, under
+    // the contact it was made for (the buyer may have changed since).
+    const madeFor = row.contactId || contactId;
     const found = await findByMarker(
       client,
-      row.contactId || contactId,
+      madeFor,
       istanbulDay(row.createStartedAt),
       marker,
     );
@@ -766,9 +774,22 @@ async function processRow(
           lines,
         );
       }
+      const otherBuyer =
+        madeFor !== contactId && contactCacheKey(contact) !== "";
+      if (si && (opts.rebuild || otherBuyer)) {
+        // Made for the buyer the order's invoice wizard has since
+        // replaced, or asked for again: it goes, and is made anew below.
+        // Kept, Paraşüt would hold two sales for one order.
+        await client.del(`sales_invoices/${encodeURIComponent(found[0].id)}`);
+        await save({ salesInvoiceId: "" });
+        si = null;
+        ours = false;
+      }
     } else {
       await save({ createStartedAt: "" });
     }
+    if (contactId !== row.contactId && !row.salesInvoiceId)
+      await save({ contactId });
   }
   if (!row.salesInvoiceId) {
     await save({ createStartedAt: ctx.nowIso() });
@@ -1461,7 +1482,7 @@ export async function runInvoicesWith(
 }
 
 /** A person's button on one invoice row (docs/EARSIV.md "Panel"). */
-export type RowAction = "cut" | "formalize" | "rebuild";
+export type RowAction = "cut" | "formalize" | "rebuild" | "request";
 
 /** The statuses each button takes a row from; any other is refused. */
 const ROW_ACTION_FROM: Record<RowAction, InvoiceRow["status"][]> = {
@@ -1471,6 +1492,11 @@ const ROW_ACTION_FROM: Record<RowAction, InvoiceRow["status"][]> = {
   formalize: ["draft"],
   // "Taslağı yenile": that draft deleted and prepared again, dated today.
   rebuild: ["draft"],
+  // The order's invoice wizard just wrote a buyer and an address: cut now,
+  // and a sales invoice already in Paraşüt (a draft, or one a failed run
+  // left behind) is made again from them. Kept, it would be formalised
+  // with the address and tax office it was first made with.
+  request: ["due", "failed", "draft"],
 };
 
 export interface RowRunOptions {
@@ -1526,7 +1552,7 @@ export async function runInvoiceRowWith(
   try {
     const step = await processRow(ctx, client, held, summary, {
       approved: opts.action === "formalize",
-      rebuild: opts.action === "rebuild",
+      rebuild: opts.action === "rebuild" || opts.action === "request",
     });
     return { mode: cfg.mode, taken: true, step, error: null };
   } catch (err) {

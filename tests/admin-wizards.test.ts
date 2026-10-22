@@ -238,3 +238,65 @@ describe("the ActionForm side (menu item, app post)", () => {
     expect(wrapper).toContain("useUnsavedGuard(formRef);");
   });
 });
+
+describe("review of #226 (22 Oct 2026)", () => {
+  it("Enter a field answers itself (the image box's URL) does not also move the step", () => {
+    const kit = read("src/components/admin/ui/wizard.tsx");
+    expect(kit).toContain(
+      "if (e.defaultPrevented || e.nativeEvent.defaultPrevented) return;",
+    );
+  });
+
+  it("the laptop date picker's value reaches the summary", () => {
+    // DateTimePicker posts through a hidden input; the summary skipped
+    // every hidden input, so a post's start and end were never shown.
+    expect(read("src/components/admin/ui/date-time-picker.tsx")).toContain(
+      '<input type="hidden" name={name} value={text} data-summary-value="" />',
+    );
+    expect(read("src/components/admin/ui/wizard.tsx")).toContain(
+      '!el.hasAttribute("data-summary-value")',
+    );
+  });
+
+  it("the promo summary shows the code as the store saves it, and a fixed percent drops its message", () => {
+    const form = read("src/components/admin/promo-form.tsx");
+    // normalizeCode (store.ts): "indirim 10" is saved INDIRIM10; the
+    // summary said "İNDİRİM 10", which no customer could redeem.
+    expect(form).not.toContain('toLocaleUpperCase("tr-TR")');
+    expect(form.replace(/\s+/g, "")).toContain(
+      '.trim().toUpperCase().replace(/\\s+/g,"")',
+    );
+    expect(read("src/lib/admin/store.ts")).toContain(
+      'return raw.trim().toUpperCase().replace(/\\s+/g, "");',
+    );
+    expect(form).toContain('onChange={() => wizard.clearError("valuePct")}');
+  });
+
+  it("Enter on a summary submits with the main button, not 'Kaydet ve yenisini ekle'", async () => {
+    const { MenuItemForm } = await import("@/components/admin/menu-item-form");
+    const html = renderToStaticMarkup(
+      createElement(MenuItemForm, {
+        action: noop,
+        submitLabel: "Menüye ekle",
+        cancelHref: "/admin/menu",
+        saveAndNew: true,
+      }),
+    );
+    // The form's default button is its first submit button in tree order.
+    const firstSubmit = html.match(/<button[^>]*type="submit"[^>]*>([^<]*)</);
+    expect(firstSubmit?.[1]).toBe("Menüye ekle");
+    expect(html).toContain("Kaydet ve yenisini ekle");
+  });
+
+  it("a campaign draft without its title stops on the content step", () => {
+    // The draft save refuses it (campaigns.ts fieldsShape: "Başlık gerekli").
+    expect(read("src/lib/email/campaigns.ts")).toMatch(
+      /KAMPANYA_BASLIK: z\s*\.string\(\)\s*\.trim\(\)\s*\.min\(1, "Başlık gerekli\."\)/,
+    );
+    const form = read("src/app/admin/bulten/kampanya/campaign-mail-form.tsx");
+    expect(form).toContain('new Set(["KAMPANYA_BASLIK"])');
+    expect(
+      form.match(/required=\{DRAFT_REQUIRED\.has\(field\.key\)\}/g),
+    ).toHaveLength(2);
+  });
+});

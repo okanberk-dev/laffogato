@@ -602,7 +602,10 @@ Kurallar:
 > - `shop_closed` **yalnızca** `kind: "shop"` siparişlerinde döner ("Online mağaza açık",
 >   /admin/ayarlar). Kafe siparişi bu anahtara bakmaz; onu `mobileApp.ordering.cafeEnabled`
 >   ile köşkün saatleri yönetir → `ordering_closed` / `cafe_closed`. Kontrol `scheduledFor`
->   varsa o anda, yoksa şimdi; manuel override her durumda geçerli.
+>   yoksa şimdi, manuel override ile; varsa o anda, köşkün **saatlerine** göre: elle
+>   **Açık** yalnız şimdiki siparişi açar, kapalı bir saate planlananı açmaz; elle **Kapalı**
+>   planlıyı da durdurur (22 Eki 2026; önceden elle Açık 7 günün her saatini kabul ediyordu,
+>   `docs/AUDIT.md` §8). Uygulamanın saat ızgarası zaten saatlerden kurulur.
 >   (Eskiden `shop_closed` kafe siparişlerine de uygulanıyordu: tatil için mağaza kapatılınca
 >   köşk açık göründüğü hâlde her gel-al siparişi reddediliyordu.)
 > - `totalMinor === 0` (kupon toplamı sıfırladı) → sipariş sunucuda anında `paid`
