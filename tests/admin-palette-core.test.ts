@@ -1035,17 +1035,22 @@ describe("the trigger's server markup", () => {
     );
     const a = /<a [^>]*>/.exec(html)?.[0] ?? "";
     expect(a).toContain('href="/admin/ara"');
-    expect(a).toContain('aria-label="Ara"');
+    // Its name is the words the field shows from `lg` (label in name);
+    // the keys still open it, but no key is printed (operator, 22 Eki
+    // 2026: the search "not Ctrl K").
+    expect(a).toContain('aria-label="Sipariş, müşteri ya da sayfa ara"');
+    expect(html).toContain(">Sipariş, müşteri ya da sayfa ara</span>");
     expect(a).toContain('aria-haspopup="dialog"');
     expect(a).toContain('aria-keyshortcuts="Meta+K Control+K"');
-    // ⌘K or Ctrl K is decided after mount: none on the server, so no
-    // mismatch. No dialog until it is opened.
+    expect(a).not.toContain("title=");
+    // No dialog until it is opened.
     expect(html).not.toContain("<kbd");
     expect(html).not.toContain("<dialog");
     expect(html).not.toContain("Yükleniyor");
-    // 44 px on a phone.
-    expect(a).toMatch(/\bh-11\b/);
-    expect(a).toMatch(/\bw-11\b/);
+    expect(html).not.toMatch(/Ctrl K|⌘K/);
+    // A 44 px square on a phone; from `lg` Innex's search field.
+    expect(a).toMatch(/\bmax-lg:size-11\b/);
+    expect(a).toMatch(/\blg:w-72\b/);
     expect(html.match(/<a /g)).toHaveLength(1);
   });
 

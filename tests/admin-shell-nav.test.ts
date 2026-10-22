@@ -526,8 +526,9 @@ describe("the sidebar and the top bar", () => {
   it("shows the search only to a role it covers; without JavaScript it is a link to the results page", () => {
     // Admin UI v2, UI-6: the top bar's box became the ⌘K palette's trigger.
     // Its server markup is one link to /admin/ara (whose own box posts, so
-    // the text is in no address), at every width: a 44 px square (since
-    // the AkmanOS look, 21 Eki 2026, the wide box is the sidebar's).
+    // the text is in no address). Innex (22 Eki 2026): a 44 px square on a
+    // phone and, from `lg`, a search field with its words; the sidebar's
+    // box with "Ctrl K" is gone (operator: the search "not Ctrl K").
     const html = renderSidebar();
     const header = html.slice(
       html.indexOf("<header"),
@@ -535,16 +536,19 @@ describe("the sidebar and the top bar", () => {
     );
     const trigger = tag(header, /<a [^>]*data-admin-palette-trigger[^>]*>/);
     expect(trigger).toContain('href="/admin/ara"');
-    expect(trigger).toContain('aria-label="Ara"');
+    expect(trigger).toContain('aria-label="Sipariş, müşteri ya da sayfa ara"');
     expect(trigger).toContain('aria-haspopup="dialog"');
     expect(trigger).toContain('aria-keyshortcuts="Meta+K Control+K"');
-    expect(header.match(/href="\/admin\/ara"/g)).toHaveLength(1);
+    expect(html.match(/href="\/admin\/ara"/g)).toHaveLength(1);
+    expect(html).not.toContain("data-admin-side-search");
+    expect(html).not.toMatch(/Ctrl K|⌘K/);
     // No form and no text box in the bar any more: nothing typed there.
     expect(header).not.toContain("<form");
     expect(header).not.toContain('name="q"');
     const classes = /class="([^"]*)"/.exec(trigger)![1].split(" ");
-    expect(classes).toEqual(expect.arrayContaining(["h-11", "w-11"]));
-    expect(classes).not.toContain("lg:w-72");
+    expect(classes).toEqual(
+      expect.arrayContaining(["max-lg:size-11", "lg:w-72", "lg:flex"]),
+    );
     const none = renderSidebar({ canSearch: false });
     expect(none).not.toContain("/admin/ara");
     expect(none).not.toContain("data-admin-palette-trigger");

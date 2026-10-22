@@ -195,10 +195,14 @@ yolunda); sekme, açılır listeler, tarih, sıralama ve sayfa yine adreste.
 - Eski bir yer imi `?q=` ile açılırsa metin çereze taşınır ve sayfa onsuz
   yeniden açılır. Kural tek yerde: `src/lib/admin/list-search-core.ts`.
 
-## Palet (⌘K / Ctrl K)
+## Palet (arama)
 
-Üst çubuktaki **Ara** paleti açar; klavyeden Mac'te ⌘K, Windows'ta Ctrl K
-(bir alanın içindeyken de çalışır). Kasiyerde palet yok.
+Üst çubuktaki arama alanı ("Sipariş, müşteri ya da sayfa ara") paleti
+açar: geniş ekranda sonuçlar alanın kendisinden aşağı açılır, telefonda
+büyüteç düğmesi ekranın üstünde açar (22 Eki 2026, operatör: aramanın
+"Ctrl K" kutusundan farklı ve güzel olması). Kenar çubuğunda arama kutusu
+yok; tuş da ekranda yazmaz, ama klavyeden Mac'te ⌘K, Windows'ta Ctrl K
+çalışmaya devam eder (bir alanın içindeyken de). Kasiyerde palet yok.
 
 - **Son açılanlar**: bu sekmede açtığın son 8 kayıt sayfası (sipariş,
   karaoke, ürün, menü kalemi, kategori, slayt, promosyon, kampanya, masa,
@@ -456,7 +460,7 @@ sistemini izler (`docs/ADMIN-INNEX.md`, değerler `docs/BRAND.md` "Admin
 paneli görünümü"). 21 Eki'deki yumuşatılmış AkmanOS teması bırakıldı:
 
 - Gri zemin üstünde iki beyaz kart: kenar çubuğu ve sayfa. Sayfa kartının
-  üstünde üst çubuk (yol ya da ögenin sekmeleri, ⌘K, köşk, zil), altında
+  üstünde üst çubuk (yol ya da ögenin sekmeleri, arama alanı, köşk, zil), altında
   sayfa başlığı şeridi (başlık 18 px, gri açıklama, sağda düğmeler, kart
   boyu çizgi). İçerik kartın sol kenarından başlar.
 - Kenar çubuğu sakin: ikonlar 16 px çizgi, grup başlıkları küçük büyük

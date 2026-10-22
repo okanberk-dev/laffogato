@@ -26,11 +26,7 @@ import {
   type PanelSignalAnswer,
 } from "@/lib/admin/panel-signal-core";
 import { forgetRecents } from "@/components/admin/palette/recents";
-import {
-  PaletteTrigger,
-  preloadPalette,
-  SearchIcon,
-} from "@/components/admin/palette/trigger";
+import { PaletteTrigger } from "@/components/admin/palette/trigger";
 import {
   useShortcutPref,
   writeShortcutPref,
@@ -57,13 +53,7 @@ import {
   sectionTabsFor,
   type NavTab,
 } from "@/lib/admin/nav-match";
-import {
-  isApplePlatform,
-  openPalette,
-  PALETTE_FALLBACK_HREF,
-  paletteShortcutLabel,
-  type PaletteEntry,
-} from "@/lib/admin/palette-shell";
+import type { PaletteEntry } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
 import {
@@ -490,69 +480,6 @@ function RailToggle({
   );
 }
 
-/**
- * The wide ⌘K box at the top of the sidebar, under the business block: it
- * opens the same palette as the top bar's trigger (openPalette, heard by
- * PaletteTrigger), and before hydration, or with a modifier key, it is the
- * link to the results page, as the trigger is. The key itself is the
- * trigger's (its aria-keyshortcuts); this box only shows it. Folded, an
- * icon with its tooltip. Only the desktop column draws it: the phone's drawer is a modal
- * the palette would not open over, and its top bar has the trigger.
- */
-function SidebarSearch({ rail }: { rail: boolean }) {
-  const key = useSyncExternalStore(
-    noSubscribe,
-    () => paletteShortcutLabel(isApplePlatform(navigator)),
-    () => null,
-  );
-  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
-      return;
-    }
-    e.preventDefault();
-    openPalette("all");
-  };
-  if (rail) {
-    return (
-      <a
-        href={PALETTE_FALLBACK_HREF}
-        onClick={onClick}
-        aria-haspopup="dialog"
-        data-admin-side-search=""
-        {...railControl("Ara")}
-        onPointerEnter={(e) => {
-          placeTip(e);
-          preloadPalette();
-        }}
-        className="group/tip relative mx-auto grid h-11 w-11 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-mute)] transition-colors duration-150 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
-      >
-        <SearchIcon />
-        <RailTip>Ara</RailTip>
-      </a>
-    );
-  }
-  return (
-    <a
-      href={PALETTE_FALLBACK_HREF}
-      onClick={onClick}
-      onPointerEnter={preloadPalette}
-      onFocus={preloadPalette}
-      aria-label="Ara"
-      aria-haspopup="dialog"
-      data-admin-side-search=""
-      className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-2.5 text-[var(--admin-text-mute)] transition-colors duration-150 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] pointer-fine:min-h-9"
-    >
-      <SearchIcon />
-      <span className="flex-1 text-left text-sm">Ara</span>
-      {key ? (
-        <kbd className="rounded-md border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-1.5 py-px text-[11px] leading-4 text-[var(--admin-text-mute)]">
-          {key}
-        </kbd>
-      ) : null}
-    </a>
-  );
-}
-
 function BadgeCount({ section, n }: { section: string; n: number }) {
   return (
     <>
@@ -615,23 +542,17 @@ export function navNoteVisible(raw: string): boolean {
   return raw !== "1";
 }
 
-const noSubscribe = () => () => {};
-
 /**
  * "Menü sadeleşti": the panel's nav moved into five groups, and some
  * pages became an item's tab; the palette still finds every old name.
  * Said once, in the grouped nav's footer (Personel's five items only lost
  * their headers), until dismissed. The server and the first paint draw
- * nothing (no flash for whoever dismissed it); the stored choice, and the
- * keyboard's own ⌘K or Ctrl K, apply after hydration.
+ * nothing (no flash for whoever dismissed it); the stored choice applies
+ * after hydration. It points at the top bar's search field, not a key
+ * (operator, 22 Eki 2026: the search "not Ctrl K").
  */
 function NavNote() {
   const raw = useSyncExternalStore(subscribeNote, readNoteRaw, () => "1");
-  const key = useSyncExternalStore(
-    noSubscribe,
-    () => paletteShortcutLabel(isApplePlatform(navigator)),
-    () => "⌘K",
-  );
   if (!navNoteVisible(raw)) return null;
   return (
     <div
@@ -639,7 +560,7 @@ function NavNote() {
       className="mx-3 mb-2 flex items-start gap-2 rounded-[10px] bg-[var(--admin-primary-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-primary)]"
     >
       <p className="flex-1 pt-0.5">
-        Menü sadeleşti: eski adlarla da {key} ile bulursun.
+        Menü sadeleşti: eski adlarla da üstteki aramadan bulursun.
       </p>
       <button
         type="button"
@@ -842,7 +763,6 @@ export function AdminSidebarBody({
   density = false,
   rail = false,
   onToggleRail,
-  search = false,
 }: Pick<
   SidebarProps,
   "groups" | "email" | "roleLabel" | "landingPath" | "logout"
@@ -861,8 +781,6 @@ export function AdminSidebarBody({
   rail?: boolean;
   /** Folds or unfolds the rail; given, the fold control is drawn. */
   onToggleRail?: () => void;
-  /** The ⌘K box under the brand (the desktop column, for a role it covers). */
-  search?: boolean;
 }) {
   const items = groups.flatMap((g) => g.items);
   // Item and tab hrefs alike: /admin/kategoriler lights Ürünler.
@@ -1007,12 +925,6 @@ export function AdminSidebarBody({
           <RailToggle rail={rail} onToggle={onToggleRail} />
         ) : null}
       </div>
-      {search ? (
-        <div className={rail ? "px-2 pb-1" : "px-3 pb-1"}>
-          <SidebarSearch rail={rail} />
-        </div>
-      ) : null}
-
       {/* Nav. Folded, its scrollbar goes (it would take a quarter of the
           rail); the wheel and the keys still scroll it. */}
       <nav
@@ -1399,7 +1311,7 @@ const LOGO_SMALL = (
 
 type BodyProps = Omit<
   ComponentProps<typeof AdminSidebarBody>,
-  "idPrefix" | "rail" | "onToggleRail" | "search"
+  "idPrefix" | "rail" | "onToggleRail"
 >;
 
 /**
@@ -1410,14 +1322,7 @@ type BodyProps = Omit<
  * component, so the cashier's one-page shell never reads the preference.
  * The server and hydration draw it wide.
  */
-function DesktopAside({
-  body,
-  search,
-}: {
-  body: BodyProps;
-  /** The ⌘K box under the brand, for a role the palette covers. */
-  search: boolean;
-}) {
+function DesktopAside({ body }: { body: BodyProps }) {
   const rail = useRailPref();
   return (
     <aside
@@ -1429,7 +1334,6 @@ function DesktopAside({
         idPrefix="side"
         rail={rail}
         onToggleRail={() => writeRailPref(!rail)}
-        search={search}
       />
     </aside>
   );
@@ -1595,7 +1499,7 @@ export function AdminSidebar(props: SidebarProps) {
       <ViewPrefs />
 
       {/* Desktop sidebar */}
-      <DesktopAside body={body} search={Boolean(palette)} />
+      <DesktopAside body={body} />
 
       {/* Top bar: on a phone the menu button and the logo; on a wide screen
           the breadcrumbs, or an item's tabs on a tab's own page. Then the

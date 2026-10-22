@@ -471,7 +471,7 @@ lafmaliyet AkmanOS teması bırakıldı; köşkün arka ofis paneli
 - **Yerleşim:** gri uygulama zemini `#edeff1`; kenar çubuğu ve sayfa onun
   üstünde iki ayrı beyaz kart (köşe 12 px, pencereye 8 px, aralarında
   12 px). Kenar çubuğu 15.5rem (`--admin-side`; dar menü 4rem). Sayfa
-  kartının ilk şeridi üst çubuk (yol, ⌘K, köşk, sipariş zili; bir ögenin
+  kartının ilk şeridi üst çubuk (yol, arama alanı, köşk, sipariş zili; bir ögenin
   sekmeleri varsa altı çizili sekmeler); altında sayfa başlığı şeridi
   (18 px yarı kalın başlık, 13 px gri açıklama, sağda düğmeler, kart boyu
   1 px çizgi). İçerik kartın sol kenarından başlar; genişlik sınırı
