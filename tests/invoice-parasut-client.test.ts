@@ -124,7 +124,9 @@ beforeEach(() => {
 
 describe("the token", () => {
   it("signs in with the password once, seals the token and reuses it across clients", async () => {
-    routes.push((c) => (oauth(c) ? tokenResponse("A1", "R1") : undefined));
+    const ACCESS = "plaintext-access-token-A1";
+    const REFRESH = "plaintext-refresh-token-R1";
+    routes.push((c) => (oauth(c) ? tokenResponse(ACCESS, REFRESH) : undefined));
     routes.push((c) =>
       c.url.includes("/v4/123/products")
         ? Response.json({ data: [] })
@@ -136,12 +138,14 @@ describe("the token", () => {
     expect(grant.get("grant_type")).toBe("password");
     expect(grant.get("username")).toBe("site@laffogato.net");
     expect(grant.get("client_id")).toBe("cid");
-    expect(calls[1].headers.Authorization).toBe("Bearer A1");
+    expect(calls[1].headers.Authorization).toBe(`Bearer ${ACCESS}`);
     // Sealed: the database never holds the token or the refresh token in clear.
+    // Long plaintexts on purpose: the sealed form is random base64url, and a
+    // two-character token like "R1" turns up in it by chance (~4% a run).
     const sealed = tokens.data.get("parasut.token")!;
-    expect(sealed).not.toContain("A1");
-    expect(sealed).not.toContain("R1");
-    expect(openToken(CFG, sealed)?.access).toBe("A1");
+    expect(sealed).not.toContain(ACCESS);
+    expect(sealed).not.toContain(REFRESH);
+    expect(openToken(CFG, sealed)?.access).toBe(ACCESS);
     expect(openToken({ ...CFG, password: "other" }, sealed)).toBeNull();
     // A second client (another request) reads it instead of signing in again.
     calls = [];
