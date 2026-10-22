@@ -20,6 +20,7 @@ const destructionEnabled = vi.fn();
 const recordShownLegalVersions = vi.fn();
 const checkPushReceipts = vi.fn();
 const reconcileIys = vi.fn();
+const runInvoices = vi.fn();
 
 /** What the route sent to the database, and in what order the jobs ran. */
 const db = vi.hoisted(() => ({
@@ -54,6 +55,8 @@ vi.mock("@/lib/retention", async (importOriginal) => ({
 vi.mock("@/lib/legal/store", () => ({ recordShownLegalVersions }));
 vi.mock("@/lib/push/order-push", () => ({ checkPushReceipts }));
 vi.mock("@/lib/iys/store", () => ({ reconcileIys }));
+// The e-Arşiv run has its own tests (tests/invoice-run.test.ts).
+vi.mock("@/lib/invoice/run", () => ({ runInvoices }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
 const { KEEPALIVE_RECORD_TIMEOUT_MS } = await import(
@@ -84,6 +87,23 @@ const RETENTION = {
   recorded: false,
 };
 
+/** What the e-Arşiv run answers while EARSIV_MODE is off. */
+const INVOICES = {
+  at: "2026-10-22T06:00:00.000Z",
+  reason: "cron",
+  mode: "off",
+  errors: [],
+  created: 0,
+  updated: 0,
+  processed: 0,
+  issued: 0,
+  drafts: 0,
+  failed: 0,
+  manual: 0,
+  emailed: 0,
+  more: false,
+};
+
 const fetchMock = vi.fn();
 let logged: string[];
 
@@ -100,6 +120,7 @@ function expectOtherJobsRan(): void {
   expect(recordShownLegalVersions).toHaveBeenCalledTimes(1);
   expect(runRetention).toHaveBeenCalledTimes(1);
   expect(reconcileIys).toHaveBeenCalledTimes(1);
+  expect(runInvoices).toHaveBeenCalledTimes(1);
 }
 
 beforeEach(() => {
@@ -124,6 +145,7 @@ beforeEach(() => {
     documents: 27,
     hashes: ["a".repeat(64), "b".repeat(64)],
   });
+  runInvoices.mockResolvedValue(INVOICES);
   db.sent.length = 0;
   db.order.length = 0;
   db.answer = null;
@@ -167,7 +189,30 @@ describe("/api/cron/daily", () => {
       pushReceipts: { ok: true, read: 0, forgotten: 0, cleared: 0 },
       legalVersions: { ok: true, documents: 27 },
       retention: { ok: true, ...RETENTION },
+      // Counts only (docs/EARSIV.md): mode, numbers, never a row.
+      invoices: {
+        ok: true,
+        mode: "off",
+        errors: 0,
+        created: 0,
+        processed: 0,
+        issued: 0,
+        drafts: 0,
+        failed: 0,
+        manual: 0,
+        emailed: 0,
+        more: false,
+      },
     });
+    // The e-Arşiv step runs after retention, with at most 120 s.
+    expect(runRetention.mock.invocationCallOrder[0]).toBeLessThan(
+      runInvoices.mock.invocationCallOrder[0],
+    );
+    expect(runInvoices).toHaveBeenCalledWith({
+      budgetMs: expect.any(Number),
+      reason: "cron",
+    });
+    expect(runInvoices.mock.calls[0][0].budgetMs).toBeLessThanOrEqual(120_000);
     // Every legal text as shown today is stored before the one step that
     // deletes (D-VERSIONS-TABLE).
     expect(recordShownLegalVersions.mock.invocationCallOrder[0]).toBeLessThan(

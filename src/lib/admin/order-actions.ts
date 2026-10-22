@@ -255,7 +255,13 @@ export type OrderAttention =
   | "duplicate_payment"
   | "refund_due"
   /** The POS did not answer a refund request: it may have gone through. */
-  | "refund_unknown";
+  | "refund_unknown"
+  /**
+   * Money went back on an order whose e-Arşiv invoice was already cut
+   * (src/lib/invoice/run.ts): the issued invoice is never touched, a person
+   * cuts the return document.
+   */
+  | "invoice_refund";
 
 export const ORDER_ATTENTION_TEXT: Record<
   OrderAttention,
@@ -276,6 +282,10 @@ export const ORDER_ATTENTION_TEXT: Record<
   refund_due: {
     title: "İptal edildi, iade bekliyor",
     body: "Ödemesi alınmış sipariş iptal edildi ama para henüz geri verilmedi. 'İade başlat' ile iade et.",
+  },
+  invoice_refund: {
+    title: "Faturalı siparişte iade",
+    body: "Bu siparişin e-Arşiv faturası iadeden önce kesilmişti: iade faturası / gider pusulası gerekir. Kesilmiş fatura otomatik değiştirilmez; belgeyi muhasebeciyle Paraşüt'te düzenle, sonra işareti kaldır.",
   },
   refund_unknown: {
     title: "İadenin sonucu bilinmiyor",

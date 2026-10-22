@@ -202,6 +202,24 @@ ${SIGNATURE}`,
   // number at hand-over, the seller's cancellation, the refund. Transactional
   // and nothing else - no app strip, no offer - so the foot is the short one.
 
+  "e-arsiv-fatura": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+[FATURA_KONU] için e-Arşiv faturanız düzenlendi. Faturanın PDF hâli bu
+e-postanın ekindedir.
+
+Fatura numarası: [FATURA_NO]
+Tarih: [FATURA_TARIHI]
+Tutar (KDV dahil): [FATURA_TUTAR]
+
+[BUTON_URL]
+
+Faturanız 213 sayılı Vergi Usul Kanunu uyarınca elektronik ortamda
+(e-Arşiv) düzenlendi. Üye siparişlerinizin faturasını hesabınızdaki sipariş
+sayfasından da indirebilirsiniz. Faturanızla ilgili bir talebiniz varsa
+bizi arayın: [TELEFON]
+
+${SIGNATURE}`,
+
   "siparis-kargoda": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 #[SIPARIS_NO] numaralı siparişiniz kargoya verildi.

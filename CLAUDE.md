@@ -399,6 +399,26 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
   ve "TOPLAM CİRO" olarak, tutarlılıkta ayrı tüketim kaynağı olarak ve kasa
   raporunda bilgi satırı olarak gösterir. Ayrıntı: `docs/PANEL-SALES.md`.
 
+## e-Arşiv fatura, Paraşüt üzerinden (22 Eki 2026)
+
+- Site keser (`src/lib/invoice/`, runbook `docs/EARSIV.md`); **varsayılan
+  kapalı**: `EARSIV_MODE` off | draft (Paraşüt'te taslak, resmileştirmez,
+  mail yok) | live; `EARSIV_START_AT` (saat dilimli an) yoksa hiçbir şey
+  yapılmaz, öncesinde ödenen sipariş elle kesilmiştir. Koli "Kargoya ver"de
+  (çıktısı pakete, sipariş sayfasında "Faturayı yazdır / indir"), kafe
+  siparişi teslimde (yoksa ödemeden 3 saat sonra), karaoke saat bitince;
+  son gün teslim + 7 gün (VUK 231/5), Faturalar ve Genel bakış uyarır.
+- Kancalar (`scheduleInvoiceWork`, `after()`; ödeme, geçiş, iade), günlük
+  cron'un kendi `step`'i ve "Şimdi çalıştır". Her Paraşüt kimliği alındığı
+  anda yazılır, satır `invoice_claim` (FOR UPDATE SKIP LOCKED, 15 dk) ile
+  tek çalıştırmaya verilir; yanıtı kaybolan istekten sonra önce aranır.
+  Paraşüt toplamı 0,01 TL'den fazla tutmazsa taslak silinir, kayıt elle.
+- Elle kalır: panel siparişi (ÖKC), kurumsal (yönetici "elle kesilecek"
+  işaretler), cüzdan / ödemesiz / ödül kuponu, kesimden önce iade, listede
+  VKN'si olmayan kargo firması, okunamayan il/ilçe. Kesilmiş faturaya
+  dokunulmaz: sonraki iade `invoice_refund` dikkat işareti. Telefon ve TCKN
+  Paraşüt'e gitmez; PDF saklanmaz, üye sipariş sayfasından indirir.
+
 ## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 
 - **Fiyatlar KDV dahil; oran tutarı değiştirmez.** Oran yalnız fiyatın ne

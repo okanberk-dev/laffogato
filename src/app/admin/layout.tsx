@@ -365,6 +365,17 @@ const NAV_GROUPS: NavGroupDef[] = [
         icon: "reports",
         keywords: ["ciro", "rapor", "satış raporu"],
       },
+      // e-Arşiv invoices (docs/EARSIV.md): owner and manager, like Raporlar,
+      // whose money it is. Here and not under Bugün: Bugün is the shift's
+      // group, and the urgent part (a deadline within two days, a refund on
+      // an invoiced order, a config error) is on Genel bakış anyway.
+      {
+        href: "/admin/faturalar",
+        label: "Faturalar",
+        section: "invoices",
+        icon: "invoices",
+        keywords: ["fatura", "e-Arşiv", "Paraşüt", "earsiv", "invoice"],
+      },
       {
         href: "/admin/masalar",
         label: "Masalar",

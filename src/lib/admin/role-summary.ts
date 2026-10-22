@@ -32,6 +32,7 @@ export const SECTION_LABELS: Record<AdminSection, string> = {
   promos: "Promosyon",
   stock: "Stok",
   reports: "Raporlar",
+  invoices: "Faturalar",
   audit: "Olay kaydı",
   adminUsers: "Kullanıcılar",
   settings: "Ayarlar",

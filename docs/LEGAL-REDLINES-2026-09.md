@@ -3926,6 +3926,83 @@ değişmedi. Özellikle:
    iş günü geçerli sayılıyor; tatiller sayılmıyor (süremiz hep yasal
    süreden kısa). Yeterli mi?
 
+## 32. Y17 - e-Arşiv fatura Paraşüt üzerinden siteden kesilir; üye faturayı sipariş sayfasından indirir (22 Ekim 2026)
+
+> **Durum: kodda değişti.** Dal `work/invoice`. Kod: `src/lib/invoice/`,
+> runbook `docs/EARSIV.md`. Avukat turu yok; yalnız gerçek olmayan ya da
+> eksik kalan cümleler düzeltildi. Ön Bilgilendirme Formu ve Mesafeli Satış
+> Sözleşmesi değişmedi (cümleleri doğru kaldı), `LEGAL_UPDATED` taşınmadı;
+> karaoke sözleşmesi değişmedi, `KARAOKE_LEGAL_UPDATED` taşınmadı. Değişen
+> dört belge kendi tarihini taşır: İşlem Rehberi, Şirket ve İletişim
+> Bilgileri, KVKK Aydınlatma Metni, Kafe Hizmet Koşulları (**22 Ekim 2026**).
+
+### 32.1 Neden
+
+Online siparişlerin e-Arşiv faturası Paraşüt'te elle kesiliyordu; teslimden
+itibaren 7 gün içinde kesilmeyen fatura kesilmemiş sayılır (VUK m.231/5).
+Site artık faturayı Paraşüt API'si üzerinden kendisi keser: kargo kolisi
+kargoya verilince (çıktısı paketin içine, irsaliye yerine geçer), kafe
+siparişi (gel-al, masa, kurye) teslimden sonra, ödenmiş karaoke
+rezervasyonu saat bittikten sonra; PDF müşterinin siparişteki e-posta
+adresine gider ve üye siparişinde sipariş sayfasından indirilebilir.
+Kurumsal fatura otomasyonun dışındadır: yönetici, e-postayla gelen talepte
+siparişi fatura kesilmeden önce "elle kesilecek" diye işaretler.
+
+Metinlerdeki fatura cümleleri (§24.2'deki liste ve haritadaki bütün
+"fatura" geçişleri) tek tek bu davranışa karşı okundu. Doğru kalanlar
+değişmedi: ÖBF §16, MSS §9, Ödeme Koşulları §20, Teslimat ve Kargo,
+Satış Politikası §24, Şikâyet ve Uyuşmazlık, karaoke sözleşmesi §12 ve
+Şirket Bilgileri §14 tablosu. Ödül Programı §18 ve Mobil Uygulama
+Koşulları'ndaki "kuponla karşılanan tutar faturada indirim olarak yer
+alır" cümleleri muhasebeciye açık sorudur (§32.4); otomasyon ödül kuponlu
+siparişi kesmez, elle kesilmek üzere işaretler, bu yüzden metin bu turda
+değişmedi.
+
+### 32.2 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| İşlem Rehberi §9, 1. paragraf (sona eklendi) | (yoktu) | Üye olarak verdiğiniz bir siparişin faturası hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz. |
+| İşlem Rehberi §9, 2. paragraf | Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletin; ... | Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) {{EMAIL}} adresine iletin; ... |
+| Şirket Bilgileri §14, 1. paragraf (2. cümleden sonra eklendi) | (yoktu) | Üye olarak verdiğiniz bir siparişin e-Arşiv faturası hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz. |
+| Şirket Bilgileri §14, 2. paragraf | ... siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; ... | ... siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) {{EMAIL}} adresine iletmeniz gerekir; ... |
+| Kafe Hizmet Koşulları §8, 5. paragraf | Ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Fatura talebiniz hâlinde, ... | Kasada yapılan ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Mobil uygulamadan verilip çevrim içi ödenen kafe siparişleri için ise e-Arşiv fatura düzenlenir ve siparişte bildirilen e-posta adresine gönderilir (İşlem Rehberi, 9. bölüm). Kasada ödemede fatura talebiniz hâlinde, ... |
+| Kafe Hizmet Koşulları §8, tablo "Yasal belge" | Ödeme kaydedici cihaz fişi; talep hâlinde fatura | Kasada ödemede ödeme kaydedici cihaz fişi, talep hâlinde fatura; çevrim içi ödenen siparişte e-Arşiv fatura |
+| KVKK Aydınlatma §14, Paraşüt satırı, "Aktarılan veri" | Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi, kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, satın alınan ürün veya hizmet, tutar ve KDV. | Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi (il, ilçe ve siparişteki adres metni), kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, sipariş veya rezervasyon numarası ve tarihi, satın alınan ürün veya hizmet, tutar, KDV ve ödeme tarihi. Nihai tüketiciye düzenlenen faturada telefon numarası ve T.C. kimlik numarası aktarılmaz. |
+
+Gerekçeler: kurumsal bilginin "kargoya verilmeden önce" gelmesi kafe
+siparişinde anlamsızdı (kafe siparişi kargoya verilmez, faturası teslimde
+kesilir). Kafe koşulları her ödemeye ÖKC fişi vaat ediyordu; çevrim içi
+ödenen siparişin belgesi e-Arşiv faturadır. KVKK §14, Paraşüt'e giden
+veriyi eksik sayıyordu: site sipariş/rezervasyon numarasını ve tarihini,
+ödeme tarihini de gönderir; telefon ve TCKN göndermez (alıcının vergi
+numarası alanına GİB'in nihai tüketici yer tutucusu `11111111111` yazılır,
+kişisel veri değildir).
+
+### 32.3 Hukuki dayanak
+
+- VUK m.231/5: fatura malın teslimi veya hizmetin yapıldığı tarihten
+  itibaren azami 7 gün içinde düzenlenir.
+- VUK Genel Tebliği 509, e-Arşiv internet satışı: "internet_sale" bilgileri
+  (adres, ödeme şekli, ödeme aracısı, ödeme tarihi) ve mal gönderiminde
+  taşıyıcının unvanı ve VKN'si; kâğıt çıktı irsaliye yerine geçer.
+- KVKK m.10 ve Aydınlatma Tebliği m.5: aktarılan veri kategorileri.
+
+### 32.4 Muhasebeciye açık kalanlar (metin değişmedi)
+
+Ayrıntılı liste `docs/EARSIV.md` "Muhasebeciye açık sorular": ödül
+kuponunun faturada indirim mi ödeme aracı mı olduğu (Ödül Programı §18,
+Mobil Uygulama Koşulları), nihai tüketici yer tutucusu `11111111111`,
+köşkün kendi kuryesinde `shipment` bloğuna şirketin kendi unvanı ve VKN'si,
+cüzdanla ve sıfır tutarla ödenen siparişin belgesi, faturadan sonraki
+iadede gider pusulası ya da iade faturası.
+
+### 32.5 Operatöre
+
+- Metinler kodla birlikte yayımlanır; lafmobil'in çevrimdışı kopyası
+  `legal:export` ile güncellenir (İşlem Rehberi, Şirket Bilgileri, KVKK,
+  Kafe Hizmet Koşulları).
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

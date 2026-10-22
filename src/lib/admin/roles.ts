@@ -51,6 +51,7 @@ export type AdminSection =
   | "promos"
   | "stock"
   | "reports"
+  | "invoices"
   | "audit"
   | "adminUsers"
   | "settings";
@@ -95,6 +96,11 @@ const SECTION_ROLES: Record<AdminSection, AdminRole[]> = {
   promos: ["owner", "manager"],
   stock: ["owner", "manager", "staff"],
   reports: ["owner", "manager"],
+  // e-Arşiv invoices (docs/EARSIV.md): the same people who read the money in
+  // Raporlar and cut what the automation leaves by hand in Paraşüt. Not a
+  // shift task; Personel sees an order's invoice card and its PDF on the
+  // order page (orders) without the list or its actions.
+  invoices: ["owner", "manager"],
   audit: ["owner"],
   // Handing out panel access is the one privilege that can grant every other
   // one; it stays with the owner.

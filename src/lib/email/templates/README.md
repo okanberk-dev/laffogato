@@ -1,6 +1,6 @@
 # Mail şablonları
 
-Yirmi altı gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
+Yirmi yedi gönderime hazır e-posta. Tek kolon 598 px, tablo tabanlı, bütün
 stiller satır içi. E-posta tarafında JavaScript, harici CSS ve web fontu yok;
 `<style>` bloğu yalnızca satır içi stillere ek (mobil kırılma + koyu tema),
 tek başına gerekli değil.
@@ -24,6 +24,7 @@ kilitlediğine bak.
 | siparis-hazir.html        | işlemsel          | Siparişin hazır (#[SIPARIS_NO])             |
 | siparis-iptal.html        | işlemsel          | Siparişiniz iptal edildi (#[SIPARIS_NO])    |
 | siparis-iade.html         | işlemsel          | İadeniz yapıldı (#[SIPARIS_NO])             |
+| e-arsiv-fatura.html       | işlemsel          | e-Arşiv faturanız ([FATURA_REF]), PDF ekli  |
 | hos-geldin.html           | ilişki            | L'Affogato'ya hoş geldiniz                  |
 | karaoke-rezervasyon.html  | işlemsel          | Karaoke rezervasyonun onaylandı             |
 | karaoke-iptal.html        | işlemsel          | Karaoke rezervasyonun iptal edildi          |

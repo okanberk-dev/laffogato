@@ -10,6 +10,7 @@ import {
 } from "@/components/admin/forms";
 import { OrderChannelBadges } from "@/components/admin/order-badges";
 import { OrderHeaderActions } from "@/components/admin/order-actions-ui";
+import { InvoiceCard } from "@/components/admin/invoice-card";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { Badge, OrderStatusBadge, PageShell } from "@/components/admin/ui";
 import { listOrderAuditLogs } from "@/lib/admin/audit";
@@ -25,6 +26,8 @@ import { orderStatusLabel } from "@/lib/admin/order-ui";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
 import { couponSourcesForOrders } from "@/lib/customer/coupons";
+import { earsivConfigStatus } from "@/lib/invoice/config";
+import { getInvoiceForSource } from "@/lib/invoice/store";
 import {
   getOrder,
   getSettings,
@@ -70,20 +73,27 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
-  const [payments, auditRead, noticeRead, couponRead] = await Promise.all([
-    listPaymentTransactions(order.id),
-    readOrFlag(listOrderAuditLogs(order.id), "olay kaydı"),
-    readOrFlag(listOrderNotices(order.id), "e-posta kaydı"),
-    // Which coupon paid: a reward coupon is a payment, not a discount, and
-    // the KDV table then shows the invoice's split (ASK-COUPON).
-    readOrFlag(
-      couponSourcesForOrders([order]).then((m) => {
-        const source = m.get(order.orderNo);
-        return source ? [source] : [];
-      }),
-      "kupon",
-    ),
-  ]);
+  const [payments, auditRead, noticeRead, couponRead, invoiceRead] =
+    await Promise.all([
+      listPaymentTransactions(order.id),
+      readOrFlag(listOrderAuditLogs(order.id), "olay kaydı"),
+      readOrFlag(listOrderNotices(order.id), "e-posta kaydı"),
+      // Which coupon paid: a reward coupon is a payment, not a discount, and
+      // the KDV table then shows the invoice's split (ASK-COUPON).
+      readOrFlag(
+        couponSourcesForOrders([order]).then((m) => {
+          const source = m.get(order.orderNo);
+          return source ? [source] : [];
+        }),
+        "kupon",
+      ),
+      // The e-Arşiv invoice (docs/EARSIV.md); a failed read says so on the
+      // card instead of taking the order page with it.
+      readOrFlag(
+        getInvoiceForSource("order", order.id).then((r) => (r ? [r] : [])),
+        "e-Arşiv fatura",
+      ),
+    ]);
   const audits = auditRead.rows;
   const notices = noticeRead.rows;
   // The SAME money facts the server actions decide by (orderWasCollected:
@@ -189,6 +199,18 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         couponSource={couponRead.rows[0] ?? null}
         couponUnread={couponRead.failed}
       />
+
+      {order.source !== "manual" ? (
+        <div className="mt-4 print:hidden">
+          <InvoiceCard
+            row={invoiceRead.rows[0] ?? null}
+            source={{ kind: "order", id: order.id, label: `#${order.orderNo}` }}
+            mode={earsivConfigStatus(process.env).mode}
+            canManage={canAccess("invoices", session.role)}
+            unread={invoiceRead.failed}
+          />
+        </div>
+      ) : null}
     </PageShell>
   );
 }

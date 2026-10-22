@@ -53,6 +53,7 @@ import {
   type OrderNoticeOutcome,
 } from "@/lib/email/order-notices";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
+import { scheduleInvoiceWork } from "@/lib/invoice/hook";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   normalizeMobileAppConfig,
@@ -4863,6 +4864,9 @@ export async function applyPaymentSucceeded(input: {
     // The team's "yeni sipariş" mail: after the response, once per order
     // (the notice claims it; a repeated confirmation below may re-offer it).
     scheduleStaffNewOrderNotice(order.id, input.provider);
+    // The e-Arşiv row (src/lib/invoice/hook.ts): after the response, a no-op
+    // while EARSIV_MODE is off; never in the payment's way.
+    scheduleInvoiceWork(order.id);
   }
 
   // "Ödemen alındı" - the customer's only order mail before shipping - goes
@@ -4958,6 +4962,7 @@ export async function recordProviderRefund(input: {
     .update({ refunds, status: fullyRefunded ? "refunded" : order.status })
     .eq("id", input.orderId);
   if (upd.error) return { ok: false, error: upd.error.message };
+  scheduleInvoiceWork(input.orderId);
   // Same rule as the admin path: after every refund the order keeps only the
   // stamps its remaining goods earn (none once fully refunded). Without this
   // a member could farm stamps by ordering and refunding through the
@@ -5567,6 +5572,10 @@ export async function transitionOrder(
     mail = await notifyOrderPaid({ ...existing, status: map.to, paidAt });
   }
   const nextOrder = { ...existing, ...patch, status: map.to };
+  // Paid, ready/served/handed over, completed or cancelled: the e-Arşiv run
+  // looks at the order after the response (a no-op while EARSIV_MODE is
+  // off; it never delays or fails the transition).
+  scheduleInvoiceWork(id);
   // "Kargoya ver" after the tracking number was typed: the parcel has left,
   // and this is the moment the buyer is owed the number. Sent once per
   // number, so the tracking form having sent it already is a no-op here.
@@ -6341,6 +6350,9 @@ export async function finalizeRefund(
   notice?: RefundNotice,
 ): Promise<FinalizedRefund> {
   let mail: OrderNoticeOutcome | null = null;
+  // A refund on an invoiced order needs a return document by hand: the
+  // e-Arşiv run flags it after the response (src/lib/invoice/run.ts).
+  scheduleInvoiceWork(order.id);
   if (notice) {
     mail = await notifyOrderRefunded(order, notice.refund, {
       viaCard: notice.viaCard,

@@ -311,4 +311,7 @@ export const TABLES = {
   iysRecipients: "iys_recipients",
   iysEvents: "iys_events",
   iysState: "iys_state",
+  invoices: "invoices",
+  invoiceState: "invoice_state",
+  invoiceContacts: "invoice_contacts",
 } as const;

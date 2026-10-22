@@ -245,7 +245,7 @@ listesi, görsellerin yeri ve paletin nereden geldiği o klasörün
 | `render.ts`              | şablon + değer → `{subject, html, text}` + 6563 kontrolü + bayraklar (`AD`, `APP_LINKS`, `GORSEL`, `KOD`, `TARIH`, `DIPNOT`, `VURGU`, `TAKIP_LINKI`, `FIRMA`; çağırandan `ODEME_ALINDI` / `ODEME_YOK` / `KARTA_IADE`) |
 | `text.ts`                | her mesajın düz metin yarısı                                                                                                          |
 
-Yirmi beş şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
+Yirmi yedi şablon - her satırda **tetikleyici · izin sınıfı · idempotency**:
 
 | Şablon                                 | Tür               | Tetikleyici · idempotency                                                       |
 | -------------------------------------- | ----------------- | ------------------------------------------------------------------------------- |
@@ -256,6 +256,7 @@ Yirmi beş şablon - her satırda **tetikleyici · izin sınıfı · idempotency
 | `siparis-hazir`                        | işlemsel          | gel-al kafe siparişi hazır (`shipped`) ve üyenin hiçbir telefonuna bildirim ulaşmadı (izin yok, eski uygulama, misafir); üyenin "Sipariş durumu" anahtarı kapalıysa gitmez (`src/lib/push/order-push.ts`, `docs/API-MOBILE.md` §23) · (sipariş, `ready`), yeniden gönderilmez |
 | `siparis-iptal`                        | işlemsel          | `transitionOrder` iptali (toplu iptal de oradan geçer) · (sipariş, `cancelled`) |
 | `siparis-iade`                         | işlemsel          | panel iadesi (`finalizeRefund`), sağlayıcı iadesi (`recordProviderRefund`) · (sipariş, `refund:<iade id>`) |
+| `e-arsiv-fatura`                       | işlemsel          | e-Arşiv faturası Paraşüt'te resmileşince (`src/lib/invoice/run.ts`; kancalar, günlük cron, panelde "Şimdi çalıştır") · PDF ekli, kayıt başına bir kez: `invoices."emailedAt"` + `earsiv-<fatura kaydı>` anahtarı; hata olursa 5 kez geri çekilerek yeniden denenir. Ayrıntı `docs/EARSIV.md` |
 | `hos-geldin`                           | ilişki            | `sendWelcomeEmail` hazır, **çağıran yok**                                       |
 | `karaoke-rezervasyon`                  | işlemsel          | ödeme onaylandı (otomatik onay) ya da personel onayladı (`setReservationStatus`) · durum geçişi bir kez olur; ödenmişse makbuz + iki saat kuralı + imzalı rezervasyon bağlantısı + onaylanan karaoke sözleşmesinin doldurulmuş metni ek olarak |
 | `karaoke-iptal`                        | işlemsel          | üye, misafir bağlantısı, personel ya da hesap kapanışı iptal etti · aynı geçiş kilidi; ödenmişse iade tutarı; personel iptalinde nedenle açılır |
@@ -298,10 +299,15 @@ listeler; "Yeniden gönder" (onaydan sonra) aynı e-postayı, hâlâ doğruysa,
 Elle yeniden gönderilen `failed` satır, kopya çıkınca `resent` olur: aynı
 e-postanın sonraki tetiği (aynı numaranın Geliver teslim olayı, tekrar eden
 ödeme onayı) onu artık devralmaz, müşteriye ikinci bir kopya gitmez.
-Fatura e-postası bu kodun dışında: şirket e-Arşiv faturayı Paraşüt'te
-düzenler ve müşterinin siparişteki e-posta adresine gönderir (operatör, 19
-Eki 2026); sözleşme metinleri bunu yazar (`docs/LEGAL-REDLINES-2026-09.md`
-§24).
+Fatura e-postası (22 Eki 2026'dan beri) bu kodun içinde, ama yalnız
+`EARSIV_MODE=live` iken: site e-Arşiv faturayı Paraşüt API'siyle keser,
+PDF'i Paraşüt'ten indirir ve `e-arsiv-fatura` şablonuyla, ek olarak,
+siparişteki ya da rezervasyondaki e-posta adresine gönderir
+(`docs/EARSIV.md`). İşlemseldir (VUK: fatura alıcıya ulaştırılır), çıkış
+bağlantısı taşımaz; `@laffogato.local` / `@anon.local` adreslerine gitmez.
+Kapalıyken (varsayılan) ya da `draft` modunda fatura eskisi gibi Paraşüt'te
+elle kesilir ve oradan gönderilir; sözleşme metinleri ikisine de uyar
+(`docs/LEGAL-REDLINES-2026-09.md` §24, §32).
 
 Şablon değiştirdikten sonra `npm run email:build` (ya da `npm run build` /
 `npm run dev` - ikisi de kendiliğinden çalıştırır). Tarayıcıda görmek için

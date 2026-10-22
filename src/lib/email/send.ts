@@ -17,6 +17,7 @@ import {
 import { CHECKOUT_CONSENT_DOCS, KARAOKE_CONSENT_DOCS } from "@/lib/legal/meta";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
+import type { InvoiceMail } from "@/lib/invoice/run";
 
 import { renderEmail, type RenderedEmail, type RenderInput } from "./render";
 import type { EmailTemplateName } from "./templates.generated";
@@ -1012,6 +1013,41 @@ export async function sendOrderReadyEmail(
       },
     },
     idempotencyKey,
+  );
+}
+
+/**
+ * The e-Arşiv invoice, its PDF attached (docs/EARSIV.md): sent once per
+ * invoice by the e-Arşiv run (src/lib/invoice/run.ts), which keeps
+ * `invoices."emailedAt"` and passes `earsiv-<invoice id>` as the
+ * idempotency key, so a retry after a lost answer is not a second copy.
+ * Transactional (VUK: the invoice reaches the buyer), no unsubscribe link.
+ */
+export async function sendInvoiceEmail(d: InvoiceMail): Promise<SendResult> {
+  const order = d.kind === "order" && d.orderNo !== null;
+  const amount = formatTRYMinor(d.amountMinor);
+  return sendTemplateResult(
+    "e-arsiv-fatura",
+    d.to,
+    {
+      vars: {
+        AD: d.customerName.trim(),
+        FATURA_REF: order ? d.ref : `Karaoke, ${d.ref}`,
+        FATURA_KONU: order
+          ? `${d.ref} numaralı siparişiniz`
+          : `${d.ref} tarihli karaoke odası rezervasyonunuz`,
+        FATURA_NO: d.invoiceNo.trim() || "-",
+        FATURA_TARIHI: d.invoiceDay,
+        FATURA_TUTAR: amount,
+        BUTON_METIN: order ? "SİPARİŞİMİ GÖRÜNTÜLE" : "KARAOKE ODASI",
+        BUTON_URL: order ? orderUrl(d.orderNo as number) : `${SITE.url}/karaoke`,
+      },
+    },
+    d.idempotencyKey,
+    {
+      retryOnce: true,
+      attachments: [{ filename: d.filename, content: d.pdfBase64 }],
+    },
   );
 }
 
