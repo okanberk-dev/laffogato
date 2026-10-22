@@ -848,6 +848,28 @@ describe("refundOrderAction", () => {
     expect(store.finalizeRefund).not.toHaveBeenCalled();
     expect(store.setOrderAttention).not.toHaveBeenCalledWith("ord-1", "refund_unknown");
   });
+
+  it("points a refund PayNkolay already made at the buttons that record it (22 Oct 2026)", async () => {
+    store.getOrder.mockResolvedValue(order());
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.getOrderPaymentRef.mockResolvedValue(CARD_REF);
+    reservedFull();
+    providerRefund.mockRejectedValue(
+      new PaymentRefusedError(
+        "paynkolay refund reddedildi: responseCode=0 Bu kayıt daha önce iptal edilmiştir..!",
+      ),
+    );
+    const res = await actions.refundOrderAction(
+      null,
+      form({ id: "ord-1", amount: "500", reason: "İptal", token: "tok-1", destination: "card", confirm: "10023" }),
+    );
+    expect(res).toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/daha önce iptal ya da iade.*PayNkolay'dan iadeyi bul/),
+    });
+    expect(store.releaseRefund).toHaveBeenCalledWith("ord-1", "rfn-1");
+    expect(store.finalizeRefund).not.toHaveBeenCalled();
+  });
 });
 
 describe("markPaidAction", () => {

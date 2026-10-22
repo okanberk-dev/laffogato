@@ -341,10 +341,17 @@ export async function issueRefund(
         // entry (and its token) goes, and the operator may try again.
         console.error("[refund] provider refused the refund", err);
         await takeBack(order.id, reserved.refund.id, "REFUNDED");
+        // "Bu kayıt daha önce iptal edilmiştir": refunded or cancelled in
+        // PayNkolay's own panel already (the 22 Oct 2026 case). The panel
+        // records that without a second request.
+        const already = /daha önce (iptal|iade)/i.test(
+          err instanceof Error ? err.message : "",
+        );
         return {
           ok: false,
-          error:
-            "Ödeme sağlayıcısı iadeyi reddetti, para geri gönderilmedi. PayNkolay panelinden bakıp tekrar dene.",
+          error: already
+            ? "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor; para ikinci kez gönderilmedi. Panelde işaretlemek için \"PayNkolay'dan iadeyi bul\" ya da \"PayNkolay'da iade ettim\"."
+            : "Ödeme sağlayıcısı iadeyi reddetti, para geri gönderilmedi. PayNkolay panelinden bak: iade orada yapıldıysa \"PayNkolay'dan iadeyi bul\" ile işaretle, değilse tekrar dene.",
         };
       }
       // A timeout, a dropped line, an answer without a code: the refund may
