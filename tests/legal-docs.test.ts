@@ -666,7 +666,7 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
       "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
     );
     expect(s14.paragraphs?.[1]).toContain(
-      `Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce ${email} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir`,
+      `Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) ${email} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir`,
     );
   });
 
@@ -986,6 +986,53 @@ describe("legal content - review of PR #196 (21 Ekim 2026)", () => {
     expect(text("kafe-hizmet-kosullari")).toContain(yours);
     expect(text("uyelik-sozlesmesi")).toContain(
       "düzeltme damga hareketlerine kayıt olarak işlenir ve Üye'nin talebi üzerine iletilen tarihli dökümde yer alır.",
+    );
+  });
+});
+
+describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (22 Ekim 2026)", () => {
+  // src/lib/invoice/ (docs/EARSIV.md): parcels at dispatch, other orders at
+  // delivery, karaoke after the evening; the PDF mailed and downloadable
+  // from the member's order page; corporate invoices stay manual
+  // (LEGAL-REDLINES §32).
+  const email = LEGAL_ENTITY.email;
+  const corporate = `siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) ${email} adresine`;
+
+  it("says when corporate details must arrive: before the invoice, whatever the order", () => {
+    const rehber = sectionOf("islem-rehberi", "9. Fatura");
+    expect(rehber.paragraphs?.[1]).toContain(corporate);
+    const s14 = sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler");
+    expect(s14.paragraphs?.[1]).toContain(corporate);
+    expect(JSON.stringify(LEGAL_DOCS)).not.toContain(
+      "siparişten sonra ve ürün kargoya verilmeden önce",
+    );
+  });
+
+  it("tells a member the invoice is on the order page too", () => {
+    expect(sectionOf("islem-rehberi", "9. Fatura").paragraphs?.[0]).toContain(
+      "Üye olarak verdiğiniz bir siparişin faturasını, düzenlendikten sonra hesabınızdaki sipariş sayfasından da indirebilirsiniz.",
+    );
+    expect(
+      sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler").paragraphs?.[0],
+    ).toContain("hesabınızdaki sipariş sayfasından da indirebilirsiniz");
+  });
+
+  it("keeps the till receipt for the till and the e-Arşiv for an order paid online (Kafe §8)", () => {
+    const s8 = sectionOf("kafe-hizmet-kosullari", "8. Ödeme Yöntemleri, Fiş ve Fatura");
+    const text = (s8.paragraphs ?? []).join(" ");
+    expect(text).toContain("Kasada yapılan ödeme karşılığında");
+    expect(text).toContain(
+      "Mobil uygulamadan verilip çevrim içi ödenen kafe siparişleri için ise e-Arşiv fatura düzenlenir",
+    );
+    expect(s8.table?.find((r) => r.key === "Yasal belge")?.value).toBe(
+      "Kasada ödemede ödeme kaydedici cihaz fişi, talep hâlinde fatura; çevrim içi ödenen siparişte e-Arşiv fatura",
+    );
+  });
+
+  it("lists in KVKK §14 exactly what the site sends Paraşüt", () => {
+    const all = JSON.stringify(findLegalDoc("kvkk-aydinlatma-metni"));
+    expect(all).toContain(
+      "Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi (il, ilçe ve siparişteki adres metni), kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, sipariş veya rezervasyon numarası ve tarihi, satın alınan ürün veya hizmet, tutar, KDV ve ödeme tarihi. Nihai tüketiciye düzenlenen faturada telefon numarası ve T.C. kimlik numarası aktarılmaz.",
     );
   });
 });

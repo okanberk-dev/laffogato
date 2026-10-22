@@ -96,6 +96,10 @@ vi.mock("@/lib/admin/store", async (importOriginal) => ({
   listOrderMoney: vi.fn(async () => new Map()),
   listProducts: vi.fn(async () => []),
 }));
+// The order's e-Arşiv invoice row (docs/EARSIV.md): none here.
+vi.mock("@/lib/invoice/store", () => ({
+  getInvoiceForSource: vi.fn(async () => null),
+}));
 vi.mock("@/components/admin/manual-order-form", () => ({
   ManualOrderForm: recorder("ManualOrderForm"),
 }));

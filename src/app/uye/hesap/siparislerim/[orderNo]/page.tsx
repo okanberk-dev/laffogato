@@ -5,6 +5,7 @@ import { AccountShell, AccountCard } from "@/components/uye/account-shell";
 import type { OrderLegalConsent } from "@/lib/admin/store";
 import { requireCustomer } from "@/lib/customer/auth";
 import { memberOrders } from "@/lib/customer/member-orders";
+import { getInvoiceForSource } from "@/lib/invoice/store";
 import { orderDurableCopyAvailable } from "@/lib/legal/durable-copy-load";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 
@@ -84,6 +85,22 @@ export default async function OrderDetailPage({
       return false;
     }))
       ? `/uye/hesap/siparislerim/${order.orderNo}/sozlesme`
+      : null;
+
+  // The e-Arşiv invoice, once it is cut (docs/EARSIV.md): a download from
+  // ./fatura, which checks the owner again and streams the PDF from
+  // Paraşüt. A read that fails leaves the card out, never the page.
+  const invoice = await getInvoiceForSource("order", order.id).catch(
+    (err: unknown) => {
+      console.warn(
+        `[earsiv] order ${order.orderNo}: invoice unknown (${err instanceof Error ? err.message.slice(0, 120) : "error"})`,
+      );
+      return null;
+    },
+  );
+  const invoiceHref =
+    invoice && invoice.status === "issued" && invoice.eDocumentId
+      ? `/uye/hesap/siparislerim/${order.orderNo}/fatura`
       : null;
 
   return (
@@ -233,6 +250,35 @@ export default async function OrderDetailPage({
           )}
         </div>
       </AccountCard>
+
+      {invoiceHref && invoice ? (
+        <AccountCard title="e-Arşiv faturası">
+          <div style={{ display: "grid", gap: 14, fontSize: 14 }}>
+            {invoice.invoiceNo ? (
+              <DetailRow k="Fatura no" v={invoice.invoiceNo} />
+            ) : null}
+            {invoice.issuedAt ? (
+              <DetailRow k="Düzenlendi" v={formatDate(invoice.issuedAt)} />
+            ) : null}
+          </div>
+          <p
+            style={{
+              margin: "16px 0 10px",
+              color: "var(--ink-soft)",
+              fontSize: 14,
+              lineHeight: 1.6,
+            }}
+          >
+            {invoice.emailedAt
+              ? "Faturan e-Arşiv olarak düzenlendi ve siparişteki e-posta adresine gönderildi. Buradan da indirebilirsin."
+              : "Faturan e-Arşiv olarak düzenlendi. Buradan indirebilirsin."}
+          </p>
+          {/* A file, not a page: a plain link, never prefetched. */}
+          <a href={invoiceHref} download className="btn btn-outline btn-sm">
+            Faturayı indir (PDF)
+          </a>
+        </AccountCard>
+      ) : null}
 
       <AccountCard title="Sözleşmeler ve onay kaydı">
         {consent ? (

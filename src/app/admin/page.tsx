@@ -44,6 +44,9 @@ import {
 } from "@/lib/admin/store";
 import { emailHealth, type EmailHealth } from "@/lib/email/health";
 import { loadIysAttention, type IysAttention } from "@/lib/iys/store";
+import { earsivConfigStatus } from "@/lib/invoice/config";
+import { INVOICES_PATH, invoiceDashboardAlert } from "@/lib/invoice/panel-core";
+import { listAttentionInvoices } from "@/lib/invoice/store";
 import { istanbulClock } from "@/lib/mobile/venue";
 
 export const metadata = { title: "Admin · Genel Bakış" };
@@ -77,6 +80,26 @@ async function readIysAttention(now: Date): Promise<IysAttention | null> {
       err instanceof Error ? err.message.replace(/\S+@\S+/g, "***") : "",
     );
     return null;
+  }
+}
+
+/**
+ * The e-Arşiv rows that need a person, for the roles with Faturalar, while
+ * the automation is on. A failed read is a line of its own, not a broken
+ * landing page.
+ */
+async function readInvoiceAlert(
+  role: Parameters<typeof canAccess>[1],
+  now: Date,
+) {
+  if (!canAccess("invoices", role)) return null;
+  const config = earsivConfigStatus(process.env);
+  if (config.mode === "off") return null;
+  try {
+    return invoiceDashboardAlert(await listAttentionInvoices(), now, config);
+  } catch (err) {
+    console.error("[admin] e-Arşiv faturaları okunamadı", err);
+    return { tone: "warning" as const, parts: ["fatura kayıtları okunamadı"] };
   }
 }
 
@@ -146,7 +169,7 @@ export default async function AdminDashboardPage() {
     : null;
   // The settings read is awaited for its failure only: the header no longer
   // prints the café's name.
-  const [stats, recent, , mail, revenue, karaoke, keepalive, iys] =
+  const [stats, recent, , mail, revenue, karaoke, keepalive, iys, invoiceAlert] =
     await Promise.all([
       getDashboardStats(),
       // Five rows, read as five rows: this used to be every order in the
@@ -163,6 +186,7 @@ export default async function AdminDashboardPage() {
       readKeepaliveFor(role, loadSupabaseKeepalive),
       // İYS deadlines, for the roles that run the bulletin (owner, manager).
       canAccess("newsletter", role) ? readIysAttention(now) : null,
+      readInvoiceAlert(role, now),
     ]);
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
 
@@ -222,6 +246,23 @@ export default async function AdminDashboardPage() {
         works the line stays in Ayarlar → Sistem durumu (operator, 21 Oct
         2026: the routine line does not belong here).
       */}
+      {/*
+        e-Arşiv (docs/EARSIV.md): an invoice later than 7 days after delivery
+        counts as never cut (VUK m.231/5), so the deadlines are said here,
+        two days ahead and loudly after.
+      */}
+      {invoiceAlert ? (
+        <DashboardNotice tone={invoiceAlert.tone}>
+          <strong>e-Arşiv:</strong> {invoiceAlert.parts.join("; ")}.{" "}
+          <Link
+            href={`${INVOICES_PATH}?durum=dikkat`}
+            className="font-medium underline underline-offset-4"
+          >
+            Faturalar
+          </Link>
+        </DashboardNotice>
+      ) : null}
+
       {keepaliveAlarm?.tone === "warning" ? (
         <KeepaliveStatusLine view={keepaliveAlarm} />
       ) : null}

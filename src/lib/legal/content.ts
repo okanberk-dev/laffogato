@@ -1263,6 +1263,10 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "İşlem Rehberi",
     shortTitle: "İşlem Rehberi",
     // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30.
+    // 22 Ekim 2026: §9 says a member downloads the invoice from the order page,
+    // and when corporate details must arrive: before the invoice, which a
+    // parcel gets at dispatch and any other order at delivery (e-Arşiv through
+    // Paraşüt, docs/EARSIV.md; LEGAL-REDLINES §32).
     category: "Sipariş",
     summary:
       "{{SITE}} ve {{BRAND}} mobil uygulaması üzerinden sipariş vermenin ve karaoke odası ayırtmanın adımlarını, girdiğiniz bilgileri sipariş vermeden önce nasıl görüp düzelteceğinizi, sözleşme metninin nasıl saklandığını ve ona nasıl ulaşacağınızı, faturanın size nasıl geldiğini ve uyuşmazlıkta başvuru yollarını anlatır.",
@@ -1359,8 +1363,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "9. Fatura",
         paragraphs: [
-          "Ödenen her sipariş için fatura e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Karaoke odası rezervasyonunun faturası rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir.",
-          "Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletin; ödeme adımında bu bilgiler için ayrı bir alan yoktur. Ayrıntılar Şirket ve İletişim Bilgileri sayfasının 14. bölümündedir.",
+          "Ödenen her sipariş için fatura e-Arşiv fatura olarak düzenlenir ve siparişte bildirdiğiniz e-posta adresine gönderilir. Kargoyla gönderilen siparişlerde faturanın kâğıt çıktısı irsaliye yerine geçer ve ürünle birlikte gönderilir. Karaoke odası rezervasyonunun faturası rezervasyon gününden itibaren en geç 7 gün içinde düzenlenir. Üye olarak verdiğiniz bir siparişin faturasını, düzenlendikten sonra hesabınızdaki sipariş sayfasından da indirebilirsiniz.",
+          "Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) {{EMAIL}} adresine iletin; ödeme adımında bu bilgiler için ayrı bir alan yoktur. Ayrıntılar Şirket ve İletişim Bilgileri sayfasının 14. bölümündedir.",
         ],
       },
       {
@@ -5755,6 +5759,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // code; no stamp by typed e-mail, a missed one is corrected by a
     // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
     // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30.
+    // 22 Ekim 2026: §14 names what reaches Paraşüt for an invoice (the order or
+    // booking number and dates; no phone, no TCKN for a consumer), now that
+    // the site sends it (docs/EARSIV.md; LEGAL-REDLINES §32).
     category: "Veri & Gizlilik",
     summary:
       "6698 sayılı Kanun'un 10. maddesi uyarınca {{BRAND}} internet sitesi ve mobil uygulamasında hangi kişisel verilerin hangi amaç ve hukuki sebeple işlendiğini, kimlere aktarıldığını, ne kadar saklandığını ve ilgili kişinin haklarını açıklayan aydınlatma metnidir.",
@@ -6219,7 +6226,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           {
             key: "Elektronik fatura hizmet sağlayıcısı Paraşüt (Paraşüt Yazılım Teknolojileri A.Ş., Türkiye) ile muhasebe ve mali müşavirlik hizmeti sağlayıcıları",
             value:
-              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, fiş düzenlenmesi, defter ve beyan süreçleri. Paraşüt bu verileri veri işleyen sıfatıyla, yalnızca faturanın düzenlenmesi ve saklanması için işler. Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi, kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, satın alınan ürün veya hizmet, tutar ve KDV. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
+              "Faturanın (e-Arşiv fatura veya e-fatura) Paraşüt üzerinden düzenlenmesi, fiş düzenlenmesi, defter ve beyan süreçleri. Paraşüt bu verileri veri işleyen sıfatıyla, yalnızca faturanın düzenlenmesi ve saklanması için işler. Aktarılan veri: faturadaki ad-soyad veya ticaret unvanı, fatura adresi (il, ilçe ve siparişteki adres metni), kurumsal faturada vergi dairesi ve vergi kimlik numarası, faturanın iletildiği e-posta adresi, sipariş veya rezervasyon numarası ve tarihi, satın alınan ürün veya hizmet, tutar, KDV ve ödeme tarihi. Nihai tüketiciye düzenlenen faturada telefon numarası ve T.C. kimlik numarası aktarılmaz. Hukuki sebep: KVKK m.5/2-a ve m.5/2-ç (213 sayılı Vergi Usul Kanunu, 6102 sayılı Türk Ticaret Kanunu).",
           },
           {
             key: "Hukuk, denetim ve danışmanlık hizmeti alınan kişi ve kuruluşlar",
@@ -12766,6 +12773,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     title: "Şirket ve İletişim Bilgileri",
     shortTitle: "Şirket Bilgileri",
     category: "Kurumsal",
+    // 22 Ekim 2026: §14 a member downloads the e-Arşiv invoice from the order
+    // page; corporate details arrive before the invoice is cut (at dispatch
+    // for a parcel, at delivery otherwise). LEGAL-REDLINES §32.
     summary:
       "{{SITE_URL}} adresini, {{BRAND}} mobil uygulamasını ve markayı işleten hizmet sağlayıcının unvan, adres, vergi, iletişim ve altyapı bilgilerini; müşteri hizmetleri kanallarını, resmî sosyal medya hesaplarını ve başvuru mercilerini sunar.",
     references: [
@@ -13529,8 +13539,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
       {
         heading: "14. Faturalama ve Vergisel Bilgiler",
         paragraphs: [
-          "İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz.",
-          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve ürün kargoya verilmeden önce {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
+          "İnternet sitesi ve mobil uygulama üzerinden ödenen siparişler ile karaoke odası rezervasyonları için 213 sayılı Vergi Usul Kanunu ve ilgili tebliğler uyarınca elektronik fatura düzenlenir: e-Arşiv fatura, e-Fatura kullanıcısı olan alıcılara e-Fatura. e-Arşiv fatura siparişte veya rezervasyonda bildirdiğiniz e-posta adresine gönderilir. Üye olarak verdiğiniz bir siparişin e-Arşiv faturasını hesabınızdaki sipariş sayfasından da indirebilirsiniz. Faturanız e-postanıza ulaşmadıysa ya da faturanızla ilgili bir talebiniz varsa {{EMAIL}} adresine yazabilirsiniz.",
+          "Fatura bilgilerinin doğruluğu, sipariş adımında girdiğiniz bilgilere bağlıdır. Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) {{EMAIL}} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir, e-Fatura kullanıcısıysanız e-Fatura olarak; fatura kesildikten sonra unvan veya vergi bilgisi değişikliği talepleri, mevzuatın izin verdiği ölçüde ve iade-yeniden fatura yöntemiyle karşılanabilir.",
           "İade ve cayma hâllerinde, faturanın iade bölümünün doldurulup imzalanarak Şirkete ulaştırılması veya mükellef alıcılar bakımından iade faturası düzenlenmesi gerekebilir. Bu, muhasebe kaydının kapatılabilmesi için gerekli usuli bir adımdır; belge eksikliği cayma hakkınızın kullanımını ve iade süresini etkilemez.",
         ],
         table: [
@@ -14363,6 +14373,9 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
     // code; no stamp by typed e-mail, a missed one is corrected by a
     // manager at the member's request (ASK-LOYALTY, LEGAL-REDLINES §28).
     // 22 Ekim 2026: the set's day (LEGAL_UPDATED), LEGAL-REDLINES §30.
+    // 22 Ekim 2026: §8 the till receipt is for payments at the till; a cafe
+    // order paid online in the app gets its e-Arşiv invoice by e-mail
+    // (LEGAL-REDLINES §32).
     category: "Kurumsal",
     summary:
       "{{BRAND}} kafesinde yerinde sunulan yiyecek-içecek hizmetine, karaoke odası rezervasyonuna, özel etkinliklere, mobil uygulamadan verilen kafe siparişlerine, mobil uygulama kullanımına, sadakat damgası ve ücretsiz içecek kuponu kurallarına ve misafir haklarına ilişkin usul ve esasları düzenleyen metindir.",
@@ -14563,7 +14576,7 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           "Kart ile yapılan ödemeler, 5464 sayılı Banka Kartları ve Kredi Kartları Kanunu ile 6493 sayılı Kanun kapsamında yetkilendirilmiş kuruluşların altyapısı üzerinden gerçekleştirilir. İşletme, kart numarası, son kullanma tarihi veya güvenlik kodu gibi kart verilerini kaydetmez, saklamaz ve fotoğraflamaz. Kart verileri yalnızca ödeme terminali üzerinden ilgili kuruluşa iletilir.",
           "Web sitesi ve mobil uygulama üzerinden yapılan ödemeler (online mağaza siparişleri, mobil uygulamadan verilen kafe siparişleri ve karaoke odası rezervasyonları), 6493 sayılı Kanun kapsamında faaliyet gösteren elektronik para kuruluşu PayNkolay (N Kolay Ödeme ve Elektronik Para Kuruluşu A.Ş.) altyapısı üzerinden tahsil edilir. Özel etkinlik ön ödemeleri için çevrim içi ödeme alınmaz. Kart numarası, son kullanma tarihi ve güvenlik kodu (CVV) {{SITE}} üzerindeki güvenli ödeme sayfasında girilir; mobil uygulamada bu sayfa cihazınızın tarayıcı penceresinde açılır. Bu bilgiler şifreli (TLS) bağlantıyla İşletmenin sunucusuna ve aynı istekte yalnızca PayNkolay'a iletilir; İşletme bunları kaydetmez, saklamaz ve kayıt (log) sistemlerine yazmaz. Ödeme sayfası üçüncü taraf betik çalıştırmaz ve başka bir siteye gömülemez. Ardından doğrudan kartı veren bankanın 3D Secure ekranına yönlendirilir ve işlemi orada onaylarsınız; her kartlı ödemede 3D Secure doğrulaması zorunludur. Çevrim içi ödemelerde online alışverişe açık kredi ve banka kartları kabul edilir; ödemeler tek çekim olarak alınır, taksit seçeneği ve ön provizyon uygulanmaz, tutar onay anında tahsil edilir; dijital cüzdan (Apple Pay, Google Pay vb.) ile banka havalesi veya EFT çevrim içi ödeme yöntemi olarak kabul edilmez. Sipariş toplamının sıfır olduğu durumlarda (örneğin kuponun ürün tutarının tamamını karşıladığı ve kurye ücretinin bulunmadığı siparişlerde) kart ödemesi alınmaz. Kart bilgileriniz sonraki ödemeler için kaydedilmez: İşletme kart bilgisi saklamaz, PayNkolay'dan da kartınızın saklanmasını istemez.",
           "Çevrim içi ödemenin sonucu, tarayıcının veya uygulamanın döndürdüğü bilgiyle değil, İşletme sunucusunun PayNkolay'ın işlem doğrulama servisine doğrudan yaptığı sorguyla teyit edilir. Sipariş yalnızca bu sorgu ödemenin başarılı olduğunu ve tahsil edilen tutarın sipariş tutarıyla aynı olduğunu gösterdiğinde ödenmiş sayılır; aynı işlem referansı ikinci kez kaydedilemez. Ödeme sayfasından siteye dönülmeden tarayıcı kapanırsa İşletme, ödenmemiş görünen siparişi iptal etmeden önce ödemenin durumunu PayNkolay'a sorar. İade işlemleri PayNkolay'ın iptal ve iade hizmeti üzerinden, ödemenin yapıldığı karta gerçekleştirilir; ödemeyle aynı gün yapılan iade işlemin iptali, sonraki günlerde yapılan iade olarak bankaya iletilir ve tutarın kart hesabına yansıma süresi bankaya bağlıdır. Siparişin yalnızca bir bölümünün iadesinde tutar aynı karta iade edilir; bunun teknik olarak mümkün olmadığı hâllerde size bilgi verilir ve tutar, mevzuatta öngörülen süre içinde kendi adınıza kayıtlı bir banka hesabına havale veya EFT ile ödenir.",
-          "Ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Fatura talebiniz hâlinde, fatura bilgilerinizi (gerçek kişi için ad-soyad ve varsa vergi kimlik bilgisi; tüzel kişi için ticaret unvanı, vergi dairesi ve vergi kimlik numarası) ödeme anında veya vergi mevzuatında öngörülen süre içinde {{EMAIL}} adresine bildirmeniz gerekir.",
+          "Kasada yapılan ödeme karşılığında, 213 sayılı Vergi Usul Kanunu ve ilgili mevzuat uyarınca ödeme kaydedici cihaz fişi düzenlenir ve Misafire verilir. Mobil uygulamadan verilip çevrim içi ödenen kafe siparişleri için ise e-Arşiv fatura düzenlenir ve siparişte bildirilen e-posta adresine gönderilir (İşlem Rehberi, 9. bölüm). Kasada ödemede fatura talebiniz hâlinde, fatura bilgilerinizi (gerçek kişi için ad-soyad ve varsa vergi kimlik bilgisi; tüzel kişi için ticaret unvanı, vergi dairesi ve vergi kimlik numarası) ödeme anında veya vergi mevzuatında öngörülen süre içinde {{EMAIL}} adresine bildirmeniz gerekir.",
           "Elektronik fatura veya elektronik arşiv fatura düzenlenmesi hâlinde belge, vergi mevzuatında öngörülen usule göre düzenlenir ve size iletilir. Bildirilen bilgilerin eksik veya hatalı olması nedeniyle düzenlenemeyen ya da yanlış düzenlenen belgelerden Misafir sorumludur; düzeltme talepleri mevzuatın izin verdiği ölçüde karşılanır.",
           "Ödeme sırasında oluşan çift çekim, hatalı tutar veya provizyon sorunlarında durumu derhâl kasaya bildiriniz. İşletme, hatalı işlemin iptali veya iadesi için ilgili banka ya da ödeme kuruluşu nezdinde gerekli işlemi başlatır. Çevrim içi ödemede aynı sipariş için birden fazla tahsilat oluştuğu tespit edilirse fazla tutar ödemenin yapıldığı karta iade edilir ve size bildirilir. Kart iadelerinin Misafirin hesabına yansıma süresi bankalar arası mutabakat sürecine bağlıdır ve İşletmenin kontrolünde değildir.",
           "Hesap, masa bazında düzenlenir. Yoğun saatlerde çok sayıda parçalı ödeme talebi servis akışını etkileyebileceğinden, mümkün olduğunca hesabın topluca kapatılması rica edilir; ancak bu bir zorunluluk değildir.",
@@ -14592,7 +14605,8 @@ export const LEGAL_CONTENT: LegalDocSource[] = [
           },
           {
             key: "Yasal belge",
-            value: "Ödeme kaydedici cihaz fişi; talep hâlinde fatura",
+            value:
+              "Kasada ödemede ödeme kaydedici cihaz fişi, talep hâlinde fatura; çevrim içi ödenen siparişte e-Arşiv fatura",
           },
           {
             key: "Fatura talebi",

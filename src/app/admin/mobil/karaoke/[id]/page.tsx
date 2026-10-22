@@ -6,6 +6,7 @@ import {
   formatDateTime,
   formatTRY,
 } from "@/components/admin/forms";
+import { InvoiceCard } from "@/components/admin/invoice-card";
 import {
   KaraokeMakeGoodHour,
   KaraokeMakeGoodPaid,
@@ -46,6 +47,8 @@ import { firstParam } from "@/lib/admin/list-params";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
+import { earsivConfigStatus } from "@/lib/invoice/config";
+import { getInvoiceForSource } from "@/lib/invoice/store";
 import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
 import {
   getMakeGoodHourFor,
@@ -151,7 +154,7 @@ export default async function KaraokeReservationPage({
 
   const now = new Date();
   const canRefund = canAccess("refunds", session.role);
-  const [sameDay, settings, auditRead, makeGoodHour, madeGood] =
+  const [sameDay, settings, auditRead, makeGoodHour, madeGood, invoiceRead] =
     await Promise.all([
       listReservationsForDate(r.date),
       getSettings(),
@@ -160,6 +163,15 @@ export default async function KaraokeReservationPage({
       // makes good (karaoke terms §8).
       r.makeGoodUntil ? getMakeGoodHourFor(r.id) : Promise.resolve(null),
       r.makeGoodFor ? getReservation(r.makeGoodFor) : Promise.resolve(null),
+      // The e-Arşiv invoice of a paid evening (docs/EARSIV.md); a failed
+      // read says so on its card.
+      getInvoiceForSource("karaoke", r.id).then(
+        (row) => ({ row, failed: false }),
+        (err: unknown) => {
+          console.error("[admin/karaoke] e-Arşiv fatura okunamadı", err);
+          return { row: null, failed: true };
+        },
+      ),
     ]);
   const audit = auditRead ?? [];
   // A released hold whose history is unreadable may have been let go
@@ -380,7 +392,7 @@ export default async function KaraokeReservationPage({
       value: <span style={NUMERIC_STYLE}>{formatTRY(billable)}</span>,
       hint:
         billable > 0
-          ? "Köşkte kalan tutar: e-Arşiv fatura rezervasyon gününden en geç 7 gün içinde kesilir."
+          ? "Köşkte kalan tutar: e-Arşiv fatura rezervasyon saati bittikten sonra, en geç 7 gün içinde kesilir."
           : "Tamamı iade edildi ya da edilecek: fatura kesilmez.",
     },
     { label: "Kanal", value: channelLabel(r.channel) },
@@ -643,6 +655,20 @@ export default async function KaraokeReservationPage({
             rezervasyon.
           </p>
         )}
+
+        {moneyOf(r) === "paid" ||
+        moneyOf(r) === "refunding" ||
+        moneyOf(r) === "refunded" ||
+        invoiceRead.row ? (
+          <InvoiceCard
+            row={invoiceRead.row}
+            source={{ kind: "karaoke", id: r.id, label: r.id }}
+            mode={earsivConfigStatus(process.env).mode}
+            canManage={canAccess("invoices", session.role)}
+            unread={invoiceRead.failed}
+            now={now}
+          />
+        ) : null}
 
         <Section title="Geçmiş" description="Yeniden eskiye, köşk saatiyle.">
           {auditRead ? null : (

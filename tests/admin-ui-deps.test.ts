@@ -463,6 +463,7 @@ describe("ui/icons.tsx", () => {
       mobileApp: "Smartphone",
       appFal: "Flag",
       reports: "ChartColumn",
+      invoices: "ReceiptTurkishLira",
       tables: "QrCode",
       settings: "Settings",
       adminUsers: "UserCog",

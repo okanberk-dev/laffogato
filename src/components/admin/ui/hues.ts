@@ -47,6 +47,7 @@ export const SECTION_HUE: Readonly<Record<AdminSection, AdminHue>> = {
   story: "violet",
   press: "violet",
   reports: "green",
+  invoices: "green",
   tables: "green",
   settings: "green",
   adminUsers: "green",

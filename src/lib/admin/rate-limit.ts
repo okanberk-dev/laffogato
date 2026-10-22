@@ -48,7 +48,8 @@ export type AuthPurpose =
   | "karaoke-hold"
   | "karaoke-guest-ip"
   | "account-deletion"
-  | "push-device";
+  | "push-device"
+  | "invoice-download";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
@@ -166,6 +167,11 @@ const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   // request mails the team and the member, so a loop of the two would be a
   // stream of mail. Six a day is three changes of mind.
   "account-deletion": 6,
+  // A member's e-Arşiv PDF (/uye/hesap/siparislerim/{no}/fatura): each
+  // download asks Paraşüt two or three times, and its limit (10 requests in
+  // 10 s) is the köşk's for invoicing too. Every download counts: ten per
+  // member in five minutes, then five minutes off.
+  "invoice-download": 10,
 };
 
 /**
@@ -188,6 +194,7 @@ const LOCKOUT_MS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
   "karaoke-hold": 12 * 60 * 60 * 1000,
   "karaoke-guest-ip": 12 * 60 * 60 * 1000,
   "account-deletion": 12 * 60 * 60 * 1000,
+  "invoice-download": 5 * 60 * 1000,
   "admin-2fa-account": 15 * 60 * 1000,
   "newsletter-signup": 15 * 60 * 1000,
   "checkout-reopen": 10 * 60 * 1000,

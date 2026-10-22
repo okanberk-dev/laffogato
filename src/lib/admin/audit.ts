@@ -50,6 +50,9 @@ export type AuditEntity =
   // İYS refused, an import of İYS's list, the operator's check. Counts
   // only, never an address.
   | "iys"
+  // An e-Arşiv invoice row (src/lib/invoice/); entityId is the row's id,
+  // "run" for a run started from the panel, "carriers" for the carrier list.
+  | "invoice"
   // The log itself, for its own CSV export.
   | "audit_log"
   // One periodic destruction run (src/lib/retention.ts), written by the

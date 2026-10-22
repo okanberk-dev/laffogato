@@ -147,6 +147,9 @@ const OWNER_BEFORE = [
   "/admin/promosyon",
   "/admin/stok-hareketleri",
   "/admin/raporlar",
+  // Added on purpose (e-Arşiv, 22 Ekim 2026, docs/EARSIV.md): owner and
+  // manager reach Faturalar.
+  "/admin/faturalar",
   "/admin/hukuk",
   "/admin/olay-kaydi",
   "/admin/kullanicilar",
@@ -175,12 +178,13 @@ const BEFORE: Record<AdminRole, string[]> = {
 };
 
 describe("what each role sees", () => {
-  it("owner 21 items in 5 groups, manager 18 in 5, staff 6 flat, cashier no chrome", () => {
+  it("owner 22 items in 5 groups, manager 19 in 5, staff 6 flat, cashier no chrome", () => {
     const groupTitles = ["Bugün", "Katalog", "Pazarlama", "İçerik", "Yönetim"];
     expect(NAV.owner.map((g) => g.title)).toEqual(groupTitles);
     expect(NAV.manager.map((g) => g.title)).toEqual(groupTitles);
-    expect(items("owner")).toHaveLength(21);
-    expect(items("manager")).toHaveLength(18);
+    // Faturalar (e-Arşiv, 22 Ekim 2026) is the 22nd item, owner and manager.
+    expect(items("owner")).toHaveLength(22);
+    expect(items("manager")).toHaveLength(19);
     expect(items("staff").map((i) => i.label)).toEqual([
       "Genel bakış",
       "Siparişler",
@@ -202,8 +206,8 @@ describe("what each role sees", () => {
   });
 
   it("every role reaches exactly the pages it reached before (items and tabs)", () => {
-    expect(BEFORE.owner).toHaveLength(30);
-    expect(BEFORE.manager).toHaveLength(26);
+    expect(BEFORE.owner).toHaveLength(31);
+    expect(BEFORE.manager).toHaveLength(27);
     for (const role of ROLES) {
       expect([...hrefsOf(role)].sort(), role).toEqual([...BEFORE[role]].sort());
     }

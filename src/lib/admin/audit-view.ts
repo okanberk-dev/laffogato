@@ -86,6 +86,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   campaign_email: "Kampanya e-postası",
   cafe_table: "Masa · QR",
   iys: "İYS",
+  invoice: "e-Arşiv fatura",
   audit_log: "Olay kaydı",
   retention: "Periyodik imha",
 };
@@ -227,6 +228,8 @@ export function auditRecordHref(
       return id ? `/admin/mobil/gonderiler/${seg}` : null;
     case "cafe_table":
       return id ? `/admin/masalar/${seg}/duzenle` : null;
+    case "invoice":
+      return "/admin/faturalar";
     case "campaign_email":
       return id ? `/admin/bulten/kampanya/${seg}` : null;
     case "legal_doc":

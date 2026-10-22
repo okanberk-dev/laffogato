@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { reconcileIys } from "@/lib/iys/store";
+import { runInvoices } from "@/lib/invoice/run";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
 import { checkPushReceipts } from "@/lib/push/order-push";
@@ -75,6 +76,7 @@ async function step<T>(name: string, run: () => Promise<T>) {
 export async function GET(request: Request) {
   const denied = cronGate(request);
   if (denied) return denied;
+  const startedAt = Date.now();
 
   // One read on Supabase's auth schema, so the project never pauses for
   // inactivity. Never throws; `ping` says whether it got through.
@@ -128,6 +130,32 @@ export async function GET(request: Request) {
     return report;
   });
 
+  // e-Arşiv invoices through Paraşüt (docs/EARSIV.md): the sweep of the
+  // last ten days' paid orders and karaoke bookings, then whatever is due,
+  // within what is left of the 300 s (at most 120 s). Off (EARSIV_MODE
+  // unset) it touches nothing. The hooks on payment, delivery and refund
+  // do the same work for one order at a time; this catches the rest, the
+  // karaoke evenings and anything a hook missed, well inside the 7 days
+  // VUK m.231/5 allows.
+  const invoices = await step("earsiv-invoices", async () => {
+    const left = 285_000 - (Date.now() - startedAt);
+    const budgetMs = Math.min(120_000, left);
+    if (budgetMs < 30_000) return { skipped: "no-time" as const };
+    const r = await runInvoices({ budgetMs, reason: "cron" });
+    return {
+      mode: r.mode,
+      errors: r.errors.length,
+      created: r.created,
+      processed: r.processed,
+      issued: r.issued,
+      drafts: r.drafts,
+      failed: r.failed,
+      manual: r.manual,
+      emailed: r.emailed,
+      more: r.more,
+    };
+  });
+
   // The ping's outcome, for the owner's dashboard. A step that threw (the
   // ping itself never does) got nowhere as far as anyone can tell: failed.
   // The record never throws either; the catch only keeps that promise here.
@@ -146,6 +174,7 @@ export async function GET(request: Request) {
       pushReceipts,
       legalVersions,
       retention,
+      invoices,
     },
     { headers: NO_STORE },
   );

@@ -139,6 +139,13 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   iys_recipients: NONE,
   iys_events: NONE,
   iys_state: NONE,
+  // e-Arşiv invoices (src/lib/invoice/, docs/EARSIV.md): read live by the
+  // panel's Faturalar page, the order and booking pages and the member's
+  // order page; the Paraşüt token, product ids and contact cache are read
+  // by the invoice runner only. Nothing caches them.
+  invoices: NONE,
+  invoice_state: NONE,
+  invoice_contacts: NONE,
 };
 
 /**
@@ -202,6 +209,10 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   birthday_greeting_audience: NONE,
   email_suppression_record: NONE,
   reserve_fal_reading: NONE,
+  // e-Arşiv: the claim of due invoices and the Paraşüt token lease write
+  // invoices and invoice_state, which nothing caches.
+  invoice_claim: NONE,
+  invoice_state_lease: NONE,
   customer_consents_retention: NONE,
   // Writes customer_devices only (20261022170000).
   register_customer_device: NONE,
