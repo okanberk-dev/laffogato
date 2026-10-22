@@ -224,7 +224,7 @@ export function MenuItemForm({
         {droppedTags.length > 0 ? (
           <p
             role="note"
-            className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+            className="rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
           >
             Bu kalemde uygulamanın tanımadığı{" "}
             {droppedTags.length === 1 ? "bir etiket" : "etiketler"} var:{" "}

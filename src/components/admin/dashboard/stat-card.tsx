@@ -6,26 +6,30 @@ import type { AdminTone } from "@/lib/admin/tone";
 import { HUE_INK, HUE_SOFT, type AdminHue } from "../ui/hues";
 import { AdminIcon, type AdminIconName } from "../ui/icons";
 import { TONE_INK } from "../ui/tone";
-import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "../ui/styles";
+import {
+  CARD as CARD_FRAME,
+  EYEBROW,
+  MONO_STYLE,
+  NUMERIC_STYLE,
+} from "../ui/styles";
 
-const CARD =
-  "@container flex min-w-0 flex-col gap-1.5 rounded-2xl p-4 print:border print:border-[var(--admin-border-strong)] print:bg-white";
+const CARD = `@container flex min-w-0 flex-col gap-2 p-4 print:border-[var(--admin-border-strong)] ${CARD_FRAME}`;
 
 /**
  * A figure on a tile: the dashboard's and the report's. Server-safe.
  *
- * The value is the kit's stat size (as on the karaoke card), not the old
- * 30 px faux-italic serif, and the tile is `min-w-0` inside its grid cell:
- * "₺123.456,78" ran 17 px past its card on a phone and past the grid on a
- * laptop (admin audit SHE-06, SYS-15). A money figure is never cut short:
- * its size follows the tile's width (`cqi`), so "₺1.272.103,89" stays on
- * one line in a phone's half-width tile, and only a still longer amount
- * wraps. The hint wraps too; it can carry an amount. With `href` the
- * whole tile is a link to the list it counts (admin audit SHE-31). With
- * `icon` a small icon beside the label names the figure at a glance; it
- * takes the value's tone, so a figure that asks for a person shows it
- * twice. With `hue` the tile is that soft colour (ui/hues.ts) and its icon
- * the colour's ink; a link then lifts a little under the pointer.
+ * Innex's KPI cell (22 Eki 2026): a white card, a small tinted icon box
+ * beside the label, the figure in 24 px bold under them and a grey line
+ * under that. The tile is `min-w-0` inside its grid cell: "₺123.456,78"
+ * ran 17 px past its card on a phone and past the grid on a laptop (admin
+ * audit SHE-06, SYS-15). A money figure is never cut short: its size
+ * follows the tile's width (`cqi`), so "₺1.272.103,89" stays on one line
+ * in a phone's half-width tile, and only a still longer amount wraps. The
+ * hint wraps too; it can carry an amount. With `href` the whole tile is a
+ * link to the list it counts (admin audit SHE-31). With `icon` the box
+ * names the figure at a glance; its ink is the value's tone when it has
+ * one, so a figure that asks for a person shows it twice. With `hue` the
+ * box takes that colour (ui/hues.ts); without, it is grey.
  */
 export function StatCard({
   label,
@@ -47,34 +51,36 @@ export function StatCard({
   money?: boolean;
   /** Decorative: the label names the figure. */
   icon?: AdminIconName;
-  /** The tile's soft colour; the stone card without. */
+  /** The icon box's colour; grey without. */
   hue?: AdminHue;
 }) {
   const body = (
     <>
-      <span className="flex min-w-0 items-start justify-between gap-2">
-        <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
-          {label}
-        </span>
+      <span className="flex min-w-0 items-center gap-2">
         {icon ? (
-          <AdminIcon
-            name={icon}
-            size={16}
+          <span
+            aria-hidden="true"
             className={cx(
-              "mt-0.5 print:hidden",
+              "grid size-7 shrink-0 place-items-center rounded-lg print:hidden",
+              hue ? HUE_SOFT[hue] : "bg-[var(--admin-panel)]",
               tone
                 ? TONE_INK[tone]
                 : hue
                   ? HUE_INK[hue]
-                  : "text-[var(--admin-text-mute)]",
+                  : "text-[var(--admin-text-soft)]",
             )}
-          />
+          >
+            <AdminIcon name={icon} size={16} />
+          </span>
         ) : null}
+        <span className={cx(EYEBROW, "truncate")} style={MONO_STYLE}>
+          {label}
+        </span>
       </span>
       <span
         title={value}
         className={cx(
-          "leading-tight font-semibold tracking-tight",
+          "leading-tight font-bold tracking-[-0.01em]",
           money
             ? "text-[clamp(1rem,11cqi,1.5rem)] [overflow-wrap:anywhere]"
             : "truncate text-xl sm:text-2xl",
@@ -85,24 +91,20 @@ export function StatCard({
         {value}
       </span>
       {hint ? (
-        <span className="text-xs break-words text-[var(--admin-text-soft)]">
+        <span className="text-xs break-words text-[var(--admin-text-mute)]">
           {hint}
         </span>
       ) : null}
     </>
   );
-  const ground = hue ? HUE_SOFT[hue] : "bg-[var(--admin-panel)]";
-  if (!href) return <div className={cx(CARD, ground)}>{body}</div>;
+  if (!href) return <div className={CARD}>{body}</div>;
   return (
     <Link
       href={href}
       className={cx(
         CARD,
-        ground,
-        hue
-          ? "transition-[box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-[0_6px_18px_rgba(28,25,23,0.08)] motion-reduce:hover:translate-y-0"
-          : "transition-colors hover:bg-[var(--admin-primary-soft)]",
-        "focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+        "transition-colors duration-150 hover:border-[var(--admin-border-field)] hover:bg-[var(--admin-surface-2)]",
+        "focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none",
       )}
     >
       {body}

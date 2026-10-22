@@ -191,7 +191,7 @@ describe("the sound toggle (ORD-27)", () => {
     expect(button).toContain('aria-pressed="true"');
     expect(button).not.toMatch(/Ses (kapalı|açık)/);
     // A 44 px target, not a 26 px chip.
-    expect(button).toContain("min-h-[44px]");
+    expect(button).toContain("min-h-11");
   });
 
   it("reads the one stored preference the new-order alert reads", () => {
@@ -231,7 +231,7 @@ describe("the phone card and the empty list (ORD-25)", () => {
     const link =
       card.match(/<a href="\/admin\/siparisler\/ord-1"[^>]*>/)?.[0] ?? "";
     expect(link).toMatch(/class="[^"]*(^|\s)underline(\s|")/);
-    expect(link).toContain("min-h-[44px]");
+    expect(link).toContain("min-h-11");
   });
 
   it("offers the way out the page decided", () => {

@@ -108,10 +108,10 @@ describe("the compact classes", () => {
       "padding-inline: calc(var(--spacing) * 4)",
       "padding: calc(var(--spacing) * 4)",
       "padding-block: calc(var(--spacing) * 1.5)",
-      "min-height: calc(var(--spacing) * 9)",
-      "min-width: calc(var(--spacing) * 9)",
-      "height: calc(var(--spacing) * 9)",
-      "width: calc(var(--spacing) * 9)",
+      "min-height: calc(var(--spacing) * 8)",
+      "min-width: calc(var(--spacing) * 8)",
+      "height: calc(var(--spacing) * 8)",
+      "width: calc(var(--spacing) * 8)",
     ]) {
       expect(css, declaration).toContain(declaration);
     }
@@ -143,11 +143,11 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       }),
     );
 
-  it("DataTable cells: py-3 stays, py-2 under compact (the row-action cell was py-2 already)", () => {
+  it("DataTable cells: py-3 stays (Innex's head py-2.5), py-2 under compact (the row-action cell was py-2 already)", () => {
     const out = table({ rowActions: () => "⋯" });
     const th = classOf(out, /<th scope="col"[^>]*>/);
     const td = classOf(out, /<td class="[^"]*px-4 py-3[^"]*">/);
-    expect(defaults(th)).toBe("px-4 py-3 whitespace-nowrap text-left");
+    expect(defaults(th)).toBe("px-4 py-2.5 whitespace-nowrap text-left");
     expect(defaults(td)).toBe("px-4 py-3 text-[var(--admin-text)] text-left");
     expect(compact(th)).toEqual([COMPACT.py2]);
     expect(compact(td)).toEqual([COMPACT.py2]);
@@ -163,22 +163,22 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     };
     const cells = [
       ...table({ selection }).matchAll(
-        /<t[hd] [^>]*class="([^"]*px-4 py-3[^"]*)"/g,
+        /<t[hd] [^>]*class="([^"]*px-4 py-(?:3|2\.5)[^"]*)"/g,
       ),
     ].map((m) => m[1].replaceAll("&amp;", "&"));
     expect(cells).toHaveLength(4);
     for (const cell of cells) expect(compact(cell)).toEqual([COMPACT.py2]);
   });
 
-  it("Section and Card: p-4 sm:p-6 stays, p-4 under compact; a section's header follows its body", () => {
+  it("Section and Card: Innex's p-4 sm:p-5 stays, p-4 under compact; a section's header follows its body", () => {
     const section = html(withKids(ui.Section, { title: "Kalemler" }, "x"));
     const header = classOf(section, /<header class="[^"]*"/);
     expect(defaults(header)).toBe(
-      "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-6 sm:pt-5",
+      "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-5",
     );
     expect(compact(header)).toEqual([COMPACT.px4, COMPACT.py2]);
-    const body = classOf(section, /<div class="p-4 sm:p-6[^"]*"/);
-    expect(defaults(body)).toBe("p-4 sm:p-6");
+    const body = classOf(section, /<div class="p-4 sm:p-5[^"]*"/);
+    expect(defaults(body)).toBe("p-4 sm:p-5");
     expect(compact(body)).toEqual([COMPACT.p4]);
     // `flush` still draws no padding at all.
     expect(
@@ -189,21 +189,22 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       /<div class="[^"]*"/,
     );
     expect(defaults(card)).toBe(
-      "rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white",
+      "rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4 sm:p-5 print:border-[var(--admin-border-strong)]",
     );
     expect(compact(card)).toEqual([COMPACT.p4]);
   });
 
-  it("controls stay 44 px and drop to 36 px under compact: buttons, icon buttons, menu rows, the framed ⋯, fields, boxes, pages, tabs", () => {
+  it("controls stay 44 px on touch, 36 px where the pointer aims, and drop to 32 px under compact: buttons, icon buttons, menu rows, the framed ⋯, fields, boxes, pages, tabs", () => {
     for (const key of Object.keys(BUTTON) as Array<keyof typeof BUTTON>) {
-      expect(BUTTON[key], key).toContain("min-h-[44px]");
-      expect(compact(BUTTON[key]), key).toContain(COMPACT.minH9);
+      expect(BUTTON[key], key).toContain("min-h-11");
+      expect(BUTTON[key], key).toContain("pointer-fine:min-h-9");
+      expect(compact(BUTTON[key]), key).toContain(COMPACT.minH8);
     }
     expect(BUTTON.icon).toContain("h-11 w-11");
     expect(compact(BUTTON.icon)).toEqual([
-      COMPACT.minH9,
-      COMPACT.h9,
-      COMPACT.w9,
+      COMPACT.minH8,
+      COMPACT.h8,
+      COMPACT.w8,
     ]);
     const control = (el: unknown, tag: RegExp) => classOf(html(el), tag);
     const buttons = [
@@ -213,15 +214,15 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
     ];
     for (const Button of buttons) {
       const cls = control(createElement(Button, null, "x"), /<button[^>]*>/);
-      expect(cls).toContain("min-h-[44px]");
-      expect(compact(cls)).toEqual([COMPACT.minH9]);
+      expect(cls).toContain("min-h-11");
+      expect(compact(cls)).toEqual([COMPACT.minH8]);
     }
     const box = control(
       createElement(forms.Checkbox, { label: "Aç", name: "a" }),
       /<label[^>]*>/,
     );
-    expect(box).toContain("min-h-[44px]");
-    expect(compact(box)).toEqual([COMPACT.minH9]);
+    expect(box).toContain("min-h-11");
+    expect(compact(box)).toEqual([COMPACT.minH8]);
     const field = control(
       createElement(forms.TextInput, { name: "a" }),
       /<input[^>]*>/,
@@ -239,13 +240,13 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
         createElement(ui.ActionMenu as never, props, "x"),
         /<summary[^>]*>/,
       );
-      expect(framed).toContain("min-h-[44px] min-w-[44px]");
-      expect(framed).toContain("border-[var(--admin-border)]");
-      expect(compact(framed)).toEqual([COMPACT.minH9, COMPACT.minW9]);
+      expect(framed).toContain("min-h-11 min-w-11");
+      expect(framed).toContain("border-[var(--admin-border-strong)]");
+      expect(compact(framed)).toEqual([COMPACT.minH8, COMPACT.minW8]);
     }
     // On its own (a row's) it is a row control (ROW_CONTROL.more, 21 Oct
-    // 2026): 44 px on a touch screen, 32 px where the pointer can aim, so
-    // below compact's 36 px and none of its classes.
+    // 2026): 44 px on a touch screen, 32 px where the pointer can aim,
+    // compact's own size, so none of its classes.
     const menu = control(
       createElement(ui.ActionMenu, null, "x"),
       /<summary[^>]*>/,
@@ -263,7 +264,7 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       }),
       /<a [^>]*h-11 min-w-11[^>]*>/,
     );
-    expect(compact(page)).toEqual([COMPACT.h9, COMPACT.minW9]);
+    expect(compact(page)).toEqual([COMPACT.h8, COMPACT.minW8]);
     const status = control(
       createElement(ui.StatusTabs, {
         tabs: [{ value: null, label: "Tümü" }],
@@ -272,8 +273,8 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       }),
       /<a [^>]*>/,
     );
-    expect(status).toContain("min-h-[40px]");
-    expect(compact(status)).toEqual([COMPACT.minH9]);
+    expect(status).toContain("min-h-9");
+    expect(compact(status)).toEqual([COMPACT.minH8]);
     const strip = control(
       createElement(SectionTabs, {
         label: "x",
@@ -282,7 +283,9 @@ describe("the kit keeps its comfortable defaults and gains the compact ones besi
       }),
       /<a [^>]*>/,
     );
+    // Innex's underlined tabs fill the top bar's height: 44 px, no compact
+    // class (the bar keeps its height either way).
     expect(strip).toContain("min-h-11");
-    expect(compact(strip)).toEqual([COMPACT.minH9]);
+    expect(compact(strip)).toEqual([]);
   });
 });

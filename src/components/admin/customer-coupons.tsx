@@ -77,7 +77,7 @@ export function CustomerCoupons({
             return (
               <li
                 key={c.id}
-                className="flex items-center justify-between gap-2 rounded-xl border border-[var(--admin-border)] p-2.5"
+                className="flex items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-2.5"
               >
                 <div className="min-w-0">
                   <div

@@ -459,39 +459,56 @@ ve her çizimin yerini tutar.
 
 ---
 
-## Admin paneli görünümü (21 Eki 2026)
+## Admin paneli görünümü (Innex, 22 Eki 2026)
 
 Bu belgedeki palet ve yazı yalnız **müşteri sitesi** içindir. Yönetim paneli
-(`/admin`) operatör kararıyla (21 Eki 2026: _"son kez lafmaliyet reposundaki
-panel tasarımı gibi bizim laffogato'nun admin panelini tasarla"_) kafenin arka
-ofis panelinin (`RiosenBeq/lafmaliyet`, ladmin.laffogato.net) **AkmanOS açık
-temasını** izler; kaynak orada `docs/TASARIM.md`:
+(`/admin`) operatör kararıyla (22 Eki 2026: _"İnnexe geç"_) Filllo'nun
+Dribbble'daki **Innex** otel yönetim paneli serisinin tasarım sistemini
+izler; ölçülmüş tarif `docs/ADMIN-INNEX.md`'de. 21 Eki 2026'da alınan
+lafmaliyet AkmanOS teması bırakıldı; köşkün arka ofis paneli
+(`RiosenBeq/lafmaliyet`) kendi temasında kalır.
 
-- Beyaz zemin ve kontroller. Aynı akşam yumuşatıldı (operatör: _"panel
-  tasarımını da yumuşatmayı ve daha estetik güzel bir görünümde vermeyi
-  unutma, renklendirebilirsin birazcık da"_): kart ve kenar çubuğu soğuk
-  zinc yerine sıcak taş `#f6f4f0`, çizgi `#e9e5de`, mürekkep `#1c1917`,
-  ikincil `#44403c`, etiket `#6b655e` (taş kartta 5.2:1).
-- Birincil düğme sıcak siyah (`#1c1917`); limon `#c0f21e` yalnız dolgu,
-  üstünde koyu `#1f3a08`. Durum: kırmızı `#dc2626` / `#b91c1c` metin, turuncu
-  `#c2410c`, mavi `#2563eb`, yeşil `#3f6212`.
-- **Grup renkleri** (`src/components/admin/ui/hues.ts`, `--admin-hue-*`):
-  menünün beş grubu birer pastel zemin ve koyu mürekkep alır, Bugün mavi
-  (`#e9f0ff` / `#1e50c8`), Katalog bal (`#fdf0da` / `#9a4f0a`), Pazarlama
-  gül (`#fde8ef` / `#b8195a`), İçerik mor (`#f0ebfe` / `#6930c8`), Yönetim
-  yeşil (`#e3f4ec` / `#0c6e50`). Kenar çubuğunun ikon karoları ve grup
-  başlığındaki nokta, sayaç rozeti, etkin satır (siyah değil, grubunun
-  zemini; karosu beyaz), telefonun alt çubuğundaki etkin hap, Genel
-  bakış'ın kartları ve "Hızlı ekle" ikonları bu rengi taşır; ciro grafiği
-  yeşil. Her mürekkep kendi zemininde ve beyazda AA'yı geçer.
-- Yazı **Geist Sans**, kod ve kısayol **Geist Mono** (`next/font/google`,
-  yalnız `src/app/admin/layout.tsx`); panel kökünde sitenin yazı token'ları
-  (`--headline`, `--display`, `--mono` ...) Geist'e yönlenir. Panel içindeki
-  site önizlemesi (`data-site-preview`) ve basılı masa kartları sitenin
-  sesinde (Poppins / Gabarito) kalır.
-- Kart `rounded-3xl`, istatistik `rounded-2xl`, pencere `rounded-3xl` ve
-  sıcak gölge `0 12px 40px rgba(28,25,23,.14)`, rozet 11px hap, kenar
-  çubuğu 17.5rem (`--admin-side`; dar menü 4rem). Logo L'Af kalır.
+- **Yerleşim:** gri uygulama zemini `#edeff1`; kenar çubuğu ve sayfa onun
+  üstünde iki ayrı beyaz kart (köşe 12 px, pencereye 8 px, aralarında
+  12 px). Kenar çubuğu 15.5rem (`--admin-side`; dar menü 4rem). Sayfa
+  kartının ilk şeridi üst çubuk (yol, ⌘K, köşk, sipariş zili; bir ögenin
+  sekmeleri varsa altı çizili sekmeler); altında sayfa başlığı şeridi
+  (18 px yarı kalın başlık, 13 px gri açıklama, sağda düğmeler, kart boyu
+  1 px çizgi). İçerik kartın sol kenarından başlar; genişlik sınırı
+  (`PageShell`) bloklara uygulanır. Telefonda kart yok: beyaz sayfa ve alt
+  sekme çubuğu.
+- **Renk:** beyaz yüzey, soluk kuyu `#f9fbfc` (tablo başlığı, iç kutu),
+  gri `#f3f5f7` (etkin menü satırı, sayaç, segment rayı); çizgi `#e8e8e8`,
+  satır ayracı `#f2f2f2`, ikincil düğme kenarı `#e3e3e3`; mürekkep
+  `#0c0e1b`, gövde gri `#3d4048`, etiket gri `#616367` (gri zeminde
+  5.2:1). Birincil mavi `#2f58f7`: Innex'in `#325cff`'inin bir ton koyusu,
+  çünkü o gri zeminde 4.43:1 kalıyor. Bağlantı ve odak halkası da bu mavi.
+- **Durum tonları** açık zemin üstünde renkli metin; Innex'in yeşil ve
+  turuncu metni zemininde ~2:1 olduğu için koyulaştırıldı (tarif §4):
+  yeşil `#15803d` / `#e1faed`, turuncu `#b45309` / `#fff2e6`, kırmızı metin
+  `#b42318` / `#feebed` (düğme `#dc2626`), bilgi camgöbeği `#0b7392` /
+  `#eaf8fd`, vurgu mor `#6d3fea` / `#f6f1ff`. Bilgi ve vurgu Innex'in
+  camgöbeği ve moru: "Ödendi", "Hazırlanıyor" ve "Kargoda" üç mavi değil,
+  üç ayrı renk kalsın diye.
+- **Grup renkleri** (`ui/hues.ts`, `--admin-hue-*`) artık Innex'in renkli
+  ikon kutuları: Genel bakış ve rapor kartlarındaki 28 px kutu, "Hızlı
+  ekle". Kenar çubuğu, alt çubuk ve sayaçlar renksizdir (Innex: etkin satır
+  gri, renkli çizgi ya da mavi vurgu yok).
+- **Yazı Inter** (`next/font/google`, yalnız `src/app/admin/layout.tsx`);
+  panel kökünde sitenin yazı token'ları (`--headline`, `--display`,
+  `--mono` ...) Inter'e yönlenir. Tutar ve kodlar Inter'in tablo rakamları
+  (`NUMERIC_STYLE`); karakter karakter okunan kimlik, parmak izi, 2FA
+  anahtarı ve Markdown sistemin eş genişlikli yazısında (`CODE_STYLE`).
+  Panel içindeki site önizlemesi (`data-site-preview`) ve basılı masa
+  kartları sitenin sesinde (Poppins / Gabarito) kalır.
+- **Bileşenler:** düğme köşe 8 px, 14 px orta kalınlık, dokunmatikte 44,
+  farede 36, "Sıkı görünüm"de 32 px; alan 40-44 px, kenarı `#898d94` (boş
+  alan 3:1 ile bulunsun diye Innex'ten koyu); kart beyaz, 1 px çizgi,
+  gölgesiz; tablo başlığı soluk kuyuda 13 px gri; durum rozeti köşe 6 px,
+  22 px, 12 px; durum sekmeleri Innex'in kutu çipleri (etkin olan koyu
+  kenarlı, sayaç gri); sayfa çubuğu gri ray üstünde beyaz kutu; açılır
+  menü köşe 10 px ve hafif gölge; pencere karartması %20; ciro grafiği
+  koyu mavi `#2132ba` çizgi, lavanta `#e3e7ff` dolgu, kesikli ızgara.
 - Satırda tekrar eden küçük kontroller (↑ / ↓, tek başına ⋯, satırın metin
   eylemi) sakin: soluk mürekkep, en çok ince çizgi; dokunmatikte 44 px,
   fareyle 28-32 px (`ROW_CONTROL`; `docs/ADMIN.md` "Satır kontrolleri").
@@ -520,6 +537,7 @@ yazısı ve bu belgedeki kurallar değişmedi.
 | 17 Eki 2026 | **Çizimler ve karaoke** (operatör): anasayfada karaoke bandı ve dördüncü hero slaytı (mikrofon kesimi), sadakat bloğunda damga baskısı, fotoğrafı olmayan yerlere elle çizilmiş SVG'ler ve `<PageHero art>` (§6.1).                    |
 | 21 Eki 2026 | **Admin paneli AkmanOS** (operatör): panel lafmaliyet'in açık temasını ve Geist'i aldı (yukarıda "Admin paneli görünümü"); müşteri sitesinin paleti ve yazısı değişmedi. |
 | 21 Eki 2026 | **Admin paneli yumuşatıldı** (operatör, akşam): zinc yerine sıcak taş, sıcak siyah mürekkep, menü gruplarına beş pastel renk, etkin satır siyah değil grubunun rengi; müşteri sitesi değişmedi. |
+| 22 Eki 2026 | **Admin paneli Innex** (operatör: "İnnexe geç"): gri zemin üstünde iki beyaz kart, Inter, mavi birincil, sakin kenar çubuğu, Innex bileşenleri (`docs/ADMIN-INNEX.md`); AkmanOS teması lafmaliyet'te kaldı, müşteri sitesi değişmedi. |
 
 Bağlantı önizlemesi (`opengraph-image.tsx`), JSON-LD ikonları
 (`scripts/gen-icons.mjs` → `public/icon-*.png`) ve PayNkolay köprüsü de

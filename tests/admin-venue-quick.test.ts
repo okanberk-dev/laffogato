@@ -32,8 +32,7 @@ vi.mock("next/link", () => ({
   useLinkStatus: () => ({ pending: false }),
 }));
 vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans", className: "" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
+  Inter: () => ({ variable: "font-admin-sans", className: "" }),
 }));
 vi.mock("@/components/admin/admin-search", () => ({
   TopBarSearch: () => createElement("div", { id: "search" }),

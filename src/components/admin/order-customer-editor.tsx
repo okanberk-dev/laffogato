@@ -139,7 +139,7 @@ export function OrderCustomerEditor({
                 />
               </Field>
               {emailChanges(customerEmail, vals.customerEmail) ? (
-                <label className="flex items-start gap-3 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-text)]">
+                <label className="flex items-start gap-3 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-text)]">
                   <input
                     type="checkbox"
                     name="emailConfirm"
@@ -194,7 +194,7 @@ export function OrderCustomerEditor({
           {state.error ? (
             <p
               role="alert"
-              className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+              className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
             >
               {state.error}
             </p>

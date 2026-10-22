@@ -45,7 +45,7 @@ export function LowStockWidget({
                 </>
               );
               const row =
-                "flex min-h-[44px] items-center justify-between gap-3 py-1 text-sm text-[var(--admin-text)]";
+                "flex min-h-11 pointer-fine:min-h-9 items-center justify-between gap-3 py-1 text-sm text-[var(--admin-text)]";
               return (
                 <li key={p.id}>
                   {href ? (

@@ -43,7 +43,7 @@ export interface KaraokeRefundCancelProps {
 }
 
 const RADIO = "h-5 w-5 shrink-0 accent-[var(--admin-primary)]";
-const CHOICE = "flex min-h-[44px] items-center gap-3 text-sm";
+const CHOICE = "flex min-h-11 pointer-fine:min-h-9 items-center gap-3 text-sm";
 
 /** What the chosen code will do, in one sentence under the list. */
 function outcome(cause: KaraokeCancelCause | "", p: KaraokeRefundCancelProps) {
@@ -105,14 +105,14 @@ function CancelFields(p: KaraokeRefundCancelProps & { clientAtDraw: number }) {
       {isBusinessCause(cause) && p.callHint ? (
         <p
           role="status"
-          className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+          className="rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
         >
           {KARAOKE_CALL_HINT}
         </p>
       ) : null}
 
       {cause === "misafir" ? (
-        <div className="flex flex-col gap-4 rounded-xl border border-[var(--admin-border)] p-3.5">
+        <div className="flex flex-col gap-4 rounded-lg border border-[var(--admin-border)] p-3.5">
           <Field label="İstek nereden geldi?" as="fieldset">
             <div className="flex flex-wrap gap-x-6">
               {KARAOKE_REQUEST_CHANNELS.map((c) => (
@@ -147,7 +147,7 @@ function CancelFields(p: KaraokeRefundCancelProps & { clientAtDraw: number }) {
             </Field>
             <FieldError name="istekAni" />
           </div>
-          <label className="flex min-h-[44px] items-start gap-3 text-sm">
+          <label className="flex min-h-11 items-start gap-3 text-sm pointer-fine:min-h-9">
             <input
               type="checkbox"
               name="tamIade"

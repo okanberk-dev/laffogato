@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: PageProps) {
   const tags = (product.tags ?? []).map((t) => MENU_TAG_LABEL[t] ?? t);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <BackLink href={PRODUCTS_PATH}>Ürünler</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
@@ -298,7 +298,7 @@ export default async function ProductPage({ params }: PageProps) {
                     src={src}
                     alt={`${product.name}: görsel ${i + 1}`}
                     loading="lazy"
-                    className="aspect-square w-full rounded-xl object-cover ring-1 ring-[var(--admin-border)]"
+                    className="aspect-square w-full rounded-lg object-cover ring-1 ring-[var(--admin-border)]"
                   />
                 </li>
               ))}

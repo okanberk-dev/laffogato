@@ -394,7 +394,7 @@ describe("member page layout and words (package 4b)", () => {
     expect(html).not.toContain("grid-cols-[90px_1fr]");
     // The side cards' own grids shrink too: the stamp history line kept
     // the Sadakat card wider than its column at 390 and at 1280 px.
-    expect(html).toMatch(/class="rounded-3xl[^"]* grid grid-cols-1 gap-4"/);
+    expect(html).toMatch(/class="rounded-xl[^"]* grid grid-cols-1 gap-4"/);
     expect(html).not.toMatch(/class="rounded-[23]xl[^"]* grid gap-[34]"/);
     // ...and the address itself may break anywhere, the badge drops under it.
     expect(html).toMatch(
@@ -417,12 +417,12 @@ describe("member page layout and words (package 4b)", () => {
     // Header links are 44 px buttons, not 32 px pills (PEO-20); the way
     // back is the kit's BackLink above the header, 44 px too.
     const edit = html.match(/<a [^>]*>Düzenle<\/a>/)?.[0] ?? "";
-    expect(edit).toContain("min-h-[44px]");
+    expect(edit).toContain("min-h-11");
     const back =
       html.match(
         /<a [^>]*data-admin-back=""[^>]*><span aria-hidden="true">←<\/span>Tüm müşteriler<\/a>/,
       )?.[0] ?? "";
-    expect(back).toContain("min-h-[44px]");
+    expect(back).toContain("min-h-11");
     // Davetler is a definition list and a real list: no <div> in a <ul>.
     expect(html).not.toMatch(/<ul[^>]*>\s*<div/);
     expect(t).toContain("Davet kodu AYSE42");

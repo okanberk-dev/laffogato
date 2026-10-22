@@ -99,7 +99,7 @@ export function CustomerActions({
                 readOnly
                 value={resend.url}
                 onFocus={(e) => e.currentTarget.select()}
-                className="w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-2 py-1.5 text-xs text-[var(--admin-text)]"
+                className="w-full rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-2 py-1.5 text-xs text-[var(--admin-text)]"
                 style={{ fontFamily: "var(--mono), monospace" }}
               />
             </div>

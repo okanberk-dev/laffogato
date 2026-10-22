@@ -98,10 +98,15 @@ const ALIGN: Record<NonNullable<DataTableColumn<unknown>["align"]>, string> = {
 // tint is see-through, which a pinned cell must not be). A hairline on its
 // left edge says the row goes on underneath.
 /**
- * The column heads (AkmanOS list table): bold 14px ink, sentence case, the
- * rows under them parted by thin zinc-200 lines.
+ * The column heads, Innex's: 13 px medium in the label grey, sentence case,
+ * on the pale well (--admin-surface-2) that rounds with the card's top
+ * corners; the rows under them parted by Innex's faint rule
+ * (--admin-divider).
  */
-const TABLE_HEAD = "text-left text-sm font-semibold text-[var(--admin-text)]";
+const TABLE_HEAD =
+  "bg-[var(--admin-surface-2)] text-left text-[13px] font-medium text-[var(--admin-text-mute)]";
+/** The header's own pinned cell: the well, not the row's white. */
+const PINNED_HEAD_GROUND = "bg-[var(--admin-surface-2)]";
 
 const PINNED = "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)]";
 const PINNED_GROUND = "bg-[var(--admin-surface)]";
@@ -210,7 +215,7 @@ export function DataTable<T>({
     return (
       <Link
         href={href}
-        className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+        className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none"
       >
         {content}
       </Link>
@@ -233,7 +238,7 @@ export function DataTable<T>({
       <Link
         href={href}
         className={cx(
-          "relative inline-flex items-center gap-1 rounded hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none",
+          "relative inline-flex items-center gap-1 rounded hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none",
           col.align === "right" && "flex-row-reverse",
         )}
       >
@@ -261,7 +266,7 @@ export function DataTable<T>({
             <li
               key={id}
               className={cx(
-                "rounded-2xl border bg-[var(--admin-surface)] p-4 transition-colors",
+                "rounded-xl border bg-[var(--admin-surface)] p-4 transition-colors",
                 CARD_LIFT,
                 CARD_PRESSED,
                 selection?.has(id)
@@ -291,7 +296,7 @@ export function DataTable<T>({
                             // The whole card opens the record (CardLink).
                             <CardLink
                               href={rowHref(row) as string}
-                              className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+                              className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none"
                             >
                               {first.cell(row)}
                             </CardLink>
@@ -330,7 +335,7 @@ export function DataTable<T>({
           block of the sr-only header texts (absolutely positioned): without
           it they hung past the viewport and the whole page scrolled
           sideways (ORD-M01). */}
-      <div className="relative hidden overflow-x-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
+      <div className="relative hidden overflow-x-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] md:block">
         <table className="w-full border-collapse text-sm">
           {caption ? <caption className="sr-only">{caption}</caption> : null}
           <thead>
@@ -338,7 +343,7 @@ export function DataTable<T>({
               {selection ? (
                 <th
                   scope="col"
-                  className={cx("w-10 px-4 py-3 text-left", COMPACT.py2)}
+                  className={cx("w-10 px-4 py-2.5 text-left", COMPACT.py2)}
                 >
                   <SelectAllCheckbox
                     ids={ids}
@@ -359,7 +364,7 @@ export function DataTable<T>({
                       : undefined
                   }
                   className={cx(
-                    "px-4 py-3 whitespace-nowrap",
+                    "px-4 py-2.5 whitespace-nowrap",
                     COMPACT.py2,
                     ALIGN[col.align ?? "left"],
                     col.hideBelow && HIDE_BELOW[col.hideBelow],
@@ -373,9 +378,9 @@ export function DataTable<T>({
                 <th
                   scope="col"
                   className={cx(
-                    "w-14 px-4 py-3 text-right",
+                    "w-14 px-4 py-2.5 text-right",
                     PINNED,
-                    PINNED_GROUND,
+                    PINNED_HEAD_GROUND,
                   )}
                 >
                   <span className="sr-only">İşlemler</span>
@@ -391,7 +396,7 @@ export function DataTable<T>({
                 <tr
                   key={id}
                   className={cx(
-                    "group border-t border-[var(--admin-border)] align-middle transition-colors hover:bg-[var(--admin-surface-2)]",
+                    "group border-t border-[var(--admin-divider)] align-middle transition-colors hover:bg-[var(--admin-surface-2)]",
                     selected && "bg-[var(--admin-primary-soft)]/50",
                     rowActions && MENU_OPEN_ROW,
                     rowClassName?.(row),

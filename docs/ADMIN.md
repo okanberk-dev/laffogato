@@ -449,23 +449,28 @@ mürekkep, en çok ince bir çizgi; çerçeve ve zemin imleç üstündeyken geli
 `tests/admin-row-controls.test.ts` ve `tests/admin-compact-density.test.ts`
 tutar.
 
-### Renkler (21 Eki 2026)
+### Görünüm: Innex (22 Eki 2026)
 
-Operatör: _"panel tasarımını da yumuşatmayı ve daha estetik güzel bir
-görünümde vermeyi unutma, renklendirebilirsin birazcık da"_. AkmanOS teması
-yerinde, yumuşatıldı:
+Operatör: _"İnnexe geç"_. Panel Filllo'nun Innex serisinin tasarım
+sistemini izler (`docs/ADMIN-INNEX.md`, değerler `docs/BRAND.md` "Admin
+paneli görünümü"). 21 Eki'deki yumuşatılmış AkmanOS teması bırakıldı:
 
-- Kart, kenar çubuğu ve çizgiler soğuk zinc yerine sıcak taş; mürekkep ve
-  birincil düğme sıcak siyah; gölgeler ve pencere arkası da sıcak.
-- Menünün beş grubu birer renk taşır (`src/components/admin/ui/hues.ts`):
-  **Bugün** mavi, **Katalog** bal, **Pazarlama** gül, **İçerik** mor,
-  **Yönetim** yeşil. Kenar çubuğunda her satırın ikon karosu grubunun
-  pastel zemininde, grup başlığının önünde renkli nokta, sayaç rozeti
-  grubun renginde. Açık sayfanın satırı artık siyah değil: grubunun
-  zemini, karosu beyaz. Telefonun alt çubuğunda etkin hap da öyle.
-- Genel bakış: dört kart dört renk (açık sipariş mavi, dikkat isteyen gül,
-  stokta yok bal, net ciro yeşil); "Hızlı ekle" ikonları bölümlerinin
-  renginde; 14 günlük ciro grafiği yeşil.
+- Gri zemin üstünde iki beyaz kart: kenar çubuğu ve sayfa. Sayfa kartının
+  üstünde üst çubuk (yol ya da ögenin sekmeleri, ⌘K, köşk, zil), altında
+  sayfa başlığı şeridi (başlık 18 px, gri açıklama, sağda düğmeler, kart
+  boyu çizgi). İçerik kartın sol kenarından başlar.
+- Kenar çubuğu sakin: ikonlar 16 px çizgi, grup başlıkları küçük büyük
+  harf, açık sayfanın satırı gri; grup rengi, renkli nokta ve renkli sayaç
+  yok. Sayaçlar gri hap. Telefonun alt çubuğunda etkin hap da gri.
+- Menünün beş grup rengi (`src/components/admin/ui/hues.ts`: **Bugün**
+  mavi, **Katalog** bal, **Pazarlama** gül, **İçerik** mor, **Yönetim**
+  yeşil) yalnız ikon kutularında kalır: Genel bakış ve rapor kartlarında
+  28 px kutu, "Hızlı ekle" ikonları. Ciro grafiği Innex'in koyu mavi
+  çizgisi ve lavanta dolgusu.
+- Kartlar beyaz, 1 px çizgi, gölgesiz; tablo başlığı soluk kuyuda 13 px
+  gri; durum sekmeleri kutu çipleri (etkin olan koyu kenarlı); rozet
+  köşesi 6 px; düğmeler fareyle 36 px, "Sıkı görünüm"de 32 px,
+  dokunmatikte 44 px.
 - Her renk kendi zemininde ve beyazda AA'yı geçer, sayfanın mürekkepleri de
   renkli zeminlerde (`tests/admin-ui-kit.test.ts`); bir bölümün rengi
   menüdeki grubunun rengidir (aynı test, `layout.tsx` NAV_GROUPS'tan

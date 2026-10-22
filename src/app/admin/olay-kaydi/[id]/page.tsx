@@ -117,7 +117,7 @@ export default async function AuditEventPage({ params }: PageProps) {
   ];
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-4xl">
       <BackLink href={AUDIT_LOG_PATH}>Olay kaydı</BackLink>
 
       <header className="mb-6 flex flex-col gap-2">
@@ -165,11 +165,11 @@ export default async function AuditEventPage({ params }: PageProps) {
             </p>
           )}
           <details className="mt-6 text-sm">
-            <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-[var(--admin-text-soft)] hover:text-[var(--admin-primary)]">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center text-[var(--admin-text-soft)] hover:text-[var(--admin-primary)] pointer-fine:min-h-9">
               Ham kayıt (JSON)
             </summary>
             <pre
-              className="mt-2 max-h-[32rem] overflow-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3 text-xs break-words whitespace-pre-wrap text-[var(--admin-text)]"
+              className="mt-2 max-h-[32rem] overflow-auto rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3 text-xs break-words whitespace-pre-wrap text-[var(--admin-text)]"
               style={NUMERIC_STYLE}
             >
               {JSON.stringify(row.payload ?? {}, null, 2)}

@@ -60,7 +60,7 @@ export default async function MenuItemPage({ params }: PageProps) {
     : "";
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <BackLink href={MENU_PATH}>Kafe menüsü</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
@@ -156,7 +156,7 @@ export default async function MenuItemPage({ params }: PageProps) {
               src={photo}
               alt={item.name}
               loading="lazy"
-              className="aspect-square w-full rounded-xl object-cover ring-1 ring-[var(--admin-border)]"
+              className="aspect-square w-full rounded-lg object-cover ring-1 ring-[var(--admin-border)]"
             />
           ) : (
             <p className="text-sm text-[var(--admin-text-soft)]">

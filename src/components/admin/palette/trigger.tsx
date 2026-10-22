@@ -271,7 +271,7 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
         aria-keyshortcuts="Meta+K Control+K"
         data-admin-palette-trigger=""
         title={label ? `Ara (${label})` : "Ara"}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-200 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-200 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
       >
         <SearchIcon />
       </a>
@@ -340,8 +340,8 @@ function PaletteDialog({
         if (downOnBackdrop.current && e.target === e.currentTarget) close();
         downOnBackdrop.current = false;
       }}
-      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.14)] backdrop:bg-[rgba(28,25,23,0.32)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden"
-      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
+      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden"
+      style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
     >
       <PaletteBoundary>
         <Body {...palette} view={view} close={close} navigate={navigate} />

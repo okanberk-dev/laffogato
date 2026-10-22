@@ -188,7 +188,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   const displayName = member?.name || orders[0]?.customerName || email;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <BackLink href="/admin/musteriler">Tüm müşteriler</BackLink>
       {/* A guest without a name is titled by the address: it wraps. */}
       <div className="[&_h1]:[overflow-wrap:anywhere] [&_header_p]:[overflow-wrap:anywhere]">
@@ -304,7 +304,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   {member.addresses.map((a) => (
                     <li
                       key={a.id}
-                      className="min-w-0 rounded-xl border border-[var(--admin-border)] p-3 text-sm"
+                      className="min-w-0 rounded-lg border border-[var(--admin-border)] p-3 text-sm"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-[var(--admin-text)]">
@@ -490,7 +490,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   {/* The whole row opens the booking's own page. */}
                   <Link
                     href={karaokeDetailHref(r.id)}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--admin-border)] p-3 text-sm hover:border-[var(--admin-primary)]"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm hover:border-[var(--admin-primary)]"
                   >
                     <span className="block min-w-0">
                       <span className="block font-medium text-[var(--admin-text)]">
@@ -640,7 +640,7 @@ function Stat({
   small?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-3xl bg-[var(--admin-panel)] p-4">
+    <div className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
       <div className={EYEBROW} style={MONO_STYLE}>
         {label}
       </div>

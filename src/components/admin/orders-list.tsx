@@ -484,7 +484,7 @@ export function OrdersList({
           aria-live="polite"
           // Below lg the panel's top bar is sticky too (about 61 px):
           // stuck at top-2, the sentence slid under it (admin audit ORD-10).
-          className="sticky top-[4.25rem] z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm lg:top-2"
+          className="sticky top-[4.25rem] z-20 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--admin-warning)]/40 bg-[var(--admin-warning-soft)] px-4 py-2.5 text-sm text-[var(--admin-text)] shadow-sm lg:top-2"
         >
           <span>
             <strong>{newCount} yeni sipariş</strong> geldi. Liste, sen
@@ -493,7 +493,7 @@ export function OrdersList({
           <button
             type="button"
             onClick={refreshNow}
-            className="rounded-xl bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+            className="rounded-lg bg-[var(--admin-primary)] px-4 py-1.5 text-xs font-medium text-white hover:bg-[var(--admin-primary-hover)]"
           >
             Listeyi yenile
           </button>
@@ -532,7 +532,7 @@ export function OrdersList({
                   hover (admin audit ORD-25). */}
               <CardLink
                 href={`/admin/siparisler/${r.order.id}`}
-                className="inline-flex min-h-[44px] items-center font-medium whitespace-nowrap text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
+                className="inline-flex min-h-11 items-center font-medium whitespace-nowrap text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)] pointer-fine:min-h-9"
                 style={MONO_STYLE}
               >
                 #{r.order.orderNo}

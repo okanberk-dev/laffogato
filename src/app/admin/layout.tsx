@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 
 import {
   AdminSidebar,
@@ -27,32 +27,29 @@ import { logoutAction } from "./actions";
 import { settingsPaletteEntries } from "./palette-settings";
 
 /**
- * The panel wears the venue back-office's look (lafmaliyet, ladmin.laffogato.net:
- * the AkmanOS light theme, docs/TASARIM.md there), by the operator's decision
- * of 21 Eki 2026. Geist Sans for every word, Geist Mono for codes and the
- * keyboard. The admin is internal (customers never see it); the customer site
- * keeps Gabarito and Poppins and its own palette (docs/BRAND.md).
+ * The panel wears Innex (Filllo's hotel admin series on Dribbble), by the
+ * operator's decision of 22 Eki 2026 ("İnnexe geç"); the measured recipe is
+ * docs/ADMIN-INNEX.md. Inter for every word, its tabular figures for
+ * amounts and codes. It replaced lafmaliyet's AkmanOS theme (21 Eki 2026),
+ * which the venue's back office keeps. The admin is internal (customers
+ * never see it); the customer site keeps Gabarito and Poppins and its own
+ * palette (docs/BRAND.md).
  */
-const geistSans = Geist({
+const adminSans = Inter({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-geist-sans",
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-geist-mono",
+  variable: "--font-admin-sans",
   display: "swap",
 });
 
 const ADMIN_SANS =
-  "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif";
+  "var(--font-admin-sans), ui-sans-serif, system-ui, sans-serif";
 
-// The AkmanOS light theme: a white canvas, zinc-100 cards, white controls,
-// #171717 ink, black primary actions, lime only as a fill under dark ink.
+// Innex: a grey app ground with the sidebar and the page as two white cards
+// on it, 1 px lines instead of shadows, a near-black ink with one grey for
+// labels, and one blue for the primary action, links and focus.
 // Tokens are explicit hex (not the global :root vars) so a dark-mode scheme
 // can never flip the admin to dark, and the site's type tokens are
-// repointed to Geist inside this wrapper only (the site's h1-h3 rule reads
+// repointed to Inter inside this wrapper only (the site's h1-h3 rule reads
 // --headline, its labels --mono), leaving the customer site untouched.
 const adminFontStyle = {
   fontFamily: ADMIN_SANS,
@@ -62,66 +59,73 @@ const adminFontStyle = {
   "--serif": ADMIN_SANS,
   "--serif-modern": ADMIN_SANS,
   "--serif-display": ADMIN_SANS,
-  // MONO_STYLE's labels (role, counts, column heads) are sans in AkmanOS;
-  // real monospace (codes, amounts) is NUMERIC_STYLE's Geist Mono.
+  // MONO_STYLE's labels (role, counts, column heads) are sans; amounts and
+  // codes are NUMERIC_STYLE's tabular figures, in the same face.
   "--mono": ADMIN_SANS,
-  // AkmanOS, softened (operator, 21 Oct 2026: "yumuşat, daha estetik,
-  // biraz renklendir"): the same white page and controls, the cards and
-  // the sidebar a warm stone instead of cold zinc, the ink a warm
-  // near-black, and five pastel colours for the nav groups (below).
-  // Surfaces: the page and every control, menu and dialog are white; cards
-  // and the sidebar are warm stone (--admin-panel), hovers and wells too.
-  "--admin-bg": "#FFFFFF",
+  // Surfaces: the grey ground between the two cards (--admin-bg), white
+  // cards, controls, menus and dialogs, a pale well for table heads and
+  // inner boxes (--admin-surface-2) and a grey one for the current nav row,
+  // counts and segment rails (--admin-panel).
+  "--admin-bg": "#EDEFF1",
   "--admin-surface": "#FFFFFF",
-  "--admin-surface-2": "#F6F4F0",
-  "--admin-panel": "#F6F4F0",
-  "--admin-border": "#E9E5DE",
-  "--admin-border-strong": "#D9D3CA",
-  // A field's outline: 3.45:1 on the stone cards and 3.8:1 on white, so an
-  // empty field can be found (non-text contrast is 3:1). --admin-border
-  // stays for cards and dividers.
-  "--admin-border-field": "#8A8278",
-  // Text: a warm near-black and its two greys
-  "--admin-text": "#1C1917",
-  "--admin-text-soft": "#44403C",
-  // Labels, hints, eyebrows and placeholders: 5.2:1 on the stone cards
-  // and 4.7:1 on a hovered control (tests/admin-ui-kit.test.ts).
-  "--admin-text-mute": "#6B655E",
-  // Actions: a warm black primary, lime accent (a fill only, under dark ink)
-  "--admin-primary": "#1C1917",
-  "--admin-primary-hover": "#292524",
-  "--admin-accent": "#C0F21E",
+  "--admin-surface-2": "#F9FBFC",
+  "--admin-panel": "#F3F5F7",
+  // Lines: a card's edge, a secondary control's edge, a table row's rule.
+  "--admin-border": "#E8E8E8",
+  "--admin-border-strong": "#E3E3E3",
+  "--admin-divider": "#F2F2F2",
+  // A field's outline: 3:1 or more on white and on both wells, so an empty
+  // field can be found (non-text contrast). Innex draws it paler; this is
+  // the one place the panel keeps a darker line on purpose.
+  "--admin-border-field": "#898D94",
+  // Text: Innex's near-black navy, a body grey, and its label grey (5.2:1
+  // on the grey ground, tests/admin-ui-kit.test.ts).
+  "--admin-text": "#0C0E1B",
+  "--admin-text-soft": "#3D4048",
+  "--admin-text-mute": "#616367",
+  // Actions: Innex's blue, a shade deeper (#325CFF is 4.43:1 on the grey
+  // ground, under AA as link text). Focus rings are the primary too.
+  "--admin-primary": "#2F58F7",
+  "--admin-primary-hover": "#2449E0",
   "--admin-danger": "#DC2626",
   // Tones (components/admin/ui/tone.ts): an ink for text and a soft ground
   // for badges, toasts and notices. Every ink clears AA (4.5:1) on its soft
   // ground and on white - tests/admin-ui-kit.test.ts holds them to it.
-  // --admin-danger (red-600) stays for buttons and borders; on its soft
-  // red-50 it is 4.41:1, so danger TEXT uses --admin-danger-ink (red-700).
-  "--admin-neutral-soft": "#F6F4F0",
-  "--admin-primary-soft": "#ECE8E1",
-  "--admin-accent-ink": "#1F3A08",
-  "--admin-accent-soft": "#EFFCC7",
-  "--admin-info": "#2563EB",
-  "--admin-info-soft": "#EFF6FF",
-  "--admin-success": "#3F6212",
-  "--admin-success-soft": "#ECFCCB",
-  "--admin-warning": "#C2410C",
-  "--admin-warning-soft": "#FFF7ED",
-  "--admin-danger-ink": "#B91C1C",
-  "--admin-danger-soft": "#FEF2F2",
-  // The nav groups' colours (ui/hues.ts): a pastel ground and a deep ink,
-  // 5.3:1 or more on each other and on white. Bugün, Katalog, Pazarlama,
-  // İçerik, Yönetim.
-  "--admin-hue-blue": "#1E50C8",
-  "--admin-hue-blue-soft": "#E9F0FF",
-  "--admin-hue-amber": "#9A4F0A",
-  "--admin-hue-amber-soft": "#FDF0DA",
-  "--admin-hue-rose": "#B8195A",
-  "--admin-hue-rose-soft": "#FDE8EF",
-  "--admin-hue-violet": "#6930C8",
-  "--admin-hue-violet-soft": "#F0EBFE",
-  "--admin-hue-green": "#0C6E50",
-  "--admin-hue-green-soft": "#E3F4EC",
+  // Innex's green and orange badge inks are near 2:1 on their grounds; they
+  // are deepened here (recipe §4) and the grounds kept. --admin-danger
+  // stays for buttons and borders; danger TEXT is --admin-danger-ink.
+  // Primary is Innex's blue, info its cyan and accent its violet, so the
+  // order statuses that take them (Ödendi, Kargoda, Hazırlanıyor) stay
+  // three colours, not three blues.
+  "--admin-neutral-soft": "#F3F5F7",
+  "--admin-primary-soft": "#ECF1FF",
+  "--admin-accent": "#794FFD",
+  "--admin-accent-ink": "#6D3FEA",
+  "--admin-accent-soft": "#F6F1FF",
+  "--admin-info": "#0B7392",
+  "--admin-info-soft": "#EAF8FD",
+  "--admin-success": "#15803D",
+  "--admin-success-soft": "#E1FAED",
+  "--admin-warning": "#B45309",
+  "--admin-warning-soft": "#FFF2E6",
+  "--admin-danger-ink": "#B42318",
+  "--admin-danger-soft": "#FEEBED",
+  // The nav groups' colours (ui/hues.ts), now Innex's tinted icon boxes:
+  // a pale ground and a deep ink, AA on each other and on white. Bugün,
+  // Katalog, Pazarlama, İçerik, Yönetim. The sidebar itself is not tinted.
+  "--admin-hue-blue": "#3346D3",
+  "--admin-hue-blue-soft": "#EFF1FE",
+  "--admin-hue-amber": "#A1500B",
+  "--admin-hue-amber-soft": "#FFF6E5",
+  "--admin-hue-rose": "#C0264A",
+  "--admin-hue-rose-soft": "#FEEFF1",
+  "--admin-hue-violet": "#6D3FEA",
+  "--admin-hue-violet-soft": "#F6F1FF",
+  "--admin-hue-green": "#15803D",
+  "--admin-hue-green-soft": "#EEFBF2",
+  // Innex's revenue chart: a deep blue line over a pale lavender area.
+  "--admin-chart-line": "#2132BA",
+  "--admin-chart-fill": "#E3E7FF",
 } as React.CSSProperties;
 
 // The same ground for the signed-in panel and the login / 2FA screens. The
@@ -138,15 +142,28 @@ const adminFontStyle = {
 // `lg`, for the cashier and on the sign-in screens.
 //
 // The laptop sidebar's width (UI-9) is one variable too, `--admin-side`:
-// 17.5rem (AkmanOS's sidebar), or 4rem once the shell wrote `data-admin-rail="on"` on this root
+// 15.5rem (Innex's sidebar card), or 4rem once the shell wrote `data-admin-rail="on"` on this root
 // (view-prefs.tsx; the choice is the browser's, so the server always draws
-// the 17.5rem default and the stored rail applies right after hydration).
-// The sidebar, the top bar, the tab strip, the page's left edge and the bulk
-// bar read it from `lg`; the cashier's shell has no sidebar and never sets it.
-const FONT_VARIABLES = `${geistSans.variable} ${geistMono.variable}`;
+// the 15.5rem default and the stored rail applies right after hydration).
+// The sidebar card, the page card's left edge and the bulk bar read it from
+// `lg`; the cashier's shell has no sidebar and never sets it.
+const FONT_VARIABLES = adminSans.variable;
 
+// `flow-root`: the page card's 8 px top margin stays inside the grey
+// ground; without it the margin collapsed through and the site's porcelain
+// body showed above the cards.
 const shellClass = (fontVariable: string) =>
-  `${fontVariable} min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] [--admin-side:17.5rem] data-[admin-rail=on]:[--admin-side:4rem] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0`;
+  `${fontVariable} flow-root min-h-screen bg-[var(--admin-bg)] text-[var(--admin-text)] [--admin-side:15.5rem] data-[admin-rail=on]:[--admin-side:4rem] max-lg:has-[[data-admin-tabbar]]:not-has-[[data-admin-bulk-bar]]:[--admin-bottom-inset:calc(3.5rem+env(safe-area-inset-bottom))] pb-[var(--admin-bottom-inset,0px)] print:pb-0 print:bg-white`;
+
+// Innex's page card: from `lg`, white with 12 px corners on the grey ground,
+// 8 px from the window and 12 px right of the sidebar card (which is fixed,
+// so it sits outside this box whatever the DOM says). The top bar, the tab
+// strip and the page are inside it, and the window scrolls, not the card:
+// sticky bars and the toasts keep working. Below `lg` it is the whole white
+// page, edge to edge.
+const PAGE_CARD =
+  "min-h-dvh bg-[var(--admin-surface)] lg:my-2 lg:mr-2 lg:min-h-[calc(100dvh-1rem)] lg:rounded-xl print:m-0 print:min-h-0 print:rounded-none";
+const PAGE_CARD_SIDE = "lg:ml-[calc(var(--admin-side,15.5rem)+1.25rem)]";
 
 /*
  * The panel's nav (admin UI v2, UI-5): five groups, and items that own
@@ -540,59 +557,55 @@ export default async function AdminLayout({
     >
       <ToastProvider flash={flash}>
         <PanelHomeProvider href={landingPath}>
-          {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
+          <div
+            data-admin-page-card=""
+            className={`${PAGE_CARD} ${chrome ? PAGE_CARD_SIDE : "lg:ml-2"}`}
+          >
+            {/* Top-bar controls go in AdminSidebar's `actions` (one slot after
               the search, at every width, mounted once): the köşk chip for
               the roles with Canlı durum, then the new-order alert for the
               roles with Siparişler, on every panel page (the till
               included). */}
-          <AdminSidebar
-            groups={groups}
-            email={session.email}
-            roleLabel={ROLE_LABELS[session.role]}
-            landingPath={landingPath}
-            logout={logoutAction}
-            canSearch={canSearch}
-            palette={
-              canSearch
-                ? {
-                    role: session.role,
-                    accountKey,
-                    // "Ayarlar içinde": plain data, built here (the list's
-                    // chunk has no code for it).
-                    settings: settingsPaletteEntries(session.role),
-                  }
-                : undefined
-            }
-            actions={
-              venueChip || orderAlerts ? (
-                <>
-                  {venueChip ? <VenueQuick /> : null}
-                  {orderAlerts ? (
-                    <OrderAlerts
-                      mayStartPreparing={alertMayStartPreparing(session.role)}
-                    />
-                  ) : null}
-                </>
-              ) : undefined
-            }
-          />
-          {/* "İçeriğe geç" (the shell's first link) lands here. The pages
+            <AdminSidebar
+              groups={groups}
+              email={session.email}
+              roleLabel={ROLE_LABELS[session.role]}
+              landingPath={landingPath}
+              logout={logoutAction}
+              canSearch={canSearch}
+              palette={
+                canSearch
+                  ? {
+                      role: session.role,
+                      accountKey,
+                      // "Ayarlar içinde": plain data, built here (the list's
+                      // chunk has no code for it).
+                      settings: settingsPaletteEntries(session.role),
+                    }
+                  : undefined
+              }
+              actions={
+                venueChip || orderAlerts ? (
+                  <>
+                    {venueChip ? <VenueQuick /> : null}
+                    {orderAlerts ? (
+                      <OrderAlerts
+                        mayStartPreparing={alertMayStartPreparing(session.role)}
+                      />
+                    ) : null}
+                  </>
+                ) : undefined
+              }
+            />
+            {/* "İçeriğe geç" (the shell's first link) lands here. The pages
               draw their own <main>, so this is a plain wrapper. Focusable,
               so a click on the page's empty space focuses it too, and the
               next arrow key drew the panel's focus ring round the whole
               page. That ring (globals.css) is unlayered and beats any
               class: only an inline style turns it off here. */}
-          <div
-            id="admin-main"
-            tabIndex={-1}
-            className={
-              chrome
-                ? "lg:pl-[var(--admin-side,17.5rem)] print:pl-0"
-                : "print:pl-0"
-            }
-            style={{ outline: "none" }}
-          >
-            {children}
+            <div id="admin-main" tabIndex={-1} style={{ outline: "none" }}>
+              {children}
+            </div>
           </div>
         </PanelHomeProvider>
       </ToastProvider>

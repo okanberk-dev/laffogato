@@ -151,16 +151,20 @@ export function AdminSearchField({
         enterKeyHint="search"
         placeholder="Sipariş no, müşteri, ürün"
         className={cx(
-          "min-w-0 flex-1 rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 text-[var(--admin-text)] placeholder:text-[var(--admin-text-mute)]",
-          large ? "min-h-[44px] text-base" : "min-h-10 text-sm",
+          "min-w-0 flex-1 rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 text-[var(--admin-text)] placeholder:text-[var(--admin-text-mute)]",
+          large
+            ? "min-h-11 text-base pointer-fine:min-h-9"
+            : "min-h-10 text-sm",
         )}
       />
       <button
         type="submit"
         aria-label="Ara"
         className={cx(
-          "grid shrink-0 place-items-center rounded-xl bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-hover)]",
-          large ? "min-h-[44px] min-w-[44px] px-4" : "h-10 w-10",
+          "grid shrink-0 place-items-center rounded-lg bg-[var(--admin-primary)] text-white hover:bg-[var(--admin-primary-hover)]",
+          large
+            ? "min-h-11 min-w-[44px] px-4 pointer-fine:min-h-9"
+            : "h-10 w-10",
         )}
       >
         <SearchIcon />

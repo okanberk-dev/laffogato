@@ -214,7 +214,7 @@ function DraftPreview({
     .join(", ");
   const buyer = invoiceBuyerLines(row, buyerName);
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3">
+    <div className="flex flex-col gap-3 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3">
       <p className="font-medium">
         Taslak: Paraşüt&apos;te hazır, henüz kesinleşmedi
       </p>

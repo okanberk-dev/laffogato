@@ -761,7 +761,7 @@ describe("campaign screens", () => {
       "src/app/admin/promosyon/yeni/page.tsx",
       "src/app/admin/promosyon/[id]/duzenle/page.tsx",
     ]) {
-      expect(read(p), p).toContain("px-4 py-6 sm:px-6 sm:py-10");
+      expect(read(p), p).toContain("w-full px-4 pt-5 pb-10 sm:px-5");
     }
   });
 });

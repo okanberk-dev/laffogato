@@ -253,7 +253,7 @@ export function HomeSlideForm({
           {imageSource && imageSource !== CUSTOM_IMAGE ? (
             <span
               aria-hidden="true"
-              className="grid h-24 w-20 place-items-end overflow-hidden rounded-xl border border-[var(--admin-border)]"
+              className="grid h-24 w-20 place-items-end overflow-hidden rounded-lg border border-[var(--admin-border)]"
               style={{
                 background: `radial-gradient(circle at 50% 42%, ${light.mid} 0%, ${light.edge} 72%)`,
               }}

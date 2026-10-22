@@ -200,7 +200,7 @@ function ToastCard({
       onFocus={() => setPaused(true)}
       onBlur={onBlur}
       className={cx(
-        "pointer-events-auto flex items-start gap-3 rounded-xl border border-l-4 border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(28,25,23,0.14)]",
+        "pointer-events-auto flex items-start gap-3 rounded-lg border border-l-4 border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(12,14,27,0.14)]",
         TONE_RULE[tone],
       )}
     >
@@ -217,7 +217,7 @@ function ToastCard({
         aria-label="Bildirimi kapat"
         // 44px, the panel's touch target (it was 32px, SHE-M03); the
         // negative margins keep the card as tall as its text.
-        className="-my-2.5 -mr-3 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg leading-none text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+        className="-my-2.5 -mr-3 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg leading-none text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:h-9 pointer-fine:w-9"
       >
         <span aria-hidden="true">×</span>
       </button>

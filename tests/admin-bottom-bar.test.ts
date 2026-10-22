@@ -46,8 +46,7 @@ vi.mock("next/dynamic", async () => {
   return { default: () => NavIcon };
 });
 vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans", className: "" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
+  Inter: () => ({ variable: "font-admin-sans", className: "" }),
 }));
 // The badge polls' actions, under both of their names: main renamed them
 // (#185, the cursor polls: openOrderSignalAction, karaokeTodaySignalAction)

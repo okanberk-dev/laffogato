@@ -336,7 +336,7 @@ export function CameraScanner({
         </div>
       ) : null}
       <div className={faulted ? "hidden" : "grid gap-3"}>
-        <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-black">
+        <div className="relative overflow-hidden rounded-lg border border-[var(--admin-border)] bg-black">
           <video
             ref={videoRef}
             muted
@@ -353,7 +353,7 @@ export function CameraScanner({
           >
             <div
               data-reticle
-              className="rounded-2xl border-4 transition-colors duration-150"
+              className="rounded-xl border-4 transition-colors duration-150"
               style={{
                 ...(reticle > 0
                   ? { width: reticle, height: reticle }

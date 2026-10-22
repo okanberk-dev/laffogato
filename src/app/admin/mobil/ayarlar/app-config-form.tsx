@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/forms";
 import {
   Badge,
+  CODE_STYLE,
   NUMERIC_STYLE,
   Section,
   TONE_SOFT,
@@ -128,7 +129,7 @@ export function AppConfigForm({
               tabIndex={selected ? 0 : -1}
               onClick={() => open(t.id)}
               className={cx(
-                "inline-flex min-h-[44px] min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:whitespace-normal",
+                "inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm whitespace-nowrap transition-colors lg:whitespace-normal pointer-fine:min-h-9",
                 selected
                   ? "bg-[var(--admin-primary)] font-medium text-white"
                   : "border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]",
@@ -572,7 +573,7 @@ function RemindersTab({ config }: { config: MobileAppConfig }) {
           {rows.map((item, i) => (
             <fieldset
               key={i}
-              className="grid min-w-0 gap-3 rounded-xl border border-[var(--admin-border)] p-3 sm:p-4"
+              className="grid min-w-0 gap-3 rounded-lg border border-[var(--admin-border)] p-3 sm:p-4"
             >
               <legend className="px-1 text-sm font-semibold text-[var(--admin-text)]">
                 Hatırlatma {i + 1}
@@ -719,7 +720,7 @@ function HappyHourTab({ config }: { config: MobileAppConfig }) {
         title="Mutlu saatler"
         description="Uygulamanın Ana Sayfa ve Kampanyalar ekranlarındaki mutlu saat kartı. İndirim tüm içeceklerde geçerlidir - kahve/tatlı ayrımı yoktur."
       >
-        <p className={cx("rounded-xl p-3 text-sm", TONE_SOFT.warning)}>
+        <p className={cx("rounded-lg p-3 text-sm", TONE_SOFT.warning)}>
           İndirim sipariş fiyatlamasına <strong>yansımaz</strong>; kasada elle
           uygulanır. Bu yüzden kart yalnız aşağıdaki kutu işaretliyken
           gösterilir - işaretlemek, kasanın bu indirimi uygulayacağı anlamına
@@ -899,9 +900,10 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               autoCapitalize="characters"
               spellCheck={false}
               placeholder="ABCDE12345"
-              // A real monospace face (--mono is Poppins), so an ID and the
-              // fingerprints below can be checked character by character.
-              style={NUMERIC_STYLE}
+              // A real monospace face (--mono is the panel's Inter), so an ID
+              // and the fingerprints below can be checked character by
+              // character.
+              style={CODE_STYLE}
             />
           </ConfigField>
           <ConfigField
@@ -915,7 +917,7 @@ function StoreTab({ config }: { config: MobileAppConfig }) {
               defaultValue={st.androidSha256.join("\n")}
               spellCheck={false}
               placeholder="AA:BB:CC:…:99"
-              style={NUMERIC_STYLE}
+              style={CODE_STYLE}
             />
           </ConfigField>
         </div>

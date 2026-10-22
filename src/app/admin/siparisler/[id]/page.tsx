@@ -168,7 +168,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       {attention ? (
         <div
           role="alert"
-          className="mb-4 rounded-2xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)] sm:px-6 print:hidden"
+          className="mb-4 rounded-xl border border-[var(--admin-danger)]/40 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)] sm:px-6 print:hidden"
         >
           <p className="font-semibold">{attention.title}</p>
           <p className="mt-1">{attention.body}</p>

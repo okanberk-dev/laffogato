@@ -12,7 +12,7 @@ export default async function NewAppSlidePage() {
   await requireRole("mobileApp");
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
       <BackLink href="/admin/mobil/slaytlar" label="Slaytlar" />
       <PageHeader
         title="Yeni slayt"

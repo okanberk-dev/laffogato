@@ -161,7 +161,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
           </p>
           <div
             aria-live="polite"
-            className="grid gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3 text-sm"
+            className="grid gap-2 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] px-4 py-3 text-sm"
           >
             <span className="text-xs font-medium text-[var(--admin-text-mute)]">
               Müşterinin ödemeden önce okuyacağı kural
@@ -181,7 +181,7 @@ export function KaraokeTab({ settings }: { settings: AdminSettings }) {
           {locked ? (
             <p
               role="status"
-              className={cx("rounded-xl px-4 py-3 text-sm", TONE_SOFT.warning)}
+              className={cx("rounded-lg px-4 py-3 text-sm", TONE_SOFT.warning)}
             >
               {locked}
             </p>

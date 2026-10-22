@@ -13,7 +13,7 @@ import {
 
 import { GhostButton, PrimaryButton } from "../forms";
 import { AdminIcon } from "./icons";
-import { BUTTON } from "./styles";
+import { BUTTON, CARD } from "./styles";
 
 /**
  * The panel's step-by-step form (22 Oct 2026, operator: "fatura oluşturma
@@ -397,7 +397,8 @@ export function WizardFrame({
   const flagged = new Set([...wizard.flagged, ...serverFlagged]);
   const index = shown.findIndex((s) => s.id === wizard.step);
   const last = index === shown.length - 1;
-  const panel = "rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6";
+  // Innex's card for the step bar, each step and the footer.
+  const panel = `${CARD} p-4 sm:p-5`;
   return (
     <WizardContext.Provider value={{ wizard, steps: shown }}>
       {wizard.enabled ? (
@@ -416,9 +417,10 @@ export function WizardFrame({
               return (
                 <li key={s.id} className="flex shrink-0 items-center gap-2">
                   {i > 0 ? (
+                    // Innex's "›" between steps.
                     <span
                       aria-hidden="true"
-                      className={`h-px w-4 ${i <= index ? "bg-[var(--admin-primary)]" : "bg-[var(--admin-border-strong)]"}`}
+                      className="inline-block h-1.5 w-1.5 -rotate-45 border-r-[1.5px] border-b-[1.5px] border-[var(--admin-text-mute)]"
                     />
                   ) : null}
                   <button
@@ -426,23 +428,25 @@ export function WizardFrame({
                     onClick={() => wizard.goTo(s.id)}
                     aria-current={current ? "step" : undefined}
                     aria-label={`${i + 1}. ${s.title}${bad ? ": düzeltilecek alan var" : done ? ": tamam" : ""}`}
-                    className={`flex min-h-[44px] items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
+                    // Innex's step: a numbered circle and the step's name, the
+                    // current one in a pale blue pill.
+                    className={`flex min-h-11 items-center gap-2 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors pointer-fine:min-h-9 ${
                       current
-                        ? "bg-[var(--admin-primary)] text-white"
+                        ? "bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
                         : bad
                           ? "border border-[var(--admin-danger)] text-[var(--admin-danger-ink)]"
                           : done
-                            ? "bg-[var(--admin-surface-2)] text-[var(--admin-text)]"
-                            : "border border-[var(--admin-border)] text-[var(--admin-text-soft)]"
+                            ? "text-[var(--admin-text)] hover:bg-[var(--admin-surface-2)]"
+                            : "text-[var(--admin-text-mute)] hover:bg-[var(--admin-surface-2)]"
                     }`}
                   >
                     <span
                       aria-hidden="true"
-                      className={`inline-grid h-5 w-5 place-items-center rounded-full text-[10px] ${
+                      className={`inline-grid h-5 w-5 place-items-center rounded-full text-[11px] ${
                         current
-                          ? "bg-white/15"
+                          ? "bg-[var(--admin-primary)] text-white"
                           : done
-                            ? "bg-[var(--admin-primary)] text-white"
+                            ? "bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
                             : "border border-current"
                       }`}
                     >
@@ -497,7 +501,7 @@ export function WizardFrame({
       {formError ? (
         <div
           role="alert"
-          className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+          className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
         >
           {formError}
         </div>
@@ -607,7 +611,7 @@ export function WizardAutoSummary({ note }: { note?: ReactNode }) {
           );
         })}
       {note ? (
-        <p className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
+        <p className="rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
           {note}
         </p>
       ) : null}

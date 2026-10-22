@@ -434,10 +434,10 @@ function ModalDialog({
       onMouseDown={onBackdropDown}
       onClick={onBackdropClick}
       className={cx(
-        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.14)] backdrop:bg-[rgba(28,25,23,0.32)]",
+        "fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)]",
         SIZE[size],
       )}
-      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
+      style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
     >
       <ModalStateContext.Provider value={ctx}>
         <form
@@ -504,7 +504,7 @@ function ModalDialog({
           {state && !state.ok ? (
             <div
               role="alert"
-              className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+              className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
             >
               {state.error}
             </div>

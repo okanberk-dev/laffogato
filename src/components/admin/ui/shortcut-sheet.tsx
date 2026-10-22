@@ -102,8 +102,8 @@ export function ShortcutSheet({
         }
         downOnBackdrop.current = false;
       }}
-      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.14)] backdrop:bg-[rgba(28,25,23,0.32)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
-      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
+      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[10vh] sm:max-h-[min(80dvh,720px)] print:hidden"
+      style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--admin-border)] py-2 pr-2 pl-5">
         <h2
@@ -117,7 +117,7 @@ export function ShortcutSheet({
           <button
             type="submit"
             aria-label="Kapat"
-            className="grid h-11 w-11 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)]"
+            className="grid h-11 w-11 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] pointer-fine:h-9 pointer-fine:w-9"
           >
             <svg
               width="18"
@@ -168,7 +168,7 @@ export function ShortcutSheet({
           </p>
         </section>
 
-        <div className="mt-4 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-1">
+        <div className="mt-4 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-1">
           <button
             type="button"
             role="switch"

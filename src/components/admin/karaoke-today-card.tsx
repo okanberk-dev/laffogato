@@ -78,7 +78,7 @@ export function KaraokeTodayCard({
             drawn apart from the words. */}
         <Link
           href={KARAOKE_PANEL_PATH}
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
         >
           Tümünü gör <span aria-hidden="true">→</span>
         </Link>
@@ -98,7 +98,7 @@ export function KaraokeTodayCard({
       </dl>
 
       {attention.size > 0 ? (
-        <p className="mt-4 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]">
+        <p className="mt-4 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]">
           {attention.size} rezervasyon bir işlem bekliyor (iade, onay ya da eski
           talep).{" "}
           <Link
@@ -116,7 +116,7 @@ export function KaraokeTodayCard({
             <li key={v.r.id}>
               <Link
                 href={karaokeDetailHref(v.r.id)}
-                className="flex min-h-[44px] flex-wrap items-center justify-between gap-2 py-2 hover:text-[var(--admin-primary)]"
+                className="flex min-h-11 flex-wrap items-center justify-between gap-2 py-2 hover:text-[var(--admin-primary)] pointer-fine:min-h-9"
               >
                 <span className="flex min-w-0 items-baseline gap-3">
                   <span

@@ -872,7 +872,7 @@ export function ProductWizard({
               {nutsConflict ? (
                 <div
                   role="note"
-                  className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
+                  className="rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-xs text-[var(--admin-warning)]"
                 >
                   <p>
                     Bu üründe kuruyemiş uyarısı var ama “Sert kabuklu
@@ -1081,7 +1081,7 @@ export function ProductWizard({
                 >
                   {/* Not a field: nothing to type. An output is labelable,
                       so the label still names it. */}
-                  <output className="block w-full rounded-xl border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
+                  <output className="block w-full rounded-lg border border-dashed border-[var(--admin-border-strong)] px-3.5 py-2.5 text-base text-[var(--admin-text)] sm:text-sm">
                     {shownTotal} adet
                   </output>
                 </Field>
@@ -1204,7 +1204,7 @@ export function ProductWizard({
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-11 pointer-fine:min-h-9 items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -1268,7 +1268,7 @@ export function ProductWizard({
                       </Field>
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <label className="flex min-h-[44px] items-center gap-2 text-sm text-[var(--admin-text-soft)]">
+                      <label className="flex min-h-11 pointer-fine:min-h-9 items-center gap-2 text-sm text-[var(--admin-text-soft)]">
                         <input
                           type="checkbox"
                           checked={v.isActive}
@@ -1282,7 +1282,7 @@ export function ProductWizard({
                       <button
                         type="button"
                         onClick={() => removeVariant(i)}
-                        className="min-h-[44px] text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
+                        className="min-h-11 pointer-fine:min-h-9 text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
                       >
                         Bu varyantı sil
                       </button>
@@ -1380,7 +1380,7 @@ export function ProductWizard({
                             type="button"
                             onClick={() => removeVariant(i)}
                             aria-label={`Sil: ${v.name || `${i + 1}. varyant`}`}
-                            className="min-h-[44px] text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
+                            className="min-h-11 pointer-fine:min-h-9 text-xs text-[var(--admin-danger-ink)] underline-offset-4 hover:underline"
                           >
                             Sil
                           </button>
@@ -1393,7 +1393,7 @@ export function ProductWizard({
               <button
                 type="button"
                 onClick={addVariant}
-                className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="mt-4 inline-flex min-h-11 pointer-fine:min-h-9 items-center justify-center rounded-full border border-[var(--admin-border-strong)] px-4 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 + Varyant ekle
               </button>
@@ -1649,7 +1649,7 @@ export function ProductWizard({
                     onClick={() => setStep(s.id)}
                     aria-current={current ? "step" : undefined}
                     aria-label={`${s.id}. ${s.title}${flagged ? ": düzeltilecek alan var" : ""}`}
-                    className={`flex min-h-[44px] items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
+                    className={`flex min-h-11 pointer-fine:min-h-9 items-center gap-2 rounded-full px-3 py-2 text-xs transition-colors ${
                       current
                         ? "bg-[var(--admin-primary)] text-white"
                         : flagged
@@ -1703,7 +1703,7 @@ export function ProductWizard({
       {state.error ? (
         <div
           role="alert"
-          className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+          className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
         >
           {state.error}
         </div>

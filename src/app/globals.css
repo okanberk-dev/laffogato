@@ -6587,8 +6587,8 @@ select {
   font: revert-layer;
 }
 
-/* The panel speaks Geist (app/admin/layout.tsx repoints the type tokens
-   on its root, the AkmanOS look of 21 Eki 2026); a site preview inside it
+/* The panel speaks Inter (app/admin/layout.tsx repoints the type tokens
+   on its root, the Innex look of 22 Eki 2026); a site preview inside it
    (the shop hero editor's "Önizleme") speaks the storefront's voices
    again, so the slide is judged in the faces customers see. */
 [data-admin-root] [data-site-preview] {

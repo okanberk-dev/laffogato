@@ -15,7 +15,9 @@ import { COMPACT, MONO_STYLE } from "./styles";
 
 // 44px, the panel's touch target (it was 40px; SHE-32). `relative` holds a
 // link's LinkPending mark.
-const CELL = `relative inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-sm focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none ${COMPACT.h9} ${COMPACT.minW9}`;
+// Innex's pager: the numbers on a grey rail, the current page a white box.
+// 44 px on a touch screen, 32 px where the pointer can aim.
+const CELL = `relative inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-fine:h-8 pointer-fine:min-w-8 ${COMPACT.h8} ${COMPACT.minW8}`;
 
 /**
  * "1-100 / 250" and numbered page links that keep every other URL param.
@@ -61,7 +63,7 @@ export function Pagination({
         {pageRangeLabel(current, pageSize, total)}
       </p>
       {count > 1 ? (
-        <ul className="flex flex-wrap items-center gap-1">
+        <ul className="flex flex-wrap items-center gap-0.5 rounded-lg bg-[var(--admin-panel)] p-0.5">
           {current > 1 ? (
             <li>
               <Link
@@ -69,7 +71,7 @@ export function Pagination({
                 rel="prev"
                 className={cx(
                   CELL,
-                  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)]",
+                  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)]",
                 )}
               >
                 <span aria-hidden="true">‹</span>
@@ -96,8 +98,8 @@ export function Pagination({
                   className={cx(
                     CELL,
                     n === current
-                      ? "bg-[var(--admin-primary)] font-medium text-white"
-                      : "text-[var(--admin-text)] hover:bg-[var(--admin-surface-2)]",
+                      ? "bg-[var(--admin-surface)] text-[var(--admin-text)] shadow-[0_1px_2px_rgba(12,14,27,0.08)]"
+                      : "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)]",
                   )}
                   style={MONO_STYLE}
                 >
@@ -114,7 +116,7 @@ export function Pagination({
                 rel="next"
                 className={cx(
                   CELL,
-                  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)]",
+                  "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)]",
                 )}
               >
                 <span aria-hidden="true">›</span>

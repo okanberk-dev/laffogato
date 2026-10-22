@@ -24,7 +24,7 @@ export default async function EditSlidePage({
   const bound = updateSlideAction.bind(null, id);
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-4xl">
       <PageHeader
         title={slide.title || "Slayt düzenle"}
         description="Kaydettiğin değişiklik mağaza sayfasına hemen yansır."

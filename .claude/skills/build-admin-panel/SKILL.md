@@ -42,8 +42,10 @@ Kod yazmadan önce neyin yönetileceğini koddan öğren. Rota listesi yetmez;
 5. **Önbellek.** Genel sayfalar `site-data.ts` önbelleğinden okur; panelde
    yazılan şeyin etiketini düşürmek gerekir (`src/lib/cache/tags.ts`,
    `revalidatePath`). Yazım sonrası sitede eski hâl görünüyorsa sebep budur.
-6. **Kardeş panel.** Köşkün iç paneli (`RiosenBeq/lafmaliyet`, AkmanOS açık
-   tema) bu panelin görünüm kaynağıdır. Yeni bir desen icat etmeden önce
+6. **Görünüm kaynağı.** Panel Innex'i izler (22 Eki 2026,
+   `docs/ADMIN-INNEX.md`; değerler `docs/BRAND.md` "Admin paneli
+   görünümü"). Köşkün iç paneli (`RiosenBeq/lafmaliyet`) kendi AkmanOS
+   temasında kaldı; desen için oraya değil tarife bak. Yeni bir desen icat etmeden önce
    kit'e bak: `src/components/admin/ui/` (`DataTable`, `StatusTabs`,
    `FilterBar`, `ActionMenu`, `ActionModal`, `Section`, `PageShell`,
    `Badge`, `Pagination`, `SavedViews`) ve `src/components/admin/forms.tsx`.

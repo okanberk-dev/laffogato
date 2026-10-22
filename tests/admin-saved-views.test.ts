@@ -34,8 +34,7 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
 }));
 vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans", className: "" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
+  Inter: () => ({ variable: "font-admin-sans", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),

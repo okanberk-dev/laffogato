@@ -27,7 +27,7 @@ export default async function EditHomeSlidePage({
     [slide.titleLine1, slide.titleLine2].filter(Boolean).join(" ") || "";
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
       <PageHeader
         title={name || "Slayt düzenle"}
         description="Kaydettiğin değişiklik anasayfaya hemen yansır."

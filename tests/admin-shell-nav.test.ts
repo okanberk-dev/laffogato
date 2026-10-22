@@ -88,8 +88,7 @@ vi.mock("next/dynamic", async () => {
   return { default: () => NavIcon };
 });
 vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans", className: "" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
+  Inter: () => ({ variable: "font-admin-sans", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderSignalAction: vi.fn(async () => ({ count: 3, cursor: "" })),
@@ -474,11 +473,17 @@ describe("the sidebar and the top bar", () => {
     expect(tag(html, /<aside[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<header[^>]*>/)).toContain("print:hidden");
     expect(tag(html, /<dialog[^>]*>/)).toContain("print:hidden");
-    // The page's left edge is the sidebar's width (`--admin-side`, 17.5rem or
-    // the rail's 4rem, UI-9); none of it on paper.
-    expect(read("src/app/admin/layout.tsx")).toMatch(
-      /className=\{\s*chrome\s*\?\s*"lg:pl-\[var\(--admin-side,17\.5rem\)\] print:pl-0"\s*:\s*"print:pl-0"\s*\}/,
+    // The page card's left edge follows the sidebar's width (`--admin-side`,
+    // 15.5rem or the rail's 4rem, UI-9); on paper the card is the page,
+    // with no margin, corner or grey around it (Innex, 22 Eki 2026).
+    const layout = read("src/app/admin/layout.tsx");
+    expect(layout).toContain(
+      'const PAGE_CARD_SIDE = "lg:ml-[calc(var(--admin-side,15.5rem)+1.25rem)]";',
     );
+    expect(layout).toMatch(
+      /const PAGE_CARD =\s*"[^"]*print:m-0 print:min-h-0 print:rounded-none";/,
+    );
+    expect(layout).toContain("print:bg-white");
   });
 
   it("sends the logo to the role's own landing page (SHE-25)", () => {
@@ -597,23 +602,20 @@ describe("the sidebar and the top bar", () => {
       html,
       /<a href="\/admin\/siparisler"[^>]*aria-current="page"[^>]*>/,
     );
-    // The AkmanOS look, softened (21 Eki 2026, evening): the current page
-    // is no longer the one black row. A group without a colour (this
-    // fixture's "Satış") takes the plain soft ground...
+    // Innex (22 Eki 2026): the current page is a grey row in the full ink,
+    // whatever its group: no colour, no rule, and never the black row.
     expect(active).toContain("font-medium");
     expect(active).not.toContain("bg-[var(--admin-primary)]");
     expect(active).not.toContain("text-white");
-    expect(active).toContain("bg-[var(--admin-primary-soft)]");
-    // ...and a group with one, its colour (ui/hues.ts): Katalog is amber,
-    // on the current row and in every row's icon tile.
+    expect(active).toContain("bg-[var(--admin-panel)] text-[var(--admin-text)]");
+    // A group's colour no longer tints its rows (it stays for the
+    // dashboard's icon boxes, ui/hues.ts).
     pathname = "/admin/urunler";
     const catalog = renderSidebar();
     expect(
       tag(catalog, /<a href="\/admin\/urunler"[^>]*aria-current="page"[^>]*>/),
-    ).toContain("bg-[var(--admin-hue-amber-soft)]");
-    expect(catalog).toContain(
-      "bg-[var(--admin-hue-amber-soft)] text-[var(--admin-hue-amber)]",
-    );
+    ).toContain("bg-[var(--admin-panel)]");
+    expect(catalog).not.toContain("--admin-hue-");
     pathname = "/admin/siparisler";
   });
 });
@@ -687,11 +689,9 @@ describe("the layout", () => {
     pathname = "/admin";
     const html = await render();
     const side = html.slice(html.indexOf("<aside"), html.indexOf("</aside>"));
-    // Each title after its colour's dot (ui/hues.ts).
+    // Innex's small-capital titles, with no colour dot (22 Eki 2026).
     const titles = [
-      ...side.matchAll(
-        /id="side-nav-\d+-title"[^>]*>(?:<span[^>]*>)?<span aria-hidden="true" class="size-1\.5 [^"]*"><\/span>([^<]+)</g,
-      ),
+      ...side.matchAll(/id="side-nav-\d+-title"[^>]*>(?:<span>)?([^<]+)</g),
     ].map((m) => m[1]);
     expect(titles).toEqual([
       "Bugün",
@@ -741,10 +741,13 @@ describe("the layout", () => {
     expect(header).toContain("Çıkış");
     // No icon chunk for the cashier: nothing lucide in the shell.
     expect(html).not.toContain('class="lucide');
-    // Nothing to clear room for: the page is not pushed right.
+    // Nothing to clear room for: the page card sits 8px off the window,
+    // not right of a sidebar.
     expect(html).toContain(
-      '<div id="admin-main" tabindex="-1" class="print:pl-0" style="outline:none">',
+      '<div id="admin-main" tabindex="-1" style="outline:none">',
     );
+    expect(html).not.toContain("--admin-side,15.5rem");
+    expect(html).toMatch(/data-admin-page-card="" class="[^"]* lg:ml-2"/);
     // The skip link is still the first thing to focus.
     expect(html.indexOf('href="#admin-main"')).toBeLessThan(
       html.indexOf("<header"),

@@ -38,8 +38,8 @@ export function SoundToggle() {
       aria-pressed={sound}
       title="Yeni sipariş geldiğinde kısa bir ses çalar."
       className={cx(
-        "inline-flex min-h-[44px] items-center gap-2 rounded-xl border px-3.5 text-sm transition-colors",
-        COMPACT.minH9,
+        "inline-flex min-h-11 items-center gap-2 rounded-lg border px-3.5 text-sm transition-colors pointer-fine:min-h-9",
+        COMPACT.minH8,
         sound
           ? "border-[var(--admin-primary)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
           : "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]",

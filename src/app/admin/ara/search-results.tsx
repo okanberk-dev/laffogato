@@ -40,7 +40,7 @@ function ResultGroup({ group }: { group: SearchGroup }) {
             <li key={hit.href}>
               <Link
                 href={hit.href}
-                className="grid min-h-[44px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 hover:bg-[var(--admin-surface-2)] sm:px-6"
+                className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 hover:bg-[var(--admin-surface-2)] sm:px-6 pointer-fine:min-h-9"
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-[var(--admin-text)]">
@@ -139,7 +139,7 @@ export function AdminSearchResults() {
       {pending ? null : state.failed ? (
         <p
           role="alert"
-          className="rounded-xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]"
+          className="rounded-lg border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]"
         >
           Arama şu an yapılamadı: veritabanı yanıt vermedi. Birkaç saniye sonra
           yeniden ara.

@@ -35,7 +35,7 @@ export function MenuFoodInfoStatus({
   return (
     <div
       data-testid="menu-food-info-status"
-      className={`mb-4 grid gap-1.5 rounded-xl border-l-4 px-3.5 py-2.5 text-sm ${TONE_SOFT[tone]} ${TONE_RULE[tone]}`}
+      className={`mb-4 grid gap-1.5 rounded-lg border-l-4 px-3.5 py-2.5 text-sm ${TONE_SOFT[tone]} ${TONE_RULE[tone]}`}
     >
       <p>
         {missing > 0 ? (

@@ -294,7 +294,8 @@ docs/                        → BRAND.md (marka kimliği) · DATABASE.md ·
                                API-MOBILE.md (mobil sözleşme) · AUTH-BRIDGE.md ·
                                SUPABASE-GECIS.md · PAYNKOLAY.md · GELIVER.md ·
                                EMAIL-RESEND.md · FRONTEND-SINIR.md (ön yüz ↔
-                               arka yüz sınırı)
+                               arka yüz sınırı) · ADMIN-INNEX.md (panelin
+                               tasarım tarifi)
 ```
 
 ## Masalar (QR) ve "yeni sipariş" e-postası (15 Eki 2026)
@@ -582,17 +583,20 @@ durum bozulmaya uygundur.
 - **Hareket:** `reveal-motion.tsx` yalnızca client'ta çalışır,
   `prefers-reduced-motion` altında hiç devreye girmez ve yalnız ekranın
   altındaki öğeleri gizler — JS yoksa hiçbir şey gizlenmez.
-- **Admin paneli görünümü** (21 Eki 2026, operatör): `/admin`, kafenin arka
-  ofis paneli lafmaliyet'in AkmanOS açık temasını izler (beyaz zemin,
-  limon yalnız dolgu, Geist Sans + Geist Mono yalnız admin layout'ta);
-  aynı akşam yumuşatıldı ("yumuşat, daha estetik, biraz renklendir"):
-  kart ve çizgiler sıcak taş (`#F6F4F0`, `#E9E5DE`), mürekkep ve birincil
-  sıcak siyah (`#1C1917`), menünün beş grubu birer pastel renk
-  (`src/components/admin/ui/hues.ts`: Bugün mavi, Katalog bal, Pazarlama
-  gül, İçerik mor, Yönetim yeşil) ve etkin satır siyah değil, grubunun
-  rengi. Değerler `src/app/admin/layout.tsx` `--admin-*`; yukarıdaki site
-  kuralları panele uygulanmaz, panel de siteyi değiştirmez (`docs/BRAND.md`
-  "Admin paneli görünümü").
+- **Admin paneli görünümü** (22 Eki 2026, operatör: "İnnexe geç"): `/admin`,
+  Filllo'nun Innex serisinin tasarım sistemini izler; ölçülmüş tarif
+  `docs/ADMIN-INNEX.md`. Gri zemin (`#EDEFF1`) üstünde iki beyaz kart
+  (kenar çubuğu 15.5rem ve sayfa; köşe 12 px), 1 px çizgiler, mürekkep
+  `#0C0E1B`, etiket grisi `#616367`, birincil mavi `#2F58F7` (Innex'in
+  `#325CFF`'i gri zeminde AA'nın altında kaldığı için bir ton koyu), Inter
+  yalnız admin layout'ta. Kenar çubuğu sakin: etkin satır gri, grup rengi
+  yok; menünün beş grup rengi (`src/components/admin/ui/hues.ts`) yalnız
+  Genel bakış ve rapor kartlarının ikon kutularında. Tutar ve kodlar
+  `NUMERIC_STYLE` (Inter tablo rakamı), karakter karakter okunan kimlik ve
+  Markdown `CODE_STYLE` (sistem eş genişlikli). 21 Eki'deki AkmanOS teması
+  lafmaliyet'te kaldı. Değerler `src/app/admin/layout.tsx` `--admin-*`;
+  yukarıdaki site kuralları panele uygulanmaz, panel de siteyi değiştirmez
+  (`docs/BRAND.md` "Admin paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız
   `src/components/admin/**` ve `src/app/admin/**` içinde:
   `lucide-react` (ikonlar), `react-aria-components` ve

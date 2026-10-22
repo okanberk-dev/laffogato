@@ -56,7 +56,7 @@ export default async function EditLegalDocPage({ params }: PageProps) {
   const boundUpdate = updateLegalDocAction.bind(null, slug);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow={`Yasal belge · /hukuk/${slug}`}
         title={doc.title}
@@ -87,7 +87,7 @@ export default async function EditLegalDocPage({ params }: PageProps) {
       />
       {recorded && (
         <p
-          className={`mb-5 rounded-2xl px-4 py-3 text-sm ${TONE_SOFT.info}`}
+          className={`mb-5 rounded-xl px-4 py-3 text-sm ${TONE_SOFT.info}`}
           role="note"
         >
           {karaoke

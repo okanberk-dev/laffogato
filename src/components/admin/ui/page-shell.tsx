@@ -3,22 +3,33 @@ import type { ReactNode } from "react";
 import { cx } from "@/components/laffogato/cx";
 
 /**
- * How wide a panel page is. Three widths instead of the six the pages
- * picked one by one (7xl, 6xl, 5xl, 4xl, 3xl, md), so the content edge
- * stays put from page to page:
+ * How wide a panel page's content runs. Three widths instead of the six the
+ * pages picked one by one (7xl, 6xl, 5xl, 4xl, 3xl, md), so the content
+ * edge stays put from page to page:
  *
- * - `list`: tables and dashboards
+ * - `list`: tables and dashboards, the page card's full width
  * - `detail`: one record (an order, a booking)
  * - `form`: one form, read top to bottom
+ *
+ * Innex (22 Eki 2026): the page sits in a white card, its header strip runs
+ * the card's full width and the content starts at the card's left edge, so
+ * a width caps each block under the header instead of centring the page.
  */
 export type PageWidth = "list" | "detail" | "form";
 
 /** Written out in full for Tailwind's scanner. */
 export const PAGE_WIDTHS: Record<PageWidth, string> = {
-  list: "max-w-7xl",
-  detail: "max-w-6xl",
-  form: "max-w-3xl",
+  list: "",
+  detail: "[&>:not(header)]:max-w-6xl",
+  form: "[&>:not(header)]:max-w-3xl",
 };
+
+/**
+ * The page's own padding: 16 px on a phone, 20 px from `sm` (Innex's
+ * content padding). PageHeader's strip meets it with negative margins.
+ * The pages that draw their own `<main>` use the same string.
+ */
+export const PAGE_PAD = "w-full px-4 pt-5 pb-10 sm:px-5";
 
 export interface PageShellProps {
   /** Default `list`. */
@@ -29,12 +40,11 @@ export interface PageShellProps {
 }
 
 /**
- * A panel page's `<main>`: one of three widths, the panel's padding and a
- * 20px gap under the PageHeader (from `sm` up the pages had 40px above the
- * title and 32px under the header). The shell's "İçeriğe geç" link lands on
- * the layout's focusable wrapper (`#admin-main`), so this element carries no
- * id: two would repeat it. A page has exactly one PageShell. Server- and
- * client-safe (no hooks).
+ * A panel page's `<main>`: Innex's padding, one of three content widths and
+ * a 20px gap under the PageHeader strip. The shell's "İçeriğe geç" link
+ * lands on the layout's focusable wrapper (`#admin-main`), so this element
+ * carries no id: two would repeat it. A page has exactly one PageShell.
+ * Server- and client-safe (no hooks).
  *
  * @example
  * <PageShell width="list">
@@ -48,13 +58,7 @@ export function PageShell({
   children,
 }: PageShellProps) {
   return (
-    <main
-      className={cx(
-        "mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&>header]:mb-5",
-        PAGE_WIDTHS[width],
-        className,
-      )}
-    >
+    <main className={cx(PAGE_PAD, PAGE_WIDTHS[width], className)}>
       {children}
     </main>
   );

@@ -29,7 +29,7 @@ export function OpenOrdersWidget({
             <li key={r.status}>
               <Link
                 href={`/admin/siparisler?durum=${r.status}`}
-                className="flex min-h-[44px] items-center justify-between gap-3 py-1 text-sm text-[var(--admin-text)] hover:text-[var(--admin-primary)]"
+                className="flex min-h-11 items-center justify-between gap-3 py-1 text-sm text-[var(--admin-text)] hover:text-[var(--admin-primary)] pointer-fine:min-h-9"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span

@@ -560,7 +560,7 @@ export default async function KaraokeReservationPage({
     <PageShell width="detail">
       <Link
         href={back}
-        className="mb-4 inline-flex min-h-[44px] items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+        className="mb-4 inline-flex min-h-11 items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
       >
         ← Karaoke rezervasyonları
       </Link>
@@ -682,7 +682,7 @@ export default async function KaraokeReservationPage({
           {auditRead ? null : (
             <p
               role="status"
-              className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+              className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
             >
               Geçmiş okunamadı; aşağıda yalnız rezervasyonun kendi kayıtları
               var. Sayfayı birazdan yenile.

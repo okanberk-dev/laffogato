@@ -13,7 +13,7 @@ import { PanelHomeLink } from "@/components/admin/panel-home";
  */
 export default function AdminNotFound() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow="Panel · 404"
         title="Bu sayfa ya da kayıt bulunamadı."
@@ -24,7 +24,7 @@ export default function AdminNotFound() {
           Listeye dönmek için menüyü kullan - orada yalnız senin yetkinin açtığı
           bölümler var.
         </p>
-        <PanelHomeLink className="inline-flex min-h-[44px] items-center justify-center justify-self-start rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]">
+        <PanelHomeLink className="inline-flex min-h-11 items-center justify-center justify-self-start rounded-lg bg-[var(--admin-primary)] px-5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] pointer-fine:min-h-9">
           Panele dön
         </PanelHomeLink>
       </Card>

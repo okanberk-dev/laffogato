@@ -4,7 +4,7 @@ import { cx } from "@/components/laffogato/cx";
 import type { AdminTone } from "@/lib/admin/tone";
 
 import { formatDateTime } from "../forms";
-import { CARD_TITLE, COMPACT, LABEL, MONO_STYLE } from "./styles";
+import { CARD, CARD_TITLE, COMPACT, LABEL, MONO_STYLE } from "./styles";
 import { TONE_DOT } from "./tone";
 
 // Detail-page building blocks (Filament's "infolist"). Server- and
@@ -40,14 +40,15 @@ export function Section({
       id={id}
       aria-labelledby={headingId}
       className={cx(
-        // On paper the zinc-100 ground does not print: a line keeps the box.
-        "rounded-3xl bg-[var(--admin-panel)] print:border print:border-[var(--admin-border-strong)] print:bg-white",
+        // Innex's card; on paper its line darkens a step so the box prints.
+        CARD,
+        "print:border-[var(--admin-border-strong)]",
         className,
       )}
     >
       <header
         className={cx(
-          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-6 sm:pt-5",
+          "flex flex-wrap items-start justify-between gap-3 px-4 pt-4 pb-0 sm:px-5",
           COMPACT.px4,
           COMPACT.py2,
         )}
@@ -57,7 +58,7 @@ export function Section({
             {title}
           </h2>
           {description ? (
-            <p className="mt-0.5 text-sm text-[var(--admin-text-soft)]">
+            <p className="mt-0.5 text-[13px] text-[var(--admin-text-mute)]">
               {description}
             </p>
           ) : null}
@@ -66,7 +67,7 @@ export function Section({
           <div className="flex flex-wrap items-center gap-2">{actions}</div>
         ) : null}
       </header>
-      <div className={flush ? undefined : cx("p-4 sm:p-6", COMPACT.p4)}>
+      <div className={flush ? undefined : cx("p-4 sm:p-5", COMPACT.p4)}>
         {children}
       </div>
     </section>
@@ -183,13 +184,13 @@ export function Timeline({
     newestFirst ? instant(b.at) - instant(a.at) : instant(a.at) - instant(b.at),
   );
   return (
-    <ol className="relative flex flex-col gap-4 border-l border-[var(--admin-border)] pl-5">
+    <ol className="relative flex flex-col gap-4 border-l border-dashed border-[var(--admin-border-strong)] pl-5">
       {sorted.map((item) => (
         <li key={item.id} className="relative">
           <span
             aria-hidden="true"
             className={cx(
-              "absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full ring-4 ring-[var(--admin-panel)]",
+              "absolute top-1.5 -left-[25px] h-2.5 w-2.5 rounded-full ring-4 ring-[var(--admin-surface)]",
               TONE_DOT[item.tone ?? "neutral"],
             )}
           />
@@ -240,7 +241,7 @@ export function EmptyState({
   return (
     <div
       className={cx(
-        "flex flex-col items-center gap-2 rounded-3xl border border-dashed border-[var(--admin-border-strong)] bg-[var(--admin-panel)] px-6 py-10 text-center",
+        "flex flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--admin-border-strong)] bg-[var(--admin-surface-2)] px-6 py-10 text-center",
         className,
       )}
     >

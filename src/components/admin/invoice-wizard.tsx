@@ -220,9 +220,9 @@ export function InvoiceWizard(props: InvoiceWizardProps) {
                 return (
                   <label
                     key={o.value}
-                    className={`flex min-h-[44px] cursor-pointer flex-col gap-1 rounded-2xl border p-4 text-sm transition-colors ${
+                    className={`flex min-h-11 cursor-pointer flex-col gap-1 rounded-xl border p-4 text-sm transition-colors pointer-fine:min-h-9 ${
                       on
-                        ? "border-[var(--admin-primary)] bg-[var(--admin-surface)] ring-2 ring-[var(--admin-accent)]/25"
+                        ? "border-[var(--admin-primary)] bg-[var(--admin-surface)] ring-2 ring-[var(--admin-primary)]/25"
                         : "border-[var(--admin-border)] bg-[var(--admin-surface)] hover:border-[var(--admin-border-strong)]"
                     }`}
                   >
@@ -349,7 +349,7 @@ export function InvoiceWizard(props: InvoiceWizardProps) {
       body: (
         <div className="grid gap-4">
           {props.addressUnread ? (
-            <p className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-text)]">
+            <p className="rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-text)]">
               Siparişteki adresten il ve ilçe okunamadı: aşağıya yaz.
             </p>
           ) : (
@@ -470,7 +470,7 @@ export function InvoiceWizard(props: InvoiceWizardProps) {
               },
             ]}
           />
-          <p className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
+          <p className="rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
             {mode === "live"
               ? "Fatura bugünün tarihiyle hemen kesilir ve gönderilir. Kesilen fatura yalnız Paraşüt'ten iptal edilir."
               : rebuild

@@ -57,7 +57,7 @@ export function KeepaliveStatusLine({ view }: { view: KeepaliveView }) {
       data-testid="supabase-keepalive-status"
       data-state={view.state}
       className={cx(
-        "mb-4 rounded-xl border-l-4 px-3.5 py-2.5 text-sm",
+        "mb-4 rounded-lg border-l-4 px-3.5 py-2.5 text-sm",
         TONE_SOFT[view.tone],
         TONE_RULE[view.tone],
       )}
