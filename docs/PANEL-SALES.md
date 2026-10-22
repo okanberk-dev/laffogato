@@ -154,10 +154,25 @@ sipariş numarası gitmez.
 
 ## Panel ne yapar
 
-Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`): günlük cron'da
-içinde bulunulan ay ile, ayın ilk günlerinde bir önceki ayı çeker ve ay
-başına tek satır olarak saklar (yeniden çekmek üzerine yazar). Kâr-zararda
-"Online satış (site + uygulama)" ve "Karaoke (ön ödemeli)" ayrı gelir
-satırlarıdır, KDV hariç; kafe satırları menü bağlantısıyla ürünlere
-eşlenip tüketime girer. Kasa raporu o günün online toplamını bilgi olarak
-gösterir, kasa farkına katmaz.
+Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
+
+- **Ne zaman:** günlük cron içinde bulunulan ayı, ayın ilk 7 gününde bir
+  önceki ayı da çeker; Gelir-gider'deki "Siteden yenile" bir seferde en çok
+  3 ay sorar. Ay başına tek kayıt (`integration_state`, `site_sales:YYYY-MM`);
+  yeniden çekmek üzerine yazar. 422 (`range_too_large`) panelde hata olarak
+  görünür, gün gün yeniden sorulmaz.
+- **Kâr-zarar:** ModPOS cirosunun altında üç ayrı gelir satırı, KDV hariç:
+  "Kafe online (site + uygulama)", "Mağaza (online)", "Karaoke (ön
+  ödemeli)"; ardından "TOPLAM CİRO (KDV hariç)" = ModPOS (KDV hariç) +
+  online. Kâr / zarar ve oranlar bu toplamla hesaplanır. ModPOS cirosu ve
+  POS komisyonu değişmez. Hiç çekilmemiş ay boş kalır, 0 görünmez.
+- **Tüketim:** kafe satırları menü bağlantısıyla ürünlere eşlenip
+  tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer;
+  bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
+  (`sales_lines`) yazılmaz.
+- **Kasa raporu:** sayfada ve e-postada bilgi satırı, "Online (site +
+  uygulama) … · Karaoke ön ödeme … — kasadan geçmez" (kafe + mağaza netini
+  ve karaokeyi KDV dahil gösterir); kasa farkına girmez, saklanmaz. Site
+  ulaşılamazsa ya da yavaşsa satır yoktur, rapor beklemez. Sitenin günü
+  gece yarısı, kasanınki 05:00'te biter: gece yarısından sonraki sipariş
+  ertesi günün satırındadır.
