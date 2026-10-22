@@ -1008,13 +1008,17 @@ describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (2
     );
   });
 
-  it("tells a member the invoice is on the order page too", () => {
+  // Conditional on purpose: the order page shows an invoice only once the
+  // e-Arşiv run has cut it (EARSIV_MODE=live, docs/EARSIV.md). Before that
+  // the invoice is cut by hand, and "you can download it" would be a promise
+  // the code does not keep.
+  it("tells a member the invoice is on the order page when it is shown there", () => {
     expect(sectionOf("islem-rehberi", "9. Fatura").paragraphs?.[0]).toContain(
-      "Üye olarak verdiğiniz bir siparişin faturasını, düzenlendikten sonra hesabınızdaki sipariş sayfasından da indirebilirsiniz.",
+      "Üye olarak verdiğiniz bir siparişin faturası hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz.",
     );
     expect(
       sectionOf("sirket-bilgileri", "14. Faturalama ve Vergisel Bilgiler").paragraphs?.[0],
-    ).toContain("hesabınızdaki sipariş sayfasından da indirebilirsiniz");
+    ).toContain("hesabınızdaki sipariş sayfasında gösteriliyorsa, onu oradan da indirebilirsiniz");
   });
 
   it("keeps the till receipt for the till and the e-Arşiv for an order paid online (Kafe §8)", () => {
