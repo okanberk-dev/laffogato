@@ -241,7 +241,12 @@ function DraftPreview({
                   key={`${l.productCode}-${i}`}
                   className="border-t border-[var(--admin-border)]"
                 >
-                  <td className={CELL}>{l.description}</td>
+                  <td className={CELL}>
+                    {l.description}
+                    <span className="block text-xs text-[var(--admin-text-soft)]">
+                      Ürün: {l.productName}
+                    </span>
+                  </td>
                   <td className={NUM}>{l.quantity}</td>
                   <td className={NUM}>%{l.vatRate}</td>
                   {discounted ? (

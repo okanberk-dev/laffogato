@@ -403,10 +403,17 @@ describe("karaoke: after the evening, what the köşk keeps", () => {
       90_000,
       20,
     );
-    expect(line.description).toBe(
-      "Karaoke odası, 22 Ekim 2026 20:00, 2 saat, geç iptal",
-    );
-    expect(line.productCode).toBe("LAF-KARAOKE-20");
+    // No date on the line (operator, 22 Oct 2026): the nature of the work
+    // and how long, VUK 230/5; the invoice has its own date.
+    expect(line.description).toBe("Karaoke odası geç iptal bedeli, 2 saat");
+    expect(
+      karaokeInvoiceLines(booking({ status: "confirmed" }), 90_000, 20)[0]
+        .description,
+    ).toBe("Karaoke odası kullanımı, 2 saat");
+    // The product is just "Hizmet" (operator, 22 Oct 2026); the line says
+    // which service, and the rate is the KDV column's.
+    expect(line.productCode).toBe("LAF-HIZMET-20");
+    expect(line.productName).toBe("Hizmet");
     expect(line.totalMinor).toBe(90_000);
     const older = karaokeInvoiceLines(
       booking({ taxRatePct: null }),
@@ -617,8 +624,14 @@ describe("request bodies, against Paraşüt's spec", () => {
       expect(PARASUT_FIELDS.products, k).toContain(k);
     expect(body.data.attributes).toMatchObject({
       code: "LAF-KAFE-10",
+      name: "Kafe siparişi (KDV %10)",
       vat_rate: 10,
       currency: "TRL",
+    });
+    expect(productBody("KARAOKE", 20).data.attributes).toMatchObject({
+      code: "LAF-HIZMET-20",
+      name: "Hizmet",
+      vat_rate: 20,
     });
   });
 
