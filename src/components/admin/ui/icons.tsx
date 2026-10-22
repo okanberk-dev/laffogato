@@ -2,6 +2,7 @@ import {
   Boxes,
   CalendarRange,
   ChartColumn,
+  Check,
   ChevronDown,
   ChevronUp,
   Coffee,
@@ -107,6 +108,8 @@ export const ADMIN_ICONS = {
   categories: Tags,
   announcement: Megaphone,
   post: Newspaper,
+  // A wizard's finished step (ui/wizard.tsx).
+  stepDone: Check,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;

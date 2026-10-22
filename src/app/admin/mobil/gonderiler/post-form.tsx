@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { GuardedActionForm } from "@/components/admin/guarded-action-form";
+import { WizardAutoSummary } from "@/components/admin/ui/wizard";
+import { WizardActionForm } from "@/components/admin/wizard-action-form";
 import {
   Card,
   Checkbox,
@@ -111,195 +113,186 @@ export function AppPostForm({
   const [gate] = useState(createMailGate);
   const [asking, setAsking] = useState(false);
 
-  return (
-    <GuardedActionForm
-      action={action}
-      beforeSubmit={() => {
-        if (gate.allows(emailMembers)) return true;
-        setAsking(true);
-        return false;
-      }}
-      className="grid gap-4"
-    >
-      <Card>
-        <div className="grid gap-4">
-          <Field label="Tür" hint="Kartın üstünde küçük etiket olarak görünür.">
-            <Select
-              name="kind"
-              value={kind}
-              onChange={(e) => {
-                if (isAppPostKind(e.target.value)) setKind(e.target.value);
-              }}
-            >
-              {APP_POST_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {APP_POST_KIND_LABELS[k]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <FieldRow name="title">
-            <Field label="Başlık" hint="En fazla 80 karakter.">
-              <TextInput
-                name="title"
-                defaultValue={defaults?.title ?? ""}
-                maxLength={80}
-                required
-                placeholder="Sabah ritüeli"
-              />
-            </Field>
-          </FieldRow>
-
-          <Field
-            label="Metin"
-            hint="En fazla 280 karakter. Kartta üç satır görünür, gerisi kırpılır."
-          >
-            <Textarea
-              name="body"
-              defaultValue={defaults?.body ?? ""}
-              maxLength={280}
-              rows={3}
-            />
-          </Field>
-        </div>
-      </Card>
-
-      <Card>
-        <div className="grid gap-4">
-          <Field
-            label="Görsel adresi"
-            hint="https ile başlayan tam adres. Boş bırakırsan kart marka zemininde çizilir - bozuk bir görsel yerine kasıtlı bir panel görünür."
-          >
-            <TextInput
-              name="image"
-              type="url"
-              defaultValue={defaults?.image ?? ""}
-              maxLength={2048}
-              placeholder="https://…/kampanya.webp"
-            />
-          </Field>
-
-          <Field
-            label="Bağlantı adresi"
-            hint="İsteğe bağlı. Yalnızca https kabul edilir; başka bir şey yazılırsa boş kaydedilir. Uygulama bunu uygulama içi tarayıcıda açar."
-          >
-            <TextInput
-              name="linkUrl"
-              type="url"
-              defaultValue={defaults?.linkUrl ?? ""}
-              maxLength={2048}
-              placeholder="https://instagram.com/…"
-            />
-          </Field>
-
-          <Field
-            label="Bağlantı yazısı"
-            hint="Örn. Detaylar. Boşsa buton görünmez."
-          >
-            <TextInput
-              name="linkLabel"
-              defaultValue={defaults?.linkLabel ?? ""}
-              maxLength={32}
-              placeholder="Detaylar"
-            />
-          </Field>
-        </div>
-      </Card>
-
-      <Card>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Sıra" hint="Küçük olan önce görünür.">
-            <TextInput
-              name="sortOrder"
-              type="number"
-              min={0}
-              defaultValue={String(defaults?.sortOrder ?? 0)}
-            />
-          </Field>
-
-          <Field as="fieldset" label="Yayında">
-            <Checkbox
-              name="isActive"
-              label="Uygulamada görünsün"
-              defaultChecked={defaults?.isActive ?? true}
-            />
-          </Field>
-
-          <FieldRow name="startsAt">
-            <Field
-              label="Başlangıç"
-              hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
-            >
-              <DateTimeField
-                name="startsAt"
-                aria-label="Başlangıç tarihi ve saati"
-                defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
-              />
-            </Field>
-          </FieldRow>
-
-          <FieldRow name="endsAt">
-            <Field
-              label="Bitiş"
-              hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
-            >
-              <DateTimeField
-                name="endsAt"
-                aria-label="Bitiş tarihi ve saati"
-                defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
-              />
-            </Field>
-          </FieldRow>
-        </div>
-      </Card>
-
-      <Card>
-        <Field
-          as="fieldset"
-          label="Üyelere e-posta"
-          hint={
-            alreadyMailed
-              ? undefined
-              : !canEmail
-                ? "Kampanya e-postası göndermek Bülten yetkisi ister (sahip ya da yönetici); gönderi e-postasız kaydedilir."
-                : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz - yayına girince “Kampanya e-postası” sayfasından gönder.${
-                    mode === "edit"
-                      ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
-                      : ""
-                  }`
-          }
+  const gateCheck = () => {
+    if (gate.allows(emailMembers)) return true;
+    setAsking(true);
+    return false;
+  };
+  const contentFields = (
+    <div className="grid gap-4">
+      <Field label="Tür" hint="Kartın üstünde küçük etiket olarak görünür.">
+        <Select
+          name="kind"
+          value={kind}
+          onChange={(e) => {
+            if (isAppPostKind(e.target.value)) setKind(e.target.value);
+          }}
         >
-          <Checkbox
-            name="emailMembers"
-            label={
-              mode === "edit"
-                ? "Bu kayıtla pazarlama izni olan üyelere bir kez e-posta gönder"
-                : "Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
-            }
-            checked={emailMembers}
-            disabled={alreadyMailed || !canEmail}
-            onChange={(e) => setEmailChoice(e.target.checked)}
+          {APP_POST_KINDS.map((k) => (
+            <option key={k} value={k}>
+              {APP_POST_KIND_LABELS[k]}
+            </option>
+          ))}
+        </Select>
+      </Field>
+
+      <FieldRow name="title">
+        <Field label="Başlık" hint="En fazla 80 karakter.">
+          <TextInput
+            name="title"
+            defaultValue={defaults?.title ?? ""}
+            maxLength={80}
+            required
+            placeholder="Sabah ritüeli"
           />
         </Field>
-        {alreadyMailed && (
-          <p className="text-xs text-[var(--admin-text-mute)]">
-            Bu gönderi için kampanya e-postası zaten oluşturuldu; sonraki
-            kayıtlar yeniden göndermez.{" "}
-            <Link
-              href={`/admin/bulten/kampanya/${defaults?.emailCampaignId}`}
-              className="underline"
-            >
-              Kampanyayı aç
-            </Link>
-          </p>
-        )}
-      </Card>
+      </FieldRow>
 
-      <FormActions
-        submitLabel={submitLabel}
-        backHref="/admin/mobil/gonderiler"
-      />
+      <Field
+        label="Metin"
+        hint="En fazla 280 karakter. Kartta üç satır görünür, gerisi kırpılır."
+      >
+        <Textarea
+          name="body"
+          defaultValue={defaults?.body ?? ""}
+          maxLength={280}
+          rows={3}
+        />
+      </Field>
+    </div>
+  );
+  const mediaFields = (
+    <div className="grid gap-4">
+      <Field
+        label="Görsel adresi"
+        hint="https ile başlayan tam adres. Boş bırakırsan kart marka zemininde çizilir - bozuk bir görsel yerine kasıtlı bir panel görünür."
+      >
+        <TextInput
+          name="image"
+          type="url"
+          defaultValue={defaults?.image ?? ""}
+          maxLength={2048}
+          placeholder="https://…/kampanya.webp"
+        />
+      </Field>
+
+      <Field
+        label="Bağlantı adresi"
+        hint="İsteğe bağlı. Yalnızca https kabul edilir; başka bir şey yazılırsa boş kaydedilir. Uygulama bunu uygulama içi tarayıcıda açar."
+      >
+        <TextInput
+          name="linkUrl"
+          type="url"
+          defaultValue={defaults?.linkUrl ?? ""}
+          maxLength={2048}
+          placeholder="https://instagram.com/…"
+        />
+      </Field>
+
+      <Field
+        label="Bağlantı yazısı"
+        hint="Örn. Detaylar. Boşsa buton görünmez."
+      >
+        <TextInput
+          name="linkLabel"
+          defaultValue={defaults?.linkLabel ?? ""}
+          maxLength={32}
+          placeholder="Detaylar"
+        />
+      </Field>
+    </div>
+  );
+  const publishFields = (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="Sıra" hint="Küçük olan önce görünür.">
+        <TextInput
+          name="sortOrder"
+          type="number"
+          min={0}
+          defaultValue={String(defaults?.sortOrder ?? 0)}
+        />
+      </Field>
+
+      <Field as="fieldset" label="Yayında">
+        <Checkbox
+          name="isActive"
+          label="Uygulamada görünsün"
+          defaultChecked={defaults?.isActive ?? true}
+        />
+      </Field>
+
+      <FieldRow name="startsAt">
+        <Field
+          label="Başlangıç"
+          hint="Boşsa hemen yayına girer. Saat İstanbul saatidir."
+        >
+          <DateTimeField
+            name="startsAt"
+            aria-label="Başlangıç tarihi ve saati"
+            defaultValue={toDateTimeLocalInput(defaults?.startsAt ?? "")}
+          />
+        </Field>
+      </FieldRow>
+
+      <FieldRow name="endsAt">
+        <Field
+          label="Bitiş"
+          hint="Boşsa süresiz kalır. Tarih geçince kart kendiliğinden düşer."
+        >
+          <DateTimeField
+            name="endsAt"
+            aria-label="Bitiş tarihi ve saati"
+            defaultValue={toDateTimeLocalInput(defaults?.endsAt ?? "")}
+          />
+        </Field>
+      </FieldRow>
+    </div>
+  );
+  const mailField = (
+    <>
+      <Field
+        as="fieldset"
+        label="Üyelere e-posta"
+        hint={
+          alreadyMailed
+            ? undefined
+            : !canEmail
+              ? "Kampanya e-postası göndermek Bülten yetkisi ister (sahip ya da yönetici); gönderi e-postasız kaydedilir."
+              : `Kaydedildiğinde gönderi yayındaysa ve yayın penceresi açıksa, pazarlama izni olan üyelere bir kez “Duyuru” şablonuyla gider; sonraki kayıtlar yeniden göndermez. İleri tarihli gönderiler yayına girdiğinde otomatik mail çıkmaz - yayına girince “Kampanya e-postası” sayfasından gönder.${
+                  mode === "edit"
+                    ? " Düzenlemede kutu kapalı başlar: bu gönderi için e-posta istiyorsan bilerek işaretle."
+                    : ""
+                }`
+        }
+      >
+        <Checkbox
+          name="emailMembers"
+          label={
+            mode === "edit"
+              ? "Bu kayıtla pazarlama izni olan üyelere bir kez e-posta gönder"
+              : "Yayınlanınca pazarlama izni olan üyelere e-posta gönder"
+          }
+          checked={emailMembers}
+          disabled={alreadyMailed || !canEmail}
+          onChange={(e) => setEmailChoice(e.target.checked)}
+        />
+      </Field>
+      {alreadyMailed && (
+        <p className="text-xs text-[var(--admin-text-mute)]">
+          Bu gönderi için kampanya e-postası zaten oluşturuldu; sonraki kayıtlar
+          yeniden göndermez.{" "}
+          <Link
+            href={`/admin/bulten/kampanya/${defaults?.emailCampaignId}`}
+            className="underline"
+          >
+            Kampanyayı aç
+          </Link>
+        </p>
+      )}
+    </>
+  );
+  const confirm = (
+    <>
       {asking ? (
         <ConfirmDialog
           ask={postMailConfirm(recipientCount)}
@@ -313,6 +306,73 @@ export function AppPostForm({
           }}
         />
       ) : null}
+    </>
+  );
+
+  if (mode === "create") {
+    return (
+      <WizardActionForm
+        action={action}
+        beforeSubmit={gateCheck}
+        className="grid gap-4"
+        label="Yeni gönderi adımları"
+        cancelHref="/admin/mobil/gonderiler"
+        submitLabel={submitLabel}
+        steps={[
+          {
+            id: 1,
+            title: "İçerik",
+            fields: ["kind", "title", "body"],
+            body: contentFields,
+          },
+          {
+            id: 2,
+            title: "Görsel ve bağlantı",
+            fields: ["image", "linkUrl", "linkLabel"],
+            body: mediaFields,
+          },
+          {
+            id: 3,
+            title: "Yayın",
+            fields: ["sortOrder", "isActive", "startsAt", "endsAt"],
+            body: publishFields,
+          },
+          {
+            id: 4,
+            title: "Özet",
+            summary: true,
+            fields: ["emailMembers"],
+            body: (
+              <div className="grid gap-5">
+                <WizardAutoSummary note="Bağlantı ve görsel adresi kaydederken yeniden denetlenir: https olmayan bağlantı boş kaydedilir." />
+                <div className="border-t border-[var(--admin-border)] pt-5">
+                  {mailField}
+                </div>
+              </div>
+            ),
+          },
+        ]}
+      >
+        {confirm}
+      </WizardActionForm>
+    );
+  }
+
+  return (
+    <GuardedActionForm
+      action={action}
+      beforeSubmit={gateCheck}
+      className="grid gap-4"
+    >
+      <Card>{contentFields}</Card>
+      <Card>{mediaFields}</Card>
+      <Card>{publishFields}</Card>
+      <Card>{mailField}</Card>
+      <FormActions
+        submitLabel={submitLabel}
+        backHref="/admin/mobil/gonderiler"
+      />
+      {confirm}
     </GuardedActionForm>
   );
 }

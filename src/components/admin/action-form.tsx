@@ -18,6 +18,7 @@ import type { ActionResult } from "@/lib/admin/action-result";
 import { BUTTON, useToast, type ButtonVariant, type ModalAction } from "./ui";
 import { announceAdminChange } from "./ui/admin-changed";
 import { useHandPost, withPanelCatch, type BeforeSubmit } from "./ui/submit";
+import type { Wizard } from "./ui/wizard";
 
 // The hand-dispatch helpers live in ui/submit.ts (ActionModal uses them
 // too); the panel's forms import them from here.
@@ -236,6 +237,7 @@ export function ActionForm({
   resetOnSuccess = false,
   beforeSubmit,
   formRef: outerRef,
+  wizard,
 }: {
   action: ModalAction;
   children: ReactNode;
@@ -252,12 +254,25 @@ export function ActionForm({
    * form stays as typed). For a check only the browser can make.
    */
   beforeSubmit?: BeforeSubmit;
+  /**
+   * A step-by-step form (ui/wizard.tsx, WizardActionForm): the browser's
+   * own check is off (the kit checks each step), Enter moves to the next
+   * step, and a refusal opens the step of its first field.
+   */
+  wizard?: Pick<Wizard, "enabled" | "onKeyDown" | "openErrors">;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   // Handed out by a layout effect, so the page's own effects find it set.
   useImperativeHandle(outerRef, () => formRef.current as HTMLFormElement);
   const baseId = useId();
-  const [state, formAction, pending] = useToastAction(action, {
+  const run: ModalAction = wizard?.enabled
+    ? async (prev, formData) => {
+        const result = await action(prev, formData);
+        if (result && !result.ok) wizard.openErrors(result.fieldErrors);
+        return result;
+      }
+    : action;
+  const [state, formAction, pending] = useToastAction(run, {
     // A refusal is shown in the form itself, next to what has to change.
     toastError: false,
     onSuccess: () => {
@@ -296,6 +311,8 @@ export function ActionForm({
         ref={formRef}
         action={post.action}
         onSubmit={post.onSubmit}
+        onKeyDown={wizard?.enabled ? wizard.onKeyDown : undefined}
+        noValidate={wizard?.enabled || undefined}
         className={className}
       >
         {children}

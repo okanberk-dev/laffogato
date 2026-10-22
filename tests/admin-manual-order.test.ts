@@ -404,7 +404,10 @@ const formSource = readFileSync(
 
 describe("ORD-03: a refusal keeps what was typed and says where", () => {
   it("posts by hand, never as a form action (which reset the status to Ödendi)", () => {
-    expect(formSource).toContain("useHandPost(formAction, pending)");
+    // The wizard (ui/wizard.tsx) checks every step before the post.
+    expect(formSource).toMatch(
+      /useHandPost\(formAction, pending, \{\s*beforeSubmit: wizard\.beforeSubmit,?\s*\}\)/,
+    );
     // The dispatcher is the action only as React's guard against the
     // browser's own GET before hydration; onSubmit prevents the post and
     // React skips the action of a prevented submit (no reset).
