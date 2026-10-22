@@ -26,7 +26,8 @@ import { orderStatusLabel } from "@/lib/admin/order-ui";
 import { orderTimeline } from "@/lib/admin/order-timeline";
 import { canAccess } from "@/lib/admin/roles";
 import { couponSourcesForOrders } from "@/lib/customer/coupons";
-import { earsivConfigStatus } from "@/lib/invoice/config";
+import { earsivConfigStatus, parasutAppUrl } from "@/lib/invoice/config";
+import { invoiceDraftLines } from "@/lib/invoice/panel-core";
 import { getInvoiceForSource } from "@/lib/invoice/store";
 import {
   getOrder,
@@ -208,6 +209,13 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             mode={earsivConfigStatus(process.env).mode}
             canManage={canAccess("invoices", session.role)}
             unread={invoiceRead.failed}
+            draftLines={
+              invoiceRead.rows[0]?.status === "draft"
+                ? invoiceDraftLines(invoiceRead.rows[0], { order })
+                : null
+            }
+            buyerName={order.customerName}
+            parasutUrl={parasutAppUrl(process.env)}
           />
         </div>
       ) : null}

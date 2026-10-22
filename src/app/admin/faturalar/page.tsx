@@ -25,7 +25,11 @@ import {
   StatusTabs,
 } from "@/components/admin/ui";
 import { requireRole } from "@/lib/admin/auth";
-import { EARSIV_MODE_LABELS, earsivConfigStatus } from "@/lib/invoice/config";
+import {
+  EARSIV_MODE_LABELS,
+  earsivConfigStatus,
+  parasutAppUrl,
+} from "@/lib/invoice/config";
 import type { InvoiceRow } from "@/lib/invoice/invoice-core";
 import {
   deadlineBadge,
@@ -113,7 +117,7 @@ function ConfigCard({ lastRun }: { lastRun: RunSummary | null }) {
         {status.mode === "draft" && status.config ? (
           <p className="text-[var(--admin-text-soft)]">
             {
-              "Taslak modu: faturalar Paraşüt'te taslak olarak hazırlanır, resmileştirilmez ve müşteriye gönderilmez. Muhasebeci kontrol edince EARSIV_MODE=live."
+              'Taslak modu: faturalar Paraşüt\'te taslak olarak hazırlanır, kendiliğinden kesinleşmez ve müşteriye gitmez. Her taslağı siparişin ya da rezervasyonun fatura kartında kontrol et, "Faturayı kesinleştir" ile kes: o zaman e-Arşiv olur ve PDF müşteriye gider. Hepsi kendiliğinden kesilsin dersen EARSIV_MODE=live.'
             }
           </p>
         ) : null}
@@ -174,6 +178,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     .map((c) => `${c.name} | ${c.title} | ${c.vkn}`)
     .join("\n");
 
+  const parasutUrl = parasutAppUrl(process.env);
   return (
     <PageShell width="list">
       <PageHeader
@@ -272,6 +277,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
         ]}
         rowActions={(r) => (
           <InvoiceActions
+            parasutUrl={parasutUrl}
             row={r}
             source={{
               kind: r.sourceKind,

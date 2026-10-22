@@ -11,8 +11,10 @@ import {
 } from "@/components/admin/ui";
 import {
   cutInvoiceNowAction,
+  formalizeInvoiceAction,
   markInvoiceManualAction,
   markInvoiceManualDoneAction,
+  rebuildInvoiceDraftAction,
   retryInvoiceAction,
   setInvoiceBillingAction,
 } from "@/app/admin/faturalar/actions";
@@ -39,7 +41,7 @@ export function mayMarkManual(row: InvoiceRow | null): boolean {
 
 function retryable(row: InvoiceRow): boolean {
   return (
-    ["manual", "failed", "draft"].includes(row.status) ||
+    ["manual", "failed"].includes(row.status) ||
     (row.status === "issued" && !row.emailedAt)
   );
 }
@@ -63,11 +65,14 @@ function billingEditable(row: InvoiceRow): boolean {
 export function InvoiceActions({
   row,
   source,
+  parasutUrl = null,
   menu = false,
 }: {
   row: InvoiceRow | null;
   /** The order or booking, for "elle kesilecek" when there is no row yet. */
   source: { kind: InvoiceSourceKind; id: string; label: string };
+  /** The company in Paraşüt's web app, for a draft ("Paraşüt'ü aç"). */
+  parasutUrl?: string | null;
   menu?: boolean;
 }) {
   const v = menu ? "menu" : "ghost";
@@ -86,12 +91,51 @@ export function InvoiceActions({
         action={cutInvoiceNowAction}
         hidden={{ id: row.id }}
         variant={v}
-        ariaLabel={`Faturayı şimdi kes: ${row.sourceLabel}`}
-        pendingLabel="Kesiliyor…"
+        ariaLabel={`Faturayı kes: ${row.sourceLabel}`}
+        pendingLabel="Hazırlanıyor…"
       >
-        Faturayı şimdi kes
+        Faturayı kes
       </ActionButton>,
     );
+  }
+  if (row?.status === "draft") {
+    items.push(
+      <ActionModal
+        key="formalize"
+        action={formalizeInvoiceAction}
+        title="Faturayı kesinleştir"
+        description="Paraşüt'teki taslak bugünün tarihiyle e-Arşiv fatura olur ve PDF'i müşteriye e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten, 7 gün içinde iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+        trigger="Faturayı kesinleştir"
+        triggerVariant={menu ? v : "primary"}
+        ariaLabel={`Faturayı kesinleştir: ${row.sourceLabel}`}
+        submitLabel="Kesinleştir"
+        hidden={{ id: row.id }}
+      />,
+      <ActionModal
+        key="rebuild"
+        action={rebuildInvoiceDraftAction}
+        title="Taslağı yenile"
+        description="Paraşüt'teki taslak silinir ve siparişten (rezervasyondan) bugünün tarihiyle yeniden hazırlanır; taslakta Paraşüt'te yaptığın değişiklikler gider. Dünden kalan bir taslağı kesinleştirmeden önce kullan. Ad ya da adres yanlışsa taslağı Paraşüt'te düzelt, sonra kesinleştir."
+        trigger="Taslağı yenile"
+        triggerVariant={v}
+        ariaLabel={`Taslağı yenile: ${row.sourceLabel}`}
+        submitLabel="Yenile"
+        hidden={{ id: row.id }}
+      />,
+    );
+    if (parasutUrl) {
+      items.push(
+        <a
+          key="parasut"
+          href={parasutUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={BUTTON[v]}
+        >
+          Paraşüt&apos;ü aç
+        </a>,
+      );
+    }
   }
   if (row && retryable(row)) {
     items.push(

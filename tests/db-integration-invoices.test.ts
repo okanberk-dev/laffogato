@@ -184,6 +184,38 @@ maybe("e-Arşiv invoices in a real Postgres", () => {
     expect(ids.length).toBe(20);
   });
 
+  it("claims one named row for a button, only from the statuses it takes, never one a run holds", async () => {
+    await seed(row("draft", { status: "draft" }), row("due"));
+    const draftId = (
+      await pool!.query(
+        `select id from public.invoices where "sourceId" = 'draft'`,
+      )
+    ).rows[0].id as string;
+    // Not from a status the button does not take.
+    expect(await mod.dbInvoiceStore.claimRow(draftId, NOW, ["due"])).toBe(null);
+    expect((await statusOf("draft")).status).toBe("draft");
+    // Two presses at once: one of them holds it.
+    const both = await Promise.all([
+      mod.dbInvoiceStore.claimRow(draftId, NOW, ["draft"]),
+      mod.dbInvoiceStore.claimRow(draftId, NOW, ["draft"]),
+    ]);
+    expect(both.filter(Boolean)).toHaveLength(1);
+    const held = both.find(Boolean)!;
+    expect(held).toMatchObject({ status: "working", claimedAt: NOW });
+    expect(Array.isArray(held.kdvRows)).toBe(true);
+    // Held: the queue does not take it either, and the row's own claim guards it.
+    expect(await mod.dbInvoiceStore.claim(NOW, STALE, true, 50)).toEqual([
+      expect.objectContaining({ sourceId: "due" }),
+    ]);
+    expect(
+      await mod.dbInvoiceStore.updateClaimed(held.id, NOW, {
+        status: "draft",
+        claimedAt: "",
+      }),
+    ).toBe(true);
+    expect((await statusOf("draft")).status).toBe("draft");
+  });
+
   it("guards a held row's writes by its own claim", async () => {
     await seed(row("ord-1"));
     const [held] = await mod.dbInvoiceStore.claim(NOW, STALE, true, 1);

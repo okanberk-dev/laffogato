@@ -4,11 +4,19 @@
 
 import type { AdminTone } from "@/lib/admin/tone";
 
+import { LEGAL_TAX_RATES } from "@/lib/utils/kdv";
+
 import {
   deadlineState,
   INVOICE_ROUTE_LABELS,
   INVOICE_STATUS_LABELS,
+  invoiceMarker,
+  karaokeInvoiceLines,
   MAX_EMAIL_ATTEMPTS,
+  orderInvoiceLines,
+  type InvoiceBooking,
+  type InvoiceLine,
+  type InvoiceOrder,
   type InvoiceRow,
   type InvoiceStatus,
 } from "./invoice-core";
@@ -54,6 +62,8 @@ export function mailGivenUp(
 /** What needs a person: the dashboard's and the list's "Dikkat". */
 export function needsAttention(row: InvoiceRow, now: Date): boolean {
   if (row.status === "manual" || row.status === "failed") return true;
+  // A draft waits for a person to read and formalise it.
+  if (row.status === "draft") return true;
   if (row.refundNotedAt) return true;
   if (mailGivenUp(row)) return true;
   const d = deadlineState(row, now);
@@ -151,6 +161,9 @@ export function invoiceNoteText(row: InvoiceRow): string {
     return "Faturalı siparişte iade: iade faturası / gider pusulası gerekir.";
   }
   if (row.status === "failed") return row.lastError || "Son deneme başarısız.";
+  if (row.status === "draft") {
+    return row.lastError || "Taslak hazır: kontrol et, sonra kesinleştir.";
+  }
   if (row.status === "issued" && !row.emailedAt && row.emailError) {
     return `PDF e-postası gitmedi: ${row.emailError}`;
   }
@@ -183,6 +196,7 @@ export function invoiceDashboardAlert(
   let failed = 0;
   let refund = 0;
   let mail = 0;
+  let drafts = 0;
   for (const r of rows) {
     const d = deadlineState(r, now);
     if (d === "late") late += 1;
@@ -191,12 +205,14 @@ export function invoiceDashboardAlert(
     if (r.status === "failed") failed += 1;
     if (r.refundNotedAt && r.status === "issued") refund += 1;
     if (mailGivenUp(r)) mail += 1;
+    if (r.status === "draft") drafts += 1;
   }
   if (late) {
     tone = "danger";
     parts.push(`${late} faturanın 7 günlük süresi geçti`);
   }
   if (soon) parts.push(`${soon} faturanın süresi 2 gün içinde doluyor`);
+  if (drafts) parts.push(`${drafts} taslak kesinleştirmeni bekliyor`);
   if (manual) parts.push(`${manual} fatura elle kesilecek`);
   if (failed) parts.push(`${failed} fatura hata verdi (yeniden denenecek)`);
   if (refund)
@@ -205,4 +221,30 @@ export function invoiceDashboardAlert(
     );
   if (mail) parts.push(`${mail} faturanın e-postası gitmedi`);
   return parts.length ? { tone, parts } : null;
+}
+
+/**
+ * A draft's lines as the site sent them to Paraşüt, rebuilt from the order
+ * or the booking with the same functions (the order's lines do not change
+ * once paid; a refund takes the draft away). Paraşüt's own copy, edits
+ * included, is in Paraşüt. Null when the lines cannot be built.
+ */
+export function invoiceDraftLines(
+  row: Pick<InvoiceRow, "amountMinor" | "kdvRows">,
+  source: { order: InvoiceOrder } | { booking: InvoiceBooking },
+): InvoiceLine[] | null {
+  if ("order" in source) return orderInvoiceLines(source.order);
+  if (row.amountMinor <= 0) return null;
+  return karaokeInvoiceLines(
+    source.booking,
+    row.amountMinor,
+    row.kdvRows[0]?.ratePct ?? LEGAL_TAX_RATES.karaoke,
+  );
+}
+
+/** Where to find a draft in Paraşüt: Satışlar > Faturalar, by this text. */
+export function invoiceDraftMarker(
+  row: Pick<InvoiceRow, "sourceKind" | "sourceLabel" | "sourceId">,
+): string {
+  return invoiceMarker(row.sourceKind, row.sourceLabel || row.sourceId);
 }

@@ -136,6 +136,16 @@ export interface InvoiceStore {
     live: boolean,
     limit: number,
   ): Promise<InvoiceRow[]>;
+  /**
+   * One named row, for a person's button: set to `working` in the same
+   * statement, only from one of `statuses` (a row another run holds, or
+   * one that moved on, is not taken). Null when it was not taken.
+   */
+  claimRow(
+    id: string,
+    nowIso: string,
+    statuses: readonly InvoiceRow["status"][],
+  ): Promise<InvoiceRow | null>;
   /** A held row's write; false when the claim was lost. */
   updateClaimed(
     id: string,
@@ -345,6 +355,16 @@ export const dbInvoiceStore: InvoiceStore = {
       },
     );
     return rowsOf(res, "invoice.claim").map(invoiceFromDb);
+  },
+  async claimRow(id, nowIso, statuses) {
+    const res = await getDb()
+      .from(TABLES.invoices)
+      .update({ status: "working", claimedAt: nowIso, updatedAt: nowIso })
+      .eq("id", id)
+      .in("status", statuses)
+      .select("*");
+    const [row] = rowsOf<Record<string, unknown>>(res, "invoice.claimRow");
+    return row ? invoiceFromDb(row) : null;
   },
   async updateClaimed(id, claimedAt, patch) {
     const res = await getDb()

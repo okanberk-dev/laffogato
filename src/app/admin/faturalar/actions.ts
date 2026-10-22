@@ -15,7 +15,11 @@ import { provinceOf } from "@/lib/invoice/address-core";
 import { checkParasutConnection } from "@/lib/invoice/connection";
 import { isValidVkn, type CarrierEntry } from "@/lib/invoice/invoice-core";
 import { INVOICES_PATH, invoiceSourceHref } from "@/lib/invoice/panel-core";
-import { runInvoices } from "@/lib/invoice/run";
+import {
+  runInvoiceRow,
+  runInvoices,
+  type RowRunResult,
+} from "@/lib/invoice/run";
 import {
   dbInvoiceStore,
   getInvoice,
@@ -31,7 +35,7 @@ import {
 // issued e-Arşiv invoice: a refund after one is a person's document in
 // Paraşüt (docs/EARSIV.md).
 
-function refused(
+function refusedIssues(
   issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,
 ): ActionResult {
   return actionError(
@@ -52,6 +56,8 @@ const idSchema = z
   .string()
   .trim()
   .regex(/^inv_[a-f0-9]{16}$/, "Fatura kaydı geçersiz.");
+
+const OFF = "e-Arşiv kapalı (EARSIV_MODE). Hiçbir şey yapılmadı.";
 
 /** "Şimdi çalıştır": the sweep and whatever is due, within 50 s. */
 export async function runInvoicesNowAction(
@@ -76,8 +82,7 @@ export async function runInvoicesNowAction(
     },
   });
   revalidateFor();
-  if (r.mode === "off")
-    return actionError("e-Arşiv kapalı (EARSIV_MODE). Hiçbir şey yapılmadı.");
+  if (r.mode === "off") return actionError(OFF);
   if (r.errors.length > 0) return actionError(r.errors[0]);
   const parts = [
     `${r.processed} kayıt işlendi`,
@@ -119,58 +124,136 @@ export async function checkParasutConnectionAction(
   );
 }
 
-/**
- * "Faturayı şimdi kes": a row whose time has come (a karaoke evening that
- * is over, a parcel handed to the carrier, a café order delivered) is cut
- * now instead of at the next hook or the morning run. The run takes every
- * due row by deadline, this one among them; the answer is this row's state
- * afterwards.
- */
-export async function cutInvoiceNowAction(
-  _prev: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  const session = await requireRole("invoices");
-  const parsed = idSchema.safeParse(String(formData.get("id") ?? ""));
-  if (!parsed.success) return refused(parsed.error.issues);
-  const before = await getInvoice(parsed.data);
-  if (!before) return actionError("Fatura kaydı bulunamadı.");
-  if (before.status !== "due") {
-    return actionError(
-      "Bu kaydın kesim zamanı gelmedi ya da kaydı başka bir işlem tutuyor. Sayfayı yenile.",
+/** The row's state after a button's run, in the operator's words. */
+function rowAnswer(
+  r: RowRunResult,
+  after: Awaited<ReturnType<typeof getInvoice>>,
+): ActionResult {
+  if (!after) return actionError("Fatura kaydı bulunamadı.");
+  if (after.status === "issued") {
+    const no = after.invoiceNo ? `: ${after.invoiceNo}` : "";
+    return actionOk(
+      after.emailedAt
+        ? `Fatura kesinleşti${no}. PDF müşteriye e-postayla gönderildi.`
+        : `Fatura kesinleşti${no}. ${after.emailError || "PDF e-postası birazdan gönderilecek."}`,
+      after.emailedAt ? "success" : "warning",
     );
   }
-  const r = await runInvoices({ budgetMs: 50_000, reason: "admin" });
-  const after = (await getInvoice(before.id)) ?? before;
-  await safeAudit({
-    action: "update",
-    entity: "invoice",
-    entityId: before.id,
-    actor: session.email,
-    payload: { event: "earsiv_cut_now", mode: r.mode, status: after.status },
-  });
-  revalidateFor(before);
-  if (r.mode === "off")
-    return actionError("e-Arşiv kapalı (EARSIV_MODE). Hiçbir şey yapılmadı.");
-  if (after.status === "issued") {
+  if (after.status === "draft") {
+    if (after.lastError) return actionError(after.lastError);
     return actionOk(
-      after.invoiceNo
-        ? `Fatura kesildi: ${after.invoiceNo}.`
-        : "Fatura kesildi.",
+      'Taslak hazır. Kartta satırları, KDV\'yi ve tutarı kontrol et; doğruysa "Faturayı kesinleştir".',
       "success",
     );
   }
-  if (after.status === "draft")
-    return actionOk("Paraşüt'te taslak hazırlandı (taslak modu).", "success");
+  if (after.status === "formalizing" || r.step === "pending") {
+    return actionOk(
+      "Paraşüt resmileştiriyor; numarası birkaç dakika içinde gelir.",
+      "warning",
+    );
+  }
   if (after.status === "manual")
     return actionOk(
       `Elle kesilecek: ${after.manualReason || "otomatik kesilemedi."}`,
       "warning",
     );
   if (after.status === "failed")
-    return actionError(after.lastError || r.errors[0] || "Fatura kesilemedi.");
-  if (r.errors.length > 0) return actionError(r.errors[0]);
-  return actionOk("Sıraya alındı; birkaç dakika içinde kesilir.", "warning");
+    return actionError(after.lastError || r.error || "Fatura kesilemedi.");
+  if (r.error) return actionError(r.error);
+  if (after.status === "skipped")
+    return actionOk(after.manualReason || "Fatura gerekmiyor.", "warning");
+  return actionOk("Sıraya alındı; birazdan işlenir.", "warning");
+}
+
+async function rowButton(
+  formData: FormData,
+  action: "cut" | "formalize" | "rebuild",
+  from: string,
+  refused: string,
+  event: string,
+): Promise<ActionResult> {
+  const session = await requireRole("invoices");
+  const parsed = idSchema.safeParse(String(formData.get("id") ?? ""));
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
+  const before = await getInvoice(parsed.data);
+  if (!before) return actionError("Fatura kaydı bulunamadı.");
+  if (before.status !== from) return actionError(refused);
+  const r = await runInvoiceRow({ id: before.id, action, budgetMs: 50_000 });
+  if (r.mode === "off") return actionError(OFF);
+  if (!r.taken) {
+    revalidateFor(before);
+    return actionError(r.error ?? refused);
+  }
+  const after = await getInvoice(before.id);
+  await safeAudit({
+    action: "update",
+    entity: "invoice",
+    entityId: before.id,
+    actor: session.email,
+    payload: {
+      event,
+      mode: r.mode,
+      source: `${before.sourceKind}:${before.sourceId}`,
+      status: after?.status ?? "",
+      invoiceNo: after?.invoiceNo ?? "",
+    },
+  });
+  revalidateFor(before);
+  return rowAnswer(r, after);
+}
+
+/**
+ * "Faturayı kes": this row now, nothing else. In draft mode it becomes a
+ * draft in Paraşüt that the card shows line by line; "Faturayı
+ * kesinleştir" formalises it. In live mode it is formalised at once.
+ */
+export async function cutInvoiceNowAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return rowButton(
+    formData,
+    "cut",
+    "due",
+    "Bu kaydın kesim zamanı gelmedi ya da kaydı başka bir işlem tutuyor. Sayfayı yenile.",
+    "earsiv_cut_now",
+  );
+}
+
+/**
+ * "Faturayı kesinleştir": the draft the person read becomes the e-Arşiv
+ * invoice (dated today), and its PDF is mailed to the buyer. Refused, with
+ * the reason, when the draft is from another day or its total no longer
+ * agrees; the draft then stays as it is.
+ */
+export async function formalizeInvoiceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return rowButton(
+    formData,
+    "formalize",
+    "draft",
+    "Yalnız taslak durumundaki fatura kesinleştirilir. Sayfayı yenile.",
+    "earsiv_formalize",
+  );
+}
+
+/**
+ * "Taslağı yenile": the draft is deleted in Paraşüt and prepared again from
+ * the order or the booking, dated today (changes made to it in Paraşüt go).
+ */
+export async function rebuildInvoiceDraftAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return rowButton(
+    formData,
+    "rebuild",
+    "draft",
+    "Yalnız taslak durumundaki fatura yenilenir. Sayfayı yenile.",
+    "earsiv_rebuild_draft",
+  );
 }
 
 /** "Yeniden dene": the row back in the queue (or its PDF mail again). */
@@ -180,7 +263,7 @@ export async function retryInvoiceAction(
 ): Promise<ActionResult> {
   const session = await requireRole("invoices");
   const parsed = idSchema.safeParse(String(formData.get("id") ?? ""));
-  if (!parsed.success) return refused(parsed.error.issues);
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
   const res = await retryInvoice(parsed.data);
   if (!res.ok) return actionError(res.error);
   await safeAudit({
@@ -222,7 +305,7 @@ export async function markInvoiceManualDoneAction(
     id: String(formData.get("id") ?? ""),
     invoiceNo: String(formData.get("invoiceNo") ?? ""),
   });
-  if (!parsed.success) return refused(parsed.error.issues);
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
   const res = await markInvoiceManualDone(
     parsed.data.id,
     parsed.data.invoiceNo,
@@ -276,7 +359,7 @@ export async function markInvoiceManualAction(
     label: String(formData.get("label") ?? ""),
     reason: String(formData.get("reason") ?? ""),
   });
-  if (!parsed.success) return refused(parsed.error.issues);
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
   const d = parsed.data;
   const res = await markInvoiceManual(
     d.kind,
@@ -330,7 +413,7 @@ export async function setInvoiceBillingAction(
     district: String(formData.get("district") ?? ""),
     address: String(formData.get("address") ?? ""),
   });
-  if (!parsed.success) return refused(parsed.error.issues);
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
   const d = parsed.data;
   const res = await setInvoiceBilling(
     d.id,
