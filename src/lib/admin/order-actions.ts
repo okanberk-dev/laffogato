@@ -210,6 +210,17 @@ export const REFUND_DESTINATION_HINTS: Record<RefundDestination, string> = {
   none: "Bu siparişte POS ya da cüzdan ödemesi yok: yalnız kayıt düşülür, para hareket etmez. Parayı müşteriye sen ver (nakit ya da havale).",
 };
 
+/** "₺450,00 PayNkolay'da yapılmış iade olarak kaydedildi". */
+export function outsideRefundSentence(
+  amountMinor: number,
+  outside: "paynkolay_panel" | "paynkolay_lookup",
+): string {
+  const amount = formatTRYMinor(amountMinor);
+  return outside === "paynkolay_lookup"
+    ? `${amount} iade olarak kaydedildi (POS'a yeniden istek gönderilmedi)`
+    : `${amount} PayNkolay'da yapılmış iade olarak kaydedildi (POS'a istek gönderilmedi)`;
+}
+
 /** "₺450,00 karta iade edildi", for the result sentence. */
 export function refundSentence(
   amountMinor: number,
@@ -281,7 +292,7 @@ export const ORDER_ATTENTION_TEXT: Record<
   },
   refund_due: {
     title: "İptal edildi, iade bekliyor",
-    body: "Ödemesi alınmış sipariş iptal edildi ama para henüz geri verilmedi. 'İade başlat' ile iade et.",
+    body: "Ödemesi alınmış sipariş iptal edildi ama para henüz geri verilmedi. 'İade başlat' ile iade et. Parayı PayNkolay panelinden kendin iade ettiysen 'PayNkolay'dan iadeyi bul' ya da 'PayNkolay'da iade ettim' ile kaydet: POS'a ikinci kez istek gitmez.",
   },
   invoice_refund: {
     title: "Faturalı siparişte iade",

@@ -566,6 +566,110 @@ describe("lookupPayment", () => {
   });
 });
 
+// ── POS'taki iadeler ("PayNkolay'dan iadeyi bul") ──────────────────────────
+
+describe("lookupRefunds", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("başarılı iptal ve iadeleri toplar; satışı, başarısızı ve başka türü saymaz", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:00:00Z") });
+    const calls = stubFetch({
+      Data: [
+        transactionRow(),
+        transactionRow({
+          TRANSACTION_TYPE: "refund",
+          REFERENCE_CODE: "R1",
+          AUTHORIZATION_AMOUNT: "500.00",
+          TRX_DATE: "2026-10-20",
+        }),
+        transactionRow({
+          TRANSACTION_TYPE: "refundp",
+          REFERENCE_CODE: "R2",
+          AUTHORIZATION_AMOUNT: "80.10",
+        }),
+        transactionRow({
+          TRANSACTION_TYPE: "refund",
+          REFERENCE_CODE: "R3",
+          STATUS: "ERROR",
+          AUTHORIZATION_AMOUNT: "700.00",
+        }),
+      ],
+    });
+    const found = await makeProvider().lookupRefunds(
+      "ord-0284",
+      new Date("2026-10-15T09:00:00Z"),
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0].fields.clientRefCode).toBe("ord-0284");
+    expect(calls[0].fields.startDate).toBe("14.10.2026");
+    expect(calls[0].fields.endDate).toBe("22.10.2026");
+    expect(found.refundedMinor).toBe(58_010);
+    expect(found.rows).toEqual([
+      { kind: "refund", amountMinor: 50_000, day: "2026-10-20" },
+      { kind: "refundp", amountMinor: 8_010, day: "2021-08-09" },
+    ]);
+    expect(found).toMatchObject({ from: "2026-10-14", to: "2026-10-22" });
+  });
+
+  it("aynı gün iptal edilmiş satışın tamamını iade sayar", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:00:00Z") });
+    stubFetch({ Data: [transactionRow({ TRANSACTION_TYPE: "CANCEL" })] });
+    const found = await makeProvider().lookupRefunds(
+      "ord-0284",
+      new Date("2026-10-22T09:00:00Z"),
+    );
+    expect(found.refundedMinor).toBe(128_010);
+  });
+
+  it("bir aydan uzun aralığı 30 günlük parçalarla, en fazla 120 gün geriye sorar", async () => {
+    vi.useFakeTimers({ now: new Date("2026-10-22T12:00:00Z") });
+    const calls = stubFetch({ Data: [] });
+    const found = await makeProvider().lookupRefunds(
+      "ord-0284",
+      new Date("2026-01-01T09:00:00Z"),
+    );
+    expect(found.refundedMinor).toBe(0);
+    expect(calls.length).toBeGreaterThan(1);
+    expect(calls[0].fields.startDate).toBe("24.06.2026");
+    expect(calls.at(-1)!.fields.endDate).toBe("22.10.2026");
+    // Hiçbir sorgu servisin bir aylık sınırını aşmaz.
+    for (const c of calls) {
+      const [d1, m1, y1] = c.fields.startDate.split(".").map(Number);
+      const [d2, m2, y2] = c.fields.endDate.split(".").map(Number);
+      const days =
+        (Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000;
+      expect(days).toBeLessThanOrEqual(31);
+    }
+  });
+
+  it("tutarı okunamayan iade satırında tahmin etmez, fırlatır", async () => {
+    stubFetch({
+      Data: [
+        transactionRow({
+          TRANSACTION_TYPE: "refund",
+          AUTHORIZATION_AMOUNT: "",
+        }),
+      ],
+    });
+    await expect(
+      makeProvider().lookupRefunds("ord-0284", new Date()),
+    ).rejects.toThrow(/tutarı okunamadı/);
+  });
+
+  it("yanlış anahtarı 'iade yok' saymaz", async () => {
+    stubFetch({
+      result: { RESPONSE_DATA: "API : hashData error", LIST: null },
+    });
+    await expect(
+      makeProvider().lookupRefunds("ord-0284", new Date()),
+    ).rejects.toThrow(/PAYNKOLAY_MERCHANT_SECRET_KEY/);
+  });
+});
+
 // ── İptal / iade (§3) ───────────────────────────────────────────────────────
 
 describe("refund", () => {

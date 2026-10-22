@@ -14,6 +14,7 @@ import {
   type CheckoutInput,
   type CheckoutSession,
   type PaymentProvider,
+  type PosRefundLookup,
   type RefundHint,
   type RefundResult,
   type ReturnConfirmation,
@@ -67,6 +68,13 @@ import {
 const DEFAULT_BASE_URL = "https://paynkolay.nkolayislem.com.tr";
 /** `lookupPayment`'in siparişten sonra taradığı gün sayısı (servis ≤ 1 ay). */
 const LOOKUP_WINDOW_DAYS = 3;
+/**
+ * `lookupRefunds`'ın ödemeden sonra baktığı en uzun süre. Servis bir
+ * sorguda en fazla bir ay veriyor (§2), bu yüzden aralık 30 günlük
+ * parçalarla sorulur; daha eski bir iade elle kaydedilir.
+ */
+const REFUND_SCAN_DAYS = 120;
+const REFUND_SCAN_CHUNK_DAYS = 30;
 
 /** TRY. Gönderilmese TL varsayılıyor; yine de açıkça yazılır (§9). */
 const CURRENCY_CODE = "949";
@@ -1274,6 +1282,96 @@ export class PaynkolayPaymentProvider implements PaymentProvider {
       currency: "TRY",
       raw: { source: "paynkolay_lookup", transaction: withoutHolderName(row) },
       ...transactionDay(row),
+    };
+  }
+
+  /**
+   * Siparişin ödemesinde POS'un bildiği iptal ve iadeler (§2): bu panelden
+   * yapılanlar da PayNkolay'ın işyeri panelinden elle yapılanlar da.
+   * "PayNkolay'dan iadeyi bul" bunlardan panelde kaydı olmayanı kaydeder.
+   *
+   * `TRANSACTION_TYPE` `cancel` (aynı gün iptal: satış satırı iptal olarak
+   * yeniden yazılır, tutarı satışınkidir), `refund` ya da `refundp` (kısmi)
+   * ve `STATUS` `SUCCESS` olan satırlar sayılır. Tutarı okunamayan bir satır
+   * fırlatır: tahmin edilen bir iade parası kayda geçmez.
+   */
+  async lookupRefunds(orderId: string, since: Date): Promise<PosRefundLookup> {
+    const id = orderId.trim();
+    const now = new Date();
+    const paid = Number.isFinite(since.getTime())
+      ? Math.min(since.getTime(), now.getTime())
+      : now.getTime();
+    // Gece yarısını geçen bir ödeme dünün gününe düşer; bir gün geriden
+    // başla. En fazla REFUND_SCAN_DAYS geriye bakılır.
+    const start = Math.max(
+      paid - DAY_MS,
+      now.getTime() - REFUND_SCAN_DAYS * DAY_MS,
+    );
+    const rows: PosRefundLookup["rows"] = [];
+    const seen = new Set<string>();
+    if (!id) {
+      return {
+        refundedMinor: 0,
+        rows,
+        from: istanbulDayKey(new Date(start)),
+        to: istanbulDayKey(now),
+      };
+    }
+    for (
+      let from = start;
+      from <= now.getTime();
+      from += (REFUND_SCAN_CHUNK_DAYS + 1) * DAY_MS
+    ) {
+      const to = Math.min(
+        now.getTime(),
+        from + REFUND_SCAN_CHUNK_DAYS * DAY_MS,
+      );
+      for (const row of await this.queryTransactions(
+        id,
+        new Date(from),
+        new Date(to),
+      )) {
+        if (readField(row, "STATUS", "status").toUpperCase() !== "SUCCESS") {
+          continue;
+        }
+        const kind = readField(row, "TRANSACTION_TYPE", "transactionType")
+          .trim()
+          .toLowerCase();
+        if (kind !== "cancel" && kind !== "refund" && kind !== "refundp") {
+          continue;
+        }
+        const amountMinor = paynkolayAmountToMinor(
+          readField(
+            row,
+            "AUTHORIZATION_AMOUNT",
+            "authorizationAmount",
+            "TRANSACTION_AMOUNT",
+            "transactionAmount",
+          ),
+        );
+        if (amountMinor === null || amountMinor <= 0) {
+          throw new Error(
+            `paynkolay: ${id} için ${kind} satırı var ama tutarı okunamadı`,
+          );
+        }
+        const day = transactionDay(row).trxDate ?? "";
+        // Aynı satır iki sorguda görünmesin (gün sınırı).
+        const key = [
+          readField(row, "REFERENCE_CODE", "referenceCode"),
+          kind,
+          amountMinor,
+          readField(row, "TRX_DATE", "trxDate"),
+        ].join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        rows.push({ kind, amountMinor, day });
+      }
+    }
+    return {
+      refundedMinor: rows.reduce((sum, r) => sum + r.amountMinor, 0),
+      rows,
+      from: istanbulDayKey(new Date(start)),
+      to: istanbulDayKey(now),
     };
   }
 

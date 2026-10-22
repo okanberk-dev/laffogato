@@ -637,3 +637,32 @@ Ayarlar'daki **Sistem durumu** kartı bağlantının açık olup olmadığını 
 ve açıksa köşkün paneline bağlantı verir. Kapalıysa (iki projede ortak
 `KARAOKE_SYNC_SECRET` yok) kart kendiliğinden açılır: karaoke, menü
 fiyatları, bar ekranı ve online satış birlikte durmuştur.
+
+## Siparişte PayNkolay'da yapılmış iade (22 Eki 2026)
+
+Operatör: _"siparişleri iptal edince PayNkolay'dan manuel iade ediyorum ama
+panelde siparişi iade edildi işaretleyemiyorum"_. "İade başlat" parayı POS'a
+iade isteği göndererek geri verir; para PayNkolay işyeri panelinden zaten
+geri verildiyse onu kullanmak **ikinci bir iade** isteği gönderirdi. Kartla
+(PayNkolay) ödenmiş bir siparişin "⋯" menüsünde bunun için iki seçenek var
+(ikisi de `refunds` yetkisi ister, POS'a istek göndermez):
+
+- **PayNkolay'dan iadeyi bul**: PayNkolay'ın işlem listesine
+  (`PaymentList`, `docs/PAYNKOLAY.md` §2) bu siparişin başarılı iptal ve
+  iade satırlarını sorar (ödemeden bugüne, en fazla 120 gün, 30 günlük
+  parçalarla), panelde kaydı olmayan kısmı kaydeder ve ne bulduğunu söyler.
+  Hiçbir şey bulamazsa ya da PayNkolay yanıt vermezse hiçbir şey yazmaz ve
+  nedenini söyler: iade az önce yapıldıysa birkaç dakika sonra tekrar dene.
+- **PayNkolay'da iade ettim**: her ihtimale karşı elle kayıt. PayNkolay
+  panelinde iade ettiğin tutarı (kısmi iadede yalnız o kısmı), nedeni ve
+  onay için sipariş numarasını yaz; istersen ürünleri stoğa geri al.
+
+İkisi de "İade başlat"ın kaydettiği her şeyi yapar: iade defterine yazılır
+(`refunds[].outside`), ödeme rozeti "İade edildi" ya da "Kısmi iade" olur
+(iptal edilmemiş bir siparişte tutarın tamamı iade edilince durum da "İade
+edildi"; iptal edilmiş sipariş "İptal edildi" kalır), damga geri alınır, müşteriye iade e-postası gider, "İptal edildi, iade
+bekliyor" işareti kalkar, olay kaydına yazılır. Kaydedilebilecek en çok
+tutar, tahsil edilenden önceki iadeler düşüldükten sonra kalandır; aynı
+iadeyi iki kez kaydetmek defterce reddedilir. Faturası kesilmiş bir
+siparişte iade, e-Arşiv'deki gibi "Faturalı siparişte iade" uyarısını
+doğurur.

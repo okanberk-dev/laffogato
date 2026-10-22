@@ -29,6 +29,8 @@ import {
   editTracking,
   markPaid,
   moveOrder,
+  findPosRefund,
+  recordOutsideRefund,
   refundOrder,
   releaseStock,
   resendMail,
@@ -293,6 +295,60 @@ export async function refundOrderAction(
       actorOf(session),
     ),
   );
+}
+
+/**
+ * "PayNkolay'da iade ettim": the refund was made by hand in PayNkolay's
+ * merchant panel; it is recorded here (amount, reason, order number typed),
+ * nothing is sent to the POS.
+ */
+export async function recordOutsideRefundAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("refunds");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  const amountMinor = parseMoneyInput(field(formData, "amount"));
+  if (amountMinor === null || amountMinor <= 0) {
+    return actionError("PayNkolay'da iade ettiğin tutarı gir.", {
+      amount: "Ör. 250 ya da 1.250,00",
+    });
+  }
+  const reason = field(formData, "reason").trim();
+  if (reason.length < 3) {
+    return actionError("İade nedenini yaz.", {
+      reason: "En az 3 karakter yaz.",
+    });
+  }
+  return answer(
+    id,
+    await recordOutsideRefund(
+      id,
+      {
+        amountMinor,
+        reason,
+        token: field(formData, "token"),
+        restock: restockLinesOf(formData),
+        confirm: field(formData, "confirm"),
+      },
+      actorOf(session),
+    ),
+  );
+}
+
+/**
+ * "PayNkolay'dan iadeyi bul": PayNkolay's own list of cancels and refunds
+ * for this order; what the panel does not have yet is recorded.
+ */
+export async function findPosRefundAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("refunds");
+  const id = field(formData, "id");
+  if (!id) return actionError("Sipariş ID eksik.");
+  return answer(id, await findPosRefund(id, actorOf(session)));
 }
 
 /** "Ödendi olarak işaretle": method required, POS asked first for a POS order. */

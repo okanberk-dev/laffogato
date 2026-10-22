@@ -139,6 +139,25 @@ export interface RefundHint {
   paidMinor?: number;
 }
 
+/**
+ * What the provider reports as given back on one order's payment: cancels
+ * and refunds, whoever made them (this panel or the provider's own merchant
+ * panel). Only successful ones count.
+ */
+export interface PosRefundLookup {
+  /** The sum of every successful cancel and refund found, kuruş. */
+  refundedMinor: number;
+  rows: Array<{
+    kind: "cancel" | "refund" | "refundp";
+    amountMinor: number;
+    /** `YYYY-MM-DD`, the provider's day; '' when it gives none. */
+    day: string;
+  }>;
+  /** The days asked about, `YYYY-MM-DD`, for the operator's answer. */
+  from: string;
+  to: string;
+}
+
 export interface PaymentProvider {
   readonly name: string;
   /**
@@ -173,4 +192,11 @@ export interface PaymentProvider {
     orderId: string,
     since: Date,
   ): Promise<ReturnConfirmation | null>;
+  /**
+   * The cancels and refunds the provider holds for an order's payment, from
+   * `since` (the payment) to now: "PayNkolay'dan iadeyi bul" records the part
+   * the panel does not have yet. Throws when the provider could not be
+   * asked or an amount could not be read: a guess here would be money.
+   */
+  lookupRefunds?(orderId: string, since: Date): Promise<PosRefundLookup>;
 }
