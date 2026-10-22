@@ -385,7 +385,16 @@ export interface AdminRefund {
    * second entry with the same token, so a double submit cannot refund twice.
    */
   token?: string;
+  /**
+   * The money went back outside this panel and is only recorded here: by
+   * hand in PayNkolay's merchant panel ("PayNkolay'da iade ettim"), or found
+   * in PayNkolay's own list ("PayNkolay'dan iadeyi bul"). No POS call was
+   * made for it. Absent on refunds this panel sent.
+   */
+  outside?: RefundOutside;
 }
+
+export type RefundOutside = "paynkolay_panel" | "paynkolay_lookup";
 
 /**
  * Distance-selling consent evidence captured at checkout.
@@ -6171,6 +6180,8 @@ export interface RefundInput {
   token?: string;
   /** Where the money goes, as the server decided (`orderMoney`). */
   destination?: RefundDestination;
+  /** Recorded only: the money went back outside the panel. */
+  outside?: RefundOutside;
   /**
    * What was collected (`OrderMoney.collectedMinor`): the refund cap when
    * the POS took less than the order total. Omitted or null: the total.
@@ -6279,6 +6290,7 @@ export async function reserveRefund(
     reason: input.reason.slice(0, 500),
     createdAt: new Date().toISOString(),
     ...(input.destination ? { destination: input.destination } : {}),
+    ...(input.outside ? { outside: input.outside } : {}),
     ...(token ? { token } : {}),
   };
   const { data, error, status } = await getDb().rpc<AdminRefund[] | null>(

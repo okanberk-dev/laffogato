@@ -32,8 +32,10 @@ import {
   orderActions,
   outcomeSentence,
   refundDestinationFor,
+  outsideRefundSentence,
   refundSentence,
   refundableMinor,
+  refundedMinor,
   refusalFor,
   restockPart,
   type BulkOrderAction,
@@ -69,6 +71,7 @@ import {
   type AdminOrderItemStatus,
   type OrderMoney,
   type OrderTransition,
+  type RefundOutside,
 } from "./store";
 
 /** Who is acting: the admin session's two fields the rules read. */
@@ -208,6 +211,12 @@ export interface RefundRequest {
   restock?: ReadonlyArray<{ index: number; qty: number }>;
   /** The order number typed into the modal (ActionModal `confirmPhrase`). */
   confirm?: string;
+  /**
+   * The money already went back outside this panel (PayNkolay's merchant
+   * panel): the entry is recorded and everything after the money follows,
+   * but nothing is sent to the POS. A card payment only.
+   */
+  outside?: RefundOutside;
 }
 
 /**
@@ -263,6 +272,13 @@ export async function issueRefund(
         "Ödeme bilgisi bu arada değişti, iade yapılmadı. Sayfa yenilendi: iadenin nereye gideceğine yeniden bak.",
     };
   }
+  if (request.outside && destination !== "card") {
+    return {
+      ok: false,
+      error:
+        "Bu siparişin ödemesi PayNkolay'dan alınmamış: PayNkolay'da yapılmış bir iade kaydedilemez.",
+    };
+  }
 
   const reserved = await reserveRefund(order.id, {
     amountMinor,
@@ -270,13 +286,17 @@ export async function issueRefund(
     token: request.token,
     destination,
     collectedMinor: money.collectedMinor,
+    ...(request.outside ? { outside: request.outside } : {}),
   });
   if (!reserved.ok) return { ok: false, error: reserved.error };
 
   // True when the POS was asked and did not answer: the refund may have gone
   // through (PaymentRefusedError, provider.ts). It is never rolled back.
   let unknown = false;
-  if (destination === "wallet") {
+  if (request.outside) {
+    // The money already went back in PayNkolay's own panel: recorded only,
+    // the POS is not asked again (a second request would refund twice).
+  } else if (destination === "wallet") {
     try {
       await creditWalletRefund({
         orderId: order.id,
@@ -349,7 +369,11 @@ export async function issueRefund(
         `${formatTRYMinor(amountMinor)} için POS yanıt vermedi: para karta dönmüş olabilir, iade kayda geçti`,
         "buradan tekrar deneme, PayNkolay panelinden bak",
       ]
-    : [refundSentence(amountMinor, destination)];
+    : [
+        request.outside
+          ? outsideRefundSentence(amountMinor, request.outside)
+          : refundSentence(amountMinor, destination),
+      ];
   let warn = unknown;
   let after = reserved.order;
   let mail: NoticeOutcome | null = null;
@@ -415,6 +439,7 @@ export async function issueRefund(
       provider: ref?.provider ?? "none",
       destination,
       restock: lines,
+      ...(request.outside ? { outside: request.outside } : {}),
       ...(unknown ? { outcome: "unknown" } : {}),
     },
   });
@@ -459,6 +484,135 @@ export async function refundOrder(
     warn: res.warn,
     order: res.order,
   });
+}
+
+/**
+ * "PayNkolay'da iade ettim": a refund made by hand in PayNkolay's merchant
+ * panel, recorded with what the operator typed. The same gate, ledger cap,
+ * one-time token and follow-ups as "İade başlat"; the POS is not called.
+ */
+export async function recordOutsideRefund(
+  id: string,
+  request: Omit<RefundRequest, "outside" | "expectedDestination">,
+  actor: OrderActor,
+): Promise<OrderOpResult> {
+  const g = await gate(id, actor, "refund");
+  if (!g.ok) return g.result;
+  if (!confirmed(request.confirm, g.order)) return unconfirmed(g.order);
+  const res = await issueRefund(
+    g.order,
+    g.money,
+    { ...request, expectedDestination: "card", outside: "paynkolay_panel" },
+    actor,
+  );
+  if (!res.ok) return refused(res.error);
+  return done([orderLabel(g.order), ...res.parts, mailPart(res.mail)], {
+    warn: res.warn,
+    order: res.order,
+  });
+}
+
+/** "12 Eki - 22 Eki" for the answer: the days PayNkolay was asked about. */
+function dayRange(from: string, to: string): string {
+  const label = (day: string) => {
+    const [y, m, d] = day.split("-").map(Number);
+    if (!y || !m || !d) return day;
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    });
+  };
+  return from === to ? label(from) : `${label(from)} - ${label(to)}`;
+}
+
+/**
+ * "PayNkolay'dan iadeyi bul": asks PayNkolay for the cancels and refunds of
+ * this order's payment and records the part the ledger does not have yet,
+ * as a refund made outside the panel. Nothing found, or nothing new, is a
+ * refusal that says so; PayNkolay not answering is never "no refund".
+ */
+export async function findPosRefund(
+  id: string,
+  actor: OrderActor,
+  provide: () => PaymentProvider = getPaymentProvider,
+): Promise<OrderOpResult> {
+  const g = await gate(id, actor, "refund");
+  if (!g.ok) return g.result;
+  const ref = await getOrderPaymentRef(g.order.id);
+  if (refundDestinationFor(ref?.provider ?? null) !== "card") {
+    return refused(
+      "Bu siparişin ödemesi PayNkolay'dan alınmamış: orada aranacak bir iade yok.",
+    );
+  }
+  let provider: PaymentProvider;
+  try {
+    provider = provide();
+  } catch (err) {
+    console.error("[refund] payment provider unavailable", err);
+    return refused("Ödeme sağlayıcısına bağlanılamadı. Birazdan tekrar dene.");
+  }
+  if (!provider.lookupRefunds) {
+    return refused(
+      "Bu ödeme sağlayıcısı iadeleri listelemiyor: 'PayNkolay'da iade ettim' ile elle kaydet.",
+    );
+  }
+  let found: Awaited<ReturnType<NonNullable<PaymentProvider["lookupRefunds"]>>>;
+  try {
+    found = await provider.lookupRefunds(
+      g.order.id,
+      new Date(g.order.paidAt || g.order.createdAt),
+    );
+  } catch (err) {
+    console.error(
+      `[refund] PayNkolay refund lookup failed order=${g.order.id}`,
+      err,
+    );
+    return refused(
+      "PayNkolay'a sorulamadı ya da yanıtı okunamadı. Birazdan tekrar dene ya da 'PayNkolay'da iade ettim' ile elle kaydet.",
+    );
+  }
+  const range = dayRange(found.from, found.to);
+  if (found.refundedMinor <= 0) {
+    return refused(
+      `PayNkolay'da bu siparişe iade ya da iptal görünmüyor (${range}). İade az önce yapıldıysa birkaç dakika sonra tekrar dene ya da 'PayNkolay'da iade ettim' ile elle kaydet.`,
+    );
+  }
+  const recorded = refundedMinor(g.order);
+  const due = refundableMinor(
+    g.order,
+    g.money.collected,
+    g.money.collectedMinor,
+  );
+  const missing = Math.min(found.refundedMinor - recorded, due);
+  if (missing <= 0) {
+    return refused(
+      `PayNkolay'daki ${formatTRYMinor(found.refundedMinor)} iade zaten kayıtlı; eklenecek bir şey yok.`,
+    );
+  }
+  const res = await issueRefund(
+    g.order,
+    g.money,
+    {
+      amountMinor: missing,
+      reason: `PayNkolay'da bulunan iade (${found.rows.length} işlem, ${range})`,
+      // Two presses at once compute the same amount: the ledger keeps one.
+      token: `pos-find-${found.refundedMinor}-${recorded}`,
+      expectedDestination: "card",
+      outside: "paynkolay_lookup",
+    },
+    actor,
+  );
+  if (!res.ok) return refused(res.error);
+  return done(
+    [
+      orderLabel(g.order),
+      `PayNkolay'da ${formatTRYMinor(found.refundedMinor)} iade bulundu`,
+      ...res.parts,
+      mailPart(res.mail),
+    ],
+    { warn: res.warn, order: res.order },
+  );
 }
 
 // ── Cancel ──────────────────────────────────────────────────────────────

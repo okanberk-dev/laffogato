@@ -215,6 +215,19 @@ doğrulamalısınız"):
 `TRANSACTION_TYPE`: `sales`, `cancel`, `refund` (dokümanın Türkçe
 sürümünde ayrıca `refundp` = kısmi iade geçiyor; bkz. §3).
 
+**Panelde "PayNkolay'dan iadeyi bul" (22 Eki 2026, `lookupRefunds`).**
+Aynı servis, sipariş için ödemeden bugüne (en fazla 120 gün, servisin bir
+aylık sınırı yüzünden 30 günlük parçalarla) sorulur; `STATUS: SUCCESS` olan
+`cancel`, `refund` ve `refundp` satırlarının tutarları toplanır ve panelin
+iade defterinde olmayan kısım "dışarıda yapılmış iade" olarak kaydedilir
+(`docs/ADMIN.md`). Aynı gün iptal edilen satış, satış satırının iptal olarak
+yeniden yazılmasıyla görünür (sandbox, 15 Eki 2026) ve tutarının tamamı
+sayılır. İşyeri panelinden yapılan iadenin bu listede siparişin
+`clientRefCode`'uyla göründüğü canlıda doğrulanmadı: görünmezse panel "iade
+görünmüyor" der ve elle kayıt ("PayNkolay'da iade ettim") kullanılır.
+Tutarı okunamayan bir satır ya da anahtar reddi "iade yok" sayılmaz, hata
+olarak döner.
+
 Kısıt: **bir sorguda en fazla bir aylık veri** çekilebiliyor. Bizim
 kullanımımızda sorgu tek bir güne (sipariş tarihi) daraltılacağı için bu bir
 engel değil.

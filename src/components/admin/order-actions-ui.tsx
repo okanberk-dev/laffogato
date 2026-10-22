@@ -13,7 +13,9 @@ import {
   cancelOrderAction,
   checkPosAction,
   clearAttentionAction,
+  findPosRefundAction,
   markPaidAction,
+  recordOutsideRefundAction,
   refundOrderAction,
   releaseStockAction,
   saveOrderNoteAction,
@@ -261,6 +263,37 @@ function DestinationNote({
   );
 }
 
+/** The optional per-line "back to stock" counts of a refund. */
+function RestockLines({ order }: { order: AdminOrder }) {
+  const lines = stockLines(order);
+  if (lines.length === 0) return null;
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 text-sm text-[var(--admin-text-soft)]">
+        Stoğa geri alınacak adet (isteğe bağlı)
+      </legend>
+      {lines.map((l) => (
+        <label
+          key={l.index}
+          className="flex items-center justify-between gap-3 text-sm"
+        >
+          <span className="min-w-0 truncate">{l.name}</span>
+          <TextInput
+            type="number"
+            name={`restock_${l.index}`}
+            min={0}
+            max={l.max}
+            step={1}
+            defaultValue={0}
+            aria-label={`${l.name}: stoğa geri alınacak adet, en fazla ${l.max}`}
+            className="w-24 text-right"
+          />
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 /** Two radios, so "no decision" is visible as such for a parcel on the road. */
 function RestockChoice({ shipped }: { shipped: boolean }) {
   return (
@@ -391,7 +424,6 @@ function RefundOrderModal({
   triggerVariant: ButtonVariant;
 }) {
   const due = refundableMinor(order, money.collected, money.collectedMinor);
-  const lines = stockLines(order);
   return (
     <ActionModal
       action={refundOrderAction}
@@ -445,31 +477,82 @@ function RefundOrderModal({
             </Field>
             <FieldError name="reason" />
           </div>
-          {lines.length > 0 ? (
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm text-[var(--admin-text-soft)]">
-                Stoğa geri alınacak adet (isteğe bağlı)
-              </legend>
-              {lines.map((l) => (
-                <label
-                  key={l.index}
-                  className="flex items-center justify-between gap-3 text-sm"
-                >
-                  <span className="min-w-0 truncate">{l.name}</span>
-                  <TextInput
-                    type="number"
-                    name={`restock_${l.index}`}
-                    min={0}
-                    max={l.max}
-                    step={1}
-                    defaultValue={0}
-                    aria-label={`${l.name}: stoğa geri alınacak adet, en fazla ${l.max}`}
-                    className="w-24 text-right"
-                  />
-                </label>
-              ))}
-            </fieldset>
-          ) : null}
+          <RestockLines order={order} />
+        </>
+      )}
+    </ActionModal>
+  );
+}
+
+/**
+ * "PayNkolay'da iade ettim": the money already went back from PayNkolay's
+ * merchant panel. Recorded only; the POS is not asked again.
+ */
+function OutsideRefundModal({
+  order,
+  money,
+  state,
+  refundToken,
+  triggerVariant,
+}: {
+  order: AdminOrder;
+  money: OrderMoneyView;
+  state: OrderActionState;
+  refundToken: string;
+  triggerVariant: ButtonVariant;
+}) {
+  const due = refundableMinor(order, money.collected, money.collectedMinor);
+  return (
+    <ActionModal
+      action={recordOutsideRefundAction}
+      title={`Sipariş #${order.orderNo}: PayNkolay'da yapılan iade`}
+      description={`Parayı PayNkolay işyeri panelinden kendin iade ettiysen burada kaydet. POS'a istek gönderilmez; sipariş iade edildi olur, müşteriye iade e-postası gider. Kaydedilebilir en çok: ${formatTRY(due)}.`}
+      trigger="PayNkolay'da iade ettim"
+      triggerVariant={triggerVariant}
+      disabledReason={reasonOf(state)}
+      submitLabel="Kaydet"
+      confirmPhrase={String(order.orderNo)}
+      hidden={{ id: order.id, token: refundToken }}
+      size="md"
+    >
+      {({ fieldErrors, errorId }) => (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <Field
+              label="PayNkolay'da iade edilen tutar (₺)"
+              hint="PayNkolay panelinde gördüğün tutar. Kısmi iadeyse yalnız o kısmı yaz."
+            >
+              <TextInput
+                name="amount"
+                inputMode="decimal"
+                required
+                defaultValue={(due / 100).toFixed(2).replace(".", ",")}
+                aria-invalid={fieldErrors.amount ? true : undefined}
+                aria-describedby={
+                  fieldErrors.amount ? errorId("amount") : undefined
+                }
+              />
+            </Field>
+            <FieldError name="amount" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Field label="Neden">
+              <Textarea
+                name="reason"
+                required
+                minLength={3}
+                maxLength={500}
+                defaultValue="PayNkolay panelinden iade edildi."
+                aria-invalid={fieldErrors.reason ? true : undefined}
+                aria-describedby={
+                  fieldErrors.reason ? errorId("reason") : undefined
+                }
+                className="min-h-[80px]"
+              />
+            </Field>
+            <FieldError name="reason" />
+          </div>
+          <RestockLines order={order} />
         </>
       )}
     </ActionModal>
@@ -689,6 +772,26 @@ export function OrderActionMenu({
           refundToken={refundToken}
           triggerVariant="menu"
         />
+      ) : null}
+      {show("refund") && money.destination === "card" ? (
+        <>
+          <RunButton
+            action={findPosRefundAction}
+            fields={{ id: order.id }}
+            variant="menu"
+            state={a.refund}
+            pendingLabel="PayNkolay'a soruluyor…"
+          >
+            PayNkolay&apos;dan iadeyi bul
+          </RunButton>
+          <OutsideRefundModal
+            order={order}
+            money={money}
+            state={a.refund!}
+            refundToken={refundToken}
+            triggerVariant="menu"
+          />
+        </>
       ) : null}
       {show("release_stock") ? (
         <ConfirmButton
