@@ -50,6 +50,63 @@ export interface EarsivConfigStatus {
 
 type Env = Record<string, string | undefined>;
 
+/** Türkiye keeps UTC+3 all year (CLAUDE.md rule 22). */
+const ISTANBUL_OFFSET_MS = 3 * 60 * 60_000;
+
+/**
+ * EARSIV_START_AT as an instant (epoch ms), or null when it is not one.
+ *
+ * Written the way the operator thinks of it, on the köşk's clock: a day
+ * ("2026-10-23" or "23.10.2026") is that day's midnight in Istanbul, and a
+ * time may follow ("2026-10-23 09:30", "23.10.2026 09:30"). A value with its
+ * own zone ("2026-10-23T00:00:00+03:00", "...Z") is taken as written. Never
+ * read in the server's zone (UTC on Vercel), which would start three hours
+ * late; a date that does not exist (31.02.2026) is refused, not rolled over.
+ */
+export function parseEarsivStart(raw: string): number | null {
+  const text = raw.trim();
+  const zoned =
+    /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/i.exec(
+      text,
+    );
+  if (zoned) {
+    const at = Date.parse(text);
+    const [year, month, day] = zoned.slice(1, 4).map(Number) as [
+      number,
+      number,
+      number,
+    ];
+    return Number.isFinite(at) && realDay(year, month, day) ? at : null;
+  }
+  const m =
+    /^(?:(\d{4})-(\d{2})-(\d{2})|(\d{1,2})\.(\d{1,2})\.(\d{4}))(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(
+      text,
+    );
+  if (!m) return null;
+  const year = Number(m[1] ?? m[6]);
+  const month = Number(m[2] ?? m[5]);
+  const day = Number(m[3] ?? m[4]);
+  const hour = Number(m[7] ?? 0);
+  const minute = Number(m[8] ?? 0);
+  const second = Number(m[9] ?? 0);
+  if (!realDay(year, month, day) || hour > 23 || minute > 59 || second > 59) {
+    return null;
+  }
+  return (
+    Date.UTC(year, month - 1, day, hour, minute, second) - ISTANBUL_OFFSET_MS
+  );
+}
+
+/** False for 31.02.2026 or month 13, which Date would roll into another day. */
+function realDay(year: number, month: number, day: number): boolean {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day
+  );
+}
+
 function value(env: Env, name: string): string {
   return String(env[name] ?? "").trim();
 }
@@ -78,16 +135,10 @@ export function earsivConfigStatus(env: Env): EarsivConfigStatus {
   if (!startRaw) {
     missing.push("EARSIV_START_AT");
   } else {
-    const ms = Date.parse(startRaw);
-    // A day alone ("2026-10-23") is midnight UTC to Date.parse, and a time
-    // without a zone is read in the server's zone (UTC on Vercel): both
-    // three hours into the Istanbul day, so refused. The zone is written out.
-    if (
-      !/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/.test(startRaw) ||
-      !Number.isFinite(ms)
-    ) {
+    const ms = parseEarsivStart(startRaw);
+    if (ms === null) {
       errors.push(
-        "EARSIV_START_AT saat diliminiyle bir an olmalı, örneğin 2026-10-23T00:00:00+03:00.",
+        "EARSIV_START_AT bir gün olmalı, örneğin 2026-10-23 ya da 23.10.2026 (İstanbul saatiyle o günün başı).",
       );
     } else {
       startAt = new Date(ms).toISOString();
