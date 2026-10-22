@@ -158,6 +158,14 @@ panelde işlendiği andan sayar; yasal süre ise retin bize ulaştığı andan.
   (`tests/db-integration-iys.test.ts` ikisini eşit tutar).
 - Panel: `src/app/admin/iys/` (dosya `POST /admin/iys/dosya`, oturumu ve rolü
   kendisi denetler). Olay kaydında adres değil, sayılar.
+- Bir dosya bir adresin yalnız en eski açık kaydını taşır
+  (`iys_export_events`; İYS aynı adresi iki kez içeren listeyi reddeder,
+  H194); sonraki kayıt bir sonraki dosyaya kalır.
+- Saklama: rızası 3 yıldan önce biten (istenen durum `NONE`) adresin satırı
+  ve kayıtları periyodik imhada silinir (`iys_retention`, `src/lib/retention.ts`
+  `iys-outbox`; onay defteriyle aynı yayımlanmış süre). Açık kaydı olan,
+  son 3 yılda kaydı yazılan ya da sonuçlanan, ya da İYS'de hâlâ ONAY
+  görünen adres kalır.
 
 ## 7. Entegratör takmak
 

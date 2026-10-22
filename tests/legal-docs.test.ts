@@ -666,7 +666,7 @@ describe("legal content - invoices by e-mail, the İşlem Rehberi, the chamber (
       "Faturanın kâğıt çıktısı; irsaliye yerine geçer ve ürünle birlikte gönderilir",
     );
     expect(s14.paragraphs?.[1]).toContain(
-      `Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) ${email} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir`,
+      `Kurumsal fatura istiyorsanız ticaret unvanı, vergi dairesi ve vergi kimlik numarasını sipariş numaranızla birlikte, siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden; kafe siparişlerinde sipariş teslime hazır olmadan veya kuryeye verilmeden ve her durumda ödemeden itibaren üç saat içinde) ${email} adresine iletmeniz gerekir; fatura bu bilgilerle düzenlenir`,
     );
   });
 
@@ -996,7 +996,7 @@ describe("legal content - e-Arşiv through Paraşüt, as the site now cuts it (2
   // from the member's order page; corporate invoices stay manual
   // (LEGAL-REDLINES §32).
   const email = LEGAL_ENTITY.email;
-  const corporate = `siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) ${email} adresine`;
+  const corporate = `siparişten sonra ve fatura düzenlenmeden önce (kargoyla gönderilen siparişlerde ürün kargoya verilmeden; kafe siparişlerinde sipariş teslime hazır olmadan veya kuryeye verilmeden ve her durumda ödemeden itibaren üç saat içinde) ${email} adresine`;
 
   it("says when corporate details must arrive: before the invoice, whatever the order", () => {
     const rehber = sectionOf("islem-rehberi", "9. Fatura");

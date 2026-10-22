@@ -54,6 +54,7 @@ import {
 } from "@/lib/email/order-notices";
 import { normalizeNotifyRoles } from "@/lib/email/staff-order-notice-core";
 import { scheduleInvoiceWork } from "@/lib/invoice/hook";
+import { automatedProvider } from "@/lib/invoice/invoice-core";
 import {
   DEFAULT_MOBILE_APP_CONFIG,
   normalizeMobileAppConfig,
@@ -4865,8 +4866,13 @@ export async function applyPaymentSucceeded(input: {
     // (the notice claims it; a repeated confirmation below may re-offer it).
     scheduleStaffNewOrderNotice(order.id, input.provider);
     // The e-Arşiv row (src/lib/invoice/hook.ts): after the response, a no-op
-    // while EARSIV_MODE is off; never in the payment's way.
-    scheduleInvoiceWork(order.id);
+    // while EARSIV_MODE is off; never in the payment's way. Only for a
+    // payment the run cuts itself: a wallet or zero-total order is invoiced
+    // by hand, and it settles from the app's routes, whose 15 s limit the
+    // hook's run would outlast (the daily run sees every order anyway).
+    if (automatedProvider(input.provider, false)) {
+      scheduleInvoiceWork(order.id);
+    }
   }
 
   // "Ödemen alındı" - the customer's only order mail before shipping - goes

@@ -674,6 +674,58 @@ describe("live: one order from row to mailed PDF", () => {
   });
 });
 
+describe("a row that cannot be cut yet does not hold up the queue", () => {
+  // Post-merge review (22 Eki 2026): a karaoke booking whose refund is still
+  // in progress after its evening was claimed again and again, by the same
+  // run, ahead of every newer invoice, so nothing behind it was ever cut.
+  it("cuts the order behind a karaoke booking whose refund is still in progress", async () => {
+    store.bookings.set("krk-00007", {
+      id: "krk-00007",
+      customerEmail: "eda@example.com",
+      customerName: "Eda",
+      contactEmail: "",
+      date: "2026-10-22",
+      startHour: 10,
+      hours: 1,
+      guests: 2,
+      status: "cancelled",
+      priceMinor: 60_000,
+      discountMinor: 0,
+      totalMinor: 60_000,
+      note: "",
+      createdAt: "2026-10-20T10:00:00.000Z",
+      updatedAt: "2026-10-22T07:00:00.000Z",
+      paymentStatus: "refunding",
+      paidMinor: 60_000,
+      paidAt: "2026-10-20T10:05:00.000Z",
+      taxRatePct: 20,
+    } as KaraokeReservation);
+    store.payments.set("krk-00007", [
+      { provider: "paynkolay", status: "succeeded" },
+    ]);
+    const r = await run();
+    expect(r.issued).toBe(1);
+    const rows = [...store.rows.values()];
+    expect(rows.find((x) => x.sourceId === "ord-1")?.status).toBe("issued");
+    const booking = rows.find((x) => x.sourceId === "krk-00007")!;
+    expect(booking).toMatchObject({ status: "waiting", dueAt: "" });
+    // Not claimable until the refund settles.
+    expect((await run()).processed).toBe(0);
+    // Settled by hand, half kept: the kept half is invoiced.
+    store.bookings.set("krk-00007", {
+      ...store.bookings.get("krk-00007")!,
+      paymentStatus: "refunded",
+      refundMinor: 30_000,
+      refundedAt: "2026-10-22T12:30:00.000Z",
+    });
+    clock = Date.parse("2026-10-22T13:00:00.000Z");
+    await run();
+    expect(
+      [...store.rows.values()].find((x) => x.sourceId === "krk-00007"),
+    ).toMatchObject({ status: "issued", amountMinor: 30_000 });
+  });
+});
+
 describe("draft mode", () => {
   it("prepares the sales invoice and stops: no e-Arşiv, no mail; live later recuts an old draft today and formalises it", async () => {
     await run({ ...LIVE_ENV, EARSIV_MODE: "draft" });
@@ -881,6 +933,54 @@ describe("after the invoice", () => {
       salesInvoiceId: "",
     });
     expect(parasut.deletes).toHaveLength(1);
+  });
+});
+
+describe("a row a person took over", () => {
+  // Post-merge review (22 Ekim 2026): a parcel marked "Elle kesilecek
+  // (kurumsal)" before it ships still learns its VUK 231/5 deadline when it
+  // ships, so the panel keeps warning; nothing else about the row changes.
+  it("still learns its deadline when the parcel ships", async () => {
+    store.orders.set(
+      "ord-1",
+      anOrder({
+        kind: "shop",
+        fulfillment: "shipping",
+        status: "paid",
+        shippedAt: undefined,
+        shippingAddress: "Moda Cad. 5\nKadıköy / İstanbul",
+      }),
+    );
+    await run();
+    const waiting = store.row();
+    expect(waiting).toMatchObject({ status: "waiting", deadlineAt: "" });
+    store.rows.set(waiting.id, {
+      ...waiting,
+      status: "manual",
+      actor: "patron@laffogato.net",
+      manualReason: "Kurumsal fatura: elle kesilecek.",
+    });
+
+    clock = Date.parse("2026-10-23T09:00:00.000Z");
+    store.orders.set(
+      "ord-1",
+      anOrder({
+        kind: "shop",
+        fulfillment: "shipping",
+        status: "shipped",
+        shippedAt: "2026-10-23T08:30:00.000Z",
+        shippingAddress: "Moda Cad. 5\nKadıköy / İstanbul",
+      }),
+    );
+    await run();
+    const after = store.row();
+    expect(after).toMatchObject({
+      status: "manual",
+      actor: "patron@laffogato.net",
+    });
+    expect(after.deadlineAt).not.toBe("");
+    expect(after.deadlineAt > "2026-10-29").toBe(true);
+    expect(parasut.posts).toHaveLength(0);
   });
 });
 

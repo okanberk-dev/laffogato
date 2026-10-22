@@ -95,6 +95,14 @@ export type OrderOpResult =
 
 const STALE = "Sipariş bu arada değişti. Sayfa yenilendi, tekrar bak.";
 
+/**
+ * Attention flags a money flag (`refund_unknown`, `refund_due`) replaces:
+ * the e-Arşiv "Faturalı siparişte iade" (src/lib/invoice/run.ts). The
+ * order has one slot, and an unconfirmed or owed refund matters more; the
+ * invoice row keeps its own refund mark on Faturalar and the dashboard.
+ */
+const MONEY_FIRST: ReadonlySet<string> = new Set(["invoice_refund"]);
+
 /** "Sipariş #10023" */
 function orderLabel(order: Pick<AdminOrder, "orderNo">): string {
   return `Sipariş #${order.orderNo}`;
@@ -383,8 +391,9 @@ export async function issueRefund(
   const flag = String(order.attention ?? "");
   if (unknown) {
     // The red band until a person has looked at PayNkolay. A flag the order
-    // already carries (a second charge, a wrong amount) says more and stays.
-    if (flag === "" || flag === "refund_due") {
+    // already carries (a second charge, a wrong amount) says more and stays;
+    // the e-Arşiv one gives way to money (`MONEY_FIRST`).
+    if (flag === "" || flag === "refund_due" || MONEY_FIRST.has(flag)) {
       await setOrderAttention(order.id, "refund_unknown");
     }
   } else if (
@@ -593,8 +602,10 @@ export async function cancelOrder(
   if (due > 0 && refundedMinor === 0) {
     // Money the shop still holds for an order that will not be made. A flag
     // already on the order (a second charge, a wrong amount) says more and
-    // is kept: clearing "iade bekliyor" later must not forget it.
-    if (!String(g.order.attention ?? "")) {
+    // is kept: clearing "iade bekliyor" later must not forget it. The
+    // e-Arşiv one gives way (`MONEY_FIRST`).
+    const held = String(g.order.attention ?? "");
+    if (!held || MONEY_FIRST.has(held)) {
       await setOrderAttention(id, "refund_due");
     }
     followUp = "iade bekliyor";

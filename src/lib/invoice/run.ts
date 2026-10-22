@@ -298,8 +298,23 @@ async function syncRow(
   if (
     row.status === "manual" &&
     (row.actor || !RECHECKABLE_MANUAL.has(row.manualCode))
-  )
+  ) {
+    // Out of the automation, still on the clock: a parcel marked corporate
+    // (or paid from the wallet) before it ships learns its VUK 231/5
+    // deadline when it ships, so the panel keeps warning a person.
+    const timing: InvoicePatch = {
+      dueAt: plan?.dueAt || row.dueAt,
+      deadlineAt: plan?.deadlineAt || row.deadlineAt,
+    };
+    if (
+      plan &&
+      changed(row, timing) &&
+      (await store.updateRow(row, { ...timing, updatedAt: now }))
+    ) {
+      summary.updated += 1;
+    }
     return;
+  }
   const billable =
     plan !== null && (plan.status === "due" || plan.status === "waiting");
   if (row.salesInvoiceId) {

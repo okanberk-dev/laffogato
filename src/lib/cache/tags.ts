@@ -223,6 +223,8 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   iys_record_check: NONE,
   iys_settle_export: NONE,
   iys_apply_list: NONE,
+  iys_export_events: NONE,
+  iys_retention: NONE,
 
   // Read-only helpers.
   admin_customer_counts: NONE,

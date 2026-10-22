@@ -548,7 +548,16 @@ export async function markInvoiceManualDone(
 ): Promise<{ ok: true; row: InvoiceRow } | { ok: false; error: string }> {
   const row = await getInvoice(id);
   if (!row) return { ok: false, error: "Fatura kaydı bulunamadı." };
-  if (row.eDocumentId || row.status === "issued" || row.status === "working") {
+  // A posted e-Arşiv job (jobId, "formalizing") will still become an
+  // official invoice in Paraşüt: marking it cut by hand would leave that
+  // invoice unrecorded and unsent (the panel hides the action there too).
+  if (
+    row.eDocumentId ||
+    row.jobId ||
+    row.status === "issued" ||
+    row.status === "working" ||
+    row.status === "formalizing"
+  ) {
     return {
       ok: false,
       error: "Bu fatura otomatik kesildi ya da şu an kesiliyor.",

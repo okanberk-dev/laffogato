@@ -595,6 +595,14 @@ describe("cancelOrderAction, when the refund does not go through", () => {
     expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
   });
 
+  it("says the money is still owed over the e-Arşiv refund flag", async () => {
+    cancelled();
+    store.getOrder.mockResolvedValue(order({ attention: "invoice_refund" }));
+    providerRefund.mockRejectedValue(new PaymentRefusedError("responseCode=0"));
+    await actions.cancelOrderAction(null, form(fields));
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_due");
+  });
+
   it("cancels a parcel on the road without a stock question when no line has stock to give back", async () => {
     store.getOrder.mockResolvedValue(
       order({
@@ -805,6 +813,22 @@ describe("refundOrderAction", () => {
         payload: expect.objectContaining({ outcome: "unknown" }),
       }),
     );
+  });
+
+  // Post-merge review (22 Eki 2026): the e-Arşiv "Faturalı siparişte iade"
+  // flag took the order's only attention slot, so an unanswered refund was
+  // never flagged. Money comes first; the invoice row keeps its own mark.
+  it("flags an unanswered refund over the e-Arşiv refund flag", async () => {
+    store.getOrder.mockResolvedValue(order({ attention: "invoice_refund" }));
+    store.orderMoney.mockResolvedValue(PAID_MONEY);
+    store.getOrderPaymentRef.mockResolvedValue(CARD_REF);
+    reservedFull();
+    providerRefund.mockRejectedValue(new Error("timed out after 20000 ms"));
+    await actions.refundOrderAction(
+      null,
+      form({ id: "ord-1", amount: "500", reason: "Hasarlı", token: "tok-1", destination: "card", confirm: "10023" }),
+    );
+    expect(store.setOrderAttention).toHaveBeenCalledWith("ord-1", "refund_unknown");
   });
 
   it("takes the entry back only when the POS certainly refunded nothing", async () => {

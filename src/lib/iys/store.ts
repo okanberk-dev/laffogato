@@ -204,28 +204,22 @@ export async function iysCounts(): Promise<IysCounts> {
 }
 
 /**
- * "İYS dosyasını indir": every pending event and every one downloaded
- * earlier but not yet confirmed goes into ONE new file. They are all
- * stamped with the new batch id in one statement, so a file always holds
- * whatever is still open and the batch to confirm is the latest one.
+ * "İYS dosyasını indir": the oldest open event of each address goes into
+ * ONE new file (iys_export_events, 20261022200000); a later event for the
+ * same address waits for the next file, because İYS refuses a list with
+ * the same address twice (H194). Events downloaded earlier but not yet
+ * confirmed are carried again, so the batch to confirm is the latest one.
  */
 export async function exportIysEvents(
   now: Date = new Date(),
 ): Promise<{ exportId: string; events: IysEvent[] }> {
   const exportId = newIysExportId(now, randomBytes(2).toString("hex"));
-  const { data, error } = await getDb()
-    .from(TABLES.iysEvents)
-    .update({
-      state: "exported",
-      exportId,
-      exportedAt: now.toISOString(),
-    })
-    .in("state", ["pending", "exported"])
-    .select("*");
-  checkErr(error, "exportIysEvents");
-  const events = ((data as Record<string, unknown>[] | null) ?? []).map(
-    toEvent,
+  const { data, error } = await getDb().rpcRows<Record<string, unknown>>(
+    "iys_export_events",
+    { p_export_id: exportId, p_now: now.toISOString() },
   );
+  checkErr(error, "exportIysEvents");
+  const events = (data ?? []).map(toEvent);
   return { exportId, events };
 }
 

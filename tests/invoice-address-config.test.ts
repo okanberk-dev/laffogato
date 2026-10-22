@@ -6,7 +6,11 @@ import {
   PROVINCES,
   stripPhones,
 } from "@/lib/invoice/address-core";
-import { earsivConfig, earsivConfigStatus } from "@/lib/invoice/config";
+import {
+  earsivConfig,
+  earsivConfigStatus,
+  parasutReadConfig,
+} from "@/lib/invoice/config";
 
 /**
  * The billing province and district read out of an order's address text
@@ -128,6 +132,24 @@ describe("EARSIV_* settings", () => {
         ...PARASUT,
       }),
     ).toBeNull();
+    // A time without a zone is read in the server's zone (UTC on Vercel),
+    // three hours into the Istanbul day: refused too (post-merge review).
+    for (const startAt of ["2026-10-23T00:00", "2026-10-23T00:00:00"]) {
+      expect(
+        earsivConfig({
+          EARSIV_MODE: "draft",
+          EARSIV_START_AT: startAt,
+          ...PARASUT,
+        }),
+      ).toBeNull();
+    }
+    expect(
+      earsivConfig({
+        EARSIV_MODE: "draft",
+        EARSIV_START_AT: "2026-10-22T21:00:00Z",
+        ...PARASUT,
+      })?.startAt,
+    ).toBe("2026-10-22T21:00:00.000Z");
     const cfg = earsivConfig({
       EARSIV_MODE: "draft",
       EARSIV_START_AT: "2026-10-23T00:00:00+03:00",
@@ -165,5 +187,44 @@ describe("EARSIV_* settings", () => {
         PARASUT_BASE_URL: "https://api.heroku-staging.parasut.com/",
       })!.parasut.baseUrl,
     ).toBe("https://api.heroku-staging.parasut.com");
+  });
+});
+
+// Post-merge review (22 Ekim 2026): an invoice issued while the automation
+// was on stays downloadable after EARSIV_MODE goes back to off, or after a
+// mistake in EARSIV_START_AT; reading needs Paraşüt's credentials only.
+describe("reading issued invoices back from Paraşüt", () => {
+  const PARASUT = {
+    PARASUT_CLIENT_ID: "cid",
+    PARASUT_CLIENT_SECRET: "cs",
+    PARASUT_USERNAME: "site@laffogato.net",
+    PARASUT_PASSWORD: "pw",
+    PARASUT_COMPANY_ID: "123",
+  };
+  it("needs the credentials only, whatever EARSIV_MODE says", () => {
+    expect(parasutReadConfig({ EARSIV_MODE: "off", ...PARASUT })).toMatchObject(
+      {
+        companyId: PARASUT.PARASUT_COMPANY_ID,
+        baseUrl: "https://api.parasut.com",
+      },
+    );
+    expect(
+      parasutReadConfig({
+        EARSIV_MODE: "live",
+        EARSIV_START_AT: "dün",
+        ...PARASUT,
+      }),
+    ).not.toBeNull();
+  });
+
+  it("is null when a credential is missing or the base URL is not https", () => {
+    expect(parasutReadConfig({})).toBeNull();
+    expect(parasutReadConfig({ ...PARASUT, PARASUT_PASSWORD: "" })).toBeNull();
+    expect(
+      parasutReadConfig({
+        ...PARASUT,
+        PARASUT_BASE_URL: "http://api.parasut.com",
+      }),
+    ).toBeNull();
   });
 });

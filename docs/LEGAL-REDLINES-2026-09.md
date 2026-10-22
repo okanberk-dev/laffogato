@@ -4003,6 +4003,84 @@ iadede gider pusulası ya da iade faturası.
   `legal:export` ile güncellenir (İşlem Rehberi, Şirket Bilgileri, KVKK,
   Kafe Hizmet Koşulları).
 
+## 33. Y18 - Birleştirme sonrası inceleme: bildirim jetonu, fatura zamanı ve Resend satırları kodun yaptığını söylüyor (22 Ekim 2026)
+
+> **Durum: kodda değişti, avukat okuması bekliyor.** Dal
+> `claude/brave-cannon-ctlv3a`. §30-§32 birleştirildikten sonra metinler
+> kodla cümle cümle yeniden karşılaştırıldı; vaat edip yapılmayan ya da
+> eksik söylenen beş yer düzeltildi. Belgelerin tarihi zaten **22 Ekim
+> 2026**; `LEGAL_UPDATED` ve `COMMERCIAL_CONSENT_UPDATED` taşınmadı.
+> Uygulama tarafı: lafmobil karar 328 (jeton yalnız karttaki evetten sonra).
+
+### 33.1 Neden
+
+- **Jeton yalnız evetten sonra.** Metinler jetonun yalnız "Siparişin hazır
+  olunca haber verelim mi?" sorusuna evet denince gönderildiğini
+  söylüyordu; uygulama ise izin hatırlatmalar ya da karaoke hatırlatıcısı
+  için zaten verilmişse jetonu sorusuz gönderiyordu. Kod düzeltildi
+  (lafmobil karar 328); metinlerde yalnız "işletim sisteminin izin penceresi
+  yalnızca bu seçeneğe dokunduğunuzda açılır" cümlesi yanlış kaldı (izni
+  hatırlatmalar ve ödenmiş karaoke rezervasyonunun hatırlatması da sorar).
+- **Oturumu kapatınca silme.** Metinler jetonun oturum kapatılınca "hemen"
+  silindiğini koşulsuz söylüyordu. Silme isteği en iyi çabadır: telefon o
+  sırada çevrim dışıysa ya da oturum uygulama tarafından kendiliğinden
+  kapatılmışsa istek gönderilemez ve jeton, aynı telefonda başka bir üye
+  oturum açana, Apple veya Google jetonun öldüğünü bildirene ya da 180 gün
+  dolana kadar kalır.
+- **Teslim sonuçları 24 saat.** Expo'dan okunan teslim sonuçlarının jetonu
+  "en fazla 24 saat" tuttuğu yazıyordu; temizlik günlük işte yapılır ve
+  15 dakikadan genç kayıtlar o gün okunamaz. Kod, okuma başarısız olsa da
+  satırları o gün temizler; metin üst sınırı "48 saat" olarak söyler.
+- **Kurumsal fatura bilgisinin süresi.** Metin "diğer siparişlerde
+  teslimden önce" diyordu; kafe siparişinin faturası gel-al'da sipariş
+  "Hazır" olunca, kuryede kuryeye verilince, en geç ödemeden 3 saat sonra
+  kesilir (`docs/EARSIV.md` §2).
+- **Resend satırları.** e-Arşiv faturanın PDF'i Resend üzerinden fatura
+  e-postasıyla gider; Gizlilik ve KVKK §14 Resend satırları gönderilen
+  e-postaları sayarken fatura e-postasını ve PDF'teki fatura adresini
+  anmıyordu.
+
+### 33.2 Değişen cümleler
+
+| Yer | Mevcut | Yeni |
+|---|---|---|
+| Gizlilik, "Bildirim izni" | Uygulama bildirim iznini ilk açılışta istemez; siparişinizi verdikten sonra ödeme sonucu ve sipariş takip ekranlarında 'Siparişin hazır olunca haber verelim mi?' seçeneğini sunar ve işletim sisteminin izin penceresi yalnızca bu seçeneğe dokunduğunuzda açılır. ... İzin verirseniz uygulama, ... | Uygulama bildirim iznini ilk açılışta istemez; işletim sisteminin izin penceresi yalnızca bir hatırlatmayı açtığınızda, ödenmiş karaoke odası rezervasyonunuzun hatırlatması için ya da siparişinizi verdikten sonra ödeme sonucu ve sipariş takip ekranlarında sunulan 'Siparişin hazır olunca haber verelim mi?' seçeneğine dokunduğunuzda açılır. ... Hatırlatmalar için verdiğiniz izin bildirim jetonunun sunucumuza gönderilmesine yol açmaz: jeton yalnızca bu seçeneğe dokunup izin verdiğinizde gönderilir (izin daha önce verilmişse pencere yeniden açılmaz, dokunmanız yeterlidir). Bu seçenekte izin verirseniz uygulama, ... |
+| KVKK §12, "Bildirimler" | ... seçeneğini sunar ve işletim sisteminin izni yalnızca bu seçeneğe dokunduğunuzda istenir. İzin verirseniz uygulama, ... | ... işletim sisteminin izni yalnızca bir hatırlatmayı açtığınızda, ödenmiş karaoke odası rezervasyonunuzun hatırlatması için ya da ... seçeneğine dokunduğunuzda istenir. Hatırlatmalar için verdiğiniz izin bildirim jetonunun sunucumuza gönderilmesine yol açmaz; jeton yalnızca bu seçeneğe dokunup izin verdiğinizde gönderilir (izin daha önce verilmişse yeniden sorulmaz, dokunmanız yeterlidir). Bu seçenekte izin verirseniz uygulama, ... |
+| Mobil Uygulama Koşulları, "Sipariş durumu bildirimleri" | ... seçeneğini sunar ve işletim sisteminin izni yalnızca Kullanıcı bu seçeneğe dokunduğunda istenir. | ... seçeneğini sunar. Bildirim jetonu yalnızca Kullanıcı bu seçeneğe dokunup izin verdiğinde gönderilir; hatırlatmalar için önceden verilmiş izin tek başına jetonun gönderilmesine yol açmaz ve bu durumda işletim sistemi izni yeniden sormaz. |
+| Gizlilik ve KVKK, saklama tablosunun jeton satırı (iki yer) | Uygulamada oturumu kapattığınızda, üyelik hesabınız kapatıldığında ... hemen silinir. ... Expo'dan okunan teslim sonuçları jetonu en fazla 24 saat tutar. | Üyelik hesabınız kapatıldığında veya silindiğinde ya da Apple veya Google jetonun artık bir cihaza ulaşmadığını bildirdiğinde hemen silinir. Uygulamada oturumu kapattığınızda uygulama jetonun silinmesini ister ve jeton o anda silinir; telefon o sırada sunucumuza ulaşamıyorsa ya da oturum uygulama tarafından kendiliğinden kapatılmışsa bu istek gönderilemez ve jeton, aynı telefonda başka bir üye oturum açana ya da bu hâllerden biri gerçekleşene kadar kalır, bu sürede o telefona siparişlerinizin durum bildirimi gidebilir. Uygulama jetonu 180 gün boyunca yenilemezse jeton periyodik imhada silinir. Expo'dan okunan teslim sonuçları jetonu en fazla 48 saat tutar. |
+| Güvenli Alışveriş, KVKK §12, Ticari Elektronik İleti, Veri Saklama (jeton satırı ve teslim sonucu satırı), Mobil Uygulama Koşulları (son cümleler) | ... oturumu kapattığınızda ... hemen ...; ... en fazla 24 saat ... | Aynı kural: silme isteği sunucuya ulaştığında hemen; ulaşamazsa (çevrim dışı ya da kendiliğinden kapanan oturum) başka bir üye oturum açana, jeton ölene ya da 180 gün dolana kadar; teslim sonuçları en fazla 48 saat. Veri Saklama'nın jeton satırı `src/lib/retention.ts` `push-devices` kuralının dayanak cümlesidir. |
+| İşlem Rehberi §9 ve Şirket Bilgileri §14 (kurumsal fatura) | (kargoyla gönderilen siparişlerde ürün kargoya verilmeden, diğer siparişlerde teslimden önce) | (kargoyla gönderilen siparişlerde ürün kargoya verilmeden; kafe siparişlerinde sipariş teslime hazır olmadan veya kuryeye verilmeden ve her durumda ödemeden itibaren üç saat içinde) |
+| Gizlilik, Resend satırı | ... (gönderilen e-postalar listesi) ... kodları). | Listeye "düzenlenen e-Arşiv faturanın PDF ekiyle gönderildiği fatura e-postası" eklendi; aktarılan veriye "fatura e-postasında faturanın PDF hâli ve üzerindeki fatura adresi". |
+| KVKK §14, Resend satırı | ... bildirimlerinin; ... ileti içeriği; | ... bildirimlerinin ve e-Arşiv faturanın (PDF eki ile); ... ileti içeriği (fatura e-postasında faturanın PDF hâli ve fatura adresi dahil); |
+
+### 33.3 Kodda değişenler (metnin anlattığı davranış)
+
+- lafmobil: jeton yalnız karttaki evetten sonra gider (`laf.push.optin.v1`);
+  izin başka bir şey için verilmişse kart yine sorar, basınca sistem
+  penceresi açılmaz. Çıkış, kaydı süren jetonu POST yanıtlandıktan sonra
+  bir kez daha geri alır (karar 328).
+- Site: `checkPushReceipts` okuma başarısız olsa da seçilen satırların
+  jetonunu o gün temizler.
+- Site: İYS kuyruğu (`iys_recipients`, `iys_events`) rızanın bitiminden 3
+  yıl sonra periyodik imhada silinir (`iys_retention`, onay ve ret
+  kayıtlarının yayımlanmış süresi; İYS'de hâlâ ONAY görünen ya da İYS'ye
+  bildirilmemiş reddi olan adres kalır).
+
+### 33.4 Bilerek değişmeyenler
+
+- Expo'nun `collapseId` / `tag` alanlarını cihaza taşıyıp taşımadığı bu
+  ortamdan doğrulanamadı (`docs/API-MOBILE.md` §23 "yeni aşama eskisinin
+  yerine geçer"); hukuk metinleri bunu vaat etmiyor, metin değişmedi.
+  Push açıldığında cihazda denenecek (operatöre).
+
+### 33.5 Avukata
+
+- "Hemen" yerine koşullu silme anlatımı: telefon çevrim dışıyken çıkışta
+  jetonun bir süre kalması ve o sürede eski üyenin sipariş bildiriminin o
+  telefona gidebilmesi açıkça yazıldı. Yeterli mi, yoksa sunucu tarafında
+  ek bir önlem (ör. jetonun belirli bir süre kullanılmamasında
+  kendiliğinden düşürülmesi) mi beklenir?
+
 ## Ek A - Cümle cümle düzeltme listesi
 
 Bu ek, depoya eklenmeyen geçici bir betikle `src/lib/legal/content.ts` dosyasından (web `main` @ `aa8ef87`) üretildi; satır numaraları o sürüme aittir. Her satır: dosyadaki satır numarası, bölüm, kod(lar), mevcut cümle birebir ve öneri. Kodu yalnızca **Ö1** (ad değişikliği) ve/veya **T1** (tire) olan cümlelerde önerilen cümle tam yazılmıştır; diğerlerinde öneri, gövdedeki ilgili koddadır. Tablo hücresi olan metinlerde (anahtar/değer) cümle, hücrenin tamamıdır. Uzun tire `[U+2014]`, orta tire `[U+2013]` olarak gösterilmiştir.

@@ -711,6 +711,211 @@ maybe("İYS outbox and send gate against a real Postgres", () => {
     ]);
   });
 
+  // Post-merge review (22 Ekim 2026, 20261022200000): an old İYS list that
+  // still shows ONAY must not undo a RET we registered, or a later consent
+  // is mailed while İYS holds RET without ever being uploaded.
+  it("an old list showing ONAY does not undo a RET we registered", async () => {
+    const { reconcileIys, importIysConsentList } =
+      await import("@/lib/iys/store");
+    const { updateNotificationPrefs } = await import("@/lib/customer/store");
+    const email = `${P}eski-liste@laffogato.net`;
+    const off = { orderUpdates: true, marketing: false, newsletter: false };
+    const on = { orderUpdates: true, marketing: true, newsletter: false };
+    await member(email);
+    await reconcileIys();
+    await registerAll();
+    await updateNotificationPrefs(email, off);
+    await reconcileIys();
+    await registerAll();
+    expect(await recipient(email)).toMatchObject({ iysStatus: "RET" });
+
+    await importIysConsentList([{ line: 1, email, status: "ONAY" }], {
+      by: "patron@laffogato.net",
+      skipped: 0,
+      fileName: "eski.csv",
+    });
+    expect(await recipient(email)).toMatchObject({ iysStatus: "RET" });
+
+    await updateNotificationPrefs(email, on);
+    await reconcileIys();
+    // The new consent is uploaded, and nothing goes out before İYS has it.
+    expect(
+      (await events(email)).filter(
+        (e) => e.status === "ONAY" && e.state === "pending",
+      ),
+    ).toHaveLength(1);
+    expect(await audience()).toEqual([]);
+  });
+
+  // İYS refuses a list with the same address twice (H194): a download holds
+  // the oldest open event of each address, the next waits for the next file.
+  it("a download holds one event per address; the later one waits for the next file", async () => {
+    const { reconcileIys, exportIysEvents, settleIysExport } =
+      await import("@/lib/iys/store");
+    const { updateNotificationPrefs } = await import("@/lib/customer/store");
+    const email = `${P}tek-satir@laffogato.net`;
+    await member(email);
+    await reconcileIys();
+    const first = await exportIysEvents();
+    expect(first.events.map((e) => [e.email, e.status])).toEqual([
+      [email, "ONAY"],
+    ]);
+
+    // Withdrawn before the first file was confirmed: a RET is due as well.
+    await updateNotificationPrefs(email, {
+      orderUpdates: true,
+      marketing: false,
+      newsletter: false,
+    });
+    await reconcileIys();
+    const second = await exportIysEvents();
+    expect(second.events.map((e) => [e.email, e.status])).toEqual([
+      [email, "ONAY"],
+    ]);
+    expect((await events(email)).map((e) => [e.status, e.state])).toEqual([
+      ["ONAY", "exported"],
+      ["RET", "pending"],
+    ]);
+
+    await settleIysExport(second.exportId, "patron@laffogato.net");
+    const third = await exportIysEvents();
+    expect(third.events.map((e) => [e.email, e.status])).toEqual([
+      [email, "RET"],
+    ]);
+  });
+
+  it("a RET İYS refused is made again while İYS holds the ONAY", async () => {
+    const { reconcileIys, exportIysEvents, rejectIysEvent } =
+      await import("@/lib/iys/store");
+    const { updateNotificationPrefs } = await import("@/lib/customer/store");
+    const email = `${P}ret-reddi@laffogato.net`;
+    await member(email);
+    await reconcileIys();
+    await registerAll();
+    await updateNotificationPrefs(email, {
+      orderUpdates: true,
+      marketing: false,
+      newsletter: false,
+    });
+    await reconcileIys();
+    const { events: sent } = await exportIysEvents();
+    const ret = sent.find((e) => e.email === email && e.status === "RET")!;
+    await rejectIysEvent(ret.id, "H194", "patron@laffogato.net");
+    expect(await recipient(email)).toMatchObject({ iysStatus: "ONAY" });
+
+    await reconcileIys();
+    expect(
+      (await events(email))
+        .filter((e) => e.status === "RET")
+        .map((e) => e.state),
+    ).toEqual(["rejected", "pending"]);
+  });
+
+  it("retention removes an address three years after its consent ended, and nothing that may still matter", async () => {
+    const cutoff = "2025-01-01T00:00:00.000Z";
+    const recip = (
+      email: string,
+      desired: string,
+      desiredAt: string,
+      iys: string,
+    ) =>
+      q(
+        `insert into public.iys_recipients
+           (email, "desiredStatus", "desiredAt", "iysStatus", "createdAt",
+            "updatedAt")
+         values ($1, $2, $3, $4, $3, $3)`,
+        [email, desired, desiredAt, iys],
+      );
+    const event = (
+      email: string,
+      status: string,
+      state: string,
+      createdAt: string,
+      settledAt = "",
+    ) =>
+      q(
+        `insert into public.iys_events
+           (email, status, source, "consentDate", state, "createdAt",
+            "settledAt")
+         values ($1, $2, 'HS_WEB', $3, $4, $3, $5)`,
+        [email, status, createdAt, state, settledAt],
+      );
+    const old = `${P}eski@laffogato.net`;
+    await recip(old, "NONE", "2022-01-01T00:00:00.000Z", "RET");
+    await event(
+      old,
+      "ONAY",
+      "registered",
+      "2021-01-01T00:00:00.000Z",
+      "2021-01-02T00:00:00.000Z",
+    );
+    await event(
+      old,
+      "RET",
+      "registered",
+      "2022-01-01T00:00:00.000Z",
+      "2022-01-03T00:00:00.000Z",
+    );
+    // İYS still holds the ONAY: the refusal is not reported yet.
+    const unreported = `${P}onayda@laffogato.net`;
+    await recip(unreported, "NONE", "2022-01-01T00:00:00.000Z", "ONAY");
+    await event(
+      unreported,
+      "RET",
+      "rejected",
+      "2022-01-01T00:00:00.000Z",
+      "2022-01-03T00:00:00.000Z",
+    );
+    // Something about it is newer than the cutoff.
+    const settledLate = `${P}gec@laffogato.net`;
+    await recip(settledLate, "NONE", "2022-01-01T00:00:00.000Z", "RET");
+    await event(
+      settledLate,
+      "RET",
+      "registered",
+      "2022-01-01T00:00:00.000Z",
+      "2025-06-01T00:00:00.000Z",
+    );
+    // Still consents, however old.
+    const consents = `${P}rizali@laffogato.net`;
+    await recip(consents, "ONAY", "2020-01-01T00:00:00.000Z", "ONAY");
+    await event(
+      consents,
+      "ONAY",
+      "registered",
+      "2020-01-01T00:00:00.000Z",
+      "2020-01-02T00:00:00.000Z",
+    );
+    // A refusal still on its way to İYS.
+    const open = `${P}acik@laffogato.net`;
+    await recip(open, "NONE", "2022-01-01T00:00:00.000Z", "");
+    await event(open, "RET", "pending", "2022-01-01T00:00:00.000Z");
+    // Ended recently.
+    const recent = `${P}yeni@laffogato.net`;
+    await recip(recent, "NONE", "2026-01-01T00:00:00.000Z", "RET");
+
+    const run = async (apply: boolean) =>
+      Number(
+        (
+          await q<{ n: number }>(`select public.iys_retention($1, $2) as n`, [
+            cutoff,
+            apply,
+          ])
+        )[0]!.n,
+      );
+    // The two events and the address.
+    expect(await run(false)).toBe(3);
+    expect(await recipient(old)).toBeDefined();
+    expect(await run(true)).toBe(3);
+    expect(await recipient(old)).toBeUndefined();
+    expect(await events(old)).toEqual([]);
+    for (const kept of [unreported, settledLate, consents, open, recent]) {
+      expect(await recipient(kept), kept).toBeDefined();
+    }
+    expect(await events(unreported)).toHaveLength(1);
+    expect(await run(true)).toBe(0);
+  });
+
   it("the attestation makes the check fresh for three business days", async () => {
     const { attestIysCheck } = await import("@/lib/iys/store");
     const { iysSendGate } = await import("@/lib/iys/gate");

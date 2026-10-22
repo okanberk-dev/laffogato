@@ -58,9 +58,15 @@ Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
    **taslak** olarak hazırlar: resmileştirmez, müşteriye e-posta göndermez.
    Muhasebeci birkaç gün Paraşüt'te taslakları kontrol eder: müşteri adı,
    il/ilçe, satırlar, KDV oranları, indirim, kargo/kurye satırı, toplam,
-   tahsilat hesabı. Taslakları muhasebeci isterse Paraşüt'te elle
-   resmileştirebilir; site bunu bir sonraki çalıştırmada görür ve kaydı
-   "kesildi" yapar.
+   tahsilat hesabı. Taslak döneminde site taslağa bir daha bakmaz:
+   muhasebeci bir taslağı Paraşüt'te elle resmileştirirse kayıt panelde
+   "Taslak" kalır ve 7 gün dolunca "süre geçti" görünür. Site onu ancak
+   canlıya geçilince görür (ilk çalıştırma taslağı silmeden önce
+   resmileşmiş faturayı okur, kaydı "kesildi" yapar ve PDF e-postasını o
+   zaman gönderir). Taslak döneminde elle resmileştirilen fatura için
+   kaydı "Paraşüt'te elle kestim" ile fatura numarasını yazarak kapatın;
+   yoksa panelin "süre geçti" uyarısı yanıltır ve ikinci bir fatura
+   kesilmesine yol açabilir.
 6. **Canlı (`EARSIV_MODE=live`).** Muhasebeci onaylayınca. Canlıda taslak
    durumundaki kayıtlar da sıraya girer: önceki günden kalan taslak silinip
    bugünün tarihiyle yeniden oluşturulur (e-Arşiv, resmileştiği günün

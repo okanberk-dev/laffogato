@@ -17,6 +17,7 @@ import {
 } from "@/app/admin/faturalar/actions";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
 import { invoicePdfHref } from "@/lib/invoice/panel-core";
+import { invoicePdfAvailable } from "@/lib/invoice/pdf";
 
 // An invoice row's actions (docs/EARSIV.md "Panel"), as the list's ⋯ menu
 // or as a row of buttons on an order's or a booking's invoice card.
@@ -70,7 +71,7 @@ export function InvoiceActions({
 }) {
   const v = menu ? "menu" : "ghost";
   const items: ReactNode[] = [];
-  if (row?.eDocumentId) {
+  if (row?.eDocumentId && invoicePdfAvailable()) {
     items.push(
       <a key="pdf" href={invoicePdfHref(row)} download className={BUTTON[v]}>
         Faturayı yazdır / indir

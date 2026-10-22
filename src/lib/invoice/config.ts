@@ -79,9 +79,13 @@ export function earsivConfigStatus(env: Env): EarsivConfigStatus {
     missing.push("EARSIV_START_AT");
   } else {
     const ms = Date.parse(startRaw);
-    // A day alone ("2026-10-23") is midnight UTC to Date.parse, three hours
-    // into the Istanbul day: refused, the instant must be written out.
-    if (!/T\d{2}:\d{2}/.test(startRaw) || !Number.isFinite(ms)) {
+    // A day alone ("2026-10-23") is midnight UTC to Date.parse, and a time
+    // without a zone is read in the server's zone (UTC on Vercel): both
+    // three hours into the Istanbul day, so refused. The zone is written out.
+    if (
+      !/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})$/.test(startRaw) ||
+      !Number.isFinite(ms)
+    ) {
       errors.push(
         "EARSIV_START_AT saat diliminiyle bir an olmalı, örneğin 2026-10-23T00:00:00+03:00.",
       );
@@ -129,6 +133,29 @@ export function earsivConfigStatus(env: Env): EarsivConfigStatus {
         baseUrl: base,
       },
     },
+  };
+}
+
+/**
+ * Paraşüt's credentials alone, whatever EARSIV_MODE says: enough to read an
+ * invoice that was already issued (its PDF). Turning the automation off, or
+ * a later mistake in EARSIV_START_AT, must not lock members and the panel
+ * out of invoices cut while it was on. Null when a credential is missing or
+ * the base URL is not https.
+ */
+export function parasutReadConfig(env: Env): ParasutConfig | null {
+  if (PARASUT_ENV.some((name) => !value(env, name))) return null;
+  const base = (
+    value(env, "PARASUT_BASE_URL") || DEFAULT_PARASUT_BASE_URL
+  ).replace(/\/+$/, "");
+  if (!/^https:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(base)) return null;
+  return {
+    clientId: value(env, "PARASUT_CLIENT_ID"),
+    clientSecret: value(env, "PARASUT_CLIENT_SECRET"),
+    username: value(env, "PARASUT_USERNAME"),
+    password: String(env.PARASUT_PASSWORD ?? ""),
+    companyId: value(env, "PARASUT_COMPANY_ID"),
+    baseUrl: base,
   };
 }
 

@@ -700,8 +700,13 @@ export function planKaraokeInvoice(
     };
   }
   if (booking.paymentStatus === "refunding") {
+    // Not due until the refund settles (a person may take days): with the
+    // evening's end as its due time the row would be claimed again and
+    // again, ahead of every newer invoice. The sweep re-plans it once the
+    // refund is done.
     return {
       ...base,
+      dueAt: "",
       amountMinor: 0,
       status: "waiting",
       reason: "İade sürüyor; tamamlanınca kalan tutar faturalanır.",

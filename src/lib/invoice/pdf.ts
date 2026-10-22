@@ -1,25 +1,37 @@
 import "server-only";
 
-import { earsivConfig } from "./config";
+import { parasutReadConfig } from "./config";
 import { invoicePdfName, type InvoiceRow } from "./invoice-core";
 import { ParasutClient } from "./parasut-client";
 import { dbInvoiceStore } from "./store";
 
 /**
+ * Whether issued invoices can be read back from Paraşüt at all: its
+ * credentials are set (EARSIV_MODE does not matter). Without them no
+ * surface offers a download, and the routes answer 404 instead of a 503
+ * that "birazdan yeniden dene" could never cure.
+ */
+export function invoicePdfAvailable(): boolean {
+  return parasutReadConfig(process.env) !== null;
+}
+
+/**
  * An issued invoice's PDF, fresh from Paraşüt: its one-hour URL is asked
  * for, downloaded here (https, size-capped, `%PDF` checked) and streamed to
  * the panel or the member; the browser never goes to Paraşüt and the file
- * is not stored. Null when the row has no e-document or e-Arşiv is not
- * configured; throws when Paraşüt fails.
+ * is not stored. Reads with Paraşüt's credentials whatever EARSIV_MODE says,
+ * so invoices cut while the automation was on stay downloadable after it is
+ * turned off. Null when the row has no e-document or the credentials are
+ * not set; throws when Paraşüt fails.
  */
 export async function fetchInvoicePdf(
   row: Pick<InvoiceRow, "eDocumentId" | "eDocumentType">,
   budgetMs = 25_000,
 ): Promise<Buffer | null> {
   if (!row.eDocumentId) return null;
-  const cfg = earsivConfig(process.env);
-  if (!cfg) return null;
-  const client = new ParasutClient(cfg.parasut, {
+  const parasut = parasutReadConfig(process.env);
+  if (!parasut) return null;
+  const client = new ParasutClient(parasut, {
     tokens: dbInvoiceStore.tokens,
   });
   client.setDeadline(Date.now() + budgetMs);
