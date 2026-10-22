@@ -131,9 +131,19 @@ kendiliğinden sızamaz. `tests/panel-orders-feed.test.ts` ve
 
 ## Panel ne zaman çeker
 
-Pingde, ekran açılınca ya da görünür olunca (son çekmeden 1 dakika
-geçtiyse) ve birkaç dakikada bir arka planda (ping kaçarsa diye). Panel
-yeni bir `new` siparişi (`id`'sini daha önce görmediği) çalar; masa
-siparişi önce ve daha yüksek sesle (sitenin zil kuralı,
-`order-alerts-core.ts`). Panel tarafı: `RiosenBeq/lafmaliyet`
-`docs/SITE-SIPARIS.md`.
+Pingde (geçici bir hatada 4 saniye sonra bir kez daha), ekran açılınca ya
+da görünür olunca (son çekmeden 1 dakika geçtiyse), "Yenile" düğmesinde (en
+sık 10 saniyede bir) ve ekran görünürken arka planda (ping kaçarsa diye):
+sipariş varken 3 dakikada, sakinken saatte bir, son çekme hatalıysa
+dakikada bir. Cron yok: siparişler anlıktır.
+
+Panel yeni bir `new` siparişi (`id`'sini o cihazın daha önce görmediği)
+çalar; ilk çekmede ve ekran yeni açıldığında 2 dakikadan eski siparişler
+için çalmaz. Masa siparişinin deseni daha uzun ve ayrıdır (sitenin zil
+kuralı gibi önce masa, `order-alerts-core.ts`). Yeni sipariş panelin Web
+Push'uyla da (`orders` konusu) gider: personel cihazında varsayılan açık,
+yöneticininkinde kapalı; bildirimde müşterinin adı yazmaz.
+
+Panel listeyi `integration_state`'te tek bir kopya olarak tutar (her
+çekmede üzerine yazılır, geçmiş yok, `totalMinor` saklanmaz). Panel tarafı:
+`RiosenBeq/lafmaliyet` `docs/SITE-SIPARIS.md`.

@@ -381,7 +381,9 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
   sayılır (sipariş `createdAt` gününe, karaoke ödeme gününe;
   `karaokeMoneyOf` üçünün ortak fonksiyonu); elle girilen sipariş kasada
   çalındığı için yalnız `manual` altında. Müşteri ve sipariş numarası gitmez.
-  Ayrıntı: `docs/PANEL-SALES.md`.
+  Panel bunu kâr-zararda üç satır (kafe online, mağaza, karaoke; KDV hariç)
+  ve "TOPLAM CİRO" olarak, tutarlılıkta ayrı tüketim kaynağı olarak ve kasa
+  raporunda bilgi satırı olarak gösterir. Ayrıntı: `docs/PANEL-SALES.md`.
 
 ## KDV (17 Eki 2026; oranlar ve kargo 18 Eki 2026)
 
