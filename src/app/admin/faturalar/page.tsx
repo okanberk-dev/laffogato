@@ -48,7 +48,11 @@ import {
   readLastRun,
 } from "@/lib/invoice/store";
 
-import { runInvoicesNowAction, saveInvoiceCarriersAction } from "./actions";
+import {
+  checkParasutConnectionAction,
+  runInvoicesNowAction,
+  saveInvoiceCarriersAction,
+} from "./actions";
 
 export const metadata = { title: "Admin · Faturalar" };
 export const dynamic = "force-dynamic";
@@ -75,7 +79,17 @@ function Status({ row, now }: { row: InvoiceRow; now: Date }) {
 function ConfigCard({ lastRun }: { lastRun: RunSummary | null }) {
   const status = earsivConfigStatus(process.env);
   return (
-    <Section title="Bağlantı ve çalışma">
+    <Section
+      title="Bağlantı ve çalışma"
+      actions={
+        <ActionButton
+          action={checkParasutConnectionAction}
+          pendingLabel="Sınanıyor…"
+        >
+          Paraşüt bağlantısını sına
+        </ActionButton>
+      }
+    >
       <div className="flex flex-col gap-2 text-sm">
         <p>
           Mod: <strong>{EARSIV_MODE_LABELS[status.mode]}</strong>

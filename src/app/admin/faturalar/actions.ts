@@ -12,10 +12,13 @@ import {
 import { safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { provinceOf } from "@/lib/invoice/address-core";
+import { checkParasutConnection } from "@/lib/invoice/connection";
 import { isValidVkn, type CarrierEntry } from "@/lib/invoice/invoice-core";
 import { INVOICES_PATH, invoiceSourceHref } from "@/lib/invoice/panel-core";
 import { runInvoices } from "@/lib/invoice/run";
 import {
+  dbInvoiceStore,
+  getInvoice,
   markInvoiceManual,
   markInvoiceManualDone,
   retryInvoice,
@@ -88,6 +91,86 @@ export async function runInvoicesNowAction(
     `${parts.join(", ")}.`,
     r.failed || r.manual ? "warning" : "success",
   );
+}
+
+/**
+ * "Paraşüt bağlantısını sına": one login and one read of the company with
+ * the site's own credentials. Cuts nothing; works whatever EARSIV_MODE is.
+ */
+export async function checkParasutConnectionAction(
+  _prev: ActionResult | null,
+  _formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("invoices");
+  const r = await checkParasutConnection(process.env, {
+    tokens: dbInvoiceStore.tokens,
+  });
+  await safeAudit({
+    action: "update",
+    entity: "invoice",
+    entityId: "connection",
+    actor: session.email,
+    payload: { event: "parasut_connection_check", ok: r.ok },
+  });
+  if (!r.ok) return actionError(r.error);
+  return actionOk(
+    "Paraşüt bağlantısı çalışıyor: giriş yapıldı ve firma okunabildi.",
+    "success",
+  );
+}
+
+/**
+ * "Faturayı şimdi kes": a row whose time has come (a karaoke evening that
+ * is over, a parcel handed to the carrier, a café order delivered) is cut
+ * now instead of at the next hook or the morning run. The run takes every
+ * due row by deadline, this one among them; the answer is this row's state
+ * afterwards.
+ */
+export async function cutInvoiceNowAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("invoices");
+  const parsed = idSchema.safeParse(String(formData.get("id") ?? ""));
+  if (!parsed.success) return refused(parsed.error.issues);
+  const before = await getInvoice(parsed.data);
+  if (!before) return actionError("Fatura kaydı bulunamadı.");
+  if (before.status !== "due") {
+    return actionError(
+      "Bu kaydın kesim zamanı gelmedi ya da kaydı başka bir işlem tutuyor. Sayfayı yenile.",
+    );
+  }
+  const r = await runInvoices({ budgetMs: 50_000, reason: "admin" });
+  const after = (await getInvoice(before.id)) ?? before;
+  await safeAudit({
+    action: "update",
+    entity: "invoice",
+    entityId: before.id,
+    actor: session.email,
+    payload: { event: "earsiv_cut_now", mode: r.mode, status: after.status },
+  });
+  revalidateFor(before);
+  if (r.mode === "off")
+    return actionError("e-Arşiv kapalı (EARSIV_MODE). Hiçbir şey yapılmadı.");
+  if (after.status === "issued") {
+    return actionOk(
+      after.invoiceNo
+        ? `Fatura kesildi: ${after.invoiceNo}.`
+        : "Fatura kesildi.",
+      "success",
+    );
+  }
+  if (after.status === "draft")
+    return actionOk("Paraşüt'te taslak hazırlandı (taslak modu).", "success");
+  if (after.status === "manual")
+    return actionOk(
+      `Elle kesilecek: ${after.manualReason || "otomatik kesilemedi."}`,
+      "warning",
+    );
+  if (after.status === "failed")
+    return actionError(after.lastError || r.errors[0] || "Fatura kesilemedi.");
+  if (r.errors.length > 0) return actionError(r.errors[0]);
+  return actionOk("Sıraya alındı; birkaç dakika içinde kesilir.", "warning");
 }
 
 /** "Yeniden dene": the row back in the queue (or its PDF mail again). */

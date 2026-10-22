@@ -754,12 +754,16 @@ maybe("İYS outbox and send gate against a real Postgres", () => {
       await import("@/lib/iys/store");
     const { updateNotificationPrefs } = await import("@/lib/customer/store");
     const email = `${P}tek-satir@laffogato.net`;
+    // Other suites leave consenting members in the shared database; a file
+    // may carry their rows too, so only this address is read.
+    const mine = (file: { events: { email: string; status: string }[] }) =>
+      file.events
+        .filter((e) => e.email === email)
+        .map((e) => [e.email, e.status]);
     await member(email);
     await reconcileIys();
     const first = await exportIysEvents();
-    expect(first.events.map((e) => [e.email, e.status])).toEqual([
-      [email, "ONAY"],
-    ]);
+    expect(mine(first)).toEqual([[email, "ONAY"]]);
 
     // Withdrawn before the first file was confirmed: a RET is due as well.
     await updateNotificationPrefs(email, {
@@ -769,9 +773,7 @@ maybe("İYS outbox and send gate against a real Postgres", () => {
     });
     await reconcileIys();
     const second = await exportIysEvents();
-    expect(second.events.map((e) => [e.email, e.status])).toEqual([
-      [email, "ONAY"],
-    ]);
+    expect(mine(second)).toEqual([[email, "ONAY"]]);
     expect((await events(email)).map((e) => [e.status, e.state])).toEqual([
       ["ONAY", "exported"],
       ["RET", "pending"],
@@ -779,9 +781,7 @@ maybe("İYS outbox and send gate against a real Postgres", () => {
 
     await settleIysExport(second.exportId, "patron@laffogato.net");
     const third = await exportIysEvents();
-    expect(third.events.map((e) => [e.email, e.status])).toEqual([
-      [email, "RET"],
-    ]);
+    expect(mine(third)).toEqual([[email, "RET"]]);
   });
 
   it("a RET İYS refused is made again while İYS holds the ONAY", async () => {
