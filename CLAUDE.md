@@ -726,6 +726,14 @@ durum bozulmaya uygundur.
   gelecekse `product-import-core.ts` (sütun) ve `product-import.ts` (plan).
   Sihirbaz elle gönderir (`useNoResetSubmit`, `noValidate` + kendi adım
   denetimi); `<form action>`'a geri dönme. Skill: `add-admin-resource`
+- **Oluşturma sihirbazları** (22 Eki 2026): yeni kayıt açan uzun formlar
+  adım adım (`src/components/admin/ui/wizard.tsx`: `useWizard` +
+  `WizardFrame`; `ActionForm` tabanlı formlar için `WizardActionForm`):
+  fatura, elle sipariş, promosyon, kampanya e-postası, menü kalemi,
+  uygulama gönderisi; düzenleme sayfaları tek sayfa (`mode: "page"`).
+  Adımlar aynı formun içindedir (sonrakiler `hidden`), tek gönderim,
+  sunucu denetimi değişmez. Yeni bir uzun oluşturma formu da bu kitle
+  yazılır; ayrıntı `docs/ADMIN.md` "Oluşturma sihirbazları"
 - **Server action pattern:** Zod parse → store call → revalidatePath →
   redirect. Skill: `server-action-pattern`
 - **Migration:** `db/migrations/YYYYMMDDHHMMSS_aciklama.sql`, ardından

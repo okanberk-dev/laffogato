@@ -666,3 +666,47 @@ tutar, tahsil edilenden önceki iadeler düşüldükten sonra kalandır; aynı
 iadeyi iki kez kaydetmek defterce reddedilir. Faturası kesilmiş bir
 siparişte iade, e-Arşiv'deki gibi "Faturalı siparişte iade" uyarısını
 doğurur.
+
+## Oluşturma sihirbazları (22 Eki 2026)
+
+Operatör: _"Fatura oluşturma yeri gibi olan yerlere wizard yap ve UX/UI
+olarak gelişmiş olsun. Güvenlik olarak da açık olmasın ve hızlı olsun."_
+
+Yeni kayıt açan uzun formlar adım adım ilerler; aynı kaydın düzenleme
+sayfası tek sayfa kalır (orada her şey bir bakışta görünmeli):
+
+| Akış | Sayfa | Adımlar |
+|---|---|---|
+| Fatura oluştur | `/admin/siparisler/[id]/fatura` | Alıcı → Fatura adresi → Satırlar → Özet |
+| Yeni sipariş (elle) | `/admin/siparisler/yeni` | Ürünler → Müşteri ve teslimat → Ödeme ve not → Özet |
+| Yeni promosyon kodu | `/admin/promosyon/yeni` | Kod ve indirim → Kurallar → Özet |
+| Yeni kampanya e-postası | `/admin/bulten/kampanya/yeni` | Şablon ve kitle → İçerik → Özet (taslak olarak kaydedilir) |
+| Yeni menü kalemi | `/admin/menu/yeni` | Temel bilgi → Fiyat ve vergi → Görsel → Etiket ve alerjen → Özet |
+| Yeni uygulama gönderisi | `/admin/mobil/gonderiler/yeni` | İçerik → Görsel ve bağlantı → Yayın → Özet (üyelere e-posta kutusu ve onayı özette) |
+| Yeni ürün | `/admin/urunler/yeni` | Kendi 5 adımlı sihirbazı (`ProductWizard`) |
+
+Kategori, masa, slayt ve duyuru gibi kısa formlar tek sayfadır: üç-dört
+alanlık bir formu adımlara bölmek yavaşlatır.
+
+**Nasıl çalışır** (`src/components/admin/ui/wizard.tsx`):
+
+- Adım çubuğu: tamamlanan adım ✓, düzeltilecek alanı olan adım "!" ve
+  kırmızı çerçeve, açık adım dolu. Geri dönmek serbest; ileri bir adıma
+  aradaki adımlar denetlenerek gidilir.
+- "Sonraki adım" ve tek satırlık bir alanda **Enter** o adımı denetler
+  (tarayıcının kuralları + adımın kendi kuralı: VKN kontrol hanesi, en az
+  bir ürün, %1-100) ve sonrakini açar. Göndermeden önce bütün adımlar
+  yeniden denetlenir; sorunlu adım açılır, alanın mesajı gösterilir.
+- Sunucu bir alanı reddederse o alanın adımı açılır ve adım işaretlenir.
+- **Özet**: yazılanların hepsi adım adım, her satırda "Düzenle" ile o
+  adıma dönüş. Sunucuda çizilen formlarda (menü kalemi, gönderi) özet
+  alanların kendi etiketlerinden okunur.
+- **Güvenlik:** sihirbaz yalnız arayüzdür. Her adım aynı formun içindedir,
+  tek bir gönderim yapılır ve sunucu her şeyi eskisi gibi yeniden denetler
+  (yetki, Zod, fiyat ve stok sunucuda). Hiçbir adım ayrı istek atmaz,
+  veri tarayıcıda saklanmaz.
+- **Hız:** adımlar arasında geçiş anlıktır (ağ yok); yeni paket yok, kit
+  yalnız bu sayfaların yükünde (`ui/index.ts`'ten verilmez).
+
+Testler: `tests/admin-wizards.test.ts` (hangi sayfa sihirbaz, her alan
+formda mı, ilk adımda gönder düğmesi yok, düzenleme tek sayfa).

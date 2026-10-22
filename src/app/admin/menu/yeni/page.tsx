@@ -52,6 +52,7 @@ export default async function NewMenuItemPage({ searchParams }: PageProps) {
         cancelHref="/admin/menu"
         menuTaxRate={settings.taxRates.menu}
         saveAndNew={!source}
+        mode="wizard"
       />
     </main>
   );

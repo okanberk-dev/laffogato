@@ -22,6 +22,12 @@ import {
   useUnsavedGuard,
 } from "@/components/admin/ui/unsaved-guard";
 import {
+  SummaryRows,
+  useWizard,
+  WizardFrame,
+  type WizardStep,
+} from "@/components/admin/ui/wizard";
+import {
   CAMPAIGN_MAIL_APP_LINKS_MISSING,
   CAMPAIGN_MAIL_AUDIENCE_LABELS,
   CAMPAIGN_MAIL_GROUPS,
@@ -73,6 +79,7 @@ export function CampaignMailForm({
   defaults,
   submitLabel,
   appLinksReady = false,
+  mode = "page",
 }: {
   action: (
     prev: CampaignMailState,
@@ -81,23 +88,42 @@ export function CampaignMailForm({
   defaults?: CampaignMailDefaults;
   submitLabel: string;
   appLinksReady?: boolean;
+  /**
+   * "wizard" for a new campaign (layout and audience, content, summary;
+   * ui/wizard.tsx), "page" for a draft being edited.
+   */
+  mode?: "wizard" | "page";
 }) {
-  // Posted by hand, and a throw is an answer: the old `<form action>` sent a
-  // second click while the first was still saving, and a database hiccup
-  // replaced the whole composer with the error page.
-  const [state, formAction, pending] = useActionState(
-    withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED })),
-    initial,
-  );
-  const post = useHandPost(formAction, pending);
-  // Leaving the composer with edits not saved asks (a link, the palette, a
-  // reload). "Taslağı kaydet" answers in place, and what it posted is then
-  // the saved state; "Taslağı oluştur" redirects, and the page is gone.
   const formRef = useRef<HTMLFormElement>(null);
-  useUnsavedGuard(formRef, { saved: savedAnswer(state) });
   const [template, setTemplate] = useState<CampaignTemplateName>(
     defaults?.template ?? "kampanya-duyuru",
   );
+  const contentFields = CAMPAIGN_MAIL_GROUPS[template].flatMap((g) =>
+    g.fields.map((f) => f.key),
+  );
+  const wizard = useWizard({
+    steps: [
+      { id: 1, fields: ["template", "audience", "scheduledAt"] },
+      { id: 2, fields: contentFields },
+      { id: 3, fields: [] },
+    ],
+    formRef,
+    enabled: mode === "wizard",
+  });
+  // Posted by hand, and a throw is an answer: the old `<form action>` sent a
+  // second click while the first was still saving, and a database hiccup
+  // replaced the whole composer with the error page.
+  const save = withPanelCatch(action, () => ({ error: PANEL_ACTION_FAILED }));
+  // Its answers carry one message (no field errors): it stays above the
+  // buttons, on the step the operator is on.
+  const [state, formAction, pending] = useActionState(save, initial);
+  const post = useHandPost(formAction, pending, {
+    beforeSubmit: wizard.beforeSubmit,
+  });
+  // Leaving the composer with edits not saved asks (a link, the palette, a
+  // reload). "Taslağı kaydet" answers in place, and what it posted is then
+  // the saved state; "Taslağı oluştur" redirects, and the page is gone.
+  useUnsavedGuard(formRef, { saved: savedAnswer(state) });
   // Clamped to what the template allows: a draft stored before the gate
   // must open editable, not locked on a value the server refuses.
   const [audience, setAudience] = useState<CampaignAudience>(() =>
@@ -119,108 +145,101 @@ export function CampaignMailForm({
   const audiences = campaignMailAudiencesFor(template);
   const membersOnly = audiences.length === 1;
 
-  return (
-    <form
-      ref={formRef}
-      action={post.action}
-      onSubmit={post.onSubmit}
-      className="grid gap-4"
-    >
-      <Card>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field
-            label="Şablon"
-            hint="Yerleşimi seçer; alanlar seçime göre değişir."
+  const settingsFields = (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Şablon"
+          hint="Yerleşimi seçer; alanlar seçime göre değişir."
+        >
+          <Select
+            name="template"
+            value={template}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (!isCampaignMailTemplate(next)) return;
+              setTemplate(next);
+              setAudience(campaignMailAudienceFor(next, audience));
+            }}
           >
-            <Select
-              name="template"
-              value={template}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (!isCampaignMailTemplate(next)) return;
-                setTemplate(next);
-                setAudience(campaignMailAudienceFor(next, audience));
-              }}
-            >
-              {CAMPAIGN_MAIL_TEMPLATES.map((t) => {
-                const available = campaignMailTemplateAvailable(
-                  t,
-                  appLinksReady,
-                );
-                return (
-                  // A stored draft keeps its own template selectable, so the
-                  // select never shows a value it cannot hold.
-                  <option
-                    key={t}
-                    value={t}
-                    disabled={!available && t !== template}
-                  >
-                    {CAMPAIGN_MAIL_TEMPLATE_LABELS[t]}
-                    {available ? "" : " (mağaza bağlantıları bekleniyor)"}
-                  </option>
-                );
-              })}
-            </Select>
-            {!campaignMailTemplateAvailable(template, appLinksReady) && (
-              <p className="mt-2 text-xs text-[var(--admin-warning)]">
-                {CAMPAIGN_MAIL_APP_LINKS_MISSING}
-              </p>
-            )}
-          </Field>
-
-          <Field
-            label="Kitle"
-            hint={
-              membersOnly
-                ? "Bu şablon “Yalnız L'Affogato üyelerine özel” der; pazarlama tercihi ve 6563 onayı olan üyelere gider. Bülten abonelerine “Bülten” şablonunu kullan."
-                : "Üyelerden yalnız bülten tercihi açık ve bülten onayı kayıtlı olanlar alır."
-            }
-          >
-            <Select
-              name="audience"
-              value={audience}
-              disabled={membersOnly}
-              onChange={(e) => {
-                if (isCampaignMailAudience(e.target.value)) {
-                  setAudience(e.target.value);
-                }
-              }}
-            >
-              {audiences.map((a) => (
-                <option key={a} value={a}>
-                  {CAMPAIGN_MAIL_AUDIENCE_LABELS[a]}
+            {CAMPAIGN_MAIL_TEMPLATES.map((t) => {
+              const available = campaignMailTemplateAvailable(t, appLinksReady);
+              return (
+                // A stored draft keeps its own template selectable, so the
+                // select never shows a value it cannot hold.
+                <option
+                  key={t}
+                  value={t}
+                  disabled={!available && t !== template}
+                >
+                  {CAMPAIGN_MAIL_TEMPLATE_LABELS[t]}
+                  {available ? "" : " (mağaza bağlantıları bekleniyor)"}
                 </option>
-              ))}
-            </Select>
-            {membersOnly && (
-              // A disabled select is not submitted; the value travels here.
-              <input type="hidden" name="audience" value={audience} />
-            )}
-          </Field>
-        </div>
-
-        <div className="mt-4">
-          <Field
-            label="Gönderim zamanı"
-            hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih-saat yazarsan zamanı geldikten sonraki ilk görev turu onu kendisi kuyruğa alır: bu genelde birkaç saat içindedir, tam o dakikada değil. Belli bir sabah çıkması gerekiyorsa (Anneler Günü, yılbaşı, 14 Şubat) saati birkaç saat öne kur; panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
-          >
-            <DateTimeField
-              name="scheduledAt"
-              aria-label="Gönderim tarihi ve saati"
-              value={scheduledAt}
-              onChange={setScheduledAt}
-            />
-          </Field>
-          {scheduledAt && (
+              );
+            })}
+          </Select>
+          {!campaignMailTemplateAvailable(template, appLinksReady) && (
             <p className="mt-2 text-xs text-[var(--admin-warning)]">
-              Zamanı geldikten sonra birkaç saat içinde kampanya{" "}
-              <strong>kendiliğinden</strong> gider; içeriğin tamam olduğundan
-              emin ol. Vazgeçersen bu alanı boşaltıp taslağı yeniden kaydet.
+              {CAMPAIGN_MAIL_APP_LINKS_MISSING}
             </p>
           )}
-        </div>
-      </Card>
+        </Field>
 
+        <Field
+          label="Kitle"
+          hint={
+            membersOnly
+              ? "Bu şablon “Yalnız L'Affogato üyelerine özel” der; pazarlama tercihi ve 6563 onayı olan üyelere gider. Bülten abonelerine “Bülten” şablonunu kullan."
+              : "Üyelerden yalnız bülten tercihi açık ve bülten onayı kayıtlı olanlar alır."
+          }
+        >
+          <Select
+            name="audience"
+            value={audience}
+            disabled={membersOnly}
+            onChange={(e) => {
+              if (isCampaignMailAudience(e.target.value)) {
+                setAudience(e.target.value);
+              }
+            }}
+          >
+            {audiences.map((a) => (
+              <option key={a} value={a}>
+                {CAMPAIGN_MAIL_AUDIENCE_LABELS[a]}
+              </option>
+            ))}
+          </Select>
+          {membersOnly && (
+            // A disabled select is not submitted; the value travels here.
+            <input type="hidden" name="audience" value={audience} />
+          )}
+        </Field>
+      </div>
+
+      <div className="mt-4">
+        <Field
+          label="Gönderim zamanı"
+          hint="Boş bırakırsan kampanya yalnız “Gönder”e bastığında çıkar. Bir tarih-saat yazarsan zamanı geldikten sonraki ilk görev turu onu kendisi kuyruğa alır: bu genelde birkaç saat içindedir, tam o dakikada değil. Belli bir sabah çıkması gerekiyorsa (Anneler Günü, yılbaşı, 14 Şubat) saati birkaç saat öne kur; panelin başında olmana gerek kalmaz. Saat İstanbul saatidir; bir taslak kaydedildiği andan itibaren geçerlidir."
+        >
+          <DateTimeField
+            name="scheduledAt"
+            aria-label="Gönderim tarihi ve saati"
+            value={scheduledAt}
+            onChange={setScheduledAt}
+          />
+        </Field>
+        {scheduledAt && (
+          <p className="mt-2 text-xs text-[var(--admin-warning)]">
+            Zamanı geldikten sonra birkaç saat içinde kampanya{" "}
+            <strong>kendiliğinden</strong> gider; içeriğin tamam olduğundan emin
+            ol. Vazgeçersen bu alanı boşaltıp taslağı yeniden kaydet.
+          </p>
+        )}
+      </div>
+    </>
+  );
+  const content = (
+    <>
       {!campaignMailHasFields(template) && (
         <Card>
           <h3 className="mb-1 text-sm font-semibold text-[var(--admin-text)]">
@@ -256,9 +275,119 @@ export function CampaignMailForm({
           </div>
         </Card>
       ))}
+    </>
+  );
 
-      {/* Out of the sticky bar: loose text there was printed across the
-          next field's label while the composer scrolled under it. */}
+  if (wizard.enabled) {
+    const filled = contentFields.filter((k) => (values[k] ?? "").trim());
+    const missing = CAMPAIGN_MAIL_GROUPS[template]
+      .flatMap((g) => g.fields)
+      .filter((f) => f.required && !(values[f.key] ?? "").trim())
+      .map((f) => f.label);
+    const steps: WizardStep[] = [
+      {
+        id: 1,
+        title: "Şablon ve kitle",
+        fields: ["template", "audience", "scheduledAt"],
+        body: <div className="grid gap-4">{settingsFields}</div>,
+      },
+      {
+        id: 2,
+        title: "İçerik",
+        fields: contentFields,
+        body: (
+          <div className="grid gap-4 [&_.rounded-3xl]:bg-[var(--admin-surface)]">
+            {content}
+            <p className="text-xs text-[var(--admin-text-mute)]">
+              * işaretli alanlar bu şablonda zorunludur; eksik kalırsa
+              &ldquo;Gönder&rdquo; alanın adıyla reddeder.
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 3,
+        title: "Özet",
+        summary: true,
+        body: (
+          <div className="grid gap-5">
+            <SummaryRows
+              wizard={wizard}
+              rows={[
+                {
+                  label: "Şablon",
+                  value: CAMPAIGN_MAIL_TEMPLATE_LABELS[template],
+                  step: 1,
+                },
+                {
+                  label: "Kitle",
+                  value: CAMPAIGN_MAIL_AUDIENCE_LABELS[audience],
+                  step: 1,
+                },
+                {
+                  label: "Gönderim zamanı",
+                  value: scheduledAt
+                    ? `${scheduledAt.replace("T", " ")} (İstanbul), kendiliğinden`
+                    : "Elle: taslağın sayfasında “Gönder”",
+                  step: 1,
+                },
+                {
+                  label: "Doldurulan alan",
+                  value: campaignMailHasFields(template)
+                    ? `${filled.length} / ${contentFields.length}`
+                    : "Şablonun sabit metni",
+                  step: 2,
+                },
+                {
+                  label: "Eksik zorunlu alan",
+                  value: missing.length ? missing.join(", ") : "Yok",
+                  step: 2,
+                },
+              ]}
+            />
+            <p className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
+              Taslak olarak kaydedilir; hiçbir şey gönderilmez. Önizleme, test
+              gönderimi ve asıl gönderim taslağın kendi sayfasındadır. Ticari
+              e-posta yalnız İYS&apos;de onayı görünen adrese gider.
+            </p>
+          </div>
+        ),
+      },
+    ];
+    return (
+      <form
+        ref={formRef}
+        action={post.action}
+        onSubmit={post.onSubmit}
+        onKeyDown={wizard.onKeyDown}
+        noValidate
+        className="grid gap-4 [&>*]:min-w-0"
+      >
+        <WizardFrame
+          wizard={wizard}
+          steps={steps}
+          formError={state.error}
+          cancelHref="/admin/bulten/kampanya"
+          submitLabel={submitLabel}
+          pendingLabel="Kaydediliyor…"
+          pending={pending}
+          label="Yeni kampanya adımları"
+        />
+      </form>
+    );
+  }
+
+  return (
+    <form
+      ref={formRef}
+      action={post.action}
+      onSubmit={post.onSubmit}
+      className="grid gap-4"
+    >
+      <Card>{settingsFields}</Card>
+
+      {content}
+
       <p className="text-xs text-[var(--admin-text-mute)]">
         * işaretli alanlar bu şablonda zorunludur; eksik kalırsa
         &ldquo;Gönder&rdquo; alanın adıyla reddeder.

@@ -18,7 +18,11 @@ export default async function NewPromoPage() {
         title="Yeni kod"
         description="Sepete uygulanacak yeni bir indirim kodu oluştur."
       />
-      <PromoForm action={createPromoAction} submitLabel="Kodu oluştur" />
+      <PromoForm
+        action={createPromoAction}
+        submitLabel="Kodu oluştur"
+        mode="wizard"
+      />
     </main>
   );
 }

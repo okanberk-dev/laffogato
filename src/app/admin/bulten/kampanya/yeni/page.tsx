@@ -23,6 +23,7 @@ export default async function NewCampaignMailPage() {
         action={createCampaignMailAction}
         submitLabel="Taslağı oluştur"
         appLinksReady={hasAppLinks()}
+        mode="wizard"
       />
     </main>
   );
