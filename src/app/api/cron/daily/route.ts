@@ -4,6 +4,7 @@ import { recordSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import { resumePendingCampaigns } from "@/lib/email/campaigns";
 import { recordShownLegalVersions } from "@/lib/legal/store";
 import { expireUnpaidReservations } from "@/lib/mobile/karaoke-payment";
+import { checkPushReceipts } from "@/lib/push/order-push";
 import {
   destructionEnabled,
   retentionLogLine,
@@ -90,6 +91,10 @@ export async function GET(request: Request) {
   const karaoke = await step("karaoke-holds", async () => ({
     expired: await expireUnpaidReservations(),
   }));
+  // Expo's delivery receipts for yesterday's order notifications: a token
+  // Apple or Google say reaches no device is forgotten, and the tokens kept
+  // beside the tickets are cleared (src/lib/push/order-push.ts).
+  const pushReceipts = await step("push-receipts", () => checkPushReceipts());
   // Every legal text as shown today, stored once per hash (decision
   // D-VERSIONS-TABLE): a coded text no consent reads (KVKK, the İşlem
   // Rehberi) is kept within a day of the deploy that changed it. Before
@@ -130,6 +135,7 @@ export async function GET(request: Request) {
       campaigns,
       birthday,
       karaoke,
+      pushReceipts,
       legalVersions,
       retention,
     },

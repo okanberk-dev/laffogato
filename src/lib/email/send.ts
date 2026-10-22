@@ -992,6 +992,29 @@ export async function sendOrderShippedEmail(
   );
 }
 
+/**
+ * "Siparişin hazır": a pickup order is at the counter and no phone
+ * notification reached the member (src/lib/push/order-push.ts). Once per
+ * order; transactional, so no unsubscribe link (src/lib/email/render.ts).
+ */
+export async function sendOrderReadyEmail(
+  d: { to: string; customerName: string; orderNo: number },
+  idempotencyKey?: string,
+): Promise<SendResult> {
+  return sendTemplateResult(
+    "siparis-hazir",
+    d.to,
+    {
+      vars: {
+        AD: d.customerName.trim(),
+        SIPARIS_NO: String(d.orderNo),
+        SIPARIS_URL: orderUrl(d.orderNo),
+      },
+    },
+    idempotencyKey,
+  );
+}
+
 export interface OrderCancelledEmailData extends OrderEmailData {
   /**
    * Was money taken for the order? `true` promises the refund, `false` says

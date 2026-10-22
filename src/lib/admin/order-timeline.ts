@@ -6,12 +6,14 @@
 import {
   CANCEL_NOTICE_KIND,
   PAID_NOTICE_KIND,
+  READY_NOTICE_KIND,
   RESENT_STATUS,
   baseNoticeKind,
   isResendKind,
 } from "@/lib/email/notice-kinds";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 
+import { auditActorLabel } from "./karaoke-panel";
 import { orderFulfillment, shippedStatusLabel } from "./order-channel";
 import {
   MANUAL_PAYMENT_LABELS,
@@ -65,6 +67,7 @@ export function noticeKindLabel(kind: string): string {
   let label = "E-posta";
   if (base === PAID_NOTICE_KIND) label = '"Ödemen alındı" e-postası';
   else if (base === CANCEL_NOTICE_KIND) label = "İptal e-postası";
+  else if (base === READY_NOTICE_KIND) label = '"Siparişin hazır" e-postası';
   else if (base === "staff-new") label = 'Ekibe "yeni sipariş" e-postası';
   else if (base.startsWith("shipped:")) label = "Kargo e-postası";
   else if (base.startsWith("refund:")) label = "İade e-postası";
@@ -90,7 +93,12 @@ function auditItem(
   order: Pick<AdminOrder, "fulfillment">,
 ): OrderTimelineItem | null {
   const p = row.payload ?? {};
-  const base = { id: `aud-${row.id}`, at: row.createdAt, actor: row.actor };
+  // A move from the köşk panel's bar screen reads "Yönetim paneli · Selin",
+  // as on the audit log, not the raw "panel:Selin" row actor.
+  const actor = row.actor.startsWith("panel:")
+    ? auditActorLabel(row.actor)
+    : row.actor;
+  const base = { id: `aud-${row.id}`, at: row.createdAt, actor };
   if (row.entity === "order_item") {
     const index = Number(String(row.entityId).split("#")[1] ?? "-1");
     return {

@@ -4689,6 +4689,34 @@ function scheduleStaffNewOrderNotice(orderId: string, provider: string): void {
 }
 
 /**
+ * Hands the phone notification for a status move to `after()`
+ * (src/lib/push/order-push.ts): after the response, never awaited by the
+ * move and never able to fail it. Outside a request there is nothing to run
+ * it after, and it is skipped, like the staff mail above.
+ */
+function scheduleOrderStagePush(
+  orderId: string,
+  from: AdminOrderStatus,
+  to: AdminOrderStatus,
+): void {
+  try {
+    after(async () => {
+      try {
+        // Lazily: the push module reads this store.
+        const { notifyOrderStage } = await import("@/lib/push/order-push");
+        await notifyOrderStage(orderId, from, to);
+      } catch (err) {
+        console.error(`[order-push] order=${orderId}`, err);
+      }
+    });
+  } catch (err) {
+    console.warn(
+      `[order-push] not scheduled order=${orderId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+/**
  * Records a successful payment and advances the order to `paid`. Idempotent:
  * the unique (provider, providerRef) index makes a duplicate insert a no-op
  * (23505) and the order update is guarded on `pending_payment`. Used by the
@@ -5543,6 +5571,7 @@ export async function transitionOrder(
   // and this is the moment the buyer is owed the number. Sent once per
   // number, so the tracking form having sent it already is a no-op here.
   if (map.to === "shipped") mail = await notifyOrderShipped(nextOrder);
+  scheduleOrderStagePush(id, existing.status, map.to);
   return {
     ok: true,
     order: nextOrder,

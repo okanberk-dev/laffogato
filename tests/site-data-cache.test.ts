@@ -342,17 +342,17 @@ describe("the documents a consent is recorded against", () => {
     async (slug, versionFn) => {
       const legal = await import("@/lib/legal/store");
       caching();
-      h.rows.legal_docs = [override(slug, "Eski metin", "20 Ekim 2026")];
+      h.rows.legal_docs = [override(slug, "Eski metin", "23 Ekim 2026")];
       expect((await site.getSiteLegalOverride(slug))?.bodyMarkdown).toBe(
         "Eski metin",
       );
       // The panel publishes a new text and the write's expiry never
       // arrives (a write outside getDb, a rollback, a cache error): here
       // nothing expires anything at all.
-      h.rows.legal_docs = [override(slug, "Yeni metin", "21 Ekim 2026")];
+      h.rows.legal_docs = [override(slug, "Yeni metin", "24 Ekim 2026")];
       const recorded = await legal[versionFn]();
       const shown = await site.getSiteLegalOverride(slug);
-      expect(recorded).toBe("21 Ekim 2026");
+      expect(recorded).toBe("24 Ekim 2026");
       expect(shown?.effectiveDate).toBe(recorded);
       expect(shown?.bodyMarkdown).toBe("Yeni metin");
     },
@@ -418,6 +418,10 @@ describe("what is stored", () => {
 
   it("a post list with a base64 photo is not stored and is read live", async () => {
     caching();
+    // The live read filters by the real clock; the fixture post ends on
+    // 22 Ekim 2026, so the clock is pinned to the Monday the test reads at.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(MONDAY);
     h.rows.app_posts[0].image = PIXEL;
     const posts = await site.listSiteAppPosts(MONDAY);
     expect(posts[0].image).toBe(PIXEL);

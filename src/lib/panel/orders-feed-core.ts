@@ -11,9 +11,9 @@ import { firstNameOf } from "./karaoke-sync-core";
  *
  * The link is the karaoke one (src/lib/panel/karaoke-sync-core.ts): a write
  * that expires `live:orders` pings the panel (orders-ping.ts), the panel
- * pulls `GET /api/panel/orders` signed with the shared secret. Read only:
- * the panel moves nothing here; the barista opens the order in this panel
- * (`path`) to say it is ready.
+ * pulls `GET /api/panel/orders` signed with the shared secret. The panel
+ * writes no order: its one-tap buttons ask `POST /api/panel/orders/stage`
+ * (orders-stage-core.ts), and this site moves the order itself.
  *
  * What leaves: what the barista needs to make and hand over the order - the
  * lines with their options, where it goes ("Masa 4", "Gel-al", "Kurye"),

@@ -130,6 +130,10 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   // The daily Supabase ping's last result; read live by the owner's
   // dashboard, never cached.
   supabase_keepalive: NONE,
+  // Phone notification tokens and the "once" of each order push
+  // (20261022170000): read live by the sender, never cached.
+  customer_devices: NONE,
+  order_push_notices: NONE,
 };
 
 /**
@@ -194,6 +198,8 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   email_suppression_record: NONE,
   reserve_fal_reading: NONE,
   customer_consents_retention: NONE,
+  // Writes customer_devices only (20261022170000).
+  register_customer_device: NONE,
   // Deletes only legal_doc_versions rows past their eleven years.
   legal_doc_versions_retention: NONE,
 

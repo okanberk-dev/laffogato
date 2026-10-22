@@ -6,7 +6,6 @@ import {
   orderFulfillment,
   type AdminAppAnnouncement,
   type AdminOrder,
-  type AdminOrderStatus,
 } from "@/lib/admin/store";
 
 import {
@@ -17,6 +16,12 @@ import {
 } from "./karaoke";
 import { listMilestoneGrants, type MilestoneGrant } from "./milestones";
 import { MILESTONE_TTL_DAYS } from "./milestones-core";
+import {
+  ORDER_STAGES as STAGES,
+  stageBody,
+  stageTitle,
+  type OrderStageKey as StageKey,
+} from "./order-stage-text";
 
 /**
  * Notifications for the app's inbox (docs/API-MOBILE.md §8).
@@ -77,59 +82,6 @@ type OrderLike = Pick<
   | "shippedAt"
   | "completedAt"
 > & { fulfillment?: string };
-
-type StageKey = Extract<
-  AdminOrderStatus,
-  "paid" | "preparing" | "shipped" | "completed"
->;
-
-/** The stages an order passes through, in order; a later stage implies the earlier ones. */
-const STAGES: StageKey[] = ["paid", "preparing", "shipped", "completed"];
-
-const STAGE_TITLES: Record<StageKey, string> = {
-  paid: "Ödemen alındı",
-  preparing: "Hazırlanıyor",
-  shipped: "Yolda",
-  completed: "Teslim edildi",
-};
-
-function stageTitle(stage: StageKey, fulfillment: string): string {
-  // A pickup order is never "on the way": the member walks in for it.
-  if (fulfillment === "pickup") {
-    if (stage === "shipped") return "Hazır - gel al";
-    if (stage === "completed") return "Teslim alındı";
-  }
-  // Nor is a table order: it is carried to where the member sits.
-  if (fulfillment === "table") {
-    if (stage === "shipped") return "Masana getirildi";
-    if (stage === "completed") return "Tamamlandı";
-  }
-  return STAGE_TITLES[stage];
-}
-
-function stageBody(
-  stage: StageKey,
-  orderNo: number,
-  fulfillment: string,
-): string {
-  const no = `#${orderNo}`;
-  switch (stage) {
-    case "paid":
-      return `${no} numaralı siparişinin ödemesi alındı. Hazırlamaya başlıyoruz.`;
-    case "preparing":
-      return `${no} numaralı siparişin hazırlanıyor.`;
-    case "shipped":
-      if (fulfillment === "pickup")
-        return `${no} numaralı siparişin hazır, tezgâhta seni bekliyor.`;
-      if (fulfillment === "delivery")
-        return `${no} numaralı siparişin kuryede, yola çıktı.`;
-      if (fulfillment === "table")
-        return `${no} numaralı siparişin masana getirildi. Afiyet olsun.`;
-      return `${no} numaralı siparişin kargoya verildi.`;
-    case "completed":
-      return `${no} numaralı siparişin teslim edildi. Afiyet olsun.`;
-  }
-}
 
 /**
  * The instant a stage was reached. `transitionOrder` stamps one column per

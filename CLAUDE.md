@@ -205,7 +205,8 @@ src/
     api/panel/menu/          → Köşkün panelinin imzalı menü okuması ve
                                fiyat / satış durumu yazımı (docs/PANEL-MENU.md)
     api/panel/orders/        → Köşkün bar ekranına açık kafe siparişleri
-                               (imzalı, salt okuma; docs/PANEL-ORDERS.md)
+                               (imzalı okuma) + stage/ (tek dokunuş aşama;
+                               docs/PANEL-ORDERS.md)
     api/panel/sales/         → Köşkün kâr-zararına ve kasa raporuna dönemin
                                online satışı (imzalı; docs/PANEL-SALES.md)
     api/mobile/v1/           → Mobil uygulama API'si (docs/API-MOBILE.md):
@@ -367,13 +368,26 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 (`src/lib/panel/ping.ts`; `live:orders`'ı düşüren her yazım panele
 `orders.changed` atar):
 
-- **Bar ekranı, salt okuma:** imzalı `GET /api/panel/orders` ödenmiş,
+- **Bar ekranı:** imzalı `GET /api/panel/orders` ödenmiş,
   hazırlanan ve gel-al'da teslim bekleyen **kafe** siparişlerini verir
   (`toPanelOrder` beyaz listesi: satırlar ve seçenekleri, "Masa 4" / "Gel-al"
   / "Kurye", planlı saat, **yalnız ad**, sitedeki sayfasının yolu). Panelden
   elle girilen sipariş, mağaza kolisi, masaya / kuryeye gitmiş sipariş ve
-  24 saattir ilerlemeyen gelmez. Panel siparişi ilerletmez; barista
-  bağlantıdan bu panele gelir. Ayrıntı: `docs/PANEL-ORDERS.md`.
+  24 saattir ilerlemeyen gelmez. Barista siparişi bar ekranından tek
+  dokunuşla ilerletir (22 Eki 2026): imzalı `POST /api/panel/orders/stage`
+  `{id, action, from, actor}`, yalnız üç ileri adım (Hazırlanıyor, Hazır /
+  Masaya götürüldü / Kuryeye verildi, Teslim edildi); hareketi site kendi
+  `transitionOrder`'ıyla, kartın aşamasına koşullu yapar (stok, sadakat,
+  e-posta, telefon bildirimi aynen; eski dokunuş 409). İptal ve iade yalnız
+  bu panelde. Ayrıntı: `docs/PANEL-ORDERS.md`.
+- **Telefon bildirimi (22 Eki 2026):** uygulama izin verilince Expo push
+  jetonunu `POST /api/mobile/v1/devices`'a bildirir (`customer_devices`);
+  kafe siparişi hazırlanınca, gel-al hazır olunca, kurye çıkınca, koli
+  kargoya verilince ve ödenmiş sipariş iptal edilince `transitionOrder`
+  `after()` ile bir kez (`order_push_notices`) gönderir
+  (`src/lib/push/*`, `docs/API-MOBILE.md` §23). Yalnız işlemsel; üyenin
+  "Sipariş durumu" anahtarı (`orderUpdates`) kapatır. Gel-al hazır olup
+  hiçbir telefona ulaşmadıysa "Siparişin hazır" e-postası gider.
 - **Online satış:** imzalı `GET /api/panel/sales?month=YYYY-MM` (ya da
   `from`/`to`, en çok 31 gün) kafe, mağaza ve karaoke parasını, faturanın
   KDV'sini (ödül kuponu tam fiyatla) ve kafe satırlarını menü kalemi × boy

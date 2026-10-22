@@ -11,6 +11,7 @@ import {
 } from "@/lib/admin/store";
 import { isActiveBarista } from "@/lib/admin/staff-members";
 import { appendConsentChanges } from "@/lib/customer/consent-ledger";
+import { forgetDevicesOf } from "@/lib/push/devices";
 import { getDeletionRequest } from "@/lib/customer/deletion-request";
 import {
   getCardUserKey,
@@ -680,6 +681,15 @@ export async function deleteMe(
     })
     .eq("email", customer.email);
   checkErr(error, "deleteMe");
+
+  // The phones that were told about this member's orders: a closed
+  // account keeps no push token (docs/API-MOBILE.md §23). Best effort: the
+  // closure has happened, and the retention sweep removes a leftover.
+  try {
+    await forgetDevicesOf(customer.email);
+  } catch (err) {
+    console.error("[delete-me] push devices not removed", err);
+  }
 
   // "Pazarlama izni geri alınmış sayılır" (hesap-silme §5): the withdrawal
   // goes into the consent history under the address it was given for. That

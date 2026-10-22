@@ -19,6 +19,11 @@
  * override of a checkout document moves the RECORDED version past it without
  * touching this constant (`consentVersionFrom`, `./consent-version`).
  */
+// 22 Ekim 2026: the ÖBF (§17, §19) and the MSS (§16) say the app gets
+// order-status push notifications once the member allows them, the device's
+// notification token reaches the server, and Expo, Apple and Google carry
+// them (LEGAL-REDLINES §30). Every document reads this day again; the ten
+// that carried 21 Ekim 2026 of their own may not print a day before it.
 // 20 Ekim 2026: the ÖBF (§16) and the MSS (§9) say the invoice is an
 // e-Arşiv invoice sent by e-mail, its paper copy in the parcel standing in
 // for the waybill; Şirket Bilgileri §14 takes corporate details by e-mail
@@ -32,7 +37,7 @@
 // (`legalConsent.textHashes`) and the text is stored under it
 // (`legal_doc_versions`), so the hash, not the day, tells two texts apart.
 // The label still names the day the set was published.
-export const LEGAL_UPDATED = "20 Ekim 2026";
+export const LEGAL_UPDATED = "22 Ekim 2026";
 
 /**
  * Whether the legal texts describe saved cards (PayNkolay's card storage,

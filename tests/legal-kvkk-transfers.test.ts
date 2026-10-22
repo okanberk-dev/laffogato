@@ -75,6 +75,11 @@ describe("KVKK Aydınlatma §15: the transfers as they are", () => {
       `${LEGAL_ENTITY.dbProvider} (Databricks, Inc. / Neon, LLC; ABD; sunucu bölgesi ABD, Ohio; imza sürecinde)`,
       `${LEGAL_ENTITY.authProvider} (Supabase Pte. Ltd.; Singapur; proje bölgesi Singapur; imza sürecinde)`,
       "Anthropic, PBC (ABD)",
+      // 22 Ekim 2026: order-status push (LEGAL-REDLINES §30). Expo carries
+      // the message; Apple and Google deliver it to the phone.
+      "Expo (650 Industries, Inc.; ABD; sunucu bölgesi ABD, Google Cloud; imza sürecinde)",
+      "Apple Inc. (ABD; Apple Push Notification service; imza sürecinde)",
+      "Google LLC (ABD; Firebase Cloud Messaging; imza sürecinde)",
     ]) {
       expect(recipients, part).toContain(part);
     }
@@ -296,7 +301,7 @@ describe("the karaoke inbox is the company's, in Türkiye", () => {
 });
 
 describe("the processor lists agree with the aydınlatma", () => {
-  it("Veri Saklama names the login provider and Anthropic, and no Google processor", () => {
+  it("Veri Saklama names the login provider and Anthropic, and Google only as the push carrier", () => {
     const vsip = LEGAL_CONTENT.find(
       (d) => d.slug === "veri-saklama-ve-imha-politikasi",
     )!;
@@ -304,7 +309,14 @@ describe("the processor lists agree with the aydınlatma", () => {
     expect(src).toContain(
       "üyelik kimlik doğrulaması ({{AUTH_PROVIDER}}), işlemsel e-posta gönderimi (Resend), yalnızca fA'L yapay zekâ yorumuna açık rıza verilmesi hâlinde yapay zekâ hizmeti (Anthropic, PBC),",
     );
+    // No Google analytics or tag processor; since 22 Ekim 2026 Google LLC
+    // appears once, as the service that delivers order-status push to
+    // Android phones (LEGAL-REDLINES §30).
     expect(src).not.toMatch(/Google \(|\(Google\)/);
+    expect(src).toContain(
+      "mobil uygulamaya sipariş durumu anlık bildirimlerinin iletilmesi (Expo, 650 Industries, Inc.; bildirimi cihaza ulaştıran Apple Inc. ve Google LLC bildirim servisleri)",
+    );
+    expect(src.match(/Google LLC/g)).toHaveLength(1);
     expect(src).toContain("standart sözleşmeye dayandırılacaktır");
   });
 
@@ -376,6 +388,7 @@ describe("every recipient the texts list, and no reason without one (2026/347)",
       "PostgreSQL veri tabanı",
       "üyelik kimlik doğrulaması",
       "e-posta gönderimi",
+      "sipariş durumu anlık bildirimlerinin mobil uygulamaya iletilmesi",
     ]) {
       expect(reasons, reason).toContain(reason);
     }
@@ -384,11 +397,19 @@ describe("every recipient the texts list, and no reason without one (2026/347)",
       "Resend",
       LEGAL_ENTITY.dbProvider,
       LEGAL_ENTITY.authProvider,
+      "Expo",
+      "Apple Inc.",
     ]) {
       expect(recipients, recipient).toContain(recipient);
     }
     // The map opens Google Maps in a new tab: no reason, no recipient.
+    // Google LLC is named once, and only as the push carrier (Firebase
+    // Cloud Messaging, LEGAL-REDLINES §30).
     expect(reasons).not.toContain("harita");
-    expect(recipients).not.toContain("Google LLC");
+    expect(recipients).not.toContain("harita");
+    expect(recipients.match(/Google LLC/g)).toHaveLength(1);
+    expect(recipients).toContain(
+      "Google LLC (ABD; Firebase Cloud Messaging; imza sürecinde)",
+    );
   });
 });

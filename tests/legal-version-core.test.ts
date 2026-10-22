@@ -93,7 +93,7 @@ describe("the canonical text and its hash", () => {
     const doc = findLegalDoc(OBF)!;
     const base = legalVersionOf(codedVersionDoc(doc)).hash;
     expect(
-      legalVersionOf(codedVersionDoc({ ...doc, updatedAt: "22 Ekim 2026" }))
+      legalVersionOf(codedVersionDoc({ ...doc, updatedAt: "23 Ekim 2026" }))
         .hash,
     ).not.toBe(base);
     const s0 = doc.sections[0];

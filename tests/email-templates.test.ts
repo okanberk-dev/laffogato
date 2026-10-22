@@ -73,9 +73,12 @@ function renderWith(
   });
 }
 
-describe("the twenty-five templates render", () => {
-  it("ships exactly the twenty-five designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment)", () => {
-    expect(NAMES).toHaveLength(25);
+describe("the twenty-six templates render", () => {
+  it("ships exactly the twenty-six designed messages (siparis-alindi was removed 16 Eki 2026: the order mail waits for the payment; siparis-hazir added 22 Eki 2026)", () => {
+    expect(NAMES).toHaveLength(26);
+    // A pickup order ready at the counter, when no phone notification
+    // reached the member (src/lib/push/order-push.ts).
+    expect(NAMES).toContain("siparis-hazir");
     // The web account deletion is a request to the team (18 Eki 2026): its
     // receipt and the "hesabın silindi" answer.
     expect(NAMES).toContain("hesap-silme-talebi");

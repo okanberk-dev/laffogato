@@ -306,4 +306,6 @@ export const TABLES = {
   cafeTables: "cafe_tables",
   productPriceHistory: "product_price_history",
   supabaseKeepalive: "supabase_keepalive",
+  customerDevices: "customer_devices",
+  orderPushNotices: "order_push_notices",
 } as const;
