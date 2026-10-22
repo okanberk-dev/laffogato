@@ -749,17 +749,27 @@ const PRODUCT_NAMES: Record<ProductGroup, string> = {
   KAFE: "Kafe siparişi",
   MAGAZA: "Mağaza ürünü",
   TESLIMAT: "Kargo / kurye bedeli",
-  KARAOKE: "Karaoke odası",
+  // Operator, 22 Oct 2026: the karaoke room is a service and its product is
+  // just "Hizmet". Which service, when and how long is the line's
+  // description (VUK 230/5, the nature of the work); its rate is the
+  // invoice's KDV column.
+  KARAOKE: "Hizmet",
 };
 
-/** Paraşüt product code for a group and rate: "LAF-KAFE-10". */
+/**
+ * Paraşüt product code for a group and rate: "LAF-KAFE-10". The karaoke
+ * service's is "LAF-HIZMET-20": a new code, so the product made under its
+ * old name ("Karaoke odası (KDV %20)", "LAF-KARAOKE-20") is not reused.
+ */
 export function productCode(group: ProductGroup, ratePct: number): string {
-  return `LAF-${group}-${ratePct}`;
+  return `LAF-${group === "KARAOKE" ? "HIZMET" : group}-${ratePct}`;
 }
 
-/** Paraşüt product name: "Kafe siparişi (KDV %10)". */
+/** Paraşüt product name: "Kafe siparişi (KDV %10)"; the service, "Hizmet". */
 export function productName(group: ProductGroup, ratePct: number): string {
-  return `${PRODUCT_NAMES[group]} (KDV %${ratePct})`;
+  return group === "KARAOKE"
+    ? PRODUCT_NAMES.KARAOKE
+    : `${PRODUCT_NAMES[group]} (KDV %${ratePct})`;
 }
 
 /** One invoice line, in kuruş and in what Paraşüt is sent. */
@@ -922,10 +932,13 @@ export function dayLabel(day: string): string {
 }
 
 /**
- * The one line of a karaoke invoice (LEGAL-REDLINES §24.5): "Karaoke odası,
- * 23 Ekim 2026 21:00, 2 saat", ", geç iptal" after a late cancel whose
- * share the köşk keeps. The amount is what the köşk keeps, at the rate the
- * booking was made at (the karaoke default for an older booking).
+ * The one line of a karaoke invoice: product "Hizmet", description
+ * "Karaoke odası kullanımı, 2 saat" ("Karaoke odası geç iptal bedeli, 2
+ * saat" after a late cancel whose share the köşk keeps). No date (operator,
+ * 22 Oct 2026): VUK 230/5 asks for the nature and quantity of the work,
+ * which the description gives; the invoice carries its own date. The
+ * amount is what the köşk keeps, at the rate the booking was made at (the
+ * karaoke default for an older booking).
  */
 export function karaokeInvoiceLines(
   booking: InvoiceBooking,
@@ -935,12 +948,14 @@ export function karaokeInvoiceLines(
   const rate = isTaxRate(booking.taxRatePct)
     ? booking.taxRatePct
     : defaultRatePct;
-  const hour = String(booking.startHour).padStart(2, "0");
-  const late = booking.status === "cancelled" ? ", geç iptal" : "";
+  const what =
+    booking.status === "cancelled"
+      ? "Karaoke odası geç iptal bedeli"
+      : "Karaoke odası kullanımı";
   return [
     makeLine(
       "KARAOKE",
-      `Karaoke odası, ${dayLabel(booking.date)} ${hour}:00, ${booking.hours} saat${late}`,
+      `${what}, ${booking.hours} saat`,
       1,
       amountMinor,
       rate,

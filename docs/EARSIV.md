@@ -147,7 +147,7 @@ değişkenlerin **adları**, son çalıştırma). Değerler hiçbir ekranda gör
 
 Her fatura için sıra: müşteri kaydı (e-postaya göre önbellekte; ad ya da adres
 değişince güncellenir) → ürün kodları (`LAF-KAFE-10`, `LAF-MAGAZA-10`,
-`LAF-MAGAZA-20`, `LAF-TESLIMAT-20`, `LAF-KARAOKE-20`; yoksa oluşturulur) →
+`LAF-MAGAZA-20`, `LAF-TESLIMAT-20`, `LAF-HIZMET-20`; yoksa oluşturulur) →
 satış faturası → **toplam kontrolü** (Paraşüt'ün "Genel Toplam"ı siparişin
 KDV dahil toplamıyla en fazla 0,01 TL farklı olabilir; tutmazsa taslak silinir,
 kayıt "elle kesilecek: tutar tutmadı" olur, iki tutar yazılır) → (taslak
@@ -161,6 +161,18 @@ Satırlar: her kalem kendi satış anındaki KDV oranıyla, birim fiyat KDV hari
 promosyon indirimi kalemlere fişteki gibi orantılı dağıtılır ve satır
 indirimi olarak yazılır; kargo/kurye bedeli kendi oranıyla ayrı satırdır.
 Faturanın notu "Sipariş no: …"; koli faturasında "İrsaliye yerine geçer."
+Karaoke faturasının tek satırının ürünü yalnız **"Hizmet"** (operatör, 22
+Eki 2026: adında oda ya da KDV oranı yazmaz; oran faturanın KDV
+sütununda). Satırın açıklaması işin cinsini ve süresini söyler, **tarih
+yazmaz**: "Karaoke odası kullanımı, 2 saat"; geç iptalde köşkün tuttuğu pay
+"Karaoke odası geç iptal bedeli, 2 saat". VUK 230/5 faturada işin cinsini
+ve miktarını ister ("Hizmet" tek başına onu söylemez), hizmetin gününü
+istemez: faturanın kendi tarihi vardır, hizmet günü rezervasyon kaydında
+durur ve 7 günlük süre (VUK 231/5) ondan sayılır. Ürün kodu
+`LAF-HIZMET-20`; eski adıyla açılmış "Karaoke odası (KDV %20)" ürünü
+(`LAF-KARAOKE-20`) Paraşüt'te kullanılmadan kalır. Değişiklikten önce
+hazırlanmış bir karaoke taslağı varsa "Taslağı yenile" ile yeni adla
+hazırlanır.
 
 ## 3. Neler elle kalır ve neden
 
