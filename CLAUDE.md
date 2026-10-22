@@ -419,9 +419,17 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
   anda yazılır, satır `invoice_claim` (FOR UPDATE SKIP LOCKED, 15 dk) ile
   tek çalıştırmaya verilir; yanıtı kaybolan istekten sonra önce aranır.
   Paraşüt toplamı 0,01 TL'den fazla tutmazsa taslak silinir, kayıt elle.
-- Elle kalır: panel siparişi (ÖKC), kurumsal (yönetici "elle kesilecek"
-  işaretler), cüzdan / ödemesiz / ödül kuponu, kesimden önce iade, listede
-  VKN'si olmayan kargo firması, okunamayan il/ilçe. Kesilmiş faturaya
+- **Siparişten fatura sihirbazı** (22 Eki 2026, `docs/EARSIV.md` §8):
+  sipariş kartındaki "Fatura oluştur" → `/admin/siparisler/[id]/fatura`
+  (Alıcı → Adres → Satırlar → Özet → Paraşüt taslağı). Kurumsal alıcı:
+  unvan, 10 haneli VKN (kontrol hanesi), vergi dairesi; TCKN alınmaz.
+  `EARSIV_START_AT`'ten önce ödenen sipariş de kesilir (`requestedBy`).
+  Kesinleştirirken VKN Paraşüt'e sorulur (`e_invoice_inboxes`): GİB'de
+  kayıtlıysa **e-Fatura** (TEMELFATURA, bizim e-postamız gitmez), değilse
+  e-Arşiv. Bireysele hep e-Arşiv.
+- Elle kalır: panel siparişi (ÖKC), şahıs şirketi (TCKN'li fatura; yönetici
+  "elle kesilecek" işaretler), cüzdan / ödemesiz / ödül kuponu, kesimden
+  önce iade, listede VKN'si olmayan kargo firması. Kesilmiş faturaya
   dokunulmaz: sonraki iade `invoice_refund` dikkat işareti. Telefon ve TCKN
   Paraşüt'e gitmez; PDF saklanmaz, üye sipariş sayfasından indirir.
 

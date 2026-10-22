@@ -10,10 +10,13 @@ import {
   type EarsivMode,
 } from "./config";
 import {
+  buyerOf,
   contactBody,
+  contactCacheKey,
   contactFingerprint,
   dayLabel,
   eArchiveBody,
+  eInvoiceBody,
   expectedTotalMinor,
   FINAL_STATUSES,
   formatMinor,
@@ -32,6 +35,7 @@ import {
   MAX_EMAIL_ATTEMPTS,
   orderInvoiceLines,
   parasutMinor,
+  pickEInvoiceInbox,
   planKaraokeInvoice,
   planOrderInvoice,
   productBody,
@@ -43,6 +47,8 @@ import {
   totalsAgree,
   type BillingAddress,
   type CarrierEntry,
+  type ContactInput,
+  type InvoiceBuyer,
   type InvoiceLine,
   type InvoicePayment,
   type InvoicePlan,
@@ -230,6 +236,7 @@ async function orderPlan(
     carriers: ctx.carriers,
     billingOverride: billingOverride(row),
     now: ctx.deps.now(),
+    requested: Boolean(row?.requestedBy),
   });
 }
 
@@ -474,6 +481,8 @@ interface Source {
   carrier: CarrierEntry | null;
   /** For the mail: "#10234" or the evening's day. */
   ref: string;
+  /** Who the invoice is cut to: the wizard's company, else the consumer. */
+  buyer: InvoiceBuyer;
 }
 
 async function loadSource(ctx: Ctx, row: InvoiceRow): Promise<Source | null> {
@@ -488,17 +497,21 @@ async function loadSource(ctx: Ctx, row: InvoiceRow): Promise<Source | null> {
     const plan = await orderPlan(ctx, order, payments, coupons, row);
     const delivered =
       order.shippedAt || order.completedAt || order.paidAt || "";
+    const buyer = buyerOf(row);
     return {
       plan,
       lines: orderInvoiceLines(order),
-      email: order.customerEmail,
-      name: order.customerName,
+      // The wizard's invoice address, else the order's.
+      email: row.buyerEmail.trim() || order.customerEmail,
+      // A company's mail greets the company.
+      name: buyer.kind === "company" ? buyer.title : order.customerName,
       orderNo: order.orderNo,
       orderDate: istanbulDay(order.createdAt),
       paymentDate: istanbulDay(order.paidAt || order.createdAt),
       deliveredDay: istanbulDay(delivered),
       carrier: matchCarrier(order.carrier ?? "", ctx.carriers),
       ref: `#${order.orderNo}`,
+      buyer,
     };
   }
   const [booking] = await store.bookingsByIds([row.sourceId]);
@@ -526,6 +539,7 @@ async function loadSource(ctx: Ctx, row: InvoiceRow): Promise<Source | null> {
     deliveredDay: booking.date,
     carrier: null,
     ref: dayLabel(booking.date),
+    buyer: { kind: "consumer" },
   };
 }
 
@@ -636,11 +650,13 @@ async function processRow(
   const recipient = invoiceRecipient(source.email);
 
   // 1. Contact.
-  const contactId = await ensureContact(ctx, client, {
+  const contact: ContactInput = {
     name: source.name,
     email: recipient ?? source.email,
     billing,
-  });
+    buyer: source.buyer,
+  };
+  const contactId = await ensureContact(ctx, client, contact);
   if (contactId !== row.contactId && !row.salesInvoiceId)
     await save({ contactId });
 
@@ -661,6 +677,14 @@ async function processRow(
   if (row.salesInvoiceId) {
     si = await readSalesInvoice(client, row.salesInvoiceId);
     const issueDay = String(si?.data.attributes.issue_date ?? "").slice(0, 10);
+    // The draft was made for another Paraşüt contact: the buyer changed
+    // since (the order's invoice wizard), so it is not this invoice. Only a
+    // contact kept under a key says so (without an e-mail every run makes a
+    // new one).
+    const otherBuyer =
+      Boolean(row.contactId) &&
+      row.contactId !== contactId &&
+      contactCacheKey(contact) !== "";
     if (!si) {
       await save({ salesInvoiceId: "" });
     } else if (activeEDocument(si)) {
@@ -675,13 +699,23 @@ async function processRow(
         source,
         lines,
       );
+    } else if (opts.approved && otherBuyer) {
+      // The person read a draft for another buyer: not formalised.
+      await release({
+        status: "draft",
+        lastError:
+          'Taslak başka bir alıcı için hazırlanmış (alıcı sonradan değişti). "Taslağı yenile" ile yeni alıcıyla hazırla, kontrol et, sonra kesinleştir.',
+        nextAttemptAt: "",
+      });
+      return "draft";
     } else if (
       opts.rebuild ||
+      otherBuyer ||
       (ctx.cfg.mode === "live" && issueDay !== today)
     ) {
-      // "Taslağı yenile", or a draft from an earlier day in live mode: the
-      // e-Arşiv is dated the day it is formalised, so the draft is cut
-      // again today.
+      // "Taslağı yenile", a draft for another buyer, or a draft from an
+      // earlier day in live mode (the e-Arşiv is dated the day it is
+      // formalised): the draft is cut again, today, for this buyer.
       await client.del(
         `sales_invoices/${encodeURIComponent(row.salesInvoiceId)}`,
       );
@@ -757,6 +791,7 @@ async function processRow(
               paymentDate: source.paymentDate,
             }
           : null,
+      buyer: source.buyer,
     });
     si = await client.post<JsonDocument>("sales_invoices", body);
     const id = si?.data?.id;
@@ -823,7 +858,9 @@ async function processRow(
     return "draft";
   }
 
-  // 5. Formalise: the e-Arşiv job.
+  // 5. Formalise: an e-Fatura to a company registered at GİB (its inbox
+  // is asked at every post, never cached: a company can register any day),
+  // the e-Arşiv to anyone else.
   if (!row.jobId) {
     if (row.formalizePosts > 0 && row.jobPostedAt) {
       // A post whose job got lost (answer lost, or job expired before it
@@ -849,23 +886,43 @@ async function processRow(
         return "manual";
       }
     }
+    const inbox =
+      source.buyer.kind === "company"
+        ? pickEInvoiceInbox(
+            (
+              await client.get<JsonList>("e_invoice_inboxes", {
+                "filter[vkn]": source.buyer.taxNumber,
+                "page[size]": 25,
+              })
+            )?.data ?? [],
+          )
+        : null;
     await save({
       jobPostedAt: ctx.nowIso(),
       formalizePosts: row.formalizePosts + 1,
     });
-    const job = await client.post<JsonDocument>(
-      "e_archives",
-      eArchiveBody({
-        salesInvoiceId: row.salesInvoiceId,
-        siteUrl: ctx.deps.siteUrl,
-        paymentDate: source.paymentDate,
-        shipment: shipmentFor(plan.route, source.carrier, source.deliveredDay),
-      }),
-    );
+    const job = inbox
+      ? await client.post<JsonDocument>(
+          "e_invoices",
+          eInvoiceBody({ salesInvoiceId: row.salesInvoiceId, to: inbox }),
+        )
+      : await client.post<JsonDocument>(
+          "e_archives",
+          eArchiveBody({
+            salesInvoiceId: row.salesInvoiceId,
+            siteUrl: ctx.deps.siteUrl,
+            paymentDate: source.paymentDate,
+            shipment: shipmentFor(
+              plan.route,
+              source.carrier,
+              source.deliveredDay,
+            ),
+          }),
+        );
     const jobId = job?.data?.id;
     if (!jobId)
       throw new ParasutError(
-        "Paraşüt e-Arşiv işinin kimliğini döndürmedi.",
+        "Paraşüt resmileştirme işinin kimliğini döndürmedi.",
         0,
         { ambiguous: true },
       );
@@ -905,7 +962,7 @@ async function processRow(
         const errors = Array.isArray(job.data.attributes.errors)
           ? job.data.attributes.errors.map((e) => maskText(String(e)))
           : [];
-        const text = `e-Arşiv işi hata verdi: ${errors.join("; ") || "Paraşüt nedenini söylemedi"}`;
+        const text = `Resmileştirme işi hata verdi: ${errors.join("; ") || "Paraşüt nedenini söylemedi"}`;
         if (ctx.cfg.mode !== "live") {
           // Back to the person who asked for it, with Paraşüt's reason.
           await release({
@@ -1070,6 +1127,11 @@ async function mailRow(
     await release({ status: "issued", nextAttemptAt: "" });
     return "issued";
   }
+  if (row.eDocumentType === "e_invoices") {
+    // GİB delivered the e-Fatura to the buyer's inbox: no mail of ours.
+    await release({ status: "issued", nextAttemptAt: "", emailError: "" });
+    return "issued";
+  }
   const source = known ?? (await loadSource(ctx, row));
   const to = invoiceRecipient(source?.email);
   if (!source || !to) {
@@ -1167,10 +1229,11 @@ async function failRow(
 async function ensureContact(
   ctx: Ctx,
   client: InvoiceClient,
-  c: { name: string; email: string; billing: BillingAddress },
+  c: ContactInput,
 ): Promise<string> {
   const { store } = ctx.deps;
-  const email = c.email.trim().toLowerCase();
+  // The e-mail for a consumer, `vkn:<number>` for a company.
+  const email = contactCacheKey(c);
   const print = contactFingerprint(c);
   const cached = email ? await store.contact(client.companyId, email) : null;
   if (cached) {

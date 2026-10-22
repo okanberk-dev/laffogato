@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import {
@@ -11,10 +12,21 @@ import {
 } from "@/lib/admin/action-result";
 import { safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
+import { setAdminFlash } from "@/lib/admin/flash";
 import { provinceOf } from "@/lib/invoice/address-core";
 import { checkParasutConnection } from "@/lib/invoice/connection";
-import { isValidVkn, type CarrierEntry } from "@/lib/invoice/invoice-core";
-import { INVOICES_PATH, invoiceSourceHref } from "@/lib/invoice/panel-core";
+import {
+  isValidVkn,
+  type CarrierEntry,
+  type InvoiceBuyer,
+} from "@/lib/invoice/invoice-core";
+import { loadOrderInvoiceRequest } from "@/lib/invoice/order-request";
+import { cleanTaxOffice } from "@/lib/invoice/vkn";
+import {
+  INVOICES_PATH,
+  invoiceSourceHref,
+  isEInvoice,
+} from "@/lib/invoice/panel-core";
 import {
   runInvoiceRow,
   runInvoices,
@@ -25,6 +37,7 @@ import {
   getInvoice,
   markInvoiceManual,
   markInvoiceManualDone,
+  requestOrderInvoice,
   retryInvoice,
   setInvoiceBilling,
   writeCarriers,
@@ -130,6 +143,13 @@ function rowAnswer(
   after: Awaited<ReturnType<typeof getInvoice>>,
 ): ActionResult {
   if (!after) return actionError("Fatura kaydı bulunamadı.");
+  if (after.status === "issued" && isEInvoice(after)) {
+    const no = after.invoiceNo ? `: ${after.invoiceNo}` : "";
+    return actionOk(
+      `e-Fatura kesildi${no}. Alıcının GİB kutusuna gitti.`,
+      "success",
+    );
+  }
   if (after.status === "issued") {
     const no = after.invoiceNo ? `: ${after.invoiceNo}` : "";
     return actionOk(
@@ -384,6 +404,166 @@ export async function markInvoiceManualAction(
   return actionOk(
     "Otomatik kesilmeyecek; faturayı Paraşüt'te elle kes, sonra numarasını gir.",
   );
+}
+
+const vknSchema = z
+  .string()
+  .trim()
+  .refine(
+    isValidVkn,
+    "VKN 10 haneli ve geçerli olmalı (vergi levhasından bak). Şahıs şirketinin TCKN'si burada alınmaz.",
+  );
+
+const requestSchema = z
+  .object({
+    orderId: z
+      .string()
+      .trim()
+      .min(1)
+      .max(80)
+      .regex(/^[A-Za-z0-9_-]+$/, "Sipariş geçersiz."),
+    buyerKind: z.enum(["consumer", "company"], "Alıcı türünü seç."),
+    buyerTitle: z.string().trim().max(200, "Unvan en çok 200 karakter."),
+    buyerTaxNumber: z.string().trim().max(20),
+    buyerTaxOffice: z.string().trim().max(100, "Vergi dairesi çok uzun."),
+    buyerEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(254, "E-posta çok uzun.")
+      .refine(
+        (v) => v === "" || z.email().safeParse(v).success,
+        "Geçerli bir e-posta gir ya da boş bırak.",
+      ),
+    city: z
+      .string()
+      .trim()
+      .refine((v) => provinceOf(v) !== null, "İl, 81 ilden biri olmalı."),
+    district: z
+      .string()
+      .trim()
+      .min(2, "İlçeyi yaz.")
+      .max(60, "İlçe çok uzun.")
+      .regex(/^[\p{L} .'-]+$/u, "İlçe yalnız harf içerir."),
+    address: z.string().trim().max(500, "Adres en çok 500 karakter."),
+  })
+  .superRefine((d, ctx) => {
+    if (d.buyerKind !== "company") return;
+    if (d.buyerTitle.length < 3) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["buyerTitle"],
+        message: "Şirketin ticaret unvanını vergi levhasındaki gibi yaz.",
+      });
+    }
+    const vkn = vknSchema.safeParse(d.buyerTaxNumber);
+    if (!vkn.success) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["buyerTaxNumber"],
+        message: vkn.error.issues[0]?.message ?? "VKN geçersiz.",
+      });
+    }
+    if (!/^[\p{L}0-9 .'-]{2,100}$/u.test(d.buyerTaxOffice)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["buyerTaxOffice"],
+        message: "Vergi dairesini yaz (örneğin Tuzla).",
+      });
+    }
+  });
+
+/**
+ * The order's invoice wizard ("Fatura oluştur", /admin/siparisler/[id]/
+ * fatura): the buyer (a final consumer, or a company with its legal title,
+ * VKN and tax office) and the billing address go on the order's invoice
+ * row, then the row is cut now: a draft in Paraşüt in draft mode (a draft
+ * already there is rebuilt for the new buyer), the invoice itself in live
+ * mode. A company registered at GİB gets an e-Fatura when it is
+ * formalised, anyone else an e-Arşiv. Back to the order with the answer.
+ */
+export async function createOrderInvoiceAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("invoices");
+  const field = (k: string) => String(formData.get(k) ?? "");
+  const parsed = requestSchema.safeParse({
+    orderId: field("orderId"),
+    buyerKind: field("buyerKind"),
+    buyerTitle: field("buyerTitle"),
+    buyerTaxNumber: field("buyerTaxNumber").replace(/\s+/g, ""),
+    buyerTaxOffice: cleanTaxOffice(field("buyerTaxOffice")),
+    buyerEmail: field("buyerEmail"),
+    city: field("city"),
+    district: field("district"),
+    address: field("address"),
+  });
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
+  const d = parsed.data;
+  const billing = {
+    city: provinceOf(d.city) ?? d.city,
+    district: d.district,
+    address: d.address,
+  };
+  const view = await loadOrderInvoiceRequest(d.orderId, billing);
+  if (!view) return actionError("Sipariş bulunamadı.");
+  if (view.refusal || !view.plan) {
+    return actionError(view.refusal ?? "Bu siparişe fatura kesilemez.");
+  }
+  const buyer: InvoiceBuyer =
+    d.buyerKind === "company"
+      ? {
+          kind: "company",
+          title: d.buyerTitle,
+          taxNumber: d.buyerTaxNumber,
+          taxOffice: d.buyerTaxOffice,
+        }
+      : { kind: "consumer" };
+  const res = await requestOrderInvoice(
+    view.order.id,
+    view.plan,
+    { buyer, email: d.buyerEmail, billing },
+    session.email,
+  );
+  if (!res.ok) return actionError(res.error);
+  await safeAudit({
+    action: "update",
+    entity: "invoice",
+    entityId: res.row.id,
+    actor: session.email,
+    // The company's identity is a record of the invoice; the e-mail and the
+    // address text stay out of the log.
+    payload: {
+      event: "earsiv_request",
+      source: `order:${view.order.id}`,
+      buyerKind: buyer.kind,
+      ...(buyer.kind === "company"
+        ? { buyerTitle: buyer.title, buyerTaxNumber: buyer.taxNumber }
+        : {}),
+      city: billing.city,
+      district: billing.district,
+    },
+  });
+  const r = await runInvoiceRow({
+    id: res.row.id,
+    action: res.row.status === "draft" ? "rebuild" : "cut",
+    budgetMs: 50_000,
+  });
+  const after = await getInvoice(res.row.id);
+  revalidateFor(res.row);
+  const answer: ActionResult = !r.taken
+    ? actionOk(
+        r.error ??
+          "Kaydedildi; kaydı bu arada başka bir çalıştırma aldı. Birkaç dakika sonra sayfayı yenile.",
+        "warning",
+      )
+    : rowAnswer(r, after);
+  await setAdminFlash(
+    answer.ok ? answer.message : answer.error,
+    answer.ok ? (answer.tone ?? "success") : "warning",
+  );
+  redirect(invoiceSourceHref(res.row));
 }
 
 const billingSchema = z.object({

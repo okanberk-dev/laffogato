@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { ActionButton } from "@/components/admin/action-form";
@@ -19,13 +20,13 @@ import {
   setInvoiceBillingAction,
 } from "@/app/admin/faturalar/actions";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
-import { invoicePdfHref } from "@/lib/invoice/panel-core";
+import { invoicePdfHref, isEInvoice } from "@/lib/invoice/panel-core";
 import { invoicePdfAvailable } from "@/lib/invoice/pdf";
 
 // An invoice row's actions (docs/EARSIV.md "Panel"), as the list's ⋯ menu
 // or as a row of buttons on an order's or a booking's invoice card.
 // Server-safe: every control is a client component with plain props.
-// Nothing here can touch an issued e-Arşiv invoice.
+// Nothing here can touch an issued invoice (e-Arşiv or e-Fatura).
 
 const BUSY = new Set(["working", "formalizing"]);
 
@@ -42,7 +43,8 @@ export function mayMarkManual(row: InvoiceRow | null): boolean {
 function retryable(row: InvoiceRow): boolean {
   return (
     ["manual", "failed"].includes(row.status) ||
-    (row.status === "issued" && !row.emailedAt)
+    // An e-Fatura reached the buyer's GİB inbox: there is no mail of ours.
+    (row.status === "issued" && !row.emailedAt && !isEInvoice(row))
   );
 }
 
@@ -66,6 +68,7 @@ export function InvoiceActions({
   row,
   source,
   parasutUrl = null,
+  wizardHref = null,
   menu = false,
 }: {
   row: InvoiceRow | null;
@@ -73,10 +76,25 @@ export function InvoiceActions({
   source: { kind: InvoiceSourceKind; id: string; label: string };
   /** The company in Paraşüt's web app, for a draft ("Paraşüt'ü aç"). */
   parasutUrl?: string | null;
+  /** The order's invoice wizard, when it may still set the buyer. */
+  wizardHref?: string | null;
   menu?: boolean;
 }) {
   const v = menu ? "menu" : "ghost";
   const items: ReactNode[] = [];
+  if (wizardHref) {
+    items.push(
+      <Link
+        key="wizard"
+        href={wizardHref}
+        className={BUTTON[row?.status === "draft" || menu ? v : "primary"]}
+      >
+        {row?.status === "draft"
+          ? "Alıcıyı / adresi değiştir"
+          : "Fatura oluştur"}
+      </Link>,
+    );
+  }
   if (row?.eDocumentId && invoicePdfAvailable()) {
     items.push(
       <a key="pdf" href={invoicePdfHref(row)} download className={BUTTON[v]}>
@@ -104,7 +122,11 @@ export function InvoiceActions({
         key="formalize"
         action={formalizeInvoiceAction}
         title="Faturayı kesinleştir"
-        description="Paraşüt'teki taslak bugünün tarihiyle e-Arşiv fatura olur ve PDF'i müşteriye e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten, 7 gün içinde iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+        description={
+          row.buyerKind === "company"
+            ? "Paraşüt'teki taslak bugünün tarihiyle kesinleşir: şirket GİB'de e-Fatura kullanıcısıysa e-Fatura olarak kutusuna gider, değilse e-Arşiv olur ve PDF'i e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+            : "Paraşüt'teki taslak bugünün tarihiyle e-Arşiv fatura olur ve PDF'i müşteriye e-postayla gider. Kesinleşen faturayı yalnız Paraşüt'ten, 7 gün içinde iptal edebilirsin. Taslağı Paraşüt'te değiştirdiysen o hâli kesinleşir; tutarı siparişle tutmazsa kesinleştirilmez."
+        }
         trigger="Faturayı kesinleştir"
         triggerVariant={menu ? v : "primary"}
         ariaLabel={`Faturayı kesinleştir: ${row.sourceLabel}`}
@@ -208,8 +230,8 @@ export function InvoiceActions({
         key="manual"
         action={markInvoiceManualAction}
         title="Elle kesilecek"
-        description="Bu fatura otomatik kesilmez. Kurumsal fatura (unvan, vergi dairesi, VKN) e-postayla istendiyse ya da başka bir nedenle Paraşüt'te elle keseceksen işaretle; kestikten sonra numarasını gir."
-        trigger="Elle kesilecek (kurumsal)"
+        description="Bu fatura otomatik kesilmez. Paraşüt'te elle keseceksen işaretle; kestikten sonra numarasını gir. Kurumsal fatura için önce siparişteki “Fatura oluştur”u dene: unvan, VKN ve vergi dairesiyle buradan kesilir."
+        trigger="Elle kesilecek"
         triggerVariant={v}
         submitLabel="İşaretle"
         hidden={{ kind: source.kind, sourceId: source.id, label: source.label }}
@@ -245,7 +267,7 @@ export function InvoiceActions({
         <div className="flex flex-col gap-1.5">
           <Field
             label="Fatura numarası"
-            hint="Paraşüt'te görünen e-Arşiv numarası (örneğin GIB2026000000123)."
+            hint="Paraşüt'te görünen fatura numarası (örneğin GIB2026000000123)."
           >
             <TextInput
               name="invoiceNo"

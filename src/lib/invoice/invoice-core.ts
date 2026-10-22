@@ -20,6 +20,7 @@ import {
 } from "@/lib/utils/kdv";
 
 import { parseDistrictCity, stripPhones } from "./address-core";
+import { isValidVkn } from "./vkn";
 
 // ─── Vocabulary ────────────────────────────────────────────────────────────
 
@@ -141,8 +142,54 @@ export interface InvoiceRow {
   manualCode: string;
   actor: string;
   refundNotedAt: string;
+  /** consumer | company (the order's invoice wizard). */
+  buyerKind: string;
+  buyerTitle: string;
+  buyerTaxNumber: string;
+  buyerTaxOffice: string;
+  /** Where the PDF goes; '' = the order's e-mail. */
+  buyerEmail: string;
+  /** Who asked for it in the wizard; '' = the automation. */
+  requestedBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Who an invoice is cut to: a final consumer (the automation's only buyer,
+ * TCKN placeholder) or a company a person named in the order's invoice
+ * wizard (legal title, 10-digit VKN, tax office). A company registered as
+ * an e-Fatura user gets an e-Fatura; anyone else an e-Arşiv.
+ */
+export type InvoiceBuyer =
+  | { kind: "consumer" }
+  | { kind: "company"; title: string; taxNumber: string; taxOffice: string };
+
+/** The buyer a row carries; anything incomplete is a consumer. */
+export function buyerOf(
+  row:
+    | Pick<
+        InvoiceRow,
+        "buyerKind" | "buyerTitle" | "buyerTaxNumber" | "buyerTaxOffice"
+      >
+    | null
+    | undefined,
+): InvoiceBuyer {
+  if (
+    row &&
+    row.buyerKind === "company" &&
+    row.buyerTitle.trim() &&
+    isValidVkn(row.buyerTaxNumber) &&
+    row.buyerTaxOffice.trim()
+  ) {
+    return {
+      kind: "company",
+      title: row.buyerTitle.trim(),
+      taxNumber: row.buyerTaxNumber,
+      taxOffice: row.buyerTaxOffice.trim(),
+    };
+  }
+  return { kind: "consumer" };
 }
 
 // ─── Fixed rules ───────────────────────────────────────────────────────────
@@ -218,22 +265,7 @@ export function deadlineState(
 
 // ─── Small checks ──────────────────────────────────────────────────────────
 
-/**
- * Whether a VKN is ten digits with the right check digit (GİB's
- * algorithm). Catches a typo in a carrier's number before Paraşüt does.
- */
-export function isValidVkn(vkn: string): boolean {
-  if (!/^\d{10}$/.test(vkn)) return false;
-  const d = vkn.split("").map(Number);
-  let sum = 0;
-  for (let i = 0; i < 9; i += 1) {
-    const tmp = (d[i] + 9 - i) % 10;
-    let r = (tmp * 2 ** (9 - i)) % 9;
-    if (tmp !== 0 && r === 0) r = 9;
-    sum += r;
-  }
-  return (10 - (sum % 10)) % 10 === d[9];
-}
+export { isValidVkn };
 
 /** A carrier as the panel lists it: the name typed when shipping, its title and VKN. */
 export interface CarrierEntry {
@@ -435,6 +467,13 @@ export interface OrderPlanInput {
   /** A billing address a person typed in the panel; wins over the order's text. */
   billingOverride?: BillingAddress | null;
   now: Date;
+  /**
+   * A person asked for this invoice in the order's wizard: EARSIV_START_AT
+   * does not hold it back (an order paid before it was cut by nobody), and
+   * a café order is due now rather than after delivery or three hours. A
+   * parcel still waits for its shipment (the e-Arşiv names the carrier).
+   */
+  requested?: boolean;
 }
 
 function routeOf(order: InvoiceOrder): InvoiceRoute {
@@ -462,7 +501,11 @@ export function orderInScope(order: InvoiceOrder, startAt: string): boolean {
  */
 export function planOrderInvoice(input: OrderPlanInput): InvoicePlan | null {
   const { order, now } = input;
-  if (!orderInScope(order, input.startAt)) return null;
+  if (
+    !orderInScope(order, input.requested ? REQUESTED_START_AT : input.startAt)
+  ) {
+    return null;
+  }
   const route = routeOf(order);
   const label = `#${order.orderNo}`;
   const base = {
@@ -607,14 +650,63 @@ export function planOrderInvoice(input: OrderPlanInput): InvoicePlan | null {
       route === "courier" ? parcelBilling(order.shippingAddress) : null;
     billing = own ?? venueBilling(order.shippingAddress);
   }
+  const dueNow = Boolean(dueAt) && Date.parse(dueAt) <= now.getTime();
   return {
     ...base,
     ...timing,
-    status: dueAt && Date.parse(dueAt) <= now.getTime() ? "due" : "waiting",
+    // Asked for in the wizard: a café order is cut now, not after delivery.
+    ...(input.requested && !dueNow ? { dueAt: now.toISOString() } : {}),
+    status: dueNow || input.requested ? "due" : "waiting",
     reason: "",
     manualCode: "",
     billing,
   };
+}
+
+/** A start before any order: a requested invoice is not held back by it. */
+const REQUESTED_START_AT = "1970-01-01T00:00:00.000Z";
+
+/**
+ * Why the order's invoice wizard cannot be used now, or null when it can.
+ * `plan` is the order's plan as asked for (`requested`), with the billing
+ * address the person typed when there is one: an address the site could
+ * not read is the wizard's own question, not a refusal.
+ */
+export function invoiceWizardRefusal(input: {
+  order: InvoiceOrder;
+  row: Pick<
+    InvoiceRow,
+    "status" | "eDocumentId" | "jobId" | "formalizePosts"
+  > | null;
+  plan: InvoicePlan | null;
+}): string | null {
+  const { order, row, plan } = input;
+  if (order.source === "manual") {
+    return "Panelden girilen (kasada çalınan) siparişin belgesi kasanın fişidir; faturası gerekiyorsa Paraşüt'te elle kesilir.";
+  }
+  if (row?.eDocumentId || row?.status === "issued") {
+    return "Bu siparişin faturası kesildi.";
+  }
+  if (row?.status === "manual_done") {
+    return "Bu siparişin faturası Paraşüt'te elle kesildi.";
+  }
+  if (row?.status === "working" || row?.status === "formalizing") {
+    return "Fatura şu an Paraşüt'te işleniyor. Birkaç dakika sonra sayfayı yenile.";
+  }
+  if (row?.jobId || (row?.formalizePosts ?? 0) > 0) {
+    return "Fatura Paraşüt'te resmileştirilmeye başlandı; alıcı artık değişmez. Paraşüt'te kontrol et.";
+  }
+  if (!plan) return "Sipariş ödenmemiş: önce ödemesi alınmalı.";
+  if (plan.status === "skipped") {
+    return plan.reason || "Bu siparişe fatura kesilmez.";
+  }
+  if (plan.status === "waiting") {
+    return plan.reason || "Faturanın zamanı gelmedi.";
+  }
+  if (plan.status === "manual" && plan.manualCode !== "address") {
+    return `Otomatik kesilemiyor: ${plan.reason}`;
+  }
+  return null;
 }
 
 /** The booking fields a karaoke plan reads. */
@@ -1018,17 +1110,26 @@ export interface ContactInput {
   name: string;
   email: string;
   billing: BillingAddress;
+  /** Absent: a final consumer. */
+  buyer?: InvoiceBuyer;
 }
 
-/** A final consumer as a Paraşüt contact. No phone, no TCKN. */
+/**
+ * The buyer as a Paraşüt contact: a final consumer (no phone, no TCKN: the
+ * placeholder) or a company with its title, VKN and tax office.
+ */
 export function contactAttributes(c: ContactInput): Record<string, unknown> {
+  const company = c.buyer?.kind === "company" ? c.buyer : null;
   return {
-    name: c.name.trim().slice(0, 200) || "Nihai tüketici",
+    name: company
+      ? company.title.slice(0, 200)
+      : c.name.trim().slice(0, 200) || "Nihai tüketici",
     // Only a real address: the placeholder domains and an empty one stay out.
     ...(invoiceRecipient(c.email) ? { email: c.email.trim() } : {}),
-    contact_type: "person",
+    contact_type: company ? "company" : "person",
     account_type: "customer",
-    tax_number: CONSUMER_TAX_NUMBER,
+    tax_number: company ? company.taxNumber : CONSUMER_TAX_NUMBER,
+    ...(company ? { tax_office: company.taxOffice.slice(0, 100) } : {}),
     address: c.billing.address,
     district: c.billing.district,
     city: c.billing.city,
@@ -1049,12 +1150,26 @@ export function contactBody(c: ContactInput, id?: string) {
 
 /** What a contact was last sent, for `invoice_contacts.fingerprint`. */
 export function contactFingerprint(c: ContactInput): string {
+  const company = c.buyer?.kind === "company" ? c.buyer : null;
   return fingerprint([
     c.name.trim(),
     c.billing.city,
     c.billing.district,
     c.billing.address,
+    // A consumer's print stays what it always was (no cached contact moves).
+    ...(company ? [company.title, company.taxNumber, company.taxOffice] : []),
   ]);
+}
+
+/**
+ * The key a Paraşüt contact is cached under (`invoice_contacts.email`): the
+ * e-mail for a consumer, the VKN for a company, so a company's invoice
+ * never lands on the person who asked for it, nor the other way round.
+ */
+export function contactCacheKey(c: ContactInput): string {
+  return c.buyer?.kind === "company"
+    ? `vkn:${c.buyer.taxNumber}`
+    : c.email.trim().toLowerCase();
 }
 
 export function productBody(group: ProductGroup, ratePct: number) {
@@ -1085,6 +1200,8 @@ export interface SalesInvoiceInput {
   lines: ReadonlyArray<InvoiceLine & { productId: string }>;
   /** EARSIV_PAYMENT_ACCOUNT_ID and the payment's day; null: no payment recorded. */
   cashSale: { accountId: number; paymentDate: string } | null;
+  /** Absent: a final consumer. */
+  buyer?: InvoiceBuyer;
 }
 
 export function salesInvoiceBody(s: SalesInvoiceInput) {
@@ -1104,7 +1221,9 @@ export function salesInvoiceBody(s: SalesInvoiceInput) {
         city: s.billing.city,
         district: s.billing.district,
         country: "Türkiye",
-        tax_number: CONSUMER_TAX_NUMBER,
+        ...(s.buyer?.kind === "company"
+          ? { tax_number: s.buyer.taxNumber, tax_office: s.buyer.taxOffice }
+          : { tax_number: CONSUMER_TAX_NUMBER }),
         is_abroad: false,
         ...(s.cashSale
           ? {
@@ -1176,6 +1295,45 @@ export function eArchiveBody(e: EArchiveInput) {
       },
     },
   };
+}
+
+/**
+ * An e-Fatura for a buyer registered at GİB (`e_invoice_inboxes`): the
+ * basic scenario (TEMELFATURA; the buyer cannot reject it as with a
+ * commercial one) to the buyer's inbox. No internet-sale or shipment block:
+ * the e-Fatura has none (Paraşüt spec, EInvoiceFormAttributes).
+ */
+export function eInvoiceBody(e: { salesInvoiceId: string; to: string }) {
+  return {
+    data: {
+      type: "e_invoices",
+      attributes: { scenario: "basic", to: e.to },
+      relationships: {
+        invoice: { data: { id: e.salesInvoiceId, type: "sales_invoices" } },
+      },
+    },
+  };
+}
+
+/**
+ * The buyer's e-Fatura inbox from `GET e_invoice_inboxes?filter[vkn]=`: the
+ * address registered last, or null when the buyer is not an e-Fatura user
+ * (then the invoice is an e-Arşiv).
+ */
+export function pickEInvoiceInbox(
+  inboxes: ReadonlyArray<{ attributes?: Record<string, unknown> }>,
+): string | null {
+  let best: { address: string; at: number } | null = null;
+  for (const inbox of inboxes) {
+    const address = String(inbox.attributes?.e_invoice_address ?? "").trim();
+    if (!address) continue;
+    const at = Date.parse(
+      String(inbox.attributes?.address_registered_at ?? ""),
+    );
+    const when = Number.isFinite(at) ? at : 0;
+    if (!best || when > best.at) best = { address, at: when };
+  }
+  return best?.address ?? null;
 }
 
 /**

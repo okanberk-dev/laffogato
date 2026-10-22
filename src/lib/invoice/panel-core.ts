@@ -7,6 +7,8 @@ import type { AdminTone } from "@/lib/admin/tone";
 import { LEGAL_TAX_RATES } from "@/lib/utils/kdv";
 
 import {
+  buyerOf,
+  CONSUMER_TAX_NUMBER,
   deadlineState,
   INVOICE_ROUTE_LABELS,
   INVOICE_STATUS_LABELS,
@@ -164,7 +166,12 @@ export function invoiceNoteText(row: InvoiceRow): string {
   if (row.status === "draft") {
     return row.lastError || "Taslak hazır: kontrol et, sonra kesinleştir.";
   }
-  if (row.status === "issued" && !row.emailedAt && row.emailError) {
+  if (
+    row.status === "issued" &&
+    !row.emailedAt &&
+    row.emailError &&
+    !isEInvoice(row)
+  ) {
     return `PDF e-postası gitmedi: ${row.emailError}`;
   }
   if (row.status === "manual_done") {
@@ -247,4 +254,64 @@ export function invoiceDraftMarker(
   row: Pick<InvoiceRow, "sourceKind" | "sourceLabel" | "sourceId">,
 ): string {
   return invoiceMarker(row.sourceKind, row.sourceLabel || row.sourceId);
+}
+
+/** Whether the invoice went out as an e-Fatura (to the buyer's GİB inbox). */
+export function isEInvoice(row: Pick<InvoiceRow, "eDocumentType">): boolean {
+  return row.eDocumentType === "e_invoices";
+}
+
+/** The card's and the list's name for the document. */
+export function invoiceKindLabel(
+  row: Pick<InvoiceRow, "eDocumentType" | "eDocumentId" | "buyerKind"> | null,
+): string {
+  if (row && isEInvoice(row)) return "e-Fatura";
+  if (row?.eDocumentId || row?.buyerKind !== "company") return "e-Arşiv fatura";
+  return "Fatura (kurumsal)";
+}
+
+/** Who the invoice is cut to, in one line. */
+export function invoiceBuyerLines(
+  row: Pick<
+    InvoiceRow,
+    "buyerKind" | "buyerTitle" | "buyerTaxNumber" | "buyerTaxOffice"
+  >,
+  consumerName: string,
+): { name: string; tax: string } {
+  const buyer = buyerOf(row);
+  if (buyer.kind === "company") {
+    return {
+      name: buyer.title,
+      tax: `VKN ${buyer.taxNumber} · ${buyer.taxOffice} V.D.`,
+    };
+  }
+  return {
+    name: consumerName || "-",
+    tax: `TCKN ${CONSUMER_TAX_NUMBER} (nihai tüketici)`,
+  };
+}
+
+/** The order's invoice wizard ("Fatura oluştur"). */
+export function invoiceWizardHref(orderId: string): string {
+  return `/admin/siparisler/${encodeURIComponent(orderId)}/fatura`;
+}
+
+/**
+ * Whether the wizard may still set the buyer: nothing formalised, nothing
+ * under way, not cut by hand. Whether the order is billable at all is the
+ * wizard page's question (invoiceWizardRefusal).
+ */
+export function invoiceWizardOpen(
+  row: Pick<
+    InvoiceRow,
+    "status" | "eDocumentId" | "jobId" | "formalizePosts"
+  > | null,
+): boolean {
+  if (!row) return true;
+  return (
+    !row.eDocumentId &&
+    !row.jobId &&
+    row.formalizePosts === 0 &&
+    !["issued", "manual_done", "working", "formalizing"].includes(row.status)
+  );
 }
