@@ -51,6 +51,11 @@ Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
    ve saat olduğuna bak. Tanımsızsa ya da gün okunamıyorsa (`31.02.2026`,
    `23/10/2026`) panel "ayar hatası" gösterir ve hiçbir şey yapılmaz.
 
+   Değişkenler girilip site yeniden yayına alınınca Faturalar → "Bağlantı
+   ve çalışma" kartındaki **"Paraşüt bağlantısını sına"** düğmesine bas:
+   site kendi bilgileriyle bir kez giriş yapıp firmayı okur, fatura kesmez.
+   Ret gelirse hangi bilginin yanlış olduğunu söyler (değer göstermez).
+
    `EARSIV_PAYMENT_ACCOUNT_ID` verilirse fatura "peşin satış" olarak
    tahsilatıyla birlikte kaydedilir (`cash_sale`); verilmezse tahsilat
    Paraşüt'te elle eşleştirilir.
@@ -98,7 +103,13 @@ değişkenlerin **adları**, son çalıştırma). Değerler hiçbir ekranda gör
 - **Günlük cron** (`/api/cron/daily`, 09:00 İstanbul): son 10 günün ödenmiş
   siparişleri ve karaoke rezervasyonları, açık kayıtlar ve vadesi gelen her
   şey, en fazla 120 saniye. Karaoke faturası böylece ertesi sabah kesilir.
-- **Panel:** Faturalar → "Şimdi çalıştır" (50 saniye).
+- **Panel:** Faturalar → "Şimdi çalıştır" (50 saniye), ya da kesim zamanı
+  gelmiş tek bir kayıtta (kafe siparişi teslim edildi, koli kargoya verildi,
+  karaoke saati bitti) sipariş / rezervasyon sayfasındaki fatura kartından
+  **"Faturayı şimdi kes"**: ertesi sabahı beklemeden keser ve sonucu
+  (fatura numarası, taslak, elle kesilecek ya da hata) hemen söyler. Karaoke
+  faturası saat bitmeden kesilmez: rezervasyon o ana kadar iptal ve iade
+  edilebilir.
 
 Her fatura için sıra: müşteri kaydı (e-postaya göre önbellekte; ad ya da adres
 değişince güncellenir) → ürün kodları (`LAF-KAFE-10`, `LAF-MAGAZA-10`,
@@ -186,7 +197,14 @@ numaraları; kargo firmaları; son çalıştırma). PDF saklanmaz.
 ## 7. Muhasebeciye açık sorular
 
 1. **Nihai tüketici yer tutucusu:** TCKN vermeyen tüketiciye `11111111111`
-   ile e-Arşiv kesmek uygun mu (GİB duyurusu, 2018)?
+   ile e-Arşiv kesmek uygun mu (GİB duyurusu, 2018)? TÜRMOB'un Ocak 2026
+   bülteni bunu açıkça kabul ediyor: vergi mükellefi olmayan müşteri TCKN'sini
+   paylaşmak istemezse alıcı numarası alanına `11111111111` girilebilir. Site
+   bu yüzden TCKN sormaz (KVKK m.4 veri en aza indirme). Karaoke ve gel-al /
+   masa faturasında alıcı adresi bilinmediği için il/ilçe hizmetin verildiği
+   yer (Tuzla / İstanbul), sokak boş gider; müşteri adresini verirse kesimden
+   önce "Fatura adresini düzenle" ile yazılır. Muhasebeciye teyit için
+   bırakıldı.
 2. **Köşkün kendi kuryesi:** e-Arşiv `shipment` bloğuna şirketin kendi
    unvanı ve VKN'si yazılıyor; kurye adı ve TCKN gönderilmiyor. Uygun mu?
 3. **Ödül kuponu:** damga/kilometre taşı/davet kuponu faturada indirim mi,

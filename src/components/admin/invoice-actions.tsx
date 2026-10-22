@@ -10,6 +10,7 @@ import {
   FieldError,
 } from "@/components/admin/ui";
 import {
+  cutInvoiceNowAction,
   markInvoiceManualAction,
   markInvoiceManualDoneAction,
   retryInvoiceAction,
@@ -76,6 +77,20 @@ export function InvoiceActions({
       <a key="pdf" href={invoicePdfHref(row)} download className={BUTTON[v]}>
         Faturayı yazdır / indir
       </a>,
+    );
+  }
+  if (row?.status === "due") {
+    items.push(
+      <ActionButton
+        key="cut"
+        action={cutInvoiceNowAction}
+        hidden={{ id: row.id }}
+        variant={v}
+        ariaLabel={`Faturayı şimdi kes: ${row.sourceLabel}`}
+        pendingLabel="Kesiliyor…"
+      >
+        Faturayı şimdi kes
+      </ActionButton>,
     );
   }
   if (row && retryable(row)) {
