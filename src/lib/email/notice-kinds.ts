@@ -7,6 +7,13 @@ export const CANCEL_NOTICE_KIND = "cancelled";
 /** One "ödemen alındı" per order, whichever confirmation gets there first. */
 export const PAID_NOTICE_KIND = "paid";
 
+/**
+ * "Siparişin hazır" for a pickup order, sent only when no phone notification
+ * reached the member (src/lib/push/order-push.ts). Not resendable: an hour
+ * later it is no longer news.
+ */
+export const READY_NOTICE_KIND = "ready";
+
 /** The resend suffix: `paid#resend-2` is the second resend of `paid`. */
 export const RESEND_MARK = "#resend-";
 

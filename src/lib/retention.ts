@@ -271,6 +271,22 @@ export const RETENTION_RULES: readonly RetentionRule[] = [
       "week leaves the rows standing. Same cutoff, on a schedule.",
   },
   {
+    id: "push-devices",
+    table: TABLES.customerDevices,
+    column: "updatedAt",
+    idColumn: "token",
+    days: 180,
+    basis:
+      "Mobil uygulamanın bildirim jetonu: oturum kapatıldığında, üyelik hesabı kapatıldığında veya silindiğinde ya da Apple veya Google jetonun artık bir cihaza ulaşmadığını bildirdiğinde hemen; uygulama jetonu 180 gün boyunca yenilemezse periyodik imhada silinir.",
+    note:
+      "A ceiling, not a minimum: the token goes at once on sign-out, " +
+      "account closure and Expo's DeviceNotRegistered " +
+      "(src/lib/push/*). This rule catches a phone that stopped opening " +
+      "the app (uninstalled without signing out): the app refreshes its " +
+      "token at least weekly while it is used, so 180 days without a " +
+      "refresh is a phone nobody uses for this account any more.",
+  },
+  {
     id: "karaoke-guest-data",
     table: TABLES.karaokeReservations,
     column: "date",

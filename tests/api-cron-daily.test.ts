@@ -18,6 +18,7 @@ const expireUnpaidReservations = vi.fn();
 const runRetention = vi.fn();
 const destructionEnabled = vi.fn();
 const recordShownLegalVersions = vi.fn();
+const checkPushReceipts = vi.fn();
 
 /** What the route sent to the database, and in what order the jobs ran. */
 const db = vi.hoisted(() => ({
@@ -50,6 +51,7 @@ vi.mock("@/lib/retention", async (importOriginal) => ({
     .retentionLogLine,
 }));
 vi.mock("@/lib/legal/store", () => ({ recordShownLegalVersions }));
+vi.mock("@/lib/push/order-push", () => ({ checkPushReceipts }));
 
 const { GET } = await import("@/app/api/cron/daily/route");
 const { KEEPALIVE_RECORD_TIMEOUT_MS } = await import(
@@ -107,6 +109,7 @@ beforeEach(() => {
   resumePendingCampaigns.mockResolvedValue([]);
   runBirthdayGreetings.mockResolvedValue(BIRTHDAY);
   expireUnpaidReservations.mockResolvedValue(0);
+  checkPushReceipts.mockResolvedValue({ read: 0, forgotten: 0, cleared: 0 });
   destructionEnabled.mockReturnValue(false);
   runRetention.mockImplementation(async () => {
     db.order.push("retention");
@@ -155,6 +158,7 @@ describe("/api/cron/daily", () => {
       campaigns: { ok: true, campaigns: [] },
       birthday: { ok: true, ...BIRTHDAY },
       karaoke: { ok: true, expired: 0 },
+      pushReceipts: { ok: true, read: 0, forgotten: 0, cleared: 0 },
       legalVersions: { ok: true, documents: 27 },
       retention: { ok: true, ...RETENTION },
     });

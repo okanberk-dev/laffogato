@@ -17,6 +17,7 @@ import { stampsForOrder } from "@/lib/mobile/loyalty-core";
 import {
   CANCEL_NOTICE_KIND,
   PAID_NOTICE_KIND,
+  READY_NOTICE_KIND,
   RESEND_MARK,
   RESENT_STATUS,
   baseNoticeKind,
@@ -25,6 +26,7 @@ import {
 import {
   sendOrderCancelledEmail,
   sendOrderPaidEmail,
+  sendOrderReadyEmail,
   sendOrderRefundedEmail,
   sendOrderShippedEmail,
   type MailDurableCopy,
@@ -67,7 +69,9 @@ import { MAIL_BUDGET } from "./budget";
  * Only shop orders are due any of this. A cafe order - gel-al, or the
  * köşk's own courier - is followed on the phone and at the counter; it has
  * no parcel, and the distance-selling texts that promise these mails are
- * about goods sent by cargo.
+ * about goods sent by cargo. The one exception is "siparişin hazır" for a
+ * pickup order (`notifyOrderReady`), and only when the phone could not be
+ * told (src/lib/push/order-push.ts).
  *
  * Nothing here throws. Every caller is a write that has already happened
  * (a status moved, money moved), and a mail that could not be sent must
@@ -146,7 +150,7 @@ export function refundNoticeKind(refundId: string): string {
   return `refund:${refundId}`;
 }
 
-export { CANCEL_NOTICE_KIND, PAID_NOTICE_KIND };
+export { CANCEL_NOTICE_KIND, PAID_NOTICE_KIND, READY_NOTICE_KIND };
 
 /** A 'sending' claim older than this belongs to a request that died. */
 const STALE_CLAIM_MS = 15 * 60_000;
@@ -318,6 +322,29 @@ export async function notifyOrderShipped(
         carrier: order.carrier ?? "",
         trackingUrl: order.trackingUrl ?? "",
       },
+      key,
+    ),
+  );
+}
+
+/**
+ * "Siparişin hazır", once per order: a café pickup order at the counter
+ * whose member got no phone notification (src/lib/push/order-push.ts
+ * decides that, and the member's "Sipariş durumu" switch). The one café
+ * mail besides "ödemen alındı": the member is waiting for this one.
+ */
+export async function notifyOrderReady(
+  order: AdminOrder,
+): Promise<OrderNoticeOutcome> {
+  if (orderKind(order) !== "cafe" || orderFulfillment(order) !== "pickup") {
+    return "not_due";
+  }
+  if (order.status !== "shipped") return "not_due";
+  const to = orderNoticeRecipient(order);
+  if (to === null) return "not_due";
+  return once(order, READY_NOTICE_KIND, (key) =>
+    sendOrderReadyEmail(
+      { to, customerName: order.customerName ?? "", orderNo: order.orderNo },
       key,
     ),
   );

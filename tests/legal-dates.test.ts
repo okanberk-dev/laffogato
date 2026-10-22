@@ -47,12 +47,13 @@ function dayNumber(label: string): number {
 
 describe("legal document dates", () => {
   it("the revision is the day the set was last rewritten", () => {
-    // 20 Ekim 2026: the ÖBF and the MSS say the invoice is an e-Arşiv
-    // invoice sent by e-mail, the İşlem Rehberi joins the set
-    // (LEGAL-REDLINES §24). The consent version moved with the checkout
-    // documents, the set with it. (19 Ekim 2026: the KDV rule, §16.4; 18
-    // Ekim 2026: the distance-sales rules of 2026.)
-    expect(LEGAL_UPDATED).toBe("20 Ekim 2026");
+    // 22 Ekim 2026: the ÖBF and the MSS say the app gets order-status push
+    // notifications once the member allows them, and who carries them
+    // (LEGAL-REDLINES §30). The consent version moved with the checkout
+    // documents, the set with it. (20 Ekim 2026: the e-Arşiv invoice by
+    // e-mail, §24; 19 Ekim 2026: the KDV rule, §16.4; 18 Ekim 2026: the
+    // distance-sales rules of 2026.)
+    expect(LEGAL_UPDATED).toBe("22 Ekim 2026");
     // The karaoke terms carry their own label: 21 Ekim 2026, §8 makes good
     // a late köşk cancel and §9 refunds a share within 14 days
     // (LEGAL-REDLINES §26). (20 Ekim 2026: §12 says how the advance is
@@ -61,40 +62,19 @@ describe("legal document dates", () => {
   });
 
   it("a document that changes after the revision carries its own day", () => {
-    // Empty on 16, 18 and 20 Ekim 2026: every coded document carries the
-    // set's day. On the 20th the invoice wording moved the checkout
+    // Empty on 16, 18, 20 and 22 Ekim 2026: every coded document carries
+    // the set's day. On the 22nd the push wording moved the checkout
     // documents, and with them the revision, past the ten documents that
-    // carried 19 Ekim 2026 of their own (the allergen §7, the transfers
-    // abroad, the karaoke rules in one source; LEGAL-REDLINES §15.6, §17,
-    // §21): a date before the revision is never printed, so they read the
-    // set's day again. Add a document here, with its date, when only it
-    // changes later.
+    // carried 21 Ekim 2026 of their own (the karaoke make-good, the durable
+    // copy, the karaoke periods, the till code, the admin cookies;
+    // LEGAL-REDLINES §25 to §29): a date before the revision is never
+    // printed, so they read the set's day again (as on the 20th, past the
+    // ten that carried 19 Ekim 2026). Add a document here, with its date,
+    // when only it changes later.
     const expected: Record<string, string> = {
       // Versioned on its own (KARAOKE_LEGAL_UPDATED, its own consent record):
       // the shop set moving on does not re-date the karaoke contract.
       "karaoke-odasi-rezervasyon": KARAOKE_LEGAL_UPDATED,
-      // 21 Ekim 2026: the karaoke make-good named in the privacy texts and
-      // its bank details in the retention table (LEGAL-REDLINES §26).
-      "gizlilik-politikasi": "21 Ekim 2026",
-      "kvkk-aydinlatma-metni": "21 Ekim 2026",
-      "veri-saklama-ve-imha-politikasi": "21 Ekim 2026",
-      // The make-good's transfer is the third bank-transfer case (§14).
-      "odeme-kosullari": "21 Ekim 2026",
-      // 21 Ekim 2026: §8 says the durable copy that shipped (the confirmed
-      // text attached, downloadable, kept by hash; LEGAL-REDLINES §25). No
-      // checkout document changed, so LEGAL_UPDATED did not move.
-      "islem-rehberi": "21 Ekim 2026",
-      // 21 Ekim 2026 as well, the same day: the karaoke periods, the event
-      // row and the commercial correspondence row (Veri Saklama, above;
-      // LEGAL-REDLINES §27); the till stamps only the member's own code
-      // (Gizlilik and KVKK above, and these; ASK-LOYALTY, §28).
-      "uyelik-sozlesmesi": "21 Ekim 2026",
-      "odul-programi": "21 Ekim 2026",
-      "mobil-uygulama-kosullari": "21 Ekim 2026",
-      "kafe-hizmet-kosullari": "21 Ekim 2026",
-      // 21 Ekim 2026: the admin cookies' names and path (/admin) in the
-      // necessary-cookie inventory (docs/AUDIT.md §13).
-      "cerez-politikasi": "21 Ekim 2026",
     };
     for (const [slug, date] of Object.entries(expected)) {
       expect(findLegalDoc(slug)?.updatedAt, slug).toBe(date);

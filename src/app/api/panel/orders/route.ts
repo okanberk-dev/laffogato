@@ -27,8 +27,8 @@ import {
  * missing or stale signature: 401, nothing more said. The answer is the
  * whitelisted shape of `toPanelOrder`: the lines to make, where they go,
  * the planned time and a first name; never a surname, e-mail, phone,
- * address, courier note or payment reference. Read only: the panel moves
- * no order here.
+ * address, courier note or payment reference. Read only: the bar screen's
+ * buttons move an order through `POST /api/panel/orders/stage`.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
  */

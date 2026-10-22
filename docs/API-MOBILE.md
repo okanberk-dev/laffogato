@@ -1237,6 +1237,12 @@ kutuya "Teslim edildi" olarak düşer.
 > bilinen an (`paidAt`/`shippedAt`/`createdAt`). Duyuru `kind: campaign` → `campaign`,
 > diğerleri → `announcement`.
 
+**Telefon bildirimi (22 Eki 2026, yalnız ekleme).** Bu liste değişmedi; ona ek
+olarak sunucu artık bazı aşamaları üyenin telefonuna da gönderir (§23). Metin
+listedekiyle aynıdır (`src/lib/mobile/order-stage-text.ts` ortak kaynak);
+`notificationPrefs.orderUpdates === false` telefon bildirimini kapatır, bu
+listeyi kapatmaz.
+
 ### Karaoke kararları ve kilometre taşı hediyeleri (23 Eyl 2026, yalnız ekleme)
 
 Kutu iki kaynaktan daha türetilir. Önceden personel bir karaoke saatini
@@ -2214,3 +2220,119 @@ yazılmaz. Ödeme onayını beklemez ve bozamaz (ayrıntı `docs/EMAIL-RESEND.md
   (sayaç), `src/lib/admin/cafe-tables{,-core}.ts`, panel `src/app/admin/masalar/`,
   web sayfası `src/app/masa/[code]/page.tsx`; `tests/mobile-tables-route.test.ts`,
   `tests/cafe-tables-core.test.ts`, `tests/mobile-order-table*.test.ts` tutar.
+
+## 23. Telefon bildirimi - `POST /devices` · `DELETE /devices` (kimlik) (22 Eki 2026, yalnız ekleme)
+
+Uygulama, üye bildirime izin verince Expo push jetonunu sunucuya bildirir;
+sunucu üyenin siparişi ilerleyince o telefona **işlemsel** bir bildirim
+gönderir (Expo Push Service → APNs / FCM). Pazarlama içerikli push **yoktur**
+(6563; açık rıza metni R8). İzin ilk açılışta istenmez: sipariş verildikten
+sonra ("Siparişin hazır olunca haber verelim mi?") ve üyenin dokunuşuyla.
+
+### `POST /devices`
+
+```jsonc
+// İstek (Authorization: Bearer <Supabase JWT>)
+{ "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" }
+// 200 · Cache-Control: private, no-store
+{ "token": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", "registered": true }
+```
+
+- `token` `getExpoPushTokenAsync({ projectId })`'nin döndürdüğü değerdir
+  (`ExponentPushToken[...]` ya da `ExpoPushToken[...]`, en çok 220 karakter).
+  Bilinmeyen alanlar **yok sayılır** (reddedilmez): ileride `appVersion` gibi
+  bir alan eski sunucuyu bozmasın.
+- Jeton imzalı üyeye bağlanır; başka bir üyedeyse ona **geçer** (telefon el
+  değiştirdi). Platform istekten (user-agent) okunur, gövdeden alınmaz.
+- Üye başına en çok **10** cihaz; fazlasında en eski yenilenen düşer.
+- Uygulama bunu izin verildiğinde, oturum açılınca ve kullanıldıkça haftada
+  bir yeniler; 180 gün yenilenmeyen jeton silinir (Veri Saklama ve İmha
+  Politikası).
+
+| Hata | Ne zaman |
+| --- | --- |
+| **400** `invalid_request` | `token` bir Expo push jetonu değil ("Bildirim jetonu geçersiz.") ya da gövde JSON değil (`invalid_json`) |
+| **401** `unauthorized` · **403** `account_disabled` / `email_unverified` | §0'daki gibi |
+| **429** `rate_limited` + `Retry-After` | 5 dakikada 20 çağrı (üye başına, `auth_attempts` amaç `push-device`; kayıt ve silme ortak) |
+| **503** `unavailable` | Veritabanına ulaşılamadı |
+
+### `DELETE /devices?token=<urlencoded jeton>`
+
+```jsonc
+// 200 · Cache-Control: private, no-store
+{ "removed": true }   // false: bu üyenin böyle bir jetonu yoktu (hata değil)
+```
+
+Uygulama bunu **oturumu kapatmadan önce** ve hesabı silmeden önce çağırır
+(en iyi çaba; başarısızlık çıkışı bekletmez). Başka üyenin jetonuna dokunmaz.
+Hatalar `POST` ile aynı (`token` eksik ya da biçimsizse 400 `invalid_request`).
+Hesap kapatılınca (`DELETE /me`, panel) sunucu üyenin bütün cihazlarını kendisi
+siler.
+
+### Ne zaman, ne gönderilir
+
+| Hareket | Sipariş | Başlık | Metin (örnek) |
+| --- | --- | --- | --- |
+| → `preparing` | kafe (gel-al, masa, kurye) | Siparişin hazırlanıyor | #10234 numaralı siparişin hazırlanıyor. |
+| → `shipped` | kafe gel-al | Siparişin hazır | #10234 numaralı siparişin hazır, tezgâhta seni bekliyor. |
+| → `shipped` | kafe kurye | Siparişin yolda | #10234 numaralı siparişin kuryede, yola çıktı. |
+| → `shipped` | mağaza kolisi | Siparişin kargoda | #10234 numaralı siparişin kargoya verildi. |
+| → `cancelled` | ödenmiş her sipariş | Siparişin iptal edildi | #10234 numaralı siparişin iptal edildi. Ayrıntılar sipariş sayfasında. |
+
+Gönderilmeyenler: ödeme onayı (e-postayla gelir, üye o an ödeme ekranındadır),
+masaya getirilen sipariş (üye masadadır), `completed`, ödenmemiş siparişin
+iptali ve kasada elle girilen sipariş (`source: manual`). Metin listedeki
+(§8) cümlenin aynısıdır; **ad, soyad, adres, ürün ya da tutar taşımaz**.
+
+Her (sipariş, tür) **bir kez** gider (`order_push_notices`). Hareketi kim
+yaparsa yapsın (site paneli, köşkün bar ekranı, kasa) aynı kural işler ve
+bildirim yanıttan sonra (`after()`) gönderilir: gönderilemeyen bildirim
+siparişi bozmaz, geciktirmez.
+
+**Kime:** siparişin e-postasına bağlı üyenin bütün cihazlarına, üyenin
+`notificationPrefs.orderUpdates` anahtarı açıkken (§4). Anahtar kapalıysa ne
+bildirim ne aşağıdaki e-posta gider. Misafir siparişinin cihazı yoktur.
+
+**E-posta yedeği.** Gel-al sipariş hazır olduğunda üyenin hiçbir telefonuna
+bildirim ulaştırılamadıysa (izin yok, eski uygulama, Expo reddetti) siparişin
+adresine bir kez "Siparişin hazır" e-postası gider (`siparis-hazir`,
+işlemsel; anahtar kapalıysa gitmez).
+
+### Mesaj (uygulamanın okuduğu alanlar)
+
+```jsonc
+{
+  "to": "ExponentPushToken[…]",
+  "title": "Siparişin hazır",
+  "body": "#10234 numaralı siparişin hazır, tezgâhta seni bekliyor.",
+  "data": { "type": "order", "orderId": "ord-0042", "url": "/siparis/ord-0042/takip", "kind": "ready" },
+  "channelId": "orders",      // Android: uygulama bu kanalı jeton almadan önce kurar
+  "sound": "default",
+  "priority": "high",
+  "ttl": 7200,                // hazır / yolda 2 saat, hazırlanıyor 1 saat, kargo ve iptal 1 gün
+  "collapseId": "order-ord-0042",
+  "tag": "order-ord-0042"     // yeni aşama eskisinin yerine geçer
+}
+```
+
+`data.kind` ∈ `preparing` · `ready` · `on_the_way` · `shipped` · `cancelled`
+(ileride yenisi gelebilir; bilmediğini yalnız göster). Dokunuşta uygulama
+`data.url`'yi **yalnız** `/siparis/<id>/takip` biçimindeyse açar (id
+`[A-Za-z0-9_-]{1,64}`); başka değer yok sayılır.
+
+**Teslim kanıtı.** Sunucu Expo biletlerini saklar; günlük iş (`/api/cron/daily`)
+15 dakika - 24 saat arasındaki makbuzları okur, `DeviceNotRegistered` diyen
+jetonu siler ve saklanan jetonları temizler.
+
+> **Uygulama notu (§23).** `projectId` `Constants.easConfig?.projectId ??
+> Constants.expoConfig?.extra?.eas?.projectId`'den okunur; yoksa (eas init
+> yapılmamış), web'de ya da Expo Go'da kayıt yapılmaz ve izin teklifi
+> gösterilmez. Android'de `orders` kanalı (yüksek önem, sesli) izinden ve
+> jetondan önce kurulur. Ön plandayken sipariş bildirimi sesli gösterilir ve
+> sipariş sorguları geçersiz kılınır; hatırlatmalar sessiz kalır.
+
+- Site: `src/app/api/mobile/v1/devices/route.ts`, `src/lib/push/{order-push-core,order-push,devices,expo}.ts`,
+  `src/lib/mobile/order-stage-text.ts`, migration `20261022170000_push_devices.sql`;
+  `tests/push-order-core.test.ts`, `tests/mobile-devices-route.test.ts`,
+  `tests/db-integration-push.test.ts` tutar. Ortam: isteğe bağlı
+  `EXPO_ACCESS_TOKEN` (Expo "enhanced push security" açılırsa zorunlu).

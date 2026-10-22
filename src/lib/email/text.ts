@@ -224,6 +224,23 @@ da açılmış bant görürseniz teslim almadan tutanak tutturun ve bizi arayın
 
 ${SIGNATURE}`,
 
+  // A pickup order ready at the counter, when no phone notification reached
+  // any of the member's devices (src/lib/push/order-push.ts).
+  "siparis-hazir": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
+
+#[SIPARIS_NO] numaralı gel-al siparişin hazır. Köşke geldiğinde tezgâhta
+sipariş numaranı söylemen yeterli.
+
+Siparişin: [SIPARIS_URL]
+
+Bu e-posta, uygulamada telefon bildirimine izin vermediğin ya da bildirim
+telefonuna ulaşamadığı için gönderildi. Bu e-postayı ve telefon
+bildirimlerini, uygulamadaki Bildirimler ekranında ya da hesabındaki
+bildirim tercihlerinde "Sipariş durumu" anahtarıyla kapatabilirsin. Sorun
+olursa bizi ara: [TELEFON]
+
+${SIGNATURE}`,
+
   "siparis-iptal": `Merhaba<!--IF:AD--> [AD]<!--/IF:AD-->,
 
 #[SIPARIS_NO] numaralı siparişiniz iptal edildi.

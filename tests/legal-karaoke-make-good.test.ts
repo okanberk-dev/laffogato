@@ -23,7 +23,8 @@ vi.mock("@/lib/admin/store", () => ({
 
 const { findLegalDoc } = await import("@/lib/legal/documents");
 const { KARAOKE_ROOM_DOC } = await import("@/lib/legal/content-karaoke");
-const { KARAOKE_LEGAL_UPDATED } = await import("@/lib/legal/meta");
+const { KARAOKE_LEGAL_UPDATED, LEGAL_UPDATED } =
+  await import("@/lib/legal/meta");
 const send = await import("@/lib/email/send");
 const time = await import("@/lib/mobile/karaoke-time");
 
@@ -224,7 +225,9 @@ describe("the texts that list the cases and the purposes name the make-good (rev
     expect(section(doc("odeme-kosullari"), "14").paragraphs?.[1]).toBe(
       "Banka hesabına transfer yalnızca üç hâlde, sizin adınıza kayıtlı banka hesabına ödeme yapmak için Satıcı tarafından kullanılır: 22. maddede açıklanan istisnai hâlde iade tutarının ödenmesi, iadeyi başka bir kargo firmasıyla gönderdiğinizde belgelediğiniz gönderim bedelinin ödenmesi ve karaoke odası rezervasyonunuzu ücretsiz iptal süresinin bitmesinden sonra iptal etmek zorunda kalırsak, Karaoke Odası Ön Bilgilendirme Formu ve Mesafeli Hizmet Sözleşmesi'nin 8. maddesindeki telafinin, ödemeyi seçmeniz hâlinde, ödenmesi. Karta yapılan iade karttan tahsil edilen tutarı aşamadığından gönderim bedeli karta iade edilmez; belgenin Satıcı'ya ulaşmasından itibaren 14 (on dört) gün içinde, ürün bedelinin iadesinden ayrı olarak ödenir. Karaoke telafisi, banka hesap bilginizi e-postayla bildirmenizden itibaren en geç 14 (on dört) gün içinde ödenir. Bu hâllerde bildirdiğiniz hesap sahibinin adı ve IBAN bilgisi yalnızca bu ödemenin yapılması amacıyla işlenir; üçüncü kişilere ait hesaplara ödeme yapılmaz.",
     );
-    expect(doc("odeme-kosullari").updatedAt).toBe("21 Ekim 2026");
+    // 21 Ekim 2026 when the make-good came in; since 22 Ekim 2026 the set's
+    // day (the push wording moved LEGAL_UPDATED, LEGAL-REDLINES §30).
+    expect(doc("odeme-kosullari").updatedAt).toBe(LEGAL_UPDATED);
   });
 
   it("KVKK Aydınlatma §7 and §8 and Gizlilik §5 name the make-good as a purpose", () => {

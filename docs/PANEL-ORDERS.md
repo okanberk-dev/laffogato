@@ -5,18 +5,22 @@ açık duran bir ekrandır: karaoke odasını sayar ve yeni rezervasyonda çalar
 (`docs/PANEL-KARAOKE.md`). Operatörün isteği (22 Eki 2026): _"laffogato
 admin ile lafmaliyette paralel çalışabilecek neler varsa ... beraber
 çalışsın"_. Uygulamadan (ve web'den) gelen, ödenmiş kafe siparişi de bu
-ekrana düşer: barista siparişi orada görür, ekran çalar, sipariş burada
-ilerletilince ekrandan kalkar.
+ekrana düşer: barista siparişi orada görür, ekran çalar ve siparişi tek
+dokunuşla ilerletir ("Hazırlanıyor", "Hazır"; operatör, 22 Eki 2026:
+_"bar ekranından tek dokunuşla Hazır"_).
 
-## Kural: salt okuma
+## Kural: sipariş makinesi sitede kalır
 
 - Sipariş verisinin tek kaynağı sitedir (`orders`). Panel kopya tutmaz,
   her çekmede açık siparişlerin listesini baştan alır.
-- Panel siparişi **ilerletmez**: "Hazırlanıyor", "Teslime hazır",
-  "Tamamlandı" ve iade bu panelde (`/admin/siparisler/<id>`) yapılır; ekran
-  her siparişte oraya giden bağlantıyı (`path`) taşır. Geri yazma bilerek
-  yok: sipariş makinesi ödeme, stok, sadakat ve e-postayı birlikte yürütür,
-  ikinci bir yazan onu bölerdi.
+- Panel siparişi **kendisi yazmaz**. Bar ekranındaki düğme siteye ne
+  dokunulduğunu söyler (`POST /api/panel/orders/stage`, aşağıda "Aşama");
+  site hareketi kendi `transitionOrder`'ıyla yapar: stok, sadakat,
+  e-postalar ve üyenin telefon bildirimi (`docs/API-MOBILE.md` §23) bu
+  paneldeki "Hazırlanıyor" / "Teslime hazır" ile birebir aynı yürür. Yalnız
+  üç ileri adım vardır; iptal, iade ve geri alma yalnız bu panelde
+  (`/admin/siparisler/<id>`) yapılır, ekran her siparişte oraya giden
+  bağlantıyı (`path`) taşır.
 - Kasada (ModPOS) bu siparişler **çalınmaz**: parası sanal POS'tan
   (PayNkolay) ya da cüzdandan alınmıştır. Kasanın cirosu ile sitenin cirosu
   ayrı kalır; panel ikisini `docs/PANEL-SALES.md` ile toplar.
@@ -147,3 +151,40 @@ yöneticininkinde kapalı; bildirimde müşterinin adı yazmaz.
 Panel listeyi `integration_state`'te tek bir kopya olarak tutar (her
 çekmede üzerine yazılır, geçmiş yok, `totalMinor` saklanmaz). Panel tarafı:
 `RiosenBeq/lafmaliyet` `docs/SITE-SIPARIS.md`.
+
+## Aşama: `POST /api/panel/orders/stage` (22 Eki 2026)
+
+Bar ekranının tek dokunuşluk düğmeleri. İmza ve anahtar yukarıdakiyle aynı;
+gövde en çok 1 KB, katı JSON:
+
+```json
+{ "id": "ord-0042", "action": "ready", "from": "new", "actor": "Selin" }
+```
+
+| `action`    | İzinli `from`        | Sipariş hareketi           | Düğme                                                         |
+| ----------- | -------------------- | -------------------------- | ------------------------------------------------------------- |
+| `preparing` | `new`                | `paid` → `preparing`       | Hazırlanıyor                                                  |
+| `ready`     | `new`, `preparing`   | → `shipped`                | gel-al "Hazır", masa "Masaya götürüldü", kurye "Kuryeye verildi" |
+| `delivered` | `ready` (yalnız gel-al) | `shipped` → `completed` | Teslim edildi                                                 |
+
+- `from`, kartın gösterdiği aşamadır; hareket ona **koşulludur** (siparişin
+  durumu hâlâ o aşamanın durumu olmalı). Eski ekrandan gelen dokunuş, ya da
+  imzanın beş dakikası içinde tekrar gönderilen aynı istek, siparişi ikinci
+  kez ilerletmez: 409 alır.
+- `actor` panel kullanıcısının adıdır (1-80 karakter); sitenin olay
+  kaydına ve sipariş zaman çizelgesine "Yönetim paneli · Selin" olarak düşer
+  (`panel:Selin`).
+
+| Yanıt                                  | Ne zaman                                                                 |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| 200 `{"order": …}`                     | Hareket yapıldı; `order` ekranın biçiminde (`toPanelOrder`), ekrandan kalktıysa `null` |
+| 409 `{"error":"stale","order": …}`     | Sipariş bu arada değişti ya da dokunuş aşamasına uymuyor; `order` şimdiki hâli |
+| 404 `{"error":"not_found"}`            | Böyle sipariş yok, ya da bar ekranının siparişi değil (mağaza, elle girilen) |
+| 400 `{"error":"invalid","field"}`      | Gövde okunamadı ya da bir alan geçersiz                                   |
+| 401 · 413 · 503                        | Diğer panel uçlarıyla aynı                                               |
+
+Panele bu uçtan yeni kişisel veri gitmez: yanıt, okuma ucunun beyaz
+listesidir (yalnız ad). Site: `src/app/api/panel/orders/stage/route.ts`,
+`src/lib/panel/orders-stage-core.ts`; `tests/panel-orders-stage.test.ts`
+tutar. Panel: `src/server/actions/site-orders.ts`,
+`src/lib/site-orders/stage{,-request}.ts` (lafmaliyet `docs/SITE-SIPARIS.md`).

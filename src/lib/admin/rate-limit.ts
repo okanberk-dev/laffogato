@@ -47,10 +47,17 @@ export type AuthPurpose =
   | "card-delete"
   | "karaoke-hold"
   | "karaoke-guest-ip"
-  | "account-deletion";
+  | "account-deletion"
+  | "push-device";
 
 /** Failures allowed before a lockout, per purpose. */
 const MAX_FAILS_BY_PURPOSE: Partial<Record<AuthPurpose, number>> = {
+  // The app registering or forgetting its push token (POST and DELETE
+  // /api/mobile/v1/devices). Every call counts, keyed on the member: the app
+  // calls it at sign-in, after a permission prompt, at sign-out and about
+  // weekly, so twenty in five minutes is far past honest use and a loop
+  // churning rows stops quickly.
+  "push-device": 20,
   // Guessing a promo code is not guessing a password: a real customer
   // mistyping their own coupon must not be locked out of checkout, while
   // scripted enumeration still hits a wall quickly.

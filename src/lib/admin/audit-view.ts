@@ -106,6 +106,7 @@ export const RETENTION_RULE_LABELS: Record<string, string> = {
   "fal-reports": "fA'L yorum bildirimleri",
   "feature-consents": "Özellik açık rızaları",
   "counter-tokens": "Kasa kodları",
+  "push-devices": "Uygulama bildirim jetonları",
   "karaoke-guest-data": "Karaoke misafir ve iletişim bilgisi",
   "karaoke-reservations": "Karaoke rezervasyonları",
 };
