@@ -47,7 +47,8 @@ import { firstParam } from "@/lib/admin/list-params";
 import { canAccess } from "@/lib/admin/roles";
 import { getSettings } from "@/lib/admin/store";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
-import { earsivConfigStatus } from "@/lib/invoice/config";
+import { earsivConfigStatus, parasutAppUrl } from "@/lib/invoice/config";
+import { invoiceDraftLines } from "@/lib/invoice/panel-core";
 import { getInvoiceForSource } from "@/lib/invoice/store";
 import { KARAOKE_ROOM_DOC } from "@/lib/legal/content-karaoke";
 import {
@@ -667,6 +668,13 @@ export default async function KaraokeReservationPage({
             canManage={canAccess("invoices", session.role)}
             unread={invoiceRead.failed}
             now={now}
+            draftLines={
+              invoiceRead.row?.status === "draft"
+                ? invoiceDraftLines(invoiceRead.row, { booking: r })
+                : null
+            }
+            buyerName={r.customerName}
+            parasutUrl={parasutAppUrl(process.env)}
           />
         ) : null}
 

@@ -82,6 +82,10 @@ import {
  * total; a mismatch deletes the draft and hands the row to a person) →
  * in `draft` mode, stop → e-Arşiv job → its result → the e-document's
  * number → the PDF mailed to the buyer.
+ *
+ * In `draft` mode a person formalises each draft from the panel after
+ * reading it ("Faturayı kesinleştir", runInvoiceRow): the same steps from
+ * the stored draft on, for that row only.
  */
 
 /** What a run reads and calls, injectable for tests. */
@@ -532,14 +536,23 @@ function resumeStatus(row: InvoiceRow): InvoiceRow["status"] {
   return "due";
 }
 
-type Step =
+export type Step =
   "issued" | "draft" | "manual" | "waiting" | "failed" | "skipped" | "pending";
+
+/** What a person's button asks of one row (runInvoiceRow). */
+interface RowOpts {
+  /** "Faturayı kesinleştir": formalise the draft the person has read. */
+  approved?: boolean;
+  /** "Taslağı yenile": the draft goes and is prepared again, dated today. */
+  rebuild?: boolean;
+}
 
 async function processRow(
   ctx: Ctx,
   client: InvoiceClient,
   held: InvoiceRow,
   summary: RunSummary,
+  opts: RowOpts = {},
 ): Promise<Step> {
   const { store } = ctx.deps;
   let row = { ...held };
@@ -642,9 +655,12 @@ async function processRow(
   // 3. Sales invoice.
   const today = istanbulDay(ctx.deps.now());
   const marker = invoiceMarker(row.sourceKind, plan.sourceLabel);
+  // Whether this run made the draft (or found the one its lost create made).
+  let ours = false;
   let si: JsonDocument | null = null;
   if (row.salesInvoiceId) {
     si = await readSalesInvoice(client, row.salesInvoiceId);
+    const issueDay = String(si?.data.attributes.issue_date ?? "").slice(0, 10);
     if (!si) {
       await save({ salesInvoiceId: "" });
     } else if (activeEDocument(si)) {
@@ -660,16 +676,26 @@ async function processRow(
         lines,
       );
     } else if (
-      ctx.cfg.mode === "live" &&
-      String(si.data.attributes.issue_date ?? "").slice(0, 10) !== today
+      opts.rebuild ||
+      (ctx.cfg.mode === "live" && issueDay !== today)
     ) {
-      // A draft from an earlier day: the e-Arşiv is dated the day it is
-      // formalised, so the draft is cut again today.
+      // "Taslağı yenile", or a draft from an earlier day in live mode: the
+      // e-Arşiv is dated the day it is formalised, so the draft is cut
+      // again today.
       await client.del(
         `sales_invoices/${encodeURIComponent(row.salesInvoiceId)}`,
       );
       await save({ salesInvoiceId: "" });
       si = null;
+    } else if (opts.approved && issueDay !== today) {
+      // The person read a draft dated another day. It is not recut behind
+      // their back (they may have corrected it in Paraşüt): they decide.
+      await release({
+        status: "draft",
+        lastError: `Taslak ${issueDay ? dayLabel(issueDay) : "başka bir gün"} tarihli; e-Arşiv bugünün tarihiyle kesilir. "Taslağı yenile" ile bugüne al ya da tarihi Paraşüt'te bugüne çek, sonra yeniden kesinleştir.`,
+        nextAttemptAt: "",
+      });
+      return "draft";
     }
   }
   if (!row.salesInvoiceId && row.createStartedAt) {
@@ -691,6 +717,7 @@ async function processRow(
     }
     if (found.length === 1) {
       await save({ salesInvoiceId: found[0].id, createStartedAt: "" });
+      ours = true;
       si = await readSalesInvoice(client, found[0].id);
       if (si && activeEDocument(si)) {
         return recordEDocument(
@@ -738,6 +765,7 @@ async function processRow(
         ambiguous: true,
       });
     await save({ salesInvoiceId: String(id), createStartedAt: "", contactId });
+    ours = true;
   }
   // A create's answer without the totals: read it back before judging it.
   if (si && parasutMinor(si.data.attributes.net_total) === null) {
@@ -748,6 +776,15 @@ async function processRow(
   // The total, checked before anything is formalised.
   if (!totalsAgree(si.data.attributes.net_total, expected)) {
     const got = parasutMinor(si.data.attributes.net_total);
+    if (opts.approved && !ours) {
+      // A draft the person read and may have changed in Paraşüt: it stays.
+      await release({
+        status: "draft",
+        lastError: `Kesinleştirilmedi: Paraşüt'teki taslağın tutarı ${got === null ? "okunamadı" : formatMinor(got)}, beklenen ${formatMinor(expected)}. Taslağı Paraşüt'te düzelt ya da "Taslağı yenile".`,
+        nextAttemptAt: "",
+      });
+      return "draft";
+    }
     await client.del(
       `sales_invoices/${encodeURIComponent(row.salesInvoiceId)}`,
     );
@@ -761,12 +798,23 @@ async function processRow(
     return "manual";
   }
 
-  // 4. Draft mode stops here: the accountant checks it in Paraşüt.
-  if (ctx.cfg.mode === "draft") {
+  // 4. Draft mode stops here: a person reads the draft (the panel shows
+  // its lines, Paraşüt the invoice) and formalises it. Their approval holds
+  // for the draft they read only, never for one this run had to make; a
+  // formalisation already under way (its e-Arşiv job posted, the post
+  // counted before it went) goes on.
+  const formalise =
+    ctx.cfg.mode === "live" ||
+    row.formalizePosts > 0 ||
+    (opts.approved === true && !ours);
+  if (!formalise) {
     await release({
       status: "draft",
       amountMinor: expected,
-      lastError: "",
+      kdvRows: linesKdvRows(lines),
+      lastError: opts.approved
+        ? "Paraşüt'te taslak bulunamadı; yeniden hazırlandı. Kontrol et, sonra kesinleştir."
+        : "",
       nextAttemptAt: "",
       billingCity: billing.city,
       billingDistrict: billing.district,
@@ -858,6 +906,18 @@ async function processRow(
           ? job.data.attributes.errors.map((e) => maskText(String(e)))
           : [];
         const text = `e-Arşiv işi hata verdi: ${errors.join("; ") || "Paraşüt nedenini söylemedi"}`;
+        if (ctx.cfg.mode !== "live") {
+          // Back to the person who asked for it, with Paraşüt's reason.
+          await release({
+            status: "draft",
+            lastError: text,
+            jobId: "",
+            jobPostedAt: "",
+            formalizePosts: 0,
+            nextAttemptAt: "",
+          });
+          return "draft";
+        }
         return failRow(
           row,
           release,
@@ -1169,6 +1229,88 @@ async function ensureProduct(
   return id;
 }
 
+/** Where an error out of processRow leaves the held row. */
+type Settled =
+  | { kind: "lost" }
+  | { kind: "deadline" }
+  | { kind: "auth"; message: string }
+  | { kind: "step"; step: Step; message: string };
+
+/**
+ * Puts a row whose processing threw back where it can resume: the ids
+ * written before the error stay (the row is read again), a deadline sends it
+ * back to the queue untouched, a refused login waits, an issued invoice only
+ * retries its mail, anything else counts as a failed attempt.
+ */
+async function settleError(
+  deps: InvoiceDeps,
+  held: InvoiceRow,
+  err: unknown,
+): Promise<Settled> {
+  if (err instanceof LostClaim) return { kind: "lost" };
+  const release = (patch: InvoicePatch) =>
+    deps.store.updateClaimed(held.id, held.claimedAt, {
+      ...patch,
+      claimedAt: "",
+      updatedAt: deps.now().toISOString(),
+    });
+  const [current] = await deps.store.rowsForSources(held.sourceKind, [
+    held.sourceId,
+  ]);
+  const row =
+    current &&
+    current.status === "working" &&
+    current.claimedAt === held.claimedAt
+      ? current
+      : held;
+  if (err instanceof ParasutDeadlineError) {
+    await release({
+      status: resumeStatus(row),
+      nextAttemptAt: row.eDocumentId ? deps.now().toISOString() : "",
+    });
+    return { kind: "deadline" };
+  }
+  const message = maskText(err instanceof Error ? err.message : String(err));
+  console.error(
+    `[earsiv] ${held.sourceKind} ${held.sourceLabel || held.sourceId}: ${message}`,
+  );
+  if (err instanceof ParasutAuthError) {
+    await release({
+      status: resumeStatus(row),
+      lastError: message,
+      nextAttemptAt: new Date(
+        deps.now().getTime() + retryDelayMs(1),
+      ).toISOString(),
+    });
+    return { kind: "auth", message };
+  }
+  if (row.eDocumentId) {
+    // The invoice exists; only the mail failed.
+    const attempt = row.emailAttempts + 1;
+    await release({
+      status: "issued",
+      emailAttempts: attempt,
+      emailError: message,
+      nextAttemptAt:
+        attempt >= MAX_EMAIL_ATTEMPTS
+          ? ""
+          : new Date(
+              deps.now().getTime() + retryDelayMs(attempt),
+            ).toISOString(),
+    });
+    return { kind: "step", step: "issued", message };
+  }
+  const step = await failRow(
+    row,
+    async (p) => void (await release(p)),
+    message,
+    false,
+    {},
+    deps.now().getTime(),
+  );
+  return { kind: "step", step, message };
+}
+
 // ─── The run ───────────────────────────────────────────────────────────────
 
 export async function runInvoicesWith(
@@ -1228,79 +1370,25 @@ export async function runInvoicesWith(
     );
     if (!held) break;
     summary.processed += 1;
-    const release = (patch: InvoicePatch) =>
-      deps.store.updateClaimed(held.id, held.claimedAt, {
-        ...patch,
-        claimedAt: "",
-        updatedAt: deps.now().toISOString(),
-      });
     try {
       const step = await processRow(ctx, client, held, summary);
       if (step === "draft") summary.drafts += 1;
       if (step === "manual") summary.manual += 1;
       if (step === "failed") summary.failed += 1;
     } catch (err) {
-      if (err instanceof LostClaim) continue;
-      // Read the row again: the ids written before the error stay.
-      const [current] = await deps.store.rowsForSources(held.sourceKind, [
-        held.sourceId,
-      ]);
-      const row =
-        current &&
-        current.status === "working" &&
-        current.claimedAt === held.claimedAt
-          ? current
-          : held;
-      if (err instanceof ParasutDeadlineError) {
-        await release({
-          status: resumeStatus(row),
-          nextAttemptAt: row.eDocumentId ? deps.now().toISOString() : "",
-        });
+      const settled = await settleError(deps, held, err);
+      if (settled.kind === "lost") continue;
+      if (settled.kind === "deadline") {
         summary.more = true;
         break;
       }
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(
-        `[earsiv] ${held.sourceKind} ${held.sourceLabel || held.sourceId}: ${maskText(message)}`,
-      );
-      if (err instanceof ParasutAuthError) {
+      if (settled.kind === "auth") {
         authFailed = true;
-        summary.errors.push(maskText(message));
-        await release({
-          status: resumeStatus(row),
-          lastError: maskText(message),
-          nextAttemptAt: new Date(
-            deps.now().getTime() + retryDelayMs(1),
-          ).toISOString(),
-        });
+        summary.errors.push(settled.message);
         break;
       }
-      if (row.eDocumentId) {
-        // The invoice exists; only the mail failed.
-        const attempt = row.emailAttempts + 1;
-        await release({
-          status: "issued",
-          emailAttempts: attempt,
-          emailError: maskText(message),
-          nextAttemptAt:
-            attempt >= MAX_EMAIL_ATTEMPTS
-              ? ""
-              : new Date(
-                  deps.now().getTime() + retryDelayMs(attempt),
-                ).toISOString(),
-        });
-        continue;
-      }
-      const step = await failRow(
-        row,
-        async (p) => void (await release(p)),
-        message,
-        false,
-        {},
-        deps.now().getTime(),
-      );
-      if (step === "manual") summary.manual += 1;
-      else summary.failed += 1;
+      if (settled.step === "manual") summary.manual += 1;
+      if (settled.step === "failed") summary.failed += 1;
     }
   }
   await deps.store.writeState(LAST_RUN_KEY, summary).catch((err: unknown) => {
@@ -1309,44 +1397,154 @@ export async function runInvoicesWith(
   return summary;
 }
 
+/** A person's button on one invoice row (docs/EARSIV.md "Panel"). */
+export type RowAction = "cut" | "formalize" | "rebuild";
+
+/** The statuses each button takes a row from; any other is refused. */
+const ROW_ACTION_FROM: Record<RowAction, InvoiceRow["status"][]> = {
+  // "Faturayı kes": a draft in draft mode, the e-Arşiv in live mode.
+  cut: ["due", "failed"],
+  // "Faturayı kesinleştir": the draft the person has read.
+  formalize: ["draft"],
+  // "Taslağı yenile": that draft deleted and prepared again, dated today.
+  rebuild: ["draft"],
+};
+
+export interface RowRunOptions {
+  id: string;
+  action: RowAction;
+  budgetMs: number;
+}
+
+export interface RowRunResult {
+  mode: EarsivMode;
+  /** False when the row was not in a state the action takes, or held. */
+  taken: boolean;
+  step: Step | null;
+  /** What went wrong, in Turkish and masked; null when nothing did. */
+  error: string | null;
+}
+
+/**
+ * One row, now, for a person: claimed by id (only from the statuses its
+ * action takes), walked through the same steps as the queue, settled the
+ * same way when something throws. Nothing else is swept or claimed.
+ */
+export async function runInvoiceRowWith(
+  deps: InvoiceDeps,
+  opts: RowRunOptions,
+): Promise<RowRunResult> {
+  const status = earsivConfigStatus(deps.env);
+  if (status.mode === "off" || !status.config) {
+    return {
+      mode: status.mode,
+      taken: false,
+      step: null,
+      error: status.errors[0] ?? null,
+    };
+  }
+  const cfg = status.config;
+  const started = deps.now();
+  const held = await deps.store.claimRow(
+    opts.id,
+    started.toISOString(),
+    ROW_ACTION_FROM[opts.action],
+  );
+  if (!held) return { mode: cfg.mode, taken: false, step: null, error: null };
+  const ctx: Ctx = {
+    deps,
+    cfg,
+    carriers: await deps.store.carriers(),
+    nowIso: () => deps.now().toISOString(),
+  };
+  const client = deps.client(cfg);
+  client.setDeadline(started.getTime() + opts.budgetMs);
+  const summary = emptySummary("admin", cfg.mode, started.toISOString());
+  try {
+    const step = await processRow(ctx, client, held, summary, {
+      approved: opts.action === "formalize",
+      rebuild: opts.action === "rebuild",
+    });
+    return { mode: cfg.mode, taken: true, step, error: null };
+  } catch (err) {
+    const settled = await settleError(deps, held, err);
+    switch (settled.kind) {
+      case "lost":
+        return {
+          mode: cfg.mode,
+          taken: true,
+          step: null,
+          error: "Kaydı bu arada başka bir çalıştırma aldı. Sayfayı yenile.",
+        };
+      case "deadline":
+        return { mode: cfg.mode, taken: true, step: "pending", error: null };
+      case "auth":
+        return {
+          mode: cfg.mode,
+          taken: true,
+          step: null,
+          error: settled.message,
+        };
+      default:
+        return {
+          mode: cfg.mode,
+          taken: true,
+          step: settled.step,
+          error: settled.message,
+        };
+    }
+  }
+}
+
 /** Codes a manual row may carry, for the panel's filter. */
 export type { ManualCode };
 
 /** The production wiring. */
-export async function runInvoices(opts: RunOptions): Promise<RunSummary> {
-  const status = earsivConfigStatus(process.env);
-  if (status.mode === "off") {
-    return emptySummary(opts.reason, "off", new Date().toISOString());
-  }
+async function productionDeps(): Promise<InvoiceDeps> {
   const [{ dbInvoiceStore }, { SITE }, { sendInvoiceEmail }] =
     await Promise.all([
       import("./store"),
       import("@/lib/seo/site"),
       import("@/lib/email/send"),
     ]);
-  return runInvoicesWith(
-    {
-      env: process.env,
-      production: process.env.NODE_ENV === "production",
-      now: () => new Date(),
-      store: dbInvoiceStore,
-      client: (cfg) =>
-        new ParasutClient(cfg.parasut, { tokens: dbInvoiceStore.tokens }),
-      mail: sendInvoiceEmail,
-      siteUrl: SITE.url,
-      karaokeRate: async () => {
-        try {
-          const { getSettings } = await import("@/lib/admin/store");
-          const s = await getSettings();
-          return s.taxRates?.karaoke ?? LEGAL_TAX_RATES.karaoke;
-        } catch {
-          return LEGAL_TAX_RATES.karaoke;
-        }
-      },
-      sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  return {
+    env: process.env,
+    production: process.env.NODE_ENV === "production",
+    now: () => new Date(),
+    store: dbInvoiceStore,
+    client: (cfg) =>
+      new ParasutClient(cfg.parasut, { tokens: dbInvoiceStore.tokens }),
+    mail: sendInvoiceEmail,
+    siteUrl: SITE.url,
+    karaokeRate: async () => {
+      try {
+        const { getSettings } = await import("@/lib/admin/store");
+        const s = await getSettings();
+        return s.taxRates?.karaoke ?? LEGAL_TAX_RATES.karaoke;
+      } catch {
+        return LEGAL_TAX_RATES.karaoke;
+      }
     },
-    opts,
-  );
+    sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  };
+}
+
+export async function runInvoices(opts: RunOptions): Promise<RunSummary> {
+  const status = earsivConfigStatus(process.env);
+  if (status.mode === "off") {
+    return emptySummary(opts.reason, "off", new Date().toISOString());
+  }
+  return runInvoicesWith(await productionDeps(), opts);
+}
+
+export async function runInvoiceRow(
+  opts: RowRunOptions,
+): Promise<RowRunResult> {
+  const status = earsivConfigStatus(process.env);
+  if (status.mode === "off") {
+    return { mode: "off", taken: false, step: null, error: null };
+  }
+  return runInvoiceRowWith(await productionDeps(), opts);
 }
 
 export type { KaraokeReservation };

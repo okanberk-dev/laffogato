@@ -402,9 +402,15 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 ## e-Arşiv fatura, Paraşüt üzerinden (22 Eki 2026)
 
 - Site keser (`src/lib/invoice/`, runbook `docs/EARSIV.md`); **varsayılan
-  kapalı**: `EARSIV_MODE` off | draft (Paraşüt'te taslak, resmileştirmez,
-  mail yok) | live; `EARSIV_START_AT` (gün, İstanbul saatiyle başı: `23.10.2026`) yoksa hiçbir şey
-  yapılmaz, öncesinde ödenen sipariş elle kesilmiştir. Koli "Kargoya ver"de
+  kapalı**: `EARSIV_MODE` off | draft | live; `EARSIV_START_AT` (gün,
+  İstanbul saatiyle başı; üretimde `15.10.2026`, PayNkolay'ın canlı günü)
+  yoksa hiçbir şey yapılmaz, öncesinde ödenen sipariş elle kesilmiştir.
+  **draft = her fatura operatörün onayıyla** (22 Eki 2026): site Paraşüt'te
+  taslak hazırlar, kart taslağı satır satır gösterir, "Faturayı
+  kesinleştir" o taslağı resmileştirip PDF'i yollar (`runInvoiceRow`,
+  `claimRow`); onay yalnız görülen taslağa, eski tarihli ya da Paraşüt'te
+  tutarı değişmiş taslak kesinleşmez ve silinmez ("Taslağı yenile"). live =
+  kendiliğinden. Koli "Kargoya ver"de
   (çıktısı pakete, sipariş sayfasında "Faturayı yazdır / indir"), kafe
   siparişi teslimde (yoksa ödemeden 3 saat sonra), karaoke saat bitince;
   son gün teslim + 7 gün (VUK 231/5), Faturalar ve Genel bakış uyarır.

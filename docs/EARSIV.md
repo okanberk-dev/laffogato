@@ -51,6 +51,15 @@ Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
    ve saat olduğuna bak. Tanımsızsa ya da gün okunamıyorsa (`31.02.2026`,
    `23/10/2026`) panel "ayar hatası" gösterir ve hiçbir şey yapılmaz.
 
+   **Üretimde `15.10.2026`** (operatör, 22 Eki 2026): PayNkolay o gün
+   canlıya geçti ve o günden beri sanal POS'la ödenen karaoke ve
+   siparişlerin faturası kesilmemişti. Tarama son 10 günü okur
+   (`SWEEP_DAYS`), bu yüzden geriye çekilen başlangıç en fazla 10 gün
+   öncesini kapsar; daha eskisi elle kesilir. Bu kayıtların bir kısmının 7
+   günlük süresi geçmiş olabilir: panel kırmızı gösterir, fatura yine kesilir
+   (geç kesim usulsüzlük cezası doğurabilir, kesmemek daha ağırdır;
+   muhasebeciye sor).
+
    Değişkenler girilip site yeniden yayına alınınca Faturalar → "Bağlantı
    ve çalışma" kartındaki **"Paraşüt bağlantısını sına"** düğmesine bas:
    site kendi bilgileriyle bir kez giriş yapıp firmayı okur, fatura kesmez.
@@ -65,20 +74,44 @@ Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
    levhasından alınır; **uydurma değer yazılmaz**, VKN'nin kontrol hanesi
    denetlenir. Listede olmayan firmayla gönderilen kolinin faturası "elle
    kesilecek" olur.
-5. **Taslak dönemi (`EARSIV_MODE=draft`).** Site faturaları Paraşüt'te
-   **taslak** olarak hazırlar: resmileştirmez, müşteriye e-posta göndermez.
-   Muhasebeci birkaç gün Paraşüt'te taslakları kontrol eder: müşteri adı,
-   il/ilçe, satırlar, KDV oranları, indirim, kargo/kurye satırı, toplam,
-   tahsilat hesabı. Taslak döneminde site taslağa bir daha bakmaz:
-   muhasebeci bir taslağı Paraşüt'te elle resmileştirirse kayıt panelde
-   "Taslak" kalır ve 7 gün dolunca "süre geçti" görünür. Site onu ancak
-   canlıya geçilince görür (ilk çalıştırma taslağı silmeden önce
-   resmileşmiş faturayı okur, kaydı "kesildi" yapar ve PDF e-postasını o
-   zaman gönderir). Taslak döneminde elle resmileştirilen fatura için
-   kaydı "Paraşüt'te elle kestim" ile fatura numarasını yazarak kapatın;
-   yoksa panelin "süre geçti" uyarısı yanıltır ve ikinci bir fatura
-   kesilmesine yol açabilir.
-6. **Canlı (`EARSIV_MODE=live`).** Muhasebeci onaylayınca. Canlıda taslak
+5. **Taslak modu (`EARSIV_MODE=draft`): her fatura senin onayınla
+   kesinleşir** (operatör, 22 Eki 2026: _"faturayı kes diyince kessin ama
+   draftını bana göstersin, final sonra kesebilsin"_). Site faturaları
+   Paraşüt'te **taslak** olarak hazırlar (kendiliğinden, ya da kartta
+   "Faturayı kes" ile hemen); taslak kendiliğinden resmileşmez, müşteriye
+   bir şey gitmez. Sipariş ya da rezervasyon sayfasındaki e-Arşiv kartı
+   taslağı gösterir: alıcı, TCKN yer tutucusu, fatura adresi, satırlar (adet,
+   KDV oranı, indirim, KDV dahil tutar), KDV dökümü, genel toplam ve
+   Paraşüt'te nerede olduğu (Satışlar > Faturalar, açıklaması
+   "L'Affogato #10234" ya da "Karaoke krk-…"; "Paraşüt'ü aç" firmanın
+   sayfasını açar). Doğruysa **"Faturayı kesinleştir"**: o taslak bugünün
+   tarihiyle e-Arşiv olur, numarası ve ETTN'si kayda yazılır, PDF müşteriye
+   e-postayla gider. Kontrol edilecekler: müşteri adı, il/ilçe, satırlar,
+   KDV oranları, indirim, kargo/kurye satırı, toplam, tahsilat hesabı.
+
+   Yanlış bir şey görürsen:
+   - **Ad, adres ya da bir satır:** taslağı Paraşüt'te düzelt, sonra
+     panelde "Faturayı kesinleştir". Site Paraşüt'teki hâli kesinleştirir;
+     tek şartı genel toplamın siparişin tutarıyla tutmasıdır (tutmazsa
+     kesinleştirmez, taslağa dokunmaz, iki tutarı yazar).
+   - **Dünden kalan taslak:** e-Arşiv kesinleştiği günün tarihini taşır.
+     Site eski tarihli taslağı kendiliğinden silmez (Paraşüt'te
+     düzelttiğin bir taslak olabilir), kesinleştirmeyi reddedip söyler:
+     **"Taslağı yenile"** (taslak silinir, siparişten bugünün tarihiyle
+     yeniden hazırlanır; Paraşüt'te yaptığın değişiklikler gider) ya da
+     tarihi Paraşüt'te bugüne çek.
+   - **Faturayı Paraşüt'te kendin kestiysen:** "Paraşüt'te elle kestim" ile
+     numarasını yaz; yoksa kayıt taslak kalır, panel uyarmaya devam eder.
+   - **e-Arşiv işi hata verirse** (Paraşüt'ün nedeni kartta yazar) kayıt
+     yine taslağa döner; düzeltip yeniden kesinleştir.
+
+   Onay yalnız gördüğün taslak içindir: Paraşüt'te silinmiş bir taslağı
+   site yeniden hazırlar ve yine senin onayını bekler. Bir taslağın
+   kesinleştirilmesi yarıda kalırsa (Paraşüt yavaş) sonraki çalıştırma
+   onu bitirir ve e-postayı gönderir. Bekleyen taslaklar Genel bakış'ta
+   ("N taslak kesinleştirmeni bekliyor") ve Faturalar → Dikkat'te görünür.
+6. **Canlı (`EARSIV_MODE=live`).** Her faturanın tek tek onaylanması
+   istenmediğinde. Canlıda faturalar kendiliğinden kesinleşir; taslak
    durumundaki kayıtlar da sıraya girer: önceki günden kalan taslak silinip
    bugünün tarihiyle yeniden oluşturulur (e-Arşiv, resmileştiği günün
    tarihini taşır), sonra resmileştirilir.
@@ -106,10 +139,11 @@ değişkenlerin **adları**, son çalıştırma). Değerler hiçbir ekranda gör
 - **Panel:** Faturalar → "Şimdi çalıştır" (50 saniye), ya da kesim zamanı
   gelmiş tek bir kayıtta (kafe siparişi teslim edildi, koli kargoya verildi,
   karaoke saati bitti) sipariş / rezervasyon sayfasındaki fatura kartından
-  **"Faturayı şimdi kes"**: ertesi sabahı beklemeden keser ve sonucu
-  (fatura numarası, taslak, elle kesilecek ya da hata) hemen söyler. Karaoke
-  faturası saat bitmeden kesilmez: rezervasyon o ana kadar iptal ve iade
-  edilebilir.
+  **"Faturayı kes"**: yalnız o kaydı, ertesi sabahı beklemeden işler ve
+  sonucu hemen söyler. Taslak modunda sonuç bir taslaktır (kartta görünür,
+  "Faturayı kesinleştir" ile kesinleşir, §1 adım 5); canlıda fatura
+  numarasıdır. Karaoke faturası saat bitmeden kesilmez: rezervasyon o ana
+  kadar iptal ve iade edilebilir.
 
 Her fatura için sıra: müşteri kaydı (e-postaya göre önbellekte; ad ya da adres
 değişince güncellenir) → ürün kodları (`LAF-KAFE-10`, `LAF-MAGAZA-10`,
@@ -155,8 +189,10 @@ düzenlenir, sonra işaret kaldırılır.
 ## 4. Günlük rutin
 
 - **Genel bakış**'taki e-Arşiv satırı: son günü geçen (kırmızı), 2 gün içinde
-  dolan, elle kesilecek, hata veren, faturalı siparişte iade, e-postası
-  gitmeyen faturalar ve ayar hatası. Tıklayınca Faturalar → Dikkat.
+  dolan, kesinleştirmeni bekleyen taslak, elle kesilecek, hata veren,
+  faturalı siparişte iade, e-postası gitmeyen faturalar ve ayar hatası.
+  Tıklayınca Faturalar → Dikkat. Taslak modunda her sabah: Dikkat'teki
+  taslakları aç, kontrol et, "Faturayı kesinleştir".
 - **Koli:** "Kargoya ver"den sonra sipariş sayfasındaki e-Arşiv kartında
   "Faturayı yazdır / indir" belirir (birkaç saniye; görünmezse sayfayı yenile
   ya da Faturalar → Şimdi çalıştır). Çıktı paketin içine konur, irsaliye
@@ -190,7 +226,8 @@ numaraları; kargo firmaları; son çalıştırma). PDF saklanmaz.
   kalan iş sonraki çalıştırmaya kalır.
 - **e-Arşiv işi hata verdi:** Paraşüt'ün hata satırları kayda olduğu gibi
   (maskeli) yazılır; sık görülen: "Alıcı il/ilçe adresi doldurulmalı" (adresi
-  düzenle). 5 denemeden sonra elle.
+  düzenle). 5 denemeden sonra elle. Taslak modunda bir kesinleştirme hata
+  verirse kayıt taslağa döner ve neden kartta yazar.
 - **Belirteç sorunu:** Paraşüt sırları değişirse eski belirteç okunamaz ve
   parola ile yeniden giriş yapılır; elle bir şey gerekmez.
 

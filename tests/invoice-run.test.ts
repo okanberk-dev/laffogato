@@ -9,9 +9,11 @@ import {
 } from "@/lib/invoice/invoice-core";
 import { ParasutError } from "@/lib/invoice/parasut-client";
 import {
+  runInvoiceRowWith,
   runInvoicesWith,
   type InvoiceDeps,
   type InvoiceMail,
+  type RowAction,
 } from "@/lib/invoice/run";
 import type { InvoicePatch, InvoiceStore } from "@/lib/invoice/store";
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
@@ -153,6 +155,23 @@ class MemoryStore implements InvoiceStore {
         updatedAt: now,
       });
     return picked.map((r) => ({ ...this.rows.get(r.id)! }));
+  }
+  async claimRow(
+    id: string,
+    now: string,
+    statuses: readonly InvoiceRow["status"][],
+  ) {
+    this.note("claimRow");
+    const cur = this.rows.get(id);
+    if (!cur || !statuses.includes(cur.status)) return null;
+    const held = {
+      ...cur,
+      status: "working" as const,
+      claimedAt: now,
+      updatedAt: now,
+    };
+    this.rows.set(id, held);
+    return { ...held };
   }
   async updateClaimed(id: string, claimedAt: string, patch: InvoicePatch) {
     this.note("updateClaimed");
@@ -744,6 +763,163 @@ describe("draft mode", () => {
       parasut.posts.filter((p) => p.path === "sales_invoices"),
     ).toHaveLength(2);
     expect(store.row()).toMatchObject({ status: "issued" });
+    expect(mails).toHaveLength(1);
+  });
+});
+
+describe("draft mode: a person reads each draft and formalises it", () => {
+  const DRAFT = { ...LIVE_ENV, EARSIV_MODE: "draft" };
+  const press = (action: RowAction, id = store.row().id) =>
+    runInvoiceRowWith(deps(DRAFT), { id, action, budgetMs: 50_000 });
+
+  it('"Faturayı kes" makes this row a draft and nothing else; "kesinleştir" formalises it and mails the PDF', async () => {
+    clock = Date.parse("2026-10-22T07:00:00.000Z");
+    store.orders.set(
+      "ord-2",
+      anOrder({
+        id: "ord-2",
+        orderNo: 10235,
+        paidAt: "2026-10-22T08:05:00.000Z",
+      }),
+    );
+    store.payments.set("ord-2", [
+      { provider: "paynkolay", status: "succeeded" },
+    ]);
+    // The sweep makes the rows; both are due only after delivery.
+    clock = Date.parse("2026-10-22T09:00:00.000Z");
+    await runInvoicesWith(deps(DRAFT), {
+      budgetMs: 120_000,
+      reason: "cron",
+      limit: 0,
+    });
+    const first = [...store.rows.values()].find((r) => r.sourceId === "ord-1")!;
+    expect(first.status).toBe("due");
+
+    const cut = await press("cut", first.id);
+    expect(cut).toMatchObject({ mode: "draft", taken: true, step: "draft" });
+    let row = store.rows.get(first.id)!;
+    expect(row).toMatchObject({ status: "draft", amountMinor: 27_000 });
+    expect(row.kdvRows).toEqual([
+      { ratePct: 10, grossMinor: 27_000, netMinor: 24_545, taxMinor: 2_455 },
+    ]);
+    // Only this row went to Paraşüt.
+    expect(
+      parasut.posts.filter((p) => p.path === "sales_invoices"),
+    ).toHaveLength(1);
+    expect(
+      [...store.rows.values()].find((r) => r.sourceId === "ord-2")!.status,
+    ).toBe("due");
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+    expect(mails).toEqual([]);
+
+    // A cron run in draft mode leaves the draft alone.
+    await runInvoicesWith(deps(DRAFT), { budgetMs: 120_000, reason: "cron" });
+    expect(store.rows.get(first.id)!.status).toBe("draft");
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+
+    const done = await press("formalize", first.id);
+    expect(done).toMatchObject({ taken: true, step: "issued" });
+    row = store.rows.get(first.id)!;
+    expect(row).toMatchObject({
+      status: "issued",
+      invoiceNo: expect.stringMatching(/^GIB2026/),
+    });
+    expect(row.emailedAt).not.toBe("");
+    expect(mails).toHaveLength(1);
+    // The draft the person read is the one formalised: no second invoice.
+    expect(
+      parasut.posts.filter((p) => p.path === "sales_invoices").length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(parasut.deletes).toEqual([]);
+  });
+
+  it("refuses a button on a row in another state, touching nothing", async () => {
+    await run(DRAFT);
+    const posts = parasut.posts.length;
+    expect(await press("cut")).toMatchObject({ taken: false, step: null });
+    expect(store.row().status).toBe("draft");
+    await press("formalize");
+    expect(await press("formalize")).toMatchObject({ taken: false });
+    expect(store.row().status).toBe("issued");
+    expect(await press("rebuild")).toMatchObject({ taken: false });
+    expect(parasut.posts.length).toBeGreaterThan(posts);
+  });
+
+  it("does not formalise yesterday's draft: it says so and keeps it for the person", async () => {
+    await run(DRAFT);
+    clock = Date.parse("2026-10-23T09:00:00.000Z");
+    const r = await press("formalize");
+    expect(r).toMatchObject({ taken: true, step: "draft" });
+    const row = store.row();
+    expect(row.status).toBe("draft");
+    expect(row.lastError).toContain("bugünün tarihiyle");
+    expect(parasut.deletes).toEqual([]);
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+    // "Taslağı yenile": deleted and cut again today, still a draft.
+    expect(await press("rebuild")).toMatchObject({ step: "draft" });
+    expect(parasut.deletes).toHaveLength(1);
+    const again = store.row();
+    expect(again).toMatchObject({ status: "draft", lastError: "" });
+    const inv = parasut.invoices.get(again.salesInvoiceId)!;
+    expect(inv.attrs.issue_date).toBe("2026-10-23");
+    expect(await press("formalize")).toMatchObject({ step: "issued" });
+    expect(mails).toHaveLength(1);
+  });
+
+  it("keeps a draft whose total was changed in Paraşüt and does not formalise it", async () => {
+    await run(DRAFT);
+    const inv = parasut.invoices.get(store.row().salesInvoiceId)!;
+    inv.attrs.net_total = "250.00";
+    const r = await press("formalize");
+    expect(r.step).toBe("draft");
+    const row = store.row();
+    expect(row.status).toBe("draft");
+    expect(row.salesInvoiceId).not.toBe("");
+    expect(row.lastError).toContain("250,00 TL");
+    expect(parasut.deletes).toEqual([]);
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+  });
+
+  it("never formalises a draft the person did not see: one deleted in Paraşüt is prepared again and stops", async () => {
+    await run(DRAFT);
+    parasut.invoices.delete(store.row().salesInvoiceId);
+    const r = await press("formalize");
+    expect(r.step).toBe("draft");
+    expect(store.row().lastError).toContain("yeniden hazırlandı");
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+  });
+
+  it("an e-Arşiv job error goes back to the draft with Paraşüt's reason", async () => {
+    await run(DRAFT);
+    parasut.jobScript = ["error"];
+    parasut.jobErrors = ["Alıcı adresi eksik"];
+    const r = await press("formalize");
+    expect(r.step).toBe("draft");
+    expect(store.row()).toMatchObject({
+      status: "draft",
+      jobId: "",
+      formalizePosts: 0,
+    });
+    expect(store.row().lastError).toContain("Alıcı adresi eksik");
+    expect(mails).toEqual([]);
+  });
+
+  it("a formalisation cut short by the clock goes on in the next draft-mode run", async () => {
+    await run(DRAFT);
+    parasut.jobScript = [
+      "running",
+      "running",
+      "running",
+      "running",
+      "running",
+      "done",
+    ];
+    const r = await press("formalize");
+    expect(r.step).toBe("pending");
+    expect(store.row().status).toBe("formalizing");
+    clock += 2 * 60_000;
+    await run(DRAFT);
+    expect(store.row().status).toBe("issued");
     expect(mails).toHaveLength(1);
   });
 });

@@ -112,6 +112,17 @@ function value(env: Env, name: string): string {
 }
 
 /**
+ * The company's page in Paraşüt's web app ("Paraşüt'ü aç" on a draft), or
+ * null without a numeric company id. Only the company's address is known
+ * (docs/EARSIV.md §1): a draft is found there under Satışlar > Faturalar by
+ * its description (`invoiceMarker`).
+ */
+export function parasutAppUrl(env: Env): string | null {
+  const id = value(env, "PARASUT_COMPANY_ID");
+  return /^\d{1,12}$/.test(id) ? `https://uygulama.parasut.com/${id}/` : null;
+}
+
+/**
  * The mode, what is missing and what is wrong. A mode other than off with
  * any problem has no config, so nothing is invoiced until it is fixed: an
  * unset EARSIV_START_AT would otherwise invoice orders that were already
