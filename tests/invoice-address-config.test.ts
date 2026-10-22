@@ -124,32 +124,45 @@ describe("EARSIV_* settings", () => {
     expect(JSON.stringify(s)).not.toContain('"id"');
   });
 
-  it("wants EARSIV_START_AT as an instant with its zone", () => {
-    expect(
+  it("reads EARSIV_START_AT on the köşk's clock: a day is its Istanbul midnight", () => {
+    const start = (startAt: string) =>
       earsivConfig({
         EARSIV_MODE: "draft",
-        EARSIV_START_AT: "2026-10-23",
+        EARSIV_START_AT: startAt,
         ...PARASUT,
-      }),
-    ).toBeNull();
-    // A time without a zone is read in the server's zone (UTC on Vercel),
-    // three hours into the Istanbul day: refused too (post-merge review).
-    for (const startAt of ["2026-10-23T00:00", "2026-10-23T00:00:00"]) {
-      expect(
-        earsivConfig({
-          EARSIV_MODE: "draft",
-          EARSIV_START_AT: startAt,
-          ...PARASUT,
-        }),
-      ).toBeNull();
+      })?.startAt ?? null;
+    // A day alone, either way the operator writes it: Istanbul midnight,
+    // never UTC midnight (three hours late).
+    expect(start("2026-10-23")).toBe("2026-10-22T21:00:00.000Z");
+    expect(start("23.10.2026")).toBe("2026-10-22T21:00:00.000Z");
+    expect(start(" 3.11.2026 ")).toBe("2026-11-02T21:00:00.000Z");
+    // A time without a zone is Istanbul's too, not the server's.
+    expect(start("2026-10-23 09:30")).toBe("2026-10-23T06:30:00.000Z");
+    expect(start("2026-10-23T00:00")).toBe("2026-10-22T21:00:00.000Z");
+    expect(start("23.10.2026 09:30:15")).toBe("2026-10-23T06:30:15.000Z");
+    // A value with its own zone is taken as written.
+    expect(start("2026-10-22T21:00:00Z")).toBe("2026-10-22T21:00:00.000Z");
+    expect(start("2026-10-23T00:00:00+03:00")).toBe("2026-10-22T21:00:00.000Z");
+    // Not a day: refused, so nothing is invoiced until it is fixed.
+    for (const bad of [
+      "31.02.2026",
+      "2026-02-30",
+      "2026-02-30T00:00:00+03:00",
+      "2026-13-01",
+      "2026-10-23 24:00",
+      "23/10/2026",
+      "yarın",
+      "10.23.2026",
+    ]) {
+      expect({ bad, start: start(bad) }).toEqual({ bad, start: null });
     }
     expect(
-      earsivConfig({
+      earsivConfigStatus({
         EARSIV_MODE: "draft",
-        EARSIV_START_AT: "2026-10-22T21:00:00Z",
+        EARSIV_START_AT: "31.02.2026",
         ...PARASUT,
-      })?.startAt,
-    ).toBe("2026-10-22T21:00:00.000Z");
+      }).errors.join(" "),
+    ).toContain("EARSIV_START_AT bir gün olmalı");
     const cfg = earsivConfig({
       EARSIV_MODE: "draft",
       EARSIV_START_AT: "2026-10-23T00:00:00+03:00",

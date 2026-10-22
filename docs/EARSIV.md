@@ -36,14 +36,20 @@ Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
    | `PARASUT_USERNAME`, `PARASUT_PASSWORD` | sitenin Paraşüt kullanıcısı |
    | `PARASUT_COMPANY_ID` | firma numarası |
    | `PARASUT_BASE_URL` | boş bırak (varsayılan `https://api.parasut.com`) |
-   | `EARSIV_START_AT` | otomasyonun başladığı an, ör. `2026-10-23T00:00:00+03:00` |
+   | `EARSIV_START_AT` | otomasyonun başladığı gün, ör. `23.10.2026` (İstanbul saatiyle o günün başı) |
    | `EARSIV_PAYMENT_ACCOUNT_ID` | isteğe bağlı: Paraşüt'teki "PayNkolay" kasa/banka hesabının numarası |
    | `EARSIV_MODE` | önce `draft` |
 
    `EARSIV_START_AT` zorunludur: yalnız bu andan **sonra ödenen** siparişler
    ve bu andan **sonra biten** karaoke saatleri otomatik faturalanır. Daha
-   önce elle kesilmiş faturalar böylece iki kez kesilmez. Tanımsızsa ya da
-   saat dilimi yoksa panel "ayar hatası" gösterir ve hiçbir şey yapılmaz.
+   önce elle kesilmiş faturalar böylece iki kez kesilmez. Yalnız günü yaz:
+   `23.10.2026` ya da `2026-10-23`, İstanbul saatiyle o günün 00:00'ı
+   demektir. Günün ortasından başlatmak istersen saati ekle
+   (`23.10.2026 14:00`, yine İstanbul saati); saat dilimiyle yazılmış bir an
+   (`2026-10-23T00:00:00+03:00`) da olduğu gibi okunur. Kaydettikten sonra
+   Faturalar → "Bağlantı ve çalışma" kartındaki "Başlangıç"ın beklediğin gün
+   ve saat olduğuna bak. Tanımsızsa ya da gün okunamıyorsa (`31.02.2026`,
+   `23/10/2026`) panel "ayar hatası" gösterir ve hiçbir şey yapılmaz.
 
    `EARSIV_PAYMENT_ACCOUNT_ID` verilirse fatura "peşin satış" olarak
    tahsilatıyla birlikte kaydedilir (`cash_sale`); verilmezse tahsilat

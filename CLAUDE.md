@@ -403,7 +403,7 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 
 - Site keser (`src/lib/invoice/`, runbook `docs/EARSIV.md`); **varsayılan
   kapalı**: `EARSIV_MODE` off | draft (Paraşüt'te taslak, resmileştirmez,
-  mail yok) | live; `EARSIV_START_AT` (saat dilimli an) yoksa hiçbir şey
+  mail yok) | live; `EARSIV_START_AT` (gün, İstanbul saatiyle başı: `23.10.2026`) yoksa hiçbir şey
   yapılmaz, öncesinde ödenen sipariş elle kesilmiştir. Koli "Kargoya ver"de
   (çıktısı pakete, sipariş sayfasında "Faturayı yazdır / indir"), kafe
   siparişi teslimde (yoksa ödemeden 3 saat sonra), karaoke saat bitince;
