@@ -733,6 +733,12 @@ durum bozulmaya uygundur.
 - **Ön yüz işi** (tasarım, sayfa, bileşen, CSS, form) → skill
   `frontend-redesign` + `docs/FRONTEND-SINIR.md`. Arka yüz dosyasına dokunmak
   gerekiyorsa önce kullanıcıya söyle, ayrı PR aç
+- **Skill'ler** `.claude/skills/` altında; liste, kaynak ve lisanslar
+  `docs/SKILLS.md`. Dışarıdan alınanlarda (`frontend-design`,
+  `frontend-design-principles`, `copywriting`, `cro`, `emails`, `social`,
+  `referrals`, `seo-audit`) başlarındaki "Bu projede" bölümü geçerlidir;
+  pazarlama bağlamı `.claude/product-marketing.md`. Panelde yeni bir alan:
+  `build-admin-panel` (gerçek tarayıcıyla doğrulama dahil)
 - **Açık bulgular** `docs/AUDIT.md` §8 "Açık"ta; biri üzerinde çalışırken
   oradan sil ve "Düzeltilenler" tablosuna testiyle birlikte taşı
 
