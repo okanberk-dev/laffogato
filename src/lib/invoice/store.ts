@@ -10,7 +10,9 @@ import type { KaraokeReservation } from "@/lib/mobile/karaoke-core";
 
 import type {
   CarrierEntry,
+  InvoiceBuyer,
   InvoicePayment,
+  InvoicePlan,
   InvoiceRow,
   InvoiceSourceKind,
   InvoiceStatus,
@@ -102,6 +104,12 @@ export function blankInvoice(
     manualCode: "",
     actor: "",
     refundNotedAt: "",
+    buyerKind: "consumer",
+    buyerTitle: "",
+    buyerTaxNumber: "",
+    buyerTaxOffice: "",
+    buyerEmail: "",
+    requestedBy: "",
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -641,6 +649,105 @@ export async function retryInvoice(
     };
   }
   return { ok: true, row: { ...row, ...patch } };
+}
+
+/** What a person filled in the order's invoice wizard. */
+export interface InvoiceRequest {
+  buyer: InvoiceBuyer;
+  /** '' = the order's e-mail. */
+  email: string;
+  /** Null: the order's address (or the one already typed) stays. */
+  billing: { city: string; district: string; address: string } | null;
+}
+
+/**
+ * The order's invoice wizard ("Fatura oluştur"): the buyer, the billing
+ * address and the plan's route, deadline and amount on the order's invoice
+ * row, the row due now and marked as asked
+ * for by `actor` (planned without EARSIV_START_AT and without the café's
+ * waiting time, invoice-core `planOrderInvoice`). Creates the row when the
+ * order has none. Refused once anything was formalised, while a run holds
+ * the row, and after the invoice was cut; a draft in Paraşüt is kept here
+ * and rebuilt by the caller (`runInvoiceRow` "rebuild").
+ */
+export async function requestOrderInvoice(
+  orderId: string,
+  plan: Pick<
+    InvoicePlan,
+    "sourceLabel" | "route" | "deadlineAt" | "amountMinor"
+  >,
+  request: InvoiceRequest,
+  actor: string,
+): Promise<{ ok: true; row: InvoiceRow } | { ok: false; error: string }> {
+  const now = new Date().toISOString();
+  const company = request.buyer.kind === "company" ? request.buyer : null;
+  const patch: InvoicePatch = {
+    sourceLabel: plan.sourceLabel,
+    route: plan.route,
+    deadlineAt: plan.deadlineAt,
+    amountMinor: plan.amountMinor,
+    buyerKind: request.buyer.kind,
+    buyerTitle: company?.title ?? "",
+    buyerTaxNumber: company?.taxNumber ?? "",
+    buyerTaxOffice: company?.taxOffice ?? "",
+    buyerEmail: request.email,
+    requestedBy: actor,
+    ...(request.billing
+      ? {
+          billingCity: request.billing.city,
+          billingDistrict: request.billing.district,
+          billingAddress: request.billing.address,
+          billingEditedBy: actor,
+        }
+      : {}),
+    updatedAt: now,
+  };
+  let row = await getInvoiceForSource("order", orderId);
+  if (!row) {
+    const fresh: InvoiceRow = {
+      ...blankInvoice("order", orderId, now),
+      ...(patch as Partial<InvoiceRow>),
+      status: "due",
+      dueAt: now,
+    };
+    if (await dbInvoiceStore.insertRow(fresh)) return { ok: true, row: fresh };
+    row = await getInvoiceForSource("order", orderId);
+    if (!row) return { ok: false, error: "Kayıt oluşturulamadı. Tekrar dene." };
+  }
+  if (
+    row.eDocumentId ||
+    row.jobId ||
+    row.formalizePosts > 0 ||
+    // A skipped row comes back: the caller checked the plan allows it.
+    (FINAL_OR_BUSY.has(row.status) && row.status !== "skipped")
+  ) {
+    return {
+      ok: false,
+      error:
+        "Bu siparişin faturası kesildi ya da şu an kesiliyor; alıcı değiştirilemez.",
+    };
+  }
+  const queued: InvoicePatch =
+    row.status === "draft"
+      ? {}
+      : {
+          status: "due",
+          dueAt: now,
+          attempts: 0,
+          lastError: "",
+          nextAttemptAt: "",
+          manualCode: "",
+          manualReason: "",
+          actor: "",
+        };
+  const full = { ...patch, ...queued };
+  if (!(await dbInvoiceStore.updateRow(row, full))) {
+    return {
+      ok: false,
+      error: "Kayıt bu arada değişti. Sayfayı yenileyip tekrar dene.",
+    };
+  }
+  return { ok: true, row: { ...row, ...full } as InvoiceRow };
 }
 
 /** The billing province, district and address a person typed. */

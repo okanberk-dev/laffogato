@@ -136,6 +136,19 @@ export const PARASUT_FIELDS = {
     "shipping_method",
   ],
   e_archives: ["internet_sale", "shipment"],
+  // EInvoiceFormAttributes (its own part; the common e-document attributes
+  // are not sent).
+  e_invoices: ["scenario", "to", "custom_requirement_params"],
+  e_invoice_inboxes: [
+    "vkn",
+    "e_invoice_address",
+    "name",
+    "inbox_type",
+    "address_registered_at",
+    "registered_at",
+    "created_at",
+    "updated_at",
+  ],
   internet_sale: ["url", "payment_type", "payment_platform", "payment_date"],
   shipment: ["title", "vkn", "name", "tckn", "date"],
   trackable_jobs: ["status", "errors"],

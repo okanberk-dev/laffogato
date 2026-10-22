@@ -9,6 +9,12 @@ kesilmemiş sayılır (VUK m.231/5); panel her faturanın son gününü gösteri
 Varsayılan **kapalıdır** (`EARSIV_MODE` boş ya da `off`): site Paraşüt'e
 tek istek atmaz, fatura kaydı açmaz, her şey eskisi gibi elle kesilir.
 
+Bir siparişin faturası sipariş sayfasından **"Fatura oluştur"** sihirbazıyla
+da hazırlanır (§8): kurumsal alıcı (unvan, VKN, vergi dairesi) ya da
+`EARSIV_START_AT`'ten önce ödenmiş bir sipariş için. GİB'de e-Fatura
+kullanıcısı olan şirkete fatura **e-Fatura** olarak kesilir, herkese
+e-Arşiv.
+
 Kod: `src/lib/invoice/` (saf kurallar `invoice-core.ts`, `address-core.ts`,
 `config.ts`, `panel-core.ts`; Paraşüt istemcisi `parasut-client.ts`; veritabanı
 `store.ts`; çalıştırıcı `run.ts`; `after()` kancası `hook.ts`). Tablolar:
@@ -179,7 +185,7 @@ hazırlanır.
 | Durum | Neden |
 |---|---|
 | Panelden girilen (kasada çalınan) sipariş | Belgesi kasanın ÖKC fişidir; fatura kaydı hiç açılmaz |
-| Kurumsal fatura istenen sipariş | Otomasyon yalnız nihai tüketiciye keser. E-postayla gelen talepte siparişin fatura kartından "Elle kesilecek (kurumsal)" **fatura kesilmeden önce** işaretlenir |
+| Kurumsal fatura istenen sipariş | Artık elle değil: siparişin fatura kartından **"Fatura oluştur"** (§8), alıcı "Kurumsal". Şahıs şirketi (TCKN ile fatura) sihirbazda alınmaz; o fatura "Elle kesilecek" ile Paraşüt'te kesilir |
 | Cüzdanla, sıfır tutarla, panelden elle tahsil edilen ödeme | e-Arşiv'in ödeme şekli muhasebeciyle netleşmedi |
 | Ödül kuponu (damga, kilometre taşı, davet) ya da tutarın tamamını karşılayan kupon | Faturada indirim mi ödeme aracı mı olacağı muhasebeciyle netleşmedi |
 | Fatura kesilmeden iade yapılmış sipariş | Tutar ve belge muhasebeciyle |
@@ -223,10 +229,17 @@ Gitmeyen: telefon, TCKN (alıcı vergi numarası alanına GİB'in nihai tüketic
 yer tutucusu `11111111111` yazılır), kart bilgisi. Paraşüt KVKK Aydınlatma
 Metni §14'te veri işleyen olarak adlıdır.
 
+Sihirbazda kurumsal alıcı seçilirse (§8) Paraşüt'e kişinin adı yerine
+şirketin unvanı, VKN'si ve vergi dairesi, varsa fatura e-postası gider;
+şirketin VKN'si e-Fatura kutusunu öğrenmek için Paraşüt'e sorulur.
+
 Sitede tutulan: `invoices` (kayıt başına durum, Paraşüt kimlikleri, il/ilçe/
 adres, tutar, KDV dökümü; ad ve e-posta **tutulmaz**, gerektiğinde siparişten
-okunur), `invoice_contacts` (e-posta → Paraşüt müşteri numarası, adın
-kendisi değil yalnız değişiklik izi), `invoice_state` (Paraşüt oturum
+okunur; sihirbazdan gelen kayıtta şirketin unvanı, VKN'si, vergi dairesi,
+yazıldıysa fatura e-postası ve isteyen yöneticinin adresi:
+`20261022220000_invoice_buyer.sql`), `invoice_contacts` (e-posta, şirkette
+`vkn:<numara>` → Paraşüt müşteri numarası, adın kendisi değil yalnız
+değişiklik izi), `invoice_state` (Paraşüt oturum
 belirteci, Paraşüt'ün sırlarından türeyen anahtarla şifreli; ürün
 numaraları; kargo firmaları; son çalıştırma). PDF saklanmaz.
 
@@ -275,3 +288,85 @@ numaraları; kargo firmaları; son çalıştırma). PDF saklanmaz.
    olur; Paraşüt'te kapatılmalı.
 9. **Yuvarlama:** satır KDV'si yarım kuruşta yukarı mı yuvarlanıyor? Toplam
    kontrolü 0,01 TL tolerans tanır; daha büyük farkta kayıt elle kesilir.
+
+## 8. Siparişten fatura: sihirbaz ve e-Fatura (22 Ekim 2026)
+
+Operatör: _"normal e-ticaret siparişlerinde de siparişin içinden fatura
+oluşturabileyim ... bu fatura oluşturma sihirbazını da güzel oluştur"_ ve
+_"e-Arşiv yerine e-Fatura yapabilir miyiz, biz hep e-Fatura çalışıyoruz"_.
+
+**Nereden:** sipariş sayfasındaki fatura kartı → **"Fatura oluştur"**
+(taslak varsa "Alıcıyı / adresi değiştir"), ya da Faturalar → satırın ⋯
+menüsü. Sayfa: `/admin/siparisler/<id>/fatura` (`invoices` rolü: sahip ve
+yönetici). Otomatik fatura kapalıyken (`EARSIV_MODE=off`) görünmez.
+
+**Dört adım:**
+
+1. **Alıcı:** *Bireysel* (nihai tüketici, siparişteki ad, TCKN yerine
+   `11111111111`) ya da *Kurumsal* (ticaret unvanı, 10 haneli **VKN**, vergi
+   dairesi). VKN GİB'in kontrol hanesiyle denetlenir; şahıs şirketinin
+   TCKN'si alınmaz (KVKK: gerçek kişinin kimlik numarası sitede tutulmaz),
+   o fatura "Elle kesilecek" ile Paraşüt'te kesilir. İsteğe bağlı **fatura
+   e-postası**: PDF oraya gider (boşsa siparişteki adrese).
+2. **Fatura adresi:** il (81 il), ilçe, adres. Siparişten okunan adres
+   gelir; okunamadıysa sihirbaz sorar (bu durumda sipariş "elle" kalmaz).
+3. **Satırlar:** siparişin satırları Paraşüt'e gidecekleri gibi (satış
+   anındaki KDV oranı, satırlara dağıtılmış indirim, kargo/kurye ayrı
+   kalem), KDV dökümü ve genel toplam. Burada değişmez.
+4. **Özet:** alıcı, vergi bilgisi, adres, e-posta, belge türü, tutar ve ne
+   olacağı. Düğme taslak modunda **"Taslağı oluştur"** (taslak zaten varsa
+   "Taslağı yeniden oluştur": eskisi silinir, yeni alıcıyla bugünün
+   tarihiyle hazırlanır), canlı modda "Faturayı kes".
+
+Sonra sipariş sayfasına dönülür; taslak kartta satır satır görünür ve her
+taslak gibi **"Faturayı kesinleştir"** ile kesilir (§1 adım 5).
+
+**Ne zaman kullanılabilir** (`invoiceWizardRefusal`): sipariş online ve
+ödenmiş; iptal ya da iade edilmemiş; ödeme PayNkolay; ödül kuponu, cüzdan,
+sıfır tutar, oranı olmayan eski sipariş değil; kolisi kargoya verilmiş
+(e-Arşiv taşıyıcıyı yazar); fatura kesilmemiş, elle kesilmemiş, şu an
+işlenmiyor ve resmileştirmesi başlamamış. Kullanılamıyorsa sayfa nedenini
+yazar. `EARSIV_START_AT`'ten **önce** ödenmiş sipariş de sihirbazla kesilir
+(kayıt `requestedBy` ile işaretlenir ve tarama onu kapsam dışı saymaz);
+yasal son günü yine teslimden 7 gündür, geçmişse kart kırmızı yazar. Kafe
+siparişi sihirbazdan istenince teslimi ya da 3 saati beklemez.
+
+**e-Fatura mı e-Arşiv mi:** kesinleştirme anında şirketin VKN'si Paraşüt'e
+sorulur (`GET e_invoice_inboxes?filter[vkn]=`, her seferinde; kayıt
+önbelleğe alınmaz, şirket her gün kaydolabilir):
+
+- **GİB'de e-Fatura kullanıcısı:** `POST e_invoices`, senaryo **TEMELFATURA**
+  (`basic`; alıcı ticari faturadaki gibi reddedemez), alıcı kutusu en son
+  kaydedilen adres. e-Fatura'da internet satışı ve gönderi bloğu yoktur.
+  GİB faturayı şirketin kutusuna kendisi ulaştırır: sitenin e-postası
+  **gitmez**, kart "e-Fatura: alıcının GİB kutusuna gitti" yazar, "E-postayı
+  yeniden gönder" çıkmaz. PDF yine "Faturayı yazdır / indir"de.
+- **Değilse:** e-Arşiv, alıcı vergi numarası şirketin VKN'si ve vergi
+  dairesiyle; PDF fatura e-postasına (yoksa siparişteki adrese) gider.
+
+Bireysel alıcıya e-Fatura kesilmez: nihai tüketicinin e-Fatura kutusu
+yoktur, belgesi e-Arşiv'dir (VUK GT 509: e-Fatura yalnız GİB'e kayıtlı iki mükellef arasında düzenlenir, LEGAL-REDLINES "Her fatura elektronik"). "Biz hep
+e-Fatura çalışıyoruz" alışılmış durum için: şirketler arası faturalar
+Paraşüt'te zaten e-Fatura olarak kesilir; sihirbaz bunu online siparişe
+getirir.
+
+Paraşüt'teki müşteri kaydı şirkette VKN'ye göre tutulur (`vkn:<numara>`):
+aynı kişinin bireysel ve kurumsal faturası ayrı kayıtlara gider. Paraşüt'te
+başka bir alıcı için hazırlanmış taslak (alıcı sonradan değişti) asla
+olduğu gibi kesinleşmez: kuyruk onu yeni alıcıyla yeniden hazırlar,
+"Faturayı kesinleştir" ise "Taslağı yenile" der. Olay
+kaydına şirketin unvanı ve VKN'si, il ve ilçe yazılır; e-posta ve adres
+metni yazılmaz.
+
+Kod: `src/lib/invoice/order-request.ts` (sihirbazın okuduğu her şey),
+`store.ts` `requestOrderInvoice`, `invoice-core.ts` (`buyerOf`,
+`invoiceWizardRefusal`, `eInvoiceBody`, `pickEInvoiceInbox`), `run.ts` (5.
+adım), `src/app/admin/faturalar/actions.ts` `createOrderInvoiceAction`,
+`src/components/admin/invoice-wizard.tsx`. Testler:
+`tests/invoice-core.test.ts`, `tests/invoice-run.test.ts`,
+`tests/invoice-wizard-action.test.ts`,
+`tests/db-integration-invoices.test.ts` ("the invoice wizard's request").
+
+**Muhasebeciye:** (10) e-Fatura senaryosu TEMELFATURA mı TİCARİFATURA mı
+olmalı? Bugün temel. (11) e-Fatura'ya kesilen online siparişin notunda
+"Sipariş no" yeterli mi?

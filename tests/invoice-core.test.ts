@@ -2,15 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import { LEGAL_ENTITY } from "@/lib/legal/entity";
 import {
+  buyerOf,
   CONSUMER_TAX_NUMBER,
   contactBody,
+  contactCacheKey,
+  contactFingerprint,
   deadlineState,
   eArchiveBody,
+  eInvoiceBody,
   expectedTotalMinor,
   invoiceMarker,
   invoiceNote,
   invoicePdfName,
   invoiceRecipient,
+  invoiceWizardRefusal,
   isValidVkn,
   istanbulDay,
   jobOutcome,
@@ -20,6 +25,7 @@ import {
   maskText,
   matchCarrier,
   orderInvoiceLines,
+  pickEInvoiceInbox,
   planKaraokeInvoice,
   planOrderInvoice,
   productBody,
@@ -862,5 +868,225 @@ describe("deadlines in the panel", () => {
     expect(
       invoiceDashboardAlert([], NOW, { mode: "off", errors: ["x"] }),
     ).toBeNull();
+  });
+});
+
+/**
+ * The order's invoice wizard ("Fatura oluştur", 22 Oct 2026): a person asks
+ * for an order's invoice, for a final consumer or for a company. A company
+ * registered at GİB gets an e-Fatura, anyone else an e-Arşiv.
+ */
+describe("the order's invoice wizard", () => {
+  const COMPANY = {
+    kind: "company" as const,
+    title: "Örnek Gıda Ticaret A.Ş.",
+    taxNumber: LEGAL_ENTITY.taxNo, // a valid check digit
+    taxOffice: "Tuzla",
+  };
+  const billing = {
+    city: "İstanbul",
+    district: "Tuzla",
+    address: "Postane Mah. Atatürk Cad. No 28",
+  };
+
+  it("an order paid before EARSIV_START_AT can still be asked for, and a café order is due at once", () => {
+    const old = order({
+      paidAt: "2026-10-14T09:00:00.000Z",
+      createdAt: "2026-10-14T08:59:00.000Z",
+    });
+    expect(plan(old)).toBeNull();
+    const asked = plan(old, { requested: true })!;
+    expect(asked.status).toBe("due");
+    // Its legal deadline stays where the law puts it (late, and the panel says so).
+    expect(asked.deadlineAt).toBe(
+      new Date(Date.parse("2026-10-14T09:00:00.000Z") + 7 * DAY).toISOString(),
+    );
+    // A café order not delivered yet: due now, not three hours after payment.
+    const fresh = order({ paidAt: "2026-10-22T11:30:00.000Z" });
+    expect(plan(fresh)!.status).toBe("waiting");
+    const now = plan(fresh, { requested: true })!;
+    expect(now.status).toBe("due");
+    expect(now.dueAt).toBe(NOW.toISOString());
+  });
+
+  it("still waits for a parcel's shipment and still skips a cancelled order", () => {
+    expect(plan(parcel(), { requested: true })!.status).toBe("waiting");
+    expect(
+      plan(order({ status: "cancelled" }), { requested: true })!.status,
+    ).toBe("skipped");
+    expect(plan(order({ source: "manual" }), { requested: true })).toBeNull();
+  });
+
+  it("says why it cannot be used, and asks for an address it could not read instead of refusing", () => {
+    const refusal = (
+      o: InvoiceOrder,
+      row: Parameters<typeof invoiceWizardRefusal>[0]["row"] = null,
+    ) =>
+      invoiceWizardRefusal({
+        order: o,
+        row,
+        plan: plan(o, { requested: true }),
+      });
+    expect(refusal(order())).toBeNull();
+    expect(refusal(order({ source: "manual" }))).toMatch(/kasanın fişi/);
+    expect(refusal(parcel())).toMatch(/Kargoya verilince/);
+    expect(refusal(order({ status: "cancelled" }))).toMatch(/iptal/);
+    expect(
+      refusal(
+        order({ refunds: [{ amountMinor: 1_000 }] as InvoiceOrder["refunds"] }),
+      ),
+    ).toMatch(/iade/);
+    // A parcel whose address names no district: the wizard asks for it.
+    const unread = parcel({
+      shippedAt: "2026-10-22T09:00:00.000Z",
+      shippingAddress: "Bir yer",
+    });
+    expect(plan(unread, { requested: true })!.manualCode).toBe("address");
+    expect(refusal(unread)).toBeNull();
+    const typed = plan(unread, {
+      requested: true,
+      billingOverride: {
+        city: "İstanbul",
+        district: "Kadıköy",
+        address: "Moda",
+      },
+    })!;
+    expect(typed.status).toBe("due");
+    // Cut, cut by hand, under way, or a formalisation already posted.
+    const row = {
+      status: "draft" as const,
+      eDocumentId: "",
+      jobId: "",
+      formalizePosts: 0,
+    };
+    expect(refusal(order(), row)).toBeNull();
+    expect(
+      refusal(order(), { ...row, status: "issued", eDocumentId: "7" }),
+    ).toMatch(/kesildi/);
+    expect(refusal(order(), { ...row, status: "manual_done" })).toMatch(
+      /elle kesildi/,
+    );
+    expect(refusal(order(), { ...row, status: "working" })).toMatch(
+      /işleniyor/,
+    );
+    expect(
+      refusal(order(), { ...row, status: "manual", formalizePosts: 2 }),
+    ).toMatch(/resmileştirilmeye/);
+  });
+
+  it("reads a row's buyer: a company only when every part of it is there and the VKN is valid", () => {
+    const row = {
+      buyerKind: "company",
+      buyerTitle: COMPANY.title,
+      buyerTaxNumber: COMPANY.taxNumber,
+      buyerTaxOffice: "Tuzla",
+    };
+    expect(buyerOf(row)).toEqual(COMPANY);
+    expect(buyerOf({ ...row, buyerTaxNumber: "1234567891" })).toEqual({
+      kind: "consumer",
+    });
+    expect(buyerOf({ ...row, buyerTaxOffice: " " })).toEqual({
+      kind: "consumer",
+    });
+    expect(buyerOf({ ...row, buyerKind: "consumer" })).toEqual({
+      kind: "consumer",
+    });
+    expect(buyerOf(null)).toEqual({ kind: "consumer" });
+  });
+
+  it("a company contact: its title, VKN and tax office, cached by VKN and not by the person's e-mail", () => {
+    const c = {
+      name: "Eda Mancuso",
+      email: "eda@example.com",
+      billing,
+      buyer: COMPANY,
+    };
+    const body = contactBody(c);
+    for (const k of keys(body.data.attributes))
+      expect(PARASUT_FIELDS.contacts, k).toContain(k);
+    expect(body.data.attributes).toMatchObject({
+      name: COMPANY.title,
+      contact_type: "company",
+      tax_number: COMPANY.taxNumber,
+      tax_office: "Tuzla",
+      email: "eda@example.com",
+    });
+    expect(JSON.stringify(body)).not.toContain("Eda Mancuso");
+    expect(contactCacheKey(c)).toBe(`vkn:${COMPANY.taxNumber}`);
+    expect(contactCacheKey({ ...c, buyer: undefined })).toBe("eda@example.com");
+    // A consumer's fingerprint is what it always was: no cached contact moves.
+    const consumer = { name: "Eda Mancuso", email: "eda@example.com", billing };
+    expect(
+      contactFingerprint({ ...consumer, buyer: { kind: "consumer" } }),
+    ).toBe(contactFingerprint(consumer));
+    expect(contactFingerprint(c)).not.toBe(contactFingerprint(consumer));
+  });
+
+  it("the company's sales invoice carries its VKN and tax office, not the consumer placeholder", () => {
+    const body = salesInvoiceBody({
+      marker: "L'Affogato #10234",
+      note: "Sipariş no: 10234.",
+      issueDate: "2026-10-22",
+      orderNo: "10234",
+      orderDate: "2026-10-22",
+      contactId: "555",
+      billing,
+      lines: [],
+      cashSale: null,
+      buyer: COMPANY,
+    });
+    for (const k of keys(body.data.attributes))
+      expect(PARASUT_FIELDS.sales_invoices, k).toContain(k);
+    expect(body.data.attributes).toMatchObject({
+      tax_number: COMPANY.taxNumber,
+      tax_office: "Tuzla",
+    });
+    expect(JSON.stringify(body)).not.toContain(CONSUMER_TAX_NUMBER);
+  });
+
+  it("the e-Fatura: the basic scenario to the buyer's inbox, no internet sale or shipment", () => {
+    const body = eInvoiceBody({
+      salesInvoiceId: "9",
+      to: "urn:mail:defaultpk@ornek.com.tr",
+    });
+    for (const k of keys(body.data.attributes))
+      expect(PARASUT_FIELDS.e_invoices, k).toContain(k);
+    expect(body).toEqual({
+      data: {
+        type: "e_invoices",
+        attributes: {
+          scenario: "basic",
+          to: "urn:mail:defaultpk@ornek.com.tr",
+        },
+        relationships: {
+          invoice: { data: { id: "9", type: "sales_invoices" } },
+        },
+      },
+    });
+  });
+
+  it("picks the inbox registered last; none means an e-Arşiv", () => {
+    for (const k of ["e_invoice_address", "address_registered_at"])
+      expect(PARASUT_FIELDS.e_invoice_inboxes).toContain(k);
+    expect(pickEInvoiceInbox([])).toBeNull();
+    expect(
+      pickEInvoiceInbox([{ attributes: { e_invoice_address: "" } }]),
+    ).toBeNull();
+    expect(
+      pickEInvoiceInbox([
+        {
+          attributes: {
+            e_invoice_address: "urn:mail:eski@ornek.com.tr",
+            address_registered_at: "2020-01-01T00:00:00Z",
+          },
+        },
+        {
+          attributes: {
+            e_invoice_address: "urn:mail:defaultpk@ornek.com.tr",
+            address_registered_at: "2024-05-01T00:00:00Z",
+          },
+        },
+      ]),
+    ).toBe("urn:mail:defaultpk@ornek.com.tr");
   });
 });

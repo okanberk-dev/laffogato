@@ -251,13 +251,15 @@ class FakeParasut {
     {
       attrs: Record<string, unknown>;
       contactId: string;
-      eDoc: { id: string; number: string; uuid: string } | null;
+      eDoc: { id: string; type: string; number: string; uuid: string } | null;
     }
   >();
   jobs = new Map<
     string,
-    { invoiceId: string; script: string[]; errors: string[] }
+    { invoiceId: string; type: string; script: string[]; errors: string[] }
   >();
+  /** GİB's e-Fatura users: VKN → inbox address. */
+  inboxes = new Map<string, string>();
   /** Statuses each new job reports, poll after poll. */
   jobScript = ["running", "done"];
   jobErrors: string[] = [];
@@ -286,7 +288,7 @@ class FakeParasut {
       attributes: inv.attrs,
       relationships: {
         active_e_document: {
-          data: inv.eDoc ? { id: inv.eDoc.id, type: "e_archives" } : null,
+          data: inv.eDoc ? { id: inv.eDoc.id, type: inv.eDoc.type } : null,
         },
       },
     };
@@ -297,6 +299,25 @@ class FakeParasut {
   ): Promise<T | null> {
     events.push(`api:GET ${path.split("/")[0]}`);
     if (path === "products") return { data: [] } as T;
+    if (path === "e_invoice_inboxes") {
+      const vkn = String(query["filter[vkn]"] ?? "");
+      const address = this.inboxes.get(vkn);
+      return {
+        data: address
+          ? [
+              {
+                id: "1",
+                type: "e_invoice_inboxes",
+                attributes: {
+                  vkn,
+                  e_invoice_address: address,
+                  address_registered_at: "2024-05-01T00:00:00Z",
+                },
+              },
+            ]
+          : [],
+      } as T;
+    }
     if (path === "sales_invoices") {
       const data = [...this.invoices.entries()]
         .filter(
@@ -317,7 +338,7 @@ class FakeParasut {
           ? [
               {
                 id: inv.eDoc.id,
-                type: "e_archives",
+                type: inv.eDoc.type,
                 attributes: {
                   invoice_number: inv.eDoc.number,
                   uuid: inv.eDoc.uuid,
@@ -333,7 +354,7 @@ class FakeParasut {
       if (!job) return null;
       const status =
         job.script.length > 1 ? job.script.shift()! : job.script[0];
-      if (status === "done") this.formalize(job.invoiceId);
+      if (status === "done") this.formalize(job.invoiceId, job.type);
       return {
         data: {
           id: j[1],
@@ -344,10 +365,11 @@ class FakeParasut {
     }
     throw new Error(`fake GET ${path}`);
   }
-  private formalize(invoiceId: string) {
+  private formalize(invoiceId: string, type = "e_archives") {
     const inv = this.invoices.get(invoiceId)!;
     inv.eDoc ??= {
       id: `ea${invoiceId}`,
+      type,
       number: `GIB2026${invoiceId.padStart(9, "0")}`,
       uuid: `uuid-${invoiceId}`,
     };
@@ -387,12 +409,15 @@ class FakeParasut {
       const contactId = (data.relationships!.contact.data as { id: string }).id;
       this.invoices.set(id, { attrs, contactId, eDoc: null });
       out = this.doc(id);
-    } else if (path === "e_archives") {
-      const invoiceId = (
-        data.relationships!.sales_invoice.data as { id: string }
-      ).id;
+    } else if (path === "e_archives" || path === "e_invoices") {
+      const rel =
+        path === "e_archives"
+          ? data.relationships!.sales_invoice
+          : data.relationships!.invoice;
+      const invoiceId = (rel.data as { id: string }).id;
       this.jobs.set(id, {
         invoiceId,
+        type: path,
         script: [...this.jobScript],
         errors: [...this.jobErrors],
       });
@@ -1000,6 +1025,7 @@ describe("a run that dies halfway resumes without a second invoice", () => {
     for (const inv of parasut.invoices.keys()) {
       parasut.invoices.get(inv)!.eDoc = {
         id: "ea1",
+        type: "e_archives",
         number: "GIB2026000000001",
         uuid: "u1",
       };
@@ -1171,5 +1197,204 @@ describe("the hook", () => {
     expect(store.calls).not.toContain("openRows");
     expect(store.calls).not.toContain("recentPaidOrders");
     expect(store.row().status).toBe("issued");
+  });
+});
+
+/**
+ * The order's invoice wizard (22 Oct 2026): a person names the buyer and
+ * the row is cut now. A company registered at GİB gets an e-Fatura (to its
+ * inbox, no mail of ours); a company that is not, an e-Arşiv with its VKN
+ * and tax office; an order paid before EARSIV_START_AT is cut too.
+ */
+describe("the order's invoice wizard", () => {
+  const DRAFT = { ...LIVE_ENV, EARSIV_MODE: "draft" };
+  const VKN = LEGAL_ENTITY.taxNo; // a valid check digit
+  const company = (over: Partial<InvoiceRow> = {}): Partial<InvoiceRow> => ({
+    buyerKind: "company",
+    buyerTitle: "Örnek Gıda Ticaret A.Ş.",
+    buyerTaxNumber: VKN,
+    buyerTaxOffice: "Tuzla",
+    buyerEmail: "muhasebe@ornek.com.tr",
+    requestedBy: "owner@laffogato.net",
+    ...over,
+  });
+  /** What requestOrderInvoice writes: the buyer, and the row due now. */
+  async function ask(over: Partial<InvoiceRow>, env = DRAFT) {
+    await runInvoicesWith(deps(env), {
+      budgetMs: 120_000,
+      reason: "cron",
+      limit: 0,
+    });
+    let row = store.row();
+    if (!row) {
+      const { blankInvoice } = await import("@/lib/invoice/store");
+      row = blankInvoice("order", "ord-1", new Date(clock).toISOString());
+      store.rows.set(row.id, row);
+    }
+    store.rows.set(row.id, {
+      ...row,
+      ...over,
+      sourceLabel: "#10234",
+      status: row.status === "draft" ? "draft" : "due",
+      dueAt: row.dueAt || new Date(clock).toISOString(),
+    } as InvoiceRow);
+    return runInvoiceRowWith(deps(env), {
+      id: row.id,
+      action: row.status === "draft" ? "rebuild" : "cut",
+      budgetMs: 50_000,
+    });
+  }
+
+  it("a company registered at GİB: its contact and draft carry VKN and tax office, formalised as an e-Fatura to its inbox, no mail", async () => {
+    parasut.inboxes.set(VKN, "urn:mail:defaultpk@ornek.com.tr");
+    const cut = await ask(company());
+    expect(cut).toMatchObject({ taken: true, step: "draft" });
+    const contact = parasut.posts.find((p) => p.path === "contacts")!.body as {
+      data: { attributes: Record<string, unknown> };
+    };
+    expect(contact.data.attributes).toMatchObject({
+      name: "Örnek Gıda Ticaret A.Ş.",
+      contact_type: "company",
+      tax_number: VKN,
+      tax_office: "Tuzla",
+      email: "muhasebe@ornek.com.tr",
+    });
+    expect(JSON.stringify(contact)).not.toContain("Eda Mancuso");
+    // Cached under the VKN, not under the person's e-mail.
+    expect([...store.contacts.keys()]).toEqual([`123:vkn:${VKN}`]);
+    const si = parasut.posts.find((p) => p.path === "sales_invoices")!.body as {
+      data: { attributes: Record<string, unknown> };
+    };
+    expect(si.data.attributes).toMatchObject({
+      tax_number: VKN,
+      tax_office: "Tuzla",
+    });
+
+    const done = await runInvoiceRowWith(deps(DRAFT), {
+      id: store.row().id,
+      action: "formalize",
+      budgetMs: 50_000,
+    });
+    expect(done).toMatchObject({ taken: true, step: "issued" });
+    const posted = parasut.posts.map((p) => p.path);
+    expect(posted).toContain("e_invoices");
+    expect(posted).not.toContain("e_archives");
+    expect(
+      parasut.posts.find((p) => p.path === "e_invoices")!.body,
+    ).toMatchObject({
+      data: {
+        attributes: {
+          scenario: "basic",
+          to: "urn:mail:defaultpk@ornek.com.tr",
+        },
+      },
+    });
+    expect(store.row()).toMatchObject({
+      status: "issued",
+      eDocumentType: "e_invoices",
+      emailedAt: "",
+      emailError: "",
+      nextAttemptAt: "",
+    });
+    // GİB delivers it: no mail of ours, and the queue does not try one.
+    expect(mails).toEqual([]);
+    await run(DRAFT);
+    expect(mails).toEqual([]);
+  });
+
+  it("a company that is not an e-Fatura user: an e-Arşiv with its VKN, the PDF to the invoice e-mail", async () => {
+    await ask(company(), LIVE_ENV);
+    const posted = parasut.posts.map((p) => p.path);
+    expect(posted).toContain("e_archives");
+    expect(posted).not.toContain("e_invoices");
+    expect(store.row()).toMatchObject({
+      status: "issued",
+      eDocumentType: "e_archives",
+    });
+    expect(mails).toHaveLength(1);
+    expect(mails[0]).toMatchObject({
+      to: "muhasebe@ornek.com.tr",
+      customerName: "Örnek Gıda Ticaret A.Ş.",
+    });
+  });
+
+  it("an order paid before EARSIV_START_AT is cut when a person asks, and the sweep keeps it due", async () => {
+    store.orders.set(
+      "ord-1",
+      anOrder({
+        createdAt: "2026-10-16T08:00:00.000Z",
+        paidAt: "2026-10-16T08:01:00.000Z",
+        shippedAt: "2026-10-16T08:20:00.000Z",
+      }),
+    );
+    // The automation leaves it alone.
+    await run(DRAFT);
+    expect(store.rows.size).toBe(0);
+    const cut = await ask({
+      buyerKind: "consumer",
+      requestedBy: "owner@laffogato.net",
+    });
+    expect(cut).toMatchObject({ taken: true, step: "draft" });
+    expect(store.row()).toMatchObject({ status: "draft", amountMinor: 27_000 });
+    // A later sweep does not take it out of scope.
+    await run(DRAFT);
+    expect(store.row().status).toBe("draft");
+  });
+
+  it("live: a failed row whose sales invoice was made for the consumer is not formalised for the company as it was: it is made again", async () => {
+    // The e-Arşiv job fails once: the row keeps its sales invoice and waits.
+    parasut.jobScript = ["error"];
+    parasut.jobErrors = ["geçici hata"];
+    await run();
+    const failed = store.row();
+    expect(failed.status).toBe("failed");
+    const old = failed.salesInvoiceId;
+    expect(old).not.toBe("");
+    parasut.jobScript = ["running", "done"];
+    parasut.jobErrors = [];
+    // Even if the queue takes it first, the new buyer is what is formalised.
+    store.rows.set(failed.id, {
+      ...failed,
+      ...company(),
+      status: "due",
+      nextAttemptAt: "",
+    } as InvoiceRow);
+    await run();
+    expect(parasut.deletes).toContain(`sales_invoices/${old}`);
+    const latest = parasut.posts
+      .filter((p) => p.path === "sales_invoices")
+      .at(-1)!.body as { data: { attributes: Record<string, unknown> } };
+    expect(latest.data.attributes).toMatchObject({ tax_number: VKN });
+    expect(store.row()).toMatchObject({ status: "issued" });
+  });
+
+  it("does not formalise a draft the person read for another buyer", async () => {
+    await run(DRAFT);
+    const draft = store.row();
+    store.rows.set(draft.id, { ...draft, ...company() } as InvoiceRow);
+    const r = await runInvoiceRowWith(deps(DRAFT), {
+      id: draft.id,
+      action: "formalize",
+      budgetMs: 50_000,
+    });
+    expect(r).toMatchObject({ taken: true, step: "draft" });
+    expect(store.row().lastError).toMatch(/başka bir alıcı/);
+    expect(parasut.posts.map((p) => p.path)).not.toContain("e_archives");
+    expect(parasut.deletes).toEqual([]);
+  });
+
+  it("a draft made for the consumer is rebuilt for the company: the old draft goes, the new one names the company", async () => {
+    await run(DRAFT);
+    expect(store.row().status).toBe("draft");
+    const before = store.row().salesInvoiceId;
+    const r = await ask(company());
+    expect(r).toMatchObject({ taken: true, step: "draft" });
+    expect(parasut.deletes).toEqual([`sales_invoices/${before}`]);
+    const row = store.row();
+    expect(row.salesInvoiceId).not.toBe(before);
+    const latest = parasut.posts
+      .filter((p) => p.path === "sales_invoices")
+      .at(-1)!.body as { data: { attributes: Record<string, unknown> } };
+    expect(latest.data.attributes).toMatchObject({ tax_number: VKN });
   });
 });

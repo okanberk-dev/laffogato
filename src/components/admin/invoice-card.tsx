@@ -3,34 +3,42 @@ import Link from "next/link";
 import { formatDateTime, formatTRY } from "@/components/admin/forms";
 import { Badge, KeyValueGrid, Section } from "@/components/admin/ui";
 import type { EarsivMode } from "@/lib/invoice/config";
-import {
-  CONSUMER_TAX_NUMBER,
-  type InvoiceLine,
-  type InvoiceRow,
-  type InvoiceSourceKind,
+import type {
+  InvoiceLine,
+  InvoiceRow,
+  InvoiceSourceKind,
 } from "@/lib/invoice/invoice-core";
 import {
   deadlineBadge,
   INVOICE_STATUS_TONE,
   INVOICES_PATH,
+  invoiceBuyerLines,
   invoiceDraftMarker,
+  invoiceKindLabel,
   invoiceNoteText,
   invoicePdfHref,
   invoiceRouteLabel,
   invoiceStatusLabel,
+  invoiceWizardHref,
+  invoiceWizardOpen,
+  isEInvoice,
 } from "@/lib/invoice/panel-core";
 
 import { InvoiceActions } from "./invoice-actions";
+import { InvoiceLinesTable, InvoiceTotals } from "./invoice-lines";
 
 /**
- * The e-Arşiv invoice of one order or booking (docs/EARSIV.md): where it is,
+ * The invoice of one order or booking (docs/EARSIV.md): e-Arşiv, or an
+ * e-Fatura to a company registered at GİB (the order's invoice wizard).
+ * Where it is,
  * its number and deadline, why a person has to cut it, a refund after it,
  * and for an issued one "Faturayı yazdır / indir" (a parcel carries the
  * printout). The actions need the `invoices` role; the PDF link the order's
  * or the booking's own (the route checks both).
  *
  * A draft shows what was sent to Paraşüt, line by line, before a person
- * formalises it ("Faturayı kesinleştir").
+ * formalises it ("Faturayı kesinleştir"). An order's card opens the
+ * invoice wizard ("Fatura oluştur") while nothing is formalised.
  */
 export function InvoiceCard({
   row,
@@ -59,9 +67,17 @@ export function InvoiceCard({
 }) {
   const deadline = row ? deadlineBadge(row, now) : null;
   const note = row ? invoiceNoteText(row) : "";
+  const wizardHref =
+    canManage &&
+    mode !== "off" &&
+    source.kind === "order" &&
+    invoiceWizardOpen(row)
+      ? invoiceWizardHref(source.id)
+      : null;
+  const buyer = row ? invoiceBuyerLines(row, buyerName) : null;
   return (
     <Section
-      title="e-Arşiv fatura"
+      title={invoiceKindLabel(row)}
       actions={
         canManage ? (
           <Link
@@ -82,7 +98,9 @@ export function InvoiceCard({
           <p className="text-[var(--admin-text-soft)]">
             {mode === "off"
               ? "Otomatik e-Arşiv kapalı: fatura Paraşüt'te elle kesilir."
-              : "Henüz fatura kaydı yok. Ödenmiş online sipariş ve rezervasyonlar bir sonraki çalıştırmada eklenir."}
+              : source.kind === "order"
+                ? 'Henüz fatura kaydı yok. Ödenmiş online sipariş bir sonraki çalıştırmada eklenir; beklemeden ya da kurumsal kesmek için "Fatura oluştur".'
+                : "Henüz fatura kaydı yok. Ödenmiş rezervasyonlar bir sonraki çalıştırmada eklenir."}
           </p>
         ) : (
           <>
@@ -100,6 +118,9 @@ export function InvoiceCard({
             </div>
             <KeyValueGrid
               items={[
+                ...(row.buyerKind === "company" && buyer
+                  ? [{ label: "Alıcı", value: `${buyer.name} (${buyer.tax})` }]
+                  : []),
                 { label: "Fatura no", value: row.invoiceNo || "-" },
                 {
                   label: "Tutar (KDV dahil)",
@@ -115,13 +136,15 @@ export function InvoiceCard({
                 },
                 {
                   label: "E-posta",
-                  value: row.emailedAt
-                    ? `Gönderildi (${formatDateTime(row.emailedAt)})`
-                    : row.status === "issued"
-                      ? row.emailError
-                        ? "Gönderilemedi"
-                        : "Gönderilecek"
-                      : "-",
+                  value: isEInvoice(row)
+                    ? "e-Fatura: alıcının GİB kutusuna gitti"
+                    : row.emailedAt
+                      ? `Gönderildi (${formatDateTime(row.emailedAt)})`
+                      : row.status === "issued"
+                        ? row.emailError
+                          ? "Gönderilemedi"
+                          : "Gönderilecek"
+                        : "-",
                 },
                 {
                   label: "Fatura adresi",
@@ -151,7 +174,12 @@ export function InvoiceCard({
           </>
         )}
         {canManage ? (
-          <InvoiceActions row={row} source={source} parasutUrl={parasutUrl} />
+          <InvoiceActions
+            row={row}
+            source={source}
+            parasutUrl={parasutUrl}
+            wizardHref={wizardHref}
+          />
         ) : row?.eDocumentId ? (
           <div>
             <a
@@ -167,9 +195,6 @@ export function InvoiceCard({
     </Section>
   );
 }
-
-const CELL = "px-2 py-1.5 text-left align-top";
-const NUM = "px-2 py-1.5 text-right align-top tabular-nums whitespace-nowrap";
 
 /**
  * The draft as the site sent it: buyer, address, lines, KDV and total, and
@@ -187,8 +212,7 @@ function DraftPreview({
   const address = [row.billingAddress, row.billingDistrict, row.billingCity]
     .filter(Boolean)
     .join(", ");
-  // The discount column only when a line has one: four columns fit a phone.
-  const discounted = (lines ?? []).some((l) => l.discountMinor > 0);
+  const buyer = invoiceBuyerLines(row, buyerName);
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)] p-3">
       <p className="font-medium">
@@ -196,11 +220,8 @@ function DraftPreview({
       </p>
       <KeyValueGrid
         items={[
-          { label: "Alıcı", value: buyerName || "-" },
-          {
-            label: "TCKN",
-            value: `${CONSUMER_TAX_NUMBER} (nihai tüketici)`,
-          },
+          { label: "Alıcı", value: buyer.name },
+          { label: "Vergi", value: buyer.tax },
           { label: "Fatura adresi", value: address || "-" },
           {
             label: "Paraşüt'te",
@@ -209,72 +230,12 @@ function DraftPreview({
         ]}
       />
       {lines && lines.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <caption className="sr-only">
-              Taslağın satırları, tutarlar KDV dahil
-            </caption>
-            <thead className="text-xs text-[var(--admin-text-soft)]">
-              <tr>
-                <th scope="col" className={CELL}>
-                  Satır
-                </th>
-                <th scope="col" className={NUM}>
-                  Adet
-                </th>
-                <th scope="col" className={NUM}>
-                  KDV
-                </th>
-                {discounted ? (
-                  <th scope="col" className={NUM}>
-                    İndirim
-                  </th>
-                ) : null}
-                <th scope="col" className={NUM}>
-                  Tutar
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => (
-                <tr
-                  key={`${l.productCode}-${i}`}
-                  className="border-t border-[var(--admin-border)]"
-                >
-                  <td className={CELL}>
-                    {l.description}
-                    <span className="block text-xs text-[var(--admin-text-soft)]">
-                      Ürün: {l.productName}
-                    </span>
-                  </td>
-                  <td className={NUM}>{l.quantity}</td>
-                  <td className={NUM}>%{l.vatRate}</td>
-                  {discounted ? (
-                    <td className={NUM}>
-                      {l.discountMinor ? formatTRY(l.discountMinor) : "-"}
-                    </td>
-                  ) : null}
-                  <td className={NUM}>{formatTRY(l.totalMinor)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <InvoiceLinesTable
+          lines={lines}
+          caption="Taslağın satırları, tutarlar KDV dahil"
+        />
       ) : null}
-      {row.kdvRows.length > 0 ? (
-        <ul className="flex flex-col gap-0.5 text-[var(--admin-text-soft)]">
-          {row.kdvRows.map((k) => (
-            <li key={k.ratePct}>
-              KDV %{k.ratePct}: matrah {formatTRY(k.netMinor)}, KDV{" "}
-              {formatTRY(k.taxMinor)}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <p className="font-medium">
-        Genel toplam (KDV dahil):{" "}
-        {row.amountMinor ? formatTRY(row.amountMinor) : "-"}
-      </p>
+      <InvoiceTotals kdvRows={row.kdvRows} totalMinor={row.amountMinor} />
     </div>
   );
 }

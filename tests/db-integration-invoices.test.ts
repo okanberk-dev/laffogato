@@ -364,6 +364,109 @@ maybe("e-Arşiv invoices in a real Postgres", () => {
     ).toBeNull();
   });
 
+  it("writes the invoice wizard's request: the buyer, the address, the row due now; never on a cut or posted one", async () => {
+    const company = {
+      kind: "company" as const,
+      title: "Örnek Gıda Ticaret A.Ş.",
+      taxNumber: "1234567890",
+      taxOffice: "Tuzla",
+    };
+    const billing = { city: "İstanbul", district: "Tuzla", address: "No 28" };
+    const planOf = (label: string) => ({
+      sourceLabel: label,
+      route: "pickup" as const,
+      deadlineAt: "2026-10-29T10:00:00.000Z",
+      amountMinor: 38_000,
+    });
+    // No row yet: one is made, due now, marked as asked for.
+    const fresh = await mod.requestOrderInvoice(
+      "ord-20",
+      planOf("#10020"),
+      { buyer: company, email: "muhasebe@ornek.com.tr", billing },
+      "a@laffogato.net",
+    );
+    expect(fresh.ok).toBe(true);
+    const made = await mod.getInvoiceForSource("order", "ord-20");
+    expect(made).toMatchObject({
+      status: "due",
+      sourceLabel: "#10020",
+      route: "pickup",
+      deadlineAt: "2026-10-29T10:00:00.000Z",
+      amountMinor: 38_000,
+      buyerKind: "company",
+      buyerTitle: company.title,
+      buyerTaxNumber: company.taxNumber,
+      buyerTaxOffice: "Tuzla",
+      buyerEmail: "muhasebe@ornek.com.tr",
+      requestedBy: "a@laffogato.net",
+      billingCity: "İstanbul",
+      billingEditedBy: "a@laffogato.net",
+    });
+    expect(made!.dueAt).not.toBe("");
+    // A person's "elle kesilecek" row comes back into the queue.
+    await seed(
+      row("ord-21", {
+        status: "manual",
+        manualCode: "corporate",
+        actor: "b",
+        dueAt: "",
+      }),
+    );
+    const back = await mod.requestOrderInvoice(
+      "ord-21",
+      planOf("#10021"),
+      { buyer: { kind: "consumer" }, email: "", billing: null },
+      "a",
+    );
+    expect(back.ok).toBe(true);
+    expect(await mod.getInvoiceForSource("order", "ord-21")).toMatchObject({
+      status: "due",
+      manualCode: "",
+      actor: "",
+      buyerKind: "consumer",
+      requestedBy: "a",
+    });
+    // A draft stays a draft (the caller rebuilds it for the new buyer).
+    await seed(row("ord-22", { status: "draft", salesInvoiceId: "5" }));
+    const draft = await mod.requestOrderInvoice(
+      "ord-22",
+      planOf("#10022"),
+      { buyer: company, email: "", billing },
+      "a",
+    );
+    expect(draft.ok && draft.row.status).toBe("draft");
+    expect(await mod.getInvoiceForSource("order", "ord-22")).toMatchObject({
+      status: "draft",
+      salesInvoiceId: "5",
+      buyerKind: "company",
+    });
+    // Cut, cut by hand, held by a run, or its job posted: refused, untouched.
+    await seed(
+      row("ord-23", { status: "issued", eDocumentId: "1", emailedAt: NOW }),
+      row("ord-24", { status: "manual_done", invoiceNo: "X1" }),
+      row("ord-25", { status: "working", claimedAt: NOW }),
+      row("ord-26", { status: "manual", jobId: "", formalizePosts: 2 }),
+    );
+    for (const id of ["ord-23", "ord-24", "ord-25", "ord-26"]) {
+      const r = await mod.requestOrderInvoice(
+        id,
+        planOf("#1"),
+        { buyer: company, email: "", billing },
+        "a",
+      );
+      expect(r.ok, id).toBe(false);
+      expect((await mod.getInvoiceForSource("order", id))!.buyerKind, id).toBe(
+        "consumer",
+      );
+    }
+    // The schema refuses a buyer kind it does not know.
+    await expect(
+      pool!.query(
+        `update public.invoices set "buyerKind" = 'person' where "sourceId" = 'ord-20'`,
+      ),
+    ).rejects.toThrow(/invoices_buyer_kind/);
+  });
+
   it("marks an invoice manual and done by hand, and retries it, through the panel's helpers", async () => {
     const marked = await mod.markInvoiceManual(
       "order",

@@ -42,6 +42,8 @@ import {
   invoiceSourceHref,
   invoiceStatusLabel,
   invoiceTab,
+  invoiceWizardHref,
+  invoiceWizardOpen,
   parseInvoiceTab,
 } from "@/lib/invoice/panel-core";
 import type { RunSummary } from "@/lib/invoice/run";
@@ -179,11 +181,12 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     .join("\n");
 
   const parasutUrl = parasutAppUrl(process.env);
+  const modeOn = earsivConfigStatus(process.env).mode !== "off";
   return (
     <PageShell width="list">
       <PageHeader
         title="Faturalar"
-        description="Online siparişlerin ve karaoke rezervasyonlarının e-Arşiv faturaları (Paraşüt)."
+        description="Online siparişlerin ve karaoke rezervasyonlarının faturaları (Paraşüt): e-Arşiv, kurumsal alıcı GİB'de kayıtlıysa e-Fatura."
         help={
           <p>
             Kargo kolisinin faturası kargoya verilince, kafe siparişininki
@@ -278,6 +281,11 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
         rowActions={(r) => (
           <InvoiceActions
             parasutUrl={parasutUrl}
+            wizardHref={
+              modeOn && r.sourceKind === "order" && invoiceWizardOpen(r)
+                ? invoiceWizardHref(r.sourceId)
+                : null
+            }
             row={r}
             source={{
               kind: r.sourceKind,
