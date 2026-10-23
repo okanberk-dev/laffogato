@@ -2,7 +2,13 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { Executor } from "@/lib/db/client";
-import { toPanelOrder } from "@/lib/panel/orders-feed-core";
+import {
+  PANEL_ORDERS_MAX,
+  panelOrderRowsComplete,
+  panelOrdersLiveSince,
+  panelOrdersSince,
+  toPanelOrder,
+} from "@/lib/panel/orders-feed-core";
 import {
   buildPanelSales,
   panelSalesReadBounds,
@@ -219,6 +225,7 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     const rows = await store.listPanelOpenOrderRows(
       "2026-10-14T12:00:00.000Z",
       50,
+      panelOrdersLiveSince(NOW),
     );
     expect(rows.map((r) => r.id).sort()).toEqual([
       "ord-pf-01",
@@ -242,6 +249,68 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       "4821",
     ]) {
       expect(text).not.toContain(leak);
+    }
+  });
+
+  it("leaves forgotten orders in the database, so 250 of them hide no fresh one", async () => {
+    // Undone at the end: the sales test below counts the fixture as it was.
+    await q("savepoint forgotten");
+    try {
+      const items = JSON.stringify([
+        {
+          productName: "Latte",
+          qty: 1,
+          unitPriceMinor: 12_000,
+          status: "pending",
+        },
+      ]);
+      const twoDaysAgo = minutesAgo(48 * 60);
+      // Nobody pressed a button on these: 250 never started, 250 pickups
+      // ready two days ago and never handed over. All paid before today's.
+      for (const [status, from, shippedAt] of [
+        ["paid", 91_000, ""],
+        ["shipped", 91_500, minutesAgo(47 * 60)],
+      ] as const) {
+        await q(
+          `insert into public.orders (id, "orderNo", status, kind, source,
+             fulfillment, items, refunds, "subtotalMinor", "totalMinor",
+             "customerName", "createdAt", "paidAt", "shippedAt")
+           select 'ord-old-' || ($2::int + g), $2::int + g, $1, 'cafe', '',
+             'pickup', $3::jsonb, '[]'::jsonb, 12000, 12000, 'Ayşe',
+             $4, $4, $5
+           from generate_series(1, 250) g`,
+          [status, from, items, twoDaysAgo, shippedAt],
+        );
+      }
+      // Planned for two hours from now, paid five days ago: live.
+      await insertOrder("ord-pf-12", 90_012, {
+        status: "paid",
+        paidAt: minutesAgo(5 * 24 * 60),
+        createdAt: minutesAgo(5 * 24 * 60),
+      });
+      await q(`update public.orders set "scheduledFor" = $1 where id = $2`, [
+        new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
+        "ord-pf-12",
+      ]);
+
+      const limit = PANEL_ORDERS_MAX + 1;
+      const rows = await store.listPanelOpenOrderRows(
+        panelOrdersSince(NOW),
+        limit,
+        panelOrdersLiveSince(NOW),
+      );
+      expect(rows.map((r) => r.id).sort()).toEqual([
+        "ord-pf-01",
+        "ord-pf-02",
+        "ord-pf-03",
+        "ord-pf-12",
+      ]);
+      expect(panelOrderRowsComplete(rows, limit)).toBe(true);
+      expect(
+        rows.map((r) => toPanelOrder(r, NOW)).every((o) => o !== null),
+      ).toBe(true);
+    } finally {
+      await q("rollback to savepoint forgotten");
     }
   });
 

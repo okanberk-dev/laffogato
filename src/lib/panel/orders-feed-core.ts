@@ -127,6 +127,41 @@ export function panelOrdersSince(now: Date): string {
   ).toISOString();
 }
 
+/**
+ * The stale limits above as the read's lower bounds (ISO, which sorts as
+ * text). An open order is read when its planned time or its payment is at
+ * or after `dueSince`, a ready pickup when its readiness or its payment is
+ * at or after `readySince`: a superset of `toPanelOrder`'s rule (an order is
+ * planned after it is paid and ready after it is paid), which still
+ * decides. In the query, so forgotten orders cannot fill the read's limit
+ * and hide today's.
+ */
+export function panelOrdersLiveSince(now: Date): {
+  dueSince: string;
+  readySince: string;
+} {
+  return {
+    dueSince: new Date(now.getTime() - PANEL_ORDER_STALE_MS).toISOString(),
+    readySince: new Date(
+      now.getTime() - PANEL_ORDER_READY_STALE_MS,
+    ).toISOString(),
+  };
+}
+
+/**
+ * Whether the read brought every row: `listPanelOpenOrderRows` reads open
+ * (`paid`, `preparing`) and ready (`shipped`) orders in two reads of `limit`
+ * each, and one that came back full may have been cut. Counted on the raw
+ * rows, before `toPanelOrder` drops any.
+ */
+export function panelOrderRowsComplete(
+  rows: ReadonlyArray<{ status: string }>,
+  limit: number,
+): boolean {
+  const ready = rows.filter((r) => r.status === "shipped").length;
+  return ready < limit && rows.length - ready < limit;
+}
+
 function stageOf(row: PanelOrderSourceRow): PanelOrderStage | null {
   if (row.status === "paid") return "new";
   if (row.status === "preparing") return "preparing";
