@@ -414,7 +414,7 @@ describe("POST /api/panel/menu", () => {
 
   it("refuses with 409 an L price for an item the site keeps single-size", async () => {
     // The operator closed Latte's L here; the panel's copy still has it.
-    store.getMenuItem.mockResolvedValue(item({ priceMinorL: 0 }));
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
     const res = await POST(
       signedPost({
         id: "mnu-0011",
@@ -437,7 +437,7 @@ describe("POST /api/panel/menu", () => {
       ...item(),
       ...fields,
     }));
-    store.getMenuItem.mockResolvedValue(item({ priceMinorL: 0 }));
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
     for (const body of [
       { id: "mnu-0011", priceMinor: 14500, priceMinorL: 0, actor: "S" },
       { id: "mnu-0011", priceMinor: 14500, actor: "S" },
@@ -445,7 +445,7 @@ describe("POST /api/panel/menu", () => {
       expect((await POST(signedPost(body))).status).toBe(200);
     }
     // The operator opened L here meanwhile: the panel's L price is a move.
-    store.getMenuItem.mockResolvedValue(item({ priceMinorL: 15000 }));
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 15000 }));
     const res = await POST(
       signedPost({ id: "mnu-0011", priceMinorL: 16000, actor: "S" }),
     );
