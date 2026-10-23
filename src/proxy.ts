@@ -81,6 +81,24 @@ import { updateSession } from "@/lib/supabase/proxy";
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // A backslash in the path (`/karaoke%5C`, `/%5C%5C%5C`) names no page,
+  // but on Vercel it reached the pages-router lookup, which tried to
+  // require `.next/server/pages/karaoke%5C.js` and answered 500
+  // (MODULE_NOT_FOUND, 20 and 21 Eki 2026). Browsers turn a typed `\` into
+  // `/` before sending, so only a client that encodes it on purpose (a
+  // scanner) gets here: a plain 404 from the proxy, before any routing.
+  // Not a redirect to the cleaned path: no visitor needs it, and every
+  // cleaning rule would be one more way to build a `//host` location.
+  // `/api/*` keeps its own answer: the route handlers reply in their
+  // contract's shape (the app reads `{error, message}`, docs/API-MOBILE.md),
+  // a plain-text 404 here would change that.
+  if (!path.startsWith("/api/") && BACKSLASH_IN_PATH.test(path)) {
+    return new NextResponse("Sayfa bulunamadı.", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
+  }
+
   if (path.startsWith("/api/")) {
     return NextResponse.next();
   }
@@ -237,6 +255,9 @@ export async function proxy(request: NextRequest) {
   return finish(response);
 }
 
+/** `\` raw or percent-encoded (`%5C`, `%5c`), anywhere in the path. */
+const BACKSLASH_IN_PATH = /\\|%5c/i;
+
 /**
  * Moves the admin cookies of before 21 Eki 2026 (path `/`, the old names)
  * under `/admin` (lib/admin/session-cookie.ts). Called for a request to the
@@ -325,5 +346,9 @@ export const config = {
     // which must get the panel CSP and the cookie move like any other
     // (#100, 21 Eki 2026). The panel's own assets are under `_next/static`.
     "/((?!api/mobile|api/webhooks|api/cron|api/bulten|_next/static|_next/image|favicon.ico|(?!admin/).*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|js|mjs|css|map|woff|woff2|ttf|otf|txt|xml|webmanifest|mp4|webm|pdf)$).*)",
+    // And any path with a backslash, raw or encoded, outside `/api/` - with a
+    // file extension and under `_next/static` too - so the proxy answers it
+    // with a 404 before the router tries to resolve it (above).
+    "/((?!api/).*(?:%5[cC]|\\\\).*)",
   ],
 };
