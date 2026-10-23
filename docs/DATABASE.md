@@ -418,6 +418,14 @@ veritabanına bağlanılmaz** ve site, veritabanı ulaşılamıyormuş gibi davr
 - `/api/health` `db: "unconfigured"` (503) döner, `down` değil: düzeltme
   beklemek değil, bir dağıtım ayarıdır.
 - İki betik hiçbir yere bağlanmadan aynı mesajla çıkar (çıkış kodu 1).
+- **Üretim derlemesi kırmızıya döner** (23 Eki 2026): `VERCEL_ENV=production`
+  iken `DATABASE_URL` yoksa `scripts/check-build-env.mjs` derlemeyi aynı
+  mesajla durdurur, önceki dağıtım yayında kalır. Vercel `npm run build`'i
+  değil `vercel.json` `buildCommand`'ı koşar; denetim oradadır (`prebuild`'de
+  de). Önizleme, yerel derleme ve CI (`VERCEL_ENV` yok) etkilenmez; `next
+  build` veritabanına bağlanmaz. Olay: 15-17 Eki 2026'da bir derleme
+  `DATABASE_URL`'siz `[db-degraded]` ile çalıştı
+  (`tests/build-env-check.test.ts`).
 
 Testler: `tests/db-connection-url.test.ts` aynı on durumu ortak kurala, veri
 katmanına ve iki betiğe (gerçekten çalıştırarak; hangi adrese bağlanmaya
