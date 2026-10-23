@@ -117,14 +117,33 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
     const flat94 = s94.replace(/\n\s+/g, " ");
     expect(flat94).toContain('item_type: "cancelled"');
     expect(flat94).toContain("`GET purchase_bills/{id}`");
-    expect(flat94).toContain("çalıştırma başına en çok 8 kayıt");
-    expect(flat94).toContain("eşitleme penceresindeki");
-    expect(flat94).toContain("yalnız ödenmemiş olanlar");
-    expect(flat94).toContain("Paraşüt'ten açtığı kaydı siler");
-    expect(flat94).toContain("bağını çözüp kontrol notu düşer");
-    expect(flat94).toContain("yalnız bu dar yeniden okumaya bırakır");
-    expect(flat94).not.toMatch(/düzeltilmesini keser|temizliği keser/);
-    expect(flat94).not.toMatch(/yeniden okumaz|her iki yolda da .* siler/i);
+    const rule1 = flat94.slice(
+      flat94.indexOf("1. **`purchase_bills`"),
+      flat94.indexOf("2. **Karşı tarafın"),
+    );
+    for (const claim of [
+      "İkisi de eşitleme penceresiyle sınırlıdır",
+      "~75 gün",
+      "çalıştırma başına en çok 8 kayıt",
+      "yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra",
+      "pencereden eski kayıtlardan yalnız ödenmemiş olanlar",
+      "Paraşüt'ten açtığı kaydı siler",
+      "bağını çözüp kontrol notu düşer",
+      "varsayılan listede gelip gelmediği doğrulanmadı",
+      "yalnız bu dar yeniden okumaya bırakır; kullanılmamalıdır",
+      "`refund`'lar ödenmiş açılır",
+      "süzgeçle de süzgeçsiz de görmez",
+    ]) {
+      expect(rule1, claim).toContain(claim);
+    }
+    // The wrong claims of earlier versions, in any wording: the filter
+    // "stops" (keser) the cleanup, may be used, the panel never re-reads,
+    // or both paths delete every record.
+    expect(rule1).not.toMatch(
+      /keser|kullanılabilir|okunabilir|yeniden okumaz/i,
+    );
+    expect(rule1).not.toMatch(/[iİ]ki yolda da[^.]*siler/);
+    expect(rule1).not.toMatch(/listede her zaman gelir/i);
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {
