@@ -1054,7 +1054,12 @@ function CheckoutForm({
     fd.set("tranId", tranId);
     try {
       return await deleteSavedCardAction(fd);
-    } catch {
+    } catch (err) {
+      if (isStaleActionError(err)) {
+        // A deploy since this page loaded: only a reload deletes the card.
+        setStaleSite(true);
+        return { ok: false as const, message: STALE_ACTION_MESSAGE };
+      }
       return {
         ok: false as const,
         message: "Kart şu an silinemedi. Birazdan yeniden dene.",

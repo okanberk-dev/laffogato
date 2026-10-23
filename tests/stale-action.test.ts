@@ -87,6 +87,14 @@ describe("the checkout", () => {
     );
   });
 
+  it("asks for a reload when deleting a saved card hits a stale page", () => {
+    const start = source.indexOf("deleteSavedCardAction(fd)");
+    const handler = source.slice(start, source.indexOf("}, []);", start));
+    expect(handler).toContain("isStaleActionError(err)");
+    expect(handler).toContain("message: STALE_ACTION_MESSAGE");
+    expect(handler).toContain("setStaleSite(true)");
+  });
+
   it("says no money was taken and the cart is kept", () => {
     expect(source).toContain(
       "`Kartından para çekilmedi. ${STALE_ACTION_MESSAGE}`",
