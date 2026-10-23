@@ -85,7 +85,7 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    Hata dönen yazma da düşürür: Postgres kaydı işleyip bağlantı cevaptan
    önce koparsa çağıran hata görür ama yeni fiyat tablodadır; fazladan bir
    düşürme bir okuma, eksik bir düşürme bir günlük bayat fiyat demektir.
-   Yedi etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
+   Sekiz etiket: `pub:catalog` (ürün ve kategori: mağaza, ürün kartları,
    site haritası), `pub:menu` (menü kalemleri; mağazanın stok hareketi
    menüyü düşürmesin diye ayrı), `pub:site` (ayarlar,
    site metinleri, basın, hikaye, vitrin ve ana sayfa slaytları, uygulama
@@ -93,8 +93,10 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    `venue_status`: yalnız panelin köşk çipi ve zilin yoğunluk penceresi
    okur; 22 Eki 2026'ya kadar `pub:site` altındaydı ve çipe her dokunuş
    genel sayfaların bütün önbelleğini boşaltıyordu), `live:orders`,
-   `live:karaoke`, `live:access` (panel hesapları, `admin_users`: önbellekte
-   okunan bir şey yok, yalnız panelin değişiklik işaretleri taşır; madde 3).
+   `live:karaoke`, `live:invoices` (e-Arşiv faturaları: yalnız panelin
+   Faturalar rozetinin işareti taşır, 23 Eki 2026), `live:access` (panel
+   hesapları, `admin_users`: önbellekte okunan bir şey yok, yalnız panelin
+   değişiklik işaretleri taşır; madde 3).
    Her tablo ve `db/schema.sql`'deki her fonksiyon bu dosyada
    sınıflandırılmıştır; yeni bir tablo ya da fonksiyon
    `tests/cache-write-tags.test.ts`'i kırar, sınıflandırılmamış bir rpc
@@ -140,7 +142,7 @@ altındaki her aralık aynı sonucu verir. Production endpoint'i
    bütün etiketleri elle düşür:
 
    ```bash
-   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:venue,live:orders,live:karaoke,live:access --yes
+   vercel cache dangerously-delete --tag pub:catalog,pub:menu,pub:site,live:venue,live:orders,live:karaoke,live:invoices,live:access --yes
    ```
 
    `invalidate` değil: o bayat kaydı bir kez daha sunar. Yeniden deploy da

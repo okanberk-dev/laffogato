@@ -60,6 +60,12 @@ vi.mock("@/app/admin/mobil/karaoke/actions", () => ({
   karaokeTodayCountAction: vi.fn(async () => null),
   karaokeTodaySignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
 }));
+vi.mock("@/app/admin/faturalar/actions", () => ({
+  invoiceAttentionSignalAction: vi.fn(async () => ({
+    count: null,
+    cursor: "",
+  })),
+}));
 vi.mock("@/app/admin/actions", () => ({ logoutAction: vi.fn() }));
 vi.mock("@/components/admin/order-alerts", () => ({
   OrderAlerts: () => null,
@@ -378,11 +384,11 @@ describe("the bar's markup", () => {
     expect(none).not.toContain("aria-current");
     expect(none).not.toMatch(/>(0|99\+)</);
     // No second poll: the bar asks for nothing itself, the sidebar hands it
-    // the two counts its nav already reads.
+    // the counts its nav already reads (orders, karaoke, invoices).
     const bar = read("src/components/admin/ui/bottom-bar.tsx");
     expect(bar).not.toMatch(/@\/app\/admin|CountAction|useEffect|setInterval/);
     const src = read("src/components/admin/admin-sidebar.tsx");
-    expect(src.match(/useNavCount\(/g)).toHaveLength(3);
+    expect(src.match(/useNavCount\(/g)).toHaveLength(4);
     expect(src).toMatch(/<BottomBar[^>]*counts=\{counts\}/);
   });
 

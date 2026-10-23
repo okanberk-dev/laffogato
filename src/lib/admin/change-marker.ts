@@ -13,6 +13,7 @@ import {
 } from "@/lib/cache/presentation";
 import {
   TAG_ACCESS,
+  TAG_INVOICES,
   TAG_KARAOKE,
   TAG_ORDERS,
   TAG_SITE,
@@ -57,11 +58,13 @@ import {
  * bound to that session, poll-binding.ts).
  */
 
-export type ChangeMarkerKind = "orders" | "karaoke" | "venue";
+export type ChangeMarkerKind = "orders" | "karaoke" | "invoices" | "venue";
 
 const MARKER_TAGS: Record<ChangeMarkerKind, readonly string[]> = {
   orders: [TAG_ORDERS, TAG_ACCESS],
   karaoke: [TAG_KARAOKE, TAG_ACCESS],
+  // The Faturalar badge (invoiceAttentionSignalAction).
+  invoices: [TAG_INVOICES, TAG_ACCESS],
   // The köşk chip (venue-signal.ts): `venue_status` (`live:venue`) and the
   // settings (the posted hours, `pub:site`).
   venue: [TAG_SITE, TAG_VENUE, TAG_ACCESS],

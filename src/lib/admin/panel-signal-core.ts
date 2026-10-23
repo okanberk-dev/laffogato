@@ -97,6 +97,14 @@ export function karaokeSignalKey(istanbulDate: string): string {
   return KEY_RE.test(istanbulDate) ? istanbulDate : "";
 }
 
+/**
+ * The Faturalar badge counts by the köşk's day too: a deadline comes near
+ * with the clock, not with a write, so a new day reads again. "2026-10-19".
+ */
+export function invoiceSignalKey(istanbulDate: string): string {
+  return karaokeSignalKey(istanbulDate);
+}
+
 /** The order list counts above `since`, in its tab: "1042-open". */
 export function orderListSignalKey(since: number, scope: string): string {
   const n = Number.isFinite(since) ? Math.max(0, Math.trunc(since)) : 0;
