@@ -14,6 +14,7 @@ import { flushSync } from "react-dom";
 
 import { type ProductActionState } from "@/app/admin/urunler/actions";
 import { cx } from "@/components/laffogato/cx";
+import { productStepAnchor } from "@/lib/admin/products-panel";
 import { skuPrefix } from "@/lib/admin/sku";
 import {
   readPostedStock,
@@ -1682,7 +1683,15 @@ export function ProductWizard({
       {steps.map((s) => {
         const visible = mode === "tabs" || step === s.id;
         return (
-          <div key={s.id} data-step={s.id} hidden={!visible}>
+          <div
+            key={s.id}
+            data-step={s.id}
+            // The edit page's cards are anchors: the quick look's "Fiyatı
+            // değiştir" opens at the prices (productPriceEditHref).
+            id={mode === "tabs" ? productStepAnchor(s.id) : undefined}
+            hidden={!visible}
+            className={mode === "tabs" ? "scroll-mt-4" : undefined}
+          >
             <Card>
               {mode === "tabs" && (
                 <h2 className="mb-5 text-lg font-semibold tracking-tight text-[var(--admin-text)]">

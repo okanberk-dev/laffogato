@@ -1,15 +1,20 @@
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BadgeTurkishLira,
   Boxes,
   CalendarRange,
   ChartColumn,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Coffee,
+  Copy,
   Ellipsis,
   ExternalLink,
+  Eye,
+  EyeOff,
   FileText,
   Flag,
   GalleryHorizontalEnd,
@@ -115,6 +120,13 @@ export const ADMIN_ICONS = {
   // A KPI's change against its reference (dashboard/kpi-strip.tsx).
   deltaUp: ArrowUpRight,
   deltaDown: ArrowDownRight,
+  // A quick look's action rows (ui/quick-look-parts.tsx): the `›` at the
+  // end of each, and the steps a product or a menu item offers.
+  chevronRight: ChevronRight,
+  price: BadgeTurkishLira,
+  show: Eye,
+  hide: EyeOff,
+  copy: Copy,
 } as const satisfies Record<string, LucideIcon>;
 
 export type AdminIconName = keyof typeof ADMIN_ICONS;

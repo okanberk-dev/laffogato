@@ -220,3 +220,39 @@ export function menuList(
   }
   return { groups, total, counts };
 }
+
+/** What the quick look reads from a menu item's audit row. */
+export interface MenuAuditRow {
+  action: string;
+  payload: Record<string, unknown>;
+}
+
+/**
+ * One line of a menu item's history in its quick look (the owner's only,
+ * as the audit log is): what changed, in the menu's words. "Satışa açıldı",
+ * "Tükendi işaretlendi", "Fiyat ₺215,00 · L ₺245,00", "Alerjenler
+ * güncellendi", "Sırası değişti"; a save that changed none of those is
+ * "Güncellendi". `money` formats a kuruş amount (formatTRY).
+ */
+export function menuAuditSummary(
+  row: MenuAuditRow,
+  money: (minor: number) => string,
+): string {
+  if (row.action === "create") return "Eklendi";
+  if (row.action === "delete") return "Silindi";
+  const p = row.payload ?? {};
+  const parts: string[] = [];
+  if (typeof p.isActive === "boolean") {
+    parts.push(p.isActive ? "Satışa açıldı" : "Tükendi işaretlendi");
+  }
+  if (typeof p.priceMinor === "number") {
+    const large =
+      typeof p.priceMinorL === "number" && p.priceMinorL > 0
+        ? ` · L ${money(p.priceMinorL)}`
+        : "";
+    parts.push(`Fiyat ${money(p.priceMinor)}${large}`);
+  }
+  if ("allergens" in p) parts.push("Alerjenler güncellendi");
+  if (typeof p.move === "string") parts.push("Sırası değişti");
+  return parts.length > 0 ? parts.join(" · ") : "Güncellendi";
+}

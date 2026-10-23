@@ -47,6 +47,12 @@ export interface DataTableProps<T> {
   /** Wraps the FIRST column's cell (and the phone card's title) in a link. */
   rowHref?: (row: T) => string | null | undefined;
   /**
+   * False when the row's link opens something over the list (a quick look,
+   * `?gor=`): the page stays where it was scrolled instead of jumping to
+   * its top.
+   */
+  rowLinkScroll?: boolean;
+  /**
    * Checkboxes per row and a select-all in the header: pass the parent's
    * `useSelection()` (components/admin/bulk.tsx). That makes the parent a
    * client component; without `selection` DataTable renders on the server.
@@ -193,6 +199,7 @@ export function DataTable<T>({
   rows,
   rowKey,
   rowHref,
+  rowLinkScroll = true,
   selection,
   rowLabel,
   selectAllLabel,
@@ -230,6 +237,7 @@ export function DataTable<T>({
     return (
       <Link
         href={href}
+        scroll={rowLinkScroll}
         className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none"
       >
         {content}
@@ -312,6 +320,7 @@ export function DataTable<T>({
                             // The whole card opens the record (CardLink).
                             <CardLink
                               href={rowHref(row) as string}
+                              scroll={rowLinkScroll}
                               className="font-medium text-[var(--admin-text)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline focus-visible:rounded focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none"
                             >
                               {first.cell(row)}

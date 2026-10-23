@@ -17,15 +17,19 @@ export function CardLink({
   className,
   children,
   style,
+  scroll = true,
 }: {
   href: string;
   className?: string;
   children: ReactNode;
   style?: React.CSSProperties;
+  /** False for a card that opens a quick look over its list (`?gor=`). */
+  scroll?: boolean;
 }) {
   return (
     <Link
       href={href}
+      scroll={scroll}
       data-card-link=""
       style={style}
       className={cx(
