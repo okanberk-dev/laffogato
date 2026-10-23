@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Pool, type PoolConfig } from "pg";
+import { Pool, type PoolClient, type PoolConfig } from "pg";
 
 import {
   ensureSchema,
@@ -172,13 +172,58 @@ function getPool(): Pool {
   return global.__laffogatoPool;
 }
 
+/**
+ * The SQLSTATE classes a refused connection carries when the fault is this
+ * deployment's own: a wrong role or password (28) or a database that does
+ * not exist (3D). Those stay loud, as rejected queries.
+ */
+const CONNECT_CONFIG_STATE = /^(28|3D)/;
+
+/**
+ * A connection the server refused before any query ran is an outage,
+ * whatever SQLSTATE it carries. Neon answers a compute that is over its
+ * monthly quota (or suspended) with an error during the connection's
+ * startup, not by dropping the socket, and a coded error read as a
+ * rejected query: every public page returned 500 instead of its bundled
+ * content and the app's API 500 instead of 503 (reproduced on a local
+ * Postgres refusing with 53300, 23 Eki 2026). Without its code it reads as
+ * the transport failure it is (client.ts `toDbError`, health.ts).
+ */
+export function connectRefusal(err: unknown): unknown {
+  const code = (err as { code?: unknown } | null)?.code;
+  if (
+    typeof code !== "string" ||
+    !/^[0-9A-Z]{5}$/.test(code) ||
+    CONNECT_CONFIG_STATE.test(code)
+  ) {
+    return err;
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  return new Error(message || "connection refused");
+}
+
 function createExecutor(): Executor {
+  // Connect, then query: a refusal at the door is told apart from a query
+  // the database rejected (connectRefusal). Released as pool.query does: a
+  // client whose query failed is not handed out again.
   const run = async (query: CompiledQuery) => {
-    const result = await getPool().query(query.text, query.params as unknown[]);
-    return {
-      rows: (result.rows ?? []) as Record<string, unknown>[],
-      rowCount: result.rowCount ?? 0,
-    };
+    let client: PoolClient;
+    try {
+      client = await getPool().connect();
+    } catch (err) {
+      throw connectRefusal(err);
+    }
+    try {
+      const result = await client.query(query.text, query.params as unknown[]);
+      client.release();
+      return {
+        rows: (result.rows ?? []) as Record<string, unknown>[],
+        rowCount: result.rowCount ?? 0,
+      };
+    } catch (err) {
+      client.release(err instanceof Error ? err : true);
+      throw err;
+    }
   };
 
   return async (query: CompiledQuery) => {

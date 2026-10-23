@@ -764,6 +764,16 @@ ulaşmamıştır (`status: 0`, boş `code`) - yalnız bu durum bozulmaya (degrad
 uygundur. Hatalı kolon, kısıt ihlali, kimlik doğrulama reddi gibi gerçek hatalar
 **maskelenmez**, eskisi gibi hata verir.
 
+**Kapıda ret de kesintidir (23 Eki 2026).** Sunucu bağlantıyı hiçbir sorgu
+gitmeden, el sıkışmada bir hatayla reddederse (Neon aylık işlem kotası dolunca
+ya da compute askıdayken böyle yapar) hata bir SQLSTATE taşısa da kesinti
+sayılır: yürütücü önce bağlanır, sonra sorgular (`src/lib/db/index.ts`
+`connectRefusal`). Yalnız bu kurulumun kendi hatası sesli kalır: kimlik reddi
+(28xxx) ve olmayan veritabanı (3D000). Önceden bu ret sorgu hatası sayılıyor,
+her genel sayfa 500, uygulamanın API'si 503 yerine 500 dönüyordu (yerel
+Postgres'te rolün bağlantı sınırı 0 yapılarak, 53300 ile canlandırıldı).
+Test: `tests/db-connect-refusal.test.ts`.
+
 | Alan                                  | Ulaşılamazken                                                        |
 | ------------------------------------- | -------------------------------------------------------------------- |
 | Ana sayfa, hikaye, ziyaret            | Pakette gelen içerikle render edilir                                 |
