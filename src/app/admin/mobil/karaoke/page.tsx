@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { PageHeader } from "@/components/admin/forms";
+import { KaraokeWeekCalendar } from "@/components/admin/karaoke-calendar";
 import { KaraokeTable } from "@/components/admin/karaoke-panel";
 import {
   BUTTON,
@@ -11,7 +12,17 @@ import {
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
+import { SegmentedLinks } from "@/components/admin/ui/segmented";
 import { requireRole } from "@/lib/admin/auth";
+import {
+  addDays,
+  karaokeCalendarHref,
+  KARAOKE_CALENDAR_VIEW,
+  KARAOKE_VIEW_PARAM,
+  KARAOKE_WEEK_PARAM,
+  parseWeekParam,
+  weekStart,
+} from "@/lib/admin/karaoke-calendar-core";
 import {
   listReleasedHolds,
   type KaraokeReleasedHolds,
@@ -31,6 +42,7 @@ import {
   parseKaraokeTab,
 } from "@/lib/admin/karaoke-panel";
 import {
+  firstParam,
   parseFilters,
   parsePage,
   parseSort,
@@ -110,15 +122,33 @@ async function attentionRows(
  * without the POS's answer, stays under İptal / İade. Amounts were fixed at
  * booking time.
  */
+/** The header's view switch: the list (the page as it was) or the week. */
+function ViewSwitch({ calendar }: { calendar: boolean }) {
+  return (
+    <SegmentedLinks
+      label="Görünüm"
+      options={[
+        { href: KARAOKE_PANEL_PATH, label: "Liste", current: !calendar },
+        {
+          href: karaokeCalendarHref(),
+          label: "Takvim",
+          current: calendar,
+        },
+      ]}
+    />
+  );
+}
+
 export default async function AdminKaraokePage({ searchParams }: PageProps) {
   const session = await requireRole("karaoke");
+  const raw = await searchParams;
+  if (firstParam(raw, KARAOKE_VIEW_PARAM) === KARAOKE_CALENDAR_VIEW) {
+    return <KaraokeCalendarPage role={session.role} params={raw} />;
+  }
   // `sp` is the address (every link below, the booking pages' way back
   // too), `view` adds the remembered search text (what the list shows):
   // lib/admin/list-search-core.ts.
-  const { url: sp, view } = await listSearchView(
-    KARAOKE_PANEL_PATH,
-    await searchParams,
-  );
+  const { url: sp, view } = await listSearchView(KARAOKE_PANEL_PATH, raw);
   const now = new Date();
   const today = istanbulClock(now).date;
   const filters = parseFilters(view, KARAOKE_FILTER_FIELDS);
@@ -196,6 +226,7 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
             </p>
           )
         }
+        action={<ViewSwitch calendar={false} />}
         // One link per role: the owner's is the site's Karaoke tab (price,
         // prepay), the manager's the app's karaoke rules; staff get none.
         secondary={
@@ -303,6 +334,76 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
           </p>
         ) : null}
       </div>
+    </PageShell>
+  );
+}
+
+/**
+ * The karaoke page's week (Innex's calendar and list on one screen, 22 Eki
+ * 2026): `?gorunum=takvim`, any week by `?hafta=`. It reads the week's
+ * bookings only, and the Dikkat set for the band above it, so a booking
+ * that needs a person is not missed from the calendar either.
+ */
+async function KaraokeCalendarPage({
+  role,
+  params,
+}: {
+  role: Parameters<typeof canAccess>[1];
+  params: Record<string, string | string[] | undefined>;
+}) {
+  const now = new Date();
+  const clock = istanbulClock(now);
+  const today = clock.date;
+  const monday = parseWeekParam(firstParam(params, KARAOKE_WEEK_PARAM), today);
+  const [rows, settings, attention] = await Promise.all([
+    listReservationsForAdmin({ from: monday, to: addDays(monday, 6) }),
+    getSettings(),
+    attentionRows(today),
+  ]);
+  const ctx = {
+    today,
+    now,
+    prepay: settings.karaokePrepay,
+    canRefund: canAccess("refunds", role),
+  };
+  const views = karaokeRowViews(rows, ctx);
+  const waiting = attention ? karaokeAttentionViews(attention, ctx).length : 0;
+  const thisWeek = weekStart(today);
+  const here = karaokeCalendarHref(monday === thisWeek ? undefined : monday);
+  return (
+    <PageShell width="list">
+      <PageHeader
+        title="Karaoke"
+        description="Haftanın rezervasyonları: her blok bir rezervasyon, rengi parasının durumu."
+        action={<ViewSwitch calendar />}
+      />
+      {waiting > 0 ? (
+        <p
+          role="status"
+          className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+        >
+          {waiting} rezervasyon bir işlem bekliyor.{" "}
+          <Link
+            href={`${KARAOKE_PANEL_PATH}?${KARAOKE_TAB_PARAM}=dikkat`}
+            className="font-medium underline underline-offset-4"
+          >
+            Dikkat sekmesine git
+          </Link>
+        </p>
+      ) : null}
+      <KaraokeWeekCalendar
+        monday={monday}
+        today={today}
+        clock={{
+          hour: Math.floor(clock.minutes / 60),
+          minute: clock.minutes % 60,
+        }}
+        views={views}
+        prevHref={karaokeCalendarHref(addDays(monday, -7))}
+        nextHref={karaokeCalendarHref(addDays(monday, 7))}
+        thisWeekHref={monday === thisWeek ? null : karaokeCalendarHref()}
+        back={here}
+      />
     </PageShell>
   );
 }
