@@ -356,6 +356,9 @@ function signedGet(path: string, secret = SECRET): Request {
 
 describe("GET /api/panel/orders", () => {
   beforeEach(() => {
+    // The route reads the clock; the fixture's orders are paid at NOW.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
     vi.stubEnv("KARAOKE_SYNC_SECRET", SECRET);
     storeMock.listPanelOpenOrderRows.mockReset();
     storeMock.listPanelOpenOrderRows.mockResolvedValue([
@@ -364,6 +367,7 @@ describe("GET /api/panel/orders", () => {
     ]);
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
