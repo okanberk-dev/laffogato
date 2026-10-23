@@ -16,6 +16,7 @@ import {
   adminUsersList,
   parseAdminUserTab,
 } from "@/lib/admin/admin-users-list";
+import { lastSignIns } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
   roleMatrix,
@@ -29,6 +30,7 @@ import {
   type AdminRole,
 } from "@/lib/admin/roles";
 import { listStaffMembers } from "@/lib/admin/staff-members";
+import { timeAgo } from "@/lib/admin/time-ago";
 import { has2FA } from "@/lib/admin/twofa";
 import {
   listAdminUsers,
@@ -49,7 +51,36 @@ interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-type ListedUser = PublicAdminUser & { has2FA: boolean };
+type ListedUser = PublicAdminUser & {
+  has2FA: boolean;
+  /** The last sign-in on record, ISO; "" for none (or an unread log). */
+  lastSignIn: string;
+};
+
+/** "3 saat önce", the exact time on hover; "Hiç girmedi" without one. */
+function LastSignIn({ at, now }: { at: string; now: Date }) {
+  if (!at) {
+    return <span className="text-[var(--admin-text-mute)]">Hiç girmedi</span>;
+  }
+  return (
+    <time dateTime={at} title={formatDateTime(at)}>
+      {timeAgo(at, now)}
+    </time>
+  );
+}
+
+/**
+ * The users' last sign-ins, or none when the log cannot be read: the page
+ * is how the owner fixes access, it must not fall over with the log.
+ */
+async function readSignIns(emails: string[]): Promise<Map<string, string>> {
+  try {
+    return await lastSignIns(emails);
+  } catch (err) {
+    console.error("[admin/kullanicilar] son girişler okunamadı", err);
+    return new Map();
+  }
+}
 
 /** How many of a role's sections its row names before "+n". */
 const ROLE_CHIPS = 3;
@@ -118,12 +149,18 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     listStaffMembers(),
   ]);
   // Who has an authenticator, so the owner can see who a lost phone locks
-  // out. A handful of accounts: one small read each, all at once.
-  const twoFA = await Promise.all(users.map((u) => has2FA(u.email)));
+  // out, and who has not signed in for a while (Innex: activity in the
+  // row). A handful of accounts: one small read each, all at once.
+  const [twoFA, signIns] = await Promise.all([
+    Promise.all(users.map((u) => has2FA(u.email))),
+    readSignIns(users.map((u) => u.email)),
+  ]);
   const listed: ListedUser[] = users.map((u, i) => ({
     ...u,
     has2FA: twoFA[i],
+    lastSignIn: signIns.get(u.email) ?? "",
   }));
+  const now = new Date();
   const tab = parseAdminUserTab(sp);
   const list = adminUsersList(listed, tab);
   const tabValue = ADMIN_USER_TABS.find((t) => t.tab === tab)?.value ?? null;
@@ -220,12 +257,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   ),
                 },
                 {
-                  key: "guncelleme",
-                  header: "Son güncelleme",
-                  hideBelow: "xl",
+                  key: "giris",
+                  header: "Son giriş",
                   cell: (u) => (
                     <span className="text-xs whitespace-nowrap text-[var(--admin-text-soft)]">
-                      {u.updatedAt ? formatDateTime(u.updatedAt) : "-"}
+                      <LastSignIn at={u.lastSignIn} now={now} />
                     </span>
                   ),
                 },
@@ -248,6 +284,9 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                     <RoleChips role={u.role} />
                   </span>
                   <UserBadges user={u} />
+                  <span className="text-xs text-[var(--admin-text-soft)]">
+                    Son giriş: <LastSignIn at={u.lastSignIn} now={now} />
+                  </span>
                 </div>
               )}
             />

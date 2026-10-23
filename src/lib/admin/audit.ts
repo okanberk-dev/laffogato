@@ -268,3 +268,32 @@ export async function listOrderAuditLogs(
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, limit);
 }
+
+/**
+ * Each panel user's last sign-in (Kullanıcılar, Innex: "3 saat önce" in the
+ * row), by address: the newest `login_success` row filed under it. That
+ * row is written when the password is right; an account with 2FA then
+ * still enters its code, which writes no row of its own. A handful of
+ * accounts: one small read each (audit_logs_entity_id_idx), all at once.
+ * An address with no sign-in on record is missing from the map.
+ */
+export async function lastSignIns(
+  emails: readonly string[],
+): Promise<Map<string, string>> {
+  const rows = await Promise.all(
+    emails.map((email) =>
+      listAuditLogs({
+        action: "login_success",
+        entity: "auth",
+        entityId: email.toLowerCase(),
+        limit: 1,
+      }),
+    ),
+  );
+  const out = new Map<string, string>();
+  emails.forEach((email, i) => {
+    const at = rows[i][0]?.createdAt;
+    if (at) out.set(email, at);
+  });
+  return out;
+}
