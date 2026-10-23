@@ -36,7 +36,17 @@ const BACKSLASH_PATHS = [
   "/rehber%5Cmatcha-nedir",
   "/admin%5C",
   "/admin/siparisler%5C",
-  "/api/panel/menu%5C",
+];
+
+// `/api/*` keeps the route handlers' own answer (the app reads `{error,
+// message}`, docs/API-MOBILE.md): the proxy never answers a backslash there.
+const API_BACKSLASH_PATHS = [
+  "/api/mobile/v1/menu%5C",
+  "/api/mobile/v1/tables/%5C%5C",
+  "/api/mobile/v1/menu\\",
+  "/api/webhooks/payment%5C",
+  "/api/cron/daily%5C",
+  "/api/bulten%5C",
 ];
 
 describe("the proxy matcher and a backslash", () => {
@@ -50,20 +60,13 @@ describe("the proxy matcher and a backslash", () => {
 
   it.each([
     ...BACKSLASH_PATHS,
-    // Where the first matcher steps aside: static files, Next's assets and
-    // the bearer / HMAC / secret / token APIs.
+    // Where the first matcher steps aside: static files and Next's assets.
     "/laffogato-pour%5C.js",
     "/brand/laf.svg%5C",
     "/_next/static/%5C",
-    "/api/mobile/v1/menu%5C",
-    "/api/mobile/v1/tables/%5C%5C",
-    "/api/webhooks/payment%5C",
-    "/api/cron/daily%5C",
-    "/api/bulten%5C",
     // Decoded, as the router also tries it.
     "/karaoke\\",
     "/\\\\\\",
-    "/api/mobile/v1/menu\\",
   ])("reaches %s", (path) => {
     expect(reaches(path)).toBe(true);
   });
@@ -78,6 +81,7 @@ describe("the proxy matcher and a backslash", () => {
     "/api/cron/daily",
     "/api/bulten",
     "/api/mobile/v1/tables/%5Bx%5D",
+    ...API_BACKSLASH_PATHS,
   ])("still leaves %s alone", (path) => {
     expect(reaches(path)).toBe(false);
   });
@@ -99,16 +103,21 @@ describe("the proxy and a backslash", () => {
     },
   );
 
-  it("answers the excluded APIs' backslash paths too", async () => {
-    for (const path of [
-      "/api/mobile/v1/menu%5C",
-      "/api/webhooks/payment%5C",
-      "/_next/static/%5C",
-    ]) {
+  it("answers a static file's and an asset's backslash path too", async () => {
+    for (const path of ["/_next/static/%5C", "/laffogato-pour%5C.js"]) {
       const res = await proxy(new NextRequest(`https://laffogato.net${path}`));
       expect(res.status).toBe(404);
     }
   });
+
+  it.each([...API_BACKSLASH_PATHS, "/api/panel/menu%5C"])(
+    "leaves %s to its route handler (the API's own error shape)",
+    async (path) => {
+      const res = await proxy(new NextRequest(`https://laffogato.net${path}`));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("x-middleware-next")).toBe("1");
+    },
+  );
 
   it("lets an ordinary API path through as before", async () => {
     const res = await proxy(
