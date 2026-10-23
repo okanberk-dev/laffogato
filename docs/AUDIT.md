@@ -1656,3 +1656,28 @@ Açık (bilerek bırakıldı):
 | 🟢 | Kullanıcılar'ın "Son giriş" sütunu hesap başına bir sorgu atıyor | Bugünkü hesap sayısında önemsiz; tek sorgu (`DISTINCT ON`) bir SQL fonksiyonu ister |
 | 🟢 | `invoice_claim` her çalıştırmada fatura rozetinin önbellek etiketini düşürüyor | Veritabanını uyandırmaz (okuma yalnız panel açıkken); etiket sözleşmesini değiştirmek bayat rozet riski taşır |
 | 🟢 | `AdminIcon`'u kullanan bir istemci bileşeni `ui/icons.tsx`'in bütün ikon haritasını (5,5 KB gz) rotaya getiriyor; 24 admin rotasında var (22'si #230'dan önce) | Kazanç yok (23 Eki 2026 incelendi): kenar çubuğunun menü ikonları (`admin-sidebar.tsx` → `nav-icon.tsx`, `next/dynamic`) aynı haritayı menüsü olan her admin sayfasında sonradan yükler. Haritayı ilk yüklemeden çıkarmak indirilen baytı azaltmaz, yalnız sırasını değiştirir; ikonları istemcide tek tek almak da `ui/icons.tsx`'in "her ikon bir kez adlandırılır" düzenini bozar |
+
+### Panel: #233-#236 sonrası inceleme (23 Eki 2026)
+
+Operatör: _"Başka unuttuğun ceya iyileştirilmesi gereken iş varsa yap"_.
+Kayıtlı görünümler (#233), "Şu an aktif" (#234), Sistem durumu (#235) ve
+boş veritabanı kurulumu (#236) birleştikten sonra iki bağımsız okuma
+yapıldı. #233 ve #236'da bulgu yok. Doğrulanıp düzeltilenler:
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟡 | Neon API yavaş ya da sessizken sahibin Genel bakış ve Ayarlar sayfaları her açılışta 3 sn bekliyordu; başarısız yanıt tutulmuyor, aynı anda gelen istekler ayrı soruyordu | Başarısız yanıt bir dakika tutulur, eşzamanlı istekler tek soruyu paylaşır; Genel bakış uyarıyı kendi `Suspense` sınırında akıtır | `admin-neon-usage` |
+| 🟢 | Anahtar tanımlıyken Neon yanıt vermeyince satır gri, kart "Her şey yolunda" kalıyordu: kota alarmı sessizce körleşiyordu | "Okunamadı" turuncu: kartı açar, Genel bakış'ta da görünür | `admin-neon-usage` |
+| 🟢 | Dönem sonunu aşan tutulmuş yanıt yeni dönemde "Saatler doldu" diyebiliyordu | İyi yanıt dönem sonundan öte tutulmaz; geçmiş dönemin yanıtı okunamadı sayılır | `admin-neon-usage` |
+| 🟢 | Yüzde yuvarlanıyordu: 79,6 saat yeşil "%80" yazıyordu | Aşağı yuvarlanır | `admin-neon-usage` |
+| 🟢 | Etkinlik yazımı başarısız olunca dakikalık sınır kalkıyordu: veritabanı yokken her istek tek bağlantının arkasına bir yazım daha ekliyordu | Başarısızlıkta da dakika beklenir | `admin-activity` |
+| 🟢 | Pasif, parolası / rolü değişmiş ya da Çıkış'a basmış hesap beş dakika "Şu an aktif" görünüyordu ("Pasif" rozetinin yanında) | `inPanelNow`: `isActive`, `updatedAt` ve en yeni `logout` kaydı (`lastSignOuts`); Çıkış kaydı küçük harfli adresle yazılır | `admin-activity`, `admin-people-lists`, `admin-audit-log` |
+| 🟢 | Hesap silinirken biten bir istek etkinlik satırını geri yazabiliyordu; aynı adres yeniden açılınca eski etkinliği gösteriyordu | Kullanıcı oluşturulunca adresin etkinlik kaydı silinir | `admin-activity` |
+
+Açık (bilerek bırakıldı):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟢 | Etkinlik yazımı koşulsuz: yavaş bir yanıt başka bir sunucunun yazdığı daha yeni zamanı en çok kendi süresi kadar geri alabilir | Beş dakikalık pencerede önemsiz; koşullu upsert sorgu kurucuya yeni bir biçim ister |
+| 🟢 | `isUpToDate`'in eksik tablo yakalaması işlem içinde 25P02'yi geri getirebilirdi | Ulaşılamaz: kilidin altında `to_regclass` tablonun var olduğunu az önce söylemiştir |
+
