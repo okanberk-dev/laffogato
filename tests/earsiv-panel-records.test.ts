@@ -80,28 +80,92 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
       'direction: "inbound"',
       "filter[account_type]=supplier",
       "relationships.category",
-      'item_type: "cancelled"',
-      "GET e_invoices",
-      'invoice_type_code: "IADE"',
-      "from_vkn",
     ]) {
       expect(section, fact).toContain(fact);
     }
   });
 
   it("tells the panel what it actually reads: the e_invoices list and every purchase bill", () => {
-    const section = DOC.slice(DOC.indexOf("## 9. Panel bu kayıtları okur"));
-    // The panel lists inbound e-Faturas with GET e_invoices (lafmaliyet
-    // src/server/parasut/einvoice.ts): a company's return e-Fatura reaches
-    // it there even if never imported, so §9.4 must name it (rule 5).
-    expect(section).not.toMatch(/liste ucu yoktur/);
-    expect(section).toMatch(/^5\. \*\*Gelen iade e-Faturası/m);
-    // The panel retires a bill cancelled in Paraşüt only because it reads
-    // the list unfiltered; the doc must not advise filtering it.
-    expect(section).not.toMatch(
+    const between = (from: string, to: string) =>
+      DOC.slice(DOC.indexOf(from), DOC.indexOf(to));
+    const s93 = between("### 9.3 ", "### 9.4 ");
+    const s94 = between("### 9.4 ", "### 9.5 ");
+    // The panel lists inbound e-Faturas with `GET e_invoices` (lafmaliyet
+    // src/server/parasut/einvoice.ts; the backticked token, not §9.1's
+    // `GET e_invoices/{id}/pdf`): a company's return e-Fatura reaches it
+    // there even if never imported, so §9.4 must name it (rule 5).
+    expect(s93).not.toMatch(/için liste(leme)? ucu (yoktur|bulunmaz)/);
+    expect(s93).toContain("`GET e_invoices` listesinde");
+    expect(s93).toContain("panel gelen e-Faturaları onunla okur");
+    expect(s94).toMatch(/^5\. \*\*Gelen iade e-Faturası/m);
+    for (const fact of ['invoice_type_code:\n   "IADE"', "from_vkn"]) {
+      expect(s94.replace(/\n\s+/g, " "), fact).toContain(
+        fact.replace(/\n\s+/g, " "),
+      );
+    }
+    // Rule 1 (lafmaliyet src/server/parasut/sync.ts, RECHECK_LIMIT and
+    // retire): the panel sees a cancellation in the list and by re-reading
+    // the records the list no longer shows, 8 per run, only after a fresh
+    // complete round, within the sync window (older ones only if unpaid).
+    // A filter leaves both to that narrow re-read, so the doc must not
+    // advise it, nor claim the filter stops the cleanup outright, nor that
+    // every record is deleted (Excel and manual ones are unlinked).
+    expect(s94).not.toMatch(
       /okuması `filter\[item_type\]=purchase_bill` ile yapılmalı/,
     );
-    expect(section).toMatch(/\*\*süzülmeden\*\* okunmaya devam etmeli/);
+    expect(s94).toMatch(/\*\*süzülmeden\*\* okunmaya devam etmeli/);
+    const flat94 = s94.replace(/\n\s+/g, " ");
+    expect(flat94).toContain('item_type: "cancelled"');
+    expect(flat94).toContain("`GET purchase_bills/{id}`");
+    const rule1 = flat94.slice(
+      flat94.indexOf("1. **`purchase_bills`"),
+      flat94.indexOf("2. **Karşı tarafın"),
+    );
+    for (const claim of [
+      "~75 gün geride durur (eşitleme penceresi)",
+      "yalnız bu pencere içindeyse ve yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra yeniden okunur",
+      "pencereden eski kayıtlardan yalnız ödenmemiş olanlar",
+      "çalıştırma başına en çok 8 kayıt",
+      "Paraşüt'ten açtığı kaydı siler",
+      "bağını çözüp kontrol notu düşer",
+      "varsayılan listede gelip gelmediği doğrulanmadı",
+      "yalnız bu dar yeniden okumaya bırakır; kullanılmamalıdır",
+      "`refund`'lar ödenmiş açılır",
+      "günlük eşitleme süzgeçle de süzgeçsiz de görmez",
+      '"Tarihten eşitle" düğmesi, kayıttan önceki bir tarihle',
+      "tur tek çalıştırmada bitmeli",
+      '"Oturumu sıfırla"dan sonraki eşitleme: pencereyi `PARASUT_SYNC_FROM`\'a ya da (boşsa) bu yılın başına çeker',
+      "boşken yılın ilk aylarında daraltır ve önceki yılın kaydına ulaşmaz",
+      "Bu tur da, iptal listede görünmüyorsa, tek çalıştırmada bitmeli",
+      '"Geçmiş faturaları al": o tedarikçinin listesini baştan okur, yeniden okuması yoktur',
+    ]) {
+      expect(rule1, claim).toContain(claim);
+    }
+    // The wrong claims of earlier versions, in any wording: the filter
+    // "stops" (keser) the cleanup, may be used, the panel never re-reads,
+    // or both paths delete every record.
+    expect(rule1).not.toMatch(
+      /keser|kullanılabilir|okunabilir|yeniden okumaz/i,
+    );
+    expect(rule1).not.toMatch(/[iİ]ki yolda da[^.]*siler/);
+    expect(rule1).not.toMatch(/listede her zaman gelir/i);
+    // "Oturumu sıfırla" moves the window to PARASUT_SYNC_FROM or 1 January
+    // (lafmaliyet sync.ts windowStart): wider or narrower by the date, never
+    // into the previous year unless PARASUT_SYNC_FROM is set earlier;
+    // "Tarihten eşitle" is not the only way.
+    expect(rule1).not.toMatch(
+      /"Oturumu sıfırla"[^;]*(genişletir|bütün geçmişi|her şeyi|baştan okur|yakalar)/,
+    );
+    expect(rule1).not.toMatch(/yalnız panelin "Tarihten eşitle"/);
+    const reset = rule1.slice(
+      rule1.indexOf('"Oturumu sıfırla"dan'),
+      rule1.indexOf('"Geçmiş faturaları al"'),
+    );
+    expect(reset).toContain("yılın ilk aylarında daraltır");
+    expect(reset).toContain("tek çalıştırmada bitmeli");
+    expect(reset).not.toMatch(
+      /genişlet|bütün geçmiş|her şeyi|baştan okur|yakalar|görmese de|görünmese de/,
+    );
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {
