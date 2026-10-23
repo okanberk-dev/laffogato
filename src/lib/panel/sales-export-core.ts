@@ -5,6 +5,7 @@ import {
 } from "@/lib/admin/karaoke-money";
 import { orderKind } from "@/lib/admin/order-channel";
 import { istanbulDayStartIso } from "@/lib/admin/order-filters";
+import { MILK_IDS, SYRUP_IDS } from "@/lib/mobile/customization";
 import {
   invoiceKdvBreakdown,
   invoiceRewardMinor,
@@ -23,7 +24,8 @@ import {
  * were missing from its consumption check. `GET /api/panel/sales` hands it
  * the period's totals and the café lines by menu item and size, which the
  * panel maps to its own products through the menu link (`siteMenuId` +
- * `siteMenuSlot`, docs/PANEL-MENU.md).
+ * `siteMenuSlot`, docs/PANEL-MENU.md), with the milk, syrup and extra shot
+ * choices made on them (`items[].options`, docs/API-MOBILE.md §3).
  *
  * The figures are Raporlar's and Gün sonu's, counted the same way:
  *
@@ -179,6 +181,8 @@ export interface PanelSalesOrderRow {
     status?: string;
     menuItemId?: string;
     size?: string;
+    /** The app's choices (`LineOptions`); absent on lines without any. */
+    options?: Record<string, unknown> | null;
     taxRatePct?: number | null;
   }> | null;
 }
@@ -220,6 +224,56 @@ export interface PanelSalesLine {
   qty: number;
   /** Their unit price (options included) × qty: no discount, no refund. */
   listMinor: number;
+  /** Units made with an extra shot (one shot each). Absent when none. */
+  extraShots?: number;
+  /**
+   * Units made with another milk than the recipe's, by milk id
+   * (`lactose-free`, `oat`, `almond`); "normal" is never counted. Absent
+   * when none.
+   */
+  milks?: Record<string, number>;
+  /** Units made with a syrup, by syrup id ("none" never). Absent when none. */
+  syrups?: Record<string, number>;
+}
+
+/** The milks and syrups a line can swap in: the menu's own ids, no default. */
+const SWAP_MILKS: ReadonlySet<string> = new Set(
+  MILK_IDS.filter((id) => id !== "normal"),
+);
+const ADDED_SYRUPS: ReadonlySet<string> = new Set(
+  SYRUP_IDS.filter((id) => id !== "none"),
+);
+
+function countInto(
+  counts: Record<string, number> | undefined,
+  id: string,
+  qty: number,
+): Record<string, number> {
+  const out = counts ?? {};
+  out[id] = (out[id] ?? 0) + qty;
+  return out;
+}
+
+/**
+ * Adds one order line's choices, `qty` units of them, to its export line:
+ * what the panel's consumption check needs beyond the recipe (an oat milk
+ * instead of the cow's, a syrup, a second shot).
+ */
+function addLineOptions(
+  row: PanelSalesLine,
+  options: Record<string, unknown> | null | undefined,
+  qty: number,
+): void {
+  if (!options || typeof options !== "object") return;
+  if (options.extraShot === true) {
+    row.extraShots = (row.extraShots ?? 0) + qty;
+  }
+  if (typeof options.milk === "string" && SWAP_MILKS.has(options.milk)) {
+    row.milks = countInto(row.milks, options.milk, qty);
+  }
+  if (typeof options.syrup === "string" && ADDED_SYRUPS.has(options.syrup)) {
+    row.syrups = countInto(row.syrups, options.syrup, qty);
+  }
 }
 
 export interface PanelSalesKaraoke {
@@ -399,6 +453,7 @@ export function buildPanelSales(input: {
           listMinor: minor(it.unitPriceMinor) * qty,
         });
       }
+      addLineOptions(lines.get(key) as PanelSalesLine, it.options, qty);
     }
   }
 
