@@ -292,6 +292,15 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
         "ord-pf-13",
       ]);
+      // Gel-al paid three days ago (planned ahead), readied five minutes
+      // ago: live by its readiness, not its payment.
+      await insertOrder("ord-pf-14", 90_014, {
+        status: "shipped",
+        fulfillment: "pickup",
+        paidAt: minutesAgo(3 * 24 * 60),
+        createdAt: minutesAgo(3 * 24 * 60),
+        shippedAt: minutesAgo(5),
+      });
 
       const limit = PANEL_ORDERS_MAX + 1;
       const rows = await store.listPanelOpenOrderRows(
@@ -304,6 +313,7 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         "ord-pf-02",
         "ord-pf-03",
         "ord-pf-13",
+        "ord-pf-14",
       ]);
       expect(panelOrderRowsComplete(rows, limit)).toBe(true);
       expect(
