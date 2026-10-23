@@ -53,9 +53,18 @@ export function isSchemaGap(err: unknown): boolean {
  * Whether the database has recorded every migration this build ships.
  *
  * An empty database has no `_migrations` table at all, which reads as "not up
- * to date" rather than an error.
+ * to date" rather than an error. It is asked without an error, too: the
+ * re-check runs inside `applySchema`'s transaction, where a failed statement
+ * aborts it, and the bundle that followed was refused (25P02). An empty
+ * database never bootstrapped (seen on a fresh local database, 23 Eki 2026).
  */
 async function isUpToDate(client: PoolClient): Promise<boolean> {
+  const table = await client.query(
+    "select to_regclass('public._migrations') is not null as present",
+  );
+  if (!(table.rows[0] as { present?: boolean } | undefined)?.present) {
+    return false;
+  }
   try {
     const res = await client.query(
       "select name from public._migrations where name = any($1::text[])",
