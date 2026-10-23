@@ -165,6 +165,22 @@ describe("order list: one filtered, numbered page", () => {
     );
   });
 
+  it('the dashboard\'s "Raporda sayılan": neither cancelled nor awaiting payment (review of #231)', async () => {
+    const { query } = parseOrderListParams({
+      odeme: "sayilan",
+      bas: "2026-10-23",
+      bit: "2026-10-23",
+    });
+    expect(query.payment).toBe("counted");
+    await store.listOrdersFiltered({ ...base, query });
+    const [sql] = orderSelects();
+    const q = seen.find((s) => s.text === sql)!;
+    expect(sql.match(/"status" <> \$\d+/g)).toHaveLength(2);
+    expect(q.params).toContain("cancelled");
+    expect(q.params).toContain("pending_payment");
+    expect(sql).not.toContain('"paidAt"');
+  });
+
   it("counts every status tab with the other filters, without the tab's own", async () => {
     const { query } = parseOrderListParams({ durum: "paid", kanal: "app" });
     const counts = await store.countOrdersByStatus(withoutStatuses(query));

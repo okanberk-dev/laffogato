@@ -297,6 +297,46 @@ describe("the dashboard card counts the Dikkat set", () => {
     expect(markup).toMatch(/Geçen \S+ %25/);
   });
 
+  it("counts last week's no-shows as held, as Gün sonu does (review of #231)", async () => {
+    const { heldTheRoom, karaokeOccupancy } =
+      await import("@/lib/admin/dashboard-core");
+    const rules = { firstHour: 12, closeHour: 24 };
+    // Friday 16 Oct, 20-22 in Tuzla (17:00-19:00Z), pay at the köşk.
+    const evening = {
+      date: "2026-10-16",
+      startHour: 20,
+      hours: 2,
+      paymentStatus: "none",
+    };
+    // Written down after the evening (karar D7): a no-show, the room held.
+    const noShow = {
+      ...evening,
+      status: "cancelled",
+      updatedAt: "2026-10-16T19:30:00.000Z",
+    };
+    expect(heldTheRoom(noShow)).toBe(true);
+    // Cancelled before it: the hours were back on sale.
+    expect(
+      heldTheRoom({
+        ...evening,
+        status: "cancelled",
+        updatedAt: "2026-10-16T12:00:00.000Z",
+      }),
+    ).toBe(false);
+    // A paid booking cancelled is a refund case, never a no-show here;
+    // a lapsed unpaid hold neither.
+    for (const paymentStatus of ["paid", "refunded", "expired"]) {
+      expect(heldTheRoom({ ...noShow, paymentStatus }), paymentStatus).toBe(
+        false,
+      );
+    }
+    // Same bookings, same figure, whatever happened to the guest.
+    const confirmed = { ...evening, status: "confirmed" };
+    expect(karaokeOccupancy([noShow], rules)).toEqual(
+      karaokeOccupancy([confirmed], rules),
+    );
+  });
+
   it("answers null when a read fails, and the card says so", async () => {
     table = null as unknown as KaraokeReservation[];
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
