@@ -112,7 +112,9 @@ bağlantısının anahtarıdır). Anahtar yoksa uçlar 503 döner, ping gitmez.
    ```
 
    Bütün kalemler, satışta olmayanlar da (panel bağlıyı gizlemek için onu da
-   görmeli). `Cache-Control: no-store`.
+   görmeli). `Cache-Control: no-store`. `now` okumadan **önce** alınır
+   (sipariş ucu gibi): okuma sürerken yapılan bir yazımın `updatedAt`'i
+   `now`'dan sonra düşer, liste o yazımdan yeni sayılmaz.
 
 3. **Yazma (panel → site).**
 
