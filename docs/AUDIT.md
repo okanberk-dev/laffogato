@@ -1681,3 +1681,36 @@ Açık (bilerek bırakıldı):
 | 🟢 | Etkinlik yazımı koşulsuz: yavaş bir yanıt başka bir sunucunun yazdığı daha yeni zamanı en çok kendi süresi kadar geri alabilir | Beş dakikalık pencerede önemsiz; koşullu upsert sorgu kurucuya yeni bir biçim ister |
 | 🟢 | `isUpToDate`'in eksik tablo yakalaması işlem içinde 25P02'yi geri getirebilirdi | Ulaşılamaz: kilidin altında `to_regclass` tablonun var olduğunu az önce söylemiştir |
 
+### Köşk paneli bağlantısı ve canlı hatalar (23 Eki 2026)
+
+Operatör: köşk panelinin (`RiosenBeq/lafmaliyet`) denetiminden çıkan 14 madde
+ve Vercel'in son 7 günlük çalışma hataları. Her madde ayrı PR (#240-#253),
+`/api/panel/*` yalnız ekleme aldı, KVKK beyaz listesi değişmedi. Panelin
+kendi tarafı ayrı oturumda yapılır; yeni alanlar PR gövdelerinde.
+
+| Derece | Bulgu | Düzeltme | Test |
+| --- | --- | --- | --- |
+| 🟠 | `%5C` / `\` içeren yollar (`/karaoke%5C`, `/%5C%5C%5C`) pages-router aramasında MODULE_NOT_FOUND ile 500 veriyordu (~60 kayıt, 20-21 Eki) | `proxy.ts` `/api/*` dışında böyle bir yola düz 404 verir (yönlendirme yok); ikinci matcher statik dosyaları da kapsar. `/api/*` kendi sözleşmesinin hatasını vermeye devam eder (#244) | `proxy-backslash` |
+| 🟡 | Supabase oturum yenilemesi Supabase çerezi olan her sayfada kimlik sunucusunu bekliyordu ("getUser timed out" 472 kayıt, 9-17 Eki); fra1 ↔ Singapur | Yenileme yalnız `/uye` altında (oturumu yalnız orası okur); zaman aşımında çerez silinmez ya da yeniden yazılmaz (#245) | `supabase-session-refresh`, `proxy-fast-path` |
+| 🟡 | `DATABASE_URL`'siz bir üretim derlemesi yayına çıkıp bozulmuş içerikle çalıştı (15-17 Eki) | `VERCEL_ENV=production` iken `DATABASE_URL` yoksa derleme kırmızı (`scripts/check-build-env.mjs`, `vercel.json` `buildCommand` ve `prebuild`); önizleme, yerel, CI etkilenmez (#253) | `build-env-check` |
+| 🟡 | Dağıtımdan önce açılmış sayfadaki Server Action ("Failed to find Server Action") müşteriye işe yaramayan "Tekrar dene" gösteriyordu; ödemede "bağlantı kurulamadı" diyordu | Hata sınırı ve ödeme bu hatayı adıyla tanır, "Sayfayı yenile" der; sepet ve teslimat taslağı yenilemede kalır (#251) | `stale-action` |
+| 🟢 | Karaoke iadesinde POS reddi yöneticiye ham PayNkolay metniyle ("responseCode=0 Bu kayıt daha önce iptal edilmiştir..!") gidiyordu: yeniden deneme, iptal, uyarı e-postası, geçmiş satırı. Sipariş iadesi #225'te düzelmişti; Resend 422 test verisiydi | `refundAnswerForStaff` bilinen durumları cümleyle söyler, gerisini düşürür; ham metin günlükte ve olay kaydında kalır (#252) | `refund-answer`, `admin-karaoke-actions`, `admin-karaoke-panel`, `db-integration-karaoke-prepay` |
+| 🟠 | Bar ekranı üyenin sipariş notunu ("Fındık alerjim var") ve satır notunu göstermiyordu | `toPanelOrder` `note` (yalnız masa ve gel-al, 300 karakter; kuryede "" - kapı kodu) ve satır `note` (200); sipariş sayfası ve personel e-postası satır notunu gösterir (#248) | `panel-orders-feed`, `db-integration-panel-feeds`, `staff-order-notice`, `admin-order-detail` |
+| 🟡 | Bar ekranı okuması unutulmuş siparişlerle 201 satırı doldurup bugünkü siparişleri gizleyebiliyordu; `complete` süzülmüş listeden hesaplanıyordu | Unutulmuş kuralı sorguda alt sınır (`panelOrdersLiveSince`, `anyOf` `gte`); `complete` ham satır sayısından (#249) | `db-integration-panel-feeds` (250 + 250 unutulmuş), `panel-orders-feed`, `db-sql` |
+| 🟡 | Kartı başarısız olup kasada nakit / kasa kartıyla "Ödendi" işaretlenen uygulama / web siparişi online satışta da sayılıyordu (ciro, KDV, tüketim iki kez) | `payment_transactions`'tan okunur; `manual:nakit` / `manual:kart` `counter` bloğuna (cafe, shop ve satırlardan çıkar); havale ve "Diğer" online kalır (#246) | `panel-sales-export`, `db-integration-panel-feeds` |
+| 🟢 | Menü okumasında `now` okumadan sonra alınıyordu: toplu fiyat değişikliğinde panel eski fiyatı daha yeni sanabiliyordu | `now` okumadan önce (#242) | `panel-menu-link` |
+| 🟢 | Panel, sitede tek boy olan kaleme L fiyatı yazarak kapatılmış boyu açabiliyordu | 409 `single_size`, hiçbir alan yazılmaz (#243) | `panel-menu-link` |
+| 🟢 | Panelin menü okuması ve yazımı her kalemin fotoğrafını (2 MB'a kadar data URL) da okuyordu | `listMenuItemsForPanel` / `getMenuItemForPanel` yalnız sekiz sütun; yazım da yalnız onları döndürür (#241) | `panel-menu-columns`, `db-integration-panel-menu` |
+| 🟢 | Karaoke okuması 2000 satırı aşarsa en yakın günleri düşürüyordu | Panel okuması erkenden geçe (`ascending`); kesilen uzak uç (#250) | `api-panel-karaoke-route`, `db-integration-karaoke-prepay` |
+| 🟢 | Online kafe satırları süt, şurup ve ekstra shot seçimini düşürüyordu | `cafe.lines[]` `extraShots`, `milks`, `syrups` (yalnız sıfırdan büyükse) (#247) | `panel-sales-export`, `db-integration-panel-feeds` |
+| 🟢 | Panelin okuduğu Paraşüt kayıtları (site ne açar, iadeyi kim keser) belgede yoktu | `docs/EARSIV.md` §9: site iade / iptal belgesi kesmez; panel gider faturalarını süzmeden (iptali görmek için) ve gelen e-Faturaları `GET e_invoices`'tan okur, kurumsal alıcının iade e-Faturasını kural 5 ayırır; kategori işareti eklenmedi (nedeni §9.5) (#240) | `earsiv-panel-records` |
+
+Açık (operatörün):
+
+| Derece | Bulgu | Neden açık |
+| --- | --- | --- |
+| 🟡 | Vercel'de `DATABASE_URL`'in Preview ortamında da tanımlı olduğu buradan doğrulanamadı | Ortam değişkenleri okunamıyor; derleme denetimi yalnız Production'ı zorlar |
+| 🟢 | Supabase projesi Singapur, fonksiyonlar fra1, Neon us-east-2 | Bölge taşıması ayrı karar; Supabase'in JWT imzası asimetrik değilse `getClaims()` yine `getUser()`'a düşer |
+| 🟢 | İki projenin `PARASUT_COMPANY_ID`'si aynı mı | Değerler okunamıyor (`docs/EARSIV.md` §9) |
+| 🟡 | Panel, kurumsal alıcının gelen iade e-Faturasını (`IADE`) eksi tutarlı gider olarak açar | Panel tarafı (`lafmaliyet`), ayrı oturumda; kural `docs/EARSIV.md` §9.4 kural 5 |
+| 🟢 | Panel 409 `single_size`'ı "Siteye ulaşılamadı" diye gösterir | Panel tarafı, ayrı oturumda; yanıt `docs/PANEL-MENU.md` hata tablosunda |
