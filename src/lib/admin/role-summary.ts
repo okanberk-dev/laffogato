@@ -1,6 +1,11 @@
 // Client-safe: what each panel role opens, in the words of the sidebar.
 
-import { sectionsFor, type AdminRole, type AdminSection } from "./roles";
+import {
+  ADMIN_ROLES,
+  sectionsFor,
+  type AdminRole,
+  type AdminSection,
+} from "./roles";
 
 /**
  * Every section under the name the operator knows it by (the sidebar's,
@@ -48,4 +53,37 @@ export function roleSectionLabels(role: AdminRole): string[] {
   return sectionsFor(role)
     .map((section) => SECTION_LABELS[section])
     .filter(Boolean);
+}
+
+/** A section's name without its note: "Müşteriler", not "Müşteriler (…)". */
+export function sectionShortLabel(section: AdminSection): string {
+  return SECTION_LABELS[section].split(" (")[0];
+}
+
+/** One row of the users page's roles table. */
+export interface RoleMatrixRow {
+  section: AdminSection;
+  label: string;
+  /** Which roles open it. */
+  roles: Record<AdminRole, boolean>;
+}
+
+/**
+ * The roles × sections table (Innex's permissions shown, not described,
+ * 22 Eki 2026): one row per section with a page, in the sidebar's order,
+ * and which roles open it, from the matrix the server gates read.
+ */
+export function roleMatrix(): RoleMatrixRow[] {
+  const open = new Map(
+    ADMIN_ROLES.map((role) => [role, new Set(sectionsFor(role))]),
+  );
+  return (Object.keys(SECTION_LABELS) as AdminSection[])
+    .filter((section) => SECTION_LABELS[section] !== "")
+    .map((section) => ({
+      section,
+      label: SECTION_LABELS[section],
+      roles: Object.fromEntries(
+        ADMIN_ROLES.map((role) => [role, open.get(role)!.has(section)]),
+      ) as Record<AdminRole, boolean>,
+    }));
 }

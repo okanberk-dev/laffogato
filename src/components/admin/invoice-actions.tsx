@@ -20,8 +20,14 @@ import {
   setInvoiceBillingAction,
 } from "@/app/admin/faturalar/actions";
 import type { InvoiceRow, InvoiceSourceKind } from "@/lib/invoice/invoice-core";
-import { invoicePdfHref, isEInvoice } from "@/lib/invoice/panel-core";
+import {
+  invoicePdfHref,
+  invoiceSourceHref,
+  isEInvoice,
+} from "@/lib/invoice/panel-core";
 import { invoicePdfAvailable } from "@/lib/invoice/pdf";
+
+import { ROW_CONTROL } from "./ui/styles";
 
 // An invoice row's actions (docs/EARSIV.md "Panel"), as the list's ⋯ menu
 // or as a row of buttons on an order's or a booking's invoice card.
@@ -61,6 +67,115 @@ function billingEditable(row: InvoiceRow): boolean {
     !row.eDocumentId &&
     !BUSY.has(row.status) &&
     row.status !== "manual_done"
+  );
+}
+
+/**
+ * The list row's one visible step, beside its ⋯ (Innex: the button follows
+ * the row's state, recipe §3.4): a draft is read before it is formalised,
+ * so "Taslağı gör" opens its order's or booking's Fatura tab, where the
+ * lines and "Faturayı kesinleştir" are; a due one is cut, a failed one
+ * tried again, a manual one recorded once cut in Paraşüt; an issued one is
+ * its PDF. Filled where a person is the next step, outlined otherwise.
+ * Nothing else: the rest stays in the menu.
+ */
+export function InvoiceRowStep({ row }: { row: InvoiceRow }) {
+  if (row.status === "draft") {
+    return (
+      <Link
+        href={`${invoiceSourceHref(row)}?sekme=fatura`}
+        className={ROW_CONTROL.textStrong}
+        aria-label={`Taslağı gör: ${row.sourceLabel}`}
+      >
+        Taslağı gör
+      </Link>
+    );
+  }
+  if (row.status === "due") {
+    return (
+      <ActionButton
+        action={cutInvoiceNowAction}
+        hidden={{ id: row.id }}
+        variant="bare"
+        className={ROW_CONTROL.textStrong}
+        ariaLabel={`Faturayı kes: ${row.sourceLabel}`}
+        pendingLabel="Hazırlanıyor…"
+      >
+        Faturayı kes
+      </ActionButton>
+    );
+  }
+  if (row.status === "failed") {
+    return (
+      <ActionButton
+        action={retryInvoiceAction}
+        hidden={{ id: row.id }}
+        variant="bare"
+        className={ROW_CONTROL.textStrong}
+        ariaLabel={`Yeniden dene: ${row.sourceLabel}`}
+        pendingLabel="Kuyruğa alınıyor…"
+      >
+        Yeniden dene
+      </ActionButton>
+    );
+  }
+  if (row.status === "manual" && manualDone(row)) {
+    return <ManualDoneModal row={row} variant="bare" label="Kestim" />;
+  }
+  if (row.eDocumentId && invoicePdfAvailable()) {
+    return (
+      <a
+        href={invoicePdfHref(row)}
+        download
+        className={ROW_CONTROL.text}
+        aria-label={`Faturayı indir: ${row.sourceLabel}`}
+      >
+        PDF
+      </a>
+    );
+  }
+  return null;
+}
+
+/** "Paraşüt'te elle kestim": the number of the invoice cut by hand. */
+function ManualDoneModal({
+  row,
+  variant,
+  label = "Paraşüt'te elle kestim",
+}: {
+  row: InvoiceRow;
+  variant: "menu" | "ghost" | "bare";
+  label?: string;
+}) {
+  return (
+    <ActionModal
+      action={markInvoiceManualDoneAction}
+      title="Paraşüt'te elle kestim"
+      description="Faturayı Paraşüt'te kestiysen numarasını yaz: bu kayıt bir daha otomatik kesilmez."
+      trigger={label}
+      triggerVariant={variant}
+      triggerClassName={variant === "bare" ? ROW_CONTROL.textStrong : undefined}
+      ariaLabel={
+        variant === "bare" ? `Elle kestim: ${row.sourceLabel}` : undefined
+      }
+      submitLabel="Kaydet"
+      hidden={{ id: row.id }}
+    >
+      <div className="flex flex-col gap-1.5">
+        <Field
+          label="Fatura numarası"
+          hint="Paraşüt'te görünen fatura numarası (örneğin GIB2026000000123)."
+        >
+          <TextInput
+            name="invoiceNo"
+            required
+            maxLength={40}
+            autoComplete="off"
+          />
+        </Field>
+        <FieldError name="invoiceNo" />
+      </div>
+    </ActionModal>
   );
 }
 
@@ -253,33 +368,7 @@ export function InvoiceActions({
     );
   }
   if (row && manualDone(row)) {
-    items.push(
-      <ActionModal
-        key="done"
-        action={markInvoiceManualDoneAction}
-        title="Paraşüt'te elle kestim"
-        description="Faturayı Paraşüt'te kestiysen numarasını yaz: bu kayıt bir daha otomatik kesilmez."
-        trigger="Paraşüt'te elle kestim"
-        triggerVariant={v}
-        submitLabel="Kaydet"
-        hidden={{ id: row.id }}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Field
-            label="Fatura numarası"
-            hint="Paraşüt'te görünen fatura numarası (örneğin GIB2026000000123)."
-          >
-            <TextInput
-              name="invoiceNo"
-              required
-              maxLength={40}
-              autoComplete="off"
-            />
-          </Field>
-          <FieldError name="invoiceNo" />
-        </div>
-      </ActionModal>,
-    );
+    items.push(<ManualDoneModal key="done" row={row} variant={v} />);
   }
   if (items.length === 0) return null;
   if (menu) {

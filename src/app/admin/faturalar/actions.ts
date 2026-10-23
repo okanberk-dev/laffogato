@@ -13,7 +13,13 @@ import {
 import { safeAudit } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import { setAdminFlash } from "@/lib/admin/flash";
+import { panelSignal } from "@/lib/admin/panel-signal";
+import {
+  invoiceSignalKey,
+  type PanelSignalAnswer,
+} from "@/lib/admin/panel-signal-core";
 import { provinceOf } from "@/lib/invoice/address-core";
+import { earsivConfigStatus } from "@/lib/invoice/config";
 import { checkParasutConnection } from "@/lib/invoice/connection";
 import {
   isValidVkn,
@@ -26,6 +32,7 @@ import {
   INVOICES_PATH,
   invoiceSourceHref,
   isEInvoice,
+  needsAttention,
 } from "@/lib/invoice/panel-core";
 import {
   runInvoiceRow,
@@ -35,6 +42,7 @@ import {
 import {
   dbInvoiceStore,
   getInvoice,
+  listAttentionInvoices,
   markInvoiceManual,
   markInvoiceManualDone,
   requestOrderInvoice,
@@ -42,11 +50,41 @@ import {
   setInvoiceBilling,
   writeCarriers,
 } from "@/lib/invoice/store";
+import { istanbulClock } from "@/lib/mobile/venue";
 
 // Every export here is a public POST endpoint (CLAUDE.md rule 27): each one
 // checks the session and the `invoices` role itself. Nothing here touches an
 // issued e-Arşiv invoice: a refund after one is a person's document in
 // Paraşüt (docs/EARSIV.md).
+
+/**
+ * The sidebar's Faturalar badge (Innex, 23 Eki 2026: a counter only where
+ * work waits): the invoices that need a person, the Dikkat tab's own set
+ * (`needsAttention` over `listAttentionInvoices`), as the dashboard's
+ * e-Arşiv band counts them. Nothing while the automation is off: the band
+ * is off then too. Every write to `invoices` moves its marker
+ * (`live:invoices`), the runner's in the background too; the key carries
+ * the köşk's day, because a deadline comes near with the clock, not with a
+ * write (two days' warning, so a day late at worst is still in time).
+ */
+export async function invoiceAttentionSignalAction(
+  cursor: string,
+): Promise<PanelSignalAnswer> {
+  const now = new Date();
+  if (earsivConfigStatus(process.env).mode === "off") {
+    return { count: null, cursor: "" };
+  }
+  return panelSignal({
+    kind: "invoices",
+    section: "invoices",
+    key: invoiceSignalKey(istanbulClock(now).date),
+    cursor,
+    read: async () =>
+      (await listAttentionInvoices()).filter((r) => needsAttention(r, now))
+        .length,
+    label: "dikkat isteyen fatura sayılamadı",
+  });
+}
 
 function refusedIssues(
   issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,

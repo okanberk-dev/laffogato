@@ -18,7 +18,7 @@ import type { WriteTarget } from "@/lib/db/client";
  * reply was lost looks like a failure), and `expireTags` expires the answer
  * (src/lib/db/index.ts).
  *
- * Seven tags:
+ * Eight tags:
  * - `pub:catalog`: products and categories (the shop, its link cards and
  *   the sitemap).
  * - `pub:menu`: menu items (the cafe menu, also the table's QR menu). Apart
@@ -31,8 +31,10 @@ import type { WriteTarget } from "@/lib/db/client";
  *   page's cache (docs/AUDIT.md §8, P2).
  * - `live:orders`: orders (the new-order bell and the panel's counts).
  * - `live:karaoke`: karaoke bookings (the nav badge).
- * - `live:access`: panel accounts. Nothing cached reads them; both change
- *   markers carry the tag, so a user deactivated, demoted or given a new
+ * - `live:invoices`: e-Arşiv invoices (the Faturalar nav badge). Nothing
+ *   else caches them; the runner's writes are few.
+ * - `live:access`: panel accounts. Nothing cached reads them; every change
+ *   marker carries the tag, so a user deactivated, demoted or given a new
  *   password moves every marker and each open panel tab's next poll
  *   re-reads its account (rule 30).
  *
@@ -51,6 +53,7 @@ export const TAG_SITE = "pub:site";
 export const TAG_VENUE = "live:venue";
 export const TAG_ORDERS = "live:orders";
 export const TAG_KARAOKE = "live:karaoke";
+export const TAG_INVOICES = "live:invoices";
 export const TAG_ACCESS = "live:access";
 
 export const ALL_CACHE_TAGS = [
@@ -60,6 +63,7 @@ export const ALL_CACHE_TAGS = [
   TAG_VENUE,
   TAG_ORDERS,
   TAG_KARAOKE,
+  TAG_INVOICES,
   TAG_ACCESS,
 ] as const;
 
@@ -147,9 +151,10 @@ export const TABLE_TAGS: Record<TableName, readonly CacheTag[]> = {
   iys_state: NONE,
   // e-Arşiv invoices (src/lib/invoice/, docs/EARSIV.md): read live by the
   // panel's Faturalar page, the order and booking pages and the member's
-  // order page; the Paraşüt token, product ids and contact cache are read
-  // by the invoice runner only. Nothing caches them.
-  invoices: NONE,
+  // order page; only the Faturalar nav badge's marker sits under their tag.
+  // The Paraşüt token, product ids and contact cache are read by the
+  // invoice runner only. Nothing caches them.
+  invoices: [TAG_INVOICES],
   invoice_state: NONE,
   invoice_contacts: NONE,
 };
@@ -215,9 +220,10 @@ export const RPC_TAGS: Record<string, readonly CacheTag[]> = {
   birthday_greeting_audience: NONE,
   email_suppression_record: NONE,
   reserve_fal_reading: NONE,
-  // e-Arşiv: the claim of due invoices and the Paraşüt token lease write
-  // invoices and invoice_state, which nothing caches.
-  invoice_claim: NONE,
+  // e-Arşiv: the claim of due invoices writes invoices (the Faturalar
+  // badge's marker); the Paraşüt token lease writes invoice_state, which
+  // nothing caches.
+  invoice_claim: [TAG_INVOICES],
   invoice_state_lease: NONE,
   customer_consents_retention: NONE,
   // Writes customer_devices only (20261022170000).

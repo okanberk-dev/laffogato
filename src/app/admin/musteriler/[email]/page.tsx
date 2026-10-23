@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { BackLink } from "@/components/admin/back-link";
 import { CustomerActions } from "@/components/admin/customer-actions";
@@ -21,8 +22,15 @@ import {
   ListSearchButton,
   NUMERIC_STYLE,
   OrderStatusBadge,
+  PageShell,
 } from "@/components/admin/ui";
-import { CARD_TITLE, EYEBROW, MONO_STYLE } from "@/components/admin/ui/styles";
+import { DetailLayout } from "@/components/admin/ui/detail-layout";
+import { DetailTabs, type DetailTab } from "@/components/admin/ui/detail-tabs";
+import { CARD_TITLE, MONO_STYLE } from "@/components/admin/ui/styles";
+import {
+  SummaryCard,
+  type SummaryChip,
+} from "@/components/admin/ui/summary-card";
 import { cx } from "@/components/laffogato/cx";
 import { requireRole } from "@/lib/admin/auth";
 import { getAdminInviteTree } from "@/lib/admin/invites";
@@ -186,78 +194,277 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   }
 
   const displayName = member?.name || orders[0]?.customerName || email;
+  const status = member
+    ? member.deletionRequest
+      ? { label: "Silme talebi", tone: "danger" as const }
+      : member.isActive
+        ? { label: "Aktif üye", tone: "success" as const }
+        : { label: "Pasif üye", tone: "warning" as const }
+    : { label: "Misafir" };
+  // The left column's figure (Innex's person card): what this person spent,
+  // with the counts beside it and how to reach them under it.
+  const chips: SummaryChip[] = [
+    status,
+    // Paid orders only; the Siparişler tab lists every attempt (PEO-26).
+    { label: `Ödenen sipariş ${lifetime.orderCount}` },
+    ...(lifetime.refundedMinor > 0
+      ? [
+          {
+            label: `İade −${formatTRY(lifetime.refundedMinor)}`,
+            tone: "danger" as const,
+          },
+        ]
+      : []),
+    ...(bookings.length > 0 ? [{ label: `Karaoke ${bookings.length}` }] : []),
+  ];
+  const phone = member?.phone || orders[0]?.customerPhone || "";
+  const facts: Array<readonly [string, ReactNode]> = [
+    [
+      "E-posta",
+      <span key="email" className={WRAP}>
+        {email}
+      </span>,
+    ],
+    ["Telefon", phone || "-"],
+    member
+      ? ["Üyelik", formatDateTime(member.createdAt)]
+      : ["Hesap", "Üyeliksiz"],
+    ["Son sipariş", orders[0] ? formatDateTime(orders[0].createdAt) : "-"],
+  ];
 
-  return (
-    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
-      <BackLink href="/admin/musteriler">Tüm müşteriler</BackLink>
-      {/* A guest without a name is titled by the address: it wraps. */}
-      <div className="[&_h1]:[overflow-wrap:anywhere] [&_header_p]:[overflow-wrap:anywhere]">
-        <PageHeader
-          eyebrow={member ? "Üye hesabı" : "Misafir müşteri"}
-          title={displayName}
-          description={`${email}${member?.phone ? ` · ${member.phone}` : ""}`}
-          primary={
-            member
-              ? { href: `${customerHref(email)}/duzenle`, label: "Düzenle" }
-              : undefined
-          }
-        />
+  const ordersTab = (
+    <section aria-labelledby="siparis-gecmisi">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div className="min-w-0">
+          <h2 id="siparis-gecmisi" className={CARD_TITLE}>
+            Sipariş geçmişi
+          </h2>
+          {/* Every attempt and how many of them were paid: the figure
+              on the left counts the paid ones only (PEO-26). */}
+          <p className="mt-1 text-sm text-[var(--admin-text-soft)]">
+            {orderTotal} sipariş · {lifetime.orderCount} ödenen
+            {orderTotal > ORDERS_SHOWN
+              ? ` · en yeni ${ORDERS_SHOWN} tanesi aşağıda`
+              : ""}
+          </p>
+        </div>
+        {orderTotal > ORDERS_SHOWN ? (
+          // The address goes in the post's body, not in `?q=`.
+          <ListSearchButton
+            href={ORDER_LIST_PATH}
+            terms={{ q: email }}
+            className={BUTTON.ghost}
+          >
+            Tümünü gör
+          </ListSearchButton>
+        ) : null}
       </div>
+      <DataTable
+        caption="Sipariş geçmişi"
+        rows={orders}
+        rowKey={(o) => o.id}
+        rowHref={(o) => `/admin/siparisler/${encodeURIComponent(o.id)}`}
+        empty={<EmptyState title="Bu müşterinin henüz siparişi yok." />}
+        columns={[
+          {
+            key: "no",
+            header: "Sipariş",
+            cell: (o) => <span style={NUMERIC_STYLE}>#{o.orderNo}</span>,
+          },
+          {
+            key: "tarih",
+            header: "Tarih",
+            cell: (o) => (
+              <span className="text-xs whitespace-nowrap" style={MONO_STYLE}>
+                {formatDateTime(o.createdAt)}
+              </span>
+            ),
+          },
+          {
+            key: "durum",
+            header: "Durum",
+            cell: (o) => <OrderStatusBadge order={o} />,
+          },
+          {
+            key: "kalemler",
+            header: "Kalemler",
+            cell: (o) => {
+              const lines = o.items
+                .map((it) => `${it.productName} × ${it.qty}`)
+                .join(" · ");
+              // Two lines at most beside the summary column; the whole
+              // list on hover and on the order's page.
+              return (
+                <span
+                  className="line-clamp-2 text-xs text-[var(--admin-text-soft)]"
+                  title={lines}
+                >
+                  {lines}
+                </span>
+              );
+            },
+          },
+          {
+            key: "tutar",
+            header: "Tutar",
+            align: "right",
+            cell: (o) => <OrderAmount order={o} />,
+          },
+        ]}
+      />
+    </section>
+  );
 
-      <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {/* Paid orders only; the history below lists every attempt
-            (PEO-26). */}
-        <Stat label="Ödenen sipariş" value={String(lifetime.orderCount)} />
-        <Stat
-          label="Toplam harcama"
-          value={formatTRY(lifetime.lifetimeValueMinor)}
-        />
-        <Stat
-          label="İade"
-          value={
-            lifetime.refundedMinor > 0
-              ? `−${formatTRY(lifetime.refundedMinor)}`
-              : "-"
-          }
-          tone={lifetime.refundedMinor > 0 ? "danger" : undefined}
-        />
-        <Stat
-          label="Durum"
-          value={
-            member
-              ? member.deletionRequest
-                ? "Silme talebi"
-                : member.isActive
-                  ? "Aktif üye"
-                  : "Pasif üye"
-              : "Misafir"
-          }
-          small
-        />
+  const karaokeTab = (
+    <Card>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <SectionTitle className="mb-0">
+          Karaoke rezervasyonları ({bookings.length})
+        </SectionTitle>
+        <Link href={KARAOKE_PANEL_PATH} className={BUTTON.link}>
+          Karaoke ekranı →
+        </Link>
       </div>
-
-      {member?.deletionRequest && (
-        <CustomerDeletionRequest
-          email={member.email}
-          request={member.deletionRequest}
-          // Every booking under the address, so the card can race the
-          // start of each paid one (guest rows are dropped there).
-          karaoke={paidKaraokeAtRequest(
-            karaoke,
-            member.deletionRequest.requestedAt,
-            now,
-          )}
-          now={now}
-        />
+      {bookings.length === 0 ? (
+        <EmptyState title="Bu e-postayla yapılmış karaoke rezervasyonu yok." />
+      ) : (
+        <ul className="grid gap-2">
+          {bookingViews.map((v) => {
+            const r = v.r;
+            return (
+              <li key={r.id}>
+                {/* The whole row opens the booking's own page. */}
+                <Link
+                  href={karaokeDetailHref(r.id)}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm hover:border-[var(--admin-primary)]"
+                >
+                  <span className="block min-w-0">
+                    <span className="block font-medium text-[var(--admin-text)]">
+                      {v.day} · {v.time}
+                    </span>
+                    <span className="block text-xs text-[var(--admin-text-soft)]">
+                      {r.guests} kişi · {formatTRY(r.totalMinor)}
+                      {v.money !== "none" && (r.paidMinor ?? 0) > 0
+                        ? ` · ödenen ${formatTRY(r.paidMinor ?? 0)}`
+                        : ""}
+                      <span className="ml-2" style={NUMERIC_STYLE}>
+                        {r.id}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {r.guest ? <Badge>Üyeliksiz</Badge> : null}
+                    <Badge tone={v.statusTone}>{v.statusLabel}</Badge>
+                    <Badge tone={v.paymentTone}>{v.paymentLabel}</Badge>
+                    {v.attention.includes("refund_owed") ? (
+                      <Badge tone="danger">İade borcu</Badge>
+                    ) : null}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
+      {bookings.length > KARAOKE_SHOWN ? (
+        <p className="mt-2 text-xs text-[var(--admin-text-soft)]">
+          En yeni {KARAOKE_SHOWN} rezervasyon gösteriliyor.
+        </p>
+      ) : null}
+    </Card>
+  );
 
-      {member ? (
-        // minmax(0, …) tracks: a long address must not set the column's
-        // width (PEO-03: the page was wider than a 390 px phone). Two
-        // columns from xl: beside the sidebar at lg the side column was
-        // 232 px, too narrow for its forms.
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <div className="grid grid-cols-1 content-start gap-4">
+  const tabs: DetailTab[] = [
+    {
+      id: "siparisler",
+      label: "Siparişler",
+      count: orderTotal,
+      content: ordersTab,
+    },
+    {
+      id: "karaoke",
+      label: "Karaoke",
+      count: bookings.length,
+      content: karaokeTab,
+    },
+  ];
+  if (member) {
+    tabs.push(
+      {
+        id: "sadakat",
+        label: "Sadakat",
+        content: (
+          <>
+            <CustomerStamps
+              email={member.email}
+              loyalty={loyalty}
+              history={stamps}
+              canReverse
+            />
+            <CustomerCoupons email={member.email} coupons={coupons} />
+            {/* The referral programme was invisible in the panel: nobody
+                could see who invited whom, why an invite was stuck on
+                "bekliyor", or that a member had already hit the cap. */}
+            <Card>
+              <SectionTitle>Davetler ({invites.invitees.length})</SectionTitle>
+              <KeyValueGrid
+                columns={1}
+                items={[
+                  {
+                    label: "Davet kodu",
+                    value: invites.inviteCode,
+                    mono: true,
+                  },
+                  {
+                    label: "Davet eden",
+                    value: invites.invitedBy ? (
+                      <Link
+                        href={customerHref(invites.invitedBy)}
+                        className={`text-[var(--admin-primary)] underline underline-offset-4 ${WRAP}`}
+                      >
+                        {invites.invitedBy}
+                      </Link>
+                    ) : null,
+                  },
+                  {
+                    label: "Ödüllenen",
+                    value: `${invites.rewardedCount}/${invites.rewardCap}${
+                      invites.capReached ? " · sınır doldu" : ""
+                    }`,
+                  },
+                ]}
+              />
+              {invites.invitees.length === 0 ? (
+                <p className="mt-3 text-sm text-[var(--admin-text-soft)]">
+                  Bu üyenin kodunu henüz kimse kullanmadı.
+                </p>
+              ) : (
+                <ul className="mt-3 grid gap-2 border-t border-[var(--admin-border)] pt-3">
+                  {invites.invitees.map((i) => (
+                    <li key={i.id} className="min-w-0 text-xs">
+                      <Link
+                        href={customerHref(i.inviteeEmail)}
+                        className={`block text-[var(--admin-text)] underline underline-offset-4 ${WRAP}`}
+                      >
+                        {i.inviteeEmail}
+                      </Link>
+                      <span className="text-[var(--admin-text-soft)]">
+                        {INVITE_STATUS_LABEL[i.status] ?? i.status} ·{" "}
+                        {formatDateTime(i.rewardedAt || i.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </>
+        ),
+      },
+      {
+        id: "profil",
+        label: "Profil",
+        content: (
+          <>
             <Card>
               <SectionTitle>Profil</SectionTitle>
               <KeyValueGrid
@@ -352,77 +559,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                 </ul>
               )}
             </Card>
-          </div>
 
-          <aside className="grid grid-cols-1 content-start gap-4">
-            <CustomerActions
-              email={member.email}
-              isActive={member.isActive}
-              emailVerified={member.emailVerified}
-              deletionRequested={member.deletionRequest !== null}
-            />
-            <CustomerStamps
-              email={member.email}
-              loyalty={loyalty}
-              history={stamps}
-              canReverse
-            />
-            <CustomerCoupons email={member.email} coupons={coupons} />
-            {/* The referral programme was invisible in the panel: nobody could
-                see who invited whom, why an invite was stuck on "bekliyor", or
-                that a member had already hit the reward cap. */}
-            <Card>
-              <SectionTitle>Davetler ({invites.invitees.length})</SectionTitle>
-              <KeyValueGrid
-                columns={1}
-                items={[
-                  {
-                    label: "Davet kodu",
-                    value: invites.inviteCode,
-                    mono: true,
-                  },
-                  {
-                    label: "Davet eden",
-                    value: invites.invitedBy ? (
-                      <Link
-                        href={customerHref(invites.invitedBy)}
-                        className={`text-[var(--admin-primary)] underline underline-offset-4 ${WRAP}`}
-                      >
-                        {invites.invitedBy}
-                      </Link>
-                    ) : null,
-                  },
-                  {
-                    label: "Ödüllenen",
-                    value: `${invites.rewardedCount}/${invites.rewardCap}${
-                      invites.capReached ? " · sınır doldu" : ""
-                    }`,
-                  },
-                ]}
-              />
-              {invites.invitees.length === 0 ? (
-                <p className="mt-3 text-sm text-[var(--admin-text-soft)]">
-                  Bu üyenin kodunu henüz kimse kullanmadı.
-                </p>
-              ) : (
-                <ul className="mt-3 grid gap-2 border-t border-[var(--admin-border)] pt-3">
-                  {invites.invitees.map((i) => (
-                    <li key={i.id} className="min-w-0 text-xs">
-                      <Link
-                        href={customerHref(i.inviteeEmail)}
-                        className={`block text-[var(--admin-text)] underline underline-offset-4 ${WRAP}`}
-                      >
-                        {i.inviteeEmail}
-                      </Link>
-                      <span className="text-[var(--admin-text-soft)]">
-                        {INVITE_STATUS_LABEL[i.status] ?? i.status} ·{" "}
-                        {formatDateTime(i.rewardedAt || i.createdAt)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
             <Card>
               <SectionTitle>Bildirim tercihleri</SectionTitle>
               <ul className="grid gap-2 text-sm">
@@ -450,8 +587,8 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   );
                 })}
               </ul>
-              {/* The date the campaign e-mails need besides the switch; the
-                  panel can only clear it, never set it. */}
+              {/* The date the campaign e-mails need besides the switch;
+                  the panel can only clear it, never set it. */}
               <p className="mt-3 text-xs text-[var(--admin-text-soft)]">
                 Ticari ileti izni:{" "}
                 {member.marketingConsentAt
@@ -459,147 +596,78 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                   : "tarih kaydı yok"}
               </p>
             </Card>
-          </aside>
-        </div>
-      ) : (
-        <Card className="mb-4">
-          <p className="text-sm text-[var(--admin-text-soft)]">
-            Bu e-postaya bağlı kayıtlı bir üye hesabı yok - yalnızca misafir
-            siparişleri ya da rezervasyonları var.
-          </p>
-        </Card>
-      )}
+          </>
+        ),
+      },
+    );
+  }
 
-      <Card className="mt-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <SectionTitle className="mb-0">
-            Karaoke rezervasyonları ({bookings.length})
-          </SectionTitle>
-          <Link href={KARAOKE_PANEL_PATH} className={BUTTON.link}>
-            Karaoke ekranı →
-          </Link>
-        </div>
-        {bookings.length === 0 ? (
-          <EmptyState title="Bu e-postayla yapılmış karaoke rezervasyonu yok." />
-        ) : (
-          <ul className="grid gap-2">
-            {bookingViews.map((v) => {
-              const r = v.r;
-              return (
-                <li key={r.id}>
-                  {/* The whole row opens the booking's own page. */}
-                  <Link
-                    href={karaokeDetailHref(r.id)}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--admin-border)] p-3 text-sm hover:border-[var(--admin-primary)]"
-                  >
-                    <span className="block min-w-0">
-                      <span className="block font-medium text-[var(--admin-text)]">
-                        {v.day} · {v.time}
-                      </span>
-                      <span className="block text-xs text-[var(--admin-text-soft)]">
-                        {r.guests} kişi · {formatTRY(r.totalMinor)}
-                        {v.money !== "none" && (r.paidMinor ?? 0) > 0
-                          ? ` · ödenen ${formatTRY(r.paidMinor ?? 0)}`
-                          : ""}
-                        <span className="ml-2" style={NUMERIC_STYLE}>
-                          {r.id}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex flex-wrap items-center gap-1.5">
-                      {r.guest ? <Badge>Üyeliksiz</Badge> : null}
-                      <Badge tone={v.statusTone}>{v.statusLabel}</Badge>
-                      <Badge tone={v.paymentTone}>{v.paymentLabel}</Badge>
-                      {v.attention.includes("refund_owed") ? (
-                        <Badge tone="danger">İade borcu</Badge>
-                      ) : null}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {bookings.length > KARAOKE_SHOWN ? (
-          <p className="mt-2 text-xs text-[var(--admin-text-soft)]">
-            En yeni {KARAOKE_SHOWN} rezervasyon gösteriliyor.
-          </p>
-        ) : null}
-      </Card>
-
-      <section aria-labelledby="siparis-gecmisi" className="mt-6">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <div className="min-w-0">
-            <h2 id="siparis-gecmisi" className={CARD_TITLE}>
-              Sipariş geçmişi
-            </h2>
-            {/* Every attempt and how many of them were paid: the tile
-                above counts the paid ones only (PEO-26). */}
-            <p className="mt-1 text-sm text-[var(--admin-text-soft)]">
-              {orderTotal} sipariş · {lifetime.orderCount} ödenen
-              {orderTotal > ORDERS_SHOWN
-                ? ` · en yeni ${ORDERS_SHOWN} tanesi aşağıda`
-                : ""}
-            </p>
-          </div>
-          {orderTotal > ORDERS_SHOWN ? (
-            // The address goes in the post's body, not in `?q=`.
-            <ListSearchButton
-              href={ORDER_LIST_PATH}
-              terms={{ q: email }}
-              className={BUTTON.ghost}
-            >
-              Tümünü gör
-            </ListSearchButton>
-          ) : null}
-        </div>
-        <DataTable
-          caption="Sipariş geçmişi"
-          rows={orders}
-          rowKey={(o) => o.id}
-          rowHref={(o) => `/admin/siparisler/${encodeURIComponent(o.id)}`}
-          empty={<EmptyState title="Bu müşterinin henüz siparişi yok." />}
-          columns={[
-            {
-              key: "no",
-              header: "Sipariş",
-              cell: (o) => <span style={NUMERIC_STYLE}>#{o.orderNo}</span>,
-            },
-            {
-              key: "tarih",
-              header: "Tarih",
-              cell: (o) => (
-                <span className="text-xs whitespace-nowrap" style={MONO_STYLE}>
-                  {formatDateTime(o.createdAt)}
-                </span>
-              ),
-            },
-            {
-              key: "durum",
-              header: "Durum",
-              cell: (o) => <OrderStatusBadge order={o} />,
-            },
-            {
-              key: "kalemler",
-              header: "Kalemler",
-              cell: (o) => (
-                <span className="text-xs text-[var(--admin-text-soft)]">
-                  {o.items
-                    .map((it) => `${it.productName} × ${it.qty}`)
-                    .join(" · ")}
-                </span>
-              ),
-            },
-            {
-              key: "tutar",
-              header: "Tutar",
-              align: "right",
-              cell: (o) => <OrderAmount order={o} />,
-            },
-          ]}
+  return (
+    <PageShell width="detail">
+      <BackLink href="/admin/musteriler">Tüm müşteriler</BackLink>
+      {/* A guest without a name is titled by the address: it wraps. */}
+      <div className="[&_h1]:[overflow-wrap:anywhere] [&_header_p]:[overflow-wrap:anywhere]">
+        <PageHeader
+          eyebrow={member ? "Üye hesabı" : "Misafir müşteri"}
+          title={displayName}
+          description={`${email}${member?.phone ? ` · ${member.phone}` : ""}`}
+          primary={
+            member
+              ? { href: `${customerHref(email)}/duzenle`, label: "Düzenle" }
+              : undefined
+          }
         />
-      </section>
-    </main>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {member?.deletionRequest && (
+          <CustomerDeletionRequest
+            email={member.email}
+            request={member.deletionRequest}
+            // Every booking under the address, so the card can race the
+            // start of each paid one (guest rows are dropped there).
+            karaoke={paidKaraokeAtRequest(
+              karaoke,
+              member.deletionRequest.requestedAt,
+              now,
+            )}
+            now={now}
+          />
+        )}
+
+        <DetailLayout
+          summary={
+            <SummaryCard
+              ariaLabel="Özet"
+              label="Toplam harcama"
+              value={formatTRY(lifetime.lifetimeValueMinor)}
+              chips={chips}
+              facts={facts}
+            />
+          }
+          tabs={<DetailTabs label="Müşteri ayrıntıları" tabs={tabs} />}
+          asideLabel="Hesap"
+          asideSplit={false}
+          aside={
+            member ? (
+              <CustomerActions
+                email={member.email}
+                isActive={member.isActive}
+                emailVerified={member.emailVerified}
+                deletionRequested={member.deletionRequest !== null}
+              />
+            ) : (
+              <Card>
+                <p className="text-sm text-[var(--admin-text-soft)]">
+                  Bu e-postaya bağlı kayıtlı bir üye hesabı yok - yalnızca
+                  misafir siparişleri ya da rezervasyonları var.
+                </p>
+              </Card>
+            )
+          }
+        />
+      </div>
+    </PageShell>
   );
 }
 
@@ -626,38 +694,4 @@ function SectionTitle({
   className?: string;
 }) {
   return <h2 className={cx(CARD_TITLE, className)}>{children}</h2>;
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-  small,
-}: {
-  label: string;
-  value: string;
-  tone?: "danger";
-  small?: boolean;
-}) {
-  return (
-    <div className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
-      <div className={EYEBROW} style={MONO_STYLE}>
-        {label}
-      </div>
-      {/* A figure in the numeric face, a word ("Aktif üye") in the
-          panel's own. */}
-      <div
-        className={cx(
-          "mt-1",
-          small ? "text-sm" : "text-base sm:text-xl",
-          tone === "danger"
-            ? "text-[var(--admin-danger-ink)]"
-            : "text-[var(--admin-text)]",
-        )}
-        style={small ? undefined : NUMERIC_STYLE}
-      >
-        {value}
-      </div>
-    </div>
-  );
 }

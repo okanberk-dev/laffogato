@@ -5,9 +5,13 @@
 
 import { resendMailAction } from "@/app/admin/siparisler/actions";
 import {
+  orderChannel,
   orderFulfillment,
+  orderKind,
   orderTable,
+  ORDER_CHANNEL_LABELS,
   ORDER_FULFILLMENT_LABELS,
+  ORDER_KIND_LABELS,
 } from "@/lib/admin/order-channel";
 import {
   MANUAL_PROVIDER_PREFIX,
@@ -42,6 +46,8 @@ import {
   REWARD_COUPON_SOURCES,
 } from "@/lib/utils/kdv";
 
+import type { ReactNode } from "react";
+
 import { formatDateTime, formatTRY } from "./forms";
 import {
   ItemStatusSelect,
@@ -57,6 +63,9 @@ import {
   Section,
   Timeline,
 } from "./ui";
+import { DetailLayout } from "./ui/detail-layout";
+import { DetailTabs, type DetailTab } from "./ui/detail-tabs";
+import { SummaryCard, type SummaryChip } from "./ui/summary-card";
 import { MONO_STYLE } from "./ui/styles";
 
 interface Props {
@@ -91,6 +100,15 @@ interface Props {
   couponSource?: string | null;
   /** The coupon read failed: the table says it cannot tell a reward apart. */
   couponUnread?: boolean;
+  /**
+   * Money still owed back on a cancelled order (`refundableMinor`): the
+   * summary's one big figure then. 0 when nothing is owed.
+   */
+  owedMinor?: number;
+  /** The e-Arşiv card (InvoiceCard): its own tab. None on a manual order. */
+  invoice?: ReactNode;
+  /** The tab the page opens on (`?sekme=`, pickDetailTab). */
+  initialTab?: string;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -201,14 +219,14 @@ function ItemsSection({
   const editable = actions.item_status;
   return (
     <Section title="Kalemler" flush>
-      {/* Phones, and the page's narrow two-column span from lg to xl
-          (about 470 px beside the sidebar): one stacked row per line, the
-          status control underneath. The table was 520 px wide in a 358 px
-          card and its Durum select sat off screen behind a sideways swipe
-          (admin audit ORD-24). */}
+      {/* Phones: one stacked row per line, the status control underneath.
+          The table was 520 px wide in a 358 px card and its Durum select sat
+          off screen behind a sideways swipe (admin audit ORD-24). From sm the
+          tabs' column is wide enough for the table at every width (it is the
+          page's wide column now, beside a 21rem summary from xl). */}
       <ul
         data-order-lines-stacked
-        className="divide-y divide-[var(--admin-border)] sm:hidden lg:block xl:hidden"
+        className="divide-y divide-[var(--admin-border)] sm:hidden"
       >
         {order.items.map((it, i) => (
           <li key={i} className="flex flex-col gap-2 px-4 py-3 text-sm sm:px-6">
@@ -232,7 +250,7 @@ function ItemsSection({
           </li>
         ))}
       </ul>
-      <div className="hidden overflow-x-auto sm:block lg:hidden xl:block">
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr
@@ -549,10 +567,14 @@ function DeliverySection({
 }) {
   const fulfillment = orderFulfillment(order);
   const table = orderTable(order);
+  const handedOver = Boolean(
+    order.carrier || order.trackingNumber || order.shippedAt,
+  );
   return (
     <Section title="Teslimat">
       <KeyValueGrid
         columns={1}
+        layout="inline"
         items={[
           { label: "Teslimat", value: ORDER_FULFILLMENT_LABELS[fulfillment] },
           table && { label: "Masa", value: table.name || table.code },
@@ -560,6 +582,7 @@ function DeliverySection({
           // order has none, and its card said "Teslimat adresi yok.
           // Düzenle ile ekleyebilirsin." (admin audit ORD-11).
           orderHasAddress(order) && {
+            full: true,
             label: "Adres",
             value: order.shippingAddress ? (
               <address className="[overflow-wrap:anywhere] whitespace-pre-line not-italic">
@@ -585,16 +608,21 @@ function DeliverySection({
                 value: order.deliveryNote,
               }
             : null,
-          fulfillment === "shipping" && {
-            label: "Kargo",
-            value:
-              order.carrier || (order.trackingNumber ? "Belirtilmedi" : ""),
-          },
-          fulfillment === "shipping" && {
-            label: "Takip numarası",
-            value: order.trackingNumber ?? "",
-            mono: true,
-          },
+          // The carrier and the tracking number once the parcel is handed
+          // over ("Kargoya ver" asks for them); before that each was a
+          // "-" row.
+          fulfillment === "shipping" &&
+            handedOver && {
+              label: "Kargo",
+              value:
+                order.carrier || (order.trackingNumber ? "Belirtilmedi" : ""),
+            },
+          fulfillment === "shipping" &&
+            handedOver && {
+              label: "Takip numarası",
+              value: order.trackingNumber ?? "",
+              mono: true,
+            },
           order.shipmentStatus
             ? {
                 label: "Kargo firmasının durumu",
@@ -832,6 +860,87 @@ function ConsentSection({
   );
 }
 
+/**
+ * The money at a glance (Innex's "PAYABLE AMOUNT" box): one big figure, the
+ * one that decides what to do (money owed back on a cancelled order, the
+ * amount still to be paid, else the total, net of refunds), the others as
+ * small chips under it, then the order's facts, label left and value right.
+ */
+function OrderMoneySummary({
+  order,
+  money,
+  payments,
+  owedMinor,
+}: {
+  order: AdminOrder;
+  money: OrderMoneyView;
+  payments: readonly OrderPaymentRow[];
+  owedMinor: number;
+}) {
+  const refunded = refundedMinor(order);
+  const hero =
+    owedMinor > 0
+      ? { label: "İade edilecek", value: owedMinor, tone: "danger" as const }
+      : !money.collected && order.status === "pending_payment"
+        ? {
+            label: "Ödeme bekleniyor",
+            value: order.totalMinor,
+            tone: "warning" as const,
+          }
+        : refunded > 0
+          ? { label: "Net tutar", value: order.totalMinor - refunded }
+          : { label: "Toplam", value: order.totalMinor };
+  const chips: SummaryChip[] = [];
+  if (hero.label !== "Toplam") {
+    chips.push({ label: `Toplam ${formatTRY(order.totalMinor)}` });
+  }
+  chips.push(
+    money.collected
+      ? {
+          label: `Tahsil edilen ${formatTRY(money.collectedMinor ?? order.totalMinor)}`,
+          tone: "success",
+        }
+      : { label: "Ödenmedi", tone: "warning" },
+  );
+  if (refunded > 0) {
+    chips.push({ label: `İade edilen ${formatTRY(refunded)}`, tone: "danger" });
+  }
+  const paid = payments.find((p) => p.status === "succeeded");
+  // Where it goes is the Teslimat card's, right under this one.
+  const facts: Array<readonly [string, ReactNode]> = [
+    ["Sipariş", formatDateTime(order.createdAt)],
+    [
+      "Ödeme",
+      paid
+        ? `${providerLabel(paid.provider)} · ${formatDateTime(paid.createdAt)}`
+        : order.paidAt
+          ? formatDateTime(order.paidAt)
+          : "-",
+    ],
+    [
+      "Kanal",
+      `${ORDER_CHANNEL_LABELS[orderChannel(order)]} · ${ORDER_KIND_LABELS[orderKind(order)]}`,
+    ],
+  ];
+  return (
+    <SummaryCard
+      label={hero.label}
+      value={formatTRY(hero.value)}
+      tone={"tone" in hero ? hero.tone : undefined}
+      chips={chips}
+      facts={facts}
+    />
+  );
+}
+
+/**
+ * The order page's body (Innex's three-zone detail, 22 Eki 2026): the
+ * header with its one primary action above (the page's), the money, the
+ * customer, the delivery and the team's note in the left column, and the
+ * rest in tabs on the right: Kalemler (with the amounts and the KDV),
+ * Ödeme ve iade, Fatura, Geçmiş (the timeline, the mails and the consent
+ * record). Below xl the left column comes first and the tabs under it.
+ */
 export function OrderDetail({
   order,
   settings,
@@ -846,25 +955,44 @@ export function OrderDetail({
   historyUnread = { audit: false, mail: false },
   couponSource = null,
   couponUnread = false,
+  owedMinor = 0,
+  invoice = null,
+  initialTab,
 }: Props) {
-  return (
-    <>
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] print:hidden">
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
+  const tabs: DetailTab[] = [
+    {
+      id: "kalemler",
+      label: "Kalemler",
+      count: order.items.length,
+      content: (
+        <>
           <ItemsSection order={order} actions={actions} />
           <TotalsSection
             order={order}
             couponSource={couponSource}
             couponUnread={couponUnread}
           />
+        </>
+      ),
+    },
+    {
+      id: "odeme",
+      label: "Ödeme ve iade",
+      count: payments.length + order.refunds.length || undefined,
+      content: (
+        <>
           <PaymentSection order={order} money={money} payments={payments} />
           <RefundsSection order={order} />
-          <MailsSection
-            order={order}
-            notices={notices}
-            canResend={actions.resend_mail?.enabled === true}
-            unread={historyUnread.mail}
-          />
+        </>
+      ),
+    },
+    ...(invoice ? [{ id: "fatura", label: "Fatura", content: invoice }] : []),
+    {
+      id: "gecmis",
+      label: "Geçmiş",
+      count: timeline.length || undefined,
+      content: (
+        <>
           <Section title="Zaman çizelgesi">
             {historyUnread.audit || historyUnread.mail ? (
               <p
@@ -882,32 +1010,71 @@ export function OrderDetail({
               <EmptyState title="Kayıt yok." />
             )}
           </Section>
-        </div>
-
-        <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4">
-          <OrderCustomerEditor
-            orderId={order.id}
-            customerName={order.customerName}
-            customerEmail={order.customerEmail}
-            customerPhone={order.customerPhone}
-            shippingAddress={order.shippingAddress}
-            hasAddress={orderHasAddress(order)}
-            customerHref={customerHref}
-            rules={detailsRules}
-          />
-          <DeliverySection
+          <MailsSection
             order={order}
-            canEditAddress={detailsRules.editable}
+            notices={notices}
+            canResend={actions.resend_mail?.enabled === true}
+            unread={historyUnread.mail}
           />
-          <Section title="İç not">
-            <OrderNoteForm orderId={order.id} initial={order.internalNote} />
-          </Section>
           <ConsentSection
             consent={order.legalConsent}
             canSeeEvidence={canSeeEvidence}
           />
-        </aside>
-      </div>
+        </>
+      ),
+    },
+  ];
+  return (
+    <>
+      {/* The money first, then the tabs, then the people: on a phone the
+          lines are a scroll away, not under four cards. From xl the money
+          and the people share the left column and the tabs take the right
+          one, the whole height. */}
+      <DetailLayout
+        className="print:hidden"
+        summary={
+          <OrderMoneySummary
+            order={order}
+            money={money}
+            payments={payments}
+            owedMinor={owedMinor}
+          />
+        }
+        tabs={
+          <DetailTabs
+            label="Sipariş ayrıntıları"
+            tabs={tabs}
+            initial={initialTab}
+          />
+        }
+        asideLabel="Müşteri ve teslimat"
+        aside={
+          <>
+            <OrderCustomerEditor
+              orderId={order.id}
+              customerName={order.customerName}
+              customerEmail={order.customerEmail}
+              customerPhone={order.customerPhone}
+              shippingAddress={order.shippingAddress}
+              hasAddress={orderHasAddress(order)}
+              customerHref={customerHref}
+              rules={detailsRules}
+            />
+            <DeliverySection
+              order={order}
+              canEditAddress={detailsRules.editable}
+            />
+            <div className="min-w-0 md:col-span-2 xl:col-span-1">
+              <Section title="İç not">
+                <OrderNoteForm
+                  orderId={order.id}
+                  initial={order.internalNote}
+                />
+              </Section>
+            </div>
+          </>
+        }
+      />
 
       {/* Print-only receipt - hidden in normal flow, revealed by @media print */}
       <PrintableReceipt order={order} settings={settings} payments={payments} />

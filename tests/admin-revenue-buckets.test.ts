@@ -65,6 +65,24 @@ describe("revenue report buckets", () => {
     expect(buckets[0].bucket).toBe("2026-10-01");
   });
 
+  it("keeps each bucket's gross and refunds beside its net, as the strip sums them", () => {
+    const o = order("2026-09-10T10:00:00.000Z", 10000);
+    o.refunds = [{ amountMinor: 2500 } as AdminOrder["refunds"][number]];
+    const p = order("2026-09-11T10:00:00.000Z", 4000);
+    const [b] = bucketRevenue(
+      [o, p],
+      "month",
+      1,
+      new Date("2026-09-23T09:00:00Z"),
+    );
+    expect(b).toMatchObject({
+      revenueMinor: 11_500,
+      grossMinor: 14_000,
+      refundedMinor: 2500,
+      orderCount: 2,
+    });
+  });
+
   it("nets refunds against the order's own bucket", () => {
     const o = order("2026-09-10T10:00:00.000Z", 10000);
     o.refunds = [{ amountMinor: 2500 } as AdminOrder["refunds"][number]];
@@ -88,6 +106,8 @@ describe("the revenue chart (admin audit SYS-14)", () => {
     label: `${String(i + 1).padStart(2, "0")} Eki`,
     revenueMinor,
     orderCount: revenueMinor > 0 ? 3 : 0,
+    grossMinor: revenueMinor,
+    refundedMinor: 0,
   });
 
   async function html(data: ReturnType<typeof bucket>[]) {
@@ -98,6 +118,48 @@ describe("the revenue chart (admin audit SYS-14)", () => {
       createElement(RevenueChart, { data, caption: "Günlük net ciro" }),
     );
   }
+
+  it("draws the figure a Raporlar tab chose: a count on whole steps, no lira", async () => {
+    const { createElement } = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { RevenueChart, revenueAxis } =
+      await import("@/components/admin/revenue-chart");
+    expect(revenueAxis(7, 1).ticks).toEqual([8, 6, 4, 2, 0]);
+    const data = [bucket(0, 30_000), bucket(1, 0), bucket(2, 60_000)];
+    const orders = renderToStaticMarkup(
+      createElement(RevenueChart, {
+        data,
+        caption: "Günlük sipariş",
+        metric: "orders",
+      }),
+    );
+    expect(orders).toContain(
+      'aria-label="Günlük sipariş: toplam 6, en yüksek 01 Eki (3).',
+    );
+    expect(orders).toMatch(
+      /<th scope="col"[^>]*>Sipariş<\/th><th scope="col"[^>]*>Net ciro<\/th>/,
+    );
+    // A refund line with no refunds says so, not "no sales".
+    const refunds = renderToStaticMarkup(
+      createElement(RevenueChart, {
+        data,
+        caption: "Günlük iade",
+        metric: "refund",
+      }),
+    );
+    expect(refunds).toContain("Bu dönemde iade yok.");
+    // An average does not add up: its summary is the peak alone.
+    const basket = renderToStaticMarkup(
+      createElement(RevenueChart, {
+        data,
+        caption: "Günlük ortalama sepet",
+        metric: "basket",
+      }),
+    );
+    expect(basket).toContain(
+      'aria-label="Günlük ortalama sepet: en yüksek 03 Eki (₺200,00).',
+    );
+  });
 
   it("rounds the axis up to round liras", async () => {
     const { revenueAxis, axisLabel } =
@@ -160,7 +222,9 @@ describe("the revenue chart (admin audit SYS-14)", () => {
   it("says there were no sales instead of drawing ₺0,01 ticks", async () => {
     const markup = await html([bucket(0, 0), bucket(1, 0)]);
     expect(markup).toContain("Bu dönemde satış yok.");
-    expect(markup).not.toContain("<svg");
+    // No chart: the only drawing is the empty state's glyph.
+    expect(markup).not.toContain("<polyline");
+    expect(markup).not.toContain('role="img"');
     expect(markup).not.toContain("₺0,01");
   });
 

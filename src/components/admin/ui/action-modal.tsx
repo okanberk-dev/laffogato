@@ -74,8 +74,12 @@ export interface ActionModalProps {
   description?: ReactNode;
   /** The button that opens the dialog. */
   trigger: ReactNode;
-  /** Look of that button; default `ghost`. `menu` / `menuDanger` fit an ActionMenu. */
-  triggerVariant?: ButtonVariant;
+  /**
+   * Look of that button; default `ghost`. `menu` / `menuDanger` fit an
+   * ActionMenu; `bare` is none of the kit's, `triggerClassName` is all of
+   * it (a list row's step, ROW_CONTROL).
+   */
+  triggerVariant?: ButtonVariant | "bare";
   triggerClassName?: string;
   /**
    * The trigger's accessible name, for a trigger repeated on every row
@@ -254,7 +258,10 @@ export function ActionModal(props: ActionModalProps) {
           aria-label={ariaLabel}
           aria-describedby={reasonId}
           onClick={(e) => e.preventDefault()}
-          className={cx(BUTTON[triggerVariant], triggerClassName)}
+          className={cx(
+            triggerVariant === "bare" ? null : BUTTON[triggerVariant],
+            triggerClassName,
+          )}
         >
           {trigger}
         </button>
@@ -300,7 +307,10 @@ export function ActionModal(props: ActionModalProps) {
           setSession((n) => n + 1);
           setOpen(true);
         }}
-        className={cx(BUTTON[triggerVariant], triggerClassName)}
+        className={cx(
+          triggerVariant === "bare" ? null : BUTTON[triggerVariant],
+          triggerClassName,
+        )}
       >
         {trigger}
       </button>

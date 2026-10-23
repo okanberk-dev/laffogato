@@ -27,6 +27,8 @@ const h = vi.hoisted(() => ({
   subscribers: [] as NewsletterSubscriber[],
   users: [] as PublicAdminUser[],
   twoFA: new Set<string>(),
+  /** Each address's last sign-in, as the audit log has it. */
+  signIns: new Map<string, string>(),
 }));
 
 vi.mock("next/link", () => ({
@@ -86,6 +88,11 @@ vi.mock("@/lib/admin/users", () => ({
   MIN_ADMIN_PASSWORD_LENGTH: 10,
   normalizeAdminEmail: (e: string) => e.trim().toLowerCase(),
   listAdminUsers: vi.fn(async () => h.users),
+}));
+vi.mock("@/lib/admin/audit", () => ({
+  logAudit: vi.fn(async () => {}),
+  safeAudit: vi.fn(async () => true),
+  lastSignIns: vi.fn(async () => h.signIns),
 }));
 vi.mock("@/lib/admin/twofa", () => ({
   has2FA: vi.fn(async (email: string) => h.twoFA.has(email)),
@@ -214,6 +221,8 @@ beforeEach(() => {
     }),
   ];
   h.twoFA = new Set(["sahip@ornek.com"]);
+  // The manager signed in a moment ago; the others never did.
+  h.signIns = new Map([["mudur@ornek.com", new Date().toISOString()]]);
 });
 
 // ── Promosyon ──────────────────────────────────────────────────────────
@@ -591,6 +600,13 @@ describe("users list and view", () => {
     expect(page).toContain(`href="${adminUserHref("mudur@ornek.com")}"`);
     expect(page.indexOf("Sahip</")).toBeLessThan(page.indexOf("Müdür"));
     expect(page).toContain("2FA açık");
+    // When each one last signed in (Innex: activity in the row): a moment
+    // ago, the exact time on hover; never, said so.
+    expect(page).toContain("Son giriş");
+    expect(page).toMatch(
+      /<time dateTime="[^"]+" title="[^"]+">az önce<\/time>/,
+    );
+    expect(page).toContain("Hiç girmedi");
     // The per-account edit cards left the list for the account's page.
     expect(page).not.toContain("Parolayı sıfırla");
     // The new-user form stays here.

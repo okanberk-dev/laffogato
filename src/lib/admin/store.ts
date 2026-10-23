@@ -6519,6 +6519,15 @@ export interface DashboardStats {
   openOrderCount: number;
   /** The open orders per status, in `OPEN_ORDER_STATUSES` order. */
   openByStatus: Array<{ status: AdminOrderStatus; count: number }>;
+  /** The open orders by kind (`orderKind`): the bar's and the shop's. */
+  openByKind: { cafe: number; shop: number };
+  /**
+   * When the café order that has waited longest for the bar was paid (its
+   * `paidAt`, else `createdAt`): paid or being prepared, so still to be
+   * made. Null when the bar has nothing waiting. A shop parcel waits days
+   * for its carrier by design and is not counted.
+   */
+  oldestCafeWaitingAt: string | null;
   /** Orders flagged for a person (`attention`): the list's Dikkat filter. */
   attentionOrderCount: number;
   /** Stock 0, active or not: the product list's "Stokta yok". */
@@ -6557,6 +6566,44 @@ export function dashboardStockFrom(
   };
 }
 
+/** The open order columns the dashboard reads: no money, no customer. */
+export type DashboardOpenOrder = Pick<AdminOrder, "status"> &
+  Partial<Pick<AdminOrder, "kind" | "paidAt" | "createdAt">>;
+
+/**
+ * The pure half of the dashboard's open order figures, exported for tests:
+ * the count by status and by kind, and when the café order that has waited
+ * longest for the bar was paid.
+ */
+export function dashboardOpenFrom(
+  open: readonly DashboardOpenOrder[],
+): Pick<
+  DashboardStats,
+  "openOrderCount" | "openByStatus" | "openByKind" | "oldestCafeWaitingAt"
+> {
+  let cafe = 0;
+  let oldest: { at: string; ms: number } | null = null;
+  for (const o of open) {
+    if (orderKind(o) !== "cafe") continue;
+    cafe += 1;
+    if (o.status !== "paid" && o.status !== "preparing") continue;
+    const at = o.paidAt || o.createdAt || "";
+    const ms = Date.parse(at);
+    if (Number.isFinite(ms) && (!oldest || ms < oldest.ms)) {
+      oldest = { at, ms };
+    }
+  }
+  return {
+    openOrderCount: open.length,
+    openByStatus: OPEN_ORDER_STATUSES.map((status) => ({
+      status,
+      count: open.filter((o) => o.status === status).length,
+    })),
+    openByKind: { cafe, shop: open.length - cafe },
+    oldestCafeWaitingAt: oldest?.at ?? null,
+  };
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   await ensureSeed();
   const sb = getDb();
@@ -6569,9 +6616,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const [open, attentionOrderCount, products] = await Promise.all([
     sb
       .from(TABLES.orders)
-      .select("status")
+      .select("status, kind, paidAt, createdAt")
       .in("status", [...OPEN_ORDER_STATUSES])
-      .then((r) => rows<{ status: AdminOrderStatus }>(r, `${ctx}.open`)),
+      .then((r) => rows<DashboardOpenOrder>(r, `${ctx}.open`)),
     sb
       .from(TABLES.orders)
       .select("*", { count: "exact", head: true })
@@ -6587,11 +6634,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   ]);
 
   return {
-    openOrderCount: open.length,
-    openByStatus: OPEN_ORDER_STATUSES.map((status) => ({
-      status,
-      count: open.filter((o) => o.status === status).length,
-    })),
+    ...dashboardOpenFrom(open),
     attentionOrderCount,
     ...dashboardStockFrom(products),
   };
@@ -7502,8 +7545,13 @@ export function isReportableOrder(o: Pick<AdminOrder, "status">): boolean {
 export interface RevenueBucket {
   bucket: string;
   label: string;
+  /** Net of refunds, clamped per order (the chart's default line). */
   revenueMinor: number;
   orderCount: number;
+  /** What the counted orders were placed for (Raporlar's "Brüt ciro"). */
+  grossMinor: number;
+  /** Refunds on the counted orders (Raporlar's "İade"). */
+  refundedMinor: number;
 }
 
 function pad2(n: number): string {
@@ -7661,6 +7709,73 @@ export type RevenueOrder = Pick<
   "status" | "createdAt" | "totalMinor" | "refunds"
 >;
 
+/** Net revenue and reportable orders over a stretch of time. */
+export interface RevenuePace {
+  revenueMinor: number;
+  orderCount: number;
+}
+
+/** The dashboard's money: the 14 day buckets and last week's pace. */
+export interface DashboardRevenue {
+  /** The last 14 days, today last: `revenueBuckets("day", 14)`'s own. */
+  buckets: RevenueBucket[];
+  /**
+   * The same weekday a week ago, from its midnight to the clock time it is
+   * now: what today is measured against. A café's Saturday is not its
+   * Friday, and half a day is not a whole one.
+   */
+  lastWeek: RevenuePace;
+}
+
+/**
+ * The pure half of {@link dashboardRevenue}'s comparison, exported for
+ * tests: the orders placed on the köşk's day `daysAgo` days back, up to
+ * the clock time of `now`, counted as the buckets count them (reportable,
+ * net of refunds). Istanbul has no summer time, so a day is 24 hours.
+ */
+export function revenuePaceAt(
+  orders: readonly RevenueOrder[],
+  now: Date,
+  daysAgo: number,
+): RevenuePace {
+  const wall = istanbulWall(now);
+  const midnight = new Date(wall);
+  midnight.setUTCHours(0, 0, 0, 0);
+  const elapsed = wall.getTime() - midnight.getTime();
+  const from = midnight.getTime() - REPORT_TZ_OFFSET_MS - daysAgo * DAY_MS;
+  const to = from + elapsed;
+  const pace: RevenuePace = { revenueMinor: 0, orderCount: 0 };
+  for (const o of orders) {
+    if (!isReportableOrder(o)) continue;
+    const at = Date.parse(o.createdAt);
+    if (!Number.isFinite(at) || at < from || at > to) continue;
+    const refunded = o.refunds.reduce((r, entry) => r + entry.amountMinor, 0);
+    pace.revenueMinor += Math.max(0, o.totalMinor - refunded);
+    pace.orderCount += 1;
+  }
+  return pace;
+}
+
+/**
+ * The dashboard's revenue in one read: the last 14 days' buckets (the
+ * report's rule) and the same weekday last week up to this clock time,
+ * which falls inside those 14 days. Only for the roles that may see
+ * reports; the page does not call it for the others (decision D1).
+ */
+export async function dashboardRevenue(
+  now: Date = new Date(),
+): Promise<DashboardRevenue> {
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds"],
+    "dashboardRevenue",
+    reportPeriodSince("day", 14, now),
+  );
+  return {
+    buckets: bucketRevenue(orders, "day", 14, now),
+    lastWeek: revenuePaceAt(orders, now, 7),
+  };
+}
+
 export async function revenueBuckets(
   granularity: BucketGranularity,
   count: number,
@@ -7703,6 +7818,8 @@ export function bucketRevenue(
       label: bucketLabel(d, granularity),
       revenueMinor: 0,
       orderCount: 0,
+      grossMinor: 0,
+      refundedMinor: 0,
     });
   }
   const byKey = new Map(buckets.map((b) => [b.bucket, b]));
@@ -7718,6 +7835,10 @@ export function bucketRevenue(
       const refunded = o.refunds.reduce((r, entry) => r + entry.amountMinor, 0);
       slot.revenueMinor += Math.max(0, o.totalMinor - refunded);
       slot.orderCount += 1;
+      // The same order's gross and refunds, as headlineFrom sums them: a
+      // bucket's figures add up to the strip's above the chart.
+      slot.grossMinor += o.totalMinor;
+      slot.refundedMinor += refunded;
     }
   }
   return buckets;
@@ -7852,6 +7973,41 @@ export async function analyticsHeadline(
   );
   const inPeriod = reportPeriodFilter(granularity, count, now);
   return headlineFrom(orders.filter((o) => inPeriod(o.createdAt)));
+}
+
+/** A period's tiles and the same length of time just before it. */
+export interface AnalyticsCompared {
+  current: AnalyticsHeadline;
+  /**
+   * The `count` buckets before the period's first: "önceki 30 gün" for
+   * the last 30 days, the 12 weeks before the last 12, and so on.
+   */
+  previous: AnalyticsHeadline;
+}
+
+/**
+ * {@link analyticsHeadline} and the period before it, from one read of
+ * twice the period: every figure on Raporlar is read against the same
+ * stretch of time just before it (Innex, 22 Eki 2026).
+ */
+export async function analyticsHeadlineCompared(
+  granularity: BucketGranularity,
+  count: number,
+): Promise<AnalyticsCompared> {
+  const now = new Date();
+  const orders = await reportOrders(
+    ["status", "createdAt", "totalMinor", "refunds"],
+    "analyticsHeadlineCompared",
+    reportPeriodSince(granularity, count * 2, now),
+  );
+  const inCurrent = reportPeriodFilter(granularity, count, now);
+  const inBoth = reportPeriodFilter(granularity, count * 2, now);
+  return {
+    current: headlineFrom(orders.filter((o) => inCurrent(o.createdAt))),
+    previous: headlineFrom(
+      orders.filter((o) => inBoth(o.createdAt) && !inCurrent(o.createdAt)),
+    ),
+  };
 }
 
 /**

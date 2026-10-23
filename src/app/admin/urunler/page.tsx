@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/admin/forms";
+import {
+  ProductQuickLook,
+  QUICK_LOOK_MOVES,
+} from "@/components/admin/product-quick-look";
 import { ProductsList } from "@/components/admin/products-list";
 import {
   ActionMenuLink,
@@ -9,7 +13,10 @@ import {
   Pagination,
   StatusTabs,
 } from "@/components/admin/ui";
+import { QuickLookOpener } from "@/components/admin/ui/quick-look";
 import { requireRole } from "@/lib/admin/auth";
+import { imageVersion } from "@/lib/admin/image-bytes";
+import { productImagePath, servedImage } from "@/lib/admin/image-url";
 import { parseFilters, parsePage, parseSort } from "@/lib/admin/list-params";
 import { listSearchView } from "@/lib/admin/list-search";
 import {
@@ -26,9 +33,18 @@ import {
   toProductListRow,
 } from "@/lib/admin/products-panel";
 import {
+  parseQuickLook,
+  quickLookCloseHref,
+  quickLookHref,
+  withoutQuickLook,
+} from "@/lib/admin/quick-look-core";
+import { canAccess } from "@/lib/admin/roles";
+import {
+  getProduct,
   listCategories,
   listProductsForPanel,
   listProductThumbs,
+  listStockMoves,
 } from "@/lib/admin/store";
 
 export const metadata = { title: "Admin · Ürünler" };
@@ -45,15 +61,23 @@ interface PageProps {
  * Pasif, Sil) and the bulk bar. The list's client component gets only what
  * it draws: a served thumbnail, never the stored photos, the cost or the
  * SEO fields (admin audit CAT-07, CAT-08, CAT-30).
+ *
+ * A row opens its quick look (`?gor=<id>`, Innex's right drawer): the
+ * photo, the two states, stock and price steps and the last moves, over
+ * the list as it was.
  */
 export default async function AdminProductsPage({ searchParams }: PageProps) {
-  await requireRole("products");
+  const session = await requireRole("products");
   // `sp` is the address (every link below), `view` adds the remembered
-  // search text (what the list shows): lib/admin/list-search-core.ts.
-  const { url: sp, view } = await listSearchView(
+  // search text (what the list shows): lib/admin/list-search-core.ts. The
+  // drawer's `?gor=` is in neither: a sort link must not reopen it.
+  const listed = await listSearchView(
     PRODUCTS_PATH,
     (await searchParams) ?? {},
   );
+  const lookId = parseQuickLook(listed.url);
+  const sp = withoutQuickLook(listed.url);
+  const view = withoutQuickLook(listed.view);
   // The dashboard's stock tiles and old bookmarks use the names from
   // before the kit (`?status=out_of_stock`, `?sort=stock_asc`).
   const legacy = legacyProductsHref(sp);
@@ -76,6 +100,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
   const rows = list.rows.map((p) => toProductListRow(p, thumbs[p.id]));
   const tabValue = PRODUCT_TABS.find((t) => t.tab === tab)?.value ?? null;
   const filtered = Object.keys(filters).length > 0;
+  const look = lookId ? await loadQuickLook(lookId, categories) : null;
 
   return (
     <PageShell width="list">
@@ -158,6 +183,44 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           pathname={PRODUCTS_PATH}
         />
       ) : null}
+
+      <QuickLookOpener />
+      {look ? (
+        <ProductQuickLook
+          key={look.product.id}
+          {...look}
+          canAdjustStock={canAccess("stock", session.role)}
+          closeHref={quickLookCloseHref(sp, PRODUCTS_PATH)}
+          selfHref={quickLookHref(sp, PRODUCTS_PATH, look.product.id)}
+          now={new Date()}
+        />
+      ) : null}
     </PageShell>
   );
+}
+
+/**
+ * The quick look's record: the product whole (its photos are read here,
+ * for this one), its category's name and its newest stock moves. A product
+ * deleted since the link was made shows no drawer.
+ */
+async function loadQuickLook(
+  id: string,
+  categories: ReadonlyArray<{ slug: string; label: string }>,
+) {
+  const [product, moves] = await Promise.all([
+    getProduct(id),
+    listStockMoves({ productId: id, limit: QUICK_LOOK_MOVES }),
+  ]);
+  if (!product) return null;
+  const first = product.images?.[0];
+  return {
+    product,
+    moves,
+    categoryLabel:
+      categories.find((c) => c.slug === product.cat)?.label ?? product.cat,
+    photo: first
+      ? servedImage(first, productImagePath(product.id, 0, imageVersion(first)))
+      : "",
+  };
 }

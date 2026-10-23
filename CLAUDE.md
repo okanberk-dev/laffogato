@@ -593,8 +593,11 @@ durum bozulmaya uygundur.
   yok; menünün beş grup rengi (`src/components/admin/ui/hues.ts`) yalnız
   Genel bakış ve rapor kartlarının ikon kutularında. Tutar ve kodlar
   `NUMERIC_STYLE` (Inter tablo rakamı), karakter karakter okunan kimlik ve
-  Markdown `CODE_STYLE` (sistem eş genişlikli). 21 Eki'deki AkmanOS teması
-  lafmaliyet'te kaldı. Değerler `src/app/admin/layout.tsx` `--admin-*`;
+  Markdown `CODE_STYLE` (sistem eş genişlikli). Düzenler (23 Eki 2026):
+  rakamlar KPI şeridinde referansıyla, kayıt sayfaları üç bölge (tutar
+  kartı + sekmeler: sipariş, karaoke rezervasyonu, müşteri), liste araç
+  çubuğu tek satır, ürün ve menü satırı hızlı bakış çekmecesi (`?gor=`);
+  `docs/ADMIN.md` "Innex düzenleri". 21 Eki'deki AkmanOS teması lafmaliyet'te kaldı. Değerler `src/app/admin/layout.tsx` `--admin-*`;
   yukarıdaki site kuralları panele uygulanmaz, panel de siteyi değiştirmez
   (`docs/BRAND.md` "Admin paneli görünümü").
 - **Admin arayüz kütüphaneleri:** panel yalnız üç paket kullanabilir, yalnız

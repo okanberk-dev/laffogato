@@ -265,6 +265,38 @@ describe("the dashboard card counts the Dikkat set", () => {
     expect(markup).toContain(`${truth.length} rezervasyon bir işlem bekliyor`);
   });
 
+  it("says how full the room is against the same weekday last week", async () => {
+    const { karaokeOccupancy } = await import("@/lib/admin/dashboard-core");
+    const rules = { firstHour: 12, closeHour: 24 };
+    // 14-16 and 20-22 held, a cancelled 17-18 not, 23-01 only to midnight.
+    const today = karaokeOccupancy(
+      [
+        { startHour: 14, hours: 2, status: "confirmed" },
+        { startHour: 20, hours: 2, status: "requested" },
+        { startHour: 17, hours: 1, status: "cancelled" },
+        { startHour: 23, hours: 2, status: "confirmed" },
+      ],
+      rules,
+    );
+    expect(today).toEqual({ hours: 5, capacity: 12, pct: 42 });
+    expect(karaokeOccupancy([], { firstHour: 12, closeHour: 12 }).pct).toBe(0);
+    const markup = renderToStaticMarkup(
+      createElement(KaraokeTodayCard, {
+        today: [],
+        attention: [],
+        occupancy: {
+          today,
+          lastWeek: { hours: 3, capacity: 12, pct: 25 },
+        },
+        now: NOW,
+      }),
+    );
+    expect(markup).toContain("%42");
+    expect(markup).toContain("5/12 saat");
+    expect(markup).toMatch(/\+17 puan<span class="sr-only"> artış<\/span>/);
+    expect(markup).toMatch(/Geçen \S+ %25/);
+  });
+
   it("answers null when a read fails, and the card says so", async () => {
     table = null as unknown as KaraokeReservation[];
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});

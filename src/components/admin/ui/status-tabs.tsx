@@ -22,7 +22,8 @@ export interface StatusTab {
  * Filament-style status tabs: links (no JavaScript needed) that set one URL
  * param and keep the others, with a count on each. Drawn as Innex's filter
  * chips (22 Eki 2026): white boxes with 8 px corners and a grey count, the
- * current one outlined in the ink and set in semibold. On phones the row
+ * current one outlined in the ink, set in semibold, its count inverted.
+ * 13 px, so the orders' nine fit one row beside the sidebar at 1280 px. On phones the row
  * scrolls sideways instead of wrapping; from sm up it wraps, so every tab
  * stays in sight (the orders' eight ran off the card's edge at 1280 px,
  * where a mouse wheel cannot scroll sideways). 36 px targets, 44 on a
@@ -63,7 +64,7 @@ export function StatusTabs({
       aria-label={label}
       className="-mx-4 mb-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
     >
-      <ul className="inline-flex min-w-max gap-2 sm:max-w-full sm:min-w-0 sm:flex-wrap">
+      <ul className="inline-flex min-w-max gap-1.5 sm:max-w-full sm:min-w-0 sm:flex-wrap">
         {tabs.map((tab) => {
           const active = (tab.value ?? null) === (current ?? null);
           return (
@@ -76,7 +77,7 @@ export function StatusTabs({
                 )}
                 aria-current={active ? "page" : undefined}
                 className={cx(
-                  "relative inline-flex min-h-9 items-center gap-2 rounded-lg border bg-[var(--admin-surface)] px-3 text-sm whitespace-nowrap transition-[color,border-color] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-coarse:min-h-11",
+                  "relative inline-flex min-h-9 items-center gap-1.5 rounded-lg border bg-[var(--admin-surface)] px-2.5 text-[13px] whitespace-nowrap transition-[color,border-color] duration-150 focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-coarse:min-h-11",
                   COMPACT.minH8,
                   active
                     ? "border-[var(--admin-text)] font-semibold text-[var(--admin-text)]"
@@ -86,7 +87,12 @@ export function StatusTabs({
                 {tab.label}
                 {tab.count !== undefined ? (
                   <span
-                    className="min-w-5 rounded-md bg-[var(--admin-panel)] px-1.5 py-0.5 text-center text-xs leading-4 font-medium text-[var(--admin-text-soft)]"
+                    className={cx(
+                      "min-w-5 rounded-md px-1.5 py-px text-center text-xs leading-4 font-medium",
+                      active
+                        ? "bg-[var(--admin-text)] text-white"
+                        : "bg-[var(--admin-panel)] text-[var(--admin-text-soft)]",
+                    )}
                     style={MONO_STYLE}
                   >
                     {tab.count}

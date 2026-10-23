@@ -18,9 +18,10 @@ const { QuickCreate, quickCreateEntries } =
 const { CREATE_ENTRIES } = await import("@/lib/admin/palette-core");
 
 /**
- * Genel bakış's "Hızlı ekle" (21 Eki 2026): the role's "Yeni …" pages, one
- * tap from the landing page, from the palette's own list (one list, so the
- * two never disagree), each gated by the section its page asks for.
+ * Genel bakış's "Yeni" (21 Eki 2026 as "Hızlı ekle", a row of chips; the
+ * header's one solid button since Innex, 22 Eki 2026): the role's "Yeni …"
+ * pages from the palette's own list (one list, so the two never disagree),
+ * each gated by the section its page asks for.
  */
 describe("Hızlı ekle", () => {
   it("gives the owner every page that starts a record, and nothing else", () => {
@@ -42,29 +43,34 @@ describe("Hızlı ekle", () => {
     expect(manager).toContain("/admin/promosyon/yeni");
   });
 
-  it("names each chip by its record, and its link by the whole action", () => {
+  it("names each item by its record, and its link by the whole action", () => {
     const html = renderToStaticMarkup(
       createElement(QuickCreate, { entries: quickCreateEntries("owner") }),
     );
     // "Yeni Sipariş" to a screen reader, with the visible word in it (WCAG
     // 2.5.3): no aria-label that would hide the word a voice command says.
     expect(html).toContain('<span class="sr-only">Yeni </span>Sipariş</span>');
-    expect(html).not.toContain("aria-label=");
     expect(html).toContain(">Menü kalemi<");
     expect(html).toContain(">Uygulama slaytı<");
     expect(html).toContain('href="/admin/masalar/yeni"');
   });
 
-  it("keeps the chips' screen-reader words inside the phone's scroll box", () => {
-    // The sr-only "Yeni " is absolute: without a positioned scroll box it
-    // hung past the screen from the last chips and the phone zoomed the
-    // whole dashboard out.
+  it("is a menu behind one solid button, a rule between the nav groups", () => {
     const html = renderToStaticMarkup(
       createElement(QuickCreate, { entries: quickCreateEntries("owner") }),
     );
-    const list = /<ul class="([^"]*)"/.exec(html)![1];
-    expect(list).toContain("overflow-x-auto");
-    expect(list.split(" ")).toContain("relative");
+    expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*>/);
+    expect(html).toContain("<span>Yeni</span>");
+    expect(html).toContain("bg-[var(--admin-primary)]");
+    expect(html).toContain("<hr");
+    // One page: that page's link, no menu.
+    const staff = renderToStaticMarkup(
+      createElement(QuickCreate, { entries: quickCreateEntries("staff") }),
+    );
+    expect(staff).not.toContain("<details");
+    expect(staff).toMatch(
+      /<a href="\/admin\/siparisler\/yeni"[^>]*>.*<span>Yeni sipariş<\/span><\/a>$/,
+    );
   });
 
   it("draws nothing for a role with no new page", () => {

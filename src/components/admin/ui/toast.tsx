@@ -8,8 +8,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type Dispatch,
   type FocusEvent,
   type ReactNode,
+  type SetStateAction,
 } from "react";
 
 import { cx } from "@/components/laffogato/cx";
@@ -89,10 +91,9 @@ export function ToastProvider({
   flash?: AdminFlash | null;
   children: ReactNode;
 }) {
-  const [toasts, setToasts] = useState<Toast[]>(() =>
+  const [toasts, setToasts, api] = useToastStack(() =>
     flash ? [toastFromFlash(flash)] : [],
   );
-  const counter = useRef(0);
 
   // A new flash (the layout re-rendered after a redirecting action) joins the
   // stack while rendering - React's "adjust state when a prop changes"
@@ -109,6 +110,55 @@ export function ToastProvider({
     if (flashId) document.cookie = clearFlashCookieString();
   }, [flashId]);
 
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      <div data-admin-portal="" />
+      <ToastStack
+        toasts={toasts}
+        dismiss={api.dismiss}
+        className={cx(
+          "pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col sm:inset-x-auto sm:right-6 sm:w-96",
+          "[:root:has([data-admin-bulk-bar])_&]:bottom-[var(--admin-bulk-space,8rem)]",
+          "mb-[var(--admin-bottom-inset,0px)]",
+        )}
+      />
+    </ToastContext.Provider>
+  );
+}
+
+/**
+ * A toast stack of its own, for the controls inside a modal `<dialog>`
+ * that stays open after they answer (a quick look, ui/quick-look.tsx).
+ * While a modal is open the panel's stack is under the top layer: a
+ * toast raised there was drawn behind the backdrop, and a screen reader
+ * never heard it (the page behind a modal is inert). Inside the scope,
+ * `useToast()` raises its toasts in this stack, drawn by the caller where
+ * `className` puts it inside the dialog; they go with the dialog.
+ */
+export function ToastScope({
+  className,
+  children,
+}: {
+  /** Where the stack sits inside the dialog. */
+  className: string;
+  children: ReactNode;
+}) {
+  const [toasts, , api] = useToastStack(() => []);
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      <ToastStack toasts={toasts} dismiss={api.dismiss} className={className} />
+    </ToastContext.Provider>
+  );
+}
+
+/** A stack's toasts and the API that adds and removes them. */
+function useToastStack(
+  initial: () => Toast[],
+): [Toast[], Dispatch<SetStateAction<Toast[]>>, ToastApi] {
+  const [toasts, setToasts] = useState<Toast[]>(initial);
+  const counter = useRef(0);
   const api = useMemo<ToastApi>(() => {
     const show = (input: ToastInput) => {
       counter.current += 1;
@@ -128,44 +178,48 @@ export function ToastProvider({
       fromResult: (result) => show(toastFromResult(result)),
     };
   }, []);
+  return [toasts, setToasts, api];
+}
 
+/**
+ * Two live regions, mounted empty so a screen reader is already
+ * listening: errors `assertive`, everything else `polite`.
+ */
+function ToastStack({
+  toasts,
+  dismiss,
+  className,
+}: {
+  toasts: readonly Toast[];
+  dismiss: (id: string) => void;
+  className: string;
+}) {
   const urgent = toasts.filter((t) => t.tone === "danger");
   const calm = toasts.filter((t) => t.tone !== "danger");
-
   return (
-    <ToastContext.Provider value={api}>
-      {children}
-      <div data-admin-portal="" />
-      <div
+    <div className={className}>
+      <ol
+        aria-live="assertive"
+        aria-atomic="false"
         className={cx(
-          "pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col sm:inset-x-auto sm:right-6 sm:w-96",
-          "[:root:has([data-admin-bulk-bar])_&]:bottom-[var(--admin-bulk-space,8rem)]",
-          "mb-[var(--admin-bottom-inset,0px)]",
+          "flex flex-col gap-2",
+          urgent.length > 0 && calm.length > 0 && "mb-2",
         )}
       >
-        <ol
-          aria-live="assertive"
-          aria-atomic="false"
-          className={cx(
-            "flex flex-col gap-2",
-            urgent.length > 0 && calm.length > 0 && "mb-2",
-          )}
-        >
-          {urgent.map((t) => (
-            <ToastCard key={t.id} toast={t} dismiss={api.dismiss} />
-          ))}
-        </ol>
-        <ol
-          aria-live="polite"
-          aria-atomic="false"
-          className="flex flex-col gap-2"
-        >
-          {calm.map((t) => (
-            <ToastCard key={t.id} toast={t} dismiss={api.dismiss} />
-          ))}
-        </ol>
-      </div>
-    </ToastContext.Provider>
+        {urgent.map((t) => (
+          <ToastCard key={t.id} toast={t} dismiss={dismiss} />
+        ))}
+      </ol>
+      <ol
+        aria-live="polite"
+        aria-atomic="false"
+        className="flex flex-col gap-2"
+      >
+        {calm.map((t) => (
+          <ToastCard key={t.id} toast={t} dismiss={dismiss} />
+        ))}
+      </ol>
+    </div>
   );
 }
 

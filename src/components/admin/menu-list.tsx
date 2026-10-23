@@ -12,6 +12,7 @@ import {
 } from "@/app/admin/menu/actions";
 import { actionError, actionOk } from "@/lib/admin/action-result";
 import {
+  MENU_PATH,
   menuItemCopyHref,
   menuItemEditHref,
   menuItemHref,
@@ -19,6 +20,7 @@ import {
   type MenuGroup,
   type MenuListRow,
 } from "@/lib/admin/menu-panel";
+import { quickLookHref } from "@/lib/admin/quick-look-core";
 import type { MenuCategoryKey } from "@/lib/admin/store";
 
 import { ActionButton, useHandPost } from "./action-form";
@@ -43,12 +45,18 @@ import {
   NUMERIC_STYLE,
   useToast,
 } from "./ui";
+import {
+  QUICK_LOOK_ACTION_ROW,
+  QuickLookActionBody,
+} from "./ui/quick-look-parts";
 import { EYEBROW, MONO_STYLE, ROW_CONTROL } from "./ui/styles";
 
 interface Props {
   groups: MenuGroup[];
   categoryKeys: MenuCategoryKey[];
   categoryLabels: Record<MenuCategoryKey, string>;
+  /** The list's address params (no `?gor=`): a row's quick look keeps them. */
+  searchParams?: Record<string, string | string[]>;
   /** Shown instead of the groups when nothing matches. */
   emptyTitle?: string;
   emptyAction?: EmptyListAction | null;
@@ -170,6 +178,36 @@ export function SoldOutToggle({
     >
       {item.isActive ? "Tükendi" : "Satışa aç"}
     </ActionButton>
+  );
+}
+
+/** The same toggle as a quick look's action row (ui/quick-look-parts.tsx). */
+export function SoldOutToggleRow({
+  item,
+}: {
+  item: Pick<MenuListRow, "id" | "name" | "isActive">;
+}) {
+  return (
+    <li>
+      <ActionButton
+        action={setMenuItemActiveAction}
+        hidden={{ id: item.id, isActive: item.isActive ? "false" : "true" }}
+        variant="bare"
+        wide
+        className={QUICK_LOOK_ACTION_ROW}
+      >
+        <QuickLookActionBody
+          icon={item.isActive ? "soldOut" : "show"}
+          hue={item.isActive ? "rose" : "green"}
+          title={item.isActive ? "Tükendi işaretle" : "Satışa aç"}
+          description={
+            item.isActive
+              ? "Menüden, siteden ve uygulamadan gizlenir."
+              : "Menüde yeniden görünür."
+          }
+        />
+      </ActionButton>
+    </li>
   );
 }
 
@@ -308,10 +346,14 @@ export function MenuList({
   groups,
   categoryKeys,
   categoryLabels,
+  searchParams = {},
   emptyTitle = "Bu süzgece uyan kalem yok.",
   emptyAction = null,
   reorderable = false,
 }: Props) {
+  // A row opens its quick look over the list (`?gor=`); the full page is
+  // "Tam sayfa" there and "Görüntüle" in the row's ⋯.
+  const lookHref = (id: string) => quickLookHref(searchParams, MENU_PATH, id);
   const toast = useToast();
   // The last bulk answer that succeeded: each new one clears the selection
   // once (bulk.tsx useSelection), so the bar closes after a bulk action.
@@ -387,7 +429,8 @@ export function MenuList({
                 columns={columnsFor(rows, reorderable)}
                 rows={rows}
                 rowKey={(it) => it.id}
-                rowHref={(it) => menuItemHref(it.id)}
+                rowHref={(it) => lookHref(it.id)}
+                rowLinkScroll={false}
                 rowLabel={(it) => it.name}
                 selection={selection}
                 selectAllLabel={selectAllLabel(categoryLabels[key])}
@@ -399,7 +442,8 @@ export function MenuList({
                   <div className="flex flex-col gap-2">
                     <div className="min-w-0">
                       <CardLink
-                        href={menuItemHref(it.id)}
+                        href={lookHref(it.id)}
+                        scroll={false}
                         className="font-medium text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
                       >
                         {it.name}

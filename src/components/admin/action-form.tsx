@@ -110,6 +110,7 @@ export function ActionButton({
   className,
   title,
   ariaLabel,
+  wide = false,
 }: {
   action: ModalAction;
   hidden?: Record<string, string | number>;
@@ -120,6 +121,8 @@ export function ActionButton({
   variant?: ButtonVariant | "bare";
   className?: string;
   title?: string;
+  /** The form takes its line's whole width (a quick look's action row). */
+  wide?: boolean;
   /**
    * The name a screen reader hears, for a button repeated on every row
    * ("Tükendi: Çilekli Matcha" rather than a list of "Tükendi"). Start it
@@ -131,7 +134,7 @@ export function ActionButton({
   return (
     <form
       action={formAction}
-      className={variant.startsWith("menu") ? "w-full" : "inline-flex"}
+      className={wide || variant.startsWith("menu") ? "w-full" : "inline-flex"}
     >
       {hidden
         ? Object.entries(hidden).map(([name, value]) => (

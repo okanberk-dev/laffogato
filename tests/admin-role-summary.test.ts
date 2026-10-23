@@ -2,7 +2,12 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { roleSectionLabels, SECTION_LABELS } from "@/lib/admin/role-summary";
+import {
+  roleMatrix,
+  roleSectionLabels,
+  sectionShortLabel,
+  SECTION_LABELS,
+} from "@/lib/admin/role-summary";
 import { ADMIN_ROLES, sectionsFor } from "@/lib/admin/roles";
 
 /**
@@ -46,5 +51,41 @@ describe("role summary on /admin/kullanicilar", () => {
     const page = readFileSync("src/app/admin/kullanicilar/page.tsx", "utf8");
     expect(page).toContain("roleSectionLabels(role)");
     expect(page).not.toContain("katalog, içerik ve siparişleri yönetir");
+  });
+});
+
+describe("the roles table (Innex, 23 Eki 2026)", () => {
+  it("one row per section with a page, a tick per role that opens it, from the same matrix", () => {
+    const rows = roleMatrix();
+    expect(rows.map((r) => r.section)).not.toContain("leads");
+    expect(rows).toHaveLength(
+      Object.values(SECTION_LABELS).filter(Boolean).length,
+    );
+    for (const role of ADMIN_ROLES) {
+      const open = new Set(sectionsFor(role));
+      for (const row of rows) {
+        expect(row.roles[role], `${role} ${row.section}`).toBe(
+          open.has(row.section),
+        );
+      }
+    }
+    // The owner opens every row, the cashier only the till.
+    expect(rows.every((r) => r.roles.owner)).toBe(true);
+    expect(rows.filter((r) => r.roles.cashier).map((r) => r.section)).toEqual([
+      "till",
+    ]);
+  });
+
+  it("a row's chip drops the note in brackets", () => {
+    expect(sectionShortLabel("customers")).toBe("Müşteriler");
+    expect(sectionShortLabel("till")).toBe("Kasa · damga");
+  });
+
+  it("the page draws the table, and the role's chips in each row", () => {
+    const page = readFileSync("src/app/admin/kullanicilar/page.tsx", "utf8");
+    expect(page).toContain("roleMatrix().map");
+    expect(page).toContain("<RoleChips role={u.role} />");
+    expect(page).toContain('<span className="sr-only">açar</span>');
+    expect(page).toContain('<span className="sr-only">açmaz</span>');
   });
 });

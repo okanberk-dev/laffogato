@@ -19,6 +19,7 @@ import {
   type SyntheticEvent,
 } from "react";
 
+import { invoiceAttentionSignalAction } from "@/app/admin/faturalar/actions";
 import { karaokeTodaySignalAction } from "@/app/admin/mobil/karaoke/actions";
 import { openOrderSignalAction } from "@/app/admin/siparisler/actions";
 import {
@@ -241,6 +242,7 @@ const BADGE_TITLES: Record<string, string> = {
   orders:
     "Açık sipariş (ödeme bekleyen · ödenen · hazırlanan · yolda ya da hazır)",
   karaoke: "Bugünkü karaoke rezervasyonu (iptal edilmemiş)",
+  invoices: "Dikkat isteyen fatura (son gün, hata, elle kesilecek ya da iade)",
 };
 
 /**
@@ -249,6 +251,7 @@ const BADGE_TITLES: Record<string, string> = {
  */
 export const BADGE_LINKS: Record<string, string> = {
   orders: "/admin/siparisler?durum=acik",
+  invoices: "/admin/faturalar?durum=dikkat",
 };
 
 /** The nav groups the operator folded away (per browser). */
@@ -1370,7 +1373,16 @@ export function AdminSidebar(props: SidebarProps) {
     karaokeTodaySignalAction,
     has("karaoke"),
   );
-  const counts = { orders: openOrders, karaoke: karaokeToday };
+  const invoicesWaiting = useNavCount(
+    pathname,
+    invoiceAttentionSignalAction,
+    has("invoices"),
+  );
+  const counts = {
+    orders: openOrders,
+    karaoke: karaokeToday,
+    invoices: invoicesWaiting,
+  };
   const navLinks = useMemo(
     () => props.groups.flatMap((g) => g.items),
     [props.groups],

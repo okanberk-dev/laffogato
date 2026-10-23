@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
 import {
   PageHeader,
@@ -23,6 +24,13 @@ import {
   Timeline,
   type KeyValueItem,
 } from "@/components/admin/ui";
+import { DetailLayout } from "@/components/admin/ui/detail-layout";
+import { DetailTabs, type DetailTab } from "@/components/admin/ui/detail-tabs";
+import { pickDetailTab } from "@/components/admin/ui/detail-tabs-core";
+import {
+  SummaryCard,
+  type SummaryChip,
+} from "@/components/admin/ui/summary-card";
 import { MONO_STYLE, NUMERIC_STYLE } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
 import { listKaraokeAudit } from "@/lib/admin/karaoke-audit";
@@ -149,9 +157,8 @@ export default async function KaraokeReservationPage({
   if (!id) notFound();
   const r = await getReservation(id);
   if (!r) notFound();
-  const back = karaokeBackHref(
-    firstParam(await searchParams, KARAOKE_BACK_PARAM),
-  );
+  const sp = await searchParams;
+  const back = karaokeBackHref(firstParam(sp, KARAOKE_BACK_PARAM));
 
   const now = new Date();
   const canRefund = canAccess("refunds", session.role);
@@ -201,15 +208,8 @@ export default async function KaraokeReservationPage({
       ? `/admin/musteriler/${encodeURIComponent(r.customerEmail)}`
       : null;
 
+  // The code, the evening and the party are the summary's (left column).
   const booking: KeyValueItem[] = [
-    {
-      label: "Kod",
-      value: <span style={NUMERIC_STYLE}>{r.id}</span>,
-      hint: "Girişte sorulan kod",
-    },
-    { label: "Tarih", value: view.day },
-    { label: "Saat", value: view.time },
-    { label: "Süre · kişi", value: `${r.hours} saat · ${r.guests} kişi` },
     { label: "Durum", value: view.statusLabel },
     { label: "Alındı", value: when(r.createdAt) },
     { label: "Son değişiklik", value: when(r.updatedAt) },
@@ -556,6 +556,154 @@ export default async function KaraokeReservationPage({
       ]
     : [];
 
+  // The left column's figure (Innex's three zones): what is owed back in
+  // red, what is awaited in orange, else what was taken or is due.
+  const owed = view.refundOwed ? refundOwedNowMinor(r) : 0;
+  const paidMinor = r.paidMinor ?? 0;
+  const hero: { label: string; value: number; tone?: "danger" | "warning" } =
+    owed > 0
+      ? { label: "İade edilecek", value: owed, tone: "danger" }
+      : view.money === "pending"
+        ? { label: "Ödeme bekleniyor", value: r.totalMinor, tone: "warning" }
+        : view.money === "refunded"
+          ? { label: "İade edildi", value: refundAmountMinor(r) }
+          : view.money === "paid" && paidMinor > 0
+            ? { label: "Tahsil edilen", value: paidMinor }
+            : view.money === "none" && view.live
+              ? { label: "Köşkte ödenecek", value: r.totalMinor }
+              : { label: "Tutar", value: r.totalMinor };
+  const chips: SummaryChip[] = [];
+  // The booking's total beside a figure that is another amount.
+  if (hero.value !== r.totalMinor) {
+    chips.push({ label: `Tutar ${formatTRY(r.totalMinor)}` });
+  }
+  if (paidMinor > 0 && hero.label !== "Tahsil edilen") {
+    chips.push({
+      label: `Tahsil edilen ${formatTRY(paidMinor)}`,
+      tone: "success",
+    });
+  }
+  if (r.discountMinor > 0) {
+    chips.push({ label: `İndirim ${formatTRY(r.discountMinor)}` });
+  }
+  if (billable !== null && billable > 0) {
+    chips.push({ label: `Faturalanacak ${formatTRY(billable)}` });
+  }
+  const facts: Array<readonly [string, ReactNode]> = [
+    [
+      "Giriş kodu",
+      <span key="code" style={NUMERIC_STYLE}>
+        {r.id}
+      </span>,
+    ],
+    ["Tarih", view.day],
+    ["Saat", view.time],
+    ["Süre · kişi", `${r.hours} saat · ${r.guests} kişi`],
+    ["Kanal", channelLabel(r.channel)],
+  ];
+
+  const showInvoice =
+    moneyOf(r) === "paid" ||
+    moneyOf(r) === "refunding" ||
+    moneyOf(r) === "refunded" ||
+    Boolean(invoiceRead.row);
+  const history = karaokeHistory(r, audit, { canRefund });
+
+  const tabs: DetailTab[] = [
+    {
+      id: "rezervasyon",
+      label: "Rezervasyon",
+      content: (
+        <>
+          <Section title="Rezervasyon">
+            <KeyValueGrid items={booking} columns={3} />
+          </Section>
+          <Section
+            title="İptal kuralı"
+            description={
+              legacyPolicy
+                ? "Kural kaydı tutulmadan önce alınmış rezervasyon: o günün kuralı (2 saat, %0) geçerli."
+                : "Rezervasyon anındaki kural; panelde sonradan yapılan değişiklik bu rezervasyonu etkilemez. Köşk iptal ederse her zaman tamamı iade edilir."
+            }
+          >
+            <KeyValueGrid items={cancelRule} columns={3} />
+          </Section>
+        </>
+      ),
+    },
+    {
+      id: "odeme",
+      label: "Ödeme",
+      content: (
+        <Section title="Ödeme">
+          <KeyValueGrid items={payment} columns={3} />
+        </Section>
+      ),
+    },
+    ...(showInvoice
+      ? [
+          {
+            id: "fatura",
+            label: "Fatura",
+            content: (
+              <InvoiceCard
+                row={invoiceRead.row}
+                source={{ kind: "karaoke", id: r.id, label: r.id }}
+                mode={earsivConfigStatus(process.env).mode}
+                canManage={canAccess("invoices", session.role)}
+                unread={invoiceRead.failed}
+                now={now}
+                draftLines={
+                  invoiceRead.row?.status === "draft"
+                    ? invoiceDraftLines(invoiceRead.row, { booking: r })
+                    : null
+                }
+                buyerName={r.customerName}
+                parasutUrl={parasutAppUrl(process.env)}
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "onaylar",
+      label: "Onaylar",
+      content: consent ? (
+        <Section
+          title="Onaylar"
+          description="Ödemeden önce işaretlenen kutular: ön bilgilendirme, sözleşme ve aydınlatma metni."
+        >
+          <KeyValueGrid items={consents} />
+        </Section>
+      ) : (
+        // Nothing to list: one line, not a card of its own.
+        <p className="px-1 text-sm text-[var(--admin-text-soft)]">
+          Onay kaydı yok: ön ödeme öncesi alınmış ya da köşkte ödenecek bir
+          rezervasyon.
+        </p>
+      ),
+    },
+    {
+      id: "gecmis",
+      label: "Geçmiş",
+      count: history.length || undefined,
+      content: (
+        <Section title="Geçmiş" description="Yeniden eskiye, köşk saatiyle.">
+          {auditRead ? null : (
+            <p
+              role="status"
+              className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+            >
+              Geçmiş okunamadı; aşağıda yalnız rezervasyonun kendi kayıtları
+              var. Sayfayı birazdan yenile.
+            </p>
+          )}
+          <Timeline items={history} />
+        </Section>
+      ),
+    },
+  ];
+
   return (
     <PageShell width="detail">
       <Link
@@ -576,120 +724,88 @@ export default async function KaraokeReservationPage({
       <div className="flex flex-col gap-6">
         <KaraokeAttentionNotices view={view} />
 
-        <Section title="Rezervasyon">
-          <KeyValueGrid items={booking} columns={3} />
-        </Section>
-
-        <Section
-          title="İletişim"
-          description={
-            r.guest
-              ? "Üyeliksiz rezervasyon: bilgiler formdan."
-              : "Üye rezervasyonu."
+        <DetailLayout
+          summary={
+            <SummaryCard
+              label={hero.label}
+              value={formatTRY(hero.value)}
+              tone={hero.tone}
+              chips={chips}
+              facts={facts}
+            />
           }
-        >
-          <KeyValueGrid items={contact} />
-        </Section>
-
-        <Section title="Ödeme">
-          <KeyValueGrid items={payment} columns={3} />
-        </Section>
-
-        {view.makeGood !== "none" ? (
-          <Section
-            title="Telafi"
-            description="Köşk, misafirin ücretsiz iptal süresi geçtikten sonra kendi sebebiyle iptal etti: tam iadeye ek olarak misafir ya aynı uzunlukta ücretsiz bir saat ya da bu tutarın kendi banka hesabına ödenmesini seçer. Biri kullanılınca diğeri kapanır."
-          >
-            <KeyValueGrid items={makeGood} columns={3} />
-            {view.plan.makeGoodHour || view.plan.makeGoodPaid ? (
-              <div className="mt-4 flex flex-wrap items-start gap-2">
-                {view.plan.makeGoodHour ? (
-                  <KaraokeMakeGoodHour
-                    {...makeGoodProps}
-                    variant="primary"
-                    hourDisabledReason={view.plan.makeGoodHour.disabledReason}
-                  />
-                ) : null}
-                {view.plan.makeGoodPaid ? (
-                  <KaraokeMakeGoodPaid
-                    {...makeGoodProps}
-                    variant="ghost"
-                    paidDisabledReason={view.plan.makeGoodPaid.disabledReason}
-                  />
-                ) : null}
-              </div>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {r.makeGoodFor ? (
-          <Section
-            title="Telafi saati"
-            description="Köşkün geç iptal ettiği bir rezervasyon için verilen ücretsiz saat."
-          >
-            <KeyValueGrid items={madeGoodItems} columns={3} />
-          </Section>
-        ) : null}
-
-        <Section
-          title="İptal kuralı"
-          description={
-            legacyPolicy
-              ? "Kural kaydı tutulmadan önce alınmış rezervasyon: o günün kuralı (2 saat, %0) geçerli."
-              : "Rezervasyon anındaki kural; panelde sonradan yapılan değişiklik bu rezervasyonu etkilemez. Köşk iptal ederse her zaman tamamı iade edilir."
+          tabs={
+            <DetailTabs
+              label="Rezervasyon ayrıntıları"
+              tabs={tabs}
+              // Money owed back opens on the payment: the notice above
+              // says what, the tab has the amounts.
+              initial={pickDetailTab(
+                tabs.map((t) => ({ id: t.id })),
+                sp.sekme,
+                view.refundOwed || view.makeGood === "open"
+                  ? "odeme"
+                  : undefined,
+              )}
+            />
           }
-        >
-          <KeyValueGrid items={cancelRule} columns={3} />
-        </Section>
+          asideLabel="Misafir"
+          asideSplit={view.makeGood !== "none" || Boolean(r.makeGoodFor)}
+          aside={
+            <>
+              <Section
+                title="İletişim"
+                description={
+                  r.guest
+                    ? "Üyeliksiz rezervasyon: bilgiler formdan."
+                    : "Üye rezervasyonu."
+                }
+              >
+                <KeyValueGrid items={contact} layout="inline" />
+              </Section>
 
-        {consent ? (
-          <Section
-            title="Onaylar"
-            description="Ödemeden önce işaretlenen kutular: ön bilgilendirme, sözleşme ve aydınlatma metni."
-          >
-            <KeyValueGrid items={consents} />
-          </Section>
-        ) : (
-          // Nothing to list: one line, not a card of its own.
-          <p className="px-1 text-sm text-[var(--admin-text-soft)]">
-            Onay kaydı yok: ön ödeme öncesi alınmış ya da köşkte ödenecek bir
-            rezervasyon.
-          </p>
-        )}
+              {view.makeGood !== "none" ? (
+                <Section
+                  title="Telafi"
+                  description="Köşk, misafirin ücretsiz iptal süresi geçtikten sonra kendi sebebiyle iptal etti: tam iadeye ek olarak misafir ya aynı uzunlukta ücretsiz bir saat ya da bu tutarın kendi banka hesabına ödenmesini seçer. Biri kullanılınca diğeri kapanır."
+                >
+                  <KeyValueGrid items={makeGood} layout="inline" />
+                  {view.plan.makeGoodHour || view.plan.makeGoodPaid ? (
+                    <div className="mt-4 flex flex-wrap items-start gap-2">
+                      {view.plan.makeGoodHour ? (
+                        <KaraokeMakeGoodHour
+                          {...makeGoodProps}
+                          variant="primary"
+                          hourDisabledReason={
+                            view.plan.makeGoodHour.disabledReason
+                          }
+                        />
+                      ) : null}
+                      {view.plan.makeGoodPaid ? (
+                        <KaraokeMakeGoodPaid
+                          {...makeGoodProps}
+                          variant="ghost"
+                          paidDisabledReason={
+                            view.plan.makeGoodPaid.disabledReason
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  ) : null}
+                </Section>
+              ) : null}
 
-        {moneyOf(r) === "paid" ||
-        moneyOf(r) === "refunding" ||
-        moneyOf(r) === "refunded" ||
-        invoiceRead.row ? (
-          <InvoiceCard
-            row={invoiceRead.row}
-            source={{ kind: "karaoke", id: r.id, label: r.id }}
-            mode={earsivConfigStatus(process.env).mode}
-            canManage={canAccess("invoices", session.role)}
-            unread={invoiceRead.failed}
-            now={now}
-            draftLines={
-              invoiceRead.row?.status === "draft"
-                ? invoiceDraftLines(invoiceRead.row, { booking: r })
-                : null
-            }
-            buyerName={r.customerName}
-            parasutUrl={parasutAppUrl(process.env)}
-          />
-        ) : null}
-
-        <Section title="Geçmiş" description="Yeniden eskiye, köşk saatiyle.">
-          {auditRead ? null : (
-            <p
-              role="status"
-              className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
-            >
-              Geçmiş okunamadı; aşağıda yalnız rezervasyonun kendi kayıtları
-              var. Sayfayı birazdan yenile.
-            </p>
-          )}
-          <Timeline items={karaokeHistory(r, audit, { canRefund })} />
-        </Section>
+              {r.makeGoodFor ? (
+                <Section
+                  title="Telafi saati"
+                  description="Köşkün geç iptal ettiği bir rezervasyon için verilen ücretsiz saat."
+                >
+                  <KeyValueGrid items={madeGoodItems} layout="inline" />
+                </Section>
+              ) : null}
+            </>
+          }
+        />
       </div>
     </PageShell>
   );

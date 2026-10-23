@@ -13,6 +13,7 @@ import { OrderHeaderActions } from "@/components/admin/order-actions-ui";
 import { InvoiceCard } from "@/components/admin/invoice-card";
 import { OrderDetail } from "@/components/admin/order-detail";
 import { Badge, OrderStatusBadge, PageShell } from "@/components/admin/ui";
+import { pickDetailTab } from "@/components/admin/ui/detail-tabs-core";
 import { listOrderAuditLogs } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
@@ -42,7 +43,11 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ sekme?: string | string[] }>;
 }
+
+/** The order page's tabs, in their order (OrderDetail draws them). */
+const ORDER_TABS = ["kalemler", "odeme", "fatura", "gecmis"] as const;
 
 export async function generateMetadata({ params }: PageProps) {
   const { id } = await params;
@@ -69,9 +74,13 @@ async function readOrFlag<T>(
   }
 }
 
-export default async function AdminOrderDetailPage({ params }: PageProps) {
+export default async function AdminOrderDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const session = await requireRole("orders");
   const { id } = await params;
+  const { sekme } = (await searchParams) ?? {};
   const [order, settings] = await Promise.all([getOrder(id), getSettings()]);
   if (!order) notFound();
   const [payments, auditRead, noticeRead, couponRead, invoiceRead] =
@@ -199,26 +208,39 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         canSeeEvidence={canAccess("customers", session.role)}
         couponSource={couponRead.rows[0] ?? null}
         couponUnread={couponRead.failed}
+        owedMinor={owed}
+        // Money that needs a person opens on the payments: the banner
+        // above says what, the tab shows the rows to check.
+        initialTab={pickDetailTab(
+          ORDER_TABS.filter(
+            (t) => t !== "fatura" || order.source !== "manual",
+          ).map((tabId) => ({ id: tabId })),
+          sekme,
+          attention ? "odeme" : undefined,
+        )}
+        invoice={
+          order.source !== "manual" ? (
+            <InvoiceCard
+              row={invoiceRead.rows[0] ?? null}
+              source={{
+                kind: "order",
+                id: order.id,
+                label: `#${order.orderNo}`,
+              }}
+              mode={earsivConfigStatus(process.env).mode}
+              canManage={canAccess("invoices", session.role)}
+              unread={invoiceRead.failed}
+              draftLines={
+                invoiceRead.rows[0]?.status === "draft"
+                  ? invoiceDraftLines(invoiceRead.rows[0], { order })
+                  : null
+              }
+              buyerName={order.customerName}
+              parasutUrl={parasutAppUrl(process.env)}
+            />
+          ) : null
+        }
       />
-
-      {order.source !== "manual" ? (
-        <div className="mt-4 print:hidden">
-          <InvoiceCard
-            row={invoiceRead.rows[0] ?? null}
-            source={{ kind: "order", id: order.id, label: `#${order.orderNo}` }}
-            mode={earsivConfigStatus(process.env).mode}
-            canManage={canAccess("invoices", session.role)}
-            unread={invoiceRead.failed}
-            draftLines={
-              invoiceRead.rows[0]?.status === "draft"
-                ? invoiceDraftLines(invoiceRead.rows[0], { order })
-                : null
-            }
-            buyerName={order.customerName}
-            parasutUrl={parasutAppUrl(process.env)}
-          />
-        </div>
-      ) : null}
     </PageShell>
   );
 }

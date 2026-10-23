@@ -30,6 +30,19 @@ export function productEditHref(id: string): string {
   return `${productHref(id)}/duzenle`;
 }
 
+/** An edit page card of one wizard step (the tabs mode): "adim-2". */
+export function productStepAnchor(step: number): string {
+  return `adim-${step}`;
+}
+
+/** The wizard's "Fiyat ve stok" step. */
+export const PRODUCT_PRICE_STEP = 2;
+
+/** The edit page at its prices: the quick look's "Fiyatı değiştir". */
+export function productPriceEditHref(id: string): string {
+  return `${productEditHref(id)}#${productStepAnchor(PRODUCT_PRICE_STEP)}`;
+}
+
 /** The product's page in the shop (only an active product has one). */
 export function productShopHref(slug: string): string {
   return `/magaza/urun/${encodeURIComponent(slug)}`;

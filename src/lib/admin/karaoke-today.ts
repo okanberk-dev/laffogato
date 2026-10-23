@@ -4,7 +4,10 @@ import {
   listKaraokeAttention,
   listReservationsForDate,
 } from "@/lib/mobile/karaoke";
+import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
 
+import { karaokeOccupancy, type KaraokeOccupancy } from "./dashboard-core";
+import { addDays } from "./karaoke-calendar-core";
 import {
   karaokeAttentionViews,
   karaokeRowViews,
@@ -18,6 +21,8 @@ export interface KaraokeTodayCardData {
   today: KaraokeRowView[];
   /** Every booking that waits for a person, any day: the Dikkat tab's set. */
   attention: KaraokeRowView[];
+  /** How full the room is today, and the same weekday a week ago. */
+  occupancy: { today: KaraokeOccupancy; lastWeek: KaraokeOccupancy };
 }
 
 /**
@@ -30,15 +35,22 @@ export interface KaraokeTodayCardData {
  */
 export async function loadKaraokeTodayCard(
   ctx: KaraokePanelContext,
+  /** The room's opening hours (Ayarlar · Karaoke), for its occupancy. */
+  rules: { firstHour: number; closeHour: number } = DEFAULT_KARAOKE_RULES,
 ): Promise<KaraokeTodayCardData | null> {
   try {
-    const [today, attention] = await Promise.all([
+    const [today, attention, lastWeek] = await Promise.all([
       listReservationsForDate(ctx.today),
       listKaraokeAttention(ctx.today),
+      listReservationsForDate(addDays(ctx.today, -7)),
     ]);
     return {
       today: karaokeRowViews(today, ctx),
       attention: karaokeAttentionViews(attention, ctx),
+      occupancy: {
+        today: karaokeOccupancy(today, rules),
+        lastWeek: karaokeOccupancy(lastWeek, rules),
+      },
     };
   } catch (err) {
     console.error("[admin] karaoke kartı okunamadı", err);

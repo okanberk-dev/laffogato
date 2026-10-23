@@ -15,6 +15,10 @@ import { createDb, type Executor } from "@/lib/db/client";
  *   listing today.
  * - The tiles were not links, "Acil dolum" stood under a 0, and a mail
  *   check that threw took the page down.
+ * - Innex (22 Eki 2026): one KPI strip, each figure read against a
+ *   reference (the same weekday last week up to this hour, the open orders
+ *   by kind, the shelves running low), and "Yeni" in the header instead of
+ *   a row of twelve chips.
  */
 
 const seen: { text: string; params: readonly unknown[] }[] = [];
@@ -88,11 +92,22 @@ describe("the köşk's clock (SHE-15, KAR-M02)", () => {
 });
 
 describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
+  // Friday 23 Oct 2026, 15:00 in Tuzla.
+  const now = new Date("2026-10-23T12:00:00.000Z");
   const input = {
     openOrderCount: 3,
+    openByKind: { cafe: 2, shop: 1 },
+    oldestCafeWaitingAt: null,
     attentionOrderCount: 0,
     outOfStockCount: 0,
-    revenue: { todayMinor: 123_456_78, periodMinor: 999_999_99 },
+    lowStockCount: 0,
+    revenue: {
+      todayMinor: 123_456_78,
+      todayOrders: 12,
+      lastWeekMinor: 100_000_00,
+      lastWeekOrders: 9,
+    },
+    now,
   };
 
   it("never gives staff a revenue tile", () => {
@@ -101,16 +116,30 @@ describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
     expect(JSON.stringify(tiles)).not.toContain("ciro");
   });
 
-  it("gives owner and manager today's net revenue, linked to Raporlar", () => {
+  it("gives owner and manager today's net revenue and orders first, against last Friday up to this hour", () => {
     for (const role of ["owner", "manager"] as const) {
-      const revenue = core.dashboardTiles(input, role).at(-1)!;
-      expect(revenue).toMatchObject({
+      const tiles = core.dashboardTiles(input, role);
+      expect(tiles.map((t) => t.key)).toEqual([
+        "revenue",
+        "orders",
+        "open",
+        "attention",
+        "soldOut",
+      ]);
+      expect(tiles[0]).toMatchObject({
         key: "revenue",
         label: "Bugün net ciro",
         value: "₺123.456,78",
-        hint: "Son 14 gün ₺999.999,99",
+        reference: "Geçen cuma bu saate kadar ₺100.000,00",
+        delta: { label: "%23", direction: "up", good: true },
         href: "/admin/raporlar",
         money: true,
+      });
+      expect(tiles[1]).toMatchObject({
+        key: "orders",
+        value: "12",
+        reference: "Geçen cuma bu saate kadar 9",
+        delta: { label: "+3", direction: "up", good: true },
       });
     }
   });
@@ -118,10 +147,11 @@ describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
   it("links every tile to the list it counts", () => {
     const owner = core.dashboardTiles(input, "owner");
     expect(Object.fromEntries(owner.map((t) => [t.key, t.href]))).toEqual({
+      revenue: "/admin/raporlar",
+      orders: "/admin/siparisler?odeme=odendi&bas=2026-10-23&bit=2026-10-23",
       open: "/admin/siparisler?durum=acik",
       attention: "/admin/siparisler?dikkat=1",
       soldOut: "/admin/urunler?status=out_of_stock",
-      revenue: "/admin/raporlar",
     });
     // Staff may move stock but not open Ürünler.
     const staff = core.dashboardTiles(input, "staff");
@@ -136,19 +166,64 @@ describe("tiles by role (SHE-14, SHE-22, SHE-31)", () => {
     );
   });
 
-  it("writes a hint only under a figure that asks for something", () => {
+  it("reads every figure against a fact, and asks for a person only above a 0", () => {
     const quiet = core.dashboardTiles(input, "owner");
-    expect(quiet.find((t) => t.key === "soldOut")!.hint).toBeUndefined();
+    expect(quiet.find((t) => t.key === "soldOut")).toMatchObject({
+      reference: "Azalan ürün yok",
+    });
+    expect(quiet.find((t) => t.key === "soldOut")!.tone).toBeUndefined();
     expect(quiet.find((t) => t.key === "attention")!.tone).toBeUndefined();
+    expect(quiet.find((t) => t.key === "open")!.reference).toBe(
+      "Kafe 2 · Mağaza 1",
+    );
+    // No "Dolum gerekiyor" under a 0 (SHE-22): a reference is a fact.
+    expect(JSON.stringify(quiet)).not.toContain("gerekiyor");
     const busy = core.dashboardTiles(
-      { ...input, attentionOrderCount: 2, outOfStockCount: 4 },
+      {
+        ...input,
+        attentionOrderCount: 2,
+        outOfStockCount: 4,
+        lowStockCount: 6,
+        // A café order paid 24 minutes ago and not handed over yet.
+        oldestCafeWaitingAt: "2026-10-23T11:36:00.000Z",
+      },
       "owner",
     );
     expect(busy.find((t) => t.key === "soldOut")).toMatchObject({
-      hint: "Dolum gerekiyor",
+      reference: "Azalan stokta 6 ürün",
       tone: "warning",
     });
     expect(busy.find((t) => t.key === "attention")!.tone).toBe("danger");
+    expect(busy.find((t) => t.key === "open")).toMatchObject({
+      reference: "Kafe 2 · Mağaza 1 · barda en eskisi 24 dk",
+      tone: "warning",
+    });
+  });
+
+  it("measures a change only where it has a size: no pill against nothing or no change", () => {
+    expect(core.dashboardDelta(5, 5, "percent")).toBeUndefined();
+    expect(core.dashboardDelta(500, 0, "percent")).toBeUndefined();
+    expect(core.dashboardDelta(0, 0, "count")).toBeUndefined();
+    expect(core.dashboardDelta(3, 7, "count")).toMatchObject({
+      label: "−4",
+      direction: "down",
+      good: false,
+      spoken: "düşüş",
+    });
+    // More money back is not good news.
+    expect(core.dashboardDelta(200, 100, "percent", "down")).toMatchObject({
+      label: "%100",
+      direction: "up",
+      good: false,
+    });
+    expect(core.waitedFor("2026-10-23T10:55:00.000Z", now)).toBe("1 sa 5 dk");
+    expect(core.waitedFor("2026-10-23T11:00:00.000Z", now)).toBe("1 sa");
+    expect(core.venueWeekday(new Date("2026-10-25T21:30:00.000Z"))).toBe(
+      "pazartesi",
+    );
+    expect(core.venueDay(new Date("2026-10-25T21:30:00.000Z"))).toBe(
+      "2026-10-26",
+    );
   });
 });
 
@@ -196,10 +271,20 @@ describe("getDashboardStats", () => {
   it("counts the open orders by status and reads no revenue", async () => {
     const store = await import("@/lib/admin/store");
     openRows = [
-      { status: "paid" },
-      { status: "paid" },
-      { status: "pending_payment" },
-      { status: "shipped" },
+      {
+        status: "paid",
+        kind: "cafe",
+        paidAt: "2026-10-23T08:10:00.000Z",
+        createdAt: "2026-10-23T08:09:00.000Z",
+      },
+      {
+        status: "paid",
+        kind: "cafe",
+        paidAt: "2026-10-23T08:02:00.000Z",
+        createdAt: "2026-10-23T08:01:00.000Z",
+      },
+      { status: "pending_payment", kind: "cafe", paidAt: "", createdAt: "" },
+      { status: "shipped", kind: "shop", paidAt: "", createdAt: "" },
     ];
     productRows = [
       { id: "p1", name: "Kup", stock: 0, lowStockThreshold: 5, isActive: true },
@@ -234,6 +319,10 @@ describe("getDashboardStats", () => {
         { status: "preparing", count: 0 },
         { status: "shipped", count: 1 },
       ],
+      openByKind: { cafe: 3, shop: 1 },
+      // The café order paid first and still to be made; the unpaid one and
+      // the parcel do not count.
+      oldestCafeWaitingAt: "2026-10-23T08:02:00.000Z",
       attentionOrderCount: 2,
       // The list's "Stokta yok" counts inactive products too.
       outOfStockCount: 2,
@@ -275,20 +364,23 @@ describe("the dashboard page", () => {
         expiresAt: 0,
       })),
     }));
-    const revenueBuckets = vi.fn(async () => [
-      {
-        bucket: "2026-10-17",
-        label: "17 Eki",
-        revenueMinor: 50_000,
-        orderCount: 2,
-      },
-      {
-        bucket: "2026-10-18",
-        label: "18 Eki",
-        revenueMinor: 12_500,
-        orderCount: 1,
-      },
-    ]);
+    const dashboardRevenue = vi.fn(async () => ({
+      buckets: [
+        {
+          bucket: "2026-10-17",
+          label: "17 Eki",
+          revenueMinor: 50_000,
+          orderCount: 2,
+        },
+        {
+          bucket: "2026-10-18",
+          label: "18 Eki",
+          revenueMinor: 12_500,
+          orderCount: 1,
+        },
+      ],
+      lastWeek: { revenueMinor: 10_000, orderCount: 1 },
+    }));
     vi.doMock("@/lib/admin/store", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@/lib/admin/store")>()),
       getDashboardStats: vi.fn(async () => ({
@@ -299,6 +391,8 @@ describe("the dashboard page", () => {
           { status: "preparing", count: 0 },
           { status: "shipped", count: 0 },
         ],
+        openByKind: { cafe: 1, shop: 0 },
+        oldestCafeWaitingAt: null,
         attentionOrderCount: 0,
         outOfStockCount: 0,
         lowStock: [],
@@ -348,7 +442,7 @@ describe("the dashboard page", () => {
         name: "L'Affogato",
         karaokePrepay: true,
       })),
-      revenueBuckets,
+      dashboardRevenue,
     }));
     vi.doMock("@/lib/email/health", () => ({
       emailHealth: vi.fn(async () => {
@@ -368,36 +462,40 @@ describe("the dashboard page", () => {
     return {
       html,
       text: html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " "),
-      revenueBuckets,
+      dashboardRevenue,
       loadKaraokeTodayCard,
     };
   }
 
   it("shows staff no revenue and does not even read it (D1)", async () => {
-    const { text, revenueBuckets } = await render("staff");
+    const { text, dashboardRevenue } = await render("staff");
     expect(text).not.toMatch(/ciro/i);
-    expect(revenueBuckets).not.toHaveBeenCalled();
+    expect(dashboardRevenue).not.toHaveBeenCalled();
     expect(text).toContain("Açık sipariş");
   });
 
   it("shows owner today's net revenue and the 14 days behind it", async () => {
-    const { text, revenueBuckets } = await render("owner");
-    expect(revenueBuckets).toHaveBeenCalledWith("day", 14);
+    const { text, dashboardRevenue } = await render("owner");
+    expect(dashboardRevenue).toHaveBeenCalledTimes(1);
     expect(text).toContain("Bugün net ciro ₺125,00");
-    expect(text).toContain("Son 14 gün ₺625,00");
+    expect(text).toMatch(/Geçen \S+ bu saate kadar ₺100,00/);
+    // The chart card's headline: the 14 days' net revenue.
+    expect(text).toContain("₺625,00 Net ciro · 3 sipariş");
   });
 
-  it("lays four tiles two abreast until there is room for four (SHE-06)", async () => {
-    // Five tiles in five columns beside the sidebar left each about 132 px.
+  it("lays the figures in one strip: five abreast from xl, pairs on a phone (SHE-06)", async () => {
     const owner = await render("owner");
-    expect(owner.html).toContain(
-      'class="grid gap-3 sm:gap-4 grid-cols-2 xl:grid-cols-4"',
+    expect(owner.html).toMatch(
+      /<ul aria-label="Bugünün özeti" class="grid gap-px [^"]*grid-cols-2 md:grid-cols-6 xl:grid-cols-5"/,
     );
-    expect(owner.html).not.toContain("lg:grid-cols-5");
     const staff = await render("staff");
-    expect(staff.html).toContain(
-      'class="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3"',
+    expect(staff.html).toMatch(
+      /<ul aria-label="Bugünün özeti" class="grid gap-px [^"]*grid-cols-2 md:grid-cols-3"/,
     );
+    // "Yeni" in the header, not a row of chips under the figures.
+    expect(owner.html).not.toContain("Hızlı ekle");
+    expect(owner.html).toContain(">Yeni</span>");
+    expect(staff.html).toContain('href="/admin/siparisler/yeni"');
   });
 
   it("greets without a name and dates by Tuzla time", async () => {
@@ -457,6 +555,11 @@ describe("the dashboard page", () => {
     const { loadKaraokeTodayCard, text } = await render("staff");
     expect(loadKaraokeTodayCard).toHaveBeenCalledWith(
       expect.objectContaining({ prepay: true, canRefund: false }),
+      // The room's hours, for its occupancy against last week.
+      expect.objectContaining({
+        firstHour: expect.any(Number),
+        closeHour: expect.any(Number),
+      }),
     );
     expect(text).toContain("Bugün karaoke");
   });

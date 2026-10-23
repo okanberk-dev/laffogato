@@ -249,6 +249,7 @@ export function OrderCustomerEditor({
       )}
       <KeyValueGrid
         columns={1}
+        layout="inline"
         items={[
           { label: "Ad", value: customerName },
           {

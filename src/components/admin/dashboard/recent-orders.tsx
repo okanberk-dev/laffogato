@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { orderPaymentState } from "@/lib/admin/order-actions";
 import { orderStatusLabel } from "@/lib/admin/order-ui";
 import type { AdminOrder } from "@/lib/admin/store";
@@ -8,7 +6,8 @@ import { formatDateTime, formatTRY } from "../forms";
 import { Badge, OrderStatusBadge } from "../ui/badge";
 import { DataTable, type DataTableColumn } from "../ui/data-table";
 import { EmptyState } from "../ui/detail";
-import { NUMERIC_STYLE } from "../ui/styles";
+import { CARD_TITLE, NUMERIC_STYLE } from "../ui/styles";
+import { WidgetLink } from "./widget-card";
 
 /** An order and whether money was ever taken for it (`listOrderMoney`). */
 export interface RecentOrderRow {
@@ -81,31 +80,24 @@ const COLUMNS: DataTableColumn<RecentOrderRow>[] = [
 /**
  * The newest orders on the kit's list table (admin audit ORD-30): cards on
  * a phone, a table from md, the payment beside the status, the amount net
- * of refunds as the order list shows it. Server-safe.
+ * of refunds as the order list shows it. Innex's compact table: the title
+ * and "Tümünü gör" inside the table's card. Server-safe.
  */
 export function RecentOrders({ rows }: { rows: readonly RecentOrderRow[] }) {
   return (
-    <section aria-labelledby="dashboard-recent-orders" className="min-w-0">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2
-          id="dashboard-recent-orders"
-          className="text-lg font-semibold text-[var(--admin-text)]"
-        >
-          Son siparişler
-        </h2>
-        <Link
-          href="/admin/siparisler"
-          className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
-        >
-          Tümünü gör <span aria-hidden="true">→</span>
-        </Link>
-      </div>
+    <section aria-label="Son siparişler" className="min-w-0">
       <DataTable
         columns={COLUMNS}
         rows={rows}
         rowKey={(r) => r.order.id}
         rowHref={(r) => `/admin/siparisler/${r.order.id}`}
         caption="Son siparişler"
+        heading={
+          <>
+            <h2 className={CARD_TITLE}>Son siparişler</h2>
+            <WidgetLink href="/admin/siparisler">Tümünü gör</WidgetLink>
+          </>
+        }
         empty={<EmptyState title="Henüz sipariş yok." />}
       />
     </section>

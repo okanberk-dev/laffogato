@@ -1,16 +1,25 @@
 import { Card, PageHeader, formatTRY } from "@/components/admin/forms";
-import { StatCard } from "@/components/admin/dashboard/stat-card";
+import { KpiStrip, type KpiCell } from "@/components/admin/dashboard/kpi-strip";
 import { RevenueChart } from "@/components/admin/revenue-chart";
-import { EmptyState, PageShell, StatusTabs } from "@/components/admin/ui";
+import { EmptyState, PageShell } from "@/components/admin/ui";
+import { SegmentedLinks } from "@/components/admin/ui/segmented";
 import {
+  CARD_TITLE,
   EYEBROW,
   MONO_STYLE,
   NUMERIC_STYLE,
 } from "@/components/admin/ui/styles";
 import { requireRole } from "@/lib/admin/auth";
+import { dashboardDelta } from "@/lib/admin/dashboard-core";
 import { DAY_CLOSE_PATH } from "@/lib/admin/day-close-core";
 import {
-  analyticsHeadline,
+  REPORT_METRICS,
+  parseReportMetric,
+  reportsHref,
+  type ReportMetric,
+} from "@/lib/admin/report-metrics";
+import {
+  analyticsHeadlineCompared,
   karaokeRevenue,
   parseGranularity,
   revenueBuckets,
@@ -22,7 +31,7 @@ export const metadata = { title: "Admin · Raporlar" };
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ g?: string | string[] }>;
+  searchParams: Promise<{ g?: string | string[]; m?: string | string[] }>;
 }
 
 const G_OPTIONS: Array<{
@@ -31,10 +40,30 @@ const G_OPTIONS: Array<{
   count: number;
   /** The chart's heading. */
   chart: string;
+  /** The period before it, as the tiles' references name it. */
+  before: string;
 }> = [
-  { value: "day", label: "Son 30 gün", count: 30, chart: "Günlük" },
-  { value: "week", label: "Son 12 hafta", count: 12, chart: "Haftalık" },
-  { value: "month", label: "Son 12 ay", count: 12, chart: "Aylık" },
+  {
+    value: "day",
+    label: "Son 30 gün",
+    count: 30,
+    chart: "Günlük",
+    before: "Önceki 30 gün",
+  },
+  {
+    value: "week",
+    label: "Son 12 hafta",
+    count: 12,
+    chart: "Haftalık",
+    before: "Önceki 12 hafta",
+  },
+  {
+    value: "month",
+    label: "Son 12 ay",
+    count: 12,
+    chart: "Aylık",
+    before: "Önceki 12 ay",
+  },
 ];
 
 /**
@@ -51,26 +80,120 @@ export default async function ReportsPage({ searchParams }: PageProps) {
   // An unknown ?g= falls back to the daily view AND marks its tab.
   const g = parseGranularity(sp.g);
   const opt = G_OPTIONS.find((x) => x.value === g) ?? G_OPTIONS[0];
+  // The card tab the chart draws (Innex: the answer on the tab).
+  const metric = parseReportMetric(sp.m);
+  const spec = REPORT_METRICS[metric];
 
-  const [head, buckets, top, karaoke] = await Promise.all([
-    analyticsHeadline(opt.value, opt.count),
+  const [compared, buckets, top, karaoke] = await Promise.all([
+    analyticsHeadlineCompared(opt.value, opt.count),
     revenueBuckets(opt.value, opt.count),
     topProducts(opt.value, opt.count, 5),
     karaokeRevenue(opt.value, opt.count),
   ]);
+  const head = compared.current;
+  const prev = compared.previous;
 
-  const peak = buckets.reduce(
-    (best, b) => (b.revenueMinor > best.revenueMinor ? b : best),
-    buckets[0] ?? { label: "-", revenueMinor: 0, orderCount: 0, bucket: "" },
+  // The chosen figure's best bucket, for the line beside the chart's title.
+  const peak = buckets.reduce<{ label: string; value: number }>(
+    (best, b) => {
+      const value = spec.of(b);
+      return value > best.value ? { label: b.label, value } : best;
+    },
+    { label: "-", value: 0 },
   );
   const maxRevenue = Math.max(1, ...top.map((t) => t.revenueMinor));
   const period = opt.label.toLocaleLowerCase("tr-TR");
+  const refundLabel = (minor: number) =>
+    minor > 0 ? `−${formatTRY(minor)}` : "-";
+
+  // Innex's KPI strip: every figure against the same stretch of time just
+  // before the period (one read of twice the period, store.ts).
+  const cells: KpiCell[] = [
+    {
+      key: "net",
+      label: "Net ciro",
+      value: formatTRY(head.netRevenueMinor),
+      reference: `${opt.before} ${formatTRY(prev.netRevenueMinor)}`,
+      delta: dashboardDelta(
+        head.netRevenueMinor,
+        prev.netRevenueMinor,
+        "percent",
+      ),
+      money: true,
+      icon: "revenue",
+      hue: "green",
+    },
+    {
+      key: "gross",
+      label: "Brüt ciro",
+      value: formatTRY(head.grossRevenueMinor),
+      reference: `${opt.before} ${formatTRY(prev.grossRevenueMinor)}`,
+      delta: dashboardDelta(
+        head.grossRevenueMinor,
+        prev.grossRevenueMinor,
+        "percent",
+      ),
+      money: true,
+      icon: "reports",
+      hue: "blue",
+    },
+    {
+      key: "refund",
+      label: "İade",
+      value: refundLabel(head.refundedMinor),
+      reference:
+        prev.refundedMinor > 0
+          ? `${opt.before} ${refundLabel(prev.refundedMinor)}`
+          : `${opt.before} iade yok`,
+      // More money back is not good news.
+      delta: dashboardDelta(
+        head.refundedMinor,
+        prev.refundedMinor,
+        "percent",
+        "down",
+      ),
+      tone: head.refundedMinor > 0 ? "danger" : undefined,
+      money: true,
+      icon: "attention",
+      hue: "rose",
+    },
+    {
+      key: "orders",
+      label: "Sipariş",
+      value: head.totalOrders.toLocaleString("tr-TR"),
+      reference: `${opt.before} ${prev.totalOrders.toLocaleString("tr-TR")}`,
+      delta: dashboardDelta(head.totalOrders, prev.totalOrders, "count"),
+      icon: "orders",
+      hue: "violet",
+    },
+    {
+      key: "basket",
+      label: "Ortalama sepet",
+      value: formatTRY(head.averageOrderMinor),
+      reference: `Brüt / sipariş · ${opt.before.toLocaleLowerCase("tr-TR")} ${formatTRY(prev.averageOrderMinor)}`,
+      delta: dashboardDelta(
+        head.averageOrderMinor,
+        prev.averageOrderMinor,
+        "percent",
+      ),
+      money: true,
+      icon: "promos",
+      hue: "amber",
+    },
+  ];
+
+  // Each figure is a tab: the chart under the strip draws it per bucket.
+  const tabs: KpiCell[] = cells.map((cell) => ({
+    ...cell,
+    href: reportsHref(opt.value, cell.key as ReportMetric),
+    current: cell.key === metric,
+  }));
 
   return (
     <PageShell width="list">
       <PageHeader
         title="Raporlar"
-        description="Seçtiğin dönemin ciro, sipariş ve en çok satan ürün özeti."
+        description="Seçtiğin dönemin özeti, her rakam bir önceki dönemle karşılaştırmalı."
         help={
           <p>
             Seçtiğin dönemde ödemesi alınmış siparişler sayılır; ödeme bekleyen
@@ -78,163 +201,145 @@ export default async function ReportsPage({ searchParams }: PageProps) {
             düşülür. Karaoke ön ödemeleri ayrı.
           </p>
         }
+        action={
+          <SegmentedLinks
+            label="Dönem"
+            options={G_OPTIONS.map((o) => ({
+              // Another period keeps the figure the chart draws.
+              href: reportsHref(o.value, metric),
+              label: o.label,
+              current: o.value === opt.value,
+            }))}
+          />
+        }
         secondary={{ href: DAY_CLOSE_PATH, label: "Gün sonu" }}
       />
 
-      <StatusTabs
-        tabs={G_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        current={opt.value}
-        searchParams={sp}
-        pathname="/admin/raporlar"
-        param="g"
-        label="Dönem"
+      <KpiStrip
+        label={`${opt.label}: özet`}
+        cells={tabs}
+        linkScroll={false}
+        className="mb-5"
       />
 
-      {/* Five tiles: on two columns the last spans both, not half a row
-          beside a hole. */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5 max-lg:[&>:last-child:nth-child(odd)]:col-span-2">
-        <StatCard
-          label="Net ciro"
-          value={formatTRY(head.netRevenueMinor)}
-          hint="İadeler düşülmüş"
-          money
-        />
-        <StatCard
-          label="Brüt ciro"
-          value={formatTRY(head.grossRevenueMinor)}
-          hint="İadeler düşülmeden"
-          money
-        />
-        <StatCard
-          label="İade"
-          value={
-            head.refundedMinor > 0 ? `−${formatTRY(head.refundedMinor)}` : "-"
-          }
-          tone={head.refundedMinor > 0 ? "danger" : undefined}
-          money
-        />
-        <StatCard
-          label="Sipariş"
-          value={head.totalOrders.toLocaleString("tr-TR")}
-        />
-        <StatCard
-          label="Ortalama sepet"
-          value={formatTRY(head.averageOrderMinor)}
-          hint="Brüt / sipariş"
-          money
-        />
-      </div>
-
-      <Card className="mb-4">
+      <Card className="mb-5">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="text-lg font-semibold text-[var(--admin-text)]">
-            {opt.chart} net ciro
+          <h2 className={CARD_TITLE}>
+            {opt.chart} {spec.chart}
           </h2>
-          {peak.revenueMinor > 0 ? (
+          {peak.value > 0 ? (
             <p className="text-sm text-[var(--admin-text-soft)]">
               En yüksek: {peak.label} ·{" "}
-              <span style={NUMERIC_STYLE}>{formatTRY(peak.revenueMinor)}</span>
+              <span style={NUMERIC_STYLE}>
+                {spec.unit === "money"
+                  ? formatTRY(peak.value)
+                  : peak.value.toLocaleString("tr-TR")}
+              </span>
             </p>
           ) : null}
         </div>
-        <RevenueChart data={buckets} caption={`${opt.chart} net ciro`} />
+        <RevenueChart
+          data={buckets}
+          caption={`${opt.chart} ${spec.chart}`}
+          metric={metric}
+        />
       </Card>
 
-      <Card className="mb-4">
-        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="text-lg font-semibold text-[var(--admin-text)]">
-            En çok satan 5 ürün
-          </h2>
-          <p className="text-xs text-[var(--admin-text-soft)]">
-            Bu dönemde, liste fiyatıyla; iadeler düşülmüş
-          </p>
-        </div>
-        {top.length === 0 ? (
-          <EmptyState
-            title="Bu dönemde satış yok."
-            description="Siparişler geldikçe burası dolar."
-          />
-        ) : (
-          <ul className="grid gap-3">
-            {top.map((t, i) => {
-              // The bar is the figure the list is sorted by (SYS-16).
-              const widthPct = Math.round((t.revenueMinor / maxRevenue) * 100);
-              return (
-                <li key={t.productName} className="grid gap-1">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-                    <span className="min-w-0 text-[var(--admin-text)]">
-                      <span
-                        className="mr-2 inline-block w-5 text-right text-[var(--admin-text-soft)]"
-                        style={NUMERIC_STYLE}
-                      >
-                        {i + 1}.
-                      </span>
-                      {t.productName}
-                    </span>
-                    <span
-                      className="text-[var(--admin-text-soft)]"
-                      style={NUMERIC_STYLE}
-                    >
-                      {t.qty} adet · {formatTRY(t.revenueMinor)}
-                    </span>
-                  </div>
-                  <div
-                    aria-hidden="true"
-                    className="h-2 w-full overflow-hidden rounded-full bg-[var(--admin-neutral-soft)]"
-                  >
-                    {/* The money's green, as the chart above draws it
-                        (Raporlar is in the green group, ui/hues.ts). */}
-                    <div
-                      className="h-full rounded-full bg-[var(--admin-hue-green)]"
-                      style={{ width: `${widthPct}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Card>
-
-      <Card>
-        <h2 className="text-lg font-semibold text-[var(--admin-text)]">
-          Karaoke ön ödemesi
-        </h2>
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-          <div className="min-w-0">
-            <div className={EYEBROW} style={MONO_STYLE}>
-              Bu dönemde, net
-            </div>
-            <div
-              className="mt-1 text-2xl font-semibold text-[var(--admin-text)]"
-              style={NUMERIC_STYLE}
-            >
-              {formatTRY(karaoke.periodNetMinor)}
-            </div>
-            <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
-              {karaoke.periodCount} rezervasyon ({period})
+      <div className="grid gap-5 xl:grid-cols-3">
+        <Card className="min-w-0 xl:col-span-2">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className={CARD_TITLE}>En çok satan 5 ürün</h2>
+            <p className="text-xs text-[var(--admin-text-soft)]">
+              Bu dönemde, liste fiyatıyla; iadeler düşülmüş
             </p>
           </div>
-          <p className="min-w-0 text-xs text-[var(--admin-text-soft)] sm:text-right">
-            Tüm zamanlar: net{" "}
-            <span style={NUMERIC_STYLE}>{formatTRY(karaoke.netMinor)}</span> ·{" "}
-            {karaoke.paidCount} ödenmiş rezervasyon · tahsil edilen{" "}
-            <span style={NUMERIC_STYLE}>
-              {formatTRY(karaoke.collectedMinor)}
-            </span>{" "}
-            · iade edilen{" "}
-            <span style={NUMERIC_STYLE}>
-              {formatTRY(karaoke.refundedMinor)}
-            </span>
-          </p>
-        </div>
-        {karaoke.refundPendingMinor > 0 ? (
-          <p className="mt-2 text-xs text-[var(--admin-danger-ink)]">
-            {formatTRY(karaoke.refundPendingMinor)} için iade başlatıldı, sonucu
-            bekleniyor; nete dahil.
-          </p>
-        ) : null}
-      </Card>
+          {top.length === 0 ? (
+            <EmptyState
+              title="Bu dönemde satış yok."
+              description="Siparişler geldikçe burası dolar."
+            />
+          ) : (
+            <ul className="grid gap-3">
+              {top.map((t, i) => {
+                // The bar is the figure the list is sorted by (SYS-16).
+                const widthPct = Math.round(
+                  (t.revenueMinor / maxRevenue) * 100,
+                );
+                return (
+                  <li key={t.productName} className="grid gap-1">
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+                      <span className="min-w-0 text-[var(--admin-text)]">
+                        <span
+                          className="mr-2 inline-block w-5 text-right text-[var(--admin-text-soft)]"
+                          style={NUMERIC_STYLE}
+                        >
+                          {i + 1}.
+                        </span>
+                        {t.productName}
+                      </span>
+                      <span
+                        className="text-[var(--admin-text-soft)]"
+                        style={NUMERIC_STYLE}
+                      >
+                        {t.qty} adet · {formatTRY(t.revenueMinor)}
+                      </span>
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="h-2 w-full overflow-hidden rounded-full bg-[var(--admin-neutral-soft)]"
+                    >
+                      {/* The money's green, as the chart above draws it
+                        (Raporlar is in the green group, ui/hues.ts). */}
+                      <div
+                        className="h-full rounded-full bg-[var(--admin-hue-green)]"
+                        style={{ width: `${widthPct}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="min-w-0">
+          <h2 className={CARD_TITLE}>Karaoke ön ödemesi</h2>
+          <div className="mt-3 flex flex-col gap-3">
+            <div className="min-w-0">
+              <div className={EYEBROW} style={MONO_STYLE}>
+                Bu dönemde, net
+              </div>
+              <div
+                className="mt-1 text-2xl font-semibold text-[var(--admin-text)]"
+                style={NUMERIC_STYLE}
+              >
+                {formatTRY(karaoke.periodNetMinor)}
+              </div>
+              <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
+                {karaoke.periodCount} rezervasyon ({period})
+              </p>
+            </div>
+            <p className="min-w-0 border-t border-[var(--admin-divider)] pt-3 text-xs text-[var(--admin-text-soft)]">
+              Tüm zamanlar: net{" "}
+              <span style={NUMERIC_STYLE}>{formatTRY(karaoke.netMinor)}</span> ·{" "}
+              {karaoke.paidCount} ödenmiş rezervasyon · tahsil edilen{" "}
+              <span style={NUMERIC_STYLE}>
+                {formatTRY(karaoke.collectedMinor)}
+              </span>{" "}
+              · iade edilen{" "}
+              <span style={NUMERIC_STYLE}>
+                {formatTRY(karaoke.refundedMinor)}
+              </span>
+            </p>
+          </div>
+          {karaoke.refundPendingMinor > 0 ? (
+            <p className="mt-2 text-xs text-[var(--admin-danger-ink)]">
+              {formatTRY(karaoke.refundPendingMinor)} için iade başlatıldı,
+              sonucu bekleniyor; nete dahil.
+            </p>
+          ) : null}
+        </Card>
+      </div>
     </PageShell>
   );
 }

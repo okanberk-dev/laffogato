@@ -276,6 +276,68 @@ export function foldedFiltersLabel(active: number): string {
   return active > 0 ? `Filtreler (${active})` : "Filtreler";
 }
 
+/**
+ * Whether the fields beside the search box stay in the toolbar's row: one
+ * or two dropdowns do (the product list's "Kategori"); more, a date range
+ * or a second search box fold behind "Filtreler". Pure, exported for tests.
+ */
+export function foldsInline(folded: readonly FilterField[]): boolean {
+  return (
+    folded.length > 0 &&
+    folded.length <= 2 &&
+    folded.every((f) => f.type === "select")
+  );
+}
+
+/**
+ * A toolbar dropdown's "all" choice: a name of its own ("Tüm kategoriler")
+ * as it is, a bare "Tümü" with the field's name before it ("Durum: tümü").
+ */
+export function compactAllLabel(field: {
+  label: string;
+  allLabel?: string;
+}): string {
+  const all = field.allLabel ?? "Tümü";
+  return /\s/.test(all.trim())
+    ? all
+    : `${field.label}: ${all.toLocaleLowerCase("tr-TR")}`;
+}
+
+/** The search box's magnifier (inline: this chunk loads no icon set). */
+function SearchGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      className="pointer-events-none absolute left-3 size-4 text-[var(--admin-text-mute)]"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+/** "Filtreler"'s three narrowing lines. */
+function FilterGlyph() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      className="size-4 shrink-0 text-[var(--admin-text-soft)]"
+    >
+      <path d="M3 6h18M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
 // The folded group is always open from md up (open-from-md.ts); exported
 // from here too for the tests that read it with the bar.
 export { openFromMd };
@@ -357,11 +419,70 @@ export function FilterBar({
     fields,
     chips.map((c) => c.key),
   );
+  // One or two dropdowns stay in the row; more, or a date range, fold.
+  const inline = foldsInline(folded);
   const listField = (
     <input type="hidden" name={LIST_SEARCH_FIELDS.path} value={pathname} />
   );
 
-  const renderField = (field: FilterField) => {
+  const renderField = (field: FilterField, compact = false) => {
+    if (field.type === "search" && field === lead) {
+      const id = `${baseId}-${field.name}`;
+      // The toolbar's own box: a magnifier in place of the label above it
+      // (the label is still there, for a screen reader), as wide as the row
+      // allows.
+      return (
+        <div
+          key={field.name}
+          className="relative flex min-w-0 basis-full items-center sm:max-w-2xl sm:flex-[1_1_18rem] sm:basis-auto"
+        >
+          <label htmlFor={id} className="sr-only">
+            {field.label}
+          </label>
+          <SearchGlyph />
+          <input
+            id={id}
+            type="search"
+            name={field.name}
+            defaultValue={values[field.name] ?? ""}
+            placeholder={field.placeholder}
+            maxLength={field.maxLength ?? 100}
+            enterKeyHint="search"
+            // The `/` shortcut's box (shortcuts.tsx): the bar's lead search only.
+            data-admin-search=""
+            // shortcuts.tsx writes aria-keyshortcuts="/" on it once the shell
+            // has hydrated, which can be before this page has.
+            suppressHydrationWarning
+            className={cx(FIELD_INPUT, "pl-9")}
+          />
+        </div>
+      );
+    }
+    if (field.type === "select" && compact) {
+      const id = `${baseId}-${field.name}`;
+      // A dropdown in the toolbar's row: its name inside each choice
+      // ("Kategori: Kiler"), so the closed box says what it filters.
+      return (
+        <div key={field.name} className="flex min-w-0 flex-[0_1_auto]">
+          <label htmlFor={id} className="sr-only">
+            {field.label}
+          </label>
+          <select
+            id={id}
+            name={field.name}
+            defaultValue={values[field.name] ?? ""}
+            className={cx(FIELD_INPUT, "w-auto max-w-full")}
+          >
+            <option value="">{compactAllLabel(field)}</option>
+            {field.options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {field.label}: {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
     if (field.type === "search") {
       const id = `${baseId}-${field.name}`;
       return (
@@ -380,11 +501,6 @@ export function FilterBar({
             placeholder={field.placeholder}
             maxLength={field.maxLength ?? 100}
             enterKeyHint="search"
-            // The `/` shortcut's box (shortcuts.tsx): the bar's lead search only.
-            data-admin-search={field === lead ? "" : undefined}
-            // shortcuts.tsx writes aria-keyshortcuts="/" on it once the shell
-            // has hydrated, which can be before this page has.
-            suppressHydrationWarning
             className={FIELD_INPUT}
           />
         </div>
@@ -478,61 +594,68 @@ export function FilterBar({
 
   return (
     <div className="mb-4">
-      <form
-        // Remount on a URL change (a chip removed, a tab clicked): the inputs
-        // are uncontrolled and would otherwise keep showing the old values.
-        key={JSON.stringify(values)}
+      {/* Innex's toolbar (22 Eki 2026): one row in a white card, the search
+          box, "Filtreler" and "Uygula", the list's own controls and
+          "Görünümler" at its end; the other filters open under it as a row
+          of their own. The form is `contents`, so its boxes and the
+          controls outside it (a form inside a form is not allowed, and the
+          form remounts on every address change) share the card's row; the
+          card carries the search landmark. */}
+      <div
         role="search"
         aria-label={label}
         aria-busy={pending || undefined}
-        action={listSearchAction}
-        onSubmit={onSubmit}
-        // Innex's filter row: a white card with a pale line, not a grey well.
-        className="flex flex-wrap items-start gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4"
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2.5 sm:p-3"
       >
-        {listField}
-        {kept.map(([key, value], i) => (
-          <input key={`${key}-${i}`} type="hidden" name={key} value={value} />
-        ))}
+        <form
+          // Remount on a URL change (a chip removed, a tab clicked): the inputs
+          // are uncontrolled and would otherwise keep showing the old values.
+          key={JSON.stringify(values)}
+          action={listSearchAction}
+          onSubmit={onSubmit}
+          className="contents"
+        >
+          {listField}
+          {kept.map(([key, value], i) => (
+            <input key={`${key}-${i}`} type="hidden" name={key} value={value} />
+          ))}
 
-        {lead ? renderField(lead) : null}
+          {lead ? renderField(lead) : null}
 
-        {folded.length > 0 ? (
-          <details
-            ref={openFromMd}
-            open={foldedActive > 0}
-            className="group min-w-0 flex-[1_1_10rem] open:basis-full md:contents md:details-content:contents"
-          >
-            <summary
-              className={cx(
-                BUTTON.ghost,
-                "w-full cursor-pointer list-none md:hidden [&::-webkit-details-marker]:hidden",
-              )}
+          {inline ? folded.map((f) => renderField(f, true)) : null}
+
+          {!inline && folded.length > 0 ? (
+            // `contents`: the summary sits in the row as a button and the
+            // fields open as a full-width row under it (order-2), whatever
+            // the width. A closed group's fields are hidden by their own
+            // class, so the ::details-content box can be `contents` too.
+            <details
+              open={foldedActive > 0}
+              className="group contents details-content:contents"
             >
-              {foldedFiltersLabel(foldedActive)}
-              <span
-                aria-hidden="true"
-                className="mb-0.5 inline-block h-2 w-2 rotate-45 border-r-2 border-b-2 border-current transition-transform group-open:mt-1 group-open:mb-0 group-open:-rotate-135"
-              />
-            </summary>
-            <div className="mt-3 flex flex-wrap items-start gap-3 md:contents">
-              {folded.map(renderField)}
-            </div>
-          </details>
-        ) : null}
+              <summary
+                className={cx(
+                  BUTTON.ghost,
+                  "cursor-pointer list-none select-none group-open:border-[var(--admin-border-field)] group-open:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden",
+                )}
+              >
+                <FilterGlyph />
+                {foldedFiltersLabel(foldedActive)}
+                <span
+                  aria-hidden="true"
+                  className="mb-0.5 ml-0.5 inline-block size-1.5 rotate-45 border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:mt-1 group-open:mb-0 group-open:-rotate-135"
+                />
+              </summary>
+              <div className="order-2 hidden basis-full flex-wrap items-start gap-3 border-t border-[var(--admin-border)] pt-3 group-open:flex">
+                {folded.map((f) => renderField(f))}
+              </div>
+            </details>
+          ) : null}
 
-        <div className="flex flex-[1_0_auto] flex-col gap-2">
-          {/* An empty label's height from md up: the boxes sit under their
-              labels and the row is top-aligned, so the buttons line up with
-              the boxes, not with the labels. */}
-          <span
-            aria-hidden="true"
-            className={cx(EYEBROW, "invisible hidden md:block")}
-            style={MONO_STYLE}
-          >
-            &nbsp;
-          </span>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* After the fields when they are open, beside the search box when
+            they are not: the order a keyboard reaches them in, top to
+            bottom. */}
+          <div className="order-1 flex flex-wrap items-center justify-end gap-2 [:has(>details[open])>&]:order-3 [:has(>details[open])>&]:ml-auto">
             {chips.length > 0 ? (
               // Submits the reset form below, not this one: Enter in the box
               // presses the form's first own submit button, "Uygula".
@@ -544,32 +667,9 @@ export function FilterBar({
               {pending ? "Uygulanıyor…" : "Uygula"}
             </button>
           </div>
-        </div>
-      </form>
-
-      {chips.length > 0 ? (
-        // "Sıfırla": the list with the tab and the sort, without the bar's
-        // filters and without the search.
-        <form id={resetId} hidden action={listSearchAction} onSubmit={onSubmit}>
-          {listField}
-          <input type="hidden" name={LIST_SEARCH_FIELDS.intent} value="reset" />
-          {kept.map(([key, value], i) => (
-            <input key={`${key}-${i}`} type="hidden" name={key} value={value} />
-          ))}
         </form>
-      ) : null}
-
-      {toolbar || viewsKey ? (
-        // The chips, then the list's controls and "Görünümler" at the row's
-        // end. Outside the form: that one remounts on every address change,
-        // and a form inside a form is not allowed.
-        <div className="mt-2 flex flex-wrap items-start gap-2">
-          {chips.length > 0
-            ? chipList(
-                "flex min-w-0 flex-[1_1_14rem] flex-wrap gap-2 self-center",
-              )
-            : null}
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+        {toolbar || viewsKey ? (
+          <div className="order-1 ml-auto flex flex-wrap items-center justify-end gap-2">
             {toolbar}
             {viewsKey ? (
               // A menu that cannot load is not drawn; the list stays.
@@ -586,10 +686,22 @@ export function FilterBar({
               </SavedViewsBoundary>
             ) : null}
           </div>
-        </div>
-      ) : chips.length > 0 ? (
-        chipList("mt-2 flex flex-wrap gap-2")
+        ) : null}
+      </div>
+
+      {chips.length > 0 ? (
+        // "Sıfırla": the list with the tab and the sort, without the bar's
+        // filters and without the search.
+        <form id={resetId} hidden action={listSearchAction} onSubmit={onSubmit}>
+          {listField}
+          <input type="hidden" name={LIST_SEARCH_FIELDS.intent} value="reset" />
+          {kept.map(([key, value], i) => (
+            <input key={`${key}-${i}`} type="hidden" name={key} value={value} />
+          ))}
+        </form>
       ) : null}
+
+      {chips.length > 0 ? chipList("mt-2 flex flex-wrap gap-2") : null}
     </div>
   );
 }

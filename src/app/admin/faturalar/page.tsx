@@ -13,7 +13,10 @@ import {
   PageHeader,
   Textarea,
 } from "@/components/admin/forms";
-import { InvoiceActions } from "@/components/admin/invoice-actions";
+import {
+  InvoiceActions,
+  InvoiceRowStep,
+} from "@/components/admin/invoice-actions";
 import {
   Badge,
   BUTTON,
@@ -278,22 +281,26 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
             ),
           },
         ]}
+        // The row's one step beside its ⋯ (InvoiceRowStep), the rest in it.
         rowActions={(r) => (
-          <InvoiceActions
-            parasutUrl={parasutUrl}
-            wizardHref={
-              modeOn && r.sourceKind === "order" && invoiceWizardOpen(r)
-                ? invoiceWizardHref(r.sourceId)
-                : null
-            }
-            row={r}
-            source={{
-              kind: r.sourceKind,
-              id: r.sourceId,
-              label: r.sourceLabel,
-            }}
-            menu
-          />
+          <span className="flex items-center justify-end gap-2">
+            <InvoiceRowStep row={r} />
+            <InvoiceActions
+              parasutUrl={parasutUrl}
+              wizardHref={
+                modeOn && r.sourceKind === "order" && invoiceWizardOpen(r)
+                  ? invoiceWizardHref(r.sourceId)
+                  : null
+              }
+              row={r}
+              source={{
+                kind: r.sourceKind,
+                id: r.sourceId,
+                label: r.sourceLabel,
+              }}
+              menu
+            />
+          </span>
         )}
         mobileCard={(r) => (
           <div className="flex flex-col gap-1.5">

@@ -238,6 +238,7 @@ describe("top products", () => {
 describe("the reports page", () => {
   async function render(
     top: Array<{ productName: string; qty: number; revenueMinor: number }>,
+    sp: Record<string, string> = { g: "week" },
   ) {
     vi.resetModules();
     vi.doMock("next/link", () => ({
@@ -257,15 +258,16 @@ describe("the reports page", () => {
     const calls: Record<string, unknown[]> = {};
     vi.doMock("@/lib/admin/store", async (importOriginal) => ({
       ...(await importOriginal<typeof import("@/lib/admin/store")>()),
-      analyticsHeadline: vi.fn(async (...args: unknown[]) => {
+      analyticsHeadlineCompared: vi.fn(async (...args: unknown[]) => {
         calls.headline = args;
-        return {
+        const zero = {
           grossRevenueMinor: 0,
           netRevenueMinor: 0,
           totalOrders: 0,
           averageOrderMinor: 0,
           refundedMinor: 0,
         };
+        return { current: zero, previous: zero };
       }),
       revenueBuckets: vi.fn(async () => []),
       topProducts: vi.fn(async (...args: unknown[]) => {
@@ -284,7 +286,7 @@ describe("the reports page", () => {
     }));
     const { default: ReportsPage } = await import("@/app/admin/raporlar/page");
     const html = renderToStaticMarkup(
-      await ReportsPage({ searchParams: Promise.resolve({ g: "week" }) }),
+      await ReportsPage({ searchParams: Promise.resolve(sp) }),
     );
     return { html, calls };
   }
@@ -314,23 +316,63 @@ describe("the reports page", () => {
     expect(html).toContain("iadeler düşülmüş");
   });
 
-  it("gives its five tiles three columns below 1280 px, each inside its cell (SYS-15)", async () => {
+  it("lays its five figures in one strip, three over two below 1280 px, each inside its cell (SYS-15)", async () => {
     // At 1024 px the five tiles beside the sidebar put "₺1.284.567,89"
-    // 32 px past its content box and into the next tile.
+    // 32 px past its content box and into the next tile. Innex's strip
+    // (22 Eki 2026): six columns from md (three cells over two), five in a
+    // row from xl, never five beside the sidebar at 1024.
     const { html } = await render([]);
-    const grid = html.match(
-      /<div class="(mb-4 grid grid-cols-2[^"]*)">((?:<div class="@container[^"]*">[\s\S]*?<\/div>){5})<\/div>/,
+    const strip = html.match(
+      /<ul aria-label="Son 12 hafta: özet" class="([^"]*)">([\s\S]*?)<\/ul>/,
     );
-    expect(grid, "the tile grid").not.toBeNull();
-    expect(grid![1].split(" ")).toEqual(
+    expect(strip, "the strip").not.toBeNull();
+    expect(strip![1].split(" ")).toEqual(
       expect.arrayContaining([
         "grid-cols-2",
-        "lg:grid-cols-3",
+        "md:grid-cols-6",
         "xl:grid-cols-5",
       ]),
     );
-    expect(grid![1]).not.toMatch(/(^| )lg:grid-cols-5/);
-    expect(grid![2].match(/class="@container flex min-w-0 /g)).toHaveLength(5);
+    expect(strip![1]).not.toMatch(/(^| )lg:grid-cols-5/);
+    // Each figure is a container: a money figure shrinks with its cell.
+    expect(
+      strip![2].match(/class="@container flex w-full min-w-0 /g),
+    ).toHaveLength(5);
+  });
+
+  it("reads every figure against the period just before it", async () => {
+    const { html } = await render([]);
+    const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    expect(text).toContain("Net ciro ₺0,00 Önceki 12 hafta ₺0,00");
+    expect(text).toContain("İade - Önceki 12 hafta iade yok");
+    expect(text).toContain("Sipariş 0 Önceki 12 hafta 0");
+    // The period is a segment control in the header now, linked as before.
+    expect(html).toMatch(
+      /<nav aria-label="Dönem"[^>]*>[\s\S]*href="\/admin\/raporlar\?g=week"[^>]*aria-current="page"/,
+    );
+  });
+
+  it("each figure is a tab: the chart draws the chosen one, the period keeps it", async () => {
+    // Net by default: its cell is the current tab, the address has no m.
+    let { html } = await render([]);
+    expect(html).toMatch(
+      /<a href="\/admin\/raporlar\?g=week" aria-current="true"[^>]*>[\s\S]*?Net ciro/,
+    );
+    expect(html).toContain("Haftalık net ciro");
+    // Sipariş chosen: its cell is current, the chart says so, and another
+    // period keeps the figure.
+    ({ html } = await render([], { g: "week", m: "orders" }));
+    expect(html).toMatch(
+      /<a href="\/admin\/raporlar\?g=week&amp;m=orders" aria-current="true"/,
+    );
+    expect(html).not.toMatch(
+      /<a href="\/admin\/raporlar\?g=week" aria-current="true"/,
+    );
+    expect(html).toContain("Haftalık sipariş");
+    expect(html).toContain('href="/admin/raporlar?g=month&amp;m=orders"');
+    // An unknown figure is net.
+    ({ html } = await render([], { g: "week", m: "toString" }));
+    expect(html).toContain("Haftalık net ciro");
   });
 
   it("has no Dönüşüm card and no promise of one", async () => {

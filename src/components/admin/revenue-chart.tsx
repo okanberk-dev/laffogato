@@ -1,13 +1,11 @@
+import { REPORT_METRICS, type ReportMetric } from "@/lib/admin/report-metrics";
+import type { RevenueBucket } from "@/lib/admin/store";
+
 import { formatTRY } from "./forms";
 import { EmptyState } from "./ui/detail";
 import { EYEBROW, MONO_STYLE, NUMERIC_STYLE } from "./ui/styles";
 
-export interface RevenueChartBucket {
-  bucket: string;
-  label: string;
-  revenueMinor: number;
-  orderCount: number;
-}
+export type RevenueChartBucket = RevenueBucket;
 
 /** Gridlines above zero: the axis reads 0, ¼, ½, ¾ and the top. */
 const AXIS_STEPS = 4;
@@ -19,16 +17,20 @@ const AXIS_STEPS = 4;
  * line fills most of the plot.
  * The highest tick comes first. Exported for tests.
  */
-export function revenueAxis(maxMinor: number): {
+export function revenueAxis(
+  maxMinor: number,
+  /** The smallest step: 100 kuruş (a whole lira), or 1 for a count. */
+  unit = 100,
+): {
   top: number;
   ticks: number[];
 } {
-  const raw = Math.max(100, Math.ceil(maxMinor / AXIS_STEPS));
+  const raw = Math.max(unit, Math.ceil(maxMinor / AXIS_STEPS));
   const magnitude = 10 ** Math.floor(Math.log10(raw));
   const step =
     [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]
       .map((m) => m * magnitude)
-      .find((s) => s >= raw && s % 100 === 0) ?? 10 * magnitude;
+      .find((s) => s >= raw && s % unit === 0) ?? 10 * magnitude;
   const top = step * AXIS_STEPS;
   return {
     top,
@@ -48,6 +50,11 @@ const AXIS_FORMAT = new Intl.NumberFormat("tr-TR", {
 /** An axis label: whole liras, the ticks are round. */
 export function axisLabel(minor: number): string {
   return AXIS_FORMAT.format(minor / 100);
+}
+
+/** A figure as the chart says it: money in kuruş, or a count. */
+function figure(value: number, unit: "money" | "count"): string {
+  return unit === "money" ? formatTRY(value) : value.toLocaleString("tr-TR");
 }
 
 /**
@@ -81,39 +88,70 @@ export function labelIndexes(n: number, most: number): Set<number> {
 export function RevenueChart({
   data,
   caption,
+  metric = "net",
 }: {
   data: readonly RevenueChartBucket[];
   /** Names the chart and its table, e.g. "Son 14 günün net cirosu". */
   caption: string;
+  /** The figure drawn per bucket (Raporlar's card tabs); net by default. */
+  metric?: ReportMetric;
 }) {
-  const max = Math.max(0, ...data.map((d) => d.revenueMinor));
+  const spec = REPORT_METRICS[metric];
+  const values = data.map(spec.of);
+  const max = Math.max(0, ...values);
   if (data.length === 0 || max === 0) {
     return (
       <EmptyState
-        title="Bu dönemde satış yok."
-        description="Ödemesi alınan siparişler geldikçe grafik dolar."
+        title={
+          metric === "refund" ? "Bu dönemde iade yok." : "Bu dönemde satış yok."
+        }
+        description={
+          metric === "refund"
+            ? "İade edilen siparişler burada görünür."
+            : "Ödemesi alınan siparişler geldikçe grafik dolar."
+        }
       />
     );
   }
 
-  const { top, ticks } = revenueAxis(max);
+  const unit = spec.unit === "money" ? 100 : 1;
+  const { top, ticks } = revenueAxis(max, unit);
   const n = data.length;
   const xAt = (i: number) => (n === 1 ? 50 : (i * 100) / (n - 1));
   const yAt = (v: number) => 100 - (v / top) * 100;
-  const points = data.map((d, i) => `${xAt(i)},${yAt(d.revenueMinor)}`);
+  const points = values.map((v, i) => `${xAt(i)},${yAt(v)}`);
   const area = `M${xAt(0)},100 L${points.join(" L")} L${xAt(n - 1)},100 Z`;
-  const peak = data.reduce((best, d) =>
-    d.revenueMinor > best.revenueMinor ? d : best,
+  const peakAt = values.reduce(
+    (best, v, i) => (v > values[best] ? i : best),
+    0,
   );
-  const total = data.reduce((s, d) => s + d.revenueMinor, 0);
+  const peak = data[peakAt];
+  // An average does not add up: its summary is the peak alone.
+  const total = values.reduce((sum, v) => sum + v, 0);
+  const summary =
+    metric === "basket"
+      ? `${caption}: en yüksek ${peak.label} (${figure(values[peakAt], spec.unit)}).`
+      : `${caption}: toplam ${figure(total, spec.unit)}, en yüksek ${peak.label} (${figure(values[peakAt], spec.unit)}).`;
   const phoneLabels = labelIndexes(n, 4);
   const wideLabels = labelIndexes(n, 6);
+  // The table's second figure: the orders, or the money when the line is
+  // the orders.
+  const other =
+    metric === "orders"
+      ? {
+          column: "Net ciro",
+          of: (d: RevenueChartBucket) => formatTRY(d.revenueMinor),
+        }
+      : {
+          column: "Sipariş",
+          of: (d: RevenueChartBucket) => d.orderCount.toLocaleString("tr-TR"),
+        };
 
   return (
     <figure className="m-0">
       <div
         role="img"
-        aria-label={`${caption}: toplam ${formatTRY(total)}, en yüksek ${peak.label} (${formatTRY(peak.revenueMinor)}).`}
+        aria-label={summary}
         className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3"
       >
         {/* Five labels spread over the plot's height plus one line, so
@@ -125,7 +163,7 @@ export function RevenueChart({
         >
           {ticks.map((t) => (
             <span key={t} className="whitespace-nowrap">
-              {axisLabel(t)}
+              {spec.unit === "money" ? axisLabel(t) : t.toLocaleString("tr-TR")}
             </span>
           ))}
         </div>
@@ -164,9 +202,9 @@ export function RevenueChart({
           {data.map((d, i) => (
             <span
               key={d.bucket}
-              title={`${d.label}: ${formatTRY(d.revenueMinor)} (${d.orderCount} sipariş)`}
+              title={`${d.label}: ${figure(values[i], spec.unit)}${metric === "orders" ? " sipariş" : ` (${d.orderCount} sipariş)`}`}
               className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--admin-chart-line)] ring-2 ring-[var(--admin-surface)]"
-              style={{ left: `${xAt(i)}%`, top: `${yAt(d.revenueMinor)}%` }}
+              style={{ left: `${xAt(i)}%`, top: `${yAt(values[i])}%` }}
             />
           ))}
         </div>
@@ -195,7 +233,9 @@ export function RevenueChart({
 
       <details className="mt-3">
         <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9">
-          Tutarları tablo olarak göster
+          {spec.unit === "money"
+            ? "Tutarları tablo olarak göster"
+            : "Rakamları tablo olarak göster"}
         </summary>
         <table className="mt-1 w-full text-sm">
           <caption className="sr-only">{caption}</caption>
@@ -205,15 +245,15 @@ export function RevenueChart({
                 Dönem
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                Net ciro
+                {spec.column}
               </th>
               <th scope="col" className="py-2 text-right font-normal">
-                Sipariş
+                {other.column}
               </th>
             </tr>
           </thead>
           <tbody>
-            {data.map((d) => (
+            {data.map((d, i) => (
               <tr
                 key={d.bucket}
                 className="border-t border-[var(--admin-border)]"
@@ -228,13 +268,13 @@ export function RevenueChart({
                   className="py-1.5 text-right text-[var(--admin-text)]"
                   style={NUMERIC_STYLE}
                 >
-                  {formatTRY(d.revenueMinor)}
+                  {figure(values[i], spec.unit)}
                 </td>
                 <td
                   className="py-1.5 text-right text-[var(--admin-text-soft)]"
                   style={NUMERIC_STYLE}
                 >
-                  {d.orderCount}
+                  {other.of(d)}
                 </td>
               </tr>
             ))}

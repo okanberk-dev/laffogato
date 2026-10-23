@@ -229,6 +229,31 @@ describe("the booking's page", () => {
     expect(page).toContain("İadeyi başlat");
   });
 
+  it("leads with the money in the left column, the record in tabs (Innex's three zones)", async () => {
+    // Paid: the figure is what was taken, the tabs open on the booking.
+    let page = await detail();
+    expect(page).toMatch(
+      /aria-label="Tutar"[^>]*><div[^>]*><p[^>]*>Tahsil edilen<\/p><p[^>]*>₺2\.000,00</,
+    );
+    expect(page).toContain("Giriş kodu");
+    expect(page).toMatch(
+      /role="tab"[^>]*aria-selected="true"[^>]*>Rezervasyon/,
+    );
+    for (const tab of ["Ödeme", "Fatura", "Onaylar", "Geçmiş"]) {
+      expect(page, tab).toMatch(new RegExp(`role="tab"[^>]*>${tab}`));
+    }
+    // Owed back: red, and the tabs open on the payment.
+    h.reservation = booking({ status: "cancelled" });
+    page = await detail();
+    expect(page).toMatch(
+      /aria-label="Tutar"[^>]*><div[^>]*><p[^>]*>İade edilecek<\/p><p class="[^"]*text-\[var\(--admin-danger-ink\)\]/,
+    );
+    expect(page).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>Ödeme/);
+    // An asked-for tab wins.
+    page = await detail("krk-00042", { sekme: "gecmis" });
+    expect(page).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>Geçmiş/);
+  });
+
   it("a hold the sweep let go unanswered says so and what to check", async () => {
     h.reservation = booking({
       status: "cancelled",

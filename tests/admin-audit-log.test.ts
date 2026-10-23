@@ -29,7 +29,7 @@ vi.mock("@/lib/admin/auth", () => ({
 }));
 
 const view = await import("@/lib/admin/audit-view");
-const { listAuditLogs } = await import("@/lib/admin/audit");
+const { listAuditLogs, lastSignIns } = await import("@/lib/admin/audit");
 const { parseFilters } = await import("@/lib/admin/list-params");
 
 beforeEach(() => {
@@ -169,6 +169,19 @@ describe("listAuditLogs", () => {
         "2026-10-03T21:00:00.000Z",
       ]),
     );
+  });
+
+  it("reads each user's last sign-in: the newest login_success under the address", async () => {
+    const signIns = await lastSignIns(["Mudur@Ornek.com", "kasa@ornek.com"]);
+    const reads = seen.filter((s) => /FROM "audit_logs"/.test(s.text));
+    expect(reads).toHaveLength(2);
+    expect(reads[0].text).toMatch(/"action" = \$\d+/);
+    expect(reads[0].text).toMatch(/ORDER BY "createdAt" DESC/);
+    expect(reads[0].params).toEqual(
+      expect.arrayContaining(["login_success", "auth", "mudur@ornek.com"]),
+    );
+    // Nobody signed in on record: the address is missing, not "".
+    expect(signIns.size).toBe(0);
   });
 
   it("matches the Kim box literally: %, _ and the backslash itself", async () => {

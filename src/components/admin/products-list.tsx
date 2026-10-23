@@ -18,11 +18,16 @@ import {
   productStockMovesHref,
   type ProductListRow,
 } from "@/lib/admin/products-panel";
+import { quickLookHref } from "@/lib/admin/quick-look-core";
 
 import { ActionButton, useHandPost } from "./action-form";
 import { BulkActionBar, useSelection } from "./bulk";
 import { bulkAnswer } from "./bulk-answer";
 import { formatDateTime, formatTRY } from "./forms";
+import {
+  QUICK_LOOK_ACTION_ROW,
+  QuickLookActionBody,
+} from "./ui/quick-look-parts";
 import {
   ActionMenu,
   ActionMenuLink,
@@ -257,6 +262,36 @@ export function ProductActiveToggle({
   );
 }
 
+/** The same toggle as a quick look's action row (ui/quick-look-parts.tsx). */
+export function ProductActiveToggleRow({
+  p,
+}: {
+  p: Pick<ProductListRow, "id" | "name" | "isActive">;
+}) {
+  return (
+    <li>
+      <ActionButton
+        action={setProductActiveAction}
+        hidden={{ id: p.id, isActive: p.isActive ? "false" : "true" }}
+        variant="bare"
+        wide
+        className={QUICK_LOOK_ACTION_ROW}
+      >
+        <QuickLookActionBody
+          icon={p.isActive ? "hide" : "show"}
+          hue={p.isActive ? "rose" : "green"}
+          title={p.isActive ? "Pasif yap" : "Aktif yap"}
+          description={
+            p.isActive
+              ? "Mağazadan ve uygulamadan kalkar; silinmez."
+              : "Mağazada ve uygulamada yeniden görünür."
+          }
+        />
+      </ActionButton>
+    </li>
+  );
+}
+
 /**
  * "Sil": a confirm dialog, then a toast. On the product's own page
  * (`thenList`) the answer is the list, with the toast.
@@ -405,7 +440,10 @@ export function ProductsList({
         columns={columns}
         rows={rows}
         rowKey={(p) => p.id}
-        rowHref={(p) => productHref(p.id)}
+        // A row opens its quick look over the list (`?gor=`); the full page
+        // is "Tam sayfa" there and "Görüntüle" in the row's ⋯.
+        rowHref={(p) => quickLookHref(searchParams, pathname, p.id)}
+        rowLinkScroll={false}
         rowLabel={(p) => p.name}
         selection={selection}
         rowActions={(p) => <ProductRowMenu p={p} />}
@@ -418,7 +456,8 @@ export function ProductsList({
               <ProductThumb src={p.thumb} />
               <div className="min-w-0 flex-1">
                 <CardLink
-                  href={productHref(p.id)}
+                  href={quickLookHref(searchParams, pathname, p.id)}
+                  scroll={false}
                   className="font-medium text-[var(--admin-text)] underline decoration-[var(--admin-border-strong)] underline-offset-4 hover:text-[var(--admin-primary)] hover:decoration-[var(--admin-primary)]"
                 >
                   {p.name}
