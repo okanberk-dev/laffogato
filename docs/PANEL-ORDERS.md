@@ -85,6 +85,7 @@ anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
          "label": "Masa 4",
          "firstName": "Ayşe",
          "scheduledFor": "",
+         "note": "Fındık alerjim var",
          "paidAt": "2026-10-22T11:55:00.000Z",
          "lines": [
            {
@@ -92,6 +93,7 @@ anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
              "name": "Latte",
              "size": "M",
              "detail": "M · yulaf · +1 shot",
+             "note": "şurupsuz lütfen",
              "qty": 2
            }
          ],
@@ -109,6 +111,15 @@ anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
      bağlantısıyla eşlenir (`docs/PANEL-MENU.md`): ekran içeceğin reçetesini
      gösterebilir.
    - `scheduledFor`: planlı saat (ISO), `""` = hemen.
+   - `note` (23 Eki 2026, sonradan eklendi; eski panel yok sayar): üyenin
+     sipariş notu (uygulamanın `POST /orders` `note`'u), kırpılmış, en çok
+     300 karakter. **Yalnız masa ve gel-al** siparişinde dolar; kurye
+     siparişinde hep `""`, çünkü orada alan adres notuyla (kapı kodu) başlar
+     (`"[adres notu] · [not]"`). Sitenin personel e-postasındaki "MÜŞTERİNİN
+     NOTU" kuralının aynısı. Not yoksa `""`.
+   - `lines[].note` (23 Eki 2026, sonradan eklendi): satırın barista notu
+     (`items[].options.note`), kırpılmış, en çok 200 karakter; `""` = yok.
+     Adres taşımadığı için her teslimat türünde gider.
    - `path`: siparişin bu paneldeki sayfası; panel önüne sitenin adresini
      koyar.
    - Sıra: vakti en yakın olan önce (planlı saat, yoksa ödeme), sonra
@@ -125,12 +136,14 @@ anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
 ## Kişisel veri (KVKK)
 
 Ekrana yalnız siparişi hazırlamak ve teslim etmek için gereken gider:
-satırlar ve seçenekleri, nereye gideceği, planlı saat ve müşterinin **yalnız
-adı** (gel-al'da seslenmek için; sitenin personel e-postası ve karaoke
-bağlantısı da yalnız adı taşır). Soyad, e-posta, telefon, adres, kurye
-notu (kapı kodu), ödeme referansı **asla** gitmez: alanlar beyaz listeyle
-tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen bir sütun
-kendiliğinden sızamaz. `tests/panel-orders-feed.test.ts` ve
+satırlar, seçenekleri ve satır notları, nereye gideceği, planlı saat,
+müşterinin **yalnız adı** (gel-al'da seslenmek için; sitenin personel
+e-postası ve karaoke bağlantısı da yalnız adı taşır) ve masa ya da gel-al
+siparişinde üyenin notu (alerji, "şurupsuz"; personel e-postası da yalnız
+bunu taşır). Soyad, e-posta, telefon, adres, kurye notu (kapı kodu: kurye
+siparişinin notu hiç gitmez), ödeme referansı **asla** gitmez: alanlar
+beyaz listeyle tek tek kurulur (`toPanelOrder`), tabloya sonradan eklenen
+bir sütun kendiliğinden sızamaz. `tests/panel-orders-feed.test.ts` ve
 `tests/db-integration-panel-feeds.test.ts` tutar.
 
 ## Panel ne zaman çeker

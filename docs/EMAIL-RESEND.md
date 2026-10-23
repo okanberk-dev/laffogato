@@ -875,9 +875,10 @@ için ekibe bir **iç** "Yeni sipariş" e-postası gider
   bırakıp kimseye gitmeyecek bir alıcı listesi kaydetmek (aynı
   `resolveStaffRecipients` kuralıyla sayılır) onay ister.
 - **İçerik (KVKK m.4 ölçülülük):** sipariş no, kanal, tür, teslimat ya da masa,
-  planlı saat, ürünler, toplam, ödeme yolu ve müşterinin **yalnız adı** (e-posta
-  ya da telefona benzeyen "ad" düşer). Soyad, telefon, e-posta, adres yazılmaz;
-  not yalnız masa ve gel-al siparişinde (kurye notu kapı kodu taşır).
+  planlı saat, ürünler (satırın barista notuyla: "· Not: şurupsuz"), toplam,
+  ödeme yolu ve müşterinin **yalnız adı** (e-posta ya da telefona benzeyen "ad"
+  düşer). Soyad, telefon, e-posta, adres yazılmaz; sipariş notu yalnız masa ve
+  gel-al siparişinde (kurye notu kapı kodu taşır).
 - Üyenin ya da panelin yazdığı metin şablon alanı sayılmaz: notta "[OK]",
   üründe "Kahve [250G]" olduğu gibi gider (`fill.ts` tek geçişte doldurur,
   eksik alan şablonun kendisinden aranır).

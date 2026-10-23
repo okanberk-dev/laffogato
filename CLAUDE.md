@@ -371,8 +371,10 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 
 - **Bar ekranı:** imzalı `GET /api/panel/orders` ödenmiş,
   hazırlanan ve gel-al'da teslim bekleyen **kafe** siparişlerini verir
-  (`toPanelOrder` beyaz listesi: satırlar ve seçenekleri, "Masa 4" / "Gel-al"
-  / "Kurye", planlı saat, **yalnız ad**, sitedeki sayfasının yolu). Panelden
+  (`toPanelOrder` beyaz listesi: satırlar, seçenekleri ve satır notu, "Masa
+  4" / "Gel-al" / "Kurye", planlı saat, **yalnız ad**, masa ve gel-al
+  siparişinde üyenin notu (kuryede hiç: kapı kodu), sitedeki sayfasının
+  yolu). Panelden
   elle girilen sipariş, mağaza kolisi, masaya / kuryeye gitmiş sipariş ve
   24 saattir ilerlemeyen gelmez. Barista siparişi bar ekranından tek
   dokunuşla ilerletir (22 Eki 2026): imzalı `POST /api/panel/orders/stage`

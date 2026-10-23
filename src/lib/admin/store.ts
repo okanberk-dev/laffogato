@@ -2399,7 +2399,8 @@ export async function listOrderAlertRows(
  * rather than one with an OR: a table or courier order that left the
  * counter (`shipped`) is done for the bar and must not use up the limit.
  * Only the columns the screen shows, the customer's name for its first
- * word; no e-mail, phone, address or courier note leaves the database.
+ * word and the order note (`toPanelOrder` sends it for a table or gel-al
+ * order only); no e-mail, phone or address leaves the database.
  */
 export async function listPanelOpenOrderRows(
   paidSince: string,
@@ -2407,7 +2408,7 @@ export async function listPanelOpenOrderRows(
 ): Promise<PanelOrderSourceRow[]> {
   const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
   const columns =
-    "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, customerName, scheduledFor, paidAt, shippedAt, totalMinor, items";
+    "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, customerName, scheduledFor, paidAt, shippedAt, deliveryNote, totalMinor, items";
   const sb = getDb();
   const [open, ready] = await Promise.all([
     sb

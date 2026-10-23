@@ -25,9 +25,10 @@ import {
  * Server to server, no cookie: signed with the shared `KARAOKE_SYNC_SECRET`
  * like the karaoke route (CLAUDE.md rule 7). Unset secret: 503. Bad,
  * missing or stale signature: 401, nothing more said. The answer is the
- * whitelisted shape of `toPanelOrder`: the lines to make, where they go,
- * the planned time and a first name; never a surname, e-mail, phone,
- * address, courier note or payment reference. Read only: the bar screen's
+ * whitelisted shape of `toPanelOrder`: the lines to make with their notes,
+ * where they go, the planned time, a first name and the member's note on a
+ * table or gel-al order; never a surname, e-mail, phone, address, courier
+ * note or payment reference. Read only: the bar screen's
  * buttons move an order through `POST /api/panel/orders/stage`.
  *
  * `src/proxy.ts` lets every `/api/*` path through untouched.
