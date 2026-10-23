@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["fra1"],
-  "buildCommand": "next build",
+  "buildCommand": "node scripts/check-build-env.mjs && next build",
   "framework": "nextjs",
   "crons": [
     { "path": "/api/cron/daily", "schedule": "0 6 * * *" },
