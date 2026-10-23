@@ -49,9 +49,14 @@ export function weekStart(day: string): string {
   return addDays(day, -back);
 }
 
+/** How far `?hafta=` may go from this year, either way. */
+const WEEK_YEARS_AROUND = 5;
+
 /**
  * The week the address asks for (`?hafta=`, any day of it), else this
- * week. A malformed or impossible date falls back to this week.
+ * week. A malformed or impossible date falls back to this week, and so
+ * does one more than five years away: 9999-12-27's week ran past 9999 and
+ * threw, a year before 100 read as 19xx (review of #231).
  */
 export function parseWeekParam(
   value: string | string[] | undefined,
@@ -59,7 +64,8 @@ export function parseWeekParam(
 ): string {
   const raw = Array.isArray(value) ? value[0] : value;
   if (raw && DAY_RE.test(raw) && isoDay(toUtc(raw)) === raw) {
-    return weekStart(raw);
+    const years = Math.abs(Number(raw.slice(0, 4)) - Number(today.slice(0, 4)));
+    if (years <= WEEK_YEARS_AROUND) return weekStart(raw);
   }
   return weekStart(today);
 }
@@ -100,6 +106,25 @@ export function weekLabel(monday: string): string {
   const b = toUtc(addDays(monday, 6));
   const am = MONTHS[a.getUTCMonth()];
   const bm = MONTHS[b.getUTCMonth()];
+  if (a.getUTCFullYear() !== b.getUTCFullYear()) {
+    return `${a.getUTCDate()} ${am} ${a.getUTCFullYear()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+  }
+  if (am !== bm) {
+    return `${a.getUTCDate()} ${am} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+  }
+  return `${a.getUTCDate()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
+}
+
+/**
+ * weekLabel with three-letter months, for a phone: "28 Aralık 2026 - 3
+ * Ocak 2027" needs 377 px with the arrows, more than a 390 px screen has
+ * (review of #231).
+ */
+export function weekLabelShort(monday: string): string {
+  const a = toUtc(monday);
+  const b = toUtc(addDays(monday, 6));
+  const am = MONTHS[a.getUTCMonth()].slice(0, 3);
+  const bm = MONTHS[b.getUTCMonth()].slice(0, 3);
   if (a.getUTCFullYear() !== b.getUTCFullYear()) {
     return `${a.getUTCDate()} ${am} ${a.getUTCFullYear()} - ${b.getUTCDate()} ${bm} ${b.getUTCFullYear()}`;
   }

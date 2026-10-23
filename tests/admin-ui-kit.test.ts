@@ -1141,6 +1141,62 @@ describe("server-rendered markup", () => {
     expect(out).not.toContain("h-10 min-w-10");
   });
 
+  it("Pagination: the current page is more than a white box on the grey rail", () => {
+    const out = html(
+      createElement(ui.Pagination, {
+        page: 2,
+        pageSize: 10,
+        total: 30,
+        pathname: "/l",
+      }),
+    );
+    // A field-dark outline (3:1 on the rail) and the primary ink, semibold;
+    // the white box alone was 1.1:1 (review of #231).
+    const current = /<a [^>]*aria-current="page"[^>]*>/.exec(out)?.[0] ?? "";
+    expect(current).toContain("ring-1 ring-[var(--admin-border-field)]");
+    expect(current).toContain("font-semibold text-[var(--admin-primary)]");
+    const others = out.match(/<a (?![^>]*aria-current)[^>]*>/g) ?? [];
+    expect(others.length).toBeGreaterThan(0);
+    for (const a of others) expect(a).not.toContain("ring-1");
+  });
+
+  it("a row that scrolls sideways draws the focus ring inside its controls", async () => {
+    // A ring 2 px out was cut by the scroller's edge (review of #231).
+    const css = readFileSync("src/app/globals.css", "utf8");
+    expect(css).toMatch(
+      /\[data-admin-root\] \[data-focus-inset\] :focus-visible \{\s*outline-offset: -2px;/,
+    );
+    // After the panel's own ring, so it wins at the same specificity + 1.
+    expect(css.indexOf("[data-admin-root] [data-focus-inset]")).toBeGreaterThan(
+      css.indexOf("[data-admin-root] :focus-visible {"),
+    );
+    const { SectionTabs } = await import("@/components/admin/ui/section-tabs");
+    const { SegmentedLinks } = await import("@/components/admin/ui/segmented");
+    const status = html(
+      createElement(ui.StatusTabs, {
+        tabs: [{ value: null, label: "Tümü", count: 1 }],
+        current: null,
+        pathname: "/l",
+      }),
+    );
+    const section = html(
+      createElement(SectionTabs, {
+        label: "Bölüm",
+        tabs: [{ href: "/a", label: "A" }],
+        activeHref: "/a",
+      }),
+    );
+    const segmented = html(
+      createElement(SegmentedLinks, {
+        label: "Dönem",
+        options: [{ href: "/a", label: "A", current: true }],
+      }),
+    );
+    for (const out of [status, section, segmented]) {
+      expect(out).toContain('data-focus-inset=""');
+    }
+  });
+
   it("FilterBar: a posted search form that carries the tab and drops the page", () => {
     const fields = [
       { type: "search", name: "q", label: "Ara" },

@@ -1051,7 +1051,22 @@ describe("the trigger's server markup", () => {
     // A 44 px square on a phone; from `lg` Innex's search field.
     expect(a).toMatch(/\bmax-lg:size-11\b/);
     expect(a).toMatch(/\blg:w-72\b/);
+    // The field is 44 px on touch (an iPad in landscape is `lg` too), 36
+    // with a mouse (review of #231).
+    expect(a).toMatch(/\blg:h-11\b/);
+    expect(a).toMatch(/\blg:pointer-fine:h-9\b/);
     expect(html.match(/<a /g)).toHaveLength(1);
+  });
+
+  it("under the open results the field is transparent, never invisible: it takes the focus back", () => {
+    // `invisible` cannot hold the focus, and closing the results left it
+    // on <body> (review of #231).
+    const src = readFileSync(
+      "src/components/admin/palette/trigger.tsx",
+      "utf8",
+    );
+    expect(src).toContain('open && "lg:opacity-0"');
+    expect(src).not.toContain("lg:invisible");
   });
 
   it("a list that cannot load stays inside the dialog: a message and the results page, never the site's error page", async () => {

@@ -93,6 +93,13 @@ type Fields = Parameters<typeof parseFilters>[1];
 const PATH = "/admin/siparisler";
 const KEY = "laf_admin_views_v1:0123456789abcdef:orders";
 
+// The toolbar's end group as the markup writes it (React escapes `>` and
+// `&` in a class). With the fields open it moves after "Uygula", on the
+// last row (review of #231).
+const END_GROUP =
+  '<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2 [:has(&gt;form&gt;details[open])&gt;&amp;]:order-4 [:has(&gt;form&gt;details[open])&gt;&amp;]:ml-0">';
+const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Fields of the test's own: the chips below are frozen from origin/main's
 // bar, and must not move when the orders list's labels do.
 const FIELDS: Fields = [
@@ -348,7 +355,9 @@ describe("once the page is in the browser", () => {
     // The toolbar card: its form (contents), then the end group with the
     // menu, inside the card; Innex's one row (22 Eki 2026).
     expect(html).toMatch(
-      /<\/form><div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""[^>]*><\/span><\/div><\/div>/,
+      new RegExp(
+        `</form>${literal(END_GROUP)}<span data-lazy-menu=""[^>]*></span></div></div>`,
+      ),
     );
     // Both chips are still there, under the card.
     expect(html).toContain("Filtreyi kaldır: Ara ayşe");
@@ -363,9 +372,7 @@ describe("once the page is in the browser", () => {
 
   it("with no chip the menu still ends the toolbar's row", () => {
     const html = withKey(() => bar({}, { views: { key: "orders" } }));
-    expect(html).toContain(
-      '<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><span data-lazy-menu=""',
-    );
+    expect(html).toContain(`${END_GROUP}<span data-lazy-menu=""`);
     expect(html).not.toContain("Etkin filtreler");
   });
 
@@ -397,15 +404,45 @@ describe("once the page is in the browser", () => {
     const withViews = withKey(() =>
       bar({ durum: "acik" }, { views: { key: "orders" }, toolbar: tool }),
     );
-    expect(withViews).toMatch(
-      /<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses<\/button><span data-lazy-menu=""/,
+    expect(withViews).toContain(
+      `${END_GROUP}<button type="button">Ses</button><span data-lazy-menu=""`,
     );
     // Drawn on the server too: no views key needed for it.
     const alone = bar({}, { toolbar: tool });
     expect(alone).toContain(
-      '<div class="order-1 ml-auto flex flex-wrap items-center justify-end gap-2"><button type="button">Ses</button></div></div>',
+      `${END_GROUP}<button type="button">Ses</button></div></div>`,
     );
     expect(alone).not.toContain("data-lazy-menu");
+  });
+
+  it("with the fields open the end group follows Uygula, in the page as on the screen", () => {
+    const tool = createElement("button", { type: "button" }, "Ses");
+    // Three selects after the search box: more than fit in the row, so they
+    // fold under "Filtreler".
+    const select = (name: string) => ({
+      type: "select" as const,
+      name,
+      label: name,
+      options: [{ value: "acik", label: "Açık" }],
+    });
+    const fields: Fields = [...FIELDS, select("durum"), select("tur")];
+    const html = renderToStaticMarkup(
+      createElement(FilterBar, {
+        fields,
+        searchParams: { durum: "acik" },
+        values: parseFilters({ durum: "acik" }, fields),
+        pathname: PATH,
+        label: "Filtreler",
+        toolbar: tool,
+      }),
+    );
+    // The fields open (a filter is set), "Uygula" moves to their row's end
+    // (order-3) and the end group comes after it (order-4): the same order
+    // as the markup, so Tab never jumps back up.
+    expect(html).toMatch(/<details open=""/);
+    expect(html).toContain("[:has(&gt;details[open])&gt;&amp;]:order-3");
+    expect(html).toContain(END_GROUP);
+    expect(html.indexOf("Uygula")).toBeLessThan(html.indexOf(">Ses<"));
   });
 
   it("no `views`, no menu and no end group, whatever the page says", () => {

@@ -669,7 +669,10 @@ export function FilterBar({
           </div>
         </form>
         {toolbar || viewsKey ? (
-          <div className="order-1 ml-auto flex flex-wrap items-center justify-end gap-2">
+          // With the fields open, after "Uygula" on the last row, as they
+          // come in the page: a keyboard no longer jumps from "Uygula" back
+          // up to the first row (review of #231).
+          <div className="order-1 ml-auto flex flex-wrap items-center justify-end gap-2 [:has(>form>details[open])>&]:order-4 [:has(>form>details[open])>&]:ml-0">
             {toolbar}
             {viewsKey ? (
               // A menu that cannot load is not drawn; the list stays.
