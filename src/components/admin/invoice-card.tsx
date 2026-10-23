@@ -22,6 +22,7 @@ import {
   invoiceWizardHref,
   invoiceWizardOpen,
   isEInvoice,
+  refundOpen,
 } from "@/lib/invoice/panel-core";
 
 import { InvoiceActions } from "./invoice-actions";
@@ -112,8 +113,10 @@ export function InvoiceCard({
               {deadline ? (
                 <Badge tone={deadline.tone}>{deadline.label}</Badge>
               ) : null}
-              {row.refundNotedAt ? (
+              {refundOpen(row) ? (
                 <Badge tone="danger">Faturalı siparişte iade</Badge>
+              ) : row.refundNotedAt ? (
+                <Badge>İade belgesi kesildi</Badge>
               ) : null}
             </div>
             <KeyValueGrid
@@ -165,10 +168,17 @@ export function InvoiceCard({
             {note ? (
               <p className="text-[var(--admin-text-soft)]">{note}</p>
             ) : null}
-            {row.refundNotedAt ? (
+            {refundOpen(row) ? (
               <p className="text-[var(--admin-danger-ink)]">
                 Faturalı siparişte iade: iade faturası / gider pusulası gerekir.
                 Kesilmiş fatura otomatik değiştirilmez.
+              </p>
+            ) : row.refundNotedAt && row.refundHandledAt ? (
+              <p className="text-[var(--admin-text-soft)]">
+                İadenin belgesi kesildi
+                {row.refundDocNo ? ` (${row.refundDocNo})` : ""},{" "}
+                {formatDateTime(row.refundHandledAt)}
+                {row.refundHandledBy ? `, ${row.refundHandledBy}` : ""}.
               </p>
             ) : null}
           </>

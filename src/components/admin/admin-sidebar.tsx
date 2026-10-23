@@ -242,7 +242,8 @@ const BADGE_TITLES: Record<string, string> = {
   orders:
     "Açık sipariş (ödeme bekleyen · ödenen · hazırlanan · yolda ya da hazır)",
   karaoke: "Bugünkü karaoke rezervasyonu (iptal edilmemiş)",
-  invoices: "Dikkat isteyen fatura (son gün, hata, elle kesilecek ya da iade)",
+  invoices:
+    "Dikkat isteyen fatura (okunacak taslak, son gün, hata, elle kesilecek, gitmeyen e-posta ya da iade)",
 };
 
 /**

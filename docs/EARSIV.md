@@ -202,7 +202,13 @@ kaydına düşer).
 **Faturadan sonra iade:** kesilmiş faturaya site dokunmaz. Sipariş "Faturalı
 siparişte iade" dikkat işaretini alır, fatura kartında ve Faturalar'da
 "iade faturası / gider pusulası gerekir" yazar; belge muhasebeciyle Paraşüt'te
-düzenlenir, sonra işaret kaldırılır.
+düzenlenir, sonra Faturalar'daki satırda ya da fatura kartında **"İade
+belgesini kestim"** ile belgenin numarası yazılır (23 Eki 2026). Bu, iadeyi
+Dikkat'ten, Genel bakış'tan ve kenar çubuğundaki sayaçtan çıkarır ve
+siparişin işaretini de kaldırır; siparişte "Dikkat işaretini kaldır" da
+iadeyi numarasız kapatır. Önceden bu iade hiçbir yoldan kapanmıyordu: satır
+Dikkat'te ve sayaçta sonsuza dek kalıyordu. Sonra yeni bir iade gelirse
+satır yeniden işaretlenir (`refundNotedAt` > `refundHandledAt`).
 
 ## 4. Günlük rutin
 

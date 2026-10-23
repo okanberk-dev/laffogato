@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   runInvoiceRow: vi.fn(),
   safeAudit: vi.fn(async () => true),
   check: vi.fn(),
+  markRefundHandled: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -33,6 +34,7 @@ vi.mock("@/lib/invoice/store", () => ({
   getInvoice: h.getInvoice,
   markInvoiceManual: vi.fn(),
   markInvoiceManualDone: vi.fn(),
+  markInvoiceRefundHandled: h.markRefundHandled,
   retryInvoice: vi.fn(),
   setInvoiceBilling: vi.fn(),
   writeCarriers: vi.fn(),
@@ -42,6 +44,7 @@ const {
   cutInvoiceNowAction,
   checkParasutConnectionAction,
   formalizeInvoiceAction,
+  markInvoiceRefundHandledAction,
   rebuildInvoiceDraftAction,
 } = await import("@/app/admin/faturalar/actions");
 
@@ -81,6 +84,8 @@ beforeEach(() => {
   h.runInvoiceRow.mockReset();
   h.check.mockReset();
   h.requireRole.mockClear();
+  h.safeAudit.mockClear();
+  h.markRefundHandled.mockReset();
 });
 
 describe("Faturayı kes", () => {
@@ -270,5 +275,75 @@ describe("Paraşüt bağlantısını sına", () => {
       error: expect.stringContaining("girişi reddedildi"),
     });
     expect(h.requireRole).toHaveBeenCalledWith("invoices");
+  });
+});
+
+describe("İade belgesini kestim (review of #231)", () => {
+  const refundForm = (docNo: string) => {
+    const f = form();
+    f.set("docNo", docNo);
+    return f;
+  };
+
+  it("asks for the return document's number, in the operator's words", async () => {
+    for (const bad of ["", "ab", "GP 12", "a".repeat(41), "x<y"]) {
+      const r = await markInvoiceRefundHandledAction(null, refundForm(bad));
+      expect(r.ok, bad).toBe(false);
+    }
+    expect(h.markRefundHandled).not.toHaveBeenCalled();
+    expect(
+      await markInvoiceRefundHandledAction(null, refundForm("")),
+    ).toMatchObject({
+      ok: false,
+      fieldErrors: {
+        docNo: expect.stringContaining("gider pusulasının numarasını"),
+      },
+    });
+  });
+
+  it("records the number, by whom, and audits it", async () => {
+    h.markRefundHandled.mockResolvedValueOnce({
+      ok: true,
+      row: row({ status: "issued", sourceKind: "order", sourceId: "ord-1" }),
+    });
+    const r = await markInvoiceRefundHandledAction(
+      null,
+      refundForm(" GP2026/0042 "),
+    );
+    expect(h.requireRole).toHaveBeenCalledWith("invoices");
+    expect(h.markRefundHandled).toHaveBeenCalledWith(
+      ID,
+      "GP2026/0042",
+      "patron@laffogato.net",
+    );
+    expect(h.safeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "invoice",
+        entityId: ID,
+        payload: expect.objectContaining({
+          event: "earsiv_refund_handled",
+          docNo: "GP2026/0042",
+        }),
+      }),
+    );
+    expect(r).toMatchObject({ ok: true });
+  });
+
+  it("says why when there is nothing to close", async () => {
+    h.markRefundHandled.mockResolvedValueOnce({
+      ok: false,
+      error: "Bu faturada belge bekleyen bir iade yok.",
+    });
+    expect(
+      await markInvoiceRefundHandledAction(null, refundForm("GP-1")),
+    ).toMatchObject({
+      ok: false,
+      error: "Bu faturada belge bekleyen bir iade yok.",
+    });
+    expect(h.safeAudit).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ event: "earsiv_refund_handled" }),
+      }),
+    );
   });
 });

@@ -45,6 +45,7 @@ import {
   listAttentionInvoices,
   markInvoiceManual,
   markInvoiceManualDone,
+  markInvoiceRefundHandled,
   requestOrderInvoice,
   retryInvoice,
   setInvoiceBilling,
@@ -405,6 +406,55 @@ export async function markInvoiceManualDoneAction(
   });
   revalidateFor(res.row);
   return actionOk(`Elle kesildi olarak kaydedildi (${parsed.data.invoiceNo}).`);
+}
+
+const refundHandledSchema = z.object({
+  id: idSchema,
+  docNo: z
+    .string()
+    .trim()
+    .min(3, "İade faturasının ya da gider pusulasının numarasını yaz.")
+    .max(40, "Belge numarası çok uzun.")
+    .regex(
+      /^[A-Za-z0-9/-]+$/,
+      "Belge numarası yalnız harf, rakam, tire ve eğik çizgi içerir.",
+    ),
+});
+
+/**
+ * "İade belgesini kestim": the return document of a refund after an issued
+ * invoice was cut (in Paraşüt or by the accountant). The refund leaves
+ * Dikkat, the dashboard and the badge; the invoice itself is not touched.
+ */
+export async function markInvoiceRefundHandledAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const session = await requireRole("invoices");
+  const parsed = refundHandledSchema.safeParse({
+    id: String(formData.get("id") ?? ""),
+    docNo: String(formData.get("docNo") ?? ""),
+  });
+  if (!parsed.success) return refusedIssues(parsed.error.issues);
+  const res = await markInvoiceRefundHandled(
+    parsed.data.id,
+    parsed.data.docNo,
+    session.email,
+  );
+  if (!res.ok) return actionError(res.error);
+  await safeAudit({
+    action: "update",
+    entity: "invoice",
+    entityId: res.row.id,
+    actor: session.email,
+    payload: {
+      event: "earsiv_refund_handled",
+      docNo: parsed.data.docNo,
+      source: `${res.row.sourceKind}:${res.row.sourceId}`,
+    },
+  });
+  revalidateFor(res.row);
+  return actionOk(`İade belgesi kaydedildi (${parsed.data.docNo}).`);
 }
 
 const manualSchema = z.object({

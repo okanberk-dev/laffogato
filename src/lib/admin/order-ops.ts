@@ -14,6 +14,7 @@ import "server-only";
 
 import { baseNoticeKind, isResendableKind } from "@/lib/email/notice-kinds";
 import { resendOrderNotice } from "@/lib/email/order-notices";
+import { noteOrderRefundHandled } from "@/lib/invoice/store";
 import { creditWalletRefund } from "@/lib/mobile/wallet";
 import { getPaymentProvider } from "@/lib/payment";
 import { isPaymentRefused, type PaymentProvider } from "@/lib/payment/provider";
@@ -1156,6 +1157,16 @@ export async function clearAttention(
   const was = String(g.order.attention ?? "");
   if (!(await setOrderAttention(id, ""))) {
     return refused("İşaret kaldırılamadı. Birazdan tekrar dene.");
+  }
+  // "Faturalı siparişte iade" taken off once the return document is cut
+  // (docs/EARSIV.md): the invoice's refund is handled with it, or Faturalar,
+  // the dashboard and the badge would count it for good (review of #231).
+  if (was === "invoice_refund") {
+    try {
+      await noteOrderRefundHandled(id, actor.email);
+    } catch (err) {
+      console.error("[admin/order-ops] fatura iadesi kapatılamadı", err);
+    }
   }
   await safeAudit({
     action: "update",

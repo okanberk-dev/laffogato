@@ -590,15 +590,18 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   yığını üst katmanın altında kalır: çekmecenin kendi bildirimleri vardır
   (`ToastScope`).
 - **Faturalar**: kenar çubuğunda **sayaç** (Dikkat sekmesinin kümesi: son
-  gün yakın ya da geçmiş, hata, elle kesilecek, okunacak taslak, kesimden
-  sonra iade); yalnız e-Arşiv açıkken ve Faturalar'ı açan rollere. Diğer
-  rozetler gibi ucuz yoklanır: `invoices` tablosuna her yazım kendi
-  işaretini (`live:invoices`) düşürür, anahtar köşkün günüdür (son gün
-  yazımla değil saatle yaklaşır). Her satırda ⋯'nin yanında **tek adım**:
-  taslak için "Taslağı gör" (siparişin ya da rezervasyonun Fatura
-  sekmesi; taslak satırları okunmadan kesinleşmez), vadesi gelene
-  "Faturayı kes", hataya "Yeniden dene", elle kesilecek olana "Kestim",
-  kesilene PDF.
+  gün yakın ya da geçmiş, hata, elle kesilecek, okunacak taslak, PDF
+  e-postası gitmeyen, belgesi kesilmemiş iade); yalnız e-Arşiv açıkken ve
+  Faturalar'ı açan rollere. Diğer rozetler gibi ucuz yoklanır: `invoices`
+  tablosuna her yazım kendi işaretini (`live:invoices`) düşürür, anahtar
+  köşkün günüdür (son gün yazımla değil saatle yaklaşır). Her satırda
+  ⋯'nin yanında **tek adım**: taslak için "Taslağı gör" (siparişin ya da
+  rezervasyonun Fatura sekmesi; taslak satırları okunmadan kesinleşmez:
+  ⋯ menüsü de taslağı kesinleştirmez, aynı sekmeye "Taslağı gör ve
+  kesinleştir" ile götürür), vadesi gelene "Faturayı kes", hataya
+  "Yeniden dene", elle kesilecek olana "Kestim", kesimden sonra iadesi
+  olana "Belgeyi kestim" (iade faturasının ya da gider pusulasının
+  numarası; `docs/EARSIV.md` "Faturadan sonra iade"), kesilene PDF.
 - **Yapılmayan**: §3.10'un bütçe ve gerçekleşen çubukları (gider ve bütçe
   köşkün panelinde, lafmaliyet'te; sitede veri yok) ve Genel bakış'ta
   "Sistem sağlığı" kartı (Neon CU-saati, Vercel kotası: sitenin bu

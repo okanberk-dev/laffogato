@@ -61,12 +61,27 @@ export function mailGivenUp(
   );
 }
 
+/**
+ * A refund after issue that still waits for its return document: noted
+ * later than a person last marked one handled (ISO times compare as text;
+ * a row from before 23 Eki 2026 has no handled stamp).
+ */
+export function refundOpen(
+  row: Pick<InvoiceRow, "refundNotedAt"> &
+    Partial<Pick<InvoiceRow, "refundHandledAt">>,
+): boolean {
+  return (
+    Boolean(row.refundNotedAt) &&
+    row.refundNotedAt > (row.refundHandledAt ?? "")
+  );
+}
+
 /** What needs a person: the dashboard's and the list's "Dikkat". */
 export function needsAttention(row: InvoiceRow, now: Date): boolean {
   if (row.status === "manual" || row.status === "failed") return true;
   // A draft waits for a person to read and formalise it.
   if (row.status === "draft") return true;
-  if (row.refundNotedAt) return true;
+  if (refundOpen(row)) return true;
   if (mailGivenUp(row)) return true;
   const d = deadlineState(row, now);
   return d === "late" || d === "soon";
@@ -159,7 +174,7 @@ export function invoicePdfHref(row: Pick<InvoiceRow, "id">): string {
 
 /** The sentence under a row: why it waits, why a person cuts it, what failed. */
 export function invoiceNoteText(row: InvoiceRow): string {
-  if (row.refundNotedAt) {
+  if (refundOpen(row)) {
     return "Faturalı siparişte iade: iade faturası / gider pusulası gerekir.";
   }
   if (row.status === "failed") return row.lastError || "Son deneme başarısız.";
@@ -210,7 +225,7 @@ export function invoiceDashboardAlert(
     else if (d === "soon") soon += 1;
     if (r.status === "manual") manual += 1;
     if (r.status === "failed") failed += 1;
-    if (r.refundNotedAt && r.status === "issued") refund += 1;
+    if (refundOpen(r) && r.status === "issued") refund += 1;
     if (mailGivenUp(r)) mail += 1;
     if (r.status === "draft") drafts += 1;
   }
