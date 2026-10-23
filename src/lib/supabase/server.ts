@@ -14,8 +14,11 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
  * cookie store. Writing is only possible from a Server Function or a Route
  * Handler - during a Server Component render Next throws on `set`, and that is
  * swallowed here on purpose. The token refresh that would have been written is
- * not lost: `src/proxy.ts` (`updateSession`) refreshes the session on the way
- * in, before any component renders, exactly so this path never has to.
+ * not lost on the member pages: `src/proxy.ts` (`updateSession`) refreshes the
+ * session on the way in under `/uye` only (`isSessionRefreshPath`), the one
+ * place that reads it. Anywhere else, call this client from a Server Function
+ * (which can write the rotated cookies), never from a Server Component render:
+ * there a refresh would rotate the token and lose the new one.
  */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -30,8 +33,8 @@ export async function createSupabaseServerClient() {
             cookieStore.set(name, value, options);
           }
         } catch {
-          // Called from a Server Component: cookies are read-only there. The
-          // proxy has already refreshed the session for this request.
+          // Called from a Server Component: cookies are read-only there. Under
+          // `/uye` the proxy has already refreshed the session for this request.
         }
       },
     },

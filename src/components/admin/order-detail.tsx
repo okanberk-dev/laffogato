@@ -153,7 +153,14 @@ const ITEM_LABEL = {
   cancelled: "İptal",
 } as const;
 
+/** A café line's note to the barista (`options.note`), "" for none. */
+function lineNoteOf(item: AdminOrder["items"][number]): string {
+  const note = item.options?.note;
+  return typeof note === "string" ? note.trim() : "";
+}
+
 function LineName({ item }: { item: AdminOrder["items"][number] }) {
+  const note = lineNoteOf(item);
   return (
     <>
       <div
@@ -170,6 +177,10 @@ function LineName({ item }: { item: AdminOrder["items"][number] }) {
         <div className="text-xs text-[var(--admin-text-soft)]">
           {item.detail}
         </div>
+      ) : null}
+      {/* The member's own note on the line (the app's "Barista notu"). */}
+      {note ? (
+        <div className="text-xs text-[var(--admin-text)]">Not: {note}</div>
       ) : null}
       {item.restockedQty ? (
         <div className="text-xs text-[var(--admin-text-soft)]">

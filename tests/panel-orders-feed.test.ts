@@ -10,9 +10,13 @@ import {
   verifySignature,
 } from "@/lib/panel/karaoke-sync-core";
 import {
+  PANEL_ORDER_LINE_NOTE_MAX,
+  PANEL_ORDER_NOTE_MAX,
   PANEL_ORDER_READY_STALE_MS,
   PANEL_ORDER_STALE_MS,
   PANEL_ORDERS_LOOKBACK_DAYS,
+  panelOrderRowsComplete,
+  panelOrdersLiveSince,
   panelOrdersSince,
   sortForPanelOrders,
   toPanelOrder,
@@ -23,7 +27,8 @@ import {
  * The open café orders on the köşk panel's bar screen
  * (src/lib/panel/orders-feed-core.ts, src/app/api/panel/orders/route.ts,
  * docs/PANEL-ORDERS.md). What is pinned: only the whitelisted fields leave
- * (a first name, never the rest of the customer), only paid app and web
+ * (a first name, never the rest of the customer; the member's note on a
+ * table or gel-al order, never a courier order's), only paid app and web
  * café orders in an open stage are on the screen, a forgotten one leaves
  * it, the route answers only a signed request, and every order write pings
  * the panel from the write hook.
@@ -46,6 +51,7 @@ function row(over: Partial<PanelOrderSourceRow> = {}): PanelOrderSourceRow {
     scheduledFor: "",
     paidAt: new Date(NOW.getTime() - 5 * 60_000).toISOString(),
     shippedAt: "",
+    deliveryNote: "  Fındık alerjim var ",
     totalMinor: 24000,
     items: [
       {
@@ -55,6 +61,7 @@ function row(over: Partial<PanelOrderSourceRow> = {}): PanelOrderSourceRow {
         menuItemId: "mnu-0003",
         size: "M",
         detail: "M · yulaf · +1 shot",
+        options: { milk: "oat", extraShot: true, note: " şurupsuz lütfen " },
       },
       {
         productName: "Cheesecake",
@@ -80,7 +87,6 @@ describe("toPanelOrder", () => {
           customerEmail: "ayse@example.com",
           customerPhone: "+905551112233",
           shippingAddress: "Postane Mah.",
-          deliveryNote: "Kapı kodu 4821",
           internalNote: "VIP",
         } as object),
       },
@@ -94,6 +100,7 @@ describe("toPanelOrder", () => {
       label: "Gel-al",
       firstName: "Ayşe",
       scheduledFor: "",
+      note: "Fındık alerjim var",
       paidAt: row().paidAt,
       lines: [
         {
@@ -101,6 +108,7 @@ describe("toPanelOrder", () => {
           name: "Latte",
           size: "M",
           detail: "M · yulaf · +1 shot",
+          note: "şurupsuz lütfen",
           qty: 2,
         },
         {
@@ -108,6 +116,7 @@ describe("toPanelOrder", () => {
           name: "Cheesecake",
           size: "single",
           detail: "",
+          note: "",
           qty: 1,
         },
       ],
@@ -120,11 +129,64 @@ describe("toPanelOrder", () => {
       "example.com",
       "5551112233",
       "Postane",
-      "4821",
       "VIP",
     ]) {
       expect(text).not.toContain(leak);
     }
+  });
+
+  it("sends the member's note on a table or gel-al order, never a courier's", () => {
+    expect(toPanelOrder(row(), NOW)?.note).toBe("Fındık alerjim var");
+    expect(
+      toPanelOrder(
+        row({ fulfillment: "table", tableCode: "K7Q2M9X4TB", tableName: "4" }),
+        NOW,
+      )?.note,
+    ).toBe("Fındık alerjim var");
+    // A courier order's note starts with the address note: a door code.
+    const courier = toPanelOrder(
+      row({
+        fulfillment: "delivery",
+        deliveryNote: "Kapı kodu 4821 · Fındık alerjim var",
+      }),
+      NOW,
+    );
+    expect(courier?.note).toBe("");
+    expect(JSON.stringify(courier)).not.toContain("4821");
+    // The line notes are the member's word on the drink: they ride along.
+    expect(courier?.lines[0].note).toBe("şurupsuz lütfen");
+    expect(toPanelOrder(row({ deliveryNote: undefined }), NOW)?.note).toBe("");
+  });
+
+  it("trims the notes and cuts a long one", () => {
+    const long = toPanelOrder(
+      row({
+        deliveryNote: `  ${"ç".repeat(PANEL_ORDER_NOTE_MAX + 50)}  `,
+        items: [
+          {
+            productName: "Latte",
+            qty: 1,
+            status: "pending",
+            options: { note: "😀".repeat(PANEL_ORDER_LINE_NOTE_MAX + 5) },
+          },
+          {
+            productName: "Mocha",
+            qty: 1,
+            status: "pending",
+            options: { note: 42 },
+          },
+          { productName: "Su", qty: 1, status: "pending", options: null },
+        ],
+      }),
+      NOW,
+    )!;
+    expect(long.note).toBe("ç".repeat(PANEL_ORDER_NOTE_MAX));
+    // Characters, not UTF-16 halves: no broken emoji at the cut.
+    expect(Array.from(long.lines[0].note)).toHaveLength(
+      PANEL_ORDER_LINE_NOTE_MAX,
+    );
+    expect(long.lines[0].note).toBe("😀".repeat(PANEL_ORDER_LINE_NOTE_MAX));
+    expect(long.lines.slice(1).map((l) => l.note)).toEqual(["", ""]);
   });
 
   it("names a table order by its table, as the counter card does", () => {
@@ -253,6 +315,28 @@ describe("toPanelOrder", () => {
     );
   });
 
+  it("reads only what is not forgotten, by the same limits", () => {
+    expect(panelOrdersLiveSince(NOW)).toEqual({
+      dueSince: new Date(NOW.getTime() - PANEL_ORDER_STALE_MS).toISOString(),
+      readySince: new Date(
+        NOW.getTime() - PANEL_ORDER_READY_STALE_MS,
+      ).toISOString(),
+    });
+  });
+
+  it("calls a read that came back full incomplete, per read", () => {
+    const open = (n: number) => Array.from({ length: n }, () => row());
+    const ready = (n: number) =>
+      Array.from({ length: n }, () => row({ status: "shipped" }));
+    expect(panelOrderRowsComplete([...open(200), ...ready(200)], 201)).toBe(
+      true,
+    );
+    expect(panelOrderRowsComplete(open(201), 201)).toBe(false);
+    expect(panelOrderRowsComplete([...open(3), ...ready(201)], 201)).toBe(
+      false,
+    );
+  });
+
   it("sorts the soonest due first", () => {
     const later = toPanelOrder(
       row({
@@ -296,6 +380,9 @@ function signedGet(path: string, secret = SECRET): Request {
 
 describe("GET /api/panel/orders", () => {
   beforeEach(() => {
+    // The route reads the clock; the fixture's orders are paid at NOW.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
     vi.stubEnv("KARAOKE_SYNC_SECRET", SECRET);
     storeMock.listPanelOpenOrderRows.mockReset();
     storeMock.listPanelOpenOrderRows.mockResolvedValue([
@@ -304,6 +391,7 @@ describe("GET /api/panel/orders", () => {
     ]);
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
@@ -339,9 +427,28 @@ describe("GET /api/panel/orders", () => {
     const body = await res.json();
     expect(body).toMatchObject({ version: 1, complete: true });
     expect(body.orders.map((o: { id: string }) => o.id)).toEqual(["ord-0042"]);
-    const [since, limit] = storeMock.listPanelOpenOrderRows.mock.calls[0];
+    const [since, limit, live] = storeMock.listPanelOpenOrderRows.mock.calls[0];
     expect(typeof since).toBe("string");
     expect(limit).toBe(201);
+    expect(Object.keys(live).sort()).toEqual(["dueSince", "readySince"]);
+  });
+
+  it("is not complete when the read came back full, whatever it dropped", async () => {
+    // 201 rows that all leave the screen: the read may have cut a live one.
+    const old = new Date(Date.now() - PANEL_ORDER_STALE_MS - HOUR);
+    storeMock.listPanelOpenOrderRows.mockResolvedValue(
+      Array.from({ length: 201 }, (_, i) =>
+        row({
+          id: `ord-${i}`,
+          orderNo: 20_000 + i,
+          paidAt: old.toISOString(),
+        }),
+      ),
+    );
+    const res = await get(signedGet("/api/panel/orders"));
+    const body = await res.json();
+    expect(body.orders).toEqual([]);
+    expect(body.complete).toBe(false);
   });
 
   it("says the database is down rather than an empty queue", async () => {

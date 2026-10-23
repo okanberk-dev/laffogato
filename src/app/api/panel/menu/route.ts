@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 import { safeAudit } from "@/lib/admin/audit";
 import {
-  getMenuItem,
-  listMenuItems,
+  getMenuItemForPanel,
+  listMenuItemsForPanel,
   markMenuPricesChanged,
   MENU_CATEGORY_KEYS,
   MENU_CATEGORY_LABELS,
   setMenuItemSaleFields,
-  type AdminMenuItem,
+  type MenuItemPanelView,
 } from "@/lib/admin/store";
 import {
   panelSyncConfig,
@@ -72,7 +72,7 @@ function signedBy(
   });
 }
 
-function shape(item: AdminMenuItem) {
+function shape(item: MenuItemPanelView) {
   return toPanelMenuItem(
     item,
     MENU_CATEGORY_LABELS[item.categoryKey] ?? item.categoryKey,
@@ -90,9 +90,10 @@ export async function GET(request: Request) {
   // while the list is read is after `now`, so the panel does not take the
   // list's older value for that write's.
   const now = new Date();
-  let items: AdminMenuItem[];
+  let items: MenuItemPanelView[];
   try {
-    items = await listMenuItems();
+    // The panel's columns only: never the photos (up to 2 MB each).
+    items = await listMenuItemsForPanel();
   } catch (err) {
     console.error("[panel-menu] menu could not be read", err);
     return deny(503, "unavailable");
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
   const { change } = parsed;
 
   try {
-    const current = await getMenuItem(change.id);
+    const current = await getMenuItemForPanel(change.id);
     if (!current) return deny(404, "not_found");
     const fields = changedSaleFields(current, saleFieldsOf(change));
     if (Object.keys(fields).length === 0) {

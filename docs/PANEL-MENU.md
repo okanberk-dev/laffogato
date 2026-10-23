@@ -112,7 +112,10 @@ bağlantısının anahtarıdır). Anahtar yoksa uçlar 503 döner, ping gitmez.
    ```
 
    Bütün kalemler, satışta olmayanlar da (panel bağlıyı gizlemek için onu da
-   görmeli). `Cache-Control: no-store`. `now` okumadan **önce** alınır
+   görmeli). `Cache-Control: no-store`. Site veritabanından yalnız yanıtın
+   sekiz sütununu okur (`listMenuItemsForPanel`; `categoryLabel` sitenin
+   kendi etiketidir), fotoğrafları (`image`, kalem başına 2 MB'a kadar data
+   URL) hiç okumaz; yazma ucu da öyle. `now` okumadan **önce** alınır
    (sipariş ucu gibi): okuma sürerken başlayan bir yazımın `updatedAt`'i
    `now`'dan sonra düşer, liste o yazımdan yeni sayılmaz. Pencere daralır ama
    kapanmaz: `updatedAt` yazım veritabanına gitmeden sunucuda damgalanır;
