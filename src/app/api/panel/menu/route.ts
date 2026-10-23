@@ -86,6 +86,10 @@ export async function GET(request: Request) {
   if (!signedBy(config.secret, request, "GET", url, "")) {
     return deny(401, "unauthorized");
   }
+  // Stamped before the read, like the orders route: a write that lands
+  // while the list is read is after `now`, so the panel does not take the
+  // list's older value for that write's.
+  const now = new Date();
   let items: MenuItemPanelView[];
   try {
     // The panel's columns only: never the photos (up to 2 MB each).
@@ -97,7 +101,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       version: PANEL_MENU_VERSION,
-      now: new Date().toISOString(),
+      now: now.toISOString(),
       items: sortForPanelMenu(items.map(shape), MENU_CATEGORY_KEYS),
     },
     { headers: NO_STORE },

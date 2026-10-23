@@ -276,6 +276,28 @@ describe("GET /api/panel/menu", () => {
     store.listMenuItemsForPanel.mockRejectedValue(new Error("down"));
     expect((await GET(signedGet())).status).toBe(503);
   });
+
+  it("stamps `now` before the read, never after it", async () => {
+    // A slow read: the clock moves on while the list is read. A `now`
+    // taken after it would be later than writes the list does not hold.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-22T09:00:00.000Z"));
+      let readAt = "";
+      store.listMenuItemsForPanel.mockImplementation(async () => {
+        readAt = new Date().toISOString();
+        vi.setSystemTime(new Date("2026-10-22T09:00:02.000Z"));
+        return [item()];
+      });
+      const res = await GET(signedGet());
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(readAt).toBe("2026-10-22T09:00:00.000Z");
+      expect(body.now <= readAt).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("POST /api/panel/menu", () => {
