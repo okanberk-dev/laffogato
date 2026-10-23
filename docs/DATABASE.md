@@ -241,8 +241,14 @@ da aynı cümleyi gösterir; saatler dolunca kırmızı. Sınır `NEON_CU_HOURS_
 (boşsa Free planın 100'ü; sınır yerine ücret yazan Launch'ta 0).
 
 - **Veritabanını uyandırmaz:** okuma Neon'un denetim API'sine gider
-  (`GET /projects/{id}`), 3 sn'de yanıt yoksa satır "okunamadı" der; iyi
-  yanıt bir sunucuda 10 dakika tutulur (Neon'un sayaçları zaten gecikmeli).
+  (`GET /projects/{id}`). İyi yanıt bir sunucuda 10 dakika tutulur
+  (Neon'un sayaçları zaten gecikmeli), dönem bitince hemen yeniden sorulur.
+- **Sayfayı bekletmez:** 3 sn'de yanıt yoksa satır "okunamadı" der ve bu
+  cevap bir dakika tutulur; aynı anda açılan sayfalar tek soruyu paylaşır.
+  Genel bakış uyarıyı ayrı akıtır (`Suspense`), sayfa Neon'u hiç beklemez.
+- **Okunamazsa turuncu:** anahtar tanımlıyken Neon yanıt vermiyorsa (anahtar
+  değişti, silindi) izleme kördür; satır turuncu olur, kart açılır, Genel
+  bakış da söyler.
 - **Anahtar:** Neon'da salt okunur anahtar yok. En dar olanı projeye özel
   anahtar: projeyi silemez, ama içindeki dalları ve veritabanlarını
   yönetebilir. Yalnız sunucuda okunur, yalnız Neon'a gider, loglanmaz.

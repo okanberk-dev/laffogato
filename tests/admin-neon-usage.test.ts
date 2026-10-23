@@ -210,18 +210,49 @@ describe("what the row says", () => {
     expect(neonAlarm(view)).toBe(false);
   });
 
-  it("grey when off or unreadable, and never an alarm", () => {
-    for (const kind of ["off", "unreadable"] as const) {
-      const view = neonUsageView({ kind }, 100, MEASURED);
-      expect(view).toMatchObject({
-        state: kind,
-        tone: "neutral",
-        cuHours: null,
-      });
-      expect(neonSentence(view)).toBe("");
-      expect(neonAlarm(view)).toBe(false);
-    }
+  it("grey and silent when off", () => {
+    const view = neonUsageView({ kind: "off" }, 100, MEASURED);
+    expect(view).toMatchObject({
+      state: "off",
+      tone: "neutral",
+      cuHours: null,
+    });
+    expect(neonSentence(view)).toBe("");
+    expect(neonAlarm(view)).toBe(false);
     expect(neonAlarm(null)).toBe(false);
+  });
+
+  it("orange when a key is set and Neon does not answer: the alarm is blind (review of #235)", () => {
+    const view = neonUsageView({ kind: "unreadable" }, 100, MEASURED);
+    expect(view).toMatchObject({ state: "unreadable", tone: "warning" });
+    expect(neonSentence(view)).toBe(
+      "Neon'un yanıtı okunamadı, kullanım şu an izlenmiyor; anahtar ya da proje kimliği yanlış olabilir. Geliştiriciye ilet.",
+    );
+    expect(neonAdvice(view)).toBe("");
+    expect(neonAlarm(view)).toBe(true);
+  });
+
+  it("an answer for a period already over says nothing about this one", () => {
+    // 100 hours read at 23:55 UTC on 31 Oct, looked at after midnight.
+    const read = usage(100, new Date("2026-10-31T23:55:00Z"));
+    const after = new Date("2026-11-01T00:04:00Z");
+    const view = neonUsageView(read, 100, after);
+    expect(view.state).toBe("unreadable");
+    expect(neonAdvice(view)).toBe("");
+  });
+
+  it("the share is rounded down, so the words never run ahead of the tone", () => {
+    const now = new Date("2026-10-30T00:00:00Z");
+    const green = neonUsageView(
+      usage(79.6, new Date("2026-10-31T23:00:00Z")),
+      100,
+      new Date("2026-10-31T23:00:00Z"),
+    );
+    expect(green.state).toBe("ok");
+    expect(neonSentence(green)).toContain("(%79)");
+    const near = neonUsageView(usage(99.6, now), 100, now);
+    expect(near.state).toBe("near");
+    expect(neonSentence(near)).toContain("(%99)");
   });
 });
 
@@ -286,10 +317,13 @@ describe("the read", () => {
     await expect(
       loadNeonUsage(MEASURED, refused as unknown as typeof fetch),
     ).resolves.toEqual({ kind: "unreadable" });
+    // Each case asks afresh: a failure is kept a minute (below).
+    forgetNeonUsage();
     const odd = vi.fn(() => ok({ project: { id: PROJECT } }));
     await expect(
       loadNeonUsage(MEASURED, odd as unknown as typeof fetch),
     ).resolves.toEqual({ kind: "unreadable" });
+    forgetNeonUsage();
     const silent = vi.fn(() =>
       Promise.reject(new DOMException("timed out", "TimeoutError")),
     );
@@ -303,9 +337,46 @@ describe("the read", () => {
       "[admin] Neon usage unreadable: TimeoutError",
     ]);
     expect(logged.join(" ")).not.toContain(KEY);
-    // A failure is not kept: the next view asks again.
-    await loadNeonUsage(MEASURED, refused as unknown as typeof fetch);
+  });
+
+  it("a failure is kept a minute, so a silent API costs one wait, not one per view (review of #235)", async () => {
+    const refused = vi.fn(() =>
+      Promise.resolve(new Response("{}", { status: 503 })),
+    );
+    const at = (s: number) => new Date(MEASURED.getTime() + s * 1000);
+    await loadNeonUsage(at(0), refused as unknown as typeof fetch);
+    await loadNeonUsage(at(59), refused as unknown as typeof fetch);
+    expect(refused).toHaveBeenCalledTimes(1);
+    await loadNeonUsage(at(61), refused as unknown as typeof fetch);
     expect(refused).toHaveBeenCalledTimes(2);
+  });
+
+  it("views asking at the same time share one question", async () => {
+    let answer_: (r: Response) => void = () => {};
+    const slow = vi.fn(
+      () => new Promise<Response>((resolve) => (answer_ = resolve)),
+    );
+    const one = loadNeonUsage(MEASURED, slow as unknown as typeof fetch);
+    const two = loadNeonUsage(MEASURED, slow as unknown as typeof fetch);
+    answer_(new Response(JSON.stringify(answer(70.2)), { status: 200 }));
+    expect(await one).toBe(await two);
+    expect(slow).toHaveBeenCalledTimes(1);
+  });
+
+  it("a good answer is not kept past its period's end", async () => {
+    const fetchImpl = vi.fn(() => ok(answer(99)));
+    const late = new Date("2026-10-31T23:58:00Z");
+    await loadNeonUsage(late, fetchImpl as typeof fetch);
+    await loadNeonUsage(
+      new Date("2026-10-31T23:59:30Z"),
+      fetchImpl as typeof fetch,
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await loadNeonUsage(
+      new Date("2026-11-01T00:00:30Z"),
+      fetchImpl as typeof fetch,
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("is made for the owner only, as the keep-alive's", async () => {
@@ -339,9 +410,11 @@ describe("Sistem durumu and Genel bakış", () => {
     expect(text(html)).toContain("NEON_PROJECT_ID");
   });
 
-  it("unreadable: grey, and who to tell", () => {
-    expect(text(row({ kind: "unreadable" }))).toContain(
-      "Neon'un yanıtı okunamadı",
+  it("unreadable: orange, and who to tell", () => {
+    const html = row({ kind: "unreadable" });
+    expect(html).toContain('data-state="unreadable" data-tone="warning"');
+    expect(text(html)).toContain(
+      "Neon işlem süresi: Neon'un yanıtı okunamadı, kullanım şu an izlenmiyor",
     );
   });
 
@@ -393,8 +466,12 @@ describe("Sistem durumu and Genel bakış", () => {
     expect(settings).toContain("<NeonUsageStatus view={compute} />");
     const dashboard = readFileSync("src/app/admin/page.tsx", "utf8");
     expect(dashboard).toContain("readNeonUsageFor(role, loadNeonUsage)");
+    expect(dashboard).toContain(
+      "return view && neonAlarm(view) ? <NeonUsageLine view={view} /> : null;",
+    );
+    // Its own Suspense boundary: the dashboard never waits on Neon.
     expect(dashboard).toMatch(
-      /compute && neonAlarm\(compute\) \? \(?\s*<NeonUsageLine view=\{compute\} \/>/,
+      /<Suspense fallback=\{null\}>\s*<NeonAlarm role=\{role\} now=\{now\} \/>\s*<\/Suspense>/,
     );
   });
 

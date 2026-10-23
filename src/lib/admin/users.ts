@@ -228,6 +228,14 @@ export async function createAdminUser(
     if (error.code === "23505") return fail("exists");
     throw new Error(`createAdminUser: ${error.message}`);
   }
+  // An address used before starts with no "Şu an aktif" record: a request
+  // finishing as the old account was deleted could write one back after
+  // the delete removed it (review of #234).
+  try {
+    await forgetAdminActivity(email);
+  } catch (err) {
+    console.error("[admin/users] eski etkinlik kaydı silinemedi", err);
+  }
   return { ok: true, value: toPublic(row) };
 }
 

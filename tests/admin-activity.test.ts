@@ -105,6 +105,41 @@ describe("the clock rules", () => {
     expect(core.isActiveNow("dün", T0)).toBe(false);
   });
 
+  it("in the panel now: never a deactivated account, nor one changed or signed out since it was seen (review of #234)", () => {
+    const seen = at(-60_000).toISOString();
+    const base = {
+      lastSeenAt: seen,
+      isActive: true,
+      changedAt: at(-86_400_000).toISOString(),
+      signedOutAt: "",
+    };
+    expect(core.inPanelNow(base, T0)).toBe(true);
+    expect(core.inPanelNow({ ...base, isActive: false }, T0)).toBe(false);
+    // Password reset, role or access changed after it was seen: rule 30
+    // signs it out on its next request.
+    expect(
+      core.inPanelNow({ ...base, changedAt: at(-30_000).toISOString() }, T0),
+    ).toBe(false);
+    // Çıkış after it was seen (its own request noted it just before).
+    expect(
+      core.inPanelNow({ ...base, signedOutAt: at(-59_000).toISOString() }, T0),
+    ).toBe(false);
+    // An older sign-out, then back in the panel.
+    expect(
+      core.inPanelNow(
+        { ...base, signedOutAt: at(-3_600_000).toISOString() },
+        T0,
+      ),
+    ).toBe(true);
+    // Still five minutes at most.
+    expect(
+      core.inPanelNow(
+        { ...base, lastSeenAt: at(-5 * 60_000).toISOString() },
+        T0,
+      ),
+    ).toBe(false);
+  });
+
   it("one write a minute per address, the quiet ones forgotten", () => {
     const written = new Map<string, number>();
     const t = T0.getTime();
@@ -157,7 +192,7 @@ describe("noting a request", () => {
     expect(h.calls.map((c) => c.op)).toEqual(["upsert"]);
   });
 
-  it("a failed write is logged, never thrown, and tried again next time", async () => {
+  it("a failed write is logged, never thrown, and tried again the next minute, not the next request", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     h.fail = true;
     activity.noteAdminActivity("sahip@ornek.com", T0);
@@ -166,8 +201,13 @@ describe("noting a request", () => {
       "[admin/activity] etkinlik yazılamadı",
       expect.any(Error),
     );
-    h.fail = false;
+    // With the database down every request would otherwise queue another
+    // write behind the pool's one connection (review of #234).
     activity.noteAdminActivity("sahip@ornek.com", at(1_000));
+    await flush();
+    expect(h.calls.filter((c) => c.op === "upsert")).toHaveLength(1);
+    h.fail = false;
+    activity.noteAdminActivity("sahip@ornek.com", at(60_000));
     await flush();
     expect(h.calls.filter((c) => c.op === "upsert")).toHaveLength(2);
     log.mockRestore();
@@ -219,6 +259,11 @@ describe("reading it back and forgetting it", () => {
     const users = readFileSync("src/lib/admin/users.ts", "utf8");
     expect(users).toMatch(
       /checkErr\(error, "deleteAdminUser"\);[\s\S]{0,300}await forgetAdminActivity\(needle\);/,
+    );
+    // And a re-created address starts clean: a request finishing as the
+    // old account was deleted could write its row back (review of #234).
+    expect(users).toMatch(
+      /throw new Error\(`createAdminUser: \$\{error\.message\}`\);\s*\}[\s\S]{0,300}await forgetAdminActivity\(email\);/,
     );
   });
 

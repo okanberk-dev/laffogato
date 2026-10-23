@@ -128,22 +128,28 @@ const EMPTY = {
 };
 
 /**
- * The row's facts and tone. Grey when off or unreadable; red once the
- * hours are spent; orange from 80 % or when this pace spends them before
- * the period ends; green otherwise, and always green without a cap.
+ * The row's facts and tone. Grey when off; orange when a key is set but
+ * Neon does not answer, since the alarm is then blind (review of #235);
+ * red once the hours are spent; orange from 80 % or when this pace spends
+ * them before the period ends; green otherwise, and always green without
+ * a cap. An answer for a period already over says nothing about this one
+ * and reads as unreadable.
  */
 export function neonUsageView(
   read: NeonUsageRead,
   limit: number | null,
   now: Date,
 ): NeonUsageView {
-  if (read.kind !== "usage") {
-    return { ...EMPTY, state: read.kind, tone: "neutral", limit };
+  if (read.kind === "off") {
+    return { ...EMPTY, state: "off", tone: "neutral", limit };
+  }
+  const end = read.kind === "usage" ? Date.parse(read.usage.periodEnd) : 0;
+  if (read.kind === "unreadable" || now.getTime() >= end) {
+    return { ...EMPTY, state: "unreadable", tone: "warning", limit };
   }
   const { cuHours, activeHours } = read.usage;
   const start = Date.parse(read.usage.periodStart);
-  const end = Date.parse(read.usage.periodEnd);
-  const elapsed = Math.min(now.getTime(), end) - start;
+  const elapsed = now.getTime() - start;
   const paced = elapsed >= PROJECT_AFTER_MS;
   const projected = paced ? (cuHours * (end - start)) / elapsed : null;
   let runsOutAt: string | null = null;
@@ -193,13 +199,19 @@ const hours = (n: number) => HOURS.format(n);
 /** "1 Kasım", on the köşk's calendar (rule 22). */
 export const neonDay = (at: string) => DAY.format(new Date(at));
 
-/** What the period says, after "Neon işlem süresi:". Off and unreadable are the row's. */
+/** Neon did not answer though a key is set: the usage is not watched. */
+export const NEON_UNREADABLE_SENTENCE =
+  "Neon'un yanıtı okunamadı, kullanım şu an izlenmiyor; anahtar ya da proje kimliği yanlış olabilir. Geliştiriciye ilet.";
+
+/** What the period says, after "Neon işlem süresi:". Off is the row's own. */
 export function neonSentence(view: NeonUsageView): string {
+  if (view.state === "unreadable") return NEON_UNREADABLE_SENTENCE;
   if (view.cuHours === null) return "";
   const used =
     view.limit === null
       ? `bu dönem ${hours(view.cuHours)} CU-saat`
-      : `bu dönem ${hours(view.cuHours)} / ${LIMIT.format(view.limit)} CU-saat (%${Math.round((view.cuHours / view.limit) * 100)})`;
+      : // Down, never up: 79,6 hours is not "%80" in green (review of #235).
+        `bu dönem ${hours(view.cuHours)} / ${LIMIT.format(view.limit)} CU-saat (%${Math.floor((view.cuHours / view.limit) * 100)})`;
   const pace =
     view.state === "full"
       ? ""

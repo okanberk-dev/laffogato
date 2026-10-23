@@ -580,8 +580,14 @@ aynı: kararı veren rakam açıkta, ayrıntı bir tık ötede.
   kodunun kendi kaydı yok). Etkinlik `admin_activity`'de, adres başına tek
   satır: oturumu okunan her istek yanıttan sonra (`after()`) yazar, aynı
   sunucu örneğinden dakikada en çok bir kez (`src/lib/admin/activity.ts`);
-  geçmiş tutulmaz, kullanıcı silinince satırı da silinir, önbelleğe girmez
-  ve rozetlerin işaretini düşürmez. "Hiç girmedi" yalnız iki kayıt da
+  geçmiş tutulmaz, kullanıcı silinince satırı da silinir (aynı adres
+  yeniden açılınca da), önbelleğe girmez ve rozetlerin işaretini düşürmez.
+  Yazım başarısız olursa da dakika beklenir: veritabanı yokken her istek
+  yeniden denemez. Pasif hesap, görüldükten sonra parolası, rolü ya da
+  erişimi değişen hesap (`updatedAt`) ve görüldükten sonra Çıkış'a basan
+  hesap (en yeni `logout` kaydı, `lastSignOuts`) "Şu an aktif" görünmez
+  (`inPanelNow`); açık bırakılmış bir sekmenin yoklamaları ise hesabı
+  aktif tutar. "Hiç girmedi" yalnız iki kayıt da
   okunup ikisi de boşsa yazar; biri okunamazsa hücre "-" der (eskiden
   günlük okunamayınca her hesap "Hiç girmedi" görünüyordu). Sayfa düşmez.
 - **Müşteriler** özeti de KPI şeridi. **Boş durum**: noktalı kutuda gri bir
@@ -816,8 +822,9 @@ kartına iki satır eklendi, Genel bakış yalnız uyarıyı tekrarlar (operatö
   dolduracaksa turuncu; o zaman Genel bakış da aynı cümleyi gösterir. Dolunca
   kırmızı: Free planda Neon veritabanını dönem sonuna kadar askıya alır.
   `NEON_API_KEY` ve `NEON_PROJECT_ID` yoksa gri kalır ve nasıl açılacağını
-  söyler; ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu:
-  Neon işlem süresi".
+  söyler; anahtar tanımlıyken Neon yanıt vermezse turuncu (izleme kördür).
+  Ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu: Neon
+  işlem süresi".
 
 ## Siparişte PayNkolay'da yapılmış iade (22 Eki 2026)
 

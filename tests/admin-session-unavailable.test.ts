@@ -62,27 +62,29 @@ vi.mock("@/lib/db", () => {
   return {
     ...real,
     getDb: () => {
-      const inner = real.getDb().from();
       return {
-        from: () => ({
-          ...inner,
-          select: () => {
-            db.selects += 1;
-            if (db.selects < db.failFrom) return inner.select();
-            const down = {
-              eq: () => down,
-              maybeSingle: () => down,
-              limit: () => down,
-              then: (ok: (v: unknown) => unknown) =>
-                Promise.resolve({
-                  data: null,
-                  error: { code: "", message: "connect ECONNREFUSED" },
-                  status: 0,
-                }).then(ok),
-            };
-            return down;
-          },
-        }),
+        from: (table: string) => {
+          const inner = real.getDb().from(table);
+          return {
+            ...inner,
+            select: () => {
+              db.selects += 1;
+              if (db.selects < db.failFrom) return inner.select();
+              const down = {
+                eq: () => down,
+                maybeSingle: () => down,
+                limit: () => down,
+                then: (ok: (v: unknown) => unknown) =>
+                  Promise.resolve({
+                    data: null,
+                    error: { code: "", message: "connect ECONNREFUSED" },
+                    status: 0,
+                  }).then(ok),
+              };
+              return down;
+            },
+          };
+        },
       };
     },
   };

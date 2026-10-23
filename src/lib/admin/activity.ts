@@ -21,7 +21,9 @@ const normalize = (email: string) => email.trim().toLowerCase();
  * Notes that `email` was answered just now: one upsert after the response,
  * at most once a minute per address on this instance. Never in the way of
  * the request: outside a request scope it does nothing, and a failed write
- * is logged and dropped (the next minute writes again).
+ * is logged and dropped. The minute still holds after a failure: with the
+ * database down every request would otherwise queue one more write behind
+ * the pool's one connection (review of #234).
  */
 export function noteAdminActivity(email: string, now: Date = new Date()): void {
   const address = normalize(email);
@@ -40,8 +42,7 @@ export function noteAdminActivity(email: string, now: Date = new Date()): void {
           raiseDbError("admin.noteAdminActivity", res.error, res.status);
         }
       } catch (err) {
-        // The next minute writes again.
-        written.delete(address);
+        // The next minute writes again; not the next request.
         console.error("[admin/activity] etkinlik yazılamadı", err);
       }
     });

@@ -17,8 +17,8 @@ import {
   parseAdminUserTab,
 } from "@/lib/admin/admin-users-list";
 import { lastActivity } from "@/lib/admin/activity";
-import { isActiveNow } from "@/lib/admin/activity-core";
-import { lastSignIns } from "@/lib/admin/audit";
+import { inPanelNow } from "@/lib/admin/activity-core";
+import { lastSignIns, lastSignOuts } from "@/lib/admin/audit";
 import { requireRole } from "@/lib/admin/auth";
 import {
   roleMatrix,
@@ -59,6 +59,8 @@ type ListedUser = PublicAdminUser & {
   lastSignIn: string | null;
   /** The last answered request, ISO; "" for none; null: record unread. */
   lastSeen: string | null;
+  /** The last Çıkış on record, ISO; "" for none or unread. */
+  lastSignOut: string;
 };
 
 /**
@@ -85,9 +87,20 @@ function Activity({ user, now }: { user: ListedUser; now: Date }) {
       </span>
     );
   }
+  const live =
+    !!seen &&
+    inPanelNow(
+      {
+        lastSeenAt: seen,
+        isActive: user.isActive,
+        changedAt: user.updatedAt,
+        signedOutAt: user.lastSignOut,
+      },
+      now,
+    );
   return (
     <span className="flex flex-col gap-0.5">
-      {seen && isActiveNow(seen, now) ? (
+      {live ? (
         <span className="inline-flex items-center gap-1.5 font-medium text-[var(--admin-success)]">
           <span
             aria-hidden
@@ -196,16 +209,18 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   // out, who is in the panel now and who has not signed in for a while
   // (Innex: activity in the row). A handful of accounts, all at once.
   const emails = users.map((u) => u.email);
-  const [twoFA, signIns, seen] = await Promise.all([
+  const [twoFA, signIns, seen, signOuts] = await Promise.all([
     Promise.all(users.map((u) => has2FA(u.email))),
     readOrNull(() => lastSignIns(emails), "son girişler"),
     readOrNull(() => lastActivity(emails), "son etkinlikler"),
+    readOrNull(() => lastSignOuts(emails), "son çıkışlar"),
   ]);
   const listed: ListedUser[] = users.map((u, i) => ({
     ...u,
     has2FA: twoFA[i],
     lastSignIn: signIns ? (signIns.get(u.email) ?? "") : null,
     lastSeen: seen ? (seen.get(u.email.toLowerCase()) ?? "") : null,
+    lastSignOut: signOuts?.get(u.email) ?? "",
   }));
   const now = new Date();
   const tab = parseAdminUserTab(sp);

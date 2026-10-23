@@ -26,6 +26,8 @@ class FakeQuery implements PromiseLike<unknown> {
   constructor(
     private readonly op: Op,
     private readonly payload?: FakeRow,
+    /** Another table (admin_activity): answers empty and changes nothing. */
+    private readonly inert = false,
   ) {}
 
   select() {
@@ -65,7 +67,9 @@ class FakeQuery implements PromiseLike<unknown> {
   ): PromiseLike<R1 | R2> {
     let data: unknown = null;
 
-    if (this.op === "select") {
+    if (this.inert) {
+      data = this.op === "select" ? (this.single ? null : []) : null;
+    } else if (this.op === "select") {
       let found = this.matched();
       if (this.limitValue !== null) found = found.slice(0, this.limitValue);
       data = this.single ? (found[0] ?? null) : found;
@@ -95,14 +99,19 @@ class FakeQuery implements PromiseLike<unknown> {
 
 export function fakeDb() {
   return {
-    TABLES: { adminUsers: "admin_users" },
+    TABLES: { adminUsers: "admin_users", adminActivity: "admin_activity" },
     getDb: () => ({
-      from: () => ({
-        select: () => new FakeQuery("select"),
-        insert: (values: FakeRow) => new FakeQuery("insert", values),
-        update: (patch: FakeRow) => new FakeQuery("update", patch),
-        delete: () => new FakeQuery("delete"),
-      }),
+      // Only admin_users holds rows: the activity record a create or a
+      // delete forgets must not reach the accounts.
+      from: (table: string) => {
+        const inert = table !== "admin_users";
+        return {
+          select: () => new FakeQuery("select", undefined, inert),
+          insert: (values: FakeRow) => new FakeQuery("insert", values, inert),
+          update: (patch: FakeRow) => new FakeQuery("update", patch, inert),
+          delete: () => new FakeQuery("delete", undefined, inert),
+        };
+      },
     }),
   };
 }
