@@ -31,6 +31,8 @@ const h = vi.hoisted(() => ({
   signIns: new Map<string, string>(),
   /** Each address's last answered request (activity.ts). */
   activity: new Map<string, string>(),
+  /** Each address's last Çıkış, as the audit log has it. */
+  signOuts: new Map<string, string>(),
   /** The log or the activity record cannot be read. */
   signInsFail: false,
   activityFail: false,
@@ -101,6 +103,7 @@ vi.mock("@/lib/admin/audit", () => ({
     if (h.signInsFail) throw new Error("audit_logs okunamadı");
     return h.signIns;
   }),
+  lastSignOuts: vi.fn(async () => h.signOuts),
 }));
 vi.mock("@/lib/admin/activity", () => ({
   lastActivity: vi.fn(async () => {
@@ -238,6 +241,7 @@ beforeEach(() => {
   // The manager signed in a moment ago; the others never did.
   h.signIns = new Map([["mudur@ornek.com", new Date().toISOString()]]);
   h.activity = new Map();
+  h.signOuts = new Map();
   h.signInsFail = false;
   h.activityFail = false;
 });
@@ -655,6 +659,31 @@ describe("users list and view", () => {
     );
     // The cashier: neither a sign-in nor a request, both read.
     expect(page).toContain("Hiç girmedi");
+  });
+
+  it("never calls a signed-out, deactivated or since-changed account in the panel (review of #234)", async () => {
+    const { default: Page } = await import("@/app/admin/kullanicilar/page");
+    const now = Date.now();
+    const minuteAgo = new Date(now - 60_000).toISOString();
+    h.activity = new Map([
+      ["mudur@ornek.com", minuteAgo],
+      ["kasa@ornek.com", minuteAgo],
+      ["sahip@ornek.com", minuteAgo],
+    ]);
+    // The manager pressed Çıkış after that request; the cashier is Pasif;
+    // the owner's password was reset after it.
+    h.signOuts = new Map([
+      ["mudur@ornek.com", new Date(now - 30_000).toISOString()],
+    ]);
+    h.users = h.users.map((u) =>
+      u.email === "sahip@ornek.com"
+        ? { ...u, updatedAt: new Date(now - 10_000).toISOString() }
+        : u,
+    );
+    const page = html(await Page({ searchParams: Promise.resolve({}) }));
+    expect(page).not.toContain("Şu an aktif");
+    // Still when each was last seen.
+    expect(page).not.toContain("Hiç girmedi");
   });
 
   it("an unreadable log or record is not a never", async () => {

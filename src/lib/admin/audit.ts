@@ -280,10 +280,28 @@ export async function listOrderAuditLogs(
 export async function lastSignIns(
   emails: readonly string[],
 ): Promise<Map<string, string>> {
+  return newestAuthEvent(emails, "login_success");
+}
+
+/**
+ * The newest Çıkış (`logout`) per address, ISO: Kullanıcılar does not call
+ * someone who signed out "Şu an aktif" (activity-core.ts `inPanelNow`).
+ * One indexed read per account, as lastSignIns.
+ */
+export async function lastSignOuts(
+  emails: readonly string[],
+): Promise<Map<string, string>> {
+  return newestAuthEvent(emails, "logout");
+}
+
+async function newestAuthEvent(
+  emails: readonly string[],
+  action: "login_success" | "logout",
+): Promise<Map<string, string>> {
   const rows = await Promise.all(
     emails.map((email) =>
       listAuditLogs({
-        action: "login_success",
+        action,
         entity: "auth",
         entityId: email.toLowerCase(),
         limit: 1,

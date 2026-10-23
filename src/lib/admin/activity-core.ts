@@ -24,6 +24,29 @@ export function isActiveNow(lastSeenAt: string, now: Date): boolean {
 }
 
 /**
+ * "Şu an aktif" for a listed account: seen within ACTIVE_NOW_MS, and none
+ * of what ends its sessions since. A deactivated account, one whose
+ * password, role or access changed after it was seen (`changedAt`, its
+ * `updatedAt`; rule 30 signs it out on its next request), and one that
+ * pressed Çıkış after it was seen (`signedOutAt`, the newest logout in the
+ * audit log) read as not in the panel, whatever the record's age (review
+ * of #234: "Pasif" stood beside "Şu an aktif" for five minutes).
+ */
+export function inPanelNow(
+  account: {
+    lastSeenAt: string;
+    isActive: boolean;
+    changedAt: string;
+    signedOutAt: string;
+  },
+  now: Date,
+): boolean {
+  const { lastSeenAt, isActive, changedAt, signedOutAt } = account;
+  if (!isActive || !isActiveNow(lastSeenAt, now)) return false;
+  return lastSeenAt > changedAt && lastSeenAt > signedOutAt;
+}
+
+/**
  * Whether this instance should write `email`'s activity at `nowMs`, given
  * when it last did (`written`, which it updates). Pure but for the map the
  * caller owns.

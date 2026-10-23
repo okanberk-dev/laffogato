@@ -26,7 +26,8 @@ export async function logoutAction() {
     await safeAudit({
       action: "logout",
       entity: "auth",
-      entityId: email,
+      // Lower-case, as the sign-in's row: Kullanıcılar reads both by address.
+      entityId: email.toLowerCase(),
       actor: email,
     });
   }

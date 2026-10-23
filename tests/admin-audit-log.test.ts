@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +31,8 @@ vi.mock("@/lib/admin/auth", () => ({
 }));
 
 const view = await import("@/lib/admin/audit-view");
-const { listAuditLogs, lastSignIns } = await import("@/lib/admin/audit");
+const { listAuditLogs, lastSignIns, lastSignOuts } =
+  await import("@/lib/admin/audit");
 const { parseFilters } = await import("@/lib/admin/list-params");
 
 beforeEach(() => {
@@ -182,6 +185,20 @@ describe("listAuditLogs", () => {
     );
     // Nobody signed in on record: the address is missing, not "".
     expect(signIns.size).toBe(0);
+  });
+
+  it("reads each user's last Çıkış the same way: the newest logout under the address", async () => {
+    await lastSignOuts(["Mudur@Ornek.com"]);
+    const reads = seen.filter((s) => /FROM "audit_logs"/.test(s.text));
+    expect(reads).toHaveLength(1);
+    expect(reads[0].params).toEqual(
+      expect.arrayContaining(["logout", "auth", "mudur@ornek.com"]),
+    );
+    // The row Çıkış writes is under the same lower-case address.
+    const action = readFileSync("src/app/admin/actions.ts", "utf8");
+    expect(action).toMatch(
+      /action: "logout",\s*entity: "auth",[\s\S]{0,120}entityId: email\.toLowerCase\(\),/,
+    );
   });
 
   it("matches the Kim box literally: %, _ and the backslash itself", async () => {
