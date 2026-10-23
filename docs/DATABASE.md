@@ -229,6 +229,35 @@ gün, 0,25 CU'da günde ~9,6 saat). Bir panel kaydı bir sonraki sayfa
 yüklemesinde görünmelidir. Ölçüm 9 saatin üstünde kalırsa çözüm Neon Launch
 planıdır (ayda ~12-15 $).
 
+### Sistem durumu: Neon işlem süresi (23 Eki 2026)
+
+Aynı ölçüm panelde de durur. `NEON_API_KEY` ve `NEON_PROJECT_ID` Vercel
+production ortamında tanımlıysa Ayarlar → Sistem durumu, sahibe bu fatura
+döneminin CU-saatini (`compute_time_seconds` / 3600), planın aylık sınırına
+göre yüzdesini, bu hızla ne zaman dolacağını ve compute'un günde ortalama kaç
+saat uyanık kaldığını (`active_time_seconds`) söyler. Sınır %80'i geçince ya
+da bu hız onu dönem bitmeden dolduracaksa satır turuncu olur ve Genel bakış
+da aynı cümleyi gösterir; saatler dolunca kırmızı. Sınır `NEON_CU_HOURS_LIMIT`
+(boşsa Free planın 100'ü; sınır yerine ücret yazan Launch'ta 0).
+
+- **Veritabanını uyandırmaz:** okuma Neon'un denetim API'sine gider
+  (`GET /projects/{id}`), 3 sn'de yanıt yoksa satır "okunamadı" der; iyi
+  yanıt bir sunucuda 10 dakika tutulur (Neon'un sayaçları zaten gecikmeli).
+- **Anahtar:** Neon'da salt okunur anahtar yok. En dar olanı projeye özel
+  anahtar: projeyi silemez, ama içindeki dalları ve veritabanlarını
+  yönetebilir. Yalnız sunucuda okunur, yalnız Neon'a gider, loglanmaz.
+- **Yoksa:** anahtar ya da proje kimliği tanımsızken satır gri kalır ve
+  nasıl açılacağını söyler; hiçbir istek atılmaz.
+- **Vercel kotası** gösterilmez: Vercel'in REST API başvurusunda kullanım
+  için belgelenmiş bir uç bulunamadı (23 Eki 2026); Hobby kotası Vercel
+  panelinin Usage sekmesinden okunur.
+
+Kod: `src/lib/admin/neon-usage{,-core}.ts`, satır
+`src/app/admin/ayarlar/database-status.tsx` (yanında şemanın bu sürümle
+güncel olup olmadığını söyleyen "Veritabanı" satırı, `/api/health`'in
+cevabı), uyarı `src/components/admin/dashboard/neon-status.tsx`. Test:
+`tests/admin-neon-usage.test.ts`.
+
 ## Supabase'e geçiş yordamı
 
 Adım adım, ölçülmüş tuzaklarıyla (IPv6-yalnız doğrudan uç, pooler dizesi,
