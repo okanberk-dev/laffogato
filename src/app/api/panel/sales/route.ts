@@ -5,6 +5,7 @@ import {
   listPanelSalesOrderRows,
 } from "@/lib/admin/store";
 import { couponSourcesForOrders } from "@/lib/customer/coupons";
+import { dbInvoiceStore } from "@/lib/invoice/store";
 import {
   panelSyncConfig,
   SIGNATURE_HEADER,
@@ -22,7 +23,8 @@ import {
  * `GET /api/panel/sales?month=YYYY-MM` (or `?from=YYYY-MM-DD&to=YYYY-MM-DD`,
  * 31 days at most) - the köşk's panel (ladmin.laffogato.net) reading the
  * online sales of a period for its P&L and till report: café, shop and
- * karaoke money with its KDV, and the café lines by menu item and size
+ * karaoke money with its KDV, and the café lines by menu item and size;
+ * orders settled at the till counted apart
  * (src/lib/panel/sales-export-core.ts, docs/PANEL-SALES.md).
  *
  * Server to server, no cookie: signed with the shared `KARAOKE_SYNC_SECRET`
@@ -71,8 +73,15 @@ export async function GET(request: Request) {
     }
     // The coupon each order redeemed: a reward coupon pays for the goods,
     // so its KDV is the invoice's at full price (ASK-COUPON), as the order
-    // CSV counts it. A failed read fails the export, never a wrong KDV.
-    const coupons = await couponSourcesForOrders(orders);
+    // CSV counts it. How each order was paid, read as the e-Arşiv plan
+    // reads it: an app or web order settled at the till in cash or on the
+    // counter's card terminal is ModPOS money, counted apart (`counter`).
+    // A failed read fails the export, never a wrong KDV or a till sale
+    // counted online a second time.
+    const [coupons, payments] = await Promise.all([
+      couponSourcesForOrders(orders),
+      dbInvoiceStore.paymentsFor(orders.map((o) => o.id)),
+    ]);
     return NextResponse.json(
       {
         now: now.toISOString(),
@@ -82,6 +91,7 @@ export async function GET(request: Request) {
           orders,
           bookings,
           couponSourceOf: (orderNo) => coupons.get(orderNo) ?? null,
+          paymentsOf: (order) => payments.get(order.id) ?? [],
         }),
       },
       { headers: NO_STORE },
