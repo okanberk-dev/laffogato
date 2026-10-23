@@ -110,7 +110,7 @@ export default async function PromoViewPage({ params }: PageProps) {
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <BackLink href={PROMOS_PATH}>Promosyon kodları</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">

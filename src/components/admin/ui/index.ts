@@ -70,7 +70,12 @@ export {
 } from "./page-shell";
 export { Pagination } from "./pagination";
 export { StatusTabs, type StatusTab } from "./status-tabs";
-export { BUTTON, NUMERIC_STYLE, type ButtonVariant } from "./styles";
+export {
+  BUTTON,
+  CODE_STYLE,
+  NUMERIC_STYLE,
+  type ButtonVariant,
+} from "./styles";
 export { ToastProvider, useToast, type ToastApi } from "./toast";
 export { type ToastInput, type ToastTone } from "./toast-core";
 export { TONE_DOT, TONE_INK, TONE_SOFT } from "./tone";

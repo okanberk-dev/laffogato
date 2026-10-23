@@ -360,9 +360,12 @@ export function Palette({
               }
               e.continuePropagation();
             }}
-            className="flex min-h-14 shrink-0 items-center gap-4 border-b border-[var(--admin-border)] px-4"
+            // The box is the whole row: its line and its magnifier turn
+            // blue while the field has the focus, instead of the panel's
+            // ring drawing a second box inside the first (22 Eki 2026).
+            className="group/box flex min-h-14 shrink-0 items-center gap-4 border-b border-[var(--admin-border)] px-4 transition-colors focus-within:border-[var(--admin-primary)]"
           >
-            <span className="text-[var(--admin-text-soft)]">
+            <span className="text-[var(--admin-text-soft)] group-focus-within/box:text-[var(--admin-primary)]">
               <SearchIcon />
             </span>
             {/* Autocomplete sets autocomplete, autocorrect and spellcheck
@@ -373,6 +376,9 @@ export function Palette({
               }
               maxLength={80}
               className="-mx-2 min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 text-base text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-text-mute)]"
+              // The panel's ring (globals.css) is unlayered: only an inline
+              // style turns it off; the row above shows the focus.
+              style={{ outline: "none" }}
             />
             {loading ? (
               <span
@@ -387,7 +393,7 @@ export function Palette({
               type="button"
               onClick={close}
               aria-label="Kapat"
-              className="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)]"
+              className="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] pointer-fine:h-9 pointer-fine:w-9"
             >
               <svg
                 width="18"
@@ -409,7 +415,7 @@ export function Palette({
           {search.status === "expired" ? (
             <div
               role="alert"
-              className="mx-4 mt-3 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+              className="mx-4 mt-3 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
             >
               Oturumun kapandı.{" "}
               <a
@@ -422,7 +428,7 @@ export function Palette({
           ) : search.status === "unavailable" ? (
             <div
               role="alert"
-              className="mx-4 mt-3 rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+              className="mx-4 mt-3 rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
             >
               Arama şu an çalışmıyor.
             </div>

@@ -118,7 +118,7 @@ export function useSelection(options: { resetOn?: unknown } = {}): Selection {
 // @tailwindcss/forms idioms and that plugin is not installed (SHE-19). The
 // negative margin keeps the 44px area from pushing the row apart.
 const BOX_HIT =
-  "-m-3 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center has-[:disabled]:cursor-not-allowed";
+  "-m-3 inline-flex h-11 w-11 pointer-fine:h-9 pointer-fine:w-9 shrink-0 cursor-pointer items-center justify-center has-[:disabled]:cursor-not-allowed";
 const BOX =
   "h-5 w-5 cursor-pointer accent-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-30";
 
@@ -283,9 +283,9 @@ export function BulkActionBar({
         data-admin-bulk-bar=""
         role="region"
         aria-label="Toplu işlem"
-        className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:left-[calc(var(--admin-side,17.5rem)+1rem)]"
+        className="fixed inset-x-4 bottom-4 z-30 mb-[var(--admin-bottom-inset,0px)] lg:right-6 lg:left-[calc(var(--admin-side,15.5rem)+2.25rem)]"
       >
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-5 py-3 shadow-lg">
           <div className="flex flex-wrap items-center gap-x-3">
             <span
               className="rounded-full bg-[var(--admin-primary)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white"
@@ -296,7 +296,7 @@ export function BulkActionBar({
             <button
               type="button"
               onClick={selection.clear}
-              className="inline-flex min-h-[44px] items-center text-xs whitespace-nowrap text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+              className="inline-flex min-h-11 items-center text-xs whitespace-nowrap text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
             >
               Seçimi temizle
             </button>

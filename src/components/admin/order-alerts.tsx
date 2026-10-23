@@ -58,7 +58,7 @@ import {
   writeSoundPref,
 } from "./sound-pref";
 import { announceAdminChange } from "./ui/admin-changed";
-import { BUTTON, NUMERIC_STYLE } from "./ui/styles";
+import { BUTTON, COMPACT, NUMERIC_STYLE } from "./ui/styles";
 import { adminPortalRoot, useToast } from "./ui/toast";
 
 /**
@@ -530,7 +530,7 @@ export function OrderAlerts({
               ? "Yeni sipariş sesi açık. Kapatmak için bas."
               : "Yeni sipariş sesi kapalı. Açmak için bas."
           }
-          className="relative grid h-11 w-11 place-items-center rounded-l-lg border border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] aria-pressed:text-[var(--admin-primary)]"
+          className="relative grid h-11 w-11 place-items-center rounded-l-lg border border-[var(--admin-border)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] aria-pressed:text-[var(--admin-primary)] pointer-fine:h-9 pointer-fine:w-9"
         >
           <BellIcon muted={!soundOn} />
           {pending.length > 0 ? (
@@ -674,7 +674,7 @@ export function OrderAlertMenu({
       role="group"
       aria-label="Sipariş uyarısı"
       style={style}
-      className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(28,25,23,0.14)] print:hidden"
+      className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] p-3 text-sm text-[var(--admin-text)] shadow-[0_8px_24px_rgba(12,14,27,0.14)] print:hidden"
     >
       <p className="font-semibold">Yeni sipariş uyarısı</p>
       <p className="mt-1 text-xs text-[var(--admin-text-soft)]">
@@ -686,7 +686,7 @@ export function OrderAlertMenu({
           type="button"
           onClick={onToggleSound}
           aria-pressed={soundOn}
-          className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:min-h-9"
         >
           <span>Ses</span>
           <span
@@ -780,7 +780,7 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
           props.onRelease?.();
         }
       }}
-      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-2xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(28,25,23,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-2xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(28,25,23,0.2)] print:hidden"
+      className="fixed inset-x-0 bottom-[var(--admin-bottom-inset,0px)] z-40 max-h-[60dvh] overflow-y-auto rounded-t-xl border-t border-[var(--admin-border-strong)] bg-[var(--admin-bg)] px-3 pt-1 pb-[max(0.5rem,calc(env(safe-area-inset-bottom)-var(--admin-bottom-inset,0px)))] text-[var(--admin-text)] shadow-[0_-8px_24px_rgba(12,14,27,0.18)] sm:inset-x-auto sm:top-[4.5rem] sm:right-4 sm:bottom-auto sm:max-h-[calc(100dvh-6rem)] sm:w-[22rem] sm:rounded-xl sm:border sm:pb-3 sm:shadow-[0_12px_32px_rgba(12,14,27,0.2)] print:hidden"
     >
       <div className="flex min-h-11 items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">
@@ -820,7 +820,8 @@ export function OrderAlertPanel(props: OrderAlertPanelProps) {
       ) : props.unlock && !collapsed ? (
         <p
           role="status"
-          className="mt-1 mb-2 flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-surface-2)] px-4 text-sm text-[var(--admin-text-soft)]"
+          // The button's height at every density, so the cards stay put.
+          className={`mt-1 mb-2 flex min-h-11 items-center justify-center rounded-lg bg-[var(--admin-surface-2)] px-4 text-sm text-[var(--admin-text-soft)] pointer-fine:min-h-9 ${COMPACT.minH8}`}
         >
           {props.unlock === "on" ? "Ses açık." : "Ses kapalı."}
         </p>
@@ -876,7 +877,7 @@ function OrderAlertCard({
     <article
       aria-label={`${done ? "Alındı" : orderAlertHeading(alert)}: ${alert.label}, #${alert.orderNo}`}
       data-done={done ? "" : undefined}
-      className={`rounded-xl border border-l-4 bg-[var(--admin-surface)] p-3 shadow-sm ${
+      className={`rounded-lg border border-l-4 bg-[var(--admin-surface)] p-3 shadow-sm ${
         done
           ? "border-[var(--admin-border)] border-l-[var(--admin-border-strong)] opacity-60"
           : alert.table

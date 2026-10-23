@@ -18,6 +18,8 @@ export function isNavIconName(name: string): name is AdminIconName {
  * full nav asks for, so a cashier's /admin/kasa, which draws no nav, gets
  * no library code (CLAUDE.md, "Admin arayüz kütüphaneleri").
  */
-export function NavIcon({ name }: { name: string }) {
-  return <AdminIcon name={isNavIconName(name) ? name : "dashboard"} />;
+export function NavIcon({ name, size }: { name: string; size?: number }) {
+  return (
+    <AdminIcon name={isNavIconName(name) ? name : "dashboard"} size={size} />
+  );
 }

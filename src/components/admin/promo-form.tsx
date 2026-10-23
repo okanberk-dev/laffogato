@@ -302,7 +302,7 @@ export function PromoForm({
               },
             ]}
           />
-          <p className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
+          <p className="rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
             Kod kaydedilince {'"'}Aktif{'"'} ise müşteri sepette hemen
             kullanabilir. Kodun benzersizliği ve tutar sınırları kaydederken
             denetlenir.

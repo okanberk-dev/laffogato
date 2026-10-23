@@ -65,7 +65,7 @@ export default async function LegalDocsPage() {
             return (
               <li
                 key={doc.slug}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--admin-border)] p-3"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

@@ -9,7 +9,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useSyncExternalStore,
+  type CSSProperties,
   type MouseEvent,
   type ReactNode,
   type RefObject,
@@ -17,14 +17,13 @@ import {
 import { createPortal } from "react-dom";
 
 import { adminPortalRoot } from "@/components/admin/ui/toast";
+import { cx } from "@/components/laffogato/cx";
 import type { PaletteNavGroup } from "@/lib/admin/palette-core";
 import {
-  isApplePlatform,
   isPaletteShortcut,
   mayOpenPage,
   PALETTE_FALLBACK_HREF,
   PALETTE_OPEN_EVENT,
-  paletteShortcutLabel,
   paletteViewOf,
   type PaletteEntry,
   type PaletteView,
@@ -56,16 +55,6 @@ const takePalette = (m: typeof import("./palette")) => {
 };
 
 const loadPalette = () => import("./palette").then(takePalette);
-
-/**
- * Starts loading the list's chunk, for another control that opens the
- * palette (the sidebar's ⌘K box): the trigger's own preload, shared.
- */
-export function preloadPalette(): void {
-  void loadPalette().catch(() => {
-    // The open loads it again; PaletteBoundary says so if that fails.
-  });
-}
 
 const LazyPalette = dynamic(() => import("./palette").then(takePalette), {
   ssr: false,
@@ -135,16 +124,33 @@ export function SearchIcon() {
   );
 }
 
-const noSubscribe = () => () => {};
-
-/** ⌘K on Apple keyboards, Ctrl K elsewhere; null until mounted. */
-function useShortcutLabel(): string | null {
-  return useSyncExternalStore(
-    noSubscribe,
-    () => paletteShortcutLabel(isApplePlatform(navigator)),
-    () => null,
-  );
+/**
+ * Where the search field sits, so the results open from it (Innex, 22 Eki
+ * 2026: the operator wanted the search "different from Ctrl K, nice"). In
+ * CSS pixels from the viewport's top and right edges.
+ */
+export interface PaletteAnchor {
+  top: number;
+  right: number;
+  width: number;
 }
+
+/** The trigger's place, from `lg` and while it is on screen; else null. */
+export function paletteAnchorOf(
+  rect: Pick<DOMRect, "top" | "bottom" | "right" | "width">,
+  viewport: { width: number; height: number },
+): PaletteAnchor | null {
+  if (viewport.width < 1024 || rect.width === 0) return null;
+  if (rect.top < 0 || rect.bottom > viewport.height) return null;
+  return {
+    top: Math.round(rect.top),
+    right: Math.max(0, Math.round(viewport.width - rect.right)),
+    width: Math.round(rect.width),
+  };
+}
+
+/** The visible name of the search, the field's text and its label alike. */
+export const SEARCH_LABEL = "Sipariş, müşteri ya da sayfa ara";
 
 /** Another modal is up (an ActionModal, the phone drawer, the alert). */
 function otherDialogOpen(own: HTMLDialogElement | null): boolean {
@@ -165,10 +171,10 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
   const { accountKey } = props;
   const pathname = usePathname();
   const router = useRouter();
-  const label = useShortcutLabel();
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState(0);
   const [view, setView] = useState<PaletteView>("all");
+  const [anchor, setAnchor] = useState<PaletteAnchor | null>(null);
   const triggerRef = useRef<HTMLAnchorElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -182,6 +188,15 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
     (as: PaletteView = "all") => {
       if (otherDialogOpen(dialogRef.current)) return;
       preload();
+      const trigger = triggerRef.current;
+      setAnchor(
+        trigger
+          ? paletteAnchorOf(trigger.getBoundingClientRect(), {
+              width: document.documentElement.clientWidth,
+              height: window.innerHeight,
+            })
+          : null,
+      );
       setSession((n) => n + 1);
       setView(as);
       setOpen(true);
@@ -266,14 +281,25 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
         onPointerEnter={preload}
         onFocus={preload}
         onTouchStart={preload}
-        aria-label="Ara"
+        // The same words as the field shows from `lg`: a phone's square
+        // says them too (WCAG 2.5.3, label in name). The keys still work;
+        // the bar no longer prints them (operator: not "Ctrl K").
+        aria-label={SEARCH_LABEL}
         aria-haspopup="dialog"
         aria-keyshortcuts="Meta+K Control+K"
         data-admin-palette-trigger=""
-        title={label ? `Ara (${label})` : "Ara"}
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-200 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)]"
+        className={cx(
+          "group/search grid shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] transition-colors duration-150 hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] max-lg:size-11 max-lg:pointer-fine:size-9",
+          // From `lg` a real search field, Innex's: a pale box with the
+          // magnifier and the words, the results open from it.
+          "lg:flex lg:h-9 lg:w-72 lg:justify-start lg:gap-2 lg:bg-[var(--admin-surface-2)] lg:px-3 lg:text-[var(--admin-text-mute)] lg:hover:bg-[var(--admin-surface)] xl:w-96",
+          open && "lg:invisible",
+        )}
       >
         <SearchIcon />
+        <span className="hidden truncate text-sm lg:inline">
+          {SEARCH_LABEL}
+        </span>
       </a>
       {open
         ? createPortal(
@@ -285,6 +311,7 @@ export function PaletteTrigger(props: PaletteTriggerProps) {
               pathname={pathname}
               view={view}
               navigate={navigate}
+              anchor={anchor}
             />,
             adminPortalRoot(),
           )
@@ -298,6 +325,7 @@ function PaletteDialog({
   onClosed,
   view,
   navigate,
+  anchor,
   ...palette
 }: PaletteTriggerProps & {
   dialogRef: RefObject<HTMLDialogElement | null>;
@@ -305,6 +333,8 @@ function PaletteDialog({
   pathname: string;
   view: PaletteView;
   navigate: (href: string) => void;
+  /** The search field's place: the results open from it, from `lg`. */
+  anchor: PaletteAnchor | null;
 }) {
   const downOnBackdrop = useRef(false);
 
@@ -340,8 +370,26 @@ function PaletteDialog({
         if (downOnBackdrop.current && e.target === e.currentTarget) close();
         downOnBackdrop.current = false;
       }}
-      className="fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-3xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.14)] backdrop:bg-[rgba(28,25,23,0.32)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden"
-      style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
+      data-anchored={anchor ? "" : undefined}
+      className={cx(
+        "fixed inset-x-0 top-3 bottom-auto mx-auto my-0 max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-2xl flex-col overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.14)] backdrop:bg-[rgba(12,14,27,0.2)] open:flex sm:top-[12vh] sm:max-h-[min(76dvh,640px)] print:hidden",
+        // Opened from the top bar's field: the results grow out of it,
+        // over a barely dimmed page, instead of a box in the middle.
+        anchor &&
+          "lg:top-[var(--palette-top)] lg:right-[var(--palette-right)] lg:left-auto lg:mx-0 lg:max-h-[min(70dvh,560px)] lg:w-[max(var(--palette-width),36rem)] lg:max-w-[calc(100vw-2rem)] lg:shadow-[0_16px_48px_rgba(12,14,27,0.16)] lg:backdrop:bg-[rgba(12,14,27,0.06)]",
+      )}
+      style={
+        {
+          fontFamily: "var(--font-admin-sans), var(--sans)",
+          ...(anchor
+            ? {
+                "--palette-top": `${anchor.top}px`,
+                "--palette-right": `${anchor.right}px`,
+                "--palette-width": `${anchor.width}px`,
+              }
+            : null),
+        } as CSSProperties
+      }
     >
       <PaletteBoundary>
         <Body {...palette} view={view} close={close} navigate={navigate} />

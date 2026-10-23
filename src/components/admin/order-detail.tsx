@@ -660,7 +660,7 @@ function MailsSection({
       {unread ? (
         <p
           role="status"
-          className="rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+          className="rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
         >
           E-posta kaydı okunamadı, sayfayı yenile.
         </p>
@@ -869,7 +869,7 @@ export function OrderDetail({
             {historyUnread.audit || historyUnread.mail ? (
               <p
                 role="status"
-                className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
+                className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-warning)]"
               >
                 {historyUnread.audit
                   ? "Olay kaydı okunamadı: kimin ne yaptığı, iadeler ve dikkat kayıtları burada eksik olabilir. Sayfayı yenile."

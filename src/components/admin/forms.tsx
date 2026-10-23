@@ -5,9 +5,9 @@ import { cx } from "@/components/laffogato/cx";
 import { parsePublishInstant } from "@/lib/admin/publish-window";
 
 import { ActionMenu } from "./ui/action-menu";
-import { BUTTON, COMPACT, HEADER_EYEBROW } from "./ui/styles";
+import { BUTTON, CARD, COMPACT, HEADER_EYEBROW } from "./ui/styles";
 
-// AkmanOS's field label: 13px, sentence case (it was 10px spaced capitals).
+// The field label: 13px, sentence case (it was 10px spaced capitals).
 const FIELD_LABEL = "text-[13px] font-medium text-[var(--admin-text-soft)]";
 const FIELD_LABEL_STYLE = { fontFamily: "var(--mono), monospace" } as const;
 const FIELD_HINT = "text-xs text-[var(--admin-text-mute)]";
@@ -65,10 +65,12 @@ export function Field({
   );
 }
 
-// The panel's field: the outline is --admin-border-field (3:1 against the
-// white card and the field's own fill, so an empty field can be found) and
-// the placeholder is the full label ink, not a faded one (it was 2.41:1).
-export const FIELD_INPUT = `w-full rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3.5 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm ${COMPACT.fieldPy}`;
+// The panel's field, Innex's: 8 px corners, 44 px tall on a phone and 40 px
+// from `sm` (14 px text). The outline is --admin-border-field (3:1 against
+// the white card and the field's own fill, so an empty field can be found)
+// and the placeholder is the full label ink, not a faded one (it was
+// 2.41:1). Focus is Innex's blue edge with a soft ring.
+export const FIELD_INPUT = `w-full rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2.5 text-base text-[var(--admin-text)] outline-none transition-[border-color,background-color,box-shadow] placeholder:text-[var(--admin-text-mute)] focus:border-[var(--admin-primary)] focus:bg-white focus:ring-3 focus:ring-[var(--admin-primary)]/15 sm:py-2 sm:text-sm ${COMPACT.fieldPy}`;
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
@@ -100,8 +102,8 @@ export function Checkbox({
   return (
     <label
       className={cx(
-        "flex min-h-[44px] cursor-pointer items-center gap-3 py-2 text-sm text-[var(--admin-text-soft)]",
-        COMPACT.minH9,
+        "flex min-h-11 cursor-pointer items-center gap-3 py-2 text-sm text-[var(--admin-text-soft)] pointer-fine:min-h-9",
+        COMPACT.minH8,
       )}
     >
       {/* shrink-0: a label that wraps to two lines (the allergen boxes)
@@ -121,10 +123,7 @@ export function PrimaryButton({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-2.5 text-sm font-medium text-white transition-[color,background-color,border-color,transform] hover:bg-[var(--admin-primary-hover)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
-    >
+    <button {...rest} className={cx(BUTTON.primary, rest.className)}>
       {children}
     </button>
   );
@@ -135,10 +134,7 @@ export function GhostButton({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-text-soft)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/30 focus-visible:outline-none active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
-    >
+    <button {...rest} className={cx(BUTTON.ghost, rest.className)}>
       {children}
     </button>
   );
@@ -149,10 +145,7 @@ export function DangerButton({
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      {...rest}
-      className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--admin-danger)]/35 bg-[var(--admin-surface)] px-4 py-2 text-sm text-[var(--admin-danger-ink)] transition-[color,background-color,border-color,transform] hover:border-[var(--admin-danger)] hover:bg-[var(--admin-danger)] hover:text-white active:scale-[0.98] disabled:opacity-50 motion-reduce:transition-colors motion-reduce:active:scale-100 ${COMPACT.minH9} ${rest.className ?? ""}`}
-    >
+    <button {...rest} className={cx(BUTTON.danger, rest.className)}>
       {children}
     </button>
   );
@@ -169,7 +162,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-3xl bg-[var(--admin-panel)] p-4 sm:p-6 print:border print:border-[var(--admin-border-strong)] print:bg-white ${COMPACT.p4} ${className ?? ""}`}
+      className={`${CARD} p-4 sm:p-5 print:border-[var(--admin-border-strong)] ${COMPACT.p4} ${className ?? ""}`}
       style={style}
     >
       {children}
@@ -269,13 +262,14 @@ export function PageHeader({
   menuLabel = "Diğer işlemler",
   className,
 }: PageHeaderProps) {
+  // Innex's page title: 18 px semibold, the size of the strip it heads.
   const heading = (
     <h1
-      className="text-2xl leading-8 text-[var(--admin-text)] sm:text-[28px] sm:leading-9"
+      className="text-lg leading-7 text-[var(--admin-text)]"
       style={{
-        fontFamily: "var(--font-geist-sans), var(--sans)",
+        fontFamily: "var(--font-admin-sans), var(--sans)",
         fontWeight: 600,
-        letterSpacing: "-0.025em",
+        letterSpacing: "-0.01em",
       }}
     >
       {title}
@@ -286,9 +280,12 @@ export function PageHeader({
   // row of its own under the description, a lone button in the open.
   const menuOnly = Boolean(menu) && !primary && !secondary && !action;
   return (
+    // Innex's header strip: the page's full width under the top bar, a 1 px
+    // line below it. The negative margins meet the page's own padding
+    // (PageShell, px-4 / sm:px-5), so the line runs card edge to card edge.
     <header
       className={cx(
-        "mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4",
+        "-mx-4 mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-[var(--admin-border)] px-4 pb-4 sm:-mx-5 sm:px-5",
         className,
       )}
     >
@@ -296,14 +293,14 @@ export function PageHeader({
         {meta ? (
           <div
             className={cx(
-              "mb-2 flex flex-wrap items-center gap-x-3 gap-y-1",
+              "mb-1 flex flex-wrap items-center gap-x-3 gap-y-1",
               HEADER_EYEBROW,
             )}
           >
             {meta}
           </div>
         ) : eyebrow ? (
-          <div className={cx("mb-2", HEADER_EYEBROW)}>{eyebrow}</div>
+          <div className={cx("mb-1", HEADER_EYEBROW)}>{eyebrow}</div>
         ) : null}
         {badges ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -314,7 +311,7 @@ export function PageHeader({
           heading
         )}
         {description && (
-          <p className="mt-2 max-w-2xl text-sm text-[var(--admin-text-soft)]">
+          <p className="mt-0.5 max-w-2xl text-[13px] leading-5 text-[var(--admin-text-mute)]">
             {description}
           </p>
         )}
@@ -374,8 +371,8 @@ export function PageHeader({
         action && <div className="w-full sm:w-auto">{action}</div>
       )}
       {help ? (
-        <details className="group -mt-2 w-full sm:-mt-3">
-          <summary className="inline-flex min-h-[44px] cursor-pointer list-none items-center gap-1.5 rounded-md text-sm text-[var(--admin-primary)] select-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+        <details className="group -mt-2 w-full">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md text-sm text-[var(--admin-primary)] select-none hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:min-h-9 [&::-webkit-details-marker]:hidden">
             {/* A drawn chevron: Poppins has no arrow glyphs. */}
             <span
               aria-hidden="true"
@@ -383,7 +380,7 @@ export function PageHeader({
             />
             Nasıl çalışır?
           </summary>
-          <div className="mt-1 max-w-2xl rounded-2xl bg-[var(--admin-panel)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
+          <div className="mt-1 max-w-2xl rounded-[10px] bg-[var(--admin-panel)] p-4 text-sm text-[var(--admin-text-soft)] [&_p+p]:mt-2">
             {help}
           </div>
         </details>

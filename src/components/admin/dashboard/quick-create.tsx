@@ -82,7 +82,7 @@ export function QuickCreate({
           <li key={e.href} className="shrink-0">
             <Link
               href={e.href}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--admin-border)] px-3 text-[13px] whitespace-nowrap text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-border-strong)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none pointer-fine:min-h-9"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-[var(--admin-border)] px-3 text-[13px] whitespace-nowrap text-[var(--admin-text-soft)] transition-colors hover:border-[var(--admin-border-strong)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-fine:min-h-9"
             >
               <AdminIcon name={e.icon} size={16} className={HUE_INK[e.hue]} />
               {/* Its name is "Yeni sipariş": the visible word is in it, so a

@@ -12,7 +12,7 @@ const TH =
 const TD = "py-2 pr-3 align-top last:pr-0";
 const ROW = "border-b border-[var(--admin-border)]";
 const LINK =
-  "text-[var(--admin-primary)] underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none print:text-inherit print:no-underline";
+  "text-[var(--admin-primary)] underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none print:text-inherit print:no-underline";
 const QUIET = "text-sm text-[var(--admin-text-soft)]";
 /** A card of the sheet: no shadow on paper. */
 const SHEET_CARD = "print:shadow-none";

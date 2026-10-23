@@ -29,7 +29,7 @@ export const dynamic = "force-dynamic";
  * The sheet carries the attribute, so the sidebar and the header disappear on
  * paper; the scoped rules below let it run across several pages and keep a
  * card from being split between two. The cards keep the site's voice
- * (Poppins, --font-display) while the panel speaks Geist: they sit on the
+ * (Poppins, --font-display) while the panel speaks Inter: they sit on the
  * tables, in front of customers.
  */
 const PRINT_CSS = `
@@ -63,7 +63,7 @@ export default async function PrintCafeTablesPage({ searchParams }: PageProps) {
     single && tables[0] ? cafeTableHref(tables[0].id) : CAFE_TABLES_PATH;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <style>{PRINT_CSS}</style>
       <PageHeader
         title={

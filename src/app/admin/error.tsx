@@ -35,7 +35,7 @@ export default function AdminError({
   }, [error]);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow="Panel"
         title="Bu ekran yüklenemedi."
@@ -50,11 +50,11 @@ export default function AdminError({
           <button
             type="button"
             onClick={() => retry()}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--admin-primary)] px-5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--admin-primary)] px-5 text-sm font-medium text-white hover:bg-[var(--admin-primary-hover)] pointer-fine:min-h-9"
           >
             Tekrar dene
           </button>
-          <PanelHomeLink className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-5 text-sm text-[var(--admin-text-soft)]">
+          <PanelHomeLink className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-5 text-sm text-[var(--admin-text-soft)] pointer-fine:min-h-9">
             Panele dön
           </PanelHomeLink>
         </div>

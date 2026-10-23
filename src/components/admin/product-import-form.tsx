@@ -189,8 +189,8 @@ export function ProductImportForm() {
             olur.
           </li>
         </ul>
-        <details className="rounded-xl border border-[var(--admin-border)] px-4 py-3">
-          <summary className="min-h-[44px] cursor-pointer content-center text-sm font-medium text-[var(--admin-text)]">
+        <details className="rounded-lg border border-[var(--admin-border)] px-4 py-3">
+          <summary className="min-h-11 pointer-fine:min-h-9 cursor-pointer content-center text-sm font-medium text-[var(--admin-text)]">
             Sütunlar
           </summary>
           <div className="mt-3 overflow-x-auto">
@@ -237,7 +237,7 @@ export function ProductImportForm() {
             accept=".csv,text/csv,text/plain"
             required
             onChange={() => setFileChanged(true)}
-            className="block w-full text-sm file:mr-3 file:min-h-[44px] file:rounded-xl file:border file:border-[var(--admin-border-strong)] file:bg-[var(--admin-surface)] file:px-4 file:text-sm file:text-[var(--admin-text)]"
+            className="block w-full text-sm file:mr-3 file:min-h-11 pointer-fine:min-h-9 file:rounded-lg file:border file:border-[var(--admin-border-strong)] file:bg-[var(--admin-surface)] file:px-4 file:text-sm file:text-[var(--admin-text)]"
           />
         </label>
         <p className="text-xs text-[var(--admin-text-mute)]">
@@ -258,7 +258,7 @@ export function ProductImportForm() {
         {state.error ? (
           <div
             role="alert"
-            className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+            className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
           >
             {state.error}
           </div>
@@ -294,7 +294,7 @@ export function ProductImportForm() {
           {state.notices && state.notices.length > 0 ? (
             <ul
               role="status"
-              className="grid gap-1 rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-sm text-[var(--admin-text-soft)]"
+              className="grid gap-1 rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-sm text-[var(--admin-text-soft)]"
             >
               {state.notices.map((n, i) => (
                 <li key={i}>{n}</li>
@@ -303,7 +303,7 @@ export function ProductImportForm() {
           ) : null}
 
           {counts.error > 0 ? (
-            <label className="flex min-h-[44px] items-center gap-3 text-sm text-[var(--admin-text-soft)]">
+            <label className="flex min-h-11 pointer-fine:min-h-9 items-center gap-3 text-sm text-[var(--admin-text-soft)]">
               <input
                 type="checkbox"
                 checked={onlyErrors}

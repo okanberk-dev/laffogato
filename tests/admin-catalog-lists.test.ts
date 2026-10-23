@@ -808,7 +808,7 @@ describe("the stock ledger (CAT-16)", () => {
     const link = /<a[^>]*href="\/admin\/siparisler\/ord-0001"[^>]*>/.exec(
       html,
     )?.[0];
-    expect(link).toContain("min-h-[44px]");
+    expect(link).toContain("min-h-11");
     expect(html).not.toContain("text-[10px] text-neutral-600");
     expect(html).toContain("bg-[var(--admin-info-soft)]");
   });

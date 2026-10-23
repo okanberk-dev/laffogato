@@ -1066,9 +1066,17 @@ describe("the card stack", () => {
     // must not move the cards between its press and its release.
     const after = panel({ unlock: "on" });
     expect(after).not.toContain("Sesi açmak için dokun");
-    expect(after).toMatch(
-      /role="status" class="[^"]*min-h-\[44px\][^"]*mt-1 mb-2|role="status" class="mt-1 mb-2 [^"]*min-h-\[44px\]/,
-    );
+    // The button's own heights: 44 px on touch, 36 px where the pointer
+    // aims, 32 px under "Sıkı görünüm".
+    const slot = /role="status" class="([^"]*)"/.exec(after)?.[1] ?? "";
+    expect(slot).toContain("mt-1 mb-2");
+    for (const cls of [
+      "min-h-11",
+      "pointer-fine:min-h-9",
+      "pointer-fine:[[data-admin-density=compact]_&amp;]:min-h-8",
+    ]) {
+      expect(slot, cls).toContain(cls);
+    }
     expect(after).toContain("Ses açık.");
     expect(panel({ unlock: "off" })).toContain("Ses kapalı.");
     expect(panel({ unlock: null })).not.toMatch(

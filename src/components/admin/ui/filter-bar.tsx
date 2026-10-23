@@ -109,7 +109,7 @@ interface PresetLink {
 }
 
 const PRESET_LINK =
-  "relative inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none pointer-coarse:min-h-11";
+  "relative inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none pointer-coarse:min-h-11";
 const PRESET_IDLE =
   "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]";
 const PRESET_ACTIVE =
@@ -248,7 +248,7 @@ function DateRangeFieldset({
 
 /** A chip's × (a link, or a button for a search text). */
 const CHIP_REMOVE =
-  "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none";
+  "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none";
 
 /** A field's chip key (filterChips): the name, or "from|to" for a range. */
 const fieldKey = (field: FilterField) =>
@@ -487,7 +487,8 @@ export function FilterBar({
         aria-busy={pending || undefined}
         action={listSearchAction}
         onSubmit={onSubmit}
-        className="flex flex-wrap items-start gap-3 rounded-3xl bg-[var(--admin-panel)] p-4"
+        // Innex's filter row: a white card with a pale line, not a grey well.
+        className="flex flex-wrap items-start gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4"
       >
         {listField}
         {kept.map(([key, value], i) => (

@@ -663,28 +663,28 @@ describe("after a successful action the panel says so (admin:changed)", () => {
 });
 
 describe("codes and amounts line up", () => {
-  it("NUMERIC_STYLE is a monospace face with tabular figures; labels keep MONO_STYLE", async () => {
+  it("NUMERIC_STYLE is Inter's tabular figures; CODE_STYLE a real monospace; labels keep MONO_STYLE", async () => {
     const { MONO_STYLE } = await import("@/components/admin/ui/styles");
-    // Geist Mono first (the AkmanOS look, 21 Eki 2026), the system's
-    // monospace behind it.
-    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(
-      /^var\(--font-geist-mono\), ui-monospace, /,
-    );
-    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/monospace$/);
+    // Innex (22 Eki 2026) sets its numbers in the text face: Inter, with
+    // tabular figures so a Tutar column lines up digit by digit.
+    expect(ui.NUMERIC_STYLE.fontFamily).toMatch(/^var\(--font-admin-sans\), /);
     expect(ui.NUMERIC_STYLE.fontVariantNumeric).toBe("tabular-nums");
+    // What is read character by character keeps a real monospace, the
+    // system's own (no font file).
+    expect(ui.CODE_STYLE.fontFamily).toMatch(/^ui-monospace, /);
+    expect(ui.CODE_STYLE.fontFamily).toMatch(/monospace$/);
     // --mono is the panel's label voice: the site's resolves to Poppins,
-    // so the panel repoints it (and the other type tokens) to Geist Sans.
+    // so the panel repoints it (and the other type tokens) to Inter.
     expect(MONO_STYLE).toEqual({ fontFamily: "var(--mono), monospace" });
     const layout = read("src/app/admin/layout.tsx");
     expect(layout).toContain('"--mono": ADMIN_SANS,');
     expect(layout).toContain('"--headline": ADMIN_SANS,');
     expect(layout).toMatch(
-      /const ADMIN_SANS =\s*"var\(--font-geist-sans\), ui-sans-serif, system-ui, sans-serif";/,
+      /const ADMIN_SANS =\s*"var\(--font-admin-sans\), ui-sans-serif, system-ui, sans-serif";/,
     );
-    expect(layout).toContain(
-      'import { Geist, Geist_Mono } from "next/font/google";',
-    );
+    expect(layout).toContain('import { Inter } from "next/font/google";');
     expect(layout).not.toMatch(/\bPoppins\(/);
+    expect(layout).not.toMatch(/\bGeist/);
   });
 });
 
@@ -717,29 +717,41 @@ describe("tone colours clear AA", () => {
     danger: ["--admin-danger-ink", "--admin-danger-soft"],
   };
 
-  it("is the AkmanOS light theme of the venue's back office, softened (lafmaliyet, 21 Eki 2026)", () => {
-    // White canvas and controls; the cards, the sidebar and the lines a
-    // warm stone instead of cold zinc, the ink and the primary a warm
-    // near-black (operator, the same evening: "yumuşat ... biraz
-    // renklendir"). The customer site keeps its own palette.
-    expect(token("--admin-bg")).toBe("#FFFFFF");
+  it("is Innex (Filllo's admin series), by the operator's decision of 22 Eki 2026", () => {
+    // A grey app ground with the sidebar and the page as two white cards on
+    // it, 1 px lines instead of shadows, a near-black navy ink and one blue
+    // for the primary action (docs/ADMIN-INNEX.md). The customer site keeps
+    // its own palette.
+    expect(token("--admin-bg")).toBe("#EDEFF1");
     expect(token("--admin-surface")).toBe("#FFFFFF");
-    expect(token("--admin-panel")).toBe("#F6F4F0");
-    expect(token("--admin-border")).toBe("#E9E5DE");
-    expect(token("--admin-text")).toBe("#1C1917");
-    expect(token("--admin-primary")).toBe("#1C1917");
-    // Lime is a fill only, always under its dark ink; no panel text is lime.
-    expect(token("--admin-accent")).toBe("#C0F21E");
-    expect(token("--admin-accent-ink")).toBe("#1F3A08");
-    expect(
-      contrast(token("--admin-accent-ink"), token("--admin-accent")),
-    ).toBeGreaterThanOrEqual(4.5);
+    expect(token("--admin-surface-2")).toBe("#F9FBFC");
+    expect(token("--admin-panel")).toBe("#F3F5F7");
+    expect(token("--admin-border")).toBe("#E8E8E8");
+    expect(token("--admin-text")).toBe("#0C0E1B");
+    expect(token("--admin-text-mute")).toBe("#616367");
+    // Innex's #325CFF a shade deeper: 4.43:1 on the grey ground was under
+    // AA for a link.
+    expect(token("--admin-primary")).toBe("#2F58F7");
+    // White on every solid fill the panel draws clears AA.
+    for (const fill of [
+      "--admin-primary",
+      "--admin-primary-hover",
+      "--admin-danger",
+      "--admin-accent",
+    ]) {
+      expect(
+        contrast("#FFFFFF", token(fill)),
+        `white on ${fill}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    // The accent (violet) is a dot or a rule; its text is
+    // --admin-accent-ink, and every focus ring is the primary blue.
     for (const dir of ["src/components/admin", "src/app/admin"]) {
       for (const file of readdirSync(dir, { recursive: true }) as string[]) {
         if (!/\.tsx?$/.test(file)) continue;
-        expect(read(`${dir}/${file}`), file).not.toMatch(
-          /text-\[var\(--admin-accent\)\]/,
-        );
+        const src = read(`${dir}/${file}`);
+        expect(src, file).not.toMatch(/text-\[var\(--admin-accent\)\]/);
+        expect(src, file).not.toMatch(/ring-\[var\(--admin-accent\)\]/);
       }
     }
   });
@@ -855,7 +867,7 @@ describe("tone colours clear AA", () => {
     const { HEADER_EYEBROW, LABEL } =
       await import("@/components/admin/ui/styles");
     expect(HEADER_EYEBROW).toContain("text-[var(--admin-text-mute)]");
-    expect(LABEL).toContain("text-[var(--admin-text-soft)]");
+    expect(LABEL).toContain("text-[var(--admin-text-mute)]");
     for (const ink of [
       "--admin-text-mute",
       "--admin-text-soft",
@@ -1001,8 +1013,9 @@ describe("server-rendered markup", () => {
       /<th scope="col" class="([^"]*)"><span class="sr-only">İşlemler/.exec(
         out,
       );
+    // The head's pinned cell takes the head's well (Innex's tinted head).
     expect(th?.[1]).toContain(
-      "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)] bg-[var(--admin-surface)]",
+      "sticky right-0 shadow-[inset_1px_0_0_var(--admin-border)] bg-[var(--admin-surface-2)]",
     );
     const cells = [...out.matchAll(/<td class="([^"]*sticky right-0[^"]*)">/g)];
     expect(cells).toHaveLength(2);
@@ -1170,13 +1183,14 @@ describe("server-rendered markup", () => {
     expect(out).toContain("bg-[var(--admin-primary-soft)]");
   });
 
-  it("Badge text is AkmanOS's 11px sentence-case pill, no longer 10px capitals", () => {
+  it("Badge is Innex's status badge: 12px sentence case, 6px corners, 22px tall", () => {
     const out = html(
       withKids(ui.Badge, { tone: "success", dot: true }, "Ödendi"),
     );
     const cls = /<span[^>]*class="([^"]+)"/.exec(out)?.[1] ?? "";
-    expect(cls).toContain("text-[11px] leading-4 font-medium");
-    expect(cls).toContain("rounded-full");
+    expect(cls).toContain("text-xs leading-4 font-medium");
+    expect(cls).toContain("rounded-md");
+    expect(cls).toContain("min-h-[22px]");
     expect(cls).not.toContain("uppercase");
     expect(cls).not.toMatch(/tracking-|text-\[10px\]/);
     // Same tone pair as before.
@@ -1192,7 +1206,8 @@ describe("server-rendered markup", () => {
       }),
     );
     expect(out).toContain(`<dt class="${LABEL}">Ödeme yöntemi</dt>`);
-    expect(LABEL).toBe("text-xs font-medium text-[var(--admin-text-soft)]");
+    // Innex's label grey.
+    expect(LABEL).toBe("text-xs font-medium text-[var(--admin-text-mute)]");
     // The value still takes the mono voice when asked; the label does not.
     expect(out).toMatch(
       /<dd [^>]*style="font-family:var\(--mono\), monospace">Kart/,
@@ -1318,8 +1333,12 @@ describe("server-rendered markup", () => {
 });
 
 describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
+  // Innex's 18px semibold title.
   const H1 =
-    '<h1 class="text-2xl leading-8 text-[var(--admin-text)] sm:text-[28px] sm:leading-9" style="font-family:var(--font-geist-sans), var(--sans);font-weight:600;letter-spacing:-0.025em">';
+    '<h1 class="text-lg leading-7 text-[var(--admin-text)]" style="font-family:var(--font-admin-sans), var(--sans);font-weight:600;letter-spacing:-0.01em">';
+  // Innex's header strip: the card's full width, a 1px line under it.
+  const STRIP =
+    '<header class="-mx-4 mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-[var(--admin-border)] px-4 pb-4 sm:-mx-5 sm:px-5">';
   const header = (props: Record<string, unknown>) =>
     html(createElement(forms.PageHeader, props as never));
   const link = (href: string, text: string) =>
@@ -1334,19 +1353,18 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
         action: link("/admin/siparisler/yeni", "Yeni sipariş"),
       }),
     ).toBe(
-      '<header class="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">' +
+      STRIP +
         '<div class="min-w-0">' +
-        '<div class="mb-2 text-xs text-[var(--admin-text-mute)]">Satış</div>' +
+        '<div class="mb-1 text-xs text-[var(--admin-text-mute)]">Satış</div>' +
         `${H1}Siparişler</h1>` +
-        '<p class="mt-2 max-w-2xl text-sm text-[var(--admin-text-soft)]">Ara, süz, sırala.</p>' +
+        '<p class="mt-0.5 max-w-2xl text-[13px] leading-5 text-[var(--admin-text-mute)]">Ara, süz, sırala.</p>' +
         "</div>" +
         '<div class="w-full sm:w-auto"><a href="/admin/siparisler/yeni">Yeni sipariş</a></div>' +
         "</header>",
     );
     // A title alone is a title alone: no disclosure, no button row, no menu.
     expect(header({ title: "Raporlar" })).toBe(
-      '<header class="mb-6 flex flex-wrap items-end justify-between gap-3 sm:mb-8 sm:gap-4">' +
-        `<div class="min-w-0">${H1}Raporlar</h1></div></header>`,
+      STRIP + `<div class="min-w-0">${H1}Raporlar</h1></div></header>`,
     );
   });
 
@@ -1365,8 +1383,10 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
       details?.[2] ?? "",
     );
     expect(summary?.[2]).toContain("Nasıl çalışır?");
-    // A 44px target, like every other control in the panel.
-    expect(summary?.[1]).toContain("min-h-[44px]");
+    // A 44px target on a touch screen, like every other control in the
+    // panel; 36px where the pointer can aim.
+    expect(summary?.[1]).toContain("min-h-11");
+    expect(summary?.[1]).toContain("pointer-fine:min-h-9");
     expect(details?.[2]).toContain(
       "<p>Ön ödeme açıksa iptal kuralı geçerli.</p>",
     );
@@ -1386,7 +1406,7 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
     });
     expect(out).not.toContain(">Sipariş<");
     expect(out).toContain(
-      '<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--admin-text-mute)]"><span>12 Eki 2026 14:05</span></div>',
+      '<div class="mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--admin-text-mute)]"><span>12 Eki 2026 14:05</span></div>',
     );
     expect(out.indexOf("12 Eki 2026")).toBeLessThan(out.indexOf("<h1"));
     const line =
@@ -1492,28 +1512,30 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
     );
   });
 
-  it("PageShell: three widths, the panel's padding, a 20px header gap, the skip-link target", () => {
+  it("PageShell: three widths, Innex's padding, content at the card's left edge", () => {
+    // Innex (22 Eki 2026): the page sits in a white card, its header strip
+    // runs the card's full width, and a width caps each block under it
+    // rather than centring the page.
     expect(ui.PAGE_WIDTHS).toEqual({
-      list: "max-w-7xl",
-      detail: "max-w-6xl",
-      form: "max-w-3xl",
+      list: "",
+      detail: "[&>:not(header)]:max-w-6xl",
+      form: "[&>:not(header)]:max-w-3xl",
     });
+    const esc = (c: string) => c.replaceAll("&", "&amp;").replaceAll(">", "&gt;");
     for (const width of ["list", "detail", "form"] as const) {
       const out = html(
         withKids(ui.PageShell, { width }, createElement("p", null, "x")),
       );
-      expect(out).toBe(
-        `<main class="mx-auto w-full px-4 py-6 sm:px-6 sm:py-8 [&amp;&gt;header]:mb-5 ${ui.PAGE_WIDTHS[width]}"><p>x</p></main>`,
-      );
+      const cls = ["w-full px-4 pt-5 pb-10 sm:px-5", ui.PAGE_WIDTHS[width]]
+        .filter(Boolean)
+        .join(" ");
+      expect(out).toBe(`<main class="${esc(cls)}"><p>x</p></main>`);
     }
     // A list by default; extra classes go after.
     expect(
       html(withKids(ui.PageShell, { className: "print:p-0" }, "x")),
-    ).toContain("max-w-7xl print:p-0");
-    // The header gap beats PageHeader's own mb-6 / sm:mb-8 (a child
-    // selector outranks a single class), so old headers need no change.
+    ).toContain('<main class="w-full px-4 pt-5 pb-10 sm:px-5 print:p-0">');
     const src = read("src/components/admin/ui/page-shell.tsx");
-    expect(src).toContain("[&>header]:mb-5");
     expect(src).not.toMatch(/useState|useEffect|"use client"/);
   });
 
@@ -1534,7 +1556,9 @@ describe("page pattern: PageHeader, PageShell, EmptyState, BUTTON.icon", () => {
 
   it("BUTTON.icon is a 44px square in the ghost outline", () => {
     expect(ui.BUTTON.icon).toContain("h-11 w-11");
-    expect(ui.BUTTON.icon).toContain("min-h-[44px]");
+    expect(ui.BUTTON.icon).toContain("min-h-11");
+    // 36px where the pointer can aim (Innex's 32px under "Sıkı görünüm").
+    expect(ui.BUTTON.icon).toContain("pointer-fine:h-9 pointer-fine:w-9");
     expect(ui.BUTTON.icon).toContain("border-[var(--admin-border-strong)]");
     expect(ui.BUTTON.icon).toContain("focus-visible:ring-2");
     expect(ui.BUTTON.icon).not.toMatch(/\bpx-\d/);

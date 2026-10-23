@@ -13,7 +13,7 @@ import {
   SubmitButton,
 } from "./action-form";
 import { Card, Checkbox, Field, Textarea, TextInput } from "./forms";
-import { BUTTON, NUMERIC_STYLE } from "./ui";
+import { BUTTON, CODE_STYLE } from "./ui";
 import { useUnsavedGuard } from "./ui/unsaved-guard";
 
 export interface LegalDocInitial {
@@ -33,10 +33,10 @@ interface Props {
   ) => Promise<ActionResult>;
 }
 
-// Markdown in a real monospace face: --mono resolves to Poppins. The size is
-// the field's own (16px on a phone, so iOS does not zoom; an inline 13px
-// used to beat that guard).
-const MARKDOWN_STYLE = { fontFamily: NUMERIC_STYLE.fontFamily } as const;
+// Markdown in a real monospace face: --mono resolves to the panel's Inter.
+// The size is the field's own (16px on a phone, so iOS does not zoom; an
+// inline 13px used to beat that guard).
+const MARKDOWN_STYLE = { fontFamily: CODE_STYLE.fontFamily } as const;
 
 /**
  * The legal editor. Posts through ActionForm (by hand, no form reset): a

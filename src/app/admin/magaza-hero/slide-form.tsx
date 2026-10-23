@@ -211,7 +211,7 @@ export function SlideForm({
           </legend>
 
           {imageUrl ? (
-            <div className="relative overflow-hidden rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface-2)]">
+            <div className="relative overflow-hidden rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface-2)]">
               {/* An <img>, not a CSS url(): the address is the operator's
                   free text and must not end up inside a style attribute. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -259,7 +259,7 @@ export function SlideForm({
                   fileRef.current?.click();
                 }
               }}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-12 text-center transition-colors ${
+              className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-5 py-12 text-center transition-colors ${
                 dragOver
                   ? "border-[var(--admin-primary)] bg-[var(--admin-surface-2)]"
                   : "border-[var(--admin-border-strong)] bg-[var(--admin-surface-2)]/50 hover:border-[var(--admin-border-field)]"

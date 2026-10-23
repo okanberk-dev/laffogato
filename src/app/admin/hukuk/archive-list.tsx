@@ -52,7 +52,7 @@ export function LegalArchiveList({
             return (
               <li
                 key={row.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-border)] p-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--admin-border)] p-3"
               >
                 <div className="grid min-w-0 gap-1">
                   <div className="flex flex-wrap items-center gap-2">

@@ -121,7 +121,7 @@ describe("ROW_CONTROL", () => {
     expect(fine).toContain("height: calc(var(--spacing) * 7)");
     expect(fine).toContain("min-height: calc(var(--spacing) * 8)");
     expect(css).toMatch(
-      /\[open\] > \.[^{]+\{ background-color: var\(--admin-primary-soft\); \}/,
+      /\[open\] > \.[^{]+\{ background-color: var\(--admin-panel\); \}/,
     );
   });
 });

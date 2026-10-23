@@ -123,7 +123,7 @@ function ExportBatch({ id, events }: { id: string; events: IysEvent[] }) {
   const ret = events.length - onay;
   const at = events[0]?.exportedAt ?? "";
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[var(--admin-surface)] px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--admin-surface)] px-4 py-3">
       <span className="min-w-0 text-sm text-[var(--admin-text)]">
         <span className="block font-medium" style={NUMERIC_STYLE}>
           {id}.csv

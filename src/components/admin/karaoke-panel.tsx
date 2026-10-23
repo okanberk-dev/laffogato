@@ -48,7 +48,7 @@ import { TONE_INK, TONE_SOFT } from "./ui/tone";
 // "İade sonucu bekleniyor") may break onto a second line: kept on one, it
 // alone made the table wider than its card below 1280 px and put the
 // amount behind the pinned ⋯ column (admin audit KAR-03).
-const WRAPPING_BADGE = "rounded-xl! text-left whitespace-normal!";
+const WRAPPING_BADGE = "rounded-lg! text-left whitespace-normal!";
 
 /**
  * Status, payment, refund-owed and guest badges, in that order. `wrap`: the
@@ -111,7 +111,7 @@ export function KaraokeAttentionNotices({ view }: { view: KaraokeRowView }) {
           <div
             key={key}
             role={a.tone === "danger" ? "alert" : "status"}
-            className={cx("rounded-xl px-4 py-3 text-sm", TONE_SOFT[a.tone])}
+            className={cx("rounded-lg px-4 py-3 text-sm", TONE_SOFT[a.tone])}
           >
             <strong className="font-semibold">{a.title}.</strong> {a.text}
           </div>

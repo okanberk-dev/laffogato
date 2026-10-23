@@ -163,7 +163,7 @@ export function SettingsForm({
                 tabIndex={selected ? 0 : -1}
                 onClick={() => select(t.id)}
                 onKeyDown={onTabKey}
-                className={`inline-flex min-h-[44px] items-center justify-between gap-2 rounded-xl px-3.5 py-2 text-left text-sm whitespace-nowrap transition-colors ${
+                className={`inline-flex min-h-11 items-center justify-between gap-2 rounded-lg px-3.5 py-2 text-left text-sm whitespace-nowrap transition-colors pointer-fine:min-h-9 ${
                   selected
                     ? "bg-[var(--admin-primary)] font-medium text-white"
                     : "border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
@@ -258,7 +258,7 @@ function Banner({
   return (
     <div
       data-testid={testId}
-      className={`mb-4 rounded-xl border-l-4 px-3.5 py-2.5 text-sm ${TONE_SOFT[tone]} ${TONE_RULE[tone]}`}
+      className={`mb-4 rounded-lg border-l-4 px-3.5 py-2.5 text-sm ${TONE_SOFT[tone]} ${TONE_RULE[tone]}`}
     >
       {children}
     </div>

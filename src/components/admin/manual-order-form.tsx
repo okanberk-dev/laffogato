@@ -459,7 +459,7 @@ export function ManualOrderForm({
                         ? "Siparişte en az bir satır kalır."
                         : undefined
                     }
-                    className="min-h-[44px] rounded-full border border-[var(--admin-border)] px-3 text-xs text-[var(--admin-text-soft)] hover:border-[var(--admin-danger)] hover:text-[var(--admin-danger-ink)] disabled:opacity-40"
+                    className="min-h-11 rounded-full border border-[var(--admin-border)] px-3 text-xs text-[var(--admin-text-soft)] hover:border-[var(--admin-danger)] hover:text-[var(--admin-danger-ink)] disabled:opacity-40 pointer-fine:min-h-9"
                   >
                     Kaldır
                   </button>
@@ -739,7 +739,7 @@ export function ManualOrderForm({
               },
             ]}
           />
-          <p className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
+          <p className="rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-3 text-sm text-[var(--admin-text-soft)]">
             Fiyat, stok ve promosyon kodu kaydederken sunucuda denetlenir; son
             tutar orada hesaplanır. Sipariş oluşunca stok düşülür.
           </p>

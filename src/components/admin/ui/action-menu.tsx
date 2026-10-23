@@ -167,11 +167,11 @@ export function ActionMenu({
         className={
           outlined
             ? cx(
-                "inline-flex min-h-[44px] min-w-[44px] cursor-pointer list-none items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] select-none hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden",
-                COMPACT.minH9,
-                COMPACT.minW9,
+                "inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-lg border border-[var(--admin-border-strong)] bg-[var(--admin-surface)] px-3 text-sm font-medium text-[var(--admin-text-soft)] select-none hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/40 focus-visible:outline-none pointer-fine:min-h-9 pointer-fine:min-w-9 [&::-webkit-details-marker]:hidden",
+                COMPACT.minH8,
+                COMPACT.minW8,
                 open &&
-                  "border-[var(--admin-primary)] text-[var(--admin-primary)]",
+                  "border-[var(--admin-border-field)] bg-[var(--admin-surface-2)] text-[var(--admin-text)]",
               )
             : ROW_CONTROL.more
         }
@@ -186,7 +186,8 @@ export function ActionMenu({
         id={panelId}
         onClick={onPanelClick}
         className={cx(
-          "absolute top-full z-40 mt-1 flex w-60 max-w-[calc(100vw-1rem)] flex-col gap-0.5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1.5 shadow-[0_12px_32px_rgba(28,25,23,0.16)]",
+          // Innex's popover: 10 px corners, a pale line, a soft shadow.
+          "absolute top-full z-40 mt-1 flex w-60 max-w-[calc(100vw-1rem)] flex-col gap-0.5 rounded-[10px] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1 shadow-[0_8px_24px_rgba(12,14,27,0.10)]",
           align === "end" ? "right-0" : "left-0",
         )}
       >

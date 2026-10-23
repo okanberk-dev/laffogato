@@ -295,7 +295,7 @@ export function ImageUpload({
         role="button"
         tabIndex={0}
         aria-label="Görsel yükle"
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors ${
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-5 py-10 text-center transition-colors ${
           dragOver
             ? "border-[var(--admin-primary)] bg-[var(--admin-surface-2)]"
             : remainingSlots > 0
@@ -435,7 +435,7 @@ export function ImageUpload({
                     onClick={() => removeAt(i)}
                     aria-label={`Sil: görsel ${i + 1}`}
                     title="Sil"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-lg text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)]"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-md text-lg text-[var(--admin-danger-ink)] hover:bg-[var(--admin-danger-soft)] pointer-fine:h-9 pointer-fine:w-9"
                   >
                     <span aria-hidden="true">×</span>
                   </button>
@@ -444,7 +444,7 @@ export function ImageUpload({
                       type="button"
                       onClick={() => makePrimary(i)}
                       aria-label={`Birincil yap: görsel ${i + 1}`}
-                      className="min-h-[44px] basis-full rounded-md px-2 text-xs font-medium text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)]"
+                      className="min-h-11 basis-full rounded-md px-2 text-xs font-medium text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-primary)] pointer-fine:min-h-9"
                     >
                       Birincil yap
                     </button>
@@ -477,7 +477,7 @@ export function ImageUpload({
             }
           }}
           placeholder="https://images.example.com/sirena-1.jpg"
-          className="min-h-[44px] min-w-0 flex-[1_1_10rem] rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-accent)]/25 sm:text-sm"
+          className="min-h-11 min-w-0 flex-[1_1_10rem] rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 py-2 text-base outline-none focus:border-[var(--admin-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--admin-primary)]/25 sm:text-sm pointer-fine:min-h-9"
         />
         <button
           type="button"

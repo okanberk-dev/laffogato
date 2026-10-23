@@ -44,8 +44,7 @@ vi.mock("next/dynamic", async () => {
   return { default: () => NavIcon };
 });
 vi.mock("next/font/google", () => ({
-  Geist: () => ({ variable: "font-geist-sans", className: "" }),
-  Geist_Mono: () => ({ variable: "font-geist-mono", className: "" }),
+  Inter: () => ({ variable: "font-admin-sans", className: "" }),
 }));
 vi.mock("@/app/admin/siparisler/actions", () => ({
   openOrderSignalAction: vi.fn(async () => ({ count: null, cursor: "" })),
@@ -423,19 +422,17 @@ describe("the first markup is the wide, comfortable sidebar", () => {
     }
   });
 
-  it("the sidebar's width is one variable, 17.5rem by default, that the sidebar, top bar, tab strip, page edge and bulk bar read", () => {
+  it("the sidebar's width is one variable, 15.5rem by default, that the sidebar card, the page card and the bulk bar read", () => {
     const html = shellOf("owner");
+    // Innex (22 Eki 2026): the sidebar is a card 8px off the window, the
+    // page a card 12px right of it; the top bar and the tab strip are
+    // inside the page card and need no offset of their own.
     expect(/<aside[^>]*>/.exec(html)?.[0]).toContain(
-      "w-[var(--admin-side,17.5rem)]",
+      "w-[var(--admin-side,15.5rem)]",
     );
-    expect(/<header[^>]*>/.exec(html)?.[0]).toContain(
-      "lg:ml-[var(--admin-side,17.5rem)]",
-    );
-    expect(read("src/components/admin/admin-sidebar.tsx")).toContain(
-      'className="mt-3 lg:mt-0 lg:ml-[var(--admin-side,17.5rem)] print:hidden"',
-    );
+    expect(/<header[^>]*>/.exec(html)?.[0]).not.toContain("admin-side");
     expect(read("src/components/admin/bulk.tsx")).toContain(
-      "lg:left-[calc(var(--admin-side,17.5rem)+1rem)]",
+      "lg:left-[calc(var(--admin-side,15.5rem)+2.25rem)]",
     );
     for (const p of [
       "src/components/admin/admin-sidebar.tsx",
@@ -448,15 +445,16 @@ describe("the first markup is the wide, comfortable sidebar", () => {
     }
     for (const role of FULL) {
       expect(LAYOUT[role].html, role).toContain(
-        'class="lg:pl-[var(--admin-side,17.5rem)] print:pl-0"',
+        "lg:ml-[calc(var(--admin-side,15.5rem)+1.25rem)]",
       );
     }
+    expect(LAYOUT.cashier.html).not.toContain("admin-side,15.5rem");
     expect(LAYOUT.cashier.html).toContain(
-      '<div id="admin-main" tabindex="-1" class="print:pl-0"',
+      '<div id="admin-main" tabindex="-1" style="outline:none"',
     );
   });
 
-  it("the root says 17.5rem and, once the shell wrote data-admin-rail=on, 4rem: compiled, the attribute wins", async () => {
+  it("the root says 15.5rem and, once the shell wrote data-admin-rail=on, 4rem: compiled, the attribute wins", async () => {
     const compiler = await compile(
       "@theme { --breakpoint-lg: 64rem; --spacing: 0.25rem; } @tailwind utilities;",
       {},
@@ -464,10 +462,10 @@ describe("the first markup is the wide, comfortable sidebar", () => {
     for (const role of ROLES) {
       const root = /<div data-admin-root=""[^>]*>/.exec(LAYOUT[role].html)![0];
       const cls = tokens(classOf(root));
-      expect(cls, role).toContain("[--admin-side:17.5rem]");
+      expect(cls, role).toContain("[--admin-side:15.5rem]");
       expect(cls, role).toContain("data-[admin-rail=on]:[--admin-side:4rem]");
       const css = compiler.build(cls).replace(/\s+/g, " ");
-      expect(css).toContain("{ --admin-side: 17.5rem; }");
+      expect(css).toContain("{ --admin-side: 15.5rem; }");
       expect(css).toMatch(/\[data-admin-rail="on"\] \{ --admin-side: 4rem; \}/);
     }
     // Nothing in the site's stylesheet: the layout's classes carry it all.

@@ -21,7 +21,7 @@ export function FormError({ message }: { message?: string }) {
   return (
     <div
       role="alert"
-      className="rounded-xl bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
+      className="rounded-lg bg-[var(--admin-danger-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-danger-ink)]"
     >
       {message}
     </div>
@@ -34,7 +34,7 @@ export function FormSuccess({ message }: { message?: string }) {
   return (
     <div
       role="status"
-      className="rounded-xl bg-[var(--admin-success-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-success)]"
+      className="rounded-lg bg-[var(--admin-success-soft)] px-3.5 py-2.5 text-sm text-[var(--admin-success)]"
     >
       {message}
     </div>

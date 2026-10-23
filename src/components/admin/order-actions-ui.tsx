@@ -252,7 +252,7 @@ function DestinationNote({
   amountMinor: number;
 }) {
   return (
-    <div className="rounded-xl bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-sm">
+    <div className="rounded-lg bg-[var(--admin-surface-2)] px-3.5 py-2.5 text-sm">
       <div className="font-medium text-[var(--admin-text)]">
         {formatTRY(amountMinor)} · {REFUND_DESTINATION_LABELS[destination]}
       </div>
@@ -303,7 +303,7 @@ function RestockChoice({ shipped }: { shipped: boolean }) {
           ? "Paket yola çıkmış. Stok ne olsun?"
           : "Ürünler stoğa dönsün mü?"}
       </legend>
-      <label className="flex min-h-[44px] items-center gap-3 text-sm">
+      <label className="flex min-h-11 items-center gap-3 text-sm pointer-fine:min-h-9">
         <input
           type="radio"
           name="restock"
@@ -314,7 +314,7 @@ function RestockChoice({ shipped }: { shipped: boolean }) {
         />
         {shipped ? "Stoğa geri al (paket geri geldi)" : "Stoğa geri al"}
       </label>
-      <label className="flex min-h-[44px] items-center gap-3 text-sm">
+      <label className="flex min-h-11 items-center gap-3 text-sm pointer-fine:min-h-9">
         <input
           type="radio"
           name="restock"

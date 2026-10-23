@@ -155,7 +155,7 @@ export function TillConsole() {
                 setTab(t.id);
               }}
               aria-pressed={tab === t.id}
-              className={`min-h-[44px] rounded-xl border px-4 py-2 text-sm transition-colors ${
+              className={`min-h-11 rounded-lg border px-4 py-2 text-sm transition-colors pointer-fine:min-h-9 ${
                 tab === t.id
                   ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
                   : "border-[var(--admin-border-strong)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)]"

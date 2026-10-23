@@ -429,7 +429,7 @@ export function MenuList({
                   </div>
                 )}
                 empty={
-                  <p className="rounded-2xl border border-dashed border-[var(--admin-border)] px-4 py-6 text-sm text-[var(--admin-text-soft)]">
+                  <p className="rounded-xl border border-dashed border-[var(--admin-border)] px-4 py-6 text-sm text-[var(--admin-text-soft)]">
                     Bu kategoride kalem yok.
                   </p>
                 }
@@ -471,7 +471,7 @@ export function MenuList({
               name="value"
               defaultValue=""
               aria-label="Taşınacak kategori"
-              className="min-h-[44px] rounded-xl border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text)] focus:border-[var(--admin-primary)] focus:outline-none"
+              className="min-h-11 rounded-lg border border-[var(--admin-border-field)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text)] focus:border-[var(--admin-primary)] focus:outline-none pointer-fine:min-h-9"
             >
               <option value="" disabled>
                 Kategoriye taşı…

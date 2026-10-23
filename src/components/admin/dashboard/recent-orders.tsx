@@ -95,7 +95,7 @@ export function RecentOrders({ rows }: { rows: readonly RecentOrderRow[] }) {
         </h2>
         <Link
           href="/admin/siparisler"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline"
+          className="inline-flex min-h-11 items-center gap-1 text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9"
         >
           Tümünü gör <span aria-hidden="true">→</span>
         </Link>

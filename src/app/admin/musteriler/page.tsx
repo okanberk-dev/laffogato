@@ -126,7 +126,7 @@ function DeletionBanner({ count, oldest }: { count: number; oldest: string }) {
   return (
     <div
       role="status"
-      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]"
+      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--admin-danger)]/30 bg-[var(--admin-danger-soft)] px-4 py-3 text-sm text-[var(--admin-danger-ink)]"
     >
       <span className="min-w-0">
         {count} açık hesap silme talebi var. En eskisinin son günü{" "}
@@ -235,7 +235,7 @@ function MobileCard({ row, now }: { row: CustomerListRow; now: Date }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-3xl bg-[var(--admin-panel)] p-4">
+    <div className="min-w-0 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-4">
       <div className={EYEBROW} style={MONO_STYLE}>
         {label}
       </div>

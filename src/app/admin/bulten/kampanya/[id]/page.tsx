@@ -89,7 +89,7 @@ export default async function CampaignMailDetailPage({
   const audienceLabel = CAMPAIGN_MAIL_AUDIENCE_LABELS[c.audience] ?? c.audience;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5">
       <BackLink href={LIST_PATH}>Kampanyalar</BackLink>
       <PageHeader
         title={c.subject || "Kampanya"}
@@ -269,7 +269,7 @@ export default async function CampaignMailDetailPage({
             srcDoc={rendered.html}
             sandbox=""
             referrerPolicy="no-referrer"
-            className="h-[900px] w-full rounded-xl border border-[var(--admin-border)] bg-white"
+            className="h-[900px] w-full rounded-lg border border-[var(--admin-border)] bg-white"
           />
         ) : (
           <p role="alert" className="text-sm text-[var(--admin-warning)]">

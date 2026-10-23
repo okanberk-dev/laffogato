@@ -30,7 +30,7 @@ export function CardLink({
       style={style}
       className={cx(
         className,
-        "after:absolute after:inset-0 after:rounded-2xl after:content-['']",
+        "after:absolute after:inset-0 after:rounded-xl after:content-['']",
       )}
     >
       {children}

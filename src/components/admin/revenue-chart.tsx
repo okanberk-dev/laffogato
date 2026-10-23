@@ -73,8 +73,8 @@ export function labelIndexes(n: number, most: number): Set<number> {
  * 5 px tall, and the value labels sat at a fixed inset that cut the "₺" off
  * at every width. Now the axis column is as wide as its longest label and
  * the plot stretches beside it at a fixed height; the lines keep their
- * width (`non-scaling-stroke`). Labels are the panel's soft ink (8.9:1 on
- * white). Every bucket's figures are in a table under the chart, for touch
+ * width (`non-scaling-stroke`). Labels are the panel's label grey (6.1:1 on
+ * white), as Innex's axes. Every bucket's figures are in a table under the chart, for touch
  * and screen readers alike (the points' tooltips need a mouse). A period
  * with no sales says so instead of drawing ₺0,01 ticks.
  */
@@ -120,7 +120,7 @@ export function RevenueChart({
             each sits centred on its gridline. */}
         <div
           aria-hidden="true"
-          className="-my-[7px] flex flex-col justify-between text-right text-[11px] leading-[14px] text-[var(--admin-text-soft)]"
+          className="-my-[7px] flex flex-col justify-between text-right text-[11px] leading-[14px] text-[var(--admin-text-mute)]"
           style={NUMERIC_STYLE}
         >
           {ticks.map((t) => (
@@ -144,16 +144,17 @@ export function RevenueChart({
                 y2={yAt(t)}
                 stroke="var(--admin-border)"
                 strokeWidth={1}
+                strokeDasharray="4 4"
                 vectorEffect="non-scaling-stroke"
               />
             ))}
-            {/* The money's green (ui/hues.ts), as on the dashboard's ciro
-                tile. */}
-            <path d={area} fill="var(--admin-hue-green)" fillOpacity={0.1} />
+            {/* Innex's revenue line: a 2 px deep blue over a pale lavender
+                fill, on dashed rules (admin/layout.tsx --admin-chart-*). */}
+            <path d={area} fill="var(--admin-chart-fill)" />
             <polyline
               points={points.join(" ")}
               fill="none"
-              stroke="var(--admin-hue-green)"
+              stroke="var(--admin-chart-line)"
               strokeWidth={2}
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -164,7 +165,7 @@ export function RevenueChart({
             <span
               key={d.bucket}
               title={`${d.label}: ${formatTRY(d.revenueMinor)} (${d.orderCount} sipariş)`}
-              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--admin-hue-green)] ring-2 ring-[var(--admin-surface)]"
+              className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--admin-chart-line)] ring-2 ring-[var(--admin-surface)]"
               style={{ left: `${xAt(i)}%`, top: `${yAt(d.revenueMinor)}%` }}
             />
           ))}
@@ -174,7 +175,7 @@ export function RevenueChart({
             wideLabels.has(i) || phoneLabels.has(i) ? (
               <span
                 key={d.bucket}
-                className={`absolute top-0 text-[11px] leading-4 whitespace-nowrap text-[var(--admin-text-soft)] ${
+                className={`absolute top-0 text-[11px] leading-4 whitespace-nowrap text-[var(--admin-text-mute)] ${
                   i === 0
                     ? ""
                     : i === n - 1
@@ -193,7 +194,7 @@ export function RevenueChart({
       </div>
 
       <details className="mt-3">
-        <summary className="inline-flex min-h-[44px] cursor-pointer items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-[var(--admin-text-soft)] underline-offset-4 hover:text-[var(--admin-primary)] hover:underline pointer-fine:min-h-9">
           Tutarları tablo olarak göster
         </summary>
         <table className="mt-1 w-full text-sm">

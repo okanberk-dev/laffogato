@@ -26,11 +26,7 @@ import {
   type PanelSignalAnswer,
 } from "@/lib/admin/panel-signal-core";
 import { forgetRecents } from "@/components/admin/palette/recents";
-import {
-  PaletteTrigger,
-  preloadPalette,
-  SearchIcon,
-} from "@/components/admin/palette/trigger";
+import { PaletteTrigger } from "@/components/admin/palette/trigger";
 import {
   useShortcutPref,
   writeShortcutPref,
@@ -38,14 +34,6 @@ import {
 import { ADMIN_CHANGED_EVENT } from "@/components/admin/ui/admin-changed";
 import { BottomBar } from "@/components/admin/ui/bottom-bar";
 import { Breadcrumbs } from "@/components/admin/ui/breadcrumbs";
-import {
-  GROUP_HUE,
-  HUE_DOT,
-  HUE_INK,
-  HUE_SOFT,
-  HUE_TILE,
-  type AdminHue,
-} from "@/components/admin/ui/hues";
 import { SectionTabs } from "@/components/admin/ui/section-tabs";
 import { SwitchMark } from "@/components/admin/ui/switch-mark";
 import { useToast } from "@/components/admin/ui/toast";
@@ -65,13 +53,7 @@ import {
   sectionTabsFor,
   type NavTab,
 } from "@/lib/admin/nav-match";
-import {
-  isApplePlatform,
-  openPalette,
-  PALETTE_FALLBACK_HREF,
-  paletteShortcutLabel,
-  type PaletteEntry,
-} from "@/lib/admin/palette-shell";
+import type { PaletteEntry } from "@/lib/admin/palette-shell";
 import type { AdminRole } from "@/lib/admin/roles";
 import { singleKeysForRole } from "@/lib/admin/shortcut-roles";
 import {
@@ -366,36 +348,31 @@ function NavPending() {
 }
 
 /*
- * The nav's look is AkmanOS's sidebar (lafmaliyet, 21 Eki 2026), softened
- * the same evening (operator: "yumuşat, daha estetik, biraz renklendir"):
- * the rows sit in a white list box on the stone column, each icon in a
- * small tile of its group's pastel colour (ui/hues.ts), and the current
- * page is its row in that colour, with its tile turned white. It was the
- * one black row.
+ * The nav's look is Innex's sidebar (operator, 22 Eki 2026: "İnnexe geç"):
+ * a white card on the grey ground, a 16 px line icon and a 14 px label per
+ * row, small capitals over each group, and the current page a grey row in
+ * darker ink: no colour and no rule, calm on purpose. It was AkmanOS's
+ * pastel tiles; the groups' colours stay for the dashboard's icon boxes
+ * (ui/hues.ts). 32 px rows where the pointer can aim, 44 px on a touch
+ * screen.
  */
 const ROW =
-  "group/row relative flex min-h-11 items-center gap-2.5 rounded-xl py-1.5 pr-2.5 pl-1.5 text-sm transition-colors duration-200";
+  "group/row relative flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 py-1 text-sm font-medium transition-colors duration-150 pointer-fine:min-h-8";
 const ROW_IDLE =
   "text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)]";
-/** The current row; its ground is the group's colour (HUE_SOFT). */
-const ROW_ACTIVE = "font-medium text-[var(--admin-text)]";
-/** The current row that belongs to no group (the account's Güvenlik). */
-const ROW_ACTIVE_PLAIN = `${ROW_ACTIVE} bg-[var(--admin-primary-soft)]`;
-/** The white list box the rows sit in. */
-const LIST_BOX = "flex flex-col gap-0.5 rounded-2xl bg-[var(--admin-surface)]";
-/** The icon's tile; white, a little raised, in the current row. */
-const TILE =
-  "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-200 group-aria-[current=page]/row:bg-[var(--admin-surface)] group-aria-[current=page]/row:shadow-[0_1px_2px_rgba(28,25,23,0.1)]";
-/** The account block's tiles: no group, no colour. */
-const TILE_PLAIN = "bg-[var(--admin-panel)] text-[var(--admin-text-soft)]";
+/** The current row: Innex's grey ground, the ink at full strength. */
+const ROW_ACTIVE = "bg-[var(--admin-panel)] text-[var(--admin-text)]";
+/** The rows of a group, 2 px apart. */
+const LIST_BOX = "flex flex-col gap-0.5";
 
-function Tile({ name, hue }: { name: string; hue?: AdminHue }) {
+/** A row's icon: muted, then the row's own ink on hover and when current. */
+function RowIcon({ name }: { name: string }) {
   return (
     <span
       aria-hidden="true"
-      className={`${TILE} ${hue ? HUE_TILE[hue] : TILE_PLAIN}`}
+      className="grid size-5 shrink-0 place-items-center text-[var(--admin-text-mute)] transition-colors duration-150 group-hover/row:text-[var(--admin-text-soft)] group-aria-[current=page]/row:text-[var(--admin-text)]"
     >
-      <NavIcon name={name} />
+      <NavIcon name={name} size={16} />
     </span>
   );
 }
@@ -415,14 +392,17 @@ function Tile({ name, hue }: { name: string; hue?: AdminHue }) {
  */
 const SIDE_ID = "admin-side";
 const ROW_RAIL =
-  "group/tip relative flex h-10 w-full items-center justify-center rounded-xl transition-colors duration-200";
-/** The rail's count over the icon; its colour comes from HUE_DOT. */
+  "group/tip relative flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-200";
+/** The rail's count over the icon: white on the primary blue. */
 const BADGE_RAIL =
-  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
+  "pointer-events-none absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-[var(--admin-primary)] px-1 text-center text-[10px] leading-4 font-medium text-white ring-2 ring-[var(--admin-surface)]";
+// The rail card stands 8 px off the window's edge, so the tooltip starts
+// that much further right than the rail's own 4rem.
 const TIP =
-  "fixed top-[var(--tip-y,0px)] left-[3.15rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
+  "fixed top-[var(--tip-y,0px)] left-[3.65rem] z-50 hidden -translate-y-1/2 pl-5 group-hover/tip:block group-focus-visible/tip:block group-data-[tip-off]/tip:hidden!";
+/** Innex's tooltip: white on the dark navy. */
 const TIP_PILL =
-  "block rounded-md bg-[var(--admin-primary)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
+  "block rounded-md bg-[var(--admin-text)] px-2.5 py-1.5 text-xs font-medium whitespace-nowrap text-white shadow-lg";
 
 function RailTip({ children }: { children: ReactNode }) {
   return (
@@ -476,7 +456,7 @@ function RailToggle({
       aria-controls={SIDE_ID}
       {...(rail ? railControl(label) : { "aria-label": label, title: label })}
       className={cx(
-        "grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-text)]",
+        "grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-text-mute)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)] pointer-fine:h-8 pointer-fine:w-8",
         rail ? "group/tip relative" : "mr-2",
       )}
     >
@@ -500,74 +480,6 @@ function RailToggle({
   );
 }
 
-/**
- * The wide ⌘K box at the top of the sidebar (AkmanOS's "Search" row): it
- * opens the same palette as the top bar's trigger (openPalette, heard by
- * PaletteTrigger), and before hydration, or with a modifier key, it is the
- * link to the results page, as the trigger is. The key itself is the
- * trigger's (its aria-keyshortcuts); this box only shows it. Folded, an
- * icon with its tooltip. Only the desktop column draws it: the phone's drawer is a modal
- * the palette would not open over, and its top bar has the trigger.
- */
-function SidebarSearch({ rail }: { rail: boolean }) {
-  const key = useSyncExternalStore(
-    noSubscribe,
-    () => paletteShortcutLabel(isApplePlatform(navigator)),
-    () => null,
-  );
-  const onClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
-      return;
-    }
-    e.preventDefault();
-    openPalette("all");
-  };
-  if (rail) {
-    return (
-      <a
-        href={PALETTE_FALLBACK_HREF}
-        onClick={onClick}
-        aria-haspopup="dialog"
-        data-admin-side-search=""
-        {...railControl("Ara")}
-        onPointerEnter={(e) => {
-          placeTip(e);
-          preloadPalette();
-        }}
-        className="group/tip relative mx-auto grid h-11 w-11 place-items-center rounded-xl bg-[var(--admin-surface)] text-[var(--admin-text-soft)] shadow-[0_0_0_1px_var(--admin-border)] transition-colors duration-200 hover:text-[var(--admin-text)]"
-      >
-        <SearchIcon />
-        <RailTip>Ara</RailTip>
-      </a>
-    );
-  }
-  return (
-    <a
-      href={PALETTE_FALLBACK_HREF}
-      onClick={onClick}
-      onPointerEnter={preloadPalette}
-      onFocus={preloadPalette}
-      aria-label="Ara"
-      aria-haspopup="dialog"
-      data-admin-side-search=""
-      className="flex min-h-11 w-full items-center gap-2.5 rounded-xl bg-[var(--admin-surface)] px-3 text-[var(--admin-text-mute)] shadow-[0_0_0_1px_var(--admin-border)] transition-[color,box-shadow] duration-200 hover:text-[var(--admin-text)] hover:shadow-[0_0_0_1px_var(--admin-border-strong)]"
-    >
-      <SearchIcon />
-      <span className="flex-1 text-left text-sm">Ara</span>
-      {key ? (
-        <kbd
-          className="rounded-md bg-[var(--admin-panel)] px-1.5 py-0.5 text-[11px] leading-4 text-[var(--admin-text-soft)]"
-          style={{
-            fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-          }}
-        >
-          {key}
-        </kbd>
-      ) : null}
-    </a>
-  );
-}
-
 function BadgeCount({ section, n }: { section: string; n: number }) {
   return (
     <>
@@ -577,9 +489,12 @@ function BadgeCount({ section, n }: { section: string; n: number }) {
   );
 }
 
-/** A count: white on the group's ink (HUE_DOT), on any row. */
+/**
+ * A count: Innex's grey pill, right-aligned, 12 px medium. On the current
+ * row (itself grey) the pill turns white.
+ */
 const BADGE_CLASS =
-  "min-w-[22px] rounded-full px-1.5 py-0.5 text-center text-[10px] leading-4 font-medium text-white";
+  "min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs leading-4 font-medium text-[var(--admin-text-soft)]";
 
 /** A badge as a name carries it, for a control that shows only the icon (the rail). */
 function badgeText(section: string, n: number): string {
@@ -627,37 +542,31 @@ export function navNoteVisible(raw: string): boolean {
   return raw !== "1";
 }
 
-const noSubscribe = () => () => {};
-
 /**
  * "Menü sadeleşti": the panel's nav moved into five groups, and some
  * pages became an item's tab; the palette still finds every old name.
  * Said once, in the grouped nav's footer (Personel's five items only lost
  * their headers), until dismissed. The server and the first paint draw
- * nothing (no flash for whoever dismissed it); the stored choice, and the
- * keyboard's own ⌘K or Ctrl K, apply after hydration.
+ * nothing (no flash for whoever dismissed it); the stored choice applies
+ * after hydration. It points at the top bar's search field, not a key
+ * (operator, 22 Eki 2026: the search "not Ctrl K").
  */
 function NavNote() {
   const raw = useSyncExternalStore(subscribeNote, readNoteRaw, () => "1");
-  const key = useSyncExternalStore(
-    noSubscribe,
-    () => paletteShortcutLabel(isApplePlatform(navigator)),
-    () => "⌘K",
-  );
   if (!navNoteVisible(raw)) return null;
   return (
     <div
       role="note"
-      className="mx-3 mb-2 flex items-start gap-2 rounded-2xl bg-[var(--admin-accent-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-accent-ink)]"
+      className="mx-3 mb-2 flex items-start gap-2 rounded-[10px] bg-[var(--admin-primary-soft)] py-2 pr-1 pl-3 text-xs leading-5 text-[var(--admin-primary)]"
     >
       <p className="flex-1 pt-0.5">
-        Menü sadeleşti: eski adlarla da {key} ile bulursun.
+        Menü sadeleşti: eski adlarla da üstteki aramadan bulursun.
       </p>
       <button
         type="button"
         onClick={dismissNavNote}
         aria-label="Notu kapat"
-        className="-my-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-xl text-[var(--admin-accent-ink)] hover:bg-[var(--admin-surface)]"
+        className="-my-1.5 grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[var(--admin-primary)] hover:bg-[var(--admin-surface)] pointer-fine:h-8 pointer-fine:w-8"
       >
         <NavIcon name="close" />
       </button>
@@ -680,7 +589,7 @@ function ShortcutSwitch() {
       onClick={() => writeShortcutPref(!on)}
       className={`${ROW} ${ROW_IDLE} w-full text-left`}
     >
-      <Tile name="shortcuts" />
+      <RowIcon name="shortcuts" />
       <span className="min-w-0 flex-1 truncate">Tek tuş kısayolları</span>
       <SwitchMark on={on} />
     </button>
@@ -707,7 +616,7 @@ function DensitySwitch() {
         onClick={() => writeDensityPref(!on)}
         className={`${ROW} ${ROW_IDLE} w-full text-left`}
       >
-        <Tile name="density" />
+        <RowIcon name="density" />
         <span className="min-w-0 flex-1 truncate">Sıkı görünüm</span>
         <SwitchMark on={on} />
       </button>
@@ -798,10 +707,10 @@ function AccountLinks({
         href="/admin/2fa-kurulum"
         onClick={onNavigate}
         aria-current={securityActive ? "page" : undefined}
-        className={`${ROW} ${securityActive ? ROW_ACTIVE_PLAIN : ROW_IDLE}`}
+        className={`${ROW} ${securityActive ? ROW_ACTIVE : ROW_IDLE}`}
       >
         <NavPending />
-        {icons && <Tile name="security" />}
+        {icons && <RowIcon name="security" />}
         <span className="truncate">Güvenlik / 2FA</span>
       </Link>
       {shortcuts && <ShortcutSwitch />}
@@ -810,7 +719,7 @@ function AccountLinks({
           person on a shared köşk device must not find them. */}
       <form action={logout} onSubmit={() => forgetRecents()}>
         <button type="submit" className={`${ROW} ${ROW_IDLE} w-full`}>
-          {icons && <Tile name="logout" />}
+          {icons && <RowIcon name="logout" />}
           Çıkış
         </button>
       </form>
@@ -854,7 +763,6 @@ export function AdminSidebarBody({
   density = false,
   rail = false,
   onToggleRail,
-  search = false,
 }: Pick<
   SidebarProps,
   "groups" | "email" | "roleLabel" | "landingPath" | "logout"
@@ -873,8 +781,6 @@ export function AdminSidebarBody({
   rail?: boolean;
   /** Folds or unfolds the rail; given, the fold control is drawn. */
   onToggleRail?: () => void;
-  /** The ⌘K box under the brand (the desktop column, for a role it covers). */
-  search?: boolean;
 }) {
   const items = groups.flatMap((g) => g.items);
   // Item and tab hrefs alike: /admin/kategoriler lights Ürünler.
@@ -883,12 +789,6 @@ export function AdminSidebarBody({
     groups.find((g) => g.items.some((i) => i.href === activeHref))?.title ??
     null;
   const flat = navIsFlat(groups);
-  // Each row's colour is its group's (ui/hues.ts), in the flat list too.
-  const hueOf = new Map(
-    groups.flatMap((g) =>
-      g.items.map((i) => [i.href, GROUP_HUE[g.title]] as const),
-    ),
-  );
   const navRef = useRef<HTMLElement>(null);
   // The open page's row stays in sight. The owner's five groups are taller
   // than a laptop's column (1280 x 800-900), so a page under İçerik or
@@ -906,9 +806,10 @@ export function AdminSidebarBody({
     const n = counts[item.section] ?? null;
     const badge = n && n > 0 ? n : null;
     const badgeHref = BADGE_LINKS[item.section];
-    const hue: AdminHue | undefined = hueOf.get(item.href);
-    const current = hue ? `${ROW_ACTIVE} ${HUE_SOFT[hue]}` : ROW_ACTIVE_PLAIN;
-    const count = hue ? HUE_DOT[hue] : "bg-[var(--admin-primary)]";
+    // The count's pill: grey, white on the current (grey) row.
+    const count = active
+      ? "bg-[var(--admin-surface)]"
+      : "bg-[var(--admin-panel)]";
     if (rail) {
       // The icon alone: its name is the label and, with a badge, the count
       // (the pill over the icon is for the eye). One link, not the wide
@@ -919,7 +820,7 @@ export function AdminSidebarBody({
             href={item.href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
-            className={`${ROW_RAIL} ${active ? current : ROW_IDLE}`}
+            className={`${ROW_RAIL} ${active ? ROW_ACTIVE : ROW_IDLE}`}
             {...railControl(
               badge !== null
                 ? `${item.label}, ${badgeText(item.section, badge)}`
@@ -927,15 +828,9 @@ export function AdminSidebarBody({
             )}
           >
             <NavPending />
-            <span className={hue ? HUE_INK[hue] : undefined}>
-              <NavIcon name={item.icon ?? item.section} />
-            </span>
+            <NavIcon name={item.icon ?? item.section} />
             {badge !== null && (
-              <span
-                aria-hidden="true"
-                className={`${BADGE_RAIL} ${count}`}
-                style={MONO}
-              >
+              <span aria-hidden="true" className={BADGE_RAIL} style={MONO}>
                 {badge > 99 ? "99+" : badge}
               </span>
             )}
@@ -950,12 +845,12 @@ export function AdminSidebarBody({
           href={item.href}
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
-          className={`${ROW} ${active ? current : ROW_IDLE} ${
+          className={`${ROW} ${active ? ROW_ACTIVE : ROW_IDLE} ${
             badge !== null && badgeHref ? "pr-12" : ""
           }`}
         >
           <NavPending />
-          <Tile name={item.icon ?? item.section} hue={hue} />
+          <RowIcon name={item.icon ?? item.section} />
           <span className="truncate">{item.label}</span>
           {badge !== null && !badgeHref && (
             <span
@@ -997,24 +892,32 @@ export function AdminSidebarBody({
           rail ? "flex flex-col items-center pb-2" : "flex items-center"
         }
       >
+        {/* Innex's business block: a 32 px round logo, the name and where
+            it is. */}
         <Link
           href={landingPath}
           onClick={onNavigate}
           className={
             rail
-              ? "flex items-center justify-center py-4"
-              : "flex flex-1 items-center gap-2.5 px-5 py-4"
+              ? "flex items-center justify-center py-3.5"
+              : "flex min-w-0 flex-1 items-center gap-2.5 py-3.5 pr-2 pl-4"
           }
           aria-label="L'Affogato Admin"
         >
           <span
-            className="brand-mark h-8"
-            style={{ color: "var(--admin-primary)" }}
             aria-hidden="true"
-          />
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--admin-text)]"
+          >
+            <span className="brand-mark h-3.5" style={{ color: "#FFFFFF" }} />
+          </span>
           {rail ? null : (
-            <span className="text-[11px] font-medium text-[var(--admin-text-mute)]">
-              Yönetim paneli
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-sm font-semibold text-[var(--admin-text)]">
+                L&apos;Affogato
+              </span>
+              <span className="block truncate text-xs text-[var(--admin-text-mute)]">
+                Tuzla, İstanbul
+              </span>
             </span>
           )}
         </Link>
@@ -1022,12 +925,6 @@ export function AdminSidebarBody({
           <RailToggle rail={rail} onToggle={onToggleRail} />
         ) : null}
       </div>
-      {search ? (
-        <div className={rail ? "px-2 pb-1" : "px-3 pb-1"}>
-          <SidebarSearch rail={rail} />
-        </div>
-      ) : null}
-
       {/* Nav. Folded, its scrollbar goes (it would take a quarter of the
           rail); the wheel and the keys still scroll it. */}
       <nav
@@ -1041,7 +938,7 @@ export function AdminSidebarBody({
         )}
       >
         {flat ? (
-          <ul id={`${idPrefix}-nav`} className={`mt-3 ${LIST_BOX} p-1.5`}>
+          <ul id={`${idPrefix}-nav`} className={`mt-3 ${LIST_BOX}`}>
             {items.map(row)}
           </ul>
         ) : (
@@ -1051,19 +948,12 @@ export function AdminSidebarBody({
             const open =
               rail || navGroupOpen(group.title, collapsed, activeGroup);
             const listId = `${idPrefix}-nav-${gi}`;
-            // AkmanOS's small capitals: the one place the panel uses them.
+            // Innex's small capitals over a group: the one place the panel
+            // uses them.
             const titleClass =
-              "text-[11px] font-medium tracking-wide text-[var(--admin-text-mute)] uppercase";
-            // The group's colour, as a dot before its name (ui/hues.ts).
-            const groupHue = GROUP_HUE[group.title];
-            const dot = groupHue ? (
-              <span
-                aria-hidden="true"
-                className={`size-1.5 shrink-0 rounded-full ${HUE_DOT[groupHue]}`}
-              />
-            ) : null;
+              "text-[11px] font-medium tracking-[0.06em] text-[var(--admin-text-mute)] uppercase";
             return (
-              <div key={group.title} className="mb-1">
+              <div key={group.title} className="mb-2">
                 {rail ? (
                   // A rule between groups; the title stays for screen
                   // readers (the list is labelled by it).
@@ -1081,9 +971,8 @@ export function AdminSidebarBody({
                 ) : isActiveGroup || !onToggleGroup ? (
                   <div
                     id={`${listId}-title`}
-                    className={`flex items-center gap-1.5 px-2 pt-4 pb-1.5 ${titleClass}`}
+                    className={`flex items-center px-2.5 pt-4 pb-1.5 ${titleClass}`}
                   >
-                    {dot}
                     {group.title}
                   </div>
                 ) : (
@@ -1093,12 +982,9 @@ export function AdminSidebarBody({
                     aria-expanded={open}
                     aria-controls={listId}
                     onClick={() => onToggleGroup(group.title)}
-                    className={`mt-1 flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2 pt-2 pb-1 text-left hover:text-[var(--admin-text)] ${titleClass}`}
+                    className={`mt-1 flex min-h-9 w-full items-center justify-between gap-2 rounded-lg px-2.5 pt-2 pb-1 text-left hover:text-[var(--admin-text)] ${titleClass}`}
                   >
-                    <span className="flex items-center gap-1.5">
-                      {dot}
-                      {group.title}
-                    </span>
+                    <span>{group.title}</span>
                     <svg
                       width="14"
                       height="14"
@@ -1119,7 +1005,7 @@ export function AdminSidebarBody({
                   id={listId}
                   aria-labelledby={`${listId}-title`}
                   hidden={!open}
-                  className={`${LIST_BOX} ${rail ? "p-1" : "p-1.5"}`}
+                  className={LIST_BOX}
                 >
                   {group.items.map(row)}
                 </ul>
@@ -1149,10 +1035,10 @@ export function AdminSidebarBody({
       ) : (
         <>
           {!flat && <NavNote />}
-          {/* One row, lafmaliyet's profile menu (TASARIM.md §3): the
-              block took about 300 px and left the nav a third of a laptop
-              screen. The row opens the same controls upward. */}
-          <div className="px-3 pt-1 pb-3">
+          {/* One row, Innex's user card under a rule: the block took
+              about 300 px and left the nav a third of a laptop screen. The
+              row opens the same controls upward. */}
+          <div className="mx-3 border-t border-[var(--admin-border)] pt-2 pb-2">
             <AccountMenu
               email={email}
               roleLabel={roleLabel}
@@ -1170,9 +1056,9 @@ export function AdminSidebarBody({
   );
 }
 
-/** The account's initial on a black tile (the rail's and the profile row's). */
+/** The account's initial in Innex's round avatar (the rail's and the profile row's). */
 const AVATAR =
-  "grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--admin-primary)] text-xs font-semibold text-white";
+  "grid size-7 shrink-0 place-items-center rounded-full bg-[var(--admin-primary-soft)] text-xs font-semibold text-[var(--admin-primary)]";
 
 /**
  * The account menu: the cashier's in the top bar (no sidebar to hold it),
@@ -1237,7 +1123,7 @@ function AccountMenu({
       {rail ? (
         <summary
           {...railControl("Hesap")}
-          className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-xl select-none hover:bg-[var(--admin-surface)] [&::-webkit-details-marker]:hidden"
+          className="group/tip relative mx-auto grid h-11 w-11 cursor-pointer list-none place-items-center rounded-lg select-none hover:bg-[var(--admin-panel)] pointer-fine:h-9 pointer-fine:w-9 [&::-webkit-details-marker]:hidden"
         >
           <span aria-hidden="true" className={AVATAR}>
             {initial}
@@ -1247,7 +1133,7 @@ function AccountMenu({
       ) : side ? (
         <summary
           aria-label={`Hesap: ${props.email}, ${props.roleLabel}`}
-          className="flex min-h-12 cursor-pointer list-none items-center gap-2.5 rounded-2xl bg-[var(--admin-surface)] py-1.5 pr-2 pl-1.5 transition-colors duration-200 select-none hover:bg-[color-mix(in_srgb,var(--admin-surface)_60%,var(--admin-panel))] [&::-webkit-details-marker]:hidden"
+          className="flex min-h-11 cursor-pointer list-none items-center gap-2.5 rounded-lg px-1.5 py-1.5 transition-colors duration-150 select-none group-open/acct:bg-[var(--admin-panel)] hover:bg-[var(--admin-surface-2)] [&::-webkit-details-marker]:hidden"
         >
           <span aria-hidden="true" className={AVATAR}>
             {initial}
@@ -1256,7 +1142,7 @@ function AccountMenu({
             <span className="block truncate text-[13px] font-medium text-[var(--admin-text)]">
               {props.email}
             </span>
-            <span className="block truncate text-[11px] text-[var(--admin-text-mute)]">
+            <span className="block truncate text-xs text-[var(--admin-text-mute)]">
               {props.roleLabel}
             </span>
           </span>
@@ -1276,7 +1162,7 @@ function AccountMenu({
           </svg>
         </summary>
       ) : (
-        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] px-3 text-sm text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] [&::-webkit-details-marker]:hidden">
           Hesap
           <svg
             width="14"
@@ -1297,7 +1183,7 @@ function AccountMenu({
       <section
         aria-label="Hesap"
         className={cx(
-          "absolute z-40 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] p-2 shadow-[0_12px_40px_rgba(28,25,23,0.14)]",
+          "absolute z-40 rounded-[10px] border border-[var(--admin-border)] bg-[var(--admin-surface)] p-1 shadow-[0_8px_24px_rgba(12,14,27,0.10)]",
           rail
             ? "bottom-0 left-full ml-3 w-64 max-w-[calc(100vw-5rem)]"
             : side
@@ -1350,7 +1236,7 @@ function SkipLink() {
       href="#admin-main"
       onClick={(e) => skipToContent(e, document.getElementById("admin-main"))}
       data-admin-skip-link=""
-      className="fixed top-2 left-2 z-50 inline-flex min-h-11 -translate-y-[calc(100%+1rem)] items-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-medium whitespace-nowrap text-white transition-transform focus:translate-y-0 motion-reduce:transition-none print:hidden"
+      className="fixed top-2 left-2 z-50 inline-flex min-h-11 -translate-y-[calc(100%+1rem)] items-center rounded-lg bg-[var(--admin-primary)] px-4 text-sm font-medium whitespace-nowrap text-white transition-transform focus:translate-y-0 motion-reduce:transition-none print:hidden"
     >
       İçeriğe geç
     </a>
@@ -1409,14 +1295,15 @@ const DRAWER_ID = "admin-nav-drawer";
 const LOGO_SMALL = (
   <>
     <span
-      className="brand-mark h-7"
-      style={{ color: "var(--admin-primary)" }}
       aria-hidden="true"
-    />
+      className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--admin-text)]"
+    >
+      <span className="brand-mark h-3.5" style={{ color: "#FFFFFF" }} />
+    </span>
     {/* The link is named "L'Affogato Admin"; the word goes below 380 px,
         where the top bar's controls did not fit beside it and the page
         scrolled sideways (360 px Android phones). */}
-    <span className="text-[11px] font-medium text-[var(--admin-text-mute)] max-[379px]:hidden">
+    <span className="text-sm font-semibold text-[var(--admin-text)] max-[379px]:hidden">
       Yönetim
     </span>
   </>
@@ -1424,36 +1311,29 @@ const LOGO_SMALL = (
 
 type BodyProps = Omit<
   ComponentProps<typeof AdminSidebarBody>,
-  "idPrefix" | "rail" | "onToggleRail" | "search"
+  "idPrefix" | "rail" | "onToggleRail"
 >;
 
 /**
- * The laptop sidebar: 17.5rem, or the rail's 4rem once the shell wrote
- * `data-admin-rail` on the admin root (the layout's `--admin-side`; the top
- * bar, the tab strip, the page's left edge and the bulk bar follow the same
- * variable). Its own component, so the cashier's one-page shell never reads
- * the preference. The server and hydration draw it wide.
+ * The laptop sidebar, Innex's white card on the grey ground, 8 px from the
+ * window: 15.5rem, or the rail's 4rem once the shell wrote
+ * `data-admin-rail` on the admin root (the layout's `--admin-side`; the page
+ * card's left edge and the bulk bar follow the same variable). Its own
+ * component, so the cashier's one-page shell never reads the preference.
+ * The server and hydration draw it wide.
  */
-function DesktopAside({
-  body,
-  search,
-}: {
-  body: BodyProps;
-  /** The ⌘K box under the brand, for a role the palette covers. */
-  search: boolean;
-}) {
+function DesktopAside({ body }: { body: BodyProps }) {
   const rail = useRailPref();
   return (
     <aside
       id={SIDE_ID}
-      className="fixed inset-y-0 left-0 z-30 hidden w-[var(--admin-side,17.5rem)] border-r border-[var(--admin-border)] bg-[var(--admin-panel)] lg:block print:hidden"
+      className="fixed top-2 bottom-[calc(var(--admin-bottom-inset,0px)+0.5rem)] left-2 z-30 hidden w-[var(--admin-side,15.5rem)] rounded-xl bg-[var(--admin-surface)] lg:block print:hidden"
     >
       <AdminSidebarBody
         {...body}
         idPrefix="side"
         rail={rail}
         onToggleRail={() => writeRailPref(!rail)}
-        search={search}
       />
     </aside>
   );
@@ -1549,7 +1429,7 @@ export function AdminSidebar(props: SidebarProps) {
         <Suspense fallback={null}>
           <DeniedNotice />
         </Suspense>
-        <header className="sticky top-0 z-30 flex min-h-[60px] items-center gap-3 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur-md sm:px-6 lg:bg-[var(--admin-surface)] lg:backdrop-blur-none print:hidden">
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur-md sm:px-5 lg:static lg:rounded-t-xl lg:bg-transparent lg:backdrop-blur-none print:hidden">
           <Link
             href={props.landingPath}
             className="flex min-h-11 shrink-0 items-center gap-2"
@@ -1619,15 +1499,17 @@ export function AdminSidebar(props: SidebarProps) {
       <ViewPrefs />
 
       {/* Desktop sidebar */}
-      <DesktopAside body={body} search={Boolean(palette)} />
+      <DesktopAside body={body} />
 
       {/* Top bar: on a phone the menu button and the logo; on a wide screen
-          the breadcrumbs. Then the search and the bar's own controls. */}
+          the breadcrumbs, or an item's tabs on a tab's own page. Then the
+          search and the bar's own controls. From `lg` it is the page card's
+          first strip (Innex), 56 px over a 1 px line. */}
       <header
-        className={`sticky top-0 z-30 flex min-h-[60px] items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:ml-[var(--admin-side,17.5rem)] lg:gap-4 lg:bg-[var(--admin-surface)] lg:px-6 lg:backdrop-blur-none print:hidden ${
-          // On a wide screen the bar is breadcrumbs, search and controls; a
-          // role with neither search nor controls has nothing to put there.
-          palette || props.actions ? "" : "lg:hidden"
+        className={`sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-[var(--admin-border)] bg-white/90 px-4 py-2 backdrop-blur lg:static lg:gap-4 lg:rounded-t-xl lg:bg-transparent lg:px-5 lg:py-0 lg:backdrop-blur-none print:hidden ${
+          // On a wide screen the bar is breadcrumbs or tabs, search and
+          // controls; a role with none of them has nothing to put there.
+          palette || props.actions || strip ? "" : "lg:hidden"
         }`}
       >
         <button
@@ -1638,7 +1520,7 @@ export function AdminSidebar(props: SidebarProps) {
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={DRAWER_ID}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] lg:hidden"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:border-[var(--admin-border-strong)] hover:text-[var(--admin-text)] lg:hidden pointer-fine:h-9 pointer-fine:w-9"
         >
           <NavIcon name="drawer" />
         </button>
@@ -1649,7 +1531,17 @@ export function AdminSidebar(props: SidebarProps) {
         >
           {LOGO_SMALL}
         </Link>
-        <Breadcrumbs items={navLinks} className="hidden flex-1 lg:block" />
+        {strip ? (
+          <SectionTabs
+            inBar
+            label={`${strip.item.label} bölümleri`}
+            tabs={strip.tabs}
+            activeHref={strip.activeHref}
+            className="hidden lg:block"
+          />
+        ) : (
+          <Breadcrumbs items={navLinks} className="hidden flex-1 lg:block" />
+        )}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {topBarEnd}
         </div>
@@ -1661,17 +1553,18 @@ export function AdminSidebar(props: SidebarProps) {
       {strip ? null : (
         <Breadcrumbs
           items={navLinks}
-          className="px-4 pt-3 sm:px-6 lg:hidden print:hidden [body:has([data-admin-back])_&]:hidden"
+          className="px-4 pt-3 sm:px-5 lg:hidden print:hidden [body:has([data-admin-back])_&]:hidden"
         />
       )}
       {/* An item's tabs, on a tab's own page only (not on /yeni or a
-          record below it). */}
+          record below it): the phone's strip under the bar; from `lg` they
+          are in the bar itself. */}
       {strip && (
         <SectionTabs
           label={`${strip.item.label} bölümleri`}
           tabs={strip.tabs}
           activeHref={strip.activeHref}
-          className="mt-3 lg:mt-0 lg:ml-[var(--admin-side,17.5rem)] print:hidden"
+          className="lg:hidden print:hidden"
         />
       )}
 
@@ -1687,8 +1580,8 @@ export function AdminSidebar(props: SidebarProps) {
         }}
         onMouseDown={onBackdropDown}
         onClick={onBackdropClick}
-        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-panel)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(28,25,23,0.18)] backdrop:bg-[rgba(28,25,23,0.32)] lg:hidden print:hidden"
-        style={{ fontFamily: "var(--font-geist-sans), var(--sans)" }}
+        className="m-0 h-dvh max-h-none w-[80%] max-w-[300px] border-0 border-r border-[var(--admin-border)] bg-[var(--admin-surface)] p-0 text-[var(--admin-text)] shadow-[0_12px_40px_rgba(12,14,27,0.18)] backdrop:bg-[rgba(12,14,27,0.2)] lg:hidden print:hidden"
+        style={{ fontFamily: "var(--font-admin-sans), var(--sans)" }}
       >
         {open && (
           <>
@@ -1696,7 +1589,7 @@ export function AdminSidebar(props: SidebarProps) {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Menüyü kapat"
-              className="absolute top-2 right-2 z-10 grid h-11 w-11 place-items-center rounded-xl bg-[var(--admin-surface)] text-[var(--admin-text-soft)] hover:text-[var(--admin-text)]"
+              className="absolute top-2 right-2 z-10 grid h-11 w-11 place-items-center rounded-lg text-[var(--admin-text-mute)] hover:bg-[var(--admin-panel)] hover:text-[var(--admin-text)] pointer-fine:h-9 pointer-fine:w-9"
             >
               <NavIcon name="close" />
             </button>

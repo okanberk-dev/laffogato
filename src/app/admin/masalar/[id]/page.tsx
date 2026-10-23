@@ -81,7 +81,7 @@ export default async function CafeTablePage({ params }: PageProps) {
   ];
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-5xl">
       <BackLink href={CAFE_TABLES_PATH}>Masalar</BackLink>
 
       <header className="mb-6 flex flex-col gap-3">
@@ -105,7 +105,7 @@ export default async function CafeTablePage({ params }: PageProps) {
             {/* The SVG is the qrcode library's output for our own URL - no
                 user text reaches it (the code is server-drawn base32). */}
             <div
-              className={`aspect-square w-full max-w-[16rem] rounded-xl border border-[var(--admin-border)] bg-white p-2 [&_svg]:h-full [&_svg]:w-full ${table.isActive ? "" : "opacity-40"}`}
+              className={`aspect-square w-full max-w-[16rem] rounded-lg border border-[var(--admin-border)] bg-white p-2 [&_svg]:h-full [&_svg]:w-full ${table.isActive ? "" : "opacity-40"}`}
               role="img"
               aria-label={`${table.name} QR kodu`}
               dangerouslySetInnerHTML={{ __html: svg }}

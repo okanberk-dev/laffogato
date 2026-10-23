@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "@/components/admin/forms";
 import { TwoFAEnrollForm } from "@/components/admin/twofa-enroll-form";
-import { NUMERIC_STYLE } from "@/components/admin/ui/styles";
+import { CODE_STYLE, NUMERIC_STYLE } from "@/components/admin/ui/styles";
 import { getAdminSession } from "@/lib/admin/auth";
 import { has2FA, startEnrollment } from "@/lib/admin/twofa";
 
@@ -25,7 +25,7 @@ export default async function TwoFAEnrollPage() {
 
   if (enabled) {
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
         <PageHeader
           eyebrow="Güvenlik"
           title="İki adımlı doğrulama açık"
@@ -90,7 +90,7 @@ export default async function TwoFAEnrollPage() {
     : "";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+    <main className="w-full px-4 pt-5 pb-10 sm:px-5 [&>:not(header)]:max-w-3xl">
       <PageHeader
         eyebrow="Güvenlik"
         title="İki adımlı doğrulamayı kur"
@@ -120,7 +120,7 @@ export default async function TwoFAEnrollPage() {
               </div>
               <div
                 className="mt-1 text-xs break-all text-[var(--admin-text-soft)]"
-                style={NUMERIC_STYLE}
+                style={CODE_STYLE}
               >
                 {draft.secret}
               </div>

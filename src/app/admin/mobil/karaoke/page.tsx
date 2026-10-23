@@ -210,7 +210,7 @@ export default async function AdminKaraokePage({ searchParams }: PageProps) {
       {list.counts.dikkat > 0 && tab !== "dikkat" ? (
         <p
           role="status"
-          className="mb-4 rounded-xl bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
+          className="mb-4 rounded-lg bg-[var(--admin-warning-soft)] px-4 py-3 text-sm text-[var(--admin-warning)]"
         >
           {list.counts.dikkat} rezervasyon bir işlem bekliyor.{" "}
           <Link

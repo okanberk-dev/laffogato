@@ -540,7 +540,7 @@ describe("the customer card on the kit (ORD-11, ORD-05)", () => {
   it("is a kit Section, with no legacy Card, pills or raw greys", () => {
     const out = detail(order());
     expect(out).toMatch(
-      /<h2[^>]*class="text-base font-semibold[^"]*">Müşteri<\/h2>/,
+      /<h2[^>]*class="text-\[15px\] leading-6 font-semibold[^"]*">Müşteri<\/h2>/,
     );
     const src = readFileSync(
       "src/components/admin/order-customer-editor.tsx",

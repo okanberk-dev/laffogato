@@ -14,7 +14,7 @@ export function DashboardNotice({
   children: ReactNode;
 }) {
   return (
-    <div className={cx("mb-4 rounded-xl px-4 py-3 text-sm", TONE_SOFT[tone])}>
+    <div className={cx("mb-4 rounded-lg px-4 py-3 text-sm", TONE_SOFT[tone])}>
       {children}
     </div>
   );

@@ -11,8 +11,6 @@ import {
   type BottomBarSlot,
 } from "@/lib/admin/bottom-bar-core";
 
-import { HUE_DOT, HUE_TILE, hueOfSection } from "./hues";
-
 /* Lucide through the nav's own lazy chunk (nav-icon.tsx), as in the
    sidebar: this file is in the shell, and the shell is in every admin
    page's bundle, /admin/kasa included. */
@@ -27,17 +25,16 @@ const MONO = { fontFamily: "var(--mono), monospace" } as const;
 const SLOT =
   "relative flex min-h-11 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-[11px] leading-4 transition-colors max-[359px]:text-[10px]";
 const SLOT_IDLE =
-  "text-[var(--admin-text-soft)] hover:text-[var(--admin-primary)]";
+  "text-[var(--admin-text-mute)] hover:text-[var(--admin-text)]";
 const SLOT_ACTIVE = "font-semibold text-[var(--admin-text)]";
 /**
- * The pill behind the icon; on the current page's slot it is the page's
- * soft colour under its ink (ui/hues.ts), as the sidebar's current row. It
- * was black under a white icon (AkmanOS's active state).
+ * The pill behind the icon; on the current page's slot it is Innex's grey,
+ * as the sidebar's current row (22 Eki 2026). It was the page's pastel
+ * colour, and before that black under a white icon (AkmanOS).
  */
 const PILL =
   "relative grid h-7 w-12 place-items-center rounded-full transition-colors duration-200";
-/** "Tümü", which belongs to no group. */
-const PILL_ACTIVE_PLAIN = "bg-[var(--admin-primary-soft)]";
+const PILL_ACTIVE = "bg-[var(--admin-panel)]";
 
 /** A tapped slot's answer while its page loads (the sidebar's NavPending). */
 function SlotPending() {
@@ -140,7 +137,7 @@ export function BottomBar({
                   aria-controls={drawerId}
                   className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
                 >
-                  <span className={cx(PILL, lit && PILL_ACTIVE_PLAIN)}>
+                  <span className={cx(PILL, lit && PILL_ACTIVE)}>
                     <NavIcon name="drawer" />
                   </span>
                   <span className="max-w-full truncate">
@@ -154,7 +151,6 @@ export function BottomBar({
           const n = counts[item.section] ?? null;
           const badge = n !== null && n > 0 ? n : null;
           const title = badgeTitles[item.section];
-          const hue = hueOfSection(item.section);
           return (
             <li key={item.href} className="flex min-w-0 flex-1 items-center">
               <Link
@@ -163,18 +159,10 @@ export function BottomBar({
                 className={cx(SLOT, lit ? SLOT_ACTIVE : SLOT_IDLE)}
               >
                 <SlotPending />
-                <span
-                  className={cx(
-                    PILL,
-                    lit && (hue ? HUE_TILE[hue] : PILL_ACTIVE_PLAIN),
-                  )}
-                >
+                <span className={cx(PILL, lit && PILL_ACTIVE)}>
                   <NavIcon name={item.icon ?? item.section} />
                   {badge !== null ? (
-                    <Badge
-                      n={badge}
-                      tint={hue ? HUE_DOT[hue] : "bg-[var(--admin-primary)]"}
-                    />
+                    <Badge n={badge} tint="bg-[var(--admin-primary)]" />
                   ) : null}
                 </span>
                 <span className="max-w-full truncate">{item.label}</span>

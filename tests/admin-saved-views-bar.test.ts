@@ -145,7 +145,7 @@ describe("without views the bar is what it was", () => {
   const LI =
     'class="inline-flex items-center gap-1 rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface)] py-1 pr-1 pl-3 text-xs text-[var(--admin-text-soft)]"';
   const X =
-    "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:outline-none";
+    "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm leading-none text-[var(--admin-text-soft)] hover:bg-[var(--admin-surface-2)] hover:text-[var(--admin-text)] focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/45 focus-visible:outline-none";
   const CHIPS =
     '<ul aria-label="Etkin filtreler" class="mt-2 flex flex-wrap gap-2">' +
     `<li ${LI}><span>Ara: <strong class="font-medium text-[var(--admin-text)]">ayşe</strong></span>` +
