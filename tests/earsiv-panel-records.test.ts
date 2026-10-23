@@ -122,17 +122,18 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
       flat94.indexOf("2. **Karşı tarafın"),
     );
     for (const claim of [
-      "İkisi de eşitleme penceresiyle sınırlıdır",
-      "~75 gün",
-      "çalıştırma başına en çok 8 kayıt",
-      "yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra",
+      "~75 gün geride durur (eşitleme penceresi)",
+      "yalnız bu pencere içindeyse ve yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra yeniden okunur",
       "pencereden eski kayıtlardan yalnız ödenmemiş olanlar",
+      "çalıştırma başına en çok 8 kayıt",
       "Paraşüt'ten açtığı kaydı siler",
       "bağını çözüp kontrol notu düşer",
       "varsayılan listede gelip gelmediği doğrulanmadı",
       "yalnız bu dar yeniden okumaya bırakır; kullanılmamalıdır",
       "`refund`'lar ödenmiş açılır",
-      "süzgeçle de süzgeçsiz de görmez",
+      "günlük eşitleme süzgeçle de süzgeçsiz de görmez",
+      '"Tarihten eşitle" düğmesi, kayıttan önceki bir tarihle, görür',
+      '"Oturumu sıfırla" pencereyi `PARASUT_SYNC_FROM`\'a ya da yılbaşına çeker, genişletmez',
     ]) {
       expect(rule1, claim).toContain(claim);
     }
@@ -144,6 +145,11 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
     );
     expect(rule1).not.toMatch(/[iİ]ki yolda da[^.]*siler/);
     expect(rule1).not.toMatch(/listede her zaman gelir/i);
+    // "Oturumu sıfırla" resets the window to PARASUT_SYNC_FROM or 1 January
+    // (lafmaliyet sync.ts windowStart): it widens nothing, re-reads nothing.
+    expect(rule1).not.toMatch(
+      /"Oturumu sıfırla"[^.;]*(genişletir|baştan okur|yakalar|görür)/,
+    );
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {

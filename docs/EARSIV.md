@@ -525,18 +525,20 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
    edilen faturayı iki yoldan görür: listede `item_type: "cancelled"`
    gelen kayıt ve listede artık görünmeyen kayıtlarının tek tek yeniden
    okunması (`GET purchase_bills/{id}`; lafmaliyet `shouldImport`,
-   `retire`). İkisi de eşitleme penceresiyle sınırlıdır: liste en yeni
-   kaydın tarihinden ~75 gün geride durur. Yeniden okuma daha da dardır:
-   çalıştırma başına en çok 8 kayıt, yalnız yarıda kalıp sürdürülmemiş tam
-   bir turdan sonra; pencereden eski kayıtlardan yalnız ödenmemiş olanlar.
-   Paraşüt'ten açtığı kaydı siler, Excel'den ya da elle girilmiş kaydın
-   bağını çözüp kontrol notu düşer. İptal edilen faturanın varsayılan
-   listede gelip gelmediği doğrulanmadı. `filter[item_type]=purchase_bill`
-   penceredeki iptali ve `refund` kayıtların güncellenmesini yalnız bu dar
-   yeniden okumaya bırakır; kullanılmamalıdır. Pencereden eski, ödenmiş bir
-   kaydın iptalini (bütün `refund`'lar ödenmiş açılır) günlük eşitleme
-   süzgeçle de süzgeçsiz de görmez; panelin "Tarihten eşitle" ya da
-   "Oturumu sıfırla" düğmesi pencereyi genişletir.
+   `retire`). Liste en yeni kaydın tarihinden ~75 gün geride durur
+   (eşitleme penceresi). Listede görünmeyen kayıt yalnız bu pencere
+   içindeyse ve yalnız yarıda kalıp sürdürülmemiş tam bir turdan sonra
+   yeniden okunur; pencereden eski kayıtlardan yalnız ödenmemiş olanlar;
+   ikisi birlikte çalıştırma başına en çok 8 kayıt. Paraşüt'ten açtığı
+   kaydı siler, Excel'den ya da elle girilmiş kaydın bağını çözüp kontrol
+   notu düşer. İptal edilen faturanın varsayılan listede gelip gelmediği
+   doğrulanmadı. `filter[item_type]=purchase_bill` penceredeki iptali ve
+   `refund` kayıtların güncellenmesini yalnız bu dar yeniden okumaya
+   bırakır; kullanılmamalıdır. Pencereden eski, ödenmiş bir kaydın iptalini
+   (bütün `refund`'lar ödenmiş açılır) günlük eşitleme süzgeçle de
+   süzgeçsiz de görmez. Onu yalnız panelin "Tarihten eşitle" düğmesi,
+   kayıttan önceki bir tarihle, görür; "Oturumu sıfırla" pencereyi
+   `PARASUT_SYNC_FROM`'a ya da yılbaşına çeker, genişletmez.
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
    (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
    Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi
