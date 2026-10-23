@@ -48,8 +48,6 @@ import {
 
 import type { ReactNode } from "react";
 
-import { cx } from "@/components/laffogato/cx";
-
 import { formatDateTime, formatTRY } from "./forms";
 import {
   ItemStatusSelect,
@@ -65,8 +63,10 @@ import {
   Section,
   Timeline,
 } from "./ui";
+import { DetailLayout } from "./ui/detail-layout";
 import { DetailTabs, type DetailTab } from "./ui/detail-tabs";
-import { CARD, MONO_STYLE, NUMERIC_STYLE } from "./ui/styles";
+import { SummaryCard, type SummaryChip } from "./ui/summary-card";
+import { MONO_STYLE } from "./ui/styles";
 
 interface Props {
   order: AdminOrder;
@@ -890,10 +890,7 @@ function OrderMoneySummary({
         : refunded > 0
           ? { label: "Net tutar", value: order.totalMinor - refunded }
           : { label: "Toplam", value: order.totalMinor };
-  const chips: Array<{
-    label: string;
-    tone?: "success" | "warning" | "danger";
-  }> = [];
+  const chips: SummaryChip[] = [];
   if (hero.label !== "Toplam") {
     chips.push({ label: `Toplam ${formatTRY(order.totalMinor)}` });
   }
@@ -910,7 +907,7 @@ function OrderMoneySummary({
   }
   const paid = payments.find((p) => p.status === "succeeded");
   // Where it goes is the Teslimat card's, right under this one.
-  const facts: Array<[string, ReactNode]> = [
+  const facts: Array<readonly [string, ReactNode]> = [
     ["Sipariş", formatDateTime(order.createdAt)],
     [
       "Ödeme",
@@ -926,59 +923,13 @@ function OrderMoneySummary({
     ],
   ];
   return (
-    <section aria-label="Tutar" className={cx(CARD, "p-4 sm:p-5")}>
-      <div className="rounded-[10px] bg-[var(--admin-surface-2)] p-4">
-        <p className="text-[13px] font-medium text-[var(--admin-text-mute)]">
-          {hero.label}
-        </p>
-        <p
-          className={cx(
-            "mt-1 text-[1.75rem] leading-tight font-bold tracking-[-0.01em] [overflow-wrap:anywhere]",
-            "tone" in hero && hero.tone === "danger"
-              ? "text-[var(--admin-danger-ink)]"
-              : "tone" in hero && hero.tone === "warning"
-                ? "text-[var(--admin-warning)]"
-                : "text-[var(--admin-text)]",
-          )}
-          style={NUMERIC_STYLE}
-        >
-          {formatTRY(hero.value)}
-        </p>
-        <ul className="mt-3 flex flex-wrap gap-1.5">
-          {chips.map((chip) => (
-            <li
-              key={chip.label}
-              className={cx(
-                "rounded-md border px-2 py-0.5 text-xs font-medium",
-                chip.tone === "success"
-                  ? "border-transparent bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
-                  : chip.tone === "warning"
-                    ? "border-transparent bg-[var(--admin-warning-soft)] text-[var(--admin-warning)]"
-                    : chip.tone === "danger"
-                      ? "border-transparent bg-[var(--admin-danger-soft)] text-[var(--admin-danger-ink)]"
-                      : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-soft)]",
-              )}
-              style={NUMERIC_STYLE}
-            >
-              {chip.label}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <dl className="mt-4 flex flex-col gap-2.5 text-sm">
-        {facts.map(([label, value]) => (
-          <div
-            key={label}
-            className="flex items-baseline justify-between gap-4"
-          >
-            <dt className="shrink-0 text-[var(--admin-text-mute)]">{label}</dt>
-            <dd className="min-w-0 text-right [overflow-wrap:anywhere] text-[var(--admin-text)]">
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <SummaryCard
+      label={hero.label}
+      value={formatTRY(hero.value)}
+      tone={"tone" in hero ? hero.tone : undefined}
+      chips={chips}
+      facts={facts}
+    />
   );
 }
 
@@ -1079,49 +1030,51 @@ export function OrderDetail({
           lines are a scroll away, not under four cards. From xl the money
           and the people share the left column and the tabs take the right
           one, the whole height. */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-rows-[auto_1fr] print:hidden">
-        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+      <DetailLayout
+        className="print:hidden"
+        summary={
           <OrderMoneySummary
             order={order}
             money={money}
             payments={payments}
             owedMinor={owedMinor}
           />
-        </div>
-
-        <div className="min-w-0 xl:col-start-2 xl:row-span-2 xl:row-start-1">
+        }
+        tabs={
           <DetailTabs
             label="Sipariş ayrıntıları"
             tabs={tabs}
             initial={initialTab}
           />
-        </div>
-
-        <aside
-          aria-label="Müşteri ve teslimat"
-          className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-4 md:grid-cols-2 xl:col-start-1 xl:row-start-2 xl:grid-cols-[minmax(0,1fr)]"
-        >
-          <OrderCustomerEditor
-            orderId={order.id}
-            customerName={order.customerName}
-            customerEmail={order.customerEmail}
-            customerPhone={order.customerPhone}
-            shippingAddress={order.shippingAddress}
-            hasAddress={orderHasAddress(order)}
-            customerHref={customerHref}
-            rules={detailsRules}
-          />
-          <DeliverySection
-            order={order}
-            canEditAddress={detailsRules.editable}
-          />
-          <div className="min-w-0 md:col-span-2 xl:col-span-1">
-            <Section title="İç not">
-              <OrderNoteForm orderId={order.id} initial={order.internalNote} />
-            </Section>
-          </div>
-        </aside>
-      </div>
+        }
+        asideLabel="Müşteri ve teslimat"
+        aside={
+          <>
+            <OrderCustomerEditor
+              orderId={order.id}
+              customerName={order.customerName}
+              customerEmail={order.customerEmail}
+              customerPhone={order.customerPhone}
+              shippingAddress={order.shippingAddress}
+              hasAddress={orderHasAddress(order)}
+              customerHref={customerHref}
+              rules={detailsRules}
+            />
+            <DeliverySection
+              order={order}
+              canEditAddress={detailsRules.editable}
+            />
+            <div className="min-w-0 md:col-span-2 xl:col-span-1">
+              <Section title="İç not">
+                <OrderNoteForm
+                  orderId={order.id}
+                  initial={order.internalNote}
+                />
+              </Section>
+            </div>
+          </>
+        }
+      />
 
       {/* Print-only receipt - hidden in normal flow, revealed by @media print */}
       <PrintableReceipt order={order} settings={settings} payments={payments} />

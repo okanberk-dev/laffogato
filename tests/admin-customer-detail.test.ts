@@ -389,8 +389,10 @@ describe("member page layout and words (package 4b)", () => {
   it("lets a long address wrap instead of widening a phone screen (PEO-03)", async () => {
     h.member = member();
     const html = await render(MEMBER_URL);
-    // Every column track can shrink below its content...
-    expect(html).toContain("xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]");
+    // Every column track can shrink below its content (the three zones:
+    // DetailLayout's summary column and its tabs)...
+    expect(html).toContain("xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)]");
+    expect(html).toContain("grid grid-cols-[minmax(0,1fr)] gap-5");
     expect(html).not.toContain("grid-cols-[90px_1fr]");
     // The side cards' own grids shrink too: the stamp history line kept
     // the Sadakat card wider than its column at 390 and at 1280 px.
@@ -402,6 +404,25 @@ describe("member page layout and words (package 4b)", () => {
     );
     // The title of a guest without a name is the address: it wraps too.
     expect(html).toContain("[&amp;_h1]:[overflow-wrap:anywhere]");
+  });
+
+  it("leads with the spend and how to reach them, the record in tabs (Innex's person card)", async () => {
+    h.member = member();
+    h.orders = [order(10001, "completed", 30_000)];
+    const html = await render(MEMBER_URL);
+    expect(html).toMatch(
+      /aria-label="Özet"[^>]*><div[^>]*><p[^>]*>Toplam harcama<\/p>/,
+    );
+    expect(html).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>Siparişler/);
+    for (const tab of ["Karaoke", "Sadakat", "Profil"]) {
+      expect(html, tab).toMatch(new RegExp(`role="tab"[^>]*>${tab}`));
+    }
+    // The account's controls stand beside the summary, not in a tab.
+    expect(html).toMatch(/<aside aria-label="Hesap"[^>]*>[\s\S]*Yönetim/);
+    // A guest has no Sadakat or Profil to show.
+    h.member = null;
+    const guest = await render(MEMBER_URL);
+    expect(guest).not.toMatch(/role="tab"[^>]*>Sadakat/);
   });
 
   it("uses the kit's lists, buttons, tokens and words (PEO-10/17/18/20/21)", async () => {

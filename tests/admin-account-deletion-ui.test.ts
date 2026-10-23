@@ -186,7 +186,8 @@ describe("the member page", () => {
     expect(t).toContain("Silme talebi · 18 Ekim 2026");
     expect(t).toContain("17 Kasım 2026");
     expect(t).toContain("Şehir değiştiriyorum");
-    expect(t).toMatch(/Durum Silme talebi/);
+    // The account's state is the summary's first chip, under the money.
+    expect(t).toMatch(/Toplam harcama ₺[\d.,]+ Silme talebi /);
     // One "Hesabı sil", drawn primary (the kit's primary class), not danger.
     const del = triggers(html, "Hesabı sil");
     expect(del).toHaveLength(1);
