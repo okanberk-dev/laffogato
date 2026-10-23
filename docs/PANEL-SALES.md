@@ -43,7 +43,8 @@ Site kendi Raporlar ve Gün sonu ekranlarıyla aynı kuralla sayar
   - `manual:diger` de **online** kalır: panel bu yolu adlandırmaz, kasada
     olduğunu bilemeyiz; kasaya girmesi gereken para "Nakit" ya da "Kasadaki
     kart cihazı" ile işaretlenir. Kasada alınıp "Diğer" seçilirse çift
-    sayılır: doğru yol işaretlemeyi düzeltmektir.
+    sayılır ve işaret sonradan değiştirilemez (ödeme kaydı yazıldığı gibi
+    kalır, "Ödendi" geri alınmaz): seçim işaretlerken doğru yapılmalı.
   - Panelden elle girilen sipariş hangi yolla ödenirse ödensin `manual`'da
     kalır (önceki kural, değişmedi).
 - Gün sınırı köşkün gece yarısıdır (CLAUDE.md kural 22).
