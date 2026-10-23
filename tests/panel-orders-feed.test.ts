@@ -15,6 +15,8 @@ import {
   PANEL_ORDER_READY_STALE_MS,
   PANEL_ORDER_STALE_MS,
   PANEL_ORDERS_LOOKBACK_DAYS,
+  panelOrderRowsComplete,
+  panelOrdersLiveSince,
   panelOrdersSince,
   sortForPanelOrders,
   toPanelOrder,
@@ -313,6 +315,28 @@ describe("toPanelOrder", () => {
     );
   });
 
+  it("reads only what is not forgotten, by the same limits", () => {
+    expect(panelOrdersLiveSince(NOW)).toEqual({
+      dueSince: new Date(NOW.getTime() - PANEL_ORDER_STALE_MS).toISOString(),
+      readySince: new Date(
+        NOW.getTime() - PANEL_ORDER_READY_STALE_MS,
+      ).toISOString(),
+    });
+  });
+
+  it("calls a read that came back full incomplete, per read", () => {
+    const open = (n: number) => Array.from({ length: n }, () => row());
+    const ready = (n: number) =>
+      Array.from({ length: n }, () => row({ status: "shipped" }));
+    expect(panelOrderRowsComplete([...open(200), ...ready(200)], 201)).toBe(
+      true,
+    );
+    expect(panelOrderRowsComplete(open(201), 201)).toBe(false);
+    expect(panelOrderRowsComplete([...open(3), ...ready(201)], 201)).toBe(
+      false,
+    );
+  });
+
   it("sorts the soonest due first", () => {
     const later = toPanelOrder(
       row({
@@ -403,9 +427,28 @@ describe("GET /api/panel/orders", () => {
     const body = await res.json();
     expect(body).toMatchObject({ version: 1, complete: true });
     expect(body.orders.map((o: { id: string }) => o.id)).toEqual(["ord-0042"]);
-    const [since, limit] = storeMock.listPanelOpenOrderRows.mock.calls[0];
+    const [since, limit, live] = storeMock.listPanelOpenOrderRows.mock.calls[0];
     expect(typeof since).toBe("string");
     expect(limit).toBe(201);
+    expect(Object.keys(live).sort()).toEqual(["dueSince", "readySince"]);
+  });
+
+  it("is not complete when the read came back full, whatever it dropped", async () => {
+    // 201 rows that all leave the screen: the read may have cut a live one.
+    const old = new Date(Date.now() - PANEL_ORDER_STALE_MS - HOUR);
+    storeMock.listPanelOpenOrderRows.mockResolvedValue(
+      Array.from({ length: 201 }, (_, i) =>
+        row({
+          id: `ord-${i}`,
+          orderNo: 20_000 + i,
+          paidAt: old.toISOString(),
+        }),
+      ),
+    );
+    const res = await get(signedGet("/api/panel/orders"));
+    const body = await res.json();
+    expect(body.orders).toEqual([]);
+    expect(body.complete).toBe(false);
   });
 
   it("says the database is down rather than an empty queue", async () => {

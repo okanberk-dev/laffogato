@@ -43,7 +43,10 @@ verilmiş sipariş (`shipped`, masa / kurye) bar için bitmiştir, gelmez.
 geçmiş ve hâlâ ilerletilmemiş sipariş, ya da 12 saattir "teslime hazır"
 bekleyen gel-al, ekrandan kalkar; sitenin sipariş listesinde durur. Planlı
 sipariş en çok 7 gün önceden ödenebildiği için okuma ödeme anından 8 gün
-geriye bakar.
+geriye bakar. Bu kural sorgunun kendisindedir
+(`panelOrdersLiveSince`, 23 Eki 2026): kimsenin "Teslim edildi"ye basmadığı
+yüzlerce eski sipariş okumanın sınırını doldurup bugünün kartlarını
+gizleyemez.
 
 ## Uçlar
 
@@ -124,7 +127,9 @@ anahtarı (`KARAOKE_SYNC_SECRET`). Anahtar yoksa uç 503 döner, ping gitmez.
      koyar.
    - Sıra: vakti en yakın olan önce (planlı saat, yoksa ödeme), sonra
      sipariş numarası.
-   - En çok 200 sipariş; fazlası varsa `complete: false`.
+   - En çok 200 sipariş; fazlası varsa `complete: false`. `complete`, ekrana
+     kalanlardan değil okunan satırlardan sayılır: okuma dolu döndüyse
+     (açık ya da teslime hazır siparişlerde 201 satır) `false`.
    - `Cache-Control: no-store`.
 
    | Durum | Gövde                        | Ne zaman                                |

@@ -51,12 +51,13 @@ export interface Filter {
 
 /**
  * One alternative of an `any` filter. Deliberately a short list of ops and
- * no nesting: one search box matching an order number, a name or an e-mail
- * is the whole use.
+ * no nesting: one search box matching an order number, a name or an e-mail,
+ * and "due since" across two timestamps (the bar screen's open orders,
+ * `listPanelOpenOrderRows`).
  */
 export interface AnyOfCondition {
   column: string;
-  op: "eq" | "ieq" | "ilike" | "foldLike";
+  op: "eq" | "ieq" | "ilike" | "foldLike" | "gte";
   value: unknown;
 }
 
@@ -170,7 +171,8 @@ function condition(f: Filter, bag: ParamBag): string {
           c.op !== "eq" &&
           c.op !== "ieq" &&
           c.op !== "ilike" &&
-          c.op !== "foldLike"
+          c.op !== "foldLike" &&
+          c.op !== "gte"
         ) {
           throw new Error(`unsupported any-of op: ${String(c.op)}`);
         }

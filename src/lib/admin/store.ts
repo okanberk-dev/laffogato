@@ -2395,7 +2395,9 @@ export async function listOrderAlertRows(
  * The open café orders the köşk panel's bar screen shows
  * (src/lib/panel/orders-feed-core.ts `toPanelOrder`, which the route
  * applies to each): paid, being prepared, or a pickup order ready at the
- * counter, not typed into this panel, paid since `paidSince`. Two reads
+ * counter, not typed into this panel, paid since `paidSince`, not forgotten
+ * (`live`, `panelOrdersLiveSince`: a forgotten order must not use up the
+ * limit and hide today's), up to `limit` per read. Two reads
  * rather than one with an OR: a table or courier order that left the
  * counter (`shipped`) is done for the bar and must not use up the limit.
  * Only the columns the screen shows, the customer's name for its first
@@ -2405,6 +2407,7 @@ export async function listOrderAlertRows(
 export async function listPanelOpenOrderRows(
   paidSince: string,
   limit: number,
+  live: { dueSince: string; readySince: string },
 ): Promise<PanelOrderSourceRow[]> {
   const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
   const columns =
@@ -2418,6 +2421,11 @@ export async function listPanelOpenOrderRows(
       .eq("kind", "cafe")
       .neq("source", "manual")
       .gte("paidAt", paidSince)
+      // Due by its planned time, else its payment ("" sorts first).
+      .anyOf([
+        { column: "scheduledFor", op: "gte", value: live.dueSince },
+        { column: "paidAt", op: "gte", value: live.dueSince },
+      ])
       .order("paidAt", { ascending: true })
       .limit(cap),
     sb
@@ -2428,6 +2436,10 @@ export async function listPanelOpenOrderRows(
       .eq("fulfillment", "pickup")
       .neq("source", "manual")
       .gte("paidAt", paidSince)
+      .anyOf([
+        { column: "shippedAt", op: "gte", value: live.readySince },
+        { column: "paidAt", op: "gte", value: live.readySince },
+      ])
       .order("paidAt", { ascending: true })
       .limit(cap),
   ]);
