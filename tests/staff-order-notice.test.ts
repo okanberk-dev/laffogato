@@ -174,8 +174,13 @@ const ORDER: StaffNoticeOrder & Record<string, unknown> = {
   deliveryNote: "şekersiz olsun",
   totalMinor: 52000,
   items: [
-    { productName: "Cappuccino", qty: 2, detail: "M · yulaf" },
-    { productName: "San Sebastian", qty: 1 },
+    {
+      productName: "Cappuccino",
+      qty: 2,
+      detail: "M · yulaf",
+      options: { milk: "oat", note: " şurupsuz lütfen " },
+    },
+    { productName: "San Sebastian", qty: 1, options: { note: "" } },
   ],
 };
 
@@ -197,8 +202,9 @@ describe("content", () => {
     const { content, all } = rendered();
     expect(content.subject).toContain("#10900");
     expect(content.subject).toContain("Masa: Bahçe 3");
-    expect(all).toContain("2 × Cappuccino (M · yulaf)");
+    expect(all).toContain("2 × Cappuccino (M · yulaf) · Not: şurupsuz lütfen");
     expect(all).toContain("1 × San Sebastian");
+    expect(all).not.toContain("San Sebastian · Not");
     expect(all).toContain("Uygulama");
     expect(all).toContain("Kafe");
     expect(all).toContain("Kart (PayNkolay)");

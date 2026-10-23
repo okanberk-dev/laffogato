@@ -72,8 +72,10 @@ export async function GET(request: Request) {
     rows = await listReservationsForAdmin({
       from: range.from,
       to: range.to,
-      // One over the cap tells a full window from a cut one.
+      // One over the cap tells a full window from a cut one; earliest
+      // first, so a cut drops the far end of the window, not today.
       limit: PANEL_MAX_ROWS + 1,
+      ascending: true,
     });
   } catch (err) {
     console.error("[panel-karaoke] bookings could not be read", err);
@@ -85,7 +87,8 @@ export async function GET(request: Request) {
 
   // A window past the cap is not a real case (one room, booked by the hour:
   // the panel's 90 days hold about a thousand slots); if it ever happens,
-  // `complete: false` tells the panel the list was cut.
+  // `complete: false` tells the panel the list was cut (at its far end: the
+  // read is earliest first).
   const reservations = sortForPanel(
     rows
       .map(toPanelReservation)

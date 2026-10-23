@@ -2395,19 +2395,23 @@ export async function listOrderAlertRows(
  * The open café orders the köşk panel's bar screen shows
  * (src/lib/panel/orders-feed-core.ts `toPanelOrder`, which the route
  * applies to each): paid, being prepared, or a pickup order ready at the
- * counter, not typed into this panel, paid since `paidSince`. Two reads
+ * counter, not typed into this panel, paid since `paidSince`, not forgotten
+ * (`live`, `panelOrdersLiveSince`: a forgotten order must not use up the
+ * limit and hide today's), up to `limit` per read. Two reads
  * rather than one with an OR: a table or courier order that left the
  * counter (`shipped`) is done for the bar and must not use up the limit.
  * Only the columns the screen shows, the customer's name for its first
- * word; no e-mail, phone, address or courier note leaves the database.
+ * word and the order note (`toPanelOrder` sends it for a table or gel-al
+ * order only); no e-mail, phone or address leaves the database.
  */
 export async function listPanelOpenOrderRows(
   paidSince: string,
   limit: number,
+  live: { dueSince: string; readySince: string },
 ): Promise<PanelOrderSourceRow[]> {
   const cap = Math.max(1, Math.min(500, Math.trunc(limit)));
   const columns =
-    "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, customerName, scheduledFor, paidAt, shippedAt, totalMinor, items";
+    "id, orderNo, status, kind, source, fulfillment, tableCode, tableName, customerName, scheduledFor, paidAt, shippedAt, deliveryNote, totalMinor, items";
   const sb = getDb();
   const [open, ready] = await Promise.all([
     sb
@@ -2417,6 +2421,11 @@ export async function listPanelOpenOrderRows(
       .eq("kind", "cafe")
       .neq("source", "manual")
       .gte("paidAt", paidSince)
+      // Due by its planned time, else its payment ("" sorts first).
+      .anyOf([
+        { column: "scheduledFor", op: "gte", value: live.dueSince },
+        { column: "paidAt", op: "gte", value: live.dueSince },
+      ])
       .order("paidAt", { ascending: true })
       .limit(cap),
     sb
@@ -2427,6 +2436,10 @@ export async function listPanelOpenOrderRows(
       .eq("fulfillment", "pickup")
       .neq("source", "manual")
       .gte("paidAt", paidSince)
+      .anyOf([
+        { column: "shippedAt", op: "gte", value: live.readySince },
+        { column: "paidAt", op: "gte", value: live.readySince },
+      ])
       .order("paidAt", { ascending: true })
       .limit(cap),
   ]);
@@ -2452,7 +2465,7 @@ export async function listPanelSalesOrderRows(
     await getDb()
       .from(TABLES.orders)
       .select(
-        "orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
+        "id, orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
       )
       .in("status", [...PANEL_SALES_STATUSES])
       .gte("createdAt", since)

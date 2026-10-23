@@ -2,7 +2,13 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { Executor } from "@/lib/db/client";
-import { toPanelOrder } from "@/lib/panel/orders-feed-core";
+import {
+  PANEL_ORDERS_MAX,
+  panelOrderRowsComplete,
+  panelOrdersLiveSince,
+  panelOrdersSince,
+  toPanelOrder,
+} from "@/lib/panel/orders-feed-core";
 import {
   buildPanelSales,
   panelSalesReadBounds,
@@ -20,10 +26,12 @@ import {
  *
  * - `listPanelOpenOrderRows`: paid, preparing and ready-for-pickup café
  *   orders, never a manual one, a shop parcel or a table order that left
- *   the counter, with the columns `toPanelOrder` reads;
+ *   the counter, with the columns `toPanelOrder` reads (the member's note
+ *   on a gel-al order, never a courier order's door code);
  * - `listPanelSalesOrderRows` / `listPanelSalesBookingRows`: the counted
  *   orders of a period with its margin, and every booking whose money
- *   reached the POS, with the rate it was sold at.
+ *   reached the POS, with the rate it was sold at; the orders' payment rows
+ *   (`paymentsFor`) put one settled at the till in `counter`.
  *
  * One transaction, rolled back: the shared database keeps its rows. Skipped
  * without TEST_DATABASE_URL, like the other tests/db-integration*.test.ts.
@@ -90,11 +98,18 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
           sugar: 0,
           syrup: "none",
           extraShot: false,
-          note: "",
+          note: "az köpüklü",
         },
         taxRatePct: 10,
       },
     ];
+    // What the app writes: a courier order's note starts with the address
+    // note (a door code), a gel-al or table order's is the member's own.
+    const fulfillment = f.fulfillment ?? "pickup";
+    const deliveryNote =
+      fulfillment === "delivery"
+        ? "Kapı kodu 4821 · Fındık alerjim var"
+        : "Fındık alerjim var";
     await q(
       `insert into public.orders (id, "orderNo", status, kind, source,
          fulfillment, items, refunds, "subtotalMinor", "totalMinor",
@@ -102,20 +117,21 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
          "deliveryNote", "createdAt", "paidAt", "shippedAt")
        values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $9,
          'Ayşe Yılmaz', 'ayse@example.com', '+905551112233', 'Postane Mah.',
-         'Kapı kodu 4821', $10, $11, $12)`,
+         $13, $10, $11, $12)`,
       [
         id,
         orderNo,
         f.status,
         f.kind ?? "cafe",
         f.source ?? "",
-        f.fulfillment ?? "pickup",
+        fulfillment,
         JSON.stringify(items),
         JSON.stringify(f.refunds ?? []),
         f.totalMinor ?? 12_000,
         f.createdAt ?? minutesAgo(30),
         f.paidAt ?? minutesAgo(20),
         f.shippedAt ?? "",
+        deliveryNote,
       ],
     );
   }
@@ -130,7 +146,11 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     await q("delete from public.karaoke_reservations");
 
     await insertOrder("ord-pf-01", 90_001, { status: "paid" });
-    await insertOrder("ord-pf-02", 90_002, { status: "preparing" });
+    // A courier order being made: on the screen, its door code is not.
+    await insertOrder("ord-pf-02", 90_002, {
+      status: "preparing",
+      fulfillment: "delivery",
+    });
     await insertOrder("ord-pf-03", 90_003, {
       status: "shipped",
       shippedAt: minutesAgo(5),
@@ -172,6 +192,24 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       status: "completed",
       createdAt: "2026-10-31T21:30:00.000Z",
     });
+    // An app order whose card payment failed, settled in cash at the till.
+    await insertOrder("ord-pf-12", 90_012, {
+      status: "completed",
+      createdAt: "2026-10-12T10:00:00.000Z",
+    });
+    await q("delete from public.payment_transactions");
+    for (const [orderId, provider, status] of [
+      ["ord-pf-12", "paynkolay", "failed"],
+      ["ord-pf-12", "manual:nakit", "succeeded"],
+      ["ord-pf-08", "paynkolay", "succeeded"],
+    ]) {
+      await q(
+        `insert into public.payment_transactions ("orderId", provider,
+           "providerRef", status, "amountMinor", "createdAt")
+         values ($1, $2, $1 || '-' || $2, $3, 12000, '2026-10-12T10:00:00.000Z')`,
+        [orderId, provider, status],
+      );
+    }
 
     const booking = (
       id: string,
@@ -227,6 +265,7 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     const rows = await store.listPanelOpenOrderRows(
       "2026-10-14T12:00:00.000Z",
       50,
+      panelOrdersLiveSince(NOW),
     );
     expect(rows.map((r) => r.id).sort()).toEqual([
       "ord-pf-01",
@@ -236,10 +275,12 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     const shown = rows
       .map((r) => toPanelOrder(r, NOW))
       .filter((o) => o !== null);
-    expect(shown.map((o) => [o.id, o.stage, o.firstName])).toEqual([
-      ["ord-pf-01", "new", "Ayşe"],
-      ["ord-pf-02", "preparing", "Ayşe"],
-      ["ord-pf-03", "ready", "Ayşe"],
+    expect(
+      shown.map((o) => [o.id, o.stage, o.firstName, o.note, o.lines[0].note]),
+    ).toEqual([
+      ["ord-pf-01", "new", "Ayşe", "Fındık alerjim var", "az köpüklü"],
+      ["ord-pf-02", "preparing", "Ayşe", "", "az köpüklü"],
+      ["ord-pf-03", "ready", "Ayşe", "Fındık alerjim var", "az köpüklü"],
     ]);
     const text = JSON.stringify(shown);
     for (const leak of [
@@ -250,6 +291,78 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       "4821",
     ]) {
       expect(text).not.toContain(leak);
+    }
+  });
+
+  it("leaves forgotten orders in the database, so 250 of them hide no fresh one", async () => {
+    // Undone at the end: the sales test below counts the fixture as it was.
+    await q("savepoint forgotten");
+    try {
+      const items = JSON.stringify([
+        {
+          productName: "Latte",
+          qty: 1,
+          unitPriceMinor: 12_000,
+          status: "pending",
+        },
+      ]);
+      const twoDaysAgo = minutesAgo(48 * 60);
+      // Nobody pressed a button on these: 250 never started, 250 pickups
+      // ready two days ago and never handed over. All paid before today's.
+      for (const [status, from, shippedAt] of [
+        ["paid", 91_000, ""],
+        ["shipped", 91_500, minutesAgo(47 * 60)],
+      ] as const) {
+        await q(
+          `insert into public.orders (id, "orderNo", status, kind, source,
+             fulfillment, items, refunds, "subtotalMinor", "totalMinor",
+             "customerName", "createdAt", "paidAt", "shippedAt")
+           select 'ord-old-' || ($2::int + g), $2::int + g, $1, 'cafe', '',
+             'pickup', $3::jsonb, '[]'::jsonb, 12000, 12000, 'Ayşe',
+             $4, $4, $5
+           from generate_series(1, 250) g`,
+          [status, from, items, twoDaysAgo, shippedAt],
+        );
+      }
+      // Planned for two hours from now, paid five days ago: live.
+      await insertOrder("ord-pf-13", 90_013, {
+        status: "paid",
+        paidAt: minutesAgo(5 * 24 * 60),
+        createdAt: minutesAgo(5 * 24 * 60),
+      });
+      await q(`update public.orders set "scheduledFor" = $1 where id = $2`, [
+        new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
+        "ord-pf-13",
+      ]);
+      // Gel-al paid three days ago (planned ahead), readied five minutes
+      // ago: live by its readiness, not its payment.
+      await insertOrder("ord-pf-14", 90_014, {
+        status: "shipped",
+        fulfillment: "pickup",
+        paidAt: minutesAgo(3 * 24 * 60),
+        createdAt: minutesAgo(3 * 24 * 60),
+        shippedAt: minutesAgo(5),
+      });
+
+      const limit = PANEL_ORDERS_MAX + 1;
+      const rows = await store.listPanelOpenOrderRows(
+        panelOrdersSince(NOW),
+        limit,
+        panelOrdersLiveSince(NOW),
+      );
+      expect(rows.map((r) => r.id).sort()).toEqual([
+        "ord-pf-01",
+        "ord-pf-02",
+        "ord-pf-03",
+        "ord-pf-13",
+        "ord-pf-14",
+      ]);
+      expect(panelOrderRowsComplete(rows, limit)).toBe(true);
+      expect(
+        rows.map((r) => toPanelOrder(r, NOW)).every((o) => o !== null),
+      ).toBe(true);
+    } finally {
+      await q("rollback to savepoint forgotten");
     }
   });
 
@@ -271,12 +384,15 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       ["paid", 100_000, 20],
       ["refunded", 50_000, 20],
     ]);
+    const { dbInvoiceStore } = await import("@/lib/invoice/store");
+    const payments = await dbInvoiceStore.paymentsFor(orders.map((o) => o.id));
     const sales = buildPanelSales({
       range,
       now: NOW,
       orders,
       bookings,
       couponSourceOf: () => null,
+      paymentsOf: (o) => payments.get(o.id) ?? [],
     });
     // ord-pf-01..03 and 08 (12 000 each), the refunded 10 (0 kept); the
     // manual 05 apart; the shop 06 in shop; 04 counted too (delivered).
@@ -288,6 +404,12 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       netMinor: 12_000,
     });
     expect(sales.shop.orders).toBe(1);
+    // ord-pf-12, settled in cash at the till: never in cafe or its lines.
+    expect(sales.counter).toMatchObject({
+      orders: 1,
+      grossMinor: 12_000,
+      netMinor: 12_000,
+    });
     // The options come back from the jsonb: every Latte made was an oat one.
     const latte = sales.cafe.lines.find((l) => l.menuItemId === "mnu-0003");
     expect(latte?.qty).toBe(6);
