@@ -395,7 +395,9 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
   olarak verir. Rakamlar Raporlar'ın ve Gün sonu'nunkiyle aynı kuralla
   sayılır (sipariş `createdAt` gününe, karaoke ödeme gününe;
   `karaokeMoneyOf` üçünün ortak fonksiyonu); elle girilen sipariş kasada
-  çalındığı için yalnız `manual` altında. Müşteri ve sipariş numarası gitmez.
+  çalındığı için yalnız `manual`, kasada nakit ya da kasa kartıyla
+  "Ödendi" işaretlenen uygulama / web siparişi yalnız `counter` altında
+  (havale ve "Diğer" online kalır). Müşteri ve sipariş numarası gitmez.
   Panel bunu kâr-zararda üç satır (kafe online, mağaza, karaoke; KDV hariç)
   ve "TOPLAM CİRO" olarak, tutarlılıkta ayrı tüketim kaynağı olarak ve kasa
   raporunda bilgi satırı olarak gösterir. Ayrıntı: `docs/PANEL-SALES.md`.

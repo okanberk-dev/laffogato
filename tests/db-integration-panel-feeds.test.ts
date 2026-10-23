@@ -23,7 +23,8 @@ import {
  *   the counter, with the columns `toPanelOrder` reads;
  * - `listPanelSalesOrderRows` / `listPanelSalesBookingRows`: the counted
  *   orders of a period with its margin, and every booking whose money
- *   reached the POS, with the rate it was sold at.
+ *   reached the POS, with the rate it was sold at; the orders' payment rows
+ *   (`paymentsFor`) put one settled at the till in `counter`.
  *
  * One transaction, rolled back: the shared database keeps its rows. Skipped
  * without TEST_DATABASE_URL, like the other tests/db-integration*.test.ts.
@@ -164,6 +165,24 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       status: "completed",
       createdAt: "2026-10-31T21:30:00.000Z",
     });
+    // An app order whose card payment failed, settled in cash at the till.
+    await insertOrder("ord-pf-12", 90_012, {
+      status: "completed",
+      createdAt: "2026-10-12T10:00:00.000Z",
+    });
+    await q("delete from public.payment_transactions");
+    for (const [orderId, provider, status] of [
+      ["ord-pf-12", "paynkolay", "failed"],
+      ["ord-pf-12", "manual:nakit", "succeeded"],
+      ["ord-pf-08", "paynkolay", "succeeded"],
+    ]) {
+      await q(
+        `insert into public.payment_transactions ("orderId", provider,
+           "providerRef", status, "amountMinor", "createdAt")
+         values ($1, $2, $1 || '-' || $2, $3, 12000, '2026-10-12T10:00:00.000Z')`,
+        [orderId, provider, status],
+      );
+    }
 
     const booking = (
       id: string,
@@ -263,12 +282,15 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       ["paid", 100_000, 20],
       ["refunded", 50_000, 20],
     ]);
+    const { dbInvoiceStore } = await import("@/lib/invoice/store");
+    const payments = await dbInvoiceStore.paymentsFor(orders.map((o) => o.id));
     const sales = buildPanelSales({
       range,
       now: NOW,
       orders,
       bookings,
       couponSourceOf: () => null,
+      paymentsOf: (o) => payments.get(o.id) ?? [],
     });
     // ord-pf-01..03 and 08 (12 000 each), the refunded 10 (0 kept); the
     // manual 05 apart; the shop 06 in shop; 04 counted too (delivered).
@@ -280,6 +302,12 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
       netMinor: 12_000,
     });
     expect(sales.shop.orders).toBe(1);
+    // ord-pf-12, settled in cash at the till: never in cafe or its lines.
+    expect(sales.counter).toMatchObject({
+      orders: 1,
+      grossMinor: 12_000,
+      netMinor: 12_000,
+    });
     expect(sales.karaoke).toMatchObject({
       bookings: 1,
       collectedMinor: 150_000,

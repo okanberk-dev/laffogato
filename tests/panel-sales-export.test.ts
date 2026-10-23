@@ -10,6 +10,7 @@ import {
   PANEL_SALES_MAX_DAYS,
   PANEL_SALES_MAX_ORDERS,
   panelSalesClosed,
+  paidAtTill,
   panelSalesReadBounds,
   parsePanelSalesRange,
   type PanelSalesBookingRow,
@@ -21,13 +22,23 @@ import {
  * (src/lib/panel/sales-export-core.ts, src/app/api/panel/sales/route.ts,
  * docs/PANEL-SALES.md). What is pinned: the period and its Istanbul days,
  * the same money Raporlar and Gün sonu count (orders by `createdAt`,
- * refunds per order, karaoke by its payment day), manual orders apart, the
- * invoice's KDV (a reward coupon at full price), the café lines the panel
- * maps to its products, and a route that answers only a signed request and
- * never a short P&L.
+ * refunds per order, karaoke by its payment day), manual orders and orders
+ * settled at the till apart, the invoice's KDV (a reward coupon at full
+ * price), the café lines the panel maps to its products, and a route that
+ * answers only a signed request and never a short P&L.
  */
 
-const exec: Executor = async () => ({ rows: [], rowCount: 0 });
+/**
+ * The payment rows the route reads (`paymentsFor`); every other read is
+ * empty.
+ */
+const dbRows = vi.hoisted(() => ({
+  payments: [] as Array<Record<string, unknown>>,
+}));
+const exec: Executor = async (query) =>
+  query.text.includes("payment_transactions")
+    ? { rows: dbRows.payments, rowCount: dbRows.payments.length }
+    : { rows: [], rowCount: 0 };
 vi.mock("@/lib/db", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/db")>();
   const db = createDb(exec);
@@ -71,6 +82,7 @@ function order(over: Partial<PanelSalesOrderRow>): PanelSalesOrderRow {
   const discount = over.discountMinor ?? 0;
   const shipping = over.shippingMinor ?? 0;
   return {
+    id: `ord-${over.orderNo ?? 10_001}`,
     orderNo: 10_001,
     status: "completed",
     kind: "cafe",
@@ -335,6 +347,7 @@ describe("buildPanelSales", () => {
     orders: ORDERS,
     bookings: BOOKINGS,
     couponSourceOf: (no) => COUPONS.get(no) ?? null,
+    paymentsOf: () => [],
   });
 
   it("counts the café orders, their refunds and their KDV", () => {
@@ -449,9 +462,19 @@ describe("buildPanelSales", () => {
   });
 });
 
-describe("the same money as Raporlar and Gün sonu", () => {
-  type ReportOrder = Parameters<typeof store.headlineFrom>[0][number];
+type ReportOrder = Parameters<typeof store.headlineFrom>[0][number];
 
+/** Every block an order can land in: together, Raporlar's figure. */
+function online(
+  sales: ReturnType<typeof buildPanelSales>,
+  key: "orders" | "grossMinor" | "netMinor",
+): number {
+  return (
+    sales.cafe[key] + sales.shop[key] + sales.manual[key] + sales.counter[key]
+  );
+}
+
+describe("the same money as Raporlar and Gün sonu", () => {
   it("for a month: the orders' net and the karaoke net", () => {
     const anchor = new Date("2026-10-15T09:00:00.000Z");
     const inMonth = store.reportPeriodFilter("month", 1, anchor);
@@ -463,16 +486,11 @@ describe("the same money as Raporlar and Gün sonu", () => {
       orders: ORDERS,
       bookings: BOOKINGS,
       couponSourceOf: () => null,
+      paymentsOf: () => [],
     });
-    expect(
-      sales.cafe.netMinor + sales.shop.netMinor + sales.manual.netMinor,
-    ).toBe(headline.netRevenueMinor);
-    expect(
-      sales.cafe.grossMinor + sales.shop.grossMinor + sales.manual.grossMinor,
-    ).toBe(headline.grossRevenueMinor);
-    expect(sales.cafe.orders + sales.shop.orders + sales.manual.orders).toBe(
-      headline.totalOrders,
-    );
+    expect(online(sales, "netMinor")).toBe(headline.netRevenueMinor);
+    expect(online(sales, "grossMinor")).toBe(headline.grossRevenueMinor);
+    expect(online(sales, "orders")).toBe(headline.totalOrders);
     const k = store.karaokeRevenueFrom(BOOKINGS, "month", 1, anchor);
     expect(sales.karaoke.netMinor).toBe(k.periodNetMinor);
     expect(sales.karaoke.bookings).toBe(k.periodCount);
@@ -491,16 +509,172 @@ describe("the same money as Raporlar and Gün sonu", () => {
       orders: ORDERS,
       bookings: BOOKINGS,
       couponSourceOf: () => null,
+      paymentsOf: () => [],
     });
     expect(headline.netRevenueMinor).toBe(10_000);
-    expect(
-      sales.cafe.netMinor + sales.shop.netMinor + sales.manual.netMinor,
-    ).toBe(headline.netRevenueMinor);
+    expect(online(sales, "netMinor")).toBe(headline.netRevenueMinor);
     expect(sales.karaoke.netMinor).toBe(
       store.karaokeRevenueFrom(BOOKINGS, "day", 1, anchor).periodNetMinor,
     );
     expect(sales.karaoke.netMinor).toBe(40_000);
     expect(sales.closed).toBe(false);
+  });
+});
+
+describe("orders settled at the till", () => {
+  const paid = (provider: string, status = "succeeded") => ({
+    provider,
+    status,
+  });
+  // App and web orders whose card payment failed, then settled with
+  // "Ödendi olarak işaretle"; and the ways that are not the till.
+  const TILL: Array<{
+    order: PanelSalesOrderRow;
+    payments: Array<{ provider: string; status: string }>;
+  }> = [
+    {
+      order: order({ orderNo: 20_001, items: [line({ qty: 2 })] }),
+      payments: [paid("paynkolay", "failed"), paid("manual:nakit")],
+    },
+    {
+      order: order({
+        orderNo: 20_002,
+        source: "web",
+        items: [
+          line({
+            productName: "Mocha",
+            unitPriceMinor: 16_000,
+            menuItemId: "mnu-0005",
+            size: "L",
+          }),
+        ],
+        refunds: [{ amountMinor: 4_000 }],
+      }),
+      payments: [paid("manual:kart")],
+    },
+    {
+      order: order({
+        orderNo: 20_003,
+        kind: "shop",
+        status: "shipped",
+        items: [
+          line({
+            productName: "Kahve çekirdeği 250 g",
+            unitPriceMinor: 45_000,
+            menuItemId: undefined,
+            size: undefined,
+          }),
+        ],
+        shippingMinor: 4_900,
+      }),
+      payments: [paid("manual:kart")],
+    },
+    // A bank transfer and "Diğer" never touched the till: online money.
+    { order: order({ orderNo: 20_004 }), payments: [paid("manual:havale")] },
+    {
+      order: order({
+        orderNo: 20_005,
+        items: [
+          line({
+            productName: "Americano",
+            unitPriceMinor: 10_000,
+            menuItemId: "mnu-0002",
+            size: "single",
+          }),
+        ],
+      }),
+      payments: [paid("manual:diger")],
+    },
+    { order: order({ orderNo: 20_006 }), payments: [paid("paynkolay")] },
+    // Typed into the panel and paid in cash: `manual`, as before.
+    {
+      order: order({
+        orderNo: 20_007,
+        source: "manual",
+        items: [line({ qty: 3 })],
+      }),
+      payments: [paid("manual:nakit")],
+    },
+  ];
+  const orders = TILL.map((t) => t.order);
+  const byId = new Map(TILL.map((t) => [t.order.id, t.payments]));
+  const sales = buildPanelSales({
+    range: OCTOBER,
+    now: MID_OCTOBER,
+    orders,
+    bookings: [],
+    couponSourceOf: () => null,
+    paymentsOf: (o) => byId.get(o.id) ?? [],
+  });
+
+  it("counts cash and the counter's card terminal apart, café and shop", () => {
+    expect(sales.counter).toEqual({
+      orders: 3,
+      grossMinor: 89_900,
+      discountMinor: 0,
+      deliveryMinor: 4_900,
+      refundedMinor: 4_000,
+      netMinor: 85_900,
+      // 2182 on 24 000; 1455 on 16 000, 12 000 kept; 4091 + 817 on the
+      // parcel.
+      kdvMinor: 2_182 + 1_091 + 4_908,
+      unknownKdvNetMinor: 0,
+    });
+  });
+
+  it("keeps them out of cafe, shop and the café lines", () => {
+    const { lines, ...cafe } = sales.cafe;
+    expect(cafe).toEqual({
+      // The transfer, "Diğer" and the card payment.
+      orders: 3,
+      grossMinor: 34_000,
+      discountMinor: 0,
+      deliveryMinor: 0,
+      refundedMinor: 0,
+      netMinor: 34_000,
+      kdvMinor: 1_091 + 909 + 1_091,
+      unknownKdvNetMinor: 0,
+    });
+    expect(lines).toEqual([
+      {
+        menuItemId: "mnu-0003",
+        size: "M",
+        name: "Latte",
+        qty: 2,
+        listMinor: 24_000,
+      },
+      {
+        menuItemId: "mnu-0002",
+        size: "single",
+        name: "Americano",
+        qty: 1,
+        listMinor: 10_000,
+      },
+    ]);
+    expect(sales.shop.orders).toBe(0);
+    expect(sales.shop.netMinor).toBe(0);
+    expect(sales.manual).toEqual({
+      orders: 1,
+      grossMinor: 36_000,
+      netMinor: 36_000,
+    });
+  });
+
+  it("still adds up to Raporlar's month", () => {
+    const headline = store.headlineFrom(orders as unknown as ReportOrder[]);
+    expect(online(sales, "netMinor")).toBe(headline.netRevenueMinor);
+    expect(online(sales, "grossMinor")).toBe(headline.grossRevenueMinor);
+    expect(online(sales, "orders")).toBe(headline.totalOrders);
+  });
+
+  it("reads only succeeded cash and card-terminal rows as the till", () => {
+    expect(paidAtTill([paid("manual:nakit")])).toBe(true);
+    expect(paidAtTill([paid("manual:kart")])).toBe(true);
+    expect(paidAtTill([paid("manual:nakit", "refunded")])).toBe(false);
+    expect(paidAtTill([paid("manual:havale")])).toBe(false);
+    expect(paidAtTill([paid("manual:diger")])).toBe(false);
+    expect(paidAtTill([paid("paynkolay"), paid("wallet")])).toBe(false);
+    expect(paidAtTill([])).toBe(false);
   });
 });
 
@@ -545,6 +719,7 @@ describe("GET /api/panel/sales", () => {
     mocks.orders.mockReset().mockResolvedValue(ORDERS);
     mocks.bookings.mockReset().mockResolvedValue(BOOKINGS);
     mocks.coupons.mockReset().mockResolvedValue(COUPONS);
+    dbRows.payments = [];
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -603,6 +778,39 @@ describe("GET /api/panel/sales", () => {
       PANEL_SALES_MAX_ORDERS + 1,
     );
     expect(mocks.coupons).toHaveBeenCalledWith(ORDERS);
+  });
+
+  it("counts an order settled at the till apart, from its payment rows", async () => {
+    // The courier order 10002 (16 000 kept, KDV 1758): its card payment
+    // failed and it was settled on the counter's card terminal.
+    dbRows.payments = [
+      { orderId: "ord-10002", provider: "paynkolay", status: "failed" },
+      { orderId: "ord-10002", provider: "manual:kart", status: "succeeded" },
+      { orderId: "ord-10001", provider: "paynkolay", status: "succeeded" },
+    ];
+    const res = await get(signedGet("/api/panel/sales?month=2026-10"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.cafe).toMatchObject({
+      orders: 6,
+      netMinor: 105_000 - 16_000,
+      kdvMinor: 9_575 - 1_758,
+    });
+    expect(body.counter).toEqual({
+      orders: 1,
+      grossMinor: 20_000,
+      discountMinor: 1_000,
+      deliveryMinor: 5_000,
+      refundedMinor: 4_000,
+      netMinor: 16_000,
+      kdvMinor: 1_758,
+      unknownKdvNetMinor: 0,
+    });
+    const mocha = body.cafe.lines.find(
+      (l: { menuItemId: string }) => l.menuItemId === "mnu-0005",
+    );
+    expect(mocha.qty).toBe(1);
+    expect(JSON.stringify(body)).not.toMatch(/ord-|manual:/);
   });
 
   it("refuses a period it would answer short", async () => {

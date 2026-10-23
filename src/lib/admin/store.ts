@@ -2452,7 +2452,7 @@ export async function listPanelSalesOrderRows(
     await getDb()
       .from(TABLES.orders)
       .select(
-        "orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
+        "id, orderNo, status, kind, source, createdAt, totalMinor, subtotalMinor, discountMinor, shippingMinor, shippingTaxRatePct, promoCode, refunds, items",
       )
       .in("status", [...PANEL_SALES_STATUSES])
       .gte("createdAt", since)

@@ -29,10 +29,29 @@ Site kendi Raporlar ve Gün sonu ekranlarıyla aynı kuralla sayar
 - **Panelden elle girilen sipariş** (`source: "manual"`, telefonla alınıp
   kasada ödenen) kasanın cirosunda zaten var: `cafe` ve `shop`'a girmez,
   yalnız `manual` altında sayılır.
+- **Kasada kapatılan uygulama / web siparişi** (`counter`, 23 Eki 2026):
+  kart ödemesi düşen sipariş panelde "Ödendi olarak işaretle" ile nakit ya
+  da kasadaki kart cihazıyla kapatılınca kaynağı `app` / `web` kalır ama
+  parası ModPOS'tan geçmiştir (fişi kasanın ÖKC fişidir). Siparişin başarılı
+  ödeme kayıtları (`payment_transactions`, e-Arşiv planının okuduğu
+  `paymentsFor`) arasında `manual:nakit` ya da `manual:kart` varsa sipariş
+  `cafe`, `shop` ve `cafe.lines`'a girmez, yalnız `counter` altında sayılır
+  (`paidAtTill`). Kart ödemesinin başarısız denemesi bunu değiştirmez.
+  - `manual:havale` (havale / EFT) **online** kalır: para bankaya gelir,
+    kasadan geçmez, ModPOS'ta yoktur; faturası da e-postayla gider
+    (`receiptInvoiceNote`). `cafe` / `shop` ve satırlarda sayılır.
+  - `manual:diger` de **online** kalır: panel bu yolu adlandırmaz, kasada
+    olduğunu bilemeyiz; kasaya girmesi gereken para "Nakit" ya da "Kasadaki
+    kart cihazı" ile işaretlenir. Kasada alınıp "Diğer" seçilirse çift
+    sayılır: doğru yol işaretlemeyi düzeltmektir.
+  - Panelden elle girilen sipariş hangi yolla ödenirse ödensin `manual`'da
+    kalır (önceki kural, değişmedi).
 - Gün sınırı köşkün gece yarısıdır (CLAUDE.md kural 22).
 
-`tests/panel-sales-export.test.ts` aynı veride Raporlar'ın aylık rakamı ve
-Gün sonu'nun günlük rakamıyla eşitliği sabitler.
+Raporlar ve Gün sonu bu ayrımı yapmaz: `cafe + shop + manual + counter`
+onların rakamıdır. `tests/panel-sales-export.test.ts` aynı veride
+Raporlar'ın aylık rakamı ve Gün sonu'nun günlük rakamıyla bu eşitliği
+sabitler.
 
 ## KDV
 
@@ -113,7 +132,17 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
     "kdvMinor": 341667,
     "unknownKdvNetMinor": 0
   },
-  "manual": { "orders": 3, "grossMinor": 96000, "netMinor": 96000 }
+  "manual": { "orders": 3, "grossMinor": 96000, "netMinor": 96000 },
+  "counter": {
+    "orders": 2,
+    "grossMinor": 36000,
+    "discountMinor": 0,
+    "deliveryMinor": 0,
+    "refundedMinor": 0,
+    "netMinor": 36000,
+    "kdvMinor": 3273,
+    "unknownKdvNetMinor": 0
+  }
 }
 ```
 
@@ -132,9 +161,19 @@ GET https://laffogato.net/api/panel/sales?from=2026-10-22&to=2026-10-22
 | `lines[].size`       | `L` kalemin L fiyatına (`siteMenuSlot = L`), `M` ve `single` ilk fiyatına (`M`) |
 | `lines[].listMinor`  | Birim fiyat (seçenekler dahil) × adet: indirim ve iade düşülmeden, bilgi için   |
 | `karaoke.bookings`   | Parasının bir kısmı köşkte kalan rezervasyon                                    |
+| `counter`            | Kasada nakit ya da kasa kartıyla kapatılan uygulama / web siparişi; satırsız    |
 
 KDV hariç gelir: `netMinor − kdvMinor − unknownKdvNetMinor × r / (100 + r)`
 (`r` panelin varsayılan oranı).
+
+`counter` 23 Eki 2026'da eklendi (v1'e ekleme; `version` 1 kalır). Daha
+önce bu siparişler `cafe` / `shop`'ta ve `cafe.lines`'ta da sayılıyordu:
+para hem ModPOS'ta hem "Kafe online"da, KDV iki kez, içecekler
+tutarlılıkta iki kez. Artık `cafe` ve `shop` belgelendikleri anlamı
+("kasadan geçmez") taşır; panel hiçbir şey çıkarmaz. `counter` bilgi
+içindir: kâr-zarara ve tüketime **eklenmez** (ModPOS'ta zaten var). Eski
+panel alanı tanımaz ve yok sayar; onun gördüğü düzelme, çift sayımın
+kalkmasıdır.
 
 | Durum | Gövde                         | Ne zaman                                             |
 | ----- | ----------------------------- | ---------------------------------------------------- |
@@ -170,6 +209,9 @@ Panel tarafı (`RiosenBeq/lafmaliyet` `docs/SITE-SATIS.md`):
   tutarlılıkta ayrı bir kaynak olarak ("ModPOS · online") tüketime girer;
   bağlı ürünü olmayan satır listelenir. Panelin satış raporuna
   (`sales_lines`) yazılmaz.
+- **Kasada kapatılan sipariş:** `counter` kâr-zarara, tüketime ve kasa
+  raporunun online satırına eklenmez; panel isterse "kasada kapatılan
+  online sipariş" olarak bilgi diye gösterir.
 - **Kasa raporu:** sayfada ve e-postada bilgi satırı, "Online (site +
   uygulama) … · Karaoke ön ödeme … — kasadan geçmez" (kafe + mağaza netini
   ve karaokeyi KDV dahil gösterir); kasa farkına girmez, saklanmaz. Site
