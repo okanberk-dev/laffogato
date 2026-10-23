@@ -160,7 +160,9 @@ describe("the revenue chart (admin audit SYS-14)", () => {
   it("says there were no sales instead of drawing ₺0,01 ticks", async () => {
     const markup = await html([bucket(0, 0), bucket(1, 0)]);
     expect(markup).toContain("Bu dönemde satış yok.");
-    expect(markup).not.toContain("<svg");
+    // No chart: the only drawing is the empty state's glyph.
+    expect(markup).not.toContain("<polyline");
+    expect(markup).not.toContain('role="img"');
     expect(markup).not.toContain("₺0,01");
   });
 

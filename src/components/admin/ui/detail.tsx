@@ -91,19 +91,84 @@ export interface KeyValueItem {
  * `sm` up. `false` / `null` items are skipped, so conditional rows can be
  * written inline: `order.carrier && { label: "Kargo", value: order.carrier }`.
  * Labels are 12px sentence case (LABEL), as written.
+ *
+ * `layout="inline"` is Innex's key-value summary for a narrow column (the
+ * order page's left side): one row per pair, the label grey on the left and
+ * the value dark on the right. A `full` item (an address) keeps the
+ * stacked shape there.
  */
 export function KeyValueGrid({
   items,
   columns = 2,
   empty = "-",
+  layout = "stacked",
   className,
 }: {
   items: ReadonlyArray<KeyValueItem | false | null | undefined>;
   columns?: 1 | 2 | 3;
   empty?: ReactNode;
+  layout?: "stacked" | "inline";
   className?: string;
 }) {
   const shown = items.filter((i): i is KeyValueItem => Boolean(i));
+  const valueOf = (item: KeyValueItem) => {
+    const blank =
+      item.value === null || item.value === undefined || item.value === "";
+    return {
+      blank,
+      body: (
+        <>
+          {blank ? empty : item.value}
+          {item.hint ? (
+            <span className="mt-0.5 block text-xs text-[var(--admin-text-soft)]">
+              {item.hint}
+            </span>
+          ) : null}
+        </>
+      ),
+    };
+  };
+  if (layout === "inline") {
+    return (
+      <dl className={cx("flex flex-col gap-3", className)}>
+        {shown.map((item, i) => {
+          const { blank, body } = valueOf(item);
+          const ink = blank
+            ? "text-[var(--admin-text-soft)]"
+            : "text-[var(--admin-text)]";
+          return item.full ? (
+            <div key={i} className="min-w-0">
+              <dt className={LABEL}>{item.label}</dt>
+              <dd
+                className={cx("mt-1 text-sm break-words", ink)}
+                style={item.mono ? MONO_STYLE : undefined}
+              >
+                {body}
+              </dd>
+            </div>
+          ) : (
+            <div
+              key={i}
+              className="flex min-w-0 items-baseline justify-between gap-4"
+            >
+              <dt className="shrink-0 text-[13px] text-[var(--admin-text-mute)]">
+                {item.label}
+              </dt>
+              <dd
+                className={cx(
+                  "min-w-0 text-right text-sm [overflow-wrap:anywhere]",
+                  ink,
+                )}
+                style={item.mono ? MONO_STYLE : undefined}
+              >
+                {body}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    );
+  }
   return (
     <dl
       className={cx(
@@ -114,8 +179,7 @@ export function KeyValueGrid({
       )}
     >
       {shown.map((item, i) => {
-        const blank =
-          item.value === null || item.value === undefined || item.value === "";
+        const { blank, body } = valueOf(item);
         return (
           <div
             key={i}
@@ -131,12 +195,7 @@ export function KeyValueGrid({
               )}
               style={item.mono ? MONO_STYLE : undefined}
             >
-              {blank ? empty : item.value}
-              {item.hint ? (
-                <span className="mt-0.5 block text-xs text-[var(--admin-text-soft)]">
-                  {item.hint}
-                </span>
-              ) : null}
+              {body}
             </dd>
           </div>
         );
@@ -225,7 +284,10 @@ export function Timeline({
 /**
  * What a list or section shows when it has nothing: one sentence saying so,
  * and `action`, the one next step ("Yeni kampanya"). A list that is empty
- * because of its filters always offers "Filtreyi temizle".
+ * because of its filters always offers "Filtreyi temizle". Innex's empty
+ * state (22 Eki 2026): a quiet glyph in a circle over the sentence, the
+ * explanation in the label grey, the step under it. The glyph is drawn
+ * inline: this box is in nearly every chunk, and no icon set comes with it.
  */
 export function EmptyState({
   title,
@@ -245,9 +307,28 @@ export function EmptyState({
         className,
       )}
     >
-      <p className="text-sm font-medium text-[var(--admin-text)]">{title}</p>
+      <span
+        aria-hidden="true"
+        className="mb-1 grid size-10 place-items-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-text-mute)]"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="size-5"
+        >
+          <path d="M22 12h-6l-2 3h-4l-2-3H2" />
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+        </svg>
+      </span>
+      <p className="text-[15px] font-semibold text-[var(--admin-text)]">
+        {title}
+      </p>
       {description ? (
-        <p className="max-w-md text-sm text-[var(--admin-text-soft)]">
+        <p className="max-w-md text-[13px] leading-5 text-[var(--admin-text-mute)]">
           {description}
         </p>
       ) : null}

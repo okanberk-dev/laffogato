@@ -177,7 +177,13 @@ function RowStepButton({
         pendingLabel="İşleniyor…"
         ariaLabel={`${label}: sipariş ${order.orderNo}`}
         variant="bare"
-        className={ROW_CONTROL.text}
+        // Innex's row action (22 Eki 2026): the colour says whose turn it
+        // is. A paid order waiting to be started is the shift's to pick up
+        // now, so its step is the row's one solid button; the moves after
+        // it are outlined.
+        className={
+          id === "start_preparing" ? ROW_CONTROL.textStrong : ROW_CONTROL.text
+        }
       >
         {label}
       </ActionButton>
@@ -234,9 +240,16 @@ function Amount({ order }: { order: AdminOrder }) {
   );
 }
 
-/** The payment badge, left out where it would repeat the status ("Ödendi"). */
+/**
+ * The payment badge, left out where it would repeat the status: "Ödendi"
+ * under "Ödendi", and "Ödenmedi" under "Ödeme bekleniyor" while no money
+ * came. Money that came for an order still waiting for it does show.
+ */
 function PaymentBadge({ row }: { row: OrderListRow }) {
   if (row.payment.label === orderStatusLabel(row.order)) return null;
+  if (row.order.status === "pending_payment" && !row.money.collected) {
+    return null;
+  }
   return <Badge tone={row.payment.tone}>{row.payment.label}</Badge>;
 }
 
@@ -423,11 +436,11 @@ export function OrdersList({
       sortable: true,
       className: TIGHT,
       cell: (r) => (
+        // Innex's two-line cell: the name, then what was ordered. The
+        // e-mail is on the order and the search finds it; in the row it
+        // made every order a line taller.
         <span className="flex max-w-[12rem] min-w-0 flex-col">
-          <span className="truncate">{r.order.customerName}</span>
-          <span className="truncate text-xs text-[var(--admin-text-soft)]">
-            {r.order.customerEmail}
-          </span>
+          <span className="truncate font-medium">{r.order.customerName}</span>
           <span className="truncate text-xs text-[var(--admin-text-soft)]">
             {itemsSummary(r.order)}
           </span>

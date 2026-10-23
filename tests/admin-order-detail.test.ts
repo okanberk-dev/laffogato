@@ -607,27 +607,105 @@ describe("the customer card on the kit (ORD-11, ORD-05)", () => {
 });
 
 describe("the order lines on a phone (ORD-24)", () => {
-  it("stack below sm and in the narrow lg column, with the status control under each line", () => {
+  it("stack below sm, with the status control under each line", () => {
     const out = detail(order({ status: "preparing" }));
     const stacked = out.slice(
       out.indexOf("<ul data-order-lines-stacked"),
       out.indexOf("</ul>", out.indexOf("<ul data-order-lines-stacked")),
     );
+    // The tabs' column is the page's wide one now (Innex's three zones,
+    // 22 Eki 2026): from sm the table fits at every width.
     expect(stacked).toMatch(
-      /^<ul data-order-lines-stacked="true" class="[^"]*sm:hidden lg:block xl:hidden"/,
+      /^<ul data-order-lines-stacked="true" class="[^"]*sm:hidden"/,
     );
+    expect(stacked).not.toContain("lg:block");
     expect(stacked).toContain("Latte");
     expect(stacked).toContain("Büyük · yulaf sütü · +1 shot");
     expect(stacked).toContain("1 × ₺150,00");
     expect(stacked).toContain('<select aria-label="Latte: kalem durumu"');
   });
 
-  it("keep the table from sm (and from xl beside the sidebar), with no forced width", () => {
+  it("keep the table from sm, with no forced width", () => {
     const out = detail(order());
     expect(out).toContain(
-      '<div class="hidden overflow-x-auto sm:block lg:hidden xl:block"><table class="w-full text-sm">',
+      '<div class="hidden overflow-x-auto sm:block"><table class="w-full text-sm">',
     );
     expect(out).not.toContain("min-w-[520px]");
+  });
+});
+
+describe("the three zones (Innex, 22 Eki 2026)", () => {
+  it("the money first, then the tabs, then the customer, the delivery and the note", () => {
+    const out = detail(order());
+    const money = out.indexOf('aria-label="Tutar"');
+    const tabs = out.indexOf('role="tablist"');
+    const people = out.indexOf('aria-label="Müşteri ve teslimat"');
+    expect(money).toBeGreaterThan(-1);
+    expect(tabs).toBeGreaterThan(money);
+    expect(people).toBeGreaterThan(tabs);
+    // From xl the money and the people share the left column and the tabs
+    // take the right one, the whole height.
+    expect(out).toContain(
+      "xl:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] xl:grid-rows-[auto_1fr]",
+    );
+    expect(out).toContain("xl:col-start-2 xl:row-span-2 xl:row-start-1");
+  });
+
+  it("the one big figure is what decides: owed back, still to pay, else the total", () => {
+    const hero = (html: string) =>
+      /aria-label="Tutar"[^>]*><div[^>]*><p[^>]*>([^<]*)<\/p><p[^>]*>([^<]*)</
+        .exec(html)
+        ?.slice(1, 3);
+    expect(hero(detail(order()))).toEqual(["Toplam", "₺120,00"]);
+    const owed = renderToStaticMarkup(
+      createElement(OrderDetail, {
+        order: order({ status: "cancelled" }),
+        settings,
+        money,
+        actions: {},
+        payments: [],
+        timeline: [],
+        notices: [],
+        customerHref: null,
+        detailsRules: orderDetailsRules(order(), "owner"),
+        canSeeEvidence: true,
+        owedMinor: 12_000,
+      }),
+    );
+    expect(hero(owed)).toEqual(["İade edilecek", "₺120,00"]);
+    expect(owed).toContain("Toplam ₺120,00");
+  });
+
+  it("every section is in a tab, all in the page, the asked-for one shown", () => {
+    const out = renderToStaticMarkup(
+      createElement(OrderDetail, {
+        order: order(),
+        settings,
+        money,
+        actions: orderActions(order(), "owner", true, 12_000),
+        payments: [],
+        timeline: [],
+        notices: [],
+        customerHref: null,
+        detailsRules: orderDetailsRules(order(), "owner"),
+        canSeeEvidence: true,
+        invoice: createElement("p", null, "Fatura kartı"),
+        initialTab: "gecmis",
+      }),
+    );
+    const tabs = [
+      ...out.matchAll(/role="tab"[^>]*href="\?sekme=([a-z]+)"/g),
+    ].map((m) => m[1]);
+    expect(tabs).toEqual(["kalemler", "odeme", "fatura", "gecmis"]);
+    const panel = (id: string) =>
+      new RegExp(
+        `<div role="tabpanel"[^>]*data-detail-panel="${id}"([^>]*)>`,
+      ).exec(out)?.[1] ?? "";
+    expect(panel("gecmis")).not.toContain("hidden");
+    expect(panel("kalemler")).toContain("hidden");
+    // Hidden panels are still in the page: nothing is lost by a tab.
+    expect(out).toContain("Fatura kartı");
+    expect(out).toContain("Mesafeli satış onayı");
   });
 });
 
@@ -736,5 +814,26 @@ describe("the timeline", () => {
     expect(fix.description).toBe(
       "Satıştaki oran %1: 1. kalem Etiyopya Yirgacheffe, 3. kalem Yenilebilir Kup. %1 ile fatura kesildiyse mali müşavire ilet.",
     );
+  });
+});
+
+describe("the tab a record's page opens on", () => {
+  it("is the address's sekme when it names a tab, else the fallback, else the first", async () => {
+    const { pickDetailTab } =
+      await import("@/components/admin/ui/detail-tabs-core");
+    const tabs = [{ id: "kalemler" }, { id: "odeme" }, { id: "gecmis" }];
+    expect(pickDetailTab(tabs, "gecmis")).toBe("gecmis");
+    expect(pickDetailTab(tabs, ["odeme", "gecmis"])).toBe("odeme");
+    expect(pickDetailTab(tabs, "fatura")).toBe("kalemler");
+    expect(pickDetailTab(tabs, undefined, "odeme")).toBe("odeme");
+    expect(pickDetailTab(tabs, "yok", "yok")).toBe("kalemler");
+    expect(pickDetailTab([], undefined)).toBe("");
+  });
+
+  it("the order page opens money that needs a person on its payments", () => {
+    const page = readFileSync("src/app/admin/siparisler/[id]/page.tsx", "utf8");
+    expect(page).toContain('attention ? "odeme" : undefined');
+    // A manual order has no invoice card, so no Fatura tab to ask for.
+    expect(page).toContain('t !== "fatura" || order.source !== "manual"');
   });
 });
