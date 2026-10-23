@@ -205,7 +205,13 @@ export interface StaffNoticeOrder {
   scheduledFor?: string;
   deliveryNote?: string;
   totalMinor: number;
-  items: Array<{ productName: string; qty: number; detail?: string }>;
+  items: Array<{
+    productName: string;
+    qty: number;
+    detail?: string;
+    /** A café line's options; only its `note` (to the barista) is read. */
+    options?: Readonly<Record<string, unknown>> | null;
+  }>;
 }
 
 /** The provider that confirmed the payment, as the team reads it. */
@@ -287,11 +293,17 @@ export function buildStaffNoticeContent(
     ? istanbulDateTime(order.scheduledFor)
     : "";
   // One row per line: the template escapes values and keeps no line breaks.
+  // A line's note is the member's word to the barista ("şurupsuz"), never
+  // an address: it rides on every fulfilment.
   const itemRows = (order.items ?? []).map((it) => {
     const detail = String(it.detail ?? "").trim();
+    const lineNote =
+      typeof it.options?.note === "string" ? it.options.note.trim() : "";
     return {
       label: "Ürün",
-      value: `${it.qty} × ${it.productName}${detail ? ` (${detail})` : ""}`,
+      value: `${it.qty} × ${it.productName}${detail ? ` (${detail})` : ""}${
+        lineNote ? ` · Not: ${lineNote}` : ""
+      }`,
     };
   });
   const name = firstName(order.customerName);

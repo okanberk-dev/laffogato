@@ -371,8 +371,10 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
 
 - **Bar ekranı:** imzalı `GET /api/panel/orders` ödenmiş,
   hazırlanan ve gel-al'da teslim bekleyen **kafe** siparişlerini verir
-  (`toPanelOrder` beyaz listesi: satırlar ve seçenekleri, "Masa 4" / "Gel-al"
-  / "Kurye", planlı saat, **yalnız ad**, sitedeki sayfasının yolu). Panelden
+  (`toPanelOrder` beyaz listesi: satırlar, seçenekleri ve satır notu, "Masa
+  4" / "Gel-al" / "Kurye", planlı saat, **yalnız ad**, masa ve gel-al
+  siparişinde üyenin notu (kuryede hiç: kapı kodu), sitedeki sayfasının
+  yolu). Panelden
   elle girilen sipariş, mağaza kolisi, masaya / kuryeye gitmiş sipariş ve
   24 saattir ilerlemeyen gelmez. Barista siparişi bar ekranından tek
   dokunuşla ilerletir (22 Eki 2026): imzalı `POST /api/panel/orders/stage`
@@ -395,7 +397,9 @@ varsa ... beraber çalışsın"_. Aynı imza, aynı anahtar, aynı ping
   olarak verir. Rakamlar Raporlar'ın ve Gün sonu'nunkiyle aynı kuralla
   sayılır (sipariş `createdAt` gününe, karaoke ödeme gününe;
   `karaokeMoneyOf` üçünün ortak fonksiyonu); elle girilen sipariş kasada
-  çalındığı için yalnız `manual` altında. Müşteri ve sipariş numarası gitmez.
+  çalındığı için yalnız `manual`, kasada nakit ya da kasa kartıyla
+  "Ödendi" işaretlenen uygulama / web siparişi yalnız `counter` altında
+  (havale ve "Diğer" online kalır). Müşteri ve sipariş numarası gitmez.
   Panel bunu kâr-zararda üç satır (kafe online, mağaza, karaoke; KDV hariç)
   ve "TOPLAM CİRO" olarak, tutarlılıkta ayrı tüketim kaynağı olarak ve kasa
   raporunda bilgi satırı olarak gösterir. Ayrıntı: `docs/PANEL-SALES.md`.

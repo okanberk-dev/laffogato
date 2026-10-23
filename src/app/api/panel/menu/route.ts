@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 import { safeAudit } from "@/lib/admin/audit";
 import {
-  getMenuItem,
-  listMenuItems,
+  getMenuItemForPanel,
+  listMenuItemsForPanel,
   markMenuPricesChanged,
   MENU_CATEGORY_KEYS,
   MENU_CATEGORY_LABELS,
   setMenuItemSaleFields,
-  type AdminMenuItem,
+  type MenuItemPanelView,
 } from "@/lib/admin/store";
 import {
   panelSyncConfig,
@@ -19,6 +19,7 @@ import {
 import {
   changedSaleFields,
   changesPrice,
+  opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
   PANEL_MENU_VERSION,
   panelAuditActor,
@@ -72,7 +73,7 @@ function signedBy(
   });
 }
 
-function shape(item: AdminMenuItem) {
+function shape(item: MenuItemPanelView) {
   return toPanelMenuItem(
     item,
     MENU_CATEGORY_LABELS[item.categoryKey] ?? item.categoryKey,
@@ -86,9 +87,14 @@ export async function GET(request: Request) {
   if (!signedBy(config.secret, request, "GET", url, "")) {
     return deny(401, "unauthorized");
   }
-  let items: AdminMenuItem[];
+  // Stamped before the read, like the orders route: a write that lands
+  // while the list is read is after `now`, so the panel does not take the
+  // list's older value for that write's.
+  const now = new Date();
+  let items: MenuItemPanelView[];
   try {
-    items = await listMenuItems();
+    // The panel's columns only: never the photos (up to 2 MB each).
+    items = await listMenuItemsForPanel();
   } catch (err) {
     console.error("[panel-menu] menu could not be read", err);
     return deny(503, "unavailable");
@@ -96,7 +102,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       version: PANEL_MENU_VERSION,
-      now: new Date().toISOString(),
+      now: now.toISOString(),
       items: sortForPanelMenu(items.map(shape), MENU_CATEGORY_KEYS),
     },
     { headers: NO_STORE },
@@ -127,8 +133,12 @@ export async function POST(request: Request) {
   const { change } = parsed;
 
   try {
-    const current = await getMenuItem(change.id);
+    const current = await getMenuItemForPanel(change.id);
     if (!current) return deny(404, "not_found");
+    // The site closed the L size; a stale panel may not open it again.
+    if (opensLargeSize(current, saleFieldsOf(change))) {
+      return deny(409, "single_size");
+    }
     const fields = changedSaleFields(current, saleFieldsOf(change));
     if (Object.keys(fields).length === 0) {
       return NextResponse.json({ item: shape(current) }, { headers: NO_STORE });

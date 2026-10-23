@@ -690,6 +690,10 @@ maybe("karaoke prepayment (real Postgres)", () => {
         status: "confirmed",
         paymentStatus: "paid",
       });
+      // The operator's alert reads in words; the POS's text is for the log.
+      const alert = mail.alerts.at(-1) as { footnote?: string } | undefined;
+      expect(alert?.footnote).toMatch(/^POS iadeyi reddetti\. /);
+      expect(alert?.footnote).not.toContain("responseCode");
       // And it can be tried again: the claim was released.
       pos.refund = "ok";
       expect(await pay.cancelKaraokeReservation(id, asMember(c))).toMatchObject(
@@ -1460,6 +1464,17 @@ maybe("karaoke prepayment (real Postgres)", () => {
         to: dayAhead(4),
       });
       expect(one.map((r) => r.id)).toEqual([b.reservation.id]);
+      // The köşk panel's read: earliest first, so a cut keeps the near days.
+      const near = await karaoke.listReservationsForAdmin({
+        from: dayAhead(3),
+        to: dayAhead(5),
+        limit: 2,
+        ascending: true,
+      });
+      expect(near.map((r) => r.id)).toEqual([
+        a.reservation.id,
+        b.reservation.id,
+      ]);
       expect(
         (await karaoke.listReservationsForDate(dayAhead(5))).map((r) => r.id),
       ).toEqual([c.reservation.id]);

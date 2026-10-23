@@ -16,6 +16,7 @@ import {
 } from "@/lib/email/send";
 import { getPaymentProvider } from "@/lib/payment";
 import { isPaymentRefused } from "@/lib/payment/provider";
+import { refundAnswerForStaff } from "@/lib/payment/refund-answer";
 import { SITE } from "@/lib/seo/site";
 import { formatTRYMinor } from "@/lib/utils/commerce";
 import { karaokeTaxRate } from "@/lib/utils/kdv";
@@ -1024,7 +1025,7 @@ async function refundStrayPayment(
     summary: `${amount} tahsil edildi ve üyeye ait bir rezervasyon karşılığı yok.`,
     footnote:
       outcome.kind === "refused"
-        ? `POS iadeyi reddetti: ${outcome.message}. Panelden "İade et" ile yeniden dene ya da PayNkolay panelinden iade et.`
+        ? `POS iadeyi reddetti${posAnswerSuffix(outcome.message)}. Panelden "İade et" ile yeniden dene ya da PayNkolay panelinden iade et.`
         : "İade isteği gönderildi ama POS'tan yanıt alınamadı. PayNkolay panelinden iadenin geçip geçmediğine bak; sonucu panelden işaretle.",
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,
@@ -1054,6 +1055,12 @@ type RefundOutcome =
   | { kind: "unknown"; message: string };
 
 const refundRefOf = (providerRef: string) => `${providerRef}:refund`;
+
+/** ": <why>" for an operator's sentence, never the POS's raw text. */
+function posAnswerSuffix(message: string): string {
+  const why = refundAnswerForStaff(message);
+  return why ? `: ${why}` : "";
+}
 
 /**
  * Claims, sends and settles the refund of ONE payment, in full (PayNkolay
@@ -1801,7 +1808,7 @@ export async function cancelKaraokeReservation(
     summary: `${slot.date} ${slot.time} rezervasyonunun iptali için ${formatTRYMinor(payment.amountMinor)} iade isteği.`,
     footnote:
       outcome.kind === "refused"
-        ? `POS iadeyi reddetti: ${outcome.message}. Rezervasyon iptal edilmedi, ödendi olarak duruyor.`
+        ? `POS iadeyi reddetti${posAnswerSuffix(outcome.message)}. Rezervasyon iptal edilmedi, ödendi olarak duruyor.`
         : "İade isteği gönderildi ama POS'tan yanıt alınamadı; rezervasyon 'iade sonucu bekleniyor' durumunda. PayNkolay panelinden bak, sonucu panelden işaretle.",
     amountMinor: payment.amountMinor,
     providerRef: payment.providerRef,

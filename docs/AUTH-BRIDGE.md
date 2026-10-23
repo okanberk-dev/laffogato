@@ -175,9 +175,19 @@ gerçek id ile eşlenir.
 ## 4. `src/proxy.ts`: oturum yenileme
 
 Server Component çerez yazamaz; süresi dolan access token tarayıcıda kalırdı.
-`updateSession` her sayfa isteğinde (Supabase çerezi varsa) `getClaims()`
-çağırarak yenilemeyi tetikler ve dönen çerezleri hem isteğe hem yanıta yazar
-(3 sn sınırıyla). Süresi dolmuş oturum eskisi gibi kimlik sunucusunda
+`updateSession` yalnız üye sayfalarında (`/uye` ve altı; Supabase çerezi
+varsa) `getClaims()` çağırarak yenilemeyi tetikler ve dönen çerezleri hem
+isteğe hem yanıta yazar (3 sn sınırıyla). Çerez oturumunu yalnız
+`src/app/uye/actions.ts` okur (giriş, kayıt, hesap sayfasından çıkış);
+ana sayfa, menü, ödeme ve panel bu oturuma bakmaz, bu yüzden oralarda kimlik
+sunucusu beklenmez (`isSessionRefreshPath`; 9-17 Eki 2026'da her sayfada
+472 "getUser timed out" kaydı). Genel sayfanın başlığındaki "Çıkış yap" bir
+Server Action'dır: çerezi kendisi yazar, süresi dolmuş oturumu supabase-js
+çıkıştan önce kendisi yeniler. Süre aşılırsa ya da kimlik sunucusuna
+ulaşılamazsa istek geldiği çerezlerle sürer: hiçbir çerez silinmez ya da
+yeniden yazılmaz, üye girişte kalır
+(`tests/supabase-session-refresh.test.ts`). Süresi dolmuş oturum eskisi gibi
+kimlik sunucusunda
 yenilenir; geçerli erişim token'ı ise projenin önbellekteki açık anahtarlarıyla
 yerelde doğrulanır, proje hâlâ ortak sırla imzalıyorsa kütüphane `getUser()`'a
 düşer (#100). Sonucu hiçbir şeye yetki vermez: sayfa kimliği sitenin kendi

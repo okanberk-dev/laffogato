@@ -13,6 +13,7 @@ import {
 import {
   changedSaleFields,
   changesPrice,
+  opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
   panelAuditActor,
   parsePanelMenuChange,
@@ -31,8 +32,8 @@ import {
  */
 
 const store = vi.hoisted(() => ({
-  getMenuItem: vi.fn(),
-  listMenuItems: vi.fn(),
+  getMenuItemForPanel: vi.fn(),
+  listMenuItemsForPanel: vi.fn(),
   setMenuItemSaleFields: vi.fn(),
   markMenuPricesChanged: vi.fn(),
 }));
@@ -103,7 +104,7 @@ function signedPost(body: unknown, at = Date.now(), secret = SECRET): Request {
 beforeEach(() => {
   vi.stubEnv("KARAOKE_SYNC_SECRET", SECRET);
   for (const fn of [...Object.values(store), safeAudit]) fn.mockReset();
-  store.listMenuItems.mockResolvedValue([]);
+  store.listMenuItemsForPanel.mockResolvedValue([]);
   store.markMenuPricesChanged.mockResolvedValue(undefined);
   safeAudit.mockResolvedValue(true);
   h.tasks.length = 0;
@@ -205,6 +206,19 @@ describe("a write's rules (the menu form's)", () => {
     expect(changesPrice({ priceMinorL: 16000 })).toBe(true);
     expect(panelAuditActor(" Selin ")).toBe("panel:Selin");
   });
+
+  it("lets only the site open an L size", () => {
+    const single = { priceMinorL: 0 };
+    expect(opensLargeSize(single, { priceMinorL: 16000 })).toBe(true);
+    expect(opensLargeSize({ priceMinorL: -5 }, { priceMinorL: 1 })).toBe(true);
+    // Closing L, leaving it out or keeping it 0 is no opening.
+    expect(opensLargeSize(single, { priceMinorL: 0 })).toBe(false);
+    expect(opensLargeSize(single, { priceMinor: 14500 })).toBe(false);
+    // An L the site already sells may move or close.
+    const two = { priceMinorL: 15000 };
+    expect(opensLargeSize(two, { priceMinorL: 16000 })).toBe(false);
+    expect(opensLargeSize(two, { priceMinorL: 0 })).toBe(false);
+  });
 });
 
 describe("the price list's day (menuPricesDateStale)", () => {
@@ -230,7 +244,7 @@ describe("GET /api/panel/menu", () => {
     vi.stubEnv("KARAOKE_SYNC_SECRET", "");
     const res = await GET(signedGet());
     expect(res.status).toBe(503);
-    expect(store.listMenuItems).not.toHaveBeenCalled();
+    expect(store.listMenuItemsForPanel).not.toHaveBeenCalled();
   });
 
   it("answers 401 to an unsigned, forged or replayed request", async () => {
@@ -249,11 +263,11 @@ describe("GET /api/panel/menu", () => {
       expect(res.status).toBe(401);
       expect(await res.json()).toEqual({ error: "unauthorized" });
     }
-    expect(store.listMenuItems).not.toHaveBeenCalled();
+    expect(store.listMenuItemsForPanel).not.toHaveBeenCalled();
   });
 
   it("lists every item, sold-out ones too, in the whitelisted shape", async () => {
-    store.listMenuItems.mockResolvedValue([
+    store.listMenuItemsForPanel.mockResolvedValue([
       item({ id: "mnu-0002", isActive: false }),
       item({ id: "mnu-0001", categoryKey: "matcha", name: "Matcha Latte" }),
     ]);
@@ -273,8 +287,30 @@ describe("GET /api/panel/menu", () => {
 
   it("says 503 when the menu cannot be read", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    store.listMenuItems.mockRejectedValue(new Error("down"));
+    store.listMenuItemsForPanel.mockRejectedValue(new Error("down"));
     expect((await GET(signedGet())).status).toBe(503);
+  });
+
+  it("stamps `now` before the read, never after it", async () => {
+    // A slow read: the clock moves on while the list is read. A `now`
+    // taken after it would be later than writes the list does not hold.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-22T09:00:00.000Z"));
+      let readAt = "";
+      store.listMenuItemsForPanel.mockImplementation(async () => {
+        readAt = new Date().toISOString();
+        vi.setSystemTime(new Date("2026-10-22T09:00:02.000Z"));
+        return [item()];
+      });
+      const res = await GET(signedGet());
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(readAt).toBe("2026-10-22T09:00:00.000Z");
+      expect(body.now <= readAt).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -285,7 +321,7 @@ describe("POST /api/panel/menu", () => {
       signedPost({ id: "mnu-0011", isActive: false, actor: "S" }),
     );
     expect(res.status).toBe(503);
-    expect(store.getMenuItem).not.toHaveBeenCalled();
+    expect(store.getMenuItemForPanel).not.toHaveBeenCalled();
   });
 
   it("refuses an unsigned, forged or retargeted body with 401", async () => {
@@ -303,7 +339,7 @@ describe("POST /api/panel/menu", () => {
     ]) {
       expect((await POST(req)).status).toBe(401);
     }
-    expect(store.getMenuItem).not.toHaveBeenCalled();
+    expect(store.getMenuItemForPanel).not.toHaveBeenCalled();
   });
 
   it("refuses a body past 4 KB before reading its signature", async () => {
@@ -322,11 +358,11 @@ describe("POST /api/panel/menu", () => {
     expect(await res.json()).toEqual({ error: "invalid", field: "body" });
     res = await POST(signedPost({ id: "mnu-0011", priceMinor: 0, actor: "S" }));
     expect(await res.json()).toEqual({ error: "invalid", field: "priceMinor" });
-    expect(store.getMenuItem).not.toHaveBeenCalled();
+    expect(store.getMenuItemForPanel).not.toHaveBeenCalled();
   });
 
   it("answers 404 for an item the site no longer has", async () => {
-    store.getMenuItem.mockResolvedValue(null);
+    store.getMenuItemForPanel.mockResolvedValue(null);
     const res = await POST(
       signedPost({ id: "mnu-0099", isActive: false, actor: "S" }),
     );
@@ -335,7 +371,7 @@ describe("POST /api/panel/menu", () => {
   });
 
   it("writes only what changed, marks the price list, and names the panel user", async () => {
-    store.getMenuItem.mockResolvedValue(item());
+    store.getMenuItemForPanel.mockResolvedValue(item());
     store.setMenuItemSaleFields.mockImplementation(async (_id, fields) => ({
       ...item(),
       ...fields,
@@ -366,7 +402,7 @@ describe("POST /api/panel/menu", () => {
   });
 
   it("writes nothing when the values are the site's already", async () => {
-    store.getMenuItem.mockResolvedValue(item());
+    store.getMenuItemForPanel.mockResolvedValue(item());
     const res = await POST(
       signedPost({ id: "mnu-0011", priceMinor: 14000, actor: "Selin" }),
     );
@@ -376,8 +412,51 @@ describe("POST /api/panel/menu", () => {
     expect(safeAudit).not.toHaveBeenCalled();
   });
 
+  it("refuses with 409 an L price for an item the site keeps single-size", async () => {
+    // The operator closed Latte's L here; the panel's copy still has it.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        priceMinorL: 16000,
+        actor: "Selin",
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual({ error: "single_size" });
+    // Nothing of the change is written, not even its M price.
+    expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
+    expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("still takes an L of 0, no L, or an L the site sells", async () => {
+    store.setMenuItemSaleFields.mockImplementation(async (_id, fields) => ({
+      ...item(),
+      ...fields,
+    }));
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
+    for (const body of [
+      { id: "mnu-0011", priceMinor: 14500, priceMinorL: 0, actor: "S" },
+      { id: "mnu-0011", priceMinor: 14500, actor: "S" },
+    ]) {
+      expect((await POST(signedPost(body))).status).toBe(200);
+    }
+    // The operator opened L here meanwhile: the panel's L price is a move.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 15000 }));
+    const res = await POST(
+      signedPost({ id: "mnu-0011", priceMinorL: 16000, actor: "S" }),
+    );
+    expect(res.status).toBe(200);
+    expect(store.setMenuItemSaleFields).toHaveBeenLastCalledWith("mnu-0011", {
+      priceMinorL: 16000,
+    });
+  });
+
   it("a sold-out switch is not a price change", async () => {
-    store.getMenuItem.mockResolvedValue(item());
+    store.getMenuItemForPanel.mockResolvedValue(item());
     store.setMenuItemSaleFields.mockResolvedValue(item({ isActive: false }));
     const res = await POST(
       signedPost({ id: "mnu-0011", isActive: false, actor: "Selin" }),
