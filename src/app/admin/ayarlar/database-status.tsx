@@ -45,7 +45,8 @@ export function DatabaseSchemaStatus({ health }: { health: DbHealth }) {
  * (src/lib/admin/neon-usage-core.ts): the Free plan stops the database
  * when they run out, and nothing else on any screen says how close that
  * is. Off without `NEON_API_KEY` and `NEON_PROJECT_ID`, and then it says
- * how to turn it on. The dashboard repeats it for a warning only.
+ * how to turn it on; orange when a key is set and Neon does not answer.
+ * The dashboard repeats it for a warning only.
  */
 export function NeonUsageStatus({ view }: { view: NeonUsageView }) {
   const label = (
@@ -60,14 +61,6 @@ export function NeonUsageStatus({ view }: { view: NeonUsageView }) {
         projeye yetkili bir anahtar) ve <code>NEON_PROJECT_ID</code>{" "}
         tanımlanınca bu dönemin CU-saati ve bu hızla nerede biteceği burada
         görünür.
-      </StatusRow>
-    );
-  }
-  if (view.state === "unreadable") {
-    return (
-      <StatusRow tone="neutral" testId="neon-usage-status" state="unreadable">
-        {label} Neon&apos;un yanıtı okunamadı; anahtar ya da proje kimliği
-        yanlış olabilir. Geliştiriciye ilet.
       </StatusRow>
     );
   }

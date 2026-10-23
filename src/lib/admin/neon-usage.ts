@@ -22,14 +22,22 @@ export const NEON_READ_TIMEOUT_MS = 3_000;
 /** A good answer is kept this long per server; Neon's counters lag anyway. */
 export const NEON_MEMO_MS = 10 * 60_000;
 
+/**
+ * A failed one is kept this long: an API that hangs or refuses costs each
+ * server one wait a minute, not one per owner view (review of #235).
+ */
+export const NEON_FAIL_MEMO_MS = 60_000;
+
 /** Neon's project ids ("misty-cell-35394291"); anything else is not sent. */
 const PROJECT_ID = /^[a-z0-9-]{1,64}$/;
 
-let memo: { at: number; read: NeonUsageRead } | null = null;
+let memo: { until: number; read: NeonUsageRead } | null = null;
+let inFlight: Promise<NeonUsageRead> | null = null;
 
 /** Drops the kept answer (tests; a changed key takes a new server anyway). */
 export function forgetNeonUsage(): void {
   memo = null;
+  inFlight = null;
 }
 
 /** The plan's monthly hours (`NEON_CU_HOURS_LIMIT`; the Free plan's 100). */
@@ -51,7 +59,9 @@ export function neonConfig(
 /**
  * Never throws: one status line must not take the page down. A refused
  * key, a timeout or an unexpected body is `unreadable`, logged by its
- * class (HTTP status, error name), never the body.
+ * class (HTTP status, error name), never the body. Views that ask at the
+ * same time share one question; a good answer is not kept past its
+ * period's end, so a new month is read as soon as it begins.
  */
 export async function loadNeonUsage(
   now: Date = new Date(),
@@ -59,7 +69,32 @@ export async function loadNeonUsage(
 ): Promise<NeonUsageRead> {
   const config = neonConfig();
   if (!config) return { kind: "off" };
-  if (memo && now.getTime() - memo.at < NEON_MEMO_MS) return memo.read;
+  if (memo && now.getTime() < memo.until) return memo.read;
+  inFlight ??= askNeon(config, now, fetchImpl).finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function askNeon(
+  config: { key: string; project: string },
+  now: Date,
+  fetchImpl: typeof fetch,
+): Promise<NeonUsageRead> {
+  const read = await readNeon(config, now, fetchImpl);
+  const keep =
+    read.kind === "usage"
+      ? Math.min(NEON_MEMO_MS, Date.parse(read.usage.periodEnd) - now.getTime())
+      : NEON_FAIL_MEMO_MS;
+  memo = keep > 0 ? { until: now.getTime() + keep, read } : null;
+  return read;
+}
+
+async function readNeon(
+  config: { key: string; project: string },
+  now: Date,
+  fetchImpl: typeof fetch,
+): Promise<NeonUsageRead> {
   try {
     const res = await fetchImpl(`${NEON_API}/projects/${config.project}`, {
       headers: {
@@ -78,9 +113,7 @@ export async function loadNeonUsage(
       console.error("[admin] Neon usage unreadable: unexpected body");
       return { kind: "unreadable" };
     }
-    const read: NeonUsageRead = { kind: "usage", usage };
-    memo = { at: now.getTime(), read };
-    return read;
+    return { kind: "usage", usage };
   } catch (err) {
     console.error(
       `[admin] Neon usage unreadable: ${err instanceof Error ? err.name : "error"}`,

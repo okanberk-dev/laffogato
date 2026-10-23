@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/admin/forms";
 import { PageShell } from "@/components/admin/ui";
@@ -36,7 +37,7 @@ import {
   readNeonUsageFor,
 } from "@/lib/admin/neon-usage-core";
 import { DEFAULT_KARAOKE_RULES } from "@/lib/mobile/karaoke-core";
-import { canAccess } from "@/lib/admin/roles";
+import { canAccess, type AdminRole } from "@/lib/admin/roles";
 import { loadSupabaseKeepalive } from "@/lib/admin/supabase-keepalive";
 import {
   keepaliveView,
@@ -112,6 +113,18 @@ async function readInvoiceAlert(
 }
 
 /** The newest orders with whether money was taken for each. */
+/**
+ * Neon's band (src/lib/admin/neon-usage-core.ts), for the owner alone and
+ * only when it needs someone. Its own async component inside a Suspense
+ * boundary, so a slow or silent Neon API holds this band back, not the
+ * dashboard. Never throws: loadNeonUsage answers "unreadable" instead.
+ */
+async function NeonAlarm({ role, now }: { role: AdminRole; now: Date }) {
+  const read = await readNeonUsageFor(role, loadNeonUsage);
+  const view = read ? neonUsageView(read, neonLimit(), now) : null;
+  return view && neonAlarm(view) ? <NeonUsageLine view={view} /> : null;
+}
+
 async function withMoney(orders: AdminOrder[]): Promise<RecentOrderRow[]> {
   const money = await listOrderMoney(orders);
   return orders.map((order) => ({
@@ -189,7 +202,6 @@ export default async function AdminDashboardPage() {
     keepalive,
     iys,
     invoiceAlert,
-    neon,
   ] = await Promise.all([
     getDashboardStats(),
     // Five rows, read as five rows: this used to be every order in the
@@ -207,12 +219,8 @@ export default async function AdminDashboardPage() {
     // İYS deadlines, for the roles that run the bulletin (owner, manager).
     canAccess("newsletter", role) ? readIysAttention(now) : null,
     readInvoiceAlert(role, now),
-    // Neon's monthly compute, for the owner alone, from Neon's own API
-    // (never the database); drawn below only when it needs someone.
-    readNeonUsageFor(role, loadNeonUsage),
   ]);
   const keepaliveAlarm = keepalive ? keepaliveView(keepalive, now) : null;
-  const compute = neon ? neonUsageView(neon, neonLimit(), now) : null;
 
   const today = revenue?.buckets.at(-1);
   const tiles = dashboardTiles(
@@ -303,9 +311,12 @@ export default async function AdminDashboardPage() {
         Neon's Free plan stops the database for the rest of the month when
         its compute hours run out (docs/DATABASE.md; September 2026). From
         80 %, or when this pace spends them early, the owner hears it here;
-        otherwise the line stays in Ayarlar → Sistem durumu.
+        otherwise the line stays in Ayarlar → Sistem durumu. Streamed: the
+        page never waits on Neon's API (review of #235).
       */}
-      {compute && neonAlarm(compute) ? <NeonUsageLine view={compute} /> : null}
+      <Suspense fallback={null}>
+        <NeonAlarm role={role} now={now} />
+      </Suspense>
 
       {/*
         İYS (docs/IYS.md): a consent not registered within three business

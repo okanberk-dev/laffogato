@@ -816,8 +816,9 @@ kartına iki satır eklendi, Genel bakış yalnız uyarıyı tekrarlar (operatö
   dolduracaksa turuncu; o zaman Genel bakış da aynı cümleyi gösterir. Dolunca
   kırmızı: Free planda Neon veritabanını dönem sonuna kadar askıya alır.
   `NEON_API_KEY` ve `NEON_PROJECT_ID` yoksa gri kalır ve nasıl açılacağını
-  söyler; ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu:
-  Neon işlem süresi".
+  söyler; anahtar tanımlıyken Neon yanıt vermezse turuncu (izleme kördür).
+  Ayrıntı ve anahtarın yetkisi `docs/DATABASE.md` "Sistem durumu: Neon
+  işlem süresi".
 
 ## Siparişte PayNkolay'da yapılmış iade (22 Eki 2026)
 
