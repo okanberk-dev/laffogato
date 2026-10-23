@@ -37,7 +37,26 @@ describe("refundAnswerForStaff", () => {
     ).toMatch(/zaten başlatılmış/);
     expect(
       refundAnswerForStaff("Ödeme sağlayıcısı kurulamadı (PAYNKOLAY_SX yok)"),
-    ).toBe("ödeme sağlayıcısına bağlanılamadı, istek gönderilmedi");
+    ).toBe("ödeme sağlayıcısına bağlanılamadı; iade isteği gönderilmedi");
+    // The site's own warnings survive (runRefund, cancelKaraokeReservation)
+    expect(
+      refundAnswerForStaff(
+        "POS ikinci iadeyi reddetti (ilk iade geçmiş olabilir): paynkolay refund reddedildi: responseCode=5 Sistem hatası",
+      ),
+    ).toBe("PayNkolay ikinci iade isteğini reddetti; ilk iade geçmiş olabilir");
+    expect(refundAnswerForStaff("Ödeme kaydı bulunamadı.")).toBe(
+      "ödeme kaydı bulunamadı; POS'a iade isteği gönderilmedi",
+    );
+    expect(
+      refundAnswerForStaff(
+        "paynkolay: PNK123 referanslı işlem son 12 ayda bulunamadı; iade edilemez",
+      ),
+    ).toBe("PayNkolay'da bu ödeme bulunamadı; iade isteği gönderilmedi");
+    expect(
+      refundAnswerForStaff(
+        "paynkolay: PNK123 işlemi aranamadı, iade denenmedi: fetch failed",
+      ),
+    ).toBe("ödeme sağlayıcısına bağlanılamadı; iade isteği gönderilmedi");
     for (const raw of [
       "paynkolay refund reddedildi: responseCode=5",
       "paynkolay cancel reddedildi: responseCode=? ",
@@ -54,7 +73,9 @@ describe("refundAnswerForStaff", () => {
     for (const raw of [
       ALREADY,
       "POS ikinci iadeyi reddetti (ilk iade geçmiş olabilir): " + ALREADY,
+      "POS ikinci iadeyi reddetti (ilk iade geçmiş olabilir): paynkolay refund reddedildi: responseCode=5 Sistem hatası",
       "paynkolay refund reddedildi: responseCode=5 Sistem hatası",
+      "paynkolay: PNK123 işlemi aranamadı, iade denenmedi: fetch failed",
     ]) {
       const text = refundAnswerForStaff(raw);
       expect(text).not.toMatch(/responseCode|paynkolay refund|reddedildi/i);

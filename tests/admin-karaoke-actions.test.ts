@@ -262,6 +262,40 @@ describe("a refused refund reads in words, not as PayNkolay's text", () => {
     expect(text).not.toMatch(/responseCode|reddedildi:/);
   });
 
+  it("a refused retry after an unanswered first refund keeps its warning", async () => {
+    h.retry.mockResolvedValue({
+      ok: false,
+      reason: "unknown",
+      message:
+        "POS ikinci iadeyi reddetti (ilk iade geçmiş olabilir): paynkolay refund reddedildi: responseCode=5 Sistem hatası",
+    });
+    const res = await admin.retryKaraokeRefundAction(
+      null,
+      form({ id: ID, reason: "İlk iade yanıtsız kaldı" }),
+    );
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain("ilk iade geçmiş olabilir");
+    expect(text).not.toContain("POS yanıt vermedi");
+    expect(text).not.toMatch(/responseCode|Sistem hatası/);
+  });
+
+  it("a cancel with no payment row says nothing was sent to the POS", async () => {
+    h.reservation = { id: ID, status: "confirmed", paymentStatus: "none" };
+    h.cancel.mockResolvedValue({
+      ok: false,
+      reason: "refund_refused",
+      message: "Ödeme kaydı bulunamadı.",
+    });
+    const res = await admin.cancelReservationAction(
+      null,
+      form({ id: ID, beklenen: "odenmemis" }),
+    );
+    const text = res.ok ? "" : res.error;
+    expect(text).toContain(
+      "ödeme kaydı bulunamadı; POS'a iade isteği gönderilmedi",
+    );
+  });
+
   it("an unknown answer never prints the POS's raw text", async () => {
     h.retry.mockResolvedValue({
       ok: false,

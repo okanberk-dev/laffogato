@@ -16,8 +16,12 @@ export function isAlreadyReversed(message: string): boolean {
 
 /**
  * What the operator is told about a refund the POS refused or never
- * answered: a known case in plain Turkish, "" for anything else (the
- * caller's own sentence then stands alone; the raw text is in the log).
+ * answered: each answer the site knows (PayNkolay's, and the site's own
+ * from `runRefund` and the karaoke cancel) in plain Turkish, "" for anything
+ * else (the caller's own sentence then stands alone; the raw text is in the
+ * log). The site's own warnings are kept: a refused retry may follow a
+ * refund that went through, and a missing payment row means nothing was
+ * sent to the POS.
  */
 export function refundAnswerForStaff(
   message: string | null | undefined,
@@ -26,14 +30,23 @@ export function refundAnswerForStaff(
   if (isAlreadyReversed(text)) {
     return "PayNkolay bu ödemenin daha önce iptal ya da iade edildiğini söylüyor; para ikinci kez gönderilmedi";
   }
+  if (/ikinci iadeyi reddetti/i.test(text)) {
+    return "PayNkolay ikinci iade isteğini reddetti; ilk iade geçmiş olabilir";
+  }
   if (/kısmi iade/i.test(text)) {
     return "PayNkolay kısmi iade yapamıyor; tutarı PayNkolay panelinden iade et";
   }
   if (/iadesi zaten başlatılmış/i.test(text)) {
     return "bu ödemenin iadesi zaten başlatılmış, sonucu bekleniyor";
   }
-  if (/sağlayıcısı kurulamadı/i.test(text)) {
-    return "ödeme sağlayıcısına bağlanılamadı, istek gönderilmedi";
+  if (/[öÖ]deme kaydı bulunamadı/.test(text)) {
+    return "ödeme kaydı bulunamadı; POS'a iade isteği gönderilmedi";
+  }
+  if (/işlem son \d+ ayda bulunamadı|REFERENCE_CODE boş/i.test(text)) {
+    return "PayNkolay'da bu ödeme bulunamadı; iade isteği gönderilmedi";
+  }
+  if (/aranamadı, iade denenmedi|sağlayıcısı kurulamadı/i.test(text)) {
+    return "ödeme sağlayıcısına bağlanılamadı; iade isteği gönderilmedi";
   }
   return "";
 }
