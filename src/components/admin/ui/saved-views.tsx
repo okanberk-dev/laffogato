@@ -66,6 +66,10 @@ export interface SavedViewsProps {
   /** What the list shows, the remembered search included. */
   values: FilterValues;
   pageParam: string;
+  /** The list's tab param when not `durum` (the FilterBar's `views`). */
+  tabParam?: string;
+  /** A record is open over the list: no default view now. */
+  hold?: boolean;
   /** useTouchedSince's answer: the operator started something already. */
   touched: () => boolean;
   className?: string;
@@ -98,6 +102,8 @@ export function SavedViews({
   fields,
   values,
   pageParam,
+  tabParam,
+  hold = false,
   touched,
   className,
 }: SavedViewsProps) {
@@ -109,7 +115,7 @@ export function SavedViews({
   // with a stored list this way.
   const read = () => readViews(storageKey);
   const raw = useSyncExternalStore(subscribeViews, read, read);
-  const rules = viewRulesFor(fields, pageParam);
+  const rules = viewRulesFor(fields, pageParam, tabParam);
   const state = parseSavedViews(raw, rules);
   const current = viewQuery(address, rules);
   const menu = viewsMenu(state, pathname, current);
@@ -131,14 +137,16 @@ export function SavedViews({
     asked.current = true;
     const target = defaultViewHref(state, pathname, address, searchActive, {
       appliedInTab: readTabDefault(tabKey) || null,
-      touched: touched(),
+      // A quick look reached by its link: replacing the address would
+      // close the record the operator came for.
+      touched: hold || touched(),
     });
     if (!target || !state.defaultQuery) return;
     // Not noted, not opened: a tab that cannot remember would reopen it on
     // every Back.
     if (!writeTabDefault(tabKey, state.defaultQuery)) return;
     router.replace(target, { scroll: false });
-  }, [router, state, pathname, address, searchActive, tabKey, touched]);
+  }, [router, state, pathname, address, searchActive, tabKey, touched, hold]);
 
   // Every write starts from what is stored now: another tab may have
   // saved since this one drew its menu.

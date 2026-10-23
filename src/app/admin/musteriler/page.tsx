@@ -346,6 +346,7 @@ export default async function CustomersPage({ searchParams }: PageProps) {
         searchParams={sp}
         pathname={CUSTOMER_LIST_PATH}
         label="Müşteri filtreleri"
+        views={{ key: "customers", tabParam: CUSTOMER_TAB_PARAM }}
       />
 
       {/* Innex's KPI strip: the list's figures in one card, a hairline

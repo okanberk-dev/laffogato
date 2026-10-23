@@ -225,6 +225,97 @@ describe("the menu's rules: the list's own names only", () => {
     expect(html).toContain('href="/admin/siparisler?durum=acik"');
     expect(lib.LIST_VIEW_PARAMS).toContain("durum");
   });
+
+  it("a list whose tab is not `durum` names it, or a view drops the tab", async () => {
+    // Karaoke's tab is `sekme`, Müşteriler' `filter`: before 23 Eki 2026 a
+    // view of "Dikkat" kept nothing and the menu called the list bare.
+    const { KARAOKE_FILTER_FIELDS, KARAOKE_TAB_PARAM } =
+      await import("@/lib/admin/karaoke-panel");
+    const without = lib.viewRulesFor(KARAOKE_FILTER_FIELDS, "sayfa");
+    const withTab = lib.viewRulesFor(
+      KARAOKE_FILTER_FIELDS,
+      "sayfa",
+      KARAOKE_TAB_PARAM,
+    );
+    expect(lib.viewQuery({ sekme: "dikkat" }, without)).toBe("");
+    expect(lib.viewQuery({ sekme: "dikkat", odeme: "paid" }, withTab)).toBe(
+      "odeme=paid&sekme=dikkat",
+    );
+    // Its search box stays out whatever the tab.
+    expect(lib.viewQuery({ sekme: "dikkat", q: "ayse" }, withTab)).toBe(
+      "sekme=dikkat",
+    );
+  });
+});
+
+describe("every list with a filter bar offers views", () => {
+  // The page, its list key, and its tab's param when not `durum`.
+  const LISTS: Array<[string, string, string | null]> = [
+    ["siparisler", "orders", null],
+    ["mobil/karaoke", "karaoke", "KARAOKE_TAB_PARAM"],
+    ["urunler", "products", null],
+    ["menu", "menu", null],
+    ["musteriler", "customers", "CUSTOMER_TAB_PARAM"],
+    ["promosyon", "promos", null],
+    ["stok-hareketleri", "stock-moves", null],
+    ["olay-kaydi", "audit-log", null],
+    ["bulten", "subscribers", null],
+    ["masalar", "tables", null],
+  ];
+  const page = (route: string) =>
+    readFileSync(`src/app/admin/${route}/page.tsx`, "utf8");
+
+  it("each with a key of its own, and its tab when the tab is not `durum`", () => {
+    for (const [route, key, tabParam] of LISTS) {
+      const src = page(route);
+      expect(src, route).toContain(`views={{ key: "${key}"`);
+      if (tabParam) {
+        expect(src, route).toContain(`tabParam: ${tabParam}`);
+        expect(src, route).toContain(`param={${tabParam}}`);
+      } else {
+        expect(src, route).not.toContain("tabParam:");
+      }
+    }
+    expect(new Set(LISTS.map(([, key]) => key)).size).toBe(LISTS.length);
+  });
+
+  it("no list page with a filter bar is left out", () => {
+    const pages: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(path);
+        else if (entry.name === "page.tsx") pages.push(path);
+      }
+    };
+    walk("src/app/admin");
+    const withBar = pages
+      .filter((p) => readFileSync(p, "utf8").includes("<FilterBar"))
+      .map((p) => p.replace("src/app/admin/", "").replace("/page.tsx", ""))
+      .sort();
+    expect(withBar).toEqual(LISTS.map(([route]) => route).sort());
+  });
+
+  it("a quick look reached by its link is not closed by the default view", () => {
+    // The drawer's `?gor=` never reaches the bar, which would take the
+    // address for a bare list and replace it with the default view.
+    expect(page("urunler")).toContain(
+      'views={{ key: "products", hold: look !== null }}',
+    );
+    expect(page("menu")).toContain(
+      'views={{ key: "menu", hold: lookItem !== undefined }}',
+    );
+    const menu = readFileSync(
+      "src/components/admin/ui/saved-views.tsx",
+      "utf8",
+    );
+    expect(menu).toMatch(/touched: hold \|\| touched\(\),/);
+    expect(menu).toContain("viewRulesFor(fields, pageParam, tabParam)");
+    const bar = readFileSync("src/components/admin/ui/filter-bar.tsx", "utf8");
+    expect(bar).toMatch(
+      /tabParam=\{views\?\.tabParam\}\s+hold=\{views\?\.hold\}/,
+    );
+  });
 });
 
 describe("a view's name", () => {
@@ -613,7 +704,7 @@ describe("the default, once per tab and never over the operator", () => {
   it("the menu notes the default before it opens it, and asks the tab and the page first", () => {
     const src = readFileSync("src/components/admin/ui/saved-views.tsx", "utf8");
     expect(src).toMatch(
-      /appliedInTab: readTabDefault\(tabKey\) \|\| null,\s*touched: touched\(\),/,
+      /appliedInTab: readTabDefault\(tabKey\) \|\| null,[\s\S]{0,200}?touched: hold \|\| touched\(\),/,
     );
     // Not noted (storage refused), not opened: it would reopen on every Back.
     expect(src).toMatch(

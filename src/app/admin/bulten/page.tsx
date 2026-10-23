@@ -152,6 +152,7 @@ export default async function NewsletterPage({ searchParams }: PageProps) {
             searchParams={sp}
             pathname={NEWSLETTER_PATH}
             values={filters}
+            views={{ key: "subscribers" }}
           />
 
           <DataTable<NewsletterSubscriber>

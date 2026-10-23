@@ -154,6 +154,7 @@ export default async function CafeTablesPage({ searchParams }: PageProps) {
               searchParams={sp}
               pathname={CAFE_TABLES_PATH}
               values={filters}
+              views={{ key: "tables" }}
             />
           </div>
 

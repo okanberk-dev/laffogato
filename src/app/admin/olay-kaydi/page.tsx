@@ -202,6 +202,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           searchParams={sp}
           pathname={AUDIT_LOG_PATH}
           values={filters}
+          views={{ key: "audit-log" }}
         />
       </div>
 

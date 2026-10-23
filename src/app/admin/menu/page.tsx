@@ -132,6 +132,7 @@ export default async function AdminMenuPage({ searchParams }: PageProps) {
         pathname={MENU_PATH}
         values={filters}
         label="Menü süzgeci"
+        views={{ key: "menu", hold: lookItem !== undefined }}
       />
 
       {/* Keyed by the address and the search: a new tab, filter or search
