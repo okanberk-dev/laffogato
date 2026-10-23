@@ -19,6 +19,7 @@ import {
 import {
   changedSaleFields,
   changesPrice,
+  opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
   PANEL_MENU_VERSION,
   panelAuditActor,
@@ -129,6 +130,10 @@ export async function POST(request: Request) {
   try {
     const current = await getMenuItem(change.id);
     if (!current) return deny(404, "not_found");
+    // The site closed the L size; a stale panel may not open it again.
+    if (opensLargeSize(current, saleFieldsOf(change))) {
+      return deny(409, "single_size");
+    }
     const fields = changedSaleFields(current, saleFieldsOf(change));
     if (Object.keys(fields).length === 0) {
       return NextResponse.json({ item: shape(current) }, { headers: NO_STORE });

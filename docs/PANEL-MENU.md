@@ -135,8 +135,18 @@ bağlantısının anahtarıdır). Anahtar yoksa uçlar 503 döner, ping gitmez.
    | 400   | `{"error":"invalid","field"}` | Alan kurala uymuyor ya da hiçbiri yok    |
    | 401   | `{"error":"unauthorized"}`    | İmza yok, yanlış ya da 5 dakikadan eski  |
    | 404   | `{"error":"not_found"}`       | Kalem sitede yok (silinmiş)              |
+   | 409   | `{"error":"single_size"}`     | Kalem tek boy, istek L fiyatı veriyor    |
    | 413   | `{"error":"too_large"}`       | Gövde 4 KB'tan büyük                     |
    | 503   | `{"error":"not_configured"}`  | Anahtar yok; ya da veritabanı okunamadı  |
+
+   **L boyunu yalnız site açar** (23 Eki 2026). Kalem sitede tek boyken
+   (`priceMinorL` 0) `priceMinorL > 0` taşıyan istek 409 `single_size` ile
+   reddedilir ve hiçbir alanı yazılmaz (aynı istekteki M fiyatı da): panelin
+   kopyası bayatken işletmecinin sitede kapattığı L boyu panelden yeniden
+   açılamaz. `priceMinorL` göndermeyen ya da `0` gönderen istek, L'si açık
+   kalemin L fiyatını değiştiren istek eskisi gibi geçer; işletmeci L'yi bu
+   arada sitede açtıysa istek de geçer. Panel 2xx dışı her yanıtı ret sayar
+   ve değişikliği kaydetmez; sonraki çekmede L yuvası "bağlantı kopuk" olur.
 
    Site yazımı yalnız bu üç sütuna yapar (`setMenuItemSaleFields`, tek UPDATE),
    olay kaydına yazar ve `pub:menu` önbelleğini düşürür: sitenin menüsü,
