@@ -41,6 +41,11 @@ birkaç saniyede bir sormadan.
    telefon, soyad, iletişim izni, sözleşme kaydı, ödeme referansı, iade
    ayrıntısı ve IP **hiç gönderilmez** (`toPanelReservation`, beyaz liste).
 
+   Liste günün ve saatin sırasıyladır (erkenden geçe). Pencere 2000 satırı
+   aşarsa (tek oda saatlik kiralanınca gerçek bir durum değil) site okumayı
+   da erkenden geçe yapar: kesilen pencerenin **uzak ucudur**, bugün ve bu
+   hafta hep gelir; `complete: false` listenin kesildiğini söyler.
+
 ## Ortam değişkenleri
 
 | Değişken              | Nerede          | Açıklama                                                                           |
