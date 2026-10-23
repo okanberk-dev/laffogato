@@ -14,6 +14,10 @@ import {
 
 import { BusyDots } from "@/components/laffogato/busy-dots";
 import { cx } from "@/components/laffogato/cx";
+import {
+  isStaleActionError,
+  STALE_ACTION_MESSAGE,
+} from "@/components/laffogato/stale-action";
 import { checkoutCartKey, textFingerprint } from "@/lib/checkout/cart-key";
 import {
   deliveryDraftErrors,
@@ -699,6 +703,8 @@ function CheckoutForm({
   // Paying ─────────────────────────────────────────────────────────────
   const [placing, setPlacing] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  /** The page predates a deploy: only a reload gets the customer on. */
+  const [staleSite, setStaleSite] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [banner, setBanner] = useState<CheckoutReturn | null>(returned);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -978,8 +984,16 @@ function CheckoutForm({
           );
         }),
       ]);
-    } catch {
+    } catch (err) {
       stop();
+      if (isStaleActionError(err)) {
+        // A deploy since this page loaded: pressing again would fail the
+        // same way. The delivery draft is saved above, the cart is in
+        // localStorage; a reload brings both back.
+        setStaleSite(true);
+        setPayError(`Kartından para çekilmedi. ${STALE_ACTION_MESSAGE}`);
+        return;
+      }
       setPayError(
         "Bağlantı kurulamadı; kartından para çekilmedi. İnternet bağlantını kontrol edip yeniden dene.",
       );
@@ -1700,6 +1714,15 @@ function CheckoutForm({
               <p className="auth-alert co-pay-error" role="alert">
                 {payError}
               </p>
+            ) : null}
+            {staleSite ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => window.location.reload()}
+              >
+                Sayfayı yenile
+              </button>
             ) : null}
             {/* Mesafeli Sözleşmeler Yönetmeliği: the consumer confirms the
                 ön bilgilendirme formu and accepts the mesafeli satış
