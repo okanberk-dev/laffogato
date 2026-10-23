@@ -39,11 +39,14 @@ import { updateSession } from "@/lib/supabase/proxy";
 /**
  * Three jobs, in order:
  *
- * 1. Supabase session refresh for every page request (docs/AUTH-BRIDGE.md).
- *    Rotated tokens are written back onto the response so Server Components,
- *    which cannot set cookies themselves, always render with a live session.
- *    `/api/*` is skipped: the mobile API authenticates with a bearer token per
- *    request, the payment webhook with an HMAC, the cron with the bearer
+ * 1. Supabase session refresh, on the member pages (`/uye`) only: nowhere
+ *    else reads that session (`isSessionRefreshPath`, docs/AUTH-BRIDGE.md
+ *    §4). Rotated tokens are written back onto the response so Server
+ *    Components, which cannot set cookies themselves, always render with a
+ *    live session. `updateSession` still runs on every page for the request
+ *    headers it forwards; off `/uye` it touches nothing. `/api/*` is
+ *    skipped: the mobile API authenticates with a bearer token per request,
+ *    the payment webhook with an HMAC, the cron with the bearer
  *    `CRON_SECRET`, and the one-click unsubscribe with the token in its URL -
  *    none has a cookie session to refresh.
  *
