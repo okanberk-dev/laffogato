@@ -20,7 +20,8 @@ import {
  *
  * - `listPanelOpenOrderRows`: paid, preparing and ready-for-pickup café
  *   orders, never a manual one, a shop parcel or a table order that left
- *   the counter, with the columns `toPanelOrder` reads;
+ *   the counter, with the columns `toPanelOrder` reads (the member's note
+ *   on a gel-al order, never a courier order's door code);
  * - `listPanelSalesOrderRows` / `listPanelSalesBookingRows`: the counted
  *   orders of a period with its margin, and every booking whose money
  *   reached the POS, with the rate it was sold at.
@@ -84,9 +85,17 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         menuItemId: "mnu-0003",
         size: "M",
         detail: "M · yulaf",
+        options: { milk: "oat", note: "az köpüklü" },
         taxRatePct: 10,
       },
     ];
+    // What the app writes: a courier order's note starts with the address
+    // note (a door code), a gel-al or table order's is the member's own.
+    const fulfillment = f.fulfillment ?? "pickup";
+    const deliveryNote =
+      fulfillment === "delivery"
+        ? "Kapı kodu 4821 · Fındık alerjim var"
+        : "Fındık alerjim var";
     await q(
       `insert into public.orders (id, "orderNo", status, kind, source,
          fulfillment, items, refunds, "subtotalMinor", "totalMinor",
@@ -94,20 +103,21 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
          "deliveryNote", "createdAt", "paidAt", "shippedAt")
        values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, $9,
          'Ayşe Yılmaz', 'ayse@example.com', '+905551112233', 'Postane Mah.',
-         'Kapı kodu 4821', $10, $11, $12)`,
+         $13, $10, $11, $12)`,
       [
         id,
         orderNo,
         f.status,
         f.kind ?? "cafe",
         f.source ?? "",
-        f.fulfillment ?? "pickup",
+        fulfillment,
         JSON.stringify(items),
         JSON.stringify(f.refunds ?? []),
         f.totalMinor ?? 12_000,
         f.createdAt ?? minutesAgo(30),
         f.paidAt ?? minutesAgo(20),
         f.shippedAt ?? "",
+        deliveryNote,
       ],
     );
   }
@@ -122,7 +132,11 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     await q("delete from public.karaoke_reservations");
 
     await insertOrder("ord-pf-01", 90_001, { status: "paid" });
-    await insertOrder("ord-pf-02", 90_002, { status: "preparing" });
+    // A courier order being made: on the screen, its door code is not.
+    await insertOrder("ord-pf-02", 90_002, {
+      status: "preparing",
+      fulfillment: "delivery",
+    });
     await insertOrder("ord-pf-03", 90_003, {
       status: "shipped",
       shippedAt: minutesAgo(5),
@@ -228,10 +242,12 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
     const shown = rows
       .map((r) => toPanelOrder(r, NOW))
       .filter((o) => o !== null);
-    expect(shown.map((o) => [o.id, o.stage, o.firstName])).toEqual([
-      ["ord-pf-01", "new", "Ayşe"],
-      ["ord-pf-02", "preparing", "Ayşe"],
-      ["ord-pf-03", "ready", "Ayşe"],
+    expect(
+      shown.map((o) => [o.id, o.stage, o.firstName, o.note, o.lines[0].note]),
+    ).toEqual([
+      ["ord-pf-01", "new", "Ayşe", "Fındık alerjim var", "az köpüklü"],
+      ["ord-pf-02", "preparing", "Ayşe", "", "az köpüklü"],
+      ["ord-pf-03", "ready", "Ayşe", "Fındık alerjim var", "az köpüklü"],
     ]);
     const text = JSON.stringify(shown);
     for (const leak of [

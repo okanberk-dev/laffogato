@@ -10,6 +10,8 @@ import {
   verifySignature,
 } from "@/lib/panel/karaoke-sync-core";
 import {
+  PANEL_ORDER_LINE_NOTE_MAX,
+  PANEL_ORDER_NOTE_MAX,
   PANEL_ORDER_READY_STALE_MS,
   PANEL_ORDER_STALE_MS,
   PANEL_ORDERS_LOOKBACK_DAYS,
@@ -23,7 +25,8 @@ import {
  * The open café orders on the köşk panel's bar screen
  * (src/lib/panel/orders-feed-core.ts, src/app/api/panel/orders/route.ts,
  * docs/PANEL-ORDERS.md). What is pinned: only the whitelisted fields leave
- * (a first name, never the rest of the customer), only paid app and web
+ * (a first name, never the rest of the customer; the member's note on a
+ * table or gel-al order, never a courier order's), only paid app and web
  * café orders in an open stage are on the screen, a forgotten one leaves
  * it, the route answers only a signed request, and every order write pings
  * the panel from the write hook.
@@ -46,6 +49,7 @@ function row(over: Partial<PanelOrderSourceRow> = {}): PanelOrderSourceRow {
     scheduledFor: "",
     paidAt: new Date(NOW.getTime() - 5 * 60_000).toISOString(),
     shippedAt: "",
+    deliveryNote: "  Fındık alerjim var ",
     totalMinor: 24000,
     items: [
       {
@@ -55,6 +59,7 @@ function row(over: Partial<PanelOrderSourceRow> = {}): PanelOrderSourceRow {
         menuItemId: "mnu-0003",
         size: "M",
         detail: "M · yulaf · +1 shot",
+        options: { milk: "oat", extraShot: true, note: " şurupsuz lütfen " },
       },
       {
         productName: "Cheesecake",
@@ -80,7 +85,6 @@ describe("toPanelOrder", () => {
           customerEmail: "ayse@example.com",
           customerPhone: "+905551112233",
           shippingAddress: "Postane Mah.",
-          deliveryNote: "Kapı kodu 4821",
           internalNote: "VIP",
         } as object),
       },
@@ -94,6 +98,7 @@ describe("toPanelOrder", () => {
       label: "Gel-al",
       firstName: "Ayşe",
       scheduledFor: "",
+      note: "Fındık alerjim var",
       paidAt: row().paidAt,
       lines: [
         {
@@ -101,6 +106,7 @@ describe("toPanelOrder", () => {
           name: "Latte",
           size: "M",
           detail: "M · yulaf · +1 shot",
+          note: "şurupsuz lütfen",
           qty: 2,
         },
         {
@@ -108,6 +114,7 @@ describe("toPanelOrder", () => {
           name: "Cheesecake",
           size: "single",
           detail: "",
+          note: "",
           qty: 1,
         },
       ],
@@ -120,11 +127,64 @@ describe("toPanelOrder", () => {
       "example.com",
       "5551112233",
       "Postane",
-      "4821",
       "VIP",
     ]) {
       expect(text).not.toContain(leak);
     }
+  });
+
+  it("sends the member's note on a table or gel-al order, never a courier's", () => {
+    expect(toPanelOrder(row(), NOW)?.note).toBe("Fındık alerjim var");
+    expect(
+      toPanelOrder(
+        row({ fulfillment: "table", tableCode: "K7Q2M9X4TB", tableName: "4" }),
+        NOW,
+      )?.note,
+    ).toBe("Fındık alerjim var");
+    // A courier order's note starts with the address note: a door code.
+    const courier = toPanelOrder(
+      row({
+        fulfillment: "delivery",
+        deliveryNote: "Kapı kodu 4821 · Fındık alerjim var",
+      }),
+      NOW,
+    );
+    expect(courier?.note).toBe("");
+    expect(JSON.stringify(courier)).not.toContain("4821");
+    // The line notes are the member's word on the drink: they ride along.
+    expect(courier?.lines[0].note).toBe("şurupsuz lütfen");
+    expect(toPanelOrder(row({ deliveryNote: undefined }), NOW)?.note).toBe("");
+  });
+
+  it("trims the notes and cuts a long one", () => {
+    const long = toPanelOrder(
+      row({
+        deliveryNote: `  ${"ç".repeat(PANEL_ORDER_NOTE_MAX + 50)}  `,
+        items: [
+          {
+            productName: "Latte",
+            qty: 1,
+            status: "pending",
+            options: { note: "😀".repeat(PANEL_ORDER_LINE_NOTE_MAX + 5) },
+          },
+          {
+            productName: "Mocha",
+            qty: 1,
+            status: "pending",
+            options: { note: 42 },
+          },
+          { productName: "Su", qty: 1, status: "pending", options: null },
+        ],
+      }),
+      NOW,
+    )!;
+    expect(long.note).toBe("ç".repeat(PANEL_ORDER_NOTE_MAX));
+    // Characters, not UTF-16 halves: no broken emoji at the cut.
+    expect(Array.from(long.lines[0].note)).toHaveLength(
+      PANEL_ORDER_LINE_NOTE_MAX,
+    );
+    expect(long.lines[0].note).toBe("😀".repeat(PANEL_ORDER_LINE_NOTE_MAX));
+    expect(long.lines.slice(1).map((l) => l.note)).toEqual(["", ""]);
   });
 
   it("names a table order by its table, as the counter card does", () => {

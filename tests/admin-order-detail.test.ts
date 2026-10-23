@@ -475,6 +475,19 @@ describe("the order page", () => {
     expect(detail(order())).toContain("Büyük · yulaf sütü · +1 shot");
   });
 
+  it("shows the member's note on the line", () => {
+    const noted = order({
+      items: [
+        {
+          ...order().items[0],
+          options: { milk: "oat", note: " şurupsuz lütfen " },
+        },
+      ],
+    });
+    expect(detail(noted)).toContain("Not: şurupsuz lütfen");
+    expect(detail(order())).not.toContain("Not: ");
+  });
+
   it("shows the payment rows with the reference masked", () => {
     const out = detail(order());
     expect(out).toContain("IKSI…2168");
