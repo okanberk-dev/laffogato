@@ -188,6 +188,23 @@ export function changedSaleFields(
   return out;
 }
 
+/**
+ * Whether a change gives an L price to an item the site keeps single-size.
+ * Only the site opens an L size: the panel's copy may be minutes old, and
+ * an L price sent from it after the operator closed the size here would
+ * open it again. Closing L (0) and moving an open L stay the panel's.
+ */
+export function opensLargeSize(
+  current: Pick<PanelMenuItem, "priceMinorL">,
+  wanted: PanelMenuSaleFields,
+): boolean {
+  return (
+    wanted.priceMinorL !== undefined &&
+    wanted.priceMinorL > 0 &&
+    !(current.priceMinorL > 0)
+  );
+}
+
 /** Whether a set of changes moves a price (the price list's date then may be stale). */
 export function changesPrice(fields: PanelMenuSaleFields): boolean {
   return fields.priceMinor !== undefined || fields.priceMinorL !== undefined;

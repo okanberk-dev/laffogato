@@ -13,6 +13,7 @@ import {
 import {
   changedSaleFields,
   changesPrice,
+  opensLargeSize,
   PANEL_MENU_MAX_BODY_BYTES,
   panelAuditActor,
   parsePanelMenuChange,
@@ -205,6 +206,19 @@ describe("a write's rules (the menu form's)", () => {
     expect(changesPrice({ priceMinorL: 16000 })).toBe(true);
     expect(panelAuditActor(" Selin ")).toBe("panel:Selin");
   });
+
+  it("lets only the site open an L size", () => {
+    const single = { priceMinorL: 0 };
+    expect(opensLargeSize(single, { priceMinorL: 16000 })).toBe(true);
+    expect(opensLargeSize({ priceMinorL: -5 }, { priceMinorL: 1 })).toBe(true);
+    // Closing L, leaving it out or keeping it 0 is no opening.
+    expect(opensLargeSize(single, { priceMinorL: 0 })).toBe(false);
+    expect(opensLargeSize(single, { priceMinor: 14500 })).toBe(false);
+    // An L the site already sells may move or close.
+    const two = { priceMinorL: 15000 };
+    expect(opensLargeSize(two, { priceMinorL: 16000 })).toBe(false);
+    expect(opensLargeSize(two, { priceMinorL: 0 })).toBe(false);
+  });
 });
 
 describe("the price list's day (menuPricesDateStale)", () => {
@@ -396,6 +410,49 @@ describe("POST /api/panel/menu", () => {
     expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
     expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
     expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("refuses with 409 an L price for an item the site keeps single-size", async () => {
+    // The operator closed Latte's L here; the panel's copy still has it.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
+    const res = await POST(
+      signedPost({
+        id: "mnu-0011",
+        priceMinor: 14500,
+        priceMinorL: 16000,
+        actor: "Selin",
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual({ error: "single_size" });
+    // Nothing of the change is written, not even its M price.
+    expect(store.setMenuItemSaleFields).not.toHaveBeenCalled();
+    expect(store.markMenuPricesChanged).not.toHaveBeenCalled();
+    expect(safeAudit).not.toHaveBeenCalled();
+  });
+
+  it("still takes an L of 0, no L, or an L the site sells", async () => {
+    store.setMenuItemSaleFields.mockImplementation(async (_id, fields) => ({
+      ...item(),
+      ...fields,
+    }));
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 0 }));
+    for (const body of [
+      { id: "mnu-0011", priceMinor: 14500, priceMinorL: 0, actor: "S" },
+      { id: "mnu-0011", priceMinor: 14500, actor: "S" },
+    ]) {
+      expect((await POST(signedPost(body))).status).toBe(200);
+    }
+    // The operator opened L here meanwhile: the panel's L price is a move.
+    store.getMenuItemForPanel.mockResolvedValue(item({ priceMinorL: 15000 }));
+    const res = await POST(
+      signedPost({ id: "mnu-0011", priceMinorL: 16000, actor: "S" }),
+    );
+    expect(res.status).toBe(200);
+    expect(store.setMenuItemSaleFields).toHaveBeenLastCalledWith("mnu-0011", {
+      priceMinorL: 16000,
+    });
   });
 
   it("a sold-out switch is not a price change", async () => {
