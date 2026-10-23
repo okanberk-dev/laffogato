@@ -283,14 +283,14 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         );
       }
       // Planned for two hours from now, paid five days ago: live.
-      await insertOrder("ord-pf-12", 90_012, {
+      await insertOrder("ord-pf-13", 90_013, {
         status: "paid",
         paidAt: minutesAgo(5 * 24 * 60),
         createdAt: minutesAgo(5 * 24 * 60),
       });
       await q(`update public.orders set "scheduledFor" = $1 where id = $2`, [
         new Date(NOW.getTime() + 2 * 60 * 60_000).toISOString(),
-        "ord-pf-12",
+        "ord-pf-13",
       ]);
 
       const limit = PANEL_ORDERS_MAX + 1;
@@ -303,7 +303,7 @@ maybe("the köşk panel's order and sales reads in a real Postgres", () => {
         "ord-pf-01",
         "ord-pf-02",
         "ord-pf-03",
-        "ord-pf-12",
+        "ord-pf-13",
       ]);
       expect(panelOrderRowsComplete(rows, limit)).toBe(true);
       expect(
