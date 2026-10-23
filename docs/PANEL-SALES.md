@@ -69,8 +69,14 @@ adetle çarpılarak sayılır (v1'e ekleme, isteğe bağlı alanlar):
 
 Hiçbiri yoksa alan **hiç yoktur** (boş nesne ya da 0 değil): seçeneksiz
 satırın biçimi eskisiyle aynıdır. Kavurma (`roast`), şeker ve not
-gönderilmez. Bilinmeyen kimlik sayılmaz. Panel, örneğin `milks.oat`'ı
-yulaf sütü ürününe eşleyip tarifteki normal sütten aynı adet kadar düşer.
+gönderilmez. Bilinmeyen kimlik sayılmaz.
+
+Panelin bu sayıları kullanması ayrı iştir (panelin satır şeması bugün
+bilmediği alanları atar). Kullanırken: `milks.oat` yulaf sütü ürününe
+eşlenir; tarifinde süt olan içecekte normal süt aynı adet kadar düşer,
+sütsüz içecekte (Americano) yalnız seçilen süt eklenir, düşülecek normal
+süt yoktur. `extraShots` bir shot'luk kahve, `syrups` bir pompa şurup
+olarak eklenir.
 
 ## Uç
 
