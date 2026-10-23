@@ -541,8 +541,9 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
      (iptal listede görünmüyorsa tur tek çalıştırmada bitmeli: yarıda
      kalıp sürdürülen turda yeniden okuma yoktur);
    - "Oturumu sıfırla"dan sonraki eşitleme: pencereyi
-     `PARASUT_SYNC_FROM`'a ya da bu yılın başına çeker; yılın ilk
-     aylarında daraltır, önceki yılın kaydına hiç ulaşmaz;
+     `PARASUT_SYNC_FROM`'a ya da (boşsa) bu yılın başına çeker; boşken
+     yılın ilk aylarında daraltır ve önceki yılın kaydına ulaşmaz. Bu
+     tur da, iptal listede görünmüyorsa, tek çalıştırmada bitmeli;
    - Tedarikçiler'deki "Geçmiş faturaları al": o tedarikçinin listesini
      baştan okur, yeniden okuması yoktur (iptal listede görünüyorsa).
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
