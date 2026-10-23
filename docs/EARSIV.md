@@ -500,21 +500,32 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
   kesilmiş faturanın durumunu bir daha okumaz, kayıt sitede "kesildi"
   kalır; siparişin iadesi §3'teki gibi kapatılır.
 - **e-Fatura kesilmiş şirketin iadesi:** TEMELFATURA reddedilemez; alıcı
-  kendi iade e-Faturasını keser. Paraşüt'te **gelen** e-Fatura olarak düşer
-  (`direction: "inbound"`, `from_vkn` = alıcının VKN'si, yani sitenin
-  kurumsal müşteri kaydındaki `tax_number`); içeri alınınca yine
-  `purchase_bills`, iade (`refund`) olarak kaydedilmelidir. v4 API'de
-  `e_invoices` için liste ucu yoktur (yalnız oluşturma, tek kayıt ve PDF):
-  gelen e-Fatura API'de içeri alınmış bir `purchase_bills` kaydının
-  `active_e_document`'ı olarak görünür.
+  kendi iade e-Faturasını keser (`invoice_type_code: "IADE"`). Paraşüt'te
+  **gelen** e-Fatura olarak düşer (`direction: "inbound"`, `from_vkn` =
+  alıcının VKN'si, yani sitenin kurumsal müşteri carisindeki
+  `tax_number`). Panel onu iki yoldan görür:
+  - Paraşüt'te içeri alınırsa `purchase_bills`'te; iade (`item_type:
+    "refund"`) olarak kaydedilmelidir.
+  - İçeri alınmasa da `GET e_invoices` listesinde. Bu liste ucu v4
+    şartnamesinde yoktur ama çalışır: panel gelen e-Faturaları onunla okur
+    (lafmaliyet `src/server/parasut/einvoice.ts`, canlı denemeyle 20 Ekim
+    2026; yalnız `sort=-issue_date` kabul eder, süzgeç almaz). İçeri
+    alınmamış iade e-Faturası orada `relationships.invoice` boş bir
+    kayıttır: `supplier` ilişkisi ve `LAF-` ürün kodu yoktur, satırları
+    yalnız imzalı UBL'dedir ve alıcının kendi adlarını taşır. §9.4'ün ilk
+    üç kuralı bu kayda uygulanamaz; onu kural 5 ayırır.
 
 ### 9.4 Panel bunları nasıl ayırt eder
 
 1. **`purchase_bills` içinde `item_type: "refund"` gider değildir.**
    Paraşüt'ün modelinde gider tarafındaki iade, bir satışın iadesidir
-   (alış iadesi tersine Satışlar > Faturalar'a düşer). Panelin gider
-   okuması `filter[item_type]=purchase_bill` ile yapılmalı ya da `refund`
-   kayıtlar ayrı (satış iadesi, gelirden düşüm) sayılmalıdır.
+   (alış iadesi tersine Satışlar > Faturalar'a düşer). `refund` kayıtlar
+   giderden değil, ayrı (satış iadesi, gelirden düşüm) sayılmalıdır.
+   Liste **süzülmeden** okunmaya devam etmeli: panel `item_type:
+   "cancelled"` olanı görünce daha önce aldığı kaydı kaldırır (lafmaliyet
+   `shouldImport`); `filter[item_type]=purchase_bill` ile okumak hem bu
+   temizliği hem daha önce alınmış `refund` kayıtların düzeltilmesini
+   keser, kullanılmamalıdır.
 2. **Karşı tarafın `account_type`'ı.** `supplier` ilişkisindeki cari
    (`include=supplier`) `account_type: "customer"` ise tedarikçi değildir.
    Sitenin açtığı her cari `customer`'dır; panelin tedarikçi listesi
@@ -525,7 +536,16 @@ açılamadı, arama sonuçlarındaki metinlerden okundu):
 4. **Satış faturaları.** Site yalnız `sales_invoices` yazar; açıklaması
    `L'Affogato #…` ya da `Karaoke …` ile başlar. Sitenin e-Fatura'ları
    `outbound`'dur; gelen e-Fatura okuması `inbound` ile sınırlıysa sitenin
-   hiçbir belgesi oraya girmez.
+   hiçbir belgesi oraya girmez. Sitenin satışından doğan tek `inbound`
+   belge kurumsal alıcının iade e-Faturasıdır (kural 5).
+5. **Gelen iade e-Faturası (`GET e_invoices`, `invoice_type_code:
+   "IADE"`).** İade faturasını malı geri veren keser: köşke gelen bir
+   `IADE`, köşkün sattığı bir şeyin iadesidir, tedarikçi gideri değildir.
+   `from_vkn` sitenin bir carisinin `tax_number`'ı ise (cari `account_type:
+   "customer"`; `GET contacts?filter[tax_number]=…`) belge sitenin
+   satışının iadesidir. Panel onu gider olarak açmamalı ya da açtığı kaydı
+   satış iadesi (gelirden düşüm) olarak ayırmalıdır. Site kurumsal alıcıya
+   §8'den beri e-Fatura kestiği için bu belge artık gelebilir.
 
 ### 9.5 Siteye ayrı bir etiket: öneri, uygulanmadı
 
@@ -537,8 +557,9 @@ yüzden mümkündür, ama bugün eklenmedi:
 
 - Ayırt etmek için gerekmiyor: `account_type: "customer"`, `LAF-` kodu ve
   `item_type: "refund"` yukarıdaki kuralları zaten verir. Asıl sorunlu
-  belge (iade) operatörün elle açtığı `purchase_bills` kaydıdır; carinin ya
-  da ürünün kategorisi o belgeyi işaretlemez.
+  belge iadedir: operatörün elle açtığı `purchase_bills` kaydı ya da
+  kurumsal alıcının gelen iade e-Faturası (kural 5). İkisini de site
+  yazmaz; carinin ya da ürünün kategorisi onları işaretlemez.
 - Yeni bir istek ve yetki ister (kategoriyi bulmak ya da açmak), canlı
   bilgi olmadan burada sınanamaz.
 - 15 Ekim'den beri açılmış cariler ve ürünler işaretsiz kalır: ürünler bir

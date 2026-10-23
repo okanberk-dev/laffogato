@@ -79,11 +79,29 @@ describe("docs/EARSIV.md §9: what the panel reads", () => {
       'direction: "outbound"',
       'direction: "inbound"',
       "filter[account_type]=supplier",
-      "filter[item_type]=purchase_bill",
       "relationships.category",
+      'item_type: "cancelled"',
+      "GET e_invoices",
+      'invoice_type_code: "IADE"',
+      "from_vkn",
     ]) {
       expect(section, fact).toContain(fact);
     }
+  });
+
+  it("tells the panel what it actually reads: the e_invoices list and every purchase bill", () => {
+    const section = DOC.slice(DOC.indexOf("## 9. Panel bu kayıtları okur"));
+    // The panel lists inbound e-Faturas with GET e_invoices (lafmaliyet
+    // src/server/parasut/einvoice.ts): a company's return e-Fatura reaches
+    // it there even if never imported, so §9.4 must name it (rule 5).
+    expect(section).not.toMatch(/liste ucu yoktur/);
+    expect(section).toMatch(/^5\. \*\*Gelen iade e-Faturası/m);
+    // The panel retires a bill cancelled in Paraşüt only because it reads
+    // the list unfiltered; the doc must not advise filtering it.
+    expect(section).not.toMatch(
+      /okuması `filter\[item_type\]=purchase_bill` ile yapılmalı/,
+    );
+    expect(section).toMatch(/\*\*süzülmeden\*\* okunmaya devam etmeli/);
   });
 
   it("every contact the site opens is a customer, a consumer's and a company's", () => {
