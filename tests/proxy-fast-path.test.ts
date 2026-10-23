@@ -88,7 +88,7 @@ describe("the session refresh", () => {
 
   it("verifies a signed-in visitor's token locally (getClaims), not with a round trip per page", async () => {
     const { updateSession } = await import("@/lib/supabase/proxy");
-    const request = new NextRequest("https://laffogato.net/", {
+    const request = new NextRequest("https://laffogato.net/uye/hesap", {
       headers: { cookie: "sb-wvivcgctebyxojtyidfg-auth-token=base64-abc" },
     });
     await updateSession(request);
@@ -109,7 +109,7 @@ describe("the session refresh", () => {
       getClaims.mockImplementationOnce(() => new Promise(() => {}));
       const { updateSession } = await import("@/lib/supabase/proxy");
       const pending = updateSession(
-        new NextRequest("https://laffogato.net/", {
+        new NextRequest("https://laffogato.net/uye/hesap", {
           headers: { cookie: "sb-wvivcgctebyxojtyidfg-auth-token=base64-abc" },
         }),
       );
