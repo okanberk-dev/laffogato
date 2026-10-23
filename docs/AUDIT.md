@@ -1624,9 +1624,35 @@ bakış, kabuk ve takvim. Doğrulanan bulgular:
 | 🟢 | Takvim: 390 px'te uzun hafta adı oklara sığmıyordu; başka haftaya da "Bu hafta" deniyordu; üstüne gelince koyulaşan blok mürekkebi AA altına düşürüyordu | Telefonda üç harfli ay; "Bu hafta" yalnız bu hafta; gölgeyle kalkar | `admin-karaoke-calendar` |
 | 🟢 | Liste ↔ Takvim geçişi listenin sekmesini ve süzgeçlerini sıfırlıyordu (tarif §3.7) | Takvimin her bağlantısı listenin parametrelerini taşır; yazılan arama çerezinde kalır | `admin-karaoke-calendar` |
 
+**Ölçüm** (23 Eki 2026, `NODE_ENV=production next build`, Turbopack; her
+admin rotasının `rootMainFiles` + `entryJSFiles` dosyaları, gzip -9, UI-14'ün
+yöntemi). #230 öncesi `98c630e`, #231 sonrası `19c881b` ve bu incelemenin dört
+dalı birleşmiş hâli karşılaştırıldı; 76 admin rotası:
+
+| Rota | 98c630e | #231 sonrası | Dört dal sonrası |
+| --- | --- | --- | --- |
+| `/admin` | 212,0 | 212,5 | 212,6 |
+| `/admin/siparisler` | 225,1 | 226,0 | 226,2 |
+| `/admin/siparisler/[id]` | 222,5 | 224,4 | 224,5 |
+| `/admin/kasa` | 215,8 | 216,2 | 216,4 |
+| `/admin/mobil/karaoke` | 217,3 | 218,2 | 218,4 |
+| `/admin/urunler` | 219,8 | 230,6 | 230,7 |
+| `/admin/urunler/[id]` | 219,8 | 228,5 | 228,6 |
+| `/admin/menu` | 225,3 | 228,8 | 228,9 |
+| `/admin/ayarlar` | 229,6 | 231,2 | 231,3 |
+
+- Dört dal hiçbir rotaya 0,2 KB'tan fazla eklemiyor.
+- #231 iki ürün rotası dışında en çok 3,6 KB ekledi. `/admin/urunler`'in
+  10,8 KB'ı modül modül: 6,6 KB lucide (ikon haritası 5,5 + ikon fabrikası
+  1,1; hızlı bakış çekmecesi `AdminIcon`'u istemcide kullanıyor), kalanı
+  çekmecenin kendi kodu. Kütüphane payı 8 KB sınırının altında.
+- React Aria ve tarih paketi hiçbir admin rotasının ilk yüklemesinde yok.
+- `/admin/kasa`'ya kütüphane kodu girmedi.
+
 Açık (bilerek bırakıldı):
 
 | Derece | Bulgu | Neden açık |
 | --- | --- | --- |
 | 🟢 | Kullanıcılar'ın "Son giriş" sütunu hesap başına bir sorgu atıyor | Bugünkü hesap sayısında önemsiz; tek sorgu (`DISTINCT ON`) bir SQL fonksiyonu ister |
 | 🟢 | `invoice_claim` her çalıştırmada fatura rozetinin önbellek etiketini düşürüyor | Veritabanını uyandırmaz (okuma yalnız panel açıkken); etiket sözleşmesini değiştirmek bayat rozet riski taşır |
+| 🟢 | `AdminIcon`'u kullanan bir istemci bileşeni `ui/icons.tsx`'in bütün ikon haritasını (5,5 KB gz) rotaya getiriyor; 24 admin rotasında var (22'si #230'dan önce) | Kütüphane sınırının altında; ikonları istemcide tek tek almak `ui/icons.tsx`'in "her ikon bir kez adlandırılır" düzenini değiştirir, ayrı iş |
